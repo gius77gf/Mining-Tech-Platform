@@ -498,6 +498,8 @@ const BANCHI = [
   ["inventario dei cumuli · controprova", 'terra-inventario.mjs', ['--controprova'], true],
   ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
   ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
+  ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],
+  ["CSV degli inventari · controprova", 'terra-inventario-csv.mjs', ['--controprova'], true],
   /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
      anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
   ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],

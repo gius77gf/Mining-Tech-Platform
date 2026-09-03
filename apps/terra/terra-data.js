@@ -50,7 +50,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell,
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell, leggiCsv, dataIt,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -3006,7 +3006,7 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
 // alla pagina di Terra per disegnare l'elenco: pure, così si provano in `node`.
 // ══════════════════════════════════════════════════════════════════════
 export { inventarioUsabile, volumeInventario, cumuliUsabili, variazioneScorte, chiaveMateriale } from "../../shared/dw-ponti.js";
-import { inventarioUsabile, volumeInventario, cumuliUsabili } from "../../shared/dw-ponti.js";
+import { inventarioUsabile, volumeInventario, cumuliUsabili, chiaveMateriale } from "../../shared/dw-ponti.js";
 
 /* Che cosa dice UNA riga dell'elenco di un inventario. `volumeM3` è null quando
    l'inventario non è usabile — niente «0 m³» su un piazzale che nessuno ha
@@ -3034,4 +3034,120 @@ export function inventariOrdinati(inventari) {
   const chiave = (i) => dataISOEsiste(i?.data) ? String(i.data) : "";
   return inventari.map((inv) => ({ ...inv, ...riepilogoInventario(inv), record: inv }))
     .sort((a, b) => chiave(b).localeCompare(chiave(a)) || String(a.id ?? "").localeCompare(String(b.id ?? "")));
+}
+
+/* ⛔ IL FILE DEGLI INVENTARI CHE SI RI-CARICA — la stessa decisione 12a dei
+   rilievi (`csvRilievi`), applicata alla fotografia del piazzale: una copia di
+   sicurezza, non un prospetto. UNA RIGA PER CUMULO, così il file si legge in
+   Excel senza sciogliere niente, e l'inventario si ricompone dall'ultima
+   colonna (`inventarioId`) — o, se manca perché il file l'ha scritto qualcun
+   altro, da data + metodo.
+   ⛔ Il volume non misurato esce come cella VUOTA, mai `0`: è la stessa guardia
+   di `csvRilievi` (`numeroDichiarato`, non `Number.isFinite(+x)`), e qui morde
+   nel verso del ritorno — uno zero rientrerebbe come un cumulo MISURATO a zero
+   metri cubi, e `volumeInventario` lo sommerebbe come un fatto.
+   ⚠️ I numeri col PUNTO: il lettore usa `numIt`, che la virgola la legge, quindi
+   una prova di andata e ritorno resterebbe verde anche scrivendo la virgola —
+   la prova sul TESTO del file sta in `run-kpi`, come per i rilievi.
+   Ordine: per data decrescente (come `inventariOrdinati`), poi per materiale
+   (`chiaveMateriale`, cioè senza accenti né maiuscole). L'ordine in cui i
+   cumuli erano stati scritti NON si conserva: è una lista di mucchi, non una
+   sequenza, e in un file aperto da qualcun altro l'ordine alfabetico si legge.
+   Un inventario senza cumuli non scrive nessuna riga: lo dice
+   `rientroInventari`, prima di scaricare. */
+export const INTESTAZIONE_INVENTARI = "data;metodo;materiale;volumeM3;nota;inventarioId";
+export function csvInventari(inventari) {
+  const righe = [INTESTAZIONE_INVENTARI];
+  const chiave = (i) => dataISOEsiste(i?.data) ? String(i.data) : "";
+  const ordinati = (Array.isArray(inventari) ? inventari : []).filter(Boolean).map((inv, n) => ({ inv, n }))
+    .sort((a, b) => chiave(b.inv).localeCompare(chiave(a.inv)) || String(a.inv.id ?? "").localeCompare(String(b.inv.id ?? "")) || a.n - b.n);
+  for (const { inv } of ordinati) {
+    const cumuli = (Array.isArray(inv.cumuli) ? inv.cumuli : []).filter(Boolean).map((c, n) => ({ c, n }))
+      .sort((a, b) => chiaveMateriale(a.c.materiale).localeCompare(chiaveMateriale(b.c.materiale), "it") || a.n - b.n);
+    for (const { c } of cumuli) {
+      const v = numeroDichiarato(c.volumeM3);
+      righe.push([csvCell(inv.data || ""), csvCell(inv.metodo || ""), csvCell(c.materiale || ""),
+        v == null ? "" : String(v), csvCell(c.nota || ""), csvCell(inv.id || "")].join(";"));
+    }
+  }
+  return righe.join("\n") + "\n";
+}
+
+/* Il lettore del file qui sopra. `leggiCsv` e non `split("\n")`: una nota fra
+   virgolette può andare a capo, e il lettore riga per riga la spezzerebbe in
+   due righe rotte (è il difetto della causale bancaria di Conti, 01/08).
+   Risponde `{ inventari, scarti, letti }`:
+     · `letti` è il numero di righe di dati (l'intestazione non conta, le righe
+       vuote nemmeno — `leggiCsv` le toglie prima);
+     · `scarti` è UNA voce per riga che non entra, con la ragione scritta con
+       le stesse parole di `scartiRilieviCsv` («la data non esiste», «il volume
+       non si legge», «il volume è negativo»): la stessa cosa si chiama con lo
+       stesso nome. `riga` conta le righe non vuote del file, intestazione
+       compresa, così il numero è quello che si vede aprendo il file;
+     · un volume VUOTO non è uno scarto: è un cumulo non misurato (`null`),
+       che il prodotto sa raccontare. Uno scritto e illeggibile («abc», «n.d.»)
+       invece è una riga persa, e va detto;
+     · una data che non esiste scarta la riga — e quindi, riga per riga, tutto
+       l'inventario che la porta: non ne resta nessuno con quella data;
+     · due righe con lo stesso `inventarioId` e date diverse non si fondono in
+       silenzio: la seconda data resta fuori, con la ragione.
+   Su un testo vuoto risponde `letti: 0` e nessuno scarto: uno scarto inventato
+   accuserebbe un file che non c'è. Le chiavi di ogni inventario sono nello
+   stesso ordine del record salvato (`id, data, metodo, cumuli`), così la prova
+   di andata e ritorno confronta senza tradurre. */
+export function parseInventariCsv(testo) {
+  const { righe } = leggiCsv(testo);
+  const out = { inventari: [], scarti: [], letti: 0 };
+  const gruppi = new Map();
+  righe.forEach((celle, i) => {
+    const riga = i + 1;
+    if (i === 0 && isIntestazione(celle.join(";"), "data")) return;
+    out.letti++;
+    const [data, metodo, materiale, volume, nota, inventarioId] = Array.from({ length: 6 }, (_, k) => String(celle[k] ?? "").trim());
+    const scarta = (perche) => { out.scarti.push({ riga, perche }); };
+    if (!data) return scarta("la data non è stata scritta");
+    if (!dataISOEsiste(data)) return scarta("la data non esiste");
+    if (!chiaveMateriale(materiale)) return scarta("manca il materiale");
+    let volumeM3 = null;
+    if (volume !== "") {
+      const v = numIt(volume);
+      if (!Number.isFinite(v)) return scarta("il volume non si legge");
+      if (v < 0) return scarta("il volume è negativo");
+      volumeM3 = v;
+    }
+    const k = inventarioId ? "id:" + inventarioId : "dm:" + data + "|" + metodo;
+    let g = gruppi.get(k);
+    if (g && g.data !== data) return scarta("la data non è quella delle altre righe dello stesso inventario");
+    if (!g) {
+      g = inventarioId ? { id: inventarioId, data, metodo: metodo || null, cumuli: [] } : { data, metodo: metodo || null, cumuli: [] };
+      gruppi.set(k, g); out.inventari.push(g);
+    }
+    const c = { materiale, volumeM3 }; if (nota) c.nota = nota;
+    g.cumuli.push(c);
+  });
+  return out;
+}
+
+/* «Quanti di questi inventari torneranno dentro?» — DERIVATO dalle due funzioni
+   vere, come `rientroRilievi`: ogni inventario viene scritto da `csvInventari`
+   e riletto da `parseInventariCsv`. `cumuli` è il numero di righe scritte (una
+   per cumulo). Un inventario senza cumuli non scrive niente, uno con la data
+   che non esiste non rientra, uno in cui qualche cumulo si perde lo dice con
+   il conto e la ragione. `nome` è già in italiano perché finisce in una frase. */
+export function rientroInventari(inventari) {
+  const l = (Array.isArray(inventari) ? inventari : []).filter(Boolean);
+  const persi = []; let cumuli = 0;
+  for (const inv of l) {
+    const nome = dataISOEsiste(inv.data) ? "inventario del " + dataIt(inv.data) : "inventario con data «" + String(inv.data ?? "") + "»";
+    const scritti = csvInventari([inv]).split("\n").length - 2;   // meno intestazione e riga finale vuota
+    cumuli += scritti;
+    if (!scritti) { persi.push({ nome, ragione: "non ha nessun cumulo: non c'è niente da scrivere" }); continue; }
+    const r = parseInventariCsv(csvInventari([inv]));
+    const rientrati = r.inventari.reduce((s, x) => s + x.cumuli.length, 0);
+    if (r.inventari.length === 1 && rientrati === scritti) continue;
+    const perche = [...new Set(r.scarti.map(s => s.perche))].join(", ");
+    persi.push({ nome, ragione: !r.inventari.length ? (perche || "il lettore lo scarta")
+      : conta(scritti - rientrati, "cumulo", "cumuli") + " su " + scritti + (scritti - rientrati === 1 ? " resta" : " restano") + " fuori (" + perche + ")" });
+  }
+  return { scritti: l.length, cumuli, rientrano: l.length - persi.length, persi };
 }

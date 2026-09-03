@@ -283,6 +283,12 @@ const VOCABOLARIO_MANCANTE = [
   [/^Senza dati$/, "un PERIODO senza nessuna lettura registrata (report di conformità)"],
   [/^Mai misurato$/, "un PUNTO di misura che non è mai stato letto"],
   [/^Manca /, "un CAMPO preciso che non c'è — convenzione «Manca <il campo>», una frase per campo"],
+  /* ⚠️ 03/09: NON è un modo di dire «manca il dato». È una CAUSALE DI FERMO di
+     Campo — perché l'attività si è fermata: il materiale non c'era — che dal
+     03/09 vive come `etichetta` di un oggetto e quindi la sonda la legge; prima
+     era una stringa nuda in un array e non la vedeva. La parola resta identica
+     per l'utente, e non si tocca per accontentare il righello. */
+  [/^Mancanza materiale$/, "una CAUSALE di fermo di Campo (il materiale non c'era), non un dato assente"],
   [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
   /* ⛔ LA SORELLA DI «SENZA FREQUENZA», E NON SI SCHIACCIA SU DI LEI (02/08,

@@ -1211,7 +1211,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, chiaveCausale, etichettaCausale, descriviCausale, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -1328,6 +1328,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // mangiano la giornata». I minuti sono l'unica grandezza sull'asse: il
   // numero di fermi resta un'etichetta nella riga di spiegazione, mai una
   // seconda scala.
+  /* ⛔ I FERMI CHE STANNO IN «ALTRO» SENZA CHE QUALCUNO L'ABBIA SCELTO. Una
+     causale che l'elenco non conosce — un testo libero, o una voce che è
+     stata rinominata — finisce nella categoria residua del Pareto; qui si
+     dice quanti sono e con quali parole, se no il Pareto scende in silenzio.
+     `html` decide se le parole vanno in grassetto (schermo) o nude (testo). */
+  function fraseNonRiconosciute(pf, html) {
+    if (!pf || !pf.nonRiconosciute) return "";
+    const b = (t) => html ? "<b>" + esc(t) + "</b>" : t;
+    const parole = pf.valoriNonRiconosciuti.map(v => "«" + b(v) + "»").join(", ");
+    return (html ? " · " : " ") + (pf.nonRiconosciute === 1
+      ? "1 fermo ha una causale non in elenco (" + parole + ") ed è contato in «Altro»"
+      : pf.nonRiconosciute + " fermi hanno una causale non in elenco (" + parole + ") e sono contati in «Altro»");
+  }
   function grafFermi(pf, tuttiIGiorni) {
     const el = svuotaGraf("fermi-pareto"); if (!el) return;
     const quando = tuttiIGiorni ? "in tutti i giorni" : "oggi";
@@ -1368,7 +1381,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? " " + (pf.voci.filter(v => !v.minuti).length === 1
                 ? "Una causale è a zero perché i suoi minuti non sono stati scritti"
                 : pf.voci.filter(v => !v.minuti).length + " causali sono a zero perché i loro minuti non sono stati scritti")
-              + ", non perché quei fermi non siano costati tempo." : ""),
+              + ", non perché quei fermi non siano costati tempo." : "")
+        + (pf.nonRiconosciute
+            ? " Inoltre " + fraseNonRiconosciute(pf, false).trim() + "."
+            : ""),
       // anche l'aria si declina: chi legge con lo screen reader sente la frase
       // per intero, e «1 minuti» lì suona come a schermo
       aria: "Minuti di fermo per causale " + quando + ": "
@@ -1887,7 +1903,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // — «ripartito» — che a colpo d'occhio non si distinguerebbe.
       const meta = [
         v.chiuso ? "Fermo ripartito" : "",
-        v.causale || "causale non indicata",
+        v.causale ? v.causale + (v.causaleInElenco === false ? " (non in elenco)" : "") : "causale non indicata",
         v.minutiTesto,
         v.turno ? "turno " + v.turno : "",
         v.data ? dmy(v.data) : "senza data",
@@ -2080,7 +2096,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
                         : a.stato === filtroAtt)
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
-    const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
+    // ⛔ la tendina salva la CHIAVE e mostra l'ETICHETTA; il valore salvato può
+    // essere una chiave o un'etichetta vecchia, e `chiaveCausale` le riconosce
+    // tutt'e due. Un testo che l'elenco non conosce («Nebbia») NON si nasconde
+    // dietro «Causale…» come se nessuno l'avesse compilata: resta a schermo,
+    // segnato «non in elenco», finché qualcuno non sceglie una voce vera.
+    const optCausali = (sel) => { const k = chiaveCausale(sel), fuori = !k && String(sel || "").trim();
+      return CAUSALI_FERMO.map(c => `<option value="${esc(c.chiave)}"${c.chiave===k?" selected":""}>${esc(c.etichetta)}</option>`).join("")
+        + (fuori ? `<option value="${esc(sel)}" selected>${esc(descriviCausale(sel))} (non in elenco)</option>` : ""); };
     $("att-list").innerHTML = attVis.map(a => { const bloc = eChiuso(a.data, a.turno);
       return `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: questa attività non si può più cambiare" : "Tocca per far avanzare lo stato"}">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div>
@@ -2139,6 +2162,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           + ` su <b>${fermi.length}</b> ${fermi.length === 1 ? "causale" : "causali diverse"}`
           + (anom ? ` · <b>${anom}</b> ${anom === 1 ? "attività ancora aperta" : "attività ancora aperte"} in anomalia`
                   : " · nessuna attività ancora in anomalia")
+          + fraseNonRiconosciute(paretoFermi(ATT_G), true)
         : ""; }
     // PONTE P4 · «e poi?»: a quali fermi è già stata data una risposta.
     renderPonteFermi();
@@ -4358,6 +4382,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
         + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
     }
+    if (pf.nonRiconosciute) txt += "  (" + fraseNonRiconosciute(pf, false).trim() + ")\n";
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
@@ -4376,7 +4401,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
     // ⛔ e la RIGA lo dice, non solo il totale: la colonna del turno di una
     // registrazione senza giorno la attribuiva al turno del giorno stampato
-    const riga = (a) => `<tr><td>${esc(a.turno||"—")}${senzaGiornoDiLavoro(a)?` <b>· senza data</b>`:""}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
+    const riga = (a) => `<tr><td>${esc(a.turno||"—")}${senzaGiornoDiLavoro(a)?` <b>· senza data</b>`:""}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(descriviCausale(a.causale)):""}</td></tr>`;
     const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
     // Obiettivi del giorno (uno per turno) con lo scostamento a consuntivo.
     const obOggi = OBIE.filter(o => String(o.data||"") === OGGI)
@@ -4492,12 +4517,12 @@ ${/* QUESTA TABELLA DICEVA MENO DI QUELLA DELLO SCHERMO. Si componeva con
      Attenuante vera, scritta per non gonfiare: piu sotto la tabella
      «Disponibilita del turno» il tempo perso lo riporta. Il dato non spariva
      dal foglio; questa tabella pero ne diceva meno del dovuto. */""}
-${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${conta(pfOggi.senzaMinutiTot, "fermo", "fermi")} su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
+${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${conta(pfOggi.senzaMinutiTot, "fermo", "fermi")} su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}${pfOggi.nonRiconosciute?`<div class="muted">${fraseNonRiconosciute(pfOggi, true).replace(/^ · /, "")}.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
 <h2>Disponibilità del turno</h2>
 ${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
 <div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
  :"<div>Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.</div>"}
-${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
+${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(descriviCausale(a.causale)):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
 <h2>Produzione</h2>
 ${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
 <h2>Rapportini</h2>

@@ -2022,8 +2022,6 @@ test("paretoFermi: minuti non leggibili o negativi NON valgono zero", () => {
   eq(campo.minutiFermoTesto(pf.voci[0].minuti, pf.voci[0].conto, pf.voci[0].senzaMinuti),
      "senza minuti", "e chi lo scrive non dice «0 min»");
 });
-test("paretoFermi: nessuna anomalia = struttura vuota", () =>
-  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0, senzaMinutiTot: 0, fermiTot: 0, parziale: false }, "vuoto"));
 test("⛔ paretoFermi: un fermo senza minuti non entra nella somma valendo ZERO", () => {
   /* `+a.fermoMin || 0` faceva entrare un guasto mai misurato come «zero minuti
      persi»: il totale scendeva e nessuno lo sapeva. È lo stesso difetto già
@@ -10442,24 +10440,9 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ok(flotta.CAUSALI_FERMO.every(c => c.chiave && c.etichetta && c.nota),
       "ogni causale ha chiave, etichetta e spiegazione");
   });
-  test("⚠️ `CAUSALI_FERMO` esiste in DUE app e NON è la stessa cosa", () => {
-    /* Trovato scrivendo questa prova, con un'asserzione buttata lì che è
-       caduta: Campo esporta anche lui `CAUSALI_FERMO`. Non è la regola
-       riscritta due volte — sono due tassonomie di soggetti diversi:
-       Campo dice perché si è fermata UN'ATTIVITÀ di turno (testo semplice:
-       «Mancanza materiale», «Attesa mezzo», «Cambio turno»), Flotta perché
-       è fuori servizio UNA MACCHINA (voci con chiave, per calcolare la
-       disponibilità: «attesa-ricambi», «gomme-cingoli»).
-       La prova sta qui perché il nome uguale è una trappola per chi arriva
-       dopo: se un giorno le due liste diventassero davvero la stessa cosa,
-       il posto è `shared/`, non una copia. */
-    ok(Array.isArray(campo.CAUSALI_FERMO) && typeof campo.CAUSALI_FERMO[0] === "string",
-      "Campo: testo semplice, sono voci da scegliere in un elenco");
-    ok(typeof flotta.CAUSALI_FERMO[0] === "object" && flotta.CAUSALI_FERMO[0].chiave,
-      "Flotta: voci con chiave, perché ci si calcola sopra la disponibilità");
-    ok(campo.CAUSALI_FERMO.includes("Attesa mezzo"), "Campo parla di attività di turno");
-    ok(flotta.CAUSALI_FERMO.some(c => c.chiave === "gomme-cingoli"), "Flotta parla di macchine");
-  });
+  /* la prova «CAUSALI_FERMO esiste in DUE app e NON è la stessa cosa» stava qui:
+     dal 03/09 Campo ha la stessa FORMA di Flotta ({chiave, etichetta}) e la
+     prova, riscritta, vive nel blocco «Campo · le causali con chiave». */
 
   test("giorniFermo: una giornata persa è persa tutta (conteggio inclusivo)", () => {
     /* ferma il 3 e ripartita il 3 = un giorno, non zero: in cava mezza
@@ -23141,7 +23124,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 30, "i siti di export CSV censiti nelle quattro app")   // 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 31, "i siti di export CSV censiti nelle quattro app")   // 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -30816,10 +30799,10 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(shell.tabelleCsvDi("nome;ruolo").length, 0, "due celle sole non bastano a decidere");
   });
 
-  test("⛔ B8 · LA GUARDIA È COLLEGATA: 22 gestori d'importazione la chiamano davvero", () => {
+  test("⛔ B8 · LA GUARDIA È COLLEGATA: 23 gestori d'importazione la chiamano davvero", () => {
     /* ⛔ una guardia scollegata non è un errore di sintassi: la pagina si apre
        e non protegge niente. Il conto per pagina è quello misurato il 14/08. */
-    const ATTESE = { campo: 2, conti: 6, flotta: 3, scudo: 4, sentinella: 5, terra: 2 };
+    const ATTESE = { campo: 2, conti: 6, flotta: 3, scudo: 4, sentinella: 5, terra: 3 };   // terra 2 → 3 il 03/09: il caricamento degli inventari dei cumuli
     let tot = 0;
     for (const a of Object.keys(ATTESE)) {
       const src = readFileSync(join(RADICE, "apps", a, "index.html"), "utf8");
@@ -30828,7 +30811,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       ok(/fraseFileAltrui\(/.test(src), `${a}: e la frase la dice la funzione condivisa, non una copia`);
       tot += n;
     }
-    eq(tot, 22, "22 gestori d'importazione in sei app");
+    eq(tot, 23, "23 gestori d'importazione in sei app");
   });
 }
 
@@ -34736,6 +34719,226 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
   });
 }
 /* ===== fine ponte Terra → Conti · l'inventario dei cumuli ===== */
+
+{
+/* ── DECISIONE 12a PER GLI INVENTARI: il file che si RI-CARICA ──
+   Prove SINCRONE, da mettere PRIMA del riepilogo (l'`await Promise.all(inVolo)`
+   sta più su). Stessa forma delle prove di `csvRilievi`: il giro di andata e
+   ritorno E un'asserzione sul TESTO, perché `parseInventariCsv` usa `numIt`,
+   che la virgola la legge — scritto con la virgola il giro tornerebbe verde
+   su un file che solo la nostra app sa aprire. */
+test("csvInventari → parseInventariCsv: i tre inventari della demo tornano identici sui campi scritti", () => {
+  const INV = terra.DEMO.inventari;
+  const t = terra.csvInventari(INV);
+  const r = terra.parseInventariCsv(t);
+  const perMateriale = (a, b) => terra.chiaveMateriale(a.materiale).localeCompare(terra.chiaveMateriale(b.materiale), "it");
+  const attesi = INV.map((i) => ({ ...i, cumuli: [...i.cumuli].sort(perMateriale) })).sort((a, b) => b.data.localeCompare(a.data));
+  eq(r.inventari, attesi, "id, data, metodo, materiale, volume e nota: identici (i cumuli nell'ordine del file, per materiale)");
+  eq(r.scarti, [], "nessuna riga persa nel giro di casa nostra");
+  eq(r.letti, INV.reduce((s, i) => s + i.cumuli.length, 0), "una riga letta per ogni cumulo scritto");
+  const sabbia = r.inventari.find((i) => i.id === "i3").cumuli.find((c) => /Sabbia/.test(c.materiale));
+  eq(sabbia.volumeM3, null, "la sabbia «in lavorazione» torna non misurata, non 0");
+  eq(sabbia.nota, "Cumulo in lavorazione: non misurato");
+});
+test("csvInventari: il TESTO — intestazione, una riga per cumulo, il punto decimale, la cella vuota per il null", () => {
+  const t = terra.csvInventari([{ id: "x", data: "2026-03-01", metodo: "drone", cumuli: [
+    { materiale: "Sabbia lavata 0/4", volumeM3: 12.5 }, { materiale: "Ghiaia 16/32", volumeM3: null, nota: "in lavorazione" }, { materiale: "Pietrisco", volumeM3: "" }] }]);
+  const righe = t.split("\n");
+  eq(righe[0], "data;metodo;materiale;volumeM3;nota;inventarioId");
+  eq(terra.INTESTAZIONE_INVENTARI, righe[0], "l'intestazione è la costante che la pagina mostra nel messaggio d'errore");
+  eq(righe.length, 5, "intestazione + 3 cumuli + riga finale vuota");
+  ok(/;12\.5;/.test(t), t); eq(/;12,5;/.test(t), false, "una virgola qui la leggerebbe solo la nostra app");
+  eq(righe[1], "2026-03-01;drone;Ghiaia 16/32;;in lavorazione;x", "il null è una cella VUOTA, e i cumuli sono per materiale");
+  eq(righe[2], "2026-03-01;drone;Pietrisco;;;x", "anche la stringa vuota resta vuota: non diventa 0");
+  eq(/;0;/.test(t), false, "nessuno zero inventato");
+  eq(terra.csvInventari([]), terra.INTESTAZIONE_INVENTARI + "\n", "senza inventari, solo l'intestazione");
+  eq(terra.csvInventari(null), terra.INTESTAZIONE_INVENTARI + "\n", "e su un valore che non è una lista non esplode");
+  /* uno zero VERO è un dato: un cumulo misurato a zero (finito) si scrive 0 */
+  ok(/;Ghiaia;0;;/.test(terra.csvInventari([{ data: "2026-03-01", cumuli: [{ materiale: "Ghiaia", volumeM3: 0 }] }])), "lo zero misurato si scrive");
+});
+test("csvInventari: ordine per data decrescente (poi id), nota con ; e a capo fra virgolette, formula neutralizzata", () => {
+  const t = terra.csvInventari([
+    { id: "b", data: "2026-01-01", cumuli: [{ materiale: "A", volumeM3: 1 }] },
+    { id: "a", data: "2026-05-01", cumuli: [{ materiale: "A", volumeM3: 2, nota: "riga;con\na capo" }] },
+    { id: "c", data: "2026-05-01", cumuli: [{ materiale: "=A", volumeM3: 3 }] },
+  ]);
+  const r = terra.parseInventariCsv(t);
+  eq(r.inventari.map((i) => i.id), ["a", "c", "b"], "5 maggio prima del 1° gennaio; a parità di data per id");
+  eq(r.inventari[0].cumuli[0].nota, "riga;con\na capo", "la nota con ; e a capo fa il giro intera (leggiCsv, non split)");
+  ok(/"riga;con\na capo"/.test(t), "e nel testo sta fra virgolette");
+  eq(r.inventari[1].cumuli[0].materiale, "=A", "il materiale che comincia con = esce con l'apostrofo di guardia e rientra pulito");
+  ok(/;'=A;/.test(t), t);
+});
+test("parseInventariCsv: la virgola decimale, il volume illeggibile scartato con la ragione, la data che non esiste", () => {
+  const r = terra.parseInventariCsv([
+    "data;metodo;materiale;volumeM3;nota;inventarioId",
+    "2026-03-01;drone;Sabbia;12,5;;x",
+    "2026-03-01;drone;Ghiaia;abc;;x",
+    "2026-03-01;drone;Pietrisco;-4;;x",
+    "2026-03-01;drone;;7;;x",
+    "2026-02-30;drone;Sabbia;3;;y",
+    ";drone;Sabbia;3;;z",
+  ].join("\n"));
+  eq(r.letti, 6, "sei righe di dati: l'intestazione non conta");
+  eq(r.inventari, [{ id: "x", data: "2026-03-01", metodo: "drone", cumuli: [{ materiale: "Sabbia", volumeM3: 12.5 }] }], "12,5 → 12.5; l'inventario y (30 febbraio) non esiste");
+  eq(r.scarti, [
+    { riga: 3, perche: "il volume non si legge" },
+    { riga: 4, perche: "il volume è negativo" },
+    { riga: 5, perche: "manca il materiale" },
+    { riga: 6, perche: "la data non esiste" },
+    { riga: 7, perche: "la data non è stata scritta" },
+  ], "ogni riga persa con la sua ragione, numerata come si vede nel file (intestazione = riga 1)");
+});
+test("parseInventariCsv: testo vuoto → letti 0 e nessuno scarto inventato; sola intestazione idem; senza id raggruppa per data+metodo", () => {
+  eq(terra.parseInventariCsv(""), { inventari: [], scarti: [], letti: 0 });
+  eq(terra.parseInventariCsv(null), { inventari: [], scarti: [], letti: 0 });
+  eq(terra.parseInventariCsv("data;metodo;materiale;volumeM3;nota;inventarioId\n"), { inventari: [], scarti: [], letti: 0 }, "un file di sola intestazione non porta dentro righe finte");
+  const r = terra.parseInventariCsv("2026-03-01;drone;Sabbia;1\n2026-03-01;drone;Ghiaia;2\n2026-03-01;stima;Sabbia;3\n2026-04-01;drone;Sabbia;4\n");
+  eq(r.inventari.length, 3, "senza intestazione e senza id: data+metodo fa l'inventario (drone/stima del 01/03 sono due, il 01/04 è il terzo)");
+  eq(r.inventari[0], { data: "2026-03-01", metodo: "drone", cumuli: [{ materiale: "Sabbia", volumeM3: 1 }, { materiale: "Ghiaia", volumeM3: 2 }] }, "senza id il record non porta la chiave `id`");
+  eq(r.inventari.every((i) => !("id" in i)), true);
+  /* stesso id, date diverse: la seconda data non si fonde in silenzio */
+  const d = terra.parseInventariCsv("2026-03-01;drone;Sabbia;1;;k\n2026-03-02;drone;Ghiaia;2;;k\n");
+  eq(d.inventari.length, 1); eq(d.scarti, [{ riga: 2, perche: "la data non è quella delle altre righe dello stesso inventario" }]);
+  /* il volume «0» scritto è un cumulo misurato a zero; il vuoto è non misurato */
+  const z = terra.parseInventariCsv("2026-03-01;drone;Sabbia;0;;k\n2026-03-01;drone;Ghiaia;;;k\n").inventari[0].cumuli;
+  eq(z, [{ materiale: "Sabbia", volumeM3: 0 }, { materiale: "Ghiaia", volumeM3: null }]);
+});
+test("rientroInventari: derivato dalle due funzioni vere — tutti rientrano; senza cumuli e con la data che non esiste no", () => {
+  eq(terra.rientroInventari(terra.DEMO.inventari), { scritti: 3, cumuli: 11, rientrano: 3, persi: [] });
+  const r = terra.rientroInventari([
+    { id: "w", data: "2026-03-01", cumuli: [] },
+    { id: "z", data: "2026-02-30", cumuli: [{ materiale: "A", volumeM3: 1 }] },
+    { id: "m", data: "2026-03-05", cumuli: [{ materiale: "A", volumeM3: 1 }, { materiale: "", volumeM3: 2 }] },
+    { id: "v", data: "2026-03-06", cumuli: [{ materiale: "A", volumeM3: null }] },
+  ]);
+  eq(r.scritti, 4); eq(r.cumuli, 4, "una riga per cumulo scritto: 0 + 1 + 2 + 1"); eq(r.rientrano, 1, "solo «v»: un cumulo non misurato rientra come non misurato");
+  eq(r.persi, [
+    { nome: "inventario del 01/03/2026", ragione: "non ha nessun cumulo: non c'è niente da scrivere" },
+    { nome: "inventario con data «2026-02-30»", ragione: "la data non esiste" },
+    { nome: "inventario del 05/03/2026", ragione: "1 cumulo su 2 resta fuori (manca il materiale)" },
+  ]);
+  eq(terra.rientroInventari([]), { scritti: 0, cumuli: 0, rientrano: 0, persi: [] });
+  eq(terra.rientroInventari(null), { scritti: 0, cumuli: 0, rientrano: 0, persi: [] });
+});
+
+}
+/* ===== fine Terra · il CSV degli inventari ===== */
+
+/* ===== Campo · le causali con chiave (03/09) ===== */
+/* ═══ Campo · CAUSALI_FERMO con CHIAVE ed ETICHETTA (03/09) — da incollare in
+   run-kpi.mjs PRIMA del blocco di riepilogo finale. Prove SINCRONE.
+   ⚠️ Sostituisce anche le due prove vecchie che leggevano l'elenco come
+   stringhe: «CAUSALI_FERMO: lista non vuota, tutte stringhe uniche» e la
+   metà di Campo in «`CAUSALI_FERMO` esiste in DUE app e NON è la stessa
+   cosa» (`typeof … === "string"` e `.includes("Attesa mezzo")`). */
+console.log("\n— Campo: causali di fermo con chiave ed etichetta —");
+{
+  /* ⚠️ SOSTITUISCE «paretoFermi: nessuna anomalia = struttura vuota» (riga ~2025):
+     la struttura ha due campi in più, e la prova vecchia li confronta per intero. */
+  test("paretoFermi: nessuna anomalia = struttura vuota, e nessuna causale non riconosciuta", () =>
+    eq(campo.paretoFermi([]), { voci: [], totaleMin: 0, senzaMinutiTot: 0, fermiTot: 0, parziale: false,
+                                nonRiconosciute: 0, valoriNonRiconosciuti: [] }, "vuoto"));
+  const C = campo.CAUSALI_FERMO;
+  test("CAUSALI_FERMO: voci {chiave, etichetta}, chiavi corte e stabili, etichette uniche", () => {
+    ok(Array.isArray(C) && C.length >= 5, "elenco non vuoto");
+    ok(C.every(c => typeof c === "object" && c.chiave && c.etichetta), "ogni voce ha chiave ed etichetta");
+    ok(C.every(c => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(c.chiave)), "la chiave è minuscola, senza spazi né accenti: " + C.map(c => c.chiave).join(","));
+    eq(C.length, new Set(C.map(c => c.chiave)).size, "chiavi uniche");
+    eq(C.length, new Set(C.map(c => c.etichetta)).size, "etichette uniche");
+    ok(C.some(c => c.etichetta === "Attesa mezzo"), "Campo parla di attività di turno");
+    eq(campo.etichettaCausale(campo.CAUSALE_ALTRO), "Altro", "la categoria residua del Pareto è una voce dell'elenco");
+  });
+  test("⚠️ `CAUSALI_FERMO` in Campo e in Flotta: stessa FORMA, elenchi diversi", () => {
+    ok(typeof flotta.CAUSALI_FERMO[0] === "object" && flotta.CAUSALI_FERMO[0].chiave, "Flotta: voci con chiave");
+    ok(typeof C[0] === "object" && C[0].chiave, "Campo: la stessa forma, dal 03/09 — perché rinominare un'etichetta non orfani lo storico");
+    ok(flotta.CAUSALI_FERMO.some(c => c.chiave === "gomme-cingoli") && !C.some(c => c.chiave === "gomme-cingoli"),
+       "ma le liste parlano di soggetti diversi: una macchina là, un'attività di turno qui");
+  });
+  test("chiaveCausale: riconosce la chiave, l'etichetta vecchia e l'etichetta scritta male", () => {
+    eq(campo.chiaveCausale("guasto-meccanico"), "guasto-meccanico", "la chiave torna com'è");
+    eq(campo.chiaveCausale("Guasto meccanico"), "guasto-meccanico", "lo storico porta l'etichetta");
+    eq(campo.chiaveCausale("  GUASTO   meccanico "), "guasto-meccanico", "maiuscole e spazi non contano");
+    eq(campo.chiaveCausale("Intasamento impianto"), "intasamento-impianto", "l'etichetta della dimostrazione");
+    for (const c of C) {
+      eq(campo.chiaveCausale(c.chiave), c.chiave, "ogni chiave si riconosce: " + c.chiave);
+      eq(campo.chiaveCausale(c.etichetta), c.chiave, "ogni etichetta si riconosce: " + c.etichetta);
+      eq(campo.chiaveCausale(c.etichetta.toUpperCase()), c.chiave, "anche in maiuscolo: " + c.etichetta);
+    }
+    eq(campo.chiaveCausale("Nebbia"), null, "un testo che l'elenco non conosce → null, non «altro»");
+    eq(campo.chiaveCausale(""), null, "vuoto → null");
+    eq(campo.chiaveCausale(null), null, "null → null");
+    eq(campo.chiaveCausale(undefined), null, "undefined → null");
+    eq(campo.chiaveCausale("guasto"), null, "un pezzo di chiave non basta: non si indovina");
+  });
+  test("etichettaCausale e descriviCausale: la parola da mostrare", () => {
+    for (const c of C) ok(campo.etichettaCausale(c.chiave) === c.etichetta && c.etichetta.trim().length > 0, "etichetta non vuota per " + c.chiave);
+    eq(campo.etichettaCausale("pippo"), "", "una chiave sconosciuta non inventa una parola");
+    eq(campo.etichettaCausale(""), "", "vuota → vuota");
+    eq(campo.descriviCausale("intasamento-impianto"), "Intasamento impianto", "dalla chiave all'etichetta");
+    eq(campo.descriviCausale("Intasamento impianto"), "Intasamento impianto", "l'etichetta resta l'etichetta");
+    eq(campo.descriviCausale("Nebbia"), "Nebbia", "un testo fuori elenco resta com'è scritto: è un dato");
+    eq(campo.descriviCausale("  Nebbia "), "Nebbia", "ripulito degli spazi");
+    eq(campo.descriviCausale(""), "", "vuoto → vuoto");
+    eq(campo.descriviCausale(null), "", "null → vuoto");
+  });
+  const F = (id, causale, fermoMin) => ({ id, data: "2026-09-01", turno: "Mattina", titolo: "T " + id, squadra: "Squadra C", stato: "anomalia", causale, fermoMin });
+  test("⛔ il Pareto somma la forma VECCHIA (etichetta) e quella NUOVA (chiave) nella stessa causa", () => {
+    const att = [F("v1", "Attesa mezzo", 10), F("n1", "attesa-mezzo", 25), F("m1", "ATTESA  MEZZO", 5),
+                 { id: "x", stato: "in-corso", causale: "attesa-mezzo" }];
+    const pf = campo.paretoFermi(att);
+    eq(pf.voci.map(v => [v.causale, v.conto, v.minuti]), [["Attesa mezzo", 3, 40]], "una voce sola, coi minuti di tutt'e tre; l'attività in corso non conta");
+    eq(campo.riepilogoFermi(att), [{ causale: "Attesa mezzo", conto: 3 }], "e il riepilogo dice la stessa cosa");
+    eq(pf.nonRiconosciute, 0, "nessuna causale fuori elenco");
+    eq(pf.valoriNonRiconosciuti, [], "e nessun valore da nominare");
+  });
+  test("⛔ una causale fuori elenco va in «Altro» ma si CONTA e si NOMINA, invece di sparire", () => {
+    const att = [F("a", "Meteo", 30), F("b", "Nebbia", 20), F("c", "nebbia ", null), F("d", "Altro", 5), F("e", "", 7)];
+    const pf = campo.paretoFermi(att);
+    const altro = pf.voci.find(v => v.causale === "Altro");
+    eq(altro && [altro.conto, altro.minuti, altro.senzaMinuti], [4, 32, 1], "«Altro» raccoglie le due Nebbia, l'Altro scelto e la casella vuota");
+    eq(pf.nonRiconosciute, 2, "ma solo le due Nebbia sono NON riconosciute: «Altro» è una scelta, il vuoto è «non indicata»");
+    eq(pf.valoriNonRiconosciuti, ["Nebbia"], "i valori distinti, per testo normalizzato: «nebbia » è la stessa parola");
+    eq(campo.causaliNonRiconosciute(att), { conto: 2, valori: ["Nebbia"] }, "la funzione da sola dice lo stesso");
+    eq(campo.causaliNonRiconosciute([]), { conto: 0, valori: [] }, "nessuna attività, niente da contare");
+    eq(campo.causaliNonRiconosciute([{ id: "k", stato: "conclusa", causale: "Nebbia" }]), { conto: 0, valori: [] }, "una causale su un'attività NON in anomalia non è un fermo");
+    eq(campo.causaliNonRiconosciute(null), { conto: 0, valori: [] }, "null → zero, non un errore");
+  });
+  test("la dimostrazione porta tutt'e due le forme e una causale fuori elenco", () => {
+    const D = campo.DEMO.attivita;
+    ok(D.some(a => a.stato === "anomalia" && campo.chiaveCausale(a.causale) && a.causale !== campo.chiaveCausale(a.causale)), "un fermo salvato con l'ETICHETTA (lo storico)");
+    ok(D.some(a => a.stato === "anomalia" && campo.chiaveCausale(a.causale) === a.causale), "un fermo salvato con la CHIAVE (il record nuovo)");
+    ok(D.some(a => a.stato === "anomalia" && String(a.causale || "").trim() && !campo.chiaveCausale(a.causale)), "e uno con una causale che l'elenco non conosce");
+    const pf = campo.paretoFermi(D);
+    const int = pf.voci.find(v => v.causale === "Intasamento impianto");
+    eq(int && int.conto, 2, "le due forme di «Intasamento impianto» stanno nella stessa voce");
+    eq(int && int.minuti, 75, "coi minuti di tutt'e due (55 + 20)");
+    eq(pf.nonRiconosciute, 1, "un fermo con causale fuori elenco");
+    eq(pf.valoriNonRiconosciuti, ["Nebbia"], "e la nomina");
+    ok(!pf.voci.some(v => /-/.test(v.causale) && v.causale === v.causale.toLowerCase()), "nessuna CHIAVE compare come etichetta di una voce del Pareto");
+  });
+  test("anomalieAperte e la bozza per Scudo: l'etichetta per la chiave, il testo com'è per il fuori elenco", () => {
+    const f = campo.anomalieAperte([F("n1", "intasamento-impianto", 20), F("z", "Nebbia", 30), F("v", "", 5)]);
+    const di = (id) => f.find(x => x.id === id);
+    eq([di("n1").causale, di("n1").causaleInElenco], ["Intasamento impianto", true], "la chiave si mostra come etichetta");
+    eq([di("z").causale, di("z").causaleInElenco], ["Nebbia", false], "«Nebbia» resta leggibile, e si sa che non è in elenco");
+    eq([di("v").causale, di("v").causaleInElenco], ["", false], "la casella vuota resta vuota");
+    ok(campo.bozzaAzioneFermo(di("z")).origineNota.includes("causale: Nebbia (non in elenco)"), "la nota per l'RSPP scrive la parola E che non è in elenco");
+    ok(campo.bozzaAzioneFermo(di("n1")).origineNota.includes("causale: Intasamento impianto ·"), "e per la chiave scrive l'etichetta, senza codicilli");
+    ok(campo.bozzaAzioneFermo(di("v")).origineNota.includes("causale: non indicata"), "la vuota resta «non indicata»");
+    eq(campo.coperturaFermi([F("z", "Nebbia", 30), F("v", "", 5)], null).senzaCausale, 1, "«Nebbia» NON è «senza causale»: senza è solo la vuota");
+  });
+  test("⛔ il CSV delle attività scrive l'ETICHETTA, mai la chiave, e la si rilegge", () => {
+    const csv = campo.csvAttivita([F("n1", "intasamento-impianto", 20), F("v1", "Guasto meccanico", 10), F("z", "Nebbia", 30)]);
+    const col = campo.ATTIVITA_COLONNE.indexOf("causale");
+    const celle = csv.trim().split("\n").slice(1).map(r => shell.parseCsvLine(r)[col]);
+    eq(celle.sort(), ["Guasto meccanico", "Intasamento impianto", "Nebbia"], "tre celle leggibili da chi apre il file");
+    ok(!csv.includes("intasamento-impianto"), "la chiave non esce dal file");
+    eq(celle.map(c => campo.chiaveCausale(c)).sort(), [null, "guasto-meccanico", "intasamento-impianto"].sort(), "rilette, le etichette tornano alle chiavi; «Nebbia» resta fuori elenco");
+  });
+}
+
+/* ===== fine Campo · le causali con chiave ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
    CORE · LA FRECCIA DELLA CALOTTA: ZERO È UN VALORE (03/09, dal candidato

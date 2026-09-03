@@ -274,6 +274,21 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **TERRA: IL CSV DEGLI INVENTARI CHE ESCE E SI RI-CARICA (03/09,
+  decisione 12a applicata agli inventari).** Una riga per cumulo, il volume non
+  misurato scritto VUOTO (mai 0), i numeri col punto — con l'asserzione sul
+  TESTO, perché il lettore legge anche la virgola e il giro da solo non
+  distingue —, le righe perse con la ragione, il file dei rilievi rifiutato
+  fra gli inventari. Voce `terra.inventari` in `CSV_TABELLE`. Banco
+  `terra-inventario-csv` 29 prove, 3 difetti in controprova.
+- [x] **CAMPO: LE CAUSALI DEI FERMI CON CHIAVE (03/09, il candidato unico
+  della ricerca di Campo).** L'etichetta faceva da chiave: rinominare una voce
+  orfanava lo storico e tutto finiva in «Altro» in silenzio. Adesso la forma di
+  Flotta (`{chiave, etichetta}`, etichette identiche a prima), `chiaveCausale`
+  legge chiave, etichetta vecchia e etichetta scritta male (normalizzata con
+  `chiaveMateriale` di shared), e una causale fuori elenco si CONTA e si
+  NOMINA invece di sparire. I tre banchi di Campo verdi senza una riga
+  cambiata; `nomi-doppi` dichiara `etichettaCausale` diversa per mestiere.
 - [x] **L'ESITO DELLO SPARO E I CHILI PER TIPO (03/09, dal delta sul rapporto
   di volata in `docs/RICERCA_CONTINUA_GENESI.md`).** Sul rapportino fochino
   del core: colpi esplosi contati e colpi mancati con la nota (`esitoSparo` in
@@ -5824,7 +5839,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.982 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.996 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -5835,8 +5850,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **227 esecuzioni** che
-  aprono le pagine in un browser vero, da **93** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **229 esecuzioni** che
+  aprono le pagine in un browser vero, da **94** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

@@ -738,7 +738,11 @@ a.dw-btn{text-decoration:none}
   <div id="inv-list"></div>
   <div class="tools">
     <button class="dw-btn" id="btn-add-inv" title="Registra la fotografia del piazzale di oggi: un cumulo per riga, col volume in metri cubi">Nuovo inventario</button>
+    <button class="dw-btn secondary" id="btn-imp-inv" title="Carica un file nel formato che esce da «Scarica inventari»: una riga per cumulo">Carica inventari (CSV)</button>
+    <button class="dw-btn secondary" id="btn-exp-inv" title="Scarica gli inventari nello stesso formato che questa pagina sa ri-caricare">Scarica inventari (CSV)</button>
+    <input type="file" id="inv-file" accept=".csv,text/csv" style="display:none;">
   </div>
+  <div class="form-hint">Il file che esce da &laquo;Scarica inventari&raquo; &egrave; <b>lo stesso</b> che &laquo;Carica inventari&raquo; sa rileggere: &egrave; la copia di sicurezza degli inventari, non un prospetto. Colonne: <b>data; metodo; materiale; volumeM3; nota; inventarioId</b> &mdash; <b>una riga per cumulo</b>; un volume lasciato vuoto rientra come <b>non misurato</b>, non come zero.</div>
   <div class="form-hint">Ogni inventario è la <b>fotografia del piazzale</b> a una data: quanti metri cubi <b>sciolti</b> ci sono in ogni cumulo. Con due fotografie che racchiudono un periodo, Conti misura la <b>variazione delle scorte</b> e chiude il conto prodotto − venduto. Il materiale si scrive con lo stesso nome del listino di Conti: è quel nome che gli dà la densità.</div>
   <div class="note esito" id="inv-esito"></div>
 
@@ -1019,7 +1023,8 @@ a.dw-btn{text-decoration:none}
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
-           inventariOrdinati, riepilogoInventario, cumuliUsabili } from "./terra-data.js";
+           inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
+           csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
@@ -1544,6 +1549,71 @@ a.dw-btn{text-decoration:none}
     $("inv-righe").addEventListener("input", (e) => { if (e.target.classList) e.target.classList.remove("err"); $("inv-err").textContent = ""; });
   }
   $("btn-add-inv").onclick = nuovoInventario;
+  /* ⛔ DECISIONE 12a ANCHE PER GLI INVENTARI: il file che RIENTRA, non un
+     prospetto — una riga per cumulo, scritto da `csvInventari` e riletto da
+     `parseInventariCsv`. Quanti rientrano lo dice `rientroInventari`, che lo
+     DERIVA dalle due funzioni vere invece di riscriverlo (è la lezione del
+     «nel formato che questa pagina sa ri-caricare» dei rilievi, che prometteva
+     8 e ne faceva rientrare 7). Il volume non misurato esce come cella vuota:
+     uno zero rientrerebbe come un cumulo misurato. Senza inventari non si
+     scarica un file di sola intestazione: si dice. */
+  $("btn-exp-inv").onclick = () => {
+    if (!INV.length) { esito("inv-esito", "Non c'è nessun inventario da scaricare: il file avrebbe solo l'intestazione.", "warn"); return; }
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvInventari(INV));
+    a.download = "terra_inventari.csv"; marchiaCsv(a); a.click();
+    const rr = rientroInventari(INV);
+    esito("inv-esito", plurale(rr.scritti, "Scaricato ", "Scaricati ") + conta(rr.scritti, "inventario", "inventari")
+      + " (" + conta(rr.cumuli, "cumulo", "cumuli") + ", una riga per cumulo)"
+      + (rr.persi.length
+        ? `. Ri-caricando il file ne ${plurale(rr.rientrano, "rientra ", "rientrano ")}${rr.rientrano}: `
+          + rr.persi.map(p => `l'${p.nome} resta fuori perché ${p.ragione}`).join("; ") + "."
+        : " nel formato che questa pagina sa ri-caricare."),
+      rr.persi.length ? "warn" : "success");
+  };
+  $("btn-imp-inv").onclick = () => $("inv-file").click();
+  /* Il file che rientra. Il riepilogo dice quante righe ha letto, quanti
+     inventari e cumuli sono entrati, quanti erano già presenti, e — con
+     `frasePersi` — QUALI righe non sono entrate e perché: mai «0 scartati»,
+     perché quel numero lo sa solo il lettore, e lo dice nominando le righe.
+     Un inventario con una data futura non entra (la stessa regola della
+     finestra: il piazzale si fotografa, non si prevede). I doppioni si
+     riconoscono da data, metodo e cumuli: ricaricare due volte lo stesso file
+     non raddoppia le fotografie del piazzale. */
+  $("inv-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testoInv = await file.text();
+    e.target.value = "";
+    const invAltrove = fileDiAltraTabella(testoInv, ["terra.inventari"]);
+    if (invAltrove) { esito("inv-esito", fraseFileAltrui(invAltrove, "nell'archivio degli inventari"), "err"); return; }
+    const letto = parseInventariCsv(testoInv);
+    const persiInv = letto.scarti.map(s => ({ nome: "riga " + s.riga, ragione: s.perche }));
+    const oggi = oggiISO();
+    const firmaInv = (inv) => [inv.data, inv.metodo || "",
+      ...inv.cumuli.map(c => chiaveMateriale(c.materiale) + ":" + (c.volumeM3 == null ? "" : c.volumeM3)).sort()].join("|");
+    const giaInv = new Set(INV.map(i => firmaInv({ data: i.data, metodo: i.metodo, cumuli: Array.isArray(i.cumuli) ? i.cumuli.filter(Boolean) : [] })));
+    let agg = 0, dup = 0, cum = 0, nonMis = 0;
+    for (const inv of letto.inventari) {
+      if (inv.data > oggi) { persiInv.push({ nome: "inventario del " + fmtData(inv.data), ragione: "ha una data futura: il piazzale si fotografa, non si prevede" }); continue; }
+      const k = firmaInv(inv);
+      if (giaInv.has(k)) { dup++; continue; }
+      giaInv.add(k);   // scarta i doppioni anche DENTRO lo stesso file
+      await db.aggiungi("inventari", { data: inv.data, metodo: inv.metodo, cumuli: inv.cumuli });
+      agg++; cum += inv.cumuli.length; nonMis += inv.cumuli.filter(c => c.volumeM3 == null).length;
+    }
+    if (!agg && !dup) {
+      esito("inv-esito", (letto.letti ? "Nessun inventario è entrato" : "Il file non ha nessuna riga di dati")
+        + ": le colonne sono " + INTESTAZIONE_INVENTARI.split(";").join("; ") + ", una riga per cumulo." + frasePersi({ persi: persiInv }), "err");
+      return;
+    }
+    esito("inv-esito", plurale(letto.letti, "Letta ", "Lette ") + conta(letto.letti, "riga", "righe") + " del file: "
+      + conta(agg, "inventario aggiunto", "inventari aggiunti") + " (" + conta(cum, "cumulo", "cumuli")
+      + (nonMis ? ", di cui " + fraseNonMisurati(nonMis) : "") + ")"
+      + (dup ? ", " + conta(dup, "già presente (saltato)", "già presenti (saltati)") : "") + "."
+      + frasePersi({ persi: persiInv }),
+      persiInv.length || nonMis ? "warn" : undefined);
+    await refresh();
+  };
   document.addEventListener("click", async (e) => {
     const togli = e.target.closest && e.target.closest("[data-inv-togli]");
     if (togli) { e.stopPropagation();

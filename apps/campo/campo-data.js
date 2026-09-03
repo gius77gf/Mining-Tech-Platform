@@ -52,7 +52,7 @@
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -204,6 +204,17 @@ export const DEMO = {
     // fermi e la disponibilità del turno non possono che dire «non misurato»,
     // e nel giro di dimostrazione si vedrebbero solo schermate di rifiuto
     { id: "a4", data: OGGI_DEMO, turno: "Mattina", titolo: "Frantoio primario", dettaglio: "Fermo per intasamento tramoggia", squadra: "Squadra C", operatore: "", stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
+    // ⛔ LE DUE FORME DELLA CAUSALE STANNO TUTT'E DUE NELLA DIMOSTRAZIONE, di
+    // proposito. `a4` porta l'ETICHETTA («Intasamento impianto»): è lo storico,
+    // scritto quando `CAUSALI_FERMO` era un elenco di testi e la casella
+    // salvava la parola. `a6` porta la CHIAVE («intasamento-impianto»): è quello
+    // che la casella salva da oggi. Il Pareto li deve sommare nella STESSA
+    // causa — se un giorno non lo facesse, questa coppia lo fa vedere.
+    { id: "a6", data: OGGI_DEMO, turno: "Mattina", titolo: "Nastro trasportatore", dettaglio: "Rullo di rinvio bloccato", squadra: "Squadra C", operatore: "", stato: "anomalia", causale: "intasamento-impianto", fermoMin: 20 },
+    // e una causale che NON sta nell'elenco: finisce in «Altro» ma si conta e
+    // si nomina («1 fermo con una causale non in elenco: «Nebbia»»), perché un
+    // fermo che sparisce dentro «Altro» in silenzio è un Pareto che mente
+    { id: "a7", data: OGGI_DEMO, turno: "Mattina", titolo: "Trasporto al frantoio", dettaglio: "Visibilità nulla sulla pista", squadra: "Squadra B", operatore: "", stato: "anomalia", causale: "Nebbia", fermoMin: 30 },
     { id: "a5", data: OGGI_DEMO, turno: "Mattina", titolo: "Controllo pre-turno mezzi", dettaglio: "completato", squadra: "Squadra B", operatore: "Giulia Verdi", stato: "conclusa" },
   ],
   squadre: [
@@ -833,7 +844,11 @@ export function csvAttivita(righe) {
     const m = minutiFermoDi(a);
     csv += `${a.data || ""};${csvCell(a.turno || "")};${csvCell(a.titolo || "")};`
          + `${csvCell(a.dettaglio || "")};${a.stato || ""};`
-         + `${csvCell(a.stato === "anomalia" ? (a.causale || "") : "")};${m === null ? "" : m}\n`;
+         // ⛔ nel file esce l'ETICHETTA, mai la chiave: chi apre il CSV in un
+         // foglio di calcolo legge «Guasto meccanico», non «guasto-meccanico»;
+         // e chi lo rilegge (`chiaveCausale`) riconosce l'etichetta. Una
+         // causale fuori elenco esce com'è scritta: è un dato, non un errore.
+         + `${csvCell(a.stato === "anomalia" ? descriviCausale(a.causale) : "")};${m === null ? "" : m}\n`;
   }
   return csv;
 }
@@ -1193,26 +1208,107 @@ export function checklistDi(lista, data, turno, squadra) {
 // Causali di fermo STANDARDIZZATE: senza una lista fissa non si può misurare
 // dove si perde tempo (servono categorie confrontabili nel tempo, non testo
 // libero). Sono le voci tipiche di un fermo in cava.
+/* ⛔ CHIAVE E ETICHETTA, NON PIÙ UN ELENCO DI TESTI (03/09). Fino a oggi
+   `CAUSALI_FERMO` era un array di stringhe e l'etichetta italiana faceva da
+   chiave nei record (`attivita.causale`): chi leggeva faceva
+   `CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro"`. Quindi bastava
+   RINOMINARE una voce — «Attesa mezzo» → «Attesa del mezzo» — perché tutto lo
+   storico di quella causa finisse in «Altro», in silenzio, e il Pareto scendesse
+   senza che niente lo dicesse. È la forma di Flotta (`{chiave, etichetta}`),
+   copiata nella FORMA e non nel contenuto: le due liste parlano di soggetti
+   diversi (qui un'ATTIVITÀ di turno, là una MACCHINA).
+   · la chiave è corta, minuscola, stabile: è quella che il record NUOVO salva;
+   · l'etichetta è la parola che l'utente vede, e si può cambiare;
+   · i record VECCHI portano l'etichetta: `chiaveCausale` la riconosce lo
+     stesso (per testo normalizzato, come `chiaveMateriale` fa per i cumuli),
+     così lo storico non si orfana;
+   · un valore che non è né chiave né etichetta conosciuta va in «Altro» — che
+     resta la categoria del Pareto — ma si CONTA a parte e si nomina
+     (`nonRiconosciute`), perché l'assenza di un dato non è un dato favorevole. */
 export const CAUSALI_FERMO = [
-  "Guasto meccanico",
-  "Mancanza materiale",
-  "Attesa mezzo",
-  "Intasamento impianto",
-  "Meteo",
-  "Manutenzione programmata",
-  "Cambio turno",
-  "Sicurezza",
-  "Altro",
+  { chiave: "guasto-meccanico", etichetta: "Guasto meccanico" },
+  { chiave: "mancanza-materiale", etichetta: "Mancanza materiale" },
+  { chiave: "attesa-mezzo", etichetta: "Attesa mezzo" },
+  { chiave: "intasamento-impianto", etichetta: "Intasamento impianto" },
+  { chiave: "meteo", etichetta: "Meteo" },
+  { chiave: "manutenzione-programmata", etichetta: "Manutenzione programmata" },
+  { chiave: "cambio-turno", etichetta: "Cambio turno" },
+  { chiave: "sicurezza", etichetta: "Sicurezza" },
+  { chiave: "altro", etichetta: "Altro" },
 ];
+// la chiave della categoria residua del Pareto: dove finisce ciò che non ha
+// una causa in elenco (e ciò che non ha causa)
+export const CAUSALE_ALTRO = "altro";
+
+/* La chiave di una causale scritta in QUALUNQUE delle sue forme: la chiave
+   stessa («guasto-meccanico»), l'etichetta con cui lo storico l'ha salvata
+   («Guasto meccanico»), o quella stessa etichetta con maiuscole, accenti e
+   spazi diversi («GUASTO  meccanico»). Il confronto passa da
+   `chiaveMateriale` di `shared/dw-ponti.js`, che è già la regola di casa per
+   «due testi sono lo stesso nome» — riscriverla qui sarebbe una copia.
+   Risponde `null` per un valore vuoto o mai visto: chi chiama decide se quel
+   null è «non indicata» (vuoto) o «non in elenco» (testo sconosciuto), e le
+   due cose non vanno confuse. Pura e testabile. */
+export function chiaveCausale(valore) {
+  const t = chiaveMateriale(valore);
+  if (!t) return null;
+  const v = CAUSALI_FERMO.find(c => c.chiave === t || chiaveMateriale(c.etichetta) === t);
+  return v ? v.chiave : null;
+}
+
+/* L'etichetta di una chiave: «guasto-meccanico» → «Guasto meccanico». Per una
+   chiave che non esiste risponde "" e non inventa una parola — chi ha in mano
+   un testo qualunque e vuole la parola da mostrare usa `descriviCausale`.
+   ⚠️ Flotta esporta una funzione con lo stesso nome sulla SUA tassonomia
+   (macchine, non attività di turno): nome uguale, elenco diverso, come per
+   `CAUSALI_FERMO`. Pura e testabile. */
+export function etichettaCausale(chiave) {
+  const v = CAUSALI_FERMO.find(c => c.chiave === chiave);
+  return v ? v.etichetta : "";
+}
+
+/* La parola da MOSTRARE per una causale salvata in qualunque forma: l'etichetta
+   dell'elenco se la si riconosce, altrimenti il testo com'è stato scritto
+   («Nebbia»), altrimenti "". È l'unico posto che decide come una causale si
+   scrive in un CSV, in un foglio o in una nota per Scudo: le tre uscite
+   passano da qui invece di leggersi `a.causale` da sole. Pura e testabile. */
+export function descriviCausale(valore) {
+  const k = chiaveCausale(valore);
+  return k ? etichettaCausale(k) : String(valore ?? "").trim();
+}
+
+/* I fermi la cui causale NON è in elenco: quanti, e con quali parole (distinte,
+   nell'ordine in cui compaiono). Una causale VUOTA non è «non riconosciuta»: è
+   «non indicata», e la conta `coperturaFermi.senzaCausale`. Qui si contano
+   solo i testi che qualcuno ha scritto e che l'elenco non conosce — cioè i
+   fermi che il Pareto mette in «Altro» senza che l'utente l'abbia scelto.
+   Pura e testabile. */
+export function causaliNonRiconosciute(attivita) {
+  const valori = [];
+  let conto = 0;
+  for (const a of attivita || []) {
+    if (!a || a.stato !== "anomalia") continue;
+    const testo = String(a.causale ?? "").trim();
+    if (!testo || chiaveCausale(testo)) continue;
+    conto++;
+    if (!valori.some(v => chiaveMateriale(v) === chiaveMateriale(testo))) valori.push(testo);
+  }
+  return { conto, valori };
+}
+
+// la categoria del Pareto per un record: l'etichetta della causa riconosciuta,
+// oppure «Altro» (per il testo sconosciuto E per la casella vuota)
+const categoriaCausale = (valore) => etichettaCausale(chiaveCausale(valore) || CAUSALE_ALTRO);
 
 // Riepilogo dei fermi (attività in stato "anomalia") per causale, ordinato
 // per frequenza decrescente. Una causale non riconosciuta o assente
-// confluisce in "Altro". Funzione pura e testabile.
+// confluisce in "Altro" — e quante siano lo dice `causaliNonRiconosciute`,
+// che `paretoFermi` porta con sé. Funzione pura e testabile.
 export function riepilogoFermi(attivita) {
   const conteggi = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
-    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    const c = categoriaCausale(a.causale);
     conteggi[c] = (conteggi[c] || 0) + 1;
   }
   return Object.entries(conteggi)
@@ -1250,7 +1346,7 @@ export function paretoFermi(attivita) {
   const acc = {};
   for (const a of attivita || []) {
     if (a.stato !== "anomalia") continue;
-    const c = CAUSALI_FERMO.includes(a.causale) ? a.causale : "Altro";
+    const c = categoriaCausale(a.causale);
     const grezzo = minutiFermoDi(a);
     const noto = grezzo !== null;
     if (!acc[c]) acc[c] = { causale: c, conto: 0, minuti: 0, senzaMinuti: 0 };
@@ -1262,7 +1358,12 @@ export function paretoFermi(attivita) {
   const totaleMin = voci.reduce((t, v) => t + v.minuti, 0);
   const senzaMinutiTot = voci.reduce((t, v) => t + v.senzaMinuti, 0);
   const fermiTot = voci.reduce((t, v) => t + v.conto, 0);
-  return { voci, totaleMin, senzaMinutiTot, fermiTot, parziale: senzaMinutiTot > 0 };
+  // ⛔ quanti fermi stanno in «Altro» SENZA che qualcuno l'abbia scelto: chi
+  // disegna il Pareto lo scrive accanto, se no una voce rinominata o un testo
+  // libero sparirebbero nella categoria residua con la faccia di una scelta
+  const nr = causaliNonRiconosciute(attivita);
+  return { voci, totaleMin, senzaMinutiTot, fermiTot, parziale: senzaMinutiTot > 0,
+           nonRiconosciute: nr.conto, valoriNonRiconosciuti: nr.valori };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2909,8 +3010,11 @@ export function anomalieAperte(attivita) {
     .map(a => {
       // una causale fuori dall'elenco standard non si traduce in "Altro" qui:
       // "Altro" è una SCELTA che qualcuno ha fatto, il vuoto è una casella non
-      // compilata, e la bozza le scrive in modo diverso
-      const causale = CAUSALI_FERMO.includes(a.causale) ? a.causale : "";
+      // compilata, e la bozza le scrive in modo diverso. Un testo che l'elenco
+      // non conosce («Nebbia») resta com'è scritto — è quello che l'RSPP deve
+      // leggere — e `causaleInElenco` dice che non è una voce dell'elenco
+      const causale = descriviCausale(a.causale);
+      const causaleInElenco = chiaveCausale(a.causale) !== null;
       /* ⛔ la guardia PRIMA della conversione: `+null` fa 0 e `Number.isFinite(0)`
          risponde true, quindi «nessuno ha misurato» diventerebbe «zero minuti
          persi». Lo zero esplicito conta come non misurato per la stessa ragione
@@ -2924,7 +3028,7 @@ export function anomalieAperte(attivita) {
         a, id: a.id,
         titolo: String(a.titolo || "").trim() || "Attività senza titolo",
         dettaglio: String(a.dettaglio || "").trim(),
-        causale, minuti,
+        causale, causaleInElenco, minuti,
         minutiTesto: minutiFermoTesto(minuti, 1, minuti === null ? 1 : 0),
         data, turno: String(a.turno || ""),
         squadra: squadraBase(a.squadra) || "",
@@ -2977,7 +3081,7 @@ export function bozzaAzioneFermo(f, opts = {}) {
   const nota = "Fermo di produzione (Campo) — " + f.titolo + quando
     + (f.turno ? ", turno " + f.turno : "")
     + (f.squadra ? " · " + f.squadra : "")
-    + " · causale: " + (f.causale || "non indicata")
+    + " · causale: " + (f.causale ? f.causale + (f.causaleInElenco === false ? " (non in elenco)" : "") : "non indicata")
     + " · tempo perso: " + f.minutiTesto
     + (f.dettaglio ? " · «" + f.dettaglio + "»" : "");
   return {
