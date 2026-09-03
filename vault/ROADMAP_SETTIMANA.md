@@ -3542,6 +3542,19 @@ numero scritto dove non era stato misurato niente**.*
       rifiniture di scena.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
+  ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+  metà sul mondo + delta contro `82d2156d`): i ruoli da software sono tre
+  (`owner|admin|member`, scritti nel token dalle sole Cloud Functions) e **ogni
+  membro vede tutte le app** — le regole non guardano né `appId` né
+  abbonamento, misurato da `tests/sonda-permessi.mjs`. Le figure di legge
+  (direttore responsabile, sorvegliante, RSPP, medico) esistono come **nomine
+  in Scudo**, non come permessi; il core ha la prassi più ricca
+  (`admin|ufficio|fochino|operatore`, `can()` a 20 azioni, perimetro per cava)
+  e nessuna app la eredita. Prerequisito di qualunque «solo il proprio»: un
+  autore sul record — `grep -c "user\.uid\|createdBy"` sulle sette pagine →
+  **0**. Il delta non è nuovo (lo diceva `RICERCA_DEEPWORKID_202607.md` §1.3
+  il 30/07): resta una **decisione di prodotto** del fondatore, poi un campo
+  in `shared/`, poi le regole per app.
 
 - [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
   ⏱️ **03/09, due giri di fila morti con la sessione**: quello delle 22:29Z del
