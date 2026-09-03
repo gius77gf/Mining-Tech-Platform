@@ -28537,17 +28537,21 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
         "«3,5» battuto col separatore italiano è un numero scritto");
     });
 
-    test("⏱️ core · la carica massima per ritardo non conta i fori senza chili, e nessuno lo dice", () => {
+    test("✅ core · la carica massima per ritardo: il numero non conta i fori senza chili, e dal 03/09 la PAROLA lo dice", () => {
       /* `calcolaCaricaMaxRitardo` NON si tocca: da lì dipende la previsione di
-         vibrazione, che è ferma al fondatore. Il riquadro dichiara già il caso
-         dei fori senza RITARDO (che sovrastimano, cioè sbagliano dalla parte
-         prudente) e tace su quello dei fori senza CHILI, che sottostima. */
+         vibrazione, che è ferma al fondatore. Fino al 03/09 il riquadro
+         dichiarava solo i fori senza RITARDO (che sovrastimano, cioè sbagliano
+         dalla parte prudente) e taceva su quelli senza CHILI, che sottostimano:
+         un foro senza chili pesava zero e il pannello diceva «0,0 kg». Adesso
+         la frase la decide `caricaMaxDetta` («—» senza chili, «≥» a metà) e il
+         numero è identico a prima — provato nel blocco «i residui di B12». */
       const riquadro = CORE.split("\n").find((l) => l.includes("Carica max/ritardo:"));
       ok(riquadro, "il riquadro della sequenza sparo esiste ancora");
       ok(/senzaRit/.test(riquadro) || /senzaRit/.test(CORE),
         "il caso dei fori senza ritardo è dichiarato");
-      ok(!/senzaKg|senza chili/.test(riquadro),
-        "⏱️ e quello dei fori senza chili no: misurato e lasciato, perché tocca una soglia di sicurezza");
+      ok(/caricaMaxDetta\(v\)/.test(riquadro) && /senza chili/.test(riquadro),
+        "e quello dei fori senza chili adesso pure: la parola, non il numero");
+      ok(!/calcolaCaricaMaxRitardo\(v\)\.toFixed\(1\)\} kg/.test(riquadro), "il numero nudo non si stampa più come se fosse pieno");
     });
   }
 }
@@ -34764,6 +34768,41 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
   });
 }
 /* ===== fine core · la freccia della calotta ===== */
+
+/* CORE · I RESIDUI DI B12 (03/09): un campo svuotato non vale 0; la barra non
+   dice «0 file» né «null»; la carica massima per ritardo dice «—» senza chili
+   scritti e «≥» quando i chili sono solo su una parte dei fori — il NUMERO di
+   `calcolaCaricaMaxRitardo` non cambia (è una soglia di sicurezza). Difese sul
+   sorgente, come per la calotta. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  const prendi = (nome) => { const m = coreSrc.match(new RegExp("\\nfunction " + nome + "\\([^\\n]*\\n?")); return m ? m[0] : null; };
+  test("⛔ core: aggiornaVolata scrive null sul campo svuotato, e i due clamp sulla lunghezza non inchiodano a x=0", () => {
+    ok(/obj\[campo\]=numCampi\.includes\(campo\)\?\(valore==null\|\|String\(valore\)\.trim\(\)===''\?null:parseNum0\(valore\)\):valore;/.test(coreSrc), "svuotato = null");
+    eq((coreSrc.match(/Lm>0\s*\?\s*Math\.max\(0,\s*Math\.min\(Lm,/g) || []).length, 2, "i due clamp (profilo e trascinamento) guardano se la lunghezza è scritta");
+    eq((coreSrc.match(/Math\.max\(0,Math\.min\(Lm,xM\)\)/g) || []).length, 1, "e la forma vecchia resta solo dentro il ramo Lm>0");
+  });
+  test("core: fileDetti — «0 file» e «null» non si stampano più", () => {
+    const parseNum = (v) => v === null || v === undefined || v === "" ? NaN : typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    const f = new Function("parseNum", prendi("fileDetti") + "\nreturn fileDetti;")(parseNum);
+    eq(f({ maglia: { file: 2 } }), 2); eq(f({ maglia: { file: "3" } }), 3);
+    eq(f({ maglia: { file: 0 } }), null, "zero file non è un numero di file"); eq(f({ maglia: { file: null } }), null); eq(f({ maglia: {} }), null); eq(f(null), null);
+    ok(/\$\{fileDetti\(v\)\?\?'—'\}<\/b>file/.test(coreSrc), "la barra passa da fileDetti"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
+  });
+  test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {
+    const parseNum0 = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+    const src = prendi("caricaMaxDetta") + "\n" + coreSrc.slice(coreSrc.indexOf("\nfunction calcolaCaricaMaxRitardo("), coreSrc.indexOf("\nfunction caricaMaxDetta("));
+    const f = new Function("parseNum0", "misureVolataProgetto", src + "\nreturn { caricaMaxDetta, calcolaCaricaMaxRitardo };")(parseNum0, shell.misureVolataProgetto);
+    const v = (fori) => ({ fori, tot_kg: fori.reduce((s, x) => s + (+x.kg || 0), 0) });
+    eq(f.caricaMaxDetta(v([{ kg: "", ritardo: 25 }, { kg: "", ritardo: 50 }])), "—", "volata appena generata: nessun chilo scritto");
+    eq(f.calcolaCaricaMaxRitardo(v([{ kg: "", ritardo: 25 }])), 0, "il numero resta quello di prima: la soglia non si tocca");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 8, ritardo: 25 }, { kg: "", ritardo: 50 }])), "≥ 16.0 kg", "chili su due fori su tre: un minimo");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 12, ritardo: 50 }])), "12.0 kg");
+    eq(f.caricaMaxDetta(v([])), "—");
+    ok(/Carica max\/ritardo: <b>\$\{caricaMaxDetta\(v\)\}<\/b>/.test(coreSrc), "il pannello stampa la frase decisa dalla funzione");
+  });
+}
+/* ===== fine core · i residui di B12 ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
    SHELL · L'ESITO DELLO SPARO (03/09, dal delta sul rapporto di volata: i

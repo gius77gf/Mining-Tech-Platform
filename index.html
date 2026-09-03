@@ -5613,6 +5613,9 @@ function magliaDetta(v){
    dire «non scritta»; chi disegna ripiega su 1 e lo sa, chi genera si ferma. */
 function calottaDetta(v){const q=parseNum(((v&&v.fronte)||{}).calotta_m);return Number.isFinite(q)&&q>=0?q:null;}
 function calottaDisegno(v){const c=calottaDetta(v);return c===null?1:c;}
+/* Il numero di file, se scritto (>0); null se no. La barra dell'editor stampava
+   «0 file» sul campo svuotato e la parola «null» su una volata importata. */
+function fileDetti(v){const q=parseNum(((v&&v.maglia)||{}).file);return Number.isFinite(q)&&q>0?q:null;}
 function getBorraggio(v){const b=magliaDetta(v).borraggio;return b===null?3.5:b;}
 function getSpaziatura(v){const s=magliaDetta(v).spaziatura;return s===null?4:s;}
 
@@ -6067,7 +6070,7 @@ function renderEditorSide(){
         <button class="chg" style="margin-left:auto;background:var(--grad);color:#100d07;border-color:transparent;font-weight:800;" onclick="playSequenza()">▶ Anteprima</button>
       </div>
       <div class="info-box" style="margin-bottom:10px;font-size:11px;">
-        Durata totale: <b>${totMs===null?'—':totMs+' ms'}</b> · Carica max/ritardo: <b>${calcolaCaricaMaxRitardo(v).toFixed(1)} kg</b>
+        Durata totale: <b>${totMs===null?'—':totMs+' ms'}</b> · Carica max/ritardo: <b>${caricaMaxDetta(v)}</b>${(m=>!m.kgNoto?' <span style="color:var(--muted);">(nessun foro ha i chili scritti)</span>':m.parziale?' <span style="color:var(--muted);">('+plurale(m.senzaKg,'foro senza chili: è un minimo','fori senza chili: è un minimo')+')</span>':'')(misureVolataProgetto(v))}
         ${senzaRit>0?`<div style="margin-top:6px;color:var(--muted);">${totMs===null
             ? `Nessun foro ha un ritardo impostato: la durata non si può calcolare, e la carica massima è quella di <b>tutti i ${sorted.length} fori insieme</b>.`
             : `${conta(senzaRit,'foro','fori')} senza ritardo: ${senzaRit===1?'resta fuori dalla durata e conta':'restano fuori dalla durata e contano'} nella carica massima come se ${senzaRit===1?'partisse':'partissero'} all'istante zero.`}</div>`:''}
@@ -6302,7 +6305,7 @@ function svgToMetri(svgX, svgY, v){
   const xM=Math.round(((svgX-padX)/scaleX)*100)/100;
   const yM=Math.round(((svgY-padY)/scaleY)*100)/100;
   // v3.4.8: il fronte è modellabile in TUTTE le direzioni (y libero entro il canvas)
-  return {xM:Math.max(0,Math.min(Lm,xM)), yM:Math.max(-totDepth,Math.min(totDepth,yM))};
+  return {xM:Lm>0?Math.max(0,Math.min(Lm,xM)):Math.max(0,xM), yM:Math.max(-totDepth,Math.min(totDepth,yM))};   // senza lunghezza scritta non si inchioda tutto a x=0 (B12)
 }
 
 // Ritorna l'array del profilo attivo (fronte o piede) creandolo se serve
@@ -7398,7 +7401,7 @@ function onCanvasDragMove(ev){
   _dragState.moved=true;
   let newX = _dragState.originalX + deltaMetersX;
   let newY = _dragState.originalY + deltaMetersY;
-  newX = Math.max(0, Math.min(Lm, newX));
+  newX = Lm>0 ? Math.max(0, Math.min(Lm, newX)) : Math.max(0, newX);   // idem: lunghezza svuotata = nessun limite a destra (B12)
   // y minimo = 1 borraggio (i fori non vanno MAI sul fronte)
   newY = Math.max(Borr*0.5, Math.min(totDepth-Borr, newY));
   // Snap a 0.05m per maggiore precisione
@@ -7456,7 +7459,7 @@ function _aggiornaEcStats(v,etichetta){
   $('ec-stats').innerHTML=`
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
-    <span class="ec-stat"><b>${Number.isFinite(+v.maglia.file)&&String(v.maglia.file).trim()!==''?v.maglia.file:'—'}</b>file</span>
+    <span class="ec-stat"><b>${fileDetti(v)??'—'}</b>file</span>
     <span class="ec-stat"><b>Sp${mg.borraggio===null?'—':mg.borraggio}</b>×I<b>${mg.spaziatura===null?'—':mg.spaziatura}</b></span>
     <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b><span class="u">m</span></span>
     ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class="u">kg</span></span>`:''}
@@ -7502,7 +7505,11 @@ function aggiornaVolata(path, valore){
   const campo=parts[parts.length-1];
   // Campi numerici — v3.4.7.1: aggiornati con nuovi nomi
   const numCampi=['lunghezza_m','altezza_m','calotta_m','piede_profondita','borraggio','borraggio_reale','spaziatura','B','S','file','profondita_m','diametro_mm','kg_per_foro','ritardo_ms'];
-  obj[campo]=numCampi.includes(campo)?parseNum0(valore):valore;
+  /* ⛔ un campo SVUOTATO non vale 0: `parseNum0('')` scriveva 0 e da lì la
+     barra diceva «0 file», la calotta svuotata diventava «cielo piatto», e il
+     trascinamento dei fori con la lunghezza svuotata inchiodava tutto a x=0.
+     Svuotato = null (non scritto); «0» scritto resta 0. (B12, 03/09) */
+  obj[campo]=numCampi.includes(campo)?(valore==null||String(valore).trim()===''?null:parseNum0(valore)):valore;
   state.editorUnsaved=true;
   ricalcolaTotaliVolata(v);
   renderEditorCanvas();
@@ -7533,7 +7540,7 @@ function magliaGenerabile(v){
     /* il numero di file moltiplica i fori generati, e `v.maglia.file||2` ne
        inventava DUE su un campo lasciato vuoto — mentre la barra dell'editor,
        due riquadri piu' su, lo dichiara gia' «—» */
-    if(!scritto((v&&v.maglia||{}).file)) manca.push('il numero di file');
+    if(fileDetti(v)===null) manca.push('il numero di file');
   }
   return manca;
 }
@@ -7754,6 +7761,11 @@ function calcolaCaricaMaxRitardo(v){
   });
   return Math.max(0,...Object.values(gruppi));
 }
+/* La carica massima per ritardo COME SI STAMPA: senza nessun chilo scritto è
+   «—» (un foro senza chili pesava zero e il pannello diceva «0,0 kg»); con i
+   chili scritti solo su una parte dei fori è un MINIMO e porta il «≥». Il
+   numero di `calcolaCaricaMaxRitardo` non cambia: è una soglia di sicurezza. */
+function caricaMaxDetta(v){const m=misureVolataProgetto(v);if(!m.kgNoto)return '—';return (m.parziale?'≥ ':'')+calcolaCaricaMaxRitardo(v).toFixed(1)+' kg';}
 
 async function salvaVolata(){
   const v=DB.volate.find(x=>x.id===state.volataSel);

@@ -801,6 +801,25 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       estraggono e si eseguono: 0 → 4,00; assente → 3,29; «1,2» → 3,15), più
       il conto che nessun `calotta_m||1` resti. Le due famiglie in coda
       (`+finite` ×3, `max(0,` ×10) restano candidati da leggere.
+      ✅ **LETTI TUTTI E TREDICI (03/09, cantiere di analisi + correzione):** 7
+      sono DISEGNO (meteo con `null` già escluso, contatore prelievo, opacità
+      3D, nome file, clamp dell'arco, clamp del contenitore), 4 erano
+      CANDIDATI e 2 DIFETTI — e la radice comune stava a monte, in
+      `aggiornaVolata`: `parseNum0('')` scriveva **0** su un campo SVUOTATO,
+      quindi la barra diceva «0 file» (o la parola «null» su una volata
+      importata), la calotta svuotata diventava «cielo piatto», e con la
+      lunghezza svuotata `Math.min(Lm, x)` inchiodava a **x = 0** ogni punto
+      del profilo e ogni foro trascinato. Corretto: svuotato = `null`,
+      `fileDetti(v)` per barra e generatore, i due clamp guardano `Lm>0`.
+      Il secondo difetto era il più visibile: «Carica max/ritardo: **0,0 kg**»
+      su una volata appena generata, perché un foro senza chili pesava zero;
+      il NUMERO di `calcolaCaricaMaxRitardo` non si tocca (soglia di
+      sicurezza, del fondatore), la PAROLA sì: `caricaMaxDetta` dice «—» senza
+      chili scritti e «≥ 16,0 kg» quando i chili sono su una parte dei fori.
+      Prove sul sorgente in `run-kpi` («i residui di B12»); la prova ⏱️ che
+      inchiodava il vecchio «0,0 kg» è diventata ✅. Restano due candidati
+      geometrici (`Math.max(0,Hm-cal)` con freccia > altezza) da misurare, e
+      la nota che «B12» come censimento è chiuso.
 
       ⛔ **La riga che salta agli occhi è Genesi · pagina: 119 ripieghi di
       mestiere, tre volte il core e cinque volte chiunque altro** — ed è
@@ -5805,7 +5824,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.979 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.982 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
