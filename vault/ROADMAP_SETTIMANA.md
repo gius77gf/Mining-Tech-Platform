@@ -257,6 +257,33 @@
   attenzione; anno: Δ 12 m³ = 22 t, scarto −58,76 t «in eccesso», 17%). Un
   banco che pretendesse quei 923 t avrebbe blindato una dimostrazione
   incoerente.
+- [x] **IL TERZO LATO DEL TRIANGOLO (03/09): l'inventario dei cumuli, da Terra
+  a Conti, e il verbale che lo registra.** Terra registra la fotografia del
+  piazzale a una data (`inventari/{id}`, un cumulo può essere «non misurato»
+  = null, mai zero); Conti la legge sulla stessa istanza SDK dei rilievi e
+  chiude cavato − venduto − Δscorte in tonnellate, ognuno con la SUA densità
+  (in banco per il cavato, del listino per i cumuli, accoppiati per nome
+  normalizzato: `chiaveMateriale`). Regole in `shared/dw-ponti.js` (7
+  funzioni): un materiale misurato in un solo inventario NON vale zero
+  nell'altro — la prima stesura lo contava −880 m³ e l'ha bocciata il
+  prototipo in scratchpad. Il verbale di riconciliazione registra le scorte
+  misurate e la chiusura (`componiVerbale`, copiate da `triangolo`), o dichiara
+  perché restavano stimate; «Questo mese» fra le scorciatoie. Banchi
+  `terra-inventario` (45), `conti-inventario` (47), `conti-verbale` (39) nei
+  due versi. ⚠️ Lezione: la dimostrazione di Conti è la SUA cava (decine di
+  m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
+  chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
+  Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **L'ESITO DELLO SPARO E I CHILI PER TIPO (03/09, dal delta sul rapporto
+  di volata in `docs/RICERCA_CONTINUA_GENESI.md`).** Sul rapportino fochino
+  del core: colpi esplosi contati e colpi mancati con la nota (`esitoSparo` in
+  dw-shell decide elenco, scheda, PDF e cronologia del gemello; assenti = NON
+  CONTATO, mai «0 mancati»), e i chili di esplosivo per tipo
+  (`esplosivoPerTipo`: i chili senza tipo si dichiarano, non si attribuiscono).
+  Banco `core-esito-sparo` 47 passate, 11 difetti in controprova. Il ponte
+  «colpo mancato → mancato infortunio in Scudo» aspetta la Fase B del core
+  (ARCHITETTURA §8): il core non passa da Deepwork ID, misurato. Resta il
+  registro di carico e scarico degli esplosivi: candidato.
 - [x] **SEI DOCUMENTI DI RICERCA ESISTEVANO DUE VOLTE, con lo stesso nome a
   maiuscole diverse** (`RICERCA_CONTINUA_CONTI.md` e `RICERCA_CONTINUA_conti.md`,
   e così campo, flotta, scudo, sentinella, terra) — trovati il 03/09 cercando
@@ -5778,7 +5805,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.968 prove girano senza rete**. La frase va letta stretta: è la somma
+  **2.979 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

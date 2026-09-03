@@ -34426,6 +34426,120 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
 }
 /* ===== fine Conti · il verbale di riconciliazione ===== */
 
+const _srcContiPagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL VERBALE E IL TERZO LATO (03/09): il verbale del cavato registra
+   le scorte MISURATE dal triangolo — copiate da `triangolo`, mai ricalcolate —
+   oppure dichiara perché restavano stimate. Da incollare in run-kpi.mjs dopo
+   il blocco «fine Conti · il verbale di riconciliazione» (prove SINCRONE).
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n— Conti: il verbale registra il terzo lato —");
+{
+  const D = conti.DEMO;
+  const triDemo = (dal, al) => conti.triangolo(D.rilieviTerra, D.pesate, D.inventariTerra, D.prodotti, D.autorizzazioniTerra, dal, al);
+  const BASE = { dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione", causa: "cumulo", nota: "n", scrittoIl: "2026-07-02T09:40:00" };
+  test("⛔ componiVerbale col triangolo CHIUSO: scorte e chiusura copiate da `triangolo`, campo per campo, e il motivo nullo", () => {
+    const t = triDemo("2026-01-01", "2026-06-30");
+    eq(t.stato, "chiuso", "la premessa: sul primo semestre della dimostrazione il triangolo chiude");
+    const v = conti.componiVerbale(BASE, t);
+    contiene(v, BASE, "i campi del verbale di prima restano identici");
+    eq(v.scorteMotivo, null);
+    eq(v.scorte, { deltaM3: 6, deltaT: 16.3, inizio: { id: "i1", data: "2025-12-29" }, fine: { id: "i2", data: "2026-06-27" }, parziale: true, fuori: ["Terre di scavo"] });
+    eq(v.chiusura, { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito" });
+    eq(v.scorte.deltaM3, t.scorte.deltaM3); eq(v.scorte.deltaT, t.scorteT.deltaT); eq(v.scorte.inizio.id, t.scorte.inizio.id); eq(v.scorte.fine.data, t.scorte.fine.data);
+    eq(v.chiusura.scarto, t.chiusura.scarto); eq(v.chiusura.pct, t.chiusura.pct); eq(v.chiusura.stato, t.chiusura.stato); eq(v.chiusura.verso, t.chiusura.verso);
+    eq(v.scorte.fuori, t.fuori.map((f) => f.materiale), "i materiali fuori dal conto, per nome");
+    ok(!("cumuli" in (v.scorte.inizio || {})), "dell'inventario si conserva il RIFERIMENTO (id e data), non la copia dei cumuli");
+    ok(v !== BASE && !("scorte" in BASE), "non tocca l'oggetto ricevuto");
+  });
+  test("⛔ componiVerbale col triangolo NON chiuso: scorte null e chiusura null, col motivo del modulo — nessuno zero", () => {
+    const t = triDemo("2026-07-01", "2026-08-15");
+    eq(t.stato, "no-inventari", "la premessa: fra luglio e metà agosto c'è un solo inventario");
+    const v = conti.componiVerbale({ ...BASE, dal: "2026-07-01", al: "2026-08-15", divario: -36.357 }, t);
+    eq(v.scorte, null); eq(v.chiusura, null);
+    eq(v.scorteMotivo, "nel periodo non c'è un secondo inventario: senza la fotografia di fine periodo la variazione non si misura");
+    eq(v.divario, -36.357, "il divario a due lati resta quello che era");
+    for (const stato of ["no-terra", "no-confronto", "no-densita-cava", "no-densita-listino"]) {
+      const w = conti.componiVerbale(BASE, { stato, perche: "perché " + stato });
+      eq(w.scorte, null); eq(w.chiusura, null); eq(w.scorteMotivo, "perché " + stato);
+    }
+    eq(conti.componiVerbale(BASE, { stato: "no-inventari", perche: "" }).scorteMotivo, "il triangolo non chiude (no-inventari)", "un triangolo senza `perche` dichiara almeno lo stato");
+  });
+  test("componiVerbale con triangolo null (inventari non ancora letti), e per il PRODOTTO che un terzo lato non ce l'ha", () => {
+    const v = conti.componiVerbale(BASE, null);
+    eq(v.scorte, null); eq(v.chiusura, null); eq(v.scorteMotivo, "gli inventari dei cumuli di Terra non erano ancora stati letti");
+    eq(conti.componiVerbale(BASE, undefined).scorteMotivo, "gli inventari dei cumuli di Terra non erano ancora stati letti");
+    const p = conti.componiVerbale({ ...BASE, tipo: "prodotto", divario: 13695 }, triDemo("2026-01-01", "2026-06-30"));
+    eq(p, { ...BASE, tipo: "prodotto", divario: 13695 }, "il verbale del prodotto resta com'è: né scorte né motivo");
+    eq(conti.componiVerbale(null, null).scorte, null, "senza base non esplode");
+  });
+  test("componiVerbale non prende per buoni numeri illeggibili dentro un triangolo malformato: restano null, non zero", () => {
+    const v = conti.componiVerbale(BASE, { stato: "chiuso", scorte: { deltaM3: "boh", inizio: { id: 7, data: "2026-01-01" }, fine: null }, scorteT: { deltaT: "" }, chiusura: { scarto: null, pct: undefined, stato: "attenzione" }, parziale: false, fuori: null });
+    eq(v.scorte, { deltaM3: null, deltaT: null, inizio: { id: "7", data: "2026-01-01" }, fine: null, parziale: false, fuori: [] });
+    eq(v.chiusura, { scarto: null, pct: null, stato: "attenzione", verso: null });
+  });
+  test("⛔ il verbale «vr1» della dimostrazione porta le scorte che `triangolo` risponde su quegli stessi dati, campo per campo", () => {
+    const d = D.verbali[0];
+    eq(d.id, "vr1");
+    const atteso = conti.componiVerbale(d, triDemo(d.dal, d.al));
+    eq(d.scorte, atteso.scorte, "scorte"); eq(d.chiusura, atteso.chiusura, "chiusura"); eq(d.scorteMotivo, atteso.scorteMotivo, "scorteMotivo");
+    eq(d.scorte.deltaT, 16.3); eq(d.chiusura.scarto, 55.2); eq(d.chiusura.pct, 23.43); eq(d.chiusura.stato, "attenzione"); eq(d.chiusura.verso, "sparito");
+    eq(d.scorte.fuori, ["Terre di scavo"]); eq(d.scorte.parziale, true);
+  });
+  test("scorteDelVerbale: i tre stati — misurate (col numero scritto dal formato di fuori), stimate col motivo, non registrate", () => {
+    const fmt = (x) => x.toFixed(2).replace(".", ",");
+    const d = D.verbali[0];
+    eq(conti.scorteDelVerbale(d, fmt), { stato: "misurate", scarto: 55.2, chiusuraStato: "attenzione", motivo: null, testo: "scarto del triangolo 55,20 t, attenzione" });
+    eq(conti.scorteDelVerbale(d).testo, "scarto del triangolo 55.2 t, attenzione", "senza formato il numero è nudo");
+    eq(conti.scorteDelVerbale({ ...d, chiusura: { ...d.chiusura, scarto: -58.76 } }, fmt).testo, "scarto del triangolo 58,76 t, attenzione", "lo scarto in eccesso si scrive senza il segno: il verso lo dice la pagina");
+    const st = conti.scorteDelVerbale({ scorte: null, chiusura: null, scorteMotivo: "un solo inventario" }, fmt);
+    eq(st, { stato: "stimate", scarto: null, chiusuraStato: null, motivo: "un solo inventario", testo: "scorte stimate: un solo inventario" });
+    eq(conti.scorteDelVerbale({ scorte: null, scorteMotivo: "" }).testo, "scorte stimate: il triangolo non chiudeva", "motivo vuoto: si dice lo stesso che erano stimate");
+    const nr = conti.scorteDelVerbale({ dal: "2026-01-01", divario: 3 });
+    eq(nr, { stato: "non-registrate", scarto: null, chiusuraStato: null, motivo: null, testo: "scorte non registrate nel verbale" }, "un verbale di prima del terzo lato");
+    eq(conti.scorteDelVerbale(null).stato, "non-registrate");
+    eq(conti.scorteDelVerbale({ scorte: { deltaT: 1 }, chiusura: { scarto: null } }).testo, "scorte misurate, scarto del triangolo non calcolabile", "scorte scritte ma scarto illeggibile: non uno zero");
+  });
+  test("storicoVerbali: ogni riga dice le sue scorte (`scorteDette`), col formato passato da fuori", () => {
+    const fmt = (x) => x.toFixed(1).replace(".", ",");
+    const V = [D.verbali[0],
+      { dal: "2026-07-01", al: "2026-08-15", tipo: "cavato", divario: -36.357, pct: -67, scorte: null, chiusura: null, scorteMotivo: "un solo inventario", scrittoIl: "2026-09-03" },
+      { dal: "2025-01-01", al: "2025-06-30", divario: 3, pct: 2, scrittoIl: "2025-07-01" },
+      { dal: "2026-01-01", al: "2026-12-31", tipo: "prodotto", divario: 13695, pct: 97, scrittoIl: "2026-09-02" }];
+    const st = conti.storicoVerbali(V, "cavato", fmt);
+    eq(st.map((r) => [r.al, r.scorteDette.stato, r.scorteDette.testo]), [
+      ["2025-06-30", "non-registrate", "scorte non registrate nel verbale"],
+      ["2026-06-30", "misurate", "scarto del triangolo 55,2 t, attenzione"],
+      ["2026-08-15", "stimate", "scorte stimate: un solo inventario"]]);
+    eq(st[1].scorte.deltaT, 16.3, "il record passa intero");
+    eq(conti.storicoVerbali(V, "prodotto").map((r) => r.scorteDette.stato), ["non-registrate"], "il prodotto non registra scorte, e lo storico non le inventa");
+  });
+  test("verbaleDelPeriodo confronta anche lo scarto del triangolo, se il verbale l'aveva — e quando oggi non chiude resta null", () => {
+    const V = [D.verbali[0]];
+    const r = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, 55.2);
+    eq([r.scartoAllora, r.scartoAdesso, r.scartoDifferenza, r.scartoCoerente], [55.2, 55.2, 0, true]);
+    const r2 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, 61.4);
+    eq([r2.scartoAllora, r2.scartoAdesso, r2.scartoDifferenza, r2.scartoCoerente], [55.2, 61.4, 6.2, false], "gli inventari sono cambiati dopo il verbale");
+    eq(r2.coerente, true, "il divario a due lati è coerente lo stesso: sono due confronti, e si dicono separati");
+    const r3 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, null);
+    eq([r3.scartoAllora, r3.scartoAdesso, r3.scartoDifferenza, r3.scartoCoerente], [55.2, null, null, null], "oggi il triangolo non chiude: niente confronto, non un falso «coerente»");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055).scartoAdesso, null, "senza il sesto argomento (chi chiama come prima) non cambia niente");
+    const S = [{ dal: "a", al: "b", scorte: null, chiusura: null, scorteMotivo: "x", divario: 1 }];
+    const r4 = conti.verbaleDelPeriodo(S, "a", "b", "cavato", 1, 55.2);
+    eq([r4.scartoAllora, r4.scartoAdesso, r4.scartoDifferenza, r4.scartoCoerente], [null, null, null, null], "un verbale con le scorte stimate non ha uno scarto da confrontare, anche se oggi c'è");
+  });
+  test("la pagina di Conti salva il verbale passando da `componiVerbale` col triangolo del periodo, e ha la scorciatoia «Questo mese»", () => {
+    const src = _srcContiPagina;
+    ok(/db\.aggiungi\("verbali", componiVerbale\(\{ dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale\(\) \}, tri\)\)/.test(src), "il record si compone nel modulo, non nella pagina");
+    ok(/renderVerbale\(d1, d2, r\.divario, r\.pct, r\.stato, m3f, \{ tri \}\)/.test(src), "il triangolo del periodo passa al verbale");
+    ok(/storicoVerbali\(VER, tipo, qt\)/.test(src), "lo storico riceve il formato dei numeri dalla pagina");
+    ok(/id="btn-ric-mese">Questo mese</.test(src), "il bottone «Questo mese» accanto a «Quest'anno»");
+    ok(/\$\("btn-ric-mese"\)\.onclick = \(\) => \{ const o = oggiISO\(\); \$\("ric-dal"\)\.value = o\.slice\(0, 7\) \+ "-01"; \$\("ric-al"\)\.value = o;/.test(src), "dal primo del mese a OGGI, in ora locale");
+  });
+}
+/* ===== fine Conti · il verbale registra il terzo lato ===== */
+
+
 /* ══════════════════════════════════════════════════════════════════════
    FLOTTA · IL CONSUMO DI UN MEZZO CONTRO LA SUA STORIA (02/09, candidato 3
    della ricerca di Flotta): finestra recente contro tutto ciò che c'è prima,
@@ -34682,6 +34796,27 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
   });
 }
 /* ===== fine shell · l'esito dello sparo ===== */
+
+/* SHELL · L'ESPLOSIVO PER TIPO (03/09, punto 0 del delta sul rapporto di
+   volata). ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const E = (dett) => shell.esplosivoPerTipo({ fori_dettaglio: dett });
+  test("esplosivoPerTipo: i chili per foro si sommano per TIPO, ordinati dal più pesante", () => {
+    const r = E([{ esplosivo: "Emulsione", kg: 8 }, { esplosivo: "Emulsione", kg: 8 }, { esplosivo: "ANFO", kg: 12 }, { esplosivo: "Emulsione", kg: "" }]);
+    eq(r.tipi, [{ tipo: "Emulsione", kg: 16, fori: 3 }, { tipo: "ANFO", kg: 12, fori: 1 }]);
+    eq(r.kgTot, 28); eq(r.dichiarato, true); eq(r.conDueTipi, 0); eq(r.senzaTipo, { fori: 0, kg: 0 });
+    eq(r.kgTot, shell.misureVolataFochino({ fori_dettaglio: [{ esplosivo: "Emulsione", kg: 8 }, { esplosivo: "Emulsione", kg: 8 }, { esplosivo: "ANFO", kg: 12 }] }).kg, "lo stesso totale della misura che il PDF stampa già");
+  });
+  test("⛔ esplosivoPerTipo: i chili senza tipo NON si attribuiscono a nessuno, si dichiarano; due tipi in un foro si contano", () => {
+    const r = E([{ esplosivo: "", kg: 3 }, { esplosivo: "ANFO", esplosivo2: "Emulsione", kg: 12 }, { esplosivo2: "Emulsione", kg: 2 }]);
+    eq(r.senzaTipo, { fori: 1, kg: 3 }); eq(r.dichiarato, false, "3 kg senza tipo: il conto per tipo non copre tutto");
+    eq(r.conDueTipi, 1, "il foro ANFO+Emulsione: i 12 kg vanno al primo tipo scritto, e il foro si conta");
+    eq(r.tipi, [{ tipo: "ANFO", kg: 12, fori: 1 }, { tipo: "Emulsione", kg: 2, fori: 1 }], "il foro con solo la seconda carica conta per quel tipo");
+    eq(shell.esplosivoPerTipo(null), { tipi: [], kgTot: 0, senzaTipo: { fori: 0, kg: 0 }, conDueTipi: 0, dichiarato: false }, "senza rapportino non esplode e non dichiara");
+    eq(E([{ esplosivo: "ANFO", kg: 1 }, { esplosivo: "ANFO", kg: 1 }, { esplosivo: "Emulsione", kg: 2 }]).tipi.map((t) => t.tipo), ["ANFO", "Emulsione"], "a pari chili, alfabetico");
+  });
+}
+/* ===== fine shell · l'esplosivo per tipo ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
    CONTI · IL TRIANGOLO CHIUSO CON L'INVENTARIO DEI CUMULI (03/09)

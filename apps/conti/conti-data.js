@@ -44,7 +44,12 @@
 //                    lucchetto: un costo arrivato dopo si registra lo stesso.
 //   verbali/{id}: { dal, al (ISO), tipo "cavato"|"prodotto", divario (m³ o t: il
 //                    numero che la schermata mostrava quando è stato scritto),
-//                    pct, stato, causa (chiave di CAUSE_DIVARIO), nota, scrittoIl }
+//                    pct, stato, causa (chiave di CAUSE_DIVARIO), nota, scrittoIl,
+//                    e — solo per il cavato, dal 03/09 — il terzo lato:
+//                    scorte {deltaM3, deltaT, inizio{id,data}, fine{id,data},
+//                    parziale, fuori[]} + chiusura {scarto, pct, stato, verso}
+//                    copiati da `triangolo`, oppure scorte: null + scorteMotivo
+//                    quando il triangolo non chiudeva (vedi componiVerbale) }
 //                    — il verbale di riconciliazione: non corregge e non blocca.
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
@@ -294,7 +299,13 @@ export const DEMO = {
   verbali: [
     { id: "vr1", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione",
       causa: "cumulo", nota: "A maggio abbiamo ripreso dal cumulo di piazzale: il venduto in più viene da lì, non dal fronte.",
-      scrittoIl: "2026-07-02T09:40:00" },
+      scrittoIl: "2026-07-02T09:40:00",
+      /* il terzo lato (03/09): quello che `triangolo` risponde su QUESTA
+         dimostrazione per lo stesso semestre — copiato dalla funzione, e una
+         prova in run-kpi lo confronta campo per campo */
+      scorte: { deltaM3: 6, deltaT: 16.3, inizio: { id: "i1", data: "2025-12-29" }, fine: { id: "i2", data: "2026-06-27" },
+                parziale: true, fuori: ["Terre di scavo"] },
+      chiusura: { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito" }, scorteMotivo: null },
   ],
   /* L'AUTORIZZAZIONE DELLA CAVA in dimostrazione (02/09): i soli campi che
      servono alla densità, copiati dalla dimostrazione di Terra (`a1`) — una
@@ -5357,7 +5368,7 @@ const _numOAssente = (x) => (x == null || x === "" ? null : Number.isFinite(+x) 
 /* il verbale del periodo ESATTO (dal/al), del tipo chiesto — l'ultimo scritto
    se ce n'è più d'uno — con il confronto fra il numero di allora e quello di
    adesso: `coerente` se al centesimo di m³/t, `differenza` altrimenti. */
-export function verbaleDelPeriodo(verbali, dal, al, tipo, divarioAdesso) {
+export function verbaleDelPeriodo(verbali, dal, al, tipo, divarioAdesso, scartoAdesso) {
   const t = tipo || "cavato";
   const miei = (Array.isArray(verbali) ? verbali : []).filter((v) => v && v.dal === dal && v.al === al && (v.tipo || "cavato") === t);
   if (!miei.length) return null;
@@ -5366,13 +5377,23 @@ export function verbaleDelPeriodo(verbali, dal, al, tipo, divarioAdesso) {
   const allora = _numOAssente(v.divario);
   const adesso = _numOAssente(divarioAdesso);
   const differenza = allora != null && adesso != null ? Math.round((adesso - allora) * 100) / 100 : null;
+  /* il terzo lato (03/09): se il verbale aveva le scorte MISURATE, si confronta
+     anche lo scarto del triangolo di allora con quello di adesso — e quando
+     oggi il triangolo non chiude (`scartoAdesso` null) il confronto resta
+     nullo, non finto: la pagina dice che oggi gli inventari non bastano. Un
+     verbale con `scorte: null` non ha uno scarto da confrontare. */
+  const scartoAllora = v.scorte && v.chiusura ? _numOAssente(v.chiusura.scarto) : null;
+  const scartoOra = scartoAllora != null ? _numOAssente(scartoAdesso) : null;
+  const scartoDifferenza = scartoAllora != null && scartoOra != null ? Math.round((scartoOra - scartoAllora) * 100) / 100 : null;
   return { verbale: v, causa: causaDivario(v.causa), allora, adesso,
-    coerente: differenza != null && Math.abs(differenza) < 0.005, differenza, quanti: miei.length };
+    coerente: differenza != null && Math.abs(differenza) < 0.005, differenza, quanti: miei.length,
+    scartoAllora, scartoAdesso: scartoOra, scartoDifferenza,
+    scartoCoerente: scartoDifferenza == null ? null : Math.abs(scartoDifferenza) < 0.005 };
 }
 /* lo storico: i verbali di un tipo in ordine di periodo, con il segno del
    passo fra uno e il successivo sulla percentuale. `null` nel passo = non si
    può dire (manca la percentuale in uno dei due). */
-export function storicoVerbali(verbali, tipo) {
+export function storicoVerbali(verbali, tipo, fmt) {
   const t = tipo || "cavato";
   const righe = (Array.isArray(verbali) ? verbali : []).filter((v) => v && (v.tipo || "cavato") === t && v.al)
     .slice().sort((a, b) => String(a.al).localeCompare(String(b.al)) || String(a.scrittoIl || "").localeCompare(String(b.scrittoIl || "")));
@@ -5382,6 +5403,62 @@ export function storicoVerbali(verbali, tipo) {
     const pp = prima ? _numOAssente(prima.pct) : null;
     const passo = p != null && pp != null ? Math.round((Math.abs(p) - Math.abs(pp)) * 100) / 100 : null;
     return { ...v, pctNum: p, causaEtichetta: (causaDivario(v.causa) || {}).etichetta || null,
-      passo, verso: passo == null ? null : passo > 0 ? "cresce" : passo < 0 ? "cala" : "pari" };
+      passo, verso: passo == null ? null : passo > 0 ? "cresce" : passo < 0 ? "cala" : "pari",
+      scorteDette: scorteDelVerbale(v, fmt) };
   });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL VERBALE E IL TERZO LATO (03/09): il verbale del cavato registra anche le
+   scorte, quando sono MISURATE
+   ────────────────────────────────────────────────────────────────────────
+   Il verbale conservava il divario cavato − venduto e la sua causa. Con gli
+   inventari dei cumuli il divario ha un terzo lato (`triangolo`), e un
+   verbale che non lo scrive racconta a metà: chi lo rilegge fra sei mesi non
+   sa se le scorte di allora erano misurate o stimate. Il record cresce così:
+     scorte:   { deltaM3, deltaT, inizio: {id, data}, fine: {id, data},
+                 parziale, fuori: [materiale…] }   — copiati da `triangolo`,
+                 mai ricalcolati (un secondo calcolo divergerebbe dal primo)
+     chiusura: { scarto, pct, stato, verso }
+   e quando il triangolo NON chiude: `scorte: null, chiusura: null,
+   scorteMotivo: <perché>` — l'assenza DICHIARATA, con la ragione del
+   modulo, non un campo che manca. Un verbale scritto prima del 03/09 non ha
+   nessuno dei tre campi: è un terzo stato («non registrate»), e si dice.
+   ⛔ Il verbale del PRODOTTO (Campo contro la pesa) non ha un terzo lato:
+   `componiVerbale` lo lascia com'è, e lo storico del prodotto non parla di
+   scorte.
+   Le tre funzioni sono PURE: la pagina chiama `componiVerbale` con quello che
+   ha appena letto e salva il risultato; una prova le chiama senza browser.
+   ══════════════════════════════════════════════════════════════════════ */
+export function componiVerbale(base, tri) {
+  const b = { ...(base || {}) };
+  if ((b.tipo || "cavato") !== "cavato") return b;
+  if (!tri) return { ...b, scorte: null, chiusura: null, scorteMotivo: "gli inventari dei cumuli di Terra non erano ancora stati letti" };
+  if (tri.stato !== "chiuso") return { ...b, scorte: null, chiusura: null,
+    scorteMotivo: String(tri.perche || "") || `il triangolo non chiude (${tri.stato || "stato non dichiarato"})` };
+  const s = tri.scorte || {}, st = tri.scorteT || {}, ch = tri.chiusura || {};
+  const rif = (i) => (i ? { id: i.id == null ? null : String(i.id), data: i.data == null ? null : String(i.data) } : null);
+  return { ...b, scorteMotivo: null,
+    scorte: { deltaM3: _numOAssente(s.deltaM3), deltaT: _numOAssente(st.deltaT), inizio: rif(s.inizio), fine: rif(s.fine),
+              parziale: !!tri.parziale, fuori: (Array.isArray(tri.fuori) ? tri.fuori : []).map((f) => String(f && f.materiale || "")).filter(Boolean) },
+    chiusura: { scarto: _numOAssente(ch.scarto), pct: _numOAssente(ch.pct), stato: ch.stato == null ? null : String(ch.stato), verso: ch.verso == null ? null : String(ch.verso) } };
+}
+/* Che cosa dice un verbale delle sue scorte, in tre stati:
+     misurate        · c'è `scorte` e `chiusura`: «scarto del triangolo 55,2 t, attenzione»
+     stimate         · `scorte: null` con il motivo: «scorte stimate: <motivo>»
+     non-registrate  · il verbale non ha il campo (scritto prima del terzo lato,
+                       o è del prodotto): «scorte non registrate nel verbale»
+   ⚠️ il formato del numero si passa da fuori (`fmt`), come per
+   `etichettaScaglione`: «55,2» lo scrive la pagina, qui il numero è nudo. */
+export function scorteDelVerbale(v, fmt) {
+  const n = typeof fmt === "function" ? fmt : String;
+  if (!v || (v.scorte === undefined && v.scorteMotivo === undefined)) return { stato: "non-registrate", scarto: null, chiusuraStato: null, motivo: null, testo: "scorte non registrate nel verbale" };
+  if (!v.scorte || !v.chiusura) {
+    const motivo = String(v.scorteMotivo || "") || "il triangolo non chiudeva";
+    return { stato: "stimate", scarto: null, chiusuraStato: null, motivo, testo: "scorte stimate: " + motivo };
+  }
+  const scarto = _numOAssente(v.chiusura.scarto), stato = v.chiusura.stato == null ? null : String(v.chiusura.stato);
+  const testo = scarto == null ? "scorte misurate, scarto del triangolo non calcolabile"
+    : `scarto del triangolo ${n(Math.abs(scarto))} t${stato ? ", " + stato : ""}`;
+  return { stato: "misurate", scarto, chiusuraStato: stato, motivo: null, testo };
 }

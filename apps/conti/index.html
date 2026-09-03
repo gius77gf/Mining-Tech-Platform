@@ -686,6 +686,11 @@ label.item:has(.dw-chk:checked){
   padding-top:6px; border-top:1px dashed var(--border2);
 }
 .meta.pesa b{color:var(--app-accent2)}
+/* la riga delle scorte di un verbale (03/09): stessa forma della riga della
+   pesa — a tutta larghezza, sotto la causa, senza il taglio a due righe —
+   perché il motivo per cui le scorte restavano stimate è una frase intera */
+.meta.terzo-lato{flex:1 1 100%; margin-top:0; -webkit-line-clamp:none; color:var(--muted2); padding-top:4px; border-top:1px dashed var(--border2)}
+.meta.terzo-lato.misurate{color:var(--app-accent2)}
 /* ⛔ E QUELLO CHE VENIVA TAGLIATO ERA SEMPRE LA STESSA COSA: il «da
    completare prima di stampare: …», cioè l'unico posto in cui l'elenco delle
    mancanze del DDT si legge (il resto sta nel `title` della pastiglia, che su
@@ -1837,6 +1842,7 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input" id="ric-al" type="date">
       <span class="err-msg" id="err-ric-al"></span>
     </div>
+    <button class="dw-btn secondary" id="btn-ric-mese">Questo mese</button>
     <button class="dw-btn secondary" id="btn-ric-anno">Quest'anno</button>
     <button class="dw-btn secondary" id="btn-ric-prec">Anno scorso</button>
   </div>
@@ -1961,7 +1967,7 @@ label.item:has(.dw-chk:checked){
     validaScaglioni, scaglionePer, applicaScaglione, etichettaScaglione,
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
-    CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali,
+    CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
     autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
@@ -2359,6 +2365,13 @@ label.item:has(.dw-chk:checked){
     renderRiconciliazione(); };
   $("btn-ric-anno").onclick = () => ricAnno(new Date().getFullYear());
   $("btn-ric-prec").onclick = () => ricAnno(new Date().getFullYear() - 1);
+  // «questo mese» (03/09): dal primo del mese a OGGI, in ora locale — non al
+  // 31, perché un periodo che finisce nel futuro conta consegne non ancora
+  // fatte come mancanti. Su un mese senza rilievi il confronto resta fermo e
+  // lo dice; su un mese con un solo inventario il triangolo non chiude, e le
+  // scorte restano stimate: in tutt'e due i casi la schermata lo scrive.
+  $("btn-ric-mese").onclick = () => { const o = oggiISO(); $("ric-dal").value = o.slice(0, 7) + "-01"; $("ric-al").value = o;
+    renderRiconciliazione(); };
   $("pes-filtri").addEventListener("click", (e) => {
     const f = e.target.getAttribute && e.target.getAttribute("data-pfiltro");
     if (f) { filtroPes = f; refresh(); }
@@ -5699,7 +5712,7 @@ label.item:has(.dw-chk:checked){
       densità del listino. <b>Non viene usata per convertire il cavato</b>: quella sarebbe una
       stima, e qui non se ne fanno.</div>`);
     $("ric-list").insertAdjacentHTML("beforeend", avvisi.join(""));
-    renderVerbale(d1, d2, r.divario, r.pct, r.stato, m3f);
+    renderVerbale(d1, d2, r.divario, r.pct, r.stato, m3f, { tri });
 
     renderValoreCavato(cav, ven, m3f);
   }
@@ -5797,17 +5810,45 @@ label.item:has(.dw-chk:checked){
   // `opz.tipo`: "cavato" (m³, sotto il confronto con Terra) o "prodotto" (t,
   // sotto il confronto con Campo). Stesse funzioni, stesso riquadro, un'unità
   // e un verso a parole per ciascuno: il segno di un divario si legge male.
+  // `opz.tri` (03/09): il triangolo di QUESTO periodo, per il solo cavato —
+  // null se gli inventari non sono ancora arrivati. Il verbale lo registra
+  // (`componiVerbale`: le scorte misurate con la chiusura, oppure il motivo
+  // per cui restano stimate), la testa confronta lo scarto di allora con
+  // quello di adesso, e ogni riga dello storico dice che scorte aveva — su
+  // una riga sua a tutta larghezza, perché `.meta` è tagliata a due righe e
+  // un dettaglio appeso in coda è testo morto.
   function renderVerbale(d1, d2, divario, pct, stato, m3f, opz) {
     const o = opz || {};
     const tipo = o.tipo || "cavato", u = tipo === "prodotto" ? "t" : "m³";
     const box = $(o.box || "ric-verbale"); if (!box) return;
     const fm = m3f || ((v) => NUMV.format(Math.round(v * 100) / 100));
+    const tri = tipo === "cavato" ? (o.tri || null) : undefined;
+    const triChiuso = !!tri && tri.stato === "chiuso";
+    const scartoAdesso = triChiuso ? tri.chiusura.scarto : null;
+    const versoParole = (v) => v === "sparito" ? "materiale che non risulta né venduto né a piazzale" : v === "in-eccesso" ? "più materiale venduto e a piazzale di quanto cavato" : "cavato, venduto e scorte tornano";
+    // che cosa il verbale del periodo dice delle sue scorte, e come stanno oggi
+    const fraseScorte = (mio) => {
+      if (tipo !== "cavato") return "";
+      const sd = scorteDelVerbale(mio.verbale, qt), v = mio.verbale;
+      if (sd.stato === "misurate") {
+        const dT = v.scorte.deltaT;
+        const mosse = dT == null ? "" : dT > 0 ? ` — cresciute di ${qt(dT)} t —` : dT < 0 ? ` — diminuite di ${qt(-dT)} t —` : " — invariate —";
+        const allora = ` Allora le scorte erano <b>misurate</b>${mosse} e il triangolo chiudeva a <b>${qt(Math.abs(sd.scarto))} t</b>${sd.chiusuraStato ? " (" + esc(sd.chiusuraStato) + (v.chiusura.verso ? ": " + versoParole(v.chiusura.verso) : "") + ")" : ""}${v.scorte.parziale && v.scorte.fuori.length ? ", con " + v.scorte.fuori.map(esc).join(", ") + " fuori dal conto" : ""}.`;
+        const oggi = mio.scartoAdesso == null
+          ? (tri ? ` Oggi il triangolo <b>non chiude</b>${tri.perche ? ": " + esc(tri.perche) : ""}.` : "")
+          : mio.scartoCoerente ? " Oggi chiude allo stesso scarto."
+          : ` <b>Oggi chiude a ${qt(Math.abs(mio.scartoAdesso))} t</b> (${mio.scartoDifferenza > 0 ? "+" : ""}${qt(mio.scartoDifferenza)} t rispetto ad allora): sono cambiati anche gli inventari, o una densità.`;
+        return allora + oggi;
+      }
+      if (sd.stato === "stimate") return ` Allora le scorte erano <b>stimate</b>: ${esc(sd.motivo)}.${triChiuso ? ` Oggi il triangolo chiude a <b>${qt(Math.abs(scartoAdesso))} t</b>: un altro verbale lo registrerebbe.` : ""}`;
+      return " Il verbale non registra le scorte: è di prima che il triangolo si chiudesse qui.";
+    };
     const dv = tipo === "prodotto"
       ? (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} t</b> vendute più del prodotto dichiarato` : x > 0 ? `<b>${fm(x)} t</b> prodotte e non uscite dal cancello` : "<b>0 t</b>, pari"
       : (x) => x == null ? "—" : x < 0 ? `<b>${fm(-x)} m³</b> venduti più del cavato` : x > 0 ? `<b>${fm(x)} m³</b> di scorta stimata` : "<b>0 m³</b>, pari";
     const base = tipo === "prodotto" ? "del dichiarato" : "del cavato";
-    const mio = verbaleDelPeriodo(VER, d1, d2, tipo, divario);
-    const storico = storicoVerbali(VER, tipo).slice(-6).reverse();
+    const mio = verbaleDelPeriodo(VER, d1, d2, tipo, divario, scartoAdesso);
+    const storico = storicoVerbali(VER, tipo, qt).slice(-6).reverse();
     let testa;
     if (mio) {
       const v = mio.verbale;
@@ -5816,7 +5857,7 @@ label.item:has(.dw-chk:checked){
         causa: <b>${esc(mio.causa ? mio.causa.etichetta : v.causa || "non indicata")}</b>${v.nota ? ". «" + esc(v.nota) + "»" : "."}
         ${mio.adesso == null ? "" : mio.coerente
           ? " Oggi il conto dà lo stesso numero."
-          : ` <b>Oggi il conto dà ${dv(mio.adesso)}</b> (${mio.differenza > 0 ? "+" : ""}${fm(mio.differenza)} ${u} rispetto ad allora): i dati sono cambiati dopo il verbale — ${tipo === "prodotto" ? "un rapportino" : "un rilievo"} o una pesata in più o corretta. Il verbale resta vero su allora; se vuoi, scrivine un altro.`}
+          : ` <b>Oggi il conto dà ${dv(mio.adesso)}</b> (${mio.differenza > 0 ? "+" : ""}${fm(mio.differenza)} ${u} rispetto ad allora): i dati sono cambiati dopo il verbale — ${tipo === "prodotto" ? "un rapportino" : "un rilievo"} o una pesata in più o corretta. Il verbale resta vero su allora; se vuoi, scrivine un altro.`}${fraseScorte(mio)}
         ${mio.quanti > 1 ? ` <span class="ponte-coda">(${mio.quanti} verbali per questo periodo: si mostra l'ultimo)</span>` : ""}</div>`;
     } else if (divario == null) {
       testa = "";
@@ -5828,7 +5869,8 @@ label.item:has(.dw-chk:checked){
     const righe = storico.length ? `<div class="sec" style="margin-top:14px;">Verbali precedenti</div>` + storico.map(v => `<div class="item st-accent">
       <span class="avatar">${IC.cumulo}</span>
       <div class="info"><div class="name">${fmtD(v.dal)} – ${fmtD(v.al)} · ${Number.isFinite(+v.divario) ? dv(+v.divario).replace(/<\/?b>/g, "") : "divario —"}${v.pctNum != null ? " (" + perc(Math.abs(v.pctNum)) + ")" : ""}</div>
-      <div class="meta">${esc(v.causaEtichetta || v.causa || "causa non indicata")}${v.nota ? " · «" + esc(v.nota) + "»" : ""}</div></div>
+      <div class="meta">${esc(v.causaEtichetta || v.causa || "causa non indicata")}${v.nota ? " · «" + esc(v.nota) + "»" : ""}</div>
+      ${tipo === "cavato" ? `<div class="meta terzo-lato${v.scorteDette.stato === "misurate" ? " misurate" : ""}">${esc(v.scorteDette.testo)}</div>` : ""}</div>
       <div class="amt"><div class="amt-n${v.verso == null ? " mute" : ""}">${v.verso == null ? "—" : v.verso === "cresce" ? "▲" : v.verso === "cala" ? "▼" : "="}</div>
         <div class="amt-s">${v.verso == null ? "primo" : v.verso === "pari" ? "come prima" : "il divario " + v.verso}</div></div></div>`).join("") : "";
     if (o.appendi) box.insertAdjacentHTML("beforeend", testa + bottone + righe); else box.innerHTML = testa + bottone + righe;
@@ -5843,14 +5885,16 @@ label.item:has(.dw-chk:checked){
       let nota = "";
       const p = chiediValore("Scrivi il verbale",
         `<p>Periodo <b>${fmtD(d1)} – ${fmtD(d2)}</b>: ${dv(divario)}${pct != null ? " (" + perc(Math.abs(pct)) + " " + base + ")" : ""}, stato <b>${esc(stato || "")}</b>.</p>
-         <p>Il verbale conserva <b>questo numero</b> e la ragione che gli dai. Non corregge il conto e non blocca niente: se i dati cambiano dopo, Conti te lo dirà accanto al verbale.</p>`,
+         <p>Il verbale conserva <b>questo numero</b> e la ragione che gli dai${tipo !== "cavato" ? "" : triChiuso
+           ? `, e con loro le <b>scorte misurate</b> dagli inventari di Terra: il triangolo chiude a <b>${qt(Math.abs(scartoAdesso))} t</b>`
+           : `; le scorte di questo periodo restano <b>stimate</b>${tri && tri.perche ? " (" + esc(tri.perche) + ")" : ""}, e il verbale lo scrive`}. Non corregge il conto e non blocca niente: se i dati cambiano dopo, Conti te lo dirà accanto al verbale.</p>`,
         campo, "Salva il verbale");
       const foot = $("modal-foot");
       if (foot) foot.addEventListener("click", () => { const n = $("modal-nota"); if (n) nota = n.value.trim(); }, { capture: true, once: false });
       const causa = await p;
       if (causa == null) return;
       if (!causaDivario(causa)) { toast("Scegli una causa fra quelle elencate.", "err"); return; }
-      await db.aggiungi("verbali", { dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale() });
+      await db.aggiungi("verbali", componiVerbale({ dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale() }, tri));
       toast("✓ Verbale salvato per " + fmtD(d1) + " – " + fmtD(d2));
       await refresh();
       renderRiconciliazione();

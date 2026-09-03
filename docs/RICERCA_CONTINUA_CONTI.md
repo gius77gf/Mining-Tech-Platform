@@ -753,5 +753,8 @@ parola di questa ricerca: entrano quando un cantiere le sceglie, e il primo
 candidato per costo/valore è il **5** (il verbale), perché dà uno storico ai
 due confronti che esistono già. *(02/09 sera: il 5 è fatto, e il 2 era già in
 casa ed è collegato; restano il 3 — l'inventario dei cumuli — e la metà del 6.)*
+*(03/09: il 3 è FATTO — `inventari` in Terra, `triangolo` in Conti, il verbale
+che registra il terzo lato, commit `b110e3e1` e seguente; «Questo mese» c'è.
+Del 6 resta il promemoria, che è la decisione 20 del fondatore.)*
 *(03/09: anche il 3 è fatto. Resta la metà del 6, il «questo mese» e un
 promemoria.)*

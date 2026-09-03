@@ -38,7 +38,32 @@
    ⛔ E IL FINTO FIRESTORE DEVE **RIFIUTARE**, non rispondere vuoto: con un
    Firestore che dice «nessun documento» il core crede di essere al primo
    avvio, semina il database e l'accesso risponde «Credenziali errate» su
-   credenziali giuste. */
+   credenziali giuste.
+
+   ── SECONDA TORNATA (03/09, stessa notte) ──
+   · L'ESPLOSIVO PER TIPO: il registro di carico e scarico vuole i chili per
+     tipo, non il totale. I numeri li fa `esplosivoPerTipo` (shared, provata
+     da `node`); le parole `righeEsplosivoPerTipo` nel core, UNA volta per la
+     scheda e il PDF. Qui si prova che scheda e PDF le dicano davvero, e
+     identiche. I chili attesi sono CALCOLATI A MANO dalla dimostrazione:
+     `rf_1` ha 14 fori da 8 kg, i primi 12 a emulsione e gli ultimi 2 ad ANFO
+     → 12 × 8 = 96,0 kg e 2 × 8 = 16,0 kg, somma 112 = `tot_kg`. `rf_2` ha
+     11 fori ad ANFO senza chili → «11 fori, chili non scritti», MAI «0,0 kg».
+     I casi che la dimostrazione non ha (chili senza tipo, due esplosivi in
+     un foro, un tipo caricato a metà) si provano sul PDF di un rapportino
+     costruito qui e passato a `exportRapportinoFocPDF`, che è su `window`.
+   · IL BADGE DEL COLPO MANCATO NELLA CRONOLOGIA DELLA CAVA (il gemello
+     digitale, l'unica cronologia del core che elenca le volate del fochino:
+     la home non le elenca). Un pericolo che si vede nell'elenco delle volate
+     e non lì è un pericolo che chi apre la cava non vede.
+   · LA RIGA `.ssub` NON TRABOCCA A 390 px: col badge dentro `.ssub` il testo
+     «Marco Verdi · 14 fori · 112,0 kg» finiva tagliato («11…», visto nello
+     scatto). Adesso il badge ha una riga sua (`.ssub-esito`) sotto il testo,
+     e si misura con `scrollWidth > clientWidth` — la risposta del browser,
+     non un conto a mano.
+   ⚠️ `--difetto=N` rimette UN difetto solo (1-based): serve a provare che la
+   controprova cade anche su di lui, perché nella controprova completa un
+   difetto può mascherarne un altro (senza badge non c'è niente che trabocchi). */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -63,10 +88,10 @@ const DIFETTI = [
   ["index.html",
    "  if(!e.contato) return 'non contato';",
    "  if(!e.contato) return '0 colpi esplosi, 0 mancati';"],
-  /* 3 · l'elenco non mette il badge del pericolo */
+  /* 3 · il badge del pericolo non si disegna — in elenco, in scheda, in cronologia */
   ["index.html",
-   "<div class=\"ssub\">${es.pericolo?`<span class=\"scad-badge danger\" style=\"margin:0 4px 0 0;\">${conta(es.mancati,'colpo mancato','colpi mancati')}</span>`:''}",
-   "<div class=\"ssub\">"],
+   "  return es.pericolo?`<span class=\"scad-badge danger\">${conta(es.mancati,'colpo mancato','colpi mancati')}</span>`:'';",
+   "  return '';"],
   /* 4 · il riepilogo tace su quante volate sono senza esito contato */
   ["index.html",
    "${senzaEsito?` · ${senzaEsito} senza esito contato`:''}",
@@ -83,7 +108,30 @@ const DIFETTI = [
   ["index.html",
    "    d.text(`Esito dello sparo: ${fraseEsitoSparo(r)}`,14,y);y+=5;",
    "    d.text(`Esito dello sparo: ${r.colpiEsplosi||0} colpi esplosi, ${r.colpiMancati||0} mancati`,14,y);y+=5;"],
+  /* 8 · i chili SENZA tipo sommati a ogni tipo (cioè al primo, sul caso vero):
+     dichiarati e sommati insieme, il registro per tipo conta due volte */
+  ["index.html",
+   "    if(g.kg>0) return `${g.tipo} · ${perLettura(g.kg,1,true)} kg in",
+   "    if(g.kg>0) return `${g.tipo} · ${perLettura(g.kg+t.senzaTipo.kg,1,true)} kg in"],
+  /* 9 · il PDF non stampa il blocco per tipo: lo schermo lo dice, il foglio no */
+  ["index.html",
+   "    const righe=righeEsplosivoPerTipo(r);\n    if(righe.length){",
+   "    const righe=righeEsplosivoPerTipo(r);\n    if(false){"],
+  /* 10 · la cronologia della cava non porta il badge */
+  ["index.html",
+   "badge:badgeColpiMancati(r),go:`apriRappFocDett('${r.id}')`",
+   "badge:'',go:`apriRappFocDett('${r.id}')`"],
+  /* 11 · il badge torna DENTRO `.ssub` (la forma di stanotte): a 390 px il
+     testo trabocca e «112,0 kg» si taglia. ⚠️ Con il 3 attivo il badge non
+     c'è e non trabocca niente: si prova da solo, con `--difetto=11`. */
+  ["index.html",
+   "<div class=\"ssub\">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div>${es.pericolo?`<div class=\"ssub-esito\">${badgeColpiMancati(r)}</div>`:''}",
+   "<div class=\"ssub\">${es.pericolo?badgeColpiMancati(r)+' ':''}${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div>"],
 ];
+/* `--difetto=N`: nella controprova si rimette SOLO l'N-esimo (1-based) */
+const SOLO_DIFETTO = +((process.argv.find((a) => a.startsWith("--difetto=")) || "").split("=")[1] || 0);
+const DIFETTI_ATTIVI = SOLO_DIFETTO ? [DIFETTI[SOLO_DIFETTO - 1]] : DIFETTI;
+if (SOLO_DIFETTO && !DIFETTI_ATTIVI[0]) { console.error(`✗ --difetto=${SOLO_DIFETTO}: ce ne sono ${DIFETTI.length}`); process.exit(2); }
 
 let colpiti = new Set();
 const srv = createServer((q, s) => {
@@ -93,7 +141,7 @@ const srv = createServer((q, s) => {
   let corpo = readFileSync(p);
   if (CONTROPROVA) {
     let t = corpo.toString("utf8");
-    for (const [file, a, b] of DIFETTI) if (p === join(R, file) && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    for (const [file, a, b] of DIFETTI_ATTIVI) if (p === join(R, file) && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
@@ -191,6 +239,22 @@ const riepilogo = await testo("vol-summary");
 dice(/1 volata con colpi mancati/.test(riepilogo), "il riepilogo dice «1 volata con colpi mancati»", riepilogo);
 dice(/1 senza esito contato/.test(riepilogo),
   "⛔ e DICHIARA quante volate sono senza esito contato, invece di nasconderle", riepilogo);
+/* la riga `.ssub` NON trabocca a 390 px, e il badge sta su una riga SUA sotto
+   il testo: la domanda la fa il browser (`scrollWidth > clientWidth`), su
+   TUTTE le righe dell'elenco, non solo su quella col badge */
+const misuraSsub = (sel) => pg.$$eval(sel, (righe) => righe.map((r) => {
+  const s = r.querySelector(".ssub"), e = r.querySelector(".ssub-esito");
+  const rs = s ? s.getBoundingClientRect() : null, re = e ? e.getBoundingClientRect() : null;
+  return { testo: s ? s.innerText.trim() : "", trabocca: !!s && s.scrollWidth > s.clientWidth,
+           badgeSotto: !!(rs && re) && re.top >= rs.bottom - 0.5, altezza: Math.round(r.getBoundingClientRect().height) };
+}));
+const ssubVol = await misuraSsub("#vol-list .sitem");
+dice(ssubVol.length === 2 && ssubVol.every((x) => !x.trabocca),
+  "⛔ a 390 px nessuna riga `.ssub` dell'elenco trabocca (scrollWidth ≤ clientWidth): «112,0 kg» si legge", ssubVol);
+dice(ssubVol.some((x) => /112,0 kg$/.test(x.testo)),
+  "e la riga della volata col colpo mancato finisce con «112,0 kg» intero, la virgola italiana", ssubVol.map((x) => x.testo));
+dice(ssubVol.filter((x) => x.badgeSotto).length === 1,
+  "il badge del colpo mancato sta su una riga sua, SOTTO il testo, e solo lì", ssubVol);
 await scatta("elenco-volate-390.png");
 
 /* ══ 2 · LA SCHEDA DELLA VOLATA COL COLPO MANCATO ══ */
@@ -212,6 +276,19 @@ dice(!!s1 && s1.frase === "13 colpi esplosi, 1 mancato",
 dice(!!s1 && /1 colpo mancato/i.test(s1.badge), "col badge rosso del pericolo", s1?.badge);
 dice(!!s1 && /Foro 9/.test(s1.nota) && /area interdetta/.test(s1.nota) && /bonifica/.test(s1.nota),
   "e la nota: dov'è il colpo mancato, l'area interdetta, chi bonifica", s1?.nota);
+/* I CHILI PER TIPO, calcolati a mano dalla dimostrazione: `rf_1` ha 14 fori
+   da 8 kg, i primi 12 a emulsione e gli ultimi 2 ad ANFO →
+   emulsione 12 × 8 = 96,0 kg, ANFO 2 × 8 = 16,0 kg; 96 + 16 = 112 = `tot_kg`. */
+const perTipo = () => pg.$$eval("#rfd-per-tipo .preview-val", (e) => e.map((x) => x.innerText.trim()));
+const ATTESE_RF1 = ["Emulsione · 96,0 kg in 12 fori", "ANFO · 16,0 kg in 2 fori"];
+const t1 = await perTipo();
+dice(JSON.stringify(t1) === JSON.stringify(ATTESE_RF1),
+  "⛔ sotto il totale ci sono i chili PER TIPO: «Emulsione · 96,0 kg in 12 fori», «ANFO · 16,0 kg in 2 fori» (12×8 e 2×8)", t1);
+const totScheda = await pg.evaluate(() => {
+  const r = [...document.querySelectorAll("#modal-body .preview-row")].find((x) => /Esplosivo tot\./.test(x.innerText));
+  return r ? r.querySelector(".preview-val").innerText.trim() : null;
+});
+dice(totScheda === "112,0 kg", "e il totale della stessa scheda è «112,0 kg» = 96 + 16: i tipi sommano al totale", totScheda);
 await scatta("scheda-colpo-mancato-390.png");
 await pg.evaluate(() => window.closeModal());
 await pg.waitForTimeout(200);
@@ -226,8 +303,32 @@ dice(!!s2 && s2.frase === "non contato",
 dice(!!s2 && !/0 mancat/.test(s2.modale) && !/0 colpi/.test(s2.modale),
   "⛔ e da nessuna parte compare «0 mancati» o «0 colpi»: l'assenza non è un dato favorevole", s2?.modale);
 dice(!!s2 && s2.badge === "", "e nessun badge di pericolo su una volata di cui non si sa niente", s2?.badge);
+/* 11 fori ad ANFO, nessuno coi chili: il tipo si dice, i chili no — e non «0,0 kg» */
+const t2 = await perTipo();
+dice(JSON.stringify(t2) === JSON.stringify(["ANFO · 11 fori, chili non scritti"]),
+  "⛔ coi chili mai scritti la riga per tipo dice «ANFO · 11 fori, chili non scritti», non «0,0 kg»", t2);
+dice(!!s2 && !/0,0 kg|0\.0 kg/.test(s2.modale), "e «0,0 kg» non compare da nessuna parte nella scheda", s2?.modale);
 await pg.evaluate(() => window.closeModal());
 await pg.waitForTimeout(200);
+
+/* ══ 3b · LA CRONOLOGIA DELLA CAVA (gemello digitale) ══ */
+console.log("── 3b · la cronologia della cava porta il badge del colpo mancato ──");
+await pg.evaluate(() => window.apriGemello("cava_1"));
+await pg.waitForTimeout(500);
+dice(await visibile("screen-gemello"), "aperto il gemello di Cava Monte Serra (prova di aver navigato)");
+const cron = await pg.$$eval("#gemello-body .sitem", (e) => e.map((x) => ({
+  testo: x.innerText.replace(/\s+/g, " ").trim(),
+  badge: [...x.querySelectorAll(".ssub-esito .scad-badge.danger")].map((b) => b.innerText.trim()) })));
+const evFoc = cron.filter((x) => /Volata \(fochino\)/.test(x.testo));
+dice(evFoc.length === 1 && /15\/07\/2026/.test(evFoc[0].testo), "la volata del fochino del 15/07 è nella cronologia", cron.map((x) => x.testo));
+dice(evFoc.length === 1 && evFoc[0].badge.length === 1 && /1 colpo mancato/i.test(evFoc[0].badge[0]),
+  "⛔ e porta lo STESSO badge «1 colpo mancato» dell'elenco delle volate, su una riga sua", evFoc);
+dice(cron.filter((x) => x.badge.length).length === 1, "il badge è solo su quell'evento: rapportini e progetti non ne portano", cron);
+const ssubCron = await misuraSsub("#gemello-body .sitem");
+dice(ssubCron.length > 0 && ssubCron.every((x) => !x.trabocca) && ssubCron.filter((x) => x.badgeSotto).length === 1,
+  "e a 390 px nessuna riga della cronologia trabocca, col badge sotto il testo", ssubCron);
+await pg.evaluate(() => { const b = document.querySelector("#gemello-body .ssub-esito"); if (b) b.scrollIntoView({ block: "center" }); });
+await scatta("cronologia-cava-390.png");
 
 /* ══ 4 · IL MODULO ══ */
 console.log("── 4 · il modulo del rapportino ──");
@@ -302,10 +403,36 @@ async function pdfDi(id) {
   const d = await pg.evaluate(() => (window.__pdf?.salvati || []).slice(-1)[0] || null);
   const riga = d ? d.testi.find((t) => /^Esito dello sparo: /.test(t)) : null;
   const nota = d ? d.testi.find((t) => /^Colpi mancati/.test(t)) : null;
-  return { scheda, uscito: dopo > prima, riga, nota, testi: d ? d.testi : [] };
+  return { scheda, tipi: await perTipo(), uscito: dopo > prima, riga, nota, testi: d ? d.testi : [], perTipoPdf: blocco(d ? d.testi : []) };
+}
+/* le righe del blocco «ESPLOSIVO PER TIPO» del foglio: dall'intestazione a
+   quella dopo, «ESITO DELLO SPARO» — così si legge il blocco INTERO, non si
+   cerca una sottostringa che risponderebbe ok qualunque cosa succeda */
+function blocco(testi) {
+  const a = testi.indexOf("ESPLOSIVO PER TIPO"), z = testi.indexOf("ESITO DELLO SPARO");
+  return a < 0 ? null : testi.slice(a + 1, z < 0 ? undefined : z);
 }
 const p1 = await pdfDi("rf_1");
 dice(p1.uscito, "premuto «PDF» sulla scheda, un documento esce", p1.testi.length);
+dice(!!p1.perTipoPdf && JSON.stringify(p1.perTipoPdf) === JSON.stringify(p1.tipi) && p1.tipi.length === 2,
+  "⛔ il blocco «ESPLOSIVO PER TIPO» del foglio è IDENTICO alle righe della scheda (stessa `righeEsplosivoPerTipo`)", `${JSON.stringify(p1.perTipoPdf)} · scheda: ${JSON.stringify(p1.tipi)}`);
+/* i casi che la dimostrazione non ha: un rapportino costruito qui e passato a
+   `exportRapportinoFocPDF` (su `window`). Fori: ANFO+Emulsione 12 kg (due
+   esplosivi: i chili al primo), ANFO senza chili (il tipo è un minimo), 3 kg
+   senza tipo (dichiarati, sommati a nessuno), Emulsione senza chili. */
+const sint = await pg.evaluate(() => {
+  const prima = (window.__pdf?.salvati || []).length;
+  window.exportRapportinoFocPDF({ id: "rf_sintetico", userId: "user_fochino", cavaId: "cava_1", data: "2026-07-20", fori: 4, tot_kg: 15,
+    fori_dettaglio: [{ n: 1, esplosivo: "ANFO", esplosivo2: "Emulsione", innesco: "", kg: 12 }, { n: 2, esplosivo: "ANFO", esplosivo2: "", innesco: "", kg: "" },
+                     { n: 3, esplosivo: "", esplosivo2: "", innesco: "", kg: 3 }, { n: 4, esplosivo: "Emulsione", esplosivo2: "", innesco: "", kg: "" }] });
+  const s = window.__pdf?.salvati || [];
+  return s.length > prima ? s[s.length - 1].testi : null;
+});
+const ATTESE_SINT = ["ANFO · 12,0 kg in 2 fori (1 senza chili scritti: è un minimo)", "Emulsione · 1 foro, chili non scritti",
+                     "3,0 kg in 1 foro senza tipo scritto", "1 foro con due esplosivi: i chili sono attribuiti al primo"];
+const bs = sint ? blocco(sint) : null;
+dice(!!bs && JSON.stringify(bs) === JSON.stringify(ATTESE_SINT),
+  "⛔ chili senza tipo DICHIARATI e non sommati (ANFO resta 12,0, non 15,0); il tipo a metà dice «è un minimo»; i due esplosivi si contano", bs);
 dice(!!p1.riga && p1.riga === `Esito dello sparo: ${p1.scheda?.frase}`,
   "⛔ la riga del PDF è IDENTICA alla scheda: stessa funzione, non un secondo conto", `${p1.riga} · scheda: ${p1.scheda?.frase}`);
 dice(!!p1.nota && p1.nota === `Colpi mancati: ${p1.scheda?.nota}`,
@@ -318,8 +445,8 @@ dice(!p2.testi.some((t) => /0 mancat|0 colpi/.test(t)), "senza nessuno «0 manca
 dice(errori.length === 0, "la pagina non solleva errori", errori[0]);
 
 if (CONTROPROVA) {
-  console.log(`\n  difetti rimessi: ${colpiti.size} su ${DIFETTI.length}`);
-  if (colpiti.size !== DIFETTI.length) {
+  console.log(`\n  difetti rimessi: ${colpiti.size} su ${DIFETTI_ATTIVI.length}${SOLO_DIFETTO ? ` (solo il ${SOLO_DIFETTO} di ${DIFETTI.length})` : ""}`);
+  if (colpiti.size !== DIFETTI_ATTIVI.length) {
     console.error("✗ CONTROPROVA A VUOTO: un difetto non ha trovato il suo pezzo di pagina.");
     console.error("  Il core è cambiato: vanno riscritti i pezzi in DIFETTI, non tolta la prova.");
     await b.close(); srv.close(); process.exit(2);
@@ -327,8 +454,10 @@ if (CONTROPROVA) {
 }
 await b.close(); srv.close();
 
-const ATTESE = 33;   // quante prove questo banco DEVE dichiarare: un banco che crolla ne dichiara meno
-const SOGLIA = 8;    // quante DEVONO cadere quando i difetti sono rimessi
+const ATTESE = 47;   // quante prove questo banco DEVE dichiarare: un banco che crolla ne dichiara meno
+/* quante DEVONO cadere quando i difetti sono rimessi: tutti insieme, oppure
+   almeno UNA quando se ne rimette uno solo (`--difetto=N`) */
+const SOGLIA = SOLO_DIFETTO ? 1 : 8;
 console.log(`\nRisultato esito dello sparo (core): ${ok} passate, ${ko} cadute su ${ok + ko} (attese ${ATTESE})`);
 if (ok + ko !== ATTESE) { console.log(`✗ il banco ha dichiarato ${ok + ko} prove invece di ${ATTESE}: si è rotto a metà, o va aggiornato il conto`); process.exit(1); }
 if (CONTROPROVA) {

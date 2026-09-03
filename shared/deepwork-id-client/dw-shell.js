@@ -1787,6 +1787,36 @@ export function misureVolataFochino(r) {
            conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
 }
 
+/* L'ESPLOSIVO PER TIPO sul rapportino del fochino (03/09, punto 0 del delta
+   sul rapporto di volata: il dato per foro c'era, chi lo somma per tipo no —
+   e il registro di carico e scarico del mondo vuole i chili per tipo, non il
+   totale). Ogni foro porta `esplosivo` (colonna di fondo), `esplosivo2`
+   (seconda carica) e un solo `kg`: i chili si attribuiscono al primo tipo
+   scritto; un foro con due tipi si CONTA a parte (`conDueTipi`) perché la
+   ripartizione fra i due non è scritta e non si indovina; un foro con i chili
+   ma senza tipo va in `senzaTipo` con i suoi chili, dichiarati e non sommati
+   a nessuno. `dichiarato` = tutti i chili hanno un tipo. */
+export function esplosivoPerTipo(r) {
+  const o = r || {};
+  const dett = Array.isArray(o.fori_dettaglio) ? o.fori_dettaglio : [];
+  const per = new Map();
+  let senzaTipo = { fori: 0, kg: 0 }, conDueTipi = 0, kgTot = 0;
+  for (const f of dett) {
+    const kg = _numRapp(f && f.kg);
+    const k = kg !== null && kg > 0 ? kg : 0;
+    const t1 = String((f && f.esplosivo) || "").trim(), t2 = String((f && f.esplosivo2) || "").trim();
+    if (t1 && t2 && t1 !== t2) conDueTipi++;
+    const tipo = t1 || t2;
+    if (!tipo) { if (k > 0) { senzaTipo.fori++; senzaTipo.kg += k; } continue; }
+    const g = per.get(tipo) || { tipo, kg: 0, fori: 0 };
+    g.kg += k; g.fori++; per.set(tipo, g); kgTot += k;
+  }
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const tipi = [...per.values()].map((g) => ({ ...g, kg: r2(g.kg) })).sort((a, b) => b.kg - a.kg || a.tipo.localeCompare(b.tipo));
+  return { tipi, kgTot: r2(kgTot), senzaTipo: { fori: senzaTipo.fori, kg: r2(senzaTipo.kg) }, conDueTipi,
+           dichiarato: tipi.length > 0 && senzaTipo.kg === 0 };
+}
+
 /* L'ESITO DELLO SPARO sul rapportino del fochino (03/09, dal delta della
    ricerca sul rapporto di volata: «colpi esplosi contati» e «colpi mancati»
    erano le due cose che mancavano davvero). Una funzione sola decide i numeri
