@@ -274,6 +274,18 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **CAMPO, PASSATA IN PROFONDITÀ (03/09, con le causali nuove): due difetti
+  veri, corretti.** 5 banchi verdi (180 prove), 20 scatti (5 voci × 390/320 ×
+  due temi) con 0 traboccamenti misurati, 7 file aperti (nessuna chiave esce:
+  sempre l'etichetta), la demo svuotata in cinque fixture. (1) Con `attivita:
+  []` il Quadro scriveva «ATTIVITÀ IN CORSO 0» in verde, «ANOMALIE APERTE 0»
+  in rosso e «Giornata tranquilla» — su una giornata in cui nessuno ha
+  registrato niente: ora «—» e «Nessuna attività registrata oggi — non vuol
+  dire che sia tutto tranquillo»; lo zero VERO (attività ci sono, nessuna in
+  corso) resta «0». (2) A 320 px la riga del rapportino «senza data» perdeva
+  nel `line-clamp` proprio «Produzione: 2.300 t»: la produzione sta ora su una
+  riga sua. ⏱️ Restano dichiarati e non corretti quattro tagli secondari a 390
+  (squadra/data in tre `.meta` delle azioni correttive, «Mattina» nel Quadro).
 - [x] **GENESI, PASSATA IN PROFONDITÀ (03/09): sei difetti veri, uno di cinque
   settimane, e un dato del fondatore in un file pubblico.** 9 banchi lanciati
   (327 prove, 9 KO con UNA causa), 26 schermate a 390/320, 7 file aperti, la

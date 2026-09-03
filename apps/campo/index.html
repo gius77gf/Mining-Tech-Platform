@@ -2027,10 +2027,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     ATT_G = tuttiAtt ? ATT : diGiorno(ATT, gAtt); RAP_G = tuttiRap ? RAP : diGiorno(RAP, gRap);
     const k = kpiFrom(ATT_OGGI,SQU,RAP_OGGI);
     const kn = document.querySelectorAll(".kpis .kpi .n");
+    // ⛔ «0 anomalie aperte» su una giornata in cui NESSUNA attività è stata
+    // registrata non è uno zero vero: è «non c'è niente da cui contarle». Il
+    // foglio di fine turno lo decide già così («— anomalie: nessuna attività
+    // registrata oggi», 06/08) e il cartellone dell'avanzamento sparisce; le
+    // due tessere restavano le sole a dire «0» in rosso e in verde, cioè il
+    // numero tranquillo dove non è stato misurato niente (misurato il 03/09
+    // svuotando `attivita` nella risposta HTTP del modulo). Lo zero VERO — ho
+    // guardato e non ce n'è — resta «0»: è quello che si scrive quando oggi ha
+    // delle attività e nessuna è in corso o in anomalia.
+    const nienteAtt = ATT_OGGI.length === 0;
     if (kn[0]) kn[0].textContent = k.squadreAttive;
-    if (kn[1]) kn[1].textContent = k.inCorso;
+    if (kn[1]) kn[1].textContent = nienteAtt ? "—" : k.inCorso;
     if (kn[2]) kn[2].textContent = k.rapportiniOggi;
-    if (kn[3]) kn[3].textContent = k.anomalie;
+    if (kn[3]) kn[3].textContent = nienteAtt ? "—" : k.anomalie;
 
     // ── PONTE P3 NEL QUADRO ───────────────────────────────────────────────
     // La risposta «chi è in turno è in regola?» viveva solo dentro la sezione
@@ -2083,8 +2093,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <div class="avatar">${esc(sig(a.titolo))}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a) || "da assegnare", a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
       <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span><span class="arr deco">${I.chevron}</span></div>`).join("")
-      || vuoto(I.picco, "Giornata tranquilla",
-          "Non c'è nessuna attività aperta oggi. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.");
+      // «Giornata tranquilla» è un verdetto, e lo si può dare solo se oggi ha
+      // delle attività e sono tutte concluse. Se non ne è registrata nessuna
+      // non si sa com'è andata: il titolo dice quello, non «tranquilla».
+      || (ATT_OGGI.length
+        ? vuoto(I.picco, "Giornata tranquilla",
+            "Le attività di oggi sono tutte concluse. Ne serve un'altra? Aprila da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.")
+        : vuoto(I.picco, "Nessuna attività registrata oggi",
+            "Per oggi non è scritto niente, quindi non si sa com'è andata in cava: non vuol dire che sia tutto tranquillo. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno."));
 
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     const attCmp = (a, b) => ordAttSel === "titolo"
@@ -2208,9 +2224,22 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     $("rap-count").textContent = RAP_G.length;
     $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
       const bloc = eChiuso(r.data, r.turno);
+      /* ⛔ LA PRODUZIONE NON STA IN FONDO ALLA `.meta`, che è tagliata a due
+         righe: a 320 px la riga «senza data · Turno Mattina · Squadra B ·
+         Produzione: 2.300 t · 13:00» finiva a «Produzione:» e il numero — il
+         solo fatto per cui un rapportino esiste — spariva (misurato il 03/09
+         col Range sui nodi di testo). Stessa cura delle squadre e delle
+         persone: il dato che conta sta in una `.nota-riga` sua, fuori dal
+         taglio. Il riassunto in una riga sola (`riassuntoRapportino`) resta
+         quello della consegna di turno, dove nessuno taglia niente. */
+      const p = produzioneDi(r);
+      const prodTesto = p ? formattaProduzione(p.qta, p.unita) : (r.produzione ? String(r.produzione) : "");
+      const notaRap = [prodTesto ? "Produzione: <b>" + esc(prodTesto) + "</b>" : "", r.note ? "Consegne: " + esc(r.note) : ""].filter(Boolean).join(" · ");
+      const metaRap = [quando, r.turno ? "Turno " + r.turno : "", r.squadra || "", r.ora || ""].filter(Boolean).map(esc).join(" · ") || "—";
       return `<div class="item ${r.stato==="bozza"?"st-warn":"st-ok"}" data-rap="${r.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: il rapportino non si può più cambiare" : (r.stato==="bozza" ? "Tocca per inviare il rapportino" : "Tocca per richiamarlo in bozza")}">
       <div class="avatar sup">${I.foglio}</div>
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${metaRap}</div>
+        ${notaRap ? `<div class="nota-riga">${notaRap}</div>` : ""}
         ${bloc ? `<div class="chi-riga">${pillolaChiuso(r.data, r.turno)}</div>` : ""}</div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"&&!bloc?`<button type="button" class="arr del" title="Elimina questa bozza" aria-label="Elimina la bozza ${esc(r.titolo)}" data-del-rap="${r.id}">${I.croce}</button>`:""}</div>`; }).join("")
       || vuoto(I.foglio, tuttiRap ? "Nessun rapportino" : "Nessun rapportino oggi",
