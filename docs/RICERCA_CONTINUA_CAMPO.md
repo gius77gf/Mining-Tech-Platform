@@ -1803,10 +1803,10 @@ ogni «non c'è» con il comando.
    totale − presenti − assenti`, e `completo` solo quando i tre tornano. Sul
    Quadro compare («N ancora da spuntare», icona d'allarme, «appello non
    ancora cominciato»); nel foglio di turno stampabile la riga per turno
-   scrive presenti e assenti (`preOggi`, riga ~4528 della pagina) — da
-   verificare se scrive anche i «da spuntare»: se no, è il principio del
-   fondatore violato nel documento che esce (candidato piccolo, misurato
-   aprendo il foglio).
+   scrive «N presenti su M, K non spuntati» (`preOggi`, sezione «Personale
+   presente» della pagina): il terzo stato ARRIVA anche nel documento che
+   esce — letto nel sorgente dopo aver scritto «da verificare», ed è il
+   motivo per cui il candidato (a) qui sotto non esiste più.
 3. **I terzi.** Nessuno li conta in Campo (`grep -c "appaltator" campo-data.js`
    → 0; «visitator», «autist»: 0). In Scudo esiste l'anagrafe degli
    appaltatori con i documenti e la qualifica (`qualificaAppaltatore`,
@@ -1831,9 +1831,8 @@ ogni «non c'è» con il comando.
    "foto|generalit|datore"` → solo le foto degli allegati di Scudo). Norma di
    seconda mano (art. 18 c. 1 lett. u): prima il testo primario.
 
-**Che cosa ne segue** (candidati): (a) il foglio di turno stampabile con i
-«da spuntare» accanto a presenti e assenti, se oggi non li scrive — costo
-minimo, misura: si apre il foglio con un appello incompleto; (b) il registro
+**Che cosa ne segue** (candidati): (a) ~~il foglio di turno con i «da
+spuntare»~~ — c'è già («K non spuntati» nel foglio), niente da fare; (b) il registro
 degli ingressi dei terzi (autisti, manutentori, ispettori) come lista del
 giorno in Campo, che sfrutta l'anagrafe appaltatori di Scudo via ponte —
 decisione di prodotto, perché tocca chi tiene il registro; (c) l'incrocio
