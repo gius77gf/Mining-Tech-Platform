@@ -313,7 +313,13 @@ body.dw.light-mode, body.dw.outdoor-mode{
   font-size:10.5px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
   color:var(--muted); margin-top:2px;
 }
-.cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5}
+/* il testo sta a destra del numero; lo stile stava IN LINEA su dieci
+   cartelloni, e uno stile in linea batte qualunque @media: a 320 px la colonna
+   del testo misurava 72 px per sedici righe («Il divario è il / 28% del /
+   cavato. Può / starci — / sfrido di…»), e il cartellone delle scorte 99 px per
+   diciotto. Misurato il 03/09. Da qui in giù la regola sta nel foglio, e
+   sotto i 380 px il testo scende sotto il numero a tutta larghezza. */
+.cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5; margin-left:auto; text-align:right}
 .cassa-txt b{color:var(--text); font-variant-numeric:tabular-nums}
 /* due stati in più del cartellone, stessa costruzione di .vuota: cambia il
    bordo che prende la luce, l'alone d'ambiente, l'icona e la cifra. Servono
@@ -771,6 +777,15 @@ label.item:has(.dw-chk:checked){
   .nav .ico svg{width:18px; height:18px}
   /* gli ultimi pixel non stanno più nel testo: stanno nei margini della barra */
   .nav{width:calc(100% - 8px)}
+  /* il cartellone di cassa va a capo: numero ed etichetta sulla prima riga,
+     il testo sotto, a sinistra, largo quanto il cartellone (misurato: 72 px e
+     sedici righe prima, a 320 px) */
+  .cassa{flex-wrap:wrap; row-gap:10px}
+  /* numero ed etichetta restano accanto all'icona anche con un'etichetta
+     lunga («SCORTE A PIAZZALE MISURATE»): senza `min-width:0` il blocco
+     prende la sua larghezza massima e scende sotto l'icona da solo */
+  .cassa>div:not(.cassa-txt){flex:1 1 0; min-width:0}
+  .cassa-txt{flex:1 1 100%; margin-left:0; text-align:left}
 }
 /* L'ULTIMO PIXEL, e uno solo. Con tutto il resto già stretto restava
    «FATTURE», che a 320 px chiede 32 px per 31 disponibili — sette lettere, un
@@ -2025,12 +2040,22 @@ label.item:has(.dw-chk:checked){
   const uni  = (u) => (u === "m3" ? "m³" : "t");
   const qtu  = (v, u) => qt(v) + " " + uni(u);
   const perc = (v) => NUM0.format(+v || 0) + "%";
+  /* l'articolo davanti a una percentuale si elide quando il numero, letto ad
+     alta voce, comincia per vocale: «l'1%», «l'8%», «l'11%», «l'18%», «l'80%»
+     — e resta «il» su 10, 12-17, 19, 100 («cento»). Visto sullo schermo il
+     03/09: «il 1% del cavato» sul confronto di Quest'anno. Il conto si fa sul
+     numero già arrotondato come lo scrive `perc`, non sul valore grezzo:
+     0,6 si legge «1%», quindi «l'1%». */
+  const ilPerc = (v) => { const n = Math.abs(Math.round(+v || 0));
+    const vocale = n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n <= 89) || (n >= 800 && n <= 899);
+    return (vocale ? "l'" : "il ") + perc(v); };
+  const IlPerc = (v) => { const s = ilPerc(v); return s[0].toUpperCase() + s.slice(1); };
+  // la stessa cosa col numero in grassetto: l'articolo resta fuori dal <b>
+  const ilPercB = (v) => ilPerc(v).replace(/(\d[\d.,]*%)$/, "<b>$1</b>");
   // ── VOLUMI del confronto cavato/venduto: fino a due decimali, e gli zeri
   //    finali non si scrivono (178 m³, non 178,00 m³). Le percentuali del
   //    divario con un decimale: fra l'8% e il 9% c'è di mezzo un camion.
   const NUMV = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
-  const NUM1 = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const perc1 = (v) => NUM1.format(+v || 0) + "%";
   /* ⛔ LE SOGLIE DEGLI SCAGLIONI NON SI SCRIVONO COL DECIMALE FISSO. Un
      listino dice «fino a 100 t», non «fino a 100,00 t»: quei due zeri sono
      rumore su un numero che è una soglia, non una misura. Trovato solo nello
@@ -2038,8 +2063,9 @@ label.item:has(.dw-chk:checked){
      quella giusta per le quantità pesate. I decimali restano possibili (una
      soglia a 2,5 m³ si scrive «2,5»), semplicemente non si impongono. */
   const qtS  = (v) => NUMV.format(+v || 0);
-  // «l'8%» e non «il 8%»: davanti a otto e undici l'articolo si elide
-  const ilPerc = (v) => (/^(8|11)([,.]|$)/.test(NUM1.format(+v || 0)) ? "l'" : "il ") + perc1(v);
+  /* (qui c'era un secondo `ilPerc`, a un decimale e con la regola a metà —
+     solo 8 e 11 — che nessuno chiamava: l'articolo davanti alle percentuali
+     lo decide `ilPerc` qui sopra, in un posto solo) */
   // ── CAMPI DECIMALI SCRITTI A MANO ─────────────────────────────────────
   // Gli importi, i pesi, la densità e le aliquote si scrivono in campi
   // <input type="text" inputmode="decimal">, non type=number: in un
@@ -2573,7 +2599,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.spunta}</span>
       <div><div class="cassa-num">${eur(P.valore)}</div>
       <div class="cassa-lab">Ordini confermati${P.senzaImporto ? " (in parte)" : ""}</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${P.quanti > 0 ? plur(P.quanti, "ordine accettato", "ordini accettati") + "<br>" + esc(parti.join(" · "))
                      : "Nessun ordine accettato.<br>Un preventivo diventa un ordine quando il cliente lo conferma."}
       ${P.senzaImporto ? `<br><b>${P.senzaImporto === 1 ? "Un ordine è" : P.senzaImporto + " ordini sono"} a chiamata</b>: il valore qui sopra non ${P.senzaImporto === 1 ? "lo" : "li"} comprende.` : ""}
@@ -3110,7 +3136,7 @@ label.item:has(.dw-chk:checked){
         <span class="cassa-ico">${IC.euro}</span>
         <div><div class="cassa-num">${eur(totMese)}</div>
         <div class="cassa-lab">Incassato questo mese</div></div>
-        <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+        <div class="cassa-txt">
         ${totMese > 0 ? plur(quanti, "incasso registrato", "incassi registrati") + "<br>"
                       : "Nessun incasso registrato questo mese.<br>"}
         Restano <b>${eur(k.daIncassare)}</b> da incassare.</div></div>`; }
@@ -4981,7 +5007,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.bilancia}</span>
       <div><div class="cassa-num">${senzaDovuto ? "—" : eur(c.dovuto)}</div>
       <div class="cassa-lab">Canone dovuto sul periodo</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${!c.calcolabile ? esc(c.motivo) + "<br>"
         : senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
                    : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
@@ -5197,7 +5223,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.euro}</span>
       <div><div class="cassa-num">${m.calcolabile ? eur(m.margine) : "—"}</div>
       <div class="cassa-lab">Margine di ${esc(parlante)}</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${m.calcolabile
         ? "ricavi <b>" + eur(m.ricavi) + "</b><br>costi <b>" + eur(m.costi) + "</b>"
           + (m.marginePct != null ? "<br>" + perc(Math.round(m.marginePct)) + " sui ricavi" : "")
@@ -5335,7 +5361,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.euro}</span>
       <div><div class="cassa-num">${eur(r.totale)}</div>
       <div class="cassa-lab">Costi del periodo</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${plur(r.conto, "voce registrata", "voci registrate")}.<br>
       ${(() => {
         /* ⛔ «NESSUNA VOCE LASCIATA FUORI» ERA LA FRASE PIÙ TRANQUILLA DELLA
@@ -5462,7 +5488,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.fronte}</span>
       <div><div class="cassa-num">${r.calcolabile ? eur(r.costoM3) + "<span class=\"u\">/m³</span>" : "—"}</div>
       <div class="cassa-lab">Costo di un metro cubo</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${r.calcolabile
         ? "<b>" + eur(r.totale) + "</b><br>su <b>" + qt(r.volumeM3) + " m³</b>"
         : "il volume<br>non c'è"}</div></div>`
@@ -5602,19 +5628,19 @@ label.item:has(.dw-chk:checked){
       : "Scorte a piazzale stimate";
     const spiega = negativo
       ? `Nel periodo è uscito dal cancello <b>più materiale di quanto ne sia stato cavato</b>
-         (${m3f(-r.divario)} m³ in più, il ${perc(pctAbs)} del cavato). Non è una scorta
+         (${m3f(-r.divario)} m³ in più, ${ilPerc(pctAbs)} del cavato). Non è una scorta
          negativa: <b>non esiste</b>. Le spiegazioni possibili sono tre, e vanno guardate in
          quest'ordine — hai venduto materiale già a piazzale da prima${cav.cumuloM3 > 0 ? " (e infatti Terra registra riprese dai cumuli, qui sotto)" : ""},
          manca un rilievo nel periodo, oppure una densità del listino è sbagliata.`
       : r.stato === "implausibile"
-      ? `Il divario è il <b>${perc(pctAbs)}</b> del cavato: <b>troppo per essere solo sfrido</b>.
+      ? `Il divario è ${ilPercB(pctAbs)} del cavato: <b>troppo per essere solo sfrido</b>.
          Prima di prenderlo per una scorta conviene controllare che non manchi un rilievo, che
          il periodo comprenda tutte le consegne e che le densità del listino siano quelle giuste.`
       : r.stato === "attenzione"
-      ? `Il divario è il <b>${perc(pctAbs)}</b> del cavato. Può starci — sfrido di lavorazione,
+      ? `Il divario è ${ilPercB(pctAbs)} del cavato. Può starci — sfrido di lavorazione,
          materiale fermo a piazzale, tolleranza dei rilievi — ma è abbastanza da meritare
          un'occhiata al piazzale.`
-      : `Il divario è il <b>${perc(pctAbs)}</b> del cavato: sta dentro quello che spiegano
+      : `Il divario è ${ilPercB(pctAbs)} del cavato: sta dentro quello che spiegano
          normalmente lo sfrido di lavorazione, il materiale fermo a piazzale e la tolleranza
          dei rilievi.`;
 
@@ -5622,7 +5648,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${grave ? IC.allarme : IC.cumulo}</span>
       <div><div class="cassa-num">${m3f(Math.abs(r.divario))}<span class="u"> m³</span></div>
       <div class="cassa-lab">${etichetta}</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">${spiega}</div></div>`;
+      <div class="cassa-txt">${spiega}</div></div>`;
 
     $("ric-conf").innerHTML = `<div class="conf">
       <div class="conf-c"><div class="conf-l">Cavato dal fronte</div>
@@ -5686,7 +5712,7 @@ label.item:has(.dw-chk:checked){
     // ── le avvertenze: quelle che valgono sempre e quelle di questo caso ──
     const avvisi = [];
     if (r.parziale) avvisi.push(`<div class="note recap"><b>${qt(ven.tSenzaDensita)} t</b> del
-      venduto (il ${perc(Math.round(100 - ven.copertura))} delle tonnellate del periodo) non
+      venduto (${ilPerc(Math.round(100 - ven.copertura))} delle tonnellate del periodo) non
       entrano nel confronto: il prodotto non ha una densità dichiarata, e senza densità le
       tonnellate non diventano metri cubi. Il divario qui sopra è quindi <b>più largo del
       vero</b>: si stringe da solo quando aggiungi quelle densità nel <b>Listino</b>.</div>`);
@@ -5794,9 +5820,9 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${grave ? IC.allarme : IC.cumulo}</span>
       <div><div class="cassa-num">${qt(Math.abs(st.deltaT))}<span class="u"> t</span></div>
       <div class="cassa-lab">Scorte a piazzale misurate</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">Fra l'inventario del
+      <div class="cassa-txt">Fra l'inventario del
         <b>${quando(s.inizio)}</b> e quello del <b>${quando(s.fine)}</b> le scorte sono ${variazione}.${scarti.length ? " " + scarti.join(". ") + "." : ""}</div></div>
-      <div class="note${grave ? " warn" : ""}">Il triangolo chiude a <b>${tonn(Math.abs(ch.scarto))}</b> (il ${perc(ch.pct)} del cavato):
+      <div class="note${grave ? " warn" : ""}">Il triangolo chiude a <b>${tonn(Math.abs(ch.scarto))}</b> (${ilPerc(ch.pct)} del cavato):
         cavato ${tonn(cavT.t)} − venduto ${tonn(ven.t)} − ${scorteTxt}. ${versoTxt} Uno scarto così ${giudizio}.${cavT.daVerificare
           ? " La densità in banco del cavato è un <b>valore tipico da verificare</b> in Terra: lo scarto ne risente."
           : ""}</div>
@@ -5967,12 +5993,12 @@ label.item:has(.dw-chk:checked){
       ? `Prodotto e venduto <b>coincidono alla cifra</b> nel periodo: capita di rado con una stima a occhio,
          e vale la pena chiedersi se le due cose non siano state copiate una dall'altra.`
       : piuProdotto
-      ? `Il ${perc(pctAbs)} del prodotto dichiarato (${tn(c.divarioT)}) <b>non è uscito dal cancello</b>
+      ? `${IlPerc(pctAbs)} del prodotto dichiarato (${tn(c.divarioT)}) <b>non è uscito dal cancello</b>
          nel periodo. Le tre spiegazioni, in ordine: è a piazzale (magazzino che cresce), è stato venduto
          senza passare dalla pesa, oppure le stime di fine turno sono larghe. Nessuna delle tre è un
          errore di Conti: è una domanda da fare in cava.`
       : `Dal cancello è uscito <b>più materiale di quanto i turni abbiano dichiarato</b>
-         (${tn(-c.divarioT)}, il ${perc(pctAbs)} del dichiarato). Vuol dire magazzino che si svuota, oppure
+         (${tn(-c.divarioT)}, ${ilPerc(pctAbs)} del dichiarato). Vuol dire magazzino che si svuota, oppure
          turni che hanno dichiarato meno del vero — o un rapportino che manca. Vale la pena guardare
          quale delle tre.`;
     box.innerHTML = `<div class="conf">
@@ -6009,7 +6035,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.fronte}</span>
       <div><div class="cassa-num">${eurK(val)}</div>
       <div class="cassa-lab">Valore del cavato nel periodo</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       <b>${m3f(cav.m3)} m³</b> × <b>${eur(prezzo)}/m³</b><br>${fonte}.</div></div>
       <div class="riep">
       <div class="mrec"><span class="k">Valore del cavato (teorico)</span><span class="v">${eur(val)}</span></div>
@@ -7416,7 +7442,7 @@ label.item:has(.dw-chk:checked){
       <span class="cassa-ico">${IC.euro}</span>
       <div><div class="cassa-num">${eur(q.importoDaConfermare)}</div>
       <div class="cassa-lab">Da confermare</div></div>
-      <div class="cassa-txt" style="margin-left:auto;text-align:right;">
+      <div class="cassa-txt">
       ${plur(q.letti, "riga letta", "righe lette")} da ${esc(BANORIGINE || "un file")}.<br>
       ${q.entrate} in entrata · ${q.uscite} in uscita${q.scartati ? " · " + plur(q.scartati, "riga illeggibile", "righe illeggibili") : ""}</div></div>`;
 

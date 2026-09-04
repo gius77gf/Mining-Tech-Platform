@@ -274,6 +274,20 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
+  rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
+  crediti prima del rapporto, lasciando sul disco la correzione con la misura
+  scritta nei commenti; niente entra sulla parola di un agente morto: sonda a
+  `Range` su `HEAD` e sul disco. (1) Il testo dei cartelloni di cassa aveva lo
+  stile IN LINEA (`margin-left:auto;text-align:right`) su dieci cartelloni, e
+  uno stile in linea batte qualunque `@media`: a 320 px la colonna del testo
+  misurava **105 px per 6 righe** su `HEAD`, **264 px per 2** dopo (a 390
+  identico, 137 px). (2) «**il 1%** del cavato»: l'articolo davanti a una
+  percentuale si elide quando il numero letto ad alta voce comincia per
+  vocale (1, 8, 11, 18, 80-89): ora «l'1%», e il secondo `ilPerc` a un
+  decimale con la regola a metà, che nessuno chiamava, è sparito. Undici
+  banchi di Conti verdi sul disco. ⏱️ La terza tornata COMPLETA (riconciliazione
+  a fondo nei quattro periodi, modali, file, demo svuotata) resta da fare.
 - [x] **FLOTTA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 8 banchi
   verdi (280 prove), 7 tendine chiuse aperte, 4 gruppi di filtri, 5 finestre,
   il libretto e l'ordine di lavoro a 390/320 nei due temi (288 misure; 18
