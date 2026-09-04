@@ -130,6 +130,22 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Ottava tappa, Conti — terza passata (04/09, cantiere parallelo,
+  rimisurata contro una copia di HEAD)**: undici banchi verdi dal disco
+  (documenti che escono 81 su 12 punti d'uscita, stampe 20, frasi 22, barre
+  15, numeri tranquilli 41, ponte Flotta 16, ponte Campo 17, verbale 39,
+  frasi-da-uno 41, XML 17, inventario 47), dodici file usciti e aperti, la
+  dimostrazione svuotata collezione per collezione (13 configurazioni, nessun
+  verde tranquillo), sei periodi letti a 390 e 320 nei due temi. **Un difetto
+  vero**: con «dal» dopo «al» le due schermate raccontavano un periodo VUOTO
+  come misurato — Costi «€ 0,00 · 0 voci» con 24 in archivio, Report «prova ad
+  allargare il periodo» su un intervallo senza giorni. Ora `periodoAlContrario`
+  segna il campo «al» (gli `err-…-al` c'erano e nessuno li scriveva) e le due
+  schermate dicono «non è vuoto — non esiste». Commit `3a2c5902`.
+  ⏱️ Osservazioni, non difetti: Costi su un anno vuoto ma con una voce senza
+  data scrive «€ 0,00 · 0 voci · 1 senza data: fuori» invece dello stato
+  vuoto (zero dichiarato, frase migliorabile); il «97% del prodotto non è
+  uscito dal cancello» è la scala della demo copiata da Campo, non il prodotto.
   ✅ **Settima tappa, il core (02/09)**: sette banchi a mano senza proxy,
   tutti verdi (dashboard senza rete 14, date illeggibili 15, documenti che
   escono 67, PDF senza plugin 12, rapportini non misurati 26, sequenza ritardi
@@ -157,9 +173,17 @@
   lotti finiva nei puntini del `.meta` a 430 px. run-kpi 2427 → 2431, Terra
   70/70, `terra-numeri-tranquilli` 49 → 73 prove.
   ⏱️ **Scritte, non chiuse**: il rilievo pianificato con data passata resta
-  «Pianificato» senza nota (decisione di parole); nel grafico «Volumi per
-  fronte» Fronte Sud disegna «0 m³» dove la nota dice «non l'ha misurato
-  nessuno» — `dw-grafici` a barre non accetta `null`, cantiere su `shared/`;
+  «Pianificato» senza nota (decisione di parole); ✅ **04/09 — nel grafico
+  «Volumi per fronte» Fronte Sud disegnava «0 m³» dove la nota dice «non l'ha
+  misurato nessuno»**: adesso `dw-grafici` a barre accetta `null` (regola pura
+  `geometria.separaMancanti`: la voce resta in coda, senza barra, con la parola
+  «non misurato» al posto del numero, fuori da totale/scala/quota; il guasto —
+  stringhe, NaN — resta fuori come prima) e Terra passa `volumeFronteRilevato`,
+  che dice `null` senza rilievi usabili e la somma, anche zero, con. Misurato
+  nel browser a 390 e 900 px: 2 barre, «non misurato» dentro il riquadro, aria
+  «Una voce non è misurata». I mesi del ritmo restano a zero **di proposito**:
+  un rilievo misura da quello prima, quindi un mese senza rilievo non è «non
+  misurato», e la nota lo dice già. run-kpi +4, Terra 77/77;
   il conto «anno per anno» della denuncia perde nei puntini il numero di rilievi.
   ✅ **Quarta e quinta tappa, Campo e Sentinella (02/09)**, senza difetti del
   prodotto: Campo cinque banchi verdi (disegni 30 geometrie, foglio di turno
@@ -6029,7 +6053,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.006 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.010 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
