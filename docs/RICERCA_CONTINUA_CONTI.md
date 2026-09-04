@@ -987,3 +987,64 @@ FPA12/FPR12 e codice destinatario 6/7 caratteri.
 9. `UnitaMisura` nell'XML: chi decide come tradurre "t" o "m³" del listino
    nel testo libero che va nel campo — c'è già una tabella di conversione, o
    il valore del listino viene scritto tale e quale?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `6d92a9f3`)
+
+Le nove domande, risposte aprendo `xmlFatturaPA` in `apps/conti/conti-data.js`
+(e non cercando i nomi dello schema nel codice); ogni «non c'è» col comando.
+
+1. **DatiDDT.** Li compone `xmlFatturaPA` da `f.ddtIds` → pesate in archivio
+   (`perId`), **un blocco `DatiDDT` per DDT** con `NumeroDDT` e `DataDDT`; un DDT
+   collegato ma non in archivio, o senza data, si dichiara negli `avvisi` e
+   non si cita. Manca `RiferimentoNumeroLinea`: i DDT non sono legati alle
+   righe (`grep -c "RiferimentoNumeroLinea" conti-data.js` → 0), quindi con
+   più DDT e più righe il file non dice quale riga viene da quale bolla.
+2. **I decimali.** Il netto (lordo − tara) lo decidono le pesate a monte
+   (`convertiQuantita`, `round3`); nell'XML fino a oggi `Quantita` e
+   `PrezzoUnitario` uscivano a **due decimali fissi** (`dec(q,2)`): «33,333 t ×
+   30 €» diventava 33.33 × 30.00 = 999.90 accanto a un totale di riga di
+   999.99. ✅ **Fatto il 04/09**: si scrivono coi decimali che hanno (almeno
+   due, al più otto, `decRiga`).
+3. **La quadratura di riga.** Prima: NESSUNO. `riep.quadra` confronta la somma
+   delle righe con i totali registrati e il totale con imponibile + IVA, ma
+   una riga il cui `imponibile` registrato non è quantità × prezzo usciva lo
+   stesso (misurato: 33,33 × 30 con imponibile 1000 → `pronto: true`).
+   ✅ **Fatto il 04/09**: la riga si confronta con sé stessa COME VIENE SCRITTA
+   (un centesimo di tolleranza per gli arrotondamenti) e il file si ferma
+   nominando la riga in italiano («dice 1.000,00 € ma 33,33 × 30,00 fa 999,90
+   €»). L'imposta di `DatiRiepilogo` è già `round2(imponibile × aliquota/100)`
+   per banda (`totaliDaRighe`).
+4. **TD01 / TD24.** Sempre `TD01` (`grep -c "TD24" conti-data.js` → 0), anche
+   quando la fattura nasce dai DDT (`f.tipo: "differita"`). Il codice della
+   fattura differita è norma di **seconda mano** in questa ricerca: candidato
+   da confermare col commercialista/testo primario prima di cambiarlo.
+5. **CodiceDestinatario / PEC.** Un campo solo in anagrafica, `c.sdi`: sette
+   caratteri alfanumerici → codice; con una chiocciola → PEC con «0000000»;
+   altrimenti «0000000» e un avviso. Un codice IPA da **sei** caratteri (ente
+   pubblico) non passa la forma e finirebbe in «0000000» con l'avviso:
+   candidato, insieme allo split payment (`EsigibilitaIVA` è sempre «I»:
+   `grep -n '"EsigibilitaIVA"' conti-data.js` → una riga, fissa).
+6. **Più cantieri dello stesso cliente.** Nessuna destinazione per riga o per
+   DDT nel file; la fattura raggruppa le pesate del cliente e basta (la
+   parola «cantiere» compare 12 volte nel modulo, per le gare e i clienti,
+   e 0 nelle 110 righe di `xmlFatturaPA`). Candidato di
+   prodotto, non di codice: prima si decide se una fattura per cantiere o una
+   riga per cantiere.
+7. **Reverse charge.** Nessun automatismo (`grep -ci "reverse\|inversione" conti-data.js` → 0):
+   coerente con «mai automatico», ed è giusto per la cessione di inerti.
+8. **Bollo virtuale.** Assente (`grep -ci "bollo" conti-data.js` → 0): le
+   righe senza IVA non hanno nemmeno una `Natura` (`grep -c '"Natura"'` → 0),
+   quindi una riga esente non si può scrivere. Il caso in cava è raro;
+   resta dichiarato.
+9. **UnitaMisura.** Tabella di due voci scritta dentro `xmlFatturaPA`:
+   `m3` → «MC», tutto il resto → «TN». Un'unità diversa (viaggi, colli)
+   uscirebbe «TN»: candidato piccolo, dichiarare l'unità sconosciuta invece di
+   scrivere tonnellate.
+
+**Che cosa ne segue**: fatti il 2 e il 3 (quadratura e decimali, con prove
+in run-kpi e il banco `conti-xml-sdi` verde nei due versi). Candidati: (a) TD24
+per la differita e il codice IPA a sei caratteri + split payment — norma di
+seconda mano, decisione del fondatore col commercialista; (b) `Natura` per
+le righe esenti e il bollo, solo se il caso si presenta; (c) l'unità sconosciuta
+dichiarata (costo minimo); (d) `RiferimentoNumeroLinea` e la destinazione per
+DDT — dipende dalla scelta di prodotto sui cantieri.

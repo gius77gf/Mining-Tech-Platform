@@ -1865,6 +1865,21 @@ export function riepilogoIvaFattura(fattura) {
    funzione esiste per far vedere. */
 const escXml = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const dec = (v, n = 2) => (Math.round((+v || 0) * 10 ** n) / 10 ** n).toFixed(n);
+/* QUANTITÀ E PREZZO UNITARIO DI RIGA COI DECIMALI CHE HANNO (04/09, dal delta
+   sulla fattura elettronica): scritti a due decimali fissi, «33,333 t × 30 €»
+   usciva come 33.33 × 30.00 = 999.90 accanto a un PrezzoTotale di 999.99 — un
+   file che si contraddice da solo. Si tengono i decimali del numero (almeno
+   due, al più otto), così quantità × prezzo TORNA con il totale di riga. */
+/* le stesse due grafie per la FRASE a chi legge: virgola e migliaia col punto
+   (nel file resta il punto, che è quello che lo schema vuole) */
+const it2 = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+const itRiga = (v) => decRiga(v).replace(".", ",");
+const decRiga = (v) => {
+  const t = String(+v || 0);
+  const m = /\.(\d+)$/.exec(t.includes("e") ? (+v).toFixed(8) : t);
+  const n = Math.min(8, Math.max(2, m ? m[1].replace(/0+$/, "").length : 0));
+  return dec(v, n);
+};
 const tag = (nome, contenuto) => contenuto == null || contenuto === "" ? "" : `<${nome}>${escXml(contenuto)}</${nome}>`;
 const blocco = (nome, dentro) => `<${nome}>${dentro}</${nome}>`;
 
@@ -1916,10 +1931,22 @@ export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], prog
     const sc = round2(+r.scontoPct || 0);
     const base = r.imponibile != null ? +r.imponibile : (q || 0) * (pu || 0) * (1 - sc / 100);
     if (pu == null) manca(`il prezzo unitario della riga ${i + 1} (${txt(r.descrizione) || "senza descrizione"})`);
+    /* ⛔ LA RIGA DEVE TORNARE CON SÉ STESSA (04/09). Una riga nata dai DDT e poi
+       corretta a mano porta un imponibile registrato che quantità × prezzo non
+       fa più: fino a oggi il file usciva lo stesso, con PrezzoTotale da una
+       parte e Quantita × PrezzoUnitario dall'altra — e chi lo riceve lo
+       rifiuta, o se lo tiene incoerente. Si confrontano i numeri COME VENGONO
+       SCRITTI nel file (con i loro decimali), con un centesimo di tolleranza
+       per gli arrotondamenti: oltre, si ferma e si nomina la riga. */
+    if (q != null && pu != null) {
+      const attesa = round2(+decRiga(q) * +decRiga(pu) * (1 - sc / 100));
+      if (Math.abs(round2(base) - attesa) > 0.01)
+        manca(`la riga ${i + 1} (${txt(r.descrizione) || "senza descrizione"}) dice ${it2(base)} € ma ${itRiga(q)} × ${itRiga(pu)}${sc > 0 ? ` meno il ${it2(sc)}%` : ""} fa ${it2(attesa)} €: il file si contraddirebbe da solo, sistemarla prima di esportare`);
+    }
     return blocco("DettaglioLinee",
       tag("NumeroLinea", i + 1) + tag("Descrizione", txt(r.descrizione) || "Fornitura")
-      + (q == null ? "" : tag("Quantita", dec(q, 2)) + tag("UnitaMisura", r.unita === "m3" ? "MC" : "TN"))
-      + tag("PrezzoUnitario", dec(pu, 2))
+      + (q == null ? "" : tag("Quantita", decRiga(q)) + tag("UnitaMisura", r.unita === "m3" ? "MC" : "TN"))
+      + tag("PrezzoUnitario", decRiga(pu))
       + (sc > 0 ? blocco("ScontoMaggiorazione", tag("Tipo", "SC") + tag("Percentuale", dec(sc, 2))) : "")
       + tag("PrezzoTotale", dec(base, 2)) + tag("AliquotaIVA", dec(r.aliquota, 2)));
   }) : [blocco("DettaglioLinee",

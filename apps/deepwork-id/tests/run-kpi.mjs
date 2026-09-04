@@ -2695,6 +2695,31 @@ test("⛔ xmlFatturaPA: quello che manca si NOMINA, e il file non è pronto", ()
   const lungo = conti.xmlFatturaPA({ ...XML_FAT, numero: "2026/0000000000000000040" }, XML_CLI, XML_IMP);
   ok(lungo.mancanti.some((m) => /20 caratteri/.test(m)), "un numero più lungo di 20 caratteri è bloccante");
 });
+/* ⛔ LA RIGA DEVE TORNARE CON SÉ STESSA (04/09, dal delta sulla fattura
+   elettronica). Una riga nata dai DDT e corretta a mano portava un imponibile
+   che quantità × prezzo non fa più, e il file usciva lo stesso: PrezzoTotale da
+   una parte, Quantita × PrezzoUnitario dall'altra. Ora si ferma e nomina la
+   riga; e quantità e prezzo si scrivono coi decimali che hanno (2..8), così
+   «33,333 t × 30 €» torna con 999,99 invece di uscire 33.33 × 30.00. */
+test("⛔ xmlFatturaPA: una riga il cui totale non è quantità × prezzo ferma il file e si nomina, in italiano", () => {
+  const storta = { ...XML_FAT, righe: [{ ...XML_FAT.righe[0], quantita: 33.33, prezzoUnitario: 30, scontoPct: 0, imponibile: 1000 }, XML_FAT.righe[1]], imponibile: 1200, ivaImporto: 240, totale: 1440 };
+  const r = conti.xmlFatturaPA(storta, XML_CLI, XML_IMP);
+  eq(r.pronto, false, "non pronto");
+  const m = r.mancanti.find((x) => /si contraddirebbe/.test(x));
+  ok(m && /riga 1 \(Stabilizzato 0\/30\) dice 1\.000,00 € ma 33,33 × 30,00 fa 999,90 €/.test(m), "la frase nomina la riga e i due conti, con la virgola: " + m);
+  const sana = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES });
+  eq(sana.pronto, true, "la fixture di prima (150 × 12,34 meno il 5% = 1.758,45) resta pronta: lo sconto entra nel conto");
+  const centesimo = conti.xmlFatturaPA({ ...XML_FAT, righe: [{ ...XML_FAT.righe[0], imponibile: 1758.46 }, XML_FAT.righe[1]], imponibile: 1958.46, ivaImporto: 406.86, totale: 2365.32 }, XML_CLI, XML_IMP);
+  ok(!centesimo.mancanti.some((x) => /si contraddirebbe/.test(x)), "un centesimo di arrotondamento non ferma niente");
+});
+test("xmlFatturaPA: quantità e prezzo unitario coi decimali che hanno, e il totale di riga torna", () => {
+  const f = { ...XML_FAT, righe: [{ descrizione: "Sabbia", quantita: 33.333, unita: "t", prezzoUnitario: 30, scontoPct: 0, aliquota: 22, imponibile: 999.99 }], imponibile: 999.99, ivaImporto: 220, totale: 1219.99 };
+  const r = conti.xmlFatturaPA(f, XML_CLI, XML_IMP);
+  ok(/<Quantita>33.333<\/Quantita>/.test(r.xml) && /<PrezzoUnitario>30.00<\/PrezzoUnitario>/.test(r.xml) && /<PrezzoTotale>999.99<\/PrezzoTotale>/.test(r.xml), "33.333 × 30.00 = 999.99 nel file, col punto");
+  ok(!r.mancanti.some((x) => /si contraddirebbe/.test(x)), "e nessuna contraddizione, perché il conto si fa sui numeri SCRITTI");
+  const otto = conti.xmlFatturaPA({ ...f, righe: [{ ...f.righe[0], quantita: 3, prezzoUnitario: 0.333333333, imponibile: 1 }], imponibile: 1, ivaImporto: 0.22, totale: 1.22 }, XML_CLI, XML_IMP);
+  ok(/<PrezzoUnitario>0.33333333<\/PrezzoUnitario>/.test(otto.xml), "al più otto decimali");
+});
 test("xmlFatturaPA: PEC, cassetto fiscale e fattura vecchia con l'IVA", () => {
   const pec = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "edilcave@pec.example.it" }, XML_IMP);
   ok(/<CodiceDestinatario>0000000<\/CodiceDestinatario><PECDestinatario>edilcave@pec.example.it<\/PECDestinatario>/.test(pec.xml), "con la PEC il codice è 0000000 e la PEC c'è");
