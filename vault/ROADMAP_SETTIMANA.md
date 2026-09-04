@@ -3738,7 +3738,7 @@ numero scritto dove non era stato misurato niente**.*
   il 30/07): resta una **decisione di prodotto** del fondatore, poi un campo
   in `shared/`, poi le regole per app.
 
-- [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
+- [x] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
   ⏱️ **03/09, due giri di fila morti con la sessione**: quello delle 22:29Z del
   02/09 dopo 7 minuti (fine del turno), quello delle 00:50Z del 03/09 dopo
   56 minuti al **limite di crediti** (15 passate su 227: 7 sane, **0 KO**, 8
@@ -3757,6 +3757,26 @@ numero scritto dove non era stato misurato niente**.*
   blocco» non esiste più in una giornata a tre interruzioni: la strada è
   `--solo=` per famiglia, una famiglia per ciclo, e il conto di che cosa
   resta fuori stampato ogni volta.
+  ✅ **CHIUSA IL 04/09 COL PRIMO GIRO FILTRATO ARRIVATO IN FONDO.**
+  `--solo=conti,terra,campo,genesi,core` (89 passate su 229, le altre 140
+  dichiarate non misurate): **1h16, 83 banchi a posto, 6 da guardare** letti
+  con `leggi-giro.mjs` — 74 passate sane, **4 KO veri tutti dello stesso
+  banco** (le voci di tendina del core a 320/360/390/430: «0 finestre aperte»)
+  e lo stesso inciampo su «barra in alto»: `window.__provaUtente is not a
+  function`, cioè il banco non è entrato nell'app. Riverificato da solo,
+  stesso esito; e il PRODOTTO è sano: il core aperto con il finto Firebase
+  montato prima di `goto` parte pulito (zero `pageerror`, `nav` e `fabPrimary`
+  definite), la rotta di `apriSuperficie` inietta la porticina (misurato:
+  `rottaVista: true, iniettato: true, __provaUtente: function`), e il banco
+  `core-esito-sparo` entra e passa 47/47 con la sua iniezione. Quello che si
+  perde sta in `accediAlCore` (il `reload` con `waitUntil:'load'` e i dieci
+  tentativi): sotto quel percorso la porticina non c'è più e il banco misura
+  il guscio dell'accesso. ⏱️ **Cantiere da aprire sul banco, non sul core**:
+  `tendine-nelle-finestre` e `barra-alto-indietro` sul core non misurano
+  niente da (almeno) ieri, e lo DICHIARANO — che è la forma buona.
+  I 20 KO del 09/08 non esistono più come lista: le due famiglie (tendine
+  tagliate, Sentinella/Campo) sono chiuse o «aspettano il fondatore» qui
+  sopra; il runner non prende più `--solo=` per la porta (812c04c2).
   riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
   che è esattamente perché la sezione 0 esiste:
   ⏱️ **AGGIORNAMENTO DEL GIRO SUCCESSIVO (quello delle 06:56Z, letto alle
