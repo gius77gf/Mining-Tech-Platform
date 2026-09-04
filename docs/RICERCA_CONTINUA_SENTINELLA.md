@@ -251,3 +251,77 @@ Dalle fonti trovate: **vettore somma** — dal seismogramma (una componente vert
 5. Il report di volata/monitoraggio che Sentinella genera cita la classificazione dell'edificio/ricettore (industriale, civile, sensibile) usata per scegliere la soglia, o resta implicita nel numero scelto da chi registra il ricettore?
 6. Il vettore somma (PVS/risultante triassiale) è un campo distinto dal singolo PPV per asse nel modulo dati, o Sentinella lavora solo con un valore di PPV già "riassunto" dall'utente?
 7. Chi traccia, in Sentinella, che un certo export/report è stato scaricato e da chi (un log di accesso ai documenti), rispetto alla sola scadenza di taratura già censita il 02/09?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `70c66b87`)
+
+Risposte alle sette domande aprendo le funzioni di `apps/sentinella/sentinella-data.js`,
+non cercando i nomi del mondo nel codice. Ogni «non c'è» porta il comando.
+
+1. **Chi legge un file di eventi.** `preparaLetture(righe, mappa)`: un
+   lettore GENERICO con una mappa di colonne scelta dall'utente (`colData`,
+   `colOra`, `colValore`, `conIntestazione`), con il ripiego «data e ora nella
+   stessa cella», la firma anti-doppione (`firmaLettura`) e `unisciLetture`.
+   Non esiste un import per marca: `grep -ci "instantel\|sigicom\|syscom" apps/sentinella/sentinella-data.js apps/sentinella/index.html`
+   → 0 e 0. Cioè la scelta di prodotto è già «qualunque CSV, l'utente indica
+   le tre colonne»; il mondo dice che un evento porta anche PPV per asse,
+   frequenza e sovrapressione, e qui entra **un valore solo** per lettura.
+2. **La frequenza dominante.** Non è un campo della lettura né della volata:
+   `grep -n "frequenz" sentinella-data.js` trova solo la frequenza del
+   PROGRAMMA (ogni N giorni: `etichettaFrequenza`) e le etichette delle soglie
+   DIN («residenziale, <10 Hz») in `SOGLIE_NORMA`. La banda di frequenza è
+   dunque scelta a mano da chi imposta la soglia (la chiave `din-res-fond` /
+   `din-res-alto`), non letta dall'evento. Nessuno la calcola: non c'è un
+   waveform.
+3. **Evento valido / trigger spurio.** Non c'è uno stato dell'evento:
+   `grep -n "spurio\|trigger" sentinella-data.js` → 0. Esiste
+   `correggiLettura(l, nuovo, quando)` (la correzione tracciata di un valore)
+   ed esiste `coincidenzaVolata(volate, dataISO)` /
+   `lettureVibrazioniDelGiorno`, cioè il collegamento «questa lettura è di
+   quel giorno di volata»: una lettura senza volata quel giorno è un candidato
+   trigger spurio, ma il prodotto non lo dice.
+4. **La legge di attenuazione.** `scaledDistance(R, W)` e `caricaMax(R, SD)`
+   ci sono; la regressione NO, per scelta scritta nel codice (commento sopra
+   `refertoDaVolata`: «la regressione la fa Genesi, che ce l'ha già», e il
+   vincolo T9: una volata prevista non entra mai nei referti). Il ponte
+   Sentinella → Genesi porta i referti (`refertiDaVolate`, `csvRefertiGenesi`).
+5. **La classe dell'edificio.** ⚠️ Prima risposta sbagliata e corretta
+   rileggendo la pagina: il campo `classe` del ricettore («I», «III», «V») è
+   la **classe acustica** della zonizzazione (la pagina lo scrive così, «classe
+   acustica», nella scheda e nel report), non la classe DIN dell'edificio. La
+   classe DIN sta nella CHIAVE della soglia scelta a mano (`SOGLIE_NORMA`:
+   `din-res-fond`, `din-sens-fond`, `din-ind-fond`) e nel `tipo` del ricettore
+   («abitazione», «scuola», «confine»); la soglia efficace la decide
+   `sogliaEfficace(m, ricettori)` (vince quella del ricettore se l'unità
+   coincide; nessuna conversione). Nel report per l'ente entrano il tipo, la
+   distanza e la classe acustica (`grep -n "classe acustica" apps/sentinella/index.html`
+   → scheda e report), non la parola «DIN residenziale»: la norma scelta si
+   legge solo dall'etichetta della soglia.
+6. **Il vettore somma.** Un solo `valore` per lettura e una sola `ppvMisurata`
+   per volata (`ppvDiVolata`): non esistono i tre assi né la risultante
+   (`grep -n "ppvX\|risultante\|vettore" sentinella-data.js` → 0). Chi
+   inserisce sceglie che cosa scrivere (di solito il PVS letto dallo strumento).
+7. **Chi ha scaricato.** Nessun registro degli scarichi: i CSV/report escono
+   dal browser senza traccia (`grep -n "scaricat" apps/sentinella/index.html`
+   → solo il gancio di prova dei banchi). La sola tracciabilità è la taratura
+   dello strumento (`statoTaraturaStrumento`, `contaCoperture`).
+
+**Che cosa ne segue** (candidati, non cantieri; nessun numero di norma entra
+in una schermata senza il testo primario):
+- (a) la lettura di un evento con **più colonne** (PPV per asse + risultante,
+  frequenza, sovrapressione) è un allargamento della mappa di `preparaLetture`,
+  non un importatore per marca: si tengono le colonne come le dà lo strumento,
+  si dichiara quale è stata usata per la conformità. Costo medio; misura: il
+  CSV di prova con sei colonne rientra con le sue sei colonne.
+- (b) lo stato «evento non valido» con la ragione (mezzo, temporale, prova
+  strumento) accanto a `correggiLettura`, e la lettura senza volata quel giorno
+  segnalata come candidato — il conto della conformità la esclude solo se
+  qualcuno l'ha dichiarata. Costo basso; misura: `riepilogoConformita` cambia
+  solo con la dichiarazione, mai da solo.
+- (c) la frequenza dominante come campo facoltativo della lettura, che sceglie
+  la banda DIN al posto della chiave scritta a mano quando c'è: costo basso, ma
+  la tabella delle soglie è norma di seconda mano → fondatore prima.
+- (d) la NORMA della soglia (l'etichetta di `SOGLIE_NORMA`, «DIN
+  residenziale, <10 Hz») scritta nel foglio per l'ente accanto al numero, così
+  chi legge sa da dove viene il limite: costo basso; misura: il banco
+  `sentinella-report-dichiarazioni` legge l'etichetta nel testo del foglio.
+  Da verificare prima se il foglio la scrive già per un'altra via.
