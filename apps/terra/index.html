@@ -1029,7 +1029,7 @@ a.dw-btn{text-decoration:none}
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
-           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, avanzamentoLotto,
+           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
@@ -2376,6 +2376,7 @@ a.dw-btn{text-decoration:none}
         ? '<span class="badge tag" title="Fine lavori comunicata: si aspetta il sopralluogo e il verbale dell\'ente">collaudo chiesto</span>'
         : '<span class="badge warn" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente, e va chiesto">collaudo non chiesto</span>') : ""}
       <span class="badge ${sty[1]}">${esc(sty[2])}</span>
+      ${st === "recuperato" || st === "collaudato" ? `<button class="arr" type="button" title="Relazione di fine lavori: il foglio per chiedere il collaudo e lo svincolo" aria-label="Relazione di fine lavori di ${nome}" data-rel-lot="${l.id}">${A.verb}</button>` : ""}
       <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>
       <button class="arr del" type="button" title="Rimuovi il lotto" aria-label="Rimuovi il lotto ${nome}" data-del-lot="${l.id}">${A.del}</button></div>
       ${perche ? `<div class="form-hint">${perche}</div>` : ""}</div>`;
@@ -3755,6 +3756,15 @@ a.dw-btn{text-decoration:none}
       const id = bFro.getAttribute("data-fro-lot");
       frontiLot = frontiLot.includes(id) ? frontiLot.filter(x => x !== id) : frontiLot.concat([id]);
       renderLotti(); return; }
+    const bRel = e.target.closest && e.target.closest("[data-rel-lot]");
+    if (bRel) { e.stopPropagation();
+      const l = LOT.find(x => x.id === bRel.getAttribute("data-rel-lot")); if (!l) return;
+      const w = window.open("", "_blank");
+      if (!w) { esito("lot-esito", "Il browser ha bloccato la finestra della stampa: consenti le finestre pop-up per questo sito e riprova.", "err"); return; }
+      w.document.write(fogliaRelazione(l));
+      w.document.close(); w.focus();
+      setTimeout(() => { try { w.print(); } catch (e2) {} }, 350);
+      return; }
     const bEd = e.target.closest && e.target.closest("[data-edit-lot]");
     if (bEd) { e.stopPropagation();
       const l = LOT.find(x => x.id === bEd.getAttribute("data-edit-lot")); if (!l) return;
@@ -4344,6 +4354,62 @@ a.dw-btn{text-decoration:none}
   // fronte, sotto quale titolo autorizzativo, e da quale rilievo precedente
   // parte la misura. Nessun colore d'interfaccia: pagina bianca da firmare.
   // ══════════════════════════════════════════════════════════════════════
+  /* lo stile dei fogli che escono dal Piano e dai Rilievi (verbale, relazione
+     di fine lavori): scritto UNA volta — la relazione del 04/09 lo riusa
+     invece di ricopiarlo, così i due fogli non divergono */
+  const STILE_FOGLIO = "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+    + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
+    + ".sub{color:#555;margin-bottom:14px}"
+    + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
+    + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
+    + "td:first-child{width:38%}"
+    + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
+    + ".n{text-align:right;white-space:nowrap}"
+    + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
+    + ".manca{color:#7a3b00;font-style:italic}"
+    + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
+    + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
+    /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
+    + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
+    + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}";
+
+  /* LA RELAZIONE DI FINE LAVORI DEL LOTTO (04/09): il foglio con cui si chiede
+     all'ente il sopralluogo e lo svincolo della garanzia. Le righe le compone
+     `relazioneLotto` nel modulo — gli stessi numeri della riga del lotto — e
+     qui c'è solo l'HTML; ogni dato mancante resta scritto come tale e la
+     sezione «Che cosa manca» lo elenca, perché un foglio che tace un dato lo
+     fa passare per zero. La planimetria non c'è: Terra non disegna aree. */
+  function fogliaRelazione(l) {
+    const R = relazioneLotto(l, RIL, FRO, new Date());
+    const aut = autorizzazioneVigente(AUT);
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const riga = (d) => "<tr><td><b>" + esc(d[0]) + "</b></td><td" + (d[2] ? " class='manca'" : "") + ">" + esc(d[1]) + "</td></tr>";
+    return "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
+      + "<title>" + esc(R.titolo) + "</title><style>" + STILE_FOGLIO + CSS_ESEMPIO + "</style></head><body>"
+      + "<h1>" + esc(R.titolo) + "</h1>"
+      + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
+      + avvisoEsempio("Questa relazione non documenta nessun lotto reale: non va allegata a una richiesta di collaudo o di svincolo né esibita a un controllo.")
+      + "<h2>Il lotto</h2><table>" + R.righe.map(riga).join("") + "</table>"
+      + "<h2>Le date</h2><table>" + R.date.map(riga).join("") + "</table>"
+      + (R.attesa ? "<p class='mini'>" + esc(R.attesa) + "</p>" : "")
+      + "<h2>Recupero e garanzia</h2><table>" + R.recupero.map(riga).join("") + "</table>"
+      + "<p class='mini'>La quota di garanzia è quella che la polizza attribuisce a questo lotto, trascritta dall'utente: Terra non la calcola e non applica listini regionali.</p>"
+      + (aut ? "<h2>Titolo autorizzativo di riferimento</h2><table>"
+          + riga(["Numero dell'atto", aut.numeroAtto || "—", !aut.numeroAtto])
+          + riga(["Ente che l'ha rilasciato", aut.ente || "—", !aut.ente])
+          + riga(["Scadenza del titolo", fmtData(aut.dataScadenza), false]) + "</table>" : "")
+      + (R.nonMisurati.length
+          ? "<h2>Che cosa manca in questa relazione</h2><p class='mini'>"
+            + R.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: la relazione non li stima e non li sostituisce con uno zero.</p>"
+          : "")
+      + (R.nota ? "<h2>Note</h2><p class='mini'>" + esc(R.nota) + "</p>" : "")
+      + "<div class='firma'><div>Luogo e data</div><div>Il titolare</div><div>Il direttore dei lavori</div></div>"
+      + "<div class='foot'>Relazione generata da Deepwork Terra a partire dai dati registrati dall'utente. "
+      + "Le attività estrattive sono materia regionale: contenuto della relazione, planimetrie da allegare, termini della comunicazione di fine lavori e modalità di svincolo della garanzia "
+      + "vanno verificati presso l'ente competente. Questa relazione non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
+      + "</body></html>";
+  }
   function fogliaVerbale(r) {
     const f = r.fronteId ? FRO.find(x => x.id === r.fronteId) : null;
     const aut = autorizzazioneVigente(AUT);
@@ -4416,21 +4482,7 @@ a.dw-btn{text-decoration:none}
         : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.";
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
       + "<title>Verbale di rilievo " + fmtData(r.data) + "</title><style>"
-      + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
-      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
-      + ".sub{color:#555;margin-bottom:14px}"
-      + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
-      + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
-      + "td:first-child{width:38%}"
-      + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
-      + ".n{text-align:right;white-space:nowrap}"
-      + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
-      + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
-      + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
-      /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
-      + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
-      + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
-      + CSS_ESEMPIO
+      + STILE_FOGLIO + CSS_ESEMPIO
       + "</style></head><body>"
       + "<h1>Verbale di rilievo — " + esc(r.titolo || "rilievo del " + fmtData(r.data)) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"

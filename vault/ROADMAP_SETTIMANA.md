@@ -410,7 +410,7 @@
   asserzioni rendendole più giuste, o si apre un cantiere sui difetti veri.
   Terra ci passa 6/6. ⚠️ Vuole il server esterno: `python3 -m http.server
   PORTA` e la porta come numero nudo.
-- [ ] **TERRA — dalla ricerca del 04/09 sera (garanzia e chiusura del lotto),
+- [x] **TERRA — dalla ricerca del 04/09 sera (garanzia e chiusura del lotto),
   delta fatto dal meccanismo, non dalla parola.** Tre candidati dichiarativi,
   nessun importo o termine di legge in una schermata: (1) ✅ **fatto la sera
   stessa** — `collaudoChiestoIl` sul lotto, `attesaCollaudo` («collaudo chiesto
@@ -423,8 +423,12 @@
   collaudati, liberabile con l'elenco dei collaudi che la liberano, liberata,
   `senzaQuota` dichiarato come `senzaMq`), riga nel cartellone del divario e
   quota nella riga del lotto; la dimostrazione ha tre quote e tre lotti senza,
-  e il cartellone lo dice; run-kpi +4, scatti a 320/390; (3) relazione di fine lavori del lotto
-  come foglio che esce (medio). Vedi `docs/RICERCA_CONTINUA_TERRA.md`.
+  e il cartellone lo dice; run-kpi +4, scatti a 320/390; (3) ✅ **fatto** — `relazioneLotto` nel modulo (le righe, con ogni dato
+  mancante scritto come tale e raccolto in `nonMisurati`), `fogliaRelazione`
+  nella pagina sullo stile del verbale scritto una volta (`STILE_FOGLIO`),
+  bottone nella riga dei lotti recuperati e collaudati; banco nuovo
+  `terra-relazione-lotto` 44/0 con la controprova che rimette «0 m³» (6 su
+  44); run-kpi +4. Vedi `docs/RICERCA_CONTINUA_TERRA.md`.
 - [x] **FLOTTA: IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, cantiere morto due
   volte per i crediti, raccolto dalla patch in `vault/cantieri-sospesi/` e
   rimisurato in casa prima di tenerlo).** Dopo un contatore sostituito, un
@@ -1332,8 +1336,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `BANCO stati-non-misurati INVECCHIATO` *(4 KO su 79 già presenti prima delle
   unità del 04/09 sera: da rimisurare)*
-- `TERRA — dalla ricerca del 04/09 sera` *(garanzia e chiusura del lotto: tre
-  candidati dichiarativi; i primi due fatti la sera stessa, resta la relazione)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6243,7 +6245,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.075 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.079 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -6254,8 +6256,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **239 esecuzioni** che
-  aprono le pagine in un browser vero, da **99** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **241 esecuzioni** che
+  aprono le pagine in un browser vero, da **100** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

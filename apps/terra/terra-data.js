@@ -2825,6 +2825,69 @@ export function garanziaVincolata(lotti) {
     motivo: "" };
 }
 
+/* LA RELAZIONE DI FINE LAVORI DEL LOTTO (04/09, terzo candidato della ricerca
+   sulla garanzia). Il mondo chiede, per svincolare la garanzia di un lotto,
+   «una relazione che descrive le opere eseguite con riferimento al progetto»:
+   qui si compongono le RIGHE di quel foglio — e le compone il modulo, non la
+   pagina, così il foglio dice gli stessi numeri della riga del lotto
+   (`volumeMisuratoDiLotto`, `avanzamentoLotto`, `attesaCollaudo`) e la prova
+   li legge senza browser. Ogni riga è [etichetta, valore, mancante]: dove un
+   dato non c'è si scrive «non dichiarato» / «non registrata» / «non misurato»
+   e la voce finisce in `nonMisurati`, che il foglio stampa in una sezione
+   sua — una relazione che tace un dato mancante lo fa passare per zero.
+   Numeri all'italiana con `useGrouping` scritto (Node e Chromium raggruppano
+   diversamente sotto le cinque cifre). La planimetria resta fuori: Terra non
+   disegna aree. Pura. */
+const ETI_STATO_LOTTO = { previsto: "previsto", aperto: "aperto", esaurito: "esaurito",
+  "in-recupero": "in recupero", recuperato: "recuperato", collaudato: "collaudato" };
+export function relazioneLotto(lotto, rilievi, fronti, oggi = new Date()) {
+  const l = lotto || {};
+  const st = statoLotto(l);
+  const itN = (v, dec) => (+v).toLocaleString("it-IT", { maximumFractionDigits: dec, useGrouping: true });
+  const vm = volumeMisuratoDiLotto(l, rilievi);
+  const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+  const att = attesaCollaudo(l, oggi);
+  const nonMisurati = [];
+  const data = (campo, etichetta) => {
+    const v = l[campo];
+    if (dataISOEsiste(v)) return [etichetta, dataIt(String(v).slice(0, 10)), false];
+    nonMisurati.push(etichetta + (v ? " (data non valida: «" + String(v) + "»)" : " (non registrata)"));
+    return [etichetta, v ? "data non valida" : "non registrata", true];
+  };
+  const num = (v, etichetta, unita, dec) => {
+    const n = numeroDichiarato(v);
+    if (n == null) { nonMisurati.push(etichetta + " (non dichiarato)"); return [etichetta, "non dichiarato", true]; }
+    return [etichetta, itN(n, dec) + (unita ? " " + unita : ""), false];
+  };
+  const nomiFronti = (l.frontiId || []).map((id) => {
+    const f = (fronti || []).find((x) => x && String(x.id) === String(id));
+    return f ? (f.nome || String(id)) : String(id) + " (non più in elenco)";
+  });
+  const righe = [
+    ["Lotto", (l.nome || "senza nome") + (+l.ordine > 0 ? " · " + l.ordine + "° del progetto" : ""), false],
+    ["Stato", ETI_STATO_LOTTO[st] || st, false],
+    num(l.superficieMq, "Superficie", "m²", 2),
+    num(l.volumeM3, "Volume di progetto", "m³", 2),
+  ];
+  if (vm.misurabile)
+    righe.push(["Volume misurato sui suoi fronti", itN(vm.m3, 2) + " m³ (" + vm.rilievi + (vm.rilievi === 1 ? " rilievo" : " rilievi") + ")"
+      + (av.pct == null ? "" : " · " + itN(av.pct, 1) + "% del previsto"), false]);
+  else { righe.push(["Volume misurato sui suoi fronti", "non misurato", true]); nonMisurati.push("Volume misurato (" + vm.motivo + ")"); }
+  if (vm.rilieviCumulo > 0)
+    righe.push(["Riprese da cumulo sugli stessi fronti", itN(vm.cumuloM3, 2) + " m³ (materiale già cavato, non scavo di questo lotto)", false]);
+  if (nomiFronti.length) righe.push(["Fronti", nomiFronti.join(", "), false]);
+  else { righe.push(["Fronti", "nessuno dichiarato", true]); nonMisurati.push("Fronti (nessuno dichiarato)"); }
+  const date = [data("apertoIl", "Aperto il"), data("esauritoIl", "Scavo finito il"),
+    data("recuperoIniziatoIl", "Recupero iniziato il"), data("recuperoFinitoIl", "Recupero finito il")];
+  if (st === "recuperato" || st === "collaudato") date.push(data("collaudoChiestoIl", "Collaudo chiesto il"));
+  if (st === "collaudato") date.push(data("collaudatoIl", "Collaudato il (verbale dell'ente)"));
+  const recupero = [num(l.volumeRecuperoM3, "Volume rimesso in cava per il recupero", "m³", 2),
+    num(l.garanziaEuro, "Quota di garanzia del lotto", "€", 2)];
+  return { titolo: "Relazione di fine lavori — " + (l.nome || "lotto senza nome"), stato: st, righe, date, recupero,
+    attesa: att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
+    nonMisurati, nota: String(l.nota || "") };
+}
+
 /* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non
    ha una percentuale: ha un volume MISURATO, che è già un dato e più
    affidabile della percentuale che ne uscirebbe.

@@ -707,6 +707,13 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 04/09 · la relazione di fine lavori del lotto, premuta davvero: il foglio
+     per chiedere il collaudo e lo svincolo, catturato dalla finestra nuova —
+     gli stessi numeri della riga del lotto, le date, la quota di garanzia, e
+     la sezione «Che cosa manca» dove un dato non registrato resta scritto come
+     tale. La controprova rimette «0 m³» al posto di «non misurato». */
+  ['la relazione di fine lavori del lotto di Terra, premuta davvero', 'terra-relazione-lotto.mjs', []],
+  ['relazione di fine lavori · controprova', 'terra-relazione-lotto.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

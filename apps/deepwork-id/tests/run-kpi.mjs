@@ -36669,5 +36669,53 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine garanzia vincolata (Terra, 04/09) ===== */
 
+/* ===== LA RELAZIONE DI FINE LAVORI DEL LOTTO (Terra, 04/09) =====
+   Le righe del foglio con cui si chiede il collaudo e lo svincolo le compone
+   il modulo, non la pagina: gli stessi numeri della riga del lotto, e ogni
+   dato mancante scritto come tale e raccolto in `nonMisurati` — una relazione
+   che tace un dato lo fa passare per zero. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-04T12:00:00");
+  const cella = (R, etichetta) => [...R.righe, ...R.date, ...R.recupero].find((r) => r[0] === etichetta);
+  test("Terra · relazioneLotto sulla dimostrazione (lo2): numeri all'italiana, date, attesa del collaudo, quota di garanzia", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo2"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    eq(R.titolo, "Relazione di fine lavori — Lotto 2 — settore Sud-Ovest", "il titolo");
+    eq(cella(R, "Superficie"), ["Superficie", "6.000 m²", false], "6.000 raggruppato (useGrouping scritto: Node e Chromium diverrebbero)");
+    eq(cella(R, "Volume di progetto")[1], "88.000 m³", "il volume di progetto");
+    eq(cella(R, "Collaudo chiesto il")[1], "10/06/2026", "la richiesta del collaudo è una riga delle date");
+    eq(R.date.length, 5, "cinque date su un recuperato: niente riga del verbale che non c'è");
+    eq(cella(R, "Quota di garanzia del lotto")[1], "25.000 €", "la quota");
+    eq(R.attesa, "Collaudo chiesto all'ente il 10/06/2026 (86 giorni fa): fino al verbale il lotto non è chiuso.", "la stessa frase della riga del lotto");
+  });
+  test("⛔ Terra · relazioneLotto: quello che manca è scritto come mancante e raccolto, non stimato e non zero", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo2"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    eq(cella(R, "Volume misurato sui suoi fronti"), ["Volume misurato sui suoi fronti", "non misurato", true], "lo2 non dichiara fronti: non misurato, non 0 m³");
+    eq(cella(R, "Fronti"), ["Fronti", "nessuno dichiarato", true], "e i fronti");
+    eq(cella(R, "Volume rimesso in cava per il recupero"), ["Volume rimesso in cava per il recupero", "non dichiarato", true], "il volume del recupero non dichiarato");
+    eq(R.nonMisurati.length, 3, "tre voci nella sezione «che cosa manca»");
+    ok(R.nonMisurati.some((x) => /^Volume misurato \(Questo lotto non dichiara nessun fronte/.test(x)), "col motivo del modulo, non uno inventato — erano " + JSON.stringify(R.nonMisurati));
+    ok(!JSON.stringify(R).includes('"0 m³"') && !JSON.stringify(R).includes('"0 €"'), "nessuno zero al posto di un dato mancante");
+  });
+  test("Terra · relazioneLotto su un lotto aperto coi fronti (lo4): il misurato coi rilievi e la percentuale, quattro date", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo4"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    const vm = terra.volumeMisuratoDiLotto(terra.DEMO.lotti.find((l) => l.id === "lo4"), terra.DEMO.rilievi);
+    ok(vm.misurabile && cella(R, "Volume misurato sui suoi fronti")[1].startsWith((+vm.m3).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true }) + " m³ (" + vm.rilievi + " rilievi)"),
+      "lo stesso numero di volumeMisuratoDiLotto — era «" + cella(R, "Volume misurato sui suoi fronti")[1] + "»");
+    ok(/% del previsto$/.test(cella(R, "Volume misurato sui suoi fronti")[1]), "con la percentuale del previsto");
+    eq(cella(R, "Fronti")[1], "Fronte Nord", "il nome del fronte, non il suo id");
+    eq(R.date.length, 4, "su un aperto niente righe del collaudo");
+    eq(R.attesa, "", "e nessuna attesa");
+  });
+  test("⛔ Terra · relazioneLotto: una data che non esiste è «data non valida», un fronte sparito lo dice, e con niente in mano non esplode", () => {
+    const R = terra.relazioneLotto({ stato: "collaudato", apertoIl: "2026-02-30", frontiId: ["fx"], nome: "L" }, [], [], O);
+    eq(cella(R, "Aperto il"), ["Aperto il", "data non valida", true], "il 30 febbraio non scorre e non sparisce");
+    ok(R.nonMisurati.some((x) => /Aperto il \(data non valida: «2026-02-30»\)/.test(x)), "e la sezione «che cosa manca» cita la data com'è scritta");
+    eq(R.date.length, 6, "su un collaudato tutte e sei le date");
+    eq(cella(R, "Fronti")[1], "fx (non più in elenco)", "un fronte cancellato non sparisce dalla relazione");
+    eq(terra.relazioneLotto(null, null, null, O).stato, "previsto", "con null: un lotto previsto senza niente");
+  });
+}
+/* ===== fine relazione di fine lavori (Terra, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
