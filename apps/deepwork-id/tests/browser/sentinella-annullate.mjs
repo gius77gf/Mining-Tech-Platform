@@ -116,7 +116,9 @@ for (const W of [320, 390]) {
   await scatta(pg, `${W}-1-suggerimento-v1`);
   await pg.click('[data-graf-mon="v2"]').catch(() => {});
   await pg.waitForTimeout(500);
-  const righeV2 = await pg.$$eval("#graf-v2 table.tab tbody tr", (e) => e.map((r) => ({ data: r.cells[0].textContent.trim(), hint: !!r.querySelector(".ann-hint") }))).catch(() => []);
+  /* dal 04/09 l'ora sta SOTTO la data nella stessa cella (`<small>`): la data è
+     il primo nodo di testo, e il valore è la SECONDA cella, non la terza */
+  const righeV2 = await pg.$$eval("#graf-v2 table.tab tbody tr", (e) => e.map((r) => ({ data: r.cells[0].firstChild.textContent.trim(), hint: !!r.querySelector(".ann-hint") }))).catch(() => []);
   const r1707 = righeV2.find((r) => r.data === "17/07/2026");
   dice(r1707 && !r1707.hint, "sulla lettura di V2 del 17/07 (giorno della volata b1) il suggerimento NON c'è", JSON.stringify(righeV2));
   dice(righeV2.filter((r) => r.hint).length === 4, "e sulle altre quattro di V2 sì", JSON.stringify(righeV2));
@@ -152,9 +154,9 @@ for (const W of [320, 390]) {
   const chiusa = await pg.$eval("#modal", (e) => !e.classList.contains("show")).catch(() => false);
   dice(chiusa, "salvata: la modale si chiude", chiusa);
   const righeP1 = await pg.$$eval("#graf-p1 table.tab tbody tr", (e) => e.map((r) => ({
-    data: r.cells[0].textContent.trim(), valore: r.cells[2].textContent.trim(),
+    data: r.cells[0].firstChild.textContent.trim(), valore: r.cells[1].textContent.trim(),
     annullata: r.classList.contains("annullata"), tag: (r.querySelector(".tag.ann") || {}).textContent || "",
-    barrato: getComputedStyle(r.cells[2]).textDecorationLine.includes("line-through"),
+    barrato: getComputedStyle(r.cells[1]).textDecorationLine.includes("line-through"),
     ripristina: !!r.querySelector("[data-rip-mon]"), nonValida: !!r.querySelector("[data-ann-mon]") }))).catch(() => []);
   const rAnn = righeP1.find((r) => r.data === "19/07/2026");
   dice(rAnn && rAnn.annullata && /annullata · temporale/i.test(rAnn.tag), "⛔ la riga del 19/07 resta in tabella, barrata, col badge «annullata · temporale»", JSON.stringify(rAnn));

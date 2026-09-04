@@ -895,6 +895,14 @@ const BANCHI = [
      lo stesso, e il banco deve cadere. */
   ['la lettura dichiarata non valida di Sentinella, premuta davvero', 'sentinella-annullate.mjs', []],
   ['lettura non valida di Sentinella · controprova', 'sentinella-annullate.mjs', ['--controprova'], true],
+  /* 04/09 · la scheda del punto sta nella sua larghezza: il quadrante dei KPI
+     troncava «44,2 µg/m³» in «44,2 …» (l'unità sparita) a 320 e 390 px, e la
+     tabella «Le ultime misure» scorreva nel suo riquadro con le pillole della
+     provenienza tagliate alla vista. Misura a 320/360/390/430 nei tre temi su
+     ogni punto della dimostrazione, col Range sui nodi di testo. La controprova
+     rimette l'ellissi, l'ora come colonna a sé e il min-width delle azioni. */
+  ['la scheda del punto di Sentinella sta nella sua larghezza', 'sentinella-scheda-larghezze.mjs', []],
+  ['scheda del punto · controprova', 'sentinella-scheda-larghezze.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
