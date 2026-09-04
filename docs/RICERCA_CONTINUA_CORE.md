@@ -432,3 +432,74 @@ Da rispondere partendo dal **meccanismo** del nostro codice, non dal nome cercat
 5. **Esiste già, in una qualunque app dell'ecosistema, un concetto di "lotto" tracciabile** (per materiali diversi dall'esplosivo, es. materiali di cava, ricambi Flotta) che potrebbe dare un pattern riusabile per il lotto dell'esplosivo, invece di inventarne uno nuovo?
 6. **Se esiste già un'esportazione per un'autorità** (es. verso ARPA in Sentinella, verso l'ente in Terra) qual è il meccanismo che quell'esportazione usa per dichiarare "questo dato manca" invece di ometterlo — e quel meccanismo si può riusare per un'eventuale esportazione del registro esplosivi verso Questura/UNMIG?
 7. **La conservazione a lungo termine** (5 o 50 anni secondo le fonti, da verificare) ha oggi un corrispettivo nel prodotto — un dato che il prodotto non permette di eliminare o modificare una volta scritto? Se il registro esplosivi dovesse essere immutabile per decenni, quale meccanismo esistente (se esiste) tratta già un dato "che non si tocca più"?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `fc6fa9d2`)
+
+Le sette domande qui sopra, risposte aprendo le FUNZIONI — non cercando la
+parola del mondo nel nostro codice. Ogni «non c'è» porta il comando.
+
+1. **Chi sa quanti kg e da quale lotto.** I chili di una volata li sa
+   `misureVolataFochino(r)` in `shared/deepwork-id-client/dw-shell.js` (dal
+   `tot_kg` del rapportino del fochino, o dalla somma dei `kg` per foro in
+   `fori_dettaglio`, con `parziale` quando un foro non li porta) e, per il
+   progetto, `misureVolataProgetto(v)`; i chili **per tipo** li sa
+   `esplosivoPerTipo(r)` (03/09), che dichiara a parte i chili senza tipo e i
+   fori con due tipi. **Il lotto non esiste**: `grep -n "lotto" index.html` →
+   0 righe di codice (solo Terra ha un `lotto`, ed è la porzione di cava:
+   `statoLotto`, `avanzamentoLotto` in `terra-data.js`, altra cosa). I
+   **detonatori** non sono contati: per foro c'è `innesco` (testo libero,
+   «Detonatore a tubo»), nessuna quantità né numero di serie —
+   `grep -c "detonator" index.html` → 3 righe, tutte testi d'esempio o segnaposto.
+2. **Chi calcola la giacenza.** Nessuno: `DB.deposito` in `index.html` è il
+   deposito dei CONSUMABILI di perforazione (`punte`, `aste`, `lubr`), non
+   dell'esplosivo — `grep -n "deposito" index.html` → solo quelle tre
+   collezioni e due note d'esempio («Chili da recuperare dal registro del
+   deposito»). Non c'è un carico, non c'è un reso, non c'è una giacenza:
+   il core sa solo il **consumo per volata**.
+3. **Il colpo mancato.** C'è, dal 03/09: `esitoSparo(r)` legge `colpiEsplosi`,
+   `colpiMancati`, `mancatiNota` del rapportino del fochino, con `contato`
+   (assente ≠ zero), `coerente`/`perche` (mancati > fori) e `pericolo`; la
+   pagina lo scrive in elenco, scheda, PDF e cronologia. Quello che **non c'è**
+   è la quantità di esplosivo rimasta nel foro (kg non esplosi) e il suo
+   recupero/distruzione: `grep -n "recuper\|distru" index.html` → 0 righe di
+   codice sul tema. Per il registro del mondo il colpo mancato è un movimento
+   (esplosivo caricato e non consumato); qui è un conteggio di fori.
+4. **Chi firma.** Il rapportino porta `userId`/`createdBy` (chi l'ha scritto
+   nell'app: `user_fochino` nella dimostrazione) e il PDF del fochino lascia la
+   riga per la firma a mano (commento in `index.html` intorno alla riga 4418:
+   «nessuna firma digitale annunciata»). Nessuna firma sul movimento, perché
+   il movimento non esiste (punto 2).
+5. **Un lotto tracciabile altrove.** No: in Flotta i ricambi hanno codice e
+   scorta ma non un lotto; in Conti le pesate hanno il DDT (numero documento
+   del vettore/cliente), che è il parente più vicino di «provenienza con
+   numero del documento» — `grep -n "ddt\|DDT" apps/conti/conti-data.js | head`
+   → le pesate portano `ddt`. Un pattern riusabile per il carico (fornitore +
+   numero documento + data) c'è lì, non nel core.
+6. **Come si dichiara «manca» verso un'autorità.** Sentinella (report ARPA:
+   `conSoglia`, «senza dati» ≠ conforme) e Terra (foglio per l'ente:
+   «non misurato», `incertezzaScavo` con la copertura) lo fanno con la
+   bandiera del modulo letta dal foglio; nel core lo fa il PDF del fochino
+   («almeno N kg», «chili non dichiarati», `esitoSparo` «non contato»). Il
+   meccanismo per un registro esiste ed è il solito: la funzione decide, il
+   foglio scrive la sua dichiarazione.
+7. **Conservazione e immutabilità.** Le regole Firestore negano la
+   cancellazione dal client dei documenti «emessi» di Conti (decisione 10b,
+   `apps/deepwork-id/firestore.rules`); il core, nella Fase attuale, non passa
+   da Deepwork ID (ARCHITETTURA §8): i rapportini del fochino sono
+   modificabili e cancellabili da chi ha l'app. Un registro vidimato vuole il
+   contrario, e questo — insieme ai 5/50 anni non risolti — è **norma di
+   seconda mano**: prima di scriverlo in una schermata serve il testo primario
+   o la parola del fondatore.
+
+**Che cosa ne segue, come candidato e non come cantiere aperto**: il core sa
+il *consumo* per volata (kg, per tipo, per foro, con i colpi mancati); un
+registro di carico e scarico vuole anche il *carico* (fornitore, documento,
+lotto, detonatori contati) e la *giacenza* = carico − consumo − reso, e vuole
+che il movimento porti chi l'ha fatto. È una collezione nuova (`movimenti
+esplosivo`) con tre funzioni pure in `shared/` (giacenza, riconciliazione col
+consumo di `misureVolataFochino`, dichiarazione di ciò che manca), non una
+modifica di quello che c'è. Non entra in roadmap come «da fare» finché il
+fondatore non decide se il core deve tenere un registro con valore legale (la
+decisione è commerciale e normativa): entra come **candidato con il delta
+fatto**, e la parte di mestiere (colonne, chi vidima, conservazione) resta
+marcata di seconda mano.
