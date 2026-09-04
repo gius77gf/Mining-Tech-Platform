@@ -392,7 +392,7 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 77,
+  { file: "apps/genesi/genesi-data.js", fondo: 78,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

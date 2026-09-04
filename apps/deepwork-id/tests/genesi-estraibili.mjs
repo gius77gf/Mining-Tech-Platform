@@ -251,6 +251,12 @@ if (ELENCO) {
   for (const c of subito.sort((a, b) => b.corpo.length - a.corpo.length))
     console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)}`
       + (c.chiama.length ? "chiama: " + c.chiama.join(", ") : ""));
+  /* le 60 «facili» (una o due variabili del modulo): è il cantiere che resta,
+     e senza un elenco chi lo apre deve rifare il censimento a mano (04/09) */
+  console.log(`\n── Le ${facili.length} che leggono una o due variabili del modulo, dalla più grossa:`);
+  for (const c of facili.slice().sort((a, b) => b.corpo.length - a.corpo.length))
+    console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)} legge: ${c.glob.join(", ")}`
+      + (c.dom ? "  · scrive nel DOM" : "") + (c.ambiente ? "  · ambiente" : "") + (c.chiama.length ? "  · chiama: " + c.chiama.slice(0, 6).join(", ") : ""));
   console.log(`\n── Le ${duri.length} più legate allo stato, dalla peggiore:`);
   for (const c of duri.sort((a, b) => b.glob.length - a.glob.length))
     console.log(`  ${String(c.glob.length).padStart(3)} globali  ${c.nome.padEnd(26)} ${c.glob.slice(0, 10).join(", ")}`);

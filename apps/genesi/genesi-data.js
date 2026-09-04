@@ -1177,6 +1177,19 @@ export function esitoMic(mic) {
              verdetto:'non calcolabile' };
   return { calcolabile:true, kg:m, classe:'sv-info', stato:'contata', verdetto:'' };
 }
+/* LA DISPERSIONE DELL'INNESCO (lo «scatter»), in millisecondi (04/09, fetta di
+   B3). Nella pagina era scritta TRE volte con lo stesso ternario — sul foro
+   (`f.tDet`), sull'uniformità di Cunningham (`max(rit, lastDet)`) e nel badge
+   e nel rilascio (`scatterMs`) — cioè la copia da firma troppo stretta: le tre
+   differivano solo per il tempo di riferimento, che qui è un argomento.
+   Elettronico 0,1 ms e elettrico 0,5 ms sono fissi; cordtex il 3% e Nonel il
+   2% del tempo di riferimento. L'aritmetica è quella di prima, parola per
+   parola: un tempo assente resta NaN come restava — chi chiama passa un
+   numero. */
+export function scatterInnesco(innesco, tRif) {
+  return (innesco === "elettronico") ? 0.1 : ((innesco === "elettrico") ? 0.5 : ((innesco === "cordtex") ? 0.03 * tRif : 0.02 * tRif));
+}
+
 export function micFinestra(holes, kg) {
   const H = holes;
   if (micSenzaConto(H, kg)) return null;

@@ -1080,7 +1080,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, esitoMic, micSenzaConto,
+         micFinestra, esitoMic, micSenzaConto, scatterInnesco,
 /* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
    ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
    la formula era scritta tre volte (KPI, foglio stampabile, scheda
@@ -1747,7 +1747,7 @@ function buildSim(){
      generatore dalla chiusura, quella del modulo lo vuole come argomento — ed
      è esattamente perché **non** lo erano che la copia era nata. */
   for(const f of fori){
-    const sd=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*f.tDet:0.02*f.tDet));
+    const sd=scatterInnesco(_innId, f.tDet);   // una formula sola, in genesi-data (04/09)
     f.tNom=f.tDet; f.tDet=Math.max(0, f.tDet + _gauss(rng)*sd);
   }
   const H = Math.max(...fori.map(f=>f.h));          // altezza rappresentativa (max) per banco/camera/muckpile
@@ -1791,7 +1791,7 @@ function buildSim(){
   const x50 = _fr.x50;                            // cm — Kuznetsov, dal modulo (`null` se non si conta)
   let nU = (Lc===null) ? null : (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham; `null` senza borraggio
   /* precisione dell'innesco → uniformità (Cunningham 2005: ns=0.206+(1−Rs/4)^0.8, Rs=scatter/ritardo): elettronico = curva più ripida, Nonel = più dispersa */
-  if(nU!==null){ const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
+  if(nU!==null){ const _sdT=scatterInnesco(_innId, Math.max(rit,lastDet));
     const _RsT=_sdT/Math.max(1,rit), _ns=0.206+Math.pow(Math.max(0,1-_RsT/4),0.8);
     nU *= Math.max(0.8, Math.min(1.25, _ns));
     nU = Math.max(0.7, Math.min(2.2, nU)); }
@@ -5231,8 +5231,10 @@ function computeSeq2D(){
 /* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
    separati da meno di cosi sparano di fatto insieme e non si liberano a vicenda */
 function scatterMs(){
+  /* legame fra lo stato del progetto e la formula pura di genesi-data, come
+     `computeMIC` → `micFinestra` (04/09) */
   const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
-  return (D2.innesco==='elettronico')?0.1:((D2.innesco==='elettrico')?0.5:((D2.innesco==='cordtex')?0.03*tmx:0.02*tmx));
+  return scatterInnesco(D2.innesco, tmx);
 }
 function computeRelief2D(){
   const H=D2.holes; if(!H||!H.length) return;

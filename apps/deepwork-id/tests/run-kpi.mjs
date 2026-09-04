@@ -24937,6 +24937,21 @@ console.log("\n— Campo: i file che escono —");
      ⚠️ Prove SINCRONE e messe PRIMA del riepilogo, come vuole questo file. */
   const _fori = (...t) => t.map((x) => ({ tDet: x }));
 
+  /* LA DISPERSIONE DELL'INNESCO (04/09, fetta di B3): tre copie nella pagina
+     con lo stesso ternario e tre tempi di riferimento diversi → una funzione
+     con il tempo come argomento. Trasloco provato parola per parola: la vecchia
+     espressione estratta dal file, messa accanto alla nuova su 21.000 casi
+     (sette inneschi × tempi positivi, negativi, assenti) → 0 divergenze. */
+  test("⛔ Genesi · scatterInnesco: elettronico 0,1 ms, elettrico 0,5, cordtex 3% e Nonel 2% del tempo di riferimento", () => {
+    eq(v.scatterInnesco("elettronico", 1000), 0.1); eq(v.scatterInnesco("elettrico", 1000), 0.5);
+    eq(v.scatterInnesco("cordtex", 100), 3, "il 3% di 100 ms"); eq(v.scatterInnesco("nonel", 100), 2, "il 2%");
+    eq(v.scatterInnesco("", 42), 0.84, "senza innesco dichiarato vale il Nonel, come prima"); eq(v.scatterInnesco(undefined, 42), 0.84);
+    ok(Number.isNaN(v.scatterInnesco("nonel", undefined)), "un tempo assente resta NaN, com'era: chi chiama passa un numero");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/0\.03\*|0\.02\*/g) || []).length, 0, "nella pagina il ternario non c'è più");
+    eq((pag.match(/scatterInnesco\(/g) || []).length, 3, "e i tre punti chiamano la funzione: il foro, l'uniformità di Cunningham, il badge/rilascio");
+    ok(/function scatterMs\(\)\{[\s\S]{0,400}return scatterInnesco\(D2\.innesco, tmx\);/.test(pag), "scatterMs resta come legame fra lo stato e la funzione, come computeMIC");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
