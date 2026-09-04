@@ -35091,6 +35091,95 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
 }
 /* ===== fine core · i residui di B12 ===== */
 
+/* CORE · LA PASSATA DEL 04/09: due difetti trovati sul RENDERIZZATO e chiusi
+   nel sorgente. (1) Nel riquadro «Maglia di perforazione» dell'editor le tre
+   etichette Spalla/Interasse/Borraggio portavano l'unità NUDA dentro `.fl`
+   (uppercase) → «SPALLA (M)» a schermo, mentre la sorella «Freccia calotta»
+   e le stesse etichette in Strumenti ufficio la avvolgono in `<span class="u">`
+   dal 30/07 (commit 44b58360): il blocco del 02/06 era rimasto fuori dalla
+   correzione. Misurato a 390 e 320 px, tema scuro e chiaro: `text-transform`
+   della `.u` = none, dell'etichetta = uppercase. (2) Nel Gemello digitale, con
+   una cava senza rapportini fochino il KPI «Esplosivo» scriveva «nessuna delle
+   0 volate dichiara i chili» (DEFAULT_RAPPORTINI_FOC svuotato nella risposta
+   HTTP): una frase che nega un insieme vuoto — e con una volata sola «nessuna
+   delle 1 volata». Difese sul sorgente, come per la calotta e i residui di
+   B12. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: le unità delle etichette della maglia (Spalla, Interasse, Borraggio) non finiscono in maiuscolo", () => {
+    for (const eti of ["Spalla", "Interasse", "Borraggio"]) {
+      const nude = (coreSrc.match(new RegExp('class="fl">' + eti + ' \\(m\\)', "g")) || []).length;
+      eq(nude, 0, eti + ": nessuna «(m)» nuda dentro un'etichetta uppercase");
+    }
+    /* la forma buona è quella della sorella «Freccia calotta»: conta le tre + le altre già a posto */
+    const vestite = (coreSrc.match(/class="fl">(Spalla|Interasse|Borraggio) \(<span class="u">m<\/span>\)/g) || []).length;
+    ok(vestite >= 3, "le tre etichette della maglia avvolgono l'unità in .u (trovate " + vestite + ")");
+    ok(/\.fl \.u[^{]*\{[^}]*text-transform:\s*none/.test(coreSrc), "e .fl .u rimette l'unità in minuscolo");
+  });
+  test("⛔ core: il KPI Esplosivo del gemello non nega un insieme vuoto («nessuna delle 0 volate»)", () => {
+    const i = coreSrc.indexOf("kpi-lbl\">Esplosivo</div>");
+    ok(i > 0, "il KPI esiste");
+    const riga = coreSrc.slice(i, i + 700);
+    ok(/rf\.length===0\?'nessuna volata registrata'/.test(riga), "zero volate: «nessuna volata registrata»");
+    ok(/rf\.length===1\?'la sola volata non dichiara i chili'/.test(riga), "una volata: al singolare, senza «delle 1 volata»");
+    ok(/nessuna delle \$\{conta\(rf\.length,'volata','volate'\)\} dichiara i chili/.test(riga), "e da due in su la frase di prima");
+    /* la frase, eseguita: si estrae il ternario e lo si valuta con `conta` finto */
+    const m = riga.match(/\$\{totKg===null\?(\(rf\.length===0\?[^:]+:rf\.length===1\?[^:]+:`[^`]+`\)):/);
+    ok(!!m, "il ternario si legge");
+    const frase = (n) => new Function("rf", "conta", "return " + m[1] + ";")({ length: n }, (q, s, p) => q + " " + (q === 1 ? s : p));
+    eq(frase(0), "nessuna volata registrata"); eq(frase(1), "la sola volata non dichiara i chili"); eq(frase(3), "nessuna delle 3 volate dichiara i chili");
+  });
+}
+/* ===== fine core · la passata del 04/09 ===== */
+
+/* CORE · IL TITOLO DELLA SEZIONE GALLERIA STA NEL MARGINE (04/09): con la
+   calotta a 0 il cielo è piatto e la fila di contorno passa a 0,15 m dal cielo,
+   cioè esattamente dove stava scritto «SEZIONE GALLERIA · 5×4 m» (y=pad+14):
+   misurati DUE fori sopra il titolo con calotta 0, zero con calotta 1,2. Il
+   titolo va sopra la sezione, come l'etichetta CALOTTA. ⚠️ Prova SINCRONA. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: renderGalleriaCanvas scrive il titolo della sezione SOPRA il bordo, non dentro dove passa il contorno a calotta 0", () => {
+    const i = coreSrc.indexOf("\nfunction renderGalleriaCanvas(");
+    ok(i > 0, "la funzione esiste");
+    const src = coreSrc.slice(i, coreSrc.indexOf("SEZIONE GALLERIA · ${Wm}×${Hm} m</text>", i) + 40);
+    ok(/<text x="\$\{pad\}" y="\$\{pad-6\}"[^>]*>SEZIONE GALLERIA/.test(src), "titolo a y=pad-6, nel margine");
+    ok(!/y="\$\{pad\+14\}"[^>]*>SEZIONE GALLERIA/.test(src), "e non più a y=pad+14 dentro la sezione");
+    /* e la CALOTTA resta dove stava: sopra il vertice dell'arco */
+    ok(/y="\$\{toPx\(Wm\/2,Hm\)\.py-4\}"[^>]*>CALOTTA</.test(coreSrc), "l'etichetta CALOTTA è ancora sopra il vertice");
+  });
+}
+/* ===== fine core · il titolo della sezione galleria ===== */
+
+/* CORE · LA HOME NON DICE «SCADUTO IL —» (04/09): il riquadro dei promemoria
+   della home mette in lista anche quelli con la data illeggibile (giusto: non
+   devono sparire, è il conto del pallino rosso) ma li scriveva «Scaduto il —»
+   — un'affermazione su una cosa che non si sa, mentre le notifiche dicono «la
+   data non si legge: non si può dire se è scaduto». Visto sullo scatto della
+   home a 390 e 320 px («Verifica estintori del container ufficio · Scaduto
+   il —»). Stessa frase delle notifiche. ⚠️ Prova SINCRONA. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: la riga del promemoria in home dice che la data non si legge invece di «Scaduto il —»", () => {
+    const i = coreSrc.indexOf("nl.innerHTML=scad.slice(0,3)");
+    ok(i > 0, "il riquadro della home esiste");
+    const riga = coreSrc.slice(i, i + 600);
+    ok(!/Scaduto il \$\{fmt\(p\.data\)\}/.test(riga), "niente «Scaduto il» a secco sulla data");
+    ok(/promemoriaSenzaData\(p\)\?/.test(riga), "la riga chiede prima se la data si legge");
+    ok(/La data non si legge: non si può dire se è scaduto/.test(riga), "e usa la frase delle notifiche");
+    /* eseguita: con data illeggibile, con data vera */
+    const m = riga.match(/<div class="ssub">\$\{(.+?)\}<\/div>/);
+    ok(!!m, "il ternario si legge");
+    const f = (p, senza) => new Function("p", "promemoriaSenzaData", "fmt", "return " + m[1] + ";")(p, () => senza, (d) => d ? d.split("-").reverse().join("/") : "—");
+    eq(f({ data: "boh" }, true), "La data non si legge: non si può dire se è scaduto");
+    eq(f({ data: "boh", scaduto: true }, true), "Scaduto · la data non si legge");
+    eq(f({ data: "2026-04-20" }, false), "Scaduto il 20/04/2026");
+  });
+}
+/* ===== fine core · la home non dice «scaduto il —» ===== */
+
+/* ===== fine core · la passata del 04/09 ===== */
+
 /* ══════════════════════════════════════════════════════════════════════
    SHELL · L'ESITO DELLO SPARO (03/09, dal delta sul rapporto di volata: i
    colpi esplosi contati e i colpi mancati erano le due mancanze vere). Una

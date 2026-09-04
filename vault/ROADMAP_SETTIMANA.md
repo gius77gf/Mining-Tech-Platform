@@ -274,6 +274,24 @@
   m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
   chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
   Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **IL CORE, PASSATA IN PROFONDITÀ (04/09): quattro difetti veri, corretti.**
+  9 banchi verdi (223 prove), 14 schermate × 390/320 × scuro/chiaro con zero
+  sovrapposizioni, 9 PDF aperti (jsPDF intercettato: «esplosivo per tipo»
+  identico alla scheda, «non contato» dove non contato), i default svuotati
+  nella risposta HTTP. (1) «SPALLA (M)», «INTERASSE (M)», «BORRAGGIO (M)»:
+  tre unità nude dentro `.fl` nel riquadro della maglia, rimaste fuori dalla
+  correzione del 30/07; (2) il KPI Esplosivo del gemello scriveva «nessuna
+  delle **0 volate** dichiara i chili»; (3) nel disegno della galleria con
+  calotta 0 il titolo «SEZIONE GALLERIA» stava dentro la sezione dove passa la
+  fila di contorno — **2 fori sopra il titolo**, misurato coi rettangoli — ora
+  nel margine; (4) il promemoria con data illeggibile in home diceva «Scaduto
+  il —»: ora la frase delle notifiche («la data non si legge»). Prove sul
+  sorgente in `run-kpi` (4 KO su 4 contro `HEAD`). ⏱️ Candidato dichiarato: il
+  PDF della volata scrive «787.5mc», «56kg» col punto e senza spazio (righe
+  ~7882) dove lo schermo dice «787,5 mc» — da fare INSIEME a
+  `core-documenti-che-escono`, che cita quelle stringhe come bersaglio
+  d'iniezione. Il tema del sole nel core non è raggiungibile dall'utente
+  (`applyTheme` toglie sempre `outdoor-mode`): misurato `light-mode`.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura
@@ -5989,7 +6007,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.002 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.006 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
