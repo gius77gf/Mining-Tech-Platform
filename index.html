@@ -594,7 +594,7 @@ function today(){ return isoLocale(new Date()); }
    È lo stesso motivo per cui la forma delle parole sta scritta qui una volta
    sola: chi chiama non deve comporre. */
 function volKg(v){ const m=misureVolataProgetto(v);
-  return m.kgNoto ? (m.kg+' kg di esplosivo'+(m.parziale?' ('+m.conKg+' '+plurale(m.conKg,'foro','fori')+' su '+m.fori+' caricati)':''))
+  return m.kgNoto ? (perLettura(m.kg,1,true)+' kg di esplosivo'+(m.parziale?' ('+m.conKg+' '+plurale(m.conKg,'foro','fori')+' su '+m.fori+' caricati)':''))
                   : 'chili non ancora scritti'; }
 function volMc(v){ const m=misureVolataProgetto(v);
   return m.mcNoto ? (perLettura(m.mc,1,true)+' mc') : 'mc non calcolabili'; }
@@ -638,7 +638,7 @@ function volRiga(v){ const m=misureVolataProgetto(v);
   const fori=conta(m.fori,'foro','fori');
   /* né chili né volume: si dice UNA volta, se no la riga è tutta caveat */
   if(!m.kgNoto && !m.mcNoto) return fori+' · né chili né volume';
-  const kg=m.kgNoto ? ((m.parziale?'almeno ':'')+m.kg+' kg') : 'kg non scritti';
+  const kg=m.kgNoto ? ((m.parziale?'almeno ':'')+perLettura(m.kg,1,true)+' kg') : 'kg non scritti';
   return fori+' · '+kg+' · '+(m.mcNoto ? (perLettura(m.mc,1,true)+' mc') : 'mc non calcolabili'); }
 function rappRiga(r){
   const m=misureRapportino(r);
@@ -6011,8 +6011,8 @@ function renderEditorSide(){
         <!-- ⛔ e qui il riquadro sta ATTACCATO al bottone che genera il PDF:
              un «0» di metri sopra un foglio che scrive «-» sono due risposte
              diverse alla stessa domanda, date dallo stesso schermo. -->
-        <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${mvRo.metri===null?'non ancora quotato':mvRo.metri}</span></div>
-        <div class="preview-row"><span class="preview-lab">Esplosivo</span><span class="preview-val">${mvRo.kgNoto?(mvRo.parziale?'almeno ':'')+mvRo.kg+' kg':'chili non ancora scritti'}</span></div>
+        <div class="preview-row"><span class="preview-lab">Metri</span><span class="preview-val">${mvRo.metri===null?'non ancora quotato':perLettura(mvRo.metri,1,true)+' m'}</span></div>
+        <div class="preview-row"><span class="preview-lab">Esplosivo</span><span class="preview-val">${mvRo.kgNoto?(mvRo.parziale?'almeno ':'')+perLettura(mvRo.kg,1,true)+' kg':'chili non ancora scritti'}</span></div>
       </div>
       <button class="btn-sec" style="width:100%;" onclick="exportVolataPDF('${v.id}')">⤓ Scarica PDF</button>
     `;
@@ -7453,7 +7453,15 @@ function onCanvasDragEnd(ev){
    `misureVolataProgetto` a deciderlo per tutt'e due.
    ⚠️ Il «≥» sui chili non e' un vezzo: `tot_kg` su una volata caricata a
    meta' e' un totale VERO ma piu' basso del vero, e il foglio scrive «almeno
-   56 kg». Qui lo spazio e' quello che e'. */
+   56 kg». Qui lo spazio e' quello che e'.
+   ⛔ E IL VESTITO E' QUELLO DEL FOGLIO (04/09): la striscia scriveva «126m ·
+   112kg · 1323mc» e «1240.3mc» col punto, mentre il PDF che esce da quel
+   bottone scrive «126,0 m», «1.323,0 mc» con `perLettura`. Stesso numero,
+   due grafie a due centimetri: i tre passano da `perLettura(x,1,true)`, come
+   `volKg`, `volRiga`, il riquadro in sola lettura e `caricaMaxDetta`.
+   Misurato a 320 px prima di farlo: la striscia va gia' a capo su due righe
+   (h 63) e la seconda riga usa 120 px su 320, quindi le cifre in piu' ci
+   stanno senza una terza riga. */
 function _aggiornaEcStats(v,etichetta){
   /* la maglia si dichiara come il numero di file che le sta accanto: una
      spalla che nessuno ha scritto e' un «—», non un 3,5 preso da `getBorraggio` */
@@ -7465,9 +7473,9 @@ function _aggiornaEcStats(v,etichetta){
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${fileDetti(v)??'—'}</b>file</span>
     <span class="ec-stat"><b>Sp${mg.borraggio===null?'—':mg.borraggio}</b>×I<b>${mg.spaziatura===null?'—':mg.spaziatura}</b></span>
-    <span class="ec-stat"><b>${mv.metri===null?'—':mv.metri}</b><span class="u">m</span></span>
-    ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class="u">kg</span></span>`:''}
-    <span class="ec-stat"><b>${mv.mcNoto?mv.mc:'—'}</b><span class="u">mc</span></span>
+    <span class="ec-stat"><b>${mv.metri===null?'—':perLettura(mv.metri,1,true)}</b><span class="u">m</span></span>
+    ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${perLettura(mv.kg,1,true)}</b><span class="u">kg</span></span>`:''}
+    <span class="ec-stat"><b>${mv.mcNoto?perLettura(mv.mc,1,true):'—'}</b><span class="u">mc</span></span>
   `;
 }
 
@@ -7769,7 +7777,7 @@ function calcolaCaricaMaxRitardo(v){
    «—» (un foro senza chili pesava zero e il pannello diceva «0,0 kg»); con i
    chili scritti solo su una parte dei fori è un MINIMO e porta il «≥». Il
    numero di `calcolaCaricaMaxRitardo` non cambia: è una soglia di sicurezza. */
-function caricaMaxDetta(v){const m=misureVolataProgetto(v);if(!m.kgNoto)return '—';return (m.parziale?'≥ ':'')+calcolaCaricaMaxRitardo(v).toFixed(1)+' kg';}
+function caricaMaxDetta(v){const m=misureVolataProgetto(v);if(!m.kgNoto)return '—';return (m.parziale?'≥ ':'')+perLettura(calcolaCaricaMaxRitardo(v),1,true)+' kg';}
 
 async function salvaVolata(){
   const v=DB.volate.find(x=>x.id===state.volataSel);

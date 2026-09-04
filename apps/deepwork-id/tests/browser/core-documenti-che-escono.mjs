@@ -265,7 +265,7 @@ const DIFETTI = [
      e il banco «non distingueva» senza che il numero delle prove si muovesse.
      Il difetto rimesso è lo stesso di prima — i totali della VOLATA al posto
      dei metri MISURATI — solo scritto com'è scritto oggi. */
-  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':mv.metri}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${mv.kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?mv.mc:'—'}</b><span class=\"u\">mc</span></span>",
+  ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':perLettura(mv.metri,1,true)}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${perLettura(mv.kg,1,true)}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?perLettura(mv.mc,1,true):'—'}</b><span class=\"u\">mc</span></span>",
    "    <span class=\"ec-stat\"><b>${v.tot_metri}</b><span class=\"u\">m</span></span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b><span class=\"u\">mc</span></span>"],
   // 16 · la colonna PROGETTO della riconciliazione a «0,0» invece che «non quotato»
   ["      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]",
@@ -735,8 +735,9 @@ async function pdfVolata(id) {
     for (const st of document.querySelectorAll("#ec-stats .ec-stat")) {
       const u = st.querySelector(".u"), b = st.querySelector("b");
       if (!u || !b) continue;
+      /* dal 04/09 la striscia scrive «1.323,0»: si legge all'italiana */
       const grezzo = (b.textContent || "").replace(/[≥\s]/g, "");
-      out[u.textContent.trim()] = grezzo === "—" ? null : Number(grezzo);
+      out[u.textContent.trim()] = grezzo === "—" ? null : Number(grezzo.replace(/\./g, "").replace(",", "."));
     }
     return out;
   });
@@ -859,10 +860,15 @@ dice(!/\b0m\b/.test(strisce.vz9 || "") && /—m/.test(strisce.vz9 || ""),
   `⛔ la striscia sopra il bottone NON dice «0m» sulla volata non quotata ("${strisce.vz9}")`, strisce.vz9);
 dice(!/\b0mc\b/.test(strisce.vz9 || "") && /—mc/.test(strisce.vz9 || ""),
   "e nemmeno «0mc»: lo schermo e il foglio danno la stessa risposta", strisce.vz9);
-dice(/≥56kg/.test(strisce.vol_2 || ""),
+dice(/≥56,0kg/.test(strisce.vol_2 || ""),
   `⛔ e sulla volata caricata a metà la striscia dichiara che il totale è un minimo ("${strisce.vol_2}")`, strisce.vol_2);
-dice(/126m/.test(strisce.vol_1 || "") && /112kg/.test(strisce.vol_1 || "") && /1323mc/.test(strisce.vol_1 || "") && !/≥/.test(strisce.vol_1 || ""),
-  "⚠️ e sulla volata sana continua a dire i suoi numeri, senza riserve", strisce.vol_1);
+/* ⛔ DAL 04/09 LA STRISCIA VESTE I NUMERI COME IL FOGLIO: «126,0m · 112,0kg ·
+   1.323,0mc», non «126m · 112kg · 1323mc». Prima il foglio scriveva «1.323,0 mc»
+   e lo schermo sopra il bottone «1323mc»: stesso numero, due grafie. */
+dice(/126,0m/.test(strisce.vol_1 || "") && /112,0kg/.test(strisce.vol_1 || "") && /1\.323,0mc/.test(strisce.vol_1 || "") && !/≥/.test(strisce.vol_1 || ""),
+  "⚠️ e sulla volata sana continua a dire i suoi numeri, senza riserve — nel vestito di perLettura", strisce.vol_1);
+dice(!/\b1323mc\b|\b1240\.3mc\b|\b787\.5mc\b/.test([strisce.vol_1, strisce.vol_2, strisce.vol_3].join(" ")),
+  "⛔ e nessuna striscia scrive più i metri cubi col punto e senza migliaia", [strisce.vol_1, strisce.vol_2, strisce.vol_3].join(" | "));
 dice(volateProvate.length === 4 && ripieghi.length === 0,
   `⚠️ schemi di volata premuti col bottone vero: ${volateProvate.length} (${volateProvate.join(", ")})`,
   "il bottone non si è potuto premere su: " + ripieghi.join(", "));

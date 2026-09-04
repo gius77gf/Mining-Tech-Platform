@@ -35127,17 +35127,29 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
     const f = new Function("parseNum", prendi("fileDetti") + "\nreturn fileDetti;")(parseNum);
     eq(f({ maglia: { file: 2 } }), 2); eq(f({ maglia: { file: "3" } }), 3);
     eq(f({ maglia: { file: 0 } }), null, "zero file non è un numero di file"); eq(f({ maglia: { file: null } }), null); eq(f({ maglia: {} }), null); eq(f(null), null);
-    ok(/\$\{fileDetti\(v\)\?\?'—'\}<\/b>file/.test(coreSrc), "la barra passa da fileDetti"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
+    ok(/\$\{fileDetti\(v\)\?\?'—'\}<\/b>file/.test(coreSrc), "la barra passa da fileDetti");
+    /* i tre numeri della striscia col vestito di perLettura (04/09): la
+       striscia e il foglio che esce dal bottone sotto dicono lo stesso numero
+       nella stessa grafia — «1.323,0 mc», non «1323mc» */
+    ok(/<b>\$\{mv\.metri===null\?'—':perLettura\(mv\.metri,1,true\)\}<\/b><span class="u">m<\/span>/.test(coreSrc), "i metri della striscia passano da perLettura");
+    ok(/\$\{mv\.parziale\?'≥':''\}\$\{perLettura\(mv\.kg,1,true\)\}<\/b><span class="u">kg<\/span>/.test(coreSrc), "e i chili, col «≥» del minimo davanti");
+    ok(/<b>\$\{mv\.mcNoto\?perLettura\(mv\.mc,1,true\):'—'\}<\/b><span class="u">mc<\/span>/.test(coreSrc), "e i metri cubi, con il «—» quando non si calcolano");
+    ok(/perLettura\(mvRo\.metri,1,true\)\+' m'/.test(coreSrc) && /perLettura\(mvRo\.kg,1,true\)\+' kg'/.test(coreSrc), "e il riquadro in sola lettura scrive metri e chili nello stesso vestito, con l'unità");
+    ok(/perLettura\(m\.kg,1,true\)\+' kg di esplosivo'/.test(coreSrc) && /perLettura\(m\.kg,1,true\)\+' kg'\) : 'kg non scritti'/.test(coreSrc), "e volKg / volRiga pure: non resta nessun m.kg nudo nelle frasi"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
   });
   test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {
     const parseNum0 = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
     const src = prendi("caricaMaxDetta") + "\n" + coreSrc.slice(coreSrc.indexOf("\nfunction calcolaCaricaMaxRitardo("), coreSrc.indexOf("\nfunction caricaMaxDetta("));
-    const f = new Function("parseNum0", "misureVolataProgetto", src + "\nreturn { caricaMaxDetta, calcolaCaricaMaxRitardo };")(parseNum0, shell.misureVolataProgetto);
+    /* dal 04/09 la frase veste il numero con `perLettura` («16,0 kg», con la
+       virgola), come il PDF e la striscia: prima scriveva `toFixed(1)` col punto */
+    const f = new Function("parseNum0", "misureVolataProgetto", "perLettura", src + "\nreturn { caricaMaxDetta, calcolaCaricaMaxRitardo };")(parseNum0, shell.misureVolataProgetto, shell.perLettura);
     const v = (fori) => ({ fori, tot_kg: fori.reduce((s, x) => s + (+x.kg || 0), 0) });
     eq(f.caricaMaxDetta(v([{ kg: "", ritardo: 25 }, { kg: "", ritardo: 50 }])), "—", "volata appena generata: nessun chilo scritto");
     eq(f.calcolaCaricaMaxRitardo(v([{ kg: "", ritardo: 25 }])), 0, "il numero resta quello di prima: la soglia non si tocca");
-    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 8, ritardo: 25 }, { kg: "", ritardo: 50 }])), "≥ 16.0 kg", "chili su due fori su tre: un minimo");
-    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 12, ritardo: 50 }])), "12.0 kg");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 8, ritardo: 25 }, { kg: "", ritardo: 50 }])), "≥ 16,0 kg", "chili su due fori su tre: un minimo, con la virgola");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 12, ritardo: 50 }])), "12,0 kg");
+    eq(f.caricaMaxDetta(v([{ kg: 1000, ritardo: 25 }, { kg: 250.25, ritardo: 25 }])), "1.250,3 kg", "migliaia col punto e un decimale, come la striscia");
+    ok(!/calcolaCaricaMaxRitardo\(v\)\.toFixed/.test(coreSrc), "e nel sorgente non resta il toFixed col punto");
     eq(f.caricaMaxDetta(v([])), "—");
     ok(/Carica max\/ritardo: <b>\$\{caricaMaxDetta\(v\)\}<\/b>/.test(coreSrc), "il pannello stampa la frase decisa dalla funzione");
   });

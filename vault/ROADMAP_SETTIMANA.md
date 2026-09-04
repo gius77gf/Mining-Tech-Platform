@@ -320,10 +320,25 @@
   totali di pagina 3 passano da `perLettura` («787,5 mc», «56,0 kg», «102,0
   m»), il banco `core-documenti-che-escono` legge i numeri a schermo per
   selettore e li confronta col foglio (67 → 70 asserzioni, iniezioni
-  ripuntate, `iniezioni-fresche` 476/476). ⏱️ Resta, dichiarato: lo schermo
-  del progetto scrive ancora «56 kg»/«126m» grezzi (striscia `ec-stats`,
-  `volKg`, riquadro in sola lettura) — stessa mossa, unità a sé, da misurare
-  a 320 px prima di allargare la striscia.
+  ripuntate, `iniezioni-fresche` 476/476). ✅ **E lo schermo del progetto
+  (04/09)**: la striscia `ec-stats` scriveva «126m · 112kg · 1323mc» e
+  «1240.3mc» col punto a due centimetri dal bottone il cui foglio scrive
+  «1.323,0 mc»; ora metri, chili e mc passano da `perLettura(x,1,true)`, come
+  `volKg`, `volRiga`, il riquadro in sola lettura («102,0 m», «almeno 56,0
+  kg») e `caricaMaxDetta` (che scriveva `toFixed(1)` col punto: «≥ 16,0 kg»).
+  Misurato a 320 px PRIMA: la striscia andava già su due righe (h 63) con la
+  seconda a 120 px su 320, quindi le cifre in più non aprono una terza riga —
+  e DOPO: stesse due righe, 0 fuori, scatto guardato. `core-documenti-che-
+  escono` 70 → 71 (la striscia letta all'italiana, iniezione 15 ripuntata,
+  nessuna striscia col punto), controprova 15/15 e cade; run-kpi +8
+  asserzioni sul sorgente (stesso conto di prove).
+  ⏱️ **Resta, censito e non fatto**: la MAGLIA è ancora col punto dappertutto
+  — striscia «Sp3×I3.5», riquadro «B 3.2 × S 3.8», etichetta SVG «Sp3m», PDF
+  «3.5 m» (righe `mgPdf.borraggio+' m'`) — e nella tabella dei fori del PDF
+  `(f.x||0).toFixed(2)` scrive le coordinate col punto. È la stessa famiglia
+  (numero giusto, grafia del foglio diversa da quella dell'app), coerente fra
+  schermo e foglio oggi, quindi unità a sé: si cambiano insieme schermo e PDF,
+  e il banco che li confronta.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura
