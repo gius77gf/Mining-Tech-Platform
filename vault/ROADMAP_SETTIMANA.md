@@ -1194,7 +1194,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
-- `B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER`
 - `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
@@ -2272,8 +2271,16 @@ numero scritto dove non era stato misurato niente**.*
       controprova **20/5** (i difetti rimessi la fanno cadere). Iscritto in
       `tutti.mjs`: esecuzioni **186 → 188**, file di banco **77 → 78**.
 
-- [ ] **B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER
+- [x] **B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER
       IL CONTRASTO — e la riga che lo dice porta la ragione SBAGLIATA.**
+      ✅ **CHIUSO IL 04/09, rimisurato**: `contrasto.mjs --solo=core
+      --tema=chiaro` sul commit `d2ed4e3b` — **455 testi misurati a 430 px, 0
+      sotto soglia** (165 su griglia 25×25 per i gradienti; le 68 finestre di
+      dialogo restano alla passata `--modali`), 51 classi con fondo
+      proprio fatte comparire e misurate, 0 sotto soglia. I 61 del 13/08 sono
+      stati chiusi lo stesso giorno (inchiostri di stato per il chiaro); qui
+      resta la misura che lo dice. Il tema «sole» il core non ce l'ha, e la
+      riga «non misurata» per lui è vera.
       ⏱️ *Trovato il 13/08 leggendo le righe «non ho guardato» del giro del
       browser, che in questa casa si leggono PRIMA dei KO.* Il banco del
       contrasto stampa, per il tema `chiaro` e per il tema `sole`:
