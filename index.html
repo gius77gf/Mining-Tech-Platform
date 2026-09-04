@@ -7881,10 +7881,15 @@ function exportVolataPDF(volataId){
      da quella profondita' discendono — dicono gia' «-». Un foglio che si
      contraddice a due centimetri di distanza. */
   const mv=misureVolataProgetto(v);
+  /* ⛔ E LA SCRITTURA (04/09): il riquadro diceva «787.5mc», «75m», «56kg» —
+     col punto e senza spazio — mentre lo schermo dice «787,5 mc» passando da
+     `perLettura`. Stessa famiglia di `focKg` (03/09), verso opposto: la' lo
+     schermo scriveva col punto e il PDF con la virgola. Il numero lo decide
+     `misureVolataProgetto`; il VESTITO e' quello dello schermo, una volta. */
   const kpi=[['FORI',String(mv.fori)],
-             ['METRI',mv.metri===null?'-':mv.metri+'m'],
-             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?mv.kg+'kg':'-'],
-             ['MC',mv.mcNoto?mv.mc+'mc':'-']];
+             ['METRI',mv.metri===null?'-':perLettura(mv.metri,1,true)+' m'],
+             [mv.parziale?'KG · PARZIALE':'KG',mv.kgNoto?perLettura(mv.kg,1,true)+' kg':'-'],
+             ['MC',mv.mcNoto?perLettura(mv.mc,1,true)+' mc':'-']];
   const kw=43;
   kpi.forEach(function(k,i){const kx=16+i*(kw+2),ky=yi+4;
     d.setFillColor(255,248,232);d.setDrawColor(255,171,0);d.setLineWidth(0.4);d.rect(kx,ky,kw,22,'FD');
@@ -7979,9 +7984,9 @@ function exportVolataPDF(volataId){
       /* stessa regola del riquadro di pagina 1, e qui c'e' lo spazio per dirlo
          a parole: «almeno» e' la convenzione gia' usata dal PDF del fochino */
       const tt=[['Fori',String(mv.fori)],
-                ['Metri',mv.metri===null?'-':mv.metri+' m'],
-                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+mv.kg+' kg':'-'],
-                ['Mc',mv.mcNoto?mv.mc+' mc':'-']];
+                ['Metri',mv.metri===null?'-':perLettura(mv.metri,1,true)+' m'],
+                ['Carica',mv.kgNoto?(mv.parziale?'almeno ':'')+perLettura(mv.kg,1,true)+' kg':'-'],
+                ['Mc',mv.mcNoto?perLettura(mv.mc,1,true)+' mc':'-']];
       tt.forEach(function(t,i){const tx=20+(i%2)*90,ty=yt+13+Math.floor(i/2)*7;d.setTextColor(120,100,50);d.setFont('helvetica','normal');d.setFontSize(8);d.text(t[0]+':',tx,ty);d.setTextColor(20,16,8);d.setFont('helvetica','bold');d.text(t[1],tx+78,ty,{align:'right'});});
     }
   }

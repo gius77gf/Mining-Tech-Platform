@@ -292,6 +292,14 @@
   `core-documenti-che-escono`, che cita quelle stringhe come bersaglio
   d'iniezione. Il tema del sole nel core non è raggiungibile dall'utente
   (`applyTheme` toglie sempre `outdoor-mode`): misurato `light-mode`.
+  ✅ **Il candidato del PDF è chiuso (04/09)**: i tre numeroni di pagina 1 e i
+  totali di pagina 3 passano da `perLettura` («787,5 mc», «56,0 kg», «102,0
+  m»), il banco `core-documenti-che-escono` legge i numeri a schermo per
+  selettore e li confronta col foglio (67 → 70 asserzioni, iniezioni
+  ripuntate, `iniezioni-fresche` 476/476). ⏱️ Resta, dichiarato: lo schermo
+  del progetto scrive ancora «56 kg»/«126m» grezzi (striscia `ec-stats`,
+  `volKg`, riquadro in sola lettura) — stessa mossa, unità a sé, da misurare
+  a 320 px prima di allargare la striscia.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura
