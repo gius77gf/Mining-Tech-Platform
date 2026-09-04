@@ -36223,5 +36223,132 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine lettura non valida (Sentinella, 04/09) ===== */
 
+/* ═════ FLOTTA · IL CONTATORE SOSTITUITO O AZZERATO (04/09) ═════
+   Candidato (b) del delta della ricerca sulla telematica: l'evento «contatore
+   azzerato/sostituito» dichiarato dalla persona, che riapre il conto senza far
+   dire «sceso» a `consumoPerMezzo` e `ritmoOreMezzi`. L'evento vive sul
+   rifornimento che apre il nuovo contatore (`contatoreNuovo`, `oreVecchie`);
+   il conto si fa sul TRATTO CORRENTE e quando è corto lo dice. I due versi che
+   ogni prova qui difende: una lettura più bassa SENZA dichiarazione resta
+   «sceso» (il difetto non si cura nascondendolo); CON la dichiarazione il conto
+   riparte, con `tratti: 2` e la data scritta.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const p = (data, litri, ore, extra) => ({ data, mezzo: "Dumper D4", litri, ore, euro: 0, ...extra });
+  const NUOVO = { contatoreNuovo: true, oreVecchie: 5750 };
+  const OGGI = new Date("2026-07-20T12:00:00");
+
+  test("Flotta · azzeramentiDelMezzo: legge la bandiera dalle letture, per mezzo, in ordine di data", () => {
+    const L = [{ mezzo: "E1 — CAT", data: "2026-07-01", ore: 120, contatoreNuovo: true, oreVecchie: 5841 },
+      { mezzo: "E1", data: "2026-06-01", ore: 5812 }, { mezzo: "D1", data: "2026-06-05", ore: 3, contatoreNuovo: true },
+      { mezzo: "E1", data: "2026-03-01", ore: 10, contatoreNuovo: true, oreVecchie: "" },
+      { mezzo: "E1", data: "2026-02-30", ore: 5, contatoreNuovo: true }, { mezzo: "E1", data: "2026-05-05", ore: null, contatoreNuovo: true }];
+    eq(flotta.azzeramentiDelMezzo(L, "E1"), [{ data: "2026-03-01", oreVecchie: null, oreNuove: 10, nota: "" }, { data: "2026-07-01", oreVecchie: 5841, oreNuove: 120, nota: "" }],
+      "due azzeramenti di E1 in ordine di data; oreVecchie vuoto è null, non 0");
+    eq(flotta.azzeramentiDelMezzo(L).length, 3, "senza il nome: di tutti i mezzi");
+    ok(!flotta.azzeramentiDelMezzo(L, "E1").some(a => a.data === "2026-02-30" || a.oreNuove == null), "⛔ un giorno che non esiste o una bandiera senza ore non sono un azzeramento");
+    eq(flotta.azzeramentiDelMezzo(null, "E1"), [], "niente letture, niente azzeramenti");
+  });
+
+  test("Flotta · spezzaLetture: senza azzeramenti un tratto solo con TUTTO (anche le letture senza data)", () => {
+    const L = [{ data: "2026-06-01", ore: 1 }, { data: "", ore: 2 }, { data: "2026-06-10", ore: 3 }];
+    const s = flotta.spezzaLetture(L, []);
+    eq([s.tratti.length, s.tratti[0].letture.length, s.senzaData.length, s.tratti[0].dal], [1, 3, 0, null], "il comportamento di sempre");
+  });
+
+  test("Flotta · spezzaLetture: ogni azzeramento apre un tratto; la lettura senza data non si sa dove metterla", () => {
+    const L = [{ data: "2026-01-01", ore: 10 }, { data: "2026-03-01", ore: 5 }, { data: "2026-05-01", ore: 1 }, { data: "2026-06-01", ore: 9 }, { data: "", ore: 7 }];
+    const s = flotta.spezzaLetture(L, [{ data: "2026-05-01" }, { data: "2026-03-01" }, { data: "boh" }]);
+    eq(s.tratti.map(t => [t.dal, t.letture.map(l => l.ore)]), [[null, [10]], ["2026-03-01", [5]], ["2026-05-01", [1, 9]]], "tre tratti, in ordine di data anche se gli azzeramenti arrivano in disordine; «boh» non apre niente");
+    eq(s.senzaData.map(l => l.ore), [7], "la lettura senza data sta a parte, non in un tratto indovinato");
+    eq(flotta.spezzaLetture([{ data: "2026-06-20", ore: 5850 }, { data: "2026-06-20", ore: 120 }], [{ data: "2026-06-20" }]).tratti.map(t => t.letture.length), [0, 2],
+      "lo stesso giorno dell'azzeramento va nel tratto nuovo (una lettura vecchia di quella mattina risulterà scesa: si corregge la data, non la regola)");
+  });
+
+  test("Flotta · trattoCorrente e fraseContatoreSostituito", () => {
+    const tc = flotta.trattoCorrente([p("2026-06-01", 100, 5600), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210), { ...p("", 1, 300) }]);
+    eq([tc.tratti, tc.dal, tc.letture.map(l => l.ore), tc.senzaData, tc.azzeramento.oreVecchie], [2, "2026-07-01", [120, 210], 1, 5750], "l'ultimo tratto, con quanti sono e da quando");
+    eq(flotta.fraseContatoreSostituito({ data: "2026-07-01" }), "contatore sostituito il 01/07/2026: il conto riparte da lì", "la frase, in un posto solo");
+    eq([flotta.fraseContatoreSostituito(null), flotta.fraseContatoreSostituito({ data: "2026-02-30" })], ["", ""], "senza una data che esista non c'è frase");
+  });
+
+  test("⛔ Flotta · validaRifornimento: la lettura più bassa passa SOLO col contatore dichiarato nuovo", () => {
+    const senza = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900 }, 1200);
+    ok(!senza.ok && /segna meno/.test(senza.errori.ore) && /nuovo o azzerato/.test(senza.errori.ore), "senza: rifiutata, e il messaggio dice la via giusta: " + senza.errori.ore);
+    const con = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900, contatoreNuovo: true }, 1200);
+    contiene(con, { ok: true, ore: 900, contatoreNuovo: true, oreVecchie: 1200 }, "con: passa, e porta le ore che il vecchio contatore segnava");
+    eq(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900, contatoreNuovo: true }, null).oreVecchie, null, "mezzo senza contatore: oreVecchie null, non uno zero di comodo");
+    const vuote = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: "", contatoreNuovo: true }, 1200);
+    ok(!vuote.ok && /scrivi che cosa segna/.test(vuote.errori.ore), "⛔ dichiarato nuovo SENZA le ore: errore, il conto non ha da dove ripartire");
+    contiene(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 1300 }, 1200), { ok: true, contatoreNuovo: false, oreVecchie: null }, "chi non dichiara niente resta com'era");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: sceso SENZA dichiarazione resta null e «sceso»", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120)]).mezzi[0];
+    eq([m.litriOra, m.tratti, m.contatoreDal], [null, 1, null], "un contatore solo, nessun numero");
+    ok(/il contatore è sceso/.test(m.perche), "e la ragione è ancora «sceso»: " + m.perche);
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: sceso CON l'azzeramento dichiarato, il conto riparte sul tratto nuovo (tratti: 2)", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)]).mezzi[0];
+    contiene(m, { litriOra: 2, oreCoperte: 90, tratti: 2, contatoreDal: "2026-07-01", oreVecchie: 5750, da: "2026-07-01", a: "2026-07-10", perche: "", pieni: 4 }, "180 l su 90 h del nuovo contatore; i pieni e i litri restano quelli di tutta la vita");
+    eq(m.litri, 630, "i litri messi si sommano su tutti i tratti: sono gasolio vero");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: azzeramento senza letture dopo → non calcolabile, e dice da quando", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO)]).mezzi[0];
+    eq([m.litriOra, m.tratti], [null, 2], "niente numero: sul tratto nuovo c'è una lettura sola");
+    eq(m.perche, "contatore sostituito il 01/07/2026: il conto riparte da lì, e serve un secondo rifornimento con le ore del nuovo contatore", "la ragione ha la data");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: dopo un azzeramento una lettura SENZA DATA non si colloca — si dice, non si indovina", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-07-01", 150, 120, NUOVO), p("", 180, 210)]).mezzi[0];
+    eq(m.litriOra, null, "l'assenza della data non è un dato favorevole");
+    ok(/non ha il giorno/.test(m.perche) && /a quale contatore/.test(m.perche), m.perche);
+  });
+
+  test("Flotta · consumoPerMezzo sulla DIMOSTRAZIONE: nessun azzeramento, tutto com'era", () => {
+    const c = flotta.consumoPerMezzo(flotta.DEMO.rifornimenti);
+    ok(c.mezzi.every(m => m.tratti === 1 && m.contatoreDal === null), "un tratto per ogni mezzo");
+    eq(c.mezzi.map(m => m.litriOra), [17.41, 12.7, 9.7, null], "e i numeri della dimostrazione non si sono mossi");
+  });
+
+  test("⛔ Flotta · ritmoOreMezzi: i due versi, e il tratto corto lo dice", () => {
+    const L = (d, ore, extra) => ({ mezzo: "E1", data: d, ore, ...extra });
+    const N = { contatoreNuovo: true, oreVecchie: 5700 };
+    const sceso = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-07-01", 120)], OGGI)[0];
+    eq([sceso.oreGiorno, sceso.tratti], [null, 1], "senza dichiarazione: niente ritmo");
+    ok(/non è salito/.test(sceso.perche), "e la ragione è «non è salito»");
+    const con = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-01", 120, N), L("2026-07-18", 200)], OGGI)[0];
+    contiene(con, { oreGiorno: 4.71, tratti: 2, letture: 2, contatoreDal: "2026-07-01", dal: "2026-07-01", al: "2026-07-18", perche: "" }, "con: 80 h in 17 giorni del nuovo contatore");
+    const solo = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-01", 120, N)], OGGI)[0];
+    eq(solo.oreGiorno, null, "una lettura sola del nuovo contatore: niente ritmo");
+    ok(/^contatore sostituito il 01\/07\/2026: il conto riparte da lì, e finora c'è una sola lettura del nuovo contatore/.test(solo.perche), solo.perche);
+    const corto = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-10", 120, N), L("2026-07-18", 200)], OGGI)[0];
+    ok(corto.oreGiorno == null && /coprono 8 giorni/.test(corto.perche) && /contatore sostituito il 10\/07\/2026/.test(corto.perche), "otto giorni sul tratto nuovo: troppo pochi, e si dice perché sono pochi: " + corto.perche);
+    const demo = flotta.ritmoOreMezzi([...flotta.DEMO.rifornimenti, ...flotta.DEMO.controlli]);
+    eq(demo.map(r => [r.mezzo, r.oreGiorno, r.tratti]), [["Dumper D1", 3.42, 1], ["Escavatore E1", 3.73, 1], ["Escavatore E2", null, 1], ["Pala P1", null, 1]], "la dimostrazione non si è mossa");
+  });
+
+  test("⛔ Flotta · consumoControStoria: la storia non scavalca un contatore sostituito", () => {
+    const R = [p("2026-05-01", 100, 5000), p("2026-05-20", 200, 5100), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)];
+    const s = flotta.consumoControStoria(R, "Dumper D4", OGGI);
+    eq([s.calcolabile, s.tratti, s.contatoreDal], [false, 2, "2026-07-01"], "non si confronta: i pieni di prima sono su un altro contatore");
+    ok(/sostituito il 01\/07\/2026/.test(s.perche) && /vecchio contatore/.test(s.perche), s.perche);
+    const senza = flotta.consumoControStoria(R.slice(0, 2).concat([p("2026-07-01", 150, 5150), p("2026-07-10", 180, 5240)]), "Dumper D4", OGGI);
+    eq([senza.calcolabile, senza.tratti], [true, 1], "senza azzeramento la storia si confronta come prima");
+  });
+
+  test("Flotta · costoOrarioMezzo e fascicoloMezzo leggono il tratto corrente da consumoPerMezzo, non un conto loro", () => {
+    const R = [p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)];
+    const c = flotta.costoOrarioMezzo([], R).find(r => r.mezzo === "Dumper D4");
+    eq([c.ore, c.da, c.a], [90, "2026-07-01", "2026-07-10"], "le ore e la finestra sono quelle del tratto nuovo");
+    const f = flotta.fascicoloMezzo({ nome: "Dumper D4" }, { rifornimenti: R }, OGGI);
+    eq([f.consumo.litriOra, f.consumo.tratti], [2, 2], "e il libretto dice lo stesso numero");
+  });
+}
+/* ===== fine contatore sostituito (Flotta, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

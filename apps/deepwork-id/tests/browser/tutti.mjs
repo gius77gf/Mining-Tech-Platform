@@ -489,6 +489,12 @@ const BANCHI = [
   ['ponte Flotta→Conti · controprova', 'conti-ponte-flotta.mjs', ['--controprova'], true],
   ['Flotta: il consumo di un mezzo contro la sua storia', 'flotta-consumo-storia.mjs', []],
   ['consumo contro la storia · controprova', 'flotta-consumo-storia.mjs', ['--controprova'], true],
+  /* IL CONTATORE SOSTITUITO O AZZERATO (04/09): registra davvero i pieni con la
+     casella «contatore nuovo» a 320 e 390 px e legge che consumo e ritmo
+     ripartono e lo dicono; la controprova rimette l'azzeramento ignorato.
+     Alza un server suo (porta 8781), come `flotta-consumo-storia`. */
+  ['Flotta: il contatore sostituito o azzerato', 'flotta-contatore.mjs', []],
+  ['contatore sostituito · controprova', 'flotta-contatore.mjs', ['--controprova'], true],
   ['il ponte Campo→Conti nel report', 'conti-ponte-campo.mjs', []],
   ['ponte Campo→Conti · Campo assente', 'conti-ponte-campo.mjs', ['--campo-assente']],
   ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],

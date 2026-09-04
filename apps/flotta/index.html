@@ -424,6 +424,20 @@ body.dw b.bad{color:var(--ink-dg)}
 .item.st-sup{border-left:3px solid var(--app-support2)}
 .item.statico{cursor:default}
 .item.statico:hover{transform:none}
+
+/* ─── interruttore: copia di .toggle-row/.toggle del core (struttura identica),
+       la tinta è quella di Flotta. Il gancio è la riga intera (label), non il
+       solo pallino di 40×22: il bersaglio di tocco resta alto --tap. ─── */
+.toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);cursor:pointer;transition:.3s;border-radius:22px}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--muted);transition:.3s;border-radius:50%}
+.toggle input:checked+.toggle-slider{background:var(--app-accent)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(18px);background:var(--grad-on)}
+.toggle-row{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin:2px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:var(--tap);cursor:pointer}
+.toggle-row:has(input:focus-visible){box-shadow:0 0 0 3px var(--focus-ring)}
+.tog-name{font-size:13px;font-weight:600}
+.tog-sub{font-size:10px;color:var(--muted);margin-top:2px}
 .acts{margin-left:auto}
 
 /* come nel core le voci restano compatte: al massimo due righe, poi «…» */
@@ -1165,6 +1179,14 @@ body.dw b.bad{color:var(--ink-dg)}
       <input class="dw-input" id="rif-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore contatore" title="Ore del contatore al momento del pieno: la virgola va benissimo (1234,5)." style="flex:1 1 140px;font-variant-numeric:tabular-nums;">
       <button class="dw-btn" id="btn-rif">Registra</button>
     </div>
+    <!-- IL CONTATORE SOSTITUITO O AZZERATO (04/09): l'unico modo onesto di far
+         entrare una lettura più bassa. Senza questa dichiarazione la lettura
+         resta rifiutata, perché «sceso» è quasi sempre un errore di dito. -->
+    <label class="toggle-row" for="rif-nuovo" title="Segna qui se il contaore è stato sostituito o azzerato: le ore possono essere più basse di prima, e da questo pieno il conto riparte.">
+      <div><div class="tog-name">Contatore nuovo o azzerato</div>
+        <div class="tog-sub">Se il contaore è stato sostituito o azzerato, le ore possono essere più basse di prima: il consumo e il ritmo d'uso ripartono da questo pieno.</div></div>
+      <span class="toggle"><input type="checkbox" id="rif-nuovo"><span class="toggle-slider"></span></span>
+    </label>
     <div class="form-hint">Le <b>ore del contatore</b> al momento del pieno sono quelle che trasformano i litri in <b>litri/ora</b>: senza di loro restano litri e basta. Ne servono almeno due per mezzo, perché il primo pieno serve solo a fissare il punto di partenza.</div>
     <div class="form-hint">Se scrivi anche la <b>spesa</b>, il rifornimento entra da solo nei costi della flotta come voce «Carburante» con la sua data: <b>non registrarlo una seconda volta</b> a mano. Se togli il rifornimento, sparisce anche la sua voce di costo.</div>
   </div>
@@ -1332,6 +1354,7 @@ body.dw b.bad{color:var(--ink-dg)}
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
+           azzeramentiDelMezzo, fraseContatoreSostituito,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
@@ -1412,6 +1435,23 @@ body.dw b.bad{color:var(--ink-dg)}
      lo può avvolgere chi chiama (`marca`), ma la parola la sceglie un posto
      solo. */
   const grassetto = (n) => "<b>" + n + "</b>";
+  /* IL CONTATORE SOSTITUITO (04/09). L'evento vive sul rifornimento che l'ha
+     dichiarato (`contatoreNuovo`, vedi flotta-data.js), quindi la riga del
+     mezzo lo legge dai rifornimenti, non da un campo del mezzo. La forma corta
+     va nella riga di lista (tagliata a due righe); la frase intera, con le ore
+     che il vecchio contatore segnava, nella scheda — insieme all'avviso che i
+     tagliandi a ore programmati PRIMA parlano del vecchio contatore: quel
+     conto non si raddrizza da solo, e dirlo è meglio di un «mancano 5.880 h»
+     tranquillo. */
+  const ultimoAzzeramento = (nome) => { const az = azzeramentiDelMezzo(RIF, nome); return az.length ? az[az.length - 1] : null; };
+  const contatoreSostituitoTx = (nome, intera) => {
+    const u = ultimoAzzeramento(nome);
+    if (!u) return "";
+    if (!intera) return " · contatore sostituito il " + dataIt(u.data);
+    return " · " + esc(fraseContatoreSostituito(u))
+      + (u.oreVecchie != null ? " (prima segnava " + (+u.oreVecchie).toLocaleString("it-IT") + " h)" : "")
+      + ". I tagliandi a ore programmati prima di quel giorno si riferiscono al vecchio contatore.";
+  };
   const oreMotoreTx = (v, marca) => {
     if (!oreNote(v)) return "ore motore non registrate";
     const n = (+v).toLocaleString("it-IT");
@@ -2060,7 +2100,7 @@ body.dw b.bad{color:var(--ink-dg)}
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}</div></div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}${contatoreSostituitoTx(m.nome)}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
       <span class="arr avv" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
@@ -2969,6 +3009,8 @@ body.dw b.bad{color:var(--ink-dg)}
           <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false }) + " €/l" : ""}</div>
           <div class="meta norma">${m.litriOra != null
             ? "misurato su " + conta(m.oreCoperte, "ora di lavoro", "ore di lavoro")
+              // il conto è sul TRATTO CORRENTE: chi legge deve sapere da quando
+              + (m.tratti > 1 ? " del nuovo contatore (sostituito il " + dataIt(m.contatoreDal) + ")" : "")
             : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}${
             /* La dichiarazione va sulla SECONDA riga, non appesa in coda alla
                prima: la riga di dettaglio è tagliata a due righe, e i litri +
@@ -2988,7 +3030,7 @@ body.dw b.bad{color:var(--ink-dg)}
       .slice(0, 10).map(r => `<div class="item statico st-accent">
         <div class="avatar">${I.goccia}</div>
         <div class="info"><div class="name">${esc(nomeBreve(r.mezzo) || "Mezzo")} · ${lt(r.litri)}</div>
-          <div class="meta">${esc(dataIt(r.data))}${r.ore ? " · contatore " + (+r.ore).toLocaleString("it-IT") + " h" : " · senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+          <div class="meta">${esc(dataIt(r.data))}${r.ore ? " · contatore " + (+r.ore).toLocaleString("it-IT") + " h" + (r.contatoreNuovo ? " (nuovo)" : "") : " · senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
         <div class="acts">${(+r.euro) ? `<span class="badge accent euro">${eur(r.euro)}</span>` : ""}
         <span class="arr dan" role="button" tabindex="0" title="Rimuovi questo rifornimento" aria-label="Rimuovi il rifornimento di ${esc(nomeBreve(r.mezzo))}" data-del-rif="${r.id}">${I.croce}</span></div></div>`).join("");
 
@@ -3733,7 +3775,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
-        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}${contatoreSostituitoTx(m.nome, true)}</div>
         <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
       </div></div>`;
     $("sch-kpi").innerHTML = [
@@ -3869,7 +3911,7 @@ body.dw b.bad{color:var(--ink-dg)}
       + (f.rifornimenti.slice(0, RIGHE_LIBRETTO).map(r => `<div class="item statico st-accent">
           <div class="avatar">${I.goccia}</div>
           <div class="info"><div class="name">${esc(dataIt(r.data))} · ${lt(r.litri)}</div>
-            <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+            <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" + (r.contatoreNuovo ? " (nuovo)" : "") : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
           ${(+r.euro) ? `<span class="badge tag euro">${eur(r.euro)}</span>` : ""}</div>`).join("")
         || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."))
       + restoLibretto(f.rifornimenti.length);
@@ -4861,8 +4903,14 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!MEZ.length) { esito("rif-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
     const nome = ($("rif-mezzo").value || "").trim();
     const m = MEZ.find(x => nomeBreve(x.nome) === nome);
+    /* le ore del mezzo si passano com'è: `null` se non le sa nessuno. Prima
+       era `+m.ore || 0`, e uno zero di comodo sarebbe finito in `oreVecchie`
+       come «il contatore segnava 0 h» su una macchina di cui non si sapeva
+       niente. Per il confronto «segna meno» non cambia nulla: +null è 0. */
     const v = validaRifornimento({ mezzo: nome, litri: $("rif-litri").value, euro: $("rif-euro").value,
-                                   ore: $("rif-ore").value, data: $("rif-data").value }, m ? +m.ore || 0 : null);
+                                   ore: $("rif-ore").value, data: $("rif-data").value,
+                                   contatoreNuovo: $("rif-nuovo").checked },
+                                 m && oreNote(m.ore) ? +m.ore : null);
     err("rif-mezzo", v.errori.mezzo); err("rif-litri", v.errori.litri);
     err("rif-euro", v.errori.euro); err("rif-ore", v.errori.ore); err("rif-data", v.errori.data);
     if (!v.ok) {
@@ -4879,15 +4927,21 @@ body.dw b.bad{color:var(--ink-dg)}
         nota: nome + " · " + lt(v.litri) + (v.ore != null ? " · contatore " + numTx(v.ore) + " h" : ""), data });
       costoId = (rc && rc.id) || null;
     }
+    // Il contatore dichiarato nuovo viaggia col pieno (è la lettura che apre il
+    // tratto nuovo, vedi flotta-data.js): chi non lo dichiara resta com'era.
     await db.aggiungi("rifornimenti", { data, mezzo: nome, litri: v.litri, euro: v.euro,
-      ore: v.ore, nota: "", costoId });
-    // Il pieno racconta anche le ore: se il contatore è più avanti, si aggiorna.
-    if (m && v.ore != null && v.ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore: v.ore });
-    $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = "";
+      ore: v.ore, nota: "", costoId,
+      ...(v.contatoreNuovo ? { contatoreNuovo: true, oreVecchie: v.oreVecchie } : {}) });
+    // Il pieno racconta anche le ore: se il contatore è più avanti si aggiorna;
+    // se è NUOVO si scrive quello che segna, anche se è più basso di prima.
+    if (m && v.ore != null && (v.contatoreNuovo || v.ore > (+m.ore || 0))) await db.aggiorna("mezzi", m.id, { ore: v.ore });
+    $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = ""; $("rif-nuovo").checked = false;
     $("rif-data").value = oggiISO();
     esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
-      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + conta(v.ore, "ora", "ore") : "")
-      + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : "."), "success");
+      + (v.euro ? " per " + eur(v.euro) : "")
+      + (v.ore != null ? " a " + conta(v.ore, "ora", "ore") + (v.contatoreNuovo ? " del contatore nuovo" : "") : "")
+      + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : ".")
+      + (v.contatoreNuovo ? " Da questo pieno il consumo e il ritmo d'uso ripartono da capo." : ""), "success");
     fuoco("rif-litri");
     await refresh();
   };
@@ -4965,7 +5019,7 @@ body.dw b.bad{color:var(--ink-dg)}
     });
     else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
     if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
-      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : "")
+      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
       + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
     else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
     /* ⛔ E IL CONSUMO NON CALCOLABILE SI DICHIARA, invece di sparire. La riga

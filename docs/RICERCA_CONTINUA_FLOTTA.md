@@ -926,9 +926,16 @@ esportate); ogni «non c'è» con il comando.
 - (a) ✅ **fatta il 04/09** — la causale **meteo** in `CAUSALI_FERMO`, prima di
   «altro» (misurato: la tendina della pagina la deriva dall'elenco e mostra
   dieci voci; `nomi-doppi` 0 da sistemare con Campo; run-kpi +3 asserzioni);
-- (b) l'evento «contatore azzerato/sostituito» registrato dalla persona, che
-  riapre il conto senza far dire «sceso» a `consumoPerMezzo` e
-  `ritmoOreMezzi` (costo medio, tocca tre lettori: elencarli prima);
+- (b) ✅ **fatta il 04/09** — l'evento vive sul rifornimento che apre il
+  nuovo contatore (`contatoreNuovo`, `oreVecchie`), non su una lista del
+  mezzo: nessuna firma cambiata. `azzeramentiDelMezzo`, `spezzaLetture`,
+  `trattoCorrente`, `fraseContatoreSostituito`; consumo, ritmo e storia
+  contano sul tratto corrente e dichiarano `tratti`/`contatoreDal`; una
+  lettura più bassa SENZA dichiarazione resta «sceso». run-kpi +13, Flotta
+  102/102, banco `flotta-contatore` 42/0 e controprova 10 su 42. ⚠️ Resta
+  dichiarato, non corretto: un tagliando a ore scritto sul vecchio contatore
+  dice «tra 5.790 h» dopo un contatore nuovo (`urgenzaOre` non passa dal
+  tratto: al piano manca il contatore di riferimento — cantiere a sé);
 - (c) la mappa di colonne per il CSV di telemetria, condivisa con Sentinella
   in `shared/` (costo medio; misura: un CSV con colonne in altro ordine
   rientra intero, e il conto dei doppioni non cambia);

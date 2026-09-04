@@ -215,7 +215,12 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* ⏱️ `sentinella` 143 → 150 il 04/09: la lettura dichiarata non valida
    (`RAGIONI_ANNULLAMENTO`, `annullamentoDi`, `letturaValida`, `annullaLettura`,
    `ripristinaLettura`, `contaAnnullate`, `letturaSenzaVolata`). */
-const FONDO = { campo: 131, conti: 150, flotta: 98, scudo: 192, sentinella: 150, terra: 77 };
+/* ⏱️ `flotta` 98 → 102 il 04/09: il contatore sostituito o azzerato
+   (`azzeramentiDelMezzo`, `spezzaLetture`, `trattoCorrente`,
+   `fraseContatoreSostituito`) più `validaRifornimento` e le tre sorelle del
+   conto sul tratto corrente, provate in run-kpi nel blocco «IL CONTATORE
+   SOSTITUITO O AZZERATO». Il conto vero è 102/102. */
+const FONDO = { campo: 131, conti: 150, flotta: 102, scudo: 192, sentinella: 150, terra: 77 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

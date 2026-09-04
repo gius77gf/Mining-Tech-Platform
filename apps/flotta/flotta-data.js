@@ -2113,12 +2113,117 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
 // consumo non esiste, e l'app lo dice invece di stampare un numero.
 // ============================================================
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL CONTATORE SOSTITUITO O AZZERATO (04/09)
+   ────────────────────────────────────────────────────────────────────────
+   Nel mondo un contaore si sostituisce (centralina nuova, quadro cambiato) o
+   si azzera, e da quel giorno le ore ricominciano da capo. Fino a oggi Flotta
+   non aveva modo di dirlo: `validaRifornimento` rifiutava la lettura più
+   bassa, e se entrava per un'altra via `consumoPerMezzo` e `ritmoOreMezzi`
+   rispondevano «il contatore è sceso» — per sempre, perché la serie non si
+   sarebbe più raddrizzata da sola.
+   DOVE VIVE L'EVENTO, e perché lì. L'evento è sulla LETTURA che apre il nuovo
+   contatore: il rifornimento porta `contatoreNuovo: true` e `oreVecchie`
+   (l'ultima lettura nota del contatore vecchio, presa dal mezzo al momento
+   della dichiarazione). Non una lista `azzeramenti` sul mezzo, per tre ragioni
+   misurate sul codice:
+   · ogni lettore delle ore riceve GIÀ le letture — `consumoPerMezzo
+     (rifornimenti)`, `ritmoOreMezzi(letture)` con `letture = [...RIF, ...CTR]`,
+     `consumoControStoria(rifornimenti)`, `fascicoloMezzo` e `costoOrarioMezzo`
+     che passano i rifornimenti — e nessuno di loro riceve il mezzo: una lista
+     sul mezzo avrebbe voluto un argomento in più in cinque firme e in tutti i
+     loro chiamanti;
+   · la lettura È l'evento: l'unico fatto che chi dichiara ha in mano è «il
+     contatore adesso segna X», e `data`/`oreNuove` sono la data e le ore di
+     quel pieno — scriverli due volte sarebbe la copia da cui si diverge;
+   · le letture hanno tutte la stessa forma `{ mezzo, data, ore }` (pieni e
+     giri macchina): domani un giro macchina potrà portare la stessa bandiera
+     senza toccare `spezzaLetture`.
+   Il prezzo, dichiarato: se si toglie il rifornimento che dichiarava il
+   contatore nuovo, le letture dopo tornano «scese» — ed è giusto così, perché
+   il fatto che le giustificava non c'è più.
+   LA REGOLA DEL CONTO: consumo e ritmo si calcolano sul TRATTO CORRENTE (dalle
+   letture dell'ultimo azzeramento in poi), e quando quel tratto è più corto
+   del richiesto lo si DICE — «contatore sostituito il …: il conto riparte da
+   lì» — invece di uno zero o di un numero fatto sulle due serie incollate. Una
+   lettura più bassa SENZA un azzeramento dichiarato resta «sceso»: il difetto
+   non si cura nascondendolo. E una lettura SENZA DATA, quando c'è stato un
+   azzeramento, non si sa a quale contatore appartenga: si conta a parte
+   (`senzaData`) e il consumo si rifiuta, invece di indovinare dal numero.
+   ⚠️ Lo stesso giorno dell'azzeramento tutte le letture vanno nel tratto
+   nuovo: una lettura del contatore vecchio fatta la mattina della sostituzione
+   risulterà «scesa» — che è la verità che il dato porta — e si corregge con la
+   data, non con una regola che indovini. */
+
+// Gli azzeramenti dichiarati dentro le letture (di UN mezzo se `nomeMezzo` c'è,
+// di tutti se no), in ordine di data: [{ data, oreVecchie|null, oreNuove, nota }].
+// Una bandiera senza ore o senza un giorno che esista non è un azzeramento.
+export function azzeramentiDelMezzo(letture, nomeMezzo) {
+  const n = nomeMezzo == null ? null : nomeBreve(nomeMezzo);
+  return (letture || [])
+    .filter(l => l && l.contatoreNuovo && (n == null || nomeBreve(l.mezzo) === n))
+    // «assente vale null, non zero» è la regola di `shared/`: si chiama, non si riscrive
+    .map(l => ({ data: String(l.data || "").slice(0, 10), oreVecchie: numeroDichiarato(l.oreVecchie), oreNuove: numeroDichiarato(l.ore), nota: String(l.nota || "") }))
+    .filter(a => dataISOEsiste(a.data) && a.oreNuove != null)
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+
+// Divide le letture di un mezzo in tratti: il primo va dall'inizio al primo
+// azzeramento, ognuno degli altri ricomincia da un azzeramento. Ritorna
+// { tratti: [{ dal, azzeramento, letture }], senzaData }. Senza azzeramenti
+// c'è un tratto solo con TUTTE le letture, anche quelle senza data: cioè il
+// comportamento di sempre. Pura.
+export function spezzaLetture(letture, azzeramenti) {
+  const az = (azzeramenti || []).filter(a => a && dataISOEsiste(String(a.data || "").slice(0, 10)))
+    .map(a => ({ ...a, data: String(a.data).slice(0, 10) })).sort((a, b) => a.data.localeCompare(b.data));
+  const tutte = (letture || []).filter(Boolean);
+  if (!az.length) return { tratti: [{ dal: null, azzeramento: null, letture: tutte }], senzaData: [] };
+  const tratti = [{ dal: null, azzeramento: null, letture: [] }, ...az.map(a => ({ dal: a.data, azzeramento: a, letture: [] }))];
+  const senzaData = [];
+  for (const l of tutte) {
+    const g = String(l.data || "").slice(0, 10);
+    if (!dataISOEsiste(g)) { senzaData.push(l); continue; }
+    let i = 0;
+    for (let k = 1; k < tratti.length; k++) if (g >= tratti[k].dal) i = k;
+    tratti[i].letture.push(l);
+  }
+  return { tratti, senzaData };
+}
+
+// Il tratto su cui si fa il conto: l'ultimo. Prende le letture di UN mezzo
+// (con le bandiere dentro) e ritorna { letture, tratti, dal, azzeramento,
+// senzaData }. È il posto unico da cui `consumoPerMezzo`, `ritmoOreMezzi` e
+// `consumoControStoria` leggono la stessa regola: scritta tre volte
+// divergerebbe, come la convenzione sui numeri che è costata una giornata.
+export function trattoCorrente(letture) {
+  const s = spezzaLetture(letture, azzeramentiDelMezzo(letture));
+  const ultimo = s.tratti[s.tratti.length - 1];
+  return { letture: ultimo.letture, tratti: s.tratti.length, dal: ultimo.dal, azzeramento: ultimo.azzeramento, senzaData: s.senzaData.length };
+}
+
+// La frase, in un posto solo: la leggono il consumo, il ritmo, la storia e la
+// riga del mezzo. Vuota se non c'è un azzeramento con una data che esista.
+export function fraseContatoreSostituito(azz) {
+  if (!azz || !dataISOEsiste(String(azz.data || "").slice(0, 10))) return "";
+  return "contatore sostituito il " + dataIt(String(azz.data).slice(0, 10)) + ": il conto riparte da lì";
+}
+
 // Controlli su un rifornimento prima di salvarlo. `oreMezzo` (facoltativo) è
 // il contatore attuale del mezzo: il contatore non torna indietro, quindi un
-// valore più basso è quasi sempre un errore di battitura.
-// Ritorna { ok, errori:{campo:messaggio}, litri, euro, ore }. Pura.
+// valore più basso è quasi sempre un errore di battitura — a meno che chi
+// riforniva non dichiari `contatoreNuovo` (contaore sostituito o azzerato):
+// allora la lettura più bassa passa, e l'evento nasce da questo rifornimento
+// (vedi il blocco «IL CONTATORE SOSTITUITO O AZZERATO»). Dichiararlo SENZA
+// scrivere le ore è un errore: senza il numero non c'è il punto da cui il
+// conto riparte.
+// Ritorna { ok, errori:{campo:messaggio}, litri, euro, ore, contatoreNuovo,
+// oreVecchie } — `oreVecchie` è `oreMezzo` com'è (o null), da salvare accanto
+// alla bandiera perché il mezzo, un attimo dopo, segnerà le ore nuove. Pura.
 export function validaRifornimento(dati, oreMezzo) {
   const d = dati || {}, errori = {};
+  const contatoreNuovo = !!d.contatoreNuovo;
+  // «assente vale null, non zero» è la regola di `shared/`: qui si chiama, non si riscrive
+  const oreVecchie = numeroDichiarato(oreMezzo);
   if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo che hai rifornito.";
   // I tre numeri passano da numeroDaCampo: «45,8» litri e «1.250,75» euro
   // arrivano interi come li ha scritti chi riforniva, e quello che non si
@@ -2141,12 +2246,14 @@ export function validaRifornimento(dati, oreMezzo) {
   // successiva come «più bassa di quella già registrata»
   const ro = numeroDaCampo(d.ore, { min: 0, decimali: 1 });
   let ore = null;
-  if (!ro.vuoto) {
+  if (ro.vuoto && contatoreNuovo) {
+    errori.ore = "Hai segnato il contatore come nuovo o azzerato: scrivi che cosa segna adesso, è da lì che riparte il conto.";
+  } else if (!ro.vuoto) {
     if (!ro.ok) errori.ore = ro.motivo === "sotto-minimo"
       ? "Il contatore va scritto in ore, un numero da zero in su."
       : messaggioNumero(ro, "le ore del contatore", { unita: "h", min: 0 });
-    else if (Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
-      errori.ore = "Il contatore segna meno " + plurale(+oreMezzo, "di ", "delle ") + mostra(+oreMezzo, 1) + " " + plurale(+oreMezzo, "ora già registrata", "ore già registrate") + " sul mezzo: controlla il numero.";
+    else if (!contatoreNuovo && Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
+      errori.ore = "Il contatore segna meno " + plurale(+oreMezzo, "di ", "delle ") + mostra(+oreMezzo, 1) + " " + plurale(+oreMezzo, "ora già registrata", "ore già registrate") + " sul mezzo: controlla il numero, oppure segna che il contatore è nuovo o azzerato.";
     else ore = ro.valore;
   }
   /* ⛔ LA PORTA DAVANTI DEVE ESSERE LARGA QUANTO QUELLA DIETRO. Con la sola
@@ -2162,7 +2269,7 @@ export function validaRifornimento(dati, oreMezzo) {
     ok: Object.keys(errori).length === 0, errori,
     litri: Number.isFinite(litri) ? Math.round(litri * 100) / 100 : 0,
     euro: Number.isFinite(euro) ? Math.round(euro * 100) / 100 : 0,
-    ore,
+    ore, contatoreNuovo, oreVecchie: contatoreNuovo ? oreVecchie : null,
   };
 }
 
@@ -2180,13 +2287,22 @@ export function consumoPerMezzo(rifornimenti) {
     const euro = +r.euro || 0;
     const oreN = Math.round(+r.ore);
     const v = per.get(mezzo) || { mezzo, pieni: [], litri: 0, euro: 0 };
-    v.pieni.push({ data: String(r.data || "").slice(0, 10), litri, euro, ore: Number.isFinite(oreN) && oreN > 0 ? oreN : null });
+    // la bandiera del contatore nuovo viaggia col pieno: è la lettura che apre
+    // il tratto nuovo (vedi «IL CONTATORE SOSTITUITO O AZZERATO»)
+    v.pieni.push({ data: String(r.data || "").slice(0, 10), litri, euro, ore: Number.isFinite(oreN) && oreN > 0 ? oreN : null,
+      contatoreNuovo: !!r.contatoreNuovo, oreVecchie: r.oreVecchie });
     v.litri += litri; v.euro += euro;
     per.set(mezzo, v);
     totaleLitri += litri; totaleEuro += euro;
   }
   const mezzi = [...per.values()].map(v => {
-    const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
+    /* IL TRATTO CORRENTE: dall'ultimo contatore dichiarato nuovo in poi. Senza
+       dichiarazioni è un tratto solo con tutte le letture, cioè il conto di
+       sempre. Le letture senza data, quando un azzeramento c'è stato, non si
+       sa a quale contatore appartengano: `tc.senzaData` le conta e più sotto
+       il consumo si rifiuta invece di indovinare dal numero. */
+    const tc = trattoCorrente(v.pieni.filter(p => p.ore != null));
+    const conOre = tc.letture.slice().sort((a, b) => a.ore - b.ore);
     let litriOra = null, euroOra = null, oreCoperte = null, perche = "", da = null, a = null;
     let litriInFinestra = null, euroInFinestra = null, pieniInFinestra = 0, pieniSenzaEuro = 0;
     /* ⛔ UN CONTATORE CHE SCENDE È UN ERRORE, NON UNA FINESTRA CORTA.
@@ -2262,10 +2378,18 @@ export function consumoPerMezzo(rifornimenti) {
        è la stessa forma già usata per il contatore sceso. */
     const estremiSenzaData = conOre.length >= 2
       && (!dataISOEsiste(conOre[0].data) || !dataISOEsiste(conOre[conOre.length - 1].data));
-    if (conOre.length < 2) {
-      perche = conOre.length === 1
-        ? "serve almeno un secondo rifornimento con il contatore delle ore"
-        : "nessun rifornimento porta il contatore delle ore";
+    const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+    if (tc.senzaData > 0) {
+      perche = sostituito + ", ma " + (tc.senzaData === 1 ? "un rifornimento con il contatore non ha il giorno" : tc.senzaData + " rifornimenti con il contatore non hanno il giorno")
+        + ": senza la data non si sa a quale contatore " + (tc.senzaData === 1 ? "appartiene" : "appartengono") + ". Scrivi il giorno e il consumo si calcola da solo";
+    } else if (conOre.length < 2) {
+      perche = sostituito
+        ? sostituito + (conOre.length === 1
+            ? ", e serve un secondo rifornimento con le ore del nuovo contatore"
+            : ", e non c'è ancora nessun rifornimento con le ore del nuovo contatore")
+        : conOre.length === 1
+          ? "serve almeno un secondo rifornimento con il contatore delle ore"
+          : "nessun rifornimento porta il contatore delle ore";
     } else if (sceso) {
       perche = "fra due rifornimenti il contatore è sceso: una delle due letture è sbagliata, e finché non è corretta il consumo non si può calcolare";
     } else if (estremiSenzaData) {
@@ -2339,6 +2463,9 @@ export function consumoPerMezzo(rifornimenti) {
       litriConEuro, senzaSpesa,
       oreCoperte, litriOra, euroOra, perche, da, a,
       litriInFinestra, euroInFinestra, pieniInFinestra, pieniSenzaEuro,
+      // quanti tratti ha la serie del contatore e da quando corre quello su
+      // cui il conto è fatto (null = un contatore solo, da sempre)
+      tratti: tc.tratti, contatoreDal: tc.dal, oreVecchie: tc.azzeramento ? tc.azzeramento.oreVecchie : null,
     };
   }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
     || a.mezzo.localeCompare(b.mezzo, "it"));
@@ -3419,17 +3546,26 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     if (!Number.isFinite(ore) || ore <= 0) continue;
     if (giorniTra(g, oggi) > 0) continue;          // contatore datato nel futuro: non è un fatto
     const v = per.get(mezzo) || { mezzo, punti: [] };
-    v.punti.push({ data: g, ore });
+    v.punti.push({ data: g, ore, contatoreNuovo: !!l.contatoreNuovo, oreVecchie: l.oreVecchie });
     per.set(mezzo, v);
   }
   const out = [];
   for (const v of per.values()) {
-    const p = v.punti.slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
+    /* IL TRATTO CORRENTE, la stessa regola di `consumoPerMezzo`: dall'ultimo
+       contatore dichiarato nuovo in poi. Qui le letture senza data sono già
+       state scartate all'ingresso, quindi `senzaData` è sempre zero. */
+    const tc = trattoCorrente(v.punti);
+    const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+    const p = tc.letture.slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
     const primo = p[0], ultimo = p[p.length - 1];
-    const r = { mezzo: v.mezzo, letture: p.length, oreGiorno: null, giorniCoperti: null,
-      dal: primo.data, al: ultimo.data, eta: -giorniTra(ultimo.data, oggi), perche: "" };
+    const r = { mezzo: v.mezzo, letture: p.length, tratti: tc.tratti, contatoreDal: tc.dal, oreGiorno: null, giorniCoperti: null,
+      dal: primo ? primo.data : null, al: ultimo ? ultimo.data : null, eta: ultimo ? -giorniTra(ultimo.data, oggi) : null, perche: "" };
     if (p.length < 2) {
-      r.perche = "c'è una sola lettura del contatore: per sapere quante ore fa al giorno ne serve una seconda";
+      r.perche = sostituito
+        ? sostituito + (p.length === 1
+            ? ", e finora c'è una sola lettura del nuovo contatore: per sapere quante ore fa al giorno ne serve una seconda"
+            : ", e non c'è ancora nessuna lettura del nuovo contatore")
+        : "c'è una sola lettura del contatore: per sapere quante ore fa al giorno ne serve una seconda";
       out.push(r); continue;
     }
     const giorni = giorniFra(primo.data, ultimo.data);
@@ -3438,7 +3574,7 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     if (giorni < minGiorni) {
       r.perche = "le letture del contatore coprono " + giorni + (giorni === 1 ? " giorno" : " giorni")
         + ": per stimare " + oriz + " " + plurale(oriz, "giorno", "giorni")
-        + " servono almeno " + minGiorni;
+        + " servono almeno " + minGiorni + (sostituito ? " (" + sostituito + ")" : "");
       out.push(r); continue;
     }
     if (dOre <= 0) {
@@ -3745,12 +3881,21 @@ export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), 
   const finestra = Math.max(1, Math.round(+finestraGiorni || 30));
   const a = oggiIso(oggi);
   const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
-  const base = { mezzo: n, finestra, dal: da, al: a, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
-  const pieni = (rifornimenti || [])
+  const tutti = (rifornimenti || [])
     .filter((r) => r && nomeBreve(r.mezzo) === n && +r.litri > 0)
-    .map((r) => ({ data: String(r.data || "").slice(0, 10), litri: +r.litri, ore: Number.isFinite(Math.round(+r.ore)) && Math.round(+r.ore) > 0 ? Math.round(+r.ore) : null }))
+    .map((r) => ({ data: String(r.data || "").slice(0, 10), litri: +r.litri, ore: Number.isFinite(Math.round(+r.ore)) && Math.round(+r.ore) > 0 ? Math.round(+r.ore) : null,
+      contatoreNuovo: !!r.contatoreNuovo, oreVecchie: r.oreVecchie }))
     .filter((p) => dataISOEsiste(p.data) && p.ore != null)
     .sort((x, y) => x.data.localeCompare(y.data) || x.ore - y.ore);
+  /* IL TRATTO CORRENTE, la stessa regola di `consumoPerMezzo`: un intervallo
+     di ore non può scavalcare un contatore sostituito, quindi la storia e la
+     finestra si leggono tutt'e due sull'ultimo tratto. I pieni di prima
+     restano fuori e lo si dice: la storia «non c'è» per una ragione che ha
+     una data, non perché nessuno abbia fatto il pieno. */
+  const tc = trattoCorrente(tutti);
+  const pieni = tc.letture;
+  const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+  const base = { mezzo: n, finestra, dal: da, al: a, tratti: tc.tratti, contatoreDal: tc.dal, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
   if (!n) return { ...base, perche: "manca il nome del mezzo" };
   const storia = pieni.filter((p) => p.data < da), recenti = pieni.filter((p) => p.data >= da);
   // un tratto: dal pieno di partenza (escluso dai litri) all'ultimo
@@ -3767,9 +3912,15 @@ export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), 
   const seguenti = storia.length ? recenti : recenti.slice(1);
   const rc = partenzaRecente && seguenti.length ? tratto(partenzaRecente, seguenti) : null;
   const out = { ...base, recente: rc, storia: st };
-  if (!rc) return { ...out, perche: recenti.length ? "nella finestra c'è un pieno solo con le ore, e nessuno prima da cui partire" : "nessun pieno con data e ore nella finestra" };
+  if (!rc) return { ...out, perche: recenti.length
+    ? (sostituito ? sostituito + ", e nella finestra c'è un pieno solo con le ore del nuovo contatore" : "nella finestra c'è un pieno solo con le ore, e nessuno prima da cui partire")
+    : (sostituito ? sostituito + ", e non c'è ancora nessun pieno con le ore del nuovo contatore nella finestra" : "nessun pieno con data e ore nella finestra") };
   if (rc.litriOra == null) return { ...out, perche: "nella finestra " + rc.perche };
-  if (!st) return { ...out, perche: storia.length ? "prima della finestra c'è un pieno solo con le ore: non fa una storia" : "prima della finestra non c'è nessun pieno: non c'è una storia con cui confrontare" };
+  if (!st) return { ...out, perche: storia.length
+    ? "prima della finestra c'è un pieno solo con le ore" + (sostituito ? " del nuovo contatore" : "") + ": non fa una storia"
+    : sostituito && tutti.length > pieni.length
+      ? "il contatore è stato sostituito il " + dataIt(tc.dal) + ": i pieni di prima sono sul vecchio contatore e non fanno una storia con cui confrontare"
+      : "prima della finestra non c'è nessun pieno: non c'è una storia con cui confrontare" };
   if (st.litriOra == null) return { ...out, perche: "nella storia " + st.perche };
   const forbice = Math.round((100 * (rc.litriOra - st.litriOra)) / st.litriOra * 10) / 10;
   return { ...out, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
