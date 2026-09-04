@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-## 🟡 04/09 — quattro decisioni nuove, nate dalle passate in profondità
+## 🟡 04/09 — sei decisioni nuove, nate dalle passate in profondità
 
 *Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
 (ogni schermata guardata a 390 e 320 nei temi, ogni file aperto, la
@@ -60,6 +60,30 @@ scelte di prodotto.*
   nel progetto — così la pianta e i numeri raccontano sempre la stessa volata,
   e i tre ripieghi spariscono dal codice di disegno. Non la prendo da solo
   perché tocca il modo in cui Genesi accoglie chi comincia.
+- [ ] **26. Campo: lo zero dei minuti di fermo ha due letture opposte, e
+  tutt'e due sono difese da prove verdi.** Sullo stesso record `fermoMin: 0`,
+  `minutiFermoDi` risponde «una misura» (e alimenta il CSV), mentre
+  `anomalieAperte`, `disponibilitaTurno`, `storicoSettimana`,
+  `registrazioniSenzaGiorno` e il campo del modulo dicono «non misurato».
+  Cinque contro uno; cambiare l'uno fa cadere quattro asserzioni che
+  difendono il verso opposto. Dal 13/08 quello zero non nasce più da solo
+  (chi svuota il campo salva `null`): ci arriva solo chi digita «0» apposta.
+  Da decidere: uno «0» digitato è una MISURA («fermo di zero minuti», cioè
+  segnalazione senza fermo) o va rifiutato con «se non c'è stato fermo lascia
+  vuoto»? *La mia risposta, se non rispondi*: è una misura — chi scrive 0 lo
+  fa apposta — e allora sono i cinque lettori a dover dire «0 min» invece di
+  «non misurato»; la prova che li difende va riscritta nel verso giusto.
+- [ ] **27. Scudo: la cella delle giornate d'assenza di un mancato infortunio
+  con un valore illeggibile.** `giornateAssenza` sul ramo near-miss riporta a
+  **0** un valore presente ma illeggibile («n.d.», «1,5»), mentre lo stesso
+  valore su un infortunio torna `null`; nel registro consegnato all'RSPP la
+  cella esce `…;near-miss;lieve;0;…`. Non corretto perché per un near-miss
+  «nessuna assenza» è vero per definizione, e far tornare `null` scriverebbe
+  la parola «null» nella cella (`csvRegistroInfortuni`). Da decidere insieme a
+  come quella cella deve uscire: «0» (nessuna assenza, per definizione),
+  vuota, o «n.d.» com'era scritto? *La mia risposta*: per un near-miss la
+  cella è **0 per definizione** e il valore illeggibile si segnala nella riga
+  degli scarti dell'import, non nella cella.
 
 ---
 
@@ -194,7 +218,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **12**
+# 📖 Da dove cominciare — le decisioni aperte sono **14**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si

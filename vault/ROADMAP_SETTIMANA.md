@@ -1241,7 +1241,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
-- `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
 - `B4. Le mancanze confermate del delta`
@@ -2801,8 +2800,15 @@ numero scritto dove non era stato misurato niente**.*
       quel numero **non si riproduce** sul fondo vero. La riga adesso chiede a
       chi lo rimette di scrivere **su che fondo** l'ha composto — un rapporto di
       contrasto senza il fondo su cui è stato composto non è una misura.
-- [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
-      GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
+- [x] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
+      GUARDATO — core, Campo, Scudo.** ✅ **CHIUSA il 04/09**: tutte e tre le
+      superfici erano state lette per intero il 13/08 (Campo, Scudo, il core:
+      le righe ✅ qui sotto) e la voce restava aperta solo per le due cose
+      «misurate e non corrette perché non spettano a un cantiere». Quelle due
+      sono adesso le **decisioni 26 e 27** in `docs/DECISIONI_WEEKEND.md`
+      (Campo: lo zero dei minuti di fermo che ha due letture opposte; Scudo: la
+      cella delle giornate d'assenza di un near-miss illeggibile). Una voce
+      che propone un lavoro già fatto lo fa rinascere. ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
       pagine solo il contenuto dei `<script>`).*
 
