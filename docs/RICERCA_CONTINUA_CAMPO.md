@@ -1836,5 +1836,9 @@ spuntare»~~ — c'è già («K non spuntati» nel foglio), niente da fare; (b) 
 degli ingressi dei terzi (autisti, manutentori, ispettori) come lista del
 giorno in Campo, che sfrutta l'anagrafe appaltatori di Scudo via ponte —
 decisione di prodotto, perché tocca chi tiene il registro; (c) l'incrocio
-«coinvolto nell'infortunio ma non presente all'appello» come avviso, sul
-ponte esistente; (d) tesserino: fermo finché non si legge la norma.
+«coinvolto nell'infortunio ma non presente all'appello» — ⚠️ oggi NON si può
+fare: il record degli infortuni di Scudo non porta la persona (`grep -n
+"lavoratoreId\|coinvolt" scudo-data.js` → 0 nel modello degli infortuni: id,
+data, tipo, gravità, luogo, categoria, descrizione), quindi prima servirebbe
+il campo in Scudo, che è una scelta di prodotto (un near-miss può essere
+anonimo, e lo è già nella dimostrazione); (d) tesserino: fermo finché non si legge la norma.
