@@ -4760,12 +4760,12 @@ function _genReportTecnico(da,a,cavaId,macRef){
     body:rp.map(r=>{const c=DB.cave.find(x=>x.id===r.cavaId);const u=DB.users.find(x=>x.id===r.userId);const ms=misureRapportino(r);
       return[dataO(r.data),c?c.nome:'—',u?u.nome+' '+u.cognome:'—',
         ms.misurato?ms.fori:'non misurato',
-        ms.metri===null?'—':ms.metri.toFixed(1),
-        ms.calcolabile?ms.mc.toFixed(1):'—'];}),
+        ms.metri===null?'—':perLettura(ms.metri,1,true),
+        ms.calcolabile?perLettura(ms.mc,1,true):'—'];}),
     foot:rp.length?[[{content:'TOTALI',colSpan:3,styles:{halign:'right',fontStyle:'bold'}},
       totRT.fori,
-      totRT.metri===null?'—':totRT.metri.toFixed(1),
-      totRT.mc===null?'—':totRT.mc.toFixed(1)]]:[],
+      totRT.metri===null?'—':perLettura(totRT.metri,1,true),
+      totRT.mc===null?'—':perLettura(totRT.mc,1,true)]]:[],
     styles:{fontSize:8},headStyles:{fillColor:[255,171,0],textColor:[20,16,8]},
     footStyles:{fillColor:[34,28,14],textColor:[255,213,79],fontStyle:'bold'},margin:{left:14,right:14}});
   y=d.lastAutoTable.finalY+6;
@@ -6773,7 +6773,7 @@ function apriRiconciliazione(volataId){
       : range.map(r=>{
           const u=DB.users.find(x=>x.id===r.userId);
           const ms=misureRapportino(r);
-          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${escHtml((u?.nome||'?')[0])}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${ms.misurato?conta(ms.fori,'foro','fori'):'nessun foro misurato'}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'}${ms.metri!==null?' · '+ms.metri.toFixed(1)+'m':''}${ms.calcolabile?' · '+ms.mc.toFixed(1)+'mc':''}</div></div><div class="sarr">›</div></div>`;
+          return `<div class="sitem" onclick="closeModal();apriRapport('${r.id}')"><div class="av av-op">${escHtml((u?.nome||'?')[0])}</div><div class="sinfo"><div class="sname">${fmt(r.data)} · ${ms.misurato?conta(ms.fori,'foro','fori'):'nessun foro misurato'}</div><div class="ssub">${u?escHtml(u.nome+' '+u.cognome):'—'}${ms.metri!==null?' · '+perLettura(ms.metri,1,true)+' m':''}${ms.calcolabile?' · '+perLettura(ms.mc,1,true)+' mc':''}</div></div><div class="sarr">›</div></div>`;
         }).join('')}
   `;
   openModal(`Riconciliazione · Volata #${v.numero}`, html, [

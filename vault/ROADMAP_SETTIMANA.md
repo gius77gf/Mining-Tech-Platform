@@ -345,10 +345,18 @@
   lettore dei numeroni cercava la PRIMA «n,n m» del foglio intero e, con la
   maglia passata alla virgola, prendeva «3,5 m» dell'interasse al posto di
   «126,0 m»: adesso legge il numero che precede la SUA etichetta (METRI/KG/MC).
-  ⏱️ Resta, della stessa famiglia e dichiarato: il **Report tecnico** (PDF
-  mensile, tabella rapportini e piede) scrive ancora «81.0», «1190.7»,
-  «3466.0» col punto, e il banco lo legge con `parseFloat`: unità a sé, perché
-  cambia il foglio e il righello insieme.
+  ✅ **E il Report tecnico (04/09, terza unità della famiglia)**: tabella dei
+  rapportini e piede scrivevano «81.0», «1190.7», «3466.0» col punto — l'ultimo
+  foglio del core con una grafia sua — e la riga dei rapportini collegati nella
+  riconciliazione «126.0m». Ora `perLettura` («1.190,7», «3.466,0», «126,0 m»);
+  il righello del banco legge all'italiana (`num`), e una asserzione nuova
+  pretende che nessuna cella di metri/mc del report sia col punto: banco 74 →
+  75 nei due versi. Nel core non resta nessun `toFixed(1)` su metri e mc dei
+  rapportini (prova sul sorgente).
+  ⏱️ Dichiarato, non fatto: i **numeroni della dashboard** («3466» mc, «112»
+  kg, `toFixed(0)`) sono senza il punto delle migliaia — a schermo, non in un
+  foglio, e il banco confronta i NUMERI (non la grafia), quindi vale meno; se si
+  fa, il righello `num` del banco è già pronto a leggerli.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura

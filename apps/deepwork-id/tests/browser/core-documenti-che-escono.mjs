@@ -199,8 +199,8 @@ const DIFETTI = [
   // 1 · il Report tecnico che chiede i numeri al rapportino invece che a `misureRapportino`
   [`      return[dataO(r.data),c?c.nome:'\u2014',u?u.nome+' '+u.cognome:'\u2014',
         ms.misurato?ms.fori:'non misurato',
-        ms.metri===null?'\u2014':ms.metri.toFixed(1),
-        ms.calcolabile?ms.mc.toFixed(1):'\u2014'];}),`,
+        ms.metri===null?'\u2014':perLettura(ms.metri,1,true),
+        ms.calcolabile?perLettura(ms.mc,1,true):'\u2014'];}),`,
    `      return[dataO(r.data),c?c.nome:'\u2014',u?u.nome+' '+u.cognome:'\u2014',r.fori||0,(r.metri||0).toFixed(1),(r.mc||0).toFixed(1)];}),`],
   // 2 · la riga dei totali e la dichiarazione di che cosa e' rimasto fuori
   [`    foot:rp.length?[[{content:'TOTALI',colSpan:3,styles:{halign:'right',fontStyle:'bold'}},`,
@@ -547,11 +547,13 @@ dice(!!r21 && /non misurato/.test(r21[3]), "e lo dice, invece di tacere", r21 &&
 // il turno del 23/07: nove fori veri, maglia da confermare
 const r23 = tabRp.body.find((r) => /23\/07/.test(r[0]));
 dice(!!r23 && r23[3] === "9" && /^81/.test(r23[4]), "il turno misurato senza maglia tiene fori e metri, che sono misurati", r23 && r23.join(" | "));
-dice(!!r23 && !/^0\.0$/.test(r23[5]), "⛔ ma i metri cubi NON sono «0.0»: la maglia non c'è, il volume non si calcola", r23 && r23.join(" | "));
+dice(!!r23 && !/^0[.,]0$/.test(r23[5]), "⛔ ma i metri cubi NON sono «0,0»: la maglia non c'è, il volume non si calcola", r23 && r23.join(" | "));
 
 // il turno sano resta un numero
 const r14 = tabRp.body.find((r) => /14\/07/.test(r[0]));
-dice(!!r14 && r14[3] === "14" && /1190\.7/.test(r14[5]), "il turno misurato per bene continua a dire il suo volume", r14 && r14.join(" | "));
+dice(!!r14 && r14[3] === "14" && /^1\.190,7$/.test(r14[5]), "il turno misurato per bene continua a dire il suo volume — «1.190,7», con le migliaia e la virgola, non «1190.7»", r14 && r14.join(" | "));
+dice(tabRp.body.every((r) => !/^\d+\.\d$/.test(String(r[4])) && !/^\d+\.\d$/.test(String(r[5]))) && !/^\d+\.\d$/.test(String((tabRp.foot?.[0] || [])[2])),
+  "⛔ e nessuna cella di metri o mc del Report tecnico è scritta col punto: il foglio ha la grafia dell'app, in tabella e nel piede", piatto(tabRp));
 
 /* ── I TOTALI ──────────────────────────────────────────────────────────────
    ⛔ E I NUMERI ATTESI NON SI SCRIVONO A MANO. Fino al 07/08 qui c'era
@@ -569,7 +571,11 @@ dice(!!r14 && r14[3] === "14" && /1190\.7/.test(r14[5]), "il turno misurato per 
    2. il piede è d'accordo con il riquadro della dashboard che ospita il
       bottone, che è la stessa domanda con cui questo banco è nato. */
 const piede = JSON.stringify(tabRp.foot || []);
-const num = (s) => { const v = parseFloat(String(s).replace(/\s/g, "")); return Number.isFinite(v) ? v : null; };
+/* dal 04/09 il Report tecnico scrive all'italiana («1.190,7», «81,0»), come il
+   resto dei fogli: il numero si legge togliendo il punto delle migliaia e
+   leggendo la virgola come decimale. Sul riquadro dello schermo, che scrive
+   «3466» senza migliaia, la stessa lettura dà lo stesso numero. */
+const num = (s) => { const v = parseFloat(String(s).replace(/\s/g, "").replace(/\./g, "").replace(",", ".")); return Number.isFinite(v) ? v : null; };
 const sommaCol = (i) => tabRp.body.reduce((s, r) => s + (num(r[i]) ?? 0), 0);
 const pf = (tabRp.foot && tabRp.foot[0]) || [];
 /* il piede ha quattro celle: l'etichetta (che vale per tre colonne) e i tre numeri */

@@ -35146,6 +35146,11 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
     ok(/'non scritta':perLettura\(mgPdf\.borraggio,2\)\+' m'/.test(coreSrc) && /'non scritto':perLettura\(mgPdf\.spaziatura,2\)\+' m'/.test(coreSrc), "e le due righe del PDF");
     ok(/perLettura\(f\.x\|\|0,2,true\),perLettura\(f\.y\|\|0,2,true\)/.test(coreSrc) && !/\(f\.x\|\|0\)\.toFixed\(2\)/.test(coreSrc), "e le coordinate della tabella dei fori, a due decimali fissi con la virgola");
     ok(!/toFixed\(1\)\.replace\('\.',','\)/.test(coreSrc), "nessun toFixed(1).replace('.',',') resta nel core: era perLettura riscritta senza le migliaia");
+    /* il Report tecnico mensile (04/09): tabella e piede con perLettura, non
+       `toFixed(1)` col punto — l'ultimo foglio del core con una grafia sua */
+    ok(/ms\.metri===null\?'—':perLettura\(ms\.metri,1,true\),\n\s*ms\.calcolabile\?perLettura\(ms\.mc,1,true\):'—'\]/.test(coreSrc), "la tabella del Report tecnico scrive metri e mc con perLettura");
+    ok(/totRT\.metri===null\?'—':perLettura\(totRT\.metri,1,true\),\n\s*totRT\.mc===null\?'—':perLettura\(totRT\.mc,1,true\)/.test(coreSrc), "e il piede dei totali pure");
+    ok(!/ms\.metri\.toFixed\(1\)|ms\.mc\.toFixed\(1\)|totRT\.metri\.toFixed|totRT\.mc\.toFixed/.test(coreSrc), "e non resta nessun toFixed(1) sui metri e i mc dei rapportini");
     ok(shell.perLettura(1323, 1, true) === "1.323,0" && shell.perLettura(3.2, 2) === "3,2" && shell.perLettura(3, 2) === "3", "perLettura: migliaia col punto, decimali con la virgola, e senza decimali finti sulla maglia"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
   });
   test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {
