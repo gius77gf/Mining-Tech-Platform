@@ -429,3 +429,60 @@ sopra, in ciascuna riga della tabella.
   progettato, e quella stessa funzione accetterebbe un burden misurato al
   posto di quello nominale, o assume per costruzione che il burden sia quello
   di progetto?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `77dee996`)
+
+Le domande, risposte aprendo `apps/genesi/genesi.html`, `apps/genesi/genesi-data.js`
+e `apps/campo/campo-data.js`; ogni «non c'è» con il comando.
+
+1. **Il foro progettato in Genesi.** Vive in `D2.holes` come `{mx, my}` in
+   pianta (metri dal fronte e lungo il fronte: `holes.push({mx, my})`, riga
+   ~5188), senza un id proprio: l'identità è l'INDICE nell'array. Nel file
+   che esce (`volSnapshot`, riga ~3046) ogni foro diventa
+   `{id:'foro_'+(i+1), num, x, prof, diam, kg, esplosivo, ritardo, innesco,
+   sequenza}` — quindi la chiave stabile esiste solo nel file, e la
+   profondità è quella del foro se scritta, altrimenti quella del progetto;
+   colletto (quota) e diametro sono del progetto, non del foro.
+2. **Il foro perforato.** Nessuno lo registra: Campo legge il PIANO di Genesi
+   (`parsePianoCsv`, `PIANO_COLONNE`: foro, x, fila, prof, carica prog, borr,
+   rit) e ne fa il consuntivo di CARICA (`normalizzaPiano`: `reale` è la
+   carica reale in kg, `scartoPct`/`scartoLivello` a 10/25 %) che torna a
+   Genesi per `_riconParseCampo` (colonne carica_prog/carica_reale). Colletto
+   reale, profondità reale e deviazione: `grep -n "profReale\|prof_reale\|deviaz\|colletto" apps/campo/campo-data.js`
+   → 0. Il ponte piano→consuntivo porta SOLO la carica per foro.
+3. **La chiave.** Nel giro attuale è il numero del foro (`foro`, 1..N) — nel
+   CSV del piano e nel consuntivo. Un foro saltato o aggiunto sul campo non
+   ha un posto: `foriRipetuti` prende i doppi, non i mancanti; un numero
+   fuori dal piano non esiste per Genesi.
+4. **Deviazione del fronte e deviazione del foro.** Sono due cose:
+   `CAMPI_PROFILO` (profilo e piede del fronte dal 3D) è la geometria della
+   parete; la deviazione del FORO oggi è solo SIMULATA (`simulaPerforazione`
+   con `D2.errColl` e `D2.dev` in %, `_gauss`), cioè un'ipotesi statistica,
+   non una misura. Una deviazione misurata (sonda) non avrebbe un campo.
+5. **La soglia di «fuori tolleranza».** Non esiste per posizione/profondità;
+   esiste per la CARICA (10 % e 25 % scritti in `scartoLivello`, senza fonte).
+   La ricerca non ha trovato uno standard: le soglie dei software sono
+   parametri del cliente. Se un giorno si scrive, va come parametro
+   dichiarato, non come numero nel codice.
+6. **IREDES di ritorno.** L'import XML (riga ~5105 della pagina) rilegge
+   l'export di Genesi (round-trip del piano di innesco): non un file
+   as-drilled di una perforatrice; sarebbe un lettore diverso con una mappa
+   di colonne, come `preparaLetture` di Sentinella.
+7. **La carica sulla spalla reale.** `caricaTotale(nf, kg)` e il piano di
+   carico ragionano su un `kg` per foro uniforme (`P.kg`, `fori.push({…,
+   kg:P.kg})`); non c'è una carica per foro derivata dalla spalla del foro
+   (`grep -n "spallaForo\|burdenForo" genesi-data.js` → 0). Un burden misurato
+   non ha oggi una funzione che lo accetti al posto del nominale.
+
+**Che cosa ne segue** (candidati, in ordine di ciò che il codice sa già
+fare): (a) l'ID stabile del foro nel progetto (`id:'foro_n'` già nel file,
+non in `D2.holes`) — costo basso, e senza di lui nessun confronto foro per
+foro regge ai fori saltati; (b) il consuntivo di Campo con le colonne
+facoltative del PERFORATO (profondità reale, colletto x/y reali, nota:
+acqua, fessura) accanto alla carica reale — la stessa forma di
+`PIANO_COLONNE`, e il ritorno a Genesi con `riconDelta` sulla profondità
+(già pronta per numeri con unità); (c) la deviazione misurata per foro come
+dato, distinto dalla simulazione; (d) la carica per foro dalla spalla
+misurata — dipende da (b) e da una regola di mestiere che la ricerca non
+ha trovato: decisione con il fochino/fondatore, non del ciclo. Le soglie
+di tolleranza restano fuori finché non c'è una fonte.
