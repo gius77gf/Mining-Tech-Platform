@@ -1354,7 +1354,7 @@ body.dw b.bad{color:var(--ink-dg)}
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
-           azzeramentiDelMezzo, fraseContatoreSostituito,
+           azzeramentiDelMezzo, fraseContatoreSostituito, urgenzaTagliando, contatoreDelTagliando, propostaRiscrittura,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
@@ -1444,6 +1444,23 @@ body.dw b.bad{color:var(--ink-dg)}
      conto non si raddrizza da solo, e dirlo è meglio di un «mancano 5.880 h»
      tranquillo. */
   const ultimoAzzeramento = (nome) => { const az = azzeramentiDelMezzo(RIF, nome); return az.length ? az[az.length - 1] : null; };
+  /* IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09). L'urgenza di un tagliando a
+     ore passa da QUI in tutti i punti della pagina (lista, ordine, libretto,
+     stima dei giorni, file che escono): la decisione «confrontabile o no» sta
+     in `urgenzaTagliando`, e scritta in cinque posti divergerebbe. Il mezzo
+     può mancare (tagliando su una macchina uscita dal parco): allora si dice
+     solo a quante ore è previsto, come sempre. */
+  const urgTagliando = (n, m) => m
+    ? urgenzaTagliando(n, m.ore, azzeramentiDelMezzo(RIF, n.mezzo))
+    : { cls: "", label: "a " + numTx(n.orePreviste) + " h", mancano: null, calcolabile: true, perche: "" };
+  // la coda per i FILE che escono (CSV del programma, libretto): quando il
+  // tagliando non parla del contatore attuale, il foglio lo dice — chi lo
+  // legge confronta quelle ore col contaore della macchina, e sbaglierebbe
+  const codaContatoreTx = (n) => {
+    if (!n.orePreviste) return "";
+    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(RIF, n.mezzo));
+    return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
+  };
   const contatoreSostituitoTx = (nome, intera) => {
     const u = ultimoAzzeramento(nome);
     if (!u) return "";
@@ -1950,10 +1967,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
     // motore usa il contatore del mezzo, altrimenti la data prevista.
     const urgDi = (n) => {
-      if (n.orePreviste) {
-        const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
-        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
-      }
+      if (n.orePreviste) return urgTagliando(n, MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo));
       return urgenza(n.dataPrevista);
     };
 
@@ -1962,7 +1976,9 @@ body.dw b.bad{color:var(--ink-dg)}
     // ogni priorità porta l'icona del suo mestiere: si riconosce a colpo
     // d'occhio se è una scadenza di legge, un tagliando, un ricambio o un mezzo
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
-    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER);
+    // le letture del contatore servono a sapere se un tagliando a ore parla
+    // del contatore che il mezzo ha oggi (contatore sostituito, 04/09)
+    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER, [...RIF, ...CTR]);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
       <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${icoOrigine(a.origine) || PRIO_ICO[a.categoria] || I.avviso}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -2277,7 +2293,13 @@ body.dw b.bad{color:var(--ink-dg)}
          quando»: qui deve dire la stessa cosa, o le due si smentiscono. */
       if (!oreNote(m.ore))
         return "Di questa macchina non risultano le ore del contatore: scrivile nella sua scheda e la data uscirà da sola.";
-      const mancano = n.orePreviste - (+m.ore);
+      /* le ore che mancano le decide `urgenzaTagliando`, non una sottrazione
+         di casa: era la copia debole che, dopo un contatore sostituito,
+         avrebbe scritto «fra 1.700 giorni» su un tagliando del vecchio
+         contatore. Non confrontabile → si dice il motivo e dove si corregge. */
+      const u = urgTagliando(n, m);
+      if (!u.calcolabile) return "Non confrontabile col contatore attuale: " + esc(u.perche) + ". Apri l'ordine per riscriverlo sul contatore nuovo.";
+      const mancano = u.mancano;
       if (mancano <= 0) return "Le ore ci sono già: da fare adesso.";
       const r = ritmoDelMezzo(tag.ritmi, n.mezzo);
       const misurato = r && r.oreGiorno != null;
@@ -3500,6 +3522,15 @@ body.dw b.bad{color:var(--ink-dg)}
     const so = statoOrdine(n);
     const u = urgDiOrdine(n);
     const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)) || null;
+    // il tagliando non parla del contatore attuale: il motivo su una riga sua
+    // (non tagliata a due righe) e il comando che lo rimette a posto — la
+    // proposta la fa l'app, la conferma una persona. Senza icona: dentro un
+    // `.note` nessuna regola dimensiona un svg, e a 320 px il tachimetro
+    // usciva grande quanto il riquadro (visto nello scatto, non nel codice)
+    const contatoreHtml = u.calcolabile === false
+      ? `<div class="note norma" id="odl-contatore"><b>Non confrontabile col contatore attuale</b>: ${esc(u.perche)}. Le ore previste vanno riscritte sul contatore nuovo: l'app propone il conto, tu lo confermi.</div>
+         <div class="tools"><button class="dw-btn" id="btn-odl-riscrivi" data-odl-riscrivi="${esc(n.id)}">Riscrivi sul contatore nuovo</button></div>`
+      : "";
     $("odl-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${icoOrigine(n.origine) || I.chiave}</div>
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
@@ -3507,7 +3538,7 @@ body.dw b.bad{color:var(--ink-dg)}
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + oreMotoreTx(m.ore, grassetto) : " · mezzo non più nel parco"}</div>
         <div class="sch-sotto">${n.orePreviste ? "Tagliando a " + oreMotoreTx(n.orePreviste, grassetto) : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
-      </div></div>`;
+      </div></div>${contatoreHtml}`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
     $("odl-stato-nota").innerHTML = esc(so.nota)
@@ -3567,12 +3598,44 @@ body.dw b.bad{color:var(--ink-dg)}
 
   // urgenza di un ordine (a ore motore oppure a data): la stessa della lista
   const urgDiOrdine = (n) => {
-    if (n.orePreviste) {
-      const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-      return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
-    }
+    if (n.orePreviste) return urgTagliando(n, MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)));
     return urgenza(n.dataPrevista);
   };
+
+  // RISCRIVERE SUL CONTATORE NUOVO un tagliando scritto sul vecchio (04/09).
+  // La proposta è `propostaRiscrittura` (previste − oreVecchie + oreNuove),
+  // mostrata con i suoi addendi e CONFERMATA da chi sa su quale contatore era
+  // il tagliando: l'app non riscrive niente da sola. Con la conferma si
+  // salvano le ore nuove e la data di oggi (`scrittaIl`, che è quella che lo
+  // rende confrontabile), e la nota tiene la memoria di com'era.
+  async function riscriviSulNuovo(n) {
+    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(RIF, n.mezzo));
+    if (c.calcolabile) { toast("Questo tagliando parla già del contatore attuale: non c'è niente da riscrivere."); return; }
+    const a = c.azzeramento;
+    const pr = propostaRiscrittura(n, a);
+    const dove = c.noto
+      ? "scritte il <b>" + dataIt(c.scrittaIl) + "</b> sul vecchio contatore"
+      : "e Flotta non sa su quale contatore: è di prima che segnasse la data del tagliando";
+    const seVecchio = c.noto ? "" : " — se era davvero sul vecchio contatore";
+    const conto = !pr.ok
+      ? esc(pr.perche) + "."
+      : pr.scaduto
+        ? "Sul contatore nuovo le ore del tagliando sono <b>già passate da " + numTx(pr.oltre) + " h</b>" + seVecchio + ": è da fare adesso. Scrivi tu a quante ore riprogrammarlo, oppure chiudi l'ordine."
+        : "Sul vecchio contatore mancavano <b>" + numTx(pr.mancavano) + " h</b>: sul nuovo il tagliando cade a <b>" + numTx(pr.orePreviste) + " h</b>" + seVecchio + ". Confermalo o correggilo.";
+    const nx = await chiediNumero("Riscrivi sul contatore nuovo",
+      `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> è a <b>${oreMotoreTx(n.orePreviste)}</b>, ${dove}.<br>
+       Il contatore è stato sostituito il <b>${dataIt(a.data)}</b>${a.oreVecchie != null ? ", quando segnava <b>" + numTx(a.oreVecchie) + " h</b>" : ""}, e il nuovo è partito da <b>${numTx(a.oreNuove)} h</b>.<br>${conto}`,
+      [{ id: "ore", label: "Ore previste sul contatore nuovo", tipo: "text", modo: "decimal",
+         valore: pr.ok && pr.orePreviste != null ? perCampo(pr.orePreviste, 1) : "",
+         aiuto: "Le ore del contatore NUOVO a cui scatta il tagliando. Scrivile senza il punto delle migliaia: 6500, non 6.500." }],
+      "Riscrivi",
+      { id: "ore", cosa: "le ore del tagliando sul contatore nuovo", opts: { positivo: true, decimali: 1, unita: "h" } });
+    if (!nx || nx.ore == null) return;
+    const oggi = oggiISO();
+    const nota = (n.nota ? n.nota + " · " : "") + "riscritto sul contatore nuovo il " + dataIt(oggi) + ": era a " + numTx(n.orePreviste) + " h del vecchio";
+    await salvaOrdine(n, { orePreviste: nx.ore, scrittaIl: oggi, nota },
+      "Tagliando riscritto a " + oreMotoreTx(nx.ore) + " sul contatore nuovo: da adesso il conto è confrontabile.");
+  }
 
   // Salvataggio di una parte dell'ordine: una riga sola, perché ogni comando
   // dell'ordine fa la stessa cosa — scrive sulla manutenzione e ridisegna.
@@ -3699,7 +3762,7 @@ body.dw b.bad{color:var(--ink-dg)}
         const ore = nx.ore;
         if (ore > 0) {
           await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
-            orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
+            orePreviste: ore, scrittaIl: px.scrittaIl, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
             piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
             manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
           toast("Prossimo « " + px.titolo + " » pianificato a " + conta(ore, "ora", "ore") + ".", "success");
@@ -3809,11 +3872,11 @@ body.dw b.bad{color:var(--ink-dg)}
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
-      const u = n.orePreviste ? urgenzaOre(n.orePreviste, m && m.ore) : urgenza(n.dataPrevista);
+      const u = n.orePreviste ? urgTagliando(n, m) : urgenza(n.dataPrevista);
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${u.calcolabile === false ? `<div class="meta norma">${I.tachi}Non confrontabile col contatore attuale: ${esc(u.perche)}. Si riscrive dall'ordine di lavoro, in Officina.</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -3963,6 +4026,13 @@ body.dw b.bad{color:var(--ink-dg)}
       const i = +ricDelOdl; const via = o.ricambi[i]; if (!via) return;
       await salvaOrdine(n, { ricambiUsati: o.ricambi.filter((_, k) => k !== i) },
         "Ricambio tolto dall'ordine: " + (via.nome || "senza nome") + ".");
+      return; }
+    // «Riscrivi sul contatore nuovo» (04/09): il bottone sta nella testa
+    // dell'ordine e passa dalla stessa delega degli altri comandi dell'ordine
+    const odlRiscrivi = attr(e, "data-odl-riscrivi");
+    if (odlRiscrivi) { const n = MAN.find(x => x.id === odlRiscrivi); if (!n) return;
+      e.stopPropagation();
+      await riscriviSulNuovo(n);
       return; }
     const odlStato = attr(e, "data-odl-stato");
     if (odlStato) { const n = MAN.find(x => x.id === odlId); if (!n) return;
@@ -4556,7 +4626,7 @@ body.dw b.bad{color:var(--ink-dg)}
        ⚠️ E le ore uscivano grezze (`6000`) dove lo schermo raggruppa
        (`6.000`): stessa riga, stessa famiglia. */
     for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
-      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
+      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" + codaContatoreTx(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
     /* ⛔ E LA COLONNA DELLO STATO DICEVA «ok» A UN PEZZO CHE NON HA UNA
        SOGLIA. Stessa famiglia della riga qui sopra e stesso posto — il foglio
        che si gira al responsabile — solo un pezzo più in giù: `sottoScorta`
@@ -4598,8 +4668,11 @@ body.dw b.bad{color:var(--ink-dg)}
     const pianoOre = pv.startsWith("o") ? pianoTagliando(pv.slice(1)) : null;
     const ogniOre = pianoOre ? pianoOre.ogniOre : null;
     const ogniMesi = pv.startsWith("m") ? (Math.round(+pv.slice(1)) || null) : null;
+    // `scrittaIl`: il giorno in cui il tagliando è scritto. È ciò che gli
+    // permette, se un giorno il contatore del mezzo verrà sostituito, di dire
+    // su quale contatore sono le sue ore (04/09).
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null,
-      orePreviste, ricambioId: $("man-ricambio").value || null,
+      orePreviste, scrittaIl: oggiISO(), ricambioId: $("man-ricambio").value || null,
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
       + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + oreMotoreTx(orePreviste))
@@ -4983,7 +5056,7 @@ body.dw b.bad{color:var(--ink-dg)}
     else VUOTA("scadenza di legge",
       "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
     if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
-      (n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : ""), ""));
+      (n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : "") + codaContatoreTx(n), ""));
     else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
     /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
        || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è

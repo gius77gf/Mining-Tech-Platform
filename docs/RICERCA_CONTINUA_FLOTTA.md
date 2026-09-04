@@ -932,10 +932,12 @@ esportate); ogni «non c'è» con il comando.
   `trattoCorrente`, `fraseContatoreSostituito`; consumo, ritmo e storia
   contano sul tratto corrente e dichiarano `tratti`/`contatoreDal`; una
   lettura più bassa SENZA dichiarazione resta «sceso». run-kpi +13, Flotta
-  102/102, banco `flotta-contatore` 42/0 e controprova 10 su 42. ⚠️ Resta
-  dichiarato, non corretto: un tagliando a ore scritto sul vecchio contatore
-  dice «tra 5.790 h» dopo un contatore nuovo (`urgenzaOre` non passa dal
-  tratto: al piano manca il contatore di riferimento — cantiere a sé);
+  102/102, banco `flotta-contatore` 42/0 e controprova 10 su 42. ✅ E il
+  cantiere a sé è **fatto il 04/09, sera**: il tagliando a ore porta
+  `scrittaIl`, scritto prima dell'ultimo azzeramento è «non confrontabile» col
+  motivo (`contatoreDelTagliando`, `urgenzaTagliando`), e l'ordine propone la
+  riscrittura sul contatore nuovo (`propostaRiscrittura`, confermata da una
+  persona). run-kpi +13, banco `flotta-contatore` 72/0;
 - (c) la mappa di colonne per il CSV di telemetria, condivisa con Sentinella
   in `shared/` (costo medio; misura: un CSV con colonne in altro ordine
   rientra intero, e il conto dei doppioni non cambia);

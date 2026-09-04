@@ -235,7 +235,12 @@ export const DEMO = {
   // ritrovato come riga di ricambio). n2 è in lavorazione con due persone e
   // ore diverse, n4 è ferma in attesa di un pezzo.
   manutenzioni: [
-    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500", ricambioId: "p1" },
+    // n1 porta `scrittaIl` (04/09): è il giorno del tagliando precedente (w1,
+    // 10/07), quando questo è stato pianificato. Senza azzeramenti sul mezzo
+    // il campo non si legge; con uno, dice su quale contatore sono le 6.000 h.
+    // n5 e n6 restano SENZA di proposito: sono i tagliandi «in archivio prima
+    // che la data esistesse».
+    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500", ricambioId: "p1", scrittaIl: "2026-07-10" },
     { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05",
       stato: "in-corso",
       manodopera: [{ chi: "Marco", ore: 3, tariffa: 32 }, { chi: "Officina esterna", ore: 1.5, tariffa: 55 }],
@@ -1049,7 +1054,12 @@ const oreContatore = (mezzo) => {
 // attaccare il perché e da quanto, che è la prima cosa che chiede chi guarda
 // il Quadro. Anche questo parametro è facoltativo: senza, il comportamento è
 // quello di prima, parola per parola.
-export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = []) {
+// Dal 04/09 accetta anche le LETTURE del contatore (`letture`, facoltativo):
+// servono a sapere se un tagliando a ore è scritto sul contatore che il
+// mezzo ha oggi. Un tagliando non confrontabile è una riga `warn`, perché
+// chiede un'azione (riscriverlo sul contatore nuovo); senza letture, o senza
+// azzeramenti, il comportamento è quello di prima.
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = [], letture = []) {
   const items = [];
   for (const s of scadenze || []) {
     const sem = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni);
@@ -1070,7 +1080,16 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
     if (n.orePreviste) {
       const ore = oreDi(n.mezzo);
       if (ore == null) continue;                 // mezzo non trovato: non calcolabile
-      u = urgenzaOre(n.orePreviste, ore);
+      u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, n.mezzo));
+      if (!u.calcolabile) {
+        // non è «a posto» e non è un numero: è una cosa da fare, e il Quadro
+        // la mette fra le priorità con la sua ragione
+        items.push({ gravita: "warn", categoria: "manutenzione", origine: n.origine || null,
+          titolo: (n.titolo || "Manutenzione") + " — " + (n.mezzo || "?"),
+          dettaglio: "a " + mostra(n.orePreviste, 1) + " h motore, " + u.perche + ": da riscrivere sul contatore nuovo",
+          badge: u.label });
+        continue;
+      }
       // la riga di priorità va sul Quadro: il numero si scrive all'italiana,
       // altrimenti «a 6000.5 h motore» mette un punto inglese sulla prima
       // schermata dell'app, accanto a numeri con la virgola
@@ -2090,7 +2109,9 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
     if (oreAttuali == null || oreAttuali === "") return null;
     const ore = Math.round(+oreAttuali * 10) / 10;
     if (!Number.isFinite(ore) || ore < 0) return null;
-    return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore };
+    // il prossimo tagliando a ore nasce con la data in cui è scritto: è ciò
+    // che gli permette, domani, di sapere su quale contatore parla
+    return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore, scrittaIl: isoGiorno(dataChiusura) };
   }
   if (ogniMesi > 0) {
     const data = aggiungiMesi(dataChiusura, ogniMesi);
@@ -2206,6 +2227,78 @@ export function trattoCorrente(letture) {
 export function fraseContatoreSostituito(azz) {
   if (!azz || !dataISOEsiste(String(azz.data || "").slice(0, 10))) return "";
   return "contatore sostituito il " + dataIt(String(azz.data).slice(0, 10)) + ": il conto riparte da lì";
+}
+
+/* IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, seconda unità). `urgenzaOre`
+   confronta le ore previste col contatore ATTUALE, e non sa su quale
+   contatore il tagliando è stato scritto: un «Tagliando a 6.000 h» scritto
+   sul vecchio contatore, dopo un contatore nuovo che segna 210, diceva
+   «tra 5.790 h» — verde, e falso. Il numero non si può raddrizzare da solo
+   (le 6.000 sono del vecchio contatore, il 210 del nuovo), quindi la
+   risposta giusta è «non confrontabile», col motivo; il conto lo rimette a
+   posto una persona, con la proposta qui sotto.
+   COME IL TAGLIANDO CONOSCE IL SUO CONTATORE: porta `scrittaIl`, il giorno in
+   cui è stato scritto. È un fatto che chi lo legge capisce («scritto il
+   10/06, prima della sostituzione del 01/07»), non dipende da un
+   identificatore dell'azzeramento (che sparisce se si toglie il pieno che lo
+   dichiarava, o si sposta se se ne corregge la data), e la regola è una sola:
+   scritto PRIMA dell'ultimo azzeramento → vecchio contatore; lo stesso giorno
+   o dopo → quello corrente, come `spezzaLetture` fa con le letture. Chi crea
+   o riscrive un tagliando a ore lo salva; quelli in archivio senza la data,
+   su un mezzo che ha un azzeramento, sono «non si sa su quale contatore» —
+   che non è «va bene». Senza azzeramenti niente cambia: il campo non si legge
+   nemmeno, e la dimostrazione resta identica. */
+
+// Su quale contatore è scritto un tagliando a ore, dati gli azzeramenti del
+// suo mezzo (`azzeramentiDelMezzo`). Ritorna { calcolabile, noto, scrittaIl,
+// azzeramento, perche }: `calcolabile` false quando le ore previste NON si
+// possono confrontare col contatore attuale; `noto` false quando la data di
+// scrittura manca. Puro.
+export function contatoreDelTagliando(man, azzeramenti) {
+  const az = (azzeramenti || []).filter(a => a && isoGiorno(a.data))
+    .map(a => ({ ...a, data: isoGiorno(a.data) })).sort((a, b) => a.data.localeCompare(b.data));
+  const ultimo = az.length ? az[az.length - 1] : null;
+  const scrittaIl = isoGiorno(man && man.scrittaIl);
+  if (!ultimo) return { calcolabile: true, noto: true, scrittaIl, azzeramento: null, perche: "" };
+  const segnava = ultimo.oreVecchie != null && Number.isFinite(+ultimo.oreVecchie)
+    ? ", quando segnava " + mostra(+ultimo.oreVecchie, 1) + " h" : "";
+  if (!scrittaIl) return { calcolabile: false, noto: false, scrittaIl: null, azzeramento: ultimo,
+    perche: "non si sa su quale contatore è scritto: è di prima che Flotta segnasse la data del tagliando, e il contatore è stato sostituito il " + dataIt(ultimo.data) + segnava };
+  if (scrittaIl < ultimo.data) return { calcolabile: false, noto: true, scrittaIl, azzeramento: ultimo,
+    perche: "scritto il " + dataIt(scrittaIl) + " sul vecchio contatore, sostituito il " + dataIt(ultimo.data) + segnava };
+  return { calcolabile: true, noto: true, scrittaIl, azzeramento: ultimo, perche: "" };
+}
+
+// L'urgenza di un tagliando a ore CHE SA DI QUALE CONTATORE PARLA: la stessa
+// risposta di `urgenzaOre` (cls, label, mancano, oreNote) quando il confronto
+// è legittimo, più `calcolabile`, `perche` e `contatore`; «non confrontabile»
+// senza colore e senza numero quando non lo è. È il posto da cui la lista,
+// la scheda, il libretto, il Quadro e la tessera dei 30 giorni leggono tutti
+// la stessa decisione. Senza azzeramenti risponde esattamente `urgenzaOre`.
+export function urgenzaTagliando(man, oreAttuali, azzeramenti) {
+  const c = contatoreDelTagliando(man, azzeramenti);
+  if (!c.calcolabile) return { cls: "", label: "non confrontabile", mancano: null, oreNote: false, calcolabile: false, perche: c.perche, contatore: c };
+  return { ...urgenzaOre(man && man.orePreviste, oreAttuali), calcolabile: true, perche: "", contatore: c };
+}
+
+// La PROPOSTA per riscrivere sul contatore nuovo un tagliando scritto sul
+// vecchio: nuove = previste − oreVecchie + oreNuove (le ore che mancavano sul
+// vecchio contatore, contate dal punto in cui il nuovo è partito). È una
+// proposta da confermare, non un'operazione: la fa una persona che sa su quale
+// contatore era il tagliando. Senza `oreVecchie` non c'è niente da proporre e
+// lo dice; se sul nuovo contatore il tagliando risulta già passato, `scaduto`
+// e `oltre` lo dicono e `orePreviste` resta null (uno zero non è un piano).
+export function propostaRiscrittura(man, azzeramento) {
+  const prev = man == null || man.orePreviste == null || man.orePreviste === "" ? NaN : +man.orePreviste;
+  const a = azzeramento || {};
+  const vec = a.oreVecchie == null || a.oreVecchie === "" ? NaN : +a.oreVecchie;
+  const nuo = a.oreNuove == null || a.oreNuove === "" ? NaN : +a.oreNuove;
+  if (!Number.isFinite(prev) || prev <= 0) return { ok: false, orePreviste: null, perche: "il tagliando non ha le ore previste" };
+  if (!Number.isFinite(nuo)) return { ok: false, orePreviste: null, perche: "non si sa che cosa segnava il contatore nuovo il giorno della sostituzione" };
+  if (!Number.isFinite(vec)) return { ok: false, orePreviste: null, perche: "non si sa quante ore segnava il vecchio contatore quando è stato sostituito: le ore sul nuovo vanno scritte a mano" };
+  const nuove = Math.round((prev - vec + nuo) * 10) / 10;
+  return { ok: true, orePreviste: nuove > 0 ? nuove : null, scaduto: nuove <= 0, oltre: nuove <= 0 ? -nuove : 0,
+    mancavano: Math.round((prev - vec) * 10) / 10, oreVecchie: vec, oreNuove: nuo, perche: "" };
 }
 
 // Controlli su un rifornimento prima di salvarlo. `oreMezzo` (facoltativo) è
@@ -3627,7 +3720,17 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
             : "il mezzo «" + mezzo + "» non è nel parco: il suo contatore non si può leggere" });
         continue;
       }
-      const u = urgenzaOre(+n.orePreviste, ore);
+      /* Il tagliando confrontato col SUO contatore (04/09): scritto prima
+         dell'ultimo azzeramento del mezzo, le ore previste non parlano del
+         contatore che c'è oggi. Va fra quelli che non si possono collocare,
+         col motivo — e PRIMA del confronto qui sotto, perché `mancano` è
+         `null` e `null <= 0` in JavaScript risponde true: senza questa guardia
+         un tagliando non confrontabile uscirebbe «scaduto». */
+      const u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, mezzo));
+      if (!u.calcolabile) {
+        daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null, perche: u.perche });
+        continue;
+      }
       if (u.mancano <= 0) {                     // già oltre le ore: è da fare adesso
         voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true });
         continue;

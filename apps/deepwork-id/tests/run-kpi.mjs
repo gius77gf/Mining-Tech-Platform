@@ -36350,5 +36350,118 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine contatore sostituito (Flotta, 04/09) ===== */
 
+/* ===== IL TAGLIANDO A ORE E IL SUO CONTATORE (Flotta, 04/09, seconda unità) =====
+   Un «Tagliando a 6.000 h» scritto sul vecchio contatore, dopo un contatore
+   nuovo che segna 210, diceva «tra 5.790 h» in verde: falso, e nella direzione
+   tranquilla. Il tagliando porta `scrittaIl` (il giorno in cui è stato scritto)
+   e la regola è una sola: scritto PRIMA dell'ultimo azzeramento → vecchio
+   contatore → «non confrontabile», col motivo; lo stesso giorno o dopo → il
+   confronto è quello di sempre. Senza azzeramenti niente cambia. I versi che
+   ogni prova difende: il numero tranquillo non si disegna, e la proposta per
+   riscriverlo è una proposta (previste − oreVecchie + oreNuove), non un salvataggio.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const L = [
+    { mezzo: "Escavatore E1", data: "2026-07-01", ore: 120, contatoreNuovo: true, oreVecchie: 5841 },
+    { mezzo: "Escavatore E1", data: "2026-08-20", ore: 210 },
+  ];
+  const AZ = flotta.azzeramentiDelMezzo(L, "Escavatore E1");
+  const VECCHIO = { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", orePreviste: 6000, scrittaIl: "2026-06-10" };
+  const NUOVO = { id: "n2", titolo: "Tagliando 250h", mezzo: "Escavatore E1", orePreviste: 400, scrittaIl: "2026-07-15" };
+  const MEZ = [{ nome: "Escavatore E1 — Cat 320", ore: 210 }];
+  const OGGI = new Date("2026-09-04T12:00:00");
+
+  test("Flotta · contatoreDelTagliando: senza azzeramenti il confronto è sempre legittimo, e la data non conta", () => {
+    eq(flotta.contatoreDelTagliando(VECCHIO, []).calcolabile, true, "nessun azzeramento: confrontabile");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000 }, null).calcolabile, true, "anche senza `scrittaIl`: il campo non si legge nemmeno");
+    eq(flotta.contatoreDelTagliando(VECCHIO, []).azzeramento, null, "e non c'è un azzeramento da citare");
+  });
+  test("⛔ Flotta · contatoreDelTagliando: scritto PRIMA dell'ultimo azzeramento → vecchio contatore, non confrontabile, col motivo", () => {
+    const c = flotta.contatoreDelTagliando(VECCHIO, AZ);
+    eq([c.calcolabile, c.noto, c.scrittaIl], [false, true, "2026-06-10"], "non confrontabile ma si sa quando è stato scritto");
+    eq(c.azzeramento.data, "2026-07-01", "cita l'azzeramento che lo rende vecchio");
+    ok(/10\/06\/2026/.test(c.perche) && /01\/07\/2026/.test(c.perche), "il motivo porta le due date all'italiana — era «" + c.perche + "»");
+    ok(/5\.841 h/.test(c.perche), "e quanto segnava il vecchio contatore, raggruppato");
+    ok(!/quando segnava/.test(flotta.contatoreDelTagliando(VECCHIO, [{ data: "2026-07-01", oreNuove: 120, oreVecchie: null }]).perche), "senza `oreVecchie` non si inventa quanto segnava");
+  });
+  test("Flotta · contatoreDelTagliando: lo stesso giorno dell'azzeramento o dopo → contatore corrente (come spezzaLetture)", () => {
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-07-01" }, AZ).calcolabile, true, "stesso giorno: corrente");
+    eq(flotta.contatoreDelTagliando(NUOVO, AZ).calcolabile, true, "dopo: corrente");
+    eq(flotta.contatoreDelTagliando(NUOVO, AZ).azzeramento.data, "2026-07-01", "e sa da quale azzeramento parte");
+  });
+  test("⛔ Flotta · contatoreDelTagliando: senza `scrittaIl` su un mezzo con azzeramento → «non si sa», che NON è «va bene»", () => {
+    const c = flotta.contatoreDelTagliando({ orePreviste: 6000 }, AZ);
+    eq([c.calcolabile, c.noto, c.scrittaIl], [false, false, null], "non confrontabile e non noto");
+    ok(/non si sa su quale contatore/.test(c.perche), "il motivo lo dice — era «" + c.perche + "»");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-02-30" }, AZ).noto, false, "⛔ un giorno che non esiste non è una data");
+  });
+  test("Flotta · contatoreDelTagliando: conta l'ULTIMO azzeramento, e uno senza data valida non esiste", () => {
+    const due = [{ data: "2026-03-01", oreNuove: 10, oreVecchie: null }, { data: "2026-07-01", oreNuove: 120, oreVecchie: 5841 }];
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-05-10" }, due).calcolabile, false, "scritto fra i due: è del contatore di mezzo, non di quello attuale");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-05-10" }, due.slice().reverse()).azzeramento.data, "2026-07-01", "l'ordine di arrivo non conta");
+    eq(flotta.contatoreDelTagliando(VECCHIO, [{ data: "boh", oreNuove: 120 }]).calcolabile, true, "un azzeramento senza data non è un azzeramento");
+  });
+
+  test("⛔ Flotta · urgenzaTagliando: sul vecchio contatore niente colore e niente numero — «tra 5.790 h» era il difetto", () => {
+    const u = flotta.urgenzaTagliando(VECCHIO, 210, AZ);
+    eq([u.cls, u.label, u.mancano, u.oreNote, u.calcolabile], ["", "non confrontabile", null, false, false], "non confrontabile, senza badge colorato");
+    ok(u.perche.length > 0 && u.contatore.calcolabile === false, "porta il motivo e la decisione da cui viene");
+  });
+  test("Flotta · urgenzaTagliando: sul contatore corrente risponde ESATTAMENTE urgenzaOre, più le bandiere", () => {
+    const u = flotta.urgenzaTagliando(NUOVO, 210, AZ), o = flotta.urgenzaOre(400, 210);
+    eq([u.cls, u.label, u.mancano, u.oreNote], [o.cls, o.label, o.mancano, o.oreNote], "stessa risposta di urgenzaOre");
+    eq([u.calcolabile, u.perche], [true, ""], "e dichiara che il confronto è legittimo");
+    const s = flotta.urgenzaTagliando(VECCHIO, 5900, []), so = flotta.urgenzaOre(6000, 5900);
+    eq([s.cls, s.label, s.mancano], [so.cls, so.label, so.mancano], "senza azzeramenti: identico a prima, parola per parola");
+    eq(flotta.urgenzaTagliando({ orePreviste: 6000, scrittaIl: "2026-07-15" }, null, AZ).mancano, null, "contatore ignoto: come urgenzaOre, non si finge di saperlo");
+  });
+
+  test("Flotta · propostaRiscrittura: previste − oreVecchie + oreNuove, con gli addendi in chiaro", () => {
+    const p = flotta.propostaRiscrittura(VECCHIO, AZ[0]);
+    eq([p.ok, p.orePreviste, p.mancavano, p.oreVecchie, p.oreNuove, p.scaduto, p.oltre], [true, 279, 159, 5841, 120, false, 0], "6000 − 5841 + 120 = 279");
+    eq(flotta.propostaRiscrittura({ orePreviste: 5900.25 }, AZ[0]).orePreviste, 179.3, "al decimo, come il contatore");
+  });
+  test("⛔ Flotta · propostaRiscrittura: già passato sul nuovo → scaduto, e le ore restano null (uno zero non è un piano)", () => {
+    const p = flotta.propostaRiscrittura({ orePreviste: 5700 }, AZ[0]);
+    eq([p.ok, p.scaduto, p.oltre, p.orePreviste, p.mancavano], [true, true, 21, null, -141], "5700 − 5841 + 120 = −21: da fare adesso");
+    eq(flotta.propostaRiscrittura({ orePreviste: 5721 }, AZ[0]).scaduto, true, "esattamente zero è scaduto, non «a 0 h»");
+  });
+  test("⛔ Flotta · propostaRiscrittura: senza uno degli addendi non si propone niente, e si dice quale manca", () => {
+    const sv = flotta.propostaRiscrittura(VECCHIO, { data: "2026-07-01", oreNuove: 120, oreVecchie: null });
+    eq([sv.ok, sv.orePreviste], [false, null], "senza oreVecchie: niente proposta");
+    ok(/vecchio contatore/.test(sv.perche), "e dice che manca il vecchio — era «" + sv.perche + "»");
+    ok(/contatore nuovo/.test(flotta.propostaRiscrittura(VECCHIO, { data: "2026-07-01" }).perche), "senza oreNuove: dice che manca il nuovo");
+    ok(/ore previste/.test(flotta.propostaRiscrittura({ orePreviste: "" }, AZ[0]).perche), "senza ore previste: dice quello");
+    eq(flotta.propostaRiscrittura(null, null).ok, false, "con niente in mano non esplode");
+    eq(flotta.propostaRiscrittura({ orePreviste: 0 }, AZ[0]).ok, false, "zero ore previste non è un tagliando");
+  });
+
+  test("⛔ Flotta · prioritaOperative: il tagliando sul vecchio contatore è una riga warn con la ragione, non un verde", () => {
+    const con = flotta.prioritaOperative(MEZ, [VECCHIO, NUOVO], [], OGGI, [], 30, [], L).filter(x => x.categoria === "manutenzione");
+    eq(con.length, 1, "una riga sola: il tagliando nuovo a 190 h non è un'urgenza");
+    eq([con[0].gravita, con[0].badge], ["warn", "non confrontabile"], "warn, perché chiede un'azione");
+    ok(/6\.000 h motore/.test(con[0].dettaglio) && /riscrivere sul contatore nuovo/.test(con[0].dettaglio), "il dettaglio dice le ore e che cosa fare — era «" + con[0].dettaglio + "»");
+    const senza = flotta.prioritaOperative(MEZ, [VECCHIO, NUOVO], [], OGGI, [], 30, []).filter(x => x.categoria === "manutenzione");
+    eq(senza.length, 0, "⛔ senza letture il comportamento è quello di prima: «tra 5.790 h» non è un'urgenza (ed era il difetto: tranquillo)");
+  });
+  test("⛔ Flotta · tagliandiInScadenza: il tagliando sul vecchio contatore va fra quelli da stimare, col motivo — non «scaduto»", () => {
+    const t = flotta.tagliandiInScadenza([VECCHIO, NUOVO], MEZ, L, OGGI);
+    eq([t.totale, t.nonStimabili], [0, 1], "nessuna voce nei 30 giorni, uno non collocabile");
+    eq(t.daStimare[0].id, "n1", "è il tagliando vecchio");
+    eq(t.daStimare[0].mancano, null, "⛔ `mancano` è null: null <= 0 in JS è true, senza la guardia usciva «scaduto»");
+    ok(/vecchio contatore/.test(t.daStimare[0].perche), "e il motivo è quello del contatore");
+    ok(!t.voci.some(v => v.id === "n1" && v.scaduto), "non è fra le voci scadute");
+  });
+  test("Flotta · prossimoTagliando a ore nasce con `scrittaIl` = giorno di chiusura (è ciò che domani lo rende confrontabile)", () => {
+    const n = flotta.prossimoTagliando({ titolo: "T", mezzo: "E1", ogniOre: 250 }, 5875.5, "2026-09-04T10:00:00");
+    eq([n.orePreviste, n.scrittaIl], [6125.5, "2026-09-04"], "ore e data");
+    eq(flotta.contatoreDelTagliando(n, AZ).calcolabile, true, "e infatti sul contatore attuale è confrontabile");
+    eq(flotta.DEMO.manutenzioni.find(m => m.id === "n1").scrittaIl, "2026-07-10", "la dimostrazione: n1 porta la data del tagliando precedente");
+    ok(flotta.DEMO.manutenzioni.filter(m => m.orePreviste && !m.scrittaIl).length >= 1, "e ne resta almeno uno SENZA, di proposito: l'archivio di prima che la data esistesse");
+  });
+}
+/* ===== fine tagliando e contatore (Flotta, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

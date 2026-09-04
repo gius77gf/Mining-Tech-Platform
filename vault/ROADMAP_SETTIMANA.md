@@ -399,6 +399,27 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [x] **FLOTTA: IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, cantiere morto due
+  volte per i crediti, raccolto dalla patch in `vault/cantieri-sospesi/` e
+  rimisurato in casa prima di tenerlo).** Dopo un contatore sostituito, un
+  «Tagliando a 6.000 h» scritto sul vecchio diceva «tra 5.790 h» in verde:
+  falso, nella direzione tranquilla. Il tagliando porta `scrittaIl` (chi lo
+  crea o riscrive lo salva; `prossimoTagliando` lo mette da sé); scritto PRIMA
+  dell'ultimo azzeramento → «non confrontabile» col motivo e le due date, senza
+  colore e senza numero, in lista, ordine, scheda del mezzo, Quadro,
+  `tagliandiInScadenza` (che senza la guardia lo avrebbe detto «scaduto»:
+  `null <= 0` è true) e nei file che escono; scritto lo stesso giorno o dopo →
+  il confronto di sempre; senza azzeramenti niente cambia, parola per parola.
+  L'ordine porta «Riscrivi sul contatore nuovo»: `propostaRiscrittura`
+  (previste − oreVecchie + oreNuove) è una proposta con gli addendi in chiaro,
+  una persona la conferma, e la nota tiene com'era. `contatoreDelTagliando`,
+  `urgenzaTagliando`, `propostaRiscrittura`; run-kpi 2562 → 2575 con tre
+  controprove; banco `flotta-contatore` 42 → 72/0 a 320 e 390 con terza
+  iniezione. ⚠️ Due cose che la patch NON aveva e che si sono viste solo
+  misurando: il bottone «Riscrivi» era disegnato e nessun gestore lo
+  ascoltava (premuto, non faceva niente); e l'icona nel riquadro dell'ordine
+  usciva grande quanto il riquadro a 320 px (nessuna regola dimensiona un svg
+  dentro `.note`) — visto nello scatto, non nel codice.
 - [x] **SENTINELLA: LA LETTURA DICHIARATA NON VALIDA (04/09, cantiere parallelo
   dal delta della ricerca sui sismografi, rimisurato prima di committare).**
   Una lettura si dichiara non valida con la ragione (mezzo di passaggio,
@@ -6170,7 +6191,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.043 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.056 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

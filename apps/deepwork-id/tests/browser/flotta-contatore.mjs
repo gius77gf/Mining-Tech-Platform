@@ -14,15 +14,23 @@
        la via giusta;
      · CON la casella passa, la riga del carburante dice da quando riparte il
        conto, e col secondo pieno il consumo si misura «del nuovo contatore»;
-       la riga del mezzo e la scheda dicono la sostituzione, la riga del
-       tagliando a ore porta la ragione del ritmo con la data.
+       la riga del mezzo e la scheda dicono la sostituzione;
+     · (04/09, seconda unità) il TAGLIANDO A ORE scritto sul vecchio contatore
+       (n1 porta `scrittaIl: 2026-07-10`, prima della sostituzione di oggi) è
+       «non confrontabile» — niente colore, niente «tra 5.790 h» — nella riga,
+       nella tessera del Quadro e nell'ordine; l'ordine porta il bottone
+       «Riscrivi sul contatore nuovo», la finestra PROPONE il conto (6.000 −
+       5.870 + 120 = 250 h) e, confermato, il tagliando torna confrontabile
+       («tra 40 h» a 210 h di contatore) con la memoria di com'era nella nota.
    La dimostrazione non ha nessun azzeramento (di proposito: cinque prove
    assolute vivono sui suoi numeri), quindi il caso lo si COSTRUISCE premendo il
    bottone, in memoria — niente si inietta nel modulo.
    La controprova rimette il difetto nel modulo servito: `trattoCorrente`
    ignorato in `consumoPerMezzo` e in `ritmoOreMezzi`, cioè l'azzeramento
    dichiarato che non cambia niente. Il pieno entra lo stesso (la validazione
-   resta), ma il conto torna a dire «sceso» e il banco deve cadere. */
+   resta), ma il conto torna a dire «sceso» e il banco deve cadere. Terza
+   iniezione (04/09): `urgenzaTagliando` che ignora il contatore del
+   tagliando, cioè «tra 5.790 h» in verde su un tagliando del vecchio. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
 import { join, extname, dirname, resolve } from "node:path";
@@ -46,6 +54,11 @@ const DIFETTI = [
   ["apps/flotta/flotta-data.js",
    "    const tc = trattoCorrente(v.punti);",
    "    const tc = { letture: v.punti, tratti: 1, dal: null, azzeramento: null, senzaData: 0 };   /* difetto rimesso dal banco */"],
+  /* (04/09, seconda unità) il tagliando sul vecchio contatore torna a essere
+     confrontato col contatore nuovo: «tra 5.790 h» in verde, il difetto di partenza */
+  ["apps/flotta/flotta-data.js",
+   '  if (!c.calcolabile) return { cls: "", label: "non confrontabile", mancano: null, oreNote: false, calcolabile: false, perche: c.perche, contatore: c };',
+   "  /* difetto rimesso dal banco: il contatore del tagliando non conta */"],
 ];
 let difettiRimessi = 0;
 
@@ -156,19 +169,58 @@ for (const W of [320, 390]) {
   // dice solo se il campo dell'IPOTESI (8 h/giorno di serie) è vuoto — se no la
   // riga usa l'ipotesi e la dichiara tale: è il disegno del 02/08, non un buco.
   const tessera = await pg.evaluate(() => document.querySelector('[title*="collocare nel tempo"]')?.getAttribute("title") || "");
-  dice(new RegExp(`Tagliando 500h — Escavatore E1 \\(le letture del contatore coprono 0 giorni: per stimare 30 giorni servono almeno 15 \\(contatore sostituito il ${oggiIt}: il conto riparte da lì\\)\\)`).test(tessera), "la tessera «Tagliandi 30gg» del Quadro mette il tagliando di E1 fra quelli che non sa collocare, con la ragione e la data", tessera.slice(0, 400));
+  /* dal 04/09 (seconda unità) la ragione non è più il ritmo: il tagliando è
+     scritto il 10/07 sul VECCHIO contatore, e prima ancora di chiedersi quando
+     cadrà non si può confrontare col contatore di oggi. La frase vecchia
+     («le letture coprono 0 giorni») era vera e più debole. */
+  dice(new RegExp(`Tagliando 500h — Escavatore E1 \\(scritto il 10/07/2026 sul vecchio contatore, sostituito il ${oggiIt}, quando segnava 5\\.870 h\\)`).test(tessera), "⛔ la tessera «Tagliandi 30gg» del Quadro mette il tagliando di E1 fra quelli che non sa collocare, perché è scritto sul vecchio contatore (con le due date e quanto segnava)", tessera.slice(0, 400));
   await pg.click("#nav-man"); await pg.waitForTimeout(400);
   await pg.fill("#man-oregiorno", ""); await pg.waitForTimeout(600);
   const rigaTag = await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); return i ? i.textContent.replace(/\s+/g, " ").trim() : null; });
-  dice(!!rigaTag && /Quando cadrà non si sa: le letture del contatore coprono 0 giorni/.test(rigaTag) && new RegExp(`\\(contatore sostituito il ${oggiIt}: il conto riparte da lì\\)\\.`).test(rigaTag), "senza l'ipotesi, la riga del tagliando a ore di E1 dice «quando cadrà non si sa» con la ragione e la data della sostituzione", rigaTag);
+  dice(!!rigaTag && new RegExp(`Non confrontabile col contatore attuale: scritto il 10/07/2026 sul vecchio contatore, sostituito il ${oggiIt}, quando segnava 5\\.870 h\\. Apri l'ordine per riscriverlo sul contatore nuovo\\.`).test(rigaTag), "⛔ la riga del tagliando a ore di E1 dice «non confrontabile col contatore attuale», con le date e dove si corregge", rigaTag);
+  const badgeTag = await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); const b = i?.querySelector(".badge"); return b ? { testo: b.textContent.replace(/\s+/g, " ").trim(), classi: b.className } : null; });
+  dice(!!badgeTag && badgeTag.testo === "non confrontabile" && !/\b(ok|warn|danger)\b/.test(badgeTag.classi), "⛔ e il badge è «non confrontabile» SENZA colore di stato: non «tra 5.790 h» in verde", badgeTag);
   await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); i?.scrollIntoView({ block: "center" }); }); await scatto("7-tagliando");
+
+  // L'ORDINE DI LAVORO del tagliando: il riquadro col motivo, il bottone, la
+  // proposta e la conferma. Il conto atteso: 6.000 − 5.870 + 120 = 250 h sul
+  // contatore nuovo, che a 210 h di contatore fa «tra 40 h» (warn, ≤ 50).
+  await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); i?.click(); });
+  await pg.waitForTimeout(500);
+  dice(await pg.evaluate(() => getComputedStyle(document.getElementById("page-odl")).display !== "none"), "l'ordine di lavoro del tagliando si apre");
+  const riquadro = await pg.evaluate(() => { const q = document.getElementById("odl-contatore"); const b = document.getElementById("btn-odl-riscrivi"); const r = b?.getBoundingClientRect(); const rq = q?.getBoundingClientRect(); return { testo: q?.textContent.replace(/\s+/g, " ").trim() || null, bottone: !!b, h: r ? Math.round(r.height) : 0, dentro: r ? r.right <= innerWidth + 0.5 && r.left >= -0.5 : false, altoRiquadro: rq ? Math.round(rq.height) : 0, svg: q ? q.querySelectorAll("svg").length : 0 }; });
+  dice(!!riquadro.testo && new RegExp(`^Non confrontabile col contatore attuale: scritto il 10/07/2026 sul vecchio contatore, sostituito il ${oggiIt}, quando segnava 5\\.870 h\\. Le ore previste vanno riscritte sul contatore nuovo: l'app propone il conto, tu lo confermi\\.$`).test(riquadro.testo), "⛔ l'ordine porta il riquadro col motivo intero, su una riga sua (non tagliata a due righe)", riquadro.testo);
+  dice(riquadro.bottone && riquadro.h >= 44 && riquadro.dentro, `e il bottone «Riscrivi sul contatore nuovo» è un bersaglio di tocco (alto ${riquadro.h} px) dentro lo schermo`, riquadro);
+  // visto nello scatto a 320 px: un'icona dentro `.note` usciva grande quanto il riquadro (nessuna regola la dimensiona)
+  dice(riquadro.svg === 0 && riquadro.altoRiquadro > 0 && riquadro.altoRiquadro <= 220, `il riquadro è solo testo e alto quanto il testo (${riquadro.altoRiquadro} px): niente icona gigante`, riquadro);
+  const badgeOdl = await pg.evaluate(() => document.querySelectorAll("#odl-testa .badge")[1]?.textContent.replace(/\s+/g, " ").trim());
+  dice(badgeOdl === "non confrontabile", "e il badge nella testa dell'ordine dice lo stesso della lista", badgeOdl);
+  await pg.evaluate(() => document.getElementById("odl-contatore")?.scrollIntoView({ block: "center" })); await scatto("8-ordine");
+  await pg.click("#btn-odl-riscrivi"); await pg.waitForTimeout(500);
+  const finestra = await pg.evaluate(() => ({ aperta: !!document.querySelector("#mc-ore"), corpo: document.getElementById("modal-body")?.textContent.replace(/\s+/g, " ").trim() || document.querySelector(".modal")?.textContent.replace(/\s+/g, " ").trim() || "", valore: document.querySelector("#mc-ore")?.value }));
+  dice(finestra.aperta, "la finestra «Riscrivi sul contatore nuovo» si apre con il campo delle ore");
+  dice(/sostituito il/.test(finestra.corpo) && /segnava 5\.870 h/.test(finestra.corpo) && /partito da 120 h/.test(finestra.corpo), "la finestra racconta la sostituzione con i suoi numeri (5.870 h del vecchio, 120 h del nuovo)", finestra.corpo.slice(0, 400));
+  dice(/mancavano 130 h/.test(finestra.corpo) && /cade a 250 h/.test(finestra.corpo), "⛔ e PROPONE il conto con gli addendi: «mancavano 130 h … cade a 250 h» (6.000 − 5.870 + 120)", finestra.corpo.slice(0, 400));
+  dice(finestra.valore === "250", "il campo è precompilato con 250, senza il punto delle migliaia", finestra.valore);
+  await scatto("9-proposta");
+  await pg.click("#modal-foot .mbtn.primary"); await pg.waitForTimeout(700);
+  const dopoRisc = await pg.evaluate(() => ({ riquadro: !!document.getElementById("odl-contatore"), badge: document.querySelectorAll("#odl-testa .badge")[1]?.textContent.replace(/\s+/g, " ").trim(), classi: document.querySelectorAll("#odl-testa .badge")[1]?.className || "", sotto: document.querySelectorAll("#odl-testa .sch-sotto")[1]?.textContent.replace(/\s+/g, " ").trim() || "", esito: document.getElementById("odl-esito")?.textContent.replace(/\s+/g, " ").trim() || "" }));
+  dice(/Tagliando riscritto a 250 ore motore sul contatore nuovo/.test(dopoRisc.esito) && /confrontabile/.test(dopoRisc.esito), "confermato: l'esito dice che il tagliando è riscritto a 250 ore e che il conto è confrontabile", dopoRisc.esito);
+  dice(!dopoRisc.riquadro, "il riquadro «non confrontabile» sparisce dall'ordine");
+  dice(dopoRisc.badge === "tra 40 h" && /\bwarn\b/.test(dopoRisc.classi), "⛔ e il badge torna un confronto vero: «tra 40 h» in warn (250 − 210, sotto le 50)", dopoRisc);
+  dice(/Tagliando a 250 ore motore/.test(dopoRisc.sotto) && new RegExp(`riscritto sul contatore nuovo il ${oggiIt}: era a 6\\.000 h del vecchio`).test(dopoRisc.sotto), "la testa dell'ordine dice le ore nuove e, nella nota, la memoria di com'era", dopoRisc.sotto);
+  await scatto("10-riscritto");
+  // e la lista dei tagliandi dice la stessa cosa dell'ordine
+  await pg.click("#btn-odl-back"); await pg.waitForTimeout(500);
+  const rigaDopo = await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); return i ? { badge: i.querySelector(".badge")?.textContent.replace(/\s+/g, " ").trim(), testo: i.textContent.replace(/\s+/g, " ").trim() } : null; });
+  dice(!!rigaDopo && rigaDopo.badge === "tra 40 h" && !/Non confrontabile/.test(rigaDopo.testo), "nella lista il tagliando è «tra 40 h» e non dice più «non confrontabile»", rigaDopo);
 
   dice(errori.length === 0, "nessun errore di pagina", errori.slice(0, 3));
   const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
   dice(largo, "la pagina non scorre in orizzontale");
   await pg.close();
 }
-if (CONTROPROVA) dice(difettiRimessi >= 2, `il difetto è stato rimesso nel modulo servito (${difettiRimessi} punti su 2, per due schermate)`);
+if (CONTROPROVA) dice(difettiRimessi >= 3, `i difetti sono stati rimessi nel modulo servito (${difettiRimessi} punti su 3, per due schermate)`);
 await b.close(); srv.close();
 console.log(`\nRisultato contatore sostituito: ${ok} passati, ${ko} falliti`);
 if (CONTROPROVA) { console.log(ko ? "✔ CONTROPROVA OK: col difetto rimesso il banco cade" : "✗ CONTROPROVA FALLITA: il banco non distingue"); process.exit(ko ? 0 : 1); }
