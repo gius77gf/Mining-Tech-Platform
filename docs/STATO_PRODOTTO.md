@@ -20,6 +20,29 @@ così un commerciale può farle vedere senza configurare nulla.
 
 ---
 
+## ⚠️ Aggiornamento del 4 settembre — tutte le app guardate in profondità, in quattro righe
+
+**Diciannove difetti veri, corretti, in due giorni di passate.** Ogni app e il
+core sono stati aperti schermata per schermata a 390 e 320 px nei temi, ogni
+bottone che produce un file è stato premuto e il file aperto, la dimostrazione
+svuotata pezzo per pezzo. Le cose più grosse: la home di Genesi che **non
+scorreva sul telefono da cinque settimane**; una norma sconosciuta che veniva
+sostituita con «DIN residenziale» e usciva nei file con un limite e un
+verdetto; il Quadro di Campo e di Sentinella che dicevano «tutto tranquillo»
+su una giornata o una cava in cui non era stato registrato niente; un appalto
+senza sito che in Scudo diventava «a posto»; un importo tagliato («€ 12.750»
+per «€ 12.750,00») nell'ordine di lavoro di Flotta; il rapporto di Terra con la
+pastiglia sopra il titolo. E i dati di riferimento tuoi in un file di Genesi
+pubblicato sul sito: tolti, con un controllo che legge anche i JSON.
+
+**Quello che resta è tuo**: tre decisioni nuove (22-24) in
+`docs/DECISIONI_WEEKEND.md`, che con le altre fanno undici.
+
+**La giornata ha avuto quattro interruzioni per limite di crediti**: ogni
+volta si sono persi i cantieri appena aperti e il giro completo del browser;
+il giro FILTRATO per famiglia (89 passate, un'ora e un quarto) è arrivato in
+fondo ed è la forma che regge.
+
 ## ⚠️ Aggiornamento del 3 settembre — il terzo lato del triangolo, in cinque righe
 
 **Le scorte a piazzale si misurano, non si stimano più.** Terra ha una schermata
