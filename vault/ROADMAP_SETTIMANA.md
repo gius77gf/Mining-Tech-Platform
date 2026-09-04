@@ -214,7 +214,15 @@
   «Una voce non è misurata». I mesi del ritmo restano a zero **di proposito**:
   un rilievo misura da quello prima, quindi un mese senza rilievo non è «non
   misurato», e la nota lo dice già. run-kpi +4, Terra 77/77;
-  il conto «anno per anno» della denuncia perde nei puntini il numero di rilievi.
+  ✅ **04/09 — il conto «anno per anno» della denuncia perdeva nei puntini il
+  numero di rilievi**: misurato col Range, a 390 e 430 px (col badge accanto
+  che stringe la riga) «Scavati · cumulato · da cumuli · N rilievi» chiedeva
+  tre righe su due in due anni su tre, e l'ultimo pezzo — quanti rilievi
+  reggono quel numero — non lo leggeva nessuno. Ora «Scavati · N rilievi · da
+  cumuli»: il cumulato in m³ se n'è andato (il badge lo dice già in
+  percentuale, i m³ stanno nel riepilogo dell'anno sopra). Dopo: al massimo due
+  righe a 320, 390 e 430, nessuna riga tagliata; banchi Terra numeri tranquilli
+  73/0 e frasi-da-uno 48/0, giro node sulla copia 38/0.
   ✅ **Quarta e quinta tappa, Campo e Sentinella (02/09)**, senza difetti del
   prodotto: Campo cinque banchi verdi (disegni 30 geometrie, foglio di turno
   35 con il file aperto, numeri tranquilli 92, frasi con Sentinella 10 su 18

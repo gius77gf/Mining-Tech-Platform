@@ -2735,6 +2735,16 @@ a.dw-btn{text-decoration:none}
     }
 
     // 6 · anno per anno: la riga di controllo che l'ente ricostruisce da sé
+    /* ⛔ IL NUMERO DEI RILIEVI FINIVA NEI PUNTINI (04/09, rimandato della
+       sesta tappa). La riga di dettaglio è tagliata a due righe
+       (`-webkit-line-clamp:2`) e a 390 e 430 px, con il badge accanto che la
+       stringe, «Scavati · cumulato · da cumuli · N rilievi» chiedeva TRE righe:
+       l'ultimo pezzo — quanti rilievi reggono quel numero, cioè quello che
+       l'ente guarda per primo — non lo leggeva nessuno. Misurato col Range:
+       3 righe su 2 in due anni su tre a 390. Il cumulato in m³ se n'è andato
+       dalla riga: il badge accanto dice già la stessa cosa in percentuale del
+       concesso, e i m³ stanno nel riepilogo dell'anno sopra. Dopo: due righe
+       al massimo a 320, 390 e 430, e i rilievi al secondo posto. */
     const S = serieAnnuale(RIL, aut).reverse();
     $("den-storico").innerHTML = S.map(s => `<div class="item ${s.anno === annoDen ? "st-accent" : "st-mute"}" data-anno="${s.anno}" title="Vedi il riepilogo del ${s.anno}">
       <div class="info"><div class="name">${s.anno}${s.inCorso ? " — anno in corso" : ""}</div>
@@ -2744,7 +2754,7 @@ a.dw-btn{text-decoration:none}
            legge come una dichiarazione. Un anno di sole riprese da cumulo è
            esattamente questo caso, ed è in dimostrazione apposta. */
         ? `Scavati ${n0(s.scavo)} m³`
-        : "Scavo non misurato"}${s.pct != null && s.misurabile ? " · cumulato " + n0(s.cumulato) + " m³" : ""}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}</div></div>
+        : "Scavo non misurato"} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""}</div></div>
       <div class="acts">${s.pct == null ? ""
         /* ⛔ un anno senza nessun rilievo dava «0% del concesso» in verde: il
            badge racconta il consumo del titolo, e su un titolo mai misurato
