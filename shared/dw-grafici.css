@@ -169,6 +169,12 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-catlab {
   fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 11px;
 }
+/* la voce senza misura: al posto del numero una parola, in corsivo e col colore
+   delle etichette, così non si confonde con un valore e non sembra un errore */
+.dwg-vallab.dwg-manca {
+  fill: var(--dwg-lab); font-family: 'Barlow', sans-serif; font-size: 10.5px;
+  font-weight: 600; font-style: italic; letter-spacing: 0;
+}
 
 /* ─────────────── linea e area ─────────────── */
 .dwg-linea {
@@ -286,6 +292,7 @@ body.dw.light-mode, body.dw.outdoor-mode {
 .dwg-tip-seg.stato-ok { border-top-color: var(--dwg-ok); }
 .dwg-tip-seg.stato-warn { border-top-color: var(--dwg-wr); }
 .dwg-tip-seg.stato-danger { border-top-color: var(--dwg-dg); }
+.dwg-tip-seg.manca { border-top-color: var(--dwg-lab); border-top-style: dotted; opacity: .7; }
 /* il valore comanda, il nome della serie segue */
 .dwg-tip-v {
   font-family: 'Barlow Condensed', sans-serif; font-size: 15.5px; font-weight: 800;

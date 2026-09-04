@@ -1169,6 +1169,30 @@ test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () 
   eq(terra.volumeFronte(rilievi, "f2"), 9999, "solo il suo");
   eq(terra.volumeFronte([], "f1"), 0, "nessun rilievo = 0");
 });
+/* ⛔ ZERO E «NESSUNO L'HA MISURATO» (04/09): il grafico «Volumi per fronte» di
+   Terra disegnava a zero — con la stanghetta minima del motore — il fronte che
+   non aveva nessun rilievo, e sul disegno si leggeva «da qui non è uscito
+   niente». `volumeFronte` resta una somma (di niente fa zero); la risposta per
+   chi disegna è `volumeFronteRilevato`, che dice `null` quando non c'è nessuna
+   misura e la somma — anche zero — quando c'è. */
+test("volumeFronteRilevato: null senza rilievi usabili, la somma altrimenti (anche zero)", () => {
+  const rilievi = [
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 1000 },
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 500 },
+    { fronteId: "f2", stato: "pianificato", volumeM3: null },  // non usabile
+    { fronteId: "f3", stato: "elaborato",  volumeM3: 0 },      // misurato: zero vero
+    { fronteId: "f4", stato: "elaborato",  volumeM3: 300, provenienza: "cumulo" },
+  ];
+  eq(terra.volumeFronteRilevato(rilievi, "f1"), 1500, "somma come volumeFronte");
+  eq(terra.volumeFronteRilevato(rilievi, "f2"), null, "solo un pianificato: nessuna misura");
+  eq(terra.volumeFronteRilevato(rilievi, "f3"), 0, "un rilievo a 0 m³ è una misura, non un buco");
+  eq(terra.volumeFronteRilevato(rilievi, "f5"), null, "fronte mai rilevato");
+  eq(terra.volumeFronteRilevato([], "f1"), null, "nessun rilievo: null, dove volumeFronte dice 0");
+  eq(terra.volumeFronteRilevato(rilievi, "f4"), null, "di scavo non ne ha: il cumulo non esce dal fronte");
+  eq(terra.volumeFronteRilevato(rilievi, "f4", "tutti"), 300, "con «tutti» il cumulo conta");
+  // la coppia resta coerente dove tutt'e due rispondono un numero
+  for (const f of ["f1", "f3"]) eq(terra.volumeFronteRilevato(rilievi, f), terra.volumeFronte(rilievi, f), "stessa somma su " + f);
+});
 test("valoreMateriale: m³ → tonnellate → valore (densità e prezzo)", () => {
   const v = terra.valoreMateriale(1000, 1.6, 12);
   eq(v.tonnellate, 1600, "1000 m³ × 1,6 t/m³");
@@ -5403,6 +5427,35 @@ test("l'arrotondamento non può peggiorare il numero", () => {
    già scritta per gli altri grafici. Per TENERE la regola il browser non serve:
    dentro entrano numeri, fuori esce una stringa. Vivono qui perché una difesa che
    sta nello scratchpad alla prossima sessione non c'è più. */
+/* ⛔ LE BARRE: UNA VOCE SENZA NUMERO NON SI BUTTA E NON SI DISEGNA A ZERO (04/09).
+   `disegnaBarre` filtrava con `num(v.valore)`, quindi un `null` spariva dal
+   grafico e chi voleva tenerlo in vista passava uno zero, che si disegnava con la
+   stanghetta minima. Adesso la regola è pura e vive in `separaMancanti`: i numeri
+   si disegnano, `null`/`undefined` restano in elenco come «non misurato», e il
+   resto (stringhe, NaN, oggetti rotti) è un dato guasto e resta fuori. */
+{
+  const { separaMancanti } = grafici.geometria;
+  test("separaMancanti: numeri di qua, null/undefined di là, il guasto fuori", () => {
+    const r = separaMancanti([
+      { etichetta: "a", valore: 3 }, { etichetta: "b", valore: null }, { etichetta: "c" },
+      { etichetta: "d", valore: "12" }, { etichetta: "e", valore: NaN }, null, undefined,
+      { etichetta: "f", valore: 0 }, { etichetta: "g", valore: -2 }, { etichetta: "h", valore: Infinity },
+    ]);
+    eq(r.misurati.map(v => v.etichetta), ["a", "f", "g"], "zero e negativi sono misure");
+    eq(r.mancanti.map(v => v.etichetta), ["b", "c"], "null e undefined restano, in ordine");
+    eq(r.misurati.length + r.mancanti.length, 5, "«12», NaN, Infinity e le voci nulle non entrano da nessuna parte");
+  });
+  test("separaMancanti: senza valori, o con un elenco assente, risponde due liste vuote", () => {
+    eq(separaMancanti([]), { misurati: [], mancanti: [] }, "vuoto");
+    eq(separaMancanti(null), { misurati: [], mancanti: [] }, "assente");
+    eq(separaMancanti(undefined), { misurati: [], mancanti: [] }, "undefined");
+  });
+  test("separaMancanti: non tocca gli oggetti (stato e etichetta restano quelli)", () => {
+    const v = { etichetta: "x", valore: null, stato: "warn" };
+    const r = separaMancanti([v]);
+    ok(r.mancanti[0] === v, "stesso oggetto");
+  });
+}
 {
   const { tratti, percorso } = grafici.geometria;
   const px = (i) => i * 100, py = (v) => 200 - v;

@@ -1013,7 +1013,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -1851,30 +1851,31 @@ a.dw-btn{text-decoration:none}
   function grafFronti() {
     const el = $("fro-volumi"); if (!el) return;
     const noti = new Set(FRO.map(f => f.id));
-    const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronte(RIL, f.id) }));
+    const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronteRilevato(RIL, f.id) }));
     // solo SCAVO, come volumeFronte: i cumuli ripresi non escono dal fronte
     const nonAss = soloScavo(RIL).filter(r => rilievoUsabile(r) && !noti.has(r.fronteId))
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     const cumTot = soloCumulo(RIL).filter(rilievoUsabile)
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     if (nonAss > 0) voci.push({ etichetta: "Non assegnato", valore: nonAss });
-    if (!(voci.reduce((s, v) => s + v.valore, 0) > 0)) {
+    if (!(voci.reduce((s, v) => s + (v.valore || 0), 0) > 0)) {
       el.innerHTML = vuoto(I.riga, "Nessun volume da ripartire",
         "I volumi per fronte arrivano dai <b>rilievi elaborati</b> collegati a un fronte. Registra un rilievo scegliendo il fronte e qui comparirà da dove esce il materiale.");
       return;
     }
     el.innerHTML = "";
-    /* ⛔ UN FRONTE CHE NESSUNO HA RILEVATO ESCE COME UNA BARRA A ZERO, e allo
-       zero il motore dà comunque la sua stanghetta minima: sul disegno si legge
-       «da lì non è uscito niente», che è una misura. Non lo è — è che nessuno
-       l'ha misurato. Terra la frase ce l'ha già, due volte, con le stesse
-       parole: i mesi del grafico del ritmo («vuol dire che non è stato misurato
-       niente, non per forza che la cava fosse ferma») e i banchi della denuncia
-       («non hanno cavato zero, non li ha misurati nessuno»). Qui mancava, ed è
-       la stessa regola scritta più debole nel terzo posto. Le barre restano —
-       togliere il fronte lo nasconderebbe, che è peggio — ma la nota dice
-       quante sono e che cosa vogliono dire. */
-    const senzaRilievi = voci.filter(v => !(v.valore > 0)).length;
+    /* ⛔ UN FRONTE CHE NESSUNO HA RILEVATO USCIVA COME UNA BARRA A ZERO, e allo
+       zero il motore dava comunque la sua stanghetta minima: sul disegno si
+       leggeva «da lì non è uscito niente», che è una misura. Non lo è — è che
+       nessuno l'ha misurato. Terra la frase ce l'ha già, due volte, con le
+       stesse parole: i mesi del grafico del ritmo («vuol dire che non è stato
+       misurato niente, non per forza che la cava fosse ferma») e i banchi
+       della denuncia («non hanno cavato zero, non li ha misurati nessuno»).
+       Dal 04/09 il fronte arriva al motore con `valore: null`
+       (`volumeFronteRilevato`) e il motore lo disegna come tale: in coda,
+       senza barra, con la parola «non misurato» al posto del numero. La nota
+       resta, perché la parola sul grafico dice CHE manca, non PERCHÉ. */
+    const senzaRilievi = voci.filter(v => v.valore == null).length;
     dwGrafici.barre(el, {
       titolo: "Volumi per fronte",
       meta: "somma dei rilievi elaborati",
@@ -1885,8 +1886,8 @@ a.dw-btn{text-decoration:none}
         : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.")
         + (senzaRilievi > 0
           ? (senzaRilievi === 1
-              ? " <b>Un fronte è</b> a zero perché non ha nessun rilievo elaborato collegato: non ha cavato zero, non l'ha misurato nessuno."
-              : " <b>" + senzaRilievi + " fronti sono</b> a zero perché non hanno nessun rilievo elaborato collegato: non hanno cavato zero, non li ha misurati nessuno.")
+              ? " <b>Un fronte è</b> segnato «non misurato» perché non ha nessun rilievo elaborato collegato: non ha cavato zero, non l'ha misurato nessuno."
+              : " <b>" + senzaRilievi + " fronti sono</b> segnati «non misurato» perché non hanno nessun rilievo elaborato collegato: non hanno cavato zero, non li ha misurati nessuno.")
           : "")
         + (cumTot > 0
           ? " Fuori da questo conto restano <b>" + n0(cumTot) + " m³</b> ripresi da cumuli: erano già stati scavati, non escono adesso dal fronte."

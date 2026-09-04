@@ -511,6 +511,21 @@ export function volumeFronte(rilievi, fronteId, prov = "scavo") {
     .reduce((s, r) => s + r.volumeM3, 0);
 }
 
+/* ⛔ «ZERO» E «NESSUNO L'HA MISURATO» NON SONO LO STESSO NUMERO. `volumeFronte`
+   risponde 0 in tutt'e due i casi, ed è giusto per una somma: la somma di
+   niente è zero. Ma un grafico che mette quello zero accanto ai fronti
+   rilevati dice «da qui non è uscito niente», che è una misura che nessuno ha
+   fatto. Questa risposta è per chi DISEGNA o RIASSUME: `null` se il fronte non
+   ha nemmeno un rilievo usabile di quella provenienza, la somma altrimenti —
+   anche quando la somma fa zero davvero (un rilievo elaborato a 0 m³ è una
+   misura, e si disegna). */
+export function volumeFronteRilevato(rilievi, fronteId, prov = "scavo") {
+  const usabili = (rilievi || [])
+    .filter(r => r.fronteId === fronteId && rilievoUsabile(r))
+    .filter(r => prov === "tutti" || provenienzaDi(r) === prov);
+  return usabili.length ? usabili.reduce((s, r) => s + r.volumeM3, 0) : null;
+}
+
 // Da volume estratto (m³ in banco) a tonnellate e valore economico:
 // tonnellate = m³ × densità (t/m³); valore = tonnellate × prezzo (€/t).
 // È l'anello che lega il rilievo alla contabilità. Densità e prezzo

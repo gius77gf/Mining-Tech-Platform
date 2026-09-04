@@ -1008,11 +1008,37 @@
      2 · BARRE (verticali e orizzontali, ordinabili tipo Pareto)
      ══════════════════════════════════════════════════════════════════════ */
 
+  /* ⛔ UNA BARRA A ZERO È UNA MISURA; UNA VOCE CHE NESSUNO HA MISURATO NON LO È.
+     Fino al 04/09 il motore BUTTAVA VIA ogni voce senza numero, e chi voleva
+     tenerla in vista (Terra, «Volumi per fronte»: un fronte senza rilievi va
+     mostrato, se no sparisce e sembra che non esista) doveva passare uno zero
+     — e lo zero si disegnava con la sua stanghetta minima, che sul disegno si
+     legge «da lì non è uscito niente». È il principio del fondatore applicato
+     alla geometria, nella veste già scritta per i buchi della linea: un
+     `null` si DICHIARA, non si disegna. Qui: la voce resta in elenco, in
+     coda, senza barra, con la scritta «non misurato» al posto del numero, e
+     fuori da totale, scala, quota e taglio di Pareto. Una stringa, un NaN o un
+     oggetto rotto restano fuori come prima: quello non è «non misurato», è
+     un dato guasto. La regola è pura e sta in `geometria.separaMancanti`,
+     così la suite `node` la difende senza browser. */
+  function separaMancanti(valori) {
+    var misurati = [], mancanti = [];
+    (valori || []).forEach(function (v) {
+      if (!v) return;
+      if (num(v.valore)) misurati.push(v);
+      else if (v.valore === null || v.valore === undefined) mancanti.push(v);
+    });
+    return { misurati: misurati, mancanti: mancanti };
+  }
+
   function disegnaBarre(g) {
     var s = g.spec, fmt = formatterDi(s);
-    var dati = (s.valori || []).filter(function (v) { return v && num(v.valore); });
-    if (!dati.length) { vuoto(g, 'Nessun dato da mostrare'); return; }
+    var sep = separaMancanti(s.valori);
+    var dati = sep.misurati;
+    if (!dati.length) { vuoto(g, sep.mancanti.length ? 'Niente di misurato, ancora' : 'Nessun dato da mostrare'); return; }
     if (s.ordina) dati = dati.slice().sort(function (a, b) { return b.valore - a.valore; });
+    var misurati = dati;
+    var testoManca = s.testoMancante || 'non misurato';
 
     var oriz = s.orientamento === 'orizzontale';
     var largo = g._larg;
@@ -1021,17 +1047,20 @@
        somma non significa niente: 67% + 83% non fa 150% di qualcosa. In quel
        caso il totale resta zero e la quota non viene mostrata. */
     var sommabile = (s.unita || '').trim() !== '%' && s.quota !== false;
-    var totale = sommabile ? dati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
-    var vmax = Math.max.apply(null, dati.map(function (d) { return d.valore; }));
-    var sc = scala(Math.min(0, Math.min.apply(null, dati.map(function (d) { return d.valore; }))), vmax, oriz ? 4 : 4);
+    var totale = sommabile ? misurati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
+    var vmax = Math.max.apply(null, misurati.map(function (d) { return d.valore; }));
+    var sc = scala(Math.min(0, Math.min.apply(null, misurati.map(function (d) { return d.valore; }))), vmax, oriz ? 4 : 4);
 
     /* taglio di Pareto: dove la somma arriva alla percentuale chiesta.
        È una tacca sull'UNICO asse — mai un secondo asse con un'altra scala. */
     var taglio = -1;
     if (s.taglio && s.ordina && totale > 0) {
       var acc = 0;
-      for (var i = 0; i < dati.length; i++) { acc += dati[i].valore; if (acc / totale * 100 >= s.taglio) { taglio = i; break; } }
+      for (var i = 0; i < misurati.length; i++) { acc += misurati[i].valore; if (acc / totale * 100 >= s.taglio) { taglio = i; break; } }
     }
+    /* le voci non misurate vanno in CODA, dopo l'ordinamento e dopo il taglio:
+       non hanno un posto in una classifica, hanno solo il diritto di esserci */
+    dati = misurati.concat(sep.mancanti.map(function (v) { return { etichetta: v.etichetta, valore: null, stato: v.stato, manca: true }; }));
 
     var svg, box, alto;
     if (oriz) {
@@ -1052,9 +1081,9 @@
 
       dati.forEach(function (d, i) {
         var cy = box.y0 + bandaO * (i + 0.5);
-        var y = cy - spessO / 2, w = lunghezzaBarra(pxv(d.valore) - pxv(0), 2);
+        var y = cy - spessO / 2, w = d.manca ? 0 : lunghezzaBarra(pxv(d.valore) - pxv(0), 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: box.x0 - etLargh - 8, y: cy - bandaO / 2, width: box.x1 - box.x0 + etLargh + 8, height: bandaO, 'data-i': i }));
-        svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
+        if (!d.manca) svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
         /* nell'orizzontale lo spazio riservato è `etLargh`, ma è TAGLIATO al 38%
            della larghezza: se il nome è più lungo di così, senza troncarlo esce dal
            disegno a sinistra (misurato a 390 px con «Cava di Monte Cerreto —
@@ -1063,7 +1092,8 @@
         var elCatO = nodo('text', { 'class': 'dwg-catlab', x: box.x0 - 8, y: (cy + 3.8).toFixed(1), 'text-anchor': 'end' }, '');
         svg.appendChild(elCatO);
         troncaTesto(elCatO, d.etichetta, etLargh, 11);
-        svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: (pxv(d.valore) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, conUnita(fmt(d.valore), s.unita)));
+        if (d.manca) svg.appendChild(nodo('text', { 'class': 'dwg-vallab dwg-manca', x: (pxv(0) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, testoManca));
+        else svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: (pxv(d.valore) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, conUnita(fmt(d.valore), s.unita)));
       });
       if (taglio >= 0 && taglio < dati.length - 1) {
         var yTag = box.y0 + bandaO * (taglio + 1);
@@ -1089,16 +1119,18 @@
       var etichettaTutte = dati.length <= 8;
       dati.forEach(function (d, i) {
         var cx = box.x0 + banda * (i + 0.5);
-        var x = cx - spess / 2, y = pyv(d.valore), h = lunghezzaBarra(pyv(0) - y, 2);
+        var x = cx - spess / 2, y = d.manca ? pyv(0) : pyv(d.valore), h = d.manca ? 0 : lunghezzaBarra(pyv(0) - y, 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: (cx - banda / 2).toFixed(1), y: box.y0 - 14, width: banda.toFixed(1), height: box.y1 - box.y0 + 26, 'data-i': i }));
-        svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
+        if (!d.manca) svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
         /* l'etichetta sta nella sua banda MENO il respiro: due nomi che si toccano
            si leggono come una parola sola, e la troncatura di prima — a conto di
            caratteri, senza respiro — li lasciava attaccati (misurato: 4 px) */
         var elCat = nodo('text', { 'class': 'dwg-catlab', x: cx.toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
         svg.appendChild(elCat);
         troncaTesto(elCat, d.etichetta, banda - RESPIRO_ET, 11);
-        if (etichettaTutte || d.valore === vmax) {
+        if (d.manca) {
+          if (etichettaTutte) svg.appendChild(nodo('text', { 'class': 'dwg-vallab dwg-manca', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, testoManca));
+        } else if (etichettaTutte || d.valore === vmax) {
           svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, fmt(d.valore)));
         }
       });
@@ -1123,6 +1155,7 @@
         'qui si arriva al ', s.taglio + '% del totale'));
     }
     g.tabella(['Voce', conUnita('Valore', s.unita), 'Quota'], dati.map(function (d) {
+      if (d.manca) return [String(d.etichetta), testoManca, '—'];
       return [String(d.etichetta), fmt(d.valore), totale ? (d.valore / totale * 100).toFixed(1).replace('.', ',') + '%' : '—'];
     }));
   }
@@ -1154,7 +1187,8 @@
     var evid = nodo('rect', { 'class': 'dwg-evid', opacity: '0', x: 0, y: 0, width: 0, height: 0, rx: 6 });
     svg.insertBefore(evid, svg.firstChild);
     g._evid = evid;
-    var acc = 0, cum = dati.map(function (d) { acc += d.valore; return totale ? acc / totale * 100 : 0; });
+    var acc = 0, cum = dati.map(function (d) { if (num(d.valore)) acc += d.valore; return totale ? acc / totale * 100 : 0; });
+    var testoManca = s.testoMancante || 'non misurato';
 
     function mostra(hit, e) {
       var i = +hit.getAttribute('data-i');
@@ -1167,6 +1201,7 @@
       var r = svg.getBoundingClientRect();
       var sx = e ? e.clientX - r.left : (+hit.getAttribute('x') + +hit.getAttribute('width') / 2) / +svg.viewBox.baseVal.width * r.width;
       var sy = e ? e.clientY - r.top : r.height / 2;
+      if (d.manca) { g.mostraTip(sx, sy, d.etichetta, [{ valore: testoManca, nome: 'nessuna misura', cls: 'manca' }], null); return; }
       g.mostraTip(sx, sy, d.etichetta, [{
         valore: conUnita(fmt(d.valore), s.unita),
         nome: d.stato ? ({ ok: 'a posto', warn: 'da tenere d\'occhio', danger: 'critico' }[d.stato] || d.stato) : '',
@@ -1195,9 +1230,12 @@
   }
 
   function ariaBarre(s, dati, fmt) {
-    var top = dati.slice().sort(function (a, b) { return b.valore - a.valore; })[0];
+    var mis = dati.filter(function (d) { return num(d.valore); });
+    var top = mis.slice().sort(function (a, b) { return b.valore - a.valore; })[0];
+    var manca = dati.length - mis.length;
     return (s.titolo || 'Confronto') + ': ' + dati.length + ' voci, la più alta è ' +
-      top.etichetta + ' con ' + conUnita(fmt(top.valore), s.unita) + '.';
+      top.etichetta + ' con ' + conUnita(fmt(top.valore), s.unita) + '.' +
+      (manca ? ' ' + (manca === 1 ? 'Una voce non è misurata.' : manca + ' voci non sono misurate.') : '');
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1540,7 +1578,7 @@
        restituisce un altro, quindi la sua prova vive in `node` e gira sempre —
        la miniatura tutta NaN si sarebbe vista con un `Math.min` in tre righe,
        e invece è stata trovata aprendo la pagina. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti },
     versione: '1.0'
   };
 

@@ -138,8 +138,8 @@ const DIFETTI_MOTORE = [
      quello dei valori. L'asse tagliato sposta e allunga TUTTE le barre insieme,
      non le sproporziona — a mentire lì sarebbe la posizione dell'asse, che è
      un'altra domanda e vuole un altro banco. */
-  ["var y = cy - spessO / 2, w = lunghezzaBarra(pxv(d.valore) - pxv(0), 2);",
-   "var y = cy - spessO / 2, w = lunghezzaBarra(Math.sqrt(Math.max(0, pxv(d.valore) - pxv(0))) * 6, 2);"],
+  ["var y = cy - spessO / 2, w = d.manca ? 0 : lunghezzaBarra(pxv(d.valore) - pxv(0), 2);",
+   "var y = cy - spessO / 2, w = d.manca ? 0 : lunghezzaBarra(Math.sqrt(Math.max(0, pxv(d.valore) - pxv(0))) * 6, 2);"],
   /* 5 · la stessa compressione sulle COLONNE, e non è un doppione: il motore ha
      due rami, uno per le barre orizzontali e uno per quelle verticali, e la
      riga 4 tocca solo il primo. Senza questa, i due grafici a colonne di Flotta
@@ -147,8 +147,8 @@ const DIFETTI_MOTORE = [
      controprova — cioè non sarebbe dimostrato che il banco su di loro sappia
      bocciare. È la lezione dei backtick: una controprova va misurata anche
      nella sua COPERTURA, non solo nel suo esito. */
-  ["var x = cx - spess / 2, y = pyv(d.valore), h = lunghezzaBarra(pyv(0) - y, 2);",
-   "var x = cx - spess / 2, y = pyv(d.valore), h = lunghezzaBarra(Math.sqrt(Math.max(0, pyv(0) - y)) * 6, 2);"],
+  ["var x = cx - spess / 2, y = d.manca ? pyv(0) : pyv(d.valore), h = d.manca ? 0 : lunghezzaBarra(pyv(0) - y, 2);",
+   "var x = cx - spess / 2, y = d.manca ? pyv(0) : pyv(d.valore), h = d.manca ? 0 : lunghezzaBarra(Math.sqrt(Math.max(0, pyv(0) - y)) * 6, 2);"],
 ];
 
 /* LE SCENE. Ognuna è un caso che la dimostrazione da sola non contiene. */
