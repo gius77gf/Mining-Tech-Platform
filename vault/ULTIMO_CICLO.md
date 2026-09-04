@@ -19,3 +19,14 @@ di Terra.
 
 Adesso: committare Terra, valutare i due cantieri morti dai loro diff
 (tenere solo ciò che si misura), poi proseguire.
+
+## ⛔ 21:46 UTC — crediti ESAURITI (non il limite di sessione: «out of usage credits»)
+
+I due cantieri rilanciati (Flotta tagliando col contatore, Sentinella lettura
+a più colonne) sono morti al primo passo con «You're out of usage credits».
+Sul disco restano i loro file NON committati (`apps/flotta/*`,
+`apps/sentinella/*`): non entrano finché non vengono verificati. Il
+committato è tutto pushato e verde (ultimo: la riga «anno per anno» di
+Terra, checkpoint ce08a25b). Il prossimo ciclo riparte dal checkpoint più
+recente: raccogliere o rifare quei due cantieri dai diff, tenendo solo ciò
+che si misura.
