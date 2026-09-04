@@ -3169,6 +3169,20 @@ body.dw b.bad{color:var(--ink-dg)}
         + `ci sono fermi che si accavallano sulla stessa macchina, e gli stessi giorni si contano una volta sola. `
         + `Controlla qui sotto se ${aff.sovrapposti === 1 ? "quel giorno appartiene" : "quei giorni appartengono"} davvero a due fermi diversi.`
       : "";
+    /* SCELTI E SUBÌTI (04/09): la natura si ricava dalla causale
+       (`naturaFermo`), e i «non classificati» — «altro» o una chiave che
+       l'elenco non conosce — si dicono a parte invece di finire in una delle
+       due: un fermo di cui non si sa la natura non è un fermo scelto. I giorni
+       sono la somma degli episodi, come `persi` (uno stesso giorno con due
+       fermi conta due volte qui e una sola nella disponibilità). */
+    const codaNatura = aff.episodi
+      ? ` Di questi, <b>${ggTx(aff.scelti.giorni)}</b> di fermo <b>scelto</b> (manutenzione programmata, verifiche) e `
+        + `<b>${ggTx(aff.subiti.giorni)}</b> di fermo <b>subìto</b> (guasti, gomme, attesa ricambi, operatore, meteo)`
+        + (aff.nonClassificati.episodi
+            ? `; <span class="rosso">${ggTx(aff.nonClassificati.giorni)} in ${aff.nonClassificati.episodi} ${plurale(aff.nonClassificati.episodi, "fermo", "fermi")} con causale «altro» o non riconosciuta</span>, che non si sa da che parte mettere`
+            : "")
+        + `.`
+      : "";
     $("fer-riep").innerHTML = !aff.parco
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
@@ -3184,7 +3198,7 @@ body.dw b.bad{color:var(--ink-dg)}
           + `${plurale(aff.episodi, "C'è stato", "Ci sono stati")} <b>${aff.episodi}</b> ${plurale(aff.episodi, "fermo", "fermi")}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${plurale(aff.aperti, "ancora aperto", "ancora aperti")}</span>` : plurale(aff.episodi, ", già chiuso", ", tutti già chiusi")}`
           + `, ${plurale(aff.episodi, "lungo", "lunghi")} in media <b>${ggTx(aff.durataMedia)}</b>.`
           + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
-          + codaFuori + codaSenzaDate + codaSovr;
+          + codaNatura + codaFuori + codaSenzaDate + codaSovr;
 
     // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
     // andamento — di quello non abbiamo la storia giorno per giorno — ma un

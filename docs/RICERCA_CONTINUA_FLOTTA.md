@@ -932,6 +932,11 @@ esportate); ogni «non c'è» con il comando.
 - (c) la mappa di colonne per il CSV di telemetria, condivisa con Sentinella
   in `shared/` (costo medio; misura: un CSV con colonne in altro ordine
   rientra intero, e il conto dei doppioni non cambia);
-- (d) «scelto / subìto» come attributo derivato dalla causale in
-  `affidabilitaFlotta`, con i due totali dichiarati (costo basso; misura:
-  la somma dei due è il totale di oggi, alla cifra).
+- (d) ✅ **fatta il 04/09** — «scelto / subìto» derivato dalla causale
+  (`naturaFermo`: manutenzione e verifica scelti; guasti, gomme, ricambi,
+  operatore, meteo subìti; «altro» e le chiavi sconosciute NON classificati,
+  dichiarati a parte), in `affidabilitaFlotta` come `scelti`/`subiti`/
+  `nonClassificati` con giorni ed episodi: la somma delle tre parti è `persi`
+  ed `episodi` alla cifra (prova in run-kpi). La frase dei fermi lo scrive
+  («1 giorno di fermo scelto … e 13 giorni di fermo subìto»), misurata a 320 e
+  390 senza uscire dal riquadro.

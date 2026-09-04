@@ -10498,6 +10498,34 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ok(flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "meteo") < flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "altro"), "e sta prima di «altro», che resta l'ultima voce");
     eq(new Set(flotta.CAUSALI_FERMO.map(c => c.chiave)).size, flotta.CAUSALI_FERMO.length, "chiavi tutte diverse");
   });
+  /* SCELTO O SUBÌTO (04/09, candidato (d) del delta sulla telematica): la
+     natura si ricava dalla causale, «altro» e le chiavi sconosciute non si
+     spalmano su nessuna delle due, e la somma delle tre parti è il totale. */
+  test("naturaFermo: scelto per manutenzione e verifica, subìto per il resto, null per «altro» e per chi non c'è", () => {
+    eq(flotta.naturaFermo("manutenzione"), "scelto"); eq(flotta.naturaFermo("verifica"), "scelto");
+    for (const k of ["guasto-meccanico", "guasto-idraulico", "guasto-elettrico", "gomme-cingoli", "attesa-ricambi", "operatore", "meteo"]) eq(flotta.naturaFermo(k), "subito", k);
+    eq(flotta.naturaFermo("altro"), null, "«altro» non si classifica"); eq(flotta.naturaFermo("pippo"), null); eq(flotta.naturaFermo(), null);
+    ok(flotta.CAUSALI_FERMO.every(c => c.chiave === "altro" || flotta.naturaFermo(c.chiave) !== null), "ogni causale dell'elenco, tranne «altro», ha una natura: una voce nuova senza natura finirebbe fra i non classificati in silenzio");
+  });
+  test("affidabilitaFlotta: scelti + subìti + non classificati = persi, e = episodi", () => {
+    const oggi = new Date("2026-08-30T12:00:00Z"), mezzi = [{ nome: "Pala P1" }, { nome: "Dumper D1" }];
+    const a = flotta.affidabilitaFlotta([
+      { mezzo: "Pala P1", causale: "manutenzione", inizio: "2026-08-20", fine: "2026-08-22" },
+      { mezzo: "Dumper D1", causale: "gomme-cingoli", inizio: "2026-08-25", fine: "2026-08-25" },
+      { mezzo: "Dumper D1", causale: "altro", inizio: "2026-08-27", fine: "2026-08-28" },
+      { mezzo: "Pala P1", causale: "meteo", inizio: "2026-08-10", fine: "2026-08-10" },
+      { mezzo: "Ruspa fuori parco", causale: "manutenzione", inizio: "2026-08-10", fine: "2026-08-12" },
+      { mezzo: "Pala P1", causale: "verifica", inizio: "boh", fine: "" },
+    ], mezzi, 30, oggi);
+    eq(a.scelti, { giorni: 3, episodi: 1 }, "la manutenzione di tre giorni");
+    eq(a.subiti, { giorni: 2, episodi: 2 }, "gomme e meteo, un giorno ciascuno");
+    eq(a.nonClassificati, { giorni: 2, episodi: 1 }, "«altro» per due giorni");
+    eq(a.scelti.giorni + a.subiti.giorni + a.nonClassificati.giorni, a.persi, "i giorni tornano");
+    eq(a.scelti.episodi + a.subiti.episodi + a.nonClassificati.episodi, a.episodi, "e gli episodi");
+    eq(a.fuoriParco, 1, "la ruspa fuori parco non entra in nessuna delle tre"); eq(a.senzaDate, 1, "e nemmeno il fermo senza date");
+    const v = flotta.affidabilitaFlotta([], mezzi, 30, oggi);
+    eq([v.scelti, v.subiti, v.nonClassificati], [{ giorni: 0, episodi: 0 }, { giorni: 0, episodi: 0 }, { giorni: 0, episodi: 0 }], "senza fermi tre zeri, non tre buchi");
+  });
   /* la prova «CAUSALI_FERMO esiste in DUE app e NON è la stessa cosa» stava qui:
      dal 03/09 Campo ha la stessa FORMA di Flotta ({chiave, etichetta}) e la
      prova, riscritta, vive nel blocco «Campo · le causali con chiave». */

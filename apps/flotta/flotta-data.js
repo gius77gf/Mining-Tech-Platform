@@ -2876,6 +2876,23 @@ export const CAUSALI_FERMO = [
 export function causaleFermo(chiave) {
   return CAUSALI_FERMO.find(c => c.chiave === chiave) || null;
 }
+
+/* LA NATURA DI UN FERMO: SCELTO O SUBÌTO (04/09, candidato (d) del delta
+   sulla telematica). Il mondo del mining separa i fermi decisi dal gestore
+   (manutenzione programmata, verifiche: la macchina è a posto, si è scelto di
+   fermarla) da quelli subìti (guasti, gomme, attesa ricambi, operatore che
+   manca, meteo): la disponibilità «meccanica» guarda i secondi. Qui la natura
+   si RICAVA dalla causale — non è un campo in più da compilare — e «altro» o
+   una chiave sconosciuta rispondono null: non classificato, che si dichiara
+   e non si spalma su nessuna delle due. */
+const NATURA_CAUSALE = {
+  "guasto-meccanico": "subito", "guasto-idraulico": "subito", "guasto-elettrico": "subito",
+  "gomme-cingoli": "subito", "attesa-ricambi": "subito", "operatore": "subito", "meteo": "subito",
+  "manutenzione": "scelto", "verifica": "scelto",
+};
+export function naturaFermo(chiave) {
+  return NATURA_CAUSALE[String(chiave || "")] || null;
+}
 export function etichettaCausale(chiave) {
   const c = causaleFermo(chiave);
   return c ? c.etichetta : (String(chiave || "").trim() || "Motivo non indicato");
@@ -3052,6 +3069,10 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
      un dato favorevole. Si conta a parte e si dichiara, esattamente come i
      fermi delle macchine non più nel parco. */
   let senzaDate = 0;
+  /* scelti / subìti / non classificati: la somma dei tre `giorni` è `persi`
+     e quella degli `episodi` è `episodi`, per costruzione (ogni fermo contato
+     finisce in uno solo dei tre) */
+  const natura = { scelto: { giorni: 0, episodi: 0 }, subito: { giorni: 0, episodi: 0 }, nonClassificato: { giorni: 0, episodi: 0 } };
   for (const f of fermi || []) {
     const nome = nomeBreve(f.mezzo);
     if (!nome) continue;
@@ -3062,6 +3083,8 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     const aperto = !isoGiorno(f.fine);
     if (!inParco.has(nome)) { fuoriParco++; fuoriParcoGiorni += g; continue; }
     persi += g; episodi++; if (aperto) aperti++;
+    const nat = natura[naturaFermo(f.causale) || "nonClassificato"];
+    nat.giorni += g; nat.episodi++;
     const v = perMezzo.get(nome) || { mezzo: nome, giorni: 0, episodi: 0, aperti: 0, causali: new Set(), tratti: [] };
     v.giorni += g; v.episodi++; if (aperto) v.aperti++;
     v.tratti.push(tratto);
@@ -3121,6 +3144,9 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     // quanti fermi registrati non si è potuto mettere sul calendario, e quindi
     // NON pesano su `pct`: la pagina lo scrive accanto alla percentuale
     senzaDate,
+    // i giorni (somma degli episodi, come `persi`) e gli episodi per natura:
+    // scelti + subìti + nonClassificati = persi / episodi
+    scelti: natura.scelto, subiti: natura.subito, nonClassificati: natura.nonClassificato,
   };
 }
 
