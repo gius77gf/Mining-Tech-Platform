@@ -758,3 +758,232 @@ che registra il terzo lato, commit `b110e3e1` e seguente; «Questo mese» c'è.
 Del 6 resta il promemoria, che è la decisione 20 del fondatore.)*
 *(03/09: anche il 3 è fatto. Resta la metà del 6, il «questo mese» e un
 promemoria.)*
+
+
+---
+
+## Ricerca del 2026-09-04 — la fattura elettronica differita dalle pesate (metà sul mondo)
+
+⛔ **Nessuna pagina primaria è stata letta**: ogni campo, codice, scadenza o
+regola citata in questa sezione viene da risultati di ricerca (`WebSearch`) ed
+è di **SECONDA MANO**. `WebFetch`/`curl` non sono stati usati (bloccati per
+mandato). Dove una query non ha dato un risultato utilizzabile è scritto
+«non trovato con WebSearch», mai dedotto.
+
+### Già scritto (non ripetuto qui)
+
+- `docs/RICERCA_CONTINUA_CONTI.md`, sezione del 07/08 «le parole del DDT»:
+  elementi obbligatori del DDT cartaceo (DPR 472/1996), lordo/tara/netto,
+  causale trasporto, trasporto a cura, porto, aspetto esteriore dei beni —
+  **questa ricerca non li ripete**, si occupa solo di ciò che succede DOPO,
+  quando il DDT diventa una riga della fattura elettronica.
+- `docs/MERCATO_E_CONCORRENTI.md`, riga 185: Conti genera già un file XML
+  FPR12 (funzione `xmlFatturaPA` in `conti-data.js`, dal 02/09), **scritto a
+  memoria della v1.2** e dichiarato esplicitamente da rivedere «dal controllo
+  formale del portale prima del primo invio vero» (vedi anche
+  `docs/CONTI_FATTURAZIONE_ROADMAP.md`, punto 5, Fascia 2). Questa ricerca
+  esiste per dare a quella revisione i riferimenti di seconda mano su cui
+  poggiare, non per rifare la Fascia 1-3 già decisa in quel documento (linea
+  rossa: Conti prepara, non invia né conserva — resta la scelta giusta anche
+  alla luce di quanto trovato oggi).
+- `docs/CONTI_FATTURAZIONE_ROADMAP.md` marca già come «verificare col
+  commercialista, mai automatico» il reverse charge edilizia: coerente con
+  quanto trovato oggi (blocco 2).
+
+Non risulta invece già scritto, in nessuno dei due documenti: la struttura a
+blocchi del tracciato XML nel dettaglio (DatiDDT/RiferimentoNumeroLinea,
+decimali, DatiPagamento), i codici di scarto SdI, e la distinzione
+FPA12/FPR12 e codice destinatario 6/7 caratteri.
+
+---
+
+### Blocco 1 — Lo schema FatturaPA: i blocchi obbligatori
+
+| Voce | Che cosa dice la ricerca | Fonte (fiducia) |
+|---|---|---|
+| Versione corrente | v1.2.2, in vigore dal 01/10/2022 (adeguamento specifiche tecniche 1.7.1); XSD pubblicato da fatturapa.gov.it | fatturapa.gov.it, metodo.com (alta) |
+| `DatiTrasmissione` | Blocco **sempre obbligatorio**: identifica chi trasmette, il documento, il formato, il destinatario | risultati di ricerca su fatturapa.gov.it (media — non ho letto lo XSD direttamente) |
+| `FormatoTrasmissione` | **FPA12** per fatture verso Pubblica Amministrazione, **FPR12** per fatture verso privati/B2B (compreso lo split payment B2B) | intesa.it, fatturapa.gov.it via ricerca (media) |
+| `CodiceDestinatario` | **7 caratteri** per B2B/privati (canale software/intermediario), **6 caratteri** (Codice Univoco Ufficio, CUU) per la PA; per i privati senza codice si usa **`0000000`** (sette zeri) valorizzando anche `PecDestinatario` | fiscozen.it, soluzionetasse.com, freeinvoice.it (media-alta, più fonti concordi) |
+| `CedentePrestatore` / `CessionarioCommittente` | Blocchi anagrafici standard del tracciato, presenti in ogni fattura; dettagli di obbligatorietà dei sotto-campi non confermati puntualmente dalla ricerca | fatturapa.gov.it (bassa sul dettaglio dei sotto-campi, non verificato sullo XSD) |
+| `DatiGeneraliDocumento` — `TipoDocumento` | **TD01** fattura ordinaria/immediata (emessa entro 12 giorni dall'operazione, art. 6 DPR 633/72); **TD24** fattura differita per cessioni di beni accompagnate da DDT o servizi con documentazione idonea (art. 21 c.4 lett. a DPR 633/72), emissione entro il **15 del mese successivo**, aggrega più operazioni verso lo stesso cliente | agendadigitale.eu (più articoli concordi), recivu.it, thecalcoloiva.com (alta) |
+| Sanzioni per TD01/TD24 scambiati | Segnalato che l'errore TD01↔TD24 "potrebbe non portare a sanzioni" in alcuni casi — non approfondito, citato solo per completezza | agendadigitale.eu (bassa, titolo di un solo articolo, non letto il merito) |
+| `DatiDDT` (blocco 2.1.8) | Contiene `NumeroDDT`, `DataDDT`; su una fattura differita generata da più DDT questi campi vengono **valorizzati automaticamente dal numero/data dei DDT di origine** | ReadyPro (manuale utente, help.readypro.it), winddoc.com, agendadigitale.eu (media-alta) |
+| `RiferimentoNumeroLinea` (dentro `DatiDDT`) | Numero della riga/delle righe di dettaglio fattura a cui il singolo DDT si riferisce; **se il DDT copre l'intera fattura questo campo NON va valorizzato** | fex-app.com (media) |
+| `DettaglioLinee` | `UnitaMisura` è **campo libero, non un codice fisso da tabella**: unità viste in pratica «TO, TN, T, KG, K», ma anche `mc`, `pz`, `LT`, `UTA` ecc. — nessuna evidenza di una codelist obbligatoria per gli inerti | conai.org (guida CONAI, citata via ricerca), fex-app.com (media) |
+| Decimali — `PrezzoUnitario`/quantità | Prezzo unitario e prezzo totale di riga **possono avere fino a 8 decimali** e non vanno arrotondati alla seconda cifra in questa fase; solo il **totale finale della riga** (quantità × prezzo unitario) va arrotondato a **2 decimali** | github.com/OCA/l10n-italy (issue tecnico), celdes.it, gestionaleamica.com (media — fonti tecniche/blog, non lo XSD) |
+| Regola di arrotondamento | Arrotondamento per eccesso se la terza cifra decimale è >5, per difetto altrimenti (arrotondamento "commerciale" standard) | gestionaleamica.com, ksgestionali.it (media) |
+| Sconto di riga | Il campo sconto in XML ammette **solo 2 decimali** mentre il prezzo unitario ne ammette 8: causa nota di scarti/differenze di arrotondamento quando lo sconto è calcolato con più precisione a monte | github.com/OCA/l10n-italy issue #1340 (media, riportato come "problematica comune" non come norma) |
+| `DatiPagamento` | `ModalitaPagamento` **MP05 = bonifico**; `CondizioniPagamento` **TP02 = pagamento in un'unica soluzione** (pagamento completo, non a rate) | fex-app.com, help.danea.it (media) |
+| Allegati | Non approfondito in dettaglio in questa ricerca — solo confermato che il tracciato prevede un blocco Allegati opzionale (es. per allegare copia del DDT) | winddoc.com, fattura.it (bassa, cenno) |
+
+---
+
+### Blocco 2 — Fattura differita, split payment, reverse charge, bollo
+
+- **Fattura differita (art. 21 c.4 lett. a, DPR 633/72)**: emissione entro il
+  **15 del mese successivo** a quello delle consegne; codice `TD24`; un DDT
+  (o più DDT) collegati alle righe fattura tramite `DatiDDT`. Fonte:
+  agendadigitale.eu, recivu.it (alta — più articoli concordi sulla scadenza
+  del 15).
+- **Correlazione righe DDT ↔ righe fattura**: la ricerca conferma che esiste
+  un articolo dedicato ("La correlazione tra le righe dei Documenti di
+  trasporto e le righe-articoli della fattura elettronica differita",
+  agendadigitale.eu) proprio sul caso — frequente in cava — di **più DDT per
+  fattura** e più pesate riferite allo stesso cliente/prodotto nello stesso
+  mese; il contenuto specifico dell'articolo (come si aggregano righe di DDT
+  diversi sullo stesso materiale) **non è stato letto**, solo il titolo/estratto
+  breve — fiducia bassa su questo punto specifico, media sull'esistenza del
+  problema.
+- **Caso "cliente con più cantieri/destinazioni" o "resi"**: **non trovato con
+  WebSearch** con le query usate (`"franco cava" "franco cantiere" trasporto
+  inerti causale DDT aspetto beni terminologia`, `DDT causale cantieri`); la
+  ricerca ha trovato solo la regola generale sulla causale di trasporto per
+  beni destinati a cantieri quando **non c'è passaggio di proprietà** (conto
+  lavorazione, conto visione, reso, omaggio) — non specifica per il caso
+  "stesso cliente, più cantieri, stesso mese" che interessa una cava.
+- **Split payment (PA)**: dal 2018 obbligo di indicare in fattura la dicitura
+  "operazione soggetta a scissione dei pagamenti ex art. 17-ter, comma 1-bis,
+  DPR 633/72"; si applica alle fatture verso PA. Fonte: aterbl.it, ecnews.it
+  (media — cenni, non uno studio specifico sul settore inerti/PA).
+- **Reverse charge edilizia**: **NON si applica** alla semplice cessione di
+  beni (sabbia, ghiaia, mattoni, laterizi, infissi) **anche quando comprende
+  la posa in opera**, perché l'installazione è accessoria alla cessione — si
+  applica solo a servizi/subappalti nel comparto edile (art. 17 c.6 lett. a
+  DPR 633/72). Fonte: fiscomania.com, contrino.it, odcec.torino.it (alta —
+  più fonti concordi, coerente con quanto già scritto nella roadmap Conti).
+- **Bollo virtuale**: 2 € su fatture **non soggette a IVA** (esenti, non
+  imponibili, fuori campo, regime forfettario) quando l'importo supera
+  **77,47 €**; per la fattura elettronica si valorizza il campo dedicato
+  "bollo virtuale" senza indicare l'importo in dettaglio; versamento tramite
+  F24 (codice tributo 2521) entro il 30 aprile dell'anno successivo. Per gli
+  inerti (vendita soggetta a IVA 22% ordinaria) il bollo **non dovrebbe
+  applicarsi quasi mai**, salvo casi di operazioni esenti/fuori campo che la
+  ricerca non ha individuato come tipici della cava. Fonte: fiscomania.com,
+  partitaiva.it (alta sulla regola generale, bassa sulla pertinenza al
+  settore inerti — non trovata una fonte specifica cava+bollo).
+
+---
+
+### Blocco 3 — Errori di scarto SdI più comuni
+
+| Codice | Significato (da ricerca) | Fonte / fiducia |
+|---|---|---|
+| **00404** | Fattura duplicata: stesso numero documento + progressivo di invio già presente/accettato nel cassetto fiscale (capita tipicamente quando la stessa numerazione viene usata due volte, es. un canale elettronico e uno cartaceo/email in parallelo) | cloudfinance.it, fattureincloud.it, guide.pec.it (alta — molte fonti concordi) |
+| **00423** | `PrezzoTotale` di riga non calcolato secondo le regole delle specifiche tecniche (cioè non coerente con quantità × prezzo unitario, arrotondamenti compresi) | fatturah.it, fattura24.com (media-alta) |
+| **00421** | `Imposta` non calcolata secondo le regole delle specifiche tecniche (riepilogo IVA non coerente con imponibile × aliquota) | fatturah.it (media — stesso pattern di 00423, non trovata una fonte che lo tratti in isolamento con lo stesso dettaglio) |
+| **00305** | Partita IVA del cessionario/committente non valida (non "IdFiscale" generico come ipotizzato nella domanda, ma nello specifico la P.IVA del cliente) | fatturah.it (media) |
+| **CodiceDestinatario a 6 vs 7 caratteri** | Confermato: 7 per privati/B2B, 6 per PA (Codice Univoco Ufficio); errore di lunghezza/formato è causa nota di scarto ma **non è stato trovato un codice SdI specifico dedicato solo a questo** nelle query fatte (probabile che rientri in codici più generici di formato XML, "00" iniziali, non identificati puntualmente) | fiscozen.it, freeinvoice.it (media) |
+| Come i gestionali prevengono gli scarti | La ricerca conferma in generale l'esistenza di un elenco ufficiale di codici errore SdI pubblicato dall'Agenzia (`assistenza.agenziaentrate.gov.it/.../Elenco_Codici_errore_SdI.pdf`), ma **il contenuto puntuale delle prevenzioni lato-gestionale (controllo quadratura riga, arrotondamenti, validazione formato codice destinatario) non è stato approfondito articolo per articolo** — è dedotto solo dal fatto che 00423/00421 esistono apposta per quelle quadrature, quindi un gestionale che calcola prezzo totale e imposta con le stesse regole delle specifiche tecniche (arrotondamento a 2 decimali sul totale riga, IVA su imponibile arrotondato) li evita per costruzione | agenziaentrate.gov.it (fonte del PDF ufficiale, non letto il contenuto integrale — solo il titolo/indice via ricerca) |
+
+---
+
+### Blocco 4 — Come lo fanno i gestionali di cava/pesa
+
+- **InfoMinds/Ergo**: gestionale verticale per "produttori di inerti, cave e
+  calcestruzzo" — dichiara integrazione diretta con software di pesatura
+  (cita esplicitamente "Coop. Bilanciai") e sistemi di produzione (cita
+  "Dorner"), per evitare doppia digitazione fra cantiere/impianto e ufficio;
+  flusso integrato preventivo → ordine → listino → **DDT** → **fattura**, con
+  controllo costi e statistiche di vendita. Fonte: infominds.eu (alta — sito
+  ufficiale del produttore, contenuto commerciale quindi da leggere come
+  dichiarazione del fornitore, non verifica indipendente).
+- **Vincro**: software di pesatura con gestionale per cave di inerti e
+  marmo; funzioni dichiarate: recupero peso, stampa DDT (bolla o "ticket di
+  pesata"), gestione prezzi (opzionale), gestione fatture (opzionale),
+  esportazione dati verso altre applicazioni (es. contabilità/commercialista).
+  Fonte: vincro.it (alta come fonte, stessa cautela: sito del fornitore).
+- **Zucchetti, TeamSystem, Fatture in Cloud, Aruba**: **non approfonditi in
+  questa ricerca** — le query si sono concentrate su InfoMinds e Vincro, che
+  sono i due nominati anche in `docs/MERCATO_E_CONCORRENTI.md`. Non trovato
+  con WebSearch, in questa sessione, un confronto diretto fra questi quattro
+  e la fatturazione differita da pesate nel settore inerti specificamente.
+- **Terminologia del mestiere confermata**:
+  - «fattura differita» e «fattura riepilogativa» — termini standard,
+    confermati da più fonti (agendadigitale.eu, biblus.acca.it).
+  - «DDT» — confermato termine universale.
+  - «causale di trasporto» — confermato, con gli esempi tipici (omaggio,
+    conto visione, reso, conto lavorazione) quando non c'è passaggio di
+    proprietà.
+  - «aspetto dei beni» — non ricercato di nuovo in questa sessione (già
+    coperto dalla ricerca del 07/08 su RICERCA_CONTINUA_CONTI.md).
+  - **«franco cava»**: confermato termine commerciale reale, con listini
+    prezzi pubblici che lo usano ("LISTINO PREZZI DEI MATERIALI F.CO CAVA")
+    — significa prezzo del materiale caricato su automezzo in cava, IVA
+    esclusa, **senza** le spese di trasporto fino a destinazione. Fonte:
+    pisellicave.it, gruppofranzosi.it (listini reali di cave, alta).
+  - **«franco cantiere»**: confermato termine logistico/commerciale reale —
+    il venditore/produttore si fa carico del trasporto fino al cantiere,
+    quindi il prezzo include la consegna. Fonte: francocantiere.it,
+    logisticaefficiente.it, wikipedia (porto franco) (media-alta — nessuna
+    fonte è un listino di cava che usi letteralmente questa dicitura, ma il
+    significato logistico generale è confermato da più fonti indipendenti).
+  - **Conservazione a norma 10 anni**: confermato obbligo di conservazione
+    sostitutiva per 10 anni di ogni fattura elettronica emessa/ricevuta,
+    coerente con quanto già scritto in `docs/CONTI_FATTURAZIONE_ROADMAP.md`
+    (servizio gratuito dell'Agenzia). Fonte: gtechgroup.it, fidocommercialista.it,
+    fattureincloud.it (alta — più fonti concordi sul numero di anni).
+
+---
+
+### Fonti (elenco)
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| fatturapa.gov.it (XSD e specifiche tecniche v1.2.2) | Schema ufficiale del tracciato, versione corrente | alta (fonte primaria istituzionale, ma letta solo via estratto di ricerca, non aperta direttamente) |
+| agendadigitale.eu (più articoli: TD01/TD24, correlazione DDT-righe fattura) | Regole su fattura differita, scelta del tipo documento, correlazione righe | alta |
+| recivu.it, thecalcoloiva.com | Spiegazioni divulgative TD01/TD24 | media |
+| help.readypro.it (manuale ReadyPro) | Comportamento pratico di un gestionale sul blocco DatiDDT | media-alta |
+| fex-app.com (dizionario campi FatturaPA) | Definizioni puntuali dei singoli campi XML | media |
+| github.com/OCA/l10n-italy issue #1340 | Problema tecnico reale di arrotondamento prezzo unitario/sconto | media (issue di un progetto open source, non norma) |
+| cloudfinance.it, fattureincloud.it, guide.pec.it, aiuto.libero.it | Codice errore 00404 (fattura duplicata) | alta |
+| fatturah.it | Codici 00423, 00421, 00305 | media |
+| assistenza.agenziaentrate.gov.it (PDF elenco codici errore SdI) | Fonte ufficiale dell'elenco errori, non letta integralmente | alta come fonte, bassa come lettura (solo titolo/indice) |
+| fiscozen.it, soluzionetasse.com, freeinvoice.it | Codice destinatario 6/7 caratteri, "0000000" | alta |
+| intesa.it | Differenza FPA12/FPR12 | media |
+| fiscomania.com, contrino.it, odcec.torino.it | Reverse charge edilizia escluso per cessione di beni | alta |
+| aterbl.it, ecnews.it | Split payment PA | media |
+| fiscomania.com, partitaiva.it | Bollo virtuale 2€/77,47€ | alta |
+| infominds.eu, vincro.it | Funzioni dichiarate dai gestionali di cava/pesa | alta come fonte, ma commerciale (sito del fornitore) |
+| pisellicave.it, gruppofranzosi.it | Listini reali che usano "franco cava" | alta |
+| francocantiere.it, logisticaefficiente.it, wikipedia | Significato di "franco cantiere" / porto franco | media-alta |
+| gtechgroup.it, fidocommercialista.it, fattureincloud.it | Conservazione sostitutiva 10 anni | alta |
+| conai.org (guida CONAI) | Unità di misura ammesse in UnitaMisura | media |
+
+---
+
+### Domande per il delta (sul MECCANISMO — non risposte)
+
+1. Chi, in Conti, compone oggi il blocco `DatiDDT` della fattura differita
+   (`xmlFatturaPA` in `conti-data.js`)? Da quali pesate legge `NumeroDDT` e
+   `DataDDT`, e quando una fattura raggruppa più DDT dello stesso cliente,
+   scrive un blocco `DatiDDT` per ciascuno o li comprime in uno solo?
+2. Chi decide il numero di decimali di `Quantita` e `PrezzoUnitario` scritti
+   nell'XML — è lo stesso punto che decide il netto (lordo−tara) delle
+   pesate, o una conversione separata fatta solo al momento dell'export?
+3. Chi controlla, prima di scrivere l'XML, che `PrezzoTotale` di riga sia
+   uguale a quantità × prezzo unitario arrotondato secondo la regola dei 2
+   decimali (quella che evita l'errore SdI 00423), e che l'imposta di
+   `DatiRiepilogo` sia coerente con imponibile × aliquota (errore 00421)?
+4. Chi sceglie `TipoDocumento` (TD01 vs TD24) su una fattura generata dai
+   DDT — è automatico in base al fatto che la fattura derivi da pesate, o è
+   una scelta manuale dell'utente?
+5. Chi valorizza `CodiceDestinatario`/`PecDestinatario` per un cliente senza
+   codice destinatario noto — c'è un campo in anagrafica cliente che
+   distingue "ho il codice a 7 caratteri" da "uso 0000000 + PEC", o si
+   assume sempre uno dei due?
+6. Come viene trattato oggi, se viene trattato, il caso di un cliente con
+   più cantieri/destinazioni nello stesso mese: una fattura per cantiere, o
+   una fattura sola con DDT di cantieri diversi mescolati nelle stesse
+   righe?
+7. C'è un punto in cui Conti applica o esclude il reverse charge per riga —
+   e se sì, è già coerente con "mai automatico, solo con nota per il
+   commercialista" come indicato nella roadmap, o esiste un automatismo da
+   verificare?
+8. Il bollo virtuale (2€ sopra 77,47€ su importi non IVA) ha un punto in
+   cui Conti lo calcola o lo propone, oppure — coerentemente col fatto che
+   gli inerti sono quasi sempre a IVA 22% — è semplicemente assente perché
+   il caso non si presenta mai nella pratica della cava?
+9. `UnitaMisura` nell'XML: chi decide come tradurre "t" o "m³" del listino
+   nel testo libero che va nel campo — c'è già una tabella di conversione, o
+   il valore del listino viene scritto tale e quale?
