@@ -3155,6 +3155,28 @@ label.item:has(.dw-chk:checked){
                  Stessa app, stessa fattura, due numeri. */
               v: eur(apertoDi(f, NOT)), s: f.parziale ? "residuo" : "", b: fatBadge(f),
               st: ritardo > 0 ? "st-danger" : "st-warn" })),
+      /* ⛔ LE TRE RIGHE TAGLIANO, E IL TAGLIO NASCONDE QUELLO CHE NON SI SA (04/09).
+         `prioritaIncasso` mette la fattura senza scadenza dopo quelle in ritardo:
+         giusto. Ma con quattro fatture in ritardo la quinta — quella di cui non
+         si sa entro quando — cadeva fuori dalle tre righe e dal Quadro spariva,
+         cioè l'«ordinamento tranquillo» descritto nel modulo tornava sotto forma
+         di taglio. Misurato sulla dimostrazione, che invecchiando ha portato a
+         quattro le fatture scadute. Qui, se una fattura aperta senza scadenza
+         non è fra le tre, il Quadro lo dice in una riga sua. */
+      ...(() => {
+        const tutte = prioritaIncasso(FAT, new Date(), NOT);
+        const fuori = tutte.slice(3).filter(x => x.senzaScadenza);
+        if (!fuori.length) return [];
+        const tot = fuori.reduce((t, x) => t + apertoDi(x.f, NOT), 0);
+        return [{ ico: IC.fattura,
+          t: fuori.length === 1 ? "Fattura " + fuori[0].f.numero + " — " + nomeCliente(fuori[0].f, CLI) : plur(fuori.length, "fattura aperta", "fatture aperte") + " senza scadenza",
+          /* corta: il `.meta` è tagliato a due righe, e a 320 px la frase col
+             «perché» finiva nei puntini — cioè testo morto */
+          d: fuori.length === 1
+            ? "senza scadenza: non si sa entro quando · fuori dalle tre più urgenti"
+            : "non si sa entro quando vanno incassate · fuori dalle tre più urgenti",
+          v: eur(tot), s: fuori.length === 1 ? "" : "in tutto", b: ["warn", "senza scadenza"], st: "st-warn" }];
+      })(),
       ...GAR.filter(g => g.stato === "aperta" && giorni(g.scadenza) <= 15)
             .map(g => { const gg = giorni(g.scadenza); return {
               ico: IC.gara, t: g.titolo,

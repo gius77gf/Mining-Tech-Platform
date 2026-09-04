@@ -399,17 +399,25 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
-- [ ] **BANCO `stati-non-misurati` INVECCHIATO (visto il 04/09 sera, non di
-  questi cantieri).** Lanciato per verificare la riga della garanzia di Terra:
-  4 KO su 79 — Conti «la fattura senza scadenza compare in #prio-list» e tre
-  di Sentinella su `#rep-doc` (limite senza norma, indice non calcolabile,
-  tabella incompleta). Rilanciato **identico su `6eb001ee`**, cioè prima delle
-  unità di stasera: stessi 4 KO. Quindi è il banco a essere vecchio (o il
-  report che ora chiede un periodo prima di disegnare), non il prodotto — da
-  rimisurare aprendo le quattro schermate, e poi o si aggiornano le
-  asserzioni rendendole più giuste, o si apre un cantiere sui difetti veri.
-  Terra ci passa 6/6. ⚠️ Vuole il server esterno: `python3 -m http.server
-  PORTA` e la porta come numero nudo.
+- [x] **BANCO `stati-non-misurati`: 4 KO su 79, DUE CAUSE, una del banco e una
+  del prodotto (04/09 sera).** Rilanciato identico su `6eb001ee`, quindi
+  nessuna delle unità di stasera. (1) Sentinella, tre casi su `#rep-doc`: il
+  report apre sugli **ultimi 30 giorni** e le volate della dimostrazione sono
+  di luglio, quindi la tabella delle volate — dove vivono «norma non indicata
+  sul progetto», «non calcolabile» e «non dichiarano tutti i dati» — non si
+  disegnava: il banco scrive il periodo dell'anno della dimostrazione
+  (`scrivi` su `#rep-dal`/`#rep-al`), che non invecchia con l'orologio.
+  (2) Conti, «la fattura senza scadenza compare in #prio-list»: la
+  dimostrazione invecchiando ha **quattro** fatture scadute, e la quinta —
+  senza scadenza, messa da `prioritaIncasso` dopo quelle in ritardo, com'è
+  giusto — cadeva fuori dalle tre righe del Quadro: l'«ordinamento
+  tranquillo» descritto nel modulo, tornato come **taglio**. Il Quadro adesso,
+  se una fattura aperta senza scadenza resta fuori dalle tre, la dice in una
+  riga sua («senza scadenza: non si sa entro quando · fuori dalle tre più
+  urgenti», corta perché il meta è a due righe: misurato a 320). Banco 81/81,
+  controprova che cade; resta 1 non misurato di Campo (la scena intermittente
+  già scritta in CLAUDE.md). ⚠️ Vuole il server esterno: `python3 -m
+  http.server PORTA` e la porta come numero nudo.
 - [x] **TERRA — dalla ricerca del 04/09 sera (garanzia e chiusura del lotto),
   delta fatto dal meccanismo, non dalla parola.** Tre candidati dichiarativi,
   nessun importo o termine di legge in una schermata: (1) ✅ **fatto la sera
@@ -1334,8 +1342,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `BANCO stati-non-misurati INVECCHIATO` *(4 KO su 79 già presenti prima delle
-  unità del 04/09 sera: da rimisurare)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
