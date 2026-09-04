@@ -430,3 +430,441 @@ Riassunto: **quattro esistono (1, 2, 5, 6), due mancavano (3 e 4)**, e il solo
 candidato con un valore chiaro era il **3** (il consumo del mezzo contro la sua
 stessa storia) — *fatto la sera stessa; resta il 4, dichiarato debole*. Nessuno dei numeri di settore della ricerca (l/h, 85-95 %,
 MTBF 400-600 h) va scritto nel prodotto: sono di seconda mano.
+
+
+## Ricerca del 2026-09-04 — la telematica dei mezzi e lo standard AEMP/ISO 15143-3 (metà sul mondo)
+
+⛔ **Nessuna pagina primaria è stata letta**: la rete si raggiunge solo con
+`WebSearch` (usato); `WebFetch` e `curl` restano bloccati
+(EGRESS_BLOCKED/403) e non sono stati usati. Ogni campo, formato, cadenza o
+nome di prodotto citato qui sotto viene dai **risultati di ricerca** — cioè
+da come li riassumono terzi — non dal testo dello standard ISO o dalla
+documentazione API letta di persona. Marcato `[seconda mano: dominio]` riga
+per riga.
+
+### Già scritto (non ripetuto)
+
+Questo documento ha **già** una sezione «Standard di Scambio Dati: AEMP 2.0 /
+ISO 15143-3» (righe 163-178: che cos'è, ~20 parametri, i benefici, quattro
+fonti) e una sezione «MTBF/MTTR e Calcoli di Disponibilità» (righe 134-146:
+definizioni generali, downtime cost $5-15k/h e $130k/h per asset ad alta
+produzione). La riverifica del 14/08 ha già confermato **VERA** la mancanza
+di un import AEMP in Flotta e ha già scartato «safety stock» come falsa
+mancanza. La ricerca del 02/09 ha già coperto Komtrax/VisionLink/CareTrack a
+livello di prodotto e le domande sul contatore che scende, sul rifornimento
+parziale e sulla disponibilità — con il delta già fatto lo stesso giorno da
+chi ha il codice in mano (righe 366-432): quattro risposte esistono già in
+`flotta-data.js`, due no. Questa ricerca **approfondisce** lo stesso terreno
+con il dettaglio dei campi, della cadenza, dei limiti e dei formati di
+scambio che le sezioni precedenti non avevano ancora messo a fuoco, e aggiunge
+due argomenti non ancora toccati: i **codici DTC → causale di fermo** e i
+**file CSV dei distributori di carburante** (Piusi/Gilbarco).
+
+---
+
+### 1. Lo standard ISO 15143-3 (AEMP 2.0): campi, cadenza, formato, chi lo implementa, limiti
+
+**Che cos'è e chi lo implementa** [seconda mano: forconstructionpros.com,
+digital.cat.com, autopi.io]: AEMP 2.0 è stato formalizzato come **ISO
+15143-3:2020**, un protocollo a web service (JSON e XML) per lo scambio di
+dati telemetrici di macchine da cantiere/cava fra portali OEM diversi e
+sistemi di fleet management terzi, così da evitare un connettore proprietario
+per ogni marca. Elenco di produttori che lo supportano, citato da un unico
+articolo di settore: **Bomag, Cat, Dynapac, HAMM, Hitachi, Huppenkothen,
+Hyundai, JCB, John Deere, Kobelco, Komatsu, Liebherr, Sennebogen, Takeuchi,
+Vögele, Volvo, Wacker Neuson, Wirtgen Group, Zeppelin**
+[seconda mano: forconstructionpros.com]. Caterpillar (VisionLink) è citato
+come uno dei primi ad aver esteso l'integrazione mixed-fleet allo standard
+ISO oltre al proprio AEMP 1.0 [seconda mano: forconstructionpros.com,
+digital.cat.com]. Non trovato con WebSearch un elenco ufficiale e completo
+delle marche conformi mantenuto da AEMP/ISO stessa — l'elenco sopra viene da
+un solo articolo secondario, non dallo standard.
+
+**Campi esposti**: la cifra ricorrente in più fonti indipendenti è **~20
+parametri comuni** [seconda mano: autopi.io, flespi.com, trackunit.com]:
+identificazione asset (equipmentHeader), ultima posizione nota, ore operative
+cumulate (cumulative operating hours = ore motore totali da vita macchina),
+ore idle cumulate (cumulative idle/nonoperating hours — motore acceso, mezzo
+fermo, nessun comando azionato — espresse con coppia data-ora + valore
+cumulato) [seconda mano: digital.cat.com — CAT ISO 15143-3 API Developer
+Guide, come riassunto nei risultati], consumo carburante cumulato, consumo
+carburante nelle 24h, livello/percentuale carburante residuo e capienza
+serbatoio, distanza percorsa cumulata, temperature motore, stato motore
+acceso/spento, percentuale di potenza media, DEF (citato solo genericamente
+come «fuel/DEF» in un riassunto di seconda mano, senza il nome esatto del
+campo) [seconda mano: geoforce.com — riassunto llms.geoforce.com]. Un
+articolo cita esplicitamente **cinque parametri primari minimi** che ogni
+fleet mixed-brand dovrebbe ingerire, ma non ne elenca i nomi nel testo
+ripreso dalla ricerca [seconda mano: forconstructionpros.com — non è stato
+possibile leggere quali sono i cinque, solo che il numero è cinque]. Codici
+di guasto: citati come parte del payload nei riassunti generali («fault
+codes», «engine fault codes») ma senza un campo AEMP dedicato nominato nei
+risultati — probabile che restino nell'area **proprietaria** del singolo OEM,
+non nello standard stesso (si veda sotto).
+
+**Cadenza/latenza**: John Deere raccomanda un polling **non più frequente di
+un'ora**, perché la propria cache è oraria; alcuni endpoint di posizione
+hanno un refresh di **2 ore**, e poiché il dato viene tirato dal provider «a
+sprazzi» un ingresso/uscita da una geofence può arrivare in ritardo o non
+arrivare affatto [seconda mano: llms.geoforce.com]. Non trovato con WebSearch
+un numero di cadenza unico dichiarato dallo standard stesso (sembra lasciato
+al singolo OEM/endpoint).
+
+**Formato**: JSON e XML via web service/API REST — descritto così in tre
+fonti indipendenti [seconda mano: autopi.io, trackunit.com, digital.cat.com].
+
+**Limiti noti**:
+- **Dati proprietari fuori standard**: Caterpillar stessa consiglia il
+  prodotto «ISO API» solo per i casi d'uso di base e il prodotto «VisionLink
+  API» proprietario a chi vuole dati più ricchi — cioè l'OEM ammette che lo
+  standard è un sottoinsieme del proprio dato completo [seconda mano:
+  digital.cat.com — FAQ ISO 15143-3 riassunte]. Un'altra fonte generalizza:
+  «alcuni produttori forniscono dati che non rispettano AEMP 2.0, oppure non
+  offrono telematica OEM-integrata, oppure usano dispositivi vecchi senza
+  telematica installata» [seconda mano: llms.geoforce.com].
+- **Mezzi vecchi senza telematica**: una stima ricorrente in più fonti dello
+  stesso vociferatore (fleetrabbit.com, più fonti aggregate da geotab.com/
+  gminsights.com) dice che il **40-60%** del parco cantiere/cava pre-2015 non
+  ha telematica di fabbrica, e che l'hardware OEM copre l'**85-95%** delle
+  macchine **nuove** consegnate contro il 25-40% del parco esistente coperto
+  da piattaforme aftermarket [seconda mano: gminsights.com/fleetrabbit.com —
+  stessa famiglia di cifre ripetuta su più articoli dello stesso fornitore,
+  quindi bassa indipendenza delle fonti]. La soluzione citata per colmare il
+  buco è il **retrofit aftermarket** (dispositivo GPS/CAN universale con
+  cablaggio dedicato) [seconda mano: fleetrabbit.com, boschservicesolutions.com].
+- **Perforatrici (Epiroc/Sandvik)**: Epiroc InSite dichiara di integrarsi «via
+  API AEMP standardizzata (ISO 15143-3)» per gli attrezzi/attacchi idraulici
+  [seconda mano: epiroc.com]; Sandvik offre «My Sandvik OnSite», una
+  soluzione **on-premise** che lavora su rete locale e si integra in qualsiasi
+  sistema di mining di superficie — non è chiaro dai risultati se esponga
+  AEMP o solo un'API proprietaria [seconda mano: mining.sandvik]. Un
+  fornitore terzo (FleetRabbit) dichiara di ingerire codici guasto da Epiroc,
+  Sandvik, Atlas Copco e Komatsu Mining «convertendo i codici grezzi in
+  alert in linguaggio semplice» — ma questo è il fornitore terzo che parla di
+  sé, non una conferma che quegli OEM espongano AEMP nativamente [seconda
+  mano: fleetrabbit.com].
+
+**Fiducia complessiva su questo blocco**: **media**. Lo scheletro (che cos'è,
+~20 campi, JSON/XML, elenco larga di OEM aderenti) è confermato da più fonti
+indipendenti; i nomi esatti dei singoli campi, la cadenza di ogni singolo
+OEM e la lista dei «cinque parametri primari» **non sono stati letti alla
+fonte primaria** — solo riassunti da articoli terzi.
+
+---
+
+### 2. I contatori: contatore che scende, ore motore/lavoro/folle, CMMS e dati mancanti
+
+**Contatore che scende o salta**: un forum di rivenditori (non uno studio,
+ma citato con un numero) riporta che «il 5-8% delle macchine usate mostra
+una discrepanza fra il contachilometri al cruscotto e il log dell'ECM»,
+segno che la manipolazione del contaore è un problema noto nel settore
+[seconda mano: heavydutyyard.com, citato in un thread di forum specialistico
+tractorbynet.com]. Sulla **sostituzione di centralina/quadro strumenti**: più
+fonti aneddotiche (forum tecnici, non documentazione OEM) concordano che
+quando si sostituisce l'ECM o il quadro il tecnico *dovrebbe* reimpostare le
+ore corrette al momento dell'installazione, ma «questo non sempre avviene
+come previsto», e il contatore può ripartire da zero [seconda mano:
+newagtalk.com, planetnautique.com — fonti aneddotiche di settore agricolo/
+nautico, non specifiche mining]. Non trovato con WebSearch un documento
+ufficiale di un OEM da cava (Komatsu/Cat/Volvo) che descriva la propria
+**procedura interna** di riconciliazione ore dopo un reset di centralina:
+quello che emerge sono casi singoli raccontati da rivenditori, non una
+policy dichiarata.
+Il caso concreto più citato (Komtrax, presentato come il primo sistema
+telematico di serie del settore dal 2007): un cliente ha fatto tirare un
+report Komtrax e ha scoperto che il cruscotto segnava 5.100 ore — le stesse
+5.100 ore registrate da Komtrax **due anni prima** — mentre l'ECM corrente
+segnava 8.400 ore: cioè il contatore fisico era stato sostituito/azzerato e
+il portale telematico, conservando lo storico lato server, ha permesso di
+vedere il salto **all'indietro** che il solo contaore meccanico non
+mostrava [seconda mano: heavydutyyard.com]. Non è chiaro dai risultati se il
+portale Komtrax segnali *da solo* l'anomalia (un avviso automatico) o se
+serva che qualcuno lo confronti a mano, come nell'esempio.
+
+**Distinzione ore motore / ore lavoro / ore folle** [seconda mano: gethapn.com,
+superkilometerfilter.com, matrackinc.com — riassunti concordi]:
+- **Ore motore (engine hours)**: tempo totale col motore acceso, **comprese**
+  le ore di idle — è il dato di base che il contaore fisico registra.
+- **Ore folle (idle hours)**: motore acceso, mezzo fermo, nessuna funzione
+  azionata (niente pala, niente martello). Bruciano gasolio e «consumano»
+  intervalli di manutenzione senza produrre usura da lavoro. Due cifre di
+  settore citate: Volvo CE dichiara una media di **28-30%** di tempo idle
+  sulle grandi flotte cantiere, Komatsu **38%** su circa 75.000 macchine
+  Nord America [seconda mano: superkilometerfilter.com — numeri di secondo
+  livello, attribuiti agli OEM ma non letti sul documento OEM originale].
+- **Ore lavoro (working hours)**: ricavate per **sottrazione** — ore motore
+  meno ore idle riportate dal telematico — non sono un contatore fisico a sé
+  [seconda mano: gethapn.com].
+- La percentuale di idle è definita come ore idle / ore motore totali
+  riportate dal telematico [seconda mano: superkilometerfilter.com].
+
+**Come un CMMS (Fiix, UpKeep, MaintainX) tratta la manutenzione a ore e i
+dati mancanti** [seconda mano: fiixsoftware.com, mpulsesoftware.com,
+f7i.ai — riassunti concordi]: la manutenzione «a contatore» richiede
+un'azione in più rispetto a quella a calendario (bisogna che qualcuno o
+qualcosa legga il contatore) e scatta quando la lettura supera una soglia
+configurata (Fiix la chiama «meter trigger»). Il punto esplicito trovato più
+volte, sempre in forma di principio e non di funzione precisa: **«una
+lettura vecchia trattata come fresca è peggio di nessuna lettura, perché può
+sopprimere un ordine di lavoro che sarebbe dovuto scattare»**, e **«quando un
+sensore tace, il CMMS dovrebbe segnalare il buco invece di portare avanti in
+silenzio l'ultima lettura nota come se fosse attuale»** [seconda mano:
+riassunto aggregato attribuito a guide UpKeep/Fiix — non è stato possibile
+leggere quale prodotto specifico implementi questo comportamento di default
+e quale invece lo lasci come lettura ferma]. Non trovato con WebSearch un
+numero concreto («dopo N giorni senza lettura il sistema segnala X»): il
+principio è dichiarato, la soglia non è pubblica nei risultati.
+
+**Fleetio/Samsara/Geotab**: il flusso dichiarato è che Fleetio ingerisce
+contaore/odometro **quotidianamente** dai device telematici (in alcuni casi
+più spesso) così che i promemoria di servizio restino accurati, con
+diagnostica/DTC e dati DVIR sincronizzati automaticamente da Samsara o
+Geotab per far scattare gli ordini di lavoro «sull'uso reale invece che
+sulla stima a calendario» [seconda mano: fleetio.com/samsara.com, riassunti
+aggregati da fleetopsclub.com e oxmaint.com]. Non trovato con WebSearch il
+comportamento esplicito di Fleetio quando l'integrazione telematica smette
+di mandare letture per più giorni (fallback a manuale? sospensione del
+piano? nessuna fonte lo descrive).
+
+**Fiducia**: **media** sullo scheletro (distinzione ore, principio del dato
+mancante nel CMMS); **bassa** sui numeri isolati (5-8% discrepanza, 28-38%
+idle) perché vengono da singole fonti aggregatrici, non da un ente terzo
+indipendente o dal documento OEM originale.
+
+---
+
+### 3. Fermi e codici guasto: da DTC a causale, KPI mining (GMG)
+
+**Da DTC a fermo con causale**: i risultati confermano *che cosa è* un DTC
+(codice generato dalla centralina di bordo per segnalare un malfunzionamento,
+usato per decidere l'intervento e ridurre il fermo) ma **non è stata
+trovata con WebSearch** una fonte che descriva il meccanismo tecnico preciso
+di **mappatura** da un codice SPN/FMI (SAE J1939) o proprietario a una
+causale di fermo testuale nel software di flotta: query dedicata
+`"diagnostic trouble code" "downtime event" "reason code" mapping mining
+fleet` → risultati generici sui DTC (Motive, Verizon Connect, Datatruck,
+Linxup) senza descrivere la tabella di corrispondenza. È plausibile che ogni
+fornitore mining (FleetRabbit citato) traduca i codici in «alert plain
+language con azione raccomandata» internamente, ma il **come** (tabella
+statica per codice, per famiglia di codice, o intervento umano) non è
+descritto nei risultati [seconda mano: fleetrabbit.com — dichiarazione di
+prodotto, non un meccanismo].
+
+**Causali standard nel mining** [seconda mano: heavyvehicleinspection.com,
+miningdoc.tech, wjarr.com — sommari concordi ma nessuno con un elenco
+codificato ufficiale]: le famiglie di causale ricorrenti citate per il
+mining truck-and-shovel sono **guasto meccanico** (motore, idraulico,
+gomme, GET/denti benna, argano, perni, pompe, elettrico), **gomme/pneumatici**
+(citate anche a sé per quanto pesano — condizioni fangose le danneggiano
+rapidamente), **meteo** (condizioni avverse che fermano carico/trasporto o
+impongono fermate di sicurezza), **attesa ricambio** (i ritardi di consegna
+si aggravano proprio col meteo avverso, secondo la stessa fonte). Non
+citate esplicitamente nei risultati: «mancanza operatore» e «fermo
+programmato» come voci di un elenco standard — sono categorie plausibili
+per analogia ma **non trovate con WebSearch** come causali nominate in una
+fonte mining. Una fonte generica (non mining-specifica) raccomanda una
+**tassonomia di 15-25 codici massimo**, allineati ai modi di guasto e ai
+vincoli operativi, motivando che senza codici standard si hanno
+«categorizzazione incoerente fra turni, codici generici, inserimenti tardivi
+o mancanti, nessuna possibilità di analizzare il trend dei modi di guasto»
+[seconda mano: fonte non nominata esplicitamente nel riassunto, dominio
+generico fleet/CMMS].
+
+**GMG — Global Mining Guidelines Group**: esiste una **«Guideline for a
+Standardized Time Classification Framework for Mobile Equipment in Surface
+Mining»** (pubblicata, versione citata nei risultati come del 2020, con un
+PDF ospitato su gmggroup.org) che definisce un **Time Usage Model** con
+categorie standard [seconda mano: gmggroup.org, im-mining.com,
+me.smenet.org]:
+- **Operating Standby (SB)**: il mezzo è disponibile ma non sta operando, e
+  non c'è intenzione immediata di farlo operare per una decisione di
+  gestione (sotto il controllo del management).
+- **External Standby**: il mezzo è disponibile, richiesto e assegnato a un
+  progetto/sito, ma non può essere operato per ragioni **fuori** dal
+  controllo immediato del management operativo.
+- **Operating Delay (OD)**: il mezzo sta operando ma è temporaneamente
+  fermato/impedito da ritardi inerenti all'operazione stessa o alle
+  condizioni fisiche/ambientali immediate.
+- **Manutenzione (programmata/non programmata)**: la fonte dichiara
+  esplicitamente che al momento della pubblicazione c'era **poco consenso**
+  su come classificarla, e serve ulteriore collaborazione prima di poterla
+  includere in un modo utile al benchmarking fra aziende [seconda mano:
+  im-mining.com — dichiarazione esplicita del limite dello standard stesso,
+  non una nostra deduzione].
+Il Time Usage Model è descritto come lo strumento con cui le aziende minerarie
+catturano il tempo operativo complessivo e il fermo, per misurare e tracciare
+la performance [seconda mano: connectedmine.com.au].
+
+**MTBF/MTTR — definizioni generali** (non è stata trovata la definizione
+testuale precisa **del documento GMG**, solo definizioni di settore generico
+ripetute in più fonti non mining-specifiche) [seconda mano: firgelliauto.com,
+checkproof.com]: **MTBF** = tempo medio fra un guasto e l'altro di un modulo
+hardware, tipicamente una stima del produttore prima che si verifichi un
+guasto; **MTTR** = tempo medio per riportare un asset alla piena operatività
+dopo un guasto non pianificato, dal momento in cui il mezzo si ferma al
+momento in cui torna in servizio in sicurezza — cioè l'intero ciclo di
+riparazione, non solo la mano d'opera attiva. **Disponibilità** = MTBF /
+(MTBF + MTTR), oppure uptime/(uptime+downtime) [già in questo documento,
+righe 134-146 e 332-333]. Non trovato con WebSearch il testo esatto delle
+definizioni GMG di MTBF/MTTR — il PDF esiste (`gmggroup.org/wp-content/
+uploads/2024/07/20200713_Time_Classification_Framework...pdf`) ma non è
+stato letto (WebFetch bloccato): quello che precede è la definizione
+**generica** di ingegneria affidabilistica, non necessariamente quella che
+il GMG adotta parola per parola.
+
+**Fiducia**: **bassa** sulla mappatura DTC→causale (non trovata una fonte
+diretta); **media** sulle famiglie di causale mining (concordi fra più fonti
+ma nessun elenco codificato ufficiale); **media** sul Time Usage Model GMG
+(fonte primaria esiste e citata da terzi, ma non letta di persona);
+**bassa** sul testo esatto delle definizioni GMG di MTBF/MTTR (probabile che
+il GMG non usi affatto quei due acronimi, dato che il framework parla di
+categorie di tempo, non di tassi di guasto — questo è dedotto dalla
+struttura del documento come riassunta, non confermato).
+
+---
+
+### 4. File di scambio semplici: CSV OEM, distributori di carburante, vocabolario italiano
+
+**CSV esportati dai portali OEM** [seconda mano: help.myvisionlink.com,
+riassunti aggregati]: VisionLink permette di scaricare o pianificare report
+via email in **CSV, XLSX, JSON e XML**, con cadenza una tantum o
+schedulata (giornaliera/settimanale/mensile). Le colonne tipiche citate nei
+riassunti, senza un elenco ufficiale di intestazioni: **ore operative, ore
+idle, posizione, codici guasto motore, segnalazioni di manutenzione, letture
+carburante e DEF, livello carburante, utilizzo complessivo**. Non trovato
+con WebSearch l'elenco letterale delle intestazioni di colonna di un CSV
+VisionLink o Komtrax reale (serve accedere al pannello amministratore o al
+supporto Caterpillar/Komatsu, dicono le stesse fonti secondarie) — quindi
+qui non si può scrivere un nome di colonna con fiducia alta.
+
+**Distributori di carburante (Piusi, Gilbarco)**:
+- **Piusi** (serie Cube/Self Service Management «Agilis»): il software
+  esporta in **.pdf, .xlsx o .txt**; la memoria locale del dispositivo tiene
+  le ultime **255 erogazioni**, esportabili e organizzabili via interfaccia
+  PC; il report può essere stampato/riepilogato **per utente**, e nel
+  sistema si può inserire codice mezzo, chilometraggio, data e ora
+  dell'erogazione [seconda mano: piusi.com, centretank.com]. Non trovato
+  con WebSearch un elenco letterale delle colonne del file **.txt/.csv** di
+  Piusi (nomi di campo esatti) — solo che i campi *contengono* mezzo, km,
+  data/ora.
+- **Gilbarco/Gasboy**: il sistema di identificazione automatica del veicolo
+  (AVI) combina letture di **odometro e ore motore** per monitorare il
+  consumo, programmare la manutenzione e controllare il chilometraggio;
+  **DataFLEX360** genera report periodici personalizzati per contabilità,
+  budget e gestione operativa [seconda mano: gilbarco.com]. Non trovato con
+  WebSearch il formato file o le colonne esatte dell'export DataFLEX360 —
+  solo la sua funzione dichiarata.
+- **Limite comune dichiarato dalla ricerca stessa**: nessuna delle due fonti
+  OEM (Piusi, Gilbarco) pubblica online un fac-simile o uno schema delle
+  colonne del proprio file di export; l'informazione disponibile via
+  `WebSearch` descrive **che cosa il sistema fa**, non **come è fatto il
+  file** — un limite dello strumento di ricerca su questo punto specifico,
+  non un'assenza nel mondo.
+
+**Vocabolario italiano del mestiere** — non è stata trovata una fonte che
+elenchi le parole insieme come glossario; sono confermate una per una nei
+risultati sparsi già citati sopra e in ricerche precedenti di questo
+documento:
+- **contaore**: presente nei forum tecnici italiani come sinonimo di
+  «hour meter» — non citato in una fonte di settore mining con questa
+  ricerca, ma è il termine corrente (dedotto dall'uso comune, non da una
+  fonte trovata oggi).
+- **erogazione**: usato nei materiali Piusi stessi («erogazioni») per
+  indicare un singolo rifornimento registrato dal distributore [seconda
+  mano: piusi.com].
+- **disponibilità meccanica / utilizzo**: confermati come termini italiani
+  correnti in ambito OEE/manutenzione industriale, con **utilizzo lordo**
+  (tempo macchina accesa / tempo totale disponibile) e **utilizzo netto**
+  (tempo di produzione effettiva / tempo totale disponibile) come due
+  varianti distinte [seconda mano: bravomanufacturing.it, cyberplan.it —
+  fonti di manutenzione industriale generica, non specifiche cava/mining;
+  non è stato confermato se il mining italiano usa la stessa distinzione
+  lordo/netto o una propria].
+- **fermo, causale, tagliando, intervento**: confermati come termini
+  correnti nei siti italiani di CMMS generico (Mainsim, Bravo Manufacturing)
+  ma, di nuovo, non specifici del settore cava — «tagliando» in particolare
+  è terminologia automotive/officina, non è stata trovata una fonte che
+  confermi il suo uso in un contesto **mining/cava** italiano specificamente
+  (è ragionevole per prossimità lessicale, ma resta una supposizione non
+  verificata con questa ricerca).
+
+**Fiducia**: **bassa** su tutto questo blocco. Il tipo di file (CSV, XLSX,
+TXT) e la funzione dei sistemi sono confermati da fonti dirette OEM
+(piusi.com, gilbarco.com); le **colonne esatte** e il **vocabolario italiano
+mining-specifico** non sono stati trovati con `WebSearch` — sono o dedotti
+per prossimità o assenti.
+
+---
+
+### Fonti
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| [digital.cat.com — ISO 15143-3 (AEMP 2.0) API Developer Guide](https://digital.cat.com/knowledge-hub/articles/iso-15143-3-aemp-20-api-developer-guide) | Campi (idle cumulato, fuel remaining), Cat consiglia prodotto proprietario per dati ricchi | media |
+| [digital.cat.com — ISO 15143-3 (AEMP 2.0) API FAQs](https://digital.cat.com/knowledge-hub/faq/iso-15143-3-aemp-20-api-faqs) | Cache oraria, refresh posizione 2h, limiti di conformità di alcuni OEM | media |
+| [trackunit.com — Everything you should know about ISO 15143-3](https://trackunit.com/articles/benefits-from-iso-15143-4/) | Standard aperto, ~20 parametri | media |
+| [autopi.io — AEMP 2.0 Explained](https://www.autopi.io/blog/what-is-aemp-telematics-standard/) | JSON/XML, benefici mixed-fleet | media |
+| [flespi.com — AEMP protocol parser](https://flespi.com/protocols/aemp) | Campi timeseries (idle, fuel remaining ratio) | media |
+| [llms.geoforce.com — AEMP/ISO 15143-3 mixed-fleet ingestion](https://llms.geoforce.com/aemp-iso-15143-3-mixed-fleet-ingestion) | Cadenza Deere oraria, limiti di conformità OEM, elenco campi | media |
+| [forconstructionpros.com — Cat VisionLink AEMP 2.0](https://www.forconstructionpros.com/construction-technology/equipment-monitoring-logistics/news/12316218/caterpillar-visionlink-improves-mixedfleet-integration-with-aemp-20-telematics-standard) | Elenco OEM aderenti, 5 parametri primari (non nominati) | bassa (fonte unica per l'elenco OEM) |
+| [epiroc.com — Introducing Epiroc InSite](https://www.epiroc.com/en-us/newsroom/2025/insite) | InSite si integra via API AEMP standardizzata | media |
+| [mining.sandvik — My Sandvik digital services](https://www.mining.sandvik/en/digital-solutions/operations-and-connected-fleet/sandvik-telemetry/) | My Sandvik OnSite, soluzione on-premise di rete locale | bassa (non conferma AEMP) |
+| [fleetrabbit.com — Best Mining Drill Rig Maintenance Software](https://fleetrabbit.com/industry/mining-fleet-software/best-mining-drill-rig-maintenance-software-blasthole-drilling-2026) | Ingestione fault code da Epiroc/Sandvik/Atlas Copco/Komatsu Mining | bassa (fornitore terzo che parla di sé) |
+| [gminsights.com — Construction Equipment Telematics Market](https://www.gminsights.com/industry-analysis/construction-equipment-telematics-market) | 40-60% parco pre-2015 senza telematica, 85-95% copertura OEM su nuovo | bassa (cifra di mercato aggregata) |
+| [heavydutyyard.com — How Accurate Are Equipment Hour Meters](https://www.heavydutyyard.com/blog/hour-meter-guide) | 5-8% discrepanza cruscotto/ECM; caso Komtrax 5.100 vs 8.400 ore | bassa (fonte aggregatrice, casi aneddotici) |
+| [gethapn.com — Engine Hours vs. Odometer Maintenance Scheduling](https://gethapn.com/blog/engine-hours-vs-odometer-maintenance/) | Working hours = ore motore − ore idle | media |
+| [superkilometerfilter.com — Engine Hours vs Idle Hours](https://superkilometerfilter.com/engine-hours-vs-idle-hours-and-how-they-affect-your-vehicle/) | Definizioni idle/engine hours; 28-30% Volvo, 38% Komatsu idle medio | bassa (cifre di secondo livello) |
+| [fiixsoftware.com — What is Meter Based Maintenance](https://fiixsoftware.com/glossary/meter-based-maintenance/) | Meccanismo trigger a contatore | media |
+| [mpulsesoftware.com — Automated Meter Readings](https://mpulsesoftware.com/blog/cmms/automated-meter-readings/) | Principio: lettura vecchia trattata come fresca è peggio di nessuna lettura | media |
+| [fleetio.com — Fleet Integrations](https://www.fleetio.com/solutions/integrations) | Sync giornaliero contaore da Samsara/Geotab | media |
+| [gmggroup.org — Standardized Time Classification Framework PDF](https://gmggroup.org/wp-content/uploads/2024/07/20200713_Time_Classification_Framework-GMG-DAU-v01-r01-1.pdf) | Documento primario del Time Usage Model — **non letto**, solo citato da terzi | media (esistenza confermata, contenuto di seconda mano) |
+| [im-mining.com — GMG publishes time classification framework](https://im-mining.com/2020/09/01/gmg-publishes-standardised-time-classification-framework-mobile-equipment-surface-mining/) | Categorie SB/External Standby/OD, «poco consenso» su manutenzione | media |
+| [connectedmine.com.au — The Time Usage Model](https://connectedmine.com.au/content-hub/the-time-usage-model-a-pillar-in-mining-analytics) | Time Usage Model come strumento operativo | media |
+| [checkproof.com — How OEE, MTBF & MTTR Help Reduce Downtime](https://www.checkproof.com/blog/predictive-maintenance/downtime-reduction-how-oee-mtbf-mttr-help-you-stay-ahead/) | Definizione generica MTTR (ciclo intero, non solo mano d'opera) | bassa (non mining-specifica) |
+| [heavyvehicleinspection.com — Predictive Maintenance for Mining Equipment](https://heavyvehicleinspection.com/blog/post/predictive-maintenance-mining-equipment-guide) | Famiglie di guasto meccanico truck-and-shovel (motore, idraulico, gomme, GET) | media |
+| [miningdoc.tech — common causes of unplanned downtime](https://www.miningdoc.tech/question/what-are-the-common-causes-of-unplanned-downtime-in-a-truck-and-shovel-operation-and-how-are-they-minimized/) | Meteo e ritardo ricambi collegati | media |
+| [help.myvisionlink.com — Generating reports](https://help.myvisionlink.com/en_US/Content/Generating_reports.htm) | Export CSV/XLSX/JSON/XML schedulato | media |
+| [piusi.com — Cube MC 2.0](https://www.piusi.com/usa/products/cube-mc-2-0) | Export .pdf/.xlsx/.txt, 255 erogazioni in memoria locale | media |
+| [gilbarco.com — Automatic Vehicle Identification](https://www.gilbarco.com/mea/our-solutions/payment-solutions/automatic-vehicle-identification) | AVI combina odometro + ore motore; DataFLEX360 per report | media |
+| [bravomanufacturing.it — Indicatori di efficienza OEE](https://www.bravomanufacturing.it/kpi-di-efficienza/) | Utilizzo lordo vs netto, formule italiane | media |
+
+---
+
+### Domande per il delta (sul meccanismo — nessuna risposta qui)
+
+1. Chi, in Flotta, decide che una lettura del contatore ore è **scesa** o
+   incongruente rispetto alla precedente, e quella decisione distingue fra
+   «errore di battitura», «sostituzione di centralina/reset» e «guasto del
+   sensore»? Oggi `validaRifornimento` la rifiuta prima di salvare: la
+   rifiuta e basta, o registra da qualche parte *che* è stata rifiutata,
+   distinguibile da un rifornimento mai inserito?
+2. Flotta distingue ore motore, ore lavoro e ore folle da qualche parte, o
+   il contatore che riceve è **un solo numero** (ore motore) senza la
+   possibilità di sapere quanta parte è stata a vuoto? Se un domani arrivasse
+   un dato di idle (da un CSV OEM o da un contatore aggiuntivo), che
+   funzione lo riceverebbe e come cambierebbe `ritmoOreMezzi`/
+   `consumoPerMezzo`?
+3. Chi decide, oggi, la **causale** di un fermo in `fermi` — è un campo
+   libero compilato da chi registra, o un elenco chiuso di valori? Se
+   chiuso, quali sono le voci, e coprono le famiglie che il mondo usa
+   (meccanico, gomme, attesa ricambio, meteo, mancanza operatore, fermo
+   programmato) o ne mancano/ne avanzano?
+4. `analisiDisponibilita`/`affidabilitaFlotta` — la distinzione GMG fra
+   «Operating Standby» (fermo per decisione del management) ed «External
+   Standby» (fermo per cause fuori dal controllo del management) esiste già
+   nei dati di `fermi`, magari sotto un altro nome, o Flotta oggi calcola un
+   fermo unico senza questa distinzione? E se un domani arrivasse un fermo
+   da telematica (senza causale umana, solo un codice guasto), che campo lo
+   accoglierebbe?
+5. Oggi Flotta riceve carburante e ore **a mano o da CSV**: quel CSV, che
+   forma ha? Se domani arrivasse un file di export di un distributore
+   (Piusi/Gilbarco) o di un portale OEM (VisionLink/Komtrax), quale funzione
+   esistente (`leggiCsv`, `parseCsvLine`) lo leggerebbe, e le sue colonne
+   combaciano già con quello che un distributore vero esporta o servirebbe
+   un mapping?
+6. Il principio del fondatore («assenza di un dato non è un dato
+   favorevole») — se domani mancasse la lettura del contatore per *giorni*
+   (mezzo telematico offline, non solo un rifornimento saltato), quale
+   funzione se ne accorgerebbe oggi, e quella funzione lo dichiarerebbe come
+   «non misurato» o lo lascerebbe scorrere silenziosamente nell'ultima
+   lettura nota?
