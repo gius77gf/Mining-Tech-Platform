@@ -3799,6 +3799,20 @@ numero scritto dove non era stato misurato niente**.*
   il guscio dell'accesso. ⏱️ **Cantiere da aprire sul banco, non sul core**:
   `tendine-nelle-finestre` e `barra-alto-indietro` sul core non misurano
   niente da (almeno) ieri, e lo DICHIARANO — che è la forma buona.
+  ✅ **E IL CANTIERE SUL BANCO È CHIUSO LO STESSO GIORNO, CON UNA CAUSA CHE
+  NESSUNA LETTURA AVREBBE TROVATO: IL SERVICE WORKER DEL CORE.** Misurato con
+  una sonda datata: il reload di `accediAlCore` finisce in 72-98 ms, ma la
+  rotta di Playwright su `index.html` viene colpita **una volta sola** — al
+  reload la pagina la serve `sw.js` dalla sua cache (cache-first sull'app
+  shell), cioè il core VERO, senza porticina e senza il finto Firestore che
+  rifiuta; e sul guscio ogni `fill`/`click` aspettava 30 s → 31 s × 10
+  tentativi = un quarto d'ora prima del `TypeError`. Cura: contesto del core
+  con `serviceWorkers:'block'` (rotta colpita due volte, dentro in 6,7 s),
+  guardia che DICHIARA il guscio invece di morire, timeout di 5 s sui
+  tentativi. Dopo: `tendine-nelle-finestre --solo=core` **70 finestre aperte,
+  57 voci misurate** (prima: 0), `barra-alto-indietro` 10 barre, 0 da
+  guardare; controprova nei due versi (9/9). ⚠️ Vale per Genesi il giorno in
+  cui un banco la ricaricherà: registra un SW anche lei.
   I 20 KO del 09/08 non esistono più come lista: le due famiglie (tendine
   tagliate, Sentinella/Campo) sono chiuse o «aspettano il fondatore» qui
   sopra; il runner non prende più `--solo=` per la porta (812c04c2).
