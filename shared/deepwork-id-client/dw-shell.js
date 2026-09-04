@@ -541,7 +541,7 @@ export const CSV_TABELLE = [
   { id: "sentinella.tarature", app: "Sentinella", etichetta: "l'archivio dei certificati di taratura di Sentinella",
     fonte: "sentinella.csvTarature", col: "strumento;data;scadenza;centro;certificato;nota" },
   { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
-    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza" },
+    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da" },
   { id: "sentinella.volate", app: "Sentinella", etichetta: "il registro delle volate di Sentinella",
     fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata" },
   { id: "sentinella.referti", app: "Sentinella", etichetta: "i referti di vibrazione per Genesi di Sentinella",

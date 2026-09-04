@@ -55,7 +55,7 @@ const DIFETTI_PAGINA = [
   ['${(() => { const d = denominatoreEsito(R); return d ? " " + esc(d) : ""; })()}',
    '${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia" ? " vecchia riga" : ""}'],
   // 3 · la taratura del singolo punto non arrivava nella sua scheda
-  ["${ric}<br>${fonte}${conflitto}${tar}<br>", "${ric}<br>${fonte}${conflitto}<br>"],
+  ["${ric}<br>${fonte}${conflitto}${tar}${evento}<br>", "${ric}<br>${fonte}${conflitto}${evento}<br>"],
 ];
 
 /* I CASI, in coda al modulo dati. `DEMO` è un oggetto e la pagina ne fa una

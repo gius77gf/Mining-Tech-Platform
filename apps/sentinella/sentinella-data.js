@@ -1230,6 +1230,19 @@ const INDIZI = {
   ora:    ["ora", "time", "orario", "hh:mm", "ora evento"],
   valore: ["valore", "value", "ppv", "pvs", "picco", "peak", "misura", "livello", "level",
            "laeq", "leq", "db", "dba", "pm10", "pm 10", "concentrazione", "mm/s", "vel", "risultato"],
+  /* LA RISULTANTE PRIMA DEL GENERICO (04/09). Un file di sismografo scrive
+     «PPV L», «PPV T», «PPV V» e «PVS» sulla stessa riga: con la sola lista
+     `valore`, «ppv l» combacia con «ppv» e il valore proposto sarebbe UN ASSE.
+     Prima si cerca la risultante, poi tutto il resto. */
+  risultante: ["pvs", "risultante", "vector sum", "vettore", "somma vettoriale", "peak vector"],
+  /* le colonne dell'EVENTO, facoltative: gli indizi sono le parole che gli
+     strumenti usano (seconda mano: `docs/RICERCA_CONTINUA_SENTINELLA.md`,
+     04/09) e l'utente resta libero di cambiarle nella finestra */
+  ppvL: ["longitudinal", "longitudinale", "ppv l", "ppvl", "long", "radial", "radiale", "ppv x", "ppv_x"],
+  ppvT: ["transversal", "transverse", "trasversale", "ppv t", "ppvt", "tran", "ppv y", "ppv_y"],
+  ppvV: ["vertical", "verticale", "ppv v", "ppvv", "vert", "ppv z", "ppv_z"],
+  freq: ["freq", "frequenz", "frequency", "hz", "zc"],
+  aria: ["air", "aria", "airblast", "sovrapression", "overpressure", "pressione", "db(l)", "dbl", "pa"],
 };
 // Propone quale colonna è data, ora e valore leggendo l'intestazione.
 // Ritorna { colData, colOra, colValore } con -1 = "non trovata".
@@ -1237,6 +1250,9 @@ const INDIZI = {
 // prima colonna = data, ultima colonna numerica = valore.
 export function proponiMappa(righe, conIntestazione) {
   const out = { colData: -1, colOra: -1, colValore: -1 };
+  /* le colonne che il ripiego sui DATI non deve mai proporre come valore: gli
+     assi riconosciuti dall'intestazione (04/09). Senza intestazione è vuoto. */
+  let assi = [];
   const head = (righe || [])[0] || [];
   if (conIntestazione) {
     const norm = head.map(h => String(h || "").trim().toLowerCase());
@@ -1244,7 +1260,12 @@ export function proponiMappa(righe, conIntestazione) {
       !escludi.includes(i) && h && chiavi.some(k => h === k || h.includes(k)));
     out.colData = trova(INDIZI.data, []);
     out.colOra = trova(INDIZI.ora, [out.colData]);
-    out.colValore = trova(INDIZI.valore, [out.colData, out.colOra]);
+    /* gli assi si escludono dalla ricerca del valore: «PPV L» contiene «ppv» */
+    const ev = proponiColonneEvento(righe, conIntestazione, out);
+    const presi = [out.colData, out.colOra, ev.colPpvL, ev.colPpvT, ev.colPpvV, ev.colFreq, ev.colAria];
+    out.colValore = trova(INDIZI.risultante, presi);
+    if (out.colValore < 0) out.colValore = trova(INDIZI.valore, presi);
+    assi = presi.slice(2).filter(i => i >= 0);
   }
   const dati = (righe || []).slice(conIntestazione ? 1 : 0);
   if (out.colData < 0) {
@@ -1254,24 +1275,146 @@ export function proponiMappa(righe, conIntestazione) {
   if (out.colValore < 0) {
     const r = dati[0] || [];
     for (let i = r.length - 1; i >= 0; i--)
-      if (i !== out.colData && i !== out.colOra && Number.isFinite(numIt(r[i]))) { out.colValore = i; break; }
-    if (out.colValore < 0) out.colValore = Math.min(r.length - 1, out.colData + 1);
+      if (i !== out.colData && i !== out.colOra && !assi.includes(i) && Number.isFinite(numIt(r[i]))) { out.colValore = i; break; }
+    /* ⛔ IL RIPIEGO NON PROPONE MAI UN ASSE COME VALORE (04/09): con
+       «Longitudinale;Trasversale;Verticale» e nessuna risultante nel file,
+       «l'ultima colonna numerica» era la verticale — un numero più basso di
+       quello vero, proposto come valore di conformità. Se gli assi ci sono e
+       non resta altro, -1: la risultante si calcola dai tre. */
+    if (out.colValore < 0 && !assi.length) out.colValore = Math.min(r.length - 1, out.colData + 1);
   }
   return out;
+}
+
+// LE COLONNE DELL'EVENTO (04/09). Un evento di un sismografo porta più di un
+// numero: la PPV sui tre assi (longitudinale, trasversale, verticale), il
+// vettore somma, la frequenza dominante, la sovrapressione aerea. Un punto di
+// polveri o di rumore non le ha. La mappa le accetta come colonne FACOLTATIVE
+// (`colPpvL`, `colPpvT`, `colPpvV`, `colFreq`, `colAria`; -1 = non scelta) e la
+// lettura le porta con sé SOLO se la colonna è stata indicata: niente si
+// inventa, e un punto di polveri resta com'era.
+// Questa funzione PROPONE le colonne leggendo l'intestazione, come
+// `proponiMappa` fa per data/ora/valore; `escludi` sono le colonne già prese.
+export function proponiColonneEvento(righe, conIntestazione, escludi) {
+  const out = { colPpvL: -1, colPpvT: -1, colPpvV: -1, colFreq: -1, colAria: -1 };
+  if (!conIntestazione) return out;
+  const head = ((righe || [])[0] || []).map(h => String(h || "").trim().toLowerCase());
+  const e = escludi || {};
+  const presi = new Set([e.colData, e.colOra].filter(i => Number.isFinite(i) && i >= 0));
+  const trova = (chiavi) => head.findIndex((h, i) =>
+    !presi.has(i) && h && chiavi.some(k => h === k || h.includes(k)));
+  for (const [campo, chiavi] of [["colPpvL", INDIZI.ppvL], ["colPpvT", INDIZI.ppvT], ["colPpvV", INDIZI.ppvV],
+                                 ["colFreq", INDIZI.freq], ["colAria", INDIZI.aria]]) {
+    const i = trova(chiavi);
+    if (i >= 0) { out[campo] = i; presi.add(i); }
+  }
+  return out;
+}
+
+// I tre assi, nell'ordine in cui il mestiere li scrive.
+export const ASSI_PPV = ["L", "T", "V"];
+
+// LA RISULTANTE DAI TRE ASSI: PVS = √(L² + T² + V²). Si calcola SOLO con tutti
+// e tre i numeri leggibili: con due assi su tre la risposta è `null` e la
+// ragione sta in `perche` — una risultante «a due assi» è un numero più basso
+// di quello vero, cioè un numero tranquillo su un documento che va all'ente.
+// Il vettore somma è il modulo di un vettore: la definizione, non una norma.
+export function risultanteAssi(assi) {
+  const a = assi && typeof assi === "object" ? assi : {};
+  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);
+  if (mancanti.length)
+    return { valore: null, perche: (mancanti.length === 1 ? "asse " + mancanti[0] + " non leggibile" : "assi " + mancanti.join(", ") + " non leggibili")
+      + ": la risultante non si calcola con " + (3 - mancanti.length) + (3 - mancanti.length === 1 ? " asse" : " assi") + " su 3" };
+  const v = Math.sqrt(ASSI_PPV.reduce((s, k) => s + Math.pow(numeroDichiarato(a[k]), 2), 0));
+  return { valore: Math.round(v * 1e6) / 1e6, perche: "" };
+}
+
+// I CAMPI DELL'EVENTO CHE VIAGGIANO CON LA LETTURA — e il posto UNICO in cui
+// si decide quali. Tre lettori ricostruiscono una lettura campo per campo
+// (`unisciLetture` all'ingresso, `lettureLeggibili` per ogni schermata,
+// `reportConformita` per il documento): senza questa funzione ognuno
+// avrebbe la sua copia dell'elenco, e gli assi si perderebbero nel primo che
+// se la dimentica. Tornano `assi`, `extra` e `valoreDa` solo se ci sono; e
+// `valoreDa` da solo entra soltanto se dice «risultante», perché «colonna» su
+// una lettura senza assi non aggiunge niente e cambierebbe la forma delle
+// letture di sempre (la dimostrazione resta identica).
+export function campiEvento(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const out = {};
+  if (x.assi && typeof x.assi === "object" && Object.keys(x.assi).length) out.assi = { ...x.assi };
+  if (x.extra && typeof x.extra === "object" && Object.keys(x.extra).length) out.extra = { ...x.extra };
+  if (x.valoreDa === "risultante" || (out.assi && x.valoreDa === "colonna")) out.valoreDa = x.valoreDa;
+  return out;
+}
+
+// LA RIGA CHE DESCRIVE L'EVENTO, a parole: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz ·
+// aria 112» — vuota se la lettura non ha colonne in più. Un asse indicato ma
+// illeggibile si scrive «—», non si salta: la colonna c'era e non si è
+// letta. La frequenza è in hertz per definizione; la sovrapressione resta
+// nell'unità del file dello strumento (dB(L) o Pa), che qui nessuno conosce,
+// quindi si scrive il numero nudo e lo dice `provenienzaValore`.
+export function descriviEvento(l) {
+  const e = campiEvento(l);
+  const n = (v) => { const x = numeroDichiarato(v); return x == null ? "—" : numeroIt(x); };
+  const pezzi = [];
+  if (e.assi) for (const k of ASSI_PPV) if (k in e.assi) pezzi.push(k + " " + n(e.assi[k]));
+  if (e.extra) {
+    if ("freq" in e.extra) pezzi.push("f " + n(e.extra.freq) + (numeroDichiarato(e.extra.freq) == null ? "" : " Hz"));
+    if ("aria" in e.extra) pezzi.push("aria " + n(e.extra.aria));
+  }
+  return pezzi.join(" · ");
+}
+
+// DA DOVE VIENE IL NUMERO CHE GIUDICA LA CONFORMITÀ. «risultante»: calcolato
+// dai tre assi perché l'utente non ha indicato la colonna del valore;
+// «colonna»: la colonna scelta nel file (o il numero scritto a mano). Una
+// lettura corretta a mano dopo l'import lo dice: il numero non è più quello
+// che era entrato, e `descriviProvenienza` racconta il resto.
+export function provenienzaValore(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const p = provenienzaMisura(x);
+  const ris = x.valoreDa === "risultante";
+  const base = ris ? "risultante dai tre assi (√(L²+T²+V²))" : "colonna scelta nel file";
+  return { da: ris ? "risultante" : "colonna",
+    testo: p.corretta ? base + ", poi corretta a mano" : base,
+    /* la sovrapressione si dichiara senza unità: l'app non la conosce */
+    nota: x.extra && typeof x.extra === "object" && "aria" in x.extra
+      ? "sovrapressione nell'unità del file dello strumento" : "" };
 }
 
 // Applica la mappatura scelta dall'utente e restituisce UNA VOCE PER RIGA
 // del file, buona o scartata che sia, con il motivo scritto in italiano.
 // Nessuna riga sparisce in silenzio: l'anteprima le mostra tutte, perché
 // un import muto è il modo migliore per perdere dati senza accorgersene.
+// ⚠️ DAL 04/09 LA MAPPA ACCETTA LE COLONNE DELL'EVENTO (facoltative, vedi
+// `proponiColonneEvento`). `valore` resta il numero usato per la conformità e
+// `valoreDa` dice da dove viene: «colonna» (la colonna scelta, com'è sempre
+// stato) oppure «risultante» quando l'utente NON indica la colonna del valore
+// ma indica i tre assi. Con un asse illeggibile la riga esce con `valore:
+// null`, `perche` e il motivo: non si inventa una risultante a due assi.
+// Una mappa a tre colonne produce le stesse righe di prima, più `valoreDa`.
 export function preparaLetture(righe, mappa) {
   const m = mappa || {};
   const cD = +m.colData, cO = +m.colOra, cV = +m.colValore;
+  const scelta = (i) => Number.isFinite(i) && i >= 0;
+  const COL_ASSI = { L: +m.colPpvL, T: +m.colPpvT, V: +m.colPpvV };
+  const COL_EXTRA = { freq: +m.colFreq, aria: +m.colAria };
+  const treAssi = ASSI_PPV.every(k => scelta(COL_ASSI[k]));
   const dati = (righe || []).slice(m.conIntestazione ? 1 : 0);
-  const cella = (r, i) => (Number.isFinite(i) && i >= 0 ? String(r[i] == null ? "" : r[i]) : "");
+  const cella = (r, i) => (scelta(i) ? String(r[i] == null ? "" : r[i]) : "");
+  const numero = (s) => { const v = numIt(s); return Number.isFinite(v) ? v : null; };
   return dati.map((r, k) => {
     const dataRaw = cella(r, cD), oraRaw = cella(r, cO), valRaw = cella(r, cV);
     const data = dataIso(dataRaw);
+    // le colonne dell'evento: solo quelle indicate, e una cella che non si
+    // legge resta `null` — dichiarata, non inventata e non saltata
+    const evento = {};
+    const assi = {};
+    for (const a of ASSI_PPV) if (scelta(COL_ASSI[a])) assi[a] = numero(cella(r, COL_ASSI[a]));
+    if (Object.keys(assi).length) evento.assi = assi;
+    const extra = {};
+    for (const x of Object.keys(COL_EXTRA)) if (scelta(COL_EXTRA[x])) extra[x] = numero(cella(r, COL_EXTRA[x]));
+    if (Object.keys(extra).length) evento.extra = extra;
     // L'ora si cerca prima nella colonna scelta e POI, se lì non c'è, nella
     // cella della data: molti strumenti scrivono "12/07/2026 10:30" in una
     // casella sola, e capita che il file abbia ANCHE una colonna Ora che per
@@ -1283,12 +1426,19 @@ export function preparaLetture(righe, mappa) {
     // vera, su una serie storica che va all'ente.
     // La colonna scelta VINCE: questo è un ripiego, non una sovrascrittura.
     const ora = (cO >= 0 ? oraHm(oraRaw) : "") || oraHm(dataRaw);
-    const valore = numIt(valRaw);
+    let valore, valoreDa = "colonna", perche = "";
+    if (scelta(cV)) valore = numIt(valRaw);
+    else if (treAssi) {
+      const ris = risultanteAssi(assi);
+      valore = ris.valore; valoreDa = "risultante"; perche = ris.perche;
+    } else { valore = null; valoreDa = ""; perche = "nessuna colonna del valore scelta, e per la risultante servono tutti e tre gli assi"; }
     let motivo = "";
     if (!data) motivo = dataRaw ? "data non riconosciuta" : "data mancante";
+    else if (perche) motivo = perche;
     else if (!Number.isFinite(valore)) motivo = valRaw ? "valore non numerico" : "valore mancante";
     else if (valore < 0) motivo = "valore negativo";
-    return { riga: k + 1 + (m.conIntestazione ? 1 : 0), dataRaw, oraRaw, valRaw, data, ora, valore, ok: !motivo, motivo };
+    return { riga: k + 1 + (m.conIntestazione ? 1 : 0), dataRaw, oraRaw, valRaw, data, ora, valore, valoreDa,
+             ...evento, ok: !motivo, motivo, ...(perche ? { perche } : {}) };
   });
 }
 
@@ -1362,7 +1512,11 @@ export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
        difesa. `numeroDichiarato` tiene lo zero SCRITTO (che è un dato) e
        lascia `null` all'assenza. */
     tenute.push({ data: l.data, valore: numeroDichiarato(l.valore), ...(l.ora ? { ora: l.ora } : {}),
-                  ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}) });
+                  ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
+                  /* gli assi, la frequenza e la sovrapressione entrano in archivio
+                     con la lettura (04/09): è QUI che si perderebbero al reimport,
+                     e `campiEvento` è l'unico elenco di che cosa viaggia */
+                  ...campiEvento(l) });
   }
   const tutte = [...(esistenti || []), ...tenute]
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
@@ -1925,8 +2079,15 @@ export function csvTarature(monitoraggi) {
 // storico c'è una lettura che cade nel buco fra due certificati. Il file porta
 // perciò il conto delle sue LETTURE, che sono quelle che il file contiene,
 // e lo conta con `contaCoperture`, la stessa del report e della scheda.
+/* ⚠️ DUE COLONNE IN CODA DAL 04/09: `evento` (gli assi, la frequenza e la
+   sovrapressione dell'ULTIMA lettura valida, se il file dello strumento le
+   portava: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112») e `valore_da` (da
+   dove viene il numero della colonna `valore`: la colonna scelta nel file, o
+   la risultante calcolata dai tre assi). Vuote su un punto senza colonne in
+   più: un punto di polveri non ha assi, e non si scrive niente al posto loro.
+   In coda, così chi taglia alle prime dieci ritrova il file di prima. */
 export const CSV_AMBIENTE_INTESTAZIONE =
-  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza";
+  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da";
 
 /* La riferibilità delle letture di UN punto, in una cella. Le parole sono
    quelle che la scheda della taratura usa già a schermo: «coperte», «cadono in
@@ -2032,11 +2193,17 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
         + (eff.unitaRicettore || "un'altra unità") + ", non applicata e non convertita"
       : eff.fonte === "ricettore" ? "ricettore " + (eff.ricettore || "")
       : "punto di misura";
+    /* l'evento dell'ultima lettura valida — la stessa `ultimaLettura` che
+       decide il valore corrente della scheda, non una seconda lettura */
+    const ult = ultimaLettura(m);
+    const ev = ult ? descriviEvento(ult) : "";
+    const pv = ult && ev ? provenienzaValore(ult) : null;
     righe.push([
       "monitoraggio", csvCell((m || {}).nome || ""),
       st.stato === "mai" ? "" : n((m || {}).valore),
       csvCell(unitaMisura(m)), n(eff.valore), st.label, csvCell(storico), csvCell(origine),
       csvCell(cellaTaratura(m)), csvCell(cellaProvenienza(m)),
+      csvCell(ev), csvCell(pv ? pv.testo + (pv.nota ? " · " + pv.nota : "") : ""),
     ].join(";"));
   }
   for (const a of adempimenti || []) {
@@ -2057,9 +2224,9 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
         + " · " + (per.noto
           ? "periodo coperto dal " + per.dal + " al " + per.al
           : "periodo coperto non dichiarato")), "",
-      /* un adempimento non è una misura: non ha né taratura né provenienza, e
-         le due celle restano vuote invece di dire qualcosa di tranquillo */
-      "", "",
+      /* un adempimento non è una misura: non ha né taratura né provenienza né
+         evento, e le celle restano vuote invece di dire qualcosa di tranquillo */
+      "", "", "", "",
     ].join(";"));
   }
   return CSV_AMBIENTE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
@@ -2830,7 +2997,8 @@ export function reportConformita(o = {}) {
       const grezze = ((m.letture) || [])
         .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""),
                      valore: numeroDichiarato((l || {}).valore),
-                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }));
+                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
+                     ...campiEvento(l) }));
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero
       const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
@@ -3115,7 +3283,7 @@ function lettureLeggibili(m) {
   return (((m || {}).letture) || [])
     .filter(letturaValida)
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""),
-                 valore: numeroDichiarato((x || {}).valore) }))
+                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x) }))
     .filter(x => dataISOEsiste(x.data) && x.valore != null)
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
 }

@@ -9,6 +9,8 @@ Una patch va TOLTA da qui il giorno in cui il cantiere è raccolto o rifatto.
 - ✅ *(raccolta il 04/09 sera, patch tolta)* Flotta: il tagliando a ore con
   il contatore di riferimento. Reggeva quasi tutta: mancavano il gestore del
   bottone «Riscrivi» e le prove; l'icona nel riquadro usciva gigante.
-- `20260904-sentinella-lettura-colonne.patch` — Sentinella: la lettura a più
-  colonne (PPV per asse, risultante, frequenza, sovrapressione) nella mappa di
-  `preparaLetture`. Morto due volte per i crediti, il 04/09.
+- ✅ *(raccolta il 04/09 sera, patch tolta)* Sentinella: la lettura a più
+  colonne. Reggeva il modulo; mancavano le prove e il banco, il ripiego
+  proponeva un asse come valore e il report scriveva «per tutte» su 2 di 6.
+
+Al momento non c'è nessuna patch in attesa.

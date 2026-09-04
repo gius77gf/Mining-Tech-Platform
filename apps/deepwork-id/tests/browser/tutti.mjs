@@ -909,6 +909,14 @@ const BANCHI = [
      rimette l'ellissi, l'ora come colonna a sé e il min-width delle azioni. */
   ['la scheda del punto di Sentinella sta nella sua larghezza', 'sentinella-scheda-larghezze.mjs', []],
   ['scheda del punto · controprova', 'sentinella-scheda-larghezze.mjs', ['--controprova'], true],
+  /* 04/09 · il file del sismografo a più colonne (PPV sui tre assi, vettore
+     somma, frequenza, sovrapressione) incollato davvero: la finestra propone
+     PVS come valore e non un asse, «nessuna» calcola la risultante e scarta
+     la riga con un asse vuoto col motivo, la serie del punto e il report
+     portano l'evento e dichiarano da dove viene il numero. La controprova
+     rimette `lettureLeggibili` senza `campiEvento` e la risultante a due assi. */
+  ['il file del sismografo a più colonne di Sentinella, incollato davvero', 'sentinella-evento-import.mjs', []],
+  ['sismografo a più colonne · controprova', 'sentinella-evento-import.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore

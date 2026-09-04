@@ -20442,11 +20442,11 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
     eq(sentinella.csvAmbiente(null, null, null), sentinella.CSV_AMBIENTE_INTESTAZIONE + "\n",
       "senza dati esce la sola intestazione");
-    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 10, "dieci colonne, le ultime tre in coda");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 12, "dodici colonne: tre in coda dal 31/07, due dal 04/09 (evento, valore_da)");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(0, 7).join(";"),
       "tipo;nome;valore;unita;soglia;stato;dettaglio", "le prime sette sono quelle di prima");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(7).join(";"),
-      "origine_soglia;taratura;provenienza",
+      "origine_soglia;taratura;provenienza;evento;valore_da",
       "e la coda si allunga in fondo: chi taglia alle prime sette ritrova il file di sempre");
     // il punto appena creato: `valore: 0` è il valore con cui NASCE, non una misura
     const nuovo = { nome: "Polveri — piazzale", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 0, letture: [] };
@@ -20542,8 +20542,8 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   });
   test("Sentinella · un adempimento non ha né taratura né provenienza, e le celle restano vuote", () => {
     const r = colonne(righeCsv(sentinella.csvAmbiente([], [{ titolo: "AUA", scadenza: "2026-09-30" }], []))[1]);
-    eq(r.length, 10, "la riga ha comunque tutte le colonne");
-    eq([r[8], r[9]], ["", ""], "vuote: un adempimento non è una misura");
+    eq(r.length, 12, "la riga ha comunque tutte le colonne");
+    eq([r[8], r[9], r[10], r[11]], ["", "", "", ""], "vuote: un adempimento non è una misura, e non ha nemmeno un evento");
   });
   test("⛔ Sentinella · contaCoperture: un ciclo solo per il report, la scheda e il file", () => {
     const tar = [{ data: "2026-01-01", scadenza: "2026-06-30" }];
@@ -36462,6 +36462,126 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine tagliando e contatore (Flotta, 04/09) ===== */
+
+/* ===== LA LETTURA A PIÙ COLONNE: GLI ASSI, LA FREQUENZA, LA SOVRAPRESSIONE (Sentinella, 04/09) =====
+   Un file di sismografo scrive sulla stessa riga la PPV sui tre assi (L, T,
+   V), il vettore somma (PVS), la frequenza dominante e la sovrapressione
+   aerea. Fino al 04/09 la mappa dell'import prendeva UNA colonna del valore e
+   buttava il resto — e con la sola lista di indizi «ppv», la colonna proposta
+   poteva essere un ASSE, cioè un numero più basso della risultante su un
+   documento che va all'ente. Adesso: la risultante si cerca prima del
+   generico; le colonne dell'evento sono facoltative e viaggiano con la
+   lettura (`campiEvento` è l'UNICO elenco di che cosa viaggia: ingresso, ogni
+   schermata, report, CSV); senza colonna del valore ma con i tre assi il
+   valore è √(L²+T²+V²), e con un asse illeggibile la riga è scartata col
+   motivo — non si inventa una risultante a due assi. Un punto di polveri
+   resta identico: niente assi, niente campi in più, dimostrazione invariata.
+   Gli indizi delle intestazioni sono di seconda mano (ricerca del 04/09):
+   l'utente resta libero di cambiarli nella finestra.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const RIGHE = [["Date", "Time", "PPV L", "PPV T", "PPV V", "PVS", "Freq", "Air"],
+    ["12/07/2026", "10:30", "2,1", "1,8", "3,4", "4,4", "18", "112"],
+    ["13/07/2026", "11:00", "1,0", "", "2,0", "2,3", "20", "110"],
+    ["14/07/2026", "", "0,5", "0,5", "0,5", "", "", ""]];
+  const MP = sentinella.proponiMappa(RIGHE, true);
+  const EV = sentinella.proponiColonneEvento(RIGHE, true, MP);
+  const M = { ...MP, ...EV, conIntestazione: true };
+
+  test("⛔ Sentinella · proponiMappa: fra «PPV L» e «PVS» il valore proposto è la RISULTANTE, non un asse", () => {
+    eq([MP.colData, MP.colOra, MP.colValore], [0, 1, 5], "data, ora, e PVS — «ppv l» contiene «ppv», e prima era lei a vincere");
+    eq(sentinella.proponiMappa([["Data", "Longitudinale", "Trasversale", "Verticale"], ["12/07/2026", "1", "2", "3"]], true).colValore, -1,
+      "⛔ senza una risultante nel file nessun asse si spaccia per valore: -1, e la risultante si calcola");
+    eq(sentinella.proponiMappa([["Data", "Ora", "PPV"], ["12/07/2026", "10:00", "1"]], true).colValore, 2, "il file a tre colonne di sempre: identico a prima");
+  });
+  test("Sentinella · proponiColonneEvento: gli assi, la frequenza e l'aria dall'intestazione; le colonne già prese restano fuori", () => {
+    eq(EV, { colPpvL: 2, colPpvT: 3, colPpvV: 4, colFreq: 6, colAria: 7 }, "cinque colonne trovate");
+    eq(sentinella.proponiColonneEvento(RIGHE, false, MP), { colPpvL: -1, colPpvT: -1, colPpvV: -1, colFreq: -1, colAria: -1 }, "senza intestazione non si indovina niente");
+    eq(sentinella.proponiColonneEvento([["Data", "Ora", "PPV"], []], true, { colData: 0, colOra: 1 }).colPpvL, -1, "il file di sempre: nessun asse");
+    eq(sentinella.proponiColonneEvento([["Trasversale", "Data"], []], true, { colData: 1, colOra: -1 }).colPpvT, 0, "e una colonna presa da data/ora non viene ripescata come asse");
+    eq(sentinella.proponiColonneEvento([["Long", "Long"], []], true, {}).colPpvT, -1, "la stessa colonna non serve due assi");
+  });
+  test("⛔ Sentinella · risultanteAssi: √(L²+T²+V²) SOLO con tre assi leggibili — a due assi è un numero tranquillo", () => {
+    eq(sentinella.risultanteAssi({ L: 3, T: 4, V: 12 }), { valore: 13, perche: "" }, "3-4-12 → 13");
+    eq(sentinella.risultanteAssi({ L: 0, T: 0, V: 0 }).valore, 0, "tre zeri sono una misura: zero");
+    const due = sentinella.risultanteAssi({ L: 3, T: null, V: 12 });
+    eq(due.valore, null, "manca T: null, non 12,37");
+    eq(due.perche, "asse T non leggibile: la risultante non si calcola con 2 assi su 3", "e dice quale asse e quanti ne ha");
+    ok(/assi L, T, V non leggibili/.test(sentinella.risultanteAssi(null).perche) && sentinella.risultanteAssi(null).valore === null, "con niente in mano: null e la ragione");
+    eq(sentinella.risultanteAssi({ L: "abc", T: 1, V: 1 }).valore, null, "un asse non numerico non è leggibile");
+    eq(sentinella.ASSI_PPV, ["L", "T", "V"], "i tre assi nell'ordine del mestiere");
+  });
+  test("⛔ Sentinella · preparaLetture con la colonna del valore: le righe di sempre più gli assi, la frequenza e l'aria", () => {
+    const r = sentinella.preparaLetture(RIGHE, M);
+    eq(r.map(x => x.ok), [true, true, false], "PVS letto dove c'è; l'ultima riga non ha PVS");
+    eq([r[0].valore, r[0].valoreDa, r[0].assi, r[0].extra], [4.4, "colonna", { L: 2.1, T: 1.8, V: 3.4 }, { freq: 18, aria: 112 }], "il valore è la colonna scelta, e l'evento viaggia");
+    eq(r[1].assi, { L: 1, T: null, V: 2 }, "l'asse T vuoto resta null: dichiarato, non inventato e non saltato");
+    eq(r[2].motivo, "valore mancante", "senza PVS e con la colonna scelta il motivo è quello di sempre: la risultante NON scavalca la scelta dell'utente");
+    const prima = sentinella.preparaLetture(RIGHE, { colData: 0, colOra: 1, colValore: 5, conIntestazione: true })[0];
+    eq(Object.keys(prima).sort(), ["data", "dataRaw", "motivo", "ok", "ora", "oraRaw", "riga", "valRaw", "valore", "valoreDa"], "⛔ la mappa a tre colonne produce le righe di prima, più `valoreDa`: niente `assi` inventati");
+  });
+  test("⛔ Sentinella · preparaLetture senza colonna del valore: la risultante dai tre assi, e con un asse vuoto la riga è SCARTATA col motivo", () => {
+    const r = sentinella.preparaLetture(RIGHE, { ...M, colValore: -1 });
+    eq(r.map(x => x.ok), [true, false, true], "la seconda riga cade");
+    eq([r[0].valore, r[0].valoreDa], [4.382921, "risultante"], "√(2,1²+1,8²+3,4²) = 4,382921");
+    eq(r[1].valore, null, "⛔ non 2,236 (la risultante a due assi)");
+    eq(r[1].motivo, "asse T non leggibile: la risultante non si calcola con 2 assi su 3", "e il motivo è quello della risultante");
+    eq(r[2].valore, 0.866025, "0,5 su tre assi → 0,866");
+    const senza = sentinella.preparaLetture(RIGHE, { colData: 0, colOra: 1, colValore: -1, conIntestazione: true })[0];
+    eq([senza.ok, senza.valoreDa], [false, ""], "né colonna del valore né tre assi: la riga non entra");
+    ok(/servono tutti e tre gli assi/.test(senza.motivo), "e dice che cosa manca — era «" + senza.motivo + "»");
+  });
+  test("Sentinella · campiEvento è l'unico elenco di che cosa viaggia con la lettura", () => {
+    eq(sentinella.campiEvento({ assi: { L: 1 }, extra: {}, valoreDa: "colonna" }), { assi: { L: 1 }, valoreDa: "colonna" }, "gli assi, e `valoreDa` solo perché ci sono gli assi; un `extra` vuoto non viaggia");
+    eq(sentinella.campiEvento({ valoreDa: "risultante" }), { valoreDa: "risultante" }, "«risultante» viaggia anche da solo");
+    eq(sentinella.campiEvento({ valoreDa: "colonna" }), {}, "⛔ «colonna» da solo NON entra: la forma delle letture di sempre non cambia");
+    eq(sentinella.campiEvento(null), {}, "con niente, niente");
+    const l = { assi: { L: 1, T: 2, V: 3 }, extra: { freq: 10 } };
+    const c = sentinella.campiEvento(l); c.assi.L = 99;
+    eq(l.assi.L, 1, "e torna una copia, non l'oggetto");
+  });
+  test("Sentinella · descriviEvento: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112», e un asse illeggibile si scrive «—»", () => {
+    eq(sentinella.descriviEvento({ assi: { L: 2.1, T: 1.8, V: 3.4 }, extra: { freq: 18, aria: 112 } }), "L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112", "all'italiana");
+    eq(sentinella.descriviEvento({ assi: { L: 1, T: null, V: 2 }, extra: { freq: null } }), "L 1 · T — · V 2 · f —", "la colonna c'era e non si è letta: «—», non saltata, e niente «Hz» su un trattino");
+    eq(sentinella.descriviEvento({ data: "2026-07-12", valore: 1.8 }), "", "una lettura di sempre: niente");
+    eq(sentinella.descriviEvento(null), "", "con niente, niente");
+  });
+  test("Sentinella · provenienzaValore: risultante o colonna, «poi corretta a mano», e l'aria senza unità", () => {
+    const p = sentinella.provenienzaValore({ valoreDa: "risultante", extra: { aria: 112 } });
+    eq([p.da, p.testo], ["risultante", "risultante dai tre assi (√(L²+T²+V²))"], "dai tre assi");
+    eq(p.nota, "sovrapressione nell'unità del file dello strumento", "⛔ l'app non conosce l'unità dell'aria e non ne inventa una");
+    eq(sentinella.provenienzaValore({ valoreDa: "colonna" }).testo, "colonna scelta nel file", "la colonna");
+    eq(sentinella.provenienzaValore({}).da, "colonna", "una lettura di sempre è «colonna»");
+    eq(sentinella.provenienzaValore({ valoreDa: "risultante", origine: { valoreOriginale: 1 }, valore: 2 }).testo.endsWith(", poi corretta a mano") || !sentinella.provenienzaMisura({ valoreDa: "risultante", origine: { valoreOriginale: 1 }, valore: 2 }).corretta, true,
+      "se la lettura è stata corretta a mano, lo dice (o la provenienza non la giudica corretta: allora non lo dice)");
+  });
+  test("⛔ Sentinella · il giro intero: import → unisciLetture → serie della scheda → report → CSV, e gli assi non si perdono in nessun passaggio", () => {
+    const buone = sentinella.preparaLetture(RIGHE, { ...M, colValore: -1 }).filter(x => x.ok);
+    const u = sentinella.unisciLetture([], buone);
+    eq(u.aggiunte, 2, "due letture entrano");
+    eq(u.letture[0].assi, { L: 2.1, T: 1.8, V: 3.4 }, "l'archivio porta gli assi");
+    eq([u.letture[0].extra, u.letture[0].valoreDa], [{ freq: 18, aria: 112 }, "risultante"], "e la frequenza, l'aria, la provenienza del valore");
+    const mon = { nome: "V9", tipo: "vibrazioni", unita: "mm/s", soglia: 5, letture: u.letture };
+    const rep = sentinella.reportConformita({ monitoraggi: [mon], dal: "2026-07-01", al: "2026-07-31", oggi: new Date("2026-07-20T12:00:00") });
+    eq(rep.punti[0].letture.map(l => l.valoreDa), ["risultante", "risultante"], "il report sa da dove viene il numero");
+    eq(rep.punti[0].letture[0].assi, { L: 2.1, T: 1.8, V: 3.4 }, "e porta gli assi");
+    const csv = sentinella.csvAmbiente([mon], [], [], new Date("2026-07-20T12:00:00")).split("\n");
+    eq(csv[0].split(";").slice(10), ["evento", "valore_da"], "le due colonne in coda");
+    const c = csv[1].split(";");
+    eq(c[10], "L 0,5 · T 0,5 · V 0,5 · f — · aria —", "l'evento dell'ULTIMA lettura valida (14/07), con le celle non lette dichiarate");
+    eq(c[11], "risultante dai tre assi (√(L²+T²+V²)) · sovrapressione nell'unità del file dello strumento", "e da dove viene il valore");
+    const polveri = sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";");
+    eq([polveri[10], polveri[11]], ["", ""], "⛔ un punto di polveri: le due celle restano VUOTE, non si scrive niente al posto loro");
+    eq(sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";").length, 12, "ma la riga ha le sue 12 colonne");
+  });
+  test("Sentinella · la DIMOSTRAZIONE non cambia: nessuna lettura porta assi, nessun `valoreDa`", () => {
+    const tutte = sentinella.DEMO.monitoraggi.flatMap(m => m.letture || []);
+    ok(tutte.length > 10 && tutte.every(l => !l.assi && !l.extra && !l.valoreDa), "le letture d'esempio sono quelle di sempre");
+    eq(sentinella.descriviEvento(tutte[0]), "", "e la riga dell'evento è vuota");
+  });
+}
+/* ===== fine lettura a più colonne (Sentinella, 04/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

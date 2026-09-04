@@ -420,6 +420,28 @@
   ascoltava (premuto, non faceva niente); e l'icona nel riquadro dell'ordine
   usciva grande quanto il riquadro a 320 px (nessuna regola dimensiona un svg
   dentro `.note`) — visto nello scatto, non nel codice.
+- [x] **SENTINELLA: IL FILE DEL SISMOGRAFO A PIÙ COLONNE (04/09, cantiere morto
+  due volte per i crediti, raccolto dalla patch e rimisurato in casa).** Un
+  sismografo scrive sulla stessa riga la PPV sui tre assi, il vettore somma,
+  la frequenza e la sovrapressione: la finestra dell'import prendeva una
+  colonna sola e, col solo indizio «ppv», proponeva un ASSE come valore. Ora:
+  la risultante si cerca prima del generico e il ripiego sui dati non propone
+  mai un asse; cinque colonne facoltative (`proponiColonneEvento`) che
+  viaggiano con la lettura da un elenco solo (`campiEvento`: ingresso, ogni
+  schermata, report, CSV in coda con `evento` e `valore_da`); senza colonna
+  del valore ma coi tre assi il valore è √(L²+T²+V²) (`risultanteAssi`), e
+  con un asse vuoto la riga è scartata col motivo — non una risultante a due
+  assi; la riga dell'evento sotto il numero va a capo dentro la cella
+  (`descriviEvento`); il report dichiara le colonne dello strumento e da dove
+  viene il numero (`provenienzaValore`), la sovrapressione senza unità
+  inventata. Un punto di polveri resta identico e la dimostrazione non cambia.
+  run-kpi 2575 → 2585 con tre controprove; banco nuovo
+  `sentinella-evento-import` 52/0 a 320 e 390, controprova 14 su 52. ⚠️ Due
+  cose che la patch non aveva: il ripiego sui dati proponeva la verticale
+  come valore su «Longitudinale;Trasversale;Verticale», e il report scriveva
+  «per tutte» con 2 risultanti su 6 letture (contava le letture con le
+  colonne, non quelle del periodo). ⏱️ Aperto: la frequenza è un campo della
+  lettura, ma non sceglie ancora la banda DIN (candidato (c) della ricerca).
 - [x] **SENTINELLA: LA LETTURA DICHIARATA NON VALIDA (04/09, cantiere parallelo
   dal delta della ricerca sui sismografi, rimisurato prima di committare).**
   Una lettura si dichiara non valida con la ragione (mezzo di passaggio,
@@ -6191,7 +6213,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.056 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.066 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -6202,8 +6224,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **237 esecuzioni** che
-  aprono le pagine in un browser vero, da **98** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **239 esecuzioni** che
+  aprono le pagine in un browser vero, da **99** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

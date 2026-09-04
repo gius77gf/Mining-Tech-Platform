@@ -307,11 +307,16 @@ non cercando i nomi del mondo nel codice. Ogni «non c'è» porta il comando.
 
 **Che cosa ne segue** (candidati, non cantieri; nessun numero di norma entra
 in una schermata senza il testo primario):
-- (a) la lettura di un evento con **più colonne** (PPV per asse + risultante,
-  frequenza, sovrapressione) è un allargamento della mappa di `preparaLetture`,
-  non un importatore per marca: si tengono le colonne come le dà lo strumento,
-  si dichiara quale è stata usata per la conformità. Costo medio; misura: il
-  CSV di prova con sei colonne rientra con le sue sei colonne.
+- (a) ✅ **fatta il 04/09, sera** — la mappa di `preparaLetture` accetta
+  cinque colonne facoltative (`proponiColonneEvento`: tre assi, frequenza,
+  sovrapressione); il valore resta la colonna scelta, oppure la risultante
+  √(L²+T²+V²) dai tre assi (`risultanteAssi`, mai a due assi); `campiEvento`
+  è l'unico elenco di che cosa viaggia con la lettura (ingresso, schermate,
+  report, CSV con `evento` e `valore_da` in coda); `provenienzaValore` dice
+  quale colonna ha giudicato. Misurato: run-kpi +10, banco
+  `sentinella-evento-import` 52/0 — il file di prova a otto colonne rientra
+  con i suoi assi nella serie, nel report e nel CSV. La riga 6 qui sopra
+  («non esistono i tre assi né la risultante») è invecchiata da quel giorno.
 - (b) ✅ **fatta il 04/09** — la lettura dichiarata non valida con la
   ragione (`RAGIONI_ANNULLAMENTO`: mezzo di passaggio, temporale, prova dello
   strumento, altro con testo), `annullaLettura`/`ripristinaLettura` simmetriche

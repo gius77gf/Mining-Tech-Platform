@@ -894,6 +894,11 @@ body.dw.outdoor-mode .peggio-num small{
    ripiego; nel tema del sole, che allarga i bottoni a 60 px, 273 — resta fuori
    il bordo destro del bottone, mai una pillola o un numero — e 268 con Barlow). */
 .tab td small{display:block; font-size:10.5px; color:var(--muted); font-weight:400; line-height:1.3}
+/* LA RIGA DELL'EVENTO SOTTO IL NUMERO (04/09): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz».
+   Va a capo DENTRO la cella: la tabella della scheda sta a 258 px in 270 a
+   320 px, e una riga in più a `nowrap` la farebbe scorrere di nuovo. */
+.tab td small.ev{white-space:normal; max-width:118px; font-variant-numeric:tabular-nums; letter-spacing:.1px}
+.tab td small.ev b{font-weight:600; color:var(--muted2)}
 .tab td.az{min-width:0}
 .prov-prima{
   display:block; margin-top:1px; font-size:10px; font-weight:400; line-height:1.4;
@@ -923,6 +928,8 @@ body.dw.outdoor-mode .peggio-num small{
   letter-spacing:2.5px; text-transform:uppercase; color:var(--app-accent2); margin-bottom:10px;
 }
 .imp-griglia{display:flex; gap:var(--form-gap); flex-wrap:wrap}
+.imp-tit-2{margin-top:12px}
+.imp-fac{font-weight:400; letter-spacing:0; text-transform:none; color:var(--muted); font-size:11px}
 .imp-griglia .flab{flex:1 1 128px}
 .imp-spunta{
   display:flex; align-items:center; gap:9px; margin:11px 0 2px; font-size:12.5px;
@@ -1321,6 +1328,25 @@ textarea.dw-input{
       <label class="flab" for="imp-col-valore">Valore letto
         <select class="dw-input" id="imp-col-valore"></select></label>
     </div>
+    <!-- LE COLONNE DELL'EVENTO (04/09): un sismografo scrive la PPV sui tre
+         assi, la frequenza e la sovrapressione; un punto di polveri no. Sono
+         tutte facoltative: entrano nella lettura SOLO se indicate qui. -->
+    <div class="imp-tit imp-tit-2">Colonne in più, se il file le ha <span class="imp-fac">(facoltative: sismografi)</span></div>
+    <div class="imp-griglia">
+      <label class="flab" for="imp-col-ppvl">PPV longitudinale
+        <select class="dw-input" id="imp-col-ppvl"></select></label>
+      <label class="flab" for="imp-col-ppvt">PPV trasversale
+        <select class="dw-input" id="imp-col-ppvt"></select></label>
+      <label class="flab" for="imp-col-ppvv">PPV verticale
+        <select class="dw-input" id="imp-col-ppvv"></select></label>
+      <label class="flab" for="imp-col-freq">Frequenza <span class="u">(Hz)</span>
+        <select class="dw-input" id="imp-col-freq"></select></label>
+      <label class="flab" for="imp-col-aria">Sovrapressione aerea
+        <select class="dw-input" id="imp-col-aria"></select></label>
+    </div>
+    <div class="form-hint" id="imp-ev-hint">Se indichi i <b>tre assi</b> e nessuna colonna del valore, il valore
+      di conformità è la <b>risultante</b> √(L²+T²+V²) — calcolata solo quando tutti e tre gli assi si leggono.
+      Le colonne in più restano scritte nella lettura, nel report e nel file che esce.</div>
     <label class="imp-spunta" for="imp-header">
       <input type="checkbox" id="imp-header">
       <span>La prima riga del file è un'<b>intestazione</b> (nomi delle colonne), non una misura.</span>
@@ -1768,6 +1794,7 @@ textarea.dw-input{
   import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
            scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
+           proponiColonneEvento, descriviEvento, provenienzaValore,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
@@ -2168,7 +2195,7 @@ textarea.dw-input{
       if (senzaVolata) suggerite++;
       return `<tr${an ? ' class="annullata"' : ""}>
         <td>${fmtD(l.data)}<small>${esc(l.ora || "—")}</small></td>
-        <td class="n">${esc(numeroIt(l.valore))}</td>
+        <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l)}</td>
         <td class="prov" title="${esc(descriviProvenienza(l, m))}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
           pr.corretta
             ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
@@ -3234,13 +3261,21 @@ textarea.dw-input{
       }).join("");
     $("imp-col-data").innerHTML = opz(false);
     $("imp-col-ora").innerHTML = opz(true);
-    $("imp-col-valore").innerHTML = opz(false);
+    /* «nessuna» sul valore vuol dire: calcola la risultante dai tre assi.
+       Senza i tre assi indicati l'anteprima scarta ogni riga e lo dice. */
+    $("imp-col-valore").innerHTML = '<option value="-1">— nessuna: risultante dai tre assi —</option>' + opz(false).replace('<option value="0">', '<option value="0" selected>');
+    for (const id of IMP_COL_EVENTO) $(id).innerHTML = opz(true);
     $("imp-header").checked = conInt;
 
     const mp = proponiMappa(impRighe, conInt);
     $("imp-col-data").value = String(Math.max(0, mp.colData));
     $("imp-col-ora").value = String(mp.colOra >= 0 ? mp.colOra : -1);
-    $("imp-col-valore").value = String(Math.max(0, mp.colValore));
+    /* -1 è una proposta legittima dal 04/09: «nessuna, risultante dai tre assi» */
+    $("imp-col-valore").value = String(mp.colValore);
+    const ev = proponiColonneEvento(impRighe, conInt, mp);
+    $("imp-col-ppvl").value = String(ev.colPpvL); $("imp-col-ppvt").value = String(ev.colPpvT);
+    $("imp-col-ppvv").value = String(ev.colPpvV); $("imp-col-freq").value = String(ev.colFreq);
+    $("imp-col-aria").value = String(ev.colAria);
 
     $("imp-mappa").style.display = "block";
     esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} ${plurale(impRighe.length, "riga", "righe")}, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
@@ -3254,12 +3289,25 @@ textarea.dw-input{
   // il motivo. I doppioni vengono riconosciuti sia rispetto alle letture già
   // registrate sia dentro lo stesso file.
   const MAX_ANTEPRIMA = 10;
+  const IMP_COL_EVENTO = ["imp-col-ppvl", "imp-col-ppvt", "imp-col-ppvv", "imp-col-freq", "imp-col-aria"];
+  /* LA RIGA DELL'EVENTO SOTTO IL NUMERO, una volta sola per le tre tabelle
+     (anteprima, scheda del punto, report): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz»
+     e, se il valore è la risultante calcolata dai tre assi, lo dice lì. Il
+     testo lo compone `descriviEvento` nel modulo; qui solo l'HTML. */
+  const rigaEvento = (l) => {
+    const d = descriviEvento(l);
+    if (!d) return "";
+    const pv = provenienzaValore(l);
+    return `<small class="ev">${pv.da === "risultante" ? "<b>risultante</b> · " : ""}${esc(d)}</small>`;
+  };
   function impAnteprima() {
     if (!impRighe.length) return;
     const mappa = {
       colData: +$("imp-col-data").value,
       colOra: +$("imp-col-ora").value,
       colValore: +$("imp-col-valore").value,
+      colPpvL: +$("imp-col-ppvl").value, colPpvT: +$("imp-col-ppvt").value, colPpvV: +$("imp-col-ppvv").value,
+      colFreq: +$("imp-col-freq").value, colAria: +$("imp-col-aria").value,
       conIntestazione: $("imp-header").checked,
     };
     const righe = preparaLetture(impRighe, mappa);
@@ -3307,7 +3355,7 @@ textarea.dw-input{
         <td>${r.riga}</td>
         <td>${r.data ? fmtD(r.data) : `<span class="grezzo">${esc(r.dataRaw || "—")}</span>`}</td>
         <td>${esc(r.ora || "—")}</td>
-        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}</td>
+        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r)}</td>
         <td class="stato">${stato(r)}</td></tr>`).join("") +
       `</tbody>`;
 
@@ -3734,7 +3782,7 @@ textarea.dw-input{
       const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
       return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
-      <td class="n">${esc(numeroIt(l.valore))}</td>
+      <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l)}</td>
       <td class="prov" title="${esc(spiega)}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
         pr.corretta
           ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
@@ -3748,9 +3796,26 @@ textarea.dw-input{
         : l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`;
     }).join("");
 
+    /* DA DOVE VIENE IL NUMERO CHE GIUDICA (04/09): se il file dello strumento
+       portava gli assi, il documento dice quale colonna è stata usata per la
+       conformità — la colonna scelta, o la risultante calcolata dai tre assi —
+       e quante letture del periodo portano le colonne in più. Su un punto
+       senza colonne in più non si scrive niente: non c'è niente da dichiarare. */
+    const conEvento = p.letture.filter(l => descriviEvento(l));
+    const daRis = conEvento.filter(l => provenienzaValore(l).da === "risultante").length;
+    const conAria = conEvento.some(l => provenienzaValore(l).nota);
+    const evento = !conEvento.length ? ""
+      : `<br><b>Colonne dello strumento:</b> ${conEvento.length === p.n ? (p.n === 1 ? "la lettura porta" : "tutte e " + p.n + " le letture portano") : conEvento.length + (conEvento.length === 1 ? " lettura su " : " letture su ") + p.n + (conEvento.length === 1 ? " porta" : " portano")} le colonne in più del file (assi, frequenza, sovrapressione). Valore di conformità: ${
+          daRis === 0 ? "la colonna scelta nel file"
+          /* «per tutte» vuol dire tutte le letture del PERIODO (p.n), non
+             tutte quelle con le colonne in più: con 2 risultanti su 6 letture
+             il banco ha letto «per tutte» — e l'ente avrebbe letto lo stesso */
+          : daRis === p.n ? "la <b>risultante dai tre assi</b> √(L²+T²+V²)" + (daRis === 1 ? "" : ", per tutte")
+          : "la <b>risultante dai tre assi</b> √(L²+T²+V²) per " + daRis + (daRis === 1 ? " lettura" : " letture") + ", la colonna scelta nel file per le altre"}.${
+          conAria ? " La sovrapressione è nell'unità del file dello strumento." : ""}`;
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}<br>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}${evento}<br>
         Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
         media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
         ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra
@@ -5532,7 +5597,7 @@ textarea.dw-input{
     impChiudi();
     esito("imp-esito", "Import annullato: non è stata scritta nessuna lettura.");
   };
-  ["imp-col-data","imp-col-ora","imp-col-valore","imp-header","imp-punto"].forEach(id =>
+  ["imp-col-data","imp-col-ora","imp-col-valore","imp-header","imp-punto", ...IMP_COL_EVENTO].forEach(id =>
     $(id).addEventListener("change", () => { pulisci("imp-esito"); impAnteprima(); }));
   $("btn-imp-conferma").onclick = async () => {
     const punto = MON.find(x => x.id === $("imp-punto").value);
