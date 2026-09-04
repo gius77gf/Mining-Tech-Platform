@@ -139,3 +139,293 @@ Costo/valore, onesto: i primi due sono **un campo ciascuno** sul rapportino foch
 · **Il registro di carico e scarico degli esplosivi** resta un adempimento a
   sé (schermata + collezione): candidato, «proposto da ricerca, meccanismo
   verificato», senza numeri di legge nel prodotto finché non si legge il testo.
+
+## Ricerca del 2026-09-04 — il progettato contro il perforato, foro per foro (metà sul mondo)
+
+⛔ **Nessuna pagina primaria è stata letta**: ogni formato, soglia o prodotto
+citato in questa sezione viene da risultati di ricerca (`WebSearch`) ed è di
+**SECONDA MANO**. `WebFetch` e `curl` restano bloccati (`EGRESS_BLOCKED`/403) e
+non sono stati usati per aggirare il limite. Nessun dato di riferimento del
+fondatore (maglie, ritardi, numero di fori, litotipo) compare qui: non serviva.
+
+### Già scritto (per non ripeterlo)
+
+`docs/GENESI_ROADMAP_COMPETITOR.md` (21/07) copre già gran parte del terreno
+di questa domanda: cita il **boretrack** come gap #4 («Genesi modella la
+deviazione del *fronte* e del *piede*, ma non importa la deviazione dei *fori*
+perforati»), l'**IREDES** come formato (Genesi esporta già una bozza XML
+`BlastPlan` in stile IREDES per il PROGETTO — P1.3, «FATTA (bozza)», non
+conformità certificata), **Maptek BlastLogic** come riferimento per la
+riconciliazione design-vs-actual e il **face profiling/drill hole logging**
+(fonte HSA) — e propone (non fatto) **P1.1** (burden reale per foro dal 3D del
+fronte) e **P1.2** (import del profilo «as-drilled» da boretrack). La
+`docs/GENESI_VS_COMPETITOR_MATRICE.md` segna la deviazione fori reale come
+riga a sé, marcata «serve strumento in foro». `docs/RICERCA_CONTINUA_CAMPO.md`
+(02/09, delta) dichiara che oggi «il confronto progettato/reale foro per foro
+passa dal piano di Genesi… e dice gli scostamenti di carica», mentre l'altezza
+del banco e i gradini disegnati sono un rilievo di Terra, non un controllo di
+Campo. La ricerca del 03/09 in questo stesso file copre il rapporto **dopo lo
+sparo** (colpi mancati, PPV, pezzatura), non il confronto **prima/durante la
+perforazione**. Questa ricerca non ripete quei punti: approfondisce i DATI del
+perforato, le SOGLIE di confronto, chi le usa e IL RITORNO nel piano di carica.
+
+---
+
+### 1. I dati del perforato: che cosa si misura, con che strumento, in che file
+
+**Il drill log / piano di perforazione (IREDES).** Lo standard IREDES
+(International Rock Excavation Data Exchange Standard, XML) è nato per far
+dialogare perforatrici e software d'ufficio. Il file `DrillPlan` porta, per
+ogni foro: ID (deve essere **numerico**, un ID vuoto o alfanumerico fa
+scartare il foro all'importazione in alcuni lettori), nome, **tipo** (split /
+blast / extra / unknown), **orientamento** (azimut), **inclinazione**,
+**diametro**, **lunghezza**, e le **coordinate del punto** (posizione del
+colletto). Non ho trovato, negli snippet, un campo IREDES dedicato a
+«fessure/cavità/acqua»: quel tipo di annotazione sembra restare nei sistemi
+MWD o in note libere, non nello schema geometrico del foro. Fiducia: media
+(pagine di supporto software — Micromine, iredes.org — non lo standard
+primario).
+
+**GNSS / hole navigation della perforatrice.** Epiroc: la **Hole Navigation
+System (HNS)** dei rig SmartROC è GPS-based, con funzione di geofence, e la
+perforazione guidata da GNSS è dichiarata accurata **entro 3,9 pollici
+(~10 cm)**, con l'Autofeed Alignment che assicura fori paralleli fra loro.
+Sandvik: il sistema **TIM3D** usa **RTK GNSS** con accuratezza dichiarata
+**migliore di 10 cm**; la posizione dei fori viene registrata nel piano e
+nelle coordinate di progetto, e inizio/fine foro sono confrontati col piano
+per correggere le deviazioni rapidamente — è il compito del software **iSURE**
+(drill & blast intelligence), che genera anche i dati per ottimizzare il ciclo
+di perforazione. Fiducia: media (pagine e brochure dei produttori, non lette
+per intero).
+
+**MWD (measurement while drilling).** Il concetto nasce nel drilling
+petrolifero — sensori (accelerometri, magnetometri) misurano **azimut e
+inclinazione** mentre il tubo perfora, con letture prese fermando
+temporaneamente l'avanzamento — ed è oggi offerto anche nel mining: Epiroc
+propone uno strumento chiamato **Exploration Manager** per analizzare le
+condizioni di perforazione e ottimizzare il recupero dei dati MWD. Non ho
+trovato, per il caso cava/quarry, un elenco puntuale dei parametri MWD
+raccolti oltre a quelli geometrici (velocità di penetrazione, pressione, ecc.
+sono citati nella letteratura generale ma non confermati specificamente per
+Epiroc/Furukawa in cava con questa ricerca). **Non trovato con WebSearch**
+(query `Furukawa MWD quarry blast hole system`, nessun risultato pertinente
+distinto da quanto già riportato per Epiroc/Sandvik): il produttore Furukawa
+resta citato solo dalla richiesta, non confermato da una fonte propria.
+
+**Sonde di deviazione del foro.** Due famiglie, entrambe pensate per fori già
+perforati (misura POST, non guida IN corso):
+- **Boretrak** (oggi Carlson Boretrak2/Boretrak3): sistema **giroscopico**,
+  eredità di oltre 35 anni sul campo, per misurare la deviazione di fori
+  perforati in miniera sotterranea, a cielo aperto o in cava.
+- **Pulsar Blasthole Probe (Mk3)**: precisione dichiarata **0,25° per
+  l'inclinometro** e **1,0° per la bussola**; calcola la deviazione dal
+  bersaglio a intervalli di profondità definiti dall'utente, combinando
+  inclinazione e bussola digitale.
+- **Devico** (dal 2023 parte del gruppo IMDEX): **DeviGyro RG30/RG40**
+  (giroscopico, continuo o multishot) e **DeviShot** (multishot elettronico,
+  «lo strumento di scelta per i fori da mina» in ambienti non magnetici); il
+  software **DeviSoft** pianifica, registra e analizza sia i fori diamantati
+  sia i fori da mina.
+Fiducia: medio-alta per l'accuratezza dichiarata (pagine dirette dei
+produttori/rivenditori, non lo spec-sheet completo).
+
+**Rilievo del fronte (prima della perforazione, non del foro).** **Quarryman**
+(Carlson, erede di MDL/Renishaw): scanner laser 3D che profila il fronte di
+cava; il modello risultante serve a valutare posizione/interasse/angolo dei
+fori e a calcolare la distribuzione dell'energia esplosiva foro per foro;
+l'output è un file ASCII importabile in software di progettazione per
+disegnare i fori della prima fila contro il profilo REALE del fronte (non
+quello nominale). **Strayos**: fotogrammetria da drone + AI («Rock Mass AI»),
+con analisi post-sparo — già citato nella roadmap di Genesi. **BlastMetriX**:
+**non trovato con WebSearch** (query `BlastMetriX 3D face profiling laser
+scanner quarry`, nessun risultato distinto da Quarryman/Strayos): il nome
+resta citato solo dalla domanda, non confermato da una fonte propria in questa
+tornata.
+
+---
+
+### 2. Il confronto: grandezze, soglie, come si presenta
+
+**Le grandezze confrontate**, secondo Orica **BlastIQ** (che nasce dal
+software di progetto SHOTPlus): ogni «tipo di foro» porta tolleranze proprie —
+**Collar XY tolerance** (scarto di posizione del colletto sul piano),
+**Overdrill tolerance** e **Underdrill tolerance** (scarto fra lunghezza
+PROGETTATA e lunghezza REALE: un foro fuori da quella soglia viene marcato
+«Overdrilled» o «Underdrilled»). BlastIQ Insights include anche un report
+dedicato, **«Drill Collar Deviation»**. Le tolleranze si editano nel software
+di progetto (SHOTPlus) e possono derivare dai dati di progetto o dalle regole
+di carica. Fiducia: media (pagine di supporto del prodotto, non lo screenshot
+diretto della schermata).
+
+**Maptek BlastLogic** e **Hexagon MinePlan Blast** (simili nell'impostazione)
+importano i risultati reali della perforazione/carica e calcolano KPI
+**«plan vs actual»** su **orizzontale, verticale, profondità e conformità di
+carica** (horizontal/vertical/depth/charge compliance — dicitura di Hexagon).
+BlastLogic genera **heatmap** a livello di singolo foro o di intera volata sui
+dati di campo, produce superfici che visualizzano gli errori di
+posizionamento della carica e la profondità di perforazione foro per foro, e
+permette di **ricalcolare le regole di carica in base alle osservazioni sul
+campo** («recalculate charge rules based on pit observations»). Hexagon
+descrive lo stesso principio come «unica fonte di verità»: design + reale +
+QA/QC + consumabili + topografia + geologia nello stesso ambiente.
+**O-Pitblast** (via O-PitAnalytics) produce report che affiancano pianificato
+e reale (powder factor, dati di carica) e traccia specificamente gli
+scostamenti «fuori piano» — lunghezza del borraggio, colonna di carica,
+ri-perforazioni — per attivare correzioni; per il burden cita esplicitamente
+che il fronte di cava è spesso irregolare, quindi il burden REALE misurato
+(da fotogrammetria/3D) può scostarsi molto da quello progettato.
+
+**Le soglie numeriche trovate sono di due nature diverse, e vanno tenute
+separate.** Da un lato le **tolleranze operative** dei software (BlastIQ:
+soglie di collar-XY/overdrill/underdrill configurabili, non un numero fisso
+universale). Dall'altro **casi di studio accademici** su scostamenti REALI
+osservati fra progetto ed esecuzione, molto variabili da sito a sito e non
+generalizzabili a soglia: uno studio riporta scostamenti reali del **~24-26%**
+su profondità/burden/interasse rispetto al progetto; un altro **31,2%** di
+scostamento sul burden, **2,8%** sull'interasse, **3,2%** sulla profondità;
+un altro ancora lega il costo extra di perforazione alla percentuale di
+deviazione del foro (da $1.728 per 7,07% di deviazione a $4.218 per 21,58%).
+Questi numeri **non sono soglie di tolleranza dichiarate da un produttore**:
+sono misure di casi specifici (fonti accademiche via academia.edu/researchgate,
+**fiducia bassa** — abstract/estratti, non l'articolo intero) e li riporto
+solo come ordine di grandezza di quanto un cantiere reale possa scostarsi, non
+come regola.
+
+**Come si presenta il risultato.** Le fonti confermano: **report tabellari
+per foro** (BlastLogic, O-PitAnalytics), **superfici/heatmap colorate per lo
+scarto** (BlastLogic: «create surfaces to visualise data such as errors in
+charge placement and drill depth per hole»), **ricalcolo della carica sulla
+base della spalla/burden reale** (BlastLogic «recalculate charge rules based
+on pit observations»; O-Pitblast sul burden reale da fotogrammetria). Non ho
+trovato, con questa ricerca, uno screenshot descritto testualmente di una
+«pianta con fori progettati e reali sovrapposti»: è un'inferenza ragionevole
+dal fatto che tutti questi strumenti lavorano su un CAD/3D dei fori, ma
+**la sovrapposizione grafica esplicita non è confermata da una fonte diretta**
+in questa tornata — resta plausibile, non verificata.
+
+**Software italiani**: non trovato nessun prodotto italiano dedicato a questo
+confronto specifico. Query usata: `software italiano riconciliazione
+perforazione volata progettato reale cava` — risultati pertinenti solo a
+gestionali di produzione generici (Project Building, già noto da
+`RICERCA_CONTINUA_CAMPO.md`), nessuno specifico sul confronto foro-per-foro.
+
+---
+
+### 3. Il ritorno nel progetto: come il perforato corregge il piano di carico
+
+**Dyno Nobel** descrive una piattaforma («Nobel Fire») con un **Electronic
+Shot Report (ESR)** pensato per rispettare requisiti normativi e del cliente,
+un'app da tablet per inserire sul campo dati di perforazione/qualità/carica
+verso una rete cloud in tempo reale, e strumentazione dedicata (GPS di livello
+survey + dispositivi di misura della deviazione) per assicurare che posizione
+del colletto, angolo del foro e deriva restino entro limiti accettabili.
+Fiducia: media (brochure del produttore via snippet, non l'intero PDF).
+
+**Maptek BlastLogic** «chiude il cerchio» riconciliando l'esplosivo
+EFFETTIVAMENTE usato con quello di progetto, e cattura/riporta i dati di
+carica «as-loaded» per foro, con la possibilità — già citata sopra — di
+ricalcolare le regole di carica dalle osservazioni di campo: il caso concreto
+è proprio «la carica per foro si riduce dove la spalla reale è minore».
+**Hexagon MinePlan Blast** aggrega gli stessi ingredienti (drilling, QA,
+consumabili, carica, topografia, geologia) per il confronto plan-vs-actual e
+per la riconciliazione della frammentazione.
+
+**Statistiche nel tempo.** La fonte più esplicita trovata non è specifica di
+cava/volata ma di drilling in generale: la **deviazione di profondità** è
+descritta come un «indicatore anticipatore» (leading indicator) da monitorare
+con **trend nel tempo e confronto fra rig, pozzi o campagne**, per
+identificare le pratiche migliori; si suggeriscono **box-plot per la
+distribuzione della deviazione** e viste per rig/banco. Questa fonte mescola
+drilling minerario e petrolifero e **non è specifica per cava con
+esplosivo**: la riporto con fiducia **bassa**, come indicazione di principio
+(«si tiene una statistica nel tempo, per rig/perforatrice»), non come
+metodo confermato. **Non ho trovato**, con la formulazione esatta
+`"scarto medio per perforatore"` né `"average deviation per driller quarry
+blast"`, una fonte che nomini esplicitamente una statistica «per persona che
+perfora» — solo «per rig/bench/campagna». Query usate: entrambe sopra,
+nessun risultato che isoli il perforatore come unità di aggregazione.
+
+---
+
+### 4. Le parole del mestiere in italiano
+
+Ricerca debole su questo punto: gli unici risultati con testo tecnico italiano
+utile vengono dalla tesi già citata nella ricerca del 21/07
+(`docs/GENESI_ROADMAP_COMPETITOR.md`, Politecnico di Torino) e da poche pagine
+di settore (Terziani, Quarry & Construction). Fiducia bassa-media su tutta
+questa sezione: sono frammenti, non un glossario tecnico organico.
+
+| Termine | Trovato come | Fonte | Fiducia |
+|---|---|---|---|
+| **Sottoperforazione** | Confermato in un contesto operativo: «l'aumento della sottoperforazione nei fori verticali favorisce l'azione di lancio della volata» | Tesi Politecnico Torino (webthesis.biblio.polito.it/8917) | media |
+| **Deviazione (dei fori)** | Confermato per la perforazione mineraria/direzionata in generale: «queste deviazioni sono minime su piccola scala (cm per decine di metri) ma hanno impatto su distanze di centinaia di metri» — riferito a perforazione direzionata, non specificamente a fori da mina di cava | Fonti miste su tecniche di perforazione (non specifiche cava) | bassa |
+| **Fondo foro** | Confermato come componente di un termine composto tecnico diffuso: «martello fondo foro» (DTH hammer) — il fondo del foro come concetto è presupposto, non definito a sé | Fonti tecniche generiche su perforazione | media |
+| **Colletto (del foro)** | **Non trovato** in una fonte italiana che lo definisca esplicitamente in questo contesto con questa ricerca | — | — |
+| **Spalla** (burden) | **Non trovato** in una fonte italiana che traduca «burden» con «spalla» in questo censimento; è plausibile che i testi di settore lascino spesso «burden» in inglese o dicano «distanza dal fronte» | — | — |
+| **Azimut, inclinazione** | Confermati come termini diretti, mutuati da topografia/perforazione mineraria, e coincidenti con i campi `orientation`/`inclination` di IREDES | IREDES, fonti su perforazione | media |
+| **Piano di perforazione** | Termine diretto, corrisponde a `DrillPlan` di IREDES | IREDES | media |
+| **Log di perforazione** | **Non trovato** come dicitura isolata in una fonte italiana; il concetto (registro dei parametri della perforazione) esiste ma non ho trovato il termine esatto usato da un fochino/perforatore italiano | — | — |
+
+⚠️ Va detto con chiarezza: questa sezione **non basta** a rispondere «come lo
+dicono davvero i fochini e i perforatori italiani» — servirebbe una fonte di
+settore scritta da un praticante (un manuale, un capitolato, un corso), non
+solo articoli e tesi accademiche. Query provate e il loro esito sono elencate
+sopra, in ciascuna riga della tabella.
+
+---
+
+### Fonti
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://iredes.org/architecture-2/ · https://iredes.org/irdocs/drillplan.html | Standard IREDES, campi del `DrillPlan` (ID, tipo, orientamento, inclinazione, diametro, lunghezza, coordinate) | media |
+| https://webhelp.micromine.com/mm/latest/English/Content/mmring/IDH_IMPORT_IREDES.htm | Vincoli di import IREDES (ID foro numerico) in un software terzo | media |
+| https://www.epiroc.com (via Rock Road Recycle, Pit&Quarry, Mining.com — snippet) | Hole Navigation System GPS, RCS, accuratezza GNSS ~3,9" | media |
+| https://www.mining.sandvik/en/digital-solutions/.../isure/ · TIM3D · brochure iSURE | iSURE (drill&blast intelligence), TIM3D RTK GNSS <10 cm | media |
+| https://info.carlsonsw.com/boretrak3 · mininglifeonline.net (Boretrak) | Boretrak2/3, sonda giroscopica per deviazione fori | media-alta |
+| Pulsar Blasthole Probe Mk3 (pitandquarry.com, geo-konzept.de) | Precisione 0,25° inclinometro / 1,0° bussola | media |
+| https://www.devico.com/service/drill-blast/ · DeviGyro · DeviShot | Strumenti Devico/IMDEX per deviazione fori da mina | media |
+| https://rockproducts.com/.../quarryman-3d-laser-scanner... · RESPEC Quarryman Pro | Quarryman, scanner laser 3D del fronte, output ASCII per progetto prima fila | media |
+| https://support.blastiq.com/hc/en-us/articles/900006385443 (Hole Type Tolerances) | Collar XY / Overdrill / Underdrill tolerance, Drill Collar Deviation report | media |
+| https://www.maptek.com/products/blastlogic/ · maptek.com/forge (Reconciling post blast performance) | BlastLogic: reconciliation, heatmap, ricalcolo carica da osservazioni di campo | media |
+| https://hexagon.com/products/hexagon-mineplan-op-engineering-operational · blog.hexagonmining.com | MinePlan Blast: KPI plan-vs-actual (orizzontale/verticale/profondità/carica), unica fonte di verità | media |
+| O-Pitblast (academia.edu papers, o-pitblast.com) | O-PitAnalytics, burden reale da fotogrammetria, tracciamento fuori-piano | bassa-media |
+| https://dynonobel.com (Nobel Fire brochure, via snippet) | Electronic Shot Report, app tablet, GPS survey-grade + misura deviazione | media |
+| academia.edu (due paper su deviazione fori vs produzione/costo) | Scostamenti reali osservati 24-26% e 31,2%/2,8%/3,2%; costo extra $1.728-$4.218 per 7-22% deviazione | bassa |
+| Transpara / LinkedIn (KPI drilling, non specifico mining-blast) | Deviazione di profondità come leading indicator, trend per rig/campagna | bassa |
+| webthesis.biblio.polito.it/8917 (tesi già nota da 21/07) | «Sottoperforazione», deviazioni minime su piccola scala | media |
+
+---
+
+### Domande per il delta (sul meccanismo, non risposte)
+
+- Chi, in Genesi, rappresenta OGGI un foro **progettato** — con quale
+  struttura dati e quale ID stabile per foro — e quel foro porta già
+  posizione del colletto, profondità e diametro, o solo posizione in pianta?
+- Chi, in Campo o in Genesi, registrerebbe un foro **davvero perforato**
+  (colletto reale, profondità reale, eventuale deviazione)? Esiste già un
+  punto d'ingresso per un CSV «as-drilled», o il ponte piano→consuntivo citato
+  in `RICERCA_CONTINUA_CAMPO.md` (02/09) porta solo la carica per foro?
+- Con quale CHIAVE si accoppierebbe un foro progettato con la sua riga
+  perforata — l'identificativo del foro nel piano CSV, la coppia
+  (fila, posizione), o altro? Che cosa succederebbe se il numero di fori
+  progettati e quelli perforati non coincidessero (fori saltati o aggiunti
+  sul campo)?
+- La **deviazione del fronte/piede** che Genesi già modella dal 3D-da-foto è
+  la stessa grandezza geometrica della deviazione DEL SINGOLO FORO
+  (as-drilled), o sono due misure indipendenti che vivrebbero in punti
+  diversi del codice?
+- Chi deciderebbe, in Genesi, la soglia di «fuori tolleranza» per uno scarto
+  di profondità o di posizione — un numero scritto nel codice, o un valore
+  che dipende dal diametro/tipo di roccia come nei software citati? Chi lo
+  confermerebbe con una fonte tecnica prima di scriverlo?
+- L'export IREDES «bozza» già fatto (P1.3, sul PROGETTO) porta già posizione,
+  profondità, carica e ritardo per foro: se un domani arrivasse un file
+  IREDES di RITORNO (as-drilled) da una perforatrice vera, quale funzione lo
+  leggerebbe, e sarebbe la stessa che oggi legge il CSV del piano di carico o
+  una diversa?
+- Il ricalcolo della carica «dove la spalla reale è minore» (BlastLogic) —
+  chi, in Genesi, calcola OGGI la carica per foro a partire dal burden
+  progettato, e quella stessa funzione accetterebbe un burden misurato al
+  posto di quello nominale, o assume per costruzione che il burden sia quello
+  di progetto?
