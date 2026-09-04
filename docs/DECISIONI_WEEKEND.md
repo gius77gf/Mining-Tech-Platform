@@ -10,6 +10,41 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 04/09 — tre decisioni nuove, nate dalle passate in profondità
+
+*Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
+(ogni schermata guardata a 390 e 320 nei temi, ogni file aperto, la
+dimostrazione svuotata pezzo per pezzo): diciannove difetti veri corretti. Tre
+cose sono rimaste scritte come «da decidere», perché non sono difetti: sono
+scelte di prodotto.*
+
+- [ ] **22. Scudo: le consegne DPI a persone che non esistono più.** Con
+  l'anagrafica vuota il registro DPI dice «27 consegne registrate a 5 persone ·
+  niente da sistemare», ma tutte le 27 riguardano persone che non sono più in
+  anagrafica (righe con l'avatar «?» e senza nome). Nessuna pastiglia diventa
+  verde, per questo non l'ho toccato. La domanda è tua: una consegna a una
+  persona cancellata **va contata** (è storia: quel casco è uscito), **va
+  segnalata** («5 consegne a persone non più in anagrafe»), o **va nascosta**?
+  La stessa domanda vale per le mansioni con l'assegnato cancellato.
+- [ ] **23. Flotta: le righe «IN LINEA» quando non c'è nessun fermo registrato.**
+  La pagella scrive «100 %» e lo dichiara («nessun fermo registrato: la
+  disponibilità non distingue una macchina dall'altra»), ma sotto quell'avviso
+  ogni riga resta **«IN LINEA» in verde** con «dentro la banda su tutt'e due
+  gli assi». Il numero è dichiarato, il colore no. Da decidere: la pastiglia
+  verde resta (la banda è quella) o diventa neutra finché non c'è un fermo
+  con cui distinguere?
+- [ ] **24. Terra: il CSV dei rilievi perde il rilievo PIANIFICATO al ritorno.**
+  Il file dei rilievi esporta anche «Prossimo rilievo» (pianificato, senza
+  volume) ma non ha una colonna `stato`: ricaricando lo stesso file quella
+  riga viene dichiarata persa («il volume non è stato misurato»), perché un
+  pianificato e un rilievo eseguito senza volume sono indistinguibili. Il
+  prodotto lo dice, non tace; ma è un giro di andata e ritorno di casa nostra
+  che perde una riga. Da decidere: una colonna `stato` nel CSV (cambia il
+  formato che qualcuno potrebbe già usare), oppure i pianificati fuori
+  dall'export (il file è dei rilievi fatti)?
+
+---
+
 ## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
 
 *Oggi Genesi è uscita dal browser (sette unità su otto del piano), il triangolo
@@ -141,7 +176,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **8**
+# 📖 Da dove cominciare — le decisioni aperte sono **11**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
