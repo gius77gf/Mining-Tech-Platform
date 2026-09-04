@@ -36630,5 +36630,44 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine attesa del collaudo (Terra, 04/09) ===== */
 
+/* ===== LA GARANZIA ANCORA VINCOLATA (Terra, 04/09) =====
+   Il mondo svincola la fideiussione per lotto, sul verbale di collaudo. Terra
+   non calcola l'importo (listini regionali, seconda mano): somma le quote che
+   l'utente scrive sui lotti e dice quanta è ferma, quale collaudo la libera, e
+   quanti lotti la quota non la dichiarano. Prove sincrone, prima del riepilogo. */
+{
+  const L = [
+    { id: "lo1", nome: "L1", stato: "collaudato", garanziaEuro: 40000 },
+    { id: "lo2", nome: "L2", stato: "recuperato", garanziaEuro: 25000 },
+    { id: "lo3", nome: "L3", stato: "in-recupero", garanziaEuro: 18000.5 },
+    { id: "lo4", nome: "L4", stato: "aperto" },
+    { id: "lo5", nome: "L5", stato: "previsto", garanziaEuro: "" },
+  ];
+  test("Terra · garanziaVincolata: vincolata sui non collaudati, liberabile sui recuperati (con chi), liberata sui collaudati", () => {
+    const g = terra.garanziaVincolata(L);
+    eq([g.misurabile, g.vincolata, g.liberabile, g.liberata], [true, 43000.5, 25000, 40000], "25.000 + 18.000,5 vincolata; 25.000 liberabile; 40.000 liberata");
+    eq(g.prossimi, [{ id: "lo2", nome: "L2", quota: 25000 }], "il collaudo che libera è quello di L2");
+    eq([g.conQuota, g.nonCollaudati], [3, 4], "tre quote dichiarate su quattro lotti non collaudati più uno chiuso");
+  });
+  test("⛔ Terra · garanziaVincolata: i lotti SENZA quota si contano, e la somma dichiara di essere più piccola del vero", () => {
+    eq(terra.garanziaVincolata(L).senzaQuota, 2, "L4 (niente) e L5 (stringa vuota), tutt'e due non collaudati");
+    eq(terra.garanziaVincolata(L.concat([{ id: "x", stato: "collaudato" }])).senzaQuota, 2, "un collaudato senza quota non manca a nessuna somma vincolata");
+    eq(terra.garanziaVincolata([{ stato: "aperto", garanziaEuro: 0 }]).vincolata, 0, "uno zero SCRITTO è una quota (nulla), non un'assenza");
+    eq(terra.garanziaVincolata([{ stato: "aperto", garanziaEuro: -5 }, { stato: "aperto", garanziaEuro: "abc" }]).misurabile, false, "un importo negativo o illeggibile non è una quota");
+  });
+  test("⛔ Terra · garanziaVincolata: senza nessuna quota non è zero — è «non misurato», con la ragione", () => {
+    const g = terra.garanziaVincolata([{ stato: "aperto" }, { stato: "recuperato" }]);
+    eq([g.misurabile, g.vincolata, g.liberabile, g.liberata, g.senzaQuota], [false, null, null, null, 2], "null, non 0");
+    ok(/non è stato misurato/.test(g.motivo) && /Non vuol dire che è poca/.test(g.motivo), "e lo dice — era «" + g.motivo + "»");
+    ok(/Nessun lotto registrato/.test(terra.garanziaVincolata([]).motivo) && !terra.garanziaVincolata(null).misurabile, "senza lotti: l'altra ragione, e con null non esplode");
+    eq(terra.garanziaVincolata([{ stato: "boh", garanziaEuro: 10 }]).misurabile, false, "uno stato che non esiste non è un lotto");
+  });
+  test("Terra · la dimostrazione: tre quote dichiarate, tre lotti senza — e il cartellone lo deve dire", () => {
+    const g = terra.garanziaVincolata(terra.DEMO.lotti);
+    eq([g.vincolata, g.liberabile, g.liberata, g.senzaQuota, g.prossimi.length], [43000, 25000, 40000, 3, 1], "lo2 + lo3 vincolate, lo2 liberabile, lo1 liberata, lo4-lo5-lo6 senza");
+  });
+}
+/* ===== fine garanzia vincolata (Terra, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

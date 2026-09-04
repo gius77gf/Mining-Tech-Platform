@@ -923,6 +923,8 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input" id="lot-collaudo" type="date" title="La data del verbale con cui l'ente ha verificato il recupero"></div>
     </div>
     <div class="frow">
+      <div class="fld" style="flex:1 1 200px;"><label class="fl" for="lot-garanzia">Quota di garanzia del lotto (<span class="u">&euro;</span>)</label>
+        <input class="dw-input" id="lot-garanzia" inputmode="decimal" placeholder="es. 25.000" title="La parte della fideiussione che la tua polizza attribuisce a questo lotto: si libera col collaudo. Terra non la calcola: la scrivi tu dalla polizza"></div>
       <div class="fld" style="flex:1 1 220px;"><label class="fl" for="lot-vol-rec">Volume rimesso per il recupero (<span class="u">m&sup3;</span>)</label>
         <input class="dw-input" id="lot-vol-rec" inputmode="decimal" placeholder="es. 1.200" title="Quanto materiale &egrave; stato rimesso in cava per il recupero ambientale di questo lotto"></div>
     </div>
@@ -1027,7 +1029,7 @@ a.dw-btn{text-decoration:none}
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
-           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, avanzamentoLotto,
+           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
@@ -2252,7 +2254,20 @@ a.dw-btn{text-decoration:none}
 
   // Il cartellone del divario: lo stesso impianto della scheda «vita cava»,
   // perché è lo stesso genere di numero — quello che si guarda per primo.
-  function cardDivario(dv) {
+  /* LA GARANZIA ANCORA VINCOLATA, nel cartellone del divario (04/09): quanta ne
+     è ferma sui lotti non collaudati, quale collaudo la libera, e quanti lotti
+     la quota non la dichiarano. Senza nessuna quota: la ragione, non uno zero. */
+  function rigaGaranzia(gv) {
+    if (!gv || !gv.misurabile) return gv && gv.senzaQuota
+      ? `<div class="riga">${esc(gv.motivo)} La quota si scrive nel modulo del lotto, dalla polizza.</div>` : "";
+    const nc = gv.nonCollaudati;
+    const chi = gv.prossimi.map(p => esc(p.nome || "lotto senza nome") + " (" + euro0(p.quota) + ")").join(", ");
+    return `<div class="riga">Garanzia ancora vincolata: <b>${euro0(gv.vincolata)}</b> su ${nc} ${nc === 1 ? "lotto non collaudato" : "lotti non collaudati"}${
+        gv.prossimi.length ? ` · liberabile dopo il collaudo di ${chi}` : ""}${
+        gv.liberata > 0 ? ` · liberata finora ${euro0(gv.liberata)}` : ""}.</div>${
+      gv.senzaQuota ? `<div class="riga att">${I.allarme}<span><b>${gv.senzaQuota} ${gv.senzaQuota === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la quota di garanzia</b>: ${gv.senzaQuota === 1 ? "non entra" : "non entrano"} nella somma, che è più piccola del vero.</span></div>` : ""}`;
+  }
+  function cardDivario(dv, gv) {
     if (!dv.misurabile) {
       /* ⛔ Niente zero, niente verde, nessuna pastiglia di stato: qui non c'è
          una misura da colorare. C'è un trattino e la ragione. */
@@ -2298,6 +2313,7 @@ a.dw-btn{text-decoration:none}
           ? `Aperto e recuperato si equivalgono: <b>${n0(dv.apertiMq)} m²</b> da una parte e <b>${n0(dv.chiusiMq)} m²</b> dall'altra.`
           : `Il recupero è <b>avanti</b> allo scavo di <b>${n0(-dv.mq)} m²</b>: i lotti chiusi coprono più superficie di quelli ancora aperti.`}</div>
       <div class="riga">In volume di progetto: <b>${n0(dv.m3)} m³</b> di differenza fra i lotti aperti e quelli recuperati. ${dv.recuperati} ${dv.recuperati === 1 ? "lotto è chiuso" : "lotti sono chiusi"}, ${dv.aperti} ${dv.aperti === 1 ? "è ancora aperto" : "sono ancora aperti"}.</div>
+      ${rigaGaranzia(gv)}
       ${dv.senzaMq ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaMq} ${dv.senzaMq === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la superficie</b>: ${dv.senzaMq === 1 ? "non entra" : "non entrano"} in questo conto, quindi il divario che leggi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m².</span></div>` : ""}
       ${dv.senzaM3 ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaM3} ${dv.senzaM3 === 1 ? "lotto non dichiara" : "lotti non dichiarano"} il volume di progetto</b>: ${dv.senzaM3 === 1 ? "non entra" : "non entrano"} nel divario in metri cubi, che quindi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m³.</span></div>` : ""}
     </div>`;
@@ -2349,6 +2365,7 @@ a.dw-btn{text-decoration:none}
         ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
         : "",
       att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
+      l.garanziaEuro != null && l.garanziaEuro !== "" && Number.isFinite(+l.garanziaEuro) ? "Quota di garanzia: " + euro0(l.garanziaEuro) + (st === "collaudato" ? ", liberata col collaudo." : ".") : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");
     return `<div class="item ${sty[0]}" style="cursor:default;">
@@ -2371,7 +2388,7 @@ a.dw-btn{text-decoration:none}
       (+a.ordine || 9999) - (+b.ordine || 9999)
       || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
     const dv = divarioRecupero(LOT);
-    $("lot-divario").innerHTML = cardDivario(dv);
+    $("lot-divario").innerHTML = cardDivario(dv, garanziaVincolata(LOT));
     $("lot-list").innerHTML = lotti.map(itemLotto).join("")
       || vuoto(I.lotti, "Nessun lotto registrato",
           "Il progetto di coltivazione divide la cava in <b>lotti</b>, e l'atto quasi sempre chiede il <b>recupero contestuale</b>: un lotto si recupera mentre si scava il successivo. Registra qui sotto il primo — nome, superficie e stato — e Terra comincia a misurare quanto hai aperto e quanto hai già rimesso a posto.",
@@ -3635,6 +3652,7 @@ a.dw-btn{text-decoration:none}
     $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
     $("lot-fondo").value = l ? itDec(l.quotaFondoM == null ? "" : l.quotaFondoM) : "";
     $("lot-vol-rec").value = l ? itDec(l.volumeRecuperoM3 == null ? "" : l.volumeRecuperoM3) : "";
+    $("lot-garanzia").value = l ? itDec(l.garanziaEuro == null ? "" : l.garanziaEuro) : "";
     $("lot-nota").value = l ? (l.nota || "") : "";
     for (const [id, campo] of CAMPI_DATA_LOTTO) $(id).value = l && dataISOEsiste(l[campo]) ? l[campo] : "";
     frontiLot = l && Array.isArray(l.frontiId) ? l.frontiId.map(String) : [];
@@ -3654,6 +3672,8 @@ a.dw-btn{text-decoration:none}
        `null` — non zero: uno zero sarebbe «non ci è andato niente», che è una
        misura, e il vuoto è «nessuno l'ha scritto» (decisione 18). */
     const volRec = numCampo("lot-vol-rec", { decimali: 2, min: 0 });
+    // la quota di garanzia: vuoto resta null («nessuno l'ha scritta»), non zero
+    const gar = numCampo("lot-garanzia", { decimali: 2, min: 0 });
     return {
       nome: t("lot-nome"),
       // senza ordine scritto, il lotto si mette in coda: un numero inventato in
@@ -3669,6 +3689,7 @@ a.dw-btn{text-decoration:none}
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
       collaudoChiestoIl: d("lot-collaudo-chiesto"), collaudatoIl: d("lot-collaudo"),
       volumeRecuperoM3: volRec.ok ? volRec.valore : null,
+      garanziaEuro: gar.ok ? gar.valore : null,
       frontiId: frontiLot.slice(),
       nota: t("lot-nota"),
     };

@@ -31,7 +31,7 @@
 //                   misurato), stato: previsto|aperto|esaurito|in-recupero|
 //                   recuperato|collaudato, apertoIl, esauritoIl,
 //                   recuperoIniziatoIl, recuperoFinitoIl, collaudoChiestoIl,
-//                   collaudatoIl (ISO
+//                   collaudatoIl (ISO), garanziaEuro? (quota di garanzia del lotto,
 //                   o null), frontiId: [] (i fronti che stanno nel lotto),
 //                   quotaFondoM (il fondo di QUESTO settore quando il
 //                   progetto ne dà uno diverso da quello generale: vince
@@ -74,17 +74,22 @@ export const DEMO = {
     { id: "lo1", nome: "Lotto 1 — settore Ovest", ordine: 1, superficieMq: 14000, volumeM3: 210000,
       stato: "collaudato", apertoIl: "2021-04-12", esauritoIl: "2022-11-30",
       recuperoIniziatoIl: "2023-01-16", recuperoFinitoIl: "2023-09-08", collaudatoIl: "2024-02-19",
+      /* la quota di garanzia (04/09) è quella scritta nella polizza per QUESTO
+         lotto, dichiarata dall'utente: Terra non la calcola. lo4, lo5 e lo6
+         restano senza, di proposito: il cartellone deve dirlo */
+      garanziaEuro: 40000,
       frontiId: [], nota: "Chiuso e collaudato dall'ente: verbale agli atti." },
     { id: "lo2", nome: "Lotto 2 — settore Sud-Ovest", ordine: 2, superficieMq: 6000, volumeM3: 88000,
       stato: "recuperato", apertoIl: "2022-10-03", esauritoIl: "2024-07-19",
       recuperoIniziatoIl: "2024-09-02", recuperoFinitoIl: "2026-05-22", collaudatoIl: null,
       /* la richiesta del collaudo è una DATA (04/09), non più una frase nella
          nota: è il momento di mezzo fra «recupero finito» e «verbale» */
-      collaudoChiestoIl: "2026-06-10",
+      collaudoChiestoIl: "2026-06-10", garanziaEuro: 25000,
       frontiId: [], nota: "" },
     { id: "lo3", nome: "Lotto 3 — settore Nord-Ovest", ordine: 3, superficieMq: 5500, volumeM3: 75000,
       stato: "in-recupero", apertoIl: "2023-02-06", esauritoIl: "2026-02-27",
       recuperoIniziatoIl: "2026-04-13", recuperoFinitoIl: null, collaudatoIl: null,
+      garanziaEuro: 18000,
       frontiId: [], nota: "Rimodellamento delle scarpate in corso." },
     /* Il settore Nord è l'unico che nel progetto d'esempio ha un fondo SUO,
        più alto di quello generale (335 contro 300): è il caso normale di un
@@ -2781,6 +2786,43 @@ export function attesaCollaudo(lotto, oggi = new Date()) {
     frase: g == null ? "collaudo non ancora chiesto"
       : g <= 0 ? "recupero finito, collaudo non ancora chiesto"
       : "recuperato da " + (g === 1 ? "1 giorno" : g + " giorni") + ", collaudo non ancora chiesto" };
+}
+
+/* LA GARANZIA ANCORA VINCOLATA (04/09). Il mondo dimensiona la fideiussione
+   sul recupero e la svincola PER LOTTO, sul verbale di collaudo: quindi la
+   domanda che un'azienda si fa è «quanta garanzia è ancora ferma, e quale
+   collaudo la libera». Terra NON calcola l'importo (gli importi unitari sono
+   listini regionali, di seconda mano, e restano fuori): l'utente scrive sul
+   lotto la quota che la SUA polizza gli attribuisce (`garanziaEuro`), e qui si
+   somma. Le tre risposte: `vincolata` (quote dei lotti non collaudati),
+   `liberabile` (quote dei lotti recuperati che aspettano il verbale, con
+   l'elenco in `prossimi`), `liberata` (quote dei collaudati). E come
+   `divarioRecupero` dichiara i lotti senza superficie, qui `senzaQuota` conta
+   i lotti non collaudati che la quota non la dichiarano: una somma fatta su
+   tre lotti quando sono sei è più piccola del vero, cioè la buona notizia.
+   Senza nessuna quota dichiarata: non misurabile, col motivo — non zero. Pura. */
+export function garanziaVincolata(lotti) {
+  const l = (lotti || []).filter((x) => x && STATI_LOTTO.includes(String(x.stato || "")));
+  const quota = (x) => { const q = numeroDichiarato(x.garanziaEuro); return q != null && q >= 0 ? q : null; };
+  const conQuota = l.filter((x) => quota(x) != null);
+  if (!conQuota.length)
+    return { misurabile: false, vincolata: null, liberabile: null, liberata: null,
+      conQuota: 0, senzaQuota: l.length, nonCollaudati: 0, prossimi: [],
+      motivo: l.length
+        ? "Nessun lotto dichiara la sua quota di garanzia: quanta garanzia è ancora vincolata non è stato misurato. Non vuol dire che è poca."
+        : "Nessun lotto registrato: la garanzia vincolata non è stata misurata." };
+  const chiuso = (x) => statoLotto(x) === "collaudato";
+  const vinc = conQuota.filter((x) => !chiuso(x));
+  const lib = conQuota.filter((x) => statoLotto(x) === "recuperato");
+  return { misurabile: true,
+    vincolata: r2(vinc.reduce((t, x) => t + quota(x), 0)),
+    liberabile: r2(lib.reduce((t, x) => t + quota(x), 0)),
+    liberata: r2(conQuota.filter(chiuso).reduce((t, x) => t + quota(x), 0)),
+    conQuota: conQuota.length,
+    senzaQuota: l.filter((x) => quota(x) == null && !chiuso(x)).length,
+    nonCollaudati: l.filter((x) => !chiuso(x)).length,
+    prossimi: lib.map((x) => ({ id: x.id, nome: x.nome || "", quota: quota(x) })),
+    motivo: "" };
 }
 
 /* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non
