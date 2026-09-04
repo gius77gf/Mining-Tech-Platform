@@ -342,6 +342,12 @@ const BANCHI = [
   ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
   ['id unici nella pagina viva', 'id-unici.mjs', []],
   ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
+  /* ⛔ le quattro pagine di Deepwork ID negli stati VERI (membro, senza org,
+     tour): fino al 04/09 ogni banco le vedeva solo in anteprima, perché il
+     finto Firebase del core non risponde per auth e functions e l'SDK non
+     parte. `finto-id.mjs` sì. */
+  ['Deepwork ID negli stati veri', 'id-stati.mjs', []],
+  ['Deepwork ID · controprova', 'id-stati.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
   ['navigazione fra le pagine', 'navigazione.mjs', []],

@@ -130,6 +130,36 @@
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Nona tappa, Deepwork ID e la vetrina (04/09, cantiere parallelo morto
+  con la sesta interruzione PRIMA del rapporto: raccolto dai suoi diff, dai
+  suoi registri e dagli scatti, e rimisurato)**. ⛔ Fino a oggi NESSUN banco
+  aveva mai visto le quattro pagine di Deepwork ID da connessi: il finto
+  Firebase del core risponde vuoto per auth e functions, l'SDK non parte e
+  ogni banco misurava l'ANTEPRIMA. Ora c'è `finto-id.mjs` e il banco
+  `id-stati` (29 prove su 4 pagine negli stati veri: membro, senza
+  organizzazione, ospite del tour, amministrazione owner/semplice/senza rete;
+  controprova 16/16 rimessi, cadono 18). Difetti veri corretti, tutti con la
+  misura nei commenti: profilo, «attiva» decisa con `toDate()` (copia debole
+  di `_entitlementAttivo`: con una scadenza in stringa la pagina moriva nel
+  catch e diceva «Backend non configurato» a un membro connesso); `#msg`
+  senza nessuna regola `.msg` in profilo e amministrazione (testo nudo, 566 px
+  sotto il bottone, fuori finestra: ora le note restano lì e gli esiti passano
+  dal toast del core); «Crea» col nome vuoto partiva e l'organizzazione creata
+  non compariva; amministrazione «scade tra 1 giorni» / «0 giorni» su un invito
+  scaduto, «disabled» in inglese, la guardia dell'anteprima che rispondeva a
+  ogni tocco della pagina (e nel modo vivo rileggeva membri e inviti a ogni
+  click), il modulo d'invito attivo per un membro semplice, «Rimuovi»/«Revoca»
+  a 39 px contro i 44 di `--tap`; accesso, «Qualcosa non ha funzionato» con
+  la password vuota; vetrina, «NELL'ECOSISTE» tagliata a 320 (la riga ha
+  `overflow:hidden` per l'animazione, quindi nessun righello la vedeva) e
+  «ROVA IL TOU» nella barra sotto i 352 px — misurati col Range, corretti con
+  `calc(10vw - 5px)` e i due gradini, in `apps/vetrina/sito.py` e nella pagina
+  generata. `run-stile`: l'esenzione della nota di modo è sull'installazione,
+  non sulla riga (la controprova ci aveva piantato il veleno sopra).
+  Rimisurato dal coordinatore: `id-stati` 29/0 e controprova, `vetrina-
+  collegamenti` 51/0, run-stile 328/0, sintassi 34/0, nomi-liberi 26/0,
+  iniezioni-fresche 496/496; scatti guardati (amministrazione a 320,
+  vetrina a 320). Marchio non toccato (diff: zero righe sull'SVG).
   ✅ **Ottava tappa, Conti — terza passata (04/09, cantiere parallelo,
   rimisurata contro una copia di HEAD)**: undici banchi verdi dal disco
   (documenti che escono 81 su 12 punti d'uscita, stampe 20, frasi 22, barre
@@ -6137,8 +6167,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **231 esecuzioni** che
-  aprono le pagine in un browser vero, da **95** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **233 esecuzioni** che
+  aprono le pagine in un browser vero, da **96** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

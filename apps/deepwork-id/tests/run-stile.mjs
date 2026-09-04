@@ -2118,7 +2118,18 @@ function avvisoUsatoComeLavagna(src) {
        dove `mode-note` ha diritto di stare è la riga che lo installa. */
     if (!/["']mode-note["']/.test(riga)) return;
     if (/<[^>]*\bid=["']mode-note["']/.test(riga)) return;   // è la dichiarazione del riquadro
-    if (/\bdb\.mode\b|\blive\(\)/.test(riga)) return;   // è l'installazione dell'avviso
+    if (/\bdb\.mode\b|\blive\(\)/.test(riga)) {
+      /* ⛔ È ESENTE L'INSTALLAZIONE, NON LA RIGA. Il 04/09 la controprova ha
+         piantato il veleno proprio sulla riga che installa la nota (i punti
+         d'iniezione cadono dove cadono i campioni, e l'amministrazione di
+         Deepwork ID era appena cambiata di qualche riga) e la regola non lo
+         vedeva: «1 iniezioni su 56 non viste». La forma d'installazione è una
+         sola in tutte e sette le superfici — `$("mode-note").textContent =` o
+         `.innerHTML =` seguita dal modo — quindi si toglie QUELLA e si guarda
+         se l'id compare ancora. */
+      const senza = riga.replace(/\$\(["']mode-note["']\)\.(textContent|innerHTML)\s*=/g, "");
+      if (!/["']mode-note["']/.test(senza)) return;
+    }
     fuori.push(`riga ${i + 1}: ${riga.trim().slice(0, 90)}`);
   });
   return fuori;
@@ -2142,6 +2153,8 @@ test("la regola 14 sa vedere il difetto che è stato tolto", () => {
   const base = '<div class="note" id="mode-note"></div>\n'
     + '$("mode-note").textContent = db.mode === "live" ? "Dati reali." : "Dati di esempio.";\n';
   ok(avvisoUsatoComeLavagna(base).length === 0, "la sola installazione non è una violazione");
+  ok(avvisoUsatoComeLavagna(base.replace(/\n$/, ";esito(\"mode-note\", \"Esportate 3 fatture.\", \"success\");\n")).length === 1,
+    "il veleno piantato SULLA RIGA dell'installazione si vede lo stesso (04/09)");
   ok(avvisoUsatoComeLavagna(base + 'esito("mode-note", "Esportate 3 fatture.", "success");').length === 1,
     "un esito scritto sull'avviso è una violazione");
   ok(avvisoUsatoComeLavagna(base + '$("mode-note").textContent = "Esportati 3 incassi.";').length === 1,
