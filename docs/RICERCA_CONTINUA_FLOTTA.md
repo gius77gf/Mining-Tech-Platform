@@ -868,3 +868,70 @@ per prossimità o assenti.
    funzione se ne accorgerebbe oggi, e quella funzione lo dichiarerebbe come
    «non misurato» o lo lascerebbe scorrere silenziosamente nell'ultima
    lettura nota?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `c75239f5`)
+
+Le sei domande, risposte aprendo `apps/flotta/flotta-data.js` (80 funzioni
+esportate); ogni «non c'è» con il comando.
+
+1. **Il contatore che scende.** Due posti, con due risposte diverse e tutt'e
+   due deliberate: `validaRifornimento(dati, oreMezzo)` RIFIUTA prima di
+   salvare una lettura più bassa di mezz'ora rispetto all'ultima registrata
+   («Il contatore segna meno delle N ore già registrate sul mezzo: controlla»)
+   — non registra il rifiuto, e un rifornimento rifiutato è indistinguibile da
+   uno mai inserito; `consumoPerMezzo` (riga ~2222, `sceso`) e
+   `ritmoOreMezzi` invece TENGONO le letture e rispondono `null` con il
+   `perche` («il contatore è sceso», «fra la prima e l'ultima lettura il
+   contatore non è salito»). Nessuna delle due distingue refuso, centralina
+   sostituita o sensore guasto: `grep -n "centralina\|reset" flotta-data.js` →
+   la nota della causale «guasto-elettrico» e un `preset` preso per la coda
+   della parola: niente sul tema. Non c'è un evento «contatore
+   azzerato» che riapra il conto da zero.
+2. **Ore motore / lavoro / folle.** Un numero solo: `parseTelemetriaCsv` legge
+   `mezzo; ore; carburante`, `validaRifornimento` un `ore` a un decimale.
+   `grep -n "folle\|idle\|oreLavoro" flotta-data.js` → 0. Un dato di idle non
+   avrebbe oggi nessuna porta: entrerebbe come colonna nuova del CSV di
+   telemetria e come campo del rifornimento, e `ritmoOreMezzi`/
+   `consumoPerMezzo` continuerebbero a ragionare sulle ore motore (giusto: il
+   tagliando si fa sulle ore motore).
+3. **La causale del fermo.** Elenco CHIUSO, `CAUSALI_FERMO` (nove voci con
+   nota): guasto meccanico / idraulico / elettrico, gomme o cingoli, attesa
+   ricambi, manutenzione programmata, verifica o revisione, manca l'operatore,
+   altro. Contro le famiglie del mondo mancano solo **meteo** e la distinzione
+   «fermo programmato» (c'è: «manutenzione programmata» e «verifica») —
+   «mancanza operatore» c'è già, cercata col nome della casa.
+4. **Operating vs External standby.** Non c'è come campo: la causale
+   implicitamente lo dice (manutenzione/verifica = scelta del gestore;
+   operatore/gomme/guasto = subìto) ma `affidabilitaFlotta` conta i fermi
+   tutti insieme (con `persi`, `episodi`, `senzaDate` dichiarati, e
+   `fermoCollocabile` per quelli senza data) — `grep -n "standby\|subito\|scelto"
+   flotta-data.js` → la nota di «manutenzione» («è un fermo scelto») e tre
+   commenti dove «subito» e «scelto» sono parole comuni: niente sul tema. Un
+   fermo da telematica (solo un codice guasto) non avrebbe un campo: `grep -n
+   "codice\b\|DTC\|dtc" flotta-data.js` → «codice» compare solo nel senso di
+   programma, nei commenti; 0 sul tema.
+5. **Il CSV che entra.** `parseTelemetriaCsv` vuole `mezzo;ore;carburante`
+   (con `numIt`, la virgola italiana); un export Piusi/Gilbarco o VisionLink
+   ha altre colonne e altri nomi del mezzo: servirebbe una mappa di colonne
+   come quella di Sentinella (`preparaLetture(righe, mappa)`), che è lo stesso
+   meccanismo e vivrebbe in `shared/` il giorno in cui la usano in due.
+6. **Il contatore fermo per giorni.** `ritmoOreMezzi` lo dichiara:
+   `r.eta > ORIZZONTE_TAGLIANDI` (30 giorni) → «l'ultima lettura del contatore
+   è di N giorni fa: quel ritmo racconta un periodo passato, non questo», e
+   il ritmo è `null`; `consumoControStoria` ha la sua finestra. Il principio è
+   applicato dove il numero si forma; quello che non c'è è un avviso sul
+   mezzo («nessuna lettura da N giorni») fuori dal conto del ritmo.
+
+**Che cosa ne segue** (candidati con costo e misura, nessuno aperto):
+- (a) la causale **meteo** in `CAUSALI_FERMO` (costo minimo; misura: la
+  tendina e il CSV la accettano, `nomi-doppi` resta d'accordo con Campo, che
+  ha la sua `CAUSALI_FERMO` con ragione dichiarata);
+- (b) l'evento «contatore azzerato/sostituito» registrato dalla persona, che
+  riapre il conto senza far dire «sceso» a `consumoPerMezzo` e
+  `ritmoOreMezzi` (costo medio, tocca tre lettori: elencarli prima);
+- (c) la mappa di colonne per il CSV di telemetria, condivisa con Sentinella
+  in `shared/` (costo medio; misura: un CSV con colonne in altro ordine
+  rientra intero, e il conto dei doppioni non cambia);
+- (d) «scelto / subìto» come attributo derivato dalla causale in
+  `affidabilitaFlotta`, con i due totali dichiarati (costo basso; misura:
+  la somma dei due è il totale di oggi, alla cifra).
