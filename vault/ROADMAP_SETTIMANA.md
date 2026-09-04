@@ -332,13 +332,23 @@
   escono` 70 → 71 (la striscia letta all'italiana, iniezione 15 ripuntata,
   nessuna striscia col punto), controprova 15/15 e cade; run-kpi +8
   asserzioni sul sorgente (stesso conto di prove).
-  ⏱️ **Resta, censito e non fatto**: la MAGLIA è ancora col punto dappertutto
-  — striscia «Sp3×I3.5», riquadro «B 3.2 × S 3.8», etichetta SVG «Sp3m», PDF
-  «3.5 m» (righe `mgPdf.borraggio+' m'`) — e nella tabella dei fori del PDF
-  `(f.x||0).toFixed(2)` scrive le coordinate col punto. È la stessa famiglia
-  (numero giusto, grafia del foglio diversa da quella dell'app), coerente fra
-  schermo e foglio oggi, quindi unità a sé: si cambiano insieme schermo e PDF,
-  e il banco che li confronta.
+  ✅ **E la maglia e le coordinate (04/09, unità successiva)**: la MAGLIA era
+  col punto dappertutto — striscia «Sp3×I3.5», riquadro «B 3.2 × S 3.8»,
+  etichetta SVG «Sp3m», PDF «3.5 m» — e la tabella dei fori del PDF scriveva le
+  coordinate con `toFixed(2)`; in più tre PDF/Excel (rapportino, totali del
+  mensile, fochino per foro) avevano `toFixed(1).replace('.',',')`, cioè
+  perLettura riscritta senza le migliaia. Tutti da `perLettura` ora («Sp3,2×
+  I3,8», «B 3,2 × S 3,8», «3,2 m», «1,90»/«3,20»). Il banco
+  `core-documenti-che-escono` 71 → 74 (spalla/interasse letti dal foglio,
+  coordinate con la virgola su 12 righe su 12, striscia «Sp3,2×I3,8»),
+  iniezione 17 nei due versi (17/17 rimessi, cade). ⚠️ Il righello ha morso: il
+  lettore dei numeroni cercava la PRIMA «n,n m» del foglio intero e, con la
+  maglia passata alla virgola, prendeva «3,5 m» dell'interasse al posto di
+  «126,0 m»: adesso legge il numero che precede la SUA etichetta (METRI/KG/MC).
+  ⏱️ Resta, della stessa famiglia e dichiarato: il **Report tecnico** (PDF
+  mensile, tabella rapportini e piede) scrive ancora «81.0», «1190.7»,
+  «3466.0» col punto, e il banco lo legge con `parseFloat`: unità a sé, perché
+  cambia il foglio e il righello insieme.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura

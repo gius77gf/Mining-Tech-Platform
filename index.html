@@ -4390,9 +4390,9 @@ function exportRapportinoPDF(r){
      perforati veri. La regola sta in `misureRapportino`, in `shared/`. */
   const ms=misureRapportino(r);
   d.setFont('helvetica','bold');d.text('Fori:',14,y);d.setFont('helvetica','normal');d.text(ms.misurato?String(ms.fori):'nessuno misurato',32,y);
-  d.setFont('helvetica','bold');d.text('Metri:',55,y);d.setFont('helvetica','normal');d.text(ms.metri===null?'—':String(ms.metri.toFixed(1)).replace('.',','),78,y);
+  d.setFont('helvetica','bold');d.text('Metri:',55,y);d.setFont('helvetica','normal');d.text(ms.metri===null?'—':perLettura(ms.metri,1,true),78,y);
   d.setFont('helvetica','bold');d.text('Media foro:',105,y);d.setFont('helvetica','normal');d.text(ms.mediaProf===null?'—':perLettura(ms.mediaProf,2,true)+' m',138,y);
-  d.setFont('helvetica','bold');d.text('Mc:',170,y);d.setFont('helvetica','normal');d.text(ms.calcolabile?String(ms.mc.toFixed(1)).replace('.',','):'—',182,y);
+  d.setFont('helvetica','bold');d.text('Mc:',170,y);d.setFont('helvetica','normal');d.text(ms.calcolabile?perLettura(ms.mc,1,true):'—',182,y);
   y+=6;
   /* e il perché del trattino, scritto sul foglio: un «—» senza ragione accanto
      si legge come una svista di chi ha compilato */
@@ -4490,7 +4490,7 @@ function exportRapportinoFocPDF(r){
     d.setFont('helvetica','bold');d.setFontSize(10);d.text('ESPLOSIVO',14,y);y+=5;
     d.setFont('helvetica','normal');d.setFontSize(9);
     d.text(`Fori caricati: ${mf.fori}`,14,y);
-    d.text(`Totale: ${mf.dichiarato?(mf.parziale?'almeno ':'')+mf.kg.toFixed(1).replace('.',',')+' kg':'non dichiarato'}`,70,y);
+    d.text(`Totale: ${mf.dichiarato?(mf.parziale?'almeno ':'')+perLettura(mf.kg,1,true)+' kg':'non dichiarato'}`,70,y);
     y+=5;
     if(mf.parziale||!mf.dichiarato){
       d.setTextColor(150,90,0);d.setFont('helvetica','italic');
@@ -4505,7 +4505,7 @@ function exportRapportinoFocPDF(r){
         body:dett.map((f,i)=>{
           const k=misureVolataFochino({fori:1,tot_kg:f&&f.kg,fori_dettaglio:[f||{}]});
           return [i+1,(f.esplosivo||'—')+(f.esplosivo2?' + '+f.esplosivo2:''),f.innesco||'—',
-                  k.dichiarato?k.kg.toFixed(1).replace('.',','):'—'];
+                  k.dichiarato?perLettura(k.kg,1,true):'—'];
         }),
         theme:'grid',styles:{fontSize:8,cellPadding:1.5},
         headStyles:{fillColor:[239,83,80],textColor:[255,255,255],fontStyle:'bold',fontSize:8},
@@ -4875,15 +4875,15 @@ function exportRapportiniMeseCorrentePDF(){
             (r.diametro||'—')+' mm',
             r.maglia||'—',
             ms.misurato?ms.fori:'non misurato',
-            ms.metri===null?'—':ms.metri.toFixed(1).replace('.',','),
-            ms.calcolabile?ms.mc.toFixed(1).replace('.',','):'—'
+            ms.metri===null?'—':perLettura(ms.metri,1,true),
+            ms.calcolabile?perLettura(ms.mc,1,true):'—'
           ];
         }),
         foot:[[
           {content:'TOTALI',colSpan:5,styles:{halign:'right',fontStyle:'bold'}},
           totM.fori,
-          totM.metri===null?'—':totM.metri.toFixed(1).replace('.',','),
-          totM.mc===null?'—':totM.mc.toFixed(1).replace('.',',')
+          totM.metri===null?'—':perLettura(totM.metri,1,true),
+          totM.mc===null?'—':perLettura(totM.mc,1,true)
         ]],
         theme:'grid',
         headStyles:{fillColor:[255,171,0],textColor:[28,22,8],fontStyle:'bold',fontSize:9},
@@ -5996,6 +5996,9 @@ function renderEditorSide(){
      lo schema e il riquadro del progetto condiviso dicono quello che c'e' */
   const mg=magliaDetta(v);
   const mgB=mg.borraggio===null?'':mg.borraggio, mgS=mg.spaziatura===null?'':mg.spaziatura;
+  /* i due grezzi sopra vanno nei CAMPI (value=): a chi LEGGE si scrive con la virgola,
+     come il PDF che esce dal bottone sotto («3,2 m»), non «3.2» (04/09) */
+  const mgBl=mg.borraggio===null?'—':perLettura(mg.borraggio,2), mgSl=mg.spaziatura===null?'—':perLettura(mg.spaziatura,2);
 
   // ── Sola lettura: riepilogo non modificabile ──
   if(state.volataReadonly){
@@ -6007,7 +6010,7 @@ function renderEditorSide(){
         <div class="preview-row"><span class="preview-lab">Nome</span><span class="preview-val">${escHtml(v.nomeProgetto||'Volata #'+v.numero)}</span></div>
         <div class="preview-row"><span class="preview-lab">Cava/Tipo</span><span class="preview-val">${escHtml(cava?cava.nome:(v.tipo||'—'))}</span></div>
         <div class="preview-row"><span class="preview-lab">Fori</span><span class="preview-val">${mvRo.fori}</span></div>
-        <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${mgB||'—'} × S ${mgS||'—'}</span></div>
+        <div class="preview-row"><span class="preview-lab">Maglia</span><span class="preview-val">B ${mgBl} × S ${mgSl}</span></div>
         <!-- ⛔ e qui il riquadro sta ATTACCATO al bottone che genera il PDF:
              un «0» di metri sopra un foglio che scrive «-» sono due risposte
              diverse alla stessa domanda, date dallo stesso schermo. -->
@@ -6263,8 +6266,8 @@ function renderEditorSide(){
         <circle cx="60" cy="40" r="5" fill="var(--card)" stroke="var(--amber)" stroke-width="1.5"/>
         <circle cx="60" cy="${40 - Math.min(Borr*12,28)}" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
         <circle cx="${60 + Math.min(Spaz*8,40)}" cy="40" r="4" fill="none" stroke="var(--amber2)" stroke-width="1" stroke-dasharray="2 1"/>
-        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">Sp${mgB||'—'}${mgB?'m':''}</text>
-        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">I${mgS||'—'}${mgS?'m':''}</text>
+        <text x="64" y="${40-Math.min(Borr*12,28)/2}" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">Sp${mgBl}${mg.borraggio!==null?'m':''}</text>
+        <text x="${60+Math.min(Spaz*8,40)/2}" y="38" fill="var(--amber)" font-size="8" font-family="'Barlow Condensed',sans-serif">I${mgSl}${mg.spaziatura!==null?'m':''}</text>
       </svg>
     </div>
 
@@ -6843,8 +6846,8 @@ function exportRiconciliazionePDF(v, rapportini){
         const ms=misureRapportino(r);
         return [fmt(r.data), u?(u.nome+' '+u.cognome):'—',
                 ms.misurato?ms.fori:'non misurato',
-                ms.metri===null?'—':ms.metri.toFixed(1).replace('.',','),
-                ms.calcolabile?ms.mc.toFixed(1).replace('.',','):'—',
+                ms.metri===null?'—':perLettura(ms.metri,1,true),
+                ms.calcolabile?perLettura(ms.mc,1,true):'—',
                 (r.diametro||'—')+' mm'];
       }),
       theme:'grid',
@@ -7472,7 +7475,7 @@ function _aggiornaEcStats(v,etichetta){
     <span class="ec-stat">${tipoLabel}</span>
     <span class="ec-stat"><b>${mv.fori}</b>${plurale(mv.fori,'foro','fori')}</span>
     <span class="ec-stat"><b>${fileDetti(v)??'—'}</b>file</span>
-    <span class="ec-stat"><b>Sp${mg.borraggio===null?'—':mg.borraggio}</b>×I<b>${mg.spaziatura===null?'—':mg.spaziatura}</b></span>
+    <span class="ec-stat"><b>Sp${mg.borraggio===null?'—':perLettura(mg.borraggio,2)}</b>×I<b>${mg.spaziatura===null?'—':perLettura(mg.spaziatura,2)}</b></span>
     <span class="ec-stat"><b>${mv.metri===null?'—':perLettura(mv.metri,1,true)}</b><span class="u">m</span></span>
     ${mv.kgNoto?`<span class="ec-stat"><b>${mv.parziale?'≥':''}${perLettura(mv.kg,1,true)}</b><span class="u">kg</span></span>`:''}
     <span class="ec-stat"><b>${mv.mcNoto?perLettura(mv.mc,1,true):'—'}</b><span class="u">mc</span></span>
@@ -7857,8 +7860,8 @@ function exportVolataPDF(volataId){
        qualcuno li avesse misurati, mentre la riga sotto — il borraggio —
        diceva gia' «-» quando non c'era. La regola e' `magliaDetta`, la stessa
        che decide la barra dell'editor e il riquadro condiviso. */
-    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':mgPdf.borraggio+' m'],
-    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':mgPdf.spaziatura+' m'],
+    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':perLettura(mgPdf.borraggio,2)+' m'],
+    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':perLettura(mgPdf.spaziatura,2)+' m'],
     ['Borraggio (carica-imbocco)', (v.maglia.borraggio_reale||'-')+(v.maglia.borraggio_reale?' m':'')],
     ['N. file', String(v.maglia.file)],
     ['Esplosivo default', v.default.esplosivo||'-'],
@@ -7977,7 +7980,7 @@ function exportVolataPDF(volataId){
       head:[['#','Fila','X(m)','Y(m)','Prof','Diam','Carica','Esplosivo','Innesco','Ritardo','Seq']],
       /* la fila si RICAVA dividendo la distanza dal fronte per la spalla:
          senza spalla scritta non e' un 1, e' un «-» come le altre colonne */
-      body:v.fori.map(function(f){const fila=mgPdf.borraggio===null?'-':(Math.round((f.y||0)/Borr)||1);return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',f.diam||'-',f.kg||'-',f.esplosivo||'-',f.innesco||'-',f.ritardo||'-',f.sequenza||'-'];}),
+      body:v.fori.map(function(f){const fila=mgPdf.borraggio===null?'-':(Math.round((f.y||0)/Borr)||1);return[f.num,fila,perLettura(f.x||0,2,true),perLettura(f.y||0,2,true),f.prof||'-',f.diam||'-',f.kg||'-',f.esplosivo||'-',f.innesco||'-',f.ritardo||'-',f.sequenza||'-'];}),
       theme:'grid',
       headStyles:{fillColor:[255,171,0],textColor:[20,16,8],fontStyle:'bold',fontSize:7},
       bodyStyles:{textColor:[40,40,40],fontSize:7},

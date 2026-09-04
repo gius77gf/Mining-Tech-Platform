@@ -35135,7 +35135,18 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
     ok(/\$\{mv\.parziale\?'≥':''\}\$\{perLettura\(mv\.kg,1,true\)\}<\/b><span class="u">kg<\/span>/.test(coreSrc), "e i chili, col «≥» del minimo davanti");
     ok(/<b>\$\{mv\.mcNoto\?perLettura\(mv\.mc,1,true\):'—'\}<\/b><span class="u">mc<\/span>/.test(coreSrc), "e i metri cubi, con il «—» quando non si calcolano");
     ok(/perLettura\(mvRo\.metri,1,true\)\+' m'/.test(coreSrc) && /perLettura\(mvRo\.kg,1,true\)\+' kg'/.test(coreSrc), "e il riquadro in sola lettura scrive metri e chili nello stesso vestito, con l'unità");
-    ok(/perLettura\(m\.kg,1,true\)\+' kg di esplosivo'/.test(coreSrc) && /perLettura\(m\.kg,1,true\)\+' kg'\) : 'kg non scritti'/.test(coreSrc), "e volKg / volRiga pure: non resta nessun m.kg nudo nelle frasi"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
+    ok(/perLettura\(m\.kg,1,true\)\+' kg di esplosivo'/.test(coreSrc) && /perLettura\(m\.kg,1,true\)\+' kg'\) : 'kg non scritti'/.test(coreSrc), "e volKg / volRiga pure: non resta nessun m.kg nudo nelle frasi");
+    /* LA MAGLIA E LE COORDINATE (04/09, stessa famiglia): «Sp3×I3.5» e «B 3.2 × S
+       3.8» a schermo, «3.5 m» e `toFixed(2)` nel PDF — col punto — mentre il
+       resto del foglio scrive con la virgola. Ora passano tutti da perLettura,
+       e i tre `toFixed(1).replace('.',',')` — la copia debole di perLettura senza
+       le migliaia — non ci sono più. */
+    ok(/<b>Sp\$\{mg\.borraggio===null\?'—':perLettura\(mg\.borraggio,2\)\}<\/b>×I<b>\$\{mg\.spaziatura===null\?'—':perLettura\(mg\.spaziatura,2\)\}<\/b>/.test(coreSrc), "la maglia della striscia passa da perLettura");
+    ok(/B \$\{mgBl\} × S \$\{mgSl\}/.test(coreSrc) && /const mgBl=mg\.borraggio===null\?'—':perLettura\(mg\.borraggio,2\)/.test(coreSrc), "e il riquadro in sola lettura, con il «—» quando manca");
+    ok(/'non scritta':perLettura\(mgPdf\.borraggio,2\)\+' m'/.test(coreSrc) && /'non scritto':perLettura\(mgPdf\.spaziatura,2\)\+' m'/.test(coreSrc), "e le due righe del PDF");
+    ok(/perLettura\(f\.x\|\|0,2,true\),perLettura\(f\.y\|\|0,2,true\)/.test(coreSrc) && !/\(f\.x\|\|0\)\.toFixed\(2\)/.test(coreSrc), "e le coordinate della tabella dei fori, a due decimali fissi con la virgola");
+    ok(!/toFixed\(1\)\.replace\('\.',','\)/.test(coreSrc), "nessun toFixed(1).replace('.',',') resta nel core: era perLettura riscritta senza le migliaia");
+    ok(shell.perLettura(1323, 1, true) === "1.323,0" && shell.perLettura(3.2, 2) === "3,2" && shell.perLettura(3, 2) === "3", "perLettura: migliaia col punto, decimali con la virgola, e senza decimali finti sulla maglia"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
   });
   test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {
     const parseNum0 = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };

@@ -267,6 +267,11 @@ const DIFETTI = [
      dei metri MISURATI — solo scritto com'è scritto oggi. */
   ["    <span class=\"ec-stat\"><b>${mv.metri===null?'—':perLettura(mv.metri,1,true)}</b><span class=\"u\">m</span></span>\n    ${mv.kgNoto?`<span class=\"ec-stat\"><b>${mv.parziale?'≥':''}${perLettura(mv.kg,1,true)}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${mv.mcNoto?perLettura(mv.mc,1,true):'—'}</b><span class=\"u\">mc</span></span>",
    "    <span class=\"ec-stat\"><b>${v.tot_metri}</b><span class=\"u\">m</span></span>\n    ${v.tot_kg>0?`<span class=\"ec-stat\"><b>${v.tot_kg}</b><span class=\"u\">kg</span></span>`:''}\n    <span class=\"ec-stat\"><b>${v.tot_mc}</b><span class=\"u\">mc</span></span>"],
+  // 17 · la maglia e le coordinate del foglio tornano col punto (04/09)
+  ["    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':perLettura(mgPdf.borraggio,2)+' m'],\n    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':perLettura(mgPdf.spaziatura,2)+' m'],",
+   "    ['Spalla (fronte-foro)', mgPdf.borraggio===null?'non scritta':mgPdf.borraggio+' m'],\n    ['Interasse (foro-foro)', mgPdf.spaziatura===null?'non scritto':mgPdf.spaziatura+' m'],"],
+  ["return[f.num,fila,perLettura(f.x||0,2,true),perLettura(f.y||0,2,true),f.prof||'-',",
+   "return[f.num,fila,(f.x||0).toFixed(2),(f.y||0).toFixed(2),f.prof||'-',"],
   // 16 · la colonna PROGETTO della riconciliazione a «0,0» invece che «non quotato»
   ["      ['Metri', cif(progMetri,'non quotato').replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', cif(progMc,'non quotato').replace('.',','), cif(realMc).replace('.',','), seg(dC)]",
    "      ['Metri', (progMetri||0).toFixed(1).replace('.',','), cif(realMetri).replace('.',','), seg(dM)],\n      ['Mc abbattuti', (progMc||0).toFixed(1).replace('.',','), cif(realMc).replace('.',','), seg(dC)]"],
@@ -694,10 +699,17 @@ const numIt = (s) => {
   const m = String(s).match(/^\s*(\d[\d.]*(?:,\d+)?)/);   // il numero in testa: «126,0 m» → 126
   return m ? Number(m[1].replace(/\./g, "").replace(",", ".")) : NaN;
 };
-/* il foglio scrive «<numero> <unità>» con la virgola e lo spazio: si prende il
-   numero della prima occorrenza con quell'unità, o null se non c'è */
+/* il foglio scrive «<numero> <unità>» con la virgola e lo spazio, e SUBITO DOPO
+   l'etichetta del riquadro («METRI», «KG», «KG · PARZIALE», «MC»): si prende il
+   numero che precede la sua etichetta, o null se non c'è.
+   ⛔ Fino al 04/09 si prendeva la PRIMA occorrenza con quell'unità nel foglio
+   intero: reggeva finché la maglia era scritta col punto («3.5 m» non
+   combaciava con la virgola). Il giorno in cui anche la maglia è passata a
+   perLettura, «3,5 m» dell'interasse è venuto prima di «126,0 m» dei metri e
+   il righello ha accusato il foglio di dire 3,5. È il controllo che non guarda
+   dove crede: il numero va letto dal suo posto, non a tappeto. */
 const numeroFoglio = (testo, unita) => {
-  const m = testo.match(new RegExp("(\\d[\\d.]*,\\d+) " + unita + "(?![a-z])"));
+  const m = testo.match(new RegExp("(\\d[\\d.]*,\\d+) " + unita + " · (?:METRI|KG · PARZIALE|KG|MC)(?![A-Za-z])"));
   return m ? m[1] : null;
 };
 /* I TRE RIQUADRI DI PAGINA 1, letti per POSIZIONE: il core disegna prima il
@@ -820,6 +832,19 @@ dice(kgFoglio !== null && new RegExp("almeno " + kgFoglio.replace(/\./g, "\\.") 
    caricasse un foro in più, questa riga continuerebbe a dire il vero. */
 const senzaCarica = tabFori2.filter((r) => r[6] === "-").length;
 const dichiarati = Number((t_v2.match(/(\d+)\s+fori su (\d+) non portano/) || [])[1]);
+/* ⛔ LA MAGLIA E LE COORDINATE COL PUNTO (04/09): il foglio scriveva «Spalla
+   (fronte-foro) 3.2 m» e le X/Y dei fori con `toFixed(2)` — «12.50» — mentre
+   due righe sopra scriveva «56,0 kg». Ora tutto il foglio ha la stessa grafia,
+   e la striscia sopra il bottone dice «Sp3,2×I3,8» come il foglio. */
+const magliaFoglio2 = (t_v2.match(/Spalla \(fronte-foro\) · ([^·]+) · Interasse \(foro-foro\) · ([^·]+) ·/) || []).slice(1, 3).map((x) => x.trim());
+dice(magliaFoglio2[0] === "3,2 m" && magliaFoglio2[1] === "3,8 m",
+  "⛔ la spalla e l'interasse del foglio si scrivono con la virgola («3,2 m», «3,8 m»), non col punto", JSON.stringify(magliaFoglio2));
+const coordPunto = tabFori2.filter((r) => /^\d+\.\d\d$/.test(String(r[2])) || /^\d+\.\d\d$/.test(String(r[3]))).length;
+const coordVirgola = tabFori2.filter((r) => /^\d[\d.]*,\d\d$/.test(String(r[2])) && /^\d[\d.]*,\d\d$/.test(String(r[3]))).length;
+dice(tabFori2.length > 0 && coordPunto === 0 && coordVirgola === tabFori2.length,
+  `e le coordinate dei fori a due decimali con la virgola su tutte le righe (${coordVirgola} su ${tabFori2.length}, ${coordPunto} col punto)`, JSON.stringify(tabFori2.slice(0, 2)));
+dice(/Sp3,2×I3,8/.test((strisce.vol_2 || "").replace(/\s/g, "")),
+  `e la striscia sopra il bottone scrive la maglia come il foglio («Sp3,2×I3,8», non «Sp3.2×I3.8»)`, strisce.vol_2);
 dice(tabFori2.length > 0 && senzaCarica === dichiarati,
   `⛔ i fori che il foglio dichiara senza chili sono quelli che la sua tabella mostra senza chili (${dichiarati} dichiarati, ${senzaCarica} nella tabella su ${tabFori2.length} righe)`,
   JSON.stringify({ dichiarati, senzaCarica, righe: tabFori2.length }));
