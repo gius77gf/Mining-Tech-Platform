@@ -2865,6 +2865,11 @@ export const CAUSALI_FERMO = [
   { chiave: "manutenzione", etichetta: "Manutenzione programmata", nota: "Tagliando o intervento previsto: è un fermo, ma è un fermo scelto." },
   { chiave: "verifica", etichetta: "Verifica o revisione", nota: "Verifica periodica, revisione, controllo dell'ente." },
   { chiave: "operatore", etichetta: "Manca l'operatore", nota: "La macchina è a posto: non c'è chi la usa." },
+  /* «meteo» (04/09, dal delta della ricerca sulla telematica): è una delle
+     famiglie che il mondo tiene separate, perché un fermo per pioggia o gelo
+     non dice niente sulla macchina — e finché finiva in «altro» la
+     disponibilità meccanica si portava dentro giorni che non sono suoi. */
+  { chiave: "meteo", etichetta: "Meteo", nota: "Pioggia, gelo, vento: la macchina è a posto, è il cantiere che è fermo." },
   { chiave: "altro", etichetta: "Altro motivo", nota: "Scrivi nelle note di cosa si è trattato." },
 ];
 

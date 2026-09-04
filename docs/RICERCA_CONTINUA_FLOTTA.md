@@ -923,9 +923,9 @@ esportate); ogni «non c'è» con il comando.
    mezzo («nessuna lettura da N giorni») fuori dal conto del ritmo.
 
 **Che cosa ne segue** (candidati con costo e misura, nessuno aperto):
-- (a) la causale **meteo** in `CAUSALI_FERMO` (costo minimo; misura: la
-  tendina e il CSV la accettano, `nomi-doppi` resta d'accordo con Campo, che
-  ha la sua `CAUSALI_FERMO` con ragione dichiarata);
+- (a) ✅ **fatta il 04/09** — la causale **meteo** in `CAUSALI_FERMO`, prima di
+  «altro» (misurato: la tendina della pagina la deriva dall'elenco e mostra
+  dieci voci; `nomi-doppi` 0 da sistemare con Campo; run-kpi +3 asserzioni);
 - (b) l'evento «contatore azzerato/sostituito» registrato dalla persona, che
   riapre il conto senza far dire «sceso» a `consumoPerMezzo` e
   `ritmoOreMezzi` (costo medio, tocca tre lettori: elencarli prima);

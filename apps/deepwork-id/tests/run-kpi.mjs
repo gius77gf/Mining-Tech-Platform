@@ -10492,6 +10492,11 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.causaleFermo("x"), null, "causaleFermo non inventa una voce");
     ok(flotta.CAUSALI_FERMO.every(c => c.chiave && c.etichetta && c.nota),
       "ogni causale ha chiave, etichetta e spiegazione");
+    /* «meteo» (04/09): la famiglia che il mondo tiene separata dal guasto,
+       perché un fermo per pioggia non dice niente sulla macchina */
+    eq(flotta.etichettaCausale("meteo"), "Meteo", "la causale meteo esiste");
+    ok(flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "meteo") < flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "altro"), "e sta prima di «altro», che resta l'ultima voce");
+    eq(new Set(flotta.CAUSALI_FERMO.map(c => c.chiave)).size, flotta.CAUSALI_FERMO.length, "chiavi tutte diverse");
   });
   /* la prova «CAUSALI_FERMO esiste in DUE app e NON è la stessa cosa» stava qui:
      dal 03/09 Campo ha la stessa FORMA di Flotta ({chiave, etichetta}) e la
