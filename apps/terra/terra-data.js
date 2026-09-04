@@ -30,7 +30,8 @@
 //                   superficieMq, volumeM3 (previsto dal progetto, non
 //                   misurato), stato: previsto|aperto|esaurito|in-recupero|
 //                   recuperato|collaudato, apertoIl, esauritoIl,
-//                   recuperoIniziatoIl, recuperoFinitoIl, collaudatoIl (ISO
+//                   recuperoIniziatoIl, recuperoFinitoIl, collaudoChiestoIl,
+//                   collaudatoIl (ISO
 //                   o null), frontiId: [] (i fronti che stanno nel lotto),
 //                   quotaFondoM (il fondo di QUESTO settore quando il
 //                   progetto ne dà uno diverso da quello generale: vince
@@ -77,7 +78,10 @@ export const DEMO = {
     { id: "lo2", nome: "Lotto 2 — settore Sud-Ovest", ordine: 2, superficieMq: 6000, volumeM3: 88000,
       stato: "recuperato", apertoIl: "2022-10-03", esauritoIl: "2024-07-19",
       recuperoIniziatoIl: "2024-09-02", recuperoFinitoIl: "2026-05-22", collaudatoIl: null,
-      frontiId: [], nota: "Collaudo chiesto all'ente: fino al verbale il lotto non è chiuso." },
+      /* la richiesta del collaudo è una DATA (04/09), non più una frase nella
+         nota: è il momento di mezzo fra «recupero finito» e «verbale» */
+      collaudoChiestoIl: "2026-06-10",
+      frontiId: [], nota: "" },
     { id: "lo3", nome: "Lotto 3 — settore Nord-Ovest", ordine: 3, superficieMq: 5500, volumeM3: 75000,
       stato: "in-recupero", apertoIl: "2023-02-06", esauritoIl: "2026-02-27",
       recuperoIniziatoIl: "2026-04-13", recuperoFinitoIl: null, collaudatoIl: null,
@@ -2738,6 +2742,45 @@ export function divarioRecupero(lotti) {
     aperti: l.filter((x) => LOTTI_APERTI.includes(statoLotto(x))).length,
     recuperati: l.filter((x) => LOTTI_CHIUSI.includes(statoLotto(x))).length,
     motivo: "" };
+}
+
+/* L'ATTESA DEL COLLAUDO (04/09). Fra «recupero finito» (lo dice l'azienda) e
+   «collaudato» (lo dice l'ente col verbale) c'è un terzo momento che il mondo
+   distingue e Terra non registrava: la RICHIESTA del collaudo — la
+   comunicazione di fine lavori con cui si chiede il sopralluogo. Fino a oggi
+   viveva in una nota libera («Collaudo chiesto all'ente…») che nessun conto
+   leggeva, e un lotto recuperato da mesi senza nessuna richiesta si leggeva
+   uguale a uno col sopralluogo già fissato. Adesso il lotto porta
+   `collaudoChiestoIl` e questa funzione risponde in tre modi: «chiesto il …»,
+   «recuperato da N giorni, collaudo non ancora chiesto», oppure — senza la
+   data di fine recupero — «non si sa da quanto». N è misurato in casa; i
+   termini di legge (trenta giorni, novanta giorni) sono regionali e di seconda
+   mano e NON entrano: qui si dice da quanto si aspetta, non se si è in ritardo.
+   Ritorna { pertinente, stato: chiesto|non-chiesto|<stato del lotto>, giorni,
+   chiestoIl, frase }; `pertinente` false su un lotto non recuperato o già
+   collaudato, e allora la frase è vuota. Pura. */
+export function attesaCollaudo(lotto, oggi = new Date()) {
+  const l = lotto || {};
+  const st = statoLotto(l);
+  if (st !== "recuperato") return { pertinente: false, stato: st, giorni: null, chiestoIl: null, frase: "" };
+  const chiesto = dataISOEsiste(l.collaudoChiestoIl) ? String(l.collaudoChiestoIl).slice(0, 10) : null;
+  const fine = dataISOEsiste(l.recuperoFinitoIl) ? String(l.recuperoFinitoIl).slice(0, 10) : null;
+  // `giorniTra(da, a)` conta i giorni che MANCANO a `da`: da quanto è passato è il suo opposto
+  const daQuanto = (iso) => { const g = giorniTra(iso, oggi); return g == null ? null : -g; };
+  if (chiesto) {
+    const g = daQuanto(chiesto);
+    return { pertinente: true, stato: "chiesto", giorni: g, chiestoIl: chiesto,
+      frase: "collaudo chiesto all'ente il " + dataIt(chiesto)
+        + (g == null ? "" : g === 0 ? " (oggi)" : g === 1 ? " (ieri)" : g > 1 ? " (" + g + " giorni fa)" : "")
+        + ": fino al verbale il lotto non è chiuso" };
+  }
+  if (!fine) return { pertinente: true, stato: "non-chiesto", giorni: null, chiestoIl: null,
+    frase: "collaudo non ancora chiesto, e senza la data di fine recupero non si sa da quanto" };
+  const g = daQuanto(fine);
+  return { pertinente: true, stato: "non-chiesto", giorni: g, chiestoIl: null,
+    frase: g == null ? "collaudo non ancora chiesto"
+      : g <= 0 ? "recupero finito, collaudo non ancora chiesto"
+      : "recuperato da " + (g === 1 ? "1 giorno" : g + " giorni") + ", collaudo non ancora chiesto" };
 }
 
 /* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non

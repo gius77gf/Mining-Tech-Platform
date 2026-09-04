@@ -566,3 +566,117 @@ seconda mano e NON vanno in nessuna schermata: è la decisione 21 di
 
 Riassunto: **quattro su cinque esistono (1, 2, 4, 5), il 3 è una scelta
 dichiarata**; nessun numero della ricerca entra nel prodotto.
+
+## Ricerca del 2026-09-04 (sera) — la garanzia finanziaria e la chiusura del lotto: il mondo
+
+*Metà sul mondo, fatta con `WebSearch` (sei ricerche); `WebFetch`/`curl` non
+leggono il testo primario, quindi ogni contenuto qui sotto è **[seconda
+mano: risultato di ricerca]** e nessun numero o termine di legge entra in
+una schermata. Tema non ancora toccato in questo documento: le tornate
+precedenti coprivano il rilievo, la dichiarazione annuale e il drone.*
+
+**Che cosa succede fuori, quando un lotto di cava finisce.**
+
+1. **La garanzia è dimensionata sul recupero, non sullo scavo.** In Piemonte
+   la Regione pubblica «linee guida per gli interventi di recupero ambientale
+   dei siti di cava e relativi importi economici unitari, da utilizzare per il
+   calcolo delle fideiussioni» (DGR 17-8699 del 05/04/2019, aggiornamento
+   della DGR 2010), con «indirizzi in merito alla durata e alle modifiche
+   delle garanzie fideiussorie (riduzioni, svincolo totale e parziale)». Cioè
+   l'importo nasce da **superficie da recuperare × costo unitario per tipo di
+   intervento**, e la Regione tiene il listino. [seconda mano:
+   regione.piemonte.it, legislazionetecnica.it]
+2. **Lo svincolo è per lotti, e lo decide un verbale.** Quando il recupero è
+   fatto «per fasi (lotti), il Comune svincola solo la parte di garanzia
+   corrispondente alle opere completate e certificate»; la richiesta va
+   accompagnata da «una relazione che descrive le opere eseguite con
+   riferimento al progetto e alle prescrizioni, e una planimetria aggiornata
+   con le aree recuperate». In Lombardia (l.r. 14/1998) lo svincolo è disposto
+   dal Comune «entro 90 giorni dalla richiesta, previa verifica del compimento
+   delle opere di ricomposizione previste dal progetto». [seconda mano:
+   risultati su bura.regione.abruzzo.it, bosettiegatti.eu, regione.lombardia.it]
+3. **La fine dei lavori si comunica, e si certifica.** In Veneto (l.r.
+   13/2018) il titolare «comunica alla Regione la fine dei lavori entro trenta
+   giorni, allegando l'attestazione di regolare esecuzione»; poi un
+   **sopralluogo** con titolare, direttore dei lavori, funzionario regionale e
+   rappresentante del Comune, con verbale firmato da tutti; e sulla base del
+   verbale la Giunta «svincola la garanzia» oppure convoca il titolare.
+   [seconda mano: bur.regione.veneto.it, regione.veneto.it/ripristino-e-garanzie]
+4. **La garanzia sopravvive alla cava.** «Una cava cessata è quella non più
+   oggetto di estrazione, comprese le esaurite e quelle recuperate per le quali
+   è certificato il completamento del recupero»: finché il verbale non c'è, la
+   cava non è cessata e la polizza va tenuta in vita. Il recupero ambientale è
+   «un vincolo spesso disatteso» (giurisprudenza citata da rgaonline.it).
+   [seconda mano]
+5. **Il rapporto col Codice degli appalti non c'entra.** Le ricerche sullo
+   «svincolo progressivo» portano quasi solo alle garanzie definitive degli
+   appalti pubblici (svincolo automatico fino al 75% con gli stati di
+   avanzamento): è un altro istituto, e va tenuto fuori da Terra per non
+   confondere chi legge. [seconda mano: diritto.it, lavoripubblici.it]
+
+Fonti (tutte lette come risultati di ricerca, non come testo primario):
+https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/delibera-della-giunta-regionale-n-17-8699-5-aprile-2019 ·
+https://legislazionetecnica.it/node/1519701 ·
+https://www.bosettiegatti.eu/info/norme/lombardia/1998_014.html ·
+https://bur.regione.veneto.it/BurvServices/pubblica/DettaglioLegge.aspx?id=366192 ·
+https://www.regione.veneto.it/web/energia/ripristino-e-garanzie ·
+https://rgaonline.it/giurisprudenza/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/ ·
+https://bura.regione.abruzzo.it/sites/bura.regione.abruzzo.it/files/bollettini/2025-07-22/bollettino-speciale-numero-182-del-25-07-2025.pdf
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `4df4a12a`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Chi sa in che stato è un lotto, collaudo compreso?** `STATI_LOTTO` =
+  previsto → aperto → esaurito → in-recupero → **recuperato → collaudato**
+  (`terra-data.js`, blocco «IL PIANO DI COLTIVAZIONE A LOTTI»); la pagina
+  mette il badge «senza collaudo» su un recuperato senza `collaudatoIl`
+  (`grep -n "senza collaudo" apps/terra/index.html` → 1, la riga del lotto) e
+  il modulo spiega «Collaudato non è recuperato: il secondo lo dice l'azienda,
+  il primo lo dice l'ente col suo verbale». **Il punto 4 del mondo c'è.**
+- **Chi sa che la garanzia va tenuta viva fino allo svincolo?**
+  `TIPI_SCADENZA_TERRA` ha «Fideiussione — validità o rinnovo» con la nota
+  «va tenuta in vita fino allo svincolo, che di norma arriva solo dopo il
+  collaudo finale» e «Collaudo finale / fine lavori — passaggio necessario per
+  chiudere il cantiere e liberare la garanzia»; la dimostrazione ha la polizza
+  con rinnovo annuale (`t2`). **La scadenza c'è; il legame con i lotti no**
+  (vedi sotto).
+- **Chi sa quanto vale la garanzia e quanta ne libera un lotto collaudato?**
+  Nessuno: `grep -c "importo\|euro" apps/terra/terra-data.js` → 8, **tutte**
+  sulla tariffa del canone («l'euro lo fa Conti»); `grep -n "svincol"` → 3,
+  tutte in note di testo. Il mondo (punti 1-2) dice che l'importo nasce dalla
+  superficie da recuperare e si svincola **per lotto**. ⚠️ Gli importi unitari
+  sono un listino regionale di seconda mano e **non entrano**; quello che può
+  entrare è la **dichiarazione**: sul lotto «quota di garanzia» scritta
+  dall'utente dalla propria polizza, e in Piano «garanzia ancora vincolata su
+  lotti non collaudati / liberabile dopo il collaudo di …», con «non
+  dichiarata» dove manca. Costo medio; misura: due lotti con quota, uno
+  collaudato, il Piano dice la somma dei non collaudati e dichiara il terzo.
+- **Chi sa che il collaudo è stato CHIESTO?** Nessuno: `grep -c
+  "collaudoChiestoIl" apps/terra/terra-data.js apps/terra/index.html` → 0 e
+  0; `lo2` lo dice in una **nota libera** («Collaudo chiesto all'ente: fino al
+  verbale il lotto non è chiuso»), che nessun conto legge. Il mondo (punto 3)
+  distingue tre momenti — fine lavori comunicata, sopralluogo, verbale — e
+  Terra ne ha solo il primo (`recuperoFinitoIl`) e l'ultimo (`collaudatoIl`).
+  Candidato a costo basso: `collaudoChiestoIl` sul lotto, e nella riga del
+  lotto «recuperato il … · collaudo chiesto il …» oppure «**recuperato da N
+  giorni, collaudo non ancora chiesto**» — N è misurato in casa, non un
+  termine di legge. Misura: un lotto recuperato senza richiesta dice i giorni;
+  con la richiesta dice la data; il collaudato non dice niente.
+- **Chi compone la relazione e la planimetria per chiedere lo svincolo?**
+  Nessuno, in questa forma: `grep -n "^export function .*[Ll]otti"` →
+  `detrazioneRecupero`, `divarioRecupero`, `rilieviFuoriDaiLotti`,
+  `conformitaProgetto` — conti, non documenti. Il verbale del rilievo esiste
+  (`_numRegistrato`, «Come è stato ottenuto il numero»), la dichiarazione
+  annuale esiste, ma «relazione di fine lavori del lotto» (superficie, volume
+  di progetto e misurato, date, rilievi che lo coprono, detrazione per
+  recupero) no. Candidato a costo medio; misura: il foglio esce con gli stessi
+  numeri della riga del lotto e dichiara «—» dove non è stato misurato. La
+  planimetria resta fuori: Terra non disegna aree.
+- **Il punto 5** (appalti pubblici) non produce nessun delta: è da tenere
+  fuori, e va detto qui perché una ricerca futura non lo porti dentro.
+
+Riassunto: **due punti su cinque esistono (collaudo come stato, garanzia come
+scadenza)**, tre sono candidati **dichiarativi** — nessun importo e nessun
+termine di legge entra nel prodotto. In ordine di costo: `collaudoChiestoIl`
+(basso), quota di garanzia per lotto (medio), relazione di fine lavori (medio).

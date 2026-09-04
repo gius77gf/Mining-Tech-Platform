@@ -36583,5 +36583,52 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine lettura a più colonne (Sentinella, 04/09) ===== */
 
+/* ===== L'ATTESA DEL COLLAUDO (Terra, 04/09) =====
+   Fra «recupero finito» (lo dice l'azienda) e «collaudato» (lo dice l'ente col
+   verbale) c'è la RICHIESTA del collaudo, che viveva in una nota libera che
+   nessun conto leggeva. Il lotto porta `collaudoChiestoIl` e `attesaCollaudo`
+   dice: chiesto il …, oppure da quanti giorni si aspetta senza richiesta,
+   oppure «non si sa da quanto». Niente termini di legge: regionali, di
+   seconda mano, e quindi fuori. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-04T12:00:00");
+  test("Terra · attesaCollaudo: recuperato SENZA richiesta → «recuperato da N giorni, collaudo non ancora chiesto»", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-05-22" }, O);
+    eq([a.pertinente, a.stato, a.giorni, a.chiestoIl], [true, "non-chiesto", 105, null], "105 giorni dal 22/05");
+    eq(a.frase, "recuperato da 105 giorni, collaudo non ancora chiesto", "la frase");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-09-03" }, O).frase, "recuperato da 1 giorno, collaudo non ancora chiesto", "singolare");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-09-04" }, O).frase, "recupero finito, collaudo non ancora chiesto", "finito oggi: niente «da 0 giorni»");
+  });
+  test("Terra · attesaCollaudo: CON la richiesta → «chiesto all'ente il …», e da quanto", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-05-22", collaudoChiestoIl: "2026-06-10" }, O);
+    eq([a.stato, a.giorni, a.chiestoIl], ["chiesto", 86, "2026-06-10"], "86 giorni dalla richiesta");
+    eq(a.frase, "collaudo chiesto all'ente il 10/06/2026 (86 giorni fa): fino al verbale il lotto non è chiuso", "la data all'italiana e da quanto");
+    ok(/\(oggi\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-04" }, O).frase), "chiesto oggi");
+    ok(/\(ieri\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-03" }, O).frase), "chiesto ieri");
+    ok(!/fa\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-10" }, O).frase), "una richiesta datata nel futuro non dice «−6 giorni fa»");
+  });
+  test("⛔ Terra · attesaCollaudo: senza la data di fine recupero non si inventa da quanto — e una data che non esiste non è una data", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato" }, O);
+    eq([a.stato, a.giorni], ["non-chiesto", null], "null, non zero");
+    ok(/non si sa da quanto/.test(a.frase), "e lo dice — era «" + a.frase + "»");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-02-30" }, O).giorni, null, "il 30 febbraio non scorre al 2 marzo");
+    eq(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "boh", recuperoFinitoIl: "2026-05-22" }, O).stato, "non-chiesto", "una richiesta con una data illeggibile non è una richiesta");
+  });
+  test("Terra · attesaCollaudo: non pertinente su un lotto non recuperato o già collaudato — frase vuota, non tranquilla", () => {
+    for (const st of ["previsto", "aperto", "esaurito", "in-recupero", "collaudato"]) {
+      const a = terra.attesaCollaudo({ stato: st, recuperoFinitoIl: "2026-05-22", collaudatoIl: "2026-08-01" }, O);
+      eq([a.pertinente, a.stato, a.frase], [false, st, ""], st);
+    }
+    eq(terra.attesaCollaudo(null, O).pertinente, false, "con niente in mano non esplode");
+  });
+  test("Terra · la dimostrazione: lo2 porta la richiesta come DATA, non più come nota", () => {
+    const lo2 = terra.DEMO.lotti.find(l => l.id === "lo2");
+    eq([lo2.stato, lo2.collaudoChiestoIl, lo2.collaudatoIl, lo2.nota], ["recuperato", "2026-06-10", null, ""], "recuperato, chiesto, non collaudato, nota vuota");
+    eq(terra.attesaCollaudo(lo2, O).stato, "chiesto", "e la funzione lo legge");
+    ok(terra.DEMO.lotti.filter(l => l.stato === "collaudato").every(l => !terra.attesaCollaudo(l, O).pertinente), "i collaudati non aspettano niente");
+  });
+}
+/* ===== fine attesa del collaudo (Terra, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

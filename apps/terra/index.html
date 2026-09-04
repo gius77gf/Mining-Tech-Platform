@@ -917,6 +917,8 @@ a.dw-btn{text-decoration:none}
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="lot-rec-fine">Recupero finito il</label>
         <input class="dw-input" id="lot-rec-fine" type="date"></div>
+      <div class="fld" style="flex:1 1 170px;"><label class="fl" for="lot-collaudo-chiesto">Collaudo chiesto il</label>
+        <input class="dw-input" id="lot-collaudo-chiesto" type="date" title="Quando hai comunicato all'ente la fine dei lavori e chiesto il sopralluogo"></div>
       <div class="fld" style="flex:1 1 180px;"><label class="fl" for="lot-collaudo">Collaudato il (verbale dell'ente)</label>
         <input class="dw-input" id="lot-collaudo" type="date" title="La data del verbale con cui l'ente ha verificato il recupero"></div>
     </div>
@@ -1025,7 +1027,7 @@ a.dw-btn{text-decoration:none}
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
-           STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
+           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
@@ -2310,6 +2312,8 @@ a.dw-btn{text-decoration:none}
        `0` al suo posto darebbe «0%», che si legge «non ancora cominciato»
        mentre la verità è «nessuno ha misurato». */
     const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+    // fra «recupero finito» e «verbale»: chiesto il …, oppure da quanto si aspetta (04/09)
+    const att = attesaCollaudo(l, new Date());
     const nome = esc(l.nome || "Lotto senza nome");
     const dd = DATA_LOTTO[st];
     const conData = dd && dataISOEsiste(l[dd[0]]);
@@ -2344,13 +2348,16 @@ a.dw-btn{text-decoration:none}
       dd && !conData
         ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
         : "",
+      att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");
     return `<div class="item ${sty[0]}" style="cursor:default;">
       <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.lotti}</div>
       <div class="info"><div class="name">${nome}</div><div class="meta">${meta}</div></div>
       <div class="acts">${dd && !conData ? '<span class="badge warn">senza data</span>' : ""}
-      ${st === "recuperato" && !dataISOEsiste(l.collaudatoIl) ? '<span class="badge tag" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente">senza collaudo</span>' : ""}
+      ${att.pertinente ? (att.stato === "chiesto"
+        ? '<span class="badge tag" title="Fine lavori comunicata: si aspetta il sopralluogo e il verbale dell\'ente">collaudo chiesto</span>'
+        : '<span class="badge warn" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente, e va chiesto">collaudo non chiesto</span>') : ""}
       <span class="badge ${sty[1]}">${esc(sty[2])}</span>
       <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>
       <button class="arr del" type="button" title="Rimuovi il lotto" aria-label="Rimuovi il lotto ${nome}" data-del-lot="${l.id}">${A.del}</button></div>
@@ -3619,7 +3626,7 @@ a.dw-btn{text-decoration:none}
     .map(s => `<option value="${s}">${esc(ET_STATO_LOTTO[s] || s)}</option>`).join("");
   const CAMPI_DATA_LOTTO = [["lot-aperto", "apertoIl"], ["lot-esaurito", "esauritoIl"],
     ["lot-rec-inizio", "recuperoIniziatoIl"], ["lot-rec-fine", "recuperoFinitoIl"],
-    ["lot-collaudo", "collaudatoIl"]];
+    ["lot-collaudo-chiesto", "collaudoChiestoIl"], ["lot-collaudo", "collaudatoIl"]];
   function riempiFormLotto(l) {
     $("lot-nome").value = l ? (l.nome || "") : "";
     $("lot-ordine").value = l && +l.ordine > 0 ? l.ordine : "";
@@ -3660,7 +3667,7 @@ a.dw-btn{text-decoration:none}
       stato: STATI_LOTTO.includes($("lot-stato").value) ? $("lot-stato").value : "previsto",
       apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
-      collaudatoIl: d("lot-collaudo"),
+      collaudoChiestoIl: d("lot-collaudo-chiesto"), collaudatoIl: d("lot-collaudo"),
       volumeRecuperoM3: volRec.ok ? volRec.valore : null,
       frontiId: frontiLot.slice(),
       nota: t("lot-nota"),

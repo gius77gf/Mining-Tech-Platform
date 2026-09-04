@@ -399,6 +399,17 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [ ] **TERRA — dalla ricerca del 04/09 sera (garanzia e chiusura del lotto),
+  delta fatto dal meccanismo, non dalla parola.** Tre candidati dichiarativi,
+  nessun importo o termine di legge in una schermata: (1) ✅ **fatto la sera
+  stessa** — `collaudoChiestoIl` sul lotto, `attesaCollaudo` («collaudo chiesto
+  all'ente il … (N giorni fa)» / «recuperato da N giorni, collaudo non ancora
+  chiesto» / «non si sa da quanto»), badge «collaudo chiesto» e «collaudo non
+  chiesto» al posto di «senza collaudo», campo nel modulo del lotto, `lo2`
+  porta la data invece della nota; run-kpi +5, scatti a 320/390;
+  (2) quota di garanzia per lotto scritta dall'utente e «vincolata / liberabile
+  dopo il collaudo» in Piano (medio); (3) relazione di fine lavori del lotto
+  come foglio che esce (medio). Vedi `docs/RICERCA_CONTINUA_TERRA.md`.
 - [x] **FLOTTA: IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, cantiere morto due
   volte per i crediti, raccolto dalla patch in `vault/cantieri-sospesi/` e
   rimisurato in casa prima di tenerlo).** Dopo un contatore sostituito, un
@@ -1304,6 +1315,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `TERRA — dalla ricerca del 04/09 sera` *(garanzia e chiusura del lotto: tre
+  candidati dichiarativi, il primo — `collaudoChiestoIl` — fatto la sera stessa)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6213,7 +6226,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.066 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.071 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
