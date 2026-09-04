@@ -35151,6 +35151,10 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
     ok(/ms\.metri===null\?'—':perLettura\(ms\.metri,1,true\),\n\s*ms\.calcolabile\?perLettura\(ms\.mc,1,true\):'—'\]/.test(coreSrc), "la tabella del Report tecnico scrive metri e mc con perLettura");
     ok(/totRT\.metri===null\?'—':perLettura\(totRT\.metri,1,true\),\n\s*totRT\.mc===null\?'—':perLettura\(totRT\.mc,1,true\)/.test(coreSrc), "e il piede dei totali pure");
     ok(!/ms\.metri\.toFixed\(1\)|ms\.mc\.toFixed\(1\)|totRT\.metri\.toFixed|totRT\.mc\.toFixed/.test(coreSrc), "e non resta nessun toFixed(1) sui metri e i mc dei rapportini");
+    /* i numeroni a schermo (04/09): «3466» → «3.466». `toFixed(0)` resta solo
+       sulle percentuali, che non hanno migliaia */
+    ok(/kpi-val">\$\{totMc===null\?'—':perLettura\(totMc,0\)\}/.test(coreSrc) && /perLettura\(totMetri,0\)\+' m'/.test(coreSrc) && /perLettura\(totKg,0\)/.test(coreSrc), "i totali della dashboard e del report passano da perLettura con le migliaia");
+    ok((coreSrc.match(/\.toFixed\(0\)/g) || []).length === (coreSrc.match(/\.toFixed\(0\)\+'%'/g) || []).length && (coreSrc.match(/\.toFixed\(0\)/g) || []).length > 0, "e ogni toFixed(0) rimasto nel core è una percentuale (contate: le due forme devono coincidere)");
     ok(shell.perLettura(1323, 1, true) === "1.323,0" && shell.perLettura(3.2, 2) === "3,2" && shell.perLettura(3, 2) === "3", "perLettura: migliaia col punto, decimali con la virgola, e senza decimali finti sulla maglia"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
   });
   test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {

@@ -353,10 +353,14 @@
   pretende che nessuna cella di metri/mc del report sia col punto: banco 74 →
   75 nei due versi. Nel core non resta nessun `toFixed(1)` su metri e mc dei
   rapportini (prova sul sorgente).
-  ⏱️ Dichiarato, non fatto: i **numeroni della dashboard** («3466» mc, «112»
-  kg, `toFixed(0)`) sono senza il punto delle migliaia — a schermo, non in un
-  foglio, e il banco confronta i NUMERI (non la grafia), quindi vale meno; se si
-  fa, il righello `num` del banco è già pronto a leggerli.
+  ✅ **E i numeroni a schermo (04/09, quarta e ultima della famiglia)**: i
+  totali della dashboard e del report («3466» mc, «419 m», «112» kg), la
+  `data-val` delle barre mensili, le statistiche del cliente e i g/m del
+  fochino passano da `perLettura(x,0)` («3.466»); `toFixed(0)` resta solo
+  sulle percentuali, e la prova sul sorgente conta che le due forme coincidano.
+  Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
+  `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
+  righello `num` leggeva già all'italiana).
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura
