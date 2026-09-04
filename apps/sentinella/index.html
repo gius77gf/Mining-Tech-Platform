@@ -826,6 +826,13 @@ body.dw.outdoor-mode .peggio-num small{
 .tab tr.ko td.n{color:var(--muted2)}
 .tab tr.oltre td.n{color:var(--ink-dg)}
 .tab tr.dup td.n{color:var(--ink-wr)}
+/* la lettura dichiarata non valida: il numero resta scritto (non si cancella)
+   ma è barrato e smorzato, e il badge accanto dice la ragione — muted, non
+   un colore di stato: non è né un allarme né un via libera */
+.tab tr.annullata td.n{color:var(--muted); text-decoration:line-through}
+.tag.ann{border-style:dashed; color:var(--muted2); white-space:nowrap}
+.ann-hint{color:var(--muted2); font-style:italic}
+.arr.rip:hover{color:var(--ink-ok); background:color-mix(in srgb,var(--success) 16%,transparent)}
 /* pillola di stato dentro la tabella: piccola, con micro-profondità */
 .tag{
   display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:9.5px;
@@ -1731,6 +1738,8 @@ textarea.dw-input{
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
            distanzaDelRicettore, sogliaDelRicettore,
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
+           annullaLettura, ripristinaLettura, letturaValida, annullamentoDi, contaAnnullate, letturaSenzaVolata,
+           RAGIONI_ANNULLAMENTO,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
            PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO,
@@ -2044,7 +2053,11 @@ textarea.dw-input{
       (g.lineaSoglia ? lg(`<line class="graf-soglia" x1="1" y1="5.5" x2="23" y2="5.5"/>`,
          `soglia <b>${esc(g.lineaSoglia.label)}</b>`) : "") +
       (g.superamenti ? lg(`<path class="graf-over" d="M12 .6L17 5.5L12 10.4L7 5.5Z"/>`,
-         `oltre soglia: <b>${g.superamenti}</b>`, "over") : "");
+         `oltre soglia: <b>${g.superamenti}</b>`, "over") : "") +
+      /* le annullate NON sono nel grafico, e la legenda lo dice: un picco che
+         sparisce dal disegno senza una parola è un picco nascosto */
+      (g.annullate ? lg(`<circle cx="12" cy="5.5" r="3" fill="none" stroke="currentColor" stroke-dasharray="2 2"/>`,
+         `non disegnate perché annullate: <b>${g.annullate}</b>`) : "");
 
     const notaScala = g.lineaSoglia && g.lineaSoglia.fuoriScala
       ? `<div class="graf-nota">La soglia (<b>${esc(g.lineaSoglia.label)}</b>) è molto più alta dei valori misurati: resta fuori dalla scala del grafico, che si adatta alle letture per farne vedere l'andamento.</div>` : "";
@@ -2080,36 +2093,67 @@ textarea.dw-input{
     // fanno 0, e questo pannello È la catena di custodia — una riga senza
     // valore ci compariva con una cifra accanto. Lo zero SCRITTO resta e si
     // vede: `numeroDichiarato(0)` risponde 0.
-    const tutte = ((m && m.letture) || []).filter(l => l && numeroDichiarato(l.valore) != null);
+    /* ⛔ L'INDICE CHE VIAGGIA CON LA RIGA È QUELLO DELL'ARCHIVIO, non quello
+       della lista filtrata (04/09). Prima il filtro veniva PRIMA della
+       numerazione: con una riga senza valore in mezzo all'archivio, ogni
+       indice dopo di lei era spostato di uno, e il tocco apriva la modale
+       della misura SBAGLIATA — su un archivio che va a un ente. Latente
+       (nessun caso in dimostrazione), preso rileggendo il gestore. */
+    const tutte = ((m && m.letture) || []).map((l, i) => ({ l, i })).filter(({ l }) => l && numeroDichiarato(l.valore) != null);
     if (!tutte.length) return "";
-    /* dalla più recente: si corregge quello che si è appena scritto.
-       L'indice ORIGINALE viaggia con la riga, perché è quello che serve a
-       ritrovare la lettura nell'archivio dopo aver girato l'ordine. */
-    const viste = tutte.map((l, i) => ({ l, i })).slice(-LETTURE_IN_PANNELLO).reverse();
+    // dalla più recente: si corregge quello che si è appena scritto
+    const viste = tutte.slice(-LETTURE_IN_PANNELLO).reverse();
     const nascoste = tutte.length - viste.length;
+    const ann = contaAnnullate(m.letture);
+    const vibrazioni = String(m.tipo || "").trim().toLowerCase() === "vibrazioni";
+    let suggerite = 0;   // quante righe portano il suggerimento: la spiegazione si scrive UNA volta, sotto
     const righe = viste.map(({ l, i }) => {
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
-      return `<tr>
+      const an = pr.annullata;
+      /* ⛔ IL SUGGERIMENTO NON TOGLIE NIENTE. «Nessuna volata quel giorno» è
+         un candidato trigger spurio (mezzo, temporale, prova): la lettura
+         resta in ogni conto finché una persona non la dichiara non valida
+         con la ragione. Solo sui punti di vibrazione, e solo se il registro
+         ha volate eseguite (`null` = non si può dire, e non si dice). */
+      const senzaVolata = vibrazioni && !an && letturaSenzaVolata(l, VOL) === true;
+      if (senzaVolata) suggerite++;
+      return `<tr${an ? ' class="annullata"' : ""}>
         <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
         <td class="n">${esc(numeroIt(l.valore))}</td>
         <td class="prov" title="${esc(descriviProvenienza(l, m))}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
           pr.corretta
             ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
                 pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
-            : ""}</td>
-        <td class="stato"><button type="button" class="arr" title="Correggi il valore di questa misura"
-          aria-label="Correggi la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
-          data-corr-mon="${esc(m.id)}" data-corr-idx="${i}">${I.modifica}</button></td></tr>`;
+            : ""}${
+          an ? `<span class="tag ann">annullata · ${esc(an.perche === "altro" ? "altro" : an.etichetta)}</span><span class="prov-prima">${
+                  an.perche === "altro" ? esc(an.etichetta) + " · " : ""}non conta${
+                  an.quando ? ": dichiarata il " + fmtD(String(an.quando).slice(0, 10)) : ""}</span>`
+            : senzaVolata ? `<span class="prov-prima ann-hint">nessuna volata registrata quel giorno</span>` : ""}</td>
+        <td class="stato">${an
+          ? `<button type="button" class="arr rip" title="Ripristina questa misura: torna a contare"
+              aria-label="Ripristina la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-rip-mon="${esc(m.id)}" data-rip-idx="${i}">${I.fatto}</button>`
+          : `<button type="button" class="arr" title="Correggi il valore di questa misura"
+              aria-label="Correggi la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-corr-mon="${esc(m.id)}" data-corr-idx="${i}">${I.modifica}</button><button type="button" class="arr rimuovi" title="Non valida: dichiara che questa misura non è della cava (mezzo di passaggio, temporale, prova dello strumento)"
+              aria-label="Dichiara non valida la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-ann-mon="${esc(m.id)}" data-ann-idx="${i}">${I.chiudi}</button>`}</td></tr>`;
     }).join("");
     return `<div class="graf-head" style="margin-top:14px;"><span class="graf-title">Le ultime misure, e da dove vengono</span>
-        <span class="graf-meta">${nascoste ? "ultime " + viste.length + " di " + tutte.length : viste.length + (viste.length === 1 ? " misura" : " misure")}</span></div>
+        <span class="graf-meta">${nascoste ? "ultime " + viste.length + " di " + tutte.length : viste.length + (viste.length === 1 ? " misura" : " misure")}${
+          ann.n ? " · " + ann.n + (ann.n === 1 ? " annullata" : " annullate") : ""}</span></div>
       <div class="tab-wrap"><table class="tab">
-        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(unitaMisura(m))})</span></th><th>Provenienza</th><th>Correggi</th></tr></thead>
+        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(unitaMisura(m))})</span></th><th>Provenienza</th><th>Azioni</th></tr></thead>
         <tbody>${righe}</tbody></table></div>
       <div class="graf-nota">Correggere una misura non la sostituisce in silenzio: la riga resta,
-        con scritto che è stata <b>corretta</b> e qual era il valore registrato in origine. È quello
-        che il report di conformità dichiara all'ente.</div>`;
+        con scritto che è stata <b>corretta</b> e qual era il valore registrato in origine. Dichiararla
+        <b>non valida</b> (un mezzo di passaggio, un temporale, una prova dello strumento) la toglie dai conti
+        senza cancellarla: il valore resta scritto, con la ragione, e si può ripristinare. È quello
+        che il report di conformità dichiara all'ente.${suggerite
+          ? ` Le righe con <b>«nessuna volata registrata quel giorno»</b> sono solo <b>candidate</b>: lo strumento può aver
+        registrato un mezzo, un temporale o una prova — oppure una volata che manca nel registro. Nessun conto cambia
+        finché non le dichiari tu.` : ""}</div>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -2599,8 +2643,14 @@ textarea.dw-input{
     }
     const gia = ppvDiVolata(v);
     const cand = lettureVibrazioniDelGiorno(MON, v.data);
-    const usabili = cand.filter(c => c.unitaOk);
-    const altraUnita = cand.filter(c => !c.unitaOk);
+    /* una lettura dichiarata non valida non è una candidata: resta in lista
+       (`valida: false`) per essere DETTA, non scelta */
+    const annCand = cand.filter(c => !c.valida);
+    const usabili = cand.filter(c => c.unitaOk && c.valida);
+    const altraUnita = cand.filter(c => !c.unitaOk && c.valida);
+    const notaAnn = annCand.length
+      ? `<div class="note avviso">${annCand.length === 1 ? "Una lettura di quel giorno è stata dichiarata non valida" : annCand.length + " letture di quel giorno sono state dichiarate non valide"} (${annCand.map(c => esc(numeroIt(c.valore)) + " " + esc(c.unita) + " · " + esc(c.annullata.etichetta.toLowerCase())).join(", ")}) e non si ${annCand.length === 1 ? "può" : "possono"} collegare: ${annCand.length === 1 ? "ripristinala" : "ripristinale"} dai Monitoraggi se era una misura vera.</div>`
+      : "";
     const dist = +v.distanzaRicettore;
     // preselezione: la misura già collegata se c'è, altrimenti la più alta
     // del giorno (è quella che conta per la conformità). Resta comunque una
@@ -2638,8 +2688,8 @@ textarea.dw-input{
     const corpo = `<div class="note" style="margin-top:0;">Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}${(+v.kgMaxRitardo) ? " · carica massima per ritardo <b>" + esc(numeroIt(+v.kgMaxRitardo)) + " kg</b>" : ""}${dist > 0 ? " · distanza del ricettore <b>" + esc(numeroIt(dist)) + " m</b>" : ""}.</div>`
       + (usabili.length
         ? '<label class="fl" for="ppv-scelta">La misura del sismografo di quel giorno</label>'
-          + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>`
-        : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>`
+          + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>` + notaAnn
+        : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>` + notaAnn
           + `<input type="hidden" id="ppv-scelta" value="mano">`)
       + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (<span class="u">mm/s</span>)</label>'
       + `<input class="dw-input dec" id="ppv-val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,4" title="Scrivila come sta sul referto: la virgola va benissimo (2,4)." value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(itDec(gia.valore)) : ""}">`
@@ -3443,6 +3493,14 @@ textarea.dw-input{
       if (S.volate) pezzi.push(`${S.volate} ${S.volate === 1 ? "volata" : "volate"}`);
       f.push(`In archivio ${S.totale === 1 ? "c'è una riga che questo documento non ha potuto usare" : "ci sono " + S.totale + " righe che questo documento non ha potuto usare"} (${pezzi.join(", ")}): il giorno che ${S.totale === 1 ? "porta" : "portano"} scritto non è un giorno che esiste, oppure il valore non è un numero. ${S.totale === 1 ? "Non è" : "Non sono"} ${S.totale === 1 ? "conteggiata" : "conteggiate"} in nessuno dei numeri qui sotto: ${S.totale === 1 ? "va corretta" : "vanno corrette"} in archivio e poi il report va rifatto.`);
     }
+    /* ⛔ E LE MISURE CHE QUALCUNO HA DICHIARATO NON VALIDE si dicono qui, con
+       la ragione (04/09). Non sono «scartate» — quelle il documento non le PUÒ
+       usare, queste non le DEVE: un mezzo di passaggio, un temporale, una
+       prova dello strumento. Restano in archivio col loro valore e non pesano
+       su nessun numero del documento. */
+    const A = R.annullate || { n: 0 };
+    if (A.n)
+      f.push(`Nel periodo ${A.n === 1 ? "una misura è stata dichiarata non valida" : A.n + " misure sono state dichiarate non valide"} da chi tiene l'archivio (${A.ragioni.map(r => esc(r.etichetta.toLowerCase()) + (A.ragioni.length > 1 || r.n > 1 ? " " + r.n : "")).join(", ")}): ${A.n === 1 ? "resta" : "restano"} in archivio col ${A.n === 1 ? "suo" : "loro"} valore e non ${A.n === 1 ? "pesa" : "pesano"} su nessuno dei numeri qui sotto — né sul massimo, né sulla media, né sui superamenti.`);
     return f.join(" ");
   }
 
@@ -3602,10 +3660,15 @@ textarea.dw-input{
       : T.coperte ? `<br>Taratura dello strumento: ${T.coperte === 1 ? "l'unica lettura di questo punto ricade" : "tutte e " + T.coperte + " le letture di questo punto ricadono"} in un certificato registrato.`
       : "";
 
+    // le annullate del punto, con la ragione: nella scheda del punto, dove chi
+    // legge sta guardando i numeri di QUESTO strumento
+    const annP = p.annullate && p.annullate.n
+      ? `<br><b>Misure dichiarate non valide:</b> ${esc(p.annullate.testo)} — ${p.annullate.n === 1 ? "resta" : "restano"} in archivio e non ${p.annullate.n === 1 ? "pesa" : "pesano"} sui numeri di questo punto.`
+      : "";
     if (!p.n) return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}</div>
-      <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture</b> per questo punto:
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${annP}</div>
+      <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture ${p.annullate && p.annullate.n ? "valide " : ""}</b> per questo punto:
         non è possibile dire se il limite è stato rispettato.</div></div>`;
 
     /* ⛔ LA PROVENIENZA STA NELLA TABELLA, RIGA PER RIGA (T2d). Prima
@@ -3654,7 +3717,7 @@ textarea.dw-input{
               e questa riga la si legge per prima. Detto in chiaro l'08/08,
               insieme alla cella SD della tabella delle volate, che aveva
               esattamente lo stesso difetto. */""}
-        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b>${annP}</div>
         ${/* ⚠️ QUI LA FRASE È AL SINGOLARE, e non è pignoleria: il testo di
               `ESITI` parla del DOCUMENTO («su questi punti non è impostata
               nessuna soglia») ed è giusto lì, in testa al report. Riusarlo
@@ -3949,6 +4012,10 @@ textarea.dw-input{
         + (conf.maiMisurati ? ` · <b>${conf.maiMisurati}</b> mai ${plurale(conf.maiMisurati, "misurato", "misurati")}` : "")
         + (conf.senzaSoglia ? ` · <b>${conf.senzaSoglia}</b> senza soglia: su ${conf.senzaSoglia === 1 ? "quello" : "quelli"} l'app non può dire né conforme né non conforme, finché non scrivi un limite` : "")
         + ` · <b>${conf.totale}</b> in ascolto in tutto.`
+        /* le letture dichiarate non valide non pesano su questi conti, e la
+           riga che li mostra lo dice: se no un superamento tolto con una
+           ragione e un superamento mai avvenuto si leggono uguali */
+        + (conf.annullate ? ` <b>${conf.annullate}</b> ${plurale(conf.annullate, "lettura è stata dichiarata non valida e non pesa", "letture sono state dichiarate non valide e non pesano")} su questi conti.` : "")
       : "";
     /* La linguetta del filtro esiste solo se il caso esiste; e se stava
        filtrando proprio lei quando l'ultimo punto senza soglia viene
@@ -4442,6 +4509,92 @@ textarea.dw-input{
              await refresh();
              toast("Misura corretta: la riga resta segnata come corretta, con il valore di origine.", "success");
            } }]);
+      return; }
+    /* ── DICHIARARE NON VALIDA UNA MISURA (04/09) ──────────────────────
+       Stessa forma della correzione: la riga si ritrova per FIRMA dentro la
+       transazione, il valore non si cancella (`annullaLettura` lo tiene e lo
+       riscrive nella dichiarazione), e il valore corrente del punto si
+       riallinea all'ultima lettura VALIDA — `ultimaLettura` scarta le
+       annullate — se no il badge resterebbe sul numero appena tolto. */
+    const annMonId = attr(e, "data-ann-mon");
+    if (annMonId) {
+      const m = MON.find(x => x.id === annMonId); if (!m) return;
+      const idx = +attr(e, "data-ann-idx");
+      const l = (m.letture || [])[idx];
+      if (!l) { toast("Questa misura non c'è più: riapri la serie storica.", "err"); await refresh(); return; }
+      const firmaPrima = firmaLettura(l);
+      const u = unitaMisura(m);
+      const opzioni = RAGIONI_ANNULLAMENTO.map(r => `<option value="${esc(r.chiave)}">${esc(r.etichetta)}</option>`).join("");
+      apriModale("Dichiara non valida la misura del " + fmtD(l.data),
+        `<div class="note" style="margin:0 0 10px;">Stai dichiarando che la misura di <b>${esc(m.nome)}</b>${
+           l.ora ? " delle <b>" + esc(l.ora) + "</b>" : ""} — <b>${esc(numeroIt(l.valore))} ${esc(u)}</b> — non è una misura della cava.<br><br>
+           <b>Il valore non si cancella:</b> la riga resta in archivio col suo numero e con la ragione che scegli qui, esce dai conti
+           (massimo, media, superamenti, conformità) e si può ripristinare. Il report per l'ente dichiara quante misure sono state annullate e perché.</div>
+         <label class="flab" for="modal-ragione">Perché non vale
+           <select class="dw-input" id="modal-ragione">${opzioni}</select></label>
+         <label class="flab" for="modal-nota" id="modal-nota-lab" style="display:none;margin-top:8px;">Che cosa è successo
+           <input class="dw-input" id="modal-nota" type="text" autocomplete="off" maxlength="120" placeholder="es. escavatore fermo accanto al geofono"></label>
+         <div class="note esito" id="modal-esito" style="display:none;"></div>`,
+        [{ label: "Annulla", azione: chiudiModale },
+         { label: "Dichiara non valida", cls: "danger", azione: async () => {
+             const sel = document.getElementById("modal-ragione");
+             const nota = document.getElementById("modal-nota");
+             const box = document.getElementById("modal-esito");
+             const dire = (t) => { if (!box) return; box.style.display = ""; box.className = "note esito err"; box.innerHTML = t; };
+             const primo = (m.letture || [])[idx];
+             const annullata = primo ? annullaLettura(primo, { chiave: sel ? sel.value : "", nota: nota ? nota.value : "" }) : null;
+             if (!primo || firmaLettura(primo) !== firmaPrima) {
+               chiudiModale();
+               toast("La serie è cambiata nel frattempo: non ho scritto niente.", "err");
+               await refresh(); return; }
+             if (!annullata) { dire("Scrivi che cosa è successo: una misura non si toglie dai conti senza una ragione."); return; }
+             chiudiModale();
+             let cambiata = false;
+             await db.trasforma("monitoraggi", m.id, (m2) => {
+               const letture = [ ...((m2 && m2.letture) || []) ];
+               const i2 = letture.findIndex((x) => firmaLettura(x) === firmaPrima);
+               if (i2 < 0) { cambiata = true; return null; }
+               letture[i2] = annullata;
+               const ult = ultimaLettura({ letture });
+               /* senza più nessuna lettura valida il punto torna «mai misurato»:
+                  è la direzione che chiede una misura invece di sostenerne una */
+               return { letture, valore: ult ? ult.valore : null };
+             });
+             if (cambiata) { toast("Quella misura è cambiata nel frattempo: non ho scritto niente.", "err"); await refresh(); return; }
+             await refresh();
+             toast("Misura dichiarata non valida: resta in archivio con la ragione, e non conta più.", "success");
+           } }]);
+      // il testo libero si accende solo su «altro»: per le tre ragioni note non serve
+      const sel = document.getElementById("modal-ragione"), lab = document.getElementById("modal-nota-lab");
+      if (sel && lab) sel.addEventListener("change", () => {
+        lab.style.display = sel.value === "altro" ? "" : "none";
+        const box = document.getElementById("modal-esito"); if (box) box.style.display = "none";
+      });
+      return; }
+    const ripMonId = attr(e, "data-rip-mon");
+    if (ripMonId) {
+      const m = MON.find(x => x.id === ripMonId); if (!m) return;
+      const idx = +attr(e, "data-rip-idx");
+      const l = (m.letture || [])[idx];
+      if (!l) { toast("Questa misura non c'è più: riapri la serie storica.", "err"); await refresh(); return; }
+      const firmaPrima = firmaLettura(l);
+      const an = annullamentoDi(l);
+      if (!an) { toast("Questa misura non è annullata: non c'è niente da ripristinare."); return; }
+      if (!await chiedi("Ripristina la misura del " + fmtD(l.data),
+        `<div class="note" style="margin:0;">La misura di <b>${esc(m.nome)}</b> — <b>${esc(numeroIt(l.valore))} ${esc(unitaMisura(m))}</b> — era stata dichiarata non valida (${esc(an.etichetta)}). Ripristinandola <b>torna a contare</b> in tutti i conti, e resta scritto che era stata annullata e poi rimessa.</div>`,
+        "Ripristina")) return;
+      let cambiata = false;
+      await db.trasforma("monitoraggi", m.id, (m2) => {
+        const letture = [ ...((m2 && m2.letture) || []) ];
+        const i2 = letture.findIndex((x) => firmaLettura(x) === firmaPrima);
+        if (i2 < 0) { cambiata = true; return null; }
+        letture[i2] = ripristinaLettura(letture[i2]);
+        const ult = ultimaLettura({ letture });
+        return { letture, valore: ult ? ult.valore : (m2 && m2.valore) };
+      });
+      if (cambiata) { toast("Quella misura è cambiata nel frattempo: non ho scritto niente.", "err"); await refresh(); return; }
+      await refresh();
+      toast("Misura ripristinata: torna a contare.", "success");
       return; }
     const editMonId = attr(e, "data-edit-mon");
     if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;

@@ -312,11 +312,15 @@ in una schermata senza il testo primario):
   non un importatore per marca: si tengono le colonne come le dà lo strumento,
   si dichiara quale è stata usata per la conformità. Costo medio; misura: il
   CSV di prova con sei colonne rientra con le sue sei colonne.
-- (b) lo stato «evento non valido» con la ragione (mezzo, temporale, prova
-  strumento) accanto a `correggiLettura`, e la lettura senza volata quel giorno
-  segnalata come candidato — il conto della conformità la esclude solo se
-  qualcuno l'ha dichiarata. Costo basso; misura: `riepilogoConformita` cambia
-  solo con la dichiarazione, mai da solo.
+- (b) ✅ **fatta il 04/09** — la lettura dichiarata non valida con la
+  ragione (`RAGIONI_ANNULLAMENTO`: mezzo di passaggio, temporale, prova dello
+  strumento, altro con testo), `annullaLettura`/`ripristinaLettura` simmetriche
+  a `correggiLettura` (il valore resta scritto), `letturaValida` in un filtro
+  solo (`lettureLeggibili`) da cui ereditano tutti i conti, che dichiarano
+  `annullate`; `letturaSenzaVolata` è un suggerimento a tre risposte, non
+  un'esclusione. Misurato: `riepilogoConformita` cambia solo con la
+  dichiarazione (run-kpi 2531 → 2545), banco `sentinella-annullate` 60/0 e
+  controprova che cade (6 su 60) quando il filtro viene tolto.
 - (c) la frequenza dominante come campo facoltativo della lettura, che sceglie
   la banda DIN al posto della chiave scritta a mano quando c'è: costo basso, ma
   la tabella delle soglie è norma di seconda mano → fondatore prima.

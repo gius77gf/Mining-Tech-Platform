@@ -1750,7 +1750,7 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
   ];
   eq(sentinella.riepilogoConformita(mon),
     { conformi: 1, attenzione: 1, superamento: 2, maiMisurati: 0,
-      senzaSoglia: 0, giudicabili: 4, totale: 4 }, "conteggi");
+      senzaSoglia: 0, giudicabili: 4, totale: 4, annullate: 0 }, "conteggi");
 });
 /* ⛔ IL CONTEGGIO DELLA DECISIONE 16: un punto senza soglia esce dal
    numeratore E dal denominatore. Prima ci finiva dentro due volte, e nel modo
@@ -1765,7 +1765,7 @@ test("riepilogoConformita: un punto SENZA SOGLIA non è né conforme né in supe
   ];
   const r = sentinella.riepilogoConformita(mon);
   eq(r, { conformi: 1, attenzione: 0, superamento: 0, maiMisurati: 0,
-          senzaSoglia: 2, giudicabili: 1, totale: 3 }, "due fuori dal giudizio");
+          senzaSoglia: 2, giudicabili: 1, totale: 3, annullate: 0 }, "due fuori dal giudizio");
   eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale,
     "i pezzi fanno ancora il totale: nessun punto sparisce");
   eq(r.giudicabili, 1, "il denominatore della conformità è 1, non 3");
@@ -1790,7 +1790,7 @@ test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
   const nuovi = [{ valore: 0, soglia: 5, letture: [] }, { valore: 0, soglia: 5, letture: [] }];
   const r = sentinella.riepilogoConformita(nuovi);
   eq(r, { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 2,
-          senzaSoglia: 0, giudicabili: 0, totale: 2 }, "due punti nuovi");
+          senzaSoglia: 0, giudicabili: 0, totale: 2, annullate: 0 }, "due punti nuovi");
   eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale, "i pezzi fanno il totale");
   // guardia contro il troppo zelo: una lettura a ZERO è un dato vero
   const misurato = [{ valore: 0, soglia: 5, letture: [{ data: "2026-07-30", valore: 0 }] }];
@@ -1800,7 +1800,7 @@ test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
 test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
   eq(sentinella.riepilogoConformita([]),
     { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
-      senzaSoglia: 0, giudicabili: 0, totale: 0 }, "vuoto"));
+      senzaSoglia: 0, giudicabili: 0, totale: 0, annullate: 0 }, "vuoto"));
 test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), danger prima", () => {
   const mon = [
     { nome: "Vibr V2", valore: 5.6, soglia: 5, unita: "mm/s" },     // 1.12 → superamento (danger)
@@ -35931,6 +35931,249 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine passata Terra 02/09 ===== */
+
+/* ═════ SENTINELLA · LA LETTURA DICHIARATA NON VALIDA (04/09) ═════
+   Candidato (b) del delta: lo stato «evento non valido» con la ragione
+   (mezzo di passaggio, temporale, prova dello strumento) accanto a
+   `correggiLettura`, e la lettura senza volata quel giorno segnalata come
+   CANDIDATO. Il principio che ogni prova qui difende: il conto cambia SOLO
+   con la dichiarazione di qualcuno, mai da solo — e una lettura tolta si
+   DICHIARA (`annullate`), perché tolta in silenzio è il modo in cui un
+   superamento sparisce.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const Q = "2026-08-01T10:00:00";
+  const L = () => ({ data: "2026-07-19", ora: "10:25", valore: 5.6, origine: { da: "import", file: "V2_luglio.csv", quando: "2026-07-20T09:07:00" } });
+  const VOL = [{ id: "b1", data: "2026-07-17", stato: "eseguita" }, { id: "b3", data: "2026-08-04", stato: "prevista" }];
+
+  test("⛔ Sentinella · annullaLettura: la ragione vuota è rifiutata, il valore resta scritto", () => {
+    eq(sentinella.annullaLettura(L(), "", Q), null, "chiave vuota");
+    eq(sentinella.annullaLettura(L(), "boh", Q), null, "chiave sconosciuta");
+    eq(sentinella.annullaLettura(L(), null, Q), null, "null");
+    eq(sentinella.annullaLettura(L(), { chiave: "altro", nota: "  " }, Q), null, "«altro» senza il testo non è una ragione");
+    eq(sentinella.annullaLettura(null, "mezzo", Q), null, "una non-lettura non si annulla");
+    eq(sentinella.annullaLettura("x", "mezzo", Q), null, "nemmeno una stringa");
+    const a = sentinella.annullaLettura(L(), "mezzo", Q);
+    eq(a.valore, 5.6, "⛔ il valore NON si cancella");
+    eq(a.origine.annullata, { perche: "mezzo", nota: "", quando: Q, valore: 5.6 }, "la dichiarazione porta ragione, momento e il valore letto");
+    eq([a.origine.da, a.origine.file], ["import", "V2_luglio.csv"], "e la provenienza resta com'era");
+    eq(L().origine.annullata, undefined, "la lettura di partenza non è stata toccata (funzione pura)");
+    const alt = sentinella.annullaLettura(L(), { chiave: "altro", nota: " cane sul geofono " }, Q);
+    eq(alt.origine.annullata.perche, "altro", "«altro» con il testo passa");
+    eq(alt.origine.annullata.nota, "cane sul geofono", "e il testo entra ripulito");
+    eq(sentinella.annullaLettura(L(), "MEZZO", Q).origine.annullata.perche, "mezzo", "la chiave si legge senza badare alle maiuscole");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: 22.5 }, "prova", Q).origine.da, "non dichiarata",
+      "senza `origine` la provenienza nasce «non dichiarata», come fa `correggiLettura`");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: null }, "prova", Q).origine.annullata.valore, null,
+      "su una lettura senza numero la dichiarazione porta `null`, non uno zero");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: 0 }, "prova", Q).origine.annullata.valore, 0, "e lo zero SCRITTO resta zero");
+    eq(sentinella.annullaLettura(sentinella.annullaLettura(L(), "mezzo", Q), "temporale", "2026-08-02T08:00:00").origine.annullata.perche, "temporale",
+      "annullare di nuovo cambia la ragione (chi cambia idea la può cambiare)");
+  });
+
+  test("⛔ Sentinella · letturaValida / annullamentoDi / ripristinaLettura nei due versi", () => {
+    eq(sentinella.letturaValida(L()), true, "una lettura normale vale");
+    eq(sentinella.letturaValida(null), false, "null non è una lettura valida");
+    eq(sentinella.letturaValida(7), false, "nemmeno un numero");
+    eq(sentinella.letturaValida({ data: "2026-01-01", valore: 1 }), true, "senza origine vale");
+    const a = sentinella.annullaLettura(L(), "temporale", Q);
+    eq(sentinella.letturaValida(a), false, "annullata → non vale");
+    eq(sentinella.annullamentoDi(a), { perche: "temporale", etichetta: "Temporale", nota: "", quando: Q, valore: 5.6 }, "annullamentoDi la legge");
+    eq(sentinella.annullamentoDi(L()), null, "e risponde null su una lettura sana");
+    eq(sentinella.annullamentoDi({ origine: { annullata: "sì" } }), null, "una dichiarazione che non è un oggetto non è una dichiarazione");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "boh", valore: 3 } } }).etichetta, "ragione non dichiarata",
+      "una chiave sconosciuta in archivio si dice per quello che è, non si inventa una ragione");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "altro", nota: "Cantiere vicino" } } }).etichetta, "Cantiere vicino", "«altro» porta il suo testo");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "mezzo", valore: "" } } }).valore, null, "valore vuoto nella dichiarazione → null");
+    const r = sentinella.ripristinaLettura(a, "2026-08-02T09:00:00");
+    eq(sentinella.letturaValida(r), true, "⛔ ripristinata → torna a valere");
+    eq(r.valore, 5.6, "col suo valore");
+    eq(r.origine.annullata, undefined, "la dichiarazione è tolta");
+    eq(r.origine.ripristinata, { quando: "2026-08-02T09:00:00", perche: "temporale", nota: "" }, "ma resta scritto che era stata annullata, e perché");
+    eq(sentinella.letturaValida(a), false, "la lettura di partenza non è stata toccata (funzione pura)");
+    eq(sentinella.ripristinaLettura(L()).origine.ripristinata, undefined, "ripristinare una lettura sana non scrive niente");
+    eq(sentinella.ripristinaLettura(null), null, "null → null");
+    eq(sentinella.annullaLettura(r, "mezzo", Q).origine.ripristinata, undefined, "una nuova dichiarazione supera il vecchio ripristino");
+    const pr = sentinella.provenienzaMisura(a);
+    eq([pr.da, pr.noto, pr.annullata.perche], ["import", true, "temporale"], "provenienzaMisura porta anche l'annullamento");
+    eq(sentinella.provenienzaMisura(L()).annullata, null, "e null su una sana");
+    eq(sentinella.provenienzaMisura({}).annullata, null, "e su una senza origine");
+    ok(/DICHIARATA NON VALIDA il 01\/08\/2026 alle 10:00 \(Temporale\)/.test(sentinella.descriviProvenienza(a, { nome: "V2" })),
+      "la frase del documento dice che è stata dichiarata non valida, quando e perché");
+    ok(/resta in archivio col suo valore/.test(sentinella.descriviProvenienza(a, { nome: "V2" })), "e che il valore resta");
+    ok(!/NON VALIDA/.test(sentinella.descriviProvenienza(L(), { nome: "V2" })), "e tace su una lettura sana");
+  });
+
+  test("Sentinella · RAGIONI_ANNULLAMENTO: quattro ragioni, una sola col testo libero", () => {
+    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "altro"], "le chiavi, nell'ordine della tendina");
+    eq(sentinella.RAGIONI_ANNULLAMENTO.filter(r => r.nota).map(r => r.chiave), ["altro"], "solo «altro» vuole il testo");
+    for (const r of sentinella.RAGIONI_ANNULLAMENTO) ok(r.etichetta && r.etichetta.length > 3, "ogni ragione ha un'etichetta leggibile: " + r.chiave);
+  });
+
+  test("⛔ Sentinella · contaAnnullate: conta e dichiara, col periodo, e non gonfia", () => {
+    const lst = [sentinella.annullaLettura(L(), "temporale", Q),
+      sentinella.annullaLettura({ data: "2026-07-06", valore: 3.9 }, "temporale", Q),
+      sentinella.annullaLettura({ data: "2026-06-05", valore: 3.2 }, { chiave: "altro", nota: "Cantiere vicino" }, Q),
+      { data: "2026-06-16", valore: 4.4 },
+      sentinella.annullaLettura({ data: "2026-02-30", valore: 3 }, "mezzo", Q),     // giorno che non esiste: già «non utilizzabile»
+      sentinella.annullaLettura({ data: "2026-06-01", valore: null }, "mezzo", Q)]; // senza valore: idem
+    eq(sentinella.contaAnnullate(lst), { n: 3, ragioni: [{ etichetta: "Temporale", n: 2 }, { etichetta: "Cantiere vicino", n: 1 }],
+      testo: "3 letture annullate (temporale 2, cantiere vicino 1)" }, "tre annullate leggibili; le due illeggibili NON si contano due volte");
+    eq(sentinella.contaAnnullate(lst, "2026-07-01", "2026-07-31").testo, "2 letture annullate (temporale 2)", "ristretta a luglio");
+    eq(sentinella.contaAnnullate(lst, "2026-07-10", "").n, 1, "solo il «dal»");
+    eq(sentinella.contaAnnullate([lst[0]]).testo, "1 lettura annullata (temporale)", "al singolare, senza il numero quando è una ragione sola");
+    eq(sentinella.contaAnnullate([lst[3]]), { n: 0, ragioni: [], testo: "" }, "zero → testo vuoto: a zero non c'è niente da dichiarare");
+    eq(sentinella.contaAnnullate(null).n, 0, "null non rompe");
+    eq(sentinella.contaAnnullate([null, undefined, 3]).n, 0, "né i buchi");
+  });
+
+  test("⛔ Sentinella · letturaSenzaVolata è un candidato, con tre risposte", () => {
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, VOL), true, "nessuna volata eseguita quel giorno → true");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-17" }, VOL), false, "il giorno della volata → false");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-08-04" }, VOL), true, "una volata soltanto PREVISTA non è un fatto: quel giorno resta senza volata");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, []), null, "⛔ registro vuoto → NON SI PUÒ DIRE, non «senza volata»");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, [VOL[1]]), null, "registro con sole previste → idem");
+    eq(sentinella.letturaSenzaVolata({ data: "boh" }, VOL), null, "data illeggibile → null");
+    eq(sentinella.letturaSenzaVolata(null, VOL), null, "null → null");
+    // e non è un'esclusione: la lettura «senza volata» conta come prima
+    const m = { soglia: 5, letture: [{ data: "2026-07-19", valore: 5.6 }] };
+    eq(sentinella.ultimaLettura(m).valore, 5.6, "⛔ il suggerimento non toglie niente: la lettura conta finché nessuno la dichiara");
+  });
+
+  /* ── I LETTORI: per OGNUNO, il conto cambia con la dichiarazione e si dichiara ── */
+  const M = () => ({ id: "x", nome: "PM10", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 36.8,
+    letture: [{ data: "2026-06-14", valore: 22.5 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 }] });
+  const ann = (m, i, perche = "temporale") => { const c = { ...m, letture: [...m.letture] }; c.letture[i] = sentinella.annullaLettura(c.letture[i], perche, Q); return c; };
+
+  test("⛔ Sentinella · ultimaLettura / statoMisura / riepilogoConformita: cambiano SOLO con la dichiarazione", () => {
+    const m = M();
+    eq(sentinella.ultimaLettura(m).valore, 36.8, "prima: l'ultima è il 19/07");
+    eq(sentinella.statoMisura({ ...m, valore: null }).stato, "attenzione", "e il badge (letto dall'ultima lettura) dice attenzione");
+    const a = ann(m, 3);
+    eq(sentinella.ultimaLettura(a).valore, 33.7, "⛔ annullata l'ultima, l'ultima VALIDA è il 12/07");
+    eq(sentinella.statoMisura({ ...a, valore: null }).stato, "conforme", "e il badge cambia: 33,7 su 40");
+    eq(sentinella.statoMisura(a).stato, "attenzione", "⚠️ con `valore` ancora fermo a 36,8 il badge NON cambia: la pagina riallinea `valore` all'ultima valida (limite dichiarato)");
+    const r0 = sentinella.riepilogoConformita([{ ...m, valore: null }]), r1 = sentinella.riepilogoConformita([{ ...a, valore: null }]);
+    eq([r0.attenzione, r0.conformi, r0.annullate], [1, 0, 0], "riepilogo prima: 1 in attenzione, 0 annullate");
+    eq([r1.attenzione, r1.conformi, r1.annullate], [0, 1, 1], "⛔ riepilogo dopo: conforme, e DICHIARA 1 annullata");
+    const tutte = ann(ann(ann(ann(m, 0), 1), 2), 3);
+    eq(sentinella.ultimaLettura(tutte), null, "tutte annullate → nessuna lettura valida");
+    eq(sentinella.statoMisura({ ...tutte, valore: null }).stato, "mai", "e il punto torna «mai misurato»: chiede una misura invece di sostenerne una");
+    eq(sentinella.riepilogoConformita([{ ...tutte, valore: null }]).annullate, 4, "con 4 dichiarate");
+    const rip = { ...a, letture: a.letture.map(l => sentinella.ripristinaLettura(l)) };
+    eq(sentinella.ultimaLettura(rip).valore, 36.8, "ripristinata → torna l'ultima di prima");
+    eq(sentinella.riepilogoConformita([{ ...rip, valore: null }]).annullate, 0, "e le annullate tornano a zero");
+  });
+
+  test("⛔ Sentinella · lettureNelPeriodo / statPeriodo / confrontoMesi / ultimaLetturaOltre / superamentiAperti", () => {
+    const m = M(), a = ann(m, 1, "mezzo");   // annullo il 28/06 = 44,2, l'unico oltre soglia
+    eq(sentinella.lettureNelPeriodo(m, "2026-06-01", "2026-06-30").length, 2, "giugno prima: 2");
+    eq(sentinella.lettureNelPeriodo(a, "2026-06-01", "2026-06-30").length, 1, "giugno dopo: 1");
+    const s0 = sentinella.statPeriodo(m, "2026-06-01", "2026-06-30", 40), s1 = sentinella.statPeriodo(a, "2026-06-01", "2026-06-30", 40);
+    eq([s0.n, s0.max, s0.superamenti, s0.annullate], [2, 44.2, 1, 0], "statPeriodo prima");
+    eq([s1.n, s1.max, s1.superamenti, s1.annullate], [1, 22.5, 0, 1], "⛔ statPeriodo dopo: il superamento sparisce dal conto E si dichiara «1 annullata»");
+    eq(sentinella.statPeriodo(a, "2026-07-01", "2026-07-31", 40).annullate, 0, "in luglio non ce ne sono: 0");
+    const c = sentinella.confrontoMesi(a, 40, new Date("2026-07-20T00:00:00"));
+    eq([c.precedente.annullate, c.corrente.annullate], [1, 0], "confrontoMesi porta il conto per mese");
+    eq(sentinella.ultimaLetturaOltre(m, 40).data, "2026-06-28", "prima: l'ultima oltre è il 28/06");
+    eq(sentinella.ultimaLetturaOltre(a, 40), null, "dopo: nessuna oltre");
+    const sup0 = sentinella.superamentiAperti([{ ...m, valore: 44.2 }], []), sup1 = sentinella.superamentiAperti([{ ...a, valore: 44.2 }], []);
+    eq(sup0[0].data, "2026-06-28", "superamentiAperti prima cita il 28/06");
+    eq(sup1[0].voce, "valore-corrente", "⚠️ con `valore` fermo a 44,2 il superamento resta (è la regola già decisa: un valore dichiarato conta) ma senza più una data da citare");
+    eq(sentinella.superamentiAperti([{ ...a, valore: null }], []).length, 0, "col valore riallineato dalla pagina il superamento aperto sparisce");
+  });
+
+  test("⛔ Sentinella · serieStorica e andamentoRicettore dichiarano quante non disegnano", () => {
+    const m = M(), a = ann(m, 1);
+    eq([sentinella.serieStorica(m).n, sentinella.serieStorica(m).annullate, sentinella.serieStorica(m).max], [4, 0, 44.2], "prima: 4 punti, max 44,2");
+    eq([sentinella.serieStorica(a).n, sentinella.serieStorica(a).annullate, sentinella.serieStorica(a).max], [3, 1, 36.8], "⛔ dopo: 3 punti, max 36,8, e «annullate: 1»");
+    eq(sentinella.serieStorica({ letture: [] }).annullate, 0, "vuota: 0");
+    const RIC = [{ id: "rc", nome: "Casa", soglia: 40, unita: "µg/m³" }];
+    const and = sentinella.andamentoRicettore([{ ...a, ricettoreId: "rc" }], RIC, "rc", { oggi: "2026-07-20" });
+    eq([and.punti[0].n, and.punti[0].annullate], [3, 1], "l'andamento del ricettore: 3 letture e 1 annullata nella finestra");
+  });
+
+  test("⛔ Sentinella · contaCoperture, composizioneProvenienza e coperturaPeriodo lasciano fuori le annullate e lo dicono", () => {
+    const m = M(), a = ann(m, 1);
+    const T = [{ data: "2026-01-01", scadenza: "2026-12-31" }];
+    eq([sentinella.contaCoperture(T, m.letture).coperta, sentinella.contaCoperture(T, m.letture).annullate], [4, 0], "prima: 4 coperte");
+    eq([sentinella.contaCoperture(T, a.letture).coperta, sentinella.contaCoperture(T, a.letture).totale, sentinella.contaCoperture(T, a.letture).annullate], [3, 3, 1],
+      "dopo: 3 coperte su 3, e 1 annullata dichiarata");
+    const cp0 = sentinella.composizioneProvenienza([m]), cp1 = sentinella.composizioneProvenienza([a]);
+    eq([cp0.n, cp0.annullate], [4, 0], "composizione prima");
+    eq([cp1.n, cp1.nonDichiarate, cp1.annullate], [3, 3, 1], "⛔ composizione dopo: 3 nel conto, 1 annullata a parte");
+    eq(sentinella.composizioneProvenienza([{ letture: [], annullateLetture: a.letture.filter(l => !sentinella.letturaValida(l)) }]).annullate, 1,
+      "su un punto del report (annullate a parte) il conto è lo stesso");
+    const co0 = sentinella.coperturaPeriodo([m], "2026-06-01", "2026-07-31", new Date("2026-08-01")), co1 = sentinella.coperturaPeriodo([a], "2026-06-01", "2026-07-31", new Date("2026-08-01"));
+    eq([co0.nGiorniMisurati, co0.annullate], [4, 0], "copertura prima: 4 giorni misurati");
+    eq([co1.nGiorniMisurati, co1.annullate], [3, 1], "⛔ un giorno con la sola lettura annullata NON è un giorno misurato, e si dichiara");
+  });
+
+  test("⛔ Sentinella · reportConformita: la lettura annullata esce dai numeri del documento e il documento lo dichiara", () => {
+    const m = M(), a = ann(m, 1, "mezzo");
+    const o = (mon) => ({ monitoraggi: [mon], ricettori: [], dal: "2026-06-01", al: "2026-07-31", oggi: "2026-08-01" });
+    const R0 = sentinella.reportConformita(o(m)), R1 = sentinella.reportConformita(o(a));
+    eq([R0.punti[0].n, R0.punti[0].max, R0.punti[0].nSuperamenti, R0.esito, R0.annullate.n], [4, 44.2, 1, "non-conforme", 0], "prima: non conforme per il 28/06");
+    eq([R1.punti[0].n, R1.punti[0].max, R1.punti[0].nSuperamenti, R1.esito], [3, 36.8, 0, "conforme"], "⛔ dopo: conforme — e se non fosse dichiarato sarebbe un superamento sparito");
+    eq(R1.annullate, { n: 1, ragioni: [{ etichetta: "Mezzo di passaggio", n: 1 }], testo: "1 lettura annullata (mezzo di passaggio)" }, "⛔ il documento lo DICHIARA, con la ragione");
+    eq(R1.punti[0].annullate.testo, "1 lettura annullata (mezzo di passaggio)", "e la scheda del punto anche");
+    eq(R1.punti[0].annullateLetture.map(l => l.valore), [44.2], "la riga tolta viaggia col punto, col suo valore");
+    eq([R1.scartate.letture, R1.provenienza.annullate, R1.copertura.annullate, R1.tarature.perPunto[0].coperte + R1.tarature.perPunto[0].nonNote],
+      [0, 1, 1, 3], "non è una «scartata» (quelle il documento non le PUÒ usare); provenienza, copertura e tarature contano 3 e dichiarano 1");
+    const fuori = sentinella.reportConformita({ ...o(a), dal: "2026-07-01" });
+    eq(fuori.annullate.n, 0, "un'annullata FUORI dal periodo non si dichiara: non c'entra col documento");
+    const tutte = ann(ann(ann(ann(m, 0), 1), 2), 3);
+    const Rt = sentinella.reportConformita(o(tutte));
+    eq([Rt.punti[0].n, Rt.esito, Rt.annullate.n, Rt.nPuntiSenzaLetture], [0, "senza-dati", 4, 1], "tutte annullate: «senza dati», con 4 dichiarate");
+  });
+
+  test("⛔ Sentinella · csvAmbiente: il file dice la stessa cosa dello schermo, e dichiara le annullate due volte", () => {
+    const m = M(), a = ann(m, 3, "temporale");
+    const riga = (mon) => sentinella.csvAmbiente([{ ...mon, valore: sentinella.ultimaLettura(mon) ? sentinella.ultimaLettura(mon).valore : null }], [], [], new Date("2026-08-01")).split("\n")[1].split(";");
+    const c0 = riga(m), c1 = riga(a);
+    eq([c0[2], c0[5]], ["36.8", "Attenzione"], "prima: 36,8 «Attenzione»");
+    eq([c1[2], c1[5]], ["33.7", "Conforme"], "⛔ dopo: 33,7 «Conforme» — il valore dell'ultima VALIDA, come lo schermo");
+    ok(!/2026-07-19/.test(c1[6]) && /1 lettura annullata \(temporale\)/.test(c1[6]), "lo storico non scrive più il 19/07 e lo dichiara: " + c1[6]);
+    ok(/1 lettura annullata \(temporale\)/.test(c1[9]), "e la cella della provenienza pure: " + c1[9]);
+    ok(!/non utilizzabil/.test(c1[6]), "⛔ un'annullata NON è «non utilizzabile»: quella è una riga rotta, questa una riga tolta da qualcuno");
+    ok(!/annullat/.test(c0[6] + c0[9]), "e senza annullate il file non ne parla");
+    const rotta = { ...a, letture: [...a.letture, { data: "2026-02-30", valore: 9 }] };
+    ok(/1 lettura non utilizzabile/.test(riga(rotta)[6]) && /1 lettura annullata/.test(riga(rotta)[6]), "con una riga rotta E una annullata le due dichiarazioni stanno una accanto all'altra, senza sommarsi");
+  });
+
+  test("Sentinella · lettureVibrazioniDelGiorno tiene l'annullata in lista ma la marca non valida", () => {
+    const v = { id: "v", nome: "V", tipo: "vibrazioni", unita: "mm/s",
+      letture: [{ data: "2026-07-17", ora: "10:25", valore: 5.6 }, sentinella.annullaLettura({ data: "2026-07-17", ora: "10:40", valore: 9.1 }, "mezzo", Q)] };
+    const c = sentinella.lettureVibrazioniDelGiorno([v], "2026-07-17");
+    eq(c.map(x => [x.valore, x.valida]), [[9.1, false], [5.6, true]], "tutt'e due in lista (dalla più alta), l'annullata marcata `valida: false`");
+    eq(c[0].annullata.etichetta, "Mezzo di passaggio", "con la ragione, così la pagina la dice invece di farla scegliere");
+    eq(c[1].annullata, null, "e la sana porta null");
+  });
+
+  test("Sentinella · unisciLetture: reimportando lo stesso file l'annullamento sopravvive", () => {
+    const a = sentinella.annullaLettura(L(), "mezzo", Q);
+    const u = sentinella.unisciLetture([a], [L()]);
+    eq(u.duplicati, 1, "la stessa lettura è un doppione");
+    eq(sentinella.letturaValida(u.letture[0]), false, "⛔ e resta annullata: un reimport non rimette in gioco una misura che qualcuno ha tolto");
+  });
+
+  test("⛔ Sentinella · sulla DIMOSTRAZIONE: annullare l'ultima di PM10 la porta da attenzione a conforme, e il suggerimento senza volata non tocca niente", () => {
+    const D = JSON.parse(JSON.stringify(sentinella.DEMO));
+    const conSoglia = (m) => { const e = sentinella.sogliaEfficace(m, D.ricettori); return e.valore != null ? { ...m, soglia: e.valore } : m; };
+    const prima = sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia));
+    eq([prima.conformi, prima.attenzione, prima.annullate], [4, 1, 0], "com'è la dimostrazione");
+    const v1 = D.monitoraggi.find(m => m.id === "v1");
+    eq(v1.letture.map(l => sentinella.letturaSenzaVolata(l, D.volate)), [true, true, true, true], "le quattro letture di V1 sono tutte senza volata quel giorno");
+    eq(sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia)), prima, "⛔ e questo non ha cambiato NIENTE");
+    const p1 = D.monitoraggi.find(m => m.id === "p1");
+    p1.letture[5] = sentinella.annullaLettura(p1.letture[5], "temporale", Q);
+    p1.valore = sentinella.ultimaLettura(p1).valore;   // quello che fa la pagina
+    const dopo = sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia));
+    eq([dopo.conformi, dopo.attenzione, dopo.annullate], [5, 0, 1], "⛔ con la dichiarazione: conforme, e 1 annullata dichiarata");
+  });
+}
+/* ===== fine lettura non valida (Sentinella, 04/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

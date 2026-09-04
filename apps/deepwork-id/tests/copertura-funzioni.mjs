@@ -212,7 +212,10 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* ⏱️ `flotta` 92 → 95 il 02/09: le tre funzioni del ponte Conti→Flotta
    (`chiaveVoceMezzo`, `costiPerConfronto`, `doppioniAllaCifra`), provate in
    run-kpi nel blocco «PONTE CONTI → FLOTTA». Il conto vero è 95/95. */
-const FONDO = { campo: 131, conti: 150, flotta: 98, scudo: 192, sentinella: 143, terra: 77 };
+/* ⏱️ `sentinella` 143 → 150 il 04/09: la lettura dichiarata non valida
+   (`RAGIONI_ANNULLAMENTO`, `annullamentoDi`, `letturaValida`, `annullaLettura`,
+   `ripristinaLettura`, `contaAnnullate`, `letturaSenzaVolata`). */
+const FONDO = { campo: 131, conti: 150, flotta: 98, scudo: 192, sentinella: 150, terra: 77 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -343,8 +343,13 @@ export const giorni = giorniTra;
 // vera.
 export function riepilogoConformita(monitoraggi) {
   const r = { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
-    senzaSoglia: 0, giudicabili: 0, totale: (monitoraggi || []).length };
+    senzaSoglia: 0, giudicabili: 0, totale: (monitoraggi || []).length,
+    /* le letture che qualcuno ha dichiarato non valide e che quindi NON hanno
+       pesato su questi conti: si dichiarano qui, accanto ai numeri che
+       cambiano per effetto loro (04/09) */
+    annullate: 0 };
   for (const m of monitoraggi || []) {
+    r.annullate += contaAnnullate((m || {}).letture).n;
     const st = statoMisura(m);
     // ⛔ Lo `stato` si guarda PRIMA della classe: «mai misurato», «senza data» e
     // «senza soglia» condividono il giallo con «Attenzione», e leggendo solo
@@ -642,6 +647,9 @@ export function serieStorica(m, opts = {}) {
 
   const base = {
     vuoto: letture.length === 0, n: letture.length, unita, soglia, box,
+    // quante righe dell'archivio il grafico NON disegna perché dichiarate non
+    // valide: la legenda lo scrive, se no un picco sparito è un picco nascosto
+    annullate: contaAnnullate((m || {}).letture).n,
     punti: [], path: "", xTicks: [], yTicks: [], lineaSoglia: null,
     superamenti: 0, mostraPunti: true, max: null, ultimo: null, dal: "", al: "",
   };
@@ -1572,8 +1580,12 @@ export const STATI_TARATURA = {
    stretta era proprio quella dei tre secchi, che non sa dire il quarto caso.
    Questa risponde con tutti e quattro; chi ne vuole tre li somma. */
 export function contaCoperture(tarature, letture) {
-  const c = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0 };
+  const c = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0,
+    // una lettura dichiarata non valida non ha una taratura da verificare:
+    // non entra nel documento, quindi non entra nemmeno qui — e lo si dice
+    annullate: contaAnnullate(letture).n };
   for (const l of (letture || [])) {
+    if (!letturaValida(l)) continue;
     const s = coperturaTaratura(tarature, (l || {}).data).stato;
     if (c[s] != null) c[s]++;
   }
@@ -1943,17 +1955,22 @@ function cellaTaratura(m) {
    cerca per prima, e sul dato di dimostrazione ce n'è una che ALZA il valore. */
 function cellaProvenienza(m) {
   let file = 0, mano = 0, ignota = 0, corrette = 0;
+  const ann = contaAnnullate((m || {}).letture);
   for (const l of (((m || {}).letture) || [])) {
+    if (!letturaValida(l)) continue;   // conta a parte, in coda alla cella
     const p = provenienzaMisura(l);
     if (!p.noto) ignota++; else if (p.da === FONTE_IMPORT) file++; else if (p.da === FONTE_MANO) mano++;
     if (p.corretta) corrette++;
   }
-  if (!(file + mano + ignota)) return "";
+  if (!(file + mano + ignota + ann.n)) return "";
   const pezzi = [];
   if (file) pezzi.push(file + " da file dello strumento");
   if (mano) pezzi.push(conta(mano, "inserita a mano", "inserite a mano"));
   if (ignota) pezzi.push(ignota + " senza provenienza dichiarata");
   if (corrette) pezzi.push(corrette + (corrette === 1 ? " corretta dopo la registrazione" : " corrette dopo la registrazione"));
+  /* le annullate non stanno in nessuno dei conti sopra, e il file lo dice
+     con la ragione: è la stessa riga che il report scrive a schermo */
+  if (ann.n) pezzi.push(ann.testo);
   return pezzi.join(" · ");
 }
 
@@ -1983,9 +2000,14 @@ function cellaProvenienza(m) {
 function cellaStorico(m) {
   const tutte = (((m || {}).letture) || []);
   const buone = lettureLeggibili(m);
-  const fuori = tutte.length - buone.length;
+  /* ⛔ le annullate escono da `buone` ma NON sono «non utilizzabili»: sono
+     righe leggibili che una persona ha tolto con una ragione. Si sottraggono
+     dal conto delle illeggibili e si dichiarano a parte, con la ragione. */
+  const ann = contaAnnullate(tutte);
+  const fuori = tutte.length - buone.length - ann.n;
   const pezzi = [];
   if (buone.length) pezzi.push(buone.map(l => l.data + ":" + (Math.round(l.valore * 1e4) / 1e4)).join(" "));
+  if (ann.n) pezzi.push(ann.testo);
   if (fuori > 0)
     pezzi.push(fuori + (fuori === 1 ? " lettura non utilizzabile" : " letture non utilizzabili")
       + ": il giorno che " + (fuori === 1 ? "porta" : "portano") + " scritto non è un giorno che esiste,"
@@ -2174,8 +2196,9 @@ export const FONTI_MISURA = {
 // `false` scrive una frase diversa invece di tacere.
 export function provenienzaMisura(l) {
   const o = (l || {}).origine;
-  const vuota = { da: FONTE_IGNOTA, noto: false, file: "", quando: "", corretta: null };
+  const vuota = { da: FONTE_IGNOTA, noto: false, file: "", quando: "", corretta: null, annullata: null };
   if (!o || typeof o !== "object") return vuota;
+  const annullata = annullamentoDi(l);
   /* ⛔ UNA CORREZIONE SU UN VALORE ILLEGGIBILE RESTA UNA CORREZIONE. Se il
      numero di partenza non era un numero, `prima` vale `null` — e la frase
      lo dice. Pretendere che `prima` fosse finito per riconoscere la
@@ -2192,9 +2215,9 @@ export function provenienzaMisura(l) {
         prima: (co.prima != null && Number.isFinite(+co.prima)) ? +co.prima : null }
     : null;
   const da = String(o.da || "").trim().toLowerCase();
-  if (da !== FONTE_IMPORT && da !== FONTE_MANO) return { ...vuota, corretta };
+  if (da !== FONTE_IMPORT && da !== FONTE_MANO) return { ...vuota, corretta, annullata };
   return { da, noto: true, file: String(o.file || "").trim(),
-           quando: String(o.quando || "").trim(), corretta };
+           quando: String(o.quando || "").trim(), corretta, annullata };
 }
 
 /* Il momento, scritto come lo legge una persona. L'istante è quello di
@@ -2238,6 +2261,10 @@ export function descriviProvenienza(l, punto) {
       + (p.corretta.prima != null
           ? `: il valore registrato in origine era ${numeroIt(p.corretta.prima)}.`
           : ": il valore registrato in origine non è leggibile.");
+  if (p.annullata)
+    t += " La misura è stata DICHIARATA NON VALIDA"
+      + (p.annullata.quando ? ` il ${quandoIt(p.annullata.quando)}` : "")
+      + ` (${p.annullata.etichetta}): resta in archivio col suo valore, ma non entra in nessun conto.`;
   return t;
 }
 
@@ -2304,6 +2331,132 @@ export function correggiLettura(l, nuovo, quando) {
   return { ...l, valore: v, origine: o };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// LA LETTURA DICHIARATA NON VALIDA (04/09, candidato (b) del delta).
+// Un sismografo registra anche il camion che passa, il temporale e la
+// prova che il tecnico fa battendo sul geofono: sono eventi VERI dello
+// strumento e FALSI come misura della cava. Il mondo li chiama «trigger
+// spuri» e li lascia decidere a una persona, con la ragione scritta.
+// ⛔ TRE REGOLE, e sono le stesse della correzione (`correggiLettura`):
+//   1. il valore NON si cancella: un dato ambientale non si distrugge. La
+//      riga resta in archivio con scritto che è stata annullata, quando, e
+//      perché — e il numero letto sta anche dentro la dichiarazione
+//      (`annullata.valore`), così se qualcuno un giorno lo ritoccasse, la
+//      dichiarazione lo direbbe;
+//   2. una ragione VUOTA non è una ragione: senza chiave, o con «altro»
+//      senza il testo, la funzione risponde `null` e non scrive niente;
+//   3. il CONTO CAMBIA SOLO CON LA DICHIARAZIONE. `letturaSenzaVolata` dice
+//      «quel giorno non risulta nessuna volata» ed è un SUGGERIMENTO scritto
+//      accanto alla riga: non toglie niente da nessun conto. L'unica cosa
+//      che toglie una lettura dalla conformità è `annullaLettura`, chiamata
+//      da una persona con una ragione.
+// Chi legge le letture passa da `lettureLeggibili`, che scarta le annullate
+// come scarta le date che non esistono — e ogni lettore che conta o esporta
+// DICHIARA quante ne ha lasciate fuori (`annullate`): una lettura tolta in
+// silenzio è il modo in cui un superamento sparisce.
+// ══════════════════════════════════════════════════════════════════════
+
+// Le ragioni fra cui si sceglie. `nota: true` = vuole il testo libero.
+export const RAGIONI_ANNULLAMENTO = [
+  { chiave: "mezzo",     etichetta: "Mezzo di passaggio",      nota: false },
+  { chiave: "temporale", etichetta: "Temporale",               nota: false },
+  { chiave: "prova",     etichetta: "Prova dello strumento",   nota: false },
+  { chiave: "altro",     etichetta: "Altro (scrivi che cosa)", nota: true },
+];
+const ragioneAnnullamento = (k) =>
+  RAGIONI_ANNULLAMENTO.find(r => r.chiave === String(k || "").trim().toLowerCase()) || null;
+
+// L'annullamento di UNA lettura, letto e normalizzato; `null` se non è
+// annullata. `etichetta` è quello che si scrive accanto alla riga: la
+// ragione scelta, oppure il testo libero di «altro».
+// ⚠️ `valore` passa da `numeroDichiarato`: una dichiarazione scritta su una
+// lettura senza numero porta `null`, non uno zero (stessa trappola di
+// `corretta.prima`, e stessa cura).
+export function annullamentoDi(l) {
+  const o = (l || {}).origine;
+  const a = o && typeof o === "object" ? o.annullata : null;
+  if (!a || typeof a !== "object") return null;
+  const r = ragioneAnnullamento(a.perche);
+  const nota = String(a.nota || "").trim();
+  const perche = r ? r.chiave : "altro";
+  const etichetta = r && !r.nota ? r.etichetta : (nota || "ragione non dichiarata");
+  const v = numeroDichiarato(a.valore);
+  return { perche, etichetta, nota, quando: String(a.quando || ""),
+           valore: v != null && Number.isFinite(v) ? v : null };
+}
+
+// Vera se la lettura è un oggetto e nessuno l'ha dichiarata non valida.
+// `null` e i non-oggetti NON sono letture valide: la domanda «vale?» su
+// una cosa che non è una lettura non ha una risposta tranquilla.
+export function letturaValida(l) {
+  return !!l && typeof l === "object" && !annullamentoDi(l);
+}
+
+// DICHIARARE NON VALIDA una lettura. `perche` è la chiave di
+// `RAGIONI_ANNULLAMENTO`, oppure `{ chiave, nota }` per «altro».
+// `null` = non c'era niente da scrivere (lettura non oggetto, ragione
+// sconosciuta o vuota, «altro» senza testo). Come `correggiLettura`, non
+// salva: prepara il record. Annullare una lettura già annullata riscrive la
+// dichiarazione (chi cambia idea sulla ragione la può cambiare): il valore
+// dentro resta lo stesso, perché è quello della lettura.
+export function annullaLettura(l, perche, quando) {
+  if (!l || typeof l !== "object") return null;
+  const chiave = perche && typeof perche === "object" ? perche.chiave : perche;
+  const r = ragioneAnnullamento(chiave);
+  if (!r) return null;
+  const nota = String((perche && typeof perche === "object" ? perche.nota : "") || "").trim();
+  if (r.nota && !nota) return null;
+  const o = (l.origine && typeof l.origine === "object") ? { ...l.origine } : { da: FONTE_IGNOTA };
+  const v = numeroDichiarato(l.valore);
+  o.annullata = { perche: r.chiave, nota: r.nota ? nota : "", quando: String(quando || istanteLocale()),
+                  valore: v != null && Number.isFinite(v) ? v : null };
+  delete o.ripristinata;   // una nuova dichiarazione supera un vecchio ripristino
+  return { ...l, origine: o };
+}
+
+// RIPRISTINARE una lettura annullata: torna a contare. La traccia resta
+// (`origine.ripristinata`: quando, e con che ragione era stata annullata),
+// perché un documento che va all'ente deve poter dire che quel numero è
+// stato tolto e rimesso. Su una lettura non annullata non cambia niente.
+export function ripristinaLettura(l, quando) {
+  if (!l || typeof l !== "object") return null;
+  const a = annullamentoDi(l);
+  if (!a) return { ...l };
+  const o = { ...l.origine };
+  delete o.annullata;
+  o.ripristinata = { quando: String(quando || istanteLocale()), perche: a.perche, nota: a.nota };
+  return { ...l, origine: o };
+}
+
+// QUANTE letture sono state lasciate fuori perché annullate, e per quali
+// ragioni — la riga che ogni lettore scrive accanto ai suoi numeri.
+// Si contano SOLO quelle che altrimenti avrebbero contato: una riga annullata
+// il cui giorno non esiste o il cui valore non è un numero sta già fra le
+// «non utilizzabili», e contarla due volte sarebbe gonfiare. `dal`/`al`
+// (facoltativi) la restringono al periodo, con lo stesso confronto di
+// `lettureNelPeriodo`. `testo` è vuoto a zero: la frase la scrive chi mostra,
+// e a zero non c'è niente da dichiarare.
+export function contaAnnullate(letture, dal, al) {
+  const d = String(dal || "").slice(0, 10), a = String(al || "").slice(0, 10);
+  const per = {};
+  let n = 0;
+  for (const l of letture || []) {
+    const an = annullamentoDi(l);
+    if (!an) continue;
+    const g = String((l || {}).data || "").slice(0, 10);
+    if (!dataISOEsiste(g) || numeroDichiarato(l.valore) == null) continue;
+    if ((d && g < d) || (a && g > a)) continue;
+    n++;
+    per[an.etichetta] = (per[an.etichetta] || 0) + 1;
+  }
+  const ragioni = Object.entries(per)
+    .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "it"))
+    .map(([etichetta, k]) => ({ etichetta, n: k }));
+  const testo = !n ? "" : (n === 1 ? "1 lettura annullata" : n + " letture annullate")
+    + " (" + ragioni.map(r => r.etichetta.toLowerCase() + (ragioni.length > 1 || r.n > 1 ? " " + r.n : "")).join(", ") + ")";
+  return { n, ragioni, testo };
+}
+
 /* ⛔ QUANDO LA QUOTA NON STRUMENTALE SMETTE DI ESSERE TRASCURABILE. Una
    soglia qualunque sarebbe arbitraria, quindi il peso non ce l'ha: i tre
    conti si scrivono SEMPRE nel documento, e questa soglia decide soltanto
@@ -2318,9 +2471,16 @@ export const QUOTA_NON_STRUMENTALE = 0.2;
 // far cambiare un giudizio di conformità per la strada d'ingresso sarebbe
 // sbagliato in tutt'e due i versi.
 export function composizioneProvenienza(punti) {
-  let importate = 0, aMano = 0, nonDichiarate = 0, corrette = 0;
+  let importate = 0, aMano = 0, nonDichiarate = 0, corrette = 0, annullate = 0;
+  /* i punti del report portano le annullate a parte (`annullateLetture`),
+     perché `letture` lì è già la lista che il documento usa: si guardano
+     tutt'e due, così il conto è lo stesso su un punto grezzo e su uno del
+     documento */
   for (const p of punti || [])
-    for (const l of (((p || {}).letture) || [])) {
+    for (const l of [...((((p || {}).letture) || [])), ...((((p || {}).annullateLetture) || []))]) {
+      // una lettura dichiarata non valida non ha una «strada d'ingresso» da
+      // pesare: non è nel documento. Si conta a parte, e si dichiara.
+      if (!letturaValida(l)) { if (contaAnnullate([l]).n) annullate++; continue; }
       const pr = provenienzaMisura(l);
       if (pr.da === FONTE_IMPORT) importate++;
       else if (pr.da === FONTE_MANO) aMano++;
@@ -2337,7 +2497,7 @@ export function composizioneProvenienza(punti) {
     : !fuori ? "tracciata"
     : quota >= QUOTA_NON_STRUMENTALE ? "non-trascurabile"
     : "mista";
-  return { importate, aMano, nonDichiarate, corrette, n, fuori, quota, stato };
+  return { importate, aMano, nonDichiarate, corrette, n, fuori, quota, stato, annullate };
 }
 
 // La frase del documento. Parole scelte per un funzionario: dicono cosa si
@@ -2394,10 +2554,15 @@ export function coperturaPeriodo(punti, dal, al, oggi = new Date()) {
   // `new Date(x) - new Date(y)`: è la copia debole che dà «scaduta da 56 anni»)
   const fra = (x, y) => giorniTra(y, new Date(x + "T00:00:00"));
 
+  // un giorno con la sola lettura annullata NON è un giorno misurato
   const tutti = [...new Set((punti || []).flatMap(p => (((p || {}).letture) || [])
+    .filter(letturaValida)
     .map(l => String((l || {}).data || "").slice(0, 10))))].filter(dataISOEsiste).sort();
+  // su un punto del report le annullate stanno a parte (`annullateLetture`)
+  const annullate = (punti || []).reduce((n, p) =>
+    n + contaAnnullate([...((((p || {}).letture) || [])), ...((((p || {}).annullateLetture) || []))]).n, 0);
 
-  const base = { dal: d, al: a, alUtile: aUtile, oltreOggi, prima: null, ultima: null,
+  const base = { dal: d, al: a, alUtile: aUtile, oltreOggi, prima: null, ultima: null, annullate,
     nGiorniMisurati: 0, giorniDichiarati: null, giorniPrima: null, giorniDopo: null,
     vuotoMax: null, vuotoDal: null, vuotoAl: null };
   // senza nessun estremo dichiarato il report dice «tutto lo storico»: non
@@ -2669,8 +2834,17 @@ export function reportConformita(o = {}) {
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero
       const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
+      /* ⛔ LE ANNULLATE ESCONO DAL DOCUMENTO E IL DOCUMENTO LO DICE (04/09).
+         Sono righe leggibili, del periodo, che una persona ha dichiarato non
+         valide con una ragione: non pesano su massimo, media, superamenti ed
+         esito — e restano elencate a parte, con la ragione, perché un numero
+         tolto in silenzio da un foglio per l'ente è esattamente il modo in
+         cui un superamento sparisce. `scartate` non le conta: quelle sono le
+         righe che il documento NON PUÒ usare, queste quelle che NON DEVE. */
+      const annullateLetture = grezze.filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data) && !letturaValida(l));
+      const annullate = contaAnnullate(annullateLetture);
       const letture = grezze
-        .filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data))
+        .filter(l => letturaValida(l) && Number.isFinite(l.valore) && nelPeriodo(l.data))
         .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
         /* ⛔ `oltre` HA TRE RISPOSTE, NON DUE (decisione 16). Con `false` la
            tabella del documento scriveva su OGNI riga il tag verde «entro
@@ -2686,6 +2860,7 @@ export function reportConformita(o = {}) {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
         letture, n: letture.length, scartate,
+        annullate, annullateLetture,
         max: valori.length ? Math.max(...valori) : null,
         min: valori.length ? Math.min(...valori) : null,
         media: valori.length ? valori.reduce((s, v) => s + v, 0) / valori.length : null,
@@ -2696,6 +2871,8 @@ export function reportConformita(o = {}) {
 
   const nLetture = punti.reduce((s, p) => s + p.n, 0);
   const nSuperamenti = punti.reduce((s, p) => s + p.nSuperamenti, 0);
+  // le annullate di tutto il documento, con le ragioni sommate fra i punti
+  const annullate = contaAnnullate(punti.flatMap(p => p.annullateLetture));
   const conDati = punti.filter(p => p.n > 0);
   /* ⛔ IL DENOMINATORE DEL DOCUMENTO. `conDati` diceva «di questi punti
      qualcuno ha misurato»; non diceva «di questi punti si può giudicare la
@@ -2789,7 +2966,7 @@ export function reportConformita(o = {}) {
     nPuntiSenzaLetture: senzaLetture.length,
     puntiSenzaLetture: senzaLetture.map(p => p.nome),
     nRicettoriSenzaPunti: ricettoriSenzaPunti.length, ricettoriSenzaPunti,
-    copertura, scartate,
+    copertura, scartate, annullate,
     nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,
@@ -2929,8 +3106,14 @@ export function piuGiorni(dataISO, n) {
    solo che cosa succede a `null`, `""` e agli spazi.
    Adesso la domanda è UNA, e le tre sorelle la fanno passando di qui: due
    copie uguali oggi divergono domani senza che nessuno lo veda. */
+/* ⛔ E DAL 04/09 LA STESSA DOMANDA HA UNA QUARTA METÀ: «qualcuno l'ha dichiarata
+   non valida?». Si fa QUI, prima della mappa che toglie `origine`, così
+   `ultimaLettura`, `lettureNelPeriodo`, `ultimaLetturaOltre` e `serieStorica`
+   la fanno tutte allo stesso modo — e nessuna può dimenticarla. Chi vuole
+   dire QUANTE ne ha lasciate fuori chiama `contaAnnullate` sulle grezze. */
 function lettureLeggibili(m) {
   return (((m || {}).letture) || [])
+    .filter(letturaValida)
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""),
                  valore: numeroDichiarato((x || {}).valore) }))
     .filter(x => dataISOEsiste(x.data) && x.valore != null)
@@ -3069,6 +3252,8 @@ export function statPeriodo(m, dal, al, soglia) {
   const s = Number.isFinite(+soglia) && +soglia > 0 ? +soglia : null;
   return {
     dal, al, n: l.length, letture: l,
+    // quante letture del periodo NON sono in `n` perché dichiarate non valide
+    annullate: contaAnnullate((m || {}).letture, dal, al).n,
     media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null,
     max: v.length ? Math.max(...v) : null,
     min: v.length ? Math.min(...v) : null,
@@ -3123,6 +3308,7 @@ export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
         letture, n: letture.length, abbastanza: letture.length >= minLetture,
+        annullate: contaAnnullate(m.letture, inizio.dal, fine.al).n,
         confronto: confrontoMesi(m, eff.valore, oggi),
       };
     });
@@ -3295,6 +3481,24 @@ export function coincidenzaVolata(volate, dataISO) {
       + (fronti.length ? " (" + fronti.join(", ") + ")" : "") + ".",
     avviso: AVVISO_COINCIDENZA,
   };
+}
+
+// IL SUGGERIMENTO «quel giorno non risulta nessuna volata» per una lettura
+// di vibrazione (04/09). È un CANDIDATO trigger spurio, non un verdetto: un
+// camion, un temporale, una prova — o una volata non registrata. Chi decide
+// è una persona con `annullaLettura`; questa funzione non toglie niente.
+// Tre risposte, e la terza è quella che conta:
+//   · `true`  → il registro ha volate eseguite, e nessuna quel giorno;
+//   · `false` → quel giorno ne risulta almeno una (`volateDelGiorno`);
+//   · `null`  → NON SI PUÒ DIRE: la data non si legge, oppure il registro
+//     non ha nessuna volata eseguita — e con un registro vuoto ogni lettura
+//     sarebbe «senza volata», cioè un suggerimento su tutto è un suggerimento
+//     su niente (l'assenza del registro non è un dato).
+export function letturaSenzaVolata(l, volate) {
+  const g = String((l || {}).data || "").slice(0, 10);
+  if (!dataISOEsiste(g)) return null;
+  if (!volateEseguite(volate).length) return null;
+  return volateDelGiorno(volate, g).length === 0;
 }
 
 // ── IL TRASPORTO ─────────────────────────────────────────────────────
@@ -3543,8 +3747,13 @@ export function lettureVibrazioniDelGiorno(monitoraggi, dataISO) {
       const val = +((l || {}).valore);
       if (String((l || {}).data || "").slice(0, 10) !== d) continue;
       if (!Number.isFinite(val) || val <= 0) continue;
+      /* una lettura annullata resta in lista ma NON è una candidata: la
+         pagina la mostra spenta con la ragione, come fa per l'unità sbagliata
+         (`unitaOk`). Toglierla dalla lista sarebbe farla sparire. */
+      const an = annullamentoDi(l);
       out.push({ puntoId: m.id, punto: String(m.nome || "Punto di misura"),
-        unita, unitaOk, data: d, ora: String((l || {}).ora || "").trim(), valore: val });
+        unita, unitaOk, data: d, ora: String((l || {}).ora || "").trim(), valore: val,
+        valida: !an, annullata: an });
     }
   }
   return out.sort((a, b) => b.valore - a.valore);

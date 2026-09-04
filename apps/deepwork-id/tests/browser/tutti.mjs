@@ -880,6 +880,15 @@ const BANCHI = [
      `>=`. Finché quella riga non cambia, questo banco è KO di proposito. */
   ['i disegni di Sentinella, misurati in pixel', 'sentinella-disegni.mjs', []],
   ['disegni di Sentinella · controprova', 'sentinella-disegni.mjs', ['--controprova'], true],
+  /* 04/09 · la lettura dichiarata non valida (mezzo di passaggio, temporale,
+     prova dello strumento), premuta davvero: la modale del core, la riga che
+     resta barrata col valore e la ragione, il riepilogo di conformità che
+     cambia SOLO con la dichiarazione e lo dice, il report e il file per
+     l'ente che scrivono «1 lettura annullata (temporale)», il ripristino. La
+     controprova rimette `lettureLeggibili` senza il filtro: l'annullata conta
+     lo stesso, e il banco deve cadere. */
+  ['la lettura dichiarata non valida di Sentinella, premuta davvero', 'sentinella-annullate.mjs', []],
+  ['lettura non valida di Sentinella · controprova', 'sentinella-annullate.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore

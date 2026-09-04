@@ -361,6 +361,23 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [x] **SENTINELLA: LA LETTURA DICHIARATA NON VALIDA (04/09, cantiere parallelo
+  dal delta della ricerca sui sismografi, rimisurato prima di committare).**
+  Una lettura si dichiara non valida con la ragione (mezzo di passaggio,
+  temporale, prova dello strumento, altro con testo) e resta in archivio col
+  suo valore, barrata; il filtro sta in un posto solo (`lettureLeggibili`) e
+  ogni conto — conformità, serie, periodo, coperture, report per l'ente, CSV —
+  dichiara quante ne ha lasciate fuori; il ripristino lascia traccia; sui
+  punti di vibrazione la lettura senza volata quel giorno porta il
+  suggerimento, che non toglie niente. Di passaggio un difetto latente: la
+  modale della lettura si apriva sull'indice della lista filtrata (con una
+  riga senza valore in mezzo, la misura sbagliata). run-kpi 2531 → 2545,
+  Sentinella 150/150, banco `sentinella-annullate` 60/0 a 320 e 390 con la
+  controprova che cade, giro node sulla copia 38/0. ⏱️ Visto negli scatti e
+  rimisurato su HEAD, quindi NON di questo cantiere: nella scheda del punto a
+  320 px il numerone «44,2 µg/m³» si tronca in «44,2 …» (`.v` 53 px, nowrap +
+  ellissi: l'unità sparisce), e la tabella delle misure scorre nel suo
+  riquadro (335 px in 272) — candidati, unità a sé.
 - [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
   rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
   crediti prima del rapporto, lasciando sul disco la correzione con la misura
@@ -6109,7 +6126,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.012 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.026 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -6120,8 +6137,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **229 esecuzioni** che
-  aprono le pagine in un browser vero, da **94** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **231 esecuzioni** che
+  aprono le pagine in un browser vero, da **95** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
