@@ -5128,6 +5128,28 @@ label.item:has(.dw-chk:checked){
     const a = new Date().getFullYear();
     return [$("cos-dal").value || (a + "-01-01"), $("cos-al").value || (a + "-12-31")];
   };
+  /* IL PERIODO SCRITTO AL CONTRARIO (04/09). Con «dal» dopo «al» nessuna riga
+     cade nel periodo, e le due schermate raccontavano un periodo VUOTO come se
+     fosse misurato: in Costi «€ 0,00 · 0 voci registrate» con 24 voci in
+     archivio (31/07 → 01/07), nel Report «nel periodo non c'è nessun rilievo…
+     prova ad allargare il periodo» — un consiglio sbagliato su un intervallo
+     che non contiene nessun giorno. Un periodo che finisce prima di cominciare
+     non è vuoto: non esiste, e va detto sul campo, con il messaggio che i due
+     `err-…-al` aspettavano da sempre senza che nessuno li scrivesse.
+     `shared/dw-ponti` lo rifiuta già (`variazioneScorte`, «il periodo non è un
+     intervallo di date leggibile»), ma la pagina si fermava prima di arrivarci. */
+  const periodoAlContrario = (campoAl, d1, d2) => {
+    if (d1 && d2 && d1 > d2) {
+      segnaErr(campoAl, "La data di fine viene prima di quella d'inizio: scambia le due date.");
+      return true;
+    }
+    puliscoErr(campoAl);
+    return false;
+  };
+  const spiegaAlContrario = (d1, d2) =>
+    `La data di fine (<b>${fmtD(d2)}</b>) viene prima di quella d'inizio (<b>${fmtD(d1)}</b>): un periodo
+     così non contiene nessun giorno, quindi non è vuoto — <b>non esiste</b>. Scambia le due date e
+     il conto compare.`;
   // la voce come si legge: etichetta se è nell'elenco, altrimenti la chiave
   // scritta da chi ha registrato il costo — che è comunque un'informazione
   const leggiVoce = (chiave) => { const v = voceCosto(chiave);
@@ -5304,6 +5326,13 @@ label.item:has(.dw-chk:checked){
   function renderCosti() {
     const [d1, d2] = cosPeriodo();
     const per = fmtD(d1) + " – " + fmtD(d2);
+    if (periodoAlContrario("cos-al", d1, d2)) {
+      $("cos-cnt").textContent = "—";
+      $("cos-riep").innerHTML = vuoto("euro", "Il periodo è scritto al contrario", spiegaAlContrario(d1, d2));
+      $("cos-gruppi").innerHTML = ""; $("cos-m3").innerHTML = ""; $("cos-list").innerHTML = "";
+      grafVuoto("graf-cos", "grafico", "Niente da ripartire", "Scambia le due date del periodo e qui compare <b>dove</b> se ne va il denaro.");
+      return;
+    }
     const rv = numCampo("cos-vol", { positivo: true, decimali: 2 });
     const r = costoPerMetroCubo(COS, rv.ok ? rv.valore : null, d1, d2);
     $("cos-cnt").textContent = r.conto;
@@ -5541,6 +5570,14 @@ label.item:has(.dw-chk:checked){
   function renderRiconciliazione() {
     const [d1, d2] = ricPeriodo();
     const per = ricEtichettaPeriodo();
+    if (periodoAlContrario("ric-al", d1, d2)) {
+      $("ric-riep").innerHTML = vuoto("fronte", "Il periodo è scritto al contrario", spiegaAlContrario(d1, d2));
+      ["ric-conf", "ric-scorte", "ric-list", "ric-val", "ric-campo"].forEach((id) => { $(id).innerHTML = ""; });
+      svuotaGraf("graf-ric");
+      // niente da verbalizzare su un periodo che non esiste: resta lo storico
+      renderVerbale(d1, d2, null, null, null);
+      return;
+    }
     // il lato Campo↔Conti NON dipende da Terra: si disegna prima di ogni
     // uscita anticipata, così un Terra assente non spegne anche lui
     renderProdottoVenduto(d1, d2);
