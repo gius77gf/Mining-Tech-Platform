@@ -1788,3 +1788,54 @@ Sitepass) per il briefing di sicurezza a chi entra per la prima volta.
 7. Il tesserino di riconoscimento (foto, generalità, datore di lavoro) è un
    concetto che compare in qualche form del personale di Campo o di Scudo,
    o è del tutto assente dal modello dati?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `59677f4e`)
+
+Le sette domande, risposte aprendo `apps/campo/campo-data.js` e la pagina;
+ogni «non c'è» con il comando.
+
+1. **Chi decide «presente».** `appelloTurno(operatori, presenze, data, turno,
+   squadra)`: per ogni persona in forza (non «non-disponibile») legge l'ULTIMA
+   riga di presenza salvata (`presenzaDi`) con `stato` e `ora`; chi la scrive
+   è chi ha la pagina (il capoturno, sul Quadro: bottoni per persona e
+   «segna tutti»), in qualunque momento del turno — l'ultima salvata vince.
+2. **Chi nessuno ha spuntato.** È il TERZO stato, di proposito: `daFare =
+   totale − presenti − assenti`, e `completo` solo quando i tre tornano. Sul
+   Quadro compare («N ancora da spuntare», icona d'allarme, «appello non
+   ancora cominciato»); nel foglio di turno stampabile la riga per turno
+   scrive presenti e assenti (`preOggi`, riga ~4528 della pagina) — da
+   verificare se scrive anche i «da spuntare»: se no, è il principio del
+   fondatore violato nel documento che esce (candidato piccolo, misurato
+   aprendo il foglio).
+3. **I terzi.** Nessuno li conta in Campo (`grep -c "appaltator" campo-data.js`
+   → 0; «visitator», «autist»: 0). In Scudo esiste l'anagrafe degli
+   appaltatori con i documenti e la qualifica (`qualificaAppaltatore`,
+   `statoAppalto`, `appaltiDiCantiere`) e il DUVRI (`duvriDovuto`), ma non un
+   registro di CHI è entrato oggi. Quindi il «chi c'è in cava adesso» del
+   mondo oggi copre solo i dipendenti in forza.
+4. **Il punto di raccolta.** Se esistesse, l'elenco verrebbe da
+   `appelloTurno` del turno in corso (`turnoCorrente`), che è esattamente la
+   lista «presenti + da spuntare»; i terzi (3) non ci sarebbero.
+5. **Orari mancanti.** `orariPresenza(p)` risponde `minuti: null`,
+   `attendibile: null`, `perche` quando entrata e uscita mancano o il turno non
+   si legge; con la sola uscita si àncora all'inizio nominale e lo DICE. Il
+   riposo prima del turno (`riposoPrimaDelTurno`) dice «almeno» quando ci sono
+   turni non spuntati in mezzo. Coerente col principio.
+6. **Presenza e infortunio dello stesso turno.** Nessun incrocio:
+   `segnalazioniDelTurno` legge i near-miss di Scudo per giorno e turno, ma non
+   confronta le persone coinvolte con l'appello (`grep -n "infortun"
+   campo-data.js` + «presen|appello» → 0 righe che li mettano insieme).
+   Candidato con il ponte Campo↔Scudo già aperto.
+7. **Il tesserino.** Assente come concetto: né in Campo né in Scudo un campo
+   per foto della persona / datore di lavoro sul lavoratore (`grep -n
+   "foto|generalit|datore"` → solo le foto degli allegati di Scudo). Norma di
+   seconda mano (art. 18 c. 1 lett. u): prima il testo primario.
+
+**Che cosa ne segue** (candidati): (a) il foglio di turno stampabile con i
+«da spuntare» accanto a presenti e assenti, se oggi non li scrive — costo
+minimo, misura: si apre il foglio con un appello incompleto; (b) il registro
+degli ingressi dei terzi (autisti, manutentori, ispettori) come lista del
+giorno in Campo, che sfrutta l'anagrafe appaltatori di Scudo via ponte —
+decisione di prodotto, perché tocca chi tiene il registro; (c) l'incrocio
+«coinvolto nell'infortunio ma non presente all'appello» come avviso, sul
+ponte esistente; (d) tesserino: fermo finché non si legge la norma.
