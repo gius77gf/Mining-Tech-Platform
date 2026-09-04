@@ -2067,6 +2067,11 @@ numero scritto dove non era stato misurato niente**.*
       raccontano due volate diverse.
       **Come si misura**: apri una volata con `design.B:null` e guarda il burden
       dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
+      ⏸️ **04/09: portata al fondatore come decisione 25** in
+      `docs/DECISIONI_WEEKEND.md` (pianta vuota con la frase, oppure maglia
+      proposta e dichiarata), con la risposta del ciclo se non risponde entro
+      la settimana. Il codice non si tocca prima: farla a metà è la trappola
+      scritta qui sopra.
 
 - [x] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
       MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ✅ *Chiuso il 10/08.*

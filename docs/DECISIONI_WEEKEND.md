@@ -10,7 +10,7 @@ può procedere con l'attuazione.
 
 ---
 
-## 🟡 04/09 — tre decisioni nuove, nate dalle passate in profondità
+## 🟡 04/09 — quattro decisioni nuove, nate dalle passate in profondità
 
 *Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
 (ogni schermata guardata a 390 e 320 nei temi, ogni file aperto, la
@@ -42,6 +42,24 @@ scelte di prodotto.*
   che perde una riga. Da decidere: una colonna `stato` nel CSV (cambia il
   formato che qualcuno potrebbe già usare), oppure i pianificati fuori
   dall'export (il file è dei rilievi fatti)?
+- [ ] **25. Genesi: che cosa disegna la pianta di una volata a cui manca la
+  maglia.** Oggi cinque funzioni di disegno (`computeEnergia2D`, `computeSeq2D`,
+  `computeRelief2D`, `_spazTipico`, `drawInnesco` in `apps/genesi/genesi.html`)
+  ripiegano su una spalla di 3 m, un interasse di 3,5 m e una profondità di
+  10 m **che nessuno ha scritto**: con la spalla illeggibile la maglia
+  disegnata degenera e da lì nasceva un consumo specifico che accusava dodici
+  fori. I NUMERI oggi si fermano («non calcolabile»); una PIANTA non può
+  dichiararsi: o disegna o non disegna. Da decidere, in due:
+  (a) **pianta vuota con una frase** («manca la spalla: la pianta si disegna
+  quando la scrivi») — onesta, ma chi apre il 2D non vede niente finché non
+  compila; (b) **la maglia di progetto disegnata come PROPOSTA**, con un
+  avviso dichiarato sulla pianta («maglia proposta 3 × 3,5 m, non scritta»)
+  e i numeri che restano «non calcolabili» finché la maglia non è confermata.
+  *La mia risposta, se non rispondi entro la settimana*: la (a) per il
+  DISEGNO e la (b) solo come bottone «usa questa maglia» che SCRIVE i valori
+  nel progetto — così la pianta e i numeri raccontano sempre la stessa volata,
+  e i tre ripieghi spariscono dal codice di disegno. Non la prendo da solo
+  perché tocca il modo in cui Genesi accoglie chi comincia.
 
 ---
 
@@ -176,7 +194,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **11**
+# 📖 Da dove cominciare — le decisioni aperte sono **12**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
