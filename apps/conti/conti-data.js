@@ -1874,6 +1874,18 @@ const dec = (v, n = 2) => (Math.round((+v || 0) * 10 ** n) / 10 ** n).toFixed(n)
    (nel file resta il punto, che è quello che lo schema vuole) */
 const it2 = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
 const itRiga = (v) => decRiga(v).replace(".", ",");
+/* L'UNITÀ DI MISURA NEL FILE (04/09, candidato (c) del delta): la tabella era a
+   due voci, «m3» → MC e TUTTO IL RESTO → TN — cioè una riga a viaggi, a colli
+   o senza unità usciva in tonnellate. Ora: le due unità di vendita si
+   traducono, un'altra unità si scrive com'è (il campo è testo libero), e
+   un'unità assente non si inventa: il tag, facoltativo, non si scrive. */
+const unitaXml = (u) => {
+  const t = String(u == null ? "" : u).trim();
+  if (!t) return "";
+  if (t === "m3" || t === "m³") return tag("UnitaMisura", "MC");
+  if (t === "t") return tag("UnitaMisura", "TN");
+  return tag("UnitaMisura", t.slice(0, 10));
+};
 const decRiga = (v) => {
   const t = String(+v || 0);
   const m = /\.(\d+)$/.exec(t.includes("e") ? (+v).toFixed(8) : t);
@@ -1945,7 +1957,7 @@ export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], prog
     }
     return blocco("DettaglioLinee",
       tag("NumeroLinea", i + 1) + tag("Descrizione", txt(r.descrizione) || "Fornitura")
-      + (q == null ? "" : tag("Quantita", decRiga(q)) + tag("UnitaMisura", r.unita === "m3" ? "MC" : "TN"))
+      + (q == null ? "" : tag("Quantita", decRiga(q)) + unitaXml(r.unita))
       + tag("PrezzoUnitario", decRiga(pu))
       + (sc > 0 ? blocco("ScontoMaggiorazione", tag("Tipo", "SC") + tag("Percentuale", dec(sc, 2))) : "")
       + tag("PrezzoTotale", dec(base, 2)) + tag("AliquotaIVA", dec(r.aliquota, 2)));

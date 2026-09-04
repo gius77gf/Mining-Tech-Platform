@@ -2720,6 +2720,14 @@ test("xmlFatturaPA: quantità e prezzo unitario coi decimali che hanno, e il tot
   const otto = conti.xmlFatturaPA({ ...f, righe: [{ ...f.righe[0], quantita: 3, prezzoUnitario: 0.333333333, imponibile: 1 }], imponibile: 1, ivaImporto: 0.22, totale: 1.22 }, XML_CLI, XML_IMP);
   ok(/<PrezzoUnitario>0.33333333<\/PrezzoUnitario>/.test(otto.xml), "al più otto decimali");
 });
+test("xmlFatturaPA: l'unità di misura si traduce se è una delle due di vendita, si scrive com'è se è un'altra, non si inventa se manca", () => {
+  const riga = (unita) => ({ ...XML_FAT, righe: [{ ...XML_FAT.righe[1], unita }], imponibile: 200, ivaImporto: 20, totale: 220 });
+  const u = (x) => (conti.xmlFatturaPA(riga(x), XML_CLI, XML_IMP).xml.match(/<UnitaMisura>([^<]*)<\/UnitaMisura>/) || [])[1] ?? null;
+  eq(u("t"), "TN"); eq(u("m3"), "MC"); eq(u("m³"), "MC", "anche scritta col cubo");
+  eq(u("viaggi"), "viaggi", "un'altra unità si scrive com'è: prima usciva «TN»");
+  eq(u(""), null, "senza unità il tag non si scrive: prima usciva «TN»"); eq(u(undefined), null);
+  eq(u("colli-di-cava-lunghissimi"), "colli-di-c", "al più dieci caratteri, come vuole il campo");
+});
 test("xmlFatturaPA: PEC, cassetto fiscale e fattura vecchia con l'IVA", () => {
   const pec = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "edilcave@pec.example.it" }, XML_IMP);
   ok(/<CodiceDestinatario>0000000<\/CodiceDestinatario><PECDestinatario>edilcave@pec.example.it<\/PECDestinatario>/.test(pec.xml), "con la PEC il codice è 0000000 e la PEC c'è");

@@ -1045,6 +1045,7 @@ Le nove domande, risposte aprendo `xmlFatturaPA` in `apps/conti/conti-data.js`
 in run-kpi e il banco `conti-xml-sdi` verde nei due versi). Candidati: (a) TD24
 per la differita e il codice IPA a sei caratteri + split payment — norma di
 seconda mano, decisione del fondatore col commercialista; (b) `Natura` per
-le righe esenti e il bollo, solo se il caso si presenta; (c) l'unità sconosciuta
-dichiarata (costo minimo); (d) `RiferimentoNumeroLinea` e la destinazione per
+le righe esenti e il bollo, solo se il caso si presenta; (c) ✅ fatta il 04/09 — l'unità
+si traduce se è una delle due di vendita, si scrive com'è se è un'altra
+(«viaggi»), e se manca il tag facoltativo non si scrive (prima: «TN» a tutti); (d) `RiferimentoNumeroLinea` e la destinazione per
 DDT — dipende dalla scelta di prodotto sui cantieri.
