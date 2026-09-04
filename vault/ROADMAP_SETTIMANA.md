@@ -502,7 +502,12 @@
   Banco `core-esito-sparo` 47 passate, 11 difetti in controprova. Il ponte
   «colpo mancato → mancato infortunio in Scudo» aspetta la Fase B del core
   (ARCHITETTURA §8): il core non passa da Deepwork ID, misurato. Resta il
-  registro di carico e scarico degli esplosivi: candidato.
+  registro di carico e scarico degli esplosivi: candidato — **e il 04/09 ha la
+  ricerca (metà sul mondo, seconda mano dichiarata) e il delta fatto dal
+  meccanismo** in `docs/RICERCA_CONTINUA_CORE.md`: il core sa il CONSUMO per
+  volata (`misureVolataFochino`, `esplosivoPerTipo`, `esitoSparo`), non il
+  carico, il lotto, i detonatori contati né la giacenza. Resta candidato:
+  registro con valore legale = decisione del fondatore, norma di seconda mano.
 - [x] **SEI DOCUMENTI DI RICERCA ESISTEVANO DUE VOLTE, con lo stesso nome a
   maiuscole diverse** (`RICERCA_CONTINUA_CONTI.md` e `RICERCA_CONTINUA_conti.md`,
   e così campo, flotta, scudo, sentinella, terra) — trovati il 03/09 cercando

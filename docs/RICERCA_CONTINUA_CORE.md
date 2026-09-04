@@ -461,8 +461,8 @@ parola del mondo nel nostro codice. Ogni «non c'è» porta il comando.
    (assente ≠ zero), `coerente`/`perche` (mancati > fori) e `pericolo`; la
    pagina lo scrive in elenco, scheda, PDF e cronologia. Quello che **non c'è**
    è la quantità di esplosivo rimasta nel foro (kg non esplosi) e il suo
-   recupero/distruzione: `grep -n "recuper\|distru" index.html` → 0 righe di
-   codice sul tema. Per il registro del mondo il colpo mancato è un movimento
+   recupero/distruzione: `grep -n "recuper\|distru" index.html` → 2 righe,
+   nessuna sul tema (una distrugge i grafici, l'altra è una nota d'esempio). Per il registro del mondo il colpo mancato è un movimento
    (esplosivo caricato e non consumato); qui è un conteggio di fori.
 4. **Chi firma.** Il rapportino porta `userId`/`createdBy` (chi l'ha scritto
    nell'app: `user_fochino` nella dimostrazione) e il PDF del fochino lascia la
@@ -472,8 +472,8 @@ parola del mondo nel nostro codice. Ogni «non c'è» porta il comando.
 5. **Un lotto tracciabile altrove.** No: in Flotta i ricambi hanno codice e
    scorta ma non un lotto; in Conti le pesate hanno il DDT (numero documento
    del vettore/cliente), che è il parente più vicino di «provenienza con
-   numero del documento» — `grep -n "ddt\|DDT" apps/conti/conti-data.js | head`
-   → le pesate portano `ddt`. Un pattern riusabile per il carico (fornitore +
+   numero del documento» — `grep -n "ddtIds" apps/conti/conti-data.js | head -2`
+   → le fatture collegano le pesate per `ddtIds`, e la pesata È il DDT. Un pattern riusabile per il carico (fornitore +
    numero documento + data) c'è lì, non nel core.
 6. **Come si dichiara «manca» verso un'autorità.** Sentinella (report ARPA:
    `conSoglia`, «senza dati» ≠ conforme) e Terra (foglio per l'ente:
