@@ -1513,3 +1513,278 @@ carica** per volata NON è di Campo (è di Genesi: `consumoSpecifico`).
 Riassunto: **cinque su sei esistono nella forma che una cava senza telematica
 può compilare**; le due «mancanze» (portata del dumper, tempi del ciclo) sono
 rifiuti dichiarati, non buchi — un numero inventato in meno.
+
+
+---
+
+## Ricerca del 2026-09-04 — chi c'è in cava: presenze, appello ed evacuazione (metà sul mondo)
+
+⛔ **Nessuna pagina primaria è stata letta**: ogni articolo, obbligo o prodotto
+citato in questa sezione viene da risultati di ricerca (`WebSearch`) ed è di
+**SECONDA MANO**. `WebFetch` e `curl` restano bloccati (`EGRESS_BLOCKED`/403) e
+non sono stati usati per aggirare il limite.
+
+### Già scritto (per non ripeterlo)
+
+La ricerca del 01/08 e del 06-14/08 in questo stesso file copre già, e non
+viene ripetuto qui:
+- **l'appello a tre stati** (presente/assente/da spuntare) e le **presenze**
+  con `entrata`/`uscita` di Campo, con la mancanza confermata «orari per
+  persona non sempre compilati» (righe 61, 79, 98, 108, 114, 169, 211, 236,
+  242, 255, 260, 297, 539);
+- **D.Lgs 624/1996 art. 20** (direttore responsabile e sorvegliante, denunce
+  di esercizio) e **DPR 128/1959 art. 64.1.20** (il sorvegliante visita i
+  luoghi di lavoro almeno una volta a turno e a fine turno accerta che
+  **nessun dipendente sia rimasto** in cava senza autorizzazione) — righe
+  919-937, 1113-1118;
+- il **glossario** con sorvegliante, preposto, capo cava, cavatore, appello,
+  presenze, passaggio di consegne (righe 1110-1174);
+- il passaggio di consegne come **orario di lavoro** (Cass. ord. 20787/2024).
+
+Questa ricerca **non ripete** quella parte e si concentra su ciò che non era
+ancora stato cercato: la **gestione delle emergenze e dell'evacuazione**
+(D.Lgs 81/2008), il **tesserino di riconoscimento** e le regole per
+**appaltatori e visitatori**, e i **software di mustering/appello
+d'emergenza** — nessuno dei quali compariva prima in questo file (verificato
+con `grep -ciE 'mustering|tesserino|evacuazione|geofence' docs/RICERCA_CONTINUA_CAMPO.md`
+sul contenuto precedente a questa sezione: `evacuazione` compariva solo nel
+titolo del blocco 14/08 sul rapporto di turno, mai nel corpo; `mustering`,
+`tesserino`, `geofence` a zero).
+
+---
+
+### 1. La norma (seconda mano, fonte con URL, fiducia)
+
+| Norma / voce | Che cosa dice (seconda mano) | Fonte | Fiducia |
+|---|---|---|---|
+| **D.Lgs 81/2008, gestione emergenze** (artt. 18, 43, 46; DM 2 settembre 2021) | Il datore di lavoro designa **preventivamente** i lavoratori incaricati di prevenzione incendi/lotta antincendio, evacuazione, salvataggio, primo soccorso e gestione dell'emergenza; la designazione è **obbligatoria** e il lavoratore designato **non può rifiutarla** salvo giustificato motivo. Il piano di emergenza ed evacuazione è previsto per le attività con **10 o più dipendenti** o soggette a controllo dei Vigili del Fuoco, ed è redatto dal datore di lavoro con l'RSPP e gli addetti alle emergenze, tenendo conto di struttura, tipo di attività, turni, **eventuale presenza di persone esterne** e composizione della squadra di emergenza. | https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/il-decreto-81/2008-gli-addetti-alla-gestione-delle-emergenze-AR-13905/ , https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/emergenze-obblighi-del-datore-di-lavoro-diritti-dei-lavoratori-AR-17560/ , https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/piano-di-emergenza-ed-evacuazione | Media (divulgatori di settore, non il testo del decreto) |
+| **Prove di evacuazione — periodicità** | L'obbligo di svolgere la prova di evacuazione ricorre con cadenza **almeno annuale** in tutte le aziende soggette al piano di emergenza; se emergono carenze gravi, dopo la correzione va fatta **un'ulteriore esercitazione**. Settori con regole proprie possono chiedere di più (es. scuole, DM 26/08/1992: almeno **due volte l'anno**). | https://www.edafos.it/prevenzione-incendi-antincendio/prove-di-evacuazione-ogni-quanto-farle/ , https://studioessepi.it/magazine/sicurezza-sul-lavoro/prove-di-evacuazione-obbligatorie-cosa-dice-la-legge/ | Media |
+| **D.Lgs 624/1996** (industrie estrattive) | Copre sorvegliante/direttore e DSS (già in questo file); **non è stata trovata**, in questa ricerca, una fonte che leghi esplicitamente il 624/96 a una procedura di appello/mustering — l'obbligo di «accertare che nessuno sia rimasto» (DPR 128/59 art. 64.1.20, già censito) resta il punto normativo più vicino. | (vedi sezione «Già scritto») | — |
+| **DPR 128/1959 — chi entra e chi esce** | Cercato un articolo specifico su un **registro di entrata/uscita dal sotterraneo**: i risultati di ricerca restituiscono solo il testo (PDF) del decreto e la conferma, già censita, dell'obbligo del sorvegliante di verificare a fine turno che nessuno sia rimasto. **Non trovato con WebSearch** un articolo nominato esplicitamente come «registro presenze sotterraneo»: query usate `"DPR 128/1959 registro persone presenti cava sotterraneo entrata uscita miniera"` e una query di affinamento sull'art. 48 — nessun estratto di articolo con quel contenuto specifico è comparso nei risultati. | https://pugliacon.regione.puglia.it/documents/72607/118877/AE_LEX_IT_04_DPR128_59.pdf , https://www.edizionieuropee.it/law/html/35/zn64_01_020.html | Bassa (non trovato, non dedotto) |
+| **Tesserino di riconoscimento — art. 18 c.1 lett. u) D.Lgs 81/2008** | Il datore di lavoro, per le attività in appalto o subappalto, deve munire i lavoratori di un **apposito tesserino di riconoscimento**, corredato di **fotografia**, contenente le generalità del lavoratore e l'indicazione del datore di lavoro; si applica a cantieri, fabbriche, aziende ed enti pubblici. La **Legge 136/2010** vi aggiunge la **data di assunzione** e, in caso di subappalto, gli estremi dell'autorizzazione. L'obbligo del datore (art. 18 c.1 lett. u) è **distinto e indipendente** da quello del lavoratore di esporlo (art. 20 c.3). | https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/ , https://rsumodisitalia.altervista.org/index.php/wiki/415-il-tesserino-di-riconoscimento-per-i-lavoratori , https://www.eclogaitalia.it/badge-di-cantiere-obblighi-ed-evoluzione-normativa/ | Media |
+| **Art. 26 D.Lgs 81/2008 — DUVRI e appaltatori** | Quando un'impresa esterna interviene in appalto/subappalto, va redatto il **DUVRI** (Documento Unico di Valutazione dei Rischi da Interferenze) per le interferenze fra le attività dell'appaltatore e quelle del committente; il datore di lavoro appaltatore/subappaltatore deve indicare esplicitamente al committente il **personale che svolge la funzione di preposto**. Esenzioni: servizi intellettuali, mera fornitura di materiali senza installazione, lavori/servizi ≤ **5 uomini-giorno** (con eccezioni per rischi alti). Dal 2021 esiste anche un **DUVRI "ricognitivo"** (art. 26 c.3-ter). | https://www.puntosicuro.it/duvri-C-68/duvri-gli-obblighi-derivanti-dall-art.-26-del-d.lgs.-81/2008-AR-14278/ , https://twind.io/it/articolo-26-coordinamento-appaltatori-guida-completa/ , https://www.ilaonline.net/duvri-ricognitivo-art-26-comma-3-ter-del-d-lgs-n-81-2008-pillole-di-vigilanza-tecnica/ | Media |
+| **Libro Unico del Lavoro (LUL)** | Introdotto dall'art. 39 D.L. 112/2008, sostituisce libro matricola/paga/presenze; è il documento con cui si dimostra la conformità a orario, riposi, straordinari e assenze. La compilazione (anche delle presenze) va fatta **entro la fine del mese successivo** a quello di riferimento; conservazione **almeno 5 anni**; sanzione da **150 a 1.500 €** per lavoratore in caso di irregolarità. Sul metodo: **nessuna legge italiana impone oggi la rilevazione giornaliera** dell'orario ai datori privati — un punto che contrasta con la tendenza europea (vedi riga sotto). | https://www.annacortesi.it/libro-unico-del-lavoro-e-registrazione-delle-presenze/ , https://www.zeitgroup.com/rilevazione-presenze-dipendenti-obbligo-legge/ , https://nobadge.it/blog/obbligo-rilevazione-presenze-normativa | Media |
+| **CGUE, causa C-55/18 (CCOO c. Deutsche Bank), 14/05/2019** | La Grande Sezione ha stabilito che gli **Stati membri devono imporre ai datori di lavoro** un sistema **oggettivo, affidabile e accessibile** per misurare la durata dell'orario di lavoro giornaliero di ciascun lavoratore. **Il legislatore italiano non ha ancora recepito** formalmente la sentenza con una norma specifica; i principi sono comunque vincolanti nell'ordinamento e i giudici li applicano nei contenziosi. | https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62018CJ0055 , https://www.fluida.io/blog/obbligo-registrazione-orario-di-lavoro-la-sentenza-della-corte-di-giustizia-europea-e-i-cambiamenti-previsti-in-italia/ | Media |
+| **Statuto dei Lavoratori, art. 4 + GDPR** | Se lo strumento di rilevazione presenze (badge, geolocalizzazione) **può consentire, anche indirettamente**, il controllo a distanza dell'attività lavorativa, serve un **accordo sindacale** (o l'autorizzazione dell'Ispettorato del Lavoro). Per i sistemi GPS su cantiere: il GPS dovrebbe registrare la posizione **solo al momento della timbratura** (per certificare la presenza sul cantiere), non tracciare il movimento continuo del lavoratore; serve comunque informativa privacy, base giuridica GDPR e, dove serve, l'accordo/autorizzazione art. 4. | https://www.pivatoeassociati.it/news/rilevazione-presenze-e-privacy-guida-completa-alla-conformita-gdpr-e-statuto-dei-lavoratori , https://www.geoclever.it/articoli-blog/controlli-a-distanza-lavoratori/ , https://cantiericloud.com/blog/rilevazione-presenze-cantiere-edile-app | Media |
+
+⚠️ Il **D.L. 159/2025 art. 15** sui mancati infortuni e la sua natura di
+decreto legge (già censiti il 14/08) restano validi e non sono stati
+riverificati in questa tornata.
+
+---
+
+### 2. La pratica: l'appello, il punto di raccolta, i terzi
+
+- **Chi fa l'appello e come**: durante l'evacuazione gli addetti alle
+  emergenze (nominati ex D.Lgs 81/08) prendono il **registro presenze** e si
+  recano al **punto di raccolta**, dove all'arrivo dei lavoratori iniziano
+  l'appello per verificare che tutti siano presenti; **in caso negativo
+  iniziano le ricerche**. La gestione della modulistica include la
+  compilazione del **registro presenze al punto di raccolta**, da consegnare
+  ai Vigili del Fuoco (lista assenti) — [seconda mano: Frareg, PuntoSicuro,
+  Sicurezza Tirelli]. https://sicurezzatirelli.it/addetti-alle-emergenze-blog/ ,
+  https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/piano-di-emergenza-antincendio-allarme-evacuazione-procedure-AR-23832/
+- **Il «non so» va cercato, non contato come assente**: nessuna fonte lo dice
+  in questi termini espliciti (il principio compare già come regola del
+  fondatore in questo repository), ma la logica dell'appello descritta sopra
+  — «in caso negativo iniziano le ricerche» — è coerente con quel principio:
+  un nominativo senza riscontro **al punto di raccolta** genera una ricerca,
+  non una spunta.
+- **Il totem/appello automatico** (prodotto italiano reale, non un
+  concetto astratto): la piattaforma **Indaco Project (EVAplan)** offre
+  «appello automatico in caso di evacuazione aziendale» e un **totem per
+  evacuazione** al punto di raccolta, con richiamo esplicito al «Testo Unico
+  per la Sicurezza sul Lavoro 81/08» per l'obbligo di stampare in tempo
+  reale la lista degli assenti da consegnare ai Vigili del Fuoco —
+  [seconda mano: Indaco Project, materiale commerciale].
+  https://www.indacoproject.it/eventi-news-indaco/evaplan-appello-automatico-in-caso-di-evacuazione-aziendale ,
+  https://www.indacoproject.it/prodotti/safety-security/totem-per-evacuazione-aziendale.html
+- **Registro ingressi dei terzi (autisti, manutentori, ispettori)**: le fonti
+  sui sistemi di controllo accessi di cantiere descrivono la prassi come
+  **flussi «tipo»** distinti — fornitori, subappaltatori, visitatori
+  istituzionali, ispettori, autisti — ciascuno con regole proprie di
+  registrazione; l'accesso richiede **identificazione con documento valido**
+  e **consenso alla registrazione dei dati**. Per gli autisti/trasportatori,
+  l'automazione dei piazzali di carico/scarico è descritta come un modo per
+  ridurre i tempi di attesa — [seconda mano: CAME, friendlyway, Openbadge].
+  https://www.came.com/it/news/controllo-accessi-nei-cantieri-come-garantire-la-sicurezza/ ,
+  https://friendlyway.it/gestione%E2%80%91visitatori%E2%80%91cantieri%E2%80%91logistica ,
+  https://openbadge.it/
+- **Turni con squadra che cambia, capoturno e sorvegliante**: non emersa
+  nessuna fonte nuova rispetto a quanto già censito il 06-14/08 su
+  sorvegliante/preposto/capo cava (vedi «Già scritto»); nessuna fonte
+  specifica sul termine «capoturno» in cava è stata trovata in questa
+  tornata (query dedicate al mustering e ai visitatori, non al ruolo).
+
+---
+
+### 3. I software: mustering, presenze, limiti
+
+**Funzioni tipiche del "mustering" nei software HSE / industriali**
+(Savance, Litum, FacilityOS/EmergencyOS, Invixium, Splan, Telaeris,
+CrisisGo, Acre — tutti [seconda mano], nessuno provato):
+- **appello automatico**: sostituisce il conteggio manuale con un
+  aggiornamento in tempo reale di chi è presente, tramite riconoscimento
+  facciale, lettori RFID, lettori barcode, o scansione di un documento
+  (patente/passaporto);
+- alcune soluzioni integrano **beacon BLE** nei badge elettronici, rilevabili
+  fino a 50 metri da tablet/smartphone, per un appello automatico senza
+  errori manuali;
+- il **muster report** è il verbale ufficiale dell'evento: chi era presente
+  a ogni punto di raccolta, quando è arrivato, chi risulta **non
+  contabilizzato** — e serve sia per la gestione operativa dell'emergenza sia
+  come documento di conformità dopo l'evento;
+- per chi **non ha timbrato l'uscita** o risulta assente all'appello: i
+  sistemi (Damstra RFID people tracking, i muster report generici) mostrano
+  l'**ultima posizione nota** ricavata dall'ultimo badge/check-in registrato,
+  così i soccorritori sanno dove cercare — [seconda mano: Acre, CrisisGo,
+  Damstra]. https://www.acresecurity.com/blog/securely-managing-emergency-situations-with-robust-muster-reporting ,
+  https://damstratechnology.com/industries/mining
+- **software mining specifici** — **Damstra/Ideagen Workforce Safety**:
+  piattaforma cloud per compliance della forza lavoro, controllo accessi e
+  visibilità degli asset dal 2002 nel settore minerario; il modulo di
+  Workforce Management, integrato col controllo accessi, registra le
+  presenze e **impedisce l'ingresso** a chi non è conforme; la soluzione RFID
+  è descritta come pensata apposta per localizzare un lavoratore o fare
+  **mustering elettronico rapido**.
+  https://damstratechnology.com/products/workforce-management-original ,
+  https://worksafesystems.com/industries/mining
+- **INX Sitepass**: gestione di dipendenti, appaltatori e visitatori
+  dall'ingresso all'onboarding fino all'accesso al sito; check-in con QR
+  code, **geofenced attendance**, controllo automatico dei documenti; blocca
+  l'accesso a chi non ha completato onboarding/induzione/verifica; le
+  informazioni di induzione (incluse le **mappe di evacuazione**) sono
+  mostrate al momento dell'accesso.
+  https://www.inxsoftware.com/sitepass/uses/onboarding/ ,
+  https://mysitepass.com/solutions/visitor-management
+- **SafetyCulture (ora anche Mitti)**: modulo dedicato per l'**induzione dei
+  visitatori in cava** (Visitor Hazard Training for Mining Site Safety) con
+  DPI richiesti, precedenza di traffico/mezzi, percorsi designati, aree
+  vietate (pit/impianto), consapevolezza lockout-tagout, segnalazione
+  emergenze e canali radio, limiti di velocità, obbligo di scorta, registri
+  di ingresso/uscita, accesso all'inventario chimico, parcheggio e
+  bloccaggio dei mezzi, prevenzione scivolamenti; check-in/out digitale con
+  timestamp per tracciabilità.
+  https://safetyculture.com/library/mining/visitor-hazard-training ,
+  https://safetyculture.com/topics/visitor-management
+- **Sotterraneo (RTLS)** — MST Global, MineARC, Wipelot, NLT Digital,
+  Groundhog: reti di access point che tracciano tag attivi indossati dal
+  personale; in emergenza consentono di sapere se tutto il personale è
+  risalito o ha raggiunto una **camera di rifugio**, forniscono assistenza
+  alla navigazione verso il passaggio sicuro più vicino, e rilevano in
+  automatico situazioni pericolose (persona immobile o caduta) allertando i
+  soccorritori.
+  https://groundhogapps.com/rtls-real-time-location-tracking-for-underground/ ,
+  https://mstglobal.com/technology/safety-tracking/
+- **Limiti — privacy**: le fonti su badge/geolocalizzazione (già in tabella
+  1) convergono su un punto: uno strumento che consente, **anche
+  indirettamente**, il controllo a distanza dell'attività richiede accordo
+  sindacale o autorizzazione dell'Ispettorato (Statuto dei Lavoratori art. 4)
+  oltre a GDPR; per il GPS su cantiere la posizione dovrebbe registrarsi
+  **solo al momento della timbratura**, non in modo continuo.
+
+⚠️ **Nessun prodotto citato in questa sezione è stato provato**: le
+descrizioni vengono da materiale del fornitore o da riviste/blog di settore,
+cioè da fonti che descrivono ciò che il prodotto **dichiara** di fare.
+
+---
+
+### 4. Parole del mestiere incontrate
+
+**appello** — il conteggio nominativo al punto di raccolta.
+**punto di raccolta** — il luogo sicuro designato dove ci si riunisce in
+evacuazione.
+**mustering** — il termine inglese equivalente, usato dai software HSE
+internazionali; il **muster report** è il verbale dell'evento.
+**capoturno** — non trovata una fonte italiana specifica in questa tornata
+(vedi sopra); resta il termine usato in Campo, senza controprova esterna.
+**sorvegliante** — già censito (D.Lgs 624/96, DPR 128/59).
+**squadra (di emergenza)** — il gruppo di addetti designati per antincendio,
+evacuazione, primo soccorso.
+**timbratura** — l'atto di registrare l'orario (e, con geofence, la
+posizione) di ingresso/uscita.
+**badge** — il supporto fisico/elettronico della timbratura o dell'accesso.
+**presente / assente** — gli stati dell'appello; i software distinguono un
+terzo stato, **non contabilizzato / unaccounted for**, che nel vocabolario
+italiano delle fonti trovate non ha un nome fisso (non ho trovato un
+equivalente italiano stabile diverso da «assente» o «da verificare»).
+**evacuazione** — l'atto di lasciare il luogo di lavoro per raggiungere il
+punto di raccolta.
+**esercitazione / prova di evacuazione** — il simulacro periodico
+obbligatorio.
+**induzione (visitatori)** — termine usato dai software (SafetyCulture,
+Sitepass) per il briefing di sicurezza a chi entra per la prima volta.
+**geofence** — il perimetro virtuale entro cui una timbratura è valida.
+
+---
+
+### Fonti
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/il-decreto-81/2008-gli-addetti-alla-gestione-delle-emergenze-AR-13905/ | Designazione obbligatoria degli addetti alle emergenze, D.Lgs 81/08 | Media |
+| https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/emergenze-obblighi-del-datore-di-lavoro-diritti-dei-lavoratori-AR-17560/ | Obblighi datore di lavoro su emergenze | Media |
+| https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/piano-di-emergenza-ed-evacuazione | Piano di emergenza, soglia 10 dipendenti | Media |
+| https://www.edafos.it/prevenzione-incendi-antincendio/prove-di-evacuazione-ogni-quanto-farle/ | Periodicità annuale prove di evacuazione | Media |
+| https://studioessepi.it/magazine/sicurezza-sul-lavoro/prove-di-evacuazione-obbligatorie-cosa-dice-la-legge/ | Periodicità e casi particolari (scuole) | Media |
+| https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/ | Tesserino art. 18 c.1 lett. u), L. 136/2010 | Media |
+| https://rsumodisitalia.altervista.org/index.php/wiki/415-il-tesserino-di-riconoscimento-per-i-lavoratori | Tesserino, obbligo distinto datore/lavoratore | Media |
+| https://www.eclogaitalia.it/badge-di-cantiere-obblighi-ed-evoluzione-normativa/ | Badge di cantiere, evoluzione normativa | Media |
+| https://www.puntosicuro.it/duvri-C-68/duvri-gli-obblighi-derivanti-dall-art.-26-del-d.lgs.-81/2008-AR-14278/ | DUVRI, art. 26 | Media |
+| https://twind.io/it/articolo-26-coordinamento-appaltatori-guida-completa/ | Art. 26, coordinamento appaltatori | Media |
+| https://www.ilaonline.net/duvri-ricognitivo-art-26-comma-3-ter-del-d-lgs-n-81-2008-pillole-di-vigilanza-tecnica/ | DUVRI ricognitivo | Media |
+| https://www.annacortesi.it/libro-unico-del-lavoro-e-registrazione-delle-presenze/ | LUL, obblighi presenze | Media |
+| https://www.zeitgroup.com/rilevazione-presenze-dipendenti-obbligo-legge/ | Obblighi e sanzioni rilevazione presenze | Media |
+| https://nobadge.it/blog/obbligo-rilevazione-presenze-normativa | Assenza obbligo di rilevazione giornaliera in Italia | Media |
+| https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62018CJ0055 | Testo sentenza CGUE C-55/18 (pagina EUR-Lex, non il PDF della sentenza) | Media |
+| https://www.fluida.io/blog/obbligo-registrazione-orario-di-lavoro-la-sentenza-della-corte-di-giustizia-europea-e-i-cambiamenti-previsti-in-italia/ | Sentenza C-55/18, mancato recepimento italiano | Media |
+| https://www.pivatoeassociati.it/news/rilevazione-presenze-e-privacy-guida-completa-alla-conformita-gdpr-e-statuto-dei-lavoratori | GDPR + Statuto lavoratori art. 4 su rilevazione presenze | Media |
+| https://www.geoclever.it/articoli-blog/controlli-a-distanza-lavoratori/ | Controlli a distanza, art. 4 | Media |
+| https://cantiericloud.com/blog/rilevazione-presenze-cantiere-edile-app | GPS solo al momento della timbratura | Media |
+| https://sicurezzatirelli.it/addetti-alle-emergenze-blog/ | Prassi dell'appello al punto di raccolta | Media |
+| https://www.puntosicuro.it/gestione-emergenza-ed-evacuazione-C-84/piano-di-emergenza-antincendio-allarme-evacuazione-procedure-AR-23832/ | Procedure di allarme ed evacuazione | Media |
+| https://www.indacoproject.it/eventi-news-indaco/evaplan-appello-automatico-in-caso-di-evacuazione-aziendale | Prodotto italiano: appello automatico | Bassa (fonte commerciale) |
+| https://www.indacoproject.it/prodotti/safety-security/totem-per-evacuazione-aziendale.html | Prodotto italiano: totem di evacuazione | Bassa (fonte commerciale) |
+| https://www.came.com/it/news/controllo-accessi-nei-cantieri-come-garantire-la-sicurezza/ | Controllo accessi cantiere, flussi tipo | Media |
+| https://friendlyway.it/gestione%E2%80%91visitatori%E2%80%91cantieri%E2%80%91logistica | Gestione visitatori cantieri/logistica | Bassa (fonte commerciale) |
+| https://openbadge.it/ | Controllo accessi, presenze, registro visitatori | Bassa (fonte commerciale) |
+| https://www.acresecurity.com/blog/securely-managing-emergency-situations-with-robust-muster-reporting | Muster report, ultima posizione nota | Bassa (fonte commerciale) |
+| https://www.crisisgo.com/emergency-mustering-manager | Emergency accountability & mustering | Bassa (fonte commerciale) |
+| https://litum.com/what-is-emergency-mustering/ | Definizione di mustering | Bassa (fonte commerciale) |
+| https://damstratechnology.com/products/workforce-management-original | Damstra Workforce Management | Bassa (fonte commerciale) |
+| https://damstratechnology.com/industries/mining | Damstra nel settore minerario | Bassa (fonte commerciale) |
+| https://worksafesystems.com/industries/mining | Damstra/Worksafe mining safety | Bassa (fonte commerciale) |
+| https://www.inxsoftware.com/sitepass/uses/onboarding/ | INX Sitepass onboarding | Bassa (fonte commerciale) |
+| https://mysitepass.com/solutions/visitor-management | INX Sitepass visitor management | Bassa (fonte commerciale) |
+| https://safetyculture.com/library/mining/visitor-hazard-training | SafetyCulture, induzione visitatori in cava | Bassa (fonte commerciale) |
+| https://safetyculture.com/topics/visitor-management | SafetyCulture visitor management | Bassa (fonte commerciale) |
+| https://groundhogapps.com/rtls-real-time-location-tracking-for-underground/ | RTLS sotterraneo | Bassa (fonte commerciale) |
+| https://mstglobal.com/technology/safety-tracking/ | MST Global safety & tracking | Bassa (fonte commerciale) |
+
+---
+
+### Domande per il delta (meccanismo, non risposte)
+
+1. In Campo, **chi decide** che una persona è «presente» al turno — chi
+   compila l'appello (il capoturno? ognuno per sé?) e in che momento del
+   turno lo fa (a inizio turno, durante, mai aggiornato)?
+2. Che cosa fa oggi Campo di chi **nessuno ha spuntato** nell'appello: resta
+   in uno stato distinto da «assente», e quello stato **compare** da qualche
+   parte nel rapporto stampabile o nello schermo, o si vede solo aprendo
+   l'elenco delle presenze?
+3. Chi, in Campo, **conta i terzi** presenti in cava in un dato momento —
+   autisti, manutentori, ispettori — o quella conta oggi non esiste per
+   nessuno che non sia un operatore registrato?
+4. Se dovesse esistere un «punto di raccolta» nel prodotto, **da dove
+   prenderebbe l'elenco di chi dovrebbe esserci**: dall'appello del turno in
+   corso, dalle presenze dell'ultimo giorno, da un'altra fonte?
+5. Gli orari `entrata`/`uscita` delle presenze, quando **mancano**, sono
+   trattati oggi come «non calcolabile» (coerente col principio del
+   fondatore) o come un buco che qualche calcolo silenziosamente ignora?
+6. Esiste già, in Campo o nel ponte con Scudo, un posto dove una persona
+   «presente» nell'appello e una persona coinvolta in un **infortinio dello
+   stesso turno** vengono confrontate, o è un incrocio che oggi nessuna
+   funzione fa?
+7. Il tesserino di riconoscimento (foto, generalità, datore di lavoro) è un
+   concetto che compare in qualche form del personale di Campo o di Scudo,
+   o è del tutto assente dal modello dati?
