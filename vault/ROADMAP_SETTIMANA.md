@@ -420,7 +420,7 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
-- [ ] **SENTINELLA — dalla ricerca del 05/09 (il diario delle volate e la
+- [x] **SENTINELLA — dalla ricerca del 05/09 (il diario delle volate e la
   relazione per l'ente), delta dal meccanismo.** Il registro volate e i reclami
   ci sono e il report li porta; mancano, misurati con il comando: la
   comunicazione fatta per una volata (a chi, quando, riferimento — «comunicat|
@@ -444,8 +444,19 @@
   riceve le azioni da Scudo (`null` quando non si leggono, che non è
   «nessuna») e la scheda di ogni punto in superamento scrive «Azioni
   correttive: …» con lo stato di `statoPonte`: la prima domanda
-  dell'ispettore, «e poi?», ha una riga. run-kpi +2 (2650). Restano (e) e la
-  trasmissione.
+  dell'ispettore, «e poi?», ha una riga. run-kpi +2 (2650). (e) ✅ **05/09**:
+  `fogliaVolata(v, {monitoraggi, reclami})` — la scheda della singola volata
+  (dati e SD, previsione di Genesi, misura dell'evento con la lettura cercata
+  per data E ora, provenienza, strumento e taratura che copre quel giorno,
+  comunicazione, reclami dello stesso giorno dichiarati coincidenza), aperta
+  dal bottone sulla riga del registro in una finestra da stampare o allegare;
+  ogni assenza a parole («non ancora collegata», «nessun reclamo registrato
+  quel giorno», «non dichiarato»), mai «—»; in dimostrazione il foglio dice in
+  testa che sono dati di esempio. La frase «vale come verbale» NON c'è: il
+  foglio dice che «la registrazione originale dello strumento resta il
+  documento di riferimento». run-kpi +3 (2653); banco nuovo
+  `sentinella-foglio-volata` (27 prove, 5 iniezioni viste una per una).
+  Resta la trasmissione (decisione del fondatore).
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -1555,8 +1566,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `SENTINELLA — dalla ricerca del 05/09 (il diario delle volate` *(cinque
-  candidati misurati; il primo è la comunicazione sulla volata)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6472,8 +6481,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.131 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2650, `run-stile` 328,
+  **3.134 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2653, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -6483,8 +6492,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **245 esecuzioni** che
-  aprono le pagine in un browser vero, da **102** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **247 esecuzioni** che
+  aprono le pagine in un browser vero, da **103** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

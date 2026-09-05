@@ -1816,7 +1816,7 @@ textarea.dw-input{
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
-           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata,
+           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata, fogliaVolata,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
@@ -1831,7 +1831,7 @@ textarea.dw-input{
            numeroDaCampo, AVVISO_DECIMALE, ariaSerie, numeroDichiarato } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
-         plurale, conta,
+         plurale, conta, modoDimostrazione, avvisoTestoDimostrazione,
          /* la frase «N righe del file non sono entrate» sta in un posto solo
             (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
          frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
@@ -3202,6 +3202,34 @@ textarea.dw-input{
     e.preventDefault();
     await segnaComunicazione(b.getAttribute("data-com-vol"));
   });
+  /* LA SCHEDA DELLA VOLATA (05/09): un foglio A4 con i dati della volata, la
+     misura dell'evento con lo strumento e la taratura, la comunicazione e i
+     reclami del giorno — composto da `fogliaVolata` (modulo), disegnato qui.
+     Si apre in una finestra a sé, come i fogli di Terra e Campo. */
+  const STILE_FOGLIO_VOLATA = "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+    + "h1{font-size:18px;margin:0 0 4px}h2{font-size:13px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.06em;color:#444}"
+    + "table{border-collapse:collapse;width:100%}td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top}td:first-child{width:38%;color:#444}"
+    + ".sub{color:#555;font-size:11px;margin:0 0 10px}.avv{margin:8px 0 0;font-size:11px;color:#555;font-style:italic}.demo{border:1px solid #c60;color:#c60;padding:6px 8px;margin:0 0 12px;font-size:11px}"
+    + "@media print{body{margin:0}}";
+  function htmlFogliaVolata(v) {
+    const f = fogliaVolata(v, { monitoraggi: MON, reclami: REC });
+    const demo = avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Questa scheda è composta su dati di esempio: non allegarla a nessuna pratica.").trim();
+    return "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><title>" + esc(f.titolo) + "</title><style>" + STILE_FOGLIO_VOLATA + "</style></head><body>"
+      + (demo ? "<div class=\"demo\">" + esc(demo) + "</div>" : "")
+      + "<h1>" + esc(f.titolo) + "</h1><p class=\"sub\">Generata il " + esc(f.generatoIl) + " da Sentinella</p>"
+      + f.sezioni.map(s => "<h2>" + esc(s.titolo) + "</h2><table>" + s.righe.map(r => "<tr><td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td></tr>").join("") + "</table>"
+          + (s.avviso ? "<p class=\"avv\">" + esc(s.avviso) + "</p>" : "")).join("")
+      + "<p class=\"avv\">" + esc(f.avvertenza) + "</p></body></html>";
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-foglio-vol]");
+    if (!b) return;
+    e.preventDefault();
+    const v = VOL.find(x => x.id === b.getAttribute("data-foglio-vol")); if (!v) return;
+    const w = window.open("", "_blank");
+    if (!w) { toast("Il browser ha bloccato la finestra della scheda: consenti le finestre per questa pagina.", "err"); return; }
+    w.document.write(htmlFogliaVolata(v)); w.document.close();
+  });
   $("ref-filtri").addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("[data-fref]"); if (!b) return;
     filtroRef = b.getAttribute("data-fref"); renderReferti();
@@ -4452,6 +4480,7 @@ textarea.dw-input{
           ? `<button type="button" class="arr" title="Confermala come eseguita (potendo correggere i dati)" aria-label="Conferma come eseguita la volata prevista del ${fmtD(v.data)}" data-conf-vol="${v.id}">${I.fatto}</button>`
           : `<button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>`}
         ${prev ? "" : `<button type="button" class="arr${com && com.registrata ? " on" : ""}" title="${com && com.registrata ? "Cambia la comunicazione registrata" : "Segna la comunicazione fatta (ente, residenti)"}" aria-label="Segna la comunicazione della volata del ${fmtD(v.data)}" data-com-vol="${v.id}">${I.registro}</button>`}
+        <button type="button" class="arr" title="Scheda della volata: dati, misura dell'evento, strumento e taratura, comunicazione — da stampare o allegare" aria-label="Apri la scheda della volata del ${fmtD(v.data)}" data-foglio-vol="${v.id}">${I.clip}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");

@@ -510,7 +510,14 @@ Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
   nessuno la registra oggi, ed è un fatto che solo chi invia può scrivere —
   candidato a sé, dopo che il fondatore dice se il report va «segnato come
   trasmesso»;
-- (e) **il foglio della singola volata** con dati della volata + misura
-  dell'evento + strumento e taratura, «da allegare al verbale» — costo medio,
-  e la frase «vale come verbale» NON va scritta sul foglio finché la fonte
-  primaria non è letta (le due fonti trovate sono secondarie).
+- (e) ✅ **fatta il 05/09** — `fogliaVolata(v, {monitoraggi, reclami, oggi})`
+  nel modulo, bottone `data-foglio-vol` su ogni riga del registro, finestra da
+  stampare o allegare. Cinque sezioni: volata (con SD), previsione, misura
+  dell'evento (la lettura cercata per data E ora, con le componenti e la
+  provenienza; una lettura annullata lo grida), strumento e taratura
+  (`coperturaTaratura` sulla data della lettura), reclami dello stesso giorno
+  (`AVVISO_COINCIDENZA`). La frase «vale come verbale» NON è scritta, come
+  chiedeva questa riga: il foglio dice che «la registrazione originale dello
+  strumento resta il documento di riferimento». Prova:
+  `grep -c "fogliaVolata" apps/sentinella/sentinella-data.js apps/sentinella/index.html`
+  → 2 e 3; banco `tests/browser/sentinella-foglio-volata.mjs`, 27 prove.

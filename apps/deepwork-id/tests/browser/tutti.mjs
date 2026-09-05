@@ -886,6 +886,8 @@ const BANCHI = [
      il cliente consegna. */
   ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
   ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
+  ['la scheda della singola volata (Sentinella)', 'sentinella-foglio-volata.mjs', []],
+  ['scheda della volata · controprova', 'sentinella-foglio-volata.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 13/08 (riga B4). Il documento poteva essere vero e rispondere
      a UN'ALTRA DOMANDA: lo scadenzario sapeva quando va consegnato un
      adempimento, il Report faceva digitare «dal» e «al», e fra le due cose non

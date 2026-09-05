@@ -37332,6 +37332,76 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine risposta al superamento (05/09) ===== */
+/* ===== la scheda della singola volata (Sentinella, 05/09) ===== */
+{
+  const MON = [{ id: "v1", nome: "V1 abitato", tipo: "vibrazioni", unita: "mm/s", soglia: 5,
+    tarature: [{ data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441" }],
+    letture: [{ data: "2026-07-17", ora: "10:20", valore: 3.4, assi: { L: 2.1, T: 1.8, V: 3.4 }, extra: { freq: 18, aria: 112 },
+                origine: { da: "import", file: "V1_luglio.csv", quando: "2026-07-18T08:00:00" } },
+              { data: "2026-07-17", ora: "16:00", valore: 1.1 }] }];
+  const REC = [{ id: "x1", data: "2026-07-17", ora: "10:30", tipo: "vibrazione", chi: "Sig. Bianchi", descrizione: "vetri", stato: "chiuso" },
+               { id: "x2", data: "2026-07-20", tipo: "polvere", chi: "Scuola" }];
+  const V = { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", stato: "eseguita",
+    ppvMisurata: 3.4, ppvFonte: "strumento", ppvPuntoId: "v1", ppvPuntoNome: "V1 abitato", ppvData: "2026-07-17", ppvOra: "10:20",
+    ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz", ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
+    comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
+  const riga = (f, sez, eti) => { const z = f.sezioni.find((x) => x.titolo === sez); const r = z && z.righe.find((q) => q[0] === eti); return r ? r[1] : undefined; };
+  const TITOLI = ["Volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Reclami dello stesso giorno"];
+  test("Sentinella · fogliaVolata: la volata collegata allo strumento, con la lettura, la taratura e il reclamo del giorno", () => {
+    const f = sentinella.fogliaVolata(V, { monitoraggi: MON, reclami: REC, oggi: "2026-09-05" });
+    eq(f.titolo, "Scheda della volata del 17/07/2026 — Fronte Nord", "il titolo porta data e fronte");
+    eq(f.generatoIl, "05/09/2026", "la data di stampa è quella passata, in italiano");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "cinque sezioni, in quest'ordine");
+    eq(riga(f, "Volata", "Distanza scalata (SD)"), "75,42", "la SD è la stessa di scaledDistance (320/√18)");
+    eq(riga(f, "Volata", "Comunicazione"), "comunicata all'ente il 16/07/2026 (PEC prot. 4412/2026)", "la comunicazione con la stessa frase della lista");
+    eq(riga(f, "Previsione", "Fonte"), "da Genesi · stima dalla litologia", "la previsione dice su che base è fatta");
+    eq(riga(f, "Misura dell'evento", "PPV misurata"), "3,4 mm/s · sismografo · V1 abitato · 10:20", "la PPV col suo strumento e l'ora");
+    eq(riga(f, "Misura dell'evento", "Componenti dell'evento"), "L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112", "⛔ la lettura è quella delle 10:20, non quella delle 16:00: si cerca per data E ora");
+    ok(/importata dal file «V1_luglio.csv»/.test(riga(f, "Misura dell'evento", "Provenienza della lettura")), "e da dove viene");
+    eq(riga(f, "Strumento e taratura", "Punto di misura"), "V1 abitato · mm/s", "lo strumento con la sua unità");
+    eq(riga(f, "Strumento e taratura", "Taratura"), "coperta: certificato LAT 118-2026/441, Centro LAT n. 118, dal 10/02/2026 al 09/02/2027", "la taratura che copre la data della lettura");
+    const rec = f.sezioni[4];
+    eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]"]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
+    eq(rec.avviso, sentinella.AVVISO_COINCIDENZA, "e la coincidenza è dichiarata coincidenza, non causa");
+  });
+  test("Sentinella · fogliaVolata: la volata vuota dichiara ogni assenza a parole, mai «—»", () => {
+    const f = sentinella.fogliaVolata({}, { oggi: "2026-09-05" });
+    eq(f.titolo, "Scheda della volata", "senza data né fronte il titolo resta nudo");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le cinque sezioni ci sono lo stesso");
+    eq(riga(f, "Volata", "Data"), "data non leggibile", "la data");
+    eq(riga(f, "Volata", "Fori"), "non dichiarato", "i fori");
+    eq(riga(f, "Volata", "Distanza scalata (SD)"), "non calcolabile: servono distanza e carica per ritardo", "la SD dice che cosa le manca");
+    eq(riga(f, "Volata", "Esito"), "non dichiarato", "⛔ un esito non scritto non è «regolare»");
+    eq(riga(f, "Volata", "Comunicazione"), "nessuna comunicazione registrata", "la comunicazione");
+    eq(riga(f, "Previsione", "PPV prevista"), "nessuna previsione registrata", "la previsione");
+    eq(riga(f, "Misura dell'evento", "PPV misurata"), "non ancora collegata", "la misura");
+    eq(riga(f, "Strumento e taratura", "Punto di misura"), "nessuno: PPV non collegata", "lo strumento");
+    eq(riga(f, "Reclami dello stesso giorno", "Reclami"), "nessun reclamo registrato quel giorno", "i reclami");
+    const tutte = f.sezioni.flatMap((z) => z.righe.map((r) => r[1]));
+    eq(tutte.filter((t) => /—|undefined|NaN|null/.test(String(t))), [], "⛔ nessuna riga tranquilla o rotta");
+    ok(f.avvertenza.includes("la registrazione originale dello strumento resta il documento di riferimento"), "e il foglio dice che cosa NON è");
+  });
+  test("Sentinella · fogliaVolata: prevista, trascritta a mano, lettura annullata, punto sparito — quattro «non lo so» diversi", () => {
+    const f1 = sentinella.fogliaVolata({ ...V, stato: "prevista" }, { monitoraggi: MON, reclami: REC });
+    eq(riga(f1, "Volata", "Stato"), "prevista (progetto, non ancora sparata)", "il progetto si chiama progetto");
+    eq(riga(f1, "Misura dell'evento", "PPV misurata"), "non ancora sparata: nessuna misura", "⛔ e la PPV scritta sulla riga NON si legge: una prevista non ha misure (T9)");
+    const f2 = sentinella.fogliaVolata({ ...V, ppvFonte: "manuale", ppvPuntoId: "" }, { monitoraggi: MON });
+    eq(riga(f2, "Misura dell'evento", "PPV misurata"), "3,4 mm/s · trascritta a mano dal referto", "trascritta a mano");
+    eq(riga(f2, "Misura dell'evento", "Componenti dell'evento"), undefined, "senza strumento non si inventano componenti");
+    eq(riga(f2, "Strumento e taratura", "Punto di misura"), "nessuno: PPV trascritta a mano dal referto", "e lo strumento dice perché non c'è");
+    const MON2 = [{ ...MON[0], tarature: [], letture: [{ ...MON[0].letture[0], origine: { da: "mano", annullata: { perche: "strumento-spento", quando: "2026-07-18" } } }] }];
+    const f3 = sentinella.fogliaVolata(V, { monitoraggi: MON2 });
+    ok(/dichiarata non valida: /.test(riga(f3, "Misura dell'evento", "Attenzione")), "⛔ una lettura annullata lo grida sul foglio");
+    eq(riga(f3, "Misura dell'evento", "Attenzione"), "la lettura è stata dichiarata non valida: " + sentinella.annullamentoDi(MON2[0].letture[0]).etichetta, "con la stessa etichetta di annullamentoDi");
+    eq(riga(f3, "Strumento e taratura", "Taratura"), "non coperta: nessuna taratura registrata per questo strumento", "e la taratura assente si dichiara");
+    const f4 = sentinella.fogliaVolata({ ...V, ppvPuntoId: "zz" }, { monitoraggi: MON });
+    eq(riga(f4, "Misura dell'evento", "Componenti dell'evento"), "punto di misura non trovato (zz)", "il punto sparito si nomina");
+    eq(riga(f4, "Strumento e taratura", "Punto di misura"), "non trovato", "e lo strumento non si inventa");
+    eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
+    eq(sentinella.fogliaVolata(null).sezioni.length, 5, "null non rompe");
+  });
+}
+/* ===== fine scheda della singola volata (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
