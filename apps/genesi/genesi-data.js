@@ -2104,6 +2104,21 @@ export async function genesiData(opzioni) {
           },
           logout: () => id.logout(),
         };
+        /* IL CONSUNTIVO DI CARICO DALL'ORGANIZZAZIONE (ponte Campo→Genesi come
+           dato, 05/09 notte): il piano di carico di Campo (`pianocarico`, una
+           riga per foro, con la carica reale registrata dal fochino) letto con
+           una seconda istanza dell'SDK sull'appId di Campo — pigra, sola
+           lettura, forma di `nuvoleGenesi` in Terra. `null` = Campo non
+           leggibile, che la pagina distingue da «nessun foro registrato». */
+        let idCampo;
+        db.pianoCampo = async () => {
+          if (idCampo === undefined) {
+            try { idCampo = await DeepworkID.init({ appId: "campo" }); } catch (e) { idCampo = null; }
+          }
+          if (!idCampo) return null;
+          try { return (await getDocs(idCampo.orgCollection("pianocarico"))).docs.map((d) => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        };
         return db;
       }
     } catch (e) { /* SDK assente, senza rete, o nessun membro: si resta locale */ }
@@ -2127,6 +2142,8 @@ export async function genesiData(opzioni) {
     previste: async () => elenco("previste"),
     confronti: async () => GENESI_SLOT.map(scatto).filter(Boolean),
     sito: async () => sito(),
+    /* da soli sul dispositivo Campo non si legge: `null`, e la pagina lascia il file */
+    pianoCampo: async () => null,
     aggiungi: async (nome, doc) => {
       if (nome === "confronti") {
         const slot = slotDi(doc); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");

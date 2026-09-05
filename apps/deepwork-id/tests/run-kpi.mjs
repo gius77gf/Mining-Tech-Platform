@@ -19694,6 +19694,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste"], "sei dal 05/09: `previste`, il ponte 3e verso Sentinella");
     eq(typeof db.previste, "function", "e la porta locale sa leggerle");
     eq(await db.previste(), [], "vuote all'inizio");
+    eq(await db.pianoCampo(), null, "da soli il piano di Campo NON si legge: null, non una lista vuota (05/09, notte)");
     /* ⛔ E SENZA `live:false` la porta prova l'SDK, che in node NON c'è (l'import
        di Firebase da gstatic fallisce): deve tornare locale da sola, non
        morire — è lo stesso cammino della pagina senza rete. */
@@ -38923,7 +38924,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
   test("ponte 3e · Genesi scrive con la stessa forma: la porta locale tiene `previste` e la pagina la chiama dopo il file", () => {
     const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/import \{ previstaDaGenesi \} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "la forma viene da shared/, non riscritta");
+    ok(/import \{ previstaDaGenesi[^}]*\} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "la forma viene da shared/, non riscritta");
     ok(/GDB\.aggiungi\('previste',rec\)/.test(pagina), "e si scrive nella collezione `previste`");
     ok(/\(await GDB\.previste\(\)\)\.some\(p=>p&&p\.codiceVolata===codice\)/.test(pagina), "senza raddoppiare un progetto riesportato");
     const sent = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
@@ -38932,6 +38933,44 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine ponte 3e (05/09) ===== */
+
+/* ===== IL CONSUNTIVO DI CARICO DA CAMPO A GENESI COME DATO (05/09, notte) =====
+   Le tre funzioni del consuntivo vivono in shared/ e Campo le ri-esporta per
+   identità; Genesi legge `pianocarico` di Campo con la seconda istanza e lo
+   compone con la STESSA funzione con cui Campo scrive il file.
+   ⚠️ Prove SINCRONE (la porta locale è provata nel blocco di Genesi). */
+{
+  test("⛔ ponte Campo→Genesi · le tre funzioni del consuntivo sono le STESSE in Campo e in shared/ (identità, non copie)", () => {
+    ok(campo.pianoConsuntivoCsv === ponti.pianoConsuntivoCsv, "pianoConsuntivoCsv");
+    ok(campo.normalizzaPiano === ponti.normalizzaPiano, "normalizzaPiano");
+    ok(campo.CONSUNTIVO_COLONNE === ponti.CONSUNTIVO_COLONNE, "CONSUNTIVO_COLONNE");
+  });
+  test("ponte Campo→Genesi · dai record di `pianocarico` al consuntivo letto da Genesi: lo stesso giro del file", () => {
+    const record = [
+      { id: "a", foro: "1", prog: "58", reale: 61, data: "2026-09-05", turno: "mattino", squadra: "A", da: "Rossi", idForo: "f1" },
+      { id: "b", foro: "2", prog: "58", reale: null, data: "2026-09-05", turno: "mattino", squadra: "A", da: "", idForo: "f2" },
+      { id: "c", foro: "x", prog: "58", reale: 50, data: "2026-09-05", turno: "mattino" },   // foro illeggibile: fuori
+    ];
+    const piano = ponti.normalizzaPiano(record);
+    eq(piano.map((p) => [p.foro, p.prog, p.reale]), [[1, 58, 61], [2, 58, null]], "normalizza: numeri letti, la riga senza foro fuori, ordine per foro");
+    const csv = ponti.pianoConsuntivoCsv(piano);
+    eq(csv.split("\n")[0], ponti.CONSUNTIVO_COLONNE.join(";"));
+    const p = genesi._riconParseCampo(csv);
+    ok(!p.errore, "Genesi lo legge come legge il file: " + (p.errore || "ok"));
+    eq(p.righe.length, 2);
+    eq([p.righe[0].reale, p.righe[1].reale], [61, null], "la carica reale del primo foro, e il secondo ancora da registrare");
+    eq(p.righe[0].idForo || p.righe[0].id_foro || p.righe[0].id, "f1", "l'id stabile del foro torna a Genesi per l'accoppiamento");
+  });
+  test("ponte Campo→Genesi · la pagina di Genesi legge dall'organizzazione con le funzioni di shared/, e il bottone esiste solo in live", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/import \{ previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv \} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "le funzioni vengono da shared/");
+    ok(/p=_riconParseCampo\(pianoConsuntivoCsv\(piano\)\)/.test(pagina), "e il consuntivo letto passa dallo STESSO lettore del file");
+    ok(/righe=await GDB\.pianoCampo\(\)/.test(pagina), "la lettura è della porta");
+    ok(/if\(\$\('riconCampoOrg'\)&&GDB\.mode==='live'\) \$\('riconCampoOrg'\)\.style\.display=''/.test(pagina), "il bottone compare solo in live: da soli non c'è un Campo da leggere");
+    ok(/if\(righe===null\)\{ toast\('Campo non si è potuto leggere/.test(pagina), "⛔ null è «non leggibile», non «nessun foro»");
+  });
+}
+/* ===== fine consuntivo Campo→Genesi (05/09) ===== */
 
 
 

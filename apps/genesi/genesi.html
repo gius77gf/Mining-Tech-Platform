@@ -803,6 +803,10 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm cu" id="riconSave">Salva riconciliazione</button>
       <button class="btn sm" id="riconCampo" title="Rileggi il consuntivo di carico esportato da Campo: la carica reale foro per foro torna qui da sola">📥 Importa consuntivo da Campo (CSV)</button>
       <input type="file" id="riconCampoFile" accept=".csv,text/csv,.txt" style="display:none;">
+      <!-- il ponte Campo→Genesi come DATO (05/09, notte): dentro l'organizzazione il
+           piano di carico con le cariche reali si legge da Campo senza il file.
+           Compare solo in modalità live; da soli resta il file. -->
+      <button class="btn sm" id="riconCampoOrg" style="display:none;" title="Leggi da Campo il piano di carico con le cariche reali registrate dal fochino: nessun file da esportare e rileggere">📡 Leggi il consuntivo da Campo (organizzazione)</button>
       <button class="btn sm" id="riconExport">Esporta storico (CSV)</button>
       <button class="btn sm" id="riconClose">Chiudi</button>
     </div>
@@ -1179,7 +1183,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    legge di sito (`sitoExport`) e il file che importa **Sentinella**
    (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
    un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
-import { previstaDaGenesi } from '../../shared/dw-ponti.js';
+import { previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv } from '../../shared/dw-ponti.js';
 import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell, plurale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -4115,6 +4119,26 @@ if($('riconExport')) $('riconExport').onclick=async ()=>{
 /* Il pulsante che chiude il giro: il file esportato da Campo torna qui. Un
    file sbagliato NON deve rompere la pagina: si spiega e si resta com'era. */
 if($('riconCampo')) $('riconCampo').onclick=()=>$('riconCampoFile').click();
+/* IL CONSUNTIVO DALL'ORGANIZZAZIONE: gli stessi record che Campo scrive in
+   `pianocarico`, composti con la STESSA `pianoConsuntivoCsv` con cui Campo
+   scrive il file, e letti dallo STESSO `_riconParseCampo` del file — così la
+   strada dei dati non può dire una cosa diversa da quella del file. */
+if($('riconCampoOrg')&&GDB.mode==='live') $('riconCampoOrg').style.display='';
+if($('riconCampoOrg')) $('riconCampoOrg').onclick=async()=>{
+  let righe=null;
+  try{ righe=await GDB.pianoCampo(); }catch(e){ righe=null; }
+  if(righe===null){ toast('Campo non si è potuto leggere: riprova, oppure importa il consuntivo dal file.','err'); return; }
+  const piano=normalizzaPiano(righe);
+  if(!piano.length){ toast('In Campo non c\'è nessun piano di carico: caricalo là (Piano di carico → importa da Genesi) e registra le cariche reali.','err'); return; }
+  let p;
+  try{ p=_riconParseCampo(pianoConsuntivoCsv(piano)); }catch(err){ p={ errore:'Il piano di carico di Campo non è leggibile.' }; }
+  if(!p||p.errore){ toast('Consuntivo non letto: '+((p&&p.errore)||'piano non leggibile').replace(/<[^>]*>/g,'').slice(0,90),'err'); return; }
+  _ricCampo=_riconRiassuntoCampo(p, 'Campo (organizzazione)'); _ricRighe=p.righe;
+  riconRender();
+  toast(_ricCampo.foriReg
+    ? 'Consuntivo letto da Campo: '+_ricPlur(_ricCampo.foriReg,'foro','fori')+', '+_ricKg(_ricCampo.kgReale)+' kg reali'
+    : 'Piano letto da Campo ('+_ricPlur(_ricCampo.foriTot,'foro','fori')+'), ma nessuna carica reale è ancora registrata');
+};
 if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
   const file=e.target.files&&e.target.files[0]; e.target.value=''; if(!file) return;
   let testo='';

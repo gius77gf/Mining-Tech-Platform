@@ -665,6 +665,19 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL CONSUNTIVO DI CARICO DA CAMPO A GENESI COME DATO (05/09, notte):**
+  il secondo dei quattro ponti di file di §4 della mappa che passa dai dati.
+  `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` salgono in
+  `shared/dw-ponti.js` (Campo li ri-esporta per identità: `campo.X ===
+  ponti.X`, provato); Genesi legge `pianocarico` di Campo con la seconda
+  istanza dell'SDK (`pianoCampo`, `null` = Campo non leggibile, da soli
+  sempre `null`) e compone il consuntivo con la STESSA funzione con cui Campo
+  scrive il file, letto dallo STESSO `_riconParseCampo` del file — le due
+  strade non possono dire cose diverse. Bottone «Leggi il consuntivo da
+  Campo (organizzazione)» nella riconciliazione, solo in live; da soli resta
+  il file. Copertura: campo 135 → 132 e `dw-ponti` 76 → 79 (spostamento, non
+  perdita: i fondi lo dichiarano). run-kpi +3 (2742). Mappa: 15 ponti di
+  dati, i ponti di file censiti a 4 con i due che hanno anche i dati.
 - [x] **IL PONTE 3e — la volata prevista da Genesi a Sentinella SENZA il file
   (05/09, notte):** l'ultima famiglia di sovrapposizioni non collegata della
   mappa, e il primo ponte di dati che ENTRA in Sentinella da Genesi. La forma
@@ -6952,8 +6965,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.220 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2739, `run-stile` 328,
+  **3.223 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2742, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

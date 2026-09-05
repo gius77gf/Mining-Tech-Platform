@@ -335,7 +335,11 @@ il letterale `localStorage.getItem('…')`, e Genesi ne scrive tre per alias
 ponti di **file** già vivi sono **quattro**, non uno: Genesi→Sentinella
 (`parseVolateCsv`), Genesi→Campo (`parsePianoCsv`), Campo→Genesi
 (`pianoConsuntivoCsv`) e Genesi→Terra **via chiave del browser** (Terra legge
-`genesiNuvole`). Il censimento completo, coi pesi misurati in Chromium (una
+`genesiNuvole`). ⏱️ *Dal 05/09 (notte) due dei quattro passano ANCHE dai dati:
+Genesi→Sentinella (3e, `previste`) e Campo→Genesi (Genesi legge `pianocarico`
+di Campo con la seconda istanza e lo compone con la STESSA `pianoConsuntivoCsv`,
+salita in `shared/`); il file resta per chi lavora da solo. Restano solo file
+Genesi→Campo (`parsePianoCsv`) e la chiave del browser verso Terra.* Il censimento completo, coi pesi misurati in Chromium (una
 volata 561 B, la nuvola da 700.000 punti che NON sta in nessun archivio e non
 deve), i vincoli (l'offline prima di tutto: è la decisione 5b del fondatore) e
 un piano in 8 unità ≈ 20 ore sta in `docs/GENESI_FUORI_DAL_BROWSER.md`.
@@ -391,8 +395,8 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **14** su 56 direzioni *(era 6; il 05/09 (notte) è entrato Genesi→Sentinella (3e): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
-| ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
+| ponti di DATI esistenti | **15** su 56 direzioni *(era 6; il 05/09 (notte) sono entrati Genesi→Sentinella (3e) e Campo→Genesi (il consuntivo di carico letto dall'organizzazione): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
+| ponti di FILE | **4** censiti in §4 *(era «almeno 1»)*; dal 05/09 (notte) due dei quattro hanno anche la strada dei dati (Genesi→Sentinella, Campo→Genesi) e restano solo-file Genesi→Campo e la chiave verso Terra |
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |

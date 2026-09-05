@@ -60,6 +60,7 @@ export { riassuntoVolateDelGiorno } from "../../shared/dw-ponti.js";
 /* lo scarto della carica vive in `shared/` dal 05/09 (lo legge anche Genesi):
    qui resta il nome di sempre, e il test pretende che sia lo STESSO oggetto */
 export { scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
+import { normalizzaPiano, pianoConsuntivoCsv } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -2826,14 +2827,6 @@ export function foriRipetuti(righe) {
 // con foro e progetto validi (nella collezione possono esserci vecchi documenti
 // di riepilogo import, senza foro) e si riordinano per numero di foro. La
 // carica reale torna a null se non è un numero. Pura e testabile.
-export function normalizzaPiano(righe) {
-  return (righe || [])
-    .map(p => ({ ...p, foro: numIt(p.foro), prog: numIt(p.prog),
-                 reale: Number.isFinite(+p.reale) && p.reale !== null && p.reale !== "" ? +p.reale : null }))
-    .filter(p => p.foro > 0 && p.prog > 0)
-    .sort((a, b) => a.foro - b.foro);
-}
-
 // Ponte progettato-vs-reale (Genesi→Campo): scostamento della carica REALE
 // dal progetto, per foro. Funzioni pure e testabili — sono il cuore del
 // registro che il fochino usa per capire se ha caricato come previsto.
@@ -2951,47 +2944,13 @@ export function frasiCaricoParziale(par, marca) {
   };
 }
 
-// ── Il consuntivo che torna a Genesi ──────────────────────────────────────
-// Genesi manda a Campo il piano di carico in CSV; Campo gli rimanda indietro,
-// nella STESSA forma (punto e virgola, una riga di intestazione, una riga per
-// foro), quello che è successo davvero. Non è un formato nuovo: sono le sei
-// colonne che Campo esportava già, più tre che mancavano perché il giro si
-// chiudesse davvero:
-//   · scarto_kg   — lo scarto in CHILI e COL SEGNO. scarto_pct è arrotondato
-//                   all'unità e senza verso (è nato per il badge in lista):
-//                   da solo non basta a Genesi, che deve sapere se si è
-//                   caricato in più o in meno e di quanto esattamente.
-//   · squadra     — quale squadra ha caricato.
-//   · operatore   — CHI ha registrato la carica, foro per foro.
-// Le prime sei colonne restano identiche e nello stesso ordine: un file
-// esportato prima di oggi resta leggibile, e chi leggeva solo le prime sei
-// continua a funzionare.
-// carica_reale_kg è scritta GREZZA, senza arrotondamenti: è il dato misurato
-// e nessuno deve toccarlo per strada.
-// · id_foro (05/09) — l'id stabile che Genesi ha scritto nel piano e che qui
-//   torna indietro TALE E QUALE: è la chiave con cui Genesi accoppia la riga
-//   al foro del progetto. Vuoto se il piano non lo portava. In coda, come le
-//   tre prima di lui: chi legge nove colonne continua a funzionare.
-export const CONSUNTIVO_COLONNE = ["data", "turno", "foro", "carica_prog_kg",
-  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore", "id_foro"];
-
-export function pianoConsuntivoCsv(piano) {
-  const righe = (piano || []).map(p => {
-    const s = scartoPct(p.reale, p.prog);
-    // toFixed(3) toglie SOLO il rumore binario (12,3 − 10 = 2,3000000000000007),
-    // non la precisione della misura: al grammo si è già ben oltre il vero.
-    const dkg = p.reale != null ? +(p.reale - p.prog).toFixed(3) : "";
-    // csvCell SOLO sui campi di testo (turno, squadra, nome): è lì che possono
-    // esserci punti e virgola o virgolette da proteggere. Sui NUMERI non va
-    // usato, perché mette un apostrofo davanti a tutto ciò che comincia per
-    // meno — e uno scarto negativo diventerebbe «'-13,3», cioè testo.
-    return [p.data || "", csvCell(p.turno || ""), p.foro, p.prog,
-            p.reale != null ? p.reale : "",
-            s != null ? Math.round(s * 100) : "",
-            dkg, csvCell(p.squadra || ""), csvCell(p.da || ""), csvCell(p.idForo || "")].join(";");
-  });
-  return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
-}
+// ── Il consuntivo che torna a Genesi ─────────────────────────────────────
+// Dal 05/09 (notte) `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv`
+// vivono in `shared/dw-ponti.js`: li usa anche Genesi, che dal ponte legge il
+// piano di carico dall'organizzazione e lo compone con la STESSA funzione con
+// cui Campo scrive il file — così le due strade non possono divergere. Qui
+// restano gli alias di sempre (identità, non copie).
+export { CONSUNTIVO_COLONNE, normalizzaPiano, pianoConsuntivoCsv } from "../../shared/dw-ponti.js";
 
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P4 · DALL'ANOMALIA ALL'AZIONE CORRETTIVA — Campo → Scudo

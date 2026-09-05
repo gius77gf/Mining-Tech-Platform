@@ -225,7 +225,12 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
    Sentinella li ri-esporta come alias — il censimento conta le funzioni
    DEFINITE in un file, non quelle che espone. Il totale non scende. */
-const FONDO = { campo: 135, conti: 180, flotta: 135, scudo: 199, sentinella: 170, terra: 88 };
+/* ⚠️ `campo` SCENDE da 135 a 132 il 05/09 (notte), stessa ragione di Sentinella
+   qui sopra: `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` sono
+   passati in `shared/dw-ponti.js` (che sale) perché Genesi compone il consuntivo
+   letto dall'organizzazione con la stessa funzione con cui Campo scrive il file.
+   Campo li ri-esporta come alias. Il totale non scende. */
+const FONDO = { campo: 132, conti: 180, flotta: 135, scudo: 199, sentinella: 170, terra: 88 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -309,7 +314,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 76,
+  { file: "shared/dw-ponti.js", fondo: 79,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
