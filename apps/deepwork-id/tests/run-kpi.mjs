@@ -30788,7 +30788,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 26, `almeno 26 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 28, `almeno 28 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -37615,6 +37615,45 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine costi e fermi di Flotta nel modulo (05/09) ===== */
+/* ===== i giri macchina e lo scadenzario dei mezzi nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Flotta · csvGiriMacchina: l'esito di statoGiro nel file, dal più recente, e le anomalie senza elenco dette a parole", () => {
+    const righe = flotta.csvGiriMacchina(D.controlli).split("\r\n");
+    eq(righe[0], flotta.CSV_GIRI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.controlli.length + 1, "una riga per giro");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort().reverse(), "dal più recente");
+    for (const c of D.controlli) {
+      const s = flotta.statoGiro(c);
+      const r = righe.find((x) => x.split(";")[0] === c.data && x.split(";")[1] === flotta.nomeBreve(c.mezzo));
+      ok(r && r.split(";")[5] === s.etichetta && r.split(";")[6] === String(s.anomalie), "⛔ esito e anomalie sono quelli di statoGiro, la regola dello schermo — " + r);
+    }
+    const muto = flotta.csvGiriMacchina([{ data: "2026-09-01", mezzo: "Pala P1", tipo: "pala", anomalie: 2 }]).split("\r\n")[1];   // senza `voci`: dichiarate, non nominate
+    ok(/;2 segnate, dettaglio delle voci non registrato;/.test(muto), "⛔ anomalie dichiarate senza elenco: «2 segnate, dettaglio non registrato», non «tutto a posto ; 0» — " + muto);
+    eq(flotta.csvGiriMacchina(null), flotta.CSV_GIRI_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · csvScadenzeDiLegge: semaforo di scadenzeOrdinate, riferimento dal preset, e il mezzo senza nessuna riga non sparisce", () => {
+    const righe = flotta.csvScadenzeDiLegge(D.scadenze, D.mezzi, OGGI, 30).split("\r\n");
+    eq(righe[0], flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "l'intestazione è la costante");
+    const ord = flotta.scadenzeOrdinate(D.scadenze, OGGI, 30);
+    eq(righe.slice(1, 1 + ord.length).map((r) => r.split(";")[3]), ord.map((s) => s.sem.stato), "⛔ lo stato è quello del semaforo di scadenzeOrdinate, nello stesso ordine");
+    eq(righe.slice(1, 1 + ord.length).map((r) => r.split(";")[9]), ord.map((s) => { const p = flotta.presetScadenzaMezzo(s.chiave); return p ? p.norma : ""; }), "il riferimento normativo dal preset (vuoto se non c'è)");
+    const scoperti = flotta.mezziSenzaScadenze(D.scadenze, D.mezzi);
+    ok(scoperti.length >= 1 && scoperti.every((n) => !D.scadenze.some((s) => flotta.nomeBreve(s.mezzo) === n)), "mezziSenzaScadenze: i mezzi del parco senza nessuna riga — " + scoperti.join(", "));
+    eq(flotta.mezziSenzaScadenze([], D.mezzi).length, D.mezzi.length, "senza scadenzario sono tutti scoperti");
+    eq(flotta.mezziSenzaScadenze(null, null), [], "null non rompe");
+    eq(righe.length, 1 + ord.length + scoperti.length, "⛔ una riga in più per ogni mezzo del parco senza scadenze: " + scoperti.join(", "));
+    for (const n of scoperti) {
+      const r = righe.find((x) => x.startsWith(n + ";"));
+      ok(r && /;nessuna registrata;/.test(r) && /non vuol dire che non ne abbia/.test(r), "⛔ «" + n + "» esce «nessuna registrata» con la frase, non «regolare» e non assente — " + r);
+    }
+    eq(flotta.csvScadenzeDiLegge([], [], OGGI), flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "senza niente resta l'intestazione");
+    eq(flotta.csvScadenzeDiLegge(null, null), flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine giri e scadenzario di Flotta nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

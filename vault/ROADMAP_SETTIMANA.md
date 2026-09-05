@@ -427,11 +427,17 @@
   delle intestazioni: `flotta.costi` verificato chiamando l'export e
   `flotta.fermi` censito (non c'era); banco `flotta-documenti-che-escono`
   79/79 e controprova con l'iniezione dei fermi riancorata sul modulo.
-  **Restano nella pagina sei file**: registro-interventi, scadenze-di-legge,
-  situazione, giri-macchina, libretto, lista-della-spesa — ognuno con le
-  righe composte lì (le celle dalle funzioni del modulo). Stessa forma, un
-  paio per unità, riancorando le iniezioni. E in Conti sei: incassi,
-  clienti, costi, listino_prezzi, pesate_ddt, preventivi. Comando di partenza:
+  Poi `csvGiriMacchina` e `csvScadenzeDiLegge` (+ `mezziSenzaScadenze`, la
+  domanda «chi non ha nessuna riga» scritta una volta per foglio e frase):
+  run-kpi +2 (2667), censite `flotta.giri` e `flotta.scadenzeMezzi`, l'iniezione
+  di `statoGiro` riancorata sul modulo. ⚠️ Il modulo non importava `conta`: il
+  banco l'ha preso (il giro di D3 non usciva), `run-kpi` no, perché nella
+  dimostrazione quel caso non c'è — è il banco che lo costruisce.
+  **Restano nella pagina quattro file**: registro-interventi, situazione,
+  libretto, lista-della-spesa — ognuno con le righe composte lì (le celle
+  dalle funzioni del modulo). Stessa forma, un paio per unità, riancorando le
+  iniezioni. E in Conti sei: incassi, clienti, costi, listino_prezzi,
+  pesate_ddt, preventivi. Comando di partenza:
   `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
   domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
@@ -1626,7 +1632,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(sei
+- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(quattro
   restano in Flotta e sei in Conti: un paio per unità, riancorando le
   iniezioni)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -6544,8 +6550,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.146 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2665, `run-stile` 328,
+  **3.148 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2667, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

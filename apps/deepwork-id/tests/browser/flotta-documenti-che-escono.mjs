@@ -176,8 +176,9 @@ const DIFETTI = [
      ⚠️ Otto spazi, non sei: la stessa riga esiste anche nel libretto (4529).
      Con l'indentazione i soggetti restano uno, e se un giorno diventassero
      due il banco lo dice invece di sceglierne uno a caso. */
-  ["        const s = statoGiro(c);",
-   "        const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvGiriMacchina`): due spazi in meno. */
+  ["      const s = statoGiro(c);",
+   "      const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();", MODULO],
   // 3 · lo zero sommabile al posto della cella vuota, nel registro interventi
   ["                   numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
    "                   (+w.costo) || 0, w.note || \"\","],

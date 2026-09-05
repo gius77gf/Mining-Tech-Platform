@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4331,32 +4331,12 @@ body.dw b.bad{color:var(--ink-dg)}
   // Esporta lo scadenzario dei mezzi: è la lista che si stampa e si porta al
   // controllo, o si gira al responsabile della sicurezza.
   $("btn-sca-csv").onclick = () => {
-    const righe = [["mezzo","tipo","scadenza","stato","ogni_mesi","documento","ultima_verifica","esito","note","riferimento_normativo"].join(";")]
-      .concat(scadenzeOrdinate(SCA, new Date(), preavvisoSca).map(s => {
-        const p = presetScadenzaMezzo(s.chiave);
-        return [s.mezzo || "", s.tipo || "", dataIt(s.dataScadenza), s.sem.stato, s.mesi || "",
-                s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
-                s.note || "", p ? p.norma : ""].map(csvCell).join(";");
-      }));
-    /* ⛔ UN MEZZO SENZA NESSUNA RIGA IN SCADENZARIO NON SPARISCE DAL FOGLIO.
-       Questo file è quello che si porta a un controllo o si gira al
-       responsabile della sicurezza, e fino al 03/08 conteneva SOLO le
-       scadenze registrate: una macchina su cui nessuno ha mai scritto una
-       verifica periodica non compariva affatto, e chi apre il foglio non ha
-       modo di accorgersi che manca. È l'assenza scambiata per un dato
-       favorevole nella sua forma più silenziosa — non un colore tranquillo,
-       proprio una riga che non c'è.
-       La regola era già in casa e già applicata allo SCHERMO: la scrive
-       `contaScadenzeMezzi`, che per questo prende il parco. Qui mancava. */
-    const coperti = new Set(SCA.map(s => nomeBreve(s.mezzo)).filter(Boolean));
-    const scoperti = MEZ.map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));
-    for (const n of scoperti)
-      righe.push([n, "", "", "nessuna registrata", "", "", "", "",
-                  "Su questo mezzo non è registrata nessuna scadenza di legge: non vuol dire che non ne abbia.",
-                  ""].map(csvCell).join(";"));
+    // le righe le compone `csvScadenzeDiLegge` nel modulo — semaforo di
+    // `scadenzeOrdinate`, e i mezzi senza nessuna riga con «nessuna registrata» (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvScadenzeDiLegge(SCA, MEZ, new Date(), preavvisoSca)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-scadenze-di-legge.csv"; marchiaCsv(a); a.click();
+    const scoperti = mezziSenzaScadenze(SCA, MEZ);
     esito("sca-esito", plurale(SCA.length, "Esportata ", "Esportate ") + conta(SCA.length, "scadenza", "scadenze") + " (CSV)"
       + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
   };
@@ -4838,22 +4818,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // I giri esportati: è il registro che si mostra quando qualcuno chiede
   // «dimostratemi che le macchine le controllate prima di usarle».
   $("btn-giro-csv").onclick = () => {
-    const righe = [["data", "mezzo", "tipo", "operatore", "ore", "esito", "anomalie", "voci_non_ok", "note"].join(";")]
-      .concat(CTR.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
-        /* ⛔ QUI L'ESITO SI DECIDEVA DALLE SOLE `voci`, e un giro che dichiara
-           delle anomalie senza portarne l'elenco usciva «tutto a posto ; 0»
-           mentre lo schermo, sullo stesso record, scrive «N da vedere». La
-           versione a tre rami stava già 220 righe più in basso, nel CSV del
-           libretto: una correzione fatta a un export e non all'altro. Adesso
-           la domanda la fa `statoGiro`, e la fanno tutti allo stesso modo. */
-        const s = statoGiro(c);
-        return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
-                c.ore || "", s.etichetta, s.anomalie,
-                s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
-                           : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
-      }));
+    // le righe le compone `csvGiriMacchina` nel modulo, con `statoGiro` (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvGiriMacchina(CTR)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-giri-macchina.csv"; marchiaCsv(a); a.click();
     toast(plurale(CTR.length, "Esportato ", "Esportati ") + conta(CTR.length, "giro macchina", "giri macchina") + " (CSV).", "success");
   };

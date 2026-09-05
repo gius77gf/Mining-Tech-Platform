@@ -87,7 +87,7 @@
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
-         dataISOEsiste, dataIt, plurale,
+         dataISOEsiste, dataIt, plurale, conta,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
@@ -801,6 +801,56 @@ export function csvFermiMacchina(fermi, oggi = new Date()) {
     .concat(fermiOrdinati(fermi || [], oggi).map(f =>
       [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
        f.statoTx, f.note || ""].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* I GIRI MACCHINA ESPORTATI (05/09, salito dalla pagina): il registro che si
+   mostra quando qualcuno chiede «dimostratemi che le macchine le controllate
+   prima di usarle». L'esito lo decide `statoGiro`, la stessa dello schermo e
+   del libretto: un giro che dichiara anomalie senza portarne l'elenco esce
+   «N segnate, dettaglio delle voci non registrato», non «tutto a posto ; 0».
+   Dal più recente. Pura. */
+export const CSV_GIRI_INTESTAZIONE = "data;mezzo;tipo;operatore;ore;esito;anomalie;voci_non_ok;note";
+export function csvGiriMacchina(controlli) {
+  const righe = [CSV_GIRI_INTESTAZIONE]
+    .concat((controlli || []).filter(Boolean).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
+      const s = statoGiro(c);
+      return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
+              c.ore || "", s.etichetta, s.anomalie,
+              s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
+                         : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
+    }));
+  return righe.join("\r\n");
+}
+
+/* LO SCADENZARIO DEI MEZZI (05/09, salito dalla pagina): la lista che si
+   porta al controllo o si gira al responsabile della sicurezza. L'ordine e il
+   semaforo sono di `scadenzeOrdinate`; il riferimento normativo viene dal
+   preset. ⛔ E un mezzo senza NESSUNA riga in scadenzario non sparisce dal
+   foglio: esce con «nessuna registrata» e la frase che dice che non vuol
+   dire che non ne abbia — la regola che `contaScadenzeMezzi` applica già
+   allo schermo. `mezzi` è il parco. Pura. */
+/* I MEZZI DEL PARCO SENZA NESSUNA RIGA IN SCADENZARIO, per nome breve: li
+   usano il foglio (una riga «nessuna registrata» ciascuno) e la frase sotto il
+   bottone. Una domanda, scritta una volta. Pura. */
+export function mezziSenzaScadenze(scadenze, mezzi) {
+  const coperti = new Set((scadenze || []).filter(Boolean).map(s => nomeBreve(s.mezzo)).filter(Boolean));
+  return (mezzi || []).filter(Boolean).map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));
+}
+export const CSV_SCADENZE_MEZZI_INTESTAZIONE = "mezzo;tipo;scadenza;stato;ogni_mesi;documento;ultima_verifica;esito;note;riferimento_normativo";
+export function csvScadenzeDiLegge(scadenze, mezzi, oggi = new Date(), preavvisoGiorni = 30) {
+  const SCA = (scadenze || []).filter(Boolean);
+  const righe = [CSV_SCADENZE_MEZZI_INTESTAZIONE]
+    .concat(scadenzeOrdinate(SCA, oggi, preavvisoGiorni).map(s => {
+      const p = presetScadenzaMezzo(s.chiave);
+      return [s.mezzo || "", s.tipo || "", dataIt(s.dataScadenza), s.sem.stato, s.mesi || "",
+              s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
+              s.note || "", p ? p.norma : ""].map(csvCell).join(";");
+    }));
+  for (const n of mezziSenzaScadenze(SCA, mezzi))
+    righe.push([n, "", "", "nessuna registrata", "", "", "", "",
+                "Su questo mezzo non è registrata nessuna scadenza di legge: non vuol dire che non ne abbia.",
+                ""].map(csvCell).join(";"));
   return righe.join("\r\n");
 }
 
