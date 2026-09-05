@@ -600,10 +600,20 @@ export function mappaColonne(intestazione, indizi, opzioni = {}) {
   const nomi = Array.isArray(intestazione) ? intestazione : [];
   const celle = nomi.map(nomeColonna);
   const out = { conIntestazione: false, indici: {}, riconosciute: [], esclusi: [], ignorate: [], mancanti: [] };
-  const presi = new Set();
-  /* `esatto`: il nome deve essere TUTTO l'indizio, non cominciare con lui —
-     è la forma di Campo, dove «ms» non deve prendere «relief ms per m» */
-  const combacia = opzioni.esatto ? (h, k) => h === k : (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  /* `presi`: colonne già assegnate da chi chiama (Sentinella cerca prima data
+     e ora, poi gli assi, poi il valore fra quello che resta) */
+  const presi = new Set((opzioni.presi || []).filter(i => Number.isInteger(i) && i >= 0));
+  /* tre modi di combaciare, e chi chiama sceglie il suo:
+     · "parola" (il default): l'indizio all'INIZIO di una parola — Conti e
+       Flotta, dove «abi» non deve prendere «contabile»;
+     · "esatto" (o `esatto: true`): il nome è TUTTO l'indizio — Campo, dove
+       «ms» non deve prendere «relief ms per m»;
+     · "dentro": l'indizio in QUALUNQUE punto — Sentinella, dove «vel» deve
+       prendere «velocità (mm/s)» e «db» «dB(L)», com'è sempre stato. */
+  const modo = opzioni.esatto ? "esatto" : (opzioni.modo || "parola");
+  const combacia = modo === "esatto" ? (h, k) => h === k
+    : modo === "dentro" ? (h, k) => h === k || h.includes(k)
+    : (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
   const cerca = (chiavi) => { const ks = (chiavi || []).map(nomeColonna).filter(Boolean);
     return celle.findIndex((h, i) => !presi.has(i) && h && ks.some(k => combacia(h, k))); };
   for (const chiavi of Object.values(opzioni.escludi || {})) { let i; while ((i = cerca(chiavi)) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }

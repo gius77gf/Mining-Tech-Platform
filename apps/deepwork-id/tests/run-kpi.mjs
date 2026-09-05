@@ -37240,6 +37240,25 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(shell.mappaColonne(["relief ms per m", "ritardo ms"], { rit: ["ms"] }).indici.rit, 0, "e senza `esatto` sarebbe la prima che lo contiene: per questo Campo chiede l'esattezza");
   });
 }
+/* ===== Sentinella sopra la mappa, nel modo «dentro» (05/09) ===== */
+{
+  test("shared · mappaColonne nel modo «dentro» e con `presi`: la forma di Sentinella", () => {
+    eq(shell.mappaColonne(["Velocità (mm/s)"], { v: ["vel"] }, { modo: "dentro" }).indici.v, 0, "«vel» dentro «velocità (mm/s)», come Sentinella ha sempre letto");
+    eq(shell.mappaColonne(["Velocità (mm/s)"], { v: ["vel"] }).indici.v, -1, "nel modo «parola» no: per questo Sentinella dichiara il suo");
+    eq(shell.mappaColonne(["Data", "Ora", "PPV"], { v: ["ppv", "data"] }, { modo: "dentro", presi: [0, 1] }).indici.v, 2, "le colonne già prese da chi chiama non si ripropongono");
+    eq(shell.mappaColonne(["dB(L)"], { a: ["db"] }, { modo: "dentro" }).indici.a, 0, "gli accenti e i simboli non contano nemmeno qui");
+  });
+  test("Sentinella · proponiMappa e proponiColonneEvento rispondono come prima sopra la mappa condivisa", () => {
+    const righe = [["Data/Ora", "PPV L", "PPV T", "PPV V", "PVS", "Freq (Hz)"], ["12/07/2026 11:15", "1,2", "0,8", "1,5", "1,9", "25"]];
+    const m = sentinella.proponiMappa(righe, true);
+    eq([m.colData, m.colOra, m.colValore], [0, -1, 4], "data, niente ora, e il valore è la RISULTANTE, non un asse");
+    const ev = sentinella.proponiColonneEvento(righe, true, m);
+    eq([ev.colPpvL, ev.colPpvT, ev.colPpvV, ev.colFreq, ev.colAria], [1, 2, 3, 5, -1], "i tre assi e la frequenza, l'aria assente");
+    const solo = sentinella.proponiMappa([["Data", "Velocità (mm/s)"], ["12/07/2026", "2,4"]], true);
+    eq([solo.colData, solo.colValore], [0, 1], "«velocità» presa da «vel», dentro la parola");
+  });
+}
+/* ===== fine Sentinella sopra la mappa (05/09) ===== */
 /* ===== fine piano sopra la mappa (05/09) ===== */
 /* ===== fine file della pesa (05/09) ===== */
 /* ===== fine mappa delle colonne (05/09) ===== */

@@ -22,7 +22,7 @@
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
          senzaDoppioni, istanteLocale, plurale, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataPiuGiorni as dataPiuGiorniShell, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
@@ -1310,9 +1310,11 @@ export function proponiMappa(righe, conIntestazione) {
   let assi = [];
   const head = (righe || [])[0] || [];
   if (conIntestazione) {
-    const norm = head.map(h => String(h || "").trim().toLowerCase());
-    const trova = (chiavi, escludi) => norm.findIndex((h, i) =>
-      !escludi.includes(i) && h && chiavi.some(k => h === k || h.includes(k)));
+    /* la mappa la fa `mappaColonne` di `shared/` (05/09), nel modo «dentro»
+       che Sentinella ha sempre usato: l'indizio in qualunque punto del nome.
+       L'ordine di presa resta quello di sempre: data, ora, poi gli assi, poi
+       la risultante e SOLO dopo il valore generico fra quello che resta. */
+    const trova = (chiavi, presi) => mappaColonne(head, { c: chiavi }, { modo: "dentro", presi }).indici.c;
     out.colData = trova(INDIZI.data, []);
     out.colOra = trova(INDIZI.ora, [out.colData]);
     /* gli assi si escludono dalla ricerca del valore: «PPV L» contiene «ppv» */
@@ -1353,16 +1355,12 @@ export function proponiMappa(righe, conIntestazione) {
 export function proponiColonneEvento(righe, conIntestazione, escludi) {
   const out = { colPpvL: -1, colPpvT: -1, colPpvV: -1, colFreq: -1, colAria: -1 };
   if (!conIntestazione) return out;
-  const head = ((righe || [])[0] || []).map(h => String(h || "").trim().toLowerCase());
+  /* la stessa mappa condivisa, nel modo «dentro», con data e ora già prese */
   const e = escludi || {};
-  const presi = new Set([e.colData, e.colOra].filter(i => Number.isFinite(i) && i >= 0));
-  const trova = (chiavi) => head.findIndex((h, i) =>
-    !presi.has(i) && h && chiavi.some(k => h === k || h.includes(k)));
-  for (const [campo, chiavi] of [["colPpvL", INDIZI.ppvL], ["colPpvT", INDIZI.ppvT], ["colPpvV", INDIZI.ppvV],
-                                 ["colFreq", INDIZI.freq], ["colAria", INDIZI.aria]]) {
-    const i = trova(chiavi);
-    if (i >= 0) { out[campo] = i; presi.add(i); }
-  }
+  const m = mappaColonne((righe || [])[0] || [],
+    { colPpvL: INDIZI.ppvL, colPpvT: INDIZI.ppvT, colPpvV: INDIZI.ppvV, colFreq: INDIZI.freq, colAria: INDIZI.aria },
+    { modo: "dentro", presi: [e.colData, e.colOra] });
+  for (const k of Object.keys(out)) out[k] = m.indici[k];
   return out;
 }
 
