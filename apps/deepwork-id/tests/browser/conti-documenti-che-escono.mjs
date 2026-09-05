@@ -80,7 +80,7 @@ const DIFETTI = [
      scrive. ⚠️ L'ancora è **corta** apposta: cita solo il ciclo, non il suo
      commento, perché un commento si riscrive e l'iniezione scadrebbe senza
      fare rumore. */
-  ["    for (const c of r.righeSenzaImporto)", "    for (const c of [])"],
+  ["  for (const c of r.righeSenzaImporto)", "  for (const c of [])", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   // 1 · il CSV degli incassi che ignora le note di credito
   /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvProspettoIncassi`): due spazi in meno. */
   ["    const st = statoFattura(r.f, INC, NOT);",
@@ -94,7 +94,7 @@ const DIFETTI = [
      GRATIS, nel foglio che si manda al cliente — mentre le tre celle accanto
      (densità, prezzo_t, prezzo_m3) lasciavano già la cella vuota. */
   ["${numeroDichiarato(p.prezzo) ?? \"\"};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}",
-   "${+p.prezzo || 0};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}"],
+   "${+p.prezzo || 0};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   /* 4 · e l'importo di una voce di costo, stessa famiglia.
      ⚠️ QUESTA INIEZIONE NON PRODUCE UN KO, ED È GIUSTO COSÌ — sta scritto qui
      perché chi conta «4 difetti rimessi, 3 KO» non pensi a una regressione.

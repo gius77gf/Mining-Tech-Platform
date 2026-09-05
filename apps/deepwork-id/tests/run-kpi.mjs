@@ -6445,7 +6445,9 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      La difesa è semplice e non tocca i file buoni: senza un prezzo leggibile
      nella sua colonna la riga non entra. */
   test("giro completo: il prospetto dei prezzi NON entra nel listino", () => {
-    const testa = intestazioneExport(pagina("conti"), "conti_listino_prezzi.csv");
+    /* dal 05/09 l'export vive nel modulo: l'intestazione è la sua costante,
+       non una riga da cercare nella pagina */
+    const testa = conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE;
     ok(testa, "l'export dei prezzi convertiti esiste");
     const letto = conti.parseListinoCsv(
       testa + "\nStabilizzato 0/30;8,5;t;1,9;8,5;16,15;22\nSabbia lavata;22;m3;1,6;13,75;22;22");
@@ -30788,7 +30790,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 33, `almeno 33 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 35, `almeno 35 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30802,7 +30804,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 5, `almeno 5 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    ok(conPagina >= 3, `almeno 3 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37753,6 +37755,45 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine prospetto incassi e clienti nel modulo (05/09) ===== */
+/* ===== il prospetto dei costi e il listino coi prezzi convertiti nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  test("Conti · csvProspettoCosti: le righe del periodo, e in coda quelle senza data, senza importo, a zero — marcate a parole", () => {
+    const r = conti.riepilogoCosti(D.costi, "2026-01-01", "2026-12-31");
+    const righe = conti.csvProspettoCosti(D.costi, "2026-01-01", "2026-12-31").trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_COSTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + r.righe.length + r.righeSenzaData.length + r.righeSenzaImporto.length + r.righeImportoNonPositivo.length, "⛔ una riga per OGNI voce, anche quelle che il totale non contiene");
+    const nel = righe.slice(1).map((x) => x.split(";").pop());
+    eq(nel.filter((x) => x === "si").length, r.righe.length, "le voci del periodo dicono «si»");
+    ok(r.righeSenzaData.length >= 1 && righe.some((x) => x.startsWith(";") && /;no \(senza data\)$/.test(x)), "⛔ la voce senza data ha la cella della data VUOTA e «no (senza data)» in coda");
+    ok(righe.slice(1, 1 + r.righe.length).every((x, i, arr) => i === 0 || arr[i - 1].split(";")[0] <= x.split(";")[0]), "per data");
+    ok(righe.some((x) => /;Produzione;|;Mezzi e trasporti;/.test(x)), "il gruppo a parole, da etichettaGruppo");
+    const strane = conti.csvProspettoCosti([{ data: "2026-03-01", voce: "carburante", importo: null }, { data: "2026-03-02", voce: "boh", importo: 0 }, { data: "2026-03-03", voce: "carburante", importo: 10 }], "2026-01-01", "2026-12-31").trim().split("\n");
+    ok(strane.some((x) => /;;[^;]*;no \(senza importo\)$/.test(x)), "⛔ la voce senza importo esce con la cella VUOTA e «no (senza importo)», non sparisce e non fa 0 — " + strane.join(" | "));
+    ok(strane.some((x) => /;0;[^;]*;no \(importo a zero o negativo\)$/.test(x)), "e lo zero SCRITTO resta 0, marcato — " + strane.join(" | "));
+    ok(strane.some((x) => /;boh;|;\(voce non indicata\);|Voci non classificate/.test(x)), "una voce fuori elenco resta leggibile (la chiave, o «non classificata»)");
+    eq(conti.csvProspettoCosti(null).trim(), conti.CSV_PROSPETTO_COSTI_INTESTAZIONE, "null non rompe");
+    eq([conti.leggiVoce("carburante"), conti.leggiVoce("xyz"), conti.leggiVoce("")], [conti.voceCosto("carburante").etichetta, "xyz", "(voce non indicata)"], "leggiVoce: l'etichetta, la chiave, o «non indicata»");
+    eq([conti.etichettaGruppo("mezzi"), conti.etichettaGruppo("altro")], ["Mezzi e trasporti", "altro"], "etichettaGruppo: l'etichetta o la chiave");
+    eq(conti.ETICHETTA_GRUPPO["non-classificata"], "Voci non classificate", "e la mappa delle etichette è quella della pagina di ieri");
+  });
+  test("Conti · csvPrezziConvertiti: prezzo, densità e IVA — niente zeri dove nessuno ha scritto", () => {
+    const righe = conti.csvPrezziConvertiti(D.prodotti).trim().split("\n");
+    eq(righe[0], conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.prodotti.length + 1, "una riga per prodotto");
+    const nomi = righe.slice(1).map((x) => x.split(";")[0].replace(/^"|"$/g, ""));
+    eq(nomi, nomi.slice().sort((a, b) => a.localeCompare(b, "it")), "per nome");
+    const p1 = righe.find((x) => /Stabilizzato 0\/30/.test(x)).split(";");
+    eq([p1[1], p1[2], p1[3], p1[6]], ["8.5", "t", "1.9", "22"], "prezzo, unità, densità e IVA della dimostrazione");
+    eq(p1[4], String(conti.prezzoPerTonnellata(D.prodotti.find((p) => p.id === "p1"))), "prezzo_t da prezzoPerTonnellata");
+    const nudo = conti.csvPrezziConvertiti([{ nome: "Sasso", unitaPrezzo: "t" }]).trim().split("\n")[1].split(";");
+    eq(nudo.slice(1), ["", "t", "", "", "", String(conti.ALIQUOTA_ORDINARIA)], "⛔ senza prezzo, densità e IVA: celle VUOTE (non gratis, non densità zero) e l'aliquota ordinaria, la stessa di csvListino");
+    eq([conti.prezzoPerTonnellata({ unitaPrezzo: "t" }), conti.prezzoPerMetroCubo({ unitaPrezzo: "t", densita: 1.6 }), conti.prezzoPerTonnellata({ prezzo: 0, unitaPrezzo: "t" })], [null, null, 0],
+      "⛔ un prezzo non scritto non si converte in «0 €/t» (gratis): null — e lo zero SCRITTO, un omaggio, resta zero. Trovato portando il file nel modulo: la stessa cella corretta l'08/08 e le due accanto no");
+    eq(conti.csvPrezziConvertiti(null).trim(), conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine prospetto costi e prezzi convertiti nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

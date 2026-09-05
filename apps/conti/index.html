@@ -1968,7 +1968,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -5138,17 +5138,12 @@ label.item:has(.dw-chk:checked){
      un gruppo aggiunto là compare qui da solo. Le etichette e le icone sono
      l'unica cosa che vive in Conti — e un gruppo senza etichetta mostra la
      sua chiave, che è brutta ma VISIBILE, invece di sparire. */
-  const ETICHETTA_GRUPPO = {
-    produzione: "Produzione", mezzi: "Mezzi e trasporti",
-    impianto: "Impianto e lavorazione", concessione: "Concessione e ambiente",
-    generali: "Spese generali", "non-classificata": "Voci non classificate",
-  };
+  // `ETICHETTA_GRUPPO`, `etichettaGruppo` e `leggiVoce` vivono nel modulo (05/09)
   const ICONA_GRUPPO = {
     produzione: "fronte", mezzi: "camion", impianto: "cumulo",
     concessione: "gara", generali: "busta", "non-classificata": "allarme",
   };
   const gruppiCosto = () => senzaDoppioni(VOCI_COSTO.map(v => v.gruppo), (g) => g).concat("non-classificata");
-  const etichettaGruppo = (g) => ETICHETTA_GRUPPO[g] || g;
   const cosPeriodo = () => {
     const a = new Date().getFullYear();
     return [$("cos-dal").value || (a + "-01-01"), $("cos-al").value || (a + "-12-31")];
@@ -5177,8 +5172,6 @@ label.item:has(.dw-chk:checked){
      il conto compare.`;
   // la voce come si legge: etichetta se è nell'elenco, altrimenti la chiave
   // scritta da chi ha registrato il costo — che è comunque un'informazione
-  const leggiVoce = (chiave) => { const v = voceCosto(chiave);
-    return v ? v.etichetta : (String(chiave || "").trim() || "(voce non indicata)"); };
 
   /* ⛔ E QUI `eur(c.importo)` SCRIVEVA «€ 0,00» SU UN IMPORTO MAI SCRITTO.
      `euro` fa `+v || 0`, quindi un campo vuoto, un `null` e una parola escono
@@ -6951,35 +6944,10 @@ label.item:has(.dw-chk:checked){
       renderCosti(); }));
   $("btn-cos-export").onclick = () => {
     const [d1, d2] = cosPeriodo();
-    const r = riepilogoCosti(COS, d1, d2);
-    /* Nell'export ci vanno ANCHE le voci senza data, marcate: un file che le
-       lascia fuori in silenzio è lo stesso totale tranquillo di prima, solo
-       che stavolta finisce dal commercialista. */
-    /* ⛔ E L'IMPORTO DI UNA VOCE DI COSTO SEGUE LA STESSA REGOLA. `${+c.importo
-       || 0}` scriveva `0` su una voce registrata senza dire quanto è costata,
-       e in un foglio di calcolo quello zero si SOMMA credendolo misurato — è
-       lo stesso difetto corretto oggi nel registro interventi di Flotta, e la
-       riga qui sopra dichiara già le voci senza data proprio per non lasciare
-       un totale tranquillo al commercialista. Uno zero SCRITTO resta (una
-       voce a costo zero è un dato); quello mai compilato lascia la cella
-       vuota. */
-    let csv = "data;voce;gruppo;importo;nota;nel_periodo\n";
-    for (const c of r.righe.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))))
-      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};si\n`;
-    for (const c of r.righeSenzaData)
-      csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza data)\n`;
-    /* ⛔ E LE VOCI SENZA IMPORTO NON C'ERANO PROPRIO, in un file il cui
-       commento qui sopra dichiara che lasciarle fuori in silenzio «è lo stesso
-       totale tranquillo di prima, solo che stavolta finisce dal
-       commercialista». Uscivano alla prima riga di `riepilogoCosti`, quindi non
-       arrivavano né in `righe` né in `righeSenzaData`: il file era più
-       tranquillo dello schermo, che è la cosa che questo filone esiste per
-       impedire. Escono marcate, come le altre, e la cella dell'importo resta
-       VUOTA — `cellaNum` non inventa uno zero sommabile. */
-    for (const c of r.righeSenzaImporto)
-      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza importo)\n`;
-    for (const c of r.righeImportoNonPositivo)
-      csv += `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (importo a zero o negativo)\n`;
+    const r = riepilogoCosti(COS, d1, d2);   // per la frase sotto, che conta le righe uscite
+    // il file lo compone `csvProspettoCosti` nel modulo: anche le voci senza data,
+    // senza importo e a zero, marcate a parole (05/09)
+    const csv = csvProspettoCosti(COS, d1, d2);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_costi_" + d1 + "_" + d2 + ".csv"; marchiaCsv(a);
@@ -7002,40 +6970,9 @@ label.item:has(.dw-chk:checked){
      file hanno nomi DIVERSI: prima si chiamavano tutti e due
      conti_listino.csv e nella cartella dei download uno copriva l'altro. */
   $("btn-lis-prezzi").onclick = () => {
-    /* ⛔ E NEMMENO IL PREZZO, e questa riga è stata scritta l'08/08 accanto a
-       quella qui sotto — che dice la stessa cosa della DENSITÀ, e che era già
-       corretta. Nella stessa riga del CSV `densita_t_m3`, `prezzo_t` e
-       `prezzo_m3` lasciavano la cella vuota col loro `?? ""`, e la colonna
-       `prezzo` scriveva `${+p.prezzo || 0}`: un prodotto senza prezzo usciva
-       a **zero**, cioè GRATIS, nel listino che si manda al cliente. Tre celle
-       giuste e una sbagliata, a quattro caratteri di distanza.
-       `numeroDichiarato` tiene lo zero SCRITTO (un prodotto in omaggio) e
-       svuota quello mai compilato — la stessa regola di `shared/` che il CSV
-       dei clienti, in questo stesso file, usa già per il fido.
-       ⛔ LA DENSITÀ CHE NON C'È NON È UNA DENSITÀ ZERO. `${+p.densita || 0}`
-       scriveva `0` per il prodotto non classificato — una densità nulla non
-       esiste in natura, e nella STESSA riga la colonna `prezzo_m3` restava
-       vuota perché senza densità non si converte: il foglio si smentiva da
-       solo, e chi lo apre col foglio di calcolo legge un numero misurato dove
-       nessuno ha misurato niente. La regola è `densitaValida`, la stessa che
-       usano le conversioni. */
-    /* ⛔ E LA SETTIMA CELLA ERA L'ULTIMA RIMASTA CRUDA. `${+p.iva || 0}` scrive
-       **0** su un prodotto la cui aliquota non è scritta, e su un listino «IVA
-       0%» non è un vuoto: è la dichiarazione di un'operazione NON IMPONIBILE,
-       cioè una cosa che qualcuno deve aver deciso. La stessa domanda l'ha già
-       risolta `csvListino` nel modulo, e la sua risposta è **22** — il default
-       italiano che `parseListinoCsv` applica quando la colonna manca. Due file
-       che escono dalla stessa scheda non possono rispondere due cose diverse
-       alla stessa domanda: qui si legge quella decisione, non se ne scrive
-       un'altra.
-       ⚠️ Detto onestamente e misurato: oggi il caso NON è raggiungibile — il
-       form salva `+$("pr-iva").value || 0` da una tendina, l'import mette 22
-       quando la cella manca, e tutti i prodotti della dimostrazione hanno
-       `iva: 22`. Quello che cambia è che i due file smettono di divergere: una
-       regola scritta due volte, la seconda più debole, è il difetto stesso. */
-    let csv = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva\n";
-    for (const p of PRO.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
-      csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? ALIQUOTA_ORDINARIA}\n`;
+    // il listino coi prezzi convertiti lo compone `csvPrezziConvertiti` nel
+    // modulo: niente zeri al posto di un prezzo o di una densità che non c'è (05/09)
+    const csv = csvPrezziConvertiti(PRO);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_listino_prezzi.csv"; marchiaCsv(a); a.click();

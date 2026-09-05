@@ -501,9 +501,9 @@ export const CSV_TABELLE = [
   { id: "conti.prospettoClienti", app: "Conti", etichetta: "il prospetto dei clienti di Conti",
     fonte: "conti.csvProspettoClienti", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
   { id: "conti.prospettoCosti", app: "Conti", etichetta: "il prospetto dei costi di Conti",
-    pagina: "apps/conti/index.html", col: "data;voce;gruppo;importo;nota;nel_periodo" },
+    fonte: "conti.csvProspettoCosti", col: "data;voce;gruppo;importo;nota;nel_periodo" },
   { id: "conti.prezziConvertiti", app: "Conti", etichetta: "il prospetto dei prezzi convertiti di Conti",
-    pagina: "apps/conti/index.html", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
+    fonte: "conti.csvPrezziConvertiti", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
   { id: "conti.prospettoDdt", app: "Conti", etichetta: "il prospetto dei DDT di Conti",
     pagina: "apps/conti/index.html", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
   // ── Flotta ──────────────────────────────────────────────────────────

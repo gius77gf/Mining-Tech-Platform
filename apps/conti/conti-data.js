@@ -95,7 +95,7 @@ export { autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "../
    qui si ri-esportano (identità, pretesa da `nomi-doppi`) e si importano
    ANCHE, perché `triangolo` qui sotto le chiama — vedi l'avvertenza sopra. */
 export { variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale, SOGLIA_TRIANGOLO } from "../../shared/dw-ponti.js";
-import { gruppoDiVoce, VOCI_COSTO, autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate,
+import { gruppoDiVoce, VOCI_COSTO, voceCosto, autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate,
          variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale } from "../../shared/dw-ponti.js";
 
 /* le date RELATIVE a oggi dei rapportini di Campo in dimostrazione: la stessa
@@ -1689,16 +1689,25 @@ export function densitaValida(prodotto) {
   return Number.isFinite(d) && d > 0 ? d : null;
 }
 
-// Prezzo del prodotto in €/tonnellata (null se andrebbe convertito e manca la densità).
+// Prezzo del prodotto in €/tonnellata (null se andrebbe convertito e manca la
+// densità — e null se il PREZZO non è scritto: `+p.prezzo || 0` convertiva un
+// prodotto senza prezzo in «0 €/t», cioè gratis, nel listino che si manda al
+// cliente, mentre la colonna `prezzo` accanto restava giustamente vuota. Lo
+// zero SCRITTO — un omaggio — resta zero. Trovato il 05/09 portando il file
+// nel modulo: la stessa domanda che l'08/08 aveva corretto una cella e non le
+// due accanto).
 export function prezzoPerTonnellata(prodotto) {
-  const p = prodotto || {}, v = +p.prezzo || 0;
+  const p = prodotto || {}, v = numeroDichiarato(p.prezzo);
+  if (v == null) return null;
   if (p.unitaPrezzo === "m3") { const d = densitaValida(p); return d ? round2(v / d) : null; }
   return round2(v);
 }
 
-// Prezzo del prodotto in €/metro cubo (null se manca la densità per convertire).
+// Prezzo del prodotto in €/metro cubo (null se manca la densità per convertire,
+// o se il prezzo non è scritto: vedi sopra).
 export function prezzoPerMetroCubo(prodotto) {
-  const p = prodotto || {}, v = +p.prezzo || 0;
+  const p = prodotto || {}, v = numeroDichiarato(p.prezzo);
+  if (v == null) return null;
   if (p.unitaPrezzo === "m3") return round2(v);
   const d = densitaValida(p);
   return d ? round2(v * d) : null;
@@ -5440,6 +5449,60 @@ export function csvProspettoClienti(clienti) {
   let csv = CSV_PROSPETTO_CLIENTI_INTESTAZIONE + "\n";
   for (const c of (clienti || []).filter(Boolean).slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
     csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
+  return csv;
+}
+
+/* LE ETICHETTE DEI GRUPPI DI COSTO E LA VOCE COME SI LEGGE (05/09, salite
+   dalla pagina): i gruppi si ricavano dalle voci di `shared/`, le etichette
+   sono l'unica cosa che vive in Conti — e un gruppo senza etichetta mostra la
+   sua chiave, che è brutta ma VISIBILE, invece di sparire. La voce è
+   l'etichetta se è nell'elenco, altrimenti la chiave scritta da chi ha
+   registrato il costo, che è comunque un'informazione. */
+export const ETICHETTA_GRUPPO = {
+  produzione: "Produzione", mezzi: "Mezzi e trasporti",
+  impianto: "Impianto e lavorazione", concessione: "Concessione e ambiente",
+  generali: "Spese generali", "non-classificata": "Voci non classificate",
+};
+export function etichettaGruppo(g) { return ETICHETTA_GRUPPO[g] || g; }
+export function leggiVoce(chiave) {
+  const v = voceCosto(chiave);
+  return v ? v.etichetta : (String(chiave || "").trim() || "(voce non indicata)");
+}
+
+/* IL PROSPETTO DEI COSTI DEL PERIODO (05/09, salito dalla pagina): il file per
+   il commercialista. Nel file vanno ANCHE le voci senza data, senza importo e
+   con importo a zero o negativo — marcate nella colonna `nel_periodo`, con la
+   ragione a parole — perché un file che le lascia fuori in silenzio è lo
+   stesso totale tranquillo di prima, solo che stavolta finisce dal
+   commercialista. L'importo passa da `cellaNum`: uno zero SCRITTO resta, quello
+   mai compilato lascia la cella vuota. Pura. */
+export const CSV_PROSPETTO_COSTI_INTESTAZIONE = "data;voce;gruppo;importo;nota;nel_periodo";
+export function csvProspettoCosti(costi, dal, al) {
+  const r = riepilogoCosti(costi || [], dal, al);
+  const riga = (c, nel) => `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};${nel}\n`;
+  let csv = CSV_PROSPETTO_COSTI_INTESTAZIONE + "\n";
+  for (const c of r.righe.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))))
+    csv += riga(c, "si");
+  for (const c of r.righeSenzaData)
+    csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza data)\n`;
+  // le voci senza importo non sparivano: uscivano alla prima riga di `riepilogoCosti`
+  for (const c of r.righeSenzaImporto)
+    csv += riga(c, "no (senza importo)");
+  for (const c of r.righeImportoNonPositivo)
+    csv += riga(c, "no (importo a zero o negativo)");
+  return csv;
+}
+
+/* IL LISTINO COI PREZZI CONVERTITI (05/09, salito dalla pagina): il foglio che
+   si manda al cliente. Un prodotto senza prezzo NON esce a zero (gratis), una
+   densità che non c'è non è una densità zero, e l'aliquota non scritta è
+   quella ordinaria — la stessa risposta di `csvListino` e `parseListinoCsv`,
+   non una seconda. Per nome. Pura. */
+export const CSV_PREZZI_CONVERTITI_INTESTAZIONE = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva";
+export function csvPrezziConvertiti(prodotti) {
+  let csv = CSV_PREZZI_CONVERTITI_INTESTAZIONE + "\n";
+  for (const p of (prodotti || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
+    csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? ALIQUOTA_ORDINARIA}\n`;
   return csv;
 }
 

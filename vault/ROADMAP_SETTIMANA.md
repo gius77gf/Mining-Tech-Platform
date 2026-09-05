@@ -450,8 +450,15 @@
   impostato esce vuoto), con `nomeMetodo`/`METODI_INCASSO` e `cellaNum`
   saliti dalla pagina; run-kpi +2 (2672); il banco `conti-documenti-che-escono`
   aveva lo stesso buco di Flotta (applicava solo alla pagina) e adesso legge
-  «6 difetti rimessi davvero». **Restano in Conti quattro**: costi,
-  listino_prezzi, pesate_ddt, preventivi. Comando di partenza:
+  «6 difetti rimessi davvero». Poi `csvProspettoCosti` (anche le voci senza
+  data/importo/a zero, marcate a parole) e `csvPrezziConvertiti`, con
+  `ETICHETTA_GRUPPO`/`etichettaGruppo`/`leggiVoce` saliti dalla pagina —
+  ⛔ e un difetto vero: `prezzoPerTonnellata`/`prezzoPerMetroCubo` facevano
+  `+p.prezzo || 0`, quindi un prodotto senza prezzo usciva «0 €/t» (gratis)
+  nel listino per il cliente mentre la colonna `prezzo` accanto era vuota —
+  la cella corretta l'08/08 e le due accanto no; adesso `null`, e lo zero
+  scritto resta zero. run-kpi +2 (2674). **Restano in Conti due**:
+  pesate_ddt e preventivi. Comando di partenza:
   `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
   domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
@@ -1647,8 +1654,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(resta
-  il libretto in Flotta, e quattro file in Conti: un paio per unità,
-  riancorando le iniezioni — e leggendo «N difetti rimessi davvero»)*
+  il libretto in Flotta, e due file in Conti — pesate_ddt e preventivi —
+  riancorando le iniezioni e leggendo «N difetti rimessi davvero»)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6564,8 +6571,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.153 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2672, `run-stile` 328,
+  **3.155 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2674, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
