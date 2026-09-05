@@ -899,6 +899,11 @@ body.dw.outdoor-mode .peggio-num small{
    320 px, e una riga in più a `nowrap` la farebbe scorrere di nuovo. */
 .tab td small.ev{white-space:normal; max-width:118px; font-variant-numeric:tabular-nums; letter-spacing:.1px}
 .tab td small.ev b{font-weight:600; color:var(--muted2)}
+/* il tag «fuori banda» dentro la riga dell'evento (04/09): a 320 px la cella
+   del valore è larga 55 px e una pillola a `nowrap` la faceva scorrere —
+   misurato dal banco, non dedotto. Va a capo dentro la cella, come il resto. */
+.tab td small.ev .tag.fb{display:inline-block; white-space:normal; line-height:1.35; margin-top:3px; max-width:100%;
+  font-size:9px; letter-spacing:.5px; padding:1px 5px}   /* «BANDA» a 9,5 px con 1 px di spaziatura chiedeva 2 px più della cella: misurato */
 .tab td.az{min-width:0}
 .prov-prima{
   display:block; margin-top:1px; font-size:10px; font-weight:400; line-height:1.4;
@@ -1794,7 +1799,7 @@ textarea.dw-input{
   import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
            scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
-           proponiColonneEvento, descriviEvento, provenienzaValore,
+           proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
@@ -2195,7 +2200,7 @@ textarea.dw-input{
       if (senzaVolata) suggerite++;
       return `<tr${an ? ' class="annullata"' : ""}>
         <td>${fmtD(l.data)}<small>${esc(l.ora || "—")}</small></td>
-        <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l)}</td>
+        <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, m)}</td>
         <td class="prov" title="${esc(descriviProvenienza(l, m))}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
           pr.corretta
             ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
@@ -3294,11 +3299,15 @@ textarea.dw-input{
      (anteprima, scheda del punto, report): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz»
      e, se il valore è la risultante calcolata dai tre assi, lo dice lì. Il
      testo lo compone `descriviEvento` nel modulo; qui solo l'HTML. */
-  const rigaEvento = (l) => {
+  const rigaEvento = (l, m) => {
     const d = descriviEvento(l);
     if (!d) return "";
     const pv = provenienzaValore(l);
-    return `<small class="ev">${pv.da === "risultante" ? "<b>risultante</b> · " : ""}${esc(d)}</small>`;
+    /* la frequenza fuori dalla banda della soglia (04/09): un tag con la
+       ragione nel title, niente limite inventato */
+    const fb = m ? frequenzaFuoriBanda(l, m) : null;
+    return `<small class="ev">${pv.da === "risultante" ? "<b>risultante</b> · " : ""}${esc(d)}${
+      fb && fb.giudicabile && fb.fuori ? ` <span class="tag warn fb" title="${esc(fb.perche)}">fuori banda</span>` : ""}</small>`;
   };
   function impAnteprima() {
     if (!impRighe.length) return;
@@ -3355,7 +3364,7 @@ textarea.dw-input{
         <td>${r.riga}</td>
         <td>${r.data ? fmtD(r.data) : `<span class="grezzo">${esc(r.dataRaw || "—")}</span>`}</td>
         <td>${esc(r.ora || "—")}</td>
-        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r)}</td>
+        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r, MON.find(x => x.id === $("imp-punto").value) || null)}</td>
         <td class="stato">${stato(r)}</td></tr>`).join("") +
       `</tbody>`;
 
@@ -3782,7 +3791,7 @@ textarea.dw-input{
       const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
       return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
-      <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l)}</td>
+      <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, p.m || null)}</td>
       <td class="prov" title="${esc(spiega)}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
         pr.corretta
           ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
@@ -3804,6 +3813,7 @@ textarea.dw-input{
     const conEvento = p.letture.filter(l => descriviEvento(l));
     const daRis = conEvento.filter(l => provenienzaValore(l).da === "risultante").length;
     const conAria = conEvento.some(l => provenienzaValore(l).nota);
+    const fuoriBanda = p.letture.map(l => frequenzaFuoriBanda(l, p.m || null)).filter(x => x.giudicabile && x.fuori);
     const evento = !conEvento.length ? ""
       : `<br><b>Colonne dello strumento:</b> ${conEvento.length === p.n ? (p.n === 1 ? "la lettura porta" : "tutte e " + p.n + " le letture portano") : conEvento.length + (conEvento.length === 1 ? " lettura su " : " letture su ") + p.n + (conEvento.length === 1 ? " porta" : " portano")} le colonne in più del file (assi, frequenza, sovrapressione). Valore di conformità: ${
           daRis === 0 ? "la colonna scelta nel file"
@@ -3812,7 +3822,8 @@ textarea.dw-input{
              il banco ha letto «per tutte» — e l'ente avrebbe letto lo stesso */
           : daRis === p.n ? "la <b>risultante dai tre assi</b> √(L²+T²+V²)" + (daRis === 1 ? "" : ", per tutte")
           : "la <b>risultante dai tre assi</b> √(L²+T²+V²) per " + daRis + (daRis === 1 ? " lettura" : " letture") + ", la colonna scelta nel file per le altre"}.${
-          conAria ? " La sovrapressione è nell'unità del file dello strumento." : ""}`;
+          conAria ? " La sovrapressione è nell'unità del file dello strumento." : ""}${
+          fuoriBanda.length ? ` <b>${fuoriBanda.length === 1 ? "Una lettura ha" : fuoriBanda.length + " letture hanno"} la frequenza fuori dalla banda della soglia applicata (${esc(fuoriBanda[0].banda)})</b>: il limite di quella banda non è in Sentinella e va verificato sulla norma.` : ""}`;
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
       <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}${evento}<br>
@@ -5059,11 +5070,18 @@ textarea.dw-input{
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
     const ricettoreId = $("sen-ricettore").value || "";
+    /* da quale preset nasce la soglia (04/09): si ricorda alla creazione, e in
+       modifica resta solo se soglia e unità sono ancora quelle — una soglia
+       riscritta a mano non ha più la banda del preset, e `frequenzaFuoriBanda`
+       lo dice invece di giudicare con una banda che non vale */
+    const scelto = $("sen-preset") && $("sen-preset").value ? $("sen-preset").value : "";
     if (editMon) {
-      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId });   // valore/letture restano
+      const prima = MON.find(x => x.id === editMon) || {};
+      const sogliaPreset = scelto || (prima.sogliaPreset && +prima.soglia === soglia && String(prima.unita || "") === unita ? prima.sogliaPreset : null);
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId, sogliaPreset });   // valore/letture restano
       editMon = null; $("btn-sen").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, valore: 0, letture: [] });
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, sogliaPreset: scelto || null, valore: 0, letture: [] });
     }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-ricettore").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";

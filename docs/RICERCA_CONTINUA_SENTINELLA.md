@@ -326,9 +326,14 @@ in una schermata senza il testo primario):
   un'esclusione. Misurato: `riepilogoConformita` cambia solo con la
   dichiarazione (run-kpi 2531 → 2545), banco `sentinella-annullate` 60/0 e
   controprova che cade (6 su 60) quando il filtro viene tolto.
-- (c) la frequenza dominante come campo facoltativo della lettura, che sceglie
-  la banda DIN al posto della chiave scritta a mano quando c'è: costo basso, ma
-  la tabella delle soglie è norma di seconda mano → fondatore prima.
+- (c) ✅ **fatta il 04/09, notte** — la frequenza è un campo della lettura
+  (`extra.freq`, dalla colonna dell'import) e `frequenzaFuoriBanda` dichiara
+  quando è fuori dalla banda della soglia applicata; la banda la dichiarano i
+  preset (`bandaPreset`, trascritta dall'etichetta) e il punto ricorda il
+  preset da cui nasce la soglia (`sogliaPreset`). ⚠️ Non «sceglie la banda
+  DIN al posto della chiave»: il limite dell'altra banda sarebbe un numero di
+  norma di seconda mano, quindi Sentinella dice «fuori banda» e rimanda alla
+  norma. Misurato: run-kpi +4, banco `sentinella-evento-import` 56/0.
 - (d) la NORMA della soglia (l'etichetta di `SOGLIE_NORMA`, «DIN
   residenziale, <10 Hz») scritta nel foglio per l'ente accanto al numero, così
   chi legge sa da dove viene il limite: costo basso; misura: il banco

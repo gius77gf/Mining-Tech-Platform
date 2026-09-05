@@ -36717,5 +36717,56 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine relazione di fine lavori (Terra, 04/09) ===== */
 
+/* ===== LA FREQUENZA FUORI DALLA BANDA DELLA SOGLIA (Sentinella, 04/09) =====
+   Le soglie DIN e USBM valgono per banda di frequenza; una lettura a 18 Hz
+   confrontata col limite «<10 Hz» è confrontata con un numero che non è il
+   suo. Il limite giusto NON è in Sentinella e non si inventa: si DICHIARA. Il
+   punto ricorda da quale preset è nata la soglia (`sogliaPreset`) e i preset
+   dichiarano la banda scritta nella loro etichetta. Prove sincrone. */
+{
+  const V1 = { ...sentinella.DEMO.monitoraggi.find((m) => m.id === "v1") };
+  test("Sentinella · bandaPreset: la banda è quella scritta nell'etichetta, e chi non la scrive non ne ha", () => {
+    eq(sentinella.bandaPreset("din-res-fond"), { da: null, a: 10, testo: "sotto 10 Hz" }, "<10 Hz");
+    eq(sentinella.bandaPreset("usbm-intonaco"), { da: 4, a: 15, testo: "4–15 Hz" }, "4-15 Hz");
+    eq(sentinella.bandaPreset("usbm-altafreq"), { da: 40, a: null, testo: "sopra 40 Hz" }, ">40 Hz");
+    eq(sentinella.bandaPreset("din-res-alto"), null, "«piano alto» non dice una banda: null, non una inventata");
+    eq(sentinella.bandaPreset("pm10-giorno"), null, "le polveri non hanno una banda");
+    eq(sentinella.bandaPreset("boh"), null, "un preset che non esiste");
+    for (const p of sentinella.SOGLIE_PRESET) {
+      const dice = /<(\d+) Hz|(\d+)-(\d+) Hz|>(\d+) Hz/.exec(p.etichetta);
+      eq(!!sentinella.bandaPreset(p.chiave), !!dice, "⛔ " + p.chiave + ": la banda c'è se e solo se l'etichetta la scrive");
+    }
+  });
+  test("⛔ Sentinella · frequenzaFuoriBanda: 18 Hz su una soglia «<10 Hz» è fuori banda, e lo dice senza inventare un limite", () => {
+    const r = sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, V1);
+    eq([r.giudicabile, r.fuori, r.freq, r.banda], [true, true, 18, "sotto 10 Hz"], "fuori");
+    eq(r.perche, "f 18 Hz: fuori dalla banda della soglia (sotto 10 Hz), e il limite di quella banda non è in Sentinella", "la ragione, senza un numero di norma");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 9.9 } }, V1).fuori, false, "9,9 Hz è dentro");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 10 } }, V1).fuori, true, "10 Hz è fuori da «<10»");
+    const u = sentinella.frequenzaFuoriBanda({ extra: { freq: 3 } }, { ...V1, sogliaPreset: "usbm-intonaco", soglia: 12.7 });
+    eq([u.fuori, u.banda], [true, "4–15 Hz"], "e sotto una banda con un «da»");
+  });
+  test("⛔ Sentinella · frequenzaFuoriBanda: quando non si può giudicare lo dice, con la ragione — mai un verde tranquillo", () => {
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: null } }, V1).giudicabile, false, "frequenza non letta");
+    eq(sentinella.frequenzaFuoriBanda({}, V1).perche, "la lettura non porta la frequenza", "lettura di sempre");
+    ok(/non viene da un preset/.test(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, sogliaPreset: null }).perche), "punto senza preset ricordato");
+    const cambiata = sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, soglia: 4 });
+    eq(cambiata.giudicabile, false, "⛔ soglia cambiata a mano dopo il preset: la banda non vale più");
+    ok(/cambiata a mano/.test(cambiata.perche), "e lo dice — era «" + cambiata.perche + "»");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, unita: "in/s" }).giudicabile, false, "anche un'unità diversa rompe il legame col preset");
+    ok(/non dichiara una banda/.test(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, sogliaPreset: "din-res-alto", soglia: 15 }).perche), "preset senza banda");
+    eq(sentinella.frequenzaFuoriBanda(null, null).giudicabile, false, "con niente in mano non esplode");
+  });
+  test("Sentinella · la dimostrazione: i due punti di vibrazione ricordano il preset da cui nasce la soglia, e la soglia è ancora quella", () => {
+    for (const id of ["v1", "v2"]) {
+      const m = sentinella.DEMO.monitoraggi.find((x) => x.id === id);
+      eq(m.sogliaPreset, "din-res-fond", id + " nasce da «residenziale, <10 Hz»");
+      eq(sentinella.presetSoglia(m.sogliaPreset).valore, m.soglia, "e la soglia del punto è quella del preset");
+    }
+    ok(sentinella.DEMO.monitoraggi.filter((m) => m.tipo !== "vibrazioni").every((m) => !m.sogliaPreset), "gli altri punti non ne hanno bisogno");
+  });
+}
+/* ===== fine frequenza fuori banda (Sentinella, 04/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -478,8 +478,18 @@
   cose che la patch non aveva: il ripiego sui dati proponeva la verticale
   come valore su «Longitudinale;Trasversale;Verticale», e il report scriveva
   «per tutte» con 2 risultanti su 6 letture (contava le letture con le
-  colonne, non quelle del periodo). ⏱️ Aperto: la frequenza è un campo della
-  lettura, ma non sceglie ancora la banda DIN (candidato (c) della ricerca).
+  colonne, non quelle del periodo). ✅ E il candidato (c) è fatto la notte
+  stessa: il punto ricorda il preset da cui nasce la soglia (`sogliaPreset`,
+  alla creazione; in modifica resta solo se soglia e unità non cambiano), i
+  preset dichiarano la banda scritta nella loro etichetta (`bandaPreset`), e
+  `frequenzaFuoriBanda` DICHIARA una lettura con la frequenza fuori dalla
+  banda della soglia applicata — tag «fuori banda» con la ragione, frase nel
+  report — senza inventare il limite della banda giusta, che è un numero di
+  norma di seconda mano e resta fuori; quando non si può giudicare (soglia
+  cambiata a mano, preset senza banda, frequenza non letta) lo dice. Il tag
+  dentro la cella da 55 px a 320 chiedeva 2 px in più e la tabella scorreva:
+  misurato dal banco, stretto. run-kpi +4, banco `sentinella-evento-import`
+  56/0 con terza iniezione.
 - [x] **SENTINELLA: LA LETTURA DICHIARATA NON VALIDA (04/09, cantiere parallelo
   dal delta della ricerca sui sismografi, rimisurato prima di committare).**
   Una lettura si dichiara non valida con la ragione (mezzo di passaggio,
@@ -6251,7 +6261,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.079 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.083 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

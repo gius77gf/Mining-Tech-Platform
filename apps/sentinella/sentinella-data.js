@@ -45,6 +45,8 @@ export { leggiCsv } from "../../shared/deepwork-id-client/dw-shell.js";
 export const DEMO = {
   monitoraggi: [
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07", ricettoreId: "rc1",
+      /* da quale preset nasce la soglia (04/09): è ciò che permette di dire se la frequenza di una lettura è fuori dalla sua banda */
+      sogliaPreset: "din-res-fond",
       /* Lo strumento in regola: il certificato copre tutte le letture. */
       tarature: [ { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "sismografo, canale terna" } ],
       /* LA CATENA DI CUSTODIA COMPLETA (T2d): tutte e quattro le letture
@@ -56,6 +58,7 @@ export const DEMO = {
                  { data: "2026-06-30", ora: "10:40", valore: 3.1, origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" } },
                  { data: "2026-07-12", ora: "11:15", valore: 1.8, origine: { da: "import", file: "V1_luglio.csv", quando: "2026-07-20T09:05:00" } } ] },
     { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07", ricettoreId: "rc2",
+      sogliaPreset: "din-res-fond",
       /* ⛔ IL BUCO FRA DUE TARATURE. Il certificato vecchio è scaduto il
          30/06 e il nuovo parte dal 10/07: le letture del 06/07 cadono in
          mezzo, e il report deve dirlo. È il caso per cui questa sezione
@@ -1105,13 +1108,18 @@ export function scartiVolateCsv(text) {
 // acustica comunale e dalla perizia. Il rumore ambientale NON è
 // preimpostato: il limite assoluto dipende dalla classe acustica,
 // quindi metterne uno fisso sarebbe fuorviante.
+/* `banda` (04/09): la banda di frequenza SCRITTA nell'etichetta del preset,
+   trascritta come campo — «<10 Hz» → { a: 10 }, «4-15 Hz» → { da: 4, a: 15 },
+   «>40 Hz» → { da: 40 }. Non è un numero nuovo: è lo stesso che l'etichetta
+   dice da sempre, reso leggibile a `frequenzaFuoriBanda`. I preset senza banda
+   nell'etichetta non ne ricevono una. */
 export const SOGLIE_PRESET = [
-  { chiave: "din-res-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, <10 Hz (DIN 4150-3)",        valore: 5,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 2" },
+  { chiave: "din-res-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, <10 Hz (DIN 4150-3)",        valore: 5,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 2", banda: { a: 10 } },
   { chiave: "din-res-alto",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, piano alto (DIN 4150-3)",    valore: 15,   unita: "mm/s",  fonte: "DIN 4150-3, piano più alto riga 2" },
-  { chiave: "din-sens-fond", tipo: "vibrazioni", etichetta: "Vibrazioni · sensibile/storico, <10 Hz (DIN 4150-3)",   valore: 3,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 3" },
-  { chiave: "din-ind-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · industriale/commerciale, <10 Hz (DIN 4150-3)", valore: 20, unita: "mm/s", fonte: "DIN 4150-3, fondazione riga 1" },
-  { chiave: "usbm-intonaco", tipo: "vibrazioni", etichetta: "Vibrazioni · volata su intonaco, 4-15 Hz (USBM RI8507)", valore: 12.7, unita: "mm/s", fonte: "USBM RI 8507" },
-  { chiave: "usbm-altafreq", tipo: "vibrazioni", etichetta: "Vibrazioni · volata, >40 Hz (USBM RI8507)",             valore: 50.8, unita: "mm/s",  fonte: "USBM RI 8507" },
+  { chiave: "din-sens-fond", tipo: "vibrazioni", etichetta: "Vibrazioni · sensibile/storico, <10 Hz (DIN 4150-3)",   valore: 3,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 3", banda: { a: 10 } },
+  { chiave: "din-ind-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · industriale/commerciale, <10 Hz (DIN 4150-3)", valore: 20, unita: "mm/s", fonte: "DIN 4150-3, fondazione riga 1", banda: { a: 10 } },
+  { chiave: "usbm-intonaco", tipo: "vibrazioni", etichetta: "Vibrazioni · volata su intonaco, 4-15 Hz (USBM RI8507)", valore: 12.7, unita: "mm/s", fonte: "USBM RI 8507", banda: { da: 4, a: 15 } },
+  { chiave: "usbm-altafreq", tipo: "vibrazioni", etichetta: "Vibrazioni · volata, >40 Hz (USBM RI8507)",             valore: 50.8, unita: "mm/s",  fonte: "USBM RI 8507", banda: { da: 40 } },
   { chiave: "airblast-133",  tipo: "airblast",   etichetta: "Sovrappressione d'aria da volata (USBM RI8485)",        valore: 133,  unita: "dB",    fonte: "USBM RI 8485 / OSM" },
   { chiave: "pm10-giorno",   tipo: "polveri",    etichetta: "PM10 · media giornaliera (UE 2008/50/CE)",              valore: 50,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
   { chiave: "pm10-anno",     tipo: "polveri",    etichetta: "PM10 · media annua (UE 2008/50/CE)",                    valore: 40,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
@@ -1123,6 +1131,46 @@ export const SOGLIE_PRESET = [
 export function presetSoglia(chiave) {
   const p = SOGLIE_PRESET.find(x => x.chiave === chiave);
   return p ? { ...p, daVerificare: true } : null;
+}
+
+// La banda di frequenza di un preset, con la sua frase: { da?, a?, testo } o
+// null se il preset non ne dichiara una (o non esiste). Pura.
+export function bandaPreset(chiave) {
+  const p = presetSoglia(chiave);
+  const b = p && p.banda && typeof p.banda === "object" ? p.banda : null;
+  if (!b || (b.da == null && b.a == null)) return null;
+  const testo = b.da != null && b.a != null ? b.da + "–" + b.a + " Hz" : b.a != null ? "sotto " + b.a + " Hz" : "sopra " + b.da + " Hz";
+  return { da: b.da == null ? null : +b.da, a: b.a == null ? null : +b.a, testo };
+}
+
+/* LA FREQUENZA FUORI DALLA BANDA DELLA SOGLIA (04/09, candidato (c) della
+   ricerca sui sismografi). Le soglie DIN e USBM valgono PER BANDA di
+   frequenza: «5 mm/s» è il limite sotto i 10 Hz, e una lettura a 18 Hz con
+   quel limite è confrontata con un numero che non è il suo. Il limite della
+   banda giusta NON è in Sentinella (sarebbe un numero di norma di seconda
+   mano) e non si inventa: qui si DICHIARA soltanto che la frequenza è fuori
+   dalla banda della soglia applicata. Serve che il punto ricordi da quale
+   preset è nata la sua soglia (`sogliaPreset`, salvato alla creazione) e che
+   la soglia sia ancora quella del preset: se è stata cambiata a mano, la banda
+   non vale più e lo si dice. Ritorna { giudicabile, fuori, freq, banda,
+   perche }; `giudicabile` false — con la ragione — quando la lettura non porta
+   la frequenza, il punto non viene da un preset, il preset non ha una banda, o
+   la soglia è stata cambiata. Pura. */
+export function frequenzaFuoriBanda(lettura, monitoraggio) {
+  const m = monitoraggio || {}, l = lettura || {};
+  const f = l.extra && typeof l.extra === "object" ? numeroDichiarato(l.extra.freq) : null;
+  if (f == null) return { giudicabile: false, fuori: null, freq: null, banda: null, perche: "la lettura non porta la frequenza" };
+  const p = m.sogliaPreset ? presetSoglia(m.sogliaPreset) : null;
+  if (!p) return { giudicabile: false, fuori: null, freq: f, banda: null, perche: "la soglia del punto non viene da un preset con una banda di frequenza" };
+  const sm = numeroDichiarato(m.soglia);
+  if (sm == null || sm !== p.valore || String(m.unita || "").trim().toLowerCase() !== String(p.unita).toLowerCase())
+    return { giudicabile: false, fuori: null, freq: f, banda: null,
+      perche: "la soglia del punto è stata cambiata a mano dopo il preset «" + p.etichetta + "»: la sua banda non vale più" };
+  const b = bandaPreset(m.sogliaPreset);
+  if (!b) return { giudicabile: false, fuori: null, freq: f, banda: null, perche: "il preset «" + p.etichetta + "» non dichiara una banda di frequenza" };
+  const fuori = (b.da != null && f < b.da) || (b.a != null && f >= b.a);
+  return { giudicabile: true, fuori, freq: f, banda: b.testo,
+    perche: fuori ? "f " + numeroIt(f) + " Hz: fuori dalla banda della soglia (" + b.testo + "), e il limite di quella banda non è in Sentinella" : "" };
 }
 
 // Distanza scalata (scaled distance) di una volata: SD = R / √W, dove R è

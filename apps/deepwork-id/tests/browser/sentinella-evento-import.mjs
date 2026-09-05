@@ -19,9 +19,11 @@
      · il report dichiara «Colonne dello strumento» e da dove viene il numero.
    La dimostrazione non ha nessun file: il caso lo si costruisce incollando,
    in memoria — niente si inietta nel modulo.
-   La controprova rimette due difetti nel modulo servito: `lettureLeggibili`
-   che perde `campiEvento` (la scheda torna a non mostrare gli assi) e
-   `risultanteAssi` che calcola anche a due assi. Il banco deve cadere. */
+   La controprova rimette tre difetti nel modulo servito: `lettureLeggibili`
+   che perde `campiEvento` (la scheda torna a non mostrare gli assi),
+   `risultanteAssi` che calcola anche a due assi, e `frequenzaFuoriBanda` che
+   non dichiara più la frequenza fuori dalla banda della soglia. Il banco
+   deve cadere. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -38,6 +40,10 @@ const DIFETTI_MODULO = [
    "                 valore: numeroDichiarato((x || {}).valore) }))   /* difetto rimesso dal banco */"],
   ["  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);\n  if (mancanti.length)",
    "  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);\n  if (mancanti.length === 3)   /* difetto rimesso dal banco */"],
+  /* (04/09, sera) la frequenza fuori banda che non si dichiara più: la lettura
+     a 18 Hz sotto una soglia «<10 Hz» resta senza tag e il report tace */
+  ["  const fuori = (b.da != null && f < b.da) || (b.a != null && f >= b.a);",
+   "  const fuori = false;   /* difetto rimesso dal banco */"],
 ];
 const colpiti = new Set();
 const srv = createServer((q, s) => {
@@ -125,7 +131,7 @@ for (const W of [320, 390]) {
   await scatta(pg, `${W}-1-colonne-proposte`);
 
   // con PVS come valore l'anteprima porta l'evento sotto il numero
-  const righe1 = await pg.$$eval("#imp-tab tbody tr", (e) => e.map((r) => ({ valore: r.cells[3].firstChild?.textContent.trim(), ev: r.querySelector("small.ev")?.textContent.replace(/\s+/g, " ").trim() || "", stato: r.cells[4].textContent.trim() })));
+  const righe1 = await pg.$$eval("#imp-tab tbody tr", (e) => e.map((r) => ({ valore: r.cells[3].firstChild?.textContent.trim(), ev: (() => { const s = r.querySelector("small.ev"); if (!s) return ""; const c = s.cloneNode(true); c.querySelectorAll(".tag").forEach((t) => t.remove()); return c.textContent.replace(/\s+/g, " ").trim(); })(), stato: r.cells[4].textContent.trim() })));
   dice(righe1.length === 3 && righe1.every((r) => r.stato === "entra"), "con PVS come valore tutte e tre le righe entrano", JSON.stringify(righe1));
   dice(righe1[0]?.valore === "4,4" && righe1[0]?.ev === "L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112", "e la prima riga scrive l'evento sotto il numero: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112»", JSON.stringify(righe1[0]));
   dice(righe1[1]?.ev === "L 1 · T — · V 2 · f 20 Hz · aria 110", "l'asse T vuoto della seconda riga si scrive «—», non si salta", JSON.stringify(righe1[1]));
@@ -133,7 +139,7 @@ for (const W of [320, 390]) {
   // ── 2 · «nessuna: risultante dai tre assi» ─────────────────────────────
   await pg.selectOption("#imp-col-valore", "-1");
   await pg.waitForTimeout(500);
-  const righe2 = await pg.$$eval("#imp-tab tbody tr", (e) => e.map((r) => ({ valore: r.cells[3].firstChild?.textContent.trim(), ev: r.querySelector("small.ev")?.textContent.replace(/\s+/g, " ").trim() || "", stato: r.cells[4].textContent.trim(), ko: r.classList.contains("ko") })));
+  const righe2 = await pg.$$eval("#imp-tab tbody tr", (e) => e.map((r) => ({ valore: r.cells[3].firstChild?.textContent.trim(), ev: (() => { const s = r.querySelector("small.ev"); if (!s) return ""; const c = s.cloneNode(true); c.querySelectorAll(".tag").forEach((t) => t.remove()); return c.textContent.replace(/\s+/g, " ").trim(); })(), stato: r.cells[4].textContent.trim(), ko: r.classList.contains("ko") })));
   dice(righe2[0]?.valore === "4,38" || righe2[0]?.valore === "4,383" || righe2[0]?.valore === "4,382921", "la prima riga vale la risultante √(2,1²+1,8²+3,4²) ≈ 4,38", JSON.stringify(righe2[0]));
   dice(/^risultante · L 2,1/.test(righe2[0]?.ev || ""), "e sotto il numero dice «risultante · L 2,1 …»", JSON.stringify(righe2[0]));
   dice(righe2[1]?.ko && /asse T non leggibile/.test(righe2[1]?.stato || "") && /2 assi su 3/.test(righe2[1]?.stato || ""), "⛔ la riga con l'asse T vuoto è SCARTATA: «asse T non leggibile: la risultante non si calcola con 2 assi su 3»", JSON.stringify(righe2[1]));
@@ -152,10 +158,16 @@ for (const W of [320, 390]) {
   const giaAperta = await pg.$eval('[data-graf-mon="v1"]', (e) => e.getAttribute("aria-expanded") === "true").catch(() => false);
   dice(giaAperta, "dopo l'import la serie storica di V1 è già aperta da sola", giaAperta);
   if (!giaAperta) { await pg.click('[data-graf-mon="v1"]').catch(() => {}); await pg.waitForTimeout(600); }
-  const righeV1 = await pg.$$eval("#graf-v1 table.tab tbody tr", (e) => e.map((r) => ({ data: r.cells[0].firstChild.textContent.trim(), valore: r.cells[1].firstChild?.textContent.trim(), ev: r.querySelector("small.ev")?.textContent.replace(/\s+/g, " ").trim() || "" }))).catch(() => []);
+  const righeV1 = await pg.$$eval("#graf-v1 table.tab tbody tr", (e) => e.map((r) => ({ data: r.cells[0].firstChild.textContent.trim(), valore: r.cells[1].firstChild?.textContent.trim(), ev: (() => { const s = r.querySelector("small.ev"); if (!s) return ""; const c = s.cloneNode(true); c.querySelectorAll(".tag").forEach((t) => t.remove()); return c.textContent.replace(/\s+/g, " ").trim(); })() }))).catch(() => []);
   const r0208 = righeV1.find((r) => r.data === "02/08/2026");
   dice(!!r0208 && /^risultante · L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112$/.test(r0208.ev), "⛔ nella serie storica di V1 la lettura del 02/08 porta la riga dell'evento sotto il valore", JSON.stringify(r0208 || righeV1.slice(0, 2)));
   dice(righeV1.filter((r) => r.ev).length === 2 && righeV1.filter((r) => !r.ev).length >= 4, "le due letture importate hanno l'evento, quelle della dimostrazione no", JSON.stringify(righeV1.map((r) => [r.data, !!r.ev])));
+  /* la frequenza fuori dalla banda della soglia (04/09): V1 nasce dal preset
+     «residenziale, <10 Hz» e la lettura del 02/08 è a 18 Hz — il tag lo dice,
+     con la ragione nel title e senza un limite inventato; quella del 04/08 è a
+     24 Hz, quindi anch'essa fuori: due tag su due letture con la frequenza */
+  const tagFb = await pg.$$eval("#graf-v1 table.tab tbody tr", (e) => e.map((r) => ({ data: r.cells[0].firstChild.textContent.trim(), fb: r.querySelector("small.ev .tag.fb")?.textContent.trim() || "", title: r.querySelector("small.ev .tag.fb")?.getAttribute("title") || "" })).filter((r) => r.fb)).catch(() => []);
+  dice(tagFb.length === 2 && tagFb.every((r) => r.fb === "fuori banda") && tagFb.some((r) => r.data === "02/08/2026" && /^f 18 Hz: fuori dalla banda della soglia \(sotto 10 Hz\), e il limite di quella banda non è in Sentinella$/.test(r.title)), "⛔ le letture a 18 e 24 Hz portano «fuori banda» (la soglia di V1 vale sotto i 10 Hz), con la ragione nel title e senza un limite inventato", JSON.stringify(tagFb));
   const dentro = await pg.evaluate(() => {
     const t = document.querySelector("#graf-v1 table.tab"); if (!t) return null;
     const box = t.parentElement.getBoundingClientRect();
@@ -171,11 +183,12 @@ for (const W of [320, 390]) {
   await pg.waitForTimeout(400);
   await pg.click("#btn-rep-anno").catch(() => {});
   await pg.waitForTimeout(900);
-  const punti = await pg.$$eval("#rep-doc .rep-punto", (e) => e.map((p) => ({ tit: p.querySelector(".rep-punto-tit")?.textContent.trim(), meta: p.querySelector(".rep-punto-meta")?.textContent.replace(/\s+/g, " ").trim() || "", ev: [...p.querySelectorAll("small.ev")].map((s) => s.textContent.replace(/\s+/g, " ").trim()) })));
+  const punti = await pg.$$eval("#rep-doc .rep-punto", (e) => e.map((p) => ({ tit: p.querySelector(".rep-punto-tit")?.textContent.trim(), meta: p.querySelector(".rep-punto-meta")?.textContent.replace(/\s+/g, " ").trim() || "", ev: [...p.querySelectorAll("small.ev")].map((s) => { const c = s.cloneNode(true); c.querySelectorAll(".tag").forEach((t) => t.remove()); return c.textContent.replace(/\s+/g, " ").trim(); }) })));
   const pv1 = punti.find((p) => /V1/.test(p.tit || ""));
   dice(!!pv1 && /Colonne dello strumento: 2 letture su \d+ portano le colonne in più del file \(assi, frequenza, sovrapressione\)/.test(pv1.meta), "il report di V1 dichiara «Colonne dello strumento: 2 letture su N portano le colonne in più»", pv1 && pv1.meta.slice(0, 500));
   dice(!!pv1 && /Valore di conformità: la risultante dai tre assi √\(L²\+T²\+V²\) per 2 letture, la colonna scelta nel file per le altre\./.test(pv1.meta), "e da dove viene il numero che giudica: la risultante per le 2 importate, la colonna per le altre", pv1 && pv1.meta.slice(0, 500));
   dice(!!pv1 && /La sovrapressione è nell'unità del file dello strumento\./.test(pv1.meta), "e che la sovrapressione è nell'unità del file: l'app non ne inventa una", pv1 && pv1.meta.slice(0, 500));
+  dice(!!pv1 && /2 letture hanno la frequenza fuori dalla banda della soglia applicata \(sotto 10 Hz\): il limite di quella banda non è in Sentinella e va verificato sulla norma\./.test(pv1.meta), "⛔ e il report dichiara le due letture con la frequenza fuori banda, rimandando alla norma per il limite", pv1 && pv1.meta.slice(0, 700));
   dice(!!pv1 && pv1.ev.length === 2 && pv1.ev.every((e) => /^risultante · L /.test(e)), "le due letture del report portano la riga dell'evento", JSON.stringify(pv1 && pv1.ev));
   const altri = punti.filter((p) => !/V1/.test(p.tit || ""));
   dice(altri.length >= 1 && altri.every((p) => !/Colonne dello strumento/.test(p.meta) && p.ev.length === 0), "⛔ sugli altri punti (polveri, rumore, V2) non si dichiara niente: non c'è niente da dichiarare", JSON.stringify(altri.map((p) => p.tit)));
