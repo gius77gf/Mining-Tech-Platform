@@ -1988,7 +1988,7 @@ label.item:has(.dw-chk:checked){
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
-    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo } from "./conti-data.js";
+    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -4871,126 +4871,36 @@ label.item:has(.dw-chk:checked){
     </div>`;
   }
 
+  /* Le righe, il piede, gli avvisi e i riquadri li compone `fogliaFattura` nel
+     modulo — le stesse funzioni che decidono i numeri a schermo — e qui si
+     disegna e basta. Il grassetto arriva come «**così**» e lo rende `md`. */
   function fogliFattura(f) {
-    const c = clienteDiFattura(f, CLI) || { ragioneSociale: f.cliente };
-    const im = importiFattura(f);
-    /* ⛔ IL FOGLIO LEGGE `statoFattura`, NON `statoIncasso`, e la differenza è
-       tutta in una parola. `statoIncasso` le note di credito non le conosce:
-       una fattura annullata per intero da una nota — che sull'ELENCO porta il
-       badge «Stornata», scritto lì apposta — usciva stampata con «Da
-       incassare» e il totale pieno. Cioè lo schermo diceva «annullata» e il
-       foglio che va in mano al cliente gli chiedeva i soldi.
-       È la stessa riga che il sollecito e l'estratto conto avevano già: le
-       note si passano ai documenti che ESCONO, sempre. */
-    const rie = riepilogoIvaFattura(f);
-    const st = statoFattura(f, INC, NOT);
-    const notePro = (NOT || []).filter(n => n && String(n.fatturaId) === String(f.id) && !n.bozza);
-    const righe = (f.righe && f.righe.length) ? f.righe : null;
-    const corpo = righe
-      ? righe.map(r => `<tr><td>${esc(r.descrizione || "—")}${r.ddt && r.ddt.length ? `<br><span style="font-size:8.5pt;color:#444;">DDT ${esc(r.ddt.join(", "))}</span>` : ""}</td>
-          <td class="num">${qtu(r.quantita, r.unita)}</td>
-          <td class="num">${eur(r.prezzoUnitario)}${+r.scontoPct > 0 ? `<br><span style="font-size:8.5pt;color:#444;">sconto ${perc(r.scontoPct)}</span>` : ""}</td>
-          ${/* ⛔ un'aliquota che non c'è NON si stampa «0%»: su una fattura è la
-                dichiarazione di un'operazione non imponibile, cioè una cosa
-                diversa da «non lo sappiamo». `perc(null)` faceva 0%. */""}
-          <td class="num">${r.aliquota == null ? "—" : perc(r.aliquota)}</td>
-          <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("")
-      : `<tr><td>Fornitura di materiali inerti${/* ⛔ QUANTITÀ E PREZZO UNITARIO NON SONO «—», SONO NON DETTAGLIATI.
-             Questa riga esce quando la fattura è registrata a IMPORTO UNICO,
-             senza il dettaglio delle righe: quei due dati non mancano per
-             sbaglio, non ci sono PER SCELTA. Due trattini in mezzo a una
-             tabella di numeri si leggono «niente da segnalare» — e su una
-             fattura, che è un documento fiscale, la differenza fra «non
-             dettagliato» e «vuoto» la nota chi la legge. Misurato l'08/08
-             premendo il bottone e leggendo il foglio: erano gli ultimi due
-             trattini non giudicati dei cinque fogli.
-             L'aliquota invece il trattino lo TIENE, ed è la decisione scritta
-             dodici righe più su: su una fattura un'aliquota che non c'è è la
-             dichiarazione di un'operazione non imponibile, cioè una cosa vera,
-             non un'assenza. Tre celle, due risposte diverse. */""}</td>
-          <td class="num">non dettagliata</td><td class="num">non dettagliato</td>
-          <td class="num">${im.conIva ? (im.aliquota == null ? "—" : perc(im.aliquota)) : "n.d."}</td>
-          <td class="num">${eur(im.conIva ? im.imponibile : im.totale)}</td></tr>`;
-    /* IL PIEDE DEL FOGLIO: una riga per ALIQUOTA, non una media.
-       ⛔ Prima c'era una riga sola con l'aliquota di `importiFattura`, che
-       quando la fattura ne ha più d'una la RICAVAVA PER DIVISIONE: su
-       5.000 € al 22% + 2.000 € al 10% scriveva «IVA 19%» — un'aliquota che in
-       Italia non esiste — sotto due righe che dicevano 22% e 10%. Il foglio si
-       smentiva da solo, e nell'anteprima della stessa fattura, un minuto
-       prima, le due bande erano scritte giuste. Adesso la decisione è una
-       sola e sta in `riepilogoIvaFattura`.
-       Le vecchie fatture a importo unico non cambiano: niente «IVA € 0,00»,
-       che sarebbe una dichiarazione falsa — si dice che il dettaglio non c'è. */
-    const chiusura = im.conIva
-      ? `<tr class="tot-riga"><td colspan="4">Totale imponibile</td><td class="num">${eur(im.imponibile)}</td></tr>
-         ${rie.bande.map((b, i) => `<tr><td colspan="4" style="border-bottom:none;">IVA${
-             b.aliquota == null ? " <b>(aliquota non indicata)</b>" : " " + perc(b.aliquota)
-           }${rie.bande.length > 1 ? " su " + eur(b.imponibile) : ""}</td><td class="num" style="border-bottom:none;">${eur(b.imposta)}</td></tr>`).join("")}
-         ${rie.bande.length > 1 ? `<tr><td colspan="4" style="border-bottom:none;">Totale imposta</td><td class="num" style="border-bottom:none;">${eur(rie.ivaRighe)}</td></tr>` : ""}
-         <tr class="tot-riga"><td colspan="4" class="grande">Totale fattura</td><td class="num grande">${eur(im.totale)}</td></tr>`
-      : `<tr class="tot-riga"><td colspan="4" class="grande">Totale documento</td><td class="num grande">${eur(im.totale)}</td></tr>`;
+    const F = fogliaFattura(f, { clienti: CLI, incassi: INC, note: NOT });
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    const nota = (t) => `<br><span style="font-size:8.5pt;color:#444;">${esc(t)}</span>`;
+    const corpo = F.righe.map(r => `<tr><td>${esc(r.descrizione)}${r.ddt ? nota(r.ddt) : ""}</td>
+          <td class="num">${esc(r.quantita)}</td>
+          <td class="num">${esc(r.prezzo)}${r.sconto ? nota(r.sconto) : ""}</td>
+          <td class="num">${esc(r.aliquota)}</td>
+          <td class="num">${esc(r.imponibile)}</td></tr>`).join("");
+    const chiusura = F.piede.map(r => r.tipo === "iva"
+      ? `<tr><td colspan="4" style="border-bottom:none;">${md(r.etichetta)}</td><td class="num" style="border-bottom:none;">${esc(r.valore)}</td></tr>`
+      : `<tr class="tot-riga"><td colspan="4"${r.tipo === "grande" ? ' class="grande"' : ""}>${md(r.etichetta)}</td><td class="num${r.tipo === "grande" ? " grande" : ""}">${esc(r.valore)}</td></tr>`).join("");
+    const tabellina = (T) => T ? `<table><thead><tr><th colspan="2">${esc(T.titolo)}</th></tr></thead><tbody>
+        ${T.righe.map(([a, b]) => `<tr><td>${esc(a)}</td><td class="num">${esc(b)}</td></tr>`).join("")}
+        </tbody><tfoot><tr class="tot-riga"><td>${esc(T.totale[0])}</td><td class="num">${esc(T.totale[1])}</td></tr></tfoot></table>` : "";
     return `<div class="doc">
-      ${testaStampa("Fattura", "n. <b>" + esc(f.numero || "—") + "</b> del " + fmtD(f.emessa))}
-      ${destStampa("Spett.le", c)}
-      <table><thead><tr>
-        <th>Descrizione</th><th class="num">Quantità</th><th class="num">Prezzo unitario</th>
-        <th class="num">IVA</th><th class="num">Imponibile</th>
-      </tr></thead><tbody>${corpo}</tbody>
+      ${testaStampa(F.titolo, "n. <b>" + esc(F.numero) + "</b> del " + esc(F.data))}
+      ${destStampa("Spett.le", F.cliente)}
+      <table><thead><tr>${F.colonne.map((c, i) => `<th${i ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${corpo}</tbody>
       <tfoot>${chiusura}</tfoot></table>
-      ${im.conIva ? "" : `<div class="manca">Questa fattura è registrata come <b>importo unico</b>, senza il dettaglio dell'IVA: il foglio non può indicarla. Aprila in Conti con la matita, scegli l'aliquota e ristampala.</div>`}
-      ${/* ⛔ LE RIGHE STAMPATE CHE NON TORNANO COL PIEDE. Ci si arriva con la ✎:
-            quella riscrive imponibile, IVA e totale e NON tocca `righe`, quindi
-            una fattura nata da tre DDT e poi corretta a mano esce con le righe
-            che sommano una cifra e il piede che ne dice un'altra. Ogni numero,
-            preso da solo, sembra giusto: è il difetto peggiore che un documento
-            possa avere, e l'unica difesa è scriverlo sul foglio. */""}
-      ${rie.quadra ? "" : `<div class="manca"><b>Le righe qui sopra non tornano con il totale.</b>
-        Sommate danno ${eur(rie.imponibileRighe)} di imponibile e ${eur(rie.ivaRighe)} di IVA
-        (${eur(rie.totaleRighe)} in tutto); il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}
-        = <b>${eur(im.totale)}</b>, ed è questo il totale che Conti chiede al cliente.
-        Succede quando una fattura nata dai DDT viene poi corretta a mano: rifalla dai DDT, oppure
-        correggi le righe, prima di consegnarla.</div>`}
-      ${notePro.length ? `<div class="manca"><b>Questa fattura è stata ${st.stato === "stornata" ? "annullata" : "rettificata in parte"} da ${notePro.length === 1 ? "una nota di credito" : notePro.length + " note di credito"}</b>
-        (art. 26 DPR 633/1972) per ${eur(st.stornato)}${st.stato === "stornata"
-          ? ": non c'è più niente da pagare, e il totale qui sopra resta scritto perché è quello del documento originale."
-          : `: resta esigibile <b>${eur(st.esigibile)}</b>.`}</div>` : ""}
+      ${F.avvisi.map(a => `<div class="manca">${md(a)}</div>`).join("")}
       <div class="cols">
-        ${/* «Pagamento entro il —» era un campo vuoto che non diceva perché. La
-              scadenza manca sul serio (le fatture importate da CSV arrivano
-              spesso senza) oppure la data scritta non esiste: in tutt'e due i
-              casi si scrive, come fa già il foglio del preventivo. */""}
-        <div class="box"><span class="et">Pagamento entro il</span>${
-          fmtD(f.scadenza, "") || "<b>non indicato</b>"}</div>
-        <div class="box"><span class="et">Stato</span>${st.stato === "stornata"
-          ? "Annullata da nota di credito"
-          : st.saldata ? "Saldata" + (st.dataSaldo ? " il " + fmtD(st.dataSaldo) : "")
-              /* ⛔ SU UN FOGLIO CHE VA AL CLIENTE, «Saldata» E BASTA È UNA MEZZA
-                 VERITÀ QUANDO GLI DOBBIAMO DEI SOLDI. Succede appena una nota
-                 di credito arriva DOPO il pagamento (reso, abbuono): quello che
-                 aveva già versato supera quello che gli si può chiedere, e
-                 finché il conto si fermava a `residuo` quella differenza
-                 spariva dentro un `Math.max(0, …)`. Adesso `statoFattura` la
-                 conta, e il posto dove dirla è questo. */
-              + (st.aCreditoCliente > 0 ? " · a credito " + eur(st.aCreditoCliente) + " da rimborsare" : "")
-          : st.parziale ? "Acconti " + eur(st.incassato) + " — residuo " + eur(st.residuo)
-          : st.stornato > 0 ? "Da incassare " + eur(st.residuo) + " (dopo la nota di credito)"
-          : "Da incassare"}</div>
-        ${(f.ddtIds || []).length ? `<div class="box"><span class="et">Consegne fatturate</span>${plur((f.ddtIds || []).length, "DDT", "DDT")}</div>` : ""}
+        ${F.riquadri.map(([et, t, manca]) => `<div class="box"><span class="et">${esc(et)}</span>${manca ? "<b>" + esc(t) + "</b>" : esc(t)}</div>`).join("")}
       </div>
-      ${notePro.length ? `<table><thead><tr><th colspan="2">Note di credito su questa fattura</th></tr></thead><tbody>
-        ${notePro.map(n => `<tr><td>${esc(n.numero || "—")}${n.emessa ? " del " + fmtD(n.emessa) : ""}${
-            (causaleNota(n.causale) || {}).label ? " · " + esc(causaleNota(n.causale).label) : ""}</td>
-          <td class="num">− ${eur(n.totale)}</td></tr>`).join("")}
-        </tbody><tfoot><tr class="tot-riga"><td>Importo ancora esigibile</td>
-        <td class="num">${eur(st.esigibile)}</td></tr></tfoot></table>` : ""}
-      ${st.movimenti.length ? `<table><thead><tr><th colspan="2">Incassi registrati</th></tr></thead><tbody>
-        ${st.movimenti.map(m => `<tr><td>${fmtD(m.data)} · ${esc(nomeMetodo(m.metodo))}</td><td class="num">${eur(m.importo)}</td></tr>`).join("")}
-        </tbody><tfoot><tr class="tot-riga"><td>${st.saldata ? "Totale incassato" : "Residuo da incassare"}</td>
-        <td class="num">${eur(st.saldata ? st.incassato : st.residuo)}</td></tr></tfoot></table>` : ""}
-      <div class="piede">Documento di cortesia stampato da Conti. <b>Non sostituisce la fattura elettronica</b>:
-        l'originale è il file XML trasmesso al Sistema di Interscambio. L'invio allo SdI e la conservazione
-        a norma si fanno <b>gratis</b> dal portale <b>Fatture e Corrispettivi</b> dell'Agenzia delle Entrate,
-        oppure tramite il tuo commercialista.</div>
+      ${tabellina(F.noteCredito)}
+      ${tabellina(F.incassi)}
+      <div class="piede">${md(F.piedeLegale)}</div>
     </div>`;
   }
 

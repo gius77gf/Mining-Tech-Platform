@@ -193,9 +193,10 @@ const DIFETTI = {
      su una fattura si leggevano «niente da segnalare» invece di «non
      dettagliati». Serve perché una regola nuova senza la sua controprova è una
      riga che non si sa se sappia fallire. */
-  "apps/conti/index.html": [
-    ['<td class="num">non dettagliata</td><td class="num">non dettagliato</td>',
-     '<td class="num">—</td><td class="num">—</td>'],
+  "apps/conti/conti-data.js": [
+    /* ⏱️ dal 05/09 la riga la compone `fogliaFattura` nel modulo */
+    ['quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "",',
+     'quantita: "—", prezzo: "—", sconto: "",'],
   ],
   "apps/sentinella/sentinella-data.js": [
     // 4. il filtro che giudica la data da com'è scritta

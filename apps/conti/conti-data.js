@@ -75,7 +75,7 @@
 // ============================================================
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
-         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -5408,6 +5408,125 @@ export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo";
    e i file li leggono dallo stesso elenco. Un metodo che non c'è si scrive «—». */
 export const METODI_INCASSO = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
                                ["riba","RiBa / SDD"],["altro","Altro"]];
+/* IL FOGLIO DELLA FATTURA (05/09), nella forma dei fogli di Terra: le righe,
+   il piede, gli avvisi e i riquadri del documento che va in mano al cliente si
+   compongono qui, e la pagina disegna e basta. Fino a oggi vivevano in
+   `fogliFattura` nella pagina, dove nessuna prova senza browser li legge — ed
+   è lì che sono vissuti l'«IVA 19%» ricavata per divisione, lo stato letto
+   senza le note di credito («Da incassare» su una fattura annullata), i due
+   trattini della riga a importo unico. Ogni numero lo decide la funzione che lo
+   decide a schermo (`importiFattura`, `riepilogoIvaFattura`, `statoFattura`):
+   qui si legge, non si rifà. Nei testi il grassetto si scrive «**così**».
+   Righe del piede: `{tipo: "tot" | "iva" | "grande", etichetta, valore,
+   mancante}`. `nonMisurati` elenca ciò che sul foglio è dichiarato mancante.
+   Pura. */
+const NUM2_IT = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+const NUM0_IT = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+const unitaTx = (u) => (u === "m3" ? "m³" : "t");
+const percTx = (v) => NUM0_IT.format(+v || 0) + "%";
+export function fogliaFattura(fattura, opzioni) {
+  const { clienti, incassi, note } = opzioni || {};
+  const f = fattura || {};
+  const im = importiFattura(f);
+  const rie = riepilogoIvaFattura(f);
+  /* ⛔ `statoFattura`, NON `statoIncasso`: le note di credito le conosce solo
+     la prima, e una fattura annullata per intero usciva «Da incassare» col
+     totale pieno — lo schermo diceva «Stornata», il foglio chiedeva i soldi */
+  const st = statoFattura(f, Array.isArray(incassi) ? incassi : [], Array.isArray(note) ? note : []);
+  const notePro = (Array.isArray(note) ? note : []).filter((n) => n && String(n.fatturaId) === String(f.id) && !n.bozza);
+  const nonMisurati = [];
+  const righeF = Array.isArray(f.righe) && f.righe.length ? f.righe : null;
+  const righe = righeF
+    ? righeF.map((r) => ({
+        descrizione: String((r && r.descrizione) || "—"),
+        ddt: r && r.ddt && r.ddt.length ? "DDT " + r.ddt.join(", ") : "",
+        // una quantità o un prezzo che non ci sono non si stampano «0,00»: su
+        // una fattura uno zero è un dato, non un'assenza
+        quantita: r && r.quantita != null && r.quantita !== "" ? NUM2_IT.format(+r.quantita || 0) + " " + unitaTx(r.unita) : "non indicata",
+        prezzo: r && r.prezzoUnitario != null && r.prezzoUnitario !== "" ? euro(r.prezzoUnitario) : "non indicato",
+        sconto: r && +r.scontoPct > 0 ? "sconto " + percTx(r.scontoPct) : "",
+        /* ⛔ un'aliquota che non c'è NON si stampa «0%»: su una fattura è la
+           dichiarazione di un'operazione non imponibile, cioè una cosa diversa
+           da «non lo sappiamo» */
+        aliquota: r && r.aliquota == null ? "—" : percTx(r.aliquota),
+        imponibile: r && r.imponibile == null ? "—" : euro(r.imponibile),
+      }))
+    /* ⛔ QUANTITÀ E PREZZO UNITARIO NON SONO «—», SONO NON DETTAGLIATI: la
+       fattura a importo unico non li ha PER SCELTA, e due trattini in mezzo a
+       una tabella di numeri si leggono «niente da segnalare». L'aliquota il
+       trattino lo tiene: su una fattura un'aliquota che non c'è è una
+       dichiarazione, non un'assenza. Tre celle, due risposte diverse. */
+    : [{ descrizione: "Fornitura di materiali inerti", ddt: "", quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "",
+        aliquota: im.conIva ? (im.aliquota == null ? "—" : percTx(im.aliquota)) : "n.d.",
+        imponibile: euro(im.conIva ? im.imponibile : im.totale) }];
+  /* IL PIEDE: una riga per ALIQUOTA, non una media — la decisione è una sola e
+     sta in `riepilogoIvaFattura`. Le fatture a importo unico non stampano
+     «IVA € 0,00», che sarebbe una dichiarazione falsa: si dice che il
+     dettaglio non c'è. */
+  const piede = im.conIva
+    ? [{ tipo: "tot", etichetta: "Totale imponibile", valore: euro(im.imponibile), mancante: false }]
+      .concat(rie.bande.map((b) => ({ tipo: "iva",
+        etichetta: "IVA" + (b.aliquota == null ? " **(aliquota non indicata)**" : " " + percTx(b.aliquota)) + (rie.bande.length > 1 ? " su " + euro(b.imponibile) : ""),
+        valore: euro(b.imposta), mancante: b.aliquota == null })))
+      .concat(rie.bande.length > 1 ? [{ tipo: "iva", etichetta: "Totale imposta", valore: euro(rie.ivaRighe), mancante: false }] : [])
+      .concat([{ tipo: "grande", etichetta: "Totale fattura", valore: euro(im.totale), mancante: false }])
+    : [{ tipo: "grande", etichetta: "Totale documento", valore: euro(im.totale), mancante: false }];
+  if (im.conIva && rie.bande.some((b) => b.aliquota == null)) nonMisurati.push("Aliquota IVA (non indicata su una o più righe)");
+  const avvisi = [];
+  if (!im.conIva) {
+    avvisi.push("Questa fattura è registrata come **importo unico**, senza il dettaglio dell'IVA: il foglio non può indicarla. Aprila in Conti con la matita, scegli l'aliquota e ristampala.");
+    nonMisurati.push("IVA (fattura a importo unico, senza il dettaglio)");
+  }
+  /* ⛔ LE RIGHE STAMPATE CHE NON TORNANO COL PIEDE: la ✎ riscrive imponibile,
+     IVA e totale e non tocca `righe`. Ogni numero, preso da solo, sembra
+     giusto: l'unica difesa è scriverlo sul foglio. */
+  if (!rie.quadra)
+    avvisi.push("**Le righe qui sopra non tornano con il totale.** Sommate danno " + euro(rie.imponibileRighe) + " di imponibile e " + euro(rie.ivaRighe) + " di IVA ("
+      + euro(rie.totaleRighe) + " in tutto); il documento è registrato per " + euro(im.imponibile) + " + " + euro(im.ivaImporto) + " = **" + euro(im.totale)
+      + "**, ed è questo il totale che Conti chiede al cliente. Succede quando una fattura nata dai DDT viene poi corretta a mano: rifalla dai DDT, oppure correggi le righe, prima di consegnarla.");
+  if (notePro.length)
+    avvisi.push("**Questa fattura è stata " + (st.stato === "stornata" ? "annullata" : "rettificata in parte") + " da "
+      + (notePro.length === 1 ? "una nota di credito" : notePro.length + " note di credito") + "** (art. 26 DPR 633/1972) per " + euro(st.stornato)
+      + (st.stato === "stornata"
+        ? ": non c'è più niente da pagare, e il totale qui sopra resta scritto perché è quello del documento originale."
+        : ": resta esigibile **" + euro(st.esigibile) + "**."));
+  /* i riquadri: la scadenza che manca si DICE (le fatture importate da CSV
+     arrivano spesso senza), e «Saldata» e basta è una mezza verità quando al
+     cliente dobbiamo dei soldi — la nota di credito arrivata dopo il
+     pagamento la conta `statoFattura`, e il posto dove dirla è questo */
+  const scad = dataIt(f.scadenza, "");
+  const riquadri = [
+    scad ? ["Pagamento entro il", scad, false] : ["Pagamento entro il", "non indicato", true],
+    ["Stato", st.stato === "stornata"
+      ? "Annullata da nota di credito"
+      : st.saldata ? "Saldata" + (st.dataSaldo ? " il " + dataIt(st.dataSaldo) : "")
+          + (st.aCreditoCliente > 0 ? " · a credito " + euro(st.aCreditoCliente) + " da rimborsare" : "")
+      : st.parziale ? "Acconti " + euro(st.incassato) + " — residuo " + euro(st.residuo)
+      : st.stornato > 0 ? "Da incassare " + euro(st.residuo) + " (dopo la nota di credito)"
+      : "Da incassare", false],
+  ];
+  if (!scad) nonMisurati.push("Scadenza di pagamento (non indicata" + (f.scadenza ? ": la data scritta non esiste" : "") + ")");
+  const nDdt = Array.isArray(f.ddtIds) ? f.ddtIds.length : 0;
+  if (nDdt) riquadri.push(["Consegne fatturate", conta(nDdt, "DDT", "DDT"), false]);
+  const noteCredito = notePro.length ? {
+    titolo: "Note di credito su questa fattura",
+    righe: notePro.map((n) => [String(n.numero || "—") + (n.emessa ? " del " + dataIt(n.emessa) : "")
+      + ((causaleNota(n.causale) || {}).label ? " · " + causaleNota(n.causale).label : ""), "− " + euro(n.totale)]),
+    totale: ["Importo ancora esigibile", euro(st.esigibile)],
+  } : null;
+  const movimenti = st.movimenti.length ? {
+    titolo: "Incassi registrati",
+    righe: st.movimenti.map((m) => [dataIt(m.data) + " · " + nomeMetodo(m.metodo), euro(m.importo)]),
+    totale: [st.saldata ? "Totale incassato" : "Residuo da incassare", euro(st.saldata ? st.incassato : st.residuo)],
+  } : null;
+  const cliente = clienteDiFattura(f, Array.isArray(clienti) ? clienti : []) || { ragioneSociale: f.cliente };
+  return { titolo: "Fattura", numero: String(f.numero || "—"), data: dataIt(f.emessa), cliente,
+    colonne: ["Descrizione", "Quantità", "Prezzo unitario", "IVA", "Imponibile"], dettagliata: !!righeF,
+    righe, piede, avvisi, riquadri, noteCredito, incassi: movimenti, stato: st.stato,
+    piedeLegale: "Documento di cortesia stampato da Conti. **Non sostituisce la fattura elettronica**: l'originale è il file XML trasmesso al Sistema di Interscambio. L'invio allo SdI e la conservazione a norma si fanno **gratis** dal portale **Fatture e Corrispettivi** dell'Agenzia delle Entrate, oppure tramite il tuo commercialista.",
+    nonMisurati };
+}
+
 export function nomeMetodo(m) { return (METODI_INCASSO.find(x => x[0] === m) || ["","—"])[1]; }
 
 /* LA CELLA DI UN NUMERO IN UN FILE (05/09, salita dalla pagina): vuota quando

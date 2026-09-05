@@ -38178,6 +38178,104 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine prospetto della denuncia nel modulo (05/09) ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL FOGLIO DELLA FATTURA SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliFattura` nella pagina componeva righe, piede, avvisi e riquadri del
+   documento che va in mano al cliente: l'«IVA 19%» per divisione, lo stato
+   senza le note di credito e i due trattini della riga a importo unico sono
+   vissuti tutti lì. Adesso `fogliaFattura(f, {clienti, incassi, note})` li
+   restituisce in testo e la pagina disegna. */
+{
+  const D = conti.DEMO;
+  const E = shell.euro;
+  const base = { id: "x", numero: "2026/099", cliente: "Prova Srl", emessa: "2026-07-01", scadenza: "2026-07-31",
+    righe: [{ descrizione: "Stabilizzato 0/30", quantita: 500, unita: "t", prezzoUnitario: 10, scontoPct: 0, imponibile: 5000, aliquota: 22, ddt: ["2026/020"] },
+      { descrizione: "Massi da scogliera", quantita: 200, unita: "m3", prezzoUnitario: 10, scontoPct: 5, imponibile: 2000, aliquota: 10, ddt: ["2026/021"] }],
+    ddtIds: ["zd1", "zd2"], imponibile: 7000, ivaImporto: 1300, totale: 8300, importo: 8300, aliquotaIva: null };
+  const nota = (tot) => ({ id: "n1", fatturaId: "x", numero: "NC 1", emessa: "2026-08-01", totale: tot, causale: "resa", bozza: false });
+  const inc = (imp, data) => ({ id: "i1", fatturaId: "x", data, importo: imp, metodo: "bonifico" });
+  const riq = (F, et) => F.riquadri.find((r) => r[0] === et);
+  test("Conti · fogliaFattura: la fattura a IMPORTO UNICO della dimostrazione — «non dettagliata», non «—», e l'IVA che il foglio non può indicare", () => {
+    const f = D.fatture.find((x) => x.id === "f1");
+    const F = conti.fogliaFattura(f, { clienti: D.clienti, incassi: D.incassi, note: [] });
+    eq([F.titolo, F.numero, F.data, F.dettagliata], ["Fattura", "2026/031", "07/06/2026", false]);
+    eq(F.cliente.ragioneSociale, "Edilcave Srl", "il cliente è quello di clienteDiFattura");
+    eq(F.righe, [{ descrizione: "Fornitura di materiali inerti", ddt: "", quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "", aliquota: "n.d.", imponibile: E(18300) }],
+      "⛔ quantità e prezzo NON sono «—»: non ci sono per scelta, e due trattini si leggono «niente da segnalare»");
+    eq(F.piede, [{ tipo: "grande", etichetta: "Totale documento", valore: E(18300), mancante: false }], "niente «IVA € 0,00», che sarebbe una dichiarazione falsa");
+    ok(/registrata come \*\*importo unico\*\*/.test(F.avvisi[0]), F.avvisi[0]);
+    ok(F.nonMisurati.includes("IVA (fattura a importo unico, senza il dettaglio)"), F.nonMisurati.join(" · "));
+    const st = conti.statoFattura(f, D.incassi, []);
+    eq(riq(F, "Stato"), ["Stato", "Acconti " + E(st.incassato) + " — residuo " + E(st.residuo), false], "lo stato è quello di statoFattura");
+    eq(F.incassi.righe, [["02/07/2026 · Bonifico", E(6000)]]); eq(F.incassi.totale, ["Residuo da incassare", E(st.residuo)]);
+    eq(F.noteCredito, null); eq(riq(F, "Consegne fatturate"), undefined, "senza DDT il riquadro non c'è");
+  });
+  test("Conti · fogliaFattura: la fattura DETTAGLIATA — le righe coi DDT e lo sconto, il piede una riga per aliquota, «2 DDT»", () => {
+    const F = conti.fogliaFattura(base, {});
+    eq(F.dettagliata, true);
+    eq(F.righe[0], { descrizione: "Stabilizzato 0/30", ddt: "DDT 2026/020", quantita: "500,00 t", prezzo: E(10), sconto: "", aliquota: "22%", imponibile: E(5000) });
+    eq(F.righe[1].quantita, "200,00 m³"); eq(F.righe[1].sconto, "sconto 5%"); eq(F.righe[1].aliquota, "10%");
+    eq(F.piede.map((r) => [r.tipo, r.etichetta, r.valore]), [
+      ["tot", "Totale imponibile", E(7000)],
+      ["iva", "IVA 10% su " + E(2000), E(200)],
+      ["iva", "IVA 22% su " + E(5000), E(1100)],
+      ["iva", "Totale imposta", E(1300)],
+      ["grande", "Totale fattura", E(8300)],
+    ], "⛔ una riga per aliquota (10% e 22%), MAI una media «19%»");
+    eq(riq(F, "Consegne fatturate"), ["Consegne fatturate", "2 DDT", false]);
+    eq(riq(F, "Stato"), ["Stato", "Da incassare", false]);
+    eq(F.avvisi, []); eq(F.nonMisurati, []); eq(F.incassi, null);
+    ok(/\*\*Non sostituisce la fattura elettronica\*\*/.test(F.piedeLegale), "il piede legale dice che è un documento di cortesia");
+  });
+  test("Conti · fogliaFattura: le righe che non tornano col piede si DICONO sul foglio; quantità e prezzo assenti su una riga non sono «0,00»", () => {
+    const F = conti.fogliaFattura({ ...base, imponibile: 7500, ivaImporto: 1410, totale: 8910 }, {});
+    ok(F.avvisi.length === 1 && /^\*\*Le righe qui sopra non tornano con il totale\.\*\* Sommate danno /.test(F.avvisi[0]), F.avvisi.join(" | "));
+    ok(F.avvisi[0].includes(E(8300) + " in tutto") && F.avvisi[0].includes("= **" + E(8910) + "**"), "con i due totali scritti — " + F.avvisi[0]);
+    eq(F.piede[F.piede.length - 1].valore, E(8910), "e il piede resta quello registrato: è quello che Conti chiede al cliente");
+    const G = conti.fogliaFattura({ ...base, righe: [{ descrizione: "A", quantita: null, unita: "t", prezzoUnitario: "", imponibile: 1000, aliquota: null }] }, {});
+    eq([G.righe[0].quantita, G.righe[0].prezzo, G.righe[0].aliquota], ["non indicata", "non indicato", "—"],
+      "⛔ quantità e prezzo che mancano si dichiarano; l'aliquota che manca resta «—» (su una fattura è una dichiarazione, non un'assenza)");
+  });
+  test("Conti · fogliaFattura: le note di credito — annullata, rettificata in parte, saldata con un credito da rimborsare", () => {
+    const S = conti.fogliaFattura(base, { note: [nota(8300)] });
+    eq(S.stato, "stornata"); eq(riq(S, "Stato"), ["Stato", "Annullata da nota di credito", false], "⛔ non «Da incassare» col totale pieno");
+    ok(/^\*\*Questa fattura è stata annullata da una nota di credito\*\* \(art\. 26 DPR 633\/1972\) per /.test(S.avvisi[0]) && /non c'è più niente da pagare/.test(S.avvisi[0]), S.avvisi[0]);
+    eq(S.noteCredito, { titolo: "Note di credito su questa fattura", righe: [["NC 1 del 01/08/2026 · " + conti.causaleNota("resa").label, "− " + E(8300)]], totale: ["Importo ancora esigibile", E(0)] });
+    const P = conti.fogliaFattura(base, { note: [nota(300)] });
+    eq(riq(P, "Stato"), ["Stato", "Da incassare " + E(8000) + " (dopo la nota di credito)", false]);
+    ok(/rettificata in parte da una nota di credito\*\*/.test(P.avvisi[0]) && P.avvisi[0].endsWith(": resta esigibile **" + E(8000) + "**."), P.avvisi[0]);
+    const C = conti.fogliaFattura(base, { incassi: [inc(8300, "2026-07-10")], note: [nota(300)] });
+    eq(riq(C, "Stato"), ["Stato", "Saldata il 10/07/2026 · a credito " + E(300) + " da rimborsare", false], "⛔ «Saldata» e basta è una mezza verità quando al cliente dobbiamo dei soldi");
+    eq(C.incassi.totale, ["Totale incassato", E(8300)]);
+    const N = conti.fogliaFattura(base, { note: [nota(300), { ...nota(100), id: "n2", numero: "NC 2" }] });
+    ok(/da 2 note di credito\*\*/.test(N.avvisi[0]), "«2 note di credito» — " + N.avvisi[0]);
+    const B = conti.fogliaFattura(base, { note: [{ ...nota(8300), bozza: true }] });
+    eq(B.noteCredito, null, "una nota in bozza non è ancora una nota"); eq(riq(B, "Stato")[1], "Da incassare");
+  });
+  test("Conti · fogliaFattura: la scadenza che manca o non esiste si dice; con niente non rompe", () => {
+    const A = conti.fogliaFattura({ ...base, scadenza: null }, {});
+    eq(riq(A, "Pagamento entro il"), ["Pagamento entro il", "non indicato", true]);
+    ok(A.nonMisurati.includes("Scadenza di pagamento (non indicata)"), A.nonMisurati.join(" · "));
+    const Z = conti.fogliaFattura({ ...base, scadenza: "2026-02-30" }, {});
+    eq(riq(Z, "Pagamento entro il"), ["Pagamento entro il", "non indicato", true], "⛔ il 30 febbraio non si stampa come una data");
+    ok(Z.nonMisurati.includes("Scadenza di pagamento (non indicata: la data scritta non esiste)"), Z.nonMisurati.join(" · "));
+    for (const args of [[null], [undefined, null], [{}, {}], [{ righe: [] }, { clienti: null, incassi: null, note: null }]]) {
+      const F = conti.fogliaFattura(...args);
+      eq([F.numero, F.data, F.righe.length, F.piede.length], ["—", "—", 1, 1], "con niente: una riga a importo unico, un totale — " + JSON.stringify(args));
+      ok(Array.isArray(F.avvisi) && Array.isArray(F.riquadri) && F.riquadri.length === 2);
+    }
+  });
+  test("Conti · la pagina non compone più nessuna riga della fattura: righe, piede e avvisi vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    for (const et of ['<td class="num">non dettagliata</td>', "Le righe qui sopra non tornano con il totale", "Annullata da nota di credito", "rettificata in parte", "Totale imponibile</td>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaFattura\(f, \{ clienti: CLI, incassi: INC, note: NOT \}\)/.test(pagina), "e chiama fogliaFattura con i dati vivi");
+  });
+}
+/* ===== fine foglio della fattura nel modulo (05/09) ===== */
+
+
 
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */

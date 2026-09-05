@@ -548,6 +548,27 @@
   pagina non ha più. Scatto del prospetto guardato: identico nel disegno.
   **Terra: tre fogli su tre (relazione, verbale, prospetto) e due CSV su due
   composti nel modulo.**
+- [x] **CONTI — il foglio della fattura si compone nel modulo (05/09):** la
+  stessa domanda sui tre fogli che vanno al cliente; il primo è la fattura,
+  quella con più regole. `fogliaFattura(f, {clienti, incassi, note})`:
+  righe (coi DDT e lo sconto come note sotto la cella), piede una riga per
+  aliquota (`riepilogoIvaFattura`, mai una media), avvisi (importo unico,
+  righe che non tornano col piede, note di credito «annullata» / «rettificata
+  in parte»), riquadri (scadenza che manca o non esiste → «non indicato» e
+  nell'elenco di ciò che manca; stato di `statoFattura` con «a credito N da
+  rimborsare»), note di credito e incassi come tabelline, il piede legale;
+  `nonMisurati`. La pagina disegna (grassetto come `**così**`). Due cose
+  dette meglio: su una riga dettagliata una quantità o un prezzo che non ci
+  sono escono «non indicata/o», non «0,00 t» / «€ 0,00». run-kpi +6 (2700):
+  importo unico, dettagliata (10% e 22% in due righe), righe che non
+  tornano, le tre facce delle note di credito, la scadenza, con niente, e la
+  pagina che non compone più. Copertura di Conti 176 → 177. Banchi:
+  `conti-stampe` con le tre iniezioni (piede, stato, righe che non tornano)
+  riancorate sul modulo e il ciclo che applica per file (20/20; controprova
+  «6 difetti rimessi», 10 KO voluti), `stampe-fs` con l'iniezione dei
+  trattini sul modulo (22/22; controprova 2/2), `conti-frasi-da-uno` 41/41,
+  `conti-documenti-che-escono` 81/81. Scatto della fattura guardato.
+  ⏱️ Restano in Conti `fogliDdt(p)` e `stampaPreventivo(id)`, stessa forma.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6647,8 +6668,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.175 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2694, `run-stile` 328,
+  **3.181 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2700, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
