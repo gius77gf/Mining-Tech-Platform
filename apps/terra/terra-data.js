@@ -287,6 +287,7 @@ import { provenienzaDi, applicaPercorsi, traduciCancellazioni, statoScadenza } f
    due copie uguali oggi divergono domani senza che nessuno lo veda. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { autorizzazioneVigente } from "../../shared/dw-ponti.js";
 export function soloScavo(rilievi)  { return (rilievi || []).filter(r => provenienzaDi(r) === "scavo"); }
 export function soloCumulo(rilievi) { return (rilievi || []).filter(r => provenienzaDi(r) === "cumulo"); }
 
@@ -2960,6 +2961,143 @@ export function relazioneLotto(lotto, rilievi, fronti, oggi = new Date()) {
   return { titolo: "Relazione di fine lavori — " + (l.nome || "lotto senza nome"), stato: st, righe, date, recupero,
     attesa: att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
     nonMisurati, nota: String(l.nota || "") };
+}
+
+/* IL VERBALE DI RILIEVO (05/09), nella stessa forma di `relazioneLotto`: le
+   RIGHE del foglio che va all'ente si compongono qui, e la pagina disegna e
+   basta. Fino a oggi vivevano nella pagina, dove nessuna prova senza browser
+   le legge — ed è lì che la quota grezza col punto è vissuta fino al 03/08 e
+   che «il metodo dichiarato e il GSD» è stato scritto su un foglio che dodici
+   righe più su diceva «GSD: non dichiarato». Ogni riga è
+   [etichetta, testo, mancante, forte]: `mancante` marca la cella e, quando è
+   un dato che non risulta in Terra, finisce in `nonMisurati`, che il foglio
+   stampa in una sezione sua — un verbale che tace un dato mancante lo fa
+   passare per zero; `forte` dice alla pagina di evidenziare il numero. Ogni
+   numero lo decide la funzione che lo decide a schermo (`classeAccuratezza`,
+   `bandaVolume`, `confrontoRilievi`, `descriviOrigine`): qui si legge, non si
+   rifà. Numeri all'italiana con `useGrouping` scritto. Pura. */
+export function verbaleRilievo(rilievo, opzioni) {
+  const { rilievi, fronti, autorizzazioni } = opzioni || {};
+  const r = rilievo || {};
+  const RIL = Array.isArray(rilievi) ? rilievi : [];
+  const FRO = Array.isArray(fronti) ? fronti : [];
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  // il GSD sul verbale si scrive all'italiana («2,5 cm»): il foglio va a un
+  // ente italiano, e i rilievi importati da CSV possono averlo col punto
+  const itDec = (v) => String(v == null ? "" : v).trim().replace(".", ",");
+  const nonMisurati = [];
+  // nell'elenco di ciò che manca l'etichetta va senza la sua glossa fra parentesi («GSD», non «GSD (dimensione…)»)
+  const manca = (etichetta, testo, ragione) => { nonMisurati.push(etichetta.replace(/ \(.*\)$/, "") + " (" + ragione + ")"); return [etichetta, testo, true]; };
+  const f = r.fronteId ? FRO.find((x) => x && x.id === r.fronteId) : null;
+  const aut = autorizzazioneVigente(Array.isArray(autorizzazioni) ? autorizzazioni : []);
+  const ca = classeAccuratezza(r);
+  const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+  const prec = r.id != null && RIL.length ? rilievoPrecedente(RIL, r) : null;
+  const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
+  const cum = provenienzaDi(r) === "cumulo";
+  const dataOk = dataISOEsiste(r.data);
+  const dataRil = dataOk ? dataIt(String(r.data).slice(0, 10)) : (r.data ? "data non valida" : "senza data");
+  const righe = [
+    dataOk ? ["Data del rilievo", dataRil, false]
+      : manca("Data del rilievo", dataRil, r.data ? "data non valida: «" + String(r.data) + "»" : "non registrata"),
+  ];
+  /* ⛔ LA QUOTA ALL'ITALIANA, come il GSD — e per la stessa ragione: questo
+     foglio va a un ente italiano. Fino al 03/08 usciva `String(f.quota)`
+     grezzo, «quota 148.5 m» col punto, mentre l'elenco dei Fronti sullo stesso
+     dato scrive «Quota 148,5 m». E la guardia era `f.quota != null`, che
+     accetta la stringa vuota: un fronte senza quota stampava «· quota  m»,
+     due parole e un buco. La condizione giusta è quella dell'elenco
+     (`== null || === ""`), che quel caso lo dichiara invece di tacerlo. */
+  if (f) {
+    const senzaQuota = f.quota == null || f.quota === "";
+    if (senzaQuota) nonMisurati.push("Quota del fronte (non dichiarata)");
+    righe.push(["Fronte", (f.nome || "senza nome") + (f.banco ? " — " + f.banco : "")
+      + (senzaQuota ? " · quota non dichiarata" : " · quota " + nD(f.quota) + " m"), false]);
+  } else righe.push(r.fronteId ? manca("Fronte", "fronte non più in elenco", "non più in elenco")
+    // un cumulo non sta su un fronte: qui «nessuno» non è un dato mancante
+    : cum ? ["Fronte", "nessuno — ripresa da un cumulo", false]
+    : manca("Fronte", "non indicato", "non indicato"));
+  righe.push(["Che cosa è stato misurato", cum
+    ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
+    : "Scavo dal fronte — materiale nuovo tolto dalla cava", false]);
+  righe.push(r.tipo ? ["Tipo di elaborato", String(r.tipo), false] : manca("Tipo di elaborato", "non indicato", "non indicato"));
+  righe.push(r.metodo ? ["Metodo di rilievo", String(r.metodo), false] : manca("Metodo di rilievo", "non dichiarato", "non dichiarato"));
+  const gsdScritto = r.gsd != null && String(r.gsd).trim() !== "";
+  righe.push(gsdScritto ? ["GSD (dimensione del pixel a terra)", itDec(r.gsd) + " cm", false]
+    : manca("GSD (dimensione del pixel a terra)", "non dichiarato", "non dichiarato"));
+  righe.push(ca.classe === "n.d."
+    ? manca("Classe di accuratezza", "non determinabile (metodo e GSD non dichiarati)", "non determinabile: metodo e GSD non dichiarati")
+    : ["Classe di accuratezza", ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%", false]);
+  // un volume che non si legge non fa una misura: sullo schermo quel rilievo
+  // non ha nemmeno il bottone del verbale, ma la funzione è pura e lo dichiara
+  const volumeOk = r.volumeM3 != null && r.volumeM3 !== "" && Number.isFinite(+r.volumeM3);
+  righe.push(volumeOk
+    ? ["Volume misurato", nD(r.volumeM3) + " m³"
+        + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : ""), false, true]
+    : manca("Volume misurato", "non leggibile", r.volumeM3 == null || r.volumeM3 === "" ? "non registrato" : "non leggibile: «" + String(r.volumeM3) + "»"));
+  // senza un nome la riga resta da compilare a penna: la cella esce VUOTA, non
+  // con un trattino che sembrerebbe un dato scritto
+  righe.push(r.rilevatore ? ["Eseguito da", String(r.rilevatore), false]
+    : manca("Eseguito da", "", "non indicato: la riga resta da compilare a penna"));
+  /* ⚠️ `nD` e non `n0` sul volume concesso: «i numeri copiati dall'atto si
+     riportano come stanno sull'atto» — arrotondare all'unità un numero che
+     l'utente ha trascritto dal titolo lo farebbe divergere dal documento, e
+     questo verbale la stessa riga dell'atto la cita sullo stesso foglio che va
+     all'ente. Il campo accetta i decimali («1.200.000,50» entra come
+     1200000,5), quindi la divergenza è raggiungibile. */
+  const atto = aut ? [
+    aut.numeroAtto ? ["Numero dell'atto", String(aut.numeroAtto), false] : manca("Numero dell'atto", "—", "non dichiarato"),
+    aut.ente ? ["Ente che l'ha rilasciato", String(aut.ente), false] : manca("Ente che l'ha rilasciato", "—", "non dichiarato"),
+    dataISOEsiste(aut.dataScadenza) ? ["Scadenza del titolo", dataIt(String(aut.dataScadenza).slice(0, 10)), false]
+      : manca("Scadenza del titolo", "—", "non dichiarata"),
+    aut.volumeAutorizzatoM3 ? ["Volume totale concesso", nD(aut.volumeAutorizzatoM3) + " m³", false]
+      : manca("Volume totale concesso", "—", "non dichiarato"),
+  ] : null;
+  if (!aut) nonMisurati.push("Titolo autorizzativo (nessuno vigente registrato in Terra)");
+  /* da dove parte la misura: un cumulo non ha un rilievo di partenza; uno
+     scavo ce l'ha se sullo stesso fronte ne esiste uno prima */
+  const partenza = cum
+    ? { tipo: "cumulo", righe: [], nota: "Il rilievo misura un deposito di materiale già estratto, non l'avanzamento di un fronte fra due date: non esiste quindi un rilievo di partenza da citare." }
+    : c
+      ? { tipo: "confronto", righe: [
+          ["Rilievo precedente sullo stesso fronte", dataIt(c.primo.data) + (c.primo.metodo ? " · " + c.primo.metodo : ""), false],
+          ["Giorni fra i due rilievi", String(c.giorni), false],
+          /* il ± fra parentesi solo se copre tutto il periodo; se no la
+             parentesi dice su quanto si regge, con le parole del modulo */
+          ["Volume scavato fra le due date", n0(c.scavato) + " m³"
+            + (c.banda > 0 && c.incertezza && c.incertezza.completa ? " (± " + n0(c.banda) + " m³)"
+              : c.incertezza && !c.incertezza.completa ? " (" + descriviIncertezza(c.incertezza) + ")" : ""), false, true],
+          c.alGiorno != null
+            ? ["Ritmo medio nel periodo", n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese", false]
+            : ["Ritmo medio nel periodo", "non calcolabile", true],
+        ],
+        nota: "Il volume scavato fra le due date è la somma dei rilievi eseguiti dopo il " + dataIt(c.primo.data)
+          + " fino a questo compreso (" + c.rilieviInMezzo + (c.rilieviInMezzo === 1 ? " rilievo" : " rilievi")
+          + "): ogni rilievo misura il materiale tolto dal rilievo precedente." }
+      : { tipo: "nessuno", righe: [], nota: "Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno." };
+  /* ⛔ «IL METODO DICHIARATO E IL GSD» SU UN FOGLIO CHE, DODICI RIGHE PIÙ SU,
+     SCRIVE «GSD: non dichiarato»: la classe alta, senza GSD, si regge sul solo
+     metodo, e chi legge ne ricavava che la dimensione del pixel a terra fosse
+     stata valutata. La bandiera che distingue i due casi è `ca.gsdNoto` e la
+     decide `classeAccuratezza`: qui si legge, non si rifà. E poi COME è stato
+     calcolato, non solo con che accuratezza: `descriviOrigine` dice da dove
+     viene il numero, e per un rilievo senza provenienza lo dichiara. */
+  const banda = bv ? n0(bv.banda) : "—";
+  const comeNato = (ca.classe === "survey-grade"
+    ? (ca.gsdNoto
+        ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
+        : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
+      + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
+    : ca.classe === "indicativo"
+      ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
+        + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
+      : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.")
+    + " " + descriviOrigine(r)
+    + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
+    + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "");
+  return { titolo: "Verbale di rilievo — " + (r.titolo || (dataOk ? "rilievo del " + dataRil : "rilievo " + dataRil)), data: dataRil,
+    righe, atto, partenza, comeNato, cumulo: cum, nonMisurati };
 }
 
 /* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non

@@ -122,7 +122,7 @@ const DIFETTI = [
      Quattro difetti in due righe di codice, tutti trovati aprendo il file e
      mettendolo accanto allo schermo sugli stessi dati. */
   // 6a · la quinta copia più debole di `rilievoUsabile`, e stavolta nel file
-  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (2, 6a, 6b, 6c, 7): i due CSV sono saliti
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (2, 6a, 6b, 6c, 6d, 7): i due CSV sono saliti
      in `csvFrontiRilievi` e `csvRiepilogoAnno`; l'indentazione cambia. */
   ['(rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"\n            : r.stato === "elaborato" ? " · volume non leggibile" : "")',
    '(r.volumeM3 != null ? " · " + r.volumeM3 + " m³" : "")', MODULO],
@@ -132,8 +132,9 @@ const DIFETTI = [
   ['f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",',
    'f.quota == null || f.quota === "" ? "" : "quota " + f.quota + "m",', MODULO],
   // 6d · la quota grezza sul VERBALE, accanto a un GSD scritto all'italiana
-  ['+ (f.quota == null || f.quota === "" ? " · quota non dichiarata" : " · quota " + esc(nD(f.quota)) + " m")',
-   '+ (f.quota != null ? " · quota " + esc(String(f.quota)) + " m" : "")'],
+  //      (dal 05/09 le righe del verbale le compone `verbaleRilievo` nel modulo)
+  ['      + (senzaQuota ? " · quota non dichiarata" : " · quota " + nD(f.quota) + " m"), false]);',
+   '      + (f.quota != null ? " · quota " + String(f.quota) + " m" : ""), false]);', MODULO],
   // ── 7 · i secchi del CSV della denuncia ────────────────────────────────
   ['${s.misurabile ? s.scavo : ""};${s.cumulo}', '${s.scavo};${s.cumulo}', MODULO],
   ['    ["Fronti non più in elenco", DEN.banchi.fuoriElenco],\n', '', MODULO],

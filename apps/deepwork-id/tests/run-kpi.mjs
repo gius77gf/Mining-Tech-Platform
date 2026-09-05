@@ -28961,11 +28961,12 @@ test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il p
      `decimali`), quindi «1.200.000,50» entra come 1200000,5. */
   eq(terra.numeroDaCampo("1.200.000,50", { min: 0 }).valore, 1200000.5,
     "il campo del volume concesso accetta i decimali: la divergenza è raggiungibile");
-  const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
-  const i = src.indexOf('["Volume totale concesso", aut.volumeAutorizzatoM3');
-  ok(i >= 0, "la riga del verbale che cita il volume concesso non si trova più");
-  const riga = src.slice(i, i + 120);
-  ok(/nD\(aut\.volumeAutorizzatoM3\)/.test(riga), "il verbale scrive il volume dell'atto con `nD` (per intero), non con `n0` (arrotondato): " + riga.split("\n")[0]);
+  /* ⏱️ dal 05/09 la riga la compone `verbaleRilievo` nel modulo: si chiama la
+     funzione invece di cercare il testo nella pagina */
+  const aut = { ...terra.DEMO.autorizzazioni[0], volumeAutorizzatoM3: 1200000.5 };
+  const V = terra.verbaleRilievo({ id: "x", data: "2026-01-05", volumeM3: 10 }, { autorizzazioni: [aut] });
+  const riga = V.atto.find((d) => d[0] === "Volume totale concesso");
+  eq(riga[1], "1.200.000,5 m³", "il verbale scrive il volume dell'atto per intero (nD), non arrotondato all'unità (n0)");
 });
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -37941,6 +37942,126 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine riepilogo e archivio di Terra nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · IL VERBALE DI RILIEVO SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliaVerbale` nella pagina componeva le righe del foglio che va all'ente
+   con le funzioni del modulo, ma le PAROLE e i FORMATI vivevano lì, dove
+   nessuna prova senza browser li legge (la quota col punto fino al 03/08, «il
+   metodo dichiarato e il GSD» accanto a «GSD: non dichiarato»). Adesso
+   `verbaleRilievo` restituisce le righe nella forma di `relazioneLotto` e la
+   pagina disegna e basta. */
+{
+  const D = terra.DEMO;
+  const ctx = { rilievi: D.rilievi, fronti: D.fronti, autorizzazioni: D.autorizzazioni };
+  const ril = (id) => D.rilievi.find((r) => r.id === id);
+  const riga = (V, et) => V.righe.find((d) => d[0] === et);
+  test("Terra · verbaleRilievo: le nove righe del rilievo, e il volume misurato è quello di bandaVolume", () => {
+    const r = ril("r1");
+    const V = terra.verbaleRilievo(r, ctx);
+    eq(V.titolo, "Verbale di rilievo — " + r.titolo, "il titolo è quello del rilievo");
+    eq(V.righe.map((d) => d[0]), ["Data del rilievo", "Fronte", "Che cosa è stato misurato", "Tipo di elaborato", "Metodo di rilievo",
+      "GSD (dimensione del pixel a terra)", "Classe di accuratezza", "Volume misurato", "Eseguito da"], "le nove etichette, nell'ordine del foglio");
+    const ca = terra.classeAccuratezza(r), bv = terra.bandaVolume(r.volumeM3, ca.tolleranzaPct);
+    const it0 = (v) => Math.round(v).toLocaleString("it-IT", { useGrouping: true });
+    eq(riga(V, "Volume misurato"), ["Volume misurato", it0(r.volumeM3) + " m³ (± " + it0(bv.banda) + " m³ · fra " + it0(bv.min) + " e " + it0(bv.max) + " m³)", false, true],
+      "il volume con la banda di bandaVolume, all'italiana col separatore delle migliaia, e in evidenza");
+    eq(riga(V, "Classe di accuratezza")[1], ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%", "la classe è quella di classeAccuratezza");
+    eq(riga(V, "Fronte"), ["Fronte", "Fronte Nord — banco 2 · quota 340 m", false], "il fronte con banco e quota");
+    ok(/collocano il rilievo nella classe di qualità topografica/.test(V.comeNato), "col GSD scritto la frase lo cita — " + V.comeNato.slice(0, 80));
+    ok(V.comeNato.includes(terra.descriviOrigine(r)), "e dice da dove viene il numero, con le parole di descriviOrigine");
+    ok(/vanno confermate con i punti di controllo/.test(V.comeNato), "e la chiusura sulle tolleranze tipiche");
+    eq(V.cumulo, false); eq(V.atto.length, 4, "le quattro righe dell'atto");
+  });
+  test("Terra · verbaleRilievo: da dove parte la misura — il rilievo precedente sullo stesso fronte, con le parole al singolare", () => {
+    const r = ril("r1"), prec = terra.rilievoPrecedente(D.rilievi, r), c = terra.confrontoRilievi(D.rilievi, prec.id, r.id);
+    const V = terra.verbaleRilievo(r, ctx);
+    eq(V.partenza.tipo, "confronto");
+    eq(V.partenza.righe[0][1], shell.dataIt(prec.data) + (prec.metodo ? " · " + prec.metodo : ""), "la data del precedente");
+    eq(V.partenza.righe[1], ["Giorni fra i due rilievi", String(c.giorni), false]);
+    ok(V.partenza.righe[2][3] === true && V.partenza.righe[2][1].startsWith(Math.round(c.scavato).toLocaleString("it-IT", { useGrouping: true }) + " m³"),
+      "lo scavato fra le date è quello di confrontoRilievi, in evidenza — " + V.partenza.righe[2][1]);
+    eq(c.rilieviInMezzo, 1, "(nella dimostrazione c'è un rilievo solo in mezzo)");
+    ok(/\(1 rilievo\):/.test(V.partenza.nota), "⛔ «1 rilievo», non «1 rilievi» — " + V.partenza.nota);
+  });
+  test("Terra · verbaleRilievo: senza un rilievo precedente lo dice; senza fronte su un cumulo NON è un dato mancante", () => {
+    const V4 = terra.verbaleRilievo(ril("r4"), ctx);
+    eq(V4.partenza.tipo, "nessuno"); eq(V4.partenza.righe, []);
+    ok(/alcun rilievo precedente/.test(V4.partenza.nota), V4.partenza.nota);
+    const V6 = terra.verbaleRilievo(ril("r6"), ctx);
+    eq(V6.cumulo, true); eq(V6.partenza.tipo, "cumulo");
+    ok(/deposito di materiale già estratto/.test(V6.partenza.nota), V6.partenza.nota);
+    eq(riga(V6, "Fronte"), ["Fronte", "nessuno — ripresa da un cumulo", false], "⛔ un cumulo non sta su un fronte: «nessuno» non è «non indicato»");
+    ok(!V6.nonMisurati.some((x) => /^Fronte/.test(x)), "e non finisce fra le cose che mancano — " + V6.nonMisurati.join(" · "));
+    ok(/non consuma il volume concesso dal titolo\.$/.test(V6.comeNato), "e il foglio dice che non consuma il concesso");
+    ok(/Ripresa da un cumulo/.test(riga(V6, "Che cosa è stato misurato")[1]));
+  });
+  test("Terra · verbaleRilievo: metodo e GSD non dichiarati — «non determinabile», e l'elenco di ciò che manca", () => {
+    const V = terra.verbaleRilievo(ril("r2"), ctx);
+    eq(riga(V, "Classe di accuratezza"), ["Classe di accuratezza", "non determinabile (metodo e GSD non dichiarati)", true]);
+    eq(riga(V, "Metodo di rilievo"), ["Metodo di rilievo", "non dichiarato", true]);
+    eq(riga(V, "GSD (dimensione del pixel a terra)"), ["GSD (dimensione del pixel a terra)", "non dichiarato", true]);
+    ok(/^Non essendo dichiarati né il metodo né il GSD/.test(V.comeNato), V.comeNato.slice(0, 60));
+    ok(V.nonMisurati.includes("Metodo di rilievo (non dichiarato)") && V.nonMisurati.includes("GSD (non dichiarato)")
+      && V.nonMisurati.includes("Classe di accuratezza (non determinabile: metodo e GSD non dichiarati)"),
+      "⛔ ogni cella mancante è nell'elenco, con l'etichetta senza la glossa — " + V.nonMisurati.join(" · "));
+    ok(V.nonMisurati.includes("Eseguito da (non indicato: la riga resta da compilare a penna)"), "e il rilevatore non indicato");
+    eq(riga(V, "Eseguito da"), ["Eseguito da", "", true], "la cella del rilevatore resta VUOTA: è la riga da compilare a penna");
+  });
+  test("Terra · verbaleRilievo: classe alta senza GSD — la frase non cita un GSD che il foglio dice assente; il GSD col punto esce con la virgola", () => {
+    const base = { id: "v1", data: "2026-02-10", volumeM3: 1000, stato: "elaborato", metodo: "RTK" };
+    const V = terra.verbaleRilievo({ ...base, gsd: null }, ctx);
+    eq(terra.classeAccuratezza({ ...base, gsd: null }).classe, "survey-grade", "(la classe alta si regge sul solo metodo)");
+    ok(/il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata/.test(V.comeNato), "⛔ — " + V.comeNato.slice(0, 120));
+    eq(riga(V, "GSD (dimensione del pixel a terra)")[2], true);
+    // un GSD da 1,5 cm tiene la classe alta (la soglia è 2 cm: con «2.5» la classe scende a indicativa)
+    const V2 = terra.verbaleRilievo({ ...base, gsd: "1.5" }, ctx);
+    eq(riga(V2, "GSD (dimensione del pixel a terra)"), ["GSD (dimensione del pixel a terra)", "1,5 cm", false], "⛔ «1,5 cm», non «1.5 cm»");
+    ok(/e il GSD collocano/.test(V2.comeNato), "e col GSD scritto la frase lo cita — " + V2.comeNato.slice(0, 60));
+    const V3 = terra.verbaleRilievo({ ...base, gsd: "2.5" }, ctx);
+    ok(/^Il metodo dichiarato o il GSD non permettono la classe topografica/.test(V3.comeNato), "oltre i 2 cm la misura vale come indicativa — " + V3.comeNato.slice(0, 60));
+  });
+  test("Terra · verbaleRilievo: la quota del fronte all'italiana, dichiarata quando non c'è, e il fronte non più in elenco", () => {
+    const r = { id: "v2", data: "2026-02-10", volumeM3: 10, stato: "elaborato", fronteId: "fx" };
+    const con = (quota) => terra.verbaleRilievo(r, { fronti: [{ id: "fx", nome: "Fronte Ovest", quota }] });
+    eq(riga(con("148.5"), "Fronte")[1], "Fronte Ovest · quota 148,5 m", "⛔ la quota col punto esce con la virgola, come nell'elenco");
+    eq(riga(con(1500), "Fronte")[1], "Fronte Ovest · quota 1.500 m", "col separatore delle migliaia scritto (useGrouping)");
+    for (const q of [null, undefined, ""]) {
+      const V = con(q);
+      eq(riga(V, "Fronte"), ["Fronte", "Fronte Ovest · quota non dichiarata", false], "⛔ la quota che non c'è si dichiara: " + JSON.stringify(q));
+      ok(V.nonMisurati.includes("Quota del fronte (non dichiarata)"), "e sta nell'elenco di ciò che manca");
+    }
+    const V = terra.verbaleRilievo(r, { fronti: [] });
+    eq(riga(V, "Fronte"), ["Fronte", "fronte non più in elenco", true]);
+    ok(V.nonMisurati.includes("Fronte (non più in elenco)"));
+    eq(riga(terra.verbaleRilievo({ ...r, fronteId: null }, ctx), "Fronte"), ["Fronte", "non indicato", true], "e uno scavo senza fronte è «non indicato»");
+  });
+  test("Terra · verbaleRilievo: senza titolo vigente, col volume illeggibile, con niente — non rompe e dichiara", () => {
+    const V = terra.verbaleRilievo({ id: "v3", data: "2026-02-10", volumeM3: "abc", rilevatore: "Mario Rossi" }, { autorizzazioni: [] });
+    eq(V.atto, null, "senza un titolo vigente la sezione non c'è");
+    ok(V.nonMisurati.includes("Titolo autorizzativo (nessuno vigente registrato in Terra)"), "e si dice — " + V.nonMisurati.join(" · "));
+    eq(riga(V, "Volume misurato"), ["Volume misurato", "non leggibile", true], "⛔ un volume che non si legge non è «— m³»");
+    ok(V.nonMisurati.includes("Volume misurato (non leggibile: «abc»)"));
+    eq(riga(V, "Eseguito da"), ["Eseguito da", "Mario Rossi", false]);
+    for (const args of [[null], [undefined, null], [{}, {}], [{ data: "boh" }, { rilievi: null, fronti: null, autorizzazioni: null }]]) {
+      const N = terra.verbaleRilievo(...args);
+      eq(N.righe.length, 9, "nove righe anche senza niente: " + JSON.stringify(args));
+      ok(N.righe.every((d) => typeof d[0] === "string" && typeof d[1] === "string" && typeof d[2] === "boolean"), "ogni riga è [etichetta, testo, mancante]");
+      eq(N.partenza.tipo, "nessuno");
+    }
+    eq(terra.verbaleRilievo({ data: "boh" }).righe[0], ["Data del rilievo", "data non valida", true], "una data che non esiste non si stampa come una data");
+    eq(terra.verbaleRilievo(null).titolo, "Verbale di rilievo — rilievo senza data");
+  });
+  test("Terra · la pagina non compone più nessuna riga del verbale: le etichette vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+    for (const et of ['["Data del rilievo"', '["Classe di accuratezza"', '"Rilievo precedente sullo stesso fronte"', "collocano il rilievo nella classe"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/verbaleRilievo\(r, \{ rilievi: RIL, fronti: FRO, autorizzazioni: AUT \}\)/.test(pagina), "e chiama verbaleRilievo con i dati vivi");
+  });
+}
+/* ===== fine verbale di rilievo nel modulo (05/09) ===== */
+
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

@@ -1019,7 +1019,7 @@ a.dw-btn{text-decoration:none}
 <script type="module">
   import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
@@ -4332,121 +4332,36 @@ a.dw-btn{text-decoration:none}
       + "vanno verificati presso l'ente competente. Questa relazione non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
       + "</body></html>";
   }
+  /* Le righe del verbale le compone `verbaleRilievo` nel modulo — le stesse
+     funzioni che decidono i numeri a schermo — e qui si disegna e basta, come
+     per la relazione del lotto. Una cella vuota (il rilevatore non indicato)
+     resta vuota: è la riga da compilare a penna. */
   function fogliaVerbale(r) {
-    const f = r.fronteId ? FRO.find(x => x.id === r.fronteId) : null;
-    const aut = autorizzazioneVigente(AUT);
-    const ca = classeAccuratezza(r);
-    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    const prec = rilievoPrecedente(RIL, r);
-    const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
-    const oggi = new Date();
-    const dataOggi = fmtData(oggiISO(oggi));
-    const riga = (c1, c2) => "<tr><td><b>" + c1 + "</b></td><td>" + c2 + "</td></tr>";
-    const cum = provenienzaRilievo(r) === "cumulo";
-    const dati = [
-      ["Data del rilievo", fmtData(r.data)],
-      /* ⛔ LA QUOTA ALL'ITALIANA, come il GSD sei righe più sotto — e per la
-         stessa ragione, che lì era già scritta: questo foglio va a un ente
-         italiano. Fino al 03/08 usciva `String(f.quota)` grezzo, cioè «quota
-         148.5 m» col punto, mentre l'elenco dei Fronti sullo stesso dato
-         scrive «Quota 148,5 m». E la guardia era `f.quota != null`, che
-         accetta la stringa vuota: un fronte senza quota stampava «· quota  m»,
-         due parole e un buco. La condizione giusta è quella dell'elenco
-         (`== null || === ""`), che quel caso lo dichiara invece di tacerlo. */
-      ["Fronte", f ? esc(f.nome) + (f.banco ? " — " + esc(f.banco) : "")
-          + (f.quota == null || f.quota === "" ? " · quota non dichiarata" : " · quota " + esc(nD(f.quota)) + " m")
-        : (r.fronteId ? "fronte non più in elenco" : "non indicato")],
-      ["Che cosa è stato misurato", cum
-        ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
-        : "Scavo dal fronte — materiale nuovo tolto dalla cava"],
-      ["Tipo di elaborato", r.tipo ? esc(r.tipo) : "non indicato"],
-      ["Metodo di rilievo", r.metodo ? esc(r.metodo) : "non dichiarato"],
-      // il GSD sul verbale si scrive all'italiana: «2,5 cm». Il foglio va a un
-      // ente italiano, e i rilievi importati da CSV possono averlo col punto.
-      ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(itDec(r.gsd)) + " cm" : "non dichiarato"],
-      ["Classe di accuratezza", ca.classe === "n.d." ? "non determinabile (metodo e GSD non dichiarati)"
-        : ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%"],
-      ["Volume misurato", "<b>" + nD(r.volumeM3) + " m³</b>"
-        + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : "")],
-      ["Eseguito da", r.rilevatore ? esc(r.rilevatore) : "&nbsp;"],
-    ];
-    const titolo = aut ? [
-      ["Numero dell'atto", aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
-      ["Ente che l'ha rilasciato", aut.ente ? esc(aut.ente) : "—"],
-      ["Scadenza del titolo", fmtData(aut.dataScadenza)],
-      /* ⚠️ `nD` e non `n0`: la ragione sta scritta duecento righe piu' su, nel
-         prospetto della denuncia — «i numeri copiati dall'atto si riportano
-         come stanno sull'atto, arrotondare all'unita' un numero che l'utente ha
-         trascritto dal titolo lo farebbe divergere dal documento» — e questo
-         verbale la stessa riga dell'atto la cita in una tabella sua, sullo
-         stesso foglio che va all'ente. Il campo accetta i decimali
-         (`numeroDaCampo` senza `decimali`: «1.200.000,50» entra come
-         1200000,5), quindi la divergenza e' raggiungibile e vale mezzo metro
-         cubo scritto in meno del titolo. Sui numeri interi le due funzioni
-         scrivono la stessa identica cosa. */
-      ["Volume totale concesso", aut.volumeAutorizzatoM3 ? nD(aut.volumeAutorizzatoM3) + " m³" : "—"],
-    ] : null;
-    /* ⛔ «IL METODO DICHIARATO E IL GSD» SU UN FOGLIO CHE, DODICI RIGHE PIÙ SU,
-       SCRIVE «GSD: non dichiarato». La frase citava un dato che nella tabella
-       accanto risulta assente: la classe alta, senza GSD, si regge sul solo
-       metodo, e chi legge il verbale ne ricavava che la dimensione del pixel a
-       terra fosse stata valutata. La bandiera che distingue i due casi è
-       `ca.gsdNoto` e la decide il modulo — qui si legge, non si rifà. */
-    const comeNato = ca.classe === "survey-grade"
-      ? (ca.gsdNoto
-          ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
-          : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
-        + ca.tolleranzaPct
-        + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
-      : ca.classe === "indicativo"
-        ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
-          + ca.tolleranzaPct + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
-        : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.";
+    const V = verbaleRilievo(r, { rilievi: RIL, fronti: FRO, autorizzazioni: AUT });
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const riga = (d) => "<tr><td><b>" + esc(d[0]) + "</b></td><td" + (d[2] ? " class='manca'" : "") + ">"
+      + (d[1] === "" ? "&nbsp;" : d[3] ? "<b>" + esc(d[1]) + "</b>" : esc(d[1])) + "</td></tr>";
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
-      + "<title>Verbale di rilievo " + fmtData(r.data) + "</title><style>"
+      + "<title>Verbale di rilievo " + esc(V.data) + "</title><style>"
       + STILE_FOGLIO + CSS_ESEMPIO
       + "</style></head><body>"
-      + "<h1>Verbale di rilievo — " + esc(r.titolo || "rilievo del " + fmtData(r.data)) + "</h1>"
+      + "<h1>" + esc(V.titolo) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
       + avvisoEsempio("Questo verbale non documenta nessun rilievo reale: "
           + "non va allegato a una comunicazione all'ente né esibito a un controllo.")
-      + "<h2>Il rilievo</h2><table>" + dati.map(d => riga(d[0], d[1])).join("") + "</table>"
+      + "<h2>Il rilievo</h2><table>" + V.righe.map(riga).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e denominazione della cava vanno indicate secondo il modello richiesto dall'ente.</p>"
-      + (titolo ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + titolo.map(d => riga(d[0], d[1])).join("") + "</table>" : "")
-      + (cum
-          ? "<h2>Da dove parte la misura</h2>"
-            + "<p class='mini'>Il rilievo misura un <b>deposito di materiale già estratto</b>, non l'avanzamento di un fronte fra due date: non esiste quindi un rilievo di partenza da citare.</p>"
-        : c
-          ? "<h2>Da dove parte la misura</h2><table>"
-            + riga("Rilievo precedente sullo stesso fronte", fmtData(c.primo.data)
-                + (c.primo.metodo ? " · " + esc(c.primo.metodo) : ""))
-            + riga("Giorni fra i due rilievi", c.giorni)
-            + riga("Volume scavato fra le due date", "<b>" + n0(c.scavato) + " m³</b>"
-                /* il ± fra parentesi solo se copre tutto il periodo; se no la
-                   parentesi dice su quanto si regge, con le parole del modulo */
-                + (c.banda > 0 && c.incertezza && c.incertezza.completa ? " (± " + n0(c.banda) + " m³)"
-                  : c.incertezza && !c.incertezza.completa ? " (" + esc(descriviIncertezza(c.incertezza)) + ")" : ""))
-            + riga("Ritmo medio nel periodo", c.alGiorno != null
-                ? n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese" : "non calcolabile")
-            + "</table>"
-            + "<p class='mini'>Il volume scavato fra le due date è la somma dei rilievi eseguiti dopo il "
-            + fmtData(c.primo.data) + " fino a questo compreso (" + c.rilieviInMezzo
-            + (c.rilieviInMezzo === 1 ? " rilievo" : " rilievi") + "): ogni rilievo misura il materiale tolto dal rilievo precedente.</p>"
-          : "<h2>Da dove parte la misura</h2>"
-            + "<p class='mini'>Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno.</p>")
+      + (V.atto ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + V.atto.map(riga).join("") + "</table>" : "")
+      + "<h2>Da dove parte la misura</h2>"
+      + (V.partenza.righe.length ? "<table>" + V.partenza.righe.map(riga).join("") + "</table>" : "")
+      + "<p class='mini'>" + esc(V.partenza.nota) + "</p>"
       + "<h2>Come è stato ottenuto il numero</h2>"
-      + "<p class='mini'>" + comeNato
-      /* ⛔ E COME È STATO CALCOLATO, non solo con che accuratezza. Il titolo
-         della sezione promette «Come è stato ottenuto il numero»: la classe di
-         accuratezza dice quanto ci si può fidare, non da dove viene il numero.
-         Per un rilievo dal visore qui compaiono lato cella, quota di base, area
-         coperta e ritaglio — cioè quello che serve a RIFARE il conto. Per uno
-         senza provenienza registrata la frase lo dichiara, invece di tacere:
-         una riga che tace lascia credere che il numero sia verificabile. */
-      + " " + descriviOrigine(r)
-      + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
-      + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "")
-      + "</p>"
+      + "<p class='mini'>" + esc(V.comeNato) + "</p>"
+      + (V.nonMisurati.length
+          ? "<h2>Che cosa manca in questo verbale</h2><p class='mini'>"
+            + V.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: il verbale non li stima e non li sostituisce con uno zero.</p>"
+          : "")
       + "<div class='firma'><div>Luogo e data</div><div>Il rilevatore</div><div>Il direttore dei lavori</div></div>"
       + "<div class='foot'>Verbale generato da Deepwork Terra a partire dai dati registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: contenuto, forma e destinatari della documentazione di rilievo "

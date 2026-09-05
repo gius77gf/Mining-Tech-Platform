@@ -504,6 +504,25 @@
   (`deepwork_fori_fronte`) vive in un monolite SENZA modulo dati, quindi la
   regola «lo compone la stessa funzione che decide a schermo» lì non ha un
   modulo in cui salire — si dice qui e non si apre un cantiere a metà.
+- [x] **TERRA — il verbale di rilievo si compone nel modulo (05/09):** la
+  stessa domanda sui fogli STAMPATI, che non sono CSV ma escono lo stesso:
+  `fogliaVerbale` componeva le righe con le funzioni del modulo, ma parole e
+  formati vivevano nella pagina (la quota col punto fino al 03/08, «il
+  metodo dichiarato e il GSD» accanto a «GSD: non dichiarato»), dove nessuna
+  prova senza browser li legge. `verbaleRilievo(r, {rilievi, fronti,
+  autorizzazioni})` nella forma di `relazioneLotto`: righe
+  `[etichetta, testo, mancante, forte]`, l'atto, «da dove parte la misura»
+  (cumulo / confronto / nessuno), la frase su come è nato il numero, e
+  `nonMisurati` che il foglio stampa in «Che cosa manca in questo verbale»
+  — un fronte che manca su un cumulo NON è un dato mancante («nessuno —
+  ripresa da un cumulo»), il rilevatore non indicato resta la cella vuota
+  da compilare a penna, un volume illeggibile dice «non leggibile» e non
+  «— m³». La pagina disegna e basta. run-kpi +8 (2689), copertura di Terra
+  86 → 87; le due iniezioni dei banchi (`terra-numeri-tranquilli` 6d,
+  `verbale-origine`) riancorate sul modulo, 19/19 e «SA fallire»;
+  `stampe-fs --solo=terra` 17/17, `terra-frasi-da-uno` 48/48.
+  ⏱️ Resta `fogliaStampa` (il prospetto della denuncia): compone in pagina
+  da `DEN` con la stessa bandiera dello schermo, ed è la prossima.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6603,8 +6622,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.162 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2681, `run-stile` 328,
+  **3.170 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2689, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
