@@ -1231,7 +1231,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
-           segnalazioniDelTurno, testoSegnalazioniTurno, categorieGiaSegnalate,
+           segnalazioniDelTurno, lavoriNonConclusi, testoSegnalazioniTurno, categorieGiaSegnalate,
            pianoParziale, frasiCaricoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -4399,6 +4399,23 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
       + (m.note ? " — " + m.note : "")).join("\n")
       : "- non registrato") + "\n\n";
+    /* ⛔ LE DUE COSE CHE IL TURNO ENTRANTE LEGGE PER PRIME (05/09): i lavori
+       non conclusi e i pericoli segnalati. Lo schermo li aveva tutt'e due (le
+       urgenze del Quadro, la riga dei near-miss) e il foglio che passa di
+       mano no. Le regole sono quelle dello schermo, non copie: `lavoriNonConclusi`
+       e `testoSegnalazioniTurno`, turno per turno — e chi non si legge (Scudo
+       non raggiungibile) lo dice, invece di «nessuna segnalazione». */
+    const aperti = lavoriNonConclusi(ATT_OGGI);
+    txt += "LAVORI NON CONCLUSI\n";
+    txt += (aperti.length
+      ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]").join("\n")
+      : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
+    txt += "SEGNALAZIONI DEL TURNO\n";
+    const segT = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(INF_HSE, OGGI, t) }))
+      .map(x => ({ turno: x.turno, t: testoSegnalazioniTurno(x.s) })).filter(x => x.t);
+    txt += (segT.length
+      ? [...new Set(segT.map(x => (segT.length > 1 ? "- turno " + x.turno + ": " : "- ") + x.t))].join("\n")
+      : "- nessuna segnalazione oggi") + "\n\n";
     const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
     txt += "CHIUSURA DEL TURNO\n";
     txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)

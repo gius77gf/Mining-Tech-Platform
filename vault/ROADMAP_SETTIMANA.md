@@ -399,14 +399,19 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
-- [ ] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
+- [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
   mancano le due cose che il turno entrante legge per prime e che lo schermo
-  ha già: (a) «LAVORI NON CONCLUSI» — le attività del giorno non concluse, con
-  chi ce l'ha in carico (basso); (b) «SEGNALAZIONI DEL TURNO» — near-miss e
-  infortuni di oggi dal ponte con Scudo, quelli senza turno dichiarati a parte
-  (basso). Vedi `docs/RICERCA_CONTINUA_CAMPO.md`.
+  ha già: (a) ✅ **fatto la notte stessa** — «LAVORI NON CONCLUSI» da
+  `lavoriNonConclusi` (fermi prima, poi in corso, poi pianificati; chi ce l'ha
+  in carico, «nessuno in carico» dove non c'è un nome; «nessuna attività
+  aperta» quando è vuota); (b) ✅ — «SEGNALAZIONI DEL TURNO» con
+  `testoSegnalazioniTurno` turno per turno, la stessa frase dello schermo, e
+  «non lo sappiamo» quando Scudo non si legge. run-kpi +2; banco
+  `campo-foglio-turno --caso=consegna` esteso con la controprova che rimette
+  «nessuna attività aperta» su un turno con quattro lavori aperti.
+  Vedi `docs/RICERCA_CONTINUA_CAMPO.md`.
 - [x] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
   delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
   schermata: (a) ✅ **fatto la notte stessa** — `idoneitaOperatore` legge il
@@ -1381,8 +1386,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `CAMPO — dalla ricerca del 05/09 notte` *(consegna di turno: lavori non conclusi
-  e segnalazioni del turno mancano dal foglio)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6292,7 +6295,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.089 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.091 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

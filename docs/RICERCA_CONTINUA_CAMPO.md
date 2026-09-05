@@ -1933,3 +1933,7 @@ ciò che il turno entrante legge per primo — i lavori non conclusi e i
 pericoli segnalati — che Campo ha già sullo schermo e non mette nel foglio.**
 Due candidati a costo basso, (a) e (b), nella stessa forma delle sezioni
 esistenti.
+
+*Aggiornamento della notte stessa (commit successivo a `d35278a9`): (a) ✅ e
+(b) ✅ — la consegna porta «LAVORI NON CONCLUSI» e «SEGNALAZIONI DEL TURNO»,
+con le regole dello schermo (`lavoriNonConclusi`, `testoSegnalazioniTurno`).*

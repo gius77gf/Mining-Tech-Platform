@@ -36851,5 +36851,37 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine giudizio scritto (Scudo, 05/09) ===== */
 
+/* ===== I LAVORI NON CONCLUSI NELLA CONSEGNA DI TURNO (Campo, 05/09) =====
+   Il foglio che passa di mano fra due turni aveva firme, produzione, fermi e
+   meteo, ma non i lavori non conclusi né le segnalazioni — le due cose che il
+   turno entrante legge per prime. `lavoriNonConclusi` è la regola, e la usa
+   la consegna; le segnalazioni le scrive `testoSegnalazioniTurno`, che era già
+   la frase dello schermo. Prove sincrone, prima del riepilogo. */
+{
+  test("Campo · lavoriNonConclusi: fermi prima, poi in corso, poi pianificati; chi non ha un nome sopra è «nessuno in carico»", () => {
+    const A = [
+      { id: "a1", titolo: "Perforazione", dettaglio: "14/22 fori", operatore: "Luca", stato: "in-corso" },
+      { id: "a2", titolo: "Volata", operatore: "Mario", stato: "pianificata" },
+      { id: "a3", titolo: "Carico", operatore: "", stato: "in-corso" },
+      { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", operatore: "", stato: "anomalia" },
+      { id: "a5", titolo: "Controllo", operatore: "Anna", stato: "conclusa" },
+    ];
+    const r = campo.lavoriNonConclusi(A);
+    eq(r.map((x) => x.id), ["a4", "a3", "a1", "a2"], "l'ordine: fermo, in corso (alfabetico), pianificata; la conclusa fuori");
+    eq(r[0], { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", chi: "nessuno in carico", stato: "anomalia", etichetta: "fermo / anomalia" }, "il fermo, senza nome sopra");
+    eq([r[2].chi, r[2].etichetta], ["Luca", "in corso"], "chi ce l'ha in carico e l'etichetta in italiano");
+    eq(campo.lavoriNonConclusi([{ id: "x", stato: "boh" }]).map((x) => [x.titolo, x.etichetta]), [["(senza titolo)", "boh"]], "uno stato sconosciuto si scrive com'è, e un titolo mancante si dichiara");
+    eq(campo.lavoriNonConclusi(null), [], "con niente in mano, niente");
+    eq(campo.lavoriNonConclusi([{ stato: "conclusa" }]), [], "tutto concluso: vuoto — e la consegna scriverà «nessuna attività aperta»");
+  });
+  test("Campo · ETICHETTA_STATO_ATTIVITA copre i quattro stati della dimostrazione", () => {
+    const stati = new Set(campo.DEMO.attivita.map((a) => a.stato));
+    for (const st of stati) ok(campo.ETICHETTA_STATO_ATTIVITA[st], "etichetta per «" + st + "»");
+    const aperti = campo.lavoriNonConclusi(campo.DEMO.attivita.filter((a) => a.data === campo.DEMO.attivita[0].data));
+    ok(aperti.length >= 3 && aperti.some((x) => x.stato === "anomalia") && aperti.some((x) => x.chi === "nessuno in carico"), "la dimostrazione ha lavori aperti di più stati e uno senza nome sopra: la consegna ha qualcosa da far vedere");
+  });
+}
+/* ===== fine lavori non conclusi (Campo, 05/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

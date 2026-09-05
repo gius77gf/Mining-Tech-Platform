@@ -2356,6 +2356,23 @@ export function fermiSenzaGiorno(attivita) {
     a && a.stato === "anomalia" && !dataISOEsiste(String(a.data || "").trim())).length;
 }
 
+/* I LAVORI NON CONCLUSI, per la consegna di turno (05/09). Il mondo li chiama
+   «lavori non completati» ed è la voce che il turno entrante legge per prima;
+   lo schermo li aveva fra le urgenze del Quadro, il foglio che passa di mano
+   no. Prima i fermi, poi i lavori in corso, poi i pianificati; chi ce l'ha in
+   carico, e «nessuno in carico» dove l'attività non ha un nome sopra (che è
+   un dato, non un buco: nella dimostrazione due su cinque non ce l'hanno).
+   Ritorna [{ id, titolo, dettaglio, chi, stato, etichetta }]. Pura. */
+export const ETICHETTA_STATO_ATTIVITA = { pianificata: "pianificata", "in-corso": "in corso", anomalia: "fermo / anomalia", conclusa: "conclusa" };
+export function lavoriNonConclusi(attivita) {
+  const ordine = { anomalia: 0, "in-corso": 1, pianificata: 2 };
+  return (attivita || []).filter((a) => a && a.stato !== "conclusa")
+    .map((a) => ({ id: a.id, titolo: String(a.titolo || "").trim() || "(senza titolo)", dettaglio: String(a.dettaglio || "").trim(),
+      chi: String(a.operatore || "").trim() || "nessuno in carico", stato: String(a.stato || ""),
+      etichetta: ETICHETTA_STATO_ATTIVITA[a.stato] || String(a.stato || "stato non indicato") }))
+    .sort((x, y) => (ordine[x.stato] ?? 9) - (ordine[y.stato] ?? 9) || x.titolo.localeCompare(y.titolo, "it"));
+}
+
 // Riassunto testuale di un rapportino di turno STRUTTURATO (turno, squadra,
 // produzione, consegne per il turno successivo = handover). Serve alla lista
 // e all'eventuale export/consegna. Stringa vuota se non c'è nulla. Pura e
