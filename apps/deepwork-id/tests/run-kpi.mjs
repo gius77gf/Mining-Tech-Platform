@@ -38773,6 +38773,64 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine condizioni meteo della misura (05/09) ===== */
 
+/* ===== LE COLONNE METEO NELL'IMPORT (Sentinella, 05/09 sera) =====
+   Un fonometro con la stazione meteo esporta vento, direzione, pioggia,
+   temperatura e umidità nello stesso file delle letture: le cinque condizioni
+   del form a mano entrano dal file, con la proposta dall'intestazione e i
+   lettori della direzione (sigla, anche inglese, o gradi) e della pioggia
+   (sì/no o millimetri). ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const R = [["Data", "Ora", "LAeq", "Evento", "Vento (m/s)", "Dir. vento", "Pioggia", "Temp (°C)", "RH (%)"],
+             ["01/08/2026", "10:00", "61,2", "volata", "7,5", "SW", "no", "29", "40"],
+             ["02/08/2026", "10:00", "58", "", "abc", "270", "0,4", "", ""],
+             ["03/08/2026", "10:00", "57", "", "2", "N", "no", "24", "60"]];
+  test("Sentinella · proponiColonneMeteo: le cinque colonne dall'intestazione, e «Evento» NON è «vento»", () => {
+    const mp = sentinella.proponiMappa(R, true);
+    eq(mp, { colData: 0, colOra: 1, colValore: 2 }, "data, ora e LAeq come sempre: le colonne meteo non rubano il valore");
+    eq(sentinella.proponiColonneMeteo(R, true, mp), { colVento: 4, colVentoDa: 5, colPioggia: 6, colTemp: 7, colUmid: 8 });
+    const EN = [["Date", "Time", "Leq", "Wind speed", "Wind dir", "Rain (mm)", "Temperature", "Humidity"], []];
+    eq(sentinella.proponiColonneMeteo(EN, true, { colData: 0, colOra: 1, colValore: 2 }), { colVento: 3, colVentoDa: 4, colPioggia: 5, colTemp: 6, colUmid: 7 }, "e in inglese");
+    const SIS = [["Data", "Ora", "PPV L", "PPV T", "PPV V", "PVS", "Freq", "Aria"], []];
+    const ev = { colData: 0, colOra: 1, colValore: 5, colPpvL: 2, colPpvT: 3, colPpvV: 4, colFreq: 6, colAria: 7 };
+    eq(sentinella.proponiColonneMeteo(SIS, true, ev), { colVento: -1, colVentoDa: -1, colPioggia: -1, colTemp: -1, colUmid: -1 }, "il file del sismografo: niente meteo, e nessuna colonna già presa viene ripescata");
+    eq(sentinella.proponiColonneMeteo(R, false, {}).colVento, -1, "senza intestazione non si indovina niente");
+    eq(sentinella.proponiColonneMeteo([["Data", "Evento", "Valore"], []], true, { colData: 0 }).colVento, -1, "⛔ «Evento» contiene «vento» e NON è il vento: modo «parola», non «dentro»");
+  });
+  test("Sentinella · direzioneVento: sigla italiana, inglese, sedici punte, gradi — e quello che non si riconosce resta vuoto", () => {
+    eq(["NE", "sw", "W", "NNE", "SSW", "ENE", "270", "22", "23", "0", "360", "999", "boh", "", null].map(sentinella.direzioneVento),
+       ["NE", "SO", "O", "NE", "SO", "E", "O", "N", "NE", "N", "N", "", "", "", ""]);
+  });
+  test("Sentinella · pioggiaDaCella: sì/no in tre lingue, i millimetri, e null dove la cella non dice niente", () => {
+    eq(["sì", "Si", "no", "0", "0,4", "2", "", "boh", "yes", "dry", null].map(sentinella.pioggiaDaCella),
+       [true, true, false, false, true, true, null, null, true, false, null]);
+  });
+  test("⛔ Sentinella · preparaLetture porta le condizioni dal file, e una cella che non si legge si DICHIARA senza scartare la riga", () => {
+    const mp = sentinella.proponiMappa(R, true);
+    const L = sentinella.preparaLetture(R, { ...mp, ...sentinella.proponiColonneMeteo(R, true, mp), conIntestazione: true });
+    eq(L.map(l => l.ok), [true, true, true], "tutte e tre entrano: una condizione illeggibile non toglie la misura");
+    eq([L[0].vento, L[0].ventoDa, L[0].pioggia, L[0].temperatura, L[0].umidita], [7.5, "SO", false, 29, 40]);
+    eq([L[1].vento, L[1].ventoDa, L[1].pioggia, L[1].temperatura, L[1].meteoNonLetti], [undefined, "O", true, undefined, ["vento"]],
+       "⛔ «abc» nel vento non diventa «non registrato» in silenzio: la riga dice quale condizione non ha letto; 270° è O; 0,4 mm è pioggia; la cella vuota non è «non letta»");
+    eq(L[2].meteoNonLetti, undefined, "una riga letta per intero non porta l'elenco");
+    const senza = sentinella.preparaLetture(R, { ...mp, conIntestazione: true })[0];
+    eq([senza.vento, senza.pioggia, senza.meteoNonLetti], [undefined, undefined, undefined], "senza le colonne indicate niente entra: il file di sempre resta com'era");
+    // e il giro intero: archivio → riga → regola sul rumore
+    const u = sentinella.unisciLetture([], L);
+    eq(u.letture.map(l => l.vento), [7.5, undefined, 2], "⛔ unisciLetture tiene le condizioni: è la copia campo per campo in cui si perderebbero");
+    eq(sentinella.condizioniMisura(u.letture[0]).testo, "vento 7,5 m/s da SO · senza pioggia · 29 °C · umidità 40 %");
+    eq(sentinella.contaFuoriCondizioni(u.letture, { tipo: "rumore" }), { pertinente: true, totale: 3, fuori: 2, dentro: 1, nonGiudicabili: 0 }, "due fuori (vento 7,5; pioggia), una dentro");
+  });
+  test("Sentinella · la pagina propone le colonne meteo dal modulo e le passa alla mappa dell'anteprima", () => {
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/proponiColonneMeteo\(impRighe, conInt, \{ \.\.\.mp, \.\.\.ev \}\)/.test(pagina), "la proposta esclude le colonne già prese da data/ora/valore/evento");
+    ok(/colVento: \+\$\("imp-col-vento"\)\.value/.test(pagina), "la mappa dell'anteprima porta le colonne meteo");
+    ok(/rigaMeteo\(r, punto\)/.test(pagina), "e l'anteprima mostra le condizioni sotto il numero");
+    for (const id of ["imp-col-vento", "imp-col-ventoda", "imp-col-pioggia", "imp-col-temp", "imp-col-umid"])
+      ok(pagina.includes('id="' + id + '"'), "la tendina " + id + " esiste");
+  });
+}
+/* ===== fine colonne meteo nell'import (05/09) ===== */
+
 
 
 

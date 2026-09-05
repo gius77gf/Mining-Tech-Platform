@@ -1369,6 +1369,25 @@ textarea.dw-input{
     <div class="form-hint" id="imp-ev-hint">Se indichi i <b>tre assi</b> e nessuna colonna del valore, il valore
       di conformità è la <b>risultante</b> √(L²+T²+V²) — calcolata solo quando tutti e tre gli assi si leggono.
       Le colonne in più restano scritte nella lettura, nel report e nel file che esce.</div>
+    <!-- LE CONDIZIONI METEO (05/09): un fonometro con la stazione meteo scrive
+         vento, direzione, pioggia, temperatura e umidità accanto a ogni
+         lettura. Stesse cinque condizioni del form a mano, stessa regola sul
+         rumore (vento oltre 5 m/s o pioggia → fuori condizioni, suggerito). -->
+    <div class="imp-tit imp-tit-2">Condizioni meteo, se il file le ha <span class="imp-fac">(facoltative: fonometri e centraline con stazione meteo)</span></div>
+    <div class="imp-griglia">
+      <label class="flab" for="imp-col-vento">Vento <span class="u">(m/s)</span>
+        <select class="dw-input" id="imp-col-vento"></select></label>
+      <label class="flab" for="imp-col-ventoda">Direzione del vento
+        <select class="dw-input" id="imp-col-ventoda"></select></label>
+      <label class="flab" for="imp-col-pioggia">Pioggia
+        <select class="dw-input" id="imp-col-pioggia"></select></label>
+      <label class="flab" for="imp-col-temp">Temperatura <span class="u">(°C)</span>
+        <select class="dw-input" id="imp-col-temp"></select></label>
+      <label class="flab" for="imp-col-umid">Umidità <span class="u">(%)</span>
+        <select class="dw-input" id="imp-col-umid"></select></label>
+    </div>
+    <div class="form-hint">La direzione si legge come sigla (N, NE… anche W per ovest) o in gradi; la pioggia come sì/no o in millimetri.
+      Sul <b>rumore</b> una lettura con vento oltre 5 m/s o con pioggia viene segnata <b>fuori condizioni</b>: entra lo stesso, e la dichiari tu non valida se lo confermi.</div>
     <label class="imp-spunta" for="imp-header">
       <input type="checkbox" id="imp-header">
       <span>La prima riga del file è un'<b>intestazione</b> (nomi delle colonne), non una misura.</span>
@@ -1837,7 +1856,7 @@ textarea.dw-input{
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            annullaLettura, ripristinaLettura, letturaValida, annullamentoDi, contaAnnullate, letturaSenzaVolata,
            RAGIONI_ANNULLAMENTO,
-           condizioniMisura, misuraFuoriCondizioni, contaFuoriCondizioni, DIREZIONI_VENTO,
+           condizioniMisura, misuraFuoriCondizioni, contaFuoriCondizioni, DIREZIONI_VENTO, proponiColonneMeteo,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
            PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO, PORTATA_REPORT, intestazioneOrigineReport,
@@ -3381,6 +3400,10 @@ textarea.dw-input{
     $("imp-col-ppvl").value = String(ev.colPpvL); $("imp-col-ppvt").value = String(ev.colPpvT);
     $("imp-col-ppvv").value = String(ev.colPpvV); $("imp-col-freq").value = String(ev.colFreq);
     $("imp-col-aria").value = String(ev.colAria);
+    const me = proponiColonneMeteo(impRighe, conInt, { ...mp, ...ev });
+    $("imp-col-vento").value = String(me.colVento); $("imp-col-ventoda").value = String(me.colVentoDa);
+    $("imp-col-pioggia").value = String(me.colPioggia); $("imp-col-temp").value = String(me.colTemp);
+    $("imp-col-umid").value = String(me.colUmid);
 
     $("imp-mappa").style.display = "block";
     esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} ${plurale(impRighe.length, "riga", "righe")}, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
@@ -3394,7 +3417,8 @@ textarea.dw-input{
   // il motivo. I doppioni vengono riconosciuti sia rispetto alle letture già
   // registrate sia dentro lo stesso file.
   const MAX_ANTEPRIMA = 10;
-  const IMP_COL_EVENTO = ["imp-col-ppvl", "imp-col-ppvt", "imp-col-ppvv", "imp-col-freq", "imp-col-aria"];
+  const IMP_COL_EVENTO = ["imp-col-ppvl", "imp-col-ppvt", "imp-col-ppvv", "imp-col-freq", "imp-col-aria",
+                          "imp-col-vento", "imp-col-ventoda", "imp-col-pioggia", "imp-col-temp", "imp-col-umid"];
   /* LA RIGA DELL'EVENTO SOTTO IL NUMERO, una volta sola per le tre tabelle
      (anteprima, scheda del punto, report): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz»
      e, se il valore è la risultante calcolata dai tre assi, lo dice lì. Il
@@ -3409,6 +3433,19 @@ textarea.dw-input{
     return `<small class="ev">${pv.da === "risultante" ? "<b>risultante</b> · " : ""}${esc(d)}${
       fb && fb.giudicabile && fb.fuori ? ` <span class="tag warn fb" title="${esc(fb.perche)}">fuori banda</span>` : ""}</small>`;
   };
+  /* LE CONDIZIONI METEO SOTTO IL NUMERO, nell'anteprima (05/09): il testo lo
+     compone `condizioniMisura`; se una colonna scelta aveva una cella che non
+     si legge lo si dice qui, non si tace; e sul rumore il suggerimento «fuori
+     condizioni» compare già prima di importare. */
+  const NOME_COND = { vento: "vento", ventoDa: "direzione", pioggia: "pioggia", temperatura: "temperatura", umidita: "umidità" };
+  const rigaMeteo = (r, m) => {
+    const c = condizioniMisura(r);
+    const nl = Array.isArray(r.meteoNonLetti) ? r.meteoNonLetti.map(k => NOME_COND[k] || k) : [];
+    if (!c.registrate && !nl.length) return "";
+    const fc = m ? misuraFuoriCondizioni(r, m) : { fuori: false };
+    return `<small class="ev">${esc(c.testo)}${nl.length ? (c.testo ? " · " : "") + "<b>non letta: " + esc(nl.join(", ")) + "</b>" : ""}${
+      fc.fuori ? ` <span class="tag warn fb" title="${esc(fc.motivo)}">fuori condizioni</span>` : ""}</small>`;
+  };
   function impAnteprima() {
     if (!impRighe.length) return;
     const mappa = {
@@ -3417,6 +3454,8 @@ textarea.dw-input{
       colValore: +$("imp-col-valore").value,
       colPpvL: +$("imp-col-ppvl").value, colPpvT: +$("imp-col-ppvt").value, colPpvV: +$("imp-col-ppvv").value,
       colFreq: +$("imp-col-freq").value, colAria: +$("imp-col-aria").value,
+      colVento: +$("imp-col-vento").value, colVentoDa: +$("imp-col-ventoda").value, colPioggia: +$("imp-col-pioggia").value,
+      colTemp: +$("imp-col-temp").value, colUmid: +$("imp-col-umid").value,
       conIntestazione: $("imp-header").checked,
     };
     const righe = preparaLetture(impRighe, mappa);
@@ -3464,7 +3503,7 @@ textarea.dw-input{
         <td>${r.riga}</td>
         <td>${r.data ? fmtD(r.data) : `<span class="grezzo">${esc(r.dataRaw || "—")}</span>`}</td>
         <td>${esc(r.ora || "—")}</td>
-        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r, MON.find(x => x.id === $("imp-punto").value) || null)}</td>
+        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r, punto)}${rigaMeteo(r, punto)}</td>
         <td class="stato">${stato(r)}</td></tr>`).join("") +
       `</tbody>`;
 

@@ -1413,6 +1413,59 @@ export function proponiColonneEvento(righe, conIntestazione, escludi) {
   return out;
 }
 
+// LE COLONNE METEO (05/09, sera). Un fonometro con la stazione meteo — e una
+// centralina delle polveri — esportano vento, direzione, pioggia, temperatura
+// e umidità nello stesso file delle letture. Sono le stesse cinque condizioni
+// che si scrivono a mano nel form «Registra misura», e viaggiano con la
+// lettura per `campiCondizioni`. Gli indizi sono in modo «parola», non
+// «dentro»: `vento` sta DENTRO «evento», che è una colonna del nostro stesso
+// CSV ambiente, e «temp» dentro niente di pericoloso ma «c» da solo sì —
+// per questo la lista è corta e la direzione si cerca PRIMA della velocità
+// («Dir. vento» contiene «vento»).
+const INDIZI_METEO = {
+  ventoDa: ["direzione", "direz", "dir", "wind dir", "wind direction", "wd", "provenienza vento"],
+  vento: ["vento", "vel vento", "velocita vento", "wind", "wind speed", "ws"],
+  pioggia: ["pioggia", "rain", "precipit", "precipitazioni"],
+  temperatura: ["temperatura", "temperature", "temp", "t aria"],
+  umidita: ["umidita", "umid", "humidity", "rh", "ur"],
+};
+export function proponiColonneMeteo(righe, conIntestazione, escludi) {
+  const out = { colVento: -1, colVentoDa: -1, colPioggia: -1, colTemp: -1, colUmid: -1 };
+  if (!conIntestazione) return out;
+  const e = escludi || {};
+  const presi = [e.colData, e.colOra, e.colValore, e.colPpvL, e.colPpvT, e.colPpvV, e.colFreq, e.colAria];
+  const m = mappaColonne((righe || [])[0] || [],
+    { colVentoDa: INDIZI_METEO.ventoDa, colVento: INDIZI_METEO.vento, colPioggia: INDIZI_METEO.pioggia, colTemp: INDIZI_METEO.temperatura, colUmid: INDIZI_METEO.umidita },
+    { modo: "parola", presi });
+  for (const k of Object.keys(out)) out[k] = m.indici[k];
+  return out;
+}
+// La direzione del vento com'è scritta nei file: una sigla (anche inglese,
+// W → O; anche a sedici punte, ridotta alle otto) o i gradi (0-360, settore
+// di 45°). Quello che non si riconosce resta "" — non si inventa una rosa.
+const GRADI_16 = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSO: 202.5, SO: 225, OSO: 247.5, O: 270, ONO: 292.5, NO: 315, NNO: 337.5 };
+export function direzioneVento(cella) {
+  const t = String(cella == null ? "" : cella).trim().toUpperCase().replace(/[^A-Z0-9.,]/g, "");
+  if (!t) return "";
+  const n = numIt(t);
+  if (Number.isFinite(n)) return n >= 0 && n <= 360 ? DIREZIONI_VENTO[Math.round(n / 45) % 8] : "";
+  const it = t.replace(/W/g, "O");
+  if (DIREZIONI_VENTO.includes(it)) return it;
+  if (GRADI_16[it] != null) return DIREZIONI_VENTO[Math.round(GRADI_16[it] / 45) % 8];
+  return "";
+}
+// La pioggia com'è scritta nei file: sì/no in tre lingue, oppure i millimetri
+// (0 = senza pioggia). `null` = la cella non dice niente di leggibile.
+export function pioggiaDaCella(cella) {
+  const t = String(cella == null ? "" : cella).trim().toLowerCase();
+  if (!t) return null;
+  if (["si", "sì", "s", "yes", "y", "true", "pioggia", "rain", "x"].includes(t)) return true;
+  if (["no", "n", "false", "none", "asciutto", "dry", "-", "—"].includes(t)) return false;
+  const n = numIt(t);
+  if (Number.isFinite(n)) return n > 0;
+  return null;
+}
+
 // I tre assi, nell'ordine in cui il mestiere li scrive.
 export const ASSI_PPV = ["L", "T", "V"];
 
@@ -1513,6 +1566,7 @@ export function preparaLetture(righe, mappa) {
   const scelta = (i) => Number.isFinite(i) && i >= 0;
   const COL_ASSI = { L: +m.colPpvL, T: +m.colPpvT, V: +m.colPpvV };
   const COL_EXTRA = { freq: +m.colFreq, aria: +m.colAria };
+  const COL_METEO = { vento: +m.colVento, ventoDa: +m.colVentoDa, pioggia: +m.colPioggia, temperatura: +m.colTemp, umidita: +m.colUmid };
   const treAssi = ASSI_PPV.every(k => scelta(COL_ASSI[k]));
   const dati = (righe || []).slice(m.conIntestazione ? 1 : 0);
   const cella = (r, i) => (scelta(i) ? String(r[i] == null ? "" : r[i]) : "");
@@ -1529,6 +1583,18 @@ export function preparaLetture(righe, mappa) {
     const extra = {};
     for (const x of Object.keys(COL_EXTRA)) if (scelta(COL_EXTRA[x])) extra[x] = numero(cella(r, COL_EXTRA[x]));
     if (Object.keys(extra).length) evento.extra = extra;
+    /* le condizioni meteo (05/09): solo le colonne indicate; una cella che
+       non si legge NON diventa «non registrata» in silenzio — la riga entra
+       lo stesso (la misura vale), ma `meteoNonLetti` dice quale condizione
+       era scritta e non si è capita, e l'anteprima lo mostra */
+    const cond = {}, meteoNonLetti = [];
+    for (const k of Object.keys(COL_METEO)) {
+      if (!scelta(COL_METEO[k])) continue;
+      const raw = cella(r, COL_METEO[k]).trim();
+      if (!raw) continue;
+      const v = k === "ventoDa" ? direzioneVento(raw) : k === "pioggia" ? pioggiaDaCella(raw) : numero(raw);
+      if (v === "" || v == null) meteoNonLetti.push(k); else cond[k] = v;
+    }
     // L'ora si cerca prima nella colonna scelta e POI, se lì non c'è, nella
     // cella della data: molti strumenti scrivono "12/07/2026 10:30" in una
     // casella sola, e capita che il file abbia ANCHE una colonna Ora che per
@@ -1552,7 +1618,7 @@ export function preparaLetture(righe, mappa) {
     else if (!Number.isFinite(valore)) motivo = valRaw ? "valore non numerico" : "valore mancante";
     else if (valore < 0) motivo = "valore negativo";
     return { riga: k + 1 + (m.conIntestazione ? 1 : 0), dataRaw, oraRaw, valRaw, data, ora, valore, valoreDa,
-             ...evento, ok: !motivo, motivo, ...(perche ? { perche } : {}) };
+             ...evento, ...cond, ...(meteoNonLetti.length ? { meteoNonLetti } : {}), ok: !motivo, motivo, ...(perche ? { perche } : {}) };
   });
 }
 
@@ -1630,7 +1696,9 @@ export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
                   /* gli assi, la frequenza e la sovrapressione entrano in archivio
                      con la lettura (04/09): è QUI che si perderebbero al reimport,
                      e `campiEvento` è l'unico elenco di che cosa viaggia */
-                  ...campiEvento(l) });
+                  ...campiEvento(l),
+                  /* e le condizioni meteo (05/09), per la stessa ragione */
+                  ...campiCondizioni(l) });
   }
   const tutte = [...(esistenti || []), ...tenute]
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });

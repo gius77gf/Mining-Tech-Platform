@@ -665,6 +665,31 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **SENTINELLA — le condizioni meteo entrano anche dal file dello
+  strumento (05/09, sera):** il candidato scritto un'unità prima in
+  `RICERCA_CONTINUA_SENTINELLA`. `proponiColonneMeteo(righe, conInt,
+  escludi)` propone vento, direzione, pioggia, temperatura e umidità
+  dall'intestazione (italiano e inglese) in modo «parola» — perché «vento» sta
+  DENTRO «evento», che è una colonna del nostro stesso CSV ambiente, e la
+  direzione si cerca prima della velocità («Dir. vento» contiene «vento»);
+  `direzioneVento` legge la sigla (anche W→O, anche a sedici punte ridotte a
+  otto) o i gradi (settore di 45°); `pioggiaDaCella` legge sì/no in tre
+  lingue o i millimetri. `preparaLetture` porta le condizioni SOLO dalle
+  colonne indicate e, se una cella scelta non si legge, non la trasforma in
+  «non registrata» in silenzio: la riga entra (la misura vale) con
+  `meteoNonLetti`, e l'anteprima scrive «non letta: vento». `unisciLetture`
+  le tiene con `campiCondizioni` (è la copia campo per campo dove si
+  perderebbero). Pagina: terzo blocco di tendine nella finestra delle
+  colonne, proposta automatica, mappa dell'anteprima, e la riga
+  dell'anteprima con le condizioni sotto il numero e il tag «fuori
+  condizioni» già prima di importare. Provato nel browser incollando un file
+  a nove colonne su un punto di rumore: proposte giuste, tre righe entrate,
+  le condizioni sulle righe dell'archivio con i due suggerimenti. run-kpi +5
+  (2733), copertura Sentinella 164 → 167, `sentinella-evento-import` 56 ok e
+  controprova caduta (il file del sismografo non propone nessuna colonna
+  meteo). Scatto dell'anteprima guardato. ⚠️ Dichiarato: le intestazioni
+  vere dei produttori non sono verificate — gli indizi sono le parole ovvie e
+  la finestra lascia correggere, come per gli assi.
 - [x] **`nomi-liberi`: la seconda domanda (lo scope) anche sui riferimenti
   NUDI — e il secondo difetto vero del giorno, in Scudo (05/09):** dal
   «candidato lasciato scritto» dell'unità precedente. `fuoriScopeNudi` con
@@ -6856,8 +6881,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.209 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2728, `run-stile` 328,
+  **3.214 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2733, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

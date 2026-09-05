@@ -564,7 +564,13 @@ aprendo il modulo (vedi in fondo), non la ricerca.
   ha; scriverlo dal solo vento sarebbe un numero tranquillo. Se un giorno il
   ricettore avrà un azimut dalla cava, la domanda è già scritta nel commento
   di `condizioniMisura`.
-- ⏱️ **candidato**: la colonna del vento nell'**import** delle letture
-  (`proponiMappa`): oggi le condizioni entrano solo a mano. Un fonometro con
-  stazione meteo integrata le esporta nello stesso CSV; da verificare quali
-  intestazioni usano i tre produttori più diffusi prima di proporre una mappa.
+- ✅ **fatto la sera stessa (05/09)** — le cinque condizioni entrano anche dal
+  file: `proponiColonneMeteo` (indizi in modo «parola», perché «vento» sta
+  dentro «evento»; italiano e inglese), `direzioneVento` (sigla, anche W→O e a
+  sedici punte, o gradi), `pioggiaDaCella` (sì/no o millimetri),
+  `preparaLetture` con `meteoNonLetti` (una cella illeggibile si dichiara,
+  non scarta la riga), `unisciLetture` che le tiene. Prova: `grep -c
+  "proponiColonneMeteo" apps/sentinella/sentinella-data.js
+  apps/sentinella/index.html` → 1 e 2. ⚠️ Le intestazioni dei produttori
+  restano **non verificate**: gli indizi sono le parole italiane e inglesi
+  ovvie, e l'utente le corregge nella finestra come per gli assi.
