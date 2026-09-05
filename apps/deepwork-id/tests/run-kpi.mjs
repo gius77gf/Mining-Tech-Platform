@@ -23006,7 +23006,9 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        non salirebbe — ed è per questo che accanto c'è il censimento delle
        uscite nel banco, che invece le conta tutte. */
     const html = (SRC_CAMPO.match(/\$\{avvisoEsempio\(\)\}/g) || []).length;
-    const testo = (SRC_CAMPO.match(/txt \+= avvisoEsempioTesto\(\);/g) || []).length;
+    /* dal 05/09 la consegna la compone `testoConsegnaTurno` nel modulo e la
+       pagina le PASSA l'avviso: il punto di chiamata è l'argomento `avviso` */
+    const testo = (SRC_CAMPO.match(/avviso: avvisoEsempioTesto\(\)/g) || []).length;
     eq(html, 1, "una chiamata sola nel foglio stampato");
     eq(testo, 1, "e una sola nella consegna .txt");
     ok(SRC_CAMPO.includes("${CSS_ESEMPIO}</style>"),
@@ -37528,6 +37530,58 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine file di Scudo nel modulo (05/09) ===== */
+/* ===== la consegna di turno composta nel modulo (Campo, 05/09) ===== */
+{
+  const D = campo.DEMO;
+  const OGGI = D.attivita[0].data;   // la dimostrazione vive «oggi»
+  const RAP = campo.diGiorno(D.rapportini, OGGI), ATT = campo.diGiorno(D.attivita, OGGI);
+  const TITOLI = ["RAPPORTINI", "PRODUZIONE", "OBIETTIVO DEL TURNO", "CHECKLIST DI INIZIO TURNO", "METEO E CONDIZIONI DEL SITO",
+    "VOLATE DEL GIORNO (registro di Sentinella)", "LAVORI NON CONCLUSI", "SEGNALAZIONI DEL TURNO", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"];
+  const sezione = (txt, titolo) => { const i = txt.indexOf(titolo + "\n"); if (i < 0) return null; const resto = txt.slice(i + titolo.length + 1); const j = resto.indexOf("\n\n"); return (j < 0 ? resto : resto.slice(0, j)).trim(); };
+  test("Campo · testoConsegnaTurno: la consegna sulla dimostrazione — le dieci sezioni, in ordine, nessuna vuota", () => {
+    const txt = campo.testoConsegnaTurno({ oggi: OGGI, rapportini: RAP, attivita: ATT, obiettivi: D.obiettivi, checklist: D.checklist, meteo: D.meteo,
+      chiusure: D.chiusure, volateSentinella: D.volateSentinella, infortuniScudo: D.infortuniScudo }, { avviso: "[ESEMPIO]\n\n" });
+    eq(txt.split("\n")[0], "CONSEGNA DI TURNO — " + shell.dataIt(OGGI), "la testata con la data in italiano");
+    eq(txt.split("\n")[2], "[ESEMPIO]", "⛔ la riga dei dati di esempio, decisa dalla pagina, sta in cima prima di qualunque dato");
+    const pos = TITOLI.map((t) => txt.indexOf(t + "\n"));
+    ok(pos.every((p) => p >= 0), "tutte e dieci le sezioni ci sono: " + TITOLI.filter((t, i) => pos[i] < 0).join(", "));
+    eq(pos.slice().sort((a, b) => a - b), pos, "⛔ nell'ordine dello schermo");
+    for (const t of TITOLI) ok(/^- /.test(sezione(txt, t) || ""), "⛔ la sezione «" + t + "» ha almeno una riga: un'assenza si dice a parole, non con un vuoto — " + JSON.stringify((sezione(txt, t) || "").slice(0, 60)));
+    eq((sezione(txt, "RAPPORTINI").match(/^- /gm) || []).length, RAP.length, "un rapportino per riga");
+    eq((sezione(txt, "LAVORI NON CONCLUSI").match(/^- /gm) || []).length, campo.lavoriNonConclusi(ATT).length, "⛔ i lavori non conclusi sono quelli di lavoriNonConclusi, la regola del Quadro");
+    eq(sezione(txt, "CHECKLIST DI INIZIO TURNO"), "- nessuna checklist compilata", "la dimostrazione non ha checklist, e lo dice");
+    eq(sezione(txt, "METEO E CONDIZIONI DEL SITO"), "- non registrato", "il meteo non registrato");
+    eq(sezione(txt, "CHIUSURA DEL TURNO"), "- nessun turno chiuso: consegna non firmata", "⛔ nessuna chiusura = consegna non firmata, detto");
+    ok(/^- turno Mattina: /.test(sezione(txt, "OBIETTIVO DEL TURNO")), "l'obiettivo del turno, da statoObiettivo");
+    ok(sezione(txt, "SEGNALAZIONI DEL TURNO") !== "- nessuna segnalazione oggi", "⛔ il near-miss di oggi (ponte da Scudo) compare: " + sezione(txt, "SEGNALAZIONI DEL TURNO").slice(0, 80));
+  });
+  test("Campo · testoConsegnaTurno: quando Sentinella o Scudo non si leggono, la consegna lo scrive — «non lo so» non è «nessuna»", () => {
+    const base = { oggi: OGGI, rapportini: RAP, attivita: ATT };
+    const cieca = campo.testoConsegnaTurno({ ...base, volateSentinella: null, infortuniScudo: null });
+    const vuota = campo.testoConsegnaTurno({ ...base, volateSentinella: [], infortuniScudo: [] });
+    ok(sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)") !== sezione(vuota, "VOLATE DEL GIORNO (registro di Sentinella)"),
+      "⛔ registro non letto e registro vuoto sono due frasi diverse");
+    eq(sezione(vuota, "VOLATE DEL GIORNO (registro di Sentinella)"), "- nessuna volata registrata oggi in Sentinella", "vuoto: «nessuna volata»");
+    ok(!/nessuna volata/.test(sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)")), "non letto: NON «nessuna volata» — " + sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)"));
+    eq(sezione(vuota, "SEGNALAZIONI DEL TURNO"), "- nessuna segnalazione oggi", "Scudo letto e vuoto: «nessuna segnalazione»");
+    ok(sezione(cieca, "SEGNALAZIONI DEL TURNO") !== "- nessuna segnalazione oggi", "⛔ Scudo non letto: un'altra frase, non «nessuna» — " + sezione(cieca, "SEGNALAZIONI DEL TURNO"));
+    const senzaAvviso = campo.testoConsegnaTurno(base);
+    eq(senzaAvviso.split("\n")[2], "RAPPORTINI", "senza avviso la prima sezione viene subito dopo la testata");
+    const niente = campo.testoConsegnaTurno({ oggi: OGGI });
+    for (const t of TITOLI) ok(/^- /.test(sezione(niente, t) || ""), "anche con tutto vuoto la sezione «" + t + "» dice l'assenza a parole");
+    eq(sezione(niente, "RAPPORTINI"), "- nessun rapportino", "«nessun rapportino»");
+    eq(sezione(niente, "ANOMALIE / FERMI"), "- nessuna anomalia aperta", "«nessuna anomalia aperta»");
+    eq(campo.testoConsegnaTurno().split("\n")[0], "CONSEGNA DI TURNO — senza data", "senza oggi: «senza data», la parola di Campo");
+  });
+  test("Campo · fraseNonRiconosciute: le causali fuori elenco, a parole, nude o vestite", () => {
+    const f = campo.fraseNonRiconosciute;
+    eq(f({ nonRiconosciute: 1, valoriNonRiconosciuti: ["pioggia forte"] }), " 1 fermo ha una causale non in elenco («pioggia forte») ed è contato in «Altro»", "una");
+    eq(f({ nonRiconosciute: 2, valoriNonRiconosciuti: ["a", "b"] }, false), " 2 fermi hanno una causale non in elenco («a», «b») e sono contati in «Altro»", "due, nude");
+    eq(f({ nonRiconosciute: 1, valoriNonRiconosciuti: ["x"] }, true, (t) => "<b>" + t + "</b>"), " · 1 fermo ha una causale non in elenco («<b>x</b>») ed è contato in «Altro»", "vestita per lo schermo: separatore e grassetto");
+    eq([f(null), f({ nonRiconosciute: 0 })], ["", ""], "niente da dire");
+  });
+}
+/* ===== fine consegna di turno nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

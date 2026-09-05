@@ -1232,7 +1232,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
-           segnalazioniDelTurno, lavoriNonConclusi, testoSegnalazioniTurno, categorieGiaSegnalate,
+           segnalazioniDelTurno, lavoriNonConclusi, testoConsegnaTurno, fraseNonRiconosciute as fraseNonRiconosciuteTesto, testoSegnalazioniTurno, categorieGiaSegnalate,
            pianoParziale, frasiCaricoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -1334,14 +1334,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
      stata rinominata — finisce nella categoria residua del Pareto; qui si
      dice quanti sono e con quali parole, se no il Pareto scende in silenzio.
      `html` decide se le parole vanno in grassetto (schermo) o nude (testo). */
-  function fraseNonRiconosciute(pf, html) {
-    if (!pf || !pf.nonRiconosciute) return "";
-    const b = (t) => html ? "<b>" + esc(t) + "</b>" : t;
-    const parole = pf.valoriNonRiconosciuti.map(v => "«" + b(v) + "»").join(", ");
-    return (html ? " · " : " ") + (pf.nonRiconosciute === 1
-      ? "1 fermo ha una causale non in elenco (" + parole + ") ed è contato in «Altro»"
-      : pf.nonRiconosciute + " fermi hanno una causale non in elenco (" + parole + ") e sono contati in «Altro»");
-  }
+  /* la frase è salita nel modulo (05/09): qui resta la veste dello schermo,
+     con le parole in grassetto */
+  const fraseNonRiconosciute = (pf, html) => fraseNonRiconosciuteTesto(pf, html, (t) => "<b>" + esc(t) + "</b>");
   function grafFermi(pf, tuttiIGiorni) {
     const el = svuotaGraf("fermi-pareto"); if (!el) return;
     const quando = tuttiIGiorni ? "in tutti i giorni" : "oggi";
@@ -4366,104 +4361,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
   $("btn-consegna").onclick = () => {
-    const oggi = dmy(OGGI);
-    let txt = "CONSEGNA DI TURNO — " + oggi + "\n\n";
-    txt += avvisoEsempioTesto();
-    /* ⛔ CHI NON HA IL GIORNO SI DICHIARA ANCHE QUI. La consegna è datata in
-       cima e si archivia: senza questa riga i chili di un rapportino che
-       nessuno ha collocato passavano per prodotti oggi, in questo turno.
-       Lo schermo lo scrive due volte, questo foglio zero. */
-    const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
-    txt += "RAPPORTINI\n";
-    txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "")
-      + (senzaGiornoDiLavoro(r) ? " [SENZA DATA]" : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
-    const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
-    txt += "PRODUZIONE\n";
-    txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
-      + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
-      : "- nessuna produzione registrata") + "\n";
-    txt += (fuoriOggi ? "- ATTENZIONE: " + fuoriOggi + "\n" : "") + "\n";
-    const obT = OBIE.filter(o => String(o.data || "") === OGGI)
-      .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
-    txt += "OBIETTIVO DEL TURNO\n";
-    txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
-      + (o.unita === UNITA_ATTIVITA ? numeroIt(o.fatto, 0) + " su " + numeroIt(o.obiettivo, 0) + " attività concluse"
-                                    : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
-      + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
-      : "- nessun obiettivo impostato") + "\n\n";
-    const chkT = CHK.filter(c => String(c.data || "") === OGGI);
-    txt += "CHECKLIST DI INIZIO TURNO\n";
-    /* ⛔ «4/9 a posto» NASCONDEVA LE VOCI CHE NESSUNO HA GUARDATO. La stessa
-       checklist usciva «6/9 · mancano 3 risposte» a schermo, «4 a posto · 1
-       n.a. · 3 senza risposta» sulla stampa e «4/9 a posto» qui — e questo è
-       il foglio che passa di mano fra due turni. La frase adesso è una sola,
-       `descriviChecklist`, e la scrivono tutt'e due i documenti. */
-    txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
-      return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
-        + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
-        + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
-      : "- nessuna checklist compilata") + "\n\n";
-    const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
-    txt += "METEO E CONDIZIONI DEL SITO\n";
-    txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
-      + (m.note ? " — " + m.note : "")).join("\n")
-      : "- non registrato") + "\n\n";
-    /* ⛔ LE DUE COSE CHE IL TURNO ENTRANTE LEGGE PER PRIME (05/09): i lavori
-       non conclusi e i pericoli segnalati. Lo schermo li aveva tutt'e due (le
-       urgenze del Quadro, la riga dei near-miss) e il foglio che passa di
-       mano no. Le regole sono quelle dello schermo, non copie: `lavoriNonConclusi`
-       e `testoSegnalazioniTurno`, turno per turno — e chi non si legge (Scudo
-       non raggiungibile) lo dice, invece di «nessuna segnalazione». */
-    /* le volate di oggi dal registro di Sentinella (ponte P6, 05/09): il turno
-       entrante deve sapere se e dove si è sparato, e se la vibrazione è già
-       stata misurata. Se Sentinella non si legge, lo si scrive: non è «nessuna» */
-    txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
-    txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(VOL_SENT, OGGI)).map(l => "- " + l).join("\n") + "\n\n";
-    const aperti = lavoriNonConclusi(ATT_OGGI);
-    txt += "LAVORI NON CONCLUSI\n";
-    txt += (aperti.length
-      ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]").join("\n")
-      : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
-    txt += "SEGNALAZIONI DEL TURNO\n";
-    const segT = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(INF_HSE, OGGI, t) }))
-      .map(x => ({ turno: x.turno, t: testoSegnalazioniTurno(x.s) })).filter(x => x.t);
-    txt += (segT.length
-      ? [...new Set(segT.map(x => (segT.length > 1 ? "- turno " + x.turno + ": " : "- ") + x.t))].join("\n")
-      : "- nessuna segnalazione oggi") + "\n\n";
-    const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
-    txt += "CHIUSURA DEL TURNO\n";
-    txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
-      + (c.note ? " — " + c.note : "")).join("\n")
-      : "- nessun turno chiuso: consegna non firmata") + "\n";
-    // le riaperture non si nascondono nemmeno qui: se un turno firmato è
-    // stato riaperto, chi legge la consegna deve saperlo
-    const riapT = CHI.filter(c => String(c.data || "") === OGGI && riaperture(c).length);
-    if (riapT.length) {
-      txt += "RIAPERTURE DEL TURNO\n";
-      txt += riapT.map(c => riaperture(c).map(r => "- turno " + c.turno + ": "
-        + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
-    }
-    txt += "\n";
-    /* ⛔ LA CONSEGNA PERDEVA I MINUTI. Elencava «causale: quante volte» e basta,
-       mentre lo schermo, sulla stessa giornata, scrive già quanto tempo si è
-       perso e «senza minuti» dove nessuno l'ha misurato. È il documento con cui
-       un turno passa la mano all'altro: chi lo legge deve sapere se un guasto è
-       durato dieci minuti o due ore, e soprattutto se **non lo sa nessuno**. */
+    /* Il testo lo compone `testoConsegnaTurno` nel modulo — le stesse
+       funzioni dello schermo, sezione per sezione — così la composizione la
+       prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
+       la pagina, che sa in che modo sta girando. */
+    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK,
+      meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE }, { avviso: avvisoEsempioTesto(), dmy });
     const fermi = riepilogoFermi(ATT_OGGI);
-    const pf = paretoFermi(ATT_OGGI);
-    const minutiDi = (causale) => {
-      const v = pf.voci.find(x => x.causale === causale);
-      return v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
-    };
-    txt += "ANOMALIE / FERMI\n";
-    txt += (fermi.length
-      ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
-      : "- nessuna anomalia aperta") + "\n";
-    if (pf.senzaMinutiTot) {
-      txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
-        + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
-    }
-    if (pf.nonRiconosciute) txt += "  (" + fraseNonRiconosciute(pf, false).trim() + ")\n";
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();

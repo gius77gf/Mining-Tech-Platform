@@ -420,6 +420,15 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
+  domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
+  foglio `consegna_turno.txt` (cento righe, dieci sezioni) stava nella pagina.
+  `testoConsegnaTurno(d, {avviso, dmy})` e `fraseNonRiconosciute(pf, html,
+  avvolgi)` nel modulo, la pagina chiama e passa la riga dei dati di esempio
+  (che dipende dal modo). run-kpi +3 (2663): dieci sezioni in ordine, nessuna
+  vuota, «registro non letto» ≠ «registro vuoto» per Sentinella e Scudo.
+  Banco `campo-foglio-turno` 44/44 sano, --live e controprova, senza
+  riancorare niente (le iniezioni mordono le funzioni, non la composizione).
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6519,8 +6528,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.141 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2660, `run-stile` 328,
+  **3.144 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2663, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -50,7 +50,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura, mappaColonne, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello,
          riassuntoVolateDelGiorno, PPV_STRUMENTO } from "../../shared/dw-ponti.js";
@@ -3350,6 +3350,117 @@ export function testoSegnalazioniTurno(s) {
       + " (non si sa se di questo turno)";
   if (!capi && !coda) return null;
   return [capi, coda].filter(Boolean).join(" · ") + ".";
+}
+
+/* I FERMI CON UNA CAUSALE CHE L'ELENCO NON CONOSCE, detti a parole (05/09,
+   salita dalla pagina). `html` decide se le parole vanno avvolte (schermo,
+   con `avvolgi`) o nude (testo). Pura. */
+export function fraseNonRiconosciute(pf, html = false, avvolgi = (t) => t) {
+  if (!pf || !pf.nonRiconosciute) return "";
+  const b = (t) => html ? avvolgi(t) : t;
+  const parole = (pf.valoriNonRiconosciuti || []).map(v => "«" + b(v) + "»").join(", ");
+  return (html ? " · " : " ") + (pf.nonRiconosciute === 1
+    ? "1 fermo ha una causale non in elenco (" + parole + ") ed è contato in «Altro»"
+    : pf.nonRiconosciute + " fermi hanno una causale non in elenco (" + parole + ") e sono contati in «Altro»");
+}
+
+/* LA CONSEGNA DI TURNO, IL TESTO INTERO (05/09). Stava nella pagina, cento
+   righe che chiamavano le funzioni giuste — `riassuntoRapportino`,
+   `descriviChecklist`, `lavoriNonConclusi`, `testoSegnalazioniTurno`,
+   `righeVolateDelGiorno`, `minutiFermoTesto` — ma la COMPOSIZIONE la provava
+   solo il browser. Qui la prova anche `run-kpi`: l'ordine delle sezioni, e che
+   nessuna sezione resti vuota (ogni assenza ha la sua riga a parole).
+   `d`: { oggi (ISO), rapportini e attivita GIÀ del giorno, obiettivi,
+   checklist, meteo, chiusure (tutti gli archivi: si filtrano qui),
+   volateSentinella (null = Sentinella non letta), infortuniScudo (null =
+   Scudo non letto) }. `opts.avviso`: la riga dei dati di esempio, decisa
+   dalla pagina (dipende dal modo); `opts.dmy`: la data in italiano. Pura. */
+export function testoConsegnaTurno(d = {}, opts = {}) {
+  const OGGI = String(d.oggi || "");
+  const dmy = opts.dmy || ((iso) => dataIt(iso, "senza data"));
+  const RAP_OGGI = d.rapportini || [], ATT_OGGI = d.attivita || [];
+  const OBIE = d.obiettivi || [], CHK = d.checklist || [], MET = d.meteo || [], CHI = d.chiusure || [];
+  let txt = "CONSEGNA DI TURNO — " + dmy(OGGI) + "\n\n";
+  txt += String(opts.avviso || "");
+  /* chi non ha il giorno si dichiara anche qui: la consegna è datata in cima
+     e si archivia, e i chili di un rapportino che nessuno ha collocato
+     passerebbero per prodotti oggi */
+  const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
+  txt += "RAPPORTINI\n";
+  txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "")
+    + (senzaGiornoDiLavoro(r) ? " [SENZA DATA]" : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
+  const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
+  txt += "PRODUZIONE\n";
+  txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
+    + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
+    : "- nessuna produzione registrata") + "\n";
+  txt += (fuoriOggi ? "- ATTENZIONE: " + fuoriOggi + "\n" : "") + "\n";
+  const obT = OBIE.filter(o => String(o.data || "") === OGGI)
+    .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+  txt += "OBIETTIVO DEL TURNO\n";
+  txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
+    + (o.unita === UNITA_ATTIVITA ? numeroIt(o.fatto, 0) + " su " + numeroIt(o.obiettivo, 0) + " attività concluse"
+                                  : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
+    + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
+    : "- nessun obiettivo impostato") + "\n\n";
+  const chkT = CHK.filter(c => String(c.data || "") === OGGI);
+  txt += "CHECKLIST DI INIZIO TURNO\n";
+  // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
+  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
+    return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
+      + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
+      + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
+    : "- nessuna checklist compilata") + "\n\n";
+  const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
+  txt += "METEO E CONDIZIONI DEL SITO\n";
+  txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
+    + (m.note ? " — " + m.note : "")).join("\n")
+    : "- non registrato") + "\n\n";
+  // le volate di oggi dal registro di Sentinella (ponte P6): se non si legge, lo si scrive
+  txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
+  txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(d.volateSentinella === undefined ? null : d.volateSentinella, OGGI)).map(l => "- " + l).join("\n") + "\n\n";
+  // le due cose che il turno entrante legge per prime: i lavori non conclusi e i pericoli segnalati
+  const aperti = lavoriNonConclusi(ATT_OGGI);
+  txt += "LAVORI NON CONCLUSI\n";
+  txt += (aperti.length
+    ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]").join("\n")
+    : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
+  txt += "SEGNALAZIONI DEL TURNO\n";
+  const segT = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(d.infortuniScudo === undefined ? null : d.infortuniScudo, OGGI, t) }))
+    .map(x => ({ turno: x.turno, t: testoSegnalazioniTurno(x.s) })).filter(x => x.t);
+  txt += (segT.length
+    ? [...new Set(segT.map(x => (segT.length > 1 ? "- turno " + x.turno + ": " : "- ") + x.t))].join("\n")
+    : "- nessuna segnalazione oggi") + "\n\n";
+  const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
+  txt += "CHIUSURA DEL TURNO\n";
+  txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
+    + (c.note ? " — " + c.note : "")).join("\n")
+    : "- nessun turno chiuso: consegna non firmata") + "\n";
+  // le riaperture non si nascondono nemmeno qui
+  const riapT = CHI.filter(c => String(c.data || "") === OGGI && riaperture(c).length);
+  if (riapT.length) {
+    txt += "RIAPERTURE DEL TURNO\n";
+    txt += riapT.map(c => riaperture(c).map(r => "- turno " + c.turno + ": "
+      + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
+  }
+  txt += "\n";
+  // i fermi coi minuti, e «senza minuti» dove nessuno li ha misurati
+  const fermi = riepilogoFermi(ATT_OGGI);
+  const pf = paretoFermi(ATT_OGGI);
+  const minutiDi = (causale) => {
+    const v = pf.voci.find(x => x.causale === causale);
+    return v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
+  };
+  txt += "ANOMALIE / FERMI\n";
+  txt += (fermi.length
+    ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
+    : "- nessuna anomalia aperta") + "\n";
+  if (pf.senzaMinutiTot) {
+    txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
+      + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
+  }
+  if (pf.nonRiconosciute) txt += "  (" + fraseNonRiconosciute(pf, false).trim() + ")\n";
+  return txt;
 }
 
 // Le categorie già segnalate oggi, in parole: serve alla modale per non far
