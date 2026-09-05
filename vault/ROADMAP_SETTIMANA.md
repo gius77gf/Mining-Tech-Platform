@@ -399,7 +399,7 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
-- [ ] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
+- [x] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
   delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
   schermata: (a) ✅ **fatto la notte stessa** — `idoneitaOperatore` legge il
   giudizio (`giudizio`, `prescrizioni` nella risposta), «non-idoneo» è uno
@@ -408,11 +408,14 @@
   nella nota dell'elenco («N persona NON è idonea secondo il medico competente
   (Scudo): non va mandata in cava finché il giudizio non cambia») e nella riga
   (rossa, col testo delle prescrizioni se Scudo lo ha, «testo non registrato»
-  se no); run-kpi +2 con la controprova che cade; (b) **a metà**: il testo
-  delle prescrizioni si legge e si mostra (riga del Personale, urgenze del
-  Quadro, Campo) se il lavoratore lo porta — manca ancora il modo di
-  SCRIVERLO dalla pagina (il badge cicla quattro stati senza chiedere niente)
-  e la data del giudizio; (c) ✅ le due dimostrazioni portano un idoneo (d4),
+  se no); run-kpi +2 con la controprova che cade; (b) ✅ **fatto subito
+  dopo** — `giudizioIdoneita` (prescrizioni obbligatorie con «prescrizioni»,
+  data facoltativa che deve esistere e non essere futura, azzeramento su
+  idoneo/n.d.), il tocco sul badge apre la modale del core con data e testo
+  invece di ciclare, la riga scrive «Giudizio del … · Prescrizioni del
+  medico: …», il CSV del personale porta `prescrizioni;giudizio` in coda
+  (censimento condiviso allineato); banco nuovo `scudo-giudizio-medico` 32/0
+  con la controprova; niente «trenta giorni»; (c) ✅ le due dimostrazioni portano un idoneo (d4),
   uno con prescrizioni scritte (d5, in Campo regolare coi documenti) e un NON
   idoneo (d2, schierato nella Squadra A): Campo continua a mostrare tutti gli
   stati, e la prova che le due copie dicono lo stesso giudizio c'è.
@@ -1370,8 +1373,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `SCUDO — dalla ricerca del 05/09 notte` *(sorveglianza sanitaria: il ponte con
-  Campo non legge l'idoneità; data e prescrizioni del giudizio; dimostrazione)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6281,7 +6282,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.084 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.089 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -6292,8 +6293,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **241 esecuzioni** che
-  aprono le pagine in un browser vero, da **100** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **243 esecuzioni** che
+  aprono le pagine in un browser vero, da **101** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

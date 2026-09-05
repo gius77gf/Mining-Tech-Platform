@@ -201,8 +201,8 @@ const DIFETTI = [
      ⏱️ RI-ANCORATA l'08/08 sul MODULO: questo export è salito in
      `csvPersonaleScadenze` accanto alle funzioni che decidono le stesse cose a
      schermo — di nuovo, il pezzo si è mosso perché è migliorato. */
-  ['righe.push([...chi, "", "", SENZA, "—"].join(";"));',
-   'righe.push([...chi, "", "", "", "—"].join(";"));', MODULO],
+  ['righe.push([...chi, "", "", SENZA, "—", ...coda].join(";"));',
+   'righe.push([...chi, "", "", "", "—", ...coda].join(";"));', MODULO],
   // 3. il riepilogo L.198 senza lo storico e senza la nota di lettura
   ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', ""],
   ['{ const nota = descriviLetturaNearMiss(r);\n      if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', ""],

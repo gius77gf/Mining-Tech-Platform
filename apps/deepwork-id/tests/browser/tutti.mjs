@@ -535,6 +535,14 @@ const BANCHI = [
      cella vuota che si legge «zero giorni». */
   ['i documenti che escono da Scudo (4 CSV, 2 fogli stampati, il promemoria)', 'scudo-documenti.mjs', []],
   ['documenti di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
+  /* 05/09 · il giudizio del medico si scrive, non si cicla: il tocco sul badge
+     dell'idoneità apre la modale con la data e — per le prescrizioni — il
+     testo obbligatorio; il vuoto e la data futura sono rifiutati e la riga
+     resta com'era; registrato, la riga dice «Giudizio del … · Prescrizioni
+     del medico: …». La controprova rimette `giudizioIdoneita` che accetta le
+     prescrizioni vuote. */
+  ['il giudizio del medico in Scudo, scritto e non ciclato', 'scudo-giudizio-medico.mjs', []],
+  ['giudizio del medico · controprova', 'scudo-giudizio-medico.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08 insieme alla dichiarazione «dati di esempio» sui due
      fogli di Scudo — il verbale di consegna dei DPI (art. 77 D.Lgs 81/2008) e
      la cartella del lavoratore. `--live` è la metà che conta quanto l'altra:

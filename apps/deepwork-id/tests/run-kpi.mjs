@@ -36797,5 +36797,59 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine frequenza fuori banda (Sentinella, 04/09) ===== */
 
+/* ===== IL GIUDIZIO SCRITTO E DATATO (Scudo, 05/09) =====
+   Il giudizio del medico arriva per iscritto: `giudizioIdoneita` decide che
+   cosa è un giudizio valido (le prescrizioni obbligatorie con «prescrizioni»,
+   la data che esiste e non è futura), e il CSV del personale porta in coda le
+   prescrizioni e la data. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-05T00:00:00");
+  const g = (st, t, d) => scudo.giudizioIdoneita(st, t, d, O);
+  test("⛔ Scudo · giudizioIdoneita: «con prescrizioni» senza il testo è rifiutato — una prescrizione che non si legge non si rispetta", () => {
+    const r = g("prescrizioni", "", "2026-09-01");
+    eq([r.ok, r.motivo], [false, "prescrizioni-mancanti"], "rifiutato");
+    ok(/copia quelle del medico/.test(r.messaggio), "e dice che cosa fare — era «" + r.messaggio + "»");
+    eq(g("prescrizioni", "   ", "").ok, false, "gli spazi non sono un testo");
+    eq(g("prescrizioni", "niente quota", "2026-09-01"), { ok: true, idoneita: "prescrizioni", prescrizioni: "niente quota", giudizioIl: "2026-09-01", motivo: "", messaggio: "" }, "col testo passa, con la data");
+  });
+  test("Scudo · giudizioIdoneita: «non idoneo» senza testo passa, la data è facoltativa ma deve esistere e non essere futura", () => {
+    eq(g("non-idoneo", "", ""), { ok: true, idoneita: "non-idoneo", prescrizioni: "", giudizioIl: null, motivo: "", messaggio: "" }, "senza niente: null, non una data inventata");
+    eq(g("non-idoneo", "fino a nuova visita", "2026-08-20").prescrizioni, "fino a nuova visita", "la nota resta scritta");
+    eq(g("non-idoneo", "x", "2026-02-30").motivo, "data-non-valida", "⛔ il 30 febbraio non scorre al 2 marzo");
+    eq(g("idoneo", "", "2026-09-06").motivo, "data-futura", "⛔ domani non è ancora un giudizio");
+    eq(g("idoneo", "", "2026-09-05").giudizioIl, "2026-09-05", "oggi sì");
+  });
+  test("Scudo · giudizioIdoneita: tornare a «idoneo» o a «n.d.» azzera le prescrizioni del giudizio precedente", () => {
+    eq(g("idoneo", "vecchio testo", "2026-09-01").prescrizioni, "", "idoneo: niente prescrizioni");
+    eq(g("", "vecchio testo", "2026-01-01"), { ok: true, idoneita: "", prescrizioni: "", giudizioIl: null, motivo: "", messaggio: "" }, "n.d.: niente di niente, nemmeno la data");
+    eq(g("boh", "", "").idoneita, "", "uno stato che non esiste è n.d.");
+    eq(scudo.giudizioIdoneita(null, null, null).ok, true, "con niente in mano non esplode");
+  });
+  test("Scudo · csvPersonaleScadenze: prescrizioni e data del giudizio in coda, vuote dove non c'è un giudizio, e la riga AZIENDA le ha vuote", () => {
+    /* la virgola e non il punto e virgola: `csvCell` mette fra virgolette una
+       cella che contiene il separatore, e allora lo split della prova la
+       spezzerebbe — è il righello, non il prodotto */
+    const lav = [{ id: "l1", nome: "A", idoneita: "prescrizioni", prescrizioni: "niente quota, otoprotettori", giudizioIl: "2026-06-02" }, { id: "l2", nome: "B" }];
+    const sca = [{ lavoratoreId: "l1", tipo: "Visita medica", dataScadenza: "2027-01-01" }, { lavoratoreId: "az", tipo: "DVR", dataScadenza: "2027-01-01" }];
+    const righe = scudo.csvPersonaleScadenze(lav, sca, []).trim().split("\n").map((r) => r.split(";"));
+    eq(righe[0].slice(8), ["prescrizioni", "giudizio"], "le due colonne in coda");
+    eq(righe[0].slice(0, 8).join(";"), "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica", "e le prime otto sono quelle di prima");
+    const a = righe.find((r) => r[0] === "A");
+    eq([a[3], a[8], a[9]], ["Idoneo c/prescriz.", "niente quota, otoprotettori", "2026-06-02"], "A porta il testo e la data");
+    const b = righe.find((r) => r[0] === "B");
+    eq([b[8], b[9], b.length], ["", "", 10], "B senza giudizio: celle vuote, stessa larghezza");
+    const az = righe.find((r) => r[0] === "AZIENDA");
+    eq([az[8], az[9], az.length], ["", "", 10], "AZIENDA non ha un giudizio");
+    eq(scudo.csvPersonaleScadenze([{ id: "l3", nome: "C", giudizioIl: "boh" }], [], []).trim().split("\n")[1].split(";")[9], "", "una data illeggibile non esce come data");
+  });
+  test("Scudo · la dimostrazione: i tre giudizi portano la data, e nessuno è nel futuro", () => {
+    for (const l of scudo.DEMO.lavoratori.filter((x) => x.idoneita)) {
+      ok(scudo.giudizioIdoneita(l.idoneita, l.prescrizioni, l.giudizioIl, O).ok, l.id + ": il giudizio d'esempio è valido");
+      ok(!!l.giudizioIl, l.id + ": e ha la data");
+    }
+  });
+}
+/* ===== fine giudizio scritto (Scudo, 05/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

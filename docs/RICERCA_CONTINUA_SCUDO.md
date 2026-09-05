@@ -1073,6 +1073,5 @@ casi (basso).
 
 *Aggiornamento della notte stessa (commit successivo a `f798f311`): (a) ✅ e
 (c) ✅ fatti — il ponte legge il giudizio e le due dimostrazioni portano i tre
-casi; (b) a metà: le prescrizioni si leggono e si mostrano dove esistono, ma
-la pagina non le chiede ancora (il badge cicla senza modale) e la data del
-giudizio non c'è.*
+casi; (b) ✅ subito dopo: `giudizioIdoneita`, la modale al tocco del badge,
+la data e le prescrizioni nella riga e nel CSV. Tre candidati su tre fatti.*

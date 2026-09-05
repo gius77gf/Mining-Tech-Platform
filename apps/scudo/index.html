@@ -1751,7 +1751,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, giudizioIdoneita, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
@@ -2390,7 +2390,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const idn = idoneitaLabel(l.idoneita);
       return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div>${l.prescrizioni ? `<div class="meta norma">Prescrizioni del medico: ${esc(l.prescrizioni)}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div>${l.prescrizioni || dataISOEsiste(l.giudizioIl) ? `<div class="meta norma">${dataISOEsiste(l.giudizioIl) ? "Giudizio del " + dataIt(l.giudizioIl) + (l.prescrizioni ? " · " : "") : ""}${l.prescrizioni ? "Prescrizioni del medico: " + esc(l.prescrizioni) : ""}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
         <span class="acts">
         <span class="badge ${bg[0]}" title="${sue.length ? sue.length + (sue.length === 1 ? " scadenza registrata" : " scadenze registrate") : "nessun adempimento registrato per questa persona"}">${bg[1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
@@ -4444,7 +4444,30 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         esito("inf-esito", "Evento rimosso dal registro.", "success"); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
-      if (l) { await db.aggiorna("lavoratori", l.id, { idoneita: idoneitaSuccessivo(l.idoneita) }); await refresh(); } return; }
+      if (!l) return;
+      /* IL GIUDIZIO SI SCRIVE, NON SI CICLA (05/09): il tocco propone lo stato
+         successivo e, se è un giudizio (idoneo, prescrizioni, non idoneo),
+         chiede la data e — per le prescrizioni, obbligatorie — il testo del
+         medico. `giudizioIdoneita` decide che cosa è valido; un rifiuto lascia
+         il lavoratore com'era e dice perché. Tornare a «n.d.» azzera tutto. */
+      const prossimo = idoneitaSuccessivo(l.idoneita);
+      let testo = "", data = "";
+      if (prossimo) {
+        const eti = idoneitaLabel(prossimo).label;
+        const campi = [{ id: "data", label: "Data del giudizio (facoltativa)", tipo: "date", valore: l.giudizioIl || "", aiuto: "Il giorno scritto sul giudizio del medico competente." }];
+        if (prossimo !== "idoneo")
+          campi.unshift({ id: "testo", label: prossimo === "prescrizioni" ? "Prescrizioni e limitazioni del medico" : "Note del giudizio (facoltative)", valore: l.prescrizioni || "",
+            aiuto: prossimo === "prescrizioni" ? "Copia quelle scritte dal medico: senza il testo il giudizio non si può rispettare." : "Per esempio: inidoneità temporanea fino a nuova visita." });
+        const v = await chiediDati("Giudizio di idoneità: " + eti,
+          "<b>" + esc(l.nome) + "</b> · " + esc(l.ruolo || "") + "<br>Il giudizio del medico competente arriva per iscritto: qui si trascrive quello che c'è sul foglio.",
+          campi, "Registra");
+        if (v === null) return;
+        testo = v.testo || ""; data = v.data || "";
+      }
+      const g = giudizioIdoneita(prossimo, testo, data);
+      if (!g.ok) { toast(g.messaggio, "err"); return; }
+      await db.aggiorna("lavoratori", l.id, { idoneita: g.idoneita, prescrizioni: g.prescrizioni, giudizioIl: g.giudizioIl });
+      await refresh(); return; }
     const prom = e.target.getAttribute && e.target.getAttribute("data-prom-scad");
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);

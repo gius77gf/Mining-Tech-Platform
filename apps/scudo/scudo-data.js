@@ -147,10 +147,10 @@ export const DEMO = {
        continua a mostrare anche una persona in regola.
        Gli altri restano «n.d.»: è lo stato di chi non ha mai registrato niente. */
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true, idoneita: "non-idoneo" },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true, idoneita: "non-idoneo", giudizioIl: "2026-08-20" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", tel: "", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true, idoneita: "idoneo" },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina" },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true, idoneita: "idoneo", giudizioIl: "2026-03-11" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina", giudizioIl: "2026-06-02" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", tel: "", attivo: true },
   ],
@@ -703,6 +703,33 @@ export function idoneitaSuccessivo(stato) {
   const i = seq.indexOf(seq.includes(stato) ? stato : "");
   return seq[(i + 1) % seq.length];
 }
+/* IL GIUDIZIO SCRITTO E DATATO (05/09, candidato (b) della ricerca sulla
+   sorveglianza sanitaria). Il mondo dice che il giudizio del medico arriva
+   PER ISCRITTO, con le prescrizioni e una data: fino a oggi il badge ciclava
+   quattro stati senza chiedere niente, e «idoneo con prescrizioni» restava
+   un colore senza il testo — una prescrizione che non si legge è una
+   prescrizione che non si rispetta. Qui si decide che cosa è un giudizio
+   valido: con «prescrizioni» il testo è obbligatorio; con «non idoneo» è
+   facoltativo (il medico può scrivere solo l'inidoneità); la data è
+   facoltativa ma, se c'è, deve esistere e non stare nel futuro; su «idoneo»
+   e «n.d.» le prescrizioni si azzerano (erano del giudizio precedente).
+   ⚠️ Niente «ricorso entro trenta giorni»: è un termine di legge di seconda
+   mano e non entra. Ritorna { ok, idoneita, prescrizioni, giudizioIl,
+   motivo, messaggio }. Pura. */
+export function giudizioIdoneita(stato, testo, data, oggi = new Date()) {
+  const st = ["", "idoneo", "prescrizioni", "non-idoneo"].includes(stato) ? stato : "";
+  const t = String(testo == null ? "" : testo).trim();
+  const d = String(data == null ? "" : data).trim().slice(0, 10);
+  if (st === "prescrizioni" && !t)
+    return { ok: false, motivo: "prescrizioni-mancanti", messaggio: "Un giudizio «con prescrizioni» senza le prescrizioni scritte non si può rispettare: copia quelle del medico." };
+  if (d && !dataISOEsiste(d))
+    return { ok: false, motivo: "data-non-valida", messaggio: "La data del giudizio non è un giorno che esiste." };
+  if (d && giorniTra(d, oggi) > 0)
+    return { ok: false, motivo: "data-futura", messaggio: "La data del giudizio è nel futuro: il medico non l'ha ancora scritto." };
+  return { ok: true, idoneita: st, prescrizioni: st === "prescrizioni" || st === "non-idoneo" ? t : "",
+    giudizioIl: st ? (d || null) : null, motivo: "", messaggio: "" };
+}
+
 // Lavoratori attivi la cui idoneità richiede attenzione (per le urgenze).
 export function idoneitaCriticita(lavoratori) {
   return lavoratori.filter(l => l.attivo && (l.idoneita === "non-idoneo" || l.idoneita === "prescrizioni"));
@@ -1963,21 +1990,24 @@ export function csvPersonaleScadenze(lavoratori, scadenze, documenti) {
   const LAV = (lavoratori || []).filter(Boolean);
   const SCA = (scadenze || []).filter(Boolean);
   const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };
-  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica"];
+  /* `prescrizioni` e `giudizio` (la data) in coda dal 05/09: chi taglia alle
+     prime otto ritrova il file di prima; vuote dove il giudizio non c'è */
+  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio"];
   for (const l of LAV) {
     const idn = idoneitaLabel(l.idoneita).label;
     const sue = SCA.filter((s) => s.lavoratoreId === l.id);
     const chi = [csvCell(l.nome || ""), csvCell(l.ruolo || ""), csvCell(l.tel || ""), csvCell(idn)];
-    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—"].join(";")); continue; }
+    const coda = [csvCell(l.prescrizioni || ""), dataISOEsiste(l.giudizioIl) ? String(l.giudizioIl).slice(0, 10) : ""];
+    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—", ...coda].join(";")); continue; }
     for (const s of sue) {
       righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-        statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+        statoScadenza(s.dataScadenza), csvCell(vf(s)), ...coda].join(";"));
     }
   }
   const noti = new Set(LAV.map((l) => l.id));
   for (const s of SCA.filter((x) => !noti.has(x.lavoratoreId))) {
     righe.push(["AZIENDA", "", "", "", csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-      statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+      statoScadenza(s.dataScadenza), csvCell(vf(s)), "", ""].join(";"));
   }
   return righe.join("\n") + "\n";
 }

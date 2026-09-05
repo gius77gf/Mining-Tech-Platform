@@ -263,10 +263,10 @@ export const DEMO = {
     /* il giudizio del medico viaggia con la copia (05/09): o2 è Luca Bianchi,
        schierato nella Squadra A operativa, e in Scudo è NON idoneo; o4 è Paolo
        Gallo, coi documenti in regola e le prescrizioni del medico */
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true, idoneita: "non-idoneo" },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", attivo: true, idoneita: "non-idoneo", giudizioIl: "2026-08-20" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", attivo: true, idoneita: "idoneo" },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina" },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", attivo: true, idoneita: "idoneo", giudizioIl: "2026-03-11" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina", giudizioIl: "2026-06-02" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", attivo: true },
   ],
