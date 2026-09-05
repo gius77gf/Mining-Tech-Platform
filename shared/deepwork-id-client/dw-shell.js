@@ -523,6 +523,8 @@ export const CSV_TABELLE = [
     fonte: "flotta.csvRegistroInterventi", col: "data;titolo;mezzo;ricambio;costo;note;ore_manodopera;costo_manodopera;costo_ricambi;chi_ha_lavorato" },
   { id: "flotta.listaSpesa", app: "Flotta", etichetta: "la lista della spesa dei ricambi di Flotta",
     fonte: "flotta.csvListaDellaSpesa", col: "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi" },
+  { id: "flotta.libretto", app: "Flotta", etichetta: "il libretto del mezzo di Flotta",
+    fonte: "flotta.csvLibretto", col: "sezione;voce;data;dettaglio;importo" },
   { id: "flotta.prospetto", app: "Flotta", etichetta: "il prospetto della flotta di Flotta",
     fonte: "flotta.csvSituazione", col: "tipo;nome;stato;dettaglio" },
   { id: "flotta.mezzi", app: "Flotta", etichetta: "l'elenco dei mezzi di Flotta",

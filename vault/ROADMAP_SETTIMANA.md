@@ -420,7 +420,7 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
-- [ ] **FLOTTA — otto file composti nella pagina, due saliti nel modulo
+- [x] **FLOTTA — otto file composti nella pagina, due saliti nel modulo
   (05/09):** `csvCosti` e `csvFermiMacchina` (con le costanti delle
   intestazioni) — la data vuota resta vuota, l'importo non dichiarato pure,
   le tre risposte di `durataFermo` nel file. run-kpi +2 (2665); censimento
@@ -463,8 +463,17 @@
   `csvProspettoDdt` (diciotto colonne, il valore solo se `valoreDdt` lo sa
   calcolare): run-kpi +2 (2676); la frase «N righe nel foglio» conta le righe
   del file composto. **Conti è a zero file composti nella pagina: 14 export
-  su 14 dal modulo.** Resta il libretto di Flotta. Comando di partenza:
-  `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
+  su 14 dal modulo.** E per ultimo il libretto: `csvLibretto(mezzo, dati,
+  oggi, preavviso)` con le sei sezioni vuote che parlano, e le parole che lo
+  schermo e i file dicevano due volte salite nel modulo (`oreMotoreTesto`,
+  `oreLavoroTesto`, `ogniMesiTesto`, `lavorazioneTesto`, `codaContatoreTesto`,
+  `ETICHETTA_STATO_MEZZO`); run-kpi +3 (2679). ⛔ E il banco `libretto-vuoti`
+  aveva la controprova ROSSA da una unità (exit 3: il difetto 4 citava lo
+  scadenzario nella pagina, salito nel modulo poche ore prima) — adesso
+  inietta per file, 4 su 4; `flotta-frasi-da-uno` idem, 24 su 24. **Chiusa:
+  Scudo 2, Campo 1, Flotta 8 su 8, Conti 6 su 6 — tutti i file composti
+  nella pagina sono nel modulo, con la prova in run-kpi e l'intestazione
+  verificata chiamando l'export.**
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
   domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
   foglio `consegna_turno.txt` (cento righe, dieci sezioni) stava nella pagina.
@@ -1658,9 +1667,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(resta
-  SOLO il libretto di Flotta: Conti è a zero; riancorare le iniezioni e
-  leggere «N difetti rimessi davvero»)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6576,8 +6582,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.157 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2676, `run-stile` 328,
+  **3.160 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2679, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

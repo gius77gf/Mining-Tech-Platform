@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -1376,7 +1376,7 @@ body.dw b.bad{color:var(--ink-dg)}
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
-  const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
+  const MB = { operativo: ["ok", ETICHETTA_STATO_MEZZO.operativo], fermo: ["danger", ETICHETTA_STATO_MEZZO.fermo], verifica: ["warn", ETICHETTA_STATO_MEZZO.verifica] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
   /* la regola vive in shared/: qui solo il nome di sempre. Fino al 30/07 Flotta
      scriveva «€178,50» e «€8.400» — attaccato al simbolo e coi centesimi solo
@@ -1384,7 +1384,7 @@ body.dw b.bad{color:var(--ink-dg)}
      accanto a `euro` in dw-shell.js. */
   const eur = euro;
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
-  const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
+  const oreTx = oreLavoroTesto;   // nel modulo dal 05/09
   /* ⛔ «DAL — — ANCORA FERMO» — misurato l'08/08 leggendo il libretto macchina
      stampato, non il codice. La frase si componeva con `dataIt(x.inizio)` a
      mano in DUE punti (l'elenco dei fermi e il foglio), e su un fermo senza
@@ -1417,7 +1417,7 @@ body.dw b.bad{color:var(--ink-dg)}
      il file se n'era tenuta una versione più debole. Il periodo è un intero
      di mesi (`validaScadenzaMezzo` accetta da 1 a 600), quindi qui basta
      `plurale`. */
-  const ogniMesiTx = (n) => "ogni " + plurale(n, "mese", n + " mesi");
+  const ogniMesiTx = ogniMesiTesto;   // nel modulo dal 05/09
   /* ⛔ IL CONTATORE CHE NESSUNO HA LETTO NON SEGNA ZERO. Fino al 01/08 le ore
      motore si scrivevano dappertutto come `(+m.ore || 0).toLocaleString(...)`:
      su un mezzo senza contatore uscivano «0 ore motore» — non un vuoto, una
@@ -1469,11 +1469,7 @@ body.dw b.bad{color:var(--ink-dg)}
       + (u.oreVecchie != null ? " (prima segnava " + (+u.oreVecchie).toLocaleString("it-IT") + " h)" : "")
       + ". I tagliandi a ore programmati prima di quel giorno si riferiscono al vecchio contatore.";
   };
-  const oreMotoreTx = (v, marca) => {
-    if (!oreNote(v)) return "ore motore non registrate";
-    const n = (+v).toLocaleString("it-IT");
-    return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");
-  };
+  const oreMotoreTx = oreMotoreTesto;   // la frase vive nel modulo (05/09): la usano schermo e file
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le etichette del semaforo
   // («tra 13 gg», «scaduta da 20 gg», «21 gg») nascono nel modulo dati come
   // TESTO SEMPLICE — lì devono restare, perché finiscono anche nei conteggi e
@@ -1615,15 +1611,7 @@ body.dw b.bad{color:var(--ink-dg)}
   // La lavorazione di un intervento CHIUSO, in una riga: chi c'è stato e per
   // quanto. Gli interventi registrati prima dell'ordine di lavoro non hanno
   // questi campi e non mostrano niente — restano come sono sempre stati.
-  const lavorazioneTx = (w) => {
-    const ore = +w.oreManodopera || 0;
-    const chi = (w.manodopera || []).filter(r => r && (+r.ore || 0) > 0);
-    if (!ore && !chi.length) return "";
-    const nomi = chi.map(r => r.chi).filter(Boolean);
-    return [ore ? oreTx(ore) + " di lavoro" : "",
-            nomi.length ? nomi.map(esc).join(", ") : "",
-            (+w.costoManodopera || 0) ? "manodopera " + eur(w.costoManodopera) : ""].filter(Boolean).join(" · ");
-  };
+  const lavorazioneTx = (w) => lavorazioneTesto(w, esc);   // nel modulo dal 05/09; qui i nomi si proteggono per l'HTML
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
 
@@ -4952,95 +4940,12 @@ body.dw b.bad{color:var(--ink-dg)}
   };
   $("btn-sch-csv").onclick = () => {
     const m = MEZ.find(x => x.id === schedaId); if (!m) return;
-    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER },
-                             new Date(), preavvisoSca);
-    const righe = [["sezione", "voce", "data", "dettaglio", "importo"].join(";")];
-    const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
-    R("mezzo", m.nome, dataIt(oggiISO()),
-      f.tipo.etichetta + " · " + (m.area || "senza area") + " · "
-      + oreMotoreTx(m.ore)
-      + " · " + (MB[m.stato] || MB.operativo)[1], "");
-    /* ⛔ UNA SEZIONE VUOTA VA DETTA, ALTRIMENTI IL FOGLIO MENTE PER OMISSIONE.
-       Sullo schermo il libretto ha sei stati vuoti che lo dicono in lettere
-       («Nessuna scadenza di legge», «Storico vuoto», «Mai ferma»…) e sono
-       scritti apposta perché l'assenza di un dato non è un dato favorevole.
-       Il CSV dello STESSO libretto non ne scriveva nemmeno uno: su una
-       macchina appena inserita usciva un file di DUE righe — l'anagrafica e
-       il totale d'officina — e chi lo apre non ha modo di distinguere «questa
-       macchina non ha scadenze di legge» da «nessuno le ha registrate».
-       È il difetto della famiglia «dove il documento si compone»: la regola
-       stava a schermo, la pagina che scrive il file se n'era tenuta una
-       versione più povera. Adesso ogni sezione, quando è vuota, scrive la sua
-       riga con le stesse parole dello stato vuoto che si vede. */
-    const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
-    if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
-      s.sem.label + (s.mesi ? " · " + ogniMesiTx(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
-    else VUOTA("scadenza di legge",
-      "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
-    if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
-      (n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : "") + codaContatoreTx(n), ""));
-    else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
-    /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
-       || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
-       costato, e chi apre il file in un foglio quello zero lo SOMMA credendolo
-       misurato. `R` sa già lasciare la cella vuota (`imp == null ? ""`): la
-       convenzione era in casa, era il chiamante a convertire. */
-    if (f.interventi.length) f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
-      [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || "",
-       (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
-      (+w.costo > 0) ? +w.costo : null));
-    else VUOTA("intervento", "Nessun intervento chiuso su questa macchina: lo storico dell'officina è vuoto.");
-    if (f.fermi.length) f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
-      (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo")
-      + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : " · durata non calcolabile")
-      + (x.note ? " · " + x.note : ""), ""));
-    else VUOTA("fermo macchina", "Nessun fermo registrato: su questa macchina non risulta nessuna giornata persa.");
-    /* ⚠️ «NESSUNA ANOMALIA» SI SCRIVE SOLO SE LE VOCI SI SONO LETTE. Un giro
-       che non porta il suo elenco di voci ma dichiara delle anomalie usciva
-       dal file come «nessuna anomalia» mentre lo stesso giro, sullo schermo,
-       porta il badge «N da vedere»: il documento che si consegna diceva il
-       contrario di quello che l'app mostra. */
-    if (f.controlli.length) f.controlli.forEach(c => {
-      /* la stessa domanda del registro e dello schermo: `statoGiro`. Prima
-         questi tre rami erano scritti qui, ed erano l'UNICA versione giusta
-         delle tre che la pagina si teneva. */
-      const s = statoGiro(c);
-      R("giro macchina", "controllo pre-uso", dataIt(c.data),
-        (c.operatore ? c.operatore + " · " : "")
-        + (s.nominate ? (s.voci.join(" | ") || "nessuna anomalia")
-                      : s.anomalie > 0
-                        ? s.anomalie + (s.anomalie === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
-                        : "nessuna anomalia"), "");
-    });
-    else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
-    if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
-      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
-      + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
-    else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
-    /* ⛔ E IL CONSUMO NON CALCOLABILE SI DICHIARA, invece di sparire. La riga
-       si scriveva solo quando `litriOra` c'era: sullo schermo, nello stesso
-       caso, la scheda spiega PERCHÉ non si può calcolare («serve almeno un
-       secondo rifornimento con il contatore delle ore»), e il file taceva. */
-    R("consumo", "litri per ora", "", !f.consumo
-      ? "Nessun rifornimento registrato: il consumo non si può calcolare."
-      : f.consumo.litriOra != null
-        ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
-        : "Non calcolabile: " + f.consumo.perche + ".", "");
-    R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
-      + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
-      + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
-          + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
-      f.officina.misurato ? f.officina.totale : null);
-    R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
-      ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
-        + (f.fermo.aperti ? " · " + f.fermo.aperti + plurale(f.fermo.aperti, " ancora aperto", " ancora aperti") : "")
-        // la stessa coda della riga a schermo: un totale che non comprende
-        // tutte le righe del file va detto DENTRO il file
-        + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
-            + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
-      : "Nessun fermo registrato.", "");
+    /* Il libretto lo compone `csvLibretto` nel modulo: le sei sezioni vuote
+       che parlano, l'esito di `statoGiro`, il consumo che dice perché non si
+       calcola — e `run-kpi` le prova (05/09). */
+    const csv = csvLibretto(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER }, new Date(), preavvisoSca);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; marchiaCsv(a); a.click();
     toast("Libretto macchina esportato (CSV).", "success");
   };

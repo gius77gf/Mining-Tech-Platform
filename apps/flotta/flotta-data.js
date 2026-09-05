@@ -87,7 +87,7 @@
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
-         dataISOEsiste, dataIt, plurale, conta,
+         dataISOEsiste, dataIt, plurale, conta, euro, isoLocale,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
@@ -925,14 +925,116 @@ export function csvListaDellaSpesa(proposta) {
    `statoScorta` (un pezzo senza soglia non è «ok»). Le ore raggruppate come
    sullo schermo (`useGrouping`, regola 16). `letture` sono le letture del
    contatore, per sapere se il tagliando parla del contatore attuale. Pura. */
+/* LE PAROLE DEL LIBRETTO E DEI FILE (05/09, salite dalla pagina, dove erano
+   scritte una volta per lo schermo e riscritte per i file). Le ore motore:
+   «ore motore non registrate» quando il contatore non è stato letto — mai
+   «0 ore motore», che su una macchina usata è falsa; `marca` avvolge il
+   numero per lo schermo. Le ore di lavoro con due decimali al massimo. La
+   ricorrenza in mesi. La lavorazione di un intervento (ore, chi, manodopera),
+   con `avvolgi` per i nomi sullo schermo. Lo stato del mezzo a parole. Le
+   ore raggruppate come sullo schermo (`useGrouping`, regola 16). Pure. */
+export const ETICHETTA_STATO_MEZZO = { operativo: "Operativo", fermo: "Fermo", verifica: "Verifica" };
+export function oreMotoreTesto(v, marca) {
+  if (numeroDichiarato(v) == null) return "ore motore non registrate";
+  const n = (+v).toLocaleString("it-IT", { useGrouping: true });
+  return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");
+}
+export function oreLavoroTesto(v) { return (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true }) + " h"; }
+export function ogniMesiTesto(n) { return "ogni " + plurale(n, "mese", n + " mesi"); }
+export function lavorazioneTesto(w, avvolgi = (t) => t) {
+  const x = w || {};
+  const ore = +x.oreManodopera || 0;
+  const chi = (x.manodopera || []).filter(r => r && (+r.ore || 0) > 0);
+  if (!ore && !chi.length) return "";
+  const nomi = chi.map(r => r.chi).filter(Boolean);
+  return [ore ? oreLavoroTesto(ore) + " di lavoro" : "",
+          nomi.length ? nomi.map(avvolgi).join(", ") : "",
+          (+x.costoManodopera || 0) ? "manodopera " + euro(x.costoManodopera) : ""].filter(Boolean).join(" · ");
+}
+/* la coda per i FILE che escono (situazione, libretto): quando il tagliando
+   non parla del contatore attuale, il foglio lo dice — chi lo legge confronta
+   quelle ore col contaore della macchina, e sbaglierebbe */
+export function codaContatoreTesto(n, letture) {
+  if (!n || !n.orePreviste) return "";
+  const c = contatoreDelTagliando(n, azzeramentiDelMezzo(letture || [], n.mezzo));
+  return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
+}
+
+/* IL LIBRETTO DEL MEZZO (05/09, salito dalla pagina): il foglio che si
+   consegna a chi compra la macchina o al noleggiatore. Le sezioni sono quelle
+   del fascicolo (`fascicoloMezzo`, la stessa dello schermo) e OGNI sezione
+   vuota scrive la sua riga «nessuna registrata» con le stesse parole dello
+   stato vuoto che si vede — chi apre il file deve poter distinguere «questa
+   macchina non ha scadenze» da «nessuno le ha registrate». L'esito di un giro
+   è quello di `statoGiro`; un costo non scritto lascia la cella VUOTA (uno
+   zero si somma); il consumo non calcolabile dice perché. Pura. */
+export const CSV_LIBRETTO_INTESTAZIONE = "sezione;voce;data;dettaglio;importo";
+export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30) {
+  const m = mezzo || {};
+  const d = dati || {};
+  const f = fascicoloMezzo(m, { manutenzioni: d.manutenzioni || [], interventi: d.interventi || [], scadenze: d.scadenze || [],
+                                controlli: d.controlli || [], rifornimenti: d.rifornimenti || [], fermi: d.fermi || [] }, oggi, preavvisoGiorni);
+  const righe = [CSV_LIBRETTO_INTESTAZIONE];
+  const R = (s, v, dt, det, imp) => righe.push([s, v, dt, det, imp == null ? "" : imp].map(csvCell).join(";"));
+  R("mezzo", m.nome || "", dataIt(isoLocale(oggi)),
+    ((f.tipo || {}).etichetta || "") + " · " + (m.area || "senza area") + " · "
+    + oreMotoreTesto(m.ore)
+    + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo), "");
+  const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
+  if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
+    s.sem.label + (s.mesi ? " · " + ogniMesiTesto(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
+  else VUOTA("scadenza di legge",
+    "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
+  if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
+    (n.orePreviste ? "a " + oreMotoreTesto(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTesto(n.ogniMesi) : "") + codaContatoreTesto(n, d.rifornimenti), ""));
+  else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
+  if (f.interventi.length) f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
+    [w.ricambio || "", lavorazioneTesto(w), w.note || "",
+     (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
+    (+w.costo > 0) ? +w.costo : null));
+  else VUOTA("intervento", "Nessun intervento chiuso su questa macchina: lo storico dell'officina è vuoto.");
+  if (f.fermi.length) f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
+    (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo")
+    + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : " · durata non calcolabile")
+    + (x.note ? " · " + x.note : ""), ""));
+  else VUOTA("fermo macchina", "Nessun fermo registrato: su questa macchina non risulta nessuna giornata persa.");
+  if (f.controlli.length) f.controlli.forEach(c => {
+    const g = statoGiro(c);
+    R("giro macchina", "controllo pre-uso", dataIt(c.data),
+      (c.operatore ? c.operatore + " · " : "")
+      + (g.nominate ? (g.voci.join(" | ") || "nessuna anomalia")
+                    : g.anomalie > 0
+                      ? g.anomalie + (g.anomalie === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
+                      : "nessuna anomalia"), "");
+  });
+  else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
+  if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
+    r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
+    + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
+  else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
+  R("consumo", "litri per ora", "", !f.consumo
+    ? "Nessun rifornimento registrato: il consumo non si può calcolare."
+    : f.consumo.litriOra != null
+      ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
+      : "Non calcolabile: " + f.consumo.perche + ".", "");
+  R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
+    + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
+    + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
+        + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
+    f.officina.misurato ? f.officina.totale : null);
+  R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
+    ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
+      + (f.fermo.aperti ? " · " + f.fermo.aperti + plurale(f.fermo.aperti, " ancora aperto", " ancora aperti") : "")
+      + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
+          + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
+    : "Nessun fermo registrato.", "");
+  return righe.join("\r\n");
+}
+
 export const CSV_SITUAZIONE_INTESTAZIONE = "tipo;nome;stato;dettaglio";
 export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
   const it = (v) => (+v).toLocaleString("it-IT", { useGrouping: true });
-  const codaContatore = (n) => {
-    if (!n.orePreviste) return "";
-    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(letture || [], n.mezzo));
-    return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
-  };
+  const codaContatore = (n) => codaContatoreTesto(n, letture);
   let csv = CSV_SITUAZIONE_INTESTAZIONE + "\n";
   for (const m of (mezzi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
     csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((numeroDichiarato(m.ore) != null ? it(m.ore) + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;

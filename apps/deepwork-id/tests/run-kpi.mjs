@@ -30790,7 +30790,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 37, `almeno 37 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 38, `almeno 38 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -37836,6 +37836,56 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine preventivi e DDT nel modulo (05/09) ===== */
+/* ===== il libretto del mezzo nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  const DATI = { manutenzioni: D.manutenzioni, interventi: D.interventi, scadenze: D.scadenze, controlli: D.controlli, rifornimenti: D.rifornimenti, fermi: D.fermi };
+  const sez = (righe) => righe.slice(1).map((r) => r.split(";")[0].replace(/^"|"$/g, ""));
+  test("Flotta · csvLibretto: il libretto del mezzo della dimostrazione — anagrafica, sezioni del fascicolo, consumo e totali", () => {
+    const m = D.mezzi[0];
+    const righe = flotta.csvLibretto(m, DATI, OGGI, 30).split("\r\n");
+    eq(righe[0], flotta.CSV_LIBRETTO_INTESTAZIONE, "l'intestazione è la costante");
+    ok(righe[1].startsWith("mezzo;") && righe[1].includes(m.nome) && /5\.870 ore motore/.test(righe[1]) && /Operativo/.test(righe[1]), "la riga del mezzo: nome, ore raggruppate, stato a parole — " + righe[1]);
+    const f = flotta.fascicoloMezzo(m, DATI, OGGI, 30);
+    const s = sez(righe);
+    eq(s.filter((x) => x === "scadenza di legge").length, f.scadenze.length || 1, "una riga per scadenza (o la riga vuota)");
+    eq(s.filter((x) => x === "intervento").length, f.interventi.length || 1, "una riga per intervento (o la riga vuota)");
+    eq(s.filter((x) => x === "giro macchina").length, f.controlli.length || 1, "una riga per giro (o la riga vuota)");
+    for (const t of ["consumo", "totale officina", "totale fermi"]) ok(s.includes(t), "la riga «" + t + "» c'è sempre");
+    for (const c of f.controlli) {
+      const g = flotta.statoGiro(c);
+      const r = righe.find((x) => x.startsWith("giro macchina;") && x.includes(flotta.dataIt ? "" : "") && x.includes(c.operatore || ""));
+      ok(r, "il giro è nel libretto");
+      if (!g.nominate && g.anomalie > 0) ok(/dettaglio delle voci non registrato/.test(r), "⛔ anomalie non nominate: dette a parole, non «nessuna anomalia»");
+    }
+    const senzaCosto = righe.filter((x) => x.startsWith("intervento;") && /costo non scritto/.test(x));
+    for (const r of senzaCosto) eq(r.split(";").pop(), "", "⛔ un intervento senza costo lascia la cella dell'importo VUOTA: uno zero si somma");
+  });
+  test("Flotta · csvLibretto: la macchina nuda — sei sezioni vuote che PARLANO, mai un file di due righe", () => {
+    const righe = flotta.csvLibretto({ id: "x", nome: "Pala X9 — Nuova", tipo: "pala", stato: "operativo" }, {}, OGGI, 30).split("\r\n");
+    const vuote = righe.filter((x) => /;nessuna registrata;;/.test(x));
+    eq(vuote.length, 6, "⛔ sei sezioni vuote, una riga ciascuna, con «nessuna registrata»");
+    eq(vuote.map((x) => x.split(";")[0]), ["scadenza di legge", "manutenzione in programma", "intervento", "fermo macchina", "giro macchina", "rifornimento"], "nell'ordine del fascicolo");
+    ok(/Non vuol dire che non ne abbia/.test(vuote[0]), "e la scadenza vuota dice che non vuol dire che non ne abbia");
+    ok(righe.some((x) => x.startsWith("consumo;") && /Nessun rifornimento registrato: il consumo non si può calcolare/.test(x)), "⛔ il consumo non calcolabile lo dichiara, con la ragione");
+    ok(righe.some((x) => x.startsWith("totale fermi;") && /Nessun fermo registrato/.test(x)), "e il totale dei fermi dice «nessuno»");
+    ok(/ore motore non registrate/.test(righe[1]), "⛔ il contatore mai letto non segna zero: «ore motore non registrate»");
+    eq(flotta.csvLibretto(null, null).split("\r\n")[0], flotta.CSV_LIBRETTO_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · le parole del libretto: oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO", () => {
+    eq([flotta.oreMotoreTesto(null), flotta.oreMotoreTesto(""), flotta.oreMotoreTesto(1), flotta.oreMotoreTesto(5870)], ["ore motore non registrate", "ore motore non registrate", "1 ora motore", "5.870 ore motore"], "le ore motore, col singolare e il raggruppamento");
+    eq(flotta.oreMotoreTesto(12, (n) => "<b>" + n + "</b>"), "<b>12</b> ore motore", "e con la marca per lo schermo");
+    eq([flotta.oreLavoroTesto(4), flotta.oreLavoroTesto(2.5), flotta.oreLavoroTesto(null)], ["4 h", "2,5 h", "0 h"], "le ore di lavoro senza precisione finta");
+    eq([flotta.ogniMesiTesto(1), flotta.ogniMesiTesto(12)], ["ogni mese", "ogni 12 mesi"], "la ricorrenza");
+    eq(flotta.lavorazioneTesto({ oreManodopera: 6, manodopera: [{ chi: "Marco", ore: 4 }, { chi: "Luca", ore: 2 }], costoManodopera: 192 }), "6 h di lavoro · Marco, Luca · manodopera " + shell.euro(192), "la lavorazione: ore, chi, manodopera");
+    eq(flotta.lavorazioneTesto({ manodopera: [{ chi: "A<b>", ore: 1 }] }, (t) => t.toUpperCase()), "A<B>", "con l'avvolgitore per i nomi");
+    eq([flotta.lavorazioneTesto({}), flotta.lavorazioneTesto(null)], ["", ""], "niente da dire");
+    eq(flotta.ETICHETTA_STATO_MEZZO, { operativo: "Operativo", fermo: "Fermo", verifica: "Verifica" }, "gli stati a parole");
+    eq(flotta.codaContatoreTesto({ orePreviste: 6000, mezzo: "Escavatore E1" }, []), "", "senza letture del contatore la coda tace (il tagliando è confrontabile)");
+  });
+}
+/* ===== fine libretto nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
