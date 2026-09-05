@@ -2194,7 +2194,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const idonUrg = idoneitaCriticita(LAV).map(l => { const idn = idoneitaLabel(l.idoneita);
       return `<div class="item tocca ${striscia[idn.cls] || "st-mute"}" onclick="go('pers')" title="Vai al lavoratore">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}${l.prescrizioni ? " · " + esc(l.prescrizioni) : ""}</div></div>
         <span class="acts"><span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></span></div>`; });
     // Le azioni correttive non chiuse e fuori tempo (o in scadenza) entrano
     // nelle urgenze con lo stesso semaforo delle scadenze: chi apre Scudo
@@ -2390,7 +2390,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const idn = idoneitaLabel(l.idoneita);
       return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div>${l.prescrizioni ? `<div class="meta norma">Prescrizioni del medico: ${esc(l.prescrizioni)}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
         <span class="acts">
         <span class="badge ${bg[0]}" title="${sue.length ? sue.length + (sue.length === 1 ? " scadenza registrata" : " scadenze registrate") : "nessun adempimento registrato per questa persona"}">${bg[1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>

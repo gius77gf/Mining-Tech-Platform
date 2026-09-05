@@ -2385,7 +2385,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // veri — è la stessa lezione del ponte con Terra, dove il rischio era che i
   // turni scrivessero numeri prudenti invece di numeri veri.
   const dmyBreve = (iso) => dmy(iso).slice(0, 5);
-  function notaHSE(r) {
+  function notaScadenzeHSE(r) {
     // ⚠️ NIENTE PARTICIPI CONCORDATI col tipo di documento: il genere in italiano
     // non si deduce dalla parola, e «Corso scaduta» è quello che usciva. I tipi
     // sono liberi (li scrive l'utente in Scudo), quindi non si può nemmeno
@@ -2416,6 +2416,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (r.stato === "non-collegato") return "non collegato al personale di Scudo";
     return "";
   }
+  /* IL GIUDIZIO DEL MEDICO NELLA RIGA (05/09): «NON idoneo» sta davanti a
+     tutto — coi documenti in corso, prima, questa persona usciva «In forza»
+     senza una parola — e «con prescrizioni» si aggiunge a qualunque stato, col
+     testo se Scudo lo ha e «testo non registrato» se no: una prescrizione che
+     non si legge è una prescrizione che non si rispetta. */
+  function notaHSE(r) {
+    const base = notaScadenzeHSE(r);
+    if (r.giudizio === "non-idoneo")
+      return "<b>NON idoneo</b> secondo il giudizio del medico competente registrato in Scudo: non va mandato in cava finché il giudizio non cambia"
+        + (r.prescrizioni ? " (" + esc(r.prescrizioni) + ")" : "") + (base ? " · " + base : "");
+    if (r.giudizio === "prescrizioni")
+      return (base ? base + " · " : "") + "idoneo <b>con prescrizioni</b> del medico"
+        + (r.prescrizioni ? ": " + esc(r.prescrizioni) : " (testo non registrato in Scudo)");
+    return base;
+  }
   // IL COLORE NON DEVE DIRE QUELLO CHE IL TESTO NON DICE. Le prime versioni
   // coloravano di verde («st-ok», il valore di ripiego della riga) anche chi non è
   // collegato a Scudo: verde vuol dire «a posto», e su una persona di cui non
@@ -2434,7 +2449,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     return ` Di ${tot === 1 ? "una persona" : tot + " persone"} non lo sappiamo: ${pezzi.join(", e ")}.`;
   }
   const CLASSE_HSE = {
-    scaduta: "st-danger", "in-scadenza": "st-warn",
+    scaduta: "st-danger", "in-scadenza": "st-warn", "non-idoneo": "st-danger",
     "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
   };
 
@@ -2497,8 +2512,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const perId = {};
     if (hse) hse.righe.forEach(r => { perId[r.operatore.id] = r; });
     $("ope-hse").innerHTML = !hse || !righe.length ? ""
-      : hse.scadute || hse.inScadenza
-        ? `<div class="note ${hse.scadute ? "avviso" : "recap"}">`
+      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni
+        ? `<div class="note ${hse.scadute || hse.nonIdonei ? "avviso" : "recap"}">`
+          /* il giudizio del medico prima dei documenti (05/09): è la cosa che
+             decide se una persona può scendere in cava oggi */
+          + (hse.nonIdonei
+              ? `<b>${hse.nonIdonei} ${hse.nonIdonei === 1 ? "persona NON è idonea" : "persone NON sono idonee"}</b> secondo il medico competente (Scudo): ${hse.nonIdonei === 1 ? "non va mandata" : "non vanno mandate"} in cava finché il giudizio non cambia. `
+              : "")
+          + (hse.conPrescrizioni ? `${hse.conPrescrizioni} ${hse.conPrescrizioni === 1 ? "ha prescrizioni" : "hanno prescrizioni"} del medico da rispettare: sono scritte sulla riga. ` : "")
           + (hse.scadute
               ? `<b>${hse.scadute} ${hse.scadute === 1 ? "persona ha un documento scaduto" : "persone hanno un documento scaduto"}</b> fra chi è in elenco. `
               : "")
@@ -2518,7 +2539,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
       <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}</div>
         ${r && notaHSE(r) ? `<div class="nota-riga">${notaHSE(r)}</div>` : ""}</div>
-      <span class="acts"><span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
+      <span class="acts">${r && r.giudizio === "non-idoneo" ? '<span class="badge danger" title="Giudizio del medico competente registrato in Scudo">Non idoneo</span>' : ""}<span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
         ? `<span class="arr" style="cursor:pointer" title="${o.lavoratoreId ? "Cambia la persona collegata in Scudo" : "Collega alla persona registrata in Scudo"}" data-lav-ope="${esc(o.id)}">${o.lavoratoreId ? "↻" : "＋"}</span>`
         : ""}</span></div>`; }).join("")
       || vuoto(I.persona, filtro ? "Nessuno in questa squadra" : "Nessun operatore in anagrafica",

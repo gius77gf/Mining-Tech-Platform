@@ -1070,3 +1070,9 @@ prescrizioni e — soprattutto — chi lo legge quando la persona va in turno.**
 In ordine: (a) il ponte con Campo legge l'idoneità (medio, `shared/`); (b)
 data e prescrizioni del giudizio (basso); (c) la dimostrazione con i tre
 casi (basso).
+
+*Aggiornamento della notte stessa (commit successivo a `f798f311`): (a) ✅ e
+(c) ✅ fatti — il ponte legge il giudizio e le due dimostrazioni portano i tre
+casi; (b) a metà: le prescrizioni si leggono e si mostrano dove esistono, ma
+la pagina non le chiede ancora (il badge cicla senza modale) e la data del
+giudizio non c'è.*

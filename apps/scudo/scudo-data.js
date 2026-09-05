@@ -140,11 +140,17 @@ export const TIPO_VERIFICA_PERIODICA = "Verifica periodica";
 
 export const DEMO = {
   lavoratori: [
+    /* IL GIUDIZIO DEL MEDICO (05/09): tre casi da far vedere — un idoneo, uno
+       con prescrizioni SCRITTE (d5, che in Campo è o4, regolare coi documenti),
+       uno NON idoneo (d2, che in Campo è o2 nella Squadra A operativa), così il
+       ponte ha davanti il caso per cui esiste — e la dimostrazione di Campo
+       continua a mostrare anche una persona in regola.
+       Gli altri restano «n.d.»: è lo stato di chi non ha mai registrato niente. */
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true, idoneita: "non-idoneo" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", tel: "", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true, idoneita: "idoneo" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", tel: "", attivo: true },
   ],

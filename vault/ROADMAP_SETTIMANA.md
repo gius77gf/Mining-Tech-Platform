@@ -401,12 +401,22 @@
   righello `num` leggeva già all'italiana).
 - [ ] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
   delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
-  schermata: (a) il ponte con Campo (`idoneitaOperatore` in `shared/`) legge
-  anche il giudizio di idoneità — oggi una persona NON idonea coi documenti in
-  corso va in turno come «regolare» (medio); (b) `giudizioIl` e `prescrizioni`
-  scritte sul lavoratore, chieste quando il badge passa a prescrizioni o non
-  idoneo (basso); (c) la dimostrazione con un idoneo, uno con prescrizioni e
-  uno n.d. (basso). Vedi `docs/RICERCA_CONTINUA_SCUDO.md`.
+  schermata: (a) ✅ **fatto la notte stessa** — `idoneitaOperatore` legge il
+  giudizio (`giudizio`, `prescrizioni` nella risposta), «non-idoneo» è uno
+  stato a sé che vince sui documenti in corso e su «senza scadenze»,
+  `idoneitaDiTurno` conta `nonIdonei` e `conPrescrizioni`; Campo lo scrive
+  nella nota dell'elenco («N persona NON è idonea secondo il medico competente
+  (Scudo): non va mandata in cava finché il giudizio non cambia») e nella riga
+  (rossa, col testo delle prescrizioni se Scudo lo ha, «testo non registrato»
+  se no); run-kpi +2 con la controprova che cade; (b) **a metà**: il testo
+  delle prescrizioni si legge e si mostra (riga del Personale, urgenze del
+  Quadro, Campo) se il lavoratore lo porta — manca ancora il modo di
+  SCRIVERLO dalla pagina (il badge cicla quattro stati senza chiedere niente)
+  e la data del giudizio; (c) ✅ le due dimostrazioni portano un idoneo (d4),
+  uno con prescrizioni scritte (d5, in Campo regolare coi documenti) e un NON
+  idoneo (d2, schierato nella Squadra A): Campo continua a mostrare tutti gli
+  stati, e la prova che le due copie dicono lo stesso giudizio c'è.
+  Vedi `docs/RICERCA_CONTINUA_SCUDO.md`.
 - [x] **BANCO `stati-non-misurati`: 4 KO su 79, DUE CAUSE, una del banco e una
   del prodotto (04/09 sera).** Rilanciato identico su `6eb001ee`, quindi
   nessuna delle unità di stasera. (1) Sentinella, tre casi su `#rep-doc`: il
@@ -6271,7 +6281,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.083 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.084 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel

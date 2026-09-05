@@ -5025,6 +5025,28 @@ test("P3 · i cinque stati, e nessuno che finge di sapere", () => {
   const solo = ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, [], oggi);
   ok(solo.stato === "senza-scadenze", "collegato ma senza documenti: si dice, non si assume");
 });
+test("⛔ P3 · il giudizio del medico: NON idoneo vince sui documenti in corso, le prescrizioni restano scritte", () => {
+  /* fino al 05/09 il ponte guardava solo le scadenze: una persona dichiarata
+     NON idonea in Scudo, coi documenti validi, usciva «regolare» in Campo */
+  const oggi = new Date("2026-07-30T00:00:00");
+  const lav = [{ id: "d1", nome: "A", idoneita: "non-idoneo" }, { id: "d2", nome: "B", idoneita: "prescrizioni", prescrizioni: "niente quota" },
+               { id: "d3", nome: "C", idoneita: "idoneo" }, { id: "d4", nome: "D" }, { id: "d5", nome: "E", idoneita: "boh" }];
+  const sca = [{ lavoratoreId: "d1", tipo: "Patente", dataScadenza: "2028-01-01" }, { lavoratoreId: "d2", tipo: "Patente", dataScadenza: "2026-07-02" },
+               { lavoratoreId: "d3", tipo: "Patente", dataScadenza: "2028-01-01" }, { lavoratoreId: "d5", tipo: "Patente", dataScadenza: "2028-01-01" }];
+  const r1 = ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, sca, oggi);
+  eq([r1.stato, r1.giudizio, r1.documenti], ["non-idoneo", "non-idoneo", 1], "⛔ non idoneo coi documenti validi: NON «regolare»");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, [], oggi).stato, "non-idoneo", "e anche senza nessuna scadenza: il giudizio vince su «senza-scadenze»");
+  const r2 = ponti.idoneitaOperatore({ lavoratoreId: "d2" }, lav, sca, oggi);
+  eq([r2.stato, r2.giudizio, r2.prescrizioni], ["scaduta", "prescrizioni", "niente quota"], "con prescrizioni lo stato resta quello dei documenti, e il testo viaggia");
+  eq([ponti.idoneitaOperatore({ lavoratoreId: "d3" }, lav, sca, oggi).stato, ponti.idoneitaOperatore({ lavoratoreId: "d3" }, lav, sca, oggi).giudizio], ["regolare", "idoneo"], "idoneo coi documenti validi: regolare, e il giudizio scritto");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d4" }, lav, sca, oggi).giudizio, "", "senza giudizio registrato: vuoto, non «idoneo»");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d5" }, lav, sca, oggi).giudizio, "", "un giudizio che non esiste non è un giudizio");
+  eq(ponti.idoneitaOperatore({}, lav, sca, oggi).giudizio, "", "non collegato: nessun giudizio da leggere");
+  const q = ponti.idoneitaDiTurno([{ id: "o1", lavoratoreId: "d1" }, { id: "o2", lavoratoreId: "d2" }, { id: "o3", lavoratoreId: "d3" }], lav, sca, oggi);
+  eq([q.nonIdonei, q.conPrescrizioni, q.regolari, q.scadute], [1, 1, 1, 1], "il turno conta i non idonei e chi ha prescrizioni, a parte");
+  eq(q.tuttoInRegola, false, "⛔ con un non idoneo in turno non è «tutto in regola»");
+  eq(ponti.idoneitaDiTurno([{ id: "o3", lavoratoreId: "d3" }], lav, sca, oggi).tuttoInRegola, true, "un idoneo coi documenti validi: sì");
+});
 test("P3 · il riepilogo del turno non trasforma un «non lo so» in un «sì»", () => {
   const oggi = new Date("2026-07-30T00:00:00");
   const lav = [{ id: "d1", nome: "A" }];
@@ -5183,7 +5205,14 @@ test("P3 · la dimostrazione mostra TUTTI gli stati, altrimenti non dimostra", (
   ok(q.inScadenza > 0, "e almeno uno in scadenza");
   ok(q.regolari > 0, "e almeno una persona in regola");
   ok(q.nonCollegati > 0, "e almeno una non collegata: è lo stato che si dimentica");
+  ok(q.nonIdonei > 0, "e (05/09) almeno una persona NON idonea secondo il medico, schierata: è il caso per cui il ponte legge il giudizio");
+  ok(q.conPrescrizioni > 0 && q.righe.some(r => r.giudizio === "prescrizioni" && r.prescrizioni), "e una con prescrizioni SCRITTE");
   ok(q.tuttoInRegola === false, "quindi la dimostrazione non dice «tutto a posto»");
+  /* e la copia di Campo porta lo stesso giudizio di Scudo, persona per persona */
+  for (const l of campo.DEMO.lavoratoriScudo) {
+    const vero = scudo.DEMO.lavoratori.find(x => x.id === l.id);
+    eq([l.idoneita || "", l.prescrizioni || ""], [vero.idoneita || "", vero.prescrizioni || ""], "giudizio e prescrizioni uguali per " + l.id);
+  }
 });
 
 /* ══════════════════════════════════════════════════════════════════════

@@ -760,13 +760,30 @@ export function scadenzeUnite({ terra, flotta, scudo, lavoratori = [] } = {}, og
 // lui. Torna sempre un oggetto: non esistono risposte mancanti, esistono
 // risposte che dicono «non lo so» e perché.
 export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Date()) {
-  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
+  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], senzaData: [], documenti: 0, giudizio: "", prescrizioni: "" };
   const rif = operatore && operatore.lavoratoreId != null ? String(operatore.lavoratoreId).trim() : "";
   if (!rif) return vuoto;
   const l = (lavoratori || []).find((x) => x && String(x.id) === rif) || null;
   if (!l) return { ...vuoto, stato: "collegamento-rotto" };
+  /* ⛔ IL GIUDIZIO DEL MEDICO COMPETENTE, letto (05/09). Fino a oggi questo
+     ponte guardava SOLO le scadenze: una persona dichiarata «NON idonea» in
+     Scudo, coi documenti in corso, andava in turno come «regolare» — il numero
+     tranquillo su chi scende in cava. Il giudizio (`idoneita`: idoneo,
+     prescrizioni, non-idoneo, o vuoto = mai registrato) viaggia con la risposta,
+     e «non-idoneo» è uno stato a sé, che vince su tutto: le prescrizioni e
+     l'inidoneità vanno rispettate da subito, ricorso o no. «prescrizioni» NON
+     cambia lo stato (la persona può lavorare, con limiti) ma resta scritto, col
+     testo se Scudo lo ha. */
+  const giudizio = ["idoneo", "prescrizioni", "non-idoneo"].includes(l.idoneita) ? l.idoneita : "";
+  const prescrizioni = String(l.prescrizioni || "").trim();
   const sue = (scadenze || []).filter((s) => s && String(s.lavoratoreId) === rif);
-  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
+  if (giudizio === "non-idoneo")
+    return { stato: "non-idoneo", lavoratore: l, giudizio, prescrizioni,
+      scadute: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "scaduta"),
+      inScadenza: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "in-scadenza"),
+      senzaData: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "senza data"),
+      documenti: sue.length };
+  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], senzaData: [], documenti: 0, giudizio, prescrizioni };
   // ⛔ `senzaData` esiste perché il difetto corretto in `statoScadenzaHSE` si
   // ripresentava qui un piano più su: un documento con la data illeggibile non
   // era né scaduto né in scadenza, quindi cadeva nel `else` e l'operatore
@@ -781,7 +798,7 @@ export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Da
   }
   return {
     stato: statoPeggioreScadenze(sue, oggi),
-    lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length,
+    lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length, giudizio, prescrizioni,
   };
 }
 
@@ -844,6 +861,9 @@ export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date
     senzaCollegamento: conta("non-collegato"),
     collegamentiRotti: conta("collegamento-rotto"),
     nonCollegati: conta("non-collegato") + conta("collegamento-rotto"),
+    // il giudizio del medico (05/09): chi NON è idoneo e chi ha prescrizioni
+    nonIdonei: conta("non-idoneo"),
+    conPrescrizioni: righe.filter((r) => r.giudizio === "prescrizioni").length,
     // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
     tuttoInRegola: righe.length > 0
       && righe.every((r) => r.stato === "regolare" || r.stato === "senza-scadenze"),
