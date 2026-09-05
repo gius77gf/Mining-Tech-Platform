@@ -665,6 +665,27 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LA PASSATA IN PROFONDITÀ A 320 PX SU TUTTE E SEI LE APP, E LE REGOLE
+  DEI PONTI SOTTO L'EMULATORE (05/09, notte):** (1) uno stesso strumento
+  (`scratchpad/pass-app.mjs`, per ora fuori dal repository: è una MISURA) ha
+  aperto ogni schermata delle sei app a 320 px, aperto ogni linguetta chiusa
+  visibile, e cercato zeri con unità, «0/N», «—», «NaN», «undefined». Esito
+  onesto, con gli scatti guardati: **niente da correggere** — le corrispondenze
+  erano etichette degli assi dei grafici («0 € · 2.000 € · 4.000 €», «0% 25%
+  50%», la scala del calibro «0% … SOGLIA 80%»), i segnaposto delle tendine
+  («— scegli l'impresa —»), le granulometrie («0/30», «0/4») e assenze
+  dichiarate accanto al loro perché («CARBURANTE MESE —», «PPV —»). In Genesi
+  la scheda a 320 px con la carica «abc» non cambia: la guardia del campo la
+  rifiuta prima che entri, e «RAPPORTO DI RIGIDITÀ H/B — FRAMMENTAZIONE» è un
+  trattino di etichetta, non un valore. (2) Le regole di Firestore: i tre
+  ponti nuovi leggono le collezioni di un'ALTRA app con la seconda istanza —
+  `apps/genesi/previste`, `apps/genesi/piani`, `apps/campo/pianocarico` — e
+  la regola che lo consente è la generica `apps/{appId}/**` dentro
+  l'organizzazione. Dieci prove in `run.mjs` sotto l'emulatore, nei due
+  versi: il membro della propria org legge e scrive, il concorrente NON
+  legge, chi non ha nessuna org NON legge. **91 passati, 0 falliti** (era
+  75 al 13/08; il pin in CLAUDE.md era già invecchiato a 81 senza che nessuno
+  lo lanciasse).
 - [x] **GENESI — la passata in profondità, Home e riconciliazione (05/09,
   notte):** due cose viste guardando le schermate a 320 px. (1) In Home una
   volata con una data che non esiste (record da un altro browser, o
@@ -6298,7 +6319,7 @@ numero scritto dove non era stato misurato niente**.*
   parte» non era vero: l'emulatore parte, e le 21 cadevano con
   `functions/not-found` perché `apps/deepwork-id/functions/node_modules` era
   **vuota**. Un `npm ci` e sono **21 passati, 0 falliti**. Il giro adesso ne
-  prova **quattro su quattro, 123 prove** (75 · 19 · 8 · 21) e l'elenco `FUORI`
+  prova **quattro su quattro, 123 prove** (75 · 19 · 8 · 21; ⏱️ 139 dal 05/09 notte, regole a 91) e l'elenco `FUORI`
   è **vuoto** — tenuto come riga, non cancellato, così il conto si vede.
   ⛔ Due cose imparate scrivendolo, tutt'e due della famiglia «lo strumento, non
   il mondo»: in un contenitore fresco `firebase` **non è sul PATH** (adesso si

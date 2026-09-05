@@ -625,7 +625,7 @@ scrivere i dati di tutte le altre.
       e fa cadere le quattro prove negative.
       ⏱️ *Quel 68 è il numero **di allora**, non quello di adesso: rimisurato il
       13/08 sotto l'emulatore, la suite delle regole è a **75 passati, 0
-      falliti**. Chi legge questa riga non prenda il 68 per lo stato corrente —
+      falliti** (⏱️ 91 dal 05/09 notte: dieci prove sui ponti come dati). Chi legge questa riga non prenda il 68 per lo stato corrente —
       è la storia di questa decisione, non il conto di oggi.*
       ⛔ E il difetto della prima stesura va letto da chi tocca quel file: le
       regole di Firestore sono **additive**, e un carattere jolly ricorsivo
@@ -1158,7 +1158,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 condivise su numeri, unità di misura e soldi.
 
 **Le prove automatiche sono passate a 3.232** *(ricontate il 05/09 lanciando le
-suite)*, più **129** che girano con l'emulatore Firestore (**81** sulle regole
+suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **253
 esecuzioni** che aprono davvero le pagine in un browser.
 

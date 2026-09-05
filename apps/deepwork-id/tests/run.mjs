@@ -45,6 +45,17 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "organizations/orgA/apps/genesi/volate/v1"), { nome: "Fronte Nord", design: { B: 3 } });
   await setDoc(doc(db, "organizations/orgB/apps/genesi/volate/v9"), { nome: "VOLATA-CONCORRENTE", design: { B: 4 } });
   await setDoc(doc(db, "organizations/orgB/apps/genesi/sito/unico"), { punti: [{ d: 100, w: 20, ppv: 6 }], usa: true });
+  // I PONTI COME DATI (05/09, notte): Sentinella legge `apps/genesi/previste`,
+  // Campo legge `apps/genesi/piani`, Genesi legge `apps/campo/pianocarico` —
+  // con una SECONDA istanza dell'SDK sull'appId dell'altra app. La regola che
+  // li consente è la stessa generica apps/{appId}/** DENTRO l'organizzazione;
+  // fra organizzazioni deve restare la barriera, e questa è la prova nei due versi.
+  await setDoc(doc(db, "organizations/orgA/apps/genesi/previste/p1"), { data: "2026-09-12", fronte: "Nord", stato: "prevista", codiceVolata: "GEN-20260912-a" });
+  await setDoc(doc(db, "organizations/orgB/apps/genesi/previste/p9"), { data: "2026-09-12", fronte: "VOLATA-PREVISTA-CONCORRENTE", stato: "prevista", codiceVolata: "GEN-x" });
+  await setDoc(doc(db, "organizations/orgA/apps/genesi/piani/k1"), { nome: "Piano", nFori: 2, impronta: "p1", righe: [{ foro: 1, prog: 60 }, { foro: 2, prog: 60 }] });
+  await setDoc(doc(db, "organizations/orgB/apps/genesi/piani/k9"), { nome: "PIANO-CONCORRENTE", nFori: 1, impronta: "p9", righe: [{ foro: 1, prog: 99 }] });
+  await setDoc(doc(db, "organizations/orgA/apps/campo/pianocarico/f1"), { data: "2026-09-05", turno: "mattino", foro: 1, prog: 60, reale: 61 });
+  await setDoc(doc(db, "organizations/orgB/apps/campo/pianocarico/f9"), { data: "2026-09-05", turno: "mattino", foro: 1, prog: 99, reale: 98 });
   // dati del CORE (cuore) come app 'core': organizations/{org}/apps/core/... —
   // isolamento preparato per la multi-tenancy del cuore (docs/ISOLAMENTO_CORE.md)
   await setDoc(doc(db, "organizations/orgA/apps/core/rapportini/r1"), { operatore: "Mario", fori: 20 });
@@ -72,6 +83,30 @@ await test("membro di orgA NON legge i dati del concorrente (orgB)", () =>
   assertFails(getDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9"))));
 await test("membro di orgB NON legge i dati di orgA", () =>
   assertFails(getDoc(doc(eve, "organizations/orgA/apps/scudo/turni/t1"))));
+console.log("\n— I ponti come dati (05/09): letti dentro l'organizzazione, chiusi fra organizzazioni —");
+await test("ponte 3e: un membro di orgA legge le volate previste di Genesi della PROPRIA org (è quello che fa Sentinella con la seconda istanza)", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/genesi/previste/p1"))));
+await test("ponte 3e: il concorrente NON legge le volate previste di orgA", () =>
+  assertFails(getDoc(doc(eve, "organizations/orgA/apps/genesi/previste/p1"))));
+await test("ponte 3e: un membro di orgA NON legge le volate previste del concorrente", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/genesi/previste/p9"))));
+await test("ponte 3e: Genesi in live SCRIVE la prevista nella propria org (il bottone «per Sentinella»)", () =>
+  assertSucceeds(setDoc(doc(alice, "organizations/orgA/apps/genesi/previste/p2"), { data: "2026-09-13", stato: "prevista", codiceVolata: "GEN-20260913-b" })));
+await test("ponte 3e: e NON la scrive nell'org del concorrente", () =>
+  assertFails(setDoc(doc(alice, "organizations/orgB/apps/genesi/previste/hack"), { data: "2026-09-13", stato: "prevista" })));
+await test("piano Genesi→Campo: un membro di orgA legge i piani di Genesi della PROPRIA org (Campo con la seconda istanza)", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/genesi/piani/k1"))));
+await test("piano Genesi→Campo: il concorrente NON legge i piani di orgA", () =>
+  assertFails(getDoc(doc(eve, "organizations/orgA/apps/genesi/piani/k1"))));
+await test("consuntivo Campo→Genesi: un membro di orgA legge il piano di carico di Campo della PROPRIA org (Genesi con la seconda istanza)", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/campo/pianocarico/f1"))));
+await test("consuntivo Campo→Genesi: il concorrente NON legge il piano di carico di orgA", () =>
+  assertFails(getDoc(doc(eve, "organizations/orgA/apps/campo/pianocarico/f1"))));
+await test("i ponti: chi non ha nessuna org NON legge né previste né piani né pianocarico", async () => {
+  await assertFails(getDoc(doc(newbie, "organizations/orgA/apps/genesi/previste/p1")));
+  await assertFails(getDoc(doc(newbie, "organizations/orgA/apps/genesi/piani/k1")));
+  await assertFails(getDoc(doc(newbie, "organizations/orgA/apps/campo/pianocarico/f1")));
+});
 await test("Genesi: membro di orgA legge le PROPRIE volate", () =>
   assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/genesi/volate/v1"))));
 await test("Genesi: membro di orgA NON legge le volate del concorrente", () =>

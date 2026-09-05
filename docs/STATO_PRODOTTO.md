@@ -215,8 +215,8 @@ memoria)*: **3.232** prove automatiche che girano senza rete — **2751** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
-primo avvio, 3 sulle superfici che stampano e su chi le preme — più **129** che
-girano con l'emulatore Firestore (**81** sulle
+primo avvio, 3 sulle superfici che stampano e su chi le preme — più **139** che
+girano con l'emulatore Firestore (**91** sulle
 **regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
 **253 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:

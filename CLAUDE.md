@@ -2546,7 +2546,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
       cd apps/deepwork-id && npx --yes firebase-tools@13 emulators:exec \
         --only firestore --project demo-deepwork "cd tests && node run.mjs"
 
-  **75 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
+  **91 prove, tutte verdi** (75 al 13/08, 91 dal 05/09 con i dieci dei ponti come dati), in pochi minuti. E con `--only firestore,auth`
   girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
   ⛔ **E IL 13/08 QUESTA STESSA RIGA HA SBAGLIATO PER LA TERZA VOLTA, SEMPRE
   NELLA DIREZIONE CHE FA RINUNCIARE.** Diceva `firebase emulators:exec …`, e in
@@ -2565,7 +2565,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   un comando che non parte è *«manca la cosa, o manca il modo di chiamarla?»* —
   e costa un `which`.
   ⚠️ E il **denominatore** di questa riga, perché non se ne prenda una parte per
-  il tutto: rimisurato il 13/08 in un contenitore fresco, regole **75/0**, SDK
+  il tutto: rimisurato il 13/08 in un contenitore fresco, regole **75/0** (91/0 al 05/09), SDK
   **19/0**, primo avvio **8/0**.
   ⛔ **E LA RIGA CHE STAVA QUI ERA FALSA DA CINQUE GIORNI, NELLA STESSA
   DIREZIONE.** Diceva: *«quello che NON gira qui è l'emulatore delle FUNZIONI, e
@@ -2582,7 +2582,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
         "cd tests && node run-fns.mjs"
 
   ⚠️ **Quindi il conto vero di ciò che si verifica in casa è 123**, non 102:
-  regole **75**, SDK **19**, primo avvio **8**, funzioni **21** — e fra quelle 21
+  regole **75** (91 dal 05/09), SDK **19**, primo avvio **8**, funzioni **21** — e fra quelle 21
   ci sono le difese che contano di più (un'email non verificata non riscatta
   inviti, un utente anonimo non crea un'organizzazione). Per cinque giorni
   quelle prove sono state considerate «solo CI» **per una cartella vuota**.
