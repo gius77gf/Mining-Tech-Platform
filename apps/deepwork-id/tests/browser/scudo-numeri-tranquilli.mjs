@@ -153,7 +153,9 @@ const srv = createServer((q, s) => {
   }
   if (CONTROPROVA && p.endsWith("apps/scudo/scudo-data.js")) {
     let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI_MODULO) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    // il terzo posto è il file: qui si LEGGE, così un'iniezione che dichiarasse
+    // un altro file non morderebbe questo (05/09)
+    for (const [a, b, f] of DIFETTI_MODULO) if ((!f || p.endsWith(f)) && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     iniezioni = colpiti.size;
     corpo = Buffer.from(t, "utf8");
   }

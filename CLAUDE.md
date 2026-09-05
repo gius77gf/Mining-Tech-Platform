@@ -1428,6 +1428,28 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   allarmi, tutti nello stesso banco. La cura non è imparare la terza forma: è
   **non indovinare la posizione e chiedere ai dati** qual è il percorso di
   prodotto vero, così una quarta convenzione non romperebbe niente.
+  ⛔ **E IL 05/09 LA STESSA FAMIGLIA NELLA VESTE CHE `iniezioni-fresche` NON
+  POTEVA VEDERE: L'INIEZIONE È SUL BERSAGLIO, IL BANCO NON LA APPLICA.**
+  Portando quattordici file di Conti e otto di Flotta dal foglio della pagina
+  al modulo, le iniezioni che li citavano sono state riancorate con il terzo
+  elemento (`MODULO`) — e **quattro banchi su quattro** (`flotta-documenti-che-
+  escono`, `conti-documenti-che-escono`, `libretto-vuoti`, `flotta-frasi-da-
+  uno`) avevano un ciclo `for (const [da, a] of DIFETTI)` che applicava tutto
+  alla **sola pagina**. Per `iniezioni-fresche` erano fresche (il pezzo esiste
+  nel modulo), per il banco non esistevano: la controprova stampava
+  «✔ distingue» grazie alle altre, con la riga «**i 8 difetti sono stati
+  rimessi davvero → [0,1,5,7]**» rossa in mezzo, che nessuno leggeva —
+  `libretto-vuoti` è restato con la controprova a exit 3 per una unità intera,
+  e nessun giro `node` lo può vedere. Peggio: un'ancora a sei spazi è una
+  sottostringa della riga a otto del libretto, quindi «mordeva» la pagina nel
+  posto sbagliato e si contava rimessa.
+  Le tre regole che ne escono: **(1)** quando si riancora un'iniezione su un
+  altro file si guarda che il banco **applichi per file**, e la riga «N difetti
+  rimessi davvero» si legge — il «✔» in fondo non basta; **(2)** un'iniezione
+  riscritta coi nomi della pagina (`RIC`, `LAV`) dentro il modulo fa morire
+  l'export e la controprova **scende di controlli** senza dirlo (66 su 80): si
+  guarda il totale; **(3)** `iniezioni-fresche` adesso pretende che ogni banco
+  con un file dentro una tupla lo **legga** dove applica (4 su 4, misurato).
   ⛔ **E LA STESSA UNITÀ È NATA DA UN «NON C'È» FALSO, PRODOTTO DA UN CENSIMENTO
   CHE CERCAVA UN NOME SOLO.** Cercando i punti d'uscita di Scudo ho grepato
   `__usciti` in `scudo-documenti.mjs`, trovato **zero**, e concluso «Scudo non ha
