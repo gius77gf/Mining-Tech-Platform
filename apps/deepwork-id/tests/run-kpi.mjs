@@ -38381,6 +38381,121 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine DDT e preventivo nel modulo (05/09) ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CAMPO · IL RAPPORTO DI FINE TURNO STAMPATO SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   Cento righe di modello nella pagina, che chiamavano le funzioni giuste ma
+   che nessuna prova senza browser leggeva: è lì che sono vissuti «0/0
+   attività concluse · 0 anomalie aperte» su una giornata mai registrata e la
+   tabella dei fermi senza i minuti. `rapportoGiornata(d, {dmy})` restituisce
+   le sezioni in testo e la pagina disegna. */
+{
+  const D = campo.DEMO;
+  const OGGI = "2026-09-05";   // il giorno pieno della dimostrazione
+  const dg = (l) => (l || []).filter((r) => campo.eDelGiorno(r, OGGI));
+  const dati = (oggi = OGGI) => ({ oggi, rapportini: dg(D.rapportini), attivita: dg(D.attivita), obiettivi: D.obiettivi, checklist: D.checklist,
+    meteo: D.meteo, chiusure: D.chiusure, squadre: D.squadre, operatori: D.operatori, presenze: D.presenze, durate: D.durate });
+  const sez = (R, t) => R.sezioni.find((x) => x.titolo === t);
+  test("Campo · rapportoGiornata: il giorno pieno — il Quadro, l'avviso di chi non ha il giorno, le undici sezioni nell'ordine del foglio", () => {
+    const R = campo.rapportoGiornata(dati(), {});
+    eq([R.titolo, R.data], ["Rapporto di fine turno", "05/09/2026"]);
+    const av = campo.avanzamentoGiornata(dg(D.attivita)), cop = campo.coperturaRapportini(D.squadre, dg(D.rapportini));
+    eq(R.quadro, [{ n: av.concluse + "/" + av.totale, t: "attività concluse" }, { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" },
+      { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" }, { n: "2.510 t", t: "prodotti" }], "i quattro numeri del Quadro vengono da avanzamentoGiornata, coperturaRapportini e totaliProduzione");
+    eq(R.attenzione, campo.avvisoSenzaGiorno(dg(D.attivita), dg(D.rapportini)), "l'avviso sul rapportino senza giorno è quello di avvisoSenzaGiorno");
+    ok(/1 rapportino \(2\.300 t\) senza il giorno di lavoro/.test(R.attenzione), R.attenzione);
+    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Meteo e condizioni del sito", "Personale presente", "Obiettivo del turno", "Attività",
+      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "le dieci sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono)");
+    ok(R.piede.startsWith("Generato da Deepwork Campo"));
+  });
+  test("Campo · rapportoGiornata: il personale — l'appello, il riposo sotto le 11 ore, gli orari che mancano DICHIARATI nella cella", () => {
+    const P = sez(campo.rapportoGiornata(dati(), {}), "Personale presente");
+    eq(P.testo, ""); eq(P.blocchi.length, 2, "due turni con qualcuno all'appello");
+    const M = P.blocchi[0];
+    ok(/^\*\*Turno Mattina\*\*: 2 presenti su 4, 1 non spuntato\./.test(M.intro), M.intro);
+    ok(/\*\*1 persona ha meno di 11 ore di riposo dal turno precedente\*\* \(D\.Lgs 66\/2003, art\. 7\)\./.test(M.intro), "⛔ il riposo sotto la soglia è in evidenza, con la norma — " + M.intro);
+    ok(/Per 1 il riposo non è misurabile\./.test(M.intro) && /Per \*\*2\*\* presenti su 2 manca l'ora di entrata o quella di uscita\./.test(M.intro), M.intro);
+    eq(M.tabella.colonne, ["Nome", "Ruolo", "Squadra", "Stato", "Entrata", "Uscita", "Ore", "Spuntato alle", "Riposo dal turno precedente"]);
+    const luca = M.tabella.righe.find((r) => r[0] === "Luca Bianchi");
+    eq(luca.slice(3, 7), ["presente", "06:15", "*non dichiarata*", "*non calcolabili*"], "⛔ per un presente l'orario che manca si DICHIARA, la cella non resta bianca");
+    ok(/dal turno precedente · stima: manca l'ora di uscita$/.test(luca[8]), "il riposo è quello di testoRiposo — " + luca[8]);
+    const giulia = M.tabella.righe.find((r) => r[0] === "Giulia Verdi");
+    eq(giulia.slice(3, 9), ["ASSENTE", "—", "—", "—", "06:30", "non in turno"], "per chi non è presente gli orari sono «—»: non lo riguardano");
+    const mario = M.tabella.righe.find((r) => r[0] === "Mario Rossi");
+    ok(/sotto le 11 ore/.test(mario[8]), mario[8]);
+    ok(/^\*\*Turno Pomeriggio\*\*: 3 presenti su 4\./.test(P.blocchi[1].intro), P.blocchi[1].intro);
+  });
+  test("Campo · rapportoGiornata: attività, fermi coi minuti di paretoFermi, disponibilità, obiettivo, produzione e rapportini — le parole dello schermo", () => {
+    const R = campo.rapportoGiornata(dati(), {});
+    const A = sez(R, "Attività").blocchi[0].tabella;
+    eq(A.righe.length, 7); eq(A.vuota, "Nessuna attività registrata.");
+    ok(A.righe.slice(0, 3).every((r) => /^ANOMALIA — /.test(r[4])), "le anomalie prima, con la causale — " + A.righe.map((r) => r[4]).join(" | "));
+    eq(A.righe[0], ["Mattina", "Frantoio primario", "Fermo per intasamento tramoggia", "Squadra C", "ANOMALIA — Intasamento impianto"]);
+    const F = sez(R, "Fermi per causale");
+    const pf = campo.paretoFermi(dg(D.attivita));
+    eq(F.blocchi[0].tabella.righe, [["Intasamento impianto", "2", campo.minutiFermoTesto(75, 2, 0)], ["Altro", "1", campo.minutiFermoTesto(30, 1, 0)]], "⛔ i MINUTI di paretoFermi, non il solo conto");
+    eq(F.note, [campo.fraseNonRiconosciute(pf).replace(/^ /, "") + "."], "la causale fuori elenco («Nebbia») si dice sotto la tabella");
+    const Di = sez(R, "Disponibilità del turno").blocchi[0].tabella;
+    eq(Di.righe, [["Mattina", "8 h", "3 fermi", campo.minutiFermoTesto(105, 3, 0), "Intasamento impianto — 75 min su 2 fermi", "**78%** (6 h 15 min lavorati su 8 h)"]]);
+    ok(/\*\*Non è l'OEE\*\*/.test(sez(R, "Disponibilità del turno").note[0]));
+    eq(sez(R, "Obiettivo del turno").blocchi[0].tabella.righe, [["Mattina", "260 t", "210 t (81%)", "−50 t"]]);
+    eq(sez(R, "Produzione").blocchi[0].tabella, { colonne: ["Turno", "Produzione"], righe: [["Mattina", "2.510 t"]], totale: ["Totale", "2.510 t"], vuota: "" });
+    const Rp = sez(R, "Rapportini");
+    eq(Rp.blocchi[0].tabella.righe[0], ["Rapportino trasporti", "Squadra B · Mattina **· senza data**", "2.300 t", "—", "inviato 13:00"], "⛔ la riga del rapportino senza giorno lo dice");
+    eq(Rp.note, ["Squadre senza rapportino: Squadra C — Impianto."]);
+    const Ch = sez(R, "Chiusura e firme");
+    eq([Ch.testo, Ch.firmeInBianco], ["Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.", true], "senza chiusure il rapporto lo dice e porta le righe da firmare a penna");
+    eq(sez(R, "Checklist di inizio turno").testo, "Nessuna checklist di inizio turno compilata oggi.");
+    eq(sez(R, "Meteo e condizioni del sito").testo, "Meteo e condizioni del sito non registrati oggi.");
+  });
+  test("Campo · rapportoGiornata: la giornata VUOTA — «—» nel Quadro, e ogni sezione dice perché è vuota (mai «0/0» o «nessuna anomalia»)", () => {
+    const R = campo.rapportoGiornata({ oggi: "2026-01-10", squadre: D.squadre }, {});
+    eq(R.quadro, [{ n: "—", t: "attività: nessuna registrata oggi" }, { n: "—", t: "anomalie: nessuna attività da cui contarle" }, { n: "0/3", t: "squadre con rapportino" }, { n: "—", t: "prodotti" }],
+      "⛔ niente «0/0 attività concluse · 0 anomalie aperte»: dove non è stato registrato niente il numero è «—» con il perché");
+    eq(R.attenzione, "");
+    eq(sez(R, "Fermi per causale").testo, "Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.");
+    eq(sez(R, "Disponibilità del turno").testo, "Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.");
+    eq(sez(R, "Attività").blocchi[0].tabella.righe, []); eq(sez(R, "Personale presente").testo, "Nessun appello registrato oggi.");
+    eq(sez(R, "Produzione").testo, "Nessuna produzione registrata."); eq(sez(R, "Rapportini").testo, "Nessun rapportino oggi.");
+    eq(sez(R, "Obiettivo del turno").testo, "Nessun obiettivo impostato per i turni di oggi.");
+    const A = campo.rapportoGiornata({ oggi: "2026-01-10", attivita: [{ id: "a", data: "2026-01-10", turno: "Mattina", titolo: "X", stato: "conclusa" }] }, {});
+    eq(sez(A, "Fermi per causale").testo, "Nessuna anomalia aperta.", "con attività registrate e nessuna anomalia la frase è quella");
+    eq(A.quadro[0], { n: "1/1", t: "attività concluse" }); eq(A.quadro[1], { n: "0", t: "anomalie aperte" });
+    eq(A.quadro[2], { n: "—", t: "squadre: nessuna in anagrafica" });
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const N = campo.rapportoGiornata(...args);
+      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 10], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Campo · rapportoGiornata: chiusure, riaperture, foto e checklist — le sezioni che compaiono solo se c'è qualcosa", () => {
+    const base = { oggi: "2026-03-03", attivita: [{ id: "a1", data: "2026-03-03", turno: "Mattina", titolo: "Nastro", dettaglio: "rullo", stato: "anomalia", causale: "guasto-meccanico", foto: "data:image/png;base64,iVBORw0KGgo=", fotoOra: "09:10" }],
+      chiusure: [{ data: "2026-03-03", turno: "Mattina", consegna: "Rossi", ricevuta: "Bianchi", ora: "14:00", note: "", riaperture: [{ da: "Rossi", il: "2026-03-03", ora: "15:30", motivo: "ore sbagliate" }] }],
+      checklist: [{ data: "2026-03-03", squadra: "Squadra A", turno: "Mattina", ora: "06:10", esiti: { a: "ok", b: "no" } }] };
+    const R = campo.rapportoGiornata(base, {});
+    const Ch = sez(R, "Chiusura e firme");
+    eq([Ch.testo, !!Ch.firmeInBianco], ["", false]); eq(Ch.blocchi[0].tabella.righe, [["Mattina", "Rossi", "Bianchi", "14:00", ""]]);
+    const Ri = sez(R, "Riaperture del turno");
+    ok(Ri && Ri.blocchi[0].tabella.righe.length === 1 && Ri.blocchi[0].tabella.righe[0][3] === "ore sbagliate", "la riapertura è sul foglio, con chi, quando e perché — " + JSON.stringify(Ri && Ri.blocchi[0].tabella.righe));
+    eq(Ri.blocchi[0].tabella.righe[0][2], "03/03/2026 15:30");
+    const Fo = sez(R, "Foto delle anomalie");
+    ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
+    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 7, "le foto stanno fra la disponibilità e la produzione, come sul foglio");
+    const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
+    eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10"]);
+    eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");
+    ok(typeof Ck[3] === "string" && Ck[3].length > 0, "la colonna delle voci non a posto è sempre scritta («nessuna» quando non ce ne sono) — " + Ck[3]);
+    ok(!sez(campo.rapportoGiornata({ oggi: "2026-03-03" }, {}), "Riaperture del turno"), "senza riaperture la sezione non c'è");
+  });
+  test("Campo · la pagina non compone più nessuna sezione del rapporto stampato", () => {
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    for (const et of ["attività: nessuna registrata oggi", "<h2>Fermi per causale</h2>", "non è stato consegnato</b>", "Nessuna checklist di inizio turno compilata oggi", "Riposo dal turno precedente</th>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI/.test(pagina), "e chiama rapportoGiornata con i dati vivi");
+  });
+}
+/* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
+
+
 
 
 

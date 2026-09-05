@@ -592,6 +592,29 @@
   `conti-frasi-da-uno` 41/41, `conti-documenti-che-escono` 81/81. Scatti
   del DDT e della conferma d'ordine guardati. **Conti: tre fogli su tre e
   quattordici CSV su quattordici composti nel modulo.**
+- [x] **CAMPO — il rapporto di fine turno stampato si compone nel modulo
+  (05/09):** cento righe di modello HTML nella pagina, dodici sezioni. Adesso
+  `rapportoGiornata(d, {dmy})` restituisce il Quadro («—» con il perché dove
+  non è stato registrato niente, mai «0/0 concluse · 0 anomalie»), l'avviso
+  di chi non ha il giorno, e le sezioni come `{titolo, testo, blocchi:
+  [{intro, tabella: {colonne, righe, totale, vuota}}], note}` — checklist,
+  meteo, personale (appello, riposo sotto le 11 ore in evidenza, orari che
+  mancano DICHIARATI nella cella), obiettivo, attività (anomalie prima),
+  fermi coi minuti di `paretoFermi`, disponibilità con la nota sull'OEE,
+  foto, produzione col totale, rapportini con «· senza data» sulla riga,
+  chiusura con le firme in bianco, riaperture solo se ci sono. Grassetto
+  `**così**`, corsivo `*così*`, a capo `\n`: li rende la pagina, che tiene
+  solo HTML e CSS. run-kpi +6 (2712): il giorno pieno (05/09), il personale,
+  le tabelle coi numeri, la giornata vuota, chiusure/riaperture/foto/
+  checklist, la pagina che non compone più. Copertura di Campo 134 → 135.
+  Banchi: `campo-foglio-turno` 44/44 (le due iniezioni del Quadro sul
+  modulo; controprova 15 rimessi; `--live` 44/44), `campo-numeri-tranquilli`
+  94/94 — e applica per file: le sue iniezioni 4, 5 e 5b anchoravano sul
+  testo della pagina che era già salito con `testoConsegnaTurno` stamattina
+  e non venivano più rimesse; riancorate sul modulo, più una nuova sul
+  `attenzione` del rapporto (controprova 18 su 18 rimessi, 41 cadute su
+  94). Scatto del rapporto guardato: stesso foglio. **Campo: rapporto e
+  consegna composti nel modulo, cinque CSV su cinque.**
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6691,8 +6714,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.187 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2706, `run-stile` 328,
+  **3.193 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2712, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

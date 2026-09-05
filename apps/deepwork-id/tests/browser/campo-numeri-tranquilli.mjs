@@ -85,6 +85,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    pagina: un `replace` che non sostituisce niente esce in silenzio, e una
    controprova che non inietta niente dichiara «non so fallire» per il motivo
    sbagliato. */
+const PAGINA = "apps/campo/index.html", MODULO = "apps/campo/campo-data.js";
 const DIFETTI = [
   // 1 · il CSV dello storico costruito a mano, con gli zeri di comodo
   ["a.href = \"data:text/csv;charset=utf-8,\" + encodeURIComponent(csvStorico(SET_RIGHE, fuori));",
@@ -103,18 +104,23 @@ const DIFETTI = [
   // 3 · la sottrazione a mano del ponte con Terra
   ["const inConto = rapportiniInConto(r.dich);",
    "const inConto = { conto: r.dich.turni - (r.dich.viaggi > 0 ? 1 : 0), delPeriodo: r.dich.turni, noto: true };"],
-  // 4 · la riga dei rapportini nel rapporto stampato, con l'unità GREZZA
-  ["}${(() => { const p = produzioneDi(r); return p ? esc(formattaProduzione(p.qta, p.unita)) : esc(r.produzione || \"—\"); })()}</td>",
-   "}${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||\"—\"))}</td>"],
-  /* 5 · l'avviso «senza il giorno di lavoro» sui due documenti DATATI. La riga
-     è la stessa nella consegna e nel rapporto, quindi questa sola sostituzione
-     li spegne tutt'e due — ed è giusto così: è UNA decisione. */
+  /* 4 · la riga dei rapportini nel rapporto stampato, con l'unità GREZZA
+     (⏱️ dal 05/09 il rapporto lo compone `rapportoGiornata` nel MODULO: il
+     terzo posto della tupla dice a quale file va l'iniezione) */
+  ["pr ? formattaProduzione(pr.qta, pr.unita) : String(r.produzione || \"—\")",
+   "+r.prodQta > 0 ? formattaProduzione(r.prodQta, r.prodUnita) : String(r.produzione || \"—\")", MODULO],
+  /* 5 · l'avviso «senza il giorno di lavoro» sui due documenti DATATI. Erano
+     UNA riga nella pagina; dal 05/09 la consegna (`testoConsegnaTurno`) e il
+     rapporto (`rapportoGiornata`) la leggono ognuno nel modulo: due iniezioni,
+     una decisione (`avvisoSenzaGiorno`). */
   ["const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);",
-   "const fuoriOggi = \"\";"],
-  // 5b · e le tre RIGHE che se lo portavano addosso
-  ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\""],
-  ["senzaGiornoDiLavoro(a)?", "false?"],
-  ["senzaGiornoDiLavoro(r)?", "false?"],
+   "const fuoriOggi = \"\";", MODULO],
+  ["const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || \"\";",
+   "const attenzione = \"\";", MODULO],
+  // 5b · e le tre RIGHE che se lo portavano addosso (consegna, attività e rapportini del rapporto)
+  ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\"", MODULO],
+  ["(senzaGiornoDiLavoro(a) ? \" **· senza data**\" : \"\")", "(false ? \" **· senza data**\" : \"\")", MODULO],
+  ["(senzaGiornoDiLavoro(r) ? \" **· senza data**\" : \"\")", "(false ? \" **· senza data**\" : \"\")", MODULO],
   // 6 · le frasi col numero UNO che accompagnano i file
   ["conta(app.totale, \"persona\", \"persone\")", "app.totale + \" persone\""],
   ["plurale(SQU.length, \"Esportata \", \"Esportate \") + conta(SQU.length, \"squadra\", \"squadre\")",
@@ -194,17 +200,22 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/campo/campo-data.js") && FIXTURE) {
-    corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
-  }
-  if (CONTROPROVA && p.endsWith("apps/campo/index.html")) {
-    let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI) {
-      if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
-    }
+  /* ogni difetto va al file che dichiara (terzo posto della tupla; senza, la
+     pagina): applicare tutto alla pagina lascia le iniezioni sul modulo
+     «fresche» per iniezioni-fresche e MAI rimesse per questo banco. Sul modulo
+     l'iniezione va PRIMA della fixture, che è testo aggiunto in coda. */
+  const applica = (t, file) => {
+    for (const [a, b, f] of DIFETTI) if ((f || PAGINA) === file && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     iniezioni = colpiti.size;
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    if (FIXTURE) t += FIXTURE;
     corpo = Buffer.from(t, "utf8");
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

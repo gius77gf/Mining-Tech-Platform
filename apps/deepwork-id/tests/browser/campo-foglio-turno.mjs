@@ -143,16 +143,17 @@ const DIFETTI = {
        una sezione vuota si legge come «niente da dire», non come «nessuna» */
     ['  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];',
      '  if (!r.n) return [];   /* difetto rimesso dal banco */'],
+    /* ⏱️ dal 05/09 il Quadro del rapporto stampato lo compone `rapportoGiornata`
+       nel modulo: i due «0/0 concluse · 0 anomalie» si rimettono qui, non più
+       nella pagina (che disegna e basta) */
+    ['    av.totale ? { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" } : { n: "—", t: "anomalie: nessuna attività da cui contarle" },',
+     '    { n: String(av.anomalie), t: "anomalie aperte" },'],
+    ['    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },',
+     '    { n: av.concluse + "/" + av.totale, t: "attività concluse" },'],
   ],
   "shared/deepwork-id-client/dw-shell.js": [
     ['  return modo === "live" ? null : String(modo || "non dichiarata");',
      "  return null;"],
-  ],
-  "apps/campo/index.html": [
-    ['${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}',
-     '<b>${av.anomalie}</b> anomalie aperte'],
-    ['${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}',
-     '<b>${av.concluse}/${av.totale}</b> attività concluse'],
   ],
 };
 

@@ -3352,6 +3352,160 @@ export function testoSegnalazioniTurno(s) {
   return [capi, coda].filter(Boolean).join(" · ") + ".";
 }
 
+/* IL RAPPORTO DI FINE TURNO STAMPATO, LE SEZIONI (05/09). Stava nella pagina:
+   cento righe di modello HTML che chiamavano le funzioni giuste — `appelloTurno`,
+   `riposoDiTurno`, `paretoFermi`, `disponibilitaTurno`, `totaliProduzione`,
+   `produzioneDi` — ma la COMPOSIZIONE la provava solo il browser, ed è lì che
+   sono vissuti «0/0 attività concluse · 0 anomalie aperte» su una giornata
+   mai registrata e la tabella dei fermi che diceva meno dello schermo. Qui
+   ogni sezione è testo: `{titolo, testo, blocchi: [{intro, tabella: {colonne,
+   righe, totale, vuota}, note}], note}`; la pagina tiene solo HTML e CSS.
+   Nei testi il grassetto si scrive «**così**», il corsivo «*così*», l'a capo
+   «\n»: li rende la pagina. `d`: { oggi (ISO), rapportini e attivita GIÀ del
+   giorno, obiettivi, checklist, meteo, chiusure, squadre, operatori,
+   presenze, durate (archivi interi: si filtrano qui) }; `opts.dmy` la data in
+   italiano. Pura. */
+export function rapportoGiornata(d, opts) {
+  const D = d || {}, O = opts || {};
+  const OGGI = String(D.oggi || "");
+  const dmy = O.dmy || ((iso) => dataIt(iso, "senza data"));
+  const RAP_OGGI = D.rapportini || [], ATT_OGGI = D.attivita || [];
+  const OBIE = D.obiettivi || [], CHK = D.checklist || [], MET = D.meteo || [], CHI = D.chiusure || [];
+  const SQU = D.squadre || [], OPER = D.operatori || [], PRE = D.presenze || [], DUR = D.durate || [];
+  const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
+  const pf = paretoFermi(ATT_OGGI);
+  const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
+  const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
+  const ST = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
+  const sez = (titolo, testo, blocchi, note) => ({ titolo, testo: testo || "", blocchi: blocchi || [], note: note || [] });
+  const tab = (colonne, righe, extra) => ({ colonne, righe, totale: null, vuota: "", ...(extra || {}) });
+  /* IL QUADRO: dove nessuno ha registrato niente il numero è «—» e la frase
+     dice perché — «0/0 concluse · 0 anomalie» è la riga più tranquilla che il
+     documento sappia dire proprio dove non è stato misurato niente */
+  const quadro = [
+    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },
+    av.totale ? { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" } : { n: "—", t: "anomalie: nessuna attività da cui contarle" },
+    cop.totale ? { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" } : { n: "—", t: "squadre: nessuna in anagrafica" },
+    { n: unitaProd.length ? somma(tp.perUnita) : "—", t: "prodotti" },
+  ];
+  const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || "";
+  // checklist di inizio turno chiuse o in corso oggi
+  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}) }));
+  const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
+    chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
+      chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
+        x.st.problemi.length ? x.st.problemi.join("; ") : "nessuna", String(x.c.ora || "non chiusa")])) }] : []);
+  const metOggi = TURNI.map((t) => meteoDi(MET, OGGI, t)).filter((m) => m && riassuntoMeteo(m));
+  const meteo = sez("Meteo e condizioni del sito", metOggi.length ? "" : "Meteo e condizioni del sito non registrati oggi.",
+    metOggi.length ? [{ tabella: tab(["Turno", "Condizioni", "Note sul sito"],
+      metOggi.map((m) => [String(m.turno), riassuntoMeteo(m), String(m.note || "—")])) }] : []);
+  /* PERSONALE PRESENTE, turno per turno: l'appello, il riposo fra i turni
+     (D.Lgs 66/2003, art. 7) e gli orari veri. Dove non si può misurare il
+     rapporto lo DICHIARA invece di lasciare la cella vuota: una casella bianca
+     su un documento firmato si legge come «niente da segnalare». */
+  const preOggi = TURNI.map((t) => {
+    const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, t, "");
+    const per = {}; rip.righe.forEach((r) => { per[r.operatore.id] = r; });
+    const ori = {}; PRE.filter((p) => String(p.data || "") === OGGI && String(p.turno || "") === t)
+      .forEach((p) => { ori[p.operatoreId] = { rec: p, or: orariPresenza(p) }; });
+    return { turno: t, app: appelloTurno(OPER, PRE, OGGI, t, ""), rip, per, ori, qOra: orariDiTurno(OPER, PRE, OGGI, t, "") };
+  }).filter((x) => x.app.presenti || x.app.assenti);
+  const personale = sez("Personale presente", preOggi.length ? "" : "Nessun appello registrato oggi.",
+    preOggi.map((x) => {
+      const q = x.qOra, mancano = q.parziali + q.senza;
+      const intro = "**Turno " + x.turno + "**: " + x.app.presenti + " " + (x.app.presenti === 1 ? "presente" : "presenti") + " su " + x.app.totale
+        + (x.app.daFare ? ", " + x.app.daFare + " " + (x.app.daFare === 1 ? "non spuntato" : "non spuntati") : "") + "."
+        + (x.rip.sotto ? " **" + x.rip.sotto + " " + (x.rip.sotto === 1 ? "persona ha" : "persone hanno") + " meno di " + RIPOSO_MINIMO_ORE + " ore di riposo dal turno precedente** (D.Lgs 66/2003, art. 7)." : "")
+        + (x.rip.nonMisurabili ? " Per " + x.rip.nonMisurabili + " il riposo non è misurabile." : "")
+        + (q.totale ? (mancano
+            ? " Per **" + mancano + "** " + (mancano === 1 ? "presente" : "presenti") + " su " + q.totale + " manca l'ora di entrata o quella di uscita"
+              + (q.minuti !== null ? "; le ore lavorate note sono **almeno " + oreMinuti(q.minuti) + "**" : "") + "."
+            : " Orari dichiarati per tutti i presenti: **" + oreMinuti(q.minuti) + "** lavorate in totale.") : "")
+        + (q.daControllare ? " **" + q.daControllare + " " + (q.daControllare === 1 ? "riga ha" : "righe hanno") + " orari da controllare.**" : "");
+      const righe = x.app.righe.map((r) => {
+        const v = x.ori[r.operatore.id] || {}; const rec = v.rec || {}, o = v.or || {};
+        const presente = r.stato === "presente";
+        // per chi non è presente gli orari «—» (non lo riguardano); per chi è
+        // presente e non li ha, la cella DICHIARA che non sono stati dichiarati
+        const cel = (t) => (!presente ? "—" : (t || "*non dichiarata*"));
+        return [String(r.operatore.nome || ""), String(r.operatore.ruolo || "—"), squadraBase(r.operatore.squadra) || "—",
+          presente ? "presente" : r.stato === "assente" ? "ASSENTE" : "non spuntato",
+          cel(rec.entrata ? String(rec.entrata) : ""),
+          cel(rec.uscita ? String(rec.uscita) + (o.oltre ? " *(giorno dopo)*" : "") : ""),
+          !presente ? "—" : (o.minuti !== null && o.minuti !== undefined ? oreMinuti(o.minuti) + (o.attendibile === false ? " **(da controllare)**" : "") : "*non calcolabili*"),
+          String(r.ora || ""),
+          x.per[r.operatore.id] ? testoRiposo(x.per[r.operatore.id], dmy) : "non in turno"];
+      });
+      return { intro, tabella: tab(["Nome", "Ruolo", "Squadra", "Stato", "Entrata", "Uscita", "Ore", "Spuntato alle", "Riposo dal turno precedente"], righe) };
+    }));
+  const obOggi = OBIE.filter((o) => String(o.data || "") === OGGI).map((o) => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
+  const qta = (v, u) => (u === UNITA_ATTIVITA ? numeroIt(v, 0) + " attività" : formattaProduzione(v, u));
+  const obiettivo = sez("Obiettivo del turno", obOggi.length ? "" : "Nessun obiettivo impostato per i turni di oggi.",
+    obOggi.length ? [{ tabella: tab(["Turno", "Obiettivo", "Fatto", "Scostamento"],
+      obOggi.map((o) => [String(o.turno), qta(o.obiettivo, o.unita), qta(o.fatto, o.unita) + " (" + o.pct + "%)",
+        segnoIt(o.scarto, 2) + (o.unita === UNITA_ATTIVITA ? " attività" : " " + o.unita)])) }] : []);
+  // le attività, le anomalie prima; la riga di una registrazione senza giorno lo dice
+  const ordR = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
+  const attivita = sez("Attività", "", [{ tabella: tab(["Turno", "Attività", "Dettaglio", "Assegnata a", "Stato"],
+    ATT_OGGI.slice().sort((a, b) => (ordR[a.stato] ?? 4) - (ordR[b.stato] ?? 4)).map((a) => [
+      String(a.turno || "—") + (senzaGiornoDiLavoro(a) ? " **· senza data**" : ""), String(a.titolo || ""), String(a.dettaglio || ""),
+      etichettaAssegnazione(a) || "da assegnare",
+      (ST[a.stato] || String(a.stato || "")) + (a.stato === "anomalia" && a.causale ? " — " + descriviCausale(a.causale) : "")]),
+    { vuota: "Nessuna attività registrata." }) }]);
+  /* I FERMI PER CAUSALE coi minuti di `paretoFermi`, come lo schermo — non il
+     solo conto di `riepilogoFermi`, che diceva quante volte e non quanto */
+  const noteFermi = [];
+  if (fermi.length && pf.senzaMinutiTot) noteFermi.push(conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot + " senza i minuti registrati: il tempo perso qui sopra è un minimo.");
+  if (fermi.length && pf.nonRiconosciute) noteFermi.push(fraseNonRiconosciute(pf).replace(/^ /, "") + ".");
+  const fermiSez = sez("Fermi per causale",
+    fermi.length ? "" : (ATT_OGGI.length ? "Nessuna anomalia aperta." : "Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio."),
+    fermi.length ? [{ tabella: tab(["Causale", "Anomalie", "Tempo perso"], fermi.map((f) => {
+      const v = pf.voci.find((x) => x.causale === f.causale);
+      return [String(f.causale), String(f.conto), v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti"];
+    })) }] : [], noteFermi);
+  // la disponibilità, turno per turno: SOLO i turni che hanno qualcosa
+  const dispOggi = TURNI.map((t) => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t, CHI)).filter((x) => x.durataMin !== null || x.attivita > 0);
+  const disponibilita = sez("Disponibilità del turno",
+    dispOggi.length ? "" : "Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.",
+    dispOggi.length ? [{ tabella: tab(["Turno", "Durata dichiarata", "Fermi", "Tempo perso", "Causale peggiore", "Disponibilità"],
+      dispOggi.map((x) => [String(x.turno), x.durataMin === null ? "non dichiarata" : oreMinuti(x.durataMin),
+        x.fermi + " " + (x.fermi === 1 ? "fermo" : "fermi") + (x.fermiSenzaMinuti ? " (di cui " + x.fermiSenzaMinuti + " senza minuti)" : ""),
+        x.fermi ? minutiFermoTesto(x.fermiMin, x.fermi, x.fermiSenzaMinuti) : "—",
+        x.peggiore ? x.peggiore.causale + " — " + numeroIt(x.peggiore.minuti, 0) + " min su " + x.peggiore.conto + (x.peggiore.conto === 1 ? " fermo" : " fermi") : "—",
+        x.pct === null ? "**non calcolata** — " + x.motivo
+          : (x.parziale ? "al più **" + x.pct + "%**" : "**" + x.pct + "%**") + " (" + oreMinuti(x.lavoratiMin) + " lavorati su " + oreMinuti(x.durataMin) + ")" + (x.parziale ? "\n" + x.motivo : "")])) }] : [],
+    dispOggi.length ? ["Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. **Non è l'OEE**: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate."] : []);
+  const foto = ATT_OGGI.filter((a) => eFotoValida(a.foto)).map((a) => ({
+    didascalia: "**" + String(a.titolo || "") + "** — turno " + String(a.turno || "—") + (a.causale ? " · " + descriviCausale(a.causale) : "") + (a.fotoOra ? " · scattata alle " + String(a.fotoOra) : ""),
+    src: a.foto }));
+  const produzione = sez("Produzione", unitaProd.length ? "" : "Nessuna produzione registrata.",
+    unitaProd.length ? [{ tabella: tab(["Turno", "Produzione"], tp.perTurno.map((t) => [String(t.turno), somma(t.perUnita)]), { totale: ["Totale", somma(tp.perUnita)] }) }] : []);
+  /* i rapportini: la produzione la legge `produzioneDi`, non il numero grezzo
+     con l'unità grezza accanto (un'unità fuori dall'elenco veniva stampata
+     com'era e sommata come tonnellate due tabelle più giù) */
+  const rapportini = sez("Rapportini", RAP_OGGI.length ? "" : "Nessun rapportino oggi.",
+    RAP_OGGI.length ? [{ tabella: tab(["Titolo", "Squadra · turno", "Produzione", "Consegne al turno dopo", "Stato"], RAP_OGGI.map((r) => {
+      const pr = produzioneDi(r);
+      return [String(r.titolo || ""), String(r.squadra || "—") + (r.turno ? " · " + String(r.turno) : "") + (senzaGiornoDiLavoro(r) ? " **· senza data**" : ""),
+        pr ? formattaProduzione(pr.qta, pr.unita) : String(r.produzione || "—"), String(r.note || "—"), String(r.stato || "") + (r.ora ? " " + String(r.ora) : "")];
+    })) }] : [], cop.mancanti.length ? ["Squadre senza rapportino: " + cop.mancanti.join(", ") + "."] : []);
+  // le firme: senza chiusure il rapporto porta le righe vuote da compilare a penna
+  const chiuOggi = CHI.filter((c) => String(c.data || "") === OGGI && c.ora);
+  const chiusura = sez("Chiusura e firme", chiuOggi.length ? "" : "Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.",
+    chiuOggi.length ? [{ tabella: tab(["Turno", "Consegnato da", "Ricevuto da", "Ora", "Note"],
+      chiuOggi.map((c) => [String(c.turno || ""), String(c.consegna || "—"), String(c.ricevuta || "—"), String(c.ora || ""), String(c.note || "")])) }] : []);
+  chiusura.firmeInBianco = !chiuOggi.length;
+  // un turno firmato e poi riaperto va detto, se no la firma non vuol dire niente
+  const riapOggi = CHI.filter((c) => String(c.data || "") === OGGI && riaperture(c).length);
+  const riapertureSez = riapOggi.length ? sez("Riaperture del turno", "", [{ tabella: tab(["Turno", "Riaperto da", "Quando", "Motivo"],
+    riapOggi.flatMap((c) => riaperture(c).map((r) => [String(c.turno || ""), String(r.da || "—"), dmy(r.il || "") + (r.ora ? " " + String(r.ora) : ""), String(r.motivo || "—")]))) }],
+    ["Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché."]) : null;
+  return { titolo: "Rapporto di fine turno", data: dmy(OGGI), quadro, attenzione,
+    sezioni: [checklist, meteo, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
+      .concat([produzione, rapportini, chiusura]).concat(riapertureSez ? [riapertureSez] : []),
+    piede: "Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori." };
+}
+
 /* I FERMI CON UNA CAUSALE CHE L'ELENCO NON CONOSCE, detti a parole (05/09,
    salita dalla pagina). `html` decide se le parole vanno avvolte (schermo,
    con `avvolgi`) o nude (testo). Pura. */
