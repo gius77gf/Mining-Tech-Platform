@@ -642,6 +642,23 @@
   i numeri di ciò che esce?» è chiusa anche sui fogli stampati: Terra 3,
   Conti 3, Campo 1 (+ la consegna), Scudo 2, Sentinella 1 — tutti composti
   nel modulo; Flotta e il report di Sentinella stampano lo schermo.**
+- [x] **TUTTI I DOCUMENTI DELLE SEI APP, SULLA DIMOSTRAZIONE, SENZA BROWSER
+  (05/09):** il dividendo della giornata. Ogni CSV e ogni foglio è una
+  funzione pura, quindi «premere ogni bottone che produce un file e aprire
+  il file» si fa in `node`: `apps/deepwork-id/tests/documenti-dimostrazione.mjs`
+  compone **110 documenti** (terra 18, conti 41, campo 8, scudo 19, flotta
+  14, sentinella 10; 106.000 caratteri) con gli stessi argomenti dei bottoni
+  e giudica: si compongono senza sollevare, nessuno vuoto, niente
+  «undefined» / «NaN» / «[object Object]» / «null» a testo, nessun «1
+  rilievi» (60 plurali cercati). Le celle «tranquille» (`€ 0,00`, `0%`,
+  `0 m³`, `;0;`) le conta e le elenca con `--dimmi` — 117 in 13 documenti —
+  come CANDIDATI, non verdetti. `--controprova` sporca in memoria il primo
+  documento di ogni app e pretende che cadano due prove (SA fallire). In
+  `npm test` e nel giro (38 → 40 comandi). Una riga in CLAUDE.md, sezione
+  Test. ⏱️ I 117 candidati sono da guardare uno per uno in un'unità a sé:
+  il primo sguardo (`csvProspettoDdt` 12, `csvStorico` 43,
+  `csvSituazioneFatture` 20) dice zeri VERI (sconto 0%, IVA 0 su importo
+  unico, giornate senza registrazioni dichiarate), ma è un primo sguardo.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la

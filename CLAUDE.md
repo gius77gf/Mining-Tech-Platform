@@ -793,6 +793,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   chiamava «quante funzioni delle **app**» e lasciava fuori proprio il codice
   che la regola del `shared/` indica come il più pericoloso. Copertura misurata
   lì: **46 su 46**.
+- ✅ **DAL 05/09 «PREMERE OGNI BOTTONE CHE PRODUCE UN FILE E APRIRE IL FILE» SI
+  FA SENZA BROWSER, SU TUTTI I DOCUMENTI INSIEME.** Il giorno in cui ogni CSV e
+  ogni foglio stampato delle sei app è diventato una funzione pura del modulo
+  (`csv*`, `foglia*`, `rapportoGiornata`, `prospettoDenuncia`,
+  `testoConsegnaTurno`, `verbaleRilievo`, `relazioneLotto`),
+  `apps/deepwork-id/tests/documenti-dimostrazione.mjs` li compone tutti sulla
+  dimostrazione — **110 documenti, 106.000 caratteri, in due secondi** — e
+  giudica quello che si può giudicare senza aprire il file (niente
+  «undefined» / «NaN» / «null» a testo, niente «1 rilievi»), mentre le celle
+  «tranquille» (`€ 0,00`, `0%`, `0 m³`, `;0;`) le **conta e le elenca** con
+  `--dimmi` senza giudicarle: se lo zero sia misurato lo sa solo chi apre il
+  documento. È il posto in cui aggiungere una domanda nuova sui documenti che
+  escono, e la ragione per cui un documento composto nella pagina è un
+  documento che nessuno controlla.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
