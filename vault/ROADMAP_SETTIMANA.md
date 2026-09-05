@@ -665,6 +665,23 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **SENTINELLA — il banco del browser sulle condizioni meteo, dal file e a
+  mano (05/09, notte):** `tests/browser/sentinella-meteo-import.mjs`, 46
+  prove a 320 e 390 px, registrato in `tutti.mjs` (249 esecuzioni, 104 file).
+  Cinque tappe: il file del fonometro con la stazione meteo incollato davvero
+  (proposte 4/5/6/7/8, «Evento» NON preso per il vento); l'anteprima con le
+  condizioni sotto il numero, «non letta: vento» e i due tag «fuori
+  condizioni»; l'archivio che tiene le condizioni dopo l'import, coi
+  suggerimenti; **«Registra» a mano con vento 7,5 e la striscia che C'È e
+  avvisa** (è la tappa che esiste per il difetto `letture` dell'08/08: prima
+  di stasera nessun banco premeva quel bottone); il report che conta 4 fuori
+  · 3 dentro · UNA senza condizioni e non giudica polveri e vibrazioni.
+  Controprova con tre difetti applicati PER FILE — il modo «dentro» che fa
+  prendere «Evento», `campiCondizioni` tolto da `unisciLetture`, `letture`
+  rimesso dentro la callback — 3 su 3 rimessi, 30 controlli caduti su 46.
+  `iniezioni-fresche` 529/529 con i file dichiarati. ⚠️ Una prova ha
+  sbagliato la fixture prima di reggere: 63 dB(A) su soglia 70 dà
+  «Attenzione», e il prodotto aveva ragione — si registra 61.
 - [x] **SENTINELLA — le condizioni meteo entrano anche dal file dello
   strumento (05/09, sera):** il candidato scritto un'unità prima in
   `RICERCA_CONTINUA_SENTINELLA`. `proponiColonneMeteo(righe, conInt,
@@ -6892,8 +6909,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **247 esecuzioni** che
-  aprono le pagine in un browser vero, da **103** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **249 esecuzioni** che
+  aprono le pagine in un browser vero, da **104** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

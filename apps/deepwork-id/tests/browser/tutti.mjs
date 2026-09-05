@@ -941,6 +941,15 @@ const BANCHI = [
      rimette `lettureLeggibili` senza `campiEvento` e la risultante a due assi. */
   ['il file del sismografo a più colonne di Sentinella, incollato davvero', 'sentinella-evento-import.mjs', []],
   ['sismografo a più colonne · controprova', 'sentinella-evento-import.mjs', ['--controprova'], true],
+  /* 05/09 (sera) · le condizioni meteo della misura, dal file e a mano: il
+     file del fonometro con la stazione meteo incollato davvero («Evento» non
+     è «vento»), l'anteprima con «non letta: vento» e i tag, l'archivio che
+     tiene le condizioni, la striscia di «Registra» che C'È e avvisa (dall'08/08
+     il gestore moriva su `letture` fuori scope), il report che conta fuori ·
+     dentro · non si può dire. La controprova rimette tre difetti, due nel
+     modulo e uno nella pagina, applicati per file. */
+  ['le condizioni meteo di Sentinella, dal file e a mano', 'sentinella-meteo-import.mjs', []],
+  ['condizioni meteo · controprova', 'sentinella-meteo-import.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
