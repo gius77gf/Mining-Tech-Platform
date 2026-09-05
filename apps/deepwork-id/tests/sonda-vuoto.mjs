@@ -424,7 +424,7 @@ const ALLARMI_ACCETTATI = {
      sonda non gli passa più i giorni di ritardo pieni, e il caso è sparito da
      solo: la seconda guardia lo ha preteso fuori. È il modo giusto di
      accorciare questo elenco — non a memoria. */
-  "campo.scartoLivello":
+  "ponti.scartoLivello":
     "DORMIENTE: con la carica reale assente e quella di progetto presente dà il 100% di scarto. I chiamanti passano sempre da pianoRiepilogo, che per i fori non registrati usa la carica di PROGETTO",
   /* ✅ TOLTO IL 01/08: `campo.pianoRiepilogo`, che ereditava `scartoLivello`.
      Non è più un allarme dichiarabile perché non è più un allarme: con un piano

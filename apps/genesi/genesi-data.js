@@ -50,6 +50,7 @@ import { gnum, gseg, gIn } from './genesi-formato.js';
 /* ⛔ E DAL 06/08 ANCHE `conta`: `_ricPlur` era la sua copia più debole — vedi
    la sua riga, più in giù. */
 import { numIt, leggiCsv, csvCell, dataISOEsiste, conta } from '../../shared/deepwork-id-client/dw-shell.js';
+import { scartoLivello } from '../../shared/dw-ponti.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -583,6 +584,7 @@ export function _riconParseCampo(testo){
   const iReale  = haIntestazione ? col('carica_reale_kg','reale','carica_reale') : 4;
   const iSquadra= haIntestazione ? col('squadra') : -1;
   const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
+  const iId     = haIntestazione ? col('id_foro','idforo') : 9;   // l'id stabile, in coda dal 05/09
   if(haIntestazione && iForo<0)
     return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
   if(haIntestazione && iReale<0)
@@ -599,11 +601,51 @@ export function _riconParseCampo(testo){
     const reale = grezzo === '' ? null : numIt(grezzo);
     righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
       data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
-      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'' });
+      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'',
+      idForo: iId>=0 ? String(c[iId]==null?'':c[iId]).trim() : '' });
   }
   if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
     +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
   return { righe, scartate, colonneDaNome:haIntestazione };
+}
+
+/* IL CONFRONTO FORO PER FORO (05/09) — quello che fino a oggi NON c'era:
+   `_riconRiassuntoCampo` fa somme e medie sulla volata intera, e il «foro»
+   del consuntivo era una posizione nella sequenza di sparo, che scivola se un
+   foro si toglie. Qui ogni foro del PROGETTO aperto (`holes`, con `id` e
+   `seq`) cerca la sua riga del consuntivo:
+   · per ID quando tutti i fori e tutte le righe ne hanno uno (piano esportato
+     e consuntivo tornato dal 05/09 in poi);
+   · per NUMERO altrimenti — e lo DICHIARA (`chiave`), perché per numero un
+     foro tolto accoppia ogni riga al foro sbagliato senza nessun errore.
+   Un foro senza riga è «senza-riga», non «ok»; una riga senza foro nel
+   progetto è orfana e si conta; una chiave doppia nel consuntivo si conta.
+   `misurabile` è vero solo se almeno una riga accoppiata porta la carica
+   reale — non esiste uno scostamento piccolo dove nessuno ha pesato. La
+   soglia dello stato è `scartoLivello` di `shared/`, la stessa di Campo. Pura. */
+export function confrontoPerForo(holes, righe){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  const R = Array.isArray(righe) ? righe.filter(Boolean) : [];
+  const tuttiId = H.length>0 && R.length>0 && H.every(h=>h.id) && R.every(r=>r.idForo);
+  const chiave = tuttiId ? 'id' : 'numero';
+  const numeroDi = (h,i) => Number.isInteger(h.seq) ? h.seq+1 : i+1;
+  const chiaveRiga = (r) => chiave==='id' ? String(r.idForo) : String(r.foro);
+  const perChiave = new Map(); const doppie = [];
+  for (const r of R){ const k = chiaveRiga(r); if (perChiave.has(k)) { if (!doppie.includes(k)) doppie.push(k); } else perChiave.set(k, r); }
+  const usate = new Set();
+  const out = H.map((h,i)=>{
+    const numero = numeroDi(h,i), k = chiave==='id' ? String(h.id) : String(numero);
+    const r = perChiave.get(k) || null; if (r) usate.add(k);
+    const prog = r && Number.isFinite(+r.prog) ? +r.prog : null;
+    const reale = r && r.reale!=null && Number.isFinite(+r.reale) ? +r.reale : null;
+    const scartoKg = reale!=null && prog!=null ? +(reale-prog).toFixed(3) : null;
+    const scartoPct = scartoKg!=null && prog ? +(scartoKg/prog*100).toFixed(2) : null;
+    const stato = !r ? 'senza-riga' : scartoLivello(reale, prog);
+    return { id: h.id||null, numero, mx: h.mx, my: h.my, prog, reale, scartoKg, scartoPct, stato };
+  });
+  const orfane = R.filter(r => !usate.has(chiaveRiga(r))).map(r => ({ idForo: r.idForo||'', foro: r.foro, prog: r.prog, reale: r.reale!=null?r.reale:null }));
+  return { chiave, righe: out, senzaRiga: out.filter(x=>x.stato==='senza-riga').length,
+           orfane, doppie, misurabile: out.some(x=>x.reale!=null) };
 }
 
 // Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o

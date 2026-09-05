@@ -304,7 +304,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 61,
+  { file: "shared/dw-ponti.js", fondo: 63,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
@@ -397,7 +397,7 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 80,
+  { file: "apps/genesi/genesi-data.js", fondo: 81,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

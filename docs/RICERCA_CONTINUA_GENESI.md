@@ -531,3 +531,13 @@ riconosceva `fila_m`, `borraggio_prog_m`, `ritardo_ms`: il punto 2 del delta
 qui sopra («Campo legge il PIANO di Genesi… fila, prof, borr, rit») era vero
 per nome e falso per i dati — fila, borraggio e ritardo entravano VUOTI.
 Corretto, con una prova che legge l'intestazione dal sorgente di Genesi.*
+
+*E il pezzo (3), stesso ciclo: `confrontoPerForo` in `genesi-data.js`
+(`grep -c "confrontoPerForo" apps/genesi/genesi-data.js` → 1, e 2 nella
+pagina) accoppia per id o per numero dichiarando la chiave, conta fori senza
+riga, righe orfane e chiavi doppie; la pagina lo disegna sotto la
+riconciliazione di Campo. Il cantiere descritto nella sezione qui sopra è
+chiuso: la riga «(a) senza un lettore è un identificatore che nessuno usa»
+non vale più — il lettore c'è. Restano fuori, come deciso: le soglie di
+tolleranza (10/25 %, senza fonte, ora in `shared/`), la deviazione misurata del
+foro (c) e la carica dalla spalla misurata (d).*

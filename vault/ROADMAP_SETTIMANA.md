@@ -420,7 +420,7 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
-- [ ] **GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO, misurato
+- [x] **GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO, misurato
   inesistente il 05/09 notte** (`docs/RICERCA_CONTINUA_GENESI.md`, ultima
   sezione): il `foro` del piano di carico è la posizione nella sequenza di
   sparo, ricalcolata a ogni `computeSeq2D` — cancellare un foro rinumera gli
@@ -454,11 +454,19 @@
   diceva «Non ho trovato la colonna di: fila, borraggio, ritardo» a ogni
   import. Tutte le prove di casa usavano nomi corti che non sono quelli del
   file. Corretto; adesso una prova legge l'intestazione DAL SORGENTE di Genesi
-  (run-kpi +3). (3) in Genesi `_riconParseCampo` legge `id_foro` e
-  una funzione pura nuova accoppia ogni foro del progetto alla sua riga —
-  per id quando c'è, per numero altrimenti, DICHIARANDO quale chiave ha usato
-  — e dichiara «foro del progetto senza riga» e «riga senza foro nel
-  progetto»; la pagina la disegna sotto la riconciliazione di Campo.
+  (run-kpi +3). (3) ✅ **05/09, stesso ciclo** — `_riconParseCampo` legge
+  `id_foro`; `confrontoPerForo(holes, righe)` in `genesi-data.js` accoppia ogni
+  foro del progetto APERTO alla sua riga per id quando piano e consuntivo lo
+  portano, per numero altrimenti — DICHIARANDO la chiave — e conta i fori
+  senza riga, le righe orfane, le chiavi doppie; `misurabile` solo se almeno
+  una carica reale è accoppiata. Lo scarto usa `scartoLivello`, che dal 05/09
+  vive in `shared/dw-ponti.js` (Campo lo ri-esporta, il test pretende
+  l'identità). La pagina lo disegna sotto la riconciliazione di Campo: due
+  colonne (foro · id · badge / progetto → reale con lo scarto sotto), perché
+  a 320 px sei colonne finivano oltre il bordo del pannello — misurato con
+  lo scatto, tre volte. run-kpi +5 (2628); `genesi-frasi-limite` 36/0 con il
+  caso per id (f1-1 in linea, f1-2 fuori, f1-3 senza riga, f9-9 orfana) e il
+  caso per numero dichiarato.
 - [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
@@ -1446,8 +1454,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO` *((1) id stabile e
-  (2) Campo fatti; resta (3) l'accoppiamento in Genesi)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6357,8 +6363,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.104 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2623, `run-stile` 328,
+  **3.109 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2628, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

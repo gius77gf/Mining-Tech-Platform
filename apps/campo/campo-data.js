@@ -52,7 +52,10 @@
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
+/* lo scarto della carica vive in `shared/` dal 05/09 (lo legge anche Genesi):
+   qui resta il nome di sempre, e il test pretende che sia lo STESSO oggetto */
+export { scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
 /* le pagine lo chiamano col nome di casa: un alias non è una seconda
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
@@ -2820,18 +2823,8 @@ export function normalizzaPiano(righe) {
 // dal progetto, per foro. Funzioni pure e testabili — sono il cuore del
 // registro che il fochino usa per capire se ha caricato come previsto.
 // scartoPct: frazione |reale-prog|/prog (null se non ancora registrato).
-export function scartoPct(reale, prog) {
-  if (reale == null) return null;
-  return Math.abs(reale - prog) / (prog || 1);
-}
 // scartoLivello: classifica lo scostamento — ok ≤10%, warn ≤25%, oltre danger.
-export function scartoLivello(reale, prog) {
-  const s = scartoPct(reale, prog);
-  if (s == null) return "da-registrare";
-  if (s <= 0.10) return "ok";
-  if (s <= 0.25) return "warn";
-  return "danger";
-}
+// Dal 05/09 tutt'e due stanno in `shared/dw-ponti.js` (vedi l'import in testa).
 // Riepilogo del consuntivo di volata: progettato totale, stimato reale
 // (carica reale dei fori registrati + progetto per quelli ancora da
 // registrare), scostamento % e livello. È il numero che il fochino legge

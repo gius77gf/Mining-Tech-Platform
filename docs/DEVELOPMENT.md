@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.104 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2623 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.109 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2628 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.535** asserzioni su **38** comandi.
+> `node` completo esegue **3.540** asserzioni su **38** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,21 +78,21 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 3.104**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 3.109**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **822 funzioni pure su 822** sono chiamate per nome da quelle prove: tutte e
+E **820 funzioni pure su 820** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **210 su 210** in cinque
-moduli: `dw-shell.js` **56/56**, `dw-ponti.js` **61/61**, `genesi-data.js`
-**80/80**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **213 su 213** in cinque
+moduli: `dw-shell.js` **56/56**, `dw-ponti.js` **63/63**, `genesi-data.js`
+**81/81**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -110,7 +110,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **169 funzioni** stanno dentro
+importa. **Genesi no**: le sue **170 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -130,9 +130,9 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | una o due | **59** |
 | da tre a cinque | 27 |
 | da sei a dieci | 25 |
-| più di dieci — lì è un rifacimento | 35 |
+| più di dieci — lì è un rifacimento | 36 |
 
-Cioè **67 su 169 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **67 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 101 sono una decisione di architettura.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·

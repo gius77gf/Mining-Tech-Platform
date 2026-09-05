@@ -1764,3 +1764,25 @@ export function chiusuraTriangolo(cavatoT, vendutoT, deltaScorteT, soglie = SOGL
   const stato = pct <= soglie.coerente ? "coerente" : pct <= soglie.attenzione ? "attenzione" : "implausibile";
   return { scarto, pct, stato, verso: scarto > 0 ? "sparito" : scarto < 0 ? "in-eccesso" : "pari", calcolabile: true, perche: "" };
 }
+
+/* ── LO SCARTO DELLA CARICA REALE DAL PROGETTO, foro per foro ──────────────
+   Viveva in `apps/campo/campo-data.js` (il registro del fochino); dal 05/09 la
+   stessa domanda la fa Genesi, che accoppia ogni foro del progetto alla sua
+   riga del consuntivo — e una regola che serve a due app vive qui, una volta
+   sola. Campo la ri-esporta col nome di sempre, e il test pretende l'IDENTITÀ.
+   ⚠️ Le soglie (10 % e 25 %) sono quelle che Campo usava dal primo giorno e
+   NON hanno una fonte: la ricerca del 04/09 non ha trovato uno standard, nei
+   software dei concorrenti sono parametri del cliente. Restano un numero
+   dichiarato, in un posto solo, finché qualcuno non porta una fonte o il
+   fondatore non decide che diventino un'impostazione. */
+export function scartoPct(reale, prog) {
+  if (reale == null) return null;
+  return Math.abs(reale - prog) / (prog || 1);
+}
+export function scartoLivello(reale, prog) {
+  const s = scartoPct(reale, prog);
+  if (s == null) return "da-registrare";
+  if (s <= 0.10) return "ok";
+  if (s <= 0.25) return "warn";
+  return "danger";
+}

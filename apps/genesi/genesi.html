@@ -287,6 +287,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .ricamp-g .v{font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .ricamp-g .f{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
 .ricamp-note{margin-top:10px;font-size:11.5px;color:var(--mut);line-height:1.55;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+/* foro per foro (05/09): una griglia a sei colonne che a 320 px scorre nel
+   suo contenitore invece di spingere la pagina di lato */
+.ricamp-fori{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+.ricamp-fh{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);margin-bottom:6px}
+.ricamp-ft{display:grid;grid-template-columns:1fr auto;gap:7px 10px;font-size:12px;align-items:start;font-variant-numeric:tabular-nums}
+.ricamp-ft .th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);align-self:end}
+.ricamp-ft .r{text-align:right;white-space:nowrap}
+.ricamp-ft .sc{display:block;font-size:10.5px;line-height:1.3}
+.ricamp-ft .st{display:block;margin-top:2px}
+.ricamp-ft .mono{font-family:monospace;font-size:11px;color:var(--mut);white-space:nowrap}
+.ricamp-b{display:inline-block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:var(--mut);white-space:nowrap}
+.ricamp-b.ok{color:var(--ok);border-color:var(--ok)}
+.ricamp-b.warn{color:var(--warn);border-color:var(--warn)}
+.ricamp-b.danger{color:#ef5350;border-color:#ef5350}
 /* due note di fila sono UN discorso, non due: una riga sola fra loro */
 .ricamp-note+.ricamp-note{border-top:0;padding-top:0;margin-top:7px}
 .ricamp-warn{margin-top:10px;font-size:12px;line-height:1.55;color:#ffb27a;background:rgba(255,120,60,.10);
@@ -1049,7 +1063,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    qui `riconStorico`, `riconSave`, `riconRender` e `_riconCampoHtml`, che
    leggono `localStorage`, il DOM o lo stato del progetto aperto. */
          _rEsc, _riconParseCampo, _riconRiassuntoCampo, riconDelta, csvRiconciliazione,
-         idForoMaglia, idForoNuovo,
+         idForoMaglia, idForoNuovo, confrontoPerForo,
 /* `campoMisurato` risponde alla stessa domanda per i DUE posti che rileggono un
    consuntivo già salvato — la riga di storico qui sotto e il CSV che esce
    dall'azienda — e sta nel modulo perché scritta due volte diventerebbe la
@@ -3816,6 +3830,7 @@ if($('cmpExport')) $('cmpExport').onclick=async ()=>{
 async function riconStorico(){ return GDB.riconciliazioni(); }   // sotto: la chiave genesiRicon di sempre
 
 let _ricCampo=null;      // consuntivo importato in questa sessione (null = nessuno)
+let _ricRighe=null;      // le sue righe, foro per foro (05/09): servono al confronto col progetto aperto
 let _ricNome='';         // nome della volata scritto a mano, per non perderlo al ridisegno
 // Il blocco disegnato in cima alla riconciliazione. Con o senza file, dice
 // sempre cosa manca e come si ottiene.
@@ -3911,7 +3926,51 @@ function _riconCampoHtml(){
   if(k&&k.nf&&c.foriTot!==k.nf) avvisi.push('Il consuntivo ha <b>'+_ricPlur(c.foriTot,'foro','fori')+'</b>, il progetto aperto adesso in Genesi ne ha <b>'+k.nf+'</b>: potrebbe essere <b>un’altra volata</b>. Il confronto con il previsto qui sotto ha senso solo se è la stessa.');
   if(avvisi.length) h+='<div class="ricamp-warn">'+avvisi.join('<br>')+'</div>';
   h+='<div class="ricamp-note">Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
+  h+=_riconForiHtml();
   return h+'</div>';
+}
+/* IL CONFRONTO FORO PER FORO (05/09): ogni foro del progetto APERTO accanto
+   alla sua riga del consuntivo. L'accoppiamento lo fa `confrontoPerForo` del
+   modulo, e la chiave usata si SCRIVE: per id quando piano e consuntivo lo
+   portano, per numero altrimenti — e per numero un foro tolto dopo l'export
+   sposta tutte le righe dopo di lui, quindi va detto. Un foro senza riga non
+   è «in linea»: è senza riga. */
+function _riconForiHtml(){
+  if(!_ricRighe || !D2.holes || !D2.holes.length) return '';
+  const c=confrontoPerForo(D2.holes, _ricRighe);
+  const ETI={ 'ok':['ok','in linea'], 'warn':['warn','fuori 10–25 %'], 'danger':['danger','oltre 25 %'],
+              'da-registrare':['mut','da registrare'], 'senza-riga':['mut','senza riga'] };
+  const b=(st)=>{ const e=ETI[st]||['mut',st]; return '<span class="ricamp-b '+e[0]+'">'+_rEsc(e[1])+'</span>'; };
+  /* TRE colonne, non sei: misurato a 320 px, sei colonne finivano oltre il
+     bordo del pannello (scarto e stato fuori vista, e uno scorrimento che
+     nessuno sa che c'è). Qui foro e id stanno insieme, progetto→reale in una
+     cella con lo scarto sotto, e il badge chiude la riga — la forma delle
+     liste del core (nome / dettaglio / badge). L'unità sta nell'intestazione,
+     una volta, dentro `.uni`: l'intestazione è in maiuscolo di stile e «kg»
+     non si scrive «KG». */
+  /* ⚠️ E poi DUE colonne, non tre: a 320 px il pannello della riconciliazione
+     lascia circa 230 px, e il badge di stato finiva tagliato sul bordo
+     (misurato con lo scatto: «FUORI 10–2», «SENZA RIGA» a metà). Il badge sta
+     sotto foro e id, i numeri a destra. */
+  let h='<div class="ricamp-fori"><div class="ricamp-fh">Foro per foro — progetto aperto contro consuntivo</div>'
+    +'<div class="ricamp-ft">'
+    +'<div class="th">foro · id · stato</div><div class="th r">progetto → reale <u class="uni">kg</u></div>';
+  for(const x of c.righe){
+    h+='<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span><span class="st">'+b(x.stato)+'</span></div>'
+      +'<div class="r">'+(x.prog!=null?_ricKg(x.prog):'—')+' → '+(x.reale!=null?_ricKg(x.reale):'—')
+        +(x.scartoKg!=null?'<span class="sc" style="color:'+_ricColore(x.scartoPct)+'">'+_ricSegno(x.scartoKg)+' kg · '+_ricPct(x.scartoPct)+'</span>':'')+'</div>';
+  }
+  h+='</div>';
+  h+='<div class="ricamp-note">'
+    +(c.chiave==='id'
+      ? 'Accoppiati per <b>id del foro</b> — quello scritto nel piano di carico esportato da qui e tornato da Campo: un foro tolto o aggiunto dopo l\'export non sposta gli altri.'
+      : '⚠️ Accoppiati per <b>numero</b>, perché il consuntivo o il progetto non portano l\'id del foro (piano esportato prima del 05/09, o file scritto a mano): se un foro è stato tolto dopo l\'export, da quel foro in poi ogni riga finisce sul foro sbagliato senza nessun avviso.')
+    +(c.senzaRiga?' <b>'+_ricPlur(c.senzaRiga,'foro del progetto','fori del progetto')+'</b> senza riga nel consuntivo.':'')
+    +(c.orfane.length?' <b>'+_ricPlur(c.orfane.length,'riga del consuntivo','righe del consuntivo')+'</b> senza foro nel progetto aperto ('+c.orfane.slice(0,4).map(o=>_rEsc(o.idForo||('foro '+o.foro))).join(', ')+(c.orfane.length>4?'…':'')+').':'')
+    +(c.doppie.length?' Chiave ripetuta nel consuntivo: <b>'+c.doppie.map(_rEsc).join(', ')+'</b>.':'')
+    +(!c.misurabile?' Nessuna carica reale fra i fori accoppiati: gli stati dicono «da registrare», non «in linea».':'')
+    +'</div></div>';
+  return h;
 }
 async function riconRender(){
   const k=computeKPI(), body=$('riconBody');
@@ -4072,7 +4131,7 @@ if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
     toast('Consuntivo non importato: '+((p&&p.errore)||'file non leggibile').replace(/<[^>]*>/g,'').slice(0,90));
     return;
   }
-  _ricCampo=_riconRiassuntoCampo(p, file.name);
+  _ricCampo=_riconRiassuntoCampo(p, file.name); _ricRighe=p.righe;
   riconRender();
   toast(_ricCampo.foriReg
     ? 'Consuntivo importato: '+_ricPlur(_ricCampo.foriReg,'foro','fori')+', '+_ricKg(_ricCampo.kgReale)+' kg reali'

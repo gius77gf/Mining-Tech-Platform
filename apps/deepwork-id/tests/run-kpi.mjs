@@ -37038,7 +37038,49 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(senza.split("\n")[1].split(";").pop(), "", "un piano senza id scrive la cella vuota, non «null» né «undefined»");
   });
 }
-/* ===== fine id del foro attraversa Campo (05/09) ===== */
+/* ===== il confronto foro per foro (Genesi, 05/09) ===== */
+{
+  test("shared · lo scarto della carica vive in un posto solo: Campo ri-esporta lo STESSO oggetto", () => {
+    ok(campo.scartoLivello === ponti.scartoLivello, "scartoLivello: identità, non uguaglianza di comportamento");
+    ok(campo.scartoPct === ponti.scartoPct, "scartoPct: identità");
+  });
+  test("Genesi · _riconParseCampo legge id_foro in coda, e senza la colonna l'id è vuoto", () => {
+    const p = genesi._riconParseCampo("data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro\n2026-09-05;mattino;1;58;61;5;3;;Rossi;f1-1\n2026-09-05;mattino;2;58;;;;;;f1-2\n");
+    eq(p.righe.map((r) => r.idForo), ["f1-1", "f1-2"], "gli id entrano tali e quali");
+    eq(genesi._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;58;61\n").righe[0].idForo, "", "un consuntivo di ieri: stringa vuota, non undefined");
+  });
+  const H = [{ id: "f1-1", seq: 0, mx: 0, my: 3 }, { id: "f1-3", seq: 1, mx: 7, my: 3 }, { id: "m1", seq: 2, mx: 3.5, my: 6 }];
+  test("Genesi · confrontoPerForo per ID: il foro tolto in mezzo non sposta gli altri", () => {
+    /* f1-2 è stato cancellato dal progetto DOPO l'export del piano: per numero
+       la riga «foro 2» (che era f1-2) finirebbe sul secondo foro rimasto, che
+       è f1-3 — per id no */
+    const R = [{ foro: 1, prog: 58, reale: 61, idForo: "f1-1" }, { foro: 2, prog: 58, reale: 70, idForo: "f1-2" }, { foro: 3, prog: 58, reale: 57, idForo: "f1-3" }];
+    const c = genesi.confrontoPerForo(H, R);
+    eq(c.chiave, "id", "tutti hanno l'id: si accoppia per id, e lo si dichiara");
+    eq(c.righe.map((x) => [x.id, x.reale, x.stato]), [["f1-1", 61, "ok"], ["f1-3", 57, "ok"], ["m1", null, "senza-riga"]],
+       "⛔ f1-3 prende la SUA riga (57), non quella del foro 2 cancellato (70); m1, aggiunto dopo, è senza riga");
+    eq(c.righe[0].scartoKg, 3, "lo scarto in chili"); eq(c.righe[0].scartoPct, 5.17, "e in percentuale");
+    eq(c.senzaRiga, 1, "un foro del progetto senza riga");
+    eq(c.orfane.map((o) => o.idForo), ["f1-2"], "⛔ e la riga del foro cancellato è orfana: si conta, non sparisce");
+    eq(c.misurabile, true, "c'è almeno una carica reale accoppiata");
+  });
+  test("Genesi · confrontoPerForo per NUMERO quando l'id manca da una parte sola: dichiarato, e con lo scivolamento", () => {
+    const R = [{ foro: 1, prog: 58, reale: 61, idForo: "" }, { foro: 2, prog: 58, reale: 70, idForo: "" }];
+    const c = genesi.confrontoPerForo(H, R);
+    eq(c.chiave, "numero", "⛔ una riga senza id basta a far cadere sulla chiave debole, DICHIARATA");
+    eq(c.righe.map((x) => [x.numero, x.reale]), [[1, 61], [2, 70], [3, null]], "per numero la riga 2 finisce sul secondo foro, che è f1-3: è il limite della chiave, e sta scritto");
+    eq(genesi.confrontoPerForo([{ mx: 0, my: 3 }, { mx: 3.5, my: 3 }], R).righe.map((x) => x.numero), [1, 2], "fori senza seq né id (un progetto vecchio): la posizione");
+  });
+  test("Genesi · confrontoPerForo: nessuna carica reale non è uno scostamento zero, le chiavi doppie si contano, il vuoto risponde vuoto", () => {
+    const c = genesi.confrontoPerForo(H, [{ foro: 1, prog: 58, reale: null, idForo: "f1-1" }, { foro: 3, prog: 58, reale: null, idForo: "f1-3" }, { foro: 4, prog: 58, reale: null, idForo: "m1" }]);
+    eq(c.misurabile, false, "⛔ tre righe accoppiate e nessuna carica: non misurabile");
+    eq(c.righe.map((x) => x.stato), ["da-registrare", "da-registrare", "da-registrare"], "e ogni foro dice «da registrare», non «ok»");
+    const d = genesi.confrontoPerForo(H, [{ foro: 1, prog: 58, reale: 61, idForo: "f1-1" }, { foro: 1, prog: 58, reale: 62, idForo: "f1-1" }, { foro: 3, prog: 58, reale: 57, idForo: "f1-3" }, { foro: 4, prog: 58, reale: 1, idForo: "m1" }]);
+    eq(d.doppie, ["f1-1"], "la chiave ripetuta nel consuntivo si dichiara"); eq(d.righe[0].reale, 61, "e vince la prima riga, non l'ultima");
+    eq(genesi.confrontoPerForo([], []), { chiave: "numero", righe: [], senzaRiga: 0, orfane: [], doppie: [], misurabile: false }, "senza fori e senza righe: tutto vuoto e non misurabile");
+  });
+}
+/* ===== fine confronto foro per foro (Genesi, 05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
