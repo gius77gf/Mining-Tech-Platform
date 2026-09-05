@@ -655,10 +655,16 @@
   come CANDIDATI, non verdetti. `--controprova` sporca in memoria il primo
   documento di ogni app e pretende che cadano due prove (SA fallire). In
   `npm test` e nel giro (38 → 40 comandi). Una riga in CLAUDE.md, sezione
-  Test. ⏱️ I 117 candidati sono da guardare uno per uno in un'unità a sé:
-  il primo sguardo (`csvProspettoDdt` 12, `csvStorico` 43,
-  `csvSituazioneFatture` 20) dice zeri VERI (sconto 0%, IVA 0 su importo
-  unico, giornate senza registrazioni dichiarate), ma è un primo sguardo.
+  Test. ✅ **I 117 candidati guardati uno per uno (05/09, sera), stampando le
+  righe con lo zero: ZERO assenze travestite da zero.** Sono conti
+  (`fermi;0`, `attivita_totali;0`, `note_di_credito;0`, `anomalie;0` con
+  esito «tutto a posto»), valori misurati (`riposo_ore;0` = «nessun riposo
+  fra questo turno e il precedente», `giacenza;0`, `residuo_dopo;0` =
+  saldata), sconti non applicati (`sconto_pct;0` sul DDT e sul preventivo:
+  nessuno sconto È zero), i mesi a zero del modulo dell'ente (col totale
+  che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
+  che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
+  non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
