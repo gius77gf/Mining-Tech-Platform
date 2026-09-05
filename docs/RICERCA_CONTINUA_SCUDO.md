@@ -956,3 +956,117 @@ documento: «near-miss» era già un `tipo` dentro `infortuni`).
 Riassunto: **cinque su cinque esistono**, con la forma giusta per una cava;
 due mancanze vere fuori dalle domande (la denuncia come scadenza, la norma
 citata per nome), tutt'e due sospese a una lettura del testo primario.
+
+## Ricerca del 2026-09-05 (notte) — la sorveglianza sanitaria in cava: il mondo
+
+*Metà sul mondo con `WebSearch` (tre ricerche); il testo primario non si legge
+da qui (`WebFetch`/`curl` bloccati), quindi tutto è **[seconda mano: risultato
+di ricerca]** e nessun termine o periodicità entra in una schermata come
+numero di legge. Tema non ancora fatto in questo documento: le tornate
+precedenti coprivano l'ispettore, i near-miss, le verifiche periodiche, lo
+scadenzario unico e la pratica quotidiana.*
+
+**Che cosa succede fuori.**
+
+1. **Il giudizio è per mansione, e ha quattro forme.** Il medico competente
+   esprime, per la mansione specifica: idoneità; idoneità **parziale,
+   temporanea o permanente, con prescrizioni o limitazioni**; inidoneità
+   temporanea; inidoneità permanente. Il giudizio va **trasmesso per iscritto
+   sia al lavoratore sia al datore di lavoro**. [seconda mano: art. 41 D.Lgs
+   81/2008 via codiceappalti.it, tussl.it, puntosicuro.it]
+2. **La periodicità la decide il medico, e l'organo di vigilanza può
+   cambiarla.** «Di norma una volta l'anno», ma il medico competente la
+   stabilisce in funzione della valutazione del rischio, e l'organo di
+   vigilanza «con provvedimento motivato può disporre contenuti e periodicità
+   diversi». Ci sono poi le visite su richiesta del lavoratore, al cambio di
+   mansione, alla cessazione nei casi previsti. [seconda mano: stesse fonti]
+3. **Il ricorso.** Contro i giudizi del medico competente, lavoratore e
+   datore di lavoro possono fare ricorso **entro trenta giorni dalla
+   comunicazione** all'organo di vigilanza (SPISAL/PSAL della ASL), che
+   conferma, modifica o revoca; **finché la ASL non risponde l'azienda deve
+   organizzare la posizione rispettando prescrizioni, limitazioni o
+   inidoneità**. [seconda mano: asl3.liguria.it, auslromagna.it,
+   aulss8.veneto.it, medicolavoro.org]
+4. **La silice ha un protocollo suo.** Il Network Italiano Silice (NIS)
+   propone un protocollo sanitario legato al livello di esposizione alla
+   silice cristallina respirabile: visita all'assunzione, poi accertamenti
+   periodici (spirometria, radiografia del torace letta secondo ILO/BIT da un
+   lettore certificato «B reader» sopra una certa esposizione), con cadenze
+   diverse dalla visita ordinaria (le fonti citano 5 anni fino a 20 anni di
+   esposizione e 2 anni oltre). Cioè: per un cavatore la «visita periodica»
+   non è una sola cosa, e la cadenza degli accertamenti è **del medico**.
+   [seconda mano: confindustriaceramica.it, assorisorse.org allegato 8,
+   ats-brianza.it manuale lapidei, scuolaedilepiacenza.it]
+5. **La cartella sanitaria e di rischio** è del medico competente e resta
+   riservata: l'azienda ha il **giudizio**, non la cartella. Quindi ciò che un
+   gestionale di cava può tenere è il giudizio, la sua data, le prescrizioni
+   scritte, e la prossima visita. [seconda mano: puntosicuro.it]
+
+Fonti (lette come risultati di ricerca, non come testo primario):
+https://www.codiceappalti.it/dlgs_81_2008/art__41__sorveglianza_sanitaria/5020 ·
+https://www.puntosicuro.it/sanita-servizi-sociali-C-12/la-sorveglianza-sanitaria-ed-il-giudizio-di-idoneita-AR-10571/ ·
+https://www.asl3.liguria.it/territorio/servizi/prevenzione-e-sicurezza-ambienti-di-lavoro-psal/164-ricorsi-art-41-comma-9-d-lgs-81-2008.html ·
+https://www.auslromagna.it/servizi/ricorso-avverso-il-giudizio-del-medico-competente ·
+https://www.assorisorse.org/wp-content/uploads/2020/07/Silice_All.8_Protocollo.pdf ·
+https://www.ats-brianza.it/images/pianomirato/lapidei/Manuale%20buone%20prassi%20lavorazione%20lapidei%20rev4.pdf ·
+https://www.scuolaedilepiacenza.it/it/polveri_e_silice_cristallina/linee_guida_per_la_sorveglianza_sanitaria_ed_accertamenti_diagnostici_sui_lavoratori_esposti_a_silice_cristallina_sc_103.htm
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `d7a60486`)
+
+Cercato per **meccanismo**: chi decide l'idoneità di una persona, chi la legge.
+
+- **Chi registra il giudizio?** Scudo: `idoneitaLabel` / `idoneitaSuccessivo`
+  in `scudo-data.js` — quattro stati (n.d., idoneo, idoneo con prescrizioni,
+  NON idoneo) che si cambiano **toccando il badge** nella scheda Personale
+  (`data-idn`, `db.aggiorna("lavoratori", …, { idoneita })`); il CSV del
+  personale lo esporta; il Quadro conta le idoneità n.d. (`idnIgnota`);
+  `idoneitaCriticita` mette fra le urgenze prescrizioni e non idonei; la
+  visita periodica è il preset di scadenza `sorv-sanitaria` (12 mesi di
+  partenza, riferimento art. 41 — e il punto 2 del mondo dice che la cadenza
+  la decide il medico: giusto che sia un preset modificabile). **Il punto 1
+  c'è, in forma corta.**
+- **Che cosa NON c'è del giudizio: la data e le prescrizioni scritte.**
+  `grep -n "idoneitaIl\|giudizioIl\|dataGiudizio\|ricorso" apps/scudo/scudo-data.js
+  apps/scudo/index.html` → **0**; `grep -n "prescrizion"` → 12 righe, **tutte**
+  sulle verifiche periodiche delle attrezzature (`verificaEsito:
+  "prescrizioni"`) o sull'etichetta del badge, nessuna sul testo delle
+  prescrizioni di una persona. Il mondo (punti 1, 3, 5) dice che l'azienda
+  ha in mano un giudizio **scritto e datato**, con prescrizioni che deve
+  rispettare da subito. Candidato (b), costo basso: `giudizioIl` e
+  `prescrizioni` (testo) sul lavoratore, chiesti quando il badge passa a
+  «prescrizioni» o «non idoneo» (una modale del core, non un ciclo cieco), e
+  scritti nella riga e nel CSV. ⚠️ I «trenta giorni» del ricorso sono un
+  termine di legge di seconda mano e **non si scrivono**: si scrive «giudizio
+  del …», non «ricorso entro il …».
+- **Chi legge il giudizio quando la persona va in turno?** Nessuno. Il ponte
+  con Campo (`idoneitaOperatore` in `shared/dw-ponti.js`) guarda **solo le
+  scadenze** (`statoScadenzaHSE` su `scadenze` del lavoratore): il campo
+  `idoneita` non compare da nessuna parte nella funzione (`grep -n "idoneita"
+  shared/dw-ponti.js` → solo i nomi delle due funzioni e i commenti). Quindi
+  una persona dichiarata **NON idonea** in Scudo, coi documenti in corso, va
+  in turno in Campo come **«regolare»** — e il mondo (punto 3) dice che le
+  prescrizioni e l'inidoneità vanno rispettate da subito, ricorso o no. È il
+  principio del fondatore nella veste più cara: il numero tranquillo su chi
+  scende in cava. Candidato (a), costo medio, vive in `shared/` perché serve a
+  due app: `idoneitaOperatore` legge anche `l.idoneita` e risponde con uno
+  stato in più («non-idoneo», e «prescrizioni» come avviso), Campo lo mostra
+  nell'appello, e la regola 18 di `run-stile` pretende che le mappe di stati
+  di Campo coprano il nuovo stato. Misura: un operatore non idoneo coi
+  documenti validi non esce «regolare».
+- **La dimostrazione non ha nessun giudizio.** `grep -c 'idoneita: "'
+  apps/scudo/scudo-data.js` → **0**: i sette lavoratori sono tutti «Idoneità
+  n.d.», quindi nessuna schermata mostra mai un idoneo con prescrizioni, e il
+  ponte non ha mai avuto il caso davanti. Candidato (c), costo basso: un
+  idoneo, uno con prescrizioni (scritte), uno n.d. — così il Quadro, il CSV e
+  Campo lo fanno vedere.
+- **La silice (punto 4)**: non produce un delta nel prodotto. La cadenza degli
+  accertamenti è del medico e del protocollo, e Scudo la tiene come scadenza
+  con data e ricorrenza scelte dall'utente; scrivere «5 anni» o «2 anni»
+  sarebbe un numero di seconda mano su una schermata. Va detto qui perché una
+  ricerca futura non lo porti dentro.
+
+Riassunto: **il giudizio c'è come stato; mancano la sua data, il testo delle
+prescrizioni e — soprattutto — chi lo legge quando la persona va in turno.**
+In ordine: (a) il ponte con Campo legge l'idoneità (medio, `shared/`); (b)
+data e prescrizioni del giudizio (basso); (c) la dimostrazione con i tre
+casi (basso).

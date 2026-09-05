@@ -399,6 +399,14 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [ ] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
+  delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
+  schermata: (a) il ponte con Campo (`idoneitaOperatore` in `shared/`) legge
+  anche il giudizio di idoneità — oggi una persona NON idonea coi documenti in
+  corso va in turno come «regolare» (medio); (b) `giudizioIl` e `prescrizioni`
+  scritte sul lavoratore, chieste quando il badge passa a prescrizioni o non
+  idoneo (basso); (c) la dimostrazione con un idoneo, uno con prescrizioni e
+  uno n.d. (basso). Vedi `docs/RICERCA_CONTINUA_SCUDO.md`.
 - [x] **BANCO `stati-non-misurati`: 4 KO su 79, DUE CAUSE, una del banco e una
   del prodotto (04/09 sera).** Rilanciato identico su `6eb001ee`, quindi
   nessuna delle unità di stasera. (1) Sentinella, tre casi su `#rep-doc`: il
@@ -1352,6 +1360,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `SCUDO — dalla ricerca del 05/09 notte` *(sorveglianza sanitaria: il ponte con
+  Campo non legge l'idoneità; data e prescrizioni del giudizio; dimostrazione)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
