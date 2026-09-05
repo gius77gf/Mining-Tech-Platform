@@ -680,3 +680,14 @@ Riassunto: **due punti su cinque esistono (collaudo come stato, garanzia come
 scadenza)**, tre sono candidati **dichiarativi** — nessun importo e nessun
 termine di legge entra nel prodotto. In ordine di costo: `collaudoChiestoIl`
 (basso), quota di garanzia per lotto (medio), relazione di fine lavori (medio).
+
+*Aggiornamento del 05/09 (riga scritta a posteriori, perché chi ha chiuso le
+tre unità non aveva aggiornato questa): tutti e tre ✅ la notte stessa —
+`collaudoChiestoIl` come data del lotto con «recuperato da N giorni, collaudo
+non ancora chiesto» (`attesaCollaudo`, commit `6118fced`); la quota di
+garanzia per lotto scritta dall'utente e sommata sui non collaudati
+(`garanziaVincolata`, commit `80dc105c`); la relazione di fine lavori del lotto
+(`relazioneLotto`, commit `a6122576`) con «che cosa manca» scritto. Prova:
+`grep -c "collaudoChiestoIl" apps/terra/terra-data.js` → 5;
+`grep -n "^export function \(attesaCollaudo\|garanziaVincolata\|relazioneLotto\)" apps/terra/terra-data.js`
+→ 3 righe.*
