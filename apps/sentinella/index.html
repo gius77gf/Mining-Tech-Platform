@@ -1673,6 +1673,10 @@ textarea.dw-input{
 
   <div class="sec">Registro volate<span class="cnt" id="vol-tot">—</span></div>
   <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
+  <!-- IL PONTE 3e (05/09): le volate che Genesi ha scritto «per Sentinella»
+       nell'organizzazione (o nella chiave del browser, sullo stesso computer)
+       e che il registro non ha ancora: si accolgono da qui, senza file. -->
+  <div id="vol-previste"></div>
   <div id="vol-list" style="margin-top:10px;"></div>
   <!-- T9 · le volate PREVISTE arrivate da Genesi: la spiegazione dei due stati
        compare solo se ce ne sono (vedi renderVolate). -->
@@ -1845,6 +1849,7 @@ textarea.dw-input{
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            accorciaVoceTendina,
            refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
+           accogliPrevista, previsteNuove,
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
@@ -2028,6 +2033,7 @@ textarea.dw-input{
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
+  let PREV = null;   // le volate previste scritte da Genesi (null = non leggibile)
   // T7 · il ponte con Scudo: le azioni correttive NON sono dati di
   // Sentinella, si leggono da Scudo (stessa organizzazione, app diversa) e
   // qui si tengono solo in memoria per mostrare a che punto sono.
@@ -3294,6 +3300,18 @@ textarea.dw-input{
     if (!w) { toast("Il browser ha bloccato la finestra della scheda: consenti le finestre per questa pagina.", "err"); return; }
     w.document.write(htmlFogliaVolata(v)); w.document.close();
   });
+  /* accogliere una prevista di Genesi: la stessa scrittura dell'import CSV,
+     con la stessa firma, e la lista si ridisegna dal registro */
+  $("vol-previste").addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-accogli-prev]"); if (!b) return;
+    e.preventDefault();
+    const k = b.getAttribute("data-accogli-prev");
+    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k); if (!v) return;
+    const { ponteId, ...rec } = v;
+    await db.aggiungi("volate", rec);
+    esito("vol-esito-msg", "Volata prevista del " + fmtD(rec.data) + (rec.fronte ? " (" + rec.fronte + ")" : "") + " accolta nel registro da Genesi: è un progetto, non una volata sparata. Dopo lo sparo confermala.", "success", "Volata prevista accolta.");
+    await refresh();
+  });
   $("ref-filtri").addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("[data-fref]"); if (!b) return;
     filtroRef = b.getAttribute("data-fref"); renderReferti();
@@ -4154,12 +4172,14 @@ textarea.dw-input{
       }).join("")}</tbody></table></div>`;
 
   async function refresh(){
-    [MON,ADE,REG,VOL,RIC,REC,PRG] = await Promise.all([
+    [MON,ADE,REG,VOL,RIC,REC,PRG,PREV] = await Promise.all([
       db.monitoraggi(), db.adempimenti(), db.registri(),
       db.volate ? db.volate() : [], db.ricettori ? db.ricettori() : [], db.reclami ? db.reclami() : [],
       // la collezione del programma può non esistere ancora: senza di lei
       // la pagina deve funzionare esattamente come prima
-      db.programma ? db.programma() : []]);
+      db.programma ? db.programma() : [],
+      // il ponte 3e: le previste di Genesi — `null` = non leggibile, non «nessuna»
+      db.previsteGenesi ? db.previsteGenesi().catch(() => null) : null]);
     PRG = PRG || [];
     // T7 · le azioni correttive stanno in SCUDO, non qui: si leggono di là
     // (stessa organizzazione, app diversa) e servono solo a mostrare a che
@@ -4512,6 +4532,34 @@ textarea.dw-input{
             + (rp.prossima ? ` · la prossima il <b>${fmtD(rp.prossima)}</b>` : "")
           : "")
       : "";
+    /* LE PREVISTE DA GENESI (ponte 3e). Tre risposte: nuove da accogliere,
+       nessuna nuova (non si scrive niente: il registro parla da sé), e
+       «Genesi non leggibile» — che NON è «nessuna», e in live si dice. */
+    const pn = previsteNuove(PREV, VOL);
+    $("vol-previste").innerHTML = !pn.leggibile
+      ? (db.mode === "live" ? `<div class="note" style="margin-top:8px;">Le volate previste di Genesi non si sono potute leggere: se ne hai scritte, riprova più tardi.</div>` : "")
+      : !pn.nuove.length ? ""
+      : `<div class="sec" style="margin-top:12px;">Previste da Genesi<span class="cnt">${pn.nuove.length}</span></div>
+         <div class="note" style="margin-bottom:8px;">${pn.nuove.length === 1 ? "Un progetto di volata è arrivato" : pn.nuove.length + " progetti di volata sono arrivati"} da Genesi
+           e non ${pn.nuove.length === 1 ? "è" : "sono"} ancora nel registro. Accogliendol${pn.nuove.length === 1 ? "o" : "i"} entra${pn.nuove.length === 1 ? "" : "no"} come <b>Prevista</b>:
+           non conta fra le eseguite finché non la confermi dopo lo sparo.</div>`
+        + pn.nuove.map(v => {
+          const pv = previsioneDiVolata(v);
+          /* la stessa riga del registro (avatar · info · acts), così la lista
+             delle previste da accogliere non si distingue per forma da quella
+             sotto: cambia solo il bottone, che qui ACCOGLIE invece di confermare */
+          return `<div class="item">
+            <div class="avatar">${I.calendario}</div>
+            <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}</div>
+              <div class="meta">${v.nFori != null ? esc(numeroIt(v.nFori)) + " fori" : "fori non dichiarati"} · ${v.kgTotali != null ? esc(numeroIt(v.kgTotali)) + " kg" : "chili non dichiarati"}${
+                v.kgMaxRitardo != null ? " · max/ritardo " + esc(numeroIt(v.kgMaxRitardo)) + " kg" : ""}${
+                v.distanzaRicettore != null ? " · ricettore a " + esc(numeroIt(v.distanzaRicettore)) + " m" : ""}</div>
+              <div class="meta">${pv ? "PPV <b>prevista</b> " + esc(numeroIt(pv.valore)) + " mm/s" + (pv.provvisoria ? " (legge di sito provvisoria)" : "") : "PPV prevista non calcolata"}${
+                v.codiceVolata ? " · " + esc(v.codiceVolata) : ""}</div></div>
+            <span class="acts"><span class="badge accent">da Genesi</span>
+              <button type="button" class="arr" title="Accogli nel registro come volata prevista" aria-label="Accogli nel registro la volata prevista del ${fmtD(v.data)}" data-accogli-prev="${esc(v.codiceVolata || v.ponteId)}">${I.fatto}</button></span>
+          </div>`;
+        }).join("");
     const VB = { regolare: ["ok", "Regolare"], contestazione: ["danger", "Contestazione"] };
     $("vol-list").innerHTML = volateOrdinate(VOL).map(v => {
       const prev = volataPrevista(v);

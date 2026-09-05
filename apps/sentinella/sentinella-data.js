@@ -1043,13 +1043,32 @@ export function parseVolateCsv(text) {
      cella illeggibile: `refertoDaVolata` la conta fra i motivi per cui la
      volata non è ancora un referto, che è la risposta giusta. */
   const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : null; };
-  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+  const righeTutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  /* ⛔ LE COLONNE SI LEGGONO PER NOME QUANDO IL FILE HA L'INTESTAZIONE (05/09).
+     Due file, due code: il registro di Sentinella scrive in coda
+     `comunicataA;comunicataIl;comunicazioneRif`, quello che Genesi esporta
+     scrive `ppvPrevProvvisoria;ppvPrevReferti` — nate in due giorni diversi,
+     nelle STESSE posizioni. Leggendo per posizione il «si» della legge di sito
+     provvisoria finiva in `comunicataA` e i referti in `comunicataIl`: il
+     registro diceva «comunicazione registrata a metà (non dice a chi)» su una
+     volata che nessuno aveva comunicato, e la provvisorietà — costruita il
+     03/08 apposta per non scrivere «calibrata» su tre referti — non veniva
+     letta MAI. Trovato scrivendo il ponte 3e, confrontando la strada del file
+     con quella dei dati condivisi. Senza intestazione resta la posizione. */
+  const testa = righeTutte.find(r => isIntestazione(r, "data"));
+  const NOMI = CSV_VOLATE_INTESTAZIONE.split(";");
+  const indice = new Map();
+  if (testa) parseCsvLine(testa).forEach((c, i) => { const k = String(c || "").trim(); if (k && !indice.has(k)) indice.set(k, i); });
+  return righeTutte
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
+      const celle = parseCsvLine(r);
+      const per = (nome, pos) => testa ? (indice.has(nome) ? celle[indice.get(nome)] : undefined) : celle[pos];
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
              ppvMisurata, ppvFonte, ppvPunto, ppvOra,
              stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
-             codiceVolata, comunicataA, comunicataIl, comunicazioneRif] = parseCsvLine(r);
+             codiceVolata, comunicataA, comunicataIl, comunicazioneRif] = NOMI.map((nome, i) => per(nome, i));
+      const ppvPrevProvvisoria = per("ppvPrevProvvisoria", -1), ppvPrevReferti = per("ppvPrevReferti", -1);
       let v = {
         data: (data || "").trim(),
         fronte: (fronte || "").trim(),
@@ -1072,6 +1091,12 @@ export function parseVolateCsv(text) {
       if (st) v = { ...v, stato: st };
       const cod = String(codiceVolata == null ? "" : codiceVolata).trim();
       if (cod) v = { ...v, codiceVolata: cod };
+      /* le due colonne di Genesi sulla legge di sito: entrano com'è scritto,
+         le legge `previsioneDiVolata` (tre stati: si / no / non dichiarato) */
+      const prov = String(ppvPrevProvvisoria == null ? "" : ppvPrevProvvisoria).trim().toLowerCase();
+      if (prov === "si" || prov === "no") v = { ...v, ppvPrevProvvisoria: prov };
+      const nRef = numIt(ppvPrevReferti);
+      if (Number.isFinite(nRef) && nRef > 0) v = { ...v, ppvPrevReferti: Math.round(nRef) };
       /* la comunicazione entra com'è scritta: chi la legge (`descriviComunicazione`)
          dice se è intera, a metà o assente — il lettore non la giudica */
       const com = campiComunicazioneVolata(comunicataA, comunicataIl, comunicazioneRif).campi;
@@ -4631,6 +4656,66 @@ export function firmaVolata(v) {
     +((v || {}).nFori) || 0, +((v || {}).kgTotali) || 0].join("|");
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PONTE 3e — LE VOLATE PREVISTE DA GENESI, SENZA IL FILE (05/09)
+   Genesi scrive la volata «per Sentinella» nella sua collezione `previste`
+   (forma di `previstaDaGenesi` in shared/): qui si legge, si confronta col
+   registro e si ACCOGLIE — la stessa strada del CSV, senza il CSV.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* Da record del ponte a volata del registro: passa dalle STESSE funzioni del
+   lettore CSV (`campiPrevisioneVolata`, `VOL_PREVISTA`, il codice), così le
+   due strade non possono divergere. `null` dove Genesi non sapeva calcolare. */
+export function accogliPrevista(p) {
+  const x = p || {};
+  if (!dataISOEsiste(x.data)) return null;
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) ? Math.max(0, n) : null; };
+  let v = { data: String(x.data), fronte: String(x.fronte || "").trim(),
+    nFori: num(x.nFori), kgTotali: num(x.kgTotali), kgMaxRitardo: num(x.kgMaxRitardo), distanzaRicettore: num(x.distanzaRicettore),
+    esito: "regolare", note: "" };
+  const prev = campiPrevisioneVolata(x.ppvPrevista, { limite: x.ppvPrevLimite, norma: x.ppvPrevNorma, fonte: x.ppvPrevFonte, airblast: x.airblastPrevisto });
+  if (prev) v = { ...v, ...prev };
+  v.stato = VOL_PREVISTA;
+  const cod = String(x.codiceVolata || "").trim();
+  if (cod) v.codiceVolata = cod;
+  const prov = String(x.ppvPrevProvvisoria || "").trim().toLowerCase();
+  if (prov === "si" || prov === "no") v.ppvPrevProvvisoria = prov;
+  const nRef = +x.ppvPrevReferti;
+  if (Number.isFinite(nRef) && nRef > 0) v.ppvPrevReferti = Math.round(nRef);
+  if (x.origine && typeof x.origine === "object") v.origine = { ...x.origine };
+  return v;
+}
+/* Quali previste di Genesi NON sono ancora nel registro: la firma è quella di
+   sempre (`firmaVolata`: il codice se c'è), e una previsione già accolta — o
+   già confermata come eseguita, perché il codice sopravvive alla conferma —
+   non si ripropone. `previste` null = Genesi NON leggibile, che non è «nessuna
+   volata prevista»: `leggibile: false`, e la pagina lo dice. */
+export function previsteNuove(previste, volate) {
+  if (!Array.isArray(previste)) return { leggibile: false, nuove: [], gia: 0, illeggibili: 0 };
+  const gia = new Set((Array.isArray(volate) ? volate : []).map(firmaVolata));
+  const nuove = [], viste = new Set();
+  let n = 0, ill = 0;
+  for (const p of previste) {
+    const v = accogliPrevista(p);
+    if (!v) { ill++; continue; }
+    const f = firmaVolata(v);
+    if (gia.has(f) || viste.has(f)) { n++; continue; }
+    viste.add(f); nuove.push({ ...v, ponteId: p && p.id != null ? String(p.id) : "" });
+  }
+  nuove.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  return { leggibile: true, nuove, gia: n, illeggibili: ill };
+}
+/* La chiave del browser che Genesi scrive quando lavora da solo (`genesiPreviste`):
+   è il ripiego di chi usa le due app sullo stesso computer senza organizzazione,
+   come Terra fa con `genesiNuvole`. Un JSON corrotto risponde `[]`. */
+export function previsteDaChiave(storage) {
+  try {
+    const st = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+    if (!st) return [];
+    const v = JSON.parse(st.getItem("genesiPreviste") || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+
 // L'INTESTAZIONE del registro volate: le 8 colonne di sempre, le 4 della PPV
 // misurata (T8) e le 7 della volata prevista (T9), in coda e facoltative.
 // È lo stesso ordine che legge parseVolateCsv qui sopra — stanno nello stesso
@@ -4873,6 +4958,19 @@ export async function sentinellaData() {
           { rif: doc(id.orgCollection(n), i), runTransaction, deleteField }, cambia),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
+      /* il ponte 3e: le volate previste che Genesi ha scritto nell'organizzazione
+         (`apps/genesi/previste`), con una seconda istanza dell'SDK sull'appId
+         di Genesi, pigra e in sola lettura — la forma di `nuvoleGenesi` in Terra.
+         `null` = non leggibile, che la pagina distingue da «nessuna». */
+      let idGenesi;
+      api.previsteGenesi = async () => {
+        if (idGenesi === undefined) {
+          try { idGenesi = await DeepworkID.init({ appId: "genesi" }); } catch (e) { idGenesi = null; }
+        }
+        if (!idGenesi) return null;
+        try { return (await getDocs(idGenesi.orgCollection("previste"))).docs.map(d => ({ id: d.id, ...d.data() })); }
+        catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -4887,6 +4985,9 @@ export async function sentinellaData() {
          divergono, la dimostrazione smette di dimostrare */
       trasforma: async (n, i, cambia) => trasformaInMemoria((mem[n] || (mem[n] = [])).find(v => v.id === i), cambia),
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
+      /* senza organizzazione Genesi si legge dalla chiave del browser: chi usa
+         le due app sullo stesso computer vede la volata appena esportata */
+      previsteGenesi: async () => previsteDaChiave(),
     };
   }
   return { mode, ...api };

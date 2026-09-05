@@ -245,6 +245,25 @@ manca il terzo lato: Campo registra il **turno vero**, e nessuno confronta il
 **Valore: molto alto** (è il cuore del mestiere). **Costo: alto**, e per una
 ragione strutturale che viene prima: vedi §4.
 
+✅ **Collegata il 05/09 (notte), come dato.** Genesi scrive la volata «per
+Sentinella» nella sua collezione `previste` (nell'organizzazione se si è
+dentro, nella chiave `genesiPreviste` del browser se si lavora da soli) con la
+forma UNICA `previstaDaGenesi` di `shared/dw-ponti.js`; Sentinella la legge
+con una seconda istanza dell'SDK (`previsteGenesi`, forma di `nuvoleGenesi` di
+Terra) o dalla chiave, mostra le nuove in «Registro volate → Previste da
+Genesi» e le **accoglie** con `accogliPrevista` — le stesse funzioni del
+lettore CSV, quindi le due strade non possono divergere (provato: la volata
+che esce dal ponte è identica a quella che esce dal file, `run-kpi`). Il file
+resta per chi lavora altrove. ⛔ E la strada del file aveva un buco che il
+ponte ha fatto trovare: Genesi scrive in coda `ppvPrevProvvisoria;ppvPrevReferti`,
+il registro di Sentinella `comunicataA;comunicataIl;comunicazioneRif` — stesse
+posizioni, nomi diversi — e `parseVolateCsv` leggeva per posizione: il «si»
+della legge di sito provvisoria finiva in `comunicataA`. Adesso legge per nome
+quando l'intestazione c'è. Prova: `grep -c "previstaDaGenesi" shared/dw-ponti.js
+apps/genesi/genesi.html` → 1 e 2; `grep -c "previsteGenesi" apps/sentinella/
+sentinella-data.js apps/sentinella/index.html` → 2 e 1. Il terzo lato
+(progettato contro reale, Campo) resta in roadmap come rimandato.
+
 ### 3f. La produzione — `rilievi` (Terra), `rapportini` (Campo), `pesate` (Conti)
 Tre misure della stessa cosa: il drone misura il volume, il turno dichiara la
 produzione, la pesa registra quello che esce. Terra↔Campo e Conti↔Terra
@@ -372,12 +391,12 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **13** su 56 direzioni *(era 6; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
+| ponti di DATI esistenti | **14** su 56 direzioni *(era 6; il 05/09 (notte) è entrato Genesi→Sentinella (3e): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **1 famiglia** (§3: la 3e, che passa da un file) *(era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
+| sovrapposizioni non collegate | **0** *(era 1 fino al 05/09 notte: la 3e passava da un file, adesso passa dai dati; era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 

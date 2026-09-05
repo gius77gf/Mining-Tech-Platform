@@ -17,7 +17,7 @@
 // Terra continuano a importare da dove hanno sempre importato — un alias non è
 // una seconda implementazione.
 //
-import { isoLocale, dataISOEsiste, giorniTra } from "./deepwork-id-client/dw-shell.js";
+import { isoLocale, dataISOEsiste, giorniTra, timbroLocale } from "./deepwork-id-client/dw-shell.js";
 
 // Tutto quello che c'è qui è PURO e testabile: nessun accesso ai dati, nessun
 // DOM. Le letture dei dati restano nei moduli delle app, che passano dall'SDK.
@@ -1860,4 +1860,39 @@ export function riassuntoVolateDelGiorno(volate, dataISO) {
     ppv: ppvDiVolata(v), codiceVolata: String(v.codiceVolata || "").trim(),
   }));
   return { leggibile: true, n: righe.length, righe };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PONTE 3e — LA VOLATA PREVISTA, DA GENESI A SENTINELLA SENZA UN FILE
+   (05/09). Genesi ha già i numeri (fori, chili, MIC, distanza, PPV prevista,
+   limite, norma, fonte, airblast, codice); Sentinella li vuole nei campi del
+   suo registro. Fino a oggi passavano da un CSV che una persona esportava e
+   importava a mano — e la strada del file aveva un buco che questa funzione
+   ha fatto trovare: le due app scrivevano DUE code diverse nelle stesse
+   colonne. La forma del record è UNA, qui, così nessuna delle due la tiene
+   in una copia. I `null` restano `null`: una MIC non calcolabile non è zero.
+   `previste` in Genesi è la collezione dove il bottone «per Sentinella» scrive
+   (in locale: la chiave `genesiPreviste` del browser); Sentinella la legge
+   con una seconda istanza dell'SDK e, dallo stesso browser, dalla chiave. */
+export function previstaDaGenesi(d, data, fronte, quando) {
+  const x = d || {};
+  if (!dataISOEsiste(data)) return null;
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) && n >= 0 ? n : null; };
+  const calibrata = !!x.calibrata;
+  return {
+    data: String(data), fronte: String(fronte || "").trim(),
+    nFori: num(x.nFori), kgTotali: num(x.kgTotali), kgMaxRitardo: num(x.mic), distanzaRicettore: num(x.dist),
+    /* niente `esito`/`note` qui: un progetto non ha un esito («regolare» su una
+       volata mai sparata è la parola tranquilla che la sonda del vuoto prende),
+       e Sentinella li mette lei accogliendo — come fa col file */
+    stato: "prevista",
+    ppvPrevista: num(x.ppv), ppvPrevLimite: num(x.lim), ppvPrevNorma: String(x.norma || "").trim(),
+    ppvPrevFonte: String(x.fonte || "").trim() || "genesi", airblastPrevisto: num(x.db),
+    codiceVolata: String(x.codice || "").trim(),
+    /* tre stati come nel file: «si» / «no» / non dichiarato (la previsione
+       non viene da una legge di sito, e la domanda non si pone) */
+    ppvPrevProvvisoria: calibrata ? (x.provvisoria ? "si" : "no") : "",
+    ppvPrevReferti: calibrata && num(x.referti) ? Math.round(num(x.referti)) : null,
+    origine: { app: "genesi", quando: String(quando || timbroLocale(new Date())) },
+  };
 }

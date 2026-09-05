@@ -1179,6 +1179,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    legge di sito (`sitoExport`) e il file che importa **Sentinella**
    (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
    un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
+import { previstaDaGenesi } from '../../shared/dw-ponti.js';
 import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell, plurale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -4795,7 +4796,10 @@ function sentRender(){
          + (d.provvisoria?' — <b style="color:#ffca28">provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora a ogni misura nuova':''))
       : 'stima dalla litologia')
     +'</div>'
-    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In Sentinella: <b>Registri → Registro volate → «Importa da CSV»</b>. La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
+    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">'+(GDB.mode==='live'
+      ? 'La volata va anche <b>nell\'organizzazione</b>: in Sentinella compare da sola in <b>Registri → Registro volate → «Previste da Genesi»</b>, e chi la accoglie non deve importare niente. Il file resta per chi lavora altrove.'
+      : 'Sullo <b>stesso computer</b> Sentinella la vede da sola in <b>Registri → Registro volate → «Previste da Genesi»</b>; altrove si porta il file: <b>Registri → Registro volate → «Importa da CSV»</b>.')
+      +' La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
     +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">La <b>PPV misurata</b> non parte da qui, e non partirà mai: la volata non è ancora stata sparata. La aggancia Sentinella dalla lettura del sismografo, e solo quella può tornare qui come <b>referto</b> per la legge di sito. La PPV <b>prevista</b> viaggia in una colonna sua, dichiarata come previsione.</div>'
     +(_sentFatto?'<div style="margin-top:10px;color:#66bb6a;font-size:12px;">File pronto: <b>'+_rEsc(_sentFatto.file)+'</b> · volata del <b>'+_rEsc(_sentFatto.data.split('-').reverse().join('/'))+'</b> · codice <b>'+_rEsc(_sentFatto.codice)+'</b>. Riesportando lo stesso progetto il codice non cambia: Sentinella non creerà una riga doppia.</div>':'');
   const salva=()=>{ const o=_sentStore(); o.data=$('sent-data').value||''; o.fronte=$('sent-fronte').value||''; _sentSave(o); };
@@ -4804,7 +4808,7 @@ function sentRender(){
 }
 if($('sentOpen')) $('sentOpen').onclick=()=>{ _sentFatto=null; sentRender(); $('sentModal').style.display='flex'; };
 if($('sentClose')) $('sentClose').onclick=()=>{ $('sentModal').style.display='none'; };
-if($('sentExport')) $('sentExport').onclick=()=>{
+if($('sentExport')) $('sentExport').onclick=async()=>{
   const data=$('sent-data')?$('sent-data').value:'';
   if(!dataISOEsiste(data)){ toast('Serve la data prevista della volata'); return; }
   const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
@@ -4824,8 +4828,18 @@ if($('sentExport')) $('sentExport').onclick=()=>{
   const file='genesi_volata_per_sentinella_'+data+'.csv';
   a.download=file; a.click();
   _sentSave({data,fronte});
+  /* IL PONTE 3e (05/09): la stessa volata, con gli stessi numeri del file, va
+     nella collezione `previste` — nell'organizzazione se si è dentro, nella
+     chiave del browser se si lavora da soli. Riesportare lo stesso progetto
+     non la raddoppia: il codice è lo stesso, e Sentinella deduplica su quello. */
+  const rec=previstaDaGenesi({nFori:d.nFori,kgTotali:d.kgTotali,mic:d.mic,dist:d.dist,ppv:d.ppv,lim:d.lim,norma:d.norma,fonte:d.fonte,db:d.db,codice,calibrata:d.calibrata,provvisoria:d.provvisoria,referti:d.referti},data,fronte);
+  let inOrg=false;
+  if(rec){ try{ const gia=(await GDB.previste()).some(p=>p&&p.codiceVolata===codice); if(!gia) await GDB.aggiungi('previste',rec); inOrg=true; }catch(e){ inOrg=false; } }
   _sentFatto={file,data,codice}; sentRender();
-  toast('Volata pronta per Sentinella: Registri → Registro volate → «Importa da CSV»');
+  toast(inOrg
+    ? (GDB.mode==='live' ? 'Volata prevista scritta nell\'organizzazione: Sentinella la trova in Registro volate → «Previste da Genesi». File scaricato per chi lavora altrove.'
+                         : 'Volata pronta: Sentinella su questo computer la trova in Registro volate → «Previste da Genesi»; altrove importa il file.')
+    : 'File pronto per Sentinella (Registro volate → «Importa da CSV»); la scrittura nell\'organizzazione non è riuscita.', inOrg?'':'err');
 };
 
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('consenso').style.display='flex'; } }

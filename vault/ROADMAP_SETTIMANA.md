@@ -665,6 +665,39 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL PONTE 3e — la volata prevista da Genesi a Sentinella SENZA il file
+  (05/09, notte):** l'ultima famiglia di sovrapposizioni non collegata della
+  mappa, e il primo ponte di dati che ENTRA in Sentinella da Genesi. La forma
+  del record è una, `previstaDaGenesi` in `shared/dw-ponti.js` (i `null`
+  restano `null`: una MIC non calcolabile non è zero). Genesi: collezione
+  `previste` (chiave `genesiPreviste`, tetto 50, sesta di `GENESI_COLLEZIONI`)
+  e il bottone «per Sentinella» che, oltre al file, scrive il record — senza
+  raddoppiare un progetto riesportato (stesso codice) — e lo dice nel toast e
+  nella finestra, in due forme (organizzazione / stesso computer). Sentinella:
+  `previsteGenesi()` con la seconda istanza dell'SDK sull'appId di Genesi
+  (pigra, sola lettura, forma di `nuvoleGenesi` di Terra) o dalla chiave del
+  browser (`previsteDaChiave`); `previsteNuove(previste, volate)` con la firma
+  di sempre (`null` = non leggibile, non «nessuna»); `accogliPrevista` con le
+  STESSE funzioni del lettore CSV — provato che dal ponte e dal file esce la
+  stessa identica volata; blocco «Previste da Genesi» nel registro con la
+  riga nella forma delle altre (avatar · info · acts) e il bottone che
+  accoglie. ⛔ **E la strada del file aveva un buco, trovato confrontando le
+  due strade**: Genesi scrive in coda `ppvPrevProvvisoria;ppvPrevReferti`, il
+  registro di Sentinella `comunicataA;comunicataIl;comunicazioneRif` —
+  stesse posizioni, nomi diversi, nate in giorni diversi — e `parseVolateCsv`
+  leggeva per posizione: il «si» della legge di sito provvisoria finiva in
+  `comunicataA` («comunicazione registrata a metà (non dice a chi)» su una
+  volata mai comunicata) e la provvisorietà, costruita il 03/08 apposta, non
+  veniva letta MAI. Adesso legge per NOME quando l'intestazione c'è (per
+  posizione senza). run-kpi +6 (2739: la forma, l'identità fra le due
+  strade, il buco rimesso, le nuove, la chiave, le pagine), copertura
+  Sentinella 170 e `dw-ponti` 76. Banco `ponte-genesi-sentinella.mjs`: due
+  pagine nello stesso browser, 30 prove, controprova per file (2/2 rimessi,
+  18 caduti); `genesi-locale` e `sentinella-foglio-volata` rilanciati. Mappa:
+  14 ponti di dati, **0** sovrapposizioni non collegate; `GENESI_FUORI_DAL_
+  BROWSER` §3c con la sesta collezione. Scatto guardato (e la prima stesura
+  della riga aveva una forma sua — `.ico/.body/.az` — che il core non ha:
+  rifatta con avatar · info · acts prima di committare).
 - [x] **Due righe di documento, prima di aprire cantieri (05/09, notte):** (1)
   **decisione 19** in `DECISIONI_WEEKEND` — il ricettore delle polveri e «da
   che parte sta rispetto alla cava»: il vento ora si registra, ma sulle
@@ -6919,8 +6952,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.214 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2733, `run-stile` 328,
+  **3.220 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2739, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -6930,8 +6963,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **249 esecuzioni** che
-  aprono le pagine in un browser vero, da **104** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **251 esecuzioni** che
+  aprono le pagine in un browser vero, da **105** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

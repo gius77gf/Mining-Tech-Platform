@@ -19691,7 +19691,9 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq(db.mode, "locale", "senza organizzazione la porta è locale");
     for (const f of ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "aggiungi", "aggiorna", "rimuovi", "logout"])
       eq(typeof db[f], "function", "c'è " + f);
-    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole"]);
+    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste"], "sei dal 05/09: `previste`, il ponte 3e verso Sentinella");
+    eq(typeof db.previste, "function", "e la porta locale sa leggerle");
+    eq(await db.previste(), [], "vuote all'inizio");
     /* ⛔ E SENZA `live:false` la porta prova l'SDK, che in node NON c'è (l'import
        di Firebase da gstatic fallisce): deve tornare locale da sola, non
        morire — è lo stesso cammino della pagina senza rete. */
@@ -38391,14 +38393,20 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
    le sezioni in testo e la pagina disegna. */
 {
   const D = campo.DEMO;
-  const OGGI = "2026-09-05";   // il giorno pieno della dimostrazione
+  /* ⛔ IL GIORNO PIENO DELLA DIMOSTRAZIONE È OGGI, NON UNA DATA SCRITTA A MANO:
+     `OGGI_DEMO = oggiISO()` nel modulo. La prima stesura diceva "2026-09-05",
+     il giorno in cui è stata scritta — verde in UTC, e caduta la sera stessa
+     in `orologio-cliente` (TZ=Europe/Rome), dove alle 22 UTC era già il 06/09
+     e le attività della dimostrazione stavano un giorno più avanti della data
+     della prova. Domani sarebbe caduta ovunque. */
+  const OGGI = shell.oggiISO();
   const dg = (l) => (l || []).filter((r) => campo.eDelGiorno(r, OGGI));
   const dati = (oggi = OGGI) => ({ oggi, rapportini: dg(D.rapportini), attivita: dg(D.attivita), obiettivi: D.obiettivi, checklist: D.checklist,
     meteo: D.meteo, chiusure: D.chiusure, squadre: D.squadre, operatori: D.operatori, presenze: D.presenze, durate: D.durate });
   const sez = (R, t) => R.sezioni.find((x) => x.titolo === t);
   test("Campo · rapportoGiornata: il giorno pieno — il Quadro, l'avviso di chi non ha il giorno, le undici sezioni nell'ordine del foglio", () => {
     const R = campo.rapportoGiornata(dati(), {});
-    eq([R.titolo, R.data], ["Rapporto di fine turno", "05/09/2026"]);
+    eq([R.titolo, R.data], ["Rapporto di fine turno", shell.dataIt(OGGI)]);
     const av = campo.avanzamentoGiornata(dg(D.attivita)), cop = campo.coperturaRapportini(D.squadre, dg(D.rapportini));
     eq(R.quadro, [{ n: av.concluse + "/" + av.totale, t: "attività concluse" }, { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" },
       { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" }, { n: "2.510 t", t: "prodotti" }], "i quattro numeri del Quadro vengono da avanzamentoGiornata, coperturaRapportini e totaliProduzione");
@@ -38830,6 +38838,100 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine colonne meteo nell'import (05/09) ===== */
+
+/* ===== IL PONTE 3e — LA VOLATA PREVISTA DA GENESI A SENTINELLA SENZA FILE (05/09) =====
+   La forma del record è UNA (`previstaDaGenesi` in shared/), Genesi la scrive
+   nella sua collezione `previste`, Sentinella la legge e la ACCOGLIE con le
+   stesse funzioni della strada del CSV. E la strada del CSV aveva un buco che
+   il ponte ha fatto trovare: due code diverse nelle stesse colonne.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const D = { nFori: 18, kgTotali: 1080, mic: 60, dist: 320, ppv: 3.9, lim: 5, norma: "DIN residenziale @ 25 Hz", fonte: "genesi-sito", db: 121, codice: "GEN-20260910-abc12", calibrata: true, provvisoria: true, referti: 3 };
+  test("ponte 3e · previstaDaGenesi: il record con i campi del registro di Sentinella, e i null che restano null", () => {
+    const r = ponti.previstaDaGenesi(D, "2026-09-10", " Fronte Nord ", "2026-09-05T22:00:00");
+    eq(r.data, "2026-09-10"); eq(r.fronte, "Fronte Nord"); eq(r.stato, "prevista");
+    eq([r.nFori, r.kgTotali, r.kgMaxRitardo, r.distanzaRicettore], [18, 1080, 60, 320]);
+    eq([r.ppvPrevista, r.ppvPrevLimite, r.ppvPrevNorma, r.ppvPrevFonte, r.airblastPrevisto], [3.9, 5, "DIN residenziale @ 25 Hz", "genesi-sito", 121]);
+    eq([r.codiceVolata, r.ppvPrevProvvisoria, r.ppvPrevReferti], ["GEN-20260910-abc12", "si", 3]);
+    eq(r.origine, { app: "genesi", quando: "2026-09-05T22:00:00" });
+    const senza = ponti.previstaDaGenesi({ ...D, mic: null, dist: "", ppv: undefined, db: null, calibrata: false }, "2026-09-10", "", null);
+    eq([senza.kgMaxRitardo, senza.distanzaRicettore, senza.ppvPrevista, senza.airblastPrevisto], [null, null, null, null], "⛔ una MIC non calcolabile non è zero, nemmeno nel ponte");
+    eq([senza.ppvPrevProvvisoria, senza.ppvPrevReferti], ["", null], "senza legge di sito la domanda sulla provvisorietà non si pone");
+    ok(/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(senza.origine.quando), "il momento se lo scrive da solo se non lo si passa, con l'ORA (l'istante locale di shared/, non il solo giorno): " + senza.origine.quando);
+    eq(ponti.previstaDaGenesi(D, "2026-02-30", "x"), null, "una data che non esiste non fa un record");
+    eq(ponti.previstaDaGenesi(null, "2026-09-10", "x").nFori, null, "senza numeri, tutti null");
+  });
+  test("⛔ ponte 3e · accogliPrevista dà la STESSA volata che il file di Genesi dà passando da parseVolateCsv", () => {
+    const rec = ponti.previstaDaGenesi(D, "2026-09-10", "Fronte Nord", "2026-09-05T22:00:00");
+    const daPonte = sentinella.accogliPrevista(rec);
+    const n = (v) => v == null ? "" : String(v);
+    const H = sentinella.CSV_VOLATE_INTESTAZIONE.split(";").slice(0, 19).join(";") + ";ppvPrevProvvisoria;ppvPrevReferti";
+    const riga = ["2026-09-10", "Fronte Nord", n(D.nFori), n(D.kgTotali), n(D.mic), n(D.dist), "", "", "", "", "", "", "prevista", n(D.ppv), n(D.lim), D.norma, D.fonte, n(D.db), D.codice, "si", "3"].join(";");
+    const daCsv = sentinella.parseVolateCsv(H + "\n" + riga)[0];
+    const { origine, ...senzaOrigine } = daPonte;
+    eq(senzaOrigine, daCsv, "⛔ le due strade danno la stessa volata (il ponte porta in più solo `origine`)");
+    eq(origine, { app: "genesi", quando: "2026-09-05T22:00:00" });
+    eq(sentinella.firmaVolata(daPonte), sentinella.firmaVolata(daCsv), "e la stessa firma: il codice");
+    eq(sentinella.volataPrevista(daPonte), true);
+    const pv = sentinella.previsioneDiVolata(daPonte);
+    eq([pv.valore, pv.limite, pv.provvisoria, pv.referti], [3.9, 5, true, 3], "la previsione si legge con la sua provvisorietà");
+    eq(sentinella.accogliPrevista({ data: "boh" }), null, "senza data non si accoglie");
+    const vuota = sentinella.accogliPrevista(ponti.previstaDaGenesi({ codice: "GEN-x" }, "2026-09-10", ""));
+    eq([vuota.nFori, vuota.kgMaxRitardo, vuota.ppvPrevista, vuota.stato], [null, null, undefined, "prevista"], "⛔ i null restano null: `+null` faceva 0 nella prima stesura");
+  });
+  test("⛔ ponte 3e · il buco della strada del file: le due colonne di Genesi finivano nella COMUNICAZIONE", () => {
+    /* il file di Genesi scrive `codiceVolata;ppvPrevProvvisoria;ppvPrevReferti`,
+       il registro di Sentinella `codiceVolata;comunicataA;comunicataIl;comunicazioneRif`:
+       stesse posizioni, nomi diversi. Letto per posizione, «si» andava in
+       `comunicataA` e «3» in `comunicataIl` */
+    const H = sentinella.CSV_VOLATE_INTESTAZIONE.split(";").slice(0, 19).join(";") + ";ppvPrevProvvisoria;ppvPrevReferti";
+    const riga = "2026-09-10;Fronte Nord;18;1080;60;320;;;;;;;prevista;3.9;5;DIN residenziale @ 25 Hz;genesi-sito;121;GEN-20260910-abc12;si;3";
+    const v = sentinella.parseVolateCsv(H + "\n" + riga)[0];
+    eq([v.comunicataA, v.comunicataIl], [undefined, undefined], "⛔ nessuna comunicazione inventata");
+    eq(sentinella.descriviComunicazione(v).registrata, false);
+    eq([v.ppvPrevProvvisoria, v.ppvPrevReferti], ["si", 3], "e la provvisorietà si legge");
+    eq(sentinella.previsioneDiVolata(v).provvisoria, true, "⛔ com'era: null, «non dichiarato», su una legge tarata su tre referti");
+    // la strada di sempre, per nome: il proprio file rientra identico
+    const proprio = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(sentinella.DEMO.volate));
+    eq(proprio.length, sentinella.DEMO.volate.filter(x => sentinella.dataISOEsiste ? true : true).length, "tutte le volate della dimostrazione rientrano");
+    eq(proprio.filter(x => x.comunicataA).length, sentinella.DEMO.volate.filter(x => x.comunicataA).length, "e le comunicazioni restano dove sono");
+    // senza intestazione si legge per posizione, com'era
+    const pos = sentinella.parseVolateCsv(riga)[0];
+    eq(pos.comunicataA, "si", "senza intestazione la posizione è l'unica cosa che c'è (ed è il file vecchio, che le due colonne non le ha)");
+    // e le colonne in un altro ordine, con l'intestazione che comincia da `data`
+    const rim = sentinella.parseVolateCsv("data;codiceVolata;fronte\n2026-09-10;GEN-1;Nord")[0];
+    eq([rim.codiceVolata, rim.fronte], ["GEN-1", "Nord"], "per nome, non per posizione");
+  });
+  test("ponte 3e · previsteNuove: quelle che il registro non ha, con la firma di sempre; null = Genesi non leggibile", () => {
+    const a = ponti.previstaDaGenesi(D, "2026-09-10", "Nord"), b = ponti.previstaDaGenesi({ ...D, codice: "GEN-2" }, "2026-09-12", "Sud");
+    const gia = sentinella.accogliPrevista(a);
+    const r = sentinella.previsteNuove([{ id: "p1", ...a }, { id: "p2", ...b }, { id: "p3", ...b }, { id: "p4", data: "boh" }], [gia]);
+    eq([r.leggibile, r.nuove.length, r.gia, r.illeggibili], [true, 1, 2, 1], "una nuova (b), a già nel registro, il doppione di b nel ponte, una senza data");
+    eq([r.nuove[0].codiceVolata, r.nuove[0].ponteId], ["GEN-2", "p2"]);
+    const eseguita = { ...gia, stato: "eseguita", ppvMisurata: 2.1 };
+    eq(sentinella.previsteNuove([a], [eseguita]).nuove.length, 0, "una prevista già confermata come eseguita non si ripropone: il codice sopravvive alla conferma");
+    eq(sentinella.previsteNuove(null, []), { leggibile: false, nuove: [], gia: 0, illeggibili: 0 }, "⛔ null non è «nessuna»");
+    eq(sentinella.previsteNuove([], []).leggibile, true);
+  });
+  test("ponte 3e · previsteDaChiave: la chiave del browser, e un JSON corrotto risponde vuoto", () => {
+    const st = (v) => ({ getItem: (k) => (k === "genesiPreviste" ? v : null) });
+    eq(sentinella.previsteDaChiave(st(JSON.stringify([{ codiceVolata: "GEN-1" }]))), [{ codiceVolata: "GEN-1" }]);
+    eq(sentinella.previsteDaChiave(st("{boh")), []);
+    eq(sentinella.previsteDaChiave(st(null)), []);
+    eq(sentinella.previsteDaChiave({ getItem: () => { throw new Error("x"); } }), []);
+    eq(sentinella.previsteDaChiave(null), [], "senza localStorage (node) niente, senza errore");
+  });
+  test("ponte 3e · Genesi scrive con la stessa forma: la porta locale tiene `previste` e la pagina la chiama dopo il file", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/import \{ previstaDaGenesi \} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "la forma viene da shared/, non riscritta");
+    ok(/GDB\.aggiungi\('previste',rec\)/.test(pagina), "e si scrive nella collezione `previste`");
+    ok(/\(await GDB\.previste\(\)\)\.some\(p=>p&&p\.codiceVolata===codice\)/.test(pagina), "senza raddoppiare un progetto riesportato");
+    const sent = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/previsteNuove\(PREV, VOL\)/.test(sent), "Sentinella confronta col registro");
+    ok(/db\.previsteGenesi \? db\.previsteGenesi\(\)\.catch\(\(\) => null\) : null/.test(sent), "e legge il ponte con il null che dice «non leggibile»");
+  });
+}
+/* ===== fine ponte 3e (05/09) ===== */
 
 
 
