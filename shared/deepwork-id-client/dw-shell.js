@@ -532,9 +532,14 @@ export const CSV_TABELLE = [
   { id: "scudo.scadenze", app: "Scudo", etichetta: "lo scadenzario di Scudo",
     col: "lavoratore;tipo;descrizione;scadenza" },
   { id: "scudo.prospettoAzioni", app: "Scudo", etichetta: "il prospetto delle azioni correttive di Scudo",
-    pagina: "apps/scudo/index.html", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
-  { id: "scudo.prospettoIndici", app: "Scudo", etichetta: "il prospetto degli indici infortunistici di Scudo",
-    pagina: "apps/scudo/index.html", col: "sezione;voce;numero" },
+    fonte: "scudo.csvProspettoAzioni", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
+  /* ⏱️ Fino al 05/09 questa riga si chiamava «prospettoIndici» e diceva di
+     leggere la pagina: l'intestazione «sezione;voce;numero» che vi trovava
+     era quella del riepilogo dei NEAR-MISS (un prospetto degli indici come
+     file non esiste) — verde per caso. Adesso nomina il file vero e lo
+     verifica chiamando l'export, che è salito nel modulo. */
+  { id: "scudo.riepilogoNearMiss", app: "Scudo", etichetta: "il riepilogo dei near-miss di Scudo (L. 198/2025)",
+    fonte: "scudo.csvRiepilogoNearMiss", col: "sezione;voce;numero" },
   // ── Sentinella ──────────────────────────────────────────────────────
   { id: "sentinella.ricettori", app: "Sentinella", etichetta: "l'export dei ricettori di Sentinella",
     fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota" },

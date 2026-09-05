@@ -5594,6 +5594,66 @@ export const CSV_AZIONI_INTESTAZIONE =
   "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;"
   + "origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta";
 
+/* IL PROSPETTO DELLE AZIONI CORRETTIVE (05/09): il file che si porta al
+   controllo — semaforo, responsabile con la parola, la frase dell'origine.
+   Stava nella pagina, composto cella per cella dalle funzioni giuste
+   (`statoAzione`, `etichettaResponsabile`, `origineAzione`): la composizione
+   però la provava solo il browser. Qui la provano anche le suite `node`, e la
+   pagina fa quello che fa per la copia di sicurezza: chiama. Stesso ordine
+   dell'elenco a schermo (chiuse in fondo, poi per data, senza data in coda).
+   `ctx`: { lavoratori, infortuni, ispezioni }. Pura. */
+export const CSV_PROSPETTO_AZIONI_INTESTAZIONE = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine";
+export function csvProspettoAzioni(azioni, ctx = {}, oggi = new Date()) {
+  const lav = ctx.lavoratori || [];
+  const nome = (id) => etichettaResponsabile({ responsabileId: id }, lav).nome;
+  const orig = (a) => origineAzione(a, { infortuni: ctx.infortuni || [], ispezioni: ctx.ispezioni || [] }, { voce: "documento" });
+  let csv = CSV_PROSPETTO_AZIONI_INTESTAZIONE + "\n";
+  for (const a of (azioni || []).slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")
+      || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999"))))
+    csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a, oggi)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+  return csv;
+}
+
+/* IL RIEPILOGO DEI NEAR-MISS PER LA COMUNICAZIONE (05/09): la stessa storia
+   del prospetto qui sopra. Le regole del file — lo storico accanto al periodo,
+   la nota di lettura del modulo, il denominatore prima dei gradini, i luoghi
+   ciechi con la loro riga — c'erano già, sparse nella pagina; adesso stanno
+   in una funzione che `run-kpi` può chiamare. `giorni`: 0 o null = tutto lo
+   storico. Pura. */
+export function etichettaPeriodoNearMiss(giorni) {
+  const g = +giorni;
+  if (!(g > 0)) return "tutto lo storico";
+  if (g === 365) return "ultimi 12 mesi";
+  return "ultimi " + g + " giorni";
+}
+export function csvRiepilogoNearMiss(infortuni, azioni, giorni, oggi = new Date()) {
+  const r = riepilogoNearMiss(infortuni, azioni, giorni || null, oggi);
+  let csv = "sezione;voce;numero\n";
+  csv += `periodo;${csvCell(etichettaPeriodoNearMiss(giorni))};\n`;
+  csv += `totale;near-miss segnalati;${r.totale}\n`;
+  csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\n`;
+  csv += `totale;di cui in forma anonima;${r.anonime}\n`;
+  { const nota = descriviLetturaNearMiss(r);
+    if (nota) csv += `lettura;${csvCell(nota)};\n`; }
+  for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
+  for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
+  // le righe «potenziale» non escono MAI da sole: prima il denominatore e la frase
+  { const rp = riepilogoPotenziale(infortuni, giorni || null, oggi);
+    csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\n`;
+    csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\n`;
+    csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\n`;
+    for (const g of rp.perLivello) csv += `potenziale;se andava male: ${csvCell(g.etichetta.toLowerCase())};${g.quanti}\n`;
+    for (const l of rp.perLuogo)
+      csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${conta(l.valutati, "valutato", "valutati")}, ${l.nonValutati} no);${l.alto}\n`;
+    for (const l of rp.luoghiCiechi)
+      csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
+  csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
+  csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
+  csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
+  csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
+  return csv;
+}
+
 export function csvAzioni(azioni) {
   const righe = [CSV_AZIONI_INTESTAZIONE];
   for (const a of (azioni || []).slice()

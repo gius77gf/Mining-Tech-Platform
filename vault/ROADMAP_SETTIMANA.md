@@ -420,6 +420,19 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
+  «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
+  due fogli; le celle le decidevano già le funzioni giuste, ma la
+  COMPOSIZIONE di due file stava nella pagina, provata solo dal browser:
+  `csvProspettoAzioni(azioni, {lavoratori, infortuni, ispezioni}, oggi)` e
+  `csvRiepilogoNearMiss(infortuni, azioni, giorni, oggi)` (+
+  `etichettaPeriodoNearMiss`) nel modulo, la pagina chiama. run-kpi +3
+  (2660); il censimento delle intestazioni (`CSV_TABELLE`) li verifica
+  chiamando l'export — e «prospettoIndici» era un nome sbagliato che
+  trovava nella pagina l'intestazione del riepilogo near-miss: verde per
+  caso, adesso nomina il file vero. Banco `scudo-documenti` 89/89, 27/27
+  iniezioni riancorate sul modulo (e una senza il «NOME = » davanti, perché
+  `iniezioni-fresche` raccoglie ogni costante di stringa come preambolo).
 - [x] **SENTINELLA — dalla ricerca del 05/09 (il diario delle volate e la
   relazione per l'ente), delta dal meccanismo.** Il registro volate e i reclami
   ci sono e il report li porta; mancano, misurati con il comando: la
@@ -6506,8 +6519,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.138 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2657, `run-stile` 328,
+  **3.141 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2660, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

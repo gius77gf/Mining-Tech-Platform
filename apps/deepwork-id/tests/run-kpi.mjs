@@ -30786,7 +30786,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 22, `almeno 22 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 24, `almeno 24 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30797,7 +30797,10 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       const src = readFileSync(join(RADICE, t.pagina), "utf8");
       ok(src.includes('"' + t.col), `⛔ ${t.id}: «${t.col}» non si trova più in ${t.pagina}`);
     }
-    ok(conPagina >= 10, `almeno 10 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
+       era censito col nome sbagliato). Il numero scende quando un export
+       migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
+    ok(conPagina >= 9, `almeno 9 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37479,6 +37482,52 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine riferimento della soglia (05/09) ===== */
 /* ===== fine scheda della singola volata (05/09) ===== */
+/* ===== i due file di Scudo composti nel modulo (05/09) ===== */
+{
+  const D = scudo.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Scudo · csvProspettoAzioni: il prospetto con semaforo, responsabile a parole e origine, nell'ordine dello schermo", () => {
+    const righe = scudo.csvProspettoAzioni(D.azioni, { lavoratori: D.lavoratori, infortuni: D.infortuni, ispezioni: D.ispezioni }, OGGI).trim().split("\n");
+    eq(righe[0], scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0], "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine", "con la colonna del semaforo, che a schermo è la pastiglia");
+    eq(righe.length, D.azioni.length + 1, "una riga per azione");
+    const c = righe.map((r) => r.split(";"));
+    eq(c[c.length - 1][4], "chiusa", "⛔ le chiuse in fondo, come nell'elenco a schermo");
+    eq(c.slice(1, -1).map((r) => r[2]), c.slice(1, -1).map((r) => r[2]).slice().sort(), "e le altre per data");
+    const senzaResp = c.find((r) => /segnaletica/.test(r[0]));
+    eq(senzaResp[1], "da assegnare", "⛔ il responsabile che manca è «da assegnare», non una cella vuota (etichettaResponsabile)");
+    eq(senzaResp[3], "scaduta", "il semaforo è quello di statoAzione alla data data");
+    eq(scudo.statoAzione(D.azioni.find((a) => /segnaletica/.test(a.descrizione)), OGGI), "scaduta", "(e statoAzione, con lo stesso oggi, dice lo stesso)");
+    ok(/^near-miss del 18\/05\/2026 — /.test(c.find((r) => /Disgaggio/.test(r[0]))[7]), "⛔ l'origine è la frase di origineAzione, con la data in italiano");
+    eq(scudo.csvProspettoAzioni([], {}, OGGI).trim(), scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "senza azioni resta l'intestazione");
+    eq(scudo.csvProspettoAzioni(null).trim(), scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "null non rompe");
+  });
+  test("Scudo · csvRiepilogoNearMiss: storico accanto al periodo, nota di lettura, denominatore prima dei gradini, luoghi ciechi", () => {
+    const tutto = scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 0, OGGI);
+    const r90 = scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 90, OGGI);
+    eq(tutto.split("\n")[0], "sezione;voce;numero", "l'intestazione");
+    eq(tutto.split("\n")[1], "periodo;tutto lo storico;", "il periodo a parole");
+    eq(r90.split("\n")[1], "periodo;ultimi 90 giorni;", "e la finestra");
+    ok(/^totale;near-miss segnalati;5$/m.test(tutto) && /^totale;near-miss nello storico \(fuori periodo compresi\);5$/m.test(tutto), "⛔ lo storico sta accanto al periodo");
+    ok(/^totale;near-miss segnalati;4$/m.test(r90) && /^totale;near-miss nello storico \(fuori periodo compresi\);5$/m.test(r90), "e a 90 giorni dice 4 su 5 nello storico: il file non tace il fuori periodo");
+    ok(/^lettura;ATTENZIONE alla lettura: 4 segnalazioni sono meno di 5/m.test(r90), "⛔ sotto la soglia c'è la riga di lettura del modulo (descriviLetturaNearMiss)");
+    ok(!/^lettura;/m.test(tutto), "sopra la soglia non c'è: niente da avvisare");
+    const righe = tutto.split("\n");
+    const iDen = righe.findIndex((x) => /^potenziale;near-miss con la gravità potenziale valutata;4$/.test(x));
+    const iGrad = righe.findIndex((x) => /^potenziale;se andava male: /.test(x));
+    ok(iDen > 0 && iGrad > iDen, "⛔ il denominatore (4 valutati) viene PRIMA dei gradini «se andava male»");
+    ok(/^potenziale;near-miss NON valutati;1$/m.test(tutto), "e i non valutati si contano");
+    ok(/^potenziale;Impianto — nessun episodio valutato: non si sa come poteva finire;1$/m.test(tutto), "⛔ il luogo cieco ha la sua riga con la sua parola, non sparisce");
+    ok(/^potenziale;Fronte — episodi che potevano finire con un infortunio \(su 2 valutati, 0 no\);2$/m.test(tutto), "e il luogo valutato porta il suo denominatore");
+    ok(/^azioni;near-miss ancora senza azione;4$/m.test(tutto), "le azioni in coda");
+    eq(scudo.csvRiepilogoNearMiss([], [], 0, OGGI).split("\n")[2], "totale;near-miss segnalati;0", "senza eventi, zero dichiarato");
+  });
+  test("Scudo · etichettaPeriodoNearMiss: la finestra a parole", () => {
+    const f = scudo.etichettaPeriodoNearMiss;
+    eq([f(0), f(null), f(365), f(90), f(30)], ["tutto lo storico", "tutto lo storico", "ultimi 12 mesi", "ultimi 90 giorni", "ultimi 30 giorni"], "le tre forme dello schermo, più quella generica");
+  });
+}
+/* ===== fine file di Scudo nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

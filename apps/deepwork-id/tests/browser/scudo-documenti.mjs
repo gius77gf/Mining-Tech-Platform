@@ -183,15 +183,21 @@ const PAGINA = "apps/scudo/index.html", MODULO = "apps/scudo/scudo-data.js";
 const CONDIVISO = "shared/deepwork-id-client/dw-shell.js";
 const DIFETTI = [
   // 1a. l'intestazione delle azioni senza la colonna del semaforo
-  ['let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\\n";',
-   'let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\\n";'],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`CSV_PROSPETTO_AZIONI_INTESTAZIONE`).
+     ⚠️ Senza il «NOME = » davanti alla stringa: `iniezioni-fresche` raccoglie
+     ogni `NOME = "…"` del banco come preambolo dell'eval, anche DENTRO una
+     stringa, e la citazione intera gli sembrava una seconda dichiarazione. */
+  ['"descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine";',
+   '"descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine";', MODULO],
   /* 1b. la riga senza `statoAzione`, e il responsabile mancante come cella vuota.
      ⏱️ RI-ANCORATA l'08/08: citava il vecchio `LAV.find(...)` scritto a mano, e
      quel pezzo è diventato `etichettaResponsabile` — cioè è MIGLIORATO, che è
      il modo in cui queste iniezioni scadono quasi sempre. */
-  ['const nome = (id) => etichettaResponsabile({ responsabileId: id }, LAV).nome;',
-   'const nome = (id) => { const l = LAV.find((x) => x.id === id); return l ? l.nome : ""; };'],
-  ["${a.scadenza || \"\"};${statoAzione(a)};${a.stato || \"aperta\"}", "${a.scadenza || \"\"};${a.stato || \"aperta\"}"],
+  /* ⏱️ RI-ANCORATA di nuovo il 05/09, sul MODULO: il prospetto è salito in
+     `csvProspettoAzioni`, e `LAV` lì si chiama `lav`. */
+  ['const nome = (id) => etichettaResponsabile({ responsabileId: id }, lav).nome;',
+   'const nome = (id) => { const l = lav.find((x) => x.id === id); return l ? l.nome : ""; };', MODULO],
+  ["${a.scadenza || \"\"};${statoAzione(a, oggi)};${a.stato || \"aperta\"}", "${a.scadenza || \"\"};${a.stato || \"aperta\"}", MODULO],
   /* 1c. LA COPIA DI SICUREZZA CHE PERDE UN'AZIONE IN SILENZIO. È il difetto
      che una copia di sicurezza non può permettersi — e non lascia niente da
      leggere: il file esce, si ri-carica, e manca una riga. Prima dell'08/08
@@ -204,8 +210,10 @@ const DIFETTI = [
   ['righe.push([...chi, "", "", SENZA, "—", ...coda].join(";"));',
    'righe.push([...chi, "", "", "", "—", ...coda].join(";"));', MODULO],
   // 3. il riepilogo L.198 senza lo storico e senza la nota di lettura
-  ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', ""],
-  ['{ const nota = descriviLetturaNearMiss(r);\n      if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', ""],
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (`csvRiepilogoNearMiss`), dove il
+     riepilogo è salito: cambia solo l'indentazione. */
+  ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', "", MODULO],
+  ['{ const nota = descriviLetturaNearMiss(r);\n    if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', "", MODULO],
   /* 4. il registro infortuni senza la colonna che dice la prognosi aperta.
      ⏱️ RI-ANCORATE l'08/08 sul MODULO (`csvRegistroInfortuni`), dove l'export è
      salito: la riga si compone con un array e `join`, non più concatenando
@@ -216,8 +224,10 @@ const DIFETTI = [
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè
         nel posto delle più urgenti — chi la data non ce l'ha, e mescolava le
         chiuse alle aperte. */
-  ['AZI.slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")\n        || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))',
-   'AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || "")))'],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: l'ordinamento è salito in
+     `csvProspettoAzioni`, dove `AZI` si chiama `azioni`. */
+  ['(azioni || []).slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")\n      || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))',
+   '(azioni || []).slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || "")))', MODULO],
   /* 6. la data mai scritta che usciva come la PAROLA «undefined».
      ⏱️ RI-ANCORATA l'08/08 sul MODULO. ⚠️ E l'ancora è la riga INTERA, non il
      solo `s.dataScadenza || ""`: quel pezzo compare DUE volte in
@@ -306,15 +316,15 @@ const DIFETTI = [
         sapere che sono calcolate su 2 episodi valutati su 3, né che l'app si
         rifiuta di dire dove il rischio si concentra. È lo stesso difetto del
         punto 3, sulla funzione nuova. */
-  ['      csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\\n`;\n      csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\\n`;\n      csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\\n`;',
-   ""],
+  ['    csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\\n`;\n    csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\\n`;\n    csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\\n`;',
+   "", MODULO],
   /* 25. IL LUOGO IN CUI NESSUNO HA VALUTATO NIENTE, TOLTO DAL FILE. A schermo
         ha una riga sua che dice «non si sa come poteva finire»; sparendo dal
         documento, un luogo non misurato si legge come un luogo senza problemi
         — l'assenza di un dato letta come un dato favorevole, nel foglio che
         va fuori. */
-  ['      for (const l of rp.luoghiCiechi)\n        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
-   "       }"],
+  ['    for (const l of rp.luoghiCiechi)\n      csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
+   "     }", MODULO],
   /* 26. IL FOGLIO PIÙ LARGO DELLA CARTA. Sullo schermo non si vede niente — il
         foglio a schermo non esiste — e dalla stampante esce una tabella
         tagliata sul bordo destro. È la famiglia che il 07/08 è uscita dal
