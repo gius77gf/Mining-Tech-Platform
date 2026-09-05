@@ -1968,7 +1968,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -2254,7 +2254,7 @@ label.item:has(.dw-chk:checked){
      righe di distanza (una per i clienti, una per i costi) che differivano
      solo per il tipo di ritorno — cioè la copia debole che nasce da una firma
      troppo stretta, scritta mentre correggevo esattamente quella famiglia. */
-  const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? "" : Math.round(v * 100) / 100; };
+  // `cellaNum` è salita nel modulo (05/09): la stessa cella per tutti i file
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
@@ -4564,9 +4564,7 @@ label.item:has(.dw-chk:checked){
   // Il conto deve tornare AL CENTESIMO: si può registrare al massimo il
   // residuo, e chi prova a superarlo riceve un messaggio che spiega perché.
   // ══════════════════════════════════════════════════════════════════
-  const METODI = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
-                  ["riba","RiBa / SDD"],["altro","Altro"]];
-  const nomeMetodo = (m) => (METODI.find(x => x[0] === m) || ["","—"])[1];
+  const METODI = METODI_INCASSO;   // l'elenco e `nomeMetodo` vivono nel modulo (05/09)
   // il messaggio d'errore non deve restare sotto la piega della finestra: su
   // telefono lo si porta sotto gli occhi, altrimenti resta solo un bordo rosso
   const incErr = (testo) => { const n = $("inc-err"); if (!n) return;
@@ -6643,36 +6641,10 @@ label.item:has(.dw-chk:checked){
       scartate.persi.length ? "warn" : nuovi.length ? "success" : "");
   };
   $("btn-inc-export").onclick = () => {
-    const righe = INC.map(m => ({ m, f: FAT.find(x => x.id === m.fatturaId) }))
-      .filter(r => r.f)
-      .sort((a, b) => String(a.m.data || "").localeCompare(String(b.m.data || "")));
-    /* ⛔ IL RESIDUO IGNORAVA LE NOTE DI CREDITO. È il file che il
-       commercialista incrocia con l'estratto conto della banca, e il residuo
-       lo calcolava come `importiFattura(f).totale - incassato`: quel totale è
-       il lordo della fattura, e `importiFattura` le note non le guarda. Lo
-       schermo invece passa da `statoFattura(f, INC, NOT)`, che toglie lo
-       stornato e ricava l'ESIGIBILE — tanto che la riga stampata lo dice a
-       parole: «Da incassare … (dopo la nota di credito)».
-       Su una fattura da 1.000 € con una nota da 200 € e un acconto da 500 €,
-       lo schermo diceva «residuo 300 €» e questo file «500».
-       È lo stesso difetto che il CSV della SITUAZIONE FATTURE, quaranta righe
-       più su, ha già corretto — e il suo commento lo dice: *la pagina si era
-       tenuta una copia più debole di due regole che l'app aveva già, le note
-       di credito e `quadra`*. Corretto a un export e non all'altro.
-       ⚠️ La colonna `totale_fattura` NON cambia significato: resta il lordo,
-       che è quello che il commercialista si aspetta di trovare accanto al
-       numero di fattura. Quello che mancava si AGGIUNGE — `note_di_credito` —
-       così il foglio mostra da dove viene la differenza invece di farla
-       comparire dentro un numero che si chiama in un altro modo. */
-    let csv = "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo\n";
-    for (const r of righe) {
-      const fino = movimentiDiFattura(r.f.id, INC)
-        .filter(x => String(x.data || "") < String(r.m.data || "") || (String(x.data || "") === String(r.m.data || "") && String(x.id) <= String(r.m.id)))
-        .reduce((t, x) => t + x.importo, 0);
-      const st = statoFattura(r.f, INC, NOT);
-      const tot = round2(importiFattura(r.f).totale);
-      csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, CLI))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(st.stornato || 0)};${round2(Math.max(0, round2(st.esigibile) - round2(fino)))}\n`;
-    }
+    const righe = INC.filter(m => FAT.find(x => x.id === m.fatturaId));   // per la frase sotto
+    // il file lo compone `csvProspettoIncassi` nel modulo — il residuo dopo ogni
+    // incasso toglie lo stornato, come lo schermo (05/09)
+    const csv = csvProspettoIncassi(INC, FAT, NOT, CLI);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_incassi.csv"; marchiaCsv(a); a.click();
@@ -6776,17 +6748,9 @@ label.item:has(.dw-chk:checked){
       scartate.persi.length ? "warn" : nuovi.length ? "success" : "");
   };
   $("btn-cli-export").onclick = () => {
-    // anagrafica completa per il commercialista o per un altro gestionale
-    /* ⛔ E QUI C'ERA `+c.sconto || 0`, CORRETTO IL 07/08. Quella guardia scrive
-       `0` dove nessuno ha scritto niente: sullo sconto è discutibile, sul FIDO
-       è la faccia tranquilla del principio del fondatore in un posto che
-       decide se una consegna parte. «Fido 0» vuol dire *non gli si fa
-       credito*; «fido non impostato» vuol dire *nessuno ci ha pensato*. Sono
-       due frasi opposte, e il file le scriveva uguali — in un foglio che va al
-       commercialista o dentro un altro gestionale. */
-    let csv = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note\n";
-    for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
-      csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
+    // anagrafica completa per il commercialista o per un altro gestionale:
+    // la compone `csvProspettoClienti` nel modulo, con `cellaNum` (05/09)
+    const csv = csvProspettoClienti(CLI);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_clienti.csv"; marchiaCsv(a); a.click();

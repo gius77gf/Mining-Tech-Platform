@@ -497,9 +497,9 @@ export const CSV_TABELLE = [
      esattamente quelli che i messaggi di questa casa chiamavano «il prospetto
      e non la copia di sicurezza» tirando a indovinare — adesso si nominano. */
   { id: "conti.prospettoIncassi", app: "Conti", etichetta: "il prospetto degli incassi di Conti",
-    pagina: "apps/conti/index.html", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
+    fonte: "conti.csvProspettoIncassi", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
   { id: "conti.prospettoClienti", app: "Conti", etichetta: "il prospetto dei clienti di Conti",
-    pagina: "apps/conti/index.html", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
+    fonte: "conti.csvProspettoClienti", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
   { id: "conti.prospettoCosti", app: "Conti", etichetta: "il prospetto dei costi di Conti",
     pagina: "apps/conti/index.html", col: "data;voce;gruppo;importo;nota;nel_periodo" },
   { id: "conti.prezziConvertiti", app: "Conti", etichetta: "il prospetto dei prezzi convertiti di Conti",

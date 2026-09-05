@@ -5395,6 +5395,54 @@ export function scartiPesateCsv(text) {
    è peggio che non saperlo. */
 export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo";
 
+/* I METODI DI INCASSO E IL LORO NOME (05/09, saliti dalla pagina): la tendina
+   e i file li leggono dallo stesso elenco. Un metodo che non c'è si scrive «—». */
+export const METODI_INCASSO = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
+                               ["riba","RiBa / SDD"],["altro","Altro"]];
+export function nomeMetodo(m) { return (METODI_INCASSO.find(x => x[0] === m) || ["","—"])[1]; }
+
+/* LA CELLA DI UN NUMERO IN UN FILE (05/09, salita dalla pagina): vuota quando
+   nessuno l'ha scritto, mai «0» — «fido 0» vuol dire *non gli si fa credito*,
+   «fido non impostato» vuol dire *nessuno ci ha pensato*, e un foglio che va
+   al commercialista deve distinguerle. Due decimali. */
+export function cellaNum(x) { const v = numeroDichiarato(x); return v == null ? "" : Math.round(v * 100) / 100; }
+
+/* IL PROSPETTO DEGLI INCASSI (05/09, salito dalla pagina): il file che il
+   commercialista incrocia con l'estratto conto. Per ogni incasso la fattura,
+   il lordo (`totale_fattura`, quello che si aspetta accanto al numero), le
+   note di credito e il residuo DOPO quell'incasso — calcolato sull'esigibile
+   di `statoFattura`, che toglie lo stornato, come lo schermo: su 1.000 € con
+   una nota da 200 e un acconto da 500 il residuo è 300, non 500. Gli incassi
+   la cui fattura non esiste più restano fuori. Per data. Pura. */
+export const CSV_PROSPETTO_INCASSI_INTESTAZIONE = "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo";
+export function csvProspettoIncassi(incassi, fatture, note, clienti) {
+  const INC = (incassi || []).filter(Boolean), FAT = fatture || [], NOT = note || [];
+  const righe = INC.map(m => ({ m, f: FAT.find(x => x && x.id === m.fatturaId) }))
+    .filter(r => r.f)
+    .sort((a, b) => String(a.m.data || "").localeCompare(String(b.m.data || "")));
+  let csv = CSV_PROSPETTO_INCASSI_INTESTAZIONE + "\n";
+  for (const r of righe) {
+    const fino = movimentiDiFattura(r.f.id, INC)
+      .filter(x => String(x.data || "") < String(r.m.data || "") || (String(x.data || "") === String(r.m.data || "") && String(x.id) <= String(r.m.id)))
+      .reduce((t, x) => t + x.importo, 0);
+    const st = statoFattura(r.f, INC, NOT);
+    const tot = round2(importiFattura(r.f).totale);
+    csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, clienti || []))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(st.stornato || 0)};${round2(Math.max(0, round2(st.esigibile) - round2(fino)))}\n`;
+  }
+  return csv;
+}
+
+/* L'ANAGRAFICA DEI CLIENTI PER IL COMMERCIALISTA O UN ALTRO GESTIONALE
+   (05/09, salita dalla pagina): sconto e fido passano da `cellaNum`, quindi il
+   fido non impostato esce VUOTO e non «0». Per ragione sociale. Pura. */
+export const CSV_PROSPETTO_CLIENTI_INTESTAZIONE = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note";
+export function csvProspettoClienti(clienti) {
+  let csv = CSV_PROSPETTO_CLIENTI_INTESTAZIONE + "\n";
+  for (const c of (clienti || []).filter(Boolean).slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
+    csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
+  return csv;
+}
+
 export function csvIncassi(incassi) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
   const righe = [CSV_INCASSI_INTESTAZIONE];

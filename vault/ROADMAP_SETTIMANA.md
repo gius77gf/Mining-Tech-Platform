@@ -445,7 +445,12 @@
   «✔ distingue» usciva lo stesso — corretto (ogni iniezione al file che
   dichiara), e da allora si legge la riga «8 difetti rimessi davvero».
   **Resta nella pagina un file di Flotta**: il libretto (il più lungo, ~60
-  righe di `R(...)`). E in Conti sei: incassi, clienti, costi,
+  righe di `R(...)`). In Conti sono saliti `csvProspettoIncassi` (il residuo
+  dopo ogni incasso toglie lo stornato) e `csvProspettoClienti` (il fido non
+  impostato esce vuoto), con `nomeMetodo`/`METODI_INCASSO` e `cellaNum`
+  saliti dalla pagina; run-kpi +2 (2672); il banco `conti-documenti-che-escono`
+  aveva lo stesso buco di Flotta (applicava solo alla pagina) e adesso legge
+  «6 difetti rimessi davvero». **Restano in Conti quattro**: costi,
   listino_prezzi, pesate_ddt, preventivi. Comando di partenza:
   `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
@@ -1642,8 +1647,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(resta
-  il libretto in Flotta, e sei file in Conti: un paio per unità, riancorando
-  le iniezioni — e leggendo «N difetti rimessi davvero»)*
+  il libretto in Flotta, e quattro file in Conti: un paio per unità,
+  riancorando le iniezioni — e leggendo «N difetti rimessi davvero»)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6559,8 +6564,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.151 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2670, `run-stile` 328,
+  **3.153 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2672, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -30788,7 +30788,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 31, `almeno 31 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 33, `almeno 33 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30802,7 +30802,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 7, `almeno 7 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    ok(conPagina >= 5, `almeno 5 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37718,6 +37718,41 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine situazione del parco nel modulo (05/09) ===== */
+/* ===== il prospetto degli incassi e l'anagrafica clienti nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  test("Conti · csvProspettoIncassi: per data, con la fattura, il lordo, le note e il residuo DOPO ogni incasso", () => {
+    const righe = conti.csvProspettoIncassi(D.incassi, D.fatture, [], D.clienti).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.incassi.length + 1, "una riga per incasso (tutte le fatture della dimostrazione esistono)");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort(), "per data");
+    const f6 = righe.filter((r) => /2026\/030/.test(r)).map((r) => r.split(";"));
+    eq(f6.map((c) => c[7]), ["4320", "0"], "⛔ il residuo DOPO ogni incasso scende: 7.320 − 3.000 = 4.320, poi 0");
+    eq(f6[0][5], "7320", "il lordo della fattura resta il lordo");
+    eq(f6[0][4], "Bonifico", "il metodo a parole, da nomeMetodo");
+    const F = { id: "FX", numero: "2026/099", cliente: "Cava Rossi", importo: 1000, emessa: "2026-01-10", scadenza: "2026-02-09" };
+    const r = conti.csvProspettoIncassi([{ id: "k1", fatturaId: "FX", data: "2026-02-01", importo: 500, metodo: "assegno" }], [F], [{ fatturaId: "FX", totale: 200 }], []).trim().split("\n")[1].split(";");
+    eq([r[5], r[6], r[7]], [String(conti.round2(conti.importiFattura(F).totale)), "200", String(conti.round2(conti.statoFattura(F, [{ id: "k1", fatturaId: "FX", data: "2026-02-01", importo: 500 }], [{ fatturaId: "FX", totale: 200 }]).esigibile) - 500)], "⛔ con una nota da 200 e un acconto da 500 il residuo è l'esigibile meno l'acconto (lo schermo dice lo stesso), non il lordo meno l'acconto");
+    eq(conti.csvProspettoIncassi([{ id: "k2", fatturaId: "nessuna", data: "2026-01-01", importo: 1 }], [], [], []).trim(), conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "un incasso la cui fattura non esiste resta fuori");
+    eq(conti.csvProspettoIncassi(null, null, null, null).trim(), conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "null non rompe");
+  });
+  test("Conti · csvProspettoClienti e cellaNum: il fido non impostato esce VUOTO, non «0»", () => {
+    const righe = conti.csvProspettoClienti(D.clienti).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_CLIENTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.clienti.length + 1, "una riga per cliente");
+    const nomi = righe.slice(1).map((r) => r.split(";")[0].replace(/^"|"$/g, ""));
+    eq(nomi, nomi.slice().sort((a, b) => a.localeCompare(b, "it")), "per ragione sociale");
+    const due = conti.csvProspettoClienti([{ ragioneSociale: "B", sconto: 0, fido: null }, { ragioneSociale: "A", sconto: 12.345, fido: 25000 }]).trim().split("\n");
+    eq(due[1].split(";").slice(4, 6), ["12.35", "25000"], "sconto a due decimali, fido nudo");
+    eq(due[2].split(";").slice(4, 6), ["0", ""], "⛔ «sconto 0» è uno zero dichiarato e resta 0; il fido non impostato è VUOTO");
+    eq([conti.cellaNum(null), conti.cellaNum(""), conti.cellaNum("abc"), conti.cellaNum(0), conti.cellaNum(1.005)], ["", "", "", 0, 1], "cellaNum: vuoto dove non c'è un numero, due decimali dove c'è");
+    eq([conti.nomeMetodo("bonifico"), conti.nomeMetodo("riba"), conti.nomeMetodo("boh"), conti.nomeMetodo("")], ["Bonifico", "RiBa / SDD", "—", "—"], "nomeMetodo: il nome, o «—»");
+    eq(conti.METODI_INCASSO.length, 5, "cinque metodi");
+    eq(conti.csvProspettoClienti(null).trim(), conti.CSV_PROSPETTO_CLIENTI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine prospetto incassi e clienti nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
