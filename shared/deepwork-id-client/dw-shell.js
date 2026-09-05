@@ -577,9 +577,9 @@ export const CSV_TABELLE = [
   { id: "terra.fronti", app: "Terra", etichetta: "l'elenco dei fronti di Terra",
     col: "nome;banco;quota;stato" },
   { id: "terra.prospettoAvanzamento", app: "Terra", etichetta: "il prospetto dell'avanzamento di Terra",
-    pagina: "apps/terra/index.html", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
+    fonte: "terra.csvRiepilogoAnno", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
   { id: "terra.prospettoFronti", app: "Terra", etichetta: "il prospetto dei fronti e dei rilievi di Terra",
-    pagina: "apps/terra/index.html", col: "tipo;nome;stato;provenienza;dettaglio" },
+    fonte: "terra.csvFrontiRilievi", col: "tipo;nome;stato;provenienza;dettaglio" },
 ];
 
 // Almeno tre celle: sotto, una riga di dati qualunque comincerebbe a

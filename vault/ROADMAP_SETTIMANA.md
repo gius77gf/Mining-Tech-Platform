@@ -483,6 +483,27 @@
   vuota, «registro non letto» ≠ «registro vuoto» per Sentinella e Scudo.
   Banco `campo-foglio-turno` 44/44 sano, --live e controprova, senza
   riancorare niente (le iniezioni mordono le funzioni, non la composizione).
+- [x] **TERRA — il riepilogo dell'anno e l'archivio dei fronti e rilievi si
+  compongono nel modulo (05/09):** ultima app della domanda «che cosa esce, e
+  chi decide i suoi numeri?». `csvRiepilogoAnno(DEN, fronti, oggi)` con la
+  costante dell'intestazione: mesi, totale (la cella del totale legge
+  `d.base.calcolabile`, come lo schermo), fronti, banchi, i secchi — compresa
+  la riga «Fronti non più in elenco», che prima spariva dal file — e le due
+  righe del titolo con `R.misurabile`. `csvFrontiRilievi(fronti, rilievi)`:
+  «quota non dichiarata» dove la quota non c'è, «volume non leggibile» su un
+  elaborato col volume illeggibile (`rilievoUsabile`, la stessa dello
+  schermo), la provenienza di `provenienzaDi`, rilievi dal più recente.
+  `MESI_NOME` ed `etichettaFronteDi` saliti dalla pagina. run-kpi +2 (2681);
+  censimento: `terra.prospettoAvanzamento` e `terra.prospettoFronti`
+  verificati chiamando l'export (soglia export 38 → 40, pagine 0). Fondo di
+  copertura di Terra 80 → 86. Il banco `terra-numeri-tranquilli` inietta per
+  file (cinque iniezioni riancorate sul modulo: 2, 6a, 6b, 6c, 7), 19 su 19
+  rimessi; la prova statica delle sette celle del titolo cerca le due celle
+  del CSV nel modulo. **Le sei app sono a zero file composti nella pagina.**
+  ⚠️ Resta il core (`index.html` alla radice): il suo unico CSV
+  (`deepwork_fori_fronte`) vive in un monolite SENZA modulo dati, quindi la
+  regola «lo compone la stessa funzione che decide a schermo» lì non ha un
+  modulo in cui salire — si dice qui e non si apre un cantiere a metà.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6582,8 +6603,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.160 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2679, `run-stile` 328,
+  **3.162 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2681, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

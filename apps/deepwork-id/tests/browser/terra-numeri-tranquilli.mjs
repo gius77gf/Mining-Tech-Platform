@@ -98,6 +98,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 
 /* I DIFETTI DA RIMETTERE, uno per riga, con il pezzo di pagina che li porta.
    Contati: una controprova che non sostituisce niente non prova niente. */
+const PAGINA = "apps/terra/index.html", MODULO = "apps/terra/terra-data.js";
 const DIFETTI = [
   // 1 · la frase del foglio che va all'ente
   ['? "nessun rilievo — il volume dell\'anno non l\'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"',
@@ -106,7 +107,7 @@ const DIFETTI = [
   ['+ (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class=\'n\'>"',
    '+ n0(R.scavo) + "</td><td class=\'n\'>"'],
   // 2 · la cella del totale nel CSV
-  ['${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo}', '${R.scavo};${R.cumulo}'],
+  ['${d.base && d.base.calcolabile ? R.scavo : ""};${R.cumulo}', '${R.scavo};${R.cumulo}', MODULO],
   // 3 · la condizione più debole che apriva il bottone del verbale
   ['const usabile = rilievoUsabile(r);', 'const usabile = r.stato === "elaborato" && r.volumeM3 != null;'],
   // 4 · i due zeri del riquadro del valore
@@ -121,19 +122,21 @@ const DIFETTI = [
      Quattro difetti in due righe di codice, tutti trovati aprendo il file e
      mettendolo accanto allo schermo sugli stessi dati. */
   // 6a · la quinta copia più debole di `rilievoUsabile`, e stavolta nel file
-  ['(rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"\n              : r.stato === "elaborato" ? " · volume non leggibile" : "")',
-   '(r.volumeM3 != null ? " · " + r.volumeM3 + " m³" : "")'],
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (2, 6a, 6b, 6c, 7): i due CSV sono saliti
+     in `csvFrontiRilievi` e `csvRiepilogoAnno`; l'indentazione cambia. */
+  ['(rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"\n            : r.stato === "elaborato" ? " · volume non leggibile" : "")',
+   '(r.volumeM3 != null ? " · " + r.volumeM3 + " m³" : "")', MODULO],
   // 6b · la data senza anno su un file che contiene l'archivio intero
-  ['csvCell(dataIt(r.data)', 'csvCell(giornoMese(r.data)'],
+  ['csvCell(dataIt(r.data)', 'csvCell(String(r.data || "").slice(5)', MODULO],
   // 6c · la quota grezza, col punto, e muta quando non c'è
   ['f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",',
-   'f.quota == null || f.quota === "" ? "" : "quota " + f.quota + "m",'],
+   'f.quota == null || f.quota === "" ? "" : "quota " + f.quota + "m",', MODULO],
   // 6d · la quota grezza sul VERBALE, accanto a un GSD scritto all'italiana
   ['+ (f.quota == null || f.quota === "" ? " · quota non dichiarata" : " · quota " + esc(nD(f.quota)) + " m")',
    '+ (f.quota != null ? " · quota " + esc(String(f.quota)) + " m" : "")'],
   // ── 7 · i secchi del CSV della denuncia ────────────────────────────────
-  ['${s.misurabile ? s.scavo : ""};${s.cumulo}', '${s.scavo};${s.cumulo}'],
-  ['      ["Fronti non più in elenco", DEN.banchi.fuoriElenco],\n', ''],
+  ['${s.misurabile ? s.scavo : ""};${s.cumulo}', '${s.scavo};${s.cumulo}', MODULO],
+  ['    ["Fronti non più in elenco", DEN.banchi.fuoriElenco],\n', '', MODULO],
   /* ── 8 · LA PASSATA DEL 02/09 ─────────────────────────────────────────── */
   // 8a · la scadenza «senza data» disegnata verde con la spunta
   ['const cls = "st-" + lv.cls;', 'const cls = st === "scaduta" ? "st-danger" : st === "in-scadenza" ? "st-warn" : "st-ok";'],
@@ -175,21 +178,25 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/terra/terra-data.js") && FIXTURE) {
-    corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
-  }
-  if (CONTROPROVA && p.endsWith("apps/terra/index.html")) {
-    let t = corpo.toString("utf8");
-    /* ⚠️ SI CONTANO I DIFETTI RIMESSI, non le sostituzioni: la pagina viene
-       caricata tre volte e un conto crescente direbbe «15 su 5», che sembra un
-       errore. Quello che serve sapere è se OGNI difetto ha trovato il suo
-       pezzo di pagina — un `replace` che non trova niente esce in silenzio. */
-    for (const [a, b] of DIFETTI) {
-      if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+  /* ⚠️ SI CONTANO I DIFETTI RIMESSI, non le sostituzioni: la pagina viene
+     caricata tre volte e un conto crescente direbbe «15 su 5», che sembra un
+     errore. Quello che serve sapere è se OGNI difetto ha trovato il suo
+     pezzo — un `replace` che non trova niente esce in silenzio.
+     ⛔ E OGNI INIEZIONE SI APPLICA AL FILE CHE DICHIARA (05/09): senza il
+     terzo elemento vale la pagina; con MODULO si applica a terra-data.js. */
+  const applica = (t, file) => {
+    for (const [a, b, f] of DIFETTI) {
+      if ((f || PAGINA) === file && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     }
     iniezioni = colpiti.size;
-    corpo = Buffer.from(t, "utf8");
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + (FIXTURE || ""), "utf8");
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

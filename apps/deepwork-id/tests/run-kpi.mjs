@@ -28913,6 +28913,10 @@ test("riepilogoAnnuale: un solo rilievo di scavo, o il pregresso dichiarato, ren
    il suo denominatore è dichiarato: SETTE celle, contate. */
 test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono tutte `R.misurabile`", () => {
   const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  /* ⏱️ dal 05/09 il CSV della denuncia si compone nel MODULO (`csvRiepilogoAnno`):
+     le sue due celle si cercano lì, le altre cinque nella pagina. Il terzo posto
+     della tupla dice dove. */
+  const mod = readFileSync(join(HERE, "../../terra/terra-data.js"), "utf8");
   /* l'ancora è il TESTO che l'utente legge, non un numero di riga: le righe si
      spostano a ogni commit, un'etichetta no (misurato il 09/08: 87 riferimenti
      di riga su 91 non trovavano più il loro nome) */
@@ -28922,8 +28926,8 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
     ["foglio stampato · riga del cumulato", "<tr class='tot'><td>Cumulato a fine "],
     ["foglio stampato · riga del residuo", "<b>Residuo del volume concesso</b>"],
     ["foglio stampato · scavo sotto il titolo", "<b>Scavo misurato sotto questo titolo fino al 31/12/"],
-    ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "'],
-    ["CSV · riga del residuo", 'csvCell("Residuo del concesso"'],
+    ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "', "modulo"],
+    ["CSV · riga del residuo", 'csvCell("Residuo del concesso"', "modulo"],
   ];
   // la cella è l'espressione che segue l'ancora: si guarda lì dentro, non nel file
   const cella = (testo, ancora) => {
@@ -28931,9 +28935,9 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
     return i < 0 ? null : testo.slice(i, i + 300);
   };
   const senza = [];
-  for (const [nome, ancora] of CELLE) {
-    const c = cella(src, ancora);
-    ok(c != null, `l'ancora di «${nome}» non si trova più nella pagina: o è stata riscritta, o questa prova è invecchiata (${ancora})`);
+  for (const [nome, ancora, dove] of CELLE) {
+    const c = cella(dove === "modulo" ? mod : src, ancora);
+    ok(c != null, `l'ancora di «${nome}» non si trova più ${dove === "modulo" ? "nel modulo" : "nella pagina"}: o è stata riscritta, o questa prova è invecchiata (${ancora})`);
     if (!/\bR?\.?misurabile\b/.test(c)) senza.push(nome);
   }
   eq(senza, [], `queste celle compongono un numero del titolo senza leggere la bandiera che dice se è stato misurato (${CELLE.length} celle guardate)`);
@@ -28945,7 +28949,7 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
     .replace('+ (R.misurabile\n          ? n0(R.cumulatoFineAnno) + " m³"', '+ (true\n          ? n0(R.cumulatoFineAnno) + " m³"')
     .replace('(!R.misurabile ? "non misurato" : R.residuoFineAnno != null', '(false ? "non misurato" : R.residuoFineAnno != null');
   ok(rotta !== src, "l'iniezione non ha trovato il suo pezzo di pagina: la controprova sarebbe girata su un prodotto sano");
-  const scoperte = CELLE.filter(([, a]) => { const c = cella(rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
+  const scoperte = CELLE.filter(([, a, dove]) => { const c = cella(dove === "modulo" ? mod : rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
   eq(scoperte.length, 2, "col difetto rimesso le due celle del foglio stampato risultano scoperte");
 });
 test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il prospetto della denuncia", () => {
@@ -30790,7 +30794,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 38, `almeno 38 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 40, `almeno 40 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30804,7 +30808,10 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 2, `almeno 2 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    /* 05/09, fine della giornata: ZERO. Ogni file che esce dalle sei app si
+       compone nel modulo e la sua intestazione si verifica chiamando l'export.
+       Se un giorno tornasse a uno, qualcuno ha scritto un file nella pagina. */
+    eq(conPagina, 0, `nessuna intestazione viene più letta da una pagina — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37886,6 +37893,54 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine libretto nel modulo (05/09) ===== */
+/* ===== il riepilogo dell'anno e l'archivio di Terra nel modulo (05/09) ===== */
+{
+  const D = terra.DEMO;
+  const anni = terra.anniConVolumi(D.rilievi);
+  const aut = terra.autorizzazioneVigente(D.autorizzazioni);
+  const R = terra.riepilogoAnnuale(D.rilievi, anni[0], aut);
+  const DEN = { R, base: terra.baseOnereEscavazione(R, {}), banchi: terra.ripartizioneBanchi(R, D.fronti) };
+  test("Terra · csvRiepilogoAnno: mesi, totale, fronti, banchi, secchi e titolo — una convenzione sola per lo scavo mai misurato", () => {
+    const righe = terra.csvRiepilogoAnno(DEN, D.fronti, new Date(anni[0] + "-12-31T12:00:00")).trim().split("\n");
+    eq(righe[0], terra.CSV_RIEPILOGO_ANNO_INTESTAZIONE, "l'intestazione è la costante");
+    const sez = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(sez.filter((x) => x === "mese").length, R.inCorso ? 12 : R.mesi.length, "a fine anno tutti i mesi");
+    eq(righe.filter((r) => r.startsWith("totale;")).length, 1, "un totale");
+    eq(sez.filter((x) => x === "fronte").length, terra.ripartizioneFronti(R, { tutte: true }).righe.length, "una riga per fronte, anche quello senza fronte");
+    eq(sez.filter((x) => x === "banco").length, DEN.banchi.righe.length + [DEN.banchi.nonDichiarato, DEN.banchi.fuoriElenco].filter(Boolean).length, "⛔ i banchi più i due secchi (banco non dichiarato, fronti non più in elenco) quando ci sono");
+    eq(sez.filter((x) => x === "titolo").length, 4, "le quattro righe del titolo");
+    for (const b of DEN.banchi.righe) {
+      const r = righe.find((x) => x.startsWith("banco;") && x.includes(b.etichetta));
+      eq(r.split(";")[2], b.misurabile ? String(b.scavo) : "", "⛔ lo scavo del banco è VUOTO se non misurato, mai 0 — " + b.etichetta);
+    }
+    const cieco = terra.csvRiepilogoAnno({ R: { ...R, misurabile: false, mesi: R.mesi }, base: { calcolabile: false }, banchi: DEN.banchi }, D.fronti, new Date(anni[0] + "-12-31T12:00:00")).trim().split("\n");
+    eq(cieco.find((x) => x.startsWith("totale;")).split(";")[2], "", "⛔ senza scavo misurato il totale dell'anno resta VUOTO");
+    ok(cieco.some((x) => /^titolo;"?Cumulato a fine \d{4} \(NON MISURATO/.test(x)) && cieco.some((x) => /^titolo;"?Residuo del concesso \(NON MISURATO/.test(x)), "⛔ cumulato e residuo dicono NON MISURATO, non 0 e 1.200.000");
+    eq(terra.csvRiepilogoAnno(null).trim(), terra.CSV_RIEPILOGO_ANNO_INTESTAZIONE + "\ntotale;Anno undefined;;undefined;undefined", "null non rompe (e il totale su un riepilogo che non c'è si legge come tale)");
+    eq([terra.etichettaFronteDi({ fronteId: "f1" }, D.fronti), terra.etichettaFronteDi({ fronteId: "zz" }, D.fronti), terra.etichettaFronteDi({}, D.fronti)], ["Fronte Nord", "Fronte non più in elenco", "Senza fronte indicato"], "etichettaFronteDi: il nome, il cancellato, il senza fronte");
+    eq(terra.MESI_NOME.length, 12, "dodici mesi");
+  });
+  test("Terra · csvFrontiRilievi: quota non dichiarata, volume non leggibile, provenienza — le parole dello schermo nel file", () => {
+    const righe = terra.csvFrontiRilievi(D.fronti, D.rilievi).trim().split("\n");
+    eq(righe[0], terra.CSV_FRONTI_RILIEVI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + D.fronti.length + D.rilievi.length, "una riga per fronte e per rilievo");
+    const date = righe.filter((r) => r.startsWith("rilievo;")).map((r) => r.split(";")[4].replace(/^"/, "").slice(0, 10));
+    ok(date.length >= 2, "(più di un rilievo)");
+    const nord = righe.find((r) => r.startsWith("fronte;") && /Fronte Nord/.test(r));
+    ok(/quota 340 m · avanzamento 72%/.test(nord), "quota e avanzamento — " + nord);
+    const strani = terra.csvFrontiRilievi([{ nome: "Ovest", stato: "attivo" }], [{ titolo: "R", data: "2026-03-12", stato: "elaborato", volumeM3: "abc" }, { titolo: "P", data: "2026-04-01", stato: "pianificato" }]).trim().split("\n");
+    ok(/;;"?quota non dichiarata"?$/.test(strani[1]), "⛔ la quota che non c'è si dichiara — " + strani[1]);
+    // le righe dei rilievi escono dal più recente: prima P (aprile), poi R (marzo)
+    ok(/;01\/04\/2026"?$/.test(strani[2]), "un pianificato non dice niente del volume — " + strani[2]);
+    ok(/;12\/03\/2026 · volume non leggibile$/.test(strani[3].replace(/"/g, "")), "⛔ un elaborato col volume illeggibile dice «volume non leggibile», non «m³» vuoto — " + strani[3]);
+    for (const r of D.rilievi) {
+      const x = righe.find((q) => q.startsWith("rilievo;") && q.includes(r.titolo));
+      eq(x.split(";")[3], terra.provenienzaRilievo(r), "la provenienza è quella di provenienzaRilievo — " + r.titolo);
+    }
+    eq(terra.csvFrontiRilievi(null, null).trim(), terra.CSV_FRONTI_RILIEVI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine riepilogo e archivio di Terra nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

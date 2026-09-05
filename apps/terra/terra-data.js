@@ -1522,6 +1522,80 @@ export function ripartizioneFronti(riepilogo, opzioni = {}) {
    finiti nella stessa riga invece di scoprirlo per caso. */
 const chiaveBanco = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ");
 
+/* I NOMI DEI MESI E L'ETICHETTA DI UN FRONTE (05/09, saliti dalla pagina):
+   li usano il foglio stampato e i file. Un fronte cancellato non sparisce:
+   «Fronte non più in elenco»; una voce senza fronte lo dice. */
+export const MESI_NOME = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                          "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+export function etichettaFronteDi(voce, fronti) {
+  const v = voce || {};
+  if (!v.fronteId) return "Senza fronte indicato";
+  const f = (fronti || []).find(x => x && x.id === v.fronteId);
+  return f ? f.nome : "Fronte non più in elenco";
+}
+
+/* IL RIEPILOGO DELL'ANNO PER L'ENTE, IN CSV (05/09, salito dalla pagina): i
+   mesi, il totale, i fronti, i banchi e il confronto col volume concesso.
+   Una convenzione sola in tutto il file: la cella di uno scavo MAI MISURATO
+   resta vuota (totale senza rilievi, banco mai rilevato, fronte non
+   misurabile, cumulato e residuo sotto un titolo senza rilievi), perché chi
+   apre il foglio in Excel somma lo zero credendolo misurato; i cumuli hanno
+   la loro colonna. `DEN` è il riepilogo che la pagina tiene per stampa ed
+   export: { R (riepilogoAnnuale), base (baseOnereEscavazione), banchi
+   (ripartizioneBanchi) }. Pura. */
+export const CSV_RIEPILOGO_ANNO_INTESTAZIONE = "sezione;voce;scavoM3;cumuloM3;rilieviScavo";
+export function csvRiepilogoAnno(DEN, fronti, oggi = new Date()) {
+  const d = DEN || {};
+  const R = d.R || {};
+  const meseOggi = new Date(oggi).getMonth() + 1;
+  const mesi = R.mesi || [];
+  const mesiVisti = R.inCorso ? mesi.slice(0, meseOggi) : mesi;
+  const etFronte = (v) => etichettaFronteDi(v, fronti);
+  let csv = CSV_RIEPILOGO_ANNO_INTESTAZIONE + "\n";
+  for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilieviScavo}\n`;
+  csv += `totale;${csvCell("Anno " + R.anno)};${d.base && d.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo}\n`;
+  if (R.mesi) for (const f of ripartizioneFronti(R, { tutte: true }).righe)
+    csv += `fronte;${csvCell(etFronte(f))};${f.misurabile ? f.scavo : ""};${f.cumulo};${+f.rilieviScavo || 0}\n`;
+  for (const b of (d.banchi ? d.banchi.righe : []))
+    csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
+  const secchi = d.banchi ? [
+    ["Banco non dichiarato", d.banchi.nonDichiarato],
+    ["Fronti non più in elenco", DEN.banchi.fuoriElenco],
+  ] : [];
+  for (const [et, s] of secchi) if (s)
+    csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
+  if (!R.mesi) return csv;
+  const nonMis = " (NON MISURATO: nessun rilievo di scavo sotto il titolo e estratto precedente non dichiarato)";
+  csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
+  csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
+  csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.misurabile ? (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)") : nonMis))};${R.misurabile ? R.cumulatoFineAnno : ""};;\n`;
+  csv += `titolo;${csvCell("Residuo del concesso" + (!R.misurabile ? nonMis : R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.misurabile && R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+  return csv;
+}
+
+/* L'ARCHIVIO DEI FRONTI E DEI RILIEVI, IN CSV (05/09, salito dalla pagina):
+   ogni fronte con lo stato, la quota («quota non dichiarata» quando non
+   c'è) e l'avanzamento; ogni rilievo con lo stato, la provenienza e il volume
+   — «volume non leggibile» su un elaborato il cui numero non si legge, che è
+   un'altra cosa da un rilievo pianificato. Dal più recente. Pura. */
+export const CSV_FRONTI_RILIEVI_INTESTAZIONE = "tipo;nome;stato;provenienza;dettaglio";
+export function csvFrontiRilievi(fronti, rilievi) {
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  const avFronte = (f, et) => (f && f.avanzamento != null && f.avanzamento !== ""
+    && Number.isFinite(+f.avanzamento)) ? et + " " + nD(f.avanzamento) + "%" : "";
+  let csv = CSV_FRONTI_RILIEVI_INTESTAZIONE + "\n";
+  for (const f of (fronti || []).filter(Boolean))
+    csv += `fronte;${csvCell(f.nome + (f.banco ? " — " + f.banco : ""))};${f.stato};;`
+      + csvCell([f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",
+          avFronte(f, "avanzamento")].filter(Boolean).join(" · ")) + "\n";
+  for (const r of (rilievi || []).filter(Boolean).slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
+    csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaDi(r)};`
+      + csvCell(dataIt(r.data)
+          + (rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"
+            : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
+  return csv;
+}
+
 export function ripartizioneBanchi(riepilogo, fronti) {
   const R = riepilogo || {};
   const anno = R.anno != null ? R.anno : "";

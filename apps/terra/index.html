@@ -1019,7 +1019,7 @@ a.dw-btn{text-decoration:none}
 <script type="module">
   import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
@@ -2444,8 +2444,7 @@ a.dw-btn{text-decoration:none}
   //    dichiarato zero, non saltato);
   //  · lo scavo e la ripresa dei cumuli non si sommano mai, nemmeno qui.
   // ══════════════════════════════════════════════════════════════════════
-  const MESI_NOME = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-                     "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  // `MESI_NOME` vive nel modulo (05/09): lo leggono il foglio e il file
   let annoDen = null;
   const nomeFronte = (id) => { const f = FRO.find(x => x.id === id); return f ? f.nome : null; };
   const etFronte = (v) => v.fronteId ? (nomeFronte(v.fronteId) || "Fronte non più in elenco") : "Senza fronte indicato";
@@ -3189,87 +3188,10 @@ a.dw-btn{text-decoration:none}
 
   $("btn-den-csv").onclick = () => {
     if (!DEN) return;
+    // il file lo compone `csvRiepilogoAnno` nel modulo — una convenzione sola
+    // per lo scavo mai misurato, la stessa dello schermo e del foglio (05/09)
     const { R } = DEN;
-    const meseOggi = new Date().getMonth() + 1;
-    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
-    /* ⛔ L'ULTIMA COLONNA SI CHIAMAVA «rilievi» E VOLEVA DIRE DUE COSE. Le righe
-       dei banchi ci scrivevano `rilieviScavo`, quelle dei mesi, del totale e dei
-       fronti il conto di TUTTI i rilievi, cumuli compresi: nello stesso file,
-       sotto la stessa intestazione, due misure diverse. E quella larga è la
-       pericolosa — un mese con una sola ripresa da cumulo usciva `0;3100;1`, e
-       chi legge quell'`1` accanto allo zero conclude che lo scavo di settembre
-       è stato misurato ed era zero. Adesso la colonna dice `rilieviScavo` e
-       conta solo quelli: i cumuli hanno già la loro colonna in metri cubi. */
-    let csv = "sezione;voce;scavoM3;cumuloM3;rilieviScavo\n";
-    for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilieviScavo}\n`;
-    /* ⛔ E LA STESSA REGOLA VALE PER IL TOTALE DELL'ANNO, che qui sotto era un
-       «0» secco mentre sei righe più giù la cella di un banco mai rilevato è
-       già vuota, con la ragione scritta. Misurato il 03/08 su un anno senza
-       rilievi: il file diceva `totale;Anno 2026;0;0;0` e `banco;banco 1;;0;0`,
-       cioè due convenzioni opposte nello stesso CSV — e chi apre il foglio in
-       Excel somma lo zero del totale credendolo misurato. */
-    csv += `totale;${csvCell("Anno " + R.anno)};${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo}\n`;
-    /* ⛔ E LA RIGA DI UN FRONTE MAI RILEVATO LASCIA LA CELLA VUOTA, come già
-       facevano i banchi otto righe più giù. Fino al 07/08 scriveva `0`, cioè la
-       terza convenzione nello stesso file: `banco;banco 3;;0;0` e
-       `fronte;Fronte Sud;0;4400;1` a quattro righe di distanza. Le voci
-       arrivano da `ripartizioneFronti` — la stessa che disegna lo schermo e
-       compone il foglio stampato — con `tutte: true` perché il file, come il
-       foglio, porta anche la voce senza fronte. */
-    for (const f of ripartizioneFronti(R, { tutte: true }).righe)
-      csv += `fronte;${csvCell(etFronte(f))};${f.misurabile ? f.scavo : ""};${f.cumulo};${+f.rilieviScavo || 0}\n`;
-    /* ⛔ la cella dello scavo di un banco mai rilevato resta VUOTA, non «0»:
-       chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
-    for (const b of (DEN.banchi ? DEN.banchi.righe : []))
-      csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
-    /* ⛔ E LO STESSO VALE PER I SECCHI, che banchi sono anche loro. Misurato il
-       03/08 premendo il bottone con un fronte che non dichiara il banco e
-       nessun rilievo: il file scriveva `banco;Banco non dichiarato;0;0;0` una
-       riga sotto un `banco;banco 3;;0;0`. La bandiera che distingue lo zero
-       misurato dallo zero mai misurato adesso ce l'hanno tutt'e tre, e la
-       scrive `ripartizioneBanchi`: qui si legge, non si rifà.
-       ⛔ E IL SECCHIO «FUORI ELENCO» NON C'ERA AFFATTO. I metri cubi usciti da
-       un fronte poi cancellato li dichiarano lo schermo e il foglio stampato
-       («si contano a parte, non spariscono»); il CSV li taceva, e allora la
-       colonna dei banchi non tornava col totale dell'anno — un buco senza
-       nemmeno una riga che dicesse di che cosa. */
-    const secchi = DEN.banchi ? [
-      ["Banco non dichiarato", DEN.banchi.nonDichiarato],
-      ["Fronti non più in elenco", DEN.banchi.fuoriElenco],
-    ] : [];
-    for (const [et, s] of secchi) if (s)
-      csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
-    /* ⛔ E LE ULTIME QUATTRO RIGHE ERANO RIMASTE INDIETRO, nella stessa
-       funzione in cui la disciplina e' scritta due volte qui sopra
-       (`${b.misurabile ? b.scavo : ""}`, «qui si legge, non si rifa'»).
-       `pregressoDichiarato` non compariva nel blocco del CSV: misurato,
-       ZERO occorrenze fra la riga 2829 e la 2890. Il foglio STAMPATO, 107
-       righe piu' su, la cosa giusta la faceva gia' — «non dichiarato» invece
-       del numero, e «il cumulato e' da intendersi come valore minimo».
-       ⛔ E NON E' UNA RIGA SOLA CHE MENTE, SONO TRE, TUTTE NELLA DIREZIONE
-       CHE TRANQUILLIZZA. Con l'estratto pregresso non dichiarato:
-       `pregresso` vale 0, quindi `cumulatoFineAnno = pregresso + scavoSotto`
-       e' un MINIMO, e `residuoFineAnno = concesso - cumulato` e' un MASSIMO.
-       Il file diceva «prima di Terra non e' uscito niente» e «ne restano
-       tanti»: meno estratto e piu' concessione residua di quanto si sappia,
-       su un foglio che si ricopia nel modulo dell'ente. Il numero non e'
-       sbagliato — e' scritto come se fosse misurato. */
-    /* ⛔ E LE DUE ULTIME CELLE RESTANO VUOTE QUANDO NON C'E' NIENTE DI
-       MISURATO, come gia' fanno il totale dell'anno e i banchi mai rilevati in
-       questo stesso file. Fino al 13/08 uscivano `Cumulato a fine 2026;0` e
-       `Residuo del concesso;1200000` su una cava di cui non si sa niente — cioe'
-       la terza convenzione dentro un CSV che le altre due ce le ha gia' — e chi
-       lo apre in un foglio somma quello zero credendolo misurato. La bandiera e'
-       `R.misurabile`, la stessa che legge lo schermo e (dal 13/08) il foglio
-       stampato: una domanda, una risposta, tre posti che la leggono.
-       ⚠️ L'avvertenza «valore MINIMO / MASSIMO» resta dov'era: parla di un
-       numero che c'e' ed e' incompleto, che e' un'altra cosa da un numero che
-       non e' stato misurato. */
-    const nonMis = " (NON MISURATO: nessun rilievo di scavo sotto il titolo e estratto precedente non dichiarato)";
-    csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
-    csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
-    csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.misurabile ? (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)") : nonMis))};${R.misurabile ? R.cumulatoFineAnno : ""};;\n`;
-    csv += `titolo;${csvCell("Residuo del concesso" + (!R.misurabile ? nonMis : R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.misurabile && R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+    const csv = csvRiepilogoAnno(DEN, FRO, new Date());
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_riepilogo_" + R.anno + ".csv"; marchiaCsv(a); a.click();
@@ -4657,16 +4579,9 @@ a.dw-btn{text-decoration:none}
      perché la controprova del banco su quella riga NON cade, e senza questa
      nota domani sembrerebbe una prova che non sa fallire. */
   $("btn-terra-export").onclick = () => {
-    let csv = "tipo;nome;stato;provenienza;dettaglio\n";
-    for (const f of FRO)
-      csv += `fronte;${csvCell(f.nome + (f.banco ? " — " + f.banco : ""))};${f.stato};;`
-        + csvCell([f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",
-            avFronte(f, "avanzamento")].filter(Boolean).join(" · ")) + "\n";
-    for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
-      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};`
-        + csvCell(dataIt(r.data)
-            + (rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"
-              : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
+    // l'archivio lo compone `csvFrontiRilievi` nel modulo — «quota non dichiarata»
+    // e «volume non leggibile» con le parole dello schermo (05/09)
+    const csv = csvFrontiRilievi(FRO, RIL);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; marchiaCsv(a); a.click();
