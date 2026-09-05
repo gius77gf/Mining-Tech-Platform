@@ -5506,6 +5506,61 @@ export function csvPrezziConvertiti(prodotti) {
   return csv;
 }
 
+/* IL NOME DEL CLIENTE DI UN PREVENTIVO (05/09, salito dalla pagina): la
+   ragione sociale in anagrafica se il cliente c'è ancora, se no il nome
+   scritto sul preventivo, se no «Cliente non indicato». */
+export function nomeClienteOrdine(ordine, clienti) {
+  const c = (clienti || []).find(x => x && x.id === (ordine || {}).clienteId);
+  return (c && c.ragioneSociale) || (ordine && ordine.cliente) || "Cliente non indicato";
+}
+
+/* IL PROSPETTO DEI PREVENTIVI (05/09, salito dalla pagina): una riga per
+   ogni riga di ogni preventivo, con lo stato di `statoPreventivo` e la
+   colonna «scaglione» perché il prezzo da solo non si spiega (10,50 dove il
+   listino dice 12,00 sembra un refuso senza la soglia che l'ha prodotto); le
+   due metà dello sconto in due colonne, così il conto si rifà. Una quantità
+   che non c'è resta VUOTA (uno zero è una consegna dichiarata di niente), e le
+   righe salvate prima delle due metà lasciano vuote quelle colonne invece di
+   uno zero che direbbe «misurato». Punto decimale e punto e virgola. Pura. */
+export const CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE = ["numero", "ordine", "data", "valido al", "cliente", "stato", "prodotto",
+  "quantita", "unita", "prezzo", "sconto %", "sconto cliente %", "sconto scaglione %", "scaglione da", "imponibile"].join(";");
+export function csvProspettoPreventivi(ordini, clienti, oggi = new Date()) {
+  const righe = [CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE];
+  for (const o of (ordini || []).filter(Boolean)) {
+    const st = statoPreventivo(o, oggi).stato;
+    for (const r of (o.righe || [])) righe.push([o.numero, o.numeroOrdine || "", o.data,
+      o.validoAl || "", nomeClienteOrdine(o, clienti), st, r.descrizione,
+      r.quantita == null ? "" : String(r.quantita), r.unita,
+      r.prezzoUnitario == null ? "" : String(r.prezzoUnitario),
+      String(r.scontoPct || 0),
+      r.scontoCliente == null ? "" : String(r.scontoCliente),
+      r.scontoScaglione == null ? "" : String(r.scontoScaglione),
+      r.scaglione ? String(r.scaglione.da) + " " + (r.scaglione.unita === "m3" ? "m3" : "t") : "",
+      r.imponibile == null ? "" : String(r.imponibile)]
+      .map(csvCell).join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+/* IL PROSPETTO DEI DDT DALLE PESATE (05/09, salito dalla pagina): il file per
+   il commercialista, con la fattura e l'ordine collegati e da dove viene il
+   prezzo. Le celle dei numeri passano da `cellaNum` (vuote quando non
+   scritte, mai «0»: `prezzo_unitario` a 0 è materiale regalato) e il valore
+   solo se `valoreDdt` lo sa calcolare — un DDT venduto a metro cubo senza
+   densità esce con la cella VUOTA, non con «0 €» accanto a una quantità
+   sconosciuta. Per data. Pura. */
+export const CSV_PROSPETTO_DDT_INTESTAZIONE = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da";
+export function csvProspettoDdt(pesate, fatture, ordini) {
+  let csv = CSV_PROSPETTO_DDT_INTESTAZIONE + "\n";
+  for (const p of (pesate || []).filter(Boolean).slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
+    const f = p.fatturaId ? (fatture || []).find(x => x && x.id === p.fatturaId) : null;
+    const o = p.ordineId ? (ordini || []).find(x => x && x.id === p.ordineId) : null;
+    const v = valoreDdt(p);
+    csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${cellaNum(p.lordo)};${cellaNum(p.tara)};${cellaNum(p.netto)};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${cellaNum(p.prezzoUnitario)};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${cellaNum(p.aliquotaIva)};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
+  }
+  return csv;
+}
+
 export function csvIncassi(incassi) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
   const righe = [CSV_INCASSI_INTESTAZIONE];

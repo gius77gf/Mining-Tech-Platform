@@ -1968,7 +1968,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -2517,10 +2517,7 @@ label.item:has(.dw-chk:checked){
      peggio di un'etichetta generica. */
   const ordBadge = (st) => ORD_BADGE[st] || ["", st || "—"];
   const ordStato = (o) => statoPreventivo(o, new Date()).stato;
-  const nomeClienteOrd = (o) => {
-    const c = CLI.find(x => x.id === (o || {}).clienteId);
-    return (c && c.ragioneSociale) || (o && o.cliente) || "Cliente non indicato";
-  };
+  const nomeClienteOrd = (o) => nomeClienteOrdine(o, CLI);   // la regola vive nel modulo (05/09)
   const numeroProssimoPreventivo = () =>
     prossimoNumero(ORD.map(o => o.numero), new Date().getFullYear(), 3, "PREV/");
   const numeroProssimoOrdine = () =>
@@ -7177,40 +7174,9 @@ label.item:has(.dw-chk:checked){
       scartate.persi.length ? "warn" : nuove.length ? "success" : "");
   };
   $("btn-pes-export").onclick = () => {
-    /* ⛔ la PROVENIENZA del prezzo esce anche nel CSV, e vuota quando non si
-         sa: chi apre il file col foglio di calcolo deve poter distinguere una
-         consegna a prezzo concordato da una a listino senza riaprire l'app. */
-      let csv = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da\n";
-    for (const p of PES.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
-      const f = p.fatturaId ? FAT.find(x => x.id === p.fatturaId) : null;
-      const o = p.ordineId ? ORD.find(x => x.id === p.ordineId) : null;
-      /* ⛔ LA CELLA «valore» LEGGE LA BANDIERA, perché una cella di CSV DISEGNA
-         un numero, non lo somma. `valorePesata` risponde 0 apposta per chi
-         somma (sta scritto sopra la funzione); qui usciva `0` sul DDT 2026/013
-         — venduto a metro cubo, prodotto senza densità — mentre la colonna
-         `quantita` della stessa riga restava giustamente VUOTA. Zero euro di
-         valore accanto a una quantità sconosciuta è una consegna dichiarata di
-         niente, nel file che va al commercialista. */
-      const v = valoreDdt(p);
-      /* ⛔ E LE ALTRE CINQUE CELLE NUMERICHE PASSANO DA `cellaNum`, che è la
-         stessa correzione già fatta al prospetto del LISTINO centosessanta
-         righe più giù («un prodotto senza prezzo usciva a zero, cioè GRATIS»)
-         e al CSV dei clienti («fido 0 vuol dire non gli si fa credito; fido
-         non impostato vuol dire nessuno ci ha pensato»). Qui era rimasto
-         `${+p.lordo || 0}` per cinque colonne su sei: la firma della copia
-         debole è proprio questa — la stessa regola corretta in due file su tre.
-         Dove morde: `prezzo_unitario` a **0** è un materiale regalato, e `iva`
-         a **0** è un'operazione dichiarata NON IMPONIBILE, in un foglio che va
-         al commercialista. Ci si arriva dal bottone «Ri-carica copia (CSV)»
-         qui accanto: `csvPesate` scrive quelle celle vuote quando il dato non
-         c'è e `parsePesateCsv` le rilegge `null` di proposito.
-         ⚠️ `sconto_pct` resta com'è, e non è una dimenticanza: uno sconto mai
-         scritto vuol dire davvero «nessuno sconto» — è la risposta di
-         `scontoValido` nel modulo, e lo zero lì è una misura, non un vuoto.
-         ⚠️ E `quantita` resta com'è perché ha TRE decimali (i m³ passano da
-         `round3`): `cellaNum` ne tiene due e taglierebbe il dato. */
-      csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${cellaNum(p.lordo)};${cellaNum(p.tara)};${cellaNum(p.netto)};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${cellaNum(p.prezzoUnitario)};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${cellaNum(p.aliquotaIva)};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
-    }
+    // il file lo compone `csvProspettoDdt` nel modulo: celle vuote dove non
+    // c'è il dato, il valore solo se `valoreDdt` lo sa calcolare (05/09)
+    const csv = csvProspettoDdt(PES, FAT, ORD);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_pesate_ddt.csv"; marchiaCsv(a); a.click();
@@ -8086,36 +8052,11 @@ label.item:has(.dw-chk:checked){
   };
   $("btn-or-export").onclick = () => {
     if (!ORD.length) { esito("ord-esito", "Non c'è ancora nessun preventivo da esportare.", "err"); return; }
-    /* ⛔ LA COLONNA «SCAGLIONE» C'È PERCHÉ IL PREZZO DA SOLO NON SI SPIEGA.
-       Chi apre questo file con un altro programma vede 10,50 dove il listino
-       dice 12,00: senza la soglia che l'ha prodotto, quel numero sembra un
-       errore di battitura — e le due metà dello sconto stanno in due colonne
-       loro per la stessa ragione, così il conto si rifà. */
-    const righe = [["numero", "ordine", "data", "valido al", "cliente", "stato", "prodotto",
-                    "quantita", "unita", "prezzo", "sconto %", "sconto cliente %",
-                    "sconto scaglione %", "scaglione da", "imponibile"].join(";")];
-    for (const o of ORD) {
-      const st = ordStato(o);
-      for (const r of (o.righe || [])) righe.push([o.numero, o.numeroOrdine || "", o.data,
-        o.validoAl || "", nomeClienteOrd(o), st, r.descrizione,
-        /* ⛔ IL PUNTO, NON LA VIRGOLA, e il separatore è il punto e virgola:
-           un file che si apre in un altro programma deve essere leggibile da
-           quel programma, non solo dal nostro lettore. E una quantità che non
-           c'è resta VUOTA: uno zero in una colonna «quantità» è una consegna
-           dichiarata di niente. */
-        r.quantita == null ? "" : String(r.quantita), r.unita,
-        r.prezzoUnitario == null ? "" : String(r.prezzoUnitario),
-        String(r.scontoPct || 0),
-        /* le righe salvate prima di oggi non hanno le due metà: la colonna
-           resta VUOTA invece di scrivere uno zero, che direbbe «misurato». */
-        r.scontoCliente == null ? "" : String(r.scontoCliente),
-        r.scontoScaglione == null ? "" : String(r.scontoScaglione),
-        r.scaglione ? String(r.scaglione.da) + " " + (r.scaglione.unita === "m3" ? "m3" : "t") : "",
-        r.imponibile == null ? "" : String(r.imponibile)]
-        .map(csvCell).join(";"));
-    }
+    // le righe le compone `csvProspettoPreventivi` nel modulo — stato,
+    // scaglione e le due metà dello sconto — dove `run-kpi` le prova (05/09)
+    const csv = csvProspettoPreventivi(ORD, CLI, new Date());
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["\ufeff" + righe.join("\n") + "\n"], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "conti_preventivi.csv"; marchiaCsv(a);
     a.click(); URL.revokeObjectURL(a.href);
     /* ⛔ LA FRASE DICEVA I PREVENTIVI, IL FILE PORTA LE LORO RIGHE. Non era una
@@ -8125,7 +8066,7 @@ label.item:has(.dw-chk:checked){
        che cosa contiene: due numeri costano una parola e tolgono la domanda.
        È la terza gamba della domanda di casa — «un CSV, un PDF, una FRASE DI
        RIEPILOGO» — e il confronto frase↔file del banco l'ha trovata. */
-    const nRighe = righe.length - 1;
+    const nRighe = csv.trim().split("\n").length - 1;   // le righe uscite DAVVERO, lette dal file
     esito("ord-esito", plur(ORD.length, "preventivo esportato", "preventivi esportati")
       + " · " + conta(nRighe, "riga nel foglio", "righe nel foglio") + ".", "success");
   };

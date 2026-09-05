@@ -30790,7 +30790,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 35, `almeno 35 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 37, `almeno 37 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30804,7 +30804,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 3, `almeno 3 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    ok(conPagina >= 2, `almeno 2 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37794,6 +37794,48 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine prospetto costi e prezzi convertiti nel modulo (05/09) ===== */
+/* ===== i preventivi e i DDT dalle pesate nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Conti · csvProspettoPreventivi: una riga per riga di preventivo, con lo stato, lo scaglione e le due metà dello sconto", () => {
+    const righe = conti.csvProspettoPreventivi(D.ordini, D.clienti, OGGI).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 15, "quindici colonne");
+    eq(righe.length, 1 + D.ordini.reduce((t, o) => t + (o.righe || []).length, 0), "una riga per ogni riga di ogni preventivo");
+    for (const o of D.ordini) {
+      const r = righe.find((x) => x.startsWith(o.numero + ";") || x.startsWith('"' + o.numero + '"' + ";"));
+      ok(r && r.split(";")[5] === conti.statoPreventivo(o, OGGI).stato, "⛔ lo stato è quello di statoPreventivo alla data data — " + r);
+      ok(r && r.split(";")[4].replace(/^"|"$/g, "") === conti.nomeClienteOrdine(o, D.clienti), "il cliente per nome, dall'anagrafica");
+    }
+    const vecchia = conti.csvProspettoPreventivi([{ numero: "P1", data: "2026-01-01", righe: [{ descrizione: "x", unita: "t", scontoPct: 5 }] }], [], OGGI).trim().split("\n")[1].split(";");
+    eq(vecchia.slice(7), ["", "t", "", "5", "", "", "", ""], "⛔ una riga vecchia senza quantità, prezzo, metà dello sconto e scaglione lascia le celle VUOTE, non zeri che direbbero «misurato»");
+    eq(vecchia[4], "Cliente non indicato", "senza cliente lo dice");
+    eq(conti.nomeClienteOrdine({ clienteId: "c1" }, D.clienti), D.clienti.find((c) => c.id === "c1").ragioneSociale, "nomeClienteOrdine: l'anagrafica vince");
+    eq(conti.nomeClienteOrdine({ clienteId: "zz", cliente: "Vecchio nome" }, D.clienti), "Vecchio nome", "e se il cliente non c'è più resta il nome scritto sul preventivo");
+    eq(conti.csvProspettoPreventivi(null).trim(), conti.CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE, "null non rompe");
+  });
+  test("Conti · csvProspettoDdt: diciotto colonne, celle vuote dove il dato non c'è, il valore solo se si sa calcolare", () => {
+    const righe = conti.csvProspettoDdt(D.pesate, D.fatture, D.ordini).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_DDT_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 18, "diciotto colonne");
+    eq(righe.length, D.pesate.length + 1, "una riga per pesata");
+    const date = righe.slice(1).map((r) => r.split(";")[1]);
+    eq(date, date.slice().sort(), "per data");
+    const s1 = righe.find((r) => /^"?2026\/001"?;/.test(r)).split(";");
+    eq([s1[4], s1[5], s1[6], s1[8], s1[9]], ["42.6", "14.2", "28.4", "t", "8.5"], "lordo, tara, netto, unità e prezzo della prima pesata");
+    for (const p of D.pesate) {
+      const v = conti.valoreDdt(p);
+      const r = righe.find((x) => x.startsWith(p.numero + ";") || x.startsWith('"' + p.numero + '"' + ";"));
+      eq(r.split(";")[11], v.calcolabile ? String(v.valore) : "", "⛔ il valore è quello di valoreDdt, e VUOTO quando non si sa calcolare — " + p.numero);
+    }
+    ok(D.pesate.some((p) => !conti.valoreDdt(p).calcolabile), "(e la dimostrazione ha almeno un DDT senza valore calcolabile, se no la riga qui sopra non prova niente)");
+    const nudo = conti.csvProspettoDdt([{ numero: "X", data: "2026-01-01", unitaVendita: "t" }]).trim().split("\n")[1].split(";");
+    eq([nudo[4], nudo[9], nudo[12]], ["", "", ""], "⛔ lordo, prezzo e IVA non scritti restano vuoti: «prezzo 0» sarebbe materiale regalato");
+    eq(conti.csvProspettoDdt(null).trim(), conti.CSV_PROSPETTO_DDT_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine preventivi e DDT nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
