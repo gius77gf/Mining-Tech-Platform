@@ -420,6 +420,18 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [ ] **SENTINELLA — dalla ricerca del 05/09 (il diario delle volate e la
+  relazione per l'ente), delta dal meccanismo.** Il registro volate e i reclami
+  ci sono e il report li porta; mancano, misurati con il comando: la
+  comunicazione fatta per una volata (a chi, quando, riferimento — «comunicat|
+  preavvis» → 0 e 0), la riga di portata del report (danno agli edifici sì,
+  disturbo alle persone UNI 9614 no: «9614|disturbo» → 0 e 0), le azioni
+  correttive accanto ai superamenti (Scudo le ha, il report non le legge), il
+  destinatario e la data di trasmissione sul documento, il foglio della
+  singola volata con la misura. Candidati (a)–(e) in
+  `docs/RICERCA_CONTINUA_SENTINELLA.md`, in ordine di costo; il primo da fare
+  è (a), progettato in scratchpad prima di scrivere nel modulo, con
+  `CSV_VOLATE_INTESTAZIONE` allungato in coda e il censimento aggiornato.
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -1529,6 +1541,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `SENTINELLA — dalla ricerca del 05/09 (il diario delle volate` *(cinque
+  candidati misurati; il primo è la comunicazione sulla volata)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 

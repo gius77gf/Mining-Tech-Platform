@@ -445,3 +445,65 @@ norme (UNI 9916, DIN 4150-3, USBM) e i software dei produttori: qui si guarda
 ciclo con il codice in mano, partendo dal meccanismo — `reportConformita`,
 `taratureDelReport`, la collezione `reclami`, `volateDelGiorno`/`coincidenzaVolata`,
 il foglio di stampa della volata — non cercando «diario» o «UNI 9614» nel codice.
+
+### Il delta, fatto da chi ha il codice in mano (05/09, verificato contro il commit `0c807ba3`)
+
+Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
+`apps/sentinella/index.html`, dal meccanismo; ogni «non c'è» col comando.
+
+1. **Il diario.** Il registro volate (`volate/{id}`: data, fronte, nFori,
+   kgTotali, kgMaxRitardo, distanzaRicettore, esito, stato, la previsione da
+   Genesi e la PPV misurata) e la collezione `reclami/{id}` (data, ora, tipo,
+   ricettoreId, chi, descrizione, **azione**, **stato**) ci sono tutt'e due, e
+   il report per periodo li porta insieme (`reportConformita` → `volate`,
+   `reclami`). Il legame fra una volata e un reclamo è **solo la data**
+   (`coincidenzaVolata`, con l'avviso che una coincidenza non è una causa).
+   **La comunicazione fatta** (a chi, quando, con quale riferimento) NON c'è:
+   `grep -ci "comunicat\|preavvis" apps/sentinella/sentinella-data.js
+   apps/sentinella/index.html` → **0 e 0**. È la terza voce del diario della
+   linea guida, e manca.
+2. **Le due letture.** Il report giudica la soglia del punto (o del ricettore):
+   è il danno agli edifici. Il disturbo alle persone (UNI 9614) non c'è e il
+   documento non dice di non valutarlo: `grep -ci "9614\|disturbo"` → **0 e 0**.
+3. **Le mitigazioni.** `grep -ci "mitigazion"` → **0 e 0**. Le azioni
+   correttive nate da un superamento vivono in Scudo (ponte T7,
+   `bozzaAzioneSuperamento`, `azioniDiOrigine`), ma il report **non le
+   legge**: un superamento esce col numero e senza «che cosa si è fatto».
+4. **La cadenza.** C'è, e vive negli **adempimenti**: `periodoMesi` e
+   `giorniConsegna`, e `periodoAdempimento` (T2f) fa partire il report sul
+   periodo ricavato dalla scadenza — la dimostrazione ha «Relazione annuale
+   emissioni · ARPA». Quello che il documento NON scrive è il **destinatario**
+   e la **data di trasmissione**: `grep -ci "destinatario\|trasmission"` →
+   **0 e 0** nel modulo; la pagina stampa il periodo e la data di generazione.
+5. **Il registro a disposizione dell'ispettore.** C'è a metà: il report per
+   periodo ha la sezione «Volate del periodo» (data, fronte, fori, kg totali,
+   kg max/ritardo, distanza, SD) e il registro esce in CSV
+   (`csvRegistroVolate`). Una stampa del solo registro non c'è, e non serve
+   finché il report la contiene.
+6. **La scheda della volata con la misura.** Non c'è una stampa per singola
+   volata: `grep -n "scheda della volata\|schedaVolata\|vol-scheda"
+   apps/sentinella/index.html` → **0** (la frase «scheda della volata» sta solo
+   nel reclamo d'esempio). La misura dell'evento per asse (`campiEvento`,
+   `risultanteAssi`) e la taratura dello strumento esistono; quello che manca è
+   il foglio che le mette accanto ai dati della volata.
+
+**Che cosa ne segue** (candidati, in ordine di costo, nessuno aperto):
+- (a) **la comunicazione sulla volata** — a chi (ente / residenti), quando,
+  riferimento — come campi facoltativi della volata, mostrati nel registro e
+  nella tabella «Volate del periodo» del report; è la voce del diario che manca
+  (costo basso; misura: il report di un periodo con una volata comunicata la
+  scrive, e una volata senza comunicazione non scrive «—» tranquillo ma
+  «nessuna comunicazione registrata»);
+- (b) **la riga di portata del report**: «questo documento valuta la soglia
+  del punto di misura (danno agli edifici, UNI 9916/DIN 4150-3); non valuta il
+  disturbo alle persone (UNI 9614)» — una dichiarazione, costo minimo;
+- (c) **le azioni correttive accanto ai superamenti del report**, lette da
+  Scudo con `azioniDiOrigine` (stato aperta/in corso/chiusa; «non leggibile»
+  se Scudo non risponde) — costo medio, è il ponte T7 letto nel verso del
+  documento;
+- (d) **destinatario e data di trasmissione sul report**, presi
+  dall'adempimento (`ente`) quando il report parte da lì — costo basso;
+- (e) **il foglio della singola volata** con dati della volata + misura
+  dell'evento + strumento e taratura, «da allegare al verbale» — costo medio,
+  e la frase «vale come verbale» NON va scritta sul foglio finché la fonte
+  primaria non è letta (le due fonti trovate sono secondarie).
