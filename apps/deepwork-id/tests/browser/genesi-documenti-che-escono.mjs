@@ -140,6 +140,16 @@ const DIFETTI = [
      controprova che non aggancia gira su un prodotto sano dicendo «distingue».
      Qui basta il numero, che è il soggetto della prova. */
   [`_ricPlur(D2.holes.length,'foro','fori')`, `_ricPlur(D2.holes.length+1,'foro','fori')`],
+  // 7 · il piano di carico senza l'id del foro (05/09): la colonna c'è, vuota
+  //     (dal 05/09 notte la riga la compone `pianoCsvGenesi` di shared/: qui si
+  //     toglie l'id dal RECORD che la pagina le passa)
+  [`idForo:h.id||'' }));`, `idForo:'' }));`],
+  // 8 · e il .volata.json che torna a chiamarli per posizione
+  [`id:f.id||('foro_'+(f.i+1)),`, `id:'foro_'+(f.i+1),`],
+  // 9 · «Apri» che butta via i fori salvati e rigenera la maglia (com'era fino al 05/09)
+  [`D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[];`, `D2.holes=[];`],
+  // 10 · e «Salva» che non li scrive
+  [`holes:(D2.holes||[]).map(h=>({ id:h.id||null,`, `holes:[].map(h=>({ id:h.id||null,`],
 ];
 
 const colpiti = new Set();
@@ -452,6 +462,12 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
 {
   const pg = await apri(SITO_TRE);
   const piano = await esce(pg, "btn-piano-csv", "piano di carico");
+  /* il .volata.json descrive la SIMULAZIONE: finché il progetto 2D non ci è
+     passato (il bottone «Simula»), i suoi fori sono quelli della dimostrazione
+     a una fila, battezzati foro_n — e per caso dodici come la maglia. Qui si
+     simula prima, così il file racconta il progetto e i due file si possono
+     confrontare foro per foro, id compreso */
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
   const jsonTx = await esce(pg, "btnExport", "volata JSON");
   const j = JSON.parse(jsonTx || "{}");
   const rit = (j.volata && j.volata.fori || []).map((f) => f.ritardo);
@@ -464,6 +480,15 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
   dice(rit.every((v, i) => String(v) === String(+ritPiano[i])),
     "⛔ i ritardi del .volata.json sono quelli del piano di carico, foro per foro",
     JSON.stringify(rit) + "\n           piano: " + JSON.stringify(ritPiano));
+  /* l'id stabile del foro (05/09): tredicesima colonna del piano, e lo stesso
+     nome nel .volata.json — è la chiave che Campo rimanda nel consuntivo */
+  const testaPiano = (piano.split("\n")[0] || "").split(";");
+  const idPiano = piano.split("\n").slice(1).filter(Boolean).map((r) => r.split(";")[12]);
+  const idJson = (j.volata && j.volata.fori || []).map((f) => f.id);
+  dice(testaPiano[12] === "id_foro" && idPiano.length === 12 && idPiano.every((x) => /^f\d+-\d+$/.test(x)) && new Set(idPiano).size === 12,
+    "⛔ ogni foro del piano porta un id_foro suo (fila-colonna), tutti diversi", JSON.stringify(idPiano));
+  dice(idJson.length === 12 && [...idJson].sort().join() === [...idPiano].sort().join(),
+    "⛔ e il .volata.json chiama i fori con gli stessi id del piano", JSON.stringify(idJson));
   dice(rit.every((v) => Number.isInteger(v * 10) && Math.abs(v % passo) < 0.05),
     `⛔ e sono multipli del passo dichiarato due righe sopra (${passo} ms), non lo scatter sorteggiato`,
     JSON.stringify(rit.slice(0, 5)));
@@ -509,6 +534,41 @@ console.log("\n· il PPV composito: tutte le cifre nella convenzione italiana");
      file di scambio che rientra da `_sigParse` e da qualunque altro programma */
   dice(/^tempo_ms;ampiezza\n0\.00;/.test(csv), "   e il file dell'onda, che è di scambio, li scrive col punto",
     csv.slice(0, 60));
+  dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
+  await pg.close();
+}
+
+// ── 6 · I FORI SALVATI COL PROGETTO: UN FORO TOLTO NON RICOMPARE ─────────
+console.log("\n· i fori salvati col progetto: salva → riapri, stessi id e ritardo a mano");
+{
+  /* il design salvato porta TRE fori — f1-2 era stato tolto prima di salvare,
+     f1-3 ha un ritardo messo a mano, m1 è stato aggiunto sulla tela. Fino al
+     05/09 «Apri» rigenerava la maglia dai parametri: dodici fori, f1-2
+     ricomparso, il 99 ms sparito, m1 sparito. */
+  const design = { ...BASE, holes: [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }] };
+  const pg = await apri(null, design);
+  const piano = await esce(pg, "btn-piano-csv", "piano di carico (fori salvati)");
+  const righe = piano.split("\n").slice(1).filter(Boolean).map((r) => r.split(";"));
+  const ids = righe.map((r) => r[12]);
+  numeriConfrontati += righe.length;
+  dice(righe.length === 3 && [...ids].sort().join() === "f1-1,f1-3,m1",
+    "⛔ il progetto riaperto ha i TRE fori salvati coi loro id: f1-2, tolto prima di salvare, non ricompare", ids);
+  const r13 = righe.find((r) => r[12] === "f1-3");
+  dice(!!r13 && String(+r13[6]) === "99", "⛔ e il ritardo messo a mano (99 ms) sopravvive alla riapertura", r13 && r13[6]);
+  /* il verso del salvataggio: «Salva» in Home scrive i fori nel design */
+  await pg.evaluate(() => { const s = document.getElementById("hgSalva"); if (s) s.click(); });
+  await pg.waitForTimeout(600);
+  await pg.fill("#modal-campo", "Volata con fori", { timeout: 3000 }).catch(() => {});
+  await pg.click("#modal-foot .mbtn.primary", { timeout: 3000 }).catch(() => {});
+  await pg.waitForTimeout(700);
+  const salvati = await pg.evaluate(() => {
+    const a = JSON.parse(localStorage.getItem("genesiVolate") || "[]");
+    const v = a.find((x) => x.nome === "Volata con fori");
+    return v && v.design ? v.design.holes : null;
+  });
+  dice(Array.isArray(salvati) && salvati.length === 3 && salvati.map((h) => h.id).sort().join() === "f1-1,f1-3,m1"
+       && (salvati.find((h) => h.id === "f1-3") || {}).tMano === 99,
+    "⛔ «Salva» scrive i fori nel design — id, posizione, ritardo a mano — così la volata riaperta è quella salvata", JSON.stringify(salvati));
   dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
   await pg.close();
 }

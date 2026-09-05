@@ -194,14 +194,27 @@ const FIX = `
    `34 · 1 · 21 · 5 · 2 · 0 · 1` che il giro ha LETTO SULLO SCHERMO. Cioè la
    derivazione combacia con due osservazioni del browser indipendenti. */
 const MESI_MURO = 6;   // viewport 430 → `largoMuro` fra 360 e 600: sei colonne
-const { DEMO: DEMO_SCUDO, muroScadenze } =
+const { DEMO: DEMO_SCUDO, muroScadenze, riepilogoNearMiss, causeRicorrenti, coperturaFormazione, daSistemareCopertura } =
   await import(pathToFileURL(join(R, "apps/scudo/scudo-data.js")).href);
+/* ⛔ E IL 02/09 LA STESSA ACCUSA FALSA È USCITA DALLE DUE CLASSIFICHE DEI
+   NEAR-MISS, per la stessa ragione: `18 · 18 · 6` e `18 · 16 · 6 · 2` erano
+   scritti a mano e contavano dentro i 90 giorni anche i near-miss della
+   dimostrazione, che hanno DATE ASSOLUTE (il primo è del 18/05). Passati i 90
+   giorni il banco leggeva `18 · 17 · 6` e accusava — mentre le misure in pixel
+   sulla stessa schermata erano tutte verdi, cioè il disegno era giusto e a
+   invecchiare era l'attesa. Stessa cura del muro: la si chiede alla funzione
+   che la pagina chiama (`riepilogoNearMiss`, con la stessa finestra di 90
+   giorni della pagina) sulla stessa copia iniettata. Le cause non hanno una
+   finestra e non sarebbero invecchiate, ma un'attesa scritta a mano accanto a
+   due derivate è la prossima che qualcuno dovrà correggere. */
+const COPIA_SCUDO = JSON.parse(JSON.stringify(DEMO_SCUDO));
+new Function("DEMO", FIX)(COPIA_SCUDO);      // la stessa iniezione servita al browser
 const attesiMuro = (() => {
-  const copia = JSON.parse(JSON.stringify(DEMO_SCUDO));
-  new Function("DEMO", FIX)(copia);      // la stessa iniezione servita al browser
-  const m = muroScadenze(copia.scadenze, new Date(), MESI_MURO);
+  const m = muroScadenze(COPIA_SCUDO.scadenze, new Date(), MESI_MURO);
   return (m.scadute ? [m.scadute] : []).concat(m.mesi.map((x) => x.totale));
 })();
+const attesiNM = riepilogoNearMiss(COPIA_SCUDO.infortuni, COPIA_SCUDO.azioni, 90);
+const attesiCause = causeRicorrenti(COPIA_SCUDO.infortuni, COPIA_SCUDO.analisi).righe.map((r) => r.quante);
 
 /* I DIFETTI DA RIMETTERE. Si CONTANO: un `replace` che non trova niente esce
    in silenzio, e una controprova che non sostituisce niente non prova niente.
@@ -460,7 +473,14 @@ await vaiA("nav-scad", "page-scad");
    ⚠️ Finché non c'è, i numeri stanno qui con la loro data, così chi li
    ritocca sa che sta ritoccando un'attesa invecchiata e non un difetto. */
 console.log("\n· A — copertura della formazione per tipo (barre orizzontali)");
-giudicaBarre("copertura", await barreDi("graf-copertura", true), [24, 6, 1, 1, 1, 1, 1, 1, 0, 0, 0]); // rimisurato 07/08
+/* ⏱️ Dal 02/09 anche questa attesa si DERIVA: la copertura legge la verifica
+   periodica (`documenti`), e la barra «Verifica periodica» della dimostrazione
+   è passata da 0 a 2 — non per un caso del banco, per una correzione del
+   prodotto. Un numero scritto a mano qui avrebbe accusato la correzione. Il
+   grafico ha `ordina: true`, quindi le barre si leggono dalla più alta. */
+giudicaBarre("copertura", await barreDi("graf-copertura", true),
+  coperturaFormazione(COPIA_SCUDO.scadenze, new Date(), COPIA_SCUDO.documenti)
+    .map(daSistemareCopertura).sort((a, b) => b - a));
 console.log("\n· B — il muro delle scadenze (barre verticali, un mese a zero)");
 console.log(`      attesa DERIVATA da muroScadenze(${MESI_MURO} mesi) sulla stessa iniezione:`
   + ` ${attesiMuro.join(" · ")}  (non scritta a mano: cambierebbe da sola sei volte in 68 giorni)`);
@@ -474,10 +494,10 @@ giudicaBarre("mansioni", await barreDi("graf-mansioni", true), [7, 3, 1, 1, 1, 1
 /* ══ REGISTRO · near-miss e cause ═════════════════════════════════════════ */
 await vaiA("nav-doc", "page-doc");
 console.log("\n· C — near-miss per tipo e per luogo (le due classifiche)");
-giudicaBarre("near-miss per tipo", await barreDi("graf-nm-tipo", true), [18, 18, 6]);
-giudicaBarre("near-miss per luogo", await barreDi("graf-nm-luogo", true), [18, 16, 6, 2]);
+giudicaBarre("near-miss per tipo", await barreDi("graf-nm-tipo", true), attesiNM.perTipo.map((x) => x.valore));
+giudicaBarre("near-miss per luogo", await barreDi("graf-nm-luogo", true), attesiNM.perLuogo.map((x) => x.valore));
 console.log("\n· D — cause che si ripetono");
-giudicaBarre("cause", await barreDi("graf-cause", true), [12, 3, 1, 1, 1]);
+giudicaBarre("cause", await barreDi("graf-cause", true), attesiCause);
 
 /* ══ E · GLI INDICI: il buco non è uno zero ═══════════════════════════════
    Qui la domanda non è «quanto è lungo» ma «c'è o non c'è». Un anno senza le

@@ -205,6 +205,23 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .ingresso h1{margin:var(--s5) 0 0;font-size:clamp(34px,5.6vw,76px);max-width:22ch;
   margin-inline:auto;text-wrap:balance}
 .ingresso h1 .r{display:block;overflow:hidden;padding-bottom:.05em}
+/* ⛔ A 34px «NELL'ECOSISTEMA» CHIEDE 340px, e sotto i 380px la colonna non li
+   ha (a 320px ne ha 280): la riga vive in un `.r{overflow:hidden}` per
+   l'animazione d'ingresso, quindi la parola non spingeva la pagina, si
+   TAGLIAVA — «NELL'ECOSISTE» sullo scatto a 320, e nessun righello lo vedeva
+   perche' lo scorrimento laterale era zero. Misurato il 04/09 con la stessa
+   pagina e un foglio iniettato: `calc(10vw - 5px)` da' 27px a 320 (280 = 280),
+   30,9 a 359 (319 = 319), 32,9 a 379 (339 = 339) e a 380 riprende il clamp
+   (34px): nessun salto. Stessa famiglia per la barra: sotto i 352px il bottone
+   «Prova il tour» aveva 93px per un testo da 125 — «ROVA IL TOU». La prima
+   stesura (corpo 11, spaziatura 1,4, riempimento 12) tagliava ANCORA 8px:
+   avevo confrontato il testo con la scatola intera invece che con lo spazio
+   dentro il riempimento. Misurato col Range: con corpo 10,5, spaziatura 1,2,
+   riempimento 10 e il segno a 14px il testo finisce a 290 e lo spazio interno
+   a 290, a 320; a 340 e 359 avanza. */
+@media(max-width:379px){.ingresso h1{font-size:calc(10vw - 5px)}}
+@media(max-width:359px){.barra .bot{padding:0 10px;font-size:10.5px;letter-spacing:1.2px}
+  .barra .segno b{font-size:14px}.barra .d{gap:10px}}
 .ingresso h1 .r>span{display:block;transform:translateY(106%);animation:sali 1.05s var(--posa) .3s forwards}
 .ingresso h1 .r:nth-child(2)>span{animation-delay:.42s}
 .ingresso h1 em{font-style:normal}

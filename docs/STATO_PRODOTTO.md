@@ -20,6 +20,149 @@ così un commerciale può farle vedere senza configurare nulla.
 
 ---
 
+## ⚠️ Aggiornamento del 4 settembre — tutte le app guardate in profondità, in quattro righe
+
+**Diciannove difetti veri, corretti, in due giorni di passate.** Ogni app e il
+core sono stati aperti schermata per schermata a 390 e 320 px nei temi, ogni
+bottone che produce un file è stato premuto e il file aperto, la dimostrazione
+svuotata pezzo per pezzo. Le cose più grosse: la home di Genesi che **non
+scorreva sul telefono da cinque settimane**; una norma sconosciuta che veniva
+sostituita con «DIN residenziale» e usciva nei file con un limite e un
+verdetto; il Quadro di Campo e di Sentinella che dicevano «tutto tranquillo»
+su una giornata o una cava in cui non era stato registrato niente; un appalto
+senza sito che in Scudo diventava «a posto»; un importo tagliato («€ 12.750»
+per «€ 12.750,00») nell'ordine di lavoro di Flotta; il rapporto di Terra con la
+pastiglia sopra il titolo. E i dati di riferimento tuoi in un file di Genesi
+pubblicato sul sito: tolti, con un controllo che legge anche i JSON.
+
+**Quello che resta è tuo**: tre decisioni nuove (22-24) in
+`docs/DECISIONI_WEEKEND.md`, che con le altre fanno undici.
+
+**La giornata ha avuto quattro interruzioni per limite di crediti**: ogni
+volta si sono persi i cantieri appena aperti e il giro completo del browser;
+il giro FILTRATO per famiglia (89 passate, un'ora e un quarto) è arrivato in
+fondo ed è la forma che regge.
+
+## ⚠️ Aggiornamento del 3 settembre — il terzo lato del triangolo, in cinque righe
+
+**Le scorte a piazzale si misurano, non si stimano più.** Terra ha una schermata
+nuova, «Inventario dei cumuli»: la fotografia del piazzale a una data (per ogni
+cumulo il materiale e i metri cubi; un cumulo che nessuno ha misurato resta
+«non misurato», non zero). Conti la legge e chiude il conto che ogni cava fa a
+fine mese — cavato − venduto − variazione delle scorte — in tonnellate, con la
+densità giusta per ciascuno (in banco per il fronte, del listino per i cumuli).
+Se lo scarto non torna, Conti dice il verso: materiale sparito (sfrido,
+ripristino, uscite non pesate) o materiale in più (manca un rilievo, o una
+densità è sbagliata). Il verbale di riconciliazione registra anche questo terzo
+lato, o scrive perché restava stimato.
+
+**Il rapportino del fochino ha l'esito dello sparo.** Colpi esplosi contati e
+colpi mancati con la nota di dove sono e chi bonifica: se non è scritto niente
+l'app dice «non contato», mai «0 mancati». Il pericolo si vede nell'elenco,
+nella scheda, nel PDF e nella cronologia della cava. E i chili di esplosivo
+sono anche per tipo, come li vuole il registro di carico e scarico.
+
+**Un difetto piccolo ma della famiglia peggiore**, trovato leggendo il core: la
+freccia della calotta di una galleria scritta a **zero** (cielo piatto) veniva
+letta come «mai scritta» e i fori di contorno nascevano su un arco di un metro
+che tu avevi tolto. Corretto, con la prova sul sorgente.
+
+**Sei documenti di ricerca esistevano due volte** con lo stesso nome a
+maiuscole diverse: su un computer Windows o Mac il repository non si sarebbe
+scaricato intero. Uniti, e un controllo impedisce che ricapiti.
+
+**Due ricerche nuove, con il delta**: il rapporto di volata (le due mancanze
+vere sono quelle chiuse sopra) e i ruoli in cava — oggi chi entra in
+un'organizzazione vede tutte le app, e le figure di legge (direttore
+responsabile, sorvegliante, RSPP, medico) sono nomine in Scudo, non permessi:
+è la decisione Q1, tua, preparata e non presa. Nella notte la sessione ha
+toccato il limite dei crediti e si è ripresa alle 05:40.
+
+## ⚠️ Aggiornamento del 2 settembre — la giornata dei ponti
+
+*Il blocco del 30 luglio qui sotto resta vero. Questo dice che cosa è cambiato
+il 2 settembre, in un giorno solo, con la fase nuova che hai aperto il 26/08
+(«i dettagli di ogni app»).*
+
+**Le app si parlano di più.** La mappa dell'ecosistema (`docs/MAPPA_ECOSISTEMA.md`)
+contava 6 ponti di dati su 56 possibili; a sera sono **10**. Quattro sono nuovi:
+- **Conti ↔ Flotta, nei due versi**: lo stesso euro di gasolio o di officina non
+  si conta più due volte senza saperlo. In Conti la schermata Costi mostra
+  voce per voce quanto c'è anche in Flotta; in Flotta ogni spesa uguale alla
+  cifra porta il contrassegno «anche in Conti». Se l'altra app non risponde
+  lo dice per nome, e **non** scrive zero.
+- **Terra e Flotta → Scudo**: la schermata Scadenze di Scudo apre con «Tutta
+  la cava»: le scadenze della concessione, dei mezzi e delle persone con la
+  stessa regola, in un muro solo. È quello che i software del mestiere
+  chiamano scadenzario unico.
+
+**La fattura elettronica esce da Conti.** Il bottone «XML per lo SdI» sulla
+fattura produce il file per il Sistema di Interscambio. Onestà: Conti lo
+prepara; l'invio e la conservazione si fanno gratis dal portale dell'Agenzia
+o col commercialista, e il tracciato va passato dal controllo formale del
+portale prima del primo invio vero. Se manca un dato (CAP, regime fiscale…)
+il file **non** esce e la finestra dice che cosa manca e dove scriverlo.
+
+**Sette passate in profondità, sette app** (Conti, Scudo, Flotta, Campo,
+Sentinella, Terra, il core): ogni banco lanciato, ogni schermata guardata,
+ogni file che esce aperto. Difetti veri trovati e chiusi: in Conti una pesata
+senza tara «vendeva il camion»; in Scudo la copertura formazione diceva
+«tutte regolari» sopra una verifica scaduta; in Flotta la tessera del
+carburante scriveva «€ 0,00» per un mese senza rifornimenti registrati; in
+Terra il foglio per l'ente chiamava «complessiva» un'incertezza stimata su un
+rilievo su quattro. Campo, Sentinella e il core: puliti.
+
+**Genesi fuori dal browser**: misurato prima di costruire
+(`docs/GENESI_FUORI_DAL_BROWSER.md`): nove chiavi, quattro ponti di file già
+vivi, l'offline come vincolo vero; piano in otto unità. Aspetta la tua
+decisione 5b (la coda offline).
+
+**Aspetta te**: la PR #345 su GitHub raccoglie tutto questo ed è verde; unire
+a main è una tua scelta. I nomi e i temi delle app restano sospesi come hai
+chiesto.
+
+---
+
+### La sera del 2 settembre, in sei righe
+
+**Genesi è uscita dal browser.** Fino a stamattina i suoi dati (volate salvate,
+confronti A/B, riconciliazioni, legge di sito, lavorazioni del drone) vivevano
+solo nella memoria del browser di un computer: nessun'altra app poteva
+leggerli, e cambiando computer sparivano. Da stasera Genesi ha la stessa
+«porta» delle altre app: da sola sul dispositivo lavora come prima (nessuno
+perde niente), con un'organizzazione scrive nelle sue collezioni, e senza rete
+torna da sola al browser — misurato staccando la rete. C'è il bottone «Porta
+nell'organizzazione» (una volta sola, non cancella niente), e Terra legge già
+le lavorazioni del drone da lì: è il **primo ponte di dati verso Genesi**. La
+mappa è a **12 ponti su 56**; nessuna app è più senza scambio di dati. Del
+piano in otto unità resta solo la coda offline, che è la tua decisione 5b.
+
+**Il triangolo della produzione si legge in un'unità sola.** Sotto «Cavato
+contro venduto» Conti mostra ora anche «Prodotto contro venduto» (quello che i
+turni di Campo dichiarano, in tonnellate, contro la pesa), e il cavato di Terra
+anche in tonnellate con la densità in banco che Terra dichiara sull'atto — con
+scritto quando è un valore tipico da verificare. E il **verbale di
+riconciliazione**: il divario del periodo si conserva con la causa che gli hai
+trovato e una nota; se i dati cambiano dopo, Conti lo dice accanto invece di
+sovrascrivere.
+
+**Flotta dice quando un mezzo beve più del suo solito**: gli ultimi trenta
+giorni contro la sua storia, con la forbice e «da guardare» sopra una
+tolleranza dichiarata come scelta nostra (nessuna norma la fissa).
+
+**Sei ricerche, sei delta dal meccanismo** (Conti, Flotta, Scudo, Sentinella,
+Campo, Terra): quasi tutto quello che i concorrenti fanno c'era già, con il
+nome del mestiere; le poche mancanze vere sono chiuse (il verbale, il consumo
+contro la storia, la densità che era già in casa) o sospese a te — sono le
+decisioni **19, 20 e 21** in `docs/DECISIONI_WEEKEND.md`: la volata sparata
+come documento emesso, le notifiche fuori dall'app (costano), quattro numeri
+di legge che non scrivo senza il testo.
+
+**Tutte e sei le app rimisurate in profondità** dopo le modifiche, nessun
+difetto nuovo; un banco «intermittente» rimisurato a macchina ferma tre volte,
+verde. Un giro completo del browser è partito a sera sulla copia di quello che
+è committato: si legge domattina.
+
 ## ⚠️ Aggiornamento del 30 luglio — leggi prima questo
 
 *Il resto del documento è del **23 luglio** e le schede app per app sono ancora
@@ -68,14 +211,14 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 18/08 lanciando le suite, non a
-memoria)*: **2.877** prove automatiche che girano senza rete — **2396** sulle
+memoria)*: **3.232** prove automatiche che girano senza rete — **2751** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
-primo avvio, 3 sulle superfici che stampano e su chi le preme — più **123** che
-girano con l'emulatore Firestore (**75** sulle
+primo avvio, 3 sulle superfici che stampano e su chi le preme — più **129** che
+girano con l'emulatore Firestore (**81** sulle
 **regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
-**200 esecuzioni** che aprono davvero le pagine in un browser.
+**253 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
@@ -88,7 +231,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **2.877** conta nove suite: il giro completo ne esegue **3.282**, e da
+*(⚠️ Il **3.232** conta nove suite: il giro completo ne esegue **3.678**, e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
@@ -103,9 +246,13 @@ ricopiato — ed è la stessa ragione per cui la riga qui sopra era rimasta ferm
 ⚠️ E il giro lo stampa **col suo denominatore**: 22 comandi su 34 hanno una riga
 da sommare, e gli altri **12 sono nominati** — non vuol dire che non abbiano
 provato niente, vuol dire che quel conto non li vede.)*
-E **760 funzioni pure su 760** delle sei app sono chiamate per nome dalle prove:
+E **906 funzioni pure su 906** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
+✅ *E quella rinuncia era falsa, come misurato il 13/08 e rimisurato il 05/09 in
+questo contenitore: l'emulatore delle funzioni parte — mancava* `npm ci` *nella
+cartella* `functions`*, non la rete. In un solo* `emulators:exec --only
+firestore,auth,functions`*: 81 + 19 + 8 + 21, tutti verdi.*
 
 ⛔ **Delle sei app**, appunto: **Genesi non ha un modulo dati** e le sue 192
 funzioni stanno dentro la pagina, dove `node` non arriva. Il 100% è vero per

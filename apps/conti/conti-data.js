@@ -42,6 +42,15 @@
 //   chiusure/{id}: { mese ("AAAA-MM"), chiusoIl (ISO), vociAssenti [chiavi],
 //                    nota } — «per questo mese ho finito di inserire». NON è un
 //                    lucchetto: un costo arrivato dopo si registra lo stesso.
+//   verbali/{id}: { dal, al (ISO), tipo "cavato"|"prodotto", divario (m³ o t: il
+//                    numero che la schermata mostrava quando è stato scritto),
+//                    pct, stato, causa (chiave di CAUSE_DIVARIO), nota, scrittoIl,
+//                    e — solo per il cavato, dal 03/09 — il terzo lato:
+//                    scorte {deltaM3, deltaT, inizio{id,data}, fine{id,data},
+//                    parziale, fuori[]} + chiusura {scarto, pct, stato, verso}
+//                    copiati da `triangolo`, oppure scorte: null + scorteMotivo
+//                    quando il triangolo non chiudeva (vedi componiVerbale) }
+//                    — il verbale di riconciliazione: non corregge e non blocca.
 //   impostazioni/{id}: { canoneUnita: "t"|"m3", canoneAliquota (€/unità), canoneNota }
 // LETTURA DAI RILIEVI DI TERRA (sola lettura, ponte cavato↔venduto): i rilievi
 // NON sono di Conti, stanno sotto l'app Terra della STESSA organizzazione
@@ -65,8 +74,8 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale,
-         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
+import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -77,8 +86,22 @@ export { numeroDichiarato } from "../../shared/dw-ponti.js";
    quindi serve anche l'import vero — con `export … from` da solo il modulo
    si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
-import { gruppoDiVoce, VOCI_COSTO } from "../../shared/dw-ponti.js";
+/* il ponte Flotta→Conti: stessa regola, la pagina lo prende da qui */
+export { confrontoCostiMezzi, confrontoProdottoVenduto, produzioneDichiarata } from "../../shared/dw-ponti.js";
+/* la densità della cava la dichiara Terra: Conti la legge con le stesse funzioni, non se ne tiene una copia */
+export { autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate } from "../../shared/dw-ponti.js";
+/* il terzo lato del triangolo (03/09): l'inventario dei cumuli che Terra
+   registra e Conti legge. Le regole vivono in shared perché le usano due app;
+   qui si ri-esportano (identità, pretesa da `nomi-doppi`) e si importano
+   ANCHE, perché `triangolo` qui sotto le chiama — vedi l'avvertenza sopra. */
+export { variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale, SOGLIA_TRIANGOLO } from "../../shared/dw-ponti.js";
+import { gruppoDiVoce, VOCI_COSTO, voceCosto, autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate,
+         variazioneScorte, scorteInTonnellate, chiusuraTriangolo, chiaveMateriale } from "../../shared/dw-ponti.js";
 
+/* le date RELATIVE a oggi dei rapportini di Campo in dimostrazione: la stessa
+   forma di `GIORNI_FA` in apps/campo/campo-data.js, perché quelle righe sono una
+   copia e devono cadere negli stessi giorni (una prova lo pretende) */
+const _giorniFa = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return isoLocale(d); };
 export const DEMO = {
   // fatture d'esempio: alcune già collegate all'anagrafica (clienteId), altre
   // con il solo testo libero — e volutamente scritto in modi diversi — per far
@@ -118,8 +141,10 @@ export const DEMO = {
     { id: "i3", fatturaId: "f1", data: "2026-07-02", importo: 6000, metodo: "bonifico" },
   ],
   clienti: [
-    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" },
-    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12, Modica", sconto: 0, fido: 15000, note: "" },
+    // CAP, comune e provincia sono entrati il 02/09: servono alla fattura
+    // elettronica, e la dimostrazione deve poterne produrre una «pronta»
+    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG", codiceFiscale: "", sconto: 5, fido: 25000, note: "" },
+    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12", cap: "97015", comune: "Modica", provincia: "RG", codiceFiscale: "", sconto: 0, fido: 15000, note: "" },
   ],
   gare: [
     { id: "g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: "2026-07-28", stato: "aperta" },
@@ -265,6 +290,66 @@ export const DEMO = {
   // RILIEVI DI TERRA (solo per la modalità dimostrativa): in un'organizzazione
   // vera arrivano dall'app Terra, qui sono finti ma COERENTI con le pesate
   // qui sopra, così il confronto cavato/venduto mostra numeri che quadrano.
+  /* UN VERBALE DI RICONCILIAZIONE in dimostrazione (02/09): il primo semestre,
+     con la causa che i rilievi d'esempio raccontano (la ripresa dal cumulo di
+     maggio). ⛔ divario, pct e stato sono QUELLI CHE LA SCHERMATA CALCOLA su
+     questi stessi dati — una prova in run-kpi lo pretende, così se la
+     dimostrazione cambia il verbale non resta a raccontare un numero vecchio
+     senza che nessuno lo veda (sarebbe il verbale che mente). */
+  verbali: [
+    { id: "vr1", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione",
+      causa: "cumulo", nota: "A maggio abbiamo ripreso dal cumulo di piazzale: il venduto in più viene da lì, non dal fronte.",
+      scrittoIl: "2026-07-02T09:40:00",
+      /* il terzo lato (03/09): quello che `triangolo` risponde su QUESTA
+         dimostrazione per lo stesso semestre — copiato dalla funzione, e una
+         prova in run-kpi lo confronta campo per campo */
+      scorte: { deltaM3: 6, deltaT: 16.3, inizio: { id: "i1", data: "2025-12-29" }, fine: { id: "i2", data: "2026-06-27" },
+                parziale: true, fuori: ["Terre di scavo"] },
+      chiusura: { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito" }, scorteMotivo: null },
+  ],
+  /* L'AUTORIZZAZIONE DELLA CAVA in dimostrazione (02/09): i soli campi che
+     servono alla densità, copiati dalla dimostrazione di Terra (`a1`) — una
+     prova pretende che restino uguali. Terra non ha una densità scritta:
+     vale il valore tipico del materiale, «da verificare», ed è giusto che la
+     dimostrazione mostri proprio questo caso. */
+  autorizzazioniTerra: [
+    { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", stato: "vigente", materiale: "Sabbia e ghiaia" },
+  ],
+  /* INVENTARI DEI CUMULI di Terra, in dimostrazione (03/09, il terzo lato del
+     triangolo). ⚠️ NON sono una copia della dimostrazione di Terra, e va detto:
+     la cava di dimostrazione di Conti è PICCOLA (i suoi `rilieviTerra` cavano
+     decine di metri cubi, quelli di Terra ventimila) — ogni app racconta la
+     sua cava, e un inventario alla scala di Terra qui faceva chiudere il
+     triangolo «implausibile» per costruzione dei dati (misurato: 923 t di
+     scorte su 236 t cavate). Le forme (i campi, i tre casi) sono le stesse.
+     Tre fotografie, decise PRIMA per far vedere i casi che il conto deve saper
+     dichiarare:
+      · i1 e i2 racchiudono il primo semestre (3 giorni prima dell'inizio e 3
+        prima della fine): la variazione delle scorte è MISURATA;
+      · i3 è una STIMA di fine agosto in cui la sabbia non è misurata
+        (`volumeM3: null`) e le terre di scavo non ci sono: un materiale in un
+        solo inventario NON vale zero nell'altro, resta fuori ed è elencato;
+      · le terre di scavo non hanno una densità nel listino: in tonnellate
+        restano fuori, dichiarate. */
+  inventariTerra: [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 240 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: 115 },
+      { materiale: "Pietrisco 8/12", volumeM3: 62 },
+      { materiale: "Terre di scavo", volumeM3: 30 },
+    ] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 265 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: 88 },
+      { materiale: "Pietrisco 8/12", volumeM3: 70 },
+      { materiale: "Terre di scavo", volumeM3: 30 },
+    ] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 250 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 64 },
+    ] },
+  ],
   rilieviTerra: [
     { id: "t1", titolo: "Rilievo di fine febbraio", data: "2026-02-28", volumeM3: 31, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
     { id: "t2", titolo: "Rilievo di fine aprile",   data: "2026-04-30", volumeM3: 46, stato: "elaborato", metodo: "RTK+GCP", gsd: "2" },
@@ -276,6 +361,51 @@ export const DEMO = {
     // confronto non devono entrare, ed è giusto che si veda
     { id: "t6", titolo: "Prossimo rilievo", data: "2026-08-31", volumeM3: null, stato: "pianificato" },
     { id: "t0", titolo: "Rilievo di fine 2025", data: "2025-11-20", volumeM3: 40, stato: "elaborato", metodo: "RTK", gsd: "2" },
+  ],
+  // COSTI DEI MEZZI COME LI REGISTRA FLOTTA (solo per la modalità dimostrativa):
+  // in un'organizzazione vera arrivano dall'app Flotta. Qui sono finti ma
+  // costruiti APPOSTA per mostrare il caso per cui il ponte esiste — e i casi
+  // sono decisi PRIMA, non lasciati al caso:
+  //  · fl1 e fl3 sono LO STESSO gasolio di c02 e c05 qui sopra: stessa data,
+  //    stesso importo. È l'euro contato due volte, ed è quello che la
+  //    schermata deve far vedere;
+  //  · fl2 e fl4 sono manutenzioni che in Conti non ci sono: Flotta ne sa di
+  //    più, e il confronto lo dice;
+  //  · fl5 è un noleggio che sta SOLO in Flotta;
+  //  · fl6 è senza data: non deve sparire dal periodo in silenzio, deve
+  //    essere contato a parte.
+  /* I RAPPORTINI DI CAMPO in dimostrazione (02/09, il terzo lato del triangolo):
+     copiati dalla dimostrazione di Campo id per id (rs0–rs6, r1–r3), con le
+     stesse date RELATIVE a oggi che Campo usa (`GIORNI_FA` di là, `_giorniFa`
+     qui), così cadono sempre nel periodo dell'anno in corso. La quantità è in
+     tonnellate come di là: è l'unico lato del triangolo che non ha bisogno
+     della densità. Tre righe sono qui APPOSTA per far vedere i casi che il
+     confronto deve saper dichiarare:
+      · rs0 è SENZA DATA: resta fuori dal periodo e si conta a parte;
+      · r2 è una bozza senza quantità: un turno che non ha dichiarato niente;
+      · rs6 è senza fronte, e qui non cambia niente (il confronto è per
+        periodo, non per fronte).
+     Una prova pretende che restino uguali a quelle di Campo, id per id, data
+     per data e quantità per quantità: una copia che diverge racconta due cave. */
+  rapportiniCampo: [
+    { id: "rs0", data: "", turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2300, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
+    { id: "rs1", data: _giorniFa(19), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "13:00", stato: "inviato", fronteId: "f1" },
+    { id: "rs2", data: _giorniFa(17), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2550, prodUnita: "t", ora: "13:10", stato: "inviato", fronteId: "f1" },
+    { id: "rs3", data: _giorniFa(14), turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2400, prodUnita: "t", ora: "20:00", stato: "inviato", fronteId: "f2" },
+    { id: "rs4", data: _giorniFa(12), turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2200, prodUnita: "t", ora: "12:50", stato: "inviato", fronteId: "f1" },
+    { id: "rs5", data: _giorniFa(9),  turno: "Mattina",    titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 2450, prodUnita: "t", ora: "13:05", stato: "inviato", fronteId: "f2" },
+    { id: "rs6", data: _giorniFa(8),  turno: "Pomeriggio", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 1860, prodUnita: "t", ora: "19:55", stato: "inviato" },
+    { id: "r1", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino perforazione", squadra: "Squadra A", prodQta: 120, prodUnita: "t", ora: "11:20", stato: "inviato" },
+    { id: "r2", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino impianto", squadra: "Squadra C", prodQta: null, prodUnita: "t", ora: "", stato: "bozza" },
+    { id: "r3", data: _giorniFa(0), turno: "Mattina", titolo: "Rapportino trasporti", squadra: "Squadra B", prodQta: 90, prodUnita: "t", ora: "10:05", stato: "inviato" },
+  ],
+  costiFlotta: [
+    { id: "fl1", data: "2026-02-14", voce: "carburante", importo: 26, nota: "Gasolio pala e dumper", mezzo: "Pala CAT 966" },
+    { id: "fl2", data: "2026-02-20", voce: "manutenzione", importo: 18, nota: "Filtri e olio motore", mezzo: "Dumper 1" },
+    { id: "fl3", data: "2026-03-13", voce: "carburante", importo: 24, nota: "Gasolio, rifornimento", mezzo: "Pala CAT 966" },
+    { id: "fl4", data: "2026-03-22", voce: "manutenzione", importo: 31, nota: "Pneumatici posteriori", mezzo: "Dumper 2" },
+    { id: "fl5", data: "2026-04-02", voce: "noleggio", importo: 45, nota: "Escavatore a noleggio, aprile", mezzo: "Escavatore (nolo)" },
+    { id: "fl6", voce: "carburante", importo: 22, nota: "Buono gasolio senza data", mezzo: "Dumper 1" },
   ],
   // REGISTRO COSTI d'esempio. Tre righe stanno qui apposta perché fanno vedere
   // cosa succede quando il dato non è pulito — che è la condizione normale del
@@ -325,7 +455,10 @@ export const DEMO = {
     { id: "s1", canoneUnita: "m3", canoneAliquota: 0.55, canoneNota: "Valore di esempio: metti la tariffa della tua concessione.",
       // intestazione dei documenti stampati (DDT e fatture): dati d'esempio
       aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000",
-      aziendaIndirizzo: "Contrada Esempio 1, Ragusa", aziendaContatti: "0932 000000 · amministrazione@esempio.it" },
+      aziendaIndirizzo: "Contrada Esempio 1", aziendaContatti: "0932 000000 · amministrazione@esempio.it",
+      // per la fattura elettronica (02/09): valori d'esempio, da sostituire coi propri
+      aziendaCap: "97100", aziendaComune: "Ragusa", aziendaProvincia: "RG", aziendaCodiceFiscale: "",
+      aziendaRegimeFiscale: "RF01", modalitaPagamento: "MP05" },
   ],
   /* PREVENTIVI E ORDINI d'esempio. ⛔ Come per la fattura senza scadenza, la
      dimostrazione DEVE contenere i casi che il prodotto esiste per raccontare,
@@ -1556,16 +1689,25 @@ export function densitaValida(prodotto) {
   return Number.isFinite(d) && d > 0 ? d : null;
 }
 
-// Prezzo del prodotto in €/tonnellata (null se andrebbe convertito e manca la densità).
+// Prezzo del prodotto in €/tonnellata (null se andrebbe convertito e manca la
+// densità — e null se il PREZZO non è scritto: `+p.prezzo || 0` convertiva un
+// prodotto senza prezzo in «0 €/t», cioè gratis, nel listino che si manda al
+// cliente, mentre la colonna `prezzo` accanto restava giustamente vuota. Lo
+// zero SCRITTO — un omaggio — resta zero. Trovato il 05/09 portando il file
+// nel modulo: la stessa domanda che l'08/08 aveva corretto una cella e non le
+// due accanto).
 export function prezzoPerTonnellata(prodotto) {
-  const p = prodotto || {}, v = +p.prezzo || 0;
+  const p = prodotto || {}, v = numeroDichiarato(p.prezzo);
+  if (v == null) return null;
   if (p.unitaPrezzo === "m3") { const d = densitaValida(p); return d ? round2(v / d) : null; }
   return round2(v);
 }
 
-// Prezzo del prodotto in €/metro cubo (null se manca la densità per convertire).
+// Prezzo del prodotto in €/metro cubo (null se manca la densità per convertire,
+// o se il prezzo non è scritto: vedi sopra).
 export function prezzoPerMetroCubo(prodotto) {
-  const p = prodotto || {}, v = +p.prezzo || 0;
+  const p = prodotto || {}, v = numeroDichiarato(p.prezzo);
+  if (v == null) return null;
   if (p.unitaPrezzo === "m3") return round2(v);
   const d = densitaValida(p);
   return d ? round2(v * d) : null;
@@ -1705,6 +1847,169 @@ export function riepilogoIvaFattura(fattura) {
 // Legge i numeri già usati nell'anno — sia "2026/037" sia "37/2026" — e
 // propone il primo libero, in formato AAAA/NNN. Così non si salta e non si
 // duplica: il numero non si digita più a mano.
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA FATTURA ELETTRONICA — il file XML per il Sistema di Interscambio (02/09)
+   ──────────────────────────────────────────────────────────────────────
+   È il punto 5 di docs/CONTI_FATTURAZIONE_ROADMAP.md: «generatore XML
+   FatturaPA lato client, con controllo formale prima dell'export». Conti
+   PREPARA il file; l'invio allo SdI e la conservazione si fanno gratis dal
+   portale dell'Agenzia o col commercialista — la riga fissa di onestà sta
+   nella pagina, e questa funzione non promette niente di più.
+   ⛔ ONESTÀ SUL TRACCIATO: la struttura (FPR12: FatturaElettronicaHeader con
+   DatiTrasmissione, CedentePrestatore, CessionarioCommittente; Body con
+   DatiGenerali, DatiBeniServizi, DatiPagamento) è scritta a memoria della
+   versione 1.2 del tracciato, NON riletta dallo schema oggi (la rete del
+   contenitore non apre pagine). Il file va passato dal controllo formale del
+   portale prima del primo invio vero, e il commercialista deve vedere il
+   primo. Per questo la funzione risponde con `mancanti` (bloccanti: senza di
+   loro il file NON è pronto) e `avvisi` (il file esce, ma va saputo).
+   ⛔ E NON SI INVENTA NIENTE: regime fiscale, modalità di pagamento, CAP e
+   provincia sono dati che il cliente deve scrivere (Impostazioni e
+   anagrafica), non ripieghi. Un «RF01» messo di default sarebbe un dato
+   fiscale deciso dal programma: se manca, il file non è pronto e la ragione
+   è scritta in italiano, col posto dove scriverla.
+   `quadra` di `riepilogoIvaFattura` è bloccante: un file in cui le righe non
+   tornano col totale lo rifiuta lo SdI, e prima ancora è il difetto che quella
+   funzione esiste per far vedere. */
+const escXml = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const dec = (v, n = 2) => (Math.round((+v || 0) * 10 ** n) / 10 ** n).toFixed(n);
+/* QUANTITÀ E PREZZO UNITARIO DI RIGA COI DECIMALI CHE HANNO (04/09, dal delta
+   sulla fattura elettronica): scritti a due decimali fissi, «33,333 t × 30 €»
+   usciva come 33.33 × 30.00 = 999.90 accanto a un PrezzoTotale di 999.99 — un
+   file che si contraddice da solo. Si tengono i decimali del numero (almeno
+   due, al più otto), così quantità × prezzo TORNA con il totale di riga. */
+/* le stesse due grafie per la FRASE a chi legge: virgola e migliaia col punto
+   (nel file resta il punto, che è quello che lo schema vuole) */
+const it2 = (v) => (+v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+const itRiga = (v) => decRiga(v).replace(".", ",");
+/* L'UNITÀ DI MISURA NEL FILE (04/09, candidato (c) del delta): la tabella era a
+   due voci, «m3» → MC e TUTTO IL RESTO → TN — cioè una riga a viaggi, a colli
+   o senza unità usciva in tonnellate. Ora: le due unità di vendita si
+   traducono, un'altra unità si scrive com'è (il campo è testo libero), e
+   un'unità assente non si inventa: il tag, facoltativo, non si scrive. */
+const unitaXml = (u) => {
+  const t = String(u == null ? "" : u).trim();
+  if (!t) return "";
+  if (t === "m3" || t === "m³") return tag("UnitaMisura", "MC");
+  if (t === "t") return tag("UnitaMisura", "TN");
+  return tag("UnitaMisura", t.slice(0, 10));
+};
+const decRiga = (v) => {
+  const t = String(+v || 0);
+  const m = /\.(\d+)$/.exec(t.includes("e") ? (+v).toFixed(8) : t);
+  const n = Math.min(8, Math.max(2, m ? m[1].replace(/0+$/, "").length : 0));
+  return dec(v, n);
+};
+const tag = (nome, contenuto) => contenuto == null || contenuto === "" ? "" : `<${nome}>${escXml(contenuto)}</${nome}>`;
+const blocco = (nome, dentro) => `<${nome}>${dentro}</${nome}>`;
+
+export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], progressivo = "00001" } = {}) {
+  const f = fattura || {}, c = cliente || {}, imp = impostazioni || {};
+  const mancanti = [], avvisi = [];
+  const manca = (t) => mancanti.push(t);
+  const txt = (x) => String(x == null ? "" : x).trim();
+  // ── chi emette
+  const cedPiva = txt(imp.aziendaPiva).replace(/^IT/i, "");
+  if (!/^\d{11}$/.test(cedPiva)) manca("la partita IVA di chi emette (11 cifre), nelle Impostazioni");
+  if (!txt(imp.aziendaNome)) manca("la ragione sociale di chi emette, nelle Impostazioni");
+  if (!txt(imp.aziendaIndirizzo)) manca("l'indirizzo della sede di chi emette");
+  if (!/^\d{5}$/.test(txt(imp.aziendaCap))) manca("il CAP della sede di chi emette (5 cifre)");
+  if (!txt(imp.aziendaComune)) manca("il comune della sede di chi emette");
+  if (!/^[A-Za-z]{2}$/.test(txt(imp.aziendaProvincia))) manca("la provincia della sede di chi emette (sigla di due lettere)");
+  if (!/^RF\d{2}$/.test(txt(imp.aziendaRegimeFiscale))) manca("il regime fiscale di chi emette (codice RFxx: lo dice il commercialista, RF01 è l'ordinario)");
+  // ── a chi
+  const piva = txt(c.piva).replace(/^IT/i, ""), cf = txt(c.codiceFiscale);
+  if (!txt(c.ragioneSociale)) manca("la ragione sociale del cliente");
+  if (!/^\d{11}$/.test(piva) && !cf) manca("la partita IVA (11 cifre) o il codice fiscale del cliente");
+  if (!txt(c.indirizzo)) manca("l'indirizzo del cliente");
+  if (!/^\d{5}$/.test(txt(c.cap))) manca("il CAP del cliente (5 cifre)");
+  if (!txt(c.comune)) manca("il comune del cliente");
+  if (!/^[A-Za-z]{2}$/.test(txt(c.provincia))) manca("la provincia del cliente (sigla di due lettere)");
+  const sdi = txt(c.sdi);
+  let codiceDest = "0000000", pec = "";
+  if (/^[A-Za-z0-9]{7}$/.test(sdi)) codiceDest = sdi.toUpperCase();
+  else if (/@/.test(sdi)) pec = sdi;
+  else avvisi.push("il cliente non ha un codice destinatario né una PEC: il file va con «0000000» e il cliente la trova nel suo cassetto fiscale");
+  // ── il documento
+  const numero = txt(f.numero);
+  if (!numero) manca("il numero della fattura");
+  else if (numero.length > 20) manca("il numero della fattura è più lungo di 20 caratteri");
+  if (!dataISOEsiste(f.emessa)) manca("la data di emissione");
+  const riep = riepilogoIvaFattura(f);
+  if (!riep.quadra) manca(`le righe non tornano con i totali registrati (scarto imponibile ${dec(riep.scartoImponibile)}, IVA ${dec(riep.scartoIva)}): sistemarla prima di esportare`);
+  /* `quadra` confronta righe e totali su imponibile e IVA; il TOTALE registrato
+     può essere stato riscritto a mano da solo, e un ImportoTotaleDocumento che
+     non è imponibile + IVA è la contraddizione più facile da vedere per chi
+     riceve il file */
+  if (riep.conIva && round2(riep.imponibile + riep.ivaImporto) !== round2(riep.totale))
+    manca(`il totale registrato (${dec(riep.totale)}) non è imponibile + IVA (${dec(riep.imponibile + riep.ivaImporto)}): sistemarla prima di esportare`);
+  if (riep.aliquotaIgnota) manca("l'aliquota IVA di almeno una riga");
+  if (!riep.conIva) manca("imponibile, IVA e totale della fattura: è una fattura vecchia a solo importo, l'aliquota non si può dedurre");
+  const righe = (f.righe || []).filter(Boolean);
+  const linee = righe.length ? righe.map((r, i) => {
+    const q = numeroDichiarato(r.quantita), pu = numeroDichiarato(r.prezzoUnitario);
+    const sc = round2(+r.scontoPct || 0);
+    const base = r.imponibile != null ? +r.imponibile : (q || 0) * (pu || 0) * (1 - sc / 100);
+    if (pu == null) manca(`il prezzo unitario della riga ${i + 1} (${txt(r.descrizione) || "senza descrizione"})`);
+    /* ⛔ LA RIGA DEVE TORNARE CON SÉ STESSA (04/09). Una riga nata dai DDT e poi
+       corretta a mano porta un imponibile registrato che quantità × prezzo non
+       fa più: fino a oggi il file usciva lo stesso, con PrezzoTotale da una
+       parte e Quantita × PrezzoUnitario dall'altra — e chi lo riceve lo
+       rifiuta, o se lo tiene incoerente. Si confrontano i numeri COME VENGONO
+       SCRITTI nel file (con i loro decimali), con un centesimo di tolleranza
+       per gli arrotondamenti: oltre, si ferma e si nomina la riga. */
+    if (q != null && pu != null) {
+      const attesa = round2(+decRiga(q) * +decRiga(pu) * (1 - sc / 100));
+      if (Math.abs(round2(base) - attesa) > 0.01)
+        manca(`la riga ${i + 1} (${txt(r.descrizione) || "senza descrizione"}) dice ${it2(base)} € ma ${itRiga(q)} × ${itRiga(pu)}${sc > 0 ? ` meno il ${it2(sc)}%` : ""} fa ${it2(attesa)} €: il file si contraddirebbe da solo, sistemarla prima di esportare`);
+    }
+    return blocco("DettaglioLinee",
+      tag("NumeroLinea", i + 1) + tag("Descrizione", txt(r.descrizione) || "Fornitura")
+      + (q == null ? "" : tag("Quantita", decRiga(q)) + unitaXml(r.unita))
+      + tag("PrezzoUnitario", decRiga(pu))
+      + (sc > 0 ? blocco("ScontoMaggiorazione", tag("Tipo", "SC") + tag("Percentuale", dec(sc, 2))) : "")
+      + tag("PrezzoTotale", dec(base, 2)) + tag("AliquotaIVA", dec(r.aliquota, 2)));
+  }) : [blocco("DettaglioLinee",
+      tag("NumeroLinea", 1) + tag("Descrizione", "Fornitura di inerti")
+      + tag("PrezzoUnitario", dec(riep.imponibile, 2)) + tag("PrezzoTotale", dec(riep.imponibile, 2))
+      + tag("AliquotaIVA", dec(riep.aliquota, 2)))];
+  const riepiloghi = riep.bande.map((b) => blocco("DatiRiepilogo",
+    tag("AliquotaIVA", dec(b.aliquota, 2)) + tag("ImponibileImporto", dec(b.imponibile, 2)) + tag("Imposta", dec(b.imposta, 2)) + tag("EsigibilitaIVA", "I")));
+  // ── i DDT
+  const perId = new Map((pesate || []).filter(Boolean).map((p) => [String(p.id), p]));
+  const ddt = (f.ddtIds || []).map((id) => perId.get(String(id))).filter(Boolean);
+  if ((f.ddtIds || []).length && ddt.length < f.ddtIds.length)
+    avvisi.push(`${f.ddtIds.length - ddt.length} DDT collegati alla fattura non sono in archivio: il file non li cita`);
+  const datiDdt = ddt.map((p) => dataISOEsiste(p.data)
+    ? blocco("DatiDDT", tag("NumeroDDT", txt(p.numero) || "—") + tag("DataDDT", p.data))
+    : (avvisi.push(`il DDT ${txt(p.numero) || p.id} è senza data e nel file non si può citare`), "")).join("");
+  // ── il pagamento: solo se la modalità è stata scelta (non si inventa)
+  const mp = txt(imp.modalitaPagamento);
+  let pagamento = "";
+  if (/^MP\d{2}$/.test(mp) && riep.totale > 0)
+    pagamento = blocco("DatiPagamento", tag("CondizioniPagamento", "TP02")
+      + blocco("DettaglioPagamento", tag("ModalitaPagamento", mp) + (dataISOEsiste(f.scadenza) ? tag("DataScadenzaPagamento", f.scadenza) : "") + tag("ImportoPagamento", dec(riep.totale, 2))));
+  else avvisi.push("nessuna modalità di pagamento nelle Impostazioni (codice MPxx): il file esce senza il blocco del pagamento, che è facoltativo");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`
+    + blocco("FatturaElettronicaHeader",
+        blocco("DatiTrasmissione", blocco("IdTrasmittente", tag("IdPaese", "IT") + tag("IdCodice", cedPiva)) + tag("ProgressivoInvio", progressivo) + tag("FormatoTrasmissione", "FPR12") + tag("CodiceDestinatario", codiceDest) + tag("PECDestinatario", pec))
+        + blocco("CedentePrestatore",
+            blocco("DatiAnagrafici", blocco("IdFiscaleIVA", tag("IdPaese", "IT") + tag("IdCodice", cedPiva)) + tag("CodiceFiscale", txt(imp.aziendaCodiceFiscale)) + blocco("Anagrafica", tag("Denominazione", txt(imp.aziendaNome))) + tag("RegimeFiscale", txt(imp.aziendaRegimeFiscale)))
+            + blocco("Sede", tag("Indirizzo", txt(imp.aziendaIndirizzo)) + tag("CAP", txt(imp.aziendaCap)) + tag("Comune", txt(imp.aziendaComune)) + tag("Provincia", txt(imp.aziendaProvincia).toUpperCase()) + tag("Nazione", "IT")))
+        + blocco("CessionarioCommittente",
+            blocco("DatiAnagrafici", (/^\d{11}$/.test(piva) ? blocco("IdFiscaleIVA", tag("IdPaese", "IT") + tag("IdCodice", piva)) : "") + tag("CodiceFiscale", cf) + blocco("Anagrafica", tag("Denominazione", txt(c.ragioneSociale))))
+            + blocco("Sede", tag("Indirizzo", txt(c.indirizzo)) + tag("CAP", txt(c.cap)) + tag("Comune", txt(c.comune)) + tag("Provincia", txt(c.provincia).toUpperCase()) + tag("Nazione", "IT"))))
+    + blocco("FatturaElettronicaBody",
+        blocco("DatiGenerali", blocco("DatiGeneraliDocumento", tag("TipoDocumento", "TD01") + tag("Divisa", "EUR") + tag("Data", txt(f.emessa)) + tag("Numero", numero) + tag("ImportoTotaleDocumento", dec(riep.totale, 2))) + datiDdt)
+        + blocco("DatiBeniServizi", linee.join("") + riepiloghi.join(""))
+        + pagamento)
+    + `</p:FatturaElettronica>\n`;
+  return { xml, mancanti, avvisi, pronto: mancanti.length === 0, totale: riep.totale, righe: linee.length, ddtCitati: (datiDdt.match(/<DatiDDT>/g) || []).length };
+}
+
+
 export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 3, prefisso = "") {
   const y = String(anno);
   const p = String(prefisso || "");
@@ -1978,6 +2283,44 @@ export function emessoIncassato(fatture, incassi, mesi = 6, oggi = new Date()) {
 
 export function nettoPesata(lordo, tara) {
   return round2(Math.max(0, (+lordo || 0) - (+tara || 0)));
+}
+
+/* ⛔ I PESI DI UNA PESATA SI DECIDONO IN UN POSTO SOLO — nato il 02/09 dalla
+   prima domanda della ricerca sulla pesa a ponte («con la tara non registrata,
+   chi decide il netto?»), misurata sullo schermo: una pesata con la tara mai
+   scritta usciva nell'elenco come «lordo 32,50 − tara 0,00 = netto 0,00 t» e
+   «€ 0,00» — tre zeri tranquilli, di cui uno DENTRO un'equazione che li fa
+   sembrare misurati — e una col netto scritto a mano e la tara vuota «vendeva
+   anche il camion» (32,50 t) con la stessa tara 0,00 mai esistita. La pagina
+   del form si difende dal 09/08; il MODULO no, quindi un dato che entra da un
+   CSV, da un ripristino o da un archivio vecchio passava.
+   La regola, in tre righe:
+   · lordo E tara scritti → il netto è lordo − tara, SEMPRE (il netto non si
+     digita, e se il file ne porta un altro quello del file non conta);
+   · nessuno dei due scritto → il netto è quello DICHIARATO, se c'è: è il caso
+     di chi registra solo il netto (una pesa che stampa solo quello, un dato
+     d'archivio), e si dichiara `dichiarato: true`;
+   · UNO solo dei due scritto → il netto NON si sa (`noto: false`,
+     `incompleto: true`, con `manca`): un lordo senza tara è il camion pieno,
+     e chiamarlo netto è il modo di vendere il camion.
+   ⚠️ `incompleto` è la bandiera che le altre funzioni leggono, e NON coincide
+   con «non noto»: un record senza nessun peso e con la sola quantità (i DDT
+   salvati prima che il form chiedesse i pesi, e 72 prove che li descrivono)
+   non è contraddittorio — è un dato dichiarato, e resta com'era. Quello che
+   cambia è SOLO il caso in cui i pesi ci sono a metà.
+   Chi legge una quantità, un valore o un'equazione a schermo parte da qui. */
+export function pesiPesata(pesata) {
+  const d = pesata || {};
+  const lordo = numeroDichiarato(d.lordo), tara = numeroDichiarato(d.tara);
+  const manca = [];
+  if (lordo == null) manca.push("lordo");
+  if (tara == null) manca.push("tara");
+  if (!manca.length) return { lordo, tara, netto: nettoPesata(lordo, tara), noto: true, dichiarato: false, incompleto: false, manca };
+  if (manca.length === 2) {
+    const n = numeroDichiarato(d.netto);
+    return { lordo, tara, netto: n == null ? null : round2(n), noto: n != null, dichiarato: n != null, incompleto: false, manca: n != null ? [] : manca };
+  }
+  return { lordo, tara, netto: null, noto: false, dichiarato: false, incompleto: true, manca };
 }
 
 /* ⛔ LO SCONTO DEL CLIENTE È UNA PERCENTUALE SULL'IMPONIBILE, non un prezzo
@@ -2294,6 +2637,11 @@ export function rigaPesata(prodotto, lordo, tara, cliente, ordine, oggi = new Da
 export function quantitaVenduta(pesata) {
   const d = pesata || {};
   const unita = d.unitaVendita === "m3" ? "m3" : "t";
+  /* ⛔ A TONNELLATA LA QUANTITÀ È IL NETTO PESATO, e `quantita` ne è una copia
+     scritta dal form: se i pesi non bastano a calcolare il netto (lordo senza
+     tara), la copia non vale più della sua origine — 02/09, `pesiPesata`. A
+     metro cubo la quantità DICHIARATA resta: l'ha decisa una persona. */
+  if (unita === "t" && pesiPesata(d).incompleto) return null;
   const qDich = quantitaDichiarata(d);
   if (qDich != null) return qDich;
   const q = quantitaPesata(d);
@@ -2339,6 +2687,12 @@ export function quantitaVenduta(pesata) {
 export function valoreDdt(pesata) {
   const d = pesata || {};
   const q = quantitaVenduta(d);
+  const w = pesiPesata(d);
+  if (q == null && w.incompleto)
+    return { valore: null, quantita: null, calcolabile: false,
+      motivo: "peso-mancante", manca: w.manca,
+      perche: "manca " + (w.manca[0] === "tara" ? "la tara" : "il lordo")
+        + ": il netto non si può calcolare, e senza netto la consegna non ha una quantità" };
   if (q == null)
     return { valore: null, quantita: null, calcolabile: false,
       motivo: "densita-mancante",
@@ -2368,7 +2722,15 @@ export function valorePesata(pesata) {
 // Tonnellate e metri cubi di una pesata (i m³ solo se la densità c'era).
 export function quantitaPesata(pesata) {
   const d = pesata || {};
-  const t = +d.netto || 0;
+  /* ⛔ `+d.netto || 0` faceva ZERO di un netto mai calcolato: 02/09, vedi
+     `pesiPesata`. Se il netto non si sa, la quantità non si sa — `t: null`,
+     con `pesoNoto: false` e `manca` per dire che cosa non è stato scritto. */
+  const w = pesiPesata(d);
+  if (w.incompleto) return { t: null, m3: null, pesoNoto: false, manca: w.manca };
+  /* senza NESSUN peso scritto il netto resta quello di prima — zero — perché
+     così lo pretende chi somma (`quantitaVenduta(null)` → 0 t, prova scritta
+     apposta): è un caso «niente», non un caso «a metà» */
+  const t = w.netto == null ? 0 : w.netto;
   /* ⛔ `Number.isFinite(+d.quantita)` DA SOLO NON BASTA, ed è la trappola che
      questo file documenta in altri due punti: `+null` fa **0**, e
      `Number.isFinite(0)` risponde **true**. Quindi una pesata venduta a metro
@@ -2380,7 +2742,7 @@ export function quantitaPesata(pesata) {
   const qDich = quantitaDichiarata(d);
   const m3 = d.unitaVendita === "m3" && qDich != null
     ? qDich : convertiQuantita(t, "t", "m3", d.densita);
-  return { t: round2(t), m3: m3 == null ? null : round3(m3) };
+  return { t: round2(t), m3: m3 == null ? null : round3(m3), pesoNoto: true, manca: [] };
 }
 
 /* La quantità SCRITTA sul documento, se è leggibile — `null` se non c'è o non
@@ -2709,8 +3071,15 @@ export function venditePerProdotto(pesate, dal, al) {
     const q = quantitaPesata(p);
     const r = per[nome] || (per[nome] = { prodotto: nome, t: 0, m3: 0, valore: 0, viaggi: 0,
       senzaDensita: 0, tSenzaDensita: 0, valoreConvertibile: 0,
-      nonValorizzabili: 0, tNonValorizzabile: 0, soloSenzaDensita: 0 });
-    r.viaggi++; r.t = round2(r.t + q.t);
+      nonValorizzabili: 0, tNonValorizzabile: 0, soloSenzaDensita: 0, senzaPeso: 0 });
+    r.viaggi++;
+    /* ⛔ UNA CONSEGNA SENZA PESO (02/09, `pesiPesata`): `q.t` è `null`, e un
+       `null` in una somma fa NaN o, peggio, zero. Si conta a parte e non entra
+       in nessun tonnellaggio: è un viaggio di cui non si sa quanto ha portato,
+       e il totale del prodotto diventa «per difetto» come per le non
+       valorizzabili — che infatti la comprendono, con la sua ragione. */
+    if (q.t == null) { r.senzaPeso++; r.nonValorizzabili++; r.senzaDensita++; continue; }
+    r.t = round2(r.t + q.t);
     const v = valorePesata(p);
     const vale = valoreDdt(p).calcolabile;
     if (!vale) { r.nonValorizzabili++; r.tNonValorizzabile = round2(r.tNonValorizzabile + q.t); }
@@ -2819,8 +3188,9 @@ export function vendutoPeriodo(pesate, dal, al) {
   const prodotti = venditePerProdotto(pesate, dal, al);
   let t = 0, m3 = 0, valore = 0, valoreConvertibile = 0, viaggi = 0,
       tSenzaDensita = 0, viaggiSenzaDensita = 0,
-      nonValorizzabili = 0, tNonValorizzabile = 0;
+      nonValorizzabili = 0, tNonValorizzabile = 0, senzaPeso = 0;
   for (const p of prodotti) {
+    senzaPeso += p.senzaPeso || 0;
     t = round2(t + p.t); m3 = round3(m3 + p.m3);
     valore = round2(valore + p.valore);
     valoreConvertibile = round2(valoreConvertibile + p.valoreConvertibile);
@@ -2836,7 +3206,7 @@ export function vendutoPeriodo(pesate, dal, al) {
     viaggiSenzaDensita, prodotti,
     /* quante consegne del periodo NON entrano in `valore`, e quanto pesano.
        Senza questi due `valore` è un totale per difetto che non lo dice. */
-    nonValorizzabili, tNonValorizzabile,
+    nonValorizzabili, tNonValorizzabile, senzaPeso,
     valoreParziale: nonValorizzabili > 0,
     // quota di tonnellate che è stato possibile convertire in m³ (0–100)
     copertura: t > 0 ? round2(100 * tConvertite / t) : null,
@@ -2892,6 +3262,74 @@ export function valoreCavato(m3, prezzoM3) {
   return round2(v * p);
 }
 
+// ============================================================
+// IL TRIANGOLO CHIUSO (03/09): cavato − venduto − Δscorte = scarto
+// ------------------------------------------------------------
+// Il confronto qui sopra ha due lati e chiama il divario «scorte a piazzale
+// STIMATE». Con gli inventari dei cumuli di Terra il terzo lato diventa una
+// MISURA: la variazione delle scorte fra due fotografie del piazzale, e il
+// triangolo chiude su uno scarto che ha una ragione se non torna.
+// Le regole stanno in shared/dw-ponti.js (sezione «l'inventario dei cumuli»);
+// qui si compongono con quello che Conti ha già: la riconciliazione, la
+// densità in banco dell'autorizzazione di Terra, il listino.
+// ============================================================
+
+// La densità con cui si convertono i CUMULI: quella del listino, cioè del
+// materiale SCIOLTO — la giusta per un mucchio a piazzale (il cavato usa
+// invece quella in banco, che dichiara Terra). L'accoppiamento è per nome
+// normalizzato (`chiaveMateriale`): «Sabbia lavata 0/4» e «sabbia  lavata 0/4»
+// sono lo stesso prodotto, «Sabbia 0/4» no. Un prodotto senza densità, o un
+// nome che il listino non ha, risponde null — mai una densità di comodo.
+export function densitaDalListino(prodotti) {
+  const m = new Map();
+  for (const p of Array.isArray(prodotti) ? prodotti : []) {
+    const k = chiaveMateriale(p && p.nome), d = +(p && p.densita);
+    if (k && Number.isFinite(d) && d > 0 && !m.has(k)) m.set(k, d);
+  }
+  return (materiale) => { const d = m.get(chiaveMateriale(materiale)); return d == null ? null : d; };
+}
+
+/* Gli stati in cui il confronto a due lati è fermo: senza cavato e venduto il
+   terzo lato non ha con che cosa chiudere. */
+const RIC_FERMA = { "no-terra": true, "no-cavato": true, "no-venduto": true, "no-densita": true };
+
+// IL TRIANGOLO: cavato (Terra, in banco) − venduto (la pesa) − variazione delle
+// scorte (due inventari di Terra, alle densità del listino) = scarto. Tutto in
+// tonnellate, ognuno con la SUA densità. Ritorna SEMPRE uno `stato`:
+//   no-confronto        · il confronto a due lati è fermo (vedi `riconciliazione`)
+//   no-terra            · gli inventari non arrivano (Terra non risponde)
+//   no-inventari        · nessun inventario usabile, uno solo, o nessuno prima
+//                         dell'inizio: `perche` lo dice con le parole di
+//                         `variazioneScorte`
+//   no-densita-cava     · il cavato non si converte in tonnellate
+//   no-densita-listino  · nessun materiale dell'inventario ha una densità nel listino
+//   chiuso              · la chiusura è calcolabile; `parziale` se qualche
+//                         materiale è fuori dal conto, ed è ELENCATO in `fuori`
+//                         con la ragione (un solo inventario, o senza densità)
+// ⛔ Principio: nessuno zero dove non è misurato. Un materiale in un solo
+// inventario non vale zero nell'altro, un cumulo senza densità non pesa zero:
+// restano fuori, con il nome, e il totale si dichiara parziale.
+export function triangolo(rilievi, pesate, inventari, prodotti, autorizzazioni, dal, al) {
+  const ric = riconciliazione(rilievi, pesate, dal, al);
+  const base = { stato: null, perche: "", ric, cavatoT: null, scorte: null, scorteT: null, chiusura: null, parziale: false, fuori: [] };
+  if (RIC_FERMA[ric.stato]) return { ...base, stato: "no-confronto",
+    perche: "senza il confronto fra cavato e venduto il terzo lato non ha con che cosa chiudere" };
+  const cavatoT = cavatoInTonnellate(ric.cav.m3, densitaDellaCava(autorizzazioneVigente(autorizzazioni)));
+  const scorte = variazioneScorte(inventari, dal, al);
+  if (!scorte.terraRisponde) return { ...base, stato: "no-terra", perche: scorte.perche, cavatoT, scorte };
+  if (!scorte.calcolabile) return { ...base, stato: "no-inventari", perche: scorte.perche, cavatoT, scorte };
+  if (!cavatoT.calcolabile) return { ...base, stato: "no-densita-cava", perche: cavatoT.perche, cavatoT, scorte };
+  // in tonnellate entrano SOLO le righe misurate in tutt'e due gli inventari
+  const scorteT = scorteInTonnellate(scorte.perMateriale.filter((r) => r.confrontabile), densitaDalListino(prodotti));
+  if (!scorteT.calcolabile) return { ...base, stato: "no-densita-listino", perche: scorteT.perche, cavatoT, scorte, scorteT };
+  const chiusura = chiusuraTriangolo(cavatoT.t, ric.ven.t, scorteT.deltaT);
+  const fuori = [
+    ...scorte.nonConfrontabili.map((r) => ({ materiale: r.materiale, perche: "misurato in un solo inventario", mancaIn: r.mancaIn })),
+    ...scorteT.scoperte.map((r) => ({ materiale: r.materiale, perche: "senza densità nel listino", mancaIn: null })),
+  ];
+  return { ...base, stato: "chiuso", cavatoT, scorte, scorteT, chiusura, parziale: fuori.length > 0, fuori };
+}
+
 export async function contiData() {
   let mode = "demo", api = null;
   try {
@@ -2920,6 +3358,8 @@ export async function contiData() {
         ordini: () => read("ordini"),
         // le chiusure di mese: chi non ne ha mai dichiarata una legge vuoto
         chiusure: () => read("chiusure"),
+        // i verbali di riconciliazione: chi non ne ha mai scritto uno legge vuoto
+        verbali: () => read("verbali"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -2945,6 +3385,63 @@ export async function contiData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* e le AUTORIZZAZIONI di Terra (02/09), sulla stessa istanza: servono per
+         la densità in banco della cava, che Conti non chiede una seconda volta.
+         `null` = Terra non risponde; `[]` = risponde e non ne ha. */
+      api.autorizzazioniTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("autorizzazioni")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      /* e gli INVENTARI DEI CUMULI di Terra (03/09), sulla stessa istanza: il
+         terzo lato del triangolo. `null` = Terra non risponde (le scorte
+         restano stimate, e la pagina lo dice); `[]` = risponde e non ne ha. */
+      api.inventariTerra = async () => {
+        if (idTerra === undefined) {
+          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
+          catch (e) { idTerra = null; }
+        }
+        if (!idTerra) return null;
+        try {
+          return (await getDocs(idTerra.orgCollection("inventari")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      // ── PONTE CON FLOTTA — SOLA LETTURA ───────────────────────────────
+      // Stessa forma del ponte con Terra qui sopra: seconda istanza dell'SDK
+      // sull'app "flotta", stessa organizzazione, aperta solo la prima volta
+      // che serve. ⛔ Se Flotta non c'è o la lettura non è permessa si torna
+      // `null`, e `confrontoCostiMezzi` risponde «non disponibile» — MAI un
+      // totale a zero, che qui sarebbe la bugia peggiore: darebbe il via libera
+      // a scrivere il doppione.
+      let idFlotta;                      // undefined = mai provato, null = non c'è
+      api.costiFlotta = async () => {
+        if (idFlotta === undefined) {
+          try { idFlotta = await DeepworkID.init({ appId: "flotta" }); }
+          catch (e) { idFlotta = null; }
+        }
+        if (!idFlotta) return null;
+        try {
+          return (await getDocs(idFlotta.orgCollection("costi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
+      /* E I RAPPORTINI DI CAMPO (02/09, il terzo lato del triangolo): quello che
+         i turni dichiarano di aver prodotto, per confrontarlo col venduto alla
+         pesa. Stessa forma: istanza pigra, `null` se Campo non risponde. */
+      let idCampo;
+      api.rapportiniCampo = async () => {
+        if (idCampo === undefined) { try { idCampo = await DeepworkID.init({ appId: "campo" }); } catch (e) { idCampo = null; } }
+        if (!idCampo) return null;
+        try { return (await getDocs(idCampo.orgCollection("rapportini"))).docs.map(d => ({ id: d.id, ...d.data() })); }
+        catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -2957,10 +3454,19 @@ export async function contiData() {
       costi: async () => mem.costi || (mem.costi = []),
       ordini: async () => mem.ordini || (mem.ordini = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
+      verbali: async () => mem.verbali || (mem.verbali = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // e l'autorizzazione della cava, copiata dalla dimostrazione di Terra (vedi DEMO.autorizzazioniTerra)
+      autorizzazioniTerra: async () => mem.autorizzazioniTerra || [],
+      // e gli inventari dei cumuli, copiati dalla dimostrazione di Terra (vedi DEMO.inventariTerra)
+      inventariTerra: async () => mem.inventariTerra || [],
+      // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
+      // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
+      costiFlotta: async () => mem.costiFlotta || [],
+      rapportiniCampo: async () => mem.rapportiniCampo || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
@@ -3059,6 +3565,11 @@ export function trasportoACura(id) {
 export function mancanzeDdt(pesata) {
   const p = pesata || {};
   const mancano = [];
+  /* il peso viene prima di tutto: un DDT senza netto non dice quanto viaggia
+     (02/09, `pesiPesata`) */
+  const w = pesiPesata(p);
+  if (w.incompleto)
+    mancano.push("il peso: manca " + (w.manca[0] === "tara" ? "la tara" : "il lordo") + " e il netto non si può calcolare");
   if (!causaleTrasporto(p.causaleTrasporto))
     mancano.push("la causale del trasporto (vendita, conto lavorazione, reso…): decide come va trattata la consegna");
   const cura = trasportoACura(p.trasportoACura);
@@ -3719,6 +4230,85 @@ export function isoDaDataItaliana(cella) {
    illeggibile esce lo stesso, con `scarto` scritto in italiano: un import muto
    è il modo migliore per perdere dei soldi senza accorgersene. */
 const INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i;
+
+/* LA MAPPA DELLE COLONNE DEL FILE DELLA BANCA (05/09). Il mondo dice che ogni
+   banca esporta le colonne a modo suo — «Data operazione; Descrizione;
+   Importo entrate; Importo uscite; Saldo progressivo; Causale ABI» è la forma
+   più citata dai manuali degli importatori — e questo lettore le prendeva per
+   POSIZIONE: misurato in scratchpad, su quella forma il bonifico da 12.300 €
+   usciva **−45.210,77** (il SALDO letto come uscita) senza nessuno scarto, e
+   sulla forma «Data contabile; Data valuta; Dare; Avere; Descrizione» la
+   descrizione si perdeva e la fattura non si abbinava. Qui si legge
+   l'INTESTAZIONE per nome, come `proponiMappa` di Sentinella: prima si
+   ESCLUDONO saldo e causale ABI (che sono numeri e finirebbero fra gli
+   importi), poi si prendono data valuta, data, entrate, uscite — oppure
+   l'importo unico — e la descrizione. Gli indizi si cercano all'INIZIO di
+   una parola («abi» non prende «cont-abi-le»). Senza un'intestazione
+   riconoscibile, `conIntestazione` è falso e il lettore torna alla posizione
+   di sempre. Ritorna { data, valuta, descrizione, importo, entrate, uscite
+   (indici, -1 = non trovata), esclusi, riconosciute, ignorate,
+   conIntestazione }. Pura. */
+const INDIZI_ESTRATTO = {
+  saldo:   ["saldo", "balance"],
+  abi:     ["causale abi", "cod causale", "codice causale", "abi"],
+  valuta:  ["data valuta", "valuta", "value date"],
+  data:    ["data contabile", "data operazione", "data registrazione", "data movimento", "data", "date", "booking date"],
+  entrate: ["entrate", "entrata", "accredit", "avere", "credit"],
+  uscite:  ["uscite", "uscita", "addebit", "dare", "debit"],
+  importo: ["importo", "amount"],
+  riferimento: ["trn", "cro", "riferimento", "id operazione", "identificativo", "end to end", "reference", "transaction id"],
+  descrizione: ["descrizione", "causale", "dettagli", "dettaglio", "movimento", "description", "operazione"],
+};
+/* la normalizzazione del nome e la mappa vivono in `shared/` dal 05/09
+   (`nomeColonna`, `mappaColonne`): qui restano gli INDIZI di Conti e la forma
+   che la pagina ha sempre letto */
+const _normCol = nomeColonna;
+export function mappaMovimentiCsv(intestazione) {
+  const { saldo, abi, ...prendi } = INDIZI_ESTRATTO;
+  const m = mappaColonne(intestazione, prendi, {
+    escludi: { saldo, abi },
+    ordine: ["valuta", "data", "entrate", "uscite", "importo", "riferimento", "descrizione"],
+    /* l'importo unico si cerca SOLO se non ci sono entrate e uscite separate */
+    condizionali: { importo: (ix) => ix.entrate < 0 && ix.uscite < 0 },
+    facoltative: ["valuta", "entrate", "uscite", "riferimento", "descrizione"],
+    conIntestazione: (ix) => ix.data >= 0 && (ix.importo >= 0 || ix.entrate >= 0 || ix.uscite >= 0),
+  });
+  return { data: m.indici.data, valuta: m.indici.valuta, descrizione: m.indici.descrizione, importo: m.indici.importo,
+    entrate: m.indici.entrate, uscite: m.indici.uscite, riferimento: m.indici.riferimento,
+    esclusi: m.esclusi, riconosciute: m.riconosciute, ignorate: m.ignorate, conIntestazione: m.conIntestazione };
+}
+
+/* IL RIFERIMENTO DEL BONIFICO — la chiave con cui la banca lo chiama (05/09).
+   Un bonifico SEPA porta un TRN (una trentina di caratteri alfanumerici), uno
+   nazionale un CRO (undici cifre): è quello che si legge al telefono con la
+   banca quando un pagamento non torna, e finora il lettore lo buttava via.
+   Si prende da DUE posti, nell'ordine: la colonna apposta, se il file ce l'ha
+   (`nomeColonna` dice se è un TRN o un CRO; se non lo dice resta
+   «riferimento»), altrimenti dalla causale — e dalla causale SOLO con la sua
+   etichetta davanti: undici cifre nude in una causale sono un numero di
+   mandato, un IBAN spezzato, un telefono. È la stessa regola del «31 nudo»
+   di `numeroInCausale`. Un CRO di dieci cifre non è un CRO.
+   Ritorna { tipo, valore, da: "colonna"|"causale" } oppure null quando non
+   c'è — null, non "", perché «non c'è» è una risposta e non un vuoto. Pure. */
+export function riferimentoInCausale(causale) {
+  const t = String(causale || "").toUpperCase();
+  const trn = /\bTRN\s*[:.]?\s*([A-Z0-9]{16,35})(?![A-Z0-9])/.exec(t);
+  if (trn) return { tipo: "TRN", valore: trn[1] };
+  const cro = /\bCRO\s*[:.]?\s*(\d{11})(?!\d)/.exec(t);
+  if (cro) return { tipo: "CRO", valore: cro[1] };
+  return null;
+}
+export function riferimentoMovimento(testoColonna, nomeColonna, causale) {
+  const v = String(testoColonna == null ? "" : testoColonna).trim();
+  if (v) {
+    const nome = _normCol(nomeColonna);
+    const tipo = /(^| )cro( |$)/.test(nome) ? "CRO" : /(^| )trn( |$)/.test(nome) ? "TRN" : "riferimento";
+    return { tipo, valore: v, da: "colonna" };
+  }
+  const c = riferimentoInCausale(causale);
+  return c ? { ...c, da: "causale" } : null;
+}
+
 export function parseMovimentiCsv(text) {
   /* ⛔ SI LEGGE IL TESTO INTERO, NON RIGA PER RIGA — e non è una raffinatezza:
      è stato misurato il 01/08. Le banche la descrizione lunga la scrivono su
@@ -3730,9 +4320,21 @@ export function parseMovimentiCsv(text) {
      quindi l'a-capo dentro le virgolette è un carattere come gli altri, e
      decide il separatore una volta su TUTTO il file invece che per riga. */
   const out = [];
-  for (const cel of leggiCsv(text).righe) {
-    if (INTESTAZIONE_ESTRATTO.test(cel.join(";"))) continue;
-    const [dataRaw, valutaRaw, descr, a, b] = cel;
+  const righe = leggiCsv(text).righe;
+  /* la mappa per nome, dalla prima riga (05/09): se l'intestazione si
+     riconosce comandano i nomi; se no, la posizione di sempre */
+  const m = righe.length ? mappaMovimentiCsv(righe[0]) : null;
+  const perNome = !!(m && m.conIntestazione);
+  const nomeRif = perNome && m.riferimento >= 0 ? String(righe[0][m.riferimento]) : "";
+  for (const cel of righe) {
+    if (INTESTAZIONE_ESTRATTO.test(cel.join(";")) || (perNome && cel === righe[0])) continue;
+    const g = (i) => (i >= 0 && i < cel.length ? cel[i] : "");
+    const dataRaw = perNome ? g(m.data) : cel[0];
+    const valutaRaw = perNome ? g(m.valuta) : cel[1];
+    const descr = perNome ? g(m.descrizione) : cel[2];
+    const a = perNome ? (m.importo >= 0 ? g(m.importo) : g(m.entrate)) : cel[3];
+    const b = perNome ? (m.importo >= 0 ? "" : g(m.uscite)) : cel[4];
+    const rifCol = perNome && m.riferimento >= 0 ? g(m.riferimento) : "";
     const data = isoDaDataItaliana(dataRaw);
     const ia = importoBancario(a), ib = importoBancario(b);
     let importo = NaN;
@@ -3744,6 +4346,7 @@ export function parseMovimentiCsv(text) {
       data,
       valuta: isoDaDataItaliana(valutaRaw),
       descrizione: String(descr || "").trim(),
+      riferimento: riferimentoMovimento(rifCol, nomeRif, descr),
       importo: Number.isFinite(importo) ? round2(importo) : null,
       scarto: !data ? (String(dataRaw || "").trim() ? "data non riconosciuta" : "data mancante")
             : !Number.isFinite(importo) ? "importo non leggibile in nessuna delle colonne" : "",
@@ -3907,6 +4510,7 @@ function guardiaStessaFattura(righe, aperte) {
 
 function esitoMovimento(m, aperte, chiuse, nomeDi, incassi) {
   const base = { riga: m.riga, data: m.data, descrizione: m.descrizione, importo: m.importo,
+                 riferimento: m.riferimento || null,
                  proposta: [], alternative: [], motivi: [], giaRegistrato: false };
   if (m.scarto) return { ...base, verso: "scartato", grado: "nessuno", perche: m.scarto };
   if (!(m.importo > 0))
@@ -4094,7 +4698,7 @@ export const ESTRATTO_ESEMPIO = [
   "16/07/2026;16/07/2026;BONIFICO COMUNE DI MODICA MANDATO 4412;8.100,00",
   "18/07/2026;18/07/2026;BONIFICO A NS FAVORE;5.900,00",
   "20/07/2026;20/07/2026;COMMISSIONI E SPESE DI TENUTA CONTO;-4,50",
-  "21/07/2026;21/07/2026;BONIFICO DA EDILCAVE SRL SALDO FATT 2026/031;12.300,00",
+  "21/07/2026;21/07/2026;BONIFICO DA EDILCAVE SRL SALDO FATT 2026/031 TRN 0512345678901234567890123456IT;12.300,00",
   "22/07/2026;22/07/2026;VERSAMENTO CONTANTI;1.000,00",
   "23/07/2026;23/07/2026;BONIFICO DA CAVE DEL SUD;4.400,00",
 ].join("\n") + "\n";
@@ -4635,7 +5239,13 @@ function pesataDaCella(c) {
     numero: t(numero) || "", data: (data || "").trim(),
     clienteId: t(clienteId), cliente: t(cliente) || "",
     prodottoId: t(prodottoId), prodotto: t(prodotto) || "",
-    lordo: n(lordo), tara: n(tara), netto: n(netto),
+    lordo: n(lordo), tara: n(tara),
+    /* il netto NON si legge dalla cella: lo decide `pesiPesata` dai due pesi
+       (02/09). Con lordo e tara scritti è lordo − tara qualunque cosa dica il
+       file; con uno solo dei due è `null`, e la riga entra dichiarata
+       incompleta (`scartiPesateCsv.senzaPeso`) invece di vendere il camion;
+       con nessuno dei due vale il netto dichiarato, se c'è. */
+    netto: pesiPesata({ lordo: n(lordo), tara: n(tara), netto: n(netto) }).netto,
     unitaVendita: String(unitaVendita || "").trim() === "m3" ? "m3" : "t",
     quantita: n(quantita), densita: n(densita),
     prezzoUnitario: n(prezzoUnitario), scontoPct: n(scontoPct), aliquotaIva: n(aliquotaIva),
@@ -4646,6 +5256,102 @@ function pesataDaCella(c) {
      assente è uno stato, e vale «non lo sappiamo» */
   const fp = String(fontePrezzo || "").trim();
   if (fp === "ordine" || fp === "listino") out.fontePrezzo = fp;
+  return out;
+}
+
+/* ── IL FILE DELLA PESA A PONTE (05/09) ─────────────────────────────────────
+   Fino a oggi Conti sapeva rileggere solo la PROPRIA copia di sicurezza delle
+   pesate (venti colonne, per posizione). Il software della pesa (Vincro,
+   Dini Argeo, Laumas, WeightIT…) esporta un CSV suo, coi nomi suoi — numero
+   pesata, data, ora, targa, cliente, materiale, lordo, tara, netto — e non
+   aveva una porta: ogni cartellino si ricopiava a mano. Le colonne si leggono
+   per NOME con `mappaColonne` di `shared/`; l'unità dei pesi si prende
+   dall'intestazione quando la dice («Lordo (kg)»), altrimenti resta «» e la
+   pagina la CHIEDE — non si indovina, perché un lordo da 42.600 kg letto come
+   tonnellate diventa un DDT da 42.600 t. [i nomi delle colonne: seconda mano,
+   docs/RICERCA_CONTINUA_CONTI.md, ricerca del 02/09] */
+export const INDIZI_PESA = {
+  numero: ["numero pesata", "n pesata", "num pesata", "progressivo", "ticket", "scontrino", "pesata", "numero"],
+  data: ["data pesata", "data", "date"],
+  ora: ["ora seconda", "ora uscita", "ora 2", "ora pesata", "ora", "time"],
+  mezzo: ["targa", "mezzo", "veicolo", "automezzo", "camion", "vehicle", "plate"],
+  cliente: ["cliente", "ragione sociale", "destinatario", "intestatario", "customer"],
+  prodotto: ["materiale", "merce", "prodotto", "articolo", "descrizione merce", "descrizione", "material", "product"],
+  lordo: ["peso lordo", "lordo", "gross"],
+  tara: ["tara", "tare"],
+  netto: ["peso netto", "netto", "net"],
+};
+export function mappaPesaCsv(intestazione) {
+  const m = mappaColonne(intestazione, INDIZI_PESA, {
+    ordine: ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"],
+    facoltative: ["numero", "ora", "mezzo", "cliente", "prodotto", "tara", "netto"],
+    conIntestazione: (ix) => ix.data >= 0 && (ix.lordo >= 0 || ix.netto >= 0),
+  });
+  /* l'unità dei pesi, se l'intestazione la dice: «Lordo (kg)», «Netto kg»,
+     «Peso lordo t». Guardata sulle colonne dei pesi, non su tutte. */
+  const testi = ["lordo", "tara", "netto"].map(k => m.indici[k] >= 0 ? nomeColonna((intestazione || [])[m.indici[k]]) : "").filter(Boolean);
+  const kg = testi.some(t => /(^| )kg$|(^| )kg( |$)|chilogrammi|chili/.test(t));
+  const t = testi.some(t => /(^| )t$|(^| )t( |$)|tonnellate|(^| )ton( |$)/.test(t));
+  m.unita = kg && !t ? "kg" : t && !kg ? "t" : "";
+  return m;
+}
+export function parsePesaCsv(text) {
+  const righe = leggiCsv(text).righe;
+  const m = righe.length ? mappaPesaCsv(righe[0]) : mappaPesaCsv([]);
+  const out = { conIntestazione: m.conIntestazione, mappa: m, unita: m.unita, righe: [] };
+  if (!m.conIntestazione) return out;
+  const num = (x) => { const v = numIt(x); return v === null || Number.isNaN(v) ? null : v; };
+  righe.slice(1).forEach((cel, k) => {
+    const g = (campo) => { const i = m.indici[campo]; return i >= 0 && i < cel.length ? String(cel[i] == null ? "" : cel[i]).trim() : ""; };
+    const dataRaw = g("data"), data = isoDaDataItaliana(dataRaw) || (dataISOEsiste(dataRaw) ? dataRaw : "");
+    const lordo = num(g("lordo")), tara = num(g("tara")), netto = num(g("netto"));
+    const massimo = Math.max(...[lordo, tara, netto].filter(v => v != null), 0);
+    out.righe.push({
+      riga: k + 1, numero: g("numero"), data, ora: g("ora"), mezzo: g("mezzo"),
+      cliente: g("cliente"), prodotto: g("prodotto"), lordo, tara, netto, massimo,
+      scarto: !data ? (dataRaw ? "data non riconosciuta" : "data mancante")
+        : (lordo == null && netto == null) ? "nessun peso leggibile"
+        : (lordo != null && tara != null && tara >= lordo) ? "la tara non è minore del lordo" : "",
+    });
+  });
+  /* il suggerimento sull'unità, quando l'intestazione tace: un camion carico
+     pesa decine di tonnellate, non decine di migliaia — se il peso più alto
+     supera 500 il file è quasi certamente in chilogrammi. È un SUGGERIMENTO
+     che la pagina mostra e fa confermare, non una decisione. */
+  const massimo = Math.max(0, ...out.righe.map(r => r.massimo || 0));
+  out.unitaSuggerita = m.unita || (massimo > 500 ? "kg" : massimo > 0 ? "t" : "");
+  out.unitaSuggeritaPerche = m.unita ? "l'intestazione lo dice" : massimo > 500 ? "il peso più alto nel file è " + massimo + ", troppo per essere tonnellate" : massimo > 0 ? "i pesi sono piccoli come tonnellate" : "";
+  return out;
+}
+/* Dalle righe del file alle pesate di Conti: il cliente e il prodotto si
+   riconoscono per NOME in anagrafica e in listino (normalizzati come i nomi
+   di colonna); chi non si trova non entra e viene detto per nome — un DDT
+   senza cliente o senza prodotto non ha prezzo né IVA e non si può emettere.
+   I pesi in chilogrammi diventano tonnellate a due decimali; le pesate già in
+   archivio (stesso numero di cartellino, oppure stessa data + targa + lordo +
+   tara) sono doppie e non entrano. Pura: prepara, non salva. */
+export function pesateDallaPesa(righe, unita, clienti, prodotti, esistenti) {
+  const norm = (s) => nomeColonna(s);
+  const trova = (lista, nome, campo) => { const k = norm(nome); if (!k) return null;
+    return (lista || []).find(x => norm(x && x[campo]) === k) || null; };
+  const inT = (v) => v == null ? null : round2(unita === "kg" ? v / 1000 : v);
+  const chiave = (data, mezzo, lordo, tara) => [data, norm(mezzo), lordo, tara].join("|");
+  const gia = new Set(), giaTicket = new Set();
+  for (const p of esistenti || []) { if (p && p.pesaTicket) giaTicket.add(String(p.pesaTicket)); if (p) gia.add(chiave(p.data, p.mezzo, p.lordo, p.tara)); }
+  const out = { entrano: [], doppie: [], senzaCliente: [], senzaProdotto: [], scartate: [], unita: unita === "kg" ? "kg" : "t" };
+  for (const r of righe || []) {
+    if (r.scarto) { out.scartate.push({ riga: r.riga, nome: r.numero || r.mezzo || "riga " + r.riga, ragione: r.scarto }); continue; }
+    /* il DDT di Conti nasce dai DUE pesi (`rigaPesata` calcola il netto): una
+       riga col solo netto non entra, e lo dice — non «manca la densità» */
+    if (r.lordo == null || r.tara == null) { out.scartate.push({ riga: r.riga, nome: r.numero || r.mezzo || "riga " + r.riga, ragione: "lordo o tara mancanti: il DDT si emette dai due pesi" }); continue; }
+    const lordo = inT(r.lordo), tara = inT(r.tara);
+    if ((r.numero && giaTicket.has(String(r.numero))) || gia.has(chiave(r.data, r.mezzo, lordo, tara))) { out.doppie.push({ riga: r.riga, numero: r.numero, data: r.data, mezzo: r.mezzo }); continue; }
+    const c = trova(clienti, r.cliente, "ragioneSociale"), p = trova(prodotti, r.prodotto, "nome");
+    if (!c) { out.senzaCliente.push({ riga: r.riga, cliente: r.cliente || "(cliente non indicato)" }); continue; }
+    if (!p) { out.senzaProdotto.push({ riga: r.riga, prodotto: r.prodotto || "(materiale non indicato)" }); continue; }
+    out.entrano.push({ riga: r.riga, pesaTicket: r.numero || "", pesaOra: r.ora || "", data: r.data, mezzo: r.mezzo || "",
+      clienteId: c.id, cliente: c.ragioneSociale, prodottoId: p.id, prodotto: p.nome, lordo, tara });
+  }
   return out;
 }
 
@@ -4668,12 +5374,12 @@ export function parsePesateCsv(text) {
    altri, dichiarata invece che diversa in silenzio. */
 export function scartiPesateCsv(text) {
   const persi = [];
-  let nRiga = 0;
+  let nRiga = 0, senzaPeso = 0;   // entrate, ma col netto che non si può calcolare
   const celle = cellePesate(text);
   for (const c of celle) {
     nRiga++;
     const p = pesataDaCella(c);
-    if (pesataUsabile(p)) continue;
+    if (pesataUsabile(p)) { if (pesiPesata(p).incompleto) senzaPeso++; continue; }
     persi.push({
       nome: p.numero || p.cliente || "riga " + nRiga,
       ragione: !p.data ? "la data non è stata scritta"
@@ -4681,7 +5387,7 @@ export function scartiPesateCsv(text) {
         : "il lettore la scarta",
     });
   }
-  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0 };
+  return { lette: celle.length, entrano: celle.length - persi.length, persi, vuote: 0, senzaPeso };
 }
 
 /* ⛔ LA PRIMA NOTA CHE SI RI-CARICA — decisione 12a, terza voce.
@@ -4697,6 +5403,406 @@ export function scartiPesateCsv(text) {
    «bonifico»: resta com'è scritta, perché inventare il metodo di un pagamento
    è peggio che non saperlo. */
 export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo";
+
+/* I METODI DI INCASSO E IL LORO NOME (05/09, saliti dalla pagina): la tendina
+   e i file li leggono dallo stesso elenco. Un metodo che non c'è si scrive «—». */
+export const METODI_INCASSO = [["bonifico","Bonifico"],["assegno","Assegno"],["contanti","Contanti"],
+                               ["riba","RiBa / SDD"],["altro","Altro"]];
+/* IL FOGLIO DELLA FATTURA (05/09), nella forma dei fogli di Terra: le righe,
+   il piede, gli avvisi e i riquadri del documento che va in mano al cliente si
+   compongono qui, e la pagina disegna e basta. Fino a oggi vivevano in
+   `fogliFattura` nella pagina, dove nessuna prova senza browser li legge — ed
+   è lì che sono vissuti l'«IVA 19%» ricavata per divisione, lo stato letto
+   senza le note di credito («Da incassare» su una fattura annullata), i due
+   trattini della riga a importo unico. Ogni numero lo decide la funzione che lo
+   decide a schermo (`importiFattura`, `riepilogoIvaFattura`, `statoFattura`):
+   qui si legge, non si rifà. Nei testi il grassetto si scrive «**così**».
+   Righe del piede: `{tipo: "tot" | "iva" | "grande", etichetta, valore,
+   mancante}`. `nonMisurati` elenca ciò che sul foglio è dichiarato mancante.
+   Pura. */
+const NUM2_IT = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
+const NUM0_IT = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+const unitaTx = (u) => (u === "m3" ? "m³" : "t");
+const percTx = (v) => NUM0_IT.format(+v || 0) + "%";
+export function fogliaFattura(fattura, opzioni) {
+  const { clienti, incassi, note } = opzioni || {};
+  const f = fattura || {};
+  const im = importiFattura(f);
+  const rie = riepilogoIvaFattura(f);
+  /* ⛔ `statoFattura`, NON `statoIncasso`: le note di credito le conosce solo
+     la prima, e una fattura annullata per intero usciva «Da incassare» col
+     totale pieno — lo schermo diceva «Stornata», il foglio chiedeva i soldi */
+  const st = statoFattura(f, Array.isArray(incassi) ? incassi : [], Array.isArray(note) ? note : []);
+  const notePro = (Array.isArray(note) ? note : []).filter((n) => n && String(n.fatturaId) === String(f.id) && !n.bozza);
+  const nonMisurati = [];
+  const righeF = Array.isArray(f.righe) && f.righe.length ? f.righe : null;
+  const righe = righeF
+    ? righeF.map((r) => ({
+        descrizione: String((r && r.descrizione) || "—"),
+        ddt: r && r.ddt && r.ddt.length ? "DDT " + r.ddt.join(", ") : "",
+        // una quantità o un prezzo che non ci sono non si stampano «0,00»: su
+        // una fattura uno zero è un dato, non un'assenza
+        quantita: r && r.quantita != null && r.quantita !== "" ? NUM2_IT.format(+r.quantita || 0) + " " + unitaTx(r.unita) : "non indicata",
+        prezzo: r && r.prezzoUnitario != null && r.prezzoUnitario !== "" ? euro(r.prezzoUnitario) : "non indicato",
+        sconto: r && +r.scontoPct > 0 ? "sconto " + percTx(r.scontoPct) : "",
+        /* ⛔ un'aliquota che non c'è NON si stampa «0%»: su una fattura è la
+           dichiarazione di un'operazione non imponibile, cioè una cosa diversa
+           da «non lo sappiamo» */
+        aliquota: r && r.aliquota == null ? "—" : percTx(r.aliquota),
+        imponibile: r && r.imponibile == null ? "—" : euro(r.imponibile),
+      }))
+    /* ⛔ QUANTITÀ E PREZZO UNITARIO NON SONO «—», SONO NON DETTAGLIATI: la
+       fattura a importo unico non li ha PER SCELTA, e due trattini in mezzo a
+       una tabella di numeri si leggono «niente da segnalare». L'aliquota il
+       trattino lo tiene: su una fattura un'aliquota che non c'è è una
+       dichiarazione, non un'assenza. Tre celle, due risposte diverse. */
+    : [{ descrizione: "Fornitura di materiali inerti", ddt: "", quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "",
+        aliquota: im.conIva ? (im.aliquota == null ? "—" : percTx(im.aliquota)) : "n.d.",
+        imponibile: euro(im.conIva ? im.imponibile : im.totale) }];
+  /* IL PIEDE: una riga per ALIQUOTA, non una media — la decisione è una sola e
+     sta in `riepilogoIvaFattura`. Le fatture a importo unico non stampano
+     «IVA € 0,00», che sarebbe una dichiarazione falsa: si dice che il
+     dettaglio non c'è. */
+  const piede = im.conIva
+    ? [{ tipo: "tot", etichetta: "Totale imponibile", valore: euro(im.imponibile), mancante: false }]
+      .concat(rie.bande.map((b) => ({ tipo: "iva",
+        etichetta: "IVA" + (b.aliquota == null ? " **(aliquota non indicata)**" : " " + percTx(b.aliquota)) + (rie.bande.length > 1 ? " su " + euro(b.imponibile) : ""),
+        valore: euro(b.imposta), mancante: b.aliquota == null })))
+      .concat(rie.bande.length > 1 ? [{ tipo: "iva", etichetta: "Totale imposta", valore: euro(rie.ivaRighe), mancante: false }] : [])
+      .concat([{ tipo: "grande", etichetta: "Totale fattura", valore: euro(im.totale), mancante: false }])
+    : [{ tipo: "grande", etichetta: "Totale documento", valore: euro(im.totale), mancante: false }];
+  if (im.conIva && rie.bande.some((b) => b.aliquota == null)) nonMisurati.push("Aliquota IVA (non indicata su una o più righe)");
+  const avvisi = [];
+  if (!im.conIva) {
+    avvisi.push("Questa fattura è registrata come **importo unico**, senza il dettaglio dell'IVA: il foglio non può indicarla. Aprila in Conti con la matita, scegli l'aliquota e ristampala.");
+    nonMisurati.push("IVA (fattura a importo unico, senza il dettaglio)");
+  }
+  /* ⛔ LE RIGHE STAMPATE CHE NON TORNANO COL PIEDE: la ✎ riscrive imponibile,
+     IVA e totale e non tocca `righe`. Ogni numero, preso da solo, sembra
+     giusto: l'unica difesa è scriverlo sul foglio. */
+  if (!rie.quadra)
+    avvisi.push("**Le righe qui sopra non tornano con il totale.** Sommate danno " + euro(rie.imponibileRighe) + " di imponibile e " + euro(rie.ivaRighe) + " di IVA ("
+      + euro(rie.totaleRighe) + " in tutto); il documento è registrato per " + euro(im.imponibile) + " + " + euro(im.ivaImporto) + " = **" + euro(im.totale)
+      + "**, ed è questo il totale che Conti chiede al cliente. Succede quando una fattura nata dai DDT viene poi corretta a mano: rifalla dai DDT, oppure correggi le righe, prima di consegnarla.");
+  if (notePro.length)
+    avvisi.push("**Questa fattura è stata " + (st.stato === "stornata" ? "annullata" : "rettificata in parte") + " da "
+      + (notePro.length === 1 ? "una nota di credito" : notePro.length + " note di credito") + "** (art. 26 DPR 633/1972) per " + euro(st.stornato)
+      + (st.stato === "stornata"
+        ? ": non c'è più niente da pagare, e il totale qui sopra resta scritto perché è quello del documento originale."
+        : ": resta esigibile **" + euro(st.esigibile) + "**."));
+  /* i riquadri: la scadenza che manca si DICE (le fatture importate da CSV
+     arrivano spesso senza), e «Saldata» e basta è una mezza verità quando al
+     cliente dobbiamo dei soldi — la nota di credito arrivata dopo il
+     pagamento la conta `statoFattura`, e il posto dove dirla è questo */
+  const scad = dataIt(f.scadenza, "");
+  const riquadri = [
+    scad ? ["Pagamento entro il", scad, false] : ["Pagamento entro il", "non indicato", true],
+    ["Stato", st.stato === "stornata"
+      ? "Annullata da nota di credito"
+      : st.saldata ? "Saldata" + (st.dataSaldo ? " il " + dataIt(st.dataSaldo) : "")
+          + (st.aCreditoCliente > 0 ? " · a credito " + euro(st.aCreditoCliente) + " da rimborsare" : "")
+      : st.parziale ? "Acconti " + euro(st.incassato) + " — residuo " + euro(st.residuo)
+      : st.stornato > 0 ? "Da incassare " + euro(st.residuo) + " (dopo la nota di credito)"
+      : "Da incassare", false],
+  ];
+  if (!scad) nonMisurati.push("Scadenza di pagamento (non indicata" + (f.scadenza ? ": la data scritta non esiste" : "") + ")");
+  const nDdt = Array.isArray(f.ddtIds) ? f.ddtIds.length : 0;
+  if (nDdt) riquadri.push(["Consegne fatturate", conta(nDdt, "DDT", "DDT"), false]);
+  const noteCredito = notePro.length ? {
+    titolo: "Note di credito su questa fattura",
+    righe: notePro.map((n) => [String(n.numero || "—") + (n.emessa ? " del " + dataIt(n.emessa) : "")
+      + ((causaleNota(n.causale) || {}).label ? " · " + causaleNota(n.causale).label : ""), "− " + euro(n.totale)]),
+    totale: ["Importo ancora esigibile", euro(st.esigibile)],
+  } : null;
+  const movimenti = st.movimenti.length ? {
+    titolo: "Incassi registrati",
+    righe: st.movimenti.map((m) => [dataIt(m.data) + " · " + nomeMetodo(m.metodo), euro(m.importo)]),
+    totale: [st.saldata ? "Totale incassato" : "Residuo da incassare", euro(st.saldata ? st.incassato : st.residuo)],
+  } : null;
+  const cliente = clienteDiFattura(f, Array.isArray(clienti) ? clienti : []) || { ragioneSociale: f.cliente };
+  return { titolo: "Fattura", numero: String(f.numero || "—"), data: dataIt(f.emessa), cliente,
+    colonne: ["Descrizione", "Quantità", "Prezzo unitario", "IVA", "Imponibile"], dettagliata: !!righeF,
+    righe, piede, avvisi, riquadri, noteCredito, incassi: movimenti, stato: st.stato,
+    piedeLegale: "Documento di cortesia stampato da Conti. **Non sostituisce la fattura elettronica**: l'originale è il file XML trasmesso al Sistema di Interscambio. L'invio allo SdI e la conservazione a norma si fanno **gratis** dal portale **Fatture e Corrispettivi** dell'Agenzia delle Entrate, oppure tramite il tuo commercialista.",
+    nonMisurati };
+}
+
+/* IL FOGLIO DEL DOCUMENTO DI TRASPORTO (05/09), stessa forma di `fogliaFattura`.
+   È il foglio che viaggia sul camion e che legge la Guardia di Finanza: la
+   causale, chi cura il trasporto e la data si DICHIARANO quando mancano
+   (`mancanzeDdt`), un peso mai scritto è «—» e non «0,00» (`pesiPesata`), un
+   prezzo mai scritto è «non indicato» e mai «€ 0,00/t» (`numeroDichiarato`:
+   uno zero SCRITTO resta un prezzo, la fornitura in omaggio), e il valore
+   esce solo se `valoreDdt` lo sa calcolare, con il perché quando non può.
+   Nessuna di queste regole si rifà qui: si legge. Pura. */
+export function fogliaDdt(pesata, opzioni) {
+  const { clienti } = opzioni || {};
+  const p = pesata || {};
+  const nonMisurati = [];
+  const q = quantitaPesata(p);
+  const pesi = pesiPesata(p);
+  const v = valoreDdt(p);
+  const mancanze = mancanzeDdt(p);
+  const qtN = (x) => (x == null ? "—" : NUM2_IT.format(+x || 0));
+  const cliente = (Array.isArray(clienti) ? clienti : []).find((x) => x && x.id === p.clienteId) || { ragioneSociale: p.cliente };
+  /* i tre riquadri: quando non sono indicati lo dicono — «Vendita» e «a cura
+     del mittente» fissi nel codice erano due dichiarazioni che nessuno aveva
+     scritto */
+  const caus = causaleTrasporto(p.causaleTrasporto);
+  const cura = trasportoACura(p.trasportoACura);
+  const vettore = String(p.vettore || "").trim();
+  const riquadri = [
+    caus ? ["Causale del trasporto", caus.label, false] : ["Causale del trasporto", "da indicare", true],
+    !cura ? ["Trasporto a cura di", "da indicare", true]
+      : cura.id === "vettore" ? (vettore ? ["Trasporto a cura di", vettore, false] : ["Trasporto a cura di", "vettore — da indicare", true])
+      : ["Trasporto a cura di", cura.label.toLowerCase() + (p.mezzo ? " — mezzo " + String(p.mezzo) : ""), false],
+    dataISOEsiste(p.data) ? ["Data del ritiro", dataIt(String(p.data).slice(0, 10)), false] : ["Data del ritiro", "non indicata", true],
+  ];
+  for (const m of mancanze) nonMisurati.push(m);
+  if (!dataISOEsiste(p.data)) nonMisurati.push("la data del ritiro" + (p.data ? " (la data scritta non esiste)" : ""));
+  const prezzo = numeroDichiarato(p.prezzoUnitario);
+  if (prezzo == null) nonMisurati.push("il prezzo unitario (non indicato)");
+  const aliq = p.aliquotaIva != null && p.aliquotaIva !== "" ? +p.aliquotaIva : null;
+  if (aliq == null) nonMisurati.push("l'aliquota IVA (non indicata)");
+  return {
+    titolo: "Documento di trasporto", numero: String(p.numero || "—"), data: dataIt(p.data), cliente,
+    luogoConsegna: String(p.destinatario || ""),
+    avviso: mancanze.length
+      ? "**Questo documento non è completo.** Prima di stamparlo va indicato: " + mancanze.join("; ") + ". Si compila sulla pesata, in Conti."
+      : "",
+    riquadri,
+    colonne: ["Natura e qualità dei beni", "Lordo (t)", "Tara (t)", "Netto (t)", "Quantità", "Prezzo", "Sconto", "Valore"],
+    riga: {
+      prodotto: String(p.prodotto || "—"),
+      lordo: qtN(pesi.lordo), tara: qtN(pesi.tara), netto: qtN(pesi.netto),
+      quantita: p.quantita == null || p.quantita === "" ? "—" : NUM2_IT.format(+p.quantita || 0) + " " + unitaTx(p.unitaVendita),
+      prezzo: prezzo == null ? "non indicato" : euro(p.prezzoUnitario) + "/" + unitaTx(p.unitaVendita),
+      sconto: +p.scontoPct > 0 ? "− " + percTx(p.scontoPct) : "—",
+      valore: v.calcolabile ? euro(v.valore) : "—",
+    },
+    piede: { etichetta: "Valore della consegna (imponibile, " + (aliq == null ? "IVA non indicata" : "IVA " + percTx(aliq) + " esclusa") + ")",
+      valore: v.calcolabile ? euro(v.valore) : "non calcolabile", mancante: !v.calcolabile },
+    perche: v.calcolabile ? "" : String(v.perche || v.motivo || ""),
+    volume: q.m3 != null ? NUM2_IT.format(q.m3) + " m³ (netto ÷ densità " + NUM2_IT.format(+p.densita || 0) + " t/m³)" : "",
+    piedeLegale: "Documento di trasporto ai sensi del **DPR 472/1996**: va emesso **prima dell'inizio del trasporto** e conservato per dieci anni. La numerazione è progressiva per anno e senza salti."
+      + (valorePesata(p) > 0 ? " Il valore indicato è l'imponibile della consegna: la fattura può essere riepilogativa (differita) entro il 15 del mese successivo." : ""),
+    nonMisurati,
+  };
+}
+
+/* Le parole con cui lo stato di un preventivo si legge, a schermo (il badge)
+   e sul foglio: una mappa sola, per tutti gli stati che `statoPreventivo` sa
+   dire — la regola 18 di run-stile pretende che li copra tutti. */
+export const ETICHETTA_STATO_PREVENTIVO = {
+  bozza: "Bozza", inviato: "Inviato", scaduto: "Scaduto", "senza-validita": "senza validità",
+  accettato: "Ordine", rifiutato: "Rifiutato", annullato: "Annullato",
+};
+
+/* IL FOGLIO DEL PREVENTIVO / DELLA CONFERMA D'ORDINE (05/09), stessa forma.
+   Una riga a quantità da definire (fornitura a chiamata) si dichiara e il
+   totale dice che non la comprende; quando TUTTE le righe sono a chiamata i
+   totali sono «—», non «€ 0,00» (che sarebbe un'offerta gratis). L'aliquota
+   che manca resta «—», come sulla fattura. Pura. */
+export function fogliaPreventivo(ordine, opzioni) {
+  const { clienti, oggi } = opzioni || {};
+  const o = ordine || {};
+  const t = totaliPreventivo(o);
+  const st = statoPreventivo(o, oggi || new Date()).stato;
+  const conferma = !!o.numeroOrdine;
+  // senza righe con un importo non c'è niente da sommare: «—», non «€ 0,00»
+  // (che sarebbe un'offerta gratis)
+  const nienteDaSommare = t.righe === 0 || t.righe === t.senzaImporto;
+  const eurOrd = (v) => (nienteDaSommare ? "—" : euro(v));
+  const nonMisurati = [];
+  const cliente = (Array.isArray(clienti) ? clienti : []).find((x) => x && x.id === o.clienteId) || { ragioneSociale: o.cliente };
+  const righe = (Array.isArray(o.righe) ? o.righe : []).map((r) => ({
+    descrizione: String((r && r.descrizione) || "—"),
+    quantita: r && r.quantita == null ? "a chiamata" : NUM2_IT.format(+r.quantita || 0) + " " + unitaTx(r.unita),
+    prezzo: r && r.prezzoUnitario == null ? "—" : euro(r.prezzoUnitario) + "/" + unitaTx(r.unita),
+    sconto: r && +r.scontoPct > 0 ? "− " + percTx(r.scontoPct) : "—",
+    aliquota: r && r.aliquota == null ? "—" : percTx(r.aliquota),
+    imponibile: r && r.imponibile == null ? "—" : euro(r.imponibile),
+  }));
+  const validoAl = dataISOEsiste(o.validoAl) ? dataIt(String(o.validoAl).slice(0, 10)) : "";
+  if (!validoAl) nonMisurati.push("la data di validità" + (o.validoAl ? " (la data scritta non esiste)" : " (non indicata)"));
+  if (nienteDaSommare) nonMisurati.push(t.righe === 0 ? "il totale (nessuna riga)" : "il totale (tutte le righe sono a quantità da definire)");
+  return {
+    titolo: conferma ? "Conferma d'ordine" : "Preventivo",
+    numero: String(o.numeroOrdine || o.numero || "—"), data: dataIt(o.data), cliente,
+    riferimento: String(o.riferimento || ""), stato: st,
+    riquadri: [
+      validoAl ? ["Valida fino al", validoAl, false] : ["Valida fino al", "non indicata", true],
+      ["Stato", ETICHETTA_STATO_PREVENTIVO[st] || st || "—", false],
+      conferma ? ["Preventivo di origine", String(o.numero || "—"), false] : ["Prezzi", "di listino, sconto indicato a parte", false],
+    ],
+    avviso: t.senzaImporto
+      ? "**" + (t.senzaImporto === 1 ? "Una riga è" : "Alcune righe sono") + " a quantità da definire** (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto **non "
+        + (t.senzaImporto === 1 ? "la" : "le") + " comprende**."
+      : "",
+    colonne: ["Prodotto", "Quantità", "Prezzo di listino", "Sconto", "IVA", "Imponibile"],
+    righe, vuote: righe.length ? "" : "Nessuna riga.",
+    piede: [["Imponibile", eurOrd(t.imponibile), false], ["IVA", eurOrd(t.ivaImporto), false],
+      ["Totale " + (conferma ? "dell'ordine" : "dell'offerta"), eurOrd(t.totale), true]],
+    note: String(o.note || ""),
+    piedeLegale: conferma
+      ? "Conferma dell'ordine ricevuto. Le consegne saranno accompagnate da documento di trasporto (DPR 472/1996) e fatturate, anche in forma riepilogativa, entro il 15 del mese successivo alla consegna."
+      : "Offerta valida fino alla data indicata; oltre quel giorno i prezzi vanno riconfermati. Le quantità sono indicative e si intendono franco cava salvo diverso accordo scritto. La fornitura è soggetta a documento di trasporto e a fatturazione secondo i termini di legge.",
+    nonMisurati,
+  };
+}
+
+export function nomeMetodo(m) { return (METODI_INCASSO.find(x => x[0] === m) || ["","—"])[1]; }
+
+/* LA CELLA DI UN NUMERO IN UN FILE (05/09, salita dalla pagina): vuota quando
+   nessuno l'ha scritto, mai «0» — «fido 0» vuol dire *non gli si fa credito*,
+   «fido non impostato» vuol dire *nessuno ci ha pensato*, e un foglio che va
+   al commercialista deve distinguerle. Due decimali. */
+export function cellaNum(x) { const v = numeroDichiarato(x); return v == null ? "" : Math.round(v * 100) / 100; }
+
+/* IL PROSPETTO DEGLI INCASSI (05/09, salito dalla pagina): il file che il
+   commercialista incrocia con l'estratto conto. Per ogni incasso la fattura,
+   il lordo (`totale_fattura`, quello che si aspetta accanto al numero), le
+   note di credito e il residuo DOPO quell'incasso — calcolato sull'esigibile
+   di `statoFattura`, che toglie lo stornato, come lo schermo: su 1.000 € con
+   una nota da 200 e un acconto da 500 il residuo è 300, non 500. Gli incassi
+   la cui fattura non esiste più restano fuori. Per data. Pura. */
+export const CSV_PROSPETTO_INCASSI_INTESTAZIONE = "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo";
+export function csvProspettoIncassi(incassi, fatture, note, clienti) {
+  const INC = (incassi || []).filter(Boolean), FAT = fatture || [], NOT = note || [];
+  const righe = INC.map(m => ({ m, f: FAT.find(x => x && x.id === m.fatturaId) }))
+    .filter(r => r.f)
+    .sort((a, b) => String(a.m.data || "").localeCompare(String(b.m.data || "")));
+  let csv = CSV_PROSPETTO_INCASSI_INTESTAZIONE + "\n";
+  for (const r of righe) {
+    const fino = movimentiDiFattura(r.f.id, INC)
+      .filter(x => String(x.data || "") < String(r.m.data || "") || (String(x.data || "") === String(r.m.data || "") && String(x.id) <= String(r.m.id)))
+      .reduce((t, x) => t + x.importo, 0);
+    const st = statoFattura(r.f, INC, NOT);
+    const tot = round2(importiFattura(r.f).totale);
+    csv += `${r.m.data || ""};${csvCell(r.f.numero)};${csvCell(nomeCliente(r.f, clienti || []))};${round2(+r.m.importo || 0)};${csvCell(nomeMetodo(r.m.metodo))};${tot};${round2(st.stornato || 0)};${round2(Math.max(0, round2(st.esigibile) - round2(fino)))}\n`;
+  }
+  return csv;
+}
+
+/* L'ANAGRAFICA DEI CLIENTI PER IL COMMERCIALISTA O UN ALTRO GESTIONALE
+   (05/09, salita dalla pagina): sconto e fido passano da `cellaNum`, quindi il
+   fido non impostato esce VUOTO e non «0». Per ragione sociale. Pura. */
+export const CSV_PROSPETTO_CLIENTI_INTESTAZIONE = "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note";
+export function csvProspettoClienti(clienti) {
+  let csv = CSV_PROSPETTO_CLIENTI_INTESTAZIONE + "\n";
+  for (const c of (clienti || []).filter(Boolean).slice().sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it")))
+    csv += `${csvCell(c.ragioneSociale)};${csvCell(c.piva)};${csvCell(c.sdi)};${csvCell(c.indirizzo)};${cellaNum(c.sconto)};${cellaNum(c.fido)};${csvCell(c.note)}\n`;
+  return csv;
+}
+
+/* LE ETICHETTE DEI GRUPPI DI COSTO E LA VOCE COME SI LEGGE (05/09, salite
+   dalla pagina): i gruppi si ricavano dalle voci di `shared/`, le etichette
+   sono l'unica cosa che vive in Conti — e un gruppo senza etichetta mostra la
+   sua chiave, che è brutta ma VISIBILE, invece di sparire. La voce è
+   l'etichetta se è nell'elenco, altrimenti la chiave scritta da chi ha
+   registrato il costo, che è comunque un'informazione. */
+export const ETICHETTA_GRUPPO = {
+  produzione: "Produzione", mezzi: "Mezzi e trasporti",
+  impianto: "Impianto e lavorazione", concessione: "Concessione e ambiente",
+  generali: "Spese generali", "non-classificata": "Voci non classificate",
+};
+export function etichettaGruppo(g) { return ETICHETTA_GRUPPO[g] || g; }
+export function leggiVoce(chiave) {
+  const v = voceCosto(chiave);
+  return v ? v.etichetta : (String(chiave || "").trim() || "(voce non indicata)");
+}
+
+/* IL PROSPETTO DEI COSTI DEL PERIODO (05/09, salito dalla pagina): il file per
+   il commercialista. Nel file vanno ANCHE le voci senza data, senza importo e
+   con importo a zero o negativo — marcate nella colonna `nel_periodo`, con la
+   ragione a parole — perché un file che le lascia fuori in silenzio è lo
+   stesso totale tranquillo di prima, solo che stavolta finisce dal
+   commercialista. L'importo passa da `cellaNum`: uno zero SCRITTO resta, quello
+   mai compilato lascia la cella vuota. Pura. */
+export const CSV_PROSPETTO_COSTI_INTESTAZIONE = "data;voce;gruppo;importo;nota;nel_periodo";
+export function csvProspettoCosti(costi, dal, al) {
+  const r = riepilogoCosti(costi || [], dal, al);
+  const riga = (c, nel) => `${csvCell(c.data)};${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};${nel}\n`;
+  let csv = CSV_PROSPETTO_COSTI_INTESTAZIONE + "\n";
+  for (const c of r.righe.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))))
+    csv += riga(c, "si");
+  for (const c of r.righeSenzaData)
+    csv += `;${csvCell(leggiVoce(c.voce))};${csvCell(etichettaGruppo(gruppoDiVoce(c.voce)))};${cellaNum(c.importo)};${csvCell(c.nota || "")};no (senza data)\n`;
+  // le voci senza importo non sparivano: uscivano alla prima riga di `riepilogoCosti`
+  for (const c of r.righeSenzaImporto)
+    csv += riga(c, "no (senza importo)");
+  for (const c of r.righeImportoNonPositivo)
+    csv += riga(c, "no (importo a zero o negativo)");
+  return csv;
+}
+
+/* IL LISTINO COI PREZZI CONVERTITI (05/09, salito dalla pagina): il foglio che
+   si manda al cliente. Un prodotto senza prezzo NON esce a zero (gratis), una
+   densità che non c'è non è una densità zero, e l'aliquota non scritta è
+   quella ordinaria — la stessa risposta di `csvListino` e `parseListinoCsv`,
+   non una seconda. Per nome. Pura. */
+export const CSV_PREZZI_CONVERTITI_INTESTAZIONE = "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva";
+export function csvPrezziConvertiti(prodotti) {
+  let csv = CSV_PREZZI_CONVERTITI_INTESTAZIONE + "\n";
+  for (const p of (prodotti || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
+    csv += `${csvCell(p.nome)};${numeroDichiarato(p.prezzo) ?? ""};${p.unitaPrezzo === "m3" ? "m3" : "t"};${densitaValida(p) ?? ""};${prezzoPerTonnellata(p) ?? ""};${prezzoPerMetroCubo(p) ?? ""};${numeroDichiarato(p.iva) ?? ALIQUOTA_ORDINARIA}\n`;
+  return csv;
+}
+
+/* IL NOME DEL CLIENTE DI UN PREVENTIVO (05/09, salito dalla pagina): la
+   ragione sociale in anagrafica se il cliente c'è ancora, se no il nome
+   scritto sul preventivo, se no «Cliente non indicato». */
+export function nomeClienteOrdine(ordine, clienti) {
+  const c = (clienti || []).find(x => x && x.id === (ordine || {}).clienteId);
+  return (c && c.ragioneSociale) || (ordine && ordine.cliente) || "Cliente non indicato";
+}
+
+/* IL PROSPETTO DEI PREVENTIVI (05/09, salito dalla pagina): una riga per
+   ogni riga di ogni preventivo, con lo stato di `statoPreventivo` e la
+   colonna «scaglione» perché il prezzo da solo non si spiega (10,50 dove il
+   listino dice 12,00 sembra un refuso senza la soglia che l'ha prodotto); le
+   due metà dello sconto in due colonne, così il conto si rifà. Una quantità
+   che non c'è resta VUOTA (uno zero è una consegna dichiarata di niente), e le
+   righe salvate prima delle due metà lasciano vuote quelle colonne invece di
+   uno zero che direbbe «misurato». Punto decimale e punto e virgola. Pura. */
+export const CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE = ["numero", "ordine", "data", "valido al", "cliente", "stato", "prodotto",
+  "quantita", "unita", "prezzo", "sconto %", "sconto cliente %", "sconto scaglione %", "scaglione da", "imponibile"].join(";");
+export function csvProspettoPreventivi(ordini, clienti, oggi = new Date()) {
+  const righe = [CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE];
+  for (const o of (ordini || []).filter(Boolean)) {
+    const st = statoPreventivo(o, oggi).stato;
+    for (const r of (o.righe || [])) righe.push([o.numero, o.numeroOrdine || "", o.data,
+      o.validoAl || "", nomeClienteOrdine(o, clienti), st, r.descrizione,
+      r.quantita == null ? "" : String(r.quantita), r.unita,
+      r.prezzoUnitario == null ? "" : String(r.prezzoUnitario),
+      String(r.scontoPct || 0),
+      r.scontoCliente == null ? "" : String(r.scontoCliente),
+      r.scontoScaglione == null ? "" : String(r.scontoScaglione),
+      r.scaglione ? String(r.scaglione.da) + " " + (r.scaglione.unita === "m3" ? "m3" : "t") : "",
+      r.imponibile == null ? "" : String(r.imponibile)]
+      .map(csvCell).join(";"));
+  }
+  return righe.join("\n") + "\n";
+}
+
+/* IL PROSPETTO DEI DDT DALLE PESATE (05/09, salito dalla pagina): il file per
+   il commercialista, con la fattura e l'ordine collegati e da dove viene il
+   prezzo. Le celle dei numeri passano da `cellaNum` (vuote quando non
+   scritte, mai «0»: `prezzo_unitario` a 0 è materiale regalato) e il valore
+   solo se `valoreDdt` lo sa calcolare — un DDT venduto a metro cubo senza
+   densità esce con la cella VUOTA, non con «0 €» accanto a una quantità
+   sconosciuta. Per data. Pura. */
+export const CSV_PROSPETTO_DDT_INTESTAZIONE = "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da";
+export function csvProspettoDdt(pesate, fatture, ordini) {
+  let csv = CSV_PROSPETTO_DDT_INTESTAZIONE + "\n";
+  for (const p of (pesate || []).filter(Boolean).slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
+    const f = p.fatturaId ? (fatture || []).find(x => x && x.id === p.fatturaId) : null;
+    const o = p.ordineId ? (ordini || []).find(x => x && x.id === p.ordineId) : null;
+    const v = valoreDdt(p);
+    csv += `${csvCell(p.numero)};${p.data || ""};${csvCell(p.cliente)};${csvCell(p.prodotto)};${cellaNum(p.lordo)};${cellaNum(p.tara)};${cellaNum(p.netto)};${p.quantita == null ? "" : p.quantita};${p.unitaVendita === "m3" ? "m3" : "t"};${cellaNum(p.prezzoUnitario)};${+p.scontoPct || 0};${v.calcolabile ? v.valore : ""};${cellaNum(p.aliquotaIva)};${csvCell(p.mezzo)};${csvCell(p.destinatario)};${csvCell(f ? f.numero : "")};${csvCell(o ? (o.numeroOrdine || o.numero) : "")};${csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : "")}\n`;
+  }
+  return csv;
+}
 
 export function csvIncassi(incassi) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
@@ -4775,7 +5881,11 @@ export function scartiIncassiCsv(text) {
         scriveva uguali.
    Perciò questo file usa `numeroDichiarato` come gli altri due, e il vuoto
    resta vuoto. */
-export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note";
+/* ⚠️ Le quattro colonne in CODA sono entrate il 02/09 per la fattura
+   elettronica (CAP, comune, provincia, codice fiscale): stanno in fondo così
+   un file scritto prima rientra tale e quale — le celle che non ci sono
+   leggono vuoto, non zero e non «undefined». */
+export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale";
 
 export function csvClienti(clienti) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
@@ -4785,7 +5895,8 @@ export function csvClienti(clienti) {
     if (!c) continue;
     righe.push([csvCell(c.id || ""), csvCell(c.ragioneSociale || ""), csvCell(c.piva || ""),
       csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(c.sconto), num(c.fido),
-      csvCell(c.note || "")].join(";"));
+      csvCell(c.note || ""), csvCell(c.cap || ""), csvCell(c.comune || ""),
+      csvCell(c.provincia || ""), csvCell(c.codiceFiscale || "")].join(";"));
   }
   return righe.join("\n") + "\n";
 }
@@ -4798,13 +5909,15 @@ export function parseClientiCsv(text) {
        «ragioneSociale». La prima colonna è `id`. */
     .filter((c) => c.length && !isIntestazione(c.join(";"), "id"))
     .map((c) => {
-      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note] = c;
+      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note, cap, comune, provincia, codiceFiscale] = c;
       const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
       const n = (x) => { const v = numIt(x); return numeroDichiarato(v === null || Number.isNaN(v) ? null : v); };
       return {
         id: t(id), ragioneSociale: t(ragioneSociale) || "", piva: t(piva) || "",
         sdi: t(sdi) || "", indirizzo: t(indirizzo) || "",
         sconto: n(sconto), fido: n(fido), note: t(note) || "",
+        cap: t(cap) || "", comune: t(comune) || "", provincia: (t(provincia) || "").toUpperCase(),
+        codiceFiscale: (t(codiceFiscale) || "").toUpperCase(),
       };
     })
     /* ⛔ un cliente senza ragione sociale non è un cliente: è una riga vuota
@@ -4850,4 +5963,139 @@ export function scartiClientiCsv(text) {
   }
   const lette = celle.length - vuote;
   return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL VERBALE DI RICONCILIAZIONE (02/09) — il divario, scritto con la sua causa
+   ────────────────────────────────────────────────────────────────────────
+   «Cavato contro venduto» e «Prodotto contro venduto» si CALCOLANO a ogni
+   apertura e non si conservano: chi guarda la schermata a marzo non sa se il
+   divario di febbraio era già stato spiegato, e chi lo aveva spiegato non ha
+   dove scriverlo. Nel mondo la riconciliazione di inventario è un atto
+   periodico con una causa e una firma (docs/RICERCA_CONTINUA_CONTI.md, la
+   ricerca del 02/09, punto 5 del delta). Qui è un documento per periodo:
+   `verbali/{id}: { dal, al, tipo: "cavato"|"prodotto", divario, pct, stato,
+   causa, nota, scrittoIl }` — il numero è quello che la schermata mostrava
+   nel momento in cui è stato scritto (una prova lo pretende), la causa è una
+   fra quelle che la schermata stessa elenca, la nota è libera.
+   ⛔ Un verbale non corregge il conto e non lo blocca: il conto si rifà ogni
+   volta dai dati; il verbale dice che cosa qualcuno ha concluso guardandolo.
+   Se i dati cambiano dopo (un rilievo aggiunto, una pesata corretta) il
+   verbale resta vero su quello che diceva allora, e `verbaleDelPeriodo` lo
+   dice confrontando il numero di allora con quello di adesso.
+   ══════════════════════════════════════════════════════════════════════ */
+export const CAUSE_DIVARIO = Object.freeze([
+  { chiave: "piazzale", etichetta: "Materiale fermo a piazzale (scorta che cresce)" },
+  { chiave: "cumulo", etichetta: "Venduto materiale già a piazzale da prima (ripresa dai cumuli)" },
+  { chiave: "rilievo", etichetta: "Manca un rilievo nel periodo" },
+  { chiave: "densita", etichetta: "Una densità del listino è sbagliata" },
+  // («senza» è una parola del lessico dell'assenza di `sonda-vuoto`: questa è una CAUSA, non un dato che manca, e si dice con altre parole)
+  { chiave: "senza-pesata", etichetta: "Consegne uscite dal cancello fuori dalla pesa a ponte" },
+  { chiave: "stime-turno", etichetta: "Le stime di fine turno sono larghe" },
+  { chiave: "sfrido", etichetta: "Sfrido di lavorazione e tolleranza dei rilievi" },
+  { chiave: "altro", etichetta: "Altro (scritto nella nota)" },
+]);
+export function causaDivario(chiave) {
+  return CAUSE_DIVARIO.find((c) => c.chiave === String(chiave || "")) || null;
+}
+/* ⛔ `+null` fa ZERO e `Number.isFinite(0)` risponde true (CLAUDE.md, il caso di
+   `avanzamentoLotto`): un numero assente deve restare assente, non diventare
+   uno zero che poi «coincide» con qualunque cosa. */
+const _numOAssente = (x) => (x == null || x === "" ? null : Number.isFinite(+x) ? +x : null);
+/* il verbale del periodo ESATTO (dal/al), del tipo chiesto — l'ultimo scritto
+   se ce n'è più d'uno — con il confronto fra il numero di allora e quello di
+   adesso: `coerente` se al centesimo di m³/t, `differenza` altrimenti. */
+export function verbaleDelPeriodo(verbali, dal, al, tipo, divarioAdesso, scartoAdesso) {
+  const t = tipo || "cavato";
+  const miei = (Array.isArray(verbali) ? verbali : []).filter((v) => v && v.dal === dal && v.al === al && (v.tipo || "cavato") === t);
+  if (!miei.length) return null;
+  miei.sort((a, b) => String(a.scrittoIl || "").localeCompare(String(b.scrittoIl || "")));
+  const v = miei[miei.length - 1];
+  const allora = _numOAssente(v.divario);
+  const adesso = _numOAssente(divarioAdesso);
+  const differenza = allora != null && adesso != null ? Math.round((adesso - allora) * 100) / 100 : null;
+  /* il terzo lato (03/09): se il verbale aveva le scorte MISURATE, si confronta
+     anche lo scarto del triangolo di allora con quello di adesso — e quando
+     oggi il triangolo non chiude (`scartoAdesso` null) il confronto resta
+     nullo, non finto: la pagina dice che oggi gli inventari non bastano. Un
+     verbale con `scorte: null` non ha uno scarto da confrontare. */
+  const scartoAllora = v.scorte && v.chiusura ? _numOAssente(v.chiusura.scarto) : null;
+  const scartoOra = scartoAllora != null ? _numOAssente(scartoAdesso) : null;
+  const scartoDifferenza = scartoAllora != null && scartoOra != null ? Math.round((scartoOra - scartoAllora) * 100) / 100 : null;
+  return { verbale: v, causa: causaDivario(v.causa), allora, adesso,
+    coerente: differenza != null && Math.abs(differenza) < 0.005, differenza, quanti: miei.length,
+    scartoAllora, scartoAdesso: scartoOra, scartoDifferenza,
+    scartoCoerente: scartoDifferenza == null ? null : Math.abs(scartoDifferenza) < 0.005 };
+}
+/* lo storico: i verbali di un tipo in ordine di periodo, con il segno del
+   passo fra uno e il successivo sulla percentuale. `null` nel passo = non si
+   può dire (manca la percentuale in uno dei due). */
+export function storicoVerbali(verbali, tipo, fmt) {
+  const t = tipo || "cavato";
+  const righe = (Array.isArray(verbali) ? verbali : []).filter((v) => v && (v.tipo || "cavato") === t && v.al)
+    .slice().sort((a, b) => String(a.al).localeCompare(String(b.al)) || String(a.scrittoIl || "").localeCompare(String(b.scrittoIl || "")));
+  return righe.map((v, i) => {
+    const p = _numOAssente(v.pct);
+    const prima = i ? righe[i - 1] : null;
+    const pp = prima ? _numOAssente(prima.pct) : null;
+    const passo = p != null && pp != null ? Math.round((Math.abs(p) - Math.abs(pp)) * 100) / 100 : null;
+    return { ...v, pctNum: p, causaEtichetta: (causaDivario(v.causa) || {}).etichetta || null,
+      passo, verso: passo == null ? null : passo > 0 ? "cresce" : passo < 0 ? "cala" : "pari",
+      scorteDette: scorteDelVerbale(v, fmt) };
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL VERBALE E IL TERZO LATO (03/09): il verbale del cavato registra anche le
+   scorte, quando sono MISURATE
+   ────────────────────────────────────────────────────────────────────────
+   Il verbale conservava il divario cavato − venduto e la sua causa. Con gli
+   inventari dei cumuli il divario ha un terzo lato (`triangolo`), e un
+   verbale che non lo scrive racconta a metà: chi lo rilegge fra sei mesi non
+   sa se le scorte di allora erano misurate o stimate. Il record cresce così:
+     scorte:   { deltaM3, deltaT, inizio: {id, data}, fine: {id, data},
+                 parziale, fuori: [materiale…] }   — copiati da `triangolo`,
+                 mai ricalcolati (un secondo calcolo divergerebbe dal primo)
+     chiusura: { scarto, pct, stato, verso }
+   e quando il triangolo NON chiude: `scorte: null, chiusura: null,
+   scorteMotivo: <perché>` — l'assenza DICHIARATA, con la ragione del
+   modulo, non un campo che manca. Un verbale scritto prima del 03/09 non ha
+   nessuno dei tre campi: è un terzo stato («non registrate»), e si dice.
+   ⛔ Il verbale del PRODOTTO (Campo contro la pesa) non ha un terzo lato:
+   `componiVerbale` lo lascia com'è, e lo storico del prodotto non parla di
+   scorte.
+   Le tre funzioni sono PURE: la pagina chiama `componiVerbale` con quello che
+   ha appena letto e salva il risultato; una prova le chiama senza browser.
+   ══════════════════════════════════════════════════════════════════════ */
+export function componiVerbale(base, tri) {
+  const b = { ...(base || {}) };
+  if ((b.tipo || "cavato") !== "cavato") return b;
+  if (!tri) return { ...b, scorte: null, chiusura: null, scorteMotivo: "gli inventari dei cumuli di Terra non erano ancora stati letti" };
+  if (tri.stato !== "chiuso") return { ...b, scorte: null, chiusura: null,
+    scorteMotivo: String(tri.perche || "") || `il triangolo non chiude (${tri.stato || "stato non dichiarato"})` };
+  const s = tri.scorte || {}, st = tri.scorteT || {}, ch = tri.chiusura || {};
+  const rif = (i) => (i ? { id: i.id == null ? null : String(i.id), data: i.data == null ? null : String(i.data) } : null);
+  return { ...b, scorteMotivo: null,
+    scorte: { deltaM3: _numOAssente(s.deltaM3), deltaT: _numOAssente(st.deltaT), inizio: rif(s.inizio), fine: rif(s.fine),
+              parziale: !!tri.parziale, fuori: (Array.isArray(tri.fuori) ? tri.fuori : []).map((f) => String(f && f.materiale || "")).filter(Boolean) },
+    chiusura: { scarto: _numOAssente(ch.scarto), pct: _numOAssente(ch.pct), stato: ch.stato == null ? null : String(ch.stato), verso: ch.verso == null ? null : String(ch.verso) } };
+}
+/* Che cosa dice un verbale delle sue scorte, in tre stati:
+     misurate        · c'è `scorte` e `chiusura`: «scarto del triangolo 55,2 t, attenzione»
+     stimate         · `scorte: null` con il motivo: «scorte stimate: <motivo>»
+     non-registrate  · il verbale non ha il campo (scritto prima del terzo lato,
+                       o è del prodotto): «scorte non registrate nel verbale»
+   ⚠️ il formato del numero si passa da fuori (`fmt`), come per
+   `etichettaScaglione`: «55,2» lo scrive la pagina, qui il numero è nudo. */
+export function scorteDelVerbale(v, fmt) {
+  const n = typeof fmt === "function" ? fmt : String;
+  if (!v || (v.scorte === undefined && v.scorteMotivo === undefined)) return { stato: "non-registrate", scarto: null, chiusuraStato: null, motivo: null, testo: "scorte non registrate nel verbale" };
+  if (!v.scorte || !v.chiusura) {
+    const motivo = String(v.scorteMotivo || "") || "il triangolo non chiudeva";
+    return { stato: "stimate", scarto: null, chiusuraStato: null, motivo, testo: "scorte stimate: " + motivo };
+  }
+  const scarto = _numOAssente(v.chiusura.scarto), stato = v.chiusura.stato == null ? null : String(v.chiusura.stato);
+  const testo = scarto == null ? "scorte misurate, scarto del triangolo non calcolabile"
+    : `scarto del triangolo ${n(Math.abs(scarto))} t${stato ? ", " + stato : ""}`;
+  return { stato: "misurate", scarto, chiusuraStato: stato, motivo: null, testo };
 }

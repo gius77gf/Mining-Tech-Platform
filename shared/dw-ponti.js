@@ -17,7 +17,7 @@
 // Terra continuano a importare da dove hanno sempre importato — un alias non è
 // una seconda implementazione.
 //
-import { isoLocale, dataISOEsiste, giorniTra } from "./deepwork-id-client/dw-shell.js";
+import { isoLocale, dataISOEsiste, giorniTra, timbroLocale, csvCell, numIt } from "./deepwork-id-client/dw-shell.js";
 
 // Tutto quello che c'è qui è PURO e testabile: nessun accesso ai dati, nessun
 // DOM. Le letture dei dati restano nei moduli delle app, che passano dall'SDK.
@@ -200,6 +200,46 @@ export const SOGLIA_TURNI = { coerente: 15, attenzione: 40 };
 // Sopra la banda, però, il verso cambia il SIGNIFICATO: dichiarare più roccia di
 // quanta ne manchi dal fronte non è imprecisione, è una delle due cose scritte
 // sopra. Per questo lo stato resta distinto.
+/* ══════════════════════════════════════════════════════════════════════
+   IL TERZO LATO DEL TRIANGOLO (02/09, ponte 3f della mappa): quello che i turni
+   DICHIARANO di aver prodotto (Campo, in tonnellate) contro quello che la pesa
+   ha VENDUTO (Conti, in tonnellate). Terra↔Campo e Terra↔Conti esistevano già;
+   mancava Campo↔Conti, ed è l'unico lato che NON ha bisogno della densità:
+   tonnellate contro tonnellate. Chi chiama passa `produzioneDichiarata(…)` e
+   il venduto di Conti (`{t, viaggi}`); qui si confronta e si dichiara.
+   ⛔ Non si inventa niente: un'app che non risponde è `no-campo`/`no-venduto`
+   (null in ingresso), i turni scritti in metri cubi o in viaggi restano FUORI
+   dal confronto e si contano (`fuori`), e il verso del divario si dice a
+   parole. Il venduto può essere minore del prodotto (magazzino) o maggiore
+   (magazzino che si svuota): il numero non è un giudizio, la frase sì.
+   ⚠️ Misurato sulla cava sintetica: divario 83-86% in tutt'e quattro i
+   trimestri — uno scarto identico su tutte le taglie è del GENERATORE (le sue
+   pesate sono un quinto della produzione), non del confronto (CLAUDE.md, le
+   lezioni del simulatore, la 4). */
+export function confrontoProdottoVenduto(dichiarato, venduto) {
+  const vuoto = { dichiaratoT: null, vendutoT: null, divarioT: null, pct: null, turni: 0, viaggiVenduti: 0,
+    fuori: { m3: 0, viaggi: 0, senzaData: 0, senzaProduzione: 0 }, parziale: false, verso: null };
+  if (dichiarato == null) return { ...vuoto, stato: "no-campo" };
+  if (venduto == null) return { ...vuoto, stato: "no-venduto" };
+  const dT = r2(+dichiarato.t || 0), vT = r2(+venduto.t || 0);
+  const fuori = { m3: r3(+dichiarato.m3Diretti || 0), viaggi: +dichiarato.viaggi || 0,
+    senzaData: +dichiarato.senzaData || 0, senzaProduzione: +dichiarato.senzaProduzione || 0 };
+  /* `parziale` = il dichiarato è PER DIFETTO: turni scritti in m³ o in viaggi
+     (non convertibili senza densità o portata) e turni che non hanno dichiarato
+     niente — un turno con la quantità in bianco non ha prodotto zero, non si
+     sa quanto ha prodotto (la lezione del 14/08 di `produzioneDichiarata`). Chi
+     legge il divario deve saperlo prima di trarne conclusioni. */
+  const base = { ...vuoto, dichiaratoT: dT, vendutoT: vT, turni: +dichiarato.turni || 0,
+    viaggiVenduti: +venduto.viaggi || 0, fuori,
+    parziale: fuori.m3 > 0 || fuori.viaggi > 0 || fuori.senzaProduzione > 0 };
+  if (!base.turni) return { ...base, stato: "no-dichiarato" };
+  if (!(dT > 0)) return { ...base, stato: "dichiarato-non-in-tonnellate" };
+  if (!(vT > 0)) return { ...base, stato: "no-venduto-nel-periodo" };
+  const divarioT = r2(dT - vT), pct = r2(100 * divarioT / dT);
+  return { ...base, stato: "confrontabile", divarioT, pct,
+    verso: divarioT > 0 ? "prodotto-piu-del-venduto" : divarioT < 0 ? "venduto-piu-del-prodotto" : "pari" };
+}
+
 export function riconciliazioneTurni(rilievi, rapportini, dal, al, densita) {
   const dich = produzioneDichiarata(rapportini, dal, al, densita);
   const mis = misuratoPeriodo(rilievi, dal, al);
@@ -571,6 +611,34 @@ export function densitaDellaCava(autorizzazione) {
   return densitaDichiarata({ densita: p.densita, da: DENS_PRESET, etichetta: p.etichetta, fonte: p.fonte });
 }
 
+// L'autorizzazione VIGENTE tra quelle registrate (le altre restano come
+// storico/varianti). Se nessuna è marcata vigente, prende la prima; null se
+// non ce n'è nessuna. ⛔ Viveva in Terra; dal 02/09 la chiama anche Conti (per
+// la densità della cava, qui sotto), quindi vive qui e Terra la ri-esporta.
+export function autorizzazioneVigente(autorizzazioni) {
+  const a = autorizzazioni || [];
+  return a.find(x => x && x.stato === "vigente") || a[0] || null;
+}
+
+/* IL CAVATO IN TONNELLATE (02/09). Terra misura in metri cubi IN BANCO, la
+   pesa in tonnellate, i turni di Campo in tonnellate: per leggere le tre cose
+   in un'unità sola serve la densità in banco — e Conti non la chiede una
+   seconda volta, la prende da dove è già dichiarata: `densitaDellaCava` sulla
+   autorizzazione vigente di Terra (atto → laboratorio → valore tipico da
+   verificare). Regole: senza densità niente numero, con la ragione; con un
+   valore tipico si converte ma si DICE che è un valore tipico da verificare
+   (`daVerificare`), perché su questo confronto la densità sposta le tonnellate
+   quanto il confronto dovrebbe misurare. Pura. */
+export function cavatoInTonnellate(m3, densitaRecord) {
+  const d = densitaRecord || densitaDichiarata(null);
+  const v = m3 == null || m3 === "" ? null : +m3;
+  if (!Number.isFinite(v)) return { t: null, densita: d.densita, da: d.da, calcolabile: false, daVerificare: false, perche: "il cavato in metri cubi non c'è" };
+  if (!(d.densita > 0)) return { t: null, densita: null, da: d.da, calcolabile: false, daVerificare: false,
+    perche: d.noto ? "la densità dichiarata in Terra non è un numero" : "la densità in banco della cava non è dichiarata in Terra" };
+  return { t: Math.round(v * d.densita * 100) / 100, densita: d.densita, da: d.da, calcolabile: true,
+    daVerificare: d.da === DENS_PRESET, perche: "" };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P3 · CAMPO ↔ SCUDO — «chi è in turno è in regola?»
 // ══════════════════════════════════════════════════════════════════════
@@ -622,28 +690,100 @@ export const ESITI_TURNO = [
 // (quasi tutti i trenta punti di chiamata di Scudo) comincia da solo a
 // mostrarla fra quelle da guardare, ed è il verso giusto.
 // Racconto e misure: docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
-export function statoScadenzaHSE(dataISO, oggi = new Date()) {
-  // `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
-  // fa scivolare al 2 marzo — una scadenza spostata di due giorni in silenzio.
+/* ⛔ UNA SCADENZA È UNA SCADENZA — misurato il 02/09 sulle tre app che ne
+   tengono una: Terra (`statoScadenzaTerra`, col preavviso scritto sulla
+   riga), Flotta (`statoScadenzaMezzo`, 30 giorni) e Scudo (questa, 30
+   giorni). Sulle 34 scadenze delle tre dimostrazioni i verdetti erano gli
+   stessi, riga per riga, in quattro vocabolari («regolare» / «a-posto»,
+   «senza data» / «senza-data»). Quindi la regola è UNA e sta qui, col
+   preavviso come argomento; `statoScadenzaHSE` resta il nome con cui Scudo e
+   Campo l'hanno sempre chiamata — lo STESSO oggetto, non una copia.
+   `dataISOEsiste` e non `Date.parse`: «2026-02-30» non è NaN, JavaScript lo
+   fa scivolare al 2 marzo. E i giorni li conta `giorniTra`, l'unica che sa
+   della mezzanotte italiana (docs/RICERCA_GIORNO_LOCALE_202607.md). */
+export function statoScadenza(dataISO, oggi = new Date(), preavvisoGiorni = 30) {
   if (!dataISOEsiste(dataISO)) return "senza data";
-  const t = Date.parse(String(dataISO).slice(0, 10) + "T00:00:00");
-  const g = Math.floor((t - new Date(oggi).setHours(0, 0, 0, 0)) / 86400000);
+  const g = giorniTra(String(dataISO).slice(0, 10), oggi);
+  if (!Number.isFinite(g)) return "senza data";
   if (g < 0) return "scaduta";
-  if (g <= 30) return "in-scadenza";
+  // due rientri separati, non un ternario: la regola 18 di run-stile legge le
+  // risposte di questa funzione dalle stringhe restituite, per confrontarle con
+  // le mappe di stati delle pagine (e legge anche i commenti: niente esempi qui)
+  if (g <= Math.max(0, Math.round(+preavvisoGiorni || 0))) return "in-scadenza";
   return "regolare";
+}
+export const statoScadenzaHSE = statoScadenza;
+
+/* ══════════════════════════════════════════════════════════════════════
+   LO SCADENZARIO UNICO (02/09, ponte 3b della mappa): le scadenze di Terra
+   (la concessione), di Flotta (i mezzi) e di Scudo (le persone) nella STESSA
+   forma, con lo stesso verdetto e un ordine solo — prima le scadute, poi
+   quelle in scadenza, poi quelle senza data, poi le regolari.
+   ⛔ Un'app che non risponde NON è un'app senza scadenze: si passa `null`, e
+   la risposta lo dichiara (`nonRaggiungibili`, `completo: false`). Un conto
+   fatto su due app su tre con la faccia di uno completo è il via libera a
+   dimenticare una revisione. Chi disegna deve leggere `completo`. */
+export function scadenzeUnite({ terra, flotta, scudo, lavoratori = [] } = {}, oggi = new Date()) {
+  const righe = [], nonRaggiungibili = [];
+  const nome = new Map((lavoratori || []).filter(Boolean).map((l) => [String(l.id), String(l.nome || "").trim() || String(l.id)]));
+  const metti = (app, s, soggetto, preavviso) => {
+    const d = s.dataScadenza, ok = dataISOEsiste(d);
+    righe.push({ app, id: s.id == null ? null : String(s.id), soggetto,
+      tipo: String(s.tipo || "").trim() || "(tipo non indicato)",
+      descrizione: String(s.descrizione || "").trim(),
+      dataScadenza: ok ? String(d).slice(0, 10) : null, preavvisoGiorni: preavviso,
+      stato: statoScadenza(d, oggi, preavviso),
+      giorni: ok ? giorniTra(String(d).slice(0, 10), oggi) : null });
+  };
+  if (terra == null) nonRaggiungibili.push("terra");
+  else for (const s of terra) if (s) metti("terra", s, "la cava", Math.max(0, +s.preavvisoGiorni || 0));
+  if (flotta == null) nonRaggiungibili.push("flotta");
+  else for (const s of flotta) if (s) metti("flotta", s, String(s.mezzo || "").trim() || "(mezzo non indicato)", 30);
+  if (scudo == null) nonRaggiungibili.push("scudo");
+  else for (const s of scudo) if (s) metti("scudo", s,
+    nome.get(String(s.lavoratoreId)) || (s.lavoratoreId == null ? "(persona non indicata)" : "persona " + s.lavoratoreId), 30);
+  const ordine = { scaduta: 0, "in-scadenza": 1, "senza data": 2, regolare: 3 };
+  righe.sort((a, b) => ordine[a.stato] - ordine[b.stato]
+    || (a.giorni == null ? 1e9 : a.giorni) - (b.giorni == null ? 1e9 : b.giorni)
+    || a.app.localeCompare(b.app) || a.soggetto.localeCompare(b.soggetto, "it"));
+  const conto = { scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0, totale: righe.length };
+  for (const r of righe) {
+    if (r.stato === "scaduta") conto.scadute++;
+    else if (r.stato === "in-scadenza") conto.inScadenza++;
+    else if (r.stato === "senza data") conto.senzaData++;
+    else conto.regolari++;
+  }
+  return { righe, conto, nonRaggiungibili, completo: nonRaggiungibili.length === 0 };
 }
 
 // Lo stato di UN operatore di Campo rispetto ai documenti che Scudo tiene per
 // lui. Torna sempre un oggetto: non esistono risposte mancanti, esistono
 // risposte che dicono «non lo so» e perché.
 export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Date()) {
-  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
+  const vuoto = { stato: "non-collegato", lavoratore: null, scadute: [], inScadenza: [], senzaData: [], documenti: 0, giudizio: "", prescrizioni: "" };
   const rif = operatore && operatore.lavoratoreId != null ? String(operatore.lavoratoreId).trim() : "";
   if (!rif) return vuoto;
   const l = (lavoratori || []).find((x) => x && String(x.id) === rif) || null;
   if (!l) return { ...vuoto, stato: "collegamento-rotto" };
+  /* ⛔ IL GIUDIZIO DEL MEDICO COMPETENTE, letto (05/09). Fino a oggi questo
+     ponte guardava SOLO le scadenze: una persona dichiarata «NON idonea» in
+     Scudo, coi documenti in corso, andava in turno come «regolare» — il numero
+     tranquillo su chi scende in cava. Il giudizio (`idoneita`: idoneo,
+     prescrizioni, non-idoneo, o vuoto = mai registrato) viaggia con la risposta,
+     e «non-idoneo» è uno stato a sé, che vince su tutto: le prescrizioni e
+     l'inidoneità vanno rispettate da subito, ricorso o no. «prescrizioni» NON
+     cambia lo stato (la persona può lavorare, con limiti) ma resta scritto, col
+     testo se Scudo lo ha. */
+  const giudizio = ["idoneo", "prescrizioni", "non-idoneo"].includes(l.idoneita) ? l.idoneita : "";
+  const prescrizioni = String(l.prescrizioni || "").trim();
   const sue = (scadenze || []).filter((s) => s && String(s.lavoratoreId) === rif);
-  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], senzaData: [], documenti: 0 };
+  if (giudizio === "non-idoneo")
+    return { stato: "non-idoneo", lavoratore: l, giudizio, prescrizioni,
+      scadute: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "scaduta"),
+      inScadenza: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "in-scadenza"),
+      senzaData: sue.filter((s) => statoScadenzaHSE(s.dataScadenza, oggi) === "senza data"),
+      documenti: sue.length };
+  if (!sue.length) return { stato: "senza-scadenze", lavoratore: l, scadute: [], inScadenza: [], senzaData: [], documenti: 0, giudizio, prescrizioni };
   // ⛔ `senzaData` esiste perché il difetto corretto in `statoScadenzaHSE` si
   // ripresentava qui un piano più su: un documento con la data illeggibile non
   // era né scaduto né in scadenza, quindi cadeva nel `else` e l'operatore
@@ -658,7 +798,7 @@ export function idoneitaOperatore(operatore, lavoratori, scadenze, oggi = new Da
   }
   return {
     stato: statoPeggioreScadenze(sue, oggi),
-    lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length,
+    lavoratore: l, scadute, inScadenza, senzaData, documenti: sue.length, giudizio, prescrizioni,
   };
 }
 
@@ -721,6 +861,9 @@ export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date
     senzaCollegamento: conta("non-collegato"),
     collegamentiRotti: conta("collegamento-rotto"),
     nonCollegati: conta("non-collegato") + conta("collegamento-rotto"),
+    // il giudizio del medico (05/09): chi NON è idoneo e chi ha prescrizioni
+    nonIdonei: conta("non-idoneo"),
+    conPrescrizioni: righe.filter((r) => r.giudizio === "prescrizioni").length,
     // «sappiamo tutto e va tutto bene» è vero solo se non c'è nessun «non lo so»
     tuttoInRegola: righe.length > 0
       && righe.every((r) => r.stato === "regolare" || r.stato === "senza-scadenze"),
@@ -939,6 +1082,104 @@ export function voceCosto(chiave) {
 export function gruppoDiVoce(chiave) {
   const v = voceCosto(chiave);
   return v ? v.gruppo : "non-classificata";
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE · FLOTTA → CONTI — LO STESSO EURO CONTATO DUE VOLTE
+// ══════════════════════════════════════════════════════════════════════
+//
+// ⛔ IL VOCABOLARIO C'ERA GIÀ, LO SCAMBIO NO — E IN MEZZO C'ERA UN DIFETTO.
+// Flotta e Conti importano tutt'e due `VOCI_COSTO` da qui, quindi parlano la
+// stessa lingua sui costi da sempre. E la bandiera `daMezzo` qui sopra dice,
+// con il suo commento, perché esiste: «servono a non contarle DUE VOLTE quando
+// Conti sommerà le proprie».
+//
+// Misurato il 27/08, chi quella bandiera la LEGGE:
+//     grep -rc "daMezzo" shared/dw-ponti.js apps/conti/index.html apps/flotta/flotta-data.js
+//     → shared 11 · conti 4 · **flotta 0**
+//
+// Cioè la difesa era **a senso unico**: Conti avvisa chi inserisce («anche in
+// Flotta»), filtra i doppioni e mette il titolo sul menu — e non può mostrare
+// QUALE spesa, perché i dati non passavano. Faceva già la domanda giusta senza
+// poter avere la risposta, e l'unica difesa vera era che qualcuno si ricordasse
+// che il gasolio sta anche di là.
+//
+// Questa funzione è la risposta: mette in fila, voce per voce, quanto ha Conti
+// e quanto ha Flotta sulle SOLE voci che si sovrappongono.
+//
+// ── QUATTRO SCELTE, E TUTTE E QUATTRO SONO IL PRINCIPIO DEL FONDATORE ──
+// 1. **Flotta non raggiungibile non è Flotta a zero.** Se la lettura non
+//    riesce si risponde `{disponibile:false}` e non si stampa nessun numero:
+//    un totale tranquillo ottenuto da un'app che non ha risposto sarebbe la
+//    bugia peggiore, perché darebbe il via libera a inserire il doppione.
+// 2. **Uno zero SCRITTO non sparisce.** Il filtro somma solo gli importi > 0 —
+//    giusto — ma se ci si fermasse lì una voce registrata a zero uscirebbe dal
+//    risultato identica a «nessuna riga». Sono due cose diverse: la prima
+//    qualcuno l'ha scritta. Si contano a parte (`importoNonPositivo`).
+//    ⚠️ È la stessa correzione che `riepilogoCosti` di Conti ha già fatto, e
+//    scrivendo questa funzione l'avevo copiata A METÀ: la firma esatta della
+//    copia debole. L'ha presa la prova in scratchpad, prima del modulo.
+// 3. **Le righe senza data si contano, non si buttano.** Escluderle da un
+//    periodo in silenzio farebbe sembrare un mese più economico di com'è.
+// 4. **Il conto delle righe accompagna il totale.** Tre righe che sommano zero
+//    e nessuna riga sono due situazioni diverse, e chi legge deve poterle
+//    distinguere senza aprire l'elenco.
+//
+// ⚠️ E si guardano SOLO le voci `daMezzo`. Le altre — personale, energia,
+// esplosivo, canone, ripristino — Flotta non le registra per costruzione, e
+// metterle qui produrrebbe un confronto in cui metà delle righe dice sempre
+// «Flotta non ce l'ha»: rumore che nasconde le tre che contano.
+export function confrontoCostiMezzi(costiConti, costiFlotta, dal = "", al = "") {
+  const d1 = String(dal || ""), d2 = String(al || "");
+  if (costiFlotta == null) return { disponibile: false, motivo: "flotta-non-raggiungibile" };
+
+  const dentro = (c) => {
+    const d = String(c && c.data || "").slice(0, 10);
+    if (!d1 && !d2) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;   // senza data non si può collocare
+    return (!d1 || d >= d1) && (!d2 || d <= d2);
+  };
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const suMezzo = (c) => (voceCosto(c && c.voce) || {}).daMezzo === true;
+
+  const somma = (righe) => {
+    const tutte = (righe || []).filter(Boolean);
+    const per = {}, conto = {};
+    let senzaData = 0;
+    for (const c of tutte) {
+      if (!suMezzo(c)) continue;
+      if (numeroDichiarato(c.importo) === null || +c.importo <= 0) continue;
+      if (!dentro(c)) { if (d1 || d2) senzaData++; continue; }
+      const k = voceCosto(c.voce).chiave;
+      per[k] = r2((per[k] || 0) + (+c.importo || 0));
+      conto[k] = (conto[k] || 0) + 1;
+    }
+    return {
+      per, conto, senzaData,
+      senzaImporto: tutte.filter(c => suMezzo(c) && numeroDichiarato(c.importo) === null).length,
+      importoNonPositivo: tutte.filter(c => suMezzo(c) && numeroDichiarato(c.importo) !== null && +c.importo <= 0).length,
+    };
+  };
+
+  const C = somma(costiConti), F = somma(costiFlotta);
+  const voci = VOCI_COSTO.filter(v => v.daMezzo).map(v => {
+    const c = C.per[v.chiave] === undefined ? null : C.per[v.chiave];
+    const f = F.per[v.chiave] === undefined ? null : F.per[v.chiave];
+    return {
+      chiave: v.chiave, etichetta: v.etichetta, conti: c, flotta: f,
+      righeConti: C.conto[v.chiave] || 0, righeFlotta: F.conto[v.chiave] || 0,
+      entrambe: c !== null && f !== null,
+    };
+  });
+  return {
+    disponibile: true, voci,
+    entrambe: voci.filter(v => v.entrambe).length,
+    totaleConti: r2(voci.reduce((a, v) => a + (v.conti || 0), 0)),
+    totaleFlotta: r2(voci.reduce((a, v) => a + (v.flotta || 0), 0)),
+    senzaData: { conti: C.senzaData, flotta: F.senzaData },
+    senzaImporto: { conti: C.senzaImporto, flotta: F.senzaImporto },
+    importoNonPositivo: { conti: C.importoNonPositivo, flotta: F.importoNonPositivo },
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1362,4 +1603,390 @@ export function trasformaInMemoria(riga, cambia) {
   const cambi = cambia({ ...riga });
   if (!cambi) return riga;
   return applicaPercorsi(riga, cambi);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE TERRA → CONTI · L'INVENTARIO DEI CUMULI — il terzo lato del triangolo
+// ══════════════════════════════════════════════════════════════════════
+//
+// Il mondo chiude ogni mese un'equazione sola: prodotto − venduto = variazione
+// delle scorte a piazzale. Fino al 03/09 l'ecosistema aveva due lati (il cavato
+// di Terra e il prodotto di Campo contro il venduto a peso di Conti) e il terzo
+// lo chiamava onestamente «scorte a piazzale STIMATE»: un divario, non una
+// misura. L'inventario dei cumuli è la fotografia del piazzale a una data —
+// `{ data, metodo, cumuli: [{ materiale, volumeM3 }] }` — che Terra registra e
+// Conti legge. Con due fotografie che racchiudono il periodo la variazione
+// delle scorte diventa un dato MISURATO, e il triangolo si chiude su un numero
+// che ha una ragione se non torna.
+//
+// Le regole, tutte del principio del fondatore (l'assenza non è un dato):
+//  · un inventario senza data leggibile o senza un cumulo con volume non entra,
+//    e si CONTA fra i non usabili invece di sparire;
+//  · la variazione vuole DUE inventari distinti, uno a (o prima di) l'inizio del
+//    periodo e uno a (o prima di) la fine: con uno solo si dice perché no;
+//  · lo scarto in giorni fra ogni inventario e il confine del periodo si
+//    dichiara (`scartoGiorni`): un inventario di quaranta giorni prima è
+//    onesto, ma chi legge lo deve sapere;
+//  · un cumulo si accoppia al listino per NOME del materiale normalizzato
+//    (`chiaveMateriale`): accenti, maiuscole e spazi non contano. Chi non trova
+//    la densità resta FUORI dal conto e viene elencato — mai contato a zero.
+// Tutte pure: Terra e Conti le importano da qui, non l'una dall'altra.
+
+const _r2 = (x) => Math.round(x * 100) / 100;
+
+/* Il nome con cui un materiale si riconosce fra due app che non condividono un
+   id: senza accenti, minuscolo, spazi normalizzati. «Sabbia lavata 0/4» e
+   «sabbia  lavata 0/4» sono lo stesso cumulo; «Sabbia 0/4» no, e non si prova
+   a indovinare. */
+export function chiaveMateriale(s) {
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/* I cumuli di un inventario divisi fra quelli che si possono contare e quelli
+   no, con la ragione. Un volume «non misurato» (null, vuoto, testo) NON è zero:
+   il cumulo esiste, il suo numero no. */
+export function cumuliUsabili(inv) {
+  const cumuli = Array.isArray(inv?.cumuli) ? inv.cumuli : [];
+  const buoni = [], scartati = [];
+  for (const c of cumuli) {
+    const v = c?.volumeM3 == null || c.volumeM3 === "" ? NaN : +c.volumeM3;
+    const chiave = chiaveMateriale(c?.materiale);
+    if (chiave && Number.isFinite(v) && v >= 0) buoni.push({ materiale: c.materiale, chiave, volumeM3: v });
+    else scartati.push({ materiale: c?.materiale ?? null, perche: !chiave ? "senza materiale" : "volume non leggibile" });
+  }
+  return { buoni, scartati };
+}
+
+export function inventarioUsabile(inv) {
+  return !!inv && dataISOEsiste(inv.data) && cumuliUsabili(inv).buoni.length > 0;
+}
+
+/* Il volume totale a piazzale in quell'inventario; null se l'inventario non è
+   usabile (niente «0 m³» su un piazzale che nessuno ha misurato). */
+export function volumeInventario(inv) {
+  if (!inventarioUsabile(inv)) return null;
+  return _r2(cumuliUsabili(inv).buoni.reduce((s, c) => s + c.volumeM3, 0));
+}
+
+function _perMateriale(inv) {
+  const m = new Map();
+  for (const c of cumuliUsabili(inv).buoni) {
+    const g = m.get(c.chiave) || { materiale: c.materiale, chiave: c.chiave, m3: 0 };
+    g.m3 = _r2(g.m3 + c.volumeM3); m.set(c.chiave, g);
+  }
+  return m;
+}
+
+/* La variazione delle scorte fra l'inizio e la fine del periodo, materiale per
+   materiale. `inventari` null = Terra non risponde (diverso da «nessun
+   inventario», che è una lista vuota). Ritorna sempre `perche` quando non è
+   calcolabile, e `nonUsabili` conta gli inventari lasciati fuori. */
+export function variazioneScorte(inventari, dal, al) {
+  const vuoto = { inizio: null, fine: null, deltaM3: null, perMateriale: [], calcolabile: false, parziale: false,
+                  scartoGiorni: null, nonUsabili: 0, nonConfrontabili: [], terraRisponde: Array.isArray(inventari), perche: "" };
+  if (!Array.isArray(inventari)) return { ...vuoto, perche: "gli inventari dei cumuli di Terra non arrivano" };
+  if (!dataISOEsiste(dal) || !dataISOEsiste(al) || dal > al) return { ...vuoto, perche: "il periodo non è un intervallo di date leggibile" };
+  const usabili = inventari.filter(inventarioUsabile).sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+  const nonUsabili = inventari.length - usabili.length;
+  if (!usabili.length) return { ...vuoto, nonUsabili,
+    perche: inventari.length ? "nessun inventario dei cumuli è leggibile (data o volumi mancanti)" : "in Terra non c'è nessun inventario dei cumuli" };
+  const primaDi = (d) => { let u = null; for (const i of usabili) { if (i.data <= d) u = i; else break; } return u; };
+  const inizio = primaDi(dal), fine = primaDi(al);
+  if (!inizio) return { ...vuoto, nonUsabili, fine,
+    perche: `nessun inventario dei cumuli a o prima dell'inizio del periodo: il primo è del ${usabili[0].data}` };
+  if (fine === inizio) return { ...vuoto, nonUsabili, inizio, fine,
+    perche: "nel periodo non c'è un secondo inventario: senza la fotografia di fine periodo la variazione non si misura" };
+  const a = _perMateriale(inizio), b = _perMateriale(fine);
+  const chiavi = [...new Set([...a.keys(), ...b.keys()])];
+  /* ⛔ Un materiale che sta in UN solo inventario non vale zero nell'altro:
+     può essere un cumulo finito (allora si scrive 0 m³, di proposito) o un
+     cumulo che quel giorno nessuno ha misurato. Senza quella distinzione la
+     variazione lo conterebbe come sparito o come nato dal nulla — un numero
+     tranquillo su un dato assente. Quindi la riga resta, con `deltaM3: null`,
+     e il totale si dichiara PARZIALE elencando chi manca. */
+  const righe = chiavi.map((k) => {
+    const ia = a.get(k), ib = b.get(k);
+    const confrontabile = !!ia && !!ib;
+    return { materiale: (ib || ia).materiale, chiave: k, inizioM3: ia ? ia.m3 : null, fineM3: ib ? ib.m3 : null,
+             deltaM3: confrontabile ? _r2(ib.m3 - ia.m3) : null, confrontabile,
+             mancaIn: confrontabile ? null : ia ? "fine" : "inizio" };
+  }).sort((x, y) => Math.abs(y.deltaM3 ?? -1) - Math.abs(x.deltaM3 ?? -1));
+  const confrontabili = righe.filter((r) => r.confrontabile);
+  const nonConfrontabili = righe.filter((r) => !r.confrontabile);
+  const scartoGiorni = { inizio: giorniTra(dal, inizio.data), fine: giorniTra(al, fine.data) };
+  if (!confrontabili.length) return { ...vuoto, nonUsabili, inizio, fine, perMateriale: righe, scartoGiorni, nonConfrontabili,
+    perche: "nessun materiale è misurato in tutt'e due gli inventari: la variazione non si può calcolare" };
+  const deltaM3 = _r2(confrontabili.reduce((s, r) => s + r.deltaM3, 0));
+  const n = nonConfrontabili.length;
+  return { inizio, fine, deltaM3, perMateriale: righe, calcolabile: true, nonUsabili, scartoGiorni, nonConfrontabili,
+           parziale: n > 0, terraRisponde: true,
+           perche: n ? `${n === 1 ? "un materiale" : n + " materiali"} ${n === 1 ? "è misurato" : "sono misurati"} in un solo inventario: fuori dal conto` : "" };
+}
+
+/* Da metri cubi SCIOLTI a tonnellate, con la densità che `densitaDi(materiale)`
+   sa dare (in Conti: quella del listino, che è la densità di vendita — cioè
+   del materiale sciolto, la giusta per un cumulo). Chi non ha densità resta
+   fuori ed è elencato in `scoperte`; il totale è `parziale` e lo dice. */
+export function scorteInTonnellate(righe, densitaDi) {
+  const out = { deltaT: null, coperte: [], scoperte: [], calcolabile: false, parziale: false, perche: "" };
+  if (!Array.isArray(righe) || !righe.length) return { ...out, perche: "nessuna variazione per materiale da convertire" };
+  if (typeof densitaDi !== "function") return { ...out, perche: "manca il modo di leggere la densità di un materiale" };
+  let t = 0;
+  for (const r of righe) {
+    const d = +densitaDi(r.materiale);
+    if (Number.isFinite(d) && d > 0) { out.coperte.push({ ...r, densita: d, deltaT: _r2(r.deltaM3 * d) }); t += r.deltaM3 * d; }
+    else out.scoperte.push({ ...r, densita: null });
+  }
+  if (!out.coperte.length) return { ...out, perche: "nessun materiale dell'inventario ha una densità nel listino" };
+  const n = out.scoperte.length;
+  return { ...out, deltaT: _r2(t), calcolabile: true, parziale: n > 0,
+           perche: n ? `${n === 1 ? "un materiale" : n + " materiali"} senza densità nel listino ${n === 1 ? "resta" : "restano"} fuori dal conto` : "" };
+}
+
+/* Le soglie sono in % del cavato e non sono legge: sono la distanza oltre la
+   quale lo scarto non si spiega più con lo sfrido e la tolleranza delle
+   misure. Le stesse della riconciliazione a due lati di Conti. */
+export const SOGLIA_TRIANGOLO = { coerente: 10, attenzione: 35 };
+
+/* cavato − venduto − Δscorte = scarto. Tutto in tonnellate, ognuno con la SUA
+   densità (il cavato quella in banco, il cumulo quella sciolta): è l'unica
+   unità in cui i tre lati si sommano senza un coefficiente inventato.
+   `verso`: «sparito» (scarto > 0: sfrido, ripristino, uscite non pesate),
+   «in-eccesso» (scarto < 0: manca un rilievo, o una densità è sbagliata). */
+export function chiusuraTriangolo(cavatoT, vendutoT, deltaScorteT, soglie = SOGLIA_TRIANGOLO) {
+  const n = (x) => x == null || x === "" ? NaN : +x;
+  const c = n(cavatoT), v = n(vendutoT), s = n(deltaScorteT);
+  const base = { scarto: null, pct: null, stato: null, verso: null, calcolabile: false, perche: "" };
+  if (!Number.isFinite(c) || !(c > 0)) return { ...base, perche: "il cavato in tonnellate non c'è" };
+  if (!Number.isFinite(v)) return { ...base, perche: "il venduto in tonnellate non c'è" };
+  if (!Number.isFinite(s)) return { ...base, perche: "la variazione delle scorte in tonnellate non c'è" };
+  const scarto = _r2(c - v - s), pct = _r2(100 * Math.abs(scarto) / c);
+  const stato = pct <= soglie.coerente ? "coerente" : pct <= soglie.attenzione ? "attenzione" : "implausibile";
+  return { scarto, pct, stato, verso: scarto > 0 ? "sparito" : scarto < 0 ? "in-eccesso" : "pari", calcolabile: true, perche: "" };
+}
+
+/* ── LO SCARTO DELLA CARICA REALE DAL PROGETTO, foro per foro ──────────────
+   Viveva in `apps/campo/campo-data.js` (il registro del fochino); dal 05/09 la
+   stessa domanda la fa Genesi, che accoppia ogni foro del progetto alla sua
+   riga del consuntivo — e una regola che serve a due app vive qui, una volta
+   sola. Campo la ri-esporta col nome di sempre, e il test pretende l'IDENTITÀ.
+   ⚠️ Le soglie (10 % e 25 %) sono quelle che Campo usava dal primo giorno e
+   NON hanno una fonte: la ricerca del 04/09 non ha trovato uno standard, nei
+   software dei concorrenti sono parametri del cliente. Restano un numero
+   dichiarato, in un posto solo, finché qualcuno non porta una fonte o il
+   fondatore non decide che diventino un'impostazione. */
+export function scartoPct(reale, prog) {
+  if (reale == null) return null;
+  return Math.abs(reale - prog) / (prog || 1);
+}
+export function scartoLivello(reale, prog) {
+  const s = scartoPct(reale, prog);
+  if (s == null) return "da-registrare";
+  if (s <= 0.10) return "ok";
+  if (s <= 0.25) return "warn";
+  return "danger";
+}
+
+/* ── LO STATO DI UNA VOLATA DEL REGISTRO, E LA SUA PPV ─────────────────────
+   Vivevano in `apps/sentinella/sentinella-data.js`; dal 05/09 li legge anche
+   Campo, che nella consegna di turno scrive «le volate di oggi» prendendole
+   dal registro di Sentinella — e una regola che serve a due app vive qui.
+   Sentinella li ri-esporta coi nomi di sempre (identità, non copia). */
+export const VOL_PREVISTA = "prevista";   // progettata, non ancora sparata
+export const VOL_ESEGUITA = "eseguita";   // sparata: è un evento del registro
+
+// Lo stato scritto in un file, letto con tolleranza (Genesi scrive "prevista",
+// ma un file compilato a mano può dire "progetto" o "sparata"). Ritorna ""
+// quando la colonna non c'è o non dice niente: chi chiama decide, e per il
+// registro il silenzio significa ESEGUITA — vedi statoVolata.
+export function statoDaTesto(s) {
+  const t = String(s == null ? "" : s).trim().toLowerCase();
+  if (!t) return "";
+  if (/^(prevista|previsto|progetto|progettata|programmata|pianificata)$/.test(t)) return VOL_PREVISTA;
+  if (/^(eseguita|eseguito|sparata|sparato|fatta|effettuata)$/.test(t)) return VOL_ESEGUITA;
+  return "";
+}
+// Lo stato di una volata del registro. UNICO punto in cui si decide, così non
+// esistono due parti dell'ecosistema che leggono lo stesso campo in due modi.
+export function statoVolata(v) {
+  return statoDaTesto((v || {}).stato) === VOL_PREVISTA ? VOL_PREVISTA : VOL_ESEGUITA;
+}
+export const volataPrevista = (v) => statoVolata(v) === VOL_PREVISTA;
+export const volatePreviste = (volate) => (volate || []).filter(volataPrevista);
+export const volateEseguite = (volate) => (volate || []).filter(v => !volataPrevista(v));
+
+// ⛔ Solo le volate ESEGUITE (T9): «quel giorno è stata registrata una volata»
+// è un fatto, e un progetto non è un fatto. Con una prevista qui, un
+// superamento risulterebbe accompagnato da un evento mai avvenuto.
+export function volateDelGiorno(volate, dataISO) {
+  const d = String(dataISO || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
+  return (volate || []).filter(v => !volataPrevista(v))
+    .filter(v => String((v || {}).data || "").slice(0, 10) === d);
+}
+
+export const PPV_STRUMENTO = "strumento";   // letta dal sismografo fra i punti di misura
+export const PPV_MANUALE = "manuale";       // trascritta dal referto di uno strumento non censito
+
+// La PPV collegata a una volata, o null. Non deduce NIENTE: legge soltanto
+// quello che è stato scritto sulla volata. Una volata vecchia, registrata
+// prima che questi campi esistessero, torna null — non un valore finto.
+export function ppvDiVolata(v) {
+  const val = +((v || {}).ppvMisurata);
+  if (!Number.isFinite(val) || val <= 0) return null;
+  const strumento = String((v || {}).ppvFonte || "") === PPV_STRUMENTO;
+  return {
+    valore: val,
+    fonte: strumento ? PPV_STRUMENTO : PPV_MANUALE,
+    puntoId: String((v || {}).ppvPuntoId || ""),
+    punto: String((v || {}).ppvPuntoNome || "").trim(),
+    data: String((v || {}).ppvData || "").slice(0, 10),
+    ora: String((v || {}).ppvOra || "").trim(),
+  };
+}
+
+/* LE VOLATE DI UN GIORNO, PER CHI NON È SENTINELLA (05/09). Campo le scrive
+   nella consegna di turno: fronte, fori, chili, e la PPV se qualcuno l'ha già
+   collegata — senza nessun giudizio di conformità, che resta di Sentinella
+   (il semaforo è della soglia del punto di misura, non della volata).
+   `leggibile: false` quando il registro non si è potuto leggere (`null`):
+   «non lo so» non è «nessuna volata». I numeri illeggibili restano null. */
+export function riassuntoVolateDelGiorno(volate, dataISO) {
+  if (!Array.isArray(volate)) return { leggibile: false, n: 0, righe: [] };
+  const num = (x) => { const v = (x === null || x === undefined || x === "") ? NaN : +x; return Number.isFinite(v) && v > 0 ? v : null; };
+  const righe = volateDelGiorno(volate, dataISO).map(v => ({
+    id: v.id, fronte: String(v.fronte || "").trim(),
+    nFori: num(v.nFori), kgTotali: num(v.kgTotali),
+    ppv: ppvDiVolata(v), codiceVolata: String(v.codiceVolata || "").trim(),
+  }));
+  return { leggibile: true, n: righe.length, righe };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PONTE 3e — LA VOLATA PREVISTA, DA GENESI A SENTINELLA SENZA UN FILE
+   (05/09). Genesi ha già i numeri (fori, chili, MIC, distanza, PPV prevista,
+   limite, norma, fonte, airblast, codice); Sentinella li vuole nei campi del
+   suo registro. Fino a oggi passavano da un CSV che una persona esportava e
+   importava a mano — e la strada del file aveva un buco che questa funzione
+   ha fatto trovare: le due app scrivevano DUE code diverse nelle stesse
+   colonne. La forma del record è UNA, qui, così nessuna delle due la tiene
+   in una copia. I `null` restano `null`: una MIC non calcolabile non è zero.
+   `previste` in Genesi è la collezione dove il bottone «per Sentinella» scrive
+   (in locale: la chiave `genesiPreviste` del browser); Sentinella la legge
+   con una seconda istanza dell'SDK e, dallo stesso browser, dalla chiave. */
+export function previstaDaGenesi(d, data, fronte, quando) {
+  const x = d || {};
+  if (!dataISOEsiste(data)) return null;
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) && n >= 0 ? n : null; };
+  const calibrata = !!x.calibrata;
+  return {
+    data: String(data), fronte: String(fronte || "").trim(),
+    nFori: num(x.nFori), kgTotali: num(x.kgTotali), kgMaxRitardo: num(x.mic), distanzaRicettore: num(x.dist),
+    /* niente `esito`/`note` qui: un progetto non ha un esito («regolare» su una
+       volata mai sparata è la parola tranquilla che la sonda del vuoto prende),
+       e Sentinella li mette lei accogliendo — come fa col file */
+    stato: "prevista",
+    ppvPrevista: num(x.ppv), ppvPrevLimite: num(x.lim), ppvPrevNorma: String(x.norma || "").trim(),
+    ppvPrevFonte: String(x.fonte || "").trim() || "genesi", airblastPrevisto: num(x.db),
+    codiceVolata: String(x.codice || "").trim(),
+    /* tre stati come nel file: «si» / «no» / non dichiarato (la previsione
+       non viene da una legge di sito, e la domanda non si pone) */
+    ppvPrevProvvisoria: calibrata ? (x.provvisoria ? "si" : "no") : "",
+    ppvPrevReferti: calibrata && num(x.referti) ? Math.round(num(x.referti)) : null,
+    origine: { app: "genesi", quando: String(quando || timbroLocale(new Date())) },
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL CONSUNTIVO DI CARICO — Campo → Genesi (spostato qui il 05/09, notte)
+   Prima viveva in `apps/campo/campo-data.js`; da quando Genesi legge il piano
+   di carico dall'organizzazione (ponte come dato, non come file) la stessa
+   forma serve a due app, e la regola di casa la mette qui. Campo ri-esporta
+   per identità. */
+export function normalizzaPiano(righe) {
+  return (righe || [])
+    .map(p => ({ ...p, foro: numIt(p.foro), prog: numIt(p.prog),
+                 reale: Number.isFinite(+p.reale) && p.reale !== null && p.reale !== "" ? +p.reale : null }))
+    .filter(p => p.foro > 0 && p.prog > 0)
+    .sort((a, b) => a.foro - b.foro);
+}
+
+// Genesi manda a Campo il piano di carico in CSV; Campo gli rimanda indietro,
+// nella STESSA forma (punto e virgola, una riga di intestazione, una riga per
+// foro), quello che è successo davvero. Non è un formato nuovo: sono le sei
+// colonne che Campo esportava già, più tre che mancavano perché il giro si
+// chiudesse davvero:
+//   · scarto_kg   — lo scarto in CHILI e COL SEGNO. scarto_pct è arrotondato
+//                   all'unità e senza verso (è nato per il badge in lista):
+//                   da solo non basta a Genesi, che deve sapere se si è
+//                   caricato in più o in meno e di quanto esattamente.
+//   · squadra     — quale squadra ha caricato.
+//   · operatore   — CHI ha registrato la carica, foro per foro.
+// Le prime sei colonne restano identiche e nello stesso ordine: un file
+// esportato prima di oggi resta leggibile, e chi leggeva solo le prime sei
+// continua a funzionare.
+// carica_reale_kg è scritta GREZZA, senza arrotondamenti: è il dato misurato
+// e nessuno deve toccarlo per strada.
+// · id_foro (05/09) — l'id stabile che Genesi ha scritto nel piano e che qui
+//   torna indietro TALE E QUALE: è la chiave con cui Genesi accoppia la riga
+//   al foro del progetto. Vuoto se il piano non lo portava. In coda, come le
+//   tre prima di lui: chi legge nove colonne continua a funzionare.
+export const CONSUNTIVO_COLONNE = ["data", "turno", "foro", "carica_prog_kg",
+  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore", "id_foro"];
+
+export function pianoConsuntivoCsv(piano) {
+  const righe = (piano || []).map(p => {
+    const s = scartoPct(p.reale, p.prog);
+    // toFixed(3) toglie SOLO il rumore binario (12,3 − 10 = 2,3000000000000007),
+    // non la precisione della misura: al grammo si è già ben oltre il vero.
+    const dkg = p.reale != null ? +(p.reale - p.prog).toFixed(3) : "";
+    // csvCell SOLO sui campi di testo (turno, squadra, nome): è lì che possono
+    // esserci punti e virgola o virgolette da proteggere. Sui NUMERI non va
+    // usato, perché mette un apostrofo davanti a tutto ciò che comincia per
+    // meno — e uno scarto negativo diventerebbe «'-13,3», cioè testo.
+    return [p.data || "", csvCell(p.turno || ""), p.foro, p.prog,
+            p.reale != null ? p.reale : "",
+            s != null ? Math.round(s * 100) : "",
+            dkg, csvCell(p.squadra || ""), csvCell(p.da || ""), csvCell(p.idForo || "")].join(";");
+  });
+  return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PIANO DI CARICO — Genesi → Campo (05/09, notte): il ponte come DATO
+   Genesi esporta il piano foro per foro (tredici colonne) e Campo lo legge con
+   `parsePianoCsv`. Il file resta; qui la stessa riga si compone in UN posto
+   solo — `pianoCsvGenesi` — così il file che esce da Genesi e il testo che
+   Campo ricompone dal record dell'organizzazione sono lo stesso testo, byte
+   per byte, e passano dallo stesso lettore. `pianoDaGenesi` è il record che
+   Genesi scrive nella sua collezione `piani`; i numeri illeggibili restano
+   `null` e nella riga diventano celle VUOTE, mai «null» e mai zero. */
+export const PIANO_GENESI_INTESTAZIONE = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro";
+export function pianoCsvGenesi(righe) {
+  const cella = (v, dec) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; if (!Number.isFinite(n)) return ""; return dec == null ? String(n) : n.toFixed(dec); };
+  const R = Array.isArray(righe) ? righe : [];
+  return PIANO_GENESI_INTESTAZIONE + "\n" + R.map((r, i) => [
+    r.foro != null && Number.isFinite(+r.foro) ? +r.foro : i + 1,
+    cella(r.x, 2), cella(r.fila, 2), cella(r.prof), cella(r.prog), cella(r.borr), cella(r.rit),
+    cella(r.relief, 2), cella(r.burden, 2), cella(r.spaz, 2), cella(r.vol, 1), cella(r.pf, 3),
+    String(r.idForo || ""),
+  ].join(";")).join("\n") + (R.length ? "\n" : "");
+}
+export function pianoDaGenesi(righe, meta) {
+  const m = meta || {};
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) ? n : null; };
+  const R = (Array.isArray(righe) ? righe : []).map((r, i) => ({
+    foro: num(r.foro) != null ? num(r.foro) : i + 1,
+    x: num(r.x), fila: num(r.fila), prof: num(r.prof), prog: num(r.prog), borr: num(r.borr), rit: num(r.rit),
+    relief: num(r.relief), burden: num(r.burden), spaz: num(r.spaz), vol: num(r.vol), pf: num(r.pf),
+    idForo: String(r.idForo || ""),
+  }));
+  /* l'impronta: lo stesso piano esportato due volte non diventa due piani */
+  const testo = pianoCsvGenesi(R);
+  let h = 0; for (let i = 0; i < testo.length; i++) h = (Math.imul(h, 31) + testo.charCodeAt(i)) | 0;
+  return {
+    nome: String(m.nome || "").trim(), quando: String(m.quando || timbroLocale(new Date())),
+    nFori: R.length, impronta: "p" + (h >>> 0).toString(36), righe: R,
+    origine: { app: "genesi" },
+  };
 }

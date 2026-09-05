@@ -50,6 +50,7 @@ import { gnum, gseg, gIn } from './genesi-formato.js';
 /* ⛔ E DAL 06/08 ANCHE `conta`: `_ricPlur` era la sua copia più debole — vedi
    la sua riga, più in giù. */
 import { numIt, leggiCsv, csvCell, dataISOEsiste, conta } from '../../shared/deepwork-id-client/dw-shell.js';
+import { scartoLivello } from '../../shared/dw-ponti.js';
 
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
@@ -583,6 +584,7 @@ export function _riconParseCampo(testo){
   const iReale  = haIntestazione ? col('carica_reale_kg','reale','carica_reale') : 4;
   const iSquadra= haIntestazione ? col('squadra') : -1;
   const iOper   = haIntestazione ? col('operatore','fochino','chi') : -1;
+  const iId     = haIntestazione ? col('id_foro','idforo') : 9;   // l'id stabile, in coda dal 05/09
   if(haIntestazione && iForo<0)
     return { errore:'Non trovo la colonna «foro»: questo non sembra il consuntivo di carico di Campo.' };
   if(haIntestazione && iReale<0)
@@ -599,11 +601,51 @@ export function _riconParseCampo(testo){
     const reale = grezzo === '' ? null : numIt(grezzo);
     righe.push({ foro, prog, reale: (reale!=null&&isFinite(reale)&&reale>=0)?reale:null,
       data: (iData>=0?c[iData]:'')||'', turno:(iTurno>=0?c[iTurno]:'')||'',
-      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'' });
+      squadra:(iSquadra>=0?c[iSquadra]:'')||'', operatore:(iOper>=0?c[iOper]:'')||'',
+      idForo: iId>=0 ? String(c[iId]==null?'':c[iId]).trim() : '' });
   }
   if(!righe.length) return { errore:'Nessuna riga leggibile: servono almeno il numero del foro e la carica di progetto in chili'
     +(scartate?' (ho scartato '+scartate+(scartate===1?' riga':' righe')+').':'.') };
   return { righe, scartate, colonneDaNome:haIntestazione };
+}
+
+/* IL CONFRONTO FORO PER FORO (05/09) — quello che fino a oggi NON c'era:
+   `_riconRiassuntoCampo` fa somme e medie sulla volata intera, e il «foro»
+   del consuntivo era una posizione nella sequenza di sparo, che scivola se un
+   foro si toglie. Qui ogni foro del PROGETTO aperto (`holes`, con `id` e
+   `seq`) cerca la sua riga del consuntivo:
+   · per ID quando tutti i fori e tutte le righe ne hanno uno (piano esportato
+     e consuntivo tornato dal 05/09 in poi);
+   · per NUMERO altrimenti — e lo DICHIARA (`chiave`), perché per numero un
+     foro tolto accoppia ogni riga al foro sbagliato senza nessun errore.
+   Un foro senza riga è «senza-riga», non «ok»; una riga senza foro nel
+   progetto è orfana e si conta; una chiave doppia nel consuntivo si conta.
+   `misurabile` è vero solo se almeno una riga accoppiata porta la carica
+   reale — non esiste uno scostamento piccolo dove nessuno ha pesato. La
+   soglia dello stato è `scartoLivello` di `shared/`, la stessa di Campo. Pura. */
+export function confrontoPerForo(holes, righe){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  const R = Array.isArray(righe) ? righe.filter(Boolean) : [];
+  const tuttiId = H.length>0 && R.length>0 && H.every(h=>h.id) && R.every(r=>r.idForo);
+  const chiave = tuttiId ? 'id' : 'numero';
+  const numeroDi = (h,i) => Number.isInteger(h.seq) ? h.seq+1 : i+1;
+  const chiaveRiga = (r) => chiave==='id' ? String(r.idForo) : String(r.foro);
+  const perChiave = new Map(); const doppie = [];
+  for (const r of R){ const k = chiaveRiga(r); if (perChiave.has(k)) { if (!doppie.includes(k)) doppie.push(k); } else perChiave.set(k, r); }
+  const usate = new Set();
+  const out = H.map((h,i)=>{
+    const numero = numeroDi(h,i), k = chiave==='id' ? String(h.id) : String(numero);
+    const r = perChiave.get(k) || null; if (r) usate.add(k);
+    const prog = r && Number.isFinite(+r.prog) ? +r.prog : null;
+    const reale = r && r.reale!=null && Number.isFinite(+r.reale) ? +r.reale : null;
+    const scartoKg = reale!=null && prog!=null ? +(reale-prog).toFixed(3) : null;
+    const scartoPct = scartoKg!=null && prog ? +(scartoKg/prog*100).toFixed(2) : null;
+    const stato = !r ? 'senza-riga' : scartoLivello(reale, prog);
+    return { id: h.id||null, numero, mx: h.mx, my: h.my, prog, reale, scartoKg, scartoPct, stato };
+  });
+  const orfane = R.filter(r => !usate.has(chiaveRiga(r))).map(r => ({ idForo: r.idForo||'', foro: r.foro, prog: r.prog, reale: r.reale!=null?r.reale:null }));
+  return { chiave, righe: out, senzaRiga: out.filter(x=>x.stato==='senza-riga').length,
+           orfane, doppie, misurabile: out.some(x=>x.reale!=null) };
 }
 
 // Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o
@@ -1177,6 +1219,19 @@ export function esitoMic(mic) {
              verdetto:'non calcolabile' };
   return { calcolabile:true, kg:m, classe:'sv-info', stato:'contata', verdetto:'' };
 }
+/* LA DISPERSIONE DELL'INNESCO (lo «scatter»), in millisecondi (04/09, fetta di
+   B3). Nella pagina era scritta TRE volte con lo stesso ternario — sul foro
+   (`f.tDet`), sull'uniformità di Cunningham (`max(rit, lastDet)`) e nel badge
+   e nel rilascio (`scatterMs`) — cioè la copia da firma troppo stretta: le tre
+   differivano solo per il tempo di riferimento, che qui è un argomento.
+   Elettronico 0,1 ms e elettrico 0,5 ms sono fissi; cordtex il 3% e Nonel il
+   2% del tempo di riferimento. L'aritmetica è quella di prima, parola per
+   parola: un tempo assente resta NaN come restava — chi chiama passa un
+   numero. */
+export function scatterInnesco(innesco, tRif) {
+  return (innesco === "elettronico") ? 0.1 : ((innesco === "elettrico") ? 0.5 : ((innesco === "cordtex") ? 0.03 * tRif : 0.02 * tRif));
+}
+
 export function micFinestra(holes, kg) {
   const H = holes;
   if (micSenzaConto(H, kg)) return null;
@@ -1839,6 +1894,59 @@ export function gittataSenzaSpalla(lff, altri, tetto) {
    `null` se uno dei due non è un numero leggibile e positivo.
    ⚠️ Zero fori per fila non è una griglia più piccola, è l'assenza di una
    griglia: il campo della pagina parte da 3. */
+/* L'ID STABILE DEL FORO (05/09). Fino a oggi un foro del progetto 2D era la
+   sua POSIZIONE nell'array: cancellarne uno rinumerava tutti quelli dopo, e il
+   piano di carico che esce per Campo scriveva la posizione nella sequenza di
+   sparo, ricalcolata a ogni `computeSeq2D`. Nessun confronto foro per foro
+   può reggere su un nome che cambia sotto i piedi. L'id nasce con il foro e
+   non cambia più: nella maglia è «fila-colonna» (f2-5: seconda fila, quinto
+   foro), che si legge sulla carta; un foro aggiunto a mano sulla tela è
+   m1, m2… — il primo numero libero, così cancellare m2 e aggiungerne uno
+   non ne fa due con lo stesso nome. Pure. */
+export function idForoMaglia(fila, colonna){
+  const f = +fila, c = +colonna;
+  if (!(Number.isInteger(f) && f >= 1 && Number.isInteger(c) && c >= 1)) return null;
+  return 'f' + f + '-' + c;
+}
+export function idForoNuovo(holes){
+  const presi = new Set((holes || []).map(h => h && h.id).filter(Boolean));
+  let n = 1; while (presi.has('m' + n)) n++;
+  return 'm' + n;
+}
+
+/* I FORI SALVATI COL PROGETTO (05/09). Fino a oggi «Salva» in Home scriveva i
+   parametri della maglia e NON i fori: alla riapertura la maglia veniva
+   rigenerata, quindi un foro aggiunto sulla tela spariva, un foro tolto
+   RICOMPARIVA, e un ritardo messo a mano (`tMano`) tornava a quello dello
+   schema — un dato perso, e nella direzione che non si vede. Adesso il
+   design porta `holes` e questa funzione li rilegge: `null` se il design non
+   li ha (una volata salvata prima: si rigenera la maglia, com'è sempre
+   stato); altrimenti i fori con mx/my leggibili, l'id se c'è (se manca ne
+   prende uno da foro a mano, senza doppioni), il ritardo a mano solo se è un
+   numero. Quelli illeggibili si CONTANO in `scartati`: non spariscono in
+   silenzio. Pura. */
+export function foriDaDesign(design){
+  const d = design || {};
+  if (!Array.isArray(d.holes)) return null;
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const fori = [];
+  let scartati = 0;
+  for (const h of d.holes){
+    const mx = n(h && h.mx), my = n(h && h.my);
+    if (!(Number.isFinite(mx) && Number.isFinite(my))) { scartati++; continue; }
+    const id = (h.id !== null && h.id !== undefined && String(h.id).trim() !== '') ? String(h.id).trim() : null;
+    const tm = n(h.tMano);
+    const f = { id, mx, my };
+    if (Number.isFinite(tm)) f.tMano = tm;
+    fori.push(f);
+  }
+  /* gli id mancanti si assegnano DOPO aver letto tutti quelli dichiarati:
+     misurato prima di scrivere — assegnando strada facendo, un «m1» dichiarato
+     più avanti nel file diventava il doppione di un «m1» appena inventato */
+  for (const f of fori) if (!f.id) f.id = idForoNuovo(fori);
+  return { fori, scartati };
+}
+
 export function foriDiProgetto(perRow, file){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const c = n(perRow), r = n(file);
@@ -1862,4 +1970,364 @@ export function metriPerforati(nf, prof, sub){
     if (!(Number.isFinite(s) && s >= 0)) return null;
   }
   return f * (h + s);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   G8 · I DATI DI GENESI DIETRO UNA PORTA SOLA (02/09, unità 1 di
+   `docs/GENESI_FUORI_DAL_BROWSER.md` §5)
+   ────────────────────────────────────────────────────────────────────────
+   Genesi è l'unica app che NON esce dal browser: cinque chiavi di
+   `localStorage` lette e scritte da otto funzioni sparse nella pagina
+   (`_lsGet/_lsSet`, `sitoStore/sitoSalva`, `cmpSave/_cmpLoad`,
+   `riconStorico`, e la scrittura di `nuvola-poc.html`). Finché è così nessun
+   ponte di DATI verso Genesi è possibile, e la mappa lo dichiara.
+   Questa è la prima unità del piano, e per scelta NON CAMBIA NIENTE per chi
+   usa Genesi oggi: `genesiData()` è una porta con la stessa forma delle porte
+   di Terra e Conti (`db.volate()`, `db.aggiungi(nome, doc)`, …) costruita
+   SOPRA LE STESSE CHIAVI, con gli stessi nomi, le stesse forme e gli stessi
+   tetti (50 volate, 30 lavorazioni della nuvola). Un dato scritto da qui lo
+   rilegge la pagina di oggi, e viceversa. La pagina non la chiama ancora:
+   sono le unità 2 e 3 a portarcela, sette punti alla volta, con un banco che
+   guarda la chiave prima e dopo.
+   ⚠️ Lo storage si INIETTA (`{getItem, setItem, removeItem}`): in `node` non
+   c'è `localStorage`, e la prova lo passa da una `Map`. Con niente, si usa
+   `globalThis.localStorage` se esiste, se no una memoria che dura quanto la
+   pagina — è la scelta di Terra e Conti in modalità non-live.
+   ⚠️ La forma è ASINCRONA come nelle altre app, anche se oggi sotto c'è una
+   memoria sincrona: è l'unica forma che regge quando sotto ci sarà
+   l'organizzazione (unità 4), e una porta con due forme è la copia debole in
+   agguato.
+   Le collezioni e le chiavi, una a una (§3c del documento):
+     volate          ← `genesiVolate`   elenco, tetto 50, `id` per riga
+     confronti       ← `genesiCmpA/B`   uno scatto per slot, `slot` per riga
+     riconciliazioni ← `genesiRicon`    elenco senza tetto
+     sito            ← `genesiSito`     UN documento `{punti, usa}`
+     nuvole          ← `genesiNuvole`   elenco, tetto 30 (lo scrive nuvola-poc)
+   Un JSON corrotto risponde vuoto — `[]`, `null` per lo scatto, il sito
+   vuoto — esattamente come le otto funzioni di oggi: non è una scelta nuova,
+   è la loro, tenuta uguale di proposito e messa sotto prova.
+   ══════════════════════════════════════════════════════════════════════ */
+const GENESI_CHIAVI = Object.freeze({
+  volate: { chiave: "genesiVolate", tetto: 50 },
+  riconciliazioni: { chiave: "genesiRicon", tetto: 0 },
+  nuvole: { chiave: "genesiNuvole", tetto: 30 },
+  /* il ponte 3e (05/09): le volate «per Sentinella», scritte dal bottone che
+     prima produceva solo il file — forma di `previstaDaGenesi` in shared/ */
+  previste: { chiave: "genesiPreviste", tetto: 50 },
+  /* il piano di carico «per Campo» (05/09, notte): un documento per export,
+     forma di `pianoDaGenesi` in shared/; Campo lo legge dall'organizzazione */
+  piani: { chiave: "genesiPiani", tetto: 20 },
+});
+const GENESI_SLOT = Object.freeze(["A", "B"]);
+const GENESI_SITO_VUOTO = () => ({ punti: [], usa: false });
+export const GENESI_COLLEZIONI = Object.freeze(["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste", "piani"]);
+
+function _memoriaStorage() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: (k) => { m.delete(k); } };
+}
+function _leggiJson(st, chiave, vuoto) {
+  try { const v = st.getItem(chiave); return v == null || v === "" ? vuoto : JSON.parse(v); } catch (e) { return vuoto; }
+}
+function _scriviJson(st, chiave, valore) {
+  try { st.setItem(chiave, JSON.stringify(valore)); return true; } catch (e) { return false; }
+}
+function _nuovoId(prefisso) { return prefisso + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+/* LA MODALITÀ LIVE (unità 4, 02/09). Stessa forma di `terraData`: si prova
+   l'SDK in un try/catch, e si è `live` SOLO se c'è un utente membro di
+   un'organizzazione; in ogni altro caso — SDK che non si carica (senza rete
+   l'import da gstatic fallisce, e il service worker di Genesi non lo mette in
+   cache), tour, nessun login, errore qualunque — si resta `locale`, cioè sulle
+   chiavi del browser di sempre. ⛔ NON «demo in memoria»: Genesi senza
+   organizzazione è un'app che funziona da sola sul dispositivo, e i dati di
+   chi la usa oggi restano dove sono.
+   Le cinque collezioni nascono sotto `organizations/{org}/apps/genesi/…`, il
+   percorso lo costruisce `orgCollection` (mai a mano): l'isolamento fra
+   organizzazioni è quello delle regole già scritte per `apps/{appId}/**`, e
+   la prova negativa sta in `tests/run.mjs` sotto l'emulatore.
+   Forme dei documenti, decise qui e dichiarate:
+     volate / riconciliazioni / nuvole → un documento per riga, id di Firestore;
+     confronti → UN documento per slot, id = "A" | "B" (per organizzazione: la
+       scelta «per persona» è aperta, §3c del piano, e non si decide qui);
+     sito → UN documento, id = "unico" (la legge di sito è della cava).
+   I tetti (50 volate, 30 lavorazioni) valgono per il browser; nell'org NON si
+   applicano — «per organizzazione o per persona» è la decisione aperta del
+   §3c, e tagliare in silenzio dati condivisi sarebbe peggio di non tagliare.
+   `opzioni.live === false` salta l'SDK del tutto (le prove in node). */
+export async function genesiData(opzioni) {
+  const o = opzioni || {};
+  if (o.live !== false) {
+    try {
+      const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+      const id = await DeepworkID.init({ appId: "genesi" });
+      if (id && id.user && id.authState() === "member") {
+        const { getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc } =
+          await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const read = async (nome) => (await getDocs(id.orgCollection(nome))).docs.map((d) => ({ id: d.id, ...d.data() }));
+        const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+        const db = {
+          mode: "live",
+          // chi sta lavorando: serve a firmare ciò che si porta nell'organizzazione
+          utente: { uid: id.user.uid, email: id.user.email || null },
+          volate: () => read("volate"),
+          riconciliazioni: () => read("riconciliazioni"),
+          nuvole: () => read("nuvole"),
+          previste: () => read("previste"),
+          piani: () => read("piani"),
+          confronti: async () => (await read("confronti")).filter((c) => GENESI_SLOT.includes(c.id)).map((c) => ({ ...c, slot: c.id })),
+          sito: async () => {
+            const s = await getDoc(doc(id.orgCollection("sito"), "unico"));
+            const v = s.exists() ? s.data() : null;
+            return v && Array.isArray(v.punti) ? { punti: v.punti, usa: !!v.usa } : GENESI_SITO_VUOTO();
+          },
+          aggiungi: async (nome, dati) => {
+            if (nome === "confronti") {
+              const slot = slotDi(dati); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+              const { slot: _s, id: _i, ...resto } = dati || {};
+              await setDoc(doc(id.orgCollection("confronti"), slot), resto); return { id: slot };
+            }
+            if (nome === "sito") {
+              const s = dati && Array.isArray(dati.punti) ? { punti: dati.punti, usa: !!dati.usa } : GENESI_SITO_VUOTO();
+              await setDoc(doc(id.orgCollection("sito"), "unico"), s); return { id: "unico" };
+            }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            const { id: _i, ...resto } = dati || {};
+            const r = await addDoc(id.orgCollection(nome), resto); return { id: r.id };
+          },
+          aggiorna: async (nome, docId, dati) => {
+            if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(dati || {}), slot: docId } : dati);
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await updateDoc(doc(id.orgCollection(nome), docId), dati || {}); return true;
+          },
+          rimuovi: async (nome, docId) => {
+            if (nome === "confronti") { const slot = slotDi(docId); if (!slot) return false; await deleteDoc(doc(id.orgCollection("confronti"), slot)); return true; }
+            if (nome === "sito") { await deleteDoc(doc(id.orgCollection("sito"), "unico")); return true; }
+            if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+            await deleteDoc(doc(id.orgCollection(nome), docId)); return true;
+          },
+          logout: () => id.logout(),
+        };
+        /* IL CONSUNTIVO DI CARICO DALL'ORGANIZZAZIONE (ponte Campo→Genesi come
+           dato, 05/09 notte): il piano di carico di Campo (`pianocarico`, una
+           riga per foro, con la carica reale registrata dal fochino) letto con
+           una seconda istanza dell'SDK sull'appId di Campo — pigra, sola
+           lettura, forma di `nuvoleGenesi` in Terra. `null` = Campo non
+           leggibile, che la pagina distingue da «nessun foro registrato». */
+        let idCampo;
+        db.pianoCampo = async () => {
+          if (idCampo === undefined) {
+            try { idCampo = await DeepworkID.init({ appId: "campo" }); } catch (e) { idCampo = null; }
+          }
+          if (!idCampo) return null;
+          try { return (await getDocs(idCampo.orgCollection("pianocarico"))).docs.map((d) => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        };
+        return db;
+      }
+    } catch (e) { /* SDK assente, senza rete, o nessun membro: si resta locale */ }
+  }
+  const st = o.storage || (typeof globalThis !== "undefined" && globalThis.localStorage) || _memoriaStorage();
+  const elenco = (nome) => { const v = _leggiJson(st, GENESI_CHIAVI[nome].chiave, []); return Array.isArray(v) ? v : []; };
+  const scriviElenco = (nome, arr) => {
+    const t = GENESI_CHIAVI[nome].tetto; const a = arr.slice();
+    if (t > 0) while (a.length > t) a.shift();
+    _scriviJson(st, GENESI_CHIAVI[nome].chiave, a); return a;
+  };
+  const scatto = (slot) => { const v = _leggiJson(st, "genesiCmp" + slot, null); return v && typeof v === "object" ? { ...v, slot } : null; };
+  const sito = () => { const s = _leggiJson(st, "genesiSito", null); return s && Array.isArray(s.punti) ? { punti: s.punti, usa: !!s.usa } : GENESI_SITO_VUOTO(); };
+  const slotDi = (x) => { const s = String((x && x.slot) || x || "").toUpperCase(); return GENESI_SLOT.includes(s) ? s : null; };
+  const db = {
+    mode: "locale",
+    utente: null,   // da solo sul dispositivo non c'è nessuno da firmare
+    volate: async () => elenco("volate"),
+    riconciliazioni: async () => elenco("riconciliazioni"),
+    nuvole: async () => elenco("nuvole"),
+    previste: async () => elenco("previste"),
+    piani: async () => elenco("piani"),
+    confronti: async () => GENESI_SLOT.map(scatto).filter(Boolean),
+    sito: async () => sito(),
+    /* da soli sul dispositivo Campo non si legge: `null`, e la pagina lascia il file */
+    pianoCampo: async () => null,
+    aggiungi: async (nome, doc) => {
+      if (nome === "confronti") {
+        const slot = slotDi(doc); if (!slot) throw new Error("uno scatto di confronto vuole lo slot A o B");
+        const { slot: _s, ...resto } = doc || {};
+        _scriviJson(st, "genesiCmp" + slot, resto); return { id: slot };
+      }
+      if (nome === "sito") {
+        const s = doc && Array.isArray(doc.punti) ? { punti: doc.punti, usa: !!doc.usa } : GENESI_SITO_VUOTO();
+        _scriviJson(st, "genesiSito", s); return { id: "sito" };
+      }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const d = { ...(doc || {}) }; if (d.id == null || d.id === "") d.id = _nuovoId(nome === "volate" ? "v" : "g");
+      scriviElenco(nome, [...elenco(nome), d]); return { id: d.id };
+    },
+    aggiorna: async (nome, id, doc) => {
+      if (nome === "confronti" || nome === "sito") return db.aggiungi(nome, nome === "confronti" ? { ...(doc || {}), slot: id } : doc);
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const i = a.findIndex((x) => x && x.id === id);
+      if (i < 0) return false;
+      a[i] = { ...a[i], ...(doc || {}), id }; scriviElenco(nome, a); return true;
+    },
+    rimuovi: async (nome, id) => {
+      if (nome === "confronti") { const slot = slotDi(id); if (!slot) return false; const c = scatto(slot) !== null; try { st.removeItem("genesiCmp" + slot); } catch (e) {} return c; }
+      if (nome === "sito") { try { st.removeItem("genesiSito"); } catch (e) {} return true; }
+      if (!GENESI_CHIAVI[nome]) throw new Error("collezione sconosciuta: " + nome);
+      const a = elenco(nome); const n = a.length; const r = a.filter((x) => !(x && x.id === id));
+      if (r.length === n) return false;
+      scriviElenco(nome, r); return true;
+    },
+    logout: async () => {},
+  };
+  return db;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   G9 · «PORTA LE TUE VOLATE NELL'ORGANIZZAZIONE» (02/09, unità 5 del piano)
+   ────────────────────────────────────────────────────────────────────────
+   Chi ha usato Genesi da solo ha volate, scatti A/B, riconciliazioni, la legge
+   di sito e le lavorazioni della nuvola nelle chiavi del browser. Al primo
+   accesso con un'organizzazione, questa funzione le COPIA nelle collezioni
+   dell'organizzazione — una volta sola per browser, e senza cancellare niente
+   dal browser: le chiavi restano com'erano, perché sono il ripiego di chi
+   lavora senza rete e perché un dato si copia prima di fidarsi della copia.
+   ⛔ UNA VOLTA SOLA vuol dire un CONTRASSEGNO nel browser (`genesiMigratoV1`,
+   con la data e i conti): la seconda chiamata risponde `gia: true` e scrive
+   ZERO. Il contrassegno è per browser, non per persona: chi porta le stesse
+   volate da due computer le troverà due volte nell'organizzazione — è un
+   limite dichiarato (§5 del piano), e la funzione lo mette nel risultato
+   (`origine: 'browser'`, `autore`, `creatoIl` su ogni riga) perché si possa
+   vedere da dove viene ogni cosa invece di nasconderlo.
+   Pura rispetto alle porte: `daLocale` e `aOrg` sono due `genesiData` (o due
+   finti con la stessa forma), `contrassegno` è un `{getItem, setItem}` — così
+   la prova gira in node con due Map. */
+export const GENESI_CONTRASSEGNO_MIGRAZIONE = "genesiMigratoV1";
+export async function portaNellOrganizzazione(daLocale, aOrg, contrassegno, opzioni) {
+  const o = opzioni || {};
+  const st = contrassegno || { getItem: () => null, setItem: () => {} };
+  const vuoto = { volate: 0, confronti: 0, riconciliazioni: 0, sito: 0, nuvole: 0 };
+  let gia = null;
+  try { gia = JSON.parse(st.getItem(GENESI_CONTRASSEGNO_MIGRAZIONE) || "null"); } catch (e) { gia = null; }
+  if (gia && typeof gia === "object") return { gia: true, quando: gia.quando || null, scritte: { ...vuoto }, totale: 0, giaScritte: gia.scritte || null };
+  if (!daLocale || !aOrg) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "mancano le due porte" };
+  if (aOrg.mode !== "live" && !o.ancheSeNonLive) return { gia: false, scritte: { ...vuoto }, totale: 0, errore: "la destinazione non è un'organizzazione" };
+  const quando = o.quando || new Date().toISOString();
+  const marchia = (r) => {
+    const { id: _i, ...resto } = r || {};
+    return { ...resto, origine: "browser", autore: o.autore || null, creatoIl: (resto && resto.creatoIl) || quando };
+  };
+  const scritte = { ...vuoto };
+  for (const nome of ["volate", "riconciliazioni", "nuvole"]) {
+    const righe = await daLocale[nome]();
+    for (const r of Array.isArray(righe) ? righe : []) { if (!r) continue; await aOrg.aggiungi(nome, marchia(r)); scritte[nome]++; }
+  }
+  for (const c of await daLocale.confronti()) { if (!c || !c.slot) continue; await aOrg.aggiungi("confronti", { ...marchia(c), slot: c.slot }); scritte.confronti++; }
+  const sito = await daLocale.sito();
+  if (sito && Array.isArray(sito.punti) && sito.punti.length) { await aOrg.aggiungi("sito", { punti: sito.punti, usa: !!sito.usa }); scritte.sito = 1; }
+  const totale = Object.values(scritte).reduce((a, b) => a + b, 0);
+  try { st.setItem(GENESI_CONTRASSEGNO_MIGRAZIONE, JSON.stringify({ quando, scritte, autore: o.autore || null })); } catch (e) {}
+  return { gia: false, quando, scritte, totale };
+}
+
+/* ⛔ E L'ALTRA METÀ DELL'APERTURA (02/09, unità 7 del piano «Genesi fuori dal
+   browser»): i campi del design che NON sono numeri. `volataSenzaValori` nomina
+   i 21 numerici illeggibili; questi 11 — esplosivo, innesco, roccia,
+   fratturazione, sequenza, norma del recettore, tre bandiere, due profili —
+   arrivavano dalla porta senza nessuno che li guardasse, e il difetto è più
+   silenzioso di uno zero: `selEsplosivo()` e `selRoccia()` RIPIEGANO SUL
+   DEFAULT quando l'id non è nel catalogo, quindi una volata salvata con un
+   esplosivo che questa versione non conosce (o da un altro browser
+   dell'organizzazione, con un catalogo diverso) si apre con un altro
+   esplosivo e nessuna parola. La pagina passa i suoi cataloghi (vivono lì:
+   ESPL, INNESCHI, ROCCE, le tendine, NORME_PPV) e qui si dice che cosa non si
+   riconosce, con la stessa forma di `volataSenzaValori`: `che` e `come`.
+   Un campo ASSENTE non si segnala (volata salvata prima che esistesse); un
+   valore presente e sconosciuto sì. Le bandiere devono essere booleane, i
+   profili elenchi. */
+export const CAMPI_SCELTA = {
+  esplosivo: 'esplosivo', innesco: 'innesco', roccia: 'roccia',
+  frat: 'fratturazione', sequenza: 'sequenza di sparo', recNorma: 'norma del recettore',
+};
+export const CAMPI_BANDIERA = { kgAuto: 'carica automatica', bagnato: 'foro bagnato', presplit: 'presplit' };
+export const CAMPI_PROFILO = { profilo: 'profilo del fronte', piede: 'piede del fronte' };
+export function designSconosciuti(design, cataloghi) {
+  const d = design && typeof design === 'object' ? design : {};
+  const c = cataloghi && typeof cataloghi === 'object' ? cataloghi : {};
+  const campi = [];
+  const ha = (k) => Object.prototype.hasOwnProperty.call(d, k) && d[k] !== undefined;
+  for (const k of Object.keys(CAMPI_SCELTA)) {
+    if (!ha(k)) continue;
+    const ids = Array.isArray(c[k]) ? c[k].map(String) : null;
+    if (!ids) continue;                       // la pagina non ha passato quel catalogo: non si giudica
+    /* ⛔ LA NORMA DEL RECETTORE NON SI SOSTITUISCE (03/09, passata di verifica).
+       Un esplosivo al posto di un altro si vede nella tendina; un codice di
+       norma che non si riconosce, rimpiazzato con «DIN residenziale», produce
+       un LIMITE (15 mm/s) e un VERDETTO («ampiamente sotto soglia») su una
+       norma che nessuno ha scelto — misurato: nove KO in tre banchi (scheda
+       CSV, report stampabile, file per Sentinella), tutti «limite 15,0, DIN
+       residenziale» dove dal 08/08 usciva «non confrontabile». È il principio
+       del fondatore: l'assenza di un dato non è un dato favorevole. Quindi il
+       codice resta com'è scritto — `ppvSenzaSoglia` lo vede, `normaPpvLab` lo
+       ripete — e il campo porta `sostituisci:false`, che la pagina legge. */
+    if (!ids.includes(String(d[k]))) campi.push({ chiave: k, nome: CAMPI_SCELTA[k], valore: d[k] === null ? '' : String(d[k]), sostituisci: k !== 'recNorma' });
+  }
+  for (const k of Object.keys(CAMPI_BANDIERA)) if (ha(k) && typeof d[k] !== 'boolean') campi.push({ chiave: k, nome: CAMPI_BANDIERA[k], valore: String(d[k]), sostituisci: true });
+  for (const k of Object.keys(CAMPI_PROFILO)) if (ha(k) && !Array.isArray(d[k])) campi.push({ chiave: k, nome: CAMPI_PROFILO[k], valore: String(d[k]), sostituisci: true });
+  if (!campi.length) return null;
+  const nomi = campi.map((x) => x.nome + (x.valore ? ' («' + x.valore + '»)' : ' (vuoto)'));
+  const sost = campi.filter((x) => x.sostituisci), tenuti = campi.filter((x) => !x.sostituisci);
+  const come = [];
+  if (sost.length) come.push(sost.length === 1
+    ? 'Al suo posto è entrato il valore di partenza: controllalo nei parametri prima di fidarti dei numeri.'
+    : 'Al loro posto sono entrati i valori di partenza: controllali nei parametri prima di fidarti dei numeri.');
+  if (tenuti.length) come.push('Per la norma del recettore non entra nessun valore di partenza: resta com\'è scritta e il limite PPV non si calcola finché non ne scegli una nei parametri.');
+  return { campi,
+    che: (nomi.length === 1 ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
+    come: come.join(' ') };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   I PONTI DI GENESI, IN HOME (05/09, notte). Il pannello «Ponte Deepwork» della
+   Home diceva che lo scambio passa «tramite file .volata.json»: vero per il
+   core, e dal 05/09 FALSO per le altre app — le volate previste vanno a
+   Sentinella, il piano di carico va a Campo e il consuntivo torna, le nuvole
+   vanno a Terra, tutti come dati. Un testo che invecchia in una schermata è un
+   «non c'è» scaduto letto dal fondatore. Qui il riepilogo è calcolato: quanti
+   record ha scritto ogni ponte e quando l'ultimo, `null` = non leggibile (che
+   non è zero), e lo stato vuoto dice come si produce il primo. Pura. */
+export function riepilogoPontiGenesi(dati) {
+  const d = dati || {};
+  const lista = (x) => (Array.isArray(x) ? x : null);
+  const dove = d.mode === "live" ? "nell'organizzazione" : "su questo computer";
+  const ultimoDi = (arr, campo) => {
+    let u = "";
+    for (const r of arr || []) { const v = String((r && campo(r)) || ""); if (v > u) u = v; }
+    return u;
+  };
+  const uno = (app, cosa, arr, campo, vuoto, plurali) => {
+    if (!arr) return { app, cosa, n: null, ultimo: "", leggibile: false,
+      testo: cosa + " " + (d.mode === "live" ? "non leggibili adesso: riprova più tardi" : "non leggibili") };
+    const n = arr.length, ultimo = ultimoDi(arr, campo);
+    if (!n) return { app, cosa, n: 0, ultimo: "", leggibile: true, testo: vuoto };
+    /* la data dell'ultimo resta ISO in `ultimo`: la scrive la pagina, con il
+       suo formattatore — un ISO dentro una frase è un numero nel vestito
+       sbagliato, e un formattatore riscritto qui è la copia debole */
+    return { app, cosa, n, ultimo, leggibile: true,
+      testo: (n === 1 ? plurali[0] : n + " " + plurali[1]) + " " + dove, codaUltimo: n === 1 ? "del" : "l'ultimo del" };
+  };
+  return {
+    dove,
+    righe: [
+      uno("Sentinella", "le volate previste", lista(d.previste), (r) => r.data,
+        "Nessuna volata prevista scritta ancora: dalla scheda volata, «per Sentinella» la manda al registro (non solo al file).",
+        ["una volata prevista scritta", "volate previste scritte"]),
+      uno("Campo", "i piani di carico", lista(d.piani), (r) => String(r.quando || "").slice(0, 10),
+        "Nessun piano di carico scritto ancora: «Esporta piano di carico» lo manda a Campo (non solo al file).",
+        ["un piano di carico scritto", "piani di carico scritti"]),
+      uno("Terra", "le lavorazioni della nuvola", lista(d.nuvole), (r) => String(r.data || "").slice(0, 10),
+        "Nessuna lavorazione della nuvola: dal visore, ogni ritaglio con un volume arriva a Terra da solo.",
+        ["una lavorazione scritta", "lavorazioni scritte"]),
+    ],
+  };
 }

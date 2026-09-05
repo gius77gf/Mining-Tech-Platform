@@ -86,6 +86,17 @@ DEMO.pesate.push({ id: "znv2", numero: "${ANNO}/901", data: "${ANNO}-06-11",
   cliente: "Cliente senza densità", clienteId: null, prodotto: "Ghiaia lavata 4/8",
   unitaVendita: "m3", lordo: 40.8, tara: 22.4, netto: 18.4, quantita: null,
   densita: null, prezzoUnitario: 14, scontoPct: 0, fatturata: false });
+/* 02/09 · due pesate coi pesi a metà (vedi pesiPesata nel modulo — niente apici inversi qui: siamo DENTRO un template): la tara mai scritta,
+   senza e con un netto copiato dal lordo. Prima uscivano «lordo 32,50 − tara
+   0,00 = netto 0,00 t · € 0,00» e «32,50 t × € 12,00 · € 390,00» (il camion). */
+DEMO.pesate.push({ id: "ztA", numero: "${ANNO}/902", data: "${ANNO}-06-12", clienteId: null, cliente: "Cliente Tara",
+  prodottoId: DEMO.prodotti[0].id, prodotto: DEMO.prodotti[0].nome, lordo: 32.5, tara: null, netto: null,
+  unitaVendita: "t", quantita: null, densita: null, prezzoUnitario: 12, scontoPct: 0, aliquotaIva: 22,
+  mezzo: "AA111BB", destinatario: "Cantiere A", fatturaId: null });
+DEMO.pesate.push({ id: "ztB", numero: "${ANNO}/903", data: "${ANNO}-06-13", clienteId: null, cliente: "Cliente Tara",
+  prodottoId: DEMO.prodotti[0].id, prodotto: DEMO.prodotti[0].nome, lordo: 32.5, tara: null, netto: 32.5,
+  unitaVendita: "t", quantita: 32.5, densita: null, prezzoUnitario: 12, scontoPct: 0, aliquotaIva: 22,
+  mezzo: "AA111BB", destinatario: "Cantiere B", fatturaId: null });
 `;
 
 /* IL DIFETTO DA RIMETTERE, con il file che lo porta. Si contano le
@@ -123,6 +134,16 @@ const DIFETTI = [
   ["apps/conti/index.html",
    `    const lordoN = rl.valore, taraN = rt.valore;`,
    `    const lordoN = rl.ok ? rl.valore : 0, taraN = rt.ok ? rt.valore : 0;`],
+  // 4 · (02/09) il MODULO torna a far passare il peso a metà: la quantità
+  //     diventa zero (senza netto) o il lordo (col netto copiato), e la riga
+  //     scrive di nuovo «€ 0,00» o vende il camion. Due pezzi, da rimettere
+  //     insieme: `quantitaPesata` e `quantitaVenduta` sono due guardie.
+  ["apps/conti/conti-data.js",
+   `  if (w.incompleto) return { t: null, m3: null, pesoNoto: false, manca: w.manca };`,
+   `  /* difetto rimesso dal banco: il peso a metà passa */`],
+  ["apps/conti/conti-data.js",
+   `  if (unita === "t" && pesiPesata(d).incompleto) return null;`,
+   `  /* difetto rimesso dal banco: la copia in quantita vale */`],
 ];
 
 let iniezioniCasi = 0;
@@ -623,6 +644,21 @@ else {
   const intonso = await scrivi("", "");
   dice(intonso.riep === "", "sul modulo intonso non si dice niente: non c'e' nessun numero da smentire", intonso.riep);
   console.log("  (4 stati del modulo pesata provati: senza tara, senza lordo, coi due, intonso)");
+
+  // ══ LE DUE PESATE COI PESI A METÀ NELL'ELENCO (02/09) ═══════════════════
+  const tara = await pg.evaluate(() => [...document.querySelectorAll("#pes-list .item")]
+    .filter((x) => /Cliente Tara/.test(x.innerText))
+    .map((x) => ({ testo: x.innerText.replace(/\s+/g, " "), amt: (x.querySelector(".amt-n") || {}).textContent, sotto: (x.querySelector(".amt-s") || {}).textContent })));
+  dice(tara.length === 2, "le due pesate senza tara sono nell'elenco (il caso è arrivato)", tara.length);
+  for (const r of tara) {
+    dice(!/tara 0,00/.test(r.testo), "nessuna «tara 0,00» mai scritta da nessuno", r.testo.slice(0, 160));
+    dice(/netto non calcolabile/.test(r.testo) && /manca la tara/.test(r.testo), "la riga dice che il netto non si calcola e che manca la tara", r.testo.slice(0, 200));
+    dice(r.amt.trim() === "—", "l'importo è «—», non «€ 0,00» né il prezzo del camion", r.amt);
+    dice(/peso incompleto/.test(r.sotto), "e sotto c'è il perché: peso incompleto", r.sotto);
+    dice(!/32,50 t ×/.test(r.testo) && !/0,00 t ×/.test(r.testo), "nessuna quantità × prezzo: né 32,50 t (il camion) né 0,00 t", r.testo.slice(0, 200));
+    dice(/DDT incompleto/i.test(r.testo), "e la pastiglia «DDT incompleto» c'è", r.testo.slice(0, 120));
+  }
+
 }
 
 console.log(`\n${ok} ok, ${ko} KO${nonMisurati.length ? ` · ${nonMisurati.length} NON MISURATI` : ""}${SCATTI ? ` · scatti in ${CARTELLA_SCATTI}` : ""}`);

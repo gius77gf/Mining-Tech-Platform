@@ -1,0 +1,412 @@
+# La mappa dell'ecosistema — che cosa c'è, che cosa manca, e dove si può collegare
+
+> Nasce dalla richiesta del fondatore del 26/08: «credo che si possano fare
+> molti più collegamenti di quelli attualmente presenti». Aveva ragione, e qui
+> c'è il numero.
+
+⛔ **COME LEGGERE QUESTO DOCUMENTO.** Ogni riga dice **come è stata misurata**.
+Dove c'è un comando, si rilancia; dove c'è scritto «da verificare», non è stato
+misurato e non va usato per decidere. È la regola di casa: *un comando si
+rilancia, un numero si può solo credere.*
+
+Verificato contro il commit dichiarato in fondo.
+
+---
+
+## 1. I ponti che esistono oggi: SEI su cinquantasei
+
+> ⏱️ Scritto il 26/08. Dal 02/09 sono **sette**: il settimo è Flotta→Conti, e sta
+> raccontato in §3a. Il titolo resta com'era perché il conto vivo è la tabella in §6.
+
+Un ponte è un'app che legge i dati di un'altra. Si misura cercando chi
+inizializza l'SDK con l'`appId` di qualcun altro:
+
+    grep -rn "appId:" apps/*/*-data.js apps/*/*.html | grep -v node_modules
+
+| app | legge i dati di | è letta da |
+|---|---|---|
+| Terra | Campo | Campo, Conti |
+| Campo | Terra (3 punti), Scudo | Terra, Scudo |
+| Scudo | Campo | Campo, Sentinella |
+| Conti | Terra | **nessuno** |
+| Sentinella | Scudo | Campo *(P6, 05/09: le volate del giorno nella consegna di turno)* |
+| **Flotta** | **nessuno** | **nessuno** |
+| **Genesi** | **nessuno** | **nessuno** |
+| Deepwork ID | — | — *(è l'identità, non produce dati di cava: giusto così)* |
+
+**Sei collegamenti su 56 direzioni possibili.** C'è un triangolo vivo — Terra,
+Campo, Scudo — e tutto il resto sta ai margini.
+
+⛔ **MA QUESTO CONTO HA UN PUNTO CIECO, E L'HO SCOPERTO DOPO AVERLO SCRITTO:
+guarda un solo TIPO di ponte.** Cerca chi legge i dati di un'altra app dal
+database. Esiste una seconda forma — **il file** — e con quella Genesi e
+Sentinella sono collegate da tempo: Genesi esporta un CSV con esattamente le
+colonne che il registro volate di Sentinella vuole, e la sua schermata lo dice
+in chiaro («la volata entra come PREVISTA, e nessuno la ridigita»).
+Quindi «Genesi è letta da: nessuno» è **letteralmente vero e fuorviante**, ed è
+il difetto contro cui questo repository mette in guardia: una frase esatta con
+un verdetto falso. Il numero **6** vale per i ponti di dati; i ponti di file
+sono un'altra cosa e vanno contati a parte — **non è stato fatto**.
+
+⚠️ **E «isolata» va detto con precisione, perché sono due cose diverse.**
+Flotta non scambia **dati** con nessuno, ma usa le **regole** condivise
+(`shared/dw-ponti.js`, 4 riferimenti). Genesi non usa né le une né gli altri.
+Confondere le due porterebbe a cercare il problema di Flotta nel posto
+sbagliato.
+
+---
+
+## 2. Che cosa tiene ciascuna app
+
+I nomi delle collezioni **non** si leggono cercando `orgCollection('nome')`:
+quel nome è una **variabile**, e cercandolo come stringa il conto dà zero su
+tre app su sei — un righello che risponde «non c'è» con la faccia della verità.
+Si leggono da chi le chiama:
+
+    grep -oE "\b(leggi|read|aggiungi|carica)\(\s*['\"][a-zA-Z]+['\"]" apps/<app>/<app>-data.js
+
+| app | funzioni | schermate | che cosa tiene |
+|---|---|---|---|
+| **Terra** | 63 | 6 | autorizzazioni, fronti, lotti, piano, rilievi, scadenze |
+| **Campo** | 98 | 5 | attività, checklist, chiusure, durate, meteo, obiettivi, operatori, piano di carico, presenze, rapportini, squadre |
+| **Flotta** | 78 | 6 | controlli, **costi**, disponibilità, fermi, interventi, manutenzioni, mezzi, ricambi, rifornimenti, **scadenze** |
+| **Scudo** | 156 | 8 | analisi, appaltatori, appalti, **azioni**, cantieri, documenti, DPI, infortuni, ispezioni, **lavoratori**, mansioni, nomine, oreAnno, permessi, **scadenze** |
+| **Conti** | 121 | 10 | chiusure, clienti, **costi**, fatture, gare, impostazioni, incassi, note, ordini, pesate, prodotti |
+| **Sentinella** | 99 | 6 | adempimenti, **azioni**, **lavoratori**, monitoraggi, programma, reclami, registri, ricettori, volate |
+| **Genesi** | 50 | — | *niente di condiviso: vedi §4* |
+
+**665 funzioni, 41 schermate.**
+
+---
+
+## 3. Le sovrapposizioni — cioè i ponti che si costruiscono da soli
+
+Non sono idee: sono **nomi che compaiono in due o più app**, e ognuno è un
+punto in cui oggi qualcuno scrive la stessa cosa due volte.
+
+### 3a. `costi` — Flotta **e** Conti · *il caso più maturo, e c'è un difetto vero*
+Le due app **parlano già la stessa lingua**: importano tutt'e due
+`VOCI_COSTO`, `voceCosto` e `gruppoDiVoce` da `shared/dw-ponti.js`.
+
+    grep -c "VOCI_COSTO" apps/flotta/flotta-data.js apps/conti/conti-data.js   → 1 e 4
+
+⛔ **E NON È SOLO UNA COMODITÀ MANCATA: C'È IL RISCHIO DI CONTARE DUE VOLTE LO
+STESSO EURO.** In `shared/dw-ponti.js` ogni voce di costo porta una bandiera
+`daMezzo`, che dice quali spese **Flotta registra già** (carburante,
+manutenzione, noleggi). Il commento accanto lo scrive senza giri:
+
+> «`daMezzo` dice quali voci Flotta già registra: servono a non contarle DUE
+> volte» · «Flotta le registra già, e chi somma deve saperlo»
+
+Chi legge quella bandiera, misurato:
+
+    grep -rc "daMezzo" shared/dw-ponti.js apps/conti/index.html apps/flotta/flotta-data.js
+    → shared 11 · conti 4 · **flotta 0**
+
+Cioè **la difesa è a senso unico**: Conti avvisa chi inserisce («anche in
+Flotta»), filtra i doppioni e mette l'avviso sul menu; Flotta non sa nemmeno
+che la bandiera esista. E soprattutto: Conti **fa già la domanda giusta e non
+può avere la risposta** — sa che quella spesa sta anche di là, e non può
+mostrare quale.
+
+**Valore: alto — non è una comodità, è la correttezza di un totale.
+Costo: basso**, perché la parte difficile (il vocabolario comune) è già fatta e
+il punto d'aggancio esiste già nella pagina di Conti.
+
+✅ **COSTRUITO IL 02/09 — e la riga qui sopra resta per raccontare da dove si
+partiva.** Il ponte è nella direzione Flotta→Conti, perché è Conti a sommare:
+· `confrontoCostiMezzi` in `shared/dw-ponti.js` (7 prove in `run-kpi`), che
+  mette in fila sulle sole voci `daMezzo` quanto c'è in Conti e quanto in
+  Flotta nel periodo, voce per voce, e dichiara a parte le righe senza data,
+  senza importo e a zero — un importo scritto zero NON sparisce nel conto;
+· `api.costiFlotta` in `apps/conti/conti-data.js`, seconda istanza SDK pigra
+  con `appId: "flotta"` sul modello di `rilieviTerra`: `null` se Flotta non
+  risponde, e `null` resta `null` fino alla schermata;
+· nella schermata Costi di Conti l'avviso «anche in Flotta» è diventato la
+  tabella del confronto, con **tre esiti distinti**: Flotta non raggiungibile
+  (nota in tono avviso, **nessun numero di Flotta**, «non lo do per zero»);
+  voci in tutt'e due (riga evidenziata, «gonfiato fino a …»); Flotta che
+  risponde e non ha niente nel periodo (detto anche quello).
+Misurato col browser a 430 e 320 px nei tre temi: con la dimostrazione
+carburante e manutenzione escono «in tutt'e due» (Flotta 50 € su 2 righe e
+49 € su 2 righe), il noleggio solo di là, la riga senza data dichiarata; col
+modulo servito che risponde `null` la nota è in tono avviso e non contiene
+nessuno zero. Contrasti degli inchiostri della tabella ≥ 5,5:1 in tutti e tre
+i temi. La pagina non scorre mai di lato; a 320 px scorre la sola cassa della
+tabella.
+
+    grep -c "confrontoCostiMezzi" shared/dw-ponti.js apps/conti/conti-data.js apps/conti/index.html
+    → 2 · 1 · 3   (definizione, ri-esportazione, import + chiamata + commento)
+
+⚠️ Quello che il ponte NON fa, e va detto: non toglie il doppione, lo
+**mostra**. Decidere in quale app vive una spesa resta della persona.
+
+✅ **E IL VERSO DI RITORNO, Conti→Flotta, È COSTRUITO LO STESSO GIORNO** (02/09,
+cantiere parallelo): `api.costiConti` in `flotta-data.js` (seconda istanza SDK
+con `appId: "conti"`, `null` se non risponde), la nota del confronto nella
+schermata dei costi di Flotta con gli stessi tre esiti, e il contrassegno
+«anche in Conti» sulla riga uguale **alla cifra** (stessa voce da mezzo, stesso
+giorno, stesso importo: `doppioniAllaCifra`). ⚠️ Con una differenza che vale
+la pena scrivere: qui la voce è a **testo libero** («Gasolio pala»), non una
+chiave di `VOCI_COSTO`, quindi prima di chiamare la funzione condivisa le righe
+vanno **tradotte** (`chiaveVoceMezzo` → `costiPerConfronto`); senza, Flotta
+risultava a zero — misurato. Le voci che la traduzione non riconosce si
+contano e si dicono (`nonClassificate`), non spariscono.
+
+    grep -c "confrontoCostiMezzi" apps/flotta/flotta-data.js apps/flotta/index.html → 1 · 3
+
+### 3b. `scadenze` — Terra, Flotta **e** Scudo
+Tre app tengono un proprio scadenzario, ognuna col suo stato. Chi dirige la
+cava non ha un posto solo dove vedere *che cosa scade questo mese*.
+**Valore: alto** (è la domanda che un titolare fa ogni lunedì).
+**Costo: medio** — gli stati vanno unificati senza rompere i tre esistenti.
+
+✅ **MISURATO E COMINCIATO IL 02/09.** Prima la misura: le tre app decidevano
+«scaduta / in scadenza / a posto / senza data» con tre funzioni proprie
+(`statoScadenzaTerra`, `statoScadenzaMezzo`, `statoScadenzaHSE`) e sulle 34
+scadenze delle tre dimostrazioni, poste alla stessa data, i verdetti erano
+**gli stessi riga per riga** — in quattro vocabolari («regolare»/«a-posto»,
+«senza data»/«senza-data») e con tre scale di colore. Cioè non c'era una
+divergenza da sanare: c'era la stessa regola scritta tre volte, e la terza
+copia (Scudo) contava i giorni con `Date.parse` invece che con `giorniTra`.
+Adesso la regola è **una**, `statoScadenza(data, oggi, preavviso)` in
+`shared/dw-ponti.js`; `statoScadenzaHSE` è lo stesso oggetto (provata
+l'identità, non il comportamento), Terra e Flotta le delegano il verdetto e
+tengono il proprio vocabolario. E c'è `scadenzeUnite({terra, flotta, scudo,
+lavoratori}, oggi)`: le tre famiglie nella stessa forma, ordinate (scadute, in
+scadenza, senza data, regolari), con **`completo: false` e i nomi delle app
+che non hanno risposto** — un'app che non risponde non è un'app senza scadenze.
+✅ **E il lato che si VEDE è fatto lo stesso giorno**: la schermata Scadenze
+di Scudo apre con «Tutta la cava» — il conto di concessione, mezzi e persone
+con la stessa regola, e le righe scadute o in scadenza di Terra e Flotta con
+la pastiglia dell'app (le persone stanno nell'elenco di Scudo). `api.scadenzeTerra`
+e `api.scadenzeFlotta` in `scudo-data.js` (istanze SDK pigre, `null` se non
+rispondono), dimostrazione copiata riga per riga da quelle app (una prova
+pretende che restino uguali). ⛔ Un'app che non risponde è detta per nome —
+«Terra non ha risposto: la concessione non è in questo conto, e non vale
+zero» — e la nota passa in tono avviso. Banco `scudo-scadenze-unite.mjs` nei
+tre esiti. È il responsabile della sicurezza che guarda questo muro, come
+dicono i software HSE censiti in `docs/RICERCA_CONTINUA_SCUDO.md`.
+
+    grep -c "statoScadenza(" apps/terra/terra-data.js apps/flotta/flotta-data.js shared/dw-ponti.js → 1 · 1 · 3
+### 3c. Le persone — `lavoratori` (Scudo, Sentinella) e `operatori` (Campo)
+Le stesse persone in tre elenchi. Scudo↔Campo un ponte ce l'ha già
+(`idoneitaDiTurno`); Sentinella no.
+**Valore: alto** — una persona assunta va inserita una volta, non tre.
+**Costo: medio**, e va deciso **chi è la fonte** (probabilmente Scudo).
+
+✅ **RIMISURATO IL 02/09: la fonte è GIÀ Scudo, e gli elenchi da unire non sono
+tre.** Il «Sentinella no» qui sopra era un «non c'è» scaduto (la famiglia di
+§1): Sentinella non tiene un elenco suo — il responsabile di un'azione
+correttiva lo cerca nell'elenco dei lavoratori che arriva **da Scudo**
+(`ponteScudo`, istanza SDK con `appId: "scudo"`, e la lettura fallita si
+dichiara «non leggibile», non «nessuno»). Campo legge lo stesso elenco
+(`lavoratoriScudo`) e i suoi `operatori` non sono una copia delle persone: sono
+**chi è in forza sul turno, con la squadra**, agganciati alla persona di Scudo
+per `lavoratoreId` (14 punti nel modulo). Cioè una persona si inserisce **una
+volta**, in Scudo, e le altre due app la leggono.
+
+    grep -c 'appId: "scudo"' apps/sentinella/sentinella-data.js → 1
+    grep -c lavoratoreId apps/campo/campo-data.js → 14
+
+Quello che resta non è un ponte: è una **decisione di prodotto** — se un
+operatore di Campo senza `lavoratoreId` (una persona scritta a mano sul turno,
+che Scudo non conosce) debba poter esistere. Oggi può, e `idoneitaOperatore`
+lo dichiara «non-collegato» invece di dargli un'idoneità: è la scelta giusta
+finché la decisione non è presa.
+
+### 3d. `azioni` — Scudo **e** Sentinella
+Azioni correttive in due posti. Chi ne ha una aperta di sicurezza e una
+ambientale non le vede insieme. **Valore: medio. Costo: basso.**
+
+✅ **RIMISURATO IL 02/09: sono in un posto solo, e la riga lo diceva male.**
+Sentinella non ha una collezione sua di azioni: le legge e le SCRIVE sulla
+collezione `azioni` di Scudo, con una seconda istanza SDK (`appId: "scudo"`),
+e il suo Quadro lo dice a parole («Le azioni correttive vivono in Scudo: li
+hanno un responsabile e una data»). In dimostrazione, dove Scudo non si può
+interrogare, il ponte tiene una coda locale (`ponteDemoLeggi`/`ponteDemoScrivi`)
+e dichiara «non leggibile» invece di «nessuna». Chi ha un'azione di sicurezza
+e una ambientale le vede insieme: nello scadenzario delle azioni di Scudo.
+
+    grep -n 'orgCollection("azioni")' apps/sentinella/sentinella-data.js → 1 (scrittura sull'istanza Scudo)
+    grep -c 'appId: "scudo"' apps/sentinella/sentinella-data.js → 1
+
+### 3e. `volate` — Sentinella **e** Genesi · *il ponte c'è già, ma è un file*
+⚠️ **Qui mi ero sbagliato, e la correzione conta.** Genesi **esporta già** un
+CSV con esattamente le colonne del registro volate di Sentinella, e la volata
+entra di là come *PREVISTA* senza che nessuno la ridigiti. Il codice lo dice
+in chiaro, e si legge in `apps/genesi/genesi.html` (la schermata `sentRender`).
+
+Quello che **manca** non è il collegamento: è che passi da un **file** che
+qualcuno deve esportare e importare a mano, invece che dai dati condivisi. E
+manca il terzo lato: Campo registra il **turno vero**, e nessuno confronta il
+*progettato con il reale* — che è già in roadmap come rimandato.
+
+**Valore: molto alto** (è il cuore del mestiere). **Costo: alto**, e per una
+ragione strutturale che viene prima: vedi §4.
+
+✅ **Collegata il 05/09 (notte), come dato.** Genesi scrive la volata «per
+Sentinella» nella sua collezione `previste` (nell'organizzazione se si è
+dentro, nella chiave `genesiPreviste` del browser se si lavora da soli) con la
+forma UNICA `previstaDaGenesi` di `shared/dw-ponti.js`; Sentinella la legge
+con una seconda istanza dell'SDK (`previsteGenesi`, forma di `nuvoleGenesi` di
+Terra) o dalla chiave, mostra le nuove in «Registro volate → Previste da
+Genesi» e le **accoglie** con `accogliPrevista` — le stesse funzioni del
+lettore CSV, quindi le due strade non possono divergere (provato: la volata
+che esce dal ponte è identica a quella che esce dal file, `run-kpi`). Il file
+resta per chi lavora altrove. ⛔ E la strada del file aveva un buco che il
+ponte ha fatto trovare: Genesi scrive in coda `ppvPrevProvvisoria;ppvPrevReferti`,
+il registro di Sentinella `comunicataA;comunicataIl;comunicazioneRif` — stesse
+posizioni, nomi diversi — e `parseVolateCsv` leggeva per posizione: il «si»
+della legge di sito provvisoria finiva in `comunicataA`. Adesso legge per nome
+quando l'intestazione c'è. Prova: `grep -c "previstaDaGenesi" shared/dw-ponti.js
+apps/genesi/genesi.html` → 1 e 2; `grep -c "previsteGenesi" apps/sentinella/
+sentinella-data.js apps/sentinella/index.html` → 2 e 1. Il terzo lato
+(progettato contro reale, Campo) resta in roadmap come rimandato.
+
+### 3f. La produzione — `rilievi` (Terra), `rapportini` (Campo), `pesate` (Conti)
+Tre misure della stessa cosa: il drone misura il volume, il turno dichiara la
+produzione, la pesa registra quello che esce. Terra↔Campo e Conti↔Terra
+esistono già; **manca il triangolo**, cioè la riconciliazione a tre.
+**Valore: alto. Costo: medio.**
+
+✅ **Chiuso il 02/09: il lato che mancava era Campo→Conti, ed è l'unico dei tre
+che non ha bisogno della densità** — i turni dichiarano in tonnellate e la pesa
+pesa in tonnellate. Prima del ponte è stato misurato sulla cava sintetica (12
+mesi, seme 5) che le due grandezze sono confrontabili: `confrontabile` in tutti
+e quattro i trimestri, con un divario identico dell'83-86% — uno scarto uguale
+su tutte le taglie è del generatore (le sue pesate sono un quinto della
+produzione), non del confronto.
+· `confrontoProdottoVenduto(dichiarato, venduto)` in `shared/dw-ponti.js`
+  (9 prove in `run-kpi`), ri-esportata da Conti per identità; il dichiarato lo
+  conta `produzioneDichiarata`, la stessa del ponte Terra↔Campo;
+· Conti legge `rapportini` di Campo con un'istanza pigra dell'SDK
+  (`api.rapportiniCampo`, `null` se Campo non risponde) e porta in
+  dimostrazione una **copia** dei dieci rapportini di Campo, id per id e data
+  per data, che una prova tiene uguale;
+· nella schermata **Report**, sotto «Cavato contro venduto», il riquadro
+  «Prodotto contro venduto»: due colonne (dichiarato dai turni / pesato in
+  uscita), il **verso detto a parole** — produrre più di quanto si vende è
+  magazzino, vendere più di quanto si produce è magazzino che si svuota o
+  turni che dichiarano meno del vero — e la coda che nomina ciò che NON è
+  entrato (il rapportino senza data, il turno senza quantità che rende il
+  conto **per difetto**, i metri cubi e i viaggi che non si convertono).
+  Il lato Campo **non dipende da Terra**: si disegna anche quando il confronto
+  cavato/venduto è fermo;
+· Campo che non risponde è una nota in tono avviso e **nessuna tonnellata
+  attribuita**: «0 t prodotte» si leggerebbe come «la cava è ferma»;
+· banco `tests/browser/conti-ponte-campo.mjs` nei tre modi (sano 15, assente
+  10, controprova che rimette il `null` tradotto in lista vuota e cade in 4).
+⚠️ Il lato che resta scoperto è Conti→Campo: a chi lavora in cava il venduto
+non serve a fine turno, e nessuno l'ha chiesto. Il triangolo è chiuso come
+riconciliazione, non come tre ponti bidirezionali.
+
+---
+
+## 4. Il blocco strutturale: Genesi non esce dal browser
+
+✅ **Tolto il 02/09, in quattro unità** (`docs/GENESI_FUORI_DAL_BROWSER.md` §5,
+righe 1-4): `genesiData()` in `genesi-data.js` è una porta con la forma delle
+altre app; la pagina non tocca più `localStorage` per i suoi dati (restano la
+memoria del modulo e il consenso); con un membro di un'organizzazione lavora su
+cinque `orgCollection` sotto `apps/genesi/…`, e senza rete o senza login resta
+sulle chiavi del browser di sempre — misurato staccando la rete al browser e
+sotto l'emulatore (81 prove). **Da qui un ponte di DATI verso Genesi è
+possibile — e il primo è fatto lo stesso giorno (unità 8)**: Terra legge le
+lavorazioni della nuvola da `apps/genesi/nuvole` con una seconda istanza
+dell'SDK, pigra e in sola lettura (`api.nuvoleGenesi` in `terra-data.js`), e
+tiene la chiave del browser come ripiego per chi usa il visore da solo; a
+scegliere è `ultimoRitaglioNuvola`, pura e provata (organizzazione se risponde
+e ha un volume, chiave se no, `null` se niente — mai un ritaglio inventato).
+Il testo qui sotto resta come misura di partenza.
+
+⛔ Genesi **non usa `orgCollection` nemmeno una volta**. I suoi dati stanno in
+`localStorage`, con quattro chiavi:
+
+    grep -oE "localStorage\.(get|set)Item\('[a-zA-Z]+'" apps/genesi/*.js apps/genesi/genesi.html
+
+`genesiCmp` (confronti), `genesiRicon` (storico riconciliazioni), `genesiSent`,
+`genesiSito` (punti del sito).
+
+⛔ **Misurato il 02/09, e il conto qui sopra era stretto — di nuovo il righello
+che cerca UNA forma.** Le chiavi sono **nove**, non quattro: quel `grep` cerca
+il letterale `localStorage.getItem('…')`, e Genesi ne scrive tre per alias
+(`_lsGet('genesiVolate')`) o per concatenazione (`'genesiCmp' + slot`). E i
+ponti di **file** già vivi sono **quattro**, non uno: Genesi→Sentinella
+(`parseVolateCsv`), Genesi→Campo (`parsePianoCsv`), Campo→Genesi
+(`pianoConsuntivoCsv`) e Genesi→Terra **via chiave del browser** (Terra legge
+`genesiNuvole`). ⏱️ *Dal 05/09 (notte) due dei quattro passano ANCHE dai dati:
+Genesi→Sentinella (3e, `previste`) e Campo→Genesi (Genesi legge `pianocarico`
+di Campo con la seconda istanza e lo compone con la STESSA `pianoConsuntivoCsv`,
+salita in `shared/`) e, dalla stessa notte, Genesi→Campo (il piano di carico:
+`pianoCsvGenesi` compone in un posto solo il file E il testo che Campo
+ricompone dal record `piani`, letto con la stessa `parsePianoCsv`); il file
+resta per chi lavora da solo. Resta la chiave del browser verso Terra, che è
+un ripiego: le nuvole nell'organizzazione ci sono dal 02/09.* Il censimento completo, coi pesi misurati in Chromium (una
+volata 561 B, la nuvola da 700.000 punti che NON sta in nessun archivio e non
+deve), i vincoli (l'offline prima di tutto: è la decisione 5b del fondatore) e
+un piano in 8 unità ≈ 20 ore sta in `docs/GENESI_FUORI_DAL_BROWSER.md`.
+
+**Quindi Genesi non è isolata per dimenticanza: è isolata perché quello che
+produce non esce dalla macchina di chi l'ha usata.** Un collega che apre Genesi
+da un altro computer non vede niente di quello che hai progettato.
+
+Questo cambia l'ordine dei lavori: **finché i dati di Genesi restano locali,
+nessun ponte verso di lei è possibile.** Il primo passo non è il ponte — è
+portare le sue volate nei dati dell'organizzazione.
+
+✅ **E la chiave `genesiSent` NON era un abbozzo: è il ponte verso Sentinella,
+finito e funzionante — l'ho verificato invece di lasciarlo «da verificare».**
+È la schermata da cui esce il CSV che Sentinella importa, e porta accanto una
+riga che vale la pena leggere, perché è il principio del fondatore applicato a
+un file che legge un'ALTRA app: «`null` NON È ZERO, nemmeno qui — anzi
+soprattutto qui», con il racconto di un limite non calcolabile che usciva
+come **0** e che Sentinella avrebbe letto come una soglia superata da
+qualunque volata.
+
+⚠️ Ma il ponte passa da un **file**, non dai dati: se le volate di Genesi
+restano nel browser, quel file lo deve esportare e importare una persona. È
+questo che va sciolto per primo.
+
+---
+
+## 5. Che cosa questo documento NON dice
+
+Per onestà, e perché nessuno lo usi per decidere cose che non copre:
+
+- **non dice se ogni singola app funzioni bene.** Ha contato funzioni,
+  schermate e collezioni; non ha aperto le schermate una per una. Il giudizio
+  «cosa manca a Conti» richiede una passata dedicata, app per app;
+- **non dice quali sovrapposizioni siano lo STESSO oggetto.** `scadenze` in
+  Terra sono autorizzazioni minerarie, in Flotta revisioni dei mezzi, in Scudo
+  visite mediche: si somigliano nel nome, e prima di unirle va verificato che
+  la domanda dell'utente sia davvero una sola;
+- **non ha misurato il valore in ore risparmiate.** «Valore alto» è un
+  giudizio, non una misura;
+- **non ha censito i ponti fatti con un FILE.** Il censimento cerca chi legge
+  il database di un'altra app; Genesi→Sentinella passa da un CSV ed è sfuggito
+  al primo giro. Ne esistono altri? **Non è stato misurato**, e finché non lo
+  è, ogni «non c'è» di questo documento vale per i ponti di dati soltanto.
+  ⚠️ È il difetto che questo repository chiama per nome: *un censimento che
+  cerca UNA forma risponde «non c'è» con la stessa faccia con cui direbbe la
+  verità.* L'ho rifatto, e l'ha preso solo l'aver aperto il codice di Genesi
+  invece di fidarmi del mio conto.
+
+---
+
+## 6. Il conto, per vederlo scendere
+
+| | oggi |
+|---|---|
+| ponti di DATI esistenti | **16** su 56 direzioni *(era 6; il 05/09 (notte) sono entrati Genesi→Sentinella (3e), Campo→Genesi (il consuntivo di carico letto dall'organizzazione) e Genesi→Campo (il piano di carico, collezione `piani`): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
+| ponti di FILE | **4** censiti in §4 *(era «almeno 1»)*; dal 05/09 (notte) tre dei quattro hanno anche la strada dei dati (Genesi→Sentinella, Campo→Genesi, Genesi→Campo) e resta solo-chiave-del-browser Genesi→Terra (le nuvole, che nell'organizzazione ci sono già dal 02/09: Terra legge PRIMA di là) |
+| app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
+| app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
+| …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
+| sovrapposizioni non collegate | **0** *(era 1 fino al 05/09 notte: la 3e passava da un file, adesso passa dai dati; era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
+
+Chi costruisce un ponte aggiorna questa tabella.
+
+---
+
+Verificato contro il commit `d521c96d` del 2026-08-26.

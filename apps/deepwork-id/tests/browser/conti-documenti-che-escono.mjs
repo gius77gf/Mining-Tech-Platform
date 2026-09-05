@@ -80,10 +80,11 @@ const DIFETTI = [
      scrive. ⚠️ L'ancora è **corta** apposta: cita solo il ciclo, non il suo
      commento, perché un commento si riscrive e l'iniezione scadrebbe senza
      fare rumore. */
-  ["    for (const c of r.righeSenzaImporto)", "    for (const c of [])"],
+  ["  for (const c of r.righeSenzaImporto)", "  for (const c of [])", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   // 1 · il CSV degli incassi che ignora le note di credito
-  ["      const st = statoFattura(r.f, INC, NOT);",
-   "      const st = { esigibile: round2(importiFattura(r.f).totale), stornato: 0 };"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvProspettoIncassi`): due spazi in meno. */
+  ["    const st = statoFattura(r.f, INC, NOT);",
+   "    const st = { esigibile: round2(importiFattura(r.f).totale), stornato: 0 };", MODULO],
   /* 2 · e la RIGA della lista che leggeva `f.residuo` dal record. Dieci spazi
      d'indentazione: la stessa chiamata esiste anche nel foglio stampato
      (riga 4388, quattro spazi), e i soggetti devono restare uno. */
@@ -93,7 +94,7 @@ const DIFETTI = [
      GRATIS, nel foglio che si manda al cliente — mentre le tre celle accanto
      (densità, prezzo_t, prezzo_m3) lasciavano già la cella vuota. */
   ["${numeroDichiarato(p.prezzo) ?? \"\"};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}",
-   "${+p.prezzo || 0};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}"],
+   "${+p.prezzo || 0};${p.unitaPrezzo === \"m3\" ? \"m3\" : \"t\"}", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   /* 4 · e l'importo di una voce di costo, stessa famiglia.
      ⚠️ QUESTA INIEZIONE NON PRODUCE UN KO, ED È GIUSTO COSÌ — sta scritto qui
      perché chi conta «4 difetti rimessi, 3 KO» non pensi a una regressione.
@@ -103,14 +104,16 @@ const DIFETTI = [
      `cellaNum` scrivono la stessa cosa. La correzione resta giusta — è la
      stessa regola delle altre due celle — ma è difesa in profondità, non un
      difetto che si vedeva. */
-  ["  const cellaNum = (x) => { const v = numeroDichiarato(x); return v == null ? \"\" : Math.round(v * 100) / 100; };",
-   "  const cellaNum = (x) => (+x || 0);"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: `cellaNum` è salita in conti-data.js. */
+  ["export function cellaNum(x) { const v = numeroDichiarato(x); return v == null ? \"\" : Math.round(v * 100) / 100; }",
+   "export function cellaNum(x) { return (+x || 0); }", MODULO],
   /* 5 · il file perde una riga IN SILENZIO e la frase continua a contare
      l'array sorgente: è la forma esatta del difetto che il confronto
      frase↔file esiste per prendere. Un cliente sparisce dall'anagrafica
      esportata, e il messaggio dice ancora quanti ce n'erano. */
-  ["    for (const c of CLI.slice().sort((a, b) => String(a.ragioneSociale || \"\").localeCompare(String(b.ragioneSociale || \"\"), \"it\")))",
-   "    for (const c of CLI.slice(1).sort((a, b) => String(a.ragioneSociale || \"\").localeCompare(String(b.ragioneSociale || \"\"), \"it\")))"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvProspettoClienti`): `CLI` lì si chiama `clienti`. */
+  ["  for (const c of (clienti || []).filter(Boolean).slice().sort(",
+   "  for (const c of (clienti || []).filter(Boolean).slice(1).sort(", MODULO],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco.
@@ -155,8 +158,12 @@ const CASI = `
 
 let iniezioni = 0;
 const rimessi = new Set();
-const applica = (t) => {
-  for (const [i, [da, a]] of DIFETTI.entries()) {
+/* ⛔ OGNI INIEZIONE DICHIARA IL SUO FILE, E SI APPLICA SOLO LÌ (05/09): fino a
+   oggi `applica` girava sulla sola PAGINA — lo stesso buco chiuso lo stesso
+   giorno nel banco di Flotta. Senza file vale la pagina, come prima. */
+const applica = (t, file) => {
+  for (const [i, [da, a, f]] of DIFETTI.entries()) {
+    if ((f || PAGINA) !== file) continue;
     const n = t.split(da).length - 1;
     if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA (#${i + 1}): ${n} soggetti`); continue; }
     t = t.replace(da, a); rimessi.add(i);
@@ -173,8 +180,12 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith(MODULO)) { corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8"); iniezioni++; }
-  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8")), "utf8");
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASI, "utf8"); iniezioni++;
+  }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

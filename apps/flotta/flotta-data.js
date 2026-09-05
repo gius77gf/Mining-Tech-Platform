@@ -85,13 +85,13 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
-         dataISOEsiste, dataIt, plurale,
+         dataISOEsiste, dataIt, plurale, conta, euro, isoLocale,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -235,7 +235,12 @@ export const DEMO = {
   // ritrovato come riga di ricambio). n2 è in lavorazione con due persone e
   // ore diverse, n4 è ferma in attesa di un pezzo.
   manutenzioni: [
-    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500", ricambioId: "p1" },
+    // n1 porta `scrittaIl` (04/09): è il giorno del tagliando precedente (w1,
+    // 10/07), quando questo è stato pianificato. Senza azzeramenti sul mezzo
+    // il campo non si legge; con uno, dice su quale contatore sono le 6.000 h.
+    // n5 e n6 restano SENZA di proposito: sono i tagliandi «in archivio prima
+    // che la data esistesse».
+    { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", dataPrevista: null, orePreviste: 6000, ogniOre: 500, piano: "500", ricambioId: "p1", scrittaIl: "2026-07-10" },
     { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", dataPrevista: "2026-08-05",
       stato: "in-corso",
       manodopera: [{ chi: "Marco", ore: 3, tariffa: 32 }, { chi: "Officina esterna", ore: 1.5, tariffa: 55 }],
@@ -365,6 +370,37 @@ export const DEMO = {
     { id: "c6", voce: "Gomme", importo: 3400, nota: "4 gomme dumper", data: "2026-05-22" },
     { id: "c7", voce: "Ricambi e officina", importo: 1760, nota: "", data: "2026-05-07" },
   ],
+  // IL REGISTRO COSTI DELLA CAVA COME LO TIENE CONTI (solo per la modalità
+  // dimostrativa): in un'organizzazione vera arriva dall'app Conti, che scrive
+  // la voce con la CHIAVE di `VOCI_COSTO` («carburante»), non col nome libero
+  // che si scrive qui. I casi sono DECISI, non sorteggiati, e ognuno serve a
+  // far vedere una riga della schermata Costi:
+  //  · k1 è LO STESSO gasolio di c1 qui sopra: stessa data, stesso importo,
+  //    alla cifra. È l'euro contato due volte, e nell'elenco c1 prende il
+  //    contrassegno «anche in Conti»;
+  //  · k2 è un'officina esterna che in Conti c'è e qui NO: Conti ne sa di più
+  //    su quella voce, e il confronto lo dice senza accusare nessuno;
+  //  · k3 è SENZA data: entra nel totale di Conti ma non si può confrontare
+  //    alla cifra, e va detto invece di farla sparire;
+  //  · k4 non è una voce da mezzo (personale): resta fuori dal confronto per
+  //    costruzione, come vuole la bandiera `daMezzo` di shared/.
+  // I noleggi restano SOLO qui (c3, c5): Conti risponde «—», non zero.
+  costiConti: [
+    { id: "k1", data: "2026-07-06", voce: "carburante", importo: 8400, nota: "Gasolio, fattura del distributore" },
+    { id: "k2", data: "2026-07-20", voce: "manutenzione", importo: 640, nota: "Officina esterna, fattura di luglio" },
+    { id: "k3", voce: "carburante", importo: 500, nota: "Buono gasolio senza data" },
+    { id: "k4", data: "2026-07-03", voce: "personale", importo: 5500, nota: "Squadra di fronte, luglio" },
+  ],
+  /* IL BUDGET DELL'ANNO, per voce (05/09): quello che il gestore del parco
+     ha DECISO di spendere. La voce è la stessa parola con cui si registrano i
+     costi (`Carburante`, `Ricambi e officina`…); la voce VUOTA è il budget di
+     tutta la flotta. Le gomme e i noleggi non hanno un budget: è il caso
+     «spesa senza budget», che il confronto deve dichiarare, non tacere. */
+  budget: [
+    { id: "b1", anno: 2026, voce: "Carburante", importo: 12000 },
+    { id: "b2", anno: 2026, voce: "Ricambi e officina", importo: 8000 },
+    { id: "b3", anno: 2026, voce: "", importo: 30000 },
+  ],
   interventi: [
     // w1 porta la LAVORAZIONE (L5): due persone, ore e costo orario, il pezzo
     // consumato. `ricambio` e `costo` restano quelli di sempre, così registro,
@@ -482,13 +518,16 @@ export function aggiungiMesi(dataISO, mesi) {
 // Flotta: cls "danger" | "warn" | "ok" per il badge. Lo stato non si salva
 // MAI: si calcola dalla data. Pura e testabile.
 export function statoScadenzaMezzo(dataISO, oggi = new Date(), preavvisoGiorni = 30) {
-  const soglia = Math.max(0, Math.round(+preavvisoGiorni || 0));
-  if (!dataISO) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
+  /* il verdetto lo decide la regola condivisa (`statoScadenza`, dal 02/09: era
+     la stessa regola scritta tre volte in tre app); qui restano il vocabolario
+     di Flotta («a-posto», «senza-data») e il colore, che il giorno stesso è
+     rosso: una revisione che scade oggi non è un avviso, è oggi */
+  const st = statoScadenza(dataISO, oggi, preavvisoGiorni);
+  if (st === "senza data") return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
   const g = giorniTra(String(dataISO).slice(0, 10), oggi);
-  if (!Number.isFinite(g)) return { stato: "senza-data", cls: "warn", label: "senza data", giorni: null };
-  if (g < 0) return { stato: "scaduta", cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
+  if (st === "scaduta") return { stato: "scaduta", cls: "danger", label: "scaduta da " + (-g) + " gg", giorni: g };
   if (g === 0) return { stato: "in-scadenza", cls: "danger", label: "scade oggi", giorni: 0 };
-  if (g <= soglia) return { stato: "in-scadenza", cls: "warn", label: "tra " + g + " gg", giorni: g };
+  if (st === "in-scadenza") return { stato: "in-scadenza", cls: "warn", label: "tra " + g + " gg", giorni: g };
   return { stato: "a-posto", cls: "ok", label: "tra " + g + " gg", giorni: g };
 }
 
@@ -577,11 +616,32 @@ export function validaScadenzaMezzo(dati, oggi = new Date()) {
 // di import telemetria (vedi vault "Telematics — cosa può fare Flotta").
 // Il campo `mezzo` va SEMPRE escapato dove mostrato (testo grezzo del file).
 // Funzione pura e testabile.
+/* LE COLONNE DELLA TELEMETRIA, PER NOME (05/09, candidato (c) della ricerca).
+   Un export Piusi/Gilbarco/VisionLink non si chiama «mezzo;ore;carburante»:
+   si chiama «Asset;Engine Hours;Fuel (l)», o «Targa;Contatore;Litri». La
+   mappa la fa `mappaColonne` di `shared/` (la stessa domanda di Conti); qui
+   solo gli INDIZI. Il carburante è facoltativo; l'intestazione «vale» quando
+   ha mezzo e ore, e allora comandano i nomi — se no, la posizione di sempre. */
+export const INDIZI_TELEMETRIA = {
+  mezzo: ["mezzo", "targa", "veicolo", "macchina", "asset", "unit", "equipment", "machine", "vehicle", "nome"],
+  ore: ["ore motore", "ore", "engine hours", "hours", "hour meter", "smu", "contatore", "hrs"],
+  carburante: ["carburante", "litri", "gasolio", "diesel", "fuel", "rifornimento", "quantita", "erogato"],
+};
+export function mappaTelemetriaCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  return mappaColonne(righe.length ? parseCsvLine(righe[0]) : [], INDIZI_TELEMETRIA,
+    { facoltative: ["carburante"], conIntestazione: (ix) => ix.mezzo >= 0 && ix.ore >= 0 });
+}
 export function parseTelemetriaCsv(text) {
-  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "mezzo"))
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  const m = righe.length ? mappaTelemetriaCsv(text) : null;
+  const perNome = !!(m && m.conIntestazione);
+  return righe
+    .filter((r, i) => !(perNome && i === 0) && !isIntestazione(r, "mezzo"))
     .map(r => {
-      const [mezzo, ore, carburante] = parseCsvLine(r);
+      const c = parseCsvLine(r);
+      const g = (campo, pos) => { const i = perNome ? m.indici[campo] : pos; return i >= 0 && i < c.length ? c[i] : undefined; };
+      const mezzo = g("mezzo", 0), ore = g("ore", 1), carburante = g("carburante", 2);
       return {
         mezzo: (mezzo || "").trim(),
         ore: numIt(ore),
@@ -608,17 +668,23 @@ export function parseTelemetriaCsv(text) {
    ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
    righe di coda come `;;;`. Si contano a parte (`vuote`) e non si dicono. */
 export function scartiTelemetriaCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "mezzo"));
+  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  /* con l'intestazione per nome ogni riga si giudica INSIEME alla testa, se no
+     il lettore la leggerebbe per posizione e direbbe una ragione sbagliata */
+  const m = tutte.length ? mappaTelemetriaCsv(text) : null;
+  const perNome = !!(m && m.conIntestazione);
+  const testa = perNome ? tutte[0] : (tutte.find(r => isIntestazione(r, "mezzo")) || "");
+  const righe = tutte.filter((r, i) => !(perNome && i === 0) && !isIntestazione(r, "mezzo"));
   const persi = [];
   let nRiga = 0;
   let vuote = 0;
   for (const riga of righe) {
     nRiga++;
-    if (parseTelemetriaCsv(riga).length) continue;
+    if (parseTelemetriaCsv(testa ? testa + "\n" + riga : riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
-    const mezzo = (c[0] || "").trim(), ore = (c[1] || "").trim(), n = numIt(ore);
+    const g = (campo, pos) => { const i = perNome ? m.indici[campo] : pos; return i >= 0 && i < c.length ? String(c[i] == null ? "" : c[i]).trim() : ""; };
+    const mezzo = g("mezzo", 0), ore = g("ore", 1), n = numIt(ore);
     persi.push({
       nome: mezzo || "riga " + nRiga,
       ragione: !mezzo ? "manca il nome del mezzo"
@@ -716,6 +782,281 @@ export function scartiRicambiCsv(text) {
    contrario nasconderebbe i pezzi finiti, che sono quelli da ordinare), la
    SOGLIA e il PREZZO che mancano restano **vuoti** — uno zero farebbe suonare
    un allarme che nessuno ha chiesto, o sembrare gratis un pezzo che non lo è. */
+/* I COSTI CON LA LORO DATA (05/09, salito dalla pagina): il file che si porta
+   al commercialista. Le voci senza data escono con la cella vuota — non con
+   una data messa lì per riempire — e un importo non dichiarato resta vuoto,
+   non «0». Righe con a capo Windows perché lo apre un foglio di calcolo;
+   la pagina ci mette davanti il BOM. Pura. */
+export const CSV_COSTI_INTESTAZIONE = "data;voce;importo;nota";
+export function csvCosti(costi) {
+  const righe = [CSV_COSTI_INTESTAZIONE].concat(
+    (costi || []).filter(Boolean).slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
+      .map(c => [dataISOEsiste(String(c.data || "").slice(0, 10)) ? String(c.data).slice(0, 10) : "",
+                 c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
+                 c.nota || ""].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* IL REGISTRO DEI FERMI (05/09, salito dalla pagina): quello che si guarda
+   quando si decide se una macchina va tenuta o sostituita, e che si porta al
+   noleggiatore. La colonna «stato» dice le TRE cose che `durataFermo` sa dire
+   — aperto, chiuso, e «data non valida» quando una delle due date non si
+   legge — perché un fermo con la ripartenza illeggibile che uscisse «chiuso»
+   a zero giornate sarebbe la parola più tranquilla proprio dove lo schermo
+   grida. Ordine e testi sono quelli di `fermiOrdinati`, la stessa dello
+   schermo. Pura. */
+export const CSV_FERMI_INTESTAZIONE = "mezzo;causale;inizio;fine;giorni;stato;note";
+export function csvFermiMacchina(fermi, oggi = new Date()) {
+  const righe = [CSV_FERMI_INTESTAZIONE]
+    .concat(fermiOrdinati(fermi || [], oggi).map(f =>
+      [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
+       f.statoTx, f.note || ""].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* I GIRI MACCHINA ESPORTATI (05/09, salito dalla pagina): il registro che si
+   mostra quando qualcuno chiede «dimostratemi che le macchine le controllate
+   prima di usarle». L'esito lo decide `statoGiro`, la stessa dello schermo e
+   del libretto: un giro che dichiara anomalie senza portarne l'elenco esce
+   «N segnate, dettaglio delle voci non registrato», non «tutto a posto ; 0».
+   Dal più recente. Pura. */
+export const CSV_GIRI_INTESTAZIONE = "data;mezzo;tipo;operatore;ore;esito;anomalie;voci_non_ok;note";
+export function csvGiriMacchina(controlli) {
+  const righe = [CSV_GIRI_INTESTAZIONE]
+    .concat((controlli || []).filter(Boolean).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
+      const s = statoGiro(c);
+      return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
+              c.ore || "", s.etichetta, s.anomalie,
+              s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
+                         : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
+    }));
+  return righe.join("\r\n");
+}
+
+/* LO SCADENZARIO DEI MEZZI (05/09, salito dalla pagina): la lista che si
+   porta al controllo o si gira al responsabile della sicurezza. L'ordine e il
+   semaforo sono di `scadenzeOrdinate`; il riferimento normativo viene dal
+   preset. ⛔ E un mezzo senza NESSUNA riga in scadenzario non sparisce dal
+   foglio: esce con «nessuna registrata» e la frase che dice che non vuol
+   dire che non ne abbia — la regola che `contaScadenzeMezzi` applica già
+   allo schermo. `mezzi` è il parco. Pura. */
+/* I MEZZI DEL PARCO SENZA NESSUNA RIGA IN SCADENZARIO, per nome breve: li
+   usano il foglio (una riga «nessuna registrata» ciascuno) e la frase sotto il
+   bottone. Una domanda, scritta una volta. Pura. */
+export function mezziSenzaScadenze(scadenze, mezzi) {
+  const coperti = new Set((scadenze || []).filter(Boolean).map(s => nomeBreve(s.mezzo)).filter(Boolean));
+  return (mezzi || []).filter(Boolean).map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));
+}
+export const CSV_SCADENZE_MEZZI_INTESTAZIONE = "mezzo;tipo;scadenza;stato;ogni_mesi;documento;ultima_verifica;esito;note;riferimento_normativo";
+export function csvScadenzeDiLegge(scadenze, mezzi, oggi = new Date(), preavvisoGiorni = 30) {
+  const SCA = (scadenze || []).filter(Boolean);
+  const righe = [CSV_SCADENZE_MEZZI_INTESTAZIONE]
+    .concat(scadenzeOrdinate(SCA, oggi, preavvisoGiorni).map(s => {
+      const p = presetScadenzaMezzo(s.chiave);
+      return [s.mezzo || "", s.tipo || "", dataIt(s.dataScadenza), s.sem.stato, s.mesi || "",
+              s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
+              s.note || "", p ? p.norma : ""].map(csvCell).join(";");
+    }));
+  for (const n of mezziSenzaScadenze(SCA, mezzi))
+    righe.push([n, "", "", "nessuna registrata", "", "", "", "",
+                "Su questo mezzo non è registrata nessuna scadenza di legge: non vuol dire che non ne abbia.",
+                ""].map(csvCell).join(";"));
+  return righe.join("\r\n");
+}
+
+/* IL REGISTRO DEGLI INTERVENTI (05/09, salito dalla pagina): l'export più
+   grande dell'app, quello che si porta al commercialista. La cella
+   dell'importo resta VUOTA quando il costo non c'è — chi apre il file in un
+   foglio uno zero lo somma credendolo misurato — e `numeroDichiarato` tiene
+   lo zero dichiarato (un intervento in garanzia costa davvero zero). Le
+   colonne della lavorazione sono in fondo: chi apriva il file prima ritrova
+   le sue nelle stesse posizioni. Dal più recente. Pura. */
+export const CSV_INTERVENTI_INTESTAZIONE = "data;titolo;mezzo;ricambio;costo;note;ore_manodopera;costo_manodopera;costo_ricambi;chi_ha_lavorato";
+export function csvRegistroInterventi(interventi) {
+  const righe = [CSV_INTERVENTI_INTESTAZIONE]
+    .concat((interventi || []).filter(Boolean).slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
+      .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
+                 numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
+                 w.oreManodopera == null ? "" : w.oreManodopera,
+                 w.costoManodopera == null ? "" : w.costoManodopera,
+                 w.costoRicambi == null ? "" : w.costoRicambi,
+                 (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* LA LISTA DELLA SPESA (05/09, salita dalla pagina): le righe da ordinare di
+   `propostaScorte`, e in fondo le TRE dichiarazioni d'incertezza che il
+   modulo alza con le bandiere — `senzaData` (interventi fuori dal conto: le
+   quantità sono un MINIMO), `attendibile` (quantità contate 1 per gli
+   interventi vecchi: una STIMA), `senzaPrezzo` (la colonna «spesa» è un
+   minimo, o non si può dire) — ognuna come riga di testo con una cella sola,
+   che un foglio di calcolo non somma. La colonna `episodi` è il dato al posto
+   del giudizio «affidabile». `proposta` è ciò che `propostaScorte` ritorna;
+   senza niente da ordinare esce la sola intestazione. Pura. */
+export const CSV_LISTA_SPESA_INTESTAZIONE = "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi";
+export function csvListaDellaSpesa(proposta) {
+  const p = proposta || {};
+  const da = (p.righe || []).filter(r => r && r.daOrdinare > 0);
+  const righe = [CSV_LISTA_SPESA_INTESTAZIONE]
+    .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
+                         r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
+                         r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
+  if (!da.length) return righe.join("\r\n");
+  if (p.senzaData) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
+      + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
+      + " quindi le quantità da ordinare sono un MINIMO."));
+  }
+  if (!p.attendibile) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")
+      + " quante unità di ricambio sono state usate, e ne è stato contato 1"
+      + (p.daInterventiVecchi === 1 ? "." : " per ciascuno.")
+      + " Il consumo qui sopra è in parte una STIMA, non una misura:"
+      + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
+  }
+  if (p.senzaPrezzo) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.senzaPrezzo, "ricambio di questa lista non ha", "ricambi di questa lista non hanno")
+      + " un prezzo scritto a magazzino, quindi la colonna «spesa» resta vuota."
+      + (p.senzaPrezzo >= da.length
+          ? " Nessuna riga porta un prezzo: quanto costa questa lista non si può dire."
+          : " Il totale della colonna è quindi un MINIMO, non la spesa vera.")));
+  }
+  return righe.join("\r\n");
+}
+
+/* LA SITUAZIONE DEL PARCO (05/09, salita dalla pagina): il foglio che si gira
+   al responsabile o all'officina — i mezzi con le ore (o «ore non
+   registrate»), gli ordini di lavoro con lo stato di `statoOrdine` (mai una
+   parola fissa: «attesa pezzi» è rosso sullo schermo e deve esserlo anche
+   qui) e la coda sul contatore non confrontabile, i ricambi con lo stato di
+   `statoScorta` (un pezzo senza soglia non è «ok»). Le ore raggruppate come
+   sullo schermo (`useGrouping`, regola 16). `letture` sono le letture del
+   contatore, per sapere se il tagliando parla del contatore attuale. Pura. */
+/* LE PAROLE DEL LIBRETTO E DEI FILE (05/09, salite dalla pagina, dove erano
+   scritte una volta per lo schermo e riscritte per i file). Le ore motore:
+   «ore motore non registrate» quando il contatore non è stato letto — mai
+   «0 ore motore», che su una macchina usata è falsa; `marca` avvolge il
+   numero per lo schermo. Le ore di lavoro con due decimali al massimo. La
+   ricorrenza in mesi. La lavorazione di un intervento (ore, chi, manodopera),
+   con `avvolgi` per i nomi sullo schermo. Lo stato del mezzo a parole. Le
+   ore raggruppate come sullo schermo (`useGrouping`, regola 16). Pure. */
+export const ETICHETTA_STATO_MEZZO = { operativo: "Operativo", fermo: "Fermo", verifica: "Verifica" };
+export function oreMotoreTesto(v, marca) {
+  if (numeroDichiarato(v) == null) return "ore motore non registrate";
+  const n = (+v).toLocaleString("it-IT", { useGrouping: true });
+  return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");
+}
+export function oreLavoroTesto(v) { return (+v || 0).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true }) + " h"; }
+export function ogniMesiTesto(n) { return "ogni " + plurale(n, "mese", n + " mesi"); }
+export function lavorazioneTesto(w, avvolgi = (t) => t) {
+  const x = w || {};
+  const ore = +x.oreManodopera || 0;
+  const chi = (x.manodopera || []).filter(r => r && (+r.ore || 0) > 0);
+  if (!ore && !chi.length) return "";
+  const nomi = chi.map(r => r.chi).filter(Boolean);
+  return [ore ? oreLavoroTesto(ore) + " di lavoro" : "",
+          nomi.length ? nomi.map(avvolgi).join(", ") : "",
+          (+x.costoManodopera || 0) ? "manodopera " + euro(x.costoManodopera) : ""].filter(Boolean).join(" · ");
+}
+/* la coda per i FILE che escono (situazione, libretto): quando il tagliando
+   non parla del contatore attuale, il foglio lo dice — chi lo legge confronta
+   quelle ore col contaore della macchina, e sbaglierebbe */
+export function codaContatoreTesto(n, letture) {
+  if (!n || !n.orePreviste) return "";
+  const c = contatoreDelTagliando(n, azzeramentiDelMezzo(letture || [], n.mezzo));
+  return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
+}
+
+/* IL LIBRETTO DEL MEZZO (05/09, salito dalla pagina): il foglio che si
+   consegna a chi compra la macchina o al noleggiatore. Le sezioni sono quelle
+   del fascicolo (`fascicoloMezzo`, la stessa dello schermo) e OGNI sezione
+   vuota scrive la sua riga «nessuna registrata» con le stesse parole dello
+   stato vuoto che si vede — chi apre il file deve poter distinguere «questa
+   macchina non ha scadenze» da «nessuno le ha registrate». L'esito di un giro
+   è quello di `statoGiro`; un costo non scritto lascia la cella VUOTA (uno
+   zero si somma); il consumo non calcolabile dice perché. Pura. */
+export const CSV_LIBRETTO_INTESTAZIONE = "sezione;voce;data;dettaglio;importo";
+export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30) {
+  const m = mezzo || {};
+  const d = dati || {};
+  const f = fascicoloMezzo(m, { manutenzioni: d.manutenzioni || [], interventi: d.interventi || [], scadenze: d.scadenze || [],
+                                controlli: d.controlli || [], rifornimenti: d.rifornimenti || [], fermi: d.fermi || [] }, oggi, preavvisoGiorni);
+  const righe = [CSV_LIBRETTO_INTESTAZIONE];
+  const R = (s, v, dt, det, imp) => righe.push([s, v, dt, det, imp == null ? "" : imp].map(csvCell).join(";"));
+  R("mezzo", m.nome || "", dataIt(isoLocale(oggi)),
+    ((f.tipo || {}).etichetta || "") + " · " + (m.area || "senza area") + " · "
+    + oreMotoreTesto(m.ore)
+    + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo), "");
+  const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
+  if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
+    s.sem.label + (s.mesi ? " · " + ogniMesiTesto(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
+  else VUOTA("scadenza di legge",
+    "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
+  if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
+    (n.orePreviste ? "a " + oreMotoreTesto(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTesto(n.ogniMesi) : "") + codaContatoreTesto(n, d.rifornimenti), ""));
+  else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
+  if (f.interventi.length) f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
+    [w.ricambio || "", lavorazioneTesto(w), w.note || "",
+     (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
+    (+w.costo > 0) ? +w.costo : null));
+  else VUOTA("intervento", "Nessun intervento chiuso su questa macchina: lo storico dell'officina è vuoto.");
+  if (f.fermi.length) f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
+    (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo")
+    + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : " · durata non calcolabile")
+    + (x.note ? " · " + x.note : ""), ""));
+  else VUOTA("fermo macchina", "Nessun fermo registrato: su questa macchina non risulta nessuna giornata persa.");
+  if (f.controlli.length) f.controlli.forEach(c => {
+    const g = statoGiro(c);
+    R("giro macchina", "controllo pre-uso", dataIt(c.data),
+      (c.operatore ? c.operatore + " · " : "")
+      + (g.nominate ? (g.voci.join(" | ") || "nessuna anomalia")
+                    : g.anomalie > 0
+                      ? g.anomalie + (g.anomalie === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
+                      : "nessuna anomalia"), "");
+  });
+  else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
+  if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
+    r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
+    + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
+  else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
+  R("consumo", "litri per ora", "", !f.consumo
+    ? "Nessun rifornimento registrato: il consumo non si può calcolare."
+    : f.consumo.litriOra != null
+      ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
+      : "Non calcolabile: " + f.consumo.perche + ".", "");
+  R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
+    + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
+    + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
+        + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
+    f.officina.misurato ? f.officina.totale : null);
+  R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
+    ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
+      + (f.fermo.aperti ? " · " + f.fermo.aperti + plurale(f.fermo.aperti, " ancora aperto", " ancora aperti") : "")
+      + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
+          + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
+    : "Nessun fermo registrato.", "");
+  return righe.join("\r\n");
+}
+
+export const CSV_SITUAZIONE_INTESTAZIONE = "tipo;nome;stato;dettaglio";
+export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
+  const it = (v) => (+v).toLocaleString("it-IT", { useGrouping: true });
+  const codaContatore = (n) => codaContatoreTesto(n, letture);
+  let csv = CSV_SITUAZIONE_INTESTAZIONE + "\n";
+  for (const m of (mezzi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
+    csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((numeroDichiarato(m.ore) != null ? it(m.ore) + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
+  for (const n of (manutenzioni || []).filter(Boolean).slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
+    csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + it(n.orePreviste) + " h motore" + codaContatore(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
+  for (const r of (ricambi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))) {
+    const s = statoScorta(r);
+    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
+  }
+  return csv;
+}
+
 export function csvRicambi(ricambi) {
   const righe = ["nome;giacenza;sogliaMin;prezzo"];
   for (const r of (ricambi || [])) {
@@ -1025,7 +1366,12 @@ const oreContatore = (mezzo) => {
 // attaccare il perché e da quanto, che è la prima cosa che chiede chi guarda
 // il Quadro. Anche questo parametro è facoltativo: senza, il comportamento è
 // quello di prima, parola per parola.
-export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = []) {
+// Dal 04/09 accetta anche le LETTURE del contatore (`letture`, facoltativo):
+// servono a sapere se un tagliando a ore è scritto sul contatore che il
+// mezzo ha oggi. Un tagliando non confrontabile è una riga `warn`, perché
+// chiede un'azione (riscriverlo sul contatore nuovo); senza letture, o senza
+// azzeramenti, il comportamento è quello di prima.
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = [], letture = []) {
   const items = [];
   for (const s of scadenze || []) {
     const sem = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni);
@@ -1046,7 +1392,16 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
     if (n.orePreviste) {
       const ore = oreDi(n.mezzo);
       if (ore == null) continue;                 // mezzo non trovato: non calcolabile
-      u = urgenzaOre(n.orePreviste, ore);
+      u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, n.mezzo));
+      if (!u.calcolabile) {
+        // non è «a posto» e non è un numero: è una cosa da fare, e il Quadro
+        // la mette fra le priorità con la sua ragione
+        items.push({ gravita: "warn", categoria: "manutenzione", origine: n.origine || null,
+          titolo: (n.titolo || "Manutenzione") + " — " + (n.mezzo || "?"),
+          dettaglio: "a " + mostra(n.orePreviste, 1) + " h motore, " + u.perche + ": da riscrivere sul contatore nuovo",
+          badge: u.label });
+        continue;
+      }
       // la riga di priorità va sul Quadro: il numero si scrive all'italiana,
       // altrimenti «a 6000.5 h motore» mette un punto inglese sulla prima
       // schermata dell'app, accanto a numeri con la virgola
@@ -1115,6 +1470,113 @@ export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
    le pagine non importino `shared/` per conto loro e perché `nomi-doppi` veda
    lo STESSO oggetto invece di due gemelli destinati a divergere. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
+
+/* BUDGET DELL'ANNO CONTRO SPESA REALE (05/09, la riga «Budget tracking vs
+   actual» che quattro concorrenti su quattordici hanno e questa casa no: era
+   «un excel parallelo»). Per ogni voce con un budget dichiarato per l'anno:
+   quanto era previsto, quanto risulta speso (i costi dell'anno con quella
+   voce), quanto ci si aspetterebbe di aver speso A OGGI se la spesa fosse
+   uniforme (`quotaAttesa`: il previsto per la frazione d'anno trascorsa —
+   sull'anno chiuso è il previsto intero), e lo stato:
+     sforato       speso > previsto
+     sopra-ritmo   speso > quota attesa + 10 %
+     in-linea      entro ±10 % della quota attesa
+     sotto-ritmo   speso < quota attesa − 10 % (può essere un risparmio o una
+                   spesa non registrata: la frase lo dice)
+     senza-spese   budget dichiarato, nessun costo dell'anno con quella voce
+   Tre cose che NON si fanno: un costo SENZA DATA non si mette nell'anno (si
+   conta a parte e si dichiara: sarebbe attribuito a un anno a caso); una
+   voce che ha spese ma non ha budget non riceve un budget zero (uscirebbe
+   «sforato del ∞»: si elenca fra le `senzaBudget`); e senza nessun budget
+   per l'anno `dichiarato` è falso e non si inventa niente. La voce vuota è
+   il budget di TUTTA la flotta, confrontato con tutti i costi dell'anno.
+   Le voci si confrontano senza badare a maiuscole e spazi. Pura. */
+export const ETICHETTA_STATO_BUDGET = {
+  sforato: ["danger", "Sforato"], "sopra-ritmo": ["warn", "Sopra il ritmo"], "in-linea": ["ok", "In linea"],
+  "sotto-ritmo": ["info", "Sotto il ritmo"], "senza-spese": ["tag", "Nessuna spesa"],
+};
+const chiaveVoce = (v) => String(v == null ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
+export function budgetVsSpesa(budget, costi, anno, oggi = new Date()) {
+  const A = anno != null && anno !== "" && Number.isFinite(+anno) && +anno > 0 ? +anno : new Date(oggi).getFullYear();
+  const O = new Date(oggi);
+  const inCorso = O.getFullYear() === A;
+  const chiuso = O.getFullYear() > A;
+  const giorniAnno = ((A % 4 === 0 && A % 100 !== 0) || A % 400 === 0) ? 366 : 365;
+  const giorniTrascorsi = inCorso ? Math.max(1, Math.round((Date.UTC(O.getFullYear(), O.getMonth(), O.getDate()) - Date.UTC(A, 0, 1)) / 86400000) + 1) : (chiuso ? giorniAnno : 0);
+  const frazione = giorniTrascorsi / giorniAnno;
+  const B = (Array.isArray(budget) ? budget : []).filter((b) => b && +b.anno === A && numeroDichiarato(b.importo) != null && +b.importo > 0);
+  const C = Array.isArray(costi) ? costi : [];
+  const dellAnno = [], senzaData = { voci: 0, importo: 0 };
+  for (const c of C) {
+    if (!c) continue;
+    const d = String(c.data || "").slice(0, 10);
+    if (!dataISOEsiste(d)) { senzaData.voci++; senzaData.importo += +c.importo || 0; continue; }
+    if (+d.slice(0, 4) === A) dellAnno.push(c);
+  }
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const stato = (speso, previsto, attesa, n) => {
+    if (!n) return "senza-spese";
+    if (speso > previsto) return "sforato";
+    if (!inCorso && !chiuso) return "in-linea";
+    if (speso > attesa * 1.1) return "sopra-ritmo";
+    if (speso < attesa * 0.9) return "sotto-ritmo";
+    return "in-linea";
+  };
+  const riga = (b) => {
+    const k = chiaveVoce(b.voce);
+    const spese = k ? dellAnno.filter((c) => chiaveVoce(c.voce) === k) : dellAnno;
+    const speso = r2(spese.reduce((t, c) => t + (+c.importo || 0), 0));
+    const previsto = r2(+b.importo);
+    const quotaAttesa = r2(previsto * (inCorso ? frazione : 1));
+    const st = stato(speso, previsto, quotaAttesa, spese.length);
+    return { id: b.id, voce: k ? String(b.voce).trim() : "", tutta: !k, previsto, speso, nSpese: spese.length, quotaAttesa,
+      scostamento: r2(speso - quotaAttesa), pct: previsto > 0 ? Math.round(speso / previsto * 100) : null, stato: st };
+  };
+  const righe = B.filter((b) => chiaveVoce(b.voce)).map(riga).sort((a, b) => b.previsto - a.previsto);
+  const tuttaB = B.find((b) => !chiaveVoce(b.voce));
+  const totale = tuttaB ? riga(tuttaB) : null;
+  const conBudget = new Set(righe.map((r) => chiaveVoce(r.voce)));
+  const perVoce = {};
+  for (const c of dellAnno) { const k = chiaveVoce(c.voce); if (!conBudget.has(k)) { perVoce[k] = perVoce[k] || { voce: String(c.voce || "").trim() || "(senza voce)", speso: 0, nSpese: 0 }; perVoce[k].speso = r2(perVoce[k].speso + (+c.importo || 0)); perVoce[k].nSpese++; } }
+  const senzaBudget = Object.values(perVoce).sort((a, b) => b.speso - a.speso);
+  return { anno: A, inCorso, chiuso, giorniTrascorsi, giorniAnno, frazione: Math.round(frazione * 1000) / 1000,
+    dichiarato: B.length > 0, righe, totale, senzaBudget,
+    spesoAnno: r2(dellAnno.reduce((t, c) => t + (+c.importo || 0), 0)), nSpeseAnno: dellAnno.length,
+    senzaData: { voci: senzaData.voci, importo: r2(senzaData.importo) } };
+}
+
+/* La frase che accompagna una riga del budget, a schermo e nel file: dice lo
+   stato E il perché, coi numeri all'italiana. `sotto-ritmo` non è «bene»: può
+   essere un risparmio o una spesa che nessuno ha registrato, e lo dice. */
+export function descriviBudget(r) {
+  if (!r) return "";
+  const E = (v) => euro(v);
+  /* il verdetto sta in TESTA: sullo schermo la riga è tagliata a due righe
+     e quello che finisce dopo il taglio non lo legge nessuno; il «speso su
+     previsto» lo dice già il titolo della riga */
+  switch (r.stato) {
+    case "senza-spese": return "Nessuna spesa registrata nell'anno con questa voce: non vuol dire che non si è speso, vuol dire che non risulta.";
+    case "sforato": return "SFORATO: " + E(r.speso - r.previsto) + " oltre il previsto (" + r.pct + "%).";
+    case "sopra-ritmo": return "Di questo passo il budget non basta: a oggi ci si aspettava " + E(r.quotaAttesa) + ", cioè " + E(r.scostamento) + " in meno (" + r.pct + "% del previsto).";
+    case "sotto-ritmo": return "Sotto la quota attesa a oggi (" + E(r.quotaAttesa) + "): può essere un risparmio, o una spesa non ancora registrata (" + r.pct + "% del previsto).";
+    default: return "In linea con la quota attesa a oggi (" + E(r.quotaAttesa) + "): " + r.pct + "% del previsto.";
+  }
+}
+
+/* IL FILE del budget: una riga per voce con budget, la riga di tutta la
+   flotta, e in coda le voci con spese ma senza budget (previsto VUOTO, non
+   zero) e i costi senza data (che non stanno nell'anno). */
+export const CSV_BUDGET_INTESTAZIONE = "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato";
+export function csvBudget(R) {
+  const r = R || { anno: "", righe: [], senzaBudget: [], senzaData: { voci: 0, importo: 0 } };
+  let csv = CSV_BUDGET_INTESTAZIONE + "\n";
+  const riga = (x) => `${r.anno};${csvCell(x.tutta ? "tutta la flotta" : x.voce)};${x.previsto};${x.speso};${x.nSpese};${x.quotaAttesa};${x.scostamento};${x.pct == null ? "" : x.pct};${ETICHETTA_STATO_BUDGET[x.stato] ? ETICHETTA_STATO_BUDGET[x.stato][1] : x.stato}\n`;
+  for (const x of r.righe || []) csv += riga(x);
+  if (r.totale) csv += riga(r.totale);
+  for (const x of r.senzaBudget || []) csv += `${r.anno};${csvCell(x.voce)};;${x.speso};${x.nSpese};;;;senza budget\n`;
+  if (r.senzaData && r.senzaData.voci) csv += `;${csvCell("costi senza data (fuori da ogni anno)")};;${r.senzaData.importo};${r.senzaData.voci};;;;non collocabili\n`;
+  return csv;
+}
 
 export function ripartizioneCosti(costi) {
   const per = {};
@@ -1189,6 +1651,98 @@ export function costiPerMese(costi) {
     mancanti = (a2 * 12 + m2) - (a1 * 12 + m1) + 1 - mesi.length;
   }
   return { mesi, totale, senzaData: { voci: sdVoci, importo: sdImporto }, mancanti };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTE · CONTI → FLOTTA — QUESTA SPESA RISULTA ANCHE NEL REGISTRO DELLA CAVA?
+// ══════════════════════════════════════════════════════════════════════
+// Il confronto voce per voce vive in `shared/` (`confrontoCostiMezzi`, serve a
+// due app) e qui si RI-ESPORTA: un alias non è una seconda implementazione.
+export { confrontoCostiMezzi } from "../../shared/dw-ponti.js";
+//
+// ⛔ MISURATO IL 02/09, E VALE PIÙ DI TUTTO QUELLO CHE STA QUI SOTTO: il registro
+// costi di Flotta scrive la voce A TESTO LIBERO — «Carburante» dal
+// rifornimento, «Manutenzione: <titolo> (<mezzo>)» dalla chiusura dell'ordine,
+// e quello che l'utente batte nel campo — mentre `confrontoCostiMezzi`
+// riconosce una voce da mezzo con `voceCosto(c.voce)`, che combacia SOLO con la
+// chiave («carburante»). Provato: `voceCosto("Carburante")` → `null`, e sui
+// sette costi della dimostrazione `confrontoCostiMezzi(…, DEMO.costi)` risponde
+// `totaleFlotta: 0`. Cioè il ponte Flotta→Conti, sui dati che Flotta scrive
+// davvero, vede Flotta a ZERO — e Conti direbbe «Flotta non ha registrato
+// niente su queste voci», con la faccia tranquilla.
+// La traduzione sta qui perché questo cantiere non può toccare `shared/` né
+// Conti; ma la regola «serve a due app, vive in shared» è già scattata OGGI,
+// non domani: Conti legge la stessa collezione e ha lo stesso bisogno. Il
+// giorno in cui `chiaveVoceMezzo` sale in `shared/` e `confrontoCostiMezzi`
+// classifica da sé, `costiPerConfronto` diventa un passaggio vuoto e la prova
+// «grezzo → 0» in run-kpi cade: è il segnale per togliere tutt'e due.
+//
+// Riconosce, dal nome libero di una voce, quale delle tre voci `daMezzo` è.
+// Il carburante si guarda per primo perché «gasolio» contiene «olio».
+// Quello che non si riconosce risponde `null`: NON «generali», non
+// «manutenzione» per comodità — si dichiara e si lascia fuori dal confronto.
+export function chiaveVoceMezzo(voce) {
+  const t = String(voce || "").trim().toLowerCase();
+  if (!t) return null;
+  if (/carburant|gasolio|diesel|benzin|rifornim|adblue/.test(t)) return "carburante";
+  if (/nolegg|\bnolo\b|leasing/.test(t)) return "noleggio";
+  if (/manutenz|ricamb|officina|gomm|pneumatic|filtr|\bolio|taglian|riparaz/.test(t)) return "manutenzione";
+  return null;
+}
+
+// Le righe del registro di Flotta nella forma che `confrontoCostiMezzi` sa
+// leggere: la voce diventa la chiave, il nome scritto resta accanto
+// (`voceScritta`). Le righe che non si riconoscono NON entrano nel confronto e
+// si contano — con i loro nomi, così chi legge sa quali sono.
+export function costiPerConfronto(costi) {
+  const righe = [], fuori = [];
+  for (const c of costi || []) {
+    if (!c) continue;
+    const k = chiaveVoceMezzo(c.voce);
+    if (k) righe.push({ ...c, voceScritta: c.voce, voce: k });
+    else fuori.push(String(c.voce || "").trim() || "(senza voce)");
+  }
+  return { righe, nonClassificate: fuori.length, fuori };
+}
+
+// LA STESSA SPESA, ALLA CIFRA. Il confronto per voce dice «il carburante è in
+// tutt'e due»; questa dice QUALE riga di Flotta ha in Conti una riga identica
+// — stessa voce da mezzo, stesso giorno, stesso importo al centesimo — ed è
+// quella che nell'elenco prende il contrassegno «anche in Conti».
+//  · Conti non raggiungibile → `null`, che non è «nessun doppione»;
+//  · una riga senza data o senza importo positivo non ha una firma: non si può
+//    dire né che è doppia né che non lo è, e si conta (`nonConfrontabili`);
+//  · una riga di Conti si spende UNA volta sola: due rifornimenti uguali lo
+//    stesso giorno contro una sola fattura marcano un solo doppione;
+//  · di Conti si guardano solo le voci `daMezzo`, come fa il confronto.
+export function doppioniAllaCifra(costiFlotta, costiConti) {
+  if (costiConti == null) return null;
+  const firma = (k, c) => {
+    const d = String(c && c.data || "").slice(0, 10), imp = numeroDichiarato(c && c.importo);
+    if (!k || !dataISOEsiste(d) || imp === null || imp <= 0) return null;
+    return k + "|" + d + "|" + Math.round(imp * 100);
+  };
+  const inConti = new Map();
+  let nonConfrontabiliConti = 0;
+  for (const c of costiConti) {
+    const v = voceCosto(c && c.voce);
+    if (!v || !v.daMezzo) continue;
+    const f = firma(v.chiave, c);
+    if (!f) { nonConfrontabiliConti++; continue; }
+    inConti.set(f, (inConti.get(f) || []).concat([c.id == null ? "" : String(c.id)]));
+  }
+  const doppioni = {};
+  let nonConfrontabiliFlotta = 0;
+  for (const c of costiFlotta || []) {
+    const k = chiaveVoceMezzo(c && c.voce);
+    if (!k) continue;
+    const f = firma(k, c);
+    if (!f) { nonConfrontabiliFlotta++; continue; }
+    const l = inConti.get(f);
+    if (l && l.length && c.id != null) doppioni[c.id] = l.shift();
+  }
+  return { doppioni, quanti: Object.keys(doppioni).length,
+           nonConfrontabili: { flotta: nonConfrontabiliFlotta, conti: nonConfrontabiliConti } };
 }
 
 // FOTOGRAFIA DEL PARCO DA REGISTRARE OGGI, se serve. L'app la chiama a ogni
@@ -1974,7 +2528,9 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
     if (oreAttuali == null || oreAttuali === "") return null;
     const ore = Math.round(+oreAttuali * 10) / 10;
     if (!Number.isFinite(ore) || ore < 0) return null;
-    return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore };
+    // il prossimo tagliando a ore nasce con la data in cui è scritto: è ciò
+    // che gli permette, domani, di sapere su quale contatore parla
+    return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore, scrittaIl: isoGiorno(dataChiusura) };
   }
   if (ogniMesi > 0) {
     const data = aggiungiMesi(dataChiusura, ogniMesi);
@@ -1997,12 +2553,189 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
 // consumo non esiste, e l'app lo dice invece di stampare un numero.
 // ============================================================
 
+/* ══════════════════════════════════════════════════════════════════════
+   IL CONTATORE SOSTITUITO O AZZERATO (04/09)
+   ────────────────────────────────────────────────────────────────────────
+   Nel mondo un contaore si sostituisce (centralina nuova, quadro cambiato) o
+   si azzera, e da quel giorno le ore ricominciano da capo. Fino a oggi Flotta
+   non aveva modo di dirlo: `validaRifornimento` rifiutava la lettura più
+   bassa, e se entrava per un'altra via `consumoPerMezzo` e `ritmoOreMezzi`
+   rispondevano «il contatore è sceso» — per sempre, perché la serie non si
+   sarebbe più raddrizzata da sola.
+   DOVE VIVE L'EVENTO, e perché lì. L'evento è sulla LETTURA che apre il nuovo
+   contatore: il rifornimento porta `contatoreNuovo: true` e `oreVecchie`
+   (l'ultima lettura nota del contatore vecchio, presa dal mezzo al momento
+   della dichiarazione). Non una lista `azzeramenti` sul mezzo, per tre ragioni
+   misurate sul codice:
+   · ogni lettore delle ore riceve GIÀ le letture — `consumoPerMezzo
+     (rifornimenti)`, `ritmoOreMezzi(letture)` con `letture = [...RIF, ...CTR]`,
+     `consumoControStoria(rifornimenti)`, `fascicoloMezzo` e `costoOrarioMezzo`
+     che passano i rifornimenti — e nessuno di loro riceve il mezzo: una lista
+     sul mezzo avrebbe voluto un argomento in più in cinque firme e in tutti i
+     loro chiamanti;
+   · la lettura È l'evento: l'unico fatto che chi dichiara ha in mano è «il
+     contatore adesso segna X», e `data`/`oreNuove` sono la data e le ore di
+     quel pieno — scriverli due volte sarebbe la copia da cui si diverge;
+   · le letture hanno tutte la stessa forma `{ mezzo, data, ore }` (pieni e
+     giri macchina): domani un giro macchina potrà portare la stessa bandiera
+     senza toccare `spezzaLetture`.
+   Il prezzo, dichiarato: se si toglie il rifornimento che dichiarava il
+   contatore nuovo, le letture dopo tornano «scese» — ed è giusto così, perché
+   il fatto che le giustificava non c'è più.
+   LA REGOLA DEL CONTO: consumo e ritmo si calcolano sul TRATTO CORRENTE (dalle
+   letture dell'ultimo azzeramento in poi), e quando quel tratto è più corto
+   del richiesto lo si DICE — «contatore sostituito il …: il conto riparte da
+   lì» — invece di uno zero o di un numero fatto sulle due serie incollate. Una
+   lettura più bassa SENZA un azzeramento dichiarato resta «sceso»: il difetto
+   non si cura nascondendolo. E una lettura SENZA DATA, quando c'è stato un
+   azzeramento, non si sa a quale contatore appartenga: si conta a parte
+   (`senzaData`) e il consumo si rifiuta, invece di indovinare dal numero.
+   ⚠️ Lo stesso giorno dell'azzeramento tutte le letture vanno nel tratto
+   nuovo: una lettura del contatore vecchio fatta la mattina della sostituzione
+   risulterà «scesa» — che è la verità che il dato porta — e si corregge con la
+   data, non con una regola che indovini. */
+
+// Gli azzeramenti dichiarati dentro le letture (di UN mezzo se `nomeMezzo` c'è,
+// di tutti se no), in ordine di data: [{ data, oreVecchie|null, oreNuove, nota }].
+// Una bandiera senza ore o senza un giorno che esista non è un azzeramento.
+export function azzeramentiDelMezzo(letture, nomeMezzo) {
+  const n = nomeMezzo == null ? null : nomeBreve(nomeMezzo);
+  return (letture || [])
+    .filter(l => l && l.contatoreNuovo && (n == null || nomeBreve(l.mezzo) === n))
+    // «assente vale null, non zero» è la regola di `shared/`: si chiama, non si riscrive
+    .map(l => ({ data: String(l.data || "").slice(0, 10), oreVecchie: numeroDichiarato(l.oreVecchie), oreNuove: numeroDichiarato(l.ore), nota: String(l.nota || "") }))
+    .filter(a => dataISOEsiste(a.data) && a.oreNuove != null)
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+
+// Divide le letture di un mezzo in tratti: il primo va dall'inizio al primo
+// azzeramento, ognuno degli altri ricomincia da un azzeramento. Ritorna
+// { tratti: [{ dal, azzeramento, letture }], senzaData }. Senza azzeramenti
+// c'è un tratto solo con TUTTE le letture, anche quelle senza data: cioè il
+// comportamento di sempre. Pura.
+export function spezzaLetture(letture, azzeramenti) {
+  const az = (azzeramenti || []).filter(a => a && dataISOEsiste(String(a.data || "").slice(0, 10)))
+    .map(a => ({ ...a, data: String(a.data).slice(0, 10) })).sort((a, b) => a.data.localeCompare(b.data));
+  const tutte = (letture || []).filter(Boolean);
+  if (!az.length) return { tratti: [{ dal: null, azzeramento: null, letture: tutte }], senzaData: [] };
+  const tratti = [{ dal: null, azzeramento: null, letture: [] }, ...az.map(a => ({ dal: a.data, azzeramento: a, letture: [] }))];
+  const senzaData = [];
+  for (const l of tutte) {
+    const g = String(l.data || "").slice(0, 10);
+    if (!dataISOEsiste(g)) { senzaData.push(l); continue; }
+    let i = 0;
+    for (let k = 1; k < tratti.length; k++) if (g >= tratti[k].dal) i = k;
+    tratti[i].letture.push(l);
+  }
+  return { tratti, senzaData };
+}
+
+// Il tratto su cui si fa il conto: l'ultimo. Prende le letture di UN mezzo
+// (con le bandiere dentro) e ritorna { letture, tratti, dal, azzeramento,
+// senzaData }. È il posto unico da cui `consumoPerMezzo`, `ritmoOreMezzi` e
+// `consumoControStoria` leggono la stessa regola: scritta tre volte
+// divergerebbe, come la convenzione sui numeri che è costata una giornata.
+export function trattoCorrente(letture) {
+  const s = spezzaLetture(letture, azzeramentiDelMezzo(letture));
+  const ultimo = s.tratti[s.tratti.length - 1];
+  return { letture: ultimo.letture, tratti: s.tratti.length, dal: ultimo.dal, azzeramento: ultimo.azzeramento, senzaData: s.senzaData.length };
+}
+
+// La frase, in un posto solo: la leggono il consumo, il ritmo, la storia e la
+// riga del mezzo. Vuota se non c'è un azzeramento con una data che esista.
+export function fraseContatoreSostituito(azz) {
+  if (!azz || !dataISOEsiste(String(azz.data || "").slice(0, 10))) return "";
+  return "contatore sostituito il " + dataIt(String(azz.data).slice(0, 10)) + ": il conto riparte da lì";
+}
+
+/* IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, seconda unità). `urgenzaOre`
+   confronta le ore previste col contatore ATTUALE, e non sa su quale
+   contatore il tagliando è stato scritto: un «Tagliando a 6.000 h» scritto
+   sul vecchio contatore, dopo un contatore nuovo che segna 210, diceva
+   «tra 5.790 h» — verde, e falso. Il numero non si può raddrizzare da solo
+   (le 6.000 sono del vecchio contatore, il 210 del nuovo), quindi la
+   risposta giusta è «non confrontabile», col motivo; il conto lo rimette a
+   posto una persona, con la proposta qui sotto.
+   COME IL TAGLIANDO CONOSCE IL SUO CONTATORE: porta `scrittaIl`, il giorno in
+   cui è stato scritto. È un fatto che chi lo legge capisce («scritto il
+   10/06, prima della sostituzione del 01/07»), non dipende da un
+   identificatore dell'azzeramento (che sparisce se si toglie il pieno che lo
+   dichiarava, o si sposta se se ne corregge la data), e la regola è una sola:
+   scritto PRIMA dell'ultimo azzeramento → vecchio contatore; lo stesso giorno
+   o dopo → quello corrente, come `spezzaLetture` fa con le letture. Chi crea
+   o riscrive un tagliando a ore lo salva; quelli in archivio senza la data,
+   su un mezzo che ha un azzeramento, sono «non si sa su quale contatore» —
+   che non è «va bene». Senza azzeramenti niente cambia: il campo non si legge
+   nemmeno, e la dimostrazione resta identica. */
+
+// Su quale contatore è scritto un tagliando a ore, dati gli azzeramenti del
+// suo mezzo (`azzeramentiDelMezzo`). Ritorna { calcolabile, noto, scrittaIl,
+// azzeramento, perche }: `calcolabile` false quando le ore previste NON si
+// possono confrontare col contatore attuale; `noto` false quando la data di
+// scrittura manca. Puro.
+export function contatoreDelTagliando(man, azzeramenti) {
+  const az = (azzeramenti || []).filter(a => a && isoGiorno(a.data))
+    .map(a => ({ ...a, data: isoGiorno(a.data) })).sort((a, b) => a.data.localeCompare(b.data));
+  const ultimo = az.length ? az[az.length - 1] : null;
+  const scrittaIl = isoGiorno(man && man.scrittaIl);
+  if (!ultimo) return { calcolabile: true, noto: true, scrittaIl, azzeramento: null, perche: "" };
+  const segnava = ultimo.oreVecchie != null && Number.isFinite(+ultimo.oreVecchie)
+    ? ", quando segnava " + mostra(+ultimo.oreVecchie, 1) + " h" : "";
+  if (!scrittaIl) return { calcolabile: false, noto: false, scrittaIl: null, azzeramento: ultimo,
+    perche: "non si sa su quale contatore è scritto: è di prima che Flotta segnasse la data del tagliando, e il contatore è stato sostituito il " + dataIt(ultimo.data) + segnava };
+  if (scrittaIl < ultimo.data) return { calcolabile: false, noto: true, scrittaIl, azzeramento: ultimo,
+    perche: "scritto il " + dataIt(scrittaIl) + " sul vecchio contatore, sostituito il " + dataIt(ultimo.data) + segnava };
+  return { calcolabile: true, noto: true, scrittaIl, azzeramento: ultimo, perche: "" };
+}
+
+// L'urgenza di un tagliando a ore CHE SA DI QUALE CONTATORE PARLA: la stessa
+// risposta di `urgenzaOre` (cls, label, mancano, oreNote) quando il confronto
+// è legittimo, più `calcolabile`, `perche` e `contatore`; «non confrontabile»
+// senza colore e senza numero quando non lo è. È il posto da cui la lista,
+// la scheda, il libretto, il Quadro e la tessera dei 30 giorni leggono tutti
+// la stessa decisione. Senza azzeramenti risponde esattamente `urgenzaOre`.
+export function urgenzaTagliando(man, oreAttuali, azzeramenti) {
+  const c = contatoreDelTagliando(man, azzeramenti);
+  if (!c.calcolabile) return { cls: "", label: "non confrontabile", mancano: null, oreNote: false, calcolabile: false, perche: c.perche, contatore: c };
+  return { ...urgenzaOre(man && man.orePreviste, oreAttuali), calcolabile: true, perche: "", contatore: c };
+}
+
+// La PROPOSTA per riscrivere sul contatore nuovo un tagliando scritto sul
+// vecchio: nuove = previste − oreVecchie + oreNuove (le ore che mancavano sul
+// vecchio contatore, contate dal punto in cui il nuovo è partito). È una
+// proposta da confermare, non un'operazione: la fa una persona che sa su quale
+// contatore era il tagliando. Senza `oreVecchie` non c'è niente da proporre e
+// lo dice; se sul nuovo contatore il tagliando risulta già passato, `scaduto`
+// e `oltre` lo dicono e `orePreviste` resta null (uno zero non è un piano).
+export function propostaRiscrittura(man, azzeramento) {
+  const prev = man == null || man.orePreviste == null || man.orePreviste === "" ? NaN : +man.orePreviste;
+  const a = azzeramento || {};
+  const vec = a.oreVecchie == null || a.oreVecchie === "" ? NaN : +a.oreVecchie;
+  const nuo = a.oreNuove == null || a.oreNuove === "" ? NaN : +a.oreNuove;
+  if (!Number.isFinite(prev) || prev <= 0) return { ok: false, orePreviste: null, perche: "il tagliando non ha le ore previste" };
+  if (!Number.isFinite(nuo)) return { ok: false, orePreviste: null, perche: "non si sa che cosa segnava il contatore nuovo il giorno della sostituzione" };
+  if (!Number.isFinite(vec)) return { ok: false, orePreviste: null, perche: "non si sa quante ore segnava il vecchio contatore quando è stato sostituito: le ore sul nuovo vanno scritte a mano" };
+  const nuove = Math.round((prev - vec + nuo) * 10) / 10;
+  return { ok: true, orePreviste: nuove > 0 ? nuove : null, scaduto: nuove <= 0, oltre: nuove <= 0 ? -nuove : 0,
+    mancavano: Math.round((prev - vec) * 10) / 10, oreVecchie: vec, oreNuove: nuo, perche: "" };
+}
+
 // Controlli su un rifornimento prima di salvarlo. `oreMezzo` (facoltativo) è
 // il contatore attuale del mezzo: il contatore non torna indietro, quindi un
-// valore più basso è quasi sempre un errore di battitura.
-// Ritorna { ok, errori:{campo:messaggio}, litri, euro, ore }. Pura.
+// valore più basso è quasi sempre un errore di battitura — a meno che chi
+// riforniva non dichiari `contatoreNuovo` (contaore sostituito o azzerato):
+// allora la lettura più bassa passa, e l'evento nasce da questo rifornimento
+// (vedi il blocco «IL CONTATORE SOSTITUITO O AZZERATO»). Dichiararlo SENZA
+// scrivere le ore è un errore: senza il numero non c'è il punto da cui il
+// conto riparte.
+// Ritorna { ok, errori:{campo:messaggio}, litri, euro, ore, contatoreNuovo,
+// oreVecchie } — `oreVecchie` è `oreMezzo` com'è (o null), da salvare accanto
+// alla bandiera perché il mezzo, un attimo dopo, segnerà le ore nuove. Pura.
 export function validaRifornimento(dati, oreMezzo) {
   const d = dati || {}, errori = {};
+  const contatoreNuovo = !!d.contatoreNuovo;
+  // «assente vale null, non zero» è la regola di `shared/`: qui si chiama, non si riscrive
+  const oreVecchie = numeroDichiarato(oreMezzo);
   if (!String(d.mezzo || "").trim()) errori.mezzo = "Scegli il mezzo che hai rifornito.";
   // I tre numeri passano da numeroDaCampo: «45,8» litri e «1.250,75» euro
   // arrivano interi come li ha scritti chi riforniva, e quello che non si
@@ -2025,12 +2758,14 @@ export function validaRifornimento(dati, oreMezzo) {
   // successiva come «più bassa di quella già registrata»
   const ro = numeroDaCampo(d.ore, { min: 0, decimali: 1 });
   let ore = null;
-  if (!ro.vuoto) {
+  if (ro.vuoto && contatoreNuovo) {
+    errori.ore = "Hai segnato il contatore come nuovo o azzerato: scrivi che cosa segna adesso, è da lì che riparte il conto.";
+  } else if (!ro.vuoto) {
     if (!ro.ok) errori.ore = ro.motivo === "sotto-minimo"
       ? "Il contatore va scritto in ore, un numero da zero in su."
       : messaggioNumero(ro, "le ore del contatore", { unita: "h", min: 0 });
-    else if (Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
-      errori.ore = "Il contatore segna meno " + plurale(+oreMezzo, "di ", "delle ") + mostra(+oreMezzo, 1) + " " + plurale(+oreMezzo, "ora già registrata", "ore già registrate") + " sul mezzo: controlla il numero.";
+    else if (!contatoreNuovo && Number.isFinite(+oreMezzo) && ro.valore + 0.5 < +oreMezzo)
+      errori.ore = "Il contatore segna meno " + plurale(+oreMezzo, "di ", "delle ") + mostra(+oreMezzo, 1) + " " + plurale(+oreMezzo, "ora già registrata", "ore già registrate") + " sul mezzo: controlla il numero, oppure segna che il contatore è nuovo o azzerato.";
     else ore = ro.valore;
   }
   /* ⛔ LA PORTA DAVANTI DEVE ESSERE LARGA QUANTO QUELLA DIETRO. Con la sola
@@ -2046,7 +2781,7 @@ export function validaRifornimento(dati, oreMezzo) {
     ok: Object.keys(errori).length === 0, errori,
     litri: Number.isFinite(litri) ? Math.round(litri * 100) / 100 : 0,
     euro: Number.isFinite(euro) ? Math.round(euro * 100) / 100 : 0,
-    ore,
+    ore, contatoreNuovo, oreVecchie: contatoreNuovo ? oreVecchie : null,
   };
 }
 
@@ -2064,13 +2799,22 @@ export function consumoPerMezzo(rifornimenti) {
     const euro = +r.euro || 0;
     const oreN = Math.round(+r.ore);
     const v = per.get(mezzo) || { mezzo, pieni: [], litri: 0, euro: 0 };
-    v.pieni.push({ data: String(r.data || "").slice(0, 10), litri, euro, ore: Number.isFinite(oreN) && oreN > 0 ? oreN : null });
+    // la bandiera del contatore nuovo viaggia col pieno: è la lettura che apre
+    // il tratto nuovo (vedi «IL CONTATORE SOSTITUITO O AZZERATO»)
+    v.pieni.push({ data: String(r.data || "").slice(0, 10), litri, euro, ore: Number.isFinite(oreN) && oreN > 0 ? oreN : null,
+      contatoreNuovo: !!r.contatoreNuovo, oreVecchie: r.oreVecchie });
     v.litri += litri; v.euro += euro;
     per.set(mezzo, v);
     totaleLitri += litri; totaleEuro += euro;
   }
   const mezzi = [...per.values()].map(v => {
-    const conOre = v.pieni.filter(p => p.ore != null).sort((a, b) => a.ore - b.ore);
+    /* IL TRATTO CORRENTE: dall'ultimo contatore dichiarato nuovo in poi. Senza
+       dichiarazioni è un tratto solo con tutte le letture, cioè il conto di
+       sempre. Le letture senza data, quando un azzeramento c'è stato, non si
+       sa a quale contatore appartengano: `tc.senzaData` le conta e più sotto
+       il consumo si rifiuta invece di indovinare dal numero. */
+    const tc = trattoCorrente(v.pieni.filter(p => p.ore != null));
+    const conOre = tc.letture.slice().sort((a, b) => a.ore - b.ore);
     let litriOra = null, euroOra = null, oreCoperte = null, perche = "", da = null, a = null;
     let litriInFinestra = null, euroInFinestra = null, pieniInFinestra = 0, pieniSenzaEuro = 0;
     /* ⛔ UN CONTATORE CHE SCENDE È UN ERRORE, NON UNA FINESTRA CORTA.
@@ -2146,10 +2890,18 @@ export function consumoPerMezzo(rifornimenti) {
        è la stessa forma già usata per il contatore sceso. */
     const estremiSenzaData = conOre.length >= 2
       && (!dataISOEsiste(conOre[0].data) || !dataISOEsiste(conOre[conOre.length - 1].data));
-    if (conOre.length < 2) {
-      perche = conOre.length === 1
-        ? "serve almeno un secondo rifornimento con il contatore delle ore"
-        : "nessun rifornimento porta il contatore delle ore";
+    const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+    if (tc.senzaData > 0) {
+      perche = sostituito + ", ma " + (tc.senzaData === 1 ? "un rifornimento con il contatore non ha il giorno" : tc.senzaData + " rifornimenti con il contatore non hanno il giorno")
+        + ": senza la data non si sa a quale contatore " + (tc.senzaData === 1 ? "appartiene" : "appartengono") + ". Scrivi il giorno e il consumo si calcola da solo";
+    } else if (conOre.length < 2) {
+      perche = sostituito
+        ? sostituito + (conOre.length === 1
+            ? ", e serve un secondo rifornimento con le ore del nuovo contatore"
+            : ", e non c'è ancora nessun rifornimento con le ore del nuovo contatore")
+        : conOre.length === 1
+          ? "serve almeno un secondo rifornimento con il contatore delle ore"
+          : "nessun rifornimento porta il contatore delle ore";
     } else if (sceso) {
       perche = "fra due rifornimenti il contatore è sceso: una delle due letture è sbagliata, e finché non è corretta il consumo non si può calcolare";
     } else if (estremiSenzaData) {
@@ -2223,6 +2975,9 @@ export function consumoPerMezzo(rifornimenti) {
       litriConEuro, senzaSpesa,
       oreCoperte, litriOra, euroOra, perche, da, a,
       litriInFinestra, euroInFinestra, pieniInFinestra, pieniSenzaEuro,
+      // quanti tratti ha la serie del contatore e da quando corre quello su
+      // cui il conto è fatto (null = un contatore solo, da sempre)
+      tratti: tc.tratti, contatoreDal: tc.dal, oreVecchie: tc.azzeramento ? tc.azzeramento.oreVecchie : null,
     };
   }).sort((a, b) => (b.litriOra == null ? -1 : b.litriOra) - (a.litriOra == null ? -1 : a.litriOra)
     || a.mezzo.localeCompare(b.mezzo, "it"));
@@ -2749,11 +3504,33 @@ export const CAUSALI_FERMO = [
   { chiave: "manutenzione", etichetta: "Manutenzione programmata", nota: "Tagliando o intervento previsto: è un fermo, ma è un fermo scelto." },
   { chiave: "verifica", etichetta: "Verifica o revisione", nota: "Verifica periodica, revisione, controllo dell'ente." },
   { chiave: "operatore", etichetta: "Manca l'operatore", nota: "La macchina è a posto: non c'è chi la usa." },
+  /* «meteo» (04/09, dal delta della ricerca sulla telematica): è una delle
+     famiglie che il mondo tiene separate, perché un fermo per pioggia o gelo
+     non dice niente sulla macchina — e finché finiva in «altro» la
+     disponibilità meccanica si portava dentro giorni che non sono suoi. */
+  { chiave: "meteo", etichetta: "Meteo", nota: "Pioggia, gelo, vento: la macchina è a posto, è il cantiere che è fermo." },
   { chiave: "altro", etichetta: "Altro motivo", nota: "Scrivi nelle note di cosa si è trattato." },
 ];
 
 export function causaleFermo(chiave) {
   return CAUSALI_FERMO.find(c => c.chiave === chiave) || null;
+}
+
+/* LA NATURA DI UN FERMO: SCELTO O SUBÌTO (04/09, candidato (d) del delta
+   sulla telematica). Il mondo del mining separa i fermi decisi dal gestore
+   (manutenzione programmata, verifiche: la macchina è a posto, si è scelto di
+   fermarla) da quelli subìti (guasti, gomme, attesa ricambi, operatore che
+   manca, meteo): la disponibilità «meccanica» guarda i secondi. Qui la natura
+   si RICAVA dalla causale — non è un campo in più da compilare — e «altro» o
+   una chiave sconosciuta rispondono null: non classificato, che si dichiara
+   e non si spalma su nessuna delle due. */
+const NATURA_CAUSALE = {
+  "guasto-meccanico": "subito", "guasto-idraulico": "subito", "guasto-elettrico": "subito",
+  "gomme-cingoli": "subito", "attesa-ricambi": "subito", "operatore": "subito", "meteo": "subito",
+  "manutenzione": "scelto", "verifica": "scelto",
+};
+export function naturaFermo(chiave) {
+  return NATURA_CAUSALE[String(chiave || "")] || null;
 }
 export function etichettaCausale(chiave) {
   const c = causaleFermo(chiave);
@@ -2931,6 +3708,10 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
      un dato favorevole. Si conta a parte e si dichiara, esattamente come i
      fermi delle macchine non più nel parco. */
   let senzaDate = 0;
+  /* scelti / subìti / non classificati: la somma dei tre `giorni` è `persi`
+     e quella degli `episodi` è `episodi`, per costruzione (ogni fermo contato
+     finisce in uno solo dei tre) */
+  const natura = { scelto: { giorni: 0, episodi: 0 }, subito: { giorni: 0, episodi: 0 }, nonClassificato: { giorni: 0, episodi: 0 } };
   for (const f of fermi || []) {
     const nome = nomeBreve(f.mezzo);
     if (!nome) continue;
@@ -2941,6 +3722,8 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     const aperto = !isoGiorno(f.fine);
     if (!inParco.has(nome)) { fuoriParco++; fuoriParcoGiorni += g; continue; }
     persi += g; episodi++; if (aperto) aperti++;
+    const nat = natura[naturaFermo(f.causale) || "nonClassificato"];
+    nat.giorni += g; nat.episodi++;
     const v = perMezzo.get(nome) || { mezzo: nome, giorni: 0, episodi: 0, aperti: 0, causali: new Set(), tratti: [] };
     v.giorni += g; v.episodi++; if (aperto) v.aperti++;
     v.tratti.push(tratto);
@@ -3000,6 +3783,9 @@ export function affidabilitaFlotta(fermi, mezzi, giorni = 30, oggi = new Date())
     // quanti fermi registrati non si è potuto mettere sul calendario, e quindi
     // NON pesano su `pct`: la pagina lo scrive accanto alla percentuale
     senzaDate,
+    // i giorni (somma degli episodi, come `persi`) e gli episodi per natura:
+    // scelti + subìti + nonClassificati = persi / episodi
+    scelti: natura.scelto, subiti: natura.subito, nonClassificati: natura.nonClassificato,
   };
 }
 
@@ -3272,17 +4058,26 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     if (!Number.isFinite(ore) || ore <= 0) continue;
     if (giorniTra(g, oggi) > 0) continue;          // contatore datato nel futuro: non è un fatto
     const v = per.get(mezzo) || { mezzo, punti: [] };
-    v.punti.push({ data: g, ore });
+    v.punti.push({ data: g, ore, contatoreNuovo: !!l.contatoreNuovo, oreVecchie: l.oreVecchie });
     per.set(mezzo, v);
   }
   const out = [];
   for (const v of per.values()) {
-    const p = v.punti.slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
+    /* IL TRATTO CORRENTE, la stessa regola di `consumoPerMezzo`: dall'ultimo
+       contatore dichiarato nuovo in poi. Qui le letture senza data sono già
+       state scartate all'ingresso, quindi `senzaData` è sempre zero. */
+    const tc = trattoCorrente(v.punti);
+    const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+    const p = tc.letture.slice().sort((a, b) => a.data.localeCompare(b.data) || a.ore - b.ore);
     const primo = p[0], ultimo = p[p.length - 1];
-    const r = { mezzo: v.mezzo, letture: p.length, oreGiorno: null, giorniCoperti: null,
-      dal: primo.data, al: ultimo.data, eta: -giorniTra(ultimo.data, oggi), perche: "" };
+    const r = { mezzo: v.mezzo, letture: p.length, tratti: tc.tratti, contatoreDal: tc.dal, oreGiorno: null, giorniCoperti: null,
+      dal: primo ? primo.data : null, al: ultimo ? ultimo.data : null, eta: ultimo ? -giorniTra(ultimo.data, oggi) : null, perche: "" };
     if (p.length < 2) {
-      r.perche = "c'è una sola lettura del contatore: per sapere quante ore fa al giorno ne serve una seconda";
+      r.perche = sostituito
+        ? sostituito + (p.length === 1
+            ? ", e finora c'è una sola lettura del nuovo contatore: per sapere quante ore fa al giorno ne serve una seconda"
+            : ", e non c'è ancora nessuna lettura del nuovo contatore")
+        : "c'è una sola lettura del contatore: per sapere quante ore fa al giorno ne serve una seconda";
       out.push(r); continue;
     }
     const giorni = giorniFra(primo.data, ultimo.data);
@@ -3291,7 +4086,7 @@ export function ritmoOreMezzi(letture, oggi = new Date(), orizzonte = ORIZZONTE_
     if (giorni < minGiorni) {
       r.perche = "le letture del contatore coprono " + giorni + (giorni === 1 ? " giorno" : " giorni")
         + ": per stimare " + oriz + " " + plurale(oriz, "giorno", "giorni")
-        + " servono almeno " + minGiorni;
+        + " servono almeno " + minGiorni + (sostituito ? " (" + sostituito + ")" : "");
       out.push(r); continue;
     }
     if (dOre <= 0) {
@@ -3344,7 +4139,17 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
             : "il mezzo «" + mezzo + "» non è nel parco: il suo contatore non si può leggere" });
         continue;
       }
-      const u = urgenzaOre(+n.orePreviste, ore);
+      /* Il tagliando confrontato col SUO contatore (04/09): scritto prima
+         dell'ultimo azzeramento del mezzo, le ore previste non parlano del
+         contatore che c'è oggi. Va fra quelli che non si possono collocare,
+         col motivo — e PRIMA del confronto qui sotto, perché `mancano` è
+         `null` e `null <= 0` in JavaScript risponde true: senza questa guardia
+         un tagliando non confrontabile uscirebbe «scaduto». */
+      const u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, mezzo));
+      if (!u.calcolabile) {
+        daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null, perche: u.perche });
+        continue;
+      }
       if (u.mancano <= 0) {                     // già oltre le ore: è da fare adesso
         voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true });
         continue;
@@ -3525,11 +4330,30 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), fermi: () => read("fermi"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), budget: () => read("budget"), fermi: () => read("fermi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
+      };
+      // ── PONTE CON CONTI — SOLA LETTURA ────────────────────────────────
+      // Stessa forma del ponte Flotta→Conti in `conti-data.js`: seconda
+      // istanza dell'SDK sull'app "conti", stessa organizzazione, aperta solo
+      // la prima volta che serve, così l'avvio di Flotta non rallenta. ⛔ Se
+      // Conti non c'è o la lettura non è permessa si torna `null`, e la
+      // schermata dice «Conti non raggiungibile» — MAI «in Conti non c'è
+      // niente», che sarebbe il via libera a scrivere il doppione.
+      let idConti;                       // undefined = mai provato, null = non c'è
+      api.costiConti = async () => {
+        if (idConti === undefined) {
+          try { idConti = await DeepworkID.init({ appId: "conti" }); }
+          catch (e) { idConti = null; }
+        }
+        if (!idConti) return null;
+        try {
+          return (await getDocs(idConti.orgCollection("costi")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
       };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
@@ -3537,6 +4361,10 @@ export async function flottaData() {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
       mezzi: async () => mem.mezzi, manutenzioni: async () => mem.manutenzioni, costi: async () => mem.costi, ricambi: async () => mem.ricambi, interventi: async () => mem.interventi, scadenze: async () => mem.scadenze, disponibilita: async () => mem.disponibilita || [], controlli: async () => mem.controlli || [], rifornimenti: async () => mem.rifornimenti || [], fermi: async () => mem.fermi || [],
+      // in dimostrazione il registro della cava non arriva da Conti: è finto,
+      // ma costruito apposta sui costi d'esempio qui sopra (vedi DEMO.costiConti)
+      costiConti: async () => mem.costiConti || [],
+      budget: async () => mem.budget || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },
@@ -3544,4 +4372,79 @@ export async function flottaData() {
     };
   }
   return { mode, ...api };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   IL CONSUMO DI UN MEZZO CONTRO LA SUA STORIA (02/09)
+   ────────────────────────────────────────────────────────────────────────
+   Il grafico dei consumi dice da mesi che «un consumo che sale rispetto al
+   solito è spesso il primo segnale di un guasto» — e nessuno lo misurava: i
+   l/h erano un numero solo per mezzo, su tutta la sua vita. Qui si spezza in
+   due: la FINESTRA recente (gli ultimi N giorni) e la STORIA (tutto ciò che
+   c'è prima), e si dice di quanto la prima sta sopra o sotto la seconda.
+   Regole di onestà, le stesse di `consumoPerMezzo`:
+   · si scarta il primo pieno di ogni tratto: il gasolio che c'era dentro è
+     stato bruciato in ore che non abbiamo. Per la finestra, il punto di
+     partenza è l'ULTIMO pieno della storia (se c'è): così la finestra non
+     perde il suo primo pieno, e i due tratti non si sovrappongono;
+   · un contatore che non sale fra due letture non dà un consumo — si
+     risponde `perche`, non un numero;
+   · servono almeno due pieni con le ore in ciascun tratto, se no
+     `calcolabile: false` e `perche` dice quale dei due manca;
+   · non si giudica: `forbicePct` è la differenza in percentuale della storia,
+     `verso` la dice a parole; la soglia da cui la pagina dice «da guardare»
+     è `TOLLERANZA_CONSUMO_PCT`, dichiarata come SCELTA nostra (la ricerca del
+     02/09 non ha trovato una tolleranza di settore con una fonte: un numero
+     senza fonte non si spaccia per norma). Perdita, furto o motore non li
+     distingue nessun software: lo sa chi guarda il mezzo.
+   Pura e testabile: `oggi` iniettabile. */
+export const TOLLERANZA_CONSUMO_PCT = 15;
+export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), finestraGiorni = 30) {
+  const n = nomeBreve(nomeMezzo);
+  const finestra = Math.max(1, Math.round(+finestraGiorni || 30));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const tutti = (rifornimenti || [])
+    .filter((r) => r && nomeBreve(r.mezzo) === n && +r.litri > 0)
+    .map((r) => ({ data: String(r.data || "").slice(0, 10), litri: +r.litri, ore: Number.isFinite(Math.round(+r.ore)) && Math.round(+r.ore) > 0 ? Math.round(+r.ore) : null,
+      contatoreNuovo: !!r.contatoreNuovo, oreVecchie: r.oreVecchie }))
+    .filter((p) => dataISOEsiste(p.data) && p.ore != null)
+    .sort((x, y) => x.data.localeCompare(y.data) || x.ore - y.ore);
+  /* IL TRATTO CORRENTE, la stessa regola di `consumoPerMezzo`: un intervallo
+     di ore non può scavalcare un contatore sostituito, quindi la storia e la
+     finestra si leggono tutt'e due sull'ultimo tratto. I pieni di prima
+     restano fuori e lo si dice: la storia «non c'è» per una ragione che ha
+     una data, non perché nessuno abbia fatto il pieno. */
+  const tc = trattoCorrente(tutti);
+  const pieni = tc.letture;
+  const sostituito = tc.tratti > 1 ? fraseContatoreSostituito(tc.azzeramento) : "";
+  const base = { mezzo: n, finestra, dal: da, al: a, tratti: tc.tratti, contatoreDal: tc.dal, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
+  if (!n) return { ...base, perche: "manca il nome del mezzo" };
+  const storia = pieni.filter((p) => p.data < da), recenti = pieni.filter((p) => p.data >= da);
+  // un tratto: dal pieno di partenza (escluso dai litri) all'ultimo
+  const tratto = (partenza, seguenti) => {
+    if (!partenza || !seguenti.length) return null;
+    const ultimo = seguenti[seguenti.length - 1];
+    const ore = ultimo.ore - partenza.ore;
+    const litri = seguenti.reduce((t, p) => t + p.litri, 0);
+    if (!(ore > 0)) return { litriOra: null, litri, ore, pieni: seguenti.length + 1, dal: partenza.data, al: ultimo.data, perche: "fra la prima e l'ultima lettura il contatore non è salito" };
+    return { litriOra: Math.round((litri / ore) * 100) / 100, litri, ore, pieni: seguenti.length + 1, dal: partenza.data, al: ultimo.data, perche: "" };
+  };
+  const st = storia.length >= 2 ? tratto(storia[0], storia.slice(1)) : null;
+  const partenzaRecente = storia.length ? storia[storia.length - 1] : (recenti.length ? recenti[0] : null);
+  const seguenti = storia.length ? recenti : recenti.slice(1);
+  const rc = partenzaRecente && seguenti.length ? tratto(partenzaRecente, seguenti) : null;
+  const out = { ...base, recente: rc, storia: st };
+  if (!rc) return { ...out, perche: recenti.length
+    ? (sostituito ? sostituito + ", e nella finestra c'è un pieno solo con le ore del nuovo contatore" : "nella finestra c'è un pieno solo con le ore, e nessuno prima da cui partire")
+    : (sostituito ? sostituito + ", e non c'è ancora nessun pieno con le ore del nuovo contatore nella finestra" : "nessun pieno con data e ore nella finestra") };
+  if (rc.litriOra == null) return { ...out, perche: "nella finestra " + rc.perche };
+  if (!st) return { ...out, perche: storia.length
+    ? "prima della finestra c'è un pieno solo con le ore" + (sostituito ? " del nuovo contatore" : "") + ": non fa una storia"
+    : sostituito && tutti.length > pieni.length
+      ? "il contatore è stato sostituito il " + dataIt(tc.dal) + ": i pieni di prima sono sul vecchio contatore e non fanno una storia con cui confrontare"
+      : "prima della finestra non c'è nessun pieno: non c'è una storia con cui confrontare" };
+  if (st.litriOra == null) return { ...out, perche: "nella storia " + st.perche };
+  const forbice = Math.round((100 * (rc.litriOra - st.litriOra)) / st.litriOra * 10) / 10;
+  return { ...out, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
 }

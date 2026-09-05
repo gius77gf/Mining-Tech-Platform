@@ -793,6 +793,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   chiamava «quante funzioni delle **app**» e lasciava fuori proprio il codice
   che la regola del `shared/` indica come il più pericoloso. Copertura misurata
   lì: **46 su 46**.
+- ✅ **DAL 05/09 «PREMERE OGNI BOTTONE CHE PRODUCE UN FILE E APRIRE IL FILE» SI
+  FA SENZA BROWSER, SU TUTTI I DOCUMENTI INSIEME.** Il giorno in cui ogni CSV e
+  ogni foglio stampato delle sei app è diventato una funzione pura del modulo
+  (`csv*`, `foglia*`, `rapportoGiornata`, `prospettoDenuncia`,
+  `testoConsegnaTurno`, `verbaleRilievo`, `relazioneLotto`),
+  `apps/deepwork-id/tests/documenti-dimostrazione.mjs` li compone tutti sulla
+  dimostrazione — **110 documenti, 106.000 caratteri, in due secondi** — e
+  giudica quello che si può giudicare senza aprire il file (niente
+  «undefined» / «NaN» / «null» a testo, niente «1 rilievi»), mentre le celle
+  «tranquille» (`€ 0,00`, `0%`, `0 m³`, `;0;`) le **conta e le elenca** con
+  `--dimmi` senza giudicarle: se lo zero sia misurato lo sa solo chi apre il
+  documento. È il posto in cui aggiungere una domanda nuova sui documenti che
+  escono, e la ragione per cui un documento composto nella pagina è un
+  documento che nessuno controlla.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
@@ -1039,6 +1053,32 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   dichiaratore. Costo misurato prima di irrigidire, come pretende la regola qui
   sopra: **0 allarmi** su 18.656 chiamate e 12 pagine sane, **1 e quello
   giusto** col difetto rimesso.
+  ⛔ **E IL 05/09 QUELLA SECONDA DOMANDA HA LASCIATO PASSARE DUE DIFETTI VERI
+  NELLO STESSO GIORNO, PERCHÉ GUARDAVA SOLO LE CHIAMATE.** `nome(` è una forma
+  sola; un nome usato NUDO — in una scorciatoia di oggetto, come argomento,
+  come operando — non passava di lì. Sotto ci stavano: `letture` di Sentinella,
+  dichiarata DENTRO la callback di `db.trasforma` e usata FUORI in `{ ...m,
+  valore, letture }` — «Registra» scriveva la misura e poi moriva, **dall'08/08,
+  in produzione**, con nessuna striscia di conferma e nessuna prova rossa (i
+  banchi non premono quel bottone); e `per` di Scudo, rimasta nella striscia
+  dell'export dei near-miss quando la `const` locale è salita nel modulo la
+  mattina stessa, con un omonimo in un'altra funzione a rendere cieca la prima
+  domanda — il file usciva, la striscia no. Il primo l'ha preso lo **scatto**
+  (la regola «gli screenshot vanno guardati» in una veste nuova: la striscia
+  che NON c'era), il secondo il righello appena scritto.
+  ⚠️ Il costo, misurato PRIMA su una copia come pretende la riga qui sopra:
+  **74.379 riferimenti nudi su 12 pagine e 121.320 su moduli e suite, 1
+  allarme — e quello vero.** Zero rumore: la regex del riferimento nudo è
+  quella della quarta domanda, lo scandaglio delle dichiarazioni e l'ancora
+  sul blocco sono quelli della seconda; è la copia-da-firma-troppo-stretta al
+  contrario, tre pezzi già provati messi insieme. Le controprove rimettono
+  tutt'e due i difetti veri (`fuoriScopeNudi` in `nomi-liberi.mjs`).
+  ⚠️ **E la lezione oltre al caso**: un controllo che risponde «0 fuori scope»
+  su **una forma** del nome dice zero su quella forma. Quando si scrive un
+  righello sui NOMI, la domanda da farsi è *in quante forme un nome può
+  comparire nel codice?* — chiamato, riferito nudo, dentro un `${…}`,
+  importato — e ogni forma non coperta va scritta nel riepilogo come fuori
+  perimetro, non lasciata nel silenzio di uno zero.
   ⚠️ Il difetto sotto ha un fratello che vale da solo: `csv-dimostrazione`
   **ascoltava** gli errori di pagina e li leggeva **prima** di premere i
   bottoni. L'ascoltatore c'era, l'elenco si riempiva, e la domanda arrivava due
@@ -1428,6 +1468,28 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   allarmi, tutti nello stesso banco. La cura non è imparare la terza forma: è
   **non indovinare la posizione e chiedere ai dati** qual è il percorso di
   prodotto vero, così una quarta convenzione non romperebbe niente.
+  ⛔ **E IL 05/09 LA STESSA FAMIGLIA NELLA VESTE CHE `iniezioni-fresche` NON
+  POTEVA VEDERE: L'INIEZIONE È SUL BERSAGLIO, IL BANCO NON LA APPLICA.**
+  Portando quattordici file di Conti e otto di Flotta dal foglio della pagina
+  al modulo, le iniezioni che li citavano sono state riancorate con il terzo
+  elemento (`MODULO`) — e **quattro banchi su quattro** (`flotta-documenti-che-
+  escono`, `conti-documenti-che-escono`, `libretto-vuoti`, `flotta-frasi-da-
+  uno`) avevano un ciclo `for (const [da, a] of DIFETTI)` che applicava tutto
+  alla **sola pagina**. Per `iniezioni-fresche` erano fresche (il pezzo esiste
+  nel modulo), per il banco non esistevano: la controprova stampava
+  «✔ distingue» grazie alle altre, con la riga «**i 8 difetti sono stati
+  rimessi davvero → [0,1,5,7]**» rossa in mezzo, che nessuno leggeva —
+  `libretto-vuoti` è restato con la controprova a exit 3 per una unità intera,
+  e nessun giro `node` lo può vedere. Peggio: un'ancora a sei spazi è una
+  sottostringa della riga a otto del libretto, quindi «mordeva» la pagina nel
+  posto sbagliato e si contava rimessa.
+  Le tre regole che ne escono: **(1)** quando si riancora un'iniezione su un
+  altro file si guarda che il banco **applichi per file**, e la riga «N difetti
+  rimessi davvero» si legge — il «✔» in fondo non basta; **(2)** un'iniezione
+  riscritta coi nomi della pagina (`RIC`, `LAV`) dentro il modulo fa morire
+  l'export e la controprova **scende di controlli** senza dirlo (66 su 80): si
+  guarda il totale; **(3)** `iniezioni-fresche` adesso pretende che ogni banco
+  con un file dentro una tupla lo **legga** dove applica (4 su 4, misurato).
   ⛔ **E LA STESSA UNITÀ È NATA DA UN «NON C'È» FALSO, PRODOTTO DA UN CENSIMENTO
   CHE CERCAVA UN NOME SOLO.** Cercando i punti d'uscita di Scudo ho grepato
   `__usciti` in `scudo-documenti.mjs`, trovato **zero**, e concluso «Scudo non ha

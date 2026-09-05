@@ -130,6 +130,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 #tl{left:50%;transform:translateX(-50%);bottom:16px;width:min(920px,calc(100vw - 32px));
   background:rgba(16,13,7,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,171,0,.22);border-radius:14px;padding:11px 16px 13px;box-shadow:0 0 40px rgba(255,171,0,.08),0 10px 34px rgba(0,0,0,.45)}
 #tlrow1{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+/* ⛔ Sul telefono la riga non ci stava e l'orologio della simulazione (#tclock,
+   «0 ms», 108 px) usciva dalla scheda: misurato il 03/09, a 390 px la riga
+   finisce a 357 e l'orologio sta a 358–466, a 320 escono anche «pausa» e i
+   fps — cioè il tempo della volata non si vedeva MAI su uno schermo stretto.
+   Sotto i 480 px la riga va a capo e l'orologio si allinea a destra da solo. */
+@media(max-width:480px){#tlrow1{flex-wrap:wrap}#fps{margin-left:0}#tclock{margin-left:auto}}
 #play{width:40px;height:40px;border-radius:50%;border:none;background:var(--cu);color:#2a1407;
   font-size:16px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 #play:hover{background:#ffa069}
@@ -281,6 +287,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
 .ricamp-g .v{font-weight:700;color:var(--tx);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .ricamp-g .f{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);white-space:nowrap}
 .ricamp-note{margin-top:10px;font-size:11.5px;color:var(--mut);line-height:1.55;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+/* foro per foro (05/09): una griglia a sei colonne che a 320 px scorre nel
+   suo contenitore invece di spingere la pagina di lato */
+.ricamp-fori{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,171,0,.14)}
+.ricamp-fh{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);margin-bottom:6px}
+.ricamp-ft{display:grid;grid-template-columns:1fr auto;gap:7px 10px;font-size:12px;align-items:start;font-variant-numeric:tabular-nums}
+.ricamp-ft .th{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);align-self:end}
+.ricamp-ft .r{text-align:right;white-space:nowrap}
+.ricamp-ft .sc{display:block;font-size:10.5px;line-height:1.3}
+.ricamp-ft .st{display:block;margin-top:2px}
+.ricamp-ft .mono{font-family:monospace;font-size:11px;color:var(--mut);white-space:nowrap}
+.ricamp-b{display:inline-block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.16);color:var(--mut);white-space:nowrap}
+.ricamp-b.ok{color:var(--ok);border-color:var(--ok)}
+.ricamp-b.warn{color:var(--warn);border-color:var(--warn)}
+.ricamp-b.danger{color:#ef5350;border-color:#ef5350}
 /* due note di fila sono UN discorso, non due: una riga sola fra loro */
 .ricamp-note+.ricamp-note{border-top:0;padding-top:0;margin-top:7px}
 .ricamp-warn{margin-top:10px;font-size:12px;line-height:1.55;color:#ffb27a;background:rgba(255,120,60,.10);
@@ -380,7 +400,16 @@ body.scr-design #scr-design{display:flex}
 .es-card.sel .es-pick{background:#1a140b;color:#ffd54f;border:1px solid var(--cu)}
 body:not(.scr-sim) #view,body:not(.scr-sim) #cams,body:not(.scr-sim) #params,body:not(.scr-sim) #topright,body:not(.scr-sim) #tl,body:not(.scr-sim) #helpcard{display:none!important}
 body.scr-sim #tl{bottom:80px}
-#scr-home{position:relative;align-items:center;justify-content:flex-start;gap:15px;text-align:center;padding:26px 22px 124px;overflow-y:auto}
+/* ⛔ NIENTE `position:relative` QUI: la Home è `position:fixed;inset:0` (regola
+   condivisa con #scr-design, più su) ed è quell'inset a darle un'altezza; il
+   30/07 un `relative` aggiunto per ancorare il ritorno all'ecosistema l'ha
+   sganciata dal viewport, e da allora la Home CRESCEVA col contenuto dentro un
+   body `overflow:hidden`: su un telefono (390×844, 320×568) «Le tue volate»,
+   «Drone & rilievi» e il ponte Deepwork stavano sotto il bordo e NON SI
+   RAGGIUNGEVANO — rotella e dito non scorrevano niente (misurato il 03/09:
+   scrollTop 0, contenuto fino a 986 px su 844). Un `fixed` ancora gli assoluti
+   esattamente come un `relative`. */
+#scr-home{align-items:center;justify-content:flex-start;gap:15px;text-align:center;padding:26px 22px 124px;overflow-y:auto}
 #homeGrid{width:100%;max-width:620px;display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;text-align:left}
 .hg-panel{background:linear-gradient(150deg,rgba(255,236,200,.055),rgba(255,210,150,.018));border:1px solid rgba(255,228,180,.16);border-radius:16px;padding:13px 14px;box-shadow:0 12px 34px rgba(0,0,0,.4),0 1px 0 rgba(255,240,210,.1) inset}
 .hg-panel h4{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.07em;text-transform:uppercase;color:#ffd54f;display:flex;align-items:center;gap:7px}
@@ -393,6 +422,7 @@ body.scr-sim #tl{bottom:80px}
 .hg-item button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:7px;font-size:10px;padding:3px 7px;cursor:pointer;flex:none}
 .hg-item button:hover{color:var(--cu);border-color:rgba(255,171,0,.4)}
 .hg-empty{font-size:11px;color:var(--mut2);padding:6px 2px;line-height:1.5}
+.hg-item.hg-warn{border-color:rgba(255,171,0,.35)}
 /* il ritorno all'ecosistema: stesse misure di `.dw-home` di shared/, ma qui la
    home di Genesi è una schermata a sé e non ha la barra `.top` delle altre app */
 .g-home{
@@ -610,6 +640,9 @@ body.scr-sim #tl{bottom:80px}
       <div class="hg-list" id="hgVolate"></div>
       <div class="hg-actions">
         <button class="btn" id="hgSalva">💾 Salva la volata attuale</button>
+        <!-- compare SOLO con un'organizzazione (modalità live): porta nelle sue
+             collezioni ciò che questo browser ha salvato da solo, una volta -->
+        <button class="btn" id="hgPorta" hidden title="Copia nell'organizzazione le volate, gli scatti A/B, le riconciliazioni, la legge di sito e le lavorazioni salvate in questo browser. Una volta sola; qui non si cancella niente.">🏢 Porta nell'organizzazione</button>
       </div>
     </div>
     <div class="hg-panel">
@@ -620,8 +653,12 @@ body.scr-sim #tl{bottom:80px}
       </div>
     </div>
     <div class="hg-panel">
-      <h4>🔗 Ponte Deepwork</h4>
-      <div class="hg-empty">Scambia i progetti di volata col gestionale Deepwork tramite file <b>.volata.json</b>: esporta da qui e importa in Deepwork, o viceversa.</div>
+      <h4>🔗 Ponti con le altre app</h4>
+      <!-- calcolato da `riepilogoPontiGenesi` (05/09, notte): prima qui c'era un
+           testo fisso che diceva «tramite file», invecchiato il giorno in cui i
+           ponti sono diventati dati -->
+      <div class="hg-list" id="hgPonti"></div>
+      <div class="hg-empty">Col gestionale <b>Deepwork</b> lo scambio resta a file <b>.volata.json</b>: esporta da qui e importa là, o viceversa.</div>
       <div class="hg-actions">
         <button class="btn" id="hgImporta">⬇ Importa volata</button>
         <button class="btn" id="hgEsporta">⬆ Invia a Deepwork</button>
@@ -771,6 +808,10 @@ body.scr-sim #tl{bottom:80px}
       <button class="btn sm cu" id="riconSave">Salva riconciliazione</button>
       <button class="btn sm" id="riconCampo" title="Rileggi il consuntivo di carico esportato da Campo: la carica reale foro per foro torna qui da sola">📥 Importa consuntivo da Campo (CSV)</button>
       <input type="file" id="riconCampoFile" accept=".csv,text/csv,.txt" style="display:none;">
+      <!-- il ponte Campo→Genesi come DATO (05/09, notte): dentro l'organizzazione il
+           piano di carico con le cariche reali si legge da Campo senza il file.
+           Compare solo in modalità live; da soli resta il file. -->
+      <button class="btn sm" id="riconCampoOrg" style="display:none;" title="Leggi da Campo il piano di carico con le cariche reali registrate dal fochino: nessun file da esportare e rileggere">📡 Leggi il consuntivo da Campo (organizzazione)</button>
       <button class="btn sm" id="riconExport">Esporta storico (CSV)</button>
       <button class="btn sm" id="riconClose">Chiudi</button>
     </div>
@@ -1031,6 +1072,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    qui `riconStorico`, `riconSave`, `riconRender` e `_riconCampoHtml`, che
    leggono `localStorage`, il DOM o lo stato del progetto aperto. */
          _rEsc, _riconParseCampo, _riconRiassuntoCampo, riconDelta, csvRiconciliazione,
+         idForoMaglia, idForoNuovo, confrontoPerForo, foriDaDesign,
 /* `campoMisurato` risponde alla stessa domanda per i DUE posti che rileggono un
    consuntivo già salvato — la riga di storico qui sotto e il CSV che esce
    dall'azienda — e sta nel modulo perché scritta due volte diventerebbe la
@@ -1062,7 +1104,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, esitoMic, micSenzaConto,
+         micFinestra, esitoMic, micSenzaConto, scatterInnesco,
 /* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
    ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
    la formula era scritta tre volte (KPI, foglio stampabile, scheda
@@ -1118,7 +1160,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1146,10 +1188,30 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    legge di sito (`sitoExport`) e il file che importa **Sentinella**
    (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
    un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
+import { previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv, pianoCsvGenesi, pianoDaGenesi } from '../../shared/dw-ponti.js';
 import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell, plurale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
+
+/* LA PORTA SUI DATI (02/09, unità 2 di docs/GENESI_FUORI_DAL_BROWSER.md §5).
+   Le volate salvate passano da qui e non più da `_lsGet/_lsSet`: sotto c'è
+   ANCORA la stessa chiave di `localStorage` (`genesiVolate`), con lo stesso
+   tetto di 50 — cioè chi ha volate salvate le ritrova, e i banchi che scrivono
+   la chiave a mano restano veri. La differenza è che il giorno in cui sotto ci
+   sarà l'organizzazione (unità 4) questa pagina non cambierà una riga.
+   ⚠️ Si chiama GDB e non `db`: alla riga del bottone «elimina foro» c'è già un
+   `const db=$('diDel')` locale, e un omonimo rende invisibile un nome libero
+   (CLAUDE.md, nomi-liberi). */
+// `await`: la porta prova l'organizzazione (unità 4) e, se non c'è o non c'è
+// rete, torna locale da sola — la pagina non lo sa e non deve saperlo
+const GDB = await genesiData();
+/* LA LEGGE DI SITO STA IN UNA COPIA DI LAVORO (unità 3): `sitoStore()` è
+   sincrona e alimenta `ppvSite()` in tutti i calcoli della PPV, quindi non può
+   aspettare una porta asincrona a ogni chiamata. Si legge UNA volta qui — la
+   pagina è un module script, il top-level await regge — e ogni scrittura
+   passa da `sitoSalva`, che aggiorna la copia e la porta insieme. */
+let SITO = await GDB.sito();
 
 /* ══════════════════════════════════════════════════════════════════════════
    NUMERI COME SI SCRIVONO IN ITALIA — un solo posto per la convenzione
@@ -1296,11 +1358,11 @@ function rockFactorA(){
    Qui restano le tre che la pagina non può cedere: le due che parlano con
    `localStorage` e quelle che leggono lo stato del progetto.
    ══════════════════════════════════════════════════════════════════════════ */
-function sitoStore(){
-  try{ const s=JSON.parse(localStorage.getItem('genesiSito')||'null'); if(s&&Array.isArray(s.punti)) return s; }catch(e){}
-  return { punti:[], usa:false };
+function sitoStore(){ return SITO; }
+function sitoSalva(s){
+  SITO = (s && Array.isArray(s.punti)) ? s : { punti:[], usa:false };
+  GDB.aggiungi('sito', SITO);   // sotto è ancora la chiave `genesiSito`, con la stessa forma
 }
-function sitoSalva(s){ try{ localStorage.setItem('genesiSito', JSON.stringify(s)); }catch(e){} }
 /* La legge effettivamente usata nei calcoli: solo se l'utente l'ha attivata
    ed è valida. In ogni altro caso si torna alla stima da litologia. */
 function sitoLegge(){ const s=sitoStore(); if(!s.usa) return null; const f=sitoFit(s.punti); return (f && !f.errore) ? f : null; }
@@ -1383,6 +1445,11 @@ const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, 
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
   errColl:0.15, dev:2.5 };
+/* i valori di partenza degli undici campi non numerici del design: sono quelli
+   che rientrano quando una volata salvata porta una scelta che il catalogo non
+   riconosce (vedi `designSconosciuti`, all'azione «apri») */
+const D2_PARTENZA={ esplosivo:D2.esplosivo, innesco:D2.innesco, roccia:D2.roccia, frat:D2.frat, sequenza:D2.sequenza, recNorma:D2.recNorma,
+  kgAuto:D2.kgAuto, bagnato:D2.bagnato, presplit:D2.presplit, profilo:[], piede:[] };
 
 /* ============ three: scena base ============ */
 const view = document.getElementById('view');
@@ -1673,7 +1740,7 @@ function buildSim(){
       const hh=P.holes[i], x=hh.x;
       const col=Math.max(0, Math.min((P.foriH?P.foriH.length:1)-1, Math.round((x-INTERASSE/2)/INTERASSE)));
       const h=(P.foriH && P.foriH[col]!=null) ? P.foriH[col] : prof;
-      fori.push({ i, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
+      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
     }
   } else {
     for(let i=0;i<n;i++){                                          // fallback demo manuale: una fila, sequenza ricostruita
@@ -1705,7 +1772,7 @@ function buildSim(){
      generatore dalla chiusura, quella del modulo lo vuole come argomento — ed
      è esattamente perché **non** lo erano che la copia era nata. */
   for(const f of fori){
-    const sd=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*f.tDet:0.02*f.tDet));
+    const sd=scatterInnesco(_innId, f.tDet);   // una formula sola, in genesi-data (04/09)
     f.tNom=f.tDet; f.tDet=Math.max(0, f.tDet + _gauss(rng)*sd);
   }
   const H = Math.max(...fori.map(f=>f.h));          // altezza rappresentativa (max) per banco/camera/muckpile
@@ -1749,7 +1816,7 @@ function buildSim(){
   const x50 = _fr.x50;                            // cm — Kuznetsov, dal modulo (`null` se non si conta)
   let nU = (Lc===null) ? null : (2.2 - 14*SPALLA/diamMM) * Math.sqrt((1+INTERASSE/SPALLA)/2) * (1 - 0.3/SPALLA) * (Lc/prof);  // indice uniformità — Cunningham; `null` senza borraggio
   /* precisione dell'innesco → uniformità (Cunningham 2005: ns=0.206+(1−Rs/4)^0.8, Rs=scatter/ritardo): elettronico = curva più ripida, Nonel = più dispersa */
-  if(nU!==null){ const _sdT=(_innId==='elettronico')?0.1:((_innId==='elettrico')?0.5:((_innId==='cordtex')?0.03*Math.max(rit,lastDet):0.02*Math.max(rit,lastDet)));
+  if(nU!==null){ const _sdT=scatterInnesco(_innId, Math.max(rit,lastDet));
     const _RsT=_sdT/Math.max(1,rit), _ns=0.206+Math.pow(Math.max(0,1-_RsT/4),0.8);
     nU *= Math.max(0.8, Math.min(1.25, _ns));
     nU = Math.max(0.7, Math.min(2.2, nU)); }
@@ -3001,7 +3068,9 @@ $('btnExport').onclick = ()=>{
      assente travestito da misura. `null` in JSON è la convenzione di tutto
      l'ecosistema, e chi rilegge la sa già trattare. */
   const _vj=(x)=>{ const n=(x===null||x===undefined||x==='')?NaN:+x; return Number.isFinite(n)?n:null; };
-  const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
+  /* l'id è quello del progetto 2D quando c'è (f1-3, m1); `foro_n` resta per la
+     dimostrazione manuale a una fila, che i fori non li ha battezzati */
+  const fori = SIM.fori.map(f=>({ id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
     kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
     innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
@@ -3307,10 +3376,12 @@ function computeKPI(){
 }
 function cmpSave(slot){
   const snap={ ts:timbroLocale(), kpi:computeKPI(), design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,diam:D2.diam,prof:D2.prof,kg:D2.kg,stem:D2.stem,sub:D2.sub,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,frat:D2.frat,bagnato:D2.bagnato,presplit:D2.presplit,sequenza:D2.sequenza})) };
-  localStorage.setItem('genesiCmp'+slot, JSON.stringify(snap));
+  GDB.aggiungi('confronti', { slot, ...snap });   // sotto: la chiave genesiCmpA/B di sempre
   toast('Progetto salvato come '+slot);
 }
-function _cmpLoad(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }  // robusto a localStorage corrotto
+/* i due scatti, dalla porta: `null` dove non c'è (o dove è corrotto), come
+   faceva `_cmpLoad` */
+async function cmpScatti(){ const l=await GDB.confronti(); const per=s=>l.find(x=>x&&x.slot===s)||null; return { A:per('A'), B:per('B') }; }
 /* Le due celle che possono non esserci, scritte come le scrive lo schermo.
    ⚠️ Il verdetto si prende dal VALORE e non dalla bandiera: uno scatto salvato
    prima che `costCalcolabile` esistesse non ce l'ha, e leggere una bandiera
@@ -3331,9 +3402,8 @@ function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.
    due righe qui sopra. E come loro si giudica dal NUMERO, con la bandiera in
    più quando c'è, così uno scatto A/B salvato prima del 13/08 non sparisce. */
 function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
-function cmpRender(){
-  const A=_cmpLoad('genesiCmpA');
-  const B=_cmpLoad('genesiCmpB');
+async function cmpRender(){
+  const {A,B}=await cmpScatti();
   const body=$('cmpBody');
   if(!A||!B){ body.innerHTML='<div style="color:var(--mut)">Salva prima due progetti: imposta i parametri, premi "Salva come A", modifica, poi "Salva come B".</div>'; return; }
   /* ⛔ IL VERDE SI DÀ SOLO A CHI HA VINTO DAVVERO. `A<=B` rispondeva 'A' anche
@@ -3713,9 +3783,8 @@ if($('cmpSaveA')) $('cmpSaveA').onclick=()=>cmpSave('A');
 if($('cmpSaveB')) $('cmpSaveB').onclick=()=>cmpSave('B');
 if($('cmpShow')) $('cmpShow').onclick=()=>{ cmpRender(); $('cmpModal').style.display='flex'; };
 if($('cmpClose')) $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; };
-if($('cmpExport')) $('cmpExport').onclick=()=>{
-  const A=_cmpLoad('genesiCmpA');
-  const B=_cmpLoad('genesiCmpB');
+if($('cmpExport')) $('cmpExport').onclick=async ()=>{
+  const {A,B}=await cmpScatti();
   if(!A||!B){ toast('Salva prima i progetti A e B'); return; }
   /* ⛔ QUESTO ERA L'ULTIMO DEI QUATTRO FILE DI GENESI SENZA `csvCell`: la
      passata del 03/08 aveva ripulito la scheda volata, la legge di sito e il
@@ -3768,16 +3837,20 @@ if($('cmpExport')) $('cmpExport').onclick=()=>{
 /* ===== Riconciliazione previsto-vs-reale (P0.1): chiude il cerchio col dato
    reale della volata (come Maptek BlastLogic). Il PREVISTO viene da computeKPI();
    il REALE lo inserisce il fochino dopo lo sparo. Storico in localStorage. ===== */
-function riconStorico(){ try{ return JSON.parse(localStorage.getItem('genesiRicon')||'[]'); }catch(e){ return []; } }
+async function riconStorico(){ return GDB.riconciliazioni(); }   // sotto: la chiave genesiRicon di sempre
 
 let _ricCampo=null;      // consuntivo importato in questa sessione (null = nessuno)
+let _ricRighe=null;      // le sue righe, foro per foro (05/09): servono al confronto col progetto aperto
 let _ricNome='';         // nome della volata scritto a mano, per non perderlo al ridisegno
 // Il blocco disegnato in cima alla riconciliazione. Con o senza file, dice
 // sempre cosa manca e come si ottiene.
 function _riconCampoHtml(){
   if(!_ricCampo) return '<div class="ricamp">'
     +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
-    +'<div class="ricamp-sub">I chili davvero caricati il fochino li ha già registrati foro per foro in <b>Campo</b>: non c’è bisogno di ricopiarli qui. In Campo premi <b>«Esporta consuntivo (CSV)»</b>, poi rileggi il file con <b>«Importa consuntivo da Campo»</b> qui in fondo: carica reale, fori effettivi e scostamento si riempiono da soli.<br>Pezzatura, PPV e gittata no: quelle si misurano in cava e restano da scrivere a mano.</div>'
+    +'<div class="ricamp-sub">I chili davvero caricati il fochino li ha già registrati foro per foro in <b>Campo</b>: non c’è bisogno di ricopiarli qui. '+(GDB.mode==='live'
+      ? 'Premi <b>«Leggi il consuntivo da Campo (organizzazione)»</b> qui in fondo: nessun file da esportare e rileggere. Il file (<b>«Importa consuntivo da Campo»</b>) resta per chi lavora altrove.'
+      : 'In Campo premi <b>«Esporta consuntivo (CSV)»</b>, poi rileggi il file con <b>«Importa consuntivo da Campo»</b> qui in fondo.')
+    +' Carica reale, fori effettivi e scostamento si riempiono da soli.<br>Pezzatura, PPV e gittata no: quelle si misurano in cava e restano da scrivere a mano.</div>'
     +'</div>';
   const c=_ricCampo, k=computeKPI();
   const riga=(l,v,f,col)=>'<div class="l">'+l+'</div><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="f">'+f+'</div>';
@@ -3866,9 +3939,53 @@ function _riconCampoHtml(){
   if(k&&k.nf&&c.foriTot!==k.nf) avvisi.push('Il consuntivo ha <b>'+_ricPlur(c.foriTot,'foro','fori')+'</b>, il progetto aperto adesso in Genesi ne ha <b>'+k.nf+'</b>: potrebbe essere <b>un’altra volata</b>. Il confronto con il previsto qui sotto ha senso solo se è la stessa.');
   if(avvisi.length) h+='<div class="ricamp-warn">'+avvisi.join('<br>')+'</div>';
   h+='<div class="ricamp-note">Dal file arrivano <b>solo</b> i chili caricati. <b>Pezzatura, PPV e gittata non ci sono</b> — nessuno strumento in Campo li misura — e restano da compilare qui sotto a mano.</div>';
+  h+=_riconForiHtml();
   return h+'</div>';
 }
-function riconRender(){
+/* IL CONFRONTO FORO PER FORO (05/09): ogni foro del progetto APERTO accanto
+   alla sua riga del consuntivo. L'accoppiamento lo fa `confrontoPerForo` del
+   modulo, e la chiave usata si SCRIVE: per id quando piano e consuntivo lo
+   portano, per numero altrimenti — e per numero un foro tolto dopo l'export
+   sposta tutte le righe dopo di lui, quindi va detto. Un foro senza riga non
+   è «in linea»: è senza riga. */
+function _riconForiHtml(){
+  if(!_ricRighe || !D2.holes || !D2.holes.length) return '';
+  const c=confrontoPerForo(D2.holes, _ricRighe);
+  const ETI={ 'ok':['ok','in linea'], 'warn':['warn','fuori 10–25 %'], 'danger':['danger','oltre 25 %'],
+              'da-registrare':['mut','da registrare'], 'senza-riga':['mut','senza riga'] };
+  const b=(st)=>{ const e=ETI[st]||['mut',st]; return '<span class="ricamp-b '+e[0]+'">'+_rEsc(e[1])+'</span>'; };
+  /* TRE colonne, non sei: misurato a 320 px, sei colonne finivano oltre il
+     bordo del pannello (scarto e stato fuori vista, e uno scorrimento che
+     nessuno sa che c'è). Qui foro e id stanno insieme, progetto→reale in una
+     cella con lo scarto sotto, e il badge chiude la riga — la forma delle
+     liste del core (nome / dettaglio / badge). L'unità sta nell'intestazione,
+     una volta, dentro `.uni`: l'intestazione è in maiuscolo di stile e «kg»
+     non si scrive «KG». */
+  /* ⚠️ E poi DUE colonne, non tre: a 320 px il pannello della riconciliazione
+     lascia circa 230 px, e il badge di stato finiva tagliato sul bordo
+     (misurato con lo scatto: «FUORI 10–2», «SENZA RIGA» a metà). Il badge sta
+     sotto foro e id, i numeri a destra. */
+  let h='<div class="ricamp-fori"><div class="ricamp-fh">Foro per foro — progetto aperto contro consuntivo</div>'
+    +'<div class="ricamp-ft">'
+    +'<div class="th">foro · id · stato</div><div class="th r">progetto → reale <u class="uni">kg</u></div>';
+  for(const x of c.righe){
+    h+='<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span><span class="st">'+b(x.stato)+'</span></div>'
+      +'<div class="r">'+(x.prog!=null?_ricKg(x.prog):'—')+' → '+(x.reale!=null?_ricKg(x.reale):'—')
+        +(x.scartoKg!=null?'<span class="sc" style="color:'+_ricColore(x.scartoPct)+'">'+_ricSegno(x.scartoKg)+' kg · '+_ricPct(x.scartoPct)+'</span>':'')+'</div>';
+  }
+  h+='</div>';
+  h+='<div class="ricamp-note">'
+    +(c.chiave==='id'
+      ? 'Accoppiati per <b>id del foro</b> — quello scritto nel piano di carico esportato da qui e tornato da Campo: un foro tolto o aggiunto dopo l\'export non sposta gli altri.'
+      : '⚠️ Accoppiati per <b>numero</b>, perché il consuntivo o il progetto non portano l\'id del foro (piano esportato prima del 05/09, o file scritto a mano): se un foro è stato tolto dopo l\'export, da quel foro in poi ogni riga finisce sul foro sbagliato senza nessun avviso.')
+    +(c.senzaRiga?' <b>'+_ricPlur(c.senzaRiga,'foro del progetto','fori del progetto')+'</b> senza riga nel consuntivo.':'')
+    +(c.orfane.length?' <b>'+_ricPlur(c.orfane.length,'riga del consuntivo','righe del consuntivo')+'</b> senza foro nel progetto aperto ('+c.orfane.slice(0,4).map(o=>_rEsc(o.idForo||('foro '+o.foro))).join(', ')+(c.orfane.length>4?'…':'')+').':'')
+    +(c.doppie.length?' Chiave ripetuta nel consuntivo: <b>'+c.doppie.map(_rEsc).join(', ')+'</b>.':'')
+    +(!c.misurabile?' Nessuna carica reale fra i fori accoppiati: gli stati dicono «da registrare», non «in linea».':'')
+    +'</div></div>';
+  return h;
+}
+async function riconRender(){
   const k=computeKPI(), body=$('riconBody');
   /* ⛔ LA PPV PREVISTA SI PORTA DIETRO LA SUA BASE ANCHE QUI. `computeKPI`
      restituisce `ppvBase` da `provenienzaPpv` dal 03/08, e questa schermata lo
@@ -3877,13 +3994,13 @@ function riconRender(){
      storico e il CSV lo tengono per sempre. */
   const prev={x50:k.x50, ppv:k.ppv, fly:k.fly, ppvBase:k.ppvBase};
   $('riconModal').dataset.prev=JSON.stringify(prev);
-  const st=riconStorico();
+  const st=await riconStorico();
   const nomeSug=_ricCampo&&_ricCampo.date.length
     ? 'Volata '+_ricData(_ricCampo.date[0])+(_ricCampo.turni.length?' · turno '+_ricCampo.turni[0]:'') : '';
   body.innerHTML=
     _riconCampoHtml()
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
-    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;">'
+    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;overflow-x:auto;">'
     +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
     +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="text" inputmode="decimal" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
     +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="text" inputmode="decimal" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
@@ -3951,7 +4068,7 @@ function riconRender(){
   // il nome scritto a mano non deve sparire al ridisegno (import, salvataggio)
   if($('ric-nome')) $('ric-nome').addEventListener('input',()=>{ _ricNome=$('ric-nome').value; });
 }
-function riconSave(){
+async function riconSave(){
   const k=computeKPI();
   /* ⛔ QUI STAVA LA COPIA PIÙ DEBOLE DELLA REGOLA CHE STA DODICI RIGHE PIÙ SU.
      `riconDelta` legge il valore scritto a mano con `gIn` — e il suo commento
@@ -3993,14 +4110,14 @@ function riconSave(){
     kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
     scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
   if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
-  const st=riconStorico(); st.push(rec); localStorage.setItem('genesiRicon', JSON.stringify(st));
+  await GDB.aggiungi('riconciliazioni', rec);
   toast('Riconciliazione salvata'); riconRender();
 }
 if($('riconOpen')) $('riconOpen').onclick=()=>{ riconRender(); $('riconModal').style.display='flex'; };
 if($('riconClose')) $('riconClose').onclick=()=>{ $('riconModal').style.display='none'; };
 if($('riconSave')) $('riconSave').onclick=riconSave;
-if($('riconExport')) $('riconExport').onclick=()=>{
-  const st=riconStorico();
+if($('riconExport')) $('riconExport').onclick=async ()=>{
+  const st=await riconStorico();
   if(!st.length){ toast('Nessuna riconciliazione da esportare'); return; }
   const csv=csvRiconciliazione(st);
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -4010,6 +4127,26 @@ if($('riconExport')) $('riconExport').onclick=()=>{
 /* Il pulsante che chiude il giro: il file esportato da Campo torna qui. Un
    file sbagliato NON deve rompere la pagina: si spiega e si resta com'era. */
 if($('riconCampo')) $('riconCampo').onclick=()=>$('riconCampoFile').click();
+/* IL CONSUNTIVO DALL'ORGANIZZAZIONE: gli stessi record che Campo scrive in
+   `pianocarico`, composti con la STESSA `pianoConsuntivoCsv` con cui Campo
+   scrive il file, e letti dallo STESSO `_riconParseCampo` del file — così la
+   strada dei dati non può dire una cosa diversa da quella del file. */
+if($('riconCampoOrg')&&GDB.mode==='live') $('riconCampoOrg').style.display='';
+if($('riconCampoOrg')) $('riconCampoOrg').onclick=async()=>{
+  let righe=null;
+  try{ righe=await GDB.pianoCampo(); }catch(e){ righe=null; }
+  if(righe===null){ toast('Campo non si è potuto leggere: riprova, oppure importa il consuntivo dal file.','err'); return; }
+  const piano=normalizzaPiano(righe);
+  if(!piano.length){ toast('In Campo non c\'è nessun piano di carico: caricalo là (Piano di carico → importa da Genesi) e registra le cariche reali.','err'); return; }
+  let p;
+  try{ p=_riconParseCampo(pianoConsuntivoCsv(piano)); }catch(err){ p={ errore:'Il piano di carico di Campo non è leggibile.' }; }
+  if(!p||p.errore){ toast('Consuntivo non letto: '+((p&&p.errore)||'piano non leggibile').replace(/<[^>]*>/g,'').slice(0,90),'err'); return; }
+  _ricCampo=_riconRiassuntoCampo(p, 'Campo (organizzazione)'); _ricRighe=p.righe;
+  riconRender();
+  toast(_ricCampo.foriReg
+    ? 'Consuntivo letto da Campo: '+_ricPlur(_ricCampo.foriReg,'foro','fori')+', '+_ricKg(_ricCampo.kgReale)+' kg reali'
+    : 'Piano letto da Campo ('+_ricPlur(_ricCampo.foriTot,'foro','fori')+'), ma nessuna carica reale è ancora registrata');
+};
 if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
   const file=e.target.files&&e.target.files[0]; e.target.value=''; if(!file) return;
   let testo='';
@@ -4027,7 +4164,7 @@ if($('riconCampoFile')) $('riconCampoFile').onchange=async(e)=>{
     toast('Consuntivo non importato: '+((p&&p.errore)||'file non leggibile').replace(/<[^>]*>/g,'').slice(0,90));
     return;
   }
-  _ricCampo=_riconRiassuntoCampo(p, file.name);
+  _ricCampo=_riconRiassuntoCampo(p, file.name); _ricRighe=p.righe;
   riconRender();
   toast(_ricCampo.foriReg
     ? 'Consuntivo importato: '+_ricPlur(_ricCampo.foriReg,'foro','fori')+', '+_ricKg(_ricCampo.kgReale)+' kg reali'
@@ -4691,7 +4828,10 @@ function sentRender(){
          + (d.provvisoria?' — <b style="color:#ffca28">provvisoria</b>: sotto gli 8 referti la pendenza si muove ancora a ogni misura nuova':''))
       : 'stima dalla litologia')
     +'</div>'
-    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">In Sentinella: <b>Registri → Registro volate → «Importa da CSV»</b>. La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
+    +'<div style="margin-top:10px;color:var(--mut);font-size:12px;">'+(GDB.mode==='live'
+      ? 'La volata va anche <b>nell\'organizzazione</b>: in Sentinella compare da sola in <b>Registri → Registro volate → «Previste da Genesi»</b>, e chi la accoglie non deve importare niente. Il file resta per chi lavora altrove.'
+      : 'Sullo <b>stesso computer</b> Sentinella la vede da sola in <b>Registri → Registro volate → «Previste da Genesi»</b>; altrove si porta il file: <b>Registri → Registro volate → «Importa da CSV»</b>.')
+      +' La riga arriva col badge <b>Prevista</b>: non conta fra le volate eseguite, non entra nel report di conformità, e dopo lo sparo si conferma (correggendo i dati se in cava è andata diversamente).</div>'
     +'<div style="margin-top:8px;color:var(--mut);font-size:12px;">La <b>PPV misurata</b> non parte da qui, e non partirà mai: la volata non è ancora stata sparata. La aggancia Sentinella dalla lettura del sismografo, e solo quella può tornare qui come <b>referto</b> per la legge di sito. La PPV <b>prevista</b> viaggia in una colonna sua, dichiarata come previsione.</div>'
     +(_sentFatto?'<div style="margin-top:10px;color:#66bb6a;font-size:12px;">File pronto: <b>'+_rEsc(_sentFatto.file)+'</b> · volata del <b>'+_rEsc(_sentFatto.data.split('-').reverse().join('/'))+'</b> · codice <b>'+_rEsc(_sentFatto.codice)+'</b>. Riesportando lo stesso progetto il codice non cambia: Sentinella non creerà una riga doppia.</div>':'');
   const salva=()=>{ const o=_sentStore(); o.data=$('sent-data').value||''; o.fronte=$('sent-fronte').value||''; _sentSave(o); };
@@ -4700,7 +4840,7 @@ function sentRender(){
 }
 if($('sentOpen')) $('sentOpen').onclick=()=>{ _sentFatto=null; sentRender(); $('sentModal').style.display='flex'; };
 if($('sentClose')) $('sentClose').onclick=()=>{ $('sentModal').style.display='none'; };
-if($('sentExport')) $('sentExport').onclick=()=>{
+if($('sentExport')) $('sentExport').onclick=async()=>{
   const data=$('sent-data')?$('sent-data').value:'';
   if(!dataISOEsiste(data)){ toast('Serve la data prevista della volata'); return; }
   const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
@@ -4720,8 +4860,18 @@ if($('sentExport')) $('sentExport').onclick=()=>{
   const file='genesi_volata_per_sentinella_'+data+'.csv';
   a.download=file; a.click();
   _sentSave({data,fronte});
+  /* IL PONTE 3e (05/09): la stessa volata, con gli stessi numeri del file, va
+     nella collezione `previste` — nell'organizzazione se si è dentro, nella
+     chiave del browser se si lavora da soli. Riesportare lo stesso progetto
+     non la raddoppia: il codice è lo stesso, e Sentinella deduplica su quello. */
+  const rec=previstaDaGenesi({nFori:d.nFori,kgTotali:d.kgTotali,mic:d.mic,dist:d.dist,ppv:d.ppv,lim:d.lim,norma:d.norma,fonte:d.fonte,db:d.db,codice,calibrata:d.calibrata,provvisoria:d.provvisoria,referti:d.referti},data,fronte);
+  let inOrg=false;
+  if(rec){ try{ const gia=(await GDB.previste()).some(p=>p&&p.codiceVolata===codice); if(!gia) await GDB.aggiungi('previste',rec); inOrg=true; }catch(e){ inOrg=false; } }
   _sentFatto={file,data,codice}; sentRender();
-  toast('Volata pronta per Sentinella: Registri → Registro volate → «Importa da CSV»');
+  toast(inOrg
+    ? (GDB.mode==='live' ? 'Volata prevista scritta nell\'organizzazione: Sentinella la trova in Registro volate → «Previste da Genesi». File scaricato per chi lavora altrove.'
+                         : 'Volata pronta: Sentinella su questo computer la trova in Registro volate → «Previste da Genesi»; altrove importa il file.')
+    : 'File pronto per Sentinella (Registro volate → «Importa da CSV»); la scrittura nell\'organizzazione non è riuscita.', inOrg?'':'err');
 };
 
 function maybeConsent(){ if(!localStorage.getItem('genesiDisclaimerV1')){ $('consenso').style.display='flex'; } }
@@ -4752,7 +4902,7 @@ document.querySelectorAll('#bottomnav button').forEach(b=> b.onclick=()=>setScre
    nei form compare SOLO la dicitura; l'approfondimento (scheda completa) si apre
    su richiesta col bottone ⓘ. La vecchia schermata «Indice» è stata eliminata. */
 function esplCardHtml(e){ const specs=[];
-  if(e.densita_gcc!=null) specs.push(e.densita_gcc+' g/cc');
+  if(e.densita_gcc!=null) specs.push(gfix(e.densita_gcc,2)+' g/cc');   // 03/09: «0.82 g/cc» accanto a «3,8k m/s» — la virgola la scrive gfix, come per la VOD
   if(e.vod_ms!=null) specs.push(gfix(e.vod_ms/1000,1)+'k m/s VOD');
   if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
   if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
@@ -4785,8 +4935,7 @@ if($('pEspl')) $('pEspl').addEventListener('change',()=>{ D2.esplosivo=$('pEspl'
 document.querySelectorAll('#scr-home .card').forEach(c=> c.onclick=()=>setScreen(c.dataset.go));
 /* ============ HOME = centro di comando (fondatore 25/07): storico volate,
    rilievi drone, ponte Deepwork ============ */
-function _lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
-function _lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+/* `_lsGet`/`_lsSet` non ci sono più (unità 3): le cinque chiavi passano da GDB. */
 function volSnapshot(nome){
   /* `D2.perRow*D2.file` scritto a mano faceva **0 fori** con la griglia
      illeggibile (`null*1` è zero), e questa sintesi finisce SALVATA nello
@@ -4812,7 +4961,11 @@ function volSnapshot(nome){
         +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
-    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
+    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
+      /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
+         relief, che si ricalcolano. Senza questa riga un foro tolto a mano
+         ricompariva alla riapertura. */
+      holes:(D2.holes||[]).map(h=>({ id:h.id||null, mx:h.mx, my:h.my, tMano:(h.tMano!=null&&isFinite(h.tMano))?+h.tMano:null }))})),
     sintesi:sintesi };
 }
 /* ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
@@ -4846,15 +4999,27 @@ function _puntiNuvola(e){
     ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
     : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
 }
-function renderHome(){
-  const arr=_lsGet('genesiVolate');
+async function renderHome(){
+  const arr=await GDB.volate();
   if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
-    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(gdata(v.data))+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
+    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(dataISOEsiste(v.data)?gdata(v.data):'senza data')+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
-  const nv=_lsGet('genesiNuvole');
+  const nv=await GDB.nuvole();
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';
+  /* i ponti come dati (05/09, notte): quanti record ha scritto ognuno e quando
+     l'ultimo; `null` = non leggibile, che non è zero */
+  if($('hgPonti')){
+    let previste=null, piani=null;
+    try{ previste=await GDB.previste(); }catch(e){ previste=null; }
+    try{ piani=await GDB.piani(); }catch(e){ piani=null; }
+    const rp=riepilogoPontiGenesi({ previste, piani, nuvole:nv, mode:GDB.mode });
+    /* `leggibile` la legge la pagina (regola 20): la riga non leggibile si
+       veste da avviso, non si confonde con una a zero */
+    $('hgPonti').innerHTML=rp.righe.map(r=>'<div class="hg-item'+(r.leggibile?'':' hg-warn')+'"><div class="t"><b>'+_rEsc(r.app)+'</b><small>'
+      +_rEsc(r.testo)+(r.ultimo?' · '+_rEsc(r.codaUltimo)+' '+_rEsc(gdata(r.ultimo)):'')+'</small></div></div>').join('');
+  }
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length
     ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+_puntiNuvola(e)+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
@@ -4864,7 +5029,7 @@ function renderHome(){
    con due copie dello stesso codice, e una delle due scriveva un messaggio
    diverso a parità di azione. */
 async function salvaVolata(codaMsg){
-  const arr=_lsGet('genesiVolate');
+  const arr=await GDB.volate();
   const proposta='Volata '+new Date().toLocaleDateString('it-IT');
   /* il terzo parametro del condiviso è l'HTML DEL CAMPO, non il valore: la
      proposta va messa dentro l'input, se no il campo compare vuoto e nessuno
@@ -4880,14 +5045,36 @@ async function salvaVolata(codaMsg){
   /* un nome vuoto non diventa «Volata senza nome»: si dice cosa manca e si
      lascia l'utente dov'era, con quello che aveva già scritto */
   if(!nome){ toast('Serve un nome per ritrovarla in Home.'); return; }
-  arr.push(volSnapshot(nome)); while(arr.length>50) arr.shift();
-  _lsSet('genesiVolate',arr); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
+  /* il tetto delle 50 sta nella porta, non qui: è la stessa regola per chi
+     salva, chi duplica e chi domani scriverà da un'altra pagina */
+  await GDB.aggiungi('volate', volSnapshot(nome)); renderHome(); toast('✓ Volata salvata'+(codaMsg||''));
 }
 if($('hgSalva')) $('hgSalva').onclick=()=>salvaVolata();
-if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
+/* «Porta nell'organizzazione» (unità 5): si vede solo in modalità live. Copia
+   una volta sola, per browser, e non cancella niente dal browser: chi lavora
+   senza rete continua ad avere le sue chiavi. Il conto di quello che è stato
+   copiato si dice nel toast, e «già fatto» si dice come «già fatto». */
+if($('hgPorta')){
+  $('hgPorta').hidden = GDB.mode !== 'live';
+  $('hgPorta').onclick = async ()=>{
+    const si = await chiedi('Portare nell\'organizzazione?',
+      'Copio nell\'organizzazione le volate, gli scatti A/B, le riconciliazioni, la legge di sito e le lavorazioni salvate in <b>questo browser</b>. '
+      + 'Si fa <b>una volta sola</b> e qui non si cancella niente. Se le stesse cose le porti anche da un altro computer, nell\'organizzazione compaiono due volte: si vede da dove vengono.',
+      'Porta');
+    if(!si) return;
+    const locale = await genesiData({ live:false });
+    const r = await portaNellOrganizzazione(locale, GDB, localStorage, { autore: GDB.utente && GDB.utente.uid });
+    if(r.errore){ toast('Non si può: '+r.errore); return; }
+    if(r.gia){ toast('Già fatto'+(r.quando?' il '+gdata(r.quando):'')+': non ricopio niente.'); return; }
+    const parti=[]; for(const [k,n] of Object.entries(r.scritte)) if(n) parti.push(n+' '+k);
+    toast(r.totale ? '✓ Portate nell\'organizzazione: '+parti.join(', ')+'.' : 'In questo browser non c\'era niente da portare.');
+    renderHome();
+  };
+}
+if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
   const btn=e.target.closest('button'); if(!btn) return;
   const item=e.target.closest('.hg-item'); const id=item&&item.getAttribute('data-id'); if(!id) return;
-  const arr=_lsGet('genesiVolate'); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
+  const arr=await GDB.volate(); const i=arr.findIndex(v=>v.id===id); if(i<0) return;
   const act=btn.getAttribute('data-act');
   if(act==='del'){
     /* la conferma dice cosa si perde — la data e la sintesi della volata — e
@@ -4897,22 +5084,28 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
       + (arr[i].data ? ', salvata il '+_rEsc(gdata(arr[i].data)) : '')
       + (arr[i].sintesi ? ' — '+_rEsc(arr[i].sintesi) : '')
       + '. Non si può annullare.', 'Elimina', true)
-      .then(si=>{
+      .then(async si=>{
         if(!si) return;
-        const a=_lsGet('genesiVolate'); const j=a.findIndex(v=>v.id===id);
+        const a=await GDB.volate(); const j=a.findIndex(v=>v.id===id);
         /* si rilegge l'indice: fra la domanda e la risposta l'elenco può
            essere cambiato, e cancellare la riga sbagliata sarebbe peggio */
         if(j<0){ toast('Quella volata non c\'è più.'); renderHome(); return; }
         const nome=a[j].nome;
-        a.splice(j,1); _lsSet('genesiVolate',a); renderHome();
+        await GDB.rimuovi('volate', id); renderHome();
         toast('✓ «'+nome+'» eliminata');
       });
     return;
   }
-  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); arr.push(c); _lsSet('genesiVolate',arr); renderHome(); toast('✓ Duplicata'); return; }
+  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); await GDB.aggiungi('volate', c); renderHome(); toast('✓ Duplicata'); return; }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
-    D2.holes=[]; D2.sel=-1; D2.selPt=-1;
+    /* i fori salvati col progetto (05/09): se il design li porta si
+       rimettono quelli — id, posizione, ritardo a mano — e la sequenza si
+       ricalcola; se non li porta (volata salvata prima) la maglia si rigenera
+       come sempre. I fori illeggibili si contano e si dicono nel toast. */
+    const _fd=foriDaDesign(arr[i].design);
+    D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1;
+    if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
        `Object.assign` da `localStorage` — ed è quella da cui il 03/08 è
@@ -4931,7 +5124,21 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',e=>{
        guasto del disegno cancella. Prima si dice quello che manca, poi si
        disegna — così il messaggio non ha bisogno che il resto funzioni. */
     const _senza=volataSenzaValori(arr[i].design);
-    toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_senza?' — ⚠️ '+_senza.che+'. '+_senza.come:''));
+    /* E L'ALTRA METÀ (02/09, unità 7): le scelte che il catalogo di QUESTA
+       versione non riconosce. `selEsplosivo`/`selRoccia`/`selInnesco` ripiegano
+       in silenzio sul default: qui si rimette il valore di partenza ANCHE in D2
+       (così tendina e conto dicono la stessa cosa) e lo si dice nel toast. I
+       cataloghi vivono nella pagina e si passano: il modulo non li conosce. */
+    const _cataloghi={ esplosivo:ESPL.map(e=>e.id), innesco:INNESCHI.map(e=>e.id), roccia:ROCCE.map(r=>r.id),
+      frat:[...($('dFrat')?.options||[])].map(o=>o.value), sequenza:[...($('dSeq')?.options||[])].map(o=>o.value), recNorma:[...($('dRecNorma')?.options||[])].map(o=>o.value) };
+    const _sc=designSconosciuti(arr[i].design, _cataloghi);
+    /* ⛔ Ma non tutte: la norma del recettore porta `sostituisci:false` (03/09) —
+       rimessa a «DIN residenziale» produceva un limite e un verdetto su una
+       norma che nessuno aveva scelto. Il codice resta e il limite non si calcola. */
+    if(_sc) for(const c of _sc.campi) if(c.sostituisci) D2[c.chiave]=D2_PARTENZA[c.chiave];
+    const _avvisi=[_senza&&(_senza.che+'. '+_senza.come), _sc&&(_sc.che+'. '+_sc.come),
+      _fd&&_fd.scartati&&(_ricPlur(_fd.scartati,'foro salvato non si legge','fori salvati non si leggono')+(_fd.fori.length?' e resta fuori dal progetto riaperto':': la maglia è stata rigenerata dai parametri'))].filter(Boolean);
+    toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_avvisi.length?' — ⚠️ '+_avvisi.join(' ⚠️ '):''));
     setScreen('design');
   }
 });
@@ -4954,7 +5161,7 @@ document.querySelectorAll('#scr-home .card').forEach(card=>{
 });
 $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
-$('btn-piano-csv').onclick=()=>{
+$('btn-piano-csv').onclick=async()=>{
   if(!D2.holes.length) genMaglia2D();
   /* ⛔ QUESTE TRE COLONNE SCRIVEVANO LA PAROLA «null». `';'+D2.kg` con la
      carica per foro illeggibile non fa una cella vuota: fa la stringa
@@ -4972,16 +5179,31 @@ $('btn-piano-csv').onclick=()=>{
   const _pc=(v)=>{ const n=(v===null||v===undefined||v==='')?NaN:+v; return Number.isFinite(n)?n:''; };
   const _pcMancanti=[['la profondità',_pc(D2.prof)],['la carica di progetto',_pc(D2.kg)],
     ['il borraggio',_pc(D2.stem)]].filter(x=>x[1]==='').map(x=>x[0]);
-  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3\n';
-  D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
-    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+_pc(D2.prof)+';'+_pc(D2.kg)+';'+_pc(D2.stem)+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
-      +';'+(h.burdenLoc!=null?h.burdenLoc.toFixed(2):'')+';'+(h.spazLoc!=null?h.spazLoc.toFixed(2):'')
-      +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+'\n';
-  });
+  /* `id_foro` in coda (05/09): il numero «foro» è la posizione nella sequenza
+     di sparo e cambia se un foro si toglie; l'id nasce col foro e resta. Campo
+     lo conserva e lo rimanda nel consuntivo, ed è la chiave del confronto
+     foro per foro. In coda, così un lettore che conosce dodici colonne non
+     si accorge di niente. */
+  /* LE RIGHE SI COMPONGONO IN UN POSTO SOLO (05/09, notte): `pianoCsvGenesi` di
+     shared/ scrive il file E il testo che Campo ricompone dal record letto
+     dall'organizzazione — stesso testo, stesso lettore. Qui si raccolgono solo
+     i numeri, con `null` dove non si leggono (la cella esce vuota). */
+  const righePiano=D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).map((h,i)=>({ foro:i+1, x:h.mx, fila:h.my,
+    prof:_pc(D2.prof)===''?null:_pc(D2.prof), prog:_pc(D2.kg)===''?null:_pc(D2.kg), borr:_pc(D2.stem)===''?null:_pc(D2.stem),
+    rit:h.tDet!=null?h.tDet:null, relief:h.relief!=null?h.relief:null, burden:h.burdenLoc!=null?h.burdenLoc:null,
+    spaz:h.spazLoc!=null?h.spazLoc:null, vol:h.volLoc!=null?h.volLoc:null, pf:h.pfLoc!=null?h.pfLoc:null, idForo:h.id||'' }));
+  const csv=pianoCsvGenesi(righePiano);
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_piano_carico.csv'; a.click();
+  /* IL PONTE COME DATO: lo stesso piano va nella collezione `piani` (nell'
+     organizzazione, o nella chiave del browser da soli). Lo stesso piano
+     esportato due volte non diventa due piani: l'impronta è del testo. */
+  const recPiano=pianoDaGenesi(righePiano,{ nome:'Piano di carico del '+new Date().toLocaleDateString('it-IT') });
+  let pianoInOrg=false;
+  try{ const gia=(await GDB.piani()).some(p=>p&&p.impronta===recPiano.impronta); if(!gia) await GDB.aggiungi('piani',recPiano); pianoInOrg=true; }catch(e){ pianoInOrg=false; }
   toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori')
+    +(pianoInOrg?(GDB.mode==='live'?' — e scritto nell\'organizzazione: in Campo compare in «Piano di carico → Piani da Genesi»':' — sullo stesso computer Campo lo trova in «Piano di carico → Piani da Genesi»'):'')
     +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
     _pcMancanti.length?'err':undefined);
 };
@@ -5109,7 +5331,7 @@ function genMaglia2D(){
   for(let r=0;r<D2.file;r++){
     const my = D2.B + r*D2.bf;
     const off = (D2.stagger && r%2===1) ? D2.S/2 : 0;
-    for(let c=0;c<D2.perRow;c++) holes.push({ mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
+    for(let c=0;c<D2.perRow;c++) holes.push({ id:idForoMaglia(r+1,c+1), mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
   }
   /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
@@ -5155,8 +5377,10 @@ function computeSeq2D(){
 /* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
    separati da meno di cosi sparano di fatto insieme e non si liberano a vicenda */
 function scatterMs(){
+  /* legame fra lo stato del progetto e la formula pura di genesi-data, come
+     `computeMIC` → `micFinestra` (04/09) */
   const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
-  return (D2.innesco==='elettronico')?0.1:((D2.innesco==='elettrico')?0.5:((D2.innesco==='cordtex')?0.03*tmx:0.02*tmx));
+  return scatterInnesco(D2.innesco, tmx);
 }
 function computeRelief2D(){
   const H=D2.holes; if(!H||!H.length) return;
@@ -5825,7 +6049,7 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(p.x,p.y);
   if(i<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
-    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
   if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
@@ -6290,7 +6514,7 @@ function renderScheda2D(){
         +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
         +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();
-  rows.push(badge(subB,'Sottoperforazione',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
+  rows.push(badge(subB,'Sottoperf.',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+gfix(subRec,1)+' m, 8–12·Ø): piede pulito.',
     'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+gfix(subRec,1)+' m.',
     'sottoperf. eccessiva → perforazione sprecata, vibrazioni e danno al banco sottostante.'));
@@ -6840,7 +7064,7 @@ function simulaVolata2D(){
   computeSeq2D();
   if(D2.holes && D2.holes.length){
     const mxs=D2.holes.map(h=>h.mx), mys=D2.holes.map(h=>h.my), minMx=Math.min(...mxs), minMy=Math.min(...mys);
-    P.holes = D2.holes.map(h=>({ x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
+    P.holes = D2.holes.map(h=>({ id:h.id||null, x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
   } else P.holes=null;
   simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');

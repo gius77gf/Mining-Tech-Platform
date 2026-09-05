@@ -475,7 +475,7 @@ export const CSV_TABELLE = [
   { id: "campo.storico", app: "Campo", etichetta: "lo storico dei turni di Campo",
     fonte: "campo.csvStorico", col: "data;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati" },
   { id: "campo.pianoConsuntivo", app: "Campo", etichetta: "il consuntivo del piano di carica di Campo",
-    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore" },
+    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro" },
   { id: "campo.piano", app: "Campo", etichetta: "il piano di carica di Campo",
     col: "foro;x;fila;prof;prog;borr;rit" },
   // ── Conti ───────────────────────────────────────────────────────────
@@ -484,7 +484,7 @@ export const CSV_TABELLE = [
   { id: "conti.gare", app: "Conti", etichetta: "l'export delle gare di Conti",
     fonte: "conti.csvGare", col: "titolo;base;scadenza;stato" },
   { id: "conti.clienti", app: "Conti", etichetta: "l'export dei clienti di Conti",
-    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note" },
+    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale" },
   { id: "conti.incassi", app: "Conti", etichetta: "l'export degli incassi di Conti",
     fonte: "conti.csvIncassi", col: "fatturaId;data;importo;metodo" },
   { id: "conti.pesate", app: "Conti", etichetta: "l'export delle pesate di Conti",
@@ -497,22 +497,38 @@ export const CSV_TABELLE = [
      esattamente quelli che i messaggi di questa casa chiamavano «il prospetto
      e non la copia di sicurezza» tirando a indovinare — adesso si nominano. */
   { id: "conti.prospettoIncassi", app: "Conti", etichetta: "il prospetto degli incassi di Conti",
-    pagina: "apps/conti/index.html", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
+    fonte: "conti.csvProspettoIncassi", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
   { id: "conti.prospettoClienti", app: "Conti", etichetta: "il prospetto dei clienti di Conti",
-    pagina: "apps/conti/index.html", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
+    fonte: "conti.csvProspettoClienti", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
   { id: "conti.prospettoCosti", app: "Conti", etichetta: "il prospetto dei costi di Conti",
-    pagina: "apps/conti/index.html", col: "data;voce;gruppo;importo;nota;nel_periodo" },
+    fonte: "conti.csvProspettoCosti", col: "data;voce;gruppo;importo;nota;nel_periodo" },
   { id: "conti.prezziConvertiti", app: "Conti", etichetta: "il prospetto dei prezzi convertiti di Conti",
-    pagina: "apps/conti/index.html", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
+    fonte: "conti.csvPrezziConvertiti", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
   { id: "conti.prospettoDdt", app: "Conti", etichetta: "il prospetto dei DDT di Conti",
-    pagina: "apps/conti/index.html", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
+    fonte: "conti.csvProspettoDdt", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
+  { id: "conti.prospettoPreventivi", app: "Conti", etichetta: "il prospetto dei preventivi di Conti",
+    fonte: "conti.csvProspettoPreventivi", col: "numero;ordine;data;valido al;cliente;stato;prodotto;quantita;unita;prezzo;sconto %;sconto cliente %;sconto scaglione %;scaglione da;imponibile" },
   // ── Flotta ──────────────────────────────────────────────────────────
   { id: "flotta.ricambi", app: "Flotta", etichetta: "l'export del magazzino ricambi di Flotta",
     fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo" },
   { id: "flotta.costi", app: "Flotta", etichetta: "l'export del registro costi di Flotta",
-    pagina: "apps/flotta/index.html", col: "data;voce;importo;nota" },
+    fonte: "flotta.csvCosti", col: "data;voce;importo;nota" },
+  { id: "flotta.budget", app: "Flotta", etichetta: "il budget dell'anno contro la spesa reale di Flotta",
+    fonte: "flotta.csvBudget", col: "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato" },
+  { id: "flotta.fermi", app: "Flotta", etichetta: "il registro dei fermi macchina di Flotta",
+    fonte: "flotta.csvFermiMacchina", col: "mezzo;causale;inizio;fine;giorni;stato;note" },
+  { id: "flotta.giri", app: "Flotta", etichetta: "i giri macchina esportati di Flotta",
+    fonte: "flotta.csvGiriMacchina", col: "data;mezzo;tipo;operatore;ore;esito;anomalie;voci_non_ok;note" },
+  { id: "flotta.scadenzeMezzi", app: "Flotta", etichetta: "lo scadenzario dei mezzi di Flotta",
+    fonte: "flotta.csvScadenzeDiLegge", col: "mezzo;tipo;scadenza;stato;ogni_mesi;documento;ultima_verifica;esito;note;riferimento_normativo" },
+  { id: "flotta.interventi", app: "Flotta", etichetta: "il registro degli interventi di Flotta",
+    fonte: "flotta.csvRegistroInterventi", col: "data;titolo;mezzo;ricambio;costo;note;ore_manodopera;costo_manodopera;costo_ricambi;chi_ha_lavorato" },
+  { id: "flotta.listaSpesa", app: "Flotta", etichetta: "la lista della spesa dei ricambi di Flotta",
+    fonte: "flotta.csvListaDellaSpesa", col: "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi" },
+  { id: "flotta.libretto", app: "Flotta", etichetta: "il libretto del mezzo di Flotta",
+    fonte: "flotta.csvLibretto", col: "sezione;voce;data;dettaglio;importo" },
   { id: "flotta.prospetto", app: "Flotta", etichetta: "il prospetto della flotta di Flotta",
-    pagina: "apps/flotta/index.html", col: "tipo;nome;stato;dettaglio" },
+    fonte: "flotta.csvSituazione", col: "tipo;nome;stato;dettaglio" },
   { id: "flotta.mezzi", app: "Flotta", etichetta: "l'elenco dei mezzi di Flotta",
     col: "nome;area;ore;stato" },
   { id: "flotta.telemetria", app: "Flotta", etichetta: "la telemetria dei mezzi di Flotta",
@@ -522,7 +538,7 @@ export const CSV_TABELLE = [
     fonte: "genesi.csvRiconciliazione", col: "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note;campo_data;campo_turno;campo_chi;campo_fori_registrati;campo_fori_totali;campo_kg_reali;campo_kg_progetto;campo_scostamento_pct;ppv_prev_base" },
   // ── Scudo ───────────────────────────────────────────────────────────
   { id: "scudo.personaleScadenze", app: "Scudo", etichetta: "l'export del personale con le scadenze di Scudo",
-    fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica" },
+    fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio" },
   { id: "scudo.infortuni", app: "Scudo", etichetta: "il registro infortuni di Scudo",
     fonte: "scudo.csvRegistroInfortuni", col: "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota" },
   { id: "scudo.azioni", app: "Scudo", etichetta: "la copia di sicurezza delle azioni correttive di Scudo",
@@ -532,18 +548,23 @@ export const CSV_TABELLE = [
   { id: "scudo.scadenze", app: "Scudo", etichetta: "lo scadenzario di Scudo",
     col: "lavoratore;tipo;descrizione;scadenza" },
   { id: "scudo.prospettoAzioni", app: "Scudo", etichetta: "il prospetto delle azioni correttive di Scudo",
-    pagina: "apps/scudo/index.html", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
-  { id: "scudo.prospettoIndici", app: "Scudo", etichetta: "il prospetto degli indici infortunistici di Scudo",
-    pagina: "apps/scudo/index.html", col: "sezione;voce;numero" },
+    fonte: "scudo.csvProspettoAzioni", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
+  /* ⏱️ Fino al 05/09 questa riga si chiamava «prospettoIndici» e diceva di
+     leggere la pagina: l'intestazione «sezione;voce;numero» che vi trovava
+     era quella del riepilogo dei NEAR-MISS (un prospetto degli indici come
+     file non esiste) — verde per caso. Adesso nomina il file vero e lo
+     verifica chiamando l'export, che è salito nel modulo. */
+  { id: "scudo.riepilogoNearMiss", app: "Scudo", etichetta: "il riepilogo dei near-miss di Scudo (L. 198/2025)",
+    fonte: "scudo.csvRiepilogoNearMiss", col: "sezione;voce;numero" },
   // ── Sentinella ──────────────────────────────────────────────────────
   { id: "sentinella.ricettori", app: "Sentinella", etichetta: "l'export dei ricettori di Sentinella",
     fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota" },
   { id: "sentinella.tarature", app: "Sentinella", etichetta: "l'archivio dei certificati di taratura di Sentinella",
     fonte: "sentinella.csvTarature", col: "strumento;data;scadenza;centro;certificato;nota" },
   { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
-    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza" },
+    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni" },
   { id: "sentinella.volate", app: "Sentinella", etichetta: "il registro delle volate di Sentinella",
-    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata" },
+    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;comunicataA;comunicataIl;comunicazioneRif" },
   { id: "sentinella.referti", app: "Sentinella", etichetta: "i referti di vibrazione per Genesi di Sentinella",
     fonte: "sentinella.csvRefertiGenesi", col: "distanza_m;carica_per_ritardo_kg;ppv_mms;riferimento;data;origine" },
   { id: "sentinella.monitoraggi", app: "Sentinella", etichetta: "i punti di monitoraggio di Sentinella",
@@ -553,12 +574,14 @@ export const CSV_TABELLE = [
   // ── Terra ───────────────────────────────────────────────────────────
   { id: "terra.rilievi", app: "Terra", etichetta: "l'export dei rilievi di Terra",
     fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza" },
+  { id: "terra.inventari", app: "Terra", etichetta: "l'export degli inventari dei cumuli di Terra",
+    fonte: "terra.csvInventari", col: "data;metodo;materiale;volumeM3;nota;inventarioId" },
   { id: "terra.fronti", app: "Terra", etichetta: "l'elenco dei fronti di Terra",
     col: "nome;banco;quota;stato" },
   { id: "terra.prospettoAvanzamento", app: "Terra", etichetta: "il prospetto dell'avanzamento di Terra",
-    pagina: "apps/terra/index.html", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
+    fonte: "terra.csvRiepilogoAnno", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
   { id: "terra.prospettoFronti", app: "Terra", etichetta: "il prospetto dei fronti e dei rilievi di Terra",
-    pagina: "apps/terra/index.html", col: "tipo;nome;stato;provenienza;dettaglio" },
+    fonte: "terra.csvFrontiRilievi", col: "tipo;nome;stato;provenienza;dettaglio" },
 ];
 
 // Almeno tre celle: sotto, una riga di dati qualunque comincerebbe a
@@ -572,6 +595,62 @@ export const CSV_MIN_CELLE = 3;
 function _normCol(s) {
   return String(s == null ? "" : s).toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+/* ── LA MAPPA DELLE COLONNE PER NOME (05/09) ──────────────────────────────
+   Quattro app leggevano un file di qualcun altro per NOME di colonna con
+   quattro lettori di casa: `proponiMappa` in Sentinella, `mappaPianoCsv` in
+   Campo, `mappaMovimentiCsv` in Conti, e Flotta stava per scriverne un
+   quarto per la telemetria. La domanda è una: «quale colonna è X?», con gli
+   indizi di X, quelle da ESCLUDERE prima (il saldo che finirebbe fra gli
+   importi), l'ordine di presa e le facoltative. Qui una volta sola.
+   `nomeColonna` tiene gli spazi (a differenza di `_normCol`, che serve alla
+   firma di una tabella): il confronto è per INIZIO di parola — «abi» non
+   prende «cont-abi-le», ma «causale abi» sì. Ritorna
+   { conIntestazione, indici:{campo→i|-1}, riconosciute:[{campo,nome,i}],
+     esclusi:[nomi], ignorate:[nomi], mancanti:[campi obbligatori assenti] }.
+   `opzioni.condizionali[campo](indici)` decide se un campo va cercato dati
+   quelli già presi (l'importo unico solo se non ci sono entrate e uscite);
+   `opzioni.conIntestazione(indici)` dice quando l'intestazione «vale» —
+   senza, vale se almeno una colonna è stata riconosciuta. Pura. */
+export function nomeColonna(s) {
+  return String(s == null ? "" : s).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+export function mappaColonne(intestazione, indizi, opzioni = {}) {
+  const nomi = Array.isArray(intestazione) ? intestazione : [];
+  const celle = nomi.map(nomeColonna);
+  const out = { conIntestazione: false, indici: {}, riconosciute: [], esclusi: [], ignorate: [], mancanti: [] };
+  /* `presi`: colonne già assegnate da chi chiama (Sentinella cerca prima data
+     e ora, poi gli assi, poi il valore fra quello che resta) */
+  const presi = new Set((opzioni.presi || []).filter(i => Number.isInteger(i) && i >= 0));
+  /* tre modi di combaciare, e chi chiama sceglie il suo:
+     · "parola" (il default): l'indizio all'INIZIO di una parola — Conti e
+       Flotta, dove «abi» non deve prendere «contabile»;
+     · "esatto" (o `esatto: true`): il nome è TUTTO l'indizio — Campo, dove
+       «ms» non deve prendere «relief ms per m»;
+     · "dentro": l'indizio in QUALUNQUE punto — Sentinella, dove «vel» deve
+       prendere «velocità (mm/s)» e «db» «dB(L)», com'è sempre stato. */
+  const modo = opzioni.esatto ? "esatto" : (opzioni.modo || "parola");
+  const combacia = modo === "esatto" ? (h, k) => h === k
+    : modo === "dentro" ? (h, k) => h === k || h.includes(k)
+    : (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  const cerca = (chiavi) => { const ks = (chiavi || []).map(nomeColonna).filter(Boolean);
+    return celle.findIndex((h, i) => !presi.has(i) && h && ks.some(k => combacia(h, k))); };
+  for (const chiavi of Object.values(opzioni.escludi || {})) { let i; while ((i = cerca(chiavi)) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }
+  const ordine = opzioni.ordine || Object.keys(indizi || {});
+  const cond = opzioni.condizionali || {};
+  for (const campo of ordine) {
+    if (typeof cond[campo] === "function" && !cond[campo](out.indici)) { out.indici[campo] = -1; continue; }
+    const i = cerca((indizi || {})[campo]);
+    out.indici[campo] = i;
+    if (i >= 0) { presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); }
+  }
+  celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
+  const facolt = new Set([...(opzioni.facoltative || []), ...Object.keys(cond)]);
+  out.mancanti = ordine.filter(c => out.indici[c] < 0 && !facolt.has(c));
+  out.conIntestazione = typeof opzioni.conIntestazione === "function" ? !!opzioni.conIntestazione(out.indici) : out.riconosciute.length > 0;
+  return out;
 }
 
 // `celle` combacia con `col` se comincia dalla PRIMA colonna e prosegue in
@@ -1785,6 +1864,68 @@ export function misureVolataFochino(r) {
   const kg = (grezzo !== null && grezzo > 0) ? grezzo : daiFori;
   return { fori: n === null ? dett.length : n, kg, dichiarato: kg !== null,
            conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
+}
+
+/* L'ESPLOSIVO PER TIPO sul rapportino del fochino (03/09, punto 0 del delta
+   sul rapporto di volata: il dato per foro c'era, chi lo somma per tipo no —
+   e il registro di carico e scarico del mondo vuole i chili per tipo, non il
+   totale). Ogni foro porta `esplosivo` (colonna di fondo), `esplosivo2`
+   (seconda carica) e un solo `kg`: i chili si attribuiscono al primo tipo
+   scritto; un foro con due tipi si CONTA a parte (`conDueTipi`) perché la
+   ripartizione fra i due non è scritta e non si indovina; un foro con i chili
+   ma senza tipo va in `senzaTipo` con i suoi chili, dichiarati e non sommati
+   a nessuno. `dichiarato` = tutti i chili hanno un tipo. */
+export function esplosivoPerTipo(r) {
+  const o = r || {};
+  const dett = Array.isArray(o.fori_dettaglio) ? o.fori_dettaglio : [];
+  const per = new Map();
+  let senzaTipo = { fori: 0, kg: 0 }, conDueTipi = 0, kgTot = 0;
+  for (const f of dett) {
+    const kg = _numRapp(f && f.kg);
+    const k = kg !== null && kg > 0 ? kg : 0;
+    const t1 = String((f && f.esplosivo) || "").trim(), t2 = String((f && f.esplosivo2) || "").trim();
+    if (t1 && t2 && t1 !== t2) conDueTipi++;
+    const tipo = t1 || t2;
+    if (!tipo) { if (k > 0) { senzaTipo.fori++; senzaTipo.kg += k; } continue; }
+    const g = per.get(tipo) || { tipo, kg: 0, fori: 0 };
+    g.kg += k; g.fori++; per.set(tipo, g); kgTot += k;
+  }
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const tipi = [...per.values()].map((g) => ({ ...g, kg: r2(g.kg) })).sort((a, b) => b.kg - a.kg || a.tipo.localeCompare(b.tipo));
+  return { tipi, kgTot: r2(kgTot), senzaTipo: { fori: senzaTipo.fori, kg: r2(senzaTipo.kg) }, conDueTipi,
+           dichiarato: tipi.length > 0 && senzaTipo.kg === 0 };
+}
+
+/* L'ESITO DELLO SPARO sul rapportino del fochino (03/09, dal delta della
+   ricerca sul rapporto di volata: «colpi esplosi contati» e «colpi mancati»
+   erano le due cose che mancavano davvero). Una funzione sola decide i numeri
+   per la lista, il dettaglio e il PDF — così il PDF non può dire una cosa
+   diversa dallo schermo. Le regole del principio del fondatore:
+   · `colpiEsplosi`/`colpiMancati` assenti = NON CONTATI (`contato: false`),
+     mai «0 mancati»: un rapportino vecchio, o uno scritto di fretta, non
+     diventa una volata perfetta per omissione;
+   · un solo numero scritto vale come conto parziale: `contato` resta vero
+     ma `parziale` lo dice, e il mancante si legge `null`;
+   · mancati > fori caricati, o esplosi + mancati > fori: `coerente: false`
+     con la ragione — il conto non si tocca, si dichiara;
+   · con mancati > 0 e senza nota: `notaMancante: true`, perché un colpo
+     mancato senza scritto dov'è e chi bonifica è un pericolo lasciato al
+     turno dopo. */
+export function esitoSparo(r) {
+  const o = r || {};
+  const fori = misureVolataFochino(o).fori;
+  const e = _numRapp(o.colpiEsplosi), m = _numRapp(o.colpiMancati);
+  const esplosi = e !== null && e >= 0 && Number.isInteger(e) ? e : null;
+  const mancati = m !== null && m >= 0 && Number.isInteger(m) ? m : null;
+  const nota = String(o.mancatiNota || "").trim();
+  const contato = esplosi !== null || mancati !== null;
+  const parziale = contato && (esplosi === null || mancati === null);
+  let coerente = true, perche = "";
+  if (mancati !== null && fori > 0 && mancati > fori) { coerente = false; perche = `${mancati} colpi mancati su ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati > fori) { coerente = false; perche = `${esplosi} esplosi più ${mancati} mancati fanno più dei ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati < fori) { const k = fori - esplosi - mancati; perche = k === 1 ? "un foro caricato senza esito" : `${k} fori caricati senza esito`; }
+  return { fori, esplosi, mancati, nota, contato, parziale, coerente, perche,
+           pericolo: mancati !== null && mancati > 0, notaMancante: mancati !== null && mancati > 0 && !nota };
 }
 
 /* ⛔ E LA TERZA È LA PIÙ NETTA DELLE TRE: LA FRAMMENTAZIONE POST-VOLATA.

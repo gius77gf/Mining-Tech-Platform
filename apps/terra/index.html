@@ -236,7 +236,13 @@ body.dw.outdoor-mode{
 .vita.danger::before{
   background:radial-gradient(320px 190px at 6% 0%,rgba(240,95,90,.12),transparent 72%);
 }
-.vita-head{display:flex; align-items:center; gap:12px; margin-bottom:10px}
+.vita-head{display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap}
+/* Se accanto al titolo non restano almeno 100 px, la pastiglia scende sotto,
+   allineata a destra: a 320 px «DENTRO IL PROGETTO» (148 px) lasciava al
+   titolo 48 px, «SCENDERE» in maiuscolo spaziato non si spezza (72 px) e
+   finiva SOTTO la pastiglia, sovrapposto di 12 px — misurato col Range.
+   A 390 px e oltre non cambia niente: la pastiglia resta sulla riga. */
+.vita-head>.badge{margin-left:auto}
 .vita-ico{
   display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
   width:44px; height:44px; border-radius:13px; line-height:0; color:var(--app-accent2);
@@ -255,7 +261,7 @@ body.dw.outdoor-mode{
   width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:1.7;
   stroke-linecap:round; stroke-linejoin:round;
 }
-.vita-htxt{flex:1; min-width:0}
+.vita-htxt{flex:1 1 100px; min-width:0}
 .vita-lab{
   font-family:'Barlow',sans-serif; font-size:10px; font-weight:600; letter-spacing:2px;
   text-transform:uppercase; color:var(--muted); line-height:1.35;
@@ -727,6 +733,25 @@ a.dw-btn{text-decoration:none}
   <div id="ril-count" class="count"></div>
   <div id="ril-list"></div>
 
+  <!-- L'INVENTARIO DEI CUMULI: la fotografia del piazzale a una data. Sta qui,
+       accanto alle riprese da cumulo, perché parla dello stesso materiale — già
+       estratto, fermo sul piazzale. Conti lo legge per chiudere il triangolo
+       prodotto − venduto = Δ scorte: con due fotografie che racchiudono il
+       periodo la variazione delle scorte è MISURATA, non stimata. Un cumulo
+       senza volume è «non misurato», mai zero: la riga lo dichiara. -->
+  <div class="sec">Inventario dei cumuli <span class="badge tag inline">verso Conti</span></div>
+  <div id="inv-count" class="count"></div>
+  <div id="inv-list"></div>
+  <div class="tools">
+    <button class="dw-btn" id="btn-add-inv" title="Registra la fotografia del piazzale di oggi: un cumulo per riga, col volume in metri cubi">Nuovo inventario</button>
+    <button class="dw-btn secondary" id="btn-imp-inv" title="Carica un file nel formato che esce da «Scarica inventari»: una riga per cumulo">Carica inventari (CSV)</button>
+    <button class="dw-btn secondary" id="btn-exp-inv" title="Scarica gli inventari nello stesso formato che questa pagina sa ri-caricare">Scarica inventari (CSV)</button>
+    <input type="file" id="inv-file" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="form-hint">Il file che esce da &laquo;Scarica inventari&raquo; &egrave; <b>lo stesso</b> che &laquo;Carica inventari&raquo; sa rileggere: &egrave; la copia di sicurezza degli inventari, non un prospetto. Colonne: <b>data; metodo; materiale; volumeM3; nota; inventarioId</b> &mdash; <b>una riga per cumulo</b>; un volume lasciato vuoto rientra come <b>non misurato</b>, non come zero.</div>
+  <div class="form-hint">Ogni inventario è la <b>fotografia del piazzale</b> a una data: quanti metri cubi <b>sciolti</b> ci sono in ogni cumulo. Con due fotografie che racchiudono un periodo, Conti misura la <b>variazione delle scorte</b> e chiude il conto prodotto − venduto. Il materiale si scrive con lo stesso nome del listino di Conti: è quel nome che gli dà la densità.</div>
+  <div class="note esito" id="inv-esito"></div>
+
   <!-- CONFRONTO FRA DUE RILIEVI: «quanto abbiamo cavato da lì fra marzo e luglio» -->
   <div class="sec">Confronto fra due rilievi</div>
   <div class="form col">
@@ -892,10 +917,14 @@ a.dw-btn{text-decoration:none}
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="lot-rec-fine">Recupero finito il</label>
         <input class="dw-input" id="lot-rec-fine" type="date"></div>
+      <div class="fld" style="flex:1 1 170px;"><label class="fl" for="lot-collaudo-chiesto">Collaudo chiesto il</label>
+        <input class="dw-input" id="lot-collaudo-chiesto" type="date" title="Quando hai comunicato all'ente la fine dei lavori e chiesto il sopralluogo"></div>
       <div class="fld" style="flex:1 1 180px;"><label class="fl" for="lot-collaudo">Collaudato il (verbale dell'ente)</label>
         <input class="dw-input" id="lot-collaudo" type="date" title="La data del verbale con cui l'ente ha verificato il recupero"></div>
     </div>
     <div class="frow">
+      <div class="fld" style="flex:1 1 200px;"><label class="fl" for="lot-garanzia">Quota di garanzia del lotto (<span class="u">&euro;</span>)</label>
+        <input class="dw-input" id="lot-garanzia" inputmode="decimal" placeholder="es. 25.000" title="La parte della fideiussione che la tua polizza attribuisce a questo lotto: si libera col collaudo. Terra non la calcola: la scrivi tu dalla polizza"></div>
       <div class="fld" style="flex:1 1 220px;"><label class="fl" for="lot-vol-rec">Volume rimesso per il recupero (<span class="u">m&sup3;</span>)</label>
         <input class="dw-input" id="lot-vol-rec" inputmode="decimal" placeholder="es. 1.200" title="Quanto materiale &egrave; stato rimesso in cava per il recupero ambientale di questo lotto"></div>
     </div>
@@ -988,9 +1017,9 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
@@ -1000,10 +1029,12 @@ a.dw-btn{text-decoration:none}
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
-           STATI_LOTTO, statoLotto, divarioRecupero, avanzamentoLotto,
+           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
-           aEufonica, articoloNumero } from "./terra-data.js";
+           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
+           inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
+           csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
      già, ed è la stessa che usano le altre app. Riscriverla in casa è la
      copia debole che CLAUDE.md censisce — provata riga per riga e buttata. */
@@ -1104,6 +1135,8 @@ a.dw-btn{text-decoration:none}
     // il piano a lotti: una particella divisa in campi, come sulla tavola del
     // progetto di coltivazione
     lotti:  '<svg viewBox="0 0 24 24"><path d="M2.8 5.2h18.4v13.6H2.8z"/><path d="M9.4 5.2v13.6M15.4 5.2v13.6"/><path d="M2.8 12h6.6"/></svg>',
+    // il cumulo sul piazzale: due mucchi, uno davanti all'altro
+    cumuli: '<svg viewBox="0 0 24 24"><path d="M2.5 19.5h19"/><path d="M3.5 19.5c2.2-6.4 4.8-9.6 7.8-9.6s5.6 3.2 7.8 9.6"/><path d="M12.6 19.5c.9-3.4 2.3-5.1 4.2-5.1s3.3 1.7 4.2 5.1"/></svg>',
   };
   // azioni di riga: pittogrammi, non caratteri
   const A = {
@@ -1192,7 +1225,7 @@ a.dw-btn{text-decoration:none}
      chiamare. */
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
-  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[];
+  let FRO=[], RIL=[], PIA=[], AUT=[], SCA=[], LOT=[], INV=[];
   let editFro = null;   // id del fronte in modifica (riusa il form "Nuovo fronte"; rilievi/avanzamento restano)
   let editAut = null;   // id dell'autorizzazione in modifica (null = la scheda compilata è nuova)
   let editLot = null;   // id del lotto in modifica (riusa il form "Nuovo lotto")
@@ -1226,9 +1259,9 @@ a.dw-btn{text-decoration:none}
     go(card.getAttribute("data-goto")); refresh();
   });
   async function refresh(){
-    [FRO,RIL,PIA,AUT,SCA,LOT] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
+    [FRO,RIL,PIA,AUT,SCA,LOT,INV] = await Promise.all([db.fronti(), db.rilievi(), db.piano(),
       db.autorizzazioni ? db.autorizzazioni() : [], db.scadenze ? db.scadenze() : [],
-      db.lotti ? db.lotti() : []]);
+      db.lotti ? db.lotti() : [], db.inventari ? db.inventari() : []]);
     const k = kpiFrom(FRO,RIL,PIA);
     const kn = document.querySelectorAll(".kpis .kpi .n");
     if (kn[0]) kn[0].textContent = fmtM3(k.volumiMese);
@@ -1370,6 +1403,7 @@ a.dw-btn{text-decoration:none}
     renderTitolo();
     renderConformita();
     renderLotti();
+    renderInventari();
     renderDenuncia();
     densitaDaAutorizzazione();   // prima di renderValore: la densità la usano entrambi
     renderValore();
@@ -1377,6 +1411,232 @@ a.dw-btn{text-decoration:none}
     renderTurni();
     grafici();
   }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // L'INVENTARIO DEI CUMULI — la fotografia del piazzale a una data (03/09)
+  // Chi decide se un inventario è usabile, quanti cumuli ha e quanti non sono
+  // misurati è il modulo (`inventariOrdinati`, `riepilogoInventario`,
+  // `cumuliUsabili` di shared/): la pagina LEGGE e disegna. Un cumulo con il
+  // volume vuoto è «non misurato» — esiste, il suo numero no — e resta fuori
+  // dal totale con la dichiarazione accanto, mai sommato come zero.
+  // ══════════════════════════════════════════════════════════════════════
+  const METODI_INV = [["drone", "Rilievo drone"], ["topografico", "Rilievo topografico"], ["stima", "Stima a vista"]];
+  const etMetodoInv = (m) => { const v = METODI_INV.find(x => x[0] === m); return v ? v[1] : m ? esc(String(m)) : "metodo non dichiarato"; };
+  // la stessa frase nella riga, nel dettaglio e nel messaggio dopo il salvataggio
+  const fraseNonMisurati = (n) => conta(n, "cumulo non misurato", "cumuli non misurati");
+  function renderInventari() {
+    const righe = inventariOrdinati(INV);
+    $("inv-list").innerHTML = righe.map(v => {
+      const nm = v.nonMisurati;
+      /* ⛔ la dichiarazione del non misurato sta PRIMA del metodo, e anche
+         nella pastiglia: `.meta` è tagliata a due righe, e nel primo scatto a
+         390 px «1 cumulo non misurato» era finito proprio nella parte con i
+         puntini — la frase per cui la riga esiste, illeggibile. Una pastiglia
+         non va a capo e non si taglia. */
+      const meta = [nm ? fraseNonMisurati(nm) + " su " + v.cumuli : conta(v.cumuli, "cumulo", "cumuli"),
+        v.usabile ? nD(v.volumeM3) + " m³" : "volume non calcolabile: " + v.perche,
+        etMetodoInv(v.metodo)].filter(Boolean).join(" · ");
+      const badge = !v.usabile ? ["warn", "Non usabile"] : nm ? ["warn", conta(nm, "non misurato", "non misurati")] : ["ok", "Completo"];
+      return `<div class="item ${v.usabile && !nm ? "st-accent" : "st-warn"}" data-inv="${esc(v.id)}" title="Tocca per vedere i cumuli di questo inventario">
+      <div class="info"><div class="name">Inventario del ${fmtData(v.data)}</div><div class="meta">${meta}</div></div>
+      <div class="acts"><span class="badge ${badge[0]}">${badge[1]}</span>
+      <button class="arr del" type="button" title="Elimina questo inventario" aria-label="Elimina l'inventario del ${fmtData(v.data)}" data-del-inv="${esc(v.id)}">${A.del}</button></div></div>`;
+    }).join("")
+      || vuoto(I.cumuli, "Nessun inventario dei cumuli",
+          "La variazione delle scorte a piazzale in Conti resta <b>stimata</b> finché non ne registri due: una fotografia all'inizio del periodo e una alla fine.",
+          `<button class="dw-btn secondary mini" data-vuoto-fai="#btn-add-inv">Registra il primo inventario</button>`);
+    const n = righe.length, ultimo = righe.find(v => v.usabile);
+    $("inv-count").innerHTML = n === 0 ? "" : "<b>" + n + "</b> " + (n === 1 ? "inventario" : "inventari")
+      + (ultimo ? " · l'ultimo usabile è del " + fmtData(ultimo.data) : " · nessuno usabile");
+  }
+
+  /* Il dettaglio: i cumuli uno per riga, con la stessa struttura delle liste.
+     La lettura di ogni cumulo la fa `cumuliUsabili` su quel cumulo solo, così
+     l'ordine resta quello scritto e la nota resta accanto al suo mucchio. */
+  function apriInventario(id) {
+    const inv = INV.find(x => x.id === id); if (!inv) return;
+    const r = riepilogoInventario(inv);
+    const righe = (Array.isArray(inv.cumuli) ? inv.cumuli : []).map(c => {
+      const u = cumuliUsabili({ cumuli: [c] });
+      const buono = u.buoni[0] || null, perche = u.scartati[0] ? u.scartati[0].perche : "";
+      const nonMis = !buono && perche === "volume non leggibile";
+      return `<div class="item ${buono ? "st-accent" : "st-warn"}" style="cursor:default;">
+        <div class="info"><div class="name">${esc(c && c.materiale ? c.materiale : "(senza materiale)")}</div>
+        <div class="meta">${buono ? nD(buono.volumeM3) + " m³" : nonMis ? "non misurato" : esc(perche)}${c && c.nota ? " · " + esc(c.nota) : ""}</div></div>
+        ${buono ? "" : `<div class="acts"><span class="badge warn">${nonMis ? "Non misurato" : "Escluso"}</span></div>`}</div>`;
+    }).join("");
+    const corpo = `<p>Fotografia del piazzale del <b>${fmtData(inv.data)}</b> · ${etMetodoInv(inv.metodo)}.</p>
+      ${righe || `<p>Questo inventario non ha nessun cumulo.</p>`}
+      <p style="margin-top:10px;">${r.usabile
+        ? `Totale misurato: <b>${nD(r.volumeM3)} m³</b> su ${conta(r.cumuli, "cumulo", "cumuli")}`
+          + (r.nonMisurati ? ` — <b>${fraseNonMisurati(r.nonMisurati)}</b> ${r.nonMisurati === 1 ? "resta" : "restano"} fuori dal conto, non a zero.` : ".")
+        : `Questo inventario <b>non è usabile</b> (${esc(r.perche)}): Conti non lo conta fra le fotografie del piazzale.`}</p>
+      ${inv.note ? `<p><b>Note:</b> ${esc(inv.note)}</p>` : ""}`;
+    apriModale("Inventario del " + fmtData(inv.data), corpo, [
+      { label: "Chiudi", azione: chiudiModale },
+      { label: "Elimina", cls: "danger", azione: () => { chiudiModale(); eliminaInventario(inv.id); } },
+    ]);
+  }
+
+  async function eliminaInventario(id) {
+    const inv = INV.find(x => x.id === id); if (!inv) return;
+    const r = riepilogoInventario(inv);
+    const ok = await chiedi("Eliminare l'inventario",
+      "La fotografia del piazzale del <b>" + fmtData(inv.data) + "</b> (" + conta(r.cumuli, "cumulo", "cumuli") + ") viene tolta.<br><br>"
+      + "Se era una delle due che racchiudono un periodo, in Conti la variazione delle scorte di quel periodo torna <b>stimata</b>.",
+      "Elimina l'inventario", true);
+    if (!ok) return;
+    await db.rimuovi("inventari", id);
+    esito("inv-esito", "Inventario del " + fmtData(inv.data) + " eliminato.");
+    await refresh();
+  }
+
+  /* La finestra del nuovo inventario: data (oggi), metodo, un cumulo per riga.
+     Il volume è un campo decimale letto con `numeroDaCampo`, come tutti i
+     volumi di questa pagina: vuoto = non misurato (si salva `null`), un numero
+     che non si capisce ferma il salvataggio e dice perché. */
+  /* ⚠️ Le misure sono MISURATE, non scelte: a 390 px la finestra ha 314 px
+     utili, e a 16 px «Sabbia lavata 0/4» vuole 171 px di campo, un volume a
+     cinque cifre 92, la croce una trentina. I nomi veri di un listino sono
+     più lunghi di quelli della dimostrazione («Misto granulare stabilizzato
+     0/30»), quindi il materiale ha una base di 220 px: a 390 px va a capo da
+     solo e prende tutta la riga (314 px, una quarantina di lettere), il volume
+     e la croce stanno sotto; nella finestra larga (404 px) restano tutti su
+     una riga. Il banco lo misura col `scrollWidth` dei campi. */
+  const rigaInv = (m = "", v = "") => `<div class="frow inv-riga" style="gap:6px; margin-bottom:14px;">
+      <div class="fld" style="flex:1 1 220px;"><input class="dw-input inv-mat" type="text" list="inv-materiali" autocomplete="off" placeholder="Materiale (come nel listino)" value="${esc(m)}" aria-label="Materiale del cumulo" title="Il nome del materiale, scritto come nel listino di Conti: è quel nome che gli dà la densità"></div>
+      <div class="fld" style="flex:1 1 92px;"><input class="dw-input dec inv-vol" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="m³" value="${esc(v)}" aria-label="Volume del cumulo in metri cubi" title="Volume del cumulo in metri cubi sciolti. La virgola va benissimo: 1250,5. Lasciato vuoto = non misurato."></div>
+      <button class="arr del" type="button" title="Togli questa riga" aria-label="Togli questa riga" data-inv-togli>${A.del}</button></div>`;
+  function nuovoInventario() {
+    const oggi = oggiISO();
+    const materiali = [...new Set(INV.flatMap(i => Array.isArray(i.cumuli) ? i.cumuli.map(c => c && c.materiale) : []).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
+    const corpo = `<p>Un cumulo per riga, col volume in metri cubi <b>sciolti</b>. Un volume lasciato vuoto si salva come <b>non misurato</b>: resta fuori dal totale e la riga lo dice.</p>
+      <label class="fl" for="inv-data">Data dell'inventario</label>
+      <input class="dw-input" id="inv-data" type="date" value="${oggi}" max="${oggi}">
+      <label class="fl" for="inv-metodo">Metodo</label>
+      <select class="dw-input" id="inv-metodo">${METODI_INV.map(m => `<option value="${m[0]}">${m[1]}</option>`).join("")}</select>
+      <span class="fl">Cumuli</span>
+      <div id="inv-righe">${rigaInv()}${rigaInv()}</div>
+      <div class="tools"><button class="dw-btn secondary mini" type="button" id="inv-add-riga">Aggiungi cumulo</button></div>
+      <datalist id="inv-materiali">${materiali.map(m => `<option value="${esc(m)}"></option>`).join("")}</datalist>
+      <div class="note err" id="inv-err"></div>`;
+    const errore = (testo, el) => {
+      $("inv-err").textContent = testo; toast(testo, "err");
+      if (el) { el.classList.add("err"); try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); } }
+    };
+    const salva = async () => {
+      document.querySelectorAll("#modal-body .err").forEach(el => el.classList.remove("err"));
+      const data = $("inv-data").value, metodo = $("inv-metodo").value || null;
+      if (!dataISOEsiste(data)) return errore("Manca la data dell'inventario: è lei a dire di quando è la fotografia del piazzale.", $("inv-data"));
+      if (data > oggi) return errore("Un inventario non può avere una data futura: il piazzale si fotografa, non si prevede.", $("inv-data"));
+      const cumuli = []; let nonMis = 0;
+      for (const riga of document.querySelectorAll("#inv-righe .inv-riga")) {
+        const matEl = riga.querySelector(".inv-mat"), volEl = riga.querySelector(".inv-vol");
+        const mat = matEl.value.trim();
+        const rv = numeroDaCampo(volEl.value, { min: 0, decimali: 2 });
+        if (!mat && rv.vuoto) continue;   // riga lasciata in bianco: non è un cumulo
+        if (!mat) return errore("Un cumulo senza materiale non si può registrare: scrivi che cosa c'è nel mucchio.", matEl);
+        if (!rv.ok && !rv.vuoto) return errore((numIllegibile(rv) ? spiegaNum("il volume di «" + mat + "»", rv, "m³") : "Il volume di «" + mat + "» non può essere negativo.") + " L'inventario non è stato registrato.", volEl);
+        if (rv.vuoto) nonMis++;
+        cumuli.push({ materiale: mat, volumeM3: rv.ok ? rv.valore : null });
+      }
+      if (!cumuli.length) return errore("Serve almeno un cumulo col suo materiale: un inventario senza cumuli non fotografa niente.", document.querySelector("#inv-righe .inv-mat"));
+      await db.aggiungi("inventari", { data, metodo, cumuli });
+      chiudiModale();
+      esito("inv-esito", "Inventario del " + fmtData(data) + " registrato: " + conta(cumuli.length, "cumulo", "cumuli")
+        + (nonMis ? ", di cui " + fraseNonMisurati(nonMis) + " — fuori dal totale finché non lo misuri." : "."), nonMis ? "warn" : undefined);
+      await refresh();
+    };
+    apriModale("Nuovo inventario dei cumuli", corpo, [
+      { label: "Annulla", azione: chiudiModale },
+      { label: "Registra", cls: "primary", azione: salva },
+    ]);
+    $("inv-add-riga").onclick = () => {
+      $("inv-righe").insertAdjacentHTML("beforeend", rigaInv());
+      const ultima = $("inv-righe").querySelector(".inv-riga:last-child .inv-mat"); if (ultima) ultima.focus();
+    };
+    // appena si corregge un campo, il bordo rosso e il messaggio spariscono
+    $("inv-righe").addEventListener("input", (e) => { if (e.target.classList) e.target.classList.remove("err"); $("inv-err").textContent = ""; });
+  }
+  $("btn-add-inv").onclick = nuovoInventario;
+  /* ⛔ DECISIONE 12a ANCHE PER GLI INVENTARI: il file che RIENTRA, non un
+     prospetto — una riga per cumulo, scritto da `csvInventari` e riletto da
+     `parseInventariCsv`. Quanti rientrano lo dice `rientroInventari`, che lo
+     DERIVA dalle due funzioni vere invece di riscriverlo (è la lezione del
+     «nel formato che questa pagina sa ri-caricare» dei rilievi, che prometteva
+     8 e ne faceva rientrare 7). Il volume non misurato esce come cella vuota:
+     uno zero rientrerebbe come un cumulo misurato. Senza inventari non si
+     scarica un file di sola intestazione: si dice. */
+  $("btn-exp-inv").onclick = () => {
+    if (!INV.length) { esito("inv-esito", "Non c'è nessun inventario da scaricare: il file avrebbe solo l'intestazione.", "warn"); return; }
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvInventari(INV));
+    a.download = "terra_inventari.csv"; marchiaCsv(a); a.click();
+    const rr = rientroInventari(INV);
+    esito("inv-esito", plurale(rr.scritti, "Scaricato ", "Scaricati ") + conta(rr.scritti, "inventario", "inventari")
+      + " (" + conta(rr.cumuli, "cumulo", "cumuli") + ", una riga per cumulo)"
+      + (rr.persi.length
+        ? `. Ri-caricando il file ne ${plurale(rr.rientrano, "rientra ", "rientrano ")}${rr.rientrano}: `
+          + rr.persi.map(p => `l'${p.nome} resta fuori perché ${p.ragione}`).join("; ") + "."
+        : " nel formato che questa pagina sa ri-caricare."),
+      rr.persi.length ? "warn" : "success");
+  };
+  $("btn-imp-inv").onclick = () => $("inv-file").click();
+  /* Il file che rientra. Il riepilogo dice quante righe ha letto, quanti
+     inventari e cumuli sono entrati, quanti erano già presenti, e — con
+     `frasePersi` — QUALI righe non sono entrate e perché: mai «0 scartati»,
+     perché quel numero lo sa solo il lettore, e lo dice nominando le righe.
+     Un inventario con una data futura non entra (la stessa regola della
+     finestra: il piazzale si fotografa, non si prevede). I doppioni si
+     riconoscono da data, metodo e cumuli: ricaricare due volte lo stesso file
+     non raddoppia le fotografie del piazzale. */
+  $("inv-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testoInv = await file.text();
+    e.target.value = "";
+    const invAltrove = fileDiAltraTabella(testoInv, ["terra.inventari"]);
+    if (invAltrove) { esito("inv-esito", fraseFileAltrui(invAltrove, "nell'archivio degli inventari"), "err"); return; }
+    const letto = parseInventariCsv(testoInv);
+    const persiInv = letto.scarti.map(s => ({ nome: "riga " + s.riga, ragione: s.perche }));
+    const oggi = oggiISO();
+    const firmaInv = (inv) => [inv.data, inv.metodo || "",
+      ...inv.cumuli.map(c => chiaveMateriale(c.materiale) + ":" + (c.volumeM3 == null ? "" : c.volumeM3)).sort()].join("|");
+    const giaInv = new Set(INV.map(i => firmaInv({ data: i.data, metodo: i.metodo, cumuli: Array.isArray(i.cumuli) ? i.cumuli.filter(Boolean) : [] })));
+    let agg = 0, dup = 0, cum = 0, nonMis = 0;
+    for (const inv of letto.inventari) {
+      if (inv.data > oggi) { persiInv.push({ nome: "inventario del " + fmtData(inv.data), ragione: "ha una data futura: il piazzale si fotografa, non si prevede" }); continue; }
+      const k = firmaInv(inv);
+      if (giaInv.has(k)) { dup++; continue; }
+      giaInv.add(k);   // scarta i doppioni anche DENTRO lo stesso file
+      await db.aggiungi("inventari", { data: inv.data, metodo: inv.metodo, cumuli: inv.cumuli });
+      agg++; cum += inv.cumuli.length; nonMis += inv.cumuli.filter(c => c.volumeM3 == null).length;
+    }
+    if (!agg && !dup) {
+      esito("inv-esito", (letto.letti ? "Nessun inventario è entrato" : "Il file non ha nessuna riga di dati")
+        + ": le colonne sono " + INTESTAZIONE_INVENTARI.split(";").join("; ") + ", una riga per cumulo." + frasePersi({ persi: persiInv }), "err");
+      return;
+    }
+    esito("inv-esito", plurale(letto.letti, "Letta ", "Lette ") + conta(letto.letti, "riga", "righe") + " del file: "
+      + conta(agg, "inventario aggiunto", "inventari aggiunti") + " (" + conta(cum, "cumulo", "cumuli")
+      + (nonMis ? ", di cui " + fraseNonMisurati(nonMis) : "") + ")"
+      + (dup ? ", " + conta(dup, "già presente (saltato)", "già presenti (saltati)") : "") + "."
+      + frasePersi({ persi: persiInv }),
+      persiInv.length || nonMis ? "warn" : undefined);
+    await refresh();
+  };
+  document.addEventListener("click", async (e) => {
+    const togli = e.target.closest && e.target.closest("[data-inv-togli]");
+    if (togli) { e.stopPropagation();
+      const righe = document.querySelectorAll("#inv-righe .inv-riga");
+      // l'ultima riga non si toglie: si svuota, così c'è sempre dove scrivere
+      if (righe.length > 1) togli.closest(".inv-riga").remove();
+      else togli.closest(".inv-riga").querySelectorAll("input").forEach(i => { i.value = ""; });
+      return; }
+    const del = e.target.closest && e.target.closest("[data-del-inv]");
+    if (del) { e.stopPropagation(); await eliminaInventario(del.getAttribute("data-del-inv")); return; }
+    const riga = e.target.closest && e.target.closest("[data-inv]");
+    if (riga) apriInventario(riga.getAttribute("data-inv"));
+  });
 
   // ══════════════════════════════════════════════════════════════════════
   // GRAFICI — motore condiviso dwGrafici (SVG puro, nessuna libreria)
@@ -1595,30 +1855,31 @@ a.dw-btn{text-decoration:none}
   function grafFronti() {
     const el = $("fro-volumi"); if (!el) return;
     const noti = new Set(FRO.map(f => f.id));
-    const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronte(RIL, f.id) }));
+    const voci = FRO.map(f => ({ etichetta: f.nome, valore: volumeFronteRilevato(RIL, f.id) }));
     // solo SCAVO, come volumeFronte: i cumuli ripresi non escono dal fronte
     const nonAss = soloScavo(RIL).filter(r => rilievoUsabile(r) && !noti.has(r.fronteId))
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     const cumTot = soloCumulo(RIL).filter(rilievoUsabile)
       .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
     if (nonAss > 0) voci.push({ etichetta: "Non assegnato", valore: nonAss });
-    if (!(voci.reduce((s, v) => s + v.valore, 0) > 0)) {
+    if (!(voci.reduce((s, v) => s + (v.valore || 0), 0) > 0)) {
       el.innerHTML = vuoto(I.riga, "Nessun volume da ripartire",
         "I volumi per fronte arrivano dai <b>rilievi elaborati</b> collegati a un fronte. Registra un rilievo scegliendo il fronte e qui comparirà da dove esce il materiale.");
       return;
     }
     el.innerHTML = "";
-    /* ⛔ UN FRONTE CHE NESSUNO HA RILEVATO ESCE COME UNA BARRA A ZERO, e allo
-       zero il motore dà comunque la sua stanghetta minima: sul disegno si legge
-       «da lì non è uscito niente», che è una misura. Non lo è — è che nessuno
-       l'ha misurato. Terra la frase ce l'ha già, due volte, con le stesse
-       parole: i mesi del grafico del ritmo («vuol dire che non è stato misurato
-       niente, non per forza che la cava fosse ferma») e i banchi della denuncia
-       («non hanno cavato zero, non li ha misurati nessuno»). Qui mancava, ed è
-       la stessa regola scritta più debole nel terzo posto. Le barre restano —
-       togliere il fronte lo nasconderebbe, che è peggio — ma la nota dice
-       quante sono e che cosa vogliono dire. */
-    const senzaRilievi = voci.filter(v => !(v.valore > 0)).length;
+    /* ⛔ UN FRONTE CHE NESSUNO HA RILEVATO USCIVA COME UNA BARRA A ZERO, e allo
+       zero il motore dava comunque la sua stanghetta minima: sul disegno si
+       leggeva «da lì non è uscito niente», che è una misura. Non lo è — è che
+       nessuno l'ha misurato. Terra la frase ce l'ha già, due volte, con le
+       stesse parole: i mesi del grafico del ritmo («vuol dire che non è stato
+       misurato niente, non per forza che la cava fosse ferma») e i banchi
+       della denuncia («non hanno cavato zero, non li ha misurati nessuno»).
+       Dal 04/09 il fronte arriva al motore con `valore: null`
+       (`volumeFronteRilevato`) e il motore lo disegna come tale: in coda,
+       senza barra, con la parola «non misurato» al posto del numero. La nota
+       resta, perché la parola sul grafico dice CHE manca, non PERCHÉ. */
+    const senzaRilievi = voci.filter(v => v.valore == null).length;
     dwGrafici.barre(el, {
       titolo: "Volumi per fronte",
       meta: "somma dei rilievi elaborati",
@@ -1629,8 +1890,8 @@ a.dw-btn{text-decoration:none}
         : "Somma dei rilievi elaborati di ogni fronte, dal più al meno produttivo.")
         + (senzaRilievi > 0
           ? (senzaRilievi === 1
-              ? " <b>Un fronte è</b> a zero perché non ha nessun rilievo elaborato collegato: non ha cavato zero, non l'ha misurato nessuno."
-              : " <b>" + senzaRilievi + " fronti sono</b> a zero perché non hanno nessun rilievo elaborato collegato: non hanno cavato zero, non li ha misurati nessuno.")
+              ? " <b>Un fronte è</b> segnato «non misurato» perché non ha nessun rilievo elaborato collegato: non ha cavato zero, non l'ha misurato nessuno."
+              : " <b>" + senzaRilievi + " fronti sono</b> segnati «non misurato» perché non hanno nessun rilievo elaborato collegato: non hanno cavato zero, non li ha misurati nessuno.")
           : "")
         + (cumTot > 0
           ? " Fuori da questo conto restano <b>" + n0(cumTot) + " m³</b> ripresi da cumuli: erano già stati scavati, non escono adesso dal fronte."
@@ -1753,8 +2014,14 @@ a.dw-btn{text-decoration:none}
   function itemScadenza(s, azioni) {
     const lv = livelloScadenzaTerra(s.dataScadenza, s.preavvisoGiorni);
     const st = lv.stato, ric = +s.ricorrenzaMesi || 0;
-    const cls = st === "scaduta" ? "st-danger" : st === "in-scadenza" ? "st-warn" : "st-ok";
-    const ico = st === "scaduta" ? ["danger", I.allarme] : st === "in-scadenza" ? ["warn", I.sveglia] : ["ok", I.ok];
+    /* ⛔ IL COLORE LO DICE `lv.cls`, che è del modulo — e qui ne viveva una
+       copia più debole, a tre stati su quattro: «senza data» cadeva nel
+       ripiego e prendeva la striscia VERDE e la spunta `I.ok`, accanto a un
+       badge arancione «Senza data». Visto sul Quadro il 02/09: una scadenza
+       di cui non si sa la data disegnata come una a posto. Una data che non
+       c'è non è una data lontana. */
+    const cls = "st-" + lv.cls;
+    const ico = lv.cls === "danger" ? ["danger", I.allarme] : lv.cls === "warn" ? ["warn", I.sveglia] : ["ok", I.ok];
     const nome = esc(s.descrizione || etichettaTipoScadenza(s.tipo));
     return `<div class="item ${cls}" style="cursor:default;">
       <div class="avatar ico ${ico[0]}" aria-hidden="true">${ico[1]}</div>
@@ -1987,7 +2254,20 @@ a.dw-btn{text-decoration:none}
 
   // Il cartellone del divario: lo stesso impianto della scheda «vita cava»,
   // perché è lo stesso genere di numero — quello che si guarda per primo.
-  function cardDivario(dv) {
+  /* LA GARANZIA ANCORA VINCOLATA, nel cartellone del divario (04/09): quanta ne
+     è ferma sui lotti non collaudati, quale collaudo la libera, e quanti lotti
+     la quota non la dichiarano. Senza nessuna quota: la ragione, non uno zero. */
+  function rigaGaranzia(gv) {
+    if (!gv || !gv.misurabile) return gv && gv.senzaQuota
+      ? `<div class="riga">${esc(gv.motivo)} La quota si scrive nel modulo del lotto, dalla polizza.</div>` : "";
+    const nc = gv.nonCollaudati;
+    const chi = gv.prossimi.map(p => esc(p.nome || "lotto senza nome") + " (" + euro0(p.quota) + ")").join(", ");
+    return `<div class="riga">Garanzia ancora vincolata: <b>${euro0(gv.vincolata)}</b> su ${nc} ${nc === 1 ? "lotto non collaudato" : "lotti non collaudati"}${
+        gv.prossimi.length ? ` · liberabile dopo il collaudo di ${chi}` : ""}${
+        gv.liberata > 0 ? ` · liberata finora ${euro0(gv.liberata)}` : ""}.</div>${
+      gv.senzaQuota ? `<div class="riga att">${I.allarme}<span><b>${gv.senzaQuota} ${gv.senzaQuota === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la quota di garanzia</b>: ${gv.senzaQuota === 1 ? "non entra" : "non entrano"} nella somma, che è più piccola del vero.</span></div>` : ""}`;
+  }
+  function cardDivario(dv, gv) {
     if (!dv.misurabile) {
       /* ⛔ Niente zero, niente verde, nessuna pastiglia di stato: qui non c'è
          una misura da colorare. C'è un trattino e la ragione. */
@@ -2033,6 +2313,7 @@ a.dw-btn{text-decoration:none}
           ? `Aperto e recuperato si equivalgono: <b>${n0(dv.apertiMq)} m²</b> da una parte e <b>${n0(dv.chiusiMq)} m²</b> dall'altra.`
           : `Il recupero è <b>avanti</b> allo scavo di <b>${n0(-dv.mq)} m²</b>: i lotti chiusi coprono più superficie di quelli ancora aperti.`}</div>
       <div class="riga">In volume di progetto: <b>${n0(dv.m3)} m³</b> di differenza fra i lotti aperti e quelli recuperati. ${dv.recuperati} ${dv.recuperati === 1 ? "lotto è chiuso" : "lotti sono chiusi"}, ${dv.aperti} ${dv.aperti === 1 ? "è ancora aperto" : "sono ancora aperti"}.</div>
+      ${rigaGaranzia(gv)}
       ${dv.senzaMq ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaMq} ${dv.senzaMq === 1 ? "lotto non dichiara" : "lotti non dichiarano"} la superficie</b>: ${dv.senzaMq === 1 ? "non entra" : "non entrano"} in questo conto, quindi il divario che leggi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m².</span></div>` : ""}
       ${dv.senzaM3 ? `<div class="riga att">${I.allarme}<span><b>${dv.senzaM3} ${dv.senzaM3 === 1 ? "lotto non dichiara" : "lotti non dichiarano"} il volume di progetto</b>: ${dv.senzaM3 === 1 ? "non entra" : "non entrano"} nel divario in metri cubi, che quindi è <b>più piccolo</b> di quello vero. Aprilo qui sotto e scrivi i m³.</span></div>` : ""}
     </div>`;
@@ -2047,6 +2328,8 @@ a.dw-btn{text-decoration:none}
        `0` al suo posto darebbe «0%», che si legge «non ancora cominciato»
        mentre la verità è «nessuno ha misurato». */
     const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+    // fra «recupero finito» e «verbale»: chiesto il …, oppure da quanto si aspetta (04/09)
+    const att = attesaCollaudo(l, new Date());
     const nome = esc(l.nome || "Lotto senza nome");
     const dd = DATA_LOTTO[st];
     const conData = dd && dataISOEsiste(l[dd[0]]);
@@ -2057,16 +2340,23 @@ a.dw-btn{text-decoration:none}
          fatta nell'elenco delle autorizzazioni. Il cartellone in cima, che è
          un titolo, arrotonda. */
       +l.superficieMq > 0 ? nD(l.superficieMq) + " m²" : "superficie non dichiarata",
-      // il previsto ACCANTO al misurato: due numeri, mai uno solo — se no non
-      // si sa se il progetto è stato seguito o no
-      "previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—"),
-      "misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
-        + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)"),
       conData ? dd[1] + " " + fmtData(l[dd[0]]) : "",
     ].filter(Boolean).join(" · ");
+    /* ⛔ I DUE VOLUMI NON STANNO NEL `.meta`: è tagliato a due righe
+       (`-webkit-line-clamp:2`), e a 430 px con badge e due bottoni accanto la
+       riga «4° del progetto · 12.000 m² · previsti 180.000 m³ · misura…»
+       finiva coi puntini ESATTAMENTE sul misurato — cioè sul numero per cui
+       l'elenco esiste. Visto il 02/09 su tre lotti su sei della dimostrazione.
+       Stanno nel `form-hint` sotto la riga, che è largo quanto la scheda: il
+       previsto ACCANTO al misurato, due numeri e mai uno solo, se no non si
+       sa se il progetto è stato seguito. */
+    const volumi = "Previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—")
+      + " · misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
+      + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)") + ".";
     // la ragione per cui manca un numero, con le parole della funzione che
     // quel numero non l'ha dato: non se ne inventano di nuove
     const perche = [
+      volumi,
       !vm.misurabile ? vm.motivo : (av.pct == null ? av.motivo : ""),
       vm.rilieviCumulo > 0
         ? "Sui suoi fronti ci sono anche " + nD(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."
@@ -2074,14 +2364,19 @@ a.dw-btn{text-decoration:none}
       dd && !conData
         ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
         : "",
+      att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
+      l.garanziaEuro != null && l.garanziaEuro !== "" && Number.isFinite(+l.garanziaEuro) ? "Quota di garanzia: " + euro0(l.garanziaEuro) + (st === "collaudato" ? ", liberata col collaudo." : ".") : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");
     return `<div class="item ${sty[0]}" style="cursor:default;">
       <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.lotti}</div>
       <div class="info"><div class="name">${nome}</div><div class="meta">${meta}</div></div>
       <div class="acts">${dd && !conData ? '<span class="badge warn">senza data</span>' : ""}
-      ${st === "recuperato" && !dataISOEsiste(l.collaudatoIl) ? '<span class="badge tag" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente">senza collaudo</span>' : ""}
+      ${att.pertinente ? (att.stato === "chiesto"
+        ? '<span class="badge tag" title="Fine lavori comunicata: si aspetta il sopralluogo e il verbale dell\'ente">collaudo chiesto</span>'
+        : '<span class="badge warn" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente, e va chiesto">collaudo non chiesto</span>') : ""}
       <span class="badge ${sty[1]}">${esc(sty[2])}</span>
+      ${st === "recuperato" || st === "collaudato" ? `<button class="arr" type="button" title="Relazione di fine lavori: il foglio per chiedere il collaudo e lo svincolo" aria-label="Relazione di fine lavori di ${nome}" data-rel-lot="${l.id}">${A.verb}</button>` : ""}
       <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>
       <button class="arr del" type="button" title="Rimuovi il lotto" aria-label="Rimuovi il lotto ${nome}" data-del-lot="${l.id}">${A.del}</button></div>
       ${perche ? `<div class="form-hint">${perche}</div>` : ""}</div>`;
@@ -2094,7 +2389,7 @@ a.dw-btn{text-decoration:none}
       (+a.ordine || 9999) - (+b.ordine || 9999)
       || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
     const dv = divarioRecupero(LOT);
-    $("lot-divario").innerHTML = cardDivario(dv);
+    $("lot-divario").innerHTML = cardDivario(dv, garanziaVincolata(LOT));
     $("lot-list").innerHTML = lotti.map(itemLotto).join("")
       || vuoto(I.lotti, "Nessun lotto registrato",
           "Il progetto di coltivazione divide la cava in <b>lotti</b>, e l'atto quasi sempre chiede il <b>recupero contestuale</b>: un lotto si recupera mentre si scava il successivo. Registra qui sotto il primo — nome, superficie e stato — e Terra comincia a misurare quanto hai aperto e quanto hai già rimesso a posto.",
@@ -2149,8 +2444,7 @@ a.dw-btn{text-decoration:none}
   //    dichiarato zero, non saltato);
   //  · lo scavo e la ripresa dei cumuli non si sommano mai, nemmeno qui.
   // ══════════════════════════════════════════════════════════════════════
-  const MESI_NOME = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-                     "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  // `MESI_NOME` vive nel modulo (05/09): lo leggono il foglio e il file
   let annoDen = null;
   const nomeFronte = (id) => { const f = FRO.find(x => x.id === id); return f ? f.nome : null; };
   const etFronte = (v) => v.fronteId ? (nomeFronte(v.fronteId) || "Fronte non più in elenco") : "Senza fronte indicato";
@@ -2465,6 +2759,16 @@ a.dw-btn{text-decoration:none}
     }
 
     // 6 · anno per anno: la riga di controllo che l'ente ricostruisce da sé
+    /* ⛔ IL NUMERO DEI RILIEVI FINIVA NEI PUNTINI (04/09, rimandato della
+       sesta tappa). La riga di dettaglio è tagliata a due righe
+       (`-webkit-line-clamp:2`) e a 390 e 430 px, con il badge accanto che la
+       stringe, «Scavati · cumulato · da cumuli · N rilievi» chiedeva TRE righe:
+       l'ultimo pezzo — quanti rilievi reggono quel numero, cioè quello che
+       l'ente guarda per primo — non lo leggeva nessuno. Misurato col Range:
+       3 righe su 2 in due anni su tre a 390. Il cumulato in m³ se n'è andato
+       dalla riga: il badge accanto dice già la stessa cosa in percentuale del
+       concesso, e i m³ stanno nel riepilogo dell'anno sopra. Dopo: due righe
+       al massimo a 320, 390 e 430, e i rilievi al secondo posto. */
     const S = serieAnnuale(RIL, aut).reverse();
     $("den-storico").innerHTML = S.map(s => `<div class="item ${s.anno === annoDen ? "st-accent" : "st-mute"}" data-anno="${s.anno}" title="Vedi il riepilogo del ${s.anno}">
       <div class="info"><div class="name">${s.anno}${s.inCorso ? " — anno in corso" : ""}</div>
@@ -2474,7 +2778,7 @@ a.dw-btn{text-decoration:none}
            legge come una dichiarazione. Un anno di sole riprese da cumulo è
            esattamente questo caso, ed è in dimostrazione apposta. */
         ? `Scavati ${n0(s.scavo)} m³`
-        : "Scavo non misurato"}${s.pct != null && s.misurabile ? " · cumulato " + n0(s.cumulato) + " m³" : ""}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}</div></div>
+        : "Scavo non misurato"} · ${s.rilievi} ${s.rilievi === 1 ? "rilievo" : "rilievi"}${s.cumulo ? " · da cumuli " + n0(s.cumulo) + " m³" : ""}</div></div>
       <div class="acts">${s.pct == null ? ""
         /* ⛔ un anno senza nessun rilievo dava «0% del concesso» in verde: il
            badge racconta il consumo del titolo, e su un titolo mai misurato
@@ -2624,50 +2928,25 @@ a.dw-btn{text-decoration:none}
   // Pagina bianca, nessun colore d'interfaccia, un solo scopo: essere
   // stampata o salvata in PDF e allegata alla comunicazione. Contiene solo
   // dati dell'utente e numeri calcolati dai suoi rilievi.
+  /* Le sezioni del prospetto le compone `prospettoDenuncia` nel modulo — le
+     stesse funzioni che decidono i numeri a schermo — e qui si disegna e
+     basta, come per il verbale e la relazione del lotto. Il grassetto nelle
+     note arriva come «**così**» e lo rende `md`. */
   function fogliaStampa() {
-    const { R, aut, soglia } = DEN;
-    /* `tutte: true` = anche la voce senza fronte fatta di soli cumuli, che sul
-       foglio ha una colonna sua. La bandiera `misurabile` è la stessa che legge
-       lo schermo: la regola sta nel modulo, qui si legge (vedi più giù). */
-    const RFT = ripartizioneFronti(R, { tutte: true });
-    const oggi = new Date();
-    const dataOggi = fmtData(oggiISO(oggi));
-    const meseOggi = oggi.getMonth() + 1;
-    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+    const P = prospettoDenuncia(DEN, FRO, new Date());
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
     const riga = (c, tag) => "<tr>" + c.map(x => "<" + (tag || "td") + ">" + x + "</" + (tag || "td") + ">").join("") + "</tr>";
-    const dati = [
-      ["Numero dell'atto", aut && aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
-      ["Ente che l'ha rilasciato", aut && aut.ente ? esc(aut.ente) : "—"],
-      ["Data di rilascio", aut ? fmtData(aut.dataRilascio) : "—"],
-      ["Scadenza del titolo", aut ? fmtData(aut.dataScadenza) : "—"],
-      ["Materiale autorizzato", aut && aut.materiale ? esc(aut.materiale) : "—"],
-      ["Superficie autorizzata", aut && aut.superficieMq ? nD(aut.superficieMq) + " m²" : "—"],
-      ["Volume totale concesso", R.concesso ? nD(R.concesso) + " m³" : "—"],
-    ];
-    const qual = [];
-    if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
-    /* ⛔ «1 indicativi» su un foglio che va all'ente. Le altre due voci di
-       questo elenco non hanno il problema (una finisce in «di qualità
-       topografica», l'altra in «senza metodo dichiarato»): è la firma di
-       questa famiglia — chi scrive guarda la riga che sta scrivendo, non le
-       tre insieme. */
-    if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " "
-      + plurale(R.qualita.indicativo, "indicativo", "indicativi"));
-    if (R.qualita.nd) qual.push(R.qualita.nd + " senza metodo dichiarato");
-    /* ⛔ LA FRASE DICEVA «nessun rilievo, QUINDI volumi a zero per tutto
-       l'anno», su un foglio che va all'ente. È l'inferenza che il principio del
-       fondatore vieta, scritta per esteso nel posto peggiore — e a tre
-       centimetri di distanza, sullo STESSO foglio, il paragrafo dell'onere dice
-       «per l'ente “zero misurato” e “non misurato” non sono la stessa cosa».
-       Gli zeri della tabella dei mesi restano (il modulo dell'ente vuole il
-       mese vuoto scritto zero, e la colonna «Rilievi» accanto dichiara che lì
-       non ha misurato nessuno): quello che non si può scrivere è il «quindi». */
-    const conta = (R.rilieviScavo + R.rilieviCumulo === 0)
-      ? "nessun rilievo — il volume dell'anno non l'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"
-      : R.rilieviScavo + (R.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
-        + (R.rilieviCumulo ? " e " + R.rilieviCumulo + (R.rilieviCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
+    const cella = (x, i, num) => num.includes(i) ? "<span class='n'>" + esc(x) + "</span>" : esc(x);
+    const tabella = (T) => "<table>"
+      + riga(T.colonne.map((x, i) => cella(x, i, T.numeriche)), "th")
+      + T.righe.map(r => riga(r.map((x, i) => cella(x, i, T.numeriche)))).join("")
+      + (T.totale ? "<tr class='tot'>" + T.totale.map((x, i) => "<td" + (T.numeriche.includes(i) ? " class='n'" : "") + ">" + esc(x) + "</td>").join("") + "</tr>" : "")
+      + "</table>"
+      + (T.nota ? "<p class='mini'>" + md(T.nota) + "</p>" : "");
+    const voce = (d) => riga(["<b>" + esc(d[0]) + "</b>", "<span class='n" + (d[2] ? " manca" : "") + "'>" + esc(d[1]) + "</span>"]);
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
-      + "<title>Riepilogo volumi " + R.anno + "</title><style>"
+      + "<title>Riepilogo volumi " + P.anno + "</title><style>"
       + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
       + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
       + ".sub{color:#555;margin-bottom:14px}"
@@ -2706,161 +2985,40 @@ a.dw-btn{text-decoration:none}
       + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
       + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
       + CSS_ESEMPIO
+      + ".manca{color:#7a3b00;font-style:italic}"
       + "</style></head><body>"
-      + "<h1>Riepilogo annuale dei volumi — anno " + R.anno + "</h1>"
+      + "<h1>" + esc(P.titolo) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi
-      + (R.inCorso ? " · <b>anno ancora in corso</b>: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "") + "</div>"
+      + (P.sottotitolo ? " · " + md(P.sottotitolo) : "") + "</div>"
       + avvisoEsempio("Questo prospetto non riporta i volumi di nessuna cava reale: "
           + "non va inviato all'ente né allegato alla comunicazione annuale.")
       + "<h2>Titolo autorizzativo</h2><table>"
-      + dati.map(d => riga(["<b>" + d[0] + "</b>", d[1]])).join("") + "</table>"
+      + P.atto.map(d => riga(["<b>" + esc(d[0]) + "</b>", d[2] ? "<span class='manca'>" + esc(d[1]) + "</span>" : esc(d[1])])).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e cava di riferimento vanno indicate secondo il modello richiesto dall'ente.</p>"
-      + "<h2>Volumi dell'anno " + R.anno + "</h2><table>"
-      /* ⚠️ «Rilievi di scavo», non «Rilievi»: la nota sotto la tabella promette
-         che questa colonna dica dove non ha misurato nessuno, e contando anche
-         le riprese da cumulo scriveva «1» accanto a uno scavo mai misurato. */
-      + riga(["Mese", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
-      + mesiVisti.map(m => riga([MESI_NOME[m.mese - 1],
-          "<span class='n'>" + n0(m.scavo) + "</span>", "<span class='n'>" + n0(m.cumulo) + "</span>",
-          "<span class='n'>" + (+m.rilieviScavo || 0) + "</span>"])).join("")
-      /* ⛔ E LA RIGA DEL TOTALE PORTA «non misurato», come già fanno i banchi
-         venti righe più giù su questo stesso foglio. Un «Totale 2026: 0» in
-         grassetto, in un anno in cui nessuno ha volato, l'ente lo legge come
-         una dichiarazione di non aver estratto niente. Chi decide se lo scavo
-         dell'anno è dichiarabile è `baseOnereEscavazione` — la stessa bandiera
-         che due sezioni più in basso decide l'imponibile: una regola, un posto,
-         letta tre volte sullo stesso foglio. */
-      + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>"
-      + (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class='n'>"
-      + n0(R.cumulo) + "</td><td class='n'>" + R.rilieviScavo + "</td></tr>"
-      + "</table>"
-      + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
-      + (DEN.base && DEN.base.calcolabile ? ""
-          : " Nel " + R.anno + " <b>non risulta nessun rilievo di scavo</b>: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura.")
-      + "</p>"
-      /* NOTA: qui si stampano TUTTE le voci, compresa quella senza fronte fatta
-         di sole riprese da cumuli — che invece l'elenco a schermo esclude. Non è
-         una svista: la tabella ha una colonna «Ripreso da cumuli», quindi quella
-         riga porta un numero suo e non un badge «0 m³» che sembra un errore. A
-         schermo ogni riga ha un numero solo e quel posto non c'era.
-         ⛔ E DAL 07/08 LE VOCI ARRIVANO DA `ripartizioneFronti`, NON DA
-         `R.fronti` GREZZO. Componendo di qui il foglio si teneva una versione
-         più debole della regola — `n0(f.scavo)`, cioè «0» per un fronte su cui
-         nell'anno non ha volato nessuno — mentre la tabella dei banchi, sedici
-         righe più giù su QUESTO stesso foglio, scriveva già «non misurato» per
-         la stessa identica situazione. Due convenzioni opposte a due centimetri
-         di distanza, su un documento che va all'ente.
-         L'unica differenza fra il foglio e lo schermo era il FILTRO, e adesso è
-         un parametro (`tutte`): la bandiera `misurabile` la decide il modulo e
-         qui si legge, come per i banchi. */
-      + "<h2>Ripartizione per fronte</h2><table>"
-      + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
-      + (RFT.righe.length
-          ? RFT.righe.map(f => riga([esc(etFronte(f)),
-              "<span class='n'>" + (f.misurabile ? n0(f.scavo) : "non misurato") + "</span>",
-              "<span class='n'>" + n0(f.cumulo) + "</span>",
-              /* ⚠️ LA COLONNA CONTAVA TUTTI I RILIEVI, cumuli compresi — e la
-                 nota qui sotto promette che «la colonna Rilievi dice dove non ha
-                 misurato nessuno». Con `f.rilievi` un fronte con una sola
-                 ripresa da cumulo scriveva «1» accanto a uno scavo che nessuno
-                 aveva misurato: la nota era smentita dalla colonna che spiega.
-                 Adesso la colonna conta i rilievi DI SCAVO e lo dice nel titolo;
-                 i cumuli hanno già la loro colonna. */
-              "<span class='n'>" + (+f.rilieviScavo || 0) + "</span>"])).join("")
-          : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
-      + "</table>"
-      + (RFT.nonMisurate
-          ? "<p class='mini'>I fronti senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati.</p>"
-          : "")
-      /* ⛔ RIPARTIZIONE PER BANCO, e sul foglio che va all'ente la casella di un
-         banco mai rilevato porta «non misurato», non uno «0». Uno zero qui è una
-         dichiarazione in difetto su una cosa che nessuno ha misurato — la stessa
-         ragione per cui l'imponibile non dichiarabile non stampa zero. */
-      + (DEN.banchi && DEN.banchi.righe.length
-        ? "<h2>Ripartizione per banco</h2><table>"
-          + riga(["Banco", "Fronti", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>"], "th")
-          + DEN.banchi.righe.map(b => riga([esc(b.etichetta), esc(b.fronti.join(", ")),
-              "<span class='n'>" + (b.misurabile ? n0(b.scavo) : "non misurato") + "</span>",
-              "<span class='n'>" + n0(b.cumulo) + "</span>"])).join("")
-          + "</table>"
-          + "<p class='mini'>Il banco è quello indicato nella scheda di ciascun fronte al momento di questo prospetto."
-          + (DEN.banchi.righe.some(b => !b.misurabile)
-              ? " I banchi senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "")
-          + (DEN.banchi.nonDichiarato
-              ? " " + DEN.banchi.nonDichiarato.fronti + (DEN.banchi.nonDichiarato.fronti === 1 ? " fronte non dichiara" : " fronti non dichiarano") + " il banco di appartenenza"
-                + (DEN.banchi.nonDichiarato.scavo ? ", per " + n0(DEN.banchi.nonDichiarato.scavo) + " m³ di scavo non ripartiti" : "") + "." : "")
-          + (DEN.banchi.fuoriElenco ? " Risultano inoltre " + n0(DEN.banchi.fuoriElenco.scavo) + " m³ su fronti non più presenti in elenco." : "")
-          + "</p>"
-        : "")
+      + "<h2>Volumi dell'anno " + P.anno + "</h2>" + tabella(P.mesi)
+      + "<h2>Ripartizione per fronte</h2>" + tabella(P.fronti)
+      + (P.banchi ? "<h2>Ripartizione per banco</h2>" + tabella(P.banchi) : "")
       + "<h2>Posizione rispetto al volume concesso</h2><table>"
-      // i numeri copiati dall'atto si riportano come stanno sull'atto: qui il
-      // foglio va all'ente, e arrotondare all'unità un numero che l'utente ha
-      // trascritto dal titolo autorizzativo lo farebbe divergere dal documento
-      + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? nD(R.concesso) + " m³" : "non indicato") + "</span>"])
-      // ⛔ su un foglio che va all'ente, un pregresso mai dichiarato non si
-      // stampa «0 m³»: sarebbe una dichiarazione che nessuno ha fatto, e per
-      // giunta quella che abbassa il cumulato
-      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>",
-              "<span class='n'>" + (R.pregressoDichiarato ? nD(R.pregresso) + " m³" : "non dichiarato") + "</span>"])
-      /* ⛔ E QUESTE TRE RIGHE LEGGONO `R.misurabile`, che è la stessa bandiera
-         che legge lo schermo. Fino al 13/08 no, e la frase che la sezione «5 ·
-         dove arriva il titolo» di questa stessa pagina non scrive più dal 07/08
-         — «il cumulato arriva a 0 m³, lo 0% del concesso, e restano 1.200.000
-         m³»: tre numeri rassicuranti costruiti sul niente — usciva ancora
-         IDENTICA, coi suoi numeri, sul foglio che va all'ente. Misurato con
-         l'atto compilato e zero rilievi: schermo «—», stampa «Cumulato a fine
-         2026 · 0 m³ (0% del concesso)» e «Residuo · 1.200.000 m³». Due
-         convenzioni opposte sullo stesso dato, e quella tranquilla nel posto
-         dove la legge un ispettore — a otto righe da un «Totale 2026 · non
-         misurato» che la bandiera accanto la leggeva già.
-         Le parole sono quelle che questo foglio usa già per i fronti e per i
-         banchi mai rilevati: «non misurato», non «0» e nemmeno «non
-         calcolabile», che qui vuol dire un'altra cosa (manca il concesso). */
-      + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>",
-              "<span class='n'>" + (R.misurabile ? n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³" : "non misurato") + "</span>"])
-      + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>"
-      + (R.misurabile
-          ? n0(R.cumulatoFineAnno) + " m³"
-            + (R.pctFineAnno != null ? "<span class='via'> (" + un1(R.pctFineAnno) + "% del concesso)</span>" : "")
-          : "non misurato") + "</td></tr>"
-      + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>"
-              + (!R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
-      + (soglia != null ? riga(["Soglia di guardia impostata", "<span class='n'>" + un1(soglia) + "%</span>"]) : "")
+      + P.posizione.righe.map(voce).join("")
+      + "<tr class='tot'><td>" + esc(P.posizione.totale.etichetta) + "</td><td class='n" + (P.posizione.totale.mancante ? " manca" : "") + "'>"
+      + esc(P.posizione.totale.valore) + (P.posizione.totale.via ? "<span class='via'> " + esc(P.posizione.totale.via) + "</span>" : "") + "</td></tr>"
+      + voce(P.posizione.residuo)
+      + (P.posizione.soglia ? voce(P.posizione.soglia) : "")
       + "</table>"
-      /* e il perché sta sotto la tabella, non lasciato dedurre da tre trattini */
-      + (R.misurabile ? ""
-          : "<p class='mini'>Sotto questo titolo non risulta <b>nessun rilievo di scavo</b> e l'estratto precedente all'uso di Terra <b>non è dichiarato</b>: "
-            + "quanta parte del volume concesso sia stata consumata non l'ha misurata nessuno, e non è la stessa cosa di «zero consumato». "
-            + "Le tre righe qui sopra restano da compilare a partire dalle comunicazioni degli anni precedenti.</p>")
-      /* ⛔ LA BASE DELL'ONERE SUL FOGLIO CHE VA ALL'ENTE. La frase la scrive
-         `descriviBaseOnere` nel modulo, non qui: è una REGOLA, e chi la scrive
-         deve essere uno solo. Finisce in METRI CUBI e rimanda a Conti per
-         l'importo — scrivere euro qui sarebbe la terza copia della regola di
-         `canonePeriodo`, e contraddirebbe quello che la pagina dice al
-         cliente. E quando la base non si può dichiarare, la casella porta il
-         MOTIVO invece di un «0 m³» che l'ente leggerebbe come dichiarazione. */
+      + (P.posizione.nota ? "<p class='mini'>" + md(P.posizione.nota) + "</p>" : "")
       + "<h2>Base per l'onere di escavazione</h2><table>"
-      + (DEN.base && DEN.base.calcolabile
-          ? riga(["<b>Volume scavato nell'anno</b>", "<span class='n'>" + n0(DEN.base.lordo) + " m³</span>"])
-            + (DEN.base.detratto ? riga(["<b>Detratto per recupero ambientale</b>", "<span class='n'>− " + n0(DEN.base.detratto) + " m³</span>"]) : "")
-            + "<tr class='tot'><td>Imponibile dichiarato</td><td class='n'>" + n0(DEN.base.imponibile) + " m³</td></tr>"
-          : riga(["<b>Imponibile dichiarato</b>", "<span class='n'>non dichiarabile</span>"]))
+      + P.onere.righe.map(voce).join("")
+      + (P.onere.totale ? "<tr class='tot'><td>" + esc(P.onere.totale[0]) + "</td><td class='n'>" + esc(P.onere.totale[1]) + "</td></tr>" : "")
       + "</table>"
-      + "<p class='mini'>" + esc(descriviBaseOnere(DEN.base)) + "</p>"
-      + ((DEN.base && DEN.base.avvisi && DEN.base.avvisi.length)
-          ? "<p class='mini'>" + DEN.base.avvisi.map(a => esc(a)).join(" ") + "</p>" : "")
+      + "<p class='mini'>" + esc(P.onere.descrizione) + "</p>"
+      + (P.onere.avvisi.length ? "<p class='mini'>" + P.onere.avvisi.map(esc).join(" ") + "</p>" : "")
       + "<h2>Come sono stati ottenuti i numeri</h2>"
-      + "<p class='mini'>Per l'anno " + R.anno + " risultano registrati in Terra: " + conta + "."
-      + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
-      + (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda)
-          + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")
-      + (R.rilieviScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
-      /* ⛔ e se il pregresso non è dichiarato, il cumulato qui sopra è un
-         MINIMO: tacerlo lo farebbe leggere come il totale vero */
-      + (R.pregressoDichiarato ? ""
-          : " Nella scheda dell'autorizzazione non è dichiarato quanto risultava già estratto prima dell'uso di Terra:"
-            + " il cumulato riportato tiene quindi conto dei soli rilievi registrati in Terra ed è da intendersi come valore minimo.")
-      + "</p>"
+      + "<p class='mini'>" + esc(P.comeNato) + "</p>"
+      + (P.nonMisurati.length
+          ? "<h2>Che cosa manca in questo prospetto</h2><p class='mini'>"
+            + P.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: il prospetto non li stima e non li sostituisce con uno zero.</p>"
+          : "")
       + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore dei lavori</div></div>"
       + "<div class='foot'>Prospetto generato da Deepwork Terra a partire dai rilievi registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: modello, termini e modalità di invio della comunicazione annuale "
@@ -2881,87 +3039,10 @@ a.dw-btn{text-decoration:none}
 
   $("btn-den-csv").onclick = () => {
     if (!DEN) return;
+    // il file lo compone `csvRiepilogoAnno` nel modulo — una convenzione sola
+    // per lo scavo mai misurato, la stessa dello schermo e del foglio (05/09)
     const { R } = DEN;
-    const meseOggi = new Date().getMonth() + 1;
-    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
-    /* ⛔ L'ULTIMA COLONNA SI CHIAMAVA «rilievi» E VOLEVA DIRE DUE COSE. Le righe
-       dei banchi ci scrivevano `rilieviScavo`, quelle dei mesi, del totale e dei
-       fronti il conto di TUTTI i rilievi, cumuli compresi: nello stesso file,
-       sotto la stessa intestazione, due misure diverse. E quella larga è la
-       pericolosa — un mese con una sola ripresa da cumulo usciva `0;3100;1`, e
-       chi legge quell'`1` accanto allo zero conclude che lo scavo di settembre
-       è stato misurato ed era zero. Adesso la colonna dice `rilieviScavo` e
-       conta solo quelli: i cumuli hanno già la loro colonna in metri cubi. */
-    let csv = "sezione;voce;scavoM3;cumuloM3;rilieviScavo\n";
-    for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilieviScavo}\n`;
-    /* ⛔ E LA STESSA REGOLA VALE PER IL TOTALE DELL'ANNO, che qui sotto era un
-       «0» secco mentre sei righe più giù la cella di un banco mai rilevato è
-       già vuota, con la ragione scritta. Misurato il 03/08 su un anno senza
-       rilievi: il file diceva `totale;Anno 2026;0;0;0` e `banco;banco 1;;0;0`,
-       cioè due convenzioni opposte nello stesso CSV — e chi apre il foglio in
-       Excel somma lo zero del totale credendolo misurato. */
-    csv += `totale;${csvCell("Anno " + R.anno)};${DEN.base && DEN.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo}\n`;
-    /* ⛔ E LA RIGA DI UN FRONTE MAI RILEVATO LASCIA LA CELLA VUOTA, come già
-       facevano i banchi otto righe più giù. Fino al 07/08 scriveva `0`, cioè la
-       terza convenzione nello stesso file: `banco;banco 3;;0;0` e
-       `fronte;Fronte Sud;0;4400;1` a quattro righe di distanza. Le voci
-       arrivano da `ripartizioneFronti` — la stessa che disegna lo schermo e
-       compone il foglio stampato — con `tutte: true` perché il file, come il
-       foglio, porta anche la voce senza fronte. */
-    for (const f of ripartizioneFronti(R, { tutte: true }).righe)
-      csv += `fronte;${csvCell(etFronte(f))};${f.misurabile ? f.scavo : ""};${f.cumulo};${+f.rilieviScavo || 0}\n`;
-    /* ⛔ la cella dello scavo di un banco mai rilevato resta VUOTA, non «0»:
-       chi apre il CSV in un foglio sommerebbe uno zero che nessuno ha misurato */
-    for (const b of (DEN.banchi ? DEN.banchi.righe : []))
-      csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
-    /* ⛔ E LO STESSO VALE PER I SECCHI, che banchi sono anche loro. Misurato il
-       03/08 premendo il bottone con un fronte che non dichiara il banco e
-       nessun rilievo: il file scriveva `banco;Banco non dichiarato;0;0;0` una
-       riga sotto un `banco;banco 3;;0;0`. La bandiera che distingue lo zero
-       misurato dallo zero mai misurato adesso ce l'hanno tutt'e tre, e la
-       scrive `ripartizioneBanchi`: qui si legge, non si rifà.
-       ⛔ E IL SECCHIO «FUORI ELENCO» NON C'ERA AFFATTO. I metri cubi usciti da
-       un fronte poi cancellato li dichiarano lo schermo e il foglio stampato
-       («si contano a parte, non spariscono»); il CSV li taceva, e allora la
-       colonna dei banchi non tornava col totale dell'anno — un buco senza
-       nemmeno una riga che dicesse di che cosa. */
-    const secchi = DEN.banchi ? [
-      ["Banco non dichiarato", DEN.banchi.nonDichiarato],
-      ["Fronti non più in elenco", DEN.banchi.fuoriElenco],
-    ] : [];
-    for (const [et, s] of secchi) if (s)
-      csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
-    /* ⛔ E LE ULTIME QUATTRO RIGHE ERANO RIMASTE INDIETRO, nella stessa
-       funzione in cui la disciplina e' scritta due volte qui sopra
-       (`${b.misurabile ? b.scavo : ""}`, «qui si legge, non si rifa'»).
-       `pregressoDichiarato` non compariva nel blocco del CSV: misurato,
-       ZERO occorrenze fra la riga 2829 e la 2890. Il foglio STAMPATO, 107
-       righe piu' su, la cosa giusta la faceva gia' — «non dichiarato» invece
-       del numero, e «il cumulato e' da intendersi come valore minimo».
-       ⛔ E NON E' UNA RIGA SOLA CHE MENTE, SONO TRE, TUTTE NELLA DIREZIONE
-       CHE TRANQUILLIZZA. Con l'estratto pregresso non dichiarato:
-       `pregresso` vale 0, quindi `cumulatoFineAnno = pregresso + scavoSotto`
-       e' un MINIMO, e `residuoFineAnno = concesso - cumulato` e' un MASSIMO.
-       Il file diceva «prima di Terra non e' uscito niente» e «ne restano
-       tanti»: meno estratto e piu' concessione residua di quanto si sappia,
-       su un foglio che si ricopia nel modulo dell'ente. Il numero non e'
-       sbagliato — e' scritto come se fosse misurato. */
-    /* ⛔ E LE DUE ULTIME CELLE RESTANO VUOTE QUANDO NON C'E' NIENTE DI
-       MISURATO, come gia' fanno il totale dell'anno e i banchi mai rilevati in
-       questo stesso file. Fino al 13/08 uscivano `Cumulato a fine 2026;0` e
-       `Residuo del concesso;1200000` su una cava di cui non si sa niente — cioe'
-       la terza convenzione dentro un CSV che le altre due ce le ha gia' — e chi
-       lo apre in un foglio somma quello zero credendolo misurato. La bandiera e'
-       `R.misurabile`, la stessa che legge lo schermo e (dal 13/08) il foglio
-       stampato: una domanda, una risposta, tre posti che la leggono.
-       ⚠️ L'avvertenza «valore MINIMO / MASSIMO» resta dov'era: parla di un
-       numero che c'e' ed e' incompleto, che e' un'altra cosa da un numero che
-       non e' stato misurato. */
-    const nonMis = " (NON MISURATO: nessun rilievo di scavo sotto il titolo e estratto precedente non dichiarato)";
-    csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
-    csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
-    csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.misurabile ? (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)") : nonMis))};${R.misurabile ? R.cumulatoFineAnno : ""};;\n`;
-    csv += `titolo;${csvCell("Residuo del concesso" + (!R.misurabile ? nonMis : R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.misurabile && R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+    const csv = csvRiepilogoAnno(DEN, FRO, new Date());
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_riepilogo_" + R.anno + ".csv"; marchiaCsv(a); a.click();
@@ -3336,7 +3417,7 @@ a.dw-btn{text-decoration:none}
     .map(s => `<option value="${s}">${esc(ET_STATO_LOTTO[s] || s)}</option>`).join("");
   const CAMPI_DATA_LOTTO = [["lot-aperto", "apertoIl"], ["lot-esaurito", "esauritoIl"],
     ["lot-rec-inizio", "recuperoIniziatoIl"], ["lot-rec-fine", "recuperoFinitoIl"],
-    ["lot-collaudo", "collaudatoIl"]];
+    ["lot-collaudo-chiesto", "collaudoChiestoIl"], ["lot-collaudo", "collaudatoIl"]];
   function riempiFormLotto(l) {
     $("lot-nome").value = l ? (l.nome || "") : "";
     $("lot-ordine").value = l && +l.ordine > 0 ? l.ordine : "";
@@ -3345,6 +3426,7 @@ a.dw-btn{text-decoration:none}
     $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
     $("lot-fondo").value = l ? itDec(l.quotaFondoM == null ? "" : l.quotaFondoM) : "";
     $("lot-vol-rec").value = l ? itDec(l.volumeRecuperoM3 == null ? "" : l.volumeRecuperoM3) : "";
+    $("lot-garanzia").value = l ? itDec(l.garanziaEuro == null ? "" : l.garanziaEuro) : "";
     $("lot-nota").value = l ? (l.nota || "") : "";
     for (const [id, campo] of CAMPI_DATA_LOTTO) $(id).value = l && dataISOEsiste(l[campo]) ? l[campo] : "";
     frontiLot = l && Array.isArray(l.frontiId) ? l.frontiId.map(String) : [];
@@ -3364,6 +3446,8 @@ a.dw-btn{text-decoration:none}
        `null` — non zero: uno zero sarebbe «non ci è andato niente», che è una
        misura, e il vuoto è «nessuno l'ha scritto» (decisione 18). */
     const volRec = numCampo("lot-vol-rec", { decimali: 2, min: 0 });
+    // la quota di garanzia: vuoto resta null («nessuno l'ha scritta»), non zero
+    const gar = numCampo("lot-garanzia", { decimali: 2, min: 0 });
     return {
       nome: t("lot-nome"),
       // senza ordine scritto, il lotto si mette in coda: un numero inventato in
@@ -3377,8 +3461,9 @@ a.dw-btn{text-decoration:none}
       stato: STATI_LOTTO.includes($("lot-stato").value) ? $("lot-stato").value : "previsto",
       apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
-      collaudatoIl: d("lot-collaudo"),
+      collaudoChiestoIl: d("lot-collaudo-chiesto"), collaudatoIl: d("lot-collaudo"),
       volumeRecuperoM3: volRec.ok ? volRec.valore : null,
+      garanziaEuro: gar.ok ? gar.valore : null,
       frontiId: frontiLot.slice(),
       nota: t("lot-nota"),
     };
@@ -3444,6 +3529,15 @@ a.dw-btn{text-decoration:none}
       const id = bFro.getAttribute("data-fro-lot");
       frontiLot = frontiLot.includes(id) ? frontiLot.filter(x => x !== id) : frontiLot.concat([id]);
       renderLotti(); return; }
+    const bRel = e.target.closest && e.target.closest("[data-rel-lot]");
+    if (bRel) { e.stopPropagation();
+      const l = LOT.find(x => x.id === bRel.getAttribute("data-rel-lot")); if (!l) return;
+      const w = window.open("", "_blank");
+      if (!w) { esito("lot-esito", "Il browser ha bloccato la finestra della stampa: consenti le finestre pop-up per questo sito e riprova.", "err"); return; }
+      w.document.write(fogliaRelazione(l));
+      w.document.close(); w.focus();
+      setTimeout(() => { try { w.print(); } catch (e2) {} }, 350);
+      return; }
     const bEd = e.target.closest && e.target.closest("[data-edit-lot]");
     if (bEd) { e.stopPropagation();
       const l = LOT.find(x => x.id === bEd.getAttribute("data-edit-lot")); if (!l) return;
@@ -3993,7 +4087,9 @@ a.dw-btn{text-decoration:none}
   // di come sono nati. Stesse tessere del resto dell'app.
   function cardConfronto(c) {
     const nome = c.fronteId ? (nomeFronte(c.fronteId) || "fronte non più in elenco") : "rilievi senza fronte";
-    const band = c.banda > 0 ? " ± " + n0(c.banda) : "";
+    // il ± accanto al numero solo se copre TUTTI i rilievi del periodo: se no
+    // lo spiega la nota sotto, con `descriviIncertezza`
+    const band = c.banda > 0 && c.incertezza && c.incertezza.completa ? " ± " + n0(c.banda) : "";
     const rit = c.alGiorno != null
       ? (c.giorni === 1
           ? `In quel <b>giorno</b> fanno circa <b>${n0(c.alGiorno)} m³</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`
@@ -4008,7 +4104,7 @@ a.dw-btn{text-decoration:none}
       <div class="kpi largo"><div class="l">Ritmo <span class="u">m³</span> al mese</div><div class="n">${c.alMese != null ? fmtM3(Math.round(c.alMese)) : "—"}</div></div>
     </div>
     <div class="note recap">Fra il <b>${fmtData(c.primo.data)}</b> e il <b>${fmtData(c.secondo.data)}</b> su <b>${esc(nome)}</b> risultano misurati <b>${n0(c.scavato)}${band} m³</b> di scavo. ${rit}</div>
-    <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : ""} ${conf}</div>`;
+    <div class="note">Il conto somma ${c.rilieviInMezzo === 1 ? "<b>il rilievo</b> successivo" : "i <b>" + c.rilieviInMezzo + "</b> rilievi successivi"} al primo, fino al secondo compreso: ogni rilievo porta il materiale tolto <b>da quando c'era quello prima</b>, quindi i volumi si sommano e non si sottraggono.${c.incertezza && c.incertezza.completa && c.banda > 0 ? ` Il <b>± ${n0(c.banda)} m³</b> è l'incertezza dei rilievi del periodo sommata (stima prudente).` : c.incertezza && !c.incertezza.completa ? " " + esc(descriviIncertezza(c.incertezza)) : ""} ${conf}</div>`;
   }
   // Scegliere due volte lo stesso rilievo non è un errore da rimproverare: si
   // sposta l'ALTRA tendina sul rilievo più vicino, così la scelta appena
@@ -4031,132 +4127,92 @@ a.dw-btn{text-decoration:none}
   // fronte, sotto quale titolo autorizzativo, e da quale rilievo precedente
   // parte la misura. Nessun colore d'interfaccia: pagina bianca da firmare.
   // ══════════════════════════════════════════════════════════════════════
-  function fogliaVerbale(r) {
-    const f = r.fronteId ? FRO.find(x => x.id === r.fronteId) : null;
+  /* lo stile dei fogli che escono dal Piano e dai Rilievi (verbale, relazione
+     di fine lavori): scritto UNA volta — la relazione del 04/09 lo riusa
+     invece di ricopiarlo, così i due fogli non divergono */
+  const STILE_FOGLIO = "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+    + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
+    + ".sub{color:#555;margin-bottom:14px}"
+    + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
+    + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
+    + "td:first-child{width:38%}"
+    + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
+    + ".n{text-align:right;white-space:nowrap}"
+    + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
+    + ".manca{color:#7a3b00;font-style:italic}"
+    + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
+    + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
+    /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
+    + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
+    + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}";
+
+  /* LA RELAZIONE DI FINE LAVORI DEL LOTTO (04/09): il foglio con cui si chiede
+     all'ente il sopralluogo e lo svincolo della garanzia. Le righe le compone
+     `relazioneLotto` nel modulo — gli stessi numeri della riga del lotto — e
+     qui c'è solo l'HTML; ogni dato mancante resta scritto come tale e la
+     sezione «Che cosa manca» lo elenca, perché un foglio che tace un dato lo
+     fa passare per zero. La planimetria non c'è: Terra non disegna aree. */
+  function fogliaRelazione(l) {
+    const R = relazioneLotto(l, RIL, FRO, new Date());
     const aut = autorizzazioneVigente(AUT);
-    const ca = classeAccuratezza(r);
-    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    const prec = rilievoPrecedente(RIL, r);
-    const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
-    const oggi = new Date();
-    const dataOggi = fmtData(oggiISO(oggi));
-    const riga = (c1, c2) => "<tr><td><b>" + c1 + "</b></td><td>" + c2 + "</td></tr>";
-    const cum = provenienzaRilievo(r) === "cumulo";
-    const dati = [
-      ["Data del rilievo", fmtData(r.data)],
-      /* ⛔ LA QUOTA ALL'ITALIANA, come il GSD sei righe più sotto — e per la
-         stessa ragione, che lì era già scritta: questo foglio va a un ente
-         italiano. Fino al 03/08 usciva `String(f.quota)` grezzo, cioè «quota
-         148.5 m» col punto, mentre l'elenco dei Fronti sullo stesso dato
-         scrive «Quota 148,5 m». E la guardia era `f.quota != null`, che
-         accetta la stringa vuota: un fronte senza quota stampava «· quota  m»,
-         due parole e un buco. La condizione giusta è quella dell'elenco
-         (`== null || === ""`), che quel caso lo dichiara invece di tacerlo. */
-      ["Fronte", f ? esc(f.nome) + (f.banco ? " — " + esc(f.banco) : "")
-          + (f.quota == null || f.quota === "" ? " · quota non dichiarata" : " · quota " + esc(nD(f.quota)) + " m")
-        : (r.fronteId ? "fronte non più in elenco" : "non indicato")],
-      ["Che cosa è stato misurato", cum
-        ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
-        : "Scavo dal fronte — materiale nuovo tolto dalla cava"],
-      ["Tipo di elaborato", r.tipo ? esc(r.tipo) : "non indicato"],
-      ["Metodo di rilievo", r.metodo ? esc(r.metodo) : "non dichiarato"],
-      // il GSD sul verbale si scrive all'italiana: «2,5 cm». Il foglio va a un
-      // ente italiano, e i rilievi importati da CSV possono averlo col punto.
-      ["GSD (dimensione del pixel a terra)", r.gsd != null && String(r.gsd).trim() !== "" ? esc(itDec(r.gsd)) + " cm" : "non dichiarato"],
-      ["Classe di accuratezza", ca.classe === "n.d." ? "non determinabile (metodo e GSD non dichiarati)"
-        : ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%"],
-      ["Volume misurato", "<b>" + nD(r.volumeM3) + " m³</b>"
-        + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : "")],
-      ["Eseguito da", r.rilevatore ? esc(r.rilevatore) : "&nbsp;"],
-    ];
-    const titolo = aut ? [
-      ["Numero dell'atto", aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
-      ["Ente che l'ha rilasciato", aut.ente ? esc(aut.ente) : "—"],
-      ["Scadenza del titolo", fmtData(aut.dataScadenza)],
-      /* ⚠️ `nD` e non `n0`: la ragione sta scritta duecento righe piu' su, nel
-         prospetto della denuncia — «i numeri copiati dall'atto si riportano
-         come stanno sull'atto, arrotondare all'unita' un numero che l'utente ha
-         trascritto dal titolo lo farebbe divergere dal documento» — e questo
-         verbale la stessa riga dell'atto la cita in una tabella sua, sullo
-         stesso foglio che va all'ente. Il campo accetta i decimali
-         (`numeroDaCampo` senza `decimali`: «1.200.000,50» entra come
-         1200000,5), quindi la divergenza e' raggiungibile e vale mezzo metro
-         cubo scritto in meno del titolo. Sui numeri interi le due funzioni
-         scrivono la stessa identica cosa. */
-      ["Volume totale concesso", aut.volumeAutorizzatoM3 ? nD(aut.volumeAutorizzatoM3) + " m³" : "—"],
-    ] : null;
-    /* ⛔ «IL METODO DICHIARATO E IL GSD» SU UN FOGLIO CHE, DODICI RIGHE PIÙ SU,
-       SCRIVE «GSD: non dichiarato». La frase citava un dato che nella tabella
-       accanto risulta assente: la classe alta, senza GSD, si regge sul solo
-       metodo, e chi legge il verbale ne ricavava che la dimensione del pixel a
-       terra fosse stata valutata. La bandiera che distingue i due casi è
-       `ca.gsdNoto` e la decide il modulo — qui si legge, non si rifà. */
-    const comeNato = ca.classe === "survey-grade"
-      ? (ca.gsdNoto
-          ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
-          : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
-        + ca.tolleranzaPct
-        + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
-      : ca.classe === "indicativo"
-        ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
-          + ca.tolleranzaPct + "%, cioè circa ± " + (bv ? n0(bv.banda) : "—") + " m³ su questo volume."
-        : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.";
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const riga = (d) => "<tr><td><b>" + esc(d[0]) + "</b></td><td" + (d[2] ? " class='manca'" : "") + ">" + esc(d[1]) + "</td></tr>";
+    return "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
+      + "<title>" + esc(R.titolo) + "</title><style>" + STILE_FOGLIO + CSS_ESEMPIO + "</style></head><body>"
+      + "<h1>" + esc(R.titolo) + "</h1>"
+      + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
+      + avvisoEsempio("Questa relazione non documenta nessun lotto reale: non va allegata a una richiesta di collaudo o di svincolo né esibita a un controllo.")
+      + "<h2>Il lotto</h2><table>" + R.righe.map(riga).join("") + "</table>"
+      + "<h2>Le date</h2><table>" + R.date.map(riga).join("") + "</table>"
+      + (R.attesa ? "<p class='mini'>" + esc(R.attesa) + "</p>" : "")
+      + "<h2>Recupero e garanzia</h2><table>" + R.recupero.map(riga).join("") + "</table>"
+      + "<p class='mini'>La quota di garanzia è quella che la polizza attribuisce a questo lotto, trascritta dall'utente: Terra non la calcola e non applica listini regionali.</p>"
+      + (aut ? "<h2>Titolo autorizzativo di riferimento</h2><table>"
+          + riga(["Numero dell'atto", aut.numeroAtto || "—", !aut.numeroAtto])
+          + riga(["Ente che l'ha rilasciato", aut.ente || "—", !aut.ente])
+          + riga(["Scadenza del titolo", fmtData(aut.dataScadenza), false]) + "</table>" : "")
+      + (R.nonMisurati.length
+          ? "<h2>Che cosa manca in questa relazione</h2><p class='mini'>"
+            + R.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: la relazione non li stima e non li sostituisce con uno zero.</p>"
+          : "")
+      + (R.nota ? "<h2>Note</h2><p class='mini'>" + esc(R.nota) + "</p>" : "")
+      + "<div class='firma'><div>Luogo e data</div><div>Il titolare</div><div>Il direttore dei lavori</div></div>"
+      + "<div class='foot'>Relazione generata da Deepwork Terra a partire dai dati registrati dall'utente. "
+      + "Le attività estrattive sono materia regionale: contenuto della relazione, planimetrie da allegare, termini della comunicazione di fine lavori e modalità di svincolo della garanzia "
+      + "vanno verificati presso l'ente competente. Questa relazione non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
+      + "</body></html>";
+  }
+  /* Le righe del verbale le compone `verbaleRilievo` nel modulo — le stesse
+     funzioni che decidono i numeri a schermo — e qui si disegna e basta, come
+     per la relazione del lotto. Una cella vuota (il rilevatore non indicato)
+     resta vuota: è la riga da compilare a penna. */
+  function fogliaVerbale(r) {
+    const V = verbaleRilievo(r, { rilievi: RIL, fronti: FRO, autorizzazioni: AUT });
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const riga = (d) => "<tr><td><b>" + esc(d[0]) + "</b></td><td" + (d[2] ? " class='manca'" : "") + ">"
+      + (d[1] === "" ? "&nbsp;" : d[3] ? "<b>" + esc(d[1]) + "</b>" : esc(d[1])) + "</td></tr>";
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
-      + "<title>Verbale di rilievo " + fmtData(r.data) + "</title><style>"
-      + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
-      + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
-      + ".sub{color:#555;margin-bottom:14px}"
-      + "table{width:100%;border-collapse:collapse;margin-bottom:6px}"
-      + "th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}"
-      + "td:first-child{width:38%}"
-      + "th{background:#eee;font-size:11px;letter-spacing:.3px}"
-      + ".n{text-align:right;white-space:nowrap}"
-      + ".mini{color:#555;font-size:11px;margin:4px 0 0}"
-      + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
-      + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
-      /* su telefono le tre firme in fila diventano illeggibili: si incolonnano */
-      + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
-      + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
-      + CSS_ESEMPIO
+      + "<title>Verbale di rilievo " + esc(V.data) + "</title><style>"
+      + STILE_FOGLIO + CSS_ESEMPIO
       + "</style></head><body>"
-      + "<h1>Verbale di rilievo — " + esc(r.titolo || "rilievo del " + fmtData(r.data)) + "</h1>"
+      + "<h1>" + esc(V.titolo) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi + "</div>"
       + avvisoEsempio("Questo verbale non documenta nessun rilievo reale: "
           + "non va allegato a una comunicazione all'ente né esibito a un controllo.")
-      + "<h2>Il rilievo</h2><table>" + dati.map(d => riga(d[0], d[1])).join("") + "</table>"
+      + "<h2>Il rilievo</h2><table>" + V.righe.map(riga).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e denominazione della cava vanno indicate secondo il modello richiesto dall'ente.</p>"
-      + (titolo ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + titolo.map(d => riga(d[0], d[1])).join("") + "</table>" : "")
-      + (cum
-          ? "<h2>Da dove parte la misura</h2>"
-            + "<p class='mini'>Il rilievo misura un <b>deposito di materiale già estratto</b>, non l'avanzamento di un fronte fra due date: non esiste quindi un rilievo di partenza da citare.</p>"
-        : c
-          ? "<h2>Da dove parte la misura</h2><table>"
-            + riga("Rilievo precedente sullo stesso fronte", fmtData(c.primo.data)
-                + (c.primo.metodo ? " · " + esc(c.primo.metodo) : ""))
-            + riga("Giorni fra i due rilievi", c.giorni)
-            + riga("Volume scavato fra le due date", "<b>" + n0(c.scavato) + " m³</b>"
-                + (c.banda > 0 ? " (± " + n0(c.banda) + " m³)" : ""))
-            + riga("Ritmo medio nel periodo", c.alGiorno != null
-                ? n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese" : "non calcolabile")
-            + "</table>"
-            + "<p class='mini'>Il volume scavato fra le due date è la somma dei rilievi eseguiti dopo il "
-            + fmtData(c.primo.data) + " fino a questo compreso (" + c.rilieviInMezzo
-            + (c.rilieviInMezzo === 1 ? " rilievo" : " rilievi") + "): ogni rilievo misura il materiale tolto dal rilievo precedente.</p>"
-          : "<h2>Da dove parte la misura</h2>"
-            + "<p class='mini'>Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno.</p>")
+      + (V.atto ? "<h2>Titolo autorizzativo di riferimento</h2><table>" + V.atto.map(riga).join("") + "</table>" : "")
+      + "<h2>Da dove parte la misura</h2>"
+      + (V.partenza.righe.length ? "<table>" + V.partenza.righe.map(riga).join("") + "</table>" : "")
+      + "<p class='mini'>" + esc(V.partenza.nota) + "</p>"
       + "<h2>Come è stato ottenuto il numero</h2>"
-      + "<p class='mini'>" + comeNato
-      /* ⛔ E COME È STATO CALCOLATO, non solo con che accuratezza. Il titolo
-         della sezione promette «Come è stato ottenuto il numero»: la classe di
-         accuratezza dice quanto ci si può fidare, non da dove viene il numero.
-         Per un rilievo dal visore qui compaiono lato cella, quota di base, area
-         coperta e ritaglio — cioè quello che serve a RIFARE il conto. Per uno
-         senza provenienza registrata la frase lo dichiara, invece di tacere:
-         una riga che tace lascia credere che il numero sia verificabile. */
-      + " " + descriviOrigine(r)
-      + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
-      + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "")
-      + "</p>"
+      + "<p class='mini'>" + esc(V.comeNato) + "</p>"
+      + (V.nonMisurati.length
+          ? "<h2>Che cosa manca in questo verbale</h2><p class='mini'>"
+            + V.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: il verbale non li stima e non li sostituisce con uno zero.</p>"
+          : "")
       + "<div class='firma'><div>Luogo e data</div><div>Il rilevatore</div><div>Il direttore dei lavori</div></div>"
       + "<div class='foot'>Verbale generato da Deepwork Terra a partire dai dati registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: contenuto, forma e destinatari della documentazione di rilievo "
@@ -4289,16 +4345,9 @@ a.dw-btn{text-decoration:none}
      perché la controprova del banco su quella riga NON cade, e senza questa
      nota domani sembrerebbe una prova che non sa fallire. */
   $("btn-terra-export").onclick = () => {
-    let csv = "tipo;nome;stato;provenienza;dettaglio\n";
-    for (const f of FRO)
-      csv += `fronte;${csvCell(f.nome + (f.banco ? " — " + f.banco : ""))};${f.stato};;`
-        + csvCell([f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",
-            avFronte(f, "avanzamento")].filter(Boolean).join(" · ")) + "\n";
-    for (const r of RIL.slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
-      csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaRilievo(r)};`
-        + csvCell(dataIt(r.data)
-            + (rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"
-              : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
+    // l'archivio lo compone `csvFrontiRilievi` nel modulo — «quota non dichiarata»
+    // e «volume non leggibile» con le parole dello schermo (05/09)
+    const csv = csvFrontiRilievi(FRO, RIL);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "terra_fronti_rilievi.csv"; marchiaCsv(a); a.click();
@@ -4461,9 +4510,15 @@ a.dw-btn{text-decoration:none}
   // Ponte col visore nuvola (Genesi): riprende l'ULTIMO ritaglio con volume
   // calcolato e precompila il form del rilievo — il flusso drone→Terra chiuso.
   $("btn-dal-drone").onclick = async () => {
-    let ultimo = null;
-    try { const a = JSON.parse(localStorage.getItem("genesiNuvole") || "[]");
-      for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) { ultimo = a[i]; break; } } catch (e) {}
+    /* dal 02/09 le lavorazioni della nuvola stanno anche nell'organizzazione
+       (Genesi, `apps/genesi/nuvole`): si guarda prima lì, e la chiave del
+       browser resta il ripiego di chi usa il visore da solo. Chi sceglie è
+       `ultimoRitaglioNuvola`, pura e provata; qui si leggono solo le due fonti. */
+    let daOrg = null;
+    try { daOrg = db.nuvoleGenesi ? await db.nuvoleGenesi() : null; } catch (e) { daOrg = null; }
+    let daChiave = [];
+    try { daChiave = JSON.parse(localStorage.getItem("genesiNuvole") || "[]"); } catch (e) { daChiave = []; }
+    const { ultimo, fonte } = ultimoRitaglioNuvola(daOrg, daChiave);
     if (!ultimo) { esito("ril-esito", "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo o il fronte e torna qui.", "err"); return; }
     const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
     if (!vol) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
@@ -4471,7 +4526,8 @@ a.dw-btn{text-decoration:none}
     // scavato o un mucchio sul piazzale. È l'unica cosa che deve dirla una
     // persona, e cambia se quel volume scala o no il concesso.
     const scelta = await chiediValore("Che cosa hai misurato?",
-      "Il visore ha calcolato <b>" + vol.toLocaleString("it-IT") + " m³</b> su «" + esc(ultimo.nome || "ritaglio") + "».<br><br>"
+      "Il visore ha calcolato <b>" + vol.toLocaleString("it-IT") + " m³</b> su «" + esc(ultimo.nome || "ritaglio") + "»"
+      + (fonte === "organizzazione" ? " (dalle lavorazioni della tua organizzazione)" : "") + ".<br><br>"
       + "Se è <b>scavo</b> del fronte, quei metri cubi consumano il volume concesso dall'autorizzazione. "
       + "Se è la <b>ripresa di un cumulo</b>, quel materiale era già stato scavato (e già scalato) in passato: contarlo di nuovo "
       + "farebbe risultare consumata più concessione di quella vera.",
@@ -4553,7 +4609,9 @@ a.dw-btn{text-decoration:none}
      file che solo la nostra app sa aprire. */
   $("btn-exp-ril").onclick = () => {
     const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL));
+    // ⛔ `FRO` è il secondo argomento: senza, la colonna «fronte» usciva vuota
+    // su tutte le righe (il rilievo porta `fronteId`, il file vuole il nome)
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRilievi(RIL, FRO));
     a.download = "terra_rilievi.csv"; marchiaCsv(a); a.click();
     /* ⛔ «NEL FORMATO CHE QUESTA PAGINA SA RI-CARICARE» ERA UNA PROMESSA CHE IL
        FILE NON MANTENEVA. Misurato il 07/08 sulla dimostrazione: 8 righe

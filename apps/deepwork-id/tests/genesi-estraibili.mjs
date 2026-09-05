@@ -66,7 +66,13 @@ const src = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
 
 /* le funzioni dichiarate, col corpo a graffe bilanciate */
 const funzioni = [];
-const dichiarazione = /(?:^|\n)\s*(?:export\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g;
+/* ⛔ `async function` entra nel conto (02/09): la forma precedente prendeva solo
+   `function`, e `salvaVolata` — asincrona da luglio — non era mai stata
+   contata; il giorno in cui `renderHome` è diventata asincrona (unità 2 del
+   piano) il censimento è sceso di uno e la tabella del documento ha smesso di
+   tornare. Un righello che non vede una forma di dichiarazione risponde «una
+   funzione in meno» con la stessa faccia con cui direbbe la verità. */
+const dichiarazione = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g;
 let m;
 while ((m = dichiarazione.exec(src))) {
   const apre = src.indexOf("{", m.index + m[0].length - 1);
@@ -245,6 +251,12 @@ if (ELENCO) {
   for (const c of subito.sort((a, b) => b.corpo.length - a.corpo.length))
     console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)}`
       + (c.chiama.length ? "chiama: " + c.chiama.join(", ") : ""));
+  /* le 60 «facili» (una o due variabili del modulo): è il cantiere che resta,
+     e senza un elenco chi lo apre deve rifare il censimento a mano (04/09) */
+  console.log(`\n── Le ${facili.length} che leggono una o due variabili del modulo, dalla più grossa:`);
+  for (const c of facili.slice().sort((a, b) => b.corpo.length - a.corpo.length))
+    console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)} legge: ${c.glob.join(", ")}`
+      + (c.dom ? "  · scrive nel DOM" : "") + (c.ambiente ? "  · ambiente" : "") + (c.chiama.length ? "  · chiama: " + c.chiama.slice(0, 6).join(", ") : ""));
   console.log(`\n── Le ${duri.length} più legate allo stato, dalla peggiore:`);
   for (const c of duri.sort((a, b) => b.glob.length - a.glob.length))
     console.log(`  ${String(c.glob.length).padStart(3)} globali  ${c.nome.padEnd(26)} ${c.glob.slice(0, 10).join(", ")}`);

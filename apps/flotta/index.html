@@ -424,6 +424,20 @@ body.dw b.bad{color:var(--ink-dg)}
 .item.st-sup{border-left:3px solid var(--app-support2)}
 .item.statico{cursor:default}
 .item.statico:hover{transform:none}
+
+/* ─── interruttore: copia di .toggle-row/.toggle del core (struttura identica),
+       la tinta è quella di Flotta. Il gancio è la riga intera (label), non il
+       solo pallino di 40×22: il bersaglio di tocco resta alto --tap. ─── */
+.toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);cursor:pointer;transition:.3s;border-radius:22px}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:var(--muted);transition:.3s;border-radius:50%}
+.toggle input:checked+.toggle-slider{background:var(--app-accent)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(18px);background:var(--grad-on)}
+.toggle-row{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin:2px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:var(--tap);cursor:pointer}
+.toggle-row:has(input:focus-visible){box-shadow:0 0 0 3px var(--focus-ring)}
+.tog-name{font-size:13px;font-weight:600}
+.tog-sub{font-size:10px;color:var(--muted);margin-top:2px}
 .acts{margin-left:auto}
 
 /* come nel core le voci restano compatte: al massimo due righe, poi «…» */
@@ -498,6 +512,42 @@ body.dw b.bad{color:var(--ink-dg)}
 .note .go{color:var(--app-accent2); white-space:nowrap}
 .note .rosso{color:var(--ink-dg); font-weight:600}
 .note .giallo{color:var(--ink-wr); font-weight:600}
+/* la nota che deve far alzare lo sguardo (Conti non raggiungibile): la barra
+   prende il colore dell'avviso, il resto resta una nota */
+.note.warn{--note-bar:var(--warn)}
+/* ─────────────── il confronto con Conti (02/09) ───────────────
+   Stessa cassa della tabella del ponte in Conti (`.ponte`), coi colori di
+   Flotta: fondo scuro, intestazioni piccole in maiuscolo, cifre allineate.
+   Scorre da sola in orizzontale sui telefoni stretti — la pagina non si
+   muove di lato — e SOLO la colonna della voce va a capo: un importo spezzato
+   su due righe si legge come due importi. */
+.note .ponte-wrap{
+  overflow-x:auto; -webkit-overflow-scrolling:touch; margin:10px 0 8px;
+  background:var(--dark); border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--edge);
+}
+.note table.ponte{width:100%; border-collapse:collapse; font-size:12px}
+.note .ponte th{
+  font-family:'Barlow',sans-serif; font-size:8.5px; font-weight:600; letter-spacing:1.1px;
+  text-transform:uppercase; color:var(--muted); text-align:left; line-height:1.35;
+  padding:8px 10px; border-bottom:1px solid var(--border2); background:var(--panel);
+}
+.note .ponte td{
+  padding:7px 10px; border-bottom:1px solid var(--border); color:var(--muted2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.note .ponte td:first-child{white-space:normal; color:var(--text); font-weight:600}
+.note .ponte td small{display:block; font-size:10.5px; color:var(--muted); font-weight:400; line-height:1.3}
+.note .ponte tr:last-child td{border-bottom:none}
+/* la riga che compare in tutt'e due le app è quella che gonfia il totale della
+   cava: le cifre prendono l'inchiostro dell'avviso (--ink-wr, già tarato per
+   il testo piccolo in tutti e tre i temi), la voce resta nel colore del testo */
+.note .ponte tr.doppia td{color:var(--ink-wr)}
+.note .ponte tr.doppia td:first-child{color:var(--text)}
+/* la coda della nota (righe senza data, non confrontabili) NON è un `.meta`:
+   quello è tagliato a due righe dal foglio condiviso, e un dettaglio che
+   finisce dove il testo è tagliato è testo morto (misurato sullo scatto di
+   Flotta a 430 px il 02/09: «1 riga di…») */
+.note .ponte-coda{display:block; margin-top:6px; font-size:11.5px; line-height:1.5; color:var(--muted)}
 
 /* ─────────────── navigazione: pillola flottante (copia di #global-nav.bnav) ─────────────── */
 .nav{border-top:1px solid var(--border2); padding-bottom:0}
@@ -759,7 +809,14 @@ body.dw b.bad{color:var(--ink-dg)}
    va A CAPO dentro la tessera invece di essere tagliato via — un numero
    spezzato su due righe si legge, uno tagliato è un altro numero. */
 @media(max-width:400px){
-  #sch-kpi .n{font-size:21px; line-height:1.2; overflow-wrap:anywhere}
+  /* ⚠️ 03/09: le tessere «Quanto costa» dell'ORDINE DI LAVORO (`#odl-kpi`)
+     portano gli stessi importi del libretto e avevano lo stesso taglio, che la
+     guardia qui sotto non copriva perché nominava il libretto e basta.
+     Misurato aprendo un ordine con 100 h a 127,50 €/h: «€ 12.750,00» chiede
+     169 px e a 320 px si leggeva «€ 12.750» — tagliato di 39 px (19 a 360,
+     10 a 390); già sulla dimostrazione «€ 178,50» usciva dal suo riquadro di
+     9 px mangiandosi il padding. Stessa cura, stessi due strati. */
+  #sch-kpi .n, #odl-kpi .n{font-size:21px; line-height:1.2; overflow-wrap:anywhere}
 }
 
 </style>
@@ -1079,6 +1136,21 @@ body.dw b.bad{color:var(--ink-dg)}
 <div class="page" id="page-cos">
   <div class="sec">Costi della flotta<span class="cnt" id="cos-count">—</span></div>
   <div id="cos-riep" class="note recap"></div>
+  <!-- BUDGET DELL'ANNO CONTRO SPESA REALE (05/09): per ogni voce con un budget
+       dichiarato, previsto · speso · quota attesa a oggi, con lo stato. Le voci
+       con spese ma senza budget e i costi senza data si dichiarano. -->
+  <div class="sec" style="margin-top:12px;">Budget dell'anno<span class="cnt" id="bud-count">—</span></div>
+  <div id="bud-riep" class="note recap"></div>
+  <div id="bud-list" style="margin-top:8px;"></div>
+  <div class="form" style="margin-top:8px;">
+    <input class="dw-input" id="bud-voce" list="bud-voci" placeholder="Voce (vuota = tutta la flotta)" title="La stessa parola con cui registri i costi (es. Carburante). Lascia vuoto per il budget di tutta la flotta." style="flex:2 1 190px;">
+    <datalist id="bud-voci"></datalist>
+    <input class="dw-input" id="bud-importo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Budget annuo €" title="Quanto hai deciso di spendere in un anno per questa voce" style="flex:1 1 130px;">
+    <button class="dw-btn" id="btn-bud">Dichiara il budget</button>
+    <div class="form-hint">Il budget è dell'<b>anno in corso</b> e vale per la voce scritta con lo stesso nome dei costi. Da qui in poi ogni spesa registrata si confronta con la quota attesa a oggi.</div>
+  </div>
+  <div class="note esito" id="bud-esito"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-bud-csv">Esporta budget (CSV)</button></div>
   <!-- F1 — «Dove va la spesa»: barre orizzontali ordinate dalla voce più
        costosa alla meno costosa. Prima era solo una riga di percentuali. -->
   <div id="graf-costi" class="graf" style="margin-top:12px;"></div>
@@ -1086,6 +1158,10 @@ body.dw b.bad{color:var(--ink-dg)}
        costo porta la sua data. Le voci senza data non entrano e vengono
        dichiarate, mai attribuite a un mese a caso. -->
   <div id="graf-costi-mese" class="graf" style="margin-top:12px;"></div>
+  <!-- PONTE CON CONTI (02/09) — «questa spesa risulta anche nel registro
+       della cava?». Si riempie da solo quando Conti risponde; finché non
+       risponde lo dice, e se non risponde NON dà Conti per zero. -->
+  <div id="cos-ponte" style="margin-top:12px;"></div>
   <div id="cos-list" style="margin-top:12px;"></div>
   <div class="sec">Nuovo costo</div>
   <div class="form">
@@ -1118,6 +1194,14 @@ body.dw b.bad{color:var(--ink-dg)}
       <input class="dw-input" id="rif-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore contatore" title="Ore del contatore al momento del pieno: la virgola va benissimo (1234,5)." style="flex:1 1 140px;font-variant-numeric:tabular-nums;">
       <button class="dw-btn" id="btn-rif">Registra</button>
     </div>
+    <!-- IL CONTATORE SOSTITUITO O AZZERATO (04/09): l'unico modo onesto di far
+         entrare una lettura più bassa. Senza questa dichiarazione la lettura
+         resta rifiutata, perché «sceso» è quasi sempre un errore di dito. -->
+    <label class="toggle-row" for="rif-nuovo" title="Segna qui se il contaore è stato sostituito o azzerato: le ore possono essere più basse di prima, e da questo pieno il conto riparte.">
+      <div><div class="tog-name">Contatore nuovo o azzerato</div>
+        <div class="tog-sub">Se il contaore è stato sostituito o azzerato, le ore possono essere più basse di prima: il consumo e il ritmo d'uso ripartono da questo pieno.</div></div>
+      <span class="toggle"><input type="checkbox" id="rif-nuovo"><span class="toggle-slider"></span></span>
+    </label>
     <div class="form-hint">Le <b>ore del contatore</b> al momento del pieno sono quelle che trasformano i litri in <b>litri/ora</b>: senza di loro restano litri e basta. Ne servono almeno due per mezzo, perché il primo pieno serve solo a fissare il punto di partenza.</div>
     <div class="form-hint">Se scrivi anche la <b>spesa</b>, il rifornimento entra da solo nei costi della flotta come voce «Carburante» con la sua data: <b>non registrarlo una seconda volta</b> a mano. Se togli il rifornimento, sparisce anche la sua voce di costo.</div>
   </div>
@@ -1275,15 +1359,17 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
            numeroDichiarato,
+           confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra, budgetVsSpesa, descriviBudget, csvBudget, ETICHETTA_STATO_BUDGET,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
-           validaRifornimento, consumoPerMezzo, fascicoloMezzo,
+           validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
+           azzeramentiDelMezzo, fraseContatoreSostituito, urgenzaTagliando, contatoreDelTagliando, propostaRiscrittura,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
            CAUSALI_FERMO, causaleFermo, etichettaCausale, validaFermo,
@@ -1305,7 +1391,7 @@ body.dw b.bad{color:var(--ink-dg)}
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
   montaGuardiaInteri((m) => toast(m, "err"));
   const $ = (id) => document.getElementById(id);
-  const MB = { operativo: ["ok","Operativo"], fermo: ["danger","Fermo"], verifica: ["warn","Verifica"] };
+  const MB = { operativo: ["ok", ETICHETTA_STATO_MEZZO.operativo], fermo: ["danger", ETICHETTA_STATO_MEZZO.fermo], verifica: ["warn", ETICHETTA_STATO_MEZZO.verifica] };
   const sig = (n) => (n||"?").split(" ")[0].slice(0,2).toUpperCase();
   /* la regola vive in shared/: qui solo il nome di sempre. Fino al 30/07 Flotta
      scriveva «€178,50» e «€8.400» — attaccato al simbolo e coi centesimi solo
@@ -1313,7 +1399,7 @@ body.dw b.bad{color:var(--ink-dg)}
      accanto a `euro` in dw-shell.js. */
   const eur = euro;
   // ore di lavoro: mezz'ora è mezz'ora, ma «4,00 h» è precisione finta
-  const oreTx = (v) => (+v||0).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + " h";
+  const oreTx = oreLavoroTesto;   // nel modulo dal 05/09
   /* ⛔ «DAL — — ANCORA FERMO» — misurato l'08/08 leggendo il libretto macchina
      stampato, non il codice. La frase si componeva con `dataIt(x.inizio)` a
      mano in DUE punti (l'elenco dei fermi e il foglio), e su un fermo senza
@@ -1346,7 +1432,7 @@ body.dw b.bad{color:var(--ink-dg)}
      il file se n'era tenuta una versione più debole. Il periodo è un intero
      di mesi (`validaScadenzaMezzo` accetta da 1 a 600), quindi qui basta
      `plurale`. */
-  const ogniMesiTx = (n) => "ogni " + plurale(n, "mese", n + " mesi");
+  const ogniMesiTx = ogniMesiTesto;   // nel modulo dal 05/09
   /* ⛔ IL CONTATORE CHE NESSUNO HA LETTO NON SEGNA ZERO. Fino al 01/08 le ore
      motore si scrivevano dappertutto come `(+m.ore || 0).toLocaleString(...)`:
      su un mezzo senza contatore uscivano «0 ore motore» — non un vuoto, una
@@ -1364,11 +1450,41 @@ body.dw b.bad{color:var(--ink-dg)}
      lo può avvolgere chi chiama (`marca`), ma la parola la sceglie un posto
      solo. */
   const grassetto = (n) => "<b>" + n + "</b>";
-  const oreMotoreTx = (v, marca) => {
-    if (!oreNote(v)) return "ore motore non registrate";
-    const n = (+v).toLocaleString("it-IT");
-    return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");
+  /* IL CONTATORE SOSTITUITO (04/09). L'evento vive sul rifornimento che l'ha
+     dichiarato (`contatoreNuovo`, vedi flotta-data.js), quindi la riga del
+     mezzo lo legge dai rifornimenti, non da un campo del mezzo. La forma corta
+     va nella riga di lista (tagliata a due righe); la frase intera, con le ore
+     che il vecchio contatore segnava, nella scheda — insieme all'avviso che i
+     tagliandi a ore programmati PRIMA parlano del vecchio contatore: quel
+     conto non si raddrizza da solo, e dirlo è meglio di un «mancano 5.880 h»
+     tranquillo. */
+  const ultimoAzzeramento = (nome) => { const az = azzeramentiDelMezzo(RIF, nome); return az.length ? az[az.length - 1] : null; };
+  /* IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09). L'urgenza di un tagliando a
+     ore passa da QUI in tutti i punti della pagina (lista, ordine, libretto,
+     stima dei giorni, file che escono): la decisione «confrontabile o no» sta
+     in `urgenzaTagliando`, e scritta in cinque posti divergerebbe. Il mezzo
+     può mancare (tagliando su una macchina uscita dal parco): allora si dice
+     solo a quante ore è previsto, come sempre. */
+  const urgTagliando = (n, m) => m
+    ? urgenzaTagliando(n, m.ore, azzeramentiDelMezzo(RIF, n.mezzo))
+    : { cls: "", label: "a " + numTx(n.orePreviste) + " h", mancano: null, calcolabile: true, perche: "" };
+  // la coda per i FILE che escono (CSV del programma, libretto): quando il
+  // tagliando non parla del contatore attuale, il foglio lo dice — chi lo
+  // legge confronta quelle ore col contaore della macchina, e sbaglierebbe
+  const codaContatoreTx = (n) => {
+    if (!n.orePreviste) return "";
+    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(RIF, n.mezzo));
+    return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
   };
+  const contatoreSostituitoTx = (nome, intera) => {
+    const u = ultimoAzzeramento(nome);
+    if (!u) return "";
+    if (!intera) return " · contatore sostituito il " + dataIt(u.data);
+    return " · " + esc(fraseContatoreSostituito(u))
+      + (u.oreVecchie != null ? " (prima segnava " + (+u.oreVecchie).toLocaleString("it-IT") + " h)" : "")
+      + ". I tagliandi a ore programmati prima di quel giorno si riferiscono al vecchio contatore.";
+  };
+  const oreMotoreTx = oreMotoreTesto;   // la frase vive nel modulo (05/09): la usano schermo e file
   // LE UNITÀ DI MISURA NON VANNO MAI IN MAIUSCOLO. Le etichette del semaforo
   // («tra 13 gg», «scaduta da 20 gg», «21 gg») nascono nel modulo dati come
   // TESTO SEMPLICE — lì devono restare, perché finiscono anche nei conteggi e
@@ -1510,15 +1626,7 @@ body.dw b.bad{color:var(--ink-dg)}
   // La lavorazione di un intervento CHIUSO, in una riga: chi c'è stato e per
   // quanto. Gli interventi registrati prima dell'ordine di lavoro non hanno
   // questi campi e non mostrano niente — restano come sono sempre stati.
-  const lavorazioneTx = (w) => {
-    const ore = +w.oreManodopera || 0;
-    const chi = (w.manodopera || []).filter(r => r && (+r.ore || 0) > 0);
-    if (!ore && !chi.length) return "";
-    const nomi = chi.map(r => r.chi).filter(Boolean);
-    return [ore ? oreTx(ore) + " di lavoro" : "",
-            nomi.length ? nomi.map(esc).join(", ") : "",
-            (+w.costoManodopera || 0) ? "manodopera " + eur(w.costoManodopera) : ""].filter(Boolean).join(" · ");
-  };
+  const lavorazioneTx = (w) => lavorazioneTesto(w, esc);   // nel modulo dal 05/09; qui i nomi si proteggono per l'HTML
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
 
@@ -1605,6 +1713,31 @@ body.dw b.bad{color:var(--ink-dg)}
   });
 
   let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[], CTR=[], RIF=[], FER=[];
+
+  let BUD = [];   // il budget dell'anno, per voce (05/09)
+  // IL REGISTRO COSTI DELLA CAVA, letto da Conti una volta sola, quando la
+  // schermata Costi lo chiede. Tre stati, e vanno tenuti distinti perché la
+  // nota dice tre cose diverse: `undefined` = non ancora chiesto (o in
+  // viaggio), `null` = Conti NON ha risposto, un elenco = la risposta.
+  // ⛔ `null` resta `null`: tradurlo in `[]` farebbe dire «in Conti non c'è
+  // niente» a un'app che non ha risposto — il via libera a scrivere il doppione.
+  let CC;
+  let ccChiesto = false;
+  async function caricaCostiConti() {
+    if (ccChiesto) return CC;
+    ccChiesto = true;
+    try { CC = db.costiConti ? await db.costiConti() : null; } catch (e) { CC = null; }
+    return CC;
+  }
+  // Conti si chiede la PRIMA volta che la schermata Costi diventa visibile, da
+  // qualunque strada ci si arrivi (barra in basso, tessera del Quadro): il
+  // `go()` condiviso non avvisa nessuno, quindi si guarda la classe della
+  // pagina. Appena Conti risponde si ridisegna, e la nota passa da «sto
+  // chiedendo» alla risposta.
+  new MutationObserver(() => {
+    if (ccChiesto || !$("page-cos").classList.contains("active")) return;
+    caricaCostiConti().then(() => refresh()).catch(() => refresh());
+  }).observe($("page-cos"), { attributes: true, attributeFilter: ["class"] });
   // GIRO MACCHINA (L2): il giro in corso vive SOLO qui, in memoria, finché
   // non lo salvi. Un controllo a metà non è un documento: o è finito o non
   // esiste. { mezzoId, tipo, voci:[{chiave,etichetta,aiuto,critica,esito,nota}] }
@@ -1744,7 +1877,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // Il `|| []` non è una cintura di sicurezza di troppo: un'organizzazione
     // che usava Flotta ieri non ha nessuna collezione «controlli» né
     // «rifornimenti», e la schermata deve aprirsi lo stesso, vuota.
-    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : []])).map(v => v || []);
+    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER,BUD] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : [], db.budget ? db.budget() : []])).map(v => v || []);
     await registraFotografia();
     // Le LETTURE DEL CONTATORE che servono a collocare nel tempo i tagliandi
     // «a ore»: le portano i rifornimenti (L4) e i giri macchina (L2), che
@@ -1799,9 +1932,16 @@ body.dw b.bad{color:var(--ink-dg)}
        scadenzario usa già; qui la pagina se n'era tenuta una copia più debole in
        otto punti, compresa la cella del CSV che va al commercialista. */
     const carbConData = carb.filter(c => dataISOEsiste(String(c.data || "").slice(0,10)));
-    const carbMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra)
-                                .reduce((t, c) => t + (+c.importo || 0), 0);
+    const carbNelMese = carbConData.filter(c => String(c.data).slice(0,7) === meseOra);
+    const carbMese = carbNelMese.reduce((t, c) => t + (+c.importo || 0), 0);
     const carbValore = carbConData.length ? carbMese : k.carburante;
+    /* ⛔ E LA SECONDA FORMA DELLO STESSO ZERO, misurata il 02/09 sullo scatto:
+       i rifornimenti CI SONO (giugno, luglio), ma nessuno cade nel mese in
+       corso — e la tessera scriveva «€ 0,00» col titolo «registrato in questo
+       mese». Non è «questo mese zero gasolio»: è «questo mese nessuno ha
+       registrato un rifornimento», e su una flotta che lavora la seconda è la
+       lettura giusta. Si scrive «—» e il titolo dice il mese. */
+    const meseSenzaVoci = carbConData.length > 0 && carbNelMese.length === 0;
     // toFixed dà il punto decimale inglese: la tessera scriveva «€8.4k» sulla
     // prima schermata, accanto a numeri con la virgola. Sotto i mille euro il
     // «k» non serve e nasconde il numero: si scrive l'importo per intero.
@@ -1816,13 +1956,15 @@ body.dw b.bad{color:var(--ink-dg)}
        una flotta che lavora non è un dato favorevole: è l'assenza del dato.
        Il caso «voci senza data» resta com'era: lì una misura c'è, ed è il mese
        che non si può isolare. */
-    if (kn[3]) kn[3].textContent = !carb.length ? "—"
+    if (kn[3]) kn[3].textContent = !carb.length || meseSenzaVoci ? "—"
       : carbValore >= 1000
         ? conEuro((carbValore / 1000).toLocaleString("it-IT", { maximumFractionDigits: 1 })) + "k"
         : eur(carbValore);
     if ($("kpi-carb-l")) $("kpi-carb-l").textContent = carbConData.length ? "Carburante mese" : "Carburante";
     { const card = $("kpi-carb"); if (card) card.title = !carb.length
         ? "Nessuna voce di carburante registrata: quanto sia stato speso di gasolio non si sa. Tocca per registrare la prima."
+        : meseSenzaVoci
+          ? "Nessuna voce di carburante registrata questo mese: quanto sia stato speso di gasolio a " + new Date().toLocaleDateString("it-IT", { month: "long" }) + " non si sa. L'ultima voce registrata è di un altro mese."
         : carbConData.length
           ? "Carburante registrato in questo mese. Le voci senza data non sono conteggiate."
           : "Nessuna voce di carburante ha una data: qui c'è il totale registrato, non il mese."; }
@@ -1830,10 +1972,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
     // motore usa il contatore del mezzo, altrimenti la data prevista.
     const urgDi = (n) => {
-      if (n.orePreviste) {
-        const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
-        return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
-      }
+      if (n.orePreviste) return urgTagliando(n, MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo));
       return urgenza(n.dataPrevista);
     };
 
@@ -1842,7 +1981,9 @@ body.dw b.bad{color:var(--ink-dg)}
     // ogni priorità porta l'icona del suo mestiere: si riconosce a colpo
     // d'occhio se è una scadenza di legge, un tagliando, un ricambio o un mezzo
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
-    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER);
+    // le letture del contatore servono a sapere se un tagliando a ore parla
+    // del contatore che il mezzo ha oggi (contatore sostituito, 04/09)
+    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER, [...RIF, ...CTR]);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
       <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${icoOrigine(a.origine) || PRIO_ICO[a.categoria] || I.avviso}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>
@@ -1980,7 +2121,7 @@ body.dw b.bad{color:var(--ink-dg)}
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}</div></div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}${contatoreSostituitoTx(m.nome)}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
       <span class="arr avv" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
@@ -2157,7 +2298,13 @@ body.dw b.bad{color:var(--ink-dg)}
          quando»: qui deve dire la stessa cosa, o le due si smentiscono. */
       if (!oreNote(m.ore))
         return "Di questa macchina non risultano le ore del contatore: scrivile nella sua scheda e la data uscirà da sola.";
-      const mancano = n.orePreviste - (+m.ore);
+      /* le ore che mancano le decide `urgenzaTagliando`, non una sottrazione
+         di casa: era la copia debole che, dopo un contatore sostituito,
+         avrebbe scritto «fra 1.700 giorni» su un tagliando del vecchio
+         contatore. Non confrontabile → si dice il motivo e dove si corregge. */
+      const u = urgTagliando(n, m);
+      if (!u.calcolabile) return "Non confrontabile col contatore attuale: " + esc(u.perche) + ". Apri l'ordine per riscriverlo sul contatore nuovo.";
+      const mancano = u.mancano;
       if (mancano <= 0) return "Le ore ci sono già: da fare adesso.";
       const r = ritmoDelMezzo(tag.ritmi, n.mezzo);
       const misurato = r && r.oreGiorno != null;
@@ -2291,6 +2438,27 @@ body.dw b.bad{color:var(--ink-dg)}
         + (rip.voci.length === 1 ? " voce" : " voci") + "."
       : "";
     $("cos-count").textContent = COS.length;
+    // BUDGET DELL'ANNO CONTRO SPESA REALE: il conto lo fa `budgetVsSpesa`, qui
+    // si disegna. Senza nessun budget dichiarato il blocco lo dice, non tace.
+    { const annoB = new Date().getFullYear();
+      const RB = budgetVsSpesa(BUD, COS, annoB, new Date());
+      const righeB = RB.righe.concat(RB.totale ? [RB.totale] : []);
+      $("bud-count").textContent = righeB.length ? righeB.length + (righeB.length === 1 ? " voce" : " voci") : "";
+      $("bud-voci").innerHTML = [...new Set(COS.map(c => String(c.voce || "").trim()).filter(Boolean))].sort().map(v => `<option value="${esc(v)}">`).join("");
+      $("bud-riep").innerHTML = !RB.dichiarato
+        ? "Nessun budget dichiarato per il " + annoB + ": la spesa dell'anno si vede (" + eur(RB.spesoAnno) + " su " + RB.nSpeseAnno + (RB.nSpeseAnno === 1 ? " costo" : " costi") + "), il confronto no. Dichiaralo qui sotto."
+        : "Anno " + annoB + (RB.inCorso ? ", giorno " + RB.giorniTrascorsi + " di " + RB.giorniAnno : "") + " · speso in tutto <b>" + eur(RB.spesoAnno) + "</b>"
+          + (RB.senzaData.voci ? " · <b>" + RB.senzaData.voci + (RB.senzaData.voci === 1 ? " costo senza data" : " costi senza data") + "</b> (" + eur(RB.senzaData.importo) + ") fuori da ogni anno: non entra nel confronto" : "") + ".";
+      $("bud-list").innerHTML = righeB.map(r => { const b = ETICHETTA_STATO_BUDGET[r.stato] || ["tag", r.stato];
+        return `<div class="item statico ${striscia[b[0]] || "st-sup"}">
+          <div class="avatar sup">${I.euro}</div>
+          <div class="info"><div class="name">${r.tutta ? "Tutta la flotta" : esc(r.voce)} · ${eur(r.speso)} su ${eur(r.previsto)}</div><div class="meta">${esc(descriviBudget(r))}</div></div>
+          <div class="acts"><span class="badge ${b[0]}">${b[1]}</span>
+          <span class="arr dan" role="button" tabindex="0" title="Togli questo budget" aria-label="Togli il budget di ${r.tutta ? "tutta la flotta" : esc(r.voce)}" data-bud-del="${r.id}">${I.croce}</span></div></div>`; }).join("")
+        + RB.senzaBudget.map(x => `<div class="item statico st-sup"><div class="avatar sup">${I.euro}</div>
+          <div class="info"><div class="name">${esc(x.voce)} · ${eur(x.speso)}</div><div class="meta">${x.nSpese} ${x.nSpese === 1 ? "costo registrato" : "costi registrati"} nell'anno, nessun budget dichiarato per questa voce: la spesa si vede, il confronto no.</div></div>
+          <div class="acts"><span class="badge tag">Senza budget</span></div></div>`).join("");
+    }
     if (rip.voci.length >= 2) {
       grafico("graf-costi", "barre", {
         titolo: "Dove va la spesa",
@@ -2415,19 +2583,95 @@ body.dw b.bad{color:var(--ink-dg)}
        regola era già stata scritta nelle altre tre. `numeroDichiarato` di
        `shared/` tiene lo ZERO DICHIARATO, che è un dato (una riparazione in
        garanzia costa davvero zero) e non un buco. */
+    /* «ANCHE IN CONTI»: la riga che in Conti ha una gemella alla cifra —
+       stessa voce da mezzo, stesso giorno, stesso importo — lo dice nel suo
+       elenco, non solo nella tabella. Finché Conti non ha risposto (o non
+       risponde) `dop` è null e nessuna riga porta il contrassegno: l'assenza
+       del contrassegno NON vuol dire «non è in Conti», e lo dice la nota. */
+    const dop = doppioniAllaCifra(COS, CC === undefined ? null : CC);
+    const ancheInConti = dop ? dop.doppioni : {};
     $("cos-list").innerHTML = COS.slice().sort((a, b) =>
         String(b.data || "").slice(0,10).localeCompare(String(a.data || "").slice(0,10))
         || String(a.voce || "").localeCompare(String(b.voce || ""), "it"))
       .map(c => `<div class="item statico st-accent">
       <div class="avatar">${I.euro}</div>
       <div class="info"><div class="name">${esc(c.voce)}</div><div class="meta">${dataCos(c)} · ${esc(c.nota || "nessuna nota")}</div></div>
-      <div class="acts">${numeroDichiarato(c.importo) == null
+      <div class="acts">${ancheInConti[c.id]
+        ? `<span class="badge warn" title="In Conti c'è una spesa con la stessa voce, lo stesso giorno e lo stesso importo: tienila in una sola app">anche in Conti</span>`
+        : ""}${numeroDichiarato(c.importo) == null
         ? `<span class="badge">importo non scritto</span>`
         : `<span class="badge accent euro">${eur(c.importo)}</span>`}
       <span class="arr" role="button" tabindex="0" title="Cambia la data di questa spesa" aria-label="Cambia la data di ${esc(c.voce)}" data-data-cos="${c.id}">${I.matita}</span>
       <span class="arr dan" role="button" tabindex="0" title="Rimuovi questa voce di costo" aria-label="Rimuovi ${esc(c.voce)}" data-del-cos="${c.id}">${I.croce}</span></div></div>`).join("")
       || vuoto(I.euro, "Nessun costo registrato",
           "Qui si tiene la spesa della flotta: carburante, olio, gomme, officina esterna. Registra la prima voce qui sotto e l'app ti mostrerà subito <b>dove se ne va il denaro</b>.");
+
+    /* ── IL PONTE CON CONTI: QUESTA SPESA RISULTA ANCHE NEL REGISTRO DELLA CAVA? ──
+       È il verso di ritorno del ponte che Conti ha dal 02/09: là si chiede
+       «quanto di questo l'ha già Flotta?», qui «quanto di questo l'ha anche
+       Conti?». La funzione è la stessa (`confrontoCostiMezzi`, in shared/) e
+       si chiama con gli stessi argomenti nello stesso ordine — `conti` è
+       Conti e `flotta` è questo registro — quindi la colonna «qui» legge
+       `v.flotta` e quella di là `v.conti`.
+       ⛔ Prima di passarle le righe di questo registro vanno TRADOTTE
+       (`costiPerConfronto`): qui la voce è a testo libero, e la funzione la
+       riconosce solo dalla chiave. Senza la traduzione Flotta risulta a zero
+       — misurato, e raccontato nel modulo accanto a `chiaveVoceMezzo`.
+       ⛔ Tre esiti, come di là, e vanno tenuti distinti perché portano a
+       gesti diversi:
+         · Conti NON raggiungibile → si dice, e NON si stampa nessun numero di
+           Conti: uno zero qui sarebbe il via libera a scrivere il doppione;
+         · c'è la stessa voce in tutt'e due → chi somma i due registri conta
+           due volte, e si vede di quanto, voce per voce; le righe uguali
+           alla cifra portano il contrassegno nell'elenco qui sopra;
+         · Conti risponde e non ha niente su queste voci → si dice anche
+           quello, perché è una risposta, non un'assenza.
+       ⚠️ Conti si legge la prima volta che si apre questa schermata (vedi
+       l'osservatore su `#page-cos`, più in basso): la prima volta la nota
+       dice che sta chiedendo, e si ridisegna appena Conti risponde. */
+    { const pc = costiPerConfronto(COS);
+      const totPc = pc.righe.reduce((t, c) => { const n = numeroDichiarato(c.importo); return t + (n !== null && n > 0 ? n : 0); }, 0);
+      const notaPonte = () => {
+        if (!COS.length) return "";
+        if (!pc.righe.length)
+          return `<div class="note">Nessuna delle ${conta(COS.length, "voce", "voci")} di questo registro si riconosce come carburante, manutenzione o noleggio, quindi non posso confrontarle con il registro costi di <b>Conti</b>.</div>`;
+        const intro = `${conta(pc.righe.length, "voce di questo registro è una spesa", "voci di questo registro sono spese")} che <b>Conti</b> può tenere anche nel registro costi della cava (${eur(totPc)}): carburante, manutenzione e noleggi.`;
+        if (CC === undefined) return `<div class="note">${intro} Sto chiedendo a Conti se le ha…</div>`;
+        /* ⛔ `confrontoCostiMezzi` dichiara «non disponibile» SOLO quando è il
+           SECONDO argomento (Flotta) a essere null: un `null` al primo posto
+           passa da `somma(null)` e diventa «Conti non ha registrato niente»,
+           con la faccia tranquilla. Misurato il 02/09 col banco
+           `flotta-ponte-conti --conti-assente`, che cadeva PRIMA della
+           controprova. Quindi il «Conti non ha risposto» lo decide la pagina,
+           qui, e alla funzione si passa solo una risposta vera. */
+        const c = CC === null ? { disponibile: false, motivo: "conti-non-raggiungibile" } : confrontoCostiMezzi(CC, pc.righe);
+        if (!c.disponibile)
+          return `<div class="note warn">${intro} <b>Conti non è raggiungibile</b>, quindi non posso dirti se risultano anche di là: se le hai scritte anche in Conti, chi somma i due registri le conta due volte. Non lo do per zero.</div>`;
+        // l'importo sopra e il conto delle righe sotto, in piccolo: sulla stessa
+        // riga la tabella di Conti chiedeva 423 px e scorreva anche a 430
+        const cella = (imp, n) => imp === null ? "—" : `${eur(imp)}<small>${conta(n, "riga", "righe")}</small>`;
+        const righe = c.voci.filter(v => v.conti !== null || v.flotta !== null).map(v =>
+          `<tr${v.entrambe ? ' class="doppia"' : ""}><td>${esc(v.etichetta)}</td><td>${cella(v.flotta, v.righeFlotta)}</td><td>${cella(v.conti, v.righeConti)}</td><td>${v.entrambe ? "⚠️ in tutt'e due" : ""}</td></tr>`).join("");
+        const coda = [];
+        if (dop && dop.quanti)
+          coda.push(`${conta(dop.quanti, "spesa di questo registro risulta", "spese di questo registro risultano")} in Conti alla cifra — stesso giorno, stesso importo — e nell'elenco ${dop.quanti === 1 ? "porta" : "portano"} il contrassegno «anche in Conti»`);
+        if (dop && dop.nonConfrontabili.conti)
+          coda.push(`${conta(dop.nonConfrontabili.conti, "riga di Conti è senza data o senza importo ed entra nel totale ma non si può", "righe di Conti sono senza data o senza importo ed entrano nel totale ma non si possono")} confrontare alla cifra`);
+        if (dop && dop.nonConfrontabili.flotta)
+          coda.push(`${conta(dop.nonConfrontabili.flotta, "voce di questo registro è senza data o senza importo e non si può", "voci di questo registro sono senza data o senza importo e non si possono")} confrontare alla cifra`);
+        if (pc.nonClassificate)
+          coda.push(`${conta(pc.nonClassificate, "voce resta fuori dal confronto perché non si riconosce", "voci restano fuori dal confronto perché non si riconoscono")} come carburante, manutenzione o noleggio: ${pc.fuori.map(esc).join(", ")}`);
+        const verdetto = c.entrambe
+          ? `<b>${conta(c.entrambe, "voce compare", "voci compaiono")} in tutt'e due le app</b>: sommando i due registri il totale è <b>gonfiato</b> fino a ${eur(Math.min(c.totaleConti, c.totaleFlotta))}. Tieni ogni spesa in una sola.`
+          : c.totaleConti > 0
+            ? `Nessuna di queste voci risulta anche in Conti: i due registri si possono sommare.`
+            : `Conti non ha registrato niente su queste voci.`;
+        return `<div class="note">${intro}
+          <div class="ponte-wrap"><table class="ponte"><thead><tr><th>voce</th><th>qui, in Flotta</th><th>in Conti</th><th></th></tr></thead><tbody>${righe}</tbody></table></div>
+          ${verdetto}${coda.length ? ` <span class="ponte-coda">(${coda.join("; ")})</span>` : ""}</div>`;
+      };
+      $("cos-ponte").innerHTML = notaPonte();
+    }
 
     // SCADENZE DI LEGGE (F6): semaforo (scaduta / in scadenza / a posto),
     // conteggi in evidenza e lista ordinata per urgenza. Lo stato non è mai
@@ -2787,6 +3031,24 @@ body.dw b.bad{color:var(--ink-dg)}
       puliscoGrafico("graf-consumo");
     }
 
+    /* IL CONSUMO CONTRO LA STORIA DEL MEZZO (02/09): la nota del grafico dice
+       da mesi che un consumo che sale è il primo segnale di un guasto, e
+       nessuno lo misurava. Adesso ogni riga dice come beve negli ultimi 30
+       giorni rispetto a prima — o perché non lo si può dire. La soglia da cui
+       si scrive «da guardare» è una scelta dichiarata (TOLLERANZA_CONSUMO_PCT),
+       non una norma: la ricerca del 02/09 non ne ha trovata una con la fonte. */
+    const storiaTx = (m) => {
+      if (m.litriOra == null) return "";
+      const st = consumoControStoria(RIF, m.mezzo);
+      if (!st.calcolabile) return ` · ultimi ${st.finestra} giorni: ${st.recente && st.recente.litriOra != null ? lh(st.recente.litriOra) + ", " : ""}${esc(st.perche)}`;
+      const f = st.forbicePct, sopra = st.verso === "sopra" && f > TOLLERANZA_CONSUMO_PCT;
+      const pct = Math.abs(f).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + "%";
+      return ` · ultimi ${st.finestra} giorni: <b>${lh(st.recente.litriOra)}</b> contro ${lh(st.storia.litriOra)} del suo solito → `
+        + (st.verso === "pari" ? "uguale"
+          : sopra ? `<b class="bad">+${pct}, sopra la tolleranza del ${TOLLERANZA_CONSUMO_PCT}%: da guardare</b> (filtri, iniettori, freni che strisciano — o un pieno scritto a un altro mezzo)`
+          : st.verso === "sopra" ? `+${pct}, dentro la tolleranza del ${TOLLERANZA_CONSUMO_PCT}%`
+          : `−${pct}, beve meno di prima`);
+    };
     const perMezzo = cons.mezzi.map(m => {
       const cls = m.litriOra != null ? "ok" : "mute";
       return `<div class="item statico ${striscia[cls] || "st-mute"}">
@@ -2795,6 +3057,8 @@ body.dw b.bad{color:var(--ink-dg)}
           <div class="meta">${lt(m.litri)}${m.euro ? " · " + eur(m.euro) : ""} · ${m.pieni} ${m.pieni === 1 ? "pieno" : "pieni"}${m.euroLitro ? " · " + m.euroLitro.toLocaleString("it-IT", { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false }) + " €/l" : ""}</div>
           <div class="meta norma">${m.litriOra != null
             ? "misurato su " + conta(m.oreCoperte, "ora di lavoro", "ore di lavoro")
+              // il conto è sul TRATTO CORRENTE: chi legge deve sapere da quando
+              + (m.tratti > 1 ? " del nuovo contatore (sostituito il " + dataIt(m.contatoreDal) + ")" : "")
             : esc(m.perche.charAt(0).toUpperCase() + m.perche.slice(1)) + "."}${
             /* La dichiarazione va sulla SECONDA riga, non appesa in coda alla
                prima: la riga di dettaglio è tagliata a due righe, e i litri +
@@ -2803,7 +3067,7 @@ body.dw b.bad{color:var(--ink-dg)}
                ragione di un banco non misurato è stata spostata. Vale per
                tutt'e due i numeri della riga: il €/l e il €/h scendono
                insieme quando un pieno non porta la sua spesa. */
-            m.senzaSpesa ? ` · <b class="bad">${m.senzaSpesa === 1 ? "1 pieno senza la spesa" : m.senzaSpesa + " pieni senza la spesa"}</b>` : ""}</div></div>
+            m.senzaSpesa ? ` · <b class="bad">${m.senzaSpesa === 1 ? "1 pieno senza la spesa" : m.senzaSpesa + " pieni senza la spesa"}</b>` : ""}${storiaTx(m)}</div></div>
         ${m.litriOra != null
           ? `<span class="badge ok">${ggU(lh(m.litriOra))}</span>${m.euroOra ? `<span class="badge tag euro">${ggU(eh(m.euroOra))}</span>` : ""}`
           : `<span class="badge tag">consumo n.d.</span>`}</div>`;
@@ -2814,7 +3078,7 @@ body.dw b.bad{color:var(--ink-dg)}
       .slice(0, 10).map(r => `<div class="item statico st-accent">
         <div class="avatar">${I.goccia}</div>
         <div class="info"><div class="name">${esc(nomeBreve(r.mezzo) || "Mezzo")} · ${lt(r.litri)}</div>
-          <div class="meta">${esc(dataIt(r.data))}${r.ore ? " · contatore " + (+r.ore).toLocaleString("it-IT") + " h" : " · senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+          <div class="meta">${esc(dataIt(r.data))}${r.ore ? " · contatore " + (+r.ore).toLocaleString("it-IT") + " h" + (r.contatoreNuovo ? " (nuovo)" : "") : " · senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
         <div class="acts">${(+r.euro) ? `<span class="badge accent euro">${eur(r.euro)}</span>` : ""}
         <span class="arr dan" role="button" tabindex="0" title="Rimuovi questo rifornimento" aria-label="Rimuovi il rifornimento di ${esc(nomeBreve(r.mezzo))}" data-del-rif="${r.id}">${I.croce}</span></div></div>`).join("");
 
@@ -2995,6 +3259,20 @@ body.dw b.bad{color:var(--ink-dg)}
         + `ci sono fermi che si accavallano sulla stessa macchina, e gli stessi giorni si contano una volta sola. `
         + `Controlla qui sotto se ${aff.sovrapposti === 1 ? "quel giorno appartiene" : "quei giorni appartengono"} davvero a due fermi diversi.`
       : "";
+    /* SCELTI E SUBÌTI (04/09): la natura si ricava dalla causale
+       (`naturaFermo`), e i «non classificati» — «altro» o una chiave che
+       l'elenco non conosce — si dicono a parte invece di finire in una delle
+       due: un fermo di cui non si sa la natura non è un fermo scelto. I giorni
+       sono la somma degli episodi, come `persi` (uno stesso giorno con due
+       fermi conta due volte qui e una sola nella disponibilità). */
+    const codaNatura = aff.episodi
+      ? ` Di questi, <b>${ggTx(aff.scelti.giorni)}</b> di fermo <b>scelto</b> (manutenzione programmata, verifiche) e `
+        + `<b>${ggTx(aff.subiti.giorni)}</b> di fermo <b>subìto</b> (guasti, gomme, attesa ricambi, operatore, meteo)`
+        + (aff.nonClassificati.episodi
+            ? `; <span class="rosso">${ggTx(aff.nonClassificati.giorni)} in ${aff.nonClassificati.episodi} ${plurale(aff.nonClassificati.episodi, "fermo", "fermi")} con causale «altro» o non riconosciuta</span>, che non si sa da che parte mettere`
+            : "")
+        + `.`
+      : "";
     $("fer-riep").innerHTML = !aff.parco
       ? "Il conto dell'affidabilità parte dal parco mezzi: aggiungi il primo mezzo e ogni fermo che registri comincerà a pesare sulla disponibilità."
       : !aff.episodi
@@ -3010,7 +3288,7 @@ body.dw b.bad{color:var(--ink-dg)}
           + `${plurale(aff.episodi, "C'è stato", "Ci sono stati")} <b>${aff.episodi}</b> ${plurale(aff.episodi, "fermo", "fermi")}${aff.aperti ? `, di cui <span class="rosso">${aff.aperti} ${plurale(aff.aperti, "ancora aperto", "ancora aperti")}</span>` : plurale(aff.episodi, ", già chiuso", ", tutti già chiusi")}`
           + `, ${plurale(aff.episodi, "lungo", "lunghi")} in media <b>${ggTx(aff.durataMedia)}</b>.`
           + (aff.fraUnFermoELaltro != null ? ` Fra un fermo e l'altro il parco ha lavorato <b>${ggTx(aff.fraUnFermoELaltro)}</b>-macchina.` : "")
-          + codaFuori + codaSenzaDate + codaSovr;
+          + codaNatura + codaFuori + codaSenzaDate + codaSovr;
 
     // Giorni di fermo per mezzo: la classifica di chi ferma di più. Non è un
     // andamento — di quello non abbiamo la storia giorno per giorno — ma un
@@ -3270,6 +3548,15 @@ body.dw b.bad{color:var(--ink-dg)}
     const so = statoOrdine(n);
     const u = urgDiOrdine(n);
     const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)) || null;
+    // il tagliando non parla del contatore attuale: il motivo su una riga sua
+    // (non tagliata a due righe) e il comando che lo rimette a posto — la
+    // proposta la fa l'app, la conferma una persona. Senza icona: dentro un
+    // `.note` nessuna regola dimensiona un svg, e a 320 px il tachimetro
+    // usciva grande quanto il riquadro (visto nello scatto, non nel codice)
+    const contatoreHtml = u.calcolabile === false
+      ? `<div class="note norma" id="odl-contatore"><b>Non confrontabile col contatore attuale</b>: ${esc(u.perche)}. Le ore previste vanno riscritte sul contatore nuovo: l'app propone il conto, tu lo confermi.</div>
+         <div class="tools"><button class="dw-btn" id="btn-odl-riscrivi" data-odl-riscrivi="${esc(n.id)}">Riscrivi sul contatore nuovo</button></div>`
+      : "";
     $("odl-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${icoOrigine(n.origine) || I.chiave}</div>
       <div class="sch-b"><div class="sch-nome">${esc(n.titolo)}</div>
@@ -3277,7 +3564,7 @@ body.dw b.bad{color:var(--ink-dg)}
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + oreMotoreTx(m.ore, grassetto) : " · mezzo non più nel parco"}</div>
         <div class="sch-sotto">${n.orePreviste ? "Tagliando a " + oreMotoreTx(n.orePreviste, grassetto) : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
-      </div></div>`;
+      </div></div>${contatoreHtml}`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
     $("odl-stato-nota").innerHTML = esc(so.nota)
@@ -3337,12 +3624,44 @@ body.dw b.bad{color:var(--ink-dg)}
 
   // urgenza di un ordine (a ore motore oppure a data): la stessa della lista
   const urgDiOrdine = (n) => {
-    if (n.orePreviste) {
-      const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
-      return m ? urgenzaOre(n.orePreviste, m.ore) : { cls: "", label: "a " + numTx(n.orePreviste) + " h" };
-    }
+    if (n.orePreviste) return urgTagliando(n, MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)));
     return urgenza(n.dataPrevista);
   };
+
+  // RISCRIVERE SUL CONTATORE NUOVO un tagliando scritto sul vecchio (04/09).
+  // La proposta è `propostaRiscrittura` (previste − oreVecchie + oreNuove),
+  // mostrata con i suoi addendi e CONFERMATA da chi sa su quale contatore era
+  // il tagliando: l'app non riscrive niente da sola. Con la conferma si
+  // salvano le ore nuove e la data di oggi (`scrittaIl`, che è quella che lo
+  // rende confrontabile), e la nota tiene la memoria di com'era.
+  async function riscriviSulNuovo(n) {
+    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(RIF, n.mezzo));
+    if (c.calcolabile) { toast("Questo tagliando parla già del contatore attuale: non c'è niente da riscrivere."); return; }
+    const a = c.azzeramento;
+    const pr = propostaRiscrittura(n, a);
+    const dove = c.noto
+      ? "scritte il <b>" + dataIt(c.scrittaIl) + "</b> sul vecchio contatore"
+      : "e Flotta non sa su quale contatore: è di prima che segnasse la data del tagliando";
+    const seVecchio = c.noto ? "" : " — se era davvero sul vecchio contatore";
+    const conto = !pr.ok
+      ? esc(pr.perche) + "."
+      : pr.scaduto
+        ? "Sul contatore nuovo le ore del tagliando sono <b>già passate da " + numTx(pr.oltre) + " h</b>" + seVecchio + ": è da fare adesso. Scrivi tu a quante ore riprogrammarlo, oppure chiudi l'ordine."
+        : "Sul vecchio contatore mancavano <b>" + numTx(pr.mancavano) + " h</b>: sul nuovo il tagliando cade a <b>" + numTx(pr.orePreviste) + " h</b>" + seVecchio + ". Confermalo o correggilo.";
+    const nx = await chiediNumero("Riscrivi sul contatore nuovo",
+      `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> è a <b>${oreMotoreTx(n.orePreviste)}</b>, ${dove}.<br>
+       Il contatore è stato sostituito il <b>${dataIt(a.data)}</b>${a.oreVecchie != null ? ", quando segnava <b>" + numTx(a.oreVecchie) + " h</b>" : ""}, e il nuovo è partito da <b>${numTx(a.oreNuove)} h</b>.<br>${conto}`,
+      [{ id: "ore", label: "Ore previste sul contatore nuovo", tipo: "text", modo: "decimal",
+         valore: pr.ok && pr.orePreviste != null ? perCampo(pr.orePreviste, 1) : "",
+         aiuto: "Le ore del contatore NUOVO a cui scatta il tagliando. Scrivile senza il punto delle migliaia: 6500, non 6.500." }],
+      "Riscrivi",
+      { id: "ore", cosa: "le ore del tagliando sul contatore nuovo", opts: { positivo: true, decimali: 1, unita: "h" } });
+    if (!nx || nx.ore == null) return;
+    const oggi = oggiISO();
+    const nota = (n.nota ? n.nota + " · " : "") + "riscritto sul contatore nuovo il " + dataIt(oggi) + ": era a " + numTx(n.orePreviste) + " h del vecchio";
+    await salvaOrdine(n, { orePreviste: nx.ore, scrittaIl: oggi, nota },
+      "Tagliando riscritto a " + oreMotoreTx(nx.ore) + " sul contatore nuovo: da adesso il conto è confrontabile.");
+  }
 
   // Salvataggio di una parte dell'ordine: una riga sola, perché ogni comando
   // dell'ordine fa la stessa cosa — scrive sulla manutenzione e ridisegna.
@@ -3469,7 +3788,7 @@ body.dw b.bad{color:var(--ink-dg)}
         const ore = nx.ore;
         if (ore > 0) {
           await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
-            orePreviste: ore, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
+            orePreviste: ore, scrittaIl: px.scrittaIl, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
             piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
             manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
           toast("Prossimo « " + px.titolo + " » pianificato a " + conta(ore, "ora", "ore") + ".", "success");
@@ -3545,7 +3864,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
-        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}${contatoreSostituitoTx(m.nome, true)}</div>
         <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
       </div></div>`;
     $("sch-kpi").innerHTML = [
@@ -3579,11 +3898,11 @@ body.dw b.bad{color:var(--ink-dg)}
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
-      const u = n.orePreviste ? urgenzaOre(n.orePreviste, m && m.ore) : urgenza(n.dataPrevista);
+      const u = n.orePreviste ? urgTagliando(n, m) : urgenza(n.dataPrevista);
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${u.calcolabile === false ? `<div class="meta norma">${I.tachi}Non confrontabile col contatore attuale: ${esc(u.perche)}. Si riscrive dall'ordine di lavoro, in Officina.</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -3681,7 +4000,7 @@ body.dw b.bad{color:var(--ink-dg)}
       + (f.rifornimenti.slice(0, RIGHE_LIBRETTO).map(r => `<div class="item statico st-accent">
           <div class="avatar">${I.goccia}</div>
           <div class="info"><div class="name">${esc(dataIt(r.data))} · ${lt(r.litri)}</div>
-            <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
+            <div class="meta">${r.ore ? "contatore " + (+r.ore).toLocaleString("it-IT") + " h" + (r.contatoreNuovo ? " (nuovo)" : "") : "senza contatore"}${r.nota ? " · " + esc(r.nota) : ""}</div></div>
           ${(+r.euro) ? `<span class="badge tag euro">${eur(r.euro)}</span>` : ""}</div>`).join("")
         || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."))
       + restoLibretto(f.rifornimenti.length);
@@ -3733,6 +4052,13 @@ body.dw b.bad{color:var(--ink-dg)}
       const i = +ricDelOdl; const via = o.ricambi[i]; if (!via) return;
       await salvaOrdine(n, { ricambiUsati: o.ricambi.filter((_, k) => k !== i) },
         "Ricambio tolto dall'ordine: " + (via.nome || "senza nome") + ".");
+      return; }
+    // «Riscrivi sul contatore nuovo» (04/09): il bottone sta nella testa
+    // dell'ordine e passa dalla stessa delega degli altri comandi dell'ordine
+    const odlRiscrivi = attr(e, "data-odl-riscrivi");
+    if (odlRiscrivi) { const n = MAN.find(x => x.id === odlRiscrivi); if (!n) return;
+      e.stopPropagation();
+      await riscriviSulNuovo(n);
       return; }
     const odlStato = attr(e, "data-odl-stato");
     if (odlStato) { const n = MAN.find(x => x.id === odlId); if (!n) return;
@@ -3862,6 +4188,14 @@ body.dw b.bad{color:var(--ink-dg)}
     const ricMeno = attr(e, "data-ric-meno");
     if (ricMeno) { const r = RIC.find(x => x.id === ricMeno);
       if (r) { await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); await refresh(); } return; }
+    const budDel = attr(e, "data-bud-del");
+    if (budDel) { const b = BUD.find(x => x.id === budDel); if (!b) return;
+      const ok = await chiedi("Togliere il budget",
+        `Stai per togliere il budget ${b.voce ? "di <b>" + esc(b.voce) + "</b>" : "di <b>tutta la flotta</b>"} per il ${esc(String(b.anno))} (${eur(b.importo)}). I costi registrati restano.`, "Togli", true);
+      if (!ok) return;
+      await db.rimuovi("budget", budDel);
+      toast("Budget tolto.");
+      await refresh(); return; }
     const ricDel = attr(e, "data-ric-del");
     if (ricDel) { const r = RIC.find(x => x.id === ricDel); if (!r) return;
       const ok = await chiedi("Rimuovere il ricambio",
@@ -3966,34 +4300,10 @@ body.dw b.bad{color:var(--ink-dg)}
     if (a) { e.preventDefault(); a.click(); }
   });
   $("btn-int-csv").onclick = () => {
-    // Le colonne della lavorazione sono IN FONDO: chi apriva questo file
-    // prima ritrova le sue nelle stesse posizioni, e le righe vecchie hanno
-    // semplicemente le celle nuove vuote.
-    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note",
-                    "ore_manodopera", "costo_manodopera", "costo_ricambi", "chi_ha_lavorato"].join(";")]
-      .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
-        /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È, e qui
-           c'era ancora `(+w.costo) || 0`. La ragione sta scritta per esteso a
-           riga 4505, sopra il CSV del libretto, dove la correzione era già
-           stata fatta: *chi apre il file in un foglio quello zero lo SOMMA
-           credendolo misurato*. Questo è il registro che si porta al
-           commercialista, ed è l'export più grande dell'app.
-           Lo schermo (2182) la pastiglia dell'importo non la disegna affatto
-           quando il costo non c'è; il libretto (3423) scrive «costo non
-           scritto». Solo questo file inventava uno zero.
-           ⚠️ E la convenzione era già nelle TRE CELLE QUI SOTTO
-           (`== null ? ""`): la riga sbagliata era una sola, in mezzo a quelle
-           giuste. `numeroDichiarato` di `shared/` la dice meglio di `> 0`,
-           perché tiene lo zero DICHIARATO — un intervento in garanzia costa
-           davvero zero, ed è un dato, non un buco. */
-        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
-                   numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
-                   w.oreManodopera == null ? "" : w.oreManodopera,
-                   w.costoManodopera == null ? "" : w.costoManodopera,
-                   w.costoRicambi == null ? "" : w.costoRicambi,
-                   (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
+    // le righe le compone `csvRegistroInterventi` nel modulo — la cella
+    // dell'importo resta vuota quando il costo non c'è (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvRegistroInterventi(INT)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; marchiaCsv(a); a.click();
     toast(plurale(INT.length, "Esportato ", "Esportati ") + conta(INT.length, "intervento", "interventi") + " (CSV).", "success");
   };
@@ -4031,32 +4341,12 @@ body.dw b.bad{color:var(--ink-dg)}
   // Esporta lo scadenzario dei mezzi: è la lista che si stampa e si porta al
   // controllo, o si gira al responsabile della sicurezza.
   $("btn-sca-csv").onclick = () => {
-    const righe = [["mezzo","tipo","scadenza","stato","ogni_mesi","documento","ultima_verifica","esito","note","riferimento_normativo"].join(";")]
-      .concat(scadenzeOrdinate(SCA, new Date(), preavvisoSca).map(s => {
-        const p = presetScadenzaMezzo(s.chiave);
-        return [s.mezzo || "", s.tipo || "", dataIt(s.dataScadenza), s.sem.stato, s.mesi || "",
-                s.documento || "", s.ultimaData ? dataIt(s.ultimaData) : "", s.ultimoEsito || "",
-                s.note || "", p ? p.norma : ""].map(csvCell).join(";");
-      }));
-    /* ⛔ UN MEZZO SENZA NESSUNA RIGA IN SCADENZARIO NON SPARISCE DAL FOGLIO.
-       Questo file è quello che si porta a un controllo o si gira al
-       responsabile della sicurezza, e fino al 03/08 conteneva SOLO le
-       scadenze registrate: una macchina su cui nessuno ha mai scritto una
-       verifica periodica non compariva affatto, e chi apre il foglio non ha
-       modo di accorgersi che manca. È l'assenza scambiata per un dato
-       favorevole nella sua forma più silenziosa — non un colore tranquillo,
-       proprio una riga che non c'è.
-       La regola era già in casa e già applicata allo SCHERMO: la scrive
-       `contaScadenzeMezzi`, che per questo prende il parco. Qui mancava. */
-    const coperti = new Set(SCA.map(s => nomeBreve(s.mezzo)).filter(Boolean));
-    const scoperti = MEZ.map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));
-    for (const n of scoperti)
-      righe.push([n, "", "", "nessuna registrata", "", "", "", "",
-                  "Su questo mezzo non è registrata nessuna scadenza di legge: non vuol dire che non ne abbia.",
-                  ""].map(csvCell).join(";"));
+    // le righe le compone `csvScadenzeDiLegge` nel modulo — semaforo di
+    // `scadenzeOrdinate`, e i mezzi senza nessuna riga con «nessuna registrata» (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvScadenzeDiLegge(SCA, MEZ, new Date(), preavvisoSca)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-scadenze-di-legge.csv"; marchiaCsv(a); a.click();
+    const scoperti = mezziSenzaScadenze(SCA, MEZ);
     esito("sca-esito", plurale(SCA.length, "Esportata ", "Esportate ") + conta(SCA.length, "scadenza", "scadenze") + " (CSV)"
       + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
   };
@@ -4064,6 +4354,29 @@ body.dw b.bad{color:var(--ink-dg)}
   // un secondo a chi registra. Si può cambiare, e si può anche svuotare — in
   // quel caso la voce nasce «senza data», dichiarata, mai con una inventata.
   $("cos-data").value = oggiISO();
+  // il budget dell'anno: una voce, un importo; la voce vuota è tutta la flotta
+  $("btn-bud").onclick = async () => {
+    const voce = $("bud-voce").value.trim();
+    const ri = leggiNumero("bud-importo", "il budget", { positivo: true, unita: "€",
+      messaggi: { vuoto: "Scrivi il budget annuo: un numero maggiore di zero.",
+                  "non-positivo": "Il budget deve essere un numero maggiore di zero." } }, "bud-esito");
+    if (!ri.ok) return;
+    const anno = new Date().getFullYear();
+    const giaC = BUD.find(b => +b.anno === anno && String(b.voce || "").trim().toLowerCase() === voce.toLowerCase());
+    if (giaC) await db.aggiorna("budget", giaC.id, { importo: ri.valore });
+    else await db.aggiungi("budget", { anno, voce, importo: ri.valore });
+    $("bud-voce").value = ""; $("bud-importo").value = ""; err("bud-importo", false);
+    esito("bud-esito", (giaC ? "Budget aggiornato" : "Budget dichiarato") + " per il " + anno + ": " + (voce || "tutta la flotta") + ", " + eur(ri.valore) + ".", "success");
+    await refresh();
+  };
+  $("btn-bud-csv").onclick = () => {
+    const RB = budgetVsSpesa(BUD, COS, new Date().getFullYear(), new Date());
+    if (!RB.dichiarato && !RB.senzaBudget.length) { esito("bud-esito", "Non c'è nessun budget dichiarato e nessuna spesa nell'anno: il file sarebbe vuoto.", "err"); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + csvBudget(RB)], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta_budget_" + RB.anno + ".csv"; marchiaCsv(a); a.click();
+    esito("bud-esito", "Scaricato flotta_budget_" + RB.anno + ".csv: " + RB.righe.length + (RB.righe.length === 1 ? " voce con budget" : " voci con budget") + (RB.senzaBudget.length ? " e " + RB.senzaBudget.length + " senza" : "") + ".", "success");
+  };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim();
     const iso = String($("cos-data").value || "").slice(0, 10);
@@ -4103,13 +4416,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // commercialista o si apre nel foglio di calcolo. Le voci senza data
   // escono con la cella vuota — non con una data messa lì per riempire.
   $("btn-cos-csv").onclick = () => {
-    const righe = ["data;voce;importo;nota"].concat(
-      COS.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
-        .map(c => [dataISOEsiste(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
-                   c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
-                   c.nota || ""].map(csvCell).join(";")));
+    // le righe le compone `csvCosti` nel modulo, dove `run-kpi` le prova (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvCosti(COS)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();
     const senza = COS.filter(c => !dataISOEsiste(String(c.data || "").slice(0,10))).length;
     esito("cos-esito", plurale(COS.length, "Esportata ", "Esportate ") + conta(COS.length, "voce di costo", "voci di costo") + " (CSV)"
@@ -4293,6 +4602,14 @@ body.dw b.bad{color:var(--ink-dg)}
     const teleAltrove = fileDiAltraTabella(testo, ["flotta.telemetria"]);
     if (teleAltrove) { esito("ore-esito", fraseFileAltrui(teleAltrove, "nella telemetria"), "err"); e.target.value = ""; return; }
     const scartate = scartiTelemetriaCsv(testo);
+    /* le colonne riconosciute per nome, dette a chi carica (05/09): un export
+       OEM cambia nomi da portale a portale, e chi importa deve sapere da quale
+       colonna arrivano le ore */
+    const mp = mappaTelemetriaCsv(testo);
+    const colonne = mp.conIntestazione
+      ? " Colonne riconosciute: " + mp.riconosciute.map(r => r.campo + " ← «" + r.nome + "»").join(", ")
+        + (mp.ignorate.length ? "; non riconosciute: " + mp.ignorate.map(x => "«" + x + "»").join(", ") : "") + "."
+      : " Intestazione non riconosciuta: le colonne sono state lette per posizione (mezzo, ore, carburante).";
     let agg = 0, ign = 0;
     for (const r of righe) {
       const m = MEZ.find(x => x.nome.split(" — ")[0].toLowerCase() === r.mezzo.toLowerCase() || x.nome.toLowerCase() === r.mezzo.toLowerCase());
@@ -4302,7 +4619,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("tele-file").value = "";
     esito("ore-esito", "Telemetria importata: " + agg + (agg === 1 ? " mezzo aggiornato" : " mezzi aggiornati")
       + (ign ? ", " + ign + (ign === 1 ? " riga ignorata" : " righe ignorate") + " (mezzo non trovato, o ore più basse di quelle già registrate)" : "") + "."
-      + frasePersi(scartate),
+      + frasePersi(scartate) + colonne,
       scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };
@@ -4310,34 +4627,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // ricambi con evidenza di quelli sotto scorta) in un CSV leggibile, da
   // girare a un responsabile o all'officina. Colonne: tipo;nome;stato;dettaglio.
   $("btn-flotta-export").onclick = () => {
-    let csv = "tipo;nome;stato;dettaglio\n";
-    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
-      csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
-    /* ⛔ QUI C'ERA LA PAROLA «pianificata», SCRITTA FISSA, PER OGNI ORDINE.
-       `statoOrdine` sa dire tre cose — «da fare», «in corso» e «attesa pezzi»
-       — e l'ultima sullo schermo è ROSSA (`cls: "danger"`), col suo perché
-       scritto nel modulo: *il lavoro è fermo perché manca un pezzo, è la
-       ragione più frequente di una macchina ferma a lungo*. Una macchina
-       ferma ad aspettare un ricambio finiva in questo foglio — quello che si
-       gira al responsabile o all'officina — come «pianificata»: la parola più
-       tranquilla che l'app sappia dire, esattamente dove lo schermo è rosso.
-       Lo stato si mette a mano dalla scheda dell'ordine, quindi il caso non è
-       teorico: è un tocco.
-       ⚠️ E le ore uscivano grezze (`6000`) dove lo schermo raggruppa
-       (`6.000`): stessa riga, stessa famiglia. */
-    for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
-      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" : "previsto " + dataIt(n.dataPrevista))}\n`;
-    /* ⛔ E LA COLONNA DELLO STATO DICEVA «ok» A UN PEZZO CHE NON HA UNA
-       SOGLIA. Stessa famiglia della riga qui sopra e stesso posto — il foglio
-       che si gira al responsabile — solo un pezzo più in giù: `sottoScorta`
-       non lo contiene (giusto: senza soglia non c'è niente sotto cui stare) e
-       il file traduceva quel «non c'è» in «ok», con accanto «soglia min 0»,
-       una soglia che nessuno ha scritto. Adesso la parola la decide
-       `statoScorta`, la stessa che disegna la pastiglia sullo schermo. */
-    for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it"))) {
-      const s = statoScorta(r);
-      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
-    }
+    // le righe le compone `csvSituazione` nel modulo — `statoOrdine`, `statoScorta`
+    // e la coda sul contatore, dove `run-kpi` le prova (05/09)
+    const csv = csvSituazione(MEZ, MAN, RIC, RIF);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "flotta_situazione.csv"; marchiaCsv(a); a.click();
@@ -4368,8 +4660,11 @@ body.dw b.bad{color:var(--ink-dg)}
     const pianoOre = pv.startsWith("o") ? pianoTagliando(pv.slice(1)) : null;
     const ogniOre = pianoOre ? pianoOre.ogniOre : null;
     const ogniMesi = pv.startsWith("m") ? (Math.round(+pv.slice(1)) || null) : null;
+    // `scrittaIl`: il giorno in cui il tagliando è scritto. È ciò che gli
+    // permette, se un giorno il contatore del mezzo verrà sostituito, di dire
+    // su quale contatore sono le sue ore (04/09).
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null,
-      orePreviste, ricambioId: $("man-ricambio").value || null,
+      orePreviste, scrittaIl: oggiISO(), ricambioId: $("man-ricambio").value || null,
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
       + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + oreMotoreTx(orePreviste))
@@ -4531,22 +4826,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // I giri esportati: è il registro che si mostra quando qualcuno chiede
   // «dimostratemi che le macchine le controllate prima di usarle».
   $("btn-giro-csv").onclick = () => {
-    const righe = [["data", "mezzo", "tipo", "operatore", "ore", "esito", "anomalie", "voci_non_ok", "note"].join(";")]
-      .concat(CTR.slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
-        /* ⛔ QUI L'ESITO SI DECIDEVA DALLE SOLE `voci`, e un giro che dichiara
-           delle anomalie senza portarne l'elenco usciva «tutto a posto ; 0»
-           mentre lo schermo, sullo stesso record, scrive «N da vedere». La
-           versione a tre rami stava già 220 righe più in basso, nel CSV del
-           libretto: una correzione fatta a un export e non all'altro. Adesso
-           la domanda la fa `statoGiro`, e la fanno tutti allo stesso modo. */
-        const s = statoGiro(c);
-        return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
-                c.ore || "", s.etichetta, s.anomalie,
-                s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
-                           : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
-      }));
+    // le righe le compone `csvGiriMacchina` nel modulo, con `statoGiro` (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvGiriMacchina(CTR)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-giri-macchina.csv"; marchiaCsv(a); a.click();
     toast(plurale(CTR.length, "Esportato ", "Esportati ") + conta(CTR.length, "giro macchina", "giri macchina") + " (CSV).", "success");
   };
@@ -4673,8 +4955,14 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!MEZ.length) { esito("rif-esito", "Prima aggiungi almeno un mezzo nel parco: apri la schermata Mezzi e inseriscilo.", "err"); return; }
     const nome = ($("rif-mezzo").value || "").trim();
     const m = MEZ.find(x => nomeBreve(x.nome) === nome);
+    /* le ore del mezzo si passano com'è: `null` se non le sa nessuno. Prima
+       era `+m.ore || 0`, e uno zero di comodo sarebbe finito in `oreVecchie`
+       come «il contatore segnava 0 h» su una macchina di cui non si sapeva
+       niente. Per il confronto «segna meno» non cambia nulla: +null è 0. */
     const v = validaRifornimento({ mezzo: nome, litri: $("rif-litri").value, euro: $("rif-euro").value,
-                                   ore: $("rif-ore").value, data: $("rif-data").value }, m ? +m.ore || 0 : null);
+                                   ore: $("rif-ore").value, data: $("rif-data").value,
+                                   contatoreNuovo: $("rif-nuovo").checked },
+                                 m && oreNote(m.ore) ? +m.ore : null);
     err("rif-mezzo", v.errori.mezzo); err("rif-litri", v.errori.litri);
     err("rif-euro", v.errori.euro); err("rif-ore", v.errori.ore); err("rif-data", v.errori.data);
     if (!v.ok) {
@@ -4691,15 +4979,21 @@ body.dw b.bad{color:var(--ink-dg)}
         nota: nome + " · " + lt(v.litri) + (v.ore != null ? " · contatore " + numTx(v.ore) + " h" : ""), data });
       costoId = (rc && rc.id) || null;
     }
+    // Il contatore dichiarato nuovo viaggia col pieno (è la lettura che apre il
+    // tratto nuovo, vedi flotta-data.js): chi non lo dichiara resta com'era.
     await db.aggiungi("rifornimenti", { data, mezzo: nome, litri: v.litri, euro: v.euro,
-      ore: v.ore, nota: "", costoId });
-    // Il pieno racconta anche le ore: se il contatore è più avanti, si aggiorna.
-    if (m && v.ore != null && v.ore > (+m.ore || 0)) await db.aggiorna("mezzi", m.id, { ore: v.ore });
-    $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = "";
+      ore: v.ore, nota: "", costoId,
+      ...(v.contatoreNuovo ? { contatoreNuovo: true, oreVecchie: v.oreVecchie } : {}) });
+    // Il pieno racconta anche le ore: se il contatore è più avanti si aggiorna;
+    // se è NUOVO si scrive quello che segna, anche se è più basso di prima.
+    if (m && v.ore != null && (v.contatoreNuovo || v.ore > (+m.ore || 0))) await db.aggiorna("mezzi", m.id, { ore: v.ore });
+    $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = ""; $("rif-nuovo").checked = false;
     $("rif-data").value = oggiISO();
     esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
-      + (v.euro ? " per " + eur(v.euro) : "") + (v.ore != null ? " a " + conta(v.ore, "ora", "ore") : "")
-      + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : "."), "success");
+      + (v.euro ? " per " + eur(v.euro) : "")
+      + (v.ore != null ? " a " + conta(v.ore, "ora", "ore") + (v.contatoreNuovo ? " del contatore nuovo" : "") : "")
+      + (v.euro ? " — è entrato anche nei costi come voce «Carburante»." : ".")
+      + (v.contatoreNuovo ? " Da questo pieno il consumo e il ritmo d'uso ripartono da capo." : ""), "success");
     fuoco("rif-litri");
     await refresh();
   };
@@ -4715,95 +5009,12 @@ body.dw b.bad{color:var(--ink-dg)}
   };
   $("btn-sch-csv").onclick = () => {
     const m = MEZ.find(x => x.id === schedaId); if (!m) return;
-    const f = fascicoloMezzo(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER },
-                             new Date(), preavvisoSca);
-    const righe = [["sezione", "voce", "data", "dettaglio", "importo"].join(";")];
-    const R = (s, v, d, det, imp) => righe.push([s, v, d, det, imp == null ? "" : imp].map(csvCell).join(";"));
-    R("mezzo", m.nome, dataIt(oggiISO()),
-      f.tipo.etichetta + " · " + (m.area || "senza area") + " · "
-      + oreMotoreTx(m.ore)
-      + " · " + (MB[m.stato] || MB.operativo)[1], "");
-    /* ⛔ UNA SEZIONE VUOTA VA DETTA, ALTRIMENTI IL FOGLIO MENTE PER OMISSIONE.
-       Sullo schermo il libretto ha sei stati vuoti che lo dicono in lettere
-       («Nessuna scadenza di legge», «Storico vuoto», «Mai ferma»…) e sono
-       scritti apposta perché l'assenza di un dato non è un dato favorevole.
-       Il CSV dello STESSO libretto non ne scriveva nemmeno uno: su una
-       macchina appena inserita usciva un file di DUE righe — l'anagrafica e
-       il totale d'officina — e chi lo apre non ha modo di distinguere «questa
-       macchina non ha scadenze di legge» da «nessuno le ha registrate».
-       È il difetto della famiglia «dove il documento si compone»: la regola
-       stava a schermo, la pagina che scrive il file se n'era tenuta una
-       versione più povera. Adesso ogni sezione, quando è vuota, scrive la sua
-       riga con le stesse parole dello stato vuoto che si vede. */
-    const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
-    if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
-      s.sem.label + (s.mesi ? " · " + ogniMesiTx(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
-    else VUOTA("scadenza di legge",
-      "Nessuna scadenza di legge registrata su questa macchina. Non vuol dire che non ne abbia: vuol dire che in Flotta non ce n'è nessuna.");
-    if (f.manutenzioni.length) f.manutenzioni.forEach(n => R("manutenzione in programma", n.titolo || "", n.dataPrevista ? dataIt(n.dataPrevista) : "",
-      (n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "a data") + (n.ogniOre ? " · ogni " + n.ogniOre + " h" : n.ogniMesi ? " · " + ogniMesiTx(n.ogniMesi) : ""), ""));
-    else VUOTA("manutenzione in programma", "Nessun tagliando pianificato su questa macchina.");
-    /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È. `(+w.costo)
-       || 0` scriveva `0` su un intervento chiuso senza scrivere quanto è
-       costato, e chi apre il file in un foglio quello zero lo SOMMA credendolo
-       misurato. `R` sa già lasciare la cella vuota (`imp == null ? ""`): la
-       convenzione era in casa, era il chiamante a convertire. */
-    if (f.interventi.length) f.interventi.forEach(w => R("intervento", w.titolo || "", dataIt(w.data),
-      [w.ricambio || "", lavorazioneTx(w).replace(/<[^>]*>/g, ""), w.note || "",
-       (+w.costo > 0) ? "" : "costo non scritto"].filter(Boolean).join(" · "),
-      (+w.costo > 0) ? +w.costo : null));
-    else VUOTA("intervento", "Nessun intervento chiuso su questa macchina: lo storico dell'officina è vuoto.");
-    if (f.fermi.length) f.fermi.forEach(x => R("fermo macchina", x.causaleTx, dataIt(x.inizio),
-      (x.fine ? "ripartito il " + dataIt(x.fine) : "ancora fermo")
-      + (x.giorni != null ? " · " + x.giorni + (x.giorni === 1 ? " giorno" : " giorni") : " · durata non calcolabile")
-      + (x.note ? " · " + x.note : ""), ""));
-    else VUOTA("fermo macchina", "Nessun fermo registrato: su questa macchina non risulta nessuna giornata persa.");
-    /* ⚠️ «NESSUNA ANOMALIA» SI SCRIVE SOLO SE LE VOCI SI SONO LETTE. Un giro
-       che non porta il suo elenco di voci ma dichiara delle anomalie usciva
-       dal file come «nessuna anomalia» mentre lo stesso giro, sullo schermo,
-       porta il badge «N da vedere»: il documento che si consegna diceva il
-       contrario di quello che l'app mostra. */
-    if (f.controlli.length) f.controlli.forEach(c => {
-      /* la stessa domanda del registro e dello schermo: `statoGiro`. Prima
-         questi tre rami erano scritti qui, ed erano l'UNICA versione giusta
-         delle tre che la pagina si teneva. */
-      const s = statoGiro(c);
-      R("giro macchina", "controllo pre-uso", dataIt(c.data),
-        (c.operatore ? c.operatore + " · " : "")
-        + (s.nominate ? (s.voci.join(" | ") || "nessuna anomalia")
-                      : s.anomalie > 0
-                        ? s.anomalie + (s.anomalie === 1 ? " anomalia segnata" : " anomalie segnate") + ", dettaglio delle voci non registrato"
-                        : "nessuna anomalia"), "");
-    });
-    else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
-    if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
-      r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" : "")
-      + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
-    else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
-    /* ⛔ E IL CONSUMO NON CALCOLABILE SI DICHIARA, invece di sparire. La riga
-       si scriveva solo quando `litriOra` c'era: sullo schermo, nello stesso
-       caso, la scheda spiega PERCHÉ non si può calcolare («serve almeno un
-       secondo rifornimento con il contatore delle ore»), e il file taceva. */
-    R("consumo", "litri per ora", "", !f.consumo
-      ? "Nessun rifornimento registrato: il consumo non si può calcolare."
-      : f.consumo.litriOra != null
-        ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
-        : "Non calcolabile: " + f.consumo.perche + ".", "");
-    R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
-      + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
-      + (f.officina.senzaCosto ? " · " + f.officina.senzaCosto + " senza il costo scritto"
-          + (f.officina.misurato ? " (il totale è un minimo)" : " (il totale non si sa)") : ""),
-      f.officina.misurato ? f.officina.totale : null);
-    R("totale fermi", "giorni non lavorati", "", f.fermo.episodi
-      ? f.fermo.episodi + (f.fermo.episodi === 1 ? " fermo" : " fermi") + " · " + f.fermo.giorni + (f.fermo.giorni === 1 ? " giorno" : " giorni")
-        + (f.fermo.aperti ? " · " + f.fermo.aperti + plurale(f.fermo.aperti, " ancora aperto", " ancora aperti") : "")
-        // la stessa coda della riga a schermo: un totale che non comprende
-        // tutte le righe del file va detto DENTRO il file
-        + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
-            + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
-      : "Nessun fermo registrato.", "");
+    /* Il libretto lo compone `csvLibretto` nel modulo: le sei sezioni vuote
+       che parlano, l'esito di `statoGiro`, il consumo che dice perché non si
+       calcola — e `run-kpi` le prova (05/09). */
+    const csv = csvLibretto(m, { manutenzioni: MAN, interventi: INT, scadenze: SCA, controlli: CTR, rifornimenti: RIF, fermi: FER }, new Date(), preavvisoSca);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     a.download = "libretto-" + nomeBreve(m.nome).toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".csv"; marchiaCsv(a); a.click();
     toast("Libretto macchina esportato (CSV).", "success");
   };
@@ -4970,50 +5181,10 @@ body.dw b.bad{color:var(--ink-dg)}
        ⚠️ L'avvertenza si scrive DOPO le righe e con una sola cella piena: un
        foglio di calcolo la legge come una riga di testo in fondo, non come un
        dato che si somma. */
-    const righe = [["ricambio", "giacenza", "da_ordinare", "prezzo_unitario", "spesa", "consumo_al_giorno", "copertura_giorni", "episodi"].join(";")]
-      .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
-                           r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
-                           r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
-    if (p.senzaData) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
-        + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
-        + " quindi le quantità da ordinare sono un MINIMO."));
-    }
-    /* ⛔ E LA TERZA DICHIARAZIONE D'INCERTEZZA DELLA STESSA FUNZIONE, che il
-       file perdeva come perdeva le altre due. `p.attendibile` è false quando
-       il consumo poggia su interventi VECCHI, dove il pezzo è nominato e la
-       quantità no: il modulo ne conta 1 — una costante al posto di un
-       ingresso mai scritto. Qui non si dichiara un verso (dipende da quanto
-       si consuma davvero), si dichiara che quel numero è una STIMA: chi apre
-       il foglio e ordina, altrimenti, ordina su una quantità che nessuno ha
-       misurato credendola contata. Stessa forma di `senzaData`: una riga in
-       fondo con una cella sola, non una colonna ripetuta uguale su ogni riga. */
-    if (!p.attendibile) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")
-        + " quante unità di ricambio sono state usate, e ne è stato contato 1"
-        + (p.daInterventiVecchi === 1 ? "." : " per ciascuno.")
-        + " Il consumo qui sopra è in parte una STIMA, non una misura:"
-        + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
-    }
-    /* ⛔ E LA QUARTA, che è quella che il fornitore legge per fare il preventivo.
-       `spesa` di riga è già `null` quando il pezzo non ha un prezzo — la
-       colonna esce vuota, ed è giusto — ma chi somma la colonna in un foglio
-       di calcolo ottiene la stessa cifra che il modulo chiama `spesaTotale`, e
-       nessuno gli dice che è un MINIMO. Stessa forma delle altre due
-       avvertenze: una riga in fondo con una cella sola, non una colonna
-       ripetuta uguale. */
-    if (p.senzaPrezzo) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaPrezzo, "ricambio di questa lista non ha", "ricambi di questa lista non hanno")
-        + " un prezzo scritto a magazzino, quindi la colonna «spesa» resta vuota."
-        + (p.senzaPrezzo >= da.length
-            ? " Nessuna riga porta un prezzo: quanto costa questa lista non si può dire."
-            : " Il totale della colonna è quindi un MINIMO, non la spesa vera.")));
-    }
+    /* Le righe e le tre avvertenze in fondo le compone `csvListaDellaSpesa`
+       nel modulo, leggendo le bandiere della proposta (05/09). */
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvListaDellaSpesa(p)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-lista-della-spesa.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", "Lista della spesa esportata: " + da.length + (da.length === 1 ? " ricambio" : " ricambi")
       + (p.senzaPrezzo
@@ -5104,12 +5275,10 @@ body.dw b.bad{color:var(--ink-dg)}
        per un import; resta corretto perché la versione giusta era già in
        questo stesso file, nello scadenzario, che il suo terzo stato
        (`senza-data`) lo scrive da sempre. */
-    const righe = [["mezzo", "causale", "inizio", "fine", "giorni", "stato", "note"].join(";")]
-      .concat(fermiOrdinati(FER, new Date()).map(f =>
-        [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
-         f.statoTx, f.note || ""].map(csvCell).join(";")));
+    // le righe le compone `csvFermiMacchina` nel modulo — stesse tre risposte,
+    // stesso ordine di `fermiOrdinati` — dove `run-kpi` le prova (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvFermiMacchina(FER, new Date())], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-fermi-macchina.csv"; marchiaCsv(a); a.click();
     esito("fer-esito", plurale(FER.length, "Esportato ", "Esportati ") + conta(FER.length, "fermo", "fermi") + " (CSV).", "success");
   };

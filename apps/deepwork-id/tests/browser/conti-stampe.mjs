@@ -80,15 +80,19 @@ DEMO.note = [{ id: "zn1", tipo: "TD04", numero: "NC/2026/001", emessa: "2026-07-
 
 /* LA CONTROPROVA rimette i tre difetti nella PAGINA servita, uno per difetto,
    e conta le sostituzioni: un `replace` che non trova niente esce in silenzio. */
+const PAGINA = "apps/conti/index.html", MODULO = "apps/conti/conti-data.js";
+/* ⏱️ dal 05/09 il foglio della fattura lo compone `fogliaFattura` nel MODULO:
+   i difetti 1, 2, 3 e 5 si rimettono lì (terzo posto della tupla); il 4 resta
+   nella pagina (la ✎). */
 const DIFETTI = [
   // 1. il piede con l'aliquota unica ricavata per divisione
-  [`\${rie.bande.map((b, i) => \`<tr><td colspan="4" style="border-bottom:none;">IVA\${
-             b.aliquota == null ? " <b>(aliquota non indicata)</b>" : " " + perc(b.aliquota)
-           }\${rie.bande.length > 1 ? " su " + eur(b.imponibile) : ""}</td><td class="num" style="border-bottom:none;">\${eur(b.imposta)}</td></tr>\`).join("")}`,
-   `<tr><td colspan="4" style="border-bottom:none;">IVA\${im.aliquota != null ? " " + perc(im.aliquota) : ""}</td><td class="num" style="border-bottom:none;">\${eur(im.ivaImporto)}</td></tr>`],
+  [`      .concat(rie.bande.map((b) => ({ tipo: "iva",
+        etichetta: "IVA" + (b.aliquota == null ? " **(aliquota non indicata)**" : " " + percTx(b.aliquota)) + (rie.bande.length > 1 ? " su " + euro(b.imponibile) : ""),
+        valore: euro(b.imposta), mancante: b.aliquota == null })))`,
+   `      .concat([{ tipo: "iva", etichetta: "IVA" + (im.aliquota != null ? " " + percTx(im.aliquota) : ""), valore: euro(im.ivaImporto), mancante: false }])`, MODULO],
   // 2. lo stato letto senza le note di credito
-  ["const st = statoFattura(f, INC, NOT);\n    const notePro = (NOT || []).filter(n => n && String(n.fatturaId) === String(f.id) && !n.bozza);",
-   "const st = statoIncasso(f, INC);\n    const notePro = [];"],
+  ["  const st = statoFattura(f, Array.isArray(incassi) ? incassi : [], Array.isArray(note) ? note : []);\n  const notePro = (Array.isArray(note) ? note : []).filter((n) => n && String(n.fatturaId) === String(f.id) && !n.bozza);",
+   "  const st = statoIncasso(f, Array.isArray(incassi) ? incassi : []);\n  const notePro = [];", MODULO],
   /* 4. l'ORDINE delle due righe della ✎. È il difetto che ho scritto io per
         primo e che il banco ha trovato: assegnando lo zero PRIMA di guardare,
         la tendina lo accetta e risponde «rappresentabile», quindi l'avviso non
@@ -96,10 +100,9 @@ const DIFETTI = [
   ['$("ft-iva").value = im.aliquota == null ? "" : String(im.aliquota);\n        const rappresentabile = im.aliquota != null && $("ft-iva").value !== "";',
    '$("ft-iva").value = String(im.aliquota != null ? im.aliquota : 0);\n        const rappresentabile = $("ft-iva").value !== "";'],
   // 5. l'etichetta del DDT che promette un'ora che non c'è
-  ['<span class="et">Data del ritiro</span>', '<span class="et">Data e ora di ritiro</span>'],
+  ['["Data del ritiro", dataIt(String(p.data).slice(0, 10)), false]', '["Data e ora di ritiro", dataIt(String(p.data).slice(0, 10)), false]', MODULO],
   // 3. il riquadro che dichiara le righe che non tornano
-  ["${rie.quadra ? \"\" : `<div class=\"manca\"><b>Le righe qui sopra non tornano con il totale.</b>",
-   "${true ? \"\" : `<div class=\"manca\"><b>Le righe qui sopra non tornano con il totale.</b>"],
+  ["  if (!rie.quadra)\n    avvisi.push(", "  if (false)\n    avvisi.push(", MODULO],
 ];
 /* ⛔ E UN DIFETTO STA NEL MODULO, NON NELLA PAGINA — misurato scrivendo questa
    controprova, ed è la quarta causa dell'elenco di CLAUDE.md (l'iniezione
@@ -128,24 +131,30 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/conti/conti-data.js")) {
-    let t = corpo.toString("utf8") + CASI; iniezioniCasi++;
+  /* ogni difetto va al file che dichiara (terzo posto della tupla; senza, la
+     pagina): applicare tutto alla pagina lascia le iniezioni sul modulo
+     «fresche» per iniezioni-fresche e MAI rimesse per questo banco */
+  const applica = (t, file) => {
+    for (const [da, a, f] of (CONTRO_MATITA ? DIFETTI.filter((d) => d[0].includes("ft-iva")) : DIFETTI)) {
+      if ((f || PAGINA) !== file) continue;
+      const n = t.split(da).length - 1;
+      if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA in ${file}: ${n} soggetti per «${da.slice(0, 60)}…»`); continue; }
+      t = t.replace(da, a); iniezioniDifetti++;
+    }
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
     if (CONTROPROVA && !CONTRO_MATITA) {
       const n = t.split(DIFETTO_MODULO[0]).length - 1;
       if (n !== 1) console.log(`⛔ INIEZIONE MANCATA nel modulo: ${n} soggetti`);
       else { t = t.replace(DIFETTO_MODULO[0], DIFETTO_MODULO[1]); iniezioniDifetti++; }
     }
+    if (CONTROPROVA) t = applica(t, MODULO);
+    t += CASI; iniezioniCasi++;
     corpo = Buffer.from(t, "utf8");
   }
-  if (CONTROPROVA && p.endsWith("apps/conti/index.html")) {
-    let t = corpo.toString("utf8");
-    for (const [da, a] of (CONTRO_MATITA ? DIFETTI.filter((d) => d[0].includes("ft-iva")) : DIFETTI)) {
-      const n = t.split(da).length - 1;
-      if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA: ${n} soggetti per «${da.slice(0, 60)}…»`); continue; }
-      t = t.replace(da, a); iniezioniDifetti++;
-    }
-    corpo = Buffer.from(t, "utf8");
-  }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

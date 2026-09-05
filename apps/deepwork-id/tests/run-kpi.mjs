@@ -146,8 +146,8 @@ test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => 
   ];
   const c = scudo.coperturaFormazione(sca, o);
   eq(c[0].tipo, "Visita medica", "peggiore (con scadute) prima");
-  eq(c[0], { tipo: "Visita medica", totale: 2, scadute: 1, inScadenza: 0, senzaData: 0, regolari: 1 }, "conteggi visita");
-  eq(c[1], { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 1 }, "conteggi corso");
+  eq(c[0], { tipo: "Visita medica", totale: 2, scadute: 1, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "conteggi visita");
+  eq(c[1], { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "conteggi corso");
 });
 test("coperturaFormazione: nessuna scadenza = lista vuota (niente crash)", () =>
   eq(scudo.coperturaFormazione([]), [], "vuoto"));
@@ -1169,6 +1169,30 @@ test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () 
   eq(terra.volumeFronte(rilievi, "f2"), 9999, "solo il suo");
   eq(terra.volumeFronte([], "f1"), 0, "nessun rilievo = 0");
 });
+/* ⛔ ZERO E «NESSUNO L'HA MISURATO» (04/09): il grafico «Volumi per fronte» di
+   Terra disegnava a zero — con la stanghetta minima del motore — il fronte che
+   non aveva nessun rilievo, e sul disegno si leggeva «da qui non è uscito
+   niente». `volumeFronte` resta una somma (di niente fa zero); la risposta per
+   chi disegna è `volumeFronteRilevato`, che dice `null` quando non c'è nessuna
+   misura e la somma — anche zero — quando c'è. */
+test("volumeFronteRilevato: null senza rilievi usabili, la somma altrimenti (anche zero)", () => {
+  const rilievi = [
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 1000 },
+    { fronteId: "f1", stato: "elaborato",  volumeM3: 500 },
+    { fronteId: "f2", stato: "pianificato", volumeM3: null },  // non usabile
+    { fronteId: "f3", stato: "elaborato",  volumeM3: 0 },      // misurato: zero vero
+    { fronteId: "f4", stato: "elaborato",  volumeM3: 300, provenienza: "cumulo" },
+  ];
+  eq(terra.volumeFronteRilevato(rilievi, "f1"), 1500, "somma come volumeFronte");
+  eq(terra.volumeFronteRilevato(rilievi, "f2"), null, "solo un pianificato: nessuna misura");
+  eq(terra.volumeFronteRilevato(rilievi, "f3"), 0, "un rilievo a 0 m³ è una misura, non un buco");
+  eq(terra.volumeFronteRilevato(rilievi, "f5"), null, "fronte mai rilevato");
+  eq(terra.volumeFronteRilevato([], "f1"), null, "nessun rilievo: null, dove volumeFronte dice 0");
+  eq(terra.volumeFronteRilevato(rilievi, "f4"), null, "di scavo non ne ha: il cumulo non esce dal fronte");
+  eq(terra.volumeFronteRilevato(rilievi, "f4", "tutti"), 300, "con «tutti» il cumulo conta");
+  // la coppia resta coerente dove tutt'e due rispondono un numero
+  for (const f of ["f1", "f3"]) eq(terra.volumeFronteRilevato(rilievi, f), terra.volumeFronte(rilievi, f), "stessa somma su " + f);
+});
 test("valoreMateriale: m³ → tonnellate → valore (densità e prezzo)", () => {
   const v = terra.valoreMateriale(1000, 1.6, 12);
   eq(v.tonnellate, 1600, "1000 m³ × 1,6 t/m³");
@@ -1726,7 +1750,7 @@ test("riepilogoConformita: conta conformi/attenzione/superamento", () => {
   ];
   eq(sentinella.riepilogoConformita(mon),
     { conformi: 1, attenzione: 1, superamento: 2, maiMisurati: 0,
-      senzaSoglia: 0, giudicabili: 4, totale: 4 }, "conteggi");
+      senzaSoglia: 0, giudicabili: 4, totale: 4, annullate: 0 }, "conteggi");
 });
 /* ⛔ IL CONTEGGIO DELLA DECISIONE 16: un punto senza soglia esce dal
    numeratore E dal denominatore. Prima ci finiva dentro due volte, e nel modo
@@ -1741,7 +1765,7 @@ test("riepilogoConformita: un punto SENZA SOGLIA non è né conforme né in supe
   ];
   const r = sentinella.riepilogoConformita(mon);
   eq(r, { conformi: 1, attenzione: 0, superamento: 0, maiMisurati: 0,
-          senzaSoglia: 2, giudicabili: 1, totale: 3 }, "due fuori dal giudizio");
+          senzaSoglia: 2, giudicabili: 1, totale: 3, annullate: 0 }, "due fuori dal giudizio");
   eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale,
     "i pezzi fanno ancora il totale: nessun punto sparisce");
   eq(r.giudicabili, 1, "il denominatore della conformità è 1, non 3");
@@ -1766,7 +1790,7 @@ test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
   const nuovi = [{ valore: 0, soglia: 5, letture: [] }, { valore: 0, soglia: 5, letture: [] }];
   const r = sentinella.riepilogoConformita(nuovi);
   eq(r, { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 2,
-          senzaSoglia: 0, giudicabili: 0, totale: 2 }, "due punti nuovi");
+          senzaSoglia: 0, giudicabili: 0, totale: 2, annullate: 0 }, "due punti nuovi");
   eq(r.conformi + r.attenzione + r.superamento + r.maiMisurati + r.senzaSoglia, r.totale, "i pezzi fanno il totale");
   // guardia contro il troppo zelo: una lettura a ZERO è un dato vero
   const misurato = [{ valore: 0, soglia: 5, letture: [{ data: "2026-07-30", valore: 0 }] }];
@@ -1776,7 +1800,7 @@ test("riepilogoConformita: un punto MAI MISURATO non è conforme", () => {
 test("riepilogoConformita: nessun monitoraggio = tutto 0 (niente crash)", () =>
   eq(sentinella.riepilogoConformita([]),
     { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
-      senzaSoglia: 0, giudicabili: 0, totale: 0 }, "vuoto"));
+      senzaSoglia: 0, giudicabili: 0, totale: 0, annullate: 0 }, "vuoto"));
 test("prioritaConformita: misure non conformi + adempimenti (scaduto=danger), danger prima", () => {
   const mon = [
     { nome: "Vibr V2", valore: 5.6, soglia: 5, unita: "mm/s" },     // 1.12 → superamento (danger)
@@ -1924,7 +1948,7 @@ console.log("\n— Campo: parsing del piano di carico CSV —");
 test("parsePianoCsv salta l'header e legge le righe valide", () => {
   const out = campo.parsePianoCsv("foro;x;fila;prof;prog;borr;rit\n1;3.5;A;12;100;2;20\n2;4;B;12;80;2;18");
   eq(out.length, 2, "righe");
-  eq(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20", reale: null }, "prima riga");
+  eq(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20", reale: null, idForo: "" }, "prima riga");
 });
 test("parsePianoCsv scarta righe con foro o prog non validi", () => {
   const out = campo.parsePianoCsv("0;x;A;12;100;2;20\n3;x;A;12;0;2;20\n5;x;A;12;90;2;20");
@@ -2022,8 +2046,6 @@ test("paretoFermi: minuti non leggibili o negativi NON valgono zero", () => {
   eq(campo.minutiFermoTesto(pf.voci[0].minuti, pf.voci[0].conto, pf.voci[0].senzaMinuti),
      "senza minuti", "e chi lo scrive non dice «0 min»");
 });
-test("paretoFermi: nessuna anomalia = struttura vuota", () =>
-  eq(campo.paretoFermi([]), { voci: [], totaleMin: 0, senzaMinutiTot: 0, fermiTot: 0, parziale: false }, "vuoto"));
 test("⛔ paretoFermi: un fermo senza minuti non entra nella somma valendo ZERO", () => {
   /* `+a.fermoMin || 0` faceva entrare un guasto mai misurato come «zero minuti
      persi»: il totale scendeva e nessuno lo sapeva. È lo stesso difetto già
@@ -2561,6 +2583,223 @@ test("⛔ trasportoACura: le tre possibilita' del DDT, e nessuna inventata", () 
   for (const x of [undefined, null, "", "corriere", 0])
     eq(conti.trasportoACura(x), null, `su ${JSON.stringify(x)} risponde null invece di indovinare`);
 });
+/* ⛔ 02/09 — I PESI SI DECIDONO IN UN POSTO SOLO. Nati dalla prima domanda della
+   ricerca sulla pesa a ponte e misurati sullo schermo: una pesata con la tara
+   mai scritta usciva «lordo 32,50 − tara 0,00 = netto 0,00 t · € 0,00», e una
+   col netto scritto e la tara vuota vendeva il camion (32,50 t). */
+test("⛔ pesiPesata: lordo e tara decidono il netto, e a metà non si sa", () => {
+  const w = conti.pesiPesata;
+  eq(w({ lordo: 32.5, tara: 14.2, netto: 30 }), { lordo: 32.5, tara: 14.2, netto: 18.3, noto: true, dichiarato: false, incompleto: false, manca: [] },
+     "con tutt'e due i pesi il netto è lordo − tara, QUALUNQUE cosa dica il campo netto");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).netto, null, "lordo senza tara: il netto NON è il lordo (è il camion pieno)");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).incompleto, true, "e il record è dichiarato incompleto");
+  eq(w({ lordo: 32.5, tara: null, netto: 32.5 }).manca, ["tara"], "con scritto che cosa manca");
+  eq(w({ lordo: "", tara: 14.2, netto: 5 }).manca, ["lordo"], "tara senza lordo: manca il lordo");
+  eq(w({ lordo: 32.5, tara: 0 }).netto, 32.5, "una tara scritta ZERO è una tara (rimorchio già tarato), non un vuoto");
+  eq(w({ netto: 18.3 }), { lordo: null, tara: null, netto: 18.3, noto: true, dichiarato: true, incompleto: false, manca: [] },
+     "nessun peso e un netto: è un netto DICHIARATO, e vale");
+  eq(w({ quantita: 22.3 }), { lordo: null, tara: null, netto: null, noto: false, dichiarato: false, incompleto: false, manca: ["lordo", "tara"] },
+     "niente di niente: non noto, ma NON incompleto — è il DDT vecchio con la sola quantità");
+  eq(w(null).incompleto, false, "e null non è contraddittorio");
+});
+test("⛔ un lordo senza tara non vende il camion: quantità, valore, riepilogo, mancanze", () => {
+  const camion = { id: "k", data: "2026-09-01", prodotto: "Ghiaia", lordo: 32.5, tara: null, netto: 32.5, quantita: 32.5,
+    unitaVendita: "t", prezzoUnitario: 12, causaleTrasporto: "vendita", trasportoACura: "mittente" };
+  eq(conti.quantitaPesata(camion), { t: null, m3: null, pesoNoto: false, manca: ["tara"] }, "quantitaPesata: t null, non 32,5 e non 0");
+  eq(conti.quantitaVenduta(camion), null, "quantitaVenduta: la copia in `quantita` non vale più della pesa");
+  const v = conti.valoreDdt(camion);
+  eq([v.calcolabile, v.valore, v.motivo], [false, null, "peso-mancante"], "valoreDdt: non calcolabile, con la ragione giusta");
+  ok(/manca la tara/.test(v.perche), "e il perché nomina la tara: " + v.perche);
+  eq(conti.valorePesata(camion), 0, "valorePesata (chi somma) resta zero, ed è lo zero di una non-misurabilità dichiarata");
+  const m = conti.mancanzeDdt(camion);
+  eq(m.length, 1, "mancanzeDdt: una mancanza sola, il peso");
+  ok(/manca la tara/.test(m[0]), "e dice che è la tara: " + m[0]);
+  eq(conti.mancanzeDdt({ ...camion, lordo: null, netto: 18.3 }).length, 0, "un netto dichiarato senza pesi non è una mancanza");
+  const sana = { ...camion, id: "s", tara: 14.2, netto: 18.3, quantita: 18.3 };
+  const r = conti.venditePerProdotto([camion, sana], "2026-01-01", "2026-12-31");
+  eq(r.length, 1, "un prodotto");
+  eq([r[0].viaggi, r[0].t, r[0].senzaPeso, r[0].nonValorizzabili, r[0].valore], [2, 18.3, 1, 1, 219.6],
+     "due viaggi, 18,3 t (non 50,8 e non NaN), uno senza peso contato fra i non valorizzabili, valore della sola sana");
+  eq(r[0].valoreParziale, true, "e il valore è dichiarato per difetto");
+  const tot = conti.vendutoPeriodo([camion, sana], "2026-01-01", "2026-12-31");
+  eq([tot.t, tot.senzaPeso, Number.isNaN(tot.t)], [18.3, 1, false], "vendutoPeriodo somma senza NaN e porta il conto");
+});
+test("⛔ il CSV delle pesate: il netto lo decidono i pesi, non la cella", () => {
+  const riga = (numero, lordo, tara, netto) => [numero, "2026-09-01", "", "Cliente", "", "Ghiaia", lordo, tara, netto, "t", netto, "", "12", "0", "22", "AA111BB", "Cantiere", "", "", ""].join(";");
+  const csv = [riga("A", "32,5", "", ""), riga("B", "32,5", "", "32,5"), riga("C", "32,5", "14,2", "30"), riga("D", "", "", "18,3")].join("\n");
+  const p = conti.parsePesateCsv(csv);
+  eq(p.map((x) => x.netto), [null, null, 18.3, 18.3], "A e B senza tara: netto null; C: lordo − tara e non il 30 del file; D: netto dichiarato");
+  eq(p.map((x) => conti.quantitaVenduta(x)), [null, null, 30, 18.3], "e la quantità venduta segue (in C la quantità DICHIARATA 30 resta: l'ha scritta una persona)");
+  const s = conti.scartiPesateCsv(csv);
+  eq([s.lette, s.entrano, s.persi.length, s.senzaPeso], [4, 4, 0, 2], "entrano tutte e quattro, e DUE sono dichiarate senza peso");
+});
+/* ⛔ 02/09 — LA FATTURA ELETTRONICA: il file XML per lo SdI, preparato e mai
+   promesso oltre. La forma si prova sui pezzi che lo SdI rifiuterebbe (totali,
+   riepiloghi per aliquota, DDT citati, codice destinatario) e sul principio:
+   niente si inventa — ciò che manca è nominato, e il file non è «pronto». */
+const XML_IMP = { aziendaNome: "Cava di esempio S.r.l.", aziendaPiva: "00000000000", aziendaIndirizzo: "Contrada Esempio 1",
+  aziendaCap: "97100", aziendaComune: "Ragusa", aziendaProvincia: "rg", aziendaRegimeFiscale: "RF01", modalitaPagamento: "MP05" };
+const XML_CLI = { ragioneSociale: "Edilcave & Figli Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG" };
+const XML_PES = [{ id: "p1", numero: "2026/010", data: "2026-06-02" }, { id: "p2", numero: "2026/011" }];
+const XML_FAT = { numero: "2026/040", emessa: "2026-06-30", scadenza: "2026-07-30", tipo: "differita", ddtIds: ["p1", "p2", "p9"],
+  righe: [{ descrizione: "Stabilizzato 0/30", quantita: 150, unita: "t", prezzoUnitario: 12.34, scontoPct: 5, aliquota: 22, imponibile: 1758.45 },
+          { descrizione: "Sabbia lavata", quantita: 20, unita: "m3", prezzoUnitario: 10, scontoPct: 0, aliquota: 10, imponibile: 200 }],
+  imponibile: 1958.45, ivaImporto: 406.86, totale: 2365.31 };
+/* i tag si aprono e si chiudono in ordine: un controllo di forma scritto nel
+   test, perché node non ha un DOMParser e il file lo apre un altro programma */
+const tagBilanciati = (xml) => { const pila = []; const re = /<\/?([A-Za-z:]+)[^>]*?>/g; let m;
+  while ((m = re.exec(xml))) { if (m[0].startsWith("<?")) continue; if (m[0].startsWith("</")) { if (pila.pop() !== m[1]) return false; } else if (!m[0].endsWith("/>")) pila.push(m[1]); }
+  return pila.length === 0; };
+test("⛔ xmlFatturaPA: una fattura completa produce un file pronto, coi numeri che lo SdI controlla", () => {
+  const r = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES, progressivo: "00007" });
+  eq(r.pronto, true, "pronto: nessun dato bloccante manca");
+  eq(r.mancanti, [], "e l'elenco dei mancanti è vuoto");
+  ok(tagBilanciati(r.xml), "i tag sono bilanciati");
+  ok(r.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'), "comincia con la dichiarazione XML");
+  ok(/<p:FatturaElettronica versione="FPR12"/.test(r.xml), "è un FPR12 (fattura fra privati)");
+  ok(/<ProgressivoInvio>00007<\/ProgressivoInvio>/.test(r.xml), "il progressivo d'invio è quello chiesto");
+  ok(/<CodiceDestinatario>ABC1234<\/CodiceDestinatario>/.test(r.xml) && !/PECDestinatario/.test(r.xml), "col codice destinatario a 7 caratteri non c'è la PEC");
+  ok(/<Denominazione>Edilcave &amp; Figli Srl<\/Denominazione>/.test(r.xml), "la e commerciale è scappata");
+  ok(/<Provincia>RG<\/Provincia>/.test(r.xml) && !/<Provincia>rg</.test(r.xml), "la provincia esce in maiuscolo anche se scritta minuscola");
+  ok(/<ImportoTotaleDocumento>2365.31<\/ImportoTotaleDocumento>/.test(r.xml), "il totale documento è quello della fattura, col punto");
+  eq((r.xml.match(/<DettaglioLinee>/g) || []).length, 2, "due righe di dettaglio");
+  eq((r.xml.match(/<DatiRiepilogo>/g) || []).length, 2, "due riepiloghi IVA: uno per aliquota");
+  ok(/<AliquotaIVA>22.00<\/AliquotaIVA><ImponibileImporto>1758.45<\/ImponibileImporto><Imposta>386.86<\/Imposta>/.test(r.xml), "il riepilogo al 22% ha imponibile e imposta della riga");
+  ok(/<AliquotaIVA>10.00<\/AliquotaIVA><ImponibileImporto>200.00<\/ImponibileImporto><Imposta>20.00<\/Imposta>/.test(r.xml), "e quello al 10%");
+  ok(/<ScontoMaggiorazione><Tipo>SC<\/Tipo><Percentuale>5.00<\/Percentuale><\/ScontoMaggiorazione>/.test(r.xml), "lo sconto del 5% è dichiarato come sconto, non piegato nel prezzo");
+  ok(/<UnitaMisura>TN<\/UnitaMisura>/.test(r.xml) && /<UnitaMisura>MC<\/UnitaMisura>/.test(r.xml), "tonnellate e metri cubi con le sigle del tracciato");
+  eq(r.ddtCitati, 1, "UN solo DDT citato: quello con la data");
+  ok(/<DatiDDT><NumeroDDT>2026\/010<\/NumeroDDT><DataDDT>2026-06-02<\/DataDDT><\/DatiDDT>/.test(r.xml), "ed è il 2026/010 con la sua data");
+  eq(r.avvisi.length, 2, "due avvisi: un DDT fuori archivio e uno senza data");
+  ok(r.avvisi.some((a) => /2026\/011/.test(a) && /senza data/.test(a)), "l'avviso nomina il DDT senza data");
+  ok(/<DatiPagamento><CondizioniPagamento>TP02<\/CondizioniPagamento><DettaglioPagamento><ModalitaPagamento>MP05<\/ModalitaPagamento><DataScadenzaPagamento>2026-07-30<\/DataScadenzaPagamento><ImportoPagamento>2365.31<\/ImportoPagamento>/.test(r.xml), "il pagamento c'è perché la modalità è stata scelta");
+});
+test("⛔ xmlFatturaPA: quello che manca si NOMINA, e il file non è pronto", () => {
+  const demo = conti.xmlFatturaPA({ numero: "2026/031", emessa: "2026-06-07", importo: 18300 },
+    { ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa" },
+    { aziendaNome: "Cava", aziendaPiva: "00000000000", aziendaIndirizzo: "x" });
+  eq(demo.pronto, false, "con i dati della dimostrazione di oggi il file NON è pronto");
+  ok(demo.mancanti.some((m) => /CAP della sede di chi emette/.test(m)), "manca il CAP di chi emette, e lo dice");
+  ok(demo.mancanti.some((m) => /regime fiscale/.test(m) && /RF01/.test(m)), "manca il regime fiscale, con l'esempio ma senza deciderlo");
+  ok(demo.mancanti.some((m) => /CAP del cliente/.test(m)), "manca il CAP del cliente");
+  ok(demo.mancanti.some((m) => /fattura vecchia a solo importo/.test(m)), "una fattura a solo importo non ha un'aliquota da scrivere");
+  ok(!/RF01<\/RegimeFiscale>/.test(demo.xml), "e nel file NON compare un RF01 inventato");
+  const nonQuadra = conti.xmlFatturaPA({ ...XML_FAT, totale: 2000 }, XML_CLI, XML_IMP);
+  eq(nonQuadra.pronto, false, "righe che non tornano col totale registrato: non pronto");
+  ok(nonQuadra.mancanti.some((m) => /non è imponibile \+ IVA/.test(m)), "e la ragione è quella: il totale riscritto da solo");
+  const righeStorte = conti.xmlFatturaPA({ ...XML_FAT, imponibile: 1000, ivaImporto: 220, totale: 1220 }, XML_CLI, XML_IMP);
+  eq(righeStorte.pronto, false, "righe che dicono 1958,45 sotto un imponibile registrato di 1000: non pronto");
+  ok(righeStorte.mancanti.some((m) => /non tornano con i totali/.test(m)), "ed è `quadra` a dirlo");
+  const senzaPrezzo = conti.xmlFatturaPA({ ...XML_FAT, righe: [{ ...XML_FAT.righe[0], prezzoUnitario: null }, XML_FAT.righe[1]] }, XML_CLI, XML_IMP);
+  ok(senzaPrezzo.mancanti.some((m) => /prezzo unitario della riga 1/.test(m)), "una riga senza prezzo è nominata per numero");
+  const lungo = conti.xmlFatturaPA({ ...XML_FAT, numero: "2026/0000000000000000040" }, XML_CLI, XML_IMP);
+  ok(lungo.mancanti.some((m) => /20 caratteri/.test(m)), "un numero più lungo di 20 caratteri è bloccante");
+});
+/* ⛔ LA RIGA DEVE TORNARE CON SÉ STESSA (04/09, dal delta sulla fattura
+   elettronica). Una riga nata dai DDT e corretta a mano portava un imponibile
+   che quantità × prezzo non fa più, e il file usciva lo stesso: PrezzoTotale da
+   una parte, Quantita × PrezzoUnitario dall'altra. Ora si ferma e nomina la
+   riga; e quantità e prezzo si scrivono coi decimali che hanno (2..8), così
+   «33,333 t × 30 €» torna con 999,99 invece di uscire 33.33 × 30.00. */
+test("⛔ xmlFatturaPA: una riga il cui totale non è quantità × prezzo ferma il file e si nomina, in italiano", () => {
+  const storta = { ...XML_FAT, righe: [{ ...XML_FAT.righe[0], quantita: 33.33, prezzoUnitario: 30, scontoPct: 0, imponibile: 1000 }, XML_FAT.righe[1]], imponibile: 1200, ivaImporto: 240, totale: 1440 };
+  const r = conti.xmlFatturaPA(storta, XML_CLI, XML_IMP);
+  eq(r.pronto, false, "non pronto");
+  const m = r.mancanti.find((x) => /si contraddirebbe/.test(x));
+  ok(m && /riga 1 \(Stabilizzato 0\/30\) dice 1\.000,00 € ma 33,33 × 30,00 fa 999,90 €/.test(m), "la frase nomina la riga e i due conti, con la virgola: " + m);
+  const sana = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES });
+  eq(sana.pronto, true, "la fixture di prima (150 × 12,34 meno il 5% = 1.758,45) resta pronta: lo sconto entra nel conto");
+  const centesimo = conti.xmlFatturaPA({ ...XML_FAT, righe: [{ ...XML_FAT.righe[0], imponibile: 1758.46 }, XML_FAT.righe[1]], imponibile: 1958.46, ivaImporto: 406.86, totale: 2365.32 }, XML_CLI, XML_IMP);
+  ok(!centesimo.mancanti.some((x) => /si contraddirebbe/.test(x)), "un centesimo di arrotondamento non ferma niente");
+});
+test("xmlFatturaPA: quantità e prezzo unitario coi decimali che hanno, e il totale di riga torna", () => {
+  const f = { ...XML_FAT, righe: [{ descrizione: "Sabbia", quantita: 33.333, unita: "t", prezzoUnitario: 30, scontoPct: 0, aliquota: 22, imponibile: 999.99 }], imponibile: 999.99, ivaImporto: 220, totale: 1219.99 };
+  const r = conti.xmlFatturaPA(f, XML_CLI, XML_IMP);
+  ok(/<Quantita>33.333<\/Quantita>/.test(r.xml) && /<PrezzoUnitario>30.00<\/PrezzoUnitario>/.test(r.xml) && /<PrezzoTotale>999.99<\/PrezzoTotale>/.test(r.xml), "33.333 × 30.00 = 999.99 nel file, col punto");
+  ok(!r.mancanti.some((x) => /si contraddirebbe/.test(x)), "e nessuna contraddizione, perché il conto si fa sui numeri SCRITTI");
+  const otto = conti.xmlFatturaPA({ ...f, righe: [{ ...f.righe[0], quantita: 3, prezzoUnitario: 0.333333333, imponibile: 1 }], imponibile: 1, ivaImporto: 0.22, totale: 1.22 }, XML_CLI, XML_IMP);
+  ok(/<PrezzoUnitario>0.33333333<\/PrezzoUnitario>/.test(otto.xml), "al più otto decimali");
+});
+test("xmlFatturaPA: l'unità di misura si traduce se è una delle due di vendita, si scrive com'è se è un'altra, non si inventa se manca", () => {
+  const riga = (unita) => ({ ...XML_FAT, righe: [{ ...XML_FAT.righe[1], unita }], imponibile: 200, ivaImporto: 20, totale: 220 });
+  const u = (x) => (conti.xmlFatturaPA(riga(x), XML_CLI, XML_IMP).xml.match(/<UnitaMisura>([^<]*)<\/UnitaMisura>/) || [])[1] ?? null;
+  eq(u("t"), "TN"); eq(u("m3"), "MC"); eq(u("m³"), "MC", "anche scritta col cubo");
+  eq(u("viaggi"), "viaggi", "un'altra unità si scrive com'è: prima usciva «TN»");
+  eq(u(""), null, "senza unità il tag non si scrive: prima usciva «TN»"); eq(u(undefined), null);
+  eq(u("colli-di-cava-lunghissimi"), "colli-di-c", "al più dieci caratteri, come vuole il campo");
+});
+test("xmlFatturaPA: PEC, cassetto fiscale e fattura vecchia con l'IVA", () => {
+  const pec = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "edilcave@pec.example.it" }, XML_IMP);
+  ok(/<CodiceDestinatario>0000000<\/CodiceDestinatario><PECDestinatario>edilcave@pec.example.it<\/PECDestinatario>/.test(pec.xml), "con la PEC il codice è 0000000 e la PEC c'è");
+  const nulla = conti.xmlFatturaPA(XML_FAT, { ...XML_CLI, sdi: "" }, XML_IMP);
+  eq(nulla.pronto, true, "senza codice né PEC il file è pronto lo stesso (0000000)");
+  ok(nulla.avvisi.some((a) => /cassetto fiscale/.test(a)), "ma l'avviso dice dove il cliente lo troverà");
+  const senzaPag = conti.xmlFatturaPA(XML_FAT, XML_CLI, { ...XML_IMP, modalitaPagamento: "" });
+  ok(senzaPag.pronto && !/DatiPagamento/.test(senzaPag.xml), "senza modalità di pagamento il blocco non c'è, e il file resta pronto");
+  ok(senzaPag.avvisi.some((a) => /MPxx/.test(a)), "con l'avviso che spiega");
+  const vecchia = conti.xmlFatturaPA({ numero: "2026/012", emessa: "2026-03-01", imponibile: 1000, ivaImporto: 220, totale: 1220, aliquotaIva: 22 }, XML_CLI, XML_IMP);
+  eq(vecchia.pronto, true, "una fattura immediata senza righe ma con imponibile, IVA e totale è pronta");
+  eq((vecchia.xml.match(/<DettaglioLinee>/g) || []).length, 1, "con una riga sola");
+  ok(/<PrezzoTotale>1000.00<\/PrezzoTotale><AliquotaIVA>22.00<\/AliquotaIVA>/.test(vecchia.xml), "che vale l'imponibile all'aliquota della fattura");
+  ok(tagBilanciati(vecchia.xml), "e i tag sono bilanciati");
+});
+/* ⛔ 02/09 — UNA SCADENZA È UNA SCADENZA (ponte 3b): la regola è una in shared/,
+   e le tre app la chiamano coi loro nomi. Prova sui dati delle tre
+   dimostrazioni: 34 scadenze, zero verdetti diversi. */
+test("⛔ statoScadenza: una regola sola, col preavviso come argomento, e HSE è lo STESSO oggetto", () => {
+  const O = new Date("2026-09-02T10:00:00Z");
+  ok(ponti.statoScadenzaHSE === ponti.statoScadenza, "statoScadenzaHSE è statoScadenza, non una copia");
+  ok(scudo.statoScadenza === ponti.statoScadenza, "e l'alias di Scudo è lo stesso oggetto");
+  eq(ponti.statoScadenza("2026-09-01", O), "scaduta", "ieri: scaduta");
+  eq(ponti.statoScadenza("2026-09-02", O), "in-scadenza", "oggi: in scadenza");
+  eq(ponti.statoScadenza("2026-10-02", O), "in-scadenza", "fra 30 giorni: in scadenza (preavviso 30)");
+  eq(ponti.statoScadenza("2026-10-03", O), "regolare", "fra 31: regolare");
+  eq(ponti.statoScadenza("2026-10-03", O, 90), "in-scadenza", "ma con preavviso 90 è in scadenza");
+  eq(ponti.statoScadenza("2026-10-03", O, 0), "regolare", "e con preavviso 0 solo il giorno stesso conta");
+  eq(ponti.statoScadenza("2026-09-02", O, 0), "in-scadenza", "(oggi, preavviso 0: in scadenza)");
+  for (const d of [null, "", "boh", "2026-02-30", "2026-13-45"]) eq(ponti.statoScadenza(d, O), "senza data", JSON.stringify(d) + " → senza data");
+});
+test("⛔ scadenzeUnite: le tre app nella stessa forma, lo stesso verdetto, e un'app assente si DICHIARA", () => {
+  const O = new Date("2026-09-02T10:00:00Z");
+  const T = terra.DEMO.scadenze, F = flotta.DEMO.scadenze, S = scudo.DEMO.scadenze, L = scudo.DEMO.lavoratori;
+  const u = ponti.scadenzeUnite({ terra: T, flotta: F, scudo: S, lavoratori: L }, O);
+  eq(u.righe.length, T.length + F.length + S.length, "tutte le scadenze delle tre app, nessuna persa");
+  eq(u.completo, true, "completo: le tre app hanno risposto");
+  eq(u.nonRaggiungibili, [], "nessuna non raggiungibile");
+  eq(u.conto.scadute + u.conto.inScadenza + u.conto.senzaData + u.conto.regolari, u.conto.totale, "il conto quadra");
+  ok(u.righe.every((r) => r.stato !== "senza data" || r.giorni === null), "senza data ⇒ giorni null, mai NaN");
+  ok(!u.righe.some((r) => Number.isNaN(r.giorni)), "nessun NaN nei giorni");
+  let diversi = 0;
+  const norm = (x) => x === "a-posto" ? "regolare" : x === "senza-data" ? "senza data" : x;
+  for (const s of T) if (norm(terra.statoScadenzaTerra(s.dataScadenza, s.preavvisoGiorni, O)) !== ponti.statoScadenza(s.dataScadenza, O, s.preavvisoGiorni)) diversi++;
+  for (const s of F) if (norm(flotta.statoScadenzaMezzo(s.dataScadenza, O).stato) !== ponti.statoScadenza(s.dataScadenza, O, 30)) diversi++;
+  for (const s of S) if (ponti.statoScadenzaHSE(s.dataScadenza, O) !== ponti.statoScadenza(s.dataScadenza, O, 30)) diversi++;
+  eq(diversi, 0, "zero verdetti diversi da quelli che ogni app dà per conto suo");
+  const stati = u.righe.map((r) => r.stato);
+  const ordine = { scaduta: 0, "in-scadenza": 1, "senza data": 2, regolare: 3 };
+  ok(stati.every((s, i) => i === 0 || ordine[stati[i - 1]] <= ordine[s]), "prima le scadute, poi in scadenza, poi senza data, poi regolari");
+  const persona = u.righe.find((r) => r.app === "scudo" && r.id === "s1");
+  eq(persona.soggetto, "Mario Rossi", "la scadenza di Scudo porta il NOME della persona, non l'id");
+  const terraRiga = u.righe.find((r) => r.app === "terra" && r.id === "t2");
+  eq([terraRiga.soggetto, terraRiga.preavvisoGiorni], ["la cava", 90], "quella di Terra porta il suo preavviso (90), non i 30 degli altri");
+  const parziale = ponti.scadenzeUnite({ terra: null, flotta: F, scudo: S, lavoratori: L }, O);
+  eq([parziale.completo, parziale.nonRaggiungibili], [false, ["terra"]], "Terra che non risponde: non completo, e detto per nome");
+  eq(parziale.righe.length, F.length + S.length, "e le sue righe non ci sono, non sono zero scadenze");
+  const orfana = ponti.scadenzeUnite({ terra: [], flotta: [{ id: "x", tipo: "Revisione", dataScadenza: "2026-09-01" }], scudo: [{ id: "y", lavoratoreId: "zz", tipo: "Visita", dataScadenza: null }] }, O);
+  eq(orfana.righe.map((r) => r.soggetto), ["(mezzo non indicato)", "persona zz"], "un mezzo o una persona che non si sa si dicono, non si inventano");
+  eq(ponti.scadenzeUnite({}, O), { righe: [], conto: { scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0, totale: 0 }, nonRaggiungibili: ["terra", "flotta", "scudo"], completo: false }, "niente passato: tre app non raggiungibili, non «tutto regolare»");
+});
+test("⛔ Scudo legge le scadenze di Terra e Flotta: alias identico, dimostrazione copiata riga per riga", () => {
+  ok(scudo.scadenzeUnite === ponti.scadenzeUnite, "scadenzeUnite in Scudo è lo stesso oggetto di shared");
+  const T = terra.DEMO.scadenze, F = flotta.DEMO.scadenze;
+  eq(scudo.DEMO.scadenzeTerra.map((s) => [s.id, s.dataScadenza, s.preavvisoGiorni]), T.map((s) => [s.id, s.dataScadenza, s.preavvisoGiorni]),
+     "le scadenze di Terra nella dimostrazione di Scudo sono quelle di Terra, id, data e preavviso");
+  eq(scudo.DEMO.scadenzeFlotta.map((s) => [s.id, s.mezzo, s.dataScadenza]), F.map((s) => [s.id, s.mezzo, s.dataScadenza]),
+     "e quelle di Flotta sono quelle di Flotta, id, mezzo e data");
+  const O = new Date("2026-09-02T10:00:00Z");
+  const u = scudo.scadenzeUnite({ terra: scudo.DEMO.scadenzeTerra, flotta: scudo.DEMO.scadenzeFlotta, scudo: scudo.DEMO.scadenze, lavoratori: scudo.DEMO.lavoratori }, O);
+  ok(u.completo && u.righe.some((r) => r.app === "terra" && r.stato === "senza data"), "e la prescrizione senza data di Terra arriva nel muro come «senza data», non sparisce");
+});
 test("⛔ mancanzeDdt: elenca cosa manca, e non risponde «valido»", () => {
   const pieno = { causaleTrasporto: "vendita", trasportoACura: "mittente" };
   eq(conti.mancanzeDdt(pieno).length, 0, "un DDT completo non ha mancanze");
@@ -2943,6 +3182,69 @@ test("le voci sono ben formate e le chiavi non si ripetono", () => {
     ok(typeof v.daMezzo === "boolean", v.chiave + ": daMezzo dichiarato, non lasciato indefinito");
   }
 });
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE FLOTTA → CONTI · lo stesso euro contato due volte
+   ══════════════════════════════════════════════════════════════════════ */
+test("⛔ Flotta non raggiungibile NON è Flotta a zero", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 100, data: "2026-03-01" }], null);
+  eq(r.disponibile, false, "si dichiara non disponibile");
+  eq(r.totaleFlotta, undefined, "e NON stampa un totale");
+  /* un totale tranquillo da un'app che non ha risposto darebbe il via libera a
+     inserire il doppione: è la bugia peggiore che questa funzione possa dire */
+  eq(ponti.confrontoCostiMezzi([], undefined).disponibile, false, "vale anche per undefined");
+});
+test("il doppione si vede: la stessa voce in tutt'e due", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 100, data: "2026-03-01" }, { voce: "personale", importo: 900, data: "2026-03-01" }],
+    [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(r.entrambe, 1, "una voce sola è in tutt'e due");
+  eq(r.voci[0].conti, 100, "quanto ha Conti");
+  eq(r.voci[0].flotta, 80, "quanto ha Flotta");
+  ok(!r.voci.some(v => v.chiave === "personale"), "personale non entra: Flotta non lo registra per costruzione");
+  eq(r.voci.length, ponti.VOCI_COSTO.filter(v => v.daMezzo).length, "si guardano SOLO le voci daMezzo");
+});
+test("voci diverse: nessun doppione da segnalare", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 100, data: "2026-03-01" }],
+                                      [{ voce: "noleggio", importo: 50, data: "2026-03-02" }]);
+  eq(r.entrambe, 0, "non si accusa un doppione che non c'è");
+  eq(r.totaleConti, 100, "e i due totali restano leggibili");
+  eq(r.totaleFlotta, 50);
+});
+test("⛔ una riga SENZA DATA si conta a parte, non sparisce dal periodo", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 100, data: "2026-03-01" }, { voce: "carburante", importo: 70 }],
+    [{ voce: "carburante", importo: 80, data: "2026-03-02" }], "2026-03-01", "2026-03-31");
+  eq(r.voci[0].conti, 100, "il totale è solo di ciò che si sa collocare");
+  eq(r.senzaData.conti, 1, "e la riga esclusa si dichiara");
+});
+test("⛔ uno ZERO SCRITTO non sparisce, e non è «nessuna riga»", () => {
+  /* la prima stesura di questa funzione filtrava gli importi > 0 e si fermava
+     lì: una voce registrata a zero usciva identica a «non c'è». È la stessa
+     correzione già fatta in `riepilogoCosti`, copiata a metà — l'ha presa la
+     prova in scratchpad, prima che finisse nel modulo. */
+  const zero = ponti.confrontoCostiMezzi([{ voce: "carburante", importo: 0, data: "2026-03-01" }],
+                                         [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(zero.importoNonPositivo.conti, 1, "lo zero scritto si dichiara");
+  eq(zero.senzaImporto.conti, 0, "e non si confonde con un campo mai riempito");
+  const vuoto = ponti.confrontoCostiMezzi([], [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(vuoto.importoNonPositivo.conti, 0, "nessuna riga NON è uno zero scritto");
+  eq(vuoto.voci[0].righeConti, 0, "e il conto delle righe lo dice");
+});
+test("un importo MAI SCRITTO è distinto da uno zero", () => {
+  const r = ponti.confrontoCostiMezzi([{ voce: "carburante", data: "2026-03-01" }],
+                                      [{ voce: "carburante", importo: 80, data: "2026-03-02" }]);
+  eq(r.senzaImporto.conti, 1, "si dichiara");
+  eq(r.voci[0].conti, null, "e non diventa zero");
+  eq(r.importoNonPositivo.conti, 0, "i due motivi restano separati: portano a gesti diversi");
+});
+test("il conto delle righe accompagna il totale", () => {
+  const r = ponti.confrontoCostiMezzi(
+    [{ voce: "carburante", importo: 10, data: "2026-03-01" }, { voce: "carburante", importo: 20, data: "2026-03-05" }], []);
+  eq(r.voci[0].conti, 30, "somma");
+  eq(r.voci[0].righeConti, 2, "e dice da quante righe viene");
+  ok(r.disponibile, "due elenchi vuoti sono comunque una risposta");
+});
+
 test("⛔ una voce che non è nell'elenco NON diventa «generali»", () => {
   eq(ponti.gruppoDiVoce("inventata"), "non-classificata", "un id sconosciuto si dichiara");
   eq(ponti.gruppoDiVoce(null), "non-classificata", "e l'assenza pure");
@@ -4723,6 +5025,28 @@ test("P3 · i cinque stati, e nessuno che finge di sapere", () => {
   const solo = ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, [], oggi);
   ok(solo.stato === "senza-scadenze", "collegato ma senza documenti: si dice, non si assume");
 });
+test("⛔ P3 · il giudizio del medico: NON idoneo vince sui documenti in corso, le prescrizioni restano scritte", () => {
+  /* fino al 05/09 il ponte guardava solo le scadenze: una persona dichiarata
+     NON idonea in Scudo, coi documenti validi, usciva «regolare» in Campo */
+  const oggi = new Date("2026-07-30T00:00:00");
+  const lav = [{ id: "d1", nome: "A", idoneita: "non-idoneo" }, { id: "d2", nome: "B", idoneita: "prescrizioni", prescrizioni: "niente quota" },
+               { id: "d3", nome: "C", idoneita: "idoneo" }, { id: "d4", nome: "D" }, { id: "d5", nome: "E", idoneita: "boh" }];
+  const sca = [{ lavoratoreId: "d1", tipo: "Patente", dataScadenza: "2028-01-01" }, { lavoratoreId: "d2", tipo: "Patente", dataScadenza: "2026-07-02" },
+               { lavoratoreId: "d3", tipo: "Patente", dataScadenza: "2028-01-01" }, { lavoratoreId: "d5", tipo: "Patente", dataScadenza: "2028-01-01" }];
+  const r1 = ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, sca, oggi);
+  eq([r1.stato, r1.giudizio, r1.documenti], ["non-idoneo", "non-idoneo", 1], "⛔ non idoneo coi documenti validi: NON «regolare»");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d1" }, lav, [], oggi).stato, "non-idoneo", "e anche senza nessuna scadenza: il giudizio vince su «senza-scadenze»");
+  const r2 = ponti.idoneitaOperatore({ lavoratoreId: "d2" }, lav, sca, oggi);
+  eq([r2.stato, r2.giudizio, r2.prescrizioni], ["scaduta", "prescrizioni", "niente quota"], "con prescrizioni lo stato resta quello dei documenti, e il testo viaggia");
+  eq([ponti.idoneitaOperatore({ lavoratoreId: "d3" }, lav, sca, oggi).stato, ponti.idoneitaOperatore({ lavoratoreId: "d3" }, lav, sca, oggi).giudizio], ["regolare", "idoneo"], "idoneo coi documenti validi: regolare, e il giudizio scritto");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d4" }, lav, sca, oggi).giudizio, "", "senza giudizio registrato: vuoto, non «idoneo»");
+  eq(ponti.idoneitaOperatore({ lavoratoreId: "d5" }, lav, sca, oggi).giudizio, "", "un giudizio che non esiste non è un giudizio");
+  eq(ponti.idoneitaOperatore({}, lav, sca, oggi).giudizio, "", "non collegato: nessun giudizio da leggere");
+  const q = ponti.idoneitaDiTurno([{ id: "o1", lavoratoreId: "d1" }, { id: "o2", lavoratoreId: "d2" }, { id: "o3", lavoratoreId: "d3" }], lav, sca, oggi);
+  eq([q.nonIdonei, q.conPrescrizioni, q.regolari, q.scadute], [1, 1, 1, 1], "il turno conta i non idonei e chi ha prescrizioni, a parte");
+  eq(q.tuttoInRegola, false, "⛔ con un non idoneo in turno non è «tutto in regola»");
+  eq(ponti.idoneitaDiTurno([{ id: "o3", lavoratoreId: "d3" }], lav, sca, oggi).tuttoInRegola, true, "un idoneo coi documenti validi: sì");
+});
 test("P3 · il riepilogo del turno non trasforma un «non lo so» in un «sì»", () => {
   const oggi = new Date("2026-07-30T00:00:00");
   const lav = [{ id: "d1", nome: "A" }];
@@ -4881,7 +5205,14 @@ test("P3 · la dimostrazione mostra TUTTI gli stati, altrimenti non dimostra", (
   ok(q.inScadenza > 0, "e almeno uno in scadenza");
   ok(q.regolari > 0, "e almeno una persona in regola");
   ok(q.nonCollegati > 0, "e almeno una non collegata: è lo stato che si dimentica");
+  ok(q.nonIdonei > 0, "e (05/09) almeno una persona NON idonea secondo il medico, schierata: è il caso per cui il ponte legge il giudizio");
+  ok(q.conPrescrizioni > 0 && q.righe.some(r => r.giudizio === "prescrizioni" && r.prescrizioni), "e una con prescrizioni SCRITTE");
   ok(q.tuttoInRegola === false, "quindi la dimostrazione non dice «tutto a posto»");
+  /* e la copia di Campo porta lo stesso giudizio di Scudo, persona per persona */
+  for (const l of campo.DEMO.lavoratoriScudo) {
+    const vero = scudo.DEMO.lavoratori.find(x => x.id === l.id);
+    eq([l.idoneita || "", l.prescrizioni || ""], [vero.idoneita || "", vero.prescrizioni || ""], "giudizio e prescrizioni uguali per " + l.id);
+  }
 });
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -5158,6 +5489,35 @@ test("l'arrotondamento non può peggiorare il numero", () => {
    già scritta per gli altri grafici. Per TENERE la regola il browser non serve:
    dentro entrano numeri, fuori esce una stringa. Vivono qui perché una difesa che
    sta nello scratchpad alla prossima sessione non c'è più. */
+/* ⛔ LE BARRE: UNA VOCE SENZA NUMERO NON SI BUTTA E NON SI DISEGNA A ZERO (04/09).
+   `disegnaBarre` filtrava con `num(v.valore)`, quindi un `null` spariva dal
+   grafico e chi voleva tenerlo in vista passava uno zero, che si disegnava con la
+   stanghetta minima. Adesso la regola è pura e vive in `separaMancanti`: i numeri
+   si disegnano, `null`/`undefined` restano in elenco come «non misurato», e il
+   resto (stringhe, NaN, oggetti rotti) è un dato guasto e resta fuori. */
+{
+  const { separaMancanti } = grafici.geometria;
+  test("separaMancanti: numeri di qua, null/undefined di là, il guasto fuori", () => {
+    const r = separaMancanti([
+      { etichetta: "a", valore: 3 }, { etichetta: "b", valore: null }, { etichetta: "c" },
+      { etichetta: "d", valore: "12" }, { etichetta: "e", valore: NaN }, null, undefined,
+      { etichetta: "f", valore: 0 }, { etichetta: "g", valore: -2 }, { etichetta: "h", valore: Infinity },
+    ]);
+    eq(r.misurati.map(v => v.etichetta), ["a", "f", "g"], "zero e negativi sono misure");
+    eq(r.mancanti.map(v => v.etichetta), ["b", "c"], "null e undefined restano, in ordine");
+    eq(r.misurati.length + r.mancanti.length, 5, "«12», NaN, Infinity e le voci nulle non entrano da nessuna parte");
+  });
+  test("separaMancanti: senza valori, o con un elenco assente, risponde due liste vuote", () => {
+    eq(separaMancanti([]), { misurati: [], mancanti: [] }, "vuoto");
+    eq(separaMancanti(null), { misurati: [], mancanti: [] }, "assente");
+    eq(separaMancanti(undefined), { misurati: [], mancanti: [] }, "undefined");
+  });
+  test("separaMancanti: non tocca gli oggetti (stato e etichetta restano quelli)", () => {
+    const v = { etichetta: "x", valore: null, stato: "warn" };
+    const r = separaMancanti([v]);
+    ok(r.mancanti[0] === v, "stesso oggetto");
+  });
+}
 {
   const { tratti, percorso } = grafici.geometria;
   const px = (i) => i * 100, py = (v) => 200 - v;
@@ -6085,7 +6445,9 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      La difesa è semplice e non tocca i file buoni: senza un prezzo leggibile
      nella sua colonna la riga non entra. */
   test("giro completo: il prospetto dei prezzi NON entra nel listino", () => {
-    const testa = intestazioneExport(pagina("conti"), "conti_listino_prezzi.csv");
+    /* dal 05/09 l'export vive nel modulo: l'intestazione è la sua costante,
+       non una riga da cercare nella pagina */
+    const testa = conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE;
     ok(testa, "l'export dei prezzi convertiti esiste");
     const letto = conti.parseListinoCsv(
       testa + "\nStabilizzato 0/30;8,5;t;1,9;8,5;16,15;22\nSabbia lavata;22;m3;1,6;13,75;22;22");
@@ -8231,7 +8593,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const v = [{ data: "2026-07-20", fronte: "F1", nFori: null, kgTotali: 400,
                  kgMaxRitardo: 20, distanzaRicettore: null, esito: "regolare" }];
     const riga = sentinella.csvRegistroVolate(v).split("\n")[1];
-    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;",
+    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;;;;",
       "le due caselle non dichiarate escono VUOTE, non a zero");
     const back = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(v))[0];
     eq(back.nFori, null, "e rientrano come «non dichiarato»");
@@ -10194,25 +10556,43 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.causaleFermo("x"), null, "causaleFermo non inventa una voce");
     ok(flotta.CAUSALI_FERMO.every(c => c.chiave && c.etichetta && c.nota),
       "ogni causale ha chiave, etichetta e spiegazione");
+    /* «meteo» (04/09): la famiglia che il mondo tiene separata dal guasto,
+       perché un fermo per pioggia non dice niente sulla macchina */
+    eq(flotta.etichettaCausale("meteo"), "Meteo", "la causale meteo esiste");
+    ok(flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "meteo") < flotta.CAUSALI_FERMO.findIndex(c => c.chiave === "altro"), "e sta prima di «altro», che resta l'ultima voce");
+    eq(new Set(flotta.CAUSALI_FERMO.map(c => c.chiave)).size, flotta.CAUSALI_FERMO.length, "chiavi tutte diverse");
   });
-  test("⚠️ `CAUSALI_FERMO` esiste in DUE app e NON è la stessa cosa", () => {
-    /* Trovato scrivendo questa prova, con un'asserzione buttata lì che è
-       caduta: Campo esporta anche lui `CAUSALI_FERMO`. Non è la regola
-       riscritta due volte — sono due tassonomie di soggetti diversi:
-       Campo dice perché si è fermata UN'ATTIVITÀ di turno (testo semplice:
-       «Mancanza materiale», «Attesa mezzo», «Cambio turno»), Flotta perché
-       è fuori servizio UNA MACCHINA (voci con chiave, per calcolare la
-       disponibilità: «attesa-ricambi», «gomme-cingoli»).
-       La prova sta qui perché il nome uguale è una trappola per chi arriva
-       dopo: se un giorno le due liste diventassero davvero la stessa cosa,
-       il posto è `shared/`, non una copia. */
-    ok(Array.isArray(campo.CAUSALI_FERMO) && typeof campo.CAUSALI_FERMO[0] === "string",
-      "Campo: testo semplice, sono voci da scegliere in un elenco");
-    ok(typeof flotta.CAUSALI_FERMO[0] === "object" && flotta.CAUSALI_FERMO[0].chiave,
-      "Flotta: voci con chiave, perché ci si calcola sopra la disponibilità");
-    ok(campo.CAUSALI_FERMO.includes("Attesa mezzo"), "Campo parla di attività di turno");
-    ok(flotta.CAUSALI_FERMO.some(c => c.chiave === "gomme-cingoli"), "Flotta parla di macchine");
+  /* SCELTO O SUBÌTO (04/09, candidato (d) del delta sulla telematica): la
+     natura si ricava dalla causale, «altro» e le chiavi sconosciute non si
+     spalmano su nessuna delle due, e la somma delle tre parti è il totale. */
+  test("naturaFermo: scelto per manutenzione e verifica, subìto per il resto, null per «altro» e per chi non c'è", () => {
+    eq(flotta.naturaFermo("manutenzione"), "scelto"); eq(flotta.naturaFermo("verifica"), "scelto");
+    for (const k of ["guasto-meccanico", "guasto-idraulico", "guasto-elettrico", "gomme-cingoli", "attesa-ricambi", "operatore", "meteo"]) eq(flotta.naturaFermo(k), "subito", k);
+    eq(flotta.naturaFermo("altro"), null, "«altro» non si classifica"); eq(flotta.naturaFermo("pippo"), null); eq(flotta.naturaFermo(), null);
+    ok(flotta.CAUSALI_FERMO.every(c => c.chiave === "altro" || flotta.naturaFermo(c.chiave) !== null), "ogni causale dell'elenco, tranne «altro», ha una natura: una voce nuova senza natura finirebbe fra i non classificati in silenzio");
   });
+  test("affidabilitaFlotta: scelti + subìti + non classificati = persi, e = episodi", () => {
+    const oggi = new Date("2026-08-30T12:00:00Z"), mezzi = [{ nome: "Pala P1" }, { nome: "Dumper D1" }];
+    const a = flotta.affidabilitaFlotta([
+      { mezzo: "Pala P1", causale: "manutenzione", inizio: "2026-08-20", fine: "2026-08-22" },
+      { mezzo: "Dumper D1", causale: "gomme-cingoli", inizio: "2026-08-25", fine: "2026-08-25" },
+      { mezzo: "Dumper D1", causale: "altro", inizio: "2026-08-27", fine: "2026-08-28" },
+      { mezzo: "Pala P1", causale: "meteo", inizio: "2026-08-10", fine: "2026-08-10" },
+      { mezzo: "Ruspa fuori parco", causale: "manutenzione", inizio: "2026-08-10", fine: "2026-08-12" },
+      { mezzo: "Pala P1", causale: "verifica", inizio: "boh", fine: "" },
+    ], mezzi, 30, oggi);
+    eq(a.scelti, { giorni: 3, episodi: 1 }, "la manutenzione di tre giorni");
+    eq(a.subiti, { giorni: 2, episodi: 2 }, "gomme e meteo, un giorno ciascuno");
+    eq(a.nonClassificati, { giorni: 2, episodi: 1 }, "«altro» per due giorni");
+    eq(a.scelti.giorni + a.subiti.giorni + a.nonClassificati.giorni, a.persi, "i giorni tornano");
+    eq(a.scelti.episodi + a.subiti.episodi + a.nonClassificati.episodi, a.episodi, "e gli episodi");
+    eq(a.fuoriParco, 1, "la ruspa fuori parco non entra in nessuna delle tre"); eq(a.senzaDate, 1, "e nemmeno il fermo senza date");
+    const v = flotta.affidabilitaFlotta([], mezzi, 30, oggi);
+    eq([v.scelti, v.subiti, v.nonClassificati], [{ giorni: 0, episodi: 0 }, { giorni: 0, episodi: 0 }, { giorni: 0, episodi: 0 }], "senza fermi tre zeri, non tre buchi");
+  });
+  /* la prova «CAUSALI_FERMO esiste in DUE app e NON è la stessa cosa» stava qui:
+     dal 03/09 Campo ha la stessa FORMA di Flotta ({chiave, etichetta}) e la
+     prova, riscritta, vive nel blocco «Campo · le causali con chiave». */
 
   test("giorniFermo: una giornata persa è persa tutta (conteggio inclusivo)", () => {
     /* ferma il 3 e ripartita il 3 = un giorno, non zero: in cava mezza
@@ -10959,9 +11339,8 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
   test("quantitaPesata: le tonnellate sono sempre vere, i metri cubi solo con la densità", () => {
     /* le tonnellate le ha pesate la bilancia; i m³ sono un conto */
-    eq(conti.quantitaPesata({ netto: 18.3, quantita: 18.3, unitaVendita: "t", densita: 1.6 }),
-      { t: 18.3, m3: 11.438 }, "con densità");
-    eq(conti.quantitaPesata({ netto: 5, quantita: 5, unitaVendita: "t" }), { t: 5, m3: null }, "senza densità");
+    eq(conti.quantitaPesata({ netto: 18.3, quantita: 18.3, unitaVendita: "t", densita: 1.6 }), { t: 18.3, m3: 11.438, pesoNoto: true, manca: [] }, "con densità (e dal 02/09 dichiara che il peso è noto)");
+    eq(conti.quantitaPesata({ netto: 5, quantita: 5, unitaVendita: "t" }), { t: 5, m3: null, pesoNoto: true, manca: [] }, "senza densità");
   });
   test("prezzoPerMetroCubo: si converte solo se la densità c'è", () => {
     eq(conti.prezzoPerMetroCubo(P_T), 20, "12,50 €/t × 1,6");
@@ -19290,6 +19669,142 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   GENESI · I DATI DIETRO UNA PORTA SOLA (02/09, unità 1 del piano «Genesi
+   fuori dal browser»). `genesiData({storage})` ha la forma delle porte di
+   Terra e Conti ed è costruita SOPRA le stesse chiavi di `localStorage` della
+   pagina: stessi nomi, stesse forme, stessi tetti. Qui lo storage è una Map.
+   La pagina non la chiama ancora (unità 2 e 3): queste prove sono il contratto
+   che quelle unità dovranno rispettare.
+   ⚠️ Prove ASINCRONE: stanno in `inVolo`, e questo blocco sta PRIMA
+   dell'`await Promise.all(inVolo)` — messo in fondo al file non verrebbe
+   aspettato (CLAUDE.md, la terza avvertenza sui test).
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const mappa = () => { const m = new Map(); return { m, st: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) } }; };
+  const { senzaCommenti } = await import("./tokenizza.mjs");   // i commenti della pagina citano le chiavi: non contano
+  const srcPagina = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
+  const srcPoc = readFileSync(new URL("../../genesi/nuvola-poc.html", import.meta.url), "utf8");
+  const porta = async (st) => genesi.genesiData({ storage: st, live: false });   // in node l'SDK non si prova
+  inVolo.push((async () => {
+    const db = await porta(mappa().st);
+    eq(db.mode, "locale", "senza organizzazione la porta è locale");
+    for (const f of ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "aggiungi", "aggiorna", "rimuovi", "logout"])
+      eq(typeof db[f], "function", "c'è " + f);
+    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste", "piani"], "sette dal 05/09: `previste` (il ponte 3e verso Sentinella) e `piani` (il piano di carico verso Campo)");
+    eq(await db.piani(), [], "e la porta locale sa leggere i piani, vuoti all'inizio");
+    eq(typeof db.previste, "function", "e la porta locale sa leggerle");
+    eq(await db.previste(), [], "vuote all'inizio");
+    eq(await db.pianoCampo(), null, "da soli il piano di Campo NON si legge: null, non una lista vuota (05/09, notte)");
+    /* ⛔ E SENZA `live:false` la porta prova l'SDK, che in node NON c'è (l'import
+       di Firebase da gstatic fallisce): deve tornare locale da sola, non
+       morire — è lo stesso cammino della pagina senza rete. */
+    const senzaRete = await genesi.genesiData({ storage: mappa().st });
+    eq(senzaRete.mode, "locale", "l'SDK che non si carica riporta a locale, senza errore");
+  })());
+  test("⛔ le chiavi e i tetti sono QUELLI DELLA PAGINA, letti dal suo sorgente e non ricordati", () => {
+    /* dalle unità 2 e 3 (02/09) le cinque chiavi passano dalla porta: nomi e
+       tetti stanno nel modulo, e la pagina NON deve più toccarli da sé. Nella
+       pagina restano SOLO le due che il piano lascia al browser: la memoria del
+       modulo (`genesiSent`) e il consenso del dispositivo (`genesiDisclaimerV1`). */
+    const srcModulo = readFileSync(new URL("../../genesi/genesi-data.js", import.meta.url), "utf8");
+    const chiaviPagina = [...senzaCommenti(srcPagina).matchAll(/localStorage\.(?:get|set|remove)Item\(\s*'([A-Za-z0-9]+)'/g)].map((m) => m[1]);
+    eq([...new Set(chiaviPagina)].sort(), ["genesiDisclaimerV1", "genesiSent"], "le sole chiavi toccate dalla pagina sono le due lasciate al browser");
+    for (const k of ["genesiVolate", "genesiCmp", "genesiRicon", "genesiSito", "genesiNuvole"]) ok(srcModulo.includes('"' + k), "la chiave " + k + " vive nel modulo");
+    ok(srcPagina.includes("await GDB.volate()") && srcPagina.includes("GDB.aggiungi('volate'") && srcPagina.includes("GDB.rimuovi('volate'"), "volate: legge, aggiunge e rimuove dalla porta");
+    ok(srcPagina.includes("GDB.aggiungi('confronti'") && srcPagina.includes("await GDB.confronti()"), "confronti A/B: dalla porta");
+    ok(srcPagina.includes("GDB.aggiungi('riconciliazioni'") && srcPagina.includes("GDB.riconciliazioni()"), "riconciliazioni: dalla porta");
+    ok(srcPagina.includes("await GDB.sito()") && srcPagina.includes("GDB.aggiungi('sito'"), "legge di sito: letta una volta e scritta dalla porta");
+    ok(srcPagina.includes("await GDB.nuvole()"), "nuvole: dalla porta");
+    ok(srcModulo.includes('chiave: "genesiVolate", tetto: 50'), "il tetto delle volate nel modulo è 50, sotto la stessa chiave");
+    ok(!srcPagina.includes("while(arr.length>50) arr.shift()"), "e la pagina non ha più il suo tetto scritto a mano");
+    ok(srcPoc.includes("while(a.length>30) a.shift()"), "il tetto delle nuvole in nuvola-poc è 30");
+  });
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = await porta(st);
+    eq(await db.volate(), [], "vuoto all'inizio");
+    const { id } = await db.aggiungi("volate", { nome: "V1", design: { B: 3 } });
+    ok(typeof id === "string" && id.startsWith("v"), "l'id nasce con la v, come nella pagina");
+    eq(JSON.parse(m.get("genesiVolate")).length, 1, "scritto SOTTO la chiave della pagina");
+    eq((await db.volate())[0].nome, "V1");
+    const { id: id2 } = await db.aggiungi("volate", { id: "v-mio", nome: "V2" }); eq(id2, "v-mio", "un id dato si rispetta");
+    eq(await db.aggiorna("volate", "v-mio", { nome: "V2b" }), true); eq((await db.volate())[1].nome, "V2b");
+    eq(await db.aggiorna("volate", "manca", { nome: "x" }), false, "aggiornare chi non c'è risponde false, non crea");
+    eq(await db.rimuovi("volate", "v-mio"), true); eq((await db.volate()).length, 1); eq(await db.rimuovi("volate", "v-mio"), false);
+    // il tetto: 50, e cade il PIÙ VECCHIO come fa `arr.shift()` nella pagina
+    for (let i = 0; i < 55; i++) await db.aggiungi("volate", { id: "t" + i });
+    const vs = await db.volate(); eq(vs.length, 50); eq(vs[0].id, "t5", "i primi sei (V1 e t0-t4) sono caduti"); eq(vs[49].id, "t54");
+    // la pagina scrive con _lsSet e rilegge con _lsGet: la porta legge ciò che scrive la pagina
+    m.set("genesiVolate", JSON.stringify([{ id: "p1", nome: "dalla pagina" }]));
+    eq((await db.volate())[0].nome, "dalla pagina");
+    // JSON corrotto → [] come `_lsGet`
+    m.set("genesiVolate", "{corrotto"); eq(await db.volate(), [], "corrotto è vuoto, come _lsGet");
+    m.set("genesiVolate", JSON.stringify({ non: "un elenco" })); eq(await db.volate(), [], "e un non-elenco è vuoto");
+  })());
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = await porta(st);
+    eq(await db.confronti(), [], "nessuno scatto");
+    eq((await db.aggiungi("confronti", { slot: "a", ts: "t1", kpi: { ppv: 2 } })).id, "A", "lo slot si normalizza in maiuscolo");
+    eq(JSON.parse(m.get("genesiCmpA")), { ts: "t1", kpi: { ppv: 2 } }, "sotto la chiave genesiCmpA, SENZA il campo slot (forma di cmpSave)");
+    eq(await db.confronti(), [{ ts: "t1", kpi: { ppv: 2 }, slot: "A" }], "riletto con lo slot addosso");
+    await db.aggiorna("confronti", "B", { ts: "t2" }); eq((await db.confronti()).length, 2);
+    eq(await db.rimuovi("confronti", "A"), true); eq(await db.rimuovi("confronti", "A"), false); eq(await db.rimuovi("confronti", "C"), false);
+    let err = null; try { await db.aggiungi("confronti", { ts: 1 }); } catch (e) { err = e.message; }
+    ok(/slot A o B/.test(err || ""), "senza slot si rifiuta, non si inventa uno slot");
+    m.set("genesiCmpB", "{rotto"); eq(await db.confronti(), [], "uno scatto corrotto è null, come _cmpLoad: sparisce dall'elenco");
+  })());
+  inVolo.push((async () => {
+    const { m, st } = mappa(); const db = await porta(st);
+    eq(await db.sito(), { punti: [], usa: false }, "il sito vuoto è quello di sitoStore");
+    await db.aggiungi("sito", { punti: [{ d: 10, ppv: 1 }], usa: true, extra: "no" });
+    eq(JSON.parse(m.get("genesiSito")), { punti: [{ d: 10, ppv: 1 }], usa: true }, "solo punti e usa, sotto genesiSito");
+    m.set("genesiSito", JSON.stringify({ punti: "non un elenco", usa: true })); eq(await db.sito(), { punti: [], usa: false }, "punti storti → sito vuoto, come sitoStore");
+    m.set("genesiSito", "{rotto"); eq(await db.sito(), { punti: [], usa: false });
+    eq(await db.rimuovi("sito", "sito"), true); eq(m.has("genesiSito"), false);
+    for (let i = 0; i < 31; i++) await db.aggiungi("nuvole", { nome: "n" + i });
+    const nv = await db.nuvole(); eq(nv.length, 30, "tetto 30 come nuvola-poc"); eq(nv[0].nome, "n1");
+    await db.aggiungi("riconciliazioni", { ts: 1 }); for (let i = 0; i < 60; i++) await db.aggiungi("riconciliazioni", { ts: i });
+    eq((await db.riconciliazioni()).length, 61, "le riconciliazioni non hanno tetto, come oggi");
+    let err = null; try { await db.aggiungi("boh", {}); } catch (e) { err = e.message; }
+    ok(/sconosciuta/.test(err || ""), "una collezione che non esiste è un errore, non una chiave nuova");
+    const senza = await genesi.genesiData({ live: false }); eq(senza.mode, "locale"); await senza.aggiungi("volate", { nome: "x" });
+    eq((await senza.volate()).length, 1, "senza storage e senza localStorage: memoria che dura quanto l'istanza");
+    eq((await (await genesi.genesiData({ live: false })).volate()).length, 0, "e un'altra istanza non la vede");
+  })());
+}
+/* ═══ unità 5: «porta nell'organizzazione», una volta sola e senza cancellare ═══ */
+{
+  const mappa = () => { const m = new Map(); return { m, st: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) } }; };
+  inVolo.push((async () => {
+    const L = mappa(), O = mappa();
+    const locale = await genesi.genesiData({ storage: L.st, live: false });
+    const org = await genesi.genesiData({ storage: O.st, live: false }); org.mode = "live";   // un finto con la forma della porta live
+    await locale.aggiungi("volate", { id: "v1", nome: "A" }); await locale.aggiungi("volate", { id: "v2", nome: "B", creatoIl: "2026-01-01" });
+    await locale.aggiungi("confronti", { slot: "A", ts: "t", kpi: {} }); await locale.aggiungi("riconciliazioni", { ts: 1 });
+    await locale.aggiungi("sito", { punti: [{ d: 1, w: 1, ppv: 1 }], usa: true }); await locale.aggiungi("nuvole", { nome: "n" });
+    const r1 = await genesi.portaNellOrganizzazione(locale, org, L.st, { autore: "uid1", quando: "2026-09-02T20:00:00Z" });
+    eq(r1.gia, false); eq(r1.scritte, { volate: 2, confronti: 1, riconciliazioni: 1, sito: 1, nuvole: 1 }); eq(r1.totale, 6);
+    const v = await org.volate();
+    eq(v.map((x) => x.nome), ["A", "B"], "le volate sono nell'organizzazione");
+    eq(v[0].origine, "browser"); eq(v[0].autore, "uid1"); eq(v[0].creatoIl, "2026-09-02T20:00:00Z", "creatoIl di chi non l'aveva");
+    eq(v[1].creatoIl, "2026-01-01", "e chi ce l'aveva lo tiene");
+    ok(v[0].id !== "v1", "l'id del browser NON viaggia: l'organizzazione ne dà uno suo");
+    eq((await org.confronti())[0].slot, "A"); eq((await org.sito()).usa, true); eq((await org.nuvole()).length, 1);
+    const r2 = await genesi.portaNellOrganizzazione(locale, org, L.st, { autore: "uid1" });
+    eq(r2.gia, true); eq(r2.totale, 0, "⛔ la seconda chiamata scrive ZERO"); eq(r2.giaScritte.volate, 2, "e dice che cosa aveva scritto la prima");
+    eq((await org.volate()).length, 2, "nell'organizzazione non è raddoppiato niente");
+    eq((await locale.volate()).length, 2, "⛔ e nel browser non si è cancellato niente");
+    ok(!!L.m.get(genesi.GENESI_CONTRASSEGNO_MIGRAZIONE), "il contrassegno sta nel browser di partenza");
+    const nonLive = await genesi.genesiData({ storage: mappa().st, live: false });
+    eq((await genesi.portaNellOrganizzazione(locale, nonLive, mappa().st)).errore, "la destinazione non è un'organizzazione", "verso un'altra memoria locale non si porta niente");
+    eq((await genesi.portaNellOrganizzazione(null, org, mappa().st)).errore, "mancano le due porte");
+    const nulla = await genesi.portaNellOrganizzazione(await genesi.genesiData({ storage: mappa().st, live: false }), org, mappa().st);
+    eq(nulla.totale, 0, "un browser vuoto porta zero, senza errore"); eq(nulla.gia, false);
+    eq(locale.utente, null, "da solo non c'è nessuno da firmare");
+  })());
+}
+/* ===== fine Genesi · i dati dietro una porta sola ===== */
+
 if (inVolo.length) await Promise.all(inVolo);   // si aspetta PRIMA di contare
 // ── ⛔ UNA LETTURA DI VIBRAZIONE PORTATA A ZERO, CON LA FIRMA (03/08) ──
 test("⛔ correggiLettura: il VUOTO non è uno zero corretto da qualcuno", () => {
@@ -19962,11 +20477,11 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
     eq(sentinella.csvAmbiente(null, null, null), sentinella.CSV_AMBIENTE_INTESTAZIONE + "\n",
       "senza dati esce la sola intestazione");
-    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 10, "dieci colonne, le ultime tre in coda");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 14, "quattordici colonne: tre in coda dal 31/07, due dal 04/09 (evento, valore_da), due dal 05/09 (condizioni_ultima, fuori_condizioni)");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(0, 7).join(";"),
       "tipo;nome;valore;unita;soglia;stato;dettaglio", "le prime sette sono quelle di prima");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(7).join(";"),
-      "origine_soglia;taratura;provenienza",
+      "origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni",
       "e la coda si allunga in fondo: chi taglia alle prime sette ritrova il file di sempre");
     // il punto appena creato: `valore: 0` è il valore con cui NASCE, non una misura
     const nuovo = { nome: "Polveri — piazzale", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 0, letture: [] };
@@ -20062,8 +20577,8 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   });
   test("Sentinella · un adempimento non ha né taratura né provenienza, e le celle restano vuote", () => {
     const r = colonne(righeCsv(sentinella.csvAmbiente([], [{ titolo: "AUA", scadenza: "2026-09-30" }], []))[1]);
-    eq(r.length, 10, "la riga ha comunque tutte le colonne");
-    eq([r[8], r[9]], ["", ""], "vuote: un adempimento non è una misura");
+    eq(r.length, 12, "la riga ha comunque tutte le colonne");
+    eq([r[8], r[9], r[10], r[11]], ["", "", "", ""], "vuote: un adempimento non è una misura, e non ha nemmeno un evento");
   });
   test("⛔ Sentinella · contaCoperture: un ciclo solo per il report, la scheda e il file", () => {
     const tar = [{ data: "2026-01-01", scadenza: "2026-06-30" }];
@@ -22497,7 +23012,9 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        non salirebbe — ed è per questo che accanto c'è il censimento delle
        uscite nel banco, che invece le conta tutte. */
     const html = (SRC_CAMPO.match(/\$\{avvisoEsempio\(\)\}/g) || []).length;
-    const testo = (SRC_CAMPO.match(/txt \+= avvisoEsempioTesto\(\);/g) || []).length;
+    /* dal 05/09 la consegna la compone `testoConsegnaTurno` nel modulo e la
+       pagina le PASSA l'avviso: il punto di chiamata è l'argomento `avviso` */
+    const testo = (SRC_CAMPO.match(/avviso: avvisoEsempioTesto\(\)/g) || []).length;
     eq(html, 1, "una chiamata sola nel foglio stampato");
     eq(testo, 1, "e una sola nella consegna .txt");
     ok(SRC_CAMPO.includes("${CSS_ESEMPIO}</style>"),
@@ -22763,7 +23280,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 29, "i siti di export CSV censiti nelle quattro app");
+    eq(tot, 32, "i siti di export CSV censiti nelle quattro app")   // 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -24457,6 +24974,21 @@ console.log("\n— Campo: i file che escono —");
      ⚠️ Prove SINCRONE e messe PRIMA del riepilogo, come vuole questo file. */
   const _fori = (...t) => t.map((x) => ({ tDet: x }));
 
+  /* LA DISPERSIONE DELL'INNESCO (04/09, fetta di B3): tre copie nella pagina
+     con lo stesso ternario e tre tempi di riferimento diversi → una funzione
+     con il tempo come argomento. Trasloco provato parola per parola: la vecchia
+     espressione estratta dal file, messa accanto alla nuova su 21.000 casi
+     (sette inneschi × tempi positivi, negativi, assenti) → 0 divergenze. */
+  test("⛔ Genesi · scatterInnesco: elettronico 0,1 ms, elettrico 0,5, cordtex 3% e Nonel 2% del tempo di riferimento", () => {
+    eq(v.scatterInnesco("elettronico", 1000), 0.1); eq(v.scatterInnesco("elettrico", 1000), 0.5);
+    eq(v.scatterInnesco("cordtex", 100), 3, "il 3% di 100 ms"); eq(v.scatterInnesco("nonel", 100), 2, "il 2%");
+    eq(v.scatterInnesco("", 42), 0.84, "senza innesco dichiarato vale il Nonel, come prima"); eq(v.scatterInnesco(undefined, 42), 0.84);
+    ok(Number.isNaN(v.scatterInnesco("nonel", undefined)), "un tempo assente resta NaN, com'era: chi chiama passa un numero");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/0\.03\*|0\.02\*/g) || []).length, 0, "nella pagina il ternario non c'è più");
+    eq((pag.match(/scatterInnesco\(/g) || []).length, 3, "e i tre punti chiamano la funzione: il foro, l'uniformità di Cunningham, il badge/rilascio");
+    ok(/function scatterMs\(\)\{[\s\S]{0,400}return scatterInnesco\(D2\.innesco, tmx\);/.test(pag), "scatterMs resta come legame fra lo stato e la funzione, come computeMIC");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -25738,6 +26270,34 @@ test("csvClienti → parseClientiCsv: il giro torna identico, id compreso", () =
     sdi: "ABC1234", indirizzo: "Zona industriale, Ragusa", sconto: 5, fido: 25000, note: "" };
   const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
   for (const k of Object.keys(dentro)) eq(fuori[k], dentro[k], `campo ${k}`);
+});
+test("⛔ csvClienti: i campi della fattura elettronica fanno il giro, e il file VECCHIO rientra", () => {
+  const dentro = { id: "c9", ragioneSociale: "Nuova Srl", piva: "11111111111", sdi: "XYZ9876", indirizzo: "Via Uno 1",
+    sconto: 2.5, fido: 1000, note: "n", cap: "97100", comune: "Ragusa", provincia: "rg", codiceFiscale: "rssmra80a01h163x" };
+  const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
+  eq([fuori.cap, fuori.comune, fuori.provincia, fuori.codiceFiscale], ["97100", "Ragusa", "RG", "RSSMRA80A01H163X"],
+     "CAP, comune, provincia e codice fiscale tornano (provincia e CF in maiuscolo)");
+  ok(conti.CSV_CLIENTI_INTESTAZIONE.endsWith(";cap;comune;provincia;codiceFiscale"), "le colonne nuove stanno in CODA");
+  const vecchio = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note\nc1;Vecchia Srl;01234567890;ABC1234;Via Due 2;0;0;\n";
+  const [v] = conti.parseClientiCsv(vecchio);
+  eq([v.ragioneSociale, v.cap, v.comune, v.provincia, v.codiceFiscale], ["Vecchia Srl", "", "", "", ""],
+     "un file scritto prima delle quattro colonne rientra: i campi nuovi sono vuoti, non «undefined»");
+});
+test("⛔ la dimostrazione produce una fattura elettronica PRONTA (dal DDT al file)", () => {
+  const D = conti.DEMO;
+  const c1 = D.clienti.find((c) => c.id === "c1");
+  const imp = D.impostazioni[0];
+  eq([imp.aziendaCap, imp.aziendaProvincia, imp.aziendaRegimeFiscale, imp.modalitaPagamento], ["97100", "RG", "RF01", "MP05"],
+     "le Impostazioni d'esempio portano i campi della fattura elettronica");
+  const ddt = D.pesate.filter((p) => p.clienteId === "c1" && p.unitaVendita === "t" && p.prezzoUnitario != null);
+  ok(ddt.length >= 1, "c'è almeno un DDT a tonnellata di Edilcave con un prezzo: " + ddt.length);
+  const fd = conti.fatturaDaPesate(ddt);
+  ok(fd && fd.calcolabile, "la fattura differita da quei DDT è calcolabile");
+  const f = { numero: "2026/099", emessa: "2026-08-31", scadenza: "2026-09-30", tipo: "differita", ...fd };
+  const r = conti.xmlFatturaPA(f, c1, imp, { pesate: D.pesate });
+  eq(r.mancanti, [], "niente manca");
+  eq(r.pronto, true, "il file è pronto");
+  eq(r.ddtCitati, ddt.length, "e cita tutti i DDT della fattura, con la loro data");
 });
 test("csvClienti: FIDO NON IMPOSTATO non diventa «fido zero»", () => {
   const [c] = conti.parseClientiCsv(conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }]));
@@ -28131,17 +28691,21 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
         "«3,5» battuto col separatore italiano è un numero scritto");
     });
 
-    test("⏱️ core · la carica massima per ritardo non conta i fori senza chili, e nessuno lo dice", () => {
+    test("✅ core · la carica massima per ritardo: il numero non conta i fori senza chili, e dal 03/09 la PAROLA lo dice", () => {
       /* `calcolaCaricaMaxRitardo` NON si tocca: da lì dipende la previsione di
-         vibrazione, che è ferma al fondatore. Il riquadro dichiara già il caso
-         dei fori senza RITARDO (che sovrastimano, cioè sbagliano dalla parte
-         prudente) e tace su quello dei fori senza CHILI, che sottostima. */
+         vibrazione, che è ferma al fondatore. Fino al 03/09 il riquadro
+         dichiarava solo i fori senza RITARDO (che sovrastimano, cioè sbagliano
+         dalla parte prudente) e taceva su quelli senza CHILI, che sottostimano:
+         un foro senza chili pesava zero e il pannello diceva «0,0 kg». Adesso
+         la frase la decide `caricaMaxDetta` («—» senza chili, «≥» a metà) e il
+         numero è identico a prima — provato nel blocco «i residui di B12». */
       const riquadro = CORE.split("\n").find((l) => l.includes("Carica max/ritardo:"));
       ok(riquadro, "il riquadro della sequenza sparo esiste ancora");
       ok(/senzaRit/.test(riquadro) || /senzaRit/.test(CORE),
         "il caso dei fori senza ritardo è dichiarato");
-      ok(!/senzaKg|senza chili/.test(riquadro),
-        "⏱️ e quello dei fori senza chili no: misurato e lasciato, perché tocca una soglia di sicurezza");
+      ok(/caricaMaxDetta\(v\)/.test(riquadro) && /senza chili/.test(riquadro),
+        "e quello dei fori senza chili adesso pure: la parola, non il numero");
+      ok(!/calcolaCaricaMaxRitardo\(v\)\.toFixed\(1\)\} kg/.test(riquadro), "il numero nudo non si stampa più come se fosse pieno");
     });
   }
 }
@@ -28353,17 +28917,21 @@ test("riepilogoAnnuale: un solo rilievo di scavo, o il pregresso dichiarato, ren
    il suo denominatore è dichiarato: SETTE celle, contate. */
 test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono tutte `R.misurabile`", () => {
   const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  /* ⏱️ dal 05/09 il CSV della denuncia si compone nel MODULO (`csvRiepilogoAnno`):
+     le sue due celle si cercano lì, le due tessere nella pagina. Il terzo posto
+     della tupla dice dove. E le tre celle del FOGLIO STAMPATO, salite in
+     `prospettoDenuncia` lo stesso giorno, si provano CHIAMANDO la funzione
+     (blocco «il prospetto della denuncia nel modulo», più sotto): una prova sul
+     valore non ha bisogno di una finestra di caratteri intorno a un'ancora. */
+  const mod = readFileSync(join(HERE, "../../terra/terra-data.js"), "utf8");
   /* l'ancora è il TESTO che l'utente legge, non un numero di riga: le righe si
      spostano a ogni commit, un'etichetta no (misurato il 09/08: 87 riferimenti
      di riga su 91 non trovavano più il loro nome) */
   const CELLE = [
     ["schermo · tessera «Cumulato sul titolo»", '["Cumulato sul titolo"'],
     ["schermo · tessera «Residuo a fine»", '["Residuo a fine " + R.anno'],
-    ["foglio stampato · riga del cumulato", "<tr class='tot'><td>Cumulato a fine "],
-    ["foglio stampato · riga del residuo", "<b>Residuo del volume concesso</b>"],
-    ["foglio stampato · scavo sotto il titolo", "<b>Scavo misurato sotto questo titolo fino al 31/12/"],
-    ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "'],
-    ["CSV · riga del residuo", 'csvCell("Residuo del concesso"'],
+    ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "', "modulo"],
+    ["CSV · riga del residuo", 'csvCell("Residuo del concesso"', "modulo"],
   ];
   // la cella è l'espressione che segue l'ancora: si guarda lì dentro, non nel file
   const cella = (testo, ancora) => {
@@ -28371,9 +28939,9 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
     return i < 0 ? null : testo.slice(i, i + 300);
   };
   const senza = [];
-  for (const [nome, ancora] of CELLE) {
-    const c = cella(src, ancora);
-    ok(c != null, `l'ancora di «${nome}» non si trova più nella pagina: o è stata riscritta, o questa prova è invecchiata (${ancora})`);
+  for (const [nome, ancora, dove] of CELLE) {
+    const c = cella(dove === "modulo" ? mod : src, ancora);
+    ok(c != null, `l'ancora di «${nome}» non si trova più ${dove === "modulo" ? "nel modulo" : "nella pagina"}: o è stata riscritta, o questa prova è invecchiata (${ancora})`);
     if (!/\bR?\.?misurabile\b/.test(c)) senza.push(nome);
   }
   eq(senza, [], `queste celle compongono un numero del titolo senza leggere la bandiera che dice se è stato misurato (${CELLE.length} celle guardate)`);
@@ -28382,11 +28950,11 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
      — mai sul file, che è la regola del ripristino da copia — e si pretende che
      il conto delle celle scoperte salga da 0 a 2. */
   const rotta = src
-    .replace('+ (R.misurabile\n          ? n0(R.cumulatoFineAnno) + " m³"', '+ (true\n          ? n0(R.cumulatoFineAnno) + " m³"')
-    .replace('(!R.misurabile ? "non misurato" : R.residuoFineAnno != null', '(false ? "non misurato" : R.residuoFineAnno != null');
-  ok(rotta !== src, "l'iniezione non ha trovato il suo pezzo di pagina: la controprova sarebbe girata su un prodotto sano");
-  const scoperte = CELLE.filter(([, a]) => { const c = cella(rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
-  eq(scoperte.length, 2, "col difetto rimesso le due celle del foglio stampato risultano scoperte");
+    .replace('R.concesso && R.misurabile ? fmtM3(R.cumulatoFineAnno)', 'R.concesso ? fmtM3(R.cumulatoFineAnno)')
+    .replace('R.residuoFineAnno != null && R.misurabile ? fmtM3(R.residuoFineAnno)', 'R.residuoFineAnno != null ? fmtM3(R.residuoFineAnno)');
+  ok(rotta !== src && rotta.length === src.length - 2 * " && R.misurabile".length, "l'iniezione non ha trovato i suoi due pezzi di pagina: la controprova sarebbe girata su un prodotto sano");
+  const scoperte = CELLE.filter(([, a, dove]) => { const c = cella(dove === "modulo" ? mod : rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
+  eq(scoperte.map((x) => x[0]), CELLE.slice(0, 2).map((x) => x[0]), "col difetto rimesso le due tessere dello schermo risultano scoperte, e solo loro");
 });
 test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il prospetto della denuncia", () => {
   /* la ragione è scritta nel prospetto: «i numeri copiati dall'atto si
@@ -28397,11 +28965,12 @@ test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il p
      `decimali`), quindi «1.200.000,50» entra come 1200000,5. */
   eq(terra.numeroDaCampo("1.200.000,50", { min: 0 }).valore, 1200000.5,
     "il campo del volume concesso accetta i decimali: la divergenza è raggiungibile");
-  const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
-  const i = src.indexOf('["Volume totale concesso", aut.volumeAutorizzatoM3');
-  ok(i >= 0, "la riga del verbale che cita il volume concesso non si trova più");
-  const riga = src.slice(i, i + 120);
-  ok(/nD\(aut\.volumeAutorizzatoM3\)/.test(riga), "il verbale scrive il volume dell'atto con `nD` (per intero), non con `n0` (arrotondato): " + riga.split("\n")[0]);
+  /* ⏱️ dal 05/09 la riga la compone `verbaleRilievo` nel modulo: si chiama la
+     funzione invece di cercare il testo nella pagina */
+  const aut = { ...terra.DEMO.autorizzazioni[0], volumeAutorizzatoM3: 1200000.5 };
+  const V = terra.verbaleRilievo({ id: "x", data: "2026-01-05", volumeM3: 10 }, { autorizzazioni: [aut] });
+  const riga = V.atto.find((d) => d[0] === "Volume totale concesso");
+  eq(riga[1], "1.200.000,5 m³", "il verbale scrive il volume dell'atto per intero (nD), non arrotondato all'unità (n0)");
 });
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -30042,7 +30611,15 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(GESTORI.length + 1, 4, "⛔ INGRESSO · quattro funzioni nuove, quattro gestori d'import (il piano di carico ha la prova sua)");
     const gestoreDiB = (src, campoFile) => {
       const a = src.indexOf(`$("${campoFile}").onchange`);
-      return a < 0 ? "" : src.slice(a, src.indexOf("\n  };", a));
+      if (a < 0) return "";
+      let g = src.slice(a, src.indexOf("\n  };", a));
+      /* dal 05/09 (notte) il gestore del piano di carico DELEGA il corpo a una
+         funzione (`importaPianoDaTesto`), perché la stessa strada la percorre
+         anche il piano letto da Genesi dall'organizzazione: il censimento la
+         segue, se no giudicherebbe quattro righe di plumbing */
+      const d = /await (importa\w+)\(testo\)/.exec(g);
+      if (d) { const f = src.indexOf("async function " + d[1] + "("); if (f >= 0) g += "\n" + src.slice(f, src.indexOf("\n  }\n", f)); }
+      return g;
     };
     for (const [app, src, fn, campoFile, ancoraUscita] of GESTORI) {
       test(`⛔ ${app}/${campoFile}: il gestore CHIAMA ${fn} e ogni sua uscita dice le righe perse`, () => {
@@ -30230,7 +30807,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 22, `almeno 22 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 40, `almeno 40 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30241,7 +30818,13 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       const src = readFileSync(join(RADICE, t.pagina), "utf8");
       ok(src.includes('"' + t.col), `⛔ ${t.id}: «${t.col}» non si trova più in ${t.pagina}`);
     }
-    ok(conPagina >= 10, `almeno 10 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
+       era censito col nome sbagliato). Il numero scende quando un export
+       migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
+    /* 05/09, fine della giornata: ZERO. Ogni file che esce dalle sei app si
+       compone nel modulo e la sua intestazione si verifica chiamando l'export.
+       Se un giorno tornasse a uno, qualcuno ha scritto un file nella pagina. */
+    eq(conPagina, 0, `nessuna intestazione viene più letta da una pagina — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -30406,10 +30989,10 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(shell.tabelleCsvDi("nome;ruolo").length, 0, "due celle sole non bastano a decidere");
   });
 
-  test("⛔ B8 · LA GUARDIA È COLLEGATA: 22 gestori d'importazione la chiamano davvero", () => {
+  test("⛔ B8 · LA GUARDIA È COLLEGATA: 23 gestori d'importazione la chiamano davvero", () => {
     /* ⛔ una guardia scollegata non è un errore di sintassi: la pagina si apre
        e non protegge niente. Il conto per pagina è quello misurato il 14/08. */
-    const ATTESE = { campo: 2, conti: 6, flotta: 3, scudo: 4, sentinella: 5, terra: 2 };
+    const ATTESE = { campo: 2, conti: 6, flotta: 3, scudo: 4, sentinella: 5, terra: 3 };   // terra 2 → 3 il 03/09: il caricamento degli inventari dei cumuli
     let tot = 0;
     for (const a of Object.keys(ATTESE)) {
       const src = readFileSync(join(RADICE, "apps", a, "index.html"), "utf8");
@@ -30418,7 +31001,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       ok(/fraseFileAltrui\(/.test(src), `${a}: e la frase la dice la funzione condivisa, non una copia`);
       tot += n;
     }
-    eq(tot, 22, "22 gestori d'importazione in sei app");
+    eq(tot, 23, "23 gestori d'importazione in sei app");
   });
 }
 
@@ -33939,6 +34522,4590 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
   });
 }
 /* ===== fine Conti · la quadratica e lo stato vuoto che mentiva ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE GENESI → TERRA · le nuvole dall'organizzazione, la chiave come ripiego
+   (02/09, unità 8 del piano «Genesi fuori dal browser»): il primo ponte di
+   DATI verso Genesi. La scelta è pura e sta in terra-data.js.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const U = terra.ultimoRitaglioNuvola;
+  const org = [{ nome: "a", volume: null }, { nome: "b", volume: 5200 }, { nome: "c" }];
+  const chiave = [{ nome: "k1", volume: 1234 }, { nome: "k2", volume: "3.100 u³" }];
+  test("ultimoRitaglioNuvola: prima l'organizzazione, e prende l'ULTIMO con un volume", () => {
+    const r = U(org, chiave);
+    eq(r.fonte, "organizzazione"); eq(r.ultimo.nome, "b", "c non ha volume, a ce l'ha nullo: si prende b"); eq(r.orgRisponde, true);
+  });
+  test("se l'organizzazione non risponde (null) si ripiega sulla chiave del browser, e lo si dice", () => {
+    const r = U(null, chiave);
+    eq(r.fonte, "browser"); eq(r.ultimo.nome, "k2", "l'ultimo, anche con un volume in unità del file: giudicarlo tocca alla pagina"); eq(r.orgRisponde, false);
+  });
+  test("se l'organizzazione risponde ma non ha ritagli con volume, la chiave vale lo stesso", () => {
+    const r = U([], chiave); eq(r.fonte, "browser"); eq(r.orgRisponde, true, "l'org ha risposto: vuota");
+    eq(U([{ nome: "x" }], chiave).fonte, "browser", "un elenco senza volumi è come vuoto");
+  });
+  test("⛔ niente da nessuna parte è null, non un ritaglio inventato", () => {
+    eq(U(null, []), { ultimo: null, fonte: null, orgRisponde: false });
+    eq(U([], null), { ultimo: null, fonte: null, orgRisponde: true });
+    eq(U(undefined, undefined).ultimo, null); eq(U("corrotto", { non: "elenco" }).ultimo, null, "forme sbagliate non rompono");
+  });
+  test("la dimostrazione di Terra non ha organizzazione: nuvoleGenesi risponde null, non []", () => {
+    /* `null` = «org assente» → la pagina ripiega sulla chiave; `[]` direbbe
+       «org presente e vuota», che in dimostrazione sarebbe una bugia */
+    const src = readFileSync(new URL("../../terra/terra-data.js", import.meta.url), "utf8");
+    ok(src.includes("nuvoleGenesi: async () => null"), "la riga della dimostrazione risponde null");
+    ok(src.includes('DeepworkID.init({ appId: "genesi" })'), "e in live apre una seconda istanza sull'app genesi, mai un percorso a mano");
+    ok(!/organizations\/[^"']*genesi/.test(src), "nessun percorso Firestore scritto a mano verso genesi");
+  });
+}
+/* ===== fine ponte Genesi → Terra ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL VERBALE DI RICONCILIAZIONE (02/09): il divario scritto con la
+   sua causa, per periodo. Il numero conservato è quello di allora, e la
+   funzione lo confronta con quello di adesso invece di sovrascriverlo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const V = [
+    { id: "a", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 12.5, pct: 14.2, causa: "cumulo", scrittoIl: "2026-07-02T10:00:00" },
+    { id: "b", dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 12.5, pct: 14.2, causa: "altro", scrittoIl: "2026-07-03T10:00:00" },
+    { id: "c", dal: "2026-01-01", al: "2026-03-31", divario: 3, pct: 8, causa: "sfrido", scrittoIl: "2026-04-01" },
+    { id: "d", dal: "2026-01-01", al: "2026-12-31", tipo: "prodotto", divario: 13695, pct: 97, causa: "piazzale", scrittoIl: "2026-09-02" },
+  ];
+  test("le cause del divario sono quelle che la schermata elenca, con «altro» in fondo", () => {
+    eq(conti.CAUSE_DIVARIO.map((c) => c.chiave), ["piazzale", "cumulo", "rilievo", "densita", "senza-pesata", "stime-turno", "sfrido", "altro"]);
+    eq(conti.causaDivario("densita").etichetta, "Una densità del listino è sbagliata"); eq(conti.causaDivario("boh"), null); eq(conti.causaDivario(null), null);
+  });
+  test("verbaleDelPeriodo: il periodo ESATTO, l'ultimo scritto, e il confronto allora/adesso", () => {
+    const r = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 12.5);
+    eq(r.verbale.id, "b", "l'ultimo scritto, non il primo"); eq(r.quanti, 2); eq(r.coerente, true); eq(r.differenza, 0); eq(r.causa.chiave, "altro");
+    const r2 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 13.1);
+    eq(r2.coerente, false); eq(r2.differenza, 0.6, "i dati sono cambiati dopo il verbale: si dice di quanto");
+    eq(conti.verbaleDelPeriodo(V, "2026-02-01", "2026-06-30", "cavato", 1), null, "un periodo che si sovrappone ma non coincide NON è lo stesso verbale");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-03-31", "cavato", 3).verbale.id, "c", "senza tipo vale «cavato»");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-12-31", "cavato", 1), null, "il verbale del prodotto non risponde per il cavato");
+    eq(conti.verbaleDelPeriodo(null, "x", "y"), null); eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", null).adesso, null, "senza numero di adesso non si confronta");
+  });
+  test("storicoVerbali: in ordine di periodo, col passo sulla percentuale e il verso a parole", () => {
+    const st = conti.storicoVerbali(V, "cavato");
+    eq(st.map((r) => [r.id, r.pctNum, r.passo, r.verso]), [["c", 8, null, null], ["a", 14.2, 6.2, "cresce"], ["b", 14.2, 0, "pari"]]);
+    eq(st[1].causaEtichetta, "Venduto materiale già a piazzale da prima (ripresa dai cumuli)");
+    eq(conti.storicoVerbali(V, "prodotto").map((r) => r.id), ["d"]); eq(conti.storicoVerbali(undefined), []);
+    eq(conti.storicoVerbali([{ al: "2026-05-01", pct: "no" }, { al: "2026-06-01", pct: 3 }])[1].passo, null, "una percentuale illeggibile non dà un passo");
+  });
+  test("⛔ il verbale della dimostrazione dice il numero che la schermata calcola su quegli stessi dati", () => {
+    const v = conti.DEMO.verbali[0];
+    const r = conti.riconciliazione(conti.DEMO.rilieviTerra, conti.DEMO.pesate, v.dal, v.al);
+    eq(v.divario, r.divario); eq(v.pct, r.pct); eq(v.stato, r.stato);
+    eq(conti.verbaleDelPeriodo(conti.DEMO.verbali, v.dal, v.al, "cavato", r.divario).coerente, true);
+    ok(!!conti.causaDivario(v.causa), "la causa è una di quelle elencate");
+  });
+}
+/* ===== fine Conti · il verbale di riconciliazione ===== */
+
+const _srcContiPagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL VERBALE E IL TERZO LATO (03/09): il verbale del cavato registra
+   le scorte MISURATE dal triangolo — copiate da `triangolo`, mai ricalcolate —
+   oppure dichiara perché restavano stimate. Da incollare in run-kpi.mjs dopo
+   il blocco «fine Conti · il verbale di riconciliazione» (prove SINCRONE).
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n— Conti: il verbale registra il terzo lato —");
+{
+  const D = conti.DEMO;
+  const triDemo = (dal, al) => conti.triangolo(D.rilieviTerra, D.pesate, D.inventariTerra, D.prodotti, D.autorizzazioniTerra, dal, al);
+  const BASE = { dal: "2026-01-01", al: "2026-06-30", tipo: "cavato", divario: 35.055, pct: 28.27, stato: "attenzione", causa: "cumulo", nota: "n", scrittoIl: "2026-07-02T09:40:00" };
+  test("⛔ componiVerbale col triangolo CHIUSO: scorte e chiusura copiate da `triangolo`, campo per campo, e il motivo nullo", () => {
+    const t = triDemo("2026-01-01", "2026-06-30");
+    eq(t.stato, "chiuso", "la premessa: sul primo semestre della dimostrazione il triangolo chiude");
+    const v = conti.componiVerbale(BASE, t);
+    contiene(v, BASE, "i campi del verbale di prima restano identici");
+    eq(v.scorteMotivo, null);
+    eq(v.scorte, { deltaM3: 6, deltaT: 16.3, inizio: { id: "i1", data: "2025-12-29" }, fine: { id: "i2", data: "2026-06-27" }, parziale: true, fuori: ["Terre di scavo"] });
+    eq(v.chiusura, { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito" });
+    eq(v.scorte.deltaM3, t.scorte.deltaM3); eq(v.scorte.deltaT, t.scorteT.deltaT); eq(v.scorte.inizio.id, t.scorte.inizio.id); eq(v.scorte.fine.data, t.scorte.fine.data);
+    eq(v.chiusura.scarto, t.chiusura.scarto); eq(v.chiusura.pct, t.chiusura.pct); eq(v.chiusura.stato, t.chiusura.stato); eq(v.chiusura.verso, t.chiusura.verso);
+    eq(v.scorte.fuori, t.fuori.map((f) => f.materiale), "i materiali fuori dal conto, per nome");
+    ok(!("cumuli" in (v.scorte.inizio || {})), "dell'inventario si conserva il RIFERIMENTO (id e data), non la copia dei cumuli");
+    ok(v !== BASE && !("scorte" in BASE), "non tocca l'oggetto ricevuto");
+  });
+  test("⛔ componiVerbale col triangolo NON chiuso: scorte null e chiusura null, col motivo del modulo — nessuno zero", () => {
+    const t = triDemo("2026-07-01", "2026-08-15");
+    eq(t.stato, "no-inventari", "la premessa: fra luglio e metà agosto c'è un solo inventario");
+    const v = conti.componiVerbale({ ...BASE, dal: "2026-07-01", al: "2026-08-15", divario: -36.357 }, t);
+    eq(v.scorte, null); eq(v.chiusura, null);
+    eq(v.scorteMotivo, "nel periodo non c'è un secondo inventario: senza la fotografia di fine periodo la variazione non si misura");
+    eq(v.divario, -36.357, "il divario a due lati resta quello che era");
+    for (const stato of ["no-terra", "no-confronto", "no-densita-cava", "no-densita-listino"]) {
+      const w = conti.componiVerbale(BASE, { stato, perche: "perché " + stato });
+      eq(w.scorte, null); eq(w.chiusura, null); eq(w.scorteMotivo, "perché " + stato);
+    }
+    eq(conti.componiVerbale(BASE, { stato: "no-inventari", perche: "" }).scorteMotivo, "il triangolo non chiude (no-inventari)", "un triangolo senza `perche` dichiara almeno lo stato");
+  });
+  test("componiVerbale con triangolo null (inventari non ancora letti), e per il PRODOTTO che un terzo lato non ce l'ha", () => {
+    const v = conti.componiVerbale(BASE, null);
+    eq(v.scorte, null); eq(v.chiusura, null); eq(v.scorteMotivo, "gli inventari dei cumuli di Terra non erano ancora stati letti");
+    eq(conti.componiVerbale(BASE, undefined).scorteMotivo, "gli inventari dei cumuli di Terra non erano ancora stati letti");
+    const p = conti.componiVerbale({ ...BASE, tipo: "prodotto", divario: 13695 }, triDemo("2026-01-01", "2026-06-30"));
+    eq(p, { ...BASE, tipo: "prodotto", divario: 13695 }, "il verbale del prodotto resta com'è: né scorte né motivo");
+    eq(conti.componiVerbale(null, null).scorte, null, "senza base non esplode");
+  });
+  test("componiVerbale non prende per buoni numeri illeggibili dentro un triangolo malformato: restano null, non zero", () => {
+    const v = conti.componiVerbale(BASE, { stato: "chiuso", scorte: { deltaM3: "boh", inizio: { id: 7, data: "2026-01-01" }, fine: null }, scorteT: { deltaT: "" }, chiusura: { scarto: null, pct: undefined, stato: "attenzione" }, parziale: false, fuori: null });
+    eq(v.scorte, { deltaM3: null, deltaT: null, inizio: { id: "7", data: "2026-01-01" }, fine: null, parziale: false, fuori: [] });
+    eq(v.chiusura, { scarto: null, pct: null, stato: "attenzione", verso: null });
+  });
+  test("⛔ il verbale «vr1» della dimostrazione porta le scorte che `triangolo` risponde su quegli stessi dati, campo per campo", () => {
+    const d = D.verbali[0];
+    eq(d.id, "vr1");
+    const atteso = conti.componiVerbale(d, triDemo(d.dal, d.al));
+    eq(d.scorte, atteso.scorte, "scorte"); eq(d.chiusura, atteso.chiusura, "chiusura"); eq(d.scorteMotivo, atteso.scorteMotivo, "scorteMotivo");
+    eq(d.scorte.deltaT, 16.3); eq(d.chiusura.scarto, 55.2); eq(d.chiusura.pct, 23.43); eq(d.chiusura.stato, "attenzione"); eq(d.chiusura.verso, "sparito");
+    eq(d.scorte.fuori, ["Terre di scavo"]); eq(d.scorte.parziale, true);
+  });
+  test("scorteDelVerbale: i tre stati — misurate (col numero scritto dal formato di fuori), stimate col motivo, non registrate", () => {
+    const fmt = (x) => x.toFixed(2).replace(".", ",");
+    const d = D.verbali[0];
+    eq(conti.scorteDelVerbale(d, fmt), { stato: "misurate", scarto: 55.2, chiusuraStato: "attenzione", motivo: null, testo: "scarto del triangolo 55,20 t, attenzione" });
+    eq(conti.scorteDelVerbale(d).testo, "scarto del triangolo 55.2 t, attenzione", "senza formato il numero è nudo");
+    eq(conti.scorteDelVerbale({ ...d, chiusura: { ...d.chiusura, scarto: -58.76 } }, fmt).testo, "scarto del triangolo 58,76 t, attenzione", "lo scarto in eccesso si scrive senza il segno: il verso lo dice la pagina");
+    const st = conti.scorteDelVerbale({ scorte: null, chiusura: null, scorteMotivo: "un solo inventario" }, fmt);
+    eq(st, { stato: "stimate", scarto: null, chiusuraStato: null, motivo: "un solo inventario", testo: "scorte stimate: un solo inventario" });
+    eq(conti.scorteDelVerbale({ scorte: null, scorteMotivo: "" }).testo, "scorte stimate: il triangolo non chiudeva", "motivo vuoto: si dice lo stesso che erano stimate");
+    const nr = conti.scorteDelVerbale({ dal: "2026-01-01", divario: 3 });
+    eq(nr, { stato: "non-registrate", scarto: null, chiusuraStato: null, motivo: null, testo: "scorte non registrate nel verbale" }, "un verbale di prima del terzo lato");
+    eq(conti.scorteDelVerbale(null).stato, "non-registrate");
+    eq(conti.scorteDelVerbale({ scorte: { deltaT: 1 }, chiusura: { scarto: null } }).testo, "scorte misurate, scarto del triangolo non calcolabile", "scorte scritte ma scarto illeggibile: non uno zero");
+  });
+  test("storicoVerbali: ogni riga dice le sue scorte (`scorteDette`), col formato passato da fuori", () => {
+    const fmt = (x) => x.toFixed(1).replace(".", ",");
+    const V = [D.verbali[0],
+      { dal: "2026-07-01", al: "2026-08-15", tipo: "cavato", divario: -36.357, pct: -67, scorte: null, chiusura: null, scorteMotivo: "un solo inventario", scrittoIl: "2026-09-03" },
+      { dal: "2025-01-01", al: "2025-06-30", divario: 3, pct: 2, scrittoIl: "2025-07-01" },
+      { dal: "2026-01-01", al: "2026-12-31", tipo: "prodotto", divario: 13695, pct: 97, scrittoIl: "2026-09-02" }];
+    const st = conti.storicoVerbali(V, "cavato", fmt);
+    eq(st.map((r) => [r.al, r.scorteDette.stato, r.scorteDette.testo]), [
+      ["2025-06-30", "non-registrate", "scorte non registrate nel verbale"],
+      ["2026-06-30", "misurate", "scarto del triangolo 55,2 t, attenzione"],
+      ["2026-08-15", "stimate", "scorte stimate: un solo inventario"]]);
+    eq(st[1].scorte.deltaT, 16.3, "il record passa intero");
+    eq(conti.storicoVerbali(V, "prodotto").map((r) => r.scorteDette.stato), ["non-registrate"], "il prodotto non registra scorte, e lo storico non le inventa");
+  });
+  test("verbaleDelPeriodo confronta anche lo scarto del triangolo, se il verbale l'aveva — e quando oggi non chiude resta null", () => {
+    const V = [D.verbali[0]];
+    const r = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, 55.2);
+    eq([r.scartoAllora, r.scartoAdesso, r.scartoDifferenza, r.scartoCoerente], [55.2, 55.2, 0, true]);
+    const r2 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, 61.4);
+    eq([r2.scartoAllora, r2.scartoAdesso, r2.scartoDifferenza, r2.scartoCoerente], [55.2, 61.4, 6.2, false], "gli inventari sono cambiati dopo il verbale");
+    eq(r2.coerente, true, "il divario a due lati è coerente lo stesso: sono due confronti, e si dicono separati");
+    const r3 = conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055, null);
+    eq([r3.scartoAllora, r3.scartoAdesso, r3.scartoDifferenza, r3.scartoCoerente], [55.2, null, null, null], "oggi il triangolo non chiude: niente confronto, non un falso «coerente»");
+    eq(conti.verbaleDelPeriodo(V, "2026-01-01", "2026-06-30", "cavato", 35.055).scartoAdesso, null, "senza il sesto argomento (chi chiama come prima) non cambia niente");
+    const S = [{ dal: "a", al: "b", scorte: null, chiusura: null, scorteMotivo: "x", divario: 1 }];
+    const r4 = conti.verbaleDelPeriodo(S, "a", "b", "cavato", 1, 55.2);
+    eq([r4.scartoAllora, r4.scartoAdesso, r4.scartoDifferenza, r4.scartoCoerente], [null, null, null, null], "un verbale con le scorte stimate non ha uno scarto da confrontare, anche se oggi c'è");
+  });
+  test("la pagina di Conti salva il verbale passando da `componiVerbale` col triangolo del periodo, e ha la scorciatoia «Questo mese»", () => {
+    const src = _srcContiPagina;
+    ok(/db\.aggiungi\("verbali", componiVerbale\(\{ dal: d1, al: d2, tipo, divario, pct, stato, causa, nota, scrittoIl: istanteLocale\(\) \}, tri\)\)/.test(src), "il record si compone nel modulo, non nella pagina");
+    ok(/renderVerbale\(d1, d2, r\.divario, r\.pct, r\.stato, m3f, \{ tri \}\)/.test(src), "il triangolo del periodo passa al verbale");
+    ok(/storicoVerbali\(VER, tipo, qt\)/.test(src), "lo storico riceve il formato dei numeri dalla pagina");
+    ok(/id="btn-ric-mese">Questo mese</.test(src), "il bottone «Questo mese» accanto a «Quest'anno»");
+    ok(/\$\("btn-ric-mese"\)\.onclick = \(\) => \{ const o = oggiISO\(\); \$\("ric-dal"\)\.value = o\.slice\(0, 7\) \+ "-01"; \$\("ric-al"\)\.value = o;/.test(src), "dal primo del mese a OGGI, in ora locale");
+  });
+}
+/* ===== fine Conti · il verbale registra il terzo lato ===== */
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · IL CONSUMO DI UN MEZZO CONTRO LA SUA STORIA (02/09, candidato 3
+   della ricerca di Flotta): finestra recente contro tutto ciò che c'è prima,
+   con le regole di `consumoPerMezzo` (si scarta il primo pieno di ogni
+   tratto) e nessun giudizio nel modulo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const O = new Date("2026-09-02T12:00:00Z");
+  const g = (n) => new Date(O.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const R = [
+    { mezzo: "Dumper D1", data: g(70), litri: 400, ore: 8000 }, { mezzo: "Dumper D1", data: g(55), litri: 380, ore: 8100 },
+    { mezzo: "Dumper D1", data: g(40), litri: 390, ore: 8200 },
+    { mezzo: "Dumper D1", data: g(20), litri: 390, ore: 8300 }, { mezzo: "Dumper D1", data: g(9), litri: 415, ore: 8390 },
+    { mezzo: "Dumper D1", data: g(2), litri: 360, ore: 8416 },
+    { mezzo: "Pala P1", data: g(16), litri: 300, ore: 6498 }, { mezzo: "Pala P1", data: g(4), litri: 320, ore: 6531 },
+    { mezzo: "Esc E2", data: g(6), litri: 300, ore: 3195 }, { mezzo: "Esc E2", data: g(1), litri: 280, ore: null },
+  ];
+  const C = flotta.consumoControStoria;
+  test("consumoControStoria: la finestra parte dall'ULTIMO pieno della storia, e la storia scarta il suo primo", () => {
+    const r = C(R, "Dumper D1", O);
+    eq(r.calcolabile, true); eq(r.finestra, 30); eq(r.dal, "2026-08-04");
+    eq(r.storia, { litriOra: 3.85, litri: 770, ore: 200, pieni: 3, dal: g(70), al: g(40), perche: "" }, "storia: (380+390)/(8200−8000)");
+    eq(r.recente, { litriOra: 5.39, litri: 1165, ore: 216, pieni: 4, dal: g(40), al: g(2), perche: "" }, "recente: parte dal pieno di g(40), litri dei tre dopo");
+    eq(r.forbicePct, 40); eq(r.verso, "sopra");
+  });
+  test("senza una storia non si confronta, e si dice quale metà manca", () => {
+    const p = C(R, "Pala P1", O);
+    eq(p.calcolabile, false); eq(p.storia, null); ok(p.recente && p.recente.litriOra === 9.7, "il recente c'è lo stesso (320/33)");
+    ok(/prima della finestra non c'è nessun pieno/.test(p.perche), p.perche);
+    ok(/un pieno solo con le ore/.test(C(R, "Esc E2", O).perche), "un pieno con ore e uno senza: non basta");
+    ok(/nessun pieno con data e ore/.test(C(R, "Boh", O).perche)); eq(C(null, "", O).perche, "manca il nome del mezzo");
+    ok(/il contatore non è salito/.test(C([{ mezzo: "X", data: g(50), litri: 1, ore: 100 }, { mezzo: "X", data: g(45), litri: 1, ore: 100 }, { mezzo: "X", data: g(3), litri: 1, ore: 150 }], "X", O).perche), "contatore fermo nella storia: niente numero");
+    eq(C(R, "Dumper D1", O, 400).calcolabile, false, "con una finestra che ingoia tutto la storia è vuota");
+  });
+  test("nel modulo non c'è un giudizio: la tolleranza è una scelta dichiarata della pagina", () => {
+    eq(flotta.TOLLERANZA_CONSUMO_PCT, 15);
+    const r = C(R, "Dumper D1", O); ok(!("stato" in r) && !("allarme" in r), "niente stato né allarme nel risultato");
+    eq(C(R.map((x) => (x.data >= g(30) ? { ...x, litri: 100 } : x)), "Dumper D1", O).verso, "sotto", "meno litri nella finestra per le stesse ore: sotto");
+  });
+  test("la dimostrazione NON ha una storia (dieci pieni in venti giorni), e ogni mezzo dice perché", () => {
+    /* La dimostrazione resta com'è: cinque prove assolute sui suoi numeri
+       (€/h, pagella) sono scritte a mano di proposito, e una storia aggiunta le
+       sposterebbe tutte. Il caso «beve più del suo solito» lo mostra il banco
+       del browser iniettando i pieni vecchi nel modulo SERVITO
+       (`flotta-consumo-storia.mjs`), non la dimostrazione. */
+    for (const m of ["Escavatore E1", "Dumper D1", "Pala P1"]) {
+      const r = C(flotta.DEMO.rifornimenti, m);
+      eq(r.calcolabile, false, m); ok(r.recente && r.recente.litriOra != null, m + ": il recente c'è");
+      ok(/non c'è una storia/.test(r.perche), m + ": " + r.perche);
+    }
+    ok(/un pieno solo con le ore/.test(C(flotta.DEMO.rifornimenti, "Escavatore E2").perche), "E2: un pieno con le ore e uno senza");
+  });
+}
+/* ===== fine Flotta · il consumo contro la storia ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL CAVATO IN TONNELLATE CON LA DENSITÀ CHE TERRA DICHIARA (02/09,
+   candidato 2 della ricerca di Conti — che stava già in casa: `densitaDellaCava`
+   in shared, la chiamavano Terra e Campo). `autorizzazioneVigente` trasloca in
+   shared, Terra la ri-esporta.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  test("⛔ autorizzazioneVigente è la STESSA di shared, in Terra e in Conti", () => {
+    ok(terra.autorizzazioneVigente === ponti.autorizzazioneVigente, "Terra: identità");
+    ok(conti.autorizzazioneVigente === ponti.autorizzazioneVigente, "Conti: identità");
+    ok(conti.densitaDellaCava === ponti.densitaDellaCava && conti.cavatoInTonnellate === ponti.cavatoInTonnellate, "e le due funzioni della densità");
+    eq(ponti.autorizzazioneVigente([{ id: "x" }, { id: "v", stato: "vigente" }]).id, "v"); eq(ponti.autorizzazioneVigente([{ id: "x" }]).id, "x"); eq(ponti.autorizzazioneVigente([]), null); eq(ponti.autorizzazioneVigente(null), null);
+  });
+  test("cavatoInTonnellate: metri cubi per densità, e senza densità niente numero con la ragione", () => {
+    const lab = ponti.densitaDellaCava({ materiale: "Calcare", densita: 2.6, densitaFonte: "laboratorio" });
+    eq(ponti.cavatoInTonnellate(100, lab), { t: 260, densita: 2.6, da: "laboratorio", calcolabile: true, daVerificare: false, perche: "" });
+    const tipico = ponti.densitaDellaCava({ materiale: "Sabbia e ghiaia" });
+    const r = ponti.cavatoInTonnellate(100, tipico);
+    eq(r.calcolabile, true); eq(r.daVerificare, true, "un valore tipico si usa ma si dichiara da verificare"); eq(r.da, ponti.DENS_PRESET); ok(r.t > 0);
+    const nulla = ponti.cavatoInTonnellate(100, ponti.densitaDellaCava({ materiale: "Materiale ignoto" }));
+    eq(nulla.calcolabile, false); eq(nulla.t, null); ok(/non è dichiarata in Terra/.test(nulla.perche), nulla.perche);
+    const storta = ponti.cavatoInTonnellate(100, ponti.densitaDellaCava({ materiale: "Calcare", densita: "boh", densitaFonte: "laboratorio" }));
+    eq(storta.calcolabile, false); ok(/non è un numero/.test(storta.perche), storta.perche);
+    eq(ponti.cavatoInTonnellate(null, lab).perche, "il cavato in metri cubi non c'è"); eq(ponti.cavatoInTonnellate(undefined, undefined).calcolabile, false, "senza niente non esplode");
+    eq(ponti.cavatoInTonnellate(0, lab).t, 0, "zero metri cubi sono zero tonnellate: uno zero vero");
+  });
+  test("⛔ la dimostrazione di Conti porta una COPIA dell'autorizzazione di Terra, sui campi che servono", () => {
+    const mia = conti.DEMO.autorizzazioniTerra[0], loro = terra.DEMO.autorizzazioni.find((a) => a.id === mia.id);
+    ok(!!loro, "esiste in Terra"); eq(mia.materiale, loro.materiale); eq(mia.numeroAtto, loro.numeroAtto);
+    const d = ponti.densitaDellaCava(ponti.autorizzazioneVigente(conti.DEMO.autorizzazioniTerra));
+    eq(d.da, ponti.DENS_PRESET, "in dimostrazione la densità è il valore tipico del materiale: il caso «da verificare», mostrato apposta");
+    ok(ponti.cavatoInTonnellate(10, d).daVerificare, "e il cavato in tonnellate lo dice");
+  });
+}
+/* ===== fine Conti · il cavato in tonnellate ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE TERRA → CONTI · L'INVENTARIO DEI CUMULI — il terzo lato del triangolo
+   (03/09, candidato 3 della ricerca di Conti). Le funzioni stanno in shared
+   perché le usano due app: qui si provano su shared, e le due app le
+   ri-esportano (identità, provata nei loro blocchi).
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta cinquemila righe più su.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const INV = [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 2400 }, { materiale: "Sabbia lavata 0/4", volumeM3: 1150 }, { materiale: "Pietrisco 8/12", volumeM3: 620 }, { materiale: "Terre di scavo", volumeM3: 300 }] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 3050 }, { materiale: "sabbia  lavata 0/4", volumeM3: 880 }, { materiale: "Pietrisco 8/12", volumeM3: 700 }, { materiale: "Terre di scavo", volumeM3: 300 }] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 2900 }, { materiale: "Sabbia lavata 0/4", volumeM3: null }, { materiale: "Pietrisco 8/12", volumeM3: 640 }] },
+  ];
+  const LISTINO = { "stabilizzato 0/30": 1.9, "sabbia lavata 0/4": 1.6, "pietrisco 8/12": 1.5 };
+  const densitaDi = (m) => LISTINO[ponti.chiaveMateriale(m)] ?? null;
+
+  test("chiaveMateriale: accenti, maiuscole e spazi non contano; il nome sì", () => {
+    eq(ponti.chiaveMateriale("  Sàbbia   Lavata 0/4 "), "sabbia lavata 0/4");
+    eq(ponti.chiaveMateriale("sabbia  lavata 0/4"), ponti.chiaveMateriale("Sabbia lavata 0/4"));
+    ok(ponti.chiaveMateriale("Sabbia 0/4") !== ponti.chiaveMateriale("Sabbia lavata 0/4"), "un nome diverso non si indovina");
+    eq(ponti.chiaveMateriale(null), ""); eq(ponti.chiaveMateriale(undefined), "");
+  });
+  test("cumuliUsabili: un volume assente NON è zero, e si dice perché resta fuori", () => {
+    const r = ponti.cumuliUsabili(INV[2]);
+    eq(r.buoni.length, 2); eq(r.scartati, [{ materiale: "Sabbia lavata 0/4", perche: "volume non leggibile" }]);
+    eq(ponti.cumuliUsabili({ cumuli: [{ materiale: "", volumeM3: 5 }, { materiale: "X", volumeM3: "abc" }, { materiale: "Y", volumeM3: -1 }, { materiale: "Z", volumeM3: 0 }] }),
+       { buoni: [{ materiale: "Z", chiave: "z", volumeM3: 0 }], scartati: [{ materiale: "", perche: "senza materiale" }, { materiale: "X", perche: "volume non leggibile" }, { materiale: "Y", perche: "volume non leggibile" }] });
+    eq(ponti.cumuliUsabili(null), { buoni: [], scartati: [] }, "senza niente non esplode");
+    eq(ponti.cumuliUsabili({ cumuli: [{ materiale: "A", volumeM3: "12,5" }] }).buoni.length, 0, "la virgola italiana non si legge a occhio qui: il modulo la legge prima di salvare");
+  });
+  test("inventarioUsabile / volumeInventario: data che esiste e almeno un cumulo misurato; se no null, non 0", () => {
+    ok(ponti.inventarioUsabile(INV[0])); ok(ponti.inventarioUsabile(INV[2]), "un cumulo non misurato non rende inusabile l'inventario");
+    eq(ponti.inventarioUsabile({ data: "2026-02-30", cumuli: [{ materiale: "A", volumeM3: 1 }] }), false, "il 30 febbraio non esiste");
+    eq(ponti.inventarioUsabile({ data: "2026-03-01", cumuli: [{ materiale: "A", volumeM3: null }] }), false, "tutti non misurati");
+    eq(ponti.inventarioUsabile(null), false);
+    eq(ponti.volumeInventario(INV[0]), 4470); eq(ponti.volumeInventario(INV[2]), 3540, "la sabbia non misurata non entra come zero: il totale è dei due misurati");
+    eq(ponti.volumeInventario({ data: "2026-03-01", cumuli: [] }), null);
+  });
+  test("variazioneScorte: due inventari che racchiudono il periodo, materiale per materiale", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    eq(v.calcolabile, true); eq(v.inizio.id, "i1"); eq(v.fine.id, "i2"); eq(v.parziale, false); eq(v.perche, "");
+    eq(v.deltaM3, 460, "650 − 270 + 80 + 0");
+    eq(v.perMateriale.map((r) => [r.chiave, r.deltaM3]), [["stabilizzato 0/30", 650], ["sabbia lavata 0/4", -270], ["pietrisco 8/12", 80], ["terre di scavo", 0]], "ordinate per ampiezza, e «sabbia  lavata» si è accoppiata con «Sabbia lavata»");
+    eq(v.scartoGiorni, { inizio: 3, fine: 3 }, "i giorni fra l'inventario e il confine del periodo si dichiarano");
+    eq(v.nonUsabili, 0); eq(v.terraRisponde, true);
+  });
+  test("⛔ variazioneScorte: un materiale misurato in UN solo inventario non vale zero nell'altro — resta fuori, dichiarato", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-09-03");
+    eq(v.fine.id, "i3"); eq(v.calcolabile, true); eq(v.parziale, true);
+    eq(v.deltaM3, 520, "500 + 20: la sabbia (non misurata il 30/08) e le terre (assenti) NON entrano come −880 e −300");
+    eq(v.nonConfrontabili.map((r) => [r.chiave, r.mancaIn]), [["sabbia lavata 0/4", "fine"], ["terre di scavo", "fine"]]);
+    ok(/2 materiali sono misurati in un solo inventario/.test(v.perche), v.perche);
+    const r = v.perMateriale.find((x) => x.chiave === "sabbia lavata 0/4");
+    eq(r.deltaM3, null); eq(r.inizioM3, 1150); eq(r.fineM3, null); eq(r.confrontabile, false);
+  });
+  test("variazioneScorte: i casi in cui NON si calcola, ognuno con la sua ragione", () => {
+    const n = ponti.variazioneScorte(null, "2026-01-01", "2026-06-30");
+    eq(n.calcolabile, false); eq(n.terraRisponde, false); eq(n.perche, "gli inventari dei cumuli di Terra non arrivano");
+    eq(ponti.variazioneScorte([], "2026-01-01", "2026-06-30").perche, "in Terra non c'è nessun inventario dei cumuli");
+    const uno = ponti.variazioneScorte(INV, "2026-01-01", "2026-03-31");
+    eq(uno.calcolabile, false); eq(uno.inizio.id, "i1"); ok(/non c'è un secondo inventario/.test(uno.perche), uno.perche);
+    const prima = ponti.variazioneScorte(INV, "2025-01-01", "2026-06-30");
+    eq(prima.calcolabile, false); eq(prima.inizio, null); ok(/il primo è del 2025-12-29/.test(prima.perche), prima.perche);
+    eq(ponti.variazioneScorte(INV, "2026-06-30", "2026-01-01").perche, "il periodo non è un intervallo di date leggibile");
+    eq(ponti.variazioneScorte(INV, "2026-02-30", "2026-06-30").calcolabile, false, "una data che non esiste non è un confine");
+    const rotti = ponti.variazioneScorte([{ data: "boh", cumuli: [{ materiale: "A", volumeM3: 1 }] }], "2026-01-01", "2026-06-30");
+    eq(rotti.nonUsabili, 1); ok(/nessun inventario dei cumuli è leggibile/.test(rotti.perche), rotti.perche);
+    const disgiunti = ponti.variazioneScorte([{ data: "2026-01-01", cumuli: [{ materiale: "A", volumeM3: 1 }] }, { data: "2026-06-01", cumuli: [{ materiale: "B", volumeM3: 1 }] }], "2026-01-01", "2026-06-30");
+    eq(disgiunti.calcolabile, false); ok(/nessun materiale è misurato in tutt'e due/.test(disgiunti.perche), disgiunti.perche);
+    eq(disgiunti.nonConfrontabili.length, 2, "e i due restano elencati");
+  });
+  test("scorteInTonnellate: ogni materiale con la SUA densità del listino; chi non ce l'ha resta fuori, elencato", () => {
+    const v = ponti.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    const t = ponti.scorteInTonnellate(v.perMateriale, densitaDi);
+    eq(t.calcolabile, true); eq(t.parziale, true);
+    eq(t.deltaT, 923, "650·1,9 − 270·1,6 + 80·1,5 = 1235 − 432 + 120");
+    eq(t.scoperte.map((r) => r.chiave), ["terre di scavo"]); eq(t.perche, "un materiale senza densità nel listino resta fuori dal conto");
+    eq(t.coperte.find((r) => r.chiave === "sabbia lavata 0/4").deltaT, -432);
+    eq(ponti.scorteInTonnellate([], densitaDi).perche, "nessuna variazione per materiale da convertire");
+    eq(ponti.scorteInTonnellate(v.perMateriale, null).calcolabile, false);
+    const nessuna = ponti.scorteInTonnellate(v.perMateriale, () => null);
+    eq(nessuna.calcolabile, false); eq(nessuna.deltaT, null); eq(nessuna.perche, "nessun materiale dell'inventario ha una densità nel listino");
+    eq(ponti.scorteInTonnellate([{ chiave: "a", materiale: "A", deltaM3: 10 }], () => "1,5").calcolabile, false, "una densità scritta con la virgola non è un numero qui");
+  });
+  test("chiusuraTriangolo: cavato − venduto − Δscorte, in tonnellate, con lo stato e il verso", () => {
+    eq(ponti.chiusuraTriangolo(20000, 17000, 923), { scarto: 2077, pct: 10.39, stato: "attenzione", verso: "sparito", calcolabile: true, perche: "" });
+    eq(ponti.chiusuraTriangolo(20000, 18500, 923).stato, "coerente");
+    const ecc = ponti.chiusuraTriangolo(20000, 25000, 923);
+    eq(ecc.scarto, -5923); eq(ecc.verso, "in-eccesso"); eq(ecc.stato, "attenzione");
+    eq(ponti.chiusuraTriangolo(20000, 5000, 0).stato, "implausibile");
+    eq(ponti.chiusuraTriangolo(100, 60, 40).verso, "pari");
+    eq(ponti.chiusuraTriangolo(null, 1, 1).perche, "il cavato in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(0, 1, 1).calcolabile, false, "con zero cavato la percentuale non ha senso");
+    eq(ponti.chiusuraTriangolo(10, null, 1).perche, "il venduto in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(10, 1, "").perche, "la variazione delle scorte in tonnellate non c'è");
+    eq(ponti.chiusuraTriangolo(100, 50, 30, { coerente: 5, attenzione: 15 }).stato, "implausibile", "le soglie si passano");
+    eq(ponti.SOGLIA_TRIANGOLO, { coerente: 10, attenzione: 35 });
+  });
+}
+/* ===== fine ponte Terra → Conti · l'inventario dei cumuli ===== */
+
+{
+/* ── DECISIONE 12a PER GLI INVENTARI: il file che si RI-CARICA ──
+   Prove SINCRONE, da mettere PRIMA del riepilogo (l'`await Promise.all(inVolo)`
+   sta più su). Stessa forma delle prove di `csvRilievi`: il giro di andata e
+   ritorno E un'asserzione sul TESTO, perché `parseInventariCsv` usa `numIt`,
+   che la virgola la legge — scritto con la virgola il giro tornerebbe verde
+   su un file che solo la nostra app sa aprire. */
+test("csvInventari → parseInventariCsv: i tre inventari della demo tornano identici sui campi scritti", () => {
+  const INV = terra.DEMO.inventari;
+  const t = terra.csvInventari(INV);
+  const r = terra.parseInventariCsv(t);
+  const perMateriale = (a, b) => terra.chiaveMateriale(a.materiale).localeCompare(terra.chiaveMateriale(b.materiale), "it");
+  const attesi = INV.map((i) => ({ ...i, cumuli: [...i.cumuli].sort(perMateriale) })).sort((a, b) => b.data.localeCompare(a.data));
+  eq(r.inventari, attesi, "id, data, metodo, materiale, volume e nota: identici (i cumuli nell'ordine del file, per materiale)");
+  eq(r.scarti, [], "nessuna riga persa nel giro di casa nostra");
+  eq(r.letti, INV.reduce((s, i) => s + i.cumuli.length, 0), "una riga letta per ogni cumulo scritto");
+  const sabbia = r.inventari.find((i) => i.id === "i3").cumuli.find((c) => /Sabbia/.test(c.materiale));
+  eq(sabbia.volumeM3, null, "la sabbia «in lavorazione» torna non misurata, non 0");
+  eq(sabbia.nota, "Cumulo in lavorazione: non misurato");
+});
+test("csvInventari: il TESTO — intestazione, una riga per cumulo, il punto decimale, la cella vuota per il null", () => {
+  const t = terra.csvInventari([{ id: "x", data: "2026-03-01", metodo: "drone", cumuli: [
+    { materiale: "Sabbia lavata 0/4", volumeM3: 12.5 }, { materiale: "Ghiaia 16/32", volumeM3: null, nota: "in lavorazione" }, { materiale: "Pietrisco", volumeM3: "" }] }]);
+  const righe = t.split("\n");
+  eq(righe[0], "data;metodo;materiale;volumeM3;nota;inventarioId");
+  eq(terra.INTESTAZIONE_INVENTARI, righe[0], "l'intestazione è la costante che la pagina mostra nel messaggio d'errore");
+  eq(righe.length, 5, "intestazione + 3 cumuli + riga finale vuota");
+  ok(/;12\.5;/.test(t), t); eq(/;12,5;/.test(t), false, "una virgola qui la leggerebbe solo la nostra app");
+  eq(righe[1], "2026-03-01;drone;Ghiaia 16/32;;in lavorazione;x", "il null è una cella VUOTA, e i cumuli sono per materiale");
+  eq(righe[2], "2026-03-01;drone;Pietrisco;;;x", "anche la stringa vuota resta vuota: non diventa 0");
+  eq(/;0;/.test(t), false, "nessuno zero inventato");
+  eq(terra.csvInventari([]), terra.INTESTAZIONE_INVENTARI + "\n", "senza inventari, solo l'intestazione");
+  eq(terra.csvInventari(null), terra.INTESTAZIONE_INVENTARI + "\n", "e su un valore che non è una lista non esplode");
+  /* uno zero VERO è un dato: un cumulo misurato a zero (finito) si scrive 0 */
+  ok(/;Ghiaia;0;;/.test(terra.csvInventari([{ data: "2026-03-01", cumuli: [{ materiale: "Ghiaia", volumeM3: 0 }] }])), "lo zero misurato si scrive");
+});
+test("csvInventari: ordine per data decrescente (poi id), nota con ; e a capo fra virgolette, formula neutralizzata", () => {
+  const t = terra.csvInventari([
+    { id: "b", data: "2026-01-01", cumuli: [{ materiale: "A", volumeM3: 1 }] },
+    { id: "a", data: "2026-05-01", cumuli: [{ materiale: "A", volumeM3: 2, nota: "riga;con\na capo" }] },
+    { id: "c", data: "2026-05-01", cumuli: [{ materiale: "=A", volumeM3: 3 }] },
+  ]);
+  const r = terra.parseInventariCsv(t);
+  eq(r.inventari.map((i) => i.id), ["a", "c", "b"], "5 maggio prima del 1° gennaio; a parità di data per id");
+  eq(r.inventari[0].cumuli[0].nota, "riga;con\na capo", "la nota con ; e a capo fa il giro intera (leggiCsv, non split)");
+  ok(/"riga;con\na capo"/.test(t), "e nel testo sta fra virgolette");
+  eq(r.inventari[1].cumuli[0].materiale, "=A", "il materiale che comincia con = esce con l'apostrofo di guardia e rientra pulito");
+  ok(/;'=A;/.test(t), t);
+});
+test("parseInventariCsv: la virgola decimale, il volume illeggibile scartato con la ragione, la data che non esiste", () => {
+  const r = terra.parseInventariCsv([
+    "data;metodo;materiale;volumeM3;nota;inventarioId",
+    "2026-03-01;drone;Sabbia;12,5;;x",
+    "2026-03-01;drone;Ghiaia;abc;;x",
+    "2026-03-01;drone;Pietrisco;-4;;x",
+    "2026-03-01;drone;;7;;x",
+    "2026-02-30;drone;Sabbia;3;;y",
+    ";drone;Sabbia;3;;z",
+  ].join("\n"));
+  eq(r.letti, 6, "sei righe di dati: l'intestazione non conta");
+  eq(r.inventari, [{ id: "x", data: "2026-03-01", metodo: "drone", cumuli: [{ materiale: "Sabbia", volumeM3: 12.5 }] }], "12,5 → 12.5; l'inventario y (30 febbraio) non esiste");
+  eq(r.scarti, [
+    { riga: 3, perche: "il volume non si legge" },
+    { riga: 4, perche: "il volume è negativo" },
+    { riga: 5, perche: "manca il materiale" },
+    { riga: 6, perche: "la data non esiste" },
+    { riga: 7, perche: "la data non è stata scritta" },
+  ], "ogni riga persa con la sua ragione, numerata come si vede nel file (intestazione = riga 1)");
+});
+test("parseInventariCsv: testo vuoto → letti 0 e nessuno scarto inventato; sola intestazione idem; senza id raggruppa per data+metodo", () => {
+  eq(terra.parseInventariCsv(""), { inventari: [], scarti: [], letti: 0 });
+  eq(terra.parseInventariCsv(null), { inventari: [], scarti: [], letti: 0 });
+  eq(terra.parseInventariCsv("data;metodo;materiale;volumeM3;nota;inventarioId\n"), { inventari: [], scarti: [], letti: 0 }, "un file di sola intestazione non porta dentro righe finte");
+  const r = terra.parseInventariCsv("2026-03-01;drone;Sabbia;1\n2026-03-01;drone;Ghiaia;2\n2026-03-01;stima;Sabbia;3\n2026-04-01;drone;Sabbia;4\n");
+  eq(r.inventari.length, 3, "senza intestazione e senza id: data+metodo fa l'inventario (drone/stima del 01/03 sono due, il 01/04 è il terzo)");
+  eq(r.inventari[0], { data: "2026-03-01", metodo: "drone", cumuli: [{ materiale: "Sabbia", volumeM3: 1 }, { materiale: "Ghiaia", volumeM3: 2 }] }, "senza id il record non porta la chiave `id`");
+  eq(r.inventari.every((i) => !("id" in i)), true);
+  /* stesso id, date diverse: la seconda data non si fonde in silenzio */
+  const d = terra.parseInventariCsv("2026-03-01;drone;Sabbia;1;;k\n2026-03-02;drone;Ghiaia;2;;k\n");
+  eq(d.inventari.length, 1); eq(d.scarti, [{ riga: 2, perche: "la data non è quella delle altre righe dello stesso inventario" }]);
+  /* il volume «0» scritto è un cumulo misurato a zero; il vuoto è non misurato */
+  const z = terra.parseInventariCsv("2026-03-01;drone;Sabbia;0;;k\n2026-03-01;drone;Ghiaia;;;k\n").inventari[0].cumuli;
+  eq(z, [{ materiale: "Sabbia", volumeM3: 0 }, { materiale: "Ghiaia", volumeM3: null }]);
+});
+test("rientroInventari: derivato dalle due funzioni vere — tutti rientrano; senza cumuli e con la data che non esiste no", () => {
+  eq(terra.rientroInventari(terra.DEMO.inventari), { scritti: 3, cumuli: 11, rientrano: 3, persi: [] });
+  const r = terra.rientroInventari([
+    { id: "w", data: "2026-03-01", cumuli: [] },
+    { id: "z", data: "2026-02-30", cumuli: [{ materiale: "A", volumeM3: 1 }] },
+    { id: "m", data: "2026-03-05", cumuli: [{ materiale: "A", volumeM3: 1 }, { materiale: "", volumeM3: 2 }] },
+    { id: "v", data: "2026-03-06", cumuli: [{ materiale: "A", volumeM3: null }] },
+  ]);
+  eq(r.scritti, 4); eq(r.cumuli, 4, "una riga per cumulo scritto: 0 + 1 + 2 + 1"); eq(r.rientrano, 1, "solo «v»: un cumulo non misurato rientra come non misurato");
+  eq(r.persi, [
+    { nome: "inventario del 01/03/2026", ragione: "non ha nessun cumulo: non c'è niente da scrivere" },
+    { nome: "inventario con data «2026-02-30»", ragione: "la data non esiste" },
+    { nome: "inventario del 05/03/2026", ragione: "1 cumulo su 2 resta fuori (manca il materiale)" },
+  ]);
+  eq(terra.rientroInventari([]), { scritti: 0, cumuli: 0, rientrano: 0, persi: [] });
+  eq(terra.rientroInventari(null), { scritti: 0, cumuli: 0, rientrano: 0, persi: [] });
+});
+
+}
+/* ===== fine Terra · il CSV degli inventari ===== */
+
+/* ===== Campo · le causali con chiave (03/09) ===== */
+/* ═══ Campo · CAUSALI_FERMO con CHIAVE ed ETICHETTA (03/09) — da incollare in
+   run-kpi.mjs PRIMA del blocco di riepilogo finale. Prove SINCRONE.
+   ⚠️ Sostituisce anche le due prove vecchie che leggevano l'elenco come
+   stringhe: «CAUSALI_FERMO: lista non vuota, tutte stringhe uniche» e la
+   metà di Campo in «`CAUSALI_FERMO` esiste in DUE app e NON è la stessa
+   cosa» (`typeof … === "string"` e `.includes("Attesa mezzo")`). */
+console.log("\n— Campo: causali di fermo con chiave ed etichetta —");
+{
+  /* ⚠️ SOSTITUISCE «paretoFermi: nessuna anomalia = struttura vuota» (riga ~2025):
+     la struttura ha due campi in più, e la prova vecchia li confronta per intero. */
+  test("paretoFermi: nessuna anomalia = struttura vuota, e nessuna causale non riconosciuta", () =>
+    eq(campo.paretoFermi([]), { voci: [], totaleMin: 0, senzaMinutiTot: 0, fermiTot: 0, parziale: false,
+                                nonRiconosciute: 0, valoriNonRiconosciuti: [] }, "vuoto"));
+  const C = campo.CAUSALI_FERMO;
+  test("CAUSALI_FERMO: voci {chiave, etichetta}, chiavi corte e stabili, etichette uniche", () => {
+    ok(Array.isArray(C) && C.length >= 5, "elenco non vuoto");
+    ok(C.every(c => typeof c === "object" && c.chiave && c.etichetta), "ogni voce ha chiave ed etichetta");
+    ok(C.every(c => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(c.chiave)), "la chiave è minuscola, senza spazi né accenti: " + C.map(c => c.chiave).join(","));
+    eq(C.length, new Set(C.map(c => c.chiave)).size, "chiavi uniche");
+    eq(C.length, new Set(C.map(c => c.etichetta)).size, "etichette uniche");
+    ok(C.some(c => c.etichetta === "Attesa mezzo"), "Campo parla di attività di turno");
+    eq(campo.etichettaCausale(campo.CAUSALE_ALTRO), "Altro", "la categoria residua del Pareto è una voce dell'elenco");
+  });
+  test("⚠️ `CAUSALI_FERMO` in Campo e in Flotta: stessa FORMA, elenchi diversi", () => {
+    ok(typeof flotta.CAUSALI_FERMO[0] === "object" && flotta.CAUSALI_FERMO[0].chiave, "Flotta: voci con chiave");
+    ok(typeof C[0] === "object" && C[0].chiave, "Campo: la stessa forma, dal 03/09 — perché rinominare un'etichetta non orfani lo storico");
+    ok(flotta.CAUSALI_FERMO.some(c => c.chiave === "gomme-cingoli") && !C.some(c => c.chiave === "gomme-cingoli"),
+       "ma le liste parlano di soggetti diversi: una macchina là, un'attività di turno qui");
+  });
+  test("chiaveCausale: riconosce la chiave, l'etichetta vecchia e l'etichetta scritta male", () => {
+    eq(campo.chiaveCausale("guasto-meccanico"), "guasto-meccanico", "la chiave torna com'è");
+    eq(campo.chiaveCausale("Guasto meccanico"), "guasto-meccanico", "lo storico porta l'etichetta");
+    eq(campo.chiaveCausale("  GUASTO   meccanico "), "guasto-meccanico", "maiuscole e spazi non contano");
+    eq(campo.chiaveCausale("Intasamento impianto"), "intasamento-impianto", "l'etichetta della dimostrazione");
+    for (const c of C) {
+      eq(campo.chiaveCausale(c.chiave), c.chiave, "ogni chiave si riconosce: " + c.chiave);
+      eq(campo.chiaveCausale(c.etichetta), c.chiave, "ogni etichetta si riconosce: " + c.etichetta);
+      eq(campo.chiaveCausale(c.etichetta.toUpperCase()), c.chiave, "anche in maiuscolo: " + c.etichetta);
+    }
+    eq(campo.chiaveCausale("Nebbia"), null, "un testo che l'elenco non conosce → null, non «altro»");
+    eq(campo.chiaveCausale(""), null, "vuoto → null");
+    eq(campo.chiaveCausale(null), null, "null → null");
+    eq(campo.chiaveCausale(undefined), null, "undefined → null");
+    eq(campo.chiaveCausale("guasto"), null, "un pezzo di chiave non basta: non si indovina");
+  });
+  test("etichettaCausale e descriviCausale: la parola da mostrare", () => {
+    for (const c of C) ok(campo.etichettaCausale(c.chiave) === c.etichetta && c.etichetta.trim().length > 0, "etichetta non vuota per " + c.chiave);
+    eq(campo.etichettaCausale("pippo"), "", "una chiave sconosciuta non inventa una parola");
+    eq(campo.etichettaCausale(""), "", "vuota → vuota");
+    eq(campo.descriviCausale("intasamento-impianto"), "Intasamento impianto", "dalla chiave all'etichetta");
+    eq(campo.descriviCausale("Intasamento impianto"), "Intasamento impianto", "l'etichetta resta l'etichetta");
+    eq(campo.descriviCausale("Nebbia"), "Nebbia", "un testo fuori elenco resta com'è scritto: è un dato");
+    eq(campo.descriviCausale("  Nebbia "), "Nebbia", "ripulito degli spazi");
+    eq(campo.descriviCausale(""), "", "vuoto → vuoto");
+    eq(campo.descriviCausale(null), "", "null → vuoto");
+  });
+  const F = (id, causale, fermoMin) => ({ id, data: "2026-09-01", turno: "Mattina", titolo: "T " + id, squadra: "Squadra C", stato: "anomalia", causale, fermoMin });
+  test("⛔ il Pareto somma la forma VECCHIA (etichetta) e quella NUOVA (chiave) nella stessa causa", () => {
+    const att = [F("v1", "Attesa mezzo", 10), F("n1", "attesa-mezzo", 25), F("m1", "ATTESA  MEZZO", 5),
+                 { id: "x", stato: "in-corso", causale: "attesa-mezzo" }];
+    const pf = campo.paretoFermi(att);
+    eq(pf.voci.map(v => [v.causale, v.conto, v.minuti]), [["Attesa mezzo", 3, 40]], "una voce sola, coi minuti di tutt'e tre; l'attività in corso non conta");
+    eq(campo.riepilogoFermi(att), [{ causale: "Attesa mezzo", conto: 3 }], "e il riepilogo dice la stessa cosa");
+    eq(pf.nonRiconosciute, 0, "nessuna causale fuori elenco");
+    eq(pf.valoriNonRiconosciuti, [], "e nessun valore da nominare");
+  });
+  test("⛔ una causale fuori elenco va in «Altro» ma si CONTA e si NOMINA, invece di sparire", () => {
+    const att = [F("a", "Meteo", 30), F("b", "Nebbia", 20), F("c", "nebbia ", null), F("d", "Altro", 5), F("e", "", 7)];
+    const pf = campo.paretoFermi(att);
+    const altro = pf.voci.find(v => v.causale === "Altro");
+    eq(altro && [altro.conto, altro.minuti, altro.senzaMinuti], [4, 32, 1], "«Altro» raccoglie le due Nebbia, l'Altro scelto e la casella vuota");
+    eq(pf.nonRiconosciute, 2, "ma solo le due Nebbia sono NON riconosciute: «Altro» è una scelta, il vuoto è «non indicata»");
+    eq(pf.valoriNonRiconosciuti, ["Nebbia"], "i valori distinti, per testo normalizzato: «nebbia » è la stessa parola");
+    eq(campo.causaliNonRiconosciute(att), { conto: 2, valori: ["Nebbia"] }, "la funzione da sola dice lo stesso");
+    eq(campo.causaliNonRiconosciute([]), { conto: 0, valori: [] }, "nessuna attività, niente da contare");
+    eq(campo.causaliNonRiconosciute([{ id: "k", stato: "conclusa", causale: "Nebbia" }]), { conto: 0, valori: [] }, "una causale su un'attività NON in anomalia non è un fermo");
+    eq(campo.causaliNonRiconosciute(null), { conto: 0, valori: [] }, "null → zero, non un errore");
+  });
+  test("la dimostrazione porta tutt'e due le forme e una causale fuori elenco", () => {
+    const D = campo.DEMO.attivita;
+    ok(D.some(a => a.stato === "anomalia" && campo.chiaveCausale(a.causale) && a.causale !== campo.chiaveCausale(a.causale)), "un fermo salvato con l'ETICHETTA (lo storico)");
+    ok(D.some(a => a.stato === "anomalia" && campo.chiaveCausale(a.causale) === a.causale), "un fermo salvato con la CHIAVE (il record nuovo)");
+    ok(D.some(a => a.stato === "anomalia" && String(a.causale || "").trim() && !campo.chiaveCausale(a.causale)), "e uno con una causale che l'elenco non conosce");
+    const pf = campo.paretoFermi(D);
+    const int = pf.voci.find(v => v.causale === "Intasamento impianto");
+    eq(int && int.conto, 2, "le due forme di «Intasamento impianto» stanno nella stessa voce");
+    eq(int && int.minuti, 75, "coi minuti di tutt'e due (55 + 20)");
+    eq(pf.nonRiconosciute, 1, "un fermo con causale fuori elenco");
+    eq(pf.valoriNonRiconosciuti, ["Nebbia"], "e la nomina");
+    ok(!pf.voci.some(v => /-/.test(v.causale) && v.causale === v.causale.toLowerCase()), "nessuna CHIAVE compare come etichetta di una voce del Pareto");
+  });
+  test("anomalieAperte e la bozza per Scudo: l'etichetta per la chiave, il testo com'è per il fuori elenco", () => {
+    const f = campo.anomalieAperte([F("n1", "intasamento-impianto", 20), F("z", "Nebbia", 30), F("v", "", 5)]);
+    const di = (id) => f.find(x => x.id === id);
+    eq([di("n1").causale, di("n1").causaleInElenco], ["Intasamento impianto", true], "la chiave si mostra come etichetta");
+    eq([di("z").causale, di("z").causaleInElenco], ["Nebbia", false], "«Nebbia» resta leggibile, e si sa che non è in elenco");
+    eq([di("v").causale, di("v").causaleInElenco], ["", false], "la casella vuota resta vuota");
+    ok(campo.bozzaAzioneFermo(di("z")).origineNota.includes("causale: Nebbia (non in elenco)"), "la nota per l'RSPP scrive la parola E che non è in elenco");
+    ok(campo.bozzaAzioneFermo(di("n1")).origineNota.includes("causale: Intasamento impianto ·"), "e per la chiave scrive l'etichetta, senza codicilli");
+    ok(campo.bozzaAzioneFermo(di("v")).origineNota.includes("causale: non indicata"), "la vuota resta «non indicata»");
+    eq(campo.coperturaFermi([F("z", "Nebbia", 30), F("v", "", 5)], null).senzaCausale, 1, "«Nebbia» NON è «senza causale»: senza è solo la vuota");
+  });
+  test("⛔ il CSV delle attività scrive l'ETICHETTA, mai la chiave, e la si rilegge", () => {
+    const csv = campo.csvAttivita([F("n1", "intasamento-impianto", 20), F("v1", "Guasto meccanico", 10), F("z", "Nebbia", 30)]);
+    const col = campo.ATTIVITA_COLONNE.indexOf("causale");
+    const celle = csv.trim().split("\n").slice(1).map(r => shell.parseCsvLine(r)[col]);
+    eq(celle.sort(), ["Guasto meccanico", "Intasamento impianto", "Nebbia"], "tre celle leggibili da chi apre il file");
+    ok(!csv.includes("intasamento-impianto"), "la chiave non esce dal file");
+    eq(celle.map(c => campo.chiaveCausale(c)).sort(), [null, "guasto-meccanico", "intasamento-impianto"].sort(), "rilette, le etichette tornano alle chiavi; «Nebbia» resta fuori elenco");
+  });
+}
+
+/* ===== fine Campo · le causali con chiave ===== */
+
+/* ===== Genesi · la norma del recettore non si sostituisce (03/09, passata in profondità):
+   l'unità 7 del 02/09 rimetteva il valore di partenza ANCHE a `recNorma`, e una norma
+   sconosciuta usciva nel CSV, nel report e nel file per Sentinella come «DIN residenziale»
+   con un limite e un verdetto. Prove SINCRONE e PRIMA del riepilogo. ===== */
+{
+  const cat = { esplosivo: ["anfo-standard"], innesco: ["nonel"], roccia: ["calcare"], frat: ["media"], sequenza: ["riga", "diagonale"], recNorma: Object.keys(genesi.NORME_PPV) };
+{
+  const D = genesi.designSconosciuti;
+  test("⛔ la norma del recettore che non si riconosce si NOMINA ma NON si sostituisce: `sostituisci:false`", () => {
+    const r = D({ recNorma: "uni-9916" }, cat);
+    eq(r.campi.length, 1); eq(r.campi[0].chiave, "recNorma"); eq(r.campi[0].sostituisci, false);
+    ok(/una scelta non si riconosce: norma del recettore \(«uni-9916»\)/.test(r.che), r.che);
+    ok(/resta com'è scritta/.test(r.come) && /limite PPV non si calcola/.test(r.come), r.come);
+    ok(!/Al suo posto è entrato/.test(r.come), "e NON dice che al suo posto è entrato qualcosa: " + r.come);
+    ok(genesi.ppvSenzaSoglia("uni-9916", 25) !== null, "premessa: sul codice tenuto il modulo risponde «senza soglia»");
+    eq(genesi.ppvLimit("uni-9916", 25), null, "e il limite è null, non 15");
+  });
+  test("le altre scelte si sostituiscono ancora, e lo dicono: `sostituisci:true`", () => {
+    const r = D({ esplosivo: "dinamite-x", kgAuto: "sì", profilo: "no" }, cat);
+    ok(r.campi.every((c) => c.sostituisci === true), JSON.stringify(r.campi));
+    ok(/Al loro posto sono entrati i valori di partenza/.test(r.come), r.come);
+    ok(!/norma del recettore/.test(r.come), "senza norma ignota non se ne parla");
+  });
+  test("le due famiglie insieme: una frase per ciò che entra e una per ciò che resta", () => {
+    const r = D({ esplosivo: "dinamite-x", recNorma: "uni-9916" }, cat);
+    eq(r.campi.map((c) => c.sostituisci), [true, false]);
+    ok(/2 scelte non si riconoscono/.test(r.che), r.che);
+    ok(/Al suo posto è entrato il valore di partenza/.test(r.come) && /norma del recettore non entra nessun valore di partenza/.test(r.come), r.come);
+  });
+  test("⛔ e la pagina LEGGE la bandiera: la sostituzione all'azione «apri» è condizionata a `sostituisci`", () => {
+    const html = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/for\(const c of _sc\.campi\) if\(c\.sostituisci\) D2\[c\.chiave\]=D2_PARTENZA\[c\.chiave\]/.test(html), "guardia sul sorgente: senza `if(c.sostituisci)` la norma tornerebbe «DIN residenziale»");
+  });
+}
+}
+/* ===== fine Genesi · la norma del recettore ===== */
+
+/* ===== Scudo · un appalto senza sito non è «a posto» (03/09, passata in profondità):
+   senza il cantiere valeva la regola del DUVRI, che la firma del DSS non la chiede, e
+   l'appalto col DSS non sottoscritto passava ad A POSTO. Ora `noto:false, serve:null`.
+   Prove SINCRONE e PRIMA del riepilogo. ===== */
+{
+test("Scudo · un appalto senza sito in anagrafe non è «a posto»: non si sa quale documento serve", () => {
+  const OGGI = new Date("2026-09-03T10:00:00");
+  const CAVA = { id: "k1", nome: "Cava", tipo: "cava" };
+  const IMPRESA = { id: "a1", ragioneSociale: "Impresa", attivo: true };
+  /* l'appalto della dimostrazione: DSS coordinato redatto ma NON sottoscritto */
+  const A = scudo.DEMO.appalti.find((x) => x.id === "pa4");
+  const QUAL = scudo.DEMO.documenti;
+  const ap = scudo.DEMO.appaltatori.find((x) => x.id === A.appaltatoreId);
+  eq(scudo.statoAppalto(A, CAVA, ap, QUAL, OGGI).esito, "da-sistemare", "col sito (una cava) il DSS non firmato è un problema vero");
+  const senza = scudo.statoAppalto(A, undefined, ap, QUAL, OGGI);
+  eq(senza.esito, "non-verificato", "⛔ senza il sito lo stesso appalto NON diventa «a posto» (misurato il 03/09: lo diventava)");
+  eq([senza.noto, senza.problemi.length, senza.ignoti.length], [false, 0, 1], "è un buco dichiarato, non un problema e non un verde");
+  eq(senza.coordinamento.stato, "non-decidibile", "il coordinamento si dichiara non decidibile");
+  eq(senza.coordinamento.sigla, "DUVRI", "la sigla resta quella del DUVRI: un sito che non si trova non diventa una cava (contratto già provato)");
+  eq(/sito/i.test(senza.ignoti[0]) && /cava/i.test(senza.ignoti[0]), true, "la ragione nomina il sito e la cava, non un articolo di legge da solo");
+  /* le due porte vere: il modulo salva `cantiereId: null`, e il sito cancellato */
+  eq(scudo.duvriDovuto({ ...A, cantiereId: null }, null).serve, null, "sito mai indicato (null dal modulo): non si può dire");
+  eq(scudo.duvriDovuto({ ...A, cantiereId: "kX" }, undefined).serve, null, "sito non più in anagrafe: non si può dire");
+  /* e il verso opposto: con un sito FUORI cava la regola del DUVRI resta quella di prima */
+  const FUORI = { id: "k2", nome: "Deposito", tipo: "deposito" };
+  eq(scudo.duvriDovuto({ uominiGiorno: 18, rischiValutati: true }, FUORI).serve, true, "fuori cava, 18 uomini-giorno: il DUVRI serve (come prima)");
+  eq(scudo.statoAppalto(A, FUORI, ap, QUAL, OGGI).esito, "a-posto", "fuori cava il documento senza firma è in vigore (il DUVRI la firma non la chiede)");
+  /* il riepilogo per l'ispettore, con l'anagrafe dei siti vuota */
+  const r = scudo.riepilogoAppalti(scudo.DEMO.appalti, [], scudo.DEMO.appaltatori, QUAL, OGGI);
+  eq(r.righe.find((x) => x.appalto.id === "pa4").esito, "non-verificato", "nel riepilogo l'appalto di ripristino resta da verificare, non a posto");
+  eq(r.noto, false, "il riepilogo intero si dichiara non noto");
+});
+
+test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo»", () => {
+  const OGGI = new Date("2026-09-03T10:00:00");
+  const P = scudo.DEMO.permessi.find((p) => p.appaltoId === "pa4") || { appaltoId: "pa4" };
+  const ctx = { appalti: scudo.DEMO.appalti, cantieri: [], appaltatori: scudo.DEMO.appaltatori, documenti: scudo.DEMO.documenti };
+  const v = scudo.impresaPermesso(P, ctx, OGGI);
+  eq(v.esito, "non-verificato", "senza il sito il permesso non è «a posto»");
+  eq([v.noto, v.ignoti.length], [false, 1], "e lo dichiara come buco, non come colpa");
+  eq(scudo.impresaPermesso(P, { ...ctx, cantieri: scudo.DEMO.cantieri }, OGGI).esito, "da-sistemare", "col sito (una cava) torna il problema vero: il DSS non è firmato");
+});
+
+
+}
+/* ===== fine Scudo · appalto senza sito ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CORE · LA FRECCIA DELLA CALOTTA: ZERO È UN VALORE (03/09, dal candidato
+   «fronte» di B12). `calotta_m||1` leggeva uno zero scritto come «mai
+   scritta» e generava i fori di contorno su un arco di un metro che l'utente
+   aveva tolto. Il core non si importa da node: le tre funzioni si ESTRAGGONO
+   dal sorgente e si eseguono con un `parseNum` di servizio — è la difesa
+   «sul sorgente», non una copia riscritta qui.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  const prendi = (nome) => { const m = coreSrc.match(new RegExp("\\nfunction " + nome + "\\([^\\n]*\\n?")); return m ? m[0] : null; };
+  const testi = ["calottaDetta", "calottaDisegno", "galleriaArcY"].map(prendi);
+  test("⛔ core: le tre funzioni della calotta esistono nel sorgente e nessun `calotta_m||1` è rimasto", () => {
+    ok(testi.every(Boolean), "estratte: " + testi.map((t) => !!t).join(","));
+    eq((coreSrc.match(/calotta_m\|\|1/g) || []).length, 0, "il ripiego che leggeva lo zero come assente");
+    eq((coreSrc.match(/cal=calottaDisegno\(v\)/g) || []).length, 3, "i tre disegni (3D, arco, canvas) passano dalla funzione dichiarata");
+    ok(/calottaDetta\(v\)===null\) manca\.push\('la freccia della calotta/.test(coreSrc), "e chi GENERA si ferma se non è scritta");
+  });
+  test("core: con la calotta scritta 0 il cielo è piatto; assente → ripiego di disegno; «1,2» scritto all'italiana si legge", () => {
+    const parseNum = (v) => v === null || v === undefined || v === "" ? NaN : typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    const f = new Function("parseNum", testi.join("\n") + "\nreturn { calottaDetta, calottaDisegno, galleriaArcY };")(parseNum);
+    const y = (cal, x) => Math.round(f.galleriaArcY({ fronte: { lunghezza_m: 5, altezza_m: 4, calotta_m: cal } }, x) * 100) / 100;
+    eq(y(0, 0.4), 4, "lato: sul cielo"); eq(y(0, 2.5), 4, "centro: sul cielo");
+    eq(y(undefined, 0.4), 3.29, "assente: l'arco di un metro del disegno, dichiarato"); eq(y(1.2, 0.4), 3.15);
+    eq(y("1,2", 0.4), 3.15, "la virgola italiana"); eq(y("0", 0.4), 4, "zero scritto come testo");
+    eq(f.calottaDetta({ fronte: { calotta_m: 0 } }), 0); eq(f.calottaDetta({ fronte: {} }), null); eq(f.calottaDetta({ fronte: { calotta_m: -1 } }), null, "una freccia negativa non è scritta");
+    eq(f.calottaDetta(null), null, "senza volata non esplode"); eq(f.calottaDisegno(null), 1);
+  });
+}
+/* ===== fine core · la freccia della calotta ===== */
+
+/* CORE · I RESIDUI DI B12 (03/09): un campo svuotato non vale 0; la barra non
+   dice «0 file» né «null»; la carica massima per ritardo dice «—» senza chili
+   scritti e «≥» quando i chili sono solo su una parte dei fori — il NUMERO di
+   `calcolaCaricaMaxRitardo` non cambia (è una soglia di sicurezza). Difese sul
+   sorgente, come per la calotta. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  const prendi = (nome) => { const m = coreSrc.match(new RegExp("\\nfunction " + nome + "\\([^\\n]*\\n?")); return m ? m[0] : null; };
+  test("⛔ core: aggiornaVolata scrive null sul campo svuotato, e i due clamp sulla lunghezza non inchiodano a x=0", () => {
+    ok(/obj\[campo\]=numCampi\.includes\(campo\)\?\(valore==null\|\|String\(valore\)\.trim\(\)===''\?null:parseNum0\(valore\)\):valore;/.test(coreSrc), "svuotato = null");
+    eq((coreSrc.match(/Lm>0\s*\?\s*Math\.max\(0,\s*Math\.min\(Lm,/g) || []).length, 2, "i due clamp (profilo e trascinamento) guardano se la lunghezza è scritta");
+    eq((coreSrc.match(/Math\.max\(0,Math\.min\(Lm,xM\)\)/g) || []).length, 1, "e la forma vecchia resta solo dentro il ramo Lm>0");
+  });
+  test("core: fileDetti — «0 file» e «null» non si stampano più", () => {
+    const parseNum = (v) => v === null || v === undefined || v === "" ? NaN : typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    const f = new Function("parseNum", prendi("fileDetti") + "\nreturn fileDetti;")(parseNum);
+    eq(f({ maglia: { file: 2 } }), 2); eq(f({ maglia: { file: "3" } }), 3);
+    eq(f({ maglia: { file: 0 } }), null, "zero file non è un numero di file"); eq(f({ maglia: { file: null } }), null); eq(f({ maglia: {} }), null); eq(f(null), null);
+    ok(/\$\{fileDetti\(v\)\?\?'—'\}<\/b>file/.test(coreSrc), "la barra passa da fileDetti");
+    /* i tre numeri della striscia col vestito di perLettura (04/09): la
+       striscia e il foglio che esce dal bottone sotto dicono lo stesso numero
+       nella stessa grafia — «1.323,0 mc», non «1323mc» */
+    ok(/<b>\$\{mv\.metri===null\?'—':perLettura\(mv\.metri,1,true\)\}<\/b><span class="u">m<\/span>/.test(coreSrc), "i metri della striscia passano da perLettura");
+    ok(/\$\{mv\.parziale\?'≥':''\}\$\{perLettura\(mv\.kg,1,true\)\}<\/b><span class="u">kg<\/span>/.test(coreSrc), "e i chili, col «≥» del minimo davanti");
+    ok(/<b>\$\{mv\.mcNoto\?perLettura\(mv\.mc,1,true\):'—'\}<\/b><span class="u">mc<\/span>/.test(coreSrc), "e i metri cubi, con il «—» quando non si calcolano");
+    ok(/perLettura\(mvRo\.metri,1,true\)\+' m'/.test(coreSrc) && /perLettura\(mvRo\.kg,1,true\)\+' kg'/.test(coreSrc), "e il riquadro in sola lettura scrive metri e chili nello stesso vestito, con l'unità");
+    ok(/perLettura\(m\.kg,1,true\)\+' kg di esplosivo'/.test(coreSrc) && /perLettura\(m\.kg,1,true\)\+' kg'\) : 'kg non scritti'/.test(coreSrc), "e volKg / volRiga pure: non resta nessun m.kg nudo nelle frasi");
+    /* LA MAGLIA E LE COORDINATE (04/09, stessa famiglia): «Sp3×I3.5» e «B 3.2 × S
+       3.8» a schermo, «3.5 m» e `toFixed(2)` nel PDF — col punto — mentre il
+       resto del foglio scrive con la virgola. Ora passano tutti da perLettura,
+       e i tre `toFixed(1).replace('.',',')` — la copia debole di perLettura senza
+       le migliaia — non ci sono più. */
+    ok(/<b>Sp\$\{mg\.borraggio===null\?'—':perLettura\(mg\.borraggio,2\)\}<\/b>×I<b>\$\{mg\.spaziatura===null\?'—':perLettura\(mg\.spaziatura,2\)\}<\/b>/.test(coreSrc), "la maglia della striscia passa da perLettura");
+    ok(/B \$\{mgBl\} × S \$\{mgSl\}/.test(coreSrc) && /const mgBl=mg\.borraggio===null\?'—':perLettura\(mg\.borraggio,2\)/.test(coreSrc), "e il riquadro in sola lettura, con il «—» quando manca");
+    ok(/'non scritta':perLettura\(mgPdf\.borraggio,2\)\+' m'/.test(coreSrc) && /'non scritto':perLettura\(mgPdf\.spaziatura,2\)\+' m'/.test(coreSrc), "e le due righe del PDF");
+    ok(/perLettura\(f\.x\|\|0,2,true\),perLettura\(f\.y\|\|0,2,true\)/.test(coreSrc) && !/\(f\.x\|\|0\)\.toFixed\(2\)/.test(coreSrc), "e le coordinate della tabella dei fori, a due decimali fissi con la virgola");
+    ok(!/toFixed\(1\)\.replace\('\.',','\)/.test(coreSrc), "nessun toFixed(1).replace('.',',') resta nel core: era perLettura riscritta senza le migliaia");
+    /* il Report tecnico mensile (04/09): tabella e piede con perLettura, non
+       `toFixed(1)` col punto — l'ultimo foglio del core con una grafia sua */
+    ok(/ms\.metri===null\?'—':perLettura\(ms\.metri,1,true\),\n\s*ms\.calcolabile\?perLettura\(ms\.mc,1,true\):'—'\]/.test(coreSrc), "la tabella del Report tecnico scrive metri e mc con perLettura");
+    ok(/totRT\.metri===null\?'—':perLettura\(totRT\.metri,1,true\),\n\s*totRT\.mc===null\?'—':perLettura\(totRT\.mc,1,true\)/.test(coreSrc), "e il piede dei totali pure");
+    ok(!/ms\.metri\.toFixed\(1\)|ms\.mc\.toFixed\(1\)|totRT\.metri\.toFixed|totRT\.mc\.toFixed/.test(coreSrc), "e non resta nessun toFixed(1) sui metri e i mc dei rapportini");
+    /* i numeroni a schermo (04/09): «3466» → «3.466». `toFixed(0)` resta solo
+       sulle percentuali, che non hanno migliaia */
+    ok(/kpi-val">\$\{totMc===null\?'—':perLettura\(totMc,0\)\}/.test(coreSrc) && /perLettura\(totMetri,0\)\+' m'/.test(coreSrc) && /perLettura\(totKg,0\)/.test(coreSrc), "i totali della dashboard e del report passano da perLettura con le migliaia");
+    ok((coreSrc.match(/\.toFixed\(0\)/g) || []).length === (coreSrc.match(/\.toFixed\(0\)\+'%'/g) || []).length && (coreSrc.match(/\.toFixed\(0\)/g) || []).length > 0, "e ogni toFixed(0) rimasto nel core è una percentuale (contate: le due forme devono coincidere)");
+    ok(shell.perLettura(1323, 1, true) === "1.323,0" && shell.perLettura(3.2, 2) === "3,2" && shell.perLettura(3, 2) === "3", "perLettura: migliaia col punto, decimali con la virgola, e senza decimali finti sulla maglia"); ok(/if\(fileDetti\(v\)===null\) manca\.push\('il numero di file'\)/.test(coreSrc), "e la guardia del generatore pure");
+  });
+  test("⛔ core: caricaMaxDetta — «—» senza chili, «≥» a metà, il numero pieno quando i chili ci sono tutti", () => {
+    const parseNum0 = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+    const src = prendi("caricaMaxDetta") + "\n" + coreSrc.slice(coreSrc.indexOf("\nfunction calcolaCaricaMaxRitardo("), coreSrc.indexOf("\nfunction caricaMaxDetta("));
+    /* dal 04/09 la frase veste il numero con `perLettura` («16,0 kg», con la
+       virgola), come il PDF e la striscia: prima scriveva `toFixed(1)` col punto */
+    const f = new Function("parseNum0", "misureVolataProgetto", "perLettura", src + "\nreturn { caricaMaxDetta, calcolaCaricaMaxRitardo };")(parseNum0, shell.misureVolataProgetto, shell.perLettura);
+    const v = (fori) => ({ fori, tot_kg: fori.reduce((s, x) => s + (+x.kg || 0), 0) });
+    eq(f.caricaMaxDetta(v([{ kg: "", ritardo: 25 }, { kg: "", ritardo: 50 }])), "—", "volata appena generata: nessun chilo scritto");
+    eq(f.calcolaCaricaMaxRitardo(v([{ kg: "", ritardo: 25 }])), 0, "il numero resta quello di prima: la soglia non si tocca");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 8, ritardo: 25 }, { kg: "", ritardo: 50 }])), "≥ 16,0 kg", "chili su due fori su tre: un minimo, con la virgola");
+    eq(f.caricaMaxDetta(v([{ kg: 8, ritardo: 25 }, { kg: 12, ritardo: 50 }])), "12,0 kg");
+    eq(f.caricaMaxDetta(v([{ kg: 1000, ritardo: 25 }, { kg: 250.25, ritardo: 25 }])), "1.250,3 kg", "migliaia col punto e un decimale, come la striscia");
+    ok(!/calcolaCaricaMaxRitardo\(v\)\.toFixed/.test(coreSrc), "e nel sorgente non resta il toFixed col punto");
+    eq(f.caricaMaxDetta(v([])), "—");
+    ok(/Carica max\/ritardo: <b>\$\{caricaMaxDetta\(v\)\}<\/b>/.test(coreSrc), "il pannello stampa la frase decisa dalla funzione");
+  });
+}
+/* ===== fine core · i residui di B12 ===== */
+
+/* CORE · LA PASSATA DEL 04/09: due difetti trovati sul RENDERIZZATO e chiusi
+   nel sorgente. (1) Nel riquadro «Maglia di perforazione» dell'editor le tre
+   etichette Spalla/Interasse/Borraggio portavano l'unità NUDA dentro `.fl`
+   (uppercase) → «SPALLA (M)» a schermo, mentre la sorella «Freccia calotta»
+   e le stesse etichette in Strumenti ufficio la avvolgono in `<span class="u">`
+   dal 30/07 (commit 44b58360): il blocco del 02/06 era rimasto fuori dalla
+   correzione. Misurato a 390 e 320 px, tema scuro e chiaro: `text-transform`
+   della `.u` = none, dell'etichetta = uppercase. (2) Nel Gemello digitale, con
+   una cava senza rapportini fochino il KPI «Esplosivo» scriveva «nessuna delle
+   0 volate dichiara i chili» (DEFAULT_RAPPORTINI_FOC svuotato nella risposta
+   HTTP): una frase che nega un insieme vuoto — e con una volata sola «nessuna
+   delle 1 volata». Difese sul sorgente, come per la calotta e i residui di
+   B12. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: le unità delle etichette della maglia (Spalla, Interasse, Borraggio) non finiscono in maiuscolo", () => {
+    for (const eti of ["Spalla", "Interasse", "Borraggio"]) {
+      const nude = (coreSrc.match(new RegExp('class="fl">' + eti + ' \\(m\\)', "g")) || []).length;
+      eq(nude, 0, eti + ": nessuna «(m)» nuda dentro un'etichetta uppercase");
+    }
+    /* la forma buona è quella della sorella «Freccia calotta»: conta le tre + le altre già a posto */
+    const vestite = (coreSrc.match(/class="fl">(Spalla|Interasse|Borraggio) \(<span class="u">m<\/span>\)/g) || []).length;
+    ok(vestite >= 3, "le tre etichette della maglia avvolgono l'unità in .u (trovate " + vestite + ")");
+    ok(/\.fl \.u[^{]*\{[^}]*text-transform:\s*none/.test(coreSrc), "e .fl .u rimette l'unità in minuscolo");
+  });
+  test("⛔ core: il KPI Esplosivo del gemello non nega un insieme vuoto («nessuna delle 0 volate»)", () => {
+    const i = coreSrc.indexOf("kpi-lbl\">Esplosivo</div>");
+    ok(i > 0, "il KPI esiste");
+    const riga = coreSrc.slice(i, i + 700);
+    ok(/rf\.length===0\?'nessuna volata registrata'/.test(riga), "zero volate: «nessuna volata registrata»");
+    ok(/rf\.length===1\?'la sola volata non dichiara i chili'/.test(riga), "una volata: al singolare, senza «delle 1 volata»");
+    ok(/nessuna delle \$\{conta\(rf\.length,'volata','volate'\)\} dichiara i chili/.test(riga), "e da due in su la frase di prima");
+    /* la frase, eseguita: si estrae il ternario e lo si valuta con `conta` finto */
+    const m = riga.match(/\$\{totKg===null\?(\(rf\.length===0\?[^:]+:rf\.length===1\?[^:]+:`[^`]+`\)):/);
+    ok(!!m, "il ternario si legge");
+    const frase = (n) => new Function("rf", "conta", "return " + m[1] + ";")({ length: n }, (q, s, p) => q + " " + (q === 1 ? s : p));
+    eq(frase(0), "nessuna volata registrata"); eq(frase(1), "la sola volata non dichiara i chili"); eq(frase(3), "nessuna delle 3 volate dichiara i chili");
+  });
+}
+/* ===== fine core · la passata del 04/09 ===== */
+
+/* CORE · IL TITOLO DELLA SEZIONE GALLERIA STA NEL MARGINE (04/09): con la
+   calotta a 0 il cielo è piatto e la fila di contorno passa a 0,15 m dal cielo,
+   cioè esattamente dove stava scritto «SEZIONE GALLERIA · 5×4 m» (y=pad+14):
+   misurati DUE fori sopra il titolo con calotta 0, zero con calotta 1,2. Il
+   titolo va sopra la sezione, come l'etichetta CALOTTA. ⚠️ Prova SINCRONA. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: renderGalleriaCanvas scrive il titolo della sezione SOPRA il bordo, non dentro dove passa il contorno a calotta 0", () => {
+    const i = coreSrc.indexOf("\nfunction renderGalleriaCanvas(");
+    ok(i > 0, "la funzione esiste");
+    const src = coreSrc.slice(i, coreSrc.indexOf("SEZIONE GALLERIA · ${Wm}×${Hm} m</text>", i) + 40);
+    ok(/<text x="\$\{pad\}" y="\$\{pad-6\}"[^>]*>SEZIONE GALLERIA/.test(src), "titolo a y=pad-6, nel margine");
+    ok(!/y="\$\{pad\+14\}"[^>]*>SEZIONE GALLERIA/.test(src), "e non più a y=pad+14 dentro la sezione");
+    /* e la CALOTTA resta dove stava: sopra il vertice dell'arco */
+    ok(/y="\$\{toPx\(Wm\/2,Hm\)\.py-4\}"[^>]*>CALOTTA</.test(coreSrc), "l'etichetta CALOTTA è ancora sopra il vertice");
+  });
+}
+/* ===== fine core · il titolo della sezione galleria ===== */
+
+/* CORE · LA HOME NON DICE «SCADUTO IL —» (04/09): il riquadro dei promemoria
+   della home mette in lista anche quelli con la data illeggibile (giusto: non
+   devono sparire, è il conto del pallino rosso) ma li scriveva «Scaduto il —»
+   — un'affermazione su una cosa che non si sa, mentre le notifiche dicono «la
+   data non si legge: non si può dire se è scaduto». Visto sullo scatto della
+   home a 390 e 320 px («Verifica estintori del container ufficio · Scaduto
+   il —»). Stessa frase delle notifiche. ⚠️ Prova SINCRONA. */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  test("⛔ core: la riga del promemoria in home dice che la data non si legge invece di «Scaduto il —»", () => {
+    const i = coreSrc.indexOf("nl.innerHTML=scad.slice(0,3)");
+    ok(i > 0, "il riquadro della home esiste");
+    const riga = coreSrc.slice(i, i + 600);
+    ok(!/Scaduto il \$\{fmt\(p\.data\)\}/.test(riga), "niente «Scaduto il» a secco sulla data");
+    ok(/promemoriaSenzaData\(p\)\?/.test(riga), "la riga chiede prima se la data si legge");
+    ok(/La data non si legge: non si può dire se è scaduto/.test(riga), "e usa la frase delle notifiche");
+    /* eseguita: con data illeggibile, con data vera */
+    const m = riga.match(/<div class="ssub">\$\{(.+?)\}<\/div>/);
+    ok(!!m, "il ternario si legge");
+    const f = (p, senza) => new Function("p", "promemoriaSenzaData", "fmt", "return " + m[1] + ";")(p, () => senza, (d) => d ? d.split("-").reverse().join("/") : "—");
+    eq(f({ data: "boh" }, true), "La data non si legge: non si può dire se è scaduto");
+    eq(f({ data: "boh", scaduto: true }, true), "Scaduto · la data non si legge");
+    eq(f({ data: "2026-04-20" }, false), "Scaduto il 20/04/2026");
+  });
+}
+/* ===== fine core · la home non dice «scaduto il —» ===== */
+
+/* ===== fine core · la passata del 04/09 ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   SHELL · L'ESITO DELLO SPARO (03/09, dal delta sul rapporto di volata: i
+   colpi esplosi contati e i colpi mancati erano le due mancanze vere). Una
+   funzione sola per lista, dettaglio e PDF del rapportino fochino.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const E = (c) => shell.esitoSparo({ fori: 12, fori_dettaglio: [], ...c });
+  test("⛔ esitoSparo: senza i due numeri l'esito è NON CONTATO, non «0 mancati»", () => {
+    const r = E({});
+    eq([r.contato, r.parziale, r.esplosi, r.mancati, r.pericolo, r.notaMancante, r.coerente], [false, false, null, null, false, false, true]);
+    eq(shell.esitoSparo(null).contato, false, "senza rapportino non esplode"); eq(shell.esitoSparo(null).fori, 0);
+    eq(E({ colpiEsplosi: 1.5 }).contato, false, "un decimale non è un conto di colpi"); eq(E({ colpiMancati: -1 }).contato, false, "né un negativo");
+  });
+  test("esitoSparo: contato pieno, parziale, e il pericolo con la nota", () => {
+    const pieno = E({ colpiEsplosi: 12, colpiMancati: 0 });
+    eq([pieno.contato, pieno.parziale, pieno.pericolo, pieno.coerente, pieno.perche], [true, false, false, true, ""]);
+    const p = E({ colpiMancati: 0 }); eq([p.contato, p.parziale, p.esplosi, p.mancati], [true, true, null, 0], "un numero solo: contato ma parziale");
+    const m = E({ colpiEsplosi: 11, colpiMancati: 1 }); eq([m.pericolo, m.notaMancante, m.coerente], [true, true, true], "un mancato senza nota: pericolo dichiarato");
+    const n = E({ colpiEsplosi: 11, colpiMancati: 1, mancatiNota: "  foro 7, area interdetta " }); eq(n.notaMancante, false); eq(n.nota, "foro 7, area interdetta");
+    eq(E({ colpiEsplosi: "11", colpiMancati: "1" }).mancati, 1, "scritti come testo dal campo");
+  });
+  test("esitoSparo: quando i conti non tornano si DICE, e il numero resta", () => {
+    const troppi = E({ colpiMancati: 13 }); eq(troppi.coerente, false); eq(troppi.perche, "13 colpi mancati su 12 fori caricati"); eq(troppi.mancati, 13, "il numero non si corregge");
+    const somma = E({ colpiEsplosi: 11, colpiMancati: 2 }); eq(somma.coerente, false); eq(somma.perche, "11 esplosi più 2 mancati fanno più dei 12 fori caricati");
+    eq(E({ colpiEsplosi: 10, colpiMancati: 1 }).perche, "un foro caricato senza esito"); eq(E({ colpiEsplosi: 8, colpiMancati: 1 }).perche, "3 fori caricati senza esito");
+    eq(E({ colpiEsplosi: 8, colpiMancati: 1 }).coerente, true, "meno della somma non è incoerente: è un esito non scritto");
+    const senzaFori = shell.esitoSparo({ colpiEsplosi: 3, colpiMancati: 1 }); eq(senzaFori.coerente, true, "senza fori caricati non c'è con che confrontare"); eq(senzaFori.fori, 0);
+  });
+}
+/* ===== fine shell · l'esito dello sparo ===== */
+
+/* SHELL · L'ESPLOSIVO PER TIPO (03/09, punto 0 del delta sul rapporto di
+   volata). ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const E = (dett) => shell.esplosivoPerTipo({ fori_dettaglio: dett });
+  test("esplosivoPerTipo: i chili per foro si sommano per TIPO, ordinati dal più pesante", () => {
+    const r = E([{ esplosivo: "Emulsione", kg: 8 }, { esplosivo: "Emulsione", kg: 8 }, { esplosivo: "ANFO", kg: 12 }, { esplosivo: "Emulsione", kg: "" }]);
+    eq(r.tipi, [{ tipo: "Emulsione", kg: 16, fori: 3 }, { tipo: "ANFO", kg: 12, fori: 1 }]);
+    eq(r.kgTot, 28); eq(r.dichiarato, true); eq(r.conDueTipi, 0); eq(r.senzaTipo, { fori: 0, kg: 0 });
+    eq(r.kgTot, shell.misureVolataFochino({ fori_dettaglio: [{ esplosivo: "Emulsione", kg: 8 }, { esplosivo: "Emulsione", kg: 8 }, { esplosivo: "ANFO", kg: 12 }] }).kg, "lo stesso totale della misura che il PDF stampa già");
+  });
+  test("⛔ esplosivoPerTipo: i chili senza tipo NON si attribuiscono a nessuno, si dichiarano; due tipi in un foro si contano", () => {
+    const r = E([{ esplosivo: "", kg: 3 }, { esplosivo: "ANFO", esplosivo2: "Emulsione", kg: 12 }, { esplosivo2: "Emulsione", kg: 2 }]);
+    eq(r.senzaTipo, { fori: 1, kg: 3 }); eq(r.dichiarato, false, "3 kg senza tipo: il conto per tipo non copre tutto");
+    eq(r.conDueTipi, 1, "il foro ANFO+Emulsione: i 12 kg vanno al primo tipo scritto, e il foro si conta");
+    eq(r.tipi, [{ tipo: "ANFO", kg: 12, fori: 1 }, { tipo: "Emulsione", kg: 2, fori: 1 }], "il foro con solo la seconda carica conta per quel tipo");
+    eq(shell.esplosivoPerTipo(null), { tipi: [], kgTot: 0, senzaTipo: { fori: 0, kg: 0 }, conDueTipi: 0, dichiarato: false }, "senza rapportino non esplode e non dichiara");
+    eq(E([{ esplosivo: "ANFO", kg: 1 }, { esplosivo: "ANFO", kg: 1 }, { esplosivo: "Emulsione", kg: 2 }]).tipi.map((t) => t.tipo), ["ANFO", "Emulsione"], "a pari chili, alfabetico");
+  });
+}
+/* ===== fine shell · l'esplosivo per tipo ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL TRIANGOLO CHIUSO CON L'INVENTARIO DEI CUMULI (03/09)
+   `densitaDalListino` e `triangolo` in apps/conti/conti-data.js, sulle regole
+   di shared/dw-ponti.js che Conti ri-esporta. I numeri attesi sono calcolati
+   A MANO dalla dimostrazione (densità del listino: Stabilizzato 1,9 · Sabbia
+   1,6 · Pietrisco 1,5; le Terre di scavo non sono a listino):
+   · primo semestre (i1 29/12/2025 → i2 27/06/2026): +25·1,9 − 27·1,6 + 8·1,5
+     = 47,5 − 43,2 + 12 = 16,3 t su 6 m³; cavato 124 m³ × 1,9 = 235,6 t;
+     venduto 164,1 t; scarto 235,6 − 164,1 − 16,3 = 55,2 t = 23,43% → attenzione, «sparito»;
+   · anno (i1 → i3 30/08, stima): +10·1,9 + 2·1,5 = 22 t su 12 m³, la
+     sabbia (null in i3) e le terre (assenti) fuori; cavato 178 m³ → 338,2 t;
+     venduto 374,96 t; scarto −58,76 t = 17,37% → attenzione, «in eccesso».
+   ⚠️ La dimostrazione di Conti NON è una copia di quella di Terra: ogni app
+   racconta la sua cava (qui piccola, decine di m³), e alla scala di Terra il
+   triangolo chiudeva «implausibile» per costruzione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
+{
+  const D = conti.DEMO;
+  const tri = (inv, opz = {}) => conti.triangolo(opz.rilievi === undefined ? D.rilieviTerra : opz.rilievi, D.pesate, inv,
+    opz.prodotti === undefined ? D.prodotti : opz.prodotti, opz.aut === undefined ? D.autorizzazioniTerra : opz.aut,
+    opz.dal || "2026-01-01", opz.al || "2026-06-30");
+  const INV_ATTESI = [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 240 }, { materiale: "Sabbia lavata 0/4", volumeM3: 115 },
+      { materiale: "Pietrisco 8/12", volumeM3: 62 }, { materiale: "Terre di scavo", volumeM3: 30 }] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 265 }, { materiale: "Sabbia lavata 0/4", volumeM3: 88 },
+      { materiale: "Pietrisco 8/12", volumeM3: 70 }, { materiale: "Terre di scavo", volumeM3: 30 }] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 250 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 64 }] },
+  ];
+
+  test("⛔ le regole dell'inventario sono le STESSE di shared: Conti le ri-esporta, non le riscrive", () => {
+    ok(conti.variazioneScorte === ponti.variazioneScorte, "variazioneScorte");
+    ok(conti.scorteInTonnellate === ponti.scorteInTonnellate, "scorteInTonnellate");
+    ok(conti.chiusuraTriangolo === ponti.chiusuraTriangolo, "chiusuraTriangolo");
+    ok(conti.chiaveMateriale === ponti.chiaveMateriale, "chiaveMateriale");
+    ok(conti.SOGLIA_TRIANGOLO === ponti.SOGLIA_TRIANGOLO, "SOGLIA_TRIANGOLO");
+  });
+  test("densitaDalListino: accoppia per nome normalizzato, e chi non c'è (o non ha densità) risponde null", () => {
+    const d = conti.densitaDalListino(D.prodotti);
+    eq(d("Stabilizzato 0/30"), 1.9); eq(d("SABBIA LAVATA 0/4"), 1.6, "le maiuscole non contano");
+    eq(d("Pietrisco  8/12"), 1.5, "gli spazi doppi non contano"); eq(d("Sàbbia lavata 0/4"), 1.6, "gli accenti non contano");
+    eq(d("Terre di scavo"), null, "un materiale che il listino non ha");
+    eq(d("Misto di cava (non classificato)"), null, "p5 è a listino ma SENZA densità: null, non un ripiego");
+    eq(d("Sabbia 0/4"), null, "un nome diverso non si indovina");
+    eq(d(null), null); eq(d(""), null);
+    eq(conti.densitaDalListino(null)("Stabilizzato 0/30"), null, "senza listino non esplode e non inventa");
+    eq(conti.densitaDalListino([{ nome: "X", densita: "boh" }, { nome: "Y", densita: 0 }, { nome: "", densita: 2 }])("X"), null, "densità non numerica, zero o prodotto senza nome: fuori");
+  });
+  test("⛔ la dimostrazione di Conti porta i tre inventari decisi prima, alla scala della SUA cava (non una copia di Terra)", () => {
+    eq(D.inventariTerra, INV_ATTESI, "i tre record, con la sabbia NON misurata (null) nel terzo");
+  });
+  test("triangolo: no-terra quando gli inventari non arrivano, con la ragione e SENZA numeri di scorte", () => {
+    const t = tri(null);
+    eq(t.stato, "no-terra"); eq(t.perche, "gli inventari dei cumuli di Terra non arrivano");
+    eq(t.scorteT, null); eq(t.chiusura, null); eq(t.scorte.deltaM3, null); eq(t.parziale, false); eq(t.fuori, []);
+    ok(t.ric && t.ric.stato === "attenzione", "il confronto a due lati c'è lo stesso");
+    ok(t.cavatoT && t.cavatoT.calcolabile, "e il cavato in tonnellate pure");
+  });
+  test("triangolo: no-inventari con una lista vuota, con uno solo, e con nessuno prima dell'inizio", () => {
+    const vuoto = tri([]);
+    eq(vuoto.stato, "no-inventari"); eq(vuoto.perche, "in Terra non c'è nessun inventario dei cumuli"); eq(vuoto.scorteT, null); eq(vuoto.chiusura, null);
+    const uno = tri([D.inventariTerra[0]]);
+    eq(uno.stato, "no-inventari"); ok(/non c'è un secondo inventario/.test(uno.perche), uno.perche);
+    const tardi = tri([D.inventariTerra[1], D.inventariTerra[2]]);
+    eq(tardi.stato, "no-inventari"); ok(/prima dell'inizio del periodo: il primo è del 2026-06-27/.test(tardi.perche), tardi.perche);
+    const rotti = tri([{ id: "x", data: "boh", cumuli: [{ materiale: "A", volumeM3: 1 }] }]);
+    eq(rotti.stato, "no-inventari"); ok(/nessun inventario dei cumuli è leggibile/.test(rotti.perche), rotti.perche);
+  });
+  test("⛔ triangolo chiuso sul primo semestre: Δ 6 m³ = 16,3 t, scarto 55,2 t «sparito» (23% del cavato), le Terre fuori per densità", () => {
+    const t = tri(D.inventariTerra);
+    eq(t.stato, "chiuso"); eq(t.perche, "");
+    eq(t.scorte.inizio.id, "i1"); eq(t.scorte.fine.id, "i2"); eq(t.scorte.deltaM3, 6); eq(t.scorte.scartoGiorni, { inizio: 3, fine: 3 });
+    eq(t.scorteT.deltaT, 16.3, "25·1,9 − 27·1,6 + 8·1,5"); eq(t.scorteT.calcolabile, true);
+    eq(t.scorteT.coperte.map((r) => [r.chiave, r.deltaT]), [["sabbia lavata 0/4", -43.2], ["stabilizzato 0/30", 47.5], ["pietrisco 8/12", 12]]);
+    eq(t.cavatoT.t, 235.6, "124 m³ × 1,9"); eq(t.cavatoT.daVerificare, true); eq(t.ric.ven.t, 164.1);
+    eq(t.chiusura, { scarto: 55.2, pct: 23.43, stato: "attenzione", verso: "sparito", calcolabile: true, perche: "" });
+    eq(t.parziale, true, "le Terre di scavo non hanno densità: il conto in tonnellate è parziale");
+    eq(t.fuori, [{ materiale: "Terre di scavo", perche: "senza densità nel listino", mancaIn: null }]);
+  });
+  test("⛔ triangolo chiuso sull'anno: la sabbia NON misurata nel terzo inventario non vale zero — resta fuori, Δ = 22 t", () => {
+    const t = tri(D.inventariTerra, { al: "2026-12-31" });
+    eq(t.stato, "chiuso"); eq(t.scorte.fine.id, "i3"); eq(t.scorte.fine.metodo, "stima");
+    eq(t.scorte.deltaM3, 12); eq(t.scorteT.deltaT, 22, "10·1,9 + 2·1,5: senza i −115 m³ della sabbia sparita");
+    eq(t.scorte.scartoGiorni, { inizio: 3, fine: 123 });
+    eq(t.cavatoT.t, 338.2); eq(t.ric.ven.t, 374.96);
+    eq(t.chiusura.scarto, -58.76); eq(t.chiusura.pct, 17.37); eq(t.chiusura.stato, "attenzione"); eq(t.chiusura.verso, "in-eccesso");
+    eq(t.parziale, true);
+    eq(t.fuori, [{ materiale: "Sabbia lavata 0/4", perche: "misurato in un solo inventario", mancaIn: "fine" },
+                 { materiale: "Terre di scavo", perche: "misurato in un solo inventario", mancaIn: "fine" }]);
+    ok(!t.scorteT.scoperte.length, "le Terre non arrivano nemmeno alla densità: sono già fuori a monte, e non si contano due volte");
+  });
+  test("triangolo: no-densita-cava senza l'autorizzazione di Terra, con la ragione — e gli inventari restano letti", () => {
+    for (const aut of [[], null, [{ id: "a", stato: "vigente", materiale: "Materiale ignoto" }]]) {
+      const t = tri(D.inventariTerra, { aut });
+      eq(t.stato, "no-densita-cava"); ok(/non è dichiarata in Terra/.test(t.perche), t.perche);
+      eq(t.scorte.deltaM3, 6, "la variazione in m³ è misurata lo stesso: si può dire"); eq(t.scorteT, null); eq(t.chiusura, null);
+    }
+  });
+  test("triangolo: no-densita-listino quando nessun cumulo trova una densità, e Δ in m³ resta detto", () => {
+    const t = tri(D.inventariTerra, { prodotti: [] });
+    eq(t.stato, "no-densita-listino"); eq(t.perche, "nessun materiale dell'inventario ha una densità nel listino");
+    eq(t.scorte.deltaM3, 6); eq(t.scorteT.deltaT, null); eq(t.chiusura, null);
+  });
+  test("triangolo: no-confronto quando il confronto a due lati è fermo, qualunque cosa dicano gli inventari", () => {
+    eq(tri(D.inventariTerra, { rilievi: null }).stato, "no-confronto", "Terra senza rilievi");
+    const t = tri(D.inventariTerra, { dal: "2024-01-01", al: "2024-06-30" });
+    eq(t.stato, "no-confronto"); eq(t.ric.stato, "no-cavato"); eq(t.scorte, null); eq(t.chiusura, null);
+    ok(/senza il confronto fra cavato e venduto/.test(t.perche), t.perche);
+  });
+  test("triangolo: il verso «sparito» e lo stato coerente, su numeri costruiti apposta", () => {
+    /* cavato 1000 m³ × 2,6 = 2600 t; venduto 1500 t; scorte +500 m³ × 1,9 = 950 t → scarto 150 t = 5,77% → coerente, sparito */
+    const ril = [{ id: "r", data: "2026-03-01", volumeM3: 1000, stato: "elaborato", metodo: "RTK" }];
+    /* la pesata ha la forma della dimostrazione (`DEMO.pesate`), letta PRIMA di
+       scriverla: `quantitaPesata` vuole netto, unitaVendita, quantita e densita */
+    const pes = [{ id: "p", numero: "2026/900", data: "2026-03-10", clienteId: "c1", cliente: "Edilcave Srl", prodottoId: "p1", prodotto: "Stabilizzato 0/30",
+                   lordo: 1540, tara: 40, netto: 1500, unitaVendita: "t", quantita: 1500, densita: 1.9, prezzoUnitario: 8.5, aliquotaIva: 22 }];
+    const inv = [{ id: "a", data: "2025-12-31", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 100 }] },
+                 { id: "b", data: "2026-06-30", cumuli: [{ materiale: "Stabilizzato 0/30", volumeM3: 600 }] }];
+    const aut = [{ id: "a1", stato: "vigente", materiale: "Calcare", densita: 2.6, densitaFonte: "laboratorio" }];
+    const t = conti.triangolo(ril, pes, inv, D.prodotti, aut, "2026-01-01", "2026-06-30");
+    eq(t.stato, "chiuso"); eq(t.cavatoT.t, 2600); eq(t.ric.ven.t, 1500); eq(t.scorteT.deltaT, 950);
+    eq(t.chiusura.scarto, 150); eq(t.chiusura.pct, 5.77); eq(t.chiusura.stato, "coerente"); eq(t.chiusura.verso, "sparito");
+    eq(t.parziale, false); eq(t.fuori, []);
+  });
+}
+/* ===== fine Conti · il triangolo chiuso con l'inventario dei cumuli ===== */
+/* ===== fine Conti · il triangolo con l'inventario ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · L'INVENTARIO DEI CUMULI (03/09, il terzo lato del triangolo):
+   la fotografia del piazzale che Conti legge per misurare Δ scorte. Le regole
+   vivono in shared/dw-ponti.js e Terra le ri-esporta (identità, non copia);
+   qui si provano le due funzioni della pagina — `riepilogoInventario` e
+   `inventariOrdinati` — e la dimostrazione, che porta di proposito un cumulo
+   senza volume (`i3`, la sabbia «in lavorazione»): esiste, il suo numero no.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona aggiunta dopo non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const { riepilogoInventario, inventariOrdinati } = terra;
+  const INV = terra.DEMO.inventari;
+  test("inventario dei cumuli: Terra ri-esporta le regole di dw-ponti come lo STESSO oggetto", () => {
+    for (const n of ["variazioneScorte", "inventarioUsabile", "volumeInventario", "cumuliUsabili", "chiaveMateriale"])
+      ok(typeof terra[n] === "function" && terra[n] === ponti[n], `terra.${n} è ponti.${n}, non una copia`);
+  });
+  test("la dimostrazione porta tre inventari, e i3 dichiara UN cumulo non misurato — mai uno zero", () => {
+    eq(INV.map((i) => i.id), ["i1", "i2", "i3"]);
+    ok(INV.every(terra.inventarioUsabile), "tutti e tre sono usabili (data che esiste, almeno un cumulo con volume)");
+    eq(riepilogoInventario(INV[0]), { usabile: true, volumeM3: 4470, cumuli: 4, nonMisurati: 0, perche: "" });
+    eq(riepilogoInventario(INV[1]), { usabile: true, volumeM3: 4930, cumuli: 4, nonMisurati: 0, perche: "" });
+    eq(riepilogoInventario(INV[2]), { usabile: true, volumeM3: 3540, cumuli: 3, nonMisurati: 1, perche: "" },
+       "i3: 2900 + 640, la sabbia senza volume resta FUORI e si conta a parte");
+    const sabbia = INV[2].cumuli.find((c) => /Sabbia/.test(c.materiale));
+    eq(sabbia.volumeM3, null); ok(/non misurato/.test(sabbia.nota), "e la nota dice perché");
+    ok(INV[0].cumuli.some((c) => c.materiale === "Terre di scavo"), "le terre di scavo ci sono di proposito: fuori listino, senza densità");
+  });
+  test("riepilogoInventario: data 30/02 → non usabile con la ragione, e il volume è null, non 0", () => {
+    eq(riepilogoInventario({ id: "x", data: "2026-02-30", metodo: "drone", cumuli: [{ materiale: "a", volumeM3: 100 }] }),
+       { usabile: false, volumeM3: null, cumuli: 1, nonMisurati: 0, perche: "data non leggibile" });
+    eq(riepilogoInventario(null).perche, "data non leggibile");
+    eq(riepilogoInventario({ data: "2026-01-01" }), { usabile: false, volumeM3: null, cumuli: 0, nonMisurati: 0, perche: "nessun cumulo con un volume" });
+  });
+  test("riepilogoInventario: cumuli tutti senza volume → non usabile, e li conta tutti fra i non misurati", () => {
+    eq(riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "a", volumeM3: null }, { materiale: "b", volumeM3: "" }, { materiale: "c", volumeM3: "boh" }] }),
+       { usabile: false, volumeM3: null, cumuli: 3, nonMisurati: 3, perche: "nessun cumulo con un volume" });
+    // un cumulo SENZA materiale è un altro difetto: non si conta fra i non misurati
+    const r = riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "", volumeM3: 5 }, { materiale: "a", volumeM3: 7 }] });
+    eq([r.usabile, r.volumeM3, r.cumuli, r.nonMisurati], [true, 7, 2, 0]);
+    // uno zero VERO è un volume: il cumulo finito si scrive 0 e conta
+    eq(riepilogoInventario({ data: "2026-02-10", cumuli: [{ materiale: "a", volumeM3: 0 }] }), { usabile: true, volumeM3: 0, cumuli: 1, nonMisurati: 0, perche: "" });
+  });
+  test("inventariOrdinati: dal più recente, arricchito, l'illeggibile in coda e mai sparito", () => {
+    const o = inventariOrdinati([INV[0], { id: "z", data: "boh", cumuli: [] }, INV[2], INV[1]]);
+    eq(o.map((v) => v.id), ["i3", "i2", "i1", "z"]);
+    eq(o.map((v) => v.volumeM3), [3540, 4930, 4470, null]);
+    eq(o.map((v) => v.nonMisurati), [1, 0, 0, 0]);
+    eq(o[0].cumuli, 3, "`cumuli` sulla voce è il NUMERO");
+    ok(o[0].record === INV[2] && Array.isArray(o[0].record.cumuli), "e `record` è il documento originale, con l'elenco");
+    eq(o[3].perche, "data non leggibile");
+    eq(inventariOrdinati(null), []); eq(inventariOrdinati(undefined), []); eq(inventariOrdinati("x"), []); eq(inventariOrdinati([]), []);
+  });
+  test("variazioneScorte sulla dimostrazione: fra i1 e i2 la variazione è misurata, e la terra di scavo è confrontabile a zero", () => {
+    const v = terra.variazioneScorte(INV, "2026-01-01", "2026-06-30");
+    ok(v.calcolabile && v.inizio.id === "i1" && v.fine.id === "i2", "i1 racchiude l'inizio, i2 la fine");
+    eq(v.deltaM3, 460, "(3050+880+700+300) − (2400+1150+620+300)");
+    eq(v.parziale, false);
+    // con i3 come fine, la sabbia non c'è: la variazione è PARZIALE e lo dice
+    const p = terra.variazioneScorte(INV, "2026-07-01", "2026-08-31");
+    ok(p.calcolabile && p.parziale && p.nonConfrontabili.length === 2, "sabbia (non misurata) e terre (assenti in i3) restano fuori");
+    ok(/2 materiali sono misurati in un solo inventario/.test(p.perche), p.perche);
+  });
+}
+/* ===== fine Terra · l'inventario dei cumuli ===== */
+/* ===== fine Terra · l'inventario dei cumuli ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   GENESI · LE SCELTE DEL DESIGN CHE NON SI RICONOSCONO (02/09, l'altra metà
+   dell'unità 7): esplosivo, innesco, roccia, fratturazione, sequenza, norma,
+   tre bandiere, due profili. `volataSenzaValori` copre i 21 numerici.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const cat = { esplosivo: ["anfo-standard", "emulsione"], innesco: ["nonel", "elettronico", "elettrico", "cordtex"], roccia: ["calcare", "granito"], frat: ["fessurata", "media", "compatta"], sequenza: ["riga", "diagonale"], recNorma: ["din-res", "din-ind"] };
+  const D = genesi.designSconosciuti;
+  test("designSconosciuti: un design coi valori del catalogo non ha niente da dire", () => {
+    eq(D({ esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media", sequenza: "riga", recNorma: "din-res", kgAuto: true, bagnato: false, presplit: false, profilo: [], piede: [] }, cat), null);
+    eq(D(null, cat), null); eq(D({}, cat), null); eq(D({ esplosivo: undefined }, cat), null, "un campo assente non è un campo sbagliato");
+    eq(D({ esplosivo: "boh" }, {}), null, "senza il catalogo non si giudica: la pagina non l'ha passato");
+    eq(Object.keys(genesi.CAMPI_SCELTA).length + Object.keys(genesi.CAMPI_BANDIERA).length + Object.keys(genesi.CAMPI_PROFILO).length, 11, "gli undici campi non numerici del design");
+  });
+  test("⛔ un esplosivo che il catalogo non conosce si NOMINA, col valore trovato — e non si tace il ripiego sul default", () => {
+    const r = D({ esplosivo: "dinamite-x", roccia: "calcare", kgAuto: "sì", profilo: "no", piede: [] }, cat);
+    eq(r.campi.map((c) => c.chiave), ["esplosivo", "kgAuto", "profilo"]);
+    ok(/3 scelte non si riconoscono: esplosivo \(«dinamite-x»\), carica automatica \(«sì»\), profilo del fronte \(«no»\)/.test(r.che), r.che);
+    ok(/valori di partenza/.test(r.come), "e dice che al loro posto sono entrati i valori di partenza");
+    const uno = D({ recNorma: null }, cat);
+    eq(uno.campi.length, 1); ok(/una scelta non si riconosce: norma del recettore \(vuoto\)/.test(uno.che), uno.che); ok(/valore di partenza/.test(uno.come));
+    eq(D({ recNorma: "din-res", bagnato: 1 }, cat).campi[0].chiave, "bagnato", "una bandiera che non è booleana");
+  });
+}
+/* ===== fine Genesi · le scelte che non si riconoscono ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE CAMPO → CONTI · il terzo lato del triangolo (02/09, la 3f della mappa):
+   quello che i turni DICHIARANO di aver prodotto contro quello che la pesa ha
+   VENDUTO, tonnellate contro tonnellate. La funzione sta in shared/ e Conti la
+   ri-esporta; la dimostrazione di Conti porta una COPIA dei rapportini di Campo
+   e una prova pretende che resti una copia.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const CPV = ponti.confrontoProdottoVenduto;
+  const dich = (t, extra = {}) => ({ t, m3Diretti: 0, viaggi: 0, turni: 3, senzaData: 0, senzaProduzione: 0, ...extra });
+  test("⛔ Conti ri-esporta confrontoProdottoVenduto e produzioneDichiarata: lo STESSO oggetto di shared", () => {
+    ok(conti.confrontoProdottoVenduto === ponti.confrontoProdottoVenduto, "identità, non comportamento");
+    ok(conti.produzioneDichiarata === ponti.produzioneDichiarata, "e anche il conto del dichiarato");
+  });
+  test("⛔ la dimostrazione di Conti porta una COPIA dei rapportini di Campo, id per id", () => {
+    const mio = conti.DEMO.rapportiniCampo, loro = campo.DEMO.rapportini;
+    eq(mio.length, loro.length, "stesso numero di righe");
+    for (const r of mio) {
+      const o = loro.find((x) => x.id === r.id);
+      ok(!!o, "esiste in Campo: " + r.id);
+      if (!o) continue;
+      eq(r.data, o.data, "stessa data (relativa a oggi in tutt'e due): " + r.id);
+      eq(r.prodQta, o.prodQta, "stessa quantità: " + r.id);
+      eq(r.prodUnita, o.prodUnita, "stessa unità: " + r.id);
+      eq(r.stato, o.stato, "stesso stato: " + r.id);
+      eq(r.turno, o.turno, "stesso turno: " + r.id);
+    }
+    ok(mio.some((r) => r.data === ""), "e c'è il rapportino SENZA data (rs0): deve restare fuori e dichiararsi");
+    ok(mio.some((r) => r.prodQta == null), "e la bozza senza quantità (r2): un turno che non ha dichiarato niente");
+  });
+  test("un'app che non risponde è «non lo so», non zero", () => {
+    eq(CPV(null, { t: 100, viaggi: 4 }).stato, "no-campo", "Campo non risponde");
+    eq(CPV(null, { t: 100, viaggi: 4 }).dichiaratoT, null, "e nessuna tonnellata attribuita a Campo");
+    eq(CPV(dich(100), null).stato, "no-venduto", "il venduto non c'è");
+    eq(CPV(undefined, undefined).stato, "no-campo", "tutt'e due assenti: si dice il primo che manca");
+  });
+  test("gli stati intermedi: nessun turno, turni non in tonnellate, nessuna consegna", () => {
+    eq(CPV(dich(0, { turni: 0 }), { t: 50, viaggi: 2 }).stato, "no-dichiarato", "zero turni con una produzione");
+    const soloM3 = CPV(dich(0, { m3Diretti: 120, turni: 2 }), { t: 50, viaggi: 2 });
+    eq(soloM3.stato, "dichiarato-non-in-tonnellate", "turni scritti in metri cubi");
+    eq(soloM3.fuori.m3, 120, "e i metri cubi si contano fuori"); eq(soloM3.parziale, true, "quindi è parziale");
+    const soloViaggi = CPV(dich(0, { viaggi: 9, turni: 2 }), { t: 50, viaggi: 2 });
+    eq(soloViaggi.stato, "dichiarato-non-in-tonnellate", "turni scritti in viaggi");
+    eq(soloViaggi.fuori.viaggi, 9, "e i viaggi si contano fuori");
+    eq(CPV(dich(800), { t: 0, viaggi: 0 }).stato, "no-venduto-nel-periodo", "prodotto ma niente pesato");
+  });
+  test("confrontabile: il divario, la percentuale sul dichiarato e il VERSO a parole", () => {
+    const a = CPV(dich(1000), { t: 800, viaggi: 30 });
+    eq(a.stato, "confrontabile"); eq(a.divarioT, 200); eq(a.pct, 20); eq(a.verso, "prodotto-piu-del-venduto");
+    eq(a.viaggiVenduti, 30); eq(a.turni, 3); eq(a.parziale, false, "niente fuori: non è parziale");
+    const b = CPV(dich(1000), { t: 1250, viaggi: 40 });
+    eq(b.divarioT, -250, "il segno resta"); eq(b.pct, -25); eq(b.verso, "venduto-piu-del-prodotto");
+    const c = CPV(dich(500), { t: 500, viaggi: 10 });
+    eq(c.divarioT, 0); eq(c.pct, 0); eq(c.verso, "pari");
+    const d = CPV(dich(1000.555), { t: 0.004, viaggi: 1 });
+    eq(d.dichiaratoT, 1000.56, "arrotondato al centesimo"); eq(d.vendutoT, 0, "e 0,004 t è zero al centesimo");
+    eq(d.stato, "no-venduto-nel-periodo", "quindi non si confronta con un venduto che al centesimo è zero");
+  });
+  test("⛔ un turno che non ha dichiarato la quantità rende il confronto PER DIFETTO (parziale)", () => {
+    const a = CPV(dich(1000, { senzaProduzione: 1 }), { t: 800, viaggi: 30 });
+    eq(a.stato, "confrontabile", "si confronta lo stesso"); eq(a.parziale, true, "ma si dichiara parziale");
+    eq(a.fuori.senzaProduzione, 1); eq(CPV(dich(1000, { senzaData: 2 }), { t: 1, viaggi: 1 }).fuori.senzaData, 2, "e i senza data si contano");
+    eq(CPV(dich(1000, { senzaData: 2 }), { t: 1, viaggi: 1 }).parziale, false, "un senza data NON rende parziale: non si sa nemmeno se sia del periodo");
+  });
+  test("sulla dimostrazione di Conti, l'anno in corso: 8 turni, 14.070 t dichiarate, e i due fuori dichiarati", () => {
+    const a = new Date().getFullYear();
+    const d = ponti.produzioneDichiarata(conti.DEMO.rapportiniCampo, a + "-01-01", a + "-12-31");
+    eq(d.turni, 8); eq(d.t, 14070); eq(d.senzaData, 1); eq(d.senzaProduzione, 1);
+    const ven = conti.vendutoPeriodo(conti.DEMO.pesate, a + "-01-01", a + "-12-31");
+    const c = CPV(d, ven);
+    eq(c.stato, "confrontabile"); eq(c.verso, "prodotto-piu-del-venduto");
+    eq(c.vendutoT, ven.t, "il venduto è quello della pesa, alla cifra");
+    eq(c.divarioT, Math.round((14070 - ven.t) * 100) / 100); eq(c.parziale, true, "r2 non ha dichiarato: per difetto");
+  });
+}
+/* ===== fine ponte Campo → Conti ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   PONTE CONTI → FLOTTA · questa spesa risulta anche nel registro della cava?
+   (02/09) Il verso di ritorno del ponte Flotta→Conti: Flotta legge il
+   registro costi di Conti e dice, voce per voce e riga per riga, che cosa
+   sta in tutt'e due.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const srcFlotta = readFileSync(new URL("../../flotta/flotta-data.js", import.meta.url), "utf8");
+  const paginaFlotta = readFileSync(new URL("../../flotta/index.html", import.meta.url), "utf8");
+  test("⛔ Flotta ri-esporta confrontoCostiMezzi: lo STESSO oggetto di shared, non un gemello", () => {
+    ok(flotta.confrontoCostiMezzi === ponti.confrontoCostiMezzi, "identità, non comportamento");
+    ok(flotta.confrontoCostiMezzi === conti.confrontoCostiMezzi, "e la stessa di Conti");
+  });
+  test("⛔ le voci di Flotta sono a testo libero: GREZZE, il confronto vede Flotta a ZERO", () => {
+    /* misurato il 02/09, ed è la ragione per cui `costiPerConfronto` esiste. Il
+       giorno in cui questa prova cade, shared ha imparato a classificare da sé:
+       si tolgono la traduzione in Flotta e questa prova — non si aggiusta la
+       prova per farla passare. */
+    eq(ponti.voceCosto("Carburante"), null, "«Carburante» non è la chiave «carburante»");
+    const grezzo = ponti.confrontoCostiMezzi([], flotta.DEMO.costi);
+    eq(grezzo.totaleFlotta, 0, "sui sette costi della dimostrazione, Flotta risulta a zero");
+    const tradotto = ponti.confrontoCostiMezzi([], flotta.costiPerConfronto(flotta.DEMO.costi).righe);
+    ok(tradotto.totaleFlotta > 0, "tradotte, le stesse righe si vedono");
+    eq(tradotto.totaleFlotta, flotta.DEMO.costi.reduce((t, c) => t + c.importo, 0),
+      "e non se ne perde nessuna: le sette della dimostrazione sono tutte da mezzo");
+  });
+  test("chiaveVoceMezzo riconosce i nomi che Flotta scrive davvero", () => {
+    eq(flotta.chiaveVoceMezzo("Carburante"), "carburante", "la voce che nasce dal rifornimento");
+    eq(flotta.chiaveVoceMezzo("Manutenzione: Tagliando 500h (Escavatore E1)"), "manutenzione", "la voce che nasce dalla chiusura dell'ordine");
+    eq(flotta.chiaveVoceMezzo("Ricambi e officina"), "manutenzione", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Gomme"), "manutenzione", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Noleggi esterni"), "noleggio", "voce della dimostrazione");
+    eq(flotta.chiaveVoceMezzo("Nolo gru"), "noleggio", "«nolo» come parola intera");
+    eq(flotta.chiaveVoceMezzo("Carburante settimana 30"), "carburante", "quello che l'utente batte a mano");
+    eq(flotta.chiaveVoceMezzo("Gasolio"), "carburante", "⛔ «gasolio» contiene «olio»: il carburante si guarda prima");
+    for (const k of ponti.VOCI_COSTO.filter(v => v.daMezzo).map(v => v.chiave))
+      eq(flotta.chiaveVoceMezzo(k), k, "la chiave stessa passa: " + k);
+  });
+  test("⛔ quello che non si riconosce risponde null, non «manutenzione» per comodità", () => {
+    eq(flotta.chiaveVoceMezzo("Assicurazione RC"), null, "una spesa del mezzo che non è fra le tre voci");
+    eq(flotta.chiaveVoceMezzo(""), null, "vuoto"); eq(flotta.chiaveVoceMezzo(null), null, "null"); eq(flotta.chiaveVoceMezzo(undefined), null, "undefined");
+    const pc = flotta.costiPerConfronto([
+      { id: "a", voce: "Assicurazione RC", importo: 900, data: "2026-01-01" },
+      { id: "b", voce: "Gomme", importo: 100, data: "2026-01-02" }, null, { id: "c", voce: "", importo: 5 }]);
+    eq(pc.righe.length, 1, "entra solo la riga riconosciuta");
+    eq(pc.righe[0].voce, "manutenzione", "con la chiave al posto del nome");
+    eq(pc.righe[0].voceScritta, "Gomme", "e il nome scritto conservato accanto");
+    eq(pc.nonClassificate, 2, "le altre si contano");
+    eq(pc.fuori, ["Assicurazione RC", "(senza voce)"], "con i loro nomi, così chi legge sa quali sono");
+  });
+  test("la dimostrazione contiene i casi VOLUTI, e sono quelli decisi nel commento", () => {
+    const F = flotta.DEMO.costi, K = flotta.DEMO.costiConti;
+    const c1 = F.find(c => c.id === "c1"), k1 = K.find(c => c.id === "k1");
+    ok(c1 && k1 && c1.data === k1.data && c1.importo === k1.importo && flotta.chiaveVoceMezzo(c1.voce) === k1.voce,
+      "k1 è c1 alla cifra: stessa data, stesso importo, stessa voce");
+    const k2 = K.find(c => c.id === "k2");
+    ok(k2 && ponti.voceCosto(k2.voce).daMezzo && !F.some(c => c.data === k2.data && c.importo === k2.importo), "k2 è una voce da mezzo che sta SOLO in Conti");
+    const k3 = K.find(c => c.id === "k3");
+    ok(k3 && !k3.data && ponti.voceCosto(k3.voce).daMezzo, "k3 è una voce da mezzo SENZA data");
+    ok(K.some(c => !ponti.voceCosto(c.voce).daMezzo), "e c'è una voce che non è da mezzo, per far vedere che resta fuori");
+    ok(!K.some(c => c.voce === "noleggio"), "i noleggi stanno solo in Flotta: Conti risponde «—»");
+    const r = ponti.confrontoCostiMezzi(K, flotta.costiPerConfronto(F).righe);
+    eq(r.entrambe, 2, "carburante e manutenzione in tutt'e due");
+    const nol = r.voci.find(v => v.chiave === "noleggio");
+    eq(nol.conti, null, "noleggio: Conti «—», non zero"); ok(nol.flotta > 0, "e Flotta ce l'ha");
+  });
+  test("doppioniAllaCifra: la riga che ha in Conti una gemella, e SOLO quella", () => {
+    const d = flotta.doppioniAllaCifra(flotta.DEMO.costi, flotta.DEMO.costiConti);
+    eq(d.doppioni, { c1: "k1" }, "c1 → k1, nessun'altra");
+    eq(d.quanti, 1, "una");
+    eq(d.nonConfrontabili, { flotta: 1, conti: 1 },
+      "c3 (senza data) di qua e k3 (senza data) di là non si possono confrontare, e si contano invece di sparire");
+  });
+  test("⛔ Conti non raggiungibile NON è «nessun doppione»", () => {
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, null), null, "null resta null");
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, undefined), null, "e undefined pure");
+    eq(flotta.doppioniAllaCifra(flotta.DEMO.costi, []).quanti, 0, "un elenco vuoto invece è una risposta: zero doppioni");
+  });
+  test("una riga di Conti si spende una volta sola, e l'importo si confronta al centesimo", () => {
+    const due = [{ id: "a", voce: "Carburante", importo: 10, data: "2026-01-01" }, { id: "b", voce: "Carburante", importo: 10, data: "2026-01-01" }];
+    eq(flotta.doppioniAllaCifra(due, [{ id: "x", voce: "carburante", importo: "10", data: "2026-01-01" }]).quanti, 1,
+      "due rifornimenti uguali contro una fattura sola: un doppione solo (e l'importo scritto come testo si legge)");
+    const uno = (imp, data = "2026-01-01", voceConti = "carburante") =>
+      flotta.doppioniAllaCifra([{ id: "a", voce: "Carburante", importo: imp, data }], [{ id: "x", voce: voceConti, importo: 10, data }]);
+    eq(uno(10.004).quanti, 1, "al centesimo");
+    eq(uno(10.01).quanti, 0, "un centesimo di differenza non è la stessa spesa");
+    eq(uno(10, "2026-02-30").nonConfrontabili, { flotta: 1, conti: 1 }, "⛔ un giorno che non esiste non è una data, da nessuna delle due parti");
+    eq(uno(10, "2026-01-01", "personale").quanti, 0, "una voce di Conti che non è da mezzo non fa gemella");
+    eq(uno(0).nonConfrontabili.flotta, 1, "uno zero scritto non ha una firma: si conta, non si accoppia");
+  });
+  test("api.costiConti: il ponte pigro con la stessa forma di Conti, e la dimostrazione lo serve", () => {
+    ok(/DeepworkID\.init\(\{ appId: "conti" \}\)/.test(srcFlotta), "seconda istanza dell'SDK sull'app conti");
+    ok(/idConti\.orgCollection\("costi"\)/.test(srcFlotta), "che legge la collezione costi di Conti");
+    ok(/costiConti: async \(\) => mem\.costiConti \|\| \[\]/.test(srcFlotta), "e in dimostrazione serve DEMO.costiConti");
+    ok(Array.isArray(flotta.DEMO.costiConti) && flotta.DEMO.costiConti.length >= 3, "che esiste e ha i casi");
+    /* e la pagina NON traduce il null di Conti in una lista vuota: è il difetto
+       che la controprova del banco `browser/flotta-ponte-conti.mjs` rimette */
+    ok(paginaFlotta.includes("try { CC = db.costiConti ? await db.costiConti() : null; } catch (e) { CC = null; }"), "la pagina tiene il null di Conti");
+    ok(!/db\.costiConti\(\)[^\n]*\|\| \[\]/.test(paginaFlotta), "e nessuna riga lo traduce in []");
+  });
+  test("⛔ shared dichiara «non disponibile» solo il SECONDO argomento: il null di Conti lo guarda la pagina", () => {
+    /* misurato il 02/09 col banco `flotta-ponte-conti --conti-assente`, che
+       cadeva PRIMA della controprova: `confrontoCostiMezzi(null, righe)` NON
+       risponde `disponibile:false` — passa da `somma(null)` e dice «Conti non
+       ha niente». Il giorno in cui la prima riga qui sotto cade, shared è
+       diventata simmetrica: si toglie questa prova (la guardia nella pagina
+       può restare, è innocua). */
+    eq(ponti.confrontoCostiMezzi(null, []).disponibile, true, "il null al primo posto NON è dichiarato");
+    eq(ponti.confrontoCostiMezzi([], null).disponibile, false, "quello al secondo sì");
+    ok(paginaFlotta.includes('const c = CC === null ? { disponibile: false, motivo: "conti-non-raggiungibile" } : confrontoCostiMezzi(CC, pc.righe);'),
+      "quindi la pagina decide «Conti non ha risposto» da sé, prima di chiamarla");
+  });
+}
+/* ═══ SCUDO · la copertura per tipo legge la VERIFICA, non solo la data (02/09) ═══
+   Misurato aprendo la schermata Scadenze a 430 px sulla dimostrazione: la riga
+   «Verifica periodica» diceva «3 in regola · 0 in scadenza · 0 scadute — su 3»
+   con la pastiglia VERDE «tutte regolari», e quindici righe più sotto la stessa
+   schermata scriveva «1 con prescrizioni scadute · 1 mai verificata, su 3
+   verifiche registrate» (`verificheDaSistemare`); nel Quadro le stesse due
+   attrezzature stavano in rosso e in giallo. La copertura guardava SOLO la
+   data della prossima verifica, che per tutt'e tre è nel futuro: cioè una
+   verifica mai fatta e una con le prescrizioni scadute entravano fra i
+   «regolari». È il principio del fondatore — l'assenza di un dato non è un
+   dato favorevole — nella schermata che si apre per vedere che cosa manca.
+   La regola esisteva già (`statoVerificaPeriodica`) e la copertura non la
+   leggeva: la copia più debole, non l'invenzione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta cinquemila righe più su. */
+{
+  const OGGI_C = new Date("2026-09-02T10:00:00");
+  const VERB = [{ id: "vb1", tipo: "Verbale di verifica periodica", titolo: "verbale", stato: "valido" }];
+  const SCA_C = [
+    // la prossima verifica è lontana per tutt'e tre: per la sola DATA sono «regolari»
+    { id: "a", tipo: "Verifica periodica", dataScadenza: "2027-03-18", verificaEsito: "idonea", verbaleId: "vb1", verificaEnte: "abilitato" },
+    { id: "b", tipo: "Verifica periodica", dataScadenza: "2026-11-27", verificaEsito: "prescrizioni", verificaEntro: "2026-07-15", verificaEnte: "asl" },
+    { id: "c", tipo: "Verifica periodica", dataScadenza: "2027-06-30" },   // mai verificata
+    { id: "d", tipo: "Corso", dataScadenza: "2027-01-01" },
+  ];
+  test("⛔ Scudo · coperturaFormazione: una verifica mai fatta o con prescrizioni scadute non è «in regola»", () => {
+    const c = scudo.coperturaFormazione(SCA_C, OGGI_C, VERB);
+    const v = c.find((x) => x.tipo === "Verifica periodica");
+    // prima: regolari 3, e il tipo in fondo all'elenco come il più tranquillo
+    eq(v.regolari, 1, "in regola resta solo l'idonea col verbale");
+    eq(v.verificheNegative, 1, "le prescrizioni scadute sono una verifica negativa");
+    eq(v.verificheIncerte, 1, "quella mai fatta è incerta: non si sa com'è");
+    eq(v.totale, 3, "nessuna riga persa");
+    eq(v.scadute + v.inScadenza + v.senzaData + v.verificheNegative + v.verificheIncerte + v.regolari, v.totale,
+      "i sei secchi coprono tutto");
+    eq(scudo.daSistemareCopertura(v), 2, "e tutt'e due chiedono di fare qualcosa");
+    eq(c[0].tipo, "Verifica periodica", "il tipo con una verifica negativa va per primo, come uno con una scaduta");
+    // il Corso non è una verifica: i due secchi nuovi restano a zero e il resto non cambia
+    eq(c.find((x) => x.tipo === "Corso"), { tipo: "Corso", totale: 1, scadute: 0, inScadenza: 0, senzaData: 0,
+      verificheNegative: 0, verificheIncerte: 0, regolari: 1 }, "un corso conta come prima");
+  });
+  test("⛔ Scudo · coperturaFormazione: una riga sta in UN secchio solo, e la data scaduta vince", () => {
+    const x = scudo.coperturaFormazione([{ tipo: "Verifica periodica", dataScadenza: "2020-01-01",
+      verificaEsito: "non-idonea" }], OGGI_C, [])[0];
+    eq([x.scadute, x.verificheNegative, x.totale], [1, 0, 1], "scaduta E non idonea: contata una volta, fra le scadute");
+    // senza il registro documenti l'idonea è «verbale mancante» (warn): è incerta, non regolare
+    const s = scudo.coperturaFormazione([SCA_C[0]], OGGI_C, null)[0];
+    eq([s.verificheIncerte, s.regolari], [1, 0], "idonea senza il verbale non è regolare");
+    // la vecchia firma (senza documenti) resta valida sui tipi che non sono verifiche
+    eq(scudo.coperturaFormazione([{ tipo: "Corso", dataScadenza: "2000-01-01" }], OGGI_C)[0].scadute, 1);
+  });
+  test("⛔ Scudo · statoCopertura: colore e pastiglia decisi in un posto solo, e i secchi nuovi li leggono", () => {
+    /* `totale: 1` di base: un gruppo con zero righe è il caso a parte provato in fondo */
+    const st = (o) => scudo.statoCopertura({ scadute: 0, inScadenza: 0, senzaData: 0, verificheNegative: 0, verificheIncerte: 0, regolari: 0, totale: 1, ...o });
+    eq(st({ regolari: 3, totale: 3 }), { cls: "ok", badge: "tutte regolari" });
+    eq(st({ scadute: 2 }), { cls: "danger", badge: "2 scadute" });
+    eq(st({ scadute: 1 }), { cls: "danger", badge: "1 scaduta" });
+    eq(st({ verificheNegative: 1 }), { cls: "danger", badge: "1 negativa" });
+    eq(st({ verificheNegative: 2 }), { cls: "danger", badge: "2 negative" });
+    eq(st({ inScadenza: 1 }), { cls: "warn", badge: "1 in scadenza" });
+    eq(st({ senzaData: 2 }), { cls: "warn", badge: "2 senza data" });
+    eq(st({ verificheIncerte: 1 }), { cls: "warn", badge: "1 incerta" });
+    eq(st({ verificheIncerte: 1, verificheNegative: 1 }), { cls: "danger", badge: "1 negativa" }, "il peggio decide");
+    eq(scudo.statoCopertura(null), { cls: "warn", badge: "niente registrato" },
+      "sul vuoto non risponde «tutte regolari»: niente da misurare non è tutto a posto");
+    /* sulla DIMOSTRAZIONE: la riga che a schermo diceva «tutte regolari» */
+    const demo = scudo.coperturaFormazione(scudo.DEMO.scadenze, OGGI_C, scudo.DEMO.documenti)
+      .find((x) => x.tipo === "Verifica periodica");
+    eq(scudo.statoCopertura(demo).cls, "danger", "la dimostrazione ha una verifica con prescrizioni scadute: rossa, non verde");
+  });
+}
+/* ===== fine copertura e verifica periodica ===== */
+
+/* ===== fine ponte Conti → Flotta ===== */
+
+/* ═════ TERRA · LA PASSATA IN PROFONDITÀ DEL 02/09 ═════
+   Tre difetti trovati premendo i bottoni e aprendo i file sulla dimostrazione.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const RTK = { id: "a", data: "2026-03-10", fronteId: "f1", stato: "elaborato", volumeM3: 10000, metodo: "RTK", gsd: "2" };
+  const ND1 = { id: "b", data: "2026-04-10", fronteId: "f1", stato: "elaborato", volumeM3: 30000 };
+  const ND2 = { id: "c", data: "2026-05-10", fronteId: "f1", stato: "elaborato", volumeM3: 20000 };
+  const AUT = { volumeAutorizzatoM3: 1200000, dataRilascio: "2024-01-01", estrattoPregressoM3: 100000 };
+  const OGGI = new Date("2026-09-02T10:00:00Z");
+
+  test("⛔ Terra · incertezzaScavo: chi non dichiara il metodo non pesa zero, viene DICHIARATO", () => {
+    const i = terra.incertezzaScavo([RTK, ND1, ND2]);
+    eq(i.banda, 200, "il ± è quello di sempre: il 2% dei soli 10.000 m³ con tolleranza nota");
+    eq([i.coperti, i.copertoM3], [1, 10000], "un rilievo coperto, per 10.000 m³");
+    eq([i.scoperti, i.scopertoM3], [2, 50000], "due scoperti, per 50.000 m³ — prima sparivano dal conto");
+    eq([i.rilievi, i.completa], [3, false], "e la somma si dichiara incompleta");
+    eq(terra.incertezzaScavo([RTK]), { banda: 200, coperti: 1, copertoM3: 10000, scoperti: 0, scopertoM3: 0, rilievi: 1, completa: true },
+      "col solo rilievo con metodo la copertura è piena");
+    eq(terra.incertezzaScavo([]).rilievi, 0, "vuoto: zero rilievi");
+    eq(terra.incertezzaScavo(null).completa, true, "e null non rompe");
+    eq(terra.incertezzaScavo([null, ND1]).scoperti, 1, "i buchi nella lista si saltano");
+    eq(terra.incertezzaScavo([{ ...ND1, volumeM3: "" }]).scopertoM3, 0, "un volume illeggibile non conta metri cubi (non è zero misurato, è assente)");
+  });
+
+  test("⛔ Terra · descriviIncertezza: la frase dice su che cosa si regge il ±", () => {
+    const parz = terra.descriviIncertezza(terra.incertezzaScavo([RTK, ND1, ND2]));
+    ok(parz.includes("sul solo rilievo con metodo dichiarato (10.000 m³ su 60.000): ± 200 m³"), "copertura scritta: 1 su 3, 10.000 su 60.000 · " + parz);
+    ok(parz.includes("Gli altri 2 rilievi (50.000 m³) non dichiarano il metodo"), "e chi resta fuori, con i suoi m³ · " + parz);
+    ok(parz.includes("non si può stimare"), "e non chiama «complessiva» una somma parziale · " + parz);
+    ok(!parz.includes("stima prudente"), "niente «stima prudente» su un conto che copre un rilievo su tre");
+    const due = terra.descriviIncertezza(terra.incertezzaScavo([RTK, { ...RTK, id: "a2", volumeM3: 5000 }, ND1]));
+    ok(due.includes("sui soli 2 rilievi con metodo dichiarato") && due.includes("L'altro rilievo (30.000 m³) non dichiara il metodo"), "plurali e singolari al posto giusto · " + due);
+    const piena = terra.descriviIncertezza(terra.incertezzaScavo([RTK, { ...RTK, id: "a2", volumeM3: 5000 }]));
+    ok(piena.includes("± 300 m³") && piena.includes("di ogni rilievo (stima prudente)"), "con la copertura piena la frase resta quella di sempre · " + piena);
+    const nessuno = terra.descriviIncertezza(terra.incertezzaScavo([ND1, ND2]));
+    ok(nessuno.includes("non stimabile") && nessuno.includes("nessuno dei 2 rilievi dichiara il metodo"), "senza nessun metodo non c'è un ± da scrivere · " + nessuno);
+    ok(terra.descriviIncertezza(terra.incertezzaScavo([ND1])).includes("l'unico rilievo non dichiara"), "e al singolare");
+    eq(terra.descriviIncertezza(terra.incertezzaScavo([])), "", "senza rilievi non si scrive niente");
+    eq(terra.descriviIncertezza(null), "", "e null non rompe");
+    eq(terra.descriviIncertezza(terra.incertezzaScavo([{ ...RTK, volumeM3: 0 }])), "", "banda zero su tolleranza nota: niente da dire");
+  });
+
+  test("⛔ Terra · il riepilogo annuale, la base dell'onere e il confronto portano la copertura dell'incertezza", () => {
+    const R = terra.riepilogoAnnuale([RTK, ND1, ND2], 2026, AUT, OGGI);
+    eq(R.banda, 200, "il numero non cambia: la tolleranza che non si sa non si inventa");
+    eq([R.incertezza.coperti, R.incertezza.scoperti, R.incertezza.completa], [1, 2, false], "ma il riepilogo dice chi copre");
+    eq(R.qualita.nd, 2, "e i due senza metodo erano già contati fra i «n.d.» — senza che il ± lo dicesse");
+    const base = terra.baseOnereEscavazione(R, {});
+    eq(base.incertezza, R.incertezza, "la base porta lo stesso oggetto, non una copia");
+    const frase = terra.descriviBaseOnere(base);
+    ok(frase.includes("stimabile solo su 10.000 m³ (il solo rilievo con metodo dichiarato): ± 200 m³; sugli altri 50.000 m³ la tolleranza non è dichiarata"),
+      "e il foglio per l'ente scrive su quanto si regge il ± · " + frase);
+    ok(!frase.includes("Incertezza del volume dichiarata: ± 200"), "non più «incertezza del volume dichiarata» su un ± che copre un sesto del volume");
+    const Rp = terra.riepilogoAnnuale([RTK], 2026, AUT, OGGI);
+    ok(terra.descriviBaseOnere(terra.baseOnereEscavazione(Rp, {})).includes("Incertezza del volume dichiarata: ± 200 m³."), "a copertura piena la frase di sempre");
+    const Rn = terra.riepilogoAnnuale([ND1, ND2], 2026, AUT, OGGI);
+    ok(terra.descriviBaseOnere(terra.baseOnereEscavazione(Rn, {})).includes("non stimabile: nessun rilievo dichiara il metodo"), "e senza nessun metodo lo dice");
+    const c = terra.confrontoRilievi([RTK, ND1, ND2], "a", "c");
+    eq([c.scavato, c.banda], [50000, 0], "fra il primo e il terzo si sommano i due senza metodo: banda zero");
+    eq([c.incertezza.scoperti, c.incertezza.completa], [2, false], "e il confronto dichiara che quello zero è «non stimabile», non «± 0»");
+    ok(terra.descriviIncertezza(c.incertezza).includes("non stimabile"), "con la frase del modulo");
+  });
+
+  test("⛔ Terra · csvRilievi coi fronti: la colonna «fronte» porta il NOME del fronte del rilievo", () => {
+    const FRO = [{ id: "f1", nome: "Fronte Nord" }, { id: 7, nome: " Fronte Est " }];
+    const RIL = [{ data: "2026-03-01", volumeM3: 100, fronteId: "f1", provenienza: "scavo" },
+      { data: "2026-03-02", volumeM3: 200, fronteId: 7, provenienza: "scavo" },
+      { data: "2026-03-03", volumeM3: 300, fronteId: "fZZ", provenienza: "scavo" },
+      { data: "2026-03-04", volumeM3: 400, fronteId: null, provenienza: "cumulo" },
+      { data: "2026-03-05", volumeM3: 500, fronte: "Fronte Ovest", provenienza: "scavo" }];
+    const righe = terra.csvRilievi(RIL, FRO).trim().split("\n").slice(1).map((r) => r.split(";")[4]);
+    eq(righe, ["Fronte Nord", "Fronte Est", "", "", "Fronte Ovest"],
+      "id → nome (anche numerico, e senza spazi in coda); un fronte cancellato o assente resta vuoto; il nome già scritto vince");
+    eq(terra.csvRilievi(RIL).trim().split("\n").slice(1).map((r) => r.split(";")[4]), ["", "", "", "", "Fronte Ovest"],
+      "senza il secondo argomento il file è quello di prima (la firma vecchia resta valida)");
+    /* il giro di andata e ritorno: il nome esce e rientra, com'è il contratto del lettore */
+    eq(terra.parseRilieviCsv(terra.csvRilievi(RIL, FRO))[0].fronte, "Fronte Nord", "e rientra come `fronte`, che la pagina rimappa sull'id per nome");
+    /* sulla DIMOSTRAZIONE, che è dove il difetto si vedeva premendo il bottone */
+    const conFronte = terra.DEMO.rilievi.filter((r) => r.fronteId != null).length;
+    const scritti = terra.csvRilievi(terra.DEMO.rilievi, terra.DEMO.fronti).trim().split("\n").slice(1).filter((r) => r.split(";")[4] !== "").length;
+    ok(conFronte > 0 && scritti === conFronte, `ogni rilievo della dimostrazione con un fronte lo porta nel file (${scritti} su ${conFronte}; prima erano 0)`);
+  });
+}
+/* ===== fine passata Terra 02/09 ===== */
+
+/* ═════ SENTINELLA · LA LETTURA DICHIARATA NON VALIDA (04/09) ═════
+   Candidato (b) del delta: lo stato «evento non valido» con la ragione
+   (mezzo di passaggio, temporale, prova dello strumento) accanto a
+   `correggiLettura`, e la lettura senza volata quel giorno segnalata come
+   CANDIDATO. Il principio che ogni prova qui difende: il conto cambia SOLO
+   con la dichiarazione di qualcuno, mai da solo — e una lettura tolta si
+   DICHIARA (`annullate`), perché tolta in silenzio è il modo in cui un
+   superamento sparisce.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const Q = "2026-08-01T10:00:00";
+  const L = () => ({ data: "2026-07-19", ora: "10:25", valore: 5.6, origine: { da: "import", file: "V2_luglio.csv", quando: "2026-07-20T09:07:00" } });
+  const VOL = [{ id: "b1", data: "2026-07-17", stato: "eseguita" }, { id: "b3", data: "2026-08-04", stato: "prevista" }];
+
+  test("⛔ Sentinella · annullaLettura: la ragione vuota è rifiutata, il valore resta scritto", () => {
+    eq(sentinella.annullaLettura(L(), "", Q), null, "chiave vuota");
+    eq(sentinella.annullaLettura(L(), "boh", Q), null, "chiave sconosciuta");
+    eq(sentinella.annullaLettura(L(), null, Q), null, "null");
+    eq(sentinella.annullaLettura(L(), { chiave: "altro", nota: "  " }, Q), null, "«altro» senza il testo non è una ragione");
+    eq(sentinella.annullaLettura(null, "mezzo", Q), null, "una non-lettura non si annulla");
+    eq(sentinella.annullaLettura("x", "mezzo", Q), null, "nemmeno una stringa");
+    const a = sentinella.annullaLettura(L(), "mezzo", Q);
+    eq(a.valore, 5.6, "⛔ il valore NON si cancella");
+    eq(a.origine.annullata, { perche: "mezzo", nota: "", quando: Q, valore: 5.6 }, "la dichiarazione porta ragione, momento e il valore letto");
+    eq([a.origine.da, a.origine.file], ["import", "V2_luglio.csv"], "e la provenienza resta com'era");
+    eq(L().origine.annullata, undefined, "la lettura di partenza non è stata toccata (funzione pura)");
+    const alt = sentinella.annullaLettura(L(), { chiave: "altro", nota: " cane sul geofono " }, Q);
+    eq(alt.origine.annullata.perche, "altro", "«altro» con il testo passa");
+    eq(alt.origine.annullata.nota, "cane sul geofono", "e il testo entra ripulito");
+    eq(sentinella.annullaLettura(L(), "MEZZO", Q).origine.annullata.perche, "mezzo", "la chiave si legge senza badare alle maiuscole");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: 22.5 }, "prova", Q).origine.da, "non dichiarata",
+      "senza `origine` la provenienza nasce «non dichiarata», come fa `correggiLettura`");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: null }, "prova", Q).origine.annullata.valore, null,
+      "su una lettura senza numero la dichiarazione porta `null`, non uno zero");
+    eq(sentinella.annullaLettura({ data: "2026-06-14", valore: 0 }, "prova", Q).origine.annullata.valore, 0, "e lo zero SCRITTO resta zero");
+    eq(sentinella.annullaLettura(sentinella.annullaLettura(L(), "mezzo", Q), "temporale", "2026-08-02T08:00:00").origine.annullata.perche, "temporale",
+      "annullare di nuovo cambia la ragione (chi cambia idea la può cambiare)");
+  });
+
+  test("⛔ Sentinella · letturaValida / annullamentoDi / ripristinaLettura nei due versi", () => {
+    eq(sentinella.letturaValida(L()), true, "una lettura normale vale");
+    eq(sentinella.letturaValida(null), false, "null non è una lettura valida");
+    eq(sentinella.letturaValida(7), false, "nemmeno un numero");
+    eq(sentinella.letturaValida({ data: "2026-01-01", valore: 1 }), true, "senza origine vale");
+    const a = sentinella.annullaLettura(L(), "temporale", Q);
+    eq(sentinella.letturaValida(a), false, "annullata → non vale");
+    eq(sentinella.annullamentoDi(a), { perche: "temporale", etichetta: "Temporale", nota: "", quando: Q, valore: 5.6 }, "annullamentoDi la legge");
+    eq(sentinella.annullamentoDi(L()), null, "e risponde null su una lettura sana");
+    eq(sentinella.annullamentoDi({ origine: { annullata: "sì" } }), null, "una dichiarazione che non è un oggetto non è una dichiarazione");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "boh", valore: 3 } } }).etichetta, "ragione non dichiarata",
+      "una chiave sconosciuta in archivio si dice per quello che è, non si inventa una ragione");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "altro", nota: "Cantiere vicino" } } }).etichetta, "Cantiere vicino", "«altro» porta il suo testo");
+    eq(sentinella.annullamentoDi({ origine: { annullata: { perche: "mezzo", valore: "" } } }).valore, null, "valore vuoto nella dichiarazione → null");
+    const r = sentinella.ripristinaLettura(a, "2026-08-02T09:00:00");
+    eq(sentinella.letturaValida(r), true, "⛔ ripristinata → torna a valere");
+    eq(r.valore, 5.6, "col suo valore");
+    eq(r.origine.annullata, undefined, "la dichiarazione è tolta");
+    eq(r.origine.ripristinata, { quando: "2026-08-02T09:00:00", perche: "temporale", nota: "" }, "ma resta scritto che era stata annullata, e perché");
+    eq(sentinella.letturaValida(a), false, "la lettura di partenza non è stata toccata (funzione pura)");
+    eq(sentinella.ripristinaLettura(L()).origine.ripristinata, undefined, "ripristinare una lettura sana non scrive niente");
+    eq(sentinella.ripristinaLettura(null), null, "null → null");
+    eq(sentinella.annullaLettura(r, "mezzo", Q).origine.ripristinata, undefined, "una nuova dichiarazione supera il vecchio ripristino");
+    const pr = sentinella.provenienzaMisura(a);
+    eq([pr.da, pr.noto, pr.annullata.perche], ["import", true, "temporale"], "provenienzaMisura porta anche l'annullamento");
+    eq(sentinella.provenienzaMisura(L()).annullata, null, "e null su una sana");
+    eq(sentinella.provenienzaMisura({}).annullata, null, "e su una senza origine");
+    ok(/DICHIARATA NON VALIDA il 01\/08\/2026 alle 10:00 \(Temporale\)/.test(sentinella.descriviProvenienza(a, { nome: "V2" })),
+      "la frase del documento dice che è stata dichiarata non valida, quando e perché");
+    ok(/resta in archivio col suo valore/.test(sentinella.descriviProvenienza(a, { nome: "V2" })), "e che il valore resta");
+    ok(!/NON VALIDA/.test(sentinella.descriviProvenienza(L(), { nome: "V2" })), "e tace su una lettura sana");
+  });
+
+  test("Sentinella · RAGIONI_ANNULLAMENTO: cinque ragioni, una sola col testo libero", () => {
+    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "meteo", "altro"], "le chiavi, nell'ordine della tendina (cinque dal 05/09: «meteo», la misura di rumore fuori dalle condizioni della norma)");
+    eq(sentinella.RAGIONI_ANNULLAMENTO.filter(r => r.nota).map(r => r.chiave), ["altro"], "solo «altro» vuole il testo");
+    for (const r of sentinella.RAGIONI_ANNULLAMENTO) ok(r.etichetta && r.etichetta.length > 3, "ogni ragione ha un'etichetta leggibile: " + r.chiave);
+  });
+
+  test("⛔ Sentinella · contaAnnullate: conta e dichiara, col periodo, e non gonfia", () => {
+    const lst = [sentinella.annullaLettura(L(), "temporale", Q),
+      sentinella.annullaLettura({ data: "2026-07-06", valore: 3.9 }, "temporale", Q),
+      sentinella.annullaLettura({ data: "2026-06-05", valore: 3.2 }, { chiave: "altro", nota: "Cantiere vicino" }, Q),
+      { data: "2026-06-16", valore: 4.4 },
+      sentinella.annullaLettura({ data: "2026-02-30", valore: 3 }, "mezzo", Q),     // giorno che non esiste: già «non utilizzabile»
+      sentinella.annullaLettura({ data: "2026-06-01", valore: null }, "mezzo", Q)]; // senza valore: idem
+    eq(sentinella.contaAnnullate(lst), { n: 3, ragioni: [{ etichetta: "Temporale", n: 2 }, { etichetta: "Cantiere vicino", n: 1 }],
+      testo: "3 letture annullate (temporale 2, cantiere vicino 1)" }, "tre annullate leggibili; le due illeggibili NON si contano due volte");
+    eq(sentinella.contaAnnullate(lst, "2026-07-01", "2026-07-31").testo, "2 letture annullate (temporale 2)", "ristretta a luglio");
+    eq(sentinella.contaAnnullate(lst, "2026-07-10", "").n, 1, "solo il «dal»");
+    eq(sentinella.contaAnnullate([lst[0]]).testo, "1 lettura annullata (temporale)", "al singolare, senza il numero quando è una ragione sola");
+    eq(sentinella.contaAnnullate([lst[3]]), { n: 0, ragioni: [], testo: "" }, "zero → testo vuoto: a zero non c'è niente da dichiarare");
+    eq(sentinella.contaAnnullate(null).n, 0, "null non rompe");
+    eq(sentinella.contaAnnullate([null, undefined, 3]).n, 0, "né i buchi");
+  });
+
+  test("⛔ Sentinella · letturaSenzaVolata è un candidato, con tre risposte", () => {
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, VOL), true, "nessuna volata eseguita quel giorno → true");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-17" }, VOL), false, "il giorno della volata → false");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-08-04" }, VOL), true, "una volata soltanto PREVISTA non è un fatto: quel giorno resta senza volata");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, []), null, "⛔ registro vuoto → NON SI PUÒ DIRE, non «senza volata»");
+    eq(sentinella.letturaSenzaVolata({ data: "2026-07-19" }, [VOL[1]]), null, "registro con sole previste → idem");
+    eq(sentinella.letturaSenzaVolata({ data: "boh" }, VOL), null, "data illeggibile → null");
+    eq(sentinella.letturaSenzaVolata(null, VOL), null, "null → null");
+    // e non è un'esclusione: la lettura «senza volata» conta come prima
+    const m = { soglia: 5, letture: [{ data: "2026-07-19", valore: 5.6 }] };
+    eq(sentinella.ultimaLettura(m).valore, 5.6, "⛔ il suggerimento non toglie niente: la lettura conta finché nessuno la dichiara");
+  });
+
+  /* ── I LETTORI: per OGNUNO, il conto cambia con la dichiarazione e si dichiara ── */
+  const M = () => ({ id: "x", nome: "PM10", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 36.8,
+    letture: [{ data: "2026-06-14", valore: 22.5 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 }] });
+  const ann = (m, i, perche = "temporale") => { const c = { ...m, letture: [...m.letture] }; c.letture[i] = sentinella.annullaLettura(c.letture[i], perche, Q); return c; };
+
+  test("⛔ Sentinella · ultimaLettura / statoMisura / riepilogoConformita: cambiano SOLO con la dichiarazione", () => {
+    const m = M();
+    eq(sentinella.ultimaLettura(m).valore, 36.8, "prima: l'ultima è il 19/07");
+    eq(sentinella.statoMisura({ ...m, valore: null }).stato, "attenzione", "e il badge (letto dall'ultima lettura) dice attenzione");
+    const a = ann(m, 3);
+    eq(sentinella.ultimaLettura(a).valore, 33.7, "⛔ annullata l'ultima, l'ultima VALIDA è il 12/07");
+    eq(sentinella.statoMisura({ ...a, valore: null }).stato, "conforme", "e il badge cambia: 33,7 su 40");
+    eq(sentinella.statoMisura(a).stato, "attenzione", "⚠️ con `valore` ancora fermo a 36,8 il badge NON cambia: la pagina riallinea `valore` all'ultima valida (limite dichiarato)");
+    const r0 = sentinella.riepilogoConformita([{ ...m, valore: null }]), r1 = sentinella.riepilogoConformita([{ ...a, valore: null }]);
+    eq([r0.attenzione, r0.conformi, r0.annullate], [1, 0, 0], "riepilogo prima: 1 in attenzione, 0 annullate");
+    eq([r1.attenzione, r1.conformi, r1.annullate], [0, 1, 1], "⛔ riepilogo dopo: conforme, e DICHIARA 1 annullata");
+    const tutte = ann(ann(ann(ann(m, 0), 1), 2), 3);
+    eq(sentinella.ultimaLettura(tutte), null, "tutte annullate → nessuna lettura valida");
+    eq(sentinella.statoMisura({ ...tutte, valore: null }).stato, "mai", "e il punto torna «mai misurato»: chiede una misura invece di sostenerne una");
+    eq(sentinella.riepilogoConformita([{ ...tutte, valore: null }]).annullate, 4, "con 4 dichiarate");
+    const rip = { ...a, letture: a.letture.map(l => sentinella.ripristinaLettura(l)) };
+    eq(sentinella.ultimaLettura(rip).valore, 36.8, "ripristinata → torna l'ultima di prima");
+    eq(sentinella.riepilogoConformita([{ ...rip, valore: null }]).annullate, 0, "e le annullate tornano a zero");
+  });
+
+  test("⛔ Sentinella · lettureNelPeriodo / statPeriodo / confrontoMesi / ultimaLetturaOltre / superamentiAperti", () => {
+    const m = M(), a = ann(m, 1, "mezzo");   // annullo il 28/06 = 44,2, l'unico oltre soglia
+    eq(sentinella.lettureNelPeriodo(m, "2026-06-01", "2026-06-30").length, 2, "giugno prima: 2");
+    eq(sentinella.lettureNelPeriodo(a, "2026-06-01", "2026-06-30").length, 1, "giugno dopo: 1");
+    const s0 = sentinella.statPeriodo(m, "2026-06-01", "2026-06-30", 40), s1 = sentinella.statPeriodo(a, "2026-06-01", "2026-06-30", 40);
+    eq([s0.n, s0.max, s0.superamenti, s0.annullate], [2, 44.2, 1, 0], "statPeriodo prima");
+    eq([s1.n, s1.max, s1.superamenti, s1.annullate], [1, 22.5, 0, 1], "⛔ statPeriodo dopo: il superamento sparisce dal conto E si dichiara «1 annullata»");
+    eq(sentinella.statPeriodo(a, "2026-07-01", "2026-07-31", 40).annullate, 0, "in luglio non ce ne sono: 0");
+    const c = sentinella.confrontoMesi(a, 40, new Date("2026-07-20T00:00:00"));
+    eq([c.precedente.annullate, c.corrente.annullate], [1, 0], "confrontoMesi porta il conto per mese");
+    eq(sentinella.ultimaLetturaOltre(m, 40).data, "2026-06-28", "prima: l'ultima oltre è il 28/06");
+    eq(sentinella.ultimaLetturaOltre(a, 40), null, "dopo: nessuna oltre");
+    const sup0 = sentinella.superamentiAperti([{ ...m, valore: 44.2 }], []), sup1 = sentinella.superamentiAperti([{ ...a, valore: 44.2 }], []);
+    eq(sup0[0].data, "2026-06-28", "superamentiAperti prima cita il 28/06");
+    eq(sup1[0].voce, "valore-corrente", "⚠️ con `valore` fermo a 44,2 il superamento resta (è la regola già decisa: un valore dichiarato conta) ma senza più una data da citare");
+    eq(sentinella.superamentiAperti([{ ...a, valore: null }], []).length, 0, "col valore riallineato dalla pagina il superamento aperto sparisce");
+  });
+
+  test("⛔ Sentinella · serieStorica e andamentoRicettore dichiarano quante non disegnano", () => {
+    const m = M(), a = ann(m, 1);
+    eq([sentinella.serieStorica(m).n, sentinella.serieStorica(m).annullate, sentinella.serieStorica(m).max], [4, 0, 44.2], "prima: 4 punti, max 44,2");
+    eq([sentinella.serieStorica(a).n, sentinella.serieStorica(a).annullate, sentinella.serieStorica(a).max], [3, 1, 36.8], "⛔ dopo: 3 punti, max 36,8, e «annullate: 1»");
+    eq(sentinella.serieStorica({ letture: [] }).annullate, 0, "vuota: 0");
+    const RIC = [{ id: "rc", nome: "Casa", soglia: 40, unita: "µg/m³" }];
+    const and = sentinella.andamentoRicettore([{ ...a, ricettoreId: "rc" }], RIC, "rc", { oggi: "2026-07-20" });
+    eq([and.punti[0].n, and.punti[0].annullate], [3, 1], "l'andamento del ricettore: 3 letture e 1 annullata nella finestra");
+  });
+
+  test("⛔ Sentinella · contaCoperture, composizioneProvenienza e coperturaPeriodo lasciano fuori le annullate e lo dicono", () => {
+    const m = M(), a = ann(m, 1);
+    const T = [{ data: "2026-01-01", scadenza: "2026-12-31" }];
+    eq([sentinella.contaCoperture(T, m.letture).coperta, sentinella.contaCoperture(T, m.letture).annullate], [4, 0], "prima: 4 coperte");
+    eq([sentinella.contaCoperture(T, a.letture).coperta, sentinella.contaCoperture(T, a.letture).totale, sentinella.contaCoperture(T, a.letture).annullate], [3, 3, 1],
+      "dopo: 3 coperte su 3, e 1 annullata dichiarata");
+    const cp0 = sentinella.composizioneProvenienza([m]), cp1 = sentinella.composizioneProvenienza([a]);
+    eq([cp0.n, cp0.annullate], [4, 0], "composizione prima");
+    eq([cp1.n, cp1.nonDichiarate, cp1.annullate], [3, 3, 1], "⛔ composizione dopo: 3 nel conto, 1 annullata a parte");
+    eq(sentinella.composizioneProvenienza([{ letture: [], annullateLetture: a.letture.filter(l => !sentinella.letturaValida(l)) }]).annullate, 1,
+      "su un punto del report (annullate a parte) il conto è lo stesso");
+    const co0 = sentinella.coperturaPeriodo([m], "2026-06-01", "2026-07-31", new Date("2026-08-01")), co1 = sentinella.coperturaPeriodo([a], "2026-06-01", "2026-07-31", new Date("2026-08-01"));
+    eq([co0.nGiorniMisurati, co0.annullate], [4, 0], "copertura prima: 4 giorni misurati");
+    eq([co1.nGiorniMisurati, co1.annullate], [3, 1], "⛔ un giorno con la sola lettura annullata NON è un giorno misurato, e si dichiara");
+  });
+
+  test("⛔ Sentinella · reportConformita: la lettura annullata esce dai numeri del documento e il documento lo dichiara", () => {
+    const m = M(), a = ann(m, 1, "mezzo");
+    const o = (mon) => ({ monitoraggi: [mon], ricettori: [], dal: "2026-06-01", al: "2026-07-31", oggi: "2026-08-01" });
+    const R0 = sentinella.reportConformita(o(m)), R1 = sentinella.reportConformita(o(a));
+    eq([R0.punti[0].n, R0.punti[0].max, R0.punti[0].nSuperamenti, R0.esito, R0.annullate.n], [4, 44.2, 1, "non-conforme", 0], "prima: non conforme per il 28/06");
+    eq([R1.punti[0].n, R1.punti[0].max, R1.punti[0].nSuperamenti, R1.esito], [3, 36.8, 0, "conforme"], "⛔ dopo: conforme — e se non fosse dichiarato sarebbe un superamento sparito");
+    eq(R1.annullate, { n: 1, ragioni: [{ etichetta: "Mezzo di passaggio", n: 1 }], testo: "1 lettura annullata (mezzo di passaggio)" }, "⛔ il documento lo DICHIARA, con la ragione");
+    eq(R1.punti[0].annullate.testo, "1 lettura annullata (mezzo di passaggio)", "e la scheda del punto anche");
+    eq(R1.punti[0].annullateLetture.map(l => l.valore), [44.2], "la riga tolta viaggia col punto, col suo valore");
+    eq([R1.scartate.letture, R1.provenienza.annullate, R1.copertura.annullate, R1.tarature.perPunto[0].coperte + R1.tarature.perPunto[0].nonNote],
+      [0, 1, 1, 3], "non è una «scartata» (quelle il documento non le PUÒ usare); provenienza, copertura e tarature contano 3 e dichiarano 1");
+    const fuori = sentinella.reportConformita({ ...o(a), dal: "2026-07-01" });
+    eq(fuori.annullate.n, 0, "un'annullata FUORI dal periodo non si dichiara: non c'entra col documento");
+    const tutte = ann(ann(ann(ann(m, 0), 1), 2), 3);
+    const Rt = sentinella.reportConformita(o(tutte));
+    eq([Rt.punti[0].n, Rt.esito, Rt.annullate.n, Rt.nPuntiSenzaLetture], [0, "senza-dati", 4, 1], "tutte annullate: «senza dati», con 4 dichiarate");
+  });
+
+  test("⛔ Sentinella · csvAmbiente: il file dice la stessa cosa dello schermo, e dichiara le annullate due volte", () => {
+    const m = M(), a = ann(m, 3, "temporale");
+    const riga = (mon) => sentinella.csvAmbiente([{ ...mon, valore: sentinella.ultimaLettura(mon) ? sentinella.ultimaLettura(mon).valore : null }], [], [], new Date("2026-08-01")).split("\n")[1].split(";");
+    const c0 = riga(m), c1 = riga(a);
+    eq([c0[2], c0[5]], ["36.8", "Attenzione"], "prima: 36,8 «Attenzione»");
+    eq([c1[2], c1[5]], ["33.7", "Conforme"], "⛔ dopo: 33,7 «Conforme» — il valore dell'ultima VALIDA, come lo schermo");
+    ok(!/2026-07-19/.test(c1[6]) && /1 lettura annullata \(temporale\)/.test(c1[6]), "lo storico non scrive più il 19/07 e lo dichiara: " + c1[6]);
+    ok(/1 lettura annullata \(temporale\)/.test(c1[9]), "e la cella della provenienza pure: " + c1[9]);
+    ok(!/non utilizzabil/.test(c1[6]), "⛔ un'annullata NON è «non utilizzabile»: quella è una riga rotta, questa una riga tolta da qualcuno");
+    ok(!/annullat/.test(c0[6] + c0[9]), "e senza annullate il file non ne parla");
+    const rotta = { ...a, letture: [...a.letture, { data: "2026-02-30", valore: 9 }] };
+    ok(/1 lettura non utilizzabile/.test(riga(rotta)[6]) && /1 lettura annullata/.test(riga(rotta)[6]), "con una riga rotta E una annullata le due dichiarazioni stanno una accanto all'altra, senza sommarsi");
+  });
+
+  test("Sentinella · lettureVibrazioniDelGiorno tiene l'annullata in lista ma la marca non valida", () => {
+    const v = { id: "v", nome: "V", tipo: "vibrazioni", unita: "mm/s",
+      letture: [{ data: "2026-07-17", ora: "10:25", valore: 5.6 }, sentinella.annullaLettura({ data: "2026-07-17", ora: "10:40", valore: 9.1 }, "mezzo", Q)] };
+    const c = sentinella.lettureVibrazioniDelGiorno([v], "2026-07-17");
+    eq(c.map(x => [x.valore, x.valida]), [[9.1, false], [5.6, true]], "tutt'e due in lista (dalla più alta), l'annullata marcata `valida: false`");
+    eq(c[0].annullata.etichetta, "Mezzo di passaggio", "con la ragione, così la pagina la dice invece di farla scegliere");
+    eq(c[1].annullata, null, "e la sana porta null");
+  });
+
+  test("Sentinella · unisciLetture: reimportando lo stesso file l'annullamento sopravvive", () => {
+    const a = sentinella.annullaLettura(L(), "mezzo", Q);
+    const u = sentinella.unisciLetture([a], [L()]);
+    eq(u.duplicati, 1, "la stessa lettura è un doppione");
+    eq(sentinella.letturaValida(u.letture[0]), false, "⛔ e resta annullata: un reimport non rimette in gioco una misura che qualcuno ha tolto");
+  });
+
+  test("⛔ Sentinella · sulla DIMOSTRAZIONE: annullare l'ultima di PM10 la porta da attenzione a conforme, e il suggerimento senza volata non tocca niente", () => {
+    const D = JSON.parse(JSON.stringify(sentinella.DEMO));
+    const conSoglia = (m) => { const e = sentinella.sogliaEfficace(m, D.ricettori); return e.valore != null ? { ...m, soglia: e.valore } : m; };
+    const prima = sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia));
+    eq([prima.conformi, prima.attenzione, prima.annullate], [4, 1, 0], "com'è la dimostrazione");
+    const v1 = D.monitoraggi.find(m => m.id === "v1");
+    eq(v1.letture.map(l => sentinella.letturaSenzaVolata(l, D.volate)), [true, true, true, true], "le quattro letture di V1 sono tutte senza volata quel giorno");
+    eq(sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia)), prima, "⛔ e questo non ha cambiato NIENTE");
+    const p1 = D.monitoraggi.find(m => m.id === "p1");
+    p1.letture[5] = sentinella.annullaLettura(p1.letture[5], "temporale", Q);
+    p1.valore = sentinella.ultimaLettura(p1).valore;   // quello che fa la pagina
+    const dopo = sentinella.riepilogoConformita(D.monitoraggi.map(conSoglia));
+    eq([dopo.conformi, dopo.attenzione, dopo.annullate], [5, 0, 1], "⛔ con la dichiarazione: conforme, e 1 annullata dichiarata");
+  });
+}
+/* ===== fine lettura non valida (Sentinella, 04/09) ===== */
+
+/* ═════ FLOTTA · IL CONTATORE SOSTITUITO O AZZERATO (04/09) ═════
+   Candidato (b) del delta della ricerca sulla telematica: l'evento «contatore
+   azzerato/sostituito» dichiarato dalla persona, che riapre il conto senza far
+   dire «sceso» a `consumoPerMezzo` e `ritmoOreMezzi`. L'evento vive sul
+   rifornimento che apre il nuovo contatore (`contatoreNuovo`, `oreVecchie`);
+   il conto si fa sul TRATTO CORRENTE e quando è corto lo dice. I due versi che
+   ogni prova qui difende: una lettura più bassa SENZA dichiarazione resta
+   «sceso» (il difetto non si cura nascondendolo); CON la dichiarazione il conto
+   riparte, con `tratti: 2` e la data scritta.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const p = (data, litri, ore, extra) => ({ data, mezzo: "Dumper D4", litri, ore, euro: 0, ...extra });
+  const NUOVO = { contatoreNuovo: true, oreVecchie: 5750 };
+  const OGGI = new Date("2026-07-20T12:00:00");
+
+  test("Flotta · azzeramentiDelMezzo: legge la bandiera dalle letture, per mezzo, in ordine di data", () => {
+    const L = [{ mezzo: "E1 — CAT", data: "2026-07-01", ore: 120, contatoreNuovo: true, oreVecchie: 5841 },
+      { mezzo: "E1", data: "2026-06-01", ore: 5812 }, { mezzo: "D1", data: "2026-06-05", ore: 3, contatoreNuovo: true },
+      { mezzo: "E1", data: "2026-03-01", ore: 10, contatoreNuovo: true, oreVecchie: "" },
+      { mezzo: "E1", data: "2026-02-30", ore: 5, contatoreNuovo: true }, { mezzo: "E1", data: "2026-05-05", ore: null, contatoreNuovo: true }];
+    eq(flotta.azzeramentiDelMezzo(L, "E1"), [{ data: "2026-03-01", oreVecchie: null, oreNuove: 10, nota: "" }, { data: "2026-07-01", oreVecchie: 5841, oreNuove: 120, nota: "" }],
+      "due azzeramenti di E1 in ordine di data; oreVecchie vuoto è null, non 0");
+    eq(flotta.azzeramentiDelMezzo(L).length, 3, "senza il nome: di tutti i mezzi");
+    ok(!flotta.azzeramentiDelMezzo(L, "E1").some(a => a.data === "2026-02-30" || a.oreNuove == null), "⛔ un giorno che non esiste o una bandiera senza ore non sono un azzeramento");
+    eq(flotta.azzeramentiDelMezzo(null, "E1"), [], "niente letture, niente azzeramenti");
+  });
+
+  test("Flotta · spezzaLetture: senza azzeramenti un tratto solo con TUTTO (anche le letture senza data)", () => {
+    const L = [{ data: "2026-06-01", ore: 1 }, { data: "", ore: 2 }, { data: "2026-06-10", ore: 3 }];
+    const s = flotta.spezzaLetture(L, []);
+    eq([s.tratti.length, s.tratti[0].letture.length, s.senzaData.length, s.tratti[0].dal], [1, 3, 0, null], "il comportamento di sempre");
+  });
+
+  test("Flotta · spezzaLetture: ogni azzeramento apre un tratto; la lettura senza data non si sa dove metterla", () => {
+    const L = [{ data: "2026-01-01", ore: 10 }, { data: "2026-03-01", ore: 5 }, { data: "2026-05-01", ore: 1 }, { data: "2026-06-01", ore: 9 }, { data: "", ore: 7 }];
+    const s = flotta.spezzaLetture(L, [{ data: "2026-05-01" }, { data: "2026-03-01" }, { data: "boh" }]);
+    eq(s.tratti.map(t => [t.dal, t.letture.map(l => l.ore)]), [[null, [10]], ["2026-03-01", [5]], ["2026-05-01", [1, 9]]], "tre tratti, in ordine di data anche se gli azzeramenti arrivano in disordine; «boh» non apre niente");
+    eq(s.senzaData.map(l => l.ore), [7], "la lettura senza data sta a parte, non in un tratto indovinato");
+    eq(flotta.spezzaLetture([{ data: "2026-06-20", ore: 5850 }, { data: "2026-06-20", ore: 120 }], [{ data: "2026-06-20" }]).tratti.map(t => t.letture.length), [0, 2],
+      "lo stesso giorno dell'azzeramento va nel tratto nuovo (una lettura vecchia di quella mattina risulterà scesa: si corregge la data, non la regola)");
+  });
+
+  test("Flotta · trattoCorrente e fraseContatoreSostituito", () => {
+    const tc = flotta.trattoCorrente([p("2026-06-01", 100, 5600), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210), { ...p("", 1, 300) }]);
+    eq([tc.tratti, tc.dal, tc.letture.map(l => l.ore), tc.senzaData, tc.azzeramento.oreVecchie], [2, "2026-07-01", [120, 210], 1, 5750], "l'ultimo tratto, con quanti sono e da quando");
+    eq(flotta.fraseContatoreSostituito({ data: "2026-07-01" }), "contatore sostituito il 01/07/2026: il conto riparte da lì", "la frase, in un posto solo");
+    eq([flotta.fraseContatoreSostituito(null), flotta.fraseContatoreSostituito({ data: "2026-02-30" })], ["", ""], "senza una data che esista non c'è frase");
+  });
+
+  test("⛔ Flotta · validaRifornimento: la lettura più bassa passa SOLO col contatore dichiarato nuovo", () => {
+    const senza = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900 }, 1200);
+    ok(!senza.ok && /segna meno/.test(senza.errori.ore) && /nuovo o azzerato/.test(senza.errori.ore), "senza: rifiutata, e il messaggio dice la via giusta: " + senza.errori.ore);
+    const con = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900, contatoreNuovo: true }, 1200);
+    contiene(con, { ok: true, ore: 900, contatoreNuovo: true, oreVecchie: 1200 }, "con: passa, e porta le ore che il vecchio contatore segnava");
+    eq(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 900, contatoreNuovo: true }, null).oreVecchie, null, "mezzo senza contatore: oreVecchie null, non uno zero di comodo");
+    const vuote = flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: "", contatoreNuovo: true }, 1200);
+    ok(!vuote.ok && /scrivi che cosa segna/.test(vuote.errori.ore), "⛔ dichiarato nuovo SENZA le ore: errore, il conto non ha da dove ripartire");
+    contiene(flotta.validaRifornimento({ mezzo: "E1", litri: 40, data: "2026-07-31", ore: 1300 }, 1200), { ok: true, contatoreNuovo: false, oreVecchie: null }, "chi non dichiara niente resta com'era");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: sceso SENZA dichiarazione resta null e «sceso»", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120)]).mezzi[0];
+    eq([m.litriOra, m.tratti, m.contatoreDal], [null, 1, null], "un contatore solo, nessun numero");
+    ok(/il contatore è sceso/.test(m.perche), "e la ragione è ancora «sceso»: " + m.perche);
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: sceso CON l'azzeramento dichiarato, il conto riparte sul tratto nuovo (tratti: 2)", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)]).mezzi[0];
+    contiene(m, { litriOra: 2, oreCoperte: 90, tratti: 2, contatoreDal: "2026-07-01", oreVecchie: 5750, da: "2026-07-01", a: "2026-07-10", perche: "", pieni: 4 }, "180 l su 90 h del nuovo contatore; i pieni e i litri restano quelli di tutta la vita");
+    eq(m.litri, 630, "i litri messi si sommano su tutti i tratti: sono gasolio vero");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: azzeramento senza letture dopo → non calcolabile, e dice da quando", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO)]).mezzi[0];
+    eq([m.litriOra, m.tratti], [null, 2], "niente numero: sul tratto nuovo c'è una lettura sola");
+    eq(m.perche, "contatore sostituito il 01/07/2026: il conto riparte da lì, e serve un secondo rifornimento con le ore del nuovo contatore", "la ragione ha la data");
+  });
+
+  test("⛔ Flotta · consumoPerMezzo: dopo un azzeramento una lettura SENZA DATA non si colloca — si dice, non si indovina", () => {
+    const m = flotta.consumoPerMezzo([p("2026-06-01", 100, 5600), p("2026-07-01", 150, 120, NUOVO), p("", 180, 210)]).mezzi[0];
+    eq(m.litriOra, null, "l'assenza della data non è un dato favorevole");
+    ok(/non ha il giorno/.test(m.perche) && /a quale contatore/.test(m.perche), m.perche);
+  });
+
+  test("Flotta · consumoPerMezzo sulla DIMOSTRAZIONE: nessun azzeramento, tutto com'era", () => {
+    const c = flotta.consumoPerMezzo(flotta.DEMO.rifornimenti);
+    ok(c.mezzi.every(m => m.tratti === 1 && m.contatoreDal === null), "un tratto per ogni mezzo");
+    eq(c.mezzi.map(m => m.litriOra), [17.41, 12.7, 9.7, null], "e i numeri della dimostrazione non si sono mossi");
+  });
+
+  test("⛔ Flotta · ritmoOreMezzi: i due versi, e il tratto corto lo dice", () => {
+    const L = (d, ore, extra) => ({ mezzo: "E1", data: d, ore, ...extra });
+    const N = { contatoreNuovo: true, oreVecchie: 5700 };
+    const sceso = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-07-01", 120)], OGGI)[0];
+    eq([sceso.oreGiorno, sceso.tratti], [null, 1], "senza dichiarazione: niente ritmo");
+    ok(/non è salito/.test(sceso.perche), "e la ragione è «non è salito»");
+    const con = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-01", 120, N), L("2026-07-18", 200)], OGGI)[0];
+    contiene(con, { oreGiorno: 4.71, tratti: 2, letture: 2, contatoreDal: "2026-07-01", dal: "2026-07-01", al: "2026-07-18", perche: "" }, "con: 80 h in 17 giorni del nuovo contatore");
+    const solo = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-01", 120, N)], OGGI)[0];
+    eq(solo.oreGiorno, null, "una lettura sola del nuovo contatore: niente ritmo");
+    ok(/^contatore sostituito il 01\/07\/2026: il conto riparte da lì, e finora c'è una sola lettura del nuovo contatore/.test(solo.perche), solo.perche);
+    const corto = flotta.ritmoOreMezzi([L("2026-06-01", 5600), L("2026-06-20", 5700), L("2026-07-10", 120, N), L("2026-07-18", 200)], OGGI)[0];
+    ok(corto.oreGiorno == null && /coprono 8 giorni/.test(corto.perche) && /contatore sostituito il 10\/07\/2026/.test(corto.perche), "otto giorni sul tratto nuovo: troppo pochi, e si dice perché sono pochi: " + corto.perche);
+    const demo = flotta.ritmoOreMezzi([...flotta.DEMO.rifornimenti, ...flotta.DEMO.controlli]);
+    eq(demo.map(r => [r.mezzo, r.oreGiorno, r.tratti]), [["Dumper D1", 3.42, 1], ["Escavatore E1", 3.73, 1], ["Escavatore E2", null, 1], ["Pala P1", null, 1]], "la dimostrazione non si è mossa");
+  });
+
+  test("⛔ Flotta · consumoControStoria: la storia non scavalca un contatore sostituito", () => {
+    const R = [p("2026-05-01", 100, 5000), p("2026-05-20", 200, 5100), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)];
+    const s = flotta.consumoControStoria(R, "Dumper D4", OGGI);
+    eq([s.calcolabile, s.tratti, s.contatoreDal], [false, 2, "2026-07-01"], "non si confronta: i pieni di prima sono su un altro contatore");
+    ok(/sostituito il 01\/07\/2026/.test(s.perche) && /vecchio contatore/.test(s.perche), s.perche);
+    const senza = flotta.consumoControStoria(R.slice(0, 2).concat([p("2026-07-01", 150, 5150), p("2026-07-10", 180, 5240)]), "Dumper D4", OGGI);
+    eq([senza.calcolabile, senza.tratti], [true, 1], "senza azzeramento la storia si confronta come prima");
+  });
+
+  test("Flotta · costoOrarioMezzo e fascicoloMezzo leggono il tratto corrente da consumoPerMezzo, non un conto loro", () => {
+    const R = [p("2026-06-01", 100, 5600), p("2026-06-15", 200, 5750), p("2026-07-01", 150, 120, NUOVO), p("2026-07-10", 180, 210)];
+    const c = flotta.costoOrarioMezzo([], R).find(r => r.mezzo === "Dumper D4");
+    eq([c.ore, c.da, c.a], [90, "2026-07-01", "2026-07-10"], "le ore e la finestra sono quelle del tratto nuovo");
+    const f = flotta.fascicoloMezzo({ nome: "Dumper D4" }, { rifornimenti: R }, OGGI);
+    eq([f.consumo.litriOra, f.consumo.tratti], [2, 2], "e il libretto dice lo stesso numero");
+  });
+}
+/* ===== fine contatore sostituito (Flotta, 04/09) ===== */
+
+/* ===== IL TAGLIANDO A ORE E IL SUO CONTATORE (Flotta, 04/09, seconda unità) =====
+   Un «Tagliando a 6.000 h» scritto sul vecchio contatore, dopo un contatore
+   nuovo che segna 210, diceva «tra 5.790 h» in verde: falso, e nella direzione
+   tranquilla. Il tagliando porta `scrittaIl` (il giorno in cui è stato scritto)
+   e la regola è una sola: scritto PRIMA dell'ultimo azzeramento → vecchio
+   contatore → «non confrontabile», col motivo; lo stesso giorno o dopo → il
+   confronto è quello di sempre. Senza azzeramenti niente cambia. I versi che
+   ogni prova difende: il numero tranquillo non si disegna, e la proposta per
+   riscriverlo è una proposta (previste − oreVecchie + oreNuove), non un salvataggio.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const L = [
+    { mezzo: "Escavatore E1", data: "2026-07-01", ore: 120, contatoreNuovo: true, oreVecchie: 5841 },
+    { mezzo: "Escavatore E1", data: "2026-08-20", ore: 210 },
+  ];
+  const AZ = flotta.azzeramentiDelMezzo(L, "Escavatore E1");
+  const VECCHIO = { id: "n1", titolo: "Tagliando 500h", mezzo: "Escavatore E1", orePreviste: 6000, scrittaIl: "2026-06-10" };
+  const NUOVO = { id: "n2", titolo: "Tagliando 250h", mezzo: "Escavatore E1", orePreviste: 400, scrittaIl: "2026-07-15" };
+  const MEZ = [{ nome: "Escavatore E1 — Cat 320", ore: 210 }];
+  const OGGI = new Date("2026-09-04T12:00:00");
+
+  test("Flotta · contatoreDelTagliando: senza azzeramenti il confronto è sempre legittimo, e la data non conta", () => {
+    eq(flotta.contatoreDelTagliando(VECCHIO, []).calcolabile, true, "nessun azzeramento: confrontabile");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000 }, null).calcolabile, true, "anche senza `scrittaIl`: il campo non si legge nemmeno");
+    eq(flotta.contatoreDelTagliando(VECCHIO, []).azzeramento, null, "e non c'è un azzeramento da citare");
+  });
+  test("⛔ Flotta · contatoreDelTagliando: scritto PRIMA dell'ultimo azzeramento → vecchio contatore, non confrontabile, col motivo", () => {
+    const c = flotta.contatoreDelTagliando(VECCHIO, AZ);
+    eq([c.calcolabile, c.noto, c.scrittaIl], [false, true, "2026-06-10"], "non confrontabile ma si sa quando è stato scritto");
+    eq(c.azzeramento.data, "2026-07-01", "cita l'azzeramento che lo rende vecchio");
+    ok(/10\/06\/2026/.test(c.perche) && /01\/07\/2026/.test(c.perche), "il motivo porta le due date all'italiana — era «" + c.perche + "»");
+    ok(/5\.841 h/.test(c.perche), "e quanto segnava il vecchio contatore, raggruppato");
+    ok(!/quando segnava/.test(flotta.contatoreDelTagliando(VECCHIO, [{ data: "2026-07-01", oreNuove: 120, oreVecchie: null }]).perche), "senza `oreVecchie` non si inventa quanto segnava");
+  });
+  test("Flotta · contatoreDelTagliando: lo stesso giorno dell'azzeramento o dopo → contatore corrente (come spezzaLetture)", () => {
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-07-01" }, AZ).calcolabile, true, "stesso giorno: corrente");
+    eq(flotta.contatoreDelTagliando(NUOVO, AZ).calcolabile, true, "dopo: corrente");
+    eq(flotta.contatoreDelTagliando(NUOVO, AZ).azzeramento.data, "2026-07-01", "e sa da quale azzeramento parte");
+  });
+  test("⛔ Flotta · contatoreDelTagliando: senza `scrittaIl` su un mezzo con azzeramento → «non si sa», che NON è «va bene»", () => {
+    const c = flotta.contatoreDelTagliando({ orePreviste: 6000 }, AZ);
+    eq([c.calcolabile, c.noto, c.scrittaIl], [false, false, null], "non confrontabile e non noto");
+    ok(/non si sa su quale contatore/.test(c.perche), "il motivo lo dice — era «" + c.perche + "»");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-02-30" }, AZ).noto, false, "⛔ un giorno che non esiste non è una data");
+  });
+  test("Flotta · contatoreDelTagliando: conta l'ULTIMO azzeramento, e uno senza data valida non esiste", () => {
+    const due = [{ data: "2026-03-01", oreNuove: 10, oreVecchie: null }, { data: "2026-07-01", oreNuove: 120, oreVecchie: 5841 }];
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-05-10" }, due).calcolabile, false, "scritto fra i due: è del contatore di mezzo, non di quello attuale");
+    eq(flotta.contatoreDelTagliando({ orePreviste: 6000, scrittaIl: "2026-05-10" }, due.slice().reverse()).azzeramento.data, "2026-07-01", "l'ordine di arrivo non conta");
+    eq(flotta.contatoreDelTagliando(VECCHIO, [{ data: "boh", oreNuove: 120 }]).calcolabile, true, "un azzeramento senza data non è un azzeramento");
+  });
+
+  test("⛔ Flotta · urgenzaTagliando: sul vecchio contatore niente colore e niente numero — «tra 5.790 h» era il difetto", () => {
+    const u = flotta.urgenzaTagliando(VECCHIO, 210, AZ);
+    eq([u.cls, u.label, u.mancano, u.oreNote, u.calcolabile], ["", "non confrontabile", null, false, false], "non confrontabile, senza badge colorato");
+    ok(u.perche.length > 0 && u.contatore.calcolabile === false, "porta il motivo e la decisione da cui viene");
+  });
+  test("Flotta · urgenzaTagliando: sul contatore corrente risponde ESATTAMENTE urgenzaOre, più le bandiere", () => {
+    const u = flotta.urgenzaTagliando(NUOVO, 210, AZ), o = flotta.urgenzaOre(400, 210);
+    eq([u.cls, u.label, u.mancano, u.oreNote], [o.cls, o.label, o.mancano, o.oreNote], "stessa risposta di urgenzaOre");
+    eq([u.calcolabile, u.perche], [true, ""], "e dichiara che il confronto è legittimo");
+    const s = flotta.urgenzaTagliando(VECCHIO, 5900, []), so = flotta.urgenzaOre(6000, 5900);
+    eq([s.cls, s.label, s.mancano], [so.cls, so.label, so.mancano], "senza azzeramenti: identico a prima, parola per parola");
+    eq(flotta.urgenzaTagliando({ orePreviste: 6000, scrittaIl: "2026-07-15" }, null, AZ).mancano, null, "contatore ignoto: come urgenzaOre, non si finge di saperlo");
+  });
+
+  test("Flotta · propostaRiscrittura: previste − oreVecchie + oreNuove, con gli addendi in chiaro", () => {
+    const p = flotta.propostaRiscrittura(VECCHIO, AZ[0]);
+    eq([p.ok, p.orePreviste, p.mancavano, p.oreVecchie, p.oreNuove, p.scaduto, p.oltre], [true, 279, 159, 5841, 120, false, 0], "6000 − 5841 + 120 = 279");
+    eq(flotta.propostaRiscrittura({ orePreviste: 5900.25 }, AZ[0]).orePreviste, 179.3, "al decimo, come il contatore");
+  });
+  test("⛔ Flotta · propostaRiscrittura: già passato sul nuovo → scaduto, e le ore restano null (uno zero non è un piano)", () => {
+    const p = flotta.propostaRiscrittura({ orePreviste: 5700 }, AZ[0]);
+    eq([p.ok, p.scaduto, p.oltre, p.orePreviste, p.mancavano], [true, true, 21, null, -141], "5700 − 5841 + 120 = −21: da fare adesso");
+    eq(flotta.propostaRiscrittura({ orePreviste: 5721 }, AZ[0]).scaduto, true, "esattamente zero è scaduto, non «a 0 h»");
+  });
+  test("⛔ Flotta · propostaRiscrittura: senza uno degli addendi non si propone niente, e si dice quale manca", () => {
+    const sv = flotta.propostaRiscrittura(VECCHIO, { data: "2026-07-01", oreNuove: 120, oreVecchie: null });
+    eq([sv.ok, sv.orePreviste], [false, null], "senza oreVecchie: niente proposta");
+    ok(/vecchio contatore/.test(sv.perche), "e dice che manca il vecchio — era «" + sv.perche + "»");
+    ok(/contatore nuovo/.test(flotta.propostaRiscrittura(VECCHIO, { data: "2026-07-01" }).perche), "senza oreNuove: dice che manca il nuovo");
+    ok(/ore previste/.test(flotta.propostaRiscrittura({ orePreviste: "" }, AZ[0]).perche), "senza ore previste: dice quello");
+    eq(flotta.propostaRiscrittura(null, null).ok, false, "con niente in mano non esplode");
+    eq(flotta.propostaRiscrittura({ orePreviste: 0 }, AZ[0]).ok, false, "zero ore previste non è un tagliando");
+  });
+
+  test("⛔ Flotta · prioritaOperative: il tagliando sul vecchio contatore è una riga warn con la ragione, non un verde", () => {
+    const con = flotta.prioritaOperative(MEZ, [VECCHIO, NUOVO], [], OGGI, [], 30, [], L).filter(x => x.categoria === "manutenzione");
+    eq(con.length, 1, "una riga sola: il tagliando nuovo a 190 h non è un'urgenza");
+    eq([con[0].gravita, con[0].badge], ["warn", "non confrontabile"], "warn, perché chiede un'azione");
+    ok(/6\.000 h motore/.test(con[0].dettaglio) && /riscrivere sul contatore nuovo/.test(con[0].dettaglio), "il dettaglio dice le ore e che cosa fare — era «" + con[0].dettaglio + "»");
+    const senza = flotta.prioritaOperative(MEZ, [VECCHIO, NUOVO], [], OGGI, [], 30, []).filter(x => x.categoria === "manutenzione");
+    eq(senza.length, 0, "⛔ senza letture il comportamento è quello di prima: «tra 5.790 h» non è un'urgenza (ed era il difetto: tranquillo)");
+  });
+  test("⛔ Flotta · tagliandiInScadenza: il tagliando sul vecchio contatore va fra quelli da stimare, col motivo — non «scaduto»", () => {
+    const t = flotta.tagliandiInScadenza([VECCHIO, NUOVO], MEZ, L, OGGI);
+    eq([t.totale, t.nonStimabili], [0, 1], "nessuna voce nei 30 giorni, uno non collocabile");
+    eq(t.daStimare[0].id, "n1", "è il tagliando vecchio");
+    eq(t.daStimare[0].mancano, null, "⛔ `mancano` è null: null <= 0 in JS è true, senza la guardia usciva «scaduto»");
+    ok(/vecchio contatore/.test(t.daStimare[0].perche), "e il motivo è quello del contatore");
+    ok(!t.voci.some(v => v.id === "n1" && v.scaduto), "non è fra le voci scadute");
+  });
+  test("Flotta · prossimoTagliando a ore nasce con `scrittaIl` = giorno di chiusura (è ciò che domani lo rende confrontabile)", () => {
+    const n = flotta.prossimoTagliando({ titolo: "T", mezzo: "E1", ogniOre: 250 }, 5875.5, "2026-09-04T10:00:00");
+    eq([n.orePreviste, n.scrittaIl], [6125.5, "2026-09-04"], "ore e data");
+    eq(flotta.contatoreDelTagliando(n, AZ).calcolabile, true, "e infatti sul contatore attuale è confrontabile");
+    eq(flotta.DEMO.manutenzioni.find(m => m.id === "n1").scrittaIl, "2026-07-10", "la dimostrazione: n1 porta la data del tagliando precedente");
+    ok(flotta.DEMO.manutenzioni.filter(m => m.orePreviste && !m.scrittaIl).length >= 1, "e ne resta almeno uno SENZA, di proposito: l'archivio di prima che la data esistesse");
+  });
+}
+/* ===== fine tagliando e contatore (Flotta, 04/09) ===== */
+
+/* ===== LA LETTURA A PIÙ COLONNE: GLI ASSI, LA FREQUENZA, LA SOVRAPRESSIONE (Sentinella, 04/09) =====
+   Un file di sismografo scrive sulla stessa riga la PPV sui tre assi (L, T,
+   V), il vettore somma (PVS), la frequenza dominante e la sovrapressione
+   aerea. Fino al 04/09 la mappa dell'import prendeva UNA colonna del valore e
+   buttava il resto — e con la sola lista di indizi «ppv», la colonna proposta
+   poteva essere un ASSE, cioè un numero più basso della risultante su un
+   documento che va all'ente. Adesso: la risultante si cerca prima del
+   generico; le colonne dell'evento sono facoltative e viaggiano con la
+   lettura (`campiEvento` è l'UNICO elenco di che cosa viaggia: ingresso, ogni
+   schermata, report, CSV); senza colonna del valore ma con i tre assi il
+   valore è √(L²+T²+V²), e con un asse illeggibile la riga è scartata col
+   motivo — non si inventa una risultante a due assi. Un punto di polveri
+   resta identico: niente assi, niente campi in più, dimostrazione invariata.
+   Gli indizi delle intestazioni sono di seconda mano (ricerca del 04/09):
+   l'utente resta libero di cambiarli nella finestra.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta a metà file, una prova asincrona qui non verrebbe aspettata. */
+{
+  const RIGHE = [["Date", "Time", "PPV L", "PPV T", "PPV V", "PVS", "Freq", "Air"],
+    ["12/07/2026", "10:30", "2,1", "1,8", "3,4", "4,4", "18", "112"],
+    ["13/07/2026", "11:00", "1,0", "", "2,0", "2,3", "20", "110"],
+    ["14/07/2026", "", "0,5", "0,5", "0,5", "", "", ""]];
+  const MP = sentinella.proponiMappa(RIGHE, true);
+  const EV = sentinella.proponiColonneEvento(RIGHE, true, MP);
+  const M = { ...MP, ...EV, conIntestazione: true };
+
+  test("⛔ Sentinella · proponiMappa: fra «PPV L» e «PVS» il valore proposto è la RISULTANTE, non un asse", () => {
+    eq([MP.colData, MP.colOra, MP.colValore], [0, 1, 5], "data, ora, e PVS — «ppv l» contiene «ppv», e prima era lei a vincere");
+    eq(sentinella.proponiMappa([["Data", "Longitudinale", "Trasversale", "Verticale"], ["12/07/2026", "1", "2", "3"]], true).colValore, -1,
+      "⛔ senza una risultante nel file nessun asse si spaccia per valore: -1, e la risultante si calcola");
+    eq(sentinella.proponiMappa([["Data", "Ora", "PPV"], ["12/07/2026", "10:00", "1"]], true).colValore, 2, "il file a tre colonne di sempre: identico a prima");
+  });
+  test("Sentinella · proponiColonneEvento: gli assi, la frequenza e l'aria dall'intestazione; le colonne già prese restano fuori", () => {
+    eq(EV, { colPpvL: 2, colPpvT: 3, colPpvV: 4, colFreq: 6, colAria: 7 }, "cinque colonne trovate");
+    eq(sentinella.proponiColonneEvento(RIGHE, false, MP), { colPpvL: -1, colPpvT: -1, colPpvV: -1, colFreq: -1, colAria: -1 }, "senza intestazione non si indovina niente");
+    eq(sentinella.proponiColonneEvento([["Data", "Ora", "PPV"], []], true, { colData: 0, colOra: 1 }).colPpvL, -1, "il file di sempre: nessun asse");
+    eq(sentinella.proponiColonneEvento([["Trasversale", "Data"], []], true, { colData: 1, colOra: -1 }).colPpvT, 0, "e una colonna presa da data/ora non viene ripescata come asse");
+    eq(sentinella.proponiColonneEvento([["Long", "Long"], []], true, {}).colPpvT, -1, "la stessa colonna non serve due assi");
+  });
+  test("⛔ Sentinella · risultanteAssi: √(L²+T²+V²) SOLO con tre assi leggibili — a due assi è un numero tranquillo", () => {
+    eq(sentinella.risultanteAssi({ L: 3, T: 4, V: 12 }), { valore: 13, perche: "" }, "3-4-12 → 13");
+    eq(sentinella.risultanteAssi({ L: 0, T: 0, V: 0 }).valore, 0, "tre zeri sono una misura: zero");
+    const due = sentinella.risultanteAssi({ L: 3, T: null, V: 12 });
+    eq(due.valore, null, "manca T: null, non 12,37");
+    eq(due.perche, "asse T non leggibile: la risultante non si calcola con 2 assi su 3", "e dice quale asse e quanti ne ha");
+    ok(/assi L, T, V non leggibili/.test(sentinella.risultanteAssi(null).perche) && sentinella.risultanteAssi(null).valore === null, "con niente in mano: null e la ragione");
+    eq(sentinella.risultanteAssi({ L: "abc", T: 1, V: 1 }).valore, null, "un asse non numerico non è leggibile");
+    eq(sentinella.ASSI_PPV, ["L", "T", "V"], "i tre assi nell'ordine del mestiere");
+  });
+  test("⛔ Sentinella · preparaLetture con la colonna del valore: le righe di sempre più gli assi, la frequenza e l'aria", () => {
+    const r = sentinella.preparaLetture(RIGHE, M);
+    eq(r.map(x => x.ok), [true, true, false], "PVS letto dove c'è; l'ultima riga non ha PVS");
+    eq([r[0].valore, r[0].valoreDa, r[0].assi, r[0].extra], [4.4, "colonna", { L: 2.1, T: 1.8, V: 3.4 }, { freq: 18, aria: 112 }], "il valore è la colonna scelta, e l'evento viaggia");
+    eq(r[1].assi, { L: 1, T: null, V: 2 }, "l'asse T vuoto resta null: dichiarato, non inventato e non saltato");
+    eq(r[2].motivo, "valore mancante", "senza PVS e con la colonna scelta il motivo è quello di sempre: la risultante NON scavalca la scelta dell'utente");
+    const prima = sentinella.preparaLetture(RIGHE, { colData: 0, colOra: 1, colValore: 5, conIntestazione: true })[0];
+    eq(Object.keys(prima).sort(), ["data", "dataRaw", "motivo", "ok", "ora", "oraRaw", "riga", "valRaw", "valore", "valoreDa"], "⛔ la mappa a tre colonne produce le righe di prima, più `valoreDa`: niente `assi` inventati");
+  });
+  test("⛔ Sentinella · preparaLetture senza colonna del valore: la risultante dai tre assi, e con un asse vuoto la riga è SCARTATA col motivo", () => {
+    const r = sentinella.preparaLetture(RIGHE, { ...M, colValore: -1 });
+    eq(r.map(x => x.ok), [true, false, true], "la seconda riga cade");
+    eq([r[0].valore, r[0].valoreDa], [4.382921, "risultante"], "√(2,1²+1,8²+3,4²) = 4,382921");
+    eq(r[1].valore, null, "⛔ non 2,236 (la risultante a due assi)");
+    eq(r[1].motivo, "asse T non leggibile: la risultante non si calcola con 2 assi su 3", "e il motivo è quello della risultante");
+    eq(r[2].valore, 0.866025, "0,5 su tre assi → 0,866");
+    const senza = sentinella.preparaLetture(RIGHE, { colData: 0, colOra: 1, colValore: -1, conIntestazione: true })[0];
+    eq([senza.ok, senza.valoreDa], [false, ""], "né colonna del valore né tre assi: la riga non entra");
+    ok(/servono tutti e tre gli assi/.test(senza.motivo), "e dice che cosa manca — era «" + senza.motivo + "»");
+  });
+  test("Sentinella · campiEvento è l'unico elenco di che cosa viaggia con la lettura", () => {
+    eq(sentinella.campiEvento({ assi: { L: 1 }, extra: {}, valoreDa: "colonna" }), { assi: { L: 1 }, valoreDa: "colonna" }, "gli assi, e `valoreDa` solo perché ci sono gli assi; un `extra` vuoto non viaggia");
+    eq(sentinella.campiEvento({ valoreDa: "risultante" }), { valoreDa: "risultante" }, "«risultante» viaggia anche da solo");
+    eq(sentinella.campiEvento({ valoreDa: "colonna" }), {}, "⛔ «colonna» da solo NON entra: la forma delle letture di sempre non cambia");
+    eq(sentinella.campiEvento(null), {}, "con niente, niente");
+    const l = { assi: { L: 1, T: 2, V: 3 }, extra: { freq: 10 } };
+    const c = sentinella.campiEvento(l); c.assi.L = 99;
+    eq(l.assi.L, 1, "e torna una copia, non l'oggetto");
+  });
+  test("Sentinella · descriviEvento: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112», e un asse illeggibile si scrive «—»", () => {
+    eq(sentinella.descriviEvento({ assi: { L: 2.1, T: 1.8, V: 3.4 }, extra: { freq: 18, aria: 112 } }), "L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112", "all'italiana");
+    eq(sentinella.descriviEvento({ assi: { L: 1, T: null, V: 2 }, extra: { freq: null } }), "L 1 · T — · V 2 · f —", "la colonna c'era e non si è letta: «—», non saltata, e niente «Hz» su un trattino");
+    eq(sentinella.descriviEvento({ data: "2026-07-12", valore: 1.8 }), "", "una lettura di sempre: niente");
+    eq(sentinella.descriviEvento(null), "", "con niente, niente");
+  });
+  test("Sentinella · provenienzaValore: risultante o colonna, «poi corretta a mano», e l'aria senza unità", () => {
+    const p = sentinella.provenienzaValore({ valoreDa: "risultante", extra: { aria: 112 } });
+    eq([p.da, p.testo], ["risultante", "risultante dai tre assi (√(L²+T²+V²))"], "dai tre assi");
+    eq(p.nota, "sovrapressione nell'unità del file dello strumento", "⛔ l'app non conosce l'unità dell'aria e non ne inventa una");
+    eq(sentinella.provenienzaValore({ valoreDa: "colonna" }).testo, "colonna scelta nel file", "la colonna");
+    eq(sentinella.provenienzaValore({}).da, "colonna", "una lettura di sempre è «colonna»");
+    eq(sentinella.provenienzaValore({ valoreDa: "risultante", origine: { valoreOriginale: 1 }, valore: 2 }).testo.endsWith(", poi corretta a mano") || !sentinella.provenienzaMisura({ valoreDa: "risultante", origine: { valoreOriginale: 1 }, valore: 2 }).corretta, true,
+      "se la lettura è stata corretta a mano, lo dice (o la provenienza non la giudica corretta: allora non lo dice)");
+  });
+  test("⛔ Sentinella · il giro intero: import → unisciLetture → serie della scheda → report → CSV, e gli assi non si perdono in nessun passaggio", () => {
+    const buone = sentinella.preparaLetture(RIGHE, { ...M, colValore: -1 }).filter(x => x.ok);
+    const u = sentinella.unisciLetture([], buone);
+    eq(u.aggiunte, 2, "due letture entrano");
+    eq(u.letture[0].assi, { L: 2.1, T: 1.8, V: 3.4 }, "l'archivio porta gli assi");
+    eq([u.letture[0].extra, u.letture[0].valoreDa], [{ freq: 18, aria: 112 }, "risultante"], "e la frequenza, l'aria, la provenienza del valore");
+    const mon = { nome: "V9", tipo: "vibrazioni", unita: "mm/s", soglia: 5, letture: u.letture };
+    const rep = sentinella.reportConformita({ monitoraggi: [mon], dal: "2026-07-01", al: "2026-07-31", oggi: new Date("2026-07-20T12:00:00") });
+    eq(rep.punti[0].letture.map(l => l.valoreDa), ["risultante", "risultante"], "il report sa da dove viene il numero");
+    eq(rep.punti[0].letture[0].assi, { L: 2.1, T: 1.8, V: 3.4 }, "e porta gli assi");
+    const csv = sentinella.csvAmbiente([mon], [], [], new Date("2026-07-20T12:00:00")).split("\n");
+    eq(csv[0].split(";").slice(10, 12), ["evento", "valore_da"], "le due colonne dell'evento (dal 05/09 ne seguono altre due, le condizioni meteo)");
+    const c = csv[1].split(";");
+    eq(c[10], "L 0,5 · T 0,5 · V 0,5 · f — · aria —", "l'evento dell'ULTIMA lettura valida (14/07), con le celle non lette dichiarate");
+    eq(c[11], "risultante dai tre assi (√(L²+T²+V²)) · sovrapressione nell'unità del file dello strumento", "e da dove viene il valore");
+    const polveri = sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";");
+    eq([polveri[10], polveri[11]], ["", ""], "⛔ un punto di polveri: le due celle restano VUOTE, non si scrive niente al posto loro");
+    eq(sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";").length, 14, "ma la riga ha le sue 14 colonne (12 fino al 04/09, poi le due delle condizioni meteo)");
+  });
+  test("Sentinella · la DIMOSTRAZIONE non cambia: nessuna lettura porta assi, nessun `valoreDa`", () => {
+    const tutte = sentinella.DEMO.monitoraggi.flatMap(m => m.letture || []);
+    ok(tutte.length > 10 && tutte.every(l => !l.assi && !l.extra && !l.valoreDa), "le letture d'esempio sono quelle di sempre");
+    eq(sentinella.descriviEvento(tutte[0]), "", "e la riga dell'evento è vuota");
+  });
+}
+/* ===== fine lettura a più colonne (Sentinella, 04/09) ===== */
+
+/* ===== L'ATTESA DEL COLLAUDO (Terra, 04/09) =====
+   Fra «recupero finito» (lo dice l'azienda) e «collaudato» (lo dice l'ente col
+   verbale) c'è la RICHIESTA del collaudo, che viveva in una nota libera che
+   nessun conto leggeva. Il lotto porta `collaudoChiestoIl` e `attesaCollaudo`
+   dice: chiesto il …, oppure da quanti giorni si aspetta senza richiesta,
+   oppure «non si sa da quanto». Niente termini di legge: regionali, di
+   seconda mano, e quindi fuori. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-04T12:00:00");
+  test("Terra · attesaCollaudo: recuperato SENZA richiesta → «recuperato da N giorni, collaudo non ancora chiesto»", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-05-22" }, O);
+    eq([a.pertinente, a.stato, a.giorni, a.chiestoIl], [true, "non-chiesto", 105, null], "105 giorni dal 22/05");
+    eq(a.frase, "recuperato da 105 giorni, collaudo non ancora chiesto", "la frase");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-09-03" }, O).frase, "recuperato da 1 giorno, collaudo non ancora chiesto", "singolare");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-09-04" }, O).frase, "recupero finito, collaudo non ancora chiesto", "finito oggi: niente «da 0 giorni»");
+  });
+  test("Terra · attesaCollaudo: CON la richiesta → «chiesto all'ente il …», e da quanto", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-05-22", collaudoChiestoIl: "2026-06-10" }, O);
+    eq([a.stato, a.giorni, a.chiestoIl], ["chiesto", 86, "2026-06-10"], "86 giorni dalla richiesta");
+    eq(a.frase, "collaudo chiesto all'ente il 10/06/2026 (86 giorni fa): fino al verbale il lotto non è chiuso", "la data all'italiana e da quanto");
+    ok(/\(oggi\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-04" }, O).frase), "chiesto oggi");
+    ok(/\(ieri\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-03" }, O).frase), "chiesto ieri");
+    ok(!/fa\)/.test(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "2026-09-10" }, O).frase), "una richiesta datata nel futuro non dice «−6 giorni fa»");
+  });
+  test("⛔ Terra · attesaCollaudo: senza la data di fine recupero non si inventa da quanto — e una data che non esiste non è una data", () => {
+    const a = terra.attesaCollaudo({ stato: "recuperato" }, O);
+    eq([a.stato, a.giorni], ["non-chiesto", null], "null, non zero");
+    ok(/non si sa da quanto/.test(a.frase), "e lo dice — era «" + a.frase + "»");
+    eq(terra.attesaCollaudo({ stato: "recuperato", recuperoFinitoIl: "2026-02-30" }, O).giorni, null, "il 30 febbraio non scorre al 2 marzo");
+    eq(terra.attesaCollaudo({ stato: "recuperato", collaudoChiestoIl: "boh", recuperoFinitoIl: "2026-05-22" }, O).stato, "non-chiesto", "una richiesta con una data illeggibile non è una richiesta");
+  });
+  test("Terra · attesaCollaudo: non pertinente su un lotto non recuperato o già collaudato — frase vuota, non tranquilla", () => {
+    for (const st of ["previsto", "aperto", "esaurito", "in-recupero", "collaudato"]) {
+      const a = terra.attesaCollaudo({ stato: st, recuperoFinitoIl: "2026-05-22", collaudatoIl: "2026-08-01" }, O);
+      eq([a.pertinente, a.stato, a.frase], [false, st, ""], st);
+    }
+    eq(terra.attesaCollaudo(null, O).pertinente, false, "con niente in mano non esplode");
+  });
+  test("Terra · la dimostrazione: lo2 porta la richiesta come DATA, non più come nota", () => {
+    const lo2 = terra.DEMO.lotti.find(l => l.id === "lo2");
+    eq([lo2.stato, lo2.collaudoChiestoIl, lo2.collaudatoIl, lo2.nota], ["recuperato", "2026-06-10", null, ""], "recuperato, chiesto, non collaudato, nota vuota");
+    eq(terra.attesaCollaudo(lo2, O).stato, "chiesto", "e la funzione lo legge");
+    ok(terra.DEMO.lotti.filter(l => l.stato === "collaudato").every(l => !terra.attesaCollaudo(l, O).pertinente), "i collaudati non aspettano niente");
+  });
+}
+/* ===== fine attesa del collaudo (Terra, 04/09) ===== */
+
+/* ===== LA GARANZIA ANCORA VINCOLATA (Terra, 04/09) =====
+   Il mondo svincola la fideiussione per lotto, sul verbale di collaudo. Terra
+   non calcola l'importo (listini regionali, seconda mano): somma le quote che
+   l'utente scrive sui lotti e dice quanta è ferma, quale collaudo la libera, e
+   quanti lotti la quota non la dichiarano. Prove sincrone, prima del riepilogo. */
+{
+  const L = [
+    { id: "lo1", nome: "L1", stato: "collaudato", garanziaEuro: 40000 },
+    { id: "lo2", nome: "L2", stato: "recuperato", garanziaEuro: 25000 },
+    { id: "lo3", nome: "L3", stato: "in-recupero", garanziaEuro: 18000.5 },
+    { id: "lo4", nome: "L4", stato: "aperto" },
+    { id: "lo5", nome: "L5", stato: "previsto", garanziaEuro: "" },
+  ];
+  test("Terra · garanziaVincolata: vincolata sui non collaudati, liberabile sui recuperati (con chi), liberata sui collaudati", () => {
+    const g = terra.garanziaVincolata(L);
+    eq([g.misurabile, g.vincolata, g.liberabile, g.liberata], [true, 43000.5, 25000, 40000], "25.000 + 18.000,5 vincolata; 25.000 liberabile; 40.000 liberata");
+    eq(g.prossimi, [{ id: "lo2", nome: "L2", quota: 25000 }], "il collaudo che libera è quello di L2");
+    eq([g.conQuota, g.nonCollaudati], [3, 4], "tre quote dichiarate su quattro lotti non collaudati più uno chiuso");
+  });
+  test("⛔ Terra · garanziaVincolata: i lotti SENZA quota si contano, e la somma dichiara di essere più piccola del vero", () => {
+    eq(terra.garanziaVincolata(L).senzaQuota, 2, "L4 (niente) e L5 (stringa vuota), tutt'e due non collaudati");
+    eq(terra.garanziaVincolata(L.concat([{ id: "x", stato: "collaudato" }])).senzaQuota, 2, "un collaudato senza quota non manca a nessuna somma vincolata");
+    eq(terra.garanziaVincolata([{ stato: "aperto", garanziaEuro: 0 }]).vincolata, 0, "uno zero SCRITTO è una quota (nulla), non un'assenza");
+    eq(terra.garanziaVincolata([{ stato: "aperto", garanziaEuro: -5 }, { stato: "aperto", garanziaEuro: "abc" }]).misurabile, false, "un importo negativo o illeggibile non è una quota");
+  });
+  test("⛔ Terra · garanziaVincolata: senza nessuna quota non è zero — è «non misurato», con la ragione", () => {
+    const g = terra.garanziaVincolata([{ stato: "aperto" }, { stato: "recuperato" }]);
+    eq([g.misurabile, g.vincolata, g.liberabile, g.liberata, g.senzaQuota], [false, null, null, null, 2], "null, non 0");
+    ok(/non è stato misurato/.test(g.motivo) && /Non vuol dire che è poca/.test(g.motivo), "e lo dice — era «" + g.motivo + "»");
+    ok(/Nessun lotto registrato/.test(terra.garanziaVincolata([]).motivo) && !terra.garanziaVincolata(null).misurabile, "senza lotti: l'altra ragione, e con null non esplode");
+    eq(terra.garanziaVincolata([{ stato: "boh", garanziaEuro: 10 }]).misurabile, false, "uno stato che non esiste non è un lotto");
+  });
+  test("Terra · la dimostrazione: tre quote dichiarate, tre lotti senza — e il cartellone lo deve dire", () => {
+    const g = terra.garanziaVincolata(terra.DEMO.lotti);
+    eq([g.vincolata, g.liberabile, g.liberata, g.senzaQuota, g.prossimi.length], [43000, 25000, 40000, 3, 1], "lo2 + lo3 vincolate, lo2 liberabile, lo1 liberata, lo4-lo5-lo6 senza");
+  });
+}
+/* ===== fine garanzia vincolata (Terra, 04/09) ===== */
+
+/* ===== LA RELAZIONE DI FINE LAVORI DEL LOTTO (Terra, 04/09) =====
+   Le righe del foglio con cui si chiede il collaudo e lo svincolo le compone
+   il modulo, non la pagina: gli stessi numeri della riga del lotto, e ogni
+   dato mancante scritto come tale e raccolto in `nonMisurati` — una relazione
+   che tace un dato lo fa passare per zero. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-04T12:00:00");
+  const cella = (R, etichetta) => [...R.righe, ...R.date, ...R.recupero].find((r) => r[0] === etichetta);
+  test("Terra · relazioneLotto sulla dimostrazione (lo2): numeri all'italiana, date, attesa del collaudo, quota di garanzia", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo2"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    eq(R.titolo, "Relazione di fine lavori — Lotto 2 — settore Sud-Ovest", "il titolo");
+    eq(cella(R, "Superficie"), ["Superficie", "6.000 m²", false], "6.000 raggruppato (useGrouping scritto: Node e Chromium diverrebbero)");
+    eq(cella(R, "Volume di progetto")[1], "88.000 m³", "il volume di progetto");
+    eq(cella(R, "Collaudo chiesto il")[1], "10/06/2026", "la richiesta del collaudo è una riga delle date");
+    eq(R.date.length, 5, "cinque date su un recuperato: niente riga del verbale che non c'è");
+    eq(cella(R, "Quota di garanzia del lotto")[1], "25.000 €", "la quota");
+    eq(R.attesa, "Collaudo chiesto all'ente il 10/06/2026 (86 giorni fa): fino al verbale il lotto non è chiuso.", "la stessa frase della riga del lotto");
+  });
+  test("⛔ Terra · relazioneLotto: quello che manca è scritto come mancante e raccolto, non stimato e non zero", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo2"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    eq(cella(R, "Volume misurato sui suoi fronti"), ["Volume misurato sui suoi fronti", "non misurato", true], "lo2 non dichiara fronti: non misurato, non 0 m³");
+    eq(cella(R, "Fronti"), ["Fronti", "nessuno dichiarato", true], "e i fronti");
+    eq(cella(R, "Volume rimesso in cava per il recupero"), ["Volume rimesso in cava per il recupero", "non dichiarato", true], "il volume del recupero non dichiarato");
+    eq(R.nonMisurati.length, 3, "tre voci nella sezione «che cosa manca»");
+    ok(R.nonMisurati.some((x) => /^Volume misurato \(Questo lotto non dichiara nessun fronte/.test(x)), "col motivo del modulo, non uno inventato — erano " + JSON.stringify(R.nonMisurati));
+    ok(!JSON.stringify(R).includes('"0 m³"') && !JSON.stringify(R).includes('"0 €"'), "nessuno zero al posto di un dato mancante");
+  });
+  test("Terra · relazioneLotto su un lotto aperto coi fronti (lo4): il misurato coi rilievi e la percentuale, quattro date", () => {
+    const R = terra.relazioneLotto(terra.DEMO.lotti.find((l) => l.id === "lo4"), terra.DEMO.rilievi, terra.DEMO.fronti, O);
+    const vm = terra.volumeMisuratoDiLotto(terra.DEMO.lotti.find((l) => l.id === "lo4"), terra.DEMO.rilievi);
+    ok(vm.misurabile && cella(R, "Volume misurato sui suoi fronti")[1].startsWith((+vm.m3).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true }) + " m³ (" + vm.rilievi + " rilievi)"),
+      "lo stesso numero di volumeMisuratoDiLotto — era «" + cella(R, "Volume misurato sui suoi fronti")[1] + "»");
+    ok(/% del previsto$/.test(cella(R, "Volume misurato sui suoi fronti")[1]), "con la percentuale del previsto");
+    eq(cella(R, "Fronti")[1], "Fronte Nord", "il nome del fronte, non il suo id");
+    eq(R.date.length, 4, "su un aperto niente righe del collaudo");
+    eq(R.attesa, "", "e nessuna attesa");
+  });
+  test("⛔ Terra · relazioneLotto: una data che non esiste è «data non valida», un fronte sparito lo dice, e con niente in mano non esplode", () => {
+    const R = terra.relazioneLotto({ stato: "collaudato", apertoIl: "2026-02-30", frontiId: ["fx"], nome: "L" }, [], [], O);
+    eq(cella(R, "Aperto il"), ["Aperto il", "data non valida", true], "il 30 febbraio non scorre e non sparisce");
+    ok(R.nonMisurati.some((x) => /Aperto il \(data non valida: «2026-02-30»\)/.test(x)), "e la sezione «che cosa manca» cita la data com'è scritta");
+    eq(R.date.length, 6, "su un collaudato tutte e sei le date");
+    eq(cella(R, "Fronti")[1], "fx (non più in elenco)", "un fronte cancellato non sparisce dalla relazione");
+    eq(terra.relazioneLotto(null, null, null, O).stato, "previsto", "con null: un lotto previsto senza niente");
+  });
+}
+/* ===== fine relazione di fine lavori (Terra, 04/09) ===== */
+
+/* ===== LA FREQUENZA FUORI DALLA BANDA DELLA SOGLIA (Sentinella, 04/09) =====
+   Le soglie DIN e USBM valgono per banda di frequenza; una lettura a 18 Hz
+   confrontata col limite «<10 Hz» è confrontata con un numero che non è il
+   suo. Il limite giusto NON è in Sentinella e non si inventa: si DICHIARA. Il
+   punto ricorda da quale preset è nata la soglia (`sogliaPreset`) e i preset
+   dichiarano la banda scritta nella loro etichetta. Prove sincrone. */
+{
+  const V1 = { ...sentinella.DEMO.monitoraggi.find((m) => m.id === "v1") };
+  test("Sentinella · bandaPreset: la banda è quella scritta nell'etichetta, e chi non la scrive non ne ha", () => {
+    eq(sentinella.bandaPreset("din-res-fond"), { da: null, a: 10, testo: "sotto 10 Hz" }, "<10 Hz");
+    eq(sentinella.bandaPreset("usbm-intonaco"), { da: 4, a: 15, testo: "4–15 Hz" }, "4-15 Hz");
+    eq(sentinella.bandaPreset("usbm-altafreq"), { da: 40, a: null, testo: "sopra 40 Hz" }, ">40 Hz");
+    eq(sentinella.bandaPreset("din-res-alto"), null, "«piano alto» non dice una banda: null, non una inventata");
+    eq(sentinella.bandaPreset("pm10-giorno"), null, "le polveri non hanno una banda");
+    eq(sentinella.bandaPreset("boh"), null, "un preset che non esiste");
+    for (const p of sentinella.SOGLIE_PRESET) {
+      const dice = /<(\d+) Hz|(\d+)-(\d+) Hz|>(\d+) Hz/.exec(p.etichetta);
+      eq(!!sentinella.bandaPreset(p.chiave), !!dice, "⛔ " + p.chiave + ": la banda c'è se e solo se l'etichetta la scrive");
+    }
+  });
+  test("⛔ Sentinella · frequenzaFuoriBanda: 18 Hz su una soglia «<10 Hz» è fuori banda, e lo dice senza inventare un limite", () => {
+    const r = sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, V1);
+    eq([r.giudicabile, r.fuori, r.freq, r.banda], [true, true, 18, "sotto 10 Hz"], "fuori");
+    eq(r.perche, "f 18 Hz: fuori dalla banda della soglia (sotto 10 Hz), e il limite di quella banda non è in Sentinella", "la ragione, senza un numero di norma");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 9.9 } }, V1).fuori, false, "9,9 Hz è dentro");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 10 } }, V1).fuori, true, "10 Hz è fuori da «<10»");
+    const u = sentinella.frequenzaFuoriBanda({ extra: { freq: 3 } }, { ...V1, sogliaPreset: "usbm-intonaco", soglia: 12.7 });
+    eq([u.fuori, u.banda], [true, "4–15 Hz"], "e sotto una banda con un «da»");
+  });
+  test("⛔ Sentinella · frequenzaFuoriBanda: quando non si può giudicare lo dice, con la ragione — mai un verde tranquillo", () => {
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: null } }, V1).giudicabile, false, "frequenza non letta");
+    eq(sentinella.frequenzaFuoriBanda({}, V1).perche, "la lettura non porta la frequenza", "lettura di sempre");
+    ok(/non viene da un preset/.test(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, sogliaPreset: null }).perche), "punto senza preset ricordato");
+    const cambiata = sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, soglia: 4 });
+    eq(cambiata.giudicabile, false, "⛔ soglia cambiata a mano dopo il preset: la banda non vale più");
+    ok(/cambiata a mano/.test(cambiata.perche), "e lo dice — era «" + cambiata.perche + "»");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, unita: "in/s" }).giudicabile, false, "anche un'unità diversa rompe il legame col preset");
+    ok(/non dichiara una banda/.test(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...V1, sogliaPreset: "din-res-alto", soglia: 15 }).perche), "preset senza banda");
+    eq(sentinella.frequenzaFuoriBanda(null, null).giudicabile, false, "con niente in mano non esplode");
+  });
+  test("Sentinella · la dimostrazione: i due punti di vibrazione ricordano il preset da cui nasce la soglia, e la soglia è ancora quella", () => {
+    for (const id of ["v1", "v2"]) {
+      const m = sentinella.DEMO.monitoraggi.find((x) => x.id === id);
+      eq(m.sogliaPreset, "din-res-fond", id + " nasce da «residenziale, <10 Hz»");
+      eq(sentinella.presetSoglia(m.sogliaPreset).valore, m.soglia, "e la soglia del punto è quella del preset");
+    }
+    ok(sentinella.DEMO.monitoraggi.filter((m) => m.tipo !== "vibrazioni").every((m) => !m.sogliaPreset), "gli altri punti non ne hanno bisogno");
+  });
+}
+/* ===== fine frequenza fuori banda (Sentinella, 04/09) ===== */
+
+/* ===== IL GIUDIZIO SCRITTO E DATATO (Scudo, 05/09) =====
+   Il giudizio del medico arriva per iscritto: `giudizioIdoneita` decide che
+   cosa è un giudizio valido (le prescrizioni obbligatorie con «prescrizioni»,
+   la data che esiste e non è futura), e il CSV del personale porta in coda le
+   prescrizioni e la data. Prove sincrone, prima del riepilogo. */
+{
+  const O = new Date("2026-09-05T00:00:00");
+  const g = (st, t, d) => scudo.giudizioIdoneita(st, t, d, O);
+  test("⛔ Scudo · giudizioIdoneita: «con prescrizioni» senza il testo è rifiutato — una prescrizione che non si legge non si rispetta", () => {
+    const r = g("prescrizioni", "", "2026-09-01");
+    eq([r.ok, r.motivo], [false, "prescrizioni-mancanti"], "rifiutato");
+    ok(/copia quelle del medico/.test(r.messaggio), "e dice che cosa fare — era «" + r.messaggio + "»");
+    eq(g("prescrizioni", "   ", "").ok, false, "gli spazi non sono un testo");
+    eq(g("prescrizioni", "niente quota", "2026-09-01"), { ok: true, idoneita: "prescrizioni", prescrizioni: "niente quota", giudizioIl: "2026-09-01", motivo: "", messaggio: "" }, "col testo passa, con la data");
+  });
+  test("Scudo · giudizioIdoneita: «non idoneo» senza testo passa, la data è facoltativa ma deve esistere e non essere futura", () => {
+    eq(g("non-idoneo", "", ""), { ok: true, idoneita: "non-idoneo", prescrizioni: "", giudizioIl: null, motivo: "", messaggio: "" }, "senza niente: null, non una data inventata");
+    eq(g("non-idoneo", "fino a nuova visita", "2026-08-20").prescrizioni, "fino a nuova visita", "la nota resta scritta");
+    eq(g("non-idoneo", "x", "2026-02-30").motivo, "data-non-valida", "⛔ il 30 febbraio non scorre al 2 marzo");
+    eq(g("idoneo", "", "2026-09-06").motivo, "data-futura", "⛔ domani non è ancora un giudizio");
+    eq(g("idoneo", "", "2026-09-05").giudizioIl, "2026-09-05", "oggi sì");
+  });
+  test("Scudo · giudizioIdoneita: tornare a «idoneo» o a «n.d.» azzera le prescrizioni del giudizio precedente", () => {
+    eq(g("idoneo", "vecchio testo", "2026-09-01").prescrizioni, "", "idoneo: niente prescrizioni");
+    eq(g("", "vecchio testo", "2026-01-01"), { ok: true, idoneita: "", prescrizioni: "", giudizioIl: null, motivo: "", messaggio: "" }, "n.d.: niente di niente, nemmeno la data");
+    eq(g("boh", "", "").idoneita, "", "uno stato che non esiste è n.d.");
+    eq(scudo.giudizioIdoneita(null, null, null).ok, true, "con niente in mano non esplode");
+  });
+  test("Scudo · csvPersonaleScadenze: prescrizioni e data del giudizio in coda, vuote dove non c'è un giudizio, e la riga AZIENDA le ha vuote", () => {
+    /* la virgola e non il punto e virgola: `csvCell` mette fra virgolette una
+       cella che contiene il separatore, e allora lo split della prova la
+       spezzerebbe — è il righello, non il prodotto */
+    const lav = [{ id: "l1", nome: "A", idoneita: "prescrizioni", prescrizioni: "niente quota, otoprotettori", giudizioIl: "2026-06-02" }, { id: "l2", nome: "B" }];
+    const sca = [{ lavoratoreId: "l1", tipo: "Visita medica", dataScadenza: "2027-01-01" }, { lavoratoreId: "az", tipo: "DVR", dataScadenza: "2027-01-01" }];
+    const righe = scudo.csvPersonaleScadenze(lav, sca, []).trim().split("\n").map((r) => r.split(";"));
+    eq(righe[0].slice(8), ["prescrizioni", "giudizio"], "le due colonne in coda");
+    eq(righe[0].slice(0, 8).join(";"), "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica", "e le prime otto sono quelle di prima");
+    const a = righe.find((r) => r[0] === "A");
+    eq([a[3], a[8], a[9]], ["Idoneo c/prescriz.", "niente quota, otoprotettori", "2026-06-02"], "A porta il testo e la data");
+    const b = righe.find((r) => r[0] === "B");
+    eq([b[8], b[9], b.length], ["", "", 10], "B senza giudizio: celle vuote, stessa larghezza");
+    const az = righe.find((r) => r[0] === "AZIENDA");
+    eq([az[8], az[9], az.length], ["", "", 10], "AZIENDA non ha un giudizio");
+    eq(scudo.csvPersonaleScadenze([{ id: "l3", nome: "C", giudizioIl: "boh" }], [], []).trim().split("\n")[1].split(";")[9], "", "una data illeggibile non esce come data");
+  });
+  test("Scudo · la dimostrazione: i tre giudizi portano la data, e nessuno è nel futuro", () => {
+    for (const l of scudo.DEMO.lavoratori.filter((x) => x.idoneita)) {
+      ok(scudo.giudizioIdoneita(l.idoneita, l.prescrizioni, l.giudizioIl, O).ok, l.id + ": il giudizio d'esempio è valido");
+      ok(!!l.giudizioIl, l.id + ": e ha la data");
+    }
+  });
+}
+/* ===== fine giudizio scritto (Scudo, 05/09) ===== */
+
+/* ===== I LAVORI NON CONCLUSI NELLA CONSEGNA DI TURNO (Campo, 05/09) =====
+   Il foglio che passa di mano fra due turni aveva firme, produzione, fermi e
+   meteo, ma non i lavori non conclusi né le segnalazioni — le due cose che il
+   turno entrante legge per prime. `lavoriNonConclusi` è la regola, e la usa
+   la consegna; le segnalazioni le scrive `testoSegnalazioniTurno`, che era già
+   la frase dello schermo. Prove sincrone, prima del riepilogo. */
+{
+  test("Campo · lavoriNonConclusi: fermi prima, poi in corso, poi pianificati; chi non ha un nome sopra è «nessuno in carico»", () => {
+    const A = [
+      { id: "a1", titolo: "Perforazione", dettaglio: "14/22 fori", operatore: "Luca", stato: "in-corso" },
+      { id: "a2", titolo: "Volata", operatore: "Mario", stato: "pianificata" },
+      { id: "a3", titolo: "Carico", operatore: "", stato: "in-corso" },
+      { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", operatore: "", stato: "anomalia" },
+      { id: "a5", titolo: "Controllo", operatore: "Anna", stato: "conclusa" },
+    ];
+    const r = campo.lavoriNonConclusi(A);
+    eq(r.map((x) => x.id), ["a4", "a3", "a1", "a2"], "l'ordine: fermo, in corso (alfabetico), pianificata; la conclusa fuori");
+    eq(r[0], { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", chi: "nessuno in carico", stato: "anomalia", etichetta: "fermo / anomalia" }, "il fermo, senza nome sopra");
+    eq([r[2].chi, r[2].etichetta], ["Luca", "in corso"], "chi ce l'ha in carico e l'etichetta in italiano");
+    eq(campo.lavoriNonConclusi([{ id: "x", stato: "boh" }]).map((x) => [x.titolo, x.etichetta]), [["(senza titolo)", "boh"]], "uno stato sconosciuto si scrive com'è, e un titolo mancante si dichiara");
+    eq(campo.lavoriNonConclusi(null), [], "con niente in mano, niente");
+    eq(campo.lavoriNonConclusi([{ stato: "conclusa" }]), [], "tutto concluso: vuoto — e la consegna scriverà «nessuna attività aperta»");
+  });
+  test("Campo · ETICHETTA_STATO_ATTIVITA copre i quattro stati della dimostrazione", () => {
+    const stati = new Set(campo.DEMO.attivita.map((a) => a.stato));
+    for (const st of stati) ok(campo.ETICHETTA_STATO_ATTIVITA[st], "etichetta per «" + st + "»");
+    const aperti = campo.lavoriNonConclusi(campo.DEMO.attivita.filter((a) => a.data === campo.DEMO.attivita[0].data));
+    ok(aperti.length >= 3 && aperti.some((x) => x.stato === "anomalia") && aperti.some((x) => x.chi === "nessuno in carico"), "la dimostrazione ha lavori aperti di più stati e uno senza nome sopra: la consegna ha qualcosa da far vedere");
+  });
+}
+/* ===== fine lavori non conclusi (Campo, 05/09) ===== */
+
+/* ===== IL FILE DELLA BANCA LETTO PER NOME DI COLONNA (Conti, 05/09) =====
+   Ogni banca esporta le colonne a modo suo; il lettore le prendeva per
+   posizione e sulla forma più citata dai manuali il SALDO usciva come uscita
+   (−45.210,77 al posto di +12.300, senza scarto: misurato in scratchpad).
+   `mappaMovimentiCsv` legge l'intestazione, esclude saldo e causale ABI, e
+   `parseMovimentiCsv` la usa quando c'è; senza, la posizione di sempre.
+   Prove sincrone, prima del riepilogo. */
+{
+  const M = conti.mappaMovimentiCsv;
+  test("⛔ Conti · mappaMovimentiCsv: la forma «operazione;descrizione;entrate;uscite;saldo;causale ABI» — il saldo e l'ABI restano FUORI", () => {
+    const m = M(["Data operazione", "Descrizione movimento", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI"]);
+    eq([m.data, m.valuta, m.descrizione, m.importo, m.entrate, m.uscite], [0, -1, 1, -1, 2, 3], "gli indici giusti");
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "⛔ il saldo e il codice causale sono lasciati fuori di proposito");
+    eq([m.conIntestazione, m.ignorate], [true, []], "riconosciuta, niente di ignorato");
+  });
+  test("Conti · mappaMovimentiCsv: dare/avere, la descrizione in fondo, «Data contabile» che contiene «abi» senza esserlo, e l'inglese", () => {
+    const c = M(["Data contabile", "Data valuta", "Dare", "Avere", "Descrizione"]);
+    eq([c.data, c.valuta, c.uscite, c.entrate, c.descrizione, c.esclusi.length, c.conIntestazione], [0, 1, 2, 3, 4, 0, true], "⛔ «cont-abi-le» non è «causale ABI»: gli indizi si cercano all'inizio di una parola");
+    const e = M(["Booking date", "Value date", "Description", "Amount", "Balance"]);
+    eq([e.data, e.valuta, e.descrizione, e.importo, e.esclusi], [0, 1, 2, 3, ["Balance"]], "l'export in inglese, col saldo fuori");
+    const casa = M(["Data", "Data valuta", "Descrizione", "Importo"]);
+    eq([casa.data, casa.valuta, casa.descrizione, casa.importo, casa.conIntestazione], [0, 1, 2, 3, true], "la forma di casa è riconosciuta uguale");
+  });
+  test("⛔ Conti · mappaMovimentiCsv: senza una data o senza un importo NON è un'intestazione — e il saldo da solo non è un importo", () => {
+    eq(M(["Data", "Descrizione", "Saldo"]).conIntestazione, false, "solo il saldo come numero: non si legge per nome (e la posizione lo scarterà)");
+    eq(M(["12/07/2026", "12/07/2026", "BONIFICO", "12.300,00"]).conIntestazione, false, "una riga di dati non è un'intestazione");
+    eq(M(null).conIntestazione, false, "con niente in mano non esplode");
+    eq(M(["Data", "Importo", "Note"]).ignorate, ["Note"], "una colonna che non si riconosce si dichiara ignorata");
+  });
+  test("⛔ Conti · parseMovimentiCsv legge per NOME: il bonifico da 12.300 € è 12.300 (non −45.210,77) e la descrizione arriva intera", () => {
+    const B = "Data operazione;Descrizione movimento;Importo entrate;Importo uscite;Saldo progressivo;Causale ABI\n"
+      + "12/07/2026;BONIFICO DA EDILCAVE SRL FT 2026/031;12.300,00;;45.210,77;48\n13/07/2026;PAGAMENTO F24;;1.250,00;43.960,77;19\n";
+    const r = conti.parseMovimentiCsv(B);
+    eq(r.map((x) => [x.data, x.importo, x.scarto]), [["2026-07-12", 12300, ""], ["2026-07-13", -1250, ""]], "⛔ gli importi giusti, col segno, nessuno scarto");
+    eq(r[0].descrizione, "BONIFICO DA EDILCAVE SRL FT 2026/031", "e la descrizione, che serve ad abbinare la fattura");
+    const C = "Data contabile;Data valuta;Dare;Avere;Descrizione\n12/07/2026;12/07/2026;;12.300,00;BONIFICO DA EDILCAVE SRL FT 2026/031\n";
+    const c = conti.parseMovimentiCsv(C)[0];
+    eq([c.importo, c.valuta, c.descrizione], [12300, "2026-07-12", "BONIFICO DA EDILCAVE SRL FT 2026/031"], "dare/avere con la descrizione in fondo: prima usciva vuota");
+    eq(conti.parseMovimentiCsv("Data;Descrizione;Saldo\n12/07/2026;BONIFICO;45.210,77\n")[0].scarto, "importo non leggibile in nessuna delle colonne", "⛔ e col solo saldo il movimento esce SCARTATO, non con il saldo come importo");
+  });
+  test("Conti · parseMovimentiCsv senza intestazione: la posizione di sempre, e il file d'esempio non cambia", () => {
+    const p = conti.parseMovimentiCsv("12/07/2026;12/07/2026;BONIFICO;12.300,00\n")[0];
+    eq([p.importo, p.descrizione], [12300, "BONIFICO"], "per posizione");
+    const base = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    ok(base.length > 3 && base.every((x) => !x.scarto), "il file d'esempio si legge tutto come prima");
+  });
+}
+/* ===== il riferimento della banca sul movimento (Conti, 05/09) ===== */
+{
+  /* Il TRN/CRO è la chiave con cui la banca chiama un bonifico, e il lettore
+     lo buttava via. Si prende dalla colonna se c'è, se no dalla causale — e
+     dalla causale SOLO con l'etichetta davanti: undici cifre nude sono un
+     mandato o un telefono, come il «31 nudo» di numeroInCausale. */
+  test("Conti · riferimentoInCausale: TRN e CRO con la loro etichetta, e i falsi che deve rifiutare", () => {
+    const r = conti.riferimentoInCausale;
+    eq(r("BONIFICO DA EDILCAVE SRL FATT 2026/031 TRN 0512345678901234567890123456IT"),
+       { tipo: "TRN", valore: "0512345678901234567890123456IT" }, "il TRN dopo la sua etichetta");
+    eq(r("bonifico ord: stradesud trn: NOTPROVIDED2026071412345678"),
+       { tipo: "TRN", valore: "NOTPROVIDED2026071412345678" }, "minuscolo, coi due punti, e col NOTPROVIDED che alcune banche scrivono davvero");
+    eq(r("BONIFICO CRO 12345678901 SALDO FT 34"), { tipo: "CRO", valore: "12345678901" }, "il CRO di undici cifre");
+    eq(r("BONIFICO CRO: 1234567890 SALDO FT 34"), null, "⛔ dieci cifre non sono un CRO");
+    eq(r("MACRO ECONOMIA 12345678901"), null, "⛔ undici cifre nude non sono un CRO, e «MACRO» non è «CRO»");
+    eq(r("PAGAMENTO MANDATO 4412 IBAN IT60X0542811101000000123456"), null, "un IBAN non è un riferimento");
+    eq(r(""), null, "vuoto"); eq(r(null), null, "e null: la risposta è null, non una stringa vuota");
+  });
+  test("Conti · riferimentoMovimento: prima la colonna, poi la causale, e il tipo lo dice il nome della colonna", () => {
+    const f = conti.riferimentoMovimento;
+    eq(f("0512345678901234567890123456IT", "TRN", "BONIFICO"), { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "colonna" }, "la colonna TRN");
+    eq(f(" 12345678901 ", "Numero CRO", "BONIFICO"), { tipo: "CRO", valore: "12345678901", da: "colonna" }, "la colonna CRO, ripulita dagli spazi");
+    eq(f("ABC123", "Id operazione", "BONIFICO"), { tipo: "riferimento", valore: "ABC123", da: "colonna" }, "una colonna che non dice se è TRN o CRO resta «riferimento»");
+    eq(f("", "TRN", "BONIFICO CRO 12345678901"), { tipo: "CRO", valore: "12345678901", da: "causale" }, "colonna vuota: si passa alla causale, e lo si dichiara");
+    eq(f("", "", "BONIFICO A NS FAVORE"), null, "niente da nessuna parte: null");
+  });
+  test("Conti · parseMovimentiCsv porta il riferimento sul movimento, e abbinaMovimenti lo tiene", () => {
+    const mov = conti.parseMovimentiCsv(
+      "Data;Valuta;Descrizione;TRN;Entrate;Uscite\n"
+      + "12/07/2026;12/07/2026;BONIFICO EDILCAVE;0512345678901234567890123456IT;18.300,00;\n"
+      + "13/07/2026;13/07/2026;F24;;;2.410,00\n"
+      + "14/07/2026;;BONIFICO CRO 12345678901 SALDO;;100,00;\n");
+    eq(mov.map((x) => x.riferimento), [
+      { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "colonna" }, null,
+      { tipo: "CRO", valore: "12345678901", da: "causale" }], "colonna, niente, causale");
+    eq(mov.map((x) => x.importo), [18300, -2410, 100], "e gli importi non cambiano per la colonna in più");
+    const m = conti.mappaMovimentiCsv(["Data", "Id operazione", "Descrizione", "Importo"]);
+    eq([m.riferimento, m.descrizione], [1, 2], "⛔ «Id operazione» è il riferimento, non la descrizione, anche se contiene «operazione»");
+    eq(conti.parseMovimentiCsv("12/07/2026;12/07/2026;BONIFICO TRN 0512345678901234567890123456IT;12,00\n")[0].riferimento,
+       { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "causale" }, "senza intestazione la causale basta lo stesso");
+    const righe = conti.abbinaMovimenti(mov, [], [], [], null).righe;
+    eq(righe.map((x) => x.riferimento), mov.map((x) => x.riferimento), "l'abbinamento tiene il riferimento sulla riga, null compreso");
+    const demo = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    eq(demo.filter((x) => x.riferimento).length, 1, "la dimostrazione ne porta uno, così il caso si vede");
+  });
+}
+/* ===== l'id stabile del foro (Genesi, 05/09) ===== */
+{
+  const g = genesi;
+  test("Genesi · idForoMaglia: fila-colonna che si legge sulla carta, e null dove non c'è una maglia", () => {
+    eq(g.idForoMaglia(1, 1), "f1-1", "il primo foro della prima fila");
+    eq(g.idForoMaglia(2, 5), "f2-5", "seconda fila, quinto foro");
+    eq(g.idForoMaglia(0, 1), null, "⛔ le file si contano da uno");
+    eq(g.idForoMaglia(1.5, 1), null, "una fila e mezza non esiste");
+    eq(g.idForoMaglia(null, 1), null, "e null resta null, non «fnull-1»");
+  });
+  test("Genesi · idForoNuovo: il primo numero libero, così cancellare e aggiungere non fa due omonimi", () => {
+    eq(g.idForoNuovo([]), "m1", "il primo foro a mano");
+    eq(g.idForoNuovo([{ id: "f1-1" }, { id: "m1" }, { id: "m2" }]), "m3", "dopo m1 e m2 viene m3");
+    eq(g.idForoNuovo([{ id: "f1-1" }, { id: "m1" }, { id: "m3" }]), "m2", "⛔ tolto m2, il prossimo è m2: non m4, e non un doppione");
+    eq(g.idForoNuovo([{ mx: 1, my: 2 }]), "m1", "fori senza id (un progetto vecchio) non contano");
+    eq(g.idForoNuovo(null), "m1", "e senza elenco si parte da uno");
+  });
+}
+/* ===== l'id del foro attraversa Campo (05/09) ===== */
+{
+  const PIANO_NUOVO = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro\n"
+    + "1;0.00;3.00;12;58;3;0;;;;;;f1-1\n2;3.50;3.00;12;58;3;42;;;;;;f1-2\n3;1.75;6.00;12;58;3;84;;;;;;m1\n";
+  const PIANO_VECCHIO = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms\n1;0.00;3.00;12;58;3;0\n2;3.50;3.00;12;58;3;42\n";
+  /* ⛔ L'INTESTAZIONE VERA, LETTA DAL SORGENTE DI GENESI e non ricopiata: il
+     05/09, scrivendo la prova con i nomi che Genesi scrive davvero, è uscito che
+     Campo non riconosceva fila_m, borraggio_prog_m e ritardo_ms — il file per
+     cui il lettore esiste entrava a metà, e tutte le prove di casa usavano nomi
+     corti che non sono quelli del file. Se Genesi cambia una colonna, questa
+     prova lo dice il giorno stesso. */
+  /* ⏱️ dal 05/09 (notte) l'intestazione non sta più nella pagina di Genesi: è
+     `PIANO_GENESI_INTESTAZIONE` in shared/, e la pagina compone il file con
+     `pianoCsvGenesi` — la prova legge di là, e pretende che la pagina lo usi */
+  const _srcGenesi = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
+  const _testaGenesi = /const csv=pianoCsvGenesi\(righePiano\);/.test(_srcGenesi) ? ponti.PIANO_GENESI_INTESTAZIONE : "";
+  test("Campo · l'intestazione VERA del piano di Genesi, letta da shared/ (che la pagina di Genesi usa), si riconosce tutta", () => {
+    ok(_testaGenesi.startsWith("foro;x_m;"), "la pagina di Genesi compone il file con pianoCsvGenesi, e l'intestazione è quella di shared/: " + _testaGenesi.slice(0, 40));
+    const m = campo.mappaPianoCsv(_testaGenesi + "\n1;0.00;3.00;12;58;3;0;;;;;;f1-1\n");
+    eq(m.mancanti, [], "⛔ nessuna colonna del piano di Genesi risulta mancante a Campo (fila_m, borraggio_prog_m, ritardo_ms comprese)");
+    ok(m.riconosciute.some((r) => r.campo === "idForo"), "e l'id_foro in coda è riconosciuto");
+    const r = campo.parsePianoCsv(_testaGenesi + "\n1;0.00;3.00;12;58;3;42;;;;;;f1-1\n")[0];
+    eq([r.fila, r.borr, r.rit, r.idForo], ["3.00", "3", "42", "f1-1"], "fila, borraggio e ritardo entrano davvero, non vuoti");
+  });
+  test("Campo · il piano con id_foro: la colonna si riconosce, è facoltativa, e senza di lei non manca niente", () => {
+    const m = campo.mappaPianoCsv(PIANO_NUOVO);
+    ok(m.riconosciute.some((r) => r.campo === "idForo" && r.nome === "id_foro"), "id_foro riconosciuta come l'id del foro");
+    eq(m.mancanti, [], "e nel file nuovo non manca niente");
+    const v = campo.mappaPianoCsv(PIANO_VECCHIO);
+    eq(v.mancanti, [], "⛔ nel file di ieri, senza id_foro, NON manca niente: la colonna è facoltativa e non apre nessuna finestra");
+    ok(!v.ignorate.includes("id_foro"), "e non è nemmeno fra le ignorate, perché non c'è");
+  });
+  test("Campo · parsePianoCsv porta l'id sul foro, e il consuntivo lo rimanda in coda tale e quale", () => {
+    const righe = campo.parsePianoCsv(PIANO_NUOVO);
+    eq(righe.map((r) => r.idForo), ["f1-1", "f1-2", "m1"], "tre fori, tre id, compreso quello aggiunto a mano");
+    eq(campo.parsePianoCsv(PIANO_VECCHIO).map((r) => r.idForo), ["", ""], "senza colonna l'id è la stringa vuota, non «undefined»");
+    eq(campo.parsePianoCsv("1;0;3;12;58;3;0\n")[0].idForo, "", "e senza intestazione (sette colonne) la posizione 7 non esiste: vuoto");
+    const piano = campo.normalizzaPiano(righe.map((r, i) => ({ ...r, data: "2026-09-05", turno: "mattino", reale: i === 0 ? 61 : null })));
+    eq(piano.map((p) => p.idForo), ["f1-1", "f1-2", "m1"], "normalizzaPiano non lo perde");
+    const csv = campo.pianoConsuntivoCsv(piano);
+    eq(csv.split("\n")[0], campo.CONSUNTIVO_COLONNE.join(";"), "l'intestazione è quella dichiarata");
+    eq(campo.CONSUNTIVO_COLONNE[campo.CONSUNTIVO_COLONNE.length - 1], "id_foro", "⛔ id_foro sta in CODA: chi legge nove colonne non si accorge di niente");
+    eq(csv.split("\n").slice(1, 4).map((r) => r.split(";").pop()), ["f1-1", "f1-2", "m1"], "e ogni riga lo rimanda tale e quale");
+    const senza = campo.pianoConsuntivoCsv(campo.normalizzaPiano([{ foro: 1, prog: 58, reale: null, data: "2026-09-05", turno: "mattino" }]));
+    eq(senza.split("\n")[1].split(";").pop(), "", "un piano senza id scrive la cella vuota, non «null» né «undefined»");
+  });
+}
+/* ===== il confronto foro per foro (Genesi, 05/09) ===== */
+{
+  test("shared · lo scarto della carica vive in un posto solo: Campo ri-esporta lo STESSO oggetto", () => {
+    ok(campo.scartoLivello === ponti.scartoLivello, "scartoLivello: identità, non uguaglianza di comportamento");
+    ok(campo.scartoPct === ponti.scartoPct, "scartoPct: identità");
+  });
+  test("Genesi · _riconParseCampo legge id_foro in coda, e senza la colonna l'id è vuoto", () => {
+    const p = genesi._riconParseCampo("data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro\n2026-09-05;mattino;1;58;61;5;3;;Rossi;f1-1\n2026-09-05;mattino;2;58;;;;;;f1-2\n");
+    eq(p.righe.map((r) => r.idForo), ["f1-1", "f1-2"], "gli id entrano tali e quali");
+    eq(genesi._riconParseCampo("foro;carica_prog_kg;carica_reale_kg\n1;58;61\n").righe[0].idForo, "", "un consuntivo di ieri: stringa vuota, non undefined");
+  });
+  const H = [{ id: "f1-1", seq: 0, mx: 0, my: 3 }, { id: "f1-3", seq: 1, mx: 7, my: 3 }, { id: "m1", seq: 2, mx: 3.5, my: 6 }];
+  test("Genesi · confrontoPerForo per ID: il foro tolto in mezzo non sposta gli altri", () => {
+    /* f1-2 è stato cancellato dal progetto DOPO l'export del piano: per numero
+       la riga «foro 2» (che era f1-2) finirebbe sul secondo foro rimasto, che
+       è f1-3 — per id no */
+    const R = [{ foro: 1, prog: 58, reale: 61, idForo: "f1-1" }, { foro: 2, prog: 58, reale: 70, idForo: "f1-2" }, { foro: 3, prog: 58, reale: 57, idForo: "f1-3" }];
+    const c = genesi.confrontoPerForo(H, R);
+    eq(c.chiave, "id", "tutti hanno l'id: si accoppia per id, e lo si dichiara");
+    eq(c.righe.map((x) => [x.id, x.reale, x.stato]), [["f1-1", 61, "ok"], ["f1-3", 57, "ok"], ["m1", null, "senza-riga"]],
+       "⛔ f1-3 prende la SUA riga (57), non quella del foro 2 cancellato (70); m1, aggiunto dopo, è senza riga");
+    eq(c.righe[0].scartoKg, 3, "lo scarto in chili"); eq(c.righe[0].scartoPct, 5.17, "e in percentuale");
+    eq(c.senzaRiga, 1, "un foro del progetto senza riga");
+    eq(c.orfane.map((o) => o.idForo), ["f1-2"], "⛔ e la riga del foro cancellato è orfana: si conta, non sparisce");
+    eq(c.misurabile, true, "c'è almeno una carica reale accoppiata");
+  });
+  test("Genesi · confrontoPerForo per NUMERO quando l'id manca da una parte sola: dichiarato, e con lo scivolamento", () => {
+    const R = [{ foro: 1, prog: 58, reale: 61, idForo: "" }, { foro: 2, prog: 58, reale: 70, idForo: "" }];
+    const c = genesi.confrontoPerForo(H, R);
+    eq(c.chiave, "numero", "⛔ una riga senza id basta a far cadere sulla chiave debole, DICHIARATA");
+    eq(c.righe.map((x) => [x.numero, x.reale]), [[1, 61], [2, 70], [3, null]], "per numero la riga 2 finisce sul secondo foro, che è f1-3: è il limite della chiave, e sta scritto");
+    eq(genesi.confrontoPerForo([{ mx: 0, my: 3 }, { mx: 3.5, my: 3 }], R).righe.map((x) => x.numero), [1, 2], "fori senza seq né id (un progetto vecchio): la posizione");
+  });
+  test("Genesi · confrontoPerForo: nessuna carica reale non è uno scostamento zero, le chiavi doppie si contano, il vuoto risponde vuoto", () => {
+    const c = genesi.confrontoPerForo(H, [{ foro: 1, prog: 58, reale: null, idForo: "f1-1" }, { foro: 3, prog: 58, reale: null, idForo: "f1-3" }, { foro: 4, prog: 58, reale: null, idForo: "m1" }]);
+    eq(c.misurabile, false, "⛔ tre righe accoppiate e nessuna carica: non misurabile");
+    eq(c.righe.map((x) => x.stato), ["da-registrare", "da-registrare", "da-registrare"], "e ogni foro dice «da registrare», non «ok»");
+    const d = genesi.confrontoPerForo(H, [{ foro: 1, prog: 58, reale: 61, idForo: "f1-1" }, { foro: 1, prog: 58, reale: 62, idForo: "f1-1" }, { foro: 3, prog: 58, reale: 57, idForo: "f1-3" }, { foro: 4, prog: 58, reale: 1, idForo: "m1" }]);
+    eq(d.doppie, ["f1-1"], "la chiave ripetuta nel consuntivo si dichiara"); eq(d.righe[0].reale, 61, "e vince la prima riga, non l'ultima");
+    eq(genesi.confrontoPerForo([], []), { chiave: "numero", righe: [], senzaRiga: 0, orfane: [], doppie: [], misurabile: false }, "senza fori e senza righe: tutto vuoto e non misurabile");
+  });
+}
+/* ===== i fori salvati col progetto (Genesi, 05/09) ===== */
+{
+  test("Genesi · foriDaDesign: un progetto salvato prima non ha fori (null), uno di oggi li rimette con id e ritardo a mano", () => {
+    eq(genesi.foriDaDesign({ B: 3, S: 3.5 }), null, "senza `holes` la risposta è null: si rigenera la maglia, com'è sempre stato");
+    eq(genesi.foriDaDesign(null), null, "e null resta null");
+    const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: 0, my: 3, tMano: null }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }] });
+    eq(r.fori, [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }], "⛔ i tre fori tornano con il loro id — f1-2 tolto NON ricompare — e il 99 ms a mano resta");
+    eq(r.scartati, 0, "nessuno scartato");
+  });
+  test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
+    const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
+    eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");
+    eq(r.fori.map((f) => f.id), ["f1-1", "m2", "m3", "m1"], "⛔ gli id mancanti si assegnano DOPO aver letto quelli dichiarati: l'«m1» in fondo non diventa un doppione");
+    eq(new Set(r.fori.map((f) => f.id)).size, 4, "quattro fori, quattro id diversi");
+    ok(!("tMano" in r.fori[1]), "«boh» non è un ritardo: il campo non c'è, invece di NaN");
+    eq([r.fori[0].mx, r.fori[0].my], [0, 3], "le posizioni scritte come stringhe tornano numeri");
+  });
+}
+/* ===== il ponte P6: le volate di Sentinella nella consegna di Campo (05/09) ===== */
+{
+  test("shared · lo stato di una volata e la sua PPV vivono in un posto solo: Sentinella ri-esporta lo STESSO oggetto", () => {
+    for (const k of ["statoDaTesto", "statoVolata", "volataPrevista", "volatePreviste", "volateEseguite", "volateDelGiorno", "ppvDiVolata"])
+      ok(sentinella[k] === ponti[k], k + ": identità, non uguaglianza di comportamento");
+    eq([sentinella.VOL_PREVISTA, sentinella.PPV_STRUMENTO], [ponti.VOL_PREVISTA, ponti.PPV_STRUMENTO], "e le costanti");
+    eq(campo.riassuntoVolateDelGiorno, ponti.riassuntoVolateDelGiorno, "Campo importa il riassunto da shared, non lo riscrive");
+  });
+  const V = [
+    { id: "b1", data: "2026-09-05", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", ppvMisurata: 4.1, ppvFonte: "strumento", ppvPuntoNome: "V1 — abitato Sud", ppvOra: "11:15" },
+    { id: "b2", data: "2026-09-05", fronte: "Fronte Est", nFori: "", kgTotali: "abc" },
+    { id: "b3", data: "2026-09-05", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, stato: "prevista" },
+    { id: "b4", data: "2026-09-04", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, stato: "eseguita" },
+  ];
+  test("shared · riassuntoVolateDelGiorno: solo le eseguite del giorno, i numeri illeggibili null, e «non leggibile» non è «nessuna»", () => {
+    const r = ponti.riassuntoVolateDelGiorno(V, "2026-09-05");
+    eq([r.leggibile, r.n], [true, 2], "due volate eseguite oggi: la prevista (b3) e quella di ieri (b4) restano fuori");
+    eq(r.righe.map((x) => x.id), ["b1", "b2"], "b1 e b2");
+    eq([r.righe[0].nFori, r.righe[0].kgTotali, r.righe[0].ppv.valore, r.righe[0].ppv.fonte, r.righe[0].ppv.punto, r.righe[0].ppv.ora], [42, 480, 4.1, "strumento", "V1 — abitato Sud", "11:15"], "la PPV collegata, con la sua fonte");
+    eq([r.righe[1].nFori, r.righe[1].kgTotali, r.righe[1].ppv], [null, null, null], "⛔ fori vuoti e chili «abc» sono null, non 0; nessuna PPV è null");
+    eq(ponti.riassuntoVolateDelGiorno(null, "2026-09-05"), { leggibile: false, n: 0, righe: [] }, "⛔ il registro non letto (null) è «non leggibile», non «zero volate»");
+    eq(ponti.riassuntoVolateDelGiorno(V, "boh").n, 0, "una data che non è una data: nessuna riga, non un errore");
+  });
+  test("Campo · righeVolateDelGiorno: le tre frasi, e la riga di una volata con quello che il turno entrante deve sapere", () => {
+    const f = campo.righeVolateDelGiorno;
+    ok(/non raggiungibile/.test(f(ponti.riassuntoVolateDelGiorno(null, "2026-09-05"))[0]) && /non vuol dire che non ce ne siano state/.test(f(null)[0]), "⛔ registro non leggibile: si dice, e si dice che non è «nessuna»");
+    eq(f(ponti.riassuntoVolateDelGiorno([], "2026-09-05")), ["nessuna volata registrata oggi in Sentinella"], "nessuna volata oggi");
+    const righe = f(ponti.riassuntoVolateDelGiorno(V, "2026-09-05"));
+    eq(righe[0], "Fronte Nord — 42 fori, 480 kg · PPV misurata 4,1 mm/s dal sismografo (V1 — abitato Sud) alle 11:15", "la riga completa, all'italiana");
+    eq(righe[1], "Fronte Est · PPV non ancora collegata in Sentinella", "senza numeri leggibili non si scrive «0 fori, 0 kg»: si tace il pezzo, e la PPV assente si dichiara");
+    eq(f(ponti.riassuntoVolateDelGiorno([{ id: "x", data: "2026-09-05", ppvMisurata: 3, ppvFonte: "manuale" }], "2026-09-05"))[0],
+       "fronte non indicato · PPV misurata 3 mm/s trascritta a mano", "fronte assente e PPV a mano");
+  });
+  /* ⚠️ sincrona di proposito: una prova asincrona scritta in fondo al file
+     resta in volo dopo l'`await Promise.all(inVolo)` e non conta (CLAUDE.md,
+     punto 3 dei test). Le dimostrazioni si leggono dai `DEMO` esportati. */
+  test("P6: le volate della dimostrazione di Campo sono quelle di Sentinella, id e date compresi", () => {
+    const c = campo.DEMO.volateSentinella.map((v) => [v.id, v.data, v.fronte, ponti.statoVolata(v)].join("|")).sort();
+    const s = sentinella.DEMO.volate.map((v) => [v.id, v.data, v.fronte, ponti.statoVolata(v)].join("|")).sort();
+    ok(c.length > 0, "Campo ha delle volate dimostrative");
+    eq(c, s, "⛔ le stesse, id per id, data per data, stato per stato: se qui ne inventassi altre il ponte funzionerebbe in demo e si romperebbe in produzione");
+    eq(ponti.riassuntoVolateDelGiorno(campo.DEMO.volateSentinella, shell.isoLocale(new Date())).n, 0, "e nessuna è di oggi: la consegna in dimostrazione dice «nessuna volata registrata oggi», che è vero del registro copiato");
+  });
+}
+/* ===== la mappa delle colonne, una volta sola (shared, 05/09) ===== */
+{
+  test("shared · mappaColonne: indizi per inizio di parola, esclusioni prima, condizionali, facoltative e mancanti", () => {
+    const m = shell.mappaColonne(["Data contabile", "Descrizione", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI", "Note"],
+      { data: ["data"], entrate: ["entrate"], uscite: ["uscite"], importo: ["importo"], descrizione: ["descrizione"], riferimento: ["trn"] },
+      { escludi: { saldo: ["saldo"], abi: ["abi"] }, ordine: ["data", "entrate", "uscite", "importo", "riferimento", "descrizione"],
+        condizionali: { importo: (ix) => ix.entrate < 0 && ix.uscite < 0 }, facoltative: ["riferimento"] });
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "⛔ saldo e ABI messi da parte PRIMA, se no «Importo» prenderebbe il saldo");
+    eq([m.indici.data, m.indici.entrate, m.indici.uscite, m.indici.importo, m.indici.descrizione, m.indici.riferimento], [0, 2, 3, -1, 1, -1], "gli indici; l'importo unico non si cerca perché ci sono entrate e uscite");
+    eq(m.ignorate, ["Note"], "e la colonna che nessuno ha chiesto si dichiara");
+    eq(m.mancanti, [], "il riferimento è facoltativo e l'importo condizionale: niente manca");
+    ok(m.conIntestazione, "l'intestazione vale: almeno una colonna riconosciuta");
+    const a = shell.mappaColonne(["Data contabile", "Causale ABI"], { abi: ["abi"] });
+    eq(a.indici.abi, 1, "⛔ «abi» combacia all'inizio di una parola («causale abi»), non dentro «contabile»");
+    eq(shell.nomeColonna("Quantità (l)"), "quantita l", "il nome normalizzato tiene gli spazi: senza accenti, senza parentesi");
+    eq(shell.mappaColonne(["Quantità (l)"], { q: ["quantita"] }).indici.q, 0, "gli accenti e le parentesi non contano");
+    eq(shell.mappaColonne(null, { x: ["x"] }), { conIntestazione: false, indici: { x: -1 }, riconosciute: [], esclusi: [], ignorate: [], mancanti: ["x"] }, "senza intestazione: niente trovato, l'obbligatoria manca, e non vale");
+    eq(shell.mappaColonne(["a", "b"], { x: ["x"] }, { conIntestazione: (ix) => ix.x >= 0 }).conIntestazione, false, "la regola di validità la decide chi chiama");
+  });
+  test("Conti · mappaMovimentiCsv è costruita sulla mappa condivisa e risponde come prima", () => {
+    const m = conti.mappaMovimentiCsv(["Data operazione", "Descrizione movimento", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI"]);
+    eq([m.data, m.descrizione, m.entrate, m.uscite, m.importo, m.conIntestazione], [0, 1, 2, 3, -1, true], "la forma di sempre");
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "e le esclusioni di sempre");
+    ok(conti.mappaMovimentiCsv(["Data", "Descrizione", "Saldo"]).conIntestazione === false, "col solo saldo come numero l'intestazione non vale: il movimento esce scartato, non col saldo come importo");
+  });
+  test("Flotta · la telemetria per NOME di colonna: un export OEM entra intero, e senza intestazione resta la posizione", () => {
+    eq(Object.keys(flotta.INDIZI_TELEMETRIA), ["mezzo", "ore", "carburante"], "tre campi, e il carburante è facoltativo");
+    const oem = "Asset;Engine Hours;Fuel (l);Site\nEscavatore E1;5900;120;Nord\nDumper D1;8420;;Nord\n";
+    const p = flotta.parseTelemetriaCsv(oem);
+    eq(p, [{ mezzo: "Escavatore E1", ore: 5900, carburante: 120 }, { mezzo: "Dumper D1", ore: 8420, carburante: null }], "⛔ «Asset / Engine Hours / Fuel (l)» si leggono come mezzo, ore e carburante");
+    const m = flotta.mappaTelemetriaCsv(oem);
+    eq(m.riconosciute.map((r) => r.campo + "←" + r.nome), ["mezzo←Asset", "ore←Engine Hours", "carburante←Fuel (l)"], "l'esito può dire da dove viene ogni colonna");
+    eq(m.ignorate, ["Site"], "e quale è rimasta fuori");
+    const inv = "Litri;Ore motore;Targa\n120;5900;AB123CD\n";
+    eq(flotta.parseTelemetriaCsv(inv), [{ mezzo: "AB123CD", ore: 5900, carburante: 120 }], "⛔ l'ordine delle colonne non conta più: prima la targa finiva nei litri");
+    eq(flotta.parseTelemetriaCsv("E1;5900;120\n"), [{ mezzo: "E1", ore: 5900, carburante: 120 }], "senza intestazione: la posizione di sempre");
+    eq(flotta.mappaTelemetriaCsv("E1;5900;120\n").conIntestazione, false, "e la mappa lo dichiara");
+    const sc = flotta.scartiTelemetriaCsv("Asset;Engine Hours\nE1;abc\nE2;\n;100\n");
+    eq(sc.persi.map((x) => x.nome + ": " + x.ragione), ["E1: le ore motore non si leggono", "E2: le ore motore non sono state scritte", "riga 3: manca il nome del mezzo"], "⛔ e le ragioni delle righe perse guardano la colonna GIUSTA, non la posizione");
+  });
+}
+/* ===== il file della pesa a ponte (Conti, 05/09) ===== */
+{
+  const PESA = "N. pesata;Data;Ora uscita;Targa;Cliente;Materiale;Peso lordo (kg);Tara (kg);Peso netto (kg)\n"
+    + "1041;05/09/2026;10:12;FT 421 KP;Edilcave Srl;Stabilizzato 0/30;42600;14200;28400\n"
+    + "1042;05/09/2026;10:40;AB 123 CD;Rossi Srl;Stabilizzato 0/30;38000;14000;24000\n"
+    + "1043;boh;11:00;FT 421 KP;Edilcave Srl;Ghiaia;30000;14000;16000\n"
+    + "1044;05/09/2026;11:30;FT 421 KP;Edilcave Srl;Stabilizzato 0/30;14000;14200;\n";
+  test("Conti · mappaPesaCsv: le colonne della pesa per nome, e l'unità letta dall'intestazione", () => {
+    eq(Object.keys(conti.INDIZI_PESA), ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"], "nove campi del cartellino di pesata (nomi di seconda mano, dalla ricerca del 02/09)");
+    const m = conti.mappaPesaCsv(PESA.split("\n")[0].split(";"));
+    eq(m.riconosciute.map((r) => r.campo), ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"], "nove colonne riconosciute nell'ordine di presa");
+    eq([m.conIntestazione, m.unita], [true, "kg"], "⛔ «Peso lordo (kg)» dice l'unità: chilogrammi");
+    eq(conti.mappaPesaCsv(["Data", "Cliente", "Lordo (t)", "Tara (t)"]).unita, "t", "e «(t)» dice tonnellate");
+    eq(conti.mappaPesaCsv(["Data", "Cliente", "Lordo", "Tara"]).unita, "", "⛔ senza unità nell'intestazione non si indovina: resta vuota, e la pagina la chiede");
+    eq(conti.mappaPesaCsv(["Data", "Lordo (kg)", "Netto (t)"]).unita, "", "e con unità che si contraddicono nemmeno");
+    eq(conti.mappaPesaCsv(["Cliente", "Materiale"]).conIntestazione, false, "senza data e senza un peso non è il file della pesa");
+  });
+  test("Conti · parsePesaCsv: date italiane, righe rotte dichiarate, e l'unità suggerita con la ragione", () => {
+    const l = conti.parsePesaCsv(PESA);
+    eq([l.conIntestazione, l.unita, l.unitaSuggerita], [true, "kg", "kg"], "il file si legge e l'unità è quella dell'intestazione");
+    eq(l.righe.map((r) => [r.numero, r.data, r.lordo, r.tara, r.scarto]), [["1041", "2026-09-05", 42600, 14200, ""], ["1042", "2026-09-05", 38000, 14000, ""], ["1043", "", 30000, 14000, "data non riconosciuta"], ["1044", "2026-09-05", 14000, 14200, "la tara non è minore del lordo"]], "quattro righe, due sane e due con la ragione scritta");
+    const senza = conti.parsePesaCsv("Data;Cliente;Lordo;Tara\n05/09/2026;Edilcave Srl;42600;14200\n");
+    eq([senza.unita, senza.unitaSuggerita], ["", "kg"], "⛔ intestazione muta: l'unità NON si decide, si SUGGERISCE «kg» perché 42.600 non sono tonnellate");
+    ok(/troppo per essere tonnellate/.test(senza.unitaSuggeritaPerche), "e la ragione si scrive");
+    eq(conti.parsePesaCsv("Data;Cliente;Lordo;Tara\n05/09/2026;Edilcave Srl;42,6;14,2\n").unitaSuggerita, "t", "pesi piccoli: si suggerisce «t»");
+    eq(conti.parsePesaCsv("").conIntestazione, false, "vuoto: non si legge, senza errori");
+  });
+  test("Conti · pesateDallaPesa: cliente e prodotto per nome, chili in tonnellate, doppie e mancanze dette per nome", () => {
+    const d = conti.DEMO, l = conti.parsePesaCsv(PESA);
+    const e = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, d.pesate);
+    eq(e.entrano.map((x) => [x.cliente, x.prodotto, x.lordo, x.tara, x.pesaTicket, x.mezzo]), [["Edilcave Srl", "Stabilizzato 0/30", 42.6, 14.2, "1041", "FT 421 KP"]], "⛔ una sola entra: 42.600 kg → 42,6 t, col cartellino e la targa");
+    eq(e.senzaCliente, [{ riga: 2, cliente: "Rossi Srl" }], "⛔ «Rossi Srl» non è in anagrafica: non entra, e lo si dice per nome");
+    eq(e.scartate.map((x) => x.ragione), ["data non riconosciuta", "la tara non è minore del lordo"], "le righe rotte, con la ragione del lettore");
+    const bis = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, [...d.pesate, { pesaTicket: "1041", data: "2026-09-05", mezzo: "FT 421 KP", lordo: 42.6, tara: 14.2 }]);
+    eq(bis.entrano.length, 0, "⛔ ricaricando lo stesso file la pesata è già in archivio: non si ripete");
+    eq(bis.doppie.map((x) => x.numero), ["1041"], "e la doppia si dichiara");
+    const perChiave = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, [{ data: "2026-09-05", mezzo: "ft 421 kp", lordo: 42.6, tara: 14.2 }]);
+    eq(perChiave.doppie.length, 1, "doppia anche senza cartellino: stessa data, targa, lordo e tara");
+    const inT = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Lordo;Tara\n05/09/2026;EDILCAVE SRL;stabilizzato 0/30;42,6;14,2\n").righe, "t", d.clienti, d.prodotti, []);
+    eq([inT.entrano[0].lordo, inT.entrano[0].clienteId, inT.entrano[0].prodottoId], [42.6, "c1", "p1"], "in tonnellate resta com'è; maiuscole e minuscole non contano nel nome");
+    const sp = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Lordo;Tara\n05/09/2026;Edilcave Srl;Sabbia lunare;42,6;14,2\n").righe, "t", d.clienti, d.prodotti, []);
+    eq(sp.senzaProdotto, [{ riga: 1, prodotto: "Sabbia lunare" }], "un materiale che il listino non ha: non entra, detto per nome");
+    const soloNetto = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Netto (t)\n05/09/2026;Edilcave Srl;Stabilizzato 0/30;28,4\n").righe, "t", d.clienti, d.prodotti, []);
+    eq([soloNetto.entrano.length, soloNetto.scartate[0] && soloNetto.scartate[0].ragione], [0, "lordo o tara mancanti: il DDT si emette dai due pesi"], "⛔ col solo netto la riga NON entra, e la ragione è quella vera — non «manca la densità»");
+  });
+}
+/* ===== il piano di Campo sopra la mappa condivisa (05/09) ===== */
+{
+  test("Campo · mappaPianoCsv sopra mappaColonne, con nomi ESATTI: «carica (kg)» è la carica, «ms» non prende il relief", () => {
+    const m = campo.mappaPianoCsv("foro;x_m;Fila;Carica (kg);relief_ms_per_m;ritardo_ms\n1;0;1;58;;42\n");
+    eq([m.indici.foro, m.indici.x, m.indici.fila, m.indici.prog, m.indici.rit], [0, 1, 2, 3, 5], "⛔ la carica dalla colonna «Carica (kg)», e il ritardo da «ritardo_ms» — non da «relief_ms_per_m», che contiene «ms»");
+    eq(m.ignorate, ["relief_ms_per_m"], "il relief resta fra le ignorate");
+    eq(m.mancanti, ["prof", "borr"], "le obbligatorie assenti si contano; l'id è facoltativa e non compare");
+    eq(shell.mappaColonne(["relief ms per m", "ritardo ms"], { rit: ["ms"] }, { esatto: true }).indici.rit, -1, "in forma esatta «ms» da solo non è nessuna delle due");
+    eq(shell.mappaColonne(["relief ms per m", "ritardo ms"], { rit: ["ms"] }).indici.rit, 0, "e senza `esatto` sarebbe la prima che lo contiene: per questo Campo chiede l'esattezza");
+  });
+}
+/* ===== Sentinella sopra la mappa, nel modo «dentro» (05/09) ===== */
+{
+  test("shared · mappaColonne nel modo «dentro» e con `presi`: la forma di Sentinella", () => {
+    eq(shell.mappaColonne(["Velocità (mm/s)"], { v: ["vel"] }, { modo: "dentro" }).indici.v, 0, "«vel» dentro «velocità (mm/s)», come Sentinella ha sempre letto");
+    eq(shell.mappaColonne(["Velocità (mm/s)"], { v: ["vel"] }).indici.v, -1, "nel modo «parola» no: per questo Sentinella dichiara il suo");
+    eq(shell.mappaColonne(["Data", "Ora", "PPV"], { v: ["ppv", "data"] }, { modo: "dentro", presi: [0, 1] }).indici.v, 2, "le colonne già prese da chi chiama non si ripropongono");
+    eq(shell.mappaColonne(["dB(L)"], { a: ["db"] }, { modo: "dentro" }).indici.a, 0, "gli accenti e i simboli non contano nemmeno qui");
+  });
+  test("Sentinella · proponiMappa e proponiColonneEvento rispondono come prima sopra la mappa condivisa", () => {
+    const righe = [["Data/Ora", "PPV L", "PPV T", "PPV V", "PVS", "Freq (Hz)"], ["12/07/2026 11:15", "1,2", "0,8", "1,5", "1,9", "25"]];
+    const m = sentinella.proponiMappa(righe, true);
+    eq([m.colData, m.colOra, m.colValore], [0, -1, 4], "data, niente ora, e il valore è la RISULTANTE, non un asse");
+    const ev = sentinella.proponiColonneEvento(righe, true, m);
+    eq([ev.colPpvL, ev.colPpvT, ev.colPpvV, ev.colFreq, ev.colAria], [1, 2, 3, 5, -1], "i tre assi e la frequenza, l'aria assente");
+    const solo = sentinella.proponiMappa([["Data", "Velocità (mm/s)"], ["12/07/2026", "2,4"]], true);
+    eq([solo.colData, solo.colValore], [0, 1], "«velocità» presa da «vel», dentro la parola");
+  });
+}
+/* ===== la comunicazione della volata (Sentinella, 05/09) ===== */
+{
+  test("Sentinella · campiComunicazioneVolata: a chi, quando, riferimento — e gli errori detti per campo", () => {
+    const ok = sentinella.campiComunicazioneVolata("Ente", "2026-07-16", " PEC prot. 4412/2026 ");
+    eq([ok.ok, ok.campi], [true, { comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" }], "maiuscole e spazi non contano; il riferimento è testo libero");
+    eq(sentinella.campiComunicazioneVolata("comune", "2026-07-16", "").errori.a !== undefined, true, "⛔ «comune» non è fra i destinatari: si dice quali sono");
+    eq(sentinella.campiComunicazioneVolata("ente", "2026-02-30", "").errori.il, "La data non esiste.", "un 30 febbraio non passa");
+    eq(sentinella.campiComunicazioneVolata("ente", "", "").errori.il, "Scrivi quando è stata fatta.", "senza data non è una comunicazione");
+    eq(sentinella.campiComunicazioneVolata("residenti", "2026-07-16").ok, true, "il riferimento è facoltativo");
+    eq(sentinella.DESTINATARI_COMUNICAZIONE.map((d) => d.chiave), ["ente", "residenti", "entrambi"], "i tre destinatari, e sono quelli che la finestra elenca");
+  });
+  test("Sentinella · descriviComunicazione: intera, assente, a metà — mai un «—»", () => {
+    const d = sentinella.descriviComunicazione;
+    eq(d({ comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" }), { registrata: true, testo: "comunicata all'ente il 16/07/2026 (PEC prot. 4412/2026)" }, "intera, all'italiana");
+    eq(d({ comunicataA: "entrambi", comunicataIl: "2026-07-16" }).testo, "comunicata all'ente e ai residenti il 16/07/2026", "senza riferimento");
+    eq(d({}), { registrata: false, testo: "nessuna comunicazione registrata" }, "⛔ assente: si dice, non si tace");
+    eq(d({ comunicataIl: "2026-07-16" }).testo, "comunicazione registrata a metà (non dice a chi)", "a metà: manca il destinatario");
+    eq(d({ comunicataA: "ente", comunicataIl: "boh" }).testo, "comunicazione registrata a metà (la data non si legge)", "a metà: la data non si legge");
+    ok(!/—/.test(d({}).testo), "e il testo non contiene mai il trattino tranquillo");
+  });
+  test("Sentinella · il registro volate porta la comunicazione in coda al CSV, andata e ritorno, e il testo del file", () => {
+    const con = { id: "z1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
+    const senza = { id: "z2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410 };
+    const csv = sentinella.csvRegistroVolate([con, senza]);
+    ok(csv.split("\n")[0].endsWith(";codiceVolata;comunicataA;comunicataIl;comunicazioneRif"), "⛔ le tre colonne stanno in CODA: chi legge diciannove colonne non si accorge di niente");
+    eq(csv.split("\n")[0], sentinella.CSV_VOLATE_INTESTAZIONE, "l'intestazione è quella dichiarata");
+    ok(/;ente;2026-07-16;PEC prot\. 4412\/2026$/m.test(csv), "la riga con la comunicazione la scrive tale e quale", csv);
+    ok(/Fronte Est.*;;;$/m.test(csv), "e la riga senza comunicazione scrive tre celle vuote, non «null»", csv);
+    const dentro = sentinella.parseVolateCsv(csv);
+    eq([dentro[1].comunicataA, dentro[1].comunicataIl, dentro[1].comunicazioneRif], ["ente", "2026-07-16", "PEC prot. 4412/2026"], "rientra intera (le righe sono ordinate per data)");
+    ok(!("comunicataA" in dentro[0]), "e chi non ce l'aveva non si porta a casa tre campi vuoti");
+    eq(sentinella.descriviComunicazione(sentinella.DEMO.volate.find((v) => v.id === "b1")).registrata, true, "la dimostrazione ne porta una, così il caso si vede");
+  });
+}
+/* ===== la portata del report e per chi è redatto (Sentinella, 05/09) ===== */
+{
+  test("Sentinella · PORTATA_REPORT dice che cosa il documento giudica e che cosa no", () => {
+    ok(/UNI 9916/.test(sentinella.PORTATA_REPORT) && /DIN 4150-3/.test(sentinella.PORTATA_REPORT), "cita le norme degli effetti sugli edifici");
+    ok(/Non valuta il disturbo alle persone \(UNI 9614\)/.test(sentinella.PORTATA_REPORT), "⛔ e dice che NON valuta il disturbo alle persone (UNI 9614)");
+  });
+  test("Sentinella · intestazioneOrigineReport: adempimento, ente, periodo e scadenza sul documento", () => {
+    const f = sentinella.intestazioneOrigineReport;
+    eq(f({ titolo: "Relazione annuale emissioni", ente: "ARPA", scadenza: "2026-08-10" }, { dal: "2025-08-10", al: "2026-08-09" }),
+       "Redatto per l'adempimento «Relazione annuale emissioni» (ARPA), periodo dal 10/08/2025 al 09/08/2026, scadenza il 10/08/2026.", "la riga intera");
+    eq(f({ titolo: "Verifica fonometrica semestrale", ente: "—", scadenza: "boh" }, { dal: "2026-03-31", al: "2026-09-29" }),
+       "Redatto per l'adempimento «Verifica fonometrica semestrale», periodo dal 31/03/2026 al 29/09/2026.", "ente «—» e scadenza illeggibile non si scrivono");
+    eq(f(null, { dal: "2026-01-01", al: "2026-03-31" }), "", "senza adempimento non c'è riga");
+    eq(f({ titolo: "X" }, null), "", "e senza periodo nemmeno");
+  });
+}
+/* ===== la risposta al superamento nel report (Sentinella, 05/09) ===== */
+{
+  const MON = [{ id: "v9", nome: "V9", tipo: "vibrazioni", valore: 6, soglia: 5, unita: "mm/s", letture: [{ data: "2026-07-17", valore: 6 }, { data: "2026-07-03", valore: 3 }] },
+               { id: "v8", nome: "V8", tipo: "vibrazioni", valore: 2, soglia: 5, unita: "mm/s", letture: [{ data: "2026-07-10", valore: 2 }] }];
+  const rep = (azioni) => sentinella.reportConformita({ monitoraggi: MON, ricettori: [], dal: "2026-07-01", al: "2026-07-31", azioni });
+  test("Sentinella · rispostaSuperamento: non leggibile, nessuna, aperte, chiuse — e «non leggibile» non è «nessuna»", () => {
+    const f = sentinella.rispostaSuperamento;
+    eq(f(null, "v9").stato, "non-leggibile", "⛔ Scudo non letto: non si accusa nessuno di inerzia");
+    eq(f(undefined, "v9").stato, "non-leggibile", "e nemmeno quando le azioni non sono state passate");
+    eq(f([], "v9"), { stato: "nessuna", n: 0, testo: sentinella.FRASI_RISPOSTA["nessuna"] }, "nessuna azione per questo punto: si dice con le parole");
+    const az = [{ origineTipo: "superamento", origineId: "v9", origineVoce: "2026-07-17", stato: "aperta" }, { origineTipo: "superamento", origineId: "v8", stato: "chiusa" }, { origineTipo: "fermo", origineId: "v9", stato: "aperta" }];
+    eq([f(az, "v9").stato, f(az, "v9").testo], ["aperte", "1 azione da chiudere (da Scudo)"], "l'azione del punto, e solo la sua (non quella del fermo di Campo con lo stesso id)");
+    eq(f([{ origineTipo: "superamento", origineId: "v9", stato: "chiusa" }], "v9").testo, "azione chiusa (da Scudo)", "chiusa, con la frase di statoPonte");
+  });
+  test("Sentinella · reportConformita porta la risposta SOLO sui punti in superamento", () => {
+    const R = rep([]);
+    const v9 = R.punti.find((p) => p.nome === "V9"), v8 = R.punti.find((p) => p.nome === "V8");
+    eq(v9.risposta && v9.risposta.stato, "nessuna", "il punto oltre soglia porta la risposta");
+    eq(v8.risposta, null, "⛔ il punto entro soglia non ne porta: niente da rispondere, niente scritto");
+    eq(rep(null).punti.find((p) => p.nome === "V9").risposta.stato, "non-leggibile", "e con Scudo non leggibile lo dice");
+    eq(rep().punti.find((p) => p.nome === "V9").risposta.stato, "non-leggibile", "chi non passa le azioni non ottiene un «nessuna» gratis");
+  });
+}
+/* ===== fine risposta al superamento (05/09) ===== */
+/* ===== la scheda della singola volata (Sentinella, 05/09) ===== */
+{
+  const MON = [{ id: "v1", nome: "V1 abitato", tipo: "vibrazioni", unita: "mm/s", soglia: 5,
+    tarature: [{ data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441" }],
+    letture: [{ data: "2026-07-17", ora: "10:20", valore: 3.4, assi: { L: 2.1, T: 1.8, V: 3.4 }, extra: { freq: 18, aria: 112 },
+                origine: { da: "import", file: "V1_luglio.csv", quando: "2026-07-18T08:00:00" } },
+              { data: "2026-07-17", ora: "16:00", valore: 1.1 }] }];
+  const REC = [{ id: "x1", data: "2026-07-17", ora: "10:30", tipo: "vibrazione", chi: "Sig. Bianchi", descrizione: "vetri", stato: "chiuso" },
+               { id: "x2", data: "2026-07-20", tipo: "polvere", chi: "Scuola" }];
+  const V = { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", stato: "eseguita",
+    ppvMisurata: 3.4, ppvFonte: "strumento", ppvPuntoId: "v1", ppvPuntoNome: "V1 abitato", ppvData: "2026-07-17", ppvOra: "10:20",
+    ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz", ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
+    comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
+  const riga = (f, sez, eti) => { const z = f.sezioni.find((x) => x.titolo === sez); const r = z && z.righe.find((q) => q[0] === eti); return r ? r[1] : undefined; };
+  const TITOLI = ["Volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Regola del giudizio", "Reclami dello stesso giorno"];
+  test("Sentinella · fogliaVolata: la volata collegata allo strumento, con la lettura, la taratura e il reclamo del giorno", () => {
+    const f = sentinella.fogliaVolata(V, { monitoraggi: MON, reclami: REC, oggi: "2026-09-05" });
+    eq(f.titolo, "Scheda della volata del 17/07/2026 — Fronte Nord", "il titolo porta data e fronte");
+    eq(f.generatoIl, "05/09/2026", "la data di stampa è quella passata, in italiano");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "sei sezioni, in quest'ordine");
+    eq(riga(f, "Volata", "Distanza scalata (SD)"), "75,42", "la SD è la stessa di scaledDistance (320/√18)");
+    eq(riga(f, "Volata", "Comunicazione"), "comunicata all'ente il 16/07/2026 (PEC prot. 4412/2026)", "la comunicazione con la stessa frase della lista");
+    eq(riga(f, "Previsione", "Fonte"), "da Genesi · stima dalla litologia", "la previsione dice su che base è fatta");
+    eq(riga(f, "Misura dell'evento", "PPV misurata"), "3,4 mm/s · sismografo · V1 abitato · 10:20", "la PPV col suo strumento e l'ora");
+    eq(riga(f, "Misura dell'evento", "Componenti dell'evento"), "L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112", "⛔ la lettura è quella delle 10:20, non quella delle 16:00: si cerca per data E ora");
+    ok(/importata dal file «V1_luglio.csv»/.test(riga(f, "Misura dell'evento", "Provenienza della lettura")), "e da dove viene");
+    eq(riga(f, "Strumento e taratura", "Punto di misura"), "V1 abitato · mm/s", "lo strumento con la sua unità");
+    eq(riga(f, "Strumento e taratura", "Taratura"), "coperta: certificato LAT 118-2026/441, Centro LAT n. 118, dal 10/02/2026 al 09/02/2027", "la taratura che copre la data della lettura");
+    const rec = f.sezioni[5];
+    eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]", false]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
+    eq(rec.avviso, sentinella.AVVISO_COINCIDENZA, "e la coincidenza è dichiarata coincidenza, non causa");
+    eq(f.nonMisurati, [], "⛔ con tutto collegato non manca niente");
+    eq(f.sezioni.flatMap((z) => z.righe).filter((r) => r[2] === true), [], "e nessuna riga è marcata «manca»");
+  });
+  test("Sentinella · fogliaVolata: la volata vuota dichiara ogni assenza a parole, mai «—»", () => {
+    const f = sentinella.fogliaVolata({}, { oggi: "2026-09-05" });
+    eq(f.titolo, "Scheda della volata", "senza data né fronte il titolo resta nudo");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le sei sezioni ci sono lo stesso");
+    eq(riga(f, "Regola del giudizio", "Limite che vale per il punto"), "nessuna PPV collegata: niente da giudicare", "e la regola del giudizio dice che non c'è niente da giudicare");
+    eq(riga(f, "Volata", "Data"), "data non leggibile", "la data");
+    eq(riga(f, "Volata", "Fori"), "non dichiarato", "i fori");
+    eq(riga(f, "Volata", "Distanza scalata (SD)"), "non calcolabile: servono distanza e carica per ritardo", "la SD dice che cosa le manca");
+    eq(riga(f, "Volata", "Esito"), "non dichiarato", "⛔ un esito non scritto non è «regolare»");
+    eq(riga(f, "Volata", "Comunicazione"), "nessuna comunicazione registrata", "la comunicazione");
+    eq(riga(f, "Previsione", "PPV prevista"), "nessuna previsione registrata", "la previsione");
+    eq(riga(f, "Misura dell'evento", "PPV misurata"), "non ancora collegata", "la misura");
+    eq(riga(f, "Strumento e taratura", "Punto di misura"), "nessuno: PPV non collegata", "lo strumento");
+    eq(riga(f, "Reclami dello stesso giorno", "Reclami"), "nessun reclamo registrato quel giorno", "i reclami");
+    const tutte = f.sezioni.flatMap((z) => z.righe.map((r) => r[1]));
+    eq(tutte.filter((t) => /—|undefined|NaN|null/.test(String(t))), [], "⛔ nessuna riga tranquilla o rotta");
+    eq(f.nonMisurati, ["Data (data non leggibile)", "Fronte (non indicato)", "Fori (non dichiarato)", "Carica totale (non dichiarato)",
+      "Carica massima per ritardo (non dichiarato)", "Distanza dal ricettore (non dichiarato)", "Esito (non dichiarato)",
+      "Comunicazione (nessuna comunicazione registrata)", "PPV misurata (non ancora collegata)"],
+      "⛔ «che cosa manca» è un ELENCO dichiarato dal modulo, con l'etichetta e la ragione");
+    ok(!f.nonMisurati.some((t) => /Reclami|Note|Previsione|PPV prevista|Punto di misura/.test(t)),
+      "⛔ «nessun reclamo», «note: nessuna», «nessuna previsione» NON mancano: sono fatti, non dati assenti");
+    eq(f.sezioni.flatMap((z) => z.righe).filter((r) => r[2] === true).length, f.nonMisurati.length, "e le righe marcate «manca» sono tante quante le voci dell'elenco");
+    ok(f.avvertenza.includes("la registrazione originale dello strumento resta il documento di riferimento"), "e il foglio dice che cosa NON è");
+  });
+  test("Sentinella · fogliaVolata: prevista, trascritta a mano, lettura annullata, punto sparito — quattro «non lo so» diversi", () => {
+    const f1 = sentinella.fogliaVolata({ ...V, stato: "prevista" }, { monitoraggi: MON, reclami: REC });
+    eq(riga(f1, "Volata", "Stato"), "prevista (progetto, non ancora sparata)", "il progetto si chiama progetto");
+    eq(riga(f1, "Misura dell'evento", "PPV misurata"), "non ancora sparata: nessuna misura", "⛔ e la PPV scritta sulla riga NON si legge: una prevista non ha misure (T9)");
+    const f2 = sentinella.fogliaVolata({ ...V, ppvFonte: "manuale", ppvPuntoId: "" }, { monitoraggi: MON });
+    eq(riga(f2, "Misura dell'evento", "PPV misurata"), "3,4 mm/s · trascritta a mano dal referto", "trascritta a mano");
+    eq(riga(f2, "Misura dell'evento", "Componenti dell'evento"), undefined, "senza strumento non si inventano componenti");
+    eq(riga(f2, "Strumento e taratura", "Punto di misura"), "nessuno: PPV trascritta a mano dal referto", "e lo strumento dice perché non c'è");
+    const MON2 = [{ ...MON[0], tarature: [], letture: [{ ...MON[0].letture[0], origine: { da: "mano", annullata: { perche: "strumento-spento", quando: "2026-07-18" } } }] }];
+    const f3 = sentinella.fogliaVolata(V, { monitoraggi: MON2 });
+    ok(/dichiarata non valida: /.test(riga(f3, "Misura dell'evento", "Attenzione")), "⛔ una lettura annullata lo grida sul foglio");
+    eq(riga(f3, "Misura dell'evento", "Attenzione"), "la lettura è stata dichiarata non valida: " + sentinella.annullamentoDi(MON2[0].letture[0]).etichetta, "con la stessa etichetta di annullamentoDi");
+    eq(riga(f3, "Strumento e taratura", "Taratura"), "non coperta: nessuna taratura registrata per questo strumento", "e la taratura assente si dichiara");
+    const f4 = sentinella.fogliaVolata({ ...V, ppvPuntoId: "zz" }, { monitoraggi: MON });
+    eq(riga(f4, "Misura dell'evento", "Componenti dell'evento"), "punto di misura non trovato (zz)", "il punto sparito si nomina");
+    eq(riga(f4, "Strumento e taratura", "Punto di misura"), "non trovato", "e lo strumento non si inventa");
+    eq(f4.nonMisurati, ["Componenti dell'evento (punto di misura non trovato (zz))", "Punto di misura (non trovato)"], "e il punto sparito sta in «che cosa manca»");
+    eq(f3.nonMisurati, ["Taratura (non coperta: nessuna taratura registrata per questo strumento)"], "la taratura scoperta manca; la lettura annullata è marcata ma non è un dato assente");
+    eq(f1.nonMisurati, [], "⛔ una prevista non «manca» della misura: non è ancora stata sparata");
+    eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
+    eq(sentinella.fogliaVolata(null).sezioni.length, 6, "null non rompe");
+  });
+  test("Sentinella · fogliaVolata, la regola del giudizio: lo stesso limite, lo stesso verdetto e la stessa banda dello schermo", () => {
+    const P = { ...MON[0], sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
+    const RIC = [{ id: "rc1", nome: "Casa Bianchi", soglia: 5, unita: "mm/s" }];
+    const r = (v, mon, ric) => { const f = sentinella.fogliaVolata(v, { monitoraggi: mon, ricettori: ric }); return Object.fromEntries(f.sezioni.find((z) => z.titolo === "Regola del giudizio").righe.map((q) => [q[0], q[1]])); };
+    const g = r(V, [P], RIC);
+    eq(g["Limite che vale per il punto"], "5 mm/s — soglia del ricettore «Casa Bianchi»", "⛔ il limite è quello di sogliaEfficace: vince il ricettore");
+    eq(r(V, [P], []) ["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura", "senza il ricettore vale la soglia del punto, e lo dice");
+    eq(r(V, [P], [{ id: "rc1", nome: "Casa Bianchi", soglia: 20, unita: "µg/m³" }])["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura (la soglia del ricettore non è applicata: unità diverse, µg/m³)", "⛔ unità diverse: nessuna conversione, e la scheda lo scrive");
+    eq(g["Riferimento della soglia"], "soglia scritta sul ricettore «Casa Bianchi», non da un riferimento normativo", "⛔ quando vale il ricettore il riferimento è il SUO, non il preset del punto — anche se i numeri coincidono");
+    ok(/DIN 4150-3\) · DIN 4150-3, fondazione riga 2 — valore di riferimento, da verificare sulla norma ufficiale/.test(r(V, [P], [])["Riferimento della soglia"]), "quando vale il punto, il preset con la stessa avvertenza della pagina: da verificare");
+    eq(g["Esito rispetto al limite"], "Conforme — 3,4 mm/s su 5 mm/s (68% del limite)", "il verdetto è quello di statoMisura, con il rapporto");
+    eq(r({ ...V, ppvMisurata: 5 }, [P], RIC)["Esito rispetto al limite"], "Superamento — 5 mm/s su 5 mm/s (100% del limite)", "⛔ pari alla soglia è superamento, come sullo schermo");
+    eq(r({ ...V, ppvMisurata: 4.6 }, [P], RIC)["Esito rispetto al limite"], "Attenzione — 4,6 mm/s su 5 mm/s (92% del limite)", "e la fascia di attenzione è la stessa");
+    eq(g["Frequenza e banda della soglia"], "f 18 Hz: fuori dalla banda della soglia (sotto 10 Hz), e il limite di quella banda non è in Sentinella", "⛔ la frequenza fuori banda si dichiara, e il limite dell'altra banda NON si inventa");
+    const P6 = { ...P, letture: [{ ...P.letture[0], extra: { freq: 6 } }] };
+    eq(r(V, [P6], RIC)["Frequenza e banda della soglia"], "f 6 Hz: dentro la banda della soglia (sotto 10 Hz)", "dentro la banda lo dice");
+    eq(r(V, [{ ...P, soglia: 6 }], [])["Frequenza e banda della soglia"], "non giudicabile: la soglia del punto è stata cambiata a mano dopo il preset «Vibrazioni · residenziale, <10 Hz (DIN 4150-3)»: la sua banda non vale più", "soglia cambiata a mano: la banda non vale più, e si dice perché");
+    const senza = sentinella.fogliaVolata(V, { monitoraggi: [{ ...P, soglia: null, sogliaPreset: "", ricettoreId: "" }] });
+    const gs = Object.fromEntries(senza.sezioni.find((z) => z.titolo === "Regola del giudizio").righe.map((q) => [q[0], q[1]]));
+    eq(gs["Limite che vale per il punto"], "nessuna soglia impostata: il giudizio non si può dare", "⛔ senza soglia non c'è verdetto");
+    eq(gs["Esito rispetto al limite"], undefined, "e la riga dell'esito NON c'è: niente «Conforme» su un limite che non esiste");
+    eq(gs["Riferimento della soglia"], undefined, "senza soglia nessun riferimento da scrivere");
+    ok(senza.nonMisurati.includes("Limite che vale per il punto (nessuna soglia impostata: il giudizio non si può dare)"), "e la soglia assente sta in «che cosa manca»");
+    eq(r({ ...V, ppvFonte: "manuale", ppvPuntoId: "" }, [P], RIC)["Limite che vale per il punto"], "la PPV è trascritta a mano dal referto: il limite e il giudizio sono quelli del referto dello strumento", "PPV a mano: il giudizio è del referto");
+    eq(r({ ...V, stato: "prevista" }, [P], RIC)["Limite che vale per il punto"], "volata non ancora sparata: niente da giudicare", "prevista: niente da giudicare");
+    eq(r({ ...V, ppvPuntoId: "zz" }, [P], RIC)["Limite che vale per il punto"], "il punto di misura non è stato trovato: nessun limite da applicare", "punto sparito: nessun limite");
+  });
+}
+/* ===== il riferimento della soglia applicata (Sentinella, 05/09) ===== */
+{
+  const P = { id: "v1", nome: "V1", tipo: "vibrazioni", unita: "mm/s", soglia: 5, sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
+  const RIC = [{ id: "rc1", nome: "Casa Bianchi", soglia: 5, unita: "mm/s" }];
+  test("Sentinella · presetDelPunto: il preset del punto, e se vale ancora — una domanda sola per banda e riferimento", () => {
+    const f = sentinella.presetDelPunto;
+    eq([f(P).preset.chiave, f(P).valido], ["din-res-fond", true], "soglia e unità sono quelle del preset");
+    eq(f({ ...P, soglia: 6 }).valido, false, "soglia cambiata a mano: non vale più");
+    eq(f({ ...P, unita: "in/s" }).valido, false, "unità cambiata: nemmeno");
+    eq(f({ ...P, sogliaPreset: "" }), { preset: null, valido: false }, "senza preset");
+    eq(f({ ...P, sogliaPreset: "boh" }), { preset: null, valido: false }, "preset che non esiste");
+    eq(f(null), { preset: null, valido: false }, "null non rompe");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, P).fuori, true, "e frequenzaFuoriBanda, che passa di qui, giudica ancora la banda");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...P, soglia: 6 }).perche, "la soglia del punto è stata cambiata a mano dopo il preset «Vibrazioni · residenziale, <10 Hz (DIN 4150-3)»: la sua banda non vale più", "con la stessa frase di prima");
+  });
+  test("Sentinella · riferimentoSoglia: il riferimento del valore che VALE, con l'avvertenza «da verificare» sui preset", () => {
+    const f = sentinella.riferimentoSoglia;
+    eq(f(P, RIC), { fonte: "ricettore", preset: null, testo: "soglia scritta sul ricettore «Casa Bianchi», non da un riferimento normativo" }, "⛔ vale il ricettore: il preset del punto non c'entra anche se i numeri coincidono");
+    const pr = f(P, []);
+    eq(pr.fonte, "preset", "vale il punto e la soglia è ancora quella del preset");
+    eq(pr.testo, "Vibrazioni · residenziale, <10 Hz (DIN 4150-3) · DIN 4150-3, fondazione riga 2 — " + sentinella.AVVERTENZA_PRESET, "⛔ con l'avvertenza: un valore di norma non si scrive come se fosse la legge");
+    eq(f({ ...P, soglia: 6 }, []).fonte, "preset-cambiato", "soglia cambiata a mano dopo il preset");
+    ok(/cambiata a mano dopo il preset «Vibrazioni · residenziale/.test(f({ ...P, soglia: 6 }, []).testo), "e lo dice col nome del preset");
+    eq(f({ ...P, sogliaPreset: "" }, []), { fonte: "mano", preset: null, testo: "soglia scritta a mano sul punto di misura, non da un riferimento normativo" }, "senza preset: scritta a mano");
+    eq(f({ ...P, soglia: null, sogliaPreset: "" }, []), { fonte: "nessuna", preset: null, testo: "nessuna soglia impostata" }, "senza soglia");
+    eq(f(P, [{ id: "rc1", nome: "Casa Bianchi", soglia: 20, unita: "µg/m³" }]).fonte, "preset", "unità diverse: il ricettore non si applica, vale il punto col suo preset");
+    eq(f(null, null).fonte, "nessuna", "null non rompe");
+  });
+  test("Sentinella · reportConformita porta il riferimento della soglia in ogni punto", () => {
+    const R = sentinella.reportConformita({ monitoraggi: [P, { ...P, id: "v2", nome: "V2", ricettoreId: "" }, { ...P, id: "v3", nome: "V3", soglia: null, sogliaPreset: "", ricettoreId: "" }], ricettori: RIC, dal: "2026-07-01", al: "2026-07-31" });
+    const di = (n) => R.punti.find((p) => p.nome === n).riferimento;
+    eq(di("V1").fonte, "ricettore", "V1: il ricettore");
+    eq(di("V2").fonte, "preset", "V2: il preset del punto");
+    eq(di("V3").fonte, "nessuna", "V3: nessuna soglia");
+  });
+}
+/* ===== fine riferimento della soglia (05/09) ===== */
+/* ===== fine scheda della singola volata (05/09) ===== */
+/* ===== i due file di Scudo composti nel modulo (05/09) ===== */
+{
+  const D = scudo.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Scudo · csvProspettoAzioni: il prospetto con semaforo, responsabile a parole e origine, nell'ordine dello schermo", () => {
+    const righe = scudo.csvProspettoAzioni(D.azioni, { lavoratori: D.lavoratori, infortuni: D.infortuni, ispezioni: D.ispezioni }, OGGI).trim().split("\n");
+    eq(righe[0], scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0], "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine", "con la colonna del semaforo, che a schermo è la pastiglia");
+    eq(righe.length, D.azioni.length + 1, "una riga per azione");
+    const c = righe.map((r) => r.split(";"));
+    eq(c[c.length - 1][4], "chiusa", "⛔ le chiuse in fondo, come nell'elenco a schermo");
+    eq(c.slice(1, -1).map((r) => r[2]), c.slice(1, -1).map((r) => r[2]).slice().sort(), "e le altre per data");
+    const senzaResp = c.find((r) => /segnaletica/.test(r[0]));
+    eq(senzaResp[1], "da assegnare", "⛔ il responsabile che manca è «da assegnare», non una cella vuota (etichettaResponsabile)");
+    eq(senzaResp[3], "scaduta", "il semaforo è quello di statoAzione alla data data");
+    eq(scudo.statoAzione(D.azioni.find((a) => /segnaletica/.test(a.descrizione)), OGGI), "scaduta", "(e statoAzione, con lo stesso oggi, dice lo stesso)");
+    ok(/^near-miss del 18\/05\/2026 — /.test(c.find((r) => /Disgaggio/.test(r[0]))[7]), "⛔ l'origine è la frase di origineAzione, con la data in italiano");
+    eq(scudo.csvProspettoAzioni([], {}, OGGI).trim(), scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "senza azioni resta l'intestazione");
+    eq(scudo.csvProspettoAzioni(null).trim(), scudo.CSV_PROSPETTO_AZIONI_INTESTAZIONE, "null non rompe");
+  });
+  test("Scudo · csvRiepilogoNearMiss: storico accanto al periodo, nota di lettura, denominatore prima dei gradini, luoghi ciechi", () => {
+    const tutto = scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 0, OGGI);
+    const r90 = scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 90, OGGI);
+    eq(tutto.split("\n")[0], "sezione;voce;numero", "l'intestazione");
+    eq(tutto.split("\n")[1], "periodo;tutto lo storico;", "il periodo a parole");
+    eq(r90.split("\n")[1], "periodo;ultimi 90 giorni;", "e la finestra");
+    ok(/^totale;near-miss segnalati;5$/m.test(tutto) && /^totale;near-miss nello storico \(fuori periodo compresi\);5$/m.test(tutto), "⛔ lo storico sta accanto al periodo");
+    ok(/^totale;near-miss segnalati;4$/m.test(r90) && /^totale;near-miss nello storico \(fuori periodo compresi\);5$/m.test(r90), "e a 90 giorni dice 4 su 5 nello storico: il file non tace il fuori periodo");
+    ok(/^lettura;ATTENZIONE alla lettura: 4 segnalazioni sono meno di 5/m.test(r90), "⛔ sotto la soglia c'è la riga di lettura del modulo (descriviLetturaNearMiss)");
+    ok(!/^lettura;/m.test(tutto), "sopra la soglia non c'è: niente da avvisare");
+    const righe = tutto.split("\n");
+    const iDen = righe.findIndex((x) => /^potenziale;near-miss con la gravità potenziale valutata;4$/.test(x));
+    const iGrad = righe.findIndex((x) => /^potenziale;se andava male: /.test(x));
+    ok(iDen > 0 && iGrad > iDen, "⛔ il denominatore (4 valutati) viene PRIMA dei gradini «se andava male»");
+    ok(/^potenziale;near-miss NON valutati;1$/m.test(tutto), "e i non valutati si contano");
+    ok(/^potenziale;Impianto — nessun episodio valutato: non si sa come poteva finire;1$/m.test(tutto), "⛔ il luogo cieco ha la sua riga con la sua parola, non sparisce");
+    ok(/^potenziale;Fronte — episodi che potevano finire con un infortunio \(su 2 valutati, 0 no\);2$/m.test(tutto), "e il luogo valutato porta il suo denominatore");
+    ok(/^azioni;near-miss ancora senza azione;4$/m.test(tutto), "le azioni in coda");
+    eq(scudo.csvRiepilogoNearMiss([], [], 0, OGGI).split("\n")[2], "totale;near-miss segnalati;0", "senza eventi, zero dichiarato");
+  });
+  test("Scudo · etichettaPeriodoNearMiss: la finestra a parole", () => {
+    const f = scudo.etichettaPeriodoNearMiss;
+    eq([f(0), f(null), f(365), f(90), f(30)], ["tutto lo storico", "tutto lo storico", "ultimi 12 mesi", "ultimi 90 giorni", "ultimi 30 giorni"], "le tre forme dello schermo, più quella generica");
+  });
+}
+/* ===== fine file di Scudo nel modulo (05/09) ===== */
+/* ===== la consegna di turno composta nel modulo (Campo, 05/09) ===== */
+{
+  const D = campo.DEMO;
+  const OGGI = D.attivita[0].data;   // la dimostrazione vive «oggi»
+  const RAP = campo.diGiorno(D.rapportini, OGGI), ATT = campo.diGiorno(D.attivita, OGGI);
+  const TITOLI = ["RAPPORTINI", "PRODUZIONE", "OBIETTIVO DEL TURNO", "CHECKLIST DI INIZIO TURNO", "METEO E CONDIZIONI DEL SITO",
+    "VOLATE DEL GIORNO (registro di Sentinella)", "LAVORI NON CONCLUSI", "SEGNALAZIONI DEL TURNO", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"];
+  const sezione = (txt, titolo) => { const i = txt.indexOf(titolo + "\n"); if (i < 0) return null; const resto = txt.slice(i + titolo.length + 1); const j = resto.indexOf("\n\n"); return (j < 0 ? resto : resto.slice(0, j)).trim(); };
+  test("Campo · testoConsegnaTurno: la consegna sulla dimostrazione — le dieci sezioni, in ordine, nessuna vuota", () => {
+    const txt = campo.testoConsegnaTurno({ oggi: OGGI, rapportini: RAP, attivita: ATT, obiettivi: D.obiettivi, checklist: D.checklist, meteo: D.meteo,
+      chiusure: D.chiusure, volateSentinella: D.volateSentinella, infortuniScudo: D.infortuniScudo }, { avviso: "[ESEMPIO]\n\n" });
+    eq(txt.split("\n")[0], "CONSEGNA DI TURNO — " + shell.dataIt(OGGI), "la testata con la data in italiano");
+    eq(txt.split("\n")[2], "[ESEMPIO]", "⛔ la riga dei dati di esempio, decisa dalla pagina, sta in cima prima di qualunque dato");
+    const pos = TITOLI.map((t) => txt.indexOf(t + "\n"));
+    ok(pos.every((p) => p >= 0), "tutte e dieci le sezioni ci sono: " + TITOLI.filter((t, i) => pos[i] < 0).join(", "));
+    eq(pos.slice().sort((a, b) => a - b), pos, "⛔ nell'ordine dello schermo");
+    for (const t of TITOLI) ok(/^- /.test(sezione(txt, t) || ""), "⛔ la sezione «" + t + "» ha almeno una riga: un'assenza si dice a parole, non con un vuoto — " + JSON.stringify((sezione(txt, t) || "").slice(0, 60)));
+    eq((sezione(txt, "RAPPORTINI").match(/^- /gm) || []).length, RAP.length, "un rapportino per riga");
+    eq((sezione(txt, "LAVORI NON CONCLUSI").match(/^- /gm) || []).length, campo.lavoriNonConclusi(ATT).length, "⛔ i lavori non conclusi sono quelli di lavoriNonConclusi, la regola del Quadro");
+    eq(sezione(txt, "CHECKLIST DI INIZIO TURNO"), "- nessuna checklist compilata", "la dimostrazione non ha checklist, e lo dice");
+    eq(sezione(txt, "METEO E CONDIZIONI DEL SITO"), "- non registrato", "il meteo non registrato");
+    eq(sezione(txt, "CHIUSURA DEL TURNO"), "- nessun turno chiuso: consegna non firmata", "⛔ nessuna chiusura = consegna non firmata, detto");
+    ok(/^- turno Mattina: /.test(sezione(txt, "OBIETTIVO DEL TURNO")), "l'obiettivo del turno, da statoObiettivo");
+    ok(sezione(txt, "SEGNALAZIONI DEL TURNO") !== "- nessuna segnalazione oggi", "⛔ il near-miss di oggi (ponte da Scudo) compare: " + sezione(txt, "SEGNALAZIONI DEL TURNO").slice(0, 80));
+  });
+  test("Campo · testoConsegnaTurno: quando Sentinella o Scudo non si leggono, la consegna lo scrive — «non lo so» non è «nessuna»", () => {
+    const base = { oggi: OGGI, rapportini: RAP, attivita: ATT };
+    const cieca = campo.testoConsegnaTurno({ ...base, volateSentinella: null, infortuniScudo: null });
+    const vuota = campo.testoConsegnaTurno({ ...base, volateSentinella: [], infortuniScudo: [] });
+    ok(sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)") !== sezione(vuota, "VOLATE DEL GIORNO (registro di Sentinella)"),
+      "⛔ registro non letto e registro vuoto sono due frasi diverse");
+    eq(sezione(vuota, "VOLATE DEL GIORNO (registro di Sentinella)"), "- nessuna volata registrata oggi in Sentinella", "vuoto: «nessuna volata»");
+    ok(!/nessuna volata/.test(sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)")), "non letto: NON «nessuna volata» — " + sezione(cieca, "VOLATE DEL GIORNO (registro di Sentinella)"));
+    eq(sezione(vuota, "SEGNALAZIONI DEL TURNO"), "- nessuna segnalazione oggi", "Scudo letto e vuoto: «nessuna segnalazione»");
+    ok(sezione(cieca, "SEGNALAZIONI DEL TURNO") !== "- nessuna segnalazione oggi", "⛔ Scudo non letto: un'altra frase, non «nessuna» — " + sezione(cieca, "SEGNALAZIONI DEL TURNO"));
+    const senzaAvviso = campo.testoConsegnaTurno(base);
+    eq(senzaAvviso.split("\n")[2], "RAPPORTINI", "senza avviso la prima sezione viene subito dopo la testata");
+    const niente = campo.testoConsegnaTurno({ oggi: OGGI });
+    for (const t of TITOLI) ok(/^- /.test(sezione(niente, t) || ""), "anche con tutto vuoto la sezione «" + t + "» dice l'assenza a parole");
+    eq(sezione(niente, "RAPPORTINI"), "- nessun rapportino", "«nessun rapportino»");
+    eq(sezione(niente, "ANOMALIE / FERMI"), "- nessuna anomalia aperta", "«nessuna anomalia aperta»");
+    eq(campo.testoConsegnaTurno().split("\n")[0], "CONSEGNA DI TURNO — senza data", "senza oggi: «senza data», la parola di Campo");
+  });
+  test("Campo · fraseNonRiconosciute: le causali fuori elenco, a parole, nude o vestite", () => {
+    const f = campo.fraseNonRiconosciute;
+    eq(f({ nonRiconosciute: 1, valoriNonRiconosciuti: ["pioggia forte"] }), " 1 fermo ha una causale non in elenco («pioggia forte») ed è contato in «Altro»", "una");
+    eq(f({ nonRiconosciute: 2, valoriNonRiconosciuti: ["a", "b"] }, false), " 2 fermi hanno una causale non in elenco («a», «b») e sono contati in «Altro»", "due, nude");
+    eq(f({ nonRiconosciute: 1, valoriNonRiconosciuti: ["x"] }, true, (t) => "<b>" + t + "</b>"), " · 1 fermo ha una causale non in elenco («<b>x</b>») ed è contato in «Altro»", "vestita per lo schermo: separatore e grassetto");
+    eq([f(null), f({ nonRiconosciute: 0 })], ["", ""], "niente da dire");
+  });
+}
+/* ===== fine consegna di turno nel modulo (05/09) ===== */
+/* ===== i costi e i fermi di Flotta composti nel modulo (05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvCosti: la data vuota resta vuota, l'importo non dichiarato pure, ordine per data", () => {
+    const righe = flotta.csvCosti(D.costi).split("\r\n");
+    eq(righe[0], flotta.CSV_COSTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0], "data;voce;importo;nota", "quattro colonne");
+    eq(righe.length, D.costi.length + 1, "una riga per voce");
+    const senzaData = righe.find((r) => /Noleggi esterni/.test(r));
+    ok(senzaData && senzaData.startsWith(";"), "⛔ la voce senza data esce con la cella VUOTA, non con una data messa lì per riempire — " + senzaData);
+    eq(righe[1], senzaData, "e sta in cima: la data vuota ordina prima");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort(), "le altre per data");
+    ok(righe.includes("2026-07-02;Ricambi e officina;3150;"), "importo nudo, nota vuota vuota");
+    eq(flotta.csvCosti([{ voce: "x", importo: null, data: "2026-02-30" }]).split("\r\n")[1], ";x;;", "⛔ importo non dichiarato → vuoto, non «0»; data che non esiste → vuota");
+    eq(flotta.csvCosti(null), "data;voce;importo;nota", "null non rompe");
+    ok(!flotta.csvCosti(D.costi).includes("\n\n") && flotta.csvCosti(D.costi).includes("\r\n"), "a capo Windows, come il file di prima: lo apre un foglio di calcolo");
+  });
+  test("Flotta · csvFermiMacchina: le tre risposte di durataFermo nel file, nell'ordine dello schermo", () => {
+    const OGGI = new Date("2026-09-05T10:00:00");
+    const righe = flotta.csvFermiMacchina(D.fermi, OGGI).split("\r\n");
+    eq(righe[0], flotta.CSV_FERMI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.fermi.length + 1, "una riga per fermo");
+    const ord = flotta.fermiOrdinati(D.fermi, OGGI);
+    eq(righe.slice(1).map((r) => r.split(";")[1]), ord.map((f) => f.causaleTx), "⛔ stesso ordine e stesse causali a parole di fermiOrdinati, la regola dello schermo");
+    const aperto = righe.find((r) => r.split(";")[3] === "");
+    ok(aperto && /;ancora fermo;/.test(aperto) && aperto.split(";")[4] !== "", "il fermo senza fine è «ancora fermo», coi giorni contati fino a oggi — " + aperto);
+    const strano = flotta.csvFermiMacchina([{ mezzo: "Pala P1", causale: "revisione", inizio: "2026-07-31", fine: "2026-02-30" }], OGGI).split("\r\n")[1];
+    ok(/;;data non valida;/.test(strano), "⛔ la ripartenza che non esiste esce «data non valida» con i giorni vuoti, non «chiuso» a zero giornate — " + strano);
+    eq(flotta.csvFermiMacchina(null, OGGI), "mezzo;causale;inizio;fine;giorni;stato;note", "null non rompe");
+  });
+}
+/* ===== fine costi e fermi di Flotta nel modulo (05/09) ===== */
+/* ===== i giri macchina e lo scadenzario dei mezzi nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Flotta · csvGiriMacchina: l'esito di statoGiro nel file, dal più recente, e le anomalie senza elenco dette a parole", () => {
+    const righe = flotta.csvGiriMacchina(D.controlli).split("\r\n");
+    eq(righe[0], flotta.CSV_GIRI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.controlli.length + 1, "una riga per giro");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort().reverse(), "dal più recente");
+    for (const c of D.controlli) {
+      const s = flotta.statoGiro(c);
+      const r = righe.find((x) => x.split(";")[0] === c.data && x.split(";")[1] === flotta.nomeBreve(c.mezzo));
+      ok(r && r.split(";")[5] === s.etichetta && r.split(";")[6] === String(s.anomalie), "⛔ esito e anomalie sono quelli di statoGiro, la regola dello schermo — " + r);
+    }
+    const muto = flotta.csvGiriMacchina([{ data: "2026-09-01", mezzo: "Pala P1", tipo: "pala", anomalie: 2 }]).split("\r\n")[1];   // senza `voci`: dichiarate, non nominate
+    ok(/;2 segnate, dettaglio delle voci non registrato;/.test(muto), "⛔ anomalie dichiarate senza elenco: «2 segnate, dettaglio non registrato», non «tutto a posto ; 0» — " + muto);
+    eq(flotta.csvGiriMacchina(null), flotta.CSV_GIRI_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · csvScadenzeDiLegge: semaforo di scadenzeOrdinate, riferimento dal preset, e il mezzo senza nessuna riga non sparisce", () => {
+    const righe = flotta.csvScadenzeDiLegge(D.scadenze, D.mezzi, OGGI, 30).split("\r\n");
+    eq(righe[0], flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "l'intestazione è la costante");
+    const ord = flotta.scadenzeOrdinate(D.scadenze, OGGI, 30);
+    eq(righe.slice(1, 1 + ord.length).map((r) => r.split(";")[3]), ord.map((s) => s.sem.stato), "⛔ lo stato è quello del semaforo di scadenzeOrdinate, nello stesso ordine");
+    eq(righe.slice(1, 1 + ord.length).map((r) => r.split(";")[9]), ord.map((s) => { const p = flotta.presetScadenzaMezzo(s.chiave); return p ? p.norma : ""; }), "il riferimento normativo dal preset (vuoto se non c'è)");
+    const scoperti = flotta.mezziSenzaScadenze(D.scadenze, D.mezzi);
+    ok(scoperti.length >= 1 && scoperti.every((n) => !D.scadenze.some((s) => flotta.nomeBreve(s.mezzo) === n)), "mezziSenzaScadenze: i mezzi del parco senza nessuna riga — " + scoperti.join(", "));
+    eq(flotta.mezziSenzaScadenze([], D.mezzi).length, D.mezzi.length, "senza scadenzario sono tutti scoperti");
+    eq(flotta.mezziSenzaScadenze(null, null), [], "null non rompe");
+    eq(righe.length, 1 + ord.length + scoperti.length, "⛔ una riga in più per ogni mezzo del parco senza scadenze: " + scoperti.join(", "));
+    for (const n of scoperti) {
+      const r = righe.find((x) => x.startsWith(n + ";"));
+      ok(r && /;nessuna registrata;/.test(r) && /non vuol dire che non ne abbia/.test(r), "⛔ «" + n + "» esce «nessuna registrata» con la frase, non «regolare» e non assente — " + r);
+    }
+    eq(flotta.csvScadenzeDiLegge([], [], OGGI), flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "senza niente resta l'intestazione");
+    eq(flotta.csvScadenzeDiLegge(null, null), flotta.CSV_SCADENZE_MEZZI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine giri e scadenzario di Flotta nel modulo (05/09) ===== */
+/* ===== il registro degli interventi e la lista della spesa nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvRegistroInterventi: dieci colonne, dal più recente, l'importo mancante VUOTO e lo zero dichiarato tenuto", () => {
+    const righe = flotta.csvRegistroInterventi(D.interventi).split("\r\n");
+    eq(righe[0], flotta.CSV_INTERVENTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 10, "dieci colonne, le tre della lavorazione e chi ha lavorato in fondo");
+    eq(righe.length, D.interventi.length + 1, "una riga per intervento");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort().reverse(), "dal più recente");
+    const w1 = righe.find((r) => /Tagliando 500h/.test(r));
+    ok(w1 && w1.split(";")[4] === "420" && /Marco 4 h \| Luca 2 h/.test(w1), "costo nudo e chi ha lavorato con le ore — " + w1);
+    const due = flotta.csvRegistroInterventi([{ data: "2026-01-01", titolo: "garanzia", costo: 0 }, { data: "2026-01-02", titolo: "senza", costo: null }]).split("\r\n");
+    eq(due[1].split(";")[4], "", "⛔ il costo che non c'è esce VUOTO, non «0»: in un foglio uno zero si somma");
+    eq(due[2].split(";")[4], "0", "⛔ e lo zero DICHIARATO (garanzia) resta 0: è un dato, non un buco");
+    eq(flotta.csvRegistroInterventi(null), flotta.CSV_INTERVENTI_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · csvListaDellaSpesa: le righe da ordinare e le tre avvertenze in fondo, ognuna solo quando la bandiera lo dice", () => {
+    const p = flotta.propostaScorte(D.ricambi, D.interventi, { consegnaGiorni: 7, sicurezzaGiorni: 3, finestraGiorni: 180 });
+    const da = p.righe.filter((r) => r.daOrdinare > 0);
+    const csv = flotta.csvListaDellaSpesa(p);
+    const righe = csv.split("\r\n");
+    eq(righe[0], flotta.CSV_LISTA_SPESA_INTESTAZIONE, "l'intestazione è la costante");
+    ok(da.length >= 1, "la dimostrazione ha qualcosa da ordinare (se no la prova non guarda niente): " + da.length);
+    eq(righe.slice(1, 1 + da.length).map((r) => r.split(";")[0]), da.map((r) => r.nome), "una riga per ricambio da ordinare, nell'ordine della proposta");
+    const avvisi = righe.filter((r) => /^"?ATTENZIONE: /.test(r));
+    eq(avvisi.length, (p.senzaData ? 1 : 0) + (p.attendibile ? 0 : 1) + (p.senzaPrezzo ? 1 : 0), "⛔ tante avvertenze quante bandiere alzate (senzaData, !attendibile, senzaPrezzo)");
+    ok(p.attendibile || avvisi.some((r) => /STIMA, non una misura/.test(r)), "la stima si dichiara stima");
+    ok(!p.senzaPrezzo || avvisi.some((r) => /colonna «spesa» resta vuota/.test(r)), "e la spesa senza prezzo si dichiara");
+    ok(!avvisi.length || righe[righe.indexOf(avvisi[0]) - 1] === "", "ogni avvertenza sta dopo una riga vuota, con una cella sola: un foglio non la somma");
+    eq(flotta.csvListaDellaSpesa({ righe: [], senzaPrezzo: 3, attendibile: false }), flotta.CSV_LISTA_SPESA_INTESTAZIONE, "⛔ senza niente da ordinare niente avvertenze: non c'è una lista di cui parlare");
+    eq(flotta.csvListaDellaSpesa(null), flotta.CSV_LISTA_SPESA_INTESTAZIONE, "null non rompe");
+    const tutte = flotta.csvListaDellaSpesa({ righe: [{ nome: "x", giacenza: 0, daOrdinare: 2, prezzo: null, spesa: null, alGiorno: 0.1, copertura: 0, episodi: 1 }], senzaData: 1, attendibile: false, daInterventiVecchi: 2, senzaPrezzo: 1 }).split("\r\n");
+    eq(tutte.filter((r) => /^"?ATTENZIONE/.test(r)).length, 3, "con tutt'e tre le bandiere, tre avvertenze");
+    ok(/Nessuna riga porta un prezzo: quanto costa questa lista non si può dire/.test(tutte.join("\n")), "e quando nessuna riga ha il prezzo lo dice");
+  });
+}
+/* ===== fine registro interventi e lista della spesa nel modulo (05/09) ===== */
+/* ===== la situazione del parco nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvSituazione: mezzi, ordini di lavoro e ricambi con le parole dello schermo", () => {
+    const righe = flotta.csvSituazione(D.mezzi, D.manutenzioni, D.ricambi, D.rifornimenti).trim().split("\n");
+    eq(righe[0], flotta.CSV_SITUAZIONE_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + D.mezzi.length + D.manutenzioni.length + D.ricambi.length, "una riga per mezzo, per ordine di lavoro, per ricambio");
+    const mezzi = righe.filter((r) => r.startsWith("mezzo;")).map((r) => r.split(";")[1].replace(/^"|"$/g, ""));
+    eq(mezzi, mezzi.slice().sort((a, b) => a.localeCompare(b, "it")), "i mezzi in ordine di nome");
+    const e1 = righe.find((r) => /^mezzo;.*Escavatore E1/.test(r));
+    ok(e1 && /5\.870 h/.test(e1), "⛔ le ore raggruppate come sullo schermo (5.870, non 5870) — " + e1);
+    for (const n of D.manutenzioni) {
+      const r = righe.find((x) => x.startsWith("manutenzione;") && x.includes(n.titolo));
+      ok(r && r.split(";")[2].replace(/^"|"$/g, "") === flotta.statoOrdine(n).breve, "⛔ lo stato dell'ordine è quello di statoOrdine, mai una parola fissa — " + r);
+    }
+    for (const p of D.ricambi) {
+      const r = righe.find((x) => x.startsWith("ricambio;") && x.includes(p.nome));
+      ok(r && r.split(";")[2].replace(/^"|"$/g, "") === flotta.statoScorta(p).label, "lo stato del ricambio è quello di statoScorta — " + r);
+    }
+    const senza = flotta.csvSituazione([{ nome: "X", stato: "operativo" }], [], [{ nome: "bullone", giacenza: 3 }]).trim().split("\n");
+    ok(/ore non registrate/.test(senza[1]), "⛔ un mezzo senza ore lo dice, non scrive 0 h — " + senza[1]);
+    ok(/soglia minima non impostata/.test(senza[2]) && !/;ok;/.test(senza[2]), "⛔ un pezzo senza soglia non è «ok»: la soglia non impostata si dichiara — " + senza[2]);
+    eq(flotta.csvSituazione(null, null, null, null).trim(), flotta.CSV_SITUAZIONE_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine situazione del parco nel modulo (05/09) ===== */
+/* ===== il prospetto degli incassi e l'anagrafica clienti nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  test("Conti · csvProspettoIncassi: per data, con la fattura, il lordo, le note e il residuo DOPO ogni incasso", () => {
+    const righe = conti.csvProspettoIncassi(D.incassi, D.fatture, [], D.clienti).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.incassi.length + 1, "una riga per incasso (tutte le fatture della dimostrazione esistono)");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort(), "per data");
+    const f6 = righe.filter((r) => /2026\/030/.test(r)).map((r) => r.split(";"));
+    eq(f6.map((c) => c[7]), ["4320", "0"], "⛔ il residuo DOPO ogni incasso scende: 7.320 − 3.000 = 4.320, poi 0");
+    eq(f6[0][5], "7320", "il lordo della fattura resta il lordo");
+    eq(f6[0][4], "Bonifico", "il metodo a parole, da nomeMetodo");
+    const F = { id: "FX", numero: "2026/099", cliente: "Cava Rossi", importo: 1000, emessa: "2026-01-10", scadenza: "2026-02-09" };
+    const r = conti.csvProspettoIncassi([{ id: "k1", fatturaId: "FX", data: "2026-02-01", importo: 500, metodo: "assegno" }], [F], [{ fatturaId: "FX", totale: 200 }], []).trim().split("\n")[1].split(";");
+    eq([r[5], r[6], r[7]], [String(conti.round2(conti.importiFattura(F).totale)), "200", String(conti.round2(conti.statoFattura(F, [{ id: "k1", fatturaId: "FX", data: "2026-02-01", importo: 500 }], [{ fatturaId: "FX", totale: 200 }]).esigibile) - 500)], "⛔ con una nota da 200 e un acconto da 500 il residuo è l'esigibile meno l'acconto (lo schermo dice lo stesso), non il lordo meno l'acconto");
+    eq(conti.csvProspettoIncassi([{ id: "k2", fatturaId: "nessuna", data: "2026-01-01", importo: 1 }], [], [], []).trim(), conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "un incasso la cui fattura non esiste resta fuori");
+    eq(conti.csvProspettoIncassi(null, null, null, null).trim(), conti.CSV_PROSPETTO_INCASSI_INTESTAZIONE, "null non rompe");
+  });
+  test("Conti · csvProspettoClienti e cellaNum: il fido non impostato esce VUOTO, non «0»", () => {
+    const righe = conti.csvProspettoClienti(D.clienti).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_CLIENTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.clienti.length + 1, "una riga per cliente");
+    const nomi = righe.slice(1).map((r) => r.split(";")[0].replace(/^"|"$/g, ""));
+    eq(nomi, nomi.slice().sort((a, b) => a.localeCompare(b, "it")), "per ragione sociale");
+    const due = conti.csvProspettoClienti([{ ragioneSociale: "B", sconto: 0, fido: null }, { ragioneSociale: "A", sconto: 12.345, fido: 25000 }]).trim().split("\n");
+    eq(due[1].split(";").slice(4, 6), ["12.35", "25000"], "sconto a due decimali, fido nudo");
+    eq(due[2].split(";").slice(4, 6), ["0", ""], "⛔ «sconto 0» è uno zero dichiarato e resta 0; il fido non impostato è VUOTO");
+    eq([conti.cellaNum(null), conti.cellaNum(""), conti.cellaNum("abc"), conti.cellaNum(0), conti.cellaNum(1.005)], ["", "", "", 0, 1], "cellaNum: vuoto dove non c'è un numero, due decimali dove c'è");
+    eq([conti.nomeMetodo("bonifico"), conti.nomeMetodo("riba"), conti.nomeMetodo("boh"), conti.nomeMetodo("")], ["Bonifico", "RiBa / SDD", "—", "—"], "nomeMetodo: il nome, o «—»");
+    eq(conti.METODI_INCASSO.length, 5, "cinque metodi");
+    eq(conti.csvProspettoClienti(null).trim(), conti.CSV_PROSPETTO_CLIENTI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine prospetto incassi e clienti nel modulo (05/09) ===== */
+/* ===== il prospetto dei costi e il listino coi prezzi convertiti nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  test("Conti · csvProspettoCosti: le righe del periodo, e in coda quelle senza data, senza importo, a zero — marcate a parole", () => {
+    const r = conti.riepilogoCosti(D.costi, "2026-01-01", "2026-12-31");
+    const righe = conti.csvProspettoCosti(D.costi, "2026-01-01", "2026-12-31").trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_COSTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + r.righe.length + r.righeSenzaData.length + r.righeSenzaImporto.length + r.righeImportoNonPositivo.length, "⛔ una riga per OGNI voce, anche quelle che il totale non contiene");
+    const nel = righe.slice(1).map((x) => x.split(";").pop());
+    eq(nel.filter((x) => x === "si").length, r.righe.length, "le voci del periodo dicono «si»");
+    ok(r.righeSenzaData.length >= 1 && righe.some((x) => x.startsWith(";") && /;no \(senza data\)$/.test(x)), "⛔ la voce senza data ha la cella della data VUOTA e «no (senza data)» in coda");
+    ok(righe.slice(1, 1 + r.righe.length).every((x, i, arr) => i === 0 || arr[i - 1].split(";")[0] <= x.split(";")[0]), "per data");
+    ok(righe.some((x) => /;Produzione;|;Mezzi e trasporti;/.test(x)), "il gruppo a parole, da etichettaGruppo");
+    const strane = conti.csvProspettoCosti([{ data: "2026-03-01", voce: "carburante", importo: null }, { data: "2026-03-02", voce: "boh", importo: 0 }, { data: "2026-03-03", voce: "carburante", importo: 10 }], "2026-01-01", "2026-12-31").trim().split("\n");
+    ok(strane.some((x) => /;;[^;]*;no \(senza importo\)$/.test(x)), "⛔ la voce senza importo esce con la cella VUOTA e «no (senza importo)», non sparisce e non fa 0 — " + strane.join(" | "));
+    ok(strane.some((x) => /;0;[^;]*;no \(importo a zero o negativo\)$/.test(x)), "e lo zero SCRITTO resta 0, marcato — " + strane.join(" | "));
+    ok(strane.some((x) => /;boh;|;\(voce non indicata\);|Voci non classificate/.test(x)), "una voce fuori elenco resta leggibile (la chiave, o «non classificata»)");
+    eq(conti.csvProspettoCosti(null).trim(), conti.CSV_PROSPETTO_COSTI_INTESTAZIONE, "null non rompe");
+    eq([conti.leggiVoce("carburante"), conti.leggiVoce("xyz"), conti.leggiVoce("")], [conti.voceCosto("carburante").etichetta, "xyz", "(voce non indicata)"], "leggiVoce: l'etichetta, la chiave, o «non indicata»");
+    eq([conti.etichettaGruppo("mezzi"), conti.etichettaGruppo("altro")], ["Mezzi e trasporti", "altro"], "etichettaGruppo: l'etichetta o la chiave");
+    eq(conti.ETICHETTA_GRUPPO["non-classificata"], "Voci non classificate", "e la mappa delle etichette è quella della pagina di ieri");
+  });
+  test("Conti · csvPrezziConvertiti: prezzo, densità e IVA — niente zeri dove nessuno ha scritto", () => {
+    const righe = conti.csvPrezziConvertiti(D.prodotti).trim().split("\n");
+    eq(righe[0], conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.prodotti.length + 1, "una riga per prodotto");
+    const nomi = righe.slice(1).map((x) => x.split(";")[0].replace(/^"|"$/g, ""));
+    eq(nomi, nomi.slice().sort((a, b) => a.localeCompare(b, "it")), "per nome");
+    const p1 = righe.find((x) => /Stabilizzato 0\/30/.test(x)).split(";");
+    eq([p1[1], p1[2], p1[3], p1[6]], ["8.5", "t", "1.9", "22"], "prezzo, unità, densità e IVA della dimostrazione");
+    eq(p1[4], String(conti.prezzoPerTonnellata(D.prodotti.find((p) => p.id === "p1"))), "prezzo_t da prezzoPerTonnellata");
+    const nudo = conti.csvPrezziConvertiti([{ nome: "Sasso", unitaPrezzo: "t" }]).trim().split("\n")[1].split(";");
+    eq(nudo.slice(1), ["", "t", "", "", "", String(conti.ALIQUOTA_ORDINARIA)], "⛔ senza prezzo, densità e IVA: celle VUOTE (non gratis, non densità zero) e l'aliquota ordinaria, la stessa di csvListino");
+    eq([conti.prezzoPerTonnellata({ unitaPrezzo: "t" }), conti.prezzoPerMetroCubo({ unitaPrezzo: "t", densita: 1.6 }), conti.prezzoPerTonnellata({ prezzo: 0, unitaPrezzo: "t" })], [null, null, 0],
+      "⛔ un prezzo non scritto non si converte in «0 €/t» (gratis): null — e lo zero SCRITTO, un omaggio, resta zero. Trovato portando il file nel modulo: la stessa cella corretta l'08/08 e le due accanto no");
+    eq(conti.csvPrezziConvertiti(null).trim(), conti.CSV_PREZZI_CONVERTITI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine prospetto costi e prezzi convertiti nel modulo (05/09) ===== */
+/* ===== i preventivi e i DDT dalle pesate nel modulo (Conti, 05/09) ===== */
+{
+  const D = conti.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  test("Conti · csvProspettoPreventivi: una riga per riga di preventivo, con lo stato, lo scaglione e le due metà dello sconto", () => {
+    const righe = conti.csvProspettoPreventivi(D.ordini, D.clienti, OGGI).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 15, "quindici colonne");
+    eq(righe.length, 1 + D.ordini.reduce((t, o) => t + (o.righe || []).length, 0), "una riga per ogni riga di ogni preventivo");
+    for (const o of D.ordini) {
+      const r = righe.find((x) => x.startsWith(o.numero + ";") || x.startsWith('"' + o.numero + '"' + ";"));
+      ok(r && r.split(";")[5] === conti.statoPreventivo(o, OGGI).stato, "⛔ lo stato è quello di statoPreventivo alla data data — " + r);
+      ok(r && r.split(";")[4].replace(/^"|"$/g, "") === conti.nomeClienteOrdine(o, D.clienti), "il cliente per nome, dall'anagrafica");
+    }
+    const vecchia = conti.csvProspettoPreventivi([{ numero: "P1", data: "2026-01-01", righe: [{ descrizione: "x", unita: "t", scontoPct: 5 }] }], [], OGGI).trim().split("\n")[1].split(";");
+    eq(vecchia.slice(7), ["", "t", "", "5", "", "", "", ""], "⛔ una riga vecchia senza quantità, prezzo, metà dello sconto e scaglione lascia le celle VUOTE, non zeri che direbbero «misurato»");
+    eq(vecchia[4], "Cliente non indicato", "senza cliente lo dice");
+    eq(conti.nomeClienteOrdine({ clienteId: "c1" }, D.clienti), D.clienti.find((c) => c.id === "c1").ragioneSociale, "nomeClienteOrdine: l'anagrafica vince");
+    eq(conti.nomeClienteOrdine({ clienteId: "zz", cliente: "Vecchio nome" }, D.clienti), "Vecchio nome", "e se il cliente non c'è più resta il nome scritto sul preventivo");
+    eq(conti.csvProspettoPreventivi(null).trim(), conti.CSV_PROSPETTO_PREVENTIVI_INTESTAZIONE, "null non rompe");
+  });
+  test("Conti · csvProspettoDdt: diciotto colonne, celle vuote dove il dato non c'è, il valore solo se si sa calcolare", () => {
+    const righe = conti.csvProspettoDdt(D.pesate, D.fatture, D.ordini).trim().split("\n");
+    eq(righe[0], conti.CSV_PROSPETTO_DDT_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 18, "diciotto colonne");
+    eq(righe.length, D.pesate.length + 1, "una riga per pesata");
+    const date = righe.slice(1).map((r) => r.split(";")[1]);
+    eq(date, date.slice().sort(), "per data");
+    const s1 = righe.find((r) => /^"?2026\/001"?;/.test(r)).split(";");
+    eq([s1[4], s1[5], s1[6], s1[8], s1[9]], ["42.6", "14.2", "28.4", "t", "8.5"], "lordo, tara, netto, unità e prezzo della prima pesata");
+    for (const p of D.pesate) {
+      const v = conti.valoreDdt(p);
+      const r = righe.find((x) => x.startsWith(p.numero + ";") || x.startsWith('"' + p.numero + '"' + ";"));
+      eq(r.split(";")[11], v.calcolabile ? String(v.valore) : "", "⛔ il valore è quello di valoreDdt, e VUOTO quando non si sa calcolare — " + p.numero);
+    }
+    ok(D.pesate.some((p) => !conti.valoreDdt(p).calcolabile), "(e la dimostrazione ha almeno un DDT senza valore calcolabile, se no la riga qui sopra non prova niente)");
+    const nudo = conti.csvProspettoDdt([{ numero: "X", data: "2026-01-01", unitaVendita: "t" }]).trim().split("\n")[1].split(";");
+    eq([nudo[4], nudo[9], nudo[12]], ["", "", ""], "⛔ lordo, prezzo e IVA non scritti restano vuoti: «prezzo 0» sarebbe materiale regalato");
+    eq(conti.csvProspettoDdt(null).trim(), conti.CSV_PROSPETTO_DDT_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine preventivi e DDT nel modulo (05/09) ===== */
+/* ===== il libretto del mezzo nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  const OGGI = new Date("2026-09-05T10:00:00");
+  const DATI = { manutenzioni: D.manutenzioni, interventi: D.interventi, scadenze: D.scadenze, controlli: D.controlli, rifornimenti: D.rifornimenti, fermi: D.fermi };
+  const sez = (righe) => righe.slice(1).map((r) => r.split(";")[0].replace(/^"|"$/g, ""));
+  test("Flotta · csvLibretto: il libretto del mezzo della dimostrazione — anagrafica, sezioni del fascicolo, consumo e totali", () => {
+    const m = D.mezzi[0];
+    const righe = flotta.csvLibretto(m, DATI, OGGI, 30).split("\r\n");
+    eq(righe[0], flotta.CSV_LIBRETTO_INTESTAZIONE, "l'intestazione è la costante");
+    ok(righe[1].startsWith("mezzo;") && righe[1].includes(m.nome) && /5\.870 ore motore/.test(righe[1]) && /Operativo/.test(righe[1]), "la riga del mezzo: nome, ore raggruppate, stato a parole — " + righe[1]);
+    const f = flotta.fascicoloMezzo(m, DATI, OGGI, 30);
+    const s = sez(righe);
+    eq(s.filter((x) => x === "scadenza di legge").length, f.scadenze.length || 1, "una riga per scadenza (o la riga vuota)");
+    eq(s.filter((x) => x === "intervento").length, f.interventi.length || 1, "una riga per intervento (o la riga vuota)");
+    eq(s.filter((x) => x === "giro macchina").length, f.controlli.length || 1, "una riga per giro (o la riga vuota)");
+    for (const t of ["consumo", "totale officina", "totale fermi"]) ok(s.includes(t), "la riga «" + t + "» c'è sempre");
+    for (const c of f.controlli) {
+      const g = flotta.statoGiro(c);
+      const r = righe.find((x) => x.startsWith("giro macchina;") && x.includes(flotta.dataIt ? "" : "") && x.includes(c.operatore || ""));
+      ok(r, "il giro è nel libretto");
+      if (!g.nominate && g.anomalie > 0) ok(/dettaglio delle voci non registrato/.test(r), "⛔ anomalie non nominate: dette a parole, non «nessuna anomalia»");
+    }
+    const senzaCosto = righe.filter((x) => x.startsWith("intervento;") && /costo non scritto/.test(x));
+    for (const r of senzaCosto) eq(r.split(";").pop(), "", "⛔ un intervento senza costo lascia la cella dell'importo VUOTA: uno zero si somma");
+  });
+  test("Flotta · csvLibretto: la macchina nuda — sei sezioni vuote che PARLANO, mai un file di due righe", () => {
+    const righe = flotta.csvLibretto({ id: "x", nome: "Pala X9 — Nuova", tipo: "pala", stato: "operativo" }, {}, OGGI, 30).split("\r\n");
+    const vuote = righe.filter((x) => /;nessuna registrata;;/.test(x));
+    eq(vuote.length, 6, "⛔ sei sezioni vuote, una riga ciascuna, con «nessuna registrata»");
+    eq(vuote.map((x) => x.split(";")[0]), ["scadenza di legge", "manutenzione in programma", "intervento", "fermo macchina", "giro macchina", "rifornimento"], "nell'ordine del fascicolo");
+    ok(/Non vuol dire che non ne abbia/.test(vuote[0]), "e la scadenza vuota dice che non vuol dire che non ne abbia");
+    ok(righe.some((x) => x.startsWith("consumo;") && /Nessun rifornimento registrato: il consumo non si può calcolare/.test(x)), "⛔ il consumo non calcolabile lo dichiara, con la ragione");
+    ok(righe.some((x) => x.startsWith("totale fermi;") && /Nessun fermo registrato/.test(x)), "e il totale dei fermi dice «nessuno»");
+    ok(/ore motore non registrate/.test(righe[1]), "⛔ il contatore mai letto non segna zero: «ore motore non registrate»");
+    eq(flotta.csvLibretto(null, null).split("\r\n")[0], flotta.CSV_LIBRETTO_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · le parole del libretto: oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO", () => {
+    eq([flotta.oreMotoreTesto(null), flotta.oreMotoreTesto(""), flotta.oreMotoreTesto(1), flotta.oreMotoreTesto(5870)], ["ore motore non registrate", "ore motore non registrate", "1 ora motore", "5.870 ore motore"], "le ore motore, col singolare e il raggruppamento");
+    eq(flotta.oreMotoreTesto(12, (n) => "<b>" + n + "</b>"), "<b>12</b> ore motore", "e con la marca per lo schermo");
+    eq([flotta.oreLavoroTesto(4), flotta.oreLavoroTesto(2.5), flotta.oreLavoroTesto(null)], ["4 h", "2,5 h", "0 h"], "le ore di lavoro senza precisione finta");
+    eq([flotta.ogniMesiTesto(1), flotta.ogniMesiTesto(12)], ["ogni mese", "ogni 12 mesi"], "la ricorrenza");
+    eq(flotta.lavorazioneTesto({ oreManodopera: 6, manodopera: [{ chi: "Marco", ore: 4 }, { chi: "Luca", ore: 2 }], costoManodopera: 192 }), "6 h di lavoro · Marco, Luca · manodopera " + shell.euro(192), "la lavorazione: ore, chi, manodopera");
+    eq(flotta.lavorazioneTesto({ manodopera: [{ chi: "A<b>", ore: 1 }] }, (t) => t.toUpperCase()), "A<B>", "con l'avvolgitore per i nomi");
+    eq([flotta.lavorazioneTesto({}), flotta.lavorazioneTesto(null)], ["", ""], "niente da dire");
+    eq(flotta.ETICHETTA_STATO_MEZZO, { operativo: "Operativo", fermo: "Fermo", verifica: "Verifica" }, "gli stati a parole");
+    eq(flotta.codaContatoreTesto({ orePreviste: 6000, mezzo: "Escavatore E1" }, []), "", "senza letture del contatore la coda tace (il tagliando è confrontabile)");
+  });
+}
+/* ===== fine libretto nel modulo (05/09) ===== */
+/* ===== il riepilogo dell'anno e l'archivio di Terra nel modulo (05/09) ===== */
+{
+  const D = terra.DEMO;
+  const anni = terra.anniConVolumi(D.rilievi);
+  const aut = terra.autorizzazioneVigente(D.autorizzazioni);
+  const R = terra.riepilogoAnnuale(D.rilievi, anni[0], aut);
+  const DEN = { R, base: terra.baseOnereEscavazione(R, {}), banchi: terra.ripartizioneBanchi(R, D.fronti) };
+  test("Terra · csvRiepilogoAnno: mesi, totale, fronti, banchi, secchi e titolo — una convenzione sola per lo scavo mai misurato", () => {
+    const righe = terra.csvRiepilogoAnno(DEN, D.fronti, new Date(anni[0] + "-12-31T12:00:00")).trim().split("\n");
+    eq(righe[0], terra.CSV_RIEPILOGO_ANNO_INTESTAZIONE, "l'intestazione è la costante");
+    const sez = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(sez.filter((x) => x === "mese").length, R.inCorso ? 12 : R.mesi.length, "a fine anno tutti i mesi");
+    eq(righe.filter((r) => r.startsWith("totale;")).length, 1, "un totale");
+    eq(sez.filter((x) => x === "fronte").length, terra.ripartizioneFronti(R, { tutte: true }).righe.length, "una riga per fronte, anche quello senza fronte");
+    eq(sez.filter((x) => x === "banco").length, DEN.banchi.righe.length + [DEN.banchi.nonDichiarato, DEN.banchi.fuoriElenco].filter(Boolean).length, "⛔ i banchi più i due secchi (banco non dichiarato, fronti non più in elenco) quando ci sono");
+    eq(sez.filter((x) => x === "titolo").length, 4, "le quattro righe del titolo");
+    for (const b of DEN.banchi.righe) {
+      const r = righe.find((x) => x.startsWith("banco;") && x.includes(b.etichetta));
+      eq(r.split(";")[2], b.misurabile ? String(b.scavo) : "", "⛔ lo scavo del banco è VUOTO se non misurato, mai 0 — " + b.etichetta);
+    }
+    const cieco = terra.csvRiepilogoAnno({ R: { ...R, misurabile: false, mesi: R.mesi }, base: { calcolabile: false }, banchi: DEN.banchi }, D.fronti, new Date(anni[0] + "-12-31T12:00:00")).trim().split("\n");
+    eq(cieco.find((x) => x.startsWith("totale;")).split(";")[2], "", "⛔ senza scavo misurato il totale dell'anno resta VUOTO");
+    ok(cieco.some((x) => /^titolo;"?Cumulato a fine \d{4} \(NON MISURATO/.test(x)) && cieco.some((x) => /^titolo;"?Residuo del concesso \(NON MISURATO/.test(x)), "⛔ cumulato e residuo dicono NON MISURATO, non 0 e 1.200.000");
+    eq(terra.csvRiepilogoAnno(null).trim(), terra.CSV_RIEPILOGO_ANNO_INTESTAZIONE + "\ntotale;Anno undefined;;undefined;undefined", "null non rompe (e il totale su un riepilogo che non c'è si legge come tale)");
+    eq([terra.etichettaFronteDi({ fronteId: "f1" }, D.fronti), terra.etichettaFronteDi({ fronteId: "zz" }, D.fronti), terra.etichettaFronteDi({}, D.fronti)], ["Fronte Nord", "Fronte non più in elenco", "Senza fronte indicato"], "etichettaFronteDi: il nome, il cancellato, il senza fronte");
+    eq(terra.MESI_NOME.length, 12, "dodici mesi");
+  });
+  test("Terra · csvFrontiRilievi: quota non dichiarata, volume non leggibile, provenienza — le parole dello schermo nel file", () => {
+    const righe = terra.csvFrontiRilievi(D.fronti, D.rilievi).trim().split("\n");
+    eq(righe[0], terra.CSV_FRONTI_RILIEVI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + D.fronti.length + D.rilievi.length, "una riga per fronte e per rilievo");
+    const date = righe.filter((r) => r.startsWith("rilievo;")).map((r) => r.split(";")[4].replace(/^"/, "").slice(0, 10));
+    ok(date.length >= 2, "(più di un rilievo)");
+    const nord = righe.find((r) => r.startsWith("fronte;") && /Fronte Nord/.test(r));
+    ok(/quota 340 m · avanzamento 72%/.test(nord), "quota e avanzamento — " + nord);
+    const strani = terra.csvFrontiRilievi([{ nome: "Ovest", stato: "attivo" }], [{ titolo: "R", data: "2026-03-12", stato: "elaborato", volumeM3: "abc" }, { titolo: "P", data: "2026-04-01", stato: "pianificato" }]).trim().split("\n");
+    ok(/;;"?quota non dichiarata"?$/.test(strani[1]), "⛔ la quota che non c'è si dichiara — " + strani[1]);
+    // le righe dei rilievi escono dal più recente: prima P (aprile), poi R (marzo)
+    ok(/;01\/04\/2026"?$/.test(strani[2]), "un pianificato non dice niente del volume — " + strani[2]);
+    ok(/;12\/03\/2026 · volume non leggibile$/.test(strani[3].replace(/"/g, "")), "⛔ un elaborato col volume illeggibile dice «volume non leggibile», non «m³» vuoto — " + strani[3]);
+    for (const r of D.rilievi) {
+      const x = righe.find((q) => q.startsWith("rilievo;") && q.includes(r.titolo));
+      eq(x.split(";")[3], terra.provenienzaRilievo(r), "la provenienza è quella di provenienzaRilievo — " + r.titolo);
+    }
+    eq(terra.csvFrontiRilievi(null, null).trim(), terra.CSV_FRONTI_RILIEVI_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine riepilogo e archivio di Terra nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · IL VERBALE DI RILIEVO SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliaVerbale` nella pagina componeva le righe del foglio che va all'ente
+   con le funzioni del modulo, ma le PAROLE e i FORMATI vivevano lì, dove
+   nessuna prova senza browser li legge (la quota col punto fino al 03/08, «il
+   metodo dichiarato e il GSD» accanto a «GSD: non dichiarato»). Adesso
+   `verbaleRilievo` restituisce le righe nella forma di `relazioneLotto` e la
+   pagina disegna e basta. */
+{
+  const D = terra.DEMO;
+  const ctx = { rilievi: D.rilievi, fronti: D.fronti, autorizzazioni: D.autorizzazioni };
+  const ril = (id) => D.rilievi.find((r) => r.id === id);
+  const riga = (V, et) => V.righe.find((d) => d[0] === et);
+  test("Terra · verbaleRilievo: le nove righe del rilievo, e il volume misurato è quello di bandaVolume", () => {
+    const r = ril("r1");
+    const V = terra.verbaleRilievo(r, ctx);
+    eq(V.titolo, "Verbale di rilievo — " + r.titolo, "il titolo è quello del rilievo");
+    eq(V.righe.map((d) => d[0]), ["Data del rilievo", "Fronte", "Che cosa è stato misurato", "Tipo di elaborato", "Metodo di rilievo",
+      "GSD (dimensione del pixel a terra)", "Classe di accuratezza", "Volume misurato", "Eseguito da"], "le nove etichette, nell'ordine del foglio");
+    const ca = terra.classeAccuratezza(r), bv = terra.bandaVolume(r.volumeM3, ca.tolleranzaPct);
+    const it0 = (v) => Math.round(v).toLocaleString("it-IT", { useGrouping: true });
+    eq(riga(V, "Volume misurato"), ["Volume misurato", it0(r.volumeM3) + " m³ (± " + it0(bv.banda) + " m³ · fra " + it0(bv.min) + " e " + it0(bv.max) + " m³)", false, true],
+      "il volume con la banda di bandaVolume, all'italiana col separatore delle migliaia, e in evidenza");
+    eq(riga(V, "Classe di accuratezza")[1], ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%", "la classe è quella di classeAccuratezza");
+    eq(riga(V, "Fronte"), ["Fronte", "Fronte Nord — banco 2 · quota 340 m", false], "il fronte con banco e quota");
+    ok(/collocano il rilievo nella classe di qualità topografica/.test(V.comeNato), "col GSD scritto la frase lo cita — " + V.comeNato.slice(0, 80));
+    ok(V.comeNato.includes(terra.descriviOrigine(r)), "e dice da dove viene il numero, con le parole di descriviOrigine");
+    ok(/vanno confermate con i punti di controllo/.test(V.comeNato), "e la chiusura sulle tolleranze tipiche");
+    eq(V.cumulo, false); eq(V.atto.length, 4, "le quattro righe dell'atto");
+  });
+  test("Terra · verbaleRilievo: da dove parte la misura — il rilievo precedente sullo stesso fronte, con le parole al singolare", () => {
+    const r = ril("r1"), prec = terra.rilievoPrecedente(D.rilievi, r), c = terra.confrontoRilievi(D.rilievi, prec.id, r.id);
+    const V = terra.verbaleRilievo(r, ctx);
+    eq(V.partenza.tipo, "confronto");
+    eq(V.partenza.righe[0][1], shell.dataIt(prec.data) + (prec.metodo ? " · " + prec.metodo : ""), "la data del precedente");
+    eq(V.partenza.righe[1], ["Giorni fra i due rilievi", String(c.giorni), false]);
+    ok(V.partenza.righe[2][3] === true && V.partenza.righe[2][1].startsWith(Math.round(c.scavato).toLocaleString("it-IT", { useGrouping: true }) + " m³"),
+      "lo scavato fra le date è quello di confrontoRilievi, in evidenza — " + V.partenza.righe[2][1]);
+    eq(c.rilieviInMezzo, 1, "(nella dimostrazione c'è un rilievo solo in mezzo)");
+    ok(/\(1 rilievo\):/.test(V.partenza.nota), "⛔ «1 rilievo», non «1 rilievi» — " + V.partenza.nota);
+  });
+  test("Terra · verbaleRilievo: senza un rilievo precedente lo dice; senza fronte su un cumulo NON è un dato mancante", () => {
+    const V4 = terra.verbaleRilievo(ril("r4"), ctx);
+    eq(V4.partenza.tipo, "nessuno"); eq(V4.partenza.righe, []);
+    ok(/alcun rilievo precedente/.test(V4.partenza.nota), V4.partenza.nota);
+    const V6 = terra.verbaleRilievo(ril("r6"), ctx);
+    eq(V6.cumulo, true); eq(V6.partenza.tipo, "cumulo");
+    ok(/deposito di materiale già estratto/.test(V6.partenza.nota), V6.partenza.nota);
+    eq(riga(V6, "Fronte"), ["Fronte", "nessuno — ripresa da un cumulo", false], "⛔ un cumulo non sta su un fronte: «nessuno» non è «non indicato»");
+    ok(!V6.nonMisurati.some((x) => /^Fronte/.test(x)), "e non finisce fra le cose che mancano — " + V6.nonMisurati.join(" · "));
+    ok(/non consuma il volume concesso dal titolo\.$/.test(V6.comeNato), "e il foglio dice che non consuma il concesso");
+    ok(/Ripresa da un cumulo/.test(riga(V6, "Che cosa è stato misurato")[1]));
+  });
+  test("Terra · verbaleRilievo: metodo e GSD non dichiarati — «non determinabile», e l'elenco di ciò che manca", () => {
+    const V = terra.verbaleRilievo(ril("r2"), ctx);
+    eq(riga(V, "Classe di accuratezza"), ["Classe di accuratezza", "non determinabile (metodo e GSD non dichiarati)", true]);
+    eq(riga(V, "Metodo di rilievo"), ["Metodo di rilievo", "non dichiarato", true]);
+    eq(riga(V, "GSD (dimensione del pixel a terra)"), ["GSD (dimensione del pixel a terra)", "non dichiarato", true]);
+    ok(/^Non essendo dichiarati né il metodo né il GSD/.test(V.comeNato), V.comeNato.slice(0, 60));
+    ok(V.nonMisurati.includes("Metodo di rilievo (non dichiarato)") && V.nonMisurati.includes("GSD (non dichiarato)")
+      && V.nonMisurati.includes("Classe di accuratezza (non determinabile: metodo e GSD non dichiarati)"),
+      "⛔ ogni cella mancante è nell'elenco, con l'etichetta senza la glossa — " + V.nonMisurati.join(" · "));
+    ok(V.nonMisurati.includes("Eseguito da (non indicato: la riga resta da compilare a penna)"), "e il rilevatore non indicato");
+    eq(riga(V, "Eseguito da"), ["Eseguito da", "", true], "la cella del rilevatore resta VUOTA: è la riga da compilare a penna");
+  });
+  test("Terra · verbaleRilievo: classe alta senza GSD — la frase non cita un GSD che il foglio dice assente; il GSD col punto esce con la virgola", () => {
+    const base = { id: "v1", data: "2026-02-10", volumeM3: 1000, stato: "elaborato", metodo: "RTK" };
+    const V = terra.verbaleRilievo({ ...base, gsd: null }, ctx);
+    eq(terra.classeAccuratezza({ ...base, gsd: null }).classe, "survey-grade", "(la classe alta si regge sul solo metodo)");
+    ok(/il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata/.test(V.comeNato), "⛔ — " + V.comeNato.slice(0, 120));
+    eq(riga(V, "GSD (dimensione del pixel a terra)")[2], true);
+    // un GSD da 1,5 cm tiene la classe alta (la soglia è 2 cm: con «2.5» la classe scende a indicativa)
+    const V2 = terra.verbaleRilievo({ ...base, gsd: "1.5" }, ctx);
+    eq(riga(V2, "GSD (dimensione del pixel a terra)"), ["GSD (dimensione del pixel a terra)", "1,5 cm", false], "⛔ «1,5 cm», non «1.5 cm»");
+    ok(/e il GSD collocano/.test(V2.comeNato), "e col GSD scritto la frase lo cita — " + V2.comeNato.slice(0, 60));
+    const V3 = terra.verbaleRilievo({ ...base, gsd: "2.5" }, ctx);
+    ok(/^Il metodo dichiarato o il GSD non permettono la classe topografica/.test(V3.comeNato), "oltre i 2 cm la misura vale come indicativa — " + V3.comeNato.slice(0, 60));
+  });
+  test("Terra · verbaleRilievo: la quota del fronte all'italiana, dichiarata quando non c'è, e il fronte non più in elenco", () => {
+    const r = { id: "v2", data: "2026-02-10", volumeM3: 10, stato: "elaborato", fronteId: "fx" };
+    const con = (quota) => terra.verbaleRilievo(r, { fronti: [{ id: "fx", nome: "Fronte Ovest", quota }] });
+    eq(riga(con("148.5"), "Fronte")[1], "Fronte Ovest · quota 148,5 m", "⛔ la quota col punto esce con la virgola, come nell'elenco");
+    eq(riga(con(1500), "Fronte")[1], "Fronte Ovest · quota 1.500 m", "col separatore delle migliaia scritto (useGrouping)");
+    for (const q of [null, undefined, ""]) {
+      const V = con(q);
+      eq(riga(V, "Fronte"), ["Fronte", "Fronte Ovest · quota non dichiarata", false], "⛔ la quota che non c'è si dichiara: " + JSON.stringify(q));
+      ok(V.nonMisurati.includes("Quota del fronte (non dichiarata)"), "e sta nell'elenco di ciò che manca");
+    }
+    const V = terra.verbaleRilievo(r, { fronti: [] });
+    eq(riga(V, "Fronte"), ["Fronte", "fronte non più in elenco", true]);
+    ok(V.nonMisurati.includes("Fronte (non più in elenco)"));
+    eq(riga(terra.verbaleRilievo({ ...r, fronteId: null }, ctx), "Fronte"), ["Fronte", "non indicato", true], "e uno scavo senza fronte è «non indicato»");
+  });
+  test("Terra · verbaleRilievo: senza titolo vigente, col volume illeggibile, con niente — non rompe e dichiara", () => {
+    const V = terra.verbaleRilievo({ id: "v3", data: "2026-02-10", volumeM3: "abc", rilevatore: "Mario Rossi" }, { autorizzazioni: [] });
+    eq(V.atto, null, "senza un titolo vigente la sezione non c'è");
+    ok(V.nonMisurati.includes("Titolo autorizzativo (nessuno vigente registrato in Terra)"), "e si dice — " + V.nonMisurati.join(" · "));
+    eq(riga(V, "Volume misurato"), ["Volume misurato", "non leggibile", true], "⛔ un volume che non si legge non è «— m³»");
+    ok(V.nonMisurati.includes("Volume misurato (non leggibile: «abc»)"));
+    eq(riga(V, "Eseguito da"), ["Eseguito da", "Mario Rossi", false]);
+    for (const args of [[null], [undefined, null], [{}, {}], [{ data: "boh" }, { rilievi: null, fronti: null, autorizzazioni: null }]]) {
+      const N = terra.verbaleRilievo(...args);
+      eq(N.righe.length, 9, "nove righe anche senza niente: " + JSON.stringify(args));
+      ok(N.righe.every((d) => typeof d[0] === "string" && typeof d[1] === "string" && typeof d[2] === "boolean"), "ogni riga è [etichetta, testo, mancante]");
+      eq(N.partenza.tipo, "nessuno");
+    }
+    eq(terra.verbaleRilievo({ data: "boh" }).righe[0], ["Data del rilievo", "data non valida", true], "una data che non esiste non si stampa come una data");
+    eq(terra.verbaleRilievo(null).titolo, "Verbale di rilievo — rilievo senza data");
+  });
+  test("Terra · la pagina non compone più nessuna riga del verbale: le etichette vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+    for (const et of ['["Data del rilievo"', '["Classe di accuratezza"', '"Rilievo precedente sullo stesso fronte"', "collocano il rilievo nella classe"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/verbaleRilievo\(r, \{ rilievi: RIL, fronti: FRO, autorizzazioni: AUT \}\)/.test(pagina), "e chiama verbaleRilievo con i dati vivi");
+  });
+}
+/* ===== fine verbale di rilievo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · IL PROSPETTO DELLA DENUNCIA ANNUALE SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliaStampa` teneva nella pagina sette sezioni di righe, frasi e
+   formati — «nessun rilievo, QUINDI volumi a zero», il «Totale: 0» in
+   grassetto su un anno mai misurato, il «Cumulato · 0 m³ (0% del concesso)»
+   con lo schermo a «—» sono vissuti tutti lì, dove nessuna prova senza browser
+   li legge. Adesso `prospettoDenuncia(DEN, fronti, oggi)` li restituisce e la
+   pagina disegna. */
+{
+  const D = terra.DEMO;
+  const aut = terra.autorizzazioneVigente(D.autorizzazioni);
+  const den = (anno, opz = {}) => {
+    const R = terra.riepilogoAnnuale(opz.rilievi || D.rilievi, anno, opz.aut === undefined ? aut : opz.aut);
+    const a = opz.aut === undefined ? aut : opz.aut;
+    return { R, aut: a, soglia: a && +a.sogliaGuardiaPct > 0 ? +a.sogliaGuardiaPct : null,
+      base: terra.baseOnereEscavazione(R, {}), banchi: terra.ripartizioneBanchi(R, opz.fronti || D.fronti) };
+  };
+  const it0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const OGGI = new Date(2026, 8, 5);
+  test("Terra · prospettoDenuncia: l'atto, i mesi fino a oggi, il totale e i fronti sono quelli dello schermo", () => {
+    const DEN = den(2026), R = DEN.R;
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.titolo, "Riepilogo annuale dei volumi — anno 2026"); eq(P.inCorso, true);
+    ok(/\*\*anno ancora in corso\*\*/.test(P.sottotitolo), "l'anno in corso lo dice, in evidenza");
+    eq(P.atto.map((d) => d[0]), ["Numero dell'atto", "Ente che l'ha rilasciato", "Data di rilascio", "Scadenza del titolo", "Materiale autorizzato", "Superficie autorizzata", "Volume totale concesso"]);
+    ok(P.atto.every((d) => d[2] === false), "sulla dimostrazione l'atto è compilato per intero");
+    eq(P.atto[6][1], "1.200.000 m³"); eq(P.atto[5][1], "78.000 m²");
+    eq(P.mesi.righe.length, 9, "anno in corso, oggi 5 settembre: nove mesi, non dodici");
+    eq(P.mesi.righe[4], ["Maggio", it0(R.mesi[4].scavo), it0(R.mesi[4].cumulo), String(R.mesi[4].rilieviScavo)]);
+    eq(P.mesi.totale, ["Totale 2026", it0(R.scavo), it0(R.cumulo), String(R.rilieviScavo)], "il totale è quello del riepilogo, all'italiana");
+    ok(/\*\*scavo\*\*/.test(P.mesi.nota) && !/non risulta nessun rilievo/.test(P.mesi.nota), "la nota spiega scavo e cumuli, e su un anno misurato non aggiunge altro");
+    const RFT = terra.ripartizioneFronti(R, { tutte: true });
+    eq(P.fronti.righe.length, RFT.righe.length, "una riga per voce di ripartizioneFronti, con `tutte`");
+    const senza = P.fronti.righe.find((r) => r[0] === "Senza fronte indicato");
+    eq(senza, ["Senza fronte indicato", "non misurato", it0(R.cumulo), "0"], "⛔ la voce di soli cumuli: scavo «non misurato», non «0»");
+    ok(!P.nonMisurati.some((x) => /Senza fronte/.test(x)), "e NON è un dato che manca: non ha uno scavo da misurare — " + P.nonMisurati.join(" · "));
+    eq(P.nonMisurati, [], "sulla dimostrazione dell'anno in corso non manca niente");
+    eq(P.banchi.righe.find((r) => r[0] === "banco 3"), ["banco 3", "Fronte Sud", "non misurato", "0"], "⛔ il banco mai rilevato: «non misurato»");
+    eq(P.banchi.numeriche, [2, 3]); eq(P.mesi.numeriche, [1, 2, 3]);
+  });
+  test("Terra · prospettoDenuncia: posizione rispetto al concesso, onere e «come sono stati ottenuti i numeri» leggono le funzioni dello schermo", () => {
+    const DEN = den(2026), R = DEN.R;
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.posizione.righe[0], ["Volume concesso dall'atto", "1.200.000 m³", false]);
+    eq(P.posizione.righe[1], ["Estratto dichiarato prima dell'uso di Terra", "880.000 m³", false]);
+    eq(P.posizione.righe[2], ["Scavo misurato sotto questo titolo fino al 31/12/2026", it0(R.cumulatoFineAnno - R.pregresso) + " m³", false]);
+    eq(P.posizione.totale, { etichetta: "Cumulato a fine 2026", valore: it0(R.cumulatoFineAnno) + " m³",
+      via: "(" + (Math.round(R.pctFineAnno * 10) / 10).toLocaleString("it-IT", { useGrouping: true }) + "% del concesso)", mancante: false });
+    eq(P.posizione.residuo, ["Residuo del volume concesso", it0(R.residuoFineAnno) + " m³", false]);
+    eq(P.posizione.soglia, ["Soglia di guardia impostata", "80%", false]); eq(P.posizione.nota, "");
+    eq(P.onere.righe, [["Volume scavato nell'anno", it0(DEN.base.lordo) + " m³", false]]);
+    eq(P.onere.totale, ["Imponibile dichiarato", it0(DEN.base.imponibile) + " m³"]);
+    eq(P.onere.descrizione, terra.descriviBaseOnere(DEN.base), "la frase che va all'ente la scrive descriviBaseOnere");
+    eq(P.onere.avvisi, []);
+    ok(/^Per l'anno 2026 risultano registrati in Terra: 4 rilievi di scavo e 1 ripresa da cumulo\./.test(P.comeNato), "⛔ «1 ripresa da cumulo» al singolare — " + P.comeNato.slice(0, 90));
+    ok(/Qualità dei rilievi di scavo: 1 di qualità topografica, 3 senza metodo dichiarato\./.test(P.comeNato), P.comeNato.slice(90, 200));
+    ok(P.comeNato.includes(terra.descriviIncertezza(R.incertezza)), "l'incertezza la scrive descriviIncertezza");
+    ok(/vanno confermate con i punti di controllo/.test(P.comeNato) && !/valore minimo/.test(P.comeNato), "col pregresso dichiarato il cumulato non è «un minimo»");
+  });
+  test("Terra · prospettoDenuncia: l'anno CIECO — «non misurato» sul totale, sul cumulato, sul residuo e sull'imponibile, mai uno zero; e l'elenco di ciò che manca", () => {
+    const cieco = { ...aut, estrattoPregressoM3: null };
+    const DEN = den(2026, { rilievi: [], aut: cieco });
+    eq(DEN.R.misurabile, false, "(precondizione: il titolo non è misurabile)"); eq(DEN.base.calcolabile, false, "(e lo scavo non è dichiarabile)");
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.mesi.totale, ["Totale 2026", "non misurato", "0", "0"], "⛔ il totale dell'anno: «non misurato», non «0» in grassetto");
+    ok(P.mesi.righe.every((r) => r[1] === "0"), "e gli zeri dei mesi restano: sono il modo in cui il modulo va compilato");
+    ok(/Nel 2026 \*\*non risulta nessun rilievo di scavo\*\*: gli zeri dei mesi/.test(P.mesi.nota), P.mesi.nota);
+    eq(P.fronti.righe, [["Nessun volume registrato nell'anno", "0", "0", "0"]]); eq(P.fronti.nota, "");
+    ok(P.banchi.righe.length === 3 && P.banchi.righe.every((r) => r[2] === "non misurato"), "⛔ i banchi ci sono (i fronti dichiarano il banco) e ogni casella dice «non misurato», non «0» — " + JSON.stringify(P.banchi.righe));
+    ok(/riportano «non misurato»: non hanno estratto zero/.test(P.banchi.nota), P.banchi.nota);
+    eq(P.posizione.righe[1], ["Estratto dichiarato prima dell'uso di Terra", "non dichiarato", true], "⛔ il pregresso mai dichiarato non è «0 m³»");
+    eq(P.posizione.righe[2], ["Scavo misurato sotto questo titolo fino al 31/12/2026", "non misurato", true]);
+    eq(P.posizione.totale, { etichetta: "Cumulato a fine 2026", valore: "non misurato", via: "", mancante: true }, "⛔ niente «0 m³ (0% del concesso)»");
+    eq(P.posizione.residuo, ["Residuo del volume concesso", "non misurato", true], "⛔ e niente «1.200.000 m³» di residuo tranquillo");
+    ok(/^Sotto questo titolo non risulta \*\*nessun rilievo di scavo\*\*/.test(P.posizione.nota), "il perché sta sotto la tabella");
+    eq(P.onere.righe, [["Imponibile dichiarato", "non dichiarabile", true]]); eq(P.onere.totale, null);
+    ok(/nessun rilievo — il volume dell'anno non l'ha misurato nessuno/.test(P.comeNato), P.comeNato.slice(0, 120));
+    ok(!/quindi volumi a zero/.test(P.comeNato), "⛔ il «quindi» che il principio vieta non c'è");
+    ok(!/vanno confermate con i punti di controllo/.test(P.comeNato) && /valore minimo/.test(P.comeNato), "senza rilievi niente tolleranze; senza pregresso il cumulato è un minimo");
+    for (const m of ["Scavo dell'anno 2026 (nessun rilievo di scavo registrato)", "Cumulato e residuo sotto il titolo (nessun rilievo di scavo e pregresso non dichiarato)", "Imponibile dell'onere di escavazione (non dichiarabile)"])
+      ok(P.nonMisurati.includes(m), "manca dall'elenco: " + m + " — " + P.nonMisurati.join(" · "));
+  });
+  test("Terra · prospettoDenuncia: le parole al singolare, i secchi dei banchi, l'anno chiuso e il titolo che non c'è", () => {
+    const DEN = den(2025);
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.inCorso, false); eq(P.sottotitolo, ""); eq(P.mesi.righe.length, 12, "anno chiuso: dodici mesi");
+    ok(/: 1 rilievo di scavo\./.test(P.comeNato), "⛔ «1 rilievo di scavo» — " + P.comeNato.slice(0, 80));
+    const S = { ...DEN, R: { ...DEN.R, qualita: { surveyGrade: 0, indicativo: 1, nd: 0 } },
+      banchi: { righe: [{ etichetta: "b", fronti: ["Fronte Nord"], misurabile: true, scavo: 10, cumulo: 0 }],
+        nonDichiarato: { fronti: 1, scavo: 500 }, fuoriElenco: { scavo: 1250 } } };
+    const Q = terra.prospettoDenuncia(S, D.fronti, OGGI);
+    ok(/Qualità dei rilievi di scavo: 1 indicativo\./.test(Q.comeNato), "⛔ «1 indicativo», non «1 indicativi» — " + Q.comeNato);
+    ok(/ 1 fronte non dichiara il banco di appartenenza, per 500 m³ di scavo non ripartiti\. Risultano inoltre 1\.250 m³ su fronti non più presenti in elenco\.$/.test(Q.banchi.nota),
+      "i due secchi, al singolare e con le migliaia — " + Q.banchi.nota);
+    ok(!/riportano «non misurato»/.test(Q.banchi.nota), "e senza banchi non misurati la frase che li spiega non c'è");
+    const N = terra.prospettoDenuncia(den(2026, { aut: null }), D.fronti, OGGI);
+    ok(N.atto.every((d) => d[1] === "—" && d[2] === true), "senza un titolo vigente le sette righe sono vuote e mancanti");
+    ok(N.nonMisurati.includes("Titolo autorizzativo (nessuno vigente registrato in Terra)"), N.nonMisurati.join(" · "));
+    eq(N.posizione.soglia, null); eq(N.posizione.righe[0], ["Volume concesso dall'atto", "non indicato", true]);
+    for (const args of [[null], [undefined, null], [{}, [], null], [{ R: null, aut: null, base: null, banchi: null }]]) {
+      const Z = terra.prospettoDenuncia(...args);
+      eq(Z.atto.length, 7, "sette righe dell'atto anche senza niente: " + JSON.stringify(args));
+      eq(Z.mesi.righe, []); eq(Z.mesi.totale[1], "non misurato"); eq(Z.banchi, null);
+      ok(typeof Z.comeNato === "string" && typeof Z.onere.descrizione === "string");
+    }
+  });
+  test("Terra · la pagina non compone più nessuna riga del prospetto: frasi e formati vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+    for (const et of ['Lo <b>scavo</b> è materiale', '? "nessun rilievo — il volume', "<tr class='tot'><td>Cumulato a fine ", '"Ripartizione per fronte</h2><table>"', "Qualità dei rilievi di scavo: "])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/prospettoDenuncia\(DEN, FRO, new Date\(\)\)/.test(pagina), "e chiama prospettoDenuncia con i dati vivi");
+  });
+}
+/* ===== fine prospetto della denuncia nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL FOGLIO DELLA FATTURA SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliFattura` nella pagina componeva righe, piede, avvisi e riquadri del
+   documento che va in mano al cliente: l'«IVA 19%» per divisione, lo stato
+   senza le note di credito e i due trattini della riga a importo unico sono
+   vissuti tutti lì. Adesso `fogliaFattura(f, {clienti, incassi, note})` li
+   restituisce in testo e la pagina disegna. */
+{
+  const D = conti.DEMO;
+  const E = shell.euro;
+  const base = { id: "x", numero: "2026/099", cliente: "Prova Srl", emessa: "2026-07-01", scadenza: "2026-07-31",
+    righe: [{ descrizione: "Stabilizzato 0/30", quantita: 500, unita: "t", prezzoUnitario: 10, scontoPct: 0, imponibile: 5000, aliquota: 22, ddt: ["2026/020"] },
+      { descrizione: "Massi da scogliera", quantita: 200, unita: "m3", prezzoUnitario: 10, scontoPct: 5, imponibile: 2000, aliquota: 10, ddt: ["2026/021"] }],
+    ddtIds: ["zd1", "zd2"], imponibile: 7000, ivaImporto: 1300, totale: 8300, importo: 8300, aliquotaIva: null };
+  const nota = (tot) => ({ id: "n1", fatturaId: "x", numero: "NC 1", emessa: "2026-08-01", totale: tot, causale: "resa", bozza: false });
+  const inc = (imp, data) => ({ id: "i1", fatturaId: "x", data, importo: imp, metodo: "bonifico" });
+  const riq = (F, et) => F.riquadri.find((r) => r[0] === et);
+  test("Conti · fogliaFattura: la fattura a IMPORTO UNICO della dimostrazione — «non dettagliata», non «—», e l'IVA che il foglio non può indicare", () => {
+    const f = D.fatture.find((x) => x.id === "f1");
+    const F = conti.fogliaFattura(f, { clienti: D.clienti, incassi: D.incassi, note: [] });
+    eq([F.titolo, F.numero, F.data, F.dettagliata], ["Fattura", "2026/031", "07/06/2026", false]);
+    eq(F.cliente.ragioneSociale, "Edilcave Srl", "il cliente è quello di clienteDiFattura");
+    eq(F.righe, [{ descrizione: "Fornitura di materiali inerti", ddt: "", quantita: "non dettagliata", prezzo: "non dettagliato", sconto: "", aliquota: "n.d.", imponibile: E(18300) }],
+      "⛔ quantità e prezzo NON sono «—»: non ci sono per scelta, e due trattini si leggono «niente da segnalare»");
+    eq(F.piede, [{ tipo: "grande", etichetta: "Totale documento", valore: E(18300), mancante: false }], "niente «IVA € 0,00», che sarebbe una dichiarazione falsa");
+    ok(/registrata come \*\*importo unico\*\*/.test(F.avvisi[0]), F.avvisi[0]);
+    ok(F.nonMisurati.includes("IVA (fattura a importo unico, senza il dettaglio)"), F.nonMisurati.join(" · "));
+    const st = conti.statoFattura(f, D.incassi, []);
+    eq(riq(F, "Stato"), ["Stato", "Acconti " + E(st.incassato) + " — residuo " + E(st.residuo), false], "lo stato è quello di statoFattura");
+    eq(F.incassi.righe, [["02/07/2026 · Bonifico", E(6000)]]); eq(F.incassi.totale, ["Residuo da incassare", E(st.residuo)]);
+    eq(F.noteCredito, null); eq(riq(F, "Consegne fatturate"), undefined, "senza DDT il riquadro non c'è");
+  });
+  test("Conti · fogliaFattura: la fattura DETTAGLIATA — le righe coi DDT e lo sconto, il piede una riga per aliquota, «2 DDT»", () => {
+    const F = conti.fogliaFattura(base, {});
+    eq(F.dettagliata, true);
+    eq(F.righe[0], { descrizione: "Stabilizzato 0/30", ddt: "DDT 2026/020", quantita: "500,00 t", prezzo: E(10), sconto: "", aliquota: "22%", imponibile: E(5000) });
+    eq(F.righe[1].quantita, "200,00 m³"); eq(F.righe[1].sconto, "sconto 5%"); eq(F.righe[1].aliquota, "10%");
+    eq(F.piede.map((r) => [r.tipo, r.etichetta, r.valore]), [
+      ["tot", "Totale imponibile", E(7000)],
+      ["iva", "IVA 10% su " + E(2000), E(200)],
+      ["iva", "IVA 22% su " + E(5000), E(1100)],
+      ["iva", "Totale imposta", E(1300)],
+      ["grande", "Totale fattura", E(8300)],
+    ], "⛔ una riga per aliquota (10% e 22%), MAI una media «19%»");
+    eq(riq(F, "Consegne fatturate"), ["Consegne fatturate", "2 DDT", false]);
+    eq(riq(F, "Stato"), ["Stato", "Da incassare", false]);
+    eq(F.avvisi, []); eq(F.nonMisurati, []); eq(F.incassi, null);
+    ok(/\*\*Non sostituisce la fattura elettronica\*\*/.test(F.piedeLegale), "il piede legale dice che è un documento di cortesia");
+  });
+  test("Conti · fogliaFattura: le righe che non tornano col piede si DICONO sul foglio; quantità e prezzo assenti su una riga non sono «0,00»", () => {
+    const F = conti.fogliaFattura({ ...base, imponibile: 7500, ivaImporto: 1410, totale: 8910 }, {});
+    ok(F.avvisi.length === 1 && /^\*\*Le righe qui sopra non tornano con il totale\.\*\* Sommate danno /.test(F.avvisi[0]), F.avvisi.join(" | "));
+    ok(F.avvisi[0].includes(E(8300) + " in tutto") && F.avvisi[0].includes("= **" + E(8910) + "**"), "con i due totali scritti — " + F.avvisi[0]);
+    eq(F.piede[F.piede.length - 1].valore, E(8910), "e il piede resta quello registrato: è quello che Conti chiede al cliente");
+    const G = conti.fogliaFattura({ ...base, righe: [{ descrizione: "A", quantita: null, unita: "t", prezzoUnitario: "", imponibile: 1000, aliquota: null }] }, {});
+    eq([G.righe[0].quantita, G.righe[0].prezzo, G.righe[0].aliquota], ["non indicata", "non indicato", "—"],
+      "⛔ quantità e prezzo che mancano si dichiarano; l'aliquota che manca resta «—» (su una fattura è una dichiarazione, non un'assenza)");
+  });
+  test("Conti · fogliaFattura: le note di credito — annullata, rettificata in parte, saldata con un credito da rimborsare", () => {
+    const S = conti.fogliaFattura(base, { note: [nota(8300)] });
+    eq(S.stato, "stornata"); eq(riq(S, "Stato"), ["Stato", "Annullata da nota di credito", false], "⛔ non «Da incassare» col totale pieno");
+    ok(/^\*\*Questa fattura è stata annullata da una nota di credito\*\* \(art\. 26 DPR 633\/1972\) per /.test(S.avvisi[0]) && /non c'è più niente da pagare/.test(S.avvisi[0]), S.avvisi[0]);
+    eq(S.noteCredito, { titolo: "Note di credito su questa fattura", righe: [["NC 1 del 01/08/2026 · " + conti.causaleNota("resa").label, "− " + E(8300)]], totale: ["Importo ancora esigibile", E(0)] });
+    const P = conti.fogliaFattura(base, { note: [nota(300)] });
+    eq(riq(P, "Stato"), ["Stato", "Da incassare " + E(8000) + " (dopo la nota di credito)", false]);
+    ok(/rettificata in parte da una nota di credito\*\*/.test(P.avvisi[0]) && P.avvisi[0].endsWith(": resta esigibile **" + E(8000) + "**."), P.avvisi[0]);
+    const C = conti.fogliaFattura(base, { incassi: [inc(8300, "2026-07-10")], note: [nota(300)] });
+    eq(riq(C, "Stato"), ["Stato", "Saldata il 10/07/2026 · a credito " + E(300) + " da rimborsare", false], "⛔ «Saldata» e basta è una mezza verità quando al cliente dobbiamo dei soldi");
+    eq(C.incassi.totale, ["Totale incassato", E(8300)]);
+    const N = conti.fogliaFattura(base, { note: [nota(300), { ...nota(100), id: "n2", numero: "NC 2" }] });
+    ok(/da 2 note di credito\*\*/.test(N.avvisi[0]), "«2 note di credito» — " + N.avvisi[0]);
+    const B = conti.fogliaFattura(base, { note: [{ ...nota(8300), bozza: true }] });
+    eq(B.noteCredito, null, "una nota in bozza non è ancora una nota"); eq(riq(B, "Stato")[1], "Da incassare");
+  });
+  test("Conti · fogliaFattura: la scadenza che manca o non esiste si dice; con niente non rompe", () => {
+    const A = conti.fogliaFattura({ ...base, scadenza: null }, {});
+    eq(riq(A, "Pagamento entro il"), ["Pagamento entro il", "non indicato", true]);
+    ok(A.nonMisurati.includes("Scadenza di pagamento (non indicata)"), A.nonMisurati.join(" · "));
+    const Z = conti.fogliaFattura({ ...base, scadenza: "2026-02-30" }, {});
+    eq(riq(Z, "Pagamento entro il"), ["Pagamento entro il", "non indicato", true], "⛔ il 30 febbraio non si stampa come una data");
+    ok(Z.nonMisurati.includes("Scadenza di pagamento (non indicata: la data scritta non esiste)"), Z.nonMisurati.join(" · "));
+    for (const args of [[null], [undefined, null], [{}, {}], [{ righe: [] }, { clienti: null, incassi: null, note: null }]]) {
+      const F = conti.fogliaFattura(...args);
+      eq([F.numero, F.data, F.righe.length, F.piede.length], ["—", "—", 1, 1], "con niente: una riga a importo unico, un totale — " + JSON.stringify(args));
+      ok(Array.isArray(F.avvisi) && Array.isArray(F.riquadri) && F.riquadri.length === 2);
+    }
+  });
+  test("Conti · la pagina non compone più nessuna riga della fattura: righe, piede e avvisi vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    for (const et of ['<td class="num">non dettagliata</td>', "Le righe qui sopra non tornano con il totale", "Annullata da nota di credito", "rettificata in parte", "Totale imponibile</td>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaFattura\(f, \{ clienti: CLI, incassi: INC, note: NOT \}\)/.test(pagina), "e chiama fogliaFattura con i dati vivi");
+  });
+}
+/* ===== fine foglio della fattura nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL DDT E IL PREVENTIVO SI COMPONGONO NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   Gli altri due fogli che vanno al cliente. Il DDT viaggia sul camion e lo
+   legge la Guardia di Finanza: la causale fissa «Vendita» che nessuno aveva
+   scritto, il «€ 0,00/t» del prezzo mai indicato e l'etichetta che prometteva
+   un'ora sono vissuti nella pagina. `fogliaDdt(p, {clienti})` e
+   `fogliaPreventivo(o, {clienti, oggi})` li restituiscono in testo. */
+{
+  const D = conti.DEMO;
+  const E = shell.euro;
+  const riq = (F, et) => F.riquadri.find((r) => r[0] === et);
+  test("Conti · fogliaDdt: la pesata completa della dimostrazione — causale, trasporto a cura, pesi, prezzo, valore e volume", () => {
+    const p = D.pesate.find((x) => x.id === "s1");
+    const F = conti.fogliaDdt(p, { clienti: D.clienti });
+    eq([F.titolo, F.numero, F.data, F.cliente.ragioneSociale, F.luogoConsegna], ["Documento di trasporto", "2026/001", "11/02/2026", "Edilcave Srl", "Cantiere SS115 km 12"]);
+    eq(F.avviso, ""); eq(F.nonMisurati, []);
+    eq(F.riquadri, [["Causale del trasporto", "Vendita", false], ["Trasporto a cura di", "mittente — mezzo FT 421 KP", false], ["Data del ritiro", "11/02/2026", false]]);
+    const pesi = conti.pesiPesata(p), v = conti.valoreDdt(p), q = conti.quantitaPesata(p);
+    eq(F.riga, { prodotto: "Stabilizzato 0/30", lordo: "42,60", tara: "14,20", netto: "28,40", quantita: "28,40 t", prezzo: E(8.5) + "/t", sconto: "—", valore: E(v.valore) },
+      "i pesi di pesiPesata, il valore di valoreDdt");
+    eq(pesi.netto, 28.4, "(precondizione)");
+    eq(F.piede, { etichetta: "Valore della consegna (imponibile, IVA 22% esclusa)", valore: E(v.valore), mancante: false });
+    eq(F.perche, ""); eq(F.volume, "14,95 m³ (netto ÷ densità 1,90 t/m³)"); eq(q.m3, 14.947, "(il volume è quello di quantitaPesata)");
+    ok(/\*\*DPR 472\/1996\*\*/.test(F.piedeLegale) && /fattura può essere riepilogativa/.test(F.piedeLegale), "il piede legale, con la frase sulla fattura differita perché il valore c'è");
+    eq(F.colonne, ["Natura e qualità dei beni", "Lordo (t)", "Tara (t)", "Netto (t)", "Quantità", "Prezzo", "Sconto", "Valore"]);
+  });
+  test("Conti · fogliaDdt: la pesata SENZA causale né trasporto — «da indicare» in grassetto e l'avviso in cima, non «Vendita» e «a cura del mittente» fissi", () => {
+    const p = D.pesate.find((x) => x.id === "s2");
+    const F = conti.fogliaDdt(p, { clienti: D.clienti });
+    eq(riq(F, "Causale del trasporto"), ["Causale del trasporto", "da indicare", true]);
+    eq(riq(F, "Trasporto a cura di"), ["Trasporto a cura di", "da indicare", true]);
+    ok(/^\*\*Questo documento non è completo\.\*\* Prima di stamparlo va indicato: /.test(F.avviso) && /Si compila sulla pesata, in Conti\.$/.test(F.avviso), F.avviso);
+    eq(F.nonMisurati, conti.mancanzeDdt(p), "l'elenco di ciò che manca è quello di mancanzeDdt");
+    const V = conti.fogliaDdt({ ...p, trasportoACura: "vettore", vettore: "" });
+    eq(riq(V, "Trasporto a cura di"), ["Trasporto a cura di", "vettore — da indicare", true], "il vettore senza nome si dichiara");
+    eq(riq(conti.fogliaDdt({ ...p, trasportoACura: "vettore", vettore: "Autotrasporti Rossi" }), "Trasporto a cura di"), ["Trasporto a cura di", "Autotrasporti Rossi", false]);
+    eq(riq(conti.fogliaDdt({ ...p, trasportoACura: "destinatario", mezzo: "" }), "Trasporto a cura di"), ["Trasporto a cura di", "destinatario", false]);
+  });
+  test("Conti · fogliaDdt: il prezzo mai scritto è «non indicato» (mai «€ 0,00/t»), lo zero scritto è un prezzo, il peso che manca è «—», e il perché del valore che non c'è", () => {
+    const p = D.pesate.find((x) => x.id === "s1");
+    const F = conti.fogliaDdt({ ...p, prezzoUnitario: null, densita: null, aliquotaIva: null }, {});
+    eq([F.riga.prezzo, F.riga.valore], ["non indicato", "—"], "⛔ su un DDT «€ 0,00/t» è un prezzo dichiarato");
+    eq(F.piede, { etichetta: "Valore della consegna (imponibile, IVA non indicata)", valore: "non calcolabile", mancante: true });
+    eq(F.perche, conti.valoreDdt({ ...p, prezzoUnitario: null }).perche, "il perché lo scrive valoreDdt"); ok(F.perche.length > 20, F.perche);
+    eq(F.volume, "", "senza densità niente volume inventato");
+    ok(!/fattura può essere riepilogativa/.test(F.piedeLegale), "e senza valore niente frase sulla fattura differita");
+    ok(F.nonMisurati.includes("il prezzo unitario (non indicato)") && F.nonMisurati.includes("l'aliquota IVA (non indicata)"), F.nonMisurati.join(" · "));
+    const Z = conti.fogliaDdt({ ...p, prezzoUnitario: 0 }, {});
+    eq(Z.riga.prezzo, E(0) + "/t", "lo zero SCRITTO resta un prezzo: la fornitura in omaggio");
+    const S = conti.fogliaDdt({ ...p, lordo: null, tara: null, netto: null, peso: null }, {});
+    const pesi = conti.pesiPesata({ ...p, lordo: null, tara: null, netto: null, peso: null });
+    eq([S.riga.lordo, S.riga.tara, S.riga.netto], [pesi.lordo == null ? "—" : S.riga.lordo, pesi.tara == null ? "—" : S.riga.tara, pesi.netto == null ? "—" : S.riga.netto], "un peso mai scritto è «—», non «0,00»");
+    ok(S.riga.lordo === "—" || S.riga.netto === "—", "(almeno un peso manca davvero in questa prova — " + JSON.stringify(S.riga) + ")");
+    const N = conti.fogliaDdt({ ...p, data: "2026-02-30" }, {});
+    eq(riq(N, "Data del ritiro"), ["Data del ritiro", "non indicata", true], "una data che non esiste non si stampa");
+    ok(N.nonMisurati.includes("la data del ritiro (la data scritta non esiste)"));
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const X = conti.fogliaDdt(...args);
+      eq([X.numero, X.data, X.riga.prezzo, X.piede.valore, X.riquadri.length], ["—", "—", "non indicato", "non calcolabile", 3], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Conti · fogliaPreventivo: la conferma d'ordine a chiamata — «a chiamata», l'avviso al singolare, i totali «—» e non «€ 0,00»", () => {
+    const o = D.ordini.find((x) => x.id === "o5");
+    const F = conti.fogliaPreventivo(o, { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq([F.titolo, F.numero, F.data, F.cliente.ragioneSociale, F.riferimento, F.stato], ["Conferma d'ordine", "ORD/2026/002", "02/07/2026", "Edilcave Srl", "Accordo quadro 2026", "accettato"]);
+    eq(F.riquadri, [["Valida fino al", "02/08/2026", false], ["Stato", "Ordine", false], ["Preventivo di origine", "PREV/2026/005", false]]);
+    eq(F.avviso, "**Una riga è a quantità da definire** (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto **non la comprende**.");
+    eq(F.righe, [{ descrizione: "Pietrisco 8/12", quantita: "a chiamata", prezzo: E(11.5) + "/t", sconto: "− 5%", aliquota: "22%", imponibile: "—" }]);
+    eq(F.piede, [["Imponibile", "—", false], ["IVA", "—", false], ["Totale dell'ordine", "—", true]], "⛔ tutte le righe a chiamata: i totali non sono «€ 0,00»");
+    ok(F.nonMisurati.includes("il totale (tutte le righe sono a quantità da definire)"), F.nonMisurati.join(" · "));
+    eq(F.note, o.note); ok(/^Conferma dell'ordine ricevuto\./.test(F.piedeLegale));
+  });
+  test("Conti · fogliaPreventivo: il preventivo con i numeri — righe, sconto, piede di totaliPreventivo; senza validità; senza righe", () => {
+    const o = D.ordini.find((x) => x.id === "o2");
+    const t = conti.totaliPreventivo(o);
+    const F = conti.fogliaPreventivo(o, { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq([F.titolo, F.numero, F.stato], ["Preventivo", "PREV/2026/002", "scaduto"]);
+    eq(riq(F, "Stato"), ["Stato", "Scaduto", false]); eq(riq(F, "Prezzi"), ["Prezzi", "di listino, sconto indicato a parte", false]);
+    eq(F.avviso, ""); eq(F.righe.length, 2); eq(F.righe[0].quantita, "200,00 m³"); eq(F.righe[0].prezzo, E(22) + "/m³");
+    eq(F.piede, [["Imponibile", E(t.imponibile), false], ["IVA", E(t.ivaImporto), false], ["Totale dell'offerta", E(t.totale), true]]);
+    ok(/^Offerta valida fino alla data indicata;/.test(F.piedeLegale)); eq(F.nonMisurati, []);
+    const S = conti.fogliaPreventivo(D.ordini.find((x) => x.id === "o7"), { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq(riq(S, "Valida fino al"), ["Valida fino al", "non indicata", true]); eq(riq(S, "Stato"), ["Stato", "senza validità", false]);
+    ok(S.nonMisurati.includes("la data di validità (non indicata)"));
+    const M = conti.fogliaPreventivo({ ...o, righe: [{ descrizione: "A", quantita: null, unita: "t", prezzoUnitario: 10, aliquota: 22 }, { descrizione: "B", quantita: null, unita: "t", prezzoUnitario: 10, aliquota: 22 }] }, {});
+    ok(/^\*\*Alcune righe sono a quantità da definire\*\*/.test(M.avviso) && /\*\*non le comprende\*\*/.test(M.avviso), "al plurale — " + M.avviso);
+    const V = conti.fogliaPreventivo({ ...o, righe: [] }, {});
+    eq([V.righe, V.vuote, V.piede[2]], [[], "Nessuna riga.", ["Totale dell'offerta", "—", true]], "senza righe: «Nessuna riga.» e nessun totale");
+    ok(V.nonMisurati.includes("il totale (nessuna riga)"));
+    for (const st of Object.keys(conti.ETICHETTA_STATO_PREVENTIVO)) ok(typeof conti.ETICHETTA_STATO_PREVENTIVO[st] === "string" && conti.ETICHETTA_STATO_PREVENTIVO[st], "etichetta per " + st);
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const X = conti.fogliaPreventivo(...args);
+      eq([X.titolo, X.numero, X.righe.length, X.vuote, X.piede.length], ["Preventivo", "—", 0, "Nessuna riga.", 3], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Conti · la pagina non compone più nessuna riga del DDT né del preventivo", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    // («a chiamata» resta nella pagina: è la parola dell'ELENCO a schermo, non del foglio)
+    for (const et of ["Questo documento non è completo", "da indicare</b>", 'r.quantita == null ? "a chiamata"', "Valore della consegna (imponibile", "a quantità da definire", "Offerta valida fino alla data indicata", '["", "Bozza"]'])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaDdt\(p, \{ clienti: CLI \}\)/.test(pagina) && /fogliaPreventivo\(o, \{ clienti: CLI, oggi: new Date\(\) \}\)/.test(pagina), "e chiama le due funzioni con i dati vivi");
+  });
+}
+/* ===== fine DDT e preventivo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CAMPO · IL RAPPORTO DI FINE TURNO STAMPATO SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   Cento righe di modello nella pagina, che chiamavano le funzioni giuste ma
+   che nessuna prova senza browser leggeva: è lì che sono vissuti «0/0
+   attività concluse · 0 anomalie aperte» su una giornata mai registrata e la
+   tabella dei fermi senza i minuti. `rapportoGiornata(d, {dmy})` restituisce
+   le sezioni in testo e la pagina disegna. */
+{
+  const D = campo.DEMO;
+  /* ⛔ IL GIORNO PIENO DELLA DIMOSTRAZIONE È OGGI, NON UNA DATA SCRITTA A MANO:
+     `OGGI_DEMO = oggiISO()` nel modulo. La prima stesura diceva "2026-09-05",
+     il giorno in cui è stata scritta — verde in UTC, e caduta la sera stessa
+     in `orologio-cliente` (TZ=Europe/Rome), dove alle 22 UTC era già il 06/09
+     e le attività della dimostrazione stavano un giorno più avanti della data
+     della prova. Domani sarebbe caduta ovunque. */
+  const OGGI = shell.oggiISO();
+  const dg = (l) => (l || []).filter((r) => campo.eDelGiorno(r, OGGI));
+  const dati = (oggi = OGGI) => ({ oggi, rapportini: dg(D.rapportini), attivita: dg(D.attivita), obiettivi: D.obiettivi, checklist: D.checklist,
+    meteo: D.meteo, chiusure: D.chiusure, squadre: D.squadre, operatori: D.operatori, presenze: D.presenze, durate: D.durate });
+  const sez = (R, t) => R.sezioni.find((x) => x.titolo === t);
+  test("Campo · rapportoGiornata: il giorno pieno — il Quadro, l'avviso di chi non ha il giorno, le undici sezioni nell'ordine del foglio", () => {
+    const R = campo.rapportoGiornata(dati(), {});
+    eq([R.titolo, R.data], ["Rapporto di fine turno", shell.dataIt(OGGI)]);
+    const av = campo.avanzamentoGiornata(dg(D.attivita)), cop = campo.coperturaRapportini(D.squadre, dg(D.rapportini));
+    eq(R.quadro, [{ n: av.concluse + "/" + av.totale, t: "attività concluse" }, { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" },
+      { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" }, { n: "2.510 t", t: "prodotti" }], "i quattro numeri del Quadro vengono da avanzamentoGiornata, coperturaRapportini e totaliProduzione");
+    eq(R.attenzione, campo.avvisoSenzaGiorno(dg(D.attivita), dg(D.rapportini)), "l'avviso sul rapportino senza giorno è quello di avvisoSenzaGiorno");
+    ok(/1 rapportino \(2\.300 t\) senza il giorno di lavoro/.test(R.attenzione), R.attenzione);
+    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Meteo e condizioni del sito", "Personale presente", "Obiettivo del turno", "Attività",
+      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "le dieci sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono)");
+    ok(R.piede.startsWith("Generato da Deepwork Campo"));
+  });
+  test("Campo · rapportoGiornata: il personale — l'appello, il riposo sotto le 11 ore, gli orari che mancano DICHIARATI nella cella", () => {
+    const P = sez(campo.rapportoGiornata(dati(), {}), "Personale presente");
+    eq(P.testo, ""); eq(P.blocchi.length, 2, "due turni con qualcuno all'appello");
+    const M = P.blocchi[0];
+    ok(/^\*\*Turno Mattina\*\*: 2 presenti su 4, 1 non spuntato\./.test(M.intro), M.intro);
+    ok(/\*\*1 persona ha meno di 11 ore di riposo dal turno precedente\*\* \(D\.Lgs 66\/2003, art\. 7\)\./.test(M.intro), "⛔ il riposo sotto la soglia è in evidenza, con la norma — " + M.intro);
+    ok(/Per 1 il riposo non è misurabile\./.test(M.intro) && /Per \*\*2\*\* presenti su 2 manca l'ora di entrata o quella di uscita\./.test(M.intro), M.intro);
+    eq(M.tabella.colonne, ["Nome", "Ruolo", "Squadra", "Stato", "Entrata", "Uscita", "Ore", "Spuntato alle", "Riposo dal turno precedente"]);
+    const luca = M.tabella.righe.find((r) => r[0] === "Luca Bianchi");
+    eq(luca.slice(3, 7), ["presente", "06:15", "*non dichiarata*", "*non calcolabili*"], "⛔ per un presente l'orario che manca si DICHIARA, la cella non resta bianca");
+    ok(/dal turno precedente · stima: manca l'ora di uscita$/.test(luca[8]), "il riposo è quello di testoRiposo — " + luca[8]);
+    const giulia = M.tabella.righe.find((r) => r[0] === "Giulia Verdi");
+    eq(giulia.slice(3, 9), ["ASSENTE", "—", "—", "—", "06:30", "non in turno"], "per chi non è presente gli orari sono «—»: non lo riguardano");
+    const mario = M.tabella.righe.find((r) => r[0] === "Mario Rossi");
+    ok(/sotto le 11 ore/.test(mario[8]), mario[8]);
+    ok(/^\*\*Turno Pomeriggio\*\*: 3 presenti su 4\./.test(P.blocchi[1].intro), P.blocchi[1].intro);
+  });
+  test("Campo · rapportoGiornata: attività, fermi coi minuti di paretoFermi, disponibilità, obiettivo, produzione e rapportini — le parole dello schermo", () => {
+    const R = campo.rapportoGiornata(dati(), {});
+    const A = sez(R, "Attività").blocchi[0].tabella;
+    eq(A.righe.length, 7); eq(A.vuota, "Nessuna attività registrata.");
+    ok(A.righe.slice(0, 3).every((r) => /^ANOMALIA — /.test(r[4])), "le anomalie prima, con la causale — " + A.righe.map((r) => r[4]).join(" | "));
+    eq(A.righe[0], ["Mattina", "Frantoio primario", "Fermo per intasamento tramoggia", "Squadra C", "ANOMALIA — Intasamento impianto"]);
+    const F = sez(R, "Fermi per causale");
+    const pf = campo.paretoFermi(dg(D.attivita));
+    eq(F.blocchi[0].tabella.righe, [["Intasamento impianto", "2", campo.minutiFermoTesto(75, 2, 0)], ["Altro", "1", campo.minutiFermoTesto(30, 1, 0)]], "⛔ i MINUTI di paretoFermi, non il solo conto");
+    eq(F.note, [campo.fraseNonRiconosciute(pf).replace(/^ /, "") + "."], "la causale fuori elenco («Nebbia») si dice sotto la tabella");
+    const Di = sez(R, "Disponibilità del turno").blocchi[0].tabella;
+    eq(Di.righe, [["Mattina", "8 h", "3 fermi", campo.minutiFermoTesto(105, 3, 0), "Intasamento impianto — 75 min su 2 fermi", "**78%** (6 h 15 min lavorati su 8 h)"]]);
+    ok(/\*\*Non è l'OEE\*\*/.test(sez(R, "Disponibilità del turno").note[0]));
+    eq(sez(R, "Obiettivo del turno").blocchi[0].tabella.righe, [["Mattina", "260 t", "210 t (81%)", "−50 t"]]);
+    eq(sez(R, "Produzione").blocchi[0].tabella, { colonne: ["Turno", "Produzione"], righe: [["Mattina", "2.510 t"]], totale: ["Totale", "2.510 t"], vuota: "" });
+    const Rp = sez(R, "Rapportini");
+    eq(Rp.blocchi[0].tabella.righe[0], ["Rapportino trasporti", "Squadra B · Mattina **· senza data**", "2.300 t", "—", "inviato 13:00"], "⛔ la riga del rapportino senza giorno lo dice");
+    eq(Rp.note, ["Squadre senza rapportino: Squadra C — Impianto."]);
+    const Ch = sez(R, "Chiusura e firme");
+    eq([Ch.testo, Ch.firmeInBianco], ["Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.", true], "senza chiusure il rapporto lo dice e porta le righe da firmare a penna");
+    eq(sez(R, "Checklist di inizio turno").testo, "Nessuna checklist di inizio turno compilata oggi.");
+    eq(sez(R, "Meteo e condizioni del sito").testo, "Meteo e condizioni del sito non registrati oggi.");
+  });
+  test("Campo · rapportoGiornata: la giornata VUOTA — «—» nel Quadro, e ogni sezione dice perché è vuota (mai «0/0» o «nessuna anomalia»)", () => {
+    const R = campo.rapportoGiornata({ oggi: "2026-01-10", squadre: D.squadre }, {});
+    eq(R.quadro, [{ n: "—", t: "attività: nessuna registrata oggi" }, { n: "—", t: "anomalie: nessuna attività da cui contarle" }, { n: "0/3", t: "squadre con rapportino" }, { n: "—", t: "prodotti" }],
+      "⛔ niente «0/0 attività concluse · 0 anomalie aperte»: dove non è stato registrato niente il numero è «—» con il perché");
+    eq(R.attenzione, "");
+    eq(sez(R, "Fermi per causale").testo, "Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.");
+    eq(sez(R, "Disponibilità del turno").testo, "Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.");
+    eq(sez(R, "Attività").blocchi[0].tabella.righe, []); eq(sez(R, "Personale presente").testo, "Nessun appello registrato oggi.");
+    eq(sez(R, "Produzione").testo, "Nessuna produzione registrata."); eq(sez(R, "Rapportini").testo, "Nessun rapportino oggi.");
+    eq(sez(R, "Obiettivo del turno").testo, "Nessun obiettivo impostato per i turni di oggi.");
+    const A = campo.rapportoGiornata({ oggi: "2026-01-10", attivita: [{ id: "a", data: "2026-01-10", turno: "Mattina", titolo: "X", stato: "conclusa" }] }, {});
+    eq(sez(A, "Fermi per causale").testo, "Nessuna anomalia aperta.", "con attività registrate e nessuna anomalia la frase è quella");
+    eq(A.quadro[0], { n: "1/1", t: "attività concluse" }); eq(A.quadro[1], { n: "0", t: "anomalie aperte" });
+    eq(A.quadro[2], { n: "—", t: "squadre: nessuna in anagrafica" });
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const N = campo.rapportoGiornata(...args);
+      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 10], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Campo · rapportoGiornata: chiusure, riaperture, foto e checklist — le sezioni che compaiono solo se c'è qualcosa", () => {
+    const base = { oggi: "2026-03-03", attivita: [{ id: "a1", data: "2026-03-03", turno: "Mattina", titolo: "Nastro", dettaglio: "rullo", stato: "anomalia", causale: "guasto-meccanico", foto: "data:image/png;base64,iVBORw0KGgo=", fotoOra: "09:10" }],
+      chiusure: [{ data: "2026-03-03", turno: "Mattina", consegna: "Rossi", ricevuta: "Bianchi", ora: "14:00", note: "", riaperture: [{ da: "Rossi", il: "2026-03-03", ora: "15:30", motivo: "ore sbagliate" }] }],
+      checklist: [{ data: "2026-03-03", squadra: "Squadra A", turno: "Mattina", ora: "06:10", esiti: { a: "ok", b: "no" } }] };
+    const R = campo.rapportoGiornata(base, {});
+    const Ch = sez(R, "Chiusura e firme");
+    eq([Ch.testo, !!Ch.firmeInBianco], ["", false]); eq(Ch.blocchi[0].tabella.righe, [["Mattina", "Rossi", "Bianchi", "14:00", ""]]);
+    const Ri = sez(R, "Riaperture del turno");
+    ok(Ri && Ri.blocchi[0].tabella.righe.length === 1 && Ri.blocchi[0].tabella.righe[0][3] === "ore sbagliate", "la riapertura è sul foglio, con chi, quando e perché — " + JSON.stringify(Ri && Ri.blocchi[0].tabella.righe));
+    eq(Ri.blocchi[0].tabella.righe[0][2], "03/03/2026 15:30");
+    const Fo = sez(R, "Foto delle anomalie");
+    ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
+    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 7, "le foto stanno fra la disponibilità e la produzione, come sul foglio");
+    const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
+    eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10"]);
+    eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");
+    ok(typeof Ck[3] === "string" && Ck[3].length > 0, "la colonna delle voci non a posto è sempre scritta («nessuna» quando non ce ne sono) — " + Ck[3]);
+    ok(!sez(campo.rapportoGiornata({ oggi: "2026-03-03" }, {}), "Riaperture del turno"), "senza riaperture la sezione non c'è");
+  });
+  test("Campo · la pagina non compone più nessuna sezione del rapporto stampato", () => {
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    for (const et of ["attività: nessuna registrata oggi", "<h2>Fermi per causale</h2>", "non è stato consegnato</b>", "Nessuna checklist di inizio turno compilata oggi", "Riposo dal turno precedente</th>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI/.test(pagina), "e chiama rapportoGiornata con i dati vivi");
+  });
+}
+/* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCUDO · IL VERBALE DPI E LA CARTELLA DEL LAVORATORE SI COMPONGONO NEL
+   MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   I due fogli che si stampano dallo schermo. `verbaleDpi` e
+   `cartellaLavoratore` decidevano già che cosa c'è e che cosa manca; le
+   PAROLE delle celle — «non registrato», «non indicata», «DA SOSTITUIRE»,
+   «fatto (non obbligatorio)», «da sostituire a breve», l'adempimento e non la
+   famiglia — vivevano nella pagina. Adesso `fogliaVerbaleDpi` e
+   `fogliaCartella` le restituiscono in testo e la pagina disegna. */
+{
+  const D = scudo.DEMO;
+  const OGGI = new Date(2026, 8, 5);
+  const lav = (id) => D.lavoratori.find((l) => l.id === id);
+  const cart = (l) => scudo.cartellaLavoratore(l, { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti });
+  test("Scudo · fogliaVerbaleDpi: le otto colonne, la mansione, il modello non registrato, la scadenza passata «DA SOSTITUIRE», l'addestramento «DA FARE»", () => {
+    const F = scudo.fogliaVerbaleDpi(lav("d2"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    eq([F.titolo, F.sottotitolo], ["Verbale di consegna dei DPI", "Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008"]);
+    eq(F.dati, [["Azienda / cava", "", true], ["Lavoratore", "Luca Bianchi", false], ["Mansione", "Escavatorista / palista", false], ["Data del verbale", "05/09/2026", false]],
+      "l'azienda resta da compilare a penna; la mansione è quella assegnata, non il ruolo dell'anagrafica");
+    eq(F.colonne, ["Dispositivo", "Cat.", "Modello", "Taglia", "Consegnato il", "Sostituire entro", "Addestramento", "Firma"]);
+    const v = scudo.verbaleDpi(lav("d2"), D.dpi);
+    eq(F.righe.length, v.righe.length, "una riga per consegna di verbaleDpi");
+    const oto = F.righe.find((r) => /Otoprotettori/.test(r[0]));
+    eq(oto, ["Otoprotettori (cuffie o inserti)", "II", "inserti", "unica", "02/06/2025", "02/06/2026 — DA SOSTITUIRE", "DA FARE", ""],
+      "⛔ la colonna «Sostituire entro» LEGGE lo stato della riga: la scadenza passata non esce come una valida");
+    const guanti = F.righe.find((r) => /Guanti/.test(r[0]));
+    eq([guanti[2], guanti[6], guanti[7]], ["non registrato", "non previsto", ""], "⛔ il modello mai registrato lo dice (decisione 14), l'addestramento non obbligatorio è «non previsto», la firma è vuota");
+    eq(F.addestramentiMancanti, v.addestramentiMancanti); eq(v.addestramentiMancanti, 1, "(precondizione)");
+    ok(/^Documento preparato con Scudo · Deepwork — 5 dispositivi · addestramenti ancora da fare: 1\. Nota informativa/.test(F.piede), F.piede);
+    ok(F.nonMisurati.includes("4 dispositivi senza il modello registrato") && F.nonMisurati.includes("1 addestramento da fare"), F.nonMisurati.join(" · "));
+    ok(/\*\*addestramento\*\*/.test(F.dichiarazione) && /artt\. 20 e 78 D\.Lgs 81\/2008/.test(F.dichiarazione));
+    eq(F.firme, ["Firma del lavoratore", "Firma di chi consegna (datore di lavoro o preposto)"]);
+  });
+  test("Scudo · fogliaVerbaleDpi: «fatto (non obbligatorio)», «fatto il …», «non scade (dichiarato)», la data illeggibile «non indicata», la persona senza consegne", () => {
+    const F1 = scudo.fogliaVerbaleDpi(lav("d1"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    const masc = F1.righe.find((r) => /Facciale filtrante/.test(r[0]));
+    eq([masc[2], masc[5], masc[6]], ["FFP3", "non indicata", "fatto il 15/06/2026"], "la maschera: modello registrato, senza data di sostituzione, addestramento fatto con la data");
+    ok(F1.nonMisurati.includes("1 dispositivo senza data di sostituzione"), F1.nonMisurati.join(" · "));
+    const dpi = [
+      { id: "x1", lavoratoreId: "zz", tipo: "guanti", modello: "", taglia: "", dataConsegna: "2026-02-30", scadenza: null, nonScade: true, addestramento: true, dataAddestramento: "" },
+      { id: "x2", lavoratoreId: "zz", tipo: "elmetto", modello: "H1", taglia: "unica", dataConsegna: "2026-01-10", scadenza: "2031-01-10", addestramento: false },
+    ];
+    const F = scudo.fogliaVerbaleDpi({ id: "zz", nome: "Prova", ruolo: "Operaio" }, { dpi, mansioni: [], oggi: OGGI });
+    eq(F.dati[2], ["Mansione", "Operaio", false], "senza mansione assegnata resta il ruolo");
+    const g = F.righe.find((r) => /Guanti/.test(r[0]));
+    eq([g[2], g[3], g[4], g[5], g[6]], ["non registrato", "—", "non indicata", "non scade (dichiarato)", "fatto (non obbligatorio)"],
+      "⛔ il 30 febbraio non si stampa come una data; la taglia vuota resta «—» (una taglia «unica» esiste davvero); «non scade» è dichiarato");
+    ok(F.nonMisurati.includes("1 consegna senza la data"), F.nonMisurati.join(" · "));
+    const N = scudo.fogliaVerbaleDpi(lav("d4"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    eq([N.righe, N.vuota], [[], "Per questa persona non risulta registrata nessuna consegna."]);
+    ok(/— 0 dispositivi\./.test(N.piede), N.piede);
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const Z = scudo.fogliaVerbaleDpi(...args);
+      eq([Z.righe.length, Z.dati.length, Z.colonne.length], [0, 4, 8], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Scudo · fogliaCartella: le sezioni del fascicolo — l'adempimento e non la famiglia, l'etichetta del DPI e non la chiave, lo stato in evidenza, la chiusura in allarme", () => {
+    const F = scudo.fogliaCartella(cart(lav("d2")), OGGI);
+    eq([F.titolo, F.sottotitolo], ["Cartella del lavoratore", "Luca Bianchi · Escavatorista — documento preparato con Deepwork Scudo il 05/09/2026"]);
+    eq(F.sezioni.map((x) => x.titolo), ["Mansioni assegnate", "Formazione e scadenze", "Dispositivi di protezione consegnati", "Nomine attive"], "documenti collegati solo se ce ne sono");
+    eq(F.sezioni[0].righe, [["Escavatorista / palista", "4 requisiti · 5 DPI previsti"]]);
+    const sc = F.sezioni[1].righe;
+    eq(sc[0], ["Corso antincendio", "11/07/2026 · scaduta"], "⛔ l'adempimento (`etichettaScadenza`), non la famiglia «Formazione»");
+    ok(sc.some((r) => r[0] === "Sorveglianza sanitaria — visita periodica (art. 41)"), sc.map((r) => r[0]).join(" | "));
+    const oto = F.sezioni[2].righe.find((r) => /Otoprotettori/.test(r[0]));
+    eq(oto, ["Otoprotettori (cuffie o inserti)", "02/06/2025 · taglia unica · **da sostituire** · **addestramento da fare**"], "⛔ l'etichetta del DPI (non «otoprotettori»), lo stato e l'addestramento in evidenza");
+    eq(F.sezioni[3].righe, [["Addetto antincendio ed evacuazione", "dal 14/04/2025"]]);
+    eq(F.chiusura, { testo: scudo.descriviCartella(cart(lav("d2"))), allarme: true }, "⛔ completa non vuol dire in regola: la chiusura è in allarme perché ci sono righe da sistemare");
+    eq(F.nonMisurati, cart(lav("d2")).daSistemare); eq(F.firme, ["Luogo e data", "Il datore di lavoro"]);
+    const F1 = scudo.fogliaCartella(cart(lav("d1")), OGGI);
+    const doc = F1.sezioni.find((x) => x.titolo === "Documenti collegati");
+    eq(doc.righe, [["Verbale consegna DPI — M. Rossi", "Valido · Firmato 04/2026"]], "il documento porta il suo stato, e la nota dopo");
+    const mask = F1.sezioni[2].righe.find((r) => /Facciale/.test(r[0]));
+    ok(/\*\*senza data di sostituzione\*\* · addestramento fatto$/.test(mask[1]), mask[1]);
+  });
+  test("Scudo · fogliaCartella: la cartella VUOTA dichiara ogni sezione, il documento senza stato lo dice, la chiusura tranquilla solo quando non c'è niente da sistemare", () => {
+    const F = scudo.fogliaCartella(cart(lav("d7")), OGGI);
+    eq(F.sezioni[0].righe, []); eq(F.sezioni[0].vuoto, "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.");
+    eq(F.sezioni[1].vuoto, "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.");
+    eq(F.sezioni[2].vuoto, "Nessun DPI consegnato risulta a registro.");
+    eq(F.chiusura.allarme, true, "una cartella incompleta chiude in allarme");
+    const c = { ...cart(lav("d1")), documenti: [{ titolo: "Doc", meta: "", stato: undefined }], daSistemare: [], completa: true };
+    const G = scudo.fogliaCartella(c, OGGI);
+    eq(G.sezioni.find((x) => x.titolo === "Documenti collegati").righe, [["Doc", "**Stato non indicato**"]], "⛔ lo stato mai registrato non lascia la cella bianca");
+    eq(G.chiusura.allarme, false, "completa e senza righe da sistemare: chiusura tranquilla");
+    for (const args of [[null], [undefined, null], [{}, null]]) {
+      const Z = scudo.fogliaCartella(...args);
+      eq([Z.sezioni.length, Z.chiusura.allarme, Z.sezioni.every((x) => x.righe.length === 0 && x.vuoto)], [3, true, true], "con niente non rompe e dichiara: " + JSON.stringify(args));
+    }
+  });
+  test("Scudo · la pagina non compone più nessuna riga del verbale né della cartella", () => {
+    const pagina = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    // («senza data di sostituzione» resta nella pagina: è anche la parola dell'ELENCO a schermo)
+    for (const et of ['"non registrato"', '"DA FARE"', "DA SOSTITUIRE", "Nessun DPI consegnato risulta a registro", "requisiti · ", "<b>senza data di sostituzione</b>", "art. 77 D.Lgs 81/2008</div>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaVerbaleDpi\(lav, \{ dpi: DPI, mansioni: MANS, oggi: new Date\(\) \}\)/.test(pagina) && /fogliaCartella\(c, new Date\(\)\)/.test(pagina), "e chiama le due funzioni con i dati vivi");
+  });
+}
+/* ===== fine verbale DPI e cartella di Scudo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · IL BUDGET DELL'ANNO CONTRO LA SPESA REALE (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   La riga «Budget tracking vs actual» di CONCORRENTI_FLOTTA (4 prodotti su
+   14): «oggi è un excel parallelo». `budgetVsSpesa(budget, costi, anno,
+   oggi)` confronta il previsto con lo speso e con la QUOTA ATTESA a oggi;
+   le voci con spese ma senza budget e i costi senza data si dichiarano. */
+{
+  const D = flotta.DEMO;
+  const E = shell.euro;
+  const OGGI = new Date(2026, 8, 5);
+  test("Flotta · budgetVsSpesa: la dimostrazione — quota attesa pro-rata, «in linea» e «sopra il ritmo», tutta la flotta, chi non ha budget, i costi senza data", () => {
+    const R = flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI);
+    eq([R.anno, R.inCorso, R.chiuso, R.giorniTrascorsi, R.giorniAnno, R.frazione, R.dichiarato], [2026, true, false, 248, 365, 0.679, true], "il 5 settembre è il giorno 248 del 2026");
+    eq(R.righe.map((r) => r.voce), ["Carburante", "Ricambi e officina"], "le voci con budget, dalla più grande");
+    const carb = R.righe[0];
+    eq([carb.previsto, carb.speso, carb.nSpese, carb.quotaAttesa, carb.scostamento, carb.pct, carb.stato], [12000, 8400, 1, 8153.42, 246.58, 70, "in-linea"],
+      "carburante: 8.400 spesi contro 8.153 attesi a oggi (12.000 × 248/365) → in linea");
+    const ric = R.righe[1];
+    eq([ric.previsto, ric.speso, ric.nSpese, ric.quotaAttesa, ric.stato], [8000, 7390, 3, 5435.62, "sopra-ritmo"], "ricambi: 7.390 su 5.436 attesi → sopra il ritmo (oltre il +10 %)");
+    eq([R.totale.tutta, R.totale.previsto, R.totale.speso, R.totale.nSpese, R.totale.stato], [true, 30000, 21290, 6, "in-linea"], "la voce vuota è tutta la flotta: tutti i costi dell'anno");
+    eq(R.senzaBudget, [{ voce: "Gomme", speso: 3400, nSpese: 1 }, { voce: "Noleggi esterni", speso: 2100, nSpese: 1 }], "⛔ le voci con spese ma senza budget si elencano, non ricevono un budget zero");
+    eq(R.senzaData, { voci: 1, importo: 1200 }, "⛔ il noleggio senza data non sta in nessun anno: si dichiara a parte");
+    eq([R.spesoAnno, R.nSpeseAnno], [21290, 6], "e la spesa dell'anno non lo comprende");
+  });
+  test("Flotta · budgetVsSpesa: sforato, sotto il ritmo, nessuna spesa; maiuscole e spazi nella voce; l'anno chiuso e quello futuro", () => {
+    const B = [{ id: "x", anno: 2026, voce: "Gomme", importo: 3000 }, { id: "y", anno: 2026, voce: " carburante ", importo: 100000 }, { id: "z", anno: 2026, voce: "Assicurazione", importo: 5000 }];
+    const R = flotta.budgetVsSpesa(B, D.costi, 2026, OGGI);
+    const g = R.righe.find((r) => r.voce === "Gomme"), c = R.righe.find((r) => /carburante/i.test(r.voce)), a = R.righe.find((r) => r.voce === "Assicurazione");
+    eq([g.speso, g.previsto, g.pct, g.stato], [3400, 3000, 113, "sforato"], "3.400 su 3.000 → sforato");
+    eq([c.speso, c.stato], [8400, "sotto-ritmo"], "⛔ la voce si confronta senza badare a maiuscole e spazi; 8.400 su 67.945 attesi → sotto il ritmo");
+    eq([a.speso, a.nSpese, a.stato], [0, 0, "senza-spese"], "budget senza nessun costo con quella voce → «nessuna spesa», non «in linea»");
+    eq(flotta.descriviBudget(g), "SFORATO: " + E(400) + " oltre il previsto (113%).", "la frase dello sforamento col verdetto in testa, e gli euro come li scrive shell.euro (Node e Chromium raggruppano le quattro cifre in modo diverso)");
+    ok(/^Sotto la quota attesa a oggi \(.+\): può essere un risparmio, o una spesa non ancora registrata/.test(flotta.descriviBudget(c)), "⛔ sotto il ritmo non è «bene» — " + flotta.descriviBudget(c));
+    ok(/^Nessuna spesa registrata nell'anno con questa voce: non vuol dire che non si è speso/.test(flotta.descriviBudget(a)), flotta.descriviBudget(a));
+    ok(/^Di questo passo il budget non basta: a oggi ci si aspettava /.test(flotta.descriviBudget(flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI).righe[1])), "⛔ sopra il ritmo: il verdetto sta in TESTA, perché sullo schermo la riga è tagliata a due righe");
+    const chiuso = flotta.budgetVsSpesa(B, D.costi, 2026, new Date(2027, 2, 1));
+    eq([chiuso.inCorso, chiuso.chiuso, chiuso.frazione], [false, true, 1], "sull'anno chiuso la quota attesa è il previsto intero");
+    eq(chiuso.righe.find((r) => r.voce === "Gomme").stato, "sforato");
+    eq(chiuso.righe.find((r) => /carburante/i.test(r.voce)).stato, "sotto-ritmo", "8.400 su 100.000 a fine anno: sotto");
+    const futuro = flotta.budgetVsSpesa(B.map((b) => ({ ...b, anno: 2027 })), D.costi, 2027, OGGI);
+    eq([futuro.inCorso, futuro.chiuso, futuro.giorniTrascorsi, futuro.righe.length, futuro.spesoAnno], [false, false, 0, 3, 0], "un anno futuro: budget dichiarati, niente speso");
+    eq(futuro.righe.map((r) => r.stato), ["senza-spese", "senza-spese", "senza-spese"]);
+  });
+  test("Flotta · budgetVsSpesa: senza budget non si inventa niente; il budget non positivo non conta; con niente non rompe", () => {
+    const R = flotta.budgetVsSpesa([], D.costi, 2026, OGGI);
+    eq([R.dichiarato, R.righe, R.totale, R.senzaBudget.length, R.spesoAnno], [false, [], null, 4, 21290], "senza budget la spesa si vede e il confronto no");
+    const Z = flotta.budgetVsSpesa([{ id: "q", anno: 2026, voce: "Gomme", importo: 0 }, { id: "w", anno: 2026, voce: "Gomme", importo: "abc" }], D.costi, 2026, OGGI);
+    eq(Z.dichiarato, false, "⛔ un budget a zero o illeggibile non è un budget: uscirebbe «sforato dell'infinito»");
+    for (const args of [[null, null, null], [undefined, undefined, undefined, OGGI], [[], [], "", OGGI]]) {
+      const N = flotta.budgetVsSpesa(...args);
+      ok(N.anno >= 2026 && N.righe.length === 0 && N.dichiarato === false, "con niente: l'anno è quello di oggi, nessuna riga — " + JSON.stringify(N).slice(0, 80));
+    }
+    eq(flotta.descriviBudget(null), "");
+    for (const st of Object.keys(flotta.ETICHETTA_STATO_BUDGET)) ok(Array.isArray(flotta.ETICHETTA_STATO_BUDGET[st]) && flotta.ETICHETTA_STATO_BUDGET[st].length === 2, "etichetta per " + st);
+  });
+  test("Flotta · csvBudget: una riga per voce, la flotta intera, le voci senza budget con il previsto VUOTO, i costi senza data non collocabili", () => {
+    const R = flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI);
+    const righe = flotta.csvBudget(R).trim().split("\n");
+    eq(righe[0], flotta.CSV_BUDGET_INTESTAZIONE);
+    eq(righe[1], "2026;Carburante;12000;8400;1;8153.42;246.58;70;In linea");
+    eq(righe[2], "2026;Ricambi e officina;8000;7390;3;5435.62;1954.38;92;Sopra il ritmo");
+    eq(righe[3], "2026;tutta la flotta;30000;21290;6;20383.56;906.44;71;In linea");
+    eq(righe[4], "2026;Gomme;;3400;1;;;;senza budget", "⛔ il previsto che non c'è resta VUOTO, non «0»");
+    eq(righe[6], ";costi senza data (fuori da ogni anno);;1200;1;;;;non collocabili");
+    eq(righe.length, 7);
+    eq(flotta.csvBudget(null).trim(), flotta.CSV_BUDGET_INTESTAZIONE, "null non rompe");
+    const t = shell.CSV_TABELLE.find((x) => x.id === "flotta.budget");
+    ok(t && t.fonte === "flotta.csvBudget" && t.col === flotta.CSV_BUDGET_INTESTAZIONE, "il file è censito, e l'intestazione dichiarata è quella che l'export scrive");
+  });
+  test("Flotta · la pagina legge il budget dal modulo e ne disegna gli stati con la mappa del modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
+    ok(/budgetVsSpesa\(BUD, COS, annoB, new Date\(\)\)/.test(pagina), "il conto lo fa il modulo");
+    ok(/ETICHETTA_STATO_BUDGET\[r\.stato\]/.test(pagina), "e il badge legge la mappa del modulo, che copre tutti gli stati");
+    ok(/db\.budget \? db\.budget\(\) : \[\]/.test(pagina), "la collezione si legge come le altre");
+  });
+}
+/* ===== fine budget dell'anno di Flotta (05/09) ===== */
+
+/* ===== LE CONDIZIONI METEO DELLA MISURA (Sentinella, 05/09) =====
+   Il mondo: per il rumore il DM 16/03/1998 (All. B) non ammette misure con
+   vento oltre 5 m/s o con pioggia [seconda mano: risultati di ricerca, vedi
+   docs/RICERCA_CONTINUA_SENTINELLA.md]. La regola qui: le condizioni sono
+   facoltative sulla lettura, e sul rumore l'app sa dire fuori · dentro · NON SI
+   PUÒ DIRE. Nessun conto cambia: è un suggerimento, come «nessuna volata».
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const R = { tipo: "rumore", unita: "dB(A)", soglia: 70 };
+  const P = { tipo: "polveri", unita: "µg/m³", soglia: 40 };
+  const righeCsv = (t) => String(t).trim().split("\n"), colonne = (r) => r.split(";");
+  test("Sentinella · condizioniMisura: il testo della riga, e «registrate» solo se c'è qualcosa", () => {
+    const c = sentinella.condizioniMisura({ valore: 60, vento: 3.5, ventoDa: "no", pioggia: false, temperatura: 21, umidita: 55 });
+    eq(c.registrate, true); eq(c.vento, 3.5); eq(c.da, "NO", "la direzione si normalizza in maiuscolo");
+    eq(c.testo, "vento 3,5 m/s da NO · senza pioggia · 21 °C · umidità 55 %");
+    eq(sentinella.condizioniMisura({ valore: 60 }).registrate, false, "senza condizioni non c'è niente da scrivere");
+    eq(sentinella.condizioniMisura({ valore: 60 }).testo, "");
+    eq(sentinella.condizioniMisura(null).registrate, false, "null non rompe");
+    eq(sentinella.condizioniMisura({ vento: "abc", ventoDa: "XX" }).testo, "", "un vento illeggibile e una direzione inventata non entrano nel testo");
+    eq(sentinella.condizioniMisura({ vento: "abc" }).vento, null, "e il vento illeggibile è null, non NaN e non 0");
+    eq(sentinella.condizioniMisura({ ventoDa: "se" }).testo, "vento da SE", "la sola direzione si scrive");
+    eq(sentinella.condizioniMisura({ pioggia: true }).testo, "pioggia");
+  });
+  test("⛔ Sentinella · misuraFuoriCondizioni: tre risposte, e la terza è «non si può dire»", () => {
+    const fuori = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 7, pioggia: false }, R);
+    eq([fuori.pertinente, fuori.giudicabile, fuori.fuori], [true, true, true]);
+    eq(fuori.breve, "vento 7 m/s, oltre i 5 m/s ammessi");
+    ok(fuori.motivo.includes("DM 16/03/1998"), "il motivo lungo cita la norma: " + fuori.motivo);
+    const pioggia = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 2, pioggia: true }, R);
+    eq([pioggia.fuori, pioggia.breve], [true, "pioggia"]);
+    eq(sentinella.misuraFuoriCondizioni({ valore: 60, vento: 7, pioggia: true }, R).breve, "vento 7 m/s, oltre i 5 m/s ammessi e pioggia", "due ragioni insieme si dicono tutt'e due");
+    const dentro = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 5, pioggia: false }, R);
+    eq([dentro.fuori, dentro.giudicabile, dentro.motivo], [false, true, ""], "5 m/s è dentro: il limite è «oltre 5», non «da 5»");
+    const boh = sentinella.misuraFuoriCondizioni({ valore: 60 }, R);
+    eq([boh.pertinente, boh.giudicabile, boh.fuori], [true, false, false], "⛔ senza vento né pioggia non si dice «dentro»");
+    ok(boh.motivo.includes("non si può dire"), boh.motivo);
+    const meta = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 3 }, R);
+    eq([meta.fuori, meta.giudicabile], [false, false], "una metà sola registrata (vento sì, pioggia no) non basta a dire «dentro»");
+    ok(meta.motivo.includes("a metà"), meta.motivo);
+    eq(sentinella.misuraFuoriCondizioni({ valore: 60, vento: 3, pioggia: false }, R).giudicabile, true, "con tutt'e due si giudica");
+    const polveri = sentinella.misuraFuoriCondizioni({ valore: 30, vento: 9, pioggia: true }, P);
+    eq([polveri.pertinente, polveri.fuori], [false, false], "sulle polveri non si giudica: dire «sottovento» vorrebbe la posizione della sorgente, che l'app non ha");
+    eq(sentinella.misuraFuoriCondizioni({ vento: 9 }, null).pertinente, false, "senza punto non c'è regola");
+  });
+  test("Sentinella · contaFuoriCondizioni: il conto del report, con i tre cassetti", () => {
+    const L = [{ valore: 60, vento: 7, pioggia: false }, { valore: 58, vento: 2, pioggia: false }, { valore: 59 }, { valore: null, vento: 9 }, { valore: 61, vento: 1, pioggia: false }];
+    eq(sentinella.contaFuoriCondizioni(L, R), { pertinente: true, totale: 4, fuori: 1, dentro: 2, nonGiudicabili: 1 }, "la lettura senza valore non si conta; quella senza condizioni va nel terzo cassetto");
+    eq(sentinella.contaFuoriCondizioni(L, P), { pertinente: false, totale: 4, fuori: 0, dentro: 0, nonGiudicabili: 0 });
+    eq(sentinella.contaFuoriCondizioni(null, R), { pertinente: true, totale: 0, fuori: 0, dentro: 0, nonGiudicabili: 0 });
+    // la dimostrazione: il punto di rumore r1 ha una lettura fuori, una senza condizioni
+    const r1 = sentinella.DEMO.monitoraggi.find((x) => x.id === "r1");
+    ok(r1 && r1.tipo === "rumore", "la dimostrazione ha ancora il punto di rumore r1");
+    const c = sentinella.contaFuoriCondizioni(r1.letture, r1);
+    ok(c.fuori >= 1 && c.nonGiudicabili >= 1 && c.dentro >= 1, "e mostra tutt'e tre i cassetti: " + JSON.stringify(c));
+  });
+  test("Sentinella · la ragione «meteo» esiste fra le ragioni di annullamento, senza testo libero", () => {
+    const r = sentinella.RAGIONI_ANNULLAMENTO.find((x) => x.chiave === "meteo");
+    ok(!!r, "c'è");
+    eq(r.nota, false, "non vuole il testo: la ragione è già scritta");
+    ok(/vento oltre 5 m\/s/i.test(r.etichetta) && /pioggia/i.test(r.etichetta), r.etichetta);
+    eq(sentinella.VENTO_MAX_RUMORE_MS, 5, "il limite dichiarato dal modulo è quello dell'etichetta");
+    eq(sentinella.DIREZIONI_VENTO, ["N", "NE", "E", "SE", "S", "SO", "O", "NO"], "otto direzioni, in italiano (SO e O, non SW e W)");
+  });
+  test("⛔ Sentinella · csvAmbiente porta le condizioni dell'ultima lettura e il verdetto — vuoto dove non c'è niente da dire", () => {
+    const m = { id: "r", nome: "Rumore — casa", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 62,
+      letture: [{ data: "2026-08-01", valore: 60, vento: 7, pioggia: false }, { data: "2026-08-02", valore: 62, vento: 3, ventoDa: "N", pioggia: false, temperatura: 22 }] };
+    const r = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1]);
+    eq(r.length, 14, "quattordici celle come l'intestazione");
+    eq(r[12], "vento 3 m/s da N · senza pioggia · 22 °C", "le condizioni dell'ULTIMA lettura, quella che dà il valore");
+    eq(r[13], "no", "e l'ultima è dentro le condizioni");
+    const m2 = { ...m, letture: [{ data: "2026-08-03", valore: 75, vento: 8, pioggia: true }] };
+    const c2 = colonne(righeCsv(sentinella.csvAmbiente([m2], [], []))[1])[13];
+    ok(c2.startsWith("sì: vento 8 m/s, oltre i 5 m/s ammessi e pioggia") && c2.includes("DM 16/03/1998"), "fuori: si dice con la ragione e con la norma, perché il file va all'ente: " + c2);
+    // ⛔ e la copia del report porta le condizioni: la prima stesura le perdeva
+    const rep = sentinella.reportConformita({ monitoraggi: [{ id: "r", ...m2 }], dal: "2026-08-01", al: "2026-08-31", oggi: new Date("2026-08-20T12:00:00") });
+    eq(sentinella.contaFuoriCondizioni(rep.punti[0].letture, rep.punti[0].m).fuori, 1, "il report vede la lettura fuori condizioni");
+    eq(sentinella.campiCondizioni({ vento: 8, ventoDa: "", pioggia: false, temperatura: null, x: 1 }), { vento: 8, pioggia: false }, "campiCondizioni copia solo i campi delle condizioni, e non quelli vuoti");
+    const m3 = { ...m, letture: [{ data: "2026-08-03", valore: 65 }] };
+    const r3 = colonne(righeCsv(sentinella.csvAmbiente([m3], [], []))[1]);
+    eq([r3[12], r3[13]], ["", "non si può dire"], "⛔ senza condizioni la cella non dice «no»: dice che non si può dire");
+    const p = { nome: "Polveri", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 30, letture: [{ data: "2026-08-03", valore: 30, vento: 9 }] };
+    const rp = colonne(righeCsv(sentinella.csvAmbiente([p], [], []))[1]);
+    eq([rp[12], rp[13]], ["vento 9 m/s", ""], "sulle polveri le condizioni si scrivono e il verdetto resta vuoto: nessuna regola da applicare");
+    const nuovo = { nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 0, letture: [] };
+    const rn = colonne(righeCsv(sentinella.csvAmbiente([nuovo], [], []))[1]);
+    eq([rn[12], rn[13]], ["", ""], "mai misurato: niente condizioni, niente verdetto");
+  });
+  test("Sentinella · la pagina legge le condizioni dal modulo, in tre posti, e la tendina delle direzioni non ne tiene una copia", () => {
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    eq((pagina.match(/misuraFuoriCondizioni\(/g) || []).length >= 3, true, "riga della lettura, conferma di scrittura, report");
+    ok(/contaFuoriCondizioni\(p\.letture, p\.m \|\| null\)/.test(pagina), "il conto del report lo fa il modulo");
+    ok(/DIREZIONI_VENTO\.map\(/.test(pagina), "le direzioni della tendina vengono dal modulo");
+    ok(!/<option value="NE">/.test(pagina), "e non sono scritte a mano nella pagina");
+    ok(/\.\.\.campiProvenienza\(FONTE_MANO\), \.\.\.cond \}/.test(pagina), "le condizioni entrano nella lettura registrata a mano");
+  });
+}
+/* ===== fine condizioni meteo della misura (05/09) ===== */
+
+/* ===== LE COLONNE METEO NELL'IMPORT (Sentinella, 05/09 sera) =====
+   Un fonometro con la stazione meteo esporta vento, direzione, pioggia,
+   temperatura e umidità nello stesso file delle letture: le cinque condizioni
+   del form a mano entrano dal file, con la proposta dall'intestazione e i
+   lettori della direzione (sigla, anche inglese, o gradi) e della pioggia
+   (sì/no o millimetri). ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const R = [["Data", "Ora", "LAeq", "Evento", "Vento (m/s)", "Dir. vento", "Pioggia", "Temp (°C)", "RH (%)"],
+             ["01/08/2026", "10:00", "61,2", "volata", "7,5", "SW", "no", "29", "40"],
+             ["02/08/2026", "10:00", "58", "", "abc", "270", "0,4", "", ""],
+             ["03/08/2026", "10:00", "57", "", "2", "N", "no", "24", "60"]];
+  test("Sentinella · proponiColonneMeteo: le cinque colonne dall'intestazione, e «Evento» NON è «vento»", () => {
+    const mp = sentinella.proponiMappa(R, true);
+    eq(mp, { colData: 0, colOra: 1, colValore: 2 }, "data, ora e LAeq come sempre: le colonne meteo non rubano il valore");
+    eq(sentinella.proponiColonneMeteo(R, true, mp), { colVento: 4, colVentoDa: 5, colPioggia: 6, colTemp: 7, colUmid: 8 });
+    const EN = [["Date", "Time", "Leq", "Wind speed", "Wind dir", "Rain (mm)", "Temperature", "Humidity"], []];
+    eq(sentinella.proponiColonneMeteo(EN, true, { colData: 0, colOra: 1, colValore: 2 }), { colVento: 3, colVentoDa: 4, colPioggia: 5, colTemp: 6, colUmid: 7 }, "e in inglese");
+    const SIS = [["Data", "Ora", "PPV L", "PPV T", "PPV V", "PVS", "Freq", "Aria"], []];
+    const ev = { colData: 0, colOra: 1, colValore: 5, colPpvL: 2, colPpvT: 3, colPpvV: 4, colFreq: 6, colAria: 7 };
+    eq(sentinella.proponiColonneMeteo(SIS, true, ev), { colVento: -1, colVentoDa: -1, colPioggia: -1, colTemp: -1, colUmid: -1 }, "il file del sismografo: niente meteo, e nessuna colonna già presa viene ripescata");
+    eq(sentinella.proponiColonneMeteo(R, false, {}).colVento, -1, "senza intestazione non si indovina niente");
+    eq(sentinella.proponiColonneMeteo([["Data", "Evento", "Valore"], []], true, { colData: 0 }).colVento, -1, "⛔ «Evento» contiene «vento» e NON è il vento: modo «parola», non «dentro»");
+  });
+  test("Sentinella · direzioneVento: sigla italiana, inglese, sedici punte, gradi — e quello che non si riconosce resta vuoto", () => {
+    eq(["NE", "sw", "W", "NNE", "SSW", "ENE", "270", "22", "23", "0", "360", "999", "boh", "", null].map(sentinella.direzioneVento),
+       ["NE", "SO", "O", "NE", "SO", "E", "O", "N", "NE", "N", "N", "", "", "", ""]);
+  });
+  test("Sentinella · pioggiaDaCella: sì/no in tre lingue, i millimetri, e null dove la cella non dice niente", () => {
+    eq(["sì", "Si", "no", "0", "0,4", "2", "", "boh", "yes", "dry", null].map(sentinella.pioggiaDaCella),
+       [true, true, false, false, true, true, null, null, true, false, null]);
+  });
+  test("⛔ Sentinella · preparaLetture porta le condizioni dal file, e una cella che non si legge si DICHIARA senza scartare la riga", () => {
+    const mp = sentinella.proponiMappa(R, true);
+    const L = sentinella.preparaLetture(R, { ...mp, ...sentinella.proponiColonneMeteo(R, true, mp), conIntestazione: true });
+    eq(L.map(l => l.ok), [true, true, true], "tutte e tre entrano: una condizione illeggibile non toglie la misura");
+    eq([L[0].vento, L[0].ventoDa, L[0].pioggia, L[0].temperatura, L[0].umidita], [7.5, "SO", false, 29, 40]);
+    eq([L[1].vento, L[1].ventoDa, L[1].pioggia, L[1].temperatura, L[1].meteoNonLetti], [undefined, "O", true, undefined, ["vento"]],
+       "⛔ «abc» nel vento non diventa «non registrato» in silenzio: la riga dice quale condizione non ha letto; 270° è O; 0,4 mm è pioggia; la cella vuota non è «non letta»");
+    eq(L[2].meteoNonLetti, undefined, "una riga letta per intero non porta l'elenco");
+    const senza = sentinella.preparaLetture(R, { ...mp, conIntestazione: true })[0];
+    eq([senza.vento, senza.pioggia, senza.meteoNonLetti], [undefined, undefined, undefined], "senza le colonne indicate niente entra: il file di sempre resta com'era");
+    // e il giro intero: archivio → riga → regola sul rumore
+    const u = sentinella.unisciLetture([], L);
+    eq(u.letture.map(l => l.vento), [7.5, undefined, 2], "⛔ unisciLetture tiene le condizioni: è la copia campo per campo in cui si perderebbero");
+    eq(sentinella.condizioniMisura(u.letture[0]).testo, "vento 7,5 m/s da SO · senza pioggia · 29 °C · umidità 40 %");
+    eq(sentinella.contaFuoriCondizioni(u.letture, { tipo: "rumore" }), { pertinente: true, totale: 3, fuori: 2, dentro: 1, nonGiudicabili: 0 }, "due fuori (vento 7,5; pioggia), una dentro");
+  });
+  test("Sentinella · la pagina propone le colonne meteo dal modulo e le passa alla mappa dell'anteprima", () => {
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/proponiColonneMeteo\(impRighe, conInt, \{ \.\.\.mp, \.\.\.ev \}\)/.test(pagina), "la proposta esclude le colonne già prese da data/ora/valore/evento");
+    ok(/colVento: \+\$\("imp-col-vento"\)\.value/.test(pagina), "la mappa dell'anteprima porta le colonne meteo");
+    ok(/rigaMeteo\(r, punto\)/.test(pagina), "e l'anteprima mostra le condizioni sotto il numero");
+    for (const id of ["imp-col-vento", "imp-col-ventoda", "imp-col-pioggia", "imp-col-temp", "imp-col-umid"])
+      ok(pagina.includes('id="' + id + '"'), "la tendina " + id + " esiste");
+  });
+}
+/* ===== fine colonne meteo nell'import (05/09) ===== */
+
+/* ===== IL PONTE 3e — LA VOLATA PREVISTA DA GENESI A SENTINELLA SENZA FILE (05/09) =====
+   La forma del record è UNA (`previstaDaGenesi` in shared/), Genesi la scrive
+   nella sua collezione `previste`, Sentinella la legge e la ACCOGLIE con le
+   stesse funzioni della strada del CSV. E la strada del CSV aveva un buco che
+   il ponte ha fatto trovare: due code diverse nelle stesse colonne.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const D = { nFori: 18, kgTotali: 1080, mic: 60, dist: 320, ppv: 3.9, lim: 5, norma: "DIN residenziale @ 25 Hz", fonte: "genesi-sito", db: 121, codice: "GEN-20260910-abc12", calibrata: true, provvisoria: true, referti: 3 };
+  test("ponte 3e · previstaDaGenesi: il record con i campi del registro di Sentinella, e i null che restano null", () => {
+    const r = ponti.previstaDaGenesi(D, "2026-09-10", " Fronte Nord ", "2026-09-05T22:00:00");
+    eq(r.data, "2026-09-10"); eq(r.fronte, "Fronte Nord"); eq(r.stato, "prevista");
+    eq([r.nFori, r.kgTotali, r.kgMaxRitardo, r.distanzaRicettore], [18, 1080, 60, 320]);
+    eq([r.ppvPrevista, r.ppvPrevLimite, r.ppvPrevNorma, r.ppvPrevFonte, r.airblastPrevisto], [3.9, 5, "DIN residenziale @ 25 Hz", "genesi-sito", 121]);
+    eq([r.codiceVolata, r.ppvPrevProvvisoria, r.ppvPrevReferti], ["GEN-20260910-abc12", "si", 3]);
+    eq(r.origine, { app: "genesi", quando: "2026-09-05T22:00:00" });
+    const senza = ponti.previstaDaGenesi({ ...D, mic: null, dist: "", ppv: undefined, db: null, calibrata: false }, "2026-09-10", "", null);
+    eq([senza.kgMaxRitardo, senza.distanzaRicettore, senza.ppvPrevista, senza.airblastPrevisto], [null, null, null, null], "⛔ una MIC non calcolabile non è zero, nemmeno nel ponte");
+    eq([senza.ppvPrevProvvisoria, senza.ppvPrevReferti], ["", null], "senza legge di sito la domanda sulla provvisorietà non si pone");
+    ok(/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(senza.origine.quando), "il momento se lo scrive da solo se non lo si passa, con l'ORA (l'istante locale di shared/, non il solo giorno): " + senza.origine.quando);
+    eq(ponti.previstaDaGenesi(D, "2026-02-30", "x"), null, "una data che non esiste non fa un record");
+    eq(ponti.previstaDaGenesi(null, "2026-09-10", "x").nFori, null, "senza numeri, tutti null");
+  });
+  test("⛔ ponte 3e · accogliPrevista dà la STESSA volata che il file di Genesi dà passando da parseVolateCsv", () => {
+    const rec = ponti.previstaDaGenesi(D, "2026-09-10", "Fronte Nord", "2026-09-05T22:00:00");
+    const daPonte = sentinella.accogliPrevista(rec);
+    const n = (v) => v == null ? "" : String(v);
+    const H = sentinella.CSV_VOLATE_INTESTAZIONE.split(";").slice(0, 19).join(";") + ";ppvPrevProvvisoria;ppvPrevReferti";
+    const riga = ["2026-09-10", "Fronte Nord", n(D.nFori), n(D.kgTotali), n(D.mic), n(D.dist), "", "", "", "", "", "", "prevista", n(D.ppv), n(D.lim), D.norma, D.fonte, n(D.db), D.codice, "si", "3"].join(";");
+    const daCsv = sentinella.parseVolateCsv(H + "\n" + riga)[0];
+    const { origine, ...senzaOrigine } = daPonte;
+    eq(senzaOrigine, daCsv, "⛔ le due strade danno la stessa volata (il ponte porta in più solo `origine`)");
+    eq(origine, { app: "genesi", quando: "2026-09-05T22:00:00" });
+    eq(sentinella.firmaVolata(daPonte), sentinella.firmaVolata(daCsv), "e la stessa firma: il codice");
+    eq(sentinella.volataPrevista(daPonte), true);
+    const pv = sentinella.previsioneDiVolata(daPonte);
+    eq([pv.valore, pv.limite, pv.provvisoria, pv.referti], [3.9, 5, true, 3], "la previsione si legge con la sua provvisorietà");
+    eq(sentinella.accogliPrevista({ data: "boh" }), null, "senza data non si accoglie");
+    const vuota = sentinella.accogliPrevista(ponti.previstaDaGenesi({ codice: "GEN-x" }, "2026-09-10", ""));
+    eq([vuota.nFori, vuota.kgMaxRitardo, vuota.ppvPrevista, vuota.stato], [null, null, undefined, "prevista"], "⛔ i null restano null: `+null` faceva 0 nella prima stesura");
+  });
+  test("⛔ ponte 3e · il buco della strada del file: le due colonne di Genesi finivano nella COMUNICAZIONE", () => {
+    /* il file di Genesi scrive `codiceVolata;ppvPrevProvvisoria;ppvPrevReferti`,
+       il registro di Sentinella `codiceVolata;comunicataA;comunicataIl;comunicazioneRif`:
+       stesse posizioni, nomi diversi. Letto per posizione, «si» andava in
+       `comunicataA` e «3» in `comunicataIl` */
+    const H = sentinella.CSV_VOLATE_INTESTAZIONE.split(";").slice(0, 19).join(";") + ";ppvPrevProvvisoria;ppvPrevReferti";
+    const riga = "2026-09-10;Fronte Nord;18;1080;60;320;;;;;;;prevista;3.9;5;DIN residenziale @ 25 Hz;genesi-sito;121;GEN-20260910-abc12;si;3";
+    const v = sentinella.parseVolateCsv(H + "\n" + riga)[0];
+    eq([v.comunicataA, v.comunicataIl], [undefined, undefined], "⛔ nessuna comunicazione inventata");
+    eq(sentinella.descriviComunicazione(v).registrata, false);
+    eq([v.ppvPrevProvvisoria, v.ppvPrevReferti], ["si", 3], "e la provvisorietà si legge");
+    eq(sentinella.previsioneDiVolata(v).provvisoria, true, "⛔ com'era: null, «non dichiarato», su una legge tarata su tre referti");
+    // la strada di sempre, per nome: il proprio file rientra identico
+    const proprio = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(sentinella.DEMO.volate));
+    eq(proprio.length, sentinella.DEMO.volate.filter(x => sentinella.dataISOEsiste ? true : true).length, "tutte le volate della dimostrazione rientrano");
+    eq(proprio.filter(x => x.comunicataA).length, sentinella.DEMO.volate.filter(x => x.comunicataA).length, "e le comunicazioni restano dove sono");
+    // senza intestazione si legge per posizione, com'era
+    const pos = sentinella.parseVolateCsv(riga)[0];
+    eq(pos.comunicataA, "si", "senza intestazione la posizione è l'unica cosa che c'è (ed è il file vecchio, che le due colonne non le ha)");
+    // e le colonne in un altro ordine, con l'intestazione che comincia da `data`
+    const rim = sentinella.parseVolateCsv("data;codiceVolata;fronte\n2026-09-10;GEN-1;Nord")[0];
+    eq([rim.codiceVolata, rim.fronte], ["GEN-1", "Nord"], "per nome, non per posizione");
+  });
+  test("ponte 3e · previsteNuove: quelle che il registro non ha, con la firma di sempre; null = Genesi non leggibile", () => {
+    const a = ponti.previstaDaGenesi(D, "2026-09-10", "Nord"), b = ponti.previstaDaGenesi({ ...D, codice: "GEN-2" }, "2026-09-12", "Sud");
+    const gia = sentinella.accogliPrevista(a);
+    const r = sentinella.previsteNuove([{ id: "p1", ...a }, { id: "p2", ...b }, { id: "p3", ...b }, { id: "p4", data: "boh" }], [gia]);
+    eq([r.leggibile, r.nuove.length, r.gia, r.illeggibili], [true, 1, 2, 1], "una nuova (b), a già nel registro, il doppione di b nel ponte, una senza data");
+    eq([r.nuove[0].codiceVolata, r.nuove[0].ponteId], ["GEN-2", "p2"]);
+    const eseguita = { ...gia, stato: "eseguita", ppvMisurata: 2.1 };
+    eq(sentinella.previsteNuove([a], [eseguita]).nuove.length, 0, "una prevista già confermata come eseguita non si ripropone: il codice sopravvive alla conferma");
+    eq(sentinella.previsteNuove(null, []), { leggibile: false, nuove: [], gia: 0, illeggibili: 0 }, "⛔ null non è «nessuna»");
+    eq(sentinella.previsteNuove([], []).leggibile, true);
+  });
+  test("ponte 3e · previsteDaChiave: la chiave del browser, e un JSON corrotto risponde vuoto", () => {
+    const st = (v) => ({ getItem: (k) => (k === "genesiPreviste" ? v : null) });
+    eq(sentinella.previsteDaChiave(st(JSON.stringify([{ codiceVolata: "GEN-1" }]))), [{ codiceVolata: "GEN-1" }]);
+    eq(sentinella.previsteDaChiave(st("{boh")), []);
+    eq(sentinella.previsteDaChiave(st(null)), []);
+    eq(sentinella.previsteDaChiave({ getItem: () => { throw new Error("x"); } }), []);
+    eq(sentinella.previsteDaChiave(null), [], "senza localStorage (node) niente, senza errore");
+  });
+  test("ponte 3e · Genesi scrive con la stessa forma: la porta locale tiene `previste` e la pagina la chiama dopo il file", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/import \{ previstaDaGenesi[^}]*\} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "la forma viene da shared/, non riscritta");
+    ok(/GDB\.aggiungi\('previste',rec\)/.test(pagina), "e si scrive nella collezione `previste`");
+    ok(/\(await GDB\.previste\(\)\)\.some\(p=>p&&p\.codiceVolata===codice\)/.test(pagina), "senza raddoppiare un progetto riesportato");
+    const sent = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/previsteNuove\(PREV, VOL\)/.test(sent), "Sentinella confronta col registro");
+    ok(/db\.previsteGenesi \? db\.previsteGenesi\(\)\.catch\(\(\) => null\) : null/.test(sent), "e legge il ponte con il null che dice «non leggibile»");
+  });
+}
+/* ===== fine ponte 3e (05/09) ===== */
+
+/* ===== IL CONSUNTIVO DI CARICO DA CAMPO A GENESI COME DATO (05/09, notte) =====
+   Le tre funzioni del consuntivo vivono in shared/ e Campo le ri-esporta per
+   identità; Genesi legge `pianocarico` di Campo con la seconda istanza e lo
+   compone con la STESSA funzione con cui Campo scrive il file.
+   ⚠️ Prove SINCRONE (la porta locale è provata nel blocco di Genesi). */
+{
+  test("⛔ ponte Campo→Genesi · le tre funzioni del consuntivo sono le STESSE in Campo e in shared/ (identità, non copie)", () => {
+    ok(campo.pianoConsuntivoCsv === ponti.pianoConsuntivoCsv, "pianoConsuntivoCsv");
+    ok(campo.normalizzaPiano === ponti.normalizzaPiano, "normalizzaPiano");
+    ok(campo.CONSUNTIVO_COLONNE === ponti.CONSUNTIVO_COLONNE, "CONSUNTIVO_COLONNE");
+  });
+  test("ponte Campo→Genesi · dai record di `pianocarico` al consuntivo letto da Genesi: lo stesso giro del file", () => {
+    const record = [
+      { id: "a", foro: "1", prog: "58", reale: 61, data: "2026-09-05", turno: "mattino", squadra: "A", da: "Rossi", idForo: "f1" },
+      { id: "b", foro: "2", prog: "58", reale: null, data: "2026-09-05", turno: "mattino", squadra: "A", da: "", idForo: "f2" },
+      { id: "c", foro: "x", prog: "58", reale: 50, data: "2026-09-05", turno: "mattino" },   // foro illeggibile: fuori
+    ];
+    const piano = ponti.normalizzaPiano(record);
+    eq(piano.map((p) => [p.foro, p.prog, p.reale]), [[1, 58, 61], [2, 58, null]], "normalizza: numeri letti, la riga senza foro fuori, ordine per foro");
+    const csv = ponti.pianoConsuntivoCsv(piano);
+    eq(csv.split("\n")[0], ponti.CONSUNTIVO_COLONNE.join(";"));
+    const p = genesi._riconParseCampo(csv);
+    ok(!p.errore, "Genesi lo legge come legge il file: " + (p.errore || "ok"));
+    eq(p.righe.length, 2);
+    eq([p.righe[0].reale, p.righe[1].reale], [61, null], "la carica reale del primo foro, e il secondo ancora da registrare");
+    eq(p.righe[0].idForo || p.righe[0].id_foro || p.righe[0].id, "f1", "l'id stabile del foro torna a Genesi per l'accoppiamento");
+  });
+  test("ponte Campo→Genesi · la pagina di Genesi legge dall'organizzazione con le funzioni di shared/, e il bottone esiste solo in live", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/import \{ previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv[^}]*\} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "le funzioni vengono da shared/");
+    ok(/p=_riconParseCampo\(pianoConsuntivoCsv\(piano\)\)/.test(pagina), "e il consuntivo letto passa dallo STESSO lettore del file");
+    ok(/righe=await GDB\.pianoCampo\(\)/.test(pagina), "la lettura è della porta");
+    ok(/if\(\$\('riconCampoOrg'\)&&GDB\.mode==='live'\) \$\('riconCampoOrg'\)\.style\.display=''/.test(pagina), "il bottone compare solo in live: da soli non c'è un Campo da leggere");
+    ok(/if\(righe===null\)\{ toast\('Campo non si è potuto leggere/.test(pagina), "⛔ null è «non leggibile», non «nessun foro»");
+  });
+}
+/* ===== fine consuntivo Campo→Genesi (05/09) ===== */
+
+/* ===== IL PIANO DI CARICO DA GENESI A CAMPO COME DATO (05/09, notte) =====
+   Le righe del piano si compongono in un posto solo (`pianoCsvGenesi` in
+   shared/): il file che esce da Genesi e il testo che Campo ricompone dal
+   record letto dall'organizzazione sono lo stesso testo, letto dallo stesso
+   `parsePianoCsv`. ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const RIGHE = [
+    { foro: 1, x: 0, fila: 0, prof: 10, prog: 60, borr: 2.5, rit: 0, relief: 3.5, burden: 3, spaz: 3.5, vol: 105, pf: 0.571, idForo: "h-a1" },
+    { foro: 2, x: 3.5, fila: 0, prof: 10, prog: 60, borr: 2.5, rit: 42, relief: null, burden: 3, spaz: 3.5, vol: 105.04, pf: 0.5714, idForo: "h-a2" },
+  ];
+  test("⛔ ponte Genesi→Campo · pianoCsvGenesi scrive la riga di sempre, byte per byte, e la cella vuota dove il numero non c'è", () => {
+    const csv = ponti.pianoCsvGenesi(RIGHE);
+    eq(csv.split("\n")[0], ponti.PIANO_GENESI_INTESTAZIONE);
+    eq(csv.split("\n")[1], "1;0.00;0.00;10;60;2.5;0;3.50;3.00;3.50;105.0;0.571;h-a1", "la forma che la pagina scriveva a mano: toFixed(2) su x, fila, relief, burden, interasse; (1) sul volume; (3) sul pf; i numeri di progetto come sono");
+    eq(csv.split("\n")[2], "2;3.50;0.00;10;60;2.5;42;;3.00;3.50;105.0;0.571;h-a2", "⛔ il relief mancante è una cella VUOTA, non «null» e non 0");
+    const senza = ponti.pianoCsvGenesi([{ foro: 1, x: 0, fila: 0, prof: null, prog: "", borr: undefined, rit: 0 }]).split("\n")[1];
+    eq(senza, "1;0.00;0.00;;;;0;;;;;;", "⛔ profondità, carica e borraggio illeggibili escono vuoti: era il difetto del 13/08 («1;0.00;3.00;null;null;null…»)");
+    eq(ponti.pianoCsvGenesi([]), ponti.PIANO_GENESI_INTESTAZIONE + "\n", "senza fori, la sola intestazione");
+    eq(ponti.pianoCsvGenesi(null), ponti.PIANO_GENESI_INTESTAZIONE + "\n");
+  });
+  test("ponte Genesi→Campo · pianoDaGenesi: il record con i numeri o null, l'impronta del testo, e due export uguali hanno la stessa impronta", () => {
+    const r = ponti.pianoDaGenesi(RIGHE, { nome: " Piano X ", quando: "2026-09-05 23:00" });
+    eq([r.nome, r.quando, r.nFori, r.origine], ["Piano X", "2026-09-05 23:00", 2, { app: "genesi" }]);
+    eq(r.righe[1].relief, null, "null resta null");
+    eq(r.righe[1].idForo, "h-a2");
+    ok(/^p[0-9a-z]+$/.test(r.impronta), r.impronta);
+    eq(ponti.pianoDaGenesi(RIGHE, { nome: "altro nome" }).impronta, r.impronta, "l'impronta è del piano, non del nome");
+    ok(ponti.pianoDaGenesi(RIGHE.slice(0, 1), {}).impronta !== r.impronta, "un piano diverso ha un'altra impronta");
+    ok(/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(ponti.pianoDaGenesi(RIGHE, {}).quando), "il momento se lo scrive da solo");
+    eq(ponti.pianoDaGenesi(null, null).nFori, 0);
+  });
+  test("⛔ ponte Genesi→Campo · dal record al piano di Campo: lo stesso lettore del file dà le stesse righe", () => {
+    const rec = ponti.pianoDaGenesi(RIGHE, { nome: "Piano X" });
+    const daPonte = campo.parsePianoCsv(campo.pianoCsvGenesi(rec.righe));
+    const daFile = campo.parsePianoCsv(ponti.pianoCsvGenesi(RIGHE));
+    eq(daPonte, daFile, "⛔ identiche riga per riga");
+    eq(daPonte.map((p) => [p.foro, p.prog, p.idForo]), [[1, 60, "h-a1"], [2, 60, "h-a2"]]);
+    ok(campo.pianoCsvGenesi === ponti.pianoCsvGenesi, "e in Campo è la stessa funzione (identità, non copia)");
+  });
+  test("ponte Genesi→Campo · pianiGenesiOrdinati e pianiDaChiave: dal più recente, con i vuoti fuori; null = Genesi non leggibile", () => {
+    const a = { id: "1", ...ponti.pianoDaGenesi(RIGHE, { nome: "A", quando: "2026-09-05 22:00" }) };
+    const b = { id: "2", ...ponti.pianoDaGenesi(RIGHE.slice(0, 1), { nome: "", quando: "2026-09-05 23:00" }) };
+    const r = campo.pianiGenesiOrdinati([a, b, { id: "3", righe: [] }, null]);
+    eq([r.leggibile, r.piani.map((p) => [p.id, p.nome, p.nFori])], [true, [["2", "Piano di carico", 1], ["1", "A", 2]]], "il più recente prima; il vuoto e il null fuori; il nome vuoto ha un nome");
+    eq(campo.pianiGenesiOrdinati(null), { leggibile: false, piani: [] }, "⛔ null non è «nessun piano»");
+    const st = (v) => ({ getItem: (k) => (k === "genesiPiani" ? v : null) });
+    eq(campo.pianiDaChiave(st(JSON.stringify([a]))).length, 1);
+    eq(campo.pianiDaChiave(st("{boh")), []);
+    eq(campo.pianiDaChiave(null), []);
+  });
+  test("ponte Genesi→Campo · le due pagine: Genesi compone il file con shared/ e scrive il record; Campo carica dal record con la stessa strada del file", () => {
+    const g = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const csv=pianoCsvGenesi\(righePiano\);/.test(g), "il file esce da pianoCsvGenesi");
+    ok(/GDB\.aggiungi\('piani',recPiano\)/.test(g), "e il record va nella collezione `piani`");
+    ok(/some\(p=>p&&p\.impronta===recPiano\.impronta\)/.test(g), "senza raddoppiare lo stesso piano");
+    const c = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    ok(/await importaPianoDaTesto\(pianoCsvGenesi\(p\.righe\)\);/.test(c), "Campo ricompone il testo e passa dalla STESSA funzione dell'import");
+    ok(/PGEN = db\.pianiGenesi \? await db\.pianiGenesi\(\) : null/.test(c), "e legge il ponte con il null che dice «non leggibile»");
+    ok(/pianiGenesiOrdinati\(PGEN\)/.test(c), "l'ordine lo decide il modulo");
+  });
+}
+/* ===== fine piano Genesi→Campo (05/09) ===== */
+
+/* ===== I PONTI DI GENESI, IN HOME (05/09, notte) =====
+   Il pannello «Ponte Deepwork» diceva «tramite file»: vero per il core, falso
+   per le altre app dal 05/09. Adesso il riepilogo è calcolato.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  test("Genesi · riepilogoPontiGenesi: quanti record per ponte, l'ultimo, e null che NON è zero", () => {
+    const r = genesi.riepilogoPontiGenesi({ mode: "live",
+      previste: [{ data: "2026-09-10" }, { data: "2026-09-12" }], piani: [{ quando: "2026-09-05 22:49" }], nuvole: [] });
+    eq(r.dove, "nell'organizzazione");
+    eq(r.righe.map((x) => [x.app, x.n, x.ultimo, x.leggibile]), [["Sentinella", 2, "2026-09-12", true], ["Campo", 1, "2026-09-05", true], ["Terra", 0, "", true]]);
+    eq(r.righe[0].testo, "2 volate previste scritte nell'organizzazione"); eq(r.righe[0].codaUltimo, "l'ultimo del");
+    eq(r.righe[1].testo, "un piano di carico scritto nell'organizzazione"); eq(r.righe[1].codaUltimo, "del");
+    ok(/Nessuna lavorazione della nuvola/.test(r.righe[2].testo), "lo stato vuoto dice come si produce: " + r.righe[2].testo);
+    const loc = genesi.riepilogoPontiGenesi({ mode: "locale", previste: [{ data: "2026-09-10" }], piani: null, nuvole: null });
+    eq(loc.righe[0].testo, "una volata prevista scritta su questo computer", "da soli il posto è il computer");
+    eq([loc.righe[1].n, loc.righe[1].leggibile, loc.righe[1].testo], [null, false, "i piani di carico non leggibili"], "⛔ null non è zero");
+    eq(genesi.riepilogoPontiGenesi({ mode: "live", previste: null }).righe[0].testo, "le volate previste non leggibili adesso: riprova più tardi");
+    eq(genesi.riepilogoPontiGenesi(null).righe.length, 3, "senza dati, tre righe non leggibili");
+  });
+  test("Genesi · la Home disegna i ponti dal modulo, con la data formattata dalla pagina", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/riepilogoPontiGenesi\(\{ previste, piani, nuvole:nv, mode:GDB\.mode \}\)/.test(pagina), "il riepilogo lo fa il modulo");
+    ok(/gdata\(r\.ultimo\)/.test(pagina), "e la data dell'ultimo la formatta la pagina");
+    ok(!/tramite file <b>\.volata\.json<\/b>: esporta da qui e importa in Deepwork/.test(pagina), "⛔ il testo fisso «tramite file» non c'è più");
+  });
+}
+/* ===== fine ponti in Home (05/09) ===== */
+
+/* ===== GENESI · LA PASSATA IN PROFONDITÀ, HOME E RICONCILIAZIONE (05/09, notte) =====
+   Due cose viste guardando le schermate, non leggendo il codice. */
+{
+  const _gf = await app("genesi", "genesi-formato.js");   // caricato QUI, fuori dalla prova, che resta sincrona
+  test("Genesi · in Home una volata con una data che non esiste dice «senza data», non ripete la stringa", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/dataISOEsiste\(v\.data\)\?gdata\(v\.data\):'senza data'/.test(pagina), "⛔ prima `gdata('boh')` scriveva «boh» nella riga: la forma passava per una data");
+    eq(_gf.gdata("boh"), "boh", "e questo è il comportamento di gdata che lo rendeva possibile: restituisce quello che riceve");
+    eq(_gf.gdata("2026-09-05 22:49"), "05/09/2026 alle 22:49");
+  });
+  test("Genesi · la riconciliazione spiega la strada giusta per il modo: dall'organizzazione in live, dal file da soli", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/GDB\.mode==='live'\s*\?\s*'Premi <b>«Leggi il consuntivo da Campo \(organizzazione\)»/.test(pagina), "in live la spiegazione nomina il bottone dell'organizzazione");
+    ok(/: 'In Campo premi <b>«Esporta consuntivo \(CSV\)»<\/b>, poi rileggi il file/.test(pagina), "da soli resta la strada del file");
+  });
+}
+/* ===== fine passata Genesi, Home e riconciliazione (05/09) ===== */
+
+
+
+
+
+
+
+/* ===== fine portata del report (05/09) ===== */
+/* ===== fine comunicazione della volata (05/09) ===== */
+/* ===== fine Sentinella sopra la mappa (05/09) ===== */
+/* ===== fine piano sopra la mappa (05/09) ===== */
+/* ===== fine file della pesa (05/09) ===== */
+/* ===== fine mappa delle colonne (05/09) ===== */
+/* ===== fine ponte P6 (05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

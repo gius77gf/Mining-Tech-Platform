@@ -30,11 +30,18 @@
 //                   superficieMq, volumeM3 (previsto dal progetto, non
 //                   misurato), stato: previsto|aperto|esaurito|in-recupero|
 //                   recuperato|collaudato, apertoIl, esauritoIl,
-//                   recuperoIniziatoIl, recuperoFinitoIl, collaudatoIl (ISO
+//                   recuperoIniziatoIl, recuperoFinitoIl, collaudoChiestoIl,
+//                   collaudatoIl (ISO), garanziaEuro? (quota di garanzia del lotto,
 //                   o null), frontiId: [] (i fronti che stanno nel lotto),
 //                   quotaFondoM (il fondo di QUESTO settore quando il
 //                   progetto ne dà uno diverso da quello generale: vince
 //                   sull'atto), nota }
+//   inventari/{id}: { data (ISO), metodo: drone|topografico|stima,
+//                   cumuli: [{ materiale, volumeM3|null, nota? }], note? }
+//                   — la fotografia del piazzale a una data (03/09): Conti la
+//                   legge per chiudere il triangolo prodotto − venduto =
+//                   Δ scorte. Un cumulo con volumeM3 null è «non misurato»,
+//                   NON zero: si conta a parte e non entra nel totale.
 // I KPI non si salvano mai: si CALCOLANO dai rilievi
 // (volumi mese = somma dei volumi elaborati del mese,
 //  avanzamento piano = estratto anno / pianificato anno).
@@ -44,7 +51,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell,
+import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell, leggiCsv, dataIt,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -67,14 +74,22 @@ export const DEMO = {
     { id: "lo1", nome: "Lotto 1 — settore Ovest", ordine: 1, superficieMq: 14000, volumeM3: 210000,
       stato: "collaudato", apertoIl: "2021-04-12", esauritoIl: "2022-11-30",
       recuperoIniziatoIl: "2023-01-16", recuperoFinitoIl: "2023-09-08", collaudatoIl: "2024-02-19",
+      /* la quota di garanzia (04/09) è quella scritta nella polizza per QUESTO
+         lotto, dichiarata dall'utente: Terra non la calcola. lo4, lo5 e lo6
+         restano senza, di proposito: il cartellone deve dirlo */
+      garanziaEuro: 40000,
       frontiId: [], nota: "Chiuso e collaudato dall'ente: verbale agli atti." },
     { id: "lo2", nome: "Lotto 2 — settore Sud-Ovest", ordine: 2, superficieMq: 6000, volumeM3: 88000,
       stato: "recuperato", apertoIl: "2022-10-03", esauritoIl: "2024-07-19",
       recuperoIniziatoIl: "2024-09-02", recuperoFinitoIl: "2026-05-22", collaudatoIl: null,
-      frontiId: [], nota: "Collaudo chiesto all'ente: fino al verbale il lotto non è chiuso." },
+      /* la richiesta del collaudo è una DATA (04/09), non più una frase nella
+         nota: è il momento di mezzo fra «recupero finito» e «verbale» */
+      collaudoChiestoIl: "2026-06-10", garanziaEuro: 25000,
+      frontiId: [], nota: "" },
     { id: "lo3", nome: "Lotto 3 — settore Nord-Ovest", ordine: 3, superficieMq: 5500, volumeM3: 75000,
       stato: "in-recupero", apertoIl: "2023-02-06", esauritoIl: "2026-02-27",
       recuperoIniziatoIl: "2026-04-13", recuperoFinitoIl: null, collaudatoIl: null,
+      garanziaEuro: 18000,
       frontiId: [], nota: "Rimodellamento delle scarpate in corso." },
     /* Il settore Nord è l'unico che nel progetto d'esempio ha un fondo SUO,
        più alto di quello generale (335 contro 300): è il caso normale di un
@@ -222,6 +237,27 @@ export const DEMO = {
        e finché non lo si chiarisce non è «a posto», è «non si sa». */
     { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
   ],
+  /* L'INVENTARIO DEI CUMULI: la fotografia del piazzale a una data. È il terzo
+     lato del triangolo che Conti chiude (prodotto − venduto = Δ scorte): con
+     due fotografie che racchiudono il periodo la variazione delle scorte è
+     MISURATA, non stimata. I nomi dei materiali combaciano col listino di
+     Conti — tranne «Terre di scavo», fuori listino DI PROPOSITO: è il cumulo
+     che nella conversione in tonnellate resta senza densità e va elencato,
+     non contato a zero. `i3` è una stima con la sabbia «in lavorazione» e il
+     volume a null: quel cumulo esiste, il suo numero no, e la riga lo deve
+     dire («1 cumulo non misurato») invece di sommare uno zero. */
+  inventari: [
+    { id: "i1", data: "2025-12-29", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 2400 }, { materiale: "Sabbia lavata 0/4", volumeM3: 1150 },
+      { materiale: "Pietrisco 8/12", volumeM3: 620 }, { materiale: "Terre di scavo", volumeM3: 300 } ] },
+    { id: "i2", data: "2026-06-27", metodo: "drone", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 3050 }, { materiale: "Sabbia lavata 0/4", volumeM3: 880 },
+      { materiale: "Pietrisco 8/12", volumeM3: 700 }, { materiale: "Terre di scavo", volumeM3: 300 } ] },
+    { id: "i3", data: "2026-08-30", metodo: "stima", cumuli: [
+      { materiale: "Stabilizzato 0/30", volumeM3: 2900 },
+      { materiale: "Sabbia lavata 0/4", volumeM3: null, nota: "Cumulo in lavorazione: non misurato" },
+      { materiale: "Pietrisco 8/12", volumeM3: 640 } ] },
+  ],
 };
 
 // ============================================================
@@ -242,7 +278,7 @@ export const DEMO = {
 // serve a Terra, al ponte P2 e a Conti nel confronto cavato-contro-venduto: tre
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
-import { provenienzaDi, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { provenienzaDi, applicaPercorsi, traduciCancellazioni, statoScadenza } from "../../shared/dw-ponti.js";
 /* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
    usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
    teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
@@ -251,6 +287,7 @@ import { provenienzaDi, applicaPercorsi, traduciCancellazioni } from "../../shar
    due copie uguali oggi divergono domani senza che nessuno lo veda. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { autorizzazioneVigente } from "../../shared/dw-ponti.js";
 export function soloScavo(rilievi)  { return (rilievi || []).filter(r => provenienzaDi(r) === "scavo"); }
 export function soloCumulo(rilievi) { return (rilievi || []).filter(r => provenienzaDi(r) === "cumulo"); }
 
@@ -484,6 +521,21 @@ export function volumeFronte(rilievi, fronteId, prov = "scavo") {
     .reduce((s, r) => s + r.volumeM3, 0);
 }
 
+/* ⛔ «ZERO» E «NESSUNO L'HA MISURATO» NON SONO LO STESSO NUMERO. `volumeFronte`
+   risponde 0 in tutt'e due i casi, ed è giusto per una somma: la somma di
+   niente è zero. Ma un grafico che mette quello zero accanto ai fronti
+   rilevati dice «da qui non è uscito niente», che è una misura che nessuno ha
+   fatto. Questa risposta è per chi DISEGNA o RIASSUME: `null` se il fronte non
+   ha nemmeno un rilievo usabile di quella provenienza, la somma altrimenti —
+   anche quando la somma fa zero davvero (un rilievo elaborato a 0 m³ è una
+   misura, e si disegna). */
+export function volumeFronteRilevato(rilievi, fronteId, prov = "scavo") {
+  const usabili = (rilievi || [])
+    .filter(r => r.fronteId === fronteId && rilievoUsabile(r))
+    .filter(r => prov === "tutti" || provenienzaDi(r) === prov);
+  return usabili.length ? usabili.reduce((s, r) => s + r.volumeM3, 0) : null;
+}
+
 // Da volume estratto (m³ in banco) a tonnellate e valore economico:
 // tonnellate = m³ × densità (t/m³); valore = tonnellate × prezzo (€/t).
 // È l'anello che lega il rilievo alla contabilità. Densità e prezzo
@@ -710,6 +762,49 @@ export function bandaVolume(volumeM3, tolleranzaPct) {
   return { volume: v, banda, min: Math.max(0, v - banda), max: v + banda };
 }
 
+/* L'INCERTEZZA DI UN INSIEME DI RILIEVI DI SCAVO, CON LA SUA COPERTURA.
+   ⛔ Fino al 02/09 la somma stava scritta due volte (in `riepilogoAnnuale` e
+   in `confrontoRilievi`), e tutt'e due saltavano in silenzio i rilievi che
+   NON dichiarano il metodo: la loro tolleranza è `null`, `bandaVolume` risponde
+   `null`, e il rilievo non entrava nel conto. Il foglio per l'ente scriveva poi
+   «incertezza complessiva ± 388 m³, ottenuta sommando la tolleranza di OGNI
+   rilievo (stima prudente)» — misurato sulla dimostrazione: 388 m³ sono il 2%
+   di UN rilievo su quattro, 19.400 m³ su 79.400; gli altri tre (60.000 m³)
+   non hanno metodo e pesavano ZERO nell'incertezza. È «l'assenza di un dato
+   letta come un dato favorevole», nella forma peggiore: un numero piccolo e
+   tranquillo, chiamato prudente, sul documento che va all'ente.
+   Il numero non cambia (una tolleranza che non si sa non si inventa): cambia
+   che la somma dichiara CHI copre — e chi legge (`descriviIncertezza`, il
+   foglio, il confronto, il verbale) lo scrive accanto al ±. */
+export function incertezzaScavo(rilievi) {
+  let banda = 0, coperti = 0, copertoM3 = 0, scoperti = 0, scopertoM3 = 0;
+  for (const r of (rilievi || [])) {
+    if (!r) continue;
+    const ca = classeAccuratezza(r);
+    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+    if (bv) { banda += bv.banda; coperti++; copertoM3 += bv.volume; }
+    else { scoperti++; const v = numeroDichiarato(r.volumeM3); scopertoM3 += v != null && v > 0 ? v : 0; }
+  }
+  return { banda, coperti, copertoM3, scoperti, scopertoM3, rilievi: coperti + scoperti, completa: scoperti === 0 };
+}
+
+/* La frase che accompagna il ±, scritta una volta sola: la leggono il foglio
+   annuale per l'ente, la scheda del confronto e il verbale. Vuota quando non
+   c'è niente da dire (nessun rilievo, o banda zero su tolleranze note). */
+export function descriviIncertezza(inc) {
+  const i = inc || {};
+  if (!(i.rilievi > 0)) return "";
+  const m3 = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
+  if (i.completa) return i.banda > 0
+    ? `Incertezza complessiva stimata sullo scavo: ± ${m3(i.banda)} m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente).`
+    : "";
+  if (!(i.coperti > 0))
+    return `Incertezza dello scavo non stimabile: ${i.scoperti === 1 ? "l'unico rilievo non dichiara" : "nessuno dei " + i.scoperti + " rilievi dichiara"} il metodo, e senza una tolleranza tipica non c'è niente da sommare.`;
+  return `Incertezza stimata ${i.coperti === 1 ? "sul solo rilievo" : "sui soli " + i.coperti + " rilievi"} con metodo dichiarato (${m3(i.copertoM3)} m³ su ${m3(i.copertoM3 + i.scopertoM3)}): ± ${m3(i.banda)} m³. `
+    + `${i.scoperti === 1 ? "L'altro rilievo" : "Gli altri " + i.scoperti + " rilievi"} (${m3(i.scopertoM3)} m³) non ${i.scoperti === 1 ? "dichiara" : "dichiarano"} il metodo: `
+    + `la ${i.scoperti === 1 ? "sua" : "loro"} tolleranza non è nota e l'incertezza complessiva dello scavo non si può stimare.`;
+}
+
 // Andamento dei volumi: confronta gli ULTIMI DUE rilievi elaborati (per data)
 // per dire a colpo d'occhio se l'estrazione sta accelerando o rallentando —
 // utile per capire se si è "in pari" col piano. Ritorna null se non ci sono
@@ -813,17 +908,14 @@ export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
   const dentro = el.filter(r => (r.fronteId || null) === (b.fronteId || null)
     && String(r.data) > String(a.data) && String(r.data) <= String(b.data));
   const scavato = dentro.reduce((s, r) => s + (+r.volumeM3 || 0), 0);
-  let banda = 0;
-  for (const r of dentro) {
-    const ca = classeAccuratezza(r);
-    const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    if (bv) banda += bv.banda;
-  }
+  // stessa somma del riepilogo annuale, con la stessa dichiarazione di copertura
+  const incertezza = incertezzaScavo(dentro);
+  const banda = incertezza.banda;
   const va = +a.volumeM3 || 0, vb = +b.volumeM3 || 0;
   const delta = vb - va;
   const alGiorno = giorni > 0 ? scavato / giorni : null;
   return {
-    primo: a, secondo: b, giorni, scavato, banda,
+    primo: a, secondo: b, giorni, scavato, banda, incertezza,
     rilieviInMezzo: dentro.length,
     delta, pct: va > 0 ? Math.round(100 * delta / va) : null,
     alGiorno, alMese: alGiorno != null ? alGiorno * 30.44 : null,
@@ -843,10 +935,10 @@ export function confrontoRilievi(rilievi, idPrimo, idSecondo) {
 // L'autorizzazione VIGENTE tra quelle registrate (le altre restano come
 // storico/varianti). Se nessuna è marcata vigente, prende la prima.
 // Ritorna null se non ce n'è nessuna.
-export function autorizzazioneVigente(autorizzazioni) {
-  const a = autorizzazioni || [];
-  return a.find(x => x.stato === "vigente") || a[0] || null;
-}
+/* ⛔ TRASLOCATA in shared/dw-ponti.js il 02/09: la chiama anche Conti, per
+   leggere la densità della cava. Qui resta l'alias, così la pagina non cambia;
+   nomi-doppi pretende l'identità, non una seconda copia. */
+export { autorizzazioneVigente } from "../../shared/dw-ponti.js";
 
 // Volume estratto COMPLESSIVO sotto un titolo autorizzativo:
 //  - `rilevato`: somma dei rilievi elaborati con volume, contati solo dalla
@@ -1084,15 +1176,16 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
 
   // qualità del dato: quanti rilievi reggono il numero e con che accuratezza
   const qualita = { surveyGrade: 0, indicativo: 0, nd: 0 };
-  let banda = 0;
   for (const r of scavoRil) {
     const ca = classeAccuratezza(r);
     if (ca.classe === "survey-grade") qualita.surveyGrade++;
     else if (ca.classe === "indicativo") qualita.indicativo++;
     else qualita.nd++;
-    const b = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    if (b) banda += b.banda;
   }
+  // la banda con la sua copertura: `banda` resta per chi la leggeva già,
+  // `incertezza` dice su quanti rilievi (e quanti m³) quel ± si regge
+  const incertezza = incertezzaScavo(scavoRil);
+  const banda = incertezza.banda;
 
   // dove arriva il titolo alla fine di quell'anno
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
@@ -1116,7 +1209,7 @@ export function riepilogoAnnuale(rilievi, anno, autorizzazione, oggi = new Date(
     anno: +y,
     scavo: somma(scavoRil), cumulo: somma(cumuloRil),
     rilieviScavo: scavoRil.length, rilieviCumulo: cumuloRil.length,
-    mesi, fronti, qualita, banda,
+    mesi, fronti, qualita, banda, incertezza,
     concesso: concesso > 0 ? concesso : null, pregresso, pregressoDichiarato, misurabile,
     cumulatoFineAnno, residuoFineAnno, pctFineAnno,
     inCorso: +y === new Date(oggi).getFullYear(),
@@ -1254,6 +1347,9 @@ export function baseOnereEscavazione(riepilogo, opzioni = {}) {
     // la banda d'incertezza del volume: il riepilogo la calcola già, e questo è
     // l'unico foglio in circolazione che la dichiara invece di nasconderla
     banda: r2(R.banda || 0),
+    // ⛔ e con lei la sua copertura: un «± 388 m³» che copre un rilievo su
+    // quattro non è l'incertezza del volume dichiarato, e il foglio lo dice
+    incertezza: R.incertezza || null,
     avvisi,
   };
 }
@@ -1281,7 +1377,11 @@ export function descriviBaseOnere(base) {
        famiglia di difetti censita il 03/08 in cinque app su cinque — il
        documento che esce più tranquillo di quello che si sa */
     + (o.detrazioneIncompleta ? " ⚠ La detrazione dichiarata è INCOMPLETA (vedi gli avvisi): il volume detratto è più piccolo del vero." : "")
-    + (o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
+    + (o.incertezza && !o.incertezza.completa
+        ? (o.incertezza.coperti > 0
+            ? ` Incertezza del volume stimabile solo su ${m3(o.incertezza.copertoM3)} m³ (${o.incertezza.coperti === 1 ? "il solo rilievo" : "i " + o.incertezza.coperti + " rilievi"} con metodo dichiarato): ± ${m3(o.banda)} m³; sugli altri ${m3(o.incertezza.scopertoM3)} m³ la tolleranza non è dichiarata.`
+            : " Incertezza del volume non stimabile: nessun rilievo dichiara il metodo.")
+        : o.banda ? ` Incertezza del volume dichiarata: ± ${m3(o.banda)} m³.` : "")
     + " L'importo dovuto si ottiene applicando l'aliquota della concessione,"
     + " che si imposta in Deepwork Conti.";
 }
@@ -1422,6 +1522,236 @@ export function ripartizioneFronti(riepilogo, opzioni = {}) {
    DICHIARANO in `grafieDoppie`, così chi guarda sa perché due fronti sono
    finiti nella stessa riga invece di scoprirlo per caso. */
 const chiaveBanco = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ");
+
+/* I NOMI DEI MESI E L'ETICHETTA DI UN FRONTE (05/09, saliti dalla pagina):
+   li usano il foglio stampato e i file. Un fronte cancellato non sparisce:
+   «Fronte non più in elenco»; una voce senza fronte lo dice. */
+export const MESI_NOME = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                          "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+export function etichettaFronteDi(voce, fronti) {
+  const v = voce || {};
+  if (!v.fronteId) return "Senza fronte indicato";
+  const f = (fronti || []).find(x => x && x.id === v.fronteId);
+  return f ? f.nome : "Fronte non più in elenco";
+}
+
+/* IL RIEPILOGO DELL'ANNO PER L'ENTE, IN CSV (05/09, salito dalla pagina): i
+   mesi, il totale, i fronti, i banchi e il confronto col volume concesso.
+   Una convenzione sola in tutto il file: la cella di uno scavo MAI MISURATO
+   resta vuota (totale senza rilievi, banco mai rilevato, fronte non
+   misurabile, cumulato e residuo sotto un titolo senza rilievi), perché chi
+   apre il foglio in Excel somma lo zero credendolo misurato; i cumuli hanno
+   la loro colonna. `DEN` è il riepilogo che la pagina tiene per stampa ed
+   export: { R (riepilogoAnnuale), base (baseOnereEscavazione), banchi
+   (ripartizioneBanchi) }. Pura. */
+export const CSV_RIEPILOGO_ANNO_INTESTAZIONE = "sezione;voce;scavoM3;cumuloM3;rilieviScavo";
+export function csvRiepilogoAnno(DEN, fronti, oggi = new Date()) {
+  const d = DEN || {};
+  const R = d.R || {};
+  const meseOggi = new Date(oggi).getMonth() + 1;
+  const mesi = R.mesi || [];
+  const mesiVisti = R.inCorso ? mesi.slice(0, meseOggi) : mesi;
+  const etFronte = (v) => etichettaFronteDi(v, fronti);
+  let csv = CSV_RIEPILOGO_ANNO_INTESTAZIONE + "\n";
+  for (const m of mesiVisti) csv += `mese;${csvCell(MESI_NOME[m.mese - 1] + " " + R.anno)};${m.scavo};${m.cumulo};${m.rilieviScavo}\n`;
+  csv += `totale;${csvCell("Anno " + R.anno)};${d.base && d.base.calcolabile ? R.scavo : ""};${R.cumulo};${R.rilieviScavo}\n`;
+  if (R.mesi) for (const f of ripartizioneFronti(R, { tutte: true }).righe)
+    csv += `fronte;${csvCell(etFronte(f))};${f.misurabile ? f.scavo : ""};${f.cumulo};${+f.rilieviScavo || 0}\n`;
+  for (const b of (d.banchi ? d.banchi.righe : []))
+    csv += `banco;${csvCell(b.etichetta)};${b.misurabile ? b.scavo : ""};${b.cumulo};${b.rilieviScavo}\n`;
+  const secchi = d.banchi ? [
+    ["Banco non dichiarato", d.banchi.nonDichiarato],
+    ["Fronti non più in elenco", DEN.banchi.fuoriElenco],
+  ] : [];
+  for (const [et, s] of secchi) if (s)
+    csv += `banco;${csvCell(et)};${s.misurabile ? s.scavo : ""};${s.cumulo};${s.rilieviScavo}\n`;
+  if (!R.mesi) return csv;
+  const nonMis = " (NON MISURATO: nessun rilievo di scavo sotto il titolo e estratto precedente non dichiarato)";
+  csv += `titolo;${csvCell("Volume concesso")};${R.concesso || ""};;\n`;
+  csv += `titolo;${csvCell("Estratto prima di Terra")};${R.pregressoDichiarato ? R.pregresso : ""};;\n`;
+  csv += `titolo;${csvCell("Cumulato a fine " + R.anno + (R.misurabile ? (R.pregressoDichiarato ? "" : " (valore MINIMO: l'estratto prima di Terra non e' dichiarato)") : nonMis))};${R.misurabile ? R.cumulatoFineAnno : ""};;\n`;
+  csv += `titolo;${csvCell("Residuo del concesso" + (!R.misurabile ? nonMis : R.pregressoDichiarato || R.residuoFineAnno == null ? "" : " (valore MASSIMO: l'estratto prima di Terra non e' dichiarato)"))};${R.misurabile && R.residuoFineAnno != null ? R.residuoFineAnno : ""};;\n`;
+  return csv;
+}
+
+/* L'ARCHIVIO DEI FRONTI E DEI RILIEVI, IN CSV (05/09, salito dalla pagina):
+   ogni fronte con lo stato, la quota («quota non dichiarata» quando non
+   c'è) e l'avanzamento; ogni rilievo con lo stato, la provenienza e il volume
+   — «volume non leggibile» su un elaborato il cui numero non si legge, che è
+   un'altra cosa da un rilievo pianificato. Dal più recente. Pura. */
+/* IL PROSPETTO DELLA DENUNCIA ANNUALE (05/09), nella forma di `relazioneLotto` e
+   `verbaleRilievo`: le sette sezioni del foglio che va all'ente si compongono
+   qui — tabelle `{colonne, numeriche, righe, totale, nota}` e righe
+   `[etichetta, testo, mancante]` — e la pagina tiene solo l'HTML e il CSS.
+   Fino a oggi tutto questo viveva nella pagina, dove nessuna prova senza
+   browser lo legge, ed è lì che sono vissuti «nessun rilievo, QUINDI volumi a
+   zero» (fino al 13/08), il «Totale 2026: 0» in grassetto su un anno mai
+   misurato, e il «Cumulato · 0 m³ (0% del concesso)» con lo schermo a «—».
+   Ogni numero lo decide la funzione che lo decide a schermo (`riepilogoAnnuale`,
+   `ripartizioneFronti`, `ripartizioneBanchi`, `baseOnereEscavazione`,
+   `descriviBaseOnere`, `descriviIncertezza`): qui si legge, non si rifà.
+   Nelle note il grassetto si scrive «**così**» e lo rende la pagina.
+   `DEN` è quello dello schermo: `{R, aut, soglia, base, banchi}`. Pura. */
+const ETICHETTE_ATTO = ["Numero dell'atto", "Ente che l'ha rilasciato", "Data di rilascio", "Scadenza del titolo",
+  "Materiale autorizzato", "Superficie autorizzata", "Volume totale concesso"];
+export function prospettoDenuncia(DEN, fronti, oggi = new Date()) {
+  const d = DEN || {};
+  const R = d.R || {};
+  const aut = d.aut || null;
+  const base = d.base || null;
+  const calcolabile = !!(base && base.calcolabile);
+  const anno = R.anno != null ? R.anno : "";
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  const un1 = (v) => (Math.round(+v * 10) / 10).toLocaleString("it-IT", { useGrouping: true });
+  const nonMisurati = [];
+  const manca = (etichetta, testo, ragione) => { nonMisurati.push(etichetta + " (" + ragione + ")"); return [etichetta, testo, true]; };
+  /* il titolo: i numeri copiati dall'atto si riportano come stanno sull'atto
+     (`nD`, mai `n0`): arrotondare all'unità un numero trascritto dal titolo lo
+     farebbe divergere dal documento */
+  let atto;
+  if (aut) {
+    const data = (v, et) => dataISOEsiste(v) ? [et, dataIt(String(v).slice(0, 10)), false] : manca(et, "—", v ? "data non valida" : "non dichiarata");
+    atto = [
+      aut.numeroAtto ? [ETICHETTE_ATTO[0], String(aut.numeroAtto), false] : manca(ETICHETTE_ATTO[0], "—", "non dichiarato"),
+      aut.ente ? [ETICHETTE_ATTO[1], String(aut.ente), false] : manca(ETICHETTE_ATTO[1], "—", "non dichiarato"),
+      data(aut.dataRilascio, ETICHETTE_ATTO[2]),
+      data(aut.dataScadenza, ETICHETTE_ATTO[3]),
+      aut.materiale ? [ETICHETTE_ATTO[4], String(aut.materiale), false] : manca(ETICHETTE_ATTO[4], "—", "non dichiarato"),
+      aut.superficieMq ? [ETICHETTE_ATTO[5], nD(aut.superficieMq) + " m²", false] : manca(ETICHETTE_ATTO[5], "—", "non dichiarata"),
+      R.concesso ? [ETICHETTE_ATTO[6], nD(R.concesso) + " m³", false] : manca(ETICHETTE_ATTO[6], "—", "non dichiarato"),
+    ];
+  } else {
+    atto = ETICHETTE_ATTO.map((e) => [e, "—", true]);
+    nonMisurati.push("Titolo autorizzativo (nessuno vigente registrato in Terra)");
+  }
+  /* i mesi: gli zeri restano (il modulo dell'ente vuole il mese vuoto scritto
+     zero, e la colonna «Rilievi di scavo» accanto dice dove non ha misurato
+     nessuno), ma la riga del TOTALE porta «non misurato» quando lo scavo
+     dell'anno non l'ha misurato nessuno: chi lo decide è `baseOnereEscavazione`,
+     la stessa bandiera che due sezioni più in basso decide l'imponibile */
+  const meseOggi = new Date(oggi).getMonth() + 1;
+  const mesi = Array.isArray(R.mesi) ? R.mesi : [];
+  const mesiVisti = R.inCorso ? mesi.slice(0, meseOggi) : mesi;
+  const tabMesi = {
+    colonne: ["Mese", "Scavo (m³)", "Ripreso da cumuli (m³)", "Rilievi di scavo"], numeriche: [1, 2, 3],
+    righe: mesiVisti.map((m) => [MESI_NOME[m.mese - 1] || String(m.mese), n0(m.scavo), n0(m.cumulo), String(+m.rilieviScavo || 0)]),
+    totale: ["Totale " + anno, calcolabile ? n0(R.scavo) : "non misurato", n0(R.cumulo), String(+R.rilieviScavo || 0)],
+    nota: "Lo **scavo** è materiale nuovo tolto dal fronte e consuma il volume concesso. La **ripresa da cumuli** è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
+      + (calcolabile ? ""
+        : " Nel " + anno + " **non risulta nessun rilievo di scavo**: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura."),
+  };
+  if (!calcolabile) nonMisurati.push("Scavo dell'anno " + anno + " (nessun rilievo di scavo registrato)");
+  /* i fronti: TUTTE le voci, compresa quella senza fronte fatta di sole riprese
+     da cumuli, che la tabella sa ospitare (ha una colonna sua) e l'elenco a
+     schermo no. La bandiera `misurabile` la decide `ripartizioneFronti`. */
+  const RFT = R.mesi ? ripartizioneFronti(R, { tutte: true }) : { righe: [], nonMisurate: 0 };
+  const tabFronti = {
+    colonne: ["Fronte", "Scavo (m³)", "Ripreso da cumuli (m³)", "Rilievi di scavo"], numeriche: [1, 2, 3],
+    righe: RFT.righe.length
+      ? RFT.righe.map((f) => [etichettaFronteDi(f, fronti), f.misurabile ? n0(f.scavo) : "non misurato", n0(f.cumulo), String(+f.rilieviScavo || 0)])
+      : [["Nessun volume registrato nell'anno", "0", "0", "0"]],
+    totale: null,
+    nota: RFT.nonMisurate ? "I fronti senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "",
+  };
+  // la voce senza fronte (sole riprese da cumuli) non ha uno scavo da misurare: non è un dato che manca
+  for (const f of RFT.righe) if (!f.misurabile && f.fronteId) nonMisurati.push("Scavo su " + etichettaFronteDi(f, fronti) + " (nessun rilievo di scavo nell'anno)");
+  /* i banchi: la casella di un banco mai rilevato porta «non misurato», non
+     uno «0» — uno zero qui è una dichiarazione in difetto */
+  const BK = d.banchi && Array.isArray(d.banchi.righe) && d.banchi.righe.length ? d.banchi : null;
+  const nd = BK && BK.nonDichiarato, fe = BK && BK.fuoriElenco;
+  const tabBanchi = BK ? {
+    colonne: ["Banco", "Fronti", "Scavo (m³)", "Ripreso da cumuli (m³)"], numeriche: [2, 3],
+    righe: BK.righe.map((b) => [b.etichetta, (b.fronti || []).join(", "), b.misurabile ? n0(b.scavo) : "non misurato", n0(b.cumulo)]),
+    totale: null,
+    nota: "Il banco è quello indicato nella scheda di ciascun fronte al momento di questo prospetto."
+      + (BK.righe.some((b) => !b.misurabile) ? " I banchi senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "")
+      + (nd ? " " + nd.fronti + (nd.fronti === 1 ? " fronte non dichiara" : " fronti non dichiarano") + " il banco di appartenenza"
+          + (nd.scavo ? ", per " + n0(nd.scavo) + " m³ di scavo non ripartiti" : "") + "." : "")
+      + (fe ? " Risultano inoltre " + n0(fe.scavo) + " m³ su fronti non più presenti in elenco." : ""),
+  } : null;
+  /* la posizione rispetto al concesso: tre righe che leggono `R.misurabile`,
+     la stessa bandiera dello schermo. Le parole sono quelle dei fronti e dei
+     banchi mai rilevati — «non misurato», non «0» e nemmeno «non calcolabile»,
+     che qui vuol dire un'altra cosa (manca il concesso). Un pregresso mai
+     dichiarato non si stampa «0 m³»: sarebbe una dichiarazione che nessuno
+     ha fatto, e per giunta quella che abbassa il cumulato. */
+  const posizione = {
+    righe: [
+      R.concesso ? ["Volume concesso dall'atto", nD(R.concesso) + " m³", false] : manca("Volume concesso dall'atto", "non indicato", "non indicato"),
+      R.pregressoDichiarato ? ["Estratto dichiarato prima dell'uso di Terra", nD(R.pregresso) + " m³", false]
+        : manca("Estratto dichiarato prima dell'uso di Terra", "non dichiarato", "non dichiarato"),
+      R.misurabile ? ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³", false]
+        : ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, "non misurato", true],
+    ],
+    totale: { etichetta: "Cumulato a fine " + anno,
+      valore: R.misurabile ? n0(R.cumulatoFineAnno) + " m³" : "non misurato",
+      via: R.misurabile && R.pctFineAnno != null ? "(" + un1(R.pctFineAnno) + "% del concesso)" : "",
+      mancante: !R.misurabile },
+    residuo: ["Residuo del volume concesso",
+      !R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile", !R.misurabile],
+    soglia: d.soglia != null ? ["Soglia di guardia impostata", un1(d.soglia) + "%", false] : null,
+    nota: R.misurabile ? ""
+      : "Sotto questo titolo non risulta **nessun rilievo di scavo** e l'estratto precedente all'uso di Terra **non è dichiarato**: "
+        + "quanta parte del volume concesso sia stata consumata non l'ha misurata nessuno, e non è la stessa cosa di «zero consumato». "
+        + "Le tre righe qui sopra restano da compilare a partire dalle comunicazioni degli anni precedenti.",
+  };
+  if (!R.misurabile) nonMisurati.push("Cumulato e residuo sotto il titolo (nessun rilievo di scavo e pregresso non dichiarato)");
+  /* la base dell'onere: la frase la scrive `descriviBaseOnere`, e quando la base
+     non si può dichiarare la casella porta il motivo, non un «0 m³» */
+  const onere = {
+    righe: calcolabile
+      ? [["Volume scavato nell'anno", n0(base.lordo) + " m³", false]]
+        .concat(base.detratto ? [["Detratto per recupero ambientale", "− " + n0(base.detratto) + " m³", false]] : [])
+      : [["Imponibile dichiarato", "non dichiarabile", true]],
+    totale: calcolabile ? ["Imponibile dichiarato", n0(base.imponibile) + " m³"] : null,
+    descrizione: descriviBaseOnere(base),
+    avvisi: (base && Array.isArray(base.avvisi) ? base.avvisi : []).map(String),
+  };
+  if (!calcolabile) nonMisurati.push("Imponibile dell'onere di escavazione (non dichiarabile)");
+  /* come sono stati ottenuti i numeri: quanti rilievi, di che qualità, con che
+     incertezza — e se il pregresso non è dichiarato, il cumulato è un MINIMO:
+     tacerlo lo farebbe leggere come il totale vero */
+  const nScavo = +R.rilieviScavo || 0, nCumulo = +R.rilieviCumulo || 0;
+  const conta = nScavo + nCumulo === 0
+    ? "nessun rilievo — il volume dell'anno non l'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"
+    : nScavo + (nScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
+      + (nCumulo ? " e " + nCumulo + (nCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
+  const q = R.qualita || {};
+  const qual = [];
+  if (q.surveyGrade) qual.push(q.surveyGrade + " di qualità topografica");
+  if (q.indicativo) qual.push(q.indicativo + " " + (q.indicativo === 1 ? "indicativo" : "indicativi"));
+  if (q.nd) qual.push(q.nd + " senza metodo dichiarato");
+  const incertezza = descriviIncertezza(R.incertezza);
+  const comeNato = "Per l'anno " + anno + " risultano registrati in Terra: " + conta + "."
+    + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
+    + (incertezza ? " " + incertezza : "")
+    + (nScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+    + (R.pregressoDichiarato ? ""
+      : " Nella scheda dell'autorizzazione non è dichiarato quanto risultava già estratto prima dell'uso di Terra:"
+        + " il cumulato riportato tiene quindi conto dei soli rilievi registrati in Terra ed è da intendersi come valore minimo.");
+  return { titolo: "Riepilogo annuale dei volumi — anno " + anno, anno, inCorso: !!R.inCorso,
+    sottotitolo: R.inCorso ? "**anno ancora in corso**: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "",
+    atto, mesi: tabMesi, fronti: tabFronti, banchi: tabBanchi, posizione, onere, comeNato, nonMisurati };
+}
+
+export const CSV_FRONTI_RILIEVI_INTESTAZIONE = "tipo;nome;stato;provenienza;dettaglio";
+export function csvFrontiRilievi(fronti, rilievi) {
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  const avFronte = (f, et) => (f && f.avanzamento != null && f.avanzamento !== ""
+    && Number.isFinite(+f.avanzamento)) ? et + " " + nD(f.avanzamento) + "%" : "";
+  let csv = CSV_FRONTI_RILIEVI_INTESTAZIONE + "\n";
+  for (const f of (fronti || []).filter(Boolean))
+    csv += `fronte;${csvCell(f.nome + (f.banco ? " — " + f.banco : ""))};${f.stato};;`
+      + csvCell([f.quota == null || f.quota === "" ? "quota non dichiarata" : "quota " + nD(f.quota) + " m",
+          avFronte(f, "avanzamento")].filter(Boolean).join(" · ")) + "\n";
+  for (const r of (rilievi || []).filter(Boolean).slice().sort((a,b)=>(b.data||"").localeCompare(a.data||"")))
+    csv += `rilievo;${csvCell(r.titolo)};${r.stato};${provenienzaDi(r)};`
+      + csvCell(dataIt(r.data)
+          + (rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"
+            : r.stato === "elaborato" ? " · volume non leggibile" : "")) + "\n";
+  return csv;
+}
 
 export function ripartizioneBanchi(riepilogo, fronti) {
   const R = riepilogo || {};
@@ -1742,11 +2072,17 @@ export function etichettaTipoScadenza(chiave) {
 // e va guardata. Si risponde «senza data», il termine che l'ecosistema usa già.
 // docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md
 export function statoScadenzaTerra(dataISO, preavvisoGiorni, oggi = new Date()) {
-  const g = giorniTra(String(dataISO || ""), oggi);
-  if (!dataISOEsiste(dataISO)) return "senza data";
-  const pre = Math.max(0, +preavvisoGiorni || 0);
-  if (g < 0) return "scaduta";
-  return g <= pre ? "in-scadenza" : "a-posto";
+  /* il verdetto lo decide la regola condivisa (`statoScadenza`, dal 02/09: era
+     la stessa regola scritta tre volte in tre app); qui resta solo il
+     vocabolario di Terra («a-posto» per «regolare»), che le sue schermate e
+     le sue prove chiamano così da sempre */
+  const st = statoScadenza(dataISO, oggi, preavvisoGiorni);
+  // (le quattro risposte scritte una per una: la regola 18 di run-stile le
+  // legge da qui per confrontarle con la mappa SB della pagina)
+  if (st === "scaduta") return "scaduta";
+  if (st === "in-scadenza") return "in-scadenza";
+  if (st === "senza data") return "senza data";
+  return "a-posto";
 }
 
 // Etichetta parlante della scadenza ("scaduta da 17 gg", "tra 12 gg"), con la
@@ -1952,8 +2288,19 @@ export function scartiRilieviCsv(text) {
    ⚠️ La `provenienza` si scrive **sempre**, anche quando vale «scavo»: è il
    difetto del 03/08 in una veste nuova — una cella vuota in un file che
    rientra si rilegge come «non dichiarata», e qui invece la si sa. */
-export function csvRilievi(rilievi) {
+/* ⛔ `fronti` È IL SECONDO ARGOMENTO, e fino al 02/09 non c'era: il file
+   scriveva `r.fronte` — il NOME, che esiste solo su una riga appena letta da
+   un CSV — mentre un rilievo registrato porta `fronteId`. Misurato premendo il
+   bottone sulla dimostrazione: otto righe, colonna «fronte» VUOTA su tutte, e a
+   schermo due rilievi su Fronte Nord e due su Fronte Est. Il file «nel formato
+   che questa pagina sa ri-caricare» ri-caricava i rilievi senza fronte: la
+   ripartizione della denuncia, dopo un giro di backup, spariva. La copia
+   nasceva da una firma troppo stretta: si aggiunge l'argomento, non un secondo
+   scrittore. Senza `fronti` la colonna resta come prima (il nome, se c'è). */
+export function csvRilievi(rilievi, fronti) {
   const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza"];
+  const nomeFronte = new Map((fronti || []).filter(f => f && f.id != null)
+    .map(f => [String(f.id), String(f.nome || "").trim()]));
   for (const r of (rilievi || [])) {
     if (!r) continue;
     righe.push([
@@ -1974,7 +2321,7 @@ export function csvRilievi(rilievi) {
       (() => { const v = numeroDichiarato(r.volumeM3); return v == null ? "" : String(v); })(),
       csvCell(r.metodo || ""),
       csvCell(r.gsd || ""),
-      csvCell(r.fronte || ""),
+      csvCell(r.fronte || (r.fronteId != null ? nomeFronte.get(String(r.fronteId)) : "") || ""),
       csvCell(provenienzaDi(r)),
     ].join(";"));
   }
@@ -2156,6 +2503,26 @@ export {
   produzionePerFronte,
 } from "../../shared/dw-ponti.js";
 
+/* L'ULTIMO RITAGLIO CON UN VOLUME, da dove c'è (02/09, unità 8): prima
+   l'organizzazione (Genesi scrive lì dal 02/09), e se l'organizzazione non
+   risponde — o non ha nessun ritaglio con volume — la chiave del browser, che
+   resta la via di chi usa il visore da solo sul dispositivo. Risponde CHI ha
+   dato il volume (`fonte`), così la pagina può dirlo; e `null` se non c'è da
+   nessuna parte. Pura: `daOrg` è null quando l'org non risponde, un elenco
+   altrimenti; `daChiave` l'elenco letto dalla chiave (o niente). */
+export function ultimoRitaglioNuvola(daOrg, daChiave) {
+  const ultimoDi = (a) => {
+    if (!Array.isArray(a)) return null;
+    for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].volume != null) return a[i];
+    return null;
+  };
+  const org = ultimoDi(daOrg);
+  if (org) return { ultimo: org, fonte: "organizzazione", orgRisponde: true };
+  const chiave = ultimoDi(daChiave);
+  if (chiave) return { ultimo: chiave, fonte: "browser", orgRisponde: Array.isArray(daOrg) };
+  return { ultimo: null, fonte: null, orgRisponde: Array.isArray(daOrg) };
+}
+
 export async function terraData() {
   let mode = "demo", api = null;
   try {
@@ -2174,6 +2541,7 @@ export async function terraData() {
         autorizzazioni: () => read("autorizzazioni"),
         scadenze: () => read("scadenze"),
         lotti: () => read("lotti"),
+        inventari: () => read("inventari"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
@@ -2202,6 +2570,27 @@ export async function terraData() {
             .docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      /* ── PONTE CON GENESI — LE NUVOLE, SOLA LETTURA (02/09, unità 8 del piano
+         «Genesi fuori dal browser») ───────────────────────────────────────
+         Dal 02/09 Genesi scrive le lavorazioni della nuvola anche nella sua
+         organizzazione (`apps/genesi/nuvole`), e Terra le legge da lì con una
+         seconda istanza dell'SDK, pigra e in sola lettura — la stessa forma
+         del ponte con Campo qui sopra. È il PRIMO ponte di dati verso Genesi.
+         `null` = «l'organizzazione non risponde» (Genesi non c'è, o la lettura
+         non è permessa): la pagina ripiega sulla chiave del browser, che resta
+         la via di chi usa il visore da solo — e lo dice, non lo confonde. */
+      let idGenesi;
+      api.nuvoleGenesi = async () => {
+        if (idGenesi === undefined) {
+          try { idGenesi = await DeepworkID.init({ appId: "genesi" }); }
+          catch (e) { idGenesi = null; }
+        }
+        if (!idGenesi) return null;
+        try {
+          return (await getDocs(idGenesi.orgCollection("nuvole")))
+            .docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) { /* backend assente: demo */ }
 
@@ -2214,9 +2603,15 @@ export async function terraData() {
       autorizzazioni: async () => mem.autorizzazioni,
       scadenze: async () => mem.scadenze,
       lotti: async () => mem.lotti,
+      // `mem.inventari` e non `mem.inventari || []`: se un giorno la
+      // dimostrazione non li avesse, la pagina deve vederlo, non un vuoto
+      inventari: async () => mem.inventari,
       // in dimostrazione i rapportini non arrivano da Campo: sono finti, ma
       // coerenti coi rilievi d'esempio (vedi DEMO.rapportiniCampo)
       rapportiniCampo: async () => mem.rapportiniCampo || [],
+      // in dimostrazione non c'è un'organizzazione: le nuvole di Genesi si
+      // leggono dalla chiave del browser, come sempre (null = «org assente»)
+      nuvoleGenesi: async () => null,
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       aggiorna: async (name, docId, data) => { const x = (mem[name] || (mem[name] = [])).find(v => v.id === docId); if (x) applicaPercorsi(x, data); },
@@ -2585,6 +2980,282 @@ export function divarioRecupero(lotti) {
     motivo: "" };
 }
 
+/* L'ATTESA DEL COLLAUDO (04/09). Fra «recupero finito» (lo dice l'azienda) e
+   «collaudato» (lo dice l'ente col verbale) c'è un terzo momento che il mondo
+   distingue e Terra non registrava: la RICHIESTA del collaudo — la
+   comunicazione di fine lavori con cui si chiede il sopralluogo. Fino a oggi
+   viveva in una nota libera («Collaudo chiesto all'ente…») che nessun conto
+   leggeva, e un lotto recuperato da mesi senza nessuna richiesta si leggeva
+   uguale a uno col sopralluogo già fissato. Adesso il lotto porta
+   `collaudoChiestoIl` e questa funzione risponde in tre modi: «chiesto il …»,
+   «recuperato da N giorni, collaudo non ancora chiesto», oppure — senza la
+   data di fine recupero — «non si sa da quanto». N è misurato in casa; i
+   termini di legge (trenta giorni, novanta giorni) sono regionali e di seconda
+   mano e NON entrano: qui si dice da quanto si aspetta, non se si è in ritardo.
+   Ritorna { pertinente, stato: chiesto|non-chiesto|<stato del lotto>, giorni,
+   chiestoIl, frase }; `pertinente` false su un lotto non recuperato o già
+   collaudato, e allora la frase è vuota. Pura. */
+export function attesaCollaudo(lotto, oggi = new Date()) {
+  const l = lotto || {};
+  const st = statoLotto(l);
+  if (st !== "recuperato") return { pertinente: false, stato: st, giorni: null, chiestoIl: null, frase: "" };
+  const chiesto = dataISOEsiste(l.collaudoChiestoIl) ? String(l.collaudoChiestoIl).slice(0, 10) : null;
+  const fine = dataISOEsiste(l.recuperoFinitoIl) ? String(l.recuperoFinitoIl).slice(0, 10) : null;
+  // `giorniTra(da, a)` conta i giorni che MANCANO a `da`: da quanto è passato è il suo opposto
+  const daQuanto = (iso) => { const g = giorniTra(iso, oggi); return g == null ? null : -g; };
+  if (chiesto) {
+    const g = daQuanto(chiesto);
+    return { pertinente: true, stato: "chiesto", giorni: g, chiestoIl: chiesto,
+      frase: "collaudo chiesto all'ente il " + dataIt(chiesto)
+        + (g == null ? "" : g === 0 ? " (oggi)" : g === 1 ? " (ieri)" : g > 1 ? " (" + g + " giorni fa)" : "")
+        + ": fino al verbale il lotto non è chiuso" };
+  }
+  if (!fine) return { pertinente: true, stato: "non-chiesto", giorni: null, chiestoIl: null,
+    frase: "collaudo non ancora chiesto, e senza la data di fine recupero non si sa da quanto" };
+  const g = daQuanto(fine);
+  return { pertinente: true, stato: "non-chiesto", giorni: g, chiestoIl: null,
+    frase: g == null ? "collaudo non ancora chiesto"
+      : g <= 0 ? "recupero finito, collaudo non ancora chiesto"
+      : "recuperato da " + (g === 1 ? "1 giorno" : g + " giorni") + ", collaudo non ancora chiesto" };
+}
+
+/* LA GARANZIA ANCORA VINCOLATA (04/09). Il mondo dimensiona la fideiussione
+   sul recupero e la svincola PER LOTTO, sul verbale di collaudo: quindi la
+   domanda che un'azienda si fa è «quanta garanzia è ancora ferma, e quale
+   collaudo la libera». Terra NON calcola l'importo (gli importi unitari sono
+   listini regionali, di seconda mano, e restano fuori): l'utente scrive sul
+   lotto la quota che la SUA polizza gli attribuisce (`garanziaEuro`), e qui si
+   somma. Le tre risposte: `vincolata` (quote dei lotti non collaudati),
+   `liberabile` (quote dei lotti recuperati che aspettano il verbale, con
+   l'elenco in `prossimi`), `liberata` (quote dei collaudati). E come
+   `divarioRecupero` dichiara i lotti senza superficie, qui `senzaQuota` conta
+   i lotti non collaudati che la quota non la dichiarano: una somma fatta su
+   tre lotti quando sono sei è più piccola del vero, cioè la buona notizia.
+   Senza nessuna quota dichiarata: non misurabile, col motivo — non zero. Pura. */
+export function garanziaVincolata(lotti) {
+  const l = (lotti || []).filter((x) => x && STATI_LOTTO.includes(String(x.stato || "")));
+  const quota = (x) => { const q = numeroDichiarato(x.garanziaEuro); return q != null && q >= 0 ? q : null; };
+  const conQuota = l.filter((x) => quota(x) != null);
+  if (!conQuota.length)
+    return { misurabile: false, vincolata: null, liberabile: null, liberata: null,
+      conQuota: 0, senzaQuota: l.length, nonCollaudati: 0, prossimi: [],
+      motivo: l.length
+        ? "Nessun lotto dichiara la sua quota di garanzia: quanta garanzia è ancora vincolata non è stato misurato. Non vuol dire che è poca."
+        : "Nessun lotto registrato: la garanzia vincolata non è stata misurata." };
+  const chiuso = (x) => statoLotto(x) === "collaudato";
+  const vinc = conQuota.filter((x) => !chiuso(x));
+  const lib = conQuota.filter((x) => statoLotto(x) === "recuperato");
+  return { misurabile: true,
+    vincolata: r2(vinc.reduce((t, x) => t + quota(x), 0)),
+    liberabile: r2(lib.reduce((t, x) => t + quota(x), 0)),
+    liberata: r2(conQuota.filter(chiuso).reduce((t, x) => t + quota(x), 0)),
+    conQuota: conQuota.length,
+    senzaQuota: l.filter((x) => quota(x) == null && !chiuso(x)).length,
+    nonCollaudati: l.filter((x) => !chiuso(x)).length,
+    prossimi: lib.map((x) => ({ id: x.id, nome: x.nome || "", quota: quota(x) })),
+    motivo: "" };
+}
+
+/* LA RELAZIONE DI FINE LAVORI DEL LOTTO (04/09, terzo candidato della ricerca
+   sulla garanzia). Il mondo chiede, per svincolare la garanzia di un lotto,
+   «una relazione che descrive le opere eseguite con riferimento al progetto»:
+   qui si compongono le RIGHE di quel foglio — e le compone il modulo, non la
+   pagina, così il foglio dice gli stessi numeri della riga del lotto
+   (`volumeMisuratoDiLotto`, `avanzamentoLotto`, `attesaCollaudo`) e la prova
+   li legge senza browser. Ogni riga è [etichetta, valore, mancante]: dove un
+   dato non c'è si scrive «non dichiarato» / «non registrata» / «non misurato»
+   e la voce finisce in `nonMisurati`, che il foglio stampa in una sezione
+   sua — una relazione che tace un dato mancante lo fa passare per zero.
+   Numeri all'italiana con `useGrouping` scritto (Node e Chromium raggruppano
+   diversamente sotto le cinque cifre). La planimetria resta fuori: Terra non
+   disegna aree. Pura. */
+const ETI_STATO_LOTTO = { previsto: "previsto", aperto: "aperto", esaurito: "esaurito",
+  "in-recupero": "in recupero", recuperato: "recuperato", collaudato: "collaudato" };
+export function relazioneLotto(lotto, rilievi, fronti, oggi = new Date()) {
+  const l = lotto || {};
+  const st = statoLotto(l);
+  const itN = (v, dec) => (+v).toLocaleString("it-IT", { maximumFractionDigits: dec, useGrouping: true });
+  const vm = volumeMisuratoDiLotto(l, rilievi);
+  const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
+  const att = attesaCollaudo(l, oggi);
+  const nonMisurati = [];
+  const data = (campo, etichetta) => {
+    const v = l[campo];
+    if (dataISOEsiste(v)) return [etichetta, dataIt(String(v).slice(0, 10)), false];
+    nonMisurati.push(etichetta + (v ? " (data non valida: «" + String(v) + "»)" : " (non registrata)"));
+    return [etichetta, v ? "data non valida" : "non registrata", true];
+  };
+  const num = (v, etichetta, unita, dec) => {
+    const n = numeroDichiarato(v);
+    if (n == null) { nonMisurati.push(etichetta + " (non dichiarato)"); return [etichetta, "non dichiarato", true]; }
+    return [etichetta, itN(n, dec) + (unita ? " " + unita : ""), false];
+  };
+  const nomiFronti = (l.frontiId || []).map((id) => {
+    const f = (fronti || []).find((x) => x && String(x.id) === String(id));
+    return f ? (f.nome || String(id)) : String(id) + " (non più in elenco)";
+  });
+  const righe = [
+    ["Lotto", (l.nome || "senza nome") + (+l.ordine > 0 ? " · " + l.ordine + "° del progetto" : ""), false],
+    ["Stato", ETI_STATO_LOTTO[st] || st, false],
+    num(l.superficieMq, "Superficie", "m²", 2),
+    num(l.volumeM3, "Volume di progetto", "m³", 2),
+  ];
+  if (vm.misurabile)
+    righe.push(["Volume misurato sui suoi fronti", itN(vm.m3, 2) + " m³ (" + vm.rilievi + (vm.rilievi === 1 ? " rilievo" : " rilievi") + ")"
+      + (av.pct == null ? "" : " · " + itN(av.pct, 1) + "% del previsto"), false]);
+  else { righe.push(["Volume misurato sui suoi fronti", "non misurato", true]); nonMisurati.push("Volume misurato (" + vm.motivo + ")"); }
+  if (vm.rilieviCumulo > 0)
+    righe.push(["Riprese da cumulo sugli stessi fronti", itN(vm.cumuloM3, 2) + " m³ (materiale già cavato, non scavo di questo lotto)", false]);
+  if (nomiFronti.length) righe.push(["Fronti", nomiFronti.join(", "), false]);
+  else { righe.push(["Fronti", "nessuno dichiarato", true]); nonMisurati.push("Fronti (nessuno dichiarato)"); }
+  const date = [data("apertoIl", "Aperto il"), data("esauritoIl", "Scavo finito il"),
+    data("recuperoIniziatoIl", "Recupero iniziato il"), data("recuperoFinitoIl", "Recupero finito il")];
+  if (st === "recuperato" || st === "collaudato") date.push(data("collaudoChiestoIl", "Collaudo chiesto il"));
+  if (st === "collaudato") date.push(data("collaudatoIl", "Collaudato il (verbale dell'ente)"));
+  const recupero = [num(l.volumeRecuperoM3, "Volume rimesso in cava per il recupero", "m³", 2),
+    num(l.garanziaEuro, "Quota di garanzia del lotto", "€", 2)];
+  return { titolo: "Relazione di fine lavori — " + (l.nome || "lotto senza nome"), stato: st, righe, date, recupero,
+    attesa: att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
+    nonMisurati, nota: String(l.nota || "") };
+}
+
+/* IL VERBALE DI RILIEVO (05/09), nella stessa forma di `relazioneLotto`: le
+   RIGHE del foglio che va all'ente si compongono qui, e la pagina disegna e
+   basta. Fino a oggi vivevano nella pagina, dove nessuna prova senza browser
+   le legge — ed è lì che la quota grezza col punto è vissuta fino al 03/08 e
+   che «il metodo dichiarato e il GSD» è stato scritto su un foglio che dodici
+   righe più su diceva «GSD: non dichiarato». Ogni riga è
+   [etichetta, testo, mancante, forte]: `mancante` marca la cella e, quando è
+   un dato che non risulta in Terra, finisce in `nonMisurati`, che il foglio
+   stampa in una sezione sua — un verbale che tace un dato mancante lo fa
+   passare per zero; `forte` dice alla pagina di evidenziare il numero. Ogni
+   numero lo decide la funzione che lo decide a schermo (`classeAccuratezza`,
+   `bandaVolume`, `confrontoRilievi`, `descriviOrigine`): qui si legge, non si
+   rifà. Numeri all'italiana con `useGrouping` scritto. Pura. */
+export function verbaleRilievo(rilievo, opzioni) {
+  const { rilievi, fronti, autorizzazioni } = opzioni || {};
+  const r = rilievo || {};
+  const RIL = Array.isArray(rilievi) ? rilievi : [];
+  const FRO = Array.isArray(fronti) ? fronti : [];
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  // il GSD sul verbale si scrive all'italiana («2,5 cm»): il foglio va a un
+  // ente italiano, e i rilievi importati da CSV possono averlo col punto
+  const itDec = (v) => String(v == null ? "" : v).trim().replace(".", ",");
+  const nonMisurati = [];
+  // nell'elenco di ciò che manca l'etichetta va senza la sua glossa fra parentesi («GSD», non «GSD (dimensione…)»)
+  const manca = (etichetta, testo, ragione) => { nonMisurati.push(etichetta.replace(/ \(.*\)$/, "") + " (" + ragione + ")"); return [etichetta, testo, true]; };
+  const f = r.fronteId ? FRO.find((x) => x && x.id === r.fronteId) : null;
+  const aut = autorizzazioneVigente(Array.isArray(autorizzazioni) ? autorizzazioni : []);
+  const ca = classeAccuratezza(r);
+  const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
+  const prec = r.id != null && RIL.length ? rilievoPrecedente(RIL, r) : null;
+  const c = prec ? confrontoRilievi(RIL, prec.id, r.id) : null;
+  const cum = provenienzaDi(r) === "cumulo";
+  const dataOk = dataISOEsiste(r.data);
+  const dataRil = dataOk ? dataIt(String(r.data).slice(0, 10)) : (r.data ? "data non valida" : "senza data");
+  const righe = [
+    dataOk ? ["Data del rilievo", dataRil, false]
+      : manca("Data del rilievo", dataRil, r.data ? "data non valida: «" + String(r.data) + "»" : "non registrata"),
+  ];
+  /* ⛔ LA QUOTA ALL'ITALIANA, come il GSD — e per la stessa ragione: questo
+     foglio va a un ente italiano. Fino al 03/08 usciva `String(f.quota)`
+     grezzo, «quota 148.5 m» col punto, mentre l'elenco dei Fronti sullo stesso
+     dato scrive «Quota 148,5 m». E la guardia era `f.quota != null`, che
+     accetta la stringa vuota: un fronte senza quota stampava «· quota  m»,
+     due parole e un buco. La condizione giusta è quella dell'elenco
+     (`== null || === ""`), che quel caso lo dichiara invece di tacerlo. */
+  if (f) {
+    const senzaQuota = f.quota == null || f.quota === "";
+    if (senzaQuota) nonMisurati.push("Quota del fronte (non dichiarata)");
+    righe.push(["Fronte", (f.nome || "senza nome") + (f.banco ? " — " + f.banco : "")
+      + (senzaQuota ? " · quota non dichiarata" : " · quota " + nD(f.quota) + " m"), false]);
+  } else righe.push(r.fronteId ? manca("Fronte", "fronte non più in elenco", "non più in elenco")
+    // un cumulo non sta su un fronte: qui «nessuno» non è un dato mancante
+    : cum ? ["Fronte", "nessuno — ripresa da un cumulo", false]
+    : manca("Fronte", "non indicato", "non indicato"));
+  righe.push(["Che cosa è stato misurato", cum
+    ? "Ripresa da un cumulo — materiale già estratto in passato, non nuovo scavo"
+    : "Scavo dal fronte — materiale nuovo tolto dalla cava", false]);
+  righe.push(r.tipo ? ["Tipo di elaborato", String(r.tipo), false] : manca("Tipo di elaborato", "non indicato", "non indicato"));
+  righe.push(r.metodo ? ["Metodo di rilievo", String(r.metodo), false] : manca("Metodo di rilievo", "non dichiarato", "non dichiarato"));
+  const gsdScritto = r.gsd != null && String(r.gsd).trim() !== "";
+  righe.push(gsdScritto ? ["GSD (dimensione del pixel a terra)", itDec(r.gsd) + " cm", false]
+    : manca("GSD (dimensione del pixel a terra)", "non dichiarato", "non dichiarato"));
+  righe.push(ca.classe === "n.d."
+    ? manca("Classe di accuratezza", "non determinabile (metodo e GSD non dichiarati)", "non determinabile: metodo e GSD non dichiarati")
+    : ["Classe di accuratezza", ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%", false]);
+  // un volume che non si legge non fa una misura: sullo schermo quel rilievo
+  // non ha nemmeno il bottone del verbale, ma la funzione è pura e lo dichiara
+  const volumeOk = r.volumeM3 != null && r.volumeM3 !== "" && Number.isFinite(+r.volumeM3);
+  righe.push(volumeOk
+    ? ["Volume misurato", nD(r.volumeM3) + " m³"
+        + (bv ? " (± " + n0(bv.banda) + " m³ · fra " + n0(bv.min) + " e " + n0(bv.max) + " m³)" : ""), false, true]
+    : manca("Volume misurato", "non leggibile", r.volumeM3 == null || r.volumeM3 === "" ? "non registrato" : "non leggibile: «" + String(r.volumeM3) + "»"));
+  // senza un nome la riga resta da compilare a penna: la cella esce VUOTA, non
+  // con un trattino che sembrerebbe un dato scritto
+  righe.push(r.rilevatore ? ["Eseguito da", String(r.rilevatore), false]
+    : manca("Eseguito da", "", "non indicato: la riga resta da compilare a penna"));
+  /* ⚠️ `nD` e non `n0` sul volume concesso: «i numeri copiati dall'atto si
+     riportano come stanno sull'atto» — arrotondare all'unità un numero che
+     l'utente ha trascritto dal titolo lo farebbe divergere dal documento, e
+     questo verbale la stessa riga dell'atto la cita sullo stesso foglio che va
+     all'ente. Il campo accetta i decimali («1.200.000,50» entra come
+     1200000,5), quindi la divergenza è raggiungibile. */
+  const atto = aut ? [
+    aut.numeroAtto ? ["Numero dell'atto", String(aut.numeroAtto), false] : manca("Numero dell'atto", "—", "non dichiarato"),
+    aut.ente ? ["Ente che l'ha rilasciato", String(aut.ente), false] : manca("Ente che l'ha rilasciato", "—", "non dichiarato"),
+    dataISOEsiste(aut.dataScadenza) ? ["Scadenza del titolo", dataIt(String(aut.dataScadenza).slice(0, 10)), false]
+      : manca("Scadenza del titolo", "—", "non dichiarata"),
+    aut.volumeAutorizzatoM3 ? ["Volume totale concesso", nD(aut.volumeAutorizzatoM3) + " m³", false]
+      : manca("Volume totale concesso", "—", "non dichiarato"),
+  ] : null;
+  if (!aut) nonMisurati.push("Titolo autorizzativo (nessuno vigente registrato in Terra)");
+  /* da dove parte la misura: un cumulo non ha un rilievo di partenza; uno
+     scavo ce l'ha se sullo stesso fronte ne esiste uno prima */
+  const partenza = cum
+    ? { tipo: "cumulo", righe: [], nota: "Il rilievo misura un deposito di materiale già estratto, non l'avanzamento di un fronte fra due date: non esiste quindi un rilievo di partenza da citare." }
+    : c
+      ? { tipo: "confronto", righe: [
+          ["Rilievo precedente sullo stesso fronte", dataIt(c.primo.data) + (c.primo.metodo ? " · " + c.primo.metodo : ""), false],
+          ["Giorni fra i due rilievi", String(c.giorni), false],
+          /* il ± fra parentesi solo se copre tutto il periodo; se no la
+             parentesi dice su quanto si regge, con le parole del modulo */
+          ["Volume scavato fra le due date", n0(c.scavato) + " m³"
+            + (c.banda > 0 && c.incertezza && c.incertezza.completa ? " (± " + n0(c.banda) + " m³)"
+              : c.incertezza && !c.incertezza.completa ? " (" + descriviIncertezza(c.incertezza) + ")" : ""), false, true],
+          c.alGiorno != null
+            ? ["Ritmo medio nel periodo", n0(c.alGiorno) + " m³ al giorno · " + n0(c.alMese) + " m³ al mese", false]
+            : ["Ritmo medio nel periodo", "non calcolabile", true],
+        ],
+        nota: "Il volume scavato fra le due date è la somma dei rilievi eseguiti dopo il " + dataIt(c.primo.data)
+          + " fino a questo compreso (" + c.rilieviInMezzo + (c.rilieviInMezzo === 1 ? " rilievo" : " rilievi")
+          + "): ogni rilievo misura il materiale tolto dal rilievo precedente." }
+      : { tipo: "nessuno", righe: [], nota: "Sullo stesso fronte non risulta registrato in Terra alcun rilievo precedente a questo: il volume indicato non ha quindi un termine di confronto interno." };
+  /* ⛔ «IL METODO DICHIARATO E IL GSD» SU UN FOGLIO CHE, DODICI RIGHE PIÙ SU,
+     SCRIVE «GSD: non dichiarato»: la classe alta, senza GSD, si regge sul solo
+     metodo, e chi legge ne ricavava che la dimensione del pixel a terra fosse
+     stata valutata. La bandiera che distingue i due casi è `ca.gsdNoto` e la
+     decide `classeAccuratezza`: qui si legge, non si rifà. E poi COME è stato
+     calcolato, non solo con che accuratezza: `descriviOrigine` dice da dove
+     viene il numero, e per un rilievo senza provenienza lo dichiara. */
+  const banda = bv ? n0(bv.banda) : "—";
+  const comeNato = (ca.classe === "survey-grade"
+    ? (ca.gsdNoto
+        ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
+        : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
+      + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
+    : ca.classe === "indicativo"
+      ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
+        + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
+      : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.")
+    + " " + descriviOrigine(r)
+    + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
+    + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "");
+  return { titolo: "Verbale di rilievo — " + (r.titolo || (dataOk ? "rilievo del " + dataRil : "rilievo " + dataRil)), data: dataRil,
+    righe, atto, partenza, comeNato, cumulo: cum, nonMisurati };
+}
+
 /* ⛔ E L'AVANZAMENTO NON STIMA. Un lotto senza volume previsto dal progetto non
    ha una percentuale: ha un volume MISURATO, che è già un dato e più
    affidabile della percentuale che ne uscirebbe.
@@ -2855,4 +3526,159 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       oltrePrevisto, fuoriSequenza,
     },
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// L'INVENTARIO DEI CUMULI (03/09) — il terzo lato del triangolo
+// Le regole stanno in `shared/dw-ponti.js` (sezione «PONTE TERRA → CONTI ·
+// L'INVENTARIO DEI CUMULI»), perché le legge anche Conti: qui si RI-ESPORTANO
+// col nome con cui Terra le chiama — un alias, non una seconda implementazione
+// (`nomi-doppi` pretende l'identità). Sotto, le due funzioni che servono SOLO
+// alla pagina di Terra per disegnare l'elenco: pure, così si provano in `node`.
+// ══════════════════════════════════════════════════════════════════════
+export { inventarioUsabile, volumeInventario, cumuliUsabili, variazioneScorte, chiaveMateriale } from "../../shared/dw-ponti.js";
+import { inventarioUsabile, volumeInventario, cumuliUsabili, chiaveMateriale } from "../../shared/dw-ponti.js";
+
+/* Che cosa dice UNA riga dell'elenco di un inventario. `volumeM3` è null quando
+   l'inventario non è usabile — niente «0 m³» su un piazzale che nessuno ha
+   misurato — e `perche` lo spiega. `nonMisurati` conta i cumuli che hanno un
+   materiale ma non un volume leggibile (null, vuoto, testo): esistono, il loro
+   numero no, e la riga li deve dichiarare invece di sommare uno zero. Un
+   cumulo senza materiale è un altro difetto (lo scarta `cumuliUsabili` con la
+   sua ragione) e NON si conta fra i non misurati. */
+export function riepilogoInventario(inv) {
+  const usabile = inventarioUsabile(inv);
+  const { scartati } = cumuliUsabili(inv);
+  const cumuli = Array.isArray(inv?.cumuli) ? inv.cumuli.length : 0;
+  const nonMisurati = scartati.filter((s) => s.perche === "volume non leggibile").length;
+  const perche = usabile ? "" : !inv || !dataISOEsiste(inv.data) ? "data non leggibile" : "nessun cumulo con un volume";
+  return { usabile, volumeM3: usabile ? volumeInventario(inv) : null, cumuli, nonMisurati, perche };
+}
+
+/* L'elenco per la pagina: dal più recente, ogni voce con i campi del record e il
+   suo riepilogo (`cumuli` qui è il NUMERO dei cumuli; l'elenco vero resta in
+   `record`, che è il documento originale, per il dettaglio). Un inventario con
+   la data illeggibile non sparisce: va in coda, non usabile, con la ragione.
+   Su un valore che non è una lista risponde una lista vuota. */
+export function inventariOrdinati(inventari) {
+  if (!Array.isArray(inventari)) return [];
+  const chiave = (i) => dataISOEsiste(i?.data) ? String(i.data) : "";
+  return inventari.map((inv) => ({ ...inv, ...riepilogoInventario(inv), record: inv }))
+    .sort((a, b) => chiave(b).localeCompare(chiave(a)) || String(a.id ?? "").localeCompare(String(b.id ?? "")));
+}
+
+/* ⛔ IL FILE DEGLI INVENTARI CHE SI RI-CARICA — la stessa decisione 12a dei
+   rilievi (`csvRilievi`), applicata alla fotografia del piazzale: una copia di
+   sicurezza, non un prospetto. UNA RIGA PER CUMULO, così il file si legge in
+   Excel senza sciogliere niente, e l'inventario si ricompone dall'ultima
+   colonna (`inventarioId`) — o, se manca perché il file l'ha scritto qualcun
+   altro, da data + metodo.
+   ⛔ Il volume non misurato esce come cella VUOTA, mai `0`: è la stessa guardia
+   di `csvRilievi` (`numeroDichiarato`, non `Number.isFinite(+x)`), e qui morde
+   nel verso del ritorno — uno zero rientrerebbe come un cumulo MISURATO a zero
+   metri cubi, e `volumeInventario` lo sommerebbe come un fatto.
+   ⚠️ I numeri col PUNTO: il lettore usa `numIt`, che la virgola la legge, quindi
+   una prova di andata e ritorno resterebbe verde anche scrivendo la virgola —
+   la prova sul TESTO del file sta in `run-kpi`, come per i rilievi.
+   Ordine: per data decrescente (come `inventariOrdinati`), poi per materiale
+   (`chiaveMateriale`, cioè senza accenti né maiuscole). L'ordine in cui i
+   cumuli erano stati scritti NON si conserva: è una lista di mucchi, non una
+   sequenza, e in un file aperto da qualcun altro l'ordine alfabetico si legge.
+   Un inventario senza cumuli non scrive nessuna riga: lo dice
+   `rientroInventari`, prima di scaricare. */
+export const INTESTAZIONE_INVENTARI = "data;metodo;materiale;volumeM3;nota;inventarioId";
+export function csvInventari(inventari) {
+  const righe = [INTESTAZIONE_INVENTARI];
+  const chiave = (i) => dataISOEsiste(i?.data) ? String(i.data) : "";
+  const ordinati = (Array.isArray(inventari) ? inventari : []).filter(Boolean).map((inv, n) => ({ inv, n }))
+    .sort((a, b) => chiave(b.inv).localeCompare(chiave(a.inv)) || String(a.inv.id ?? "").localeCompare(String(b.inv.id ?? "")) || a.n - b.n);
+  for (const { inv } of ordinati) {
+    const cumuli = (Array.isArray(inv.cumuli) ? inv.cumuli : []).filter(Boolean).map((c, n) => ({ c, n }))
+      .sort((a, b) => chiaveMateriale(a.c.materiale).localeCompare(chiaveMateriale(b.c.materiale), "it") || a.n - b.n);
+    for (const { c } of cumuli) {
+      const v = numeroDichiarato(c.volumeM3);
+      righe.push([csvCell(inv.data || ""), csvCell(inv.metodo || ""), csvCell(c.materiale || ""),
+        v == null ? "" : String(v), csvCell(c.nota || ""), csvCell(inv.id || "")].join(";"));
+    }
+  }
+  return righe.join("\n") + "\n";
+}
+
+/* Il lettore del file qui sopra. `leggiCsv` e non `split("\n")`: una nota fra
+   virgolette può andare a capo, e il lettore riga per riga la spezzerebbe in
+   due righe rotte (è il difetto della causale bancaria di Conti, 01/08).
+   Risponde `{ inventari, scarti, letti }`:
+     · `letti` è il numero di righe di dati (l'intestazione non conta, le righe
+       vuote nemmeno — `leggiCsv` le toglie prima);
+     · `scarti` è UNA voce per riga che non entra, con la ragione scritta con
+       le stesse parole di `scartiRilieviCsv` («la data non esiste», «il volume
+       non si legge», «il volume è negativo»): la stessa cosa si chiama con lo
+       stesso nome. `riga` conta le righe non vuote del file, intestazione
+       compresa, così il numero è quello che si vede aprendo il file;
+     · un volume VUOTO non è uno scarto: è un cumulo non misurato (`null`),
+       che il prodotto sa raccontare. Uno scritto e illeggibile («abc», «n.d.»)
+       invece è una riga persa, e va detto;
+     · una data che non esiste scarta la riga — e quindi, riga per riga, tutto
+       l'inventario che la porta: non ne resta nessuno con quella data;
+     · due righe con lo stesso `inventarioId` e date diverse non si fondono in
+       silenzio: la seconda data resta fuori, con la ragione.
+   Su un testo vuoto risponde `letti: 0` e nessuno scarto: uno scarto inventato
+   accuserebbe un file che non c'è. Le chiavi di ogni inventario sono nello
+   stesso ordine del record salvato (`id, data, metodo, cumuli`), così la prova
+   di andata e ritorno confronta senza tradurre. */
+export function parseInventariCsv(testo) {
+  const { righe } = leggiCsv(testo);
+  const out = { inventari: [], scarti: [], letti: 0 };
+  const gruppi = new Map();
+  righe.forEach((celle, i) => {
+    const riga = i + 1;
+    if (i === 0 && isIntestazione(celle.join(";"), "data")) return;
+    out.letti++;
+    const [data, metodo, materiale, volume, nota, inventarioId] = Array.from({ length: 6 }, (_, k) => String(celle[k] ?? "").trim());
+    const scarta = (perche) => { out.scarti.push({ riga, perche }); };
+    if (!data) return scarta("la data non è stata scritta");
+    if (!dataISOEsiste(data)) return scarta("la data non esiste");
+    if (!chiaveMateriale(materiale)) return scarta("manca il materiale");
+    let volumeM3 = null;
+    if (volume !== "") {
+      const v = numIt(volume);
+      if (!Number.isFinite(v)) return scarta("il volume non si legge");
+      if (v < 0) return scarta("il volume è negativo");
+      volumeM3 = v;
+    }
+    const k = inventarioId ? "id:" + inventarioId : "dm:" + data + "|" + metodo;
+    let g = gruppi.get(k);
+    if (g && g.data !== data) return scarta("la data non è quella delle altre righe dello stesso inventario");
+    if (!g) {
+      g = inventarioId ? { id: inventarioId, data, metodo: metodo || null, cumuli: [] } : { data, metodo: metodo || null, cumuli: [] };
+      gruppi.set(k, g); out.inventari.push(g);
+    }
+    const c = { materiale, volumeM3 }; if (nota) c.nota = nota;
+    g.cumuli.push(c);
+  });
+  return out;
+}
+
+/* «Quanti di questi inventari torneranno dentro?» — DERIVATO dalle due funzioni
+   vere, come `rientroRilievi`: ogni inventario viene scritto da `csvInventari`
+   e riletto da `parseInventariCsv`. `cumuli` è il numero di righe scritte (una
+   per cumulo). Un inventario senza cumuli non scrive niente, uno con la data
+   che non esiste non rientra, uno in cui qualche cumulo si perde lo dice con
+   il conto e la ragione. `nome` è già in italiano perché finisce in una frase. */
+export function rientroInventari(inventari) {
+  const l = (Array.isArray(inventari) ? inventari : []).filter(Boolean);
+  const persi = []; let cumuli = 0;
+  for (const inv of l) {
+    const nome = dataISOEsiste(inv.data) ? "inventario del " + dataIt(inv.data) : "inventario con data «" + String(inv.data ?? "") + "»";
+    const scritti = csvInventari([inv]).split("\n").length - 2;   // meno intestazione e riga finale vuota
+    cumuli += scritti;
+    if (!scritti) { persi.push({ nome, ragione: "non ha nessun cumulo: non c'è niente da scrivere" }); continue; }
+    const r = parseInventariCsv(csvInventari([inv]));
+    const rientrati = r.inventari.reduce((s, x) => s + x.cumuli.length, 0);
+    if (r.inventari.length === 1 && rientrati === scritti) continue;
+    const perche = [...new Set(r.scarti.map(s => s.perche))].join(", ");
+    persi.push({ nome, ragione: !r.inventari.length ? (perche || "il lettore lo scarta")
+      : conta(scritti - rientrati, "cumulo", "cumuli") + " su " + scritti + (scritti - rientrati === 1 ? " resta" : " restano") + " fuori (" + perche + ")" });
+  }
+  return { scritti: l.length, cumuli, rientrano: l.length - persi.length, persi };
 }

@@ -342,6 +342,12 @@ const BANCHI = [
   ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
   ['id unici nella pagina viva', 'id-unici.mjs', []],
   ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
+  /* ⛔ le quattro pagine di Deepwork ID negli stati VERI (membro, senza org,
+     tour): fino al 04/09 ogni banco le vedeva solo in anteprima, perché il
+     finto Firebase del core non risponde per auth e functions e l'SDK non
+     parte. `finto-id.mjs` sì. */
+  ['Deepwork ID negli stati veri', 'id-stati.mjs', []],
+  ['Deepwork ID · controprova', 'id-stati.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
   ['navigazione fra le pagine', 'navigazione.mjs', []],
@@ -474,6 +480,52 @@ const BANCHI = [
      con una barra di 0 px, identica a chi non ha venduto niente. */
   ['i numeri tranquilli di Conti', 'conti-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Conti · controprova', 'conti-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 02/09: il primo ponte fra app, Flotta→Conti. Tre passate perché sono tre
+     esiti: Flotta risponde (tabella, riga «in tutt'e due»), Flotta NON risponde
+     (tono avviso e NESSUNO zero), e la controprova che rimette la traduzione
+     null→[] nella pagina e pretende che il verso «assente» cada. */
+  ['il ponte Flotta→Conti nei costi', 'conti-ponte-flotta.mjs', []],
+  ['ponte Flotta→Conti · Flotta assente', 'conti-ponte-flotta.mjs', ['--flotta-assente']],
+  ['ponte Flotta→Conti · controprova', 'conti-ponte-flotta.mjs', ['--controprova'], true],
+  ['Flotta: il consumo di un mezzo contro la sua storia', 'flotta-consumo-storia.mjs', []],
+  ['consumo contro la storia · controprova', 'flotta-consumo-storia.mjs', ['--controprova'], true],
+  /* IL CONTATORE SOSTITUITO O AZZERATO (04/09): registra davvero i pieni con la
+     casella «contatore nuovo» a 320 e 390 px e legge che consumo e ritmo
+     ripartono e lo dicono; la controprova rimette l'azzeramento ignorato.
+     Alza un server suo (porta 8781), come `flotta-consumo-storia`. */
+  ['Flotta: il contatore sostituito o azzerato', 'flotta-contatore.mjs', []],
+  ['contatore sostituito · controprova', 'flotta-contatore.mjs', ['--controprova'], true],
+  ['il ponte Campo→Conti nel report', 'conti-ponte-campo.mjs', []],
+  ['ponte Campo→Conti · Campo assente', 'conti-ponte-campo.mjs', ['--campo-assente']],
+  ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],
+  ['il verbale di riconciliazione di Conti', 'conti-verbale.mjs', []],
+  ['verbale di riconciliazione · controprova', 'conti-verbale.mjs', ['--controprova'], true],
+  /* 03/09: il terzo lato del triangolo. Terra registra l'inventario dei
+     cumuli (fotografia del piazzale a una data), Conti lo legge e chiude
+     cavato − venduto − Δscorte in tonnellate, ognuno con la SUA densità.
+     Un cumulo non misurato non vale zero, un materiale senza densità nel
+     listino resta fuori ed è elencato: i due banchi lo pretendono nei tre
+     esiti (chiuso, un inventario solo / nessuno, Terra che non risponde). */
+  ["Terra: l'inventario dei cumuli", 'terra-inventario.mjs', []],
+  ["inventario dei cumuli · controprova", 'terra-inventario.mjs', ['--controprova'], true],
+  ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
+  ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
+  ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],
+  ["CSV degli inventari · controprova", 'terra-inventario-csv.mjs', ['--controprova'], true],
+  /* 02/09, il verso di ritorno: Flotta chiede a Conti «questa spesa ce l'hai
+     anche tu?». Stessa funzione condivisa, stessi tre esiti, stessa controprova. */
+  ['il ponte Conti→Flotta nei costi dei mezzi', 'flotta-ponte-conti.mjs', []],
+  ['ponte Conti→Flotta · Conti assente', 'flotta-ponte-conti.mjs', ['--conti-assente']],
+  ['ponte Conti→Flotta · controprova', 'flotta-ponte-conti.mjs', ['--controprova'], true],
+  /* 02/09: la fattura elettronica esce dal bottone, e il banco APRE il file:
+     righe e DDT citati contro il modulo, e con un dato mancante niente file. */
+  ['il file XML per lo SdI esce dalla fattura', 'conti-xml-sdi.mjs', []],
+  ['XML per lo SdI · controprova', 'conti-xml-sdi.mjs', ['--controprova'], true],
+  /* 02/09, ponte 3b: il muro di Scudo legge concessione (Terra) e mezzi (Flotta).
+     Tre esiti come per i ponti dei costi, e la controprova rimette null→[]. */
+  ['il muro di tutta la cava in Scudo', 'scudo-scadenze-unite.mjs', []],
+  ['muro di tutta la cava · Terra assente', 'scudo-scadenze-unite.mjs', ['--terra-assente']],
+  ['muro di tutta la cava · controprova', 'scudo-scadenze-unite.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, stessa domanda applicata a Scudo: dove l'app compone
      qualcosa che ESCE, chi decide i suoi numeri? I quattro CSV li scrive la
      pagina, e ognuno era più tranquillo dello schermo — un'azione scaduta da
@@ -483,6 +535,14 @@ const BANCHI = [
      cella vuota che si legge «zero giorni». */
   ['i documenti che escono da Scudo (4 CSV, 2 fogli stampati, il promemoria)', 'scudo-documenti.mjs', []],
   ['documenti di Scudo · controprova', 'scudo-documenti.mjs', ['--controprova'], true],
+  /* 05/09 · il giudizio del medico si scrive, non si cicla: il tocco sul badge
+     dell'idoneità apre la modale con la data e — per le prescrizioni — il
+     testo obbligatorio; il vuoto e la data futura sono rifiutati e la riga
+     resta com'era; registrato, la riga dice «Giudizio del … · Prescrizioni
+     del medico: …». La controprova rimette `giudizioIdoneita` che accetta le
+     prescrizioni vuote. */
+  ['il giudizio del medico in Scudo, scritto e non ciclato', 'scudo-giudizio-medico.mjs', []],
+  ['giudizio del medico · controprova', 'scudo-giudizio-medico.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08 insieme alla dichiarazione «dati di esempio» sui due
      fogli di Scudo — il verbale di consegna dei DPI (art. 77 D.Lgs 81/2008) e
      la cartella del lavoratore. `--live` è la metà che conta quanto l'altra:
@@ -655,6 +715,13 @@ const BANCHI = [
      frasi e le celle vivono nella pagina. */
   ['i documenti di Terra e gli zeri mai misurati', 'terra-numeri-tranquilli.mjs', []],
   ['zeri mai misurati · controprova', 'terra-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 04/09 · la relazione di fine lavori del lotto, premuta davvero: il foglio
+     per chiedere il collaudo e lo svincolo, catturato dalla finestra nuova —
+     gli stessi numeri della riga del lotto, le date, la quota di garanzia, e
+     la sezione «Che cosa manca» dove un dato non registrato resta scritto come
+     tale. La controprova rimette «0 m³» al posto di «non misurato». */
+  ['la relazione di fine lavori del lotto di Terra, premuta davvero', 'terra-relazione-lotto.mjs', []],
+  ['relazione di fine lavori · controprova', 'terra-relazione-lotto.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero
@@ -720,6 +787,13 @@ const BANCHI = [
      quindi sulla copia misura la copia. */
   ['le frasi di Conti quando il numero è uno', 'conti-frasi-da-uno.mjs', []],
   ['frasi di Conti da uno · controprova', 'conti-frasi-da-uno.mjs', ['--controprova'], true],
+  /* 05/09 · il file della banca nelle sue forme vere, caricato davvero: le
+     colonne lette per NOME (entrate/uscite/saldo/causale ABI; dare/avere con la
+     descrizione in fondo), l'esito che dice quali sono riconosciute e quali
+     lasciate fuori, il bonifico che vale 12.300 e non il saldo. La controprova
+     rimette la lettura per posizione. */
+  ['il file della banca di Conti, letto per nome di colonna', 'conti-banca-colonne.mjs', []],
+  ['file della banca · controprova', 'conti-banca-colonne.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si
@@ -758,6 +832,11 @@ const BANCHI = [
      uno scratchpad, che alla sessione dopo non esistono. */
   ['il core e i rapportini mai misurati', 'core-rapportini-non-misurati.mjs', []],
   ['rapportini mai misurati · controprova', 'core-rapportini-non-misurati.mjs', ['--controprova'], true],
+  /* 03/09: l'esito dello sparo sul rapportino fochino — colpi esplosi contati
+     e colpi mancati. Assenti = NON CONTATO, mai «0 mancati»; una funzione sola
+     (`esitoSparo` in dw-shell) decide lista, scheda e PDF. */
+  ["il core: l'esito dello sparo (colpi esplosi e mancati)", 'core-esito-sparo.mjs', []],
+  ["esito dello sparo · controprova", 'core-esito-sparo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, gemello del banco qui sopra sull'ALTRO documento del
      core. Stessa decisione (`misureVolataProgetto` in `shared/`), quarta copia
      debole: documento, scheda e riquadro la chiamavano, l'ELENCO no — e
@@ -807,6 +886,8 @@ const BANCHI = [
      il cliente consegna. */
   ['le dichiarazioni del report di Sentinella', 'sentinella-report-dichiarazioni.mjs', []],
   ['dichiarazioni del report · controprova', 'sentinella-report-dichiarazioni.mjs', ['--controprova'], true],
+  ['la scheda della singola volata (Sentinella)', 'sentinella-foglio-volata.mjs', []],
+  ['scheda della volata · controprova', 'sentinella-foglio-volata.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 13/08 (riga B4). Il documento poteva essere vero e rispondere
      a UN'ALTRA DOMANDA: lo scadenzario sapeva quando va consegnato un
      adempimento, il Report faceva digitare «dal» e «al», e fra le due cose non
@@ -835,6 +916,54 @@ const BANCHI = [
      `>=`. Finché quella riga non cambia, questo banco è KO di proposito. */
   ['i disegni di Sentinella, misurati in pixel', 'sentinella-disegni.mjs', []],
   ['disegni di Sentinella · controprova', 'sentinella-disegni.mjs', ['--controprova'], true],
+  /* 04/09 · la lettura dichiarata non valida (mezzo di passaggio, temporale,
+     prova dello strumento), premuta davvero: la modale del core, la riga che
+     resta barrata col valore e la ragione, il riepilogo di conformità che
+     cambia SOLO con la dichiarazione e lo dice, il report e il file per
+     l'ente che scrivono «1 lettura annullata (temporale)», il ripristino. La
+     controprova rimette `lettureLeggibili` senza il filtro: l'annullata conta
+     lo stesso, e il banco deve cadere. */
+  ['la lettura dichiarata non valida di Sentinella, premuta davvero', 'sentinella-annullate.mjs', []],
+  ['lettura non valida di Sentinella · controprova', 'sentinella-annullate.mjs', ['--controprova'], true],
+  /* 04/09 · la scheda del punto sta nella sua larghezza: il quadrante dei KPI
+     troncava «44,2 µg/m³» in «44,2 …» (l'unità sparita) a 320 e 390 px, e la
+     tabella «Le ultime misure» scorreva nel suo riquadro con le pillole della
+     provenienza tagliate alla vista. Misura a 320/360/390/430 nei tre temi su
+     ogni punto della dimostrazione, col Range sui nodi di testo. La controprova
+     rimette l'ellissi, l'ora come colonna a sé e il min-width delle azioni. */
+  ['la scheda del punto di Sentinella sta nella sua larghezza', 'sentinella-scheda-larghezze.mjs', []],
+  ['scheda del punto · controprova', 'sentinella-scheda-larghezze.mjs', ['--controprova'], true],
+  /* 04/09 · il file del sismografo a più colonne (PPV sui tre assi, vettore
+     somma, frequenza, sovrapressione) incollato davvero: la finestra propone
+     PVS come valore e non un asse, «nessuna» calcola la risultante e scarta
+     la riga con un asse vuoto col motivo, la serie del punto e il report
+     portano l'evento e dichiarano da dove viene il numero. La controprova
+     rimette `lettureLeggibili` senza `campiEvento` e la risultante a due assi. */
+  ['il file del sismografo a più colonne di Sentinella, incollato davvero', 'sentinella-evento-import.mjs', []],
+  ['sismografo a più colonne · controprova', 'sentinella-evento-import.mjs', ['--controprova'], true],
+  /* 05/09 (sera) · le condizioni meteo della misura, dal file e a mano: il
+     file del fonometro con la stazione meteo incollato davvero («Evento» non
+     è «vento»), l'anteprima con «non letta: vento» e i tag, l'archivio che
+     tiene le condizioni, la striscia di «Registra» che C'È e avvisa (dall'08/08
+     il gestore moriva su `letture` fuori scope), il report che conta fuori ·
+     dentro · non si può dire. La controprova rimette tre difetti, due nel
+     modulo e uno nella pagina, applicati per file. */
+  ['le condizioni meteo di Sentinella, dal file e a mano', 'sentinella-meteo-import.mjs', []],
+  ['condizioni meteo · controprova', 'sentinella-meteo-import.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · il ponte 3e: Genesi → Sentinella senza il file. Due pagine
+     nello stesso browser: «per Sentinella» scrive la prevista nella collezione,
+     il registro di Sentinella la mostra e la accoglie con gli stessi numeri;
+     riesportare non raddoppia, accolta sparisce dalle nuove, le eseguite non
+     cambiano. La controprova rimette Genesi che non scrive e Sentinella che
+     confronta una lista vuota, per file. */
+  ['il ponte 3e: Genesi → Sentinella senza il file', 'ponte-genesi-sentinella.mjs', []],
+  ['ponte 3e · controprova', 'ponte-genesi-sentinella.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · il piano di carico Genesi → Campo senza il file: «Esporta
+     piano» scrive nella collezione, Campo mostra «Piani da Genesi», «carica»
+     percorre la stessa strada del file (finestra compresa) e i dodici fori
+     entrano; riesportare non raddoppia. Controprova per file. */
+  ['il piano di carico: Genesi → Campo senza il file', 'ponte-genesi-campo.mjs', []],
+  ['piano Genesi → Campo · controprova', 'ponte-genesi-campo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
@@ -970,6 +1099,9 @@ const BANCHI = [
      frasi escano davvero così lo dice solo il browser. */
   ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
+  ['Genesi: le volate passano dalla porta sui dati', 'genesi-locale.mjs', []],
+  ['porta sui dati di Genesi · senza rete', 'genesi-locale.mjs', ['--offline']],
+  ['porta sui dati di Genesi · controprova', 'genesi-locale.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 14/08 — lo stesso principio del fondatore applicato al
      TEMPO invece che al dato. Fra l'apertura della pagina e l'arrivo dei dati
      c'è una finestra in cui l'app ha già disegnato tutto e non sa ancora
@@ -1031,7 +1163,10 @@ async function aspetta(porta, secondi) {
   return false;
 }
 
-const PORTA = process.argv[2] || '8823';
+/* ⚠️ 03/09: lanciato come `tutti.mjs --solo=conti` prendeva «--solo=conti» per
+   la PORTA e moriva provando ad alzare un server lì sopra. La porta è il
+   primo argomento che NON comincia con `--`; se non c'è, 8823. */
+const PORTA = process.argv.slice(2).find((a) => !a.startsWith('--')) || '8823';
 const SU_COPIA = !process.argv.includes('--sulla-viva');
 
 /* ══ IL GIRO GIRA SU UNA COPIA CONGELATA ═══════════════════════════════════
@@ -1267,8 +1402,20 @@ for (const [nome, file, argomenti, eControprova, appeso] of DA_FARE) {
     /* `detached` serve al kill dell'ALBERO qui sotto: senza, il figlio resta
        nel gruppo del runner e `process.kill(-pid)` ammazzerebbe il runner
        stesso. Con lui, un Chromium orfano non sopravvive al limite. */
+    /* ⛔ IL PROXY DEL CONTENITORE FA ASPETTARE 12,7 SECONDI A OGNI PAGINA, e i
+       banchi che aspettano un tempo fisso misurano una schermata VUOTA.
+       Misurato il 02/09: Chromium legge `HTTPS_PROXY` dall'ambiente e manda lì
+       l'import di Firebase da gstatic; il proxy tiene la connessione e la
+       azzera dopo ~12,7 s, e solo allora l'app ripiega sulla dimostrazione.
+       Senza quelle variabili l'import fallisce in 260 ms. Sei banchi di Conti
+       lanciati a mano davano «#vend-list è vuota: non ho misurato niente»,
+       «il file esce davvero: KO» su tutti i CSV — cioè accusavano il prodotto
+       dell'ambiente. Qui le variabili si tolgono al figlio, non al runner:
+       `giro-node` e chi usa `curl` le vogliono. */
+    const senzaProxy = Object.fromEntries(Object.entries(process.env)
+      .filter(([k]) => !/^(https?_proxy|no_proxy)$/i.test(k)));
     const p = file
-      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true })
+      ? spawn(process.execPath, [join(QUI, file), PORTA, ...argomenti], { stdio: 'inherit', detached: true, env: senzaProxy })
       : spawn(process.execPath, ['-e', appeso ? 'setInterval(() => {}, 1000)' : 'setTimeout(() => {}, 600)'],
               { stdio: 'inherit', detached: true });
     /* si uccide l'ALBERO, non solo il capo: un banco che alza un browser lascia

@@ -379,3 +379,315 @@ conto per forza, ed è lì che va cercata la sua dichiarazione — non nel prosp
 *(Verificato al commit `9bae83a`. La proposta originale resta scritta sopra, non
 cancellata: serve a ricordare che la parte vera e la parte dedotta viaggiavano
 nella stessa riga.)*
+
+
+---
+
+<!-- UNITO IL 03/09. Le sezioni da qui in giù vivevano in docs/RICERCA_CONTINUA_terra.md
+     (stesso nome, in minuscolo), nato il 14/08 da un agente di ricerca che non ha
+     trovato questo file perché lo cercava con il nome sbagliato. Due file con lo
+     stesso nome a maiuscole diverse non convivono su Windows e macOS: il repository
+     non si sarebbe nemmeno potuto clonare intero. Il contenuto è quello, testuale;
+     i riferimenti nei checkpoint del 02/09 puntano al nome vecchio. -->
+
+# Ricerche continue — Terra
+
+## Ricerca del 2026-09-02 — il rilievo e la dichiarazione dei quantitativi: il mondo
+
+### Fatti dal mondo
+
+1. **Rilievo fotogrammetrico con drone**: il rapporto professionale contiene GSD (Ground Sampling Distance, la dimensione reale di un pixel sul terreno), punti di controllo a terra (GCP) per precisione centimetrica o sub-centimetrica, errore RMS (accettabile quando inferiore a 1-2 volte il GSD), modello 3D, ortofoto e dati per calcolo volumetrico con errori inferiori all'1% [seconda mano: geocorsi.it; ispezionicondrone.it].
+
+2. **Laser scanner terrestre e LiDAR da drone**: precision millimetrica per scanner professionali (Faro, Riegl); LiDAR da drone consegue 2-5 cm di accuratezza assoluta in condizioni corrette. Utilizzati per DTM, curve di livello, calcoli volumetrici in tempi brevi [seconda mano: microgeo.it; ingenio-web.it; dronezero.net].
+
+3. **Densità in banco**: calcare solido 2200-2600 kg/m³, calcare frantumato ~2240 kg/m³ (variabile per spazi vuoti); terra ~1800 kg/m³ per conversione volume-tonnellate [seconda mano: omnicalculator.com; contabilità di cantiere].
+
+4. **Dichiarazione annuale statistica mineraria**: i titolari di autorizzazione comunicano annualmente volumi estratti (m³ o tonnellate) alle Regioni. Rilevazione nazionale ISTAT realizzata annualmente su "Pressione antropica e rischi naturali". Deadline in genere aprile dell'anno successivo [seconda mano: regione.piemonte.it; istat.it].
+
+5. **Canone di escavazione**: calcolato su volume di materiale estratto, varia per litotipo e Regione. Piemonte: aggiornamento 2026 con L.R. 16/2025 (agosto 6, 2025), adeguamento ISTAT ogni due anni [seconda mano: regione.piemonte.it].
+
+6. **Distribuzione geografica cave**: Lombardia 484 siti, Piemonte 434, Veneto 372, Toscana 369 (anno 2017). Lombardi produce oltre 23 milioni t, Piemonte 10,6 Mt, Veneto 9,4 Mt di sabbia e ghiaia [seconda mano: istat.it, 2019].
+
+### Software e formati del rapporto professionale
+
+| Software | Formato rapporto | Dati contenuti | Fonte |
+|----------|-----------------|-----------------|-------|
+| Pix4D | PDF, GeoTIFF, LAS, DXF | Ortofoto, nuvola di punti, DSM, volume | [seconda mano: coptrz.com; dronedesk.io] |
+| DroneDeploy | PDF, GeoTIFF, LAS | Mappa 2D/3D, ortomosaico, rilievo volumetrico | [seconda mano: dslrpros.com; skyebrowse.com] |
+| Agisoft Metashape | PDF, OBJ, LAS, DXF | Modello 3D, ortomosaico, nuvola di punti | [seconda mano: coptrz.com; wezom.com] |
+| Propeller | PDF, DXF, LandXML | Volume, profili di scavo/riporto, rilievo | [seconda mano: dronedesk.io] |
+| Carlson Suite | DXF, LandXML, ASCII | DTM, profili volumetrici, curve di livello | [seconda mano: carlsonsoft.com indicato in topgeometri.it] |
+| Geocat (italiano) | DXF, WinCAD | Rilievo topografico, integrazione Carlson | [seconda mano: topgeometri.it] |
+
+### Canone di escavazione per Regione
+
+| Regione | Base calcolo | Aliquota indicativa | Fonte |
+|---------|-------------|-------------------|--------|
+| Piemonte | Volume m³ estratto per litotipo | Aggiornata 2026 (L.R. 16/2025), dettagli su foglio calcolo "Servizio Esercenti" | [seconda mano: regione.piemonte.it] |
+| Nazionale (quadro) | m³ estratti da rilievo o tonnellate vendute | <50 €/m³ in alcune Regioni (simbolico), aliquote crescenti per tipo minerale | [seconda mano: quarryandconstructionweb.it] |
+| Lombardia, Veneto, Toscana | Non specificato in risultati | Gestiti dai singoli enti regionali; dati ISTAT disponibili per volumi ma non tariffe pubbliche | [seconda mano: istat.it; indicatoriambientali.isprambiente.it] |
+
+### Domande per chi ha il codice in mano
+
+1. Chi converte il volume in banco (m³ misurati dal rilievo drone/laser) alle tonnellate da dichiarare alle Regioni, e con quale densità (2200-2600 per calcare)?
+2. Come Terra concilia il volume in banco del rilievo con il peso venduto alla pesa (che è il dato fiscale della vendita)?
+3. Il rilievo professionale è conservato per controlli da parte dell'ente estrattivo, e se sì con quale formato standardizzato (PDF, DXF, LandXML, nuvola LAS)?
+4. Come si passa da periodicità del rilievo (mensile? trimestrale? annuale?) alle dichiarazioni regionali (scadenza aprile dell'anno dopo)?
+5. Se il canone si calcola su m³ estratto, chi legge quella misura dal rilievo drone e la consegna all'amministratore per il pagamento?
+
+---
+
+## Ricerca del 2026-09-02 — il rilievo periodico con il drone e la dichiarazione all'ente (metà sul mondo)
+
+### Che cosa esiste già da noi
+
+Non verificato da questa ricerca: il delta lo fa chi ha il codice.
+
+### I parametri del volo e l'accuratezza attesa
+
+**GSD (Ground Sample Distance)**: GSD tipico per rilievi professionali in cava 1–2,5 cm/px (risultati: Wingtra, Propeller, JOUAV). Il calcolo dipende da altezza di volo, risoluzione sensore e lunghezza focale: GSD = (altezza volo × larghezza sensore) / (lunghezza focale × larghezza immagine) [seconda mano: wingtra.com; enterprise-insights.dji.com].
+
+**Altezza di volo**: varia da 30 a 120 m per rilievi in cava, dipendente da GSD desiderato e da conformazione del terreno (differenze di quota riducono il GSD locale) [seconda mano: propelleraero.com; dslrpros.com].
+
+**Ground Control Points (GCP)**: 5–8 GCP distribuiti ai vertici e al centro dell'area, oppure fino a uno solo se usato PPK; best practice: 2–4 checkpoint indipendenti per verifica [seconda mano: propelleraero.com; unmannedtechshop.co.uk; skyebrowse.com].
+
+**RTK/PPK**: RTK (Real-Time Kinematic) offre 1–2 cm di accuratezza in tempo reale via base station; PPK (Post-Processed Kinematic) applica le correzioni dopo il volo, accuratezza identica, più robusto a interruzioni di collegamento [seconda mano: dronedeploy.com; geonadir.com; propelleraero.com].
+
+**Sovrapposizione foto**: tipicamente 60–80% sovrapposto longitudinale e 30–40% laterale per rilievo fotogrammetrico solido [seconda mano: pix4d.com; agisoft.com].
+
+**Accuratezza attesa**: orizzontale 1–3 cm, verticale 2–3 cm con GCP; senza GCP ma con PPK, 2–5 cm orizzontale e 5–10 cm verticale. RICS Band D/E: ±10–25 mm su dettagli, ±2–4% su volumi [seconda mano: propelleraero.com; angellsurveys.com].
+
+### Come si confrontano due rilievi e le cause d'errore
+
+**Differenza DEM (DEM of Difference)**: confronto tra superficie rilevata a due tempi diversi tramite sottrazione punto per punto; il risultato è una mappa di altimetrie differenziali [seconda mano: sciencedirect.com; arxiv.org].
+
+**Superficie di riferimento**: scelta di un piano di riferimento stabile (base della cava, banco naturale) su cui agganciare i rilievi successivi; errori se il riferimento si muove o subisce assestamenti [seconda mano: provincia.pc.it; geoteasrl.it].
+
+**Vegetazione e zone d'acqua**: cause di errore; la vegetazione nasconde il suolo e produce scarti fino a 50 cm; le zone d'acqua causano perdita di dati (riflessi, assorbimento ottico). Mitigation: use NDVI-based masking, LiDAR penetrante (quando disponibile), rilievi in stagioni a minor vegetazione [seconda mano: nature.com; arxiv.org; ncbi.nlm.nih.gov].
+
+### Frequenza dei rilievi e rapporto all'ente
+
+**Periodicità**: mensile, trimestrale o annuale dipende da velocità di escavazione e obbligo contrattuale; per cave in attività, controllo almeno trimestrale [seconda mano: provincia.pc.it; acqualodigiana.it].
+
+**Stato Avanzamento Lavori (SAL)**: redatto periodicamente (mensile o per milestone), contiene quantità estratte (m³ o t), descrizione e costi; firmato da direttore lavori [seconda mano: pedago.it; ingenio-web.it; studiopetrillo.com].
+
+**Dichiarazione all'ente**: deadline tipicamente aprile dell'anno successivo per dichiarazione annuale statistica; Piemonte: comunicazione via portale "Servizio Esercenti Minerari"; in Campania, pagamento contributi entro 31/3 o 30/9 dell'anno seguente [seconda mano: regione.piemonte.it].
+
+### Software e forma del calcolo volumetrico
+
+| Prodotto | Calcolo volume | Input | Output |
+|----------|---|---|---|
+| Pix4D | DEM + superficie riferimento = prism volume | Ortofoto, nuvola punti | m³, GeoTIFF, DXF |
+| Agisoft Metashape | Point cloud → superficie → diferenza | Immagini drone → DSM/DTM | m³, LAS, OBJ, DXF |
+| DJI Terra | LiDAR o fotogrammetria → DEM | Volo DJI + RTK/PPK | Ortomosaico, DEM, DXF |
+| Propeller | Volume app su DSM | Immagini, GCP/RTK | m³, PDF, DXF |
+| Trimble Stratus | Point cloud → superficie | Dati Propeller | m³, profili cut/fill, DXF |
+| Carlson Suite | Point cloud + DTM → volume | LAS, DXF, nuvola | m³, LandXML, profili |
+
+[seconda mano: propelleraero.com; dronedeploy.com; researchgate.net; carlsonps.com; anvil.so]
+
+### Domande per il delta (il confronto con la nostra app)
+
+1. Chi decide la tolleranza ammissibile per un rilievo periodico (es. ±3% o ±5 m³ su un volume calcolato)?
+2. Come Terra distingue fra errore legittimo di misura (variabilità dello strumento, vegetazione residua) e variazione reale del volume?
+3. Il rilievo periodico è conservato in un formato che permette il confronto automatico di due date diverse (LAS, DEM in griglia)?
+4. La nostra app accetta il confine della cava come superficie di riferimento per il calcolo differenziale, o richiede un datum esterno?
+5. Come Terra gestiSce la conversione automatica fra m³ in banco (dal DEM) e tonnellate dichiarabili (con quale densità per litotipo)?
+
+### Fonti (tutte [seconda mano])
+
+- wingtra.com/surveying-gis/ground-sample-distance/
+- enterprise-insights.dji.com/blog/ground-sample-distance
+- propelleraero.com/ (blog e volume calculation articles)
+- dronedeploy.com/blog/what-is-the-difference-between-rtk-ppk-and-gcp-and-why-does-it-matter
+- geonadir.com/rtk-explained/
+- unmannedtechshop.co.uk/blogs/knowledge-base/ground-control-points-guide-drone-mapping
+- skyebrowse.com/news/posts/ground-control-points-guide
+- angellsurveys.com/insights/drone-mining-quarry-survey-volumetrics-guide/
+- nature.com (DEM accuracy, water extraction)
+- arxiv.org (DEM differencing in mining)
+- ncbi.nlm.nih.gov (vegetation monitoring in mines)
+- provincia.pc.it/Allegati/Livelli/Allegato%207_Rilievi%20topografici...
+- acqualodigiana.it/wp/wp-content/uploads/2020/03/GARA-2020-01-RILIEVI...
+- pedago.it/blog/stato-avanzamento-lavori.htm
+- ingenio-web.it/articoli/stato-avanzamento-lavori...
+- studiopetrillo.com/relazione-conto-finale.html
+- regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/statistica-mineraria-annuale
+- researchgate.net (Agisoft/Pix4D/DJI Terra comparison)
+- carlsonps.com/products/carlson-photocapture
+- anvil.so/post/pix4d-vs-agisoft-photogrammetry-software-comparison
+
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `8d0fb886`)
+
+Le cinque domande, risposte aprendo `apps/terra/terra-data.js`.
+
+1. **Chi decide la tolleranza di un rilievo** → la decide il METODO scritto sul
+   rilievo, non una percentuale a mano: `classeAccuratezza(rilievo)` legge il
+   metodo (RTK/PPK/GCP, con le negazioni «senza GCP» riconosciute) e il GSD
+   (`grep -ci GSD apps/terra/terra-data.js` → 23, `GCP` → 14, `RTK` → 11), `bandaVolume(volumeM3,
+   tolleranzaPct)` scrive la forbice, e un rilievo senza metodo ha tolleranza
+   **ignota**, non zero: `incertezzaScavo` somma le tolleranze note e DICHIARA
+   chi copre e chi no (misurato il 03/08 sul verbale per l'ente: 388 m³ «di
+   incertezza» erano il 2 % di UN rilievo su quattro). La «± 3 %» della
+   ricerca (RICS, di seconda mano) non entra: la classe la dà il metodo.
+2. **Errore di misura contro variazione vera** → non si distingue con un
+   numero: si distingue con la BANDA. Due rilievi consecutivi hanno ciascuno la
+   propria banda, e il confronto cavato/venduto e il verbale scrivono il ± accanto
+   al volume; sotto la banda una differenza non è una variazione. Vegetazione e
+   acqua (`grep -ci vegetaz apps/terra/terra-data.js` → 0, `acqua` → 0) NON sono campi: sono cause
+   che un rilievo dovrebbe scrivere nella nota del metodo. ⏱️ Candidato debole:
+   un campo «zone escluse dal calcolo» sul rilievo; da chiedere in cava se
+   qualcuno lo compilerebbe.
+3. **Il formato del rilievo** → Terra conserva il VOLUME e i metadati (data,
+   metodo, GSD, quota base, provenienza), non il DEM (`grep -ciE 'DEM' apps/terra/terra-data.js` → 7,
+   tutti in testi/commenti). Il confronto automatico fra due date è sui volumi
+   dichiarati (`rilievoPrecedente`, `serieAnnuale`), non fra superfici: il DEM
+   vive nel software del drone e nel visore nuvola di Genesi (la nuvola stessa
+   non entra in Firestore, §4a del piano Genesi — un LAS pesa quanto tutta
+   l'organizzazione). È una scelta scritta, non una mancanza da colmare.
+4. **La superficie di riferimento** → non è una domanda di Terra: il volume
+   arriva già calcolato (dal drone, dal visore o a mano); Terra registra la
+   quota di fondo dell'atto (`quotaFondoM`) e la quota base del ritaglio del
+   visore (`quotaBase`, che quando la nuvola non è georeferenziata è `null` e
+   il foglio lo dice — 13/08). Il datum resta nel software di calcolo.
+5. **m³ in banco → tonnellate** → esiste da oggi in shared: `densitaDellaCava`
+   (atto → laboratorio → valore tipico da verificare) e `cavatoInTonnellate`,
+   che Conti usa nel Report; la densità è UNA per cava, dichiarata sull'atto,
+   non «per litotipo» in un listino — chiederla due volte darebbe due risposte
+   per la stessa cava (il commento di `densitaDelMateriale`).
+
+**Il rapporto all'ente**: `riepilogoAnnuale(rilievi, anno, autorizzazione)`
+(somma prudente delle bande, cumulato e residuo del titolo) e il foglio
+stampato con la dichiarazione di incompletezza. I NOMI degli adempimenti per
+regione e le scadenze (aprile, 31/3 e 30/9…) che la ricerca riporta sono di
+seconda mano e NON vanno in nessuna schermata: è la decisione 21 di
+`docs/DECISIONI_WEEKEND.md`, allargata alla dichiarazione annuale.
+
+Riassunto: **quattro su cinque esistono (1, 2, 4, 5), il 3 è una scelta
+dichiarata**; nessun numero della ricerca entra nel prodotto.
+
+## Ricerca del 2026-09-04 (sera) — la garanzia finanziaria e la chiusura del lotto: il mondo
+
+*Metà sul mondo, fatta con `WebSearch` (sei ricerche); `WebFetch`/`curl` non
+leggono il testo primario, quindi ogni contenuto qui sotto è **[seconda
+mano: risultato di ricerca]** e nessun numero o termine di legge entra in
+una schermata. Tema non ancora toccato in questo documento: le tornate
+precedenti coprivano il rilievo, la dichiarazione annuale e il drone.*
+
+**Che cosa succede fuori, quando un lotto di cava finisce.**
+
+1. **La garanzia è dimensionata sul recupero, non sullo scavo.** In Piemonte
+   la Regione pubblica «linee guida per gli interventi di recupero ambientale
+   dei siti di cava e relativi importi economici unitari, da utilizzare per il
+   calcolo delle fideiussioni» (DGR 17-8699 del 05/04/2019, aggiornamento
+   della DGR 2010), con «indirizzi in merito alla durata e alle modifiche
+   delle garanzie fideiussorie (riduzioni, svincolo totale e parziale)». Cioè
+   l'importo nasce da **superficie da recuperare × costo unitario per tipo di
+   intervento**, e la Regione tiene il listino. [seconda mano:
+   regione.piemonte.it, legislazionetecnica.it]
+2. **Lo svincolo è per lotti, e lo decide un verbale.** Quando il recupero è
+   fatto «per fasi (lotti), il Comune svincola solo la parte di garanzia
+   corrispondente alle opere completate e certificate»; la richiesta va
+   accompagnata da «una relazione che descrive le opere eseguite con
+   riferimento al progetto e alle prescrizioni, e una planimetria aggiornata
+   con le aree recuperate». In Lombardia (l.r. 14/1998) lo svincolo è disposto
+   dal Comune «entro 90 giorni dalla richiesta, previa verifica del compimento
+   delle opere di ricomposizione previste dal progetto». [seconda mano:
+   risultati su bura.regione.abruzzo.it, bosettiegatti.eu, regione.lombardia.it]
+3. **La fine dei lavori si comunica, e si certifica.** In Veneto (l.r.
+   13/2018) il titolare «comunica alla Regione la fine dei lavori entro trenta
+   giorni, allegando l'attestazione di regolare esecuzione»; poi un
+   **sopralluogo** con titolare, direttore dei lavori, funzionario regionale e
+   rappresentante del Comune, con verbale firmato da tutti; e sulla base del
+   verbale la Giunta «svincola la garanzia» oppure convoca il titolare.
+   [seconda mano: bur.regione.veneto.it, regione.veneto.it/ripristino-e-garanzie]
+4. **La garanzia sopravvive alla cava.** «Una cava cessata è quella non più
+   oggetto di estrazione, comprese le esaurite e quelle recuperate per le quali
+   è certificato il completamento del recupero»: finché il verbale non c'è, la
+   cava non è cessata e la polizza va tenuta in vita. Il recupero ambientale è
+   «un vincolo spesso disatteso» (giurisprudenza citata da rgaonline.it).
+   [seconda mano]
+5. **Il rapporto col Codice degli appalti non c'entra.** Le ricerche sullo
+   «svincolo progressivo» portano quasi solo alle garanzie definitive degli
+   appalti pubblici (svincolo automatico fino al 75% con gli stati di
+   avanzamento): è un altro istituto, e va tenuto fuori da Terra per non
+   confondere chi legge. [seconda mano: diritto.it, lavoripubblici.it]
+
+Fonti (tutte lette come risultati di ricerca, non come testo primario):
+https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/delibera-della-giunta-regionale-n-17-8699-5-aprile-2019 ·
+https://legislazionetecnica.it/node/1519701 ·
+https://www.bosettiegatti.eu/info/norme/lombardia/1998_014.html ·
+https://bur.regione.veneto.it/BurvServices/pubblica/DettaglioLegge.aspx?id=366192 ·
+https://www.regione.veneto.it/web/energia/ripristino-e-garanzie ·
+https://rgaonline.it/giurisprudenza/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/ ·
+https://bura.regione.abruzzo.it/sites/bura.regione.abruzzo.it/files/bollettini/2025-07-22/bollettino-speciale-numero-182-del-25-07-2025.pdf
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `4df4a12a`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Chi sa in che stato è un lotto, collaudo compreso?** `STATI_LOTTO` =
+  previsto → aperto → esaurito → in-recupero → **recuperato → collaudato**
+  (`terra-data.js`, blocco «IL PIANO DI COLTIVAZIONE A LOTTI»); la pagina
+  mette il badge «senza collaudo» su un recuperato senza `collaudatoIl`
+  (`grep -n "senza collaudo" apps/terra/index.html` → 1, la riga del lotto) e
+  il modulo spiega «Collaudato non è recuperato: il secondo lo dice l'azienda,
+  il primo lo dice l'ente col suo verbale». **Il punto 4 del mondo c'è.**
+- **Chi sa che la garanzia va tenuta viva fino allo svincolo?**
+  `TIPI_SCADENZA_TERRA` ha «Fideiussione — validità o rinnovo» con la nota
+  «va tenuta in vita fino allo svincolo, che di norma arriva solo dopo il
+  collaudo finale» e «Collaudo finale / fine lavori — passaggio necessario per
+  chiudere il cantiere e liberare la garanzia»; la dimostrazione ha la polizza
+  con rinnovo annuale (`t2`). **La scadenza c'è; il legame con i lotti no**
+  (vedi sotto).
+- **Chi sa quanto vale la garanzia e quanta ne libera un lotto collaudato?**
+  Nessuno: `grep -c "importo\|euro" apps/terra/terra-data.js` → 8, **tutte**
+  sulla tariffa del canone («l'euro lo fa Conti»); `grep -n "svincol"` → 3,
+  tutte in note di testo. Il mondo (punti 1-2) dice che l'importo nasce dalla
+  superficie da recuperare e si svincola **per lotto**. ⚠️ Gli importi unitari
+  sono un listino regionale di seconda mano e **non entrano**; quello che può
+  entrare è la **dichiarazione**: sul lotto «quota di garanzia» scritta
+  dall'utente dalla propria polizza, e in Piano «garanzia ancora vincolata su
+  lotti non collaudati / liberabile dopo il collaudo di …», con «non
+  dichiarata» dove manca. Costo medio; misura: due lotti con quota, uno
+  collaudato, il Piano dice la somma dei non collaudati e dichiara il terzo.
+- **Chi sa che il collaudo è stato CHIESTO?** Nessuno: `grep -c
+  "collaudoChiestoIl" apps/terra/terra-data.js apps/terra/index.html` → 0 e
+  0; `lo2` lo dice in una **nota libera** («Collaudo chiesto all'ente: fino al
+  verbale il lotto non è chiuso»), che nessun conto legge. Il mondo (punto 3)
+  distingue tre momenti — fine lavori comunicata, sopralluogo, verbale — e
+  Terra ne ha solo il primo (`recuperoFinitoIl`) e l'ultimo (`collaudatoIl`).
+  Candidato a costo basso: `collaudoChiestoIl` sul lotto, e nella riga del
+  lotto «recuperato il … · collaudo chiesto il …» oppure «**recuperato da N
+  giorni, collaudo non ancora chiesto**» — N è misurato in casa, non un
+  termine di legge. Misura: un lotto recuperato senza richiesta dice i giorni;
+  con la richiesta dice la data; il collaudato non dice niente.
+- **Chi compone la relazione e la planimetria per chiedere lo svincolo?**
+  Nessuno, in questa forma: `grep -n "^export function .*[Ll]otti"` →
+  `detrazioneRecupero`, `divarioRecupero`, `rilieviFuoriDaiLotti`,
+  `conformitaProgetto` — conti, non documenti. Il verbale del rilievo esiste
+  (`_numRegistrato`, «Come è stato ottenuto il numero»), la dichiarazione
+  annuale esiste, ma «relazione di fine lavori del lotto» (superficie, volume
+  di progetto e misurato, date, rilievi che lo coprono, detrazione per
+  recupero) no. Candidato a costo medio; misura: il foglio esce con gli stessi
+  numeri della riga del lotto e dichiara «—» dove non è stato misurato. La
+  planimetria resta fuori: Terra non disegna aree.
+- **Il punto 5** (appalti pubblici) non produce nessun delta: è da tenere
+  fuori, e va detto qui perché una ricerca futura non lo porti dentro.
+
+Riassunto: **due punti su cinque esistono (collaudo come stato, garanzia come
+scadenza)**, tre sono candidati **dichiarativi** — nessun importo e nessun
+termine di legge entra nel prodotto. In ordine di costo: `collaudoChiestoIl`
+(basso), quota di garanzia per lotto (medio), relazione di fine lavori (medio).
+
+*Aggiornamento del 05/09 (riga scritta a posteriori, perché chi ha chiuso le
+tre unità non aveva aggiornato questa): tutti e tre ✅ la notte stessa —
+`collaudoChiestoIl` come data del lotto con «recuperato da N giorni, collaudo
+non ancora chiesto» (`attesaCollaudo`, commit `6118fced`); la quota di
+garanzia per lotto scritta dall'utente e sommata sui non collaudati
+(`garanziaVincolata`, commit `80dc105c`); la relazione di fine lavori del lotto
+(`relazioneLotto`, commit `a6122576`) con «che cosa manca» scritto. Prova:
+`grep -c "collaudoChiestoIl" apps/terra/terra-data.js` → 5;
+`grep -n "^export function \(attesaCollaudo\|garanziaVincolata\|relazioneLotto\)" apps/terra/terra-data.js`
+→ 3 righe.*

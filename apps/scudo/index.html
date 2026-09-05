@@ -426,6 +426,15 @@ body.dw.outdoor-mode{
    ogni pulsante porta la sua parola.                                      */
 .voce .acts{flex:1 1 100%; justify-content:flex-start; gap:6px; margin-top:2px}
 .voce .acts .chg{flex:1 1 0; min-width:0; padding:7px 6px}
+/* ⛔ A 390 px E SOTTO LA PAROLA USCIVA DAL BOTTONE, misurato il 03/09 col
+   Range sui nodi di testo: i tre esiti dividono la riga con le due icone
+   (✎ e foto, 34 px l'una), e a 320 px restano 59 px a testa — «CONFORME»
+   in maiuscolo ne chiede 72, «APPLICABILE» 84. Le tre parole si
+   sovrapponevano l'una sull'altra («CONFORMEPPLICABILE») senza un errore e
+   senza una riga rossa: `overflow:visible`, niente da leggere. Sotto i 400 px
+   i tre esiti prendono la riga intera (30% l'uno) e le icone vanno a capo:
+   rimisurato a 390, 360 e 320 → zero parole fuori dal bottone. */
+@media(max-width:400px){.voce .acts .chg{flex:1 1 30%}}
 .voce .acts .arr{flex:0 0 auto; min-width:34px; min-height:34px}
 .chg.e-ok.active{background:var(--success); border-color:var(--success); color:var(--on-ok)}
 .chg.e-no.active{background:var(--danger); border-color:var(--danger); color:var(--on-dg)}
@@ -440,6 +449,18 @@ body.dw.outdoor-mode{
    è proprio la differenza che conta (l'assenza di un dato non è un dato). */
 .chg.e-na.active{background:var(--chg-na,var(--border2)); border-color:var(--border-hi); color:var(--text)}
 .voce .name{-webkit-line-clamp:3}
+/* ⛔ A 320 px LA PASTIGLIA DEL TIPO DI DOCUMENTO USCIVA DAL NOME E VENIVA
+   TAGLIATA SENZA PUNTINI, misurata il 03/09: «VERBALE DI VERIFICA PERIODICA»
+   chiede 215 px, `.name` ne ha 199, e `overflow:hidden` del nome la mozzava a
+   «…PERIODIC» come se fosse la parola intera. Il nome sotto aveva i suoi
+   puntini; la pastiglia no. A 360 px e sopra ci sta (0 pastiglie tagliate su
+   otto schermate). Qui la pastiglia si stringe al suo contenitore e dichiara
+   il taglio con i puntini, come fa il nome accanto a lei.
+   ⚠️ `inline-block` non è un vezzo: `.badge` è `inline-flex`, e su un
+   contenitore flex `text-overflow` non fa niente — misurato: la pastiglia si
+   chiudeva a «…PERIODIC» senza puntini, cioè tagliata lo stesso. Altezza e
+   larghezza a 390 e 320 px restano identiche (21 px). */
+.name .badge.tag{display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom}
 .isp-nota{font-style:italic}
 /* ⛔ LA RIGA DELLA PROVA, e ha un colore perché è un avviso, non un consiglio.
    La classe `.avviso` esisteva solo per `.note`: appesa a un `form-hint`
@@ -937,6 +958,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   .vb-pie{margin-top:10mm; font-size:9.5px; color:#6a6480; border-top:1px solid #d5d0e4; padding-top:5px}
 }
 
+/* la pastiglia dell'app di provenienza nel muro di tutta la cava (02/09) */
+.badge.app{background:var(--card2); color:var(--muted2); border:1px solid var(--border2); text-transform:none; letter-spacing:.3px}
+.note.warn{--note-bar:var(--warn)}
 </style>
 </head>
 <body class="dw">
@@ -1176,6 +1200,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   <!-- S2 — «Il muro delle scadenze»: quante scadono in ciascuno dei prossimi
        12 mesi, con l'arretrato già scaduto staccato a sinistra. Filtri,
        ricerca e ordinamento della lista NON toccano questo grafico. -->
+  <!-- IL MURO DI TUTTA LA CAVA (02/09, ponte 3b): concessione (Terra), mezzi
+       (Flotta) e persone (qui) con la stessa regola. Si riempie quando le
+       altre due app rispondono; se una non risponde lo dice per nome. -->
+  <div id="scad-unite"></div>
   <div id="graf-muro"></div>
   <div id="scad-filtri" class="chgs">
     <button class="chg active" data-filtro="tutte">Tutte</button>
@@ -1535,7 +1563,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
   <div class="sec">Appalti<span class="cnt" id="appa-count">—</span></div>
   <div id="appa-list"></div>
-  <div class="note">Tocca un appalto per registrare il <b>documento di coordinamento</b>: chi l'ha redatto, quando, e — in cava — se l'impresa l'ha <b>sottoscritto</b>. Non e' un allegato, e' una decisione: un documento senza data non copre nessun periodo.</div>
+  <div class="note">Tocca un appalto per registrare il <b>documento di coordinamento</b>: chi l'ha redatto, quando, e — in cava — se l'impresa l'ha <b>sottoscritto</b>. Non è un allegato, è una decisione: un documento senza data non copre nessun periodo.</div>
 
   <div class="sec">Nuovo appalto</div>
   <div class="form col">
@@ -1558,8 +1586,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <input class="dw-input" id="appa-costi" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 900">
       </div>
     </div>
-    <div class="form-hint">La <b>durata in uomini-giorno</b> non e' un dettaglio burocratico: sotto i cinque il DUVRI non e' richiesto, sopra si. Lasciarla vuota non rende l'appalto esente &mdash; lo rende <b>indecidibile</b>, e Scudo lo scrive invece di dare un via libera.</div>
-    <div class="form-hint" style="margin-top:9px;">Rischi particolari presenti (art. 26 c.3-bis): se ce n'e' anche uno, nessuna esclusione vale.</div>
+    <div class="form-hint">La <b>durata in uomini-giorno</b> non è un dettaglio burocratico: sotto i cinque il DUVRI non è richiesto, sopra si. Lasciarla vuota non rende l'appalto esente &mdash; lo rende <b>indecidibile</b>, e Scudo lo scrive invece di dare un via libera.</div>
+    <div class="form-hint" style="margin-top:9px;">Rischi particolari presenti (art. 26 c.3-bis): se ce n'è anche uno, nessuna esclusione vale.</div>
     <div class="chgs" id="appa-rischi"></div>
     <div class="frow">
       <button type="button" class="chg" id="appa-valutati" aria-pressed="false" title="Spunta solo dopo aver davvero guardato quali rischi particolari ci sono">Rischi particolari verificati</button>
@@ -1567,7 +1595,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
   </div>
   <div class="note esito" id="appa-esito"></div>
-  <div class="note">In <b>cava</b> il documento di coordinamento non e' il DUVRI: e' il <b>DSS coordinato</b> (art. 9 D.Lgs 624/96), che il titolare redige valutando anche la valutazione dei rischi che l'impresa gli trasmette, e che l'impresa <b>sottoscrive</b> &mdash; ed e' con quella firma che diventa responsabile della parte di sua competenza. Fuori dalla cava vale la regola generale dell'art. 26 c.3. <b>Nota informativa, non un parere legale</b>: modalita' e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
+  <div class="note">In <b>cava</b> il documento di coordinamento non è il DUVRI: è il <b>DSS coordinato</b> (art. 9 D.Lgs 624/96), che il titolare redige valutando anche la valutazione dei rischi che l'impresa gli trasmette, e che l'impresa <b>sottoscrive</b> &mdash; ed è con quella firma che diventa responsabile della parte di sua competenza. Fuori dalla cava vale la regola generale dell'art. 26 c.3. <b>Nota informativa, non un parere legale</b>: modalità e obblighi vanno confermati con l'RSPP e il consulente dell'azienda.</div>
 
   <div class="sec">Imprese esterne<span class="cnt" id="appt-count">—</span></div>
   <div id="appt-list"></div>
@@ -1595,7 +1623,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </div>
   </div>
   <div class="note esito" id="appq-esito"></div>
-  <div class="note">L'art. 26 c.1 lett. a) chiede al committente di acquisire <b>due</b> cose: il <b>certificato camerale</b> e l'<b>autocertificazione</b> dei requisiti di idoneita' tecnico-professionale (art. 47 DPR 445/2000). Il <b>DURC</b> non e' in quell'elenco &mdash; e' obbligatorio nei cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i committenti: Scudo lo tiene fra i documenti utili, non fra gli obblighi dell'art. 26. I documenti finiscono nel <b>registro documenti</b>, con la stessa graffetta e le stesse scadenze di tutti gli altri.</div>
+  <div class="note">L'art. 26 c.1 lett. a) chiede al committente di acquisire <b>due</b> cose: il <b>certificato camerale</b> e l'<b>autocertificazione</b> dei requisiti di idoneità tecnico-professionale (art. 47 DPR 445/2000). Il <b>DURC</b> non è in quell'elenco &mdash; è obbligatorio nei cantieri (art. 90 c.9) e nella pratica lo chiedono quasi tutti i committenti: Scudo lo tiene fra i documenti utili, non fra gli obblighi dell'art. 26. I documenti finiscono nel <b>registro documenti</b>, con la stessa graffetta e le stesse scadenze di tutti gli altri.</div>
 </div>
 
 <div class="page" id="page-perm">
@@ -1630,7 +1658,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <select class="dw-input" id="perm-cant" style="flex:1 1 180px;"></select>
       </div>
       <div class="frow">
-        <input class="dw-input" id="perm-lavoro" placeholder="Che lavoro e' (es. Pulizia della tramoggia)" style="flex:2 1 240px;">
+        <input class="dw-input" id="perm-lavoro" placeholder="Che lavoro è (es. Pulizia della tramoggia)" style="flex:2 1 240px;">
         <input class="dw-input" id="perm-luogo" placeholder="Dove, con precisione (es. Tramoggia TR-01)" style="flex:1 1 200px;">
       </div>
       <div class="frow">
@@ -1648,14 +1676,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <select class="dw-input" id="perm-riceve" style="flex:1 1 190px;"></select>
         <select class="dw-input" id="perm-sorveglia" style="flex:1 1 190px;"></select>
       </div>
-      <div class="form-hint">Chi <b>riceve</b> il permesso e' la persona che entra: Scudo controlla che abbia in corso di validita' i corsi che quel tipo di lavoro richiede, leggendoli dallo <b>scadenzario</b> — non da un secondo elenco. Se il lavoro lo fa un'impresa esterna, si sceglie l'<b>appalto</b> qui sotto: i corsi dei suoi addetti li garantisce l'impresa, e quello che si verifica e' la sua qualifica e il documento di coordinamento.</div>
+      <div class="form-hint">Chi <b>riceve</b> il permesso è la persona che entra: Scudo controlla che abbia in corso di validità i corsi che quel tipo di lavoro richiede, leggendoli dallo <b>scadenzario</b> — non da un secondo elenco. Se il lavoro lo fa un'impresa esterna, si sceglie l'<b>appalto</b> qui sotto: i corsi dei suoi addetti li garantisce l'impresa, e quello che si verifica è la sua qualifica e il documento di coordinamento.</div>
       <div class="frow">
         <select class="dw-input" id="perm-appalto" style="flex:2 1 260px;"></select>
         <button class="dw-btn" id="btn-perm" style="margin-left:auto;">Crea la bozza</button>
       </div>
     </div>
     <div class="note esito" id="perm-esito"></div>
-    <div class="note"><b>Nota informativa, non un parere legale.</b> Per gli <b>ambienti sospetti di inquinamento o confinati</b> il <b>D.P.R. 177/2011</b> chiede una <b>procedura di lavoro</b> scritta (art. 3 c.3) che comprenda la fase di soccorso e il coordinamento con il 118 e i Vigili del fuoco, l'individuazione di un <b>rappresentante del datore di lavoro committente</b> presente per tutta la durata (art. 3 c.2), e la <b>qualificazione</b> dell'impresa con formazione e addestramento di tutto il personale impiegato (art. 2). Il permesso di lavoro e' lo strumento con cui quella procedura si applica al singolo intervento: tipi, misure e valori dell'aria che trovi qui sono una <b>base di partenza</b> da adattare al DSS e al DVR della tua cava insieme all'RSPP.</div>
+    <div class="note"><b>Nota informativa, non un parere legale.</b> Per gli <b>ambienti sospetti di inquinamento o confinati</b> il <b>D.P.R. 177/2011</b> chiede una <b>procedura di lavoro</b> scritta (art. 3 c.3) che comprenda la fase di soccorso e il coordinamento con il 118 e i Vigili del fuoco, l'individuazione di un <b>rappresentante del datore di lavoro committente</b> presente per tutta la durata (art. 3 c.2), e la <b>qualificazione</b> dell'impresa con formazione e addestramento di tutto il personale impiegato (art. 2). Il permesso di lavoro è lo strumento con cui quella procedura si applica al singolo intervento: tipi, misure e valori dell'aria che trovi qui sono una <b>base di partenza</b> da adattare al DSS e al DVR della tua cava insieme all'RSPP.</div>
   </div>
 
   <!-- LA SCHEDA DEL SINGOLO PERMESSO -->
@@ -1683,7 +1711,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       <div class="note" id="perm-s-aria-esito"></div>
     </div>
 
-    <div class="sec">Che cosa si puo' fare</div>
+    <div class="sec">Che cosa si può fare</div>
     <div class="form">
       <button class="dw-btn" id="btn-perm-rilascia">Rilascia il permesso</button>
       <button class="dw-btn secondary" id="btn-perm-sospendi">Sospendi</button>
@@ -1723,15 +1751,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
-    daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, parseAzioniCsv, etichettaScadenza,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, giudizioIdoneita, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+    daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, csvProspettoAzioni, csvRiepilogoNearMiss, etichettaPeriodoNearMiss, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
-    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura,
+    matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura, statoCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
-    cartellaLavoratore, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
+    cartellaLavoratore, fogliaVerbaleDpi, fogliaCartella, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
     /* `indiciInfortunistici` non si importa più: gli indici dell'anno in corso
@@ -1756,7 +1784,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire, registriMuti,
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
-    verificheDaSistemare, voceDocumentoInElenco } from "./scudo-data.js";
+    verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -1965,6 +1993,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     : "Stai guardando <b>dati di esempio</b> (" + db.mode + "): le modifiche non vengono salvate.";
 
   let LAV = [], SCA = [], DOC = [], INF = [], CANT = [], AZI = [], ISP = [], ORE = [];
+  /* le scadenze di Terra e di Flotta, lette la prima volta che serve il muro:
+     `undefined` = mai chieste, `null` = l'app non ha risposto (e lo si dice) */
+  let SCT, SCF, altreChieste = false;
+  async function caricaAltreScadenze() {
+    if (altreChieste) return;
+    altreChieste = true;
+    try { SCT = db.scadenzeTerra ? await db.scadenzeTerra() : null; } catch (e) { SCT = null; }
+    try { SCF = db.scadenzeFlotta ? await db.scadenzeFlotta() : null; } catch (e) { SCF = null; }
+  }
   // PONTE P3 · chi è schierato, letto da Campo. `null` = non lo sappiamo (Campo
   // non c'è o non è leggibile) ed è diverso da «non sta lavorando nessuno».
   let OPER_CAMPO = null, SQU_CAMPO = null;
@@ -2157,7 +2194,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const idonUrg = idoneitaCriticita(LAV).map(l => { const idn = idoneitaLabel(l.idoneita);
       return `<div class="item tocca ${striscia[idn.cls] || "st-mute"}" onclick="go('pers')" title="Vai al lavoratore">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)}</div><div class="meta">Idoneità sanitaria · ${esc(l.ruolo || "—")}${l.prescrizioni ? " · " + esc(l.prescrizioni) : ""}</div></div>
         <span class="acts"><span class="badge ${idn.cls}">${idn.label}</span><span class="arr">›</span></span></div>`; });
     // Le azioni correttive non chiuse e fuori tempo (o in scadenza) entrano
     // nelle urgenze con lo stesso semaforo delle scadenze: chi apre Scudo
@@ -2353,7 +2390,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const idn = idoneitaLabel(l.idoneita);
       return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div><div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div>${l.prescrizioni || dataISOEsiste(l.giudizioIl) ? `<div class="meta norma">${dataISOEsiste(l.giudizioIl) ? "Giudizio del " + dataIt(l.giudizioIl) + (l.prescrizioni ? " · " : "") : ""}${l.prescrizioni ? "Prescrizioni del medico: " + esc(l.prescrizioni) : ""}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
         <span class="acts">
         <span class="badge ${bg[0]}" title="${sue.length ? sue.length + (sue.length === 1 ? " scadenza registrata" : " scadenze registrate") : "nessun adempimento registrato per questa persona"}">${bg[1]}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
@@ -2378,7 +2415,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // accanto a ogni barra c'è il numero, così lo stato si legge anche senza
     // distinguere i colori. Il conto completo (in regola · in scadenza ·
     // scadute · totale) resta nell'elenco qui sotto, riga per riga.
-    const cop = coperturaFormazione(SCA);
+    /* ⛔ `DOC` serve alla VERIFICA PERIODICA: senza il registro documenti la
+       copertura non sa se il verbale c'è, e un'«idonea» senza verbale è incerta. */
+    const cop = coperturaFormazione(SCA, new Date(), DOC);
     /* ⛔ «Da sistemare», non «da rinnovare», e il conto lo fa il modulo
        (`daSistemareCopertura`): il terzo caso — la riga la cui data non si
        legge — non è un rinnovo, è una cosa di cui non si sa se sia scaduta.
@@ -2393,6 +2432,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (c.scadute) p.push(c.scadute + (c.scadute === 1 ? " già scaduta" : " già scadute"));
       if (c.inScadenza) p.push(c.inScadenza + " in scadenza entro 30 giorni");
       if (c.senzaData) p.push(c.senzaData + (c.senzaData === 1 ? " con una data che non si legge" : " con una data che non si legge"));
+      if (c.verificheNegative) p.push(c.verificheNegative + (c.verificheNegative === 1 ? " verifica con esito negativo o prescrizioni scadute" : " verifiche con esito negativo o prescrizioni scadute"));
+      if (c.verificheIncerte) p.push(c.verificheIncerte + (c.verificheIncerte === 1 ? " verifica mai fatta o senza il verbale" : " verifiche mai fatte o senza il verbale"));
       return p.join(" e ") || "niente da sistemare";
     };
     if (cop.length >= 2 && copTot > 0) {
@@ -2405,14 +2446,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         valori: cop.map(c => ({
           etichetta: c.tipo,
           valore: daRinnovare(c),
-          stato: c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok"),
+          stato: statoCopertura(c).cls,
         })),
         aria: "Copertura della formazione per tipo: " + conta(cop.length, "tipo di adempimento", "tipi di adempimento") + ", "
           + conta(copTot, "adempimento da sistemare", "adempimenti da sistemare") + " in tutto. Il tipo più scoperto è "
           + copPeggio.tipo + " con " + daRinnovare(copPeggio) + ".",
         nota: "Ogni barra è il numero di adempimenti <b>da sistemare</b> per quel tipo: "
-          + "<b>critico</b> vuol dire che almeno uno è già scaduto, <b>da tenere d'occhio</b> "
-          + "che scadono entro 30 giorni <b>oppure</b> che la data registrata non si legge, "
+          + "<b>critico</b> vuol dire che almeno uno è già scaduto o ha una verifica periodica con esito negativo, <b>da tenere d'occhio</b> "
+          + "che scadono entro 30 giorni <b>oppure</b> che la data registrata non si legge, <b>oppure</b> che una verifica periodica è mai stata fatta o è senza verbale, "
           + "<b>a posto</b> che non c'è niente da fare. Oggi il "
           + "buco più grosso è su <b>" + copPeggio.tipo + "</b>: " + copParole(copPeggio)
           + ". Passa sopra una barra per il dettaglio."
@@ -2446,20 +2487,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          e nessuna in scadenza, quindi il ternario cadeva sul ramo tranquillo.
          Il terzo caso è giallo — non si sa se sia scaduta — e va detto per
          nome, non lasciato in un «in regola» che nessuno ha misurato. */
-      const cls = c.scadute ? "danger" : (c.inScadenza || c.senzaData ? "warn" : "ok");
-      const lbl = c.scadute ? c.scadute + (c.scadute === 1 ? " scaduta" : " scadute")
-                : (c.inScadenza ? c.inScadenza + " in scadenza"
-                : (c.senzaData ? c.senzaData + (c.senzaData === 1 ? " senza data" : " senza data") : "tutte regolari"));
+      /* ⛔ Dal 02/09 colore e pastiglia li decide `statoCopertura`, lo stesso
+         posto da cui il grafico prende lo stato della barra: due ternari
+         gemelli qui e lassù erano il modo in cui un secchio nuovo (la
+         verifica periodica negativa o incerta) sarebbe rimasto verde in uno
+         dei due. */
+      const { cls, badge: lbl } = statoCopertura(c);
       return `<div class="item ${striscia[cls]}"><div class="info"><div class="name">${esc(c.tipo)}</div>
         <!-- NOTA: «senza data» e non «con una data che non si legge», perché
              la riga di dettaglio è tagliata a due righe (line-clamp) e la
-             forma lunga spingeva «— su N in totale» sul filo del taglio. È
+             forma lunga spingeva «— su N in totale» sul filo del taglio (e il
+             02/09 «1 verifica negativa · 1 verifica incerta» lo ha spinto OLTRE:
+             qui si scrive «negativa» e «incerta», il tipo lo dice la riga). È
              anche il termine che l'ecosistema usa già in tre app, quindi non
              è una parola nuova. La spiegazione per esteso sta nella nota del
              grafico, che spazio ne ha.
              ATTENZIONE: questo commento vive DENTRO un template literal —
              niente accenti gravi qui dentro, chiuderebbero la stringa. -->
-        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"}${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""} — su ${c.totale} in totale</div></div>
+        <div class="meta">${c.regolari} in regola · ${c.inScadenza} in scadenza · ${c.scadute} ${c.scadute === 1 ? "scaduta" : "scadute"}${c.senzaData ? " · <b>" + c.senzaData + " senza data</b>" : ""}${c.verificheNegative ? " · <b>" + c.verificheNegative + (c.verificheNegative === 1 ? " negativa" : " negative") + "</b>" : ""}${c.verificheIncerte ? " · <b>" + c.verificheIncerte + (c.verificheIncerte === 1 ? " incerta" : " incerte") + "</b>" : ""} — su ${c.totale} in totale</div></div>
         <span class="acts"><span class="badge ${cls}">${lbl}</span></span></div>`; }).join("")
       || vuoto(I.grafico, "Copertura da costruire",
           "La copertura per tipo di formazione si calcola da sola: appena registri le prime scadenze, qui vedi chi è in regola e chi no.");
@@ -2477,6 +2522,34 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // legge: sei mesi sul telefono, dodici sullo schermo largo. Il periodo
     // disegnato è scritto in chiaro accanto al titolo, così non si promette
     // mai più di quello che si mostra.
+    /* ── LE SCADENZE DI TUTTA LA CAVA ─────────────────────────────────────
+       `scadenzeUnite` (shared/) mette insieme Terra, Flotta e questo
+       scadenzario con la stessa regola e lo stesso ordine. Qui si mostrano le
+       righe delle ALTRE due app che sono scadute o in scadenza (quelle di
+       Scudo stanno nell'elenco qui sotto) e il conto di tutta la cava.
+       ⛔ Un'app che non ha risposto NON è un'app senza scadenze: la nota lo
+       dice per nome, e il conto non si stampa come se fosse completo. */
+    if (!altreChieste) caricaAltreScadenze().then(() => refresh()).catch(() => refresh());
+    { const u = scadenzeUnite({ terra: SCT === undefined ? null : SCT, flotta: SCF === undefined ? null : SCF, scudo: SCA, lavoratori: LAV }, new Date());
+      /* Il verbo lo decide il SOGGETTO, non quante app mancano: «i mezzi» è plurale
+         anche quando a mancare è Flotta da sola («i mezzi non è in questo conto»,
+         misurato il 03/09 facendo cadere il solo ponte di Flotta). */
+      const APP = { terra: ["Terra", "la concessione", "è", "vale"], flotta: ["Flotta", "i mezzi", "sono", "valgono"] };
+      const altre = u.righe.filter(r => r.app !== "scudo" && (r.stato === "scaduta" || r.stato === "in-scadenza"));
+      const righe = altre.map(r => `<div class="item st-${r.stato === "scaduta" ? "danger" : "warn"}">
+        <span class="avatar">${r.app === "terra" ? "🏔" : "🚜"}</span>
+        <div class="info"><div class="name">${esc(r.tipo)} · ${esc(r.soggetto)}</div>
+          <div class="meta">${r.descrizione ? esc(r.descrizione) + " · " : ""}${r.dataScadenza ? dataIt(r.dataScadenza) : "senza data"} · <span class="badge app">${APP[r.app][0]}</span></div></div>
+        <span class="acts"><span class="badge ${B[r.stato][0]}">${r.giorni < 0 ? "scaduta da " + (-r.giorni) + " gg" : r.giorni === 0 ? "scade oggi" : "tra " + r.giorni + " gg"}</span></span></div>`).join("");
+      const mancano = u.nonRaggiungibili.filter(a => a !== "scudo");
+      const nota = !altreChieste || (SCT === undefined && SCF === undefined)
+        ? `<div class="note">Sto chiedendo a <b>Terra</b> e a <b>Flotta</b> le loro scadenze…</div>`
+        : `<div class="note${mancano.length ? " warn" : ""}"><b>Tutta la cava</b> — concessione, mezzi e persone con la stessa regola: `
+          + `<b>${conta(u.conto.scadute, "scaduta", "scadute")}</b>, <b>${u.conto.inScadenza} in scadenza</b>, ${conta(u.conto.senzaData, "senza data", "senza data")}, ${conta(u.conto.regolari, "regolare", "regolari")}`
+          + (mancano.length ? `. ⚠️ <b>${mancano.map(a => APP[a][0]).join(" e ")} non ${mancano.length === 1 ? "ha" : "hanno"} risposto</b>: ${mancano.map(a => APP[a][1]).join(" e ")} non ${mancano.length === 1 ? APP[mancano[0]][2] : "sono"} in questo conto, e non ${mancano.length === 1 ? APP[mancano[0]][3] : "valgono"} zero.` : ".")
+          + (altre.length ? ` Qui sotto ${conta(altre.length, "scadenza delle altre app da guardare", "scadenze delle altre app da guardare")}; le persone stanno nell'elenco più in basso.` : (mancano.length === 2 ? "" : " Concessione e mezzi non hanno niente di scaduto né in scadenza."))
+          + `</div>`;
+      $("scad-unite").innerHTML = nota + righe; }
     const largoMuro = ($("graf-muro") && $("graf-muro").clientWidth) || Math.min(720, innerWidth - 32);
     const quantiMesi = largoMuro >= 600 ? 12 : largoMuro >= 360 ? 6 : 4;
     const muro = muroScadenze(SCA, new Date(), quantiMesi);
@@ -2718,7 +2791,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        errore di sintassi da vedere. La prova che tiene i due elenchi allineati
        sta in run-kpi ("gli stati del coordinamento sono tutti raggiungibili"). */
     const SC = {
-      "non-decidibile":  ["warn", "Non si puo' dire"],
+      "non-decidibile":  ["warn", "Non si può dire"],
       "non-dovuto":      ["tag", "Non richiesto"],
       "non-redatto":     ["danger", "Non redatto"],
       "senza-data":      ["danger", "Senza data"],
@@ -2853,7 +2926,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <span class="arr" style="cursor:pointer" title="Rimuovi l'appalto" data-del-appa="${a.id}">✕</span></span></div>`
           + (dire.length ? `<div class="form-hint" style="margin:-4px 0 10px 4px;">${dire.map(x => esc(x)).join("<br>")}</div>` : "");
       }).join("") || vuoto(I.doc, "Nessun appalto registrato",
-          "In una cava le imprese esterne ci sono sempre: chi trasporta, chi ripara, chi perfora, chi ripristina. Finche' questo elenco e' vuoto <b>non dimostra che siano in regola</b>: dimostra che non e' stato compilato.");
+          "In una cava le imprese esterne ci sono sempre: chi trasporta, chi ripara, chi perfora, chi ripristina. Finché questo elenco è vuoto <b>non dimostra che siano in regola</b>: dimostra che non è stato compilato.");
 
       // le imprese, con l'esito della qualifica
       const bQ = { "verificato": ["ok", "Verificato", "st-ok"], "in-scadenza": ["warn", "In scadenza", "st-warn"],
@@ -2863,7 +2936,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       $("appt-list").innerHTML = APPT.map(t => {
         const q = qualificaAppaltatore(t, DOC), b = bQ[q.esito];
         const n = appaltiDiAppaltatore(APPA, t.id).length;
-        const meta = [t.attivita || "attivita' non indicata",
+        const meta = [t.attivita || "attività non indicata",
                       q.quanti ? q.quanti + (q.quanti === 1 ? " documento" : " documenti") : "nessun documento",
                       n ? n + (n === 1 ? " appalto" : " appalti") : "nessun appalto"].join(" · ");
         return `<div class="item ${b[2]}">
@@ -2874,7 +2947,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <span class="arr" style="cursor:pointer" title="Rimuovi l'impresa" data-del-appt="${t.id}">✕</span></span></div>`
           + `<div class="form-hint" style="margin:-4px 0 10px 4px;">${esc(descriviQualifica(q))}</div>`;
       }).join("") || vuoto(I.persone, "Nessuna impresa esterna",
-          "Registra qui trasportatori, manutentori, ditte di perforazione e imprese di ripristino: e' di loro che l'art. 26 chiede di verificare l'idoneita' tecnico-professionale.");
+          "Registra qui trasportatori, manutentori, ditte di perforazione e imprese di ripristino: è di loro che l'art. 26 chiede di verificare l'idoneità tecnico-professionale.");
 
       // tendine dei form — ricostruite solo quando l'elenco cambia davvero
       const optImp = t => `<option value="${t.id}">${esc(t.ragioneSociale || "senza nome")}</option>`;
@@ -4371,7 +4444,30 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         esito("inf-esito", "Evento rimosso dal registro.", "success"); } return; }
     const idon = e.target.getAttribute && e.target.getAttribute("data-idon");
     if (idon && db.aggiorna) { const l = LAV.find(x => x.id === idon);
-      if (l) { await db.aggiorna("lavoratori", l.id, { idoneita: idoneitaSuccessivo(l.idoneita) }); await refresh(); } return; }
+      if (!l) return;
+      /* IL GIUDIZIO SI SCRIVE, NON SI CICLA (05/09): il tocco propone lo stato
+         successivo e, se è un giudizio (idoneo, prescrizioni, non idoneo),
+         chiede la data e — per le prescrizioni, obbligatorie — il testo del
+         medico. `giudizioIdoneita` decide che cosa è valido; un rifiuto lascia
+         il lavoratore com'era e dice perché. Tornare a «n.d.» azzera tutto. */
+      const prossimo = idoneitaSuccessivo(l.idoneita);
+      let testo = "", data = "";
+      if (prossimo) {
+        const eti = idoneitaLabel(prossimo).label;
+        const campi = [{ id: "data", label: "Data del giudizio (facoltativa)", tipo: "date", valore: l.giudizioIl || "", aiuto: "Il giorno scritto sul giudizio del medico competente." }];
+        if (prossimo !== "idoneo")
+          campi.unshift({ id: "testo", label: prossimo === "prescrizioni" ? "Prescrizioni e limitazioni del medico" : "Note del giudizio (facoltative)", valore: l.prescrizioni || "",
+            aiuto: prossimo === "prescrizioni" ? "Copia quelle scritte dal medico: senza il testo il giudizio non si può rispettare." : "Per esempio: inidoneità temporanea fino a nuova visita." });
+        const v = await chiediDati("Giudizio di idoneità: " + eti,
+          "<b>" + esc(l.nome) + "</b> · " + esc(l.ruolo || "") + "<br>Il giudizio del medico competente arriva per iscritto: qui si trascrive quello che c'è sul foglio.",
+          campi, "Registra");
+        if (v === null) return;
+        testo = v.testo || ""; data = v.data || "";
+      }
+      const g = giudizioIdoneita(prossimo, testo, data);
+      if (!g.ok) { toast(g.messaggio, "err"); return; }
+      await db.aggiorna("lavoratori", l.id, { idoneita: g.idoneita, prescrizioni: g.prescrizioni, giudizioIl: g.giudizioIl });
+      await refresh(); return; }
     const prom = e.target.getAttribute && e.target.getAttribute("data-prom-scad");
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);
@@ -4545,7 +4641,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        appena creata non ha nessun documento: e' esattamente lo stato
        «non verificato», e lasciar credere di aver fatto il lavoro sarebbe la
        bugia piu' comoda che questa schermata possa dire. */
-    esito("appt-esito", nome + " e' in anagrafe, ma NON e' ancora verificata: "
+    esito("appt-esito", nome + " è in anagrafe, ma NON è ancora verificata: "
       + "servono il certificato camerale e l'autocertificazione dei requisiti (art. 26 c.1 lett. a).", "err");
     await refresh();
   };
@@ -4581,10 +4677,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const impresa = $("appa-impresa").value, cantiere = $("appa-cantiere").value;
     const oggetto = $("appa-oggetto").value.trim();
     if (!impresa) { err("appa-impresa", true); $("appa-impresa").focus();
-      esito("appa-esito", "Scegli l'impresa a cui e' affidato il lavoro.", "err"); return; }
+      esito("appa-esito", "Scegli l'impresa a cui è affidato il lavoro.", "err"); return; }
     err("appa-impresa", false);
     if (!oggetto) { err("appa-oggetto", true); $("appa-oggetto").focus();
-      esito("appa-esito", "Serve dire che lavoro fa: e' l'oggetto dell'appalto.", "err"); return; }
+      esito("appa-esito", "Serve dire che lavoro fa: è l'oggetto dell'appalto.", "err"); return; }
     err("appa-oggetto", false);
     /* ⛔ UN CAMPO VUOTO SI SCRIVE `null`, NON ZERO. `$("appa-ug").value` di un
        campo mai toccato e' la stringa vuota, e `+""` fa 0: salvarlo cosi'
@@ -4853,7 +4949,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-appq").onclick = async () => {
     const imp = $("appq-impresa").value, chiave = $("appq-tipo").value;
     if (!imp) { err("appq-impresa", true); $("appq-impresa").focus();
-      esito("appq-esito", "Scegli di quale impresa e' il documento.", "err"); return; }
+      esito("appq-esito", "Scegli di quale impresa è il documento.", "err"); return; }
     err("appq-impresa", false);
     const t = tipoDocAppaltatore(chiave), impresa = APPT.find(x => x.id === imp);
     const rec = { titolo: t.nome + " — " + (impresa ? impresa.ragioneSociale : "impresa"),
@@ -5194,44 +5290,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        Copre da sola anche la data ILLEGGIBILE — «2026-13-45» finiva nella
        colonna `scadenza` come una data qualunque, e adesso il semaforo dice
        «senza data», la parola che l'ecosistema usa in tre app. */
-    let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\n";
-    /* ⛔ «da assegnare» e non una cella vuota: è quello che la riga dice a
-       schermo («responsabile da assegnare»), ed è la differenza fra un dato
-       che manca e un dato che nessuno ha ancora deciso. In un foglio di
-       conformità una cella vuota si legge «non serve».
-       ⛔ E LA DECIDE `etichettaResponsabile`, LA STESSA CHE LA DECIDE A SCHERMO
-       (08/08). Qui c'era la TERZA copia della stessa domanda, e le mancava lo
-       stesso stato che mancava alle altre due: un id che punta a chi non è più
-       in anagrafica usciva «da assegnare», cioè questo foglio diceva
-       all'ispettore che di quell'azione non si occupa nessuno mentre un
-       responsabile era stato scelto. `.nome` è la cella senza il prefisso —
-       nel CSV «resp.» non ci va. */
-    const nome = (id) => etichettaResponsabile({ responsabileId: id }, LAV).nome;
-    /* ⛔ LA COLONNA DELL'ORIGINE È UNA FRASE, NON UNA DATA: si scrive con
-       `dataIt` come la scrive lo schermo, non in ISO. Il file diceva
-       «near-miss del 2026-05-18» dove la pagina, per lo stesso evento, dice
-       «da near-miss del 18/05/2026» — e questo CSV lo apre chi non ha davanti
-       l'app. Le colonne `scadenza` e `dataChiusura` restano in ISO di
-       proposito: quelle sono date da rileggere con un programma, e un foglio
-       di calcolo le ordina solo così. Qui invece la data sta dentro una frase
-       italiana, e lì vale la regola dello schermo.
-       ⚠️ Su una data che non si legge esce «—», dove prima usciva uno spazio
-       vuoto: dire che la data non c'è è meglio che non dirlo.
-       ⛔ E LA FRASE LA DECIDE `origineAzione`, LA STESSA CHE LA DECIDE A
-       SCHERMO (07/08). Qui c'era la seconda scrittura, e le era rimasto
-       indietro il ramo del FERMO DI PRODUZIONE: un'azione arrivata da Campo
-       usciva in questo file come «non conformità: …», cioè con l'errore che lo
-       schermo aveva corretto il 03/08 dichiarando che «finisce davanti a un
-       ispettore» — ed è questo file a finirci. Il racconto per esteso e i
-       numeri stanno accanto alla funzione, in scudo-data.js. */
-    const orig = (a) => origineAzione(a, { infortuni: INF, ispezioni: ISP }, { voce: "documento" });
-    /* Lo stesso ordine dell'elenco a schermo (`aziCmp`): chiuse in fondo, le
-       altre per data, e chi la data non ce l'ha in coda invece che in testa.
-       Ordinando per `scadenza || ""` un'azione SENZA data finiva prima di
-       tutte, cioè nel posto delle più urgenti. */
-    for (const a of AZI.slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")
-        || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999"))))
-      csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+    /* Le righe le compone `csvProspettoAzioni` nel modulo, con le stesse
+       funzioni che decidono semaforo, responsabile e origine a schermo:
+       qui si chiama, come per la copia di sicurezza (05/09). */
+    const csv = csvProspettoAzioni(AZI, { lavoratori: LAV, infortuni: INF, ispezioni: ISP });
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_azioni_correttive.csv"; marchiaCsv(a); a.click();
@@ -5581,58 +5643,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
   // Quello che in ispezione viene chiesto per primo. Sullo schermo non c'è:
   // si costruisce al momento e vive solo dentro la stampa.
+  /* Le righe del verbale le compone `fogliaVerbaleDpi` nel modulo (da
+     `verbaleDpi`, la stessa dello schermo): qui si disegna e basta. Il
+     grassetto arriva come «**così**». La cella dell'azienda porta i puntini da
+     compilare a penna, quella della firma resta vuota. */
+  const mdFoglio = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   function costruisciVerbale(lav) {
-    const v = verbaleDpi(lav, DPI);
-    const mans = MANS.filter(m => (m.lavoratoriIds || []).includes(lav.id)).map(m => m.nome).join(", ");
+    const F = fogliaVerbaleDpi(lav, { dpi: DPI, mansioni: MANS, oggi: new Date() });
     const puntini = '<span style="letter-spacing:1px;">........................................</span>';
-    const righe = v.righe.map(r => {
-      const c = r.consegna;
-      // Se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
-      // foglio lo dice: è lavoro fatto e registrato, buttarlo via scrivendo
-      // «non previsto» sarebbe far sparire una cosa vera.
-      const add = !r.addestramentoRichiesto
-        ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
-        : (r.addestramentoFatto
-            ? "fatto" + (c.dataAddestramento ? " il " + fmtData(c.dataAddestramento) : "")
-            : "DA FARE");
-      return `<tr><td>${esc(r.tipo.etichetta)}</td><td>${esc(r.tipo.cat)}</td>
-        ${/* ⛔ E IL «MODELLO» È L'ULTIMO TRATTINO DI QUESTO FOGLIO (08/08).
-             Su cinque righe della dimostrazione su sette la colonna scriveva
-             «—», e su un verbale firmato quel segno si legge «questo
-             dispositivo non ha un modello» — mentre la verità è che nessuno
-             l'ha registrato. Non è un campo inapplicabile come la taglia
-             «unica»: l'art. 77 chiede che il DPI consegnato sia
-             IDENTIFICABILE, e il modello è quello che lo identifica.
-             Stessa parola delle due colonne accanto, corrette lo stesso
-             giorno: si dice quello che è successo, non si tace con un segno.
-             ⚠️ La taglia resta col trattino ed è voluto: «unica» esiste
-             davvero come risposta, quindi una taglia vuota su un dispositivo
-             a taglia unica non è una mancanza — sono due domande diverse e
-             vanno scritte diverse. */""}
-        <td>${c.modello ? esc(c.modello) : "non registrato"}</td><td>${esc(c.taglia || "—")}</td>
-        <!-- decisione 14: su un foglio stampato «—» si legge «non serve». Le
-             due cose vere sono diverse, e vanno scritte diverse: chi lo ha
-             dichiarato e chi non l'ha mai scritto. -->
-        <!-- ⛔ LA COLONNA LEGGE LO STATO DELLA RIGA, NON RI-DECIDE (03/08). Il
-             ternario qui sotto guardava solo SE la data c'era, e quindi una
-             maschera da sostituire dal 10/07/2020 usciva stampata
-             «10/07/2020», identica a una valida fino al 2099. Misurato
-             affiancando i due fogli sugli STESSI dati: la CARTELLA, due
-             bottoni più in là, sulla stessa riga scrive «da sostituire».
-             La funzione verbaleDpi lo stato lo calcola già per ogni riga (con
-             statoConsegnaDpi): era lì e non lo leggeva nessuno.
-             Copre anche la data ILLEGGIBILE, che finiva stampata «—» — cioè,
-             su un foglio, «non serve»: adesso è «non indicata» come il vuoto,
-             che è quello che il modulo dice («senza data»).
-             ⚠️ Questo commento è dentro un template literal: niente apici
-             inversi qui, chiuderebbero la stringa a metà. -->
-        <td>${r.leggibile ? fmtData(c.dataConsegna) : "non indicata"}</td><td>${
-          c.nonScade === true ? "non scade (dichiarato)"
-          : r.stato === "senza data" ? "non indicata"
-          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"
-                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}</td>
-        <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
-    }).join("");
+    const righe = F.righe.map(r => `<tr>${r.map((c, i) => i === 7 ? '<td class="vb-firma"></td>' : `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
     scriviFoglio(
       /* la conseguenza detta per QUESTO foglio: un verbale di consegna serve
          a provare che i dispositivi sono stati dati a quella persona, e la
@@ -5642,32 +5661,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "
       + "davanti a un controllo.", `
       <div class="vb-testa">
-        <div class="vb-tit">Verbale di consegna dei DPI</div>
-        <div class="vb-sub">Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008</div>
+        <div class="vb-tit">${esc(F.titolo)}</div>
+        <div class="vb-sub">${esc(F.sottotitolo)}</div>
       </div>
       <table class="vb-dati">
-        <tr><td>Azienda / cava</td><td>${puntini}</td></tr>
-        <tr><td>Lavoratore</td><td><b>${esc(lav.nome)}</b></td></tr>
-        <tr><td>Mansione</td><td>${esc(mans || lav.ruolo || "—")}</td></tr>
-        <tr><td>Data del verbale</td><td>${fmtData(oggiISO())}</td></tr>
+        ${F.dati.map(([et, t, aPenna]) => `<tr><td>${esc(et)}</td><td>${aPenna ? puntini : et === "Lavoratore" ? "<b>" + esc(t) + "</b>" : esc(t)}</td></tr>`).join("")}
       </table>
-      ${v.righe.length ? `<table class="vb-tab">
-        <thead><tr><th>Dispositivo</th><th>Cat.</th><th>Modello</th><th>Taglia</th>
-        <th>Consegnato il</th><th>Sostituire entro</th><th>Addestramento</th><th>Firma</th></tr></thead>
+      ${F.righe.length ? `<table class="vb-tab">
+        <thead><tr>${F.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
         <tbody>${righe}</tbody></table>`
-        : '<div class="vb-nota">Per questa persona non risulta registrata nessuna consegna.</div>'}
-      <div class="vb-nota">
-        Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato
-        sui rischi da cui proteggono e di aver ricevuto l'<b>addestramento</b> dove indicato come fatto.
-        Si impegna a <b>usarli</b> quando previsto, ad <b>averne cura</b>, a <b>non modificarli</b> e a
-        <b>segnalare subito</b> difetti, danni o smarrimenti al preposto o al datore di lavoro
-        (artt. 20 e 78 D.Lgs 81/2008).
-      </div>
-      <div class="vb-firme">
-        <div>Firma del lavoratore</div>
-        <div>Firma di chi consegna (datore di lavoro o preposto)</div>
-      </div>
-      <div class="vb-pie">Documento preparato con Scudo · Deepwork — ${v.righe.length} ${v.righe.length === 1 ? "dispositivo" : "dispositivi"}${v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : ""}. Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.</div>`);
+        : `<div class="vb-nota">${esc(F.vuota)}</div>`}
+      <div class="vb-nota">${mdFoglio(F.dichiarazione)}</div>
+      <div class="vb-firme">${F.firme.map(f => `<div>${esc(f)}</div>`).join("")}</div>
+      <div class="vb-pie">${esc(F.piede)}</div>`);
   }
   function stampaVerbale(lav) {
     costruisciVerbale(lav);
@@ -5706,88 +5712,29 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      Quello che la cartella aggiunge e' che DICHIARA le sezioni vuote: un
      fascicolo stampato mente per omissione, e una sezione senza righe si legge
      «non dovuto» invece che «non registrato». La frase la scrive il modulo. */
+  /* Le sezioni della cartella le compone `fogliaCartella` nel modulo (da
+     `cartellaLavoratore`, la stessa della finestra che precede la stampa):
+     qui si disegna e basta. */
   function costruisciCartella(c) {
-    const l = c.lavoratore;
-    const riga = (a, b) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${b}</td></tr>`;
-    const sezione = (titolo, righe, vuotoTesto) => `
-      <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(titolo)}</h3>`
-      + (righe.length
-          ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${righe.join("")}</table>`
-          : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(vuotoTesto)}</div>`);
-
+    const F = fogliaCartella(c, new Date());
+    const riga = ([a, b]) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${mdFoglio(b)}</td></tr>`;
+    const sezione = (S) => `
+      <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(S.titolo)}</h3>`
+      + (S.righe.length
+          ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${S.righe.map(riga).join("")}</table>`
+          : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(S.vuoto)}</div>`);
     scriviFoglio(
       /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo
          personale che si esibisce all'ispettore e che si tiene agli atti.
          Le due cose da vietare sono quelle. */
       "Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "
       + "né tenuta agli atti come fascicolo personale.", `
-      <h2 style="font-size:17px;margin:0 0 2px;">Cartella del lavoratore</h2>
-      <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(l.nome)}${l.ruolo ? " · " + esc(l.ruolo) : ""} — documento preparato con Deepwork Scudo il ${fmtData(oggiISO())}</div>
-      ${sezione("Mansioni assegnate",
-          c.mansioni.map(m => riga(m.nome, esc((m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"))),
-          "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.")}
-      ${/* ⛔ LA RIGA PORTAVA LA FAMIGLIA, NON L'ADEMPIMENTO (07/08). Scriveva
-            `x.scadenza.tipo`, cioè «Formazione», «Patente», «Visita medica» —
-            mentre lo scadenzario a schermo e il CSV del personale, sugli
-            stessi dati, scrivono `descrizione`, che è l'obbligo vero. Sul
-            fascicolo che si esibisce all'ispettore due adempimenti distinti
-            uscivano dalla stampante come due righe IDENTICHE («Formazione
-            30/05/2029 · regolare» ripetuta due volte, misurata su Mario Rossi
-            della dimostrazione), e il patentino di fochino usciva «Patente».
-            È la stessa famiglia della chiave interna stampata al posto
-            dell'etichetta dei DPI, corretta il 03/08 due sezioni più sotto.
-            E il ripiego «—» era la decisione 14 violata: su un foglio si
-            legge «non serve». Adesso decide `etichettaScadenza`, che la
-            leggono tutt'e tre le superfici. */""}
-      ${sezione("Formazione e scadenze",
-          c.scadenze.map(x => riga(etichettaScadenza(x.scadenza),
-            (x.scadenza.dataScadenza ? fmtData(x.scadenza.dataScadenza) : "senza data") + " · " + esc(x.stato || "—"))),
-          "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.")}
-      ${/* ⛔ `r.tipo.nome` NON ESISTE: i tipi di DPI hanno `etichetta` (il campo
-            `nome` ce l'hanno i tipi di PERMESSO, ed è da lì che la riga era
-            stata copiata). Il fallback funzionava sempre, quindi il fascicolo
-            che si esibisce all'ispettore stampava la CHIAVE INTERNA —
-            «maschera» invece di «Facciale filtrante / respiratore»,
-            «otoprotettori» invece di «Otoprotettori (cuffie o inserti)» — su
-            tutte e dodici le voci, senza nessun errore da leggere.
-            Lo stato della consegna non c'era e adesso c'è: una consegna
-            scaduta o senza data di sostituzione, stampata identica a una in
-            corso di validità, è la stessa omissione che `vuoti` esiste per
-            impedire, un piano più sotto. */""}
-      ${sezione("Dispositivi di protezione consegnati",
-          c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,
-            (r.leggibile ? fmtData(r.consegna.dataConsegna) : "data di consegna non indicata")
-            + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
-            + (r.stato === "scaduta" ? " · <b>da sostituire</b>"
-             : r.stato === "in-scadenza" ? " · da sostituire a breve"
-             : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")
-            + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · <b>addestramento da fare</b>") : ""))),
-          "Nessun DPI consegnato risulta a registro.")}
-      ${c.nomine.length ? sezione("Nomine attive",
-          c.nomine.map(n => riga((ruoloNomina(n.ruolo) || {}).etichetta || n.ruolo,
-            n.dal ? "dal " + fmtData(n.dal) : "senza data di nomina")), "") : ""}
-      ${/* ⛔ LO STATO DEL DOCUMENTO NON C'ERA (03/08). La riga stampava titolo
-            e `meta` — che è testo libero e può essere vuoto — e basta: sul
-            fascicolo che si esibisce all'ispettore un documento «Da rivedere»
-            o dallo stato mai registrato usciva identico a uno valido, con la
-            cella di destra bianca. Su un foglio una cella bianca accanto a un
-            documento si legge «a posto».
-            Lo stato lo decide `etichettaStatoDocumento`, la stessa che disegna
-            la pastiglia nell'elenco dei Documenti: qui non si ri-decide niente.
-            `meta` resta, dopo, perché è la nota che l'utente ha scritto. */""}
-      ${c.documenti.length ? sezione("Documenti collegati",
-          c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);
-            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")
-              + (d.meta ? " · " + esc(d.meta) : "")); }), "") : ""}
-      ${/* ⛔ E IL COLORE SEGUE LE RIGHE, NON SOLO LE SEZIONI. Grigio quando è
-            completa: una cartella con dentro una visita medica scaduta e un
-            DPI da sostituire chiudeva in grigio, cioè col colore tranquillo su
-            un foglio che due centimetri più sopra scrive «DA SOSTITUIRE».
-            `daSistemare` è l'elenco di quelle righe, e lo compone il modulo. */""}
-      <div style="margin-top:14px;font-size:11.5px;${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}">${esc(descriviCartella(c))}</div>
+      <h2 style="font-size:17px;margin:0 0 2px;">${esc(F.titolo)}</h2>
+      <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(F.sottotitolo)}</div>
+      ${F.sezioni.map(sezione).join("")}
+      <div style="margin-top:14px;font-size:11.5px;${F.chiusura.allarme ? "color:#8a0000;font-weight:600;" : "color:#555;"}">${esc(F.chiusura.testo)}</div>
       <div style="margin-top:22px;display:flex;gap:26px;">
-        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Luogo e data</div>
-        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Il datore di lavoro</div>
+        ${F.firme.map(f => `<div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">${esc(f)}</div>`).join("")}
       </div>`);
   }
   $("btn-cartella").onclick = async () => {
@@ -6260,55 +6207,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-nm-export").onclick = () => {
     // Riepilogo AGGREGATO, nella forma che serve alla comunicazione prevista
     // dalla L. 198/2025: eventi per tipo e per luogo + azioni correttive.
-    const r = riepilogoNearMiss(INF, AZI, nmPeriodo || null);
-    const per = nmPeriodo === 0 ? "tutto lo storico" : nmPeriodo === 365 ? "ultimi 12 mesi" : "ultimi 90 giorni";
-    let csv = "sezione;voce;numero\n";
-    csv += `periodo;${csvCell(per)};\n`;
-    csv += `totale;near-miss segnalati;${r.totale}\n`;
-    /* ⛔ LO STORICO ACCANTO AL PERIODO, e la NOTA DI LETTURA (03/08). Sono le
-       due cose che lo schermo dice e il file taceva:
-         · con zero segnalazioni nella finestra la pagina scrive «nello storico
-           ce ne sono N: allarga il periodo»; il file scriveva `0` e nient'altro,
-           cioè la frase più tranquilla possibile in un documento che va a un
-           ente — l'assenza di un dato spacciata per un dato favorevole;
-         · sotto la soglia, la pagina si RIFIUTA di disegnare le due classifiche
-           («non c'è una tendenza da leggere, e disegnarla sarebbe una bugia»),
-           il file le scriveva in fila come se fossero una tendenza.
-       La frase la scrive il modulo (`descriviLetturaNearMiss`), che legge la
-       bandiera `pochi`: nel documento non la guardava nessuno. */
-    csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\n`;
-    csv += `totale;di cui in forma anonima;${r.anonime}\n`;
-    { const nota = descriviLetturaNearMiss(r);
-      if (nota) csv += `lettura;${csvCell(nota)};\n`; }
-    for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
-    for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
-    /* ⛔ E SE FOSSE ANDATA MALE — nel file con la stessa voce dello schermo.
-       Le righe «potenziale» non escono MAI da sole: prima esce quante ne sono
-       valutate su quante, e la frase del modulo che dice se quei numeri si
-       possono leggere. Un conteggio per gradino senza il denominatore è la
-       cosa che, aperta in un foglio di calcolo, diventa una media. */
-    { const rp = riepilogoPotenziale(INF, nmPeriodo || null);
-      csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\n`;
-      csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\n`;
-      csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\n`;
-      for (const g of rp.perLivello) csv += `potenziale;se andava male: ${csvCell(g.etichetta.toLowerCase())};${g.quanti}\n`;
-      /* ⛔ i luoghi con episodi ma nessuna valutazione NON entrano nella
-         classifica per luogo: in fondo a un elenco ordinato si leggerebbero
-         come i più tranquilli. Escono con la loro riga e la loro parola. */
-      for (const l of rp.perLuogo)
-        /* «su 1 valutati» — e la frase del modulo, dodici righe più su in
-           `descriviRischioPotenziale`, il singolare ce l'aveva già. */
-        csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${conta(l.valutati, "valutato", "valutati")}, ${l.nonValutati} no);${l.alto}\n`;
-      for (const l of rp.luoghiCiechi)
-        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
-    csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
-    csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
-    csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
-    csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
+    /* Le righe le compone `csvRiepilogoNearMiss` nel modulo — lo storico
+       accanto al periodo, la nota di lettura, il denominatore prima dei
+       gradini, i luoghi ciechi con la loro riga — così le prova anche
+       `run-kpi` (05/09). Qui si chiama. */
+    const csv = csvRiepilogoNearMiss(INF, AZI, nmPeriodo);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "scudo_riepilogo_near_miss.csv"; marchiaCsv(a); a.click();
-    esito("inf-esito", "Riepilogo near-miss esportato (" + per + ").", "success");
+    /* ⛔ `per` ERA UN NOME LIBERO (05/09, dalle 10:25 alle 19:30): quando il
+       CSV è salito nel modulo (52cb2fdc) la `const per = …` locale se n'è
+       andata con lui, e questa riga è rimasta. Il file usciva (l'`a.click()`
+       viene prima) e il gestore moriva subito dopo: nessuna striscia verde.
+       `nomi-liberi` non lo vedeva perché `per` è dichiarata in UN'ALTRA
+       funzione della pagina (il preset delle scadenze): l'ha presa la seconda
+       domanda estesa ai riferimenti nudi, misurata la sera stessa. L'etichetta
+       del periodo la dice il modulo, come le righe del file. */
+    esito("inf-esito", "Riepilogo near-miss esportato (" + etichettaPeriodoNearMiss(nmPeriodo) + ").", "success");
   };
 
   // ══════════════════════════════════════════════════════════════════════

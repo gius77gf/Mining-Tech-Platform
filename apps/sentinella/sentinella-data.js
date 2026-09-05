@@ -22,12 +22,12 @@
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
          senzaDoppioni, istanteLocale, plurale, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataPiuGiorni as dataPiuGiorniShell, mappaColonne, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
 import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria,
-         statoResponsabile } from "../../shared/dw-ponti.js";
+         statoResponsabile, azioniDiOrigine as azioniDiOriginePonti, statoPonte as statoPontePonti } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -45,6 +45,8 @@ export { leggiCsv } from "../../shared/deepwork-id-client/dw-shell.js";
 export const DEMO = {
   monitoraggi: [
     { id: "v1", nome: "Vibrazioni V1 — abitato Sud", tipo: "vibrazioni", valore: 1.8, soglia: 5, unita: "mm/s", nota: "ultimo evento 12/07", ricettoreId: "rc1",
+      /* da quale preset nasce la soglia (04/09): è ciò che permette di dire se la frequenza di una lettura è fuori dalla sua banda */
+      sogliaPreset: "din-res-fond",
       /* Lo strumento in regola: il certificato copre tutte le letture. */
       tarature: [ { data: "2026-02-10", scadenza: "2027-02-09", ente: "Centro LAT n. 118", certificato: "LAT 118-2026/441", nota: "sismografo, canale terna" } ],
       /* LA CATENA DI CUSTODIA COMPLETA (T2d): tutte e quattro le letture
@@ -56,6 +58,7 @@ export const DEMO = {
                  { data: "2026-06-30", ora: "10:40", valore: 3.1, origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" } },
                  { data: "2026-07-12", ora: "11:15", valore: 1.8, origine: { da: "import", file: "V1_luglio.csv", quando: "2026-07-20T09:05:00" } } ] },
     { id: "v2", nome: "Vibrazioni V2 — confine Nord", tipo: "vibrazioni", valore: 5.6, soglia: 5, unita: "mm/s", nota: "volata fronte Nord 17/07", ricettoreId: "rc2",
+      sogliaPreset: "din-res-fond",
       /* ⛔ IL BUCO FRA DUE TARATURE. Il certificato vecchio è scaduto il
          30/06 e il nuovo parte dal 10/07: le letture del 06/07 cadono in
          mezzo, e il report deve dirlo. È il caso per cui questa sezione
@@ -97,10 +100,15 @@ export const DEMO = {
          livelli si ricopiano. Non è un errore da correggere — è una strada
          d'ingresso diversa, e il documento la dichiara invece di far
          sembrare questi dB usciti da un file come gli altri. */
+      /* LE CONDIZIONI METEO DELLA MISURA (05/09): il DM 16/03/1998, Allegato B,
+         vuole le misure di rumore senza precipitazioni e con vento non oltre
+         5 m/s. La terza lettura porta 7 m/s: è il caso in cui l'app suggerisce
+         «non valida per la norma» e lascia la decisione a una persona. La
+         prima non ha vento né pioggia registrati: «non si può dire». */
       letture: [ { data: "2026-06-10", ora: "14:30", valore: 58, origine: { da: "manuale", quando: "2026-06-11T09:00:00" } },
-                 { data: "2026-06-24", ora: "15:00", valore: 64, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
-                 { data: "2026-07-08", ora: "14:45", valore: 61, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
-                 { data: "2026-07-22", ora: "15:20", valore: 62, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
+                 { data: "2026-06-24", ora: "15:00", valore: 64, vento: 2, ventoDa: "NO", pioggia: false, temperatura: 26, umidita: 55, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
+                 { data: "2026-07-08", ora: "14:45", valore: 61, vento: 7, ventoDa: "O", pioggia: false, temperatura: 29, umidita: 40, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
+                 { data: "2026-07-22", ora: "15:20", valore: 62, vento: 1.5, ventoDa: "S", pioggia: false, temperatura: 31, umidita: 38, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
     /* ⛔ IL PUNTO SENZA SOGLIA STA NELLA DIMOSTRAZIONE, ed è una scelta presa
        col criterio di `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: è
@@ -192,7 +200,9 @@ export const DEMO = {
     //      previsto → misurato, che è il motivo per cui il registro serve.
     { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "",
       stato: "eseguita", ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
-      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1" },
+      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
+      /* la comunicazione all'ente (05/09): il diario della linea guida ARPA FVG */
+      comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" },
     // b2 · registrata a mano prima che esistesse il campo «stato»: vale come
     //      ESEGUITA, ed è la prova di compatibilità con lo storico.
     { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "" },
@@ -343,8 +353,13 @@ export const giorni = giorniTra;
 // vera.
 export function riepilogoConformita(monitoraggi) {
   const r = { conformi: 0, attenzione: 0, superamento: 0, maiMisurati: 0,
-    senzaSoglia: 0, giudicabili: 0, totale: (monitoraggi || []).length };
+    senzaSoglia: 0, giudicabili: 0, totale: (monitoraggi || []).length,
+    /* le letture che qualcuno ha dichiarato non valide e che quindi NON hanno
+       pesato su questi conti: si dichiarano qui, accanto ai numeri che
+       cambiano per effetto loro (04/09) */
+    annullate: 0 };
   for (const m of monitoraggi || []) {
+    r.annullate += contaAnnullate((m || {}).letture).n;
     const st = statoMisura(m);
     // ⛔ Lo `stato` si guarda PRIMA della classe: «mai misurato», «senza data» e
     // «senza soglia» condividono il giallo con «Attenzione», e leggendo solo
@@ -642,6 +657,9 @@ export function serieStorica(m, opts = {}) {
 
   const base = {
     vuoto: letture.length === 0, n: letture.length, unita, soglia, box,
+    // quante righe dell'archivio il grafico NON disegna perché dichiarate non
+    // valide: la legenda lo scrive, se no un picco sparito è un picco nascosto
+    annullate: contaAnnullate((m || {}).letture).n,
     punti: [], path: "", xTicks: [], yTicks: [], lineaSoglia: null,
     superamenti: 0, mostraPunti: true, max: null, ultimo: null, dal: "", al: "",
   };
@@ -963,7 +981,14 @@ export function scartiAdempimentiCsv(text) {
    il comportamento: due copie uguali oggi divergono domani senza che nessuno
    lo veda. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
-import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato,
+         VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
+         volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
+/* LO STATO DI UNA VOLATA E LA SUA PPV VIVONO IN `shared/` DAL 05/09: li legge
+   anche Campo, che nella consegna di turno scrive le volate del giorno. Qui
+   restano i nomi di sempre, e il test pretende che siano lo STESSO oggetto. */
+export { VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
+         volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
 
 export function riepilogoVolate(volate, oggi = new Date()) {
   const list = (volate || []).filter(v => !volataPrevista(v));
@@ -1018,13 +1043,32 @@ export function parseVolateCsv(text) {
      cella illeggibile: `refertoDaVolata` la conta fra i motivi per cui la
      volata non è ancora un referto, che è la risposta giusta. */
   const num = (v) => { const n = numIt(v); return Number.isFinite(n) ? Math.max(0, n) : null; };
-  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+  const righeTutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  /* ⛔ LE COLONNE SI LEGGONO PER NOME QUANDO IL FILE HA L'INTESTAZIONE (05/09).
+     Due file, due code: il registro di Sentinella scrive in coda
+     `comunicataA;comunicataIl;comunicazioneRif`, quello che Genesi esporta
+     scrive `ppvPrevProvvisoria;ppvPrevReferti` — nate in due giorni diversi,
+     nelle STESSE posizioni. Leggendo per posizione il «si» della legge di sito
+     provvisoria finiva in `comunicataA` e i referti in `comunicataIl`: il
+     registro diceva «comunicazione registrata a metà (non dice a chi)» su una
+     volata che nessuno aveva comunicato, e la provvisorietà — costruita il
+     03/08 apposta per non scrivere «calibrata» su tre referti — non veniva
+     letta MAI. Trovato scrivendo il ponte 3e, confrontando la strada del file
+     con quella dei dati condivisi. Senza intestazione resta la posizione. */
+  const testa = righeTutte.find(r => isIntestazione(r, "data"));
+  const NOMI = CSV_VOLATE_INTESTAZIONE.split(";");
+  const indice = new Map();
+  if (testa) parseCsvLine(testa).forEach((c, i) => { const k = String(c || "").trim(); if (k && !indice.has(k)) indice.set(k, i); });
+  return righeTutte
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
+      const celle = parseCsvLine(r);
+      const per = (nome, pos) => testa ? (indice.has(nome) ? celle[indice.get(nome)] : undefined) : celle[pos];
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
              ppvMisurata, ppvFonte, ppvPunto, ppvOra,
              stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
-             codiceVolata] = parseCsvLine(r);
+             codiceVolata, comunicataA, comunicataIl, comunicazioneRif] = NOMI.map((nome, i) => per(nome, i));
+      const ppvPrevProvvisoria = per("ppvPrevProvvisoria", -1), ppvPrevReferti = per("ppvPrevReferti", -1);
       let v = {
         data: (data || "").trim(),
         fronte: (fronte || "").trim(),
@@ -1047,6 +1091,16 @@ export function parseVolateCsv(text) {
       if (st) v = { ...v, stato: st };
       const cod = String(codiceVolata == null ? "" : codiceVolata).trim();
       if (cod) v = { ...v, codiceVolata: cod };
+      /* le due colonne di Genesi sulla legge di sito: entrano com'è scritto,
+         le legge `previsioneDiVolata` (tre stati: si / no / non dichiarato) */
+      const prov = String(ppvPrevProvvisoria == null ? "" : ppvPrevProvvisoria).trim().toLowerCase();
+      if (prov === "si" || prov === "no") v = { ...v, ppvPrevProvvisoria: prov };
+      const nRef = numIt(ppvPrevReferti);
+      if (Number.isFinite(nRef) && nRef > 0) v = { ...v, ppvPrevReferti: Math.round(nRef) };
+      /* la comunicazione entra com'è scritta: chi la legge (`descriviComunicazione`)
+         dice se è intera, a metà o assente — il lettore non la giudica */
+      const com = campiComunicazioneVolata(comunicataA, comunicataIl, comunicazioneRif).campi;
+      if (com.comunicataA || com.comunicataIl || com.comunicazioneRif) v = { ...v, ...com };
       return v;
     })
     .filter(v => dataISOEsiste(v.data));
@@ -1097,13 +1151,18 @@ export function scartiVolateCsv(text) {
 // acustica comunale e dalla perizia. Il rumore ambientale NON è
 // preimpostato: il limite assoluto dipende dalla classe acustica,
 // quindi metterne uno fisso sarebbe fuorviante.
+/* `banda` (04/09): la banda di frequenza SCRITTA nell'etichetta del preset,
+   trascritta come campo — «<10 Hz» → { a: 10 }, «4-15 Hz» → { da: 4, a: 15 },
+   «>40 Hz» → { da: 40 }. Non è un numero nuovo: è lo stesso che l'etichetta
+   dice da sempre, reso leggibile a `frequenzaFuoriBanda`. I preset senza banda
+   nell'etichetta non ne ricevono una. */
 export const SOGLIE_PRESET = [
-  { chiave: "din-res-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, <10 Hz (DIN 4150-3)",        valore: 5,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 2" },
+  { chiave: "din-res-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, <10 Hz (DIN 4150-3)",        valore: 5,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 2", banda: { a: 10 } },
   { chiave: "din-res-alto",  tipo: "vibrazioni", etichetta: "Vibrazioni · residenziale, piano alto (DIN 4150-3)",    valore: 15,   unita: "mm/s",  fonte: "DIN 4150-3, piano più alto riga 2" },
-  { chiave: "din-sens-fond", tipo: "vibrazioni", etichetta: "Vibrazioni · sensibile/storico, <10 Hz (DIN 4150-3)",   valore: 3,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 3" },
-  { chiave: "din-ind-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · industriale/commerciale, <10 Hz (DIN 4150-3)", valore: 20, unita: "mm/s", fonte: "DIN 4150-3, fondazione riga 1" },
-  { chiave: "usbm-intonaco", tipo: "vibrazioni", etichetta: "Vibrazioni · volata su intonaco, 4-15 Hz (USBM RI8507)", valore: 12.7, unita: "mm/s", fonte: "USBM RI 8507" },
-  { chiave: "usbm-altafreq", tipo: "vibrazioni", etichetta: "Vibrazioni · volata, >40 Hz (USBM RI8507)",             valore: 50.8, unita: "mm/s",  fonte: "USBM RI 8507" },
+  { chiave: "din-sens-fond", tipo: "vibrazioni", etichetta: "Vibrazioni · sensibile/storico, <10 Hz (DIN 4150-3)",   valore: 3,    unita: "mm/s",  fonte: "DIN 4150-3, fondazione riga 3", banda: { a: 10 } },
+  { chiave: "din-ind-fond",  tipo: "vibrazioni", etichetta: "Vibrazioni · industriale/commerciale, <10 Hz (DIN 4150-3)", valore: 20, unita: "mm/s", fonte: "DIN 4150-3, fondazione riga 1", banda: { a: 10 } },
+  { chiave: "usbm-intonaco", tipo: "vibrazioni", etichetta: "Vibrazioni · volata su intonaco, 4-15 Hz (USBM RI8507)", valore: 12.7, unita: "mm/s", fonte: "USBM RI 8507", banda: { da: 4, a: 15 } },
+  { chiave: "usbm-altafreq", tipo: "vibrazioni", etichetta: "Vibrazioni · volata, >40 Hz (USBM RI8507)",             valore: 50.8, unita: "mm/s",  fonte: "USBM RI 8507", banda: { da: 40 } },
   { chiave: "airblast-133",  tipo: "airblast",   etichetta: "Sovrappressione d'aria da volata (USBM RI8485)",        valore: 133,  unita: "dB",    fonte: "USBM RI 8485 / OSM" },
   { chiave: "pm10-giorno",   tipo: "polveri",    etichetta: "PM10 · media giornaliera (UE 2008/50/CE)",              valore: 50,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
   { chiave: "pm10-anno",     tipo: "polveri",    etichetta: "PM10 · media annua (UE 2008/50/CE)",                    valore: 40,   unita: "µg/m³", fonte: "Dir. UE 2008/50/CE" },
@@ -1115,6 +1174,84 @@ export const SOGLIE_PRESET = [
 export function presetSoglia(chiave) {
   const p = SOGLIE_PRESET.find(x => x.chiave === chiave);
   return p ? { ...p, daVerificare: true } : null;
+}
+
+// La banda di frequenza di un preset, con la sua frase: { da?, a?, testo } o
+// null se il preset non ne dichiara una (o non esiste). Pura.
+export function bandaPreset(chiave) {
+  const p = presetSoglia(chiave);
+  const b = p && p.banda && typeof p.banda === "object" ? p.banda : null;
+  if (!b || (b.da == null && b.a == null)) return null;
+  const testo = b.da != null && b.a != null ? b.da + "–" + b.a + " Hz" : b.a != null ? "sotto " + b.a + " Hz" : "sopra " + b.da + " Hz";
+  return { da: b.da == null ? null : +b.da, a: b.a == null ? null : +b.a, testo };
+}
+
+/* LA FREQUENZA FUORI DALLA BANDA DELLA SOGLIA (04/09, candidato (c) della
+   ricerca sui sismografi). Le soglie DIN e USBM valgono PER BANDA di
+   frequenza: «5 mm/s» è il limite sotto i 10 Hz, e una lettura a 18 Hz con
+   quel limite è confrontata con un numero che non è il suo. Il limite della
+   banda giusta NON è in Sentinella (sarebbe un numero di norma di seconda
+   mano) e non si inventa: qui si DICHIARA soltanto che la frequenza è fuori
+   dalla banda della soglia applicata. Serve che il punto ricordi da quale
+   preset è nata la sua soglia (`sogliaPreset`, salvato alla creazione) e che
+   la soglia sia ancora quella del preset: se è stata cambiata a mano, la banda
+   non vale più e lo si dice. Ritorna { giudicabile, fuori, freq, banda,
+   perche }; `giudicabile` false — con la ragione — quando la lettura non porta
+   la frequenza, il punto non viene da un preset, il preset non ha una banda, o
+   la soglia è stata cambiata. Pura. */
+/* IL PRESET DEL PUNTO, E SE VALE ANCORA (05/09). La domanda «la soglia del
+   punto è ancora quella del preset da cui è nata?» la facevano
+   `frequenzaFuoriBanda` (per la banda) e, da oggi, `riferimentoSoglia` (per
+   il riferimento normativo scritto sui documenti): scritta due volte sarebbe
+   la copia debole di sempre. Ritorna { preset, valido }: `preset` null se il
+   punto non ne ha uno; `valido` false se soglia o unità sono state cambiate a
+   mano dopo. Pura. */
+export function presetDelPunto(monitoraggio) {
+  const m = monitoraggio || {};
+  const p = m.sogliaPreset ? presetSoglia(m.sogliaPreset) : null;
+  if (!p) return { preset: null, valido: false };
+  const sm = numeroDichiarato(m.soglia);
+  const valido = sm != null && sm === p.valore && String(m.unita || "").trim().toLowerCase() === String(p.unita).toLowerCase();
+  return { preset: p, valido };
+}
+
+/* IL RIFERIMENTO DELLA SOGLIA APPLICATA, per i documenti che escono (scheda
+   della volata, report per l'ente). Non basta dire «5 mm/s»: chi legge deve
+   sapere se quel numero è un valore di norma preso da un preset — e allora
+   porta la STESSA avvertenza che la pagina scrive sotto la tendina: è un
+   valore di riferimento, da verificare sulla norma e sulle prescrizioni — o
+   un numero scritto a mano da qualcuno, sul punto o sul ricettore. Il
+   riferimento è quello del valore che VALE (`sogliaEfficace`): se vince il
+   ricettore, il preset del punto non c'entra, anche se i due numeri
+   coincidono. Ritorna { fonte: "nessuna"|"ricettore"|"preset"|"preset-cambiato"|"mano", preset, testo }. Pura. */
+export const AVVERTENZA_PRESET = "valore di riferimento, da verificare sulla norma ufficiale e sulle prescrizioni";
+export function riferimentoSoglia(monitoraggio, ricettori) {
+  const eff = sogliaEfficace(monitoraggio, ricettori);
+  if (eff.valore == null) return { fonte: "nessuna", preset: null, testo: "nessuna soglia impostata" };
+  if (eff.fonte === "ricettore")
+    return { fonte: "ricettore", preset: null, testo: "soglia scritta sul ricettore «" + (eff.ricettore || "senza nome") + "», non da un riferimento normativo" };
+  const { preset, valido } = presetDelPunto(monitoraggio);
+  if (preset && valido)
+    return { fonte: "preset", preset, testo: preset.etichetta + (preset.fonte ? " · " + preset.fonte : "") + " — " + AVVERTENZA_PRESET };
+  if (preset)
+    return { fonte: "preset-cambiato", preset, testo: "soglia cambiata a mano dopo il preset «" + preset.etichetta + "»: il riferimento normativo non vale più" };
+  return { fonte: "mano", preset: null, testo: "soglia scritta a mano sul punto di misura, non da un riferimento normativo" };
+}
+
+export function frequenzaFuoriBanda(lettura, monitoraggio) {
+  const m = monitoraggio || {}, l = lettura || {};
+  const f = l.extra && typeof l.extra === "object" ? numeroDichiarato(l.extra.freq) : null;
+  if (f == null) return { giudicabile: false, fuori: null, freq: null, banda: null, perche: "la lettura non porta la frequenza" };
+  const { preset: p, valido } = presetDelPunto(m);
+  if (!p) return { giudicabile: false, fuori: null, freq: f, banda: null, perche: "la soglia del punto non viene da un preset con una banda di frequenza" };
+  if (!valido)
+    return { giudicabile: false, fuori: null, freq: f, banda: null,
+      perche: "la soglia del punto è stata cambiata a mano dopo il preset «" + p.etichetta + "»: la sua banda non vale più" };
+  const b = bandaPreset(m.sogliaPreset);
+  if (!b) return { giudicabile: false, fuori: null, freq: f, banda: null, perche: "il preset «" + p.etichetta + "» non dichiara una banda di frequenza" };
+  const fuori = (b.da != null && f < b.da) || (b.a != null && f >= b.a);
+  return { giudicabile: true, fuori, freq: f, banda: b.testo,
+    perche: fuori ? "f " + numeroIt(f) + " Hz: fuori dalla banda della soglia (" + b.testo + "), e il limite di quella banda non è in Sentinella" : "" };
 }
 
 // Distanza scalata (scaled distance) di una volata: SD = R / √W, dove R è
@@ -1222,6 +1359,19 @@ const INDIZI = {
   ora:    ["ora", "time", "orario", "hh:mm", "ora evento"],
   valore: ["valore", "value", "ppv", "pvs", "picco", "peak", "misura", "livello", "level",
            "laeq", "leq", "db", "dba", "pm10", "pm 10", "concentrazione", "mm/s", "vel", "risultato"],
+  /* LA RISULTANTE PRIMA DEL GENERICO (04/09). Un file di sismografo scrive
+     «PPV L», «PPV T», «PPV V» e «PVS» sulla stessa riga: con la sola lista
+     `valore`, «ppv l» combacia con «ppv» e il valore proposto sarebbe UN ASSE.
+     Prima si cerca la risultante, poi tutto il resto. */
+  risultante: ["pvs", "risultante", "vector sum", "vettore", "somma vettoriale", "peak vector"],
+  /* le colonne dell'EVENTO, facoltative: gli indizi sono le parole che gli
+     strumenti usano (seconda mano: `docs/RICERCA_CONTINUA_SENTINELLA.md`,
+     04/09) e l'utente resta libero di cambiarle nella finestra */
+  ppvL: ["longitudinal", "longitudinale", "ppv l", "ppvl", "long", "radial", "radiale", "ppv x", "ppv_x"],
+  ppvT: ["transversal", "transverse", "trasversale", "ppv t", "ppvt", "tran", "ppv y", "ppv_y"],
+  ppvV: ["vertical", "verticale", "ppv v", "ppvv", "vert", "ppv z", "ppv_z"],
+  freq: ["freq", "frequenz", "frequency", "hz", "zc"],
+  aria: ["air", "aria", "airblast", "sovrapression", "overpressure", "pressione", "db(l)", "dbl", "pa"],
 };
 // Propone quale colonna è data, ora e valore leggendo l'intestazione.
 // Ritorna { colData, colOra, colValore } con -1 = "non trovata".
@@ -1229,14 +1379,24 @@ const INDIZI = {
 // prima colonna = data, ultima colonna numerica = valore.
 export function proponiMappa(righe, conIntestazione) {
   const out = { colData: -1, colOra: -1, colValore: -1 };
+  /* le colonne che il ripiego sui DATI non deve mai proporre come valore: gli
+     assi riconosciuti dall'intestazione (04/09). Senza intestazione è vuoto. */
+  let assi = [];
   const head = (righe || [])[0] || [];
   if (conIntestazione) {
-    const norm = head.map(h => String(h || "").trim().toLowerCase());
-    const trova = (chiavi, escludi) => norm.findIndex((h, i) =>
-      !escludi.includes(i) && h && chiavi.some(k => h === k || h.includes(k)));
+    /* la mappa la fa `mappaColonne` di `shared/` (05/09), nel modo «dentro»
+       che Sentinella ha sempre usato: l'indizio in qualunque punto del nome.
+       L'ordine di presa resta quello di sempre: data, ora, poi gli assi, poi
+       la risultante e SOLO dopo il valore generico fra quello che resta. */
+    const trova = (chiavi, presi) => mappaColonne(head, { c: chiavi }, { modo: "dentro", presi }).indici.c;
     out.colData = trova(INDIZI.data, []);
     out.colOra = trova(INDIZI.ora, [out.colData]);
-    out.colValore = trova(INDIZI.valore, [out.colData, out.colOra]);
+    /* gli assi si escludono dalla ricerca del valore: «PPV L» contiene «ppv» */
+    const ev = proponiColonneEvento(righe, conIntestazione, out);
+    const presi = [out.colData, out.colOra, ev.colPpvL, ev.colPpvT, ev.colPpvV, ev.colFreq, ev.colAria];
+    out.colValore = trova(INDIZI.risultante, presi);
+    if (out.colValore < 0) out.colValore = trova(INDIZI.valore, presi);
+    assi = presi.slice(2).filter(i => i >= 0);
   }
   const dati = (righe || []).slice(conIntestazione ? 1 : 0);
   if (out.colData < 0) {
@@ -1246,24 +1406,220 @@ export function proponiMappa(righe, conIntestazione) {
   if (out.colValore < 0) {
     const r = dati[0] || [];
     for (let i = r.length - 1; i >= 0; i--)
-      if (i !== out.colData && i !== out.colOra && Number.isFinite(numIt(r[i]))) { out.colValore = i; break; }
-    if (out.colValore < 0) out.colValore = Math.min(r.length - 1, out.colData + 1);
+      if (i !== out.colData && i !== out.colOra && !assi.includes(i) && Number.isFinite(numIt(r[i]))) { out.colValore = i; break; }
+    /* ⛔ IL RIPIEGO NON PROPONE MAI UN ASSE COME VALORE (04/09): con
+       «Longitudinale;Trasversale;Verticale» e nessuna risultante nel file,
+       «l'ultima colonna numerica» era la verticale — un numero più basso di
+       quello vero, proposto come valore di conformità. Se gli assi ci sono e
+       non resta altro, -1: la risultante si calcola dai tre. */
+    if (out.colValore < 0 && !assi.length) out.colValore = Math.min(r.length - 1, out.colData + 1);
   }
   return out;
+}
+
+// LE COLONNE DELL'EVENTO (04/09). Un evento di un sismografo porta più di un
+// numero: la PPV sui tre assi (longitudinale, trasversale, verticale), il
+// vettore somma, la frequenza dominante, la sovrapressione aerea. Un punto di
+// polveri o di rumore non le ha. La mappa le accetta come colonne FACOLTATIVE
+// (`colPpvL`, `colPpvT`, `colPpvV`, `colFreq`, `colAria`; -1 = non scelta) e la
+// lettura le porta con sé SOLO se la colonna è stata indicata: niente si
+// inventa, e un punto di polveri resta com'era.
+// Questa funzione PROPONE le colonne leggendo l'intestazione, come
+// `proponiMappa` fa per data/ora/valore; `escludi` sono le colonne già prese.
+export function proponiColonneEvento(righe, conIntestazione, escludi) {
+  const out = { colPpvL: -1, colPpvT: -1, colPpvV: -1, colFreq: -1, colAria: -1 };
+  if (!conIntestazione) return out;
+  /* la stessa mappa condivisa, nel modo «dentro», con data e ora già prese */
+  const e = escludi || {};
+  const m = mappaColonne((righe || [])[0] || [],
+    { colPpvL: INDIZI.ppvL, colPpvT: INDIZI.ppvT, colPpvV: INDIZI.ppvV, colFreq: INDIZI.freq, colAria: INDIZI.aria },
+    { modo: "dentro", presi: [e.colData, e.colOra] });
+  for (const k of Object.keys(out)) out[k] = m.indici[k];
+  return out;
+}
+
+// LE COLONNE METEO (05/09, sera). Un fonometro con la stazione meteo — e una
+// centralina delle polveri — esportano vento, direzione, pioggia, temperatura
+// e umidità nello stesso file delle letture. Sono le stesse cinque condizioni
+// che si scrivono a mano nel form «Registra misura», e viaggiano con la
+// lettura per `campiCondizioni`. Gli indizi sono in modo «parola», non
+// «dentro»: `vento` sta DENTRO «evento», che è una colonna del nostro stesso
+// CSV ambiente, e «temp» dentro niente di pericoloso ma «c» da solo sì —
+// per questo la lista è corta e la direzione si cerca PRIMA della velocità
+// («Dir. vento» contiene «vento»).
+const INDIZI_METEO = {
+  ventoDa: ["direzione", "direz", "dir", "wind dir", "wind direction", "wd", "provenienza vento"],
+  vento: ["vento", "vel vento", "velocita vento", "wind", "wind speed", "ws"],
+  pioggia: ["pioggia", "rain", "precipit", "precipitazioni"],
+  temperatura: ["temperatura", "temperature", "temp", "t aria"],
+  umidita: ["umidita", "umid", "humidity", "rh", "ur"],
+};
+export function proponiColonneMeteo(righe, conIntestazione, escludi) {
+  const out = { colVento: -1, colVentoDa: -1, colPioggia: -1, colTemp: -1, colUmid: -1 };
+  if (!conIntestazione) return out;
+  const e = escludi || {};
+  const presi = [e.colData, e.colOra, e.colValore, e.colPpvL, e.colPpvT, e.colPpvV, e.colFreq, e.colAria];
+  const m = mappaColonne((righe || [])[0] || [],
+    { colVentoDa: INDIZI_METEO.ventoDa, colVento: INDIZI_METEO.vento, colPioggia: INDIZI_METEO.pioggia, colTemp: INDIZI_METEO.temperatura, colUmid: INDIZI_METEO.umidita },
+    { modo: "parola", presi });
+  for (const k of Object.keys(out)) out[k] = m.indici[k];
+  return out;
+}
+// La direzione del vento com'è scritta nei file: una sigla (anche inglese,
+// W → O; anche a sedici punte, ridotta alle otto) o i gradi (0-360, settore
+// di 45°). Quello che non si riconosce resta "" — non si inventa una rosa.
+const GRADI_16 = { N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5, S: 180, SSO: 202.5, SO: 225, OSO: 247.5, O: 270, ONO: 292.5, NO: 315, NNO: 337.5 };
+export function direzioneVento(cella) {
+  const t = String(cella == null ? "" : cella).trim().toUpperCase().replace(/[^A-Z0-9.,]/g, "");
+  if (!t) return "";
+  const n = numIt(t);
+  if (Number.isFinite(n)) return n >= 0 && n <= 360 ? DIREZIONI_VENTO[Math.round(n / 45) % 8] : "";
+  const it = t.replace(/W/g, "O");
+  if (DIREZIONI_VENTO.includes(it)) return it;
+  if (GRADI_16[it] != null) return DIREZIONI_VENTO[Math.round(GRADI_16[it] / 45) % 8];
+  return "";
+}
+// La pioggia com'è scritta nei file: sì/no in tre lingue, oppure i millimetri
+// (0 = senza pioggia). `null` = la cella non dice niente di leggibile.
+export function pioggiaDaCella(cella) {
+  const t = String(cella == null ? "" : cella).trim().toLowerCase();
+  if (!t) return null;
+  if (["si", "sì", "s", "yes", "y", "true", "pioggia", "rain", "x"].includes(t)) return true;
+  if (["no", "n", "false", "none", "asciutto", "dry", "-", "—"].includes(t)) return false;
+  const n = numIt(t);
+  if (Number.isFinite(n)) return n > 0;
+  return null;
+}
+
+// I tre assi, nell'ordine in cui il mestiere li scrive.
+export const ASSI_PPV = ["L", "T", "V"];
+
+// LA RISULTANTE DAI TRE ASSI: PVS = √(L² + T² + V²). Si calcola SOLO con tutti
+// e tre i numeri leggibili: con due assi su tre la risposta è `null` e la
+// ragione sta in `perche` — una risultante «a due assi» è un numero più basso
+// di quello vero, cioè un numero tranquillo su un documento che va all'ente.
+// Il vettore somma è il modulo di un vettore: la definizione, non una norma.
+export function risultanteAssi(assi) {
+  const a = assi && typeof assi === "object" ? assi : {};
+  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);
+  if (mancanti.length)
+    return { valore: null, perche: (mancanti.length === 1 ? "asse " + mancanti[0] + " non leggibile" : "assi " + mancanti.join(", ") + " non leggibili")
+      + ": la risultante non si calcola con " + (3 - mancanti.length) + (3 - mancanti.length === 1 ? " asse" : " assi") + " su 3" };
+  const v = Math.sqrt(ASSI_PPV.reduce((s, k) => s + Math.pow(numeroDichiarato(a[k]), 2), 0));
+  return { valore: Math.round(v * 1e6) / 1e6, perche: "" };
+}
+
+// I CAMPI DELL'EVENTO CHE VIAGGIANO CON LA LETTURA — e il posto UNICO in cui
+// si decide quali. Tre lettori ricostruiscono una lettura campo per campo
+// (`unisciLetture` all'ingresso, `lettureLeggibili` per ogni schermata,
+// `reportConformita` per il documento): senza questa funzione ognuno
+// avrebbe la sua copia dell'elenco, e gli assi si perderebbero nel primo che
+// se la dimentica. Tornano `assi`, `extra` e `valoreDa` solo se ci sono; e
+// `valoreDa` da solo entra soltanto se dice «risultante», perché «colonna» su
+// una lettura senza assi non aggiunge niente e cambierebbe la forma delle
+// letture di sempre (la dimostrazione resta identica).
+export function campiEvento(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const out = {};
+  if (x.assi && typeof x.assi === "object" && Object.keys(x.assi).length) out.assi = { ...x.assi };
+  if (x.extra && typeof x.extra === "object" && Object.keys(x.extra).length) out.extra = { ...x.extra };
+  if (x.valoreDa === "risultante" || (out.assi && x.valoreDa === "colonna")) out.valoreDa = x.valoreDa;
+  return out;
+}
+/* Le condizioni meteo della lettura (05/09), nella forma in cui vanno copiate.
+   ⛔ Le due copie delle letture — quella del CSV (`lettureLeggibili`) e quella
+   del report (`grezze`) — ricostruiscono l'oggetto campo per campo, quindi un
+   campo nuovo che non passa di qui SPARISCE in silenzio da tutt'e due: la
+   prima prova sul CSV ha risposto «condizioni: vuoto» su una lettura che il
+   vento ce l'aveva. Si scrive una volta e si sparge con `...`. */
+export function campiCondizioni(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const out = {};
+  for (const k of ["vento", "ventoDa", "pioggia", "temperatura", "umidita"]) if (x[k] !== undefined && x[k] !== null && x[k] !== "") out[k] = x[k];
+  return out;
+}
+
+// LA RIGA CHE DESCRIVE L'EVENTO, a parole: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz ·
+// aria 112» — vuota se la lettura non ha colonne in più. Un asse indicato ma
+// illeggibile si scrive «—», non si salta: la colonna c'era e non si è
+// letta. La frequenza è in hertz per definizione; la sovrapressione resta
+// nell'unità del file dello strumento (dB(L) o Pa), che qui nessuno conosce,
+// quindi si scrive il numero nudo e lo dice `provenienzaValore`.
+export function descriviEvento(l) {
+  const e = campiEvento(l);
+  const n = (v) => { const x = numeroDichiarato(v); return x == null ? "—" : numeroIt(x); };
+  const pezzi = [];
+  if (e.assi) for (const k of ASSI_PPV) if (k in e.assi) pezzi.push(k + " " + n(e.assi[k]));
+  if (e.extra) {
+    if ("freq" in e.extra) pezzi.push("f " + n(e.extra.freq) + (numeroDichiarato(e.extra.freq) == null ? "" : " Hz"));
+    if ("aria" in e.extra) pezzi.push("aria " + n(e.extra.aria));
+  }
+  return pezzi.join(" · ");
+}
+
+// DA DOVE VIENE IL NUMERO CHE GIUDICA LA CONFORMITÀ. «risultante»: calcolato
+// dai tre assi perché l'utente non ha indicato la colonna del valore;
+// «colonna»: la colonna scelta nel file (o il numero scritto a mano). Una
+// lettura corretta a mano dopo l'import lo dice: il numero non è più quello
+// che era entrato, e `descriviProvenienza` racconta il resto.
+export function provenienzaValore(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const p = provenienzaMisura(x);
+  const ris = x.valoreDa === "risultante";
+  const base = ris ? "risultante dai tre assi (√(L²+T²+V²))" : "colonna scelta nel file";
+  return { da: ris ? "risultante" : "colonna",
+    testo: p.corretta ? base + ", poi corretta a mano" : base,
+    /* la sovrapressione si dichiara senza unità: l'app non la conosce */
+    nota: x.extra && typeof x.extra === "object" && "aria" in x.extra
+      ? "sovrapressione nell'unità del file dello strumento" : "" };
 }
 
 // Applica la mappatura scelta dall'utente e restituisce UNA VOCE PER RIGA
 // del file, buona o scartata che sia, con il motivo scritto in italiano.
 // Nessuna riga sparisce in silenzio: l'anteprima le mostra tutte, perché
 // un import muto è il modo migliore per perdere dati senza accorgersene.
+// ⚠️ DAL 04/09 LA MAPPA ACCETTA LE COLONNE DELL'EVENTO (facoltative, vedi
+// `proponiColonneEvento`). `valore` resta il numero usato per la conformità e
+// `valoreDa` dice da dove viene: «colonna» (la colonna scelta, com'è sempre
+// stato) oppure «risultante» quando l'utente NON indica la colonna del valore
+// ma indica i tre assi. Con un asse illeggibile la riga esce con `valore:
+// null`, `perche` e il motivo: non si inventa una risultante a due assi.
+// Una mappa a tre colonne produce le stesse righe di prima, più `valoreDa`.
 export function preparaLetture(righe, mappa) {
   const m = mappa || {};
   const cD = +m.colData, cO = +m.colOra, cV = +m.colValore;
+  const scelta = (i) => Number.isFinite(i) && i >= 0;
+  const COL_ASSI = { L: +m.colPpvL, T: +m.colPpvT, V: +m.colPpvV };
+  const COL_EXTRA = { freq: +m.colFreq, aria: +m.colAria };
+  const COL_METEO = { vento: +m.colVento, ventoDa: +m.colVentoDa, pioggia: +m.colPioggia, temperatura: +m.colTemp, umidita: +m.colUmid };
+  const treAssi = ASSI_PPV.every(k => scelta(COL_ASSI[k]));
   const dati = (righe || []).slice(m.conIntestazione ? 1 : 0);
-  const cella = (r, i) => (Number.isFinite(i) && i >= 0 ? String(r[i] == null ? "" : r[i]) : "");
+  const cella = (r, i) => (scelta(i) ? String(r[i] == null ? "" : r[i]) : "");
+  const numero = (s) => { const v = numIt(s); return Number.isFinite(v) ? v : null; };
   return dati.map((r, k) => {
     const dataRaw = cella(r, cD), oraRaw = cella(r, cO), valRaw = cella(r, cV);
     const data = dataIso(dataRaw);
+    // le colonne dell'evento: solo quelle indicate, e una cella che non si
+    // legge resta `null` — dichiarata, non inventata e non saltata
+    const evento = {};
+    const assi = {};
+    for (const a of ASSI_PPV) if (scelta(COL_ASSI[a])) assi[a] = numero(cella(r, COL_ASSI[a]));
+    if (Object.keys(assi).length) evento.assi = assi;
+    const extra = {};
+    for (const x of Object.keys(COL_EXTRA)) if (scelta(COL_EXTRA[x])) extra[x] = numero(cella(r, COL_EXTRA[x]));
+    if (Object.keys(extra).length) evento.extra = extra;
+    /* le condizioni meteo (05/09): solo le colonne indicate; una cella che
+       non si legge NON diventa «non registrata» in silenzio — la riga entra
+       lo stesso (la misura vale), ma `meteoNonLetti` dice quale condizione
+       era scritta e non si è capita, e l'anteprima lo mostra */
+    const cond = {}, meteoNonLetti = [];
+    for (const k of Object.keys(COL_METEO)) {
+      if (!scelta(COL_METEO[k])) continue;
+      const raw = cella(r, COL_METEO[k]).trim();
+      if (!raw) continue;
+      const v = k === "ventoDa" ? direzioneVento(raw) : k === "pioggia" ? pioggiaDaCella(raw) : numero(raw);
+      if (v === "" || v == null) meteoNonLetti.push(k); else cond[k] = v;
+    }
     // L'ora si cerca prima nella colonna scelta e POI, se lì non c'è, nella
     // cella della data: molti strumenti scrivono "12/07/2026 10:30" in una
     // casella sola, e capita che il file abbia ANCHE una colonna Ora che per
@@ -1275,12 +1631,19 @@ export function preparaLetture(righe, mappa) {
     // vera, su una serie storica che va all'ente.
     // La colonna scelta VINCE: questo è un ripiego, non una sovrascrittura.
     const ora = (cO >= 0 ? oraHm(oraRaw) : "") || oraHm(dataRaw);
-    const valore = numIt(valRaw);
+    let valore, valoreDa = "colonna", perche = "";
+    if (scelta(cV)) valore = numIt(valRaw);
+    else if (treAssi) {
+      const ris = risultanteAssi(assi);
+      valore = ris.valore; valoreDa = "risultante"; perche = ris.perche;
+    } else { valore = null; valoreDa = ""; perche = "nessuna colonna del valore scelta, e per la risultante servono tutti e tre gli assi"; }
     let motivo = "";
     if (!data) motivo = dataRaw ? "data non riconosciuta" : "data mancante";
+    else if (perche) motivo = perche;
     else if (!Number.isFinite(valore)) motivo = valRaw ? "valore non numerico" : "valore mancante";
     else if (valore < 0) motivo = "valore negativo";
-    return { riga: k + 1 + (m.conIntestazione ? 1 : 0), dataRaw, oraRaw, valRaw, data, ora, valore, ok: !motivo, motivo };
+    return { riga: k + 1 + (m.conIntestazione ? 1 : 0), dataRaw, oraRaw, valRaw, data, ora, valore, valoreDa,
+             ...evento, ...cond, ...(meteoNonLetti.length ? { meteoNonLetti } : {}), ok: !motivo, motivo, ...(perche ? { perche } : {}) };
   });
 }
 
@@ -1354,7 +1717,13 @@ export function unisciLetture(esistenti, nuove, max = MAX_LETTURE) {
        difesa. `numeroDichiarato` tiene lo zero SCRITTO (che è un dato) e
        lascia `null` all'assenza. */
     tenute.push({ data: l.data, valore: numeroDichiarato(l.valore), ...(l.ora ? { ora: l.ora } : {}),
-                  ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}) });
+                  ...(l.origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
+                  /* gli assi, la frequenza e la sovrapressione entrano in archivio
+                     con la lettura (04/09): è QUI che si perderebbero al reimport,
+                     e `campiEvento` è l'unico elenco di che cosa viaggia */
+                  ...campiEvento(l),
+                  /* e le condizioni meteo (05/09), per la stessa ragione */
+                  ...campiCondizioni(l) });
   }
   const tutte = [...(esistenti || []), ...tenute]
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
@@ -1572,8 +1941,12 @@ export const STATI_TARATURA = {
    stretta era proprio quella dei tre secchi, che non sa dire il quarto caso.
    Questa risponde con tutti e quattro; chi ne vuole tre li somma. */
 export function contaCoperture(tarature, letture) {
-  const c = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0 };
+  const c = { coperta: 0, scoperta: 0, "prima-dello-storico": 0, "non-dichiarata": 0,
+    // una lettura dichiarata non valida non ha una taratura da verificare:
+    // non entra nel documento, quindi non entra nemmeno qui — e lo si dice
+    annullate: contaAnnullate(letture).n };
   for (const l of (letture || [])) {
+    if (!letturaValida(l)) continue;
     const s = coperturaTaratura(tarature, (l || {}).data).stato;
     if (c[s] != null) c[s]++;
   }
@@ -1913,8 +2286,15 @@ export function csvTarature(monitoraggi) {
 // storico c'è una lettura che cade nel buco fra due certificati. Il file porta
 // perciò il conto delle sue LETTURE, che sono quelle che il file contiene,
 // e lo conta con `contaCoperture`, la stessa del report e della scheda.
+/* ⚠️ DUE COLONNE IN CODA DAL 04/09: `evento` (gli assi, la frequenza e la
+   sovrapressione dell'ULTIMA lettura valida, se il file dello strumento le
+   portava: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz · aria 112») e `valore_da` (da
+   dove viene il numero della colonna `valore`: la colonna scelta nel file, o
+   la risultante calcolata dai tre assi). Vuote su un punto senza colonne in
+   più: un punto di polveri non ha assi, e non si scrive niente al posto loro.
+   In coda, così chi taglia alle prime dieci ritrova il file di prima. */
 export const CSV_AMBIENTE_INTESTAZIONE =
-  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza";
+  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni";
 
 /* La riferibilità delle letture di UN punto, in una cella. Le parole sono
    quelle che la scheda della taratura usa già a schermo: «coperte», «cadono in
@@ -1943,17 +2323,22 @@ function cellaTaratura(m) {
    cerca per prima, e sul dato di dimostrazione ce n'è una che ALZA il valore. */
 function cellaProvenienza(m) {
   let file = 0, mano = 0, ignota = 0, corrette = 0;
+  const ann = contaAnnullate((m || {}).letture);
   for (const l of (((m || {}).letture) || [])) {
+    if (!letturaValida(l)) continue;   // conta a parte, in coda alla cella
     const p = provenienzaMisura(l);
     if (!p.noto) ignota++; else if (p.da === FONTE_IMPORT) file++; else if (p.da === FONTE_MANO) mano++;
     if (p.corretta) corrette++;
   }
-  if (!(file + mano + ignota)) return "";
+  if (!(file + mano + ignota + ann.n)) return "";
   const pezzi = [];
   if (file) pezzi.push(file + " da file dello strumento");
   if (mano) pezzi.push(conta(mano, "inserita a mano", "inserite a mano"));
   if (ignota) pezzi.push(ignota + " senza provenienza dichiarata");
   if (corrette) pezzi.push(corrette + (corrette === 1 ? " corretta dopo la registrazione" : " corrette dopo la registrazione"));
+  /* le annullate non stanno in nessuno dei conti sopra, e il file lo dice
+     con la ragione: è la stessa riga che il report scrive a schermo */
+  if (ann.n) pezzi.push(ann.testo);
   return pezzi.join(" · ");
 }
 
@@ -1983,9 +2368,14 @@ function cellaProvenienza(m) {
 function cellaStorico(m) {
   const tutte = (((m || {}).letture) || []);
   const buone = lettureLeggibili(m);
-  const fuori = tutte.length - buone.length;
+  /* ⛔ le annullate escono da `buone` ma NON sono «non utilizzabili»: sono
+     righe leggibili che una persona ha tolto con una ragione. Si sottraggono
+     dal conto delle illeggibili e si dichiarano a parte, con la ragione. */
+  const ann = contaAnnullate(tutte);
+  const fuori = tutte.length - buone.length - ann.n;
   const pezzi = [];
   if (buone.length) pezzi.push(buone.map(l => l.data + ":" + (Math.round(l.valore * 1e4) / 1e4)).join(" "));
+  if (ann.n) pezzi.push(ann.testo);
   if (fuori > 0)
     pezzi.push(fuori + (fuori === 1 ? " lettura non utilizzabile" : " letture non utilizzabili")
       + ": il giorno che " + (fuori === 1 ? "porta" : "portano") + " scritto non è un giorno che esiste,"
@@ -2010,11 +2400,22 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
         + (eff.unitaRicettore || "un'altra unità") + ", non applicata e non convertita"
       : eff.fonte === "ricettore" ? "ricettore " + (eff.ricettore || "")
       : "punto di misura";
+    /* l'evento dell'ultima lettura valida — la stessa `ultimaLettura` che
+       decide il valore corrente della scheda, non una seconda lettura */
+    const ult = ultimaLettura(m);
+    const ev = ult ? descriviEvento(ult) : "";
+    const pv = ult && ev ? provenienzaValore(ult) : null;
     righe.push([
       "monitoraggio", csvCell((m || {}).nome || ""),
       st.stato === "mai" ? "" : n((m || {}).valore),
       csvCell(unitaMisura(m)), n(eff.valore), st.label, csvCell(storico), csvCell(origine),
       csvCell(cellaTaratura(m)), csvCell(cellaProvenienza(m)),
+      csvCell(ev), csvCell(pv ? pv.testo + (pv.nota ? " · " + pv.nota : "") : ""),
+      /* le condizioni meteo dell'ultima lettura (05/09) e, sul rumore, se è
+         fuori dalle condizioni del DM 16/03/1998: «sì» / «no» / «non si può
+         dire»; sugli altri tipi la cella resta vuota (non si giudica) */
+      csvCell(ult ? condizioniMisura(ult).testo : ""),
+      csvCell(!ult ? "" : (() => { const f = misuraFuoriCondizioni(ult, m); return !f.pertinente ? "" : f.fuori ? "sì: " + f.motivo : f.giudicabile ? "no" : "non si può dire"; })()),
     ].join(";"));
   }
   for (const a of adempimenti || []) {
@@ -2035,9 +2436,9 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
         + " · " + (per.noto
           ? "periodo coperto dal " + per.dal + " al " + per.al
           : "periodo coperto non dichiarato")), "",
-      /* un adempimento non è una misura: non ha né taratura né provenienza, e
-         le due celle restano vuote invece di dire qualcosa di tranquillo */
-      "", "",
+      /* un adempimento non è una misura: non ha né taratura né provenienza né
+         evento, e le celle restano vuote invece di dire qualcosa di tranquillo */
+      "", "", "", "",
     ].join(";"));
   }
   return CSV_AMBIENTE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
@@ -2174,8 +2575,9 @@ export const FONTI_MISURA = {
 // `false` scrive una frase diversa invece di tacere.
 export function provenienzaMisura(l) {
   const o = (l || {}).origine;
-  const vuota = { da: FONTE_IGNOTA, noto: false, file: "", quando: "", corretta: null };
+  const vuota = { da: FONTE_IGNOTA, noto: false, file: "", quando: "", corretta: null, annullata: null };
   if (!o || typeof o !== "object") return vuota;
+  const annullata = annullamentoDi(l);
   /* ⛔ UNA CORREZIONE SU UN VALORE ILLEGGIBILE RESTA UNA CORREZIONE. Se il
      numero di partenza non era un numero, `prima` vale `null` — e la frase
      lo dice. Pretendere che `prima` fosse finito per riconoscere la
@@ -2192,9 +2594,9 @@ export function provenienzaMisura(l) {
         prima: (co.prima != null && Number.isFinite(+co.prima)) ? +co.prima : null }
     : null;
   const da = String(o.da || "").trim().toLowerCase();
-  if (da !== FONTE_IMPORT && da !== FONTE_MANO) return { ...vuota, corretta };
+  if (da !== FONTE_IMPORT && da !== FONTE_MANO) return { ...vuota, corretta, annullata };
   return { da, noto: true, file: String(o.file || "").trim(),
-           quando: String(o.quando || "").trim(), corretta };
+           quando: String(o.quando || "").trim(), corretta, annullata };
 }
 
 /* Il momento, scritto come lo legge una persona. L'istante è quello di
@@ -2238,6 +2640,10 @@ export function descriviProvenienza(l, punto) {
       + (p.corretta.prima != null
           ? `: il valore registrato in origine era ${numeroIt(p.corretta.prima)}.`
           : ": il valore registrato in origine non è leggibile.");
+  if (p.annullata)
+    t += " La misura è stata DICHIARATA NON VALIDA"
+      + (p.annullata.quando ? ` il ${quandoIt(p.annullata.quando)}` : "")
+      + ` (${p.annullata.etichetta}): resta in archivio col suo valore, ma non entra in nessun conto.`;
   return t;
 }
 
@@ -2304,6 +2710,134 @@ export function correggiLettura(l, nuovo, quando) {
   return { ...l, valore: v, origine: o };
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// LA LETTURA DICHIARATA NON VALIDA (04/09, candidato (b) del delta).
+// Un sismografo registra anche il camion che passa, il temporale e la
+// prova che il tecnico fa battendo sul geofono: sono eventi VERI dello
+// strumento e FALSI come misura della cava. Il mondo li chiama «trigger
+// spuri» e li lascia decidere a una persona, con la ragione scritta.
+// ⛔ TRE REGOLE, e sono le stesse della correzione (`correggiLettura`):
+//   1. il valore NON si cancella: un dato ambientale non si distrugge. La
+//      riga resta in archivio con scritto che è stata annullata, quando, e
+//      perché — e il numero letto sta anche dentro la dichiarazione
+//      (`annullata.valore`), così se qualcuno un giorno lo ritoccasse, la
+//      dichiarazione lo direbbe;
+//   2. una ragione VUOTA non è una ragione: senza chiave, o con «altro»
+//      senza il testo, la funzione risponde `null` e non scrive niente;
+//   3. il CONTO CAMBIA SOLO CON LA DICHIARAZIONE. `letturaSenzaVolata` dice
+//      «quel giorno non risulta nessuna volata» ed è un SUGGERIMENTO scritto
+//      accanto alla riga: non toglie niente da nessun conto. L'unica cosa
+//      che toglie una lettura dalla conformità è `annullaLettura`, chiamata
+//      da una persona con una ragione.
+// Chi legge le letture passa da `lettureLeggibili`, che scarta le annullate
+// come scarta le date che non esistono — e ogni lettore che conta o esporta
+// DICHIARA quante ne ha lasciate fuori (`annullate`): una lettura tolta in
+// silenzio è il modo in cui un superamento sparisce.
+// ══════════════════════════════════════════════════════════════════════
+
+// Le ragioni fra cui si sceglie. `nota: true` = vuole il testo libero.
+export const RAGIONI_ANNULLAMENTO = [
+  { chiave: "mezzo",     etichetta: "Mezzo di passaggio",      nota: false },
+  { chiave: "temporale", etichetta: "Temporale",               nota: false },
+  { chiave: "prova",     etichetta: "Prova dello strumento",   nota: false },
+  // il rumore misurato con vento oltre 5 m/s o pioggia non vale (DM 16/03/1998, All. B)
+  { chiave: "meteo",     etichetta: "Vento oltre 5 m/s o pioggia (rumore: misura non valida)", nota: false },
+  { chiave: "altro",     etichetta: "Altro (scrivi che cosa)", nota: true },
+];
+const ragioneAnnullamento = (k) =>
+  RAGIONI_ANNULLAMENTO.find(r => r.chiave === String(k || "").trim().toLowerCase()) || null;
+
+// L'annullamento di UNA lettura, letto e normalizzato; `null` se non è
+// annullata. `etichetta` è quello che si scrive accanto alla riga: la
+// ragione scelta, oppure il testo libero di «altro».
+// ⚠️ `valore` passa da `numeroDichiarato`: una dichiarazione scritta su una
+// lettura senza numero porta `null`, non uno zero (stessa trappola di
+// `corretta.prima`, e stessa cura).
+export function annullamentoDi(l) {
+  const o = (l || {}).origine;
+  const a = o && typeof o === "object" ? o.annullata : null;
+  if (!a || typeof a !== "object") return null;
+  const r = ragioneAnnullamento(a.perche);
+  const nota = String(a.nota || "").trim();
+  const perche = r ? r.chiave : "altro";
+  const etichetta = r && !r.nota ? r.etichetta : (nota || "ragione non dichiarata");
+  const v = numeroDichiarato(a.valore);
+  return { perche, etichetta, nota, quando: String(a.quando || ""),
+           valore: v != null && Number.isFinite(v) ? v : null };
+}
+
+// Vera se la lettura è un oggetto e nessuno l'ha dichiarata non valida.
+// `null` e i non-oggetti NON sono letture valide: la domanda «vale?» su
+// una cosa che non è una lettura non ha una risposta tranquilla.
+export function letturaValida(l) {
+  return !!l && typeof l === "object" && !annullamentoDi(l);
+}
+
+// DICHIARARE NON VALIDA una lettura. `perche` è la chiave di
+// `RAGIONI_ANNULLAMENTO`, oppure `{ chiave, nota }` per «altro».
+// `null` = non c'era niente da scrivere (lettura non oggetto, ragione
+// sconosciuta o vuota, «altro» senza testo). Come `correggiLettura`, non
+// salva: prepara il record. Annullare una lettura già annullata riscrive la
+// dichiarazione (chi cambia idea sulla ragione la può cambiare): il valore
+// dentro resta lo stesso, perché è quello della lettura.
+export function annullaLettura(l, perche, quando) {
+  if (!l || typeof l !== "object") return null;
+  const chiave = perche && typeof perche === "object" ? perche.chiave : perche;
+  const r = ragioneAnnullamento(chiave);
+  if (!r) return null;
+  const nota = String((perche && typeof perche === "object" ? perche.nota : "") || "").trim();
+  if (r.nota && !nota) return null;
+  const o = (l.origine && typeof l.origine === "object") ? { ...l.origine } : { da: FONTE_IGNOTA };
+  const v = numeroDichiarato(l.valore);
+  o.annullata = { perche: r.chiave, nota: r.nota ? nota : "", quando: String(quando || istanteLocale()),
+                  valore: v != null && Number.isFinite(v) ? v : null };
+  delete o.ripristinata;   // una nuova dichiarazione supera un vecchio ripristino
+  return { ...l, origine: o };
+}
+
+// RIPRISTINARE una lettura annullata: torna a contare. La traccia resta
+// (`origine.ripristinata`: quando, e con che ragione era stata annullata),
+// perché un documento che va all'ente deve poter dire che quel numero è
+// stato tolto e rimesso. Su una lettura non annullata non cambia niente.
+export function ripristinaLettura(l, quando) {
+  if (!l || typeof l !== "object") return null;
+  const a = annullamentoDi(l);
+  if (!a) return { ...l };
+  const o = { ...l.origine };
+  delete o.annullata;
+  o.ripristinata = { quando: String(quando || istanteLocale()), perche: a.perche, nota: a.nota };
+  return { ...l, origine: o };
+}
+
+// QUANTE letture sono state lasciate fuori perché annullate, e per quali
+// ragioni — la riga che ogni lettore scrive accanto ai suoi numeri.
+// Si contano SOLO quelle che altrimenti avrebbero contato: una riga annullata
+// il cui giorno non esiste o il cui valore non è un numero sta già fra le
+// «non utilizzabili», e contarla due volte sarebbe gonfiare. `dal`/`al`
+// (facoltativi) la restringono al periodo, con lo stesso confronto di
+// `lettureNelPeriodo`. `testo` è vuoto a zero: la frase la scrive chi mostra,
+// e a zero non c'è niente da dichiarare.
+export function contaAnnullate(letture, dal, al) {
+  const d = String(dal || "").slice(0, 10), a = String(al || "").slice(0, 10);
+  const per = {};
+  let n = 0;
+  for (const l of letture || []) {
+    const an = annullamentoDi(l);
+    if (!an) continue;
+    const g = String((l || {}).data || "").slice(0, 10);
+    if (!dataISOEsiste(g) || numeroDichiarato(l.valore) == null) continue;
+    if ((d && g < d) || (a && g > a)) continue;
+    n++;
+    per[an.etichetta] = (per[an.etichetta] || 0) + 1;
+  }
+  const ragioni = Object.entries(per)
+    .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "it"))
+    .map(([etichetta, k]) => ({ etichetta, n: k }));
+  const testo = !n ? "" : (n === 1 ? "1 lettura annullata" : n + " letture annullate")
+    + " (" + ragioni.map(r => r.etichetta.toLowerCase() + (ragioni.length > 1 || r.n > 1 ? " " + r.n : "")).join(", ") + ")";
+  return { n, ragioni, testo };
+}
+
 /* ⛔ QUANDO LA QUOTA NON STRUMENTALE SMETTE DI ESSERE TRASCURABILE. Una
    soglia qualunque sarebbe arbitraria, quindi il peso non ce l'ha: i tre
    conti si scrivono SEMPRE nel documento, e questa soglia decide soltanto
@@ -2318,9 +2852,16 @@ export const QUOTA_NON_STRUMENTALE = 0.2;
 // far cambiare un giudizio di conformità per la strada d'ingresso sarebbe
 // sbagliato in tutt'e due i versi.
 export function composizioneProvenienza(punti) {
-  let importate = 0, aMano = 0, nonDichiarate = 0, corrette = 0;
+  let importate = 0, aMano = 0, nonDichiarate = 0, corrette = 0, annullate = 0;
+  /* i punti del report portano le annullate a parte (`annullateLetture`),
+     perché `letture` lì è già la lista che il documento usa: si guardano
+     tutt'e due, così il conto è lo stesso su un punto grezzo e su uno del
+     documento */
   for (const p of punti || [])
-    for (const l of (((p || {}).letture) || [])) {
+    for (const l of [...((((p || {}).letture) || [])), ...((((p || {}).annullateLetture) || []))]) {
+      // una lettura dichiarata non valida non ha una «strada d'ingresso» da
+      // pesare: non è nel documento. Si conta a parte, e si dichiara.
+      if (!letturaValida(l)) { if (contaAnnullate([l]).n) annullate++; continue; }
       const pr = provenienzaMisura(l);
       if (pr.da === FONTE_IMPORT) importate++;
       else if (pr.da === FONTE_MANO) aMano++;
@@ -2337,7 +2878,7 @@ export function composizioneProvenienza(punti) {
     : !fuori ? "tracciata"
     : quota >= QUOTA_NON_STRUMENTALE ? "non-trascurabile"
     : "mista";
-  return { importate, aMano, nonDichiarate, corrette, n, fuori, quota, stato };
+  return { importate, aMano, nonDichiarate, corrette, n, fuori, quota, stato, annullate };
 }
 
 // La frase del documento. Parole scelte per un funzionario: dicono cosa si
@@ -2394,10 +2935,15 @@ export function coperturaPeriodo(punti, dal, al, oggi = new Date()) {
   // `new Date(x) - new Date(y)`: è la copia debole che dà «scaduta da 56 anni»)
   const fra = (x, y) => giorniTra(y, new Date(x + "T00:00:00"));
 
+  // un giorno con la sola lettura annullata NON è un giorno misurato
   const tutti = [...new Set((punti || []).flatMap(p => (((p || {}).letture) || [])
+    .filter(letturaValida)
     .map(l => String((l || {}).data || "").slice(0, 10))))].filter(dataISOEsiste).sort();
+  // su un punto del report le annullate stanno a parte (`annullateLetture`)
+  const annullate = (punti || []).reduce((n, p) =>
+    n + contaAnnullate([...((((p || {}).letture) || [])), ...((((p || {}).annullateLetture) || []))]).n, 0);
 
-  const base = { dal: d, al: a, alUtile: aUtile, oltreOggi, prima: null, ultima: null,
+  const base = { dal: d, al: a, alUtile: aUtile, oltreOggi, prima: null, ultima: null, annullate,
     nGiorniMisurati: 0, giorniDichiarati: null, giorniPrima: null, giorniDopo: null,
     vuotoMax: null, vuotoDal: null, vuotoAl: null };
   // senza nessun estremo dichiarato il report dice «tutto lo storico»: non
@@ -2541,6 +3087,31 @@ export function periodoAdempimento(a) {
 // ⛔ Nessuna delle tre frasi di «non lo so» propone un periodo di ripiego, ed è
 // il punto: un trimestre plausibile scritto al posto di quello vero sarebbe
 // indistinguibile da quello giusto per chi legge il documento finito.
+/* LA PORTATA DEL DOCUMENTO (05/09, candidato (b) della ricerca). Il report
+   giudica la soglia applicata ai punti di misura — gli effetti sugli edifici,
+   UNI 9916 / DIN 4150-3 — e NON il disturbo alle persone (UNI 9614), che vuole
+   una misura diversa. Finché non lo diceva, chi lo leggeva poteva credere che
+   «conforme» coprisse anche quello. Una frase, in un posto solo. */
+export const PORTATA_REPORT =
+  "Questo documento valuta le misure contro la soglia applicata a ciascun punto di misura "
+  + "(effetti sugli edifici, UNI 9916 / DIN 4150-3). Non valuta il disturbo alle persone "
+  + "(UNI 9614), che richiede una misura e una valutazione diverse.";
+
+/* PER CHI È REDATTO (05/09, candidato (d)). Quando il report parte da un
+   adempimento, il documento lo scrive: quale adempimento, per quale ente, con
+   quale scadenza. Sullo schermo la nota c'era già (`rep-origine`); sul foglio
+   che va all'ente, no. Pura: prende l'adempimento e il periodo ricavato. */
+export function intestazioneOrigineReport(a, p) {
+  const t = String((a || {}).titolo || "").trim();
+  if (!t || !p || !p.dal || !p.al) return "";
+  const ente = String((a || {}).ente || "").trim();
+  return "Redatto per l'adempimento «" + t + "»"
+    + (ente && ente !== "—" ? " (" + ente + ")" : "")
+    + ", periodo dal " + dataIt(p.dal) + " al " + dataIt(p.al)
+    + (dataISOEsiste(String((a || {}).scadenza || "").slice(0, 10)) ? ", scadenza il " + dataIt(String(a.scadenza).slice(0, 10)) : "")
+    + ".";
+}
+
 export const DICHIARAZIONI_PERIODO = {
   "ricavato":             { cls: "",     testo: "Il periodo coperto da questo adempimento si ricava dalla scadenza e da quanto l'adempimento dichiara di coprire: il report parte già su quei giorni, senza scriverli a mano." },
   "senza-periodicita":    { cls: "warn", testo: "Questo adempimento non dichiara quanto tempo copre, quindi il periodo del report non si ricava. Scrivilo sulla scadenza (quanti mesi copre) oppure scegli le date a mano nel Report." },
@@ -2590,6 +3161,30 @@ export function esitoPunto(nLetture, nSuperamenti, soglia) {
   if (!sogliaValida(soglia)) return "senza-soglia";
   if (+nSuperamenti > 0) return "non-conforme";
   return "conforme";
+}
+
+/* LA RISPOSTA A UN SUPERAMENTO, NEL DOCUMENTO (05/09, candidato (c)). Le
+   azioni correttive nate da un superamento vivono in Scudo (ponte T7) e il
+   report non le leggeva: un superamento usciva col numero e senza «che cosa
+   si è fatto», che è la prima domanda dell'ispettore. Quattro risposte, e la
+   quarta è quella che conta: `azioni` è `null` quando Scudo non si è potuto
+   leggere, e «non leggibile» non è «nessuna» — un documento che scrivesse
+   «nessuna azione» perché il ponte era giù accuserebbe di inerzia chi ha
+   agito. Lo stato lo decide `statoPonte` di `shared/`, lo stesso della
+   schermata dei superamenti. Pura. */
+export const FRASI_RISPOSTA = {
+  "non-leggibile": "le azioni correttive non si leggono da Scudo: qui c'è il superamento, non la sua risposta",
+  "nessuna":       "nessuna azione correttiva registrata per questo punto: il superamento non ha ancora una risposta",
+  "aperte":        "",   // la frase la dà `statoPonte` («1 azione da chiudere», «Azione in corso»)
+  "chiuse":        "",   // idem («Azione chiusa», «2 azioni chiuse»)
+};
+export function rispostaSuperamento(azioni, puntoId) {
+  if (azioni === null || azioni === undefined) return { stato: "non-leggibile", n: 0, testo: FRASI_RISPOSTA["non-leggibile"] };
+  const mie = azioniDiOriginePonti(azioni, ORIGINE_SUPERAMENTO, puntoId);
+  const st = statoPontePonti(mie);
+  if (!st.n) return { stato: "nessuna", n: 0, testo: FRASI_RISPOSTA["nessuna"] };
+  const stato = st.daChiudere === 0 ? "chiuse" : "aperte";
+  return { stato, n: st.n, chiuse: st.chiuse, daChiudere: st.daChiudere, testo: st.label.charAt(0).toLowerCase() + st.label.slice(1) + " (da Scudo)" };
 }
 
 export function reportConformita(o = {}) {
@@ -2665,12 +3260,22 @@ export function reportConformita(o = {}) {
       const grezze = ((m.letture) || [])
         .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""),
                      valore: numeroDichiarato((l || {}).valore),
-                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}) }));
+                     ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
+                     ...campiEvento(l), ...campiCondizioni(l) }));
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero
       const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
+      /* ⛔ LE ANNULLATE ESCONO DAL DOCUMENTO E IL DOCUMENTO LO DICE (04/09).
+         Sono righe leggibili, del periodo, che una persona ha dichiarato non
+         valide con una ragione: non pesano su massimo, media, superamenti ed
+         esito — e restano elencate a parte, con la ragione, perché un numero
+         tolto in silenzio da un foglio per l'ente è esattamente il modo in
+         cui un superamento sparisce. `scartate` non le conta: quelle sono le
+         righe che il documento NON PUÒ usare, queste quelle che NON DEVE. */
+      const annullateLetture = grezze.filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data) && !letturaValida(l));
+      const annullate = contaAnnullate(annullateLetture);
       const letture = grezze
-        .filter(l => Number.isFinite(l.valore) && nelPeriodo(l.data))
+        .filter(l => letturaValida(l) && Number.isFinite(l.valore) && nelPeriodo(l.data))
         .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; })
         /* ⛔ `oltre` HA TRE RISPOSTE, NON DUE (decisione 16). Con `false` la
            tabella del documento scriveva su OGNI riga il tag verde «entro
@@ -2684,8 +3289,15 @@ export function reportConformita(o = {}) {
       const superamenti = letture.filter(l => l.oltre);
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
+        /* il riferimento della soglia applicata (05/09): il documento dice se il
+           limite è un valore di norma (con l'avvertenza) o un numero scritto a mano */
+        riferimento: riferimentoSoglia(m, ricettori),
+        /* la risposta al superamento (05/09): solo dove c'è un superamento;
+           `null` altrove, e chi disegna non scrive niente */
+        risposta: superamenti.length ? rispostaSuperamento(o.azioni, m.id) : null,
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
         letture, n: letture.length, scartate,
+        annullate, annullateLetture,
         max: valori.length ? Math.max(...valori) : null,
         min: valori.length ? Math.min(...valori) : null,
         media: valori.length ? valori.reduce((s, v) => s + v, 0) / valori.length : null,
@@ -2696,6 +3308,8 @@ export function reportConformita(o = {}) {
 
   const nLetture = punti.reduce((s, p) => s + p.n, 0);
   const nSuperamenti = punti.reduce((s, p) => s + p.nSuperamenti, 0);
+  // le annullate di tutto il documento, con le ragioni sommate fra i punti
+  const annullate = contaAnnullate(punti.flatMap(p => p.annullateLetture));
   const conDati = punti.filter(p => p.n > 0);
   /* ⛔ IL DENOMINATORE DEL DOCUMENTO. `conDati` diceva «di questi punti
      qualcuno ha misurato»; non diceva «di questi punti si può giudicare la
@@ -2789,7 +3403,7 @@ export function reportConformita(o = {}) {
     nPuntiSenzaLetture: senzaLetture.length,
     puntiSenzaLetture: senzaLetture.map(p => p.nome),
     nRicettoriSenzaPunti: ricettoriSenzaPunti.length, ricettoriSenzaPunti,
-    copertura, scartate,
+    copertura, scartate, annullate,
     nLetture, nSuperamenti, esito, tarature, provenienza,
     reclami, nReclami: reclami.length,
     volate, nVolate: volate.length,
@@ -2929,10 +3543,16 @@ export function piuGiorni(dataISO, n) {
    solo che cosa succede a `null`, `""` e agli spazi.
    Adesso la domanda è UNA, e le tre sorelle la fanno passando di qui: due
    copie uguali oggi divergono domani senza che nessuno lo veda. */
+/* ⛔ E DAL 04/09 LA STESSA DOMANDA HA UNA QUARTA METÀ: «qualcuno l'ha dichiarata
+   non valida?». Si fa QUI, prima della mappa che toglie `origine`, così
+   `ultimaLettura`, `lettureNelPeriodo`, `ultimaLetturaOltre` e `serieStorica`
+   la fanno tutte allo stesso modo — e nessuna può dimenticarla. Chi vuole
+   dire QUANTE ne ha lasciate fuori chiama `contaAnnullate` sulle grezze. */
 function lettureLeggibili(m) {
   return (((m || {}).letture) || [])
+    .filter(letturaValida)
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""),
-                 valore: numeroDichiarato((x || {}).valore) }))
+                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x), ...campiCondizioni(x) }))
     .filter(x => dataISOEsiste(x.data) && x.valore != null)
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
 }
@@ -3069,6 +3689,8 @@ export function statPeriodo(m, dal, al, soglia) {
   const s = Number.isFinite(+soglia) && +soglia > 0 ? +soglia : null;
   return {
     dal, al, n: l.length, letture: l,
+    // quante letture del periodo NON sono in `n` perché dichiarate non valide
+    annullate: contaAnnullate((m || {}).letture, dal, al).n,
     media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null,
     max: v.length ? Math.max(...v) : null,
     min: v.length ? Math.min(...v) : null,
@@ -3123,6 +3745,7 @@ export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
         letture, n: letture.length, abbastanza: letture.length >= minLetture,
+        annullate: contaAnnullate(m.letture, inizio.dal, fine.al).n,
         confronto: confrontoMesi(m, eff.valore, oggi),
       };
     });
@@ -3275,12 +3898,6 @@ export const AVVISO_COINCIDENZA =
 // ⛔ Solo le volate ESEGUITE (T9): «quel giorno è stata registrata una volata»
 // è un fatto, e un progetto non è un fatto. Con una prevista qui, un
 // superamento risulterebbe accompagnato da un evento mai avvenuto.
-export function volateDelGiorno(volate, dataISO) {
-  const d = String(dataISO || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
-  return (volate || []).filter(v => !volataPrevista(v))
-    .filter(v => String((v || {}).data || "").slice(0, 10) === d);
-}
 
 // Riga di contesto pronta da mostrare accanto a un superamento (o a un
 // reclamo) quando quel giorno c'è stata una volata. Torna null se non ce
@@ -3295,6 +3912,84 @@ export function coincidenzaVolata(volate, dataISO) {
       + (fronti.length ? " (" + fronti.join(", ") + ")" : "") + ".",
     avviso: AVVISO_COINCIDENZA,
   };
+}
+
+// IL SUGGERIMENTO «quel giorno non risulta nessuna volata» per una lettura
+// di vibrazione (04/09). È un CANDIDATO trigger spurio, non un verdetto: un
+// camion, un temporale, una prova — o una volata non registrata. Chi decide
+// è una persona con `annullaLettura`; questa funzione non toglie niente.
+// Tre risposte, e la terza è quella che conta:
+//   · `true`  → il registro ha volate eseguite, e nessuna quel giorno;
+//   · `false` → quel giorno ne risulta almeno una (`volateDelGiorno`);
+//   · `null`  → NON SI PUÒ DIRE: la data non si legge, oppure il registro
+//     non ha nessuna volata eseguita — e con un registro vuoto ogni lettura
+//     sarebbe «senza volata», cioè un suggerimento su tutto è un suggerimento
+//     su niente (l'assenza del registro non è un dato).
+export function letturaSenzaVolata(l, volate) {
+  const g = String((l || {}).data || "").slice(0, 10);
+  if (!dataISOEsiste(g)) return null;
+  if (!volateEseguite(volate).length) return null;
+  return volateDelGiorno(volate, g).length === 0;
+}
+
+/* ── LE CONDIZIONI METEO DELLA MISURA (05/09) ──────────────────────────────
+   Il mondo, di seconda mano (risultati di ricerca, decreto non letto): il DM
+   16 marzo 1998 «Tecniche di rilevamento e di misurazione dell'inquinamento
+   acustico», Allegato B, vuole le misure di rumore «in assenza di
+   precipitazioni atmosferiche, di nebbia e/o neve; la velocità del vento non
+   deve superare i 5 m/s», col microfono protetto dal vento
+   (anit.it, arpa.veneto.it — il testo del decreto). E le campagne sulle
+   polveri registrano i parametri meteorologici accanto al PM10, con
+   campionamenti «wind select» sottovento alla sorgente (ARPA FVG, ARPAE).
+   Quindi una lettura può portare, FACOLTATIVI: `vento` (m/s), `ventoDa`
+   (N, NE, E, SE, S, SO, O, NO), `pioggia` (true/false), `temperatura` (°C),
+   `umidita` (%). E per il RUMORE l'app sa dire se la misura è fuori dalle
+   condizioni della norma — come suggerimento: la lettura resta in ogni conto
+   finché una persona non la dichiara non valida con la ragione (`meteo`),
+   esattamente come «nessuna volata quel giorno». Tre risposte, e la terza
+   conta: fuori · dentro · NON SI PUÒ DIRE (né vento né pioggia registrati).
+   Sulle polveri non si giudica: dire se il ricettore era sottovento vorrebbe
+   la posizione della sorgente rispetto al ricettore, che l'app non ha. */
+export const VENTO_MAX_RUMORE_MS = 5;
+export const DIREZIONI_VENTO = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+export function condizioniMisura(l) {
+  const x = l || {};
+  const vento = numeroDichiarato(x.vento);
+  const da = DIREZIONI_VENTO.includes(String(x.ventoDa || "").toUpperCase()) ? String(x.ventoDa).toUpperCase() : "";
+  const pioggia = x.pioggia === true ? true : x.pioggia === false ? false : null;
+  const temperatura = numeroDichiarato(x.temperatura);
+  const umidita = numeroDichiarato(x.umidita);
+  const pezzi = [];
+  if (vento != null) pezzi.push("vento " + numeroIt(vento) + " m/s" + (da ? " da " + da : ""));
+  else if (da) pezzi.push("vento da " + da);
+  if (pioggia === true) pezzi.push("pioggia");
+  else if (pioggia === false && (vento != null || da)) pezzi.push("senza pioggia");
+  else if (pioggia === false) pezzi.push("senza pioggia");
+  if (temperatura != null) pezzi.push(numeroIt(temperatura) + " °C");
+  if (umidita != null) pezzi.push("umidità " + numeroIt(umidita) + " %");
+  return { registrate: pezzi.length > 0, vento, da, pioggia, temperatura, umidita, testo: pezzi.join(" · ") };
+}
+export function misuraFuoriCondizioni(l, m) {
+  const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+  if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
+  const c = condizioniMisura(l);
+  if (c.vento == null && c.pioggia == null)
+    return { pertinente: true, giudicabile: false, fuori: false, breve: "", motivo: "vento e pioggia non registrati: non si può dire se la misura è valida per il DM 16/03/1998" };
+  const motivi = [];
+  if (c.vento != null && c.vento > VENTO_MAX_RUMORE_MS) motivi.push("vento " + numeroIt(c.vento) + " m/s, oltre i " + VENTO_MAX_RUMORE_MS + " m/s ammessi");
+  if (c.pioggia === true) motivi.push("pioggia");
+  if (motivi.length) return { pertinente: true, giudicabile: true, fuori: true, breve: motivi.join(" e "), motivo: motivi.join(" e ") + ": per il DM 16/03/1998 (All. B) la misura di rumore non è valida" };
+  // dentro, ma con una metà sola registrata lo si dice
+  const meta = c.vento == null ? " (pioggia registrata, vento no)" : c.pioggia == null ? " (vento registrato, pioggia no)" : "";
+  return { pertinente: true, giudicabile: meta === "", fuori: false, breve: "", motivo: meta ? "condizioni registrate a metà" + meta : "" };
+}
+export function contaFuoriCondizioni(letture, m) {
+  const L = (Array.isArray(letture) ? letture : []).filter((l) => l && numeroDichiarato(l.valore) != null);
+  const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+  if (tipo !== "rumore") return { pertinente: false, totale: L.length, fuori: 0, dentro: 0, nonGiudicabili: 0 };
+  let fuori = 0, dentro = 0, nonGiudicabili = 0;
+  for (const l of L) { const f = misuraFuoriCondizioni(l, m); if (f.fuori) fuori++; else if (f.giudicabile) dentro++; else nonGiudicabili++; }
+  return { pertinente: true, totale: L.length, fuori, dentro, nonGiudicabili };
 }
 
 // ── IL TRASPORTO ─────────────────────────────────────────────────────
@@ -3419,8 +4114,6 @@ export async function ponteScudo() {
 // un numero di cui non si sa la provenienza non è un dato.
 // ══════════════════════════════════════════════════════════════════════
 
-export const PPV_STRUMENTO = "strumento";   // letta dal sismografo fra i punti di misura
-export const PPV_MANUALE = "manuale";       // trascritta dal referto di uno strumento non censito
 
 // Quanti referti servono. Sono le stesse due soglie che usa Genesi nella
 // modale «Legge di sito»: sotto 3 la retta non esiste (da due punti passa
@@ -3451,19 +4144,6 @@ export function motivoReferto(chiave) {
 // La PPV collegata a una volata, o null. Non deduce NIENTE: legge soltanto
 // quello che è stato scritto sulla volata. Una volata vecchia, registrata
 // prima che questi campi esistessero, torna null — non un valore finto.
-export function ppvDiVolata(v) {
-  const val = +((v || {}).ppvMisurata);
-  if (!Number.isFinite(val) || val <= 0) return null;
-  const strumento = String((v || {}).ppvFonte || "") === PPV_STRUMENTO;
-  return {
-    valore: val,
-    fonte: strumento ? PPV_STRUMENTO : PPV_MANUALE,
-    puntoId: String((v || {}).ppvPuntoId || ""),
-    punto: String((v || {}).ppvPuntoNome || "").trim(),
-    data: String((v || {}).ppvData || "").slice(0, 10),
-    ora: String((v || {}).ppvOra || "").trim(),
-  };
-}
 
 // Come si dice a parole da dove viene una PPV. Usata sia nell'elenco sia
 // nel CSV: deve dire sempre la stessa cosa.
@@ -3543,8 +4223,13 @@ export function lettureVibrazioniDelGiorno(monitoraggi, dataISO) {
       const val = +((l || {}).valore);
       if (String((l || {}).data || "").slice(0, 10) !== d) continue;
       if (!Number.isFinite(val) || val <= 0) continue;
+      /* una lettura annullata resta in lista ma NON è una candidata: la
+         pagina la mostra spenta con la ragione, come fa per l'unità sbagliata
+         (`unitaOk`). Toglierla dalla lista sarebbe farla sparire. */
+      const an = annullamentoDi(l);
       out.push({ puntoId: m.id, punto: String(m.nome || "Punto di misura"),
-        unita, unitaOk, data: d, ora: String((l || {}).ora || "").trim(), valore: val });
+        unita, unitaOk, data: d, ora: String((l || {}).ora || "").trim(), valore: val,
+        valida: !an, annullata: an });
     }
   }
   return out.sort((a, b) => b.valore - a.valore);
@@ -3721,29 +4406,14 @@ export function csvRefertiGenesi(referti) {
 // cambia, e nessuna riga va convertita.
 // ══════════════════════════════════════════════════════════════════════
 
-export const VOL_PREVISTA = "prevista";   // progettata, non ancora sparata
-export const VOL_ESEGUITA = "eseguita";   // sparata: è un evento del registro
 
 // Lo stato scritto in un file, letto con tolleranza (Genesi scrive "prevista",
 // ma un file compilato a mano può dire "progetto" o "sparata"). Ritorna ""
 // quando la colonna non c'è o non dice niente: chi chiama decide, e per il
 // registro il silenzio significa ESEGUITA — vedi statoVolata.
-export function statoDaTesto(s) {
-  const t = String(s == null ? "" : s).trim().toLowerCase();
-  if (!t) return "";
-  if (/^(prevista|previsto|progetto|progettata|programmata|pianificata)$/.test(t)) return VOL_PREVISTA;
-  if (/^(eseguita|eseguito|sparata|sparato|fatta|effettuata)$/.test(t)) return VOL_ESEGUITA;
-  return "";
-}
 
 // Lo stato di una volata del registro. UNICO punto in cui si decide, così non
 // esistono due parti dell'app che leggono lo stesso campo in due modi.
-export function statoVolata(v) {
-  return statoDaTesto((v || {}).stato) === VOL_PREVISTA ? VOL_PREVISTA : VOL_ESEGUITA;
-}
-export const volataPrevista = (v) => statoVolata(v) === VOL_PREVISTA;
-export const volatePreviste = (volate) => (volate || []).filter(volataPrevista);
-export const volateEseguite = (volate) => (volate || []).filter(v => !volataPrevista(v));
 
 // Come si presenta lo stato a schermo. La prevista NON usa i colori del
 // semaforo (verde/giallo/rosso): non è un giudizio di conformità, è un'altra
@@ -3986,6 +4656,66 @@ export function firmaVolata(v) {
     +((v || {}).nFori) || 0, +((v || {}).kgTotali) || 0].join("|");
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PONTE 3e — LE VOLATE PREVISTE DA GENESI, SENZA IL FILE (05/09)
+   Genesi scrive la volata «per Sentinella» nella sua collezione `previste`
+   (forma di `previstaDaGenesi` in shared/): qui si legge, si confronta col
+   registro e si ACCOGLIE — la stessa strada del CSV, senza il CSV.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* Da record del ponte a volata del registro: passa dalle STESSE funzioni del
+   lettore CSV (`campiPrevisioneVolata`, `VOL_PREVISTA`, il codice), così le
+   due strade non possono divergere. `null` dove Genesi non sapeva calcolare. */
+export function accogliPrevista(p) {
+  const x = p || {};
+  if (!dataISOEsiste(x.data)) return null;
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) ? Math.max(0, n) : null; };
+  let v = { data: String(x.data), fronte: String(x.fronte || "").trim(),
+    nFori: num(x.nFori), kgTotali: num(x.kgTotali), kgMaxRitardo: num(x.kgMaxRitardo), distanzaRicettore: num(x.distanzaRicettore),
+    esito: "regolare", note: "" };
+  const prev = campiPrevisioneVolata(x.ppvPrevista, { limite: x.ppvPrevLimite, norma: x.ppvPrevNorma, fonte: x.ppvPrevFonte, airblast: x.airblastPrevisto });
+  if (prev) v = { ...v, ...prev };
+  v.stato = VOL_PREVISTA;
+  const cod = String(x.codiceVolata || "").trim();
+  if (cod) v.codiceVolata = cod;
+  const prov = String(x.ppvPrevProvvisoria || "").trim().toLowerCase();
+  if (prov === "si" || prov === "no") v.ppvPrevProvvisoria = prov;
+  const nRef = +x.ppvPrevReferti;
+  if (Number.isFinite(nRef) && nRef > 0) v.ppvPrevReferti = Math.round(nRef);
+  if (x.origine && typeof x.origine === "object") v.origine = { ...x.origine };
+  return v;
+}
+/* Quali previste di Genesi NON sono ancora nel registro: la firma è quella di
+   sempre (`firmaVolata`: il codice se c'è), e una previsione già accolta — o
+   già confermata come eseguita, perché il codice sopravvive alla conferma —
+   non si ripropone. `previste` null = Genesi NON leggibile, che non è «nessuna
+   volata prevista»: `leggibile: false`, e la pagina lo dice. */
+export function previsteNuove(previste, volate) {
+  if (!Array.isArray(previste)) return { leggibile: false, nuove: [], gia: 0, illeggibili: 0 };
+  const gia = new Set((Array.isArray(volate) ? volate : []).map(firmaVolata));
+  const nuove = [], viste = new Set();
+  let n = 0, ill = 0;
+  for (const p of previste) {
+    const v = accogliPrevista(p);
+    if (!v) { ill++; continue; }
+    const f = firmaVolata(v);
+    if (gia.has(f) || viste.has(f)) { n++; continue; }
+    viste.add(f); nuove.push({ ...v, ponteId: p && p.id != null ? String(p.id) : "" });
+  }
+  nuove.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  return { leggibile: true, nuove, gia: n, illeggibili: ill };
+}
+/* La chiave del browser che Genesi scrive quando lavora da solo (`genesiPreviste`):
+   è il ripiego di chi usa le due app sullo stesso computer senza organizzazione,
+   come Terra fa con `genesiNuvole`. Un JSON corrotto risponde `[]`. */
+export function previsteDaChiave(storage) {
+  try {
+    const st = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+    if (!st) return [];
+    const v = JSON.parse(st.getItem("genesiPreviste") || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+
 // L'INTESTAZIONE del registro volate: le 8 colonne di sempre, le 4 della PPV
 // misurata (T8) e le 7 della volata prevista (T9), in coda e facoltative.
 // È lo stesso ordine che legge parseVolateCsv qui sopra — stanno nello stesso
@@ -3993,10 +4723,177 @@ export function firmaVolata(v) {
 // Genesi scrive queste stesse colonne (vedi apps/genesi/genesi.html, «Manda a
 // Sentinella»): lasciando VUOTE le quattro della PPV misurata, che una volata
 // non ancora sparata non può avere.
+/* LA COMUNICAZIONE DELLA VOLATA (05/09). La linea guida ARPA FVG per il piano
+   di monitoraggio di una cava fa del «diario delle volate» parte del
+   monitoraggio: modalità e frequenza delle volate, i riferimenti alle
+   COMUNICAZIONI fatte alle autorità o alla popolazione, i reclami ricevuti
+   [seconda mano, docs/RICERCA_CONTINUA_SENTINELLA.md, 05/09]. Il registro
+   aveva le prime e i reclami; la comunicazione no. Tre campi facoltativi sulla
+   volata — a chi, quando, con quale riferimento — e una descrizione sola che
+   dice «nessuna comunicazione registrata» quando manca: mai un «—», che sul
+   documento per l'ente si legge «niente da dire». */
+export const DESTINATARI_COMUNICAZIONE = [
+  { chiave: "ente",      etichetta: "all'ente" },
+  { chiave: "residenti", etichetta: "ai residenti" },
+  { chiave: "entrambi",  etichetta: "all'ente e ai residenti" },
+];
+export function campiComunicazioneVolata(a, il, rif) {
+  const chiave = String(a == null ? "" : a).trim().toLowerCase();
+  const data = String(il == null ? "" : il).trim().slice(0, 10);
+  const errori = {};
+  if (!DESTINATARI_COMUNICAZIONE.some(d => d.chiave === chiave)) errori.a = "Scrivi a chi è stata fatta: «ente», «residenti» o «entrambi».";
+  if (!data) errori.il = "Scrivi quando è stata fatta.";
+  else if (!dataISOEsiste(data)) errori.il = "La data non esiste.";
+  return { ok: Object.keys(errori).length === 0, errori,
+    campi: { comunicataA: chiave, comunicataIl: data, comunicazioneRif: String(rif == null ? "" : rif).trim() } };
+}
+export function descriviComunicazione(v) {
+  const x = v || {};
+  const dest = DESTINATARI_COMUNICAZIONE.find(d => d.chiave === String(x.comunicataA || "").trim().toLowerCase());
+  const data = String(x.comunicataIl || "").slice(0, 10);
+  if (!dest && !data && !String(x.comunicazioneRif || "").trim()) return { registrata: false, testo: "nessuna comunicazione registrata" };
+  if (!dest || !dataISOEsiste(data))
+    return { registrata: false, testo: "comunicazione registrata a metà (" + (!dest ? "non dice a chi" : "la data non si legge") + ")" };
+  return { registrata: true, testo: "comunicata " + dest.etichetta + " il " + dataIt(data)
+    + (String(x.comunicazioneRif || "").trim() ? " (" + String(x.comunicazioneRif).trim() + ")" : "") };
+}
+
+/* IL FOGLIO DELLA SINGOLA VOLATA (05/09, candidato (e) della ricerca). La
+   registrazione della centralina può valere come documentazione della volata
+   [seconda mano, fonti secondarie: la frase «vale come verbale» NON si scrive
+   sul foglio finché la fonte primaria non è letta]. Quello che il foglio fa è
+   mettere accanto, su una pagina, ciò che l'app ha in tre posti: i dati della
+   volata, la misura dell'evento (PPV, assi, frequenza, aria) con lo strumento
+   e la sua taratura, la comunicazione fatta e i reclami di quel giorno. Ogni
+   riga che manca lo DICE («non registrato», «non ancora collegata»): mai un
+   «—», che su un foglio che un fochino allega si legge «niente da dire».
+   Pura: torna la struttura, la pagina la disegna. */
+export function fogliaVolata(v, opts = {}) {
+  const x = v || {};
+  const mon = opts.monitoraggi || [], rec = opts.reclami || [];
+  /* CHE COSA MANCA, dichiarato dal modulo e non dedotto dal foglio (seconda
+     iterazione, confrontata con `relazioneLotto` di Terra): ogni riga porta un
+     terzo elemento `manca` e `nonMisurati` li elenca con l'etichetta, così il
+     foglio può scriverli in una sezione a sé invece di lasciarli passare per
+     zero in mezzo agli altri. «Nessun reclamo» e «note: nessuna» NON mancano:
+     sono fatti registrati, non dati assenti. */
+  const nonMisurati = [];
+  const manca = (etichetta, testo) => { nonMisurati.push(etichetta + " (" + testo + ")"); return [etichetta, testo, true]; };
+  const nd = (etichetta, val, unita, dec) => { const q = numeroDichiarato(val); return q == null ? manca(etichetta, "non dichiarato") : [etichetta, numeroIt(q, dec) + (unita ? " " + unita : ""), false]; };
+  const sez = [];
+  // 1 · la volata
+  const sd = scaledDistance(x.distanzaRicettore, x.kgMaxRitardo);
+  const com = descriviComunicazione(x);
+  sez.push({ titolo: "Volata", righe: [
+    dataISOEsiste(String(x.data || "").slice(0, 10)) ? ["Data", dataIt(String(x.data).slice(0, 10)), false] : manca("Data", "data non leggibile"),
+    String(x.fronte || "").trim() ? ["Fronte", String(x.fronte).trim(), false] : manca("Fronte", "non indicato"),
+    ["Stato", volataPrevista(x) ? "prevista (progetto, non ancora sparata)" : "eseguita", false],
+    nd("Fori", x.nFori, "", 0),
+    nd("Carica totale", x.kgTotali, "kg"),
+    nd("Carica massima per ritardo", x.kgMaxRitardo, "kg"),
+    nd("Distanza dal ricettore", x.distanzaRicettore, "m"),
+        /* la SD non calcolabile NON è un dato assente in più: è la conseguenza dei
+       due che mancano già (distanza, carica per ritardo), e contarla due volte
+       gonfierebbe l'elenco */
+    ["Distanza scalata (SD)", sd != null ? numeroIt(sd) : "non calcolabile: servono distanza e carica per ritardo", false],
+    x.esito === "contestazione" ? ["Esito", "contestazione", false] : x.esito === "regolare" ? ["Esito", "regolare", false] : manca("Esito", "non dichiarato"),
+    ["Note", String(x.note || "").trim() || "nessuna", false],
+    ["Codice volata", String(x.codiceVolata || "").trim() || "nessuno (volata registrata a mano)", false],
+    com.registrata ? ["Comunicazione", com.testo, false] : manca("Comunicazione", com.testo),
+  ] });
+  // 2 · la previsione, se arrivata da Genesi
+  const pv = previsioneDiVolata(x);
+  sez.push({ titolo: "Previsione", righe: pv ? [
+    ["PPV prevista", numeroIt(pv.valore) + " mm/s", false],
+    pv.limite != null ? ["Limite dichiarato", numeroIt(pv.limite) + " mm/s" + (pv.norma ? " (" + pv.norma + ")" : ""), false] : manca("Limite dichiarato", "non dichiarato"),
+    ["Sovrapressione prevista", pv.airblast != null ? numeroIt(pv.airblast) + " dB(L)" : "non dichiarata", false],
+    ["Fonte", testoFontePrevisione(pv), false],
+  ] : [["PPV prevista", "nessuna previsione registrata", false]] });
+  // 3 · la misura dell'evento
+  const ppv = volataPrevista(x) ? null : ppvDiVolata(x);
+  const righeMisura = [];
+  let lettura = null, punto = null;
+  if (ppv) {
+    righeMisura.push(["PPV misurata", numeroIt(ppv.valore) + " mm/s · " + testoFontePpv(ppv), false]);
+    if (ppv.fonte === PPV_STRUMENTO) {
+      punto = mon.find(m => m && m.id === ppv.puntoId) || null;
+      lettura = punto ? (punto.letture || []).find(l => l && String(l.data || "").slice(0, 10) === ppv.data && (!ppv.ora || String(l.ora || "") === ppv.ora)) || null : null;
+      const ev = lettura ? descriviEvento(lettura) : "";
+      if (ev) righeMisura.push(["Componenti dell'evento", ev, false]);
+      else righeMisura.push(manca("Componenti dell'evento", lettura ? "la lettura non porta assi, frequenza o aria" : punto ? "lettura non trovata nel punto «" + (punto.nome || punto.id) + "»" : "punto di misura non trovato" + (ppv.puntoId ? " (" + ppv.puntoId + ")" : "")));
+      if (lettura) righeMisura.push(["Provenienza della lettura", descriviProvenienza(lettura, punto), false]);
+      if (lettura && !letturaValida(lettura)) righeMisura.push(["Attenzione", "la lettura è stata dichiarata non valida: " + annullamentoDi(lettura).etichetta, true]);
+    }
+  } else if (volataPrevista(x)) righeMisura.push(["PPV misurata", "non ancora sparata: nessuna misura", false]);
+  else righeMisura.push(manca("PPV misurata", "non ancora collegata"));
+  sez.push({ titolo: "Misura dell'evento", righe: righeMisura });
+  // 4 · lo strumento e la sua taratura
+  const righeStr = [];
+  if (punto) {
+    righeStr.push(["Punto di misura", String(punto.nome || punto.id) + (unitaMisura(punto) ? " · " + unitaMisura(punto) : ""), false]);
+    const c = coperturaTaratura(punto.tarature, ppv.data);
+    if (c.stato === "coperta" && c.certificato)
+      righeStr.push(["Taratura", "coperta: " + (c.certificato.certificato ? "certificato " + c.certificato.certificato + ", " : "") + (c.certificato.ente ? c.certificato.ente + ", " : "") + "dal " + dataIt(c.certificato.data) + " al " + dataIt(c.certificato.scadenza), false]);
+    else righeStr.push(manca("Taratura", "non coperta: " + c.perche));
+  } else if (ppv && ppv.fonte === PPV_STRUMENTO) righeStr.push(manca("Punto di misura", "non trovato"));
+  else righeStr.push(["Punto di misura", ppv ? "nessuno: PPV trascritta a mano dal referto" : "nessuno: PPV non collegata", false]);
+  sez.push({ titolo: "Strumento e taratura", righe: righeStr });
+  /* 4b · LA REGOLA DEL GIUDIZIO (terza iterazione, affiancata al verbale del
+     rilievo di Terra, «come è stato ottenuto il numero»): la scheda diceva DA
+     DOVE viene ogni numero ma non con quale LIMITE il punto giudica. Le
+     decisioni sono le stesse dello schermo — `sogliaEfficace` (la soglia del
+     ricettore vince su quella del punto, mai una conversione di unità),
+     `statoMisura` (il verdetto: pari alla soglia è superamento),
+     `frequenzaFuoriBanda` (la banda del preset) — chiamate, non riscritte.
+     Il verdetto non si scrive se la PPV non è strumentale o il punto non c'è:
+     la sezione dice perché. */
+  if (punto) {
+    const righeReg = [];
+    const eff = sogliaEfficace(punto, opts.ricettori || []);
+    const uEff = eff.unita ? " " + eff.unita : "";
+    if (eff.valore == null) righeReg.push(manca("Limite che vale per il punto", "nessuna soglia impostata: il giudizio non si può dare"));
+    else righeReg.push(["Limite che vale per il punto", numeroIt(eff.valore) + uEff
+      + (eff.fonte === "ricettore" && eff.ricettore ? " — soglia del ricettore «" + eff.ricettore + "»" : " — soglia del punto di misura")
+      + (eff.conflitto ? " (la soglia del ricettore non è applicata: unità diverse, " + String(eff.unitaRicettore || "senza unità") + ")" : ""), false]);
+    /* il riferimento è quello del valore che VALE, scritto da `riferimentoSoglia`
+       — la stessa riga che il report per l'ente scrive nella scheda del punto */
+    if (eff.valore != null) righeReg.push(["Riferimento della soglia", riferimentoSoglia(punto, opts.ricettori || []).testo, false]);
+    if (eff.valore != null) {
+      const st = statoMisura({ valore: ppv.valore, soglia: eff.valore, letture: [{ data: ppv.data, valore: ppv.valore }] });
+      righeReg.push(["Esito rispetto al limite", st.calcolabile
+        ? st.label + " — " + numeroIt(ppv.valore) + uEff + " su " + numeroIt(eff.valore) + uEff + (st.ratio != null ? " (" + numeroIt(st.ratio * 100, 0) + "% del limite)" : "")
+        : st.label, false]);
+    }
+    const fb = lettura ? frequenzaFuoriBanda(lettura, punto) : null;
+    if (!lettura) righeReg.push(["Frequenza e banda della soglia", "lettura non trovata: la frequenza non si può confrontare", false]);
+    else if (fb.giudicabile) righeReg.push(["Frequenza e banda della soglia", fb.fuori ? fb.perche : "f " + numeroIt(fb.freq) + " Hz: dentro la banda della soglia (" + fb.banda + ")", false]);
+    else righeReg.push(["Frequenza e banda della soglia", "non giudicabile: " + fb.perche, false]);
+    sez.push({ titolo: "Regola del giudizio", righe: righeReg });
+  } else {
+    sez.push({ titolo: "Regola del giudizio", righe: [["Limite che vale per il punto", ppv && ppv.fonte === PPV_STRUMENTO
+      ? "il punto di misura non è stato trovato: nessun limite da applicare"
+      : ppv ? "la PPV è trascritta a mano dal referto: il limite e il giudizio sono quelli del referto dello strumento"
+      : volataPrevista(x) ? "volata non ancora sparata: niente da giudicare"
+      : "nessuna PPV collegata: niente da giudicare", false]] });
+  }
+  // 5 · i reclami di quel giorno (coincidenza, non causa)
+  const g = String(x.data || "").slice(0, 10);
+  const recG = rec.filter(r => r && String(r.data || "").slice(0, 10) === g);
+  sez.push({ titolo: "Reclami dello stesso giorno", righe: recG.length
+    ? recG.map(r => [etichettaReclamo(r.tipo) + (r.ora ? " alle " + r.ora : ""), String(r.chi || "chi non indicato") + (r.descrizione ? ": " + String(r.descrizione).trim() : "") + (r.stato ? " [" + r.stato + "]" : ""), false])
+    : [["Reclami", "nessun reclamo registrato quel giorno", false]], avviso: recG.length ? AVVISO_COINCIDENZA : "" });
+  const oggi = opts.oggi ? new Date(opts.oggi) : new Date();
+  return { titolo: "Scheda della volata" + (g && dataISOEsiste(g) ? " del " + dataIt(g) : "") + (String(x.fronte || "").trim() ? " — " + String(x.fronte).trim() : ""),
+    sezioni: sez, nonMisurati, generatoIl: dataIt(isoLocale(oggi)),
+    avvertenza: "Foglio composto da Sentinella con i dati registrati: la registrazione originale dello strumento resta il documento di riferimento." };
+}
+
 export const CSV_VOLATE_INTESTAZIONE =
   "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;"
   + "ppvMisurata;ppvFonte;ppvPunto;ppvOra;"
-  + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata";
+  + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;"
+  /* la comunicazione (05/09), in coda: chi legge diciannove colonne non si accorge di niente */
+  + "comunicataA;comunicataIl;comunicazioneRif";
 
 // Il file del registro volate. Ogni riga dichiara il suo `stato`, così il giro
 // export → import non perde la distinzione fra progetto e evento. Pura e
@@ -4030,6 +4927,7 @@ export function csvRegistroVolate(volate) {
         csvCell(q ? q.norma : ""), q ? q.fonte : "",
         q && q.airblast != null ? n(q.airblast) : "",
         csvCell(v.codiceVolata || ""),
+        String(v.comunicataA || ""), String(v.comunicataIl || "").slice(0, 10), csvCell(v.comunicazioneRif || ""),
       ].join(";");
     });
   return CSV_VOLATE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
@@ -4060,6 +4958,19 @@ export async function sentinellaData() {
           { rif: doc(id.orgCollection(n), i), runTransaction, deleteField }, cambia),
         rimuovi: (n, i) => deleteDoc(doc(id.orgCollection(n), i)),
       };
+      /* il ponte 3e: le volate previste che Genesi ha scritto nell'organizzazione
+         (`apps/genesi/previste`), con una seconda istanza dell'SDK sull'appId
+         di Genesi, pigra e in sola lettura — la forma di `nuvoleGenesi` in Terra.
+         `null` = non leggibile, che la pagina distingue da «nessuna». */
+      let idGenesi;
+      api.previsteGenesi = async () => {
+        if (idGenesi === undefined) {
+          try { idGenesi = await DeepworkID.init({ appId: "genesi" }); } catch (e) { idGenesi = null; }
+        }
+        if (!idGenesi) return null;
+        try { return (await getDocs(idGenesi.orgCollection("previste"))).docs.map(d => ({ id: d.id, ...d.data() })); }
+        catch (e) { return null; }
+      };
     } else if (id.authState() === "tour") mode = "tour";
   } catch (e) {}
   if (mode !== "live") {
@@ -4074,6 +4985,9 @@ export async function sentinellaData() {
          divergono, la dimostrazione smette di dimostrare */
       trasforma: async (n, i, cambia) => trasformaInMemoria((mem[n] || (mem[n] = [])).find(v => v.id === i), cambia),
       rimuovi: async (n, i) => { mem[n] = (mem[n] || []).filter(v => v.id !== i); },
+      /* senza organizzazione Genesi si legge dalla chiave del browser: chi usa
+         le due app sullo stesso computer vede la volata appena esportata */
+      previsteGenesi: async () => previsteDaChiave(),
     };
   }
   return { mode, ...api };

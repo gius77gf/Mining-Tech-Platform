@@ -271,6 +271,34 @@ console.log("\n· i file importati con un foro / una riga sola");
          "⛔ e «Carica reale totale» non scrive 0 kg dove nessuno ha registrato niente",
          (q.match(/Carica reale totale[^A-Z]{0,60}[A-Z ]{0,30}/) || [])[0]);
   }
+  /* il confronto FORO PER FORO (05/09): il progetto aperto ha tre fori
+     (f1-1, f1-2, f1-3: la maglia minima dopo l'import XML da un foro). Un
+     consuntivo con gli id accoppia per id e dichiara il foro senza riga e la
+     riga senza foro; uno senza id accoppia per numero e lo dice. */
+  {
+    await dai(pg, "riconCampoFile", "consuntivo_id.csv",
+      "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro\n"
+      + "2026-09-05;mattino;1;58;61;5;3;;Rossi;f1-1\n2026-09-05;mattino;2;58;70;21;12;;Rossi;f1-2\n2026-09-05;mattino;9;58;58;0;0;;Rossi;f9-9\n");
+    await pg.waitForTimeout(500);
+    const q = await pg.evaluate(() => (document.getElementById("riconBody") || {}).innerText.replace(/\s+/g, " "));
+    const stati = await pg.$$eval(".ricamp-ft .ricamp-b", (e) => e.map((x) => x.innerText.trim().toLowerCase()));
+    const ids = await pg.$$eval(".ricamp-ft .mono", (e) => e.map((x) => x.innerText.trim()));
+    frasi++;
+    dice(ids.join("|") === "f1-1|f1-2|f1-3" && stati.join("|") === "in linea|fuori 10–25 %|senza riga",
+         "⛔ foro per foro: f1-1 in linea (61 su 58), f1-2 fuori (70 su 58), f1-3 senza riga — accoppiati per id, non per posizione", ids.join("|") + " / " + stati.join("|"));
+    dice(/Accoppiati per id del foro/.test(q) && /1 foro del progetto senza riga/.test(q) && /1 riga del consuntivo senza foro nel progetto aperto \(f9-9\)/.test(q),
+         "⛔ e la nota dichiara la chiave, il foro senza riga e la riga orfana per nome", (q.match(/Accoppiati.{0,260}/) || [])[0]);
+    const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+    dice(largo, "la griglia foro per foro non fa scorrere la pagina di lato");
+    await dai(pg, "riconCampoFile", "consuntivo_vecchio.csv",
+      "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct\n2026-09-05;mattino;1;58;61;5\n2026-09-05;mattino;2;58;;\n");
+    await pg.waitForTimeout(500);
+    const q2 = await pg.evaluate(() => (document.getElementById("riconBody") || {}).innerText.replace(/\s+/g, " "));
+    dice(/Accoppiati per numero/.test(q2) && /senza nessun avviso/.test(q2),
+         "⛔ un consuntivo di ieri, senza id: accoppiati per NUMERO, e la nota dice che un foro tolto sposta gli altri", (q2.match(/Accoppiati.{0,200}/) || [])[0]);
+    const stati2 = await pg.$$eval(".ricamp-ft .ricamp-b", (e) => e.map((x) => x.innerText.trim().toLowerCase()));
+    dice(stati2.join("|") === "in linea|da registrare|senza riga", "e il foro 2 con la carica vuota dice «da registrare», non «in linea»", stati2.join("|"));
+  }
   await pg.evaluate(() => { const c = document.getElementById("riconClose"); if (c) c.click(); });
   await pg.waitForTimeout(400);
 

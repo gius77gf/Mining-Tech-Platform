@@ -39,6 +39,12 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "organizations/orgA/apps/flotta/ricambi/p1"), { nome: "Filtro olio", giacenza: 6 });
   await setDoc(doc(db, "organizations/orgB/apps/flotta/ricambi/p9"), { nome: "RICAMBIO-CONCORRENTE", giacenza: 2 });
   await setDoc(doc(db, "organizations/org_demo/apps/scudo/turni/d1"), { operaio: "Esempio", ore: 8 });
+  // Genesi esce dal browser (02/09, unità 4 di docs/GENESI_FUORI_DAL_BROWSER.md):
+  // le sue collezioni nascono sotto apps/genesi/… e devono restare isolate come
+  // le altre — la regola generica apps/{appId}/** le copre, e QUESTA è la prova
+  await setDoc(doc(db, "organizations/orgA/apps/genesi/volate/v1"), { nome: "Fronte Nord", design: { B: 3 } });
+  await setDoc(doc(db, "organizations/orgB/apps/genesi/volate/v9"), { nome: "VOLATA-CONCORRENTE", design: { B: 4 } });
+  await setDoc(doc(db, "organizations/orgB/apps/genesi/sito/unico"), { punti: [{ d: 100, w: 20, ppv: 6 }], usa: true });
   // dati del CORE (cuore) come app 'core': organizations/{org}/apps/core/... —
   // isolamento preparato per la multi-tenancy del cuore (docs/ISOLAMENTO_CORE.md)
   await setDoc(doc(db, "organizations/orgA/apps/core/rapportini/r1"), { operatore: "Mario", fori: 20 });
@@ -66,6 +72,18 @@ await test("membro di orgA NON legge i dati del concorrente (orgB)", () =>
   assertFails(getDoc(doc(alice, "organizations/orgB/apps/scudo/turni/t9"))));
 await test("membro di orgB NON legge i dati di orgA", () =>
   assertFails(getDoc(doc(eve, "organizations/orgA/apps/scudo/turni/t1"))));
+await test("Genesi: membro di orgA legge le PROPRIE volate", () =>
+  assertSucceeds(getDoc(doc(alice, "organizations/orgA/apps/genesi/volate/v1"))));
+await test("Genesi: membro di orgA NON legge le volate del concorrente", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/genesi/volate/v9"))));
+await test("Genesi: membro di orgB NON legge le volate di orgA", () =>
+  assertFails(getDoc(doc(eve, "organizations/orgA/apps/genesi/volate/v1"))));
+await test("Genesi: la legge di sito del concorrente (un documento solo) NON si legge", () =>
+  assertFails(getDoc(doc(alice, "organizations/orgB/apps/genesi/sito/unico"))));
+await test("Genesi: membro di orgA NON scrive fra le volate del concorrente", () =>
+  assertFails(setDoc(doc(alice, "organizations/orgB/apps/genesi/volate/hack"), { nome: "x" })));
+await test("Genesi: chi non ha login NON legge nessuna volata", () =>
+  assertFails(getDoc(doc(ghost, "organizations/orgA/apps/genesi/volate/v1"))));
 await test("membro di orgA NON può nemmeno elencare i documenti di orgB", () =>
   assertFails(getDocs(collection(alice, "organizations/orgB/apps/scudo/turni"))));
 await test("membro di orgA NON scrive nei dati del concorrente", () =>

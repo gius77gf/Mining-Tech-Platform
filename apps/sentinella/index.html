@@ -541,8 +541,20 @@ body.dw.outdoor-mode .peggio-num small{
 .graf-stat .v{
   font-family:'Barlow Condensed',sans-serif; font-size:19px; font-weight:800;
   line-height:1.15; color:var(--text); font-variant-numeric:tabular-nums;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  white-space:normal; overflow-wrap:anywhere;
 }
+/* ⛔ MAI UN'ELLISSI SU UN NUMERO CON UNITÀ (04/09). Fino a oggi `.v` aveva
+   `white-space:nowrap; overflow:hidden; text-overflow:ellipsis`, e a 320 px la
+   cella del quadrante è larga 53: «44,2 µg/m³» chiede 68 e usciva «44,2 …» —
+   cioè l'UNITÀ sparita, che in un'app ambientale vuol dire un numero che non si
+   sa leggere (misurato su tutti i punti: PM10 troncava anche a 390 e a 430,
+   le vibrazioni a 320 e 390, il rumore a 320). Stessa famiglia del libretto di
+   Flotta («€ 19,02/» senza la sua unità): un numero tagliato è un numero
+   diverso. Le due difese, nell'ordine in cui scattano: sui telefoni (≤400 px)
+   l'unità va SEMPRE su una riga sotto il numero — sempre, non solo dove non
+   ci sta, così le quattro celle del quadrante hanno la stessa forma — e se un
+   valore fosse più lungo della cella va a capo (`overflow-wrap:anywhere`)
+   invece di essere tagliato via. */
 .graf-stat .v small{
   font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.5px;
 }
@@ -826,6 +838,13 @@ body.dw.outdoor-mode .peggio-num small{
 .tab tr.ko td.n{color:var(--muted2)}
 .tab tr.oltre td.n{color:var(--ink-dg)}
 .tab tr.dup td.n{color:var(--ink-wr)}
+/* la lettura dichiarata non valida: il numero resta scritto (non si cancella)
+   ma è barrato e smorzato, e il badge accanto dice la ragione — muted, non
+   un colore di stato: non è né un allarme né un via libera */
+.tab tr.annullata td.n{color:var(--muted); text-decoration:line-through}
+.tag.ann{border-style:dashed; color:var(--muted2); white-space:nowrap}
+.ann-hint{color:var(--muted2); font-style:italic}
+.arr.rip:hover{color:var(--ink-ok); background:color-mix(in srgb,var(--success) 16%,transparent)}
 /* pillola di stato dentro la tabella: piccola, con micro-profondità */
 .tag{
   display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:9.5px;
@@ -857,6 +876,35 @@ body.dw.outdoor-mode .peggio-num small{
    Quello che si nasconde è ripetuto; quello che si mostra è unico. */
 .tab td.prov{white-space:normal; min-width:96px}
 .tab td.prov .tag{margin:0 3px 2px 0}
+/* ⛔ LA TABELLA CHE SCORRE SENZA DIRLO (04/09). A 320 px «Le ultime misure»
+   chiedeva 336 px in un riquadro da 270 (e 8 di troppo anche a 390): scorreva
+   nel suo `.tab-wrap`, che è ammesso, ma le pillole della provenienza — il
+   dato che questa tabella esiste per mostrare — restavano tagliate alla vista
+   e niente diceva che si poteva scorrere. Misurate le colonne una per una:
+   Data 69 · Ora 42 · Valore 55 (la parola «VALORE» dell'intestazione) ·
+   Provenienza 101 (la pillola «NON DICHIARATA», 84 + margine) · Azioni 74
+   (un `min-width` pensato per l'ESITO del report, dove qui stanno due bottoni
+   da 44 impilati). Si stringe ciò che si stringe senza cifrare: l'ORA va sotto
+   la data, nella forma che Conti usa già per la seconda riga di una cella
+   (`td small{display:block}`), e la colonna delle azioni è larga quanto i suoi
+   bottoni. Le pillole non si toccano: una pillola su due righe non è più una
+   pillola. Non si è fatta una vista «a schede» sotto i 360 — nel core non
+   esiste, e sarebbe una convenzione in più — né un segno di scorrimento, che
+   nessuna app ha: a 320 la tabella adesso ci STA (257 in 270 col carattere di
+   ripiego; nel tema del sole, che allarga i bottoni a 60 px, 273 — resta fuori
+   il bordo destro del bottone, mai una pillola o un numero — e 268 con Barlow). */
+.tab td small{display:block; font-size:10.5px; color:var(--muted); font-weight:400; line-height:1.3}
+/* LA RIGA DELL'EVENTO SOTTO IL NUMERO (04/09): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz».
+   Va a capo DENTRO la cella: la tabella della scheda sta a 258 px in 270 a
+   320 px, e una riga in più a `nowrap` la farebbe scorrere di nuovo. */
+.tab td small.ev{white-space:normal; max-width:118px; font-variant-numeric:tabular-nums; letter-spacing:.1px}
+.tab td small.ev b{font-weight:600; color:var(--muted2)}
+/* il tag «fuori banda» dentro la riga dell'evento (04/09): a 320 px la cella
+   del valore è larga 55 px e una pillola a `nowrap` la faceva scorrere —
+   misurato dal banco, non dedotto. Va a capo dentro la cella, come il resto. */
+.tab td small.ev .tag.fb{display:inline-block; white-space:normal; line-height:1.35; margin-top:3px; max-width:100%;
+  font-size:9px; letter-spacing:.5px; padding:1px 5px}   /* «BANDA» a 9,5 px con 1 px di spaziatura chiedeva 2 px più della cella: misurato */
+.tab td.az{min-width:0}
 .prov-prima{
   display:block; margin-top:1px; font-size:10px; font-weight:400; line-height:1.4;
   color:var(--muted); white-space:normal; letter-spacing:.1px; font-variant-numeric:normal;
@@ -885,6 +933,8 @@ body.dw.outdoor-mode .peggio-num small{
   letter-spacing:2.5px; text-transform:uppercase; color:var(--app-accent2); margin-bottom:10px;
 }
 .imp-griglia{display:flex; gap:var(--form-gap); flex-wrap:wrap}
+.imp-tit-2{margin-top:12px}
+.imp-fac{font-weight:400; letter-spacing:0; text-transform:none; color:var(--muted); font-size:11px}
 .imp-griglia .flab{flex:1 1 128px}
 .imp-spunta{
   display:flex; align-items:center; gap:9px; margin:11px 0 2px; font-size:12.5px;
@@ -1032,6 +1082,10 @@ textarea.dw-input{
   letter-spacing:.3px; color:var(--text); line-height:1.25;
 }
 .rep-punto-meta{font-size:11.5px; color:var(--muted); line-height:1.6; margin:5px 0 9px}
+/* per chi è redatto e la portata del documento (05/09): due righe del foglio,
+   la prima subito sotto la testata, la seconda in corsivo dopo le dichiarazioni */
+.rep-origine-doc{margin:0 0 10px; color:var(--text)}
+.rep-portata{margin:2px 0 12px; font-style:italic}
 .rep-punto-meta b{color:var(--muted2); font-weight:600}
 .rep-graf{margin:0 0 9px}
 .rep-vuoto{
@@ -1052,12 +1106,29 @@ textarea.dw-input{
   .tab{font-size:11px}
   .tab th,.tab td{padding:6px 7px}
   .tab td.grezzo{max-width:104px}
+  /* il quadrante sui telefoni: la cella cede 2 px di padding per lato e
+     l'unità sta SOTTO il numero (vedi `.graf-stat .v`). Misurato con Barlow:
+     a 390 px «36,8 µg/m³» chiede 64,3 in una cella da 61 (65 col padding
+     ceduto: ci starebbe per 0,7 px, che non è un margine); a 320 chiede 58,3
+     in 53. Col carattere di ripiego dei banchi chiede 74,3 e 67,7. */
+  .graf-stat{padding:7px 8px 8px}
+  .graf-stat .v small{display:block; margin-top:1px}
 }
 
 @media(max-width:360px){
   .graf-stat{padding:6px 7px 7px}
   .graf-stat .v{font-size:16px}
   .rep-tit{font-size:20px}
+  /* «Le ultime misure» a 320 px: con l'ora sotto la data e 5 px di padding le
+     quattro colonne chiedono 267 in un riquadro da 270 — a 7 px sarebbero 279
+     e la tabella scorrerebbe (misurato col carattere di ripiego, che è più
+     largo di Barlow: in produzione il margine è maggiore) */
+  .tab th,.tab td{padding:6px 5px}
+  /* la cella delle azioni non ha bisogno di aria intorno: il bottone è già una
+     scatola da 44 px (60 nel tema del sole, `--tap`) con l'icona al centro.
+     È il tema del sole a chiederlo: con 60 px di bottone e 5 di padding le
+     quattro colonne chiedevano 283 (278 con Barlow) in 270 */
+  .tab td.az{padding-left:0; padding-right:0}
 }
 
 /* ─────────────── touch: come il core, niente effetti "incollati" ─────────────── */
@@ -1232,7 +1303,20 @@ textarea.dw-input{
     <select class="dw-input" id="mis-sensore" style="flex:2 1 190px;"></select>
     <input class="dw-input dec" id="mis-valore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Valore letto (es. 4,8)" title="Scrivilo come sta sullo strumento: la virgola va benissimo (4,8)." style="flex:1 1 175px;">
     <button class="dw-btn" id="btn-mis">Registra</button>
-    <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.</div>
+    <!-- LE CONDIZIONI DELLA MISURA (05/09). Facoltative, e non a caso: sul
+         RUMORE la norma (DM 16/03/1998, All. B) non ammette misure con vento
+         oltre 5 m/s o con pioggia, quindi una lettura registrata senza il vento
+         non si sa se vale. L'app lo scrive accanto alla riga e nel report; non
+         toglie niente da sola — è un suggerimento, come «nessuna volata quel
+         giorno»: la persona dichiara la misura non valida con la ragione. -->
+    <input class="dw-input dec" id="mis-vento" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Vento m/s" title="Velocità del vento durante la misura, in metri al secondo. Sul rumore la norma non ammette misure con vento oltre 5 m/s." style="flex:1 1 150px;">
+    <select class="dw-input" id="mis-vento-da" title="Da dove soffiava il vento durante la misura" style="flex:1 1 165px;"></select>
+    <select class="dw-input" id="mis-pioggia" title="Pioveva durante la misura? Sul rumore la norma non ammette misure sotto la pioggia." style="flex:1 1 165px;">
+      <option value="">— pioggia? —</option><option value="no">Senza pioggia</option><option value="si">Con pioggia</option></select>
+    <input class="dw-input dec" id="mis-temp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Temperatura °C" title="Temperatura dell'aria durante la misura" style="flex:1 1 150px;">
+    <input class="dw-input dec" id="mis-umid" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Umidità %" title="Umidità relativa dell'aria durante la misura, da 0 a 100" style="flex:1 1 150px;">
+    <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.
+      Le <b>condizioni meteo</b> sono facoltative ma sul <b>rumore</b> decidono se la misura vale: con vento oltre 5 m/s o con pioggia la norma non la ammette, e l'app lo scrive accanto alla lettura invece di contarla come buona.</div>
   </div>
   <div class="note esito" id="mis-esito"></div>
 
@@ -1266,6 +1350,44 @@ textarea.dw-input{
       <label class="flab" for="imp-col-valore">Valore letto
         <select class="dw-input" id="imp-col-valore"></select></label>
     </div>
+    <!-- LE COLONNE DELL'EVENTO (04/09): un sismografo scrive la PPV sui tre
+         assi, la frequenza e la sovrapressione; un punto di polveri no. Sono
+         tutte facoltative: entrano nella lettura SOLO se indicate qui. -->
+    <div class="imp-tit imp-tit-2">Colonne in più, se il file le ha <span class="imp-fac">(facoltative: sismografi)</span></div>
+    <div class="imp-griglia">
+      <label class="flab" for="imp-col-ppvl">PPV longitudinale
+        <select class="dw-input" id="imp-col-ppvl"></select></label>
+      <label class="flab" for="imp-col-ppvt">PPV trasversale
+        <select class="dw-input" id="imp-col-ppvt"></select></label>
+      <label class="flab" for="imp-col-ppvv">PPV verticale
+        <select class="dw-input" id="imp-col-ppvv"></select></label>
+      <label class="flab" for="imp-col-freq">Frequenza <span class="u">(Hz)</span>
+        <select class="dw-input" id="imp-col-freq"></select></label>
+      <label class="flab" for="imp-col-aria">Sovrapressione aerea
+        <select class="dw-input" id="imp-col-aria"></select></label>
+    </div>
+    <div class="form-hint" id="imp-ev-hint">Se indichi i <b>tre assi</b> e nessuna colonna del valore, il valore
+      di conformità è la <b>risultante</b> √(L²+T²+V²) — calcolata solo quando tutti e tre gli assi si leggono.
+      Le colonne in più restano scritte nella lettura, nel report e nel file che esce.</div>
+    <!-- LE CONDIZIONI METEO (05/09): un fonometro con la stazione meteo scrive
+         vento, direzione, pioggia, temperatura e umidità accanto a ogni
+         lettura. Stesse cinque condizioni del form a mano, stessa regola sul
+         rumore (vento oltre 5 m/s o pioggia → fuori condizioni, suggerito). -->
+    <div class="imp-tit imp-tit-2">Condizioni meteo, se il file le ha <span class="imp-fac">(facoltative: fonometri e centraline con stazione meteo)</span></div>
+    <div class="imp-griglia">
+      <label class="flab" for="imp-col-vento">Vento <span class="u">(m/s)</span>
+        <select class="dw-input" id="imp-col-vento"></select></label>
+      <label class="flab" for="imp-col-ventoda">Direzione del vento
+        <select class="dw-input" id="imp-col-ventoda"></select></label>
+      <label class="flab" for="imp-col-pioggia">Pioggia
+        <select class="dw-input" id="imp-col-pioggia"></select></label>
+      <label class="flab" for="imp-col-temp">Temperatura <span class="u">(°C)</span>
+        <select class="dw-input" id="imp-col-temp"></select></label>
+      <label class="flab" for="imp-col-umid">Umidità <span class="u">(%)</span>
+        <select class="dw-input" id="imp-col-umid"></select></label>
+    </div>
+    <div class="form-hint">La direzione si legge come sigla (N, NE… anche W per ovest) o in gradi; la pioggia come sì/no o in millimetri.
+      Sul <b>rumore</b> una lettura con vento oltre 5 m/s o con pioggia viene segnata <b>fuori condizioni</b>: entra lo stesso, e la dichiari tu non valida se lo confermi.</div>
     <label class="imp-spunta" for="imp-header">
       <input type="checkbox" id="imp-header">
       <span>La prima riga del file è un'<b>intestazione</b> (nomi delle colonne), non una misura.</span>
@@ -1551,6 +1673,10 @@ textarea.dw-input{
 
   <div class="sec">Registro volate<span class="cnt" id="vol-tot">—</span></div>
   <div id="vol-riep" class="note recap" style="margin-top:0;"></div>
+  <!-- IL PONTE 3e (05/09): le volate che Genesi ha scritto «per Sentinella»
+       nell'organizzazione (o nella chiave del browser, sullo stesso computer)
+       e che il registro non ha ancora: si accolgono da qui, senza file. -->
+  <div id="vol-previste"></div>
   <div id="vol-list" style="margin-top:10px;"></div>
   <!-- T9 · le volate PREVISTE arrivate da Genesi: la spiegazione dei due stati
        compare solo se ce ne sono (vedi renderVolate). -->
@@ -1713,6 +1839,7 @@ textarea.dw-input{
   import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
            scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
+           proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
@@ -1722,23 +1849,27 @@ textarea.dw-input{
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            accorciaVoceTendina,
            refertiDaVolate, motivoReferto, MOTIVI_REFERTO, csvRefertiGenesi, riferimentoReferto,
+           accogliPrevista, previsteNuove,
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
-           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
+           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata, fogliaVolata,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
            distanzaDelRicettore, sogliaDelRicettore,
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
+           annullaLettura, ripristinaLettura, letturaValida, annullamentoDi, contaAnnullate, letturaSenzaVolata,
+           RAGIONI_ANNULLAMENTO,
+           condizioniMisura, misuraFuoriCondizioni, contaFuoriCondizioni, DIREZIONI_VENTO, proponiColonneMeteo,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
-           PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO,
+           PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO, PORTATA_REPORT, intestazioneOrigineReport,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE, ariaSerie, numeroDichiarato } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
          controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt, dataISOEsiste, nomeCsvDimostrazione,
-         plurale, conta,
+         plurale, conta, modoDimostrazione, avvisoTestoDimostrazione,
          /* la frase «N righe del file non sono entrate» sta in un posto solo
             (regola 32 di run-stile): riscriverla qui sarebbe la quinta copia */
          frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
@@ -1902,6 +2033,7 @@ textarea.dw-input{
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
   let MON=[], ADE=[], REG=[], VOL=[], RIC=[], REC=[], PRG=[];
+  let PREV = null;   // le volate previste scritte da Genesi (null = non leggibile)
   // T7 · il ponte con Scudo: le azioni correttive NON sono dati di
   // Sentinella, si leggono da Scudo (stessa organizzazione, app diversa) e
   // qui si tengono solo in memoria per mostrare a che punto sono.
@@ -2044,7 +2176,11 @@ textarea.dw-input{
       (g.lineaSoglia ? lg(`<line class="graf-soglia" x1="1" y1="5.5" x2="23" y2="5.5"/>`,
          `soglia <b>${esc(g.lineaSoglia.label)}</b>`) : "") +
       (g.superamenti ? lg(`<path class="graf-over" d="M12 .6L17 5.5L12 10.4L7 5.5Z"/>`,
-         `oltre soglia: <b>${g.superamenti}</b>`, "over") : "");
+         `oltre soglia: <b>${g.superamenti}</b>`, "over") : "") +
+      /* le annullate NON sono nel grafico, e la legenda lo dice: un picco che
+         sparisce dal disegno senza una parola è un picco nascosto */
+      (g.annullate ? lg(`<circle cx="12" cy="5.5" r="3" fill="none" stroke="currentColor" stroke-dasharray="2 2"/>`,
+         `non disegnate perché annullate: <b>${g.annullate}</b>`) : "");
 
     const notaScala = g.lineaSoglia && g.lineaSoglia.fuoriScala
       ? `<div class="graf-nota">La soglia (<b>${esc(g.lineaSoglia.label)}</b>) è molto più alta dei valori misurati: resta fuori dalla scala del grafico, che si adatta alle letture per farne vedere l'andamento.</div>` : "";
@@ -2080,36 +2216,79 @@ textarea.dw-input{
     // fanno 0, e questo pannello È la catena di custodia — una riga senza
     // valore ci compariva con una cifra accanto. Lo zero SCRITTO resta e si
     // vede: `numeroDichiarato(0)` risponde 0.
-    const tutte = ((m && m.letture) || []).filter(l => l && numeroDichiarato(l.valore) != null);
+    /* ⛔ L'INDICE CHE VIAGGIA CON LA RIGA È QUELLO DELL'ARCHIVIO, non quello
+       della lista filtrata (04/09). Prima il filtro veniva PRIMA della
+       numerazione: con una riga senza valore in mezzo all'archivio, ogni
+       indice dopo di lei era spostato di uno, e il tocco apriva la modale
+       della misura SBAGLIATA — su un archivio che va a un ente. Latente
+       (nessun caso in dimostrazione), preso rileggendo il gestore. */
+    const tutte = ((m && m.letture) || []).map((l, i) => ({ l, i })).filter(({ l }) => l && numeroDichiarato(l.valore) != null);
     if (!tutte.length) return "";
-    /* dalla più recente: si corregge quello che si è appena scritto.
-       L'indice ORIGINALE viaggia con la riga, perché è quello che serve a
-       ritrovare la lettura nell'archivio dopo aver girato l'ordine. */
-    const viste = tutte.map((l, i) => ({ l, i })).slice(-LETTURE_IN_PANNELLO).reverse();
+    // dalla più recente: si corregge quello che si è appena scritto
+    const viste = tutte.slice(-LETTURE_IN_PANNELLO).reverse();
     const nascoste = tutte.length - viste.length;
+    const ann = contaAnnullate(m.letture);
+    const vibrazioni = String(m.tipo || "").trim().toLowerCase() === "vibrazioni";
+    let suggerite = 0;   // quante righe portano il suggerimento: la spiegazione si scrive UNA volta, sotto
+    let fuoriCond = 0;   // e quante sono fuori dalle condizioni della norma sul rumore (stessa forma)
     const righe = viste.map(({ l, i }) => {
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
-      return `<tr>
-        <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
-        <td class="n">${esc(numeroIt(l.valore))}</td>
+      const an = pr.annullata;
+      /* ⛔ IL SUGGERIMENTO NON TOGLIE NIENTE. «Nessuna volata quel giorno» è
+         un candidato trigger spurio (mezzo, temporale, prova): la lettura
+         resta in ogni conto finché una persona non la dichiara non valida
+         con la ragione. Solo sui punti di vibrazione, e solo se il registro
+         ha volate eseguite (`null` = non si può dire, e non si dice). */
+      const senzaVolata = vibrazioni && !an && letturaSenzaVolata(l, VOL) === true;
+      if (senzaVolata) suggerite++;
+      /* le condizioni meteo, se registrate, si leggono sulla riga; e sul
+         RUMORE, se mettono la misura fuori norma, la riga lo suggerisce con la
+         stessa forma di «nessuna volata»: candidata, non tolta */
+      const cond = condizioniMisura(l);
+      const fc = an ? { fuori: false } : misuraFuoriCondizioni(l, m);
+      if (fc.fuori) fuoriCond++;
+      return `<tr${an ? ' class="annullata"' : ""}>
+        <td>${fmtD(l.data)}<small>${esc(l.ora || "—")}</small></td>
+        <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, m)}</td>
         <td class="prov" title="${esc(descriviProvenienza(l, m))}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
           pr.corretta
             ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
                 pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
-            : ""}</td>
-        <td class="stato"><button type="button" class="arr" title="Correggi il valore di questa misura"
-          aria-label="Correggi la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
-          data-corr-mon="${esc(m.id)}" data-corr-idx="${i}">${I.modifica}</button></td></tr>`;
+            : ""}${
+          an ? `<span class="tag ann">annullata · ${esc(an.perche === "altro" ? "altro" : an.etichetta)}</span><span class="prov-prima">${
+                  an.perche === "altro" ? esc(an.etichetta) + " · " : ""}non conta${
+                  an.quando ? ": dichiarata il " + fmtD(String(an.quando).slice(0, 10)) : ""}</span>`
+            : senzaVolata ? `<span class="prov-prima ann-hint">nessuna volata registrata quel giorno</span>` : ""}${
+          cond.registrate ? `<span class="prov-prima">${esc(cond.testo)}</span>` : ""}${
+          fc.fuori ? `<span class="prov-prima ann-hint" title="${esc(fc.motivo)}">fuori condizioni: ${esc(fc.breve)}</span>` : ""}</td>
+        <td class="stato az">${an
+          ? `<button type="button" class="arr rip" title="Ripristina questa misura: torna a contare"
+              aria-label="Ripristina la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-rip-mon="${esc(m.id)}" data-rip-idx="${i}">${I.fatto}</button>`
+          : `<button type="button" class="arr" title="Correggi il valore di questa misura"
+              aria-label="Correggi la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-corr-mon="${esc(m.id)}" data-corr-idx="${i}">${I.modifica}</button><button type="button" class="arr rimuovi" title="Non valida: dichiara che questa misura non è della cava (mezzo di passaggio, temporale, prova dello strumento)"
+              aria-label="Dichiara non valida la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
+              data-ann-mon="${esc(m.id)}" data-ann-idx="${i}">${I.chiudi}</button>`}</td></tr>`;
     }).join("");
     return `<div class="graf-head" style="margin-top:14px;"><span class="graf-title">Le ultime misure, e da dove vengono</span>
-        <span class="graf-meta">${nascoste ? "ultime " + viste.length + " di " + tutte.length : viste.length + (viste.length === 1 ? " misura" : " misure")}</span></div>
+        <span class="graf-meta">${nascoste ? "ultime " + viste.length + " di " + tutte.length : viste.length + (viste.length === 1 ? " misura" : " misure")}${
+          ann.n ? " · " + ann.n + (ann.n === 1 ? " annullata" : " annullate") : ""}</span></div>
       <div class="tab-wrap"><table class="tab">
-        <thead><tr><th>Data</th><th>Ora</th><th>Valore <span class="u">(${esc(unitaMisura(m))})</span></th><th>Provenienza</th><th>Correggi</th></tr></thead>
+        <thead><tr><th>Data e ora</th><th>Valore <span class="u">(${esc(unitaMisura(m))})</span></th><th>Provenienza</th><th>Azioni</th></tr></thead>
         <tbody>${righe}</tbody></table></div>
       <div class="graf-nota">Correggere una misura non la sostituisce in silenzio: la riga resta,
-        con scritto che è stata <b>corretta</b> e qual era il valore registrato in origine. È quello
-        che il report di conformità dichiara all'ente.</div>`;
+        con scritto che è stata <b>corretta</b> e qual era il valore registrato in origine. Dichiararla
+        <b>non valida</b> (un mezzo di passaggio, un temporale, una prova dello strumento) la toglie dai conti
+        senza cancellarla: il valore resta scritto, con la ragione, e si può ripristinare. È quello
+        che il report di conformità dichiara all'ente.${suggerite
+          ? ` Le righe con <b>«nessuna volata registrata quel giorno»</b> sono solo <b>candidate</b>: lo strumento può aver
+        registrato un mezzo, un temporale o una prova — oppure una volata che manca nel registro. Nessun conto cambia
+        finché non le dichiari tu.` : ""}${fuoriCond
+          ? ` Le righe con <b>«fuori condizioni»</b> sono misure di rumore fatte con vento oltre 5 m/s o sotto la pioggia: per la
+        norma (DM 16/03/1998, All. B) non valgono, ma qui restano <b>candidate</b> — nessun conto cambia finché non le dichiari tu
+        non valide, con la ragione «vento oltre 5 m/s o pioggia».` : ""}</div>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -2467,6 +2646,14 @@ textarea.dw-input{
               + `Su ${senzaSoglia.length === 1 ? "<b>un punto</b>" : "<b>" + senzaSoglia.length + " punti</b>"} `
               + `però non è impostata nessuna soglia, quindi lì un superamento non si può riconoscere: `
               + `finché resta così, questa sezione non può dire che sia tutto a posto.`)
+          /* ⛔ e con ZERO punti in ascolto «nessun punto è oltre soglia» è vero
+             a vuoto (03/09): un superamento qui non può nemmeno comparire,
+             quindi il vuoto non è «tutto a posto», è «non c'è niente che
+             ascolti». Stessa spunta tolta anche nelle Allerte, stesso giorno. */
+          : MON.length === 0
+          ? vuoto(I.sensore, "Niente in ascolto, quindi niente da rincorrere",
+              "Non c'è nessun punto di misura, quindi un superamento qui non può comparire: non è un risultato, è un'assenza. "
+              + "I reclami invece si registrano lo stesso, dai <b>Registri</b>, e compaiono qui anche senza punti di misura.")
           : vuoto(I.fatto, "Niente da rincorrere",
               "Nessun punto di misura è oltre soglia e non ci sono reclami aperti. Quando ne comparirà uno, da qui si apre in un tocco l'<b>azione correttiva</b> in Scudo — con un responsabile e una data — e qui resta scritto a che punto è."));
   }
@@ -2591,8 +2778,14 @@ textarea.dw-input{
     }
     const gia = ppvDiVolata(v);
     const cand = lettureVibrazioniDelGiorno(MON, v.data);
-    const usabili = cand.filter(c => c.unitaOk);
-    const altraUnita = cand.filter(c => !c.unitaOk);
+    /* una lettura dichiarata non valida non è una candidata: resta in lista
+       (`valida: false`) per essere DETTA, non scelta */
+    const annCand = cand.filter(c => !c.valida);
+    const usabili = cand.filter(c => c.unitaOk && c.valida);
+    const altraUnita = cand.filter(c => !c.unitaOk && c.valida);
+    const notaAnn = annCand.length
+      ? `<div class="note avviso">${annCand.length === 1 ? "Una lettura di quel giorno è stata dichiarata non valida" : annCand.length + " letture di quel giorno sono state dichiarate non valide"} (${annCand.map(c => esc(numeroIt(c.valore)) + " " + esc(c.unita) + " · " + esc(c.annullata.etichetta.toLowerCase())).join(", ")}) e non si ${annCand.length === 1 ? "può" : "possono"} collegare: ${annCand.length === 1 ? "ripristinala" : "ripristinale"} dai Monitoraggi se era una misura vera.</div>`
+      : "";
     const dist = +v.distanzaRicettore;
     // preselezione: la misura già collegata se c'è, altrimenti la più alta
     // del giorno (è quella che conta per la conformità). Resta comunque una
@@ -2630,8 +2823,8 @@ textarea.dw-input{
     const corpo = `<div class="note" style="margin-top:0;">Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}${(+v.kgMaxRitardo) ? " · carica massima per ritardo <b>" + esc(numeroIt(+v.kgMaxRitardo)) + " kg</b>" : ""}${dist > 0 ? " · distanza del ricettore <b>" + esc(numeroIt(dist)) + " m</b>" : ""}.</div>`
       + (usabili.length
         ? '<label class="fl" for="ppv-scelta">La misura del sismografo di quel giorno</label>'
-          + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>`
-        : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>`
+          + `<select class="dw-input" id="ppv-scelta">${opz}</select><div id="ppv-info" class="note" style="margin-top:8px;"></div>` + notaAnn
+        : `<div class="note avviso">Nessuna lettura di vibrazione in mm/s registrata il <b>${fmtD(v.data)}</b> fra i punti di misura${altraUnita.length ? " (ce ne sono " + altraUnita.length + " con un'altra unità: non sono PPV in mm/s e non si possono usare come tali)" : ""}. Se hai il referto dello strumento, trascrivi qui sotto il valore.</div>` + notaAnn
           + `<input type="hidden" id="ppv-scelta" value="mano">`)
       + '<label class="fl" for="ppv-val" id="ppv-lab">PPV misurata (<span class="u">mm/s</span>)</label>'
       + `<input class="dw-input dec" id="ppv-val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,4" title="Scrivila come sta sul referto: la virgola va benissimo (2,4)." value="${gia && gia.fonte !== PPV_STRUMENTO ? esc(itDec(gia.valore)) : ""}">`
@@ -3037,6 +3230,88 @@ textarea.dw-input{
     e.preventDefault();
     await collegaPpv(b.getAttribute("data-ppv-vol"));
   });
+  /* LA COMUNICAZIONE DELLA VOLATA (05/09): a chi, quando, con quale riferimento.
+     È la voce del diario che mancava; si scrive sulla volata e la riga e il
+     report la leggono con la stessa funzione. */
+  async function segnaComunicazione(id) {
+    const v = VOL.find(x => x.id === id); if (!v) return;
+    const r = await chiediDati("Comunicazione della volata",
+      `<p>Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}. Scrivi a chi è stata comunicata e quando: è la voce del diario delle volate che l'ente chiede di tenere.</p>`,
+      [{ id: "a", label: "A chi", valore: v.comunicataA || "", placeholder: "ente, residenti o entrambi", aiuto: "Scrivi «ente», «residenti» o «entrambi»." },
+       { id: "il", label: "Quando", tipo: "date", valore: v.comunicataIl || "" },
+       { id: "rif", label: "Riferimento", valore: v.comunicazioneRif || "", placeholder: "protocollo, PEC, avviso affisso…" }],
+      "Salva");
+    if (!r) return;
+    const c = campiComunicazioneVolata(r.a, r.il, r.rif);
+    if (!c.ok) { toast(Object.values(c.errori)[0], "err"); return; }
+    await db.aggiorna("volate", id, c.campi); await refresh();
+    toast("Comunicazione registrata: " + descriviComunicazione(c.campi).testo + ".", "success");
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-com-vol]");
+    if (!b) return;
+    e.preventDefault();
+    await segnaComunicazione(b.getAttribute("data-com-vol"));
+  });
+  /* LA SCHEDA DELLA VOLATA (05/09): un foglio A4 con i dati della volata, la
+     misura dell'evento con lo strumento e la taratura, la comunicazione e i
+     reclami del giorno — composto da `fogliaVolata` (modulo), disegnato qui.
+     Si apre in una finestra a sé, come i fogli di Terra e Campo. */
+  /* Lo stile è quello dei fogli di Terra (seconda iterazione, confrontata
+     con la relazione di fine lavori del lotto): etichette in grassetto, la
+     cella che manca in corsivo grigio, le firme, il piede coi limiti, e in
+     stampa una tabella non si spezza a metà. */
+  const STILE_FOGLIO_VOLATA = "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
+    + "h1{font-size:18px;margin:0 0 4px}h2{font-size:13px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.06em;color:#444}"
+    + "table{border-collapse:collapse;width:100%}td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top}td:first-child{width:38%;color:#444;font-weight:bold}td.manca{color:#666;font-style:italic}"
+    + ".sub{color:#555;font-size:11px;margin:0 0 10px}.avv{margin:8px 0 0;font-size:11px;color:#555;font-style:italic}.mini{font-size:11px;color:#444;margin:6px 0 0}.demo{border:1px solid #c60;color:#c60;padding:6px 8px;margin:0 0 12px;font-size:11px}"
+    + ".firma{margin-top:26px;display:flex;gap:26px}.firma div{flex:1;border-top:1px solid #777;padding-top:5px;font-size:11px;color:#555}"
+    + ".foot{margin-top:22px;padding-top:8px;border-top:1px solid #ddd;color:#666;font-size:10.5px}"
+    + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
+    + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}";
+  function htmlFogliaVolata(v) {
+    const f = fogliaVolata(v, { monitoraggi: MON, reclami: REC, ricettori: RIC });
+    const demo = avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Questa scheda è composta su dati di esempio: non allegarla a nessuna pratica.").trim();
+    const riga = (r) => "<tr><td>" + esc(r[0]) + "</td><td" + (r[2] ? " class=\"manca\"" : "") + ">" + esc(r[1]) + "</td></tr>";
+    return "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><title>" + esc(f.titolo) + "</title><style>" + STILE_FOGLIO_VOLATA + "</style></head><body>"
+      + (demo ? "<div class=\"demo\">" + esc(demo) + "</div>" : "")
+      + "<h1>" + esc(f.titolo) + "</h1><p class=\"sub\">Documento preparato con Deepwork Sentinella il " + esc(f.generatoIl) + "</p>"
+      + f.sezioni.map(s => "<h2>" + esc(s.titolo) + "</h2><table>" + s.righe.map(riga).join("") + "</table>"
+          + (s.avviso ? "<p class=\"avv\">" + esc(s.avviso) + "</p>" : "")).join("")
+      /* CHE COSA MANCA, in una sezione a sé: la stessa forma della relazione
+         di fine lavori di Terra. Un foglio che tace un dato lo fa passare
+         per zero; qui i dati assenti restano scritti come tali nelle righe E
+         sono elencati in fondo, perché chi allega la scheda sappia che cosa
+         deve ancora procurarsi. */
+      + (f.nonMisurati.length
+          ? "<h2>Che cosa manca in questa scheda</h2><p class=\"mini\">" + f.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Sentinella: la scheda non li stima e non li sostituisce con uno zero.</p>"
+          : "")
+      + "<div class=\"firma\"><div>Luogo e data</div><div>Il direttore responsabile</div><div>Il tecnico che ha eseguito la misura</div></div>"
+      + "<div class=\"foot\">" + esc(f.avvertenza) + " La scheda raccoglie dati registrati dall'utente e letture importate dallo strumento: i limiti e le norme di riferimento sono quelli dichiarati sul punto di misura, e la valutazione degli effetti resta del tecnico che firma.</div>"
+      + "</body></html>";
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-foglio-vol]");
+    if (!b) return;
+    e.preventDefault();
+    const v = VOL.find(x => x.id === b.getAttribute("data-foglio-vol")); if (!v) return;
+    const w = window.open("", "_blank");
+    if (!w) { toast("Il browser ha bloccato la finestra della scheda: consenti le finestre per questa pagina.", "err"); return; }
+    w.document.write(htmlFogliaVolata(v)); w.document.close();
+  });
+  /* accogliere una prevista di Genesi: la stessa scrittura dell'import CSV,
+     con la stessa firma, e la lista si ridisegna dal registro */
+  $("vol-previste").addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-accogli-prev]"); if (!b) return;
+    e.preventDefault();
+    const k = b.getAttribute("data-accogli-prev");
+    const v = previsteNuove(PREV, VOL).nuove.find(x => (x.codiceVolata || x.ponteId) === k); if (!v) return;
+    const { ponteId, ...rec } = v;
+    await db.aggiungi("volate", rec);
+    esito("vol-esito-msg", "Volata prevista del " + fmtD(rec.data) + (rec.fronte ? " (" + rec.fronte + ")" : "") + " accolta nel registro da Genesi: è un progetto, non una volata sparata. Dopo lo sparo confermala.", "success", "Volata prevista accolta.");
+    await refresh();
+  });
   $("ref-filtri").addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("[data-fref]"); if (!b) return;
     filtroRef = b.getAttribute("data-fref"); renderReferti();
@@ -3128,13 +3403,25 @@ textarea.dw-input{
       }).join("");
     $("imp-col-data").innerHTML = opz(false);
     $("imp-col-ora").innerHTML = opz(true);
-    $("imp-col-valore").innerHTML = opz(false);
+    /* «nessuna» sul valore vuol dire: calcola la risultante dai tre assi.
+       Senza i tre assi indicati l'anteprima scarta ogni riga e lo dice. */
+    $("imp-col-valore").innerHTML = '<option value="-1">— nessuna: risultante dai tre assi —</option>' + opz(false).replace('<option value="0">', '<option value="0" selected>');
+    for (const id of IMP_COL_EVENTO) $(id).innerHTML = opz(true);
     $("imp-header").checked = conInt;
 
     const mp = proponiMappa(impRighe, conInt);
     $("imp-col-data").value = String(Math.max(0, mp.colData));
     $("imp-col-ora").value = String(mp.colOra >= 0 ? mp.colOra : -1);
-    $("imp-col-valore").value = String(Math.max(0, mp.colValore));
+    /* -1 è una proposta legittima dal 04/09: «nessuna, risultante dai tre assi» */
+    $("imp-col-valore").value = String(mp.colValore);
+    const ev = proponiColonneEvento(impRighe, conInt, mp);
+    $("imp-col-ppvl").value = String(ev.colPpvL); $("imp-col-ppvt").value = String(ev.colPpvT);
+    $("imp-col-ppvv").value = String(ev.colPpvV); $("imp-col-freq").value = String(ev.colFreq);
+    $("imp-col-aria").value = String(ev.colAria);
+    const me = proponiColonneMeteo(impRighe, conInt, { ...mp, ...ev });
+    $("imp-col-vento").value = String(me.colVento); $("imp-col-ventoda").value = String(me.colVentoDa);
+    $("imp-col-pioggia").value = String(me.colPioggia); $("imp-col-temp").value = String(me.colTemp);
+    $("imp-col-umid").value = String(me.colUmid);
 
     $("imp-mappa").style.display = "block";
     esito("imp-esito", `Letto «${impFonte}»: ${impRighe.length} ${plurale(impRighe.length, "riga", "righe")}, separatore «${impDelim === "\t" ? "tabulazione" : impDelim}». Controlla le colonne qui sotto, poi conferma.`,
@@ -3148,12 +3435,45 @@ textarea.dw-input{
   // il motivo. I doppioni vengono riconosciuti sia rispetto alle letture già
   // registrate sia dentro lo stesso file.
   const MAX_ANTEPRIMA = 10;
+  const IMP_COL_EVENTO = ["imp-col-ppvl", "imp-col-ppvt", "imp-col-ppvv", "imp-col-freq", "imp-col-aria",
+                          "imp-col-vento", "imp-col-ventoda", "imp-col-pioggia", "imp-col-temp", "imp-col-umid"];
+  /* LA RIGA DELL'EVENTO SOTTO IL NUMERO, una volta sola per le tre tabelle
+     (anteprima, scheda del punto, report): «L 2,1 · T 1,8 · V 3,4 · f 18 Hz»
+     e, se il valore è la risultante calcolata dai tre assi, lo dice lì. Il
+     testo lo compone `descriviEvento` nel modulo; qui solo l'HTML. */
+  const rigaEvento = (l, m) => {
+    const d = descriviEvento(l);
+    if (!d) return "";
+    const pv = provenienzaValore(l);
+    /* la frequenza fuori dalla banda della soglia (04/09): un tag con la
+       ragione nel title, niente limite inventato */
+    const fb = m ? frequenzaFuoriBanda(l, m) : null;
+    return `<small class="ev">${pv.da === "risultante" ? "<b>risultante</b> · " : ""}${esc(d)}${
+      fb && fb.giudicabile && fb.fuori ? ` <span class="tag warn fb" title="${esc(fb.perche)}">fuori banda</span>` : ""}</small>`;
+  };
+  /* LE CONDIZIONI METEO SOTTO IL NUMERO, nell'anteprima (05/09): il testo lo
+     compone `condizioniMisura`; se una colonna scelta aveva una cella che non
+     si legge lo si dice qui, non si tace; e sul rumore il suggerimento «fuori
+     condizioni» compare già prima di importare. */
+  const NOME_COND = { vento: "vento", ventoDa: "direzione", pioggia: "pioggia", temperatura: "temperatura", umidita: "umidità" };
+  const rigaMeteo = (r, m) => {
+    const c = condizioniMisura(r);
+    const nl = Array.isArray(r.meteoNonLetti) ? r.meteoNonLetti.map(k => NOME_COND[k] || k) : [];
+    if (!c.registrate && !nl.length) return "";
+    const fc = m ? misuraFuoriCondizioni(r, m) : { fuori: false };
+    return `<small class="ev">${esc(c.testo)}${nl.length ? (c.testo ? " · " : "") + "<b>non letta: " + esc(nl.join(", ")) + "</b>" : ""}${
+      fc.fuori ? ` <span class="tag warn fb" title="${esc(fc.motivo)}">fuori condizioni</span>` : ""}</small>`;
+  };
   function impAnteprima() {
     if (!impRighe.length) return;
     const mappa = {
       colData: +$("imp-col-data").value,
       colOra: +$("imp-col-ora").value,
       colValore: +$("imp-col-valore").value,
+      colPpvL: +$("imp-col-ppvl").value, colPpvT: +$("imp-col-ppvt").value, colPpvV: +$("imp-col-ppvv").value,
+      colFreq: +$("imp-col-freq").value, colAria: +$("imp-col-aria").value,
+      colVento: +$("imp-col-vento").value, colVentoDa: +$("imp-col-ventoda").value, colPioggia: +$("imp-col-pioggia").value,
+      colTemp: +$("imp-col-temp").value, colUmid: +$("imp-col-umid").value,
       conIntestazione: $("imp-header").checked,
     };
     const righe = preparaLetture(impRighe, mappa);
@@ -3201,7 +3521,7 @@ textarea.dw-input{
         <td>${r.riga}</td>
         <td>${r.data ? fmtD(r.data) : `<span class="grezzo">${esc(r.dataRaw || "—")}</span>`}</td>
         <td>${esc(r.ora || "—")}</td>
-        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}</td>
+        <td class="n">${r.ok ? esc(numeroIt(r.valore)) : `<span class="grezzo">${esc(r.valRaw || "—")}</span>`}${rigaEvento(r, punto)}${rigaMeteo(r, punto)}</td>
         <td class="stato">${stato(r)}</td></tr>`).join("") +
       `</tbody>`;
 
@@ -3435,6 +3755,14 @@ textarea.dw-input{
       if (S.volate) pezzi.push(`${S.volate} ${S.volate === 1 ? "volata" : "volate"}`);
       f.push(`In archivio ${S.totale === 1 ? "c'è una riga che questo documento non ha potuto usare" : "ci sono " + S.totale + " righe che questo documento non ha potuto usare"} (${pezzi.join(", ")}): il giorno che ${S.totale === 1 ? "porta" : "portano"} scritto non è un giorno che esiste, oppure il valore non è un numero. ${S.totale === 1 ? "Non è" : "Non sono"} ${S.totale === 1 ? "conteggiata" : "conteggiate"} in nessuno dei numeri qui sotto: ${S.totale === 1 ? "va corretta" : "vanno corrette"} in archivio e poi il report va rifatto.`);
     }
+    /* ⛔ E LE MISURE CHE QUALCUNO HA DICHIARATO NON VALIDE si dicono qui, con
+       la ragione (04/09). Non sono «scartate» — quelle il documento non le PUÒ
+       usare, queste non le DEVE: un mezzo di passaggio, un temporale, una
+       prova dello strumento. Restano in archivio col loro valore e non pesano
+       su nessun numero del documento. */
+    const A = R.annullate || { n: 0 };
+    if (A.n)
+      f.push(`Nel periodo ${A.n === 1 ? "una misura è stata dichiarata non valida" : A.n + " misure sono state dichiarate non valide"} da chi tiene l'archivio (${A.ragioni.map(r => esc(r.etichetta.toLowerCase()) + (A.ragioni.length > 1 || r.n > 1 ? " " + r.n : "")).join(", ")}): ${A.n === 1 ? "resta" : "restano"} in archivio col ${A.n === 1 ? "suo" : "loro"} valore e non ${A.n === 1 ? "pesa" : "pesano"} su nessuno dei numeri qui sotto — né sul massimo, né sulla media, né sui superamenti.`);
     return f.join(" ");
   }
 
@@ -3453,6 +3781,8 @@ textarea.dw-input{
     err("rep-dal", false); err("rep-al", false); pulisci("rep-esito");
 
     const R = reportConformita({ monitoraggi: MON, ricettori: RIC, reclami: REC, volate: VOL,
+      /* le azioni da Scudo (05/09): `null` = non leggibili, che non è «nessuna» */
+      azioni: ponteKO ? null : AZI,
       dal, al, ricettoreId: $("rep-ricettore").value });
     const E = ESITI[R.esito] || ESITI["senza-dati"];
     const periodo = dal && al ? `dal ${fmtD(dal)} al ${fmtD(al)}`
@@ -3472,8 +3802,13 @@ textarea.dw-input{
     const ico = R.esito === "conforme" ? I.scudo : R.esito === "non-conforme" ? I.allerta : I.serie;
     const sezPunti = R.punti.map((p, i) => schedaPunto(p, i)).join("");
 
+    /* per chi è redatto: SOLO se il periodo è ancora quello dell'adempimento —
+       toccate le date, la riga direbbe il falso */
+    const origineDoc = REP_ORIGINE && REP_ORIGINE.p.dal === dal && REP_ORIGINE.p.al === al
+      ? `<div class="rep-punto-meta rep-origine-doc">${esc(intestazioneOrigineReport(REP_ORIGINE.a, REP_ORIGINE.p))}</div>` : "";
     box.innerHTML = `<div class="rep">
       ${testaReport(periodo, R, genTxt)}
+      ${origineDoc}
       ${/* ⛔ UN ESITO CHE ASSOLVE DEVE DIRE SU QUANTI PUNTI (decisione 16). Con
             un punto giudicabile su tre, «Conforme» in testa al documento è
             vero e insieme fuorviante: chi legge conta i punti in cima
@@ -3490,6 +3825,8 @@ textarea.dw-input{
       ${dichiarazioneCopertura(R)}
       ${dichiarazioneTarature(R)}
       ${dichiarazioneProvenienza(R)}
+      ${/* la portata del documento (05/09): che cosa giudica e che cosa no */""}
+      <div class="rep-punto-meta rep-portata">${esc(PORTATA_REPORT)}</div>
       <div class="rep-cifre">
         <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
         <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
@@ -3571,9 +3908,16 @@ textarea.dw-input{
     const fonte = s.valore == null ? "nessuna soglia impostata su questo punto"
       : s.fonte === "ricettore" ? `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, presa dal ricettore <b>${esc(s.ricettore)}</b>`
       : `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, impostata sul punto di misura`;
-    const conflitto = s.conflitto
+    /* IL RIFERIMENTO DELLA SOGLIA (05/09): «soglia applicata 5 mm/s» non dice se
+       quel 5 è un valore di norma o un numero scritto da qualcuno. La riga la
+       decide `riferimentoSoglia` — la stessa della scheda della volata — e
+       porta l'avvertenza «da verificare» quando viene da un preset. Su un
+       punto senza soglia non si scrive: non c'è niente di cui dire l'origine. */
+    const rif = s.valore != null && p.riferimento
+      ? `<br>Riferimento della soglia: ${esc(p.riferimento.testo)}.` : "";
+    const conflitto = (s.conflitto
       ? `<br><b>Attenzione:</b> il ricettore <b>${esc(s.ricettore)}</b> ha una soglia in ${esc(s.unitaRicettore || "un'altra unità")}, diversa dall'unità di questo punto (${esc(p.unita)}): non è stata applicata e non è stata convertita.`
-      : "";
+      : "") + rif;
     const ric = p.ricettore
       ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${distanzaDelRicettore(p.ricettore) != null ? " a <b>" + esc(numeroIt(distanzaDelRicettore(p.ricettore))) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
       : "Ricettore: <b>non collegato</b>";
@@ -3594,10 +3938,20 @@ textarea.dw-input{
       : T.coperte ? `<br>Taratura dello strumento: ${T.coperte === 1 ? "l'unica lettura di questo punto ricade" : "tutte e " + T.coperte + " le letture di questo punto ricadono"} in un certificato registrato.`
       : "";
 
+    // le annullate del punto, con la ragione: nella scheda del punto, dove chi
+    // legge sta guardando i numeri di QUESTO strumento
+    /* la risposta al superamento (05/09): la prima domanda dell'ispettore è
+       «e poi?», e il documento la risponde con le parole — anche «non si
+       legge», che non è «nessuna» */
+    const risp = p.risposta
+      ? `<br><b>Azioni correttive:</b> ${esc(p.risposta.testo)}.` : "";
+    const annP = p.annullate && p.annullate.n
+      ? `<br><b>Misure dichiarate non valide:</b> ${esc(p.annullate.testo)} — ${p.annullate.n === 1 ? "resta" : "restano"} in archivio e non ${p.annullate.n === 1 ? "pesa" : "pesano"} sui numeri di questo punto.`
+      : "";
     if (!p.n) return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}</div>
-      <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture</b> per questo punto:
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${annP}</div>
+      <div class="rep-vuoto">Nel periodo considerato <b>non ci sono letture ${p.annullate && p.annullate.n ? "valide " : ""}</b> per questo punto:
         non è possibile dire se il limite è stato rispettato.</div></div>`;
 
     /* ⛔ LA PROVENIENZA STA NELLA TABELLA, RIGA PER RIGA (T2d). Prima
@@ -3613,14 +3967,15 @@ textarea.dw-input{
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
       const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
+      const fc = misuraFuoriCondizioni(l, p.m || null);
       return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
-      <td class="n">${esc(numeroIt(l.valore))}</td>
+      <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, p.m || null)}</td>
       <td class="prov" title="${esc(spiega)}"><span class="tag ${F.cls}">${esc(F.breve)}</span>${
         pr.corretta
           ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
               pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
-          : ""}</td>
+          : ""}${fc.fuori ? `<span class="tag warn" title="${esc(fc.motivo)}">fuori condizioni</span>` : ""}</td>
       ${/* ⛔ TRE RISPOSTE, NON DUE (decisione 16). `oltre` vale `null` quando
             nessuna soglia esiste, e con due soli rami ogni riga della tabella
             portava il tag verde «entro soglia» — dentro il documento che va
@@ -3629,9 +3984,40 @@ textarea.dw-input{
         : l.oltre ? '<span class="tag danger">oltre soglia</span>' : '<span class="tag ok">entro soglia</span>'}</td></tr>`;
     }).join("");
 
+    /* DA DOVE VIENE IL NUMERO CHE GIUDICA (04/09): se il file dello strumento
+       portava gli assi, il documento dice quale colonna è stata usata per la
+       conformità — la colonna scelta, o la risultante calcolata dai tre assi —
+       e quante letture del periodo portano le colonne in più. Su un punto
+       senza colonne in più non si scrive niente: non c'è niente da dichiarare. */
+    const conEvento = p.letture.filter(l => descriviEvento(l));
+    const daRis = conEvento.filter(l => provenienzaValore(l).da === "risultante").length;
+    const conAria = conEvento.some(l => provenienzaValore(l).nota);
+    const fuoriBanda = p.letture.map(l => frequenzaFuoriBanda(l, p.m || null)).filter(x => x.giudicabile && x.fuori);
+    /* LE CONDIZIONI DELLA MISURA (05/09): sul rumore il documento dice quante
+       letture del periodo erano fuori dalle condizioni della norma, quante
+       dentro, e quante NON SI SA — la terza risposta è quella che conta,
+       perché una campagna registrata senza il vento non è una campagna valida:
+       è una campagna di cui non si può dire. Sulle polveri e sulle vibrazioni
+       non si scrive niente: non c'è una regola da applicare. */
+    const fcT = contaFuoriCondizioni(p.letture, p.m || null);
+    const condTesto = !fcT.pertinente || !fcT.totale ? ""
+      : `<br><b>Condizioni di misura (rumore, DM 16/03/1998 All. B):</b> ${
+          fcT.fuori ? `<b>${fcT.fuori === 1 ? "una lettura" : fcT.fuori + " letture"} fuori condizioni</b> (vento oltre 5 m/s o pioggia)` : "nessuna lettura fuori condizioni"}${
+          fcT.dentro ? ", " + (fcT.dentro === 1 ? "una" : fcT.dentro) + " dentro" : ""}${
+          fcT.nonGiudicabili ? ", " + (fcT.nonGiudicabili === 1 ? "<b>una senza vento e pioggia registrati</b>: di quella non si può dire se vale" : "<b>" + fcT.nonGiudicabili + " senza vento e pioggia registrati</b>: di quelle non si può dire se valgono") : ""}.`;
+    const evento = !conEvento.length ? ""
+      : `<br><b>Colonne dello strumento:</b> ${conEvento.length === p.n ? (p.n === 1 ? "la lettura porta" : "tutte e " + p.n + " le letture portano") : conEvento.length + (conEvento.length === 1 ? " lettura su " : " letture su ") + p.n + (conEvento.length === 1 ? " porta" : " portano")} le colonne in più del file (assi, frequenza, sovrapressione). Valore di conformità: ${
+          daRis === 0 ? "la colonna scelta nel file"
+          /* «per tutte» vuol dire tutte le letture del PERIODO (p.n), non
+             tutte quelle con le colonne in più: con 2 risultanti su 6 letture
+             il banco ha letto «per tutte» — e l'ente avrebbe letto lo stesso */
+          : daRis === p.n ? "la <b>risultante dai tre assi</b> √(L²+T²+V²)" + (daRis === 1 ? "" : ", per tutte")
+          : "la <b>risultante dai tre assi</b> √(L²+T²+V²) per " + daRis + (daRis === 1 ? " lettura" : " letture") + ", la colonna scelta nel file per le altre"}.${
+          conAria ? " La sovrapressione è nell'unità del file dello strumento." : ""}${
+          fuoriBanda.length ? ` <b>${fuoriBanda.length === 1 ? "Una lettura ha" : fuoriBanda.length + " letture hanno"} la frequenza fuori dalla banda della soglia applicata (${esc(fuoriBanda[0].banda)})</b>: il limite di quella banda non è in Sentinella e va verificato sulla norma.` : ""}`;
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}<br>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}${evento}${condTesto}<br>
         Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
         media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
         ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra
@@ -3646,7 +4032,7 @@ textarea.dw-input{
               e questa riga la si legge per prima. Detto in chiaro l'08/08,
               insieme alla cella SD della tabella delle volate, che aveva
               esattamente lo stesso difetto. */""}
-        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b></div>
+        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b>${risp}${annP}</div>
         ${/* ⚠️ QUI LA FRASE È AL SINGOLARE, e non è pignoleria: il testo di
               `ESITI` parla del DOCUMENTO («su questi punti non è impostata
               nessuna soglia») ed è giusto lì, in testa al report. Riusarlo
@@ -3697,7 +4083,7 @@ textarea.dw-input{
       Il confronto fra la PPV <b>prevista</b> e la PPV <b>misurata</b> di ciascuna volata sta nella
       sezione subito dopo questa tabella.${volateIncomplete(R.volate) ? `<br><b>Attenzione: ${volateIncomplete(R.volate)} ${volateIncomplete(R.volate) === 1 ? "volata di questo periodo non dichiara" : "volate di questo periodo non dichiarano"} tutti i dati.</b> Le caselle marcate <b>«non dichiarato»</b> non sono zeri: sono valori che nessuno ha registrato, e senza di essi la distanza scalata (SD) non si calcola.` : ""}</div>
     <div class="tab-wrap"><table class="tab">
-      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th></tr></thead>
+      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th><th>Comunicazione</th></tr></thead>
       <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
         return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
         <td>${cellaVolata(v.nFori, 0)}</td><td>${cellaVolata(v.kgTotali)}</td>
@@ -3714,7 +4100,9 @@ textarea.dw-input{
              Il documento va a un ente: lì «—» accanto a un numero è la faccia
              tranquilla di un dato che non c'è. */""}
         <td>${sd != null ? esc(numeroIt(sd)) : '<span class="tag">non calcolabile</span>'}</td>
-        <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
+        <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td>
+        ${/* la comunicazione (05/09): la voce del diario, scritta anche quando manca */""}
+        <td>${(() => { const c = descriviComunicazione(v); return c.registrata ? esc(c.testo) : '<span class="tag">' + esc(c.testo) + '</span>'; })()}</td></tr>`;
       }).join("")}</tbody></table></div>`;
 
   // ── PREVISTO → MISURATO, volata per volata ──────────────────────────
@@ -3784,12 +4172,14 @@ textarea.dw-input{
       }).join("")}</tbody></table></div>`;
 
   async function refresh(){
-    [MON,ADE,REG,VOL,RIC,REC,PRG] = await Promise.all([
+    [MON,ADE,REG,VOL,RIC,REC,PRG,PREV] = await Promise.all([
       db.monitoraggi(), db.adempimenti(), db.registri(),
       db.volate ? db.volate() : [], db.ricettori ? db.ricettori() : [], db.reclami ? db.reclami() : [],
       // la collezione del programma può non esistere ancora: senza di lei
       // la pagina deve funzionare esattamente come prima
-      db.programma ? db.programma() : []]);
+      db.programma ? db.programma() : [],
+      // il ponte 3e: le previste di Genesi — `null` = non leggibile, non «nessuna»
+      db.previsteGenesi ? db.previsteGenesi().catch(() => null) : null]);
     PRG = PRG || [];
     // T7 · le azioni correttive stanno in SCUDO, non qui: si leggono di là
     // (stessa organizzazione, app diversa) e servono solo a mostrare a che
@@ -3911,8 +4301,23 @@ textarea.dw-input{
          se questo elenco è vuoto punti senza soglia non ce ne sono — la frase
          però resta scritta al modo giusto, perché è quella che qualcuno
          leggerà il giorno che la si sposta altrove. */
-      || vuoto(I.fatto, "Nessuna allerta",
-          "Tutti i punti di misura che hanno una soglia sono entro il limite, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite.");
+      /* ⛔ E SU UNA CAVA SENZA NESSUN PUNTO IN ASCOLTO LA FRASE QUI SOTTO ERA
+         VERA A VUOTO (03/09): «tutti i punti che hanno una soglia sono entro il
+         limite» con zero punti, zero righe di programma e zero scadenze — la
+         spunta verde e «il quadro resta pulito» sulla prima schermata di chi
+         ha appena aperto l'app. È l'assenza di un dato letta come un dato
+         favorevole, nella sua forma più semplice. Il cartellone e «il punto
+         messo peggio» lo dicevano già («nessun punto configurato»): questa
+         sezione lo dice allo stesso modo, senza la spunta. */
+      || (MON.length === 0
+        ? vuoto(I.sensore, "Niente da sorvegliare, ancora",
+            "Non c'è nessun punto di misura in ascolto"
+            + (PRG.length ? "" : ", nessuna riga di programma")
+            + (ADE.length ? "" : ", nessuna scadenza registrata")
+            + ": qui non può comparire nessuna allerta, e non vuol dire che sia tutto a posto — vuol dire che non è stato misurato niente. "
+            + "Aggiungi il primo punto dai <b>Monitoraggi</b>: da lì in poi questa sezione dice davvero com'è messa la cava.")
+        : vuoto(I.fatto, "Nessuna allerta",
+          "Tutti i punti di misura che hanno una soglia sono entro il limite, il programma di monitoraggio è in pari, nessun adempimento è vicino alla scadenza e nessuna taratura registrata sta per scadere. Il quadro resta pulito finché un valore non si avvicina al limite."));
 
     $("mon-tot").textContent = MON.length;
     /* ⛔ IL DENOMINATORE È «GIUDICABILI», NON «TUTTI» (decisione 16). «3
@@ -3926,6 +4331,10 @@ textarea.dw-input{
         + (conf.maiMisurati ? ` · <b>${conf.maiMisurati}</b> mai ${plurale(conf.maiMisurati, "misurato", "misurati")}` : "")
         + (conf.senzaSoglia ? ` · <b>${conf.senzaSoglia}</b> senza soglia: su ${conf.senzaSoglia === 1 ? "quello" : "quelli"} l'app non può dire né conforme né non conforme, finché non scrivi un limite` : "")
         + ` · <b>${conf.totale}</b> in ascolto in tutto.`
+        /* le letture dichiarate non valide non pesano su questi conti, e la
+           riga che li mostra lo dice: se no un superamento tolto con una
+           ragione e un superamento mai avvenuto si leggono uguali */
+        + (conf.annullate ? ` <b>${conf.annullate}</b> ${plurale(conf.annullate, "lettura è stata dichiarata non valida e non pesa", "letture sono state dichiarate non valide e non pesano")} su questi conti.` : "")
       : "";
     /* La linguetta del filtro esiste solo se il caso esiste; e se stava
        filtrando proprio lei quando l'ultimo punto senza soglia viene
@@ -4123,6 +4532,36 @@ textarea.dw-input{
             + (rp.prossima ? ` · la prossima il <b>${fmtD(rp.prossima)}</b>` : "")
           : "")
       : "";
+    /* LE PREVISTE DA GENESI (ponte 3e). Tre risposte: nuove da accogliere,
+       nessuna nuova (non si scrive niente: il registro parla da sé), e
+       «Genesi non leggibile» — che NON è «nessuna», e in live si dice. */
+    const pn = previsteNuove(PREV, VOL);
+    /* `null` arriva SOLO dall'organizzazione (da soli la chiave risponde una
+       lista, anche vuota): non serve chiedere il modo per dirlo */
+    $("vol-previste").innerHTML = !pn.leggibile
+      ? `<div class="note" style="margin-top:8px;">Le volate previste di Genesi non si sono potute leggere: se ne hai scritte, riprova più tardi.</div>`
+      : !pn.nuove.length ? ""
+      : `<div class="sec" style="margin-top:12px;">Previste da Genesi<span class="cnt">${pn.nuove.length}</span></div>
+         <div class="note" style="margin-bottom:8px;">${pn.nuove.length === 1 ? "Un progetto di volata è arrivato" : pn.nuove.length + " progetti di volata sono arrivati"} da Genesi
+           e non ${pn.nuove.length === 1 ? "è" : "sono"} ancora nel registro. Accogliendol${pn.nuove.length === 1 ? "o" : "i"} entra${pn.nuove.length === 1 ? "" : "no"} come <b>Prevista</b>:
+           non conta fra le eseguite finché non la confermi dopo lo sparo.</div>`
+        + pn.nuove.map(v => {
+          const pv = previsioneDiVolata(v);
+          /* la stessa riga del registro (avatar · info · acts), così la lista
+             delle previste da accogliere non si distingue per forma da quella
+             sotto: cambia solo il bottone, che qui ACCOGLIE invece di confermare */
+          return `<div class="item">
+            <div class="avatar">${I.calendario}</div>
+            <div class="info"><div class="name">${esc(v.fronte || "Volata")} · ${fmtD(v.data)}</div>
+              <div class="meta">${v.nFori != null ? esc(numeroIt(v.nFori)) + " fori" : "fori non dichiarati"} · ${v.kgTotali != null ? esc(numeroIt(v.kgTotali)) + " kg" : "chili non dichiarati"}${
+                v.kgMaxRitardo != null ? " · max/ritardo " + esc(numeroIt(v.kgMaxRitardo)) + " kg" : ""}${
+                v.distanzaRicettore != null ? " · ricettore a " + esc(numeroIt(v.distanzaRicettore)) + " m" : ""}</div>
+              <div class="meta">${pv ? "PPV <b>prevista</b> " + esc(numeroIt(pv.valore)) + " mm/s" + (pv.provvisoria ? " (legge di sito provvisoria)" : "") : "PPV prevista non calcolata"}${
+                v.codiceVolata ? " · " + esc(v.codiceVolata) : ""}</div></div>
+            <span class="acts"><span class="badge accent">da Genesi</span>
+              <button type="button" class="arr" title="Accogli nel registro come volata prevista" aria-label="Accogli nel registro la volata prevista del ${fmtD(v.data)}" data-accogli-prev="${esc(v.codiceVolata || v.ponteId)}">${I.fatto}</button></span>
+          </div>`;
+        }).join("");
     const VB = { regolare: ["ok", "Regolare"], contestazione: ["danger", "Contestazione"] };
     $("vol-list").innerHTML = volateOrdinate(VOL).map(v => {
       const prev = volataPrevista(v);
@@ -4168,6 +4607,11 @@ textarea.dw-input{
       if (sd != null) pezzi.push("<b>SD " + esc(numeroIt(sd)) + "</b>");
       if (prev && Number.isFinite(gg) && gg > 0) pezzi.push("fra <b>" + gg + (gg === 1 ? " giorno" : " giorni") + "</b>");
       if (v.note) pezzi.push(esc(v.note));
+      /* la comunicazione della volata (05/09): SEMPRE scritta sulle eseguite,
+         anche quando manca — «nessuna comunicazione registrata» è la voce del
+         diario che l'ispettore cerca, e un silenzio si legge «fatta» */
+      const com = prev ? null : descriviComunicazione(v);
+      if (com) pezzi.push(esc(com.testo));
       // ⛔ la PPV PREVISTA si scrive con la parola «prevista» attaccata, sempre:
       // è l'unica cosa che impedisce di leggerla come una misura
       const vibr = [];
@@ -4189,6 +4633,8 @@ textarea.dw-input{
         ${prev
           ? `<button type="button" class="arr" title="Confermala come eseguita (potendo correggere i dati)" aria-label="Conferma come eseguita la volata prevista del ${fmtD(v.data)}" data-conf-vol="${v.id}">${I.fatto}</button>`
           : `<button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>`}
+        ${prev ? "" : `<button type="button" class="arr${com && com.registrata ? " on" : ""}" title="${com && com.registrata ? "Cambia la comunicazione registrata" : "Segna la comunicazione fatta (ente, residenti)"}" aria-label="Segna la comunicazione della volata del ${fmtD(v.data)}" data-com-vol="${v.id}">${I.registro}</button>`}
+        <button type="button" class="arr" title="Scheda della volata: dati, misura dell'evento, strumento e taratura, comunicazione — da stampare o allegare" aria-label="Apri la scheda della volata del ${fmtD(v.data)}" data-foglio-vol="${v.id}">${I.clip}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
@@ -4419,6 +4865,92 @@ textarea.dw-input{
              await refresh();
              toast("Misura corretta: la riga resta segnata come corretta, con il valore di origine.", "success");
            } }]);
+      return; }
+    /* ── DICHIARARE NON VALIDA UNA MISURA (04/09) ──────────────────────
+       Stessa forma della correzione: la riga si ritrova per FIRMA dentro la
+       transazione, il valore non si cancella (`annullaLettura` lo tiene e lo
+       riscrive nella dichiarazione), e il valore corrente del punto si
+       riallinea all'ultima lettura VALIDA — `ultimaLettura` scarta le
+       annullate — se no il badge resterebbe sul numero appena tolto. */
+    const annMonId = attr(e, "data-ann-mon");
+    if (annMonId) {
+      const m = MON.find(x => x.id === annMonId); if (!m) return;
+      const idx = +attr(e, "data-ann-idx");
+      const l = (m.letture || [])[idx];
+      if (!l) { toast("Questa misura non c'è più: riapri la serie storica.", "err"); await refresh(); return; }
+      const firmaPrima = firmaLettura(l);
+      const u = unitaMisura(m);
+      const opzioni = RAGIONI_ANNULLAMENTO.map(r => `<option value="${esc(r.chiave)}">${esc(r.etichetta)}</option>`).join("");
+      apriModale("Dichiara non valida la misura del " + fmtD(l.data),
+        `<div class="note" style="margin:0 0 10px;">Stai dichiarando che la misura di <b>${esc(m.nome)}</b>${
+           l.ora ? " delle <b>" + esc(l.ora) + "</b>" : ""} — <b>${esc(numeroIt(l.valore))} ${esc(u)}</b> — non è una misura della cava.<br><br>
+           <b>Il valore non si cancella:</b> la riga resta in archivio col suo numero e con la ragione che scegli qui, esce dai conti
+           (massimo, media, superamenti, conformità) e si può ripristinare. Il report per l'ente dichiara quante misure sono state annullate e perché.</div>
+         <label class="flab" for="modal-ragione">Perché non vale
+           <select class="dw-input" id="modal-ragione">${opzioni}</select></label>
+         <label class="flab" for="modal-nota" id="modal-nota-lab" style="display:none;margin-top:8px;">Che cosa è successo
+           <input class="dw-input" id="modal-nota" type="text" autocomplete="off" maxlength="120" placeholder="es. escavatore fermo accanto al geofono"></label>
+         <div class="note esito" id="modal-esito" style="display:none;"></div>`,
+        [{ label: "Annulla", azione: chiudiModale },
+         { label: "Dichiara non valida", cls: "danger", azione: async () => {
+             const sel = document.getElementById("modal-ragione");
+             const nota = document.getElementById("modal-nota");
+             const box = document.getElementById("modal-esito");
+             const dire = (t) => { if (!box) return; box.style.display = ""; box.className = "note esito err"; box.innerHTML = t; };
+             const primo = (m.letture || [])[idx];
+             const annullata = primo ? annullaLettura(primo, { chiave: sel ? sel.value : "", nota: nota ? nota.value : "" }) : null;
+             if (!primo || firmaLettura(primo) !== firmaPrima) {
+               chiudiModale();
+               toast("La serie è cambiata nel frattempo: non ho scritto niente.", "err");
+               await refresh(); return; }
+             if (!annullata) { dire("Scrivi che cosa è successo: una misura non si toglie dai conti senza una ragione."); return; }
+             chiudiModale();
+             let cambiata = false;
+             await db.trasforma("monitoraggi", m.id, (m2) => {
+               const letture = [ ...((m2 && m2.letture) || []) ];
+               const i2 = letture.findIndex((x) => firmaLettura(x) === firmaPrima);
+               if (i2 < 0) { cambiata = true; return null; }
+               letture[i2] = annullata;
+               const ult = ultimaLettura({ letture });
+               /* senza più nessuna lettura valida il punto torna «mai misurato»:
+                  è la direzione che chiede una misura invece di sostenerne una */
+               return { letture, valore: ult ? ult.valore : null };
+             });
+             if (cambiata) { toast("Quella misura è cambiata nel frattempo: non ho scritto niente.", "err"); await refresh(); return; }
+             await refresh();
+             toast("Misura dichiarata non valida: resta in archivio con la ragione, e non conta più.", "success");
+           } }]);
+      // il testo libero si accende solo su «altro»: per le tre ragioni note non serve
+      const sel = document.getElementById("modal-ragione"), lab = document.getElementById("modal-nota-lab");
+      if (sel && lab) sel.addEventListener("change", () => {
+        lab.style.display = sel.value === "altro" ? "" : "none";
+        const box = document.getElementById("modal-esito"); if (box) box.style.display = "none";
+      });
+      return; }
+    const ripMonId = attr(e, "data-rip-mon");
+    if (ripMonId) {
+      const m = MON.find(x => x.id === ripMonId); if (!m) return;
+      const idx = +attr(e, "data-rip-idx");
+      const l = (m.letture || [])[idx];
+      if (!l) { toast("Questa misura non c'è più: riapri la serie storica.", "err"); await refresh(); return; }
+      const firmaPrima = firmaLettura(l);
+      const an = annullamentoDi(l);
+      if (!an) { toast("Questa misura non è annullata: non c'è niente da ripristinare."); return; }
+      if (!await chiedi("Ripristina la misura del " + fmtD(l.data),
+        `<div class="note" style="margin:0;">La misura di <b>${esc(m.nome)}</b> — <b>${esc(numeroIt(l.valore))} ${esc(unitaMisura(m))}</b> — era stata dichiarata non valida (${esc(an.etichetta)}). Ripristinandola <b>torna a contare</b> in tutti i conti, e resta scritto che era stata annullata e poi rimessa.</div>`,
+        "Ripristina")) return;
+      let cambiata = false;
+      await db.trasforma("monitoraggi", m.id, (m2) => {
+        const letture = [ ...((m2 && m2.letture) || []) ];
+        const i2 = letture.findIndex((x) => firmaLettura(x) === firmaPrima);
+        if (i2 < 0) { cambiata = true; return null; }
+        letture[i2] = ripristinaLettura(letture[i2]);
+        const ult = ultimaLettura({ letture });
+        return { letture, valore: ult ? ult.valore : (m2 && m2.valore) };
+      });
+      if (cambiata) { toast("Quella misura è cambiata nel frattempo: non ho scritto niente.", "err"); await refresh(); return; }
+      await refresh();
+      toast("Misura ripristinata: torna a contare.", "success");
       return; }
     const editMonId = attr(e, "data-edit-mon");
     if (editMonId) { const m = MON.find(x => x.id === editMonId); if (!m) return;
@@ -4770,11 +5302,18 @@ textarea.dw-input{
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
     const ricettoreId = $("sen-ricettore").value || "";
+    /* da quale preset nasce la soglia (04/09): si ricorda alla creazione, e in
+       modifica resta solo se soglia e unità sono ancora quelle — una soglia
+       riscritta a mano non ha più la banda del preset, e `frequenzaFuoriBanda`
+       lo dice invece di giudicare con una banda che non vale */
+    const scelto = $("sen-preset") && $("sen-preset").value ? $("sen-preset").value : "";
     if (editMon) {
-      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId });   // valore/letture restano
+      const prima = MON.find(x => x.id === editMon) || {};
+      const sogliaPreset = scelto || (prima.sogliaPreset && +prima.soglia === soglia && String(prima.unita || "") === unita ? prima.sogliaPreset : null);
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId, sogliaPreset });   // valore/letture restano
       editMon = null; $("btn-sen").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, valore: 0, letture: [] });
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, sogliaPreset: scelto || null, valore: 0, letture: [] });
     }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-ricettore").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
@@ -4910,6 +5449,24 @@ textarea.dw-input{
     }
     err("mis-valore", false);
     const m = MON.find(x => x.id === id);
+    /* le condizioni: facoltative, ma un numero scritto male non passa in
+       silenzio — «7,» o «abc» nel vento fermano la registrazione come farebbero
+       nel valore, perché una condizione illeggibile scritta come niente farebbe
+       dire «non registrata» a una cosa che qualcuno aveva provato a scrivere */
+    const cond = {};
+    for (const [campo, chiave, opts, cosa] of [["mis-vento", "vento", { min: 0 }, "Il vento"], ["mis-temp", "temperatura", {}, "La temperatura"], ["mis-umid", "umidita", { min: 0, max: 100 }, "L'umidità"]]) {
+      const t = $(campo).value.trim();
+      if (!t) { err(campo, false); continue; }
+      const rc = numeroDaCampo(t, opts);
+      if (!rc.ok) {
+        err(campo, true); fuocoErr([campo]);
+        esito("mis-esito", cosa + " «" + t + "» non è un numero che posso leggere" + (rc.motivo === "sotto-minimo" || rc.motivo === "sopra-massimo" ? " (" + (chiave === "umidita" ? "da 0 a 100" : "non può essere negativo") + ")" : "") + ". Se non l'hai misurata, lascia la casella vuota. " + AVVISO_DECIMALE, "err", cosa + " non è un numero leggibile.");
+        return;
+      }
+      err(campo, false); cond[chiave] = rc.valore;
+    }
+    if ($("mis-vento-da").value) cond.ventoDa = $("mis-vento-da").value;
+    if ($("mis-pioggia").value) cond.pioggia = $("mis-pioggia").value === "si";
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
     /* ⛔ LA CATENA DI CUSTODIA NASCE QUI (T2d). Questa è la strada «a mano»:
@@ -4936,9 +5493,20 @@ textarea.dw-input{
        cancellavano a vicenda in silenzio, perché l'elenco veniva letto,
        allungato e riscritto INTERO. Qui il taglio a `MAX_LETTURE` c'è ancora,
        ed è la ragione per cui `arrayUnion` non bastava. */
-    const nuova = { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) };
+    const nuova = { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO), ...cond };
+    /* ⛔ `letture` DEVE VIVERE FUORI DALLA TRANSAZIONE (05/09). Quando la
+       lettura è passata «dentro la transazione» (5b, 08/08) la `const` è
+       finita nel corpo della callback, e la riga qui sotto che la usa —
+       `conSoglia({ ...m, valore, letture })` — è rimasta fuori: un nome
+       libero. Effetto misurato premendo «Registra» sulla dimostrazione: la
+       scrittura AVVENIVA, poi il gestore moriva con «letture is not defined»
+       — nessuna striscia di conferma, nessun refresh, il campo non si
+       svuotava. Nessuna prova rossa: i banchi non premono quel bottone, e
+       `nomi-liberi` non vede una `const` dichiarata in un blocco più interno
+       e usata in quello che lo contiene. Preso dallo scatto di questa unità. */
+    let letture = [];
     await db.trasforma("monitoraggi", id, (m2) => {
-      const letture = [ ...((m2 && m2.letture) || []), nuova ].slice(-MAX_LETTURE);
+      letture = [ ...((m2 && m2.letture) || []), nuova ].slice(-MAX_LETTURE);
       return { valore, letture };
     });
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
@@ -4964,10 +5532,16 @@ textarea.dw-input{
        riga scriveva «36,8  → Attenzione», con la cifra nuda e due spazi. */
     const um = m ? unitaMisura(m) : "";
     const misuraTxt = numeroIt(valore) + (um ? " " + um : "");
-    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata.",
-      st.cls === "danger" ? "err" : "success",
-      misuraTxt + " → " + st.label);
+    /* sul rumore, se le condizioni scritte la mettono fuori norma lo si dice
+       NELL'ISTANTE in cui si registra — è la frase che l'utente legge mentre
+       scrive il dato, e «→ Conforme» da sola direbbe di stare tranquilli */
+    const fc = misuraFuoriCondizioni(nuova, m || {});
+    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata."
+      + (fc.fuori ? " Attenzione: " + fc.motivo + ". La lettura resta nei conti finché non la dichiari non valida (ragione «vento oltre 5 m/s o pioggia»)." : ""),
+      st.cls === "danger" || fc.fuori ? "err" : "success",
+      misuraTxt + " → " + st.label + (fc.fuori ? " · fuori condizioni" : ""));
     $("mis-valore").value = "";
+    for (const c of ["mis-vento", "mis-vento-da", "mis-pioggia", "mis-temp", "mis-umid"]) $(c).value = "";
     grafMon = id;   // dopo una misura si vede subito l'andamento del punto
     await refresh();
   };
@@ -4980,14 +5554,16 @@ textarea.dw-input{
   clearErr("vol-data", "vol-esito-msg");
   ["vol-kg","vol-kgmax","vol-dist"].forEach(i => clearErr(i, "vol-esito-msg"));
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
-  clearErr("mis-valore", "mis-esito");
+  ["mis-valore", "mis-vento", "mis-temp", "mis-umid"].forEach(i => clearErr(i, "mis-esito"));
+  // le direzioni del vento le dice il modulo: la tendina non ne tiene una copia
+  $("mis-vento-da").innerHTML = '<option value="">— vento da —</option>' + DIREZIONI_VENTO.map(d => '<option value="' + d + '">da ' + d + '</option>').join("");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
   enterSubmit(["ade-titolo", "ade-ente", "ade-data"], "btn-ade");
   enterSubmit(["sen-nome", "sen-unita", "sen-soglia"], "btn-sen");
-  enterSubmit(["mis-valore"], "btn-mis");
+  enterSubmit(["mis-valore", "mis-vento", "mis-temp", "mis-umid"], "btn-mis");
   enterSubmit(["tar-data", "tar-scad", "tar-ente", "tar-cert"], "btn-tar");
 
   // Cambiare strumento ridisegna lo storico: la tendina è il filtro della
@@ -5308,7 +5884,7 @@ textarea.dw-input{
     impChiudi();
     esito("imp-esito", "Import annullato: non è stata scritta nessuna lettura.");
   };
-  ["imp-col-data","imp-col-ora","imp-col-valore","imp-header","imp-punto"].forEach(id =>
+  ["imp-col-data","imp-col-ora","imp-col-valore","imp-header","imp-punto", ...IMP_COL_EVENTO].forEach(id =>
     $(id).addEventListener("change", () => { pulisci("imp-esito"); impAnteprima(); }));
   $("btn-imp-conferma").onclick = async () => {
     const punto = MON.find(x => x.id === $("imp-punto").value);
@@ -5382,11 +5958,16 @@ textarea.dw-input{
      documento è il trimestre dell'adempimento» da «questo documento sono due
      date che ho scritto io». Sparisce appena le date si toccano, perché da
      quel momento direbbe il falso. */
+  /* l'origine del report (05/09): l'adempimento da cui è partito, perché il
+     DOCUMENTO lo scriva — sullo schermo la nota c'era, sul foglio no */
+  let REP_ORIGINE = null;
   const scordaOrigineReport = () => {
+    REP_ORIGINE = null;
     const el = $("rep-origine"); if (!el) return;
     el.textContent = ""; el.style.display = "none"; el.className = "note esito";
   };
   function apriReportDaAdempimento(a, p) {
+    REP_ORIGINE = { a, p };
     $("rep-dal").value = p.dal;
     /* ⚠️ `rep-al` ha `max = oggi`: un periodo che finisce nel futuro non si
        può scrivere nel campo, e il valore verrebbe rifiutato in silenzio

@@ -162,6 +162,13 @@ async function apri(preludio, arg) {
   if (preludio) await pg.addInitScript(preludio, arg);
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
+  await ganci(pg);
+  pg.__errori = errori;
+  return pg;
+}
+/* i ganci del banco sulla pagina (consenso, finestra di stampa, il CSV che
+   esce): vivono nella pagina, quindi una RICARICA li perde e vanno rimessi */
+async function ganci(pg) {
   await pg.evaluate(() => {
     const l = document.getElementById("loginBtn"); if (l) l.click();
     const c = document.getElementById("consensoOk");
@@ -175,8 +182,6 @@ async function apri(preludio, arg) {
     };
   });
   await pg.waitForTimeout(600);
-  pg.__errori = errori;
-  return pg;
 }
 async function vaiA(pg, schermo) {
   await pg.evaluate((s) => {
@@ -367,6 +372,13 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
   await pg.evaluate(() => document.getElementById("cmpSaveA").click());
   await pg.waitForTimeout(300);
   await pg.evaluate((s) => localStorage.setItem("genesiSito", JSON.stringify(s)), SITO_TRE);
+  /* ⛔ Dal 02/09 (unità 3 di GENESI_FUORI_DAL_BROWSER) la legge di sito si legge
+     UNA volta all'apertura, dalla porta sui dati: chi la cambia dall'app passa
+     da `sitoSalva`, che aggiorna la copia di lavoro. Scrivere la chiave a mano
+     è una scorciatoia del banco, non un gesto dell'utente — quindi si ricarica,
+     come farebbe un secondo dispositivo. Lo scatto A è già nella sua chiave. */
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => document.getElementById("cmpSaveB").click());
   await pg.waitForTimeout(300);
   await pg.evaluate(() => document.getElementById("cmpShow").click());
@@ -394,8 +406,11 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
      identico ad A — la terza causa dell'elenco, l'iniezione che non inietta.
      Misurato: la prima stesura di questa riga dava «0 celle verdi» e sembrava
      un difetto della correzione. */
+  await pg.evaluate(() => localStorage.removeItem("genesiSito"));
+  // stessa ragione di sopra: la legge tolta a mano si vede alla riapertura
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => {
-    localStorage.removeItem("genesiSito");
     const e = document.getElementById("dKg");
     e.value = "30";
     e.dispatchEvent(new Event("input", { bubbles: true }));

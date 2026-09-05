@@ -152,6 +152,20 @@ const CASI = `
   DEMO.documenti.push({ id: "zdoc", titolo: "Attestato antincendio da archivio cartaceo",
     tipo: "Altro", lavoratoreId: "d4", meta: "", stato: "" });
   DEMO.nomine.push({ id: "znom", ruolo: "antincendio", lavoratoreId: "d4", dal: null, al: null, note: "" });
+  /* ⛔ IL CASO DI CONTROLLO SI COSTRUISCE, NON SI PESCA DALLA DIMOSTRAZIONE
+     (02/09). Era Franco Riva (d6), «che ha tutto a posto» — finché la sua
+     «Consegna DPI» del 15/08/2026, data ASSOLUTA, non è scaduta: da quel
+     giorno la cartella diceva — giustamente — «1 scadenza già scaduta» in
+     rosso, e il banco accusava il prodotto di un avviso che c'era sempre. Il
+     prodotto non ha mai sbagliato: a invecchiare era la fixture. Questa
+     persona ha mansione, una scadenza e un DPI con date calcolate al
+     caricamento, sempre nel futuro: completa E in regola. */
+  DEMO.lavoratori.push({ id: "zsano", nome: "Banco Sano", ruolo: "Operatore", tel: "", attivo: true });
+  DEMO.scadenze.push({ id: "zsano-s", lavoratoreId: "zsano", tipo: "Formazione",
+    descrizione: "Formazione generale + specifica (art. 37)", dataScadenza: gg(-400) });
+  DEMO.dpi.push({ id: "zsano-d", lavoratoreId: "zsano", tipo: "elmetto", modello: "", taglia: "unica",
+    dataConsegna: gg(30), scadenza: gg(-700), addestramento: false, dataAddestramento: null, note: "" });
+  DEMO.mansioni.push({ id: "zsano-m", nome: "BANCO mansione sana", requisiti: [], dpi: ["elmetto"], lavoratoriIds: ["zsano"] });
 }
 `;
 
@@ -169,15 +183,21 @@ const PAGINA = "apps/scudo/index.html", MODULO = "apps/scudo/scudo-data.js";
 const CONDIVISO = "shared/deepwork-id-client/dw-shell.js";
 const DIFETTI = [
   // 1a. l'intestazione delle azioni senza la colonna del semaforo
-  ['let csv = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine\\n";',
-   'let csv = "descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine\\n";'],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`CSV_PROSPETTO_AZIONI_INTESTAZIONE`).
+     ⚠️ Senza il «NOME = » davanti alla stringa: `iniezioni-fresche` raccoglie
+     ogni `NOME = "…"` del banco come preambolo dell'eval, anche DENTRO una
+     stringa, e la citazione intera gli sembrava una seconda dichiarazione. */
+  ['"descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine";',
+   '"descrizione;responsabile;scadenza;stato;esito;dataChiusura;origine";', MODULO],
   /* 1b. la riga senza `statoAzione`, e il responsabile mancante come cella vuota.
      ⏱️ RI-ANCORATA l'08/08: citava il vecchio `LAV.find(...)` scritto a mano, e
      quel pezzo è diventato `etichettaResponsabile` — cioè è MIGLIORATO, che è
      il modo in cui queste iniezioni scadono quasi sempre. */
-  ['const nome = (id) => etichettaResponsabile({ responsabileId: id }, LAV).nome;',
-   'const nome = (id) => { const l = LAV.find((x) => x.id === id); return l ? l.nome : ""; };'],
-  ["${a.scadenza || \"\"};${statoAzione(a)};${a.stato || \"aperta\"}", "${a.scadenza || \"\"};${a.stato || \"aperta\"}"],
+  /* ⏱️ RI-ANCORATA di nuovo il 05/09, sul MODULO: il prospetto è salito in
+     `csvProspettoAzioni`, e `LAV` lì si chiama `lav`. */
+  ['const nome = (id) => etichettaResponsabile({ responsabileId: id }, lav).nome;',
+   'const nome = (id) => { const l = lav.find((x) => x.id === id); return l ? l.nome : ""; };', MODULO],
+  ["${a.scadenza || \"\"};${statoAzione(a, oggi)};${a.stato || \"aperta\"}", "${a.scadenza || \"\"};${a.stato || \"aperta\"}", MODULO],
   /* 1c. LA COPIA DI SICUREZZA CHE PERDE UN'AZIONE IN SILENZIO. È il difetto
      che una copia di sicurezza non può permettersi — e non lascia niente da
      leggere: il file esce, si ri-carica, e manca una riga. Prima dell'08/08
@@ -187,11 +207,13 @@ const DIFETTI = [
      ⏱️ RI-ANCORATA l'08/08 sul MODULO: questo export è salito in
      `csvPersonaleScadenze` accanto alle funzioni che decidono le stesse cose a
      schermo — di nuovo, il pezzo si è mosso perché è migliorato. */
-  ['righe.push([...chi, "", "", SENZA, "—"].join(";"));',
-   'righe.push([...chi, "", "", "", "—"].join(";"));', MODULO],
+  ['righe.push([...chi, "", "", SENZA, "—", ...coda].join(";"));',
+   'righe.push([...chi, "", "", "", "—", ...coda].join(";"));', MODULO],
   // 3. il riepilogo L.198 senza lo storico e senza la nota di lettura
-  ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', ""],
-  ['{ const nota = descriviLetturaNearMiss(r);\n      if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', ""],
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (`csvRiepilogoNearMiss`), dove il
+     riepilogo è salito: cambia solo l'indentazione. */
+  ['csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\\n`;', "", MODULO],
+  ['{ const nota = descriviLetturaNearMiss(r);\n    if (nota) csv += `lettura;${csvCell(nota)};\\n`; }', "", MODULO],
   /* 4. il registro infortuni senza la colonna che dice la prognosi aperta.
      ⏱️ RI-ANCORATE l'08/08 sul MODULO (`csvRegistroInfortuni`), dove l'export è
      salito: la riga si compone con un array e `join`, non più concatenando
@@ -202,8 +224,10 @@ const DIFETTI = [
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè
         nel posto delle più urgenti — chi la data non ce l'ha, e mescolava le
         chiuse alle aperte. */
-  ['AZI.slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")\n        || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))',
-   'AZI.slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || "")))'],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: l'ordinamento è salito in
+     `csvProspettoAzioni`, dove `AZI` si chiama `azioni`. */
+  ['(azioni || []).slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")\n      || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999")))',
+   '(azioni || []).slice().sort((x, y) => String(x.scadenza || "").localeCompare(String(y.scadenza || "")))', MODULO],
   /* 6. la data mai scritta che usciva come la PAROLA «undefined».
      ⏱️ RI-ANCORATA l'08/08 sul MODULO. ⚠️ E l'ancora è la riga INTERA, non il
      solo `s.dataScadenza || ""`: quel pezzo compare DUE volte in
@@ -222,16 +246,18 @@ const DIFETTI = [
   /* 7. la colonna «Sostituire entro» del VERBALE che ri-decideva invece di
         leggere `r.stato`: una maschera da sostituire da anni stampata come una
         valida fino al 2099. */
-  ['${\n          c.nonScade === true ? "non scade (dichiarato)"\n          : r.stato === "senza data" ? "non indicata"\n          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"\n                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}',
-   '${c.scadenza ? fmtData(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata")}'],
+  /* ⏱️ dal 05/09 la cella la compone `fogliaVerbaleDpi` nel MODULO */
+  ['    const sost = c.nonScade === true ? "non scade (dichiarato)"\n      : r.stato === "senza data" ? "non indicata"\n      : dataIt(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE" : r.stato === "in-scadenza" ? " — da sostituire a breve" : "");',
+   '    const sost = c.scadenza ? dataIt(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata");', MODULO],
   /* ── LA CARTELLA DEL LAVORATORE (03/08) ────────────────────────────────
     13. la riga del documento collegato senza il suo stato: sul foglio usciva
         titolo + `meta` (testo libero, spesso vuoto) e basta. */
-  ['c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);\n            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")\n              + (d.meta ? " · " + esc(d.meta) : "")); })',
-   'c.documenti.map(d => riga(d.titolo, esc(d.meta || "")))'],
+  /* ⏱️ dal 05/09 le righe della cartella le compone `fogliaCartella` nel MODULO */
+  ['      return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));',
+   '      return [String(d.titolo || ""), String(d.meta || "")]; }), ""));', MODULO],
   // 14. il colore della riga di chiusura deciso solo dalle sezioni vuote
-  ['${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}',
-   '${c.completa ? "color:#555;" : "color:#8a0000;font-weight:600;"}'],
+  ['    chiusura: { testo: descriviCartella(c), allarme: !(c.completa && !(c.daSistemare || []).length) },',
+   '    chiusura: { testo: descriviCartella(c), allarme: !c.completa },', MODULO],
   // 15. la finestra prima di stampare che non dice che cosa si troverà dentro
   ['      + (c.daSistemare.length\n        ? "<br><br>⚠️ <b>Completa non vuol dire in regola:</b> fra le righe registrate ce ne sono che non lo sono — "\n          + esc(c.daSistemare.join(", ")) + ". Il foglio le riporta una per una."\n        : "")\n', ""],
   /* 16. LA CODA DELLA FRASE, che sta nel MODULO: senza, un fascicolo con
@@ -292,15 +318,15 @@ const DIFETTI = [
         sapere che sono calcolate su 2 episodi valutati su 3, né che l'app si
         rifiuta di dire dove il rischio si concentra. È lo stesso difetto del
         punto 3, sulla funzione nuova. */
-  ['      csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\\n`;\n      csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\\n`;\n      csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\\n`;',
-   ""],
+  ['    csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\\n`;\n    csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\\n`;\n    csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\\n`;',
+   "", MODULO],
   /* 25. IL LUOGO IN CUI NESSUNO HA VALUTATO NIENTE, TOLTO DAL FILE. A schermo
         ha una riga sua che dice «non si sa come poteva finire»; sparendo dal
         documento, un luogo non misurato si legge come un luogo senza problemi
         — l'assenza di un dato letta come un dato favorevole, nel foglio che
         va fuori. */
-  ['      for (const l of rp.luoghiCiechi)\n        csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
-   "       }"],
+  ['    for (const l of rp.luoghiCiechi)\n      csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\\n`; }',
+   "     }", MODULO],
   /* 26. IL FOGLIO PIÙ LARGO DELLA CARTA. Sullo schermo non si vede niente — il
         foglio a schermo non esiste — e dalla stampante esce una tabella
         tagliata sul bordo destro. È la famiglia che il 07/08 è uscita dal
@@ -945,9 +971,12 @@ if (!inf.errore) {
   }
 
   /* ⛔ IL CASO DI CONTROLLO, senza il quale «l'avviso c'è» non dimostra niente:
-     un avviso che compare sempre non lo legge più nessuno. Franco Riva ha
-     tutto a posto e la sua cartella deve restare pulita e grigia. */
-  const sana = await apriCartella("d6");
+     un avviso che compare sempre non lo legge più nessuno. «Banco Sano» è
+     montato dai CASI con date relative (Franco Riva, che era qui prima, ha
+     una scadenza della dimostrazione che il 15/08/2026 è scaduta davvero). */
+  const sana = await apriCartella("zsano");
+  if (!sana.errore) dice(/Tutte le sezioni della cartella contengono dati/.test(sana.foglio),
+    "e la cartella di controllo è davvero completa (se no «niente avviso» non prova niente)", sana.foglio.slice(-300));
   dice(!sana.errore, "la cartella di chi ha tutto a posto si compone", sana.errore);
   if (!sana.errore) {
     if (DIMMI) console.log("\n[cartella d6]\n" + sana.foglio + "\n");

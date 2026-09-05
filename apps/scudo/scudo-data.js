@@ -125,7 +125,7 @@
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
          csvCell, leggiCsv,
-         dataIt, pezziDataURL, LIMITE_ALLEGATO,
+         dataIt, isoLocale, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 /* IL `tipo` CHE FA DI UNA SCADENZA UNA VERIFICA PERIODICA DI ATTREZZATURA.
@@ -140,11 +140,17 @@ export const TIPO_VERIFICA_PERIODICA = "Verifica periodica";
 
 export const DEMO = {
   lavoratori: [
+    /* IL GIUDIZIO DEL MEDICO (05/09): tre casi da far vedere — un idoneo, uno
+       con prescrizioni SCRITTE (d5, che in Campo è o4, regolare coi documenti),
+       uno NON idoneo (d2, che in Campo è o2 nella Squadra A operativa), così il
+       ponte ha davanti il caso per cui esiste — e la dimostrazione di Campo
+       continua a mostrare anche una persona in regola.
+       Gli altri restano «n.d.»: è lo stato di chi non ha mai registrato niente. */
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true, idoneita: "non-idoneo", giudizioIl: "2026-08-20" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", tel: "", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true, idoneita: "idoneo", giudizioIl: "2026-03-11" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina", giudizioIl: "2026-06-02" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", tel: "", attivo: true },
   ],
@@ -152,6 +158,23 @@ export const DEMO = {
   // Copiati dalla dimostrazione di Campo id per id: se le due dimostrazioni
   // dicessero cose diverse sulla stessa squadra, l'ecosistema smentirebbe sé
   // stesso proprio nel punto che serve a mostrare che le app si parlano.
+  /* LE SCADENZE DI TERRA E DI FLOTTA, copiate riga per riga dalle loro
+     dimostrazioni (02/09) — `run-kpi` pretende che restino uguali a quelle,
+     id per id e data per data, così una modifica di là si vede di qua. Servono
+     al muro di tutta la cava: c'è la fideiussione in scadenza, la prescrizione
+     senza data, la verifica periodica scaduta. */
+  scadenzeTerra: [
+    { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
+    { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
+    { id: "t3", tipo: "rilievo", descrizione: "Rilievo periodico dei lavori", dataScadenza: "2026-08-10", preavvisoGiorni: 30, ricorrenzaMesi: 6, note: "" },
+    { id: "t4", tipo: "screening-via", descrizione: "Prescrizione dello screening da ottemperare", dataScadenza: "2026-07-10", preavvisoGiorni: 60, ricorrenzaMesi: null, note: "" },
+    { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
+  ],
+  scadenzeFlotta: [
+    { id: "sc1", mezzo: "Escavatore E1", tipo: "Verifica periodica", chiave: "verifica-periodica", dataScadenza: "2026-07-10", mesi: 12, documento: "verbale ASL 2025/118", note: "", ultimaData: "2025-07-10", ultimoEsito: "regolare" },
+    { id: "sc2", mezzo: "Pala P1", tipo: "Funi e catene", chiave: "funi-catene", dataScadenza: "2026-08-12", mesi: 3, documento: "registro di controllo", note: "" },
+    { id: "sc3", mezzo: "Dumper D1", tipo: "Revisione", chiave: "revisione", dataScadenza: "2029-03-01", mesi: 60, documento: "libretto di circolazione", note: "mezzo targato" },
+  ],
   operatoriCampo: [
     { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d1" },
     { id: "o2", nome: "Luca Bianchi", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d2" },
@@ -657,6 +680,9 @@ export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
+// lo scadenzario di tutta la cava è una regola di shared/ (serve a tre app): qui
+// solo il nome, lo stesso oggetto
+export { scadenzeUnite } from "../../shared/dw-ponti.js";
 
 // Giudizio di IDONEITÀ SANITARIA (D.Lgs 81/2008 art. 41): esito della
 // sorveglianza sanitaria per la mansione. La data della prossima visita
@@ -677,6 +703,33 @@ export function idoneitaSuccessivo(stato) {
   const i = seq.indexOf(seq.includes(stato) ? stato : "");
   return seq[(i + 1) % seq.length];
 }
+/* IL GIUDIZIO SCRITTO E DATATO (05/09, candidato (b) della ricerca sulla
+   sorveglianza sanitaria). Il mondo dice che il giudizio del medico arriva
+   PER ISCRITTO, con le prescrizioni e una data: fino a oggi il badge ciclava
+   quattro stati senza chiedere niente, e «idoneo con prescrizioni» restava
+   un colore senza il testo — una prescrizione che non si legge è una
+   prescrizione che non si rispetta. Qui si decide che cosa è un giudizio
+   valido: con «prescrizioni» il testo è obbligatorio; con «non idoneo» è
+   facoltativo (il medico può scrivere solo l'inidoneità); la data è
+   facoltativa ma, se c'è, deve esistere e non stare nel futuro; su «idoneo»
+   e «n.d.» le prescrizioni si azzerano (erano del giudizio precedente).
+   ⚠️ Niente «ricorso entro trenta giorni»: è un termine di legge di seconda
+   mano e non entra. Ritorna { ok, idoneita, prescrizioni, giudizioIl,
+   motivo, messaggio }. Pura. */
+export function giudizioIdoneita(stato, testo, data, oggi = new Date()) {
+  const st = ["", "idoneo", "prescrizioni", "non-idoneo"].includes(stato) ? stato : "";
+  const t = String(testo == null ? "" : testo).trim();
+  const d = String(data == null ? "" : data).trim().slice(0, 10);
+  if (st === "prescrizioni" && !t)
+    return { ok: false, motivo: "prescrizioni-mancanti", messaggio: "Un giudizio «con prescrizioni» senza le prescrizioni scritte non si può rispettare: copia quelle del medico." };
+  if (d && !dataISOEsiste(d))
+    return { ok: false, motivo: "data-non-valida", messaggio: "La data del giudizio non è un giorno che esiste." };
+  if (d && giorniTra(d, oggi) > 0)
+    return { ok: false, motivo: "data-futura", messaggio: "La data del giudizio è nel futuro: il medico non l'ha ancora scritto." };
+  return { ok: true, idoneita: st, prescrizioni: st === "prescrizioni" || st === "non-idoneo" ? t : "",
+    giudizioIl: st ? (d || null) : null, motivo: "", messaggio: "" };
+}
+
 // Lavoratori attivi la cui idoneità richiede attenzione (per le urgenze).
 export function idoneitaCriticita(lavoratori) {
   return lavoratori.filter(l => l.attivo && (l.idoneita === "non-idoneo" || l.idoneita === "prescrizioni"));
@@ -1937,21 +1990,24 @@ export function csvPersonaleScadenze(lavoratori, scadenze, documenti) {
   const LAV = (lavoratori || []).filter(Boolean);
   const SCA = (scadenze || []).filter(Boolean);
   const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };
-  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica"];
+  /* `prescrizioni` e `giudizio` (la data) in coda dal 05/09: chi taglia alle
+     prime otto ritrova il file di prima; vuote dove il giudizio non c'è */
+  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio"];
   for (const l of LAV) {
     const idn = idoneitaLabel(l.idoneita).label;
     const sue = SCA.filter((s) => s.lavoratoreId === l.id);
     const chi = [csvCell(l.nome || ""), csvCell(l.ruolo || ""), csvCell(l.tel || ""), csvCell(idn)];
-    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—"].join(";")); continue; }
+    const coda = [csvCell(l.prescrizioni || ""), dataISOEsiste(l.giudizioIl) ? String(l.giudizioIl).slice(0, 10) : ""];
+    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—", ...coda].join(";")); continue; }
     for (const s of sue) {
       righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-        statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+        statoScadenza(s.dataScadenza), csvCell(vf(s)), ...coda].join(";"));
     }
   }
   const noti = new Set(LAV.map((l) => l.id));
   for (const s of SCA.filter((x) => !noti.has(x.lavoratoreId))) {
     righe.push(["AZIENDA", "", "", "", csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-      statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+      statoScadenza(s.dataScadenza), csvCell(vf(s)), "", ""].join(";"));
   }
   return righe.join("\n") + "\n";
 }
@@ -2000,20 +2056,45 @@ export function csvRegistroInfortuni(eventi) {
    ricevuta. Un `else` finale è comodo finché la funzione che sta sopra non
    impara a dire una risposta in più — ed è precisamente il caso della regola
    18 di `run-stile.mjs`, applicata a un conteggio invece che a una mappa. */
-export function coperturaFormazione(scadenze, oggi = new Date()) {
+/* ⛔ LA VERIFICA PERIODICA HA DUE STATI, E QUESTA FUNZIONE NE LEGGEVA UNO SOLO
+   (02/09). Misurato aprendo la schermata Scadenze sulla dimostrazione: la riga
+   «Verifica periodica» diceva «3 in regola · 0 in scadenza · 0 scadute» con la
+   pastiglia VERDE «tutte regolari», e quindici righe più sotto la stessa
+   schermata — con `verificheDaSistemare` — scriveva «1 con prescrizioni
+   scadute · 1 mai verificata, su 3»; nel Quadro le stesse due attrezzature
+   stavano in rosso e in giallo. Qui contava SOLO la data della prossima
+   verifica, che per tutt'e tre è nel futuro: cioè una verifica mai fatta e una
+   con le prescrizioni scadute entravano fra i «regolari». È l'assenza di un
+   dato letta come dato favorevole, e la regola giusta esisteva già in questo
+   file (`statoVerificaPeriodica`): la copia più debole, non l'invenzione.
+   Adesso ogni riga sta in UN secchio solo, e il peggio vince: la data scaduta
+   prima di tutto (la prossima verifica è dovuta), poi la verifica negativa
+   (non idonea, prescrizioni scadute), poi la data in scadenza o illeggibile,
+   poi la verifica incerta (mai fatta, esito non letto, verbale mancante,
+   prescrizioni aperte o senza data). `documenti` serve al verbale: senza il
+   registro un'«idonea» resta «verbale mancante», che è la verità di quello che
+   qui si vede. Per i tipi che non sono verifiche i due secchi nuovi restano a
+   zero e il conto è quello di prima. */
+export function coperturaFormazione(scadenze, oggi = new Date(), documenti = null) {
   const per = {};
   for (const s of scadenze || []) {
     const t = (s.tipo || "Altro");
-    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0 });
+    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0,
+      verificheNegative: 0, verificheIncerte: 0, regolari: 0 });
     g.totale++;
     const st = statoScadenza(s.dataScadenza, oggi);
+    const v = scadenzaDiVerifica(s) ? statoVerificaPeriodica(s, documenti, oggi) : null;
     if (st === "scaduta") g.scadute++;
+    else if (v && v.cls === "danger") g.verificheNegative++;
     else if (st === "in-scadenza") g.inScadenza++;
     else if (st === "senza data") g.senzaData++;
+    else if (v && v.cls !== "ok") g.verificheIncerte++;
     else g.regolari++;
   }
+  const rosse = (c) => c.scadute + c.verificheNegative;
+  const gialle = (c) => c.inScadenza + c.senzaData + c.verificheIncerte;
   return Object.values(per).sort((a, b) =>
-    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || (b.senzaData - a.senzaData)
+    (rosse(b) - rosse(a)) || (gialle(b) - gialle(a))
     || a.tipo.localeCompare(b.tipo, "it"));
 }
 
@@ -2026,7 +2107,31 @@ export function coperturaFormazione(scadenze, oggi = new Date()) {
    qualcuno la guardi. */
 export function daSistemareCopertura(c) {
   const x = c || {};
-  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0);
+  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0)
+    + (+x.verificheNegative || 0) + (+x.verificheIncerte || 0);
+}
+
+/* Il colore e la pastiglia di un tipo, decisi in UN posto. La pagina li
+   scriveva due volte con lo stesso ternario (la barra del grafico e la
+   pastiglia dell'elenco), e un secchio nuovo li avrebbe dovuti aggiornare
+   tutt'e due: è così che «tutte regolari» sarebbe rimasto verde su una
+   verifica negativa in uno dei due posti. Il peggio decide, nell'ordine dei
+   secchi di `coperturaFormazione`. */
+export function statoCopertura(c) {
+  const x = c || {};
+  const n = (k) => +x[k] || 0;
+  /* un tipo senza nessuna riga non è «tutte regolari»: non c'è niente da
+     misurare, e lo si dice (è la sonda dei tranquilli a pretenderlo) */
+  if (!n("totale")) return { cls: "warn", badge: "niente registrato" };
+  if (n("scadute")) return { cls: "danger", badge: conta(n("scadute"), "scaduta", "scadute") };
+  /* «negativa» e «incerta» senza la parola «verifica»: la riga porta già il
+     tipo, e a 360 px la pastiglia lunga spingeva il dettaglio oltre le due
+     righe del taglio (misurato il 02/09: «— su 3 in totale» spariva). */
+  if (n("verificheNegative")) return { cls: "danger", badge: conta(n("verificheNegative"), "negativa", "negative") };
+  if (n("inScadenza")) return { cls: "warn", badge: n("inScadenza") + " in scadenza" };
+  if (n("senzaData")) return { cls: "warn", badge: n("senzaData") + " senza data" };
+  if (n("verificheIncerte")) return { cls: "warn", badge: conta(n("verificheIncerte"), "incerta", "incerte") };
+  return { cls: "ok", badge: "tutte regolari" };
 }
 
 // IL MURO DELLE SCADENZE: quante scadenze cadono in ciascuno dei prossimi N
@@ -3835,6 +3940,101 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
    `descriviBaseOnere` in Terra: quello che un documento dichiara è una REGOLA,
    e chi la scrive dev'essere uno solo. Legge `completa`, che altrimenti
    sarebbe una bandiera che non guarda nessuno (regola 20 di run-stile). */
+/* IL VERBALE DI CONSEGNA DEI DPI, LE RIGHE (05/09). Le decideva la pagina
+   (`costruisciVerbale`) a partire da `verbaleDpi`, ma le PAROLE delle celle —
+   «non registrato» sul modello, «non indicata» sulla data illeggibile, «DA
+   SOSTITUIRE» sulla scadenza passata, «fatto (non obbligatorio)» / «DA FARE»
+   sull'addestramento — vivevano lì, dove nessuna prova senza browser le
+   legge. Qui ogni cella è testo, la pagina disegna. Decisione 14: su un
+   foglio stampato «—» si legge «non serve», quindi chi non ha registrato lo
+   dice; la taglia resta col trattino perché «unica» esiste davvero come
+   risposta. Nei testi il grassetto si scrive «**così**». Pura. */
+export function fogliaVerbaleDpi(lavoratore, opzioni) {
+  const { dpi, mansioni, oggi } = opzioni || {};
+  const lav = lavoratore || {};
+  const v = verbaleDpi(lav, Array.isArray(dpi) ? dpi : []);
+  const mans = (Array.isArray(mansioni) ? mansioni : []).filter((m) => m && (m.lavoratoriIds || []).includes(lav.id)).map((m) => m.nome).join(", ");
+  const nonMisurati = [];
+  const conta = (n, s, p) => n + " " + (n === 1 ? s : p);
+  let senzaModello = 0, senzaData = 0, senzaSost = 0, daFare = 0;
+  const righe = v.righe.map((r) => {
+    const c = r.consegna || {};
+    // se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
+    // foglio lo dice: è lavoro fatto e registrato
+    const add = !r.addestramentoRichiesto
+      ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
+      : (r.addestramentoFatto ? "fatto" + (c.dataAddestramento ? " il " + dataIt(c.dataAddestramento) : "") : "DA FARE");
+    if (!c.modello) senzaModello++;
+    if (!r.leggibile) senzaData++;
+    if (c.nonScade !== true && r.stato === "senza data") senzaSost++;
+    if (r.addestramentoRichiesto && !r.addestramentoFatto) daFare++;
+    /* la colonna «Sostituire entro» LEGGE lo stato della riga, non ri-decide:
+       una maschera da sostituire da anni non esce come una valida fino al 2099 */
+    const sost = c.nonScade === true ? "non scade (dichiarato)"
+      : r.stato === "senza data" ? "non indicata"
+      : dataIt(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE" : r.stato === "in-scadenza" ? " — da sostituire a breve" : "");
+    return [String(r.tipo.etichetta || c.tipo || ""), String(r.tipo.cat || ""), c.modello ? String(c.modello) : "non registrato",
+      String(c.taglia || "—"), r.leggibile ? dataIt(c.dataConsegna) : "non indicata", sost, add, ""];
+  });
+  if (senzaModello) nonMisurati.push(conta(senzaModello, "dispositivo senza il modello registrato", "dispositivi senza il modello registrato"));
+  if (senzaData) nonMisurati.push(conta(senzaData, "consegna senza la data", "consegne senza la data"));
+  if (senzaSost) nonMisurati.push(conta(senzaSost, "dispositivo senza data di sostituzione", "dispositivi senza data di sostituzione"));
+  if (daFare) nonMisurati.push(conta(daFare, "addestramento da fare", "addestramenti da fare"));
+  return {
+    titolo: "Verbale di consegna dei DPI", sottotitolo: "Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008",
+    dati: [["Azienda / cava", "", true], ["Lavoratore", String(lav.nome || ""), false], ["Mansione", mans || String(lav.ruolo || "—"), false],
+      ["Data del verbale", dataIt(isoLocale(oggi || new Date())), false]],
+    colonne: ["Dispositivo", "Cat.", "Modello", "Taglia", "Consegnato il", "Sostituire entro", "Addestramento", "Firma"],
+    righe, vuota: "Per questa persona non risulta registrata nessuna consegna.",
+    dichiarazione: "Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato sui rischi da cui proteggono e di aver ricevuto l'**addestramento** dove indicato come fatto. Si impegna a **usarli** quando previsto, ad **averne cura**, a **non modificarli** e a **segnalare subito** difetti, danni o smarrimenti al preposto o al datore di lavoro (artt. 20 e 78 D.Lgs 81/2008).",
+    firme: ["Firma del lavoratore", "Firma di chi consegna (datore di lavoro o preposto)"],
+    piede: "Documento preparato con Scudo · Deepwork — " + conta(v.righe.length, "dispositivo", "dispositivi")
+      + (v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : "")
+      + ". Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.",
+    addestramentiMancanti: v.addestramentiMancanti, nonMisurati,
+  };
+}
+
+/* LA CARTELLA DEL LAVORATORE, LE SEZIONI (05/09). `cartellaLavoratore` decide
+   che cosa c'è e che cosa manca; qui si compongono le RIGHE del fascicolo che
+   si esibisce all'ispettore — l'adempimento e non la famiglia
+   (`etichettaScadenza`), l'etichetta del DPI e non la chiave interna, lo stato
+   della consegna, lo stato del documento (`etichettaStatoDocumento`) — e ogni
+   sezione vuota porta la frase che dice perché, invece di restare bianca.
+   La riga di chiusura la scrive `descriviCartella`, con `allarme` quando
+   c'è qualcosa da sistemare. Pura. */
+export function fogliaCartella(cartella, oggi = new Date()) {
+  const c = cartella || {};
+  const l = c.lavoratore || {};
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+  const sezioni = [
+    sez("Mansioni assegnate", (c.mansioni || []).map((m) => [String(m.nome || ""), (m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"]),
+      "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino."),
+    sez("Formazione e scadenze", (c.scadenze || []).map((x) => [etichettaScadenza(x.scadenza),
+      (x.scadenza.dataScadenza ? dataIt(x.scadenza.dataScadenza) : "senza data") + " · " + String(x.stato || "—")]),
+      "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente."),
+    sez("Dispositivi di protezione consegnati", ((c.verbale || {}).righe || []).map((r) => [String(r.tipo.etichetta || r.consegna.tipo || ""),
+      (r.leggibile ? dataIt(r.consegna.dataConsegna) : "data di consegna non indicata")
+      + (r.consegna.taglia ? " · taglia " + String(r.consegna.taglia) : "")
+      + (r.stato === "scaduta" ? " · **da sostituire**" : r.stato === "in-scadenza" ? " · da sostituire a breve" : r.stato === "senza data" ? " · **senza data di sostituzione**" : "")
+      + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · **addestramento da fare**") : "")]),
+      "Nessun DPI consegnato risulta a registro."),
+  ];
+  if ((c.nomine || []).length)
+    sezioni.push(sez("Nomine attive", c.nomine.map((n) => [(ruoloNomina(n.ruolo) || {}).etichetta || String(n.ruolo || ""), n.dal ? "dal " + dataIt(n.dal) : "senza data di nomina"]), ""));
+  if ((c.documenti || []).length)
+    sezioni.push(sez("Documenti collegati", c.documenti.map((d) => { const e = etichettaStatoDocumento(d.stato);
+      return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));
+  return {
+    titolo: "Cartella del lavoratore",
+    sottotitolo: String(l.nome || "") + (l.ruolo ? " · " + String(l.ruolo) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),
+    sezioni,
+    chiusura: { testo: descriviCartella(c), allarme: !(c.completa && !(c.daSistemare || []).length) },
+    firme: ["Luogo e data", "Il datore di lavoro"],
+    nonMisurati: (c.vuoti || []).concat(c.daSistemare || []),
+  };
+}
+
 export function descriviCartella(cartella) {
   const c = cartella || {};
   if (!c.trovato) return c.motivo || "Cartella non disponibile.";
@@ -4009,6 +4209,22 @@ export async function scudoData() {
       };
       api.operatoriCampo = () => leggiCampo("operatori");
       api.squadreCampo = () => leggiCampo("squadre");
+      /* IL MURO DI TUTTA LA CAVA (02/09, ponte 3b): le scadenze della concessione
+         (Terra) e dei mezzi (Flotta) si leggono con la stessa forma di Campo —
+         una seconda istanza SDK pigra per app, `null` se non risponde. ⛔ Il
+         `null` resta `null` fino alla schermata: «Terra non ha risposto» e
+         «Terra non ha scadenze» sono due frasi diverse, e la seconda sarebbe
+         il via libera a dimenticare il rinnovo della fideiussione. */
+      const leggiAltra = (appId) => { let idAltra;
+        return async (nome) => {
+          if (idAltra === undefined) { try { idAltra = await DeepworkID.init({ appId }); } catch (e) { idAltra = null; } }
+          if (!idAltra) return null;
+          try { return (await getDocs(idAltra.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        }; };
+      const leggiTerra = leggiAltra("terra"), leggiFlotta = leggiAltra("flotta");
+      api.scadenzeTerra = () => leggiTerra("scadenze");
+      api.scadenzeFlotta = () => leggiFlotta("scadenze");
     } else if (id.authState() === "tour") {
       mode = "tour";
     }
@@ -4024,6 +4240,10 @@ export async function scudoData() {
       // copiato dalla dimostrazione di Campo id per id (vedi DEMO.operatoriCampo)
       operatoriCampo: async () => mem.operatoriCampo || [],
       squadreCampo:   async () => mem.squadreCampo || [],
+      // e le scadenze di Terra e di Flotta: finte, copiate dalle loro
+      // dimostrazioni riga per riga (vedi DEMO.scadenzeTerra / scadenzeFlotta)
+      scadenzeTerra:  async () => mem.scadenzeTerra || [],
+      scadenzeFlotta: async () => mem.scadenzeFlotta || [],
       documenti:  async () => mem.documenti,
       // gli eventi di esempio PIÙ i near-miss segnalati dal fronte in Campo
       // (ponte P5 in demo): in esercizio è la stessa collezione e questa riga
@@ -4671,6 +4891,21 @@ export const NATURE_APPALTO = [
 export function duvriDovuto(appalto, cantiere) {
   const a = appalto || {};
   const doc = documentoCoordinamento(cantiere);
+  /* ⛔ UN SITO CHE NON C’È NON È «FUORI CAVA». Misurato il 03/09 svuotando
+     l’anagrafe dei siti nella risposta HTTP del modulo: l’appalto di ripristino
+     della dimostrazione, che ha il DSS coordinato NON sottoscritto, passava da
+     «da sistemare» ad «A POSTO» — perché senza il sito la regola diventava
+     quella del DUVRI, che la firma non la chiede. Il sito manca in due modi
+     veri: il modulo lo lascia facoltativo (`cantiereId: null`) e togliere un
+     sito dall’anagrafe non tocca i suoi appalti. In tutt’e due non si sa se è
+     una cava, quindi non si sa quale documento serve: «non lo sappiamo», non
+     «a posto». La sigla resta quella del DUVRI — un sito che non si trova non
+     diventa una cava con le sue regole — ma il verdetto no. */
+  if (!cantiere)
+    return { ...doc, noto: false, serve: null,
+      perche: "Il sito dell’appalto non è indicato, o non è più in anagrafe: senza sapere se è una cava "
+        + "non si sa se serve il DSS coordinato (art. 9 D.Lgs 624/96) o il DUVRI (art. 26 D.Lgs 81/08), "
+        + "e un appalto di cui non si sa non è un appalto a posto." };
   const rischi = (Array.isArray(a.rischiParticolari) ? a.rischiParticolari : [])
     .map((k) => rischioParticolare(k)).filter(Boolean);
 
@@ -5453,6 +5688,66 @@ export function permessiDiCantiere(permessi, cantiereId) {
 export const CSV_AZIONI_INTESTAZIONE =
   "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;"
   + "origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta";
+
+/* IL PROSPETTO DELLE AZIONI CORRETTIVE (05/09): il file che si porta al
+   controllo — semaforo, responsabile con la parola, la frase dell'origine.
+   Stava nella pagina, composto cella per cella dalle funzioni giuste
+   (`statoAzione`, `etichettaResponsabile`, `origineAzione`): la composizione
+   però la provava solo il browser. Qui la provano anche le suite `node`, e la
+   pagina fa quello che fa per la copia di sicurezza: chiama. Stesso ordine
+   dell'elenco a schermo (chiuse in fondo, poi per data, senza data in coda).
+   `ctx`: { lavoratori, infortuni, ispezioni }. Pura. */
+export const CSV_PROSPETTO_AZIONI_INTESTAZIONE = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine";
+export function csvProspettoAzioni(azioni, ctx = {}, oggi = new Date()) {
+  const lav = ctx.lavoratori || [];
+  const nome = (id) => etichettaResponsabile({ responsabileId: id }, lav).nome;
+  const orig = (a) => origineAzione(a, { infortuni: ctx.infortuni || [], ispezioni: ctx.ispezioni || [] }, { voce: "documento" });
+  let csv = CSV_PROSPETTO_AZIONI_INTESTAZIONE + "\n";
+  for (const a of (azioni || []).slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")
+      || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999"))))
+    csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a, oggi)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+  return csv;
+}
+
+/* IL RIEPILOGO DEI NEAR-MISS PER LA COMUNICAZIONE (05/09): la stessa storia
+   del prospetto qui sopra. Le regole del file — lo storico accanto al periodo,
+   la nota di lettura del modulo, il denominatore prima dei gradini, i luoghi
+   ciechi con la loro riga — c'erano già, sparse nella pagina; adesso stanno
+   in una funzione che `run-kpi` può chiamare. `giorni`: 0 o null = tutto lo
+   storico. Pura. */
+export function etichettaPeriodoNearMiss(giorni) {
+  const g = +giorni;
+  if (!(g > 0)) return "tutto lo storico";
+  if (g === 365) return "ultimi 12 mesi";
+  return "ultimi " + g + " giorni";
+}
+export function csvRiepilogoNearMiss(infortuni, azioni, giorni, oggi = new Date()) {
+  const r = riepilogoNearMiss(infortuni, azioni, giorni || null, oggi);
+  let csv = "sezione;voce;numero\n";
+  csv += `periodo;${csvCell(etichettaPeriodoNearMiss(giorni))};\n`;
+  csv += `totale;near-miss segnalati;${r.totale}\n`;
+  csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\n`;
+  csv += `totale;di cui in forma anonima;${r.anonime}\n`;
+  { const nota = descriviLetturaNearMiss(r);
+    if (nota) csv += `lettura;${csvCell(nota)};\n`; }
+  for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
+  for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
+  // le righe «potenziale» non escono MAI da sole: prima il denominatore e la frase
+  { const rp = riepilogoPotenziale(infortuni, giorni || null, oggi);
+    csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\n`;
+    csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\n`;
+    csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\n`;
+    for (const g of rp.perLivello) csv += `potenziale;se andava male: ${csvCell(g.etichetta.toLowerCase())};${g.quanti}\n`;
+    for (const l of rp.perLuogo)
+      csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${conta(l.valutati, "valutato", "valutati")}, ${l.nonValutati} no);${l.alto}\n`;
+    for (const l of rp.luoghiCiechi)
+      csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
+  csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
+  csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
+  csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
+  csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
+  return csv;
+}
 
 export function csvAzioni(azioni) {
   const righe = [CSV_AZIONI_INTESTAZIONE];

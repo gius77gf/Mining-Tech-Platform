@@ -10,6 +10,119 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 04/09 — sei decisioni nuove, nate dalle passate in profondità
+
+*Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
+(ogni schermata guardata a 390 e 320 nei temi, ogni file aperto, la
+dimostrazione svuotata pezzo per pezzo): diciannove difetti veri corretti. Tre
+cose sono rimaste scritte come «da decidere», perché non sono difetti: sono
+scelte di prodotto.*
+
+- [ ] **22. Scudo: le consegne DPI a persone che non esistono più.** Con
+  l'anagrafica vuota il registro DPI dice «27 consegne registrate a 5 persone ·
+  niente da sistemare», ma tutte le 27 riguardano persone che non sono più in
+  anagrafica (righe con l'avatar «?» e senza nome). Nessuna pastiglia diventa
+  verde, per questo non l'ho toccato. La domanda è tua: una consegna a una
+  persona cancellata **va contata** (è storia: quel casco è uscito), **va
+  segnalata** («5 consegne a persone non più in anagrafe»), o **va nascosta**?
+  La stessa domanda vale per le mansioni con l'assegnato cancellato.
+- [ ] **23. Flotta: le righe «IN LINEA» quando non c'è nessun fermo registrato.**
+  La pagella scrive «100 %» e lo dichiara («nessun fermo registrato: la
+  disponibilità non distingue una macchina dall'altra»), ma sotto quell'avviso
+  ogni riga resta **«IN LINEA» in verde** con «dentro la banda su tutt'e due
+  gli assi». Il numero è dichiarato, il colore no. Da decidere: la pastiglia
+  verde resta (la banda è quella) o diventa neutra finché non c'è un fermo
+  con cui distinguere?
+- [ ] **24. Terra: il CSV dei rilievi perde il rilievo PIANIFICATO al ritorno.**
+  Il file dei rilievi esporta anche «Prossimo rilievo» (pianificato, senza
+  volume) ma non ha una colonna `stato`: ricaricando lo stesso file quella
+  riga viene dichiarata persa («il volume non è stato misurato»), perché un
+  pianificato e un rilievo eseguito senza volume sono indistinguibili. Il
+  prodotto lo dice, non tace; ma è un giro di andata e ritorno di casa nostra
+  che perde una riga. Da decidere: una colonna `stato` nel CSV (cambia il
+  formato che qualcuno potrebbe già usare), oppure i pianificati fuori
+  dall'export (il file è dei rilievi fatti)?
+- [ ] **25. Genesi: che cosa disegna la pianta di una volata a cui manca la
+  maglia.** Oggi cinque funzioni di disegno (`computeEnergia2D`, `computeSeq2D`,
+  `computeRelief2D`, `_spazTipico`, `drawInnesco` in `apps/genesi/genesi.html`)
+  ripiegano su una spalla di 3 m, un interasse di 3,5 m e una profondità di
+  10 m **che nessuno ha scritto**: con la spalla illeggibile la maglia
+  disegnata degenera e da lì nasceva un consumo specifico che accusava dodici
+  fori. I NUMERI oggi si fermano («non calcolabile»); una PIANTA non può
+  dichiararsi: o disegna o non disegna. Da decidere, in due:
+  (a) **pianta vuota con una frase** («manca la spalla: la pianta si disegna
+  quando la scrivi») — onesta, ma chi apre il 2D non vede niente finché non
+  compila; (b) **la maglia di progetto disegnata come PROPOSTA**, con un
+  avviso dichiarato sulla pianta («maglia proposta 3 × 3,5 m, non scritta»)
+  e i numeri che restano «non calcolabili» finché la maglia non è confermata.
+  *La mia risposta, se non rispondi entro la settimana*: la (a) per il
+  DISEGNO e la (b) solo come bottone «usa questa maglia» che SCRIVE i valori
+  nel progetto — così la pianta e i numeri raccontano sempre la stessa volata,
+  e i tre ripieghi spariscono dal codice di disegno. Non la prendo da solo
+  perché tocca il modo in cui Genesi accoglie chi comincia.
+- [ ] **26. Campo: lo zero dei minuti di fermo ha due letture opposte, e
+  tutt'e due sono difese da prove verdi.** Sullo stesso record `fermoMin: 0`,
+  `minutiFermoDi` risponde «una misura» (e alimenta il CSV), mentre
+  `anomalieAperte`, `disponibilitaTurno`, `storicoSettimana`,
+  `registrazioniSenzaGiorno` e il campo del modulo dicono «non misurato».
+  Cinque contro uno; cambiare l'uno fa cadere quattro asserzioni che
+  difendono il verso opposto. Dal 13/08 quello zero non nasce più da solo
+  (chi svuota il campo salva `null`): ci arriva solo chi digita «0» apposta.
+  Da decidere: uno «0» digitato è una MISURA («fermo di zero minuti», cioè
+  segnalazione senza fermo) o va rifiutato con «se non c'è stato fermo lascia
+  vuoto»? *La mia risposta, se non rispondi*: è una misura — chi scrive 0 lo
+  fa apposta — e allora sono i cinque lettori a dover dire «0 min» invece di
+  «non misurato»; la prova che li difende va riscritta nel verso giusto.
+- [ ] **27. Scudo: la cella delle giornate d'assenza di un mancato infortunio
+  con un valore illeggibile.** `giornateAssenza` sul ramo near-miss riporta a
+  **0** un valore presente ma illeggibile («n.d.», «1,5»), mentre lo stesso
+  valore su un infortunio torna `null`; nel registro consegnato all'RSPP la
+  cella esce `…;near-miss;lieve;0;…`. Non corretto perché per un near-miss
+  «nessuna assenza» è vero per definizione, e far tornare `null` scriverebbe
+  la parola «null» nella cella (`csvRegistroInfortuni`). Da decidere insieme a
+  come quella cella deve uscire: «0» (nessuna assenza, per definizione),
+  vuota, o «n.d.» com'era scritto? *La mia risposta*: per un near-miss la
+  cella è **0 per definizione** e il valore illeggibile si segnala nella riga
+  degli scarti dell'import, non nella cella.
+
+---
+
+## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
+
+*Oggi Genesi è uscita dal browser (sette unità su otto del piano), il triangolo
+della produzione è chiuso (Campo→Conti), e sei ricerche hanno avuto il loro
+delta. Da tutto questo escono tre cose che non decido io.*
+
+- [ ] **19. Una volata SPARATA è un «documento emesso»?** Oggi Genesi salva
+  PROGETTI (nome, data, design, sintesi): nessun campo dice «questa è stata
+  sparata, il giorno X all'ora Y». Il ponte di dati Genesi→Sentinella — le
+  volate sparate accanto alle letture del sismografo, invece del file CSV di
+  oggi — ha bisogno di quella distinzione, e di una regola: chi può correggere
+  o cancellare una volata sparata? È la stessa domanda della 10b (chi cancella
+  un DDT emesso), applicata all'esplosivo. **Finché non rispondi, il ponte
+  Genesi→Sentinella resta di file**, e nessuno inventa un campo «sparata».
+  Dettagli: `docs/GENESI_FUORI_DAL_BROWSER.md` §3d.
+- [ ] **20. Le notifiche FUORI dall'app (SMS, e-mail) sono una spesa.** La
+  ricerca su Sentinella dice che i concorrenti mandano l'allarme di
+  superamento via SMS; da noi l'allerta è a schermo. Mandarla fuori vuol dire
+  una Cloud Function e un fornitore di SMS a pagamento: è la regola «nessuna
+  spesa prima della commercializzazione», e resta tua. Se un giorno dici sì,
+  la prima forma onesta è l'e-mail (che il progetto Firebase può mandare), non
+  l'SMS.
+- [ ] **21. Quattro numeri di LEGGE che le ricerche riportano di seconda mano,
+  e che NON scrivo senza il testo.** La denuncia INAIL «entro 2 giorni» per un
+  infortunio con prognosi oltre 3 giorni (Scudo); gli indici «secondo UNI
+  7249» per nome (Scudo li calcola, non cita la norma); il limite giornaliero
+  del PM10 «50 µg/m³, 35 superamenti l'anno» (D.Lgs 155/2010, Sentinella); le
+  soglie del rumore per classe acustica diurno/notturno (D.P.C.M. 14/11/1997,
+  Sentinella). Sono tutte plausibili e tutte da risultato di ricerca: un
+  termine di legge sbagliato in una schermata che va a un ispettore è peggio
+  di uno assente. **Se hai i testi (o un tuo consulente li conferma), me li
+  passi e li metto come preset «da verificare»**, che è la forma che
+  Sentinella usa già per DIN e USBM.
+
+---
+
 ## ⚠️ 14/08 — due numeri che uscivano dall'azienda dicevano una cosa tranquilla, e non era vera
 
 *Anche questa sezione non ti chiede niente di nuovo: ti dice che cosa è cambiato
@@ -105,7 +218,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **5**
+# 📖 Da dove cominciare — le decisioni aperte sono **14**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -163,7 +276,7 @@ giornate a togliere dal prodotto:
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
 | **prese E costruite** | **5** — 5a, 10b, 12a (tutte e 6 le voci), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **mezza** — la 5b, ed è cambiata l'08/08 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
+| **restano aperte** | **una e mezza** — la 5b, ed è cambiata l'08/08; e la **19**, nata il 05/09 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -200,6 +313,7 @@ momento.
 | ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
 | ~~**18a**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — la detrazione per recupero | **(c)** un'opzione della concessione, che nasce **spenta**: l'errore ha un costo asimmetrico |
 | ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
+| **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -981,6 +1095,53 @@ andato: lì la detrazione non è quella parziale, è **incompleta**, e va detto.
       Prove: `run-kpi` 1853 → **1860**, sette casi compreso quello in cui uno
       **zero dichiarato** è una misura e un vuoto no.
 
+## 19. Il ricettore delle polveri: da che parte sta rispetto alla cava?
+
+*Nato il 05/09 (sera) chiudendo le condizioni meteo della misura in
+Sentinella. Il codice che serviva è fatto; quello che manca è un dato che solo
+tu puoi dire, e un'interpretazione che non voglio inventare.*
+
+**Il fatto.** Da stasera ogni lettura può portare il vento (velocità e
+direzione), la pioggia, la temperatura e l'umidità — scritti a mano o letti dal
+file dello strumento. Sul **rumore** l'app applica la regola della norma (DM
+16/03/1998, All. B — letta di seconda mano, dai risultati di ricerca): con
+vento oltre 5 m/s o con pioggia la misura **non vale**, e la riga lo suggerisce
+senza togliere niente. Sulle **polveri** il dato del vento oggi si scrive e
+basta: l'app **non dice** se il ricettore era sottovento, perché per dirlo
+servirebbe sapere **da che parte sta la casa rispetto alla cava** — e il
+ricettore, nella sua scheda, ha solo la **distanza** in metri.
+
+**Perché conta.** Una lettura di polveri alta con il ricettore **sopravento**
+non è colpa della cava; una bassa con il ricettore **sottovento** è la prova
+migliore che si possa portare a un ispettore. Senza la direzione, tutte e due
+sono un numero e basta.
+
+**Quello che ho già risolto, e non serve a te.** Il campo sarebbe uno solo,
+sulla scheda del ricettore: *da che parte sta rispetto alla cava*, scelto fra
+le stesse otto direzioni del vento (N, NE, E, SE, S, SO, O, NO). Con quello e
+con la direzione del vento della lettura la regola è aritmetica: il ricettore
+è sottovento quando il vento **arriva dalla parte della cava**, cioè soffia
+dalla direzione opposta a quella in cui sta la casa (casa a NE della cava →
+sottovento con vento da SO, e nei due settori accanto). Provato a mente sugli
+otto settori; costa una funzione pura e una tendina.
+
+**Le due cose che decidi tu:**
+
+1. **Lo mettiamo?** È un dato in più da compilare per ogni ricettore, e lo
+   compili tu (o chi fa la campagna): se non lo sai per una casa, quella casa
+   resta «non si può dire», che è la risposta giusta. Se non ti serve, non
+   lo costruisco: una tendina vuota su ogni scheda è rumore.
+2. **Che cosa deve dire l'app** quando il ricettore era sottovento? Due
+   strade: (a) **solo un'etichetta** sulla lettura («ricettore sottovento» /
+   «sopravento» / «non si può dire»), che il report riporta e basta — nessun
+   giudizio; (b) anche un **conto nel report**, «N letture sottovento, la più
+   alta X µg/m³», che è quello che un ispettore chiederebbe. La (b) contiene
+   la (a); la (a) da sola non fa dire all'app niente che non sia scritto.
+
+Finché non decidi, resta com'è: il vento si scrive, e sulle polveri non si
+giudica. È scritto anche nel commento del modulo (`condizioniMisura`), così
+nessuno lo costruisce per conto suo.
+
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
 iterazioni UX delle app, test aggiuntivi, revisioni di qualità/sicurezza,
@@ -996,9 +1157,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 2.877** *(ricontate il 18/08 lanciando le
-suite)*, più **123** che girano con l'emulatore Firestore (**75** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **200
+**Le prove automatiche sono passate a 3.232** *(ricontate il 05/09 lanciando le
+suite)*, più **129** che girano con l'emulatore Firestore (**81** sulle regole
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **253
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
