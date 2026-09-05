@@ -399,6 +399,14 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [ ] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
+  turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
+  c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
+  mancano le due cose che il turno entrante legge per prime e che lo schermo
+  ha già: (a) «LAVORI NON CONCLUSI» — le attività del giorno non concluse, con
+  chi ce l'ha in carico (basso); (b) «SEGNALAZIONI DEL TURNO» — near-miss e
+  infortuni di oggi dal ponte con Scudo, quelli senza turno dichiarati a parte
+  (basso). Vedi `docs/RICERCA_CONTINUA_CAMPO.md`.
 - [x] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
   delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
   schermata: (a) ✅ **fatto la notte stessa** — `idoneitaOperatore` legge il
@@ -1373,6 +1381,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `CAMPO — dalla ricerca del 05/09 notte` *(consegna di turno: lavori non conclusi
+  e segnalazioni del turno mancano dal foglio)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 

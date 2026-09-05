@@ -1842,3 +1842,94 @@ fare: il record degli infortuni di Scudo non porta la persona (`grep -n
 data, tipo, gravità, luogo, categoria, descrizione), quindi prima servirebbe
 il campo in Scudo, che è una scelta di prodotto (un near-miss può essere
 anonimo, e lo è già nella dimostrazione); (d) tesserino: fermo finché non si legge la norma.
+
+## Ricerca del 2026-09-05 (notte) — il passaggio di consegne fra turni: il mondo
+
+*Metà sul mondo con `WebSearch` (tre ricerche); `WebFetch`/`curl` non leggono
+il testo primario, quindi tutto è **[seconda mano: risultato di ricerca]**.
+Tema non ancora fatto in questo documento: le tornate precedenti coprivano il
+rapporto di fine turno, la produzione, le presenze e l'appello.*
+
+**Che cosa succede fuori.**
+
+1. **In miniera il passaggio di consegne è una lista strutturata, firmata
+   da chi esce e da chi entra.** I modelli in uso (SafetyCulture, «Production
+   Supervisor Shift Handover», «Work Area Inspection & Handover») chiedono:
+   sito, data e turno; **stato dei mezzi** (quali escavatori e pale sono in
+   funzione, dove ripartono); **condizioni delle piste**; **pericoli
+   individuati** con gravità e verifica dei controlli; **lavori non
+   completati**; **assistenza richiesta** ad altri (topografo, geologo,
+   pianificazione); e le **firme del supervisore uscente e di quello
+   entrante**. [seconda mano: safetyculture.com/library/mining]
+2. **L'ICMM lo tratta come pratica di sicurezza**, non come burocrazia: «i
+   modi sicuri di lavorare si costruiscono turno per turno». [seconda mano:
+   icmm.com/health-and-safety]
+3. **In Italia il sorvegliante è nominato PER TURNO** (D.Lgs 624/96): la
+   denuncia di esercizio indica «nome, cognome e indirizzo dei sorveglianti,
+   per ciascun turno», le variazioni si comunicano entro otto giorni, e il
+   sorvegliante «verifica che il lavoro sia svolto secondo il DSS e tiene
+   informato il direttore responsabile». Cioè la consegna fra turni è anche
+   la consegna fra due sorveglianti nominati. [seconda mano:
+   legislazionetecnica.it, parlamento.it, enbital.it vademecum 2022]
+4. **Una forma italiana di «registro delle consegne» per le cave non è
+   emersa dalle ricerche**: i risultati portano ai modelli infermieristici
+   (OPI) e alle norme di polizia mineraria (D.P.R. 128/1959) senza un
+   contenuto minimo del passaggio di consegne. Va detto: la forma
+   strutturata viene dalla pratica mineraria internazionale, non da una
+   norma italiana. [dichiarato, non dedotto]
+
+Fonti (lette come risultati di ricerca):
+https://safetyculture.com/library/mining/production-supervisor-shift-handover-golding-swc-z6tossysuirq2e86 ·
+https://safetyculture.com/library/mining/cvm-mine-services-work-area-inspection-and-handover ·
+https://www.icmm.com/en-gb/our-work/health-and-safety ·
+https://legislazionetecnica.it/node/1314819 ·
+https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm ·
+https://enbital.it/docs_upload/VADEMECUM-ADEMPIMENTI-SICUREZZA-ATTIVITA-ESTRATTIVE-Dic-2022_20230228170416.pdf
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `83f92556`)
+
+Cercato per **meccanismo**: chi compone il foglio che passa di mano fra due
+turni (`$("btn-consegna").onclick` in `apps/campo/index.html`, «Consegna di
+turno», `consegna_turno.txt`), che cosa ci mette e che cosa no.
+
+- **Le firme dei due lati**: ci sono — la chiusura del turno (`chiusuraDi`,
+  `riassuntoChiusura`: «Consegnato da X a Y alle 14:05», con `consegna` e
+  `ricevuta`) e le riaperture che non si nascondono. **Punto 1, firme: c'è.**
+- **Le consegne al turno dopo come testo**: ci sono — ogni rapportino ha il
+  campo «Consegne al turno dopo (handover)» (`new-rap-note`, `r.note`,
+  `riassuntoRapportino`). **Punto 1, testo libero: c'è.**
+- **Lo stato dei mezzi e i fermi**: la sezione «ANOMALIE / FERMI» con i
+  minuti persi e «senza minuti» dichiarato; lo stato dei singoli mezzi è di
+  Flotta, non di Campo, e resta lì. **Punto 1, mezzi: c'è la parte di Campo.**
+- **Le condizioni del sito**: «METEO E CONDIZIONI DEL SITO» (`meteoDi`,
+  `riassuntoMeteo`). **C'è.**
+- **I lavori NON completati**: NON ci sono nel foglio. La sezione
+  «RAPPORTINI» elenca i rapportini col loro stato; le **attività** del giorno
+  non concluse — che lo schermo mostra fra le urgenze (`ATT_OGGI.filter(a =>
+  a.stato !== "conclusa")`, riga del Quadro) — nel `.txt` non compaiono:
+  `grep -c "ATTIVIT" apps/campo/index.html` dentro il blocco di `btn-consegna`
+  → 0 sezioni. Il mondo (punto 1) le chiama «lavori non completati» ed è la
+  voce che il turno entrante legge per prima. Candidato (a), costo basso:
+  sezione «LAVORI NON CONCLUSI» con titolo, chi ce l'ha in carico e stato, e
+  «nessuna attività aperta» quando è vuota. Misura: il `.txt` porta le
+  attività aperte del giorno con lo stesso conto del Quadro.
+- **I pericoli individuati**: NON ci sono nel foglio. Campo li ha — le
+  segnalazioni del turno (`segnalazioniDelTurno`, ponte P5 da Scudo: near-miss
+  e infortuni di oggi, «stesso giorno, turno non indicato» tenuti a parte) —
+  ma il `.txt` non le scrive: `grep -n "segnalazioniDelTurno(" apps/campo/
+  index.html` → due chiamate, tutt'e due per lo schermo, nessuna nel blocco di
+  `btn-consegna`. Candidato (b), costo basso: sezione «SEGNALAZIONI DEL
+  TURNO» con quelle del turno, quelle del giorno senza turno (dichiarate
+  così) e «nessuna segnalazione oggi», nella stessa forma dello schermo.
+- **L'assistenza richiesta** (punto 1) resta nel testo libero delle consegne:
+  una voce a sé sarebbe un campo in più nel rapportino, e non c'è un
+  meccanismo che oggi la legga. Non proposto.
+- **Il sorvegliante per turno** (punto 3): Campo non sa chi è il sorvegliante
+  nominato; è un ruolo di Scudo (nomine). Un legame «chi ha chiuso il turno è
+  il sorvegliante nominato?» è un ponte nuovo, da decidere; non proposto ora.
+
+Riassunto: **la consegna di turno c'è ed è firmata dai due lati; le manca
+ciò che il turno entrante legge per primo — i lavori non conclusi e i
+pericoli segnalati — che Campo ha già sullo schermo e non mette nel foglio.**
+Due candidati a costo basso, (a) e (b), nella stessa forma delle sezioni
+esistenti.
