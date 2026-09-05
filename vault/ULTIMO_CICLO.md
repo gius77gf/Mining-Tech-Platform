@@ -1,17 +1,20 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-05, 15:47 UTC
-- **Commit di partenza**: `bfe0d435`
+- **Quando**: 2026-09-05, 21:47 UTC
+- **Commit di partenza**: `9473e94c`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Quattro accensioni della routine (06:45Z, 09:45Z, 12:45Z, 15:45Z) lette in
-coda: la sessione era viva e ha appena chiuso l'unità di Terra «riepilogo
-dell'anno e archivio nel modulo» (3c1d97d1, pushata) — con lei la domanda
-«che cosa esce, e chi decide i suoi numeri?» è chiusa su tutte e sei le app.
-Adesso, in casa e senza agenti: Terra, il verbale del rilievo composto nel
-modulo (`verbaleRilievo`, stessa forma di `relazioneLotto`), con la
-sezione «Che cosa manca in questo verbale», le due iniezioni dei banchi
-riancorate sul modulo e otto prove nuove in run-kpi. Poi si torna ai ponti
-della mappa (Flotta→Conti, lettura vera da Conti).
+Due accensioni della routine (18:45Z e 21:45Z) lette in coda: la sessione
+era viva e ha chiuso, dopo le 18:30Z, cinque unità pushate — Sentinella, le
+condizioni meteo della misura e la regola del DM 16/03/1998 sul rumore
+(2cdb4d3c); `nomi-liberi` esteso ai riferimenti nudi, che ha trovato il
+secondo nome libero vero del giorno in Scudo (7ecf4089); le condizioni meteo
+anche dal file dello strumento (7828f53d); il banco del browser che le preme
+tutte, con la striscia di «Registra» che deve esserci (32f286ea). Adesso, in
+casa e senza agenti: si committa l'unità dei documenti già verificata sulla
+copia (decisione 19 sul ricettore delle polveri; il «non c'è» scaduto delle
+giacenze di Conti riscritto «c'è a metà»), poi si torna ai ponti della mappa
+(Flotta→Conti, la lettura vera da Conti) o alla passata in profondità su
+un'app, dal prossimo passo atomico del checkpoint.
