@@ -30788,7 +30788,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 30, `almeno 30 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 31, `almeno 31 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30802,7 +30802,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 8, `almeno 8 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    ok(conPagina >= 7, `almeno 7 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37692,6 +37692,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine registro interventi e lista della spesa nel modulo (05/09) ===== */
+/* ===== la situazione del parco nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvSituazione: mezzi, ordini di lavoro e ricambi con le parole dello schermo", () => {
+    const righe = flotta.csvSituazione(D.mezzi, D.manutenzioni, D.ricambi, D.rifornimenti).trim().split("\n");
+    eq(righe[0], flotta.CSV_SITUAZIONE_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, 1 + D.mezzi.length + D.manutenzioni.length + D.ricambi.length, "una riga per mezzo, per ordine di lavoro, per ricambio");
+    const mezzi = righe.filter((r) => r.startsWith("mezzo;")).map((r) => r.split(";")[1].replace(/^"|"$/g, ""));
+    eq(mezzi, mezzi.slice().sort((a, b) => a.localeCompare(b, "it")), "i mezzi in ordine di nome");
+    const e1 = righe.find((r) => /^mezzo;.*Escavatore E1/.test(r));
+    ok(e1 && /5\.870 h/.test(e1), "⛔ le ore raggruppate come sullo schermo (5.870, non 5870) — " + e1);
+    for (const n of D.manutenzioni) {
+      const r = righe.find((x) => x.startsWith("manutenzione;") && x.includes(n.titolo));
+      ok(r && r.split(";")[2].replace(/^"|"$/g, "") === flotta.statoOrdine(n).breve, "⛔ lo stato dell'ordine è quello di statoOrdine, mai una parola fissa — " + r);
+    }
+    for (const p of D.ricambi) {
+      const r = righe.find((x) => x.startsWith("ricambio;") && x.includes(p.nome));
+      ok(r && r.split(";")[2].replace(/^"|"$/g, "") === flotta.statoScorta(p).label, "lo stato del ricambio è quello di statoScorta — " + r);
+    }
+    const senza = flotta.csvSituazione([{ nome: "X", stato: "operativo" }], [], [{ nome: "bullone", giacenza: 3 }]).trim().split("\n");
+    ok(/ore non registrate/.test(senza[1]), "⛔ un mezzo senza ore lo dice, non scrive 0 h — " + senza[1]);
+    ok(/soglia minima non impostata/.test(senza[2]) && !/;ok;/.test(senza[2]), "⛔ un pezzo senza soglia non è «ok»: la soglia non impostata si dichiara — " + senza[2]);
+    eq(flotta.csvSituazione(null, null, null, null).trim(), flotta.CSV_SITUAZIONE_INTESTAZIONE, "null non rompe");
+  });
+}
+/* ===== fine situazione del parco nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

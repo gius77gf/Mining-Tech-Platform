@@ -438,10 +438,15 @@
   `csvListaDellaSpesa(proposta)` (le righe da ordinare e le tre avvertenze in
   fondo, una per bandiera della proposta): run-kpi +2 (2669), censiti
   `flotta.interventi` e `flotta.listaSpesa`, tre iniezioni riancorate.
-  **Restano nella pagina due file**: situazione e libretto — i più lunghi,
-  con le righe composte lì (le celle dalle funzioni del modulo). E in Conti
-  sei: incassi, clienti, costi, listino_prezzi, pesate_ddt, preventivi.
-  Comando di partenza:
+  Poi `csvSituazione(mezzi, manutenzioni, ricambi, letture)`: run-kpi +1
+  (2670), `flotta.prospetto` passa da «letto nella pagina» a «verificato
+  chiamando l'export». ⛔ E il banco `flotta-documenti-che-escono` applicava
+  le iniezioni SOLO alla pagina: le riancorate sul modulo non mordevano e
+  «✔ distingue» usciva lo stesso — corretto (ogni iniezione al file che
+  dichiara), e da allora si legge la riga «8 difetti rimessi davvero».
+  **Resta nella pagina un file di Flotta**: il libretto (il più lungo, ~60
+  righe di `R(...)`). E in Conti sei: incassi, clienti, costi,
+  listino_prezzi, pesate_ddt, preventivi. Comando di partenza:
   `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
   domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
@@ -1636,9 +1641,9 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(due
-  restano in Flotta — situazione e libretto — e sei in Conti: un paio per
-  unità, riancorando le iniezioni)*
+- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(resta
+  il libretto in Flotta, e sei file in Conti: un paio per unità, riancorando
+  le iniezioni — e leggendo «N difetti rimessi davvero»)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6554,8 +6559,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.150 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2669, `run-stile` 328,
+  **3.151 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2670, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

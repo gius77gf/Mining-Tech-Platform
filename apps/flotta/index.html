@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4570,34 +4570,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // ricambi con evidenza di quelli sotto scorta) in un CSV leggibile, da
   // girare a un responsabile o all'officina. Colonne: tipo;nome;stato;dettaglio.
   $("btn-flotta-export").onclick = () => {
-    let csv = "tipo;nome;stato;dettaglio\n";
-    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it")))
-      csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((oreNote(m.ore) ? (+m.ore).toLocaleString("it-IT") + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
-    /* ⛔ QUI C'ERA LA PAROLA «pianificata», SCRITTA FISSA, PER OGNI ORDINE.
-       `statoOrdine` sa dire tre cose — «da fare», «in corso» e «attesa pezzi»
-       — e l'ultima sullo schermo è ROSSA (`cls: "danger"`), col suo perché
-       scritto nel modulo: *il lavoro è fermo perché manca un pezzo, è la
-       ragione più frequente di una macchina ferma a lungo*. Una macchina
-       ferma ad aspettare un ricambio finiva in questo foglio — quello che si
-       gira al responsabile o all'officina — come «pianificata»: la parola più
-       tranquilla che l'app sappia dire, esattamente dove lo schermo è rosso.
-       Lo stato si mette a mano dalla scheda dell'ordine, quindi il caso non è
-       teorico: è un tocco.
-       ⚠️ E le ore uscivano grezze (`6000`) dove lo schermo raggruppa
-       (`6.000`): stessa riga, stessa famiglia. */
-    for (const n of MAN.slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
-      csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + (+n.orePreviste).toLocaleString("it-IT", { useGrouping: true }) + " h motore" + codaContatoreTx(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
-    /* ⛔ E LA COLONNA DELLO STATO DICEVA «ok» A UN PEZZO CHE NON HA UNA
-       SOGLIA. Stessa famiglia della riga qui sopra e stesso posto — il foglio
-       che si gira al responsabile — solo un pezzo più in giù: `sottoScorta`
-       non lo contiene (giusto: senza soglia non c'è niente sotto cui stare) e
-       il file traduceva quel «non c'è» in «ok», con accanto «soglia min 0»,
-       una soglia che nessuno ha scritto. Adesso la parola la decide
-       `statoScorta`, la stessa che disegna la pastiglia sullo schermo. */
-    for (const r of RIC.slice().sort((a, b) => a.nome.localeCompare(b.nome, "it"))) {
-      const s = statoScorta(r);
-      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
-    }
+    // le righe le compone `csvSituazione` nel modulo — `statoOrdine`, `statoScorta`
+    // e la coda sul contatore, dove `run-kpi` le prova (05/09)
+    const csv = csvSituazione(MEZ, MAN, RIC, RIF);
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "flotta_situazione.csv"; marchiaCsv(a); a.click();

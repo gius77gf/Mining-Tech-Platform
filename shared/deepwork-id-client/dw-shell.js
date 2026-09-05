@@ -522,7 +522,7 @@ export const CSV_TABELLE = [
   { id: "flotta.listaSpesa", app: "Flotta", etichetta: "la lista della spesa dei ricambi di Flotta",
     fonte: "flotta.csvListaDellaSpesa", col: "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi" },
   { id: "flotta.prospetto", app: "Flotta", etichetta: "il prospetto della flotta di Flotta",
-    pagina: "apps/flotta/index.html", col: "tipo;nome;stato;dettaglio" },
+    fonte: "flotta.csvSituazione", col: "tipo;nome;stato;dettaglio" },
   { id: "flotta.mezzi", app: "Flotta", etichetta: "l'elenco dei mezzi di Flotta",
     col: "nome;area;ore;stato" },
   { id: "flotta.telemetria", app: "Flotta", etichetta: "la telemetria dei mezzi di Flotta",

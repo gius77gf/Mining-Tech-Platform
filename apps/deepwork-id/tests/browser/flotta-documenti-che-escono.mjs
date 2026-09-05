@@ -159,8 +159,9 @@ const MODULO = join("apps", "flotta", "flotta-data.js");
    `iniezioni-fresche.mjs` rilegge questa tabella da fermo, in `npm test`. */
 const DIFETTI = [
   // 1 · la parola fissa al posto dello stato vero
-  ["};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? \"a \" + (+n.orePreviste).toLocaleString(\"it-IT\", { useGrouping: true }) + \" h motore\"",
-   "};pianificata;${csvCell(n.orePreviste ? \"a \" + n.orePreviste + \" h motore\""],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): le ore passano da `it()`. */
+  ["};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? \"a \" + it(n.orePreviste) + \" h motore\"",
+   "};pianificata;${csvCell(n.orePreviste ? \"a \" + n.orePreviste + \" h motore\"", MODULO],
   /* 2 · l'esito del giro deciso dalle sole voci, ignorando `anomalie`.
      ⚠️ L'ANCORA È CORTA DI PROPOSITO, e questa riga è nata sbagliata: la
      prima stesura citava le CINQUE righe del modello di riga, e un'ora dopo
@@ -196,8 +197,9 @@ const DIFETTI = [
   /* 6 · il file perde una riga in silenzio e la FRASE non se ne accorge: è la
      forma esatta del difetto che il confronto frase↔file esiste per prendere.
      Un mezzo sparisce dalla situazione, e il riepilogo continua a dire sei. */
-  ["    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))",
-   "    for (const m of MEZ.slice(1).sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: `MEZ` lì si chiama `mezzi`. */
+  ["  for (const m of (mezzi || []).filter(Boolean).slice().sort(",
+   "  for (const m of (mezzi || []).filter(Boolean).slice(1).sort(", MODULO],
   /* 7 · la colonna «stato» dei fermi che sa dire due cose su tre: un fermo con
      una data illeggibile usciva «chiuso», e la colonna dei giorni vuota.
      ⚠️ L'ancora è la riga della CELLA, non l'intero modello: sopra di lei c'è
@@ -211,8 +213,9 @@ const DIFETTI = [
      minima diceva «ok» con accanto «soglia min 0» — una soglia che nessuno ha
      scritto. La decisione adesso la prende `statoScorta`, la stessa che
      disegna la pastiglia sullo schermo. */
-  ["      const s = statoScorta(r);\n      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
-   "      const scorta = new Set(sottoScorta(RIC).map(x => x.id));\n      csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): due spazi in meno. */
+  ["    const s = statoScorta(r);\n    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
+   "    const scorta = new Set(sottoScorta(ricambi).map(x => x.id));\n    csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;", MODULO],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta

@@ -917,6 +917,34 @@ export function csvListaDellaSpesa(proposta) {
   return righe.join("\r\n");
 }
 
+/* LA SITUAZIONE DEL PARCO (05/09, salita dalla pagina): il foglio che si gira
+   al responsabile o all'officina — i mezzi con le ore (o «ore non
+   registrate»), gli ordini di lavoro con lo stato di `statoOrdine` (mai una
+   parola fissa: «attesa pezzi» è rosso sullo schermo e deve esserlo anche
+   qui) e la coda sul contatore non confrontabile, i ricambi con lo stato di
+   `statoScorta` (un pezzo senza soglia non è «ok»). Le ore raggruppate come
+   sullo schermo (`useGrouping`, regola 16). `letture` sono le letture del
+   contatore, per sapere se il tagliando parla del contatore attuale. Pura. */
+export const CSV_SITUAZIONE_INTESTAZIONE = "tipo;nome;stato;dettaglio";
+export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
+  const it = (v) => (+v).toLocaleString("it-IT", { useGrouping: true });
+  const codaContatore = (n) => {
+    if (!n.orePreviste) return "";
+    const c = contatoreDelTagliando(n, azzeramentiDelMezzo(letture || [], n.mezzo));
+    return c.calcolabile ? "" : " · non confrontabile col contatore attuale: " + c.perche;
+  };
+  let csv = CSV_SITUAZIONE_INTESTAZIONE + "\n";
+  for (const m of (mezzi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it")))
+    csv += `mezzo;${csvCell(m.nome)};${m.stato};${csvCell((numeroDichiarato(m.ore) != null ? it(m.ore) + " h" : "ore non registrate") + (m.area ? " · " + m.area : ""))}\n`;
+  for (const n of (manutenzioni || []).filter(Boolean).slice().sort((a, b) => (a.dataPrevista || "9999") < (b.dataPrevista || "9999") ? -1 : 1))
+    csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + it(n.orePreviste) + " h motore" + codaContatore(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
+  for (const r of (ricambi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))) {
+    const s = statoScorta(r);
+    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
+  }
+  return csv;
+}
+
 export function csvRicambi(ricambi) {
   const righe = ["nome;giacenza;sogliaMin;prezzo"];
   for (const r of (ricambi || [])) {
