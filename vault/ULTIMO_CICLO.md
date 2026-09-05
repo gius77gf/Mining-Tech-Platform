@@ -1,15 +1,17 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-05, 03:47 UTC
-- **Commit di partenza**: `80595b8c`
+- **Quando**: 2026-09-05, 15:47 UTC
+- **Commit di partenza**: `bfe0d435`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Due accensioni della routine (00:45Z e 03:45Z) arrivate mentre la sessione
-chiudeva l'unità di Conti «file della banca per nome» (939fb127, pushata).
-Adesso, in casa e senza agenti: Conti (b), il riferimento TRN/CRO tenuto sul
-movimento (`mappaMovimentiCsv` + `parseMovimentiCsv` + riga del movimento
-nella pagina + prova in run-kpi + terzo CSV nel banco `conti-banca-colonne`).
-Poi si prosegue con la rotazione: il cantiere Genesi (id stabile del foro +
-confronto progettato/reale con Campo) è il blocco grosso che segue.
+Quattro accensioni della routine (06:45Z, 09:45Z, 12:45Z, 15:45Z) lette in
+coda: la sessione era viva e ha appena chiuso l'unità di Terra «riepilogo
+dell'anno e archivio nel modulo» (3c1d97d1, pushata) — con lei la domanda
+«che cosa esce, e chi decide i suoi numeri?» è chiusa su tutte e sei le app.
+Adesso, in casa e senza agenti: Terra, il verbale del rilievo composto nel
+modulo (`verbaleRilievo`, stessa forma di `relazioneLotto`), con la
+sezione «Che cosa manca in questo verbale», le due iniezioni dei banchi
+riancorate sul modulo e otto prove nuove in run-kpi. Poi si torna ai ponti
+della mappa (Flotta→Conti, lettura vera da Conti).
