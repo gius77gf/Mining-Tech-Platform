@@ -515,3 +515,11 @@ Aperte le funzioni invece di fidarsi della riga qui sopra:
   «foro non trovato nel consuntivo» / «riga del consuntivo senza foro nel
   progetto» dichiarati. È un blocco intero, non un'unità di notte: va aperto
   come cantiere, con le due app e `shared/` serializzati.
+
+*Aggiornamento 05/09, ciclo delle 03:47Z (commit successivo a `0635f6d4`): il
+pezzo (1) è fatto — `idForoMaglia` e `idForoNuovo` in `genesi-data.js`, l'id
+nasce in `genMaglia2D` e sulla tela, esce come `id_foro` in coda al piano di
+carico e nel `.volata.json` (`grep -c "idForoMaglia\|idForoNuovo"
+apps/genesi/genesi.html` → 3). Restano (2) Campo e (3) l'accoppiamento in
+Genesi, che senza (2) non ha ancora un lettore: la riga «(a) senza un lettore
+è un identificatore che nessuno usa» resta vera fino a (2)+(3).*

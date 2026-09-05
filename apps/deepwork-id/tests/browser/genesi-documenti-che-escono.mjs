@@ -140,6 +140,10 @@ const DIFETTI = [
      controprova che non aggancia gira su un prodotto sano dicendo «distingue».
      Qui basta il numero, che è il soggetto della prova. */
   [`_ricPlur(D2.holes.length,'foro','fori')`, `_ricPlur(D2.holes.length+1,'foro','fori')`],
+  // 7 · il piano di carico senza l'id del foro (05/09): la colonna c'è, vuota
+  [`+';'+(h.id||'')+'\\n';`, `+';'+''+'\\n';`],
+  // 8 · e il .volata.json che torna a chiamarli per posizione
+  [`id:f.id||('foro_'+(f.i+1)),`, `id:'foro_'+(f.i+1),`],
 ];
 
 const colpiti = new Set();
@@ -452,6 +456,12 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
 {
   const pg = await apri(SITO_TRE);
   const piano = await esce(pg, "btn-piano-csv", "piano di carico");
+  /* il .volata.json descrive la SIMULAZIONE: finché il progetto 2D non ci è
+     passato (il bottone «Simula»), i suoi fori sono quelli della dimostrazione
+     a una fila, battezzati foro_n — e per caso dodici come la maglia. Qui si
+     simula prima, così il file racconta il progetto e i due file si possono
+     confrontare foro per foro, id compreso */
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
   const jsonTx = await esce(pg, "btnExport", "volata JSON");
   const j = JSON.parse(jsonTx || "{}");
   const rit = (j.volata && j.volata.fori || []).map((f) => f.ritardo);
@@ -464,6 +474,15 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
   dice(rit.every((v, i) => String(v) === String(+ritPiano[i])),
     "⛔ i ritardi del .volata.json sono quelli del piano di carico, foro per foro",
     JSON.stringify(rit) + "\n           piano: " + JSON.stringify(ritPiano));
+  /* l'id stabile del foro (05/09): tredicesima colonna del piano, e lo stesso
+     nome nel .volata.json — è la chiave che Campo rimanda nel consuntivo */
+  const testaPiano = (piano.split("\n")[0] || "").split(";");
+  const idPiano = piano.split("\n").slice(1).filter(Boolean).map((r) => r.split(";")[12]);
+  const idJson = (j.volata && j.volata.fori || []).map((f) => f.id);
+  dice(testaPiano[12] === "id_foro" && idPiano.length === 12 && idPiano.every((x) => /^f\d+-\d+$/.test(x)) && new Set(idPiano).size === 12,
+    "⛔ ogni foro del piano porta un id_foro suo (fila-colonna), tutti diversi", JSON.stringify(idPiano));
+  dice(idJson.length === 12 && [...idJson].sort().join() === [...idPiano].sort().join(),
+    "⛔ e il .volata.json chiama i fori con gli stessi id del piano", JSON.stringify(idJson));
   dice(rit.every((v) => Number.isInteger(v * 10) && Math.abs(v % passo) < 0.05),
     `⛔ e sono multipli del passo dichiarato due righe sopra (${passo} ms), non lo scatter sorteggiato`,
     JSON.stringify(rit.slice(0, 5)));

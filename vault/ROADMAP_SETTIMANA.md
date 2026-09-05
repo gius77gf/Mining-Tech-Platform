@@ -420,6 +420,37 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [ ] **GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO, misurato
+  inesistente il 05/09 notte** (`docs/RICERCA_CONTINUA_GENESI.md`, ultima
+  sezione): il `foro` del piano di carico è la posizione nella sequenza di
+  sparo, ricalcolata a ogni `computeSeq2D` — cancellare un foro rinumera gli
+  altri — e `_riconRiassuntoCampo` fa somme e medie sulla volata intera, mai
+  un accoppiamento. Tre pezzi che vanno insieme, in ordine:
+  (1) ✅ **05/09, ciclo delle 03:47Z** — l'id stabile nasce col foro:
+  `idForoMaglia(fila, colonna)` («f2-5», si legge sulla carta) in
+  `genMaglia2D`, `idForoNuovo(holes)` («m1, m2…», il primo numero libero) per
+  il foro aggiunto sulla tela; l'import XML passa da `genMaglia2D` e lo
+  eredita; il piano di carico lo porta come tredicesima colonna `id_foro`
+  (in coda: chi ne conosce dodici non si accorge di niente) e il
+  `.volata.json` chiama i fori con lo stesso id quando la simulazione viene
+  dal progetto 2D (`foro_n` resta per la dimostrazione a una fila, che i fori
+  non li ha battezzati). run-kpi +2; `genesi-documenti-che-escono` 75/0 con
+  due iniezioni nuove (la colonna vuota; il JSON per posizione).
+  ⚠️ Osservato e non toccato: il `design` salvato in Home non contiene
+  `D2.holes` (`volSnapshot`, riga «design:JSON.parse(…)») e «Apri» fa
+  `D2.holes=[]` prima di ridisegnare — quindi un foro aggiunto a mano, uno
+  tolto e i ritardi messi a mano NON sopravvivono a salva→riapri. Gli id di
+  maglia sì, perché sono deterministici. Va deciso se il progetto salvato deve
+  portare i fori: è una scelta di prodotto, non un dettaglio.
+  (2) Campo conserva l'id nel piano (`PIANO_COLONNE.id`, colonna facoltativa)
+  e lo rimanda nel consuntivo in coda (`CONSUNTIVO_COLONNE` + `id_foro`;
+  aggiornare il censimento in `dw-shell` e i due banchi che fissano
+  l'intestazione alla lettera: `campo-numeri-tranquilli` e
+  `genesi-frasi-limite`). (3) in Genesi `_riconParseCampo` legge `id_foro` e
+  una funzione pura nuova accoppia ogni foro del progetto alla sua riga —
+  per id quando c'è, per numero altrimenti, DICHIARANDO quale chiave ha usato
+  — e dichiara «foro del progetto senza riga» e «riga senza foro nel
+  progetto»; la pagina la disegna sotto la riconciliazione di Campo.
 - [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
@@ -1407,6 +1438,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO` *((1) id stabile
+  fatto; restano (2) Campo che lo conserva e (3) l'accoppiamento in Genesi)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6316,8 +6349,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.099 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2618, `run-stile` 328,
+  **3.101 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2620, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

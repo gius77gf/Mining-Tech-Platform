@@ -36976,7 +36976,25 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(demo.filter((x) => x.riferimento).length, 1, "la dimostrazione ne porta uno, così il caso si vede");
   });
 }
-/* ===== fine riferimento della banca (Conti, 05/09) ===== */
+/* ===== l'id stabile del foro (Genesi, 05/09) ===== */
+{
+  const g = genesi;
+  test("Genesi · idForoMaglia: fila-colonna che si legge sulla carta, e null dove non c'è una maglia", () => {
+    eq(g.idForoMaglia(1, 1), "f1-1", "il primo foro della prima fila");
+    eq(g.idForoMaglia(2, 5), "f2-5", "seconda fila, quinto foro");
+    eq(g.idForoMaglia(0, 1), null, "⛔ le file si contano da uno");
+    eq(g.idForoMaglia(1.5, 1), null, "una fila e mezza non esiste");
+    eq(g.idForoMaglia(null, 1), null, "e null resta null, non «fnull-1»");
+  });
+  test("Genesi · idForoNuovo: il primo numero libero, così cancellare e aggiungere non fa due omonimi", () => {
+    eq(g.idForoNuovo([]), "m1", "il primo foro a mano");
+    eq(g.idForoNuovo([{ id: "f1-1" }, { id: "m1" }, { id: "m2" }]), "m3", "dopo m1 e m2 viene m3");
+    eq(g.idForoNuovo([{ id: "f1-1" }, { id: "m1" }, { id: "m3" }]), "m2", "⛔ tolto m2, il prossimo è m2: non m4, e non un doppione");
+    eq(g.idForoNuovo([{ mx: 1, my: 2 }]), "m1", "fori senza id (un progetto vecchio) non contano");
+    eq(g.idForoNuovo(null), "m1", "e senza elenco si parte da uno");
+  });
+}
+/* ===== fine id stabile del foro (Genesi, 05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

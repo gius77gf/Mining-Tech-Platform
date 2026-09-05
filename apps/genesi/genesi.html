@@ -1049,6 +1049,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    qui `riconStorico`, `riconSave`, `riconRender` e `_riconCampoHtml`, che
    leggono `localStorage`, il DOM o lo stato del progetto aperto. */
          _rEsc, _riconParseCampo, _riconRiassuntoCampo, riconDelta, csvRiconciliazione,
+         idForoMaglia, idForoNuovo,
 /* `campoMisurato` risponde alla stessa domanda per i DUE posti che rileggono un
    consuntivo già salvato — la riga di storico qui sotto e il CSV che esce
    dall'azienda — e sta nel modulo perché scritta due volte diventerebbe la
@@ -1715,7 +1716,7 @@ function buildSim(){
       const hh=P.holes[i], x=hh.x;
       const col=Math.max(0, Math.min((P.foriH?P.foriH.length:1)-1, Math.round((x-INTERASSE/2)/INTERASSE)));
       const h=(P.foriH && P.foriH[col]!=null) ? P.foriH[col] : prof;
-      fori.push({ i, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
+      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
     }
   } else {
     for(let i=0;i<n;i++){                                          // fallback demo manuale: una fila, sequenza ricostruita
@@ -3043,7 +3044,9 @@ $('btnExport').onclick = ()=>{
      assente travestito da misura. `null` in JSON è la convenzione di tutto
      l'ecosistema, e chi rilegge la sa già trattare. */
   const _vj=(x)=>{ const n=(x===null||x===undefined||x==='')?NaN:+x; return Number.isFinite(n)?n:null; };
-  const fori = SIM.fori.map(f=>({ id:'foro_'+(f.i+1), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
+  /* l'id è quello del progetto 2D quando c'è (f1-3, m1); `foro_n` resta per la
+     dimostrazione manuale a una fila, che i fori non li ha battezzati */
+  const fori = SIM.fori.map(f=>({ id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
     kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
     innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
@@ -5048,11 +5051,16 @@ $('btn-piano-csv').onclick=()=>{
   const _pc=(v)=>{ const n=(v===null||v===undefined||v==='')?NaN:+v; return Number.isFinite(n)?n:''; };
   const _pcMancanti=[['la profondità',_pc(D2.prof)],['la carica di progetto',_pc(D2.kg)],
     ['il borraggio',_pc(D2.stem)]].filter(x=>x[1]==='').map(x=>x[0]);
-  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3\n';
+  /* `id_foro` in coda (05/09): il numero «foro» è la posizione nella sequenza
+     di sparo e cambia se un foro si toglie; l'id nasce col foro e resta. Campo
+     lo conserva e lo rimanda nel consuntivo, ed è la chiave del confronto
+     foro per foro. In coda, così un lettore che conosce dodici colonne non
+     si accorge di niente. */
+  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro\n';
   D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
     csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+_pc(D2.prof)+';'+_pc(D2.kg)+';'+_pc(D2.stem)+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
       +';'+(h.burdenLoc!=null?h.burdenLoc.toFixed(2):'')+';'+(h.spazLoc!=null?h.spazLoc.toFixed(2):'')
-      +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+'\n';
+      +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+';'+(h.id||'')+'\n';
   });
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
@@ -5185,7 +5193,7 @@ function genMaglia2D(){
   for(let r=0;r<D2.file;r++){
     const my = D2.B + r*D2.bf;
     const off = (D2.stagger && r%2===1) ? D2.S/2 : 0;
-    for(let c=0;c<D2.perRow;c++) holes.push({ mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
+    for(let c=0;c<D2.perRow;c++) holes.push({ id:idForoMaglia(r+1,c+1), mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
   }
   /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
@@ -5903,7 +5911,7 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(p.x,p.y);
   if(i<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
-    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
   if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
@@ -6918,7 +6926,7 @@ function simulaVolata2D(){
   computeSeq2D();
   if(D2.holes && D2.holes.length){
     const mxs=D2.holes.map(h=>h.mx), mys=D2.holes.map(h=>h.my), minMx=Math.min(...mxs), minMy=Math.min(...mys);
-    P.holes = D2.holes.map(h=>({ x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
+    P.holes = D2.holes.map(h=>({ id:h.id||null, x:h.mx-minMx+INTERASSE/2, zoff:Math.max(0,h.my-minMy), tDet:h.tDet||0 }));
   } else P.holes=null;
   simSource='progetto'; if($('pTitle')) $('pTitle').textContent='Volata dal progetto 2D';
   rebuild(); setScreen('sim');

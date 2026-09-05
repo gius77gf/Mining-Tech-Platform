@@ -1852,6 +1852,26 @@ export function gittataSenzaSpalla(lff, altri, tetto) {
    `null` se uno dei due non è un numero leggibile e positivo.
    ⚠️ Zero fori per fila non è una griglia più piccola, è l'assenza di una
    griglia: il campo della pagina parte da 3. */
+/* L'ID STABILE DEL FORO (05/09). Fino a oggi un foro del progetto 2D era la
+   sua POSIZIONE nell'array: cancellarne uno rinumerava tutti quelli dopo, e il
+   piano di carico che esce per Campo scriveva la posizione nella sequenza di
+   sparo, ricalcolata a ogni `computeSeq2D`. Nessun confronto foro per foro
+   può reggere su un nome che cambia sotto i piedi. L'id nasce con il foro e
+   non cambia più: nella maglia è «fila-colonna» (f2-5: seconda fila, quinto
+   foro), che si legge sulla carta; un foro aggiunto a mano sulla tela è
+   m1, m2… — il primo numero libero, così cancellare m2 e aggiungerne uno
+   non ne fa due con lo stesso nome. Pure. */
+export function idForoMaglia(fila, colonna){
+  const f = +fila, c = +colonna;
+  if (!(Number.isInteger(f) && f >= 1 && Number.isInteger(c) && c >= 1)) return null;
+  return 'f' + f + '-' + c;
+}
+export function idForoNuovo(holes){
+  const presi = new Set((holes || []).map(h => h && h.id).filter(Boolean));
+  let n = 1; while (presi.has('m' + n)) n++;
+  return 'm' + n;
+}
+
 export function foriDiProgetto(perRow, file){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const c = n(perRow), r = n(file);
