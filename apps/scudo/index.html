@@ -1759,7 +1759,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura, statoCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
-    cartellaLavoratore, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
+    cartellaLavoratore, fogliaVerbaleDpi, fogliaCartella, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
     /* `indiciInfortunistici` non si importa più: gli indici dell'anno in corso
@@ -5643,58 +5643,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // ── S5 · IL VERBALE DI CONSEGNA SU CARTA ─────────────────────────────
   // Quello che in ispezione viene chiesto per primo. Sullo schermo non c'è:
   // si costruisce al momento e vive solo dentro la stampa.
+  /* Le righe del verbale le compone `fogliaVerbaleDpi` nel modulo (da
+     `verbaleDpi`, la stessa dello schermo): qui si disegna e basta. Il
+     grassetto arriva come «**così**». La cella dell'azienda porta i puntini da
+     compilare a penna, quella della firma resta vuota. */
+  const mdFoglio = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   function costruisciVerbale(lav) {
-    const v = verbaleDpi(lav, DPI);
-    const mans = MANS.filter(m => (m.lavoratoriIds || []).includes(lav.id)).map(m => m.nome).join(", ");
+    const F = fogliaVerbaleDpi(lav, { dpi: DPI, mansioni: MANS, oggi: new Date() });
     const puntini = '<span style="letter-spacing:1px;">........................................</span>';
-    const righe = v.righe.map(r => {
-      const c = r.consegna;
-      // Se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
-      // foglio lo dice: è lavoro fatto e registrato, buttarlo via scrivendo
-      // «non previsto» sarebbe far sparire una cosa vera.
-      const add = !r.addestramentoRichiesto
-        ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
-        : (r.addestramentoFatto
-            ? "fatto" + (c.dataAddestramento ? " il " + fmtData(c.dataAddestramento) : "")
-            : "DA FARE");
-      return `<tr><td>${esc(r.tipo.etichetta)}</td><td>${esc(r.tipo.cat)}</td>
-        ${/* ⛔ E IL «MODELLO» È L'ULTIMO TRATTINO DI QUESTO FOGLIO (08/08).
-             Su cinque righe della dimostrazione su sette la colonna scriveva
-             «—», e su un verbale firmato quel segno si legge «questo
-             dispositivo non ha un modello» — mentre la verità è che nessuno
-             l'ha registrato. Non è un campo inapplicabile come la taglia
-             «unica»: l'art. 77 chiede che il DPI consegnato sia
-             IDENTIFICABILE, e il modello è quello che lo identifica.
-             Stessa parola delle due colonne accanto, corrette lo stesso
-             giorno: si dice quello che è successo, non si tace con un segno.
-             ⚠️ La taglia resta col trattino ed è voluto: «unica» esiste
-             davvero come risposta, quindi una taglia vuota su un dispositivo
-             a taglia unica non è una mancanza — sono due domande diverse e
-             vanno scritte diverse. */""}
-        <td>${c.modello ? esc(c.modello) : "non registrato"}</td><td>${esc(c.taglia || "—")}</td>
-        <!-- decisione 14: su un foglio stampato «—» si legge «non serve». Le
-             due cose vere sono diverse, e vanno scritte diverse: chi lo ha
-             dichiarato e chi non l'ha mai scritto. -->
-        <!-- ⛔ LA COLONNA LEGGE LO STATO DELLA RIGA, NON RI-DECIDE (03/08). Il
-             ternario qui sotto guardava solo SE la data c'era, e quindi una
-             maschera da sostituire dal 10/07/2020 usciva stampata
-             «10/07/2020», identica a una valida fino al 2099. Misurato
-             affiancando i due fogli sugli STESSI dati: la CARTELLA, due
-             bottoni più in là, sulla stessa riga scrive «da sostituire».
-             La funzione verbaleDpi lo stato lo calcola già per ogni riga (con
-             statoConsegnaDpi): era lì e non lo leggeva nessuno.
-             Copre anche la data ILLEGGIBILE, che finiva stampata «—» — cioè,
-             su un foglio, «non serve»: adesso è «non indicata» come il vuoto,
-             che è quello che il modulo dice («senza data»).
-             ⚠️ Questo commento è dentro un template literal: niente apici
-             inversi qui, chiuderebbero la stringa a metà. -->
-        <td>${r.leggibile ? fmtData(c.dataConsegna) : "non indicata"}</td><td>${
-          c.nonScade === true ? "non scade (dichiarato)"
-          : r.stato === "senza data" ? "non indicata"
-          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"
-                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}</td>
-        <td>${esc(add)}</td><td class="vb-firma"></td></tr>`;
-    }).join("");
+    const righe = F.righe.map(r => `<tr>${r.map((c, i) => i === 7 ? '<td class="vb-firma"></td>' : `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
     scriviFoglio(
       /* la conseguenza detta per QUESTO foglio: un verbale di consegna serve
          a provare che i dispositivi sono stati dati a quella persona, e la
@@ -5704,32 +5661,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "
       + "davanti a un controllo.", `
       <div class="vb-testa">
-        <div class="vb-tit">Verbale di consegna dei DPI</div>
-        <div class="vb-sub">Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008</div>
+        <div class="vb-tit">${esc(F.titolo)}</div>
+        <div class="vb-sub">${esc(F.sottotitolo)}</div>
       </div>
       <table class="vb-dati">
-        <tr><td>Azienda / cava</td><td>${puntini}</td></tr>
-        <tr><td>Lavoratore</td><td><b>${esc(lav.nome)}</b></td></tr>
-        <tr><td>Mansione</td><td>${esc(mans || lav.ruolo || "—")}</td></tr>
-        <tr><td>Data del verbale</td><td>${fmtData(oggiISO())}</td></tr>
+        ${F.dati.map(([et, t, aPenna]) => `<tr><td>${esc(et)}</td><td>${aPenna ? puntini : et === "Lavoratore" ? "<b>" + esc(t) + "</b>" : esc(t)}</td></tr>`).join("")}
       </table>
-      ${v.righe.length ? `<table class="vb-tab">
-        <thead><tr><th>Dispositivo</th><th>Cat.</th><th>Modello</th><th>Taglia</th>
-        <th>Consegnato il</th><th>Sostituire entro</th><th>Addestramento</th><th>Firma</th></tr></thead>
+      ${F.righe.length ? `<table class="vb-tab">
+        <thead><tr>${F.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
         <tbody>${righe}</tbody></table>`
-        : '<div class="vb-nota">Per questa persona non risulta registrata nessuna consegna.</div>'}
-      <div class="vb-nota">
-        Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato
-        sui rischi da cui proteggono e di aver ricevuto l'<b>addestramento</b> dove indicato come fatto.
-        Si impegna a <b>usarli</b> quando previsto, ad <b>averne cura</b>, a <b>non modificarli</b> e a
-        <b>segnalare subito</b> difetti, danni o smarrimenti al preposto o al datore di lavoro
-        (artt. 20 e 78 D.Lgs 81/2008).
-      </div>
-      <div class="vb-firme">
-        <div>Firma del lavoratore</div>
-        <div>Firma di chi consegna (datore di lavoro o preposto)</div>
-      </div>
-      <div class="vb-pie">Documento preparato con Scudo · Deepwork — ${v.righe.length} ${v.righe.length === 1 ? "dispositivo" : "dispositivi"}${v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : ""}. Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.</div>`);
+        : `<div class="vb-nota">${esc(F.vuota)}</div>`}
+      <div class="vb-nota">${mdFoglio(F.dichiarazione)}</div>
+      <div class="vb-firme">${F.firme.map(f => `<div>${esc(f)}</div>`).join("")}</div>
+      <div class="vb-pie">${esc(F.piede)}</div>`);
   }
   function stampaVerbale(lav) {
     costruisciVerbale(lav);
@@ -5768,88 +5712,29 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      Quello che la cartella aggiunge e' che DICHIARA le sezioni vuote: un
      fascicolo stampato mente per omissione, e una sezione senza righe si legge
      «non dovuto» invece che «non registrato». La frase la scrive il modulo. */
+  /* Le sezioni della cartella le compone `fogliaCartella` nel modulo (da
+     `cartellaLavoratore`, la stessa della finestra che precede la stampa):
+     qui si disegna e basta. */
   function costruisciCartella(c) {
-    const l = c.lavoratore;
-    const riga = (a, b) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${b}</td></tr>`;
-    const sezione = (titolo, righe, vuotoTesto) => `
-      <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(titolo)}</h3>`
-      + (righe.length
-          ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${righe.join("")}</table>`
-          : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(vuotoTesto)}</div>`);
-
+    const F = fogliaCartella(c, new Date());
+    const riga = ([a, b]) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${mdFoglio(b)}</td></tr>`;
+    const sezione = (S) => `
+      <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(S.titolo)}</h3>`
+      + (S.righe.length
+          ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${S.righe.map(riga).join("")}</table>`
+          : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(S.vuoto)}</div>`);
     scriviFoglio(
       /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo
          personale che si esibisce all'ispettore e che si tiene agli atti.
          Le due cose da vietare sono quelle. */
       "Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "
       + "né tenuta agli atti come fascicolo personale.", `
-      <h2 style="font-size:17px;margin:0 0 2px;">Cartella del lavoratore</h2>
-      <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(l.nome)}${l.ruolo ? " · " + esc(l.ruolo) : ""} — documento preparato con Deepwork Scudo il ${fmtData(oggiISO())}</div>
-      ${sezione("Mansioni assegnate",
-          c.mansioni.map(m => riga(m.nome, esc((m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"))),
-          "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.")}
-      ${/* ⛔ LA RIGA PORTAVA LA FAMIGLIA, NON L'ADEMPIMENTO (07/08). Scriveva
-            `x.scadenza.tipo`, cioè «Formazione», «Patente», «Visita medica» —
-            mentre lo scadenzario a schermo e il CSV del personale, sugli
-            stessi dati, scrivono `descrizione`, che è l'obbligo vero. Sul
-            fascicolo che si esibisce all'ispettore due adempimenti distinti
-            uscivano dalla stampante come due righe IDENTICHE («Formazione
-            30/05/2029 · regolare» ripetuta due volte, misurata su Mario Rossi
-            della dimostrazione), e il patentino di fochino usciva «Patente».
-            È la stessa famiglia della chiave interna stampata al posto
-            dell'etichetta dei DPI, corretta il 03/08 due sezioni più sotto.
-            E il ripiego «—» era la decisione 14 violata: su un foglio si
-            legge «non serve». Adesso decide `etichettaScadenza`, che la
-            leggono tutt'e tre le superfici. */""}
-      ${sezione("Formazione e scadenze",
-          c.scadenze.map(x => riga(etichettaScadenza(x.scadenza),
-            (x.scadenza.dataScadenza ? fmtData(x.scadenza.dataScadenza) : "senza data") + " · " + esc(x.stato || "—"))),
-          "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.")}
-      ${/* ⛔ `r.tipo.nome` NON ESISTE: i tipi di DPI hanno `etichetta` (il campo
-            `nome` ce l'hanno i tipi di PERMESSO, ed è da lì che la riga era
-            stata copiata). Il fallback funzionava sempre, quindi il fascicolo
-            che si esibisce all'ispettore stampava la CHIAVE INTERNA —
-            «maschera» invece di «Facciale filtrante / respiratore»,
-            «otoprotettori» invece di «Otoprotettori (cuffie o inserti)» — su
-            tutte e dodici le voci, senza nessun errore da leggere.
-            Lo stato della consegna non c'era e adesso c'è: una consegna
-            scaduta o senza data di sostituzione, stampata identica a una in
-            corso di validità, è la stessa omissione che `vuoti` esiste per
-            impedire, un piano più sotto. */""}
-      ${sezione("Dispositivi di protezione consegnati",
-          c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,
-            (r.leggibile ? fmtData(r.consegna.dataConsegna) : "data di consegna non indicata")
-            + (r.consegna.taglia ? " · taglia " + esc(r.consegna.taglia) : "")
-            + (r.stato === "scaduta" ? " · <b>da sostituire</b>"
-             : r.stato === "in-scadenza" ? " · da sostituire a breve"
-             : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")
-            + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · <b>addestramento da fare</b>") : ""))),
-          "Nessun DPI consegnato risulta a registro.")}
-      ${c.nomine.length ? sezione("Nomine attive",
-          c.nomine.map(n => riga((ruoloNomina(n.ruolo) || {}).etichetta || n.ruolo,
-            n.dal ? "dal " + fmtData(n.dal) : "senza data di nomina")), "") : ""}
-      ${/* ⛔ LO STATO DEL DOCUMENTO NON C'ERA (03/08). La riga stampava titolo
-            e `meta` — che è testo libero e può essere vuoto — e basta: sul
-            fascicolo che si esibisce all'ispettore un documento «Da rivedere»
-            o dallo stato mai registrato usciva identico a uno valido, con la
-            cella di destra bianca. Su un foglio una cella bianca accanto a un
-            documento si legge «a posto».
-            Lo stato lo decide `etichettaStatoDocumento`, la stessa che disegna
-            la pastiglia nell'elenco dei Documenti: qui non si ri-decide niente.
-            `meta` resta, dopo, perché è la nota che l'utente ha scritto. */""}
-      ${c.documenti.length ? sezione("Documenti collegati",
-          c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);
-            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")
-              + (d.meta ? " · " + esc(d.meta) : "")); }), "") : ""}
-      ${/* ⛔ E IL COLORE SEGUE LE RIGHE, NON SOLO LE SEZIONI. Grigio quando è
-            completa: una cartella con dentro una visita medica scaduta e un
-            DPI da sostituire chiudeva in grigio, cioè col colore tranquillo su
-            un foglio che due centimetri più sopra scrive «DA SOSTITUIRE».
-            `daSistemare` è l'elenco di quelle righe, e lo compone il modulo. */""}
-      <div style="margin-top:14px;font-size:11.5px;${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}">${esc(descriviCartella(c))}</div>
+      <h2 style="font-size:17px;margin:0 0 2px;">${esc(F.titolo)}</h2>
+      <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(F.sottotitolo)}</div>
+      ${F.sezioni.map(sezione).join("")}
+      <div style="margin-top:14px;font-size:11.5px;${F.chiusura.allarme ? "color:#8a0000;font-weight:600;" : "color:#555;"}">${esc(F.chiusura.testo)}</div>
       <div style="margin-top:22px;display:flex;gap:26px;">
-        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Luogo e data</div>
-        <div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">Il datore di lavoro</div>
+        ${F.firme.map(f => `<div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">${esc(f)}</div>`).join("")}
       </div>`);
   }
   $("btn-cartella").onclick = async () => {

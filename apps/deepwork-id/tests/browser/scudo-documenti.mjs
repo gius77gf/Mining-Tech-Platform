@@ -246,16 +246,18 @@ const DIFETTI = [
   /* 7. la colonna «Sostituire entro» del VERBALE che ri-decideva invece di
         leggere `r.stato`: una maschera da sostituire da anni stampata come una
         valida fino al 2099. */
-  ['${\n          c.nonScade === true ? "non scade (dichiarato)"\n          : r.stato === "senza data" ? "non indicata"\n          : fmtData(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE"\n                                 : r.stato === "in-scadenza" ? " — da sostituire a breve" : "")}',
-   '${c.scadenza ? fmtData(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata")}'],
+  /* ⏱️ dal 05/09 la cella la compone `fogliaVerbaleDpi` nel MODULO */
+  ['    const sost = c.nonScade === true ? "non scade (dichiarato)"\n      : r.stato === "senza data" ? "non indicata"\n      : dataIt(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE" : r.stato === "in-scadenza" ? " — da sostituire a breve" : "");',
+   '    const sost = c.scadenza ? dataIt(c.scadenza) : (c.nonScade === true ? "non scade (dichiarato)" : "non indicata");', MODULO],
   /* ── LA CARTELLA DEL LAVORATORE (03/08) ────────────────────────────────
     13. la riga del documento collegato senza il suo stato: sul foglio usciva
         titolo + `meta` (testo libero, spesso vuoto) e basta. */
-  ['c.documenti.map(d => { const e = etichettaStatoDocumento(d.stato);\n            return riga(d.titolo, (e.valido ? "" : "<b>") + esc(e.label) + (e.valido ? "" : "</b>")\n              + (d.meta ? " · " + esc(d.meta) : "")); })',
-   'c.documenti.map(d => riga(d.titolo, esc(d.meta || "")))'],
+  /* ⏱️ dal 05/09 le righe della cartella le compone `fogliaCartella` nel MODULO */
+  ['      return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));',
+   '      return [String(d.titolo || ""), String(d.meta || "")]; }), ""));', MODULO],
   // 14. il colore della riga di chiusura deciso solo dalle sezioni vuote
-  ['${c.completa && !c.daSistemare.length ? "color:#555;" : "color:#8a0000;font-weight:600;"}',
-   '${c.completa ? "color:#555;" : "color:#8a0000;font-weight:600;"}'],
+  ['    chiusura: { testo: descriviCartella(c), allarme: !(c.completa && !(c.daSistemare || []).length) },',
+   '    chiusura: { testo: descriviCartella(c), allarme: !c.completa },', MODULO],
   // 15. la finestra prima di stampare che non dice che cosa si troverà dentro
   ['      + (c.daSistemare.length\n        ? "<br><br>⚠️ <b>Completa non vuol dire in regola:</b> fra le righe registrate ce ne sono che non lo sono — "\n          + esc(c.daSistemare.join(", ")) + ". Il foglio le riporta una per una."\n        : "")\n', ""],
   /* 16. LA CODA DELLA FRASE, che sta nel MODULO: senza, un fascicolo con

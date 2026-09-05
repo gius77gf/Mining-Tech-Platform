@@ -615,6 +615,33 @@
   `attenzione` del rapporto (controprova 18 su 18 rimessi, 41 cadute su
   94). Scatto del rapporto guardato: stesso foglio. **Campo: rapporto e
   consegna composti nel modulo, cinque CSV su cinque.**
+- [x] **SCUDO — il verbale DPI e la cartella del lavoratore si compongono
+  nel modulo (05/09):** i due fogli che si stampano dallo schermo.
+  `fogliaVerbaleDpi(lav, {dpi, mansioni, oggi})` — le otto colonne in testo
+  (il modello mai registrato lo dice, la data illeggibile «non indicata», la
+  scadenza passata «— DA SOSTITUIRE» letta dallo stato di `verbaleDpi`,
+  l'addestramento «fatto (non obbligatorio)» / «non previsto» / «fatto il …»
+  / «DA FARE»), la mansione assegnata, la dichiarazione, le firme, il piede
+  coi conti, `nonMisurati`; `fogliaCartella(c, oggi)` — le sezioni del
+  fascicolo (l'adempimento e non la famiglia, l'etichetta del DPI e non la
+  chiave, lo stato della consegna e del documento in evidenza, nomine e
+  documenti solo se ci sono, ogni sezione vuota con la frase che dice
+  perché), la chiusura di `descriviCartella` con `allarme`. La pagina
+  costruisce il DOM (grassetto `**così**`). run-kpi +5 (2717): le otto
+  colonne su Luca Bianchi, i casi «fatto (non obbligatorio)» / «non scade» /
+  30 febbraio / persona senza consegne, la cartella piena, quella vuota, il
+  documento senza stato, la pagina che non compone più. Copertura di Scudo
+  197 → 199. Banchi: `stampe-fs --solo=scudo` 17/17 con l'iniezione del
+  modello sul modulo (controprova 3 rimessi, 5 KO voluti), `scudo-documenti`
+  89/89 con le iniezioni 7, 13, 14 sul modulo (controprova 27/27 rimessi,
+  43 KO voluti), `scudo-numeri-tranquilli` 50/50 con la n. 4 fra i difetti
+  del modulo (12/12 rimessi). Scatti del verbale e della cartella guardati.
+  ⚠️ `scudo-frasi-da-uno` e `campo-sentinella-frasi` vogliono la porta
+  posizionale di un server GIÀ alzato (`tutti.mjs`): non si lanciano da
+  soli, e non li ho misurati qui. **Con questa unità la domanda «chi decide
+  i numeri di ciò che esce?» è chiusa anche sui fogli stampati: Terra 3,
+  Conti 3, Campo 1 (+ la consegna), Scudo 2, Sentinella 1 — tutti composti
+  nel modulo; Flotta e il report di Sentinella stampano lo schermo.**
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6714,8 +6741,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.193 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2712, `run-stile` 328,
+  **3.198 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2717, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

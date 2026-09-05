@@ -38495,6 +38495,108 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   SCUDO · IL VERBALE DPI E LA CARTELLA DEL LAVORATORE SI COMPONGONO NEL
+   MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   I due fogli che si stampano dallo schermo. `verbaleDpi` e
+   `cartellaLavoratore` decidevano già che cosa c'è e che cosa manca; le
+   PAROLE delle celle — «non registrato», «non indicata», «DA SOSTITUIRE»,
+   «fatto (non obbligatorio)», «da sostituire a breve», l'adempimento e non la
+   famiglia — vivevano nella pagina. Adesso `fogliaVerbaleDpi` e
+   `fogliaCartella` le restituiscono in testo e la pagina disegna. */
+{
+  const D = scudo.DEMO;
+  const OGGI = new Date(2026, 8, 5);
+  const lav = (id) => D.lavoratori.find((l) => l.id === id);
+  const cart = (l) => scudo.cartellaLavoratore(l, { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti });
+  test("Scudo · fogliaVerbaleDpi: le otto colonne, la mansione, il modello non registrato, la scadenza passata «DA SOSTITUIRE», l'addestramento «DA FARE»", () => {
+    const F = scudo.fogliaVerbaleDpi(lav("d2"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    eq([F.titolo, F.sottotitolo], ["Verbale di consegna dei DPI", "Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008"]);
+    eq(F.dati, [["Azienda / cava", "", true], ["Lavoratore", "Luca Bianchi", false], ["Mansione", "Escavatorista / palista", false], ["Data del verbale", "05/09/2026", false]],
+      "l'azienda resta da compilare a penna; la mansione è quella assegnata, non il ruolo dell'anagrafica");
+    eq(F.colonne, ["Dispositivo", "Cat.", "Modello", "Taglia", "Consegnato il", "Sostituire entro", "Addestramento", "Firma"]);
+    const v = scudo.verbaleDpi(lav("d2"), D.dpi);
+    eq(F.righe.length, v.righe.length, "una riga per consegna di verbaleDpi");
+    const oto = F.righe.find((r) => /Otoprotettori/.test(r[0]));
+    eq(oto, ["Otoprotettori (cuffie o inserti)", "II", "inserti", "unica", "02/06/2025", "02/06/2026 — DA SOSTITUIRE", "DA FARE", ""],
+      "⛔ la colonna «Sostituire entro» LEGGE lo stato della riga: la scadenza passata non esce come una valida");
+    const guanti = F.righe.find((r) => /Guanti/.test(r[0]));
+    eq([guanti[2], guanti[6], guanti[7]], ["non registrato", "non previsto", ""], "⛔ il modello mai registrato lo dice (decisione 14), l'addestramento non obbligatorio è «non previsto», la firma è vuota");
+    eq(F.addestramentiMancanti, v.addestramentiMancanti); eq(v.addestramentiMancanti, 1, "(precondizione)");
+    ok(/^Documento preparato con Scudo · Deepwork — 5 dispositivi · addestramenti ancora da fare: 1\. Nota informativa/.test(F.piede), F.piede);
+    ok(F.nonMisurati.includes("4 dispositivi senza il modello registrato") && F.nonMisurati.includes("1 addestramento da fare"), F.nonMisurati.join(" · "));
+    ok(/\*\*addestramento\*\*/.test(F.dichiarazione) && /artt\. 20 e 78 D\.Lgs 81\/2008/.test(F.dichiarazione));
+    eq(F.firme, ["Firma del lavoratore", "Firma di chi consegna (datore di lavoro o preposto)"]);
+  });
+  test("Scudo · fogliaVerbaleDpi: «fatto (non obbligatorio)», «fatto il …», «non scade (dichiarato)», la data illeggibile «non indicata», la persona senza consegne", () => {
+    const F1 = scudo.fogliaVerbaleDpi(lav("d1"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    const masc = F1.righe.find((r) => /Facciale filtrante/.test(r[0]));
+    eq([masc[2], masc[5], masc[6]], ["FFP3", "non indicata", "fatto il 15/06/2026"], "la maschera: modello registrato, senza data di sostituzione, addestramento fatto con la data");
+    ok(F1.nonMisurati.includes("1 dispositivo senza data di sostituzione"), F1.nonMisurati.join(" · "));
+    const dpi = [
+      { id: "x1", lavoratoreId: "zz", tipo: "guanti", modello: "", taglia: "", dataConsegna: "2026-02-30", scadenza: null, nonScade: true, addestramento: true, dataAddestramento: "" },
+      { id: "x2", lavoratoreId: "zz", tipo: "elmetto", modello: "H1", taglia: "unica", dataConsegna: "2026-01-10", scadenza: "2031-01-10", addestramento: false },
+    ];
+    const F = scudo.fogliaVerbaleDpi({ id: "zz", nome: "Prova", ruolo: "Operaio" }, { dpi, mansioni: [], oggi: OGGI });
+    eq(F.dati[2], ["Mansione", "Operaio", false], "senza mansione assegnata resta il ruolo");
+    const g = F.righe.find((r) => /Guanti/.test(r[0]));
+    eq([g[2], g[3], g[4], g[5], g[6]], ["non registrato", "—", "non indicata", "non scade (dichiarato)", "fatto (non obbligatorio)"],
+      "⛔ il 30 febbraio non si stampa come una data; la taglia vuota resta «—» (una taglia «unica» esiste davvero); «non scade» è dichiarato");
+    ok(F.nonMisurati.includes("1 consegna senza la data"), F.nonMisurati.join(" · "));
+    const N = scudo.fogliaVerbaleDpi(lav("d4"), { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI });
+    eq([N.righe, N.vuota], [[], "Per questa persona non risulta registrata nessuna consegna."]);
+    ok(/— 0 dispositivi\./.test(N.piede), N.piede);
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const Z = scudo.fogliaVerbaleDpi(...args);
+      eq([Z.righe.length, Z.dati.length, Z.colonne.length], [0, 4, 8], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Scudo · fogliaCartella: le sezioni del fascicolo — l'adempimento e non la famiglia, l'etichetta del DPI e non la chiave, lo stato in evidenza, la chiusura in allarme", () => {
+    const F = scudo.fogliaCartella(cart(lav("d2")), OGGI);
+    eq([F.titolo, F.sottotitolo], ["Cartella del lavoratore", "Luca Bianchi · Escavatorista — documento preparato con Deepwork Scudo il 05/09/2026"]);
+    eq(F.sezioni.map((x) => x.titolo), ["Mansioni assegnate", "Formazione e scadenze", "Dispositivi di protezione consegnati", "Nomine attive"], "documenti collegati solo se ce ne sono");
+    eq(F.sezioni[0].righe, [["Escavatorista / palista", "4 requisiti · 5 DPI previsti"]]);
+    const sc = F.sezioni[1].righe;
+    eq(sc[0], ["Corso antincendio", "11/07/2026 · scaduta"], "⛔ l'adempimento (`etichettaScadenza`), non la famiglia «Formazione»");
+    ok(sc.some((r) => r[0] === "Sorveglianza sanitaria — visita periodica (art. 41)"), sc.map((r) => r[0]).join(" | "));
+    const oto = F.sezioni[2].righe.find((r) => /Otoprotettori/.test(r[0]));
+    eq(oto, ["Otoprotettori (cuffie o inserti)", "02/06/2025 · taglia unica · **da sostituire** · **addestramento da fare**"], "⛔ l'etichetta del DPI (non «otoprotettori»), lo stato e l'addestramento in evidenza");
+    eq(F.sezioni[3].righe, [["Addetto antincendio ed evacuazione", "dal 14/04/2025"]]);
+    eq(F.chiusura, { testo: scudo.descriviCartella(cart(lav("d2"))), allarme: true }, "⛔ completa non vuol dire in regola: la chiusura è in allarme perché ci sono righe da sistemare");
+    eq(F.nonMisurati, cart(lav("d2")).daSistemare); eq(F.firme, ["Luogo e data", "Il datore di lavoro"]);
+    const F1 = scudo.fogliaCartella(cart(lav("d1")), OGGI);
+    const doc = F1.sezioni.find((x) => x.titolo === "Documenti collegati");
+    eq(doc.righe, [["Verbale consegna DPI — M. Rossi", "Valido · Firmato 04/2026"]], "il documento porta il suo stato, e la nota dopo");
+    const mask = F1.sezioni[2].righe.find((r) => /Facciale/.test(r[0]));
+    ok(/\*\*senza data di sostituzione\*\* · addestramento fatto$/.test(mask[1]), mask[1]);
+  });
+  test("Scudo · fogliaCartella: la cartella VUOTA dichiara ogni sezione, il documento senza stato lo dice, la chiusura tranquilla solo quando non c'è niente da sistemare", () => {
+    const F = scudo.fogliaCartella(cart(lav("d7")), OGGI);
+    eq(F.sezioni[0].righe, []); eq(F.sezioni[0].vuoto, "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino.");
+    eq(F.sezioni[1].vuoto, "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente.");
+    eq(F.sezioni[2].vuoto, "Nessun DPI consegnato risulta a registro.");
+    eq(F.chiusura.allarme, true, "una cartella incompleta chiude in allarme");
+    const c = { ...cart(lav("d1")), documenti: [{ titolo: "Doc", meta: "", stato: undefined }], daSistemare: [], completa: true };
+    const G = scudo.fogliaCartella(c, OGGI);
+    eq(G.sezioni.find((x) => x.titolo === "Documenti collegati").righe, [["Doc", "**Stato non indicato**"]], "⛔ lo stato mai registrato non lascia la cella bianca");
+    eq(G.chiusura.allarme, false, "completa e senza righe da sistemare: chiusura tranquilla");
+    for (const args of [[null], [undefined, null], [{}, null]]) {
+      const Z = scudo.fogliaCartella(...args);
+      eq([Z.sezioni.length, Z.chiusura.allarme, Z.sezioni.every((x) => x.righe.length === 0 && x.vuoto)], [3, true, true], "con niente non rompe e dichiara: " + JSON.stringify(args));
+    }
+  });
+  test("Scudo · la pagina non compone più nessuna riga del verbale né della cartella", () => {
+    const pagina = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    // («senza data di sostituzione» resta nella pagina: è anche la parola dell'ELENCO a schermo)
+    for (const et of ['"non registrato"', '"DA FARE"', "DA SOSTITUIRE", "Nessun DPI consegnato risulta a registro", "requisiti · ", "<b>senza data di sostituzione</b>", "art. 77 D.Lgs 81/2008</div>"])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaVerbaleDpi\(lav, \{ dpi: DPI, mansioni: MANS, oggi: new Date\(\) \}\)/.test(pagina) && /fogliaCartella\(c, new Date\(\)\)/.test(pagina), "e chiama le due funzioni con i dati vivi");
+  });
+}
+/* ===== fine verbale DPI e cartella di Scudo nel modulo (05/09) ===== */
+
+
 
 
 

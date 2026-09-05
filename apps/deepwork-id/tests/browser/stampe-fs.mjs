@@ -183,10 +183,13 @@ const DIFETTI = {
   "apps/scudo/index.html": [
     ["  const avvisoEsempio = (frase) => { const m = modoDimostrazione(db.mode);",
      '  const avvisoEsempio = (frase) => { const m = modoDimostrazione("live");'],
-    /* il modello non registrato che sul verbale firmato si leggeva «questo
-       dispositivo non ha un modello» */
-    ['<td>${c.modello ? esc(c.modello) : "non registrato"}</td>',
-     '<td>${esc(c.modello || "—")}</td>'],
+  ],
+  /* il modello non registrato che sul verbale firmato si leggeva «questo
+     dispositivo non ha un modello» (⏱️ dal 05/09 la cella la compone
+     `fogliaVerbaleDpi` nel modulo) */
+  "apps/scudo/scudo-data.js": [
+    ['c.modello ? String(c.modello) : "non registrato",',
+     'String(c.modello || "—"),'],
   ],
   /* ⛔ CONTI, dall'08/08: i due trattini della riga a IMPORTO UNICO, rimessi.
      È il difetto vero corretto un'ora prima — quantità e prezzo unitario che

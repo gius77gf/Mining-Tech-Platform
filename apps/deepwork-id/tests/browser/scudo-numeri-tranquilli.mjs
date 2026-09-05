@@ -74,9 +74,7 @@ const DIFETTI = [
    '${r.totale ? (r.requisitiIgnoti ? "?/" + r.totale : r.puo + "/" + r.totale) : "nessuno"}'],
   ['${r.senzaPersona ? ` · <b>${r.senzaPersona} ${r.senzaPersona === 1 ? "assegnato non più in anagrafica" : "assegnati non più in anagrafica"}</b>` : ""}', ""],
   // 4 · il nome che non esiste e lo stato che non si stampava, sul foglio
-  ['c.verbale.righe.map(r => riga(r.tipo.etichetta || r.consegna.tipo,',
-   'c.verbale.righe.map(r => riga(r.tipo.nome || r.consegna.tipo,'],
-  ['+ (r.stato === "scaduta" ? " · <b>da sostituire</b>"\n             : r.stato === "in-scadenza" ? " · da sostituire a breve"\n             : r.stato === "senza data" ? " · <b>senza data di sostituzione</b>" : "")', ""],
+  //     (⏱️ dal 05/09 le righe le compone `fogliaCartella` nel modulo: vedi DIFETTI_MODULO)
   // 4b · la bandiera `noto` del confronto, che prima non leggeva nessuno
   ['const andMin = avvisoAndamentoMinimo(c);', 'const andMin = null;'],
   ['const b = c.pochi ? ["tag", "Da leggere con prudenza"]\n          : (andMin ? ["warn", "Da confermare"] : (V[c.verso] || ["tag", "—"]));',
@@ -110,6 +108,11 @@ DEMO.scadenze.push(
 const DIFETTI_MODULO = [
   ['    const v = scadenzaDiVerifica(s) ? statoVerificaPeriodica(s, documenti, oggi) : null;',
    '    const v = null;', "apps/scudo/scudo-data.js"],
+  // 4 · il nome che non esiste e lo stato che non si stampava, sul foglio (sul modulo dal 05/09)
+  ['((c.verbale || {}).righe || []).map((r) => [String(r.tipo.etichetta || r.consegna.tipo || ""),',
+   '((c.verbale || {}).righe || []).map((r) => [String(r.tipo.nome || r.consegna.tipo || ""),', "apps/scudo/scudo-data.js"],
+  ['      + (r.stato === "scaduta" ? " · **da sostituire**" : r.stato === "in-scadenza" ? " · da sostituire a breve" : r.stato === "senza data" ? " · **senza data di sostituzione**" : "")',
+   '', "apps/scudo/scudo-data.js"],
 ];
 /* Un id assegnato a una mansione a cui in anagrafica non corrisponde nessuno:
    è quello che resta dopo aver tolto un lavoratore dall'anagrafica. */

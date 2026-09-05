@@ -125,7 +125,7 @@
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
          csvCell, leggiCsv,
-         dataIt, pezziDataURL, LIMITE_ALLEGATO,
+         dataIt, isoLocale, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 /* IL `tipo` CHE FA DI UNA SCADENZA UNA VERIFICA PERIODICA DI ATTREZZATURA.
@@ -3940,6 +3940,101 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
    `descriviBaseOnere` in Terra: quello che un documento dichiara è una REGOLA,
    e chi la scrive dev'essere uno solo. Legge `completa`, che altrimenti
    sarebbe una bandiera che non guarda nessuno (regola 20 di run-stile). */
+/* IL VERBALE DI CONSEGNA DEI DPI, LE RIGHE (05/09). Le decideva la pagina
+   (`costruisciVerbale`) a partire da `verbaleDpi`, ma le PAROLE delle celle —
+   «non registrato» sul modello, «non indicata» sulla data illeggibile, «DA
+   SOSTITUIRE» sulla scadenza passata, «fatto (non obbligatorio)» / «DA FARE»
+   sull'addestramento — vivevano lì, dove nessuna prova senza browser le
+   legge. Qui ogni cella è testo, la pagina disegna. Decisione 14: su un
+   foglio stampato «—» si legge «non serve», quindi chi non ha registrato lo
+   dice; la taglia resta col trattino perché «unica» esiste davvero come
+   risposta. Nei testi il grassetto si scrive «**così**». Pura. */
+export function fogliaVerbaleDpi(lavoratore, opzioni) {
+  const { dpi, mansioni, oggi } = opzioni || {};
+  const lav = lavoratore || {};
+  const v = verbaleDpi(lav, Array.isArray(dpi) ? dpi : []);
+  const mans = (Array.isArray(mansioni) ? mansioni : []).filter((m) => m && (m.lavoratoriIds || []).includes(lav.id)).map((m) => m.nome).join(", ");
+  const nonMisurati = [];
+  const conta = (n, s, p) => n + " " + (n === 1 ? s : p);
+  let senzaModello = 0, senzaData = 0, senzaSost = 0, daFare = 0;
+  const righe = v.righe.map((r) => {
+    const c = r.consegna || {};
+    // se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
+    // foglio lo dice: è lavoro fatto e registrato
+    const add = !r.addestramentoRichiesto
+      ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
+      : (r.addestramentoFatto ? "fatto" + (c.dataAddestramento ? " il " + dataIt(c.dataAddestramento) : "") : "DA FARE");
+    if (!c.modello) senzaModello++;
+    if (!r.leggibile) senzaData++;
+    if (c.nonScade !== true && r.stato === "senza data") senzaSost++;
+    if (r.addestramentoRichiesto && !r.addestramentoFatto) daFare++;
+    /* la colonna «Sostituire entro» LEGGE lo stato della riga, non ri-decide:
+       una maschera da sostituire da anni non esce come una valida fino al 2099 */
+    const sost = c.nonScade === true ? "non scade (dichiarato)"
+      : r.stato === "senza data" ? "non indicata"
+      : dataIt(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE" : r.stato === "in-scadenza" ? " — da sostituire a breve" : "");
+    return [String(r.tipo.etichetta || c.tipo || ""), String(r.tipo.cat || ""), c.modello ? String(c.modello) : "non registrato",
+      String(c.taglia || "—"), r.leggibile ? dataIt(c.dataConsegna) : "non indicata", sost, add, ""];
+  });
+  if (senzaModello) nonMisurati.push(conta(senzaModello, "dispositivo senza il modello registrato", "dispositivi senza il modello registrato"));
+  if (senzaData) nonMisurati.push(conta(senzaData, "consegna senza la data", "consegne senza la data"));
+  if (senzaSost) nonMisurati.push(conta(senzaSost, "dispositivo senza data di sostituzione", "dispositivi senza data di sostituzione"));
+  if (daFare) nonMisurati.push(conta(daFare, "addestramento da fare", "addestramenti da fare"));
+  return {
+    titolo: "Verbale di consegna dei DPI", sottotitolo: "Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008",
+    dati: [["Azienda / cava", "", true], ["Lavoratore", String(lav.nome || ""), false], ["Mansione", mans || String(lav.ruolo || "—"), false],
+      ["Data del verbale", dataIt(isoLocale(oggi || new Date())), false]],
+    colonne: ["Dispositivo", "Cat.", "Modello", "Taglia", "Consegnato il", "Sostituire entro", "Addestramento", "Firma"],
+    righe, vuota: "Per questa persona non risulta registrata nessuna consegna.",
+    dichiarazione: "Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato sui rischi da cui proteggono e di aver ricevuto l'**addestramento** dove indicato come fatto. Si impegna a **usarli** quando previsto, ad **averne cura**, a **non modificarli** e a **segnalare subito** difetti, danni o smarrimenti al preposto o al datore di lavoro (artt. 20 e 78 D.Lgs 81/2008).",
+    firme: ["Firma del lavoratore", "Firma di chi consegna (datore di lavoro o preposto)"],
+    piede: "Documento preparato con Scudo · Deepwork — " + conta(v.righe.length, "dispositivo", "dispositivi")
+      + (v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : "")
+      + ". Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.",
+    addestramentiMancanti: v.addestramentiMancanti, nonMisurati,
+  };
+}
+
+/* LA CARTELLA DEL LAVORATORE, LE SEZIONI (05/09). `cartellaLavoratore` decide
+   che cosa c'è e che cosa manca; qui si compongono le RIGHE del fascicolo che
+   si esibisce all'ispettore — l'adempimento e non la famiglia
+   (`etichettaScadenza`), l'etichetta del DPI e non la chiave interna, lo stato
+   della consegna, lo stato del documento (`etichettaStatoDocumento`) — e ogni
+   sezione vuota porta la frase che dice perché, invece di restare bianca.
+   La riga di chiusura la scrive `descriviCartella`, con `allarme` quando
+   c'è qualcosa da sistemare. Pura. */
+export function fogliaCartella(cartella, oggi = new Date()) {
+  const c = cartella || {};
+  const l = c.lavoratore || {};
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+  const sezioni = [
+    sez("Mansioni assegnate", (c.mansioni || []).map((m) => [String(m.nome || ""), (m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"]),
+      "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino."),
+    sez("Formazione e scadenze", (c.scadenze || []).map((x) => [etichettaScadenza(x.scadenza),
+      (x.scadenza.dataScadenza ? dataIt(x.scadenza.dataScadenza) : "senza data") + " · " + String(x.stato || "—")]),
+      "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente."),
+    sez("Dispositivi di protezione consegnati", ((c.verbale || {}).righe || []).map((r) => [String(r.tipo.etichetta || r.consegna.tipo || ""),
+      (r.leggibile ? dataIt(r.consegna.dataConsegna) : "data di consegna non indicata")
+      + (r.consegna.taglia ? " · taglia " + String(r.consegna.taglia) : "")
+      + (r.stato === "scaduta" ? " · **da sostituire**" : r.stato === "in-scadenza" ? " · da sostituire a breve" : r.stato === "senza data" ? " · **senza data di sostituzione**" : "")
+      + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · **addestramento da fare**") : "")]),
+      "Nessun DPI consegnato risulta a registro."),
+  ];
+  if ((c.nomine || []).length)
+    sezioni.push(sez("Nomine attive", c.nomine.map((n) => [(ruoloNomina(n.ruolo) || {}).etichetta || String(n.ruolo || ""), n.dal ? "dal " + dataIt(n.dal) : "senza data di nomina"]), ""));
+  if ((c.documenti || []).length)
+    sezioni.push(sez("Documenti collegati", c.documenti.map((d) => { const e = etichettaStatoDocumento(d.stato);
+      return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));
+  return {
+    titolo: "Cartella del lavoratore",
+    sottotitolo: String(l.nome || "") + (l.ruolo ? " · " + String(l.ruolo) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),
+    sezioni,
+    chiusura: { testo: descriviCartella(c), allarme: !(c.completa && !(c.daSistemare || []).length) },
+    firme: ["Luogo e data", "Il datore di lavoro"],
+    nonMisurati: (c.vuoti || []).concat(c.daSistemare || []),
+  };
+}
+
 export function descriviCartella(cartella) {
   const c = cartella || {};
   if (!c.trovato) return c.motivo || "Cartella non disponibile.";

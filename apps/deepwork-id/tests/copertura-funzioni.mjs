@@ -225,7 +225,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
    Sentinella li ri-esporta come alias — il censimento conta le funzioni
    DEFINITE in un file, non quelle che espone. Il totale non scende. */
-const FONDO = { campo: 135, conti: 180, flotta: 130, scudo: 197, sentinella: 158, terra: 88 };
+const FONDO = { campo: 135, conti: 180, flotta: 130, scudo: 199, sentinella: 158, terra: 88 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
