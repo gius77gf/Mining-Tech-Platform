@@ -3651,6 +3651,8 @@ textarea.dw-input{
     err("rep-dal", false); err("rep-al", false); pulisci("rep-esito");
 
     const R = reportConformita({ monitoraggi: MON, ricettori: RIC, reclami: REC, volate: VOL,
+      /* le azioni da Scudo (05/09): `null` = non leggibili, che non è «nessuna» */
+      azioni: ponteKO ? null : AZI,
       dal, al, ricettoreId: $("rep-ricettore").value });
     const E = ESITI[R.esito] || ESITI["senza-dati"];
     const periodo = dal && al ? `dal ${fmtD(dal)} al ${fmtD(al)}`
@@ -3801,6 +3803,11 @@ textarea.dw-input{
 
     // le annullate del punto, con la ragione: nella scheda del punto, dove chi
     // legge sta guardando i numeri di QUESTO strumento
+    /* la risposta al superamento (05/09): la prima domanda dell'ispettore è
+       «e poi?», e il documento la risponde con le parole — anche «non si
+       legge», che non è «nessuna» */
+    const risp = p.risposta
+      ? `<br><b>Azioni correttive:</b> ${esc(p.risposta.testo)}.` : "";
     const annP = p.annullate && p.annullate.n
       ? `<br><b>Misure dichiarate non valide:</b> ${esc(p.annullate.testo)} — ${p.annullate.n === 1 ? "resta" : "restano"} in archivio e non ${p.annullate.n === 1 ? "pesa" : "pesano"} sui numeri di questo punto.`
       : "";
@@ -3875,7 +3882,7 @@ textarea.dw-input{
               e questa riga la si legge per prima. Detto in chiaro l'08/08,
               insieme alla cella SD della tabella delle volate, che aveva
               esattamente lo stesso difetto. */""}
-        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b>${annP}</div>
+        superamenti: <b>${p.soglia.valore == null ? "non calcolabili: nessuna soglia" : p.nSuperamenti}</b> · esito: <b>${esc(E.label)}</b>${risp}${annP}</div>
         ${/* ⚠️ QUI LA FRASE È AL SINGOLARE, e non è pignoleria: il testo di
               `ESITI` parla del DOCUMENTO («su questi punti non è impostata
               nessuna soglia») ed è giusto lì, in testa al report. Riusarlo

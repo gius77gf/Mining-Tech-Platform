@@ -37308,6 +37308,30 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(f({ titolo: "X" }, null), "", "e senza periodo nemmeno");
   });
 }
+/* ===== la risposta al superamento nel report (Sentinella, 05/09) ===== */
+{
+  const MON = [{ id: "v9", nome: "V9", tipo: "vibrazioni", valore: 6, soglia: 5, unita: "mm/s", letture: [{ data: "2026-07-17", valore: 6 }, { data: "2026-07-03", valore: 3 }] },
+               { id: "v8", nome: "V8", tipo: "vibrazioni", valore: 2, soglia: 5, unita: "mm/s", letture: [{ data: "2026-07-10", valore: 2 }] }];
+  const rep = (azioni) => sentinella.reportConformita({ monitoraggi: MON, ricettori: [], dal: "2026-07-01", al: "2026-07-31", azioni });
+  test("Sentinella · rispostaSuperamento: non leggibile, nessuna, aperte, chiuse — e «non leggibile» non è «nessuna»", () => {
+    const f = sentinella.rispostaSuperamento;
+    eq(f(null, "v9").stato, "non-leggibile", "⛔ Scudo non letto: non si accusa nessuno di inerzia");
+    eq(f(undefined, "v9").stato, "non-leggibile", "e nemmeno quando le azioni non sono state passate");
+    eq(f([], "v9"), { stato: "nessuna", n: 0, testo: sentinella.FRASI_RISPOSTA["nessuna"] }, "nessuna azione per questo punto: si dice con le parole");
+    const az = [{ origineTipo: "superamento", origineId: "v9", origineVoce: "2026-07-17", stato: "aperta" }, { origineTipo: "superamento", origineId: "v8", stato: "chiusa" }, { origineTipo: "fermo", origineId: "v9", stato: "aperta" }];
+    eq([f(az, "v9").stato, f(az, "v9").testo], ["aperte", "1 azione da chiudere (da Scudo)"], "l'azione del punto, e solo la sua (non quella del fermo di Campo con lo stesso id)");
+    eq(f([{ origineTipo: "superamento", origineId: "v9", stato: "chiusa" }], "v9").testo, "azione chiusa (da Scudo)", "chiusa, con la frase di statoPonte");
+  });
+  test("Sentinella · reportConformita porta la risposta SOLO sui punti in superamento", () => {
+    const R = rep([]);
+    const v9 = R.punti.find((p) => p.nome === "V9"), v8 = R.punti.find((p) => p.nome === "V8");
+    eq(v9.risposta && v9.risposta.stato, "nessuna", "il punto oltre soglia porta la risposta");
+    eq(v8.risposta, null, "⛔ il punto entro soglia non ne porta: niente da rispondere, niente scritto");
+    eq(rep(null).punti.find((p) => p.nome === "V9").risposta.stato, "non-leggibile", "e con Scudo non leggibile lo dice");
+    eq(rep().punti.find((p) => p.nome === "V9").risposta.stato, "non-leggibile", "chi non passa le azioni non ottiene un «nessuna» gratis");
+  });
+}
+/* ===== fine risposta al superamento (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

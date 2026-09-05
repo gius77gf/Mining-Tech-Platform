@@ -155,6 +155,20 @@ await pg.waitForTimeout(600);
   dice(/Cascina Belvedere/.test(esito), "⛔ e lo chiama per nome", esito);
 }
 if (SCATTI) { mkdirSync(SCATTI, { recursive: true }); await pg.evaluate(() => { const e = document.querySelector(".rep-esito"); if (e) e.scrollIntoView({ block: "center" }); }); await pg.waitForTimeout(200); await pg.screenshot({ path: join(SCATTI, "report-tutta-cava.png") }); }
+/* la risposta al superamento (05/09): nella scheda di OGNI punto oltre soglia
+   il documento dice che cosa si è fatto — in dimostrazione niente è registrato
+   in Scudo, quindi «nessuna azione correttiva registrata», con le parole. Si
+   guarda il report di TUTTA la cava, prima di stringerlo a un ricettore; se
+   nell'anno nessun punto è in superamento, lo si dichiara: non è «a posto». */
+{
+  const docTutta = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
+  const inSup = (docTutta.match(/superamenti: [1-9]\d*/g) || []).length;
+  if (inSup) dice((docTutta.match(/Azioni correttive: /g) || []).length === inSup
+      && /Azioni correttive: nessuna azione correttiva registrata per questo punto/.test(docTutta),
+    `⛔ ${inSup === 1 ? "il punto" : "i " + inSup + " punti"} in superamento ${inSup === 1 ? "dice" : "dicono"} che nessuna azione correttiva è registrata — non ${inSup === 1 ? "tace" : "tacciono"}`,
+    (docTutta.match(/.{0,60}Azioni correttive.{0,100}/) || [])[0] || "(nessuna scheda con «Azioni correttive»)");
+  else console.log("  ⚠️ NON MISURATO: nel report dell'anno nessun punto è in superamento, la riga «Azioni correttive» non si può giudicare qui");
+}
 await pg.selectOption("#rep-ricettore", { label: "Cascina Moretti" }).catch(() => {});
 await pg.waitForTimeout(700);
 {

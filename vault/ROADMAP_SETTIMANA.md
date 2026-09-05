@@ -440,7 +440,12 @@
   UNI 9614) e `intestazioneOrigineReport` (quando parte da un adempimento il
   foglio scrive per quale, per quale ente, con periodo e scadenza; la riga
   sparisce se si toccano le date). La data di trasmissione resta un candidato
-  a sé. run-kpi +2 (2648). Restano (c), (e) e la trasmissione.
+  a sé. run-kpi +2 (2648). (c) ✅ **05/09**: `rispostaSuperamento` — il report
+  riceve le azioni da Scudo (`null` quando non si leggono, che non è
+  «nessuna») e la scheda di ogni punto in superamento scrive «Azioni
+  correttive: …» con lo stato di `statoPonte`: la prima domanda
+  dell'ispettore, «e poi?», ha una riga. run-kpi +2 (2650). Restano (e) e la
+  trasmissione.
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -6467,8 +6472,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.129 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2648, `run-stile` 328,
+  **3.131 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2650, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

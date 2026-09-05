@@ -27,7 +27,7 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
 import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria,
-         statoResponsabile } from "../../shared/dw-ponti.js";
+         statoResponsabile, azioniDiOrigine as azioniDiOriginePonti, statoPonte as statoPontePonti } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -3008,6 +3008,30 @@ export function esitoPunto(nLetture, nSuperamenti, soglia) {
   return "conforme";
 }
 
+/* LA RISPOSTA A UN SUPERAMENTO, NEL DOCUMENTO (05/09, candidato (c)). Le
+   azioni correttive nate da un superamento vivono in Scudo (ponte T7) e il
+   report non le leggeva: un superamento usciva col numero e senza «che cosa
+   si è fatto», che è la prima domanda dell'ispettore. Quattro risposte, e la
+   quarta è quella che conta: `azioni` è `null` quando Scudo non si è potuto
+   leggere, e «non leggibile» non è «nessuna» — un documento che scrivesse
+   «nessuna azione» perché il ponte era giù accuserebbe di inerzia chi ha
+   agito. Lo stato lo decide `statoPonte` di `shared/`, lo stesso della
+   schermata dei superamenti. Pura. */
+export const FRASI_RISPOSTA = {
+  "non-leggibile": "le azioni correttive non si leggono da Scudo: qui c'è il superamento, non la sua risposta",
+  "nessuna":       "nessuna azione correttiva registrata per questo punto: il superamento non ha ancora una risposta",
+  "aperte":        "",   // la frase la dà `statoPonte` («1 azione da chiudere», «Azione in corso»)
+  "chiuse":        "",   // idem («Azione chiusa», «2 azioni chiuse»)
+};
+export function rispostaSuperamento(azioni, puntoId) {
+  if (azioni === null || azioni === undefined) return { stato: "non-leggibile", n: 0, testo: FRASI_RISPOSTA["non-leggibile"] };
+  const mie = azioniDiOriginePonti(azioni, ORIGINE_SUPERAMENTO, puntoId);
+  const st = statoPontePonti(mie);
+  if (!st.n) return { stato: "nessuna", n: 0, testo: FRASI_RISPOSTA["nessuna"] };
+  const stato = st.daChiudere === 0 ? "chiuse" : "aperte";
+  return { stato, n: st.n, chiuse: st.chiuse, daChiudere: st.daChiudere, testo: st.label.charAt(0).toLowerCase() + st.label.slice(1) + " (da Scudo)" };
+}
+
 export function reportConformita(o = {}) {
   const dal = String(o.dal || "").slice(0, 10);
   const al = String(o.al || "").slice(0, 10);
@@ -3110,6 +3134,9 @@ export function reportConformita(o = {}) {
       const superamenti = letture.filter(l => l.oltre);
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
+        /* la risposta al superamento (05/09): solo dove c'è un superamento;
+           `null` altrove, e chi disegna non scrive niente */
+        risposta: superamenti.length ? rispostaSuperamento(o.azioni, m.id) : null,
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
         letture, n: letture.length, scartate,
         annullate, annullateLetture,

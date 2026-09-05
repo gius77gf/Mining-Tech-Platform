@@ -498,10 +498,11 @@ Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
 - (b) ✅ **fatta il 05/09** — `PORTATA_REPORT`, una frase in corsivo sotto le
   dichiarazioni del report (`grep -c "PORTATA_REPORT" apps/sentinella/index.html`
   → 2: l'import e l'uso);
-- (c) **le azioni correttive accanto ai superamenti del report**, lette da
-  Scudo con `azioniDiOrigine` (stato aperta/in corso/chiusa; «non leggibile»
-  se Scudo non risponde) — costo medio, è il ponte T7 letto nel verso del
-  documento;
+- (c) ✅ **fatta il 05/09** — `rispostaSuperamento(azioni, puntoId)` e
+  `FRASI_RISPOSTA`; `reportConformita` riceve `azioni` (`null` = Scudo non
+  leggibile, che NON è «nessuna») e la scheda del punto in superamento scrive
+  «Azioni correttive: …» con lo stato di `statoPonte`
+  (`grep -c "rispostaSuperamento" apps/sentinella/sentinella-data.js` → 2);
 - (d) ✅ **fatta a metà il 05/09** — `intestazioneOrigineReport(a, p)`: quando il
   report parte da un adempimento il DOCUMENTO scrive «Redatto per l'adempimento
   «…» (ente), periodo dal … al …, scadenza il …», e la riga sparisce appena si
