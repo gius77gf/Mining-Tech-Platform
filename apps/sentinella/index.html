@@ -3825,9 +3825,16 @@ textarea.dw-input{
     const fonte = s.valore == null ? "nessuna soglia impostata su questo punto"
       : s.fonte === "ricettore" ? `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, presa dal ricettore <b>${esc(s.ricettore)}</b>`
       : `soglia applicata <b>${esc(numeroIt(s.valore))} ${esc(p.unita)}</b>, impostata sul punto di misura`;
-    const conflitto = s.conflitto
+    /* IL RIFERIMENTO DELLA SOGLIA (05/09): «soglia applicata 5 mm/s» non dice se
+       quel 5 è un valore di norma o un numero scritto da qualcuno. La riga la
+       decide `riferimentoSoglia` — la stessa della scheda della volata — e
+       porta l'avvertenza «da verificare» quando viene da un preset. Su un
+       punto senza soglia non si scrive: non c'è niente di cui dire l'origine. */
+    const rif = s.valore != null && p.riferimento
+      ? `<br>Riferimento della soglia: ${esc(p.riferimento.testo)}.` : "";
+    const conflitto = (s.conflitto
       ? `<br><b>Attenzione:</b> il ricettore <b>${esc(s.ricettore)}</b> ha una soglia in ${esc(s.unitaRicettore || "un'altra unità")}, diversa dall'unità di questo punto (${esc(p.unita)}): non è stata applicata e non è stata convertita.`
-      : "";
+      : "") + rif;
     const ric = p.ricettore
       ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${distanzaDelRicettore(p.ricettore) != null ? " a <b>" + esc(numeroIt(distanzaDelRicettore(p.ricettore))) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
       : "Ricettore: <b>non collegato</b>";

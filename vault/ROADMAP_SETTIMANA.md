@@ -472,7 +472,16 @@
   inventa); senza soglia niente esito e la soglia assente sta in «che cosa
   manca». Tre funzioni chiamate, nessuna riscritta. run-kpi +1 (2654); banco
   41 prove, 7 iniezioni (la settima è la copia debole che ignora il
-  ricettore). Resta la trasmissione (decisione del fondatore).
+  ricettore). **E il riferimento della soglia va anche nel report per l'ente**
+  (05/09): `riferimentoSoglia(m, ricettori)` — il riferimento del valore che
+  VALE: se vince il ricettore è «scritta sul ricettore», se vale il punto è il
+  preset con l'avvertenza «da verificare» (o «cambiata a mano dopo il
+  preset», o «scritta a mano») — usata dalla scheda della volata e dalla
+  scheda del punto nel report («Riferimento della soglia: …»); la domanda «la
+  soglia è ancora quella del preset?» è `presetDelPunto`, una sola, e
+  `frequenzaFuoriBanda` passa di lì. run-kpi +3 (2657); banco del report +2
+  prove e un'iniezione (la riga che non arriva nel documento). Resta la
+  trasmissione (decisione del fondatore).
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -6497,8 +6506,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.135 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2654, `run-stile` 328,
+  **3.138 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2657, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

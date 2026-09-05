@@ -37421,7 +37421,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(g["Limite che vale per il punto"], "5 mm/s — soglia del ricettore «Casa Bianchi»", "⛔ il limite è quello di sogliaEfficace: vince il ricettore");
     eq(r(V, [P], []) ["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura", "senza il ricettore vale la soglia del punto, e lo dice");
     eq(r(V, [P], [{ id: "rc1", nome: "Casa Bianchi", soglia: 20, unita: "µg/m³" }])["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura (la soglia del ricettore non è applicata: unità diverse, µg/m³)", "⛔ unità diverse: nessuna conversione, e la scheda lo scrive");
-    ok(/DIN 4150-3\) · DIN 4150-3, fondazione riga 2 — valore di riferimento, da verificare sulla norma ufficiale/.test(g["Riferimento della soglia"]), "il preset con la stessa avvertenza della pagina: da verificare");
+    eq(g["Riferimento della soglia"], "soglia scritta sul ricettore «Casa Bianchi», non da un riferimento normativo", "⛔ quando vale il ricettore il riferimento è il SUO, non il preset del punto — anche se i numeri coincidono");
+    ok(/DIN 4150-3\) · DIN 4150-3, fondazione riga 2 — valore di riferimento, da verificare sulla norma ufficiale/.test(r(V, [P], [])["Riferimento della soglia"]), "quando vale il punto, il preset con la stessa avvertenza della pagina: da verificare");
     eq(g["Esito rispetto al limite"], "Conforme — 3,4 mm/s su 5 mm/s (68% del limite)", "il verdetto è quello di statoMisura, con il rapporto");
     eq(r({ ...V, ppvMisurata: 5 }, [P], RIC)["Esito rispetto al limite"], "Superamento — 5 mm/s su 5 mm/s (100% del limite)", "⛔ pari alla soglia è superamento, come sullo schermo");
     eq(r({ ...V, ppvMisurata: 4.6 }, [P], RIC)["Esito rispetto al limite"], "Attenzione — 4,6 mm/s su 5 mm/s (92% del limite)", "e la fascia di attenzione è la stessa");
@@ -37433,12 +37434,50 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const gs = Object.fromEntries(senza.sezioni.find((z) => z.titolo === "Regola del giudizio").righe.map((q) => [q[0], q[1]]));
     eq(gs["Limite che vale per il punto"], "nessuna soglia impostata: il giudizio non si può dare", "⛔ senza soglia non c'è verdetto");
     eq(gs["Esito rispetto al limite"], undefined, "e la riga dell'esito NON c'è: niente «Conforme» su un limite che non esiste");
+    eq(gs["Riferimento della soglia"], undefined, "senza soglia nessun riferimento da scrivere");
     ok(senza.nonMisurati.includes("Limite che vale per il punto (nessuna soglia impostata: il giudizio non si può dare)"), "e la soglia assente sta in «che cosa manca»");
     eq(r({ ...V, ppvFonte: "manuale", ppvPuntoId: "" }, [P], RIC)["Limite che vale per il punto"], "la PPV è trascritta a mano dal referto: il limite e il giudizio sono quelli del referto dello strumento", "PPV a mano: il giudizio è del referto");
     eq(r({ ...V, stato: "prevista" }, [P], RIC)["Limite che vale per il punto"], "volata non ancora sparata: niente da giudicare", "prevista: niente da giudicare");
     eq(r({ ...V, ppvPuntoId: "zz" }, [P], RIC)["Limite che vale per il punto"], "il punto di misura non è stato trovato: nessun limite da applicare", "punto sparito: nessun limite");
   });
 }
+/* ===== il riferimento della soglia applicata (Sentinella, 05/09) ===== */
+{
+  const P = { id: "v1", nome: "V1", tipo: "vibrazioni", unita: "mm/s", soglia: 5, sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
+  const RIC = [{ id: "rc1", nome: "Casa Bianchi", soglia: 5, unita: "mm/s" }];
+  test("Sentinella · presetDelPunto: il preset del punto, e se vale ancora — una domanda sola per banda e riferimento", () => {
+    const f = sentinella.presetDelPunto;
+    eq([f(P).preset.chiave, f(P).valido], ["din-res-fond", true], "soglia e unità sono quelle del preset");
+    eq(f({ ...P, soglia: 6 }).valido, false, "soglia cambiata a mano: non vale più");
+    eq(f({ ...P, unita: "in/s" }).valido, false, "unità cambiata: nemmeno");
+    eq(f({ ...P, sogliaPreset: "" }), { preset: null, valido: false }, "senza preset");
+    eq(f({ ...P, sogliaPreset: "boh" }), { preset: null, valido: false }, "preset che non esiste");
+    eq(f(null), { preset: null, valido: false }, "null non rompe");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, P).fuori, true, "e frequenzaFuoriBanda, che passa di qui, giudica ancora la banda");
+    eq(sentinella.frequenzaFuoriBanda({ extra: { freq: 18 } }, { ...P, soglia: 6 }).perche, "la soglia del punto è stata cambiata a mano dopo il preset «Vibrazioni · residenziale, <10 Hz (DIN 4150-3)»: la sua banda non vale più", "con la stessa frase di prima");
+  });
+  test("Sentinella · riferimentoSoglia: il riferimento del valore che VALE, con l'avvertenza «da verificare» sui preset", () => {
+    const f = sentinella.riferimentoSoglia;
+    eq(f(P, RIC), { fonte: "ricettore", preset: null, testo: "soglia scritta sul ricettore «Casa Bianchi», non da un riferimento normativo" }, "⛔ vale il ricettore: il preset del punto non c'entra anche se i numeri coincidono");
+    const pr = f(P, []);
+    eq(pr.fonte, "preset", "vale il punto e la soglia è ancora quella del preset");
+    eq(pr.testo, "Vibrazioni · residenziale, <10 Hz (DIN 4150-3) · DIN 4150-3, fondazione riga 2 — " + sentinella.AVVERTENZA_PRESET, "⛔ con l'avvertenza: un valore di norma non si scrive come se fosse la legge");
+    eq(f({ ...P, soglia: 6 }, []).fonte, "preset-cambiato", "soglia cambiata a mano dopo il preset");
+    ok(/cambiata a mano dopo il preset «Vibrazioni · residenziale/.test(f({ ...P, soglia: 6 }, []).testo), "e lo dice col nome del preset");
+    eq(f({ ...P, sogliaPreset: "" }, []), { fonte: "mano", preset: null, testo: "soglia scritta a mano sul punto di misura, non da un riferimento normativo" }, "senza preset: scritta a mano");
+    eq(f({ ...P, soglia: null, sogliaPreset: "" }, []), { fonte: "nessuna", preset: null, testo: "nessuna soglia impostata" }, "senza soglia");
+    eq(f(P, [{ id: "rc1", nome: "Casa Bianchi", soglia: 20, unita: "µg/m³" }]).fonte, "preset", "unità diverse: il ricettore non si applica, vale il punto col suo preset");
+    eq(f(null, null).fonte, "nessuna", "null non rompe");
+  });
+  test("Sentinella · reportConformita porta il riferimento della soglia in ogni punto", () => {
+    const R = sentinella.reportConformita({ monitoraggi: [P, { ...P, id: "v2", nome: "V2", ricettoreId: "" }, { ...P, id: "v3", nome: "V3", soglia: null, sogliaPreset: "", ricettoreId: "" }], ricettori: RIC, dal: "2026-07-01", al: "2026-07-31" });
+    const di = (n) => R.punti.find((p) => p.nome === n).riferimento;
+    eq(di("V1").fonte, "ricettore", "V1: il ricettore");
+    eq(di("V2").fonte, "preset", "V2: il preset del punto");
+    eq(di("V3").fonte, "nessuna", "V3: nessuna soglia");
+  });
+}
+/* ===== fine riferimento della soglia (05/09) ===== */
 /* ===== fine scheda della singola volata (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */

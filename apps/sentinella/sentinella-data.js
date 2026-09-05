@@ -1169,14 +1169,52 @@ export function bandaPreset(chiave) {
    perche }; `giudicabile` false — con la ragione — quando la lettura non porta
    la frequenza, il punto non viene da un preset, il preset non ha una banda, o
    la soglia è stata cambiata. Pura. */
+/* IL PRESET DEL PUNTO, E SE VALE ANCORA (05/09). La domanda «la soglia del
+   punto è ancora quella del preset da cui è nata?» la facevano
+   `frequenzaFuoriBanda` (per la banda) e, da oggi, `riferimentoSoglia` (per
+   il riferimento normativo scritto sui documenti): scritta due volte sarebbe
+   la copia debole di sempre. Ritorna { preset, valido }: `preset` null se il
+   punto non ne ha uno; `valido` false se soglia o unità sono state cambiate a
+   mano dopo. Pura. */
+export function presetDelPunto(monitoraggio) {
+  const m = monitoraggio || {};
+  const p = m.sogliaPreset ? presetSoglia(m.sogliaPreset) : null;
+  if (!p) return { preset: null, valido: false };
+  const sm = numeroDichiarato(m.soglia);
+  const valido = sm != null && sm === p.valore && String(m.unita || "").trim().toLowerCase() === String(p.unita).toLowerCase();
+  return { preset: p, valido };
+}
+
+/* IL RIFERIMENTO DELLA SOGLIA APPLICATA, per i documenti che escono (scheda
+   della volata, report per l'ente). Non basta dire «5 mm/s»: chi legge deve
+   sapere se quel numero è un valore di norma preso da un preset — e allora
+   porta la STESSA avvertenza che la pagina scrive sotto la tendina: è un
+   valore di riferimento, da verificare sulla norma e sulle prescrizioni — o
+   un numero scritto a mano da qualcuno, sul punto o sul ricettore. Il
+   riferimento è quello del valore che VALE (`sogliaEfficace`): se vince il
+   ricettore, il preset del punto non c'entra, anche se i due numeri
+   coincidono. Ritorna { fonte: "nessuna"|"ricettore"|"preset"|"preset-cambiato"|"mano", preset, testo }. Pura. */
+export const AVVERTENZA_PRESET = "valore di riferimento, da verificare sulla norma ufficiale e sulle prescrizioni";
+export function riferimentoSoglia(monitoraggio, ricettori) {
+  const eff = sogliaEfficace(monitoraggio, ricettori);
+  if (eff.valore == null) return { fonte: "nessuna", preset: null, testo: "nessuna soglia impostata" };
+  if (eff.fonte === "ricettore")
+    return { fonte: "ricettore", preset: null, testo: "soglia scritta sul ricettore «" + (eff.ricettore || "senza nome") + "», non da un riferimento normativo" };
+  const { preset, valido } = presetDelPunto(monitoraggio);
+  if (preset && valido)
+    return { fonte: "preset", preset, testo: preset.etichetta + (preset.fonte ? " · " + preset.fonte : "") + " — " + AVVERTENZA_PRESET };
+  if (preset)
+    return { fonte: "preset-cambiato", preset, testo: "soglia cambiata a mano dopo il preset «" + preset.etichetta + "»: il riferimento normativo non vale più" };
+  return { fonte: "mano", preset: null, testo: "soglia scritta a mano sul punto di misura, non da un riferimento normativo" };
+}
+
 export function frequenzaFuoriBanda(lettura, monitoraggio) {
   const m = monitoraggio || {}, l = lettura || {};
   const f = l.extra && typeof l.extra === "object" ? numeroDichiarato(l.extra.freq) : null;
   if (f == null) return { giudicabile: false, fuori: null, freq: null, banda: null, perche: "la lettura non porta la frequenza" };
-  const p = m.sogliaPreset ? presetSoglia(m.sogliaPreset) : null;
+  const { preset: p, valido } = presetDelPunto(m);
   if (!p) return { giudicabile: false, fuori: null, freq: f, banda: null, perche: "la soglia del punto non viene da un preset con una banda di frequenza" };
-  const sm = numeroDichiarato(m.soglia);
-  if (sm == null || sm !== p.valore || String(m.unita || "").trim().toLowerCase() !== String(p.unita).toLowerCase())
+  if (!valido)
     return { giudicabile: false, fuori: null, freq: f, banda: null,
       perche: "la soglia del punto è stata cambiata a mano dopo il preset «" + p.etichetta + "»: la sua banda non vale più" };
   const b = bandaPreset(m.sogliaPreset);
@@ -3134,6 +3172,9 @@ export function reportConformita(o = {}) {
       const superamenti = letture.filter(l => l.oltre);
       return {
         m, nome: m.nome || "Punto di misura", unita: unitaMisura(m), soglia: eff,
+        /* il riferimento della soglia applicata (05/09): il documento dice se il
+           limite è un valore di norma (con l'avvertenza) o un numero scritto a mano */
+        riferimento: riferimentoSoglia(m, ricettori),
         /* la risposta al superamento (05/09): solo dove c'è un superamento;
            `null` altrove, e chi disegna non scrive niente */
         risposta: superamenti.length ? rispostaSuperamento(o.azioni, m.id) : null,
@@ -4577,11 +4618,9 @@ export function fogliaVolata(v, opts = {}) {
     else righeReg.push(["Limite che vale per il punto", numeroIt(eff.valore) + uEff
       + (eff.fonte === "ricettore" && eff.ricettore ? " — soglia del ricettore «" + eff.ricettore + "»" : " — soglia del punto di misura")
       + (eff.conflitto ? " (la soglia del ricettore non è applicata: unità diverse, " + String(eff.unitaRicettore || "senza unità") + ")" : ""), false]);
-    const pr = punto.sogliaPreset ? presetSoglia(punto.sogliaPreset) : null;
-        /* la stessa avvertenza che la pagina scrive sotto la tendina dei preset:
-       un valore di norma è di riferimento, e si verifica sulla norma e sulle
-       prescrizioni — non si scrive su un foglio come se fosse la legge */
-    righeReg.push(["Riferimento della soglia", pr ? pr.etichetta + (pr.fonte ? " · " + pr.fonte : "") + " — valore di riferimento, da verificare sulla norma ufficiale e sulle prescrizioni" : "soglia scritta a mano, non da un riferimento normativo", false]);
+    /* il riferimento è quello del valore che VALE, scritto da `riferimentoSoglia`
+       — la stessa riga che il report per l'ente scrive nella scheda del punto */
+    if (eff.valore != null) righeReg.push(["Riferimento della soglia", riferimentoSoglia(punto, opts.ricettori || []).testo, false]);
     if (eff.valore != null) {
       const st = statoMisura({ valore: ppv.valore, soglia: eff.valore, letture: [{ data: ppv.data, valore: ppv.valore }] });
       righeReg.push(["Esito rispetto al limite", st.calcolabile

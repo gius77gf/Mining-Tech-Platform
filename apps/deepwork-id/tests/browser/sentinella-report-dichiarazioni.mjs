@@ -56,6 +56,8 @@ const DIFETTI_PAGINA = [
    '${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia" ? " vecchia riga" : ""}'],
   // 3 · la taratura del singolo punto non arrivava nella sua scheda
   ["${ric}<br>${fonte}${conflitto}${tar}${evento}<br>", "${ric}<br>${fonte}${conflitto}${evento}<br>"],
+  // 4 · il riferimento della soglia non arriva nel documento (05/09)
+  ['      : "") + rif;', '      : "");'],
 ];
 
 /* I CASI, in coda al modulo dati. `DEMO` è un oggetto e la pagina ne fa una
@@ -179,6 +181,18 @@ await pg.waitForTimeout(700);
 
 const doc = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
 dice(doc.length > 400, "il documento è stato composto", doc.length + " caratteri");
+/* il riferimento della soglia (05/09): ogni punto con una soglia dice se quel
+   numero è di norma (con l'avvertenza) o scritto a mano. I tre punti del caso
+   hanno la soglia scritta sul punto, senza preset. */
+{
+  /* si contano le RIGHE della scheda («soglia applicata 5 mm/s, presa dal…»),
+     non la parola: il grafico di ogni punto porta l'etichetta «soglia
+     applicata» sulla linea, e contarla gonfiava il denominatore (5 su 3) */
+  const applicate = (doc.match(/soglia applicata [^,]+, (presa dal ricettore|impostata sul punto di misura)/g) || []).length;
+  const rif = (doc.match(/Riferimento della soglia: /g) || []).length;
+  dice(applicate > 0 && rif === applicate, `⛔ ogni «soglia applicata» ha accanto il suo «Riferimento della soglia» (${rif} su ${applicate})`, (doc.match(/.{0,80}Riferimento della soglia.{0,120}/) || [])[0]);
+  dice(/Riferimento della soglia: soglia scritta a mano sul punto di misura, non da un riferimento normativo\./.test(doc), "⛔ e sui punti del caso, senza preset, dice «scritta a mano»: non si inventa una norma", (doc.match(/Riferimento della soglia.{0,120}/) || [])[0]);
+}
 /* la portata del documento (05/09): una frase, una volta, che dice che cosa
    il report giudica e che cosa no */
 dice((doc.match(/Non valuta il disturbo alle persone \(UNI 9614\)/g) || []).length === 1, "⛔ il documento dichiara la sua portata: effetti sugli edifici sì, disturbo alle persone (UNI 9614) no — una volta", (doc.match(/.{0,80}UNI 9614.{0,40}/) || [])[0]);
