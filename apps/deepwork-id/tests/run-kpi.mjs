@@ -38275,6 +38275,113 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine foglio della fattura nel modulo (05/09) ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CONTI · IL DDT E IL PREVENTIVO SI COMPONGONO NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   Gli altri due fogli che vanno al cliente. Il DDT viaggia sul camion e lo
+   legge la Guardia di Finanza: la causale fissa «Vendita» che nessuno aveva
+   scritto, il «€ 0,00/t» del prezzo mai indicato e l'etichetta che prometteva
+   un'ora sono vissuti nella pagina. `fogliaDdt(p, {clienti})` e
+   `fogliaPreventivo(o, {clienti, oggi})` li restituiscono in testo. */
+{
+  const D = conti.DEMO;
+  const E = shell.euro;
+  const riq = (F, et) => F.riquadri.find((r) => r[0] === et);
+  test("Conti · fogliaDdt: la pesata completa della dimostrazione — causale, trasporto a cura, pesi, prezzo, valore e volume", () => {
+    const p = D.pesate.find((x) => x.id === "s1");
+    const F = conti.fogliaDdt(p, { clienti: D.clienti });
+    eq([F.titolo, F.numero, F.data, F.cliente.ragioneSociale, F.luogoConsegna], ["Documento di trasporto", "2026/001", "11/02/2026", "Edilcave Srl", "Cantiere SS115 km 12"]);
+    eq(F.avviso, ""); eq(F.nonMisurati, []);
+    eq(F.riquadri, [["Causale del trasporto", "Vendita", false], ["Trasporto a cura di", "mittente — mezzo FT 421 KP", false], ["Data del ritiro", "11/02/2026", false]]);
+    const pesi = conti.pesiPesata(p), v = conti.valoreDdt(p), q = conti.quantitaPesata(p);
+    eq(F.riga, { prodotto: "Stabilizzato 0/30", lordo: "42,60", tara: "14,20", netto: "28,40", quantita: "28,40 t", prezzo: E(8.5) + "/t", sconto: "—", valore: E(v.valore) },
+      "i pesi di pesiPesata, il valore di valoreDdt");
+    eq(pesi.netto, 28.4, "(precondizione)");
+    eq(F.piede, { etichetta: "Valore della consegna (imponibile, IVA 22% esclusa)", valore: E(v.valore), mancante: false });
+    eq(F.perche, ""); eq(F.volume, "14,95 m³ (netto ÷ densità 1,90 t/m³)"); eq(q.m3, 14.947, "(il volume è quello di quantitaPesata)");
+    ok(/\*\*DPR 472\/1996\*\*/.test(F.piedeLegale) && /fattura può essere riepilogativa/.test(F.piedeLegale), "il piede legale, con la frase sulla fattura differita perché il valore c'è");
+    eq(F.colonne, ["Natura e qualità dei beni", "Lordo (t)", "Tara (t)", "Netto (t)", "Quantità", "Prezzo", "Sconto", "Valore"]);
+  });
+  test("Conti · fogliaDdt: la pesata SENZA causale né trasporto — «da indicare» in grassetto e l'avviso in cima, non «Vendita» e «a cura del mittente» fissi", () => {
+    const p = D.pesate.find((x) => x.id === "s2");
+    const F = conti.fogliaDdt(p, { clienti: D.clienti });
+    eq(riq(F, "Causale del trasporto"), ["Causale del trasporto", "da indicare", true]);
+    eq(riq(F, "Trasporto a cura di"), ["Trasporto a cura di", "da indicare", true]);
+    ok(/^\*\*Questo documento non è completo\.\*\* Prima di stamparlo va indicato: /.test(F.avviso) && /Si compila sulla pesata, in Conti\.$/.test(F.avviso), F.avviso);
+    eq(F.nonMisurati, conti.mancanzeDdt(p), "l'elenco di ciò che manca è quello di mancanzeDdt");
+    const V = conti.fogliaDdt({ ...p, trasportoACura: "vettore", vettore: "" });
+    eq(riq(V, "Trasporto a cura di"), ["Trasporto a cura di", "vettore — da indicare", true], "il vettore senza nome si dichiara");
+    eq(riq(conti.fogliaDdt({ ...p, trasportoACura: "vettore", vettore: "Autotrasporti Rossi" }), "Trasporto a cura di"), ["Trasporto a cura di", "Autotrasporti Rossi", false]);
+    eq(riq(conti.fogliaDdt({ ...p, trasportoACura: "destinatario", mezzo: "" }), "Trasporto a cura di"), ["Trasporto a cura di", "destinatario", false]);
+  });
+  test("Conti · fogliaDdt: il prezzo mai scritto è «non indicato» (mai «€ 0,00/t»), lo zero scritto è un prezzo, il peso che manca è «—», e il perché del valore che non c'è", () => {
+    const p = D.pesate.find((x) => x.id === "s1");
+    const F = conti.fogliaDdt({ ...p, prezzoUnitario: null, densita: null, aliquotaIva: null }, {});
+    eq([F.riga.prezzo, F.riga.valore], ["non indicato", "—"], "⛔ su un DDT «€ 0,00/t» è un prezzo dichiarato");
+    eq(F.piede, { etichetta: "Valore della consegna (imponibile, IVA non indicata)", valore: "non calcolabile", mancante: true });
+    eq(F.perche, conti.valoreDdt({ ...p, prezzoUnitario: null }).perche, "il perché lo scrive valoreDdt"); ok(F.perche.length > 20, F.perche);
+    eq(F.volume, "", "senza densità niente volume inventato");
+    ok(!/fattura può essere riepilogativa/.test(F.piedeLegale), "e senza valore niente frase sulla fattura differita");
+    ok(F.nonMisurati.includes("il prezzo unitario (non indicato)") && F.nonMisurati.includes("l'aliquota IVA (non indicata)"), F.nonMisurati.join(" · "));
+    const Z = conti.fogliaDdt({ ...p, prezzoUnitario: 0 }, {});
+    eq(Z.riga.prezzo, E(0) + "/t", "lo zero SCRITTO resta un prezzo: la fornitura in omaggio");
+    const S = conti.fogliaDdt({ ...p, lordo: null, tara: null, netto: null, peso: null }, {});
+    const pesi = conti.pesiPesata({ ...p, lordo: null, tara: null, netto: null, peso: null });
+    eq([S.riga.lordo, S.riga.tara, S.riga.netto], [pesi.lordo == null ? "—" : S.riga.lordo, pesi.tara == null ? "—" : S.riga.tara, pesi.netto == null ? "—" : S.riga.netto], "un peso mai scritto è «—», non «0,00»");
+    ok(S.riga.lordo === "—" || S.riga.netto === "—", "(almeno un peso manca davvero in questa prova — " + JSON.stringify(S.riga) + ")");
+    const N = conti.fogliaDdt({ ...p, data: "2026-02-30" }, {});
+    eq(riq(N, "Data del ritiro"), ["Data del ritiro", "non indicata", true], "una data che non esiste non si stampa");
+    ok(N.nonMisurati.includes("la data del ritiro (la data scritta non esiste)"));
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const X = conti.fogliaDdt(...args);
+      eq([X.numero, X.data, X.riga.prezzo, X.piede.valore, X.riquadri.length], ["—", "—", "non indicato", "non calcolabile", 3], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Conti · fogliaPreventivo: la conferma d'ordine a chiamata — «a chiamata», l'avviso al singolare, i totali «—» e non «€ 0,00»", () => {
+    const o = D.ordini.find((x) => x.id === "o5");
+    const F = conti.fogliaPreventivo(o, { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq([F.titolo, F.numero, F.data, F.cliente.ragioneSociale, F.riferimento, F.stato], ["Conferma d'ordine", "ORD/2026/002", "02/07/2026", "Edilcave Srl", "Accordo quadro 2026", "accettato"]);
+    eq(F.riquadri, [["Valida fino al", "02/08/2026", false], ["Stato", "Ordine", false], ["Preventivo di origine", "PREV/2026/005", false]]);
+    eq(F.avviso, "**Una riga è a quantità da definire** (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto **non la comprende**.");
+    eq(F.righe, [{ descrizione: "Pietrisco 8/12", quantita: "a chiamata", prezzo: E(11.5) + "/t", sconto: "− 5%", aliquota: "22%", imponibile: "—" }]);
+    eq(F.piede, [["Imponibile", "—", false], ["IVA", "—", false], ["Totale dell'ordine", "—", true]], "⛔ tutte le righe a chiamata: i totali non sono «€ 0,00»");
+    ok(F.nonMisurati.includes("il totale (tutte le righe sono a quantità da definire)"), F.nonMisurati.join(" · "));
+    eq(F.note, o.note); ok(/^Conferma dell'ordine ricevuto\./.test(F.piedeLegale));
+  });
+  test("Conti · fogliaPreventivo: il preventivo con i numeri — righe, sconto, piede di totaliPreventivo; senza validità; senza righe", () => {
+    const o = D.ordini.find((x) => x.id === "o2");
+    const t = conti.totaliPreventivo(o);
+    const F = conti.fogliaPreventivo(o, { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq([F.titolo, F.numero, F.stato], ["Preventivo", "PREV/2026/002", "scaduto"]);
+    eq(riq(F, "Stato"), ["Stato", "Scaduto", false]); eq(riq(F, "Prezzi"), ["Prezzi", "di listino, sconto indicato a parte", false]);
+    eq(F.avviso, ""); eq(F.righe.length, 2); eq(F.righe[0].quantita, "200,00 m³"); eq(F.righe[0].prezzo, E(22) + "/m³");
+    eq(F.piede, [["Imponibile", E(t.imponibile), false], ["IVA", E(t.ivaImporto), false], ["Totale dell'offerta", E(t.totale), true]]);
+    ok(/^Offerta valida fino alla data indicata;/.test(F.piedeLegale)); eq(F.nonMisurati, []);
+    const S = conti.fogliaPreventivo(D.ordini.find((x) => x.id === "o7"), { clienti: D.clienti, oggi: new Date(2026, 8, 5) });
+    eq(riq(S, "Valida fino al"), ["Valida fino al", "non indicata", true]); eq(riq(S, "Stato"), ["Stato", "senza validità", false]);
+    ok(S.nonMisurati.includes("la data di validità (non indicata)"));
+    const M = conti.fogliaPreventivo({ ...o, righe: [{ descrizione: "A", quantita: null, unita: "t", prezzoUnitario: 10, aliquota: 22 }, { descrizione: "B", quantita: null, unita: "t", prezzoUnitario: 10, aliquota: 22 }] }, {});
+    ok(/^\*\*Alcune righe sono a quantità da definire\*\*/.test(M.avviso) && /\*\*non le comprende\*\*/.test(M.avviso), "al plurale — " + M.avviso);
+    const V = conti.fogliaPreventivo({ ...o, righe: [] }, {});
+    eq([V.righe, V.vuote, V.piede[2]], [[], "Nessuna riga.", ["Totale dell'offerta", "—", true]], "senza righe: «Nessuna riga.» e nessun totale");
+    ok(V.nonMisurati.includes("il totale (nessuna riga)"));
+    for (const st of Object.keys(conti.ETICHETTA_STATO_PREVENTIVO)) ok(typeof conti.ETICHETTA_STATO_PREVENTIVO[st] === "string" && conti.ETICHETTA_STATO_PREVENTIVO[st], "etichetta per " + st);
+    for (const args of [[null], [undefined, null], [{}, {}]]) {
+      const X = conti.fogliaPreventivo(...args);
+      eq([X.titolo, X.numero, X.righe.length, X.vuote, X.piede.length], ["Preventivo", "—", 0, "Nessuna riga.", 3], "con niente non rompe: " + JSON.stringify(args));
+    }
+  });
+  test("Conti · la pagina non compone più nessuna riga del DDT né del preventivo", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    // («a chiamata» resta nella pagina: è la parola dell'ELENCO a schermo, non del foglio)
+    for (const et of ["Questo documento non è completo", "da indicare</b>", 'r.quantita == null ? "a chiamata"', "Valore della consegna (imponibile", "a quantità da definire", "Offerta valida fino alla data indicata", '["", "Bozza"]'])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/fogliaDdt\(p, \{ clienti: CLI \}\)/.test(pagina) && /fogliaPreventivo\(o, \{ clienti: CLI, oggi: new Date\(\) \}\)/.test(pagina), "e chiama le due funzioni con i dati vivi");
+  });
+}
+/* ===== fine DDT e preventivo nel modulo (05/09) ===== */
+
+
 
 
 /* ===== fine portata del report (05/09) ===== */

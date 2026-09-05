@@ -5527,6 +5527,130 @@ export function fogliaFattura(fattura, opzioni) {
     nonMisurati };
 }
 
+/* IL FOGLIO DEL DOCUMENTO DI TRASPORTO (05/09), stessa forma di `fogliaFattura`.
+   È il foglio che viaggia sul camion e che legge la Guardia di Finanza: la
+   causale, chi cura il trasporto e la data si DICHIARANO quando mancano
+   (`mancanzeDdt`), un peso mai scritto è «—» e non «0,00» (`pesiPesata`), un
+   prezzo mai scritto è «non indicato» e mai «€ 0,00/t» (`numeroDichiarato`:
+   uno zero SCRITTO resta un prezzo, la fornitura in omaggio), e il valore
+   esce solo se `valoreDdt` lo sa calcolare, con il perché quando non può.
+   Nessuna di queste regole si rifà qui: si legge. Pura. */
+export function fogliaDdt(pesata, opzioni) {
+  const { clienti } = opzioni || {};
+  const p = pesata || {};
+  const nonMisurati = [];
+  const q = quantitaPesata(p);
+  const pesi = pesiPesata(p);
+  const v = valoreDdt(p);
+  const mancanze = mancanzeDdt(p);
+  const qtN = (x) => (x == null ? "—" : NUM2_IT.format(+x || 0));
+  const cliente = (Array.isArray(clienti) ? clienti : []).find((x) => x && x.id === p.clienteId) || { ragioneSociale: p.cliente };
+  /* i tre riquadri: quando non sono indicati lo dicono — «Vendita» e «a cura
+     del mittente» fissi nel codice erano due dichiarazioni che nessuno aveva
+     scritto */
+  const caus = causaleTrasporto(p.causaleTrasporto);
+  const cura = trasportoACura(p.trasportoACura);
+  const vettore = String(p.vettore || "").trim();
+  const riquadri = [
+    caus ? ["Causale del trasporto", caus.label, false] : ["Causale del trasporto", "da indicare", true],
+    !cura ? ["Trasporto a cura di", "da indicare", true]
+      : cura.id === "vettore" ? (vettore ? ["Trasporto a cura di", vettore, false] : ["Trasporto a cura di", "vettore — da indicare", true])
+      : ["Trasporto a cura di", cura.label.toLowerCase() + (p.mezzo ? " — mezzo " + String(p.mezzo) : ""), false],
+    dataISOEsiste(p.data) ? ["Data del ritiro", dataIt(String(p.data).slice(0, 10)), false] : ["Data del ritiro", "non indicata", true],
+  ];
+  for (const m of mancanze) nonMisurati.push(m);
+  if (!dataISOEsiste(p.data)) nonMisurati.push("la data del ritiro" + (p.data ? " (la data scritta non esiste)" : ""));
+  const prezzo = numeroDichiarato(p.prezzoUnitario);
+  if (prezzo == null) nonMisurati.push("il prezzo unitario (non indicato)");
+  const aliq = p.aliquotaIva != null && p.aliquotaIva !== "" ? +p.aliquotaIva : null;
+  if (aliq == null) nonMisurati.push("l'aliquota IVA (non indicata)");
+  return {
+    titolo: "Documento di trasporto", numero: String(p.numero || "—"), data: dataIt(p.data), cliente,
+    luogoConsegna: String(p.destinatario || ""),
+    avviso: mancanze.length
+      ? "**Questo documento non è completo.** Prima di stamparlo va indicato: " + mancanze.join("; ") + ". Si compila sulla pesata, in Conti."
+      : "",
+    riquadri,
+    colonne: ["Natura e qualità dei beni", "Lordo (t)", "Tara (t)", "Netto (t)", "Quantità", "Prezzo", "Sconto", "Valore"],
+    riga: {
+      prodotto: String(p.prodotto || "—"),
+      lordo: qtN(pesi.lordo), tara: qtN(pesi.tara), netto: qtN(pesi.netto),
+      quantita: p.quantita == null || p.quantita === "" ? "—" : NUM2_IT.format(+p.quantita || 0) + " " + unitaTx(p.unitaVendita),
+      prezzo: prezzo == null ? "non indicato" : euro(p.prezzoUnitario) + "/" + unitaTx(p.unitaVendita),
+      sconto: +p.scontoPct > 0 ? "− " + percTx(p.scontoPct) : "—",
+      valore: v.calcolabile ? euro(v.valore) : "—",
+    },
+    piede: { etichetta: "Valore della consegna (imponibile, " + (aliq == null ? "IVA non indicata" : "IVA " + percTx(aliq) + " esclusa") + ")",
+      valore: v.calcolabile ? euro(v.valore) : "non calcolabile", mancante: !v.calcolabile },
+    perche: v.calcolabile ? "" : String(v.perche || v.motivo || ""),
+    volume: q.m3 != null ? NUM2_IT.format(q.m3) + " m³ (netto ÷ densità " + NUM2_IT.format(+p.densita || 0) + " t/m³)" : "",
+    piedeLegale: "Documento di trasporto ai sensi del **DPR 472/1996**: va emesso **prima dell'inizio del trasporto** e conservato per dieci anni. La numerazione è progressiva per anno e senza salti."
+      + (valorePesata(p) > 0 ? " Il valore indicato è l'imponibile della consegna: la fattura può essere riepilogativa (differita) entro il 15 del mese successivo." : ""),
+    nonMisurati,
+  };
+}
+
+/* Le parole con cui lo stato di un preventivo si legge, a schermo (il badge)
+   e sul foglio: una mappa sola, per tutti gli stati che `statoPreventivo` sa
+   dire — la regola 18 di run-stile pretende che li copra tutti. */
+export const ETICHETTA_STATO_PREVENTIVO = {
+  bozza: "Bozza", inviato: "Inviato", scaduto: "Scaduto", "senza-validita": "senza validità",
+  accettato: "Ordine", rifiutato: "Rifiutato", annullato: "Annullato",
+};
+
+/* IL FOGLIO DEL PREVENTIVO / DELLA CONFERMA D'ORDINE (05/09), stessa forma.
+   Una riga a quantità da definire (fornitura a chiamata) si dichiara e il
+   totale dice che non la comprende; quando TUTTE le righe sono a chiamata i
+   totali sono «—», non «€ 0,00» (che sarebbe un'offerta gratis). L'aliquota
+   che manca resta «—», come sulla fattura. Pura. */
+export function fogliaPreventivo(ordine, opzioni) {
+  const { clienti, oggi } = opzioni || {};
+  const o = ordine || {};
+  const t = totaliPreventivo(o);
+  const st = statoPreventivo(o, oggi || new Date()).stato;
+  const conferma = !!o.numeroOrdine;
+  // senza righe con un importo non c'è niente da sommare: «—», non «€ 0,00»
+  // (che sarebbe un'offerta gratis)
+  const nienteDaSommare = t.righe === 0 || t.righe === t.senzaImporto;
+  const eurOrd = (v) => (nienteDaSommare ? "—" : euro(v));
+  const nonMisurati = [];
+  const cliente = (Array.isArray(clienti) ? clienti : []).find((x) => x && x.id === o.clienteId) || { ragioneSociale: o.cliente };
+  const righe = (Array.isArray(o.righe) ? o.righe : []).map((r) => ({
+    descrizione: String((r && r.descrizione) || "—"),
+    quantita: r && r.quantita == null ? "a chiamata" : NUM2_IT.format(+r.quantita || 0) + " " + unitaTx(r.unita),
+    prezzo: r && r.prezzoUnitario == null ? "—" : euro(r.prezzoUnitario) + "/" + unitaTx(r.unita),
+    sconto: r && +r.scontoPct > 0 ? "− " + percTx(r.scontoPct) : "—",
+    aliquota: r && r.aliquota == null ? "—" : percTx(r.aliquota),
+    imponibile: r && r.imponibile == null ? "—" : euro(r.imponibile),
+  }));
+  const validoAl = dataISOEsiste(o.validoAl) ? dataIt(String(o.validoAl).slice(0, 10)) : "";
+  if (!validoAl) nonMisurati.push("la data di validità" + (o.validoAl ? " (la data scritta non esiste)" : " (non indicata)"));
+  if (nienteDaSommare) nonMisurati.push(t.righe === 0 ? "il totale (nessuna riga)" : "il totale (tutte le righe sono a quantità da definire)");
+  return {
+    titolo: conferma ? "Conferma d'ordine" : "Preventivo",
+    numero: String(o.numeroOrdine || o.numero || "—"), data: dataIt(o.data), cliente,
+    riferimento: String(o.riferimento || ""), stato: st,
+    riquadri: [
+      validoAl ? ["Valida fino al", validoAl, false] : ["Valida fino al", "non indicata", true],
+      ["Stato", ETICHETTA_STATO_PREVENTIVO[st] || st || "—", false],
+      conferma ? ["Preventivo di origine", String(o.numero || "—"), false] : ["Prezzi", "di listino, sconto indicato a parte", false],
+    ],
+    avviso: t.senzaImporto
+      ? "**" + (t.senzaImporto === 1 ? "Una riga è" : "Alcune righe sono") + " a quantità da definire** (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto **non "
+        + (t.senzaImporto === 1 ? "la" : "le") + " comprende**."
+      : "",
+    colonne: ["Prodotto", "Quantità", "Prezzo di listino", "Sconto", "IVA", "Imponibile"],
+    righe, vuote: righe.length ? "" : "Nessuna riga.",
+    piede: [["Imponibile", eurOrd(t.imponibile), false], ["IVA", eurOrd(t.ivaImporto), false],
+      ["Totale " + (conferma ? "dell'ordine" : "dell'offerta"), eurOrd(t.totale), true]],
+    note: String(o.note || ""),
+    piedeLegale: conferma
+      ? "Conferma dell'ordine ricevuto. Le consegne saranno accompagnate da documento di trasporto (DPR 472/1996) e fatturate, anche in forma riepilogativa, entro il 15 del mese successivo alla consegna."
+      : "Offerta valida fino alla data indicata; oltre quel giorno i prezzi vanno riconfermati. Le quantità sono indicative e si intendono franco cava salvo diverso accordo scritto. La fornitura è soggetta a documento di trasporto e a fatturazione secondo i termini di legge.",
+    nonMisurati,
+  };
+}
+
 export function nomeMetodo(m) { return (METODI_INCASSO.find(x => x[0] === m) || ["","—"])[1]; }
 
 /* LA CELLA DI UN NUMERO IN UN FILE (05/09, salita dalla pagina): vuota quando

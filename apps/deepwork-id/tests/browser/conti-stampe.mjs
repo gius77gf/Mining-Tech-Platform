@@ -82,8 +82,8 @@ DEMO.note = [{ id: "zn1", tipo: "TD04", numero: "NC/2026/001", emessa: "2026-07-
    e conta le sostituzioni: un `replace` che non trova niente esce in silenzio. */
 const PAGINA = "apps/conti/index.html", MODULO = "apps/conti/conti-data.js";
 /* ⏱️ dal 05/09 il foglio della fattura lo compone `fogliaFattura` nel MODULO:
-   i difetti 1, 2 e 3 si rimettono lì (terzo posto della tupla); 4 e 5 restano
-   nella pagina (la ✎ e l'etichetta del DDT). */
+   i difetti 1, 2, 3 e 5 si rimettono lì (terzo posto della tupla); il 4 resta
+   nella pagina (la ✎). */
 const DIFETTI = [
   // 1. il piede con l'aliquota unica ricavata per divisione
   [`      .concat(rie.bande.map((b) => ({ tipo: "iva",
@@ -100,7 +100,7 @@ const DIFETTI = [
   ['$("ft-iva").value = im.aliquota == null ? "" : String(im.aliquota);\n        const rappresentabile = im.aliquota != null && $("ft-iva").value !== "";',
    '$("ft-iva").value = String(im.aliquota != null ? im.aliquota : 0);\n        const rappresentabile = $("ft-iva").value !== "";'],
   // 5. l'etichetta del DDT che promette un'ora che non c'è
-  ['<span class="et">Data del ritiro</span>', '<span class="et">Data e ora di ritiro</span>'],
+  ['["Data del ritiro", dataIt(String(p.data).slice(0, 10)), false]', '["Data e ora di ritiro", dataIt(String(p.data).slice(0, 10)), false]', MODULO],
   // 3. il riquadro che dichiara le righe che non tornano
   ["  if (!rie.quadra)\n    avvisi.push(", "  if (false)\n    avvisi.push(", MODULO],
 ];

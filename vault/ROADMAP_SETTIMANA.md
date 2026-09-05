@@ -568,7 +568,30 @@
   «6 difetti rimessi», 10 KO voluti), `stampe-fs` con l'iniezione dei
   trattini sul modulo (22/22; controprova 2/2), `conti-frasi-da-uno` 41/41,
   `conti-documenti-che-escono` 81/81. Scatto della fattura guardato.
-  ⏱️ Restano in Conti `fogliDdt(p)` e `stampaPreventivo(id)`, stessa forma.
+  ✅ E `fogliDdt` e `stampaPreventivo` sono saliti lo stesso giorno (voce sotto).
+- [x] **CONTI — il DDT e il preventivo si compongono nel modulo (05/09):**
+  `fogliaDdt(p, {clienti})` — riquadri (causale, trasporto a cura, data del
+  ritiro: «da indicare» in grassetto quando mancano, mai «Vendita» fissa),
+  l'avviso di `mancanzeDdt`, la riga coi pesi di `pesiPesata` («—» dove mai
+  scritto), il prezzo di `numeroDichiarato` («non indicato», mai «€ 0,00/t»;
+  lo zero scritto resta un omaggio), il valore solo se `valoreDdt` lo sa
+  calcolare col suo perché, il volume da `quantitaPesata`, il piede legale;
+  `fogliaPreventivo(o, {clienti, oggi})` — titolo Conferma d'ordine /
+  Preventivo, riquadri con lo stato da `ETICHETTA_STATO_PREVENTIVO` (mappa
+  salita nel modulo: il badge a schermo la legge da lì), l'avviso delle
+  righe a chiamata al singolare/plurale, righe, piede da `totaliPreventivo`
+  con «—» quando non c'è niente da sommare (anche senza righe, prima
+  «€ 0,00»), note, piede legale. La pagina disegna; le unità nelle
+  intestazioni restano protette dal maiuscolo. run-kpi +6 (2706): DDT
+  completo, senza causale/trasporto, il vettore senza nome, il prezzo mai
+  scritto e lo zero scritto, la data inesistente; conferma a chiamata,
+  preventivo coi numeri, senza validità, plurale, senza righe, con niente;
+  la pagina che non compone più. Copertura di Conti 177 → 180. Banchi:
+  `conti-stampe` con l'iniezione 5 («Data del ritiro») sul modulo (20/20,
+  controprova 6 rimessi / 10 KO voluti), `stampe-fs --solo=conti` 22/22,
+  `conti-frasi-da-uno` 41/41, `conti-documenti-che-escono` 81/81. Scatti
+  del DDT e della conferma d'ordine guardati. **Conti: tre fogli su tre e
+  quattordici CSV su quattordici composti nel modulo.**
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6668,8 +6691,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.181 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2700, `run-stile` 328,
+  **3.187 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2706, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

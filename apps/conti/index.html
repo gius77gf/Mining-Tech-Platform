@@ -1988,7 +1988,7 @@ label.item:has(.dw-chk:checked){
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
-    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura } from "./conti-data.js";
+    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2500,14 +2500,16 @@ label.item:has(.dw-chk:checked){
   //    pagina legge `misurabile` PRIMA di disegnare qualunque barra, e la
   //    frase la scrive `descriviAvanzamento` (nel modulo, una volta sola).
   // ══════════════════════════════════════════════════════════════════
+  // le parole le tiene il modulo (`ETICHETTA_STATO_PREVENTIVO`: le usa anche il
+  // foglio stampato); qui solo il colore di ogni stato
   const ORD_BADGE = {
-    bozza:            ["", "Bozza"],
-    inviato:          ["warn", "Inviato"],
-    scaduto:          ["danger", "Scaduto"],
-    "senza-validita": ["warn", "senza validità"],
-    accettato:        ["ok", "Ordine"],
-    rifiutato:        ["danger", "Rifiutato"],
-    annullato:        ["", "Annullato"],
+    bozza:            ["", ETICHETTA_STATO_PREVENTIVO.bozza],
+    inviato:          ["warn", ETICHETTA_STATO_PREVENTIVO.inviato],
+    scaduto:          ["danger", ETICHETTA_STATO_PREVENTIVO.scaduto],
+    "senza-validita": ["warn", ETICHETTA_STATO_PREVENTIVO["senza-validita"]],
+    accettato:        ["ok", ETICHETTA_STATO_PREVENTIVO.accettato],
+    rifiutato:        ["danger", ETICHETTA_STATO_PREVENTIVO.rifiutato],
+    annullato:        ["", ETICHETTA_STATO_PREVENTIVO.annullato],
   };
   /* ⛔ Regola 18: la mappa deve coprire TUTTI gli stati che la sua funzione sa
      dire. `statoPreventivo` ne restituisce sette — i cinque salvabili più i due
@@ -3023,51 +3025,34 @@ label.item:has(.dw-chk:checked){
      ⛔ E la validità si scrive sempre, anche quando manca: «valida fino a —»
      non è una data. Un foglio che tace su quel punto è un prezzo che il
      cliente crede bloccato per sempre. */
+  /* Righe, riquadri, avviso e piede li compone `fogliaPreventivo` nel modulo
+     (`totaliPreventivo`, `statoPreventivo`): qui si disegna e basta. */
   function stampaPreventivo(id) {
     const o = ORD.find(x => x.id === id); if (!o) return;
-    const c = CLI.find(x => x.id === o.clienteId) || { ragioneSociale: o.cliente };
-    const t = totaliPreventivo(o);
-    const st = ordStato(o);
-    const titolo = o.numeroOrdine ? "Conferma d'ordine" : "Preventivo";
-    const sotto = "n. <b>" + esc(o.numeroOrdine || o.numero || "—") + "</b> del " + fmtD(o.data);
-    const righe = (o.righe || []).map(r => `<tr>
+    const F = fogliaPreventivo(o, { clienti: CLI, oggi: new Date() });
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    const righe = F.righe.map(r => `<tr>
         <td>${esc(r.descrizione)}</td>
-        <td class="num">${r.quantita == null ? "a chiamata" : qtu(r.quantita, r.unita)}</td>
-        <td class="num">${r.prezzoUnitario == null ? "—" : eur(r.prezzoUnitario) + "/" + uni(r.unita)}</td>
-        <td class="num">${+r.scontoPct > 0 ? "− " + perc(r.scontoPct) : "—"}</td>
-        ${/* stessa regola del foglio della fattura: un'aliquota che non c'è non
-             si stampa «0%», che su un documento è la dichiarazione di
-             un'operazione non imponibile. Il caso oggi non si produce
-             (`rigaPreventivo` scrive sempre un numero), ma le due stampe non
-             possono dire due cose diverse sullo stesso dato. */""}
-        <td class="num">${r.aliquota == null ? "—" : perc(r.aliquota)}</td>
-        <td class="num">${r.imponibile == null ? "—" : eur(r.imponibile)}</td></tr>`).join("");
+        <td class="num">${esc(r.quantita)}</td>
+        <td class="num">${esc(r.prezzo)}</td>
+        <td class="num">${esc(r.sconto)}</td>
+        <td class="num">${esc(r.aliquota)}</td>
+        <td class="num">${esc(r.imponibile)}</td></tr>`).join("");
     stampaFoglio(`<div class="doc">
-      ${testaStampa(titolo, sotto)}
-      ${destStampa("Spett.le", c, o.riferimento ? `<br><span class="et" style="margin-top:2mm;">Riferimento</span>${esc(o.riferimento)}` : "")}
+      ${testaStampa(F.titolo, "n. <b>" + esc(F.numero) + "</b> del " + esc(F.data))}
+      ${destStampa("Spett.le", F.cliente, F.riferimento ? `<br><span class="et" style="margin-top:2mm;">Riferimento</span>${esc(F.riferimento)}` : "")}
       <div class="cols">
-        <div class="box"><span class="et">Valida fino al</span>${o.validoAl ? fmtD(o.validoAl) : "<b>non indicata</b>"}</div>
-        <div class="box"><span class="et">Stato</span>${esc(ordBadge(st)[1])}</div>
-        ${o.numeroOrdine ? `<div class="box"><span class="et">Preventivo di origine</span>${esc(o.numero)}</div>`
-                         : `<div class="box"><span class="et">Prezzi</span>di listino, sconto indicato a parte</div>`}
+        ${F.riquadri.map(([et, t, manca]) => `<div class="box"><span class="et">${esc(et)}</span>${manca ? "<b>" + esc(t) + "</b>" : esc(t)}</div>`).join("")}
       </div>
-      ${t.senzaImporto ? `<div class="manca"><b>${plur(t.senzaImporto, "Una riga è", "Alcune righe sono")} a quantità da definire</b>
-        (fornitura a chiamata): il prezzo unitario è impegnativo, il totale qui sotto <b>non ${t.senzaImporto === 1 ? "la" : "le"} comprende</b>.</div>` : ""}
-      <table><thead><tr>
-        <th>Prodotto</th><th class="num">Quantità</th><th class="num">Prezzo di listino</th>
-        <th class="num">Sconto</th><th class="num">IVA</th><th class="num">Imponibile</th>
-      </tr></thead><tbody>${righe || '<tr><td colspan="6">Nessuna riga.</td></tr>'}</tbody>
-      <tfoot>
-        <tr><td colspan="5">Imponibile</td><td class="num">${eurOrd(t, t.imponibile)}</td></tr>
-        <tr><td colspan="5">IVA</td><td class="num">${eurOrd(t, t.ivaImporto)}</td></tr>
-        <tr class="tot-riga"><td colspan="5">Totale ${o.numeroOrdine ? "dell'ordine" : "dell'offerta"}</td>
-          <td class="num grande">${eurOrd(t, t.totale)}</td></tr></tfoot></table>
-      ${o.note ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Note</span>${esc(o.note)}</div>` : ""}
+      ${F.avviso ? `<div class="manca">${md(F.avviso)}</div>` : ""}
+      <table><thead><tr>${F.colonne.map((c, i) => `<th${i ? ' class="num"' : ""}>${esc(c)}</th>`).join("")}</tr></thead><tbody>${righe || `<tr><td colspan="6">${esc(F.vuote)}</td></tr>`}</tbody>
+      <tfoot>${F.piede.map(([et, v, grande]) => grande
+        ? `<tr class="tot-riga"><td colspan="5">${esc(et)}</td><td class="num grande">${esc(v)}</td></tr>`
+        : `<tr><td colspan="5">${esc(et)}</td><td class="num">${esc(v)}</td></tr>`).join("")}</tfoot></table>
+      ${F.note ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Note</span>${esc(F.note)}</div>` : ""}
       <div class="firme"><div>Per accettazione — timbro e firma</div><div>Data</div></div>
-      <div class="piede">${o.numeroOrdine
-        ? "Conferma dell'ordine ricevuto. Le consegne saranno accompagnate da documento di trasporto (DPR 472/1996) e fatturate, anche in forma riepilogativa, entro il 15 del mese successivo alla consegna."
-        : "Offerta valida fino alla data indicata; oltre quel giorno i prezzi vanno riconfermati. Le quantità sono indicative e si intendono franco cava salvo diverso accordo scritto. La fornitura è soggetta a documento di trasporto e a fatturazione secondo i termini di legge."}</div>
-    </div>`, titolo);
+      <div class="piede">${esc(F.piedeLegale)}</div>
+    </div>`, F.titolo);
   }
 
   async function refresh(){
@@ -4798,76 +4783,36 @@ label.item:has(.dw-chk:checked){
     setTimeout(() => { try { window.print(); } catch (e) { toast("La stampa non si è aperta: usa il menù del browser.", "err"); } }, 60);
   }
 
+  /* Riquadri, riga, piede e avvisi del DDT li compone `fogliaDdt` nel modulo
+     (mancanze, pesi, prezzo dichiarato, valore): qui si disegna e basta. Le
+     unità nelle intestazioni vanno protette dal maiuscolo del `th`. */
   function fogliDdt(p) {
-    const c = CLI.find(x => x.id === p.clienteId) || { ragioneSociale: p.cliente };
-    const q = quantitaPesata(p);
+    const F = fogliaDdt(p, { clienti: CLI });
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    const th = (c) => esc(c).replace(/\((t|m³)\)/, '(<span class="u">$1</span>)');
+    const r = F.riga;
     return `<div class="doc">
-      ${testaStampa("Documento di trasporto", "n. <b>" + esc(p.numero || "—") + "</b> del " + fmtD(p.data))}
-      ${destStampa("Destinatario", c, p.destinatario ? `<br><span class="et" style="margin-top:2mm;">Luogo di consegna</span>${esc(p.destinatario)}` : "")}
-      ${(() => {
-        /* ⛔ QUI IL FOGLIO DICHIARAVA DUE COSE CHE NESSUNO AVEVA SCRITTO:
-           «Vendita» e «a cura del mittente», fissi nel codice. Su un documento
-           che viaggia sul camion e che legge la Guardia di Finanza, la causale
-           decide se il materiale e' venduto, in conto lavorazione, reso o
-           spostato fra depositi. Adesso, quando non e' indicata, il foglio lo
-           dice — con lo stesso riquadro tratteggiato che usa per l'IVA delle
-           fatture registrate a importo unico. */
-        const m = mancanzeDdt(p);
-        return m.length
-          ? `<div class="manca"><b>Questo documento non è completo.</b> Prima di stamparlo va indicato: ${m.map(x => esc(x)).join("; ")}. Si compila sulla pesata, in Conti.</div>`
-          : "";
-      })()}
+      ${testaStampa(F.titolo, "n. <b>" + esc(F.numero) + "</b> del " + esc(F.data))}
+      ${destStampa("Destinatario", F.cliente, F.luogoConsegna ? `<br><span class="et" style="margin-top:2mm;">Luogo di consegna</span>${esc(F.luogoConsegna)}` : "")}
+      ${F.avviso ? `<div class="manca">${md(F.avviso)}</div>` : ""}
       <div class="cols">
-        <div class="box"><span class="et">Causale del trasporto</span>${
-          (causaleTrasporto(p.causaleTrasporto) || {}).label || "<b>da indicare</b>"}</div>
-        <div class="box"><span class="et">Trasporto a cura di</span>${(() => {
-          const c = trasportoACura(p.trasportoACura);
-          if (!c) return "<b>da indicare</b>";
-          if (c.id === "vettore") return esc(String(p.vettore || "").trim() || "vettore — <b>da indicare</b>");
-          return esc(c.label.toLowerCase()) + (p.mezzo ? " — mezzo " + esc(p.mezzo) : "");
-        })()}</div>
-        ${/* ⛔ L'ETICHETTA PROMETTEVA UN'ORA CHE IL DOCUMENTO NON HA MAI AVUTO:
-      «Data e ora di ritiro», e sotto una data sola. La pesata la scrive un
-      `<input type="date">` (`#pes-data`), che l'ora non la raccoglie: non è
-      un campo vuoto, è un campo che non esiste — e su un DDT, dove l'ora del
-      ritiro è una cosa che qualcuno può venire a chiedere, un'etichetta che la
-      promette è peggio di non nominarla. Il DPR 472/1996 chiede la data. */""}
-        <div class="box"><span class="et">Data del ritiro</span>${fmtD(p.data)}</div>
+        ${F.riquadri.map(([et, t, manca]) => `<div class="box"><span class="et">${esc(et)}</span>${manca ? "<b>" + esc(t) + "</b>" : esc(t)}</div>`).join("")}
       </div>
-      <table><thead><tr>
-        <th>Natura e qualità dei beni</th><th class="num">Lordo (<span class="u">t</span>)</th><th class="num">Tara (<span class="u">t</span>)</th>
-        <th class="num">Netto (<span class="u">t</span>)</th><th class="num">Quantità</th><th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Valore</th>
-      </tr></thead><tbody><tr>
-        <td>${esc(p.prodotto || "—")}</td>
-        ${/* sul documento che viaggia col camion un peso mai scritto è «—»,
-              non «0,00» (02/09, `pesiPesata`) */ ""}
-        <td class="num">${qtN(pesiPesata(p).lordo)}</td><td class="num">${qtN(pesiPesata(p).tara)}</td>
-        <td class="num"><b>${qtN(pesiPesata(p).netto)}</b></td>
-        <td class="num">${p.quantita == null ? "—" : qtu(p.quantita, p.unitaVendita)}</td>
-        ${/* ⛔ «€ 0,00/t» SU UN DOCUMENTO CHE VIAGGIA SUL CAMION. `eur(null)` fa
-              «€ 0,00», e su un DDT quello è un prezzo DICHIARATO: chi lo legge
-              — il cliente, la Guardia di Finanza — non ha nessun modo di
-              sapere che nessuno l'aveva scritto. La cella accanto, la
-              quantità, la decisione giusta ce l'aveva già dodici caratteri
-              prima («— » invece di uno zero): questa no. La regola è
-              `numeroDichiarato` di `shared/`, la stessa che decide se la cella
-              del prezzo esce vuota nella copia di sicurezza — uno zero
-              SCRITTO resta un prezzo (la fornitura in omaggio), una cella mai
-              compilata no. Il perché sta nel riquadro rosso più sotto, che
-              stampa `valoreDdt().perche`. */""}
-        <td class="num">${numeroDichiarato(p.prezzoUnitario) == null
-          ? "non indicato" : eur(p.prezzoUnitario) + "/" + uni(p.unitaVendita)}</td>
-        <td class="num">${+p.scontoPct > 0 ? "− " + perc(p.scontoPct) : "—"}</td>
-        <td class="num">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "—"; })()}</td>
+      <table><thead><tr>${F.colonne.map((c, i) => `<th${i ? ' class="num"' : ""}>${th(c)}</th>`).join("")}</tr></thead><tbody><tr>
+        <td>${esc(r.prodotto)}</td>
+        <td class="num">${esc(r.lordo)}</td><td class="num">${esc(r.tara)}</td>
+        <td class="num"><b>${esc(r.netto)}</b></td>
+        <td class="num">${esc(r.quantita)}</td>
+        <td class="num">${esc(r.prezzo)}</td>
+        <td class="num">${esc(r.sconto)}</td>
+        <td class="num">${esc(r.valore)}</td>
       </tr></tbody>
-      <tfoot><tr class="tot-riga"><td colspan="7">Valore della consegna (imponibile, IVA ${perc(p.aliquotaIva)} esclusa)</td>
-        <td class="num grande">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "non calcolabile"; })()}</td></tr></tfoot></table>
-      ${(() => { const v = valoreDdt(p); return v.calcolabile ? "" : `<div class="box" style="margin-bottom:4mm;border-color:#c62828;"><span class="et">Perché il valore non c'è</span>${esc(v.perche)}. Il documento resta valido per il trasporto — il DPR 472/1996 chiede la natura e la quantità della merce, non il prezzo — ma la consegna non è ancora valorizzabile.</div>`; })()}
-      ${q.m3 != null ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Volume corrispondente</span>${qt(q.m3)} m³ (netto ÷ densità ${qt(p.densita)} t/m³)</div>` : ""}
+      <tfoot><tr class="tot-riga"><td colspan="7">${esc(F.piede.etichetta)}</td>
+        <td class="num grande">${esc(F.piede.valore)}</td></tr></tfoot></table>
+      ${F.perche ? `<div class="box" style="margin-bottom:4mm;border-color:#c62828;"><span class="et">Perché il valore non c'è</span>${esc(F.perche)}</div>` : ""}
+      ${F.volume ? `<div class="box" style="margin-bottom:4mm;"><span class="et">Volume corrispondente</span>${esc(F.volume)}</div>` : ""}
       <div class="firme"><div>Firma del conducente</div><div>Firma del destinatario per ricevuta</div></div>
-      <div class="piede">Documento di trasporto ai sensi del <b>DPR 472/1996</b>: va emesso <b>prima dell'inizio del trasporto</b>
-        e conservato per dieci anni. La numerazione è progressiva per anno e senza salti.
-        ${valorePesata(p) > 0 ? "Il valore indicato è l'imponibile della consegna: la fattura può essere riepilogativa (differita) entro il 15 del mese successivo." : ""}</div>
+      <div class="piede">${md(F.piedeLegale)}</div>
     </div>`;
   }
 
