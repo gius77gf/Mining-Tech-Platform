@@ -200,8 +200,10 @@ const DIFETTI = [
      ⚠️ L'ancora è la riga della CELLA, non l'intero modello: sopra di lei c'è
      un commento lungo che racconta il difetto, e citarlo lo renderebbe
      un'iniezione scaduta al primo ritocco della prosa. */
-  ["         f.statoTx, f.note || \"\"].map(csvCell).join(\";\")));",
-   "         f.aperto ? \"ancora fermo\" : \"chiuso\", f.note || \"\"].map(csvCell).join(\";\")));"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: il registro dei fermi è salito in
+     `csvFermiMacchina`, con due spazi in meno di indentazione. */
+  ["       f.statoTx, f.note || \"\"].map(csvCell).join(\";\")));",
+   "       f.aperto ? \"ancora fermo\" : \"chiuso\", f.note || \"\"].map(csvCell).join(\";\")));", MODULO],
   /* 8 · e la riga del ricambio nella situazione, che a un pezzo senza soglia
      minima diceva «ok» con accanto «soglia min 0» — una soglia che nessuno ha
      scritto. La decisione adesso la prende `statoScorta`, la stessa che

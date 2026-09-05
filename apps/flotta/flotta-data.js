@@ -772,6 +772,38 @@ export function scartiRicambiCsv(text) {
    contrario nasconderebbe i pezzi finiti, che sono quelli da ordinare), la
    SOGLIA e il PREZZO che mancano restano **vuoti** — uno zero farebbe suonare
    un allarme che nessuno ha chiesto, o sembrare gratis un pezzo che non lo è. */
+/* I COSTI CON LA LORO DATA (05/09, salito dalla pagina): il file che si porta
+   al commercialista. Le voci senza data escono con la cella vuota — non con
+   una data messa lì per riempire — e un importo non dichiarato resta vuoto,
+   non «0». Righe con a capo Windows perché lo apre un foglio di calcolo;
+   la pagina ci mette davanti il BOM. Pura. */
+export const CSV_COSTI_INTESTAZIONE = "data;voce;importo;nota";
+export function csvCosti(costi) {
+  const righe = [CSV_COSTI_INTESTAZIONE].concat(
+    (costi || []).filter(Boolean).slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
+      .map(c => [dataISOEsiste(String(c.data || "").slice(0, 10)) ? String(c.data).slice(0, 10) : "",
+                 c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
+                 c.nota || ""].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* IL REGISTRO DEI FERMI (05/09, salito dalla pagina): quello che si guarda
+   quando si decide se una macchina va tenuta o sostituita, e che si porta al
+   noleggiatore. La colonna «stato» dice le TRE cose che `durataFermo` sa dire
+   — aperto, chiuso, e «data non valida» quando una delle due date non si
+   legge — perché un fermo con la ripartenza illeggibile che uscisse «chiuso»
+   a zero giornate sarebbe la parola più tranquilla proprio dove lo schermo
+   grida. Ordine e testi sono quelli di `fermiOrdinati`, la stessa dello
+   schermo. Pura. */
+export const CSV_FERMI_INTESTAZIONE = "mezzo;causale;inizio;fine;giorni;stato;note";
+export function csvFermiMacchina(fermi, oggi = new Date()) {
+  const righe = [CSV_FERMI_INTESTAZIONE]
+    .concat(fermiOrdinati(fermi || [], oggi).map(f =>
+      [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
+       f.statoTx, f.note || ""].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
 export function csvRicambi(ricambi) {
   const righe = ["nome;giacenza;sogliaMin;prezzo"];
   for (const r of (ricambi || [])) {

@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4403,13 +4403,9 @@ body.dw b.bad{color:var(--ink-dg)}
   // commercialista o si apre nel foglio di calcolo. Le voci senza data
   // escono con la cella vuota — non con una data messa lì per riempire.
   $("btn-cos-csv").onclick = () => {
-    const righe = ["data;voce;importo;nota"].concat(
-      COS.slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
-        .map(c => [dataISOEsiste(String(c.data || "").slice(0,10)) ? String(c.data).slice(0,10) : "",
-                   c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
-                   c.nota || ""].map(csvCell).join(";")));
+    // le righe le compone `csvCosti` nel modulo, dove `run-kpi` le prova (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvCosti(COS)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-costi.csv"; marchiaCsv(a); a.click();
     const senza = COS.filter(c => !dataISOEsiste(String(c.data || "").slice(0,10))).length;
     esito("cos-esito", plurale(COS.length, "Esportata ", "Esportate ") + conta(COS.length, "voce di costo", "voci di costo") + " (CSV)"
@@ -5427,12 +5423,10 @@ body.dw b.bad{color:var(--ink-dg)}
        per un import; resta corretto perché la versione giusta era già in
        questo stesso file, nello scadenzario, che il suo terzo stato
        (`senza-data`) lo scrive da sempre. */
-    const righe = [["mezzo", "causale", "inizio", "fine", "giorni", "stato", "note"].join(";")]
-      .concat(fermiOrdinati(FER, new Date()).map(f =>
-        [nomeBreve(f.mezzo), f.causaleTx, f.inizio || "", f.fine || "", f.giorni == null ? "" : f.giorni,
-         f.statoTx, f.note || ""].map(csvCell).join(";")));
+    // le righe le compone `csvFermiMacchina` nel modulo — stesse tre risposte,
+    // stesso ordine di `fermiOrdinati` — dove `run-kpi` le prova (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvFermiMacchina(FER, new Date())], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-fermi-macchina.csv"; marchiaCsv(a); a.click();
     esito("fer-esito", plurale(FER.length, "Esportato ", "Esportati ") + conta(FER.length, "fermo", "fermi") + " (CSV).", "success");
   };

@@ -30788,7 +30788,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 24, `almeno 24 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 26, `almeno 26 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -30802,7 +30802,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* 11 → 9 il 05/09: due file di Scudo sono saliti nel modulo (e uno dei due
        era censito col nome sbagliato). Il numero scende quando un export
        migliora: la soglia dice «ce ne sono ancora», non «restano quelli». */
-    ok(conPagina >= 9, `almeno 9 intestazioni vengono dalle pagine — sono ${conPagina}`);
+    ok(conPagina >= 8, `almeno 8 intestazioni vengono dalle pagine — sono ${conPagina}`);
   });
 
   test("⛔ B8 · LA PRIMA PAROLA NON BASTA, e il denominatore lo dice: 32 intestazioni su 42 la condividono", () => {
@@ -37582,6 +37582,39 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine consegna di turno nel modulo (05/09) ===== */
+/* ===== i costi e i fermi di Flotta composti nel modulo (05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvCosti: la data vuota resta vuota, l'importo non dichiarato pure, ordine per data", () => {
+    const righe = flotta.csvCosti(D.costi).split("\r\n");
+    eq(righe[0], flotta.CSV_COSTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0], "data;voce;importo;nota", "quattro colonne");
+    eq(righe.length, D.costi.length + 1, "una riga per voce");
+    const senzaData = righe.find((r) => /Noleggi esterni/.test(r));
+    ok(senzaData && senzaData.startsWith(";"), "⛔ la voce senza data esce con la cella VUOTA, non con una data messa lì per riempire — " + senzaData);
+    eq(righe[1], senzaData, "e sta in cima: la data vuota ordina prima");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort(), "le altre per data");
+    ok(righe.includes("2026-07-02;Ricambi e officina;3150;"), "importo nudo, nota vuota vuota");
+    eq(flotta.csvCosti([{ voce: "x", importo: null, data: "2026-02-30" }]).split("\r\n")[1], ";x;;", "⛔ importo non dichiarato → vuoto, non «0»; data che non esiste → vuota");
+    eq(flotta.csvCosti(null), "data;voce;importo;nota", "null non rompe");
+    ok(!flotta.csvCosti(D.costi).includes("\n\n") && flotta.csvCosti(D.costi).includes("\r\n"), "a capo Windows, come il file di prima: lo apre un foglio di calcolo");
+  });
+  test("Flotta · csvFermiMacchina: le tre risposte di durataFermo nel file, nell'ordine dello schermo", () => {
+    const OGGI = new Date("2026-09-05T10:00:00");
+    const righe = flotta.csvFermiMacchina(D.fermi, OGGI).split("\r\n");
+    eq(righe[0], flotta.CSV_FERMI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe.length, D.fermi.length + 1, "una riga per fermo");
+    const ord = flotta.fermiOrdinati(D.fermi, OGGI);
+    eq(righe.slice(1).map((r) => r.split(";")[1]), ord.map((f) => f.causaleTx), "⛔ stesso ordine e stesse causali a parole di fermiOrdinati, la regola dello schermo");
+    const aperto = righe.find((r) => r.split(";")[3] === "");
+    ok(aperto && /;ancora fermo;/.test(aperto) && aperto.split(";")[4] !== "", "il fermo senza fine è «ancora fermo», coi giorni contati fino a oggi — " + aperto);
+    const strano = flotta.csvFermiMacchina([{ mezzo: "Pala P1", causale: "revisione", inizio: "2026-07-31", fine: "2026-02-30" }], OGGI).split("\r\n")[1];
+    ok(/;;data non valida;/.test(strano), "⛔ la ripartenza che non esiste esce «data non valida» con i giorni vuoti, non «chiuso» a zero giornate — " + strano);
+    eq(flotta.csvFermiMacchina(null, OGGI), "mezzo;causale;inizio;fine;giorni;stato;note", "null non rompe");
+  });
+}
+/* ===== fine costi e fermi di Flotta nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

@@ -420,6 +420,19 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [ ] **FLOTTA — otto file composti nella pagina, due saliti nel modulo
+  (05/09):** `csvCosti` e `csvFermiMacchina` (con le costanti delle
+  intestazioni) — la data vuota resta vuota, l'importo non dichiarato pure,
+  le tre risposte di `durataFermo` nel file. run-kpi +2 (2665); censimento
+  delle intestazioni: `flotta.costi` verificato chiamando l'export e
+  `flotta.fermi` censito (non c'era); banco `flotta-documenti-che-escono`
+  79/79 e controprova con l'iniezione dei fermi riancorata sul modulo.
+  **Restano nella pagina sei file**: registro-interventi, scadenze-di-legge,
+  situazione, giri-macchina, libretto, lista-della-spesa — ognuno con le
+  righe composte lì (le celle dalle funzioni del modulo). Stessa forma, un
+  paio per unità, riancorando le iniezioni. E in Conti sei: incassi,
+  clienti, costi, listino_prezzi, pesate_ddt, preventivi. Comando di partenza:
+  `grep -n "let csv\|const righe" apps/flotta/index.html apps/conti/index.html`.
 - [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
   domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
   foglio `consegna_turno.txt` (cento righe, dieci sezioni) stava nella pagina.
@@ -1613,6 +1626,9 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `FLOTTA — otto file composti nella pagina, due saliti nel modulo` *(sei
+  restano in Flotta e sei in Conti: un paio per unità, riancorando le
+  iniezioni)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6528,8 +6544,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.144 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2663, `run-stile` 328,
+  **3.146 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2665, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
