@@ -31,6 +31,9 @@ const DIFETTI_MODULO = [
    "  const perNome = false;   /* difetto rimesso dal banco: la posizione di sempre */"],
   ["      riferimento: riferimentoMovimento(rifCol, nomeRif, descr),",
    "      riferimento: null,   /* difetto rimesso dal banco: il TRN/CRO buttato via */"],
+  // il file della pesa (05/09): i chili non convertiti in tonnellate
+  ["  const inT = (v) => v == null ? null : round2(unita === \"kg\" ? v / 1000 : v);",
+   "  const inT = (v) => v == null ? null : round2(v);   /* difetto rimesso dal banco */"],
 ];
 const colpiti = new Set();
 const srv = createServer((q, s) => {
@@ -81,6 +84,15 @@ const FILE_D = { name: "lista_movimenti.csv", mimeType: "text/csv", buffer: Buff
   + "12/07/2026;12/07/2026;BONIFICO DA EDILCAVE SRL FT 2026/031;0512345678901234567890123456IT;12.300,00;\n"
   + "13/07/2026;13/07/2026;PAGAMENTO F24;;;1.250,00\n"
   + "14/07/2026;14/07/2026;BONIFICO CRO 12345678901 A NS FAVORE;;500,00;\n", "utf8") };
+
+/* il file della PESA A PONTE (05/09): come lo esporta un software di
+   pesatura, in chilogrammi, con un cliente che in anagrafica non c'è e una
+   riga con la data rotta */
+const FILE_E = { name: "pesate_export.csv", mimeType: "text/csv", buffer: Buffer.from(
+  "N. pesata;Data;Ora uscita;Targa;Cliente;Materiale;Peso lordo (kg);Tara (kg);Peso netto (kg)\n"
+  + "1041;05/09/2026;10:12;FT 421 KP;Edilcave Srl;Stabilizzato 0/30;42600;14200;28400\n"
+  + "1042;05/09/2026;10:40;AB 123 CD;Rossi Srl;Stabilizzato 0/30;38000;14000;24000\n"
+  + "1043;boh;11:00;FT 421 KP;Edilcave Srl;Ghiaia;30000;14000;16000\n", "utf8") };
 
 console.log(`\n════════ Conti · il file della banca nelle sue forme vere, caricato davvero${CONTROPROVA ? " · controprova" : ""} ════════`);
 
@@ -144,6 +156,25 @@ for (const W of [320, 390]) {
   await pg.evaluate(() => document.querySelector(".ban-rif")?.scrollIntoView({ block: "center" }));
   await pg.waitForTimeout(3600);
   await scatta(pg, `${W}-3-riferimento`);
+
+  // ── 4 · il file della PESA: colonne per nome, unità confermata, DDT registrati ──
+  await pg.click("#nav-pes").catch(() => {}); await pg.waitForTimeout(500);
+  const prima = await pg.$$eval("#pes-list .item", (e) => e.length);
+  await pg.setInputFiles("#pesa-file", FILE_E); await pg.waitForTimeout(900);
+  const modale = await pg.evaluate(() => (document.getElementById("modal-body") || {}).innerText || "");
+  dice(/Righe lette: 3/.test(modale) && /in kg/.test(modale) && /Colonne riconosciute/.test(modale), "⛔ la finestra dice quante righe, quali colonne e che i pesi sono in chilogrammi (letto dall'intestazione)", modale.replace(/\s+/g, " ").slice(0, 200));
+  const unita = await pg.$eval("#mc-unita", (e) => e.value).catch(() => "");
+  dice(unita === "kg", "e il campo dell'unità propone «kg», da confermare", unita);
+  await pg.click("#modal-foot .mbtn.primary", { timeout: 3000 }).catch(() => {}); await pg.waitForTimeout(900);
+  const esitoPesa = await pg.evaluate(() => (document.getElementById("pes-esito") || {}).innerText.replace(/\s+/g, " ").trim());
+  dice(/1 DDT registrato dalla pesa/.test(esitoPesa), "⛔ un DDT registrato dalla pesa (il solo cliente in anagrafica)", esitoPesa);
+  dice(/1 riga senza un cliente in anagrafica: «Rossi Srl»/.test(esitoPesa), "⛔ la riga senza cliente si dice PER NOME, con che cosa fare", esitoPesa);
+  dice(/1 riga scartata: 1043 \(data non riconosciuta\)/.test(esitoPesa), "e la riga con la data rotta, col numero del cartellino e la ragione", esitoPesa);
+  dice(/Pesi letti in chilogrammi e convertiti in tonnellate/.test(esitoPesa), "e dichiara la conversione", esitoPesa);
+  const dopo = await pg.$$eval("#pes-list .item", (e) => e.map((x) => x.innerText.replace(/\s+/g, " ").trim()));
+  const nuovo = dopo.find((r) => /FT 421 KP/.test(r) && /28,4/.test(r) && !/28\.400|28400/.test(r));
+  dice(dopo.length === prima + 1 && !!nuovo, "⛔ in elenco c'è UN DDT in più, da 28,4 t nette — non da 28.400: i chili sono diventati tonnellate", nuovo || dopo.slice(0, 2).join(" | "));
+  await scatta(pg, `${W}-4-pesa`);
 
   const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
   dice(largo, "la pagina non scorre in orizzontale");

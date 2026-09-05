@@ -5250,6 +5250,100 @@ function pesataDaCella(c) {
   return out;
 }
 
+/* ── IL FILE DELLA PESA A PONTE (05/09) ─────────────────────────────────────
+   Fino a oggi Conti sapeva rileggere solo la PROPRIA copia di sicurezza delle
+   pesate (venti colonne, per posizione). Il software della pesa (Vincro,
+   Dini Argeo, Laumas, WeightIT…) esporta un CSV suo, coi nomi suoi — numero
+   pesata, data, ora, targa, cliente, materiale, lordo, tara, netto — e non
+   aveva una porta: ogni cartellino si ricopiava a mano. Le colonne si leggono
+   per NOME con `mappaColonne` di `shared/`; l'unità dei pesi si prende
+   dall'intestazione quando la dice («Lordo (kg)»), altrimenti resta «» e la
+   pagina la CHIEDE — non si indovina, perché un lordo da 42.600 kg letto come
+   tonnellate diventa un DDT da 42.600 t. [i nomi delle colonne: seconda mano,
+   docs/RICERCA_CONTINUA_CONTI.md, ricerca del 02/09] */
+export const INDIZI_PESA = {
+  numero: ["numero pesata", "n pesata", "num pesata", "progressivo", "ticket", "scontrino", "pesata", "numero"],
+  data: ["data pesata", "data", "date"],
+  ora: ["ora seconda", "ora uscita", "ora 2", "ora pesata", "ora", "time"],
+  mezzo: ["targa", "mezzo", "veicolo", "automezzo", "camion", "vehicle", "plate"],
+  cliente: ["cliente", "ragione sociale", "destinatario", "intestatario", "customer"],
+  prodotto: ["materiale", "merce", "prodotto", "articolo", "descrizione merce", "descrizione", "material", "product"],
+  lordo: ["peso lordo", "lordo", "gross"],
+  tara: ["tara", "tare"],
+  netto: ["peso netto", "netto", "net"],
+};
+export function mappaPesaCsv(intestazione) {
+  const m = mappaColonne(intestazione, INDIZI_PESA, {
+    ordine: ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"],
+    facoltative: ["numero", "ora", "mezzo", "cliente", "prodotto", "tara", "netto"],
+    conIntestazione: (ix) => ix.data >= 0 && (ix.lordo >= 0 || ix.netto >= 0),
+  });
+  /* l'unità dei pesi, se l'intestazione la dice: «Lordo (kg)», «Netto kg»,
+     «Peso lordo t». Guardata sulle colonne dei pesi, non su tutte. */
+  const testi = ["lordo", "tara", "netto"].map(k => m.indici[k] >= 0 ? nomeColonna((intestazione || [])[m.indici[k]]) : "").filter(Boolean);
+  const kg = testi.some(t => /(^| )kg$|(^| )kg( |$)|chilogrammi|chili/.test(t));
+  const t = testi.some(t => /(^| )t$|(^| )t( |$)|tonnellate|(^| )ton( |$)/.test(t));
+  m.unita = kg && !t ? "kg" : t && !kg ? "t" : "";
+  return m;
+}
+export function parsePesaCsv(text) {
+  const righe = leggiCsv(text).righe;
+  const m = righe.length ? mappaPesaCsv(righe[0]) : mappaPesaCsv([]);
+  const out = { conIntestazione: m.conIntestazione, mappa: m, unita: m.unita, righe: [] };
+  if (!m.conIntestazione) return out;
+  const num = (x) => { const v = numIt(x); return v === null || Number.isNaN(v) ? null : v; };
+  righe.slice(1).forEach((cel, k) => {
+    const g = (campo) => { const i = m.indici[campo]; return i >= 0 && i < cel.length ? String(cel[i] == null ? "" : cel[i]).trim() : ""; };
+    const dataRaw = g("data"), data = isoDaDataItaliana(dataRaw) || (dataISOEsiste(dataRaw) ? dataRaw : "");
+    const lordo = num(g("lordo")), tara = num(g("tara")), netto = num(g("netto"));
+    const massimo = Math.max(...[lordo, tara, netto].filter(v => v != null), 0);
+    out.righe.push({
+      riga: k + 1, numero: g("numero"), data, ora: g("ora"), mezzo: g("mezzo"),
+      cliente: g("cliente"), prodotto: g("prodotto"), lordo, tara, netto, massimo,
+      scarto: !data ? (dataRaw ? "data non riconosciuta" : "data mancante")
+        : (lordo == null && netto == null) ? "nessun peso leggibile"
+        : (lordo != null && tara != null && tara >= lordo) ? "la tara non è minore del lordo" : "",
+    });
+  });
+  /* il suggerimento sull'unità, quando l'intestazione tace: un camion carico
+     pesa decine di tonnellate, non decine di migliaia — se il peso più alto
+     supera 500 il file è quasi certamente in chilogrammi. È un SUGGERIMENTO
+     che la pagina mostra e fa confermare, non una decisione. */
+  const massimo = Math.max(0, ...out.righe.map(r => r.massimo || 0));
+  out.unitaSuggerita = m.unita || (massimo > 500 ? "kg" : massimo > 0 ? "t" : "");
+  out.unitaSuggeritaPerche = m.unita ? "l'intestazione lo dice" : massimo > 500 ? "il peso più alto nel file è " + massimo + ", troppo per essere tonnellate" : massimo > 0 ? "i pesi sono piccoli come tonnellate" : "";
+  return out;
+}
+/* Dalle righe del file alle pesate di Conti: il cliente e il prodotto si
+   riconoscono per NOME in anagrafica e in listino (normalizzati come i nomi
+   di colonna); chi non si trova non entra e viene detto per nome — un DDT
+   senza cliente o senza prodotto non ha prezzo né IVA e non si può emettere.
+   I pesi in chilogrammi diventano tonnellate a due decimali; le pesate già in
+   archivio (stesso numero di cartellino, oppure stessa data + targa + lordo +
+   tara) sono doppie e non entrano. Pura: prepara, non salva. */
+export function pesateDallaPesa(righe, unita, clienti, prodotti, esistenti) {
+  const norm = (s) => nomeColonna(s);
+  const trova = (lista, nome, campo) => { const k = norm(nome); if (!k) return null;
+    return (lista || []).find(x => norm(x && x[campo]) === k) || null; };
+  const inT = (v) => v == null ? null : round2(unita === "kg" ? v / 1000 : v);
+  const chiave = (data, mezzo, lordo, tara) => [data, norm(mezzo), lordo, tara].join("|");
+  const gia = new Set(), giaTicket = new Set();
+  for (const p of esistenti || []) { if (p && p.pesaTicket) giaTicket.add(String(p.pesaTicket)); if (p) gia.add(chiave(p.data, p.mezzo, p.lordo, p.tara)); }
+  const out = { entrano: [], doppie: [], senzaCliente: [], senzaProdotto: [], scartate: [], unita: unita === "kg" ? "kg" : "t" };
+  for (const r of righe || []) {
+    if (r.scarto) { out.scartate.push({ riga: r.riga, nome: r.numero || r.mezzo || "riga " + r.riga, ragione: r.scarto }); continue; }
+    const lordo = inT(r.lordo), tara = inT(r.tara);
+    if ((r.numero && giaTicket.has(String(r.numero))) || gia.has(chiave(r.data, r.mezzo, lordo, tara))) { out.doppie.push({ riga: r.riga, numero: r.numero, data: r.data, mezzo: r.mezzo }); continue; }
+    const c = trova(clienti, r.cliente, "ragioneSociale"), p = trova(prodotti, r.prodotto, "nome");
+    if (!c) { out.senzaCliente.push({ riga: r.riga, cliente: r.cliente || "(cliente non indicato)" }); continue; }
+    if (!p) { out.senzaProdotto.push({ riga: r.riga, prodotto: r.prodotto || "(materiale non indicato)" }); continue; }
+    out.entrano.push({ riga: r.riga, pesaTicket: r.numero || "", pesaOra: r.ora || "", data: r.data, mezzo: r.mezzo || "",
+      clienteId: c.id, cliente: c.ragioneSociale, prodottoId: p.id, prodotto: p.nome, lordo, tara,
+      netto: lordo != null && tara != null ? null : inT(r.netto) });
+  }
+  return out;
+}
+
 /* una pesata con una data impossibile finirebbe nell'anno sbagliato dei
    riepiloghi, che sono i numeri con cui si fatturano le consegne */
 const pesataUsabile = (p) => dataISOEsiste(p.data);

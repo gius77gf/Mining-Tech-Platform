@@ -1341,7 +1341,9 @@ label.item:has(.dw-chk:checked){
     <button class="dw-btn secondary" id="btn-pes-export" title="Prospetto per il commercialista: ha colonne calcolate e NON si ri-carica">Esporta pesate (CSV)</button>
     <button class="dw-btn secondary" id="btn-pes-backup" title="Copia di sicurezza: lo stesso file che il bottone accanto sa ri-caricare">Copia di sicurezza (CSV)</button>
     <button class="dw-btn secondary" id="btn-pes-restore">Ri-carica copia (CSV)</button>
+    <button class="dw-btn secondary" id="btn-pes-pesa" title="Il CSV esportato dal software della pesa a ponte: le colonne si riconoscono dal nome">Importa dalla pesa (CSV)</button>
     <input type="file" id="pes-file" accept=".csv,text/csv" style="display:none;">
+    <input type="file" id="pesa-file" accept=".csv,text/csv" style="display:none;">
   </div>
   <div class="form-hint">I due file <b>non</b> sono lo stesso. <b>Esporta pesate</b> &egrave; un <b>prospetto</b>: risolve i collegamenti in numeri leggibili e porta il valore calcolato &mdash; serve al commercialista e non rientra. <b>Copia di sicurezza</b> porta i campi cos&igrave; come sono salvati, ed &egrave; l&rsquo;unico che questa pagina sa rimettere dentro.</div>
   <div class="note esito" id="pes-esito"></div>
@@ -1963,7 +1965,7 @@ label.item:has(.dw-chk:checked){
 <script type="module">
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
-  import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
+  import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
@@ -7164,6 +7166,65 @@ label.item:has(.dw-chk:checked){
       + " nella copia che questa pagina sa ri-caricare.", "success");
   };
   $("btn-pes-restore").onclick = () => $("pes-file").click();
+  /* IL FILE DELLA PESA A PONTE (05/09): colonne per nome, unità confermata da
+     una persona, cliente e prodotto riconosciuti in anagrafica; ogni riga che
+     non entra si dice per nome. Il DDT nasce dalla STESSA strada del bottone
+     «Registra pesata» (`rigaPesata` + `numeroProssimoDdt`): niente seconda
+     penna per il prezzo. Il controllo B8 «file di un'altra tabella» qui non
+     c'è di proposito: il file NON è uno dei nostri. */
+  $("btn-pes-pesa").onclick = () => $("pesa-file").click();
+  $("pesa-file").onchange = async (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const testo = await file.text(); e.target.value = "";
+    const letto = parsePesaCsv(testo);
+    if (!letto.conIntestazione) {
+      esito("pes-esito", "Nel file non riconosco le colonne della pesa: serve un'intestazione con almeno la data e il peso lordo (o il netto). "
+        + (letto.mappa.ignorate.length ? "Colonne trovate e non riconosciute: " + letto.mappa.ignorate.map(x => "«" + x + "»").join(", ") + "." : "Il file non ha un'intestazione."), "err");
+      return;
+    }
+    const colonne = "Colonne riconosciute: " + letto.mappa.riconosciute.map(r => r.campo + " ← «" + esc(r.nome) + "»").join(", ")
+      + (letto.mappa.ignorate.length ? "; lasciate fuori: " + letto.mappa.ignorate.map(x => "«" + esc(x) + "»").join(", ") : "") + ".";
+    const ok = await chiediDati("Come ho letto il file della pesa",
+      `<p>Righe lette: <b>${letto.righe.length}</b>. ${colonne}</p>
+       <p>I pesi nel file sono in <b>${letto.unitaSuggerita || "un'unità che non so"}</b>${letto.unitaSuggeritaPerche ? " (" + esc(letto.unitaSuggeritaPerche) + ")" : ""}. Conferma o correggi qui sotto: in chilogrammi vengono divisi per mille.</p>`,
+      [{ id: "unita", label: "Unità dei pesi nel file", valore: letto.unitaSuggerita, placeholder: "t oppure kg", aiuto: "Scrivi «t» per tonnellate o «kg» per chilogrammi." }],
+      "Importa");
+    if (!ok) return;
+    const unita = String(ok.unita || "").trim().toLowerCase();
+    if (unita !== "t" && unita !== "kg") { esito("pes-esito", "Non ho importato niente: l'unità dei pesi va scritta «t» o «kg».", "err"); return; }
+    const esitoPesa = pesateDallaPesa(letto.righe, unita, CLI, PRO, PES);
+    let registrati = 0, senzaPrezzo = [], numeri = [];
+    for (const x of esitoPesa.entrano) {
+      const p = PRO.find(z => z.id === x.prodottoId), c = CLI.find(z => z.id === x.clienteId);
+      const r = rigaPesata(p, x.lordo, x.tara, c, null);
+      if (r.quantita == null || r.prezzoUnitario == null) { senzaPrezzo.push({ riga: x.riga, perche: r.quantita == null ? "manca la densità di " + p.nome + " nel listino" : r.perchePrezzo }); continue; }
+      const numero = numeroProssimoDdt(x.data); numeri.push(numero);
+      await db.aggiungi("pesate", { numero, data: x.data, clienteId: x.clienteId, cliente: c.ragioneSociale,
+        prodottoId: x.prodottoId, prodotto: p.nome, lordo: x.lordo == null ? null : round2(x.lordo), tara: x.tara == null ? null : round2(x.tara), netto: r.netto,
+        unitaVendita: r.unitaVendita, quantita: r.quantita, densita: r.densita,
+        prezzoUnitario: r.prezzoUnitario, scontoPct: r.scontoPct, aliquotaIva: r.aliquotaIva,
+        ordineId: r.ordineId, fontePrezzo: r.fontePrezzo,
+        mezzo: x.mezzo, destinatario: "", fatturaId: null,
+        causaleTrasporto: null, trasportoACura: null, vettore: null,
+        /* la provenienza: il cartellino della pesa e il file, per ritrovarlo */
+        pesaTicket: x.pesaTicket || null, pesaOra: x.pesaOra || null, pesaFile: file.name });
+      registrati++;
+    }
+    const nomi = (l, k) => [...new Set(l.map(z => z[k]))].slice(0, 4).map(z => "«" + z + "»").join(", ") + (new Set(l.map(z => z[k])).size > 4 ? "…" : "");
+    const frasi = [
+      registrati ? plur(registrati, "DDT registrato", "DDT registrati") + " dalla pesa" + (numeri.length ? " (" + (numeri.length === 1 ? numeri[0] : numeri[0] + " – " + numeri[numeri.length - 1]) + ")" : "") : "Nessun DDT registrato",
+      esitoPesa.doppie.length ? plur(esitoPesa.doppie.length, "pesata già in archivio", "pesate già in archivio") + " (non ripetute)" : "",
+      esitoPesa.senzaCliente.length ? plur(esitoPesa.senzaCliente.length, "riga senza un cliente", "righe senza un cliente") + " in anagrafica: " + nomi(esitoPesa.senzaCliente, "cliente") + " — aggiungilo fra i clienti e ricarica il file" : "",
+      esitoPesa.senzaProdotto.length ? plur(esitoPesa.senzaProdotto.length, "riga senza un prodotto", "righe senza un prodotto") + " nel listino: " + nomi(esitoPesa.senzaProdotto, "prodotto") : "",
+      senzaPrezzo.length ? plur(senzaPrezzo.length, "riga senza prezzo", "righe senza prezzo") + " (" + senzaPrezzo[0].perche + ")" : "",
+      esitoPesa.scartate.length ? plur(esitoPesa.scartate.length, "riga scartata", "righe scartate") + ": " + esitoPesa.scartate.slice(0, 3).map(z => z.nome + " (" + z.ragione + ")").join(", ") : "",
+      "Pesi letti in " + (unita === "kg" ? "chilogrammi e convertiti in tonnellate" : "tonnellate"),
+    ].filter(Boolean);
+    /* le colonne riconosciute le ha già dette la finestra di conferma: qui,
+       misurato a 320 px, ripeterle faceva un toast alto quanto lo schermo */
+    esito("pes-esito", frasi.join(". ") + ".", registrati && !senzaPrezzo.length && !esitoPesa.senzaCliente.length && !esitoPesa.senzaProdotto.length ? "success" : registrati ? "warn" : "err");
+    await refresh();
+  };
   $("pes-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testoPes = await file.text();

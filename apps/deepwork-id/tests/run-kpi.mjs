@@ -37183,6 +37183,51 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(sc.persi.map((x) => x.nome + ": " + x.ragione), ["E1: le ore motore non si leggono", "E2: le ore motore non sono state scritte", "riga 3: manca il nome del mezzo"], "⛔ e le ragioni delle righe perse guardano la colonna GIUSTA, non la posizione");
   });
 }
+/* ===== il file della pesa a ponte (Conti, 05/09) ===== */
+{
+  const PESA = "N. pesata;Data;Ora uscita;Targa;Cliente;Materiale;Peso lordo (kg);Tara (kg);Peso netto (kg)\n"
+    + "1041;05/09/2026;10:12;FT 421 KP;Edilcave Srl;Stabilizzato 0/30;42600;14200;28400\n"
+    + "1042;05/09/2026;10:40;AB 123 CD;Rossi Srl;Stabilizzato 0/30;38000;14000;24000\n"
+    + "1043;boh;11:00;FT 421 KP;Edilcave Srl;Ghiaia;30000;14000;16000\n"
+    + "1044;05/09/2026;11:30;FT 421 KP;Edilcave Srl;Stabilizzato 0/30;14000;14200;\n";
+  test("Conti · mappaPesaCsv: le colonne della pesa per nome, e l'unità letta dall'intestazione", () => {
+    eq(Object.keys(conti.INDIZI_PESA), ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"], "nove campi del cartellino di pesata (nomi di seconda mano, dalla ricerca del 02/09)");
+    const m = conti.mappaPesaCsv(PESA.split("\n")[0].split(";"));
+    eq(m.riconosciute.map((r) => r.campo), ["numero", "data", "ora", "mezzo", "cliente", "prodotto", "lordo", "tara", "netto"], "nove colonne riconosciute nell'ordine di presa");
+    eq([m.conIntestazione, m.unita], [true, "kg"], "⛔ «Peso lordo (kg)» dice l'unità: chilogrammi");
+    eq(conti.mappaPesaCsv(["Data", "Cliente", "Lordo (t)", "Tara (t)"]).unita, "t", "e «(t)» dice tonnellate");
+    eq(conti.mappaPesaCsv(["Data", "Cliente", "Lordo", "Tara"]).unita, "", "⛔ senza unità nell'intestazione non si indovina: resta vuota, e la pagina la chiede");
+    eq(conti.mappaPesaCsv(["Data", "Lordo (kg)", "Netto (t)"]).unita, "", "e con unità che si contraddicono nemmeno");
+    eq(conti.mappaPesaCsv(["Cliente", "Materiale"]).conIntestazione, false, "senza data e senza un peso non è il file della pesa");
+  });
+  test("Conti · parsePesaCsv: date italiane, righe rotte dichiarate, e l'unità suggerita con la ragione", () => {
+    const l = conti.parsePesaCsv(PESA);
+    eq([l.conIntestazione, l.unita, l.unitaSuggerita], [true, "kg", "kg"], "il file si legge e l'unità è quella dell'intestazione");
+    eq(l.righe.map((r) => [r.numero, r.data, r.lordo, r.tara, r.scarto]), [["1041", "2026-09-05", 42600, 14200, ""], ["1042", "2026-09-05", 38000, 14000, ""], ["1043", "", 30000, 14000, "data non riconosciuta"], ["1044", "2026-09-05", 14000, 14200, "la tara non è minore del lordo"]], "quattro righe, due sane e due con la ragione scritta");
+    const senza = conti.parsePesaCsv("Data;Cliente;Lordo;Tara\n05/09/2026;Edilcave Srl;42600;14200\n");
+    eq([senza.unita, senza.unitaSuggerita], ["", "kg"], "⛔ intestazione muta: l'unità NON si decide, si SUGGERISCE «kg» perché 42.600 non sono tonnellate");
+    ok(/troppo per essere tonnellate/.test(senza.unitaSuggeritaPerche), "e la ragione si scrive");
+    eq(conti.parsePesaCsv("Data;Cliente;Lordo;Tara\n05/09/2026;Edilcave Srl;42,6;14,2\n").unitaSuggerita, "t", "pesi piccoli: si suggerisce «t»");
+    eq(conti.parsePesaCsv("").conIntestazione, false, "vuoto: non si legge, senza errori");
+  });
+  test("Conti · pesateDallaPesa: cliente e prodotto per nome, chili in tonnellate, doppie e mancanze dette per nome", () => {
+    const d = conti.DEMO, l = conti.parsePesaCsv(PESA);
+    const e = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, d.pesate);
+    eq(e.entrano.map((x) => [x.cliente, x.prodotto, x.lordo, x.tara, x.pesaTicket, x.mezzo]), [["Edilcave Srl", "Stabilizzato 0/30", 42.6, 14.2, "1041", "FT 421 KP"]], "⛔ una sola entra: 42.600 kg → 42,6 t, col cartellino e la targa");
+    eq(e.senzaCliente, [{ riga: 2, cliente: "Rossi Srl" }], "⛔ «Rossi Srl» non è in anagrafica: non entra, e lo si dice per nome");
+    eq(e.scartate.map((x) => x.ragione), ["data non riconosciuta", "la tara non è minore del lordo"], "le righe rotte, con la ragione del lettore");
+    const bis = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, [...d.pesate, { pesaTicket: "1041", data: "2026-09-05", mezzo: "FT 421 KP", lordo: 42.6, tara: 14.2 }]);
+    eq(bis.entrano.length, 0, "⛔ ricaricando lo stesso file la pesata è già in archivio: non si ripete");
+    eq(bis.doppie.map((x) => x.numero), ["1041"], "e la doppia si dichiara");
+    const perChiave = conti.pesateDallaPesa(l.righe, "kg", d.clienti, d.prodotti, [{ data: "2026-09-05", mezzo: "ft 421 kp", lordo: 42.6, tara: 14.2 }]);
+    eq(perChiave.doppie.length, 1, "doppia anche senza cartellino: stessa data, targa, lordo e tara");
+    const inT = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Lordo;Tara\n05/09/2026;EDILCAVE SRL;stabilizzato 0/30;42,6;14,2\n").righe, "t", d.clienti, d.prodotti, []);
+    eq([inT.entrano[0].lordo, inT.entrano[0].clienteId, inT.entrano[0].prodottoId], [42.6, "c1", "p1"], "in tonnellate resta com'è; maiuscole e minuscole non contano nel nome");
+    const sp = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Lordo;Tara\n05/09/2026;Edilcave Srl;Sabbia lunare;42,6;14,2\n").righe, "t", d.clienti, d.prodotti, []);
+    eq(sp.senzaProdotto, [{ riga: 1, prodotto: "Sabbia lunare" }], "un materiale che il listino non ha: non entra, detto per nome");
+  });
+}
+/* ===== fine file della pesa (05/09) ===== */
 /* ===== fine mappa delle colonne (05/09) ===== */
 /* ===== fine ponte P6 (05/09) ===== */
 

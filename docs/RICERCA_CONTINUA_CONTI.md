@@ -603,6 +603,20 @@ fra un mese.
 4. Se un'esportazione CSV di pesate verso la fatturazione specifica il netto, e il cliente dopo il carico scopre che il netto era sbagliato, con quale meccanismo si nota il disallineamento (nota di credito, rettifica)?
 5. Il sistema conosce quale indicatore peso (quale pesa a ponte, quale ID di dispositivo) ha registrato una pesata, o è trasparente e scrive solo il numero finale?
 
+**Delta fatto da chi ha il codice in mano (05/09, commit successivo a
+`3058e71e`).** Misurato: `grep -n "parsePesateCsv\|cellePesate" conti-data.js`
+→ il solo lettore era quello della COPIA DI SICUREZZA di Conti (venti colonne
+per posizione, `isIntestazione(…, "numero")`); un CSV del software della pesa
+non aveva una porta. Fatto: `mappaPesaCsv` / `parsePesaCsv` / `pesateDallaPesa`
++ il bottone «Importa dalla pesa (CSV)». Risposte alle cinque domande: (1) tara
+mancante → il DDT entra «incompleto» come già per la registrazione a mano
+(`pesiPesata`), non tara zero; (2)(3) il DDT nasce dalla pesata importata con
+la stessa `rigaPesata`, e porta `pesaTicket`; (4) il netto NON si legge dal
+file quando ci sono lordo e tara: lo calcola Conti — un netto del file diverso
+dal lordo−tara si vedrebbe nel DDT; (5) l'indicatore no: si conserva il nome
+del file (`pesaFile`) e il cartellino, non l'ID del dispositivo. Nomi delle
+colonne: seconda mano, da questa ricerca; nessun export vero letto.
+
 
 ---
 

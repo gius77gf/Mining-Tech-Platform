@@ -420,6 +420,24 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **CONTI — il file della pesa a ponte entra da solo (05/09, punto 3
+  della lista del ciclo: «integrazione con la pesa»).** Misurato prima: Conti
+  rileggeva solo la PROPRIA copia di sicurezza delle pesate (venti colonne per
+  posizione); il CSV del software della pesa non aveva una porta e ogni
+  cartellino si ricopiava a mano. Ora «Importa dalla pesa (CSV)»:
+  `INDIZI_PESA` + `mappaPesaCsv` (colonne per nome con `mappaColonne` di
+  shared; l'unità letta dall'intestazione — «Lordo (kg)» — e altrimenti NON
+  indovinata ma SUGGERITA con la ragione e confermata da una persona nella
+  finestra), `parsePesaCsv` (date italiane, righe rotte con la ragione),
+  `pesateDallaPesa` (cliente e prodotto per nome in anagrafica e listino, chili
+  in tonnellate, doppie per cartellino o per data+targa+lordo+tara, mancanze
+  dette per nome). Il DDT nasce dalla STESSA strada del bottone «Registra
+  pesata» (`rigaPesata` + `numeroProssimoDdt`), con `pesaTicket`/`pesaOra`/
+  `pesaFile` come provenienza. run-kpi +3 (2640); banco `conti-banca-colonne`
+  sezione 4: file in kg con un cliente ignoto e una data rotta → 1 DDT da
+  28,4 t (non 28.400), «Rossi Srl» detto per nome, cartellino 1043 scartato
+  con la ragione; controprova con i chili non convertiti. Toast misurato a
+  320: le colonne le dice la finestra, non l'esito.
 - [x] **FLOTTA + shared — la mappa delle colonne per nome, una volta sola
   (05/09, candidato (c) della ricerca Flotta).** Quattro lettori di casa
   facevano la stessa domanda («quale colonna è X?») in quattro modi. Ora
@@ -6400,8 +6418,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.118 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2637, `run-stile` 328,
+  **3.121 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2640, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
