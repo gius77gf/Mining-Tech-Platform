@@ -225,7 +225,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
    Sentinella li ri-esporta come alias — il censimento conta le funzioni
    DEFINITE in un file, non quelle che espone. Il totale non scende. */
-const FONDO = { campo: 132, conti: 150, flotta: 102, scudo: 192, sentinella: 147, terra: 77 };
+const FONDO = { campo: 132, conti: 153, flotta: 107, scudo: 192, sentinella: 147, terra: 77 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -329,7 +329,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 56,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 58,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

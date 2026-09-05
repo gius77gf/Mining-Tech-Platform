@@ -420,6 +420,19 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **FLOTTA + shared — la mappa delle colonne per nome, una volta sola
+  (05/09, candidato (c) della ricerca Flotta).** Quattro lettori di casa
+  facevano la stessa domanda («quale colonna è X?») in quattro modi. Ora
+  `mappaColonne` e `nomeColonna` stanno in `shared/dw-shell.js`; la telemetria
+  di Flotta si legge per nome (`INDIZI_TELEMETRIA`, `mappaTelemetriaCsv`,
+  carburante facoltativo, posizione di sempre senza intestazione) e l'esito
+  dell'import dice le colonne riconosciute e quelle lasciate fuori; Conti ha
+  rifatto `mappaMovimentiCsv` sopra la stessa funzione e risponde come prima
+  (prove e banco invariati e verdi). Misurato: «Litri;Ore motore;Targa» entra
+  giusto — prima la targa finiva nei litri. run-kpi +3 (2637); banco
+  `import-righe-perse` con la frase in più sulla telemetria. ⏱️ Campo
+  (`mappaPianoCsv`) e Sentinella (`proponiMappa`) restano coi loro lettori,
+  candidati dichiarati nella ricerca Flotta.
 - [x] **SENTINELLA→CAMPO — il ponte P6, 05/09: le volate del giorno nella
   consegna di turno.** La mappa diceva «app che nessuno legge: Sentinella». Il
   turno entrante deve sapere se e dove si è sparato e se la vibrazione è già
@@ -6387,8 +6400,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.115 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2634, `run-stile` 328,
+  **3.118 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2637, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

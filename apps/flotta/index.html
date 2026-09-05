@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4593,6 +4593,14 @@ body.dw b.bad{color:var(--ink-dg)}
     const teleAltrove = fileDiAltraTabella(testo, ["flotta.telemetria"]);
     if (teleAltrove) { esito("ore-esito", fraseFileAltrui(teleAltrove, "nella telemetria"), "err"); e.target.value = ""; return; }
     const scartate = scartiTelemetriaCsv(testo);
+    /* le colonne riconosciute per nome, dette a chi carica (05/09): un export
+       OEM cambia nomi da portale a portale, e chi importa deve sapere da quale
+       colonna arrivano le ore */
+    const mp = mappaTelemetriaCsv(testo);
+    const colonne = mp.conIntestazione
+      ? " Colonne riconosciute: " + mp.riconosciute.map(r => r.campo + " ← «" + r.nome + "»").join(", ")
+        + (mp.ignorate.length ? "; non riconosciute: " + mp.ignorate.map(x => "«" + x + "»").join(", ") : "") + "."
+      : " Intestazione non riconosciuta: le colonne sono state lette per posizione (mezzo, ore, carburante).";
     let agg = 0, ign = 0;
     for (const r of righe) {
       const m = MEZ.find(x => x.nome.split(" — ")[0].toLowerCase() === r.mezzo.toLowerCase() || x.nome.toLowerCase() === r.mezzo.toLowerCase());
@@ -4602,7 +4610,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("tele-file").value = "";
     esito("ore-esito", "Telemetria importata: " + agg + (agg === 1 ? " mezzo aggiornato" : " mezzi aggiornati")
       + (ign ? ", " + ign + (ign === 1 ? " riga ignorata" : " righe ignorate") + " (mezzo non trovato, o ore più basse di quelle già registrate)" : "") + "."
-      + frasePersi(scartate),
+      + frasePersi(scartate) + colonne,
       scartate.persi.length ? "warn" : agg ? "success" : "err");
     await refresh();
   };

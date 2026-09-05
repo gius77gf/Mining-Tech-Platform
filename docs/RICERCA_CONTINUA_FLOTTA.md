@@ -938,9 +938,19 @@ esportate); ogni «non c'è» con il comando.
   motivo (`contatoreDelTagliando`, `urgenzaTagliando`), e l'ordine propone la
   riscrittura sul contatore nuovo (`propostaRiscrittura`, confermata da una
   persona). run-kpi +13, banco `flotta-contatore` 72/0;
-- (c) la mappa di colonne per il CSV di telemetria, condivisa con Sentinella
-  in `shared/` (costo medio; misura: un CSV con colonne in altro ordine
-  rientra intero, e il conto dei doppioni non cambia);
+- (c) ✅ **fatta il 05/09** — `mappaColonne(intestazione, indizi, opzioni)` in
+  `shared/deepwork-id-client/dw-shell.js` (con `nomeColonna`): la domanda
+  «quale colonna è X?» scritta una volta, con esclusioni, ordine, condizionali
+  e facoltative. Flotta la usa con `INDIZI_TELEMETRIA` (`mappaTelemetriaCsv`;
+  `parseTelemetriaCsv` e `scartiTelemetriaCsv` per nome quando l'intestazione
+  ha mezzo e ore, per posizione altrimenti) e l'esito dell'import dice le
+  colonne riconosciute; Conti ha rifatto `mappaMovimentiCsv` sopra la stessa
+  funzione, rispondendo come prima. Misura: «Asset;Engine Hours;Fuel (l);Site»
+  entra intero e «Litri;Ore motore;Targa» — colonne in altro ordine — pure
+  (prima la targa finiva nei litri). ⏱️ Restano candidati, NON fatti:
+  `mappaPianoCsv` di Campo e `proponiMappa` di Sentinella sopra `mappaColonne`
+  (hanno forme proprie — mancanti e facoltative, il ripiego sui dati — e si
+  spostano quando qualcuno li tocca, non per principio);
 - (d) ✅ **fatta il 04/09** — «scelto / subìto» derivato dalla causale
   (`naturaFermo`: manutenzione e verifica scelti; guasti, gomme, ricambi,
   operatore, meteo subìti; «altro» e le chiavi sconosciute NON classificati,

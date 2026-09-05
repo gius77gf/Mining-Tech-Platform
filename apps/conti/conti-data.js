@@ -75,7 +75,7 @@
 // ============================================================
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
-         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
@@ -4250,28 +4250,23 @@ const INDIZI_ESTRATTO = {
   riferimento: ["trn", "cro", "riferimento", "id operazione", "identificativo", "end to end", "reference", "transaction id"],
   descrizione: ["descrizione", "causale", "dettagli", "dettaglio", "movimento", "description", "operazione"],
 };
-const _normCol = (s) => String(s == null ? "" : s).toLowerCase()
-  .replace(/[àá]/g, "a").replace(/[èé]/g, "e").replace(/[ìí]/g, "i").replace(/[òó]/g, "o").replace(/[ùú]/g, "u")
-  .replace(/[^a-z0-9]+/g, " ").trim();
+/* la normalizzazione del nome e la mappa vivono in `shared/` dal 05/09
+   (`nomeColonna`, `mappaColonne`): qui restano gli INDIZI di Conti e la forma
+   che la pagina ha sempre letto */
+const _normCol = nomeColonna;
 export function mappaMovimentiCsv(intestazione) {
-  const nomi = Array.isArray(intestazione) ? intestazione : [];
-  const celle = nomi.map(_normCol);
-  const out = { data: -1, valuta: -1, descrizione: -1, importo: -1, entrate: -1, uscite: -1, riferimento: -1,
-    esclusi: [], riconosciute: [], ignorate: [], conIntestazione: false };
-  const presi = new Set();
-  const combacia = (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
-  const cerca = (chiavi) => celle.findIndex((h, i) => !presi.has(i) && h && chiavi.some((k) => combacia(h, k)));
-  for (const k of ["saldo", "abi"]) { let i; while ((i = cerca(INDIZI_ESTRATTO[k])) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }
-  const prendi = (campo) => { const i = cerca(INDIZI_ESTRATTO[campo]); if (i >= 0) { out[campo] = i; presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); } };
-  prendi("valuta"); prendi("data"); prendi("entrate"); prendi("uscite");
-  if (out.entrate < 0 && out.uscite < 0) prendi("importo");
-  /* il riferimento PRIMA della descrizione: «id operazione» contiene
-     «operazione», che è un indizio della descrizione */
-  prendi("riferimento");
-  prendi("descrizione");
-  celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
-  out.conIntestazione = out.data >= 0 && (out.importo >= 0 || out.entrate >= 0 || out.uscite >= 0);
-  return out;
+  const { saldo, abi, ...prendi } = INDIZI_ESTRATTO;
+  const m = mappaColonne(intestazione, prendi, {
+    escludi: { saldo, abi },
+    ordine: ["valuta", "data", "entrate", "uscite", "importo", "riferimento", "descrizione"],
+    /* l'importo unico si cerca SOLO se non ci sono entrate e uscite separate */
+    condizionali: { importo: (ix) => ix.entrate < 0 && ix.uscite < 0 },
+    facoltative: ["valuta", "entrate", "uscite", "riferimento", "descrizione"],
+    conIntestazione: (ix) => ix.data >= 0 && (ix.importo >= 0 || ix.entrate >= 0 || ix.uscite >= 0),
+  });
+  return { data: m.indici.data, valuta: m.indici.valuta, descrizione: m.indici.descrizione, importo: m.indici.importo,
+    entrate: m.indici.entrate, uscite: m.indici.uscite, riferimento: m.indici.riferimento,
+    esclusi: m.esclusi, riconosciute: m.riconosciute, ignorate: m.ignorate, conIntestazione: m.conIntestazione };
 }
 
 /* IL RIFERIMENTO DEL BONIFICO — la chiave con cui la banca lo chiama (05/09).

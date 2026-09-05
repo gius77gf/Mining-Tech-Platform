@@ -576,6 +576,50 @@ function _normCol(s) {
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
+/* ── LA MAPPA DELLE COLONNE PER NOME (05/09) ──────────────────────────────
+   Quattro app leggevano un file di qualcun altro per NOME di colonna con
+   quattro lettori di casa: `proponiMappa` in Sentinella, `mappaPianoCsv` in
+   Campo, `mappaMovimentiCsv` in Conti, e Flotta stava per scriverne un
+   quarto per la telemetria. La domanda è una: «quale colonna è X?», con gli
+   indizi di X, quelle da ESCLUDERE prima (il saldo che finirebbe fra gli
+   importi), l'ordine di presa e le facoltative. Qui una volta sola.
+   `nomeColonna` tiene gli spazi (a differenza di `_normCol`, che serve alla
+   firma di una tabella): il confronto è per INIZIO di parola — «abi» non
+   prende «cont-abi-le», ma «causale abi» sì. Ritorna
+   { conIntestazione, indici:{campo→i|-1}, riconosciute:[{campo,nome,i}],
+     esclusi:[nomi], ignorate:[nomi], mancanti:[campi obbligatori assenti] }.
+   `opzioni.condizionali[campo](indici)` decide se un campo va cercato dati
+   quelli già presi (l'importo unico solo se non ci sono entrate e uscite);
+   `opzioni.conIntestazione(indici)` dice quando l'intestazione «vale» —
+   senza, vale se almeno una colonna è stata riconosciuta. Pura. */
+export function nomeColonna(s) {
+  return String(s == null ? "" : s).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+export function mappaColonne(intestazione, indizi, opzioni = {}) {
+  const nomi = Array.isArray(intestazione) ? intestazione : [];
+  const celle = nomi.map(nomeColonna);
+  const out = { conIntestazione: false, indici: {}, riconosciute: [], esclusi: [], ignorate: [], mancanti: [] };
+  const presi = new Set();
+  const combacia = (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  const cerca = (chiavi) => { const ks = (chiavi || []).map(nomeColonna).filter(Boolean);
+    return celle.findIndex((h, i) => !presi.has(i) && h && ks.some(k => combacia(h, k))); };
+  for (const chiavi of Object.values(opzioni.escludi || {})) { let i; while ((i = cerca(chiavi)) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }
+  const ordine = opzioni.ordine || Object.keys(indizi || {});
+  const cond = opzioni.condizionali || {};
+  for (const campo of ordine) {
+    if (typeof cond[campo] === "function" && !cond[campo](out.indici)) { out.indici[campo] = -1; continue; }
+    const i = cerca((indizi || {})[campo]);
+    out.indici[campo] = i;
+    if (i >= 0) { presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); }
+  }
+  celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
+  const facolt = new Set([...(opzioni.facoltative || []), ...Object.keys(cond)]);
+  out.mancanti = ordine.filter(c => out.indici[c] < 0 && !facolt.has(c));
+  out.conIntestazione = typeof opzioni.conIntestazione === "function" ? !!opzioni.conIntestazione(out.indici) : out.riconosciute.length > 0;
+  return out;
+}
+
 // `celle` combacia con `col` se comincia dalla PRIMA colonna e prosegue in
 // ordine: `numero;cliente;importo` è l'inizio delle fatture, non delle pesate
 // (che hanno `data` in seconda posizione e non hanno `importo`).

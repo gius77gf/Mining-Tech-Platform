@@ -91,7 +91,7 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -606,11 +606,32 @@ export function validaScadenzaMezzo(dati, oggi = new Date()) {
 // di import telemetria (vedi vault "Telematics — cosa può fare Flotta").
 // Il campo `mezzo` va SEMPRE escapato dove mostrato (testo grezzo del file).
 // Funzione pura e testabile.
+/* LE COLONNE DELLA TELEMETRIA, PER NOME (05/09, candidato (c) della ricerca).
+   Un export Piusi/Gilbarco/VisionLink non si chiama «mezzo;ore;carburante»:
+   si chiama «Asset;Engine Hours;Fuel (l)», o «Targa;Contatore;Litri». La
+   mappa la fa `mappaColonne` di `shared/` (la stessa domanda di Conti); qui
+   solo gli INDIZI. Il carburante è facoltativo; l'intestazione «vale» quando
+   ha mezzo e ore, e allora comandano i nomi — se no, la posizione di sempre. */
+export const INDIZI_TELEMETRIA = {
+  mezzo: ["mezzo", "targa", "veicolo", "macchina", "asset", "unit", "equipment", "machine", "vehicle", "nome"],
+  ore: ["ore motore", "ore", "engine hours", "hours", "hour meter", "smu", "contatore", "hrs"],
+  carburante: ["carburante", "litri", "gasolio", "diesel", "fuel", "rifornimento", "quantita", "erogato"],
+};
+export function mappaTelemetriaCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  return mappaColonne(righe.length ? parseCsvLine(righe[0]) : [], INDIZI_TELEMETRIA,
+    { facoltative: ["carburante"], conIntestazione: (ix) => ix.mezzo >= 0 && ix.ore >= 0 });
+}
 export function parseTelemetriaCsv(text) {
-  return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "mezzo"))
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  const m = righe.length ? mappaTelemetriaCsv(text) : null;
+  const perNome = !!(m && m.conIntestazione);
+  return righe
+    .filter((r, i) => !(perNome && i === 0) && !isIntestazione(r, "mezzo"))
     .map(r => {
-      const [mezzo, ore, carburante] = parseCsvLine(r);
+      const c = parseCsvLine(r);
+      const g = (campo, pos) => { const i = perNome ? m.indici[campo] : pos; return i >= 0 && i < c.length ? c[i] : undefined; };
+      const mezzo = g("mezzo", 0), ore = g("ore", 1), carburante = g("carburante", 2);
       return {
         mezzo: (mezzo || "").trim(),
         ore: numIt(ore),
@@ -637,17 +658,23 @@ export function parseTelemetriaCsv(text) {
    ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
    righe di coda come `;;;`. Si contano a parte (`vuote`) e non si dicono. */
 export function scartiTelemetriaCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "mezzo"));
+  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  /* con l'intestazione per nome ogni riga si giudica INSIEME alla testa, se no
+     il lettore la leggerebbe per posizione e direbbe una ragione sbagliata */
+  const m = tutte.length ? mappaTelemetriaCsv(text) : null;
+  const perNome = !!(m && m.conIntestazione);
+  const testa = perNome ? tutte[0] : (tutte.find(r => isIntestazione(r, "mezzo")) || "");
+  const righe = tutte.filter((r, i) => !(perNome && i === 0) && !isIntestazione(r, "mezzo"));
   const persi = [];
   let nRiga = 0;
   let vuote = 0;
   for (const riga of righe) {
     nRiga++;
-    if (parseTelemetriaCsv(riga).length) continue;
+    if (parseTelemetriaCsv(testa ? testa + "\n" + riga : riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
-    const mezzo = (c[0] || "").trim(), ore = (c[1] || "").trim(), n = numIt(ore);
+    const g = (campo, pos) => { const i = perNome ? m.indici[campo] : pos; return i >= 0 && i < c.length ? String(c[i] == null ? "" : c[i]).trim() : ""; };
+    const mezzo = g("mezzo", 0), ore = g("ore", 1), n = numIt(ore);
     persi.push({
       nome: mezzo || "riga " + nRiga,
       ragione: !mezzo ? "manca il nome del mezzo"

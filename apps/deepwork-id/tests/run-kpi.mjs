@@ -37142,6 +37142,48 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(ponti.riassuntoVolateDelGiorno(campo.DEMO.volateSentinella, shell.isoLocale(new Date())).n, 0, "e nessuna è di oggi: la consegna in dimostrazione dice «nessuna volata registrata oggi», che è vero del registro copiato");
   });
 }
+/* ===== la mappa delle colonne, una volta sola (shared, 05/09) ===== */
+{
+  test("shared · mappaColonne: indizi per inizio di parola, esclusioni prima, condizionali, facoltative e mancanti", () => {
+    const m = shell.mappaColonne(["Data contabile", "Descrizione", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI", "Note"],
+      { data: ["data"], entrate: ["entrate"], uscite: ["uscite"], importo: ["importo"], descrizione: ["descrizione"], riferimento: ["trn"] },
+      { escludi: { saldo: ["saldo"], abi: ["abi"] }, ordine: ["data", "entrate", "uscite", "importo", "riferimento", "descrizione"],
+        condizionali: { importo: (ix) => ix.entrate < 0 && ix.uscite < 0 }, facoltative: ["riferimento"] });
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "⛔ saldo e ABI messi da parte PRIMA, se no «Importo» prenderebbe il saldo");
+    eq([m.indici.data, m.indici.entrate, m.indici.uscite, m.indici.importo, m.indici.descrizione, m.indici.riferimento], [0, 2, 3, -1, 1, -1], "gli indici; l'importo unico non si cerca perché ci sono entrate e uscite");
+    eq(m.ignorate, ["Note"], "e la colonna che nessuno ha chiesto si dichiara");
+    eq(m.mancanti, [], "il riferimento è facoltativo e l'importo condizionale: niente manca");
+    ok(m.conIntestazione, "l'intestazione vale: almeno una colonna riconosciuta");
+    const a = shell.mappaColonne(["Data contabile", "Causale ABI"], { abi: ["abi"] });
+    eq(a.indici.abi, 1, "⛔ «abi» combacia all'inizio di una parola («causale abi»), non dentro «contabile»");
+    eq(shell.nomeColonna("Quantità (l)"), "quantita l", "il nome normalizzato tiene gli spazi: senza accenti, senza parentesi");
+    eq(shell.mappaColonne(["Quantità (l)"], { q: ["quantita"] }).indici.q, 0, "gli accenti e le parentesi non contano");
+    eq(shell.mappaColonne(null, { x: ["x"] }), { conIntestazione: false, indici: { x: -1 }, riconosciute: [], esclusi: [], ignorate: [], mancanti: ["x"] }, "senza intestazione: niente trovato, l'obbligatoria manca, e non vale");
+    eq(shell.mappaColonne(["a", "b"], { x: ["x"] }, { conIntestazione: (ix) => ix.x >= 0 }).conIntestazione, false, "la regola di validità la decide chi chiama");
+  });
+  test("Conti · mappaMovimentiCsv è costruita sulla mappa condivisa e risponde come prima", () => {
+    const m = conti.mappaMovimentiCsv(["Data operazione", "Descrizione movimento", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI"]);
+    eq([m.data, m.descrizione, m.entrate, m.uscite, m.importo, m.conIntestazione], [0, 1, 2, 3, -1, true], "la forma di sempre");
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "e le esclusioni di sempre");
+    ok(conti.mappaMovimentiCsv(["Data", "Descrizione", "Saldo"]).conIntestazione === false, "col solo saldo come numero l'intestazione non vale: il movimento esce scartato, non col saldo come importo");
+  });
+  test("Flotta · la telemetria per NOME di colonna: un export OEM entra intero, e senza intestazione resta la posizione", () => {
+    eq(Object.keys(flotta.INDIZI_TELEMETRIA), ["mezzo", "ore", "carburante"], "tre campi, e il carburante è facoltativo");
+    const oem = "Asset;Engine Hours;Fuel (l);Site\nEscavatore E1;5900;120;Nord\nDumper D1;8420;;Nord\n";
+    const p = flotta.parseTelemetriaCsv(oem);
+    eq(p, [{ mezzo: "Escavatore E1", ore: 5900, carburante: 120 }, { mezzo: "Dumper D1", ore: 8420, carburante: null }], "⛔ «Asset / Engine Hours / Fuel (l)» si leggono come mezzo, ore e carburante");
+    const m = flotta.mappaTelemetriaCsv(oem);
+    eq(m.riconosciute.map((r) => r.campo + "←" + r.nome), ["mezzo←Asset", "ore←Engine Hours", "carburante←Fuel (l)"], "l'esito può dire da dove viene ogni colonna");
+    eq(m.ignorate, ["Site"], "e quale è rimasta fuori");
+    const inv = "Litri;Ore motore;Targa\n120;5900;AB123CD\n";
+    eq(flotta.parseTelemetriaCsv(inv), [{ mezzo: "AB123CD", ore: 5900, carburante: 120 }], "⛔ l'ordine delle colonne non conta più: prima la targa finiva nei litri");
+    eq(flotta.parseTelemetriaCsv("E1;5900;120\n"), [{ mezzo: "E1", ore: 5900, carburante: 120 }], "senza intestazione: la posizione di sempre");
+    eq(flotta.mappaTelemetriaCsv("E1;5900;120\n").conIntestazione, false, "e la mappa lo dichiara");
+    const sc = flotta.scartiTelemetriaCsv("Asset;Engine Hours\nE1;abc\nE2;\n;100\n");
+    eq(sc.persi.map((x) => x.nome + ": " + x.ragione), ["E1: le ore motore non si leggono", "E2: le ore motore non sono state scritte", "riga 3: manca il nome del mezzo"], "⛔ e le ragioni delle righe perse guardano la colonna GIUSTA, non la posizione");
+  });
+}
+/* ===== fine mappa delle colonne (05/09) ===== */
 /* ===== fine ponte P6 (05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
