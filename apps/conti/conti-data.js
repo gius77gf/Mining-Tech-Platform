@@ -5332,14 +5332,16 @@ export function pesateDallaPesa(righe, unita, clienti, prodotti, esistenti) {
   const out = { entrano: [], doppie: [], senzaCliente: [], senzaProdotto: [], scartate: [], unita: unita === "kg" ? "kg" : "t" };
   for (const r of righe || []) {
     if (r.scarto) { out.scartate.push({ riga: r.riga, nome: r.numero || r.mezzo || "riga " + r.riga, ragione: r.scarto }); continue; }
+    /* il DDT di Conti nasce dai DUE pesi (`rigaPesata` calcola il netto): una
+       riga col solo netto non entra, e lo dice — non «manca la densità» */
+    if (r.lordo == null || r.tara == null) { out.scartate.push({ riga: r.riga, nome: r.numero || r.mezzo || "riga " + r.riga, ragione: "lordo o tara mancanti: il DDT si emette dai due pesi" }); continue; }
     const lordo = inT(r.lordo), tara = inT(r.tara);
     if ((r.numero && giaTicket.has(String(r.numero))) || gia.has(chiave(r.data, r.mezzo, lordo, tara))) { out.doppie.push({ riga: r.riga, numero: r.numero, data: r.data, mezzo: r.mezzo }); continue; }
     const c = trova(clienti, r.cliente, "ragioneSociale"), p = trova(prodotti, r.prodotto, "nome");
     if (!c) { out.senzaCliente.push({ riga: r.riga, cliente: r.cliente || "(cliente non indicato)" }); continue; }
     if (!p) { out.senzaProdotto.push({ riga: r.riga, prodotto: r.prodotto || "(materiale non indicato)" }); continue; }
     out.entrano.push({ riga: r.riga, pesaTicket: r.numero || "", pesaOra: r.ora || "", data: r.data, mezzo: r.mezzo || "",
-      clienteId: c.id, cliente: c.ragioneSociale, prodottoId: p.id, prodotto: p.nome, lordo, tara,
-      netto: lordo != null && tara != null ? null : inT(r.netto) });
+      clienteId: c.id, cliente: c.ragioneSociale, prodottoId: p.id, prodotto: p.nome, lordo, tara });
   }
   return out;
 }

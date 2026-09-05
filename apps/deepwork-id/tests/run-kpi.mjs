@@ -37225,6 +37225,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([inT.entrano[0].lordo, inT.entrano[0].clienteId, inT.entrano[0].prodottoId], [42.6, "c1", "p1"], "in tonnellate resta com'è; maiuscole e minuscole non contano nel nome");
     const sp = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Lordo;Tara\n05/09/2026;Edilcave Srl;Sabbia lunare;42,6;14,2\n").righe, "t", d.clienti, d.prodotti, []);
     eq(sp.senzaProdotto, [{ riga: 1, prodotto: "Sabbia lunare" }], "un materiale che il listino non ha: non entra, detto per nome");
+    const soloNetto = conti.pesateDallaPesa(conti.parsePesaCsv("Data;Cliente;Materiale;Netto (t)\n05/09/2026;Edilcave Srl;Stabilizzato 0/30;28,4\n").righe, "t", d.clienti, d.prodotti, []);
+    eq([soloNetto.entrano.length, soloNetto.scartate[0] && soloNetto.scartate[0].ragione], [0, "lordo o tara mancanti: il DDT si emette dai due pesi"], "⛔ col solo netto la riga NON entra, e la ragione è quella vera — non «manca la densità»");
   });
 }
 /* ===== il piano di Campo sopra la mappa condivisa (05/09) ===== */

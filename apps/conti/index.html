@@ -7184,8 +7184,18 @@ label.item:has(.dw-chk:checked){
     }
     const colonne = "Colonne riconosciute: " + letto.mappa.riconosciute.map(r => r.campo + " ← «" + esc(r.nome) + "»").join(", ")
       + (letto.mappa.ignorate.length ? "; lasciate fuori: " + letto.mappa.ignorate.map(x => "«" + esc(x) + "»").join(", ") : "") + ".";
+    /* l'anteprima PRIMA di importare: quante entrerebbero e quante no, con
+       l'unità suggerita — chi conferma deve sapere che cosa sta per succedere,
+       non scoprirlo dall'esito */
+    const ant = pesateDallaPesa(letto.righe, letto.unitaSuggerita || "t", CLI, PRO, PES);
+    const nomiAnt = (l, k) => [...new Set(l.map(z => z[k]))].slice(0, 3).map(z => "«" + esc(z) + "»").join(", ");
+    const anteprima = "Con questa unità entrerebbero <b>" + plur(ant.entrano.length, "riga", "righe") + "</b>"
+      + (ant.doppie.length ? ", " + plur(ant.doppie.length, "già in archivio", "già in archivio") : "")
+      + (ant.senzaCliente.length ? ", " + plur(ant.senzaCliente.length, "senza un cliente in anagrafica", "senza un cliente in anagrafica") + " (" + nomiAnt(ant.senzaCliente, "cliente") + ")" : "")
+      + (ant.senzaProdotto.length ? ", " + plur(ant.senzaProdotto.length, "senza un prodotto nel listino", "senza un prodotto nel listino") + " (" + nomiAnt(ant.senzaProdotto, "prodotto") + ")" : "")
+      + (ant.scartate.length ? ", " + plur(ant.scartate.length, "scartata", "scartate") : "") + ".";
     const ok = await chiediDati("Come ho letto il file della pesa",
-      `<p>Righe lette: <b>${letto.righe.length}</b>. ${colonne}</p>
+      `<p>Righe lette: <b>${letto.righe.length}</b>. ${colonne}</p><p>${anteprima}</p>
        <p>I pesi nel file sono in <b>${letto.unitaSuggerita || "un'unità che non so"}</b>${letto.unitaSuggeritaPerche ? " (" + esc(letto.unitaSuggeritaPerche) + ")" : ""}. Conferma o correggi qui sotto: in chilogrammi vengono divisi per mille.</p>`,
       [{ id: "unita", label: "Unità dei pesi nel file", valore: letto.unitaSuggerita, placeholder: "t oppure kg", aiuto: "Scrivi «t» per tonnellate o «kg» per chilogrammi." }],
       "Importa");

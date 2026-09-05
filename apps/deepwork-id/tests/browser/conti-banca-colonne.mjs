@@ -163,6 +163,7 @@ for (const W of [320, 390]) {
   await pg.setInputFiles("#pesa-file", FILE_E); await pg.waitForTimeout(900);
   const modale = await pg.evaluate(() => (document.getElementById("modal-body") || {}).innerText || "");
   dice(/Righe lette: 3/.test(modale) && /in kg/.test(modale) && /Colonne riconosciute/.test(modale), "⛔ la finestra dice quante righe, quali colonne e che i pesi sono in chilogrammi (letto dall'intestazione)", modale.replace(/\s+/g, " ").slice(0, 200));
+  dice(/entrerebbero 1 riga, 1 senza un cliente in anagrafica \(«Rossi Srl»\), 1 scartata/.test(modale.replace(/\s+/g, " ")), "⛔ e PRIMA di importare dice che cosa entrerebbe e che cosa no, per nome", modale.replace(/\s+/g, " ").slice(0, 300));
   const unita = await pg.$eval("#mc-unita", (e) => e.value).catch(() => "");
   dice(unita === "kg", "e il campo dell'unità propone «kg», da confermare", unita);
   await pg.click("#modal-foot .mbtn.primary", { timeout: 3000 }).catch(() => {}); await pg.waitForTimeout(900);
