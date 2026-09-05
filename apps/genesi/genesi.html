@@ -3847,7 +3847,10 @@ let _ricNome='';         // nome della volata scritto a mano, per non perderlo a
 function _riconCampoHtml(){
   if(!_ricCampo) return '<div class="ricamp">'
     +'<div class="ricamp-h">Consuntivo di carico — da Campo</div>'
-    +'<div class="ricamp-sub">I chili davvero caricati il fochino li ha già registrati foro per foro in <b>Campo</b>: non c’è bisogno di ricopiarli qui. In Campo premi <b>«Esporta consuntivo (CSV)»</b>, poi rileggi il file con <b>«Importa consuntivo da Campo»</b> qui in fondo: carica reale, fori effettivi e scostamento si riempiono da soli.<br>Pezzatura, PPV e gittata no: quelle si misurano in cava e restano da scrivere a mano.</div>'
+    +'<div class="ricamp-sub">I chili davvero caricati il fochino li ha già registrati foro per foro in <b>Campo</b>: non c’è bisogno di ricopiarli qui. '+(GDB.mode==='live'
+      ? 'Premi <b>«Leggi il consuntivo da Campo (organizzazione)»</b> qui in fondo: nessun file da esportare e rileggere. Il file (<b>«Importa consuntivo da Campo»</b>) resta per chi lavora altrove.'
+      : 'In Campo premi <b>«Esporta consuntivo (CSV)»</b>, poi rileggi il file con <b>«Importa consuntivo da Campo»</b> qui in fondo.')
+    +' Carica reale, fori effettivi e scostamento si riempiono da soli.<br>Pezzatura, PPV e gittata no: quelle si misurano in cava e restano da scrivere a mano.</div>'
     +'</div>';
   const c=_ricCampo, k=computeKPI();
   const riga=(l,v,f,col)=>'<div class="l">'+l+'</div><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="f">'+f+'</div>';
@@ -5001,7 +5004,7 @@ async function renderHome(){
   if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';
   const list=$('hgVolate');
   if(list) list.innerHTML = arr.length
-    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(gdata(v.data))+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
+    ? arr.slice().reverse().map(v=>'<div class="hg-item" data-id="'+v.id+'"><div class="t"><b>'+_rEsc(v.nome)+'</b><small>'+_rEsc(dataISOEsiste(v.data)?gdata(v.data):'senza data')+' · '+_rEsc(v.sintesi||'')+'</small></div><button data-act="apri">Apri</button><button data-act="dup">Duplica</button><button data-act="del" title="Elimina">✕</button></div>').join('')
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
   const nv=await GDB.nuvole();
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';

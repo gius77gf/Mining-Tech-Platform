@@ -39075,6 +39075,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine ponti in Home (05/09) ===== */
 
+/* ===== GENESI · LA PASSATA IN PROFONDITÀ, HOME E RICONCILIAZIONE (05/09, notte) =====
+   Due cose viste guardando le schermate, non leggendo il codice. */
+{
+  const _gf = await app("genesi", "genesi-formato.js");   // caricato QUI, fuori dalla prova, che resta sincrona
+  test("Genesi · in Home una volata con una data che non esiste dice «senza data», non ripete la stringa", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/dataISOEsiste\(v\.data\)\?gdata\(v\.data\):'senza data'/.test(pagina), "⛔ prima `gdata('boh')` scriveva «boh» nella riga: la forma passava per una data");
+    eq(_gf.gdata("boh"), "boh", "e questo è il comportamento di gdata che lo rendeva possibile: restituisce quello che riceve");
+    eq(_gf.gdata("2026-09-05 22:49"), "05/09/2026 alle 22:49");
+  });
+  test("Genesi · la riconciliazione spiega la strada giusta per il modo: dall'organizzazione in live, dal file da soli", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/GDB\.mode==='live'\s*\?\s*'Premi <b>«Leggi il consuntivo da Campo \(organizzazione\)»/.test(pagina), "in live la spiegazione nomina il bottone dell'organizzazione");
+    ok(/: 'In Campo premi <b>«Esporta consuntivo \(CSV\)»<\/b>, poi rileggi il file/.test(pagina), "da soli resta la strada del file");
+  });
+}
+/* ===== fine passata Genesi, Home e riconciliazione (05/09) ===== */
+
 
 
 

@@ -665,6 +665,16 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **GENESI — la passata in profondità, Home e riconciliazione (05/09,
+  notte):** due cose viste guardando le schermate a 320 px. (1) In Home una
+  volata con una data che non esiste (record da un altro browser, o
+  corrotto) scriveva la stringa così com'era («boh · 12 fori»): `gdata`
+  restituisce quello che riceve quando non è una data, e la riga lo prendeva
+  per una data — adesso «senza data», con `dataISOEsiste` a decidere; (2) la
+  frase in cima alla riconciliazione diceva ancora «esporta il CSV e rileggi
+  il file» anche in live, dove c'è il bottone che legge dall'organizzazione
+  — adesso segue il modo. run-kpi +2 (2751). Scatto della Home guardato. La
+  modale «per Sentinella» a 320 px riletta per intero: niente da correggere.
 - [x] **GENESI — i ponti in Home, calcolati (05/09, notte):** il pannello
   «Ponte Deepwork» diceva che lo scambio passa «tramite file .volata.json» —
   vero per il core, falso per le altre app da stasera: un testo fisso in una
@@ -7001,8 +7011,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.230 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2749, `run-stile` 328,
+  **3.232 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2751, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
