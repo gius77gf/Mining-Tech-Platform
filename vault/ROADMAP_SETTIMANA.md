@@ -436,12 +436,17 @@
   dal progetto 2D (`foro_n` resta per la dimostrazione a una fila, che i fori
   non li ha battezzati). run-kpi +2; `genesi-documenti-che-escono` 75/0 con
   due iniezioni nuove (la colonna vuota; il JSON per posizione).
-  ⚠️ Osservato e non toccato: il `design` salvato in Home non contiene
-  `D2.holes` (`volSnapshot`, riga «design:JSON.parse(…)») e «Apri» fa
-  `D2.holes=[]` prima di ridisegnare — quindi un foro aggiunto a mano, uno
-  tolto e i ritardi messi a mano NON sopravvivono a salva→riapri. Gli id di
-  maglia sì, perché sono deterministici. Va deciso se il progetto salvato deve
-  portare i fori: è una scelta di prodotto, non un dettaglio.
+  ✅ **(4) 05/09, stesso ciclo — e non era una scelta, era un dato perso**: il
+  `design` salvato in Home non portava `D2.holes` e «Apri» rigenerava la
+  maglia dai parametri, quindi un foro TOLTO ricompariva, uno aggiunto sulla
+  tela spariva e un ritardo a mano tornava allo schema. Ora `volSnapshot`
+  scrive `holes` (id, posizione, `tMano`) e «Apri» li rimette con
+  `foriDaDesign` (null per una volata salvata prima → maglia rigenerata come
+  sempre; i fori illeggibili si contano e finiscono nel toast; gli id mancanti
+  si assegnano DOPO aver letto quelli dichiarati, se no un «m1» in fondo
+  diventava un doppione — misurato prima di scrivere). run-kpi +2; banco
+  `genesi-documenti-che-escono` sezione 6: salva → riapri, tre fori coi loro
+  id, f1-2 non ricompare, 99 ms a mano intatti; due iniezioni nuove.
   (2) ✅ **05/09, stesso ciclo** — Campo conserva l'id (`PIANO_COLONNE.idForo`,
   FACOLTATIVA: non finisce fra le `mancanti`, se no ogni piano di ieri aprirebbe
   la finestra), lo salva in `pianocarico` come `idForo`, lo mostra nel `.meta`
@@ -6363,8 +6368,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.109 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2628, `run-stile` 328,
+  **3.111 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2630, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

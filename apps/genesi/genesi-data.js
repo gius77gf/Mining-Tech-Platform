@@ -1914,6 +1914,39 @@ export function idForoNuovo(holes){
   return 'm' + n;
 }
 
+/* I FORI SALVATI COL PROGETTO (05/09). Fino a oggi «Salva» in Home scriveva i
+   parametri della maglia e NON i fori: alla riapertura la maglia veniva
+   rigenerata, quindi un foro aggiunto sulla tela spariva, un foro tolto
+   RICOMPARIVA, e un ritardo messo a mano (`tMano`) tornava a quello dello
+   schema — un dato perso, e nella direzione che non si vede. Adesso il
+   design porta `holes` e questa funzione li rilegge: `null` se il design non
+   li ha (una volata salvata prima: si rigenera la maglia, com'è sempre
+   stato); altrimenti i fori con mx/my leggibili, l'id se c'è (se manca ne
+   prende uno da foro a mano, senza doppioni), il ritardo a mano solo se è un
+   numero. Quelli illeggibili si CONTANO in `scartati`: non spariscono in
+   silenzio. Pura. */
+export function foriDaDesign(design){
+  const d = design || {};
+  if (!Array.isArray(d.holes)) return null;
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const fori = [];
+  let scartati = 0;
+  for (const h of d.holes){
+    const mx = n(h && h.mx), my = n(h && h.my);
+    if (!(Number.isFinite(mx) && Number.isFinite(my))) { scartati++; continue; }
+    const id = (h.id !== null && h.id !== undefined && String(h.id).trim() !== '') ? String(h.id).trim() : null;
+    const tm = n(h.tMano);
+    const f = { id, mx, my };
+    if (Number.isFinite(tm)) f.tMano = tm;
+    fori.push(f);
+  }
+  /* gli id mancanti si assegnano DOPO aver letto tutti quelli dichiarati:
+     misurato prima di scrivere — assegnando strada facendo, un «m1» dichiarato
+     più avanti nel file diventava il doppione di un «m1» appena inventato */
+  for (const f of fori) if (!f.id) f.id = idForoNuovo(fori);
+  return { fori, scartati };
+}
+
 export function foriDiProgetto(perRow, file){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const c = n(perRow), r = n(file);

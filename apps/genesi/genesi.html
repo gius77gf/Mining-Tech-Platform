@@ -1063,7 +1063,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    qui `riconStorico`, `riconSave`, `riconRender` e `_riconCampoHtml`, che
    leggono `localStorage`, il DOM o lo stato del progetto aperto. */
          _rEsc, _riconParseCampo, _riconRiassuntoCampo, riconDelta, csvRiconciliazione,
-         idForoMaglia, idForoNuovo, confrontoPerForo,
+         idForoMaglia, idForoNuovo, confrontoPerForo, foriDaDesign,
 /* `campoMisurato` risponde alla stessa domanda per i DUE posti che rileggono un
    consuntivo già salvato — la riga di storico qui sotto e il CSV che esce
    dall'azienda — e sta nel modulo perché scritta due volte diventerebbe la
@@ -4915,7 +4915,11 @@ function volSnapshot(nome){
         +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
-    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede})),
+    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
+      /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
+         relief, che si ricalcolano. Senza questa riga un foro tolto a mano
+         ricompariva alla riapertura. */
+      holes:(D2.holes||[]).map(h=>({ id:h.id||null, mx:h.mx, my:h.my, tMano:(h.tMano!=null&&isFinite(h.tMano))?+h.tMano:null }))})),
     sintesi:sintesi };
 }
 /* ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
@@ -5037,7 +5041,13 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
   if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); await GDB.aggiungi('volate', c); renderHome(); toast('✓ Duplicata'); return; }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
-    D2.holes=[]; D2.sel=-1; D2.selPt=-1;
+    /* i fori salvati col progetto (05/09): se il design li porta si
+       rimettono quelli — id, posizione, ritardo a mano — e la sequenza si
+       ricalcola; se non li porta (volata salvata prima) la maglia si rigenera
+       come sempre. I fori illeggibili si contano e si dicono nel toast. */
+    const _fd=foriDaDesign(arr[i].design);
+    D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1;
+    if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
        `Object.assign` da `localStorage` — ed è quella da cui il 03/08 è
@@ -5068,7 +5078,8 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        rimessa a «DIN residenziale» produceva un limite e un verdetto su una
        norma che nessuno aveva scelto. Il codice resta e il limite non si calcola. */
     if(_sc) for(const c of _sc.campi) if(c.sostituisci) D2[c.chiave]=D2_PARTENZA[c.chiave];
-    const _avvisi=[_senza&&(_senza.che+'. '+_senza.come), _sc&&(_sc.che+'. '+_sc.come)].filter(Boolean);
+    const _avvisi=[_senza&&(_senza.che+'. '+_senza.come), _sc&&(_sc.che+'. '+_sc.come),
+      _fd&&_fd.scartati&&(_ricPlur(_fd.scartati,'foro salvato non si legge','fori salvati non si leggono')+(_fd.fori.length?' e resta fuori dal progetto riaperto':': la maglia è stata rigenerata dai parametri'))].filter(Boolean);
     toast('✓ «'+arr[i].nome+'» aperta nel 2D'+(_avvisi.length?' — ⚠️ '+_avvisi.join(' ⚠️ '):''));
     setScreen('design');
   }

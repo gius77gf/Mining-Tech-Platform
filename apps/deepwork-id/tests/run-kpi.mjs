@@ -37080,7 +37080,25 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi.confrontoPerForo([], []), { chiave: "numero", righe: [], senzaRiga: 0, orfane: [], doppie: [], misurabile: false }, "senza fori e senza righe: tutto vuoto e non misurabile");
   });
 }
-/* ===== fine confronto foro per foro (Genesi, 05/09) ===== */
+/* ===== i fori salvati col progetto (Genesi, 05/09) ===== */
+{
+  test("Genesi · foriDaDesign: un progetto salvato prima non ha fori (null), uno di oggi li rimette con id e ritardo a mano", () => {
+    eq(genesi.foriDaDesign({ B: 3, S: 3.5 }), null, "senza `holes` la risposta è null: si rigenera la maglia, com'è sempre stato");
+    eq(genesi.foriDaDesign(null), null, "e null resta null");
+    const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: 0, my: 3, tMano: null }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }] });
+    eq(r.fori, [{ id: "f1-1", mx: 0, my: 3 }, { id: "f1-3", mx: 7, my: 3, tMano: 99 }, { id: "m1", mx: 3.5, my: 6 }], "⛔ i tre fori tornano con il loro id — f1-2 tolto NON ricompare — e il 99 ms a mano resta");
+    eq(r.scartati, 0, "nessuno scartato");
+  });
+  test("Genesi · foriDaDesign: il foro illeggibile si conta, quello senza id ne prende uno senza doppioni, il ritardo non numerico cade", () => {
+    const r = genesi.foriDaDesign({ holes: [{ id: "f1-1", mx: "0", my: "3" }, { mx: null, my: 3 }, { mx: 2, my: "abc" }, { mx: 5, my: 3, tMano: "boh" }, { id: "", mx: 6, my: 3 }, { id: "m1", mx: 8, my: 3 }] });
+    eq(r.scartati, 2, "⛔ due fori senza posizione leggibile si CONTANO, non spariscono");
+    eq(r.fori.map((f) => f.id), ["f1-1", "m2", "m3", "m1"], "⛔ gli id mancanti si assegnano DOPO aver letto quelli dichiarati: l'«m1» in fondo non diventa un doppione");
+    eq(new Set(r.fori.map((f) => f.id)).size, 4, "quattro fori, quattro id diversi");
+    ok(!("tMano" in r.fori[1]), "«boh» non è un ritardo: il campo non c'è, invece di NaN");
+    eq([r.fori[0].mx, r.fori[0].my], [0, 3], "le posizioni scritte come stringhe tornano numeri");
+  });
+}
+/* ===== fine fori salvati col progetto (Genesi, 05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
