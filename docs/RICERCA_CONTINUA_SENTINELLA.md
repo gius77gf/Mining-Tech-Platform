@@ -339,3 +339,109 @@ in una schermata senza il testo primario):
   chi legge sa da dove viene il limite: costo basso; misura: il banco
   `sentinella-report-dichiarazioni` legge l'etichetta nel testo del foglio.
   Da verificare prima se il foglio la scrive già per un'altra via.
+
+---
+
+## Ricerca del 2026-09-05 — il «diario delle volate» e la relazione periodica per l'ente (metà sul mondo)
+
+**Strumento**: solo `WebSearch` (sei ricerche); `WebFetch` risponde `EGRESS_BLOCKED`,
+quindi **nessuna pagina primaria è stata letta**: ogni riga qui sotto è di
+seconda mano, dai riassunti dei risultati, e va marcata così. **Che cosa esiste
+già in Sentinella**: non verificato da questa ricerca — il delta lo fa chi ha il
+codice in mano (vedi le domande in fondo). La sezione del 02/09 copre già le
+norme (UNI 9916, DIN 4150-3, USBM) e i software dei produttori: qui si guarda
+**il documento che l'ente riceve e ciò che l'ispettore chiede**.
+
+### Fatti dal mondo
+
+1. **Il «diario delle attività» quando si usano esplosivi.** Le linee guida di
+   ARPA FVG per il piano di monitoraggio di un'attività estrattiva soggetta a
+   VIA dicono che, quando l'attività usa esplosivi, tenere un diario è **parte
+   integrante del monitoraggio ambientale**: vi si registrano **modalità e
+   frequenza delle volate eseguite**, i **riferimenti alle comunicazioni fatte
+   alle autorità competenti o alla popolazione**, e gli **eventuali reclami
+   ricevuti**. Il diario resta **a disposizione per i controlli** delle autorità.
+   [seconda mano: arpa.fvg.it, LG21.02 «Linee guida concernenti la redazione di
+   un piano di monitoraggio… attività estrattiva»]
+2. **Le norme che il piano cita**: UNI 9614 (vibrazioni negli edifici e criterio
+   del disturbo alle persone) accanto a UNI 9916 (effetti sugli edifici). Cioè
+   il piano guarda **due** cose: il danno e il disturbo. [seconda mano: stessa
+   linea guida]
+3. **Il rapporto post-operam sulle vibrazioni**, quando è prescritto, va
+   trasmesso all'autorità regionale competente e contiene **i valori misurati**,
+   **considerazioni sulle soglie di percezione e sull'interferenza con le
+   attività**, e **le eventuali misure di mitigazione da adottare**. [seconda
+   mano: va.mite.gov.it, relazione tecnica di un piano di monitoraggio rumore
+   e vibrazioni — opera infrastrutturale, non una cava]
+4. **La cadenza**: le fonti trovate non danno una cadenza generale per le cave
+   («entro il …» non è uscito in nessun risultato): la cadenza è **una
+   prescrizione dell'autorizzazione**, caso per caso. Per i PMA ambientali
+   generici ARPAT indica una valutazione **trimestrale** (già scritto il 02/09).
+   [seconda mano; e l'assenza di un risultato NON prova che una cadenza standard
+   non esista]
+5. **La polizia mineraria** (DPR 128/1959, D.Lgs 624/1996, D.Lgs 81/2008) fa
+   ispezioni in cava, e fra le attività elencate ci sono la **sorveglianza
+   sull'uso degli esplosivi**, le verifiche periodiche e straordinarie degli
+   impianti, e la **previsione e misura dei livelli di vibrazione indotti dagli
+   esplosivi**. Prima della visita l'ufficio **esamina il registro dei
+   rapporti** e annota sul registro l'avvenuto esame. [seconda mano:
+   regione.piemonte.it, cittametropolitana.mi.it, osservatorioamianto.it]
+6. **Il verbale della volata per la pubblica sicurezza**: nelle procedure di
+   questura citate, il questore può prescrivere **un verbale dettagliato delle
+   operazioni di sparo** (luogo, data, …) oppure, in alternativa, la
+   **dichiarazione del fochino firmata da tutti i presenti** nelle diverse fasi
+   e **la registrazione della centralina sismo-acustica** che misura vibrazioni
+   e sovrapressione aerea. Cioè la misura strumentale può **valere come
+   documentazione** della volata. [seconda mano: sicurezzapubblica.wikidot.com,
+   scuolaedile.com «Prescrizioni esplosivi» — fonti secondarie, da verificare
+   prima di scriverle in una schermata]
+7. **La tabella tipica della relazione** (dalle relazioni tecniche di
+   monitoraggio trovate, gallerie e grandi opere, non cave): per ogni evento
+   **PPV per asse e vettore somma, frequenza dominante (FFT), confronto con la
+   soglia della classe di edificio** (DIN 4150-3 ripresa in appendice B della
+   UNI 9916); nei casi di esplosioni il **fattore di cresta** può arrivare a 6.
+   [seconda mano: va.mite.gov.it «Approfondimento relativo alla tematica
+   Vibrazioni»; vielleacustica.it; svantek.it]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| https://www.arpa.fvg.it/documents/3561/LG21.02_e2_r1_Redaz_piano_monitor_attivita_estrattiva_01_paFXjlI.pdf | LG ARPA FVG: diario delle volate (modalità, frequenza, comunicazioni, reclami), a disposizione dei controlli; UNI 9614 + UNI 9916 | alta (ente pubblico, linea guida ufficiale) — **ma non letta** |
+| https://www.arpa.fvg.it/temi/temi/supporto-tecnico-e-controlli/pubblicazioni/linee-guida-concernenti-la-redazione-di-un-piano-di-monitoraggio-relativo-alla-procedura-di-valutazione-di-impatto-ambientale-via-di-unattivita-estrattiva/ | la pagina che presenta la linea guida | alta |
+| https://va.mite.gov.it/File/Documento/474594 | relazione tecnica di un PMA rumore e vibrazioni: contenuto del rapporto post-operam | media (documento di un'opera, non una cava) |
+| https://va.mite.gov.it/File/Documento/743447 | approfondimento «Vibrazioni»: appendice B UNI 9916 → DIN 4150; fattore di cresta | media |
+| https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/polizia-mineraria | attività della polizia mineraria, fra cui la misura delle vibrazioni da esplosivo | alta (ente) |
+| https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria | ispezioni, verbali, sanzioni | alta (ente) |
+| http://sicurezzapubblica.wikidot.com/esplosivi · https://www.scuolaedile.com/public/Seminario_21_11_11/07-17%20Prescrizioni%20esplosivi.pdf | verbale della volata o dichiarazione del fochino + registrazione della centralina | bassa (fonti secondarie) |
+| https://www.arpa.marche.it/rumore-e-vibrazioni · https://www.arpalombardia.it/temi-ambientali/rumore-e-vibrazioni/ | ruolo di ARPA: supporto tecnico a Comuni e Province | media |
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Il registro volate di Sentinella è il «diario» della linea guida? Cioè: chi
+   registra, accanto a una volata, **la comunicazione fatta** (a chi, quando,
+   con quale riferimento) e **il reclamo ricevuto** — esiste un campo o un
+   collegamento fra la volata e la collezione dei reclami, o le due vivono
+   separate e si accostano solo per data (la «coincidenza» già censita)?
+2. Il report per l'ente (`reportConformita`) porta **le due letture** — il danno
+   agli edifici (UNI 9916/DIN) e il **disturbo alle persone** (UNI 9614) — o solo
+   la prima? Se il disturbo non c'è, il report lo dichiara o tace?
+3. Il report contiene una sezione **«misure di mitigazione»** (che cosa si è
+   fatto o si farà dopo un superamento) o si ferma al verdetto? Chi la
+   scriverebbe — le azioni correttive del ponte con Scudo sono già quel posto?
+4. Il report è **per periodo prescritto** (trimestre, semestre, anno) con la
+   data di trasmissione e il destinatario **scritti sul documento**, e c'è un
+   posto che ricorda **quando scade la prossima trasmissione** (come per le
+   tarature), o la cadenza vive solo nella testa di chi lo manda?
+5. Per la polizia mineraria: esiste una stampa del registro volate «da tenere
+   a disposizione» con **modalità e frequenza** delle volate (numero di volate
+   nel periodo, chili per ritardo, fronte) e l'esame dell'ispettore annotabile?
+6. La registrazione della centralina può «valere come verbale»: il foglio di
+   una volata di Sentinella porta insieme **i dati della volata e la misura
+   dell'evento** (PPV per asse, vettore somma, frequenza, aria) con lo
+   strumento e la taratura, così che un fochino possa allegarlo?
+
+⚠️ **Il delta non è scritto qui di proposito** (regola del 14/08): lo fa il
+ciclo con il codice in mano, partendo dal meccanismo — `reportConformita`,
+`taratureDelReport`, la collezione `reclami`, `volateDelGiorno`/`coincidenzaVolata`,
+il foglio di stampa della volata — non cercando «diario» o «UNI 9614» nel codice.
