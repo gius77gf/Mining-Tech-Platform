@@ -2286,3 +2286,48 @@ export function designSconosciuti(design, cataloghi) {
     che: (nomi.length === 1 ? 'una scelta non si riconosce: ' : nomi.length + ' scelte non si riconoscono: ') + nomi.join(', '),
     come: come.join(' ') };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   I PONTI DI GENESI, IN HOME (05/09, notte). Il pannello «Ponte Deepwork» della
+   Home diceva che lo scambio passa «tramite file .volata.json»: vero per il
+   core, e dal 05/09 FALSO per le altre app — le volate previste vanno a
+   Sentinella, il piano di carico va a Campo e il consuntivo torna, le nuvole
+   vanno a Terra, tutti come dati. Un testo che invecchia in una schermata è un
+   «non c'è» scaduto letto dal fondatore. Qui il riepilogo è calcolato: quanti
+   record ha scritto ogni ponte e quando l'ultimo, `null` = non leggibile (che
+   non è zero), e lo stato vuoto dice come si produce il primo. Pura. */
+export function riepilogoPontiGenesi(dati) {
+  const d = dati || {};
+  const lista = (x) => (Array.isArray(x) ? x : null);
+  const dove = d.mode === "live" ? "nell'organizzazione" : "su questo computer";
+  const ultimoDi = (arr, campo) => {
+    let u = "";
+    for (const r of arr || []) { const v = String((r && campo(r)) || ""); if (v > u) u = v; }
+    return u;
+  };
+  const uno = (app, cosa, arr, campo, vuoto, plurali) => {
+    if (!arr) return { app, cosa, n: null, ultimo: "", leggibile: false,
+      testo: cosa + " " + (d.mode === "live" ? "non leggibili adesso: riprova più tardi" : "non leggibili") };
+    const n = arr.length, ultimo = ultimoDi(arr, campo);
+    if (!n) return { app, cosa, n: 0, ultimo: "", leggibile: true, testo: vuoto };
+    /* la data dell'ultimo resta ISO in `ultimo`: la scrive la pagina, con il
+       suo formattatore — un ISO dentro una frase è un numero nel vestito
+       sbagliato, e un formattatore riscritto qui è la copia debole */
+    return { app, cosa, n, ultimo, leggibile: true,
+      testo: (n === 1 ? plurali[0] : n + " " + plurali[1]) + " " + dove, codaUltimo: n === 1 ? "del" : "l'ultimo del" };
+  };
+  return {
+    dove,
+    righe: [
+      uno("Sentinella", "le volate previste", lista(d.previste), (r) => r.data,
+        "Nessuna volata prevista scritta ancora: dalla scheda volata, «per Sentinella» la manda al registro (non solo al file).",
+        ["una volata prevista scritta", "volate previste scritte"]),
+      uno("Campo", "i piani di carico", lista(d.piani), (r) => String(r.quando || "").slice(0, 10),
+        "Nessun piano di carico scritto ancora: «Esporta piano di carico» lo manda a Campo (non solo al file).",
+        ["un piano di carico scritto", "piani di carico scritti"]),
+      uno("Terra", "le lavorazioni della nuvola", lista(d.nuvole), (r) => String(r.data || "").slice(0, 10),
+        "Nessuna lavorazione della nuvola: dal visore, ogni ritaglio con un volume arriva a Terra da solo.",
+        ["una lavorazione scritta", "lavorazioni scritte"]),
+    ],
+  };
+}

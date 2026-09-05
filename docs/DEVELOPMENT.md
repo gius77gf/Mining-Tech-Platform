@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.228 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2747 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.230 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2749 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.674** asserzioni su **40** comandi.
+> `node` completo esegue **3.676** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,9 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **235 su 235** in cinque
-moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **82/82**, `genesi-data.js`
-**82/82**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **236 su 236** in cinque
+moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **82/82**, `genesi-data.js` **83/83**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -129,8 +128,8 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | nessuna — si porta fuori com'è | **23** |
 | una o due | **59** |
 | da tre a cinque | 27 |
-| da sei a dieci | 25 |
-| più di dieci — lì è un rifacimento | 36 |
+| da sei a dieci | 24 |
+| più di dieci — lì è un rifacimento | 37 |
 
 Cioè **67 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 101 sono una decisione di architettura.

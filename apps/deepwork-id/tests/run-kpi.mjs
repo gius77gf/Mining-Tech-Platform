@@ -39047,6 +39047,34 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine piano Genesi→Campo (05/09) ===== */
 
+/* ===== I PONTI DI GENESI, IN HOME (05/09, notte) =====
+   Il pannello «Ponte Deepwork» diceva «tramite file»: vero per il core, falso
+   per le altre app dal 05/09. Adesso il riepilogo è calcolato.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  test("Genesi · riepilogoPontiGenesi: quanti record per ponte, l'ultimo, e null che NON è zero", () => {
+    const r = genesi.riepilogoPontiGenesi({ mode: "live",
+      previste: [{ data: "2026-09-10" }, { data: "2026-09-12" }], piani: [{ quando: "2026-09-05 22:49" }], nuvole: [] });
+    eq(r.dove, "nell'organizzazione");
+    eq(r.righe.map((x) => [x.app, x.n, x.ultimo, x.leggibile]), [["Sentinella", 2, "2026-09-12", true], ["Campo", 1, "2026-09-05", true], ["Terra", 0, "", true]]);
+    eq(r.righe[0].testo, "2 volate previste scritte nell'organizzazione"); eq(r.righe[0].codaUltimo, "l'ultimo del");
+    eq(r.righe[1].testo, "un piano di carico scritto nell'organizzazione"); eq(r.righe[1].codaUltimo, "del");
+    ok(/Nessuna lavorazione della nuvola/.test(r.righe[2].testo), "lo stato vuoto dice come si produce: " + r.righe[2].testo);
+    const loc = genesi.riepilogoPontiGenesi({ mode: "locale", previste: [{ data: "2026-09-10" }], piani: null, nuvole: null });
+    eq(loc.righe[0].testo, "una volata prevista scritta su questo computer", "da soli il posto è il computer");
+    eq([loc.righe[1].n, loc.righe[1].leggibile, loc.righe[1].testo], [null, false, "i piani di carico non leggibili"], "⛔ null non è zero");
+    eq(genesi.riepilogoPontiGenesi({ mode: "live", previste: null }).righe[0].testo, "le volate previste non leggibili adesso: riprova più tardi");
+    eq(genesi.riepilogoPontiGenesi(null).righe.length, 3, "senza dati, tre righe non leggibili");
+  });
+  test("Genesi · la Home disegna i ponti dal modulo, con la data formattata dalla pagina", () => {
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/riepilogoPontiGenesi\(\{ previste, piani, nuvole:nv, mode:GDB\.mode \}\)/.test(pagina), "il riepilogo lo fa il modulo");
+    ok(/gdata\(r\.ultimo\)/.test(pagina), "e la data dell'ultimo la formatta la pagina");
+    ok(!/tramite file <b>\.volata\.json<\/b>: esporta da qui e importa in Deepwork/.test(pagina), "⛔ il testo fisso «tramite file» non c'è più");
+  });
+}
+/* ===== fine ponti in Home (05/09) ===== */
+
 
 
 

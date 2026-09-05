@@ -665,6 +665,17 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **GENESI — i ponti in Home, calcolati (05/09, notte):** il pannello
+  «Ponte Deepwork» diceva che lo scambio passa «tramite file .volata.json» —
+  vero per il core, falso per le altre app da stasera: un testo fisso in una
+  schermata è un «non c'è» scaduto che il fondatore legge. Adesso
+  `riepilogoPontiGenesi({previste, piani, nuvole, mode})` nel modulo dice per
+  Sentinella, Campo e Terra quanti record ha scritto ogni ponte e quando
+  l'ultimo (ISO nel modulo, formattato dalla pagina con `gdata`), «su questo
+  computer» / «nell'organizzazione» secondo il modo, `null` = non leggibile
+  (non zero), e lo stato vuoto dice COME si produce il primo; il .volata.json
+  resta per Deepwork. run-kpi +2 (2749), copertura genesi-data 83. Scatto
+  guardato, vuoto e pieno.
 - [x] **IL PIANO DI CARICO DA GENESI A CAMPO COME DATO (05/09, notte):** il
   terzo dei quattro ponti di file di §4 che passa dai dati — il giro
   Genesi↔Campo è chiuso nei due versi senza file. `pianoCsvGenesi` e
@@ -6990,8 +7001,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.228 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2747, `run-stile` 328,
+  **3.230 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2749, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

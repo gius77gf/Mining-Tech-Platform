@@ -422,6 +422,7 @@ body.scr-sim #tl{bottom:80px}
 .hg-item button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:7px;font-size:10px;padding:3px 7px;cursor:pointer;flex:none}
 .hg-item button:hover{color:var(--cu);border-color:rgba(255,171,0,.4)}
 .hg-empty{font-size:11px;color:var(--mut2);padding:6px 2px;line-height:1.5}
+.hg-item.hg-warn{border-color:rgba(255,171,0,.35)}
 /* il ritorno all'ecosistema: stesse misure di `.dw-home` di shared/, ma qui la
    home di Genesi è una schermata a sé e non ha la barra `.top` delle altre app */
 .g-home{
@@ -652,8 +653,12 @@ body.scr-sim #tl{bottom:80px}
       </div>
     </div>
     <div class="hg-panel">
-      <h4>🔗 Ponte Deepwork</h4>
-      <div class="hg-empty">Scambia i progetti di volata col gestionale Deepwork tramite file <b>.volata.json</b>: esporta da qui e importa in Deepwork, o viceversa.</div>
+      <h4>🔗 Ponti con le altre app</h4>
+      <!-- calcolato da `riepilogoPontiGenesi` (05/09, notte): prima qui c'era un
+           testo fisso che diceva «tramite file», invecchiato il giorno in cui i
+           ponti sono diventati dati -->
+      <div class="hg-list" id="hgPonti"></div>
+      <div class="hg-empty">Col gestionale <b>Deepwork</b> lo scambio resta a file <b>.volata.json</b>: esporta da qui e importa là, o viceversa.</div>
       <div class="hg-actions">
         <button class="btn" id="hgImporta">⬇ Importa volata</button>
         <button class="btn" id="hgEsporta">⬆ Invia a Deepwork</button>
@@ -1155,7 +1160,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5000,6 +5005,18 @@ async function renderHome(){
     : '<div class="hg-empty">Nessuna volata salvata. Progetta nel 2D e premi «Salva la volata attuale»: la ritroverai qui.</div>';
   const nv=await GDB.nuvole();
   if($('hgNuvN')) $('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';
+  /* i ponti come dati (05/09, notte): quanti record ha scritto ognuno e quando
+     l'ultimo; `null` = non leggibile, che non è zero */
+  if($('hgPonti')){
+    let previste=null, piani=null;
+    try{ previste=await GDB.previste(); }catch(e){ previste=null; }
+    try{ piani=await GDB.piani(); }catch(e){ piani=null; }
+    const rp=riepilogoPontiGenesi({ previste, piani, nuvole:nv, mode:GDB.mode });
+    /* `leggibile` la legge la pagina (regola 20): la riga non leggibile si
+       veste da avviso, non si confonde con una a zero */
+    $('hgPonti').innerHTML=rp.righe.map(r=>'<div class="hg-item'+(r.leggibile?'':' hg-warn')+'"><div class="t"><b>'+_rEsc(r.app)+'</b><small>'
+      +_rEsc(r.testo)+(r.ultimo?' · '+_rEsc(r.codaUltimo)+' '+_rEsc(gdata(r.ultimo)):'')+'</small></div></div>').join('');
+  }
   const ln=$('hgNuvole');
   if(ln) ln.innerHTML = nv.length
     ? nv.slice(-6).reverse().map(e=>'<div class="hg-item"><div class="t"><b>'+_rEsc(e.nome)+'</b><small>'+_rEsc(e.data||'')+_puntiNuvola(e)+(e.volume?(' · volume ≈ '+gnum(e.volume,1)+' m³'):'')+'</small></div></div>').join('')
