@@ -141,7 +141,9 @@ const DIFETTI = [
      Qui basta il numero, che è il soggetto della prova. */
   [`_ricPlur(D2.holes.length,'foro','fori')`, `_ricPlur(D2.holes.length+1,'foro','fori')`],
   // 7 · il piano di carico senza l'id del foro (05/09): la colonna c'è, vuota
-  [`+';'+(h.id||'')+'\\n';`, `+';'+''+'\\n';`],
+  //     (dal 05/09 notte la riga la compone `pianoCsvGenesi` di shared/: qui si
+  //     toglie l'id dal RECORD che la pagina le passa)
+  [`idForo:h.id||'' }));`, `idForo:'' }));`],
   // 8 · e il .volata.json che torna a chiamarli per posizione
   [`id:f.id||('foro_'+(f.i+1)),`, `id:'foro_'+(f.i+1),`],
   // 9 · «Apri» che butta via i fori salvati e rigenera la maglia (com'era fino al 05/09)

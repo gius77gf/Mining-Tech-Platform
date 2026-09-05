@@ -1951,3 +1951,42 @@ export function pianoConsuntivoCsv(piano) {
   });
   return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL PIANO DI CARICO — Genesi → Campo (05/09, notte): il ponte come DATO
+   Genesi esporta il piano foro per foro (tredici colonne) e Campo lo legge con
+   `parsePianoCsv`. Il file resta; qui la stessa riga si compone in UN posto
+   solo — `pianoCsvGenesi` — così il file che esce da Genesi e il testo che
+   Campo ricompone dal record dell'organizzazione sono lo stesso testo, byte
+   per byte, e passano dallo stesso lettore. `pianoDaGenesi` è il record che
+   Genesi scrive nella sua collezione `piani`; i numeri illeggibili restano
+   `null` e nella riga diventano celle VUOTE, mai «null» e mai zero. */
+export const PIANO_GENESI_INTESTAZIONE = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro";
+export function pianoCsvGenesi(righe) {
+  const cella = (v, dec) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; if (!Number.isFinite(n)) return ""; return dec == null ? String(n) : n.toFixed(dec); };
+  const R = Array.isArray(righe) ? righe : [];
+  return PIANO_GENESI_INTESTAZIONE + "\n" + R.map((r, i) => [
+    r.foro != null && Number.isFinite(+r.foro) ? +r.foro : i + 1,
+    cella(r.x, 2), cella(r.fila, 2), cella(r.prof), cella(r.prog), cella(r.borr), cella(r.rit),
+    cella(r.relief, 2), cella(r.burden, 2), cella(r.spaz, 2), cella(r.vol, 1), cella(r.pf, 3),
+    String(r.idForo || ""),
+  ].join(";")).join("\n") + (R.length ? "\n" : "");
+}
+export function pianoDaGenesi(righe, meta) {
+  const m = meta || {};
+  const num = (v) => { const n = (v === null || v === undefined || v === "") ? NaN : +v; return Number.isFinite(n) ? n : null; };
+  const R = (Array.isArray(righe) ? righe : []).map((r, i) => ({
+    foro: num(r.foro) != null ? num(r.foro) : i + 1,
+    x: num(r.x), fila: num(r.fila), prof: num(r.prof), prog: num(r.prog), borr: num(r.borr), rit: num(r.rit),
+    relief: num(r.relief), burden: num(r.burden), spaz: num(r.spaz), vol: num(r.vol), pf: num(r.pf),
+    idForo: String(r.idForo || ""),
+  }));
+  /* l'impronta: lo stesso piano esportato due volte non diventa due piani */
+  const testo = pianoCsvGenesi(R);
+  let h = 0; for (let i = 0; i < testo.length; i++) h = (Math.imul(h, 31) + testo.charCodeAt(i)) | 0;
+  return {
+    nome: String(m.nome || "").trim(), quando: String(m.quando || timbroLocale(new Date())),
+    nFori: R.length, impronta: "p" + (h >>> 0).toString(36), righe: R,
+    origine: { app: "genesi" },
+  };
+}

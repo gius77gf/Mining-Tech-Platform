@@ -2014,10 +2014,13 @@ const GENESI_CHIAVI = Object.freeze({
   /* il ponte 3e (05/09): le volate «per Sentinella», scritte dal bottone che
      prima produceva solo il file — forma di `previstaDaGenesi` in shared/ */
   previste: { chiave: "genesiPreviste", tetto: 50 },
+  /* il piano di carico «per Campo» (05/09, notte): un documento per export,
+     forma di `pianoDaGenesi` in shared/; Campo lo legge dall'organizzazione */
+  piani: { chiave: "genesiPiani", tetto: 20 },
 });
 const GENESI_SLOT = Object.freeze(["A", "B"]);
 const GENESI_SITO_VUOTO = () => ({ punti: [], usa: false });
-export const GENESI_COLLEZIONI = Object.freeze(["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste"]);
+export const GENESI_COLLEZIONI = Object.freeze(["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste", "piani"]);
 
 function _memoriaStorage() {
   const m = new Map();
@@ -2071,6 +2074,7 @@ export async function genesiData(opzioni) {
           riconciliazioni: () => read("riconciliazioni"),
           nuvole: () => read("nuvole"),
           previste: () => read("previste"),
+          piani: () => read("piani"),
           confronti: async () => (await read("confronti")).filter((c) => GENESI_SLOT.includes(c.id)).map((c) => ({ ...c, slot: c.id })),
           sito: async () => {
             const s = await getDoc(doc(id.orgCollection("sito"), "unico"));
@@ -2140,6 +2144,7 @@ export async function genesiData(opzioni) {
     riconciliazioni: async () => elenco("riconciliazioni"),
     nuvole: async () => elenco("nuvole"),
     previste: async () => elenco("previste"),
+    piani: async () => elenco("piani"),
     confronti: async () => GENESI_SLOT.map(scatto).filter(Boolean),
     sito: async () => sito(),
     /* da soli sul dispositivo Campo non si legge: `null`, e la pagina lascia il file */

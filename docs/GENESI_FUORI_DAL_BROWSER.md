@@ -262,6 +262,7 @@ dell'SDK cita già `'genesi'` come `appId` possibile, riga 45):
 | `sito` | `genesiSito` | **un** documento `{punti:[…], usa}` oppure una collezione `puntiSito` | ≈ 80 B/punto | la legge di sito è **della cava**, non della persona: è il dato che più guadagna a essere condiviso, perché cambia la PPV prevista di tutti |
 | `nuvole` | `genesiNuvole` | i metadati di una lavorazione `{nome, conteggi, volume, calcolo}` | ≈ 300–500 B | scritta da `nuvola-poc.html`; letta da Genesi e da Terra |
 
+| `piani` | `genesiPiani` | il piano di carico «per Campo» `{nome, quando, nFori, impronta, righe:[{foro, x, fila, prof, prog, borr, rit, …, idForo}]}` (forma `pianoDaGenesi` di `shared/`) | ≈ 1,5 KB per 12 fori | ⏱️ nata il 05/09 (notte): la scrive «Esporta piano di carico» oltre al file; Campo la legge con la seconda istanza (o dalla chiave) e la carica con la stessa strada del file; tetto 20, doppioni fermati dall'impronta |
 | `previste` | `genesiPreviste` | la volata «per Sentinella» `{data, fronte, nFori, …, codiceVolata, origine}` (forma `previstaDaGenesi` di `shared/`) | ≈ 400 B | ⏱️ nata il 05/09 (notte) col ponte 3e: la scrive il bottone che prima produceva solo il file; la legge Sentinella con la seconda istanza (o dalla chiave, sullo stesso browser) |
 
 Restano in `localStorage`: `genesiSent` (memoria del modulo) e

@@ -1162,6 +1162,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="form-hint" style="margin-top:8px;">Il file da importare è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.<br>
     Quando hai finito di caricare, <b>Esporta consuntivo</b> e rileggilo in <b>Genesi → Riconciliazione</b>: la carica reale foro per foro torna da dove è partito il progetto.</div>
+  <!-- i piani scritti da Genesi nell'organizzazione (o nella chiave del browser,
+       sullo stesso computer): si caricano da qui, senza file (05/09, notte) -->
+  <div id="piano-genesi"></div>
   <div id="piano-riep" class="note recap"></div>
   <div id="piano-graf"></div>
   <div id="piano-list"></div>
@@ -1212,7 +1215,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, chiaveCausale, etichettaCausale, descriviCausale, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, pianoCsvGenesi, pianiGenesiOrdinati, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, chiaveCausale, etichettaCausale, descriviCausale, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
@@ -4533,6 +4536,23 @@ ${R.sezioni.map(sezione).join("\n")}
   }
 
   function pianoRender(){
+    /* I PIANI DA GENESI: tre risposte — ce ne sono (si scelgono), nessuno (non
+       si scrive niente), Genesi non leggibile (in live si dice: non è «nessuno») */
+    const pg = pianiGenesiOrdinati(PGEN);
+    /* `null` arriva SOLO dall'organizzazione (da soli la chiave risponde una
+       lista, anche vuota): non serve chiedere il modo per dirlo */
+    $("piano-genesi").innerHTML = !pg.leggibile
+      ? `<div class="note" style="margin-bottom:8px;">I piani di carico di Genesi non si sono potuti leggere: importa il file, o riprova più tardi.</div>`
+      : !pg.piani.length ? ""
+      : `<div class="form-hint" style="margin-top:8px;"><b>Piani da Genesi</b>: ${pg.piani.length === 1 ? "un piano di carico è pronto" : pg.piani.length + " piani di carico sono pronti"}
+           nell'organizzazione. Caricarne uno fa la stessa cosa dell'import dal file${PIANO.length ? " (e ti chiede prima se sostituire quello salvato)" : ""}.</div>`
+        + pg.piani.slice(0, 5).map(p => `<div class="item">
+            <div class="avatar">${I.foglio}</div>
+            <div class="info"><div class="name">${esc(p.nome)}</div>
+              <div class="meta">${conta(p.nFori, "foro", "fori")}${p.quando ? " · esportato il " + dmy(p.quando.slice(0, 10)) + (p.quando.length > 11 ? " alle " + esc(p.quando.slice(11)) : "") : ""}</div></div>
+            <span class="acts"><span class="badge accent">da Genesi</span>
+              <button type="button" class="arr" title="Carica questo piano (come dall'import del file)" aria-label="Carica il piano di carico «${esc(p.nome)}»" data-piano-genesi="${esc(p.impronta || p.id)}">${I.spunta}</button></span>
+          </div>`).join("");
     $("btn-piano-export").style.display = PIANO.length ? "inline-flex" : "none";
     if (!PIANO.length) { $("piano-riep").textContent = "";
       svuotaGraf("piano-graf");
@@ -4604,10 +4624,22 @@ ${R.sezioni.map(sezione).join("\n")}
   };
   // Rilettura del piano salvato: si tiene una sola volata alla volta, quindi
   // l'import SOSTITUISCE quella precedente (previa conferma).
-  const pianoRicarica = async () => { PIANO = normalizzaPiano(await db.pianocarico()); pianoRender(); };
+  let PGEN = null;   // i piani scritti da Genesi (null = non leggibile)
+  const pianoRicarica = async () => {
+    PIANO = normalizzaPiano(await db.pianocarico());
+    try { PGEN = db.pianiGenesi ? await db.pianiGenesi() : null; } catch (e) { PGEN = null; }
+    pianoRender();
+  };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
+    e.target.value = "";
+    await importaPianoDaTesto(testo);
+  };
+  /* LA STESSA STRADA PER IL FILE E PER IL PIANO LETTO DA GENESI (05/09, notte):
+     il record dell'organizzazione si ricompone in testo con `pianoCsvGenesi`
+     e passa di qui, dallo stesso lettore, con le stesse finestre. */
+  async function importaPianoDaTesto(testo) {
     /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
        posizione: l'intestazione entrerebbe come riga di dati. */
     const pianoAltrove = fileDiAltraTabella(testo, ["campo.piano"]);
@@ -4615,7 +4647,7 @@ ${R.sezioni.map(sezione).join("\n")}
       const fraseAltrove = fraseFileAltrui(pianoAltrove, "nel piano di carica");
       $("piano-riep").textContent = fraseAltrove;
       toast(fraseAltrove, "err");
-      e.target.value = ""; return;
+      return;
     }
     const mappa = mappaPianoCsv(testo);
     const righe = parsePianoCsv(testo);
@@ -4626,7 +4658,6 @@ ${R.sezioni.map(sezione).join("\n")}
        (poco più giù): in un piano di carico una riga in meno non è un
        fastidio da ripulire, è una carica che nessuno metterà. */
     const scartate = scartiPianoCsv(testo);
-    e.target.value = "";
     if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit." + frasePersi(scartate);
       toast("File non riconosciuto: controlla le colonne." + frasePersi(scartate), "err"); return; }
     // Come è stato letto il file, detto prima di scrivere. Le colonne si leggono
@@ -4692,7 +4723,14 @@ ${R.sezioni.map(sezione).join("\n")}
         idForo: p.idForo || null });
     await pianoRicarica();
     toast("Piano importato: " + conta(righe.length, "foro", "fori") + " (" + dmy(data) + " · turno " + turno + ").", "success");
-  };
+  }
+  /* i piani che Genesi ha scritto: si sceglie e si carica come dal file */
+  $("piano-genesi").addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-piano-genesi]"); if (!b) return;
+    e.preventDefault();
+    const p = pianiGenesiOrdinati(PGEN).piani.find(x => (x.impronta || x.id) === b.getAttribute("data-piano-genesi")); if (!p) return;
+    await importaPianoDaTesto(pianoCsvGenesi(p.righe));
+  });
   document.addEventListener("click", async (e) => {
     const it = e.target.closest && e.target.closest("[data-foro-id]");
     if (!it) return;

@@ -665,6 +665,31 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL PIANO DI CARICO DA GENESI A CAMPO COME DATO (05/09, notte):** il
+  terzo dei quattro ponti di file di §4 che passa dai dati — il giro
+  Genesi↔Campo è chiuso nei due versi senza file. `pianoCsvGenesi` e
+  `pianoDaGenesi` in `shared/dw-ponti.js`: le tredici colonne del piano si
+  compongono in UN posto (prima erano scritte a mano nel gestore del
+  bottone), byte per byte come prima (provato con la riga letterale), e il
+  numero illeggibile esce vuoto. Genesi: collezione `piani` (chiave
+  `genesiPiani`, tetto 20, settima di `GENESI_COLLEZIONI`), il bottone
+  «Esporta piano di carico» scrive il record oltre al file, senza raddoppiare
+  (impronta del testo). Campo: `pianiGenesi()` con la seconda istanza in
+  live e dalla chiave da soli (`pianiDaChiave`), `pianiGenesiOrdinati`
+  (`null` = non leggibile), il blocco «Piani da Genesi» nella sezione del
+  piano con le righe nella forma di Campo, e «carica» che percorre la STESSA
+  strada del file: il gestore del file ora DELEGA a `importaPianoDaTesto`,
+  che il piano dell'organizzazione ricompone in testo con `pianoCsvGenesi` —
+  stesse finestre («Come ho letto il file»), stesso lettore. ⛔ Tre guardie
+  hanno parlato e sono state ascoltate, non zittite: la regola «una sola
+  decisione su `db.mode`» (tolto il confronto: `null` arriva solo
+  dall'organizzazione, non serve chiedere il modo — anche in Sentinella); il
+  censimento dei gestori d'import, che ora SEGUE la delega; la prova che
+  leggeva l'intestazione dal sorgente di Genesi, che ora la legge da
+  shared/ e pretende che la pagina lo usi. run-kpi +5 (2747), copertura
+  campo 134 e `dw-ponti` 82, banco `ponte-genesi-campo.mjs` (26 prove, due
+  pagine, controprova per file 2/2 e 18 caduti), un'iniezione riancorata in
+  `genesi-documenti-che-escono`. Scatto guardato. Mappa: 16 ponti di dati.
 - [x] **IL CONSUNTIVO DI CARICO DA CAMPO A GENESI COME DATO (05/09, notte):**
   il secondo dei quattro ponti di file di §4 della mappa che passa dai dati.
   `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` salgono in
@@ -6965,8 +6990,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.223 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2742, `run-stile` 328,
+  **3.228 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2747, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -6976,8 +7001,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **251 esecuzioni** che
-  aprono le pagine in un browser vero, da **105** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **253 esecuzioni** che
+  aprono le pagine in un browser vero, da **106** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

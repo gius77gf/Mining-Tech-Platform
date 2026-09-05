@@ -4536,8 +4536,10 @@ textarea.dw-input{
        nessuna nuova (non si scrive niente: il registro parla da sé), e
        «Genesi non leggibile» — che NON è «nessuna», e in live si dice. */
     const pn = previsteNuove(PREV, VOL);
+    /* `null` arriva SOLO dall'organizzazione (da soli la chiave risponde una
+       lista, anche vuota): non serve chiedere il modo per dirlo */
     $("vol-previste").innerHTML = !pn.leggibile
-      ? (db.mode === "live" ? `<div class="note" style="margin-top:8px;">Le volate previste di Genesi non si sono potute leggere: se ne hai scritte, riprova più tardi.</div>` : "")
+      ? `<div class="note" style="margin-top:8px;">Le volate previste di Genesi non si sono potute leggere: se ne hai scritte, riprova più tardi.</div>`
       : !pn.nuove.length ? ""
       : `<div class="sec" style="margin-top:12px;">Previste da Genesi<span class="cnt">${pn.nuove.length}</span></div>
          <div class="note" style="margin-bottom:8px;">${pn.nuove.length === 1 ? "Un progetto di volata è arrivato" : pn.nuove.length + " progetti di volata sono arrivati"} da Genesi

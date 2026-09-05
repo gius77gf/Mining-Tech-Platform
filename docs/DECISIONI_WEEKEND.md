@@ -1157,9 +1157,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.223** *(ricontate il 05/09 lanciando le
+**Le prove automatiche sono passate a 3.228** *(ricontate il 05/09 lanciando le
 suite)*, più **129** che girano con l'emulatore Firestore (**81** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **251
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **253
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

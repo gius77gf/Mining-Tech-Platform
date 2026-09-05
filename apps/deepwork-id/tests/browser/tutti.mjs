@@ -958,6 +958,12 @@ const BANCHI = [
      confronta una lista vuota, per file. */
   ['il ponte 3e: Genesi → Sentinella senza il file', 'ponte-genesi-sentinella.mjs', []],
   ['ponte 3e · controprova', 'ponte-genesi-sentinella.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · il piano di carico Genesi → Campo senza il file: «Esporta
+     piano» scrive nella collezione, Campo mostra «Piani da Genesi», «carica»
+     percorre la stessa strada del file (finestra compresa) e i dodici fori
+     entrano; riesportare non raddoppia. Controprova per file. */
+  ['il piano di carico: Genesi → Campo senza il file', 'ponte-genesi-campo.mjs', []],
+  ['piano Genesi → Campo · controprova', 'ponte-genesi-campo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore

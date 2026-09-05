@@ -2950,7 +2950,29 @@ export function frasiCaricoParziale(par, marca) {
 // piano di carico dall'organizzazione e lo compone con la STESSA funzione con
 // cui Campo scrive il file — così le due strade non possono divergere. Qui
 // restano gli alias di sempre (identità, non copie).
-export { CONSUNTIVO_COLONNE, normalizzaPiano, pianoConsuntivoCsv } from "../../shared/dw-ponti.js";
+export { CONSUNTIVO_COLONNE, normalizzaPiano, pianoConsuntivoCsv, pianoCsvGenesi } from "../../shared/dw-ponti.js";
+
+/* IL PIANO DI CARICO DA GENESI COME DATO (05/09, notte): Genesi scrive ogni
+   export nella sua collezione `piani` (chiave `genesiPiani` da soli); qui si
+   legge, si ordina e si carica con la STESSA strada del file — il testo lo
+   ricompone `pianoCsvGenesi` e lo legge `parsePianoCsv`. `null` = Genesi non
+   leggibile, che non è «nessun piano»; la pagina lo dice. */
+export function pianiDaChiave(storage) {
+  try {
+    const st = storage || (typeof globalThis !== "undefined" ? globalThis.localStorage : null);
+    if (!st) return [];
+    const v = JSON.parse(st.getItem("genesiPiani") || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+export function pianiGenesiOrdinati(piani) {
+  if (!Array.isArray(piani)) return { leggibile: false, piani: [] };
+  const buoni = piani.filter(p => p && Array.isArray(p.righe) && p.righe.length)
+    .map(p => ({ id: p.id != null ? String(p.id) : "", nome: String(p.nome || "").trim() || "Piano di carico",
+                 quando: String(p.quando || ""), nFori: p.righe.length, impronta: String(p.impronta || ""), righe: p.righe }))
+    .sort((a, b) => b.quando.localeCompare(a.quando));
+  return { leggibile: true, piani: buoni };
+}
 
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P4 · DALL'ANOMALIA ALL'AZIONE CORRETTIVA — Campo → Scudo
@@ -3679,6 +3701,8 @@ export async function campoData() {
         } catch (e) { return null; }
       };
       api.rilieviTerra = () => leggiApp("terra", "rilievi");
+      // il piano di carico scritto da Genesi (05/09, notte): sola lettura
+      api.pianiGenesi = () => leggiApp("genesi", "piani");
       // i FRONTI di Terra: servono alla tendina del rapportino, perché il
       // fronte si sceglie da un elenco e si registra col suo identificativo.
       // ⛔ Mai per nome: basta che qualcuno rinomini un fronte e la produzione
@@ -3748,6 +3772,8 @@ export async function campoData() {
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti coi rapportini d'esempio (vedi DEMO.rilieviTerra)
       rilieviTerra: async () => mem.rilieviTerra || [],
+      // da soli Genesi si legge dalla chiave del browser, come Terra fa con le nuvole
+      pianiGenesi: async () => pianiDaChiave(),
       // in dimostrazione i documenti del personale non arrivano da Scudo: sono
       // finti, ma copiati dalla dimostrazione di Scudo id per id
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],

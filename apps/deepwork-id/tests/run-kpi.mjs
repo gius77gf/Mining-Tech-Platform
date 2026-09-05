@@ -19691,7 +19691,8 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq(db.mode, "locale", "senza organizzazione la porta è locale");
     for (const f of ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "aggiungi", "aggiorna", "rimuovi", "logout"])
       eq(typeof db[f], "function", "c'è " + f);
-    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste"], "sei dal 05/09: `previste`, il ponte 3e verso Sentinella");
+    eq([...genesi.GENESI_COLLEZIONI], ["volate", "confronti", "riconciliazioni", "sito", "nuvole", "previste", "piani"], "sette dal 05/09: `previste` (il ponte 3e verso Sentinella) e `piani` (il piano di carico verso Campo)");
+    eq(await db.piani(), [], "e la porta locale sa leggere i piani, vuoti all'inizio");
     eq(typeof db.previste, "function", "e la porta locale sa leggerle");
     eq(await db.previste(), [], "vuote all'inizio");
     eq(await db.pianoCampo(), null, "da soli il piano di Campo NON si legge: null, non una lista vuota (05/09, notte)");
@@ -30610,7 +30611,15 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(GESTORI.length + 1, 4, "⛔ INGRESSO · quattro funzioni nuove, quattro gestori d'import (il piano di carico ha la prova sua)");
     const gestoreDiB = (src, campoFile) => {
       const a = src.indexOf(`$("${campoFile}").onchange`);
-      return a < 0 ? "" : src.slice(a, src.indexOf("\n  };", a));
+      if (a < 0) return "";
+      let g = src.slice(a, src.indexOf("\n  };", a));
+      /* dal 05/09 (notte) il gestore del piano di carico DELEGA il corpo a una
+         funzione (`importaPianoDaTesto`), perché la stessa strada la percorre
+         anche il piano letto da Genesi dall'organizzazione: il censimento la
+         segue, se no giudicherebbe quattro righe di plumbing */
+      const d = /await (importa\w+)\(testo\)/.exec(g);
+      if (d) { const f = src.indexOf("async function " + d[1] + "("); if (f >= 0) g += "\n" + src.slice(f, src.indexOf("\n  }\n", f)); }
+      return g;
     };
     for (const [app, src, fn, campoFile, ancoraUscita] of GESTORI) {
       test(`⛔ ${app}/${campoFile}: il gestore CHIAMA ${fn} e ogni sua uscita dice le righe perse`, () => {
@@ -37023,10 +37032,13 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
      cui il lettore esiste entrava a metà, e tutte le prove di casa usavano nomi
      corti che non sono quelli del file. Se Genesi cambia una colonna, questa
      prova lo dice il giorno stesso. */
+  /* ⏱️ dal 05/09 (notte) l'intestazione non sta più nella pagina di Genesi: è
+     `PIANO_GENESI_INTESTAZIONE` in shared/, e la pagina compone il file con
+     `pianoCsvGenesi` — la prova legge di là, e pretende che la pagina lo usi */
   const _srcGenesi = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
-  const _testaGenesi = (/let csv='(foro;x_m;[^'\n]+)\\n';/.exec(_srcGenesi) || [])[1] || "";
-  test("Campo · l'intestazione VERA del piano di Genesi, letta dal suo sorgente, si riconosce tutta", () => {
-    ok(_testaGenesi.startsWith("foro;x_m;"), "trovata l'intestazione nel sorgente di Genesi: " + _testaGenesi.slice(0, 40));
+  const _testaGenesi = /const csv=pianoCsvGenesi\(righePiano\);/.test(_srcGenesi) ? ponti.PIANO_GENESI_INTESTAZIONE : "";
+  test("Campo · l'intestazione VERA del piano di Genesi, letta da shared/ (che la pagina di Genesi usa), si riconosce tutta", () => {
+    ok(_testaGenesi.startsWith("foro;x_m;"), "la pagina di Genesi compone il file con pianoCsvGenesi, e l'intestazione è quella di shared/: " + _testaGenesi.slice(0, 40));
     const m = campo.mappaPianoCsv(_testaGenesi + "\n1;0.00;3.00;12;58;3;0;;;;;;f1-1\n");
     eq(m.mancanti, [], "⛔ nessuna colonna del piano di Genesi risulta mancante a Campo (fila_m, borraggio_prog_m, ritardo_ms comprese)");
     ok(m.riconosciute.some((r) => r.campo === "idForo"), "e l'id_foro in coda è riconosciuto");
@@ -38963,7 +38975,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
   test("ponte Campo→Genesi · la pagina di Genesi legge dall'organizzazione con le funzioni di shared/, e il bottone esiste solo in live", () => {
     const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/import \{ previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv \} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "le funzioni vengono da shared/");
+    ok(/import \{ previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv[^}]*\} from '\.\.\/\.\.\/shared\/dw-ponti\.js'/.test(pagina), "le funzioni vengono da shared/");
     ok(/p=_riconParseCampo\(pianoConsuntivoCsv\(piano\)\)/.test(pagina), "e il consuntivo letto passa dallo STESSO lettore del file");
     ok(/righe=await GDB\.pianoCampo\(\)/.test(pagina), "la lettura è della porta");
     ok(/if\(\$\('riconCampoOrg'\)&&GDB\.mode==='live'\) \$\('riconCampoOrg'\)\.style\.display=''/.test(pagina), "il bottone compare solo in live: da soli non c'è un Campo da leggere");
@@ -38971,6 +38983,69 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine consuntivo Campo→Genesi (05/09) ===== */
+
+/* ===== IL PIANO DI CARICO DA GENESI A CAMPO COME DATO (05/09, notte) =====
+   Le righe del piano si compongono in un posto solo (`pianoCsvGenesi` in
+   shared/): il file che esce da Genesi e il testo che Campo ricompone dal
+   record letto dall'organizzazione sono lo stesso testo, letto dallo stesso
+   `parsePianoCsv`. ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const RIGHE = [
+    { foro: 1, x: 0, fila: 0, prof: 10, prog: 60, borr: 2.5, rit: 0, relief: 3.5, burden: 3, spaz: 3.5, vol: 105, pf: 0.571, idForo: "h-a1" },
+    { foro: 2, x: 3.5, fila: 0, prof: 10, prog: 60, borr: 2.5, rit: 42, relief: null, burden: 3, spaz: 3.5, vol: 105.04, pf: 0.5714, idForo: "h-a2" },
+  ];
+  test("⛔ ponte Genesi→Campo · pianoCsvGenesi scrive la riga di sempre, byte per byte, e la cella vuota dove il numero non c'è", () => {
+    const csv = ponti.pianoCsvGenesi(RIGHE);
+    eq(csv.split("\n")[0], ponti.PIANO_GENESI_INTESTAZIONE);
+    eq(csv.split("\n")[1], "1;0.00;0.00;10;60;2.5;0;3.50;3.00;3.50;105.0;0.571;h-a1", "la forma che la pagina scriveva a mano: toFixed(2) su x, fila, relief, burden, interasse; (1) sul volume; (3) sul pf; i numeri di progetto come sono");
+    eq(csv.split("\n")[2], "2;3.50;0.00;10;60;2.5;42;;3.00;3.50;105.0;0.571;h-a2", "⛔ il relief mancante è una cella VUOTA, non «null» e non 0");
+    const senza = ponti.pianoCsvGenesi([{ foro: 1, x: 0, fila: 0, prof: null, prog: "", borr: undefined, rit: 0 }]).split("\n")[1];
+    eq(senza, "1;0.00;0.00;;;;0;;;;;;", "⛔ profondità, carica e borraggio illeggibili escono vuoti: era il difetto del 13/08 («1;0.00;3.00;null;null;null…»)");
+    eq(ponti.pianoCsvGenesi([]), ponti.PIANO_GENESI_INTESTAZIONE + "\n", "senza fori, la sola intestazione");
+    eq(ponti.pianoCsvGenesi(null), ponti.PIANO_GENESI_INTESTAZIONE + "\n");
+  });
+  test("ponte Genesi→Campo · pianoDaGenesi: il record con i numeri o null, l'impronta del testo, e due export uguali hanno la stessa impronta", () => {
+    const r = ponti.pianoDaGenesi(RIGHE, { nome: " Piano X ", quando: "2026-09-05 23:00" });
+    eq([r.nome, r.quando, r.nFori, r.origine], ["Piano X", "2026-09-05 23:00", 2, { app: "genesi" }]);
+    eq(r.righe[1].relief, null, "null resta null");
+    eq(r.righe[1].idForo, "h-a2");
+    ok(/^p[0-9a-z]+$/.test(r.impronta), r.impronta);
+    eq(ponti.pianoDaGenesi(RIGHE, { nome: "altro nome" }).impronta, r.impronta, "l'impronta è del piano, non del nome");
+    ok(ponti.pianoDaGenesi(RIGHE.slice(0, 1), {}).impronta !== r.impronta, "un piano diverso ha un'altra impronta");
+    ok(/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(ponti.pianoDaGenesi(RIGHE, {}).quando), "il momento se lo scrive da solo");
+    eq(ponti.pianoDaGenesi(null, null).nFori, 0);
+  });
+  test("⛔ ponte Genesi→Campo · dal record al piano di Campo: lo stesso lettore del file dà le stesse righe", () => {
+    const rec = ponti.pianoDaGenesi(RIGHE, { nome: "Piano X" });
+    const daPonte = campo.parsePianoCsv(campo.pianoCsvGenesi(rec.righe));
+    const daFile = campo.parsePianoCsv(ponti.pianoCsvGenesi(RIGHE));
+    eq(daPonte, daFile, "⛔ identiche riga per riga");
+    eq(daPonte.map((p) => [p.foro, p.prog, p.idForo]), [[1, 60, "h-a1"], [2, 60, "h-a2"]]);
+    ok(campo.pianoCsvGenesi === ponti.pianoCsvGenesi, "e in Campo è la stessa funzione (identità, non copia)");
+  });
+  test("ponte Genesi→Campo · pianiGenesiOrdinati e pianiDaChiave: dal più recente, con i vuoti fuori; null = Genesi non leggibile", () => {
+    const a = { id: "1", ...ponti.pianoDaGenesi(RIGHE, { nome: "A", quando: "2026-09-05 22:00" }) };
+    const b = { id: "2", ...ponti.pianoDaGenesi(RIGHE.slice(0, 1), { nome: "", quando: "2026-09-05 23:00" }) };
+    const r = campo.pianiGenesiOrdinati([a, b, { id: "3", righe: [] }, null]);
+    eq([r.leggibile, r.piani.map((p) => [p.id, p.nome, p.nFori])], [true, [["2", "Piano di carico", 1], ["1", "A", 2]]], "il più recente prima; il vuoto e il null fuori; il nome vuoto ha un nome");
+    eq(campo.pianiGenesiOrdinati(null), { leggibile: false, piani: [] }, "⛔ null non è «nessun piano»");
+    const st = (v) => ({ getItem: (k) => (k === "genesiPiani" ? v : null) });
+    eq(campo.pianiDaChiave(st(JSON.stringify([a]))).length, 1);
+    eq(campo.pianiDaChiave(st("{boh")), []);
+    eq(campo.pianiDaChiave(null), []);
+  });
+  test("ponte Genesi→Campo · le due pagine: Genesi compone il file con shared/ e scrive il record; Campo carica dal record con la stessa strada del file", () => {
+    const g = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const csv=pianoCsvGenesi\(righePiano\);/.test(g), "il file esce da pianoCsvGenesi");
+    ok(/GDB\.aggiungi\('piani',recPiano\)/.test(g), "e il record va nella collezione `piani`");
+    ok(/some\(p=>p&&p\.impronta===recPiano\.impronta\)/.test(g), "senza raddoppiare lo stesso piano");
+    const c = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    ok(/await importaPianoDaTesto\(pianoCsvGenesi\(p\.righe\)\);/.test(c), "Campo ricompone il testo e passa dalla STESSA funzione dell'import");
+    ok(/PGEN = db\.pianiGenesi \? await db\.pianiGenesi\(\) : null/.test(c), "e legge il ponte con il null che dice «non leggibile»");
+    ok(/pianiGenesiOrdinati\(PGEN\)/.test(c), "l'ordine lo decide il modulo");
+  });
+}
+/* ===== fine piano Genesi→Campo (05/09) ===== */
 
 
 

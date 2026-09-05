@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.223 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2742 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.228 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 05/09: 2747 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.668** asserzioni su **40** comandi.
+> `node` completo esegue **3.674** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -85,13 +85,13 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **904 funzioni pure su 904** sono chiamate per nome da quelle prove: tutte e
+E **906 funzioni pure su 906** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **232 su 232** in cinque
-moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **79/79**, `genesi-data.js`
+lo dice («in 6 app»). I condivisi si contano a parte — **235 su 235** in cinque
+moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **82/82**, `genesi-data.js`
 **82/82**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
@@ -236,7 +236,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**251 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**253 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

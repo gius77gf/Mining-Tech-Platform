@@ -1183,7 +1183,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
    legge di sito (`sitoExport`) e il file che importa **Sentinella**
    (`_sentCell`). Misurato aprendo la pagina: un referto chiamato `=SUM(1+1)` e
    un fronte chiamato `=cmd|'/c calc'!A1` uscivano NUDI da tutt'e due. */
-import { previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv } from '../../shared/dw-ponti.js';
+import { previstaDaGenesi, normalizzaPiano, pianoConsuntivoCsv, pianoCsvGenesi, pianoDaGenesi } from '../../shared/dw-ponti.js';
 import { numeroScritto, messaggioNumero, perCampo, montaGuardiaInteri, oggiISO, timbroLocale, numIt, leggiCsv, csvCell, plurale } from '../../shared/deepwork-id-client/dw-shell.js';
   // I campi INTERI restano `type=number` per lo spinner: la guardia rifiuta la
   // virgola, che lì non serve e che il browser scarterebbe in silenzio.
@@ -5141,7 +5141,7 @@ document.querySelectorAll('#scr-home .card').forEach(card=>{
 });
 $('d2-cta').onclick=simulaVolata2D;
 /* piano di carico per foro → CSV per il registro reale in Campo (ponte tra le app) */
-$('btn-piano-csv').onclick=()=>{
+$('btn-piano-csv').onclick=async()=>{
   if(!D2.holes.length) genMaglia2D();
   /* ⛔ QUESTE TRE COLONNE SCRIVEVANO LA PAROLA «null». `';'+D2.kg` con la
      carica per foro illeggibile non fa una cella vuota: fa la stringa
@@ -5164,16 +5164,26 @@ $('btn-piano-csv').onclick=()=>{
      lo conserva e lo rimanda nel consuntivo, ed è la chiave del confronto
      foro per foro. In coda, così un lettore che conosce dodici colonne non
      si accorge di niente. */
-  let csv='foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro\n';
-  D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).forEach((h,i)=>{
-    csv+=(i+1)+';'+h.mx.toFixed(2)+';'+h.my.toFixed(2)+';'+_pc(D2.prof)+';'+_pc(D2.kg)+';'+_pc(D2.stem)+';'+(h.tDet!=null?h.tDet:'')+';'+(h.relief!=null?h.relief.toFixed(2):'')
-      +';'+(h.burdenLoc!=null?h.burdenLoc.toFixed(2):'')+';'+(h.spazLoc!=null?h.spazLoc.toFixed(2):'')
-      +';'+(h.volLoc!=null?h.volLoc.toFixed(1):'')+';'+(h.pfLoc!=null?h.pfLoc.toFixed(3):'')+';'+(h.id||'')+'\n';
-  });
+  /* LE RIGHE SI COMPONGONO IN UN POSTO SOLO (05/09, notte): `pianoCsvGenesi` di
+     shared/ scrive il file E il testo che Campo ricompone dal record letto
+     dall'organizzazione — stesso testo, stesso lettore. Qui si raccolgono solo
+     i numeri, con `null` dove non si leggono (la cella esce vuota). */
+  const righePiano=D2.holes.slice().sort((a,b)=>a.tDet-b.tDet).map((h,i)=>({ foro:i+1, x:h.mx, fila:h.my,
+    prof:_pc(D2.prof)===''?null:_pc(D2.prof), prog:_pc(D2.kg)===''?null:_pc(D2.kg), borr:_pc(D2.stem)===''?null:_pc(D2.stem),
+    rit:h.tDet!=null?h.tDet:null, relief:h.relief!=null?h.relief:null, burden:h.burdenLoc!=null?h.burdenLoc:null,
+    spaz:h.spazLoc!=null?h.spazLoc:null, vol:h.volLoc!=null?h.volLoc:null, pf:h.pfLoc!=null?h.pfLoc:null, idForo:h.id||'' }));
+  const csv=pianoCsvGenesi(righePiano);
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='genesi_piano_carico.csv'; a.click();
+  /* IL PONTE COME DATO: lo stesso piano va nella collezione `piani` (nell'
+     organizzazione, o nella chiave del browser da soli). Lo stesso piano
+     esportato due volte non diventa due piani: l'impronta è del testo. */
+  const recPiano=pianoDaGenesi(righePiano,{ nome:'Piano di carico del '+new Date().toLocaleDateString('it-IT') });
+  let pianoInOrg=false;
+  try{ const gia=(await GDB.piani()).some(p=>p&&p.impronta===recPiano.impronta); if(!gia) await GDB.aggiungi('piani',recPiano); pianoInOrg=true; }catch(e){ pianoInOrg=false; }
   toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori')
+    +(pianoInOrg?(GDB.mode==='live'?' — e scritto nell\'organizzazione: in Campo compare in «Piano di carico → Piani da Genesi»':' — sullo stesso computer Campo lo trova in «Piano di carico → Piani da Genesi»'):'')
     +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
     _pcMancanti.length?'err':undefined);
 };
