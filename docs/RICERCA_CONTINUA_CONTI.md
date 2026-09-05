@@ -1131,3 +1131,7 @@ esce tranquilla. Costo basso-medio; misura: i tre file qui sopra danno gli
 stessi tre movimenti giusti, e un file con solo `saldo` come numero esce con
 lo scarto «nessuna colonna dell'importo». (b) il TRN/CRO conservato sul
 movimento (basso, dopo (a)).
+
+*Aggiornamento della notte stessa (commit successivo a `e889b513`): (a) ✅ —
+`mappaMovimentiCsv` e `parseMovimentiCsv` per nome; i tre file della misura
+danno i tre movimenti giusti. (b) resta aperto.*

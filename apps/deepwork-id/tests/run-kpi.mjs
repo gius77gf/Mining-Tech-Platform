@@ -36883,5 +36883,54 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine lavori non conclusi (Campo, 05/09) ===== */
 
+/* ===== IL FILE DELLA BANCA LETTO PER NOME DI COLONNA (Conti, 05/09) =====
+   Ogni banca esporta le colonne a modo suo; il lettore le prendeva per
+   posizione e sulla forma più citata dai manuali il SALDO usciva come uscita
+   (−45.210,77 al posto di +12.300, senza scarto: misurato in scratchpad).
+   `mappaMovimentiCsv` legge l'intestazione, esclude saldo e causale ABI, e
+   `parseMovimentiCsv` la usa quando c'è; senza, la posizione di sempre.
+   Prove sincrone, prima del riepilogo. */
+{
+  const M = conti.mappaMovimentiCsv;
+  test("⛔ Conti · mappaMovimentiCsv: la forma «operazione;descrizione;entrate;uscite;saldo;causale ABI» — il saldo e l'ABI restano FUORI", () => {
+    const m = M(["Data operazione", "Descrizione movimento", "Importo entrate", "Importo uscite", "Saldo progressivo", "Causale ABI"]);
+    eq([m.data, m.valuta, m.descrizione, m.importo, m.entrate, m.uscite], [0, -1, 1, -1, 2, 3], "gli indici giusti");
+    eq(m.esclusi, ["Saldo progressivo", "Causale ABI"], "⛔ il saldo e il codice causale sono lasciati fuori di proposito");
+    eq([m.conIntestazione, m.ignorate], [true, []], "riconosciuta, niente di ignorato");
+  });
+  test("Conti · mappaMovimentiCsv: dare/avere, la descrizione in fondo, «Data contabile» che contiene «abi» senza esserlo, e l'inglese", () => {
+    const c = M(["Data contabile", "Data valuta", "Dare", "Avere", "Descrizione"]);
+    eq([c.data, c.valuta, c.uscite, c.entrate, c.descrizione, c.esclusi.length, c.conIntestazione], [0, 1, 2, 3, 4, 0, true], "⛔ «cont-abi-le» non è «causale ABI»: gli indizi si cercano all'inizio di una parola");
+    const e = M(["Booking date", "Value date", "Description", "Amount", "Balance"]);
+    eq([e.data, e.valuta, e.descrizione, e.importo, e.esclusi], [0, 1, 2, 3, ["Balance"]], "l'export in inglese, col saldo fuori");
+    const casa = M(["Data", "Data valuta", "Descrizione", "Importo"]);
+    eq([casa.data, casa.valuta, casa.descrizione, casa.importo, casa.conIntestazione], [0, 1, 2, 3, true], "la forma di casa è riconosciuta uguale");
+  });
+  test("⛔ Conti · mappaMovimentiCsv: senza una data o senza un importo NON è un'intestazione — e il saldo da solo non è un importo", () => {
+    eq(M(["Data", "Descrizione", "Saldo"]).conIntestazione, false, "solo il saldo come numero: non si legge per nome (e la posizione lo scarterà)");
+    eq(M(["12/07/2026", "12/07/2026", "BONIFICO", "12.300,00"]).conIntestazione, false, "una riga di dati non è un'intestazione");
+    eq(M(null).conIntestazione, false, "con niente in mano non esplode");
+    eq(M(["Data", "Importo", "Note"]).ignorate, ["Note"], "una colonna che non si riconosce si dichiara ignorata");
+  });
+  test("⛔ Conti · parseMovimentiCsv legge per NOME: il bonifico da 12.300 € è 12.300 (non −45.210,77) e la descrizione arriva intera", () => {
+    const B = "Data operazione;Descrizione movimento;Importo entrate;Importo uscite;Saldo progressivo;Causale ABI\n"
+      + "12/07/2026;BONIFICO DA EDILCAVE SRL FT 2026/031;12.300,00;;45.210,77;48\n13/07/2026;PAGAMENTO F24;;1.250,00;43.960,77;19\n";
+    const r = conti.parseMovimentiCsv(B);
+    eq(r.map((x) => [x.data, x.importo, x.scarto]), [["2026-07-12", 12300, ""], ["2026-07-13", -1250, ""]], "⛔ gli importi giusti, col segno, nessuno scarto");
+    eq(r[0].descrizione, "BONIFICO DA EDILCAVE SRL FT 2026/031", "e la descrizione, che serve ad abbinare la fattura");
+    const C = "Data contabile;Data valuta;Dare;Avere;Descrizione\n12/07/2026;12/07/2026;;12.300,00;BONIFICO DA EDILCAVE SRL FT 2026/031\n";
+    const c = conti.parseMovimentiCsv(C)[0];
+    eq([c.importo, c.valuta, c.descrizione], [12300, "2026-07-12", "BONIFICO DA EDILCAVE SRL FT 2026/031"], "dare/avere con la descrizione in fondo: prima usciva vuota");
+    eq(conti.parseMovimentiCsv("Data;Descrizione;Saldo\n12/07/2026;BONIFICO;45.210,77\n")[0].scarto, "importo non leggibile in nessuna delle colonne", "⛔ e col solo saldo il movimento esce SCARTATO, non con il saldo come importo");
+  });
+  test("Conti · parseMovimentiCsv senza intestazione: la posizione di sempre, e il file d'esempio non cambia", () => {
+    const p = conti.parseMovimentiCsv("12/07/2026;12/07/2026;BONIFICO;12.300,00\n")[0];
+    eq([p.importo, p.descrizione], [12300, "BONIFICO"], "per posizione");
+    const base = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    ok(base.length > 3 && base.every((x) => !x.scarto), "il file d'esempio si legge tutto come prima");
+  });
+}
+/* ===== fine file della banca per nome (Conti, 05/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

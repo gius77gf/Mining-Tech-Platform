@@ -787,6 +787,13 @@ const BANCHI = [
      quindi sulla copia misura la copia. */
   ['le frasi di Conti quando il numero è uno', 'conti-frasi-da-uno.mjs', []],
   ['frasi di Conti da uno · controprova', 'conti-frasi-da-uno.mjs', ['--controprova'], true],
+  /* 05/09 · il file della banca nelle sue forme vere, caricato davvero: le
+     colonne lette per NOME (entrate/uscite/saldo/causale ABI; dare/avere con la
+     descrizione in fondo), l'esito che dice quali sono riconosciute e quali
+     lasciate fuori, il bonifico che vale 12.300 e non il saldo. La controprova
+     rimette la lettura per posizione. */
+  ['il file della banca di Conti, letto per nome di colonna', 'conti-banca-colonne.mjs', []],
+  ['file della banca · controprova', 'conti-banca-colonne.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è la famiglia che il 06/08 è stata censita nel
      core: il numero è giusto e a mentire è il DISEGNO. Là una barra da 2.261,7
      m³ ne disegnava 3, identica ai cinque mesi a zero, perché `height:100%` si

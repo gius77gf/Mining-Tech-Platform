@@ -1960,7 +1960,7 @@ label.item:has(.dw-chk:checked){
 <script type="module">
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
-  import { parseMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
+  import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO,
            contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
@@ -1987,7 +1987,7 @@ label.item:has(.dw-chk:checked){
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, dataISOEsiste, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, avvolgiUnita, conta, dataISOEsiste, leggiCsv, frasePersi, fileDiAltraTabella, fraseFileAltrui, plurale, euro, euro0, conEuro, isoLocale, istanteLocale, oggiISO as oggiISOShell, meseLocale, dataIt, dataPiuGiorni, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -7623,13 +7623,24 @@ label.item:has(.dw-chk:checked){
       renderBanca(); return;
     }
     const rotte = BANMOV.filter(m => m.scarto).length;
+    /* le colonne riconosciute per nome, dette a chi carica (05/09): il file
+       della banca cambia forma da istituto a istituto, e chi importa deve
+       sapere da quale colonna vengono i numeri — e che il saldo è stato
+       lasciato fuori di proposito */
+    const mp = mappaMovimentiCsv((leggiCsv(testo).righe[0]) || []);
+    const colonne = mp.conIntestazione
+      ? ` Colonne riconosciute: ${mp.riconosciute.map(r => r.campo + " ← «" + r.nome + "»").join(", ")}`
+        + (mp.esclusi.length ? `; lasciate fuori di proposito: ${mp.esclusi.map(x => "«" + x + "»").join(", ")}` : "")
+        + (mp.ignorate.length ? `; non riconosciute: ${mp.ignorate.map(x => "«" + x + "»").join(", ")}` : "") + "."
+      : " Intestazione non riconosciuta: le colonne sono state lette per posizione (data, data valuta, causale, importo).";
     /* ⚠️ Le righe cadute si DICONO, sempre: chi carica un file conta le righe e
        non gli torna, senza capire perché. Qui non cadono nemmeno — restano in
        elenco col motivo — ma il numero va detto lo stesso. */
     esito("ban-esito",
       `${plurale(BANMOV.length, "Letto", "Letti")} ${plur(BANMOV.length, "movimento", "movimenti")}`
       + (grezze > BANMOV.length ? ` (su ${grezze} ${plur(grezze, "riga", "righe")}: l'intestazione non si conta)` : "")
-      + (rotte ? `. ${plur(rotte, "riga non è leggibile", "righe non sono leggibili")} e ${rotte === 1 ? "sta" : "stanno"} in fondo, sotto «Non abbinati», col motivo scritto.` : "."),
+      + (rotte ? `. ${plur(rotte, "riga non è leggibile", "righe non sono leggibili")} e ${rotte === 1 ? "sta" : "stanno"} in fondo, sotto «Non abbinati», col motivo scritto.` : ".")
+      + colonne,
       "success");
     renderBanca();
   }

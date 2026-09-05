@@ -405,10 +405,15 @@
   Importo entrate;Importo uscite;Saldo progressivo;Causale ABI`) il bonifico da
   12.300 € esce **−45.210,77** (il saldo letto come uscita) senza nessuno
   scarto dichiarato, e sulla forma dare/avere la descrizione si perde e la
-  fattura non si abbina. (a) `mappaMovimentiCsv` per nome di colonna, saldo e
-  causale ABI esclusi, esito che dice le colonne riconosciute (basso-medio);
-  (b) TRN/CRO conservato sul movimento (basso). Vedi
-  `docs/RICERCA_CONTINUA_CONTI.md`.
+  fattura non si abbina. (a) ✅ **fatto la notte stessa** — `mappaMovimentiCsv`
+  legge l'intestazione per nome (indizi cercati all'inizio di una parola:
+  «cont-abi-le» non è «causale ABI»), esclude saldo e causale ABI, e
+  `parseMovimentiCsv` la usa quando c'è; senza, la posizione di sempre; l'esito
+  dell'import dice le colonne riconosciute, quelle lasciate fuori e quelle non
+  riconosciute; col solo saldo come numero il movimento esce scartato, non con
+  il saldo come importo. run-kpi +5; banco nuovo `conti-banca-colonne` che
+  carica i due file veri. (b) TRN/CRO conservato sul movimento resta aperto
+  (basso). Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
 - [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
@@ -6307,7 +6312,7 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.091 prove girano senza rete**. La frase va letta stretta: è la somma
+  **3.096 prove girano senza rete**. La frase va letta stretta: è la somma
   delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -6318,8 +6323,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **243 esecuzioni** che
-  aprono le pagine in un browser vero, da **101** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **245 esecuzioni** che
+  aprono le pagine in un browser vero, da **102** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

@@ -4221,6 +4221,55 @@ export function isoDaDataItaliana(cella) {
    illeggibile esce lo stesso, con `scarto` scritto in italiano: un import muto
    è il modo migliore per perdere dei soldi senza accorgersene. */
 const INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i;
+
+/* LA MAPPA DELLE COLONNE DEL FILE DELLA BANCA (05/09). Il mondo dice che ogni
+   banca esporta le colonne a modo suo — «Data operazione; Descrizione;
+   Importo entrate; Importo uscite; Saldo progressivo; Causale ABI» è la forma
+   più citata dai manuali degli importatori — e questo lettore le prendeva per
+   POSIZIONE: misurato in scratchpad, su quella forma il bonifico da 12.300 €
+   usciva **−45.210,77** (il SALDO letto come uscita) senza nessuno scarto, e
+   sulla forma «Data contabile; Data valuta; Dare; Avere; Descrizione» la
+   descrizione si perdeva e la fattura non si abbinava. Qui si legge
+   l'INTESTAZIONE per nome, come `proponiMappa` di Sentinella: prima si
+   ESCLUDONO saldo e causale ABI (che sono numeri e finirebbero fra gli
+   importi), poi si prendono data valuta, data, entrate, uscite — oppure
+   l'importo unico — e la descrizione. Gli indizi si cercano all'INIZIO di
+   una parola («abi» non prende «cont-abi-le»). Senza un'intestazione
+   riconoscibile, `conIntestazione` è falso e il lettore torna alla posizione
+   di sempre. Ritorna { data, valuta, descrizione, importo, entrate, uscite
+   (indici, -1 = non trovata), esclusi, riconosciute, ignorate,
+   conIntestazione }. Pura. */
+const INDIZI_ESTRATTO = {
+  saldo:   ["saldo", "balance"],
+  abi:     ["causale abi", "cod causale", "codice causale", "abi"],
+  valuta:  ["data valuta", "valuta", "value date"],
+  data:    ["data contabile", "data operazione", "data registrazione", "data movimento", "data", "date", "booking date"],
+  entrate: ["entrate", "entrata", "accredit", "avere", "credit"],
+  uscite:  ["uscite", "uscita", "addebit", "dare", "debit"],
+  importo: ["importo", "amount"],
+  descrizione: ["descrizione", "causale", "dettagli", "dettaglio", "movimento", "description", "operazione"],
+};
+const _normCol = (s) => String(s == null ? "" : s).toLowerCase()
+  .replace(/[àá]/g, "a").replace(/[èé]/g, "e").replace(/[ìí]/g, "i").replace(/[òó]/g, "o").replace(/[ùú]/g, "u")
+  .replace(/[^a-z0-9]+/g, " ").trim();
+export function mappaMovimentiCsv(intestazione) {
+  const nomi = Array.isArray(intestazione) ? intestazione : [];
+  const celle = nomi.map(_normCol);
+  const out = { data: -1, valuta: -1, descrizione: -1, importo: -1, entrate: -1, uscite: -1,
+    esclusi: [], riconosciute: [], ignorate: [], conIntestazione: false };
+  const presi = new Set();
+  const combacia = (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  const cerca = (chiavi) => celle.findIndex((h, i) => !presi.has(i) && h && chiavi.some((k) => combacia(h, k)));
+  for (const k of ["saldo", "abi"]) { let i; while ((i = cerca(INDIZI_ESTRATTO[k])) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }
+  const prendi = (campo) => { const i = cerca(INDIZI_ESTRATTO[campo]); if (i >= 0) { out[campo] = i; presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); } };
+  prendi("valuta"); prendi("data"); prendi("entrate"); prendi("uscite");
+  if (out.entrate < 0 && out.uscite < 0) prendi("importo");
+  prendi("descrizione");
+  celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
+  out.conIntestazione = out.data >= 0 && (out.importo >= 0 || out.entrate >= 0 || out.uscite >= 0);
+  return out;
+}
+
 export function parseMovimentiCsv(text) {
   /* ⛔ SI LEGGE IL TESTO INTERO, NON RIGA PER RIGA — e non è una raffinatezza:
      è stato misurato il 01/08. Le banche la descrizione lunga la scrivono su
@@ -4232,9 +4281,19 @@ export function parseMovimentiCsv(text) {
      quindi l'a-capo dentro le virgolette è un carattere come gli altri, e
      decide il separatore una volta su TUTTO il file invece che per riga. */
   const out = [];
-  for (const cel of leggiCsv(text).righe) {
-    if (INTESTAZIONE_ESTRATTO.test(cel.join(";"))) continue;
-    const [dataRaw, valutaRaw, descr, a, b] = cel;
+  const righe = leggiCsv(text).righe;
+  /* la mappa per nome, dalla prima riga (05/09): se l'intestazione si
+     riconosce comandano i nomi; se no, la posizione di sempre */
+  const m = righe.length ? mappaMovimentiCsv(righe[0]) : null;
+  const perNome = !!(m && m.conIntestazione);
+  for (const cel of righe) {
+    if (INTESTAZIONE_ESTRATTO.test(cel.join(";")) || (perNome && cel === righe[0])) continue;
+    const g = (i) => (i >= 0 && i < cel.length ? cel[i] : "");
+    const dataRaw = perNome ? g(m.data) : cel[0];
+    const valutaRaw = perNome ? g(m.valuta) : cel[1];
+    const descr = perNome ? g(m.descrizione) : cel[2];
+    const a = perNome ? (m.importo >= 0 ? g(m.importo) : g(m.entrate)) : cel[3];
+    const b = perNome ? (m.importo >= 0 ? "" : g(m.uscite)) : cel[4];
     const data = isoDaDataItaliana(dataRaw);
     const ia = importoBancario(a), ib = importoBancario(b);
     let importo = NaN;
