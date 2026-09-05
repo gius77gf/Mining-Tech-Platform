@@ -165,6 +165,12 @@ await pg.waitForTimeout(700);
 
 const doc = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
 dice(doc.length > 400, "il documento è stato composto", doc.length + " caratteri");
+/* la comunicazione della volata (05/09): nella tabella «Volate del periodo» la
+   colonna c'è e ogni riga dice se la volata è stata comunicata — anche no */
+if (/Volate del periodo/.test(doc)) {
+  dice(/Comunicazione/.test(doc), "⛔ la tabella delle volate del periodo ha la colonna «Comunicazione»", doc.slice(doc.indexOf("Volate del periodo"), doc.indexOf("Volate del periodo") + 300));
+  dice(/comunicata all'ente|nessuna comunicazione registrata|comunicazione registrata a metà/.test(doc), "e ogni volata dice se è stata comunicata, con le parole anche quando no", doc.slice(doc.indexOf("Volate del periodo"), doc.indexOf("Volate del periodo") + 400));
+} else console.log("  (nessuna volata nel periodo scelto: la colonna «Comunicazione» non si misura qui — dichiarato)");
 
 // ── 1 · IL PERIODO DICHIARATO CONTRO QUELLO MISURATO ──────────────────────
 console.log("\n· il periodo dichiarato e quello davvero misurato");

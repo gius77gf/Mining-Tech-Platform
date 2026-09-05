@@ -8591,7 +8591,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const v = [{ data: "2026-07-20", fronte: "F1", nFori: null, kgTotali: 400,
                  kgMaxRitardo: 20, distanzaRicettore: null, esito: "regolare" }];
     const riga = sentinella.csvRegistroVolate(v).split("\n")[1];
-    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;",
+    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;;;;",
       "le due caselle non dichiarate escono VUOTE, non a zero");
     const back = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(v))[0];
     eq(back.nFori, null, "e rientrano come «non dichiarato»");
@@ -37258,6 +37258,41 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([solo.colData, solo.colValore], [0, 1], "«velocità» presa da «vel», dentro la parola");
   });
 }
+/* ===== la comunicazione della volata (Sentinella, 05/09) ===== */
+{
+  test("Sentinella · campiComunicazioneVolata: a chi, quando, riferimento — e gli errori detti per campo", () => {
+    const ok = sentinella.campiComunicazioneVolata("Ente", "2026-07-16", " PEC prot. 4412/2026 ");
+    eq([ok.ok, ok.campi], [true, { comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" }], "maiuscole e spazi non contano; il riferimento è testo libero");
+    eq(sentinella.campiComunicazioneVolata("comune", "2026-07-16", "").errori.a !== undefined, true, "⛔ «comune» non è fra i destinatari: si dice quali sono");
+    eq(sentinella.campiComunicazioneVolata("ente", "2026-02-30", "").errori.il, "La data non esiste.", "un 30 febbraio non passa");
+    eq(sentinella.campiComunicazioneVolata("ente", "", "").errori.il, "Scrivi quando è stata fatta.", "senza data non è una comunicazione");
+    eq(sentinella.campiComunicazioneVolata("residenti", "2026-07-16").ok, true, "il riferimento è facoltativo");
+    eq(sentinella.DESTINATARI_COMUNICAZIONE.map((d) => d.chiave), ["ente", "residenti", "entrambi"], "i tre destinatari, e sono quelli che la finestra elenca");
+  });
+  test("Sentinella · descriviComunicazione: intera, assente, a metà — mai un «—»", () => {
+    const d = sentinella.descriviComunicazione;
+    eq(d({ comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" }), { registrata: true, testo: "comunicata all'ente il 16/07/2026 (PEC prot. 4412/2026)" }, "intera, all'italiana");
+    eq(d({ comunicataA: "entrambi", comunicataIl: "2026-07-16" }).testo, "comunicata all'ente e ai residenti il 16/07/2026", "senza riferimento");
+    eq(d({}), { registrata: false, testo: "nessuna comunicazione registrata" }, "⛔ assente: si dice, non si tace");
+    eq(d({ comunicataIl: "2026-07-16" }).testo, "comunicazione registrata a metà (non dice a chi)", "a metà: manca il destinatario");
+    eq(d({ comunicataA: "ente", comunicataIl: "boh" }).testo, "comunicazione registrata a metà (la data non si legge)", "a metà: la data non si legge");
+    ok(!/—/.test(d({}).testo), "e il testo non contiene mai il trattino tranquillo");
+  });
+  test("Sentinella · il registro volate porta la comunicazione in coda al CSV, andata e ritorno, e il testo del file", () => {
+    const con = { id: "z1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
+    const senza = { id: "z2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410 };
+    const csv = sentinella.csvRegistroVolate([con, senza]);
+    ok(csv.split("\n")[0].endsWith(";codiceVolata;comunicataA;comunicataIl;comunicazioneRif"), "⛔ le tre colonne stanno in CODA: chi legge diciannove colonne non si accorge di niente");
+    eq(csv.split("\n")[0], sentinella.CSV_VOLATE_INTESTAZIONE, "l'intestazione è quella dichiarata");
+    ok(/;ente;2026-07-16;PEC prot\. 4412\/2026$/m.test(csv), "la riga con la comunicazione la scrive tale e quale", csv);
+    ok(/Fronte Est.*;;;$/m.test(csv), "e la riga senza comunicazione scrive tre celle vuote, non «null»", csv);
+    const dentro = sentinella.parseVolateCsv(csv);
+    eq([dentro[1].comunicataA, dentro[1].comunicataIl, dentro[1].comunicazioneRif], ["ente", "2026-07-16", "PEC prot. 4412/2026"], "rientra intera (le righe sono ordinate per data)");
+    ok(!("comunicataA" in dentro[0]), "e chi non ce l'aveva non si porta a casa tre campi vuoti");
+    eq(sentinella.descriviComunicazione(sentinella.DEMO.volate.find((v) => v.id === "b1")).registrata, true, "la dimostrazione ne porta una, così il caso si vede");
+  });
+}
+/* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
 /* ===== fine piano sopra la mappa (05/09) ===== */
 /* ===== fine file della pesa (05/09) ===== */

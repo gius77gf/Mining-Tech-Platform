@@ -543,7 +543,7 @@ export const CSV_TABELLE = [
   { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
     fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da" },
   { id: "sentinella.volate", app: "Sentinella", etichetta: "il registro delle volate di Sentinella",
-    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata" },
+    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;comunicataA;comunicataIl;comunicazioneRif" },
   { id: "sentinella.referti", app: "Sentinella", etichetta: "i referti di vibrazione per Genesi di Sentinella",
     fonte: "sentinella.csvRefertiGenesi", col: "distanza_m;carica_per_ritardo_kg;ppv_mms;riferimento;data;origine" },
   { id: "sentinella.monitoraggi", app: "Sentinella", etichetta: "i punti di monitoraggio di Sentinella",

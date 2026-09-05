@@ -488,12 +488,13 @@ Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
    il foglio che le mette accanto ai dati della volata.
 
 **Che cosa ne segue** (candidati, in ordine di costo, nessuno aperto):
-- (a) **la comunicazione sulla volata** — a chi (ente / residenti), quando,
-  riferimento — come campi facoltativi della volata, mostrati nel registro e
-  nella tabella «Volate del periodo» del report; è la voce del diario che manca
-  (costo basso; misura: il report di un periodo con una volata comunicata la
-  scrive, e una volata senza comunicazione non scrive «—» tranquillo ma
-  «nessuna comunicazione registrata»);
+- (a) ✅ **fatta il 05/09** — `campiComunicazioneVolata`, `descriviComunicazione`,
+  `DESTINATARI_COMUNICAZIONE`; tre colonne in coda al CSV del registro
+  (censimento aggiornato); azione «Segna la comunicazione» sulla riga; la riga
+  e la tabella «Volate del periodo» del report la scrivono, e quando manca
+  scrivono «nessuna comunicazione registrata» (`grep -c "descriviComunicazione"
+  apps/sentinella/index.html` → 4). run-kpi +3; banchi `sentinella-numeri-tranquilli`
+  e `sentinella-report-dichiarazioni` con le prove nuove;
 - (b) **la riga di portata del report**: «questo documento valuta la soglia
   del punto di misura (danno agli edifici, UNI 9916/DIN 4150-3); non valuta il
   disturbo alle persone (UNI 9614)» — una dichiarazione, costo minimo;

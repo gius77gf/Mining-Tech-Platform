@@ -429,9 +429,13 @@
   correttive accanto ai superamenti (Scudo le ha, il report non le legge), il
   destinatario e la data di trasmissione sul documento, il foglio della
   singola volata con la misura. Candidati (a)–(e) in
-  `docs/RICERCA_CONTINUA_SENTINELLA.md`, in ordine di costo; il primo da fare
-  è (a), progettato in scratchpad prima di scrivere nel modulo, con
-  `CSV_VOLATE_INTESTAZIONE` allungato in coda e il censimento aggiornato.
+  `docs/RICERCA_CONTINUA_SENTINELLA.md`, in ordine di costo. (a) ✅ **05/09**:
+  la comunicazione sulla volata (a chi, quando, riferimento) con
+  `campiComunicazioneVolata`/`descriviComunicazione`, tre colonne in coda al
+  CSV del registro, l'azione sulla riga, la riga e la tabella del report che la
+  scrivono — «nessuna comunicazione registrata» quando manca, mai «—». run-kpi
+  +3 (2646); banchi del registro e del report con le prove nuove. Restano
+  (b)–(e).
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -6458,8 +6462,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.124 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2643, `run-stile` 328,
+  **3.127 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2646, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

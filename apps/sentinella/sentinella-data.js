@@ -195,7 +195,9 @@ export const DEMO = {
     //      previsto → misurato, che è il motivo per cui il registro serve.
     { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", note: "",
       stato: "eseguita", ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
-      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1" },
+      ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
+      /* la comunicazione all'ente (05/09): il diario della linea guida ARPA FVG */
+      comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" },
     // b2 · registrata a mano prima che esistesse il campo «stato»: vale come
     //      ESEGUITA, ed è la prova di compatibilità con lo storico.
     { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "" },
@@ -1042,7 +1044,7 @@ export function parseVolateCsv(text) {
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
              ppvMisurata, ppvFonte, ppvPunto, ppvOra,
              stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
-             codiceVolata] = parseCsvLine(r);
+             codiceVolata, comunicataA, comunicataIl, comunicazioneRif] = parseCsvLine(r);
       let v = {
         data: (data || "").trim(),
         fronte: (fronte || "").trim(),
@@ -1065,6 +1067,10 @@ export function parseVolateCsv(text) {
       if (st) v = { ...v, stato: st };
       const cod = String(codiceVolata == null ? "" : codiceVolata).trim();
       if (cod) v = { ...v, codiceVolata: cod };
+      /* la comunicazione entra com'è scritta: chi la legge (`descriviComunicazione`)
+         dice se è intera, a metà o assente — il lettore non la giudica */
+      const com = campiComunicazioneVolata(comunicataA, comunicataIl, comunicazioneRif).campi;
+      if (com.comunicataA || com.comunicataIl || com.comunicazioneRif) v = { ...v, ...com };
       return v;
     })
     .filter(v => dataISOEsiste(v.data));
@@ -4387,10 +4393,47 @@ export function firmaVolata(v) {
 // Genesi scrive queste stesse colonne (vedi apps/genesi/genesi.html, «Manda a
 // Sentinella»): lasciando VUOTE le quattro della PPV misurata, che una volata
 // non ancora sparata non può avere.
+/* LA COMUNICAZIONE DELLA VOLATA (05/09). La linea guida ARPA FVG per il piano
+   di monitoraggio di una cava fa del «diario delle volate» parte del
+   monitoraggio: modalità e frequenza delle volate, i riferimenti alle
+   COMUNICAZIONI fatte alle autorità o alla popolazione, i reclami ricevuti
+   [seconda mano, docs/RICERCA_CONTINUA_SENTINELLA.md, 05/09]. Il registro
+   aveva le prime e i reclami; la comunicazione no. Tre campi facoltativi sulla
+   volata — a chi, quando, con quale riferimento — e una descrizione sola che
+   dice «nessuna comunicazione registrata» quando manca: mai un «—», che sul
+   documento per l'ente si legge «niente da dire». */
+export const DESTINATARI_COMUNICAZIONE = [
+  { chiave: "ente",      etichetta: "all'ente" },
+  { chiave: "residenti", etichetta: "ai residenti" },
+  { chiave: "entrambi",  etichetta: "all'ente e ai residenti" },
+];
+export function campiComunicazioneVolata(a, il, rif) {
+  const chiave = String(a == null ? "" : a).trim().toLowerCase();
+  const data = String(il == null ? "" : il).trim().slice(0, 10);
+  const errori = {};
+  if (!DESTINATARI_COMUNICAZIONE.some(d => d.chiave === chiave)) errori.a = "Scrivi a chi è stata fatta: «ente», «residenti» o «entrambi».";
+  if (!data) errori.il = "Scrivi quando è stata fatta.";
+  else if (!dataISOEsiste(data)) errori.il = "La data non esiste.";
+  return { ok: Object.keys(errori).length === 0, errori,
+    campi: { comunicataA: chiave, comunicataIl: data, comunicazioneRif: String(rif == null ? "" : rif).trim() } };
+}
+export function descriviComunicazione(v) {
+  const x = v || {};
+  const dest = DESTINATARI_COMUNICAZIONE.find(d => d.chiave === String(x.comunicataA || "").trim().toLowerCase());
+  const data = String(x.comunicataIl || "").slice(0, 10);
+  if (!dest && !data && !String(x.comunicazioneRif || "").trim()) return { registrata: false, testo: "nessuna comunicazione registrata" };
+  if (!dest || !dataISOEsiste(data))
+    return { registrata: false, testo: "comunicazione registrata a metà (" + (!dest ? "non dice a chi" : "la data non si legge") + ")" };
+  return { registrata: true, testo: "comunicata " + dest.etichetta + " il " + dataIt(data)
+    + (String(x.comunicazioneRif || "").trim() ? " (" + String(x.comunicazioneRif).trim() + ")" : "") };
+}
+
 export const CSV_VOLATE_INTESTAZIONE =
   "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;"
   + "ppvMisurata;ppvFonte;ppvPunto;ppvOra;"
-  + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata";
+  + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;"
+  /* la comunicazione (05/09), in coda: chi legge diciannove colonne non si accorge di niente */
+  + "comunicataA;comunicataIl;comunicazioneRif";
 
 // Il file del registro volate. Ogni riga dichiara il suo `stato`, così il giro
 // export → import non perde la distinzione fra progetto e evento. Pura e
@@ -4424,6 +4467,7 @@ export function csvRegistroVolate(volate) {
         csvCell(q ? q.norma : ""), q ? q.fonte : "",
         q && q.airblast != null ? n(q.airblast) : "",
         csvCell(v.codiceVolata || ""),
+        String(v.comunicataA || ""), String(v.comunicataIl || "").slice(0, 10), csvCell(v.comunicazioneRif || ""),
       ].join(";");
     });
   return CSV_VOLATE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");

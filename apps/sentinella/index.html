@@ -1812,7 +1812,7 @@ textarea.dw-input{
            PPV_STRUMENTO, PPV_MANUALE,
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
-           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE,
+           volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
@@ -3175,6 +3175,29 @@ textarea.dw-input{
     e.preventDefault();
     await collegaPpv(b.getAttribute("data-ppv-vol"));
   });
+  /* LA COMUNICAZIONE DELLA VOLATA (05/09): a chi, quando, con quale riferimento.
+     È la voce del diario che mancava; si scrive sulla volata e la riga e il
+     report la leggono con la stessa funzione. */
+  async function segnaComunicazione(id) {
+    const v = VOL.find(x => x.id === id); if (!v) return;
+    const r = await chiediDati("Comunicazione della volata",
+      `<p>Volata del <b>${fmtD(v.data)}</b>${v.fronte ? " sul fronte <b>" + esc(v.fronte) + "</b>" : ""}. Scrivi a chi è stata comunicata e quando: è la voce del diario delle volate che l'ente chiede di tenere.</p>`,
+      [{ id: "a", label: "A chi", valore: v.comunicataA || "", placeholder: "ente, residenti o entrambi", aiuto: "Scrivi «ente», «residenti» o «entrambi»." },
+       { id: "il", label: "Quando", tipo: "date", valore: v.comunicataIl || "" },
+       { id: "rif", label: "Riferimento", valore: v.comunicazioneRif || "", placeholder: "protocollo, PEC, avviso affisso…" }],
+      "Salva");
+    if (!r) return;
+    const c = campiComunicazioneVolata(r.a, r.il, r.rif);
+    if (!c.ok) { toast(Object.values(c.errori)[0], "err"); return; }
+    await db.aggiorna("volate", id, c.campi); await refresh();
+    toast("Comunicazione registrata: " + descriviComunicazione(c.campi).testo + ".", "success");
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-com-vol]");
+    if (!b) return;
+    e.preventDefault();
+    await segnaComunicazione(b.getAttribute("data-com-vol"));
+  });
   $("ref-filtri").addEventListener("click", (e) => {
     const b = e.target.closest && e.target.closest("[data-fref]"); if (!b) return;
     filtroRef = b.getAttribute("data-fref"); renderReferti();
@@ -3892,7 +3915,7 @@ textarea.dw-input{
       Il confronto fra la PPV <b>prevista</b> e la PPV <b>misurata</b> di ciascuna volata sta nella
       sezione subito dopo questa tabella.${volateIncomplete(R.volate) ? `<br><b>Attenzione: ${volateIncomplete(R.volate)} ${volateIncomplete(R.volate) === 1 ? "volata di questo periodo non dichiara" : "volate di questo periodo non dichiarano"} tutti i dati.</b> Le caselle marcate <b>«non dichiarato»</b> non sono zeri: sono valori che nessuno ha registrato, e senza di essi la distanza scalata (SD) non si calcola.` : ""}</div>
     <div class="tab-wrap"><table class="tab">
-      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th></tr></thead>
+      <thead><tr><th>Data</th><th>Fronte</th><th>Fori</th><th><span class="u">kg</span> totali</th><th><span class="u">kg</span> max/ritardo</th><th>Distanza (<span class="u">m</span>)</th><th>SD</th><th>Esito</th><th>Comunicazione</th></tr></thead>
       <tbody>${R.volate.map(v => { const sd = scaledDistance(v.distanzaRicettore, v.kgMaxRitardo);
         return `<tr><td>${fmtD(v.data)}</td><td class="n">${esc(v.fronte || "—")}</td>
         <td>${cellaVolata(v.nFori, 0)}</td><td>${cellaVolata(v.kgTotali)}</td>
@@ -3909,7 +3932,9 @@ textarea.dw-input{
              Il documento va a un ente: lì «—» accanto a un numero è la faccia
              tranquilla di un dato che non c'è. */""}
         <td>${sd != null ? esc(numeroIt(sd)) : '<span class="tag">non calcolabile</span>'}</td>
-        <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td></tr>`;
+        <td class="stato">${v.esito === "contestazione" ? '<span class="tag danger">contestazione</span>' : '<span class="tag ok">regolare</span>'}</td>
+        ${/* la comunicazione (05/09): la voce del diario, scritta anche quando manca */""}
+        <td>${(() => { const c = descriviComunicazione(v); return c.registrata ? esc(c.testo) : '<span class="tag">' + esc(c.testo) + '</span>'; })()}</td></tr>`;
       }).join("")}</tbody></table></div>`;
 
   // ── PREVISTO → MISURATO, volata per volata ──────────────────────────
@@ -4382,6 +4407,11 @@ textarea.dw-input{
       if (sd != null) pezzi.push("<b>SD " + esc(numeroIt(sd)) + "</b>");
       if (prev && Number.isFinite(gg) && gg > 0) pezzi.push("fra <b>" + gg + (gg === 1 ? " giorno" : " giorni") + "</b>");
       if (v.note) pezzi.push(esc(v.note));
+      /* la comunicazione della volata (05/09): SEMPRE scritta sulle eseguite,
+         anche quando manca — «nessuna comunicazione registrata» è la voce del
+         diario che l'ispettore cerca, e un silenzio si legge «fatta» */
+      const com = prev ? null : descriviComunicazione(v);
+      if (com) pezzi.push(esc(com.testo));
       // ⛔ la PPV PREVISTA si scrive con la parola «prevista» attaccata, sempre:
       // è l'unica cosa che impedisce di leggerla come una misura
       const vibr = [];
@@ -4403,6 +4433,7 @@ textarea.dw-input{
         ${prev
           ? `<button type="button" class="arr" title="Confermala come eseguita (potendo correggere i dati)" aria-label="Conferma come eseguita la volata prevista del ${fmtD(v.data)}" data-conf-vol="${v.id}">${I.fatto}</button>`
           : `<button type="button" class="arr${ppv ? " on" : ""}" title="${ppv ? "Cambia o togli la PPV misurata" : "Collega la PPV misurata del sismografo"}" aria-label="${ppv ? "Cambia la PPV misurata della volata del " + fmtD(v.data) : "Collega la PPV misurata alla volata del " + fmtD(v.data)}" data-ppv-vol="${v.id}">${I.onda}</button>`}
+        ${prev ? "" : `<button type="button" class="arr${com && com.registrata ? " on" : ""}" title="${com && com.registrata ? "Cambia la comunicazione registrata" : "Segna la comunicazione fatta (ente, residenti)"}" aria-label="Segna la comunicazione della volata del ${fmtD(v.data)}" data-com-vol="${v.id}">${I.registro}</button>`}
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi la volata del ${fmtD(v.data)}" data-del-vol="${v.id}">${I.cestino}</button></span></div>`;
     }).join("") || vuoto(I.volata, "Nessuna volata registrata",
         "Registra qui sotto data, fronte, fori e carica di ogni volata: il brogliaccio di brillamento resta pronto da mostrare agli enti, con la distanza scalata già calcolata.");
