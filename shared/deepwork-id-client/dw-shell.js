@@ -475,7 +475,7 @@ export const CSV_TABELLE = [
   { id: "campo.storico", app: "Campo", etichetta: "lo storico dei turni di Campo",
     fonte: "campo.csvStorico", col: "data;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati" },
   { id: "campo.pianoConsuntivo", app: "Campo", etichetta: "il consuntivo del piano di carica di Campo",
-    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore" },
+    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro" },
   { id: "campo.piano", app: "Campo", etichetta: "il piano di carica di Campo",
     col: "foro;x;fila;prof;prog;borr;rit" },
   // ── Conti ───────────────────────────────────────────────────────────

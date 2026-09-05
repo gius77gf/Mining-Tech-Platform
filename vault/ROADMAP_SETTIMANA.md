@@ -442,11 +442,19 @@
   tolto e i ritardi messi a mano NON sopravvivono a salva→riapri. Gli id di
   maglia sì, perché sono deterministici. Va deciso se il progetto salvato deve
   portare i fori: è una scelta di prodotto, non un dettaglio.
-  (2) Campo conserva l'id nel piano (`PIANO_COLONNE.id`, colonna facoltativa)
-  e lo rimanda nel consuntivo in coda (`CONSUNTIVO_COLONNE` + `id_foro`;
-  aggiornare il censimento in `dw-shell` e i due banchi che fissano
-  l'intestazione alla lettera: `campo-numeri-tranquilli` e
-  `genesi-frasi-limite`). (3) in Genesi `_riconParseCampo` legge `id_foro` e
+  (2) ✅ **05/09, stesso ciclo** — Campo conserva l'id (`PIANO_COLONNE.idForo`,
+  FACOLTATIVA: non finisce fra le `mancanti`, se no ogni piano di ieri aprirebbe
+  la finestra), lo salva in `pianocarico` come `idForo`, lo mostra nel `.meta`
+  della riga solo se c'è, e lo rimanda in coda al consuntivo
+  (`CONSUNTIVO_COLONNE` + `id_foro`, censimento aggiornato, banco
+  `campo-numeri-tranquilli` 92/0 sui dieci nomi). ⛔ E scrivendo la prova con
+  l'intestazione VERA di Genesi è uscito un difetto del ponte che nessuna prova
+  vedeva: Campo non riconosceva `fila_m`, `borraggio_prog_m` e `ritardo_ms` —
+  il piano di Genesi entrava con fila, borraggio e ritardo VUOTI e la finestra
+  diceva «Non ho trovato la colonna di: fila, borraggio, ritardo» a ogni
+  import. Tutte le prove di casa usavano nomi corti che non sono quelli del
+  file. Corretto; adesso una prova legge l'intestazione DAL SORGENTE di Genesi
+  (run-kpi +3). (3) in Genesi `_riconParseCampo` legge `id_foro` e
   una funzione pura nuova accoppia ogni foro del progetto alla sua riga —
   per id quando c'è, per numero altrimenti, DICHIARANDO quale chiave ha usato
   — e dichiara «foro del progetto senza riga» e «riga senza foro nel
@@ -1438,8 +1446,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO` *((1) id stabile
-  fatto; restano (2) Campo che lo conserva e (3) l'accoppiamento in Genesi)*
+- `GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO` *((1) id stabile e
+  (2) Campo fatti; resta (3) l'accoppiamento in Genesi)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6349,8 +6357,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.101 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2620, `run-stile` 328,
+  **3.104 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2623, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

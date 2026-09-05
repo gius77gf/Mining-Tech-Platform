@@ -523,3 +523,11 @@ carico e nel `.volata.json` (`grep -c "idForoMaglia\|idForoNuovo"
 apps/genesi/genesi.html` → 3). Restano (2) Campo e (3) l'accoppiamento in
 Genesi, che senza (2) non ha ancora un lettore: la riga «(a) senza un lettore
 è un identificatore che nessuno usa» resta vera fino a (2)+(3).*
+
+*E il pezzo (2), stesso ciclo: Campo conserva `idForo` e lo rimanda in coda al
+consuntivo (`grep -c "id_foro" apps/campo/campo-data.js` → 4). Scrivendo la
+prova con l'intestazione vera del piano di Genesi è uscito che Campo non
+riconosceva `fila_m`, `borraggio_prog_m`, `ritardo_ms`: il punto 2 del delta
+qui sopra («Campo legge il PIANO di Genesi… fila, prof, borr, rit») era vero
+per nome e falso per i dati — fila, borraggio e ritardo entravano VUOTI.
+Corretto, con una prova che legge l'intestazione dal sorgente di Genesi.*

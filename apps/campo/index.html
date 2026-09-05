@@ -4780,7 +4780,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       const liv = scartoLivello(p.reale, p.prog);
       return `<div class="item ${liv==="da-registrare"?"st-warn":(liv==="ok"?"st-ok":(liv==="warn"?"st-warn":"st-danger"))}" data-foro-id="${esc(p.id)}" role="button" tabindex="0" style="cursor:pointer" title="Registra la carica reale di questo foro">
       <div class="avatar">${esc(numeroIt(p.foro, 0))}</div>
-      <div class="info"><div class="name">Foro ${esc(numeroIt(p.foro, 0))} · progettati ${esc(numeroIt(p.prog, 3))} kg</div><div class="meta">x ${esc(numeroItDa(p.x, 2))} m · prof. ${esc(numeroItDa(p.prof, 2))} m · borr. ${esc(numeroItDa(p.borr, 2))} m · rit. ${esc(numeroItDa(p.rit, 1))} ms</div></div>
+      <div class="info"><div class="name">Foro ${esc(numeroIt(p.foro, 0))} · progettati ${esc(numeroIt(p.prog, 3))} kg</div><div class="meta">${p.idForo ? "id " + esc(p.idForo) + " · " : ""}x ${esc(numeroItDa(p.x, 2))} m · prof. ${esc(numeroItDa(p.prof, 2))} m · borr. ${esc(numeroItDa(p.borr, 2))} m · rit. ${esc(numeroItDa(p.rit, 1))} ms</div></div>
       <span class="badge ${b[0]}">${b[0]==="danger"?I.allarme:""}${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
@@ -4830,7 +4830,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // file con le colonne in ordine diverso si caricava comunque, con la
     // profondità nel borraggio e il ritardo nella carica. Sembrava normale.
     const NOMI_COL = { foro: "foro", x: "posizione x", fila: "fila", prof: "profondità",
-                       prog: "carica progettata", borr: "borraggio", rit: "ritardo" };
+                       prog: "carica progettata", borr: "borraggio", rit: "ritardo", idForo: "id del foro" };
     const avvisi = [];
     if (!mappa.conIntestazione)
       avvisi.push("Il file non ha una riga di intestazione, quindi le colonne sono state lette <b>nell'ordine</b> foro; x; fila; prof; prog; borr; rit. Se il tuo file ha un ordine diverso, aggiungi l'intestazione.");
@@ -4882,7 +4882,10 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const data = dataPiano, turno = turnoPiano;
     for (const p of righe)
       await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
-        prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
+        prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null,
+        /* l'id stabile di Genesi, conservato tale e quale per il consuntivo
+           che torna indietro; null se il piano non lo portava */
+        idForo: p.idForo || null });
     await pianoRicarica();
     toast("Piano importato: " + conta(righe.length, "foro", "fori") + " (" + dmy(data) + " · turno " + turno + ").", "success");
   };

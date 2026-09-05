@@ -1948,7 +1948,7 @@ console.log("\n— Campo: parsing del piano di carico CSV —");
 test("parsePianoCsv salta l'header e legge le righe valide", () => {
   const out = campo.parsePianoCsv("foro;x;fila;prof;prog;borr;rit\n1;3.5;A;12;100;2;20\n2;4;B;12;80;2;18");
   eq(out.length, 2, "righe");
-  eq(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20", reale: null }, "prima riga");
+  eq(out[0], { foro: 1, x: "3.5", fila: "A", prof: "12", prog: 100, borr: "2", rit: "20", reale: null, idForo: "" }, "prima riga");
 });
 test("parsePianoCsv scarta righe con foro o prog non validi", () => {
   const out = campo.parsePianoCsv("0;x;A;12;100;2;20\n3;x;A;12;0;2;20\n5;x;A;12;90;2;20");
@@ -36994,7 +36994,51 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(g.idForoNuovo(null), "m1", "e senza elenco si parte da uno");
   });
 }
-/* ===== fine id stabile del foro (Genesi, 05/09) ===== */
+/* ===== l'id del foro attraversa Campo (05/09) ===== */
+{
+  const PIANO_NUOVO = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms;relief_ms_per_m;burden_locale_m;interasse_locale_m;volume_servito_m3;pf_locale_kg_m3;id_foro\n"
+    + "1;0.00;3.00;12;58;3;0;;;;;;f1-1\n2;3.50;3.00;12;58;3;42;;;;;;f1-2\n3;1.75;6.00;12;58;3;84;;;;;;m1\n";
+  const PIANO_VECCHIO = "foro;x_m;fila_m;prof_m;carica_prog_kg;borraggio_prog_m;ritardo_ms\n1;0.00;3.00;12;58;3;0\n2;3.50;3.00;12;58;3;42\n";
+  /* ⛔ L'INTESTAZIONE VERA, LETTA DAL SORGENTE DI GENESI e non ricopiata: il
+     05/09, scrivendo la prova con i nomi che Genesi scrive davvero, è uscito che
+     Campo non riconosceva fila_m, borraggio_prog_m e ritardo_ms — il file per
+     cui il lettore esiste entrava a metà, e tutte le prove di casa usavano nomi
+     corti che non sono quelli del file. Se Genesi cambia una colonna, questa
+     prova lo dice il giorno stesso. */
+  const _srcGenesi = readFileSync(new URL("../../genesi/genesi.html", import.meta.url), "utf8");
+  const _testaGenesi = (/let csv='(foro;x_m;[^'\n]+)\\n';/.exec(_srcGenesi) || [])[1] || "";
+  test("Campo · l'intestazione VERA del piano di Genesi, letta dal suo sorgente, si riconosce tutta", () => {
+    ok(_testaGenesi.startsWith("foro;x_m;"), "trovata l'intestazione nel sorgente di Genesi: " + _testaGenesi.slice(0, 40));
+    const m = campo.mappaPianoCsv(_testaGenesi + "\n1;0.00;3.00;12;58;3;0;;;;;;f1-1\n");
+    eq(m.mancanti, [], "⛔ nessuna colonna del piano di Genesi risulta mancante a Campo (fila_m, borraggio_prog_m, ritardo_ms comprese)");
+    ok(m.riconosciute.some((r) => r.campo === "idForo"), "e l'id_foro in coda è riconosciuto");
+    const r = campo.parsePianoCsv(_testaGenesi + "\n1;0.00;3.00;12;58;3;42;;;;;;f1-1\n")[0];
+    eq([r.fila, r.borr, r.rit, r.idForo], ["3.00", "3", "42", "f1-1"], "fila, borraggio e ritardo entrano davvero, non vuoti");
+  });
+  test("Campo · il piano con id_foro: la colonna si riconosce, è facoltativa, e senza di lei non manca niente", () => {
+    const m = campo.mappaPianoCsv(PIANO_NUOVO);
+    ok(m.riconosciute.some((r) => r.campo === "idForo" && r.nome === "id_foro"), "id_foro riconosciuta come l'id del foro");
+    eq(m.mancanti, [], "e nel file nuovo non manca niente");
+    const v = campo.mappaPianoCsv(PIANO_VECCHIO);
+    eq(v.mancanti, [], "⛔ nel file di ieri, senza id_foro, NON manca niente: la colonna è facoltativa e non apre nessuna finestra");
+    ok(!v.ignorate.includes("id_foro"), "e non è nemmeno fra le ignorate, perché non c'è");
+  });
+  test("Campo · parsePianoCsv porta l'id sul foro, e il consuntivo lo rimanda in coda tale e quale", () => {
+    const righe = campo.parsePianoCsv(PIANO_NUOVO);
+    eq(righe.map((r) => r.idForo), ["f1-1", "f1-2", "m1"], "tre fori, tre id, compreso quello aggiunto a mano");
+    eq(campo.parsePianoCsv(PIANO_VECCHIO).map((r) => r.idForo), ["", ""], "senza colonna l'id è la stringa vuota, non «undefined»");
+    eq(campo.parsePianoCsv("1;0;3;12;58;3;0\n")[0].idForo, "", "e senza intestazione (sette colonne) la posizione 7 non esiste: vuoto");
+    const piano = campo.normalizzaPiano(righe.map((r, i) => ({ ...r, data: "2026-09-05", turno: "mattino", reale: i === 0 ? 61 : null })));
+    eq(piano.map((p) => p.idForo), ["f1-1", "f1-2", "m1"], "normalizzaPiano non lo perde");
+    const csv = campo.pianoConsuntivoCsv(piano);
+    eq(csv.split("\n")[0], campo.CONSUNTIVO_COLONNE.join(";"), "l'intestazione è quella dichiarata");
+    eq(campo.CONSUNTIVO_COLONNE[campo.CONSUNTIVO_COLONNE.length - 1], "id_foro", "⛔ id_foro sta in CODA: chi legge nove colonne non si accorge di niente");
+    eq(csv.split("\n").slice(1, 4).map((r) => r.split(";").pop()), ["f1-1", "f1-2", "m1"], "e ogni riga lo rimanda tale e quale");
+    const senza = campo.pianoConsuntivoCsv(campo.normalizzaPiano([{ foro: 1, prog: 58, reale: null, data: "2026-09-05", turno: "mattino" }]));
+    eq(senza.split("\n")[1].split(";").pop(), "", "un piano senza id scrive la cella vuota, non «null» né «undefined»");
+  });
+}
+/* ===== fine id del foro attraversa Campo (05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -800,11 +800,11 @@ console.log("\n· il piano di carico e il consuntivo che torna a Genesi: il quin
 FIXTURE = `
 {
   DEMO.pianocarico = [
-    { id:"pc1", data:"2026-07-29", turno:"Mattina", foro:1, fila:"A", x:1.5, prof:12, borr:2.4, rit:0,   prog:100,  reale:118.5,    squadra:"Squadra A", da:"Rossi Mario" },
-    { id:"pc2", data:"2026-07-29", turno:"Mattina", foro:2, fila:"A", x:4.5, prof:12, borr:2.4, rit:25,  prog:100,  reale:86.7,     squadra:"Squadra A", da:"Rossi;Mario" },
-    { id:"pc3", data:"2026-07-29", turno:"Mattina", foro:3, fila:"A", x:7.5, prof:12, borr:2.4, rit:50,  prog:1250, reale:1234.567, squadra:"Squadra \\"B\\"", da:"Bianchi Luca" },
+    { id:"pc1", data:"2026-07-29", turno:"Mattina", foro:1, fila:"A", x:1.5, prof:12, borr:2.4, rit:0,   prog:100,  reale:118.5,    squadra:"Squadra A", da:"Rossi Mario", idForo:"f1-1" },
+    { id:"pc2", data:"2026-07-29", turno:"Mattina", foro:2, fila:"A", x:4.5, prof:12, borr:2.4, rit:25,  prog:100,  reale:86.7,     squadra:"Squadra A", da:"Rossi;Mario", idForo:"f1-2" },
+    { id:"pc3", data:"2026-07-29", turno:"Mattina", foro:3, fila:"A", x:7.5, prof:12, borr:2.4, rit:50,  prog:1250, reale:1234.567, squadra:"Squadra \\"B\\"", da:"Bianchi Luca", idForo:"m1" },
     { id:"pc4", data:"2026-07-29", turno:"Mattina", foro:4, fila:"B", x:1.5, prof:12, borr:2.4, rit:75,  prog:58,   reale:null,     squadra:"", da:"" },
-    { id:"pc5", data:"2026-07-29", turno:"Mattina", foro:5, fila:"B", x:4.5, prof:12, borr:2.4, rit:100, prog:58,   reale:0,        squadra:"Squadra A", da:"Verdi Anna" }
+    { id:"pc5", data:"2026-07-29", turno:"Mattina", foro:5, fila:"B", x:4.5, prof:12, borr:2.4, rit:100, prog:58,   reale:0,        squadra:"Squadra A", da:"Verdi Anna", idForo:"f2-2" }
   ];
 }
 `;
@@ -864,8 +864,18 @@ FIXTURE = `
   await confrontaFraseColFile(pg, "btn-piano-export", righe);
 
   // ── gamba 1 · IL TESTO, per chi apre il file con un altro programma ──
-  dice(testa === "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore",
-    "⛔ l'intestazione porta i nove nomi di colonna, separati da «;»", testa);
+  dice(testa === "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro",
+    "⛔ l'intestazione porta i dieci nomi di colonna, separati da «;» (id_foro in coda, dal 05/09)", testa);
+  /* l'id stabile di Genesi torna in coda TALE E QUALE, e il foro 4 — che nel
+     piano non lo aveva — scrive la cella vuota, non «null». L'ultima cella si
+     legge con un'ancora sul «;» finale perché l'operatore di riga 2 è
+     «Rossi;Mario» fra virgolette e uno split cieco lo spezzerebbe. */
+  const ultime = dati.map((r) => (/;([^;"]*)$/.exec(r) || [, "?"])[1]);
+  dice(ultime.join("|") === "f1-1|f1-2|m1||f2-2",
+    "⛔ id_foro torna tale e quale per ogni foro, e vuoto — non «null» — per il foro che non lo aveva", ultime);
+  const metaId = await pg.$$eval("#piano-list .item .meta", (e) => e.map((x) => x.innerText.replace(/\s+/g, " ").trim()));
+  dice(metaId.filter((m) => /^id (f\d+-\d+|m\d+) · /.test(m)).length === 4 && metaId.some((m) => !/\bid /.test(m)),
+    "⛔ sullo schermo l'id sta nella riga del foro quando c'è, e non compare — nemmeno come «—» — dove non c'è", metaId);
   dice(csv.includes(";118.5;") && !csv.includes("118,5"),
     "⛔ i decimali col PUNTO, come nel piano arrivato da Genesi: mai la virgola", csv.slice(0, 300));
   dice(csv.includes(";1234.567;") && !csv.includes("1.234,567") && !csv.includes(";1.250;"),

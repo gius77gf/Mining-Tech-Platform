@@ -38,7 +38,7 @@
 //                      rapporto di fine turno è un documento datato — vedi
 //                      la ragione per esteso sopra `disponibilitaTurno`)
 //   pianocarico/{id}: { data, turno, foro, x, fila, prof, prog, borr, rit,
-//                       reale, da, squadra }
+//                       reale, da, squadra, idForo }
 //                     (piano di carico volata importato da CSV, ponte Genesi;
 //                      una riga per foro, salvata come il resto dei dati.
 //                      "da" e "squadra" sono CHI ha registrato la carica reale
@@ -2645,12 +2645,26 @@ export function csvSquadre(squadre) {
 const PIANO_COLONNE = {
   foro: ["foro", "n", "n_foro", "nforo", "numero", "num", "hole", "hole_id"],
   x:    ["x", "x_m", "xm", "posizione", "pos", "distanza"],
-  fila: ["fila", "riga", "row", "serie"],
+  /* ⛔ «fila_m», «borraggio_prog_m» e «ritardo_ms» sono i nomi che GENESI
+     scrive nel piano di carico — cioè nel file per cui questo lettore esiste —
+     e fino al 05/09 non erano in questi elenchi: il piano di Genesi entrava
+     con fila, borraggio e ritardo VUOTI e la finestra diceva «Non ho trovato la
+     colonna di: fila, borraggio, ritardo» a ogni import. Nessuna prova usava
+     l'intestazione vera: tutte quelle di casa scrivevano «fila;prof;prog».
+     Adesso una prova legge l'intestazione DAL SORGENTE di Genesi. */
+  fila: ["fila", "fila_m", "riga", "row", "serie"],
   prof: ["prof", "prof_m", "profm", "profondita", "profondità", "h", "depth", "lunghezza"],
   prog: ["prog", "prog_kg", "carica", "carica_kg", "carica_prog_kg", "kg", "kg_foro", "charge"],
-  borr: ["borr", "borr_m", "borrm", "borraggio", "stemming"],
-  rit:  ["rit", "rit_ms", "ritms", "ritardo", "delay", "ms"],
+  borr: ["borr", "borr_m", "borrm", "borraggio", "borraggio_m", "borraggio_prog_m", "stemming"],
+  rit:  ["rit", "rit_ms", "ritms", "ritardo", "ritardo_ms", "delay", "ms"],
+  /* l'id stabile del foro (05/09): Genesi lo scrive in coda al piano
+     («id_foro»: f2-5 nella maglia, m1 aggiunto a mano) e Campo lo rimanda nel
+     consuntivo, così Genesi accoppia ogni foro alla sua carica reale anche se
+     un foro è stato tolto e i numeri sono scivolati. FACOLTATIVO: un piano
+     senza questa colonna è un piano di ieri, non un piano rotto. */
+  idForo: ["id_foro", "idforo", "id"],
 };
+const PIANO_FACOLTATIVE = ["idForo"];
 const _pulisciNome = (s) => String(s == null ? "" : s).trim().toLowerCase()
   .replace(/\(.*?\)/g, "")                 // «carica (kg)» → «carica»
   .replace(/[^a-z0-9àèéìòù_]+/g, "_")
@@ -2672,7 +2686,10 @@ export function mappaPianoCsv(text) {
     if (campo && indici[campo] === undefined) { indici[campo] = i; riconosciute.push({ campo, nome, i }); }
     else if (nome) ignorate.push(nome);
   });
-  const mancanti = Object.keys(PIANO_COLONNE).filter(k => indici[k] === undefined);
+  /* le facoltative non finiscono fra le mancanti: se no ogni file di ieri
+     aprirebbe la finestra «Non ho trovato la colonna di: …» per una colonna
+     che non gli è mai stata chiesta */
+  const mancanti = Object.keys(PIANO_COLONNE).filter(k => indici[k] === undefined && !PIANO_FACOLTATIVE.includes(k));
   return { conIntestazione: true, indici, riconosciute, ignorate, mancanti };
 }
 
@@ -2688,7 +2705,11 @@ export function parsePianoCsv(text) {
         return i === undefined ? "" : c[i];
       };
       return { foro: numIt(g("foro", 0)), x: g("x", 1), fila: g("fila", 2), prof: g("prof", 3),
-               prog: numIt(g("prog", 4)), borr: g("borr", 5), rit: g("rit", 6), reale: null };
+               prog: numIt(g("prog", 4)), borr: g("borr", 5), rit: g("rit", 6), reale: null,
+               /* senza intestazione la posizione 7 non esiste in un file a sette
+                  colonne: resta "" — «non c'è» è una stringa vuota, non un null,
+                  perché è testo e non un numero */
+               idForo: String(g("idForo", 7) || "").trim() };
     })
     .filter(p => p.foro > 0 && p.prog > 0);
 }
@@ -2939,8 +2960,12 @@ export function frasiCaricoParziale(par, marca) {
 // continua a funzionare.
 // carica_reale_kg è scritta GREZZA, senza arrotondamenti: è il dato misurato
 // e nessuno deve toccarlo per strada.
+// · id_foro (05/09) — l'id stabile che Genesi ha scritto nel piano e che qui
+//   torna indietro TALE E QUALE: è la chiave con cui Genesi accoppia la riga
+//   al foro del progetto. Vuoto se il piano non lo portava. In coda, come le
+//   tre prima di lui: chi legge nove colonne continua a funzionare.
 export const CONSUNTIVO_COLONNE = ["data", "turno", "foro", "carica_prog_kg",
-  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore"];
+  "carica_reale_kg", "scarto_pct", "scarto_kg", "squadra", "operatore", "id_foro"];
 
 export function pianoConsuntivoCsv(piano) {
   const righe = (piano || []).map(p => {
@@ -2955,7 +2980,7 @@ export function pianoConsuntivoCsv(piano) {
     return [p.data || "", csvCell(p.turno || ""), p.foro, p.prog,
             p.reale != null ? p.reale : "",
             s != null ? Math.round(s * 100) : "",
-            dkg, csvCell(p.squadra || ""), csvCell(p.da || "")].join(";");
+            dkg, csvCell(p.squadra || ""), csvCell(p.da || ""), csvCell(p.idForo || "")].join(";");
   });
   return CONSUNTIVO_COLONNE.join(";") + "\n" + righe.join("\n") + (righe.length ? "\n" : "");
 }
