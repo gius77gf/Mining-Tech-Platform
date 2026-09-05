@@ -399,6 +399,16 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
+- [ ] **CONTI — dalla ricerca del 05/09 notte (il file dei movimenti bancari),
+  con un difetto MISURATO.** `parseMovimentiCsv` legge le colonne per
+  posizione: sulla forma più citata dai manuali (`Data operazione;Descrizione;
+  Importo entrate;Importo uscite;Saldo progressivo;Causale ABI`) il bonifico da
+  12.300 € esce **−45.210,77** (il saldo letto come uscita) senza nessuno
+  scarto dichiarato, e sulla forma dare/avere la descrizione si perde e la
+  fattura non si abbina. (a) `mappaMovimentiCsv` per nome di colonna, saldo e
+  causale ABI esclusi, esito che dice le colonne riconosciute (basso-medio);
+  (b) TRN/CRO conservato sul movimento (basso). Vedi
+  `docs/RICERCA_CONTINUA_CONTI.md`.
 - [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
@@ -1386,6 +1396,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
+- `CONTI — dalla ricerca del 05/09 notte` *(file della banca letto per posizione:
+  il saldo esce come uscita, misurato)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 

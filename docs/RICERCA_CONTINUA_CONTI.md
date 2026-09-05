@@ -1049,3 +1049,85 @@ le righe esenti e il bollo, solo se il caso si presenta; (c) ✅ fatta il 04/09 
 si traduce se è una delle due di vendita, si scrive com'è se è un'altra
 («viaggi»), e se manca il tag facoltativo non si scrive (prima: «TN» a tutti); (d) `RiferimentoNumeroLinea` e la destinazione per
 DDT — dipende dalla scelta di prodotto sui cantieri.
+
+## Ricerca del 2026-09-05 (notte) — il file dei movimenti bancari: in che forma esce dalle banche (metà sul mondo)
+
+*Metà sul mondo con `WebSearch` (tre ricerche); il testo primario non si
+legge da qui, quindi tutto è **[seconda mano: risultato di ricerca]**. Seconda
+tornata su Conti: le precedenti coprivano la pesa, la riconciliazione
+prodotto/venduto/scorte e la fattura differita.*
+
+**Che cosa succede fuori.**
+
+1. **Ogni banca esporta le colonne a modo suo.** I manuali degli importatori
+   di estratto conto (Datalog, Gaianet, Tandem, MoneySaving) descrivono la
+   stessa cosa in quattro modi: «Data valuta, data documento, importi,
+   causale», «Data operazione, Descrizione movimento (max 200 caratteri),
+   Importo entrate, Importo uscite, Saldo progressivo, Causale ABI
+   opzionale», «Data Operazione, Data Valuta, Import Entrata, Import Uscita»;
+   e «ogni banca usa un suo sistema e un suo ordinamento, così come per le
+   causali», per cui gli importatori prevedono **una mappatura per istituto**.
+   La descrizione è spesso «causale descrittiva + descrizione» in una cella
+   sola. [seconda mano: datalog.it, gaianet.it, tandemservizi.it,
+   moneysaving.it]
+2. **Lo standard vero è il CBI**: il flusso «RH — rendicontazione saldi e
+   movimenti di conto corrente» (record 61 saldo iniziale, 62 movimento, fino
+   a 5 record 63 di descrizione; importi con virgola e due decimali). È quello
+   che i gestionali importano quando vogliono un tracciato uguale per tutte
+   le banche — ma è un file a posizioni fisse, non un CSV, e lo scaricano gli
+   utenti corporate. [seconda mano: edupass.it (Mexal), unicreditcorporate.it,
+   babons.it]
+3. **Il bonifico si riconosce dal riferimento.** Il TRN (30 caratteri
+   alfanumerici, obbligatorio per i bonifici SEPA dal 2016) e il CRO (11
+   cifre, bonifici nazionali) compaiono nella descrizione; i gestionali
+   abbinano per importo, data e testo della causale (numero di fattura),
+   e i più recenti «anche quando i dati non sono perfettamente identici».
+   [seconda mano: sumup.com, fiweb.it, bpilot.it]
+
+Fonti (risultati di ricerca):
+https://www.datalog.it/importazione-automatica-degli-estratti-conto-bancari-nel-software-contabile/ ·
+https://www.gaianet.it/wp-content/uploads/2018/09/Import-Estratto-conto-Bancario.pdf ·
+https://www.tandemservizi.it/wp-content/uploads/2019/11/Note-Operative-Importatore-Estratto-Conto.pdf ·
+https://www.edupass.it/manuali/manualistica-mexal/manuale-prodotto?a=manuale-prodotto/contabilita/appendice-h--riconciliazione-bancaria/riconciliazione/importazione-movimenti-bancari-da-file-cbi-rh ·
+https://babons.it/wp-content/uploads/CBI-RND.pdf ·
+https://www.sumup.com/it-it/gestire-attivita/pagamenti/cro-bonifico/
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `ba8fe866`) — con una MISURA, non un grep
+
+- **Chi legge il file della banca?** `parseMovimentiCsv` in `conti-data.js`:
+  legge il testo intero con `leggiCsv` (le descrizioni su più righe non si
+  spezzano), riconosce l'intestazione solo per saltarla
+  (`INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i`) e poi prende le celle
+  **per posizione**: `[dataRaw, valutaRaw, descr, a, b]`, con «se le ultime
+  due sono numeri è entrate/uscite». Cioè conosce **una** forma, quella del
+  file d'esempio (`data;valuta;descrizione;importo`), e il mondo (punto 1)
+  dice che le forme sono tante.
+- **Misurato in scratchpad, tre file veri per forma**:
+  · `Data;Valuta;Descrizione;Importo` → giusto (12.300, descrizione intera);
+  · `Data operazione;Descrizione movimento;Importo entrate;Importo uscite;
+    Saldo progressivo;Causale ABI` (la forma più citata dai manuali) → il
+    bonifico da 12.300 € esce come **−45.210,77 €** (il SALDO letto come
+    uscita, la descrizione persa: «12.300,00» al suo posto), e il pagamento
+    F24 da 1.250 come **−42.710,77**. Nessuno scarto dichiarato: `scarto: ""`,
+    cioè il numero sbagliato con la faccia tranquilla, sui soldi;
+  · `Data contabile;Data valuta;Dare;Avere;Descrizione` → importo giusto ma
+    **descrizione vuota**, quindi `abbinaMovimenti` non trova il numero della
+    fattura e il bonifico resta «da abbinare a mano».
+- **Chi abbina?** `abbinaMovimenti` cerca i NOSTRI numeri di fattura nella
+  causale (il verso giusto: punto 3) e `movimentoGiaRegistrato` evita i
+  doppioni: tutto giusto, **a valle di una lettura che può essere sbagliata**.
+- **Il TRN/CRO** non è letto né conservato: `grep -c "TRN\|CRO" conti-data.js`
+  → 0. Serve poco all'abbinamento (il numero di fattura basta) ma è la chiave
+  di un movimento: candidato a costo basso, dopo la mappa.
+
+Candidati: (a) **`mappaMovimentiCsv(intestazione)` per nome di colonna**,
+come `proponiMappa` di Sentinella — data (contabile/operazione), data valuta,
+descrizione/causale, e l'importo in una delle tre forme (importo; entrate e
+uscite; dare e avere), con **saldo** e **causale ABI** riconosciuti per
+ESCLUDERLI; senza intestazione resta la lettura per posizione di oggi;
+l'esito dell'import dice quali colonne ha riconosciuto e quali ha ignorato,
+e una riga con l'importo preso da una colonna che non si chiama importo NON
+esce tranquilla. Costo basso-medio; misura: i tre file qui sopra danno gli
+stessi tre movimenti giusti, e un file con solo `saldo` come numero esce con
+lo scarto «nessuna colonna dell'importo». (b) il TRN/CRO conservato sul
+movimento (basso, dopo (a)).
