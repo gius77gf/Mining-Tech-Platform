@@ -30788,7 +30788,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         `⛔ ${t.id}: l'intestazione dichiarata non è quella che ${t.fonte} scrive. `
         + `Un elenco scritto a mano è la copia debole che questa casa ha già pagato quattro volte`);
     }
-    ok(conFonte >= 28, `almeno 28 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
+    ok(conFonte >= 30, `almeno 30 intestazioni sono verificate chiamando l'export vero — sono ${conFonte}`);
   });
 
   test("⛔ B8 · e le intestazioni scritte nelle PAGINE si vanno a leggere nella pagina", () => {
@@ -37654,6 +37654,44 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine giri e scadenzario di Flotta nel modulo (05/09) ===== */
+/* ===== il registro degli interventi e la lista della spesa nel modulo (Flotta, 05/09) ===== */
+{
+  const D = flotta.DEMO;
+  test("Flotta · csvRegistroInterventi: dieci colonne, dal più recente, l'importo mancante VUOTO e lo zero dichiarato tenuto", () => {
+    const righe = flotta.csvRegistroInterventi(D.interventi).split("\r\n");
+    eq(righe[0], flotta.CSV_INTERVENTI_INTESTAZIONE, "l'intestazione è la costante");
+    eq(righe[0].split(";").length, 10, "dieci colonne, le tre della lavorazione e chi ha lavorato in fondo");
+    eq(righe.length, D.interventi.length + 1, "una riga per intervento");
+    const date = righe.slice(1).map((r) => r.split(";")[0]);
+    eq(date, date.slice().sort().reverse(), "dal più recente");
+    const w1 = righe.find((r) => /Tagliando 500h/.test(r));
+    ok(w1 && w1.split(";")[4] === "420" && /Marco 4 h \| Luca 2 h/.test(w1), "costo nudo e chi ha lavorato con le ore — " + w1);
+    const due = flotta.csvRegistroInterventi([{ data: "2026-01-01", titolo: "garanzia", costo: 0 }, { data: "2026-01-02", titolo: "senza", costo: null }]).split("\r\n");
+    eq(due[1].split(";")[4], "", "⛔ il costo che non c'è esce VUOTO, non «0»: in un foglio uno zero si somma");
+    eq(due[2].split(";")[4], "0", "⛔ e lo zero DICHIARATO (garanzia) resta 0: è un dato, non un buco");
+    eq(flotta.csvRegistroInterventi(null), flotta.CSV_INTERVENTI_INTESTAZIONE, "null non rompe");
+  });
+  test("Flotta · csvListaDellaSpesa: le righe da ordinare e le tre avvertenze in fondo, ognuna solo quando la bandiera lo dice", () => {
+    const p = flotta.propostaScorte(D.ricambi, D.interventi, { consegnaGiorni: 7, sicurezzaGiorni: 3, finestraGiorni: 180 });
+    const da = p.righe.filter((r) => r.daOrdinare > 0);
+    const csv = flotta.csvListaDellaSpesa(p);
+    const righe = csv.split("\r\n");
+    eq(righe[0], flotta.CSV_LISTA_SPESA_INTESTAZIONE, "l'intestazione è la costante");
+    ok(da.length >= 1, "la dimostrazione ha qualcosa da ordinare (se no la prova non guarda niente): " + da.length);
+    eq(righe.slice(1, 1 + da.length).map((r) => r.split(";")[0]), da.map((r) => r.nome), "una riga per ricambio da ordinare, nell'ordine della proposta");
+    const avvisi = righe.filter((r) => /^"?ATTENZIONE: /.test(r));
+    eq(avvisi.length, (p.senzaData ? 1 : 0) + (p.attendibile ? 0 : 1) + (p.senzaPrezzo ? 1 : 0), "⛔ tante avvertenze quante bandiere alzate (senzaData, !attendibile, senzaPrezzo)");
+    ok(p.attendibile || avvisi.some((r) => /STIMA, non una misura/.test(r)), "la stima si dichiara stima");
+    ok(!p.senzaPrezzo || avvisi.some((r) => /colonna «spesa» resta vuota/.test(r)), "e la spesa senza prezzo si dichiara");
+    ok(!avvisi.length || righe[righe.indexOf(avvisi[0]) - 1] === "", "ogni avvertenza sta dopo una riga vuota, con una cella sola: un foglio non la somma");
+    eq(flotta.csvListaDellaSpesa({ righe: [], senzaPrezzo: 3, attendibile: false }), flotta.CSV_LISTA_SPESA_INTESTAZIONE, "⛔ senza niente da ordinare niente avvertenze: non c'è una lista di cui parlare");
+    eq(flotta.csvListaDellaSpesa(null), flotta.CSV_LISTA_SPESA_INTESTAZIONE, "null non rompe");
+    const tutte = flotta.csvListaDellaSpesa({ righe: [{ nome: "x", giacenza: 0, daOrdinare: 2, prezzo: null, spesa: null, alGiorno: 0.1, copertura: 0, episodi: 1 }], senzaData: 1, attendibile: false, daInterventiVecchi: 2, senzaPrezzo: 1 }).split("\r\n");
+    eq(tutte.filter((r) => /^"?ATTENZIONE/.test(r)).length, 3, "con tutt'e tre le bandiere, tre avvertenze");
+    ok(/Nessuna riga porta un prezzo: quanto costa questa lista non si può dire/.test(tutte.join("\n")), "e quando nessuna riga ha il prezzo lo dice");
+  });
+}
+/* ===== fine registro interventi e lista della spesa nel modulo (05/09) ===== */
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */

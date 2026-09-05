@@ -180,17 +180,19 @@ const DIFETTI = [
   ["      const s = statoGiro(c);",
    "      const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();", MODULO],
   // 3 · lo zero sommabile al posto della cella vuota, nel registro interventi
-  ["                   numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
-   "                   (+w.costo) || 0, w.note || \"\","],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvRegistroInterventi`): due spazi in meno. */
+  ["                 numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
+   "                 (+w.costo) || 0, w.note || \"\",", MODULO],
   // 4 · la lista della spesa senza la colonna `episodi`
-  ["                           r.episodi == null ? \"\" : r.episodi].map(csvCell).join(\";\")));",
-   "                           \"\"].map(csvCell).join(\";\")));"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvListaDellaSpesa`): due spazi in meno. */
+  ["                         r.episodi == null ? \"\" : r.episodi].map(csvCell).join(\";\")));",
+   "                         \"\"].map(csvCell).join(\";\")));", MODULO],
   /* 5 · e la lista della spesa senza l'avvertenza sugli interventi rimasti
      fuori dal conto. Sta qui perché senza di lei quelle due prove non
      sapevano fallire: la quarta iniezione toglie la COLONNA, non la CODA, e
      una prova che nessuna iniezione può far cadere è una prova che non
      dimostra niente — anche quando il riepilogo intorno a lei è rosso. */
-  ["    if (p.senzaData) {", "    if (false) {"],
+  ["  if (p.senzaData) {", "  if (false) {", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   /* 6 · il file perde una riga in silenzio e la FRASE non se ne accorge: è la
      forma esatta del difetto che il confronto frase↔file esiste per prendere.
      Un mezzo sparisce dalla situazione, e il riepilogo continua a dire sei. */
@@ -290,8 +292,18 @@ const CASI = `
 `;
 
 let iniezioni = 0, rimessi = new Set();
+/* ⛔ OGNI INIEZIONE DICHIARA IL SUO FILE, E SI APPLICA SOLO LÌ (05/09). Fino a
+   oggi `applica` girava sulla sola PAGINA e ignorava il terzo elemento: le
+   iniezioni riancorate sul MODULO (i fermi, `statoGiro`, il costo, `episodi`,
+   `senzaData`) non mordevano niente, e la controprova stampava «✔ distingue»
+   grazie alle altre — con la riga «i 8 difetti sono stati rimessi davvero»
+   rossa in mezzo, che nessuno leggeva. Peggio: l'ancora di `statoGiro` a sei
+   spazi è una SOTTOSTRINGA della riga a otto del libretto, quindi mordeva la
+   pagina nel posto sbagliato e si contava rimessa. Un'iniezione senza file
+   vale per la pagina, come prima. */
 const applica = (t, file) => {
-  for (const [i, [da, a]] of DIFETTI.entries()) {
+  for (const [i, [da, a, f]] of DIFETTI.entries()) {
+    if ((f || PAGINA) !== file) continue;
     if (!t.includes(da)) continue;
     const n = t.split(da).length - 1;
     if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA (#${i + 1}): ${n} soggetti`); continue; }
@@ -309,7 +321,11 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith(MODULO)) { corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8"); iniezioni++; }
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASI, "utf8"); iniezioni++;
+  }
   if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);

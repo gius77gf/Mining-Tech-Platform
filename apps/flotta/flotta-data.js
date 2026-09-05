@@ -854,6 +854,69 @@ export function csvScadenzeDiLegge(scadenze, mezzi, oggi = new Date(), preavviso
   return righe.join("\r\n");
 }
 
+/* IL REGISTRO DEGLI INTERVENTI (05/09, salito dalla pagina): l'export più
+   grande dell'app, quello che si porta al commercialista. La cella
+   dell'importo resta VUOTA quando il costo non c'è — chi apre il file in un
+   foglio uno zero lo somma credendolo misurato — e `numeroDichiarato` tiene
+   lo zero dichiarato (un intervento in garanzia costa davvero zero). Le
+   colonne della lavorazione sono in fondo: chi apriva il file prima ritrova
+   le sue nelle stesse posizioni. Dal più recente. Pura. */
+export const CSV_INTERVENTI_INTESTAZIONE = "data;titolo;mezzo;ricambio;costo;note;ore_manodopera;costo_manodopera;costo_ricambi;chi_ha_lavorato";
+export function csvRegistroInterventi(interventi) {
+  const righe = [CSV_INTERVENTI_INTESTAZIONE]
+    .concat((interventi || []).filter(Boolean).slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
+      .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
+                 numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
+                 w.oreManodopera == null ? "" : w.oreManodopera,
+                 w.costoManodopera == null ? "" : w.costoManodopera,
+                 w.costoRicambi == null ? "" : w.costoRicambi,
+                 (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
+  return righe.join("\r\n");
+}
+
+/* LA LISTA DELLA SPESA (05/09, salita dalla pagina): le righe da ordinare di
+   `propostaScorte`, e in fondo le TRE dichiarazioni d'incertezza che il
+   modulo alza con le bandiere — `senzaData` (interventi fuori dal conto: le
+   quantità sono un MINIMO), `attendibile` (quantità contate 1 per gli
+   interventi vecchi: una STIMA), `senzaPrezzo` (la colonna «spesa» è un
+   minimo, o non si può dire) — ognuna come riga di testo con una cella sola,
+   che un foglio di calcolo non somma. La colonna `episodi` è il dato al posto
+   del giudizio «affidabile». `proposta` è ciò che `propostaScorte` ritorna;
+   senza niente da ordinare esce la sola intestazione. Pura. */
+export const CSV_LISTA_SPESA_INTESTAZIONE = "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi";
+export function csvListaDellaSpesa(proposta) {
+  const p = proposta || {};
+  const da = (p.righe || []).filter(r => r && r.daOrdinare > 0);
+  const righe = [CSV_LISTA_SPESA_INTESTAZIONE]
+    .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
+                         r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
+                         r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
+  if (!da.length) return righe.join("\r\n");
+  if (p.senzaData) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
+      + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
+      + " quindi le quantità da ordinare sono un MINIMO."));
+  }
+  if (!p.attendibile) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")
+      + " quante unità di ricambio sono state usate, e ne è stato contato 1"
+      + (p.daInterventiVecchi === 1 ? "." : " per ciascuno.")
+      + " Il consumo qui sopra è in parte una STIMA, non una misura:"
+      + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
+  }
+  if (p.senzaPrezzo) {
+    righe.push("");
+    righe.push(csvCell("ATTENZIONE: " + conta(p.senzaPrezzo, "ricambio di questa lista non ha", "ricambi di questa lista non hanno")
+      + " un prezzo scritto a magazzino, quindi la colonna «spesa» resta vuota."
+      + (p.senzaPrezzo >= da.length
+          ? " Nessuna riga porta un prezzo: quanto costa questa lista non si può dire."
+          : " Il totale della colonna è quindi un MINIMO, non la spesa vera.")));
+  }
+  return righe.join("\r\n");
+}
+
 export function csvRicambi(ricambi) {
   const righe = ["nome;giacenza;sogliaMin;prezzo"];
   for (const r of (ricambi || [])) {

@@ -1344,7 +1344,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -4266,34 +4266,10 @@ body.dw b.bad{color:var(--ink-dg)}
     if (a) { e.preventDefault(); a.click(); }
   });
   $("btn-int-csv").onclick = () => {
-    // Le colonne della lavorazione sono IN FONDO: chi apriva questo file
-    // prima ritrova le sue nelle stesse posizioni, e le righe vecchie hanno
-    // semplicemente le celle nuove vuote.
-    const righe = [["data", "titolo", "mezzo", "ricambio", "costo", "note",
-                    "ore_manodopera", "costo_manodopera", "costo_ricambi", "chi_ha_lavorato"].join(";")]
-      .concat(INT.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
-        /* ⛔ LA CELLA DELL'IMPORTO RESTA VUOTA QUANDO IL COSTO NON C'È, e qui
-           c'era ancora `(+w.costo) || 0`. La ragione sta scritta per esteso a
-           riga 4505, sopra il CSV del libretto, dove la correzione era già
-           stata fatta: *chi apre il file in un foglio quello zero lo SOMMA
-           credendolo misurato*. Questo è il registro che si porta al
-           commercialista, ed è l'export più grande dell'app.
-           Lo schermo (2182) la pastiglia dell'importo non la disegna affatto
-           quando il costo non c'è; il libretto (3423) scrive «costo non
-           scritto». Solo questo file inventava uno zero.
-           ⚠️ E la convenzione era già nelle TRE CELLE QUI SOTTO
-           (`== null ? ""`): la riga sbagliata era una sola, in mezzo a quelle
-           giuste. `numeroDichiarato` di `shared/` la dice meglio di `> 0`,
-           perché tiene lo zero DICHIARATO — un intervento in garanzia costa
-           davvero zero, ed è un dato, non un buco. */
-        .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
-                   numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
-                   w.oreManodopera == null ? "" : w.oreManodopera,
-                   w.costoManodopera == null ? "" : w.costoManodopera,
-                   w.costoRicambi == null ? "" : w.costoRicambi,
-                   (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
+    // le righe le compone `csvRegistroInterventi` nel modulo — la cella
+    // dell'importo resta vuota quando il costo non c'è (05/09)
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvRegistroInterventi(INT)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-registro-interventi.csv"; marchiaCsv(a); a.click();
     toast(plurale(INT.length, "Esportato ", "Esportati ") + conta(INT.length, "intervento", "interventi") + " (CSV).", "success");
   };
@@ -5256,50 +5232,10 @@ body.dw b.bad{color:var(--ink-dg)}
        ⚠️ L'avvertenza si scrive DOPO le righe e con una sola cella piena: un
        foglio di calcolo la legge come una riga di testo in fondo, non come un
        dato che si somma. */
-    const righe = [["ricambio", "giacenza", "da_ordinare", "prezzo_unitario", "spesa", "consumo_al_giorno", "copertura_giorni", "episodi"].join(";")]
-      .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
-                           r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
-                           r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
-    if (p.senzaData) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaData, "intervento con ricambi resta", "interventi con ricambi restano")
-        + " fuori dal conto perché il giorno non si legge. Il consumo qui sopra è calcolato su meno di tutto,"
-        + " quindi le quantità da ordinare sono un MINIMO."));
-    }
-    /* ⛔ E LA TERZA DICHIARAZIONE D'INCERTEZZA DELLA STESSA FUNZIONE, che il
-       file perdeva come perdeva le altre due. `p.attendibile` è false quando
-       il consumo poggia su interventi VECCHI, dove il pezzo è nominato e la
-       quantità no: il modulo ne conta 1 — una costante al posto di un
-       ingresso mai scritto. Qui non si dichiara un verso (dipende da quanto
-       si consuma davvero), si dichiara che quel numero è una STIMA: chi apre
-       il foglio e ordina, altrimenti, ordina su una quantità che nessuno ha
-       misurato credendola contata. Stessa forma di `senzaData`: una riga in
-       fondo con una cella sola, non una colonna ripetuta uguale su ogni riga. */
-    if (!p.attendibile) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.daInterventiVecchi, "intervento vecchio non dice", "interventi vecchi non dicono")
-        + " quante unità di ricambio sono state usate, e ne è stato contato 1"
-        + (p.daInterventiVecchi === 1 ? "." : " per ciascuno.")
-        + " Il consumo qui sopra è in parte una STIMA, non una misura:"
-        + " scrivi le quantità negli ordini di lavoro e il conto diventa vero."));
-    }
-    /* ⛔ E LA QUARTA, che è quella che il fornitore legge per fare il preventivo.
-       `spesa` di riga è già `null` quando il pezzo non ha un prezzo — la
-       colonna esce vuota, ed è giusto — ma chi somma la colonna in un foglio
-       di calcolo ottiene la stessa cifra che il modulo chiama `spesaTotale`, e
-       nessuno gli dice che è un MINIMO. Stessa forma delle altre due
-       avvertenze: una riga in fondo con una cella sola, non una colonna
-       ripetuta uguale. */
-    if (p.senzaPrezzo) {
-      righe.push("");
-      righe.push(csvCell("ATTENZIONE: " + conta(p.senzaPrezzo, "ricambio di questa lista non ha", "ricambi di questa lista non hanno")
-        + " un prezzo scritto a magazzino, quindi la colonna «spesa» resta vuota."
-        + (p.senzaPrezzo >= da.length
-            ? " Nessuna riga porta un prezzo: quanto costa questa lista non si può dire."
-            : " Il totale della colonna è quindi un MINIMO, non la spesa vera.")));
-    }
+    /* Le righe e le tre avvertenze in fondo le compone `csvListaDellaSpesa`
+       nel modulo, leggendo le bandiere della proposta (05/09). */
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + righe.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.href = URL.createObjectURL(new Blob(["﻿" + csvListaDellaSpesa(p)], { type: "text/csv;charset=utf-8" }));
     a.download = "flotta-lista-della-spesa.csv"; marchiaCsv(a); a.click();
     esito("ric-esito", "Lista della spesa esportata: " + da.length + (da.length === 1 ? " ricambio" : " ricambi")
       + (p.senzaPrezzo
