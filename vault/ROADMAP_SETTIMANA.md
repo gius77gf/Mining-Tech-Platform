@@ -665,6 +665,20 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LA PASSATA A 320 PX DIVENTA UN BANCO (05/09, notte):**
+  `tests/browser/numeri-tranquilli-a-320.mjs` — ogni schermata delle sei
+  app a 320 px, linguette chiuse aperte, e il VERDETTO solo sulle quattro
+  parole che non devono comparire mai in una riga visibile («NaN»,
+  «undefined», «null», «[object»); gli zeri con unità e i trattini «—» si
+  CONTANO e si stampano col denominatore (41 schermate, 4.588 righe, 39
+  zeri, 390 trattini — candidati, non verdetti). Registrato in `tutti.mjs`
+  (255 esecuzioni, 107 file); perimetro dichiarato (core e Genesi fuori,
+  con la ragione). ⚠️ **La controprova ha bocciato la prima stesura**: il
+  «undefined» rimesso nel titolo «Registra misura» NON cadeva, perché
+  `innerText` rispetta `text-transform` e i titoli di sezione sono in
+  maiuscolo — «REGISTRA MISURA UNDEFINED» — e la regex era sensibile alle
+  maiuscole. È la trappola già scritta in CLAUDE.md (il maiuscolo e
+  `innerText`) nel verso opposto. Con la `i`: 2 caduti su 24, 2/2 rimessi.
 - [x] **LA PASSATA IN PROFONDITÀ A 320 PX SU TUTTE E SEI LE APP, E LE REGOLE
   DEI PONTI SOTTO L'EMULATORE (05/09, notte):** (1) uno stesso strumento
   (`scratchpad/pass-app.mjs`, per ora fuori dal repository: è una MISURA) ha
@@ -7043,8 +7057,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **253 esecuzioni** che
-  aprono le pagine in un browser vero, da **106** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **255 esecuzioni** che
+  aprono le pagine in un browser vero, da **107** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

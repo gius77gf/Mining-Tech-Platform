@@ -964,6 +964,13 @@ const BANCHI = [
      entrano; riesportare non raddoppia. Controprova per file. */
   ['il piano di carico: Genesi → Campo senza il file', 'ponte-genesi-campo.mjs', []],
   ['piano Genesi → Campo · controprova', 'ponte-genesi-campo.mjs', ['--controprova'], true],
+  /* 05/09 (notte) · la passata in profondità come banco: ogni schermata delle
+     sei app a 320 px, linguette chiuse aperte, nessuna riga con «NaN»,
+     «undefined», «null», «[object»; gli zeri con unità e i trattini contati
+     come misura col denominatore. Controprova: un «undefined» e un «NaN»
+     rimessi in due testi statici. */
+  ['ogni schermata delle sei app a 320 px: le quattro parole vietate, e gli zeri contati', 'numeri-tranquilli-a-320.mjs', []],
+  ['schermate a 320 px · controprova', 'numeri-tranquilli-a-320.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore
