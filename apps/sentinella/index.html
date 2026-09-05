@@ -1303,7 +1303,20 @@ textarea.dw-input{
     <select class="dw-input" id="mis-sensore" style="flex:2 1 190px;"></select>
     <input class="dw-input dec" id="mis-valore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Valore letto (es. 4,8)" title="Scrivilo come sta sullo strumento: la virgola va benissimo (4,8)." style="flex:1 1 175px;">
     <button class="dw-btn" id="btn-mis">Registra</button>
-    <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.</div>
+    <!-- LE CONDIZIONI DELLA MISURA (05/09). Facoltative, e non a caso: sul
+         RUMORE la norma (DM 16/03/1998, All. B) non ammette misure con vento
+         oltre 5 m/s o con pioggia, quindi una lettura registrata senza il vento
+         non si sa se vale. L'app lo scrive accanto alla riga e nel report; non
+         toglie niente da sola — è un suggerimento, come «nessuna volata quel
+         giorno»: la persona dichiara la misura non valida con la ragione. -->
+    <input class="dw-input dec" id="mis-vento" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Vento m/s" title="Velocità del vento durante la misura, in metri al secondo. Sul rumore la norma non ammette misure con vento oltre 5 m/s." style="flex:1 1 150px;">
+    <select class="dw-input" id="mis-vento-da" title="Da dove soffiava il vento durante la misura" style="flex:1 1 165px;"></select>
+    <select class="dw-input" id="mis-pioggia" title="Pioveva durante la misura? Sul rumore la norma non ammette misure sotto la pioggia." style="flex:1 1 165px;">
+      <option value="">— pioggia? —</option><option value="no">Senza pioggia</option><option value="si">Con pioggia</option></select>
+    <input class="dw-input dec" id="mis-temp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Temperatura °C" title="Temperatura dell'aria durante la misura" style="flex:1 1 150px;">
+    <input class="dw-input dec" id="mis-umid" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Umidità %" title="Umidità relativa dell'aria durante la misura, da 0 a 100" style="flex:1 1 150px;">
+    <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.
+      Le <b>condizioni meteo</b> sono facoltative ma sul <b>rumore</b> decidono se la misura vale: con vento oltre 5 m/s o con pioggia la norma non la ammette, e l'app lo scrive accanto alla lettura invece di contarla come buona.</div>
   </div>
   <div class="note esito" id="mis-esito"></div>
 
@@ -1824,6 +1837,7 @@ textarea.dw-input{
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            annullaLettura, ripristinaLettura, letturaValida, annullamentoDi, contaAnnullate, letturaSenzaVolata,
            RAGIONI_ANNULLAMENTO,
+           condizioniMisura, misuraFuoriCondizioni, contaFuoriCondizioni, DIREZIONI_VENTO,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
            PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO, PORTATA_REPORT, intestazioneOrigineReport,
@@ -2191,6 +2205,7 @@ textarea.dw-input{
     const ann = contaAnnullate(m.letture);
     const vibrazioni = String(m.tipo || "").trim().toLowerCase() === "vibrazioni";
     let suggerite = 0;   // quante righe portano il suggerimento: la spiegazione si scrive UNA volta, sotto
+    let fuoriCond = 0;   // e quante sono fuori dalle condizioni della norma sul rumore (stessa forma)
     const righe = viste.map(({ l, i }) => {
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
@@ -2202,6 +2217,12 @@ textarea.dw-input{
          ha volate eseguite (`null` = non si può dire, e non si dice). */
       const senzaVolata = vibrazioni && !an && letturaSenzaVolata(l, VOL) === true;
       if (senzaVolata) suggerite++;
+      /* le condizioni meteo, se registrate, si leggono sulla riga; e sul
+         RUMORE, se mettono la misura fuori norma, la riga lo suggerisce con la
+         stessa forma di «nessuna volata»: candidata, non tolta */
+      const cond = condizioniMisura(l);
+      const fc = an ? { fuori: false } : misuraFuoriCondizioni(l, m);
+      if (fc.fuori) fuoriCond++;
       return `<tr${an ? ' class="annullata"' : ""}>
         <td>${fmtD(l.data)}<small>${esc(l.ora || "—")}</small></td>
         <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, m)}</td>
@@ -2213,7 +2234,9 @@ textarea.dw-input{
           an ? `<span class="tag ann">annullata · ${esc(an.perche === "altro" ? "altro" : an.etichetta)}</span><span class="prov-prima">${
                   an.perche === "altro" ? esc(an.etichetta) + " · " : ""}non conta${
                   an.quando ? ": dichiarata il " + fmtD(String(an.quando).slice(0, 10)) : ""}</span>`
-            : senzaVolata ? `<span class="prov-prima ann-hint">nessuna volata registrata quel giorno</span>` : ""}</td>
+            : senzaVolata ? `<span class="prov-prima ann-hint">nessuna volata registrata quel giorno</span>` : ""}${
+          cond.registrate ? `<span class="prov-prima">${esc(cond.testo)}</span>` : ""}${
+          fc.fuori ? `<span class="prov-prima ann-hint" title="${esc(fc.motivo)}">fuori condizioni: ${esc(fc.breve)}</span>` : ""}</td>
         <td class="stato az">${an
           ? `<button type="button" class="arr rip" title="Ripristina questa misura: torna a contare"
               aria-label="Ripristina la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
@@ -2237,7 +2260,10 @@ textarea.dw-input{
         che il report di conformità dichiara all'ente.${suggerite
           ? ` Le righe con <b>«nessuna volata registrata quel giorno»</b> sono solo <b>candidate</b>: lo strumento può aver
         registrato un mezzo, un temporale o una prova — oppure una volata che manca nel registro. Nessun conto cambia
-        finché non le dichiari tu.` : ""}</div>`;
+        finché non le dichiari tu.` : ""}${fuoriCond
+          ? ` Le righe con <b>«fuori condizioni»</b> sono misure di rumore fatte con vento oltre 5 m/s o sotto la pioggia: per la
+        norma (DM 16/03/1998, All. B) non valgono, ma qui restano <b>candidate</b> — nessun conto cambia finché non le dichiari tu
+        non valide, con la ragione «vento oltre 5 m/s o pioggia».` : ""}</div>`;
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -3884,6 +3910,7 @@ textarea.dw-input{
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
       const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
+      const fc = misuraFuoriCondizioni(l, p.m || null);
       return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
       <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, p.m || null)}</td>
@@ -3891,7 +3918,7 @@ textarea.dw-input{
         pr.corretta
           ? `<span class="tag warn">corretta</span><span class="prov-prima">in origine ${
               pr.corretta.prima != null ? esc(numeroIt(pr.corretta.prima)) : "non leggibile"}</span>`
-          : ""}</td>
+          : ""}${fc.fuori ? `<span class="tag warn" title="${esc(fc.motivo)}">fuori condizioni</span>` : ""}</td>
       ${/* ⛔ TRE RISPOSTE, NON DUE (decisione 16). `oltre` vale `null` quando
             nessuna soglia esiste, e con due soli rami ogni riga della tabella
             portava il tag verde «entro soglia» — dentro il documento che va
@@ -3909,6 +3936,18 @@ textarea.dw-input{
     const daRis = conEvento.filter(l => provenienzaValore(l).da === "risultante").length;
     const conAria = conEvento.some(l => provenienzaValore(l).nota);
     const fuoriBanda = p.letture.map(l => frequenzaFuoriBanda(l, p.m || null)).filter(x => x.giudicabile && x.fuori);
+    /* LE CONDIZIONI DELLA MISURA (05/09): sul rumore il documento dice quante
+       letture del periodo erano fuori dalle condizioni della norma, quante
+       dentro, e quante NON SI SA — la terza risposta è quella che conta,
+       perché una campagna registrata senza il vento non è una campagna valida:
+       è una campagna di cui non si può dire. Sulle polveri e sulle vibrazioni
+       non si scrive niente: non c'è una regola da applicare. */
+    const fcT = contaFuoriCondizioni(p.letture, p.m || null);
+    const condTesto = !fcT.pertinente || !fcT.totale ? ""
+      : `<br><b>Condizioni di misura (rumore, DM 16/03/1998 All. B):</b> ${
+          fcT.fuori ? `<b>${fcT.fuori === 1 ? "una lettura" : fcT.fuori + " letture"} fuori condizioni</b> (vento oltre 5 m/s o pioggia)` : "nessuna lettura fuori condizioni"}${
+          fcT.dentro ? ", " + (fcT.dentro === 1 ? "una" : fcT.dentro) + " dentro" : ""}${
+          fcT.nonGiudicabili ? ", " + (fcT.nonGiudicabili === 1 ? "<b>una senza vento e pioggia registrati</b>: di quella non si può dire se vale" : "<b>" + fcT.nonGiudicabili + " senza vento e pioggia registrati</b>: di quelle non si può dire se valgono") : ""}.`;
     const evento = !conEvento.length ? ""
       : `<br><b>Colonne dello strumento:</b> ${conEvento.length === p.n ? (p.n === 1 ? "la lettura porta" : "tutte e " + p.n + " le letture portano") : conEvento.length + (conEvento.length === 1 ? " lettura su " : " letture su ") + p.n + (conEvento.length === 1 ? " porta" : " portano")} le colonne in più del file (assi, frequenza, sovrapressione). Valore di conformità: ${
           daRis === 0 ? "la colonna scelta nel file"
@@ -3921,7 +3960,7 @@ textarea.dw-input{
           fuoriBanda.length ? ` <b>${fuoriBanda.length === 1 ? "Una lettura ha" : fuoriBanda.length + " letture hanno"} la frequenza fuori dalla banda della soglia applicata (${esc(fuoriBanda[0].banda)})</b>: il limite di quella banda non è in Sentinella e va verificato sulla norma.` : ""}`;
     return `<div class="rep-punto">
       <div class="rep-punto-tit">${esc(p.nome)}</div>
-      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}${evento}<br>
+      <div class="rep-punto-meta">${ric}<br>${fonte}${conflitto}${tar}${evento}${condTesto}<br>
         Letture nel periodo: <b>${p.n}</b> · massimo <b>${esc(numeroIt(p.max))} ${esc(p.unita)}</b> ·
         media <b>${esc(numeroIt(p.media))} ${esc(p.unita)}</b> ·
         ${/* ⛔ «superamenti: 0» SU UN PUNTO SENZA SOGLIA è la solita cifra
@@ -5321,6 +5360,24 @@ textarea.dw-input{
     }
     err("mis-valore", false);
     const m = MON.find(x => x.id === id);
+    /* le condizioni: facoltative, ma un numero scritto male non passa in
+       silenzio — «7,» o «abc» nel vento fermano la registrazione come farebbero
+       nel valore, perché una condizione illeggibile scritta come niente farebbe
+       dire «non registrata» a una cosa che qualcuno aveva provato a scrivere */
+    const cond = {};
+    for (const [campo, chiave, opts, cosa] of [["mis-vento", "vento", { min: 0 }, "Il vento"], ["mis-temp", "temperatura", {}, "La temperatura"], ["mis-umid", "umidita", { min: 0, max: 100 }, "L'umidità"]]) {
+      const t = $(campo).value.trim();
+      if (!t) { err(campo, false); continue; }
+      const rc = numeroDaCampo(t, opts);
+      if (!rc.ok) {
+        err(campo, true); fuocoErr([campo]);
+        esito("mis-esito", cosa + " «" + t + "» non è un numero che posso leggere" + (rc.motivo === "sotto-minimo" || rc.motivo === "sopra-massimo" ? " (" + (chiave === "umidita" ? "da 0 a 100" : "non può essere negativo") + ")" : "") + ". Se non l'hai misurata, lascia la casella vuota. " + AVVISO_DECIMALE, "err", cosa + " non è un numero leggibile.");
+        return;
+      }
+      err(campo, false); cond[chiave] = rc.valore;
+    }
+    if ($("mis-vento-da").value) cond.ventoDa = $("mis-vento-da").value;
+    if ($("mis-pioggia").value) cond.pioggia = $("mis-pioggia").value === "si";
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
     /* ⛔ LA CATENA DI CUSTODIA NASCE QUI (T2d). Questa è la strada «a mano»:
@@ -5347,9 +5404,20 @@ textarea.dw-input{
        cancellavano a vicenda in silenzio, perché l'elenco veniva letto,
        allungato e riscritto INTERO. Qui il taglio a `MAX_LETTURE` c'è ancora,
        ed è la ragione per cui `arrayUnion` non bastava. */
-    const nuova = { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO) };
+    const nuova = { data: oggiISO(), valore, ...campiProvenienza(FONTE_MANO), ...cond };
+    /* ⛔ `letture` DEVE VIVERE FUORI DALLA TRANSAZIONE (05/09). Quando la
+       lettura è passata «dentro la transazione» (5b, 08/08) la `const` è
+       finita nel corpo della callback, e la riga qui sotto che la usa —
+       `conSoglia({ ...m, valore, letture })` — è rimasta fuori: un nome
+       libero. Effetto misurato premendo «Registra» sulla dimostrazione: la
+       scrittura AVVENIVA, poi il gestore moriva con «letture is not defined»
+       — nessuna striscia di conferma, nessun refresh, il campo non si
+       svuotava. Nessuna prova rossa: i banchi non premono quel bottone, e
+       `nomi-liberi` non vede una `const` dichiarata in un blocco più interno
+       e usata in quello che lo contiene. Preso dallo scatto di questa unità. */
+    let letture = [];
     await db.trasforma("monitoraggi", id, (m2) => {
-      const letture = [ ...((m2 && m2.letture) || []), nuova ].slice(-MAX_LETTURE);
+      letture = [ ...((m2 && m2.letture) || []), nuova ].slice(-MAX_LETTURE);
       return { valore, letture };
     });
     /* ⛔ `letture` va passato, se no la PRIMA misura di un punto direbbe «Mai
@@ -5375,10 +5443,16 @@ textarea.dw-input{
        riga scriveva «36,8  → Attenzione», con la cifra nuda e due spazi. */
     const um = m ? unitaMisura(m) : "";
     const misuraTxt = numeroIt(valore) + (um ? " " + um : "");
-    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata.",
-      st.cls === "danger" ? "err" : "success",
-      misuraTxt + " → " + st.label);
+    /* sul rumore, se le condizioni scritte la mettono fuori norma lo si dice
+       NELL'ISTANTE in cui si registra — è la frase che l'utente legge mentre
+       scrive il dato, e «→ Conforme» da sola direbbe di stare tranquilli */
+    const fc = misuraFuoriCondizioni(nuova, m || {});
+    esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata."
+      + (fc.fuori ? " Attenzione: " + fc.motivo + ". La lettura resta nei conti finché non la dichiari non valida (ragione «vento oltre 5 m/s o pioggia»)." : ""),
+      st.cls === "danger" || fc.fuori ? "err" : "success",
+      misuraTxt + " → " + st.label + (fc.fuori ? " · fuori condizioni" : ""));
     $("mis-valore").value = "";
+    for (const c of ["mis-vento", "mis-vento-da", "mis-pioggia", "mis-temp", "mis-umid"]) $(c).value = "";
     grafMon = id;   // dopo una misura si vede subito l'andamento del punto
     await refresh();
   };
@@ -5391,14 +5465,16 @@ textarea.dw-input{
   clearErr("vol-data", "vol-esito-msg");
   ["vol-kg","vol-kgmax","vol-dist"].forEach(i => clearErr(i, "vol-esito-msg"));
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
-  clearErr("mis-valore", "mis-esito");
+  ["mis-valore", "mis-vento", "mis-temp", "mis-umid"].forEach(i => clearErr(i, "mis-esito"));
+  // le direzioni del vento le dice il modulo: la tendina non ne tiene una copia
+  $("mis-vento-da").innerHTML = '<option value="">— vento da —</option>' + DIREZIONI_VENTO.map(d => '<option value="' + d + '">da ' + d + '</option>').join("");
   // Invio da tastiera: premere Invio in un campo del form equivale a
   // toccare il pulsante — data entry più rapida senza spostare il dito.
   const enterSubmit = (inputIds, btnId) => inputIds.forEach(id =>
     $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $(btnId).click(); } }));
   enterSubmit(["ade-titolo", "ade-ente", "ade-data"], "btn-ade");
   enterSubmit(["sen-nome", "sen-unita", "sen-soglia"], "btn-sen");
-  enterSubmit(["mis-valore"], "btn-mis");
+  enterSubmit(["mis-valore", "mis-vento", "mis-temp", "mis-umid"], "btn-mis");
   enterSubmit(["tar-data", "tar-scad", "tar-ente", "tar-cert"], "btn-tar");
 
   // Cambiare strumento ridisegna lo storico: la tendina è il filtro della

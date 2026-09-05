@@ -55,7 +55,7 @@ const DIFETTI_PAGINA = [
   ['${(() => { const d = denominatoreEsito(R); return d ? " " + esc(d) : ""; })()}',
    '${R.nPuntiSenzaSoglia && R.esito !== "senza-soglia" ? " vecchia riga" : ""}'],
   // 3 · la taratura del singolo punto non arrivava nella sua scheda
-  ["${ric}<br>${fonte}${conflitto}${tar}${evento}<br>", "${ric}<br>${fonte}${conflitto}${evento}<br>"],
+  ["${ric}<br>${fonte}${conflitto}${tar}${evento}${condTesto}<br>", "${ric}<br>${fonte}${conflitto}${evento}${condTesto}<br>"],
   // 4 · il riferimento della soglia non arriva nel documento (05/09)
   ['      : "") + rif;', '      : "");'],
 ];

@@ -20473,11 +20473,11 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
   test("Sentinella · csvAmbiente: intestazione, valore mai misurato, storico, niente crash sul vuoto", () => {
     eq(sentinella.csvAmbiente(null, null, null), sentinella.CSV_AMBIENTE_INTESTAZIONE + "\n",
       "senza dati esce la sola intestazione");
-    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 12, "dodici colonne: tre in coda dal 31/07, due dal 04/09 (evento, valore_da)");
+    eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").length, 14, "quattordici colonne: tre in coda dal 31/07, due dal 04/09 (evento, valore_da), due dal 05/09 (condizioni_ultima, fuori_condizioni)");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(0, 7).join(";"),
       "tipo;nome;valore;unita;soglia;stato;dettaglio", "le prime sette sono quelle di prima");
     eq(sentinella.CSV_AMBIENTE_INTESTAZIONE.split(";").slice(7).join(";"),
-      "origine_soglia;taratura;provenienza;evento;valore_da",
+      "origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni",
       "e la coda si allunga in fondo: chi taglia alle prime sette ritrova il file di sempre");
     // il punto appena creato: `valore: 0` è il valore con cui NASCE, non una misura
     const nuovo = { nome: "Polveri — piazzale", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 0, letture: [] };
@@ -36097,8 +36097,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(!/NON VALIDA/.test(sentinella.descriviProvenienza(L(), { nome: "V2" })), "e tace su una lettura sana");
   });
 
-  test("Sentinella · RAGIONI_ANNULLAMENTO: quattro ragioni, una sola col testo libero", () => {
-    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "altro"], "le chiavi, nell'ordine della tendina");
+  test("Sentinella · RAGIONI_ANNULLAMENTO: cinque ragioni, una sola col testo libero", () => {
+    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "meteo", "altro"], "le chiavi, nell'ordine della tendina (cinque dal 05/09: «meteo», la misura di rumore fuori dalle condizioni della norma)");
     eq(sentinella.RAGIONI_ANNULLAMENTO.filter(r => r.nota).map(r => r.chiave), ["altro"], "solo «altro» vuole il testo");
     for (const r of sentinella.RAGIONI_ANNULLAMENTO) ok(r.etichetta && r.etichetta.length > 3, "ogni ragione ha un'etichetta leggibile: " + r.chiave);
   });
@@ -36611,13 +36611,13 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(rep.punti[0].letture.map(l => l.valoreDa), ["risultante", "risultante"], "il report sa da dove viene il numero");
     eq(rep.punti[0].letture[0].assi, { L: 2.1, T: 1.8, V: 3.4 }, "e porta gli assi");
     const csv = sentinella.csvAmbiente([mon], [], [], new Date("2026-07-20T12:00:00")).split("\n");
-    eq(csv[0].split(";").slice(10), ["evento", "valore_da"], "le due colonne in coda");
+    eq(csv[0].split(";").slice(10, 12), ["evento", "valore_da"], "le due colonne dell'evento (dal 05/09 ne seguono altre due, le condizioni meteo)");
     const c = csv[1].split(";");
     eq(c[10], "L 0,5 · T 0,5 · V 0,5 · f — · aria —", "l'evento dell'ULTIMA lettura valida (14/07), con le celle non lette dichiarate");
     eq(c[11], "risultante dai tre assi (√(L²+T²+V²)) · sovrapressione nell'unità del file dello strumento", "e da dove viene il valore");
     const polveri = sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";");
     eq([polveri[10], polveri[11]], ["", ""], "⛔ un punto di polveri: le due celle restano VUOTE, non si scrive niente al posto loro");
-    eq(sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";").length, 12, "ma la riga ha le sue 12 colonne");
+    eq(sentinella.csvAmbiente([{ nome: "P", tipo: "polveri", unita: "µg/m³", soglia: 40, letture: [{ data: "2026-07-12", valore: 30 }] }], [], [], new Date("2026-07-20T12:00:00")).split("\n")[1].split(";").length, 14, "ma la riga ha le sue 14 colonne (12 fino al 04/09, poi le due delle condizioni meteo)");
   });
   test("Sentinella · la DIMOSTRAZIONE non cambia: nessuna lettura porta assi, nessun `valoreDa`", () => {
     const tutte = sentinella.DEMO.monitoraggi.flatMap(m => m.letture || []);
@@ -38674,6 +38674,104 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine budget dell'anno di Flotta (05/09) ===== */
+
+/* ===== LE CONDIZIONI METEO DELLA MISURA (Sentinella, 05/09) =====
+   Il mondo: per il rumore il DM 16/03/1998 (All. B) non ammette misure con
+   vento oltre 5 m/s o con pioggia [seconda mano: risultati di ricerca, vedi
+   docs/RICERCA_CONTINUA_SENTINELLA.md]. La regola qui: le condizioni sono
+   facoltative sulla lettura, e sul rumore l'app sa dire fuori · dentro · NON SI
+   PUÒ DIRE. Nessun conto cambia: è un suggerimento, come «nessuna volata».
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const R = { tipo: "rumore", unita: "dB(A)", soglia: 70 };
+  const P = { tipo: "polveri", unita: "µg/m³", soglia: 40 };
+  const righeCsv = (t) => String(t).trim().split("\n"), colonne = (r) => r.split(";");
+  test("Sentinella · condizioniMisura: il testo della riga, e «registrate» solo se c'è qualcosa", () => {
+    const c = sentinella.condizioniMisura({ valore: 60, vento: 3.5, ventoDa: "no", pioggia: false, temperatura: 21, umidita: 55 });
+    eq(c.registrate, true); eq(c.vento, 3.5); eq(c.da, "NO", "la direzione si normalizza in maiuscolo");
+    eq(c.testo, "vento 3,5 m/s da NO · senza pioggia · 21 °C · umidità 55 %");
+    eq(sentinella.condizioniMisura({ valore: 60 }).registrate, false, "senza condizioni non c'è niente da scrivere");
+    eq(sentinella.condizioniMisura({ valore: 60 }).testo, "");
+    eq(sentinella.condizioniMisura(null).registrate, false, "null non rompe");
+    eq(sentinella.condizioniMisura({ vento: "abc", ventoDa: "XX" }).testo, "", "un vento illeggibile e una direzione inventata non entrano nel testo");
+    eq(sentinella.condizioniMisura({ vento: "abc" }).vento, null, "e il vento illeggibile è null, non NaN e non 0");
+    eq(sentinella.condizioniMisura({ ventoDa: "se" }).testo, "vento da SE", "la sola direzione si scrive");
+    eq(sentinella.condizioniMisura({ pioggia: true }).testo, "pioggia");
+  });
+  test("⛔ Sentinella · misuraFuoriCondizioni: tre risposte, e la terza è «non si può dire»", () => {
+    const fuori = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 7, pioggia: false }, R);
+    eq([fuori.pertinente, fuori.giudicabile, fuori.fuori], [true, true, true]);
+    eq(fuori.breve, "vento 7 m/s, oltre i 5 m/s ammessi");
+    ok(fuori.motivo.includes("DM 16/03/1998"), "il motivo lungo cita la norma: " + fuori.motivo);
+    const pioggia = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 2, pioggia: true }, R);
+    eq([pioggia.fuori, pioggia.breve], [true, "pioggia"]);
+    eq(sentinella.misuraFuoriCondizioni({ valore: 60, vento: 7, pioggia: true }, R).breve, "vento 7 m/s, oltre i 5 m/s ammessi e pioggia", "due ragioni insieme si dicono tutt'e due");
+    const dentro = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 5, pioggia: false }, R);
+    eq([dentro.fuori, dentro.giudicabile, dentro.motivo], [false, true, ""], "5 m/s è dentro: il limite è «oltre 5», non «da 5»");
+    const boh = sentinella.misuraFuoriCondizioni({ valore: 60 }, R);
+    eq([boh.pertinente, boh.giudicabile, boh.fuori], [true, false, false], "⛔ senza vento né pioggia non si dice «dentro»");
+    ok(boh.motivo.includes("non si può dire"), boh.motivo);
+    const meta = sentinella.misuraFuoriCondizioni({ valore: 60, vento: 3 }, R);
+    eq([meta.fuori, meta.giudicabile], [false, false], "una metà sola registrata (vento sì, pioggia no) non basta a dire «dentro»");
+    ok(meta.motivo.includes("a metà"), meta.motivo);
+    eq(sentinella.misuraFuoriCondizioni({ valore: 60, vento: 3, pioggia: false }, R).giudicabile, true, "con tutt'e due si giudica");
+    const polveri = sentinella.misuraFuoriCondizioni({ valore: 30, vento: 9, pioggia: true }, P);
+    eq([polveri.pertinente, polveri.fuori], [false, false], "sulle polveri non si giudica: dire «sottovento» vorrebbe la posizione della sorgente, che l'app non ha");
+    eq(sentinella.misuraFuoriCondizioni({ vento: 9 }, null).pertinente, false, "senza punto non c'è regola");
+  });
+  test("Sentinella · contaFuoriCondizioni: il conto del report, con i tre cassetti", () => {
+    const L = [{ valore: 60, vento: 7, pioggia: false }, { valore: 58, vento: 2, pioggia: false }, { valore: 59 }, { valore: null, vento: 9 }, { valore: 61, vento: 1, pioggia: false }];
+    eq(sentinella.contaFuoriCondizioni(L, R), { pertinente: true, totale: 4, fuori: 1, dentro: 2, nonGiudicabili: 1 }, "la lettura senza valore non si conta; quella senza condizioni va nel terzo cassetto");
+    eq(sentinella.contaFuoriCondizioni(L, P), { pertinente: false, totale: 4, fuori: 0, dentro: 0, nonGiudicabili: 0 });
+    eq(sentinella.contaFuoriCondizioni(null, R), { pertinente: true, totale: 0, fuori: 0, dentro: 0, nonGiudicabili: 0 });
+    // la dimostrazione: il punto di rumore r1 ha una lettura fuori, una senza condizioni
+    const r1 = sentinella.DEMO.monitoraggi.find((x) => x.id === "r1");
+    ok(r1 && r1.tipo === "rumore", "la dimostrazione ha ancora il punto di rumore r1");
+    const c = sentinella.contaFuoriCondizioni(r1.letture, r1);
+    ok(c.fuori >= 1 && c.nonGiudicabili >= 1 && c.dentro >= 1, "e mostra tutt'e tre i cassetti: " + JSON.stringify(c));
+  });
+  test("Sentinella · la ragione «meteo» esiste fra le ragioni di annullamento, senza testo libero", () => {
+    const r = sentinella.RAGIONI_ANNULLAMENTO.find((x) => x.chiave === "meteo");
+    ok(!!r, "c'è");
+    eq(r.nota, false, "non vuole il testo: la ragione è già scritta");
+    ok(/vento oltre 5 m\/s/i.test(r.etichetta) && /pioggia/i.test(r.etichetta), r.etichetta);
+    eq(sentinella.VENTO_MAX_RUMORE_MS, 5, "il limite dichiarato dal modulo è quello dell'etichetta");
+    eq(sentinella.DIREZIONI_VENTO, ["N", "NE", "E", "SE", "S", "SO", "O", "NO"], "otto direzioni, in italiano (SO e O, non SW e W)");
+  });
+  test("⛔ Sentinella · csvAmbiente porta le condizioni dell'ultima lettura e il verdetto — vuoto dove non c'è niente da dire", () => {
+    const m = { id: "r", nome: "Rumore — casa", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 62,
+      letture: [{ data: "2026-08-01", valore: 60, vento: 7, pioggia: false }, { data: "2026-08-02", valore: 62, vento: 3, ventoDa: "N", pioggia: false, temperatura: 22 }] };
+    const r = colonne(righeCsv(sentinella.csvAmbiente([m], [], []))[1]);
+    eq(r.length, 14, "quattordici celle come l'intestazione");
+    eq(r[12], "vento 3 m/s da N · senza pioggia · 22 °C", "le condizioni dell'ULTIMA lettura, quella che dà il valore");
+    eq(r[13], "no", "e l'ultima è dentro le condizioni");
+    const m2 = { ...m, letture: [{ data: "2026-08-03", valore: 75, vento: 8, pioggia: true }] };
+    const c2 = colonne(righeCsv(sentinella.csvAmbiente([m2], [], []))[1])[13];
+    ok(c2.startsWith("sì: vento 8 m/s, oltre i 5 m/s ammessi e pioggia") && c2.includes("DM 16/03/1998"), "fuori: si dice con la ragione e con la norma, perché il file va all'ente: " + c2);
+    // ⛔ e la copia del report porta le condizioni: la prima stesura le perdeva
+    const rep = sentinella.reportConformita({ monitoraggi: [{ id: "r", ...m2 }], dal: "2026-08-01", al: "2026-08-31", oggi: new Date("2026-08-20T12:00:00") });
+    eq(sentinella.contaFuoriCondizioni(rep.punti[0].letture, rep.punti[0].m).fuori, 1, "il report vede la lettura fuori condizioni");
+    eq(sentinella.campiCondizioni({ vento: 8, ventoDa: "", pioggia: false, temperatura: null, x: 1 }), { vento: 8, pioggia: false }, "campiCondizioni copia solo i campi delle condizioni, e non quelli vuoti");
+    const m3 = { ...m, letture: [{ data: "2026-08-03", valore: 65 }] };
+    const r3 = colonne(righeCsv(sentinella.csvAmbiente([m3], [], []))[1]);
+    eq([r3[12], r3[13]], ["", "non si può dire"], "⛔ senza condizioni la cella non dice «no»: dice che non si può dire");
+    const p = { nome: "Polveri", tipo: "polveri", unita: "µg/m³", soglia: 40, valore: 30, letture: [{ data: "2026-08-03", valore: 30, vento: 9 }] };
+    const rp = colonne(righeCsv(sentinella.csvAmbiente([p], [], []))[1]);
+    eq([rp[12], rp[13]], ["vento 9 m/s", ""], "sulle polveri le condizioni si scrivono e il verdetto resta vuoto: nessuna regola da applicare");
+    const nuovo = { nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 0, letture: [] };
+    const rn = colonne(righeCsv(sentinella.csvAmbiente([nuovo], [], []))[1]);
+    eq([rn[12], rn[13]], ["", ""], "mai misurato: niente condizioni, niente verdetto");
+  });
+  test("Sentinella · la pagina legge le condizioni dal modulo, in tre posti, e la tendina delle direzioni non ne tiene una copia", () => {
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    eq((pagina.match(/misuraFuoriCondizioni\(/g) || []).length >= 3, true, "riga della lettura, conferma di scrittura, report");
+    ok(/contaFuoriCondizioni\(p\.letture, p\.m \|\| null\)/.test(pagina), "il conto del report lo fa il modulo");
+    ok(/DIREZIONI_VENTO\.map\(/.test(pagina), "le direzioni della tendina vengono dal modulo");
+    ok(!/<option value="NE">/.test(pagina), "e non sono scritte a mano nella pagina");
+    ok(/\.\.\.campiProvenienza\(FONTE_MANO\), \.\.\.cond \}/.test(pagina), "le condizioni entrano nella lettura registrata a mano");
+  });
+}
+/* ===== fine condizioni meteo della misura (05/09) ===== */
 
 
 

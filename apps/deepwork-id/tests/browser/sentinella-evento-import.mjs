@@ -36,8 +36,8 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
 const DIFETTI_MODULO = [
-  ["                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x) }))",
-   "                 valore: numeroDichiarato((x || {}).valore) }))   /* difetto rimesso dal banco */"],
+  ["                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x), ...campiCondizioni(x) }))",
+   "                 valore: numeroDichiarato((x || {}).valore), ...campiCondizioni(x) }))   /* difetto rimesso dal banco */"],
   ["  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);\n  if (mancanti.length)",
    "  const mancanti = ASSI_PPV.filter(k => numeroDichiarato(a[k]) == null);\n  if (mancanti.length === 3)   /* difetto rimesso dal banco */"],
   /* (04/09, sera) la frequenza fuori banda che non si dichiara più: la lettura

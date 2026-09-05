@@ -665,6 +665,46 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **SENTINELLA — le condizioni meteo della misura, e la regola del mestiere
+  sul rumore (05/09):** due righe di `CONCORRENTI_SENTINELLA` («Umidità,
+  temperatura» e «Direzione + velocità vento», confermate assenti dal 02/08)
+  chiuse come UNA unità. Sulla lettura cinque campi **facoltativi** (`vento`
+  m/s, `ventoDa` fra otto direzioni in italiano, `pioggia`, `temperatura`,
+  `umidita`), nel form «Registra misura» sotto il valore. Il mondo [seconda
+  mano, `RICERCA_CONTINUA_SENTINELLA` 05/09]: per il rumore il DM 16/03/1998
+  All. B non ammette misure con vento oltre 5 m/s o pioggia. La regola qui:
+  `misuraFuoriCondizioni(l, m)` risponde **fuori · dentro · non si può dire**
+  (né vento né pioggia registrati — l'assenza non è un dato favorevole; una
+  metà sola registrata non basta a dire «dentro»), e SOLO sul rumore: sulle
+  polveri «sottovento» vorrebbe la posizione della sorgente, che l'app non
+  ha, e lo dice il commento. Nessun conto cambia: è un **suggerimento** sulla
+  riga («fuori condizioni: vento 7 m/s, oltre i 5 m/s ammessi»), come
+  «nessuna volata quel giorno», con la quinta ragione di annullamento
+  `meteo`; la striscia di conferma lo dice nell'istante in cui si registra.
+  Report: la scheda del punto scrive «una lettura fuori condizioni, 2 dentro,
+  una senza vento e pioggia registrati: di quella non si può dire se vale»
+  (`contaFuoriCondizioni`) e la riga porta il tag. CSV ambiente: due colonne
+  in coda, `condizioni_ultima` e `fuori_condizioni` («sì: …» / «no» / «non si
+  può dire»), censimento aggiornato. ⛔ **Due difetti presi facendo l'unità**:
+  (1) le due copie delle letture (CSV `lettureLeggibili` e report `grezze`)
+  ricostruiscono l'oggetto campo per campo, e i campi nuovi SPARIVANO — la
+  prima prova sul CSV rispondeva «vuoto» a una lettura col vento; adesso
+  passano da `campiCondizioni`, scritta una volta; (2) **vecchio e in
+  produzione dall'08/08** (`81f6e768`, «si rilegge dentro la transazione»):
+  `letture` era dichiarata DENTRO la callback di `db.trasforma` e usata
+  FUORI, quindi «Registra» scriveva la misura e poi moriva con «letture is
+  not defined» — nessuna conferma, nessun refresh, campo non svuotato.
+  Nessuna prova rossa: i banchi non premono quel bottone, e `nomi-liberi`
+  (seconda domanda) non vede una `const` di un blocco interno usata in
+  quello che lo contiene — preso dallo scatto. run-kpi +6 (2728), copertura
+  di Sentinella 158 → 164, banchi Sentinella rilanciati (evento-import 56,
+  numeri-tranquilli 28, report-dichiarazioni 27, annullate 60, controprove
+  cadute), due ancore d'iniezione riancorate. Tre scatti guardati (riga,
+  form a 430 px con le tendine rifatte perché tagliavano l'etichetta,
+  report). B4: sentinella 13 → 11, totale 44 → 42.
+  ⏱️ **Candidato lasciato scritto**: `nomi-liberi` seconda domanda — un nome
+  dichiarato in un blocco INTERNO e usato nel blocco che lo contiene è
+  libero e non viene visto; misurare il costo della stretta prima di farla.
 - [x] **FLOTTA — il budget dell'anno contro la spesa reale (05/09):** la
   riga «Budget tracking vs actual» di `CONCORRENTI_FLOTTA` (4 prodotti su
   14, «oggi è un excel parallelo»), la prima mancanza confermata di B4 a
@@ -4172,8 +4212,13 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella 13 · conti **6** · flotta **4** · terra 4 · **scudo 6** |
-          | totale **44** (era 54, 47 fino al 05/09 e 45 fino alla sera del 05/09 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **6** · flotta **4** · terra 4 · **scudo 6** |
+          | totale **42** (era 54, 47 fino al 05/09, 45 e poi 44 la sera del 05/09 · ⛔ il 42 di oggi NON è il «42» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo due righe passate a C'È) | totale **14** (⛔ non 18) |
+
+      ⏱️ **44 → 42 il 05/09 (notte), per opera nostra**: «Umidità, temperatura»
+      e «Direzione + velocità vento» di Sentinella sono passate a **C'È** come
+      UNA unità (le condizioni meteo della misura, e la regola del DM
+      16/03/1998 sul rumore). Righe aggiornate nel documento con i comandi.
 
       ⏱️ **45 → 44 il 05/09 (sera), per opera nostra**: «Budget tracking vs
       actual» di Flotta è passata a **C'È** (`budgetVsSpesa`, schermata Costi,
@@ -6793,8 +6838,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.203 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2722, `run-stile` 328,
+  **3.209 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2728, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

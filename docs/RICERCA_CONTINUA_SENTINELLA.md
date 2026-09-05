@@ -521,3 +521,50 @@ Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
   strumento resta il documento di riferimento». Prova:
   `grep -c "fogliaVolata" apps/sentinella/sentinella-data.js apps/sentinella/index.html`
   → 2 e 3; banco `tests/browser/sentinella-foglio-volata.mjs`, 27 prove.
+
+---
+
+## Ricerca del 2026-09-05 (notte) — le condizioni meteo della misura (metà sul mondo)
+
+**Strumento**: solo `WebSearch` (tre ricerche); `WebFetch` risponde
+`EGRESS_BLOCKED`, quindi **nessuna pagina primaria è stata letta**: ogni riga è
+di seconda mano, dai riassunti dei risultati. Il delta l'ha fatto il ciclo
+aprendo il modulo (vedi in fondo), non la ricerca.
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Rumore — DM 16/03/1998, Allegato B (tecniche di rilevamento)**: le misure
+  vanno fatte «in assenza di precipitazioni atmosferiche, di nebbia e/o neve»
+  e con «velocità del vento non superiore a 5 m/s»; il microfono va dotato di
+  cuffia antivento. È la regola che decide se una misura di rumore **vale**.
+  [risultati di ricerca: anit.it, arpa.veneto.it — non letti per intero]
+- **Le relazioni fonometriche riportano le condizioni meteo** (vento,
+  direzione, pioggia, temperatura, umidità) accanto a ogni rilievo, e gli enti
+  regionali le chiedono nella scheda tecnica del rilievo. [ARPA FVG, ARPAE —
+  risultati di ricerca]
+- **Polveri (PM10 al confine)**: la direzione del vento serve a dire se il
+  ricettore era **sottovento** rispetto alla sorgente (cava, piste, frantoio):
+  senza la posizione relativa sorgente-ricettore il dato di vento da solo non
+  giudica niente. Le linee guida sulle polveri diffuse da attività estrattive
+  usano la rosa dei venti per scegliere i punti di misura, non per invalidare
+  una lettura. [ARPAE, linee guida polveri — risultati di ricerca]
+- **Vibrazioni**: nessuna condizione meteo invalida una misura di PPV; il vento
+  forte può muovere il geofono mal accoppiato, ma è un problema d'installazione,
+  non una soglia. [deduzione dai risultati sulla UNI 9916, non una fonte]
+
+### Il delta, fatto da chi ha il codice in mano (05/09, verificato contro il commit successivo a `2318bfb2`)
+
+- ✅ **fatto** — cinque campi facoltativi sulla lettura, `condizioniMisura`,
+  `misuraFuoriCondizioni` (rumore: fuori · dentro · **non si può dire**),
+  `contaFuoriCondizioni` nel report, ragione di annullamento `meteo`, due
+  colonne nel CSV ambiente. Prova: `grep -c 'misuraFuoriCondizioni'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 3 e 4.
+- ⛔ **non fatto, di proposito**: il verdetto «sottovento» sulle polveri.
+  Vorrebbe la posizione della sorgente rispetto al ricettore, che l'app non
+  ha; scriverlo dal solo vento sarebbe un numero tranquillo. Se un giorno il
+  ricettore avrà un azimut dalla cava, la domanda è già scritta nel commento
+  di `condizioniMisura`.
+- ⏱️ **candidato**: la colonna del vento nell'**import** delle letture
+  (`proponiMappa`): oggi le condizioni entrano solo a mano. Un fonometro con
+  stazione meteo integrata le esporta nello stesso CSV; da verificare quali
+  intestazioni usano i tre produttori più diffusi prima di proporre una mappa.

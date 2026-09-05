@@ -100,10 +100,15 @@ export const DEMO = {
          livelli si ricopiano. Non è un errore da correggere — è una strada
          d'ingresso diversa, e il documento la dichiara invece di far
          sembrare questi dB usciti da un file come gli altri. */
+      /* LE CONDIZIONI METEO DELLA MISURA (05/09): il DM 16/03/1998, Allegato B,
+         vuole le misure di rumore senza precipitazioni e con vento non oltre
+         5 m/s. La terza lettura porta 7 m/s: è il caso in cui l'app suggerisce
+         «non valida per la norma» e lascia la decisione a una persona. La
+         prima non ha vento né pioggia registrati: «non si può dire». */
       letture: [ { data: "2026-06-10", ora: "14:30", valore: 58, origine: { da: "manuale", quando: "2026-06-11T09:00:00" } },
-                 { data: "2026-06-24", ora: "15:00", valore: 64, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
-                 { data: "2026-07-08", ora: "14:45", valore: 61, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
-                 { data: "2026-07-22", ora: "15:20", valore: 62, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
+                 { data: "2026-06-24", ora: "15:00", valore: 64, vento: 2, ventoDa: "NO", pioggia: false, temperatura: 26, umidita: 55, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
+                 { data: "2026-07-08", ora: "14:45", valore: 61, vento: 7, ventoDa: "O", pioggia: false, temperatura: 29, umidita: 40, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
+                 { data: "2026-07-22", ora: "15:20", valore: 62, vento: 1.5, ventoDa: "S", pioggia: false, temperatura: 31, umidita: 38, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
     /* ⛔ IL PUNTO SENZA SOGLIA STA NELLA DIMOSTRAZIONE, ed è una scelta presa
        col criterio di `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: è
@@ -1443,6 +1448,18 @@ export function campiEvento(l) {
   if (x.valoreDa === "risultante" || (out.assi && x.valoreDa === "colonna")) out.valoreDa = x.valoreDa;
   return out;
 }
+/* Le condizioni meteo della lettura (05/09), nella forma in cui vanno copiate.
+   ⛔ Le due copie delle letture — quella del CSV (`lettureLeggibili`) e quella
+   del report (`grezze`) — ricostruiscono l'oggetto campo per campo, quindi un
+   campo nuovo che non passa di qui SPARISCE in silenzio da tutt'e due: la
+   prima prova sul CSV ha risposto «condizioni: vuoto» su una lettura che il
+   vento ce l'aveva. Si scrive una volta e si sparge con `...`. */
+export function campiCondizioni(l) {
+  const x = l && typeof l === "object" ? l : {};
+  const out = {};
+  for (const k of ["vento", "ventoDa", "pioggia", "temperatura", "umidita"]) if (x[k] !== undefined && x[k] !== null && x[k] !== "") out[k] = x[k];
+  return out;
+}
 
 // LA RIGA CHE DESCRIVE L'EVENTO, a parole: «L 2,1 · T 1,8 · V 3,4 · f 18 Hz ·
 // aria 112» — vuota se la lettura non ha colonne in più. Un asse indicato ma
@@ -2184,7 +2201,7 @@ export function csvTarature(monitoraggi) {
    più: un punto di polveri non ha assi, e non si scrive niente al posto loro.
    In coda, così chi taglia alle prime dieci ritrova il file di prima. */
 export const CSV_AMBIENTE_INTESTAZIONE =
-  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da";
+  "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni";
 
 /* La riferibilità delle letture di UN punto, in una cella. Le parole sono
    quelle che la scheda della taratura usa già a schermo: «coperte», «cadono in
@@ -2301,6 +2318,11 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
       csvCell(unitaMisura(m)), n(eff.valore), st.label, csvCell(storico), csvCell(origine),
       csvCell(cellaTaratura(m)), csvCell(cellaProvenienza(m)),
       csvCell(ev), csvCell(pv ? pv.testo + (pv.nota ? " · " + pv.nota : "") : ""),
+      /* le condizioni meteo dell'ultima lettura (05/09) e, sul rumore, se è
+         fuori dalle condizioni del DM 16/03/1998: «sì» / «no» / «non si può
+         dire»; sugli altri tipi la cella resta vuota (non si giudica) */
+      csvCell(ult ? condizioniMisura(ult).testo : ""),
+      csvCell(!ult ? "" : (() => { const f = misuraFuoriCondizioni(ult, m); return !f.pertinente ? "" : f.fuori ? "sì: " + f.motivo : f.giudicabile ? "no" : "non si può dire"; })()),
     ].join(";"));
   }
   for (const a of adempimenti || []) {
@@ -2625,6 +2647,8 @@ export const RAGIONI_ANNULLAMENTO = [
   { chiave: "mezzo",     etichetta: "Mezzo di passaggio",      nota: false },
   { chiave: "temporale", etichetta: "Temporale",               nota: false },
   { chiave: "prova",     etichetta: "Prova dello strumento",   nota: false },
+  // il rumore misurato con vento oltre 5 m/s o pioggia non vale (DM 16/03/1998, All. B)
+  { chiave: "meteo",     etichetta: "Vento oltre 5 m/s o pioggia (rumore: misura non valida)", nota: false },
   { chiave: "altro",     etichetta: "Altro (scrivi che cosa)", nota: true },
 ];
 const ragioneAnnullamento = (k) =>
@@ -3144,7 +3168,7 @@ export function reportConformita(o = {}) {
         .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""),
                      valore: numeroDichiarato((l || {}).valore),
                      ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
-                     ...campiEvento(l) }));
+                     ...campiEvento(l), ...campiCondizioni(l) }));
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero
       const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
@@ -3435,7 +3459,7 @@ function lettureLeggibili(m) {
   return (((m || {}).letture) || [])
     .filter(letturaValida)
     .map(x => ({ data: String((x || {}).data || "").slice(0, 10), ora: String((x || {}).ora || ""),
-                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x) }))
+                 valore: numeroDichiarato((x || {}).valore), ...campiEvento(x), ...campiCondizioni(x) }))
     .filter(x => dataISOEsiste(x.data) && x.valore != null)
     .sort((a, b) => { const ka = chiaveOrdine(a), kb = chiaveOrdine(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
 }
@@ -3813,6 +3837,66 @@ export function letturaSenzaVolata(l, volate) {
   if (!dataISOEsiste(g)) return null;
   if (!volateEseguite(volate).length) return null;
   return volateDelGiorno(volate, g).length === 0;
+}
+
+/* ── LE CONDIZIONI METEO DELLA MISURA (05/09) ──────────────────────────────
+   Il mondo, di seconda mano (risultati di ricerca, decreto non letto): il DM
+   16 marzo 1998 «Tecniche di rilevamento e di misurazione dell'inquinamento
+   acustico», Allegato B, vuole le misure di rumore «in assenza di
+   precipitazioni atmosferiche, di nebbia e/o neve; la velocità del vento non
+   deve superare i 5 m/s», col microfono protetto dal vento
+   (anit.it, arpa.veneto.it — il testo del decreto). E le campagne sulle
+   polveri registrano i parametri meteorologici accanto al PM10, con
+   campionamenti «wind select» sottovento alla sorgente (ARPA FVG, ARPAE).
+   Quindi una lettura può portare, FACOLTATIVI: `vento` (m/s), `ventoDa`
+   (N, NE, E, SE, S, SO, O, NO), `pioggia` (true/false), `temperatura` (°C),
+   `umidita` (%). E per il RUMORE l'app sa dire se la misura è fuori dalle
+   condizioni della norma — come suggerimento: la lettura resta in ogni conto
+   finché una persona non la dichiara non valida con la ragione (`meteo`),
+   esattamente come «nessuna volata quel giorno». Tre risposte, e la terza
+   conta: fuori · dentro · NON SI PUÒ DIRE (né vento né pioggia registrati).
+   Sulle polveri non si giudica: dire se il ricettore era sottovento vorrebbe
+   la posizione della sorgente rispetto al ricettore, che l'app non ha. */
+export const VENTO_MAX_RUMORE_MS = 5;
+export const DIREZIONI_VENTO = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+export function condizioniMisura(l) {
+  const x = l || {};
+  const vento = numeroDichiarato(x.vento);
+  const da = DIREZIONI_VENTO.includes(String(x.ventoDa || "").toUpperCase()) ? String(x.ventoDa).toUpperCase() : "";
+  const pioggia = x.pioggia === true ? true : x.pioggia === false ? false : null;
+  const temperatura = numeroDichiarato(x.temperatura);
+  const umidita = numeroDichiarato(x.umidita);
+  const pezzi = [];
+  if (vento != null) pezzi.push("vento " + numeroIt(vento) + " m/s" + (da ? " da " + da : ""));
+  else if (da) pezzi.push("vento da " + da);
+  if (pioggia === true) pezzi.push("pioggia");
+  else if (pioggia === false && (vento != null || da)) pezzi.push("senza pioggia");
+  else if (pioggia === false) pezzi.push("senza pioggia");
+  if (temperatura != null) pezzi.push(numeroIt(temperatura) + " °C");
+  if (umidita != null) pezzi.push("umidità " + numeroIt(umidita) + " %");
+  return { registrate: pezzi.length > 0, vento, da, pioggia, temperatura, umidita, testo: pezzi.join(" · ") };
+}
+export function misuraFuoriCondizioni(l, m) {
+  const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+  if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
+  const c = condizioniMisura(l);
+  if (c.vento == null && c.pioggia == null)
+    return { pertinente: true, giudicabile: false, fuori: false, breve: "", motivo: "vento e pioggia non registrati: non si può dire se la misura è valida per il DM 16/03/1998" };
+  const motivi = [];
+  if (c.vento != null && c.vento > VENTO_MAX_RUMORE_MS) motivi.push("vento " + numeroIt(c.vento) + " m/s, oltre i " + VENTO_MAX_RUMORE_MS + " m/s ammessi");
+  if (c.pioggia === true) motivi.push("pioggia");
+  if (motivi.length) return { pertinente: true, giudicabile: true, fuori: true, breve: motivi.join(" e "), motivo: motivi.join(" e ") + ": per il DM 16/03/1998 (All. B) la misura di rumore non è valida" };
+  // dentro, ma con una metà sola registrata lo si dice
+  const meta = c.vento == null ? " (pioggia registrata, vento no)" : c.pioggia == null ? " (vento registrato, pioggia no)" : "";
+  return { pertinente: true, giudicabile: meta === "", fuori: false, breve: "", motivo: meta ? "condizioni registrate a metà" + meta : "" };
+}
+export function contaFuoriCondizioni(letture, m) {
+  const L = (Array.isArray(letture) ? letture : []).filter((l) => l && numeroDichiarato(l.valore) != null);
+  const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+  if (tipo !== "rumore") return { pertinente: false, totale: L.length, fuori: 0, dentro: 0, nonGiudicabili: 0 };
+  let fuori = 0, dentro = 0, nonGiudicabili = 0;
+  for (const l of L) { const f = misuraFuoriCondizioni(l, m); if (f.fuori) fuori++; else if (f.giudicabile) dentro++; else nonGiudicabili++; }
+  return { pertinente: true, totale: L.length, fuori, dentro, nonGiudicabili };
 }
 
 // ── IL TRASPORTO ─────────────────────────────────────────────────────
