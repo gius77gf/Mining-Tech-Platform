@@ -420,6 +420,25 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **SENTINELLA→CAMPO — il ponte P6, 05/09: le volate del giorno nella
+  consegna di turno.** La mappa diceva «app che nessuno legge: Sentinella». Il
+  turno entrante deve sapere se e dove si è sparato e se la vibrazione è già
+  stata misurata: la consegna (`consegna_turno.txt`) ha la sezione «VOLATE DEL
+  GIORNO (registro di Sentinella)» prima dei lavori non conclusi, e lo schermo
+  del Turno la stessa frase (`righeVolateDelGiorno`, un posto solo). Registro
+  non leggibile → «non si sanno (non vuol dire che non ce ne siano state)»;
+  nessuna → «nessuna volata registrata oggi»; altrimenti fronte, fori, chili e
+  la PPV con la fonte, SENZA giudizio di conformità (resta di Sentinella, è
+  della soglia del punto di misura). Lo stato della volata e la sua PPV
+  (`statoDaTesto`, `statoVolata`, `volateDelGiorno`, `ppvDiVolata`, costanti)
+  passano in `shared/dw-ponti.js` con `riassuntoVolateDelGiorno`; Sentinella
+  ri-esporta gli stessi oggetti (test d'identità). In Campo le CINQUE copie
+  dell'apertura dell'SDK su un'altra app (Terra tre, Scudo due) diventano
+  `apriApp`/`leggiApp` con l'`appId` come parametro. Dimostrazione: le cinque
+  volate di Sentinella copiate id per id (prova che coincidono), nessuna di
+  oggi. run-kpi +4 (2634); `campo-foglio-turno --caso=consegna` 21/0,
+  controprova con l'iniezione della sezione vuota. Mappa: 13 ponti su 56,
+  «app che nessuno legge» 2 → 1.
 - [x] **GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO, misurato
   inesistente il 05/09 notte** (`docs/RICERCA_CONTINUA_GENESI.md`, ultima
   sezione): il `foro` del piano di carico è la posizione nella sequenza di
@@ -6368,8 +6387,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.111 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2630, `run-stile` 328,
+  **3.115 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2634, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

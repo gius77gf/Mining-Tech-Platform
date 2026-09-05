@@ -220,7 +220,12 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `fraseContatoreSostituito`) più `validaRifornimento` e le tre sorelle del
    conto sul tratto corrente, provate in run-kpi nel blocco «IL CONTATORE
    SOSTITUITO O AZZERATO». Il conto vero è 102/102. */
-const FONDO = { campo: 131, conti: 150, flotta: 102, scudo: 192, sentinella: 150, terra: 77 };
+/* ⚠️ `sentinella` SCENDE da 150 a 147 il 05/09, e non è una funzione persa: lo
+   stato della volata e la sua PPV (statoDaTesto, statoVolata, volateDelGiorno,
+   ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
+   Sentinella li ri-esporta come alias — il censimento conta le funzioni
+   DEFINITE in un file, non quelle che espone. Il totale non scende. */
+const FONDO = { campo: 132, conti: 150, flotta: 102, scudo: 192, sentinella: 147, terra: 77 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -304,7 +309,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 63,
+  { file: "shared/dw-ponti.js", fondo: 75,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,

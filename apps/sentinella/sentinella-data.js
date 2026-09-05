@@ -974,7 +974,14 @@ export function scartiAdempimentiCsv(text) {
    il comportamento: due copie uguali oggi divergono domani senza che nessuno
    lo veda. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
-import { numeroDichiarato } from "../../shared/dw-ponti.js";
+import { numeroDichiarato,
+         VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
+         volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
+/* LO STATO DI UNA VOLATA E LA SUA PPV VIVONO IN `shared/` DAL 05/09: li legge
+   anche Campo, che nella consegna di turno scrive le volate del giorno. Qui
+   restano i nomi di sempre, e il test pretende che siano lo STESSO oggetto. */
+export { VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
+         volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
 
 export function riepilogoVolate(volate, oggi = new Date()) {
   const list = (volate || []).filter(v => !volataPrevista(v));
@@ -3677,12 +3684,6 @@ export const AVVISO_COINCIDENZA =
 // ⛔ Solo le volate ESEGUITE (T9): «quel giorno è stata registrata una volata»
 // è un fatto, e un progetto non è un fatto. Con una prevista qui, un
 // superamento risulterebbe accompagnato da un evento mai avvenuto.
-export function volateDelGiorno(volate, dataISO) {
-  const d = String(dataISO || "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return [];
-  return (volate || []).filter(v => !volataPrevista(v))
-    .filter(v => String((v || {}).data || "").slice(0, 10) === d);
-}
 
 // Riga di contesto pronta da mostrare accanto a un superamento (o a un
 // reclamo) quando quel giorno c'è stata una volata. Torna null se non ce
@@ -3839,8 +3840,6 @@ export async function ponteScudo() {
 // un numero di cui non si sa la provenienza non è un dato.
 // ══════════════════════════════════════════════════════════════════════
 
-export const PPV_STRUMENTO = "strumento";   // letta dal sismografo fra i punti di misura
-export const PPV_MANUALE = "manuale";       // trascritta dal referto di uno strumento non censito
 
 // Quanti referti servono. Sono le stesse due soglie che usa Genesi nella
 // modale «Legge di sito»: sotto 3 la retta non esiste (da due punti passa
@@ -3871,19 +3870,6 @@ export function motivoReferto(chiave) {
 // La PPV collegata a una volata, o null. Non deduce NIENTE: legge soltanto
 // quello che è stato scritto sulla volata. Una volata vecchia, registrata
 // prima che questi campi esistessero, torna null — non un valore finto.
-export function ppvDiVolata(v) {
-  const val = +((v || {}).ppvMisurata);
-  if (!Number.isFinite(val) || val <= 0) return null;
-  const strumento = String((v || {}).ppvFonte || "") === PPV_STRUMENTO;
-  return {
-    valore: val,
-    fonte: strumento ? PPV_STRUMENTO : PPV_MANUALE,
-    puntoId: String((v || {}).ppvPuntoId || ""),
-    punto: String((v || {}).ppvPuntoNome || "").trim(),
-    data: String((v || {}).ppvData || "").slice(0, 10),
-    ora: String((v || {}).ppvOra || "").trim(),
-  };
-}
 
 // Come si dice a parole da dove viene una PPV. Usata sia nell'elenco sia
 // nel CSV: deve dire sempre la stessa cosa.
@@ -4146,29 +4132,14 @@ export function csvRefertiGenesi(referti) {
 // cambia, e nessuna riga va convertita.
 // ══════════════════════════════════════════════════════════════════════
 
-export const VOL_PREVISTA = "prevista";   // progettata, non ancora sparata
-export const VOL_ESEGUITA = "eseguita";   // sparata: è un evento del registro
 
 // Lo stato scritto in un file, letto con tolleranza (Genesi scrive "prevista",
 // ma un file compilato a mano può dire "progetto" o "sparata"). Ritorna ""
 // quando la colonna non c'è o non dice niente: chi chiama decide, e per il
 // registro il silenzio significa ESEGUITA — vedi statoVolata.
-export function statoDaTesto(s) {
-  const t = String(s == null ? "" : s).trim().toLowerCase();
-  if (!t) return "";
-  if (/^(prevista|previsto|progetto|progettata|programmata|pianificata)$/.test(t)) return VOL_PREVISTA;
-  if (/^(eseguita|eseguito|sparata|sparato|fatta|effettuata)$/.test(t)) return VOL_ESEGUITA;
-  return "";
-}
 
 // Lo stato di una volata del registro. UNICO punto in cui si decide, così non
 // esistono due parti dell'app che leggono lo stesso campo in due modi.
-export function statoVolata(v) {
-  return statoDaTesto((v || {}).stato) === VOL_PREVISTA ? VOL_PREVISTA : VOL_ESEGUITA;
-}
-export const volataPrevista = (v) => statoVolata(v) === VOL_PREVISTA;
-export const volatePreviste = (volate) => (volate || []).filter(volataPrevista);
-export const volateEseguite = (volate) => (volate || []).filter(v => !volataPrevista(v));
 
 // Come si presenta lo stato a schermo. La prevista NON usa i colori del
 // semaforo (verde/giallo/rosso): non è un giudizio di conformità, è un'altra

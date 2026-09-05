@@ -1125,6 +1125,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     </div>
     <div class="form-hint">La produzione è facoltativa, ma se la registri il turno entra nel totale di giornata (tonnellate e metri cubi restano separati).</div>
   </div>
+  <div class="note" id="turno-volate"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-consegna"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>Consegna di turno (testo)</button>
     <button class="dw-btn secondary" id="btn-rapporto-turno"><svg viewBox="0 0 24 24"><path d="M7 9.2V3.8h10v5.4"/><rect x="4" y="9.2" width="16" height="7.2" rx="1.8"/><path d="M7 14.4h10v5.8H7z"/></svg>Rapporto di fine turno</button>
@@ -1218,7 +1219,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente, zeriDelGrafico, registrazioniSenzaGiorno, csvStorico,
            csvAttivita, csvAppello, descriviChecklist,
-           senzaGiornoDiLavoro, avvisoSenzaGiorno,
+           senzaGiornoDiLavoro, avvisoSenzaGiorno, righeVolateDelGiorno, riassuntoVolateDelGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
@@ -1541,6 +1542,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
   let LAV_HSE = null, SCAD_HSE = null;
+  let VOL_SENT = null;   // le volate del registro di Sentinella (ponte P6): null = non lo so
   // le azioni correttive lette da Scudo (ponte P4): `null` = non lo sappiamo,
   // che NON è «non ce n'è nessuna» — su questa sezione è la differenza fra
   // «nessuno ha fatto niente» e «non siamo riusciti a chiederlo»
@@ -2011,12 +2013,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // PONTE P4 · le azioni correttive nate dai fermi, in lettura da Scudo.
     // Stessa convenzione: `null` = non lo so.
     // PONTE P5 · il registro dei near-miss, in lettura. Stessa convenzione.
-    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE] = await Promise.all([
+    // PONTE P6 · le volate del giorno, in lettura da Sentinella. Stessa
+    // convenzione: `null` = non lo so.
+    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE, VOL_SENT] = await Promise.all([
       db.lavoratoriScudo ? db.lavoratoriScudo() : null,
       db.scadenzeScudo ? db.scadenzeScudo() : null,
       db.azioniScudo ? db.azioniScudo().catch(() => null) : null,
       db.infortuniScudo ? db.infortuniScudo().catch(() => null) : null,
+      db.volateSentinella ? db.volateSentinella().catch(() => null) : null,
     ]);
+    /* le volate di oggi, sullo schermo con le stesse parole del foglio:
+       `righeVolateDelGiorno` decide la frase in un posto solo */
+    { const tv = $("turno-volate"); if (tv) tv.innerHTML = "<b>Volate di oggi</b> (registro di Sentinella): "
+        + righeVolateDelGiorno(riassuntoVolateDelGiorno(VOL_SENT, OGGI)).map(esc).join("<br>"); }
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
     // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
@@ -4405,6 +4414,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        mano no. Le regole sono quelle dello schermo, non copie: `lavoriNonConclusi`
        e `testoSegnalazioniTurno`, turno per turno — e chi non si legge (Scudo
        non raggiungibile) lo dice, invece di «nessuna segnalazione». */
+    /* le volate di oggi dal registro di Sentinella (ponte P6, 05/09): il turno
+       entrante deve sapere se e dove si è sparato, e se la vibrazione è già
+       stata misurata. Se Sentinella non si legge, lo si scrive: non è «nessuna» */
+    txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
+    txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(VOL_SENT, OGGI)).map(l => "- " + l).join("\n") + "\n\n";
     const aperti = lavoriNonConclusi(ATT_OGGI);
     txt += "LAVORI NON CONCLUSI\n";
     txt += (aperti.length

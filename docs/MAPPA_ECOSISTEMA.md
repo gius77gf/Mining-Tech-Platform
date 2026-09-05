@@ -29,7 +29,7 @@ inizializza l'SDK con l'`appId` di qualcun altro:
 | Campo | Terra (3 punti), Scudo | Terra, Scudo |
 | Scudo | Campo | Campo, Sentinella |
 | Conti | Terra | **nessuno** |
-| Sentinella | Scudo | **nessuno** |
+| Sentinella | Scudo | Campo *(P6, 05/09: le volate del giorno nella consegna di turno)* |
 | **Flotta** | **nessuno** | **nessuno** |
 | **Genesi** | **nessuno** | **nessuno** |
 | Deepwork ID | — | — *(è l'identità, non produce dati di cava: giusto così)* |
@@ -372,9 +372,9 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **12** su 56 direzioni *(era 6; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
+| ponti di DATI esistenti | **13** su 56 direzioni *(era 6; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
 | ponti di FILE | almeno **1** (Genesi→Sentinella) — mai censiti, vedi §1 |
-| app che nessuno legge | **2** (Sentinella, Deepwork ID) *(era 5: Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
+| app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
 | sovrapposizioni non collegate | **1 famiglia** (§3: la 3e, che passa da un file) *(era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |

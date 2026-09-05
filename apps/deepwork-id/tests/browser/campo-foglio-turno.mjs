@@ -139,6 +139,10 @@ const DIFETTI = {
   "apps/campo/campo-data.js": [
     ['  return (attivita || []).filter((a) => a && a.stato !== "conclusa")',
      '  return (attivita || []).filter(() => false)   /* difetto rimesso dal banco */'],
+    /* (05/09) la sezione delle volate che resta VUOTA quando oggi non ce ne sono:
+       una sezione vuota si legge come «niente da dire», non come «nessuna» */
+    ['  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];',
+     '  if (!r.n) return [];   /* difetto rimesso dal banco */'],
   ],
   "shared/deepwork-id-client/dw-shell.js": [
     ['  return modo === "live" ? null : String(modo || "non dichiarata");',
@@ -460,6 +464,19 @@ if (fai("consegna")) {
   // (b) e non ha mangiato il documento
   for (const t of ["RAPPORTINI", "PRODUZIONE", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"])
     dice(testo.includes(t), `la consegna ha ancora la sezione «${t}»`);
+  /* le volate di oggi dal registro di Sentinella (ponte P6, 05/09): la sezione
+     c'è sempre, e quando oggi non ce ne sono lo DICE — in dimostrazione il
+     registro copiato non ne ha nessuna di oggi; fingendo la produzione
+     Sentinella non si raggiunge, e nemmeno quello è «nessuna». */
+  const sezVol = (testo.split("VOLATE DEL GIORNO (registro di Sentinella)\n")[1] || "").split("\n\n")[0];
+  dice(sezVol.length > 0 && testo.indexOf("VOLATE DEL GIORNO") < testo.indexOf("LAVORI NON CONCLUSI"),
+    "la consegna ha la sezione «VOLATE DEL GIORNO», da Sentinella, prima dei lavori non conclusi", sezVol || "(vuota)");
+  /* ⚠️ anche con `--live` i dati restano quelli della dimostrazione (le
+     iniezioni «come live» cambiano il MODO dichiarato, non la memoria): quindi
+     la frase giusta è «nessuna» in tutt'e due i casi. La frase del registro
+     non leggibile («non si sanno») la prova run-kpi sul modulo, con `null`. */
+  dice(/^- nessuna volata registrata oggi in Sentinella$/m.test(sezVol),
+    "⛔ la sezione dice che oggi non ne risulta nessuna, invece di restare vuota", sezVol || "(vuota)");
   /* ⛔ LE DUE COSE CHE IL TURNO ENTRANTE LEGGE PER PRIME (05/09): i lavori non
      conclusi e le segnalazioni. Lo schermo le aveva, il foglio no. La regola
      dei lavori è `lavoriNonConclusi` (fermi prima, chi ce l'ha in carico,

@@ -37098,7 +37098,51 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([r.fori[0].mx, r.fori[0].my], [0, 3], "le posizioni scritte come stringhe tornano numeri");
   });
 }
-/* ===== fine fori salvati col progetto (Genesi, 05/09) ===== */
+/* ===== il ponte P6: le volate di Sentinella nella consegna di Campo (05/09) ===== */
+{
+  test("shared · lo stato di una volata e la sua PPV vivono in un posto solo: Sentinella ri-esporta lo STESSO oggetto", () => {
+    for (const k of ["statoDaTesto", "statoVolata", "volataPrevista", "volatePreviste", "volateEseguite", "volateDelGiorno", "ppvDiVolata"])
+      ok(sentinella[k] === ponti[k], k + ": identità, non uguaglianza di comportamento");
+    eq([sentinella.VOL_PREVISTA, sentinella.PPV_STRUMENTO], [ponti.VOL_PREVISTA, ponti.PPV_STRUMENTO], "e le costanti");
+    eq(campo.riassuntoVolateDelGiorno, ponti.riassuntoVolateDelGiorno, "Campo importa il riassunto da shared, non lo riscrive");
+  });
+  const V = [
+    { id: "b1", data: "2026-09-05", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", ppvMisurata: 4.1, ppvFonte: "strumento", ppvPuntoNome: "V1 — abitato Sud", ppvOra: "11:15" },
+    { id: "b2", data: "2026-09-05", fronte: "Fronte Est", nFori: "", kgTotali: "abc" },
+    { id: "b3", data: "2026-09-05", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, stato: "prevista" },
+    { id: "b4", data: "2026-09-04", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, stato: "eseguita" },
+  ];
+  test("shared · riassuntoVolateDelGiorno: solo le eseguite del giorno, i numeri illeggibili null, e «non leggibile» non è «nessuna»", () => {
+    const r = ponti.riassuntoVolateDelGiorno(V, "2026-09-05");
+    eq([r.leggibile, r.n], [true, 2], "due volate eseguite oggi: la prevista (b3) e quella di ieri (b4) restano fuori");
+    eq(r.righe.map((x) => x.id), ["b1", "b2"], "b1 e b2");
+    eq([r.righe[0].nFori, r.righe[0].kgTotali, r.righe[0].ppv.valore, r.righe[0].ppv.fonte, r.righe[0].ppv.punto, r.righe[0].ppv.ora], [42, 480, 4.1, "strumento", "V1 — abitato Sud", "11:15"], "la PPV collegata, con la sua fonte");
+    eq([r.righe[1].nFori, r.righe[1].kgTotali, r.righe[1].ppv], [null, null, null], "⛔ fori vuoti e chili «abc» sono null, non 0; nessuna PPV è null");
+    eq(ponti.riassuntoVolateDelGiorno(null, "2026-09-05"), { leggibile: false, n: 0, righe: [] }, "⛔ il registro non letto (null) è «non leggibile», non «zero volate»");
+    eq(ponti.riassuntoVolateDelGiorno(V, "boh").n, 0, "una data che non è una data: nessuna riga, non un errore");
+  });
+  test("Campo · righeVolateDelGiorno: le tre frasi, e la riga di una volata con quello che il turno entrante deve sapere", () => {
+    const f = campo.righeVolateDelGiorno;
+    ok(/non raggiungibile/.test(f(ponti.riassuntoVolateDelGiorno(null, "2026-09-05"))[0]) && /non vuol dire che non ce ne siano state/.test(f(null)[0]), "⛔ registro non leggibile: si dice, e si dice che non è «nessuna»");
+    eq(f(ponti.riassuntoVolateDelGiorno([], "2026-09-05")), ["nessuna volata registrata oggi in Sentinella"], "nessuna volata oggi");
+    const righe = f(ponti.riassuntoVolateDelGiorno(V, "2026-09-05"));
+    eq(righe[0], "Fronte Nord — 42 fori, 480 kg · PPV misurata 4,1 mm/s dal sismografo (V1 — abitato Sud) alle 11:15", "la riga completa, all'italiana");
+    eq(righe[1], "Fronte Est · PPV non ancora collegata in Sentinella", "senza numeri leggibili non si scrive «0 fori, 0 kg»: si tace il pezzo, e la PPV assente si dichiara");
+    eq(f(ponti.riassuntoVolateDelGiorno([{ id: "x", data: "2026-09-05", ppvMisurata: 3, ppvFonte: "manuale" }], "2026-09-05"))[0],
+       "fronte non indicato · PPV misurata 3 mm/s trascritta a mano", "fronte assente e PPV a mano");
+  });
+  /* ⚠️ sincrona di proposito: una prova asincrona scritta in fondo al file
+     resta in volo dopo l'`await Promise.all(inVolo)` e non conta (CLAUDE.md,
+     punto 3 dei test). Le dimostrazioni si leggono dai `DEMO` esportati. */
+  test("P6: le volate della dimostrazione di Campo sono quelle di Sentinella, id e date compresi", () => {
+    const c = campo.DEMO.volateSentinella.map((v) => [v.id, v.data, v.fronte, ponti.statoVolata(v)].join("|")).sort();
+    const s = sentinella.DEMO.volate.map((v) => [v.id, v.data, v.fronte, ponti.statoVolata(v)].join("|")).sort();
+    ok(c.length > 0, "Campo ha delle volate dimostrative");
+    eq(c, s, "⛔ le stesse, id per id, data per data, stato per stato: se qui ne inventassi altre il ponte funzionerebbe in demo e si romperebbe in produzione");
+    eq(ponti.riassuntoVolateDelGiorno(campo.DEMO.volateSentinella, shell.isoLocale(new Date())).n, 0, "e nessuna è di oggi: la consegna in dimostrazione dice «nessuna volata registrata oggi», che è vero del registro copiato");
+  });
+}
+/* ===== fine ponte P6 (05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

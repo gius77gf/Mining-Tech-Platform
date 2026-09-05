@@ -52,7 +52,11 @@
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello,
+         riassuntoVolateDelGiorno, PPV_STRUMENTO } from "../../shared/dw-ponti.js";
+/* le volate del giorno si leggono dal registro di Sentinella con la regola di
+   `shared/` (05/09): qui il nome per la pagina, non una seconda implementazione */
+export { riassuntoVolateDelGiorno } from "../../shared/dw-ponti.js";
 /* lo scarto della carica vive in `shared/` dal 05/09 (lo legge anche Genesi):
    qui resta il nome di sempre, e il test pretende che sia lo STESSO oggetto */
 export { scartoPct, scartoLivello } from "../../shared/dw-ponti.js";
@@ -260,6 +264,18 @@ export const DEMO = {
     { id: "f1", nome: "Fronte Nord", stato: "attivo" },
     { id: "f2", nome: "Fronte Est", stato: "attivo" },
     { id: "f3", nome: "Fronte Sud", stato: "sospeso" },
+  ],
+  // LE VOLATE, lette da Sentinella (ponte P6, 05/09). Nella dimostrazione sono
+  // le stesse cinque di `sentinella-data.js`, identificativi e date compresi:
+  // la prova nella suite pretende che coincidano, per la stessa ragione dei
+  // fronti di Terra. Nessuna è di oggi: la consegna in dimostrazione dice
+  // «nessuna volata registrata oggi», che è la verità del registro copiato.
+  volateSentinella: [
+    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", codiceVolata: "GEN-20260717-4f2a1" },
+    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410 },
+    { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, stato: "prevista", codiceVolata: "GEN-20260804-9c71b" },
+    { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, stato: "eseguita" },
+    { id: "b5", data: "2026-07-10", fronte: "Fronte Est", nFori: 40, kgTotali: 455, stato: "eseguita" },
   ],
   lavoratoriScudo: [
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", attivo: true },
@@ -3012,6 +3028,27 @@ export function pianoConsuntivoCsv(piano) {
 // con le due app che le ri-esportano — e ci vanno appena `shared/` si libera:
 // finché sono due copie, il giorno in cui una cambia l'altra resta indietro.
 
+/* LE VOLATE DI OGGI NELLA CONSEGNA DI TURNO (ponte P6, 05/09): una riga per
+   volata eseguita, con quello che il turno entrante deve sapere — dove, quanto
+   grande, e se la vibrazione è già stata misurata. Il registro NON leggibile
+   si dice con le sue parole: «non si sanno» non è «non ce ne sono state».
+   Prende il riassunto di `riassuntoVolateDelGiorno` (shared). Pura. */
+export function righeVolateDelGiorno(r) {
+  if (!r || !r.leggibile) return ["Sentinella non raggiungibile: le volate di oggi non si sanno (non vuol dire che non ce ne siano state)"];
+  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];
+  return r.righe.map(x => {
+    const dove = x.fronte || "fronte non indicato";
+    const quanto = [x.nFori != null ? conta(x.nFori, "foro", "fori") : "", x.kgTotali != null ? numeroIt(x.kgTotali, 0) + " kg" : ""].filter(Boolean).join(", ");
+    const ppv = x.ppv
+      ? "PPV misurata " + numeroIt(x.ppv.valore, 2) + " mm/s"
+        + (x.ppv.fonte === PPV_STRUMENTO
+          ? " dal sismografo" + (x.ppv.punto ? " (" + x.ppv.punto + ")" : "") + (x.ppv.ora ? " alle " + x.ppv.ora : "")
+          : " trascritta a mano")
+      : "PPV non ancora collegata in Sentinella";
+    return dove + (quanto ? " — " + quanto : "") + " · " + ppv;
+  });
+}
+
 export const ORIGINE_FERMO = "fermo";
 // Chi ha generato l'azione. Resta LOCALE al modulo di proposito: `PONTE_APP`
 // è esportato anche da Sentinella con un altro valore, e due export omonimi
@@ -3398,48 +3435,37 @@ export async function campoData() {
       // Si apre solo quando serve, così l'avvio di Campo non rallenta. Se Terra
       // non c'è, o se la lettura non è permessa, torna null: la pagina dirà che
       // il confronto non è disponibile, senza inventare uno zero.
-      let idTerra;                     // undefined = mai provato, null = non c'è
-      api.rilieviTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
+      /* ⛔ ERANO CINQUE COPIE DELLA STESSA APERTURA (Terra tre volte, Scudo
+         due) e il ponte con Sentinella sarebbe stata la sesta: una copia nasce
+         da una firma troppo stretta, e la firma qui è l'`appId`. Un'istanza
+         per app, aperta solo quando serve; `null` = non c'è, e chi legge dice
+         «non lo so», non «non ce n'è». */
+      const istanze = {};                // appId → istanza, null = non c'è; chiave assente = mai provato
+      const apriApp = async (appId) => {
+        if (!(appId in istanze)) {
+          try { istanze[appId] = await DeepworkID.init({ appId }); }
+          catch (e) { istanze[appId] = null; }
         }
-        if (!idTerra) return null;
+        return istanze[appId];
+      };
+      const leggiApp = async (appId, nome) => {
+        const s = await apriApp(appId);
+        if (!s) return null;
         try {
-          return (await getDocs(idTerra.orgCollection("rilievi")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
+          return (await getDocs(s.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { return null; }
       };
+      api.rilieviTerra = () => leggiApp("terra", "rilievi");
       // i FRONTI di Terra: servono alla tendina del rapportino, perché il
       // fronte si sceglie da un elenco e si registra col suo identificativo.
       // ⛔ Mai per nome: basta che qualcuno rinomini un fronte e la produzione
       // finisce su quello sbagliato, su un numero che va nella denuncia.
       // Se Terra non c'è torna null, e la tendina lo dice invece di mostrarsi
       // vuota come se non ci fossero fronti.
-      api.frontiTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
-        }
-        if (!idTerra) return null;
-        try {
-          return (await getDocs(idTerra.orgCollection("fronti")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      api.frontiTerra = () => leggiApp("terra", "fronti");
       // e l'autorizzazione, da cui si ricava la densità del materiale: a chi
       // compila un rapportino non si chiede un numero che è già registrato
-      api.autorizzazioniTerra = async () => {
-        if (idTerra === undefined) {
-          try { idTerra = await DeepworkID.init({ appId: "terra" }); }
-          catch (e) { idTerra = null; }
-        }
-        if (!idTerra) return null;
-        try {
-          return (await getDocs(idTerra.orgCollection("autorizzazioni")))
-            .docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      api.autorizzazioniTerra = () => leggiApp("terra", "autorizzazioni");
       // ── PONTE P3 CON SCUDO — SOLA LETTURA ─────────────────────────────
       // Stesso schema del ponte con Terra: seconda istanza dell'SDK sull'app
       // "scudo", stessa organizzazione, percorso costruito da `orgCollection`.
@@ -3448,22 +3474,14 @@ export async function campoData() {
       // Se Scudo non c'è, o la lettura non è permessa, torna null e la schermata
       // dice che non lo sa — non inventa un «tutto a posto», che su un controllo
       // di sicurezza è la bugia peggiore.
-      let idScudo;                     // undefined = mai provato, null = non c'è
-      const apriScudo = async () => {
-        if (idScudo === undefined) {
-          try { idScudo = await DeepworkID.init({ appId: "scudo" }); }
-          catch (e) { idScudo = null; }
-        }
-        return idScudo;
-      };
-      const leggiScudo = async (nome) => {
-        const s = await apriScudo();
-        if (!s) return null;
-        try {
-          return (await getDocs(s.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { return null; }
-      };
+      const apriScudo = () => apriApp("scudo");
+      const leggiScudo = (nome) => leggiApp("scudo", nome);
       api.lavoratoriScudo = () => leggiScudo("lavoratori");
+      // ── PONTE P6 CON SENTINELLA — SOLA LETTURA (05/09) ─────────────────
+      // Le volate del registro: la consegna di turno scrive «le volate di oggi»
+      // (fronte, fori, chili, PPV se collegata). Sentinella era l'app che
+      // nessuno leggeva. `null` = non lo so, e la consegna lo scrive così.
+      api.volateSentinella = () => leggiApp("sentinella", "volate");
       api.scadenzeScudo = () => leggiScudo("scadenze");
       // ── PONTE P4 CON SCUDO — L'UNICA SCRITTURA CHE CAMPO FA FUORI CASA ──
       // Le azioni correttive nate dai fermi. Si LEGGONO per sapere a quali
@@ -3511,6 +3529,8 @@ export async function campoData() {
       // finti, ma copiati dalla dimostrazione di Scudo id per id
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],
       scadenzeScudo: async () => mem.scadenzeScudo || [],
+      // ponte P6: le volate di Sentinella, copiate dalla sua dimostrazione
+      volateSentinella: async () => mem.volateSentinella || [],
       // ponte P4: le azioni correttive che in esercizio stanno in Scudo. In
       // dimostrazione ci sono solo quelle aperte da qui, e si vedono anche
       // aprendo Scudo nello stesso browser (stessa chiave)
