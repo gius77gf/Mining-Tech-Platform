@@ -276,7 +276,7 @@ giornate a togliere dal prodotto:
 |---|---|---|
 | **prese oggi** | **7** — 6, 8, 10c, 11a, 11b, 11c, 12b | erano decisioni da **scrivere**: non toccano codice, e adesso sono scritte con la ragione |
 | **prese E costruite** | **5** — 5a, 10b, 12a (tutte e 6 le voci), 18a, 18b | il messaggio del salvataggio fallito (montato nelle sei app, 30 asserzioni) e chi può cancellare un documento emesso (regole 58 → 68, con la controprova) |
-| **restano aperte** | **mezza** — la 5b, ed è cambiata l'08/08 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
+| **restano aperte** | **una e mezza** — la 5b, ed è cambiata l'08/08; e la **19**, nata il 05/09 | la sua **prima metà è costruita**: dei dodici punti in cui la spunta di uno spariva, **undici sono chiusi** e il dodicesimo è dichiarato con la ragione. Resta **solo la coda offline**, che è una scelta tua e non un cantiere: vedi la riga qui sotto |
 | **ferme, e restano ferme** | **4** — 1, 4, 7, 9 | due toccano la sicurezza (mai da solo), due vogliono che tu apra qualcosa di tuo |
 
 ⚠️ E una decisione presa dal ciclo **non pesa come una tua**: si cambia con una
@@ -313,6 +313,7 @@ momento.
 | ~~**17**~~ | ✅ **DECISA E FATTA il 02/08** — infortunio a prognosi aperta | si distingue da «0»: prima era «un infortunio che non è costato una giornata» |
 | ~~**18a**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — la detrazione per recupero | **(c)** un'opzione della concessione, che nasce **spenta**: l'errore ha un costo asimmetrico |
 | ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
+| **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1093,6 +1094,53 @@ andato: lì la detrazione non è quella parziale, è **incompleta**, e va detto.
       tranquillo lo leggerebbe un ispettore.
       Prove: `run-kpi` 1853 → **1860**, sette casi compreso quello in cui uno
       **zero dichiarato** è una misura e un vuoto no.
+
+## 19. Il ricettore delle polveri: da che parte sta rispetto alla cava?
+
+*Nato il 05/09 (sera) chiudendo le condizioni meteo della misura in
+Sentinella. Il codice che serviva è fatto; quello che manca è un dato che solo
+tu puoi dire, e un'interpretazione che non voglio inventare.*
+
+**Il fatto.** Da stasera ogni lettura può portare il vento (velocità e
+direzione), la pioggia, la temperatura e l'umidità — scritti a mano o letti dal
+file dello strumento. Sul **rumore** l'app applica la regola della norma (DM
+16/03/1998, All. B — letta di seconda mano, dai risultati di ricerca): con
+vento oltre 5 m/s o con pioggia la misura **non vale**, e la riga lo suggerisce
+senza togliere niente. Sulle **polveri** il dato del vento oggi si scrive e
+basta: l'app **non dice** se il ricettore era sottovento, perché per dirlo
+servirebbe sapere **da che parte sta la casa rispetto alla cava** — e il
+ricettore, nella sua scheda, ha solo la **distanza** in metri.
+
+**Perché conta.** Una lettura di polveri alta con il ricettore **sopravento**
+non è colpa della cava; una bassa con il ricettore **sottovento** è la prova
+migliore che si possa portare a un ispettore. Senza la direzione, tutte e due
+sono un numero e basta.
+
+**Quello che ho già risolto, e non serve a te.** Il campo sarebbe uno solo,
+sulla scheda del ricettore: *da che parte sta rispetto alla cava*, scelto fra
+le stesse otto direzioni del vento (N, NE, E, SE, S, SO, O, NO). Con quello e
+con la direzione del vento della lettura la regola è aritmetica: il ricettore
+è sottovento quando il vento **arriva dalla parte della cava**, cioè soffia
+dalla direzione opposta a quella in cui sta la casa (casa a NE della cava →
+sottovento con vento da SO, e nei due settori accanto). Provato a mente sugli
+otto settori; costa una funzione pura e una tendina.
+
+**Le due cose che decidi tu:**
+
+1. **Lo mettiamo?** È un dato in più da compilare per ogni ricettore, e lo
+   compili tu (o chi fa la campagna): se non lo sai per una casa, quella casa
+   resta «non si può dire», che è la risposta giusta. Se non ti serve, non
+   lo costruisco: una tendina vuota su ogni scheda è rumore.
+2. **Che cosa deve dire l'app** quando il ricettore era sottovento? Due
+   strade: (a) **solo un'etichetta** sulla lettura («ricettore sottovento» /
+   «sopravento» / «non si può dire»), che il report riporta e basta — nessun
+   giudizio; (b) anche un **conto nel report**, «N letture sottovento, la più
+   alta X µg/m³», che è quello che un ispettore chiederebbe. La (b) contiene
+   la (a); la (a) da sola non fa dire all'app niente che non sia scritto.
+
+Finché non decidi, resta com'è: il vento si scrive, e sulle polveri non si
+giudica. È scritto anche nel commento del modulo (`condizioniMisura`), così
+nessuno lo costruisce per conto suo.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

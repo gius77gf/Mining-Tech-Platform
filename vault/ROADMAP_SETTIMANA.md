@@ -665,6 +665,20 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **Due righe di documento, prima di aprire cantieri (05/09, notte):** (1)
+  **decisione 19** in `DECISIONI_WEEKEND` — il ricettore delle polveri e «da
+  che parte sta rispetto alla cava»: il vento ora si registra, ma sulle
+  polveri «sottovento» vorrebbe un campo sul ricettore che compila il
+  fondatore; scritta la regola (aritmetica sugli otto settori) e le due
+  domande, e NON costruita; registrata nella tabella d'ingresso; (2) la riga
+  «Gestione magazzino / giacenze prodotto» di `CONCORRENTI_CONTI` era un
+  **«non c'è» scaduto** dal 03/09: le giacenze esistono come inventari dei
+  cumuli di Terra nel terzo lato del triangolo (`variazioneScorte`,
+  `scorteInTonnellate`, `chiusuraTriangolo`, `triangolo`), e la riga diceva
+  ancora «confermato assente» — stavo per aprire un cantiere su un magazzino
+  che il prodotto ha deciso di non avere. Riscritta «C'È A METÀ» con i comandi
+  e con ciò che resta assente (carico/scarico per prodotto, FIFO). B4 conti
+  6 → 5, totale 42 → 41.
 - [x] **SENTINELLA — il banco del browser sulle condizioni meteo, dal file e a
   mano (05/09, notte):** `tests/browser/sentinella-meteo-import.mjs`, 46
   prove a 320 e 390 px, registrato in `tutti.mjs` (249 esecuzioni, 104 file).
@@ -4272,8 +4286,15 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **6** · flotta **4** · terra 4 · **scudo 6** |
-          | totale **42** (era 54, 47 fino al 05/09, 45 e poi 44 la sera del 05/09 · ⛔ il 42 di oggi NON è il «42» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo due righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 6** |
+          | totale **41** (era 54, 47 fino al 05/09, 45, 44 e 42 la sera del 05/09 · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+
+      ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
+      magazzino / giacenze prodotto» di Conti era «confermato assente» dal
+      03/08, e dal 03/09 le giacenze ci sono — come inventari dei cumuli di
+      Terra nel terzo lato del triangolo, non come magazzino. Riga riscritta
+      «C'È A METÀ» con ciò che resta assente (carico/scarico per prodotto).
+      Trovato leggendo la riga PRIMA di aprire un cantiere su di lei.
 
       ⏱️ **44 → 42 il 05/09 (notte), per opera nostra**: «Umidità, temperatura»
       e «Direzione + velocità vento» di Sentinella sono passate a **C'È** come
