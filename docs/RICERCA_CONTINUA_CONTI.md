@@ -1134,4 +1134,10 @@ movimento (basso, dopo (a)).
 
 *Aggiornamento della notte stessa (commit successivo a `e889b513`): (a) ✅ —
 `mappaMovimentiCsv` e `parseMovimentiCsv` per nome; i tre file della misura
-danno i tre movimenti giusti. (b) resta aperto.*
+danno i tre movimenti giusti. (b) ✅ nel ciclo delle 03:47Z (commit successivo
+a `6bf96943`): `riferimentoInCausale` + `riferimentoMovimento`, il
+riferimento sul movimento e sull'incasso registrato, la riga che lo mostra
+con l'origine; `grep -c "riferimentoInCausale" apps/conti/conti-data.js` → 2.
+Il verdetto del punto 3 (i gestionali abbinano per importo, data e numero di
+fattura) resta: qui il TRN/CRO NON entra nell'abbinamento, è la chiave che
+si legge con la banca, e si dichiara così.*

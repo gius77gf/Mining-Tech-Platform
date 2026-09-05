@@ -36930,7 +36930,53 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(base.length > 3 && base.every((x) => !x.scarto), "il file d'esempio si legge tutto come prima");
   });
 }
-/* ===== fine file della banca per nome (Conti, 05/09) ===== */
+/* ===== il riferimento della banca sul movimento (Conti, 05/09) ===== */
+{
+  /* Il TRN/CRO è la chiave con cui la banca chiama un bonifico, e il lettore
+     lo buttava via. Si prende dalla colonna se c'è, se no dalla causale — e
+     dalla causale SOLO con l'etichetta davanti: undici cifre nude sono un
+     mandato o un telefono, come il «31 nudo» di numeroInCausale. */
+  test("Conti · riferimentoInCausale: TRN e CRO con la loro etichetta, e i falsi che deve rifiutare", () => {
+    const r = conti.riferimentoInCausale;
+    eq(r("BONIFICO DA EDILCAVE SRL FATT 2026/031 TRN 0512345678901234567890123456IT"),
+       { tipo: "TRN", valore: "0512345678901234567890123456IT" }, "il TRN dopo la sua etichetta");
+    eq(r("bonifico ord: stradesud trn: NOTPROVIDED2026071412345678"),
+       { tipo: "TRN", valore: "NOTPROVIDED2026071412345678" }, "minuscolo, coi due punti, e col NOTPROVIDED che alcune banche scrivono davvero");
+    eq(r("BONIFICO CRO 12345678901 SALDO FT 34"), { tipo: "CRO", valore: "12345678901" }, "il CRO di undici cifre");
+    eq(r("BONIFICO CRO: 1234567890 SALDO FT 34"), null, "⛔ dieci cifre non sono un CRO");
+    eq(r("MACRO ECONOMIA 12345678901"), null, "⛔ undici cifre nude non sono un CRO, e «MACRO» non è «CRO»");
+    eq(r("PAGAMENTO MANDATO 4412 IBAN IT60X0542811101000000123456"), null, "un IBAN non è un riferimento");
+    eq(r(""), null, "vuoto"); eq(r(null), null, "e null: la risposta è null, non una stringa vuota");
+  });
+  test("Conti · riferimentoMovimento: prima la colonna, poi la causale, e il tipo lo dice il nome della colonna", () => {
+    const f = conti.riferimentoMovimento;
+    eq(f("0512345678901234567890123456IT", "TRN", "BONIFICO"), { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "colonna" }, "la colonna TRN");
+    eq(f(" 12345678901 ", "Numero CRO", "BONIFICO"), { tipo: "CRO", valore: "12345678901", da: "colonna" }, "la colonna CRO, ripulita dagli spazi");
+    eq(f("ABC123", "Id operazione", "BONIFICO"), { tipo: "riferimento", valore: "ABC123", da: "colonna" }, "una colonna che non dice se è TRN o CRO resta «riferimento»");
+    eq(f("", "TRN", "BONIFICO CRO 12345678901"), { tipo: "CRO", valore: "12345678901", da: "causale" }, "colonna vuota: si passa alla causale, e lo si dichiara");
+    eq(f("", "", "BONIFICO A NS FAVORE"), null, "niente da nessuna parte: null");
+  });
+  test("Conti · parseMovimentiCsv porta il riferimento sul movimento, e abbinaMovimenti lo tiene", () => {
+    const mov = conti.parseMovimentiCsv(
+      "Data;Valuta;Descrizione;TRN;Entrate;Uscite\n"
+      + "12/07/2026;12/07/2026;BONIFICO EDILCAVE;0512345678901234567890123456IT;18.300,00;\n"
+      + "13/07/2026;13/07/2026;F24;;;2.410,00\n"
+      + "14/07/2026;;BONIFICO CRO 12345678901 SALDO;;100,00;\n");
+    eq(mov.map((x) => x.riferimento), [
+      { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "colonna" }, null,
+      { tipo: "CRO", valore: "12345678901", da: "causale" }], "colonna, niente, causale");
+    eq(mov.map((x) => x.importo), [18300, -2410, 100], "e gli importi non cambiano per la colonna in più");
+    const m = conti.mappaMovimentiCsv(["Data", "Id operazione", "Descrizione", "Importo"]);
+    eq([m.riferimento, m.descrizione], [1, 2], "⛔ «Id operazione» è il riferimento, non la descrizione, anche se contiene «operazione»");
+    eq(conti.parseMovimentiCsv("12/07/2026;12/07/2026;BONIFICO TRN 0512345678901234567890123456IT;12,00\n")[0].riferimento,
+       { tipo: "TRN", valore: "0512345678901234567890123456IT", da: "causale" }, "senza intestazione la causale basta lo stesso");
+    const righe = conti.abbinaMovimenti(mov, [], [], [], null).righe;
+    eq(righe.map((x) => x.riferimento), mov.map((x) => x.riferimento), "l'abbinamento tiene il riferimento sulla riga, null compreso");
+    const demo = conti.parseMovimentiCsv(conti.ESTRATTO_ESEMPIO);
+    eq(demo.filter((x) => x.riferimento).length, 1, "la dimostrazione ne porta uno, così il caso si vede");
+  });
+}
+/* ===== fine riferimento della banca (Conti, 05/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

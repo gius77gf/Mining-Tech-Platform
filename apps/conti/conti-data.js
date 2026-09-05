@@ -4247,6 +4247,7 @@ const INDIZI_ESTRATTO = {
   entrate: ["entrate", "entrata", "accredit", "avere", "credit"],
   uscite:  ["uscite", "uscita", "addebit", "dare", "debit"],
   importo: ["importo", "amount"],
+  riferimento: ["trn", "cro", "riferimento", "id operazione", "identificativo", "end to end", "reference", "transaction id"],
   descrizione: ["descrizione", "causale", "dettagli", "dettaglio", "movimento", "description", "operazione"],
 };
 const _normCol = (s) => String(s == null ? "" : s).toLowerCase()
@@ -4255,7 +4256,7 @@ const _normCol = (s) => String(s == null ? "" : s).toLowerCase()
 export function mappaMovimentiCsv(intestazione) {
   const nomi = Array.isArray(intestazione) ? intestazione : [];
   const celle = nomi.map(_normCol);
-  const out = { data: -1, valuta: -1, descrizione: -1, importo: -1, entrate: -1, uscite: -1,
+  const out = { data: -1, valuta: -1, descrizione: -1, importo: -1, entrate: -1, uscite: -1, riferimento: -1,
     esclusi: [], riconosciute: [], ignorate: [], conIntestazione: false };
   const presi = new Set();
   const combacia = (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
@@ -4264,10 +4265,44 @@ export function mappaMovimentiCsv(intestazione) {
   const prendi = (campo) => { const i = cerca(INDIZI_ESTRATTO[campo]); if (i >= 0) { out[campo] = i; presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); } };
   prendi("valuta"); prendi("data"); prendi("entrate"); prendi("uscite");
   if (out.entrate < 0 && out.uscite < 0) prendi("importo");
+  /* il riferimento PRIMA della descrizione: «id operazione» contiene
+     «operazione», che è un indizio della descrizione */
+  prendi("riferimento");
   prendi("descrizione");
   celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
   out.conIntestazione = out.data >= 0 && (out.importo >= 0 || out.entrate >= 0 || out.uscite >= 0);
   return out;
+}
+
+/* IL RIFERIMENTO DEL BONIFICO — la chiave con cui la banca lo chiama (05/09).
+   Un bonifico SEPA porta un TRN (una trentina di caratteri alfanumerici), uno
+   nazionale un CRO (undici cifre): è quello che si legge al telefono con la
+   banca quando un pagamento non torna, e finora il lettore lo buttava via.
+   Si prende da DUE posti, nell'ordine: la colonna apposta, se il file ce l'ha
+   (`nomeColonna` dice se è un TRN o un CRO; se non lo dice resta
+   «riferimento»), altrimenti dalla causale — e dalla causale SOLO con la sua
+   etichetta davanti: undici cifre nude in una causale sono un numero di
+   mandato, un IBAN spezzato, un telefono. È la stessa regola del «31 nudo»
+   di `numeroInCausale`. Un CRO di dieci cifre non è un CRO.
+   Ritorna { tipo, valore, da: "colonna"|"causale" } oppure null quando non
+   c'è — null, non "", perché «non c'è» è una risposta e non un vuoto. Pure. */
+export function riferimentoInCausale(causale) {
+  const t = String(causale || "").toUpperCase();
+  const trn = /\bTRN\s*[:.]?\s*([A-Z0-9]{16,35})(?![A-Z0-9])/.exec(t);
+  if (trn) return { tipo: "TRN", valore: trn[1] };
+  const cro = /\bCRO\s*[:.]?\s*(\d{11})(?!\d)/.exec(t);
+  if (cro) return { tipo: "CRO", valore: cro[1] };
+  return null;
+}
+export function riferimentoMovimento(testoColonna, nomeColonna, causale) {
+  const v = String(testoColonna == null ? "" : testoColonna).trim();
+  if (v) {
+    const nome = _normCol(nomeColonna);
+    const tipo = /(^| )cro( |$)/.test(nome) ? "CRO" : /(^| )trn( |$)/.test(nome) ? "TRN" : "riferimento";
+    return { tipo, valore: v, da: "colonna" };
+  }
+  const c = riferimentoInCausale(causale);
+  return c ? { ...c, da: "causale" } : null;
 }
 
 export function parseMovimentiCsv(text) {
@@ -4286,6 +4321,7 @@ export function parseMovimentiCsv(text) {
      riconosce comandano i nomi; se no, la posizione di sempre */
   const m = righe.length ? mappaMovimentiCsv(righe[0]) : null;
   const perNome = !!(m && m.conIntestazione);
+  const nomeRif = perNome && m.riferimento >= 0 ? String(righe[0][m.riferimento]) : "";
   for (const cel of righe) {
     if (INTESTAZIONE_ESTRATTO.test(cel.join(";")) || (perNome && cel === righe[0])) continue;
     const g = (i) => (i >= 0 && i < cel.length ? cel[i] : "");
@@ -4294,6 +4330,7 @@ export function parseMovimentiCsv(text) {
     const descr = perNome ? g(m.descrizione) : cel[2];
     const a = perNome ? (m.importo >= 0 ? g(m.importo) : g(m.entrate)) : cel[3];
     const b = perNome ? (m.importo >= 0 ? "" : g(m.uscite)) : cel[4];
+    const rifCol = perNome && m.riferimento >= 0 ? g(m.riferimento) : "";
     const data = isoDaDataItaliana(dataRaw);
     const ia = importoBancario(a), ib = importoBancario(b);
     let importo = NaN;
@@ -4305,6 +4342,7 @@ export function parseMovimentiCsv(text) {
       data,
       valuta: isoDaDataItaliana(valutaRaw),
       descrizione: String(descr || "").trim(),
+      riferimento: riferimentoMovimento(rifCol, nomeRif, descr),
       importo: Number.isFinite(importo) ? round2(importo) : null,
       scarto: !data ? (String(dataRaw || "").trim() ? "data non riconosciuta" : "data mancante")
             : !Number.isFinite(importo) ? "importo non leggibile in nessuna delle colonne" : "",
@@ -4468,6 +4506,7 @@ function guardiaStessaFattura(righe, aperte) {
 
 function esitoMovimento(m, aperte, chiuse, nomeDi, incassi) {
   const base = { riga: m.riga, data: m.data, descrizione: m.descrizione, importo: m.importo,
+                 riferimento: m.riferimento || null,
                  proposta: [], alternative: [], motivi: [], giaRegistrato: false };
   if (m.scarto) return { ...base, verso: "scartato", grado: "nessuno", perche: m.scarto };
   if (!(m.importo > 0))
@@ -4655,7 +4694,7 @@ export const ESTRATTO_ESEMPIO = [
   "16/07/2026;16/07/2026;BONIFICO COMUNE DI MODICA MANDATO 4412;8.100,00",
   "18/07/2026;18/07/2026;BONIFICO A NS FAVORE;5.900,00",
   "20/07/2026;20/07/2026;COMMISSIONI E SPESE DI TENUTA CONTO;-4,50",
-  "21/07/2026;21/07/2026;BONIFICO DA EDILCAVE SRL SALDO FATT 2026/031;12.300,00",
+  "21/07/2026;21/07/2026;BONIFICO DA EDILCAVE SRL SALDO FATT 2026/031 TRN 0512345678901234567890123456IT;12.300,00",
   "22/07/2026;22/07/2026;VERSAMENTO CONTANTI;1.000,00",
   "23/07/2026;23/07/2026;BONIFICO DA CAVE DEL SUD;4.400,00",
 ].join("\n") + "\n";

@@ -321,6 +321,9 @@ body.dw.light-mode, body.dw.outdoor-mode{
    sotto i 380 px il testo scende sotto il numero a tutta larghezza. */
 .cassa-txt{font-size:12.5px; color:var(--muted2); line-height:1.5; margin-left:auto; text-align:right}
 .cassa-txt b{color:var(--text); font-variant-numeric:tabular-nums}
+/* il riferimento della banca nella riga del movimento: monospazio come
+   l'IBAN del core, così le trenta cifre di un TRN si confrontano a occhio */
+.ban-rif code{font-family:monospace; font-size:11px; letter-spacing:.2px; color:var(--text); word-break:break-all}
 /* due stati in più del cartellone, stessa costruzione di .vuota: cambia il
    bordo che prende la luce, l'alone d'ambiente, l'icona e la cifra. Servono
    al confronto cavato/venduto, dove il numero va letto col suo giudizio. */
@@ -7452,6 +7455,12 @@ label.item:has(.dw-chk:checked){
       : "";
     const motivi = x.motivi.length
       ? `<div class="meta">${x.motivi.map(m => `<span class="badge tag">${esc(m)}</span>`).join(" ")}</div>` : "";
+    /* il riferimento della banca (TRN/CRO), quando c'è: è quello che si legge
+       al telefono con la banca. Quando non c'è non si scrive niente — non un
+       «—», che sembrerebbe un dato letto e vuoto */
+    const rif = x.riferimento
+      ? `<div class="meta ban-rif">${esc(x.riferimento.tipo)} <code>${esc(x.riferimento.valore)}</code> <small>(${x.riferimento.da === "colonna" ? "dalla colonna del file" : "letto nella causale"})</small></div>`
+      : "";
     const alt = (conAzioni && x.alternative.length)
       ? `<div class="meta" style="margin-top:6px;">Fatture candidate: ${x.alternative.map(a =>
           `<button class="dw-btn secondary mini" type="button" data-ban-alt="${x.riga}|${esc(a.fatturaId)}"
@@ -7469,7 +7478,7 @@ label.item:has(.dw-chk:checked){
       <div class="info">
         <div class="name">${fmtD(x.data)} · ${esc(x.descrizione || "senza causale")}</div>
         <div class="meta">${esc(x.perche)}</div>
-        ${p}${motivi}${alt}
+        ${p}${rif}${motivi}${alt}
       </div>
       ${azione}
       <span class="badge ${b[0]}">${esc(b[1])}</span>
@@ -7551,7 +7560,10 @@ label.item:has(.dw-chk:checked){
       for (const p of x.proposta) {
         await db.aggiungi("incassi", { fatturaId: p.fatturaId, data: x.data,
           importo: round2(p.importo), metodo: "bonifico",
-          nota: String(x.descrizione || "").slice(0, 200) });
+          nota: String(x.descrizione || "").slice(0, 200),
+          /* la chiave della banca resta sull'incasso: fra sei mesi, con la
+             banca al telefono, è l'unica cosa che i due sanno leggere uguale */
+          ...(x.riferimento ? { riferimento: x.riferimento.tipo + " " + x.riferimento.valore } : {}) });
         scritti++; tot += +p.importo || 0;
       }
     return { scritti, tot };

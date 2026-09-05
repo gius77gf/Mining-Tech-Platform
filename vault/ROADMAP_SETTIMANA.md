@@ -399,7 +399,7 @@
   Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
   `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
   righello `num` leggeva già all'italiana).
-- [ ] **CONTI — dalla ricerca del 05/09 notte (il file dei movimenti bancari),
+- [x] **CONTI — dalla ricerca del 05/09 notte (il file dei movimenti bancari),
   con un difetto MISURATO.** `parseMovimentiCsv` legge le colonne per
   posizione: sulla forma più citata dai manuali (`Data operazione;Descrizione;
   Importo entrate;Importo uscite;Saldo progressivo;Causale ABI`) il bonifico da
@@ -412,8 +412,14 @@
   dell'import dice le colonne riconosciute, quelle lasciate fuori e quelle non
   riconosciute; col solo saldo come numero il movimento esce scartato, non con
   il saldo come importo. run-kpi +5; banco nuovo `conti-banca-colonne` che
-  carica i due file veri. (b) TRN/CRO conservato sul movimento resta aperto
-  (basso). Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+  carica i due file veri. (b) ✅ **fatto nel ciclo delle 03:47Z** —
+  `riferimentoInCausale` (TRN/CRO SOLO con l'etichetta davanti: undici cifre
+  nude sono un mandato) e `riferimentoMovimento` (prima la colonna, se il
+  file ce l'ha, poi la causale; `null` quando non c'è); il movimento lo porta
+  come `riferimento`, la riga lo mostra in monospazio con scritto da dove
+  viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
+  terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
+  16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
 - [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
   turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
   c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
@@ -1401,8 +1407,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
-- `CONTI — dalla ricerca del 05/09 notte` *(file della banca letto per posizione:
-  il saldo esce come uscita, misurato)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
 
@@ -6312,8 +6316,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.096 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
+  **3.099 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2618, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

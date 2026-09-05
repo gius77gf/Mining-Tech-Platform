@@ -29,6 +29,8 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 const DIFETTI_MODULO = [
   ["  const perNome = !!(m && m.conIntestazione);",
    "  const perNome = false;   /* difetto rimesso dal banco: la posizione di sempre */"],
+  ["      riferimento: riferimentoMovimento(rifCol, nomeRif, descr),",
+   "      riferimento: null,   /* difetto rimesso dal banco: il TRN/CRO buttato via */"],
 ];
 const colpiti = new Set();
 const srv = createServer((q, s) => {
@@ -71,6 +73,14 @@ const FILE_B = { name: "movimenti_banca.csv", mimeType: "text/csv", buffer: Buff
 const FILE_C = { name: "estratto_dare_avere.csv", mimeType: "text/csv", buffer: Buffer.from(
   "Data contabile;Data valuta;Dare;Avere;Descrizione\n"
   + "12/07/2026;12/07/2026;;12.300,00;BONIFICO DA EDILCAVE SRL FT 2026/031\n", "utf8") };
+
+/* il terzo file (05/09): la colonna del TRN, e un CRO scritto dentro la
+   causale — le due strade da cui arriva la chiave della banca */
+const FILE_D = { name: "lista_movimenti.csv", mimeType: "text/csv", buffer: Buffer.from(
+  "Data;Valuta;Descrizione;TRN;Entrate;Uscite\n"
+  + "12/07/2026;12/07/2026;BONIFICO DA EDILCAVE SRL FT 2026/031;0512345678901234567890123456IT;12.300,00;\n"
+  + "13/07/2026;13/07/2026;PAGAMENTO F24;;;1.250,00\n"
+  + "14/07/2026;14/07/2026;BONIFICO CRO 12345678901 A NS FAVORE;;500,00;\n", "utf8") };
 
 console.log(`\n════════ Conti · il file della banca nelle sue forme vere, caricato davvero${CONTROPROVA ? " · controprova" : ""} ════════`);
 
@@ -115,6 +125,25 @@ for (const W of [320, 390]) {
   const bon2 = s.righe.find((r) => /EDILCAVE/.test(r)) || "";
   dice(/12\.300,00/.test(bon2) && /2026\/031/.test(bon2), "⛔ il movimento porta la descrizione (prima usciva vuota) e si abbina alla fattura", bon2 || s.righe.join(" | "));
   await scatta(pg, `${W}-2-dare-avere`);
+
+  // ── 3 · il riferimento della banca: dalla colonna TRN, e dalla causale ──
+  await pg.click("#btn-ban-pulisci").catch(() => {}); await pg.waitForTimeout(400);
+  await carica(FILE_D);
+  s = await leggi();
+  dice(/Letti 3 movimenti/.test(s.esito) && /riferimento ← «TRN»/.test(s.esito), "il file con la colonna TRN si legge, e l'esito dice che la colonna è stata riconosciuta", s.esito);
+  const rif = await pg.$$eval(".ban-rif", (e) => e.map((x) => x.innerText.replace(/\s+/g, " ").trim()));
+  dice(rif.length === 2, `⛔ due movimenti su tre portano un riferimento: ${rif.length} righe (l'F24 non ne ha, e non scrive un «—»)`, rif);
+  dice(rif.some((r) => /^TRN 0512345678901234567890123456IT \(dalla colonna del file\)$/.test(r)), "⛔ il TRN letto dalla colonna, con scritto da dove viene", rif);
+  dice(rif.some((r) => /^CRO 12345678901 \(letto nella causale\)$/.test(r)), "⛔ e il CRO pescato dalla causale, dichiarato come tale", rif);
+  const f24 = s.righe.find((r) => /F24/.test(r)) || "";
+  dice(f24 && !/TRN|CRO|—/.test(f24.replace(/—\s*$/, "")) && !/riferimento/i.test(f24), "la riga senza riferimento non ne inventa uno", f24);
+  const rifLargo = await pg.$$eval(".ban-rif", (e) => e.map((x) => x.scrollWidth <= x.clientWidth + 1));
+  dice(rifLargo.every(Boolean), "le trenta cifre del TRN stanno nella riga anche a schermo stretto", rifLargo);
+  /* lo scatto inquadra la riga col riferimento, e aspetta che il toast se ne
+     vada: uno scatto che mostra l'esito e non il soggetto non prova niente */
+  await pg.evaluate(() => document.querySelector(".ban-rif")?.scrollIntoView({ block: "center" }));
+  await pg.waitForTimeout(3600);
+  await scatta(pg, `${W}-3-riferimento`);
 
   const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
   dice(largo, "la pagina non scorre in orizzontale");
