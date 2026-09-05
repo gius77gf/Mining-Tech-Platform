@@ -37346,12 +37346,12 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz", ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
     comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
   const riga = (f, sez, eti) => { const z = f.sezioni.find((x) => x.titolo === sez); const r = z && z.righe.find((q) => q[0] === eti); return r ? r[1] : undefined; };
-  const TITOLI = ["Volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Reclami dello stesso giorno"];
+  const TITOLI = ["Volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Regola del giudizio", "Reclami dello stesso giorno"];
   test("Sentinella · fogliaVolata: la volata collegata allo strumento, con la lettura, la taratura e il reclamo del giorno", () => {
     const f = sentinella.fogliaVolata(V, { monitoraggi: MON, reclami: REC, oggi: "2026-09-05" });
     eq(f.titolo, "Scheda della volata del 17/07/2026 — Fronte Nord", "il titolo porta data e fronte");
     eq(f.generatoIl, "05/09/2026", "la data di stampa è quella passata, in italiano");
-    eq(f.sezioni.map((z) => z.titolo), TITOLI, "cinque sezioni, in quest'ordine");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "sei sezioni, in quest'ordine");
     eq(riga(f, "Volata", "Distanza scalata (SD)"), "75,42", "la SD è la stessa di scaledDistance (320/√18)");
     eq(riga(f, "Volata", "Comunicazione"), "comunicata all'ente il 16/07/2026 (PEC prot. 4412/2026)", "la comunicazione con la stessa frase della lista");
     eq(riga(f, "Previsione", "Fonte"), "da Genesi · stima dalla litologia", "la previsione dice su che base è fatta");
@@ -37360,7 +37360,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/importata dal file «V1_luglio.csv»/.test(riga(f, "Misura dell'evento", "Provenienza della lettura")), "e da dove viene");
     eq(riga(f, "Strumento e taratura", "Punto di misura"), "V1 abitato · mm/s", "lo strumento con la sua unità");
     eq(riga(f, "Strumento e taratura", "Taratura"), "coperta: certificato LAT 118-2026/441, Centro LAT n. 118, dal 10/02/2026 al 09/02/2027", "la taratura che copre la data della lettura");
-    const rec = f.sezioni[4];
+    const rec = f.sezioni[5];
     eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]", false]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
     eq(rec.avviso, sentinella.AVVISO_COINCIDENZA, "e la coincidenza è dichiarata coincidenza, non causa");
     eq(f.nonMisurati, [], "⛔ con tutto collegato non manca niente");
@@ -37369,7 +37369,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   test("Sentinella · fogliaVolata: la volata vuota dichiara ogni assenza a parole, mai «—»", () => {
     const f = sentinella.fogliaVolata({}, { oggi: "2026-09-05" });
     eq(f.titolo, "Scheda della volata", "senza data né fronte il titolo resta nudo");
-    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le cinque sezioni ci sono lo stesso");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le sei sezioni ci sono lo stesso");
+    eq(riga(f, "Regola del giudizio", "Limite che vale per il punto"), "nessuna PPV collegata: niente da giudicare", "e la regola del giudizio dice che non c'è niente da giudicare");
     eq(riga(f, "Volata", "Data"), "data non leggibile", "la data");
     eq(riga(f, "Volata", "Fori"), "non dichiarato", "i fori");
     eq(riga(f, "Volata", "Distanza scalata (SD)"), "non calcolabile: servono distanza e carica per ritardo", "la SD dice che cosa le manca");
@@ -37410,7 +37411,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(f3.nonMisurati, ["Taratura (non coperta: nessuna taratura registrata per questo strumento)"], "la taratura scoperta manca; la lettura annullata è marcata ma non è un dato assente");
     eq(f1.nonMisurati, [], "⛔ una prevista non «manca» della misura: non è ancora stata sparata");
     eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
-    eq(sentinella.fogliaVolata(null).sezioni.length, 5, "null non rompe");
+    eq(sentinella.fogliaVolata(null).sezioni.length, 6, "null non rompe");
+  });
+  test("Sentinella · fogliaVolata, la regola del giudizio: lo stesso limite, lo stesso verdetto e la stessa banda dello schermo", () => {
+    const P = { ...MON[0], sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
+    const RIC = [{ id: "rc1", nome: "Casa Bianchi", soglia: 5, unita: "mm/s" }];
+    const r = (v, mon, ric) => { const f = sentinella.fogliaVolata(v, { monitoraggi: mon, ricettori: ric }); return Object.fromEntries(f.sezioni.find((z) => z.titolo === "Regola del giudizio").righe.map((q) => [q[0], q[1]])); };
+    const g = r(V, [P], RIC);
+    eq(g["Limite che vale per il punto"], "5 mm/s — soglia del ricettore «Casa Bianchi»", "⛔ il limite è quello di sogliaEfficace: vince il ricettore");
+    eq(r(V, [P], []) ["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura", "senza il ricettore vale la soglia del punto, e lo dice");
+    eq(r(V, [P], [{ id: "rc1", nome: "Casa Bianchi", soglia: 20, unita: "µg/m³" }])["Limite che vale per il punto"], "5 mm/s — soglia del punto di misura (la soglia del ricettore non è applicata: unità diverse, µg/m³)", "⛔ unità diverse: nessuna conversione, e la scheda lo scrive");
+    ok(/DIN 4150-3\) · DIN 4150-3, fondazione riga 2 — valore di riferimento, da verificare sulla norma ufficiale/.test(g["Riferimento della soglia"]), "il preset con la stessa avvertenza della pagina: da verificare");
+    eq(g["Esito rispetto al limite"], "Conforme — 3,4 mm/s su 5 mm/s (68% del limite)", "il verdetto è quello di statoMisura, con il rapporto");
+    eq(r({ ...V, ppvMisurata: 5 }, [P], RIC)["Esito rispetto al limite"], "Superamento — 5 mm/s su 5 mm/s (100% del limite)", "⛔ pari alla soglia è superamento, come sullo schermo");
+    eq(r({ ...V, ppvMisurata: 4.6 }, [P], RIC)["Esito rispetto al limite"], "Attenzione — 4,6 mm/s su 5 mm/s (92% del limite)", "e la fascia di attenzione è la stessa");
+    eq(g["Frequenza e banda della soglia"], "f 18 Hz: fuori dalla banda della soglia (sotto 10 Hz), e il limite di quella banda non è in Sentinella", "⛔ la frequenza fuori banda si dichiara, e il limite dell'altra banda NON si inventa");
+    const P6 = { ...P, letture: [{ ...P.letture[0], extra: { freq: 6 } }] };
+    eq(r(V, [P6], RIC)["Frequenza e banda della soglia"], "f 6 Hz: dentro la banda della soglia (sotto 10 Hz)", "dentro la banda lo dice");
+    eq(r(V, [{ ...P, soglia: 6 }], [])["Frequenza e banda della soglia"], "non giudicabile: la soglia del punto è stata cambiata a mano dopo il preset «Vibrazioni · residenziale, <10 Hz (DIN 4150-3)»: la sua banda non vale più", "soglia cambiata a mano: la banda non vale più, e si dice perché");
+    const senza = sentinella.fogliaVolata(V, { monitoraggi: [{ ...P, soglia: null, sogliaPreset: "", ricettoreId: "" }] });
+    const gs = Object.fromEntries(senza.sezioni.find((z) => z.titolo === "Regola del giudizio").righe.map((q) => [q[0], q[1]]));
+    eq(gs["Limite che vale per il punto"], "nessuna soglia impostata: il giudizio non si può dare", "⛔ senza soglia non c'è verdetto");
+    eq(gs["Esito rispetto al limite"], undefined, "e la riga dell'esito NON c'è: niente «Conforme» su un limite che non esiste");
+    ok(senza.nonMisurati.includes("Limite che vale per il punto (nessuna soglia impostata: il giudizio non si può dare)"), "e la soglia assente sta in «che cosa manca»");
+    eq(r({ ...V, ppvFonte: "manuale", ppvPuntoId: "" }, [P], RIC)["Limite che vale per il punto"], "la PPV è trascritta a mano dal referto: il limite e il giudizio sono quelli del referto dello strumento", "PPV a mano: il giudizio è del referto");
+    eq(r({ ...V, stato: "prevista" }, [P], RIC)["Limite che vale per il punto"], "volata non ancora sparata: niente da giudicare", "prevista: niente da giudicare");
+    eq(r({ ...V, ppvPuntoId: "zz" }, [P], RIC)["Limite che vale per il punto"], "il punto di misura non è stato trovato: nessun limite da applicare", "punto sparito: nessun limite");
   });
 }
 /* ===== fine scheda della singola volata (05/09) ===== */

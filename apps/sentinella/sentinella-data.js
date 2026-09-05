@@ -4560,6 +4560,46 @@ export function fogliaVolata(v, opts = {}) {
   } else if (ppv && ppv.fonte === PPV_STRUMENTO) righeStr.push(manca("Punto di misura", "non trovato"));
   else righeStr.push(["Punto di misura", ppv ? "nessuno: PPV trascritta a mano dal referto" : "nessuno: PPV non collegata", false]);
   sez.push({ titolo: "Strumento e taratura", righe: righeStr });
+  /* 4b · LA REGOLA DEL GIUDIZIO (terza iterazione, affiancata al verbale del
+     rilievo di Terra, «come è stato ottenuto il numero»): la scheda diceva DA
+     DOVE viene ogni numero ma non con quale LIMITE il punto giudica. Le
+     decisioni sono le stesse dello schermo — `sogliaEfficace` (la soglia del
+     ricettore vince su quella del punto, mai una conversione di unità),
+     `statoMisura` (il verdetto: pari alla soglia è superamento),
+     `frequenzaFuoriBanda` (la banda del preset) — chiamate, non riscritte.
+     Il verdetto non si scrive se la PPV non è strumentale o il punto non c'è:
+     la sezione dice perché. */
+  if (punto) {
+    const righeReg = [];
+    const eff = sogliaEfficace(punto, opts.ricettori || []);
+    const uEff = eff.unita ? " " + eff.unita : "";
+    if (eff.valore == null) righeReg.push(manca("Limite che vale per il punto", "nessuna soglia impostata: il giudizio non si può dare"));
+    else righeReg.push(["Limite che vale per il punto", numeroIt(eff.valore) + uEff
+      + (eff.fonte === "ricettore" && eff.ricettore ? " — soglia del ricettore «" + eff.ricettore + "»" : " — soglia del punto di misura")
+      + (eff.conflitto ? " (la soglia del ricettore non è applicata: unità diverse, " + String(eff.unitaRicettore || "senza unità") + ")" : ""), false]);
+    const pr = punto.sogliaPreset ? presetSoglia(punto.sogliaPreset) : null;
+        /* la stessa avvertenza che la pagina scrive sotto la tendina dei preset:
+       un valore di norma è di riferimento, e si verifica sulla norma e sulle
+       prescrizioni — non si scrive su un foglio come se fosse la legge */
+    righeReg.push(["Riferimento della soglia", pr ? pr.etichetta + (pr.fonte ? " · " + pr.fonte : "") + " — valore di riferimento, da verificare sulla norma ufficiale e sulle prescrizioni" : "soglia scritta a mano, non da un riferimento normativo", false]);
+    if (eff.valore != null) {
+      const st = statoMisura({ valore: ppv.valore, soglia: eff.valore, letture: [{ data: ppv.data, valore: ppv.valore }] });
+      righeReg.push(["Esito rispetto al limite", st.calcolabile
+        ? st.label + " — " + numeroIt(ppv.valore) + uEff + " su " + numeroIt(eff.valore) + uEff + (st.ratio != null ? " (" + numeroIt(st.ratio * 100, 0) + "% del limite)" : "")
+        : st.label, false]);
+    }
+    const fb = lettura ? frequenzaFuoriBanda(lettura, punto) : null;
+    if (!lettura) righeReg.push(["Frequenza e banda della soglia", "lettura non trovata: la frequenza non si può confrontare", false]);
+    else if (fb.giudicabile) righeReg.push(["Frequenza e banda della soglia", fb.fuori ? fb.perche : "f " + numeroIt(fb.freq) + " Hz: dentro la banda della soglia (" + fb.banda + ")", false]);
+    else righeReg.push(["Frequenza e banda della soglia", "non giudicabile: " + fb.perche, false]);
+    sez.push({ titolo: "Regola del giudizio", righe: righeReg });
+  } else {
+    sez.push({ titolo: "Regola del giudizio", righe: [["Limite che vale per il punto", ppv && ppv.fonte === PPV_STRUMENTO
+      ? "il punto di misura non è stato trovato: nessun limite da applicare"
+      : ppv ? "la PPV è trascritta a mano dal referto: il limite e il giudizio sono quelli del referto dello strumento"
+      : volataPrevista(x) ? "volata non ancora sparata: niente da giudicare"
+      : "nessuna PPV collegata: niente da giudicare", false]] });
+  }
   // 5 · i reclami di quel giorno (coincidenza, non causa)
   const g = String(x.data || "").slice(0, 10);
   const recG = rec.filter(r => r && String(r.data || "").slice(0, 10) === g);

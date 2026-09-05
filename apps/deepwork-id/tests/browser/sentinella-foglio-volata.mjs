@@ -51,6 +51,9 @@ const DIFETTI_MODULO = [
   // 5 · «che cosa manca» non viene dichiarato: la riga resta ma l'elenco e la marca spariscono
   [`const manca = (etichetta, testo) => { nonMisurati.push(etichetta + " (" + testo + ")"); return [etichetta, testo, true]; };`,
    `const manca = (etichetta, testo) => [etichetta, testo, false];`],
+  // 6 · la copia debole della soglia: il foglio legge la soglia del PUNTO e ignora il ricettore
+  [`const eff = sogliaEfficace(punto, opts.ricettori || []);`,
+   `const eff = { valore: numeroDichiarato(punto.soglia), fonte: "punto", ricettore: "", unita: unitaMisura(punto), conflitto: false };`],
 ];
 const DIFETTI_PAGINA = [
   // 1 · il bottone c'è ma il gestore non ritrova la volata: la finestra resta vuota
@@ -189,6 +192,11 @@ console.log("\n· la volata agganciata alla lettura vera di V1: il bottone apre 
     dice(!/L 0,5 · T 0,4 · V 0,9/.test(s.doc), "⛔ NON la lettura delle 17:40 dello stesso giorno: si sceglie per data E ora", (s.doc.match(/Componenti.{0,80}/) || [])[0]);
     dice(/Taratura coperta: certificato LAT 118-2026\/441, Centro LAT n\. 118, dal 10\/02\/2026 al 09\/02\/2027/.test(s.doc), "la taratura che copre quel giorno, col certificato", (s.doc.match(/Taratura.{0,120}/) || [])[0]);
     dice(/Comunicazione comunicata all'ente il 07\/06\/2026 \(PEC prot\. 2210\/2026\)/.test(s.doc), "la comunicazione all'ente col riferimento", (s.doc.match(/Comunicazione.{0,80}/) || [])[0]);
+    // ── la regola del giudizio: le stesse decisioni dello schermo ─────────
+    dice(/Limite che vale per il punto 5 mm\/s — soglia del ricettore «Casa Bianchi — via Cava 12»/.test(s.doc), "⛔ il limite è quello del RICETTORE, come sulla riga del punto (sogliaEfficace)", (s.doc.match(/Limite che vale.{0,100}/) || [])[0]);
+    dice(/Riferimento della soglia Vibrazioni · residenziale, <10 Hz \(DIN 4150-3\) · DIN 4150-3, fondazione riga 2 — valore di riferimento, da verificare sulla norma ufficiale e sulle prescrizioni/.test(s.doc), "il preset, con la stessa avvertenza «da verificare» della pagina", (s.doc.match(/Riferimento della soglia.{0,160}/) || [])[0]);
+    dice(/Esito rispetto al limite Conforme — 2,4 mm\/s su 5 mm\/s \(48% del limite\)/.test(s.doc), "il verdetto di statoMisura, col rapporto", (s.doc.match(/Esito rispetto.{0,80}/) || [])[0]);
+    dice(/Frequenza e banda della soglia non giudicabile: la lettura non porta la frequenza/.test(s.doc), "⛔ la lettura della dimostrazione non ha la frequenza: si dice, non si inventa la banda", (s.doc.match(/Frequenza e banda.{0,100}/) || [])[0]);
     dice(/Vibrazione alle 10:35 Sig\.ra Verdi: Tremava il lampadario\. \[aperto\]/.test(s.doc), "il reclamo dello stesso giorno", (s.doc.match(/Reclami dello stesso giorno.{0,120}/) || [])[0]);
     dice(/Coincidenza di data, non una causa dimostrata/.test(s.doc), "⛔ dichiarato coincidenza, non causa", (s.doc.match(/Coincidenza.{0,80}/) || [])[0]);
     dice(/Distanza scalata \(SD\) 87,5/.test(s.doc), "la SD (350/√16 = 87,5)", (s.doc.match(/Distanza scalata.{0,30}/) || [])[0]);
@@ -220,6 +228,8 @@ console.log("\n· la volata b2 (niente PPV, niente previsione, niente reclami): 
     dice(/Punto di misura nessuno: PPV non collegata/.test(s.doc), "lo strumento dice perché non c'è", (s.doc.match(/Punto di misura.{0,40}/) || [])[0]);
     dice(/Reclami nessun reclamo registrato quel giorno/.test(s.doc), "⛔ «nessun reclamo registrato quel giorno»", (s.doc.match(/Reclami.{0,60}/) || [])[0]);
     dice(/Comunicazione nessuna comunicazione registrata/.test(s.doc), "e la comunicazione non fatta si dichiara", (s.doc.match(/Comunicazione.{0,50}/) || [])[0]);
+    dice(/Limite che vale per il punto nessuna PPV collegata: niente da giudicare/.test(s.doc), "e la regola del giudizio dice che non c'è niente da giudicare", (s.doc.match(/Limite che vale.{0,80}/) || [])[0]);
+    dice(!/Esito rispetto al limite/.test(s.doc), "⛔ senza misura nessun «Conforme»", (s.doc.match(/Esito rispetto.{0,60}/) || [])[0]);
     dice(celleMute(s.html).length === 0, "⛔ nessuna cella muta («—», vuota, «undefined», «NaN») nel foglio", celleMute(s.html).join(" | "));
     // ── 5 · e in fondo la sezione «che cosa manca», con le due voci vere ─────
     dice(/Che cosa manca in questa scheda Comunicazione \(nessuna comunicazione registrata\) · PPV misurata \(non ancora collegata\)\./.test(s.doc),

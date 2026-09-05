@@ -3219,7 +3219,7 @@ textarea.dw-input{
     + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
     + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}";
   function htmlFogliaVolata(v) {
-    const f = fogliaVolata(v, { monitoraggi: MON, reclami: REC });
+    const f = fogliaVolata(v, { monitoraggi: MON, reclami: REC, ricettori: RIC });
     const demo = avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Questa scheda è composta su dati di esempio: non allegarla a nessuna pratica.").trim();
     const riga = (r) => "<tr><td>" + esc(r[0]) + "</td><td" + (r[2] ? " class=\"manca\"" : "") + ">" + esc(r[1]) + "</td></tr>";
     return "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><title>" + esc(f.titolo) + "</title><style>" + STILE_FOGLIO_VOLATA + "</style></head><body>"

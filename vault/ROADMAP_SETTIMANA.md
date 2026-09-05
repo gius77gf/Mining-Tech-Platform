@@ -462,8 +462,17 @@
   elenca in una sezione a sé con la cella in corsivo — la SD non calcolabile
   NON conta due volte, «nessun reclamo» e «nessuna previsione» NON mancano
   perché sono fatti; firme, piede coi limiti, stampa che non spezza le
-  tabelle. Banco 35 prove, 6 iniezioni. Resta la trasmissione (decisione del
-  fondatore).
+  tabelle. Banco 35 prove, 6 iniezioni. **Terza iterazione, affiancata al
+  verbale del rilievo di Terra («come è stato ottenuto il numero»)**: sezione
+  «Regola del giudizio» — il limite che vale per il punto (`sogliaEfficace`:
+  vince il ricettore, mai una conversione di unità), il preset con la stessa
+  avvertenza «da verificare» della pagina, l'esito di `statoMisura` col
+  rapporto (pari alla soglia è superamento), la frequenza contro la banda del
+  preset (`frequenzaFuoriBanda`, e il limite dell'altra banda NON si
+  inventa); senza soglia niente esito e la soglia assente sta in «che cosa
+  manca». Tre funzioni chiamate, nessuna riscritta. run-kpi +1 (2654); banco
+  41 prove, 7 iniezioni (la settima è la copia debole che ignora il
+  ricettore). Resta la trasmissione (decisione del fondatore).
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -6488,8 +6497,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.134 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2653, `run-stile` 328,
+  **3.135 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2654, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
