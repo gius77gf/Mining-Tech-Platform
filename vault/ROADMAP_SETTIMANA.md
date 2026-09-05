@@ -456,7 +456,14 @@
   foglio dice che «la registrazione originale dello strumento resta il
   documento di riferimento». run-kpi +3 (2653); banco nuovo
   `sentinella-foglio-volata` (27 prove, 5 iniezioni viste una per una).
-  Resta la trasmissione (decisione del fondatore).
+  **Seconda iterazione, affiancata alla relazione di fine lavori di Terra**
+  (la prima versione non è mai quella buona): il modulo dichiara «che cosa
+  manca» (`nonMisurati`, terzo elemento `manca` su ogni riga) e il foglio lo
+  elenca in una sezione a sé con la cella in corsivo — la SD non calcolabile
+  NON conta due volte, «nessun reclamo» e «nessuna previsione» NON mancano
+  perché sono fatti; firme, piede coi limiti, stampa che non spezza le
+  tabelle. Banco 35 prove, 6 iniezioni. Resta la trasmissione (decisione del
+  fondatore).
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»

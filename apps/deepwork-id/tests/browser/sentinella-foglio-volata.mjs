@@ -43,11 +43,14 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    SANO dichiarando «non distingue» — la terza delle cinque cause. */
 const DIFETTI_MODULO = [
   // 3 · la PPV non collegata esce «—»
-  [`"non ancora collegata"]);`, `"—"]);`],
+  [`"non ancora collegata"));`, `"—"));`],
   // 3 · e i reclami assenti pure
-  [`[["Reclami", "nessun reclamo registrato quel giorno"]]`, `[["Reclami", "—"]]`],
+  [`[["Reclami", "nessun reclamo registrato quel giorno", false]]`, `[["Reclami", "—", false]]`],
   // 2 · la lettura si cerca per data e basta: esce quella sbagliata
   [`&& (!ppv.ora || String(l.ora || "") === ppv.ora)) || null : null;`, `) || null : null;`],
+  // 5 · «che cosa manca» non viene dichiarato: la riga resta ma l'elenco e la marca spariscono
+  [`const manca = (etichetta, testo) => { nonMisurati.push(etichetta + " (" + testo + ")"); return [etichetta, testo, true]; };`,
+   `const manca = (etichetta, testo) => [etichetta, testo, false];`],
 ];
 const DIFETTI_PAGINA = [
   // 1 · il bottone c'è ma il gestore non ritrova la volata: la finestra resta vuota
@@ -190,7 +193,15 @@ console.log("\n· la volata agganciata alla lettura vera di V1: il bottone apre 
     dice(/Coincidenza di data, non una causa dimostrata/.test(s.doc), "⛔ dichiarato coincidenza, non causa", (s.doc.match(/Coincidenza.{0,80}/) || [])[0]);
     dice(/Distanza scalata \(SD\) 87,5/.test(s.doc), "la SD (350/√16 = 87,5)", (s.doc.match(/Distanza scalata.{0,30}/) || [])[0]);
     dice(celleMute(s.html).length === 0, "⛔ nessuna cella muta («—», vuota, «undefined», «NaN») nel foglio", celleMute(s.html).join(" | "));
-    dice(/la registrazione originale dello strumento resta il documento di riferimento/.test(s.doc), "e il foglio dice che cosa NON è", s.doc.slice(-160));
+    dice(/la registrazione originale dello strumento resta il documento di riferimento/.test(s.doc), "e il foglio dice che cosa NON è", s.doc.slice(-260));
+    /* la lettura VERA di V1 nella dimostrazione porta solo il valore, non gli
+       assi: quindi alla scheda manca UNA cosa sola, ed è quella. Il caso «non
+       manca niente» sta in run-kpi con una lettura completa. */
+    dice(/Che cosa manca in questa scheda Componenti dell'evento \(la lettura non porta assi, frequenza o aria\)\. Questi dati/.test(s.doc),
+      "⛔ «che cosa manca» elenca UNA voce sola, le componenti che la lettura della dimostrazione non ha — non la previsione, non i reclami", (s.doc.match(/Che cosa manca.{0,160}/) || [])[0]);
+    dice((s.html.match(/<td class="manca">/g) || []).length === 1, "e una sola cella è marcata come mancante", (s.html.match(/<td class="manca">/g) || []).length);
+    dice(/Luogo e data Il direttore responsabile Il tecnico che ha eseguito la misura/.test(s.doc), "le tre firme in fondo", s.doc.slice(-300));
+    dice(/la valutazione degli effetti resta del tecnico che firma/.test(s.doc), "e il piede dice che cosa la scheda NON decide", s.doc.slice(-200));
     dice(pg.__errori.length === 0, "senza errori di pagina", pg.__errori[0]);
   }
   await pg.close();
@@ -210,6 +221,13 @@ console.log("\n· la volata b2 (niente PPV, niente previsione, niente reclami): 
     dice(/Reclami nessun reclamo registrato quel giorno/.test(s.doc), "⛔ «nessun reclamo registrato quel giorno»", (s.doc.match(/Reclami.{0,60}/) || [])[0]);
     dice(/Comunicazione nessuna comunicazione registrata/.test(s.doc), "e la comunicazione non fatta si dichiara", (s.doc.match(/Comunicazione.{0,50}/) || [])[0]);
     dice(celleMute(s.html).length === 0, "⛔ nessuna cella muta («—», vuota, «undefined», «NaN») nel foglio", celleMute(s.html).join(" | "));
+    // ── 5 · e in fondo la sezione «che cosa manca», con le due voci vere ─────
+    dice(/Che cosa manca in questa scheda Comunicazione \(nessuna comunicazione registrata\) · PPV misurata \(non ancora collegata\)\./.test(s.doc),
+      "⛔ la sezione «Che cosa manca» elenca esattamente le due voci assenti, nell'ordine del foglio", (s.doc.match(/Che cosa manca.{0,160}/) || [])[0]);
+    dice(!/Che cosa manca[^.]*Reclami/.test(s.doc), "⛔ e «nessun reclamo» NON è fra le mancanze: è un fatto registrato", (s.doc.match(/Che cosa manca.{0,160}/) || [])[0]);
+    const marcate = (s.html.match(/<td class="manca">/g) || []).length;
+    dice(marcate === 2, "e le celle marcate «manca» sono due, quante le voci", marcate);
+    dice(/non li sostituisce con uno zero/.test(s.doc), "con la frase che dice che non si stima", (s.doc.match(/Questi dati.{0,120}/) || [])[0]);
   }
   await pg.close();
 }

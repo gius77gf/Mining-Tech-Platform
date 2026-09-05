@@ -37361,8 +37361,10 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(riga(f, "Strumento e taratura", "Punto di misura"), "V1 abitato · mm/s", "lo strumento con la sua unità");
     eq(riga(f, "Strumento e taratura", "Taratura"), "coperta: certificato LAT 118-2026/441, Centro LAT n. 118, dal 10/02/2026 al 09/02/2027", "la taratura che copre la data della lettura");
     const rec = f.sezioni[4];
-    eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]"]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
+    eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]", false]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
     eq(rec.avviso, sentinella.AVVISO_COINCIDENZA, "e la coincidenza è dichiarata coincidenza, non causa");
+    eq(f.nonMisurati, [], "⛔ con tutto collegato non manca niente");
+    eq(f.sezioni.flatMap((z) => z.righe).filter((r) => r[2] === true), [], "e nessuna riga è marcata «manca»");
   });
   test("Sentinella · fogliaVolata: la volata vuota dichiara ogni assenza a parole, mai «—»", () => {
     const f = sentinella.fogliaVolata({}, { oggi: "2026-09-05" });
@@ -37379,6 +37381,13 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(riga(f, "Reclami dello stesso giorno", "Reclami"), "nessun reclamo registrato quel giorno", "i reclami");
     const tutte = f.sezioni.flatMap((z) => z.righe.map((r) => r[1]));
     eq(tutte.filter((t) => /—|undefined|NaN|null/.test(String(t))), [], "⛔ nessuna riga tranquilla o rotta");
+    eq(f.nonMisurati, ["Data (data non leggibile)", "Fronte (non indicato)", "Fori (non dichiarato)", "Carica totale (non dichiarato)",
+      "Carica massima per ritardo (non dichiarato)", "Distanza dal ricettore (non dichiarato)", "Esito (non dichiarato)",
+      "Comunicazione (nessuna comunicazione registrata)", "PPV misurata (non ancora collegata)"],
+      "⛔ «che cosa manca» è un ELENCO dichiarato dal modulo, con l'etichetta e la ragione");
+    ok(!f.nonMisurati.some((t) => /Reclami|Note|Previsione|PPV prevista|Punto di misura/.test(t)),
+      "⛔ «nessun reclamo», «note: nessuna», «nessuna previsione» NON mancano: sono fatti, non dati assenti");
+    eq(f.sezioni.flatMap((z) => z.righe).filter((r) => r[2] === true).length, f.nonMisurati.length, "e le righe marcate «manca» sono tante quante le voci dell'elenco");
     ok(f.avvertenza.includes("la registrazione originale dello strumento resta il documento di riferimento"), "e il foglio dice che cosa NON è");
   });
   test("Sentinella · fogliaVolata: prevista, trascritta a mano, lettura annullata, punto sparito — quattro «non lo so» diversi", () => {
@@ -37397,6 +37406,9 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const f4 = sentinella.fogliaVolata({ ...V, ppvPuntoId: "zz" }, { monitoraggi: MON });
     eq(riga(f4, "Misura dell'evento", "Componenti dell'evento"), "punto di misura non trovato (zz)", "il punto sparito si nomina");
     eq(riga(f4, "Strumento e taratura", "Punto di misura"), "non trovato", "e lo strumento non si inventa");
+    eq(f4.nonMisurati, ["Componenti dell'evento (punto di misura non trovato (zz))", "Punto di misura (non trovato)"], "e il punto sparito sta in «che cosa manca»");
+    eq(f3.nonMisurati, ["Taratura (non coperta: nessuna taratura registrata per questo strumento)"], "la taratura scoperta manca; la lettura annullata è marcata ma non è un dato assente");
+    eq(f1.nonMisurati, [], "⛔ una prevista non «manca» della misura: non è ancora stata sparata");
     eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
     eq(sentinella.fogliaVolata(null).sezioni.length, 5, "null non rompe");
   });

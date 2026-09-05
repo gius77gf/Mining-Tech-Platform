@@ -4493,67 +4493,82 @@ export function descriviComunicazione(v) {
 export function fogliaVolata(v, opts = {}) {
   const x = v || {};
   const mon = opts.monitoraggi || [], rec = opts.reclami || [];
-  const nd = (val, unita, dec) => { const q = numeroDichiarato(val); return q == null ? "non dichiarato" : numeroIt(q, dec) + (unita ? " " + unita : ""); };
+  /* CHE COSA MANCA, dichiarato dal modulo e non dedotto dal foglio (seconda
+     iterazione, confrontata con `relazioneLotto` di Terra): ogni riga porta un
+     terzo elemento `manca` e `nonMisurati` li elenca con l'etichetta, così il
+     foglio può scriverli in una sezione a sé invece di lasciarli passare per
+     zero in mezzo agli altri. «Nessun reclamo» e «note: nessuna» NON mancano:
+     sono fatti registrati, non dati assenti. */
+  const nonMisurati = [];
+  const manca = (etichetta, testo) => { nonMisurati.push(etichetta + " (" + testo + ")"); return [etichetta, testo, true]; };
+  const nd = (etichetta, val, unita, dec) => { const q = numeroDichiarato(val); return q == null ? manca(etichetta, "non dichiarato") : [etichetta, numeroIt(q, dec) + (unita ? " " + unita : ""), false]; };
   const sez = [];
   // 1 · la volata
   const sd = scaledDistance(x.distanzaRicettore, x.kgMaxRitardo);
+  const com = descriviComunicazione(x);
   sez.push({ titolo: "Volata", righe: [
-    ["Data", dataISOEsiste(String(x.data || "").slice(0, 10)) ? dataIt(String(x.data).slice(0, 10)) : "data non leggibile"],
-    ["Fronte", String(x.fronte || "").trim() || "non indicato"],
-    ["Stato", volataPrevista(x) ? "prevista (progetto, non ancora sparata)" : "eseguita"],
-    ["Fori", nd(x.nFori, "", 0)],
-    ["Carica totale", nd(x.kgTotali, "kg")],
-    ["Carica massima per ritardo", nd(x.kgMaxRitardo, "kg")],
-    ["Distanza dal ricettore", nd(x.distanzaRicettore, "m")],
-    ["Distanza scalata (SD)", sd != null ? numeroIt(sd) : "non calcolabile: servono distanza e carica per ritardo"],
-    ["Esito", x.esito === "contestazione" ? "contestazione" : x.esito === "regolare" ? "regolare" : "non dichiarato"],
-    ["Note", String(x.note || "").trim() || "nessuna"],
-    ["Codice volata", String(x.codiceVolata || "").trim() || "nessuno (volata registrata a mano)"],
-    ["Comunicazione", descriviComunicazione(x).testo],
+    dataISOEsiste(String(x.data || "").slice(0, 10)) ? ["Data", dataIt(String(x.data).slice(0, 10)), false] : manca("Data", "data non leggibile"),
+    String(x.fronte || "").trim() ? ["Fronte", String(x.fronte).trim(), false] : manca("Fronte", "non indicato"),
+    ["Stato", volataPrevista(x) ? "prevista (progetto, non ancora sparata)" : "eseguita", false],
+    nd("Fori", x.nFori, "", 0),
+    nd("Carica totale", x.kgTotali, "kg"),
+    nd("Carica massima per ritardo", x.kgMaxRitardo, "kg"),
+    nd("Distanza dal ricettore", x.distanzaRicettore, "m"),
+        /* la SD non calcolabile NON è un dato assente in più: è la conseguenza dei
+       due che mancano già (distanza, carica per ritardo), e contarla due volte
+       gonfierebbe l'elenco */
+    ["Distanza scalata (SD)", sd != null ? numeroIt(sd) : "non calcolabile: servono distanza e carica per ritardo", false],
+    x.esito === "contestazione" ? ["Esito", "contestazione", false] : x.esito === "regolare" ? ["Esito", "regolare", false] : manca("Esito", "non dichiarato"),
+    ["Note", String(x.note || "").trim() || "nessuna", false],
+    ["Codice volata", String(x.codiceVolata || "").trim() || "nessuno (volata registrata a mano)", false],
+    com.registrata ? ["Comunicazione", com.testo, false] : manca("Comunicazione", com.testo),
   ] });
   // 2 · la previsione, se arrivata da Genesi
   const pv = previsioneDiVolata(x);
   sez.push({ titolo: "Previsione", righe: pv ? [
-    ["PPV prevista", numeroIt(pv.valore) + " mm/s"],
-    ["Limite dichiarato", pv.limite != null ? numeroIt(pv.limite) + " mm/s" + (pv.norma ? " (" + pv.norma + ")" : "") : "non dichiarato"],
-    ["Sovrapressione prevista", pv.airblast != null ? numeroIt(pv.airblast) + " dB(L)" : "non dichiarata"],
-    ["Fonte", testoFontePrevisione(pv)],
-  ] : [["PPV prevista", "nessuna previsione registrata"]] });
+    ["PPV prevista", numeroIt(pv.valore) + " mm/s", false],
+    pv.limite != null ? ["Limite dichiarato", numeroIt(pv.limite) + " mm/s" + (pv.norma ? " (" + pv.norma + ")" : ""), false] : manca("Limite dichiarato", "non dichiarato"),
+    ["Sovrapressione prevista", pv.airblast != null ? numeroIt(pv.airblast) + " dB(L)" : "non dichiarata", false],
+    ["Fonte", testoFontePrevisione(pv), false],
+  ] : [["PPV prevista", "nessuna previsione registrata", false]] });
   // 3 · la misura dell'evento
   const ppv = volataPrevista(x) ? null : ppvDiVolata(x);
   const righeMisura = [];
   let lettura = null, punto = null;
   if (ppv) {
-    righeMisura.push(["PPV misurata", numeroIt(ppv.valore) + " mm/s · " + testoFontePpv(ppv)]);
+    righeMisura.push(["PPV misurata", numeroIt(ppv.valore) + " mm/s · " + testoFontePpv(ppv), false]);
     if (ppv.fonte === PPV_STRUMENTO) {
       punto = mon.find(m => m && m.id === ppv.puntoId) || null;
       lettura = punto ? (punto.letture || []).find(l => l && String(l.data || "").slice(0, 10) === ppv.data && (!ppv.ora || String(l.ora || "") === ppv.ora)) || null : null;
       const ev = lettura ? descriviEvento(lettura) : "";
-      righeMisura.push(["Componenti dell'evento", ev || (lettura ? "la lettura non porta assi, frequenza o aria" : punto ? "lettura non trovata nel punto «" + (punto.nome || punto.id) + "»" : "punto di misura non trovato" + (ppv.puntoId ? " (" + ppv.puntoId + ")" : ""))]);
-      if (lettura) righeMisura.push(["Provenienza della lettura", descriviProvenienza(lettura, punto)]);
-      if (lettura && !letturaValida(lettura)) righeMisura.push(["Attenzione", "la lettura è stata dichiarata non valida: " + annullamentoDi(lettura).etichetta]);
+      if (ev) righeMisura.push(["Componenti dell'evento", ev, false]);
+      else righeMisura.push(manca("Componenti dell'evento", lettura ? "la lettura non porta assi, frequenza o aria" : punto ? "lettura non trovata nel punto «" + (punto.nome || punto.id) + "»" : "punto di misura non trovato" + (ppv.puntoId ? " (" + ppv.puntoId + ")" : "")));
+      if (lettura) righeMisura.push(["Provenienza della lettura", descriviProvenienza(lettura, punto), false]);
+      if (lettura && !letturaValida(lettura)) righeMisura.push(["Attenzione", "la lettura è stata dichiarata non valida: " + annullamentoDi(lettura).etichetta, true]);
     }
-  } else righeMisura.push(["PPV misurata", volataPrevista(x) ? "non ancora sparata: nessuna misura" : "non ancora collegata"]);
+  } else if (volataPrevista(x)) righeMisura.push(["PPV misurata", "non ancora sparata: nessuna misura", false]);
+  else righeMisura.push(manca("PPV misurata", "non ancora collegata"));
   sez.push({ titolo: "Misura dell'evento", righe: righeMisura });
   // 4 · lo strumento e la sua taratura
   const righeStr = [];
   if (punto) {
-    righeStr.push(["Punto di misura", String(punto.nome || punto.id) + (unitaMisura(punto) ? " · " + unitaMisura(punto) : "")]);
+    righeStr.push(["Punto di misura", String(punto.nome || punto.id) + (unitaMisura(punto) ? " · " + unitaMisura(punto) : ""), false]);
     const c = coperturaTaratura(punto.tarature, ppv.data);
-    righeStr.push(["Taratura", c.stato === "coperta" && c.certificato
-      ? "coperta: " + (c.certificato.certificato ? "certificato " + c.certificato.certificato + ", " : "") + (c.certificato.ente ? c.certificato.ente + ", " : "") + "dal " + dataIt(c.certificato.data) + " al " + dataIt(c.certificato.scadenza)
-      : "non coperta: " + c.perche]);
-  } else righeStr.push(["Punto di misura", ppv && ppv.fonte === PPV_STRUMENTO ? "non trovato" : ppv ? "nessuno: PPV trascritta a mano dal referto" : "nessuno: PPV non collegata"]);
+    if (c.stato === "coperta" && c.certificato)
+      righeStr.push(["Taratura", "coperta: " + (c.certificato.certificato ? "certificato " + c.certificato.certificato + ", " : "") + (c.certificato.ente ? c.certificato.ente + ", " : "") + "dal " + dataIt(c.certificato.data) + " al " + dataIt(c.certificato.scadenza), false]);
+    else righeStr.push(manca("Taratura", "non coperta: " + c.perche));
+  } else if (ppv && ppv.fonte === PPV_STRUMENTO) righeStr.push(manca("Punto di misura", "non trovato"));
+  else righeStr.push(["Punto di misura", ppv ? "nessuno: PPV trascritta a mano dal referto" : "nessuno: PPV non collegata", false]);
   sez.push({ titolo: "Strumento e taratura", righe: righeStr });
   // 5 · i reclami di quel giorno (coincidenza, non causa)
   const g = String(x.data || "").slice(0, 10);
   const recG = rec.filter(r => r && String(r.data || "").slice(0, 10) === g);
   sez.push({ titolo: "Reclami dello stesso giorno", righe: recG.length
-    ? recG.map(r => [etichettaReclamo(r.tipo) + (r.ora ? " alle " + r.ora : ""), String(r.chi || "chi non indicato") + (r.descrizione ? ": " + String(r.descrizione).trim() : "") + (r.stato ? " [" + r.stato + "]" : "")])
-    : [["Reclami", "nessun reclamo registrato quel giorno"]], avviso: recG.length ? AVVISO_COINCIDENZA : "" });
+    ? recG.map(r => [etichettaReclamo(r.tipo) + (r.ora ? " alle " + r.ora : ""), String(r.chi || "chi non indicato") + (r.descrizione ? ": " + String(r.descrizione).trim() : "") + (r.stato ? " [" + r.stato + "]" : ""), false])
+    : [["Reclami", "nessun reclamo registrato quel giorno", false]], avviso: recG.length ? AVVISO_COINCIDENZA : "" });
   const oggi = opts.oggi ? new Date(opts.oggi) : new Date();
   return { titolo: "Scheda della volata" + (g && dataISOEsiste(g) ? " del " + dataIt(g) : "") + (String(x.fronte || "").trim() ? " — " + String(x.fronte).trim() : ""),
-    sezioni: sez, generatoIl: dataIt(isoLocale(oggi)),
+    sezioni: sez, nonMisurati, generatoIl: dataIt(isoLocale(oggi)),
     avvertenza: "Foglio composto da Sentinella con i dati registrati: la registrazione originale dello strumento resta il documento di riferimento." };
 }
 
