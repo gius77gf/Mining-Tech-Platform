@@ -28914,8 +28914,11 @@ test("riepilogoAnnuale: un solo rilievo di scavo, o il pregresso dichiarato, ren
 test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono tutte `R.misurabile`", () => {
   const src = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
   /* ⏱️ dal 05/09 il CSV della denuncia si compone nel MODULO (`csvRiepilogoAnno`):
-     le sue due celle si cercano lì, le altre cinque nella pagina. Il terzo posto
-     della tupla dice dove. */
+     le sue due celle si cercano lì, le due tessere nella pagina. Il terzo posto
+     della tupla dice dove. E le tre celle del FOGLIO STAMPATO, salite in
+     `prospettoDenuncia` lo stesso giorno, si provano CHIAMANDO la funzione
+     (blocco «il prospetto della denuncia nel modulo», più sotto): una prova sul
+     valore non ha bisogno di una finestra di caratteri intorno a un'ancora. */
   const mod = readFileSync(join(HERE, "../../terra/terra-data.js"), "utf8");
   /* l'ancora è il TESTO che l'utente legge, non un numero di riga: le righe si
      spostano a ogni commit, un'etichetta no (misurato il 09/08: 87 riferimenti
@@ -28923,9 +28926,6 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
   const CELLE = [
     ["schermo · tessera «Cumulato sul titolo»", '["Cumulato sul titolo"'],
     ["schermo · tessera «Residuo a fine»", '["Residuo a fine " + R.anno'],
-    ["foglio stampato · riga del cumulato", "<tr class='tot'><td>Cumulato a fine "],
-    ["foglio stampato · riga del residuo", "<b>Residuo del volume concesso</b>"],
-    ["foglio stampato · scavo sotto il titolo", "<b>Scavo misurato sotto questo titolo fino al 31/12/"],
     ["CSV · riga del cumulato", 'csvCell("Cumulato a fine "', "modulo"],
     ["CSV · riga del residuo", 'csvCell("Residuo del concesso"', "modulo"],
   ];
@@ -28946,11 +28946,11 @@ test("Terra · le sette celle del titolo (schermo, foglio stampato, CSV) leggono
      — mai sul file, che è la regola del ripristino da copia — e si pretende che
      il conto delle celle scoperte salga da 0 a 2. */
   const rotta = src
-    .replace('+ (R.misurabile\n          ? n0(R.cumulatoFineAnno) + " m³"', '+ (true\n          ? n0(R.cumulatoFineAnno) + " m³"')
-    .replace('(!R.misurabile ? "non misurato" : R.residuoFineAnno != null', '(false ? "non misurato" : R.residuoFineAnno != null');
-  ok(rotta !== src, "l'iniezione non ha trovato il suo pezzo di pagina: la controprova sarebbe girata su un prodotto sano");
+    .replace('R.concesso && R.misurabile ? fmtM3(R.cumulatoFineAnno)', 'R.concesso ? fmtM3(R.cumulatoFineAnno)')
+    .replace('R.residuoFineAnno != null && R.misurabile ? fmtM3(R.residuoFineAnno)', 'R.residuoFineAnno != null ? fmtM3(R.residuoFineAnno)');
+  ok(rotta !== src && rotta.length === src.length - 2 * " && R.misurabile".length, "l'iniezione non ha trovato i suoi due pezzi di pagina: la controprova sarebbe girata su un prodotto sano");
   const scoperte = CELLE.filter(([, a, dove]) => { const c = cella(dove === "modulo" ? mod : rotta, a); return c && !/\bR?\.?misurabile\b/.test(c); });
-  eq(scoperte.length, 2, "col difetto rimesso le due celle del foglio stampato risultano scoperte");
+  eq(scoperte.map((x) => x[0]), CELLE.slice(0, 2).map((x) => x[0]), "col difetto rimesso le due tessere dello schermo risultano scoperte, e solo loro");
 });
 test("Terra · il verbale cita il volume dell'atto senza arrotondarlo, come il prospetto della denuncia", () => {
   /* la ragione è scritta nel prospetto: «i numeri copiati dall'atto si
@@ -38061,6 +38061,123 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine verbale di rilievo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   TERRA · IL PROSPETTO DELLA DENUNCIA ANNUALE SI COMPONE NEL MODULO (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   `fogliaStampa` teneva nella pagina sette sezioni di righe, frasi e
+   formati — «nessun rilievo, QUINDI volumi a zero», il «Totale: 0» in
+   grassetto su un anno mai misurato, il «Cumulato · 0 m³ (0% del concesso)»
+   con lo schermo a «—» sono vissuti tutti lì, dove nessuna prova senza browser
+   li legge. Adesso `prospettoDenuncia(DEN, fronti, oggi)` li restituisce e la
+   pagina disegna. */
+{
+  const D = terra.DEMO;
+  const aut = terra.autorizzazioneVigente(D.autorizzazioni);
+  const den = (anno, opz = {}) => {
+    const R = terra.riepilogoAnnuale(opz.rilievi || D.rilievi, anno, opz.aut === undefined ? aut : opz.aut);
+    const a = opz.aut === undefined ? aut : opz.aut;
+    return { R, aut: a, soglia: a && +a.sogliaGuardiaPct > 0 ? +a.sogliaGuardiaPct : null,
+      base: terra.baseOnereEscavazione(R, {}), banchi: terra.ripartizioneBanchi(R, opz.fronti || D.fronti) };
+  };
+  const it0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const OGGI = new Date(2026, 8, 5);
+  test("Terra · prospettoDenuncia: l'atto, i mesi fino a oggi, il totale e i fronti sono quelli dello schermo", () => {
+    const DEN = den(2026), R = DEN.R;
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.titolo, "Riepilogo annuale dei volumi — anno 2026"); eq(P.inCorso, true);
+    ok(/\*\*anno ancora in corso\*\*/.test(P.sottotitolo), "l'anno in corso lo dice, in evidenza");
+    eq(P.atto.map((d) => d[0]), ["Numero dell'atto", "Ente che l'ha rilasciato", "Data di rilascio", "Scadenza del titolo", "Materiale autorizzato", "Superficie autorizzata", "Volume totale concesso"]);
+    ok(P.atto.every((d) => d[2] === false), "sulla dimostrazione l'atto è compilato per intero");
+    eq(P.atto[6][1], "1.200.000 m³"); eq(P.atto[5][1], "78.000 m²");
+    eq(P.mesi.righe.length, 9, "anno in corso, oggi 5 settembre: nove mesi, non dodici");
+    eq(P.mesi.righe[4], ["Maggio", it0(R.mesi[4].scavo), it0(R.mesi[4].cumulo), String(R.mesi[4].rilieviScavo)]);
+    eq(P.mesi.totale, ["Totale 2026", it0(R.scavo), it0(R.cumulo), String(R.rilieviScavo)], "il totale è quello del riepilogo, all'italiana");
+    ok(/\*\*scavo\*\*/.test(P.mesi.nota) && !/non risulta nessun rilievo/.test(P.mesi.nota), "la nota spiega scavo e cumuli, e su un anno misurato non aggiunge altro");
+    const RFT = terra.ripartizioneFronti(R, { tutte: true });
+    eq(P.fronti.righe.length, RFT.righe.length, "una riga per voce di ripartizioneFronti, con `tutte`");
+    const senza = P.fronti.righe.find((r) => r[0] === "Senza fronte indicato");
+    eq(senza, ["Senza fronte indicato", "non misurato", it0(R.cumulo), "0"], "⛔ la voce di soli cumuli: scavo «non misurato», non «0»");
+    ok(!P.nonMisurati.some((x) => /Senza fronte/.test(x)), "e NON è un dato che manca: non ha uno scavo da misurare — " + P.nonMisurati.join(" · "));
+    eq(P.nonMisurati, [], "sulla dimostrazione dell'anno in corso non manca niente");
+    eq(P.banchi.righe.find((r) => r[0] === "banco 3"), ["banco 3", "Fronte Sud", "non misurato", "0"], "⛔ il banco mai rilevato: «non misurato»");
+    eq(P.banchi.numeriche, [2, 3]); eq(P.mesi.numeriche, [1, 2, 3]);
+  });
+  test("Terra · prospettoDenuncia: posizione rispetto al concesso, onere e «come sono stati ottenuti i numeri» leggono le funzioni dello schermo", () => {
+    const DEN = den(2026), R = DEN.R;
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.posizione.righe[0], ["Volume concesso dall'atto", "1.200.000 m³", false]);
+    eq(P.posizione.righe[1], ["Estratto dichiarato prima dell'uso di Terra", "880.000 m³", false]);
+    eq(P.posizione.righe[2], ["Scavo misurato sotto questo titolo fino al 31/12/2026", it0(R.cumulatoFineAnno - R.pregresso) + " m³", false]);
+    eq(P.posizione.totale, { etichetta: "Cumulato a fine 2026", valore: it0(R.cumulatoFineAnno) + " m³",
+      via: "(" + (Math.round(R.pctFineAnno * 10) / 10).toLocaleString("it-IT", { useGrouping: true }) + "% del concesso)", mancante: false });
+    eq(P.posizione.residuo, ["Residuo del volume concesso", it0(R.residuoFineAnno) + " m³", false]);
+    eq(P.posizione.soglia, ["Soglia di guardia impostata", "80%", false]); eq(P.posizione.nota, "");
+    eq(P.onere.righe, [["Volume scavato nell'anno", it0(DEN.base.lordo) + " m³", false]]);
+    eq(P.onere.totale, ["Imponibile dichiarato", it0(DEN.base.imponibile) + " m³"]);
+    eq(P.onere.descrizione, terra.descriviBaseOnere(DEN.base), "la frase che va all'ente la scrive descriviBaseOnere");
+    eq(P.onere.avvisi, []);
+    ok(/^Per l'anno 2026 risultano registrati in Terra: 4 rilievi di scavo e 1 ripresa da cumulo\./.test(P.comeNato), "⛔ «1 ripresa da cumulo» al singolare — " + P.comeNato.slice(0, 90));
+    ok(/Qualità dei rilievi di scavo: 1 di qualità topografica, 3 senza metodo dichiarato\./.test(P.comeNato), P.comeNato.slice(90, 200));
+    ok(P.comeNato.includes(terra.descriviIncertezza(R.incertezza)), "l'incertezza la scrive descriviIncertezza");
+    ok(/vanno confermate con i punti di controllo/.test(P.comeNato) && !/valore minimo/.test(P.comeNato), "col pregresso dichiarato il cumulato non è «un minimo»");
+  });
+  test("Terra · prospettoDenuncia: l'anno CIECO — «non misurato» sul totale, sul cumulato, sul residuo e sull'imponibile, mai uno zero; e l'elenco di ciò che manca", () => {
+    const cieco = { ...aut, estrattoPregressoM3: null };
+    const DEN = den(2026, { rilievi: [], aut: cieco });
+    eq(DEN.R.misurabile, false, "(precondizione: il titolo non è misurabile)"); eq(DEN.base.calcolabile, false, "(e lo scavo non è dichiarabile)");
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.mesi.totale, ["Totale 2026", "non misurato", "0", "0"], "⛔ il totale dell'anno: «non misurato», non «0» in grassetto");
+    ok(P.mesi.righe.every((r) => r[1] === "0"), "e gli zeri dei mesi restano: sono il modo in cui il modulo va compilato");
+    ok(/Nel 2026 \*\*non risulta nessun rilievo di scavo\*\*: gli zeri dei mesi/.test(P.mesi.nota), P.mesi.nota);
+    eq(P.fronti.righe, [["Nessun volume registrato nell'anno", "0", "0", "0"]]); eq(P.fronti.nota, "");
+    ok(P.banchi.righe.length === 3 && P.banchi.righe.every((r) => r[2] === "non misurato"), "⛔ i banchi ci sono (i fronti dichiarano il banco) e ogni casella dice «non misurato», non «0» — " + JSON.stringify(P.banchi.righe));
+    ok(/riportano «non misurato»: non hanno estratto zero/.test(P.banchi.nota), P.banchi.nota);
+    eq(P.posizione.righe[1], ["Estratto dichiarato prima dell'uso di Terra", "non dichiarato", true], "⛔ il pregresso mai dichiarato non è «0 m³»");
+    eq(P.posizione.righe[2], ["Scavo misurato sotto questo titolo fino al 31/12/2026", "non misurato", true]);
+    eq(P.posizione.totale, { etichetta: "Cumulato a fine 2026", valore: "non misurato", via: "", mancante: true }, "⛔ niente «0 m³ (0% del concesso)»");
+    eq(P.posizione.residuo, ["Residuo del volume concesso", "non misurato", true], "⛔ e niente «1.200.000 m³» di residuo tranquillo");
+    ok(/^Sotto questo titolo non risulta \*\*nessun rilievo di scavo\*\*/.test(P.posizione.nota), "il perché sta sotto la tabella");
+    eq(P.onere.righe, [["Imponibile dichiarato", "non dichiarabile", true]]); eq(P.onere.totale, null);
+    ok(/nessun rilievo — il volume dell'anno non l'ha misurato nessuno/.test(P.comeNato), P.comeNato.slice(0, 120));
+    ok(!/quindi volumi a zero/.test(P.comeNato), "⛔ il «quindi» che il principio vieta non c'è");
+    ok(!/vanno confermate con i punti di controllo/.test(P.comeNato) && /valore minimo/.test(P.comeNato), "senza rilievi niente tolleranze; senza pregresso il cumulato è un minimo");
+    for (const m of ["Scavo dell'anno 2026 (nessun rilievo di scavo registrato)", "Cumulato e residuo sotto il titolo (nessun rilievo di scavo e pregresso non dichiarato)", "Imponibile dell'onere di escavazione (non dichiarabile)"])
+      ok(P.nonMisurati.includes(m), "manca dall'elenco: " + m + " — " + P.nonMisurati.join(" · "));
+  });
+  test("Terra · prospettoDenuncia: le parole al singolare, i secchi dei banchi, l'anno chiuso e il titolo che non c'è", () => {
+    const DEN = den(2025);
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.inCorso, false); eq(P.sottotitolo, ""); eq(P.mesi.righe.length, 12, "anno chiuso: dodici mesi");
+    ok(/: 1 rilievo di scavo\./.test(P.comeNato), "⛔ «1 rilievo di scavo» — " + P.comeNato.slice(0, 80));
+    const S = { ...DEN, R: { ...DEN.R, qualita: { surveyGrade: 0, indicativo: 1, nd: 0 } },
+      banchi: { righe: [{ etichetta: "b", fronti: ["Fronte Nord"], misurabile: true, scavo: 10, cumulo: 0 }],
+        nonDichiarato: { fronti: 1, scavo: 500 }, fuoriElenco: { scavo: 1250 } } };
+    const Q = terra.prospettoDenuncia(S, D.fronti, OGGI);
+    ok(/Qualità dei rilievi di scavo: 1 indicativo\./.test(Q.comeNato), "⛔ «1 indicativo», non «1 indicativi» — " + Q.comeNato);
+    ok(/ 1 fronte non dichiara il banco di appartenenza, per 500 m³ di scavo non ripartiti\. Risultano inoltre 1\.250 m³ su fronti non più presenti in elenco\.$/.test(Q.banchi.nota),
+      "i due secchi, al singolare e con le migliaia — " + Q.banchi.nota);
+    ok(!/riportano «non misurato»/.test(Q.banchi.nota), "e senza banchi non misurati la frase che li spiega non c'è");
+    const N = terra.prospettoDenuncia(den(2026, { aut: null }), D.fronti, OGGI);
+    ok(N.atto.every((d) => d[1] === "—" && d[2] === true), "senza un titolo vigente le sette righe sono vuote e mancanti");
+    ok(N.nonMisurati.includes("Titolo autorizzativo (nessuno vigente registrato in Terra)"), N.nonMisurati.join(" · "));
+    eq(N.posizione.soglia, null); eq(N.posizione.righe[0], ["Volume concesso dall'atto", "non indicato", true]);
+    for (const args of [[null], [undefined, null], [{}, [], null], [{ R: null, aut: null, base: null, banchi: null }]]) {
+      const Z = terra.prospettoDenuncia(...args);
+      eq(Z.atto.length, 7, "sette righe dell'atto anche senza niente: " + JSON.stringify(args));
+      eq(Z.mesi.righe, []); eq(Z.mesi.totale[1], "non misurato"); eq(Z.banchi, null);
+      ok(typeof Z.comeNato === "string" && typeof Z.onere.descrizione === "string");
+    }
+  });
+  test("Terra · la pagina non compone più nessuna riga del prospetto: frasi e formati vivono solo nel modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+    for (const et of ['Lo <b>scavo</b> è materiale', '? "nessun rilievo — il volume', "<tr class='tot'><td>Cumulato a fine ", '"Ripartizione per fronte</h2><table>"', "Qualità dei rilievi di scavo: "])
+      ok(!pagina.includes(et), "la pagina contiene ancora " + et);
+    ok(/prospettoDenuncia\(DEN, FRO, new Date\(\)\)/.test(pagina), "e chiama prospettoDenuncia con i dati vivi");
+  });
+}
+/* ===== fine prospetto della denuncia nel modulo (05/09) ===== */
+
 
 /* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */

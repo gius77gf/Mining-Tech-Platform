@@ -1579,6 +1579,162 @@ export function csvRiepilogoAnno(DEN, fronti, oggi = new Date()) {
    c'è) e l'avanzamento; ogni rilievo con lo stato, la provenienza e il volume
    — «volume non leggibile» su un elaborato il cui numero non si legge, che è
    un'altra cosa da un rilievo pianificato. Dal più recente. Pura. */
+/* IL PROSPETTO DELLA DENUNCIA ANNUALE (05/09), nella forma di `relazioneLotto` e
+   `verbaleRilievo`: le sette sezioni del foglio che va all'ente si compongono
+   qui — tabelle `{colonne, numeriche, righe, totale, nota}` e righe
+   `[etichetta, testo, mancante]` — e la pagina tiene solo l'HTML e il CSS.
+   Fino a oggi tutto questo viveva nella pagina, dove nessuna prova senza
+   browser lo legge, ed è lì che sono vissuti «nessun rilievo, QUINDI volumi a
+   zero» (fino al 13/08), il «Totale 2026: 0» in grassetto su un anno mai
+   misurato, e il «Cumulato · 0 m³ (0% del concesso)» con lo schermo a «—».
+   Ogni numero lo decide la funzione che lo decide a schermo (`riepilogoAnnuale`,
+   `ripartizioneFronti`, `ripartizioneBanchi`, `baseOnereEscavazione`,
+   `descriviBaseOnere`, `descriviIncertezza`): qui si legge, non si rifà.
+   Nelle note il grassetto si scrive «**così**» e lo rende la pagina.
+   `DEN` è quello dello schermo: `{R, aut, soglia, base, banchi}`. Pura. */
+const ETICHETTE_ATTO = ["Numero dell'atto", "Ente che l'ha rilasciato", "Data di rilascio", "Scadenza del titolo",
+  "Materiale autorizzato", "Superficie autorizzata", "Volume totale concesso"];
+export function prospettoDenuncia(DEN, fronti, oggi = new Date()) {
+  const d = DEN || {};
+  const R = d.R || {};
+  const aut = d.aut || null;
+  const base = d.base || null;
+  const calcolabile = !!(base && base.calcolabile);
+  const anno = R.anno != null ? R.anno : "";
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("it-IT", { useGrouping: true });
+  const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });
+  const un1 = (v) => (Math.round(+v * 10) / 10).toLocaleString("it-IT", { useGrouping: true });
+  const nonMisurati = [];
+  const manca = (etichetta, testo, ragione) => { nonMisurati.push(etichetta + " (" + ragione + ")"); return [etichetta, testo, true]; };
+  /* il titolo: i numeri copiati dall'atto si riportano come stanno sull'atto
+     (`nD`, mai `n0`): arrotondare all'unità un numero trascritto dal titolo lo
+     farebbe divergere dal documento */
+  let atto;
+  if (aut) {
+    const data = (v, et) => dataISOEsiste(v) ? [et, dataIt(String(v).slice(0, 10)), false] : manca(et, "—", v ? "data non valida" : "non dichiarata");
+    atto = [
+      aut.numeroAtto ? [ETICHETTE_ATTO[0], String(aut.numeroAtto), false] : manca(ETICHETTE_ATTO[0], "—", "non dichiarato"),
+      aut.ente ? [ETICHETTE_ATTO[1], String(aut.ente), false] : manca(ETICHETTE_ATTO[1], "—", "non dichiarato"),
+      data(aut.dataRilascio, ETICHETTE_ATTO[2]),
+      data(aut.dataScadenza, ETICHETTE_ATTO[3]),
+      aut.materiale ? [ETICHETTE_ATTO[4], String(aut.materiale), false] : manca(ETICHETTE_ATTO[4], "—", "non dichiarato"),
+      aut.superficieMq ? [ETICHETTE_ATTO[5], nD(aut.superficieMq) + " m²", false] : manca(ETICHETTE_ATTO[5], "—", "non dichiarata"),
+      R.concesso ? [ETICHETTE_ATTO[6], nD(R.concesso) + " m³", false] : manca(ETICHETTE_ATTO[6], "—", "non dichiarato"),
+    ];
+  } else {
+    atto = ETICHETTE_ATTO.map((e) => [e, "—", true]);
+    nonMisurati.push("Titolo autorizzativo (nessuno vigente registrato in Terra)");
+  }
+  /* i mesi: gli zeri restano (il modulo dell'ente vuole il mese vuoto scritto
+     zero, e la colonna «Rilievi di scavo» accanto dice dove non ha misurato
+     nessuno), ma la riga del TOTALE porta «non misurato» quando lo scavo
+     dell'anno non l'ha misurato nessuno: chi lo decide è `baseOnereEscavazione`,
+     la stessa bandiera che due sezioni più in basso decide l'imponibile */
+  const meseOggi = new Date(oggi).getMonth() + 1;
+  const mesi = Array.isArray(R.mesi) ? R.mesi : [];
+  const mesiVisti = R.inCorso ? mesi.slice(0, meseOggi) : mesi;
+  const tabMesi = {
+    colonne: ["Mese", "Scavo (m³)", "Ripreso da cumuli (m³)", "Rilievi di scavo"], numeriche: [1, 2, 3],
+    righe: mesiVisti.map((m) => [MESI_NOME[m.mese - 1] || String(m.mese), n0(m.scavo), n0(m.cumulo), String(+m.rilieviScavo || 0)]),
+    totale: ["Totale " + anno, calcolabile ? n0(R.scavo) : "non misurato", n0(R.cumulo), String(+R.rilieviScavo || 0)],
+    nota: "Lo **scavo** è materiale nuovo tolto dal fronte e consuma il volume concesso. La **ripresa da cumuli** è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
+      + (calcolabile ? ""
+        : " Nel " + anno + " **non risulta nessun rilievo di scavo**: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura."),
+  };
+  if (!calcolabile) nonMisurati.push("Scavo dell'anno " + anno + " (nessun rilievo di scavo registrato)");
+  /* i fronti: TUTTE le voci, compresa quella senza fronte fatta di sole riprese
+     da cumuli, che la tabella sa ospitare (ha una colonna sua) e l'elenco a
+     schermo no. La bandiera `misurabile` la decide `ripartizioneFronti`. */
+  const RFT = R.mesi ? ripartizioneFronti(R, { tutte: true }) : { righe: [], nonMisurate: 0 };
+  const tabFronti = {
+    colonne: ["Fronte", "Scavo (m³)", "Ripreso da cumuli (m³)", "Rilievi di scavo"], numeriche: [1, 2, 3],
+    righe: RFT.righe.length
+      ? RFT.righe.map((f) => [etichettaFronteDi(f, fronti), f.misurabile ? n0(f.scavo) : "non misurato", n0(f.cumulo), String(+f.rilieviScavo || 0)])
+      : [["Nessun volume registrato nell'anno", "0", "0", "0"]],
+    totale: null,
+    nota: RFT.nonMisurate ? "I fronti senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "",
+  };
+  // la voce senza fronte (sole riprese da cumuli) non ha uno scavo da misurare: non è un dato che manca
+  for (const f of RFT.righe) if (!f.misurabile && f.fronteId) nonMisurati.push("Scavo su " + etichettaFronteDi(f, fronti) + " (nessun rilievo di scavo nell'anno)");
+  /* i banchi: la casella di un banco mai rilevato porta «non misurato», non
+     uno «0» — uno zero qui è una dichiarazione in difetto */
+  const BK = d.banchi && Array.isArray(d.banchi.righe) && d.banchi.righe.length ? d.banchi : null;
+  const nd = BK && BK.nonDichiarato, fe = BK && BK.fuoriElenco;
+  const tabBanchi = BK ? {
+    colonne: ["Banco", "Fronti", "Scavo (m³)", "Ripreso da cumuli (m³)"], numeriche: [2, 3],
+    righe: BK.righe.map((b) => [b.etichetta, (b.fronti || []).join(", "), b.misurabile ? n0(b.scavo) : "non misurato", n0(b.cumulo)]),
+    totale: null,
+    nota: "Il banco è quello indicato nella scheda di ciascun fronte al momento di questo prospetto."
+      + (BK.righe.some((b) => !b.misurabile) ? " I banchi senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "")
+      + (nd ? " " + nd.fronti + (nd.fronti === 1 ? " fronte non dichiara" : " fronti non dichiarano") + " il banco di appartenenza"
+          + (nd.scavo ? ", per " + n0(nd.scavo) + " m³ di scavo non ripartiti" : "") + "." : "")
+      + (fe ? " Risultano inoltre " + n0(fe.scavo) + " m³ su fronti non più presenti in elenco." : ""),
+  } : null;
+  /* la posizione rispetto al concesso: tre righe che leggono `R.misurabile`,
+     la stessa bandiera dello schermo. Le parole sono quelle dei fronti e dei
+     banchi mai rilevati — «non misurato», non «0» e nemmeno «non calcolabile»,
+     che qui vuol dire un'altra cosa (manca il concesso). Un pregresso mai
+     dichiarato non si stampa «0 m³»: sarebbe una dichiarazione che nessuno
+     ha fatto, e per giunta quella che abbassa il cumulato. */
+  const posizione = {
+    righe: [
+      R.concesso ? ["Volume concesso dall'atto", nD(R.concesso) + " m³", false] : manca("Volume concesso dall'atto", "non indicato", "non indicato"),
+      R.pregressoDichiarato ? ["Estratto dichiarato prima dell'uso di Terra", nD(R.pregresso) + " m³", false]
+        : manca("Estratto dichiarato prima dell'uso di Terra", "non dichiarato", "non dichiarato"),
+      R.misurabile ? ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³", false]
+        : ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, "non misurato", true],
+    ],
+    totale: { etichetta: "Cumulato a fine " + anno,
+      valore: R.misurabile ? n0(R.cumulatoFineAnno) + " m³" : "non misurato",
+      via: R.misurabile && R.pctFineAnno != null ? "(" + un1(R.pctFineAnno) + "% del concesso)" : "",
+      mancante: !R.misurabile },
+    residuo: ["Residuo del volume concesso",
+      !R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile", !R.misurabile],
+    soglia: d.soglia != null ? ["Soglia di guardia impostata", un1(d.soglia) + "%", false] : null,
+    nota: R.misurabile ? ""
+      : "Sotto questo titolo non risulta **nessun rilievo di scavo** e l'estratto precedente all'uso di Terra **non è dichiarato**: "
+        + "quanta parte del volume concesso sia stata consumata non l'ha misurata nessuno, e non è la stessa cosa di «zero consumato». "
+        + "Le tre righe qui sopra restano da compilare a partire dalle comunicazioni degli anni precedenti.",
+  };
+  if (!R.misurabile) nonMisurati.push("Cumulato e residuo sotto il titolo (nessun rilievo di scavo e pregresso non dichiarato)");
+  /* la base dell'onere: la frase la scrive `descriviBaseOnere`, e quando la base
+     non si può dichiarare la casella porta il motivo, non un «0 m³» */
+  const onere = {
+    righe: calcolabile
+      ? [["Volume scavato nell'anno", n0(base.lordo) + " m³", false]]
+        .concat(base.detratto ? [["Detratto per recupero ambientale", "− " + n0(base.detratto) + " m³", false]] : [])
+      : [["Imponibile dichiarato", "non dichiarabile", true]],
+    totale: calcolabile ? ["Imponibile dichiarato", n0(base.imponibile) + " m³"] : null,
+    descrizione: descriviBaseOnere(base),
+    avvisi: (base && Array.isArray(base.avvisi) ? base.avvisi : []).map(String),
+  };
+  if (!calcolabile) nonMisurati.push("Imponibile dell'onere di escavazione (non dichiarabile)");
+  /* come sono stati ottenuti i numeri: quanti rilievi, di che qualità, con che
+     incertezza — e se il pregresso non è dichiarato, il cumulato è un MINIMO:
+     tacerlo lo farebbe leggere come il totale vero */
+  const nScavo = +R.rilieviScavo || 0, nCumulo = +R.rilieviCumulo || 0;
+  const conta = nScavo + nCumulo === 0
+    ? "nessun rilievo — il volume dell'anno non l'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"
+    : nScavo + (nScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
+      + (nCumulo ? " e " + nCumulo + (nCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
+  const q = R.qualita || {};
+  const qual = [];
+  if (q.surveyGrade) qual.push(q.surveyGrade + " di qualità topografica");
+  if (q.indicativo) qual.push(q.indicativo + " " + (q.indicativo === 1 ? "indicativo" : "indicativi"));
+  if (q.nd) qual.push(q.nd + " senza metodo dichiarato");
+  const incertezza = descriviIncertezza(R.incertezza);
+  const comeNato = "Per l'anno " + anno + " risultano registrati in Terra: " + conta + "."
+    + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
+    + (incertezza ? " " + incertezza : "")
+    + (nScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+    + (R.pregressoDichiarato ? ""
+      : " Nella scheda dell'autorizzazione non è dichiarato quanto risultava già estratto prima dell'uso di Terra:"
+        + " il cumulato riportato tiene quindi conto dei soli rilievi registrati in Terra ed è da intendersi come valore minimo.");
+  return { titolo: "Riepilogo annuale dei volumi — anno " + anno, anno, inCorso: !!R.inCorso,
+    sottotitolo: R.inCorso ? "**anno ancora in corso**: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "",
+    atto, mesi: tabMesi, fronti: tabFronti, banchi: tabBanchi, posizione, onere, comeNato, nonMisurati };
+}
+
 export const CSV_FRONTI_RILIEVI_INTESTAZIONE = "tipo;nome;stato;provenienza;dettaglio";
 export function csvFrontiRilievi(fronti, rilievi) {
   const nD = (v) => v == null || v === "" ? "—" : (+v).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: true });

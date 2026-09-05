@@ -90,6 +90,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 
 /* I DIFETTI DA RIMETTERE, uno per riga, col pezzo di pagina che li porta.
    Si contano: una controprova che non sostituisce niente non prova niente. */
+const PAGINA = "apps/terra/index.html", MODULO = "apps/terra/terra-data.js";
 const DIFETTI = [
   // 1 · i viaggi che non si convertono, e il verbo che li introduce
   ['`<b>${d.viaggi} ${plurale(d.viaggi, "viaggio", "viaggi")}</b>, che non ${plurale(d.viaggi, "si converte", "si convertono")}: servirebbe',
@@ -126,9 +127,10 @@ const DIFETTI = [
   // 7 · i giorni fra due rilievi
   ['? (c.giorni === 1\n          ? `In quel <b>giorno</b> fanno circa <b>${n0(c.alGiorno)} m³</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`\n          : `In quei',
    '? (false\n          ? `In quel <b>giorno</b> fanno circa <b>${n0(c.alGiorno)} m³</b>, cioè <b>${n0(c.alMese)} m³ al mese</b> se il ritmo resta questo.`\n          : `In quei'],
-  // 8 · la qualità dei rilievi sul prospetto per l'ente
-  ['qual.push(R.qualita.indicativo + " "\n      + plurale(R.qualita.indicativo, "indicativo", "indicativi"));',
-   'qual.push(R.qualita.indicativo + " indicativi");'],
+  // 8 · la qualità dei rilievi sul prospetto per l'ente (dal 05/09 la compone
+  //     `prospettoDenuncia` nel MODULO: il terzo posto dice a quale file)
+  ['if (q.indicativo) qual.push(q.indicativo + " " + (q.indicativo === 1 ? "indicativo" : "indicativi"));',
+   'if (q.indicativo) qual.push(q.indicativo + " indicativi");', MODULO],
   // 9 · i due articoli davanti a un numero
   ['si sa da dove viene ${articoloNumero("il", nD(pf.copertura))}<b>', 'si sa da dove viene il <b>'],
   ['(l\'hai messa ${articoloNumero("al", un1(vc.soglia))}${un1(vc.soglia)}%)', '(l\'hai messa al ${un1(vc.soglia)}%)'],
@@ -230,15 +232,24 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/terra/terra-data.js") && FIXTURE) corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
-  if (CONTROPROVA && p.endsWith("apps/terra/index.html")) {
-    let t = corpo.toString("utf8");
-    /* si contano i DIFETTI RIMESSI, non le sostituzioni: la pagina viene
-       caricata più volte e un conto crescente direbbe «60 su 17». */
-    for (const [a, b] of DIFETTI) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
+  /* ogni difetto va al file che dichiara (terzo posto della tupla; senza, la
+     pagina): applicare tutto alla pagina lascia le iniezioni sul modulo
+     «fresche» per `iniezioni-fresche` e MAI rimesse per questo banco. Si
+     contano i DIFETTI RIMESSI, non le sostituzioni: la pagina viene caricata
+     più volte e un conto crescente direbbe «60 su 17». Sul modulo l'iniezione
+     va PRIMA della fixture, che è testo aggiunto in coda. */
+  const applica = (t, file) => {
+    for (const [a, b, f] of DIFETTI) if ((f || PAGINA) === file && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     iniezioni = colpiti.size;
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    if (FIXTURE) t += FIXTURE;
     corpo = Buffer.from(t, "utf8");
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });

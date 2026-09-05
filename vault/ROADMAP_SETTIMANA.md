@@ -521,8 +521,33 @@
   86 → 87; le due iniezioni dei banchi (`terra-numeri-tranquilli` 6d,
   `verbale-origine`) riancorate sul modulo, 19/19 e «SA fallire»;
   `stampe-fs --solo=terra` 17/17, `terra-frasi-da-uno` 48/48.
-  ⏱️ Resta `fogliaStampa` (il prospetto della denuncia): compone in pagina
-  da `DEN` con la stessa bandiera dello schermo, ed è la prossima.
+  ✅ E `fogliaStampa` è salita lo stesso giorno (voce sotto).
+- [x] **TERRA — il prospetto della denuncia annuale si compone nel modulo
+  (05/09):** `prospettoDenuncia(DEN, fronti, oggi)`, sette sezioni — l'atto,
+  i mesi (tabella `{colonne, numeriche, righe, totale, nota}`), fronti,
+  banchi, posizione rispetto al concesso, base dell'onere, «come sono stati
+  ottenuti i numeri» — più `nonMisurati` stampato in «Che cosa manca in
+  questo prospetto». Le frasi che fino a oggi vivevano nella pagina («nessun
+  rilievo — il volume dell'anno non l'ha misurato nessuno», i singolari
+  «1 rilievo di scavo» / «1 ripresa da cumulo» / «1 indicativo» / «1 fronte
+  non dichiara», la nota del pregresso come «valore minimo») adesso si
+  provano senza browser; il grassetto nelle note viaggia come `**così**` e
+  lo rende la pagina. La voce senza fronte (sole riprese da cumuli) scrive
+  «non misurato» sullo scavo ma NON finisce fra le cose che mancano. La
+  pagina tiene solo HTML e CSS. run-kpi +5 (2694: la dimostrazione, la
+  posizione e l'onere, l'anno CIECO con «non misurato» su totale / cumulato
+  / residuo / imponibile e mai uno zero, i singolari e i secchi, la pagina
+  che non compone più); la prova statica delle celle del titolo tiene le
+  due tessere dello schermo e le due celle del CSV, le tre del foglio si
+  provano chiamando la funzione. Copertura di Terra 87 → 88. Banchi:
+  `terra-numeri-tranquilli` 1, 1b, 8b riancorate sul modulo (73/73, 19/19
+  «SA fallire»; il suo estrattore decodifica le entità, perché il foglio ora
+  passa da `esc`), `terra-frasi-da-uno` applica per file e la n. 8 è sul
+  modulo (48/48, 20/20), `stampe-fs --solo=terra` 17/17, `nomi-liberi` la cui
+  controprova rimette insieme al difetto il `const conta` locale che la
+  pagina non ha più. Scatto del prospetto guardato: identico nel disegno.
+  **Terra: tre fogli su tre (relazione, verbale, prospetto) e due CSV su due
+  composti nel modulo.**
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -6622,8 +6647,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.170 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2689, `run-stile` 328,
+  **3.175 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2694, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

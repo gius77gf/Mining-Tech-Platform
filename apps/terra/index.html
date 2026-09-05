@@ -1019,7 +1019,7 @@ a.dw-btn{text-decoration:none}
 <script type="module">
   import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
@@ -2928,50 +2928,25 @@ a.dw-btn{text-decoration:none}
   // Pagina bianca, nessun colore d'interfaccia, un solo scopo: essere
   // stampata o salvata in PDF e allegata alla comunicazione. Contiene solo
   // dati dell'utente e numeri calcolati dai suoi rilievi.
+  /* Le sezioni del prospetto le compone `prospettoDenuncia` nel modulo — le
+     stesse funzioni che decidono i numeri a schermo — e qui si disegna e
+     basta, come per il verbale e la relazione del lotto. Il grassetto nelle
+     note arriva come «**così**» e lo rende `md`. */
   function fogliaStampa() {
-    const { R, aut, soglia } = DEN;
-    /* `tutte: true` = anche la voce senza fronte fatta di soli cumuli, che sul
-       foglio ha una colonna sua. La bandiera `misurabile` è la stessa che legge
-       lo schermo: la regola sta nel modulo, qui si legge (vedi più giù). */
-    const RFT = ripartizioneFronti(R, { tutte: true });
-    const oggi = new Date();
-    const dataOggi = fmtData(oggiISO(oggi));
-    const meseOggi = oggi.getMonth() + 1;
-    const mesiVisti = R.inCorso ? R.mesi.slice(0, meseOggi) : R.mesi;
+    const P = prospettoDenuncia(DEN, FRO, new Date());
+    const dataOggi = fmtData(oggiISO(new Date()));
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
     const riga = (c, tag) => "<tr>" + c.map(x => "<" + (tag || "td") + ">" + x + "</" + (tag || "td") + ">").join("") + "</tr>";
-    const dati = [
-      ["Numero dell'atto", aut && aut.numeroAtto ? esc(aut.numeroAtto) : "—"],
-      ["Ente che l'ha rilasciato", aut && aut.ente ? esc(aut.ente) : "—"],
-      ["Data di rilascio", aut ? fmtData(aut.dataRilascio) : "—"],
-      ["Scadenza del titolo", aut ? fmtData(aut.dataScadenza) : "—"],
-      ["Materiale autorizzato", aut && aut.materiale ? esc(aut.materiale) : "—"],
-      ["Superficie autorizzata", aut && aut.superficieMq ? nD(aut.superficieMq) + " m²" : "—"],
-      ["Volume totale concesso", R.concesso ? nD(R.concesso) + " m³" : "—"],
-    ];
-    const qual = [];
-    if (R.qualita.surveyGrade) qual.push(R.qualita.surveyGrade + " di qualità topografica");
-    /* ⛔ «1 indicativi» su un foglio che va all'ente. Le altre due voci di
-       questo elenco non hanno il problema (una finisce in «di qualità
-       topografica», l'altra in «senza metodo dichiarato»): è la firma di
-       questa famiglia — chi scrive guarda la riga che sta scrivendo, non le
-       tre insieme. */
-    if (R.qualita.indicativo) qual.push(R.qualita.indicativo + " "
-      + plurale(R.qualita.indicativo, "indicativo", "indicativi"));
-    if (R.qualita.nd) qual.push(R.qualita.nd + " senza metodo dichiarato");
-    /* ⛔ LA FRASE DICEVA «nessun rilievo, QUINDI volumi a zero per tutto
-       l'anno», su un foglio che va all'ente. È l'inferenza che il principio del
-       fondatore vieta, scritta per esteso nel posto peggiore — e a tre
-       centimetri di distanza, sullo STESSO foglio, il paragrafo dell'onere dice
-       «per l'ente “zero misurato” e “non misurato” non sono la stessa cosa».
-       Gli zeri della tabella dei mesi restano (il modulo dell'ente vuole il
-       mese vuoto scritto zero, e la colonna «Rilievi» accanto dichiara che lì
-       non ha misurato nessuno): quello che non si può scrivere è il «quindi». */
-    const conta = (R.rilieviScavo + R.rilieviCumulo === 0)
-      ? "nessun rilievo — il volume dell'anno non l'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"
-      : R.rilieviScavo + (R.rilieviScavo === 1 ? " rilievo di scavo" : " rilievi di scavo")
-        + (R.rilieviCumulo ? " e " + R.rilieviCumulo + (R.rilieviCumulo === 1 ? " ripresa da cumulo" : " riprese da cumuli") : "");
+    const cella = (x, i, num) => num.includes(i) ? "<span class='n'>" + esc(x) + "</span>" : esc(x);
+    const tabella = (T) => "<table>"
+      + riga(T.colonne.map((x, i) => cella(x, i, T.numeriche)), "th")
+      + T.righe.map(r => riga(r.map((x, i) => cella(x, i, T.numeriche)))).join("")
+      + (T.totale ? "<tr class='tot'>" + T.totale.map((x, i) => "<td" + (T.numeriche.includes(i) ? " class='n'" : "") + ">" + esc(x) + "</td>").join("") + "</tr>" : "")
+      + "</table>"
+      + (T.nota ? "<p class='mini'>" + md(T.nota) + "</p>" : "");
+    const voce = (d) => riga(["<b>" + esc(d[0]) + "</b>", "<span class='n" + (d[2] ? " manca" : "") + "'>" + esc(d[1]) + "</span>"]);
     const doc = "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
-      + "<title>Riepilogo volumi " + R.anno + "</title><style>"
+      + "<title>Riepilogo volumi " + P.anno + "</title><style>"
       + "*{box-sizing:border-box}body{margin:26px auto;max-width:200mm;padding:0 20px;font:12px/1.5 Arial,Helvetica,sans-serif;color:#111}"
       + "h1{font-size:19px;margin:0 0 2px}h2{font-size:13px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;letter-spacing:.5px}"
       + ".sub{color:#555;margin-bottom:14px}"
@@ -3010,164 +2985,40 @@ a.dw-btn{text-decoration:none}
       + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
       + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}"
       + CSS_ESEMPIO
+      + ".manca{color:#7a3b00;font-style:italic}"
       + "</style></head><body>"
-      + "<h1>Riepilogo annuale dei volumi — anno " + R.anno + "</h1>"
+      + "<h1>" + esc(P.titolo) + "</h1>"
       + "<div class='sub'>Documento preparato con Deepwork Terra il " + dataOggi
-      + (R.inCorso ? " · <b>anno ancora in corso</b>: i dati si fermano a oggi e cresceranno fino al 31 dicembre" : "") + "</div>"
+      + (P.sottotitolo ? " · " + md(P.sottotitolo) : "") + "</div>"
       + avvisoEsempio("Questo prospetto non riporta i volumi di nessuna cava reale: "
           + "non va inviato all'ente né allegato alla comunicazione annuale.")
       + "<h2>Titolo autorizzativo</h2><table>"
-      + dati.map(d => riga(["<b>" + d[0] + "</b>", d[1]])).join("") + "</table>"
+      + P.atto.map(d => riga(["<b>" + esc(d[0]) + "</b>", d[2] ? "<span class='manca'>" + esc(d[1]) + "</span>" : esc(d[1])])).join("") + "</table>"
       + "<p class='mini'>Ditta titolare, sede e cava di riferimento vanno indicate secondo il modello richiesto dall'ente.</p>"
-      + "<h2>Volumi dell'anno " + R.anno + "</h2><table>"
-      /* ⚠️ «Rilievi di scavo», non «Rilievi»: la nota sotto la tabella promette
-         che questa colonna dica dove non ha misurato nessuno, e contando anche
-         le riprese da cumulo scriveva «1» accanto a uno scavo mai misurato. */
-      + riga(["Mese", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
-      + mesiVisti.map(m => riga([MESI_NOME[m.mese - 1],
-          "<span class='n'>" + n0(m.scavo) + "</span>", "<span class='n'>" + n0(m.cumulo) + "</span>",
-          "<span class='n'>" + (+m.rilieviScavo || 0) + "</span>"])).join("")
-      /* ⛔ E LA RIGA DEL TOTALE PORTA «non misurato», come già fanno i banchi
-         venti righe più giù su questo stesso foglio. Un «Totale 2026: 0» in
-         grassetto, in un anno in cui nessuno ha volato, l'ente lo legge come
-         una dichiarazione di non aver estratto niente. Chi decide se lo scavo
-         dell'anno è dichiarabile è `baseOnereEscavazione` — la stessa bandiera
-         che due sezioni più in basso decide l'imponibile: una regola, un posto,
-         letta tre volte sullo stesso foglio. */
-      + "<tr class='tot'><td>Totale " + R.anno + "</td><td class='n'>"
-      + (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class='n'>"
-      + n0(R.cumulo) + "</td><td class='n'>" + R.rilieviScavo + "</td></tr>"
-      + "</table>"
-      + "<p class='mini'>Lo <b>scavo</b> è materiale nuovo tolto dal fronte e consuma il volume concesso. La <b>ripresa da cumuli</b> è materiale già estratto in passato e rimosso da un deposito: è indicata a parte perché non costituisce nuovo scavo."
-      + (DEN.base && DEN.base.calcolabile ? ""
-          : " Nel " + R.anno + " <b>non risulta nessun rilievo di scavo</b>: gli zeri dei mesi sono la forma con cui il modulo va compilato — la colonna «Rilievi» dice dove non ha misurato nessuno — e il totale dell'anno non è una misura.")
-      + "</p>"
-      /* NOTA: qui si stampano TUTTE le voci, compresa quella senza fronte fatta
-         di sole riprese da cumuli — che invece l'elenco a schermo esclude. Non è
-         una svista: la tabella ha una colonna «Ripreso da cumuli», quindi quella
-         riga porta un numero suo e non un badge «0 m³» che sembra un errore. A
-         schermo ogni riga ha un numero solo e quel posto non c'era.
-         ⛔ E DAL 07/08 LE VOCI ARRIVANO DA `ripartizioneFronti`, NON DA
-         `R.fronti` GREZZO. Componendo di qui il foglio si teneva una versione
-         più debole della regola — `n0(f.scavo)`, cioè «0» per un fronte su cui
-         nell'anno non ha volato nessuno — mentre la tabella dei banchi, sedici
-         righe più giù su QUESTO stesso foglio, scriveva già «non misurato» per
-         la stessa identica situazione. Due convenzioni opposte a due centimetri
-         di distanza, su un documento che va all'ente.
-         L'unica differenza fra il foglio e lo schermo era il FILTRO, e adesso è
-         un parametro (`tutte`): la bandiera `misurabile` la decide il modulo e
-         qui si legge, come per i banchi. */
-      + "<h2>Ripartizione per fronte</h2><table>"
-      + riga(["Fronte", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>", "<span class='n'>Rilievi di scavo</span>"], "th")
-      + (RFT.righe.length
-          ? RFT.righe.map(f => riga([esc(etFronte(f)),
-              "<span class='n'>" + (f.misurabile ? n0(f.scavo) : "non misurato") + "</span>",
-              "<span class='n'>" + n0(f.cumulo) + "</span>",
-              /* ⚠️ LA COLONNA CONTAVA TUTTI I RILIEVI, cumuli compresi — e la
-                 nota qui sotto promette che «la colonna Rilievi dice dove non ha
-                 misurato nessuno». Con `f.rilievi` un fronte con una sola
-                 ripresa da cumulo scriveva «1» accanto a uno scavo che nessuno
-                 aveva misurato: la nota era smentita dalla colonna che spiega.
-                 Adesso la colonna conta i rilievi DI SCAVO e lo dice nel titolo;
-                 i cumuli hanno già la loro colonna. */
-              "<span class='n'>" + (+f.rilieviScavo || 0) + "</span>"])).join("")
-          : riga(["Nessun volume registrato nell'anno", "<span class='n'>0</span>", "<span class='n'>0</span>", "<span class='n'>0</span>"]))
-      + "</table>"
-      + (RFT.nonMisurate
-          ? "<p class='mini'>I fronti senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati.</p>"
-          : "")
-      /* ⛔ RIPARTIZIONE PER BANCO, e sul foglio che va all'ente la casella di un
-         banco mai rilevato porta «non misurato», non uno «0». Uno zero qui è una
-         dichiarazione in difetto su una cosa che nessuno ha misurato — la stessa
-         ragione per cui l'imponibile non dichiarabile non stampa zero. */
-      + (DEN.banchi && DEN.banchi.righe.length
-        ? "<h2>Ripartizione per banco</h2><table>"
-          + riga(["Banco", "Fronti", "<span class='n'>Scavo (m³)</span>", "<span class='n'>Ripreso da cumuli (m³)</span>"], "th")
-          + DEN.banchi.righe.map(b => riga([esc(b.etichetta), esc(b.fronti.join(", ")),
-              "<span class='n'>" + (b.misurabile ? n0(b.scavo) : "non misurato") + "</span>",
-              "<span class='n'>" + n0(b.cumulo) + "</span>"])).join("")
-          + "</table>"
-          + "<p class='mini'>Il banco è quello indicato nella scheda di ciascun fronte al momento di questo prospetto."
-          + (DEN.banchi.righe.some(b => !b.misurabile)
-              ? " I banchi senza alcun rilievo di scavo nell'anno riportano «non misurato»: non hanno estratto zero, non risultano rilevati." : "")
-          + (DEN.banchi.nonDichiarato
-              ? " " + DEN.banchi.nonDichiarato.fronti + (DEN.banchi.nonDichiarato.fronti === 1 ? " fronte non dichiara" : " fronti non dichiarano") + " il banco di appartenenza"
-                + (DEN.banchi.nonDichiarato.scavo ? ", per " + n0(DEN.banchi.nonDichiarato.scavo) + " m³ di scavo non ripartiti" : "") + "." : "")
-          + (DEN.banchi.fuoriElenco ? " Risultano inoltre " + n0(DEN.banchi.fuoriElenco.scavo) + " m³ su fronti non più presenti in elenco." : "")
-          + "</p>"
-        : "")
+      + "<h2>Volumi dell'anno " + P.anno + "</h2>" + tabella(P.mesi)
+      + "<h2>Ripartizione per fronte</h2>" + tabella(P.fronti)
+      + (P.banchi ? "<h2>Ripartizione per banco</h2>" + tabella(P.banchi) : "")
       + "<h2>Posizione rispetto al volume concesso</h2><table>"
-      // i numeri copiati dall'atto si riportano come stanno sull'atto: qui il
-      // foglio va all'ente, e arrotondare all'unità un numero che l'utente ha
-      // trascritto dal titolo autorizzativo lo farebbe divergere dal documento
-      + riga(["<b>Volume concesso dall'atto</b>", "<span class='n'>" + (R.concesso ? nD(R.concesso) + " m³" : "non indicato") + "</span>"])
-      // ⛔ su un foglio che va all'ente, un pregresso mai dichiarato non si
-      // stampa «0 m³»: sarebbe una dichiarazione che nessuno ha fatto, e per
-      // giunta quella che abbassa il cumulato
-      + riga(["<b>Estratto dichiarato prima dell'uso di Terra</b>",
-              "<span class='n'>" + (R.pregressoDichiarato ? nD(R.pregresso) + " m³" : "non dichiarato") + "</span>"])
-      /* ⛔ E QUESTE TRE RIGHE LEGGONO `R.misurabile`, che è la stessa bandiera
-         che legge lo schermo. Fino al 13/08 no, e la frase che la sezione «5 ·
-         dove arriva il titolo» di questa stessa pagina non scrive più dal 07/08
-         — «il cumulato arriva a 0 m³, lo 0% del concesso, e restano 1.200.000
-         m³»: tre numeri rassicuranti costruiti sul niente — usciva ancora
-         IDENTICA, coi suoi numeri, sul foglio che va all'ente. Misurato con
-         l'atto compilato e zero rilievi: schermo «—», stampa «Cumulato a fine
-         2026 · 0 m³ (0% del concesso)» e «Residuo · 1.200.000 m³». Due
-         convenzioni opposte sullo stesso dato, e quella tranquilla nel posto
-         dove la legge un ispettore — a otto righe da un «Totale 2026 · non
-         misurato» che la bandiera accanto la leggeva già.
-         Le parole sono quelle che questo foglio usa già per i fronti e per i
-         banchi mai rilevati: «non misurato», non «0» e nemmeno «non
-         calcolabile», che qui vuol dire un'altra cosa (manca il concesso). */
-      + riga(["<b>Scavo misurato sotto questo titolo fino al 31/12/" + R.anno + "</b>",
-              "<span class='n'>" + (R.misurabile ? n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³" : "non misurato") + "</span>"])
-      + "<tr class='tot'><td>Cumulato a fine " + R.anno + "</td><td class='n'>"
-      + (R.misurabile
-          ? n0(R.cumulatoFineAnno) + " m³"
-            + (R.pctFineAnno != null ? "<span class='via'> (" + un1(R.pctFineAnno) + "% del concesso)</span>" : "")
-          : "non misurato") + "</td></tr>"
-      + riga(["<b>Residuo del volume concesso</b>", "<span class='n'>"
-              + (!R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile") + "</span>"])
-      + (soglia != null ? riga(["Soglia di guardia impostata", "<span class='n'>" + un1(soglia) + "%</span>"]) : "")
+      + P.posizione.righe.map(voce).join("")
+      + "<tr class='tot'><td>" + esc(P.posizione.totale.etichetta) + "</td><td class='n" + (P.posizione.totale.mancante ? " manca" : "") + "'>"
+      + esc(P.posizione.totale.valore) + (P.posizione.totale.via ? "<span class='via'> " + esc(P.posizione.totale.via) + "</span>" : "") + "</td></tr>"
+      + voce(P.posizione.residuo)
+      + (P.posizione.soglia ? voce(P.posizione.soglia) : "")
       + "</table>"
-      /* e il perché sta sotto la tabella, non lasciato dedurre da tre trattini */
-      + (R.misurabile ? ""
-          : "<p class='mini'>Sotto questo titolo non risulta <b>nessun rilievo di scavo</b> e l'estratto precedente all'uso di Terra <b>non è dichiarato</b>: "
-            + "quanta parte del volume concesso sia stata consumata non l'ha misurata nessuno, e non è la stessa cosa di «zero consumato». "
-            + "Le tre righe qui sopra restano da compilare a partire dalle comunicazioni degli anni precedenti.</p>")
-      /* ⛔ LA BASE DELL'ONERE SUL FOGLIO CHE VA ALL'ENTE. La frase la scrive
-         `descriviBaseOnere` nel modulo, non qui: è una REGOLA, e chi la scrive
-         deve essere uno solo. Finisce in METRI CUBI e rimanda a Conti per
-         l'importo — scrivere euro qui sarebbe la terza copia della regola di
-         `canonePeriodo`, e contraddirebbe quello che la pagina dice al
-         cliente. E quando la base non si può dichiarare, la casella porta il
-         MOTIVO invece di un «0 m³» che l'ente leggerebbe come dichiarazione. */
+      + (P.posizione.nota ? "<p class='mini'>" + md(P.posizione.nota) + "</p>" : "")
       + "<h2>Base per l'onere di escavazione</h2><table>"
-      + (DEN.base && DEN.base.calcolabile
-          ? riga(["<b>Volume scavato nell'anno</b>", "<span class='n'>" + n0(DEN.base.lordo) + " m³</span>"])
-            + (DEN.base.detratto ? riga(["<b>Detratto per recupero ambientale</b>", "<span class='n'>− " + n0(DEN.base.detratto) + " m³</span>"]) : "")
-            + "<tr class='tot'><td>Imponibile dichiarato</td><td class='n'>" + n0(DEN.base.imponibile) + " m³</td></tr>"
-          : riga(["<b>Imponibile dichiarato</b>", "<span class='n'>non dichiarabile</span>"]))
+      + P.onere.righe.map(voce).join("")
+      + (P.onere.totale ? "<tr class='tot'><td>" + esc(P.onere.totale[0]) + "</td><td class='n'>" + esc(P.onere.totale[1]) + "</td></tr>" : "")
       + "</table>"
-      + "<p class='mini'>" + esc(descriviBaseOnere(DEN.base)) + "</p>"
-      + ((DEN.base && DEN.base.avvisi && DEN.base.avvisi.length)
-          ? "<p class='mini'>" + DEN.base.avvisi.map(a => esc(a)).join(" ") + "</p>" : "")
+      + "<p class='mini'>" + esc(P.onere.descrizione) + "</p>"
+      + (P.onere.avvisi.length ? "<p class='mini'>" + P.onere.avvisi.map(esc).join(" ") + "</p>" : "")
       + "<h2>Come sono stati ottenuti i numeri</h2>"
-      + "<p class='mini'>Per l'anno " + R.anno + " risultano registrati in Terra: " + conta + "."
-      + (qual.length ? " Qualità dei rilievi di scavo: " + qual.join(", ") + "." : "")
-      /* ⛔ la frase la scrive `descriviIncertezza`: fino al 02/09 qui c'era
-         «± N m³, sommando la tolleranza di OGNI rilievo (stima prudente)» — e
-         sulla dimostrazione quel ± copriva UN rilievo su quattro, perché chi
-         non dichiara il metodo non ha tolleranza e pesava zero */
-      + (descriviIncertezza(R.incertezza) ? " " + esc(descriviIncertezza(R.incertezza)) : "")
-      + (R.rilieviScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
-      /* ⛔ e se il pregresso non è dichiarato, il cumulato qui sopra è un
-         MINIMO: tacerlo lo farebbe leggere come il totale vero */
-      + (R.pregressoDichiarato ? ""
-          : " Nella scheda dell'autorizzazione non è dichiarato quanto risultava già estratto prima dell'uso di Terra:"
-            + " il cumulato riportato tiene quindi conto dei soli rilievi registrati in Terra ed è da intendersi come valore minimo.")
-      + "</p>"
+      + "<p class='mini'>" + esc(P.comeNato) + "</p>"
+      + (P.nonMisurati.length
+          ? "<h2>Che cosa manca in questo prospetto</h2><p class='mini'>"
+            + P.nonMisurati.map(esc).join(" · ")
+            + ". Questi dati non risultano in Terra: il prospetto non li stima e non li sostituisce con uno zero.</p>"
+          : "")
       + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore dei lavori</div></div>"
       + "<div class='foot'>Prospetto generato da Deepwork Terra a partire dai rilievi registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: modello, termini e modalità di invio della comunicazione annuale "

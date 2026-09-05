@@ -100,12 +100,12 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    Contati: una controprova che non sostituisce niente non prova niente. */
 const PAGINA = "apps/terra/index.html", MODULO = "apps/terra/terra-data.js";
 const DIFETTI = [
-  // 1 · la frase del foglio che va all'ente
+  // 1 · la frase del foglio che va all'ente (dal 05/09 la compone `prospettoDenuncia` nel modulo)
   ['? "nessun rilievo — il volume dell\'anno non l\'ha misurato nessuno, e gli zeri della tabella dei mesi sono il modo in cui il modulo va compilato, non una misura"',
-   '? "nessun rilievo, quindi volumi a zero per tutto l\'anno"'],
+   '? "nessun rilievo, quindi volumi a zero per tutto l\'anno"', MODULO],
   // 1b · la riga del totale sul foglio
-  ['+ (DEN.base && DEN.base.calcolabile ? n0(R.scavo) : "non misurato") + "</td><td class=\'n\'>"',
-   '+ n0(R.scavo) + "</td><td class=\'n\'>"'],
+  ['totale: ["Totale " + anno, calcolabile ? n0(R.scavo) : "non misurato", n0(R.cumulo)',
+   'totale: ["Totale " + anno, n0(R.scavo), n0(R.cumulo)', MODULO],
   // 2 · la cella del totale nel CSV
   ['${d.base && d.base.calcolabile ? R.scavo : ""};${R.cumulo}', '${R.scavo};${R.cumulo}', MODULO],
   // 3 · la condizione più debole che apriva il bottone del verbale
@@ -122,7 +122,7 @@ const DIFETTI = [
      Quattro difetti in due righe di codice, tutti trovati aprendo il file e
      mettendolo accanto allo schermo sugli stessi dati. */
   // 6a · la quinta copia più debole di `rilievoUsabile`, e stavolta nel file
-  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (2, 6a, 6b, 6c, 6d, 7): i due CSV sono saliti
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (1, 1b, 2, 6a, 6b, 6c, 6d, 7, 8b): i due CSV sono saliti
      in `csvFrontiRilievi` e `csvRiepilogoAnno`; l'indentazione cambia. */
   ['(rilievoUsabile(r) ? " · " + nD(r.volumeM3) + " m³"\n            : r.stato === "elaborato" ? " · volume non leggibile" : "")',
    '(r.volumeM3 != null ? " · " + r.volumeM3 + " m³" : "")', MODULO],
@@ -144,8 +144,8 @@ const DIFETTI = [
   ['const ico = lv.cls === "danger" ? ["danger", I.allarme] : lv.cls === "warn" ? ["warn", I.sveglia] : ["ok", I.ok];',
    'const ico = st === "scaduta" ? ["danger", I.allarme] : st === "in-scadenza" ? ["warn", I.sveglia] : ["ok", I.ok];'],
   // 8b · l'incertezza «di ogni rilievo (stima prudente)» che copriva un rilievo su quattro
-  ['+ (descriviIncertezza(R.incertezza) ? " " + esc(descriviIncertezza(R.incertezza)) : "")',
-   '+ (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda) + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")'],
+  ['    + (incertezza ? " " + incertezza : "")',
+   '    + (R.banda > 0 ? " Incertezza complessiva stimata sullo scavo: ± " + n0(R.banda) + " m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente)." : "")', MODULO],
   // 8c · il CSV dei rilievi senza i fronti: colonna «fronte» vuota su tutte le righe
   ['encodeURIComponent(csvRilievi(RIL, FRO))', 'encodeURIComponent(csvRilievi(RIL))'],
   // 8d · i due volumi del lotto tornano nel `.meta` tagliato a due righe
@@ -257,7 +257,13 @@ async function intercetta(pg) {
     };
   });
 }
-const testo = (h) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+/* ⏱️ dal 05/09 il foglio passa da `esc` (le frasi le compone il modulo e la
+   pagina le rende): l'apostrofo arriva come entità, e un banco che legge
+   l'HTML grezzo cercando «l'ha» non lo troverebbe più. Si decodificano le
+   entità, come fa il browser. */
+const testo = (h) => String(h || "").replace(/<[^>]+>/g, " ")
+  .replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+  .replace(/\s+/g, " ");
 
 console.log(`\n════════ i documenti di Terra e gli zeri mai misurati${CONTROPROVA ? " · controprova" : ""} ════════`);
 

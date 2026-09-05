@@ -1006,8 +1006,14 @@ test("la controprova della SECONDA domanda — il difetto di Terra del 07/08 vie
      funzione — ed è quell'omonimo a rendere la prima domanda cieca. */
   const rel = "apps/terra/index.html";
   const html = leggi(rel);
-  const guasto = html.replace(/plurale, conta(,|\s*\})/, "plurale$1");
-  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  /* ⏱️ dal 05/09 la pagina NON ha più un `const conta` locale: stava in
+     `fogliaStampa`, salita nel modulo con `prospettoDenuncia`. Il racconto è
+     sull'omonimo che nasconde, quindi la controprova lo rimette INSIEME al
+     difetto — nella stessa funzione in cui viveva — invece di pretendere che
+     la pagina lo tenga per sempre. */
+  const guasto = html.replace(/plurale, conta(,|\s*\})/, "plurale$1")
+    .replace("function fogliaStampa() {", "function fogliaStampa() {\n    const conta = 0;");
+  ok(guasto !== html && guasto.includes("const conta = 0;"), "l'iniezione non ha sostituito niente: la prova non prova niente");
   const codice = blocchiDi(guasto).map(soloCodice).join("\n;\n");
   ok(/\bconst conta\s*=/.test(codice),
     "serve che nella pagina resti un `const conta` LOCALE: è lui a nascondere il nome libero");
