@@ -1082,6 +1082,10 @@ textarea.dw-input{
   letter-spacing:.3px; color:var(--text); line-height:1.25;
 }
 .rep-punto-meta{font-size:11.5px; color:var(--muted); line-height:1.6; margin:5px 0 9px}
+/* per chi è redatto e la portata del documento (05/09): due righe del foglio,
+   la prima subito sotto la testata, la seconda in corsivo dopo le dichiarazioni */
+.rep-origine-doc{margin:0 0 10px; color:var(--text)}
+.rep-portata{margin:2px 0 12px; font-style:italic}
 .rep-punto-meta b{color:var(--muted2); font-weight:600}
 .rep-graf{margin:0 0 9px}
 .rep-vuoto{
@@ -1822,7 +1826,7 @@ textarea.dw-input{
            RAGIONI_ANNULLAMENTO,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
-           PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO,
+           PERIODI_ADEMPIMENTO, periodoAdempimento, descriviPeriodoAdempimento, DICHIARAZIONI_PERIODO, PORTATA_REPORT, intestazioneOrigineReport,
            FONTE_IMPORT, FONTE_MANO, FONTE_IGNOTA,
            numeroDaCampo, AVVISO_DECIMALE, ariaSerie, numeroDichiarato } from "./sentinella-data.js";
   import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO,
@@ -3666,8 +3670,13 @@ textarea.dw-input{
     const ico = R.esito === "conforme" ? I.scudo : R.esito === "non-conforme" ? I.allerta : I.serie;
     const sezPunti = R.punti.map((p, i) => schedaPunto(p, i)).join("");
 
+    /* per chi è redatto: SOLO se il periodo è ancora quello dell'adempimento —
+       toccate le date, la riga direbbe il falso */
+    const origineDoc = REP_ORIGINE && REP_ORIGINE.p.dal === dal && REP_ORIGINE.p.al === al
+      ? `<div class="rep-punto-meta rep-origine-doc">${esc(intestazioneOrigineReport(REP_ORIGINE.a, REP_ORIGINE.p))}</div>` : "";
     box.innerHTML = `<div class="rep">
       ${testaReport(periodo, R, genTxt)}
+      ${origineDoc}
       ${/* ⛔ UN ESITO CHE ASSOLVE DEVE DIRE SU QUANTI PUNTI (decisione 16). Con
             un punto giudicabile su tre, «Conforme» in testa al documento è
             vero e insieme fuorviante: chi legge conta i punti in cima
@@ -3684,6 +3693,8 @@ textarea.dw-input{
       ${dichiarazioneCopertura(R)}
       ${dichiarazioneTarature(R)}
       ${dichiarazioneProvenienza(R)}
+      ${/* la portata del documento (05/09): che cosa giudica e che cosa no */""}
+      <div class="rep-punto-meta rep-portata">${esc(PORTATA_REPORT)}</div>
       <div class="rep-cifre">
         <div class="rep-cifra"><div class="k">Punti di misura</div><div class="v">${R.nPunti}</div></div>
         <div class="rep-cifra"><div class="k">Letture</div><div class="v">${R.nLetture}</div></div>
@@ -5720,11 +5731,16 @@ textarea.dw-input{
      documento è il trimestre dell'adempimento» da «questo documento sono due
      date che ho scritto io». Sparisce appena le date si toccano, perché da
      quel momento direbbe il falso. */
+  /* l'origine del report (05/09): l'adempimento da cui è partito, perché il
+     DOCUMENTO lo scriva — sullo schermo la nota c'era, sul foglio no */
+  let REP_ORIGINE = null;
   const scordaOrigineReport = () => {
+    REP_ORIGINE = null;
     const el = $("rep-origine"); if (!el) return;
     el.textContent = ""; el.style.display = "none"; el.className = "note esito";
   };
   function apriReportDaAdempimento(a, p) {
+    REP_ORIGINE = { a, p };
     $("rep-dal").value = p.dal;
     /* ⚠️ `rep-al` ha `max = oggi`: un periodo che finisce nel futuro non si
        può scrivere nel campo, e il valore verrebbe rifiutato in silenzio

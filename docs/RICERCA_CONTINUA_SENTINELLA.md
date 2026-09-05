@@ -495,15 +495,20 @@ Risposte alle sei domande aprendo `apps/sentinella/sentinella-data.js` e
   scrivono «nessuna comunicazione registrata» (`grep -c "descriviComunicazione"
   apps/sentinella/index.html` → 4). run-kpi +3; banchi `sentinella-numeri-tranquilli`
   e `sentinella-report-dichiarazioni` con le prove nuove;
-- (b) **la riga di portata del report**: «questo documento valuta la soglia
-  del punto di misura (danno agli edifici, UNI 9916/DIN 4150-3); non valuta il
-  disturbo alle persone (UNI 9614)» — una dichiarazione, costo minimo;
+- (b) ✅ **fatta il 05/09** — `PORTATA_REPORT`, una frase in corsivo sotto le
+  dichiarazioni del report (`grep -c "PORTATA_REPORT" apps/sentinella/index.html`
+  → 2: l'import e l'uso);
 - (c) **le azioni correttive accanto ai superamenti del report**, lette da
   Scudo con `azioniDiOrigine` (stato aperta/in corso/chiusa; «non leggibile»
   se Scudo non risponde) — costo medio, è il ponte T7 letto nel verso del
   documento;
-- (d) **destinatario e data di trasmissione sul report**, presi
-  dall'adempimento (`ente`) quando il report parte da lì — costo basso;
+- (d) ✅ **fatta a metà il 05/09** — `intestazioneOrigineReport(a, p)`: quando il
+  report parte da un adempimento il DOCUMENTO scrive «Redatto per l'adempimento
+  «…» (ente), periodo dal … al …, scadenza il …», e la riga sparisce appena si
+  toccano le date (direbbe il falso). La **data di trasmissione** resta fuori:
+  nessuno la registra oggi, ed è un fatto che solo chi invia può scrivere —
+  candidato a sé, dopo che il fondatore dice se il report va «segnato come
+  trasmesso»;
 - (e) **il foglio della singola volata** con dati della volata + misura
   dell'evento + strumento e taratura, «da allegare al verbale» — costo medio,
   e la frase «vale come verbale» NON va scritta sul foglio finché la fonte

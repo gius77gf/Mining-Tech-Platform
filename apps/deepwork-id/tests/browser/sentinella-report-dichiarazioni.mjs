@@ -165,6 +165,9 @@ await pg.waitForTimeout(700);
 
 const doc = testo(await pg.$eval("#rep-doc", (e) => e.innerHTML).catch(() => ""));
 dice(doc.length > 400, "il documento è stato composto", doc.length + " caratteri");
+/* la portata del documento (05/09): una frase, una volta, che dice che cosa
+   il report giudica e che cosa no */
+dice((doc.match(/Non valuta il disturbo alle persone \(UNI 9614\)/g) || []).length === 1, "⛔ il documento dichiara la sua portata: effetti sugli edifici sì, disturbo alle persone (UNI 9614) no — una volta", (doc.match(/.{0,80}UNI 9614.{0,40}/) || [])[0]);
 /* la comunicazione della volata (05/09): nella tabella «Volate del periodo» la
    colonna c'è e ogni riga dice se la volata è stata comunicata — anche no */
 if (/Volate del periodo/.test(doc)) {

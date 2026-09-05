@@ -2932,6 +2932,31 @@ export function periodoAdempimento(a) {
 // ⛔ Nessuna delle tre frasi di «non lo so» propone un periodo di ripiego, ed è
 // il punto: un trimestre plausibile scritto al posto di quello vero sarebbe
 // indistinguibile da quello giusto per chi legge il documento finito.
+/* LA PORTATA DEL DOCUMENTO (05/09, candidato (b) della ricerca). Il report
+   giudica la soglia applicata ai punti di misura — gli effetti sugli edifici,
+   UNI 9916 / DIN 4150-3 — e NON il disturbo alle persone (UNI 9614), che vuole
+   una misura diversa. Finché non lo diceva, chi lo leggeva poteva credere che
+   «conforme» coprisse anche quello. Una frase, in un posto solo. */
+export const PORTATA_REPORT =
+  "Questo documento valuta le misure contro la soglia applicata a ciascun punto di misura "
+  + "(effetti sugli edifici, UNI 9916 / DIN 4150-3). Non valuta il disturbo alle persone "
+  + "(UNI 9614), che richiede una misura e una valutazione diverse.";
+
+/* PER CHI È REDATTO (05/09, candidato (d)). Quando il report parte da un
+   adempimento, il documento lo scrive: quale adempimento, per quale ente, con
+   quale scadenza. Sullo schermo la nota c'era già (`rep-origine`); sul foglio
+   che va all'ente, no. Pura: prende l'adempimento e il periodo ricavato. */
+export function intestazioneOrigineReport(a, p) {
+  const t = String((a || {}).titolo || "").trim();
+  if (!t || !p || !p.dal || !p.al) return "";
+  const ente = String((a || {}).ente || "").trim();
+  return "Redatto per l'adempimento «" + t + "»"
+    + (ente && ente !== "—" ? " (" + ente + ")" : "")
+    + ", periodo dal " + dataIt(p.dal) + " al " + dataIt(p.al)
+    + (dataISOEsiste(String((a || {}).scadenza || "").slice(0, 10)) ? ", scadenza il " + dataIt(String(a.scadenza).slice(0, 10)) : "")
+    + ".";
+}
+
 export const DICHIARAZIONI_PERIODO = {
   "ricavato":             { cls: "",     testo: "Il periodo coperto da questo adempimento si ricava dalla scadenza e da quanto l'adempimento dichiara di coprire: il report parte già su quei giorni, senza scriverli a mano." },
   "senza-periodicita":    { cls: "warn", testo: "Questo adempimento non dichiara quanto tempo copre, quindi il periodo del report non si ricava. Scrivilo sulla scadenza (quanti mesi copre) oppure scegli le date a mano nel Report." },

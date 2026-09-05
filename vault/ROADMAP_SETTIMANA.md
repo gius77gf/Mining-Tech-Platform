@@ -434,8 +434,13 @@
   `campiComunicazioneVolata`/`descriviComunicazione`, tre colonne in coda al
   CSV del registro, l'azione sulla riga, la riga e la tabella del report che la
   scrivono — «nessuna comunicazione registrata» quando manca, mai «—». run-kpi
-  +3 (2646); banchi del registro e del report con le prove nuove. Restano
-  (b)–(e).
+  +3 (2646); banchi del registro e del report con le prove nuove. (b) ✅ e
+  (d) ✅ a metà **05/09**: `PORTATA_REPORT` (il documento dice che giudica gli
+  effetti sugli edifici, UNI 9916/DIN 4150-3, e non il disturbo alle persone,
+  UNI 9614) e `intestazioneOrigineReport` (quando parte da un adempimento il
+  foglio scrive per quale, per quale ente, con periodo e scadenza; la riga
+  sparisce se si toccano le date). La data di trasmissione resta un candidato
+  a sé. run-kpi +2 (2648). Restano (c), (e) e la trasmissione.
 - [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
   `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
   condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
@@ -6462,8 +6467,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.127 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2646, `run-stile` 328,
+  **3.129 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2648, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

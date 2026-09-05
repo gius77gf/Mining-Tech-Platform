@@ -211,7 +211,7 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   impediscono a un'app di riscriversene una propria.
 
 **Quanto è controllato, oggi** *(ricontato il 18/08 lanciando le suite, non a
-memoria)*: **3.127** prove automatiche che girano senza rete — **2646** sulle
+memoria)*: **3.129** prove automatiche che girano senza rete — **2648** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
@@ -231,7 +231,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.127** conta nove suite: il giro completo ne esegue **3.558**, e da
+*(⚠️ Il **3.129** conta nove suite: il giro completo ne esegue **3.560**, e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
@@ -246,7 +246,7 @@ ricopiato — ed è la stessa ragione per cui la riga qui sopra era rimasta ferm
 ⚠️ E il giro lo stampa **col suo denominatore**: 22 comandi su 34 hanno una riga
 da sommare, e gli altri **12 sono nominati** — non vuol dire che non abbiano
 provato niente, vuol dire che quel conto non li vede.)*
-E **819 funzioni pure su 819** delle sei app sono chiamate per nome dalle prove:
+E **821 funzioni pure su 821** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
 

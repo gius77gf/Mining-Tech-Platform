@@ -37292,6 +37292,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(sentinella.descriviComunicazione(sentinella.DEMO.volate.find((v) => v.id === "b1")).registrata, true, "la dimostrazione ne porta una, così il caso si vede");
   });
 }
+/* ===== la portata del report e per chi è redatto (Sentinella, 05/09) ===== */
+{
+  test("Sentinella · PORTATA_REPORT dice che cosa il documento giudica e che cosa no", () => {
+    ok(/UNI 9916/.test(sentinella.PORTATA_REPORT) && /DIN 4150-3/.test(sentinella.PORTATA_REPORT), "cita le norme degli effetti sugli edifici");
+    ok(/Non valuta il disturbo alle persone \(UNI 9614\)/.test(sentinella.PORTATA_REPORT), "⛔ e dice che NON valuta il disturbo alle persone (UNI 9614)");
+  });
+  test("Sentinella · intestazioneOrigineReport: adempimento, ente, periodo e scadenza sul documento", () => {
+    const f = sentinella.intestazioneOrigineReport;
+    eq(f({ titolo: "Relazione annuale emissioni", ente: "ARPA", scadenza: "2026-08-10" }, { dal: "2025-08-10", al: "2026-08-09" }),
+       "Redatto per l'adempimento «Relazione annuale emissioni» (ARPA), periodo dal 10/08/2025 al 09/08/2026, scadenza il 10/08/2026.", "la riga intera");
+    eq(f({ titolo: "Verifica fonometrica semestrale", ente: "—", scadenza: "boh" }, { dal: "2026-03-31", al: "2026-09-29" }),
+       "Redatto per l'adempimento «Verifica fonometrica semestrale», periodo dal 31/03/2026 al 29/09/2026.", "ente «—» e scadenza illeggibile non si scrivono");
+    eq(f(null, { dal: "2026-01-01", al: "2026-03-31" }), "", "senza adempimento non c'è riga");
+    eq(f({ titolo: "X" }, null), "", "e senza periodo nemmeno");
+  });
+}
+/* ===== fine portata del report (05/09) ===== */
 /* ===== fine comunicazione della volata (05/09) ===== */
 /* ===== fine Sentinella sopra la mappa (05/09) ===== */
 /* ===== fine piano sopra la mappa (05/09) ===== */
