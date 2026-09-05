@@ -486,3 +486,32 @@ dato, distinto dalla simulazione; (d) la carica per foro dalla spalla
 misurata — dipende da (b) e da una regola di mestiere che la ricerca non
 ha trovato: decisione con il fochino/fondatore, non del ciclo. Le soglie
 di tolleranza restano fuori finché non c'è una fonte.
+
+### ⚠️ Rimisurato il 05/09 (notte), prima di aprire il cantiere (a)+(b): il confronto foro per foro NON ESISTE, e (a) da solo non ha chi lo legge
+
+Aperte le funzioni invece di fidarsi della riga qui sopra:
+- `_riconParseCampo` (genesi-data.js) legge il consuntivo di Campo per nome
+  di colonna e tiene `foro` come **numero**; `_riconRiassuntoCampo` ne fa
+  **somme e medie sull'intera volata** (`kgProgTot`, `kgReale`, `scostKg`,
+  `medioKg`, `peggio`): nessuna riga viene accoppiata a un foro di
+  `D2.holes`. Il «confronto foro per foro» che la riga (a) dava per scontato
+  non c'è ancora — c'è un confronto **per volata**, con il foro peggiore.
+- Il `foro` del piano di carico che esce da Genesi è la **posizione nella
+  sequenza di sparo** (`D2.holes.slice().sort((a,b)=>a.tDet-b.tDet)…(i+1)`),
+  ricalcolata a ogni `computeSeq2D`: cancellare un foro (`D2.holes.splice`)
+  rinumera tutti quelli dopo. L'`id:'foro_n'` citato in (a) sta nel JSON della
+  simulazione 3D (`SIM.fori`, riga 3046 di `genesi.html`), non nel progetto
+  2D che alimenta il piano di carico.
+- Quindi **(a) senza un lettore è un identificatore che nessuno usa** — la
+  regola 20 di `run-stile` in un'altra veste — e il cantiere vero è uno solo,
+  in tre pezzi che vanno insieme: (1) l'id stabile nato alla creazione del
+  foro in `D2.holes` (tre punti: `genMaglia2D`, il tocco sulla tela, l'import
+  XML) e portato dal piano di carico come colonna in coda; (2) Campo che lo
+  conserva nel piano (`parsePianoCsv`, colonna facoltativa) e lo rimanda nel
+  consuntivo in coda (`CONSUNTIVO_COLONNE`: il censimento condiviso e due
+  banchi — `campo-numeri-tranquilli` riga 867, `genesi-frasi-limite` — lo
+  fissano alla lettera); (3) in Genesi il **confronto per foro** che oggi
+  manca: per ogni foro del progetto la carica reale accoppiata per id, e
+  «foro non trovato nel consuntivo» / «riga del consuntivo senza foro nel
+  progetto» dichiarati. È un blocco intero, non un'unità di notte: va aperto
+  come cantiere, con le due app e `shared/` serializzati.
