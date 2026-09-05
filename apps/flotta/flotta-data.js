@@ -391,6 +391,16 @@ export const DEMO = {
     { id: "k3", voce: "carburante", importo: 500, nota: "Buono gasolio senza data" },
     { id: "k4", data: "2026-07-03", voce: "personale", importo: 5500, nota: "Squadra di fronte, luglio" },
   ],
+  /* IL BUDGET DELL'ANNO, per voce (05/09): quello che il gestore del parco
+     ha DECISO di spendere. La voce è la stessa parola con cui si registrano i
+     costi (`Carburante`, `Ricambi e officina`…); la voce VUOTA è il budget di
+     tutta la flotta. Le gomme e i noleggi non hanno un budget: è il caso
+     «spesa senza budget», che il confronto deve dichiarare, non tacere. */
+  budget: [
+    { id: "b1", anno: 2026, voce: "Carburante", importo: 12000 },
+    { id: "b2", anno: 2026, voce: "Ricambi e officina", importo: 8000 },
+    { id: "b3", anno: 2026, voce: "", importo: 30000 },
+  ],
   interventi: [
     // w1 porta la LAVORAZIONE (L5): due persone, ore e costo orario, il pezzo
     // consumato. `ricambio` e `costo` restano quelli di sempre, così registro,
@@ -1460,6 +1470,113 @@ export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
    le pagine non importino `shared/` per conto loro e perché `nomi-doppi` veda
    lo STESSO oggetto invece di due gemelli destinati a divergere. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
+
+/* BUDGET DELL'ANNO CONTRO SPESA REALE (05/09, la riga «Budget tracking vs
+   actual» che quattro concorrenti su quattordici hanno e questa casa no: era
+   «un excel parallelo»). Per ogni voce con un budget dichiarato per l'anno:
+   quanto era previsto, quanto risulta speso (i costi dell'anno con quella
+   voce), quanto ci si aspetterebbe di aver speso A OGGI se la spesa fosse
+   uniforme (`quotaAttesa`: il previsto per la frazione d'anno trascorsa —
+   sull'anno chiuso è il previsto intero), e lo stato:
+     sforato       speso > previsto
+     sopra-ritmo   speso > quota attesa + 10 %
+     in-linea      entro ±10 % della quota attesa
+     sotto-ritmo   speso < quota attesa − 10 % (può essere un risparmio o una
+                   spesa non registrata: la frase lo dice)
+     senza-spese   budget dichiarato, nessun costo dell'anno con quella voce
+   Tre cose che NON si fanno: un costo SENZA DATA non si mette nell'anno (si
+   conta a parte e si dichiara: sarebbe attribuito a un anno a caso); una
+   voce che ha spese ma non ha budget non riceve un budget zero (uscirebbe
+   «sforato del ∞»: si elenca fra le `senzaBudget`); e senza nessun budget
+   per l'anno `dichiarato` è falso e non si inventa niente. La voce vuota è
+   il budget di TUTTA la flotta, confrontato con tutti i costi dell'anno.
+   Le voci si confrontano senza badare a maiuscole e spazi. Pura. */
+export const ETICHETTA_STATO_BUDGET = {
+  sforato: ["danger", "Sforato"], "sopra-ritmo": ["warn", "Sopra il ritmo"], "in-linea": ["ok", "In linea"],
+  "sotto-ritmo": ["info", "Sotto il ritmo"], "senza-spese": ["tag", "Nessuna spesa"],
+};
+const chiaveVoce = (v) => String(v == null ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
+export function budgetVsSpesa(budget, costi, anno, oggi = new Date()) {
+  const A = anno != null && anno !== "" && Number.isFinite(+anno) && +anno > 0 ? +anno : new Date(oggi).getFullYear();
+  const O = new Date(oggi);
+  const inCorso = O.getFullYear() === A;
+  const chiuso = O.getFullYear() > A;
+  const giorniAnno = ((A % 4 === 0 && A % 100 !== 0) || A % 400 === 0) ? 366 : 365;
+  const giorniTrascorsi = inCorso ? Math.max(1, Math.round((Date.UTC(O.getFullYear(), O.getMonth(), O.getDate()) - Date.UTC(A, 0, 1)) / 86400000) + 1) : (chiuso ? giorniAnno : 0);
+  const frazione = giorniTrascorsi / giorniAnno;
+  const B = (Array.isArray(budget) ? budget : []).filter((b) => b && +b.anno === A && numeroDichiarato(b.importo) != null && +b.importo > 0);
+  const C = Array.isArray(costi) ? costi : [];
+  const dellAnno = [], senzaData = { voci: 0, importo: 0 };
+  for (const c of C) {
+    if (!c) continue;
+    const d = String(c.data || "").slice(0, 10);
+    if (!dataISOEsiste(d)) { senzaData.voci++; senzaData.importo += +c.importo || 0; continue; }
+    if (+d.slice(0, 4) === A) dellAnno.push(c);
+  }
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const stato = (speso, previsto, attesa, n) => {
+    if (!n) return "senza-spese";
+    if (speso > previsto) return "sforato";
+    if (!inCorso && !chiuso) return "in-linea";
+    if (speso > attesa * 1.1) return "sopra-ritmo";
+    if (speso < attesa * 0.9) return "sotto-ritmo";
+    return "in-linea";
+  };
+  const riga = (b) => {
+    const k = chiaveVoce(b.voce);
+    const spese = k ? dellAnno.filter((c) => chiaveVoce(c.voce) === k) : dellAnno;
+    const speso = r2(spese.reduce((t, c) => t + (+c.importo || 0), 0));
+    const previsto = r2(+b.importo);
+    const quotaAttesa = r2(previsto * (inCorso ? frazione : 1));
+    const st = stato(speso, previsto, quotaAttesa, spese.length);
+    return { id: b.id, voce: k ? String(b.voce).trim() : "", tutta: !k, previsto, speso, nSpese: spese.length, quotaAttesa,
+      scostamento: r2(speso - quotaAttesa), pct: previsto > 0 ? Math.round(speso / previsto * 100) : null, stato: st };
+  };
+  const righe = B.filter((b) => chiaveVoce(b.voce)).map(riga).sort((a, b) => b.previsto - a.previsto);
+  const tuttaB = B.find((b) => !chiaveVoce(b.voce));
+  const totale = tuttaB ? riga(tuttaB) : null;
+  const conBudget = new Set(righe.map((r) => chiaveVoce(r.voce)));
+  const perVoce = {};
+  for (const c of dellAnno) { const k = chiaveVoce(c.voce); if (!conBudget.has(k)) { perVoce[k] = perVoce[k] || { voce: String(c.voce || "").trim() || "(senza voce)", speso: 0, nSpese: 0 }; perVoce[k].speso = r2(perVoce[k].speso + (+c.importo || 0)); perVoce[k].nSpese++; } }
+  const senzaBudget = Object.values(perVoce).sort((a, b) => b.speso - a.speso);
+  return { anno: A, inCorso, chiuso, giorniTrascorsi, giorniAnno, frazione: Math.round(frazione * 1000) / 1000,
+    dichiarato: B.length > 0, righe, totale, senzaBudget,
+    spesoAnno: r2(dellAnno.reduce((t, c) => t + (+c.importo || 0), 0)), nSpeseAnno: dellAnno.length,
+    senzaData: { voci: senzaData.voci, importo: r2(senzaData.importo) } };
+}
+
+/* La frase che accompagna una riga del budget, a schermo e nel file: dice lo
+   stato E il perché, coi numeri all'italiana. `sotto-ritmo` non è «bene»: può
+   essere un risparmio o una spesa che nessuno ha registrato, e lo dice. */
+export function descriviBudget(r) {
+  if (!r) return "";
+  const E = (v) => euro(v);
+  /* il verdetto sta in TESTA: sullo schermo la riga è tagliata a due righe
+     e quello che finisce dopo il taglio non lo legge nessuno; il «speso su
+     previsto» lo dice già il titolo della riga */
+  switch (r.stato) {
+    case "senza-spese": return "Nessuna spesa registrata nell'anno con questa voce: non vuol dire che non si è speso, vuol dire che non risulta.";
+    case "sforato": return "SFORATO: " + E(r.speso - r.previsto) + " oltre il previsto (" + r.pct + "%).";
+    case "sopra-ritmo": return "Di questo passo il budget non basta: a oggi ci si aspettava " + E(r.quotaAttesa) + ", cioè " + E(r.scostamento) + " in meno (" + r.pct + "% del previsto).";
+    case "sotto-ritmo": return "Sotto la quota attesa a oggi (" + E(r.quotaAttesa) + "): può essere un risparmio, o una spesa non ancora registrata (" + r.pct + "% del previsto).";
+    default: return "In linea con la quota attesa a oggi (" + E(r.quotaAttesa) + "): " + r.pct + "% del previsto.";
+  }
+}
+
+/* IL FILE del budget: una riga per voce con budget, la riga di tutta la
+   flotta, e in coda le voci con spese ma senza budget (previsto VUOTO, non
+   zero) e i costi senza data (che non stanno nell'anno). */
+export const CSV_BUDGET_INTESTAZIONE = "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato";
+export function csvBudget(R) {
+  const r = R || { anno: "", righe: [], senzaBudget: [], senzaData: { voci: 0, importo: 0 } };
+  let csv = CSV_BUDGET_INTESTAZIONE + "\n";
+  const riga = (x) => `${r.anno};${csvCell(x.tutta ? "tutta la flotta" : x.voce)};${x.previsto};${x.speso};${x.nSpese};${x.quotaAttesa};${x.scostamento};${x.pct == null ? "" : x.pct};${ETICHETTA_STATO_BUDGET[x.stato] ? ETICHETTA_STATO_BUDGET[x.stato][1] : x.stato}\n`;
+  for (const x of r.righe || []) csv += riga(x);
+  if (r.totale) csv += riga(r.totale);
+  for (const x of r.senzaBudget || []) csv += `${r.anno};${csvCell(x.voce)};;${x.speso};${x.nSpese};;;;senza budget\n`;
+  if (r.senzaData && r.senzaData.voci) csv += `;${csvCell("costi senza data (fuori da ogni anno)")};;${r.senzaData.importo};${r.senzaData.voci};;;;non collocabili\n`;
+  return csv;
+}
 
 export function ripartizioneCosti(costi) {
   const per = {};
@@ -4213,7 +4330,7 @@ export async function flottaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
-        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), fermi: () => read("fermi"),
+        mezzi: () => read("mezzi"), manutenzioni: () => read("manutenzioni"), costi: () => read("costi"), ricambi: () => read("ricambi"), interventi: () => read("interventi"), scadenze: () => read("scadenze"), disponibilita: () => read("disponibilita"), controlli: () => read("controlli"), rifornimenti: () => read("rifornimenti"), budget: () => read("budget"), fermi: () => read("fermi"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
         aggiorna: (n, i, d) => updateDoc(doc(id.orgCollection(n), i), traduciCancellazioni(d, deleteField)),
@@ -4247,6 +4364,7 @@ export async function flottaData() {
       // in dimostrazione il registro della cava non arriva da Conti: è finto,
       // ma costruito apposta sui costi d'esempio qui sopra (vedi DEMO.costiConti)
       costiConti: async () => mem.costiConti || [],
+      budget: async () => mem.budget || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },
       aggiorna: async (n, i, d) => { const x = (mem[n] || (mem[n] = [])).find(v => v.id === i); if (x) applicaPercorsi(x, d); },

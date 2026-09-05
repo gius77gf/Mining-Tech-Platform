@@ -513,6 +513,8 @@ export const CSV_TABELLE = [
     fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo" },
   { id: "flotta.costi", app: "Flotta", etichetta: "l'export del registro costi di Flotta",
     fonte: "flotta.csvCosti", col: "data;voce;importo;nota" },
+  { id: "flotta.budget", app: "Flotta", etichetta: "il budget dell'anno contro la spesa reale di Flotta",
+    fonte: "flotta.csvBudget", col: "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato" },
   { id: "flotta.fermi", app: "Flotta", etichetta: "il registro dei fermi macchina di Flotta",
     fonte: "flotta.csvFermiMacchina", col: "mezzo;causale;inizio;fine;giorni;stato;note" },
   { id: "flotta.giri", app: "Flotta", etichetta: "i giri macchina esportati di Flotta",

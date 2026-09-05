@@ -665,6 +665,30 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **FLOTTA — il budget dell'anno contro la spesa reale (05/09):** la
+  riga «Budget tracking vs actual» di `CONCORRENTI_FLOTTA` (4 prodotti su
+  14, «oggi è un excel parallelo»), la prima mancanza confermata di B4 a
+  passare a C'È per opera del codice. Collezione `budget` ({anno, voce,
+  importo}; voce vuota = tutta la flotta), `budgetVsSpesa(budget, costi,
+  anno, oggi)` con previsto · speso · **quota attesa a oggi** (pro-rata sui
+  giorni dell'anno: il 5 settembre è il giorno 248 di 365) e cinque stati
+  (`ETICHETTA_STATO_BUDGET`, letta dal badge): sforato, sopra il ritmo (oltre
+  il +10 %), in linea, sotto il ritmo (che NON è «bene»: la frase dice «può
+  essere un risparmio, o una spesa non ancora registrata»), nessuna spesa.
+  Tre cose che non si fanno: un costo senza data non entra nell'anno (si
+  dichiara a parte: «1 costo senza data fuori da ogni anno»); una voce con
+  spese ma senza budget non riceve un budget zero (uscirebbe «sforato
+  dell'infinito»: si elenca «senza budget»); un budget a zero o illeggibile
+  non è un budget. `descriviBudget` scrive la frase; `csvBudget` il file
+  (`flotta_budget_<anno>.csv`, censito in `CSV_TABELLE` con `fonte`, con il
+  previsto VUOTO dove non c'è). Schermata Costi: blocco «Budget dell'anno»
+  con le righe, il form (voce con i nomi già usati nei costi, importo) e
+  l'export; ✕ con la modale del core. Dimostrazione: tre budget (carburante
+  12.000 → in linea, ricambi 8.000 → sopra il ritmo, flotta 30.000 → in
+  linea; gomme e noleggi senza budget). run-kpi +5 (2722), `run-demo`
+  controlla la collezione, `documenti-dimostrazione` 111 documenti, siti di
+  export 31 → 32, copertura di Flotta 130 → 135. Scatto della schermata
+  guardato. B4: flotta 5 → 4, totale 45 → 44; riga del documento aggiornata.
 - [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
   «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
   due fogli; le celle le decidevano già le funzioni giuste, ma la
@@ -4148,8 +4172,13 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella 13 · conti **6** · flotta 5 · terra 4 · **scudo 6** |
-          | totale **45** (era 54, e 47 fino al 05/09 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella 13 · conti **6** · flotta **4** · terra 4 · **scudo 6** |
+          | totale **44** (era 54, 47 fino al 05/09 e 45 fino alla sera del 05/09 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+
+      ⏱️ **45 → 44 il 05/09 (sera), per opera nostra**: «Budget tracking vs
+      actual» di Flotta è passata a **C'È** (`budgetVsSpesa`, schermata Costi,
+      CSV censito). Riga aggiornata nel documento con i comandi rilanciati.
+
 
       ⏱️ **47 → 45 il 05/09, per opera nostra**: due righe di Conti sono
       passate a «C'È A METÀ» — la fattura elettronica (il file XML c'è dal
@@ -6764,8 +6793,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.198 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2717, `run-stile` 328,
+  **3.203 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2722, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

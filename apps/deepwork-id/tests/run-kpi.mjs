@@ -23276,7 +23276,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 31, "i siti di export CSV censiti nelle quattro app")   // 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 32, "i siti di export CSV censiti nelle quattro app")   // 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -38595,6 +38595,86 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine verbale DPI e cartella di Scudo nel modulo (05/09) ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · IL BUDGET DELL'ANNO CONTRO LA SPESA REALE (05/09)
+   ══════════════════════════════════════════════════════════════════════
+   La riga «Budget tracking vs actual» di CONCORRENTI_FLOTTA (4 prodotti su
+   14): «oggi è un excel parallelo». `budgetVsSpesa(budget, costi, anno,
+   oggi)` confronta il previsto con lo speso e con la QUOTA ATTESA a oggi;
+   le voci con spese ma senza budget e i costi senza data si dichiarano. */
+{
+  const D = flotta.DEMO;
+  const E = shell.euro;
+  const OGGI = new Date(2026, 8, 5);
+  test("Flotta · budgetVsSpesa: la dimostrazione — quota attesa pro-rata, «in linea» e «sopra il ritmo», tutta la flotta, chi non ha budget, i costi senza data", () => {
+    const R = flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI);
+    eq([R.anno, R.inCorso, R.chiuso, R.giorniTrascorsi, R.giorniAnno, R.frazione, R.dichiarato], [2026, true, false, 248, 365, 0.679, true], "il 5 settembre è il giorno 248 del 2026");
+    eq(R.righe.map((r) => r.voce), ["Carburante", "Ricambi e officina"], "le voci con budget, dalla più grande");
+    const carb = R.righe[0];
+    eq([carb.previsto, carb.speso, carb.nSpese, carb.quotaAttesa, carb.scostamento, carb.pct, carb.stato], [12000, 8400, 1, 8153.42, 246.58, 70, "in-linea"],
+      "carburante: 8.400 spesi contro 8.153 attesi a oggi (12.000 × 248/365) → in linea");
+    const ric = R.righe[1];
+    eq([ric.previsto, ric.speso, ric.nSpese, ric.quotaAttesa, ric.stato], [8000, 7390, 3, 5435.62, "sopra-ritmo"], "ricambi: 7.390 su 5.436 attesi → sopra il ritmo (oltre il +10 %)");
+    eq([R.totale.tutta, R.totale.previsto, R.totale.speso, R.totale.nSpese, R.totale.stato], [true, 30000, 21290, 6, "in-linea"], "la voce vuota è tutta la flotta: tutti i costi dell'anno");
+    eq(R.senzaBudget, [{ voce: "Gomme", speso: 3400, nSpese: 1 }, { voce: "Noleggi esterni", speso: 2100, nSpese: 1 }], "⛔ le voci con spese ma senza budget si elencano, non ricevono un budget zero");
+    eq(R.senzaData, { voci: 1, importo: 1200 }, "⛔ il noleggio senza data non sta in nessun anno: si dichiara a parte");
+    eq([R.spesoAnno, R.nSpeseAnno], [21290, 6], "e la spesa dell'anno non lo comprende");
+  });
+  test("Flotta · budgetVsSpesa: sforato, sotto il ritmo, nessuna spesa; maiuscole e spazi nella voce; l'anno chiuso e quello futuro", () => {
+    const B = [{ id: "x", anno: 2026, voce: "Gomme", importo: 3000 }, { id: "y", anno: 2026, voce: " carburante ", importo: 100000 }, { id: "z", anno: 2026, voce: "Assicurazione", importo: 5000 }];
+    const R = flotta.budgetVsSpesa(B, D.costi, 2026, OGGI);
+    const g = R.righe.find((r) => r.voce === "Gomme"), c = R.righe.find((r) => /carburante/i.test(r.voce)), a = R.righe.find((r) => r.voce === "Assicurazione");
+    eq([g.speso, g.previsto, g.pct, g.stato], [3400, 3000, 113, "sforato"], "3.400 su 3.000 → sforato");
+    eq([c.speso, c.stato], [8400, "sotto-ritmo"], "⛔ la voce si confronta senza badare a maiuscole e spazi; 8.400 su 67.945 attesi → sotto il ritmo");
+    eq([a.speso, a.nSpese, a.stato], [0, 0, "senza-spese"], "budget senza nessun costo con quella voce → «nessuna spesa», non «in linea»");
+    eq(flotta.descriviBudget(g), "SFORATO: " + E(400) + " oltre il previsto (113%).", "la frase dello sforamento col verdetto in testa, e gli euro come li scrive shell.euro (Node e Chromium raggruppano le quattro cifre in modo diverso)");
+    ok(/^Sotto la quota attesa a oggi \(.+\): può essere un risparmio, o una spesa non ancora registrata/.test(flotta.descriviBudget(c)), "⛔ sotto il ritmo non è «bene» — " + flotta.descriviBudget(c));
+    ok(/^Nessuna spesa registrata nell'anno con questa voce: non vuol dire che non si è speso/.test(flotta.descriviBudget(a)), flotta.descriviBudget(a));
+    ok(/^Di questo passo il budget non basta: a oggi ci si aspettava /.test(flotta.descriviBudget(flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI).righe[1])), "⛔ sopra il ritmo: il verdetto sta in TESTA, perché sullo schermo la riga è tagliata a due righe");
+    const chiuso = flotta.budgetVsSpesa(B, D.costi, 2026, new Date(2027, 2, 1));
+    eq([chiuso.inCorso, chiuso.chiuso, chiuso.frazione], [false, true, 1], "sull'anno chiuso la quota attesa è il previsto intero");
+    eq(chiuso.righe.find((r) => r.voce === "Gomme").stato, "sforato");
+    eq(chiuso.righe.find((r) => /carburante/i.test(r.voce)).stato, "sotto-ritmo", "8.400 su 100.000 a fine anno: sotto");
+    const futuro = flotta.budgetVsSpesa(B.map((b) => ({ ...b, anno: 2027 })), D.costi, 2027, OGGI);
+    eq([futuro.inCorso, futuro.chiuso, futuro.giorniTrascorsi, futuro.righe.length, futuro.spesoAnno], [false, false, 0, 3, 0], "un anno futuro: budget dichiarati, niente speso");
+    eq(futuro.righe.map((r) => r.stato), ["senza-spese", "senza-spese", "senza-spese"]);
+  });
+  test("Flotta · budgetVsSpesa: senza budget non si inventa niente; il budget non positivo non conta; con niente non rompe", () => {
+    const R = flotta.budgetVsSpesa([], D.costi, 2026, OGGI);
+    eq([R.dichiarato, R.righe, R.totale, R.senzaBudget.length, R.spesoAnno], [false, [], null, 4, 21290], "senza budget la spesa si vede e il confronto no");
+    const Z = flotta.budgetVsSpesa([{ id: "q", anno: 2026, voce: "Gomme", importo: 0 }, { id: "w", anno: 2026, voce: "Gomme", importo: "abc" }], D.costi, 2026, OGGI);
+    eq(Z.dichiarato, false, "⛔ un budget a zero o illeggibile non è un budget: uscirebbe «sforato dell'infinito»");
+    for (const args of [[null, null, null], [undefined, undefined, undefined, OGGI], [[], [], "", OGGI]]) {
+      const N = flotta.budgetVsSpesa(...args);
+      ok(N.anno >= 2026 && N.righe.length === 0 && N.dichiarato === false, "con niente: l'anno è quello di oggi, nessuna riga — " + JSON.stringify(N).slice(0, 80));
+    }
+    eq(flotta.descriviBudget(null), "");
+    for (const st of Object.keys(flotta.ETICHETTA_STATO_BUDGET)) ok(Array.isArray(flotta.ETICHETTA_STATO_BUDGET[st]) && flotta.ETICHETTA_STATO_BUDGET[st].length === 2, "etichetta per " + st);
+  });
+  test("Flotta · csvBudget: una riga per voce, la flotta intera, le voci senza budget con il previsto VUOTO, i costi senza data non collocabili", () => {
+    const R = flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI);
+    const righe = flotta.csvBudget(R).trim().split("\n");
+    eq(righe[0], flotta.CSV_BUDGET_INTESTAZIONE);
+    eq(righe[1], "2026;Carburante;12000;8400;1;8153.42;246.58;70;In linea");
+    eq(righe[2], "2026;Ricambi e officina;8000;7390;3;5435.62;1954.38;92;Sopra il ritmo");
+    eq(righe[3], "2026;tutta la flotta;30000;21290;6;20383.56;906.44;71;In linea");
+    eq(righe[4], "2026;Gomme;;3400;1;;;;senza budget", "⛔ il previsto che non c'è resta VUOTO, non «0»");
+    eq(righe[6], ";costi senza data (fuori da ogni anno);;1200;1;;;;non collocabili");
+    eq(righe.length, 7);
+    eq(flotta.csvBudget(null).trim(), flotta.CSV_BUDGET_INTESTAZIONE, "null non rompe");
+    const t = shell.CSV_TABELLE.find((x) => x.id === "flotta.budget");
+    ok(t && t.fonte === "flotta.csvBudget" && t.col === flotta.CSV_BUDGET_INTESTAZIONE, "il file è censito, e l'intestazione dichiarata è quella che l'export scrive");
+  });
+  test("Flotta · la pagina legge il budget dal modulo e ne disegna gli stati con la mappa del modulo", () => {
+    const pagina = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
+    ok(/budgetVsSpesa\(BUD, COS, annoB, new Date\(\)\)/.test(pagina), "il conto lo fa il modulo");
+    ok(/ETICHETTA_STATO_BUDGET\[r\.stato\]/.test(pagina), "e il badge legge la mappa del modulo, che copre tutti gli stati");
+    ok(/db\.budget \? db\.budget\(\) : \[\]/.test(pagina), "la collezione si legge come le altre");
+  });
+}
+/* ===== fine budget dell'anno di Flotta (05/09) ===== */
+
 
 
 

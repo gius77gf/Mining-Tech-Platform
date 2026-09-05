@@ -1136,6 +1136,21 @@ body.dw b.bad{color:var(--ink-dg)}
 <div class="page" id="page-cos">
   <div class="sec">Costi della flotta<span class="cnt" id="cos-count">—</span></div>
   <div id="cos-riep" class="note recap"></div>
+  <!-- BUDGET DELL'ANNO CONTRO SPESA REALE (05/09): per ogni voce con un budget
+       dichiarato, previsto · speso · quota attesa a oggi, con lo stato. Le voci
+       con spese ma senza budget e i costi senza data si dichiarano. -->
+  <div class="sec" style="margin-top:12px;">Budget dell'anno<span class="cnt" id="bud-count">—</span></div>
+  <div id="bud-riep" class="note recap"></div>
+  <div id="bud-list" style="margin-top:8px;"></div>
+  <div class="form" style="margin-top:8px;">
+    <input class="dw-input" id="bud-voce" list="bud-voci" placeholder="Voce (vuota = tutta la flotta)" title="La stessa parola con cui registri i costi (es. Carburante). Lascia vuoto per il budget di tutta la flotta." style="flex:2 1 190px;">
+    <datalist id="bud-voci"></datalist>
+    <input class="dw-input" id="bud-importo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Budget annuo €" title="Quanto hai deciso di spendere in un anno per questa voce" style="flex:1 1 130px;">
+    <button class="dw-btn" id="btn-bud">Dichiara il budget</button>
+    <div class="form-hint">Il budget è dell'<b>anno in corso</b> e vale per la voce scritta con lo stesso nome dei costi. Da qui in poi ogni spesa registrata si confronta con la quota attesa a oggi.</div>
+  </div>
+  <div class="note esito" id="bud-esito"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-bud-csv">Esporta budget (CSV)</button></div>
   <!-- F1 — «Dove va la spesa»: barre orizzontali ordinate dalla voce più
        costosa alla meno costosa. Prima era solo una riga di percentuali. -->
   <div id="graf-costi" class="graf" style="margin-top:12px;"></div>
@@ -1350,7 +1365,7 @@ body.dw b.bad{color:var(--ink-dg)}
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
            numeroDichiarato,
-           confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra,
+           confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra, budgetVsSpesa, descriviBudget, csvBudget, ETICHETTA_STATO_BUDGET,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
@@ -1698,6 +1713,8 @@ body.dw b.bad{color:var(--ink-dg)}
   });
 
   let MEZ=[], MAN=[], COS=[], RIC=[], INT=[], SCA=[], DISP=[], CTR=[], RIF=[], FER=[];
+
+  let BUD = [];   // il budget dell'anno, per voce (05/09)
   // IL REGISTRO COSTI DELLA CAVA, letto da Conti una volta sola, quando la
   // schermata Costi lo chiede. Tre stati, e vanno tenuti distinti perché la
   // nota dice tre cose diverse: `undefined` = non ancora chiesto (o in
@@ -1860,7 +1877,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // Il `|| []` non è una cintura di sicurezza di troppo: un'organizzazione
     // che usava Flotta ieri non ha nessuna collezione «controlli» né
     // «rifornimenti», e la schermata deve aprirsi lo stesso, vuota.
-    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : []])).map(v => v || []);
+    [MEZ,MAN,COS,RIC,INT,SCA,DISP,CTR,RIF,FER,BUD] = (await Promise.all([db.mezzi(), db.manutenzioni(), db.costi(), db.ricambi ? db.ricambi() : [], db.interventi ? db.interventi() : [], db.scadenze ? db.scadenze() : [], db.disponibilita ? db.disponibilita() : [], db.controlli ? db.controlli() : [], db.rifornimenti ? db.rifornimenti() : [], db.fermi ? db.fermi() : [], db.budget ? db.budget() : []])).map(v => v || []);
     await registraFotografia();
     // Le LETTURE DEL CONTATORE che servono a collocare nel tempo i tagliandi
     // «a ore»: le portano i rifornimenti (L4) e i giri macchina (L2), che
@@ -2421,6 +2438,27 @@ body.dw b.bad{color:var(--ink-dg)}
         + (rip.voci.length === 1 ? " voce" : " voci") + "."
       : "";
     $("cos-count").textContent = COS.length;
+    // BUDGET DELL'ANNO CONTRO SPESA REALE: il conto lo fa `budgetVsSpesa`, qui
+    // si disegna. Senza nessun budget dichiarato il blocco lo dice, non tace.
+    { const annoB = new Date().getFullYear();
+      const RB = budgetVsSpesa(BUD, COS, annoB, new Date());
+      const righeB = RB.righe.concat(RB.totale ? [RB.totale] : []);
+      $("bud-count").textContent = righeB.length ? righeB.length + (righeB.length === 1 ? " voce" : " voci") : "";
+      $("bud-voci").innerHTML = [...new Set(COS.map(c => String(c.voce || "").trim()).filter(Boolean))].sort().map(v => `<option value="${esc(v)}">`).join("");
+      $("bud-riep").innerHTML = !RB.dichiarato
+        ? "Nessun budget dichiarato per il " + annoB + ": la spesa dell'anno si vede (" + eur(RB.spesoAnno) + " su " + RB.nSpeseAnno + (RB.nSpeseAnno === 1 ? " costo" : " costi") + "), il confronto no. Dichiaralo qui sotto."
+        : "Anno " + annoB + (RB.inCorso ? ", giorno " + RB.giorniTrascorsi + " di " + RB.giorniAnno : "") + " · speso in tutto <b>" + eur(RB.spesoAnno) + "</b>"
+          + (RB.senzaData.voci ? " · <b>" + RB.senzaData.voci + (RB.senzaData.voci === 1 ? " costo senza data" : " costi senza data") + "</b> (" + eur(RB.senzaData.importo) + ") fuori da ogni anno: non entra nel confronto" : "") + ".";
+      $("bud-list").innerHTML = righeB.map(r => { const b = ETICHETTA_STATO_BUDGET[r.stato] || ["tag", r.stato];
+        return `<div class="item statico ${striscia[b[0]] || "st-sup"}">
+          <div class="avatar sup">${I.euro}</div>
+          <div class="info"><div class="name">${r.tutta ? "Tutta la flotta" : esc(r.voce)} · ${eur(r.speso)} su ${eur(r.previsto)}</div><div class="meta">${esc(descriviBudget(r))}</div></div>
+          <div class="acts"><span class="badge ${b[0]}">${b[1]}</span>
+          <span class="arr dan" role="button" tabindex="0" title="Togli questo budget" aria-label="Togli il budget di ${r.tutta ? "tutta la flotta" : esc(r.voce)}" data-bud-del="${r.id}">${I.croce}</span></div></div>`; }).join("")
+        + RB.senzaBudget.map(x => `<div class="item statico st-sup"><div class="avatar sup">${I.euro}</div>
+          <div class="info"><div class="name">${esc(x.voce)} · ${eur(x.speso)}</div><div class="meta">${x.nSpese} ${x.nSpese === 1 ? "costo registrato" : "costi registrati"} nell'anno, nessun budget dichiarato per questa voce: la spesa si vede, il confronto no.</div></div>
+          <div class="acts"><span class="badge tag">Senza budget</span></div></div>`).join("");
+    }
     if (rip.voci.length >= 2) {
       grafico("graf-costi", "barre", {
         titolo: "Dove va la spesa",
@@ -4150,6 +4188,14 @@ body.dw b.bad{color:var(--ink-dg)}
     const ricMeno = attr(e, "data-ric-meno");
     if (ricMeno) { const r = RIC.find(x => x.id === ricMeno);
       if (r) { await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); await refresh(); } return; }
+    const budDel = attr(e, "data-bud-del");
+    if (budDel) { const b = BUD.find(x => x.id === budDel); if (!b) return;
+      const ok = await chiedi("Togliere il budget",
+        `Stai per togliere il budget ${b.voce ? "di <b>" + esc(b.voce) + "</b>" : "di <b>tutta la flotta</b>"} per il ${esc(String(b.anno))} (${eur(b.importo)}). I costi registrati restano.`, "Togli", true);
+      if (!ok) return;
+      await db.rimuovi("budget", budDel);
+      toast("Budget tolto.");
+      await refresh(); return; }
     const ricDel = attr(e, "data-ric-del");
     if (ricDel) { const r = RIC.find(x => x.id === ricDel); if (!r) return;
       const ok = await chiedi("Rimuovere il ricambio",
@@ -4308,6 +4354,29 @@ body.dw b.bad{color:var(--ink-dg)}
   // un secondo a chi registra. Si può cambiare, e si può anche svuotare — in
   // quel caso la voce nasce «senza data», dichiarata, mai con una inventata.
   $("cos-data").value = oggiISO();
+  // il budget dell'anno: una voce, un importo; la voce vuota è tutta la flotta
+  $("btn-bud").onclick = async () => {
+    const voce = $("bud-voce").value.trim();
+    const ri = leggiNumero("bud-importo", "il budget", { positivo: true, unita: "€",
+      messaggi: { vuoto: "Scrivi il budget annuo: un numero maggiore di zero.",
+                  "non-positivo": "Il budget deve essere un numero maggiore di zero." } }, "bud-esito");
+    if (!ri.ok) return;
+    const anno = new Date().getFullYear();
+    const giaC = BUD.find(b => +b.anno === anno && String(b.voce || "").trim().toLowerCase() === voce.toLowerCase());
+    if (giaC) await db.aggiorna("budget", giaC.id, { importo: ri.valore });
+    else await db.aggiungi("budget", { anno, voce, importo: ri.valore });
+    $("bud-voce").value = ""; $("bud-importo").value = ""; err("bud-importo", false);
+    esito("bud-esito", (giaC ? "Budget aggiornato" : "Budget dichiarato") + " per il " + anno + ": " + (voce || "tutta la flotta") + ", " + eur(ri.valore) + ".", "success");
+    await refresh();
+  };
+  $("btn-bud-csv").onclick = () => {
+    const RB = budgetVsSpesa(BUD, COS, new Date().getFullYear(), new Date());
+    if (!RB.dichiarato && !RB.senzaBudget.length) { esito("bud-esito", "Non c'è nessun budget dichiarato e nessuna spesa nell'anno: il file sarebbe vuoto.", "err"); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + csvBudget(RB)], { type: "text/csv;charset=utf-8" }));
+    a.download = "flotta_budget_" + RB.anno + ".csv"; marchiaCsv(a); a.click();
+    esito("bud-esito", "Scaricato flotta_budget_" + RB.anno + ".csv: " + RB.righe.length + (RB.righe.length === 1 ? " voce con budget" : " voci con budget") + (RB.senzaBudget.length ? " e " + RB.senzaBudget.length + " senza" : "") + ".", "success");
+  };
   $("btn-cos").onclick = async () => {
     const voce = $("cos-voce").value.trim();
     const iso = String($("cos-data").value || "").slice(0, 10);

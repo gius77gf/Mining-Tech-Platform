@@ -124,6 +124,9 @@ test("flotta: id unici, date manutenzioni valide, costi numerici", () => {
     ok(!aData || isDate(n.dataPrevista), `manutenzione ${n.id}: data ${n.dataPrevista} non valida`);
   }
   for (const c of F.costi) ok(isNum(c.importo), `costo ${c.id}: importo non numerico`);
+  // il budget dell'anno (05/09): anno intero, importo positivo, voce testo (vuota = tutta la flotta)
+  idsOk(F.budget, "budget");
+  for (const b of F.budget) { ok(Number.isInteger(b.anno) && b.anno > 2000, `budget ${b.id}: anno non valido`); ok(isNum(b.importo) && b.importo > 0, `budget ${b.id}: importo non positivo`); ok(typeof b.voce === "string", `budget ${b.id}: voce non testo`); }
   const mz = new Set(F.mezzi.map(m => m.nome.split(" — ")[0]));
   for (const n of F.manutenzioni)
     ok(n.mezzo == null || mz.has(n.mezzo.split(" — ")[0]), `manutenzione ${n.id}: mezzo «${n.mezzo}» inesistente`);
