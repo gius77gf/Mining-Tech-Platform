@@ -189,6 +189,9 @@ node apps/deepwork-id/tests/nomi-doppi.mjs
 
 **129 con l'emulatore Firestore** (**81** regole di sicurezza, 19 SDK, 21
 funzioni, 8 primo avvio) — servono `firebase-tools` e Java.
+✅ *Rimisurati il 05/09 in questo contenitore, in un solo* `emulators:exec
+--only firestore,auth,functions` *(la CLI con* `npx --yes firebase-tools@13`*, le
+dipendenze già installate): 81 + 19 + 8 + 21, tutti verdi, in circa un minuto.*
 ⏱️ **Qui c'era scritto 125, e i quattro addendi accanto ne fanno 123**: due
 numeri che si contraddicono **nella stessa frase**, che è peggio di un numero
 vecchio perché fanno dubitare di tutti gli altri. `STATO_PRODOTTO.md`, con gli

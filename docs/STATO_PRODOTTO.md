@@ -249,6 +249,10 @@ provato niente, vuol dire che quel conto non li vede.)*
 E **827 funzioni pure su 827** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
+✅ *E quella rinuncia era falsa, come misurato il 13/08 e rimisurato il 05/09 in
+questo contenitore: l'emulatore delle funzioni parte — mancava* `npm ci` *nella
+cartella* `functions`*, non la rete. In un solo* `emulators:exec --only
+firestore,auth,functions`*: 81 + 19 + 8 + 21, tutti verdi.*
 
 ⛔ **Delle sei app**, appunto: **Genesi non ha un modulo dati** e le sue 192
 funzioni stanno dentro la pagina, dove `node` non arriva. Il 100% è vero per
