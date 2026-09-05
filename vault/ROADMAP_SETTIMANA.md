@@ -3819,8 +3819,14 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · **scudo 6** |
-          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella 13 · conti **6** · flotta 5 · terra 4 · **scudo 6** |
+          | totale **45** (era 54, e 47 fino al 05/09 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+
+      ⏱️ **47 → 45 il 05/09, per opera nostra**: due righe di Conti sono
+      passate a «C'È A METÀ» — la fattura elettronica (il file XML c'è dal
+      04/09, l'invio no) e la pesa (il CSV del software di pesatura si importa
+      dal 05/09, il driver dell'indicatore no). Righe aggiornate nel documento
+      con i comandi rilanciati, come pretende la direttiva 7.
 
       ⏱️ **13 → 14 il 09/08, e il verdetto che si è mosso vale più del numero.**
       La riga *hazard / near-miss tracking* di Campo era «**C'È A METÀ**
