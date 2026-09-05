@@ -50,7 +50,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
-         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello,
          riassuntoVolateDelGiorno, PPV_STRUMENTO } from "../../shared/dw-ponti.js";
@@ -2698,18 +2698,17 @@ export function mappaPianoCsv(text) {
   const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
   const testa = righe.find(r => isIntestazione(r, "foro"));
   if (!testa) return { conIntestazione: false, indici: null, riconosciute: [], ignorate: [], mancanti: [] };
+  /* la mappa la fa `mappaColonne` di `shared/` (05/09), con nomi ESATTI dopo
+     `_pulisciNome` — «carica (kg)» resta «carica», e «ms» non prende «relief
+     ms per m». Le facoltative non finiscono fra le mancanti: se no ogni file
+     di ieri aprirebbe la finestra «Non ho trovato la colonna di: …» per una
+     colonna che non gli è mai stata chiesta. `conIntestazione` è vero appena
+     la riga dei titoli c'è, come è sempre stato. */
   const celle = parseCsvLine(testa).map(_pulisciNome);
-  const indici = {}, riconosciute = [], ignorate = [];
-  celle.forEach((nome, i) => {
-    const campo = Object.keys(PIANO_COLONNE).find(k => PIANO_COLONNE[k].includes(nome));
-    if (campo && indici[campo] === undefined) { indici[campo] = i; riconosciute.push({ campo, nome, i }); }
-    else if (nome) ignorate.push(nome);
-  });
-  /* le facoltative non finiscono fra le mancanti: se no ogni file di ieri
-     aprirebbe la finestra «Non ho trovato la colonna di: …» per una colonna
-     che non gli è mai stata chiesta */
-  const mancanti = Object.keys(PIANO_COLONNE).filter(k => indici[k] === undefined && !PIANO_FACOLTATIVE.includes(k));
-  return { conIntestazione: true, indici, riconosciute, ignorate, mancanti };
+  const m = mappaColonne(celle, PIANO_COLONNE, { esatto: true, facoltative: PIANO_FACOLTATIVE, conIntestazione: () => true });
+  const indici = {};
+  for (const k of Object.keys(PIANO_COLONNE)) if (m.indici[k] >= 0) indici[k] = m.indici[k];
+  return { conIntestazione: true, indici, riconosciute: m.riconosciute, ignorate: m.ignorate, mancanti: m.mancanti };
 }
 
 export function parsePianoCsv(text) {

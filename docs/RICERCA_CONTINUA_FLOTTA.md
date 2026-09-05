@@ -948,9 +948,11 @@ esportate); ogni «non c'è» con il comando.
   funzione, rispondendo come prima. Misura: «Asset;Engine Hours;Fuel (l);Site»
   entra intero e «Litri;Ore motore;Targa» — colonne in altro ordine — pure
   (prima la targa finiva nei litri). ⏱️ Restano candidati, NON fatti:
-  `mappaPianoCsv` di Campo e `proponiMappa` di Sentinella sopra `mappaColonne`
-  (hanno forme proprie — mancanti e facoltative, il ripiego sui dati — e si
-  spostano quando qualcuno li tocca, non per principio);
+  `proponiMappa` di Sentinella sopra `mappaColonne` (ha il ripiego sui dati e
+  si sposta quando qualcuno la tocca, non per principio). ✅ `mappaPianoCsv` di
+  Campo è passata sopra `mappaColonne` il 05/09, con l'opzione `esatto`
+  (nomi interi, non per inizio di parola: «ms» non deve prendere «relief ms
+  per m») e risponde come prima;
 - (d) ✅ **fatta il 04/09** — «scelto / subìto» derivato dalla causale
   (`naturaFermo`: manutenzione e verifica scelti; guasti, gomme, ricambi,
   operatore, meteo subìti; «altro» e le chiavi sconosciute NON classificati,

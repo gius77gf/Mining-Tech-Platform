@@ -420,6 +420,17 @@
   viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
   terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
   16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **CAMPO — `mappaPianoCsv` sopra `mappaColonne` (05/09), e l'export per la
+  fatturazione elettronica MISURATO già fatto.** La lettura del piano di
+  Genesi in Campo usa la mappa condivisa con l'opzione nuova `esatto` (nomi
+  interi: «ms» non deve prendere «relief_ms_per_m», «carica (kg)» resta la
+  carica) e risponde come prima — prove invariate, +1 (2641). Il secondo punto
+  della lista del ciclo («export per la fatturazione elettronica») è stato
+  misurato prima di aprirlo: `xmlFatturaPA` scrive già un blocco `DatiDDT` per
+  ogni pesata collegata e conta `ddtCitati` (`grep -c "DatiDDT"
+  apps/conti/conti-data.js` → 2). Non c'era niente da aggiungere: la riga
+  resta per non farlo riaprire. Dei quattro lettori per nome resta solo
+  `proponiMappa` di Sentinella, dichiarato nella ricerca Flotta.
 - [x] **CONTI — il file della pesa a ponte entra da solo (05/09, punto 3
   della lista del ciclo: «integrazione con la pesa»).** Misurato prima: Conti
   rileggeva solo la PROPRIA copia di sicurezza delle pesate (venti colonne per
@@ -6418,8 +6429,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.121 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2640, `run-stile` 328,
+  **3.122 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2641, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

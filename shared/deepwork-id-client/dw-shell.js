@@ -601,7 +601,9 @@ export function mappaColonne(intestazione, indizi, opzioni = {}) {
   const celle = nomi.map(nomeColonna);
   const out = { conIntestazione: false, indici: {}, riconosciute: [], esclusi: [], ignorate: [], mancanti: [] };
   const presi = new Set();
-  const combacia = (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  /* `esatto`: il nome deve essere TUTTO l'indizio, non cominciare con lui —
+     è la forma di Campo, dove «ms» non deve prendere «relief ms per m» */
+  const combacia = opzioni.esatto ? (h, k) => h === k : (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
   const cerca = (chiavi) => { const ks = (chiavi || []).map(nomeColonna).filter(Boolean);
     return celle.findIndex((h, i) => !presi.has(i) && h && ks.some(k => combacia(h, k))); };
   for (const chiavi of Object.values(opzioni.escludi || {})) { let i; while ((i = cerca(chiavi)) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }

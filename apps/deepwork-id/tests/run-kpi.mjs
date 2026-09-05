@@ -37227,6 +37227,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(sp.senzaProdotto, [{ riga: 1, prodotto: "Sabbia lunare" }], "un materiale che il listino non ha: non entra, detto per nome");
   });
 }
+/* ===== il piano di Campo sopra la mappa condivisa (05/09) ===== */
+{
+  test("Campo · mappaPianoCsv sopra mappaColonne, con nomi ESATTI: «carica (kg)» è la carica, «ms» non prende il relief", () => {
+    const m = campo.mappaPianoCsv("foro;x_m;Fila;Carica (kg);relief_ms_per_m;ritardo_ms\n1;0;1;58;;42\n");
+    eq([m.indici.foro, m.indici.x, m.indici.fila, m.indici.prog, m.indici.rit], [0, 1, 2, 3, 5], "⛔ la carica dalla colonna «Carica (kg)», e il ritardo da «ritardo_ms» — non da «relief_ms_per_m», che contiene «ms»");
+    eq(m.ignorate, ["relief_ms_per_m"], "il relief resta fra le ignorate");
+    eq(m.mancanti, ["prof", "borr"], "le obbligatorie assenti si contano; l'id è facoltativa e non compare");
+    eq(shell.mappaColonne(["relief ms per m", "ritardo ms"], { rit: ["ms"] }, { esatto: true }).indici.rit, -1, "in forma esatta «ms» da solo non è nessuna delle due");
+    eq(shell.mappaColonne(["relief ms per m", "ritardo ms"], { rit: ["ms"] }).indici.rit, 0, "e senza `esatto` sarebbe la prima che lo contiene: per questo Campo chiede l'esattezza");
+  });
+}
+/* ===== fine piano sopra la mappa (05/09) ===== */
 /* ===== fine file della pesa (05/09) ===== */
 /* ===== fine mappa delle colonne (05/09) ===== */
 /* ===== fine ponte P6 (05/09) ===== */
