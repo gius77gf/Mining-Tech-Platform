@@ -665,6 +665,25 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **`nomi-liberi`: la seconda domanda (lo scope) anche sui riferimenti
+  NUDI — e il secondo difetto vero del giorno, in Scudo (05/09):** dal
+  «candidato lasciato scritto» dell'unità precedente. `fuoriScopeNudi` con
+  la regex del riferimento nudo della quarta domanda, lo scandaglio delle
+  dichiarazioni e l'ancora sul blocco della seconda. **Costo misurato prima,
+  su una copia**: 74.379 riferimenti nudi su 12 pagine e 121.320 su moduli e
+  suite, **1 allarme, e quello vero** — `per` di Scudo, rimasta nella
+  striscia «Riepilogo near-miss esportato (…)» quando `csvRiepilogoNearMiss`
+  è salita nel modulo la mattina (52cb2fdc): il file usciva (l'`a.click()`
+  viene prima) e il gestore moriva subito dopo, con `per` dichiarata in
+  UN'ALTRA funzione della pagina a rendere cieca la prima domanda. Corretto
+  con `etichettaPeriodoNearMiss(nmPeriodo)` del modulo (non ricopiata);
+  premuto nel browser: «Riepilogo near-miss esportato (ultimi 90 giorni).»,
+  file scaricato, 0 errori. In `nomi-liberi`: quattro prove nuove (le due
+  regole su pagine e su moduli+suite, il denominatore, e le controprove che
+  rimettono TUTT'E DUE i difetti di oggi — `letture` di Sentinella e `per` di
+  Scudo — pretendendo che le domande sulle chiamate restino cieche e questa
+  veda), riepilogo con il conto dei nudi. Paragrafo in CLAUDE.md: «in quante
+  forme un nome può comparire?». 26 → 31 prove.
 - [x] **SENTINELLA — le condizioni meteo della misura, e la regola del mestiere
   sul rumore (05/09):** due righe di `CONCORRENTI_SENTINELLA` («Umidità,
   temperatura» e «Direzione + velocità vento», confermate assenti dal 02/08)
@@ -702,9 +721,8 @@
   cadute), due ancore d'iniezione riancorate. Tre scatti guardati (riga,
   form a 430 px con le tendine rifatte perché tagliavano l'etichetta,
   report). B4: sentinella 13 → 11, totale 44 → 42.
-  ⏱️ **Candidato lasciato scritto**: `nomi-liberi` seconda domanda — un nome
-  dichiarato in un blocco INTERNO e usato nel blocco che lo contiene è
-  libero e non viene visto; misurare il costo della stretta prima di farla.
+  ✅ **Il candidato lasciato scritto qui** (`nomi-liberi` sui riferimenti nudi)
+  **è stato fatto l'unità dopo**: vedi la voce qui sopra.
 - [x] **FLOTTA — il budget dell'anno contro la spesa reale (05/09):** la
   riga «Budget tracking vs actual» di `CONCORRENTI_FLOTTA` (4 prodotti su
   14, «oggi è un excel parallelo»), la prima mancanza confermata di B4 a

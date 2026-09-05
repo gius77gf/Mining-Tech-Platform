@@ -1053,6 +1053,32 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   dichiaratore. Costo misurato prima di irrigidire, come pretende la regola qui
   sopra: **0 allarmi** su 18.656 chiamate e 12 pagine sane, **1 e quello
   giusto** col difetto rimesso.
+  ⛔ **E IL 05/09 QUELLA SECONDA DOMANDA HA LASCIATO PASSARE DUE DIFETTI VERI
+  NELLO STESSO GIORNO, PERCHÉ GUARDAVA SOLO LE CHIAMATE.** `nome(` è una forma
+  sola; un nome usato NUDO — in una scorciatoia di oggetto, come argomento,
+  come operando — non passava di lì. Sotto ci stavano: `letture` di Sentinella,
+  dichiarata DENTRO la callback di `db.trasforma` e usata FUORI in `{ ...m,
+  valore, letture }` — «Registra» scriveva la misura e poi moriva, **dall'08/08,
+  in produzione**, con nessuna striscia di conferma e nessuna prova rossa (i
+  banchi non premono quel bottone); e `per` di Scudo, rimasta nella striscia
+  dell'export dei near-miss quando la `const` locale è salita nel modulo la
+  mattina stessa, con un omonimo in un'altra funzione a rendere cieca la prima
+  domanda — il file usciva, la striscia no. Il primo l'ha preso lo **scatto**
+  (la regola «gli screenshot vanno guardati» in una veste nuova: la striscia
+  che NON c'era), il secondo il righello appena scritto.
+  ⚠️ Il costo, misurato PRIMA su una copia come pretende la riga qui sopra:
+  **74.379 riferimenti nudi su 12 pagine e 121.320 su moduli e suite, 1
+  allarme — e quello vero.** Zero rumore: la regex del riferimento nudo è
+  quella della quarta domanda, lo scandaglio delle dichiarazioni e l'ancora
+  sul blocco sono quelli della seconda; è la copia-da-firma-troppo-stretta al
+  contrario, tre pezzi già provati messi insieme. Le controprove rimettono
+  tutt'e due i difetti veri (`fuoriScopeNudi` in `nomi-liberi.mjs`).
+  ⚠️ **E la lezione oltre al caso**: un controllo che risponde «0 fuori scope»
+  su **una forma** del nome dice zero su quella forma. Quando si scrive un
+  righello sui NOMI, la domanda da farsi è *in quante forme un nome può
+  comparire nel codice?* — chiamato, riferito nudo, dentro un `${…}`,
+  importato — e ogni forma non coperta va scritta nel riepilogo come fuori
+  perimetro, non lasciata nel silenzio di uno zero.
   ⚠️ Il difetto sotto ha un fratello che vale da solo: `csv-dimostrazione`
   **ascoltava** gli errori di pagina e li leggeva **prima** di premere i
   bottoni. L'ascoltatore c'era, l'elenco si riempiva, e la domanda arrivava due

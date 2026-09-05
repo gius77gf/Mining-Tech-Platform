@@ -22,6 +22,17 @@
    qualunque per rendere invisibile un nome libero: il controllo guardava il
    FILE e non lo SCOPE. Da lì la SECONDA DOMANDA in fondo a questo file — *il
    nome esiste, ma esiste QUI?* — che non sostituisce la prima, le sta accanto.
+   ⛔ E IL 05/09 LA SECONDA DOMANDA È STATA ESTESA AI RIFERIMENTI NUDI, perché
+   guardava solo le CHIAMATE (`nome(`) e due difetti veri nello stesso giorno
+   erano nomi nudi: `letture` di Sentinella, dichiarata DENTRO la callback di
+   `db.trasforma` e usata FUORI in `{ ...m, valore, letture }` — «Registra»
+   scriveva la misura e poi moriva, dall'08/08 — e `per` di Scudo, rimasta
+   nella striscia di conferma dell'export dei near-miss quando la `const`
+   locale è salita nel modulo, con un omonimo in un'altra funzione a rendere
+   cieca la prima domanda. Costo misurato PRIMA su una copia: 74.379
+   riferimenti nudi su 12 pagine e 121.320 su moduli e suite, **1 allarme, e
+   quello vero** (`per`). Il primo l'ha preso lo scatto, il secondo il righello
+   appena scritto.
 
    ⏱️ LA TERZA DOMANDA — I RIFERIMENTI, MISURATA L'08/08 E NON ANCORA SCRITTA.
    Oggi si guardano i nomi CHIAMATI (`nome(`); un `${nome}` dentro un template
@@ -556,6 +567,36 @@ export function fuoriScope(codice, daiFratelli = new Set()) {
   return { fuori, chiamate };
 }
 
+/* La stessa domanda sui riferimenti NUDI (05/09): non `nome(` ma `nome` da
+   solo — una scorciatoia di oggetto, un argomento, un operando. Stesso
+   scandaglio delle dichiarazioni, stessa ancora sul blocco, stessa regex del
+   riferimento nudo della quarta domanda (con i flag di regex esclusi per
+   posizione). Prende `grezzo` e non `codice` perché la maschera serve a
+   riconoscere la barra che chiude una regex. */
+export function fuoriScopeNudi(grezzo, daiFratelli = new Set()) {
+  const codice = soloCodice(grezzo);
+  const masc = mascheraCodice(grezzo);
+  const blocchiDelNome = new Map();
+  for (const [n, at] of dichiarazioniConPosizione(codice)) {
+    if (!blocchiDelNome.has(n)) blocchiDelNome.set(n, []);
+    blocchiDelNome.get(n).push(bloccoAttorno(codice, at));
+  }
+  const altrove = nomiLegati(codice, false);
+  const fuori = [];
+  let visti = 0;
+  for (const m of codice.matchAll(/(^|[^\w$.?'"`])([A-Za-z_$][\w$]*)\b(?!\s*[(:])/g)) {
+    const n = m[2];
+    const j = m.index + m[1].length;
+    if (j > 0 && grezzo[j - 1] === "/" && !masc[j - 1]) continue;
+    visti++;
+    if (PAROLE.has(n) || GLOBALI.has(n) || DA_CDN.has(n) || SINTASSI_E_NODE.has(n)) continue;
+    if (altrove.has(n) || daiFratelli.has(n) || !blocchiDelNome.has(n)) continue;
+    if (blocchiDelNome.get(n).some(([a, z]) => j > a && j < z)) continue;
+    fuori.push({ nome: n, riga: codice.slice(0, j).split("\n").length });
+  }
+  return { fuori, visti };
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    ⛔ LA TERZA DOMANDA: UN NOME RIFERITO — NON CHIAMATO — CHE NON ESISTE.
    ──────────────────────────────────────────────────────────────────────────
@@ -951,6 +992,92 @@ for (const p of moduliDelDisco().concat(suiteDelDisco())) {
   for (const f of r.fuori) maleScopeMod.push(`${p}: ${f.nome}() alla riga ~${f.riga}`);
 }
 
+/* ── e la stessa domanda sui riferimenti NUDI (05/09) ───────────────────── */
+let nudiScope = 0, pagineNudiScope = 0;
+const maleNudiScope = [];
+for (const p of PAGINE) {
+  let html;
+  try { html = leggi(p); } catch { continue; }
+  const bl = blocchiDi(html);
+  if (!bl.length) continue;
+  const { nomi: fratelli } = nomiDegliScriptFratelli(p, html);
+  const r = fuoriScopeNudi(bl.join("\n;\n"), fratelli);
+  pagineNudiScope++; nudiScope += r.visti;
+  for (const f of r.fuori) maleNudiScope.push(`${p}: ${f.nome} alla riga ~${f.riga} del codice in linea`);
+}
+let nudiScopeMod = 0, moduliNudiScope = 0;
+const maleNudiScopeMod = [];
+for (const p of moduliDelDisco().concat(suiteDelDisco())) {
+  let t;
+  try { t = leggi(p); } catch { continue; }
+  /* una ri-esportazione non è un riferimento (stessa ragione della quarta domanda) */
+  const r = fuoriScopeNudi(t.replace(/export\s*\{[^}]*\}\s*from/g, (x) => " ".repeat(x.length)));
+  if (!r.visti) continue;
+  moduliNudiScope++; nudiScopeMod += r.visti;
+  for (const f of r.fuori) maleNudiScopeMod.push(`${p}: ${f.nome} alla riga ~${f.riga}`);
+}
+
+test("nessun nome RIFERITO NUDO che esiste nel FILE ma non nello SCOPE di chi lo usa", () => {
+  ok(maleNudiScope.length === 0,
+    "nomi nudi la cui unica dichiarazione sta in un blocco che NON racchiude l'uso:\n  "
+    + maleNudiScope.join("\n  ")
+    + "\n  È `letture` di Sentinella (dichiarata nella callback della transazione, usata dopo)"
+    + "\n  e `per` di Scudo (la const salita nel modulo, la striscia rimasta): il gestore muore DOPO aver scritto.");
+});
+
+test("nessun nome RIFERITO NUDO fuori dallo SCOPE nei MODULI e nelle SUITE", () => {
+  /* Costo misurato prima di pretenderlo: 0 allarmi su 121.320 riferimenti. */
+  ok(maleNudiScopeMod.length === 0,
+    "nomi nudi fuori scope dentro un modulo o una suite:\n  " + maleNudiScopeMod.join("\n  "));
+});
+
+test("la seconda domanda sui riferimenti nudi ha davvero guardato", () => {
+  ok(pagineNudiScope >= 8, `solo ${pagineNudiScope} pagine guardate`);
+  ok(nudiScope >= 50000, `solo ${nudiScope} riferimenti nudi nelle pagine: troppo pochi (misurati 74.379 il 05/09)`);
+  ok(moduliNudiScope >= 15, `solo ${moduliNudiScope} moduli e suite guardati`);
+  ok(nudiScopeMod >= 80000, `solo ${nudiScopeMod} riferimenti nudi in moduli e suite: troppo pochi (misurati 121.320 il 05/09)`);
+});
+
+test("la controprova sui riferimenti nudi — `letture` di Sentinella (08/08 → 05/09) viene vista", () => {
+  /* Si rimette esattamente quello che c'era: la `const` DENTRO la callback di
+     `db.trasforma`, e l'uso `{ ...m, valore, letture }` venti righe dopo. */
+  const rel = "apps/sentinella/index.html";
+  const html = leggi(rel);
+  const da = "    let letture = [];\n    await db.trasforma(\"monitoraggi\", id, (m2) => {\n      letture = [";
+  const a = "    await db.trasforma(\"monitoraggi\", id, (m2) => {\n      const letture = [";
+  const guasto = html.replace(da, a);
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const { nomi: fratelli } = nomiDegliScriptFratelli(rel, guasto);
+  const grezzo = (h) => blocchiDi(h).join("\n;\n");
+  /* le domande sulle CHIAMATE restano cieche: `letture` non è mai chiamata */
+  ok(!fuoriScope(soloCodice(grezzo(guasto)), fratelli).fuori.some((f) => f.nome === "letture"),
+    "la seconda domanda sulle chiamate DOVEVA essere cieca qui: se non lo è più, riscrivi questo commento");
+  ok(fuoriScopeNudi(grezzo(guasto), fratelli).fuori.some((f) => f.nome === "letture"),
+    "col difetto rimesso, `letture` deve risultare fuori scope — e non risulta");
+  ok(!fuoriScopeNudi(grezzo(html), fratelli).fuori.some((f) => f.nome === "letture"),
+    "e sulla pagina sana `letture` non dev'essere accusata");
+});
+
+test("la controprova sui riferimenti nudi — `per` di Scudo (05/09) viene visto, con l'omonimo che acceca la prima domanda", () => {
+  const rel = "apps/scudo/index.html";
+  const html = leggi(rel);
+  const guasto = html.replace('esportato (" + etichettaPeriodoNearMiss(nmPeriodo) + ").", "success");',
+                              'esportato (" + per + ").", "success");');
+  ok(guasto !== html, "l'iniezione non ha sostituito niente: la prova non prova niente");
+  const grezzo = (h) => blocchiDi(h).join("\n;\n");
+  const codice = soloCodice(grezzo(guasto));
+  /* il contenuto della stringa è mascherato da `soloCodice`: si cerca la forma, non l'id */
+  ok(/\bper = \$\(/.test(codice),
+    "serve che nella pagina resti un `per` dichiarato ALTROVE: è lui a nascondere il nome libero");
+  ok(nomiLegati(codice).has("per"),
+    "la prima domanda DOVEVA essere cieca qui (l'omonimo lega il nome): se non lo è più, riscrivi questo commento");
+  const { nomi: fratelli } = nomiDegliScriptFratelli(rel, guasto);
+  ok(fuoriScopeNudi(grezzo(guasto), fratelli).fuori.some((f) => f.nome === "per"),
+    "col difetto rimesso, `per` deve risultare fuori scope — e non risulta");
+  ok(!fuoriScopeNudi(grezzo(html), fratelli).fuori.some((f) => f.nome === "per"),
+    "e sulla pagina sana `per` non dev'essere accusato");
+});
+
 test("nessun nome chiamato che esiste nel FILE ma non nello SCOPE di chi lo chiama", () => {
   ok(maleScope.length === 0,
     "nomi la cui unica dichiarazione sta in un blocco che NON racchiude la chiamata:\n  "
@@ -1328,7 +1455,7 @@ console.log(`   [perimetro] le prime due domande guardano anche ${suiteDelDisco(
   + ` il loro codice gira dentro page.evaluate(), cioè in un terzo ambiente (8 allarmi misurati, 8 globali del browser, 0 difetti)`);
 console.log(`\nRisultato nomi liberi: ${passed} passati, ${failed} falliti`
   + `  ·  ${chiamateTot} chiamate su ${pagineViste} pagine, ${chiamateMod} su ${moduliVisti} moduli`
-  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope`
+  + `  ·  seconda domanda (lo scope): ${chiamateScope} chiamate su ${pagineScope} pagine e ${chiamateScopeMod} su ${moduliScope} moduli, ${maleScope.length + maleScopeMod.length} fuori scope; e ${nudiScope} riferimenti nudi su ${pagineNudiScope} pagine e ${nudiScopeMod} su ${moduliNudiScope} moduli e suite, ${maleNudiScope.length + maleNudiScopeMod.length} fuori scope`
   + `  ·  terza domanda (i riferimenti): ${visti3} usi di ${"$"}{…} su ${pagine3} pagine e ${visti3m} su ${moduli3} moduli, ${male3.length + male3m.length} liberi`
   /* ⚠️ IL PERIMETRO VA DETTO, se no il denominatore si legge più largo di
      quello che è — e questa riga ha già portato due affermazioni sbagliate in
