@@ -1791,7 +1791,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     dssDaSeguire, registriMuti,
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
-    verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite } from "./scudo-data.js";
+    verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite,
+    documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -2145,9 +2146,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       esito("dss-esito", "La data di trasmissione all'autorità di vigilanza non si legge. Lasciala vuota se non la sai: qui un campo vuoto vale più di una data inventata.", "err"); return; }
     if (!mot) {
       esito("dss-esito", "Scegli perché il DSS è stato rivisto: prima stesura, revisione periodica, dopo un evento o dopo una modifica delle lavorazioni.", "err"); return; }
-    await db.aggiorna("documenti", doc.id, { dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null });
-    const c = cicloDss({ ...doc, dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null }, INF);
-    esito("dss-esito", "Ciclo del DSS aggiornato. " + descriviCicloDss(c), c.noto ? "success" : "err");
+    /* La revisione prima non sparisce: `aggiornaCicloDss` la conserva in
+       `dssStorico` quando la data cambia, e lo dice nella striscia. */
+    const agg = aggiornaCicloDss(doc, { dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null });
+    await db.aggiorna("documenti", doc.id, agg.patch);
+    const c = cicloDss({ ...doc, ...agg.patch }, INF);
+    /* ⛔ La data conservata si legge dalla PATCH, non da `doc`: nella
+       dimostrazione `db.aggiorna` scrive sullo stesso oggetto che sta in
+       `DOC`, quindi dopo la scrittura `doc.dssRevisione` è già quella NUOVA —
+       il banco l'ha preso alla prima passata (la striscia diceva la data
+       appena scritta come «precedente»). */
+    const conservata = agg.conservata ? agg.patch.dssStorico[agg.patch.dssStorico.length - 1].dssRevisione : null;
+    esito("dss-esito", "Ciclo del DSS aggiornato. " + descriviCicloDss(c) + (conservata ? " La revisione precedente (" + fmtData(conservata) + ") resta nello storico." : ""), c.noto ? "success" : "err");
     await refresh();
   };
 
@@ -2831,9 +2841,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          ripiego uccideva la pagina AL DISEGNO, e cadere sul verde sarebbe
          stato peggio del crash. Il ripiego giallo sta nella funzione. */
       const dse = etichettaStatoDocumento(d.stato), ds = [dse.cls, dse.label];
-      return `<div class="item tocca ${striscia[ds[0]]}" data-doc="${d.id}" title="Tocca per cambiare stato"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
+      /* Le versioni: «2ª versione: sostituisce la precedente» sotto la riga, in
+         un `form-hint` come il motivo del DSS — la riga di dettaglio ha
+         `line-clamp:2` e la taglierebbe. Un documento SOSTITUITO resta in
+         archivio, senza striscia e senza il tocco che cambia stato: vale la
+         versione che l'ha sostituito, e lo dice. */
+      const cat = catenaDocumento(d, DOC), catTesto = descriviCatena(cat);
+      return `<div class="item ${dse.superato ? "" : "tocca "}${striscia[ds[0]] || ""}" data-doc="${d.id}" title="${dse.superato ? "Sostituito da una versione più recente: lo stato non si cambia" : "Tocca per cambiare stato"}"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
        <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
-       <span class="badge ${ds[0]}">${ds[1]}</span></span></div>`;
+       <span class="badge ${ds[0]}">${ds[1]}</span></span></div>${catTesto ? `<div class="form-hint" data-doc-versioni="${d.id}" style="margin:-2px 0 12px 4px;">${esc(catTesto)}</div>` : ""}`;
     }).join("")
       || vuoto(I.doc, "Nessun documento",
           "Registra qui DSS, POS, DVR e verbali. Ogni documento porta il suo stato (valido, da rivedere, scaduto) e può avere in allegato la scansione firmata.");
@@ -2874,7 +2890,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           <div class="info"><div class="name">${esc(x.cantiere.nome)}</div>
           <div class="meta">DSS · ${esc(quando)}</div></div>
           <span class="acts"><span class="badge ${b.cls}">${esc(b.label)}</span></span></div>
-          <div class="form-hint" style="margin:-2px 0 12px 4px;">${esc(descriviCicloDss(x))}<br>${esc(descriviTrasmissioneDss(x) || "Nessun DSS in archivio per questa cava, quindi nessuna trasmissione da verificare.")}${m ? `<br>Motivo dell'ultima revisione: <b>${esc(m.nome)}</b> — ${esc(m.riferimento)}` : ""}</div>`;
+          <div class="form-hint" style="margin:-2px 0 12px 4px;">${esc(descriviCicloDss(x))}<br>${esc(descriviTrasmissioneDss(x) || "Nessun DSS in archivio per questa cava, quindi nessuna trasmissione da verificare.")}${(() => { const st = descriviStoricoDss(DOC.find(dd => dd.id === x.documentoId)); return st ? "<br>" + esc(st) : ""; })()}${m ? `<br>Motivo dell'ultima revisione: <b>${esc(m.nome)}</b> — ${esc(m.riferimento)}` : ""}</div>`;
       }).join("") || vuoto(I.doc, "Nessuna cava",
           "Il DSS è il documento della <b>cava</b>: aggiungi qui sopra un sito di tipo «cava» e il suo ciclo comincia a essere seguito.");
 
@@ -4446,6 +4462,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       return; }
     const dc = e.target.closest && e.target.closest("[data-doc]");
     if (dc && db.aggiorna) { const d = DOC.find(x => x.id === dc.getAttribute("data-doc"));
+      if (d && etichettaStatoDocumento(d.stato).superato) { toast("Questo documento è stato sostituito: vale la versione più recente, e questa resta in archivio così com'è."); return; }
       if (d) { await db.aggiorna("documenti", d.id, { stato: DOC_NEXT[d.stato] || "valido" }); await refresh(); } return; }
     const delInf = e.target.getAttribute && e.target.getAttribute("data-del-inf");
     if (delInf) { const x = INF.find(v => v.id === delInf);
@@ -4622,11 +4639,29 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const rec = { titolo, meta: $("doc-meta").value.trim(), tipo: $("doc-tipo").value || "Altro",
       cantiereId: $("doc-cantiere").value || null, lavoratoreId: $("doc-lavoratore").value || null, stato: "valido" };
     if (docFileSel) { rec.allegatoNome = docFileSel.nome; rec.allegatoData = docFileSel.dataURL; }
-    await db.aggiungi("documenti", rec);
+    /* Il candidato da sostituire lo propone il modulo (stesso tipo e stesso
+       ambito); la DECISIONE è di chi registra, perché due DVR di due reparti
+       sono due documenti e solo chi li ha in mano lo sa. Prima si scrive il
+       nuovo — se la domanda resta senza risposta non si è perso niente. */
+    const prec = documentoPrecedente(rec, DOC);
+    const ref = await db.aggiungi("documenti", rec);
+    const nuovoId = ref && ref.id;
     $("doc-titolo").value = ""; $("doc-meta").value = ""; $("doc-file").value = ""; $("doc-file-nome").textContent = ""; docFileSel = null;
     esito("doc-esito", "Documento aggiunto: " + titolo + " (valido).", "success");
     $("doc-titolo").focus();   // pronto per il prossimo documento
     await refresh();
+    if (prec && nuovoId) apriModale("Sostituisce il documento precedente?",
+      "In archivio c'è già <b>" + esc(prec.titolo || prec.tipo) + "</b>" + (prec.meta ? " (" + esc(prec.meta) + ")" : "") + ", dello stesso tipo e dello stesso ambito.<br><br>"
+      + "Se <b>" + esc(titolo) + "</b> ne è la nuova versione, il vecchio resta in archivio come «sostituito» — un ispettore chiede anche quello — e vale il nuovo. Se sono due documenti diversi, restano tutt'e due validi.",
+      [{ label: "No, sono due documenti", azione: chiudiModale },
+       { label: "Sì, lo sostituisce", cls: "primary", azione: async () => {
+           const s = sostituzioneDocumento(prec, nuovoId);
+           if (!s) { chiudiModale(); return; }
+           await db.aggiorna("documenti", prec.id, s.vecchio);
+           await db.aggiorna("documenti", nuovoId, s.nuovo);
+           chiudiModale(); await refresh();
+           esito("doc-esito", "Documento aggiunto: " + titolo + " (valido). Sostituisce «" + (prec.titolo || prec.tipo) + "», che resta in archivio come sostituito.", "success");
+         } }]);
   };
   $("btn-cant").onclick = async () => {
     const nome = $("cant-nome").value.trim();

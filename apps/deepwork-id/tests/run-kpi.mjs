@@ -39218,5 +39218,110 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine osservazioni di sicurezza (05/09) ===== */
 
+/* ===== SCUDO · LE VERSIONI DI UN DOCUMENTO (06/09, notte) =====
+   Un DVR nuovo non cancella il vecchio: lo SOSTITUISCE, e l'ispettore chiede
+   tutt'e due. Il vecchio resta con `stato: "sostituito"`, `sostituitoDa` e
+   `sostituitoIl`; il nuovo porta `sostituisce`. Il candidato lo propone il
+   modulo, la decisione è di chi registra (la pagina chiede). Il DSS conserva
+   la revisione precedente in `dssStorico`.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo. */
+{
+  const OGGI = new Date("2026-09-06T01:00:00");
+  const D = scudo.DEMO.documenti;
+  test("⛔ documentoPrecedente: stesso tipo e stesso ambito, e il già sostituito non è un candidato", () => {
+    eq((scudo.documentoPrecedente({ tipo: "DVR" }, D) || {}).id, "c1", "il DVR in vigore, non l'edizione 2025 già sostituita");
+    eq((scudo.documentoPrecedente({ tipo: "DSS", cantiereId: "k1" }, D) || {}).id, "c4", "il DSS della stessa cava");
+    eq(scudo.documentoPrecedente({ tipo: "DSS", cantiereId: "k2" }, D), null, "un'altra cava: nessun candidato");
+    eq(scudo.documentoPrecedente({ tipo: "DVR", lavoratoreId: "d1" }, D), null, "un ambito diverso (per lavoratore) non combacia col DVR aziendale");
+    eq((scudo.documentoPrecedente({ tipo: "Altro", appaltatoreId: "ap1", tipoQualifica: "durc" }, D) || {}).id, "c9", "il DURC della stessa impresa");
+    eq(scudo.documentoPrecedente({ tipo: "Altro" }, D), null, "⛔ «Altro» senza un'impresa non ha un ambito: due «Altro» non si sostituiscono da soli");
+    eq(scudo.documentoPrecedente({ tipo: "" }, D), null, "senza tipo, niente");
+    eq((scudo.documentoPrecedente({ id: "c1", tipo: "DVR" }, D) || {}), {}, "un documento non è il precedente di sé stesso");
+  });
+  test("documentoPrecedente: fra due candidati vince l'ultimo entrato", () => {
+    const L = [{ id: "a", tipo: "POS", cantiereId: "k1" }, { id: "b", tipo: "POS", cantiereId: "k1" }];
+    eq(scudo.documentoPrecedente({ tipo: "POS", cantiereId: "k1" }, L).id, "b", "il registro cresce in coda");
+  });
+  test("⛔ sostituzioneDocumento: due scritture, con l'ora vera; niente da scrivere su sé stesso", () => {
+    const s = scudo.sostituzioneDocumento({ id: "c1" }, "cX", OGGI);
+    eq(s.vecchio, { stato: "sostituito", sostituitoDa: "cX", sostituitoIl: shell.timbroLocale(OGGI) }, "il vecchio");
+    eq(s.nuovo, { sostituisce: "c1" }, "il nuovo");
+    eq(scudo.sostituzioneDocumento({ id: "c1" }, "c1", OGGI), null, "stesso id: niente");
+    eq(scudo.sostituzioneDocumento(null, "cX", OGGI), null, "senza vecchio: niente");
+    eq(scudo.sostituzioneDocumento({ id: "c1" }, "", OGGI), null, "senza nuovo: niente");
+  });
+  test("⛔ catenaDocumento: all'indietro e in avanti, sulla dimostrazione", () => {
+    const c1 = scudo.catenaDocumento(D.find(d => d.id === "c1"), D), c0 = scudo.catenaDocumento(D.find(d => d.id === "c0"), D);
+    eq([c1.versione, c1.precedenti.map(p => p.id), c1.sostituito, c1.leggibile], [2, ["c0"], false, true], "il DVR in vigore è la 2ª versione");
+    eq([c0.versione, c0.sostituito, (c0.successivo || {}).id, c0.leggibile], [1, true, "c1", true], "l'edizione 2025 è sostituita da c1");
+    eq(scudo.descriviCatena(c1), "2ª versione: sostituisce la precedente (l'ultima il 10/03/2026)", "la frase del nuovo");
+    eq(scudo.descriviCatena(c0), "sostituito da «DVR — Documento Valutazione Rischi»", "la frase del vecchio");
+    eq(scudo.descriviCatena(scudo.catenaDocumento(D.find(d => d.id === "c2"), D)), "", "un documento senza versioni non dice niente");
+  });
+  test("⛔ catenaDocumento: un anello mancante o un giro su sé stessa si DICONO, non si tace", () => {
+    const c = scudo.catenaDocumento({ id: "x", sostituisce: "manca" }, D);
+    eq([c.spezzata, c.leggibile, c.versione], [true, false, 1], "anello mancante");
+    ok(/non è più in archivio/.test(scudo.descriviCatena(c)), scudo.descriviCatena(c));
+    const L = [{ id: "a", sostituisce: "b" }, { id: "b", sostituisce: "a" }];
+    const g = scudo.catenaDocumento(L[0], L);
+    eq([g.spezzata, g.precedenti.length], [true, 1], "il giro si ferma");
+    const p = scudo.catenaDocumento({ id: "y", sostituitoDa: "manca" }, D);
+    eq([p.sostituito, p.successivoPerso, p.leggibile], [true, true, false], "chi l'ha sostituito non c'è più");
+    ok(/non è più in archivio/.test(scudo.descriviCatena(p)), scudo.descriviCatena(p));
+  });
+  test("catenaDocumento: tre versioni, e la frase conta i precedenti", () => {
+    const L = [{ id: "v1", titolo: "A", sostituitoDa: "v2", sostituitoIl: "2025-01-10 09:00" }, { id: "v2", titolo: "B", sostituisce: "v1", sostituitoDa: "v3", sostituitoIl: "2026-02-20 09:00" }, { id: "v3", titolo: "C", sostituisce: "v2" }];
+    const c = scudo.catenaDocumento(L[2], L);
+    eq([c.versione, c.precedenti.map(p => p.id)], [3, ["v2", "v1"]], "dal più recente");
+    eq(scudo.descriviCatena(c), "3ª versione: sostituisce 2 precedenti (l'ultima il 20/02/2026)", "la frase");
+    const m = scudo.catenaDocumento(L[1], L);
+    eq(scudo.descriviCatena(m), "2ª versione: sostituisce la precedente (l'ultima il 10/01/2025) · sostituito da «C»", "quella di mezzo dice tutt'e due");
+  });
+  test("⛔ lo stato «sostituito» esiste, non è valido e non è un problema", () => {
+    const e = scudo.etichettaStatoDocumento("sostituito");
+    eq([e.cls, e.label, e.valido, e.superato], ["tag", "Sostituito", false, true], "neutro, non giallo");
+    eq(scudo.etichettaStatoDocumento("valido").superato, undefined, "gli altri non sono superati");
+    const cart = scudo.cartellaLavoratore({ id: "d1", nome: "X" }, { documenti: [{ id: "a", lavoratoreId: "d1", tipo: "Attestato formazione", stato: "sostituito", titolo: "vecchio" }, { id: "b", lavoratoreId: "d1", tipo: "Attestato formazione", stato: "valido", titolo: "nuovo" }] }, OGGI);
+    ok(!cart.daSistemare.some(r => /documento/.test(r)), "⛔ la cartella non conta il sostituito fra i documenti non validi: " + JSON.stringify(cart.daSistemare));
+  });
+  test("⛔ un DSS sostituito non è più «il DSS della cava», e un DURC sostituito non qualifica", () => {
+    const L = [{ id: "a", tipo: "DSS", cantiereId: "k1", dssRevisione: "2026-01-01", sostituitoDa: "b" }, { id: "b", tipo: "DSS", cantiereId: "k1", dssRevisione: null, sostituisce: "a" }];
+    eq(scudo.dssDiCantiere(L, "k1").map(d => d.id), ["b"], "il vecchio, pur con la data più alta, esce");
+    const q = scudo.qualificaAppaltatore({ id: "ap1" }, [{ id: "d1", appaltatoreId: "ap1", tipoQualifica: "durc", scadenza: "2027-01-01", sostituitoDa: "d2" }, { id: "d2", appaltatoreId: "ap1", tipoQualifica: "durc", scadenza: "2020-01-01", sostituisce: "d1" }], OGGI);
+    ok(q.scaduti.some(s => /durc/i.test(s)), "vale il DURC nuovo (scaduto), non il vecchio sostituito (valido): " + JSON.stringify(q.scaduti));
+  });
+  test("⛔ aggiornaCicloDss: la revisione precedente si conserva quando la data cambia, e solo allora", () => {
+    const a = scudo.aggiornaCicloDss({ dssRevisione: "2025-03-01", dssMotivo: "prima-stesura", dssTrasmissione: "2025-03-15" }, { dssRevisione: "2026-03-01", dssMotivo: "periodica" }, OGGI);
+    eq(a.conservata, true, "conservata");
+    eq(a.patch.dssStorico, [{ dssRevisione: "2025-03-01", dssMotivo: "prima-stesura", dssTrasmissione: "2025-03-15", sostituitaIl: shell.timbroLocale(OGGI) }], "lo storico");
+    eq([a.patch.dssRevisione, a.patch.dssMotivo, a.patch.dssTrasmissione], ["2026-03-01", "periodica", null], "la patch");
+    const b = scudo.aggiornaCicloDss({ dssRevisione: null }, { dssRevisione: "2026-03-01" }, OGGI);
+    eq([b.conservata, "dssStorico" in b.patch], [false, false], "prima revisione: niente da conservare, e la patch non tocca lo storico");
+    const c = scudo.aggiornaCicloDss({ dssRevisione: "2026-03-01", dssMotivo: "x" }, { dssRevisione: "2026-03-01", dssMotivo: "periodica" }, OGGI);
+    eq(c.conservata, false, "stessa data, cambia solo il motivo: niente storico");
+    const lungo = { dssRevisione: "2026-01-01", dssStorico: Array.from({ length: 20 }, (_, i) => ({ dssRevisione: "2000-01-" + String(i + 1).padStart(2, "0") })) };
+    eq(scudo.aggiornaCicloDss(lungo, { dssRevisione: "2026-02-01" }, OGGI).patch.dssStorico.length, 20, "al più venti");
+  });
+  test("storicoDss e descriviStoricoDss: ordinato dal più recente, illeggibili fuori, il motivo a parole", () => {
+    const d = { dssStorico: [{ dssRevisione: "2024-01-01", dssMotivo: "prima-stesura" }, { dssRevisione: "boh" }, { dssRevisione: "2025-01-01", dssMotivo: "periodica" }] };
+    eq(scudo.storicoDss(d).map(r => r.dssRevisione), ["2025-01-01", "2024-01-01"], "ordine e filtro");
+    const s = scudo.descriviStoricoDss(d);
+    ok(/^2 revisioni precedenti: 01\/01\/2025 \(.+\), 01\/01\/2024 \(.+\)\.$/.test(s), s);
+    ok(/^Una revisione precedente: /.test(scudo.descriviStoricoDss({ dssStorico: [{ dssRevisione: "2024-01-01" }] })), "il singolare");
+    eq(scudo.descriviStoricoDss({}), "", "senza storico: vuoto");
+  });
+  test("⛔ la pagina: la scelta è di chi registra, il sostituito resta fermo, il DSS conserva", () => {
+    const pagina = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    ok(/const prec = documentoPrecedente\(rec, DOC\);/.test(pagina), "il candidato lo propone il modulo");
+    ok(/const s = sostituzioneDocumento\(prec, nuovoId\);/.test(pagina), "le due scritture le compone il modulo");
+    ok(/"Sì, lo sostituisce"/.test(pagina) && /"No, sono due documenti"/.test(pagina), "la domanda ha due risposte");
+    ok(/etichettaStatoDocumento\(d\.stato\)\.superato\) \{ toast\(/.test(pagina), "un tocco sul sostituito non cambia stato");
+    ok(/const agg = aggiornaCicloDss\(doc, /.test(pagina) && /await db\.aggiorna\("documenti", doc\.id, agg\.patch\);/.test(pagina), "il DSS scrive la patch del modulo");
+    ok(/descriviStoricoDss\(DOC\.find/.test(pagina), "e la lista del DSS legge lo storico");
+    ok(/data-doc-versioni=/.test(pagina), "la catena sotto la riga del documento");
+  });
+}
+/* ===== fine versioni di un documento (06/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

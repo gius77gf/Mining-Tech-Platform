@@ -1135,3 +1135,51 @@ lavoratore per mese** (indicatore proattivo) — vuole un «chi segnala» sempre
 compilato, e oggi è facoltativo per scelta (la segnalazione deve restare di tre
 tocchi); e il **rinforzo** della buona pratica (dirlo a chi l'ha fatta) è una
 frase nel toast, non un flusso.
+
+
+## Ricerca del 2026-09-06 (notte) — il controllo delle versioni dei documenti: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**, come la ricerca qui sopra: niente
+`WebSearch` in questa unità, nessun numero di norma entra in una schermata.
+
+### Che cos'è, fuori
+
+- **«Informazioni documentate» (ISO 45001 §7.5 e ISO 9001 §7.5.3)**: il
+  sistema deve dire quale versione di un documento è in vigore, chi l'ha
+  approvata, e deve **conservare le versioni superate** identificandole come
+  tali (obsolete, «superseded»), perché servono a ricostruire che cosa era in
+  vigore a una certa data. *[seconda mano: numeri di paragrafo da memoria]*
+- **Perché conta in cava**: dopo un infortunio l'organo di vigilanza chiede
+  il DVR e il DSS **in vigore quel giorno**, non l'ultimo. Un archivio che
+  cancella il vecchio quando entra il nuovo non sa rispondere. *[dedotto
+  dalla pratica ispettiva; coerente col ciclo del DSS già costruito, che ha
+  la data di revisione e la trasmissione]*
+- **Come lo fanno i prodotti HSE censiti** (Intelex, Cority, SafetyCulture,
+  Evotix, §2): «document control» con numero di revisione, stato
+  (bozza/in vigore/obsoleto), storico consultabile, e la regola che
+  l'obsoleto **non si modifica** più. Nessuno cancella. *[dal censimento del
+  01/08]*
+- **Le due forme del versionamento**: (a) un documento NUOVO che ne
+  sostituisce uno (DVR 2026 al posto del DVR 2025) — due record collegati; (b)
+  una REVISIONE dello stesso documento (il DSS rivisto dopo un infortunio) —
+  stesso record, storico delle revisioni dentro. Sono due meccanismi diversi e
+  vanno tenuti distinti. *[dedotto]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi decide se un documento nuovo è la versione di uno vecchio?* → chi lo
+   registra: due DVR di due reparti sono due documenti. Il modulo PROPONE il
+   candidato (stesso tipo, stesso ambito), la pagina CHIEDE.
+2. *Che cosa succede al vecchio?* → resta, con uno stato suo, e nessun conto
+   lo tratta come un problema né come valido.
+3. *Il DSS ha già una data di revisione: dove va quella prima?* → nello stesso
+   record, in uno storico, quando la data cambia.
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte)
+
+Fatto nella stessa unità: vedi la voce «LE VERSIONI DI UN DOCUMENTO IN SCUDO»
+in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: **chi ha approvato**
+la versione (vuole un ruolo, ed è la decisione aperta sui ruoli); il **numero
+di revisione scritto sul documento** (oggi è la posizione nella catena, non un
+campo che l'utente compila); l'allegato della versione superata resta
+apribile ma non si confronta con quello nuovo.

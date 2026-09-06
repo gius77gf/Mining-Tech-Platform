@@ -665,6 +665,32 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LE VERSIONI DI UN DOCUMENTO IN SCUDO (06/09, notte) — la prima riga
+  della B4 di Scudo che un ispettore chiede davvero:** un DVR nuovo non
+  cancella il vecchio, lo SOSTITUISCE, e si chiede quale valutazione era in
+  vigore il giorno dell'infortunio. Modulo: `documentoPrecedente` (stesso tipo
+  e stesso ambito — sito, lavoratore, impresa e qualifica; «Altro» senza
+  impresa non ha un ambito; il già sostituito non è un candidato),
+  `sostituzioneDocumento` (le due scritture, con `timbroLocale`),
+  `catenaDocumento`/`descriviCatena` (all'indietro e in avanti; un anello
+  mancante o un giro si DICONO), lo stato `sostituito` (neutro, `superato`,
+  non un problema), `dssDiCantiere` e `qualificaAppaltatore` che non contano
+  il sostituito, `aggiornaCicloDss`/`storicoDss`/`descriviStoricoDss` (la
+  revisione precedente del DSS si conserva quando la data cambia, al più
+  venti); nella dimostrazione l'edizione 2025 del DVR, sostituita. Pagina: la
+  DOMANDA all'aggiunta («Sì, lo sostituisce» / «No, sono due documenti» — la
+  decisione è di chi registra, non del modulo), la catena sotto la riga in un
+  `form-hint`, il sostituito senza striscia e senza il tocco che cambia stato
+  (toast), il DSS che scrive la patch del modulo e mostra lo storico. ⚠️ **Il
+  banco ha preso un difetto vero alla prima passata**: la striscia del DSS
+  diceva come «precedente» la data appena scritta, perché nella dimostrazione
+  `db.aggiorna` scrive sullo stesso oggetto di `DOC` — la data conservata si
+  legge dalla PATCH, non da `doc`. Prove: run-kpi +11 (2774), banco
+  `scudo-versioni-documenti.mjs` 46 ok a 390 e 320 con controprova 14/46 su
+  3/3 per file (259 esecuzioni, 109 file). Scatti guardati (la domanda, il
+  sostituito). Docs: CONCORRENTI_SCUDO riga a C'È e mancanza chiusa con la
+  prova rilanciata; B4 scudo 5 → **4**, totale **39**; mondo in
+  RICERCA_CONTINUA_SCUDO (seconda mano dichiarata).
 - [x] **LE OSSERVAZIONI DI SICUREZZA DI SCUDO (06/09, notte) — la riga più
   chiesta della B4 che non vuole hardware né backend:** una buona pratica
   vista, o una cosa da correggere PRIMA che succeda qualcosa. Modulo:
@@ -4439,8 +4465,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 5** |
-          | totale **40** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09 e 41 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 4** |
+          | totale **39** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41 e 40 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
 
       ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
       magazzino / giacenze prodotto» di Conti era «confermato assente» dal
@@ -7072,8 +7098,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.244 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2763, `run-stile` 328,
+  **3.255 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2774, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7083,8 +7109,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **257 esecuzioni** che
-  aprono le pagine in un browser vero, da **108** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **259 esecuzioni** che
+  aprono le pagine in un browser vero, da **109** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

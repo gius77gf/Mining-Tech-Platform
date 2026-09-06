@@ -125,7 +125,7 @@
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
          csvCell, leggiCsv,
-         dataIt, isoLocale, pezziDataURL, LIMITE_ALLEGATO,
+         dataIt, isoLocale, timbroLocale, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 /* IL `tipo` CHE FA DI UNA SCADENZA UNA VERIFICA PERIODICA DI ATTREZZATURA.
@@ -239,7 +239,11 @@ export const DEMO = {
     { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30" },
   ],
   documenti: [
-    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
+    /* Il DVR in vigore e quello che ha sostituito: l'ispettore chiede tutt'e
+       due (quale valutazione era in vigore il giorno dell'infortunio?). Il
+       vecchio resta, con `stato: "sostituito"` e i due riferimenti. */
+    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido", sostituisce: "c0" },
+    { id: "c0", titolo: "DVR — Documento Valutazione Rischi (edizione 2025)", meta: "Aggiornato 02/2025", tipo: "DVR", stato: "sostituito", sostituitoDa: "c1", sostituitoIl: "2026-03-10 09:00" },
     { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", tipo: "Altro", stato: "valido" },
     { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", tipo: "Nomina", stato: "da-rivedere" },
     /* ⛔ IL DSS DELLA CAVA, ED È NON DATABILE DI PROPOSITO. Il documento c'è,
@@ -2774,7 +2778,7 @@ const MESI_CERTIF_DSS = (SCADENZE_PRESET.find((p) => p.chiave === "dss-certif") 
 export function dssDiCantiere(documenti, cantiereId) {
   if (!cantiereId) return [];
   return (documenti || [])
-    .filter((d) => d && d.tipo === "DSS" && d.cantiereId === cantiereId)
+    .filter((d) => d && d.tipo === "DSS" && d.cantiereId === cantiereId && !d.sostituitoDa)   // un DSS sostituito non è più «il DSS della cava»
     .sort((a, b) => String(b.dssRevisione || "").localeCompare(String(a.dssRevisione || "")));
 }
 
@@ -3942,6 +3946,12 @@ export function etichettaStatoDocumento(stato) {
     valido:        { cls: "ok",     label: "Valido",      valido: true },
     "da-rivedere": { cls: "warn",   label: "Da rivedere", valido: false },
     scaduto:       { cls: "danger", label: "Scaduto",     valido: false },
+    /* Sostituito da una versione più recente: non è valido — vale la nuova —
+       e non è un problema da contare. Neutro, non giallo: la regola 18 di
+       `run-stile` vuole che chi mappa gli stati li copra tutti, e `DOC_NEXT`
+       nella pagina lo lascia fermo (un documento superato non torna valido con
+       un tocco: si riapre la versione che lo ha sostituito). */
+    sostituito:    { cls: "tag",    label: "Sostituito",  valido: false, superato: true },
   };
   /* Un documento di cui lo stato non è scritto — un import, un archivio
      cartaceo — non è un documento valido: si dichiara che non si sa, in
@@ -3949,6 +3959,103 @@ export function etichettaStatoDocumento(stato) {
      evita. */
   return M[String(stato == null ? "" : stato).trim()]
       || { cls: "warn", label: "Stato non indicato", valido: false };
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LE VERSIONI DI UN DOCUMENTO (06/09, notte). Un DVR nuovo non cancella
+   quello vecchio: lo SOSTITUISCE, e l'ispettore chiede tutt'e due — quale
+   era la valutazione in vigore il giorno dell'infortunio? Il vecchio resta in
+   archivio con `stato: "sostituito"`, `sostituitoDa` e `sostituitoIl`; il
+   nuovo porta `sostituisce`. Nessuna copia del documento: due riferimenti.
+   Il candidato lo propone `documentoPrecedente` (stesso tipo, stesso sito,
+   stesso lavoratore, stessa impresa e qualifica); la DECISIONE è di chi
+   registra — la pagina chiede, non deduce — perché due DVR di due reparti
+   sono due documenti, e solo chi li ha in mano lo sa.
+   ⛔ «Altro» senza un'impresa non ha un ambito: due «Altro» non si
+   sostituiscono da soli. Il DSS ha in più il suo ciclo, e quello si conserva
+   in `dssStorico` quando la data di revisione cambia (`aggiornaCicloDss`).
+   ══════════════════════════════════════════════════════════════════════════ */
+const stessoAmbitoDocumento = (a, b) => !!a && !!b && String(a.tipo || "") === String(b.tipo || "")
+  && (a.cantiereId || null) === (b.cantiereId || null) && (a.lavoratoreId || null) === (b.lavoratoreId || null)
+  && (a.appaltatoreId || null) === (b.appaltatoreId || null) && (a.tipoQualifica || null) === (b.tipoQualifica || null);
+export function documentoPrecedente(nuovo, documenti) {
+  const n = nuovo || {};
+  if (!String(n.tipo || "").trim()) return null;
+  if (n.tipo === "Altro" && !n.appaltatoreId) return null;
+  const cand = (documenti || []).filter((d) => d && d.id && d.id !== n.id && stessoAmbitoDocumento(d, n) && !d.sostituitoDa);
+  return cand.length ? cand[cand.length - 1] : null;   // l'ultimo entrato: il registro cresce in coda
+}
+/* Le due scritture, come oggetti da passare a `db.aggiorna`: una per il
+   vecchio e una per il nuovo. `null` se non c'è niente da sostituire. */
+export function sostituzioneDocumento(vecchio, nuovoId, quando = new Date()) {
+  if (!vecchio || !vecchio.id || !nuovoId || String(vecchio.id) === String(nuovoId)) return null;
+  return {
+    vecchio: { stato: "sostituito", sostituitoDa: String(nuovoId), sostituitoIl: timbroLocale(quando) },
+    nuovo: { sostituisce: String(vecchio.id) },
+  };
+}
+/* La catena all'indietro (i precedenti, dal più recente) e in avanti (chi lo
+   ha sostituito). `spezzata` quando un anello non è più in archivio o la
+   catena gira su sé stessa: la si legge fino a lì e lo si DICE, invece di
+   fermarsi in silenzio a una versione che sembra la prima. */
+export function catenaDocumento(documento, documenti) {
+  const byId = new Map((documenti || []).filter((d) => d && d.id).map((d) => [String(d.id), d]));
+  const d = documento || {};
+  const precedenti = [], visti = new Set([String(d.id)]);
+  let spezzata = false, cur = d;
+  while (cur && cur.sostituisce) {
+    const id = String(cur.sostituisce);
+    if (visti.has(id)) { spezzata = true; break; }
+    const p = byId.get(id);
+    if (!p) { spezzata = true; break; }
+    visti.add(id); precedenti.push(p); cur = p;
+  }
+  const successivo = d.sostituitoDa ? (byId.get(String(d.sostituitoDa)) || null) : null;
+  const successivoPerso = !!d.sostituitoDa && !successivo;
+  return { versione: precedenti.length + 1, precedenti, successivo, successivoPerso, spezzata,
+    sostituito: !!d.sostituitoDa, leggibile: !spezzata && !successivoPerso };
+}
+const ordinale = (n) => n + "ª";
+export function descriviCatena(c) {
+  const x = c || {}, prec = x.precedenti || [];
+  const parti = [];
+  if (prec.length) {
+    const ultimo = prec[0];
+    parti.push(ordinale(x.versione) + " versione: sostituisce " + (prec.length === 1 ? "la precedente" : prec.length + " precedenti")
+      + (ultimo && dataISOEsiste(String(ultimo.sostituitoIl || "").slice(0, 10)) ? " (l'ultima il " + dataIt(String(ultimo.sostituitoIl).slice(0, 10)) + ")" : ""));
+  }
+  if (x.spezzata) parti.push("una versione precedente non è più in archivio: la catena si legge fino a lì");
+  if (x.sostituito) parti.push(x.successivo
+    ? "sostituito da «" + String(x.successivo.titolo || x.successivo.tipo || "documento") + "»"
+    : "sostituito da un documento che non è più in archivio");
+  return parti.join(" · ");
+}
+/* Il ciclo del DSS quando cambia la data di revisione: la revisione prima si
+   conserva in `dssStorico` (al più venti), con il suo motivo e la sua
+   trasmissione. Torna la patch da scrivere e se ha conservato qualcosa. */
+export function aggiornaCicloDss(doc, nuovo, quando = new Date()) {
+  const d = doc || {}, n = nuovo || {};
+  const patch = { dssRevisione: n.dssRevisione || null, dssMotivo: n.dssMotivo || "", dssTrasmissione: n.dssTrasmissione || null };
+  const prima = d.dssRevisione || null;
+  const conservata = !!prima && prima !== patch.dssRevisione;
+  if (conservata) {
+    const storico = Array.isArray(d.dssStorico) ? d.dssStorico.slice() : [];
+    storico.push({ dssRevisione: prima, dssMotivo: d.dssMotivo || "", dssTrasmissione: d.dssTrasmissione || null, sostituitaIl: timbroLocale(quando) });
+    patch.dssStorico = storico.slice(-20);
+  }
+  return { patch, conservata };
+}
+export function storicoDss(doc) {
+  const s = Array.isArray((doc || {}).dssStorico) ? doc.dssStorico : [];
+  return s.filter((r) => r && dataISOEsiste(r.dssRevisione)).map((r) => ({ ...r }))
+    .sort((a, b) => String(b.dssRevisione).localeCompare(String(a.dssRevisione)));
+}
+export function descriviStoricoDss(doc) {
+  const s = storicoDss(doc);
+  if (!s.length) return "";
+  return (s.length === 1 ? "Una revisione precedente" : s.length + " revisioni precedenti") + ": "
+    + s.map((r) => dataIt(r.dssRevisione) + ((motivoRevisioneDss(r.dssMotivo) || {}).nome ? " (" + motivoRevisioneDss(r.dssMotivo).nome.toLowerCase() + ")" : "")).join(", ") + ".";
 }
 
 export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
@@ -4013,7 +4120,7 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
        nomina resta nell'elenco come attiva, e questo foglio non diceva niente.
        L'Organigramma la conta in `senzaData` dal 07/08 e colora il ruolo. */
     [sueNomine.filter(n => dateNominaIlleggibili(n).al).length, "nomina la cui data di fine non si legge", "nomine la cui data di fine non si legge"],
-    [suoiDoc.filter(x => !etichettaStatoDocumento(x.stato).valido).length,
+    [suoiDoc.filter(x => { const e = etichettaStatoDocumento(x.stato); return !e.valido && !e.superato; }).length,
       "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
   ];
   const daSistemare = righeGuaste.filter(([n]) => n > 0).map(([n, uno, tanti]) => conta(n, uno, tanti));
@@ -4891,7 +4998,7 @@ export function qualificaAppaltatore(appaltatore, documenti, oggi = new Date()) 
   const id = appaltatore && appaltatore.id;
   const suoi = docDiAppaltatore(documenti, id);
   const per = new Map();
-  for (const d of suoi) if (d.tipoQualifica) per.set(d.tipoQualifica, d);
+  for (const d of suoi) if (d.tipoQualifica && !d.sostituitoDa) per.set(d.tipoQualifica, d);   // il sostituito non vale: vale chi l'ha sostituito
 
   const mancanti = [], scaduti = [], senzaData = [], inScadenza = [];
   for (const t of TIPI_DOC_APPALTATORE) {
