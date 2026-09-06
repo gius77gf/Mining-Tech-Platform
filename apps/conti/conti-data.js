@@ -86,6 +86,8 @@ export { numeroDichiarato } from "../../shared/dw-ponti.js";
    quindi serve anche l'import vero — con `export … from` da solo il modulo
    si carica e muore alla prima chiamata, senza errori di sintassi. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+// il collegamento fra una spesa e un ordine di lavoro di Flotta (06/09): vive in shared/, qui si ri-esporta
+export { riferimentoOrdineFlotta, etichettaOrdineFlotta, ordiniFlottaPerConti, costiDiOrdine } from "../../shared/dw-ponti.js";
 /* il ponte Flotta→Conti: stessa regola, la pagina lo prende da qui */
 export { confrontoCostiMezzi, confrontoProdottoVenduto, produzioneDichiarata } from "../../shared/dw-ponti.js";
 /* la densità della cava la dichiara Terra: Conti la legge con le stesse funzioni, non se ne tiene una copia */
@@ -407,6 +409,15 @@ export const DEMO = {
     { id: "fl5", data: "2026-04-02", voce: "noleggio", importo: 45, nota: "Escavatore a noleggio, aprile", mezzo: "Escavatore (nolo)" },
     { id: "fl6", voce: "carburante", importo: 22, nota: "Buono gasolio senza data", mezzo: "Dumper 1" },
   ],
+  /* GLI ORDINI DI LAVORO DI FLOTTA come li vede la tendina del registro costi
+     (06/09): dal vivo li legge `ordiniFlotta` dall'app Flotta della stessa
+     organizzazione; qui i due della dimostrazione di Flotta che sono diventati
+     un lavoro. Un tagliando solo pianificato non c'è: non ha niente da
+     fatturare. */
+  ordiniFlotta: [
+    { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", stato: "in-corso" },
+    { id: "n4", titolo: "Giro macchina: Perdite sotto la macchina", mezzo: "Dumper D1", stato: "attesa-ricambi" },
+  ],
   // REGISTRO COSTI d'esempio. Tre righe stanno qui apposta perché fanno vedere
   // cosa succede quando il dato non è pulito — che è la condizione normale del
   // primo mese di uso, e l'app deve dirlo invece di nasconderlo:
@@ -449,6 +460,13 @@ export const DEMO = {
     { id: "c25", data: "", voce: "ripristino", importo: 120, nota: "Fattura del vivaista, data da recuperare" },
     /* A luglio manca l'ENERGIA, che negli altri mesi c'è tre volte su cinque:
        è la riga che la chiusura del mese chiede di confermare. */
+    /* Una spesa COLLEGATA a un ordine di lavoro di Flotta (06/09): la fattura
+       dell'officina esterna per la rotazione gomme del Dumper D1. È `daMezzo`
+       come le altre manutenzioni, e in più porta il riferimento all'ordine:
+       Flotta la vede e la confronta col conto dell'ordine. */
+    { id: "c90", data: "2026-08-10", voce: "manutenzione", importo: 200, nota: "Officina esterna, fattura 214 — rotazione gomme D1",
+      ordineFlotta: { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1" },
+      registratoIl: "2026-08-10 17:20" },
   ],
   // canone di escavazione: l'aliquota NON è cablata, cambia da regione a regione.
   impostazioni: [

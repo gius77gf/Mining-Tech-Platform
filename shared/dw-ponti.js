@@ -1182,6 +1182,76 @@ export function confrontoCostiMezzi(costiConti, costiFlotta, dal = "", al = "") 
   };
 }
 
+// ═══════════════════════════════════════
+// PONTE · CONTI → FLOTTA — LA FATTURA DELL'OFFICINA E L'ORDINE DI LAVORO
+// ═══════════════════════════════════════
+//
+// L'officina esterna manda una fattura per un lavoro che in Flotta è un
+// ORDINE DI LAVORO (una manutenzione con manodopera e ricambi). Chi registra
+// la spesa in Conti la COLLEGA all'ordine (`ordineFlotta: {id, titolo, mezzo}`
+// sulla riga di costo); Flotta legge le spese di Conti — le legge già, per
+// non contare due volte — e su ogni ordine dice quante spese lo citano, per
+// quanto, e se il conto dell'ordine torna. Un solo campo, nessuna copia del
+// documento: il collegamento è un riferimento, come `origine` altrove.
+// ⛔ Conti non raggiungibile NON è «nessuna fattura»: `costiDiOrdine` con
+// `costiConti == null` risponde `leggibile: false`, e il confronto lo dice.
+// ⛔ La riga senza importo si CONTA (`senzaImporto`) e non entra nella somma.
+// Le funzioni vivono qui perché le usano tutt'e due le app (Conti per
+// scrivere e mostrare il riferimento, Flotta per leggerlo e confrontare):
+// ognuna le ri-esporta col proprio nome, e il test pretende l'identità.
+export function riferimentoOrdineFlotta(costo) {
+  const r = costo && costo.ordineFlotta;
+  if (!r || typeof r !== "object") return null;
+  const id = String(r.id || "").trim();
+  if (!id) return null;
+  return { id, titolo: String(r.titolo || "").trim(), mezzo: String(r.mezzo || "").trim() };
+}
+export function etichettaOrdineFlotta(o) {
+  const x = o || {};
+  const t = String(x.titolo || "").trim() || "(ordine senza titolo)";
+  const m = String(x.mezzo || "").trim();
+  return m ? t + " · " + m : t;
+}
+/* Gli ordini di lavoro di Flotta come li vede la tendina di Conti: solo
+   quelli che sono DIVENTATI un lavoro (uno stato, o righe di manodopera o
+   ricambi) — un tagliando solo pianificato non ha ancora niente da fatturare.
+   `null` in = `null` out: Flotta non raggiungibile non è «nessun ordine». */
+export function ordiniFlottaPerConti(manutenzioni) {
+  if (manutenzioni == null) return null;
+  return (manutenzioni || [])
+    .filter((m) => m && m.id && (m.stato || (m.manodopera || []).length || (m.ricambiUsati || []).length))
+    .map((m) => ({ id: String(m.id), titolo: String(m.titolo || "").trim(), mezzo: String(m.mezzo || "").trim(), stato: String(m.stato || "") }));
+}
+export function costiDiOrdine(ordineId, costiConti) {
+  const id = String(ordineId || "").trim();
+  const vuoto = (motivo) => ({ leggibile: false, righe: [], n: 0, importo: null, senzaImporto: 0, motivo });
+  if (!id) return vuoto("ordine senza id");
+  if (costiConti == null) return vuoto("Conti non raggiungibile");
+  const righe = (costiConti || []).filter((c) => { const r = riferimentoOrdineFlotta(c); return !!r && r.id === id; });
+  let importo = 0, senzaImporto = 0;
+  for (const c of righe) {
+    const v = numeroDichiarato(c.importo);
+    if (v == null) senzaImporto++; else importo = Math.round((importo + v) * 100) / 100;
+  }
+  return { leggibile: true, righe, n: righe.length, importo: righe.length - senzaImporto > 0 ? importo : null, senzaImporto, motivo: "" };
+}
+const euroPonte = (n) => (+n).toLocaleString("it-IT", { style: "currency", currency: "EUR", useGrouping: true });
+export function confrontoOrdineConti(totaleOrdine, inConti) {
+  const c = inConti || { leggibile: false };
+  const tot = numeroDichiarato(totaleOrdine);
+  if (!c.leggibile) return { stato: "non-leggibile", differenza: null, testo: "Conti non raggiungibile: non si sa se questo lavoro è stato fatturato." };
+  if (!c.n) return { stato: "nessuna", differenza: null, testo: "Nessuna spesa in Conti collegata a questo ordine." };
+  const quante = c.n === 1 ? "una spesa in Conti" : c.n + " spese in Conti";
+  if (c.importo == null) return { stato: "senza-importo", differenza: null, testo: quante + ", senza importo leggibile: non si può confrontare." };
+  const base = quante + (c.senzaImporto ? " (" + c.senzaImporto + " senza importo)" : "") + ": " + euroPonte(c.importo);
+  if (tot == null || tot <= 0) return { stato: "ordine-senza-conto", differenza: null, testo: base + ". L'ordine non ha ancora un costo: il confronto arriverà quando lo avrà." };
+  const d = Math.round((c.importo - tot) * 100) / 100;
+  if (Math.abs(d) < 0.005) return { stato: "uguale", differenza: 0, testo: base + ", quanto il conto dell'ordine." };
+  return d > 0
+    ? { stato: "conti-di-piu", differenza: d, testo: base + ", cioè " + euroPonte(d) + " più del conto dell'ordine (" + euroPonte(tot) + "): o l'ordine non ha tutte le righe, o la fattura comprende altro." }
+    : { stato: "conti-di-meno", differenza: d, testo: base + ", cioè " + euroPonte(-d) + " meno del conto dell'ordine (" + euroPonte(tot) + "): manca una fattura, o il conto dell'ordine è stimato alto." };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // PONTE P5 · CAMPO → SCUDO — IL MANCATO INFORTUNIO SEGNALATO DAL FRONTE
 // ══════════════════════════════════════════════════════════════════════

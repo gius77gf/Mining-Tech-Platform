@@ -665,6 +665,24 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL PONTE CONTI → FLOTTA COME REGOLA, PRIMA METÀ (06/09, mattina) — «Link
+  fatture a ordini di lavoro» della B4 di Flotta:** la fattura dell'officina
+  esterna è una spesa in Conti che porta `ordineFlotta: {id, titolo, mezzo}`;
+  Flotta legge le spese di Conti (le legge già, per non contare due volte) e
+  su ogni ordine dice quante lo citano, per quanto, e se il conto torna. In
+  `shared/dw-ponti.js`: `riferimentoOrdineFlotta`, `etichettaOrdineFlotta`,
+  `ordiniFlottaPerConti` (null resta null: Flotta non raggiungibile non è
+  «nessun ordine»), `costiDiOrdine` (Conti non raggiungibile ≠ nessuna spesa;
+  la riga senza importo si conta e non si somma; importo `null`, non zero),
+  `confrontoOrdineConti` (sei stati con la frase). Conti e Flotta le
+  ri-esportano, identità provata. Dimostrazioni: la fattura 214 dell'officina
+  (`c90` in Conti, `k5` in Flotta) collegata a `n2`, e in Conti l'elenco
+  `ordiniFlotta` scritto a mano (nessuna app importa il modulo di un'altra).
+  run-kpi +7 (2789), copertura di shared 241/241 (dw-ponti 87/87). ⏱️
+  **MANCANO LE DUE PAGINE**, unità successiva: in Conti la tendina «ordine di
+  lavoro di Flotta (facoltativo)» nel registro costi (`db.ordiniFlotta`, live
+  dall'app Flotta) e la riga con l'ordine; in Flotta la frase del confronto
+  sull'ordine aperto (`CC` c'è già); banco con controprova per file.
 - [x] **IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte) — la riga «Report PDF
   automatico — ispezioni» della B4 di Scudo:** `fogliaIspezione(isp, {cantieri,
   lavoratori, azioni, oggi})` nel modulo, stessa forma della cartella (titolo,
@@ -4492,8 +4510,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 3** |
-          | totale **38** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40 e 39 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **5** · flotta **3** · terra 4 · **scudo 3** |
+          | totale **37** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40, 39 e 38 nella notte; 37 la mattina del 06/09 perché «link fatture a ordini di lavoro» di Flotta è passata a C'È A METÀ — la regola c'è, le pagine no · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
 
       ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
       magazzino / giacenze prodotto» di Conti era «confermato assente» dal
@@ -7125,8 +7143,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.263 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2782, `run-stile` 328,
+  **3.270 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2789, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

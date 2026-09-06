@@ -39440,5 +39440,79 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine verbale di ispezione (06/09) ===== */
 
+/* ===== PONTE CONTI → FLOTTA · LA FATTURA DELL'OFFICINA E L'ORDINE DI LAVORO (06/09) =====
+   La riga «Link fatture a ordini di lavoro» della B4 di Flotta, come DATO:
+   una spesa in Conti porta `ordineFlotta: {id, titolo, mezzo}`, Flotta legge
+   le spese di Conti (le legge già) e su ogni ordine dice quante lo citano,
+   per quanto, e se il conto torna. Le regole vivono in `shared/dw-ponti.js`
+   e le due app le ri-esportano: il test pretende l'IDENTITÀ, non il
+   comportamento. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  test("⛔ identità: Conti e Flotta ri-esportano le STESSE funzioni di shared/", () => {
+    ok(conti.riferimentoOrdineFlotta === ponti.riferimentoOrdineFlotta && flotta.riferimentoOrdineFlotta === ponti.riferimentoOrdineFlotta, "riferimentoOrdineFlotta");
+    ok(conti.costiDiOrdine === ponti.costiDiOrdine && flotta.costiDiOrdine === ponti.costiDiOrdine, "costiDiOrdine");
+    ok(conti.etichettaOrdineFlotta === ponti.etichettaOrdineFlotta && conti.ordiniFlottaPerConti === ponti.ordiniFlottaPerConti, "le due di Conti");
+    ok(flotta.confrontoOrdineConti === ponti.confrontoOrdineConti, "quella di Flotta");
+  });
+  test("riferimentoOrdineFlotta: un riferimento vale solo con un id, e si normalizza", () => {
+    eq(ponti.riferimentoOrdineFlotta({ ordineFlotta: { id: " n2 ", titolo: "Rotazione gomme", mezzo: "Dumper D1" } }), { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1" }, "normalizzato");
+    eq(ponti.riferimentoOrdineFlotta({ ordineFlotta: { id: "" } }), null, "senza id: niente");
+    eq(ponti.riferimentoOrdineFlotta({ ordineFlotta: "n2" }), null, "una stringa non è un riferimento");
+    eq(ponti.riferimentoOrdineFlotta({}), null, "senza campo"); eq(ponti.riferimentoOrdineFlotta(null), null, "senza costo");
+  });
+  test("etichettaOrdineFlotta: titolo e mezzo, e il vuoto dichiarato", () => {
+    eq(ponti.etichettaOrdineFlotta({ titolo: "Rotazione gomme", mezzo: "Dumper D1" }), "Rotazione gomme · Dumper D1", "coi due");
+    eq(ponti.etichettaOrdineFlotta({ titolo: "Rotazione gomme" }), "Rotazione gomme", "senza mezzo");
+    eq(ponti.etichettaOrdineFlotta({}), "(ordine senza titolo)", "senza niente");
+  });
+  test("⛔ ordiniFlottaPerConti: solo gli ordini diventati un lavoro, e null resta null", () => {
+    eq(ponti.ordiniFlottaPerConti(null), null, "Flotta non raggiungibile non è «nessun ordine»");
+    const L = ponti.ordiniFlottaPerConti(flotta.DEMO.manutenzioni);
+    eq(L.map(x => x.id), ["n2", "n4"], "sulla dimostrazione di Flotta: i due che hanno uno stato o righe");
+    eq(L[0], { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1", stato: "in-corso" }, "la forma");
+    eq(conti.DEMO.ordiniFlotta.map(x => x.id), ["n2", "n4"], "⛔ e la dimostrazione di Conti porta GLI STESSI due, scritti a mano perché nessuna app importa il modulo di un'altra");
+    eq(ponti.ordiniFlottaPerConti([{ id: "x" }, { titolo: "senza id", stato: "chiuso" }, { id: "y", ricambiUsati: [{ id: "p1" }] }]).map(x => x.id), ["y"], "un tagliando solo pianificato non c'è; senza id non c'è");
+  });
+  test("⛔ costiDiOrdine: Conti non raggiungibile ≠ nessuna spesa; la riga senza importo si conta e non si somma", () => {
+    const K = [{ id: "a", importo: 200, ordineFlotta: { id: "n2" } }, { id: "b", importo: "boh", ordineFlotta: { id: "n2" } }, { id: "c", importo: 50, ordineFlotta: { id: "n4" } }, { id: "d", importo: 10 }];
+    const r = ponti.costiDiOrdine("n2", K);
+    eq([r.leggibile, r.n, r.importo, r.senzaImporto, r.righe.map(x => x.id)], [true, 2, 200, 1, ["a", "b"]], "due righe, una senza importo");
+    eq(ponti.costiDiOrdine("n2", null).leggibile, false, "null = non leggibile");
+    ok(/non raggiungibile/.test(ponti.costiDiOrdine("n2", null).motivo), "col motivo");
+    eq(ponti.costiDiOrdine("", K).leggibile, false, "senza id: non leggibile");
+    eq(ponti.costiDiOrdine("n9", K), { leggibile: true, righe: [], n: 0, importo: null, senzaImporto: 0, motivo: "" }, "nessuna riga: leggibile, importo null (non zero)");
+    eq(ponti.costiDiOrdine("n2", [{ importo: null, ordineFlotta: { id: "n2" } }]).importo, null, "⛔ solo righe senza importo: importo null, non zero");
+    eq(ponti.costiDiOrdine("n2", [{ importo: 0.1, ordineFlotta: { id: "n2" } }, { importo: 0.2, ordineFlotta: { id: "n2" } }]).importo, 0.3, "somma alla cifra");
+  });
+  test("⛔ confrontoOrdineConti: i sei stati, con la frase che dice quale", () => {
+    const c = (n, importo, senzaImporto = 0) => ({ leggibile: true, n, importo, senzaImporto, righe: [] });
+    eq(ponti.confrontoOrdineConti(178.5, { leggibile: false }).stato, "non-leggibile", "Conti non raggiungibile");
+    ok(/non si sa se questo lavoro è stato fatturato/.test(ponti.confrontoOrdineConti(178.5, null).testo), "e lo dice, senza inventare uno zero");
+    eq(ponti.confrontoOrdineConti(178.5, c(0, null)).stato, "nessuna", "nessuna spesa");
+    eq(ponti.confrontoOrdineConti(178.5, c(1, null, 1)).stato, "senza-importo", "una senza importo");
+    eq(ponti.confrontoOrdineConti(178.5, c(1, 178.5)).stato, "uguale", "torna");
+    ok(/una spesa in Conti: 178,50[ \u00a0]€, quanto il conto dell'ordine\./.test(ponti.confrontoOrdineConti(178.5, c(1, 178.5)).testo), ponti.confrontoOrdineConti(178.5, c(1, 178.5)).testo);
+    const piu = ponti.confrontoOrdineConti(178.5, c(2, 200, 1));
+    eq([piu.stato, piu.differenza], ["conti-di-piu", 21.5], "Conti di più");
+    ok(/^2 spese in Conti \(1 senza importo\): 200,00[ \u00a0]€, cioè 21,50[ \u00a0]€ più del conto dell'ordine \(178,50[ \u00a0]€\)/.test(piu.testo), piu.testo);
+    const meno = ponti.confrontoOrdineConti(178.5, c(1, 100));
+    eq([meno.stato, meno.differenza], ["conti-di-meno", -78.5], "Conti di meno");
+    ok(/manca una fattura, o il conto dell'ordine è stimato alto/.test(meno.testo), meno.testo);
+    eq(ponti.confrontoOrdineConti(0, c(1, 100)).stato, "ordine-senza-conto", "l'ordine non ha ancora un costo");
+    eq(ponti.confrontoOrdineConti(null, c(1, 100)).stato, "ordine-senza-conto", "o non lo si legge");
+    eq(ponti.confrontoOrdineConti(100.004, c(1, 100)).stato, "uguale", "sotto il centesimo è uguale");
+  });
+  test("⛔ sulla dimostrazione: la fattura dell'officina (c90 in Conti, k5 in Flotta) è collegata a n2 e il confronto dice la differenza", () => {
+    const c90 = conti.DEMO.costi.find(x => x.id === "c90"), k5 = flotta.DEMO.costiConti.find(x => x.id === "k5");
+    eq(ponti.riferimentoOrdineFlotta(c90), ponti.riferimentoOrdineFlotta(k5), "le due dimostrazioni portano lo stesso riferimento");
+    eq(ponti.voceCosto(c90.voce).daMezzo, true, "ed è una voce daMezzo, come ogni manutenzione");
+    const o = flotta.ordineDaManutenzione(flotta.DEMO.manutenzioni.find(m => m.id === "n2"), flotta.DEMO.ricambi);
+    const r = ponti.confrontoOrdineConti(flotta.costoOrdine(o).totale, ponti.costiDiOrdine("n2", flotta.DEMO.costiConti));
+    eq(r.stato, "conti-di-piu", "la fattura è più del conto dell'ordine: è il caso che il ponte esiste per far vedere");
+    eq(r.differenza, 21.5, "di 21,50[ \u00a0]€");
+  });
+}
+/* ===== fine ponte Conti → Flotta (06/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

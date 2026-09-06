@@ -390,6 +390,10 @@ export const DEMO = {
     { id: "k2", data: "2026-07-20", voce: "manutenzione", importo: 640, nota: "Officina esterna, fattura di luglio" },
     { id: "k3", voce: "carburante", importo: 500, nota: "Buono gasolio senza data" },
     { id: "k4", data: "2026-07-03", voce: "personale", importo: 5500, nota: "Squadra di fronte, luglio" },
+    /* la fattura dell'officina COLLEGATA all'ordine n2 (06/09): è la stessa
+       riga della dimostrazione di Conti (c90), vista da qui */
+    { id: "k5", data: "2026-08-10", voce: "manutenzione", importo: 200, nota: "Officina esterna, fattura 214 — rotazione gomme D1",
+      ordineFlotta: { id: "n2", titolo: "Rotazione gomme", mezzo: "Dumper D1" } },
   ],
   /* IL BUDGET DELL'ANNO, per voce (05/09): quello che il gestore del parco
      ha DECISO di spendere. La voce è la stessa parola con cui si registrano i
@@ -1462,6 +1466,8 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
    due elenchi diversi, i costi del mezzo e quelli della cava smetterebbero di
    sommarsi senza che nessun controllo se ne accorga. */
 export { VOCI_COSTO, voceCosto, gruppoDiVoce } from "../../shared/dw-ponti.js";
+// le spese di Conti collegate a un ordine di lavoro (06/09): la regola vive in shared/, qui si ri-esporta
+export { riferimentoOrdineFlotta, costiDiOrdine, confrontoOrdineConti } from "../../shared/dw-ponti.js";
 /* ⛔ E `numeroDichiarato` SI RI-ESPORTA, non si riscrive. La regola che
    distingue «zero misurato» da «campo mai compilato» vive in `shared/` e qui
    dentro la usano già `csvRicambi` e `propostaScorte`; le serviva anche alla
