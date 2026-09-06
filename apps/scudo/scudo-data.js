@@ -350,6 +350,13 @@ export const DEMO = {
        è esattamente l'episodio su cui chi segnala NON sa dire come sarebbe
        finita, e costringerlo a scegliere raccoglierebbe un numero inventato. */
     { id: "i5", data: "2026-07-15", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+    /* LE OSSERVAZIONI DI SICUREZZA (05/09, notte): non un evento, ma un
+       comportamento o una condizione VISTA — buona pratica da lodare, o cosa
+       da correggere prima che diventi un near-miss. Stessa collezione, stesse
+       categorie e luoghi, `tipo: "osservazione"` con `esito`. */
+    { id: "o1", data: "2026-08-12", tipo: "osservazione", esito: "positiva", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", descrizione: "Osservazione positiva — Caduta massi · fronte: disgaggio fatto prima del turno, come da procedura" },
+    { id: "o2", data: "2026-08-20", tipo: "osservazione", esito: "da-correggere", gravita: "lieve", giorniAssenza: 0, luogo: "piazzale 1", luogoTipo: "piazzale", categoria: "mezzi", descrizione: "Da correggere — Mezzi · piazzale: retromarcia del dumper senza segnalatore acustico" },
+    { id: "o3", data: "2026-09-02", tipo: "osservazione", esito: "positiva", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", descrizione: "Osservazione positiva — Impianto · impianto: lucchetto sul sezionatore durante la pulizia del nastro" },
     { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, gravitaPotenziale: "lieve", descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
     // i7 sta in un ANNO PRECEDENTE di proposito: senza almeno due anni non
     // esiste un andamento da mostrare, e la dimostrazione deve contenere il
@@ -1143,7 +1150,7 @@ export function origineAzione(azione, ctx = {}, opts = {}) {
     if (!e) return (doc ? "evento non più in archivio" : "da un evento rimosso dal registro") + coda;
     return doc
       ? (e.tipo || "evento") + " del " + dataIt(e.data) + (e.descrizione ? " — " + e.descrizione : "")
-      : "da " + (e.tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + dataIt(e.data);
+      : "da " + (e.tipo === "infortunio" ? "infortunio" : e.tipo === "osservazione" ? "osservazione" : "near-miss") + " del " + dataIt(e.data);
   }
 
   if (a.origineTipo === "ispezione") {
@@ -1230,7 +1237,7 @@ export {
    `categoriaNearMiss` e `luogoNearMiss`: senza questa riga morirebbe con
    «categoriaNearMiss is not defined». È lo stesso inciampo già pagato in
    `apps/campo/campo-data.js` con `statoRisposta`, scritto lì nel commento. */
-import { categoriaNearMiss, luogoNearMiss } from "../../shared/dw-ponti.js";
+import { categoriaNearMiss, luogoNearMiss, bozzaNearMiss } from "../../shared/dw-ponti.js";
 
 // Riepilogo AGGREGATO dei near-miss del periodo (L. 198/2025: dati aggregati
 // sugli eventi *e* sulle azioni correttive adottate). Conta il periodo scelto
@@ -1906,13 +1913,95 @@ export const dataPiuGiorni = dataPiuGiorniShell;
 // "infortunio" oppure "near-miss" (qualsiasi altro valore → near-miss, il caso
 // più prudente per il contatore "giorni senza infortuni"). descrizione/luogo
 // sono testo grezzo → escapare dove mostrati. Pura e testabile.
+/* ══════════════════════════════════════════════════════════════════════════
+   LE OSSERVAZIONI DI SICUREZZA (05/09, notte). Il mondo [seconda mano,
+   docs/RICERCA_CONTINUA_SCUDO.md]: un'osservazione non è un evento — è un
+   comportamento o una condizione VISTA, e si registra nei due versi: la buona
+   pratica da riconoscere e la cosa da correggere prima che diventi un
+   near-miss. La ISO 45001 non le pretende ma le usa (partecipazione dei
+   lavoratori, identificazione dei pericoli, azioni correttive), e quattro
+   concorrenti su quattro le mettono in tendenza per area e per tema.
+   Qui: stessa collezione degli eventi (`infortuni`), stesse categorie e
+   luoghi del near-miss, `tipo: "osservazione"` e `esito`. Nessun conto degli
+   infortuni o dei near-miss le tocca: quei filtri chiedono il tipo per nome.
+   ══════════════════════════════════════════════════════════════════════════ */
+export const TIPI_EVENTO = [
+  { chiave: "infortunio", etichetta: "Infortunio", breve: "Infortunio" },
+  { chiave: "near-miss", etichetta: "Near-miss", breve: "Near-miss" },
+  { chiave: "osservazione", etichetta: "Osservazione di sicurezza", breve: "Osservazione" },
+];
+export function etichettaTipoEvento(tipo, breve = false) {
+  const t = TIPI_EVENTO.find((x) => x.chiave === String(tipo || "").trim());
+  return t ? (breve ? t.breve : t.etichetta) : "Evento";
+}
+export const OSSERVAZIONE_ESITI = [
+  { chiave: "positiva", etichetta: "Comportamento sicuro / buona pratica", breve: "positiva" },
+  { chiave: "da-correggere", etichetta: "Condizione o comportamento da correggere", breve: "da correggere" },
+];
+export function etichettaEsitoOsservazione(esito, breve = false) {
+  const e = OSSERVAZIONE_ESITI.find((x) => x.chiave === String(esito || "").trim());
+  return e ? (breve ? e.breve : e.etichetta) : "";
+}
+/* La bozza dalla segnalazione rapida: stessa forma di `bozzaNearMiss` (la
+   categoria, il luogo, la data che esiste e non è nel futuro, chi segnala),
+   più l'esito, che è la cosa che un'osservazione ha e un near-miss no. */
+export function bozzaOsservazione(s = {}, oggi = new Date()) {
+  const esito = String((s && s.esito) || "").trim();
+  const base = bozzaNearMiss(s, oggi);
+  const problemi = [...(base.problemi || [])];
+  if (!OSSERVAZIONE_ESITI.some((x) => x.chiave === esito))
+    problemi.unshift("Tocca prima se è una buona pratica o una cosa da correggere: è la prima fila di pulsanti.");
+  if (problemi.length) return { ok: false, problemi, record: null, chi: base.chi, noto: base.noto, motivoChi: base.motivoChi };
+  const r = base.record;
+  const prefisso = esito === "positiva" ? "Osservazione positiva — " : "Da correggere — ";
+  return { ...base, record: { ...r, tipo: "osservazione", esito, gravitaPotenziale: undefined, descrizione: prefisso + r.descrizione } };
+}
+/* Il riepilogo per area e per tema, come per i near-miss: stessa finestra,
+   stessa soglia per la tendenza (`pochi`), e in più i due versi. */
+export function riepilogoOsservazioni(infortuni, giorni = 90, oggi = new Date()) {
+  const tutte = (infortuni || []).filter((x) => x && x.tipo === "osservazione");
+  const list = tutte.filter((x) => dentroFinestraNM(x, giorni, oggi));
+  const raggruppa = (etichettaDi) => {
+    const per = {};
+    for (const x of list) { const lab = etichettaDi(x); per[lab] = (per[lab] || 0) + 1; }
+    return Object.entries(per).map(([etichetta, valore]) => ({ etichetta, valore }))
+      .sort((a, b) => b.valore - a.valore || a.etichetta.localeCompare(b.etichetta, "it"));
+  };
+  const positive = list.filter((x) => x.esito === "positiva").length;
+  const daCorreggere = list.filter((x) => x.esito === "da-correggere").length;
+  return {
+    giorni, totale: list.length, totaleStorico: tutte.length, positive, daCorreggere,
+    senzaEsito: list.length - positive - daCorreggere,
+    perTema: raggruppa((x) => categoriaNearMiss(x.categoria) || "Non classificato"),
+    perLuogo: raggruppa(etichettaLuogoNM),
+    pochi: troppoPochiPerTendenza(list.length),
+  };
+}
+export function descriviLetturaOsservazioni(r) {
+  const x = r || {};
+  const t = +x.totale || 0;
+  if (t === 0) {
+    const s = +x.totaleStorico || 0;
+    return s ? "Nessuna osservazione nel periodo scelto: nello storico ce ne sono " + s + ". Allarga il periodo per vederle."
+      : "Nessuna osservazione di sicurezza registrata. Un registro vuoto non vuol dire che nessuno guardi: vuol dire che non si scrive.";
+  }
+  const n = (k, s, p) => k + " " + (k === 1 ? s : p);
+  const testo = n(t, "osservazione", "osservazioni") + " nel periodo: " + n(+x.positive || 0, "buona pratica", "buone pratiche")
+    + " e " + n(+x.daCorreggere || 0, "cosa da correggere", "cose da correggere")
+    + (x.senzaEsito ? " (" + n(+x.senzaEsito, "senza esito dichiarato", "senza esito dichiarato") + ")" : "") + ".";
+  return x.pochi
+    ? testo + " " + (t === 1 ? "Una osservazione è meno" : t + " osservazioni sono meno") + " di " + MIN_TENDENZA + ": non c'è una tendenza per area o per tema da leggere, e disegnarla sarebbe una bugia."
+    : testo;
+}
+
 export function parseInfortuniCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
-      const tp = (tipo || "").trim().toLowerCase() === "infortunio" ? "infortunio" : "near-miss";
+      const tpRaw = (tipo || "").trim().toLowerCase();
+      const tp = tpRaw === "infortunio" ? "infortunio" : tpRaw === "osservazione" ? "osservazione" : "near-miss";
       return {
         data: (data || "").trim(),
         tipo: tp,
@@ -4695,7 +4784,7 @@ export function eventiSenzaAnalisi(infortuni, analisi) {
      lo schermo, il CSV del registro e gli indici: qui c'era la quarta lettura,
      più debole delle altre tre. */
   const gravita = (e) => ((prognosiAperta(e) || giornateAssenza(e) > 0) ? 2
-    : (e || {}).tipo === "near-miss" ? 0 : 1);
+    : ((e || {}).tipo === "near-miss" || (e || {}).tipo === "osservazione") ? 0 : 1);
   return (infortuni || [])
     .filter((e) => e && e.id && !fatti.has(String(e.id)))
     .sort((a, b) => gravita(b) - gravita(a)

@@ -230,7 +230,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    passati in `shared/dw-ponti.js` (che sale) perché Genesi compone il consuntivo
    letto dall'organizzazione con la stessa funzione con cui Campo scrive il file.
    Campo li ri-esporta come alias. Il totale non scende. */
-const FONDO = { campo: 134, conti: 180, flotta: 135, scudo: 199, sentinella: 170, terra: 88 };
+const FONDO = { campo: 134, conti: 180, flotta: 135, scudo: 206, sentinella: 170, terra: 88 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

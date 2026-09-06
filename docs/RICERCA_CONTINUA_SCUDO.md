@@ -1075,3 +1075,63 @@ casi (basso).
 (c) ✅ fatti — il ponte legge il giudizio e le due dimostrazioni portano i tre
 casi; (b) ✅ subito dopo: `giudizioIdoneita`, la modale al tocco del badge,
 la data e le prescrizioni nella riga e nel CSV. Tre candidati su tre fatti.*
+
+
+## Ricerca del 2026-09-06 (notte) — le osservazioni di sicurezza: il mondo
+
+⚠️ **Fonti di seconda mano e deduzione dichiarata.** Questa metà è scritta da
+chi lavora, dalla conoscenza generale dei sistemi di gestione HSE, **senza**
+una `WebSearch` fresca in questa unità (scelta per non bruciare crediti): i
+nomi delle norme sono citati come contesto, **non** come testo letto oggi, e
+**nessun numero di legge entra in una schermata** del prodotto per questa via.
+
+### Che cos'è, fuori
+
+- **Safety observation / osservazione di sicurezza** (BBS, *behaviour-based
+  safety*, e le schede «STOP», «Take 5», «Safety Observation Report» che i
+  grandi gruppi estrattivi usano da decenni): chiunque, in cava, annota ciò che
+  **vede** — non ciò che è successo. Due versi sempre: il **comportamento
+  sicuro** (da rinforzare, dicendolo a chi l'ha fatto) e la **condizione o il
+  comportamento a rischio** (da correggere, con un'azione). *[dedotto dalla
+  pratica diffusa; i nomi delle schede sono marchi o consuetudini aziendali]*
+- **Perché la contano a parte dai near-miss**: il near-miss è un evento
+  (qualcosa è successo e non ha fatto danno); l'osservazione è uno **sguardo**
+  (nessun evento). Metterle nello stesso conto gonfia il registro degli eventi
+  e nasconde il rapporto che i sistemi maturi leggono — *molte osservazioni,
+  pochi eventi* è il segno di una cultura che guarda. *[dedotto]*
+- **ISO 45001**: la partecipazione e consultazione dei lavoratori (§5.4) e il
+  «miglioramento continuo» (§10) vogliono un canale in cui il lavoratore
+  segnala **anche** ciò che va bene; molti audit chiedono il **numero di
+  osservazioni per lavoratore per mese** come indicatore proattivo (*leading
+  indicator*) accanto agli indici di frequenza (*lagging*). *[seconda mano:
+  numeri di paragrafo da memoria, da verificare prima di citarli altrove]*
+- **Trending**: i prodotti di categoria (Intelex, Cority, SafetyCulture,
+  Evotix — già censiti in `CONCORRENTI_SCUDO.md` §2) aggregano per **area** e
+  per **tema** su una finestra, e mostrano la quota positive/negative. Con
+  pochi dati non disegnano: scrivono il numero. *[dal censimento del 01/08]*
+- **In Italia** la parola del mestiere è proprio «osservazione di sicurezza»
+  (o «segnalazione di buona pratica»); «near-miss» resta in inglese anche nei
+  documenti italiani, «mancato infortunio» nei testi di legge. *[dedotto dai
+  testi di settore letti nel censimento]*
+
+### Domande per il delta (fatte al meccanismo, non al nome)
+
+1. *Chi compone il record di una segnalazione?* → uno solo, `bozzaNearMiss` di
+   `shared/`; l'osservazione deve passare **di lì**, non da una copia.
+2. *Chi decide quando i numeri sono troppo pochi per una tendenza?* →
+   `MIN_TENDENZA` / `troppoPochiPerTendenza`, già dei near-miss: la stessa
+   soglia, non una seconda.
+3. *Una buona pratica deve aprire un'azione correttiva?* → no: chiede di essere
+   **detta** a chi l'ha fatta. La cosa da correggere sì.
+4. *La gravità potenziale («e se fosse andata male?») ha senso su un'osservazione?*
+   → no: non è successo niente. Il campo resta assente, non «lieve».
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte, contro `a0a62311`)
+
+Fatto nella stessa unità: vedi la voce «LE OSSERVAZIONI DI SICUREZZA DI SCUDO»
+in `vault/ROADMAP_SETTIMANA.md` e le tre righe passate a C'È in
+`docs/CONCORRENTI_SCUDO.md`. Resta fuori, dichiarato: il **conteggio per
+lavoratore per mese** (indicatore proattivo) — vuole un «chi segnala» sempre
+compilato, e oggi è facoltativo per scelta (la segnalazione deve restare di tre
+tocchi); e il **rinforzo** della buona pratica (dirlo a chi l'ha fatta) è una
+frase nel toast, non un flusso.

@@ -39107,5 +39107,116 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 /* ===== fine mappa delle colonne (05/09) ===== */
 /* ===== fine ponte P6 (05/09) ===== */
 
+/* ===== SCUDO · LE OSSERVAZIONI DI SICUREZZA (05/09, notte) =====
+   Una buona pratica vista, o una cosa da correggere PRIMA che succeda
+   qualcosa: entra nel registro degli eventi con `tipo: "osservazione"` e un
+   `esito`, e si conta A PARTE — nessun conto degli infortuni o dei near-miss
+   la tocca. Il record lo compone `bozzaOsservazione`, che chiama la STESSA
+   `bozzaNearMiss` di `shared/`: un compositore solo per il documento.
+   ⚠️ Prove SINCRONE e messe PRIMA del riepilogo: l'`await Promise.all(inVolo)`
+   sta ventimila righe più su. */
+{
+  const OGGI = new Date("2026-09-05T12:00:00");
+  const oss = (data, esito, categoria, luogoTipo, extra = {}) =>
+    ({ id: "o" + data + esito, data, tipo: "osservazione", esito, categoria, luogoTipo, luogo: ponti.luogoNearMiss(luogoTipo), ...extra });
+  const eventi = [
+    { id: "i1", data: "2026-08-20", tipo: "infortunio", gravita: "lieve", giorniAssenza: 2 },
+    { id: "n1", data: "2026-08-22", tipo: "near-miss", categoria: "caduta-massi", luogoTipo: "fronte" },
+    oss("2026-08-25", "positiva", "caduta-massi", "fronte"),
+    oss("2026-08-28", "da-correggere", "mezzi", "piazzale"),
+    oss("2026-09-01", "positiva", "mezzi", "piazzale"),
+    oss("2026-03-01", "positiva", "impianto", "impianto"),     // fuori dai 90 giorni
+    oss("2026-09-02", "", "impianto", "impianto"),             // senza esito
+  ];
+  test("⛔ osservazioni: il riepilogo guarda SOLO le osservazioni, e i near-miss non le vedono", () => {
+    const r = scudo.riepilogoOsservazioni(eventi, 90, OGGI);
+    eq(r.totale, 4, "quattro nel periodo");
+    eq(r.totaleStorico, 5, "cinque in tutto: infortunio e near-miss restano fuori");
+    eq(r.positive, 2, "due buone pratiche"); eq(r.daCorreggere, 1, "una da correggere"); eq(r.senzaEsito, 1, "una senza esito");
+    eq(scudo.riepilogoNearMiss(eventi, [], 90, OGGI).totale, 1, "il conto dei near-miss non cresce");
+    eq(scudo.riepilogoInfortuni(eventi).nearMiss, 1, "e nemmeno nel riepilogo degli infortuni");
+  });
+  test("osservazioni: null = tutto lo storico, e 0 giorni NON vuol dire «tutti»", () => {
+    eq(scudo.riepilogoOsservazioni(eventi, null, OGGI).totale, 5, "senza finestra ci sono tutte");
+    ok(scudo.riepilogoOsservazioni(eventi, 0, OGGI).totale < 5, "0 giorni è una finestra, non il tutto (la pagina passa `nmPeriodo || null`)");
+  });
+  test("osservazioni: per luogo e per tema, ordinati dal più frequente", () => {
+    const r = scudo.riepilogoOsservazioni(eventi, null, OGGI);
+    eq(r.perLuogo.map(d => d.etichetta + " " + d.valore), ["Impianto 2", "Piazzale 2", "Fronte 1"], "per luogo, a parità in ordine alfabetico");
+    eq(r.perTema[0].valore, 2, "il tema più frequente ha due righe");
+  });
+  test("⛔ osservazioni: con meno di MIN_TENDENZA la lettura lo DICE, e non disegna", () => {
+    const r = scudo.riepilogoOsservazioni(eventi, 90, OGGI);
+    eq(r.pochi, true, "quattro sono poche");
+    const s = scudo.descriviLetturaOsservazioni(r);
+    ok(/4 osservazioni nel periodo: 2 buone pratiche e 1 cosa da correggere \(1 senza esito dichiarato\)\./.test(s), "il conto vero, coi due versi: " + s);
+    ok(/meno di 5/.test(s), "e dice che sono poche");
+    const molte = [...eventi, ...[3, 4, 5, 6, 7].map(d => oss("2026-09-0" + d, "positiva", "mezzi", "pista"))];
+    const rm = scudo.riepilogoOsservazioni(molte, 90, OGGI);
+    eq(rm.pochi, false, "nove non sono poche");
+    ok(!/meno di/.test(scudo.descriviLetturaOsservazioni(rm)), "e la frase non lo dice più");
+  });
+  test("osservazioni: registro vuoto e periodo vuoto sono due frasi diverse", () => {
+    ok(/non si scrive/.test(scudo.descriviLetturaOsservazioni(scudo.riepilogoOsservazioni([], 90, OGGI))), "vuoto del tutto");
+    const s = scudo.descriviLetturaOsservazioni(scudo.riepilogoOsservazioni([oss("2026-03-01", "positiva", "mezzi", "pista")], 90, OGGI));
+    ok(/nello storico ce ne sono 1/.test(s), "vuoto nel periodo, ma con lo storico: " + s);
+  });
+  test("osservazioni: il singolare («1 osservazione», «Una osservazione è meno»)", () => {
+    const s = scudo.descriviLetturaOsservazioni(scudo.riepilogoOsservazioni([oss("2026-09-01", "positiva", "mezzi", "pista")], 90, OGGI));
+    ok(/^1 osservazione nel periodo: 1 buona pratica e 0 cose da correggere\./.test(s), s);
+    ok(/Una osservazione è meno di 5/.test(s), s);
+  });
+  test("⛔ bozzaOsservazione: stesso record di bozzaNearMiss + tipo ed esito, e la gravità potenziale NON c'è", () => {
+    const dati = { categoria: "caduta-massi", luogoTipo: "piazzale", dettaglio: "casco indossato", data: "2026-09-01", esito: "positiva" };
+    const b = scudo.bozzaOsservazione(dati, OGGI), n = ponti.bozzaNearMiss(dati, OGGI);
+    eq(b.ok, true, "passa");
+    eq(b.record.tipo, "osservazione", "tipo"); eq(b.record.esito, "positiva", "esito");
+    eq(b.record.descrizione, "Osservazione positiva — " + n.record.descrizione, "la descrizione porta il verso");
+    ok(!("gravitaPotenziale" in b.record) || b.record.gravitaPotenziale === undefined, "niente «e se fosse andata male» su una buona pratica");
+    for (const k of ["data", "categoria", "luogoTipo", "luogo", "anonimo", "segnalatoDaId", "rapida", "gravita", "giorniAssenza"])
+      eq(b.record[k], n.record[k], "campo identico al near-miss: " + k);
+    const dc = scudo.bozzaOsservazione({ ...dati, esito: "da-correggere" }, OGGI);
+    ok(/^Da correggere — /.test(dc.record.descrizione), "l'altro verso: " + dc.record.descrizione);
+  });
+  test("⛔ bozzaOsservazione: senza esito si ferma, e lo dice PER PRIMO", () => {
+    const b = scudo.bozzaOsservazione({ categoria: "caduta-massi", luogoTipo: "piazzale", data: "2026-09-01" }, OGGI);
+    eq(b.ok, false, "non passa"); eq(b.record, null, "niente record");
+    ok(/buona pratica o una cosa da correggere/.test(b.problemi[0]), "il primo problema è l'esito: " + b.problemi[0]);
+    const b2 = scudo.bozzaOsservazione({ esito: "positiva", data: "2026-09-01" }, OGGI);
+    ok(b2.problemi.some(p => /che cosa/.test(p)) && b2.problemi.some(p => /dove/.test(p)), "e le regole del near-miss restano tutte: " + b2.problemi.join(" | "));
+    eq(scudo.bozzaOsservazione({ ...{ categoria: "caduta-massi", luogoTipo: "piazzale", data: "2026-09-01" }, esito: "boh" }, OGGI).ok, false, "un esito inventato non passa");
+  });
+  test("etichette: tipo ed esito hanno un nome, e un tipo ignoto risponde «Evento»", () => {
+    eq(scudo.etichettaTipoEvento("osservazione"), "Osservazione di sicurezza", "lunga");
+    eq(scudo.etichettaTipoEvento("osservazione", true), "Osservazione", "breve");
+    eq(scudo.etichettaTipoEvento("infortunio", true), "Infortunio", "infortunio");
+    eq(scudo.etichettaTipoEvento("boh"), "Evento", "ignoto");
+    eq(scudo.etichettaEsitoOsservazione("da-correggere", true), "da correggere", "esito breve");
+    eq(scudo.etichettaEsitoOsservazione(""), "", "senza esito: vuoto, non una parola inventata");
+    eq(scudo.TIPI_EVENTO.map(x => x.chiave), ["infortunio", "near-miss", "osservazione"], "i tre tipi");
+    eq(scudo.OSSERVAZIONE_ESITI.map(x => x.chiave), ["positiva", "da-correggere"], "i due versi");
+  });
+  test("⛔ il CSV del registro legge «osservazione» come tipo, e l'origine di un'azione la nomina", () => {
+    const righe = scudo.parseInfortuniCsv("data;tipo;gravita;giorni;descrizione;luogo\n2026-09-01;osservazione;lieve;0;Casco indossato;Piazzale\n2026-09-02;boh;lieve;0;x;y");
+    eq(righe.map(r => r.tipo), ["osservazione", "near-miss"], "«osservazione» entra col suo tipo; un tipo ignoto ricade su near-miss, il caso prudente (la regola del lettore, non di questa prova)");
+    const o = scudo.origineAzione({ origineTipo: "evento", origineId: "o1" }, { infortuni: [oss("2026-09-01", "da-correggere", "mezzi", "pista", { id: "o1" })] });
+    ok(/da osservazione del 01\/09\/2026/.test(o), "«da osservazione», non «da near-miss»: " + o);
+  });
+  test("la dimostrazione ha le tre osservazioni, nei due versi", () => {
+    const r = scudo.riepilogoOsservazioni(scudo.DEMO.infortuni, null, OGGI);
+    eq(r.totale, 3, "tre"); eq(r.positive, 2, "due positive"); eq(r.daCorreggere, 1, "una da correggere");
+  });
+  test("⛔ la pagina: il salvataggio passa dal modulo, il filtro esiste, il riepilogo si legge", () => {
+    const pagina = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    ok(/const b = oss \? bozzaOsservazione\(dati\) : bozzaNearMiss\(dati\);/.test(pagina), "un compositore solo, scelto dal tipo");
+    ok(/data-filtro="osservazione"/.test(pagina), "il filtro del registro");
+    ok(/riepilogoOsservazioni\(INF, nmPeriodo \|\| null\)/.test(pagina), "null = tutto lo storico, come per i near-miss");
+    ok(/descriviLetturaOsservazioni\(ros\)/.test(pagina), "la lettura la dice il modulo");
+    ok(/data-nm-tipo="positiva"/.test(pagina) && /data-nm-tipo="da-correggere"/.test(pagina), "i due versi nel modale");
+    ok(/etichettaTipoEvento\(x\.tipo, true\)/.test(pagina), "la tendina delle origini non dice «Near-miss» a un'osservazione");
+  });
+}
+/* ===== fine osservazioni di sicurezza (05/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

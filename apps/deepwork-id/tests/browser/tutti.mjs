@@ -971,6 +971,8 @@ const BANCHI = [
      rimessi in due testi statici. */
   ['ogni schermata delle sei app a 320 px: le quattro parole vietate, e gli zeri contati', 'numeri-tranquilli-a-320.mjs', []],
   ['schermate a 320 px · controprova', 'numeri-tranquilli-a-320.mjs', ['--controprova'], true],
+  ['le osservazioni di sicurezza di Scudo: il modale, i due versi, il filtro, il riepilogo', 'scudo-osservazioni.mjs', []],
+  ['osservazioni di Scudo · controprova', 'scudo-osservazioni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha
      cambiato la domanda: su dodici tappe i soggetti con una geometria sono 91,
      e le geometrie che rappresentano una QUANTITÀ sono NOVE — tutte del motore

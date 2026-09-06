@@ -1465,13 +1465,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        rischio si concentra, ed è la forma in cui la L. 198/2025 chiede di
        comunicare i dati (eventi + azioni correttive adottate). Con pochi
        numeri non si disegnano tendenze: si scrive che sono pochi. -->
-  <div class="sec">Riepilogo near-miss</div>
+  <div class="sec">Riepilogo near-miss e osservazioni</div>
   <div id="nm-periodo" class="chgs">
     <button class="chg active" data-nm-periodo="90">Ultimi 90 giorni</button>
     <button class="chg" data-nm-periodo="365">Ultimi 12 mesi</button>
     <button class="chg" data-nm-periodo="0">Tutto lo storico</button>
   </div>
   <div id="nm-riep" class="note recap" style="margin-top:0;"></div>
+  <!-- Le OSSERVAZIONI di sicurezza (una buona pratica vista, o una cosa da
+       correggere PRIMA che succeda qualcosa) stanno nello stesso registro dei
+       near-miss e si contano a parte: non sono eventi, sono sguardi. Stesso
+       periodo, stessa soglia per la tendenza (`pochi`), e i due versi. -->
+  <div id="oss-riep" class="note recap" style="margin-top:8px;"></div>
   <div id="graf-nm-tipo" style="margin-top:12px;"></div>
   <div id="graf-nm-luogo" style="margin-top:12px;"></div>
   <div class="tools">
@@ -1520,6 +1525,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     <button class="chg active" data-filtro="tutti">Tutti</button>
     <button class="chg" data-filtro="infortunio">Infortuni</button>
     <button class="chg" data-filtro="near-miss">Near-miss</button>
+    <button class="chg" data-filtro="osservazione">Osservazioni</button>
   </div>
   <div id="inf-list"></div>
   <div class="sec">Registra evento</div>
@@ -1754,6 +1760,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, giudizioIdoneita, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, csvProspettoAzioni, csvRiepilogoNearMiss, etichettaPeriodoNearMiss, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
+    etichettaTipoEvento, etichettaEsitoOsservazione, bozzaOsservazione, riepilogoOsservazioni, descriviLetturaOsservazioni,
     GRAVITA_POTENZIALE, potenzialeDi, descriviPotenziale, riepilogoPotenziale, descriviRischioPotenziale,
     MODELLI_ISPEZIONE, modelloIspezione, nuovaIspezioneDaModello, riepilogoIspezione, riepilogoIspezioni, vociNonConformi, statoIspezione, azioniDiIspezione, esitoLabel, ESITI_ISPEZIONE, dataPiuGiorni,
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
@@ -3369,6 +3376,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         + ` · con azione correttiva: <b>${rnm.conAzione}</b>`
         + (rnm.senzaAzione ? ` · ancora senza: <b>${rnm.senzaAzione}</b>` : "")
         + ` · azioni chiuse: <b>${rnm.azioniChiuse}</b> su ${rnm.azioni}.`;
+    /* Le osservazioni, sotto e a parte: stesso periodo, e la lettura la dice il
+       modulo (`descriviLetturaOsservazioni`), compreso il «sono poche» che
+       impedisce di leggere una tendenza in tre righe. Le due classifiche si
+       scrivono in chiaro solo quando la tendenza c'è. */
+    const ros = riepilogoOsservazioni(INF, nmPeriodo || null);
+    const rosLista = (tit, dati) => dati.length
+      ? " · " + tit + ": " + dati.map(d => esc(d.etichetta) + " <b>" + d.valore + "</b>").join(", ") : "";
+    $("oss-riep").innerHTML = "<b>Osservazioni di sicurezza</b> · " + esc(descriviLetturaOsservazioni(ros))
+      + (ros.totale && !ros.pochi ? rosLista("per luogo", ros.perLuogo) + rosLista("per tema", ros.perTema) : "");
     // Le due classifiche: per tipo e per luogo. Stessa forma (barre
     // orizzontali ordinate), perché rispondono alla stessa domanda.
     const nmBarre = (idBox, dati, titolo, cosa, vuotoTit, primo0) => {
@@ -3502,10 +3518,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       puliscoGrafico("graf-cause");
     }
 
+    /* L'osservazione ha la pastiglia del suo ESITO, non del tipo: «positiva» è
+       l'unica riga verde che questo registro può avere, e «da correggere» è
+       gialla come un near-miss perché chiede la stessa cosa — un'azione. Senza
+       esito dichiarato resta gialla: non si sa se è a posto. */
     const TB = { infortunio: ["danger", "Infortunio"], "near-miss": ["warn", "Near-miss"] };
+    const tbDi = (x) => x.tipo === "osservazione"
+      ? (x.esito === "positiva" ? ["ok", "Buona pratica"] : ["warn", x.esito === "da-correggere" ? "Da correggere" : "Osservazione"])
+      : (TB[x.tipo] || ["warn", esc(x.tipo || "—")]);
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
-      const tb = TB[x.tipo] || ["warn", esc(x.tipo || "—")];
+      const tb = tbDi(x);
       // Dall'evento si risale alle sue azioni correttive (e viceversa): è il
       // legame che la L. 198/2025 chiede di poter mostrare.
       const az = azioniDiEvento(AZI, x.id), azChiuse = az.filter(a => a.stato === "chiusa").length;
@@ -3563,7 +3586,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
              title="Nessuno ha ancora detto come poteva finire — tocca per dirlo (è facoltativo)"
              aria-label="Gravità potenziale non valutata: tocca per valutarla">Non valutata</span>`;
       return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${pb}${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo !== "near-miss" ? " · " + (x.gravita ? esc(x.gravita) : "gravità non dichiarata") : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo === "osservazione" ? " · " + esc(etichettaEsitoOsservazione(x.esito) || "esito non dichiarato") : x.tipo !== "near-miss" ? " · " + (x.gravita ? esc(x.gravita) : "gravità non dichiarata") : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
@@ -3658,7 +3681,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     { const selO = $("azi-origine"), val = selO.value;
       const opzioni = '<option value="">— nasce da una non conformità / controllo —</option>' +
         INF.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x =>
-          `<option value="evt:${x.id}">${x.tipo === "infortunio" ? "Infortunio" : "Near-miss"} del ${fmtData(x.data)} — ${esc((x.descrizione || "evento").slice(0, 60))}</option>`).join("");
+          `<option value="evt:${x.id}">${esc(etichettaTipoEvento(x.tipo, true))} del ${fmtData(x.data)} — ${esc((x.descrizione || "evento").slice(0, 60))}</option>`).join("");
       if (selO.innerHTML !== opzioni) { selO.innerHTML = opzioni; selO.value = [...selO.options].some(o => o.value === val) ? val : ""; }
       const selR = $("azi-resp"), valR = selR.value;
       const opzR = '<option value="">— responsabile da assegnare —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join("");
@@ -5324,7 +5347,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     go("azio"); filtroOrig = null; await refresh();
     $("azi-origine").value = "evt:" + idEvento; $("azi-nota").value = "";
     esito("azi-esito-msg", ev
-      ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
+      ? "Nuova azione correttiva per l'" + (ev.tipo === "infortunio" ? "infortunio" : ev.tipo === "osservazione" ? "osservazione" : "evento near-miss") + " del " + fmtData(ev.data) + ": scrivi cosa si deve fare, chi lo fa ed entro quando."
       : "Nuova azione correttiva.");
     $("azi-desc").focus(); $("azi-desc").scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -6059,14 +6082,24 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     };
   }
 
-  const NM = { categoria: "", luogo: "", anonimo: false, foto: null };
+  /* `tipo` e `esito`: la segnalazione rapida serve anche per un'OSSERVAZIONE di
+     sicurezza — una buona pratica vista o una cosa da correggere prima che
+     succeda qualcosa. Il near-miss resta la scelta di partenza: è il caso in
+     cui si ha fretta. */
+  const NM = { tipo: "near-miss", esito: "", categoria: "", luogo: "", anonimo: false, foto: null };
   function apriSegnalazione() {
-    NM.categoria = ""; NM.luogo = ""; NM.anonimo = false; NM.foto = null;
+    NM.tipo = "near-miss"; NM.esito = ""; NM.categoria = ""; NM.luogo = ""; NM.anonimo = false; NM.foto = null;
     const oggi = oggiISO();
     const chips = (attr, lista) => lista.map(x =>
       `<button type="button" class="chg" data-${attr}="${x.chiave}">${esc(x.etichetta)}</button>`).join("");
-    apriModale("Segnala un near-miss",
-      '<div class="nm-lab">1 · Che cosa è successo</div>'
+    apriModale("Segnala un near-miss o un'osservazione",
+      '<div class="nm-lab">0 · Che cosa segnali</div>'
+      + '<div class="chgs griglia3" id="nm-tipo">'
+      + '<button type="button" class="chg active" data-nm-tipo="near-miss" aria-pressed="true">Near-miss</button>'
+      + '<button type="button" class="chg" data-nm-tipo="positiva" aria-pressed="false">Buona pratica</button>'
+      + '<button type="button" class="chg" data-nm-tipo="da-correggere" aria-pressed="false">Da correggere</button>'
+      + "</div>"
+      + '<div class="nm-lab" id="nm-lab1">1 · Che cosa è successo</div>'
       + '<div class="chgs griglia2" id="nm-cat">' + chips("nm-cat", NEARMISS_CATEGORIE) + "</div>"
       + '<div class="nm-lab">2 · Dove</div>'
       + '<div class="chgs griglia3" id="nm-luo">' + chips("nm-luo", NEARMISS_LUOGHI) + "</div>"
@@ -6108,7 +6141,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + '<input type="file" id="nm-foto" accept="image/*" style="display:none;">'
       + '<span class="form-hint" id="nm-foto-nome" style="margin:0;align-self:center;"></span>'
       + "</div>"
-      + '<div class="form-hint" style="margin-top:10px;">Bastano i primi due tocchi. Un near-miss <b>non azzera i giorni senza infortuni</b>: entra nel registro degli eventi e da lì nasce l\'azione correttiva. In forma anonima <b>non viene salvato chi ha segnalato</b>.</div>',
+      + '<div class="form-hint" style="margin-top:10px;">Bastano i primi due tocchi. Un near-miss <b>non azzera i giorni senza infortuni</b>: entra nel registro degli eventi e da lì nasce l\'azione correttiva. Un\'<b>osservazione</b> — una buona pratica vista, o una cosa da correggere prima che succeda qualcosa — entra nello stesso registro e si conta a parte. In forma anonima <b>non viene salvato chi ha segnalato</b>.</div>',
       [{ label: "Annulla", azione: chiudiModale },
        { label: "Invia", cls: "primary", azione: inviaSegnalazione }],
       { autofocus: false });
@@ -6130,6 +6163,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     };
     scelta("nm-cat", "data-nm-cat", "categoria");
     scelta("nm-luo", "data-nm-luo", "luogo");
+    /* Il «che cosa segnali» NON si azzera col ri-tocco: una scelta c'è sempre,
+       e quella di partenza è il near-miss. La prima etichetta cambia verbo con
+       lui: un near-miss è «successo», un'osservazione «riguarda» qualcosa. */
+    const tipoBox = $("nm-tipo");
+    if (tipoBox) tipoBox.querySelectorAll(".chg").forEach(b => b.onclick = () => {
+      tipoBox.querySelectorAll(".chg").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed", "false"); });
+      b.classList.add("active"); b.setAttribute("aria-pressed", "true");
+      const v = b.getAttribute("data-nm-tipo");
+      NM.tipo = v === "near-miss" ? "near-miss" : "osservazione";
+      NM.esito = v === "near-miss" ? "" : v;
+      const lab = $("nm-lab1");
+      if (lab) lab.textContent = NM.tipo === "near-miss" ? "1 · Che cosa è successo" : "1 · Che cosa riguarda";
+    });
     /* La foto della segnalazione rapida: una sola, e passa dalla STESSA regola
        di `shared/` che governa gli altri allegati — il limite è lo spazio del
        bilancio, non un numero riscritto qui. */
@@ -6178,10 +6224,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        datata a un giorno che non esiste sparisce dal riepilogo aggregato che si
        consegna. Una prova pretende che il record composto di qui sia IDENTICO a
        quello che questa pagina scriveva prima. */
-    const b = bozzaNearMiss({
+    const oss = NM.tipo === "osservazione";
+    const dati = {
       categoria: NM.categoria, luogoTipo: NM.luogo, dettaglio: dett, data,
-      chi: chi ? { lavoratoreId: chi } : null, anonimo: NM.anonimo,
-    });
+      chi: chi ? { lavoratoreId: chi } : null, anonimo: NM.anonimo, esito: NM.esito,
+    };
+    /* L'osservazione passa da `bozzaOsservazione` del modulo, che chiama la
+       STESSA `bozzaNearMiss` e aggiunge l'esito: un compositore solo per il
+       documento, e la pagina non ne tiene una versione più debole. */
+    const b = oss ? bozzaOsservazione(dati) : bozzaNearMiss(dati);
     if (!b.ok) { toast(b.problemi[0], "err"); return; }
     const rec = b.record;
     /* La foto (se c'è) parte insieme: la descrizione generata qui sopra è il
@@ -6192,12 +6243,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const nuovoId = ref && ref.id;
     chiudiModale();
     await refresh();
-    esito("inf-esito", "Near-miss registrato: " + rec.descrizione + ".", "success");
+    esito("inf-esito", (oss ? "Osservazione registrata: " : "Near-miss registrato: ") + rec.descrizione + ".", "success");
+    /* Una buona pratica vista non chiede un'azione correttiva: chiede di essere
+       detta a chi l'ha fatta. La domanda sull'azione resta per il near-miss e
+       per la cosa da correggere. */
+    if (oss && rec.esito === "positiva") { toast("Buona pratica registrata: vale la pena dirlo a chi l'ha fatta."); return; }
     // Dalla segnalazione all'azione correttiva: un tocco, finché il fatto è fresco.
-    apriModale("Segnalazione registrata",
+    apriModale(oss ? "Osservazione registrata" : "Segnalazione registrata",
       "<b>" + esc(rec.descrizione) + "</b><br>" + fmtData(data) + " · " + esc(luogoNearMiss(NM.luogo))
       + (rec.anonimo ? " · in forma anonima" : "") + ".<br><br>"
-      + "Registrarlo serve a poco se non si corregge quello che l'ha causato. Vuoi aprire subito <b>un'azione correttiva</b> collegata a questa segnalazione?",
+      + (oss ? "Registrarla serve a poco se poi non si corregge. Vuoi aprire subito <b>un'azione correttiva</b> collegata a questa osservazione?"
+             : "Registrarlo serve a poco se non si corregge quello che l'ha causato. Vuoi aprire subito <b>un'azione correttiva</b> collegata a questa segnalazione?"),
       [{ label: "Non adesso", azione: chiudiModale },
        { label: "Apri un'azione correttiva", cls: "primary",
          azione: () => { chiudiModale(); apriAzioneDaEvento(nuovoId); } }]);
@@ -6513,7 +6569,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const righe = [];
     for (let i = 0; i < AN.righe; i++) righe.push(anRiga(i, testi[i]));
     apriModale(pre ? "L'analisi della causa" : "Perché è successo",
-      '<div class="note">' + esc(ev.descrizione || (ev.tipo === "infortunio" ? "Infortunio" : "Near-miss"))
+      '<div class="note">' + esc(ev.descrizione || etichettaTipoEvento(ev.tipo))
         + "<br>" + fmtData(ev.data) + (ev.luogo ? " · " + esc(ev.luogo) : "")
         /* ⛔ QUI SI CHIEDE AL MODULO, NON AL CAMPO GREZZO. Era
            `(+ev.giorniAssenza)`: `+null` fa `0`, quindi l'infortunio a

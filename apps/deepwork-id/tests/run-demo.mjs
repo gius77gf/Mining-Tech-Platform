@@ -86,7 +86,8 @@ test("scudo: id unici, scadenze→lavoratore risolve, date valide", () => {
   idsOk(S.infortuni, "infortuni");
   for (const x of S.infortuni) {
     ok(isDate(x.data), `infortunio ${x.id}: data non valida ${x.data}`);
-    ok(["infortunio", "near-miss"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
+    ok(["infortunio", "near-miss", "osservazione"].includes(x.tipo), `infortunio ${x.id}: tipo «${x.tipo}» sconosciuto`);
+    if (x.tipo === "osservazione") ok(["positiva", "da-correggere"].includes(x.esito), `osservazione ${x.id}: esito «${x.esito}» sconosciuto`);
     /* ⚠️ IL DATO CORROTTO NON È IL DATO ASSENTE, ed è la stessa correzione già
        fatta il 01/08 per la fattura senza scadenza. Questa riga pretendeva un
        numero, quindi la dimostrazione NON POTEVA contenere l'infortunio a

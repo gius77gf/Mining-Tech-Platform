@@ -665,6 +665,32 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LE OSSERVAZIONI DI SICUREZZA DI SCUDO (06/09, notte) — la riga più
+  chiesta della B4 che non vuole hardware né backend:** una buona pratica
+  vista, o una cosa da correggere PRIMA che succeda qualcosa. Modulo:
+  `TIPI_EVENTO`, `etichettaTipoEvento`, `OSSERVAZIONE_ESITI`,
+  `etichettaEsitoOsservazione`, `bozzaOsservazione` (chiama la STESSA
+  `bozzaNearMiss` di `shared/` e aggiunge l'esito: un compositore solo per il
+  documento), `riepilogoOsservazioni` (per luogo e per tema, `pochi` sotto
+  `MIN_TENDENZA`, i due versi) e `descriviLetturaOsservazioni`; il lettore CSV
+  accetta «osservazione»; `origineAzione` la nomina; tre osservazioni nella
+  dimostrazione. Pagina: «0 · Che cosa segnali» nel modale della segnalazione
+  rapida (near-miss già scelto; la prima etichetta cambia verbo), la buona
+  pratica NON apre la domanda sull'azione correttiva, la cosa da correggere sì;
+  filtro «Osservazioni»; pastiglia dell'ESITO (verde solo la buona pratica);
+  `#oss-riep` sotto il riepilogo dei near-miss, stesso periodo; niente «e se
+  fosse andata male» su un'osservazione. Prove: run-kpi +12 (2763), banco
+  `scudo-osservazioni.mjs` 52 ok a 390 e 320 con controprova 18/52 su 3/3
+  iniezioni per file (257 esecuzioni, 108 file), copertura 913/913 (fondo
+  Scudo 206). Scatti guardati (modale in cima, riepilogo, filtro). ⚠️ Due
+  regex del banco indovinavano la forma della descrizione (`descrizioneNearMiss`
+  col dettaglio scrive SOLO il dettaglio): corrette leggendo il modulo, non
+  allargando. ⚠️ E la controprova ha ucciso il banco al primo giro: il difetto
+  rimesso lascia aperto il modale dell'azione e il click dopo aspettava 30 s —
+  adesso il banco chiude il modale, aspetta 4 s e DICHIARA il passo non
+  raggiunto invece di morire con meno prove. Docs: CONCORRENTI_SCUDO tre righe
+  a C'È e la mancanza chiusa; B4 scudo 6 → **5**, totale **40**; mondo in
+  RICERCA_CONTINUA_SCUDO.
 - [x] **LA PASSATA A 320 PX DIVENTA UN BANCO (05/09, notte):**
   `tests/browser/numeri-tranquilli-a-320.mjs` — ogni schermata delle sei
   app a 320 px, linguette chiuse aperte, e il VERDETTO solo sulle quattro
@@ -4413,8 +4439,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 6** |
-          | totale **41** (era 54, 47 fino al 05/09, 45, 44 e 42 la sera del 05/09 · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 5** |
+          | totale **40** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09 e 41 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
 
       ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
       magazzino / giacenze prodotto» di Conti era «confermato assente» dal
@@ -7046,8 +7072,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.232 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2751, `run-stile` 328,
+  **3.244 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2763, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7057,8 +7083,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **255 esecuzioni** che
-  aprono le pagine in un browser vero, da **107** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **257 esecuzioni** che
+  aprono le pagine in un browser vero, da **108** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
