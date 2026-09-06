@@ -4231,6 +4231,93 @@ export function fogliaCartella(cartella, oggi = new Date()) {
   };
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte). È il foglio che l'organo
+   di vigilanza chiede dopo la checklist: che cosa è stato guardato, con che
+   esito, e che cosa si è deciso di fare. Stessa forma della cartella
+   (`titolo`, `sottotitolo`, `sezioni[{titolo, righe, vuoto}]`, `chiusura`,
+   `firme`, `nonMisurati`), così la pagina lo disegna con la stessa mano.
+   ⛔ Una voce SENZA ESITO non è conforme: si stampa «senza esito», in
+   grassetto, e la chiusura la conta. ⛔ Una non conformità senza azione
+   correttiva è la riga che il foglio esiste per far vedere: sezione vuota in
+   rosso, non «nessuna azione». Le foto non si stampano: si conta quante sono e
+   si dice dove stanno. Pura; `oggi` iniettabile. */
+export function fogliaIspezione(isp, opzioni = {}) {
+  const i = isp || {};
+  const o = opzioni || {};
+  const cantieri = o.cantieri || [], lavoratori = o.lavoratori || [], azioni = o.azioni || [];
+  const oggi = o.oggi || new Date();
+  const cant = cantieri.find((c) => c && c.id === i.cantiereId) || null;
+  const resp = lavoratori.find((l) => l && l.id === i.responsabileId) || null;
+  const r = riepilogoIspezione(i);
+  const chiusa = i.stato === "completata";
+  const esiti = i.esiti || {};
+  const ETI = { conforme: "conforme", "non-conforme": "**NON CONFORME**", na: "non applicabile" };
+  const foto = fotoDiIspezione(i).length;
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+
+  const stato = chiusa
+    ? "Completata" + (dataISOEsiste(i.dataChiusura) ? " il " + dataIt(i.dataChiusura) : " (data di chiusura non registrata)")
+    : i.stato === "in-corso" ? "In corso: il foglio riporta la situazione alla data di stampa" : "Programmata: nessuna voce compilata" ;
+  const intestazione = sez("Ispezione", [
+    ["Checklist", String(i.nome || "(senza nome)") + (i.ambito ? " · " + String(i.ambito) : "")],
+    ["Sito", cant ? String(cant.nome || "") : "**sito non indicato**"],
+    ["Responsabile", resp ? String(resp.nome || "") + (resp.ruolo ? " (" + String(resp.ruolo) + ")" : "") : "**non indicato**"],
+    ["Data", dataISOEsiste(i.data) ? dataIt(i.data) : "**senza data**"],
+    ["Stato", stato],
+    ["Periodicità", i.periodicitaGiorni > 0 ? "ogni " + conta(+i.periodicitaGiorni, "giorno", "giorni") : "non indicata"],
+  ].concat(i.riferimento ? [["Riferimento", String(i.riferimento)]] : []), "");
+
+  const voci = (i.voci || []).map((v, k) => {
+    const e = esiti[v.id] || null;
+    const es = e && ETI[e.esito] ? ETI[e.esito] : "**senza esito**";
+    const nFoto = e && Array.isArray(e.foto) ? e.foto.filter((f) => f && f.dataURL).length : 0;
+    return [String(k + 1) + ". " + String(v.testo || ""), es + (e && String(e.nota || "").trim() ? " — " + String(e.nota).trim() : "") + (nFoto ? " · " + conta(nFoto, "foto", "foto") : "")];
+  });
+  const vociSez = sez("Voci della checklist", voci, "Questa checklist non ha nessuna voce: non è stato guardato niente.");
+
+  const esitoRiga = r.totale
+    ? [["Esito", conta(r.totale, "voce", "voci") + ": " + conta(r.conformi, "conforme", "conformi") + ", " + conta(r.nonConformi, "non conforme", "non conformi")
+        + ", " + conta(r.na, "non applicabile", "non applicabili") + (r.daFare ? ", **" + conta(r.daFare, "senza esito", "senza esito") + "**" : "")],
+       ["Foto", foto ? conta(foto, "foto allegata", "foto allegate") + " — non si stampano: si vedono in Scudo, dentro la voce" : "nessuna foto allegata"]]
+    : [];
+  const esitoSez = sez("Esito complessivo", esitoRiga, "Senza voci non c'è nessun esito da riassumere.");
+
+  const nc = vociNonConformi(i);
+  const az = azioniDiIspezione(azioni, i.id);
+  const azRighe = az.map((a) => [String(a.descrizione || "(azione senza descrizione)"),
+    azioneLabel(statoAzione(a, oggi)).label + " · " + (dataISOEsiste(a.scadenza) ? "entro il " + dataIt(a.scadenza) : "**senza scadenza**") + " · " + etichettaResponsabile(a, lavoratori).testo]);
+  const azSez = sez("Azioni correttive nate da questa ispezione", azRighe,
+    nc.length ? "**" + conta(nc.length, "non conformità senza nessuna azione correttiva", "non conformità senza nessuna azione correttiva") + "**: rilevare senza correggere è il modo in cui la stessa riga torna alla prossima ispezione."
+      : r.daFare ? "Nessuna azione correttiva — ma " + conta(r.daFare, "voce è senza esito", "voci sono senza esito") + ": non si può dire che non ce ne fosse bisogno."
+      : "Nessuna non conformità rilevata, quindi nessuna azione correttiva da questa ispezione.");
+
+  const nonMisurati = [];
+  if (!cant) nonMisurati.push("sito non indicato");
+  if (!resp) nonMisurati.push("responsabile non indicato");
+  if (!dataISOEsiste(i.data)) nonMisurati.push("data non leggibile");
+  if (!r.totale) nonMisurati.push("nessuna voce");
+  if (r.daFare) nonMisurati.push(conta(r.daFare, "voce senza esito", "voci senza esito"));
+  if (nc.length && !az.length) nonMisurati.push(conta(nc.length, "non conformità senza azione", "non conformità senza azione"));
+
+  const chiusuraTesto = !r.totale ? "Questo verbale non dimostra niente: la checklist non ha voci."
+    : !chiusa ? "Ispezione non ancora chiusa: " + conta(r.fatte, "voce compilata", "voci compilate") + " su " + r.totale + ". Il foglio vale come stato di avanzamento, non come verbale."
+    : r.daFare ? "Ispezione chiusa con " + conta(r.daFare, "voce senza esito", "voci senza esito") + ": " + (r.daFare === 1 ? "quella voce non è conforme, non è stata guardata" : "quelle voci non sono conformi, non sono state guardate") + "."
+      + (nc.length && !az.length ? " E " + conta(nc.length, "non conformità è", "non conformità sono") + " senza azione correttiva." : "")
+    : nc.length && !az.length ? "Ispezione chiusa con " + conta(nc.length, "non conformità", "non conformità") + " e nessuna azione correttiva collegata: il verbale è completo, la correzione no."
+    : nc.length ? "Ispezione chiusa: " + conta(nc.length, "non conformità", "non conformità") + ", " + conta(az.length, "azione correttiva collegata", "azioni correttive collegate") + "."
+    : "Ispezione chiusa senza non conformità: tutte le voci guardate sono conformi o non applicabili.";
+
+  return {
+    titolo: "Verbale di ispezione",
+    sottotitolo: String(i.nome || "") + (dataISOEsiste(i.data) ? " · " + dataIt(i.data) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi)),
+    sezioni: [intestazione, esitoSez, vociSez, azSez],
+    chiusura: { testo: chiusuraTesto, allarme: !chiusa || !r.totale || r.daFare > 0 || (nc.length > 0 && !az.length) },
+    firme: ["Il responsabile dell'ispezione", "Il datore di lavoro / RSPP"],
+    nonMisurati,
+  };
+}
+
 export function descriviCartella(cartella) {
   const c = cartella || {};
   if (!c.trovato) return c.motivo || "Cartella non disponibile.";

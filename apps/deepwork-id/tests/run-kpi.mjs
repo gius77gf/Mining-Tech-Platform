@@ -23069,8 +23069,27 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     // quanti punti scrivono dentro il foglio: deve essere UNO
     const scrittori = testo.split('$("verbale").innerHTML').length - 1;
     // le chiamate al punto unico, con la frase che ognuna passa
-    const chiamate = [...testo.matchAll(/scriviFoglio\(([\s\S]*?),\s*`/g)]
-      .map((m) => { try { return new Function(`return (${m[1]})`)(); } catch { return null; } });
+    /* ⛔ Dal 06/09 i fogli a SEZIONI (cartella, verbale d'ispezione) passano da
+       `disegnaFoglioSezioni(F, frase)`, che inoltra la frase a `scriviFoglio`:
+       quella chiamata porta una VARIABILE, non una frase, e va letta un salto
+       più su — se no la misura direbbe «null» a un foglio che la sua frase la
+       dice. Si leggono tutt'e due le forme; l'inoltro (`scriviFoglio(fraseEsempio,`)
+       non conta come foglio. Il secondo argomento si prende contando le
+       parentesi, perché il primo può essere una chiamata con dentro virgole. */
+    const evalFrase = (src) => { try { return new Function(`return (${src})`)(); } catch { return null; } };
+    const dirette = [...testo.matchAll(/scriviFoglio\(([\s\S]*?),\s*`/g)]
+      .filter((m) => !/^\s*fraseEsempio\s*$/.test(m[1])).map((m) => evalFrase(m[1]));
+    const inoltrate = [];
+    for (const m of testo.matchAll(/(?<!function )disegnaFoglioSezioni\(/g)) {
+      let i = m.index + m[0].length, prof = 1, virgola = -1;
+      for (; i < testo.length && prof > 0; i++) {
+        const c = testo[i];
+        if (c === "(") prof++; else if (c === ")") prof--;
+        else if (c === "," && prof === 1 && virgola < 0) virgola = i;
+      }
+      if (virgola > 0) inoltrate.push(evalFrase(testo.slice(virgola + 1, i - 1)));
+    }
+    const chiamate = dirette.concat(inoltrate);
     // i selettori del foglio di stile che nominano `.esempio`
     const selettori = [...testo.matchAll(/(?:^|\n)\s*([^\n{}]*\.esempio[^\n{}]*)\{/g)].map((m) => m[1].trim());
     /* Il VESTITO si ESTRAE E SI CHIAMA. `new Function` gli passa un `db`, un
@@ -23109,20 +23128,24 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     /* Due, al 06/08: il verbale di consegna dei DPI e la cartella del
        lavoratore. Se ne nascesse un terzo senza passare di qui, il conto qui
        sopra (`scrittori`) salirebbe a 2 e la prova precedente cadrebbe. */
-    eq(M.chiamate.length, 2, "il verbale e la cartella");
+    /* Tre, dal 06/09: il verbale di consegna dei DPI, la cartella del
+       lavoratore e il verbale di ispezione (che passa da `disegnaFoglioSezioni`
+       come la cartella). */
+    eq(M.chiamate.length, 3, "il verbale DPI, la cartella e il verbale di ispezione");
     ok(M.chiamate.every((f) => typeof f === "string" && f.length > 40),
       `ogni foglio passa la sua frase: ${JSON.stringify(M.chiamate.map((f) => (f || "").length))}`);
   });
 
-  test("⛔ scudo · i due fogli non dicono la stessa cosa: la conseguenza è di quel foglio lì", () => {
+  test("⛔ scudo · i tre fogli non dicono la stessa cosa: la conseguenza è di quel foglio lì", () => {
     /* «Dati di esempio» da solo si legge come una nota di cortesia. Quello che
        serve è l'istruzione: un verbale di consegna si fa FIRMARE (e quindi non
        va firmato), una cartella si ESIBISCE e si tiene agli atti. Un punto
        solo per la decisione non vuol dire una frase sola per tutti. */
-    const [verb, cart] = M.chiamate;
-    ok(verb !== cart, "le due frasi sono diverse");
+    const [verb, cart, isp] = M.chiamate;
+    ok(new Set(M.chiamate).size === 3, "le tre frasi sono diverse");
     ok(/non va fatto firmare/i.test(verb), `il verbale dice che non va firmato: «${verb}»`);
     ok(/non va esibita a un ispettore/i.test(cart), `la cartella dice che non va esibita: «${cart}»`);
+    ok(/non va esibito a un organo di vigilanza/i.test(isp), `il verbale di ispezione dice che non va esibito all'organo di vigilanza: «${isp}»`);
   });
 
   test("⛔ scudo · avvisoEsempio: sui dati di esempio dichiara, e dichiara la frase del foglio", () => {
@@ -23171,9 +23194,12 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
      controlli sono caduti — un `replace` che non trova niente esce in silenzio
      e dichiarerebbe riuscita una controprova mai partita. */
   const DIFETTI_STATICI = [
-    ["la cartella si scrive il foglio da sola, scavalcando il punto unico",
-     "    scriviFoglio(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo",
-     '    $("verbale").innerHTML = ((f, h) => h)(\n      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo'],
+    /* ⚠️ Riancorata il 06/09: i fogli a sezioni passano da
+       `disegnaFoglioSezioni`, e il posto in cui uno di loro potrebbe scavalcare
+       il punto unico è il suo inoltro. */
+    ["i fogli a sezioni si scrivono il foglio da soli, scavalcando il punto unico",
+     "    scriviFoglio(fraseEsempio, `",
+     '    $("verbale").innerHTML = ((f, h) => h)(fraseEsempio, `'],
     /* ⛔ L'INIEZIONE HA SEGUITO IL DIFETTO. Fino al 06/08 mirava
        `db.mode !== "live"` dentro la pagina; adesso la decisione sta in
        `shared/` e la pagina le passa il modo, quindi il modo per farle dire di
@@ -23188,9 +23214,9 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
      "modalità tour (${esc(m)})", "modalità tour (${m})"],
     ["la regola di stampa non è più ancorata a #verbale",
      "  body.stampa-verbale #verbale .esempio{", "  .esempio{"],
-    ["i due fogli dicono la stessa frase",
-     '"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.", `',
-     '"Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "\n      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "\n      + "davanti a un controllo.", `'],
+    ["due fogli dicono la stessa frase",
+     '"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.");',
+     '"Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "\n      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "\n      + "davanti a un controllo.");'],
     ["un foglio passa dal punto unico senza dire la sua conseguenza",
      '"Questo verbale non documenta nessuna consegna reale: non va fatto firmare, "\n      + "non va allegato ai Documenti e non prova la consegna dei DPI (art. 77 D.Lgs 81/2008) "\n      + "davanti a un controllo.", `',
      '"", `'],
@@ -23207,8 +23233,8 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
          uno: quale, lo si stampa, se no «è caduto qualcosa» non dice dove */
       const rotti = [];
       if (G.scrittori !== 1) rotti.push("un solo scrittore");
-      if (G.chiamate.length !== 2 || !G.chiamate.every((f) => typeof f === "string" && f.length > 40)) rotti.push("due fogli con la loro frase");
-      if (G.chiamate[0] === G.chiamate[1]) rotti.push("frasi diverse");
+      if (G.chiamate.length !== 3 || !G.chiamate.every((f) => typeof f === "string" && f.length > 40)) rotti.push("tre fogli con la loro frase");
+      if (new Set(G.chiamate).size !== G.chiamate.length) rotti.push("frasi diverse");
       if (!G.selettori.length || !G.selettori.every((s) => /#verbale/.test(s))) rotti.push("selettore ancorato");
       if (G.fabbrica) {
         if (G.fabbrica({ mode: "live" }, shell.esc, shell.modoDimostrazione)("F.") !== "") rotti.push("sa tacere");
@@ -39322,6 +39348,97 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine versioni di un documento (06/09) ===== */
+
+/* ===== SCUDO · IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte) =====
+   `fogliaIspezione` compone il foglio (stessa forma della cartella): voci con
+   esito, non conformità, azioni nate da lì. Una voce SENZA ESITO si stampa in
+   grassetto e la chiusura la conta; una non conformità senza azione è la
+   sezione vuota in rosso. ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const OGGI = new Date("2026-09-06T01:00:00");
+  const D = scudo.DEMO;
+  const O = { cantieri: D.cantieri, lavoratori: D.lavoratori, azioni: D.azioni, oggi: OGGI };
+  const q1 = D.ispezioni.find(i => i.id === "q1"), q2 = D.ispezioni.find(i => i.id === "q2");
+  const sezione = (F, nome) => F.sezioni.find(s => s.titolo === nome);
+  test("⛔ fogliaIspezione sulla dimostrazione: la chiusa (q1) con la sua non conformità e la sua azione", () => {
+    const F = scudo.fogliaIspezione(q1, O);
+    eq(F.titolo, "Verbale di ispezione", "titolo");
+    ok(/^Fronte di cava — stabilità e disgaggio · 10\/07\/2026 — documento preparato con Deepwork Scudo il 06\/09\/2026$/.test(F.sottotitolo), F.sottotitolo);
+    eq(F.sezioni.map(s => s.titolo), ["Ispezione", "Esito complessivo", "Voci della checklist", "Azioni correttive nate da questa ispezione"], "le quattro sezioni");
+    const testa = Object.fromEntries(sezione(F, "Ispezione").righe);
+    eq(testa.Sito, "Cava Monte Alto", "il sito per nome"); eq(testa.Responsabile, "Giulia Verdi (Preposto)", "il responsabile per nome");
+    eq(testa.Stato, "Completata il 10/07/2026", "lo stato"); eq(testa["Periodicità"], "ogni 30 giorni", "la periodicità");
+    eq(sezione(F, "Esito complessivo").righe[0][1], "8 voci: 6 conformi, 1 non conforme, 1 non applicabile", "l'esito senza «senza esito» quando non ce ne sono");
+    const voci = sezione(F, "Voci della checklist").righe;
+    eq(voci.length, 8, "otto voci");
+    ok(/^2\. /.test(voci[1][0]) && /^\*\*NON CONFORME\*\* — Delimitazione rimossa/.test(voci[1][1]), "la non conforme in grassetto con la nota: " + voci[1][1]);
+    ok(/^non applicabile — Area operativa/.test(voci[7][1]), "la non applicabile con la nota");
+    const az = sezione(F, "Azioni correttive nate da questa ispezione");
+    eq(az.righe.length, 1, "un'azione nata da q1"); ok(/Aperta · entro il 09\/08\/2026 · resp\. Giulia Verdi/.test(az.righe[0][1]), az.righe[0][1]);
+    eq(F.chiusura.allarme, false, "niente allarme"); eq(F.chiusura.testo, "Ispezione chiusa: 1 non conformità, 1 azione correttiva collegata.", "la chiusura");
+    eq(F.nonMisurati, [], "niente da dichiarare"); eq(F.firme.length, 2, "due firme");
+  });
+  test("⛔ la aperta (q2): le voci senza esito in grassetto, contate e dichiarate, e il foglio si dice «avanzamento»", () => {
+    const F = scudo.fogliaIspezione(q2, O);
+    ok(/, \*\*6 senza esito\*\*$/.test(sezione(F, "Esito complessivo").righe[0][1]), sezione(F, "Esito complessivo").righe[0][1]);
+    eq(sezione(F, "Voci della checklist").righe.filter(r => r[1] === "**senza esito**").length, 6, "sei voci senza esito");
+    ok(/^In corso/.test(Object.fromEntries(sezione(F, "Ispezione").righe).Stato), "stato in corso");
+    ok(/6 voci sono senza esito: non si può dire che non ce ne fosse bisogno/.test(sezione(F, "Azioni correttive nate da questa ispezione").vuoto), "la sezione vuota non tranquillizza");
+    eq(F.chiusura.allarme, true, "allarme"); ok(/^Ispezione non ancora chiusa: 2 voci compilate su 8\./.test(F.chiusura.testo), F.chiusura.testo);
+    eq(F.nonMisurati, ["6 voci senza esito"], "dichiarato");
+  });
+  test("⛔ chiusa con voci senza esito: «non sono conformi, non sono state guardate»", () => {
+    const i = { ...q2, stato: "completata", dataChiusura: "2026-07-30" };
+    const F = scudo.fogliaIspezione(i, O);
+    ok(/^Ispezione chiusa con 6 voci senza esito: quelle voci non sono conformi, non sono state guardate\.$/.test(F.chiusura.testo), F.chiusura.testo);
+    eq(F.chiusura.allarme, true, "allarme");
+    const una = { ...q2, stato: "completata", esiti: { v1: { esito: "conforme" }, v2: { esito: "conforme" }, v3: { esito: "conforme" }, v4: { esito: "conforme" }, v5: { esito: "conforme" }, v6: { esito: "conforme" }, v7: { esito: "conforme" } } };
+    ok(/1 voce senza esito: quella voce non è conforme/.test(scudo.fogliaIspezione(una, O).chiusura.testo), "il singolare: " + scudo.fogliaIspezione(una, O).chiusura.testo);
+  });
+  test("⛔ non conformità senza azione: la sezione vuota è rossa e la chiusura lo dice", () => {
+    const F = scudo.fogliaIspezione(q1, { ...O, azioni: [] });
+    const az = sezione(F, "Azioni correttive nate da questa ispezione");
+    eq(az.righe.length, 0, "nessuna riga"); ok(/^\*\*1 non conformità senza nessuna azione correttiva\*\*/.test(az.vuoto), az.vuoto);
+    eq(F.chiusura.allarme, true, "allarme");
+    eq(F.chiusura.testo, "Ispezione chiusa con 1 non conformità e nessuna azione correttiva collegata: il verbale è completo, la correzione no.", "la chiusura");
+    eq(F.nonMisurati, ["1 non conformità senza azione"], "dichiarato");
+  });
+  test("tutta conforme: la frase tranquilla SOLO quando è misurata", () => {
+    const i = { ...q1, esiti: Object.fromEntries(q1.voci.map(v => [v.id, { esito: "conforme" }])) };
+    const F = scudo.fogliaIspezione(i, { ...O, azioni: [] });
+    eq(F.chiusura.testo, "Ispezione chiusa senza non conformità: tutte le voci guardate sono conformi o non applicabili.", "la chiusura");
+    eq(F.chiusura.allarme, false, "niente allarme");
+    eq(sezione(F, "Azioni correttive nate da questa ispezione").vuoto, "Nessuna non conformità rilevata, quindi nessuna azione correttiva da questa ispezione.", "la sezione vuota");
+  });
+  test("⛔ senza voci, senza sito, senza responsabile, senza data: il foglio DICHIARA, non stampa bianco", () => {
+    const F = scudo.fogliaIspezione({ id: "z", nome: "Vuota", stato: "programmata" }, O);
+    const testa = Object.fromEntries(sezione(F, "Ispezione").righe);
+    eq([testa.Sito, testa.Responsabile, testa.Data, testa["Periodicità"]], ["**sito non indicato**", "**non indicato**", "**senza data**", "non indicata"], "le mancanze in grassetto");
+    ok(/non ha nessuna voce/.test(sezione(F, "Voci della checklist").vuoto), "voci vuote dichiarate");
+    eq(F.chiusura.testo, "Questo verbale non dimostra niente: la checklist non ha voci.", "la chiusura");
+    eq(F.nonMisurati, ["sito non indicato", "responsabile non indicato", "data non leggibile", "nessuna voce"], "tutto dichiarato");
+    ok(/documento preparato con Deepwork Scudo il 06\/09\/2026$/.test(F.sottotitolo) && !/undefined|null/.test(F.sottotitolo), F.sottotitolo);
+  });
+  test("le foto si contano, non si stampano; un'azione senza scadenza lo dice", () => {
+    const i = { ...q1, esiti: { ...q1.esiti, v2: { ...q1.esiti.v2, foto: [{ dataURL: "data:x" }, { dataURL: "data:y" }] } } };
+    const F = scudo.fogliaIspezione(i, { ...O, azioni: [{ id: "a", origineTipo: "ispezione", origineId: "q1", descrizione: "Rimettere la delimitazione", scadenza: null, responsabileId: null }] });
+    eq(sezione(F, "Esito complessivo").righe[1][1], "2 foto allegate — non si stampano: si vedono in Scudo, dentro la voce", "le foto");
+    ok(/ · 2 foto$/.test(sezione(F, "Voci della checklist").righe[1][1]), "e sulla voce: " + sezione(F, "Voci della checklist").righe[1][1]);
+    ok(/\*\*senza scadenza\*\* · responsabile da assegnare/.test(sezione(F, "Azioni correttive nate da questa ispezione").righe[0][1]), sezione(F, "Azioni correttive nate da questa ispezione").righe[0][1]);
+    const F1 = scudo.fogliaIspezione({ ...q1, esiti: { ...q1.esiti, v2: { ...q1.esiti.v2, foto: [{ dataURL: "data:x" }] } } }, O);
+    eq(sezione(F1, "Esito complessivo").righe[1][1], "1 foto allegata — non si stampano: si vedono in Scudo, dentro la voce", "il singolare");
+  });
+  test("⛔ la pagina: un disegnatore solo per cartella e verbale, e il bottone nel pannello", () => {
+    const pagina = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+    eq((pagina.match(/function disegnaFoglioSezioni\(/g) || []).length, 1, "il disegnatore esiste una volta");
+    ok(/disegnaFoglioSezioni\(fogliaCartella\(c, new Date\(\)\),/.test(pagina), "la cartella passa di lì");
+    ok(/function costruisciVerbaleIspezione\(F\) \{\s*disegnaFoglioSezioni\(F,/.test(pagina), "e il verbale pure");
+    ok(/const F = fogliaIspezione\(i, \{ cantieri: CANT, lavoratori: LAV, azioni: AZI, oggi: new Date\(\) \}\);/.test(pagina), "il foglio lo compone il modulo con i dati della pagina");
+    ok(/id="btn-isp-stampa"/.test(pagina), "il bottone nel pannello della checklist");
+    eq((pagina.match(/window\.print\(\)/g) || []).length, 3, "le stampe adesso sono TRE (era la prova del documento dei concorrenti)");
+  });
+}
+/* ===== fine verbale di ispezione (06/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

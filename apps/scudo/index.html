@@ -1357,6 +1357,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     <div id="isp-c-voci" style="margin-top:12px;"></div>
     <div class="tools">
       <button class="dw-btn secondary" id="btn-isp-indietro">Torna all'elenco</button>
+      <button class="dw-btn secondary" id="btn-isp-stampa" title="Il verbale su carta: voci, esiti, non conformità e azioni">Stampa il verbale</button>
       <button class="dw-btn" id="btn-isp-chiudi">Chiudi l'ispezione</button>
     </div>
     <div class="note esito" id="isp-c-esito"></div>
@@ -1792,7 +1793,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
     verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite,
-    documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss } from "./scudo-data.js";
+    documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -5773,20 +5774,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   /* Le sezioni della cartella le compone `fogliaCartella` nel modulo (da
      `cartellaLavoratore`, la stessa della finestra che precede la stampa):
      qui si disegna e basta. */
-  function costruisciCartella(c) {
-    const F = fogliaCartella(c, new Date());
+  /* ⛔ UN DISEGNATORE SOLO per i fogli a sezioni (`titolo`, `sottotitolo`,
+     `sezioni[{titolo, righe, vuoto}]`, `chiusura`, `firme`): la cartella del
+     lavoratore e il verbale d'ispezione hanno la stessa forma, e un secondo
+     disegnatore sarebbe la copia da firma troppo stretta. Riceve il foglio
+     GIÀ composto dal modulo e la frase dell'avviso di esempio. */
+  function disegnaFoglioSezioni(F, fraseEsempio) {
     const riga = ([a, b]) => `<tr><td style="padding:3px 8px 3px 0;"><b>${esc(a)}</b></td><td style="padding:3px 0;">${mdFoglio(b)}</td></tr>`;
     const sezione = (S) => `
       <h3 style="font-size:13px;margin:16px 0 5px;border-bottom:1px solid #bbb;padding-bottom:3px;">${esc(S.titolo)}</h3>`
       + (S.righe.length
           ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">${S.righe.map(riga).join("")}</table>`
           : `<div style="font-size:12px;color:#8a0000;border:1px dashed #8a0000;padding:5px 8px;">${esc(S.vuoto)}</div>`);
-    scriviFoglio(
-      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo
-         personale che si esibisce all'ispettore e che si tiene agli atti.
-         Le due cose da vietare sono quelle. */
-      "Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "
-      + "né tenuta agli atti come fascicolo personale.", `
+    scriviFoglio(fraseEsempio, `
       <h2 style="font-size:17px;margin:0 0 2px;">${esc(F.titolo)}</h2>
       <div style="font-size:12px;color:#555;margin-bottom:10px;">${esc(F.sottotitolo)}</div>
       ${F.sezioni.map(sezione).join("")}
@@ -5795,6 +5795,40 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ${F.firme.map(f => `<div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">${esc(f)}</div>`).join("")}
       </div>`);
   }
+  function costruisciCartella(c) {
+    disegnaFoglioSezioni(fogliaCartella(c, new Date()),
+      /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo
+         personale che si esibisce all'ispettore e che si tiene agli atti.
+         Le due cose da vietare sono quelle. */
+      "Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "
+      + "né tenuta agli atti come fascicolo personale.");
+  }
+  /* IL VERBALE DI ISPEZIONE SU CARTA. Lo compone `fogliaIspezione` nel modulo
+     (voci, esiti, non conformità, azioni nate da lì); qui si disegna e si
+     stampa. La finestra prima della stampa dice che cosa ci sarà dentro —
+     e in particolare le voci senza esito e le non conformità senza azione,
+     che sono le due cose che un verbale tranquillo nasconderebbe. */
+  function costruisciVerbaleIspezione(F) {
+    disegnaFoglioSezioni(F,
+      "Questo verbale non riguarda nessuna ispezione reale: non va esibito a un organo di vigilanza "
+      + "né tenuto agli atti come verbale.");
+  }
+  $("btn-isp-stampa").onclick = async () => {
+    const i = ISP.find(x => x.id === ispAperta);
+    if (!i) { esito("isp-c-esito", "Apri prima un'ispezione dall'elenco: il verbale si stampa da lì.", "err"); return; }
+    const F = fogliaIspezione(i, { cantieri: CANT, lavoratori: LAV, azioni: AZI, oggi: new Date() });
+    const ok = await chiedi("Verbale — " + i.nome,
+      (F.chiusura.allarme ? "⚠️ <b>" : "<b>") + esc(F.chiusura.testo) + "</b>"
+      + (F.nonMisurati.length ? "<br><br>Il foglio lo dichiara riga per riga: " + esc(F.nonMisurati.join(", ")) + "." : "")
+      + "<br><br>Si apre la finestra di stampa del browser: da lì puoi anche scegliere «Salva come PDF». Stampalo, fallo <b>firmare</b> e allega la foto del firmato ai <b>Documenti</b>.",
+      "Stampa");
+    if (!ok) return;
+    costruisciVerbaleIspezione(F);
+    document.body.classList.add("stampa-verbale");
+    const fine = () => { document.body.classList.remove("stampa-verbale"); window.removeEventListener("afterprint", fine); };
+    window.addEventListener("afterprint", fine);
+    window.print();
+  };
   $("btn-cartella").onclick = async () => {
     const lav = LAV.find(l => l.id === $("dpi-verb-lav").value);
     if (!lav) { err("dpi-verb-lav", true); $("dpi-verb-lav").focus();

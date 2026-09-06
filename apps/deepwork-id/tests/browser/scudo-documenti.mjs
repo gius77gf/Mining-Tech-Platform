@@ -298,7 +298,9 @@ const DIFETTI = [
         punto unico ma con la frase vuota. Serve a pinnare che le prove
         guardano TUTT'E DUE i fogli — un banco che ne legge uno e chiama
         «coperti» tutti e due è il controllo che non guarda dove crede. */
-  ['"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.", `', '"", `'],
+  /* ⚠️ Riancorata il 06/09: la cartella passa da `disegnaFoglioSezioni(F, frase)`,
+        e la frase chiude con `);` invece che con la virgola e il backtick. */
+  ['"Questa cartella non riguarda nessun lavoratore reale: non va esibita a un ispettore "\n      + "né tenuta agli atti come fascicolo personale.");', '"");'],
   /* 23. LA DECISIONE SPENTA, E DAL 06/08 STA IN UN ALTRO FILE. «Che cosa conta
          come dimostrazione» è salito in `shared/deepwork-id-client/dw-shell.js`
          (era in quattro varianti dentro quattro pagine). Le iniezioni 19-22

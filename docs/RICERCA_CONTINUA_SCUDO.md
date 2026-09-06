@@ -1183,3 +1183,42 @@ la versione (vuole un ruolo, ed è la decisione aperta sui ruoli); il **numero
 di revisione scritto sul documento** (oggi è la posizione nella catena, non un
 campo che l'utente compila); l'allegato della versione superata resta
 apribile ma non si confronta con quello nuovo.
+
+
+## Ricerca del 2026-09-06 (notte) — il verbale di ispezione: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**; niente `WebSearch` in questa unità.
+
+### Che cos'è, fuori
+
+- **Il verbale di sopralluogo / ispezione interna** è il documento che chiude
+  una checklist: chi ha guardato, quando, dove, che cosa, con che esito, e che
+  cosa si è deciso. I prodotti HSE censiti (§2) lo generano in PDF dalla
+  checklist compilata, con le foto in coda e le non conformità che diventano
+  azioni. *[dal censimento del 01/08]*
+- **Perché la carta conta ancora**: l'organo di vigilanza chiede il verbale
+  firmato dal responsabile; l'obbligo di verifica periodica di attrezzature e
+  luoghi (D.Lgs 81/2008 art. 71 per le attrezzature; D.Lgs 624/96 per i fronti
+  e le vie di circolazione in cava) si prova con un documento datato e
+  firmato, non con una schermata. *[seconda mano: articoli da memoria, non
+  entrano nel foglio]*
+- **Il difetto tipico dei verbali generati**: le voci NON compilate stampate
+  come vuote — che un lettore legge «conforme» — e le non conformità senza il
+  seguito. I sistemi maturi stampano «N/A» solo se dichiarato e tengono
+  distinta la voce senza risposta. *[dedotto dalla pratica]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi compone i fogli stampabili?* → funzioni `foglia*` del modulo, giudicate
+   da `documenti-dimostrazione`: il verbale va lì, non nella pagina.
+2. *Chi decide che una voce senza esito non è conforme?* → `riepilogoIspezione`
+   (`daFare`) e il principio «l'assenza di un dato non è un dato favorevole».
+3. *Dove si disegnano i fogli a sezioni?* → in UN posto (la cartella lo aveva
+   già): il verbale usa lo stesso disegnatore.
+
+### Il delta, fatto da chi ha il codice in mano (06/09, notte)
+
+Fatto nella stessa unità: vedi la voce «IL VERBALE DI ISPEZIONE SU CARTA» in
+`vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: le **foto nel foglio**
+(si contano e si dice dove stanno: stamparle vuol dire decidere una
+risoluzione e un peso di pagina); la **firma** resta a penna sul foglio.

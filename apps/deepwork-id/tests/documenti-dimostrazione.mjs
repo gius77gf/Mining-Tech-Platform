@@ -98,6 +98,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("scudo", "csvRiepilogoNearMiss", () => scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 90, OGGI));
   for (const l of D.lavoratori) {
     doc("scudo", "fogliaVerbaleDpi " + l.id, () => scudo.fogliaVerbaleDpi(l, { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI }));
+  for (const i of D.ispezioni) doc("scudo", "fogliaIspezione " + i.id, () => scudo.fogliaIspezione(i, { cantieri: D.cantieri, lavoratori: D.lavoratori, azioni: D.azioni, oggi: OGGI }));
     doc("scudo", "fogliaCartella " + l.id, () => scudo.fogliaCartella(scudo.cartellaLavoratore(l, { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti }, OGGI), OGGI));
   }
 }

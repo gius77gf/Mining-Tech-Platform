@@ -665,6 +665,33 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte) — la riga «Report PDF
+  automatico — ispezioni» della B4 di Scudo:** `fogliaIspezione(isp, {cantieri,
+  lavoratori, azioni, oggi})` nel modulo, stessa forma della cartella (titolo,
+  sottotitolo, quattro sezioni, chiusura, firme, `nonMisurati`): intestazione
+  con sito e responsabile per nome (le mancanze in grassetto), esito
+  complessivo con le voci **senza esito** contate, le voci una per una con
+  esito, nota e foto contate (non stampate), le azioni nate dall'ispezione con
+  stato, scadenza e responsabile; una non conformità senza azione è la sezione
+  vuota in rosso, non «nessuna azione»; una chiusa con voci senza esito dice
+  «non sono conformi, non sono state guardate». Pagina: UN disegnatore per i
+  fogli a sezioni (`disegnaFoglioSezioni`, la cartella e il verbale passano di
+  lì — la copia da firma troppo stretta evitata), «Stampa il verbale» nel
+  pannello della checklist, la finestra prima della stampa che dichiara le
+  voci senza esito e le non conformità senza azione. Prove: run-kpi +8 e le
+  prove del punto unico dei fogli ADATTATE (tre fogli, l'inoltro della frase
+  letto un salto più su, iniezioni riancorate — non allargate); `documenti-
+  dimostrazione` compone anche i 21 verbali della dimostrazione (132
+  documenti) — e ha preso un `[object Object]` alla prima stesura (l'etichetta
+  dell'azione è un oggetto: `.label`, `.testo`); banco
+  `scudo-verbale-ispezione.mjs` 46 ok a 390 e 320 (con `window.print`
+  sostituito da un contatore e lo scatto del foglio in `emulateMedia print`),
+  controprova 22/44 su 3/3 per file (261 esecuzioni, 110 file); copertura
+  921/921 (fondo Scudo 214). ⚠️ Il banco a 320 cliccava il CENTRO della riga
+  dell'ispezione e finiva sulla pastiglia delle azioni: si clicca il NOME.
+  Scatti guardati (pannello, finestra, foglio). Docs: CONCORRENTI_SCUDO riga a
+  C'È e mancanza chiusa con le tre prove rilanciate; B4 scudo 4 → **3**,
+  totale **38**; mondo in RICERCA_CONTINUA_SCUDO.
 - [x] **LE VERSIONI DI UN DOCUMENTO IN SCUDO (06/09, notte) — la prima riga
   della B4 di Scudo che un ispettore chiede davvero:** un DVR nuovo non
   cancella il vecchio, lo SOSTITUISCE, e si chiede quale valutazione era in
@@ -4465,8 +4492,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 4** |
-          | totale **39** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41 e 40 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **5** · flotta **4** · terra 4 · **scudo 3** |
+          | totale **38** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40 e 39 nella notte · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
 
       ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
       magazzino / giacenze prodotto» di Conti era «confermato assente» dal
@@ -7098,8 +7125,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.255 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2774, `run-stile` 328,
+  **3.263 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2782, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7109,8 +7136,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **259 esecuzioni** che
-  aprono le pagine in un browser vero, da **109** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **261 esecuzioni** che
+  aprono le pagine in un browser vero, da **110** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
