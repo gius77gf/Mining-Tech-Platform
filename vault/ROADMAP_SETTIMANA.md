@@ -665,6 +665,20 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **PASSATA IN PROFONDITÀ SUL CORE A 320 E 430 px (10/09) — 26 schermate
+  × 2 larghezze (36 fette a 320), col finto Firebase montato e l'accesso
+  riuscito a tutt'e due le larghezze, 0 errori di pagina.** Niente da
+  correggere: le liste (`.sname`/`.ssub` a una riga con ellissi) tagliano a
+  320 la data in coda ai progetti di volata e il telefono in coda a Utenti e
+  Personale, ma è la struttura del core, e il limite a 320 è già dichiarato
+  nel sorgente (commento su `.ssub`: «non ci stanno», misurato a 194 px); il
+  dettaglio li ha per intero. Il rapportino da fochino a 320 tiene tre
+  campi per riga (Esplosivo 1 / Esplosivo 2 / Innesco) con i segnaposto
+  tronchi ma le intestazioni intere; la Dashboard dichiara «i grafici non si
+  vedono» perché la libreria non arriva senza rete, che nel banco è vero.
+  Con questa passata il giro dei sette prodotti (sei app + core) è chiuso:
+  i difetti trovati oggi stavano quasi tutti nel motore e nel foglio
+  condivisi, e il core — che li definisce — era pulito.
 - [x] **LA VETRINA E IL NASTRO CHE SCORRE (10/09) — `fuori-schermo.mjs` intero
   usciva 1 da prima di oggi (misurato anche su `d82a7871`): 16 comandi «fuori
   dallo schermo» a 390/360/320, tutti nella vetrina.** Erano le voci del
