@@ -39724,6 +39724,29 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(tacchePerLarghezza(126, 41.6, 6) > tacchePerLarghezza(126 - 41.6, 41.6, 6), true,
       "senza contare la sporgenza se ne perderebbe una");
   });
+  /* ═══ e le etichette di CATEGORIA, sotto le barre verticali (10/09) ═══
+     Flotta a 320 px: la disponibilità giorno per giorno scriveva «31… 03… 04…»
+     e il mese dei rilievi di Terra «n… g… m…». Misurato prima su 17 grafici
+     con etichette di categoria: a 320 px 7 troncavano e 2 a MUTO, a 430 uno e
+     nessuno. Le larghezze vere le misura il browser; qui si prova la decisione. */
+  test("grafici: una parola intera ogni k barre invece di tutte mute", () => {
+    const { passoCategorie } = grafici.geometria;
+    /* Flotta a 320: banda 30, «31/08» larga 30, «31…» larga 18 → tutte tronche
+       ma leggibili? no: tre lettere più i puntini («31/…») fanno 24, e 24 ≤ 26:
+       resta leggibile → k = 1 (è la prima risposta buona, non l'ultima) */
+    eq(passoCategorie(30, 30, 24, 4), 1, "se tre lettere più i puntini ci stanno, si tronca e basta");
+    /* le stesse otto colonne su una banda da 21: 24 > 17 → una ogni 2 */
+    eq(passoCategorie(21, 30, 24, 4), 2, "a muto si passa a una parola intera ogni due");
+    /* Terra: undici mesi in 200 px, banda 18, «nov» 20, «nov…»? no: la parola
+       intera è di tre lettere, tagliata a tre resta se stessa: 20 > 14 → k=2 */
+    eq(passoCategorie(18, 20, 20, 4), 2, "undici mesi a 320: uno sì e uno no");
+    eq(passoCategorie(60, 30, 24, 4), 1, "se ci sta intera, tutte");
+    eq(passoCategorie(10, 60, 40, 4), 7, "una parola da sei bande e mezza prende sette bande");
+    eq(passoCategorie(0, 30, 24, 4), 1, "banda zero: niente da decidere, non Infinity");
+    eq(passoCategorie(30, 0, 0, 4), 1, "etichette vuote: tutte (cioè niente)");
+    /* il respiro conta: la parola da 27 in una banda da 30 con respiro 4 NON ci sta */
+    eq(passoCategorie(30, 27, 30, 4) >= 2, true, "27 in 30 − 4 non ci sta, e a tre lettere è più larga ancora");
+  });
   test("grafici: fra le tacche si tiene una ogni k, a partire dallo zero", () => {
     eq(tacchePortate(5, 3), [true, false, true, false, true], "cinque tacche, tre posti: 0, 10.000, 20.000");
     eq(tacchePortate(4, 3), [true, false, true, false], "quattro tacche, tre posti: passo 2");

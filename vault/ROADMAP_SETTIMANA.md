@@ -665,6 +665,38 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **PASSATA IN PROFONDITÀ SU FLOTTA A 320 E 430 px (10/09) — 6 sezioni ×
+  2 larghezze, 23 fette a 320 guardate, i nove punti d'uscita già aperti dal
+  banco `flotta-documenti-che-escono` (79/0, letto invece di rifatto). Un
+  difetto vero, del MOTORE condiviso, e due varianti della stessa famiglia:**
+  1. **etichette di categoria MUTE** — la disponibilità giorno per giorno
+     (otto colonne) scriveva «31… 03… 04… 05… 07… 08… 09… 10…», e il mese dei
+     rilievi di Terra «n… g… m… a… m… a…»: una banda troppo stretta lascia
+     due caratteri più i puntini, che non dicono niente. Misurato prima su 17
+     grafici con etichette di categoria delle sei app: a 320 px 7 troncavano
+     e 2 a MUTO, a 430 uno e nessuno. Cura: `passoCategorie(banda, largoMax,
+     largoLeggibile, respiro)` in `shared/dw-grafici.js` — tre risposte in
+     ordine: ci stanno tutte; tronche ma LEGGIBILI (tre lettere più i puntini
+     ci stanno: «Impianto e lavoraz…» resta com'è, diradarla toglierebbe il
+     nome a barre che ce l'hanno); una parola INTERA ogni k barre, centrata
+     nella sua finestra di k bande ritagliata al riquadro. ⚠️ La prima
+     stesura centrava sulla barra e la prima etichetta restava «31…»: si
+     centra nella FINESTRA. Dopo: «31/08 · 04/09 · 07/09 · 09/09» e «nov ·
+     gen · mar · mag · lug · set», 0 mute su 34 grafici con categorie;
+  2. **il numero sopra le barre** — «100%100%» su due colonne vicine si
+     leggeva come uno: se il più largo non sta nella sua banda lo porta solo
+     la barra più alta (la regola che valeva già oltre le otto barre);
+  3. il banco `grafici-tacche.mjs` fa adesso TRE domande (tacche, numeri sopra
+     le barre, categorie mute), `--solo=` accetta più app, e la controprova
+     rompe tutt'e due le guardie nel motore servito e pretende che cadano
+     tutt'e due (Conti aging 3 coppie, Flotta disponibilità 8/8 mute). Prove:
+     run-kpi +1 (2810: la decisione pura), banchi 269/114.
+  Visti e lasciati, con la ragione: le schede «non si sa quanto costa un'ora»
+  e «quanto beve» a 320 px tengono il badge a destra e il testo in una colonna
+  stretta (5-6 righe) — è la struttura `.item` del core con la pillola a
+  destra, a 430 respira; «Di questo passo il budget non basta … € 1.844,79
+  in…» tagliato dal `line-clamp`: la frase mette il verdetto PRIMA e il
+  dettaglio dopo, che è la regola. Prossimo: la stessa passata su Scudo.
 - [x] **PASSATA IN PROFONDITÀ SU CONTI A 320 E 430 px (10/09) — ogni sezione
   scattata a pagina intera e GUARDATA (20 schermate in 82 fette), tre difetti
   veri, nessuno dei quali si vedeva leggendo il codice:**
@@ -7254,8 +7286,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.290 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2809, `run-stile` 328,
+  **3.291 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2810, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

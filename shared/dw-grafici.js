@@ -319,6 +319,27 @@
      `ciStanno`: si tiene una tacca ogni ceil(n / ciStanno), a partire dalla
      prima (lo zero, che è l'asse). Le righe della griglia restano tutte: è solo
      il numero a diradarsi. */
+  /* OGNI QUANTE BARRE UN'ETICHETTA DI CATEGORIA. Una banda troppo stretta
+     lascia della parola due caratteri più i puntini — «31…», «n…» — che non
+     dicono niente: meglio una parola INTERA ogni k barre, e la tabella sotto
+     per le altre. Tre risposte, in ordine: se la più larga ci sta, tutte; se
+     tronca resta LEGGIBILE (`largoLeggibile` è la larghezza della parola più
+     larga tagliata a tre lettere più i puntini), tutte tronche; se no, una ogni
+     k, con k = quante bande servono alla parola intera più il respiro.
+     ⛔ Nato il 10/09 dallo scatto di Flotta a 320 px: la disponibilità giorno
+     per giorno (otto colonne) scriveva «31… 03… 04… 05… 07… 08… 09… 10…», e
+     il mese dei rilievi di Terra «n… g… m… a… m… a…». Misurato prima di
+     scrivere, su 17 grafici con etichette di categoria delle sei app: a 320 px
+     7 troncavano e 2 troncavano a MUTO, a 430 uno troncava e nessuno a muto.
+     Le tronche leggibili («Impianto e lavoraz…») restano: diradarle toglierebbe
+     il nome a barre che ce l'hanno. */
+  function passoCategorie(banda, largoMax, largoLeggibile, respiro) {
+    var r = respiro == null ? RESPIRO_ET : respiro;
+    if (!(banda > 0) || !(largoMax > 0)) return 1;
+    if (largoMax <= banda - r) return 1;
+    if (largoLeggibile > 0 && largoLeggibile <= banda - r) return 1;
+    return Math.max(1, Math.ceil((largoMax + r) / banda));
+  }
   function tacchePortate(n, ciStanno) {
     var k = Math.max(1, Math.ceil(n / Math.max(1, ciStanno)));
     var out = [];
@@ -1147,7 +1168,33 @@
       });
       svg.appendChild(nodo('line', { 'class': 'dwg-ax', x1: box.x0, y1: pyv(0).toFixed(1), x2: box.x1, y2: pyv(0).toFixed(1) }));
 
-      var etichettaTutte = dati.length <= 8;
+      /* le larghezze VERE delle etichette, misurate su un nodo di prova (una
+         stima le sbagliava di un terzo): la più larga intera e la più larga
+         ridotta a tre lettere più i puntini — è su quelle che passoCategorie
+         decide se scrivere tutte, tutte tronche o una ogni k */
+      var elMis = nodo('text', { 'class': 'dwg-catlab', x: 0, y: 0 }, '');
+      svg.appendChild(elMis);
+      var largoMaxCat = 0, largoLeggCat = 0;
+      dati.forEach(function (d) {
+        elMis.textContent = String(d.etichetta == null ? '' : d.etichetta);
+        largoMaxCat = Math.max(largoMaxCat, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+        elMis.textContent = tagliaA(d.etichetta, 3);
+        largoLeggCat = Math.max(largoLeggCat, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+      });
+      /* e il numero sopra ogni barra: se il più largo non sta nella sua banda
+         (a 320 px «100%100%» su due colonne vicine si leggeva come uno), lo
+         porta solo la barra più alta — la regola che valeva già oltre le otto */
+      elMis.setAttribute('class', 'dwg-vallab');
+      var largoValMax = 0;
+      dati.forEach(function (d) {
+        if (d.manca) return;
+        elMis.textContent = fmt(d.valore);
+        largoValMax = Math.max(largoValMax, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+      });
+      svg.removeChild(elMis);
+      var etichettaTutte = dati.length <= 8 && largoValMax <= banda - RESPIRO_ET;
+      var kCat = passoCategorie(banda, largoMaxCat, largoLeggCat, RESPIRO_ET);
+      var maxScritto = false;
       dati.forEach(function (d, i) {
         var cx = box.x0 + banda * (i + 0.5);
         var x = cx - spess / 2, y = d.manca ? pyv(0) : pyv(d.valore), h = d.manca ? 0 : lunghezzaBarra(pyv(0) - y, 2);
@@ -1155,13 +1202,26 @@
         if (!d.manca) svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
         /* l'etichetta sta nella sua banda MENO il respiro: due nomi che si toccano
            si leggono come una parola sola, e la troncatura di prima — a conto di
-           caratteri, senza respiro — li lasciava attaccati (misurato: 4 px) */
-        var elCat = nodo('text', { 'class': 'dwg-catlab', x: cx.toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
-        svg.appendChild(elCat);
-        troncaTesto(elCat, d.etichetta, banda - RESPIRO_ET, 11);
+           caratteri, senza respiro — li lasciava attaccati (misurato: 4 px).
+           Con kCat > 1 la porta una barra ogni k, e può allargarsi sulle bande
+           vicine (mute) — ma non oltre il bordo del riquadro, se no la prima
+           finirebbe sopra i numeri dell'asse verticale */
+        if (i % kCat === 0) {
+          /* la finestra dell'etichetta: k bande centrate sulla barra, ritagliate
+             al riquadro — e il testo si centra NELLA FINESTRA, così la prima
+             etichetta scivola un po' a destra invece di restare muta (la prima
+             stesura la centrava sulla barra e «31…» restava «31…») */
+          var sinCat = Math.max(box.x0, cx - kCat * banda / 2), desCat = Math.min(box.x1, cx + kCat * banda / 2);
+          var elCat = nodo('text', { 'class': 'dwg-catlab', x: ((sinCat + desCat) / 2).toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
+          svg.appendChild(elCat);
+          troncaTesto(elCat, d.etichetta, desCat - sinCat - RESPIRO_ET, 11);
+        }
         if (d.manca) {
           if (etichettaTutte) svg.appendChild(nodo('text', { 'class': 'dwg-vallab dwg-manca', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, testoManca));
-        } else if (etichettaTutte || d.valore === vmax) {
+        } else if (etichettaTutte || (d.valore === vmax && !maxScritto)) {
+          /* a pari merito il numero lo porta la PRIMA barra più alta: due «100%»
+             vicini a 320 px si leggevano come uno (Flotta, disponibilità) */
+          maxScritto = true;
           svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, fmt(d.valore)));
         }
       });
@@ -1609,7 +1669,7 @@
        restituisce un altro, quindi la sua prova vive in `node` e gira sempre —
        la miniatura tutta NaN si sarebbe vista con un `Math.min` in tre righe,
        e invece è stata trovata aprendo la pagina. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti, tacchePerLarghezza: tacchePerLarghezza, tacchePortate: tacchePortate },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti, tacchePerLarghezza: tacchePerLarghezza, tacchePortate: tacchePortate, passoCategorie: passoCategorie },
     versione: '1.0'
   };
 
