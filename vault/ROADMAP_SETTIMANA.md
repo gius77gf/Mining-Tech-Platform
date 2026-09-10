@@ -665,6 +665,24 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **PASSATA IN PROFONDITÀ SU CAMPO E TERRA A 320 E 430 px (10/09) — 16 +
+  22 fette a 320 guardate; chiude il giro delle sei app cominciato con Conti.**
+  Campo: niente da correggere — i campi senza etichetta («8» ore del turno,
+  «55» minuti di fermo) hanno il segnaposto e il `title`, ed è la forma dei
+  moduli del core; l'appello, i fermi, lo storico e i rapportini tengono a
+  320. Terra: un segnaposto solo — «vuoto = non si ripete» nel campo a mezza
+  larghezza «Si ripete ogni (mesi)» usciva «vuoto = non», che non dice
+  niente: adesso «es. 12» come i fratelli, con la frase intera nel `title` e
+  nella nota sotto il modulo. Visti e lasciati: i badge dei rilievi
+  («DA CUMULO · SURVEY-GRADE · ELABORATO» più la stampa) vanno su due righe a
+  320, leggibili; il titolo delle scadenze del Quadro tagliato a due righe col
+  badge a destra (struttura del core).
+  ⚠️ Il conto della giornata, per chi riprende: sei app, ~130 fette a 320
+  guardate una per una, quattro sonde riusabili in `scratchpad/racc/pass/`
+  (`cammina`, `tacche`, `catlab`, `tabelle`, `riga`, `fl`), e i difetti veri
+  erano quasi tutti nel MOTORE o nel FOGLIO condivisi (tacche, categorie
+  mute, numeri sopra le barre, `.fl`, `--info-basis`): una passata per app
+  trova i difetti di tutte.
 - [x] **PASSATA IN PROFONDITÀ SU SCUDO E SENTINELLA A 320 E 430 px (10/09)
   — 28 + 20 fette a 320 guardate, tabelle misurate (23 su sei app: 4 più
   larghe scorrono, 0 tagliate), i punti d'uscita già aperti dai banchi
