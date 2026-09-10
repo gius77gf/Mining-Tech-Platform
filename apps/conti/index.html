@@ -845,7 +845,13 @@ label.item:has(.dw-chk:checked){
    poterne leggere il nome. */
 @media(max-width:440px){
   .item>.info{flex:1 1 100%}                     /* nome e dettaglio a tutta riga */
-  .item>.acts{order:5; flex:0 0 auto; margin-top:3px}   /* poi stato, azioni, importo */
+  /* ⛔ `max-width:100%`, se no la riga delle azioni NON va a capo: con
+     `flex:0 0 auto` la sua larghezza è quella del contenuto (stampa, PDF,
+     sollecito, matita, cestino = 314 px) e il cestino finiva a 296–340 px in
+     una scheda larga 300 con overflow nascosto — «Elimina fattura» era fuori
+     dallo schermo a 320 px su tre fatture (fuori-schermo, 10/09). Costretta
+     alla scheda, la riga usa il proprio flex-wrap e il cestino scende sotto. */
+  .item>.acts{order:5; flex:0 0 auto; max-width:100%; margin-top:3px}   /* poi stato, azioni, importo */
   .item>.badge{margin-top:3px}
 }
 

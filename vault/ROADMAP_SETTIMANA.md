@@ -665,6 +665,35 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LA VETRINA E IL NASTRO CHE SCORRE (10/09) — `fuori-schermo.mjs` intero
+  usciva 1 da prima di oggi (misurato anche su `d82a7871`): 16 comandi «fuori
+  dallo schermo» a 390/360/320, tutti nella vetrina.** Erano le voci del
+  nastro «Otto app e un accesso unico» (`.striscia .scorre`: nove nomi
+  ripetuti due volte per il giro continuo, 2730 px dentro una scatola con
+  overflow nascosto, che scorre per animazione). Non sono il modo di aprire
+  un'app — le schede sotto lo sono — e un nastro che passa non è un comando
+  che una persona raggiunga a colpo sicuro. Decisione: il nastro è
+  DECORATIVO — `aria-hidden="true"` sul nastro (così uno screen reader non
+  legge la lista due volte) e `tabindex="-1"` sulle 18 voci (non entrano nel
+  giro con il tasto Tab); il banco salta i sottoalberi `aria-hidden` E LI
+  CONTA nel riepilogo («16 comandi dentro sottoalberi aria-hidden NON
+  giudicati»), perché un `aria-hidden` su una lista intera spegnerebbe il
+  banco in silenzio. Dopo: 14 superfici × 3 larghezze, 0 fuori; la
+  controprova su Sentinella cade come deve; `vetrina-collegamenti` invariato.
+  ⏱️ Visto e lasciato: con `prefers-reduced-motion` l'animazione si ferma
+  (giusto) e a 390 px del nastro restano visibili due nomi su nove — chi
+  chiede meno movimento vede un nastro tronco. Da decidere se in quel caso il
+  nastro deve andare a capo.
+  ⛔ **E SOTTO I 27 DELLA VETRINA NE STAVANO 4 DI CONTI**, che nessuno vedeva
+  perché il banco usciva rosso comunque: a 320 px «Elimina fattura» delle
+  fatture con il bottone del sollecito stava a 296–340 px in una scheda
+  larga 300 con overflow nascosto — il cestino FUORI DALLO SCHERMO su tre
+  fatture. Causa: nel `@media(max-width:440px)` di Conti la riga delle azioni
+  ha `flex:0 0 auto` e prende la larghezza del contenuto (314 px); costretta
+  con `max-width:100%` usa il proprio flex-wrap e il cestino scende sotto.
+  Dopo: 14 superfici × 3 larghezze, **0 fuori**. È la lezione della CI rossa
+  cronica applicata a un banco: un rosso che c'è sempre nasconde il rosso
+  nuovo.
 - [x] **PASSATA IN PROFONDITÀ SU CAMPO E TERRA A 320 E 430 px (10/09) — 16 +
   22 fette a 320 guardate; chiude il giro delle sei app cominciato con Conti.**
   Campo: niente da correggere — i campi senza etichetta («8» ore del turno,
