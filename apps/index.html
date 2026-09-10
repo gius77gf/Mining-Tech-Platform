@@ -896,13 +896,29 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .app.dentro .testo .nome{opacity:1;transform:none}
 
 /* 4. la striscia dei nomi scorre piano, e si ferma quando ci passi sopra */
-.striscia{overflow:hidden}
+/* ⛔ IL NASTRO STAVA SOTTO LA FOTO DELLA SEZIONE DOPO, dal 25/08 (386fde4c).
+   `#storia .fondale` è assoluto con `inset:-12% 0` e `z-index:0`: sale sopra
+   la sezione di 150 px a 1280 e di 225 px a 390 — cioè copre tutto il nastro,
+   che essendo statico si dipinge sotto. Misurato il 10/09 con lo scatto e con
+   elementFromPoint a fondale cliccabile: i nove nomi (e a 390 anche
+   l'etichetta) erano dietro la foto. `position:relative; z-index:1` lo rimette
+   davanti; la foto continua a salire, ma dietro. */
+.striscia{overflow:hidden;position:relative;z-index:1}
 .striscia .scorre{display:flex;gap:var(--s5);align-items:center;width:max-content;
   animation:sfila 44s linear infinite}
 /* ⛔ NON si ferma al passaggio del cursore (fondatore, 25/08): la pausa
    spezzava il movimento proprio mentre uno la guardava. */
 @keyframes sfila{to{transform:translateX(-50%)}}
-@media(prefers-reduced-motion:reduce){.striscia .scorre{animation:none}}
+/* ⛔ CON MENO MOVIMENTO IL NASTRO NON SCORRE, E ALLORA DEVE ANDARE A CAPO.
+   Misurato il 10/09: fermando la sola animazione restavano visibili DUE nomi
+   su nove a 390 e a 320 px (il nastro è largo 2730 px in una scatola con
+   overflow nascosto), e chi chiede meno movimento vedeva un nastro tronco. Qui
+   il nastro si allarga alla riga, va a capo centrato, e la seconda copia dei
+   nove nomi — che serve solo al giro continuo — sparisce. */
+@media(prefers-reduced-motion:reduce){
+  .striscia .scorre{animation:none;width:auto;flex-wrap:wrap;justify-content:center;row-gap:var(--s3)}
+  .striscia .scorre a:nth-child(n+10){display:none}
+}
 
 /* 5. i due numeri contano da zero quando entrano in vista */
 .fascia .cifre b{font-variant-numeric:tabular-nums}

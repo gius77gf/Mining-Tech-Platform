@@ -694,10 +694,27 @@
   giudicati»), perché un `aria-hidden` su una lista intera spegnerebbe il
   banco in silenzio. Dopo: 14 superfici × 3 larghezze, 0 fuori; la
   controprova su Sentinella cade come deve; `vetrina-collegamenti` invariato.
-  ⏱️ Visto e lasciato: con `prefers-reduced-motion` l'animazione si ferma
-  (giusto) e a 390 px del nastro restano visibili due nomi su nove — chi
-  chiede meno movimento vede un nastro tronco. Da decidere se in quel caso il
-  nastro deve andare a capo.
+  ✅ **E CON MENO MOVIMENTO IL NASTRO VA A CAPO (10/09, un'ora dopo).**
+  Misurato con `reducedMotion:'reduce'`: prima 2 nomi visibili su 9 a 390 e a
+  320 px (il nastro fermo restava largo 2730 px dentro l'overflow nascosto);
+  dopo il nastro si allarga alla riga, va a capo centrato, la seconda copia
+  dei nove nomi sparisce (`a:nth-child(n+10)`): 9 su 9 a tutt'e due le
+  larghezze. ⚠️ Il primo righello contava 18 visibili su 18 anche coi nove
+  nascosti: un `display:none` ha un rettangolo 0×0 che «sta nello schermo».
+  Si contano i rettangoli con larghezza, non le coordinate.
+  ⛔ **E MISURANDO QUELLO È SALTATO FUORI CHE IL NASTRO STAVA SOTTO LA FOTO
+  DELLA SEZIONE DOPO, DAL 25/08 (`386fde4c`).** Lo scatto del nastro
+  mostrava solo la gru: `#storia .fondale` è assoluto con `inset:-12% 0` e
+  `z-index:0`, sale sopra la propria sezione di 150 px a 1280 e di 225 px a
+  390 — cioè copre tutto il nastro (e a 390 anche l'etichetta «Otto app e un
+  accesso unico»), che essendo statico si dipinge sotto. `elementFromPoint`
+  non lo diceva perché il fondale ha `pointer-events:none`: reso cliccabile
+  per il solo hit-test, al centro del nome rispondeva `span.velo`. Con
+  `position:relative; z-index:1` sul nastro risponde il nome, a 1280, 390 e
+  con meno movimento; la foto continua a salire, ma dietro. Diciassette
+  giorni sulla prima pagina che un prospect apre, e nessun banco lo vedeva:
+  `contrasto` misura il colore del testo contro il fondo che RISALE gli
+  antenati, non contro ciò che si dipinge SOPRA.
   ⛔ **E SOTTO I 27 DELLA VETRINA NE STAVANO 4 DI CONTI**, che nessuno vedeva
   perché il banco usciva rosso comunque: a 320 px «Elimina fattura» delle
   fatture con il bottone del sollecito stava a 296–340 px in una scheda
