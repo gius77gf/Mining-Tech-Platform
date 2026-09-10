@@ -1201,3 +1201,44 @@ COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: un
 valutazione al costo, ma è un dato che oggi nessuna app ha, e inventarlo
 sarebbe il difetto del numero tranquillo); il carico/scarico per prodotto
 (disegno scartato: una cava non lo tiene).
+
+
+## Ricerca del 2026-09-10 — il registro delle vendite che il commercialista importa: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**: niente `WebSearch` in questa
+unità; nessun numero di norma entra in una schermata.
+
+### Che cos'è, fuori
+
+- Il **registro IVA delle vendite** è l'elenco dei documenti emessi con, per
+  ogni documento e per ogni aliquota, imponibile e imposta separati; le
+  note di credito lo riducono. È ciò che il commercialista **registra** in
+  contabilità, e ciò che il suo gestionale **importa**. *[mestiere della
+  contabilità, da memoria]*
+- **I tracciati nativi** (TeamSystem, Zucchetti, Danea…) sono formati
+  proprietari con colonne e codici causale propri, documentati dal
+  produttore: chi li scrive senza la specifica in mano produce un file che
+  **sembra** giusto e viene rifiutato all'import — o peggio, importato con
+  le colonne scambiate. *[dedotto: le specifiche non sono state lette]*
+- **La via che regge senza specifica**: un CSV generico con le colonne che
+  ogni importatore sa mappare (tipo documento, numero, data, cliente,
+  partita IVA, codice fiscale, codice destinatario, aliquota, imponibile,
+  imposta, totale), una riga per aliquota. È la forma che i gestionali
+  chiamano «import da CSV con mappatura». *[dedotto dalla pratica diffusa]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi sa imponibile e imposta per aliquota?* → `riepilogoIvaFattura`
+   (le bande) e `totaliDaRighe`: non si riscrive.
+2. *Chi sa la partita IVA del cliente?* → l'anagrafica (`clienti.piva`,
+   `sdi`, `codiceFiscale`): dalla fattura si risale con `clienteId`.
+3. *Che cosa NON deve fare il file?* → scrivere «aliquota 0, imposta 0» su
+   una fattura senza IVA dichiarata: la risposta di casa è vuoto, non zero.
+
+### Il delta, fatto da chi ha il codice in mano (10/09)
+
+Fatto nella stessa unità: vedi la voce «IL REGISTRO DELLE VENDITE PER IL
+COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: il
+tracciato nativo di un gestionale specifico (serve la specifica letta, non
+ricordata) e il registro degli **acquisti** (Conti non ha le fatture passive:
+i costi sono voci, non documenti con IVA).

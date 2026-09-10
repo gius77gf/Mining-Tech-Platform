@@ -1938,6 +1938,7 @@ label.item:has(.dw-chk:checked){
   <div id="espo-list"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-rep-export">Esporta situazione (CSV)</button>
+    <button class="dw-btn secondary" id="btn-rep-vendite" title="Per il gestionale del commercialista: una riga per documento e per aliquota, con partita IVA e codice destinatario; le note di credito col segno meno">Registro vendite (CSV)</button>
     <button class="dw-btn secondary" id="btn-inc-export" title="Prospetto: risolve la fattura e calcola il residuo. NON si ri-carica">Esporta incassi (CSV)</button>
     <button class="dw-btn secondary" id="btn-inc-backup" title="Copia di sicurezza: lo stesso file che il bottone accanto sa ri-caricare">Copia di sicurezza (CSV)</button>
     <button class="dw-btn secondary" id="btn-inc-restore">Ri-carica copia (CSV)</button>
@@ -2004,7 +2005,8 @@ label.item:has(.dw-chk:checked){
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
     autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO,
-    prospettoRimanenze, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze } from "./conti-data.js";
+    prospettoRimanenze, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze,
+    registroVendite, csvRegistroVendite, descriviRegistroVendite } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -6493,6 +6495,17 @@ label.item:has(.dw-chk:checked){
     const it = e.target.closest && e.target.closest("[data-fat]");
     if (it) { modaleIncassi(it.getAttribute("data-fat")); return; }
   });
+  /* Il registro delle vendite per il gestionale del commercialista (10/09):
+     le colonne e le loro regole stanno in `csvRegistroVendite`; qui si preme.
+     Tutto l'archivio: il periodo lo taglia chi importa, e la colonna
+     «nel_periodo» resta per dire chi non ha data. */
+  $("btn-rep-vendite").onclick = () => {
+    const csv = csvRegistroVendite(FAT, CLI, NOT);
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_registro_vendite.csv"; marchiaCsv(a); a.click();
+    esito("rep-esito", "Registro vendite esportato: " + descriviRegistroVendite(registroVendite(FAT, CLI, NOT)), "success");
+  };
   $("btn-rep-export").onclick = () => {
     /* Situazione fatture per il commercialista, registro-IVA-ready: imponibile,
        imposta e totale separati (le fatture vecchie, senza dettaglio, escono

@@ -68,6 +68,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("conti", "csvProspettoCosti", () => conti.csvProspettoCosti(D.costi, "2026-01-01", "2026-12-31"));
   doc("conti", "csvPrezziConvertiti", () => conti.csvPrezziConvertiti(D.prodotti));
   doc("conti", "csvRimanenze", () => conti.csvRimanenze(D.inventariTerra, D.prodotti));
+  doc("conti", "csvRegistroVendite", () => conti.csvRegistroVendite(D.fatture, D.clienti, NOT));
   doc("conti", "csvPesate", () => conti.csvPesate(D.pesate));
   doc("conti", "csvProspettoDdt", () => conti.csvProspettoDdt(D.pesate, D.fatture, D.ordini));
   doc("conti", "csvListino", () => conti.csvListino(D.prodotti));

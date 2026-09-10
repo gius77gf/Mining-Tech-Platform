@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 33, "i siti di export CSV censiti nelle quattro app")   // 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 34, "i siti di export CSV censiti nelle quattro app")   // 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -39631,6 +39631,73 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine rimanenze di piazzale (10/09) ===== */
+
+/* ===== CONTI · IL REGISTRO DELLE VENDITE PER IL COMMERCIALISTA (10/09) =====
+   Una riga per documento e per ALIQUOTA, con partita IVA e codice destinatario
+   dall'anagrafica, le note di credito col segno meno e il riferimento. Una
+   fattura senza IVA dichiarata esce con aliquota e imposta VUOTE, non zero;
+   un documento senza data non sparisce e non entra nel periodo.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const D = conti.DEMO;
+  const CLI = D.clienti;
+  const fRighe = { id: "fx", numero: "2026/099", clienteId: "c1", cliente: "Edilcave Srl", emessa: "2026-08-01",
+    righe: [{ quantita: 100, prezzoUnitario: 10, aliquota: 22 }, { quantita: 10, prezzoUnitario: 20, aliquota: 10 }] };
+  const fImm = { id: "fy", numero: "2026/100", clienteId: "c2", cliente: "Stradesud", emessa: "2026-08-05", imponibile: 1000, aliquotaIva: 22, ivaImporto: 220, totale: 1220, importo: 1220, righe: [] };
+  const fSenza = { id: "fz", numero: "2026/101", cliente: "Cave del Sud", emessa: "2026-08-09", importo: 500 };
+  const fNoData = { id: "fw", numero: "2026/102", clienteId: "c1", cliente: "Edilcave Srl", emessa: "2026-13-45", importo: 100 };
+  test("⛔ registroVendite: una riga per aliquota, con partita IVA e codice destinatario dall'anagrafica", () => {
+    const r = conti.registroVendite([fRighe, fImm], CLI, []);
+    eq(r.righe.length, 3, "due bande + una");
+    const x = r.righe.filter(q => q.numero === "2026/099").sort((a, b) => a.aliquota - b.aliquota);
+    eq(x.map(q => [q.aliquota, q.imponibile, q.imposta, q.totale]), [[10, 200, 20, 1440], [22, 1000, 220, 1440]], "le due bande della differita, il totale del documento su tutt'e due");
+    eq([x[0].piva, x[0].sdi, x[0].cliente], ["01234567890", "ABC1234", "Edilcave Srl"], "l'anagrafica del cliente");
+    const y = r.righe.find(q => q.numero === "2026/100");
+    eq([y.aliquota, y.imponibile, y.imposta, y.totale, y.sdi], [22, 1000, 220, 1220, "stradesud@pec.example.it"], "l'immediata dai totali scritti");
+    eq([r.documenti, r.imponibile, r.imposta], [2, 2200, 460, ], "i totali del periodo (tutto)");
+  });
+  test("⛔ una fattura senza IVA dichiarata: aliquota e imposta VUOTE, non zero — la stessa risposta del foglio", () => {
+    const r = conti.registroVendite([fSenza], CLI, []);
+    eq([r.righe[0].aliquota, r.righe[0].imposta, r.righe[0].imponibile, r.righe[0].senzaIva], [null, null, 500, true], "vuoto, non zero");
+    ok(/;;500;;500;;si$/.test(conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]), "nel CSV le due celle restano vuote: " + conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]);
+    eq(r.senzaIva, 1, "contata");
+    ok(/1 senza IVA dichiarata \(aliquota e imposta vuote, non zero\)/.test(conti.descriviRegistroVendite(r)), conti.descriviRegistroVendite(r));
+  });
+  test("⛔ il periodo: fuori e senza data si DICONO, e i totali sommano solo le righe dentro", () => {
+    const r = conti.registroVendite([fRighe, fImm, fNoData], CLI, [], "2026-08-01", "2026-08-03");
+    eq(r.righe.find(q => q.numero === "2026/100").nel, "no (fuori periodo)", "fuori");
+    eq(r.righe.find(q => q.numero === "2026/102").nel, "no (senza data)", "senza data, con la data che non esiste");
+    eq([r.nelPeriodo, r.documenti, r.senzaData, r.imponibile, r.imposta], [1, 3, 1, 1200, 240], "dentro uno su tre");
+    ok(/1 senza data, fuori dal periodo/.test(conti.descriviRegistroVendite(r)), conti.descriviRegistroVendite(r));
+    eq(conti.registroVendite([fImm], CLI, [], "boh", "2026-13-01").righe[0].nel, "si", "un periodo illeggibile non taglia niente");
+  });
+  test("⛔ le note di credito: segno meno, riferimento alla fattura stornata, le bozze fuori", () => {
+    const n = conti.notaDaFattura(fImm, "reso", 220, "NC 2026/01"); n.emessa = "2026-08-20";
+    const bozza = { ...conti.notaDaFattura(fImm, "reso", 100, "NC 2026/02"), emessa: "2026-08-21", bozza: true };
+    const r = conti.registroVendite([fImm], CLI, [n, bozza]);
+    const x = r.righe.find(q => q.tipo === "nota di credito");
+    eq([x.numero, x.totale, x.imponibile, x.imposta, x.aliquota, x.riferimento, x.piva], ["NC 2026/01", -220, -180.33, -39.67, 22, "storna 2026/100", "09876543210"], "la nota col segno meno e la quota di imponibile e imposta");
+    eq(r.righe.filter(q => q.tipo === "nota di credito").length, 1, "la bozza non entra");
+    eq([r.documenti, r.imponibile, r.imposta], [2, 819.67, 180.33], "i totali al netto della nota");
+  });
+  test("csvRegistroVendite: intestazione, ordine per data, e la dimostrazione (tutte senza IVA dichiarata, com'è)", () => {
+    const righe = conti.csvRegistroVendite(D.fatture, CLI, D.note || []).trim().split("\n");
+    eq(righe[0], conti.CSV_REGISTRO_VENDITE_INTESTAZIONE, "l'intestazione");
+    eq(righe.length - 1, D.fatture.length, "una riga per fattura: nessuna ha bande");
+    const date = righe.slice(1).map(l => l.split(";")[2]);
+    eq(date.slice().sort().join(), date.join(), "per data");
+    ok(righe.slice(1).every(l => /;;\d+(\.\d+)?;;\d+(\.\d+)?;;si$/.test(l)), "aliquota e imposta vuote su tutte: " + righe[1]);
+    eq(conti.descriviRegistroVendite(conti.registroVendite([], CLI, [])), "Nessun documento da mettere nel registro delle vendite.", "vuoto");
+  });
+  test("⛔ la pagina: il bottone c'è, il file lo compone il modulo, la frase pure", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    ok(/id="btn-rep-vendite"/.test(pagina), "il bottone nei Report");
+    ok(/const csv = csvRegistroVendite\(FAT, CLI, NOT\);/.test(pagina), "il CSV dal modulo, con l'anagrafica e le note");
+    ok(/descriviRegistroVendite\(registroVendite\(FAT, CLI, NOT\)\)/.test(pagina), "la frase dal modulo");
+    ok(/a\.download = "conti_registro_vendite\.csv"; marchiaCsv\(a\);/.test(pagina), "col marchio della dimostrazione");
+  });
+}
+/* ===== fine registro vendite (10/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

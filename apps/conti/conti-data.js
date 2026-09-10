@@ -5888,6 +5888,81 @@ export function csvRimanenze(inventari, prodotti, alla) {
   return csv;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   IL REGISTRO DELLE VENDITE PER IL COMMERCIALISTA (10/09). La riga 3 della
+   lista «quanto le chiede il fisco»: non «mandami un CSV leggibile» ma
+   «importamelo». ⛔ Un tracciato di un gestionale specifico NON si scrive a
+   memoria (sarebbe un formato inventato con la faccia di uno vero): questo è
+   il registro nella forma che ogni gestionale importa con una mappatura —
+   una riga per documento e per ALIQUOTA (imponibile e imposta separati, come
+   li vuole il registro IVA), la partita IVA e il codice destinatario del
+   cliente dall'anagrafica, le note di credito con il segno meno e il
+   riferimento alla fattura stornata. ⛔ Una fattura senza IVA dichiarata NON
+   esce con «aliquota 0, imposta 0»: aliquota e imposta restano vuote (la
+   stessa risposta di `csvSituazioneFatture` e del foglio stampato). ⛔ Un
+   documento senza data non sparisce e non entra nel periodo: «no (senza
+   data)». Pura, per nome. */
+export function registroVendite(fatture, clienti, note, dal, al) {
+  const d1 = dal && dataISOEsiste(String(dal).slice(0, 10)) ? String(dal).slice(0, 10) : null;
+  const d2 = al && dataISOEsiste(String(al).slice(0, 10)) ? String(al).slice(0, 10) : null;
+  const cli = (id) => (clienti || []).find((c) => c && c.id === id) || null;
+  const nelPeriodo = (data) => !data ? "no (senza data)" : (d1 && data < d1) || (d2 && data > d2) ? "no (fuori periodo)" : "si";
+  const righe = [];
+  const doc = (tipo, x, numero, data, riferimento, bande, im, segno) => {
+    const c = cli(x.clienteId);
+    const iso = dataISOEsiste(String(data || "").slice(0, 10)) ? String(data).slice(0, 10) : "";
+    const base = { tipo, numero: String(numero || ""), data: iso, cliente: nomeCliente(x, clienti),
+      piva: c ? String(c.piva || "") : "", cf: c ? String(c.codiceFiscale || "") : "", sdi: c ? String(c.sdi || "") : "",
+      totale: round2(segno * im.totale), riferimento, nel: nelPeriodo(iso) };
+    if (!bande.length) righe.push({ ...base, aliquota: null, imponibile: round2(segno * im.imponibile), imposta: null, senzaIva: true });
+    for (const b of bande) righe.push({ ...base, aliquota: b.aliquota, imponibile: round2(segno * b.imponibile), imposta: round2(segno * b.imposta), senzaIva: false });
+  };
+  for (const f of (fatture || []).filter(Boolean).slice().sort((a, b) => String(a.emessa || "").localeCompare(String(b.emessa || "")))) {
+    const rie = riepilogoIvaFattura(f);
+    /* una fattura con le righe ma senza i totali scritti (un import, un
+       archivio vecchio) prende imponibile e totale dalle righe stesse: la
+       stessa somma che `riepilogoIvaFattura` usa per le bande */
+    const haTotali = f.imponibile != null || f.ivaImporto != null || f.totale != null;
+    const im = rie.daRighe && !haTotali ? totaliDaRighe(f.righe) : rie;
+    doc("fattura", f, f.numero, f.emessa, "", rie.daRighe || rie.conIva ? rie.bande : [], im, 1);
+  }
+  for (const n of (note || []).filter((x) => x && !x.bozza).slice().sort((a, b) => String(a.emessa || "").localeCompare(String(b.emessa || "")))) {
+    const im = { imponibile: +n.imponibile || 0, ivaImporto: +n.ivaImporto || 0, totale: Math.abs(+n.totale || 0) };
+    const bande = n.aliquotaIva != null ? [{ aliquota: +n.aliquotaIva, imponibile: im.imponibile, imposta: im.ivaImporto }] : [];
+    doc("nota di credito", n, n.numero, n.emessa, n.fatturaNumero ? "storna " + n.fatturaNumero : "", bande, im, -1);
+  }
+  const chiave = (r) => r.tipo + "|" + r.numero;
+  const nel = righe.filter((r) => r.nel === "si");
+  return { righe, dal: d1, al: d2,
+    documenti: new Set(righe.map(chiave)).size,
+    nelPeriodo: new Set(nel.map(chiave)).size,
+    senzaData: new Set(righe.filter((r) => r.nel === "no (senza data)").map(chiave)).size,
+    senzaIva: new Set(righe.filter((r) => r.senzaIva).map(chiave)).size,
+    imponibile: round2(nel.reduce((s, r) => s + r.imponibile, 0)),
+    imposta: round2(nel.reduce((s, r) => s + (r.imposta || 0), 0)) };
+}
+export const CSV_REGISTRO_VENDITE_INTESTAZIONE = "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo";
+export function csvRegistroVendite(fatture, clienti, note, dal, al) {
+  const r = registroVendite(fatture, clienti, note, dal, al);
+  const num = (v) => v == null ? "" : String(v);
+  let csv = CSV_REGISTRO_VENDITE_INTESTAZIONE + "\n";
+  for (const x of r.righe)
+    csv += `${csvCell(x.tipo)};${csvCell(x.numero)};${x.data};${csvCell(x.cliente)};${csvCell(x.piva)};${csvCell(x.cf)};${csvCell(x.sdi)};${num(x.aliquota)};${num(x.imponibile)};${num(x.imposta)};${num(x.totale)};${csvCell(x.riferimento)};${x.nel}\n`;
+  return csv;
+}
+/* la frase per chi preme il bottone: quanti documenti, quanti senza IVA
+   dichiarata (che il commercialista deve sapere prima di importare), quanti
+   senza data */
+export function descriviRegistroVendite(r) {
+  const x = r || {};
+  const n = +x.documenti || 0;
+  if (!n) return "Nessun documento da mettere nel registro delle vendite.";
+  let s = n + (n === 1 ? " documento" : " documenti") + " nel registro, una riga per aliquota";
+  if (x.senzaIva) s += "; " + x.senzaIva + (x.senzaIva === 1 ? " senza IVA dichiarata (aliquota e imposta vuote, non zero)" : " senza IVA dichiarata (aliquota e imposta vuote, non zero)");
+  if (x.senzaData) s += "; " + x.senzaData + (x.senzaData === 1 ? " senza data, fuori dal periodo" : " senza data, fuori dal periodo");
+  return s + ".";
+}
+
 /* IL NOME DEL CLIENTE DI UN PREVENTIVO (05/09, salito dalla pagina): la
    ragione sociale in anagrafica se il cliente c'è ancora, se no il nome
    scritto sul preventivo, se no «Cliente non indicato». */

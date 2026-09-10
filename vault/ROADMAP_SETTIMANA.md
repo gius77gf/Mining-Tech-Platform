@@ -665,6 +665,34 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL REGISTRO DELLE VENDITE PER IL COMMERCIALISTA (10/09) — la riga 3
+  della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI («non mandami
+  un CSV leggibile: importamelo»):** `registroVendite(fatture, clienti, note,
+  dal, al)` e `csvRegistroVendite` nel modulo di Conti — una riga per
+  documento e per ALIQUOTA (dalle bande di `riepilogoIvaFattura`; le righe
+  senza totali scritti dai `totaliDaRighe`), partita IVA, codice fiscale e
+  codice destinatario dall'anagrafica, le note di credito col segno meno e
+  «storna <numero>», le bozze fuori; una fattura senza IVA dichiarata esce
+  con aliquota e imposta VUOTE, non zero (la risposta del foglio e di
+  `csvSituazioneFatture`); un documento senza data non sparisce e non entra
+  nel periodo («no (senza data)»); `descriviRegistroVendite` dice quanti
+  documenti, quanti senza IVA dichiarata, quanti senza data. ⛔ NON è il
+  tracciato nativo di un gestionale specifico: quello non si scrive a
+  memoria (formato inventato con la faccia di uno vero) — è il registro
+  generico che ogni gestionale importa con la mappatura, e la riga del
+  documento lo dice per intero. Pagina: «Registro vendite (CSV)» nei Report
+  accanto alla situazione, col marchio della dimostrazione e la striscia.
+  Prove: run-kpi +6 (2807; pin dei siti di export 33 → **34**),
+  `documenti-dimostrazione` 134 documenti, banco
+  `conti-registro-vendite.mjs` 22 ok a 430 e 320 (il file letto dal gancio
+  dell'ancora) con controprova 6/22 su 3/3 per file (267 esecuzioni, 113
+  file), copertura 933/933 (fondo Conti 188 → **192**). ⚠️ La prima fixture
+  della prova — una fattura con le sole righe — dava imponibile 0: la
+  pagina salva SEMPRE i totali accanto alle righe, e il modulo ora li
+  prende dalle righe quando mancano (import, archivi vecchi) invece di
+  scrivere zero. Docs: CONCORRENTI_CONTI riga «Export contabilità» a C'È con
+  la parte «a metà» detta per intero, riga 3 della lista del fisco risposta;
+  B4 invariata (la riga era A METÀ); mondo in RICERCA_CONTINUA_CONTI.
 - [x] **LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09) — la riga 2
   della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI, che restava
   «senza risposta»:** `prospettoRimanenze(inventari, prodotti, alla)` nel
@@ -7188,8 +7216,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.282 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2801, `run-stile` 328,
+  **3.288 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2807, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7199,8 +7227,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **265 esecuzioni** che
-  aprono le pagine in un browser vero, da **112** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **267 esecuzioni** che
+  aprono le pagine in un browser vero, da **113** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
