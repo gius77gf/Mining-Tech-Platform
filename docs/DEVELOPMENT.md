@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.296 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/09: 2815 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.300 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/09: 2819 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.752** asserzioni su **40** comandi.
+> `node` completo esegue **3.756** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **241 su 241** in cinque
-moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **87/87**, `genesi-data.js` **83/83**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **243 su 243** in cinque
+moduli: `dw-shell.js` **58/58**, `dw-ponti.js` **87/87**, `genesi-data.js` **85/85**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **170 funzioni** stanno dentro
+importa. **Genesi no**: le sue **169 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,13 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **59** |
+| una o due | **58** |
 | da tre a cinque | 27 |
 | da sei a dieci | 24 |
 | più di dieci — lì è un rifacimento | 37 |
 
-Cioè **67 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 101 sono una decisione di architettura.
+Cioè **66 su 169 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 103 sono una decisione di architettura.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
 27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:

@@ -1160,7 +1160,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⛔ `costoVolata` sapeva già dire «non calcolabile»; a disinnescarlo erano i
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
-         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi } from './genesi-data.js';
+         foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
+         fattoreRoccia, x50DaMisure } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1335,15 +1336,11 @@ const ROCCE=[
   {id:'basalto',nome:'Basalto / diabase',cls:'molto dura',A:12,rho:2.95,vp:6000,car:'shock',ucs:250,eMod:80,rmd:20,jps:80,jpa:40,jcf:1,tint:0x6f6b65,strat:false},
 ];
 function selRoccia(){ return ROCCE.find(r=>r.id===D2.roccia) || ROCCE.find(r=>r.default) || ROCCE[2]; }
-/* rock factor A calcolato dall'indice di brillabilita di Cunningham/Lilly: A=0.06·(RMD+JF+RDI+HF).
-   UCS ed E editabili; "Fratturazione" e un moltiplicatore sulla spaziatura giunti. I default per litologia riproducono gli A storici. */
-function rockFactorA(){
-  const r=selRoccia(), rho=(r.rho||2.6)*1000, ucs=D2.ucs||r.ucs, E=D2.eMod||r.eMod;
-  const mul={fessurata:0.55,media:1,compatta:1.35}[D2.frat]||1;
-  const RDI=0.025*rho-50, HF=E<50?E/3:ucs/5, JF=(r.jcf||1)*((r.jps||50)*mul+(r.jpa||30));
-  const A=Math.max(1,Math.min(16, 0.06*((r.rmd||20)+JF+RDI+HF)));
-  return { A:+A.toFixed(1), BI:Math.round(A/0.06), RDI:Math.round(RDI), HF:Math.round(HF), JF:Math.round(JF) };
-}
+/* rock factor A dall'indice di brillabilità di Cunningham/Lilly: A=0.06·(RMD+JF+RDI+HF).
+   ⛔ IL CONTO NON È PIÙ QUI: è `fattoreRoccia` in `./genesi-data.js` (blocco G22, 10/09), dove
+   `node` lo prova. Qui resta il LEGAME fra lo stato del progetto e la funzione pura — un punto
+   solo invece di ripetere `selRoccia(), D2` nei sei chiamanti, come `computeMIC` per `micFinestra`. */
+function rockFactorA(){ return fattoreRoccia(selRoccia(), D2); }
 /* ══════════════════════════════════════════════════════════════════════════
    G3 — LA LEGGE DI SITO K/β DAI REFERTI DEL SISMOGRAFO
    ══════════════════════════════════════════════════════════════════════════
@@ -2641,24 +2638,13 @@ function _fragCurveSVG(fr, sw, meas){
    (d³, come la base a massa della curva prevista), e la confronta col Kuz-Ram.
    È un confronto qualitativo su un campione; non è un'analisi strumentale. */
 let _measDist=null;
-function _measFromSizes(arr){
-  const v=arr.filter(x=>x>0).sort((a,b)=>a-b);
-  if(v.length<2) return null;
-  const w=v.map(d=>d*d*d), tot=w.reduce((a,b)=>a+b,0);
-  let c=0; const pts=[];
-  for(let i=0;i<v.length;i++){ c+=w[i]; pts.push([v[i], c/tot]); }
-  let x50=v[v.length-1];
-  for(let i=0;i<pts.length;i++){ if(pts[i][1]>=0.5){
-    if(i===0) x50=pts[0][0];
-    else { const [x0,p0]=pts[i-1], [x1,p1]=pts[i]; x50 = x0 + (0.5-p0)/(p1-p0)*(x1-x0); }
-    break; } }
-  return { pts, x50, n:v.length };
-}
+/* ⛔ l'x50 misurato sul cumulo (`_measFromSizes`) è salito in `genesi-data.js` come `x50DaMisure`
+   (blocco G22, 10/09): nessuna variabile della pagina, e ora `node` lo prova. */
 function _measUpdate(){
   const inp=$('meas-in'), out=$('meas-res'); if(!inp||!out) return;
   const nums=(inp.value.match(/[\d]+(?:[.,][\d]+)?/g)||[]).map(s=>parseFloat(s.replace(',','.'))).filter(x=>x>0);
   if(nums.length<2){ _measDist=null; out.innerHTML = nums.length ? '<span style="color:var(--mut2)">servono almeno 2 misure</span>' : ''; return; }
-  const m=_measFromSizes(nums); _measDist=m;
+  const m=x50DaMisure(nums); _measDist=m;
   const fr=_fragLast;
   if(!fr){ out.innerHTML='<span style="color:var(--mut2)">imposta prima una volata</span>'; return; }
   /* ⛔ UNO SCARTO CONTRO UNA PREVISIONE CHE NON C'È NON È UNO SCARTO. Con

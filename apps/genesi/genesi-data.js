@@ -2331,3 +2331,66 @@ export function riepilogoPontiGenesi(dati) {
     ],
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G22 · IL FATTORE ROCCIA DI LILLY/CUNNINGHAM E L'x50 MISURATO SUL CUMULO —
+   la testa e la coda della catena della frammentazione, salite dalla pagina
+   il 10/09 (cantiere B3, quarta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   La catena è `A → x50 di Kuz-Ram (fragKuzRam) → curva Rosin-Rammler →
+   confronto con l'x50 misurato sul cumulo`: i due anelli di mezzo erano già
+   qui (blocchi G12-G13), i due estremi stavano in `genesi.html` e nessuna
+   prova poteva chiamarli. Sbagliare A non produce un difetto grafico: sposta
+   la pezzatura prevista di TUTTE le volate di quella roccia, e da lì il
+   consumo specifico consigliato, il rigonfiamento del cumulo (SF, che la
+   pagina ricava da A) e il verdetto «coerente / non coerente» del confronto
+   con la misura al cumulo.
+
+   `fattoreRoccia(roccia, scelte)` — l'indice di brillabilità di Lilly,
+   A = 0,06·(RMD + JF + RDI + HF), come Cunningham lo usa nel modello di
+   Kuz-Ram: RMD dalla scheda della litologia, JF = jcf·(jps·mul + jpa) dove
+   `mul` è la fratturazione scelta a schermo (fessurata 0,55 · media 1 ·
+   compatta 1,35), RDI = 0,025·ρ − 50 con ρ in kg/m³, HF = E/3 sotto i 50 GPa
+   e UCS/5 sopra. UCS ed E si possono ridire a schermo (`scelte.ucs`,
+   `scelte.eMod`): uno zero o un vuoto valgono «quello della litologia», che
+   è il comportamento di sempre. A è tenuto fra 1 e 16 come nel modello.
+   Entrata IDENTICA, riga per riga: la pagina la chiama con `selRoccia()` e
+   `D2`, e `rockFactorA` resta come legame, come `computeMIC` per
+   `micFinestra`. Provato parola per parola: la vecchia funzione estratta dal
+   file e messa accanto a questa su 6 litologie × UCS, E, fratturazione
+   (compresi vuoti, zeri e valori fuori scala) → 0 divergenze.
+   ⚠️ Quello che NON fa, e resta com'era: una litologia senza `ucs` né `eMod`
+   e senza i due valori a schermo risponde `A: NaN` — nelle sei schede
+   catalogate non succede, e inventare qui un valore sarebbe il numero
+   tranquillo che questo repository combatte. Chi aggiunge una litologia le
+   dà UCS ed E.
+
+   `x50DaMisure(misure)` — la pezzatura mediana del CUMULO da un campione di
+   pezzi misurati (cm): ogni pezzo pesa per il suo volume (d³), la curva
+   passante cumulata si legge su quei pesi e l'x50 si interpola fra i due
+   pezzi che stanno a cavallo del 50%. È il confronto qualitativo con la
+   previsione di Kuz-Ram, e la pagina lo scrive: non sostituisce un'analisi
+   granulometrica strumentale. Sotto due misure positive risponde `null` —
+   con un pezzo solo non c'è una distribuzione, e uno «x50» da un pezzo
+   sarebbe il pezzo. Anche questa è entrata identica. */
+export function fattoreRoccia(roccia, scelte){
+  const r=roccia||{}, D2=scelte||{};
+  const rho=(r.rho||2.6)*1000, ucs=D2.ucs||r.ucs, E=D2.eMod||r.eMod;
+  const mul={fessurata:0.55,media:1,compatta:1.35}[D2.frat]||1;
+  const RDI=0.025*rho-50, HF=E<50?E/3:ucs/5, JF=(r.jcf||1)*((r.jps||50)*mul+(r.jpa||30));
+  const A=Math.max(1,Math.min(16, 0.06*((r.rmd||20)+JF+RDI+HF)));
+  return { A:+A.toFixed(1), BI:Math.round(A/0.06), RDI:Math.round(RDI), HF:Math.round(HF), JF:Math.round(JF) };
+}
+export function x50DaMisure(misure){
+  const v=(misure||[]).filter(x=>x>0).sort((a,b)=>a-b);
+  if(v.length<2) return null;
+  const w=v.map(d=>d*d*d), tot=w.reduce((a,b)=>a+b,0);
+  let c=0; const pts=[];
+  for(let i=0;i<v.length;i++){ c+=w[i]; pts.push([v[i], c/tot]); }
+  let x50=v[v.length-1];
+  for(let i=0;i<pts.length;i++){ if(pts[i][1]>=0.5){
+    if(i===0) x50=pts[0][0];
+    else { const [x0,p0]=pts[i-1], [x1,p1]=pts[i]; x50 = x0 + (0.5-p0)/(p1-p0)*(x1-x0); }
+    break; } }
+  return { pts, x50, n:v.length };
+}

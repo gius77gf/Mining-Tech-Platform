@@ -665,6 +665,25 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **QUARTA FETTA DI B3 — IL FATTORE ROCCIA E L'x50 MISURATO SUL CUMULO
+  ESCONO DA GENESI (10/09):** `fattoreRoccia(roccia, scelte)` e
+  `x50DaMisure(misure)` in `genesi-data.js` (blocco G22), cioè la testa e la
+  coda della catena della frammentazione — l'indice di brillabilità di
+  Lilly/Cunningham A = 0,06·(RMD+JF+RDI+HF) da cui partono l'x50 di Kuz-Ram,
+  il consumo specifico consigliato e il rigonfiamento del cumulo, e la
+  pezzatura mediana del campione misurato (pesi per volume d³, interpolazione
+  sul 50%). Entrate IDENTICHE: la vecchia `rockFactorA` estratta da `HEAD` e
+  messa accanto alla nuova su 5.280 casi (8 litologie × 11 UCS × 10 E × 6
+  fratturazioni) → 0 divergenze; `_measFromSizes` contro `x50DaMisure` su
+  20.000 campioni generati → 0 divergenze. Nella pagina `rockFactorA` resta
+  come LEGAME (`return fattoreRoccia(selRoccia(), D2)`, come `computeMIC`),
+  `_measFromSizes` sparisce. ⚠️ Due prove vecchie cadevano per il trasloco e
+  sono state ALLARGATE, non allentate: G18 conta le mappe su `D2.frat` in
+  tutt'e due i file (2 + 1, denominatore 3), G19 cerca `ucs=D2.ucs||r.ucs` nel
+  modulo e pretende che nella pagina NON ci sia più. Prove: run-kpi +4
+  (2819), copertura 939/939 dei sei moduli app + shared, genesi-data 85/85 (fondo 83 → **85**), censimento
+  `genesi-estraibili` 170 → **169** funzioni nella pagina, 59 → 58 che leggono
+  una o due variabili, «il numero che conta» 67 → 66.
 - [x] **I LISTINI PER CLIENTE IN CONTI (10/09) — la mancanza «più listini
   nominati e assegnabili» della riga «Listini differenziati per cliente» di
   CONCORRENTI_CONTI (a metà dal 01/08), una delle tre cose indietro rispetto ai
@@ -3078,7 +3097,10 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *Numeri rimisurati
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, quarta fetta
+      (G22): **169** nella pagina, **58** a una o due variabili, **66** «il
+      numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
+      ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
       funzioni nella pagina e sono **166**, e **87** estraibili quando sono
@@ -7462,8 +7484,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.296 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2815, `run-stile` 328,
+  **3.300 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2819, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

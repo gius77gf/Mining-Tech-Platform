@@ -25015,6 +25015,54 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/scatterInnesco\(/g) || []).length, 3, "e i tre punti chiamano la funzione: il foro, l'uniformità di Cunningham, il badge/rilascio");
     ok(/function scatterMs\(\)\{[\s\S]{0,400}return scatterInnesco\(D2\.innesco, tmx\);/.test(pag), "scatterMs resta come legame fra lo stato e la funzione, come computeMIC");
   });
+
+  /* ⛔ G22 — IL FATTORE ROCCIA E L'x50 MISURATO (10/09, quarta fetta di B3):
+     la testa e la coda della catena della frammentazione, salite dalla pagina.
+     Trasloco provato parola per parola: la vecchia `rockFactorA` estratta da
+     `HEAD` e messa accanto a `fattoreRoccia` su 5.280 casi (8 litologie × 11
+     UCS × 10 E × 6 fratturazioni, con vuoti, zeri e fuori scala) → 0
+     divergenze; `_measFromSizes` contro `x50DaMisure` su 20.000 campioni
+     generati (con zeri e negativi dentro) → 0 divergenze. Le litologie qui
+     sotto sono copiate dal catalogo della pagina: i loro A «storici» (4, 5, 8,
+     9, 10, 12) sono quelli che la formula deve riprodurre alla prima cifra. */
+  const _CALCARE = { id:'calcare', A:8, rho:2.6, ucs:100, eMod:55, rmd:20, jps:50, jpa:30, jcf:1 };
+  const _MARNA = { id:'marna', A:4, rho:2.4, ucs:30, eMod:12, rmd:20, jps:10, jpa:10, jcf:1.5 };
+  const _BASALTO = { id:'basalto', A:12, rho:2.95, ucs:250, eMod:80, rmd:20, jps:80, jpa:40, jcf:1 };
+  test("⛔ Genesi · fattoreRoccia: A = 0,06·(RMD+JF+RDI+HF), e i quattro addendi si vedono", () => {
+    eq(v.fattoreRoccia(_CALCARE, {}), { A: 8.1, BI: 135, RDI: 15, HF: 20, JF: 80 }, "calcare: RDI 0,025·2600−50 = 15, HF = UCS/5 (E ≥ 50 GPa), JF = 50+30");
+    eq(v.fattoreRoccia(_MARNA, {}), { A: 3.8, BI: 64, RDI: 10, HF: 4, JF: 30 }, "marna: HF = E/3 sotto i 50 GPa, JF = 1,5·(10+10)");
+    eq(v.fattoreRoccia(_BASALTO, {}), { A: 12.8, BI: 214, RDI: 24, HF: 50, JF: 120 }, "basalto");
+    eq(v.fattoreRoccia(_CALCARE, { frat: "fessurata" }).A, 6.8, "la fratturazione «fessurata» moltiplica la spaziatura dei giunti per 0,55");
+    eq(v.fattoreRoccia(_CALCARE, { frat: "compatta" }).JF, 98, "«compatta» per 1,35 (50·1,35+30 = 97,5 → 98)");
+    eq(v.fattoreRoccia(_CALCARE, { frat: "boh" }).A, 8.1, "una fratturazione sconosciuta vale «media»");
+  });
+  test("⛔ Genesi · fattoreRoccia: UCS ed E ridetti a schermo vincono sulla litologia, vuoto e zero no", () => {
+    eq(v.fattoreRoccia(_CALCARE, { ucs: 200 }), { A: 9.3, BI: 155, RDI: 15, HF: 40, JF: 80 }, "UCS 200 → HF 40");
+    eq(v.fattoreRoccia(_CALCARE, { eMod: 30 }).HF, 10, "E 30 GPa → HF = E/3 = 10, perché sotto i 50 conta E e non UCS");
+    eq(v.fattoreRoccia(_CALCARE, { ucs: "", eMod: 0 }).A, 8.1, "vuoto e zero valgono «quello della litologia», com'era");
+    eq(v.fattoreRoccia({ ...(_CALCARE), jps: 5000 }, {}).A, 16, "il tetto del modello è 16");
+    eq(v.fattoreRoccia({ rho: 1, ucs: 1, eMod: 1, rmd: 1, jps: 1, jpa: 1 }, {}).A, 1, "e il pavimento è 1");
+    ok(Number.isNaN(v.fattoreRoccia({ rmd: 20 }, {}).A), "una litologia senza UCS né E risponde NaN, com'era: non si inventa un valore (le sei schede li hanno tutti)");
+  });
+  test("⛔ Genesi · x50DaMisure: ogni pezzo pesa per il suo volume, e l'x50 si interpola sul 50% del passante", () => {
+    eq(v.x50DaMisure([10, 20]), { pts: [[10, 1000 / 9000], [20, 1]], x50: 14.375, n: 2 }, "due pezzi: 1000 e 8000 di peso, il 50% cade a 14,375");
+    eq(v.x50DaMisure([0, -3, 10, 20]), { pts: [[10, 1000 / 9000], [20, 1]], x50: 14.375, n: 2 }, "zeri e negativi non sono pezzi");
+    eq(v.x50DaMisure([20, 10]), v.x50DaMisure([10, 20]), "l'ordine in cui si scrivono non conta");
+    eq(v.x50DaMisure([10, 10]).x50, 10, "due pezzi uguali: l'x50 è quel pezzo (il primo punto sta già al 50%)");
+    eq(v.x50DaMisure([5]), null, "un pezzo solo non è una distribuzione");
+    eq(v.x50DaMisure([]), null); eq(v.x50DaMisure(null), null, "niente misure: null, non un x50 da zero pezzi");
+  });
+  test("⛔ Genesi · G22: nella pagina il conto non c'è più, e i due nomi restano come legame", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/0\.06\*\(/g) || []).length, 0, "la formula di Lilly non è più scritta nella pagina");
+    eq((pag.match(/d\*d\*d/g) || []).length, 0, "e nemmeno il peso per volume del campione");
+    ok(/function rockFactorA\(\)\{ return fattoreRoccia\(selRoccia\(\), D2\); \}/.test(pag), "rockFactorA è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/rockFactorA\(\)/g) || []).length, 7, "e i sei chiamanti non sono cambiati (più la dichiarazione del legame): A_rock, il PF, il rigonfiamento, Kuz-Ram, il confronto");
+    eq((pag.match(/x50DaMisure\(/g) || []).length, 1, "la misura del cumulo chiama il modulo");
+    eq((pag.match(/function _measFromSizes/g) || []).length, 0, "e la vecchia funzione non c'è più");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("fattoreRoccia") && elenco.includes("x50DaMisure"), "la pagina importa tutt'e due");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -31864,8 +31912,13 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     ok(sel, "la tendina `dFrat` c'è ancora: se cambia forma, questa regola va riscritta invece di rispondere «a posto»");
     const voci = [...sel[1].matchAll(/<option value="([^"]+)"/g)].map((m) => m[1]);
     eq(voci, ["fessurata", "media", "compatta"], "le voci della tendina, lette dal markup");
-    const mappe = [...CODICE_G.matchAll(/\{([^{}]*)\}\s*\[\s*D2\.frat\s*\]/g)];
-    eq(mappe.length, 3, "le mappe indicizzate su `D2.frat` sono tre (il denominatore: se ne nasce una quarta, cade qui)");
+    /* ⏱️ 10/09: la terza mappa è salita in `genesi-data.js` con `fattoreRoccia`
+       (blocco G22), dove `D2` è il parametro `scelte` con lo stesso nome: si
+       cerca in TUTT'E DUE i file, se no la mappa spostata uscirebbe dal
+       denominatore in silenzio. */
+    const MODULO_G = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    const mappe = [...CODICE_G.matchAll(/\{([^{}]*)\}\s*\[\s*D2\.frat\s*\]/g), ...MODULO_G.matchAll(/\{([^{}]*)\}\s*\[\s*D2\.frat\s*\]/g)];
+    eq(mappe.length, 3, "le mappe indicizzate su `D2.frat` sono tre — due nella pagina, una nel modulo (il denominatore: se ne nasce una quarta, cade qui)");
     mappe.forEach((m, i) => {
       const chiavi = [...m[1].matchAll(/([A-Za-z_$][\w$]*)\s*:/g)].map((x) => x[1]);
       eq(voci.filter((v) => !chiavi.includes(v)), [],
@@ -31904,8 +31957,12 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(/D2\.ucs\|\|100/.test(CODICE_G), false, "il letterale 100 non fonda più nessun kf");
     eq(quante(/D2\.ucs\|\|selRoccia\(\)\.ucs/g), 2,
       "le due funzioni del flyrock leggono l'UCS della roccia scelta (diretta e inversa)");
-    eq(/ucs=D2\.ucs\|\|r\.ucs/.test(CODICE_G), true,
-      "e `rockFactorA`, che già lo faceva, non è stata toccata: adesso le tre letture dicono la stessa cosa");
+    /* ⏱️ 10/09: `rockFactorA` è diventata `fattoreRoccia` in `genesi-data.js`
+       (G22), con la stessa riga: la si cerca lì, e nella pagina NON deve
+       esserci più (una seconda copia sarebbe la copia debole). */
+    eq(/ucs=D2\.ucs\|\|r\.ucs/.test(readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8")), true,
+      "e `fattoreRoccia` (l'ex `rockFactorA`, salita nel modulo), che già lo faceva, non è cambiata: le tre letture dicono la stessa cosa");
+    eq(/ucs=D2\.ucs\|\|r\.ucs/.test(CODICE_G), false, "e nella pagina quella riga non c'è più: il conto vive in un posto solo");
     /* IL VERSO, con l'aritmetica della formula (kf entra al QUADRATO in
        face-burst e cratering). Le UCS sono quelle del catalogo inline. */
     const kf = (ucs) => 13.5 + 13.5 * Math.max(0, Math.min(1, (ucs - 30) / 220));
