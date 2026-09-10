@@ -665,6 +665,21 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LA VETRINA E IL CONTRASTO DEL «FUMO» (10/09) — letto dal giro filtrato
+  del browser (sezione 2 di `leggi-giro`): `contrasto` sulla vetrina dava 5
+  KO, e rilanciato su `d82a7871` (stamattina) gli stessi 5: preesistenti,
+  non di oggi, e non scritti da nessuna parte.** Quattro erano veri: «Le
+  app», «Il sito» (11,5 px) nel capo e «Deepwork · ecosistema per il
+  cantiere», «Fotografie di cantiere…» (12 px) nel piè, in `--fumo:#8d8878`,
+  a **4,26** al capo peggiore del gradiente su cui stanno (forbice 1,22; sui
+  fondi pieni faceva 4,9–5,6, per questo a occhio passava). Con
+  `--fumo:#9a9583` il rapporto sale del 18% ovunque, resta un grigio fumo, e
+  la vetrina scende a **1 KO su 40 testi**. Il quinto è «FIELD OPERATIONS»
+  (6 px, 1,09:1): è il `<text fill="#3a2a10">` DENTRO il marchio, disegnato
+  sul poligono scuro del logo — il banco lo misura contro il fondo della
+  pagina che risale gli antenati, non contro il poligono, e il marchio non si
+  tocca. È un limite del righello, da chiudere nel banco (saltare i `<text>`
+  degli `svg[aria-hidden]` e CONTARLI), a giro fermo.
 - [x] **PASSATA IN PROFONDITÀ SUL CORE A 320 E 430 px (10/09) — 26 schermate
   × 2 larghezze (36 fette a 320), col finto Firebase montato e l'accesso
   riuscito a tutt'e due le larghezze, 0 errori di pagina.** Niente da
