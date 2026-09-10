@@ -340,6 +340,8 @@ const BANCHI = [
   ['striscia di stato · controprova', 'note-stato.mjs', ['--controprova'], true],
   ['niente fuori schermo', 'fuori-schermo.mjs', []],
   ['fuori schermo · controprova', 'fuori-schermo.mjs', ['--controprova', '--solo=sentinella'], true],
+  ['etichette delle tacche che non si toccano', 'grafici-tacche.mjs', []],
+  ['tacche · controprova', 'grafici-tacche.mjs', ['--controprova', '--solo=conti', '--larghezze=320'], true],
   ['id unici nella pagina viva', 'id-unici.mjs', []],
   ['id unici · controprova', 'id-unici.mjs', ['--controprova'], true],
   /* ⛔ le quattro pagine di Deepwork ID negli stati VERI (membro, senza org,

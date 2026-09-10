@@ -469,7 +469,10 @@ textarea.dw-input{line-height:1.5}
    che serve davvero quando si confrontano volumi fra un campo e l'altro. */
 .dw-input.dec{font-variant-numeric:tabular-nums}
 
-/* etichetta di campo: stessa forma delle etichette di modale del core */
+/* etichetta di campo: stessa forma delle etichette di modale del core.
+   ⚠️ Dal 10/09 la base sta in shared/dw-app-ui.css a 13 px (il corpo del core);
+   qui resta a 10 px DI PROPOSITO: 55 etichette in griglie fitte a due colonne,
+   che a 13 px andrebbero a capo. Vince perché questo foglio viene dopo. */
 .fl{
   display:block; font-family:'Barlow',sans-serif; font-size:10px; font-weight:600;
   letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:5px;

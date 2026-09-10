@@ -665,6 +665,44 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **PASSATA IN PROFONDITÀ SU CONTI A 320 E 430 px (10/09) — ogni sezione
+  scattata a pagina intera e GUARDATA (20 schermate in 82 fette), tre difetti
+  veri, nessuno dei quali si vedeva leggendo il codice:**
+  1. **le etichette dell'asse si leggevano come una parola sola** —
+     l'invecchiamento del credito a 320 px scriveva «€ 0 € 5.000 € 10.000€15.000€20.000»:
+     il conto delle tacche era fisso a quattro, cioè dipendeva dal VALORE e non
+     dallo SPAZIO. Misurato prima di scrivere, su 28 grafici con tacche delle
+     sei app: a 320 px collidevano 3 (Conti aging e venduto, Flotta costi), a
+     430 nessuno. Cura in `shared/dw-grafici.js`: `tacchePerLarghezza` (quante
+     etichette ci stanno, contando che la prima e l'ultima sporgono di mezza
+     etichetta) e `tacchePortate` (una ogni k, a partire dallo zero) — le righe
+     della griglia restano, si dirada solo il numero; esposte in `geometria` e
+     provate in run-kpi (+2). Banco nuovo `tests/browser/grafici-tacche.mjs`:
+     sei app a 320 e 430, 56 grafici con tacche, 0 etichette che si toccano,
+     con controprova (guardia tolta nel motore SERVITO → l'aging torna a 3
+     coppie sovrapposte). ⚠️ Il primo righello accusava un grafico di Scudo per
+     «|» sovrapposte: erano tacche SENZA TESTO allo stesso punto — il righello,
+     non il prodotto; le vuote non contano;
+  2. **`.fl` fuori dalle modali era testo nudo da 16 px** — «Righe dell'offerta»
+     e «Prezzi a scaglioni» in Conti, e — misurato con getComputedStyle su sei
+     app — sette etichette in Scudo (DUVRI, permessi, ciclo del DSS, ore
+     lavorate): il foglio condiviso vestiva `.fl` SOLO dentro `.modal-body`, e
+     le app che non se la ridicevano la perdevano. Base in
+     `shared/dw-app-ui.css` con la forma del core (13 px, Barlow, maiuscolo);
+     Terra la tiene a 10 px con la divergenza dichiarata nel suo foglio, Campo
+     sotto `.fermo`. Il contagio dei selettori condivisi su Genesi passa da 22
+     a 23 (e da 8 a 9 quelli che cadono sul suo markup: il documento lo dice);
+  3. **la tabella «qui in Conti / in Flotta» tagliava l'avviso** — a 320 px la
+     quarta colonna restava larga 40 px e «⚠️ in tutt'e due» si leggeva
+     «⚠️ in» (celle `nowrap`): l'avviso sta sotto la voce, in `<small>`, e la
+     colonna vuota non c'è più.
+  Visti e lasciati, con la ragione: la tabella delle rimanenze a 320 px scorre
+  di lato (`.ponte-wrap`, colonna «valore» oltre il bordo: è il caso ammesso
+  per le tabelle); il sub «il volume / non c'è» del cartellone del costo al
+  metro cubo va a capo di proposito (commento in pagina); `mm/dd/yyyy` nei
+  campi data è la lingua del browser di prova, non della pagina. Prove: run-kpi
+  2809, banchi 269 esecuzioni da 114 file. Prossimo: la stessa passata su
+  Flotta.
 - [x] **IL REGISTRO DELLE VENDITE PER IL COMMERCIALISTA (10/09) — la riga 3
   della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI («non mandami
   un CSV leggibile: importamelo»):** `registroVendite(fatture, clienti, note,
@@ -7216,8 +7254,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.288 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2807, `run-stile` 328,
+  **3.290 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2809, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7227,8 +7265,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **267 esecuzioni** che
-  aprono le pagine in un browser vero, da **113** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **269 esecuzioni** che
+  aprono le pagine in un browser vero, da **114** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

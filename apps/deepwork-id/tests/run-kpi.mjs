@@ -39699,5 +39699,42 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine registro vendite (10/09) ===== */
 
+
+/* ═══ GRAFICI · LE ETICHETTE DELL'ASSE SI DIRADANO QUANDO NON CI STANNO (10/09) ═══
+   Scatto a 320 px: l'invecchiamento del credito di Conti scriveva
+   «€ 0 € 5.000 € 10.000€15.000€20.000» — cinque etichette da 42 px su un asse
+   da 126. Il conto era fisso a quattro tacche, cioè dipendeva dal valore e non
+   dallo spazio. Misurato prima di scrivere, su 28 grafici con tacche delle sei
+   app: a 320 px collidevano 3 (Conti aging e venduto, Flotta costi), a 430
+   nessuno; dopo, 0 e 0. Le due decisioni sono pure e si provano qui; il
+   browser le riguarda in `tests/browser/grafici-tacche.mjs`. */
+{
+  const { tacchePerLarghezza, tacchePortate } = grafici.geometria;
+  test("grafici: quante etichette ci stanno dipende dallo spazio, non dal valore", () => {
+    /* il caso dello scatto: asse 126 px, etichetta «€ 20.000» 41,6 px, respiro 6:
+       (126 + 41,6 + 6) / 47,6 = 3,6 → tre. Le cinque di prima non ci stavano. */
+    eq(tacchePerLarghezza(126, 41.6), 3, "a 320 px sull'aging di Conti ce ne stanno tre");
+    eq(tacchePerLarghezza(300, 41.6), 7, "a 430 px lo stesso asse ne porta sette");
+    /* mai meno di due: gli estremi dell'asse si scrivono sempre */
+    eq(tacchePerLarghezza(10, 41.6), 2, "un asse più stretto dell'etichetta ne tiene due lo stesso");
+    eq(tacchePerLarghezza(126, 0), 2, "etichetta senza larghezza: due, non Infinity");
+    eq(tacchePerLarghezza(0, 41.6), 2, "asse senza larghezza: due, non zero");
+    /* la prima e l'ultima sporgono di mezza etichetta: lo spazio vero è
+       asse + etichetta, ed è per questo che 126 px ne portano tre e non due */
+    eq(tacchePerLarghezza(126, 41.6, 6) > tacchePerLarghezza(126 - 41.6, 41.6, 6), true,
+      "senza contare la sporgenza se ne perderebbe una");
+  });
+  test("grafici: fra le tacche si tiene una ogni k, a partire dallo zero", () => {
+    eq(tacchePortate(5, 3), [true, false, true, false, true], "cinque tacche, tre posti: 0, 10.000, 20.000");
+    eq(tacchePortate(4, 3), [true, false, true, false], "quattro tacche, tre posti: passo 2");
+    eq(tacchePortate(5, 7), [true, true, true, true, true], "se ci stanno tutte, tutte");
+    eq(tacchePortate(5, 1), [true, false, false, false, false], "un posto solo: resta lo zero");
+    eq(tacchePortate(0, 3), [], "nessuna tacca, nessuna etichetta");
+    /* la griglia NON si dirada: qui si decide solo chi porta il numero, e la
+       prima tacca lo porta sempre perché è l'asse */
+    eq(tacchePortate(9, 4)[0], true, "la prima porta sempre l'etichetta");
+  });
+}
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

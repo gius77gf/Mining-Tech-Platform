@@ -5374,7 +5374,10 @@ label.item:has(.dw-chk:checked){
           // stessa riga la tabella chiedeva 423 px e scorreva anche a 430
           const cella = (imp, n) => imp === null ? "—" : `${eur(imp)}<small>${plur(n, "riga", "righe")}</small>`;
           const qui = cella(v.conti, v.righeConti), la = cella(v.flotta, v.righeFlotta);
-          return `<tr${v.entrambe ? ' class="doppia"' : ""}><td>${esc(v.etichetta)}</td><td>${qui}</td><td>${la}</td><td>${v.entrambe ? "⚠️ in tutt'e due" : ""}</td></tr>`;
+          // ⛔ l'avviso sta SOTTO la voce, non in una quarta colonna: a 320 px la
+          // colonna restava larga 40 px e «⚠️ in tutt'e due» si leggeva «⚠️ in»
+          // (visto allo scatto del 10/09; le celle sono `nowrap`, la prima no)
+          return `<tr${v.entrambe ? ' class="doppia"' : ""}><td>${esc(v.etichetta)}${v.entrambe ? "<small>⚠️ in tutt'e due le app</small>" : ""}</td><td>${qui}</td><td>${la}</td></tr>`;
         }).join("");
         const coda = [];
         if (c.senzaData.flotta) coda.push(`${plur(c.senzaData.flotta, "riga di Flotta è senza data", "righe di Flotta sono senza data")} e resta fuori dal periodo`);
@@ -5385,7 +5388,7 @@ label.item:has(.dw-chk:checked){
             ? `Nessuna delle tue voci risulta anche in Flotta nel periodo: i totali si possono sommare.`
             : `Flotta non ha registrato niente su queste voci nel periodo.`;
         return `<div class="note">${intro}
-          <div class="ponte-wrap"><table class="ponte"><thead><tr><th>voce</th><th>qui, in Conti</th><th>in Flotta</th><th></th></tr></thead><tbody>${righe}</tbody></table></div>
+          <div class="ponte-wrap"><table class="ponte"><thead><tr><th>voce</th><th>qui, in Conti</th><th>in Flotta</th></tr></thead><tbody>${righe}</tbody></table></div>
           ${verdetto}${coda.length ? ` <span class="ponte-coda">(${coda.join("; ")})</span>` : ""}</div>`;
       };
       $("cos-gruppi").innerHTML += nota(CFL);

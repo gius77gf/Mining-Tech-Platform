@@ -373,7 +373,7 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **22 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **23 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
 
@@ -417,8 +417,14 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 >
 > | | dichiarato il 03/08 | misurato il 04/08 |
 > |---|---|---|
-> | selettori del foglio che cadono su markup di Genesi | 22 | **8** |
+> | selettori del foglio che cadono su markup di Genesi | 22 | **9** |
 > | di cui **fuori** dalla famiglia modale/toast | 7 nominati | **0** |
+>
+> *(10/09: 8 → **9**, e la riga barrata 22 → 23, perché la base `.fl` — l'etichetta
+> di campo con la forma del core — è entrata nel foglio condiviso: fino ad allora lo
+> vestiva solo dentro `.modal-body`, e Conti e Scudo la disegnavano come testo nudo
+> fuori dalle modali. In Genesi cade su UNA `<label class="fl">`, quella della modale
+> del nome: resta dentro la famiglia modale, ed è la metà che conta.)*
 >
 > In Genesi **non esiste nessuna** delle classi nominate: `kpi` compare 81
 > volte, ma sempre come **proprietà JavaScript** (`A.kpi.nf`, `snap.kpi`);

@@ -299,6 +299,33 @@
      dire la stessa cosa divergono al primo che ne cambia una. */
   var RESPIRO_ET = 4;
 
+  /* QUANTE ETICHETTE DI TACCA CI STANNO su un asse ORIZZONTALE largo `largoAsse`
+     px, se la più larga misura `largoEt` px. Le etichette sono centrate sulla
+     tacca, quindi la prima e l'ultima sporgono di mezza larghezza fuori dall'asse:
+     lo spazio vero è largoAsse + largoEt. Mai meno di due (gli estremi).
+     ⛔ Nato il 10/09 da uno scatto a 320 px: l'invecchiamento del credito di
+     Conti scriveva «€ 0 € 5.000 € 10.000€15.000€20.000» — cinque etichette da
+     42 px su un asse da 126, che si leggevano come una parola sola. Il conto
+     delle tacche era fisso a quattro, cioè dipendeva dal valore e non dallo
+     spazio; a 430 px le stesse cinque ci stavano. Misurato prima di scrivere:
+     su 28 grafici con tacche delle sei app, a 320 px ne collidevano 3 (Conti
+     aging e venduto, Flotta costi), a 430 nessuno. */
+  function tacchePerLarghezza(largoAsse, largoEt, respiro) {
+    var r = respiro == null ? 6 : respiro;
+    if (!(largoEt > 0) || !(largoAsse > 0)) return 2;
+    return Math.max(2, Math.floor((largoAsse + largoEt + r) / (largoEt + r)));
+  }
+  /* Fra `n` tacche, quali PORTANO l'etichetta perché ne restino al più
+     `ciStanno`: si tiene una tacca ogni ceil(n / ciStanno), a partire dalla
+     prima (lo zero, che è l'asse). Le righe della griglia restano tutte: è solo
+     il numero a diradarsi. */
+  function tacchePortate(n, ciStanno) {
+    var k = Math.max(1, Math.ceil(n / Math.max(1, ciStanno)));
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(i % k === 0);
+    return out;
+  }
+
   /* TRONCARE MISURANDO, non contando i caratteri. Il nome di una voce che non ci
      sta va accorciato, ma «quanti caratteri ci stanno» dipende da QUALI caratteri
      sono — «Illi» e «Wowm» hanno lo stesso conto e larghezze diverse — e dal
@@ -1072,10 +1099,14 @@
       var bandaO = (box.y1 - box.y0) / dati.length;
       var spessO = Math.min(24, bandaO * 0.62);
       var pxv = function (v) { return box.x0 + (box.x1 - box.x0 - 46) * (v - sc.min) / (sc.max - sc.min); };
+      /* le etichette dell'asse si diradano quando non ci stanno (vedi tacchePerLarghezza) */
+      var etT = sc.tacche.map(function (v) { return fmt(v); });
+      var largoEtT = Math.max.apply(null, etT.map(function (x) { return testoLargo(x, 10); }));
+      var portaT = tacchePortate(sc.tacche.length, tacchePerLarghezza(box.x1 - box.x0 - 46, largoEtT));
 
-      sc.tacche.forEach(function (v) {
+      sc.tacche.forEach(function (v, iT) {
         svg.appendChild(nodo('line', { 'class': 'dwg-grid', x1: pxv(v).toFixed(1), y1: box.y0, x2: pxv(v).toFixed(1), y2: box.y1 }));
-        svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: pxv(v).toFixed(1), y: box.y1 + 14, 'text-anchor': 'middle' }, fmt(v)));
+        if (portaT[iT]) svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: pxv(v).toFixed(1), y: box.y1 + 14, 'text-anchor': 'middle' }, etT[iT]));
       });
       svg.appendChild(nodo('line', { 'class': 'dwg-ax', x1: pxv(0).toFixed(1), y1: box.y0, x2: pxv(0).toFixed(1), y2: box.y1 }));
 
@@ -1578,7 +1609,7 @@
        restituisce un altro, quindi la sua prova vive in `node` e gira sempre —
        la miniatura tutta NaN si sarebbe vista con un `Math.min` in tre righe,
        e invece è stata trovata aprendo la pagina. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti, tacchePerLarghezza: tacchePerLarghezza, tacchePortate: tacchePortate },
     versione: '1.0'
   };
 
