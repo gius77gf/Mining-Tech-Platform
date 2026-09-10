@@ -54,7 +54,8 @@
    ⚠️ LA DOMANDA B È PRETESA SOLO DOVE OGGI È PULITA (`PRETESE`), sulle altre è
    CONTATA E STAMPATA. Ragione: al 03/08 l'arretrato è tutto in Sentinella (22
    segnalazioni: 7 a 390 px, 7 a 360, 8 a 320 — sono quattro o cinque righe di
-   elenco viste a tre larghezze), ed è lavoro di un altro cantiere. Un banco che
+   elenco viste a tre larghezze), ed è lavoro di un altro cantiere. (Chiuso il
+   10/09 nella passata su Sentinella: era una variabile sola, `--info-basis`.) Un banco che
    diventa rosso in casa d'altri viene spento, non riparato. L'arretrato è
    dichiarato per essere visto scendere: chi pulisce la sua app si aggiunge a
    `PRETESE`, e da lì in poi non ci torna.
@@ -102,7 +103,13 @@ const FONDO = 4;
    movimento: metterli qui vuol dire far diventare rosso in casa d'altri un
    controllo che nessuno ha chiesto — ed è il modo di farlo spegnere. Chi pulisce
    la sua app ce la aggiunge, e da lì in poi il difetto non ci torna. */
-const PRETESE = new Set(['campo']);
+/* ✅ SENTINELLA DAL 10/09: le 22 righe dell'arretrato (7 a 390, 7 a 360, 8 a
+   320 — i badge «In ritardo di N giorni», «Confine di proprietà», «Taratura non
+   dichiarata» che finivano SOTTO la matita) erano UNA causa: `--info-basis`
+   a 110 px, la più stretta delle sei app, che lasciava al testo 121–130 px
+   accanto ai comandi. A 190 i comandi vanno a capo e le tre larghezze danno
+   zero. Da qui non ci torna. */
+const PRETESE = new Set(['campo', 'sentinella']);
 
 /* La controprova sporca una superficie che è a posto: allarga un comando fino a
    farlo uscire. Senza, «0 fuori schermo» può voler dire «non sto guardando». */

@@ -90,7 +90,15 @@
   --note-bar:var(--app-support2);
   --empty-tint:7%;
   --empty-w:300px;
-  --info-basis:110px;
+  /* ⛔ 190, NON 110 (10/09). Con 110 la colonna del testo restava a 121 px a
+     320 e a 130 px a 390 accanto ai comandi (pencil + cestino 93 px, con il
+     grafico 142), e i badge più lunghi — «In ritardo di 46 giorni» 164 px,
+     «Confine di proprietà» 157, «Taratura non dichiarata» 183 — uscivano dal
+     proprio riquadro FINENDO SOTTO LA MATITA: misurato da fuori-schermo (22
+     righe nell'arretrato dichiarato, 3 larghezze) e visto allo scatto. Con 190
+     i comandi vanno a capo sotto il testo quando non ci stanno (è quello che
+     fanno già le righe con tre comandi) e la colonna prende tutta la riga. */
+  --info-basis:190px;
   --arr-ico:17px;
   --arr-stroke:1.7;
   --nav-cols:6;

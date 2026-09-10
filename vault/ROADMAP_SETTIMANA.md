@@ -665,6 +665,27 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **PASSATA IN PROFONDITÀ SU SCUDO E SENTINELLA A 320 E 430 px (10/09)
+  — 28 + 20 fette a 320 guardate, tabelle misurate (23 su sei app: 4 più
+  larghe scorrono, 0 tagliate), i punti d'uscita già aperti dai banchi
+  `scudo-documenti` e `documenti-che-escono`.** Scudo: niente da correggere
+  oltre alle sette `.fl` già vestite dalla base condivisa (unità 45); visti e
+  lasciati con la ragione — le righe dello scadenzario col badge a destra
+  tagliano il titolo a due righe a 320 (struttura del core, a 430 respira), e
+  «LTIFR (con…» nell'intestazione della tabella degli indici è un `…` di
+  cella, la tabella non è tagliata. **Sentinella: l'arretrato dichiarato di
+  `fuori-schermo` (22 righe su tre larghezze, dal 03/08) era UNA causa** —
+  `--info-basis:110px`, la più stretta delle sei app, lasciava al testo
+  121–130 px accanto ai comandi (matita + cestino 93 px, col grafico 142), e i
+  badge «In ritardo di 46 giorni» (164 px), «Confine di proprietà» (157),
+  «Taratura non dichiarata» (183) uscivano dal proprio riquadro finendo SOTTO
+  la matita: misurato dal banco e visto allo scatto. A 190 px i comandi vanno
+  a capo sotto il testo quando non ci stanno (come già le righe con tre
+  comandi): 390/360/320 → 0 fuori. Sentinella entra in `PRETESE` del banco
+  (da qui non ci torna), con la controprova rilanciata. ⚠️ Il metodo che ha
+  pagato: leggere l'arretrato DICHIARATO di un banco quando si passa
+  sull'app — «22 righe» era un numero che tutti sapevano e nessuno apriva;
+  aperto, era una riga di CSS.
 - [x] **PASSATA IN PROFONDITÀ SU FLOTTA A 320 E 430 px (10/09) — 6 sezioni ×
   2 larghezze, 23 fette a 320 guardate, i nove punti d'uscita già aperti dal
   banco `flotta-documenti-che-escono` (79/0, letto invece di rifatto). Un
