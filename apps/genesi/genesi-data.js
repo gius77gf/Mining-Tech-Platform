@@ -2394,3 +2394,73 @@ export function x50DaMisure(misure){
     break; } }
   return { pts, x50, n:v.length };
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G23 · LA FIRMA DEL FORO SINGOLO E LA SOMMA RITARDATA — il PPV composito
+   esce dalla pagina (10/09, cantiere B3, quinta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   Il metodo è quello dell'analisi della «signature hole»: si registra col
+   sismografo l'onda di UN foro sparato da solo, e la si somma a sé stessa
+   spostata sui tempi di detonazione del piano di tiro. Il massimo della somma
+   è il PPV composito che la volata intera produrrà in quel punto — e che la
+   pagina mostra accanto al limite di norma. Tre funzioni, tre anelli:
+
+   `ondaDaCsv(testo)` — la registrazione letta dal file del sismografo
+   (`tempo_ms;ampiezza`, il separatore è quello del file): `{t, a, dt}` con
+   il passo di campionamento medio (mai sotto 0,05 ms), `null` sotto tre
+   campioni. ⛔ NON è entrata identica, ed è l'unica delle tre: la
+   `_sigParse` della pagina spezzava OGNI riga su `;` `,` e TAB insieme e
+   poi sostituiva la virgola col punto — cioè una registrazione scritta
+   all'italiana, «0,5;1,23», diventava tempo 0 e ampiezza 5, e il composito
+   si calcolava su un'onda che non è mai esistita, senza un errore. Adesso il
+   file lo legge `leggiCsv` di `shared/` (un separatore per file, le
+   virgolette, il BOM) e le celle `numIt` (la virgola italiana E il punto):
+   sui file scritti col punto — quelli che escono da Genesi stessa e dai
+   sismografi in inglese — la risposta è identica a prima, provato su 20.000
+   file generati; sui file all'italiana è quella giusta.
+
+   `tempiDetonazione(design)` — i tempi su cui sommare: quelli dei fori
+   DISEGNATI se ci sono, altrimenti la griglia di progetto (`foriDiProgetto`,
+   che sa dire `null` quando la griglia non si legge: la storia del «18 fori
+   a 25 ms» è nel blocco G21 e nel commento della pagina). Il ripiego a `[0]`
+   in fondo non è la stessa cosa: evita un vettore vuoto alla somma
+   (`Math.max([])` fa -Infinity) e ci si arriva solo con una griglia
+   leggibile che non produce nessun tempo. Entrata identica: la pagina la
+   chiama con `D2` e `_sigDetTimes` resta come legame.
+
+   `sommaRitardata(onda, tempi)` — la somma vera: l'onda ricopiata a ogni
+   tempo di detonazione (arrotondato al passo) e sommata campione per
+   campione, con un tetto di 80.000 passi; risponde il composito, il PPV
+   (massimo del valore assoluto della somma) e `singolo` (il massimo
+   dell'onda da sola), così la pagina può dire di quanto la volata amplifica
+   il foro singolo. Entrata identica, provata su 20.000 casi. */
+export function ondaDaCsv(testo){
+  const rows=leggiCsv(testo).righe
+    .filter(p=>p.length>=2)
+    .map(p=>[numIt(p[0]), numIt(p[1])])
+    .filter(p=>isFinite(p[0])&&isFinite(p[1]));
+  if(rows.length<3) return null;
+  const t=rows.map(r=>r[0]), a=rows.map(r=>r[1]);
+  const dt=Math.max(0.05,(t[t.length-1]-t[0])/(t.length-1));
+  return {t,a,dt};
+}
+export function tempiDetonazione(design){
+  const D2=design||{};
+  const H=D2.holes;
+  if(H&&H.length) return H.map(h=>+h.tDet||0);
+  const n=foriDiProgetto(D2.perRow, D2.file);
+  const ri=+D2.ritardo, rf=+D2.ritardoFila;
+  if(n===null || !Number.isFinite(ri) || ri<0 || !Number.isFinite(rf) || rf<0) return null;
+  const nc=Math.max(1,+D2.perRow), nr=Math.max(1,+D2.file), out=[];
+  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
+  return out.length?out:[0];   // mai vuoto: evita Math.max([]) = -Infinity nella somma
+}
+export function sommaRitardata(sig,times){
+  const dt=sig.dt, n=sig.a.length, dur=sig.t[n-1]-sig.t[0];
+  const tmax=Math.max.apply(null,times)+dur, steps=Math.min(80000,Math.ceil(tmax/dt)+2);
+  const comp=new Float64Array(steps);
+  for(const td of times){ const off=Math.round(td/dt); for(let i=0;i<n;i++){ const k=off+i; if(k>=0&&k<steps) comp[k]+=sig.a[i]; } }
+  let ppv=0,singolo=0; for(let i=0;i<n;i++) singolo=Math.max(singolo,Math.abs(sig.a[i]));
+  for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>ppv) ppv=v; }
+  return {comp,dt,ppv,singolo,steps};
+}

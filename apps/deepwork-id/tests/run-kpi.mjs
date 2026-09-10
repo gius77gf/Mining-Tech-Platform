@@ -25063,6 +25063,69 @@ console.log("\n— Campo: i file che escono —");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(elenco.includes("fattoreRoccia") && elenco.includes("x50DaMisure"), "la pagina importa tutt'e due");
   });
+
+  /* ⛔ G23 — LA FIRMA DEL FORO SINGOLO E LA SOMMA RITARDATA (10/09, quinta
+     fetta di B3): il PPV composito esce dalla pagina. `tempiDetonazione` e
+     `sommaRitardata` sono entrate identiche (vecchie funzioni estratte da HEAD
+     e messe accanto alle nuove: 6.000 progetti e 20.000 onde × tempi → 0
+     divergenze). `ondaDaCsv` NO, di proposito: `_sigParse` leggeva
+     «0,5;1,23» come tempo 0 e ampiezza 5. Sui file col punto è identica
+     (20.000 file generati → 0 divergenze), su quelli all'italiana è giusta. */
+  const _onda = (n, passo, f) => { const t = [], a = []; for (let i = 0; i < n; i++) { t.push(i * passo); a.push(f(i)); } return { t, a, dt: passo }; };
+  test("⛔ Genesi · ondaDaCsv: la registrazione del sismografo, col punto o con la virgola italiana", () => {
+    const punto = "tempo_ms;ampiezza\n0.00;0.5\n0.50;-1.25\n1.00;2\n1.50;0.75\n";
+    eq(v.ondaDaCsv(punto), { t: [0, 0.5, 1, 1.5], a: [0.5, -1.25, 2, 0.75], dt: 0.5 }, "col punto: intestazione saltata, quattro campioni, passo 0,5 ms");
+    eq(v.ondaDaCsv("0,00;0,5\n0,50;-1,25\n1,00;2\n1,50;0,75\n"), { t: [0, 0.5, 1, 1.5], a: [0.5, -1.25, 2, 0.75], dt: 0.5 },
+      "⛔ all'italiana, col punto e virgola: la STESSA onda — prima era tempo 0 e ampiezza 5 su ogni riga");
+    eq(v.ondaDaCsv("0.00,0.5\n0.50,-1.25\n1.00,2\n1.50,0.75"), { t: [0, 0.5, 1, 1.5], a: [0.5, -1.25, 2, 0.75], dt: 0.5 }, "con la virgola come separatore (file inglese)");
+    eq(v.ondaDaCsv("0\t0.5\n0.5\t-1.25\n1\t2"), { t: [0, 0.5, 1], a: [0.5, -1.25, 2], dt: 0.5 }, "e col TAB");
+    eq(v.ondaDaCsv("\uFEFF0;1\n1;2\n2;3\n"), { t: [0, 1, 2], a: [1, 2, 3], dt: 1 }, "il BOM di Excel non rompe la prima riga");
+    eq(v.ondaDaCsv("0;1\n1;2\n"), null, "sotto tre campioni non c'è un'onda");
+    eq(v.ondaDaCsv(""), null); eq(v.ondaDaCsv(null), null, "vuoto o assente: null, non un'onda da zero campioni");
+    eq(v.ondaDaCsv("0;1\n0.01;2\n0.02;3\n").dt, 0.05, "il passo non scende sotto 0,05 ms");
+    eq(v.ondaDaCsv("0;1;99\n1;2;99\n2;3;99\n"), { t: [0, 1, 2], a: [1, 2, 3], dt: 1 }, "le colonne oltre la seconda si ignorano");
+  });
+  test("⛔ Genesi · tempiDetonazione: i fori disegnati vincono, poi la griglia, e la griglia illeggibile è null", () => {
+    eq(v.tempiDetonazione({ holes: [{ tDet: 0 }, { tDet: 42 }, { tDet: 84 }], perRow: 18, file: 1, ritardo: 25, ritardoFila: 42 }), [0, 42, 84], "coi fori disegnati contano i loro tDet, non la griglia");
+    eq(v.tempiDetonazione({ holes: [{}, { tDet: "17" }] }), [0, 17], "un foro senza tDet parte a zero (il verso prudente), e un tDet scritto come testo si legge");
+    eq(v.tempiDetonazione({ perRow: 3, file: 2, ritardo: 25, ritardoFila: 42 }), [0, 25, 50, 42, 67, 92], "la griglia: colonna × ritardo + fila × ritardo di fila");
+    eq(v.tempiDetonazione({ perRow: "", file: 1, ritardo: 25, ritardoFila: 42 }), null, "⛔ griglia illeggibile: null, non 18 fori a 25 ms");
+    eq(v.tempiDetonazione({ perRow: 12, file: 1, ritardo: undefined, ritardoFila: 42 }), null, "ritardo mai scritto (undefined): null, non 25");
+    /* ⚠️ MISURATO, NON DECISO, e va detto perché è entrata identica: `+null` e
+       `+""` fanno 0, e uno zero è un ritardo legittimo (tutti simultanei),
+       quindi un campo VUOTO produce dodici tempi a 0 ms — il verso prudente
+       (il composito più alto possibile), ma su un piano che nessuno ha
+       scritto. È la famiglia `+null === 0` di CLAUDE.md; sta in roadmap come
+       candidato, e questa riga cade il giorno in cui qualcuno la chiude. */
+    eq(v.tempiDetonazione({ perRow: 3, file: 1, ritardo: null, ritardoFila: 42 }), [0, 0, 0], "⚠️ ritardo VUOTO (null): tre tempi a zero, tutti simultanei — com'era nella pagina");
+    eq(v.tempiDetonazione({ perRow: 12, file: 1, ritardo: -5, ritardoFila: 42 }), null, "un ritardo negativo non è un piano");
+    eq(v.tempiDetonazione(null), null, "niente progetto: null");
+  });
+  test("⛔ Genesi · sommaRitardata: l'onda del foro singolo sommata sui tempi del piano di tiro", () => {
+    const onda = _onda(5, 1, (i) => [0, 1, -2, 1, 0][i]);   // un impulso di 4 ms, picco 2
+    const r = v.sommaRitardata(onda, [0]);
+    eq([r.ppv, r.singolo, r.dt, r.steps], [2, 2, 1, 6], "un foro solo: il composito È l'onda (ppv = singolo)");
+    const r2 = v.sommaRitardata(onda, [0, 100]);
+    eq([r2.ppv, r2.singolo, r2.steps], [2, 2, 106], "due fori lontani nel tempo: le onde non si incontrano, il PPV resta quello del singolo");
+    const r3 = v.sommaRitardata(onda, [0, 0]);
+    eq([r3.ppv, r3.singolo], [4, 2], "⛔ due fori simultanei: l'onda raddoppia — è il caso che il ritardo esiste per evitare");
+    const r4 = v.sommaRitardata(onda, [0, 1]);
+    eq(Array.from(r4.comp).slice(0, 6), [0, 1, -1, -1, 1, 0], "un ritardo di un passo: le due onde si sommano campione per campione");
+    eq(r4.ppv, 1, "e il PPV composito scende sotto il singolo: l'interferenza distruttiva che la sequenza cerca");
+    eq(v.sommaRitardata(onda, [2.4]).comp[2], 0, "un tempo si arrotonda al passo: 2,4 ms → 2 passi, quindi il primo campione non nullo sta a 3");
+    eq(v.sommaRitardata(onda, [2.4]).comp[3], 1);
+    eq(v.sommaRitardata(_onda(3, 0.05, () => 1), [10000]).steps, 80000, "il tetto dei passi è 80.000: un tempo assurdo non alloca la memoria del mondo");
+  });
+  test("⛔ Genesi · G23: nella pagina il conto non c'è più", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function _sigParse|function _sigSuperpose/g) || []).length, 0, "le vecchie funzioni non ci sono più");
+    eq((pag.match(/new Float64Array/g) || []).length, 0, "e la somma non è riscritta in casa");
+    eq((pag.match(/ondaDaCsv\(/g) || []).length, 1, "il file del sismografo passa dal modulo");
+    eq((pag.match(/sommaRitardata\(/g) || []).length, 1, "e la somma pure");
+    eq((pag.match(/_sigDetTimes\(\)/g) || []).length, 4, "il legame `_sigDetTimes`, i suoi due chiamanti (la modale e il nome del file) e il commento che lo cita");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["ondaDaCsv", "tempiDetonazione", "sommaRitardata"].every((n) => elenco.includes(n)), "la pagina importa tutt'e tre");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -32081,8 +32144,11 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(quante(/\(H\+\(D2\.sub\|\|0\)\)/g), 0, "né nella scheda");
     /* la modale della firma: la griglia inventata decideva i tempi di
        detonazione su cui si somma l'onda registrata, cioè il PPV composito */
-    eq(/const n=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(CODICE_G), true,
-      "`_sigDetTimes` non si inventa più 18 fori a 25 ms");
+    /* ⏱️ 10/09: `_sigDetTimes` è diventata `tempiDetonazione` in `genesi-data.js`
+       (G23), stessa riga: la si cerca lì, e nella pagina resta il legame. */
+    eq(/const n=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8")), true,
+      "`tempiDetonazione` (l'ex `_sigDetTimes`, salita nel modulo) non si inventa più 18 fori a 25 ms");
+    eq(/function _sigDetTimes\(\)\{ return tempiDetonazione\(D2\); \}/.test(CODICE_G), true, "e nella pagina `_sigDetTimes` è il legame con lo stato");
     eq(quante(/\+D2\.ritardo\|\|25/g), 0, "e nemmeno il ritardo");
     /* il campo «carica totale»: senza sapere quanti fori sono, dividere per 1
        vuol dire assegnare a un foro solo la carica di tutta la volata */

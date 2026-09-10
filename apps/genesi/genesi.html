@@ -1161,7 +1161,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
-         fattoreRoccia, x50DaMisure } from './genesi-data.js';
+         fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4185,36 +4185,12 @@ let _sigData=null, _sigComp=null, _sigNome="";
    non si legge, la risposta è `null` e chi disegna lo dice.
    ⚠️ Il ripiego a `[0]` in fondo resta e non è la stessa cosa: serve a non
    passare un vettore vuoto alla superposizione (`Math.max([])` fa -Infinity),
-   e ci si arriva solo con una griglia leggibile che non produce nessun tempo. */
-function _sigDetTimes(){
-  const H=D2.holes;
-  if(H&&H.length) return H.map(h=>+h.tDet||0);
-  const n=foriDiProgetto(D2.perRow, D2.file);
-  const ri=+D2.ritardo, rf=+D2.ritardoFila;
-  if(n===null || !Number.isFinite(ri) || ri<0 || !Number.isFinite(rf) || rf<0) return null;
-  const nc=Math.max(1,+D2.perRow), nr=Math.max(1,+D2.file), out=[];
-  for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
-  return out.length?out:[0];   // mai vuoto: evita Math.max([]) = -Infinity nella superposizione
-}
-function _sigParse(text){
-  const rows=String(text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
-    .map(s=>s.split(/[;,\t]/)).filter(p=>p.length>=2)
-    .map(p=>[parseFloat(String(p[0]).replace(',','.')), parseFloat(String(p[1]).replace(',','.'))])
-    .filter(p=>isFinite(p[0])&&isFinite(p[1]));
-  if(rows.length<3) return null;
-  const t=rows.map(r=>r[0]), a=rows.map(r=>r[1]);
-  const dt=Math.max(0.05,(t[t.length-1]-t[0])/(t.length-1));
-  return {t,a,dt};
-}
-function _sigSuperpose(sig,times){
-  const dt=sig.dt, n=sig.a.length, dur=sig.t[n-1]-sig.t[0];
-  const tmax=Math.max.apply(null,times)+dur, steps=Math.min(80000,Math.ceil(tmax/dt)+2);
-  const comp=new Float64Array(steps);
-  for(const td of times){ const off=Math.round(td/dt); for(let i=0;i<n;i++){ const k=off+i; if(k>=0&&k<steps) comp[k]+=sig.a[i]; } }
-  let ppv=0,singolo=0; for(let i=0;i<n;i++) singolo=Math.max(singolo,Math.abs(sig.a[i]));
-  for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>ppv) ppv=v; }
-  return {comp,dt,ppv,singolo,steps};
-}
+   e ci si arriva solo con una griglia leggibile che non produce nessun tempo.
+   ⛔ IL CONTO NON È PIÙ QUI: `tempiDetonazione` in `./genesi-data.js` (blocco
+   G23, 10/09), insieme al lettore dell'onda (`ondaDaCsv`, che prima era
+   `_sigParse` e leggeva male i decimali all'italiana) e alla somma ritardata
+   (`sommaRitardata`, ex `_sigSuperpose`). Qui resta il LEGAME con lo stato. */
+function _sigDetTimes(){ return tempiDetonazione(D2); }
 function _sigSpark(comp,steps){
   const W=560,Hh=90,st=Math.max(1,Math.floor(steps/240));
   let mx=1e-9; for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>mx) mx=v; }
@@ -4237,7 +4213,7 @@ function sigRender(){
       +'</div>';
     _sigComp=null; return;
   }
-  const r=_sigSuperpose(_sigData,times); _sigComp=r;
+  const r=sommaRitardata(_sigData,times); _sigComp=r;
   /* ⛔ SENZA SOGLIA NON C'È UN VERDETTO, e qui ne uscivano due falsi insieme:
      `Math.max(0.1, null)` fa **0,1**, quindi il rapporto diventava enorme e la
      modale dichiarava «SUPERATO» contro un limite che non esiste; e la riga
@@ -4275,7 +4251,7 @@ function sigRender(){
 if($('sigOpen')) $('sigOpen').onclick=()=>{ sigRender(); $('sigModal').style.display='flex'; };
 if($('sigClose')) $('sigClose').onclick=()=>{ $('sigModal').style.display='none'; };
 if($('sigImport')) $('sigImport').onclick=()=>$('sigFile').click();
-if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=_sigParse(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; _sigNome=String(f.name||'').replace(/\.[^.]*$/,'').replace(/[^\w-]+/g,'_').slice(0,40); sigRender(); };
+if($('sigFile')) $('sigFile').onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const sig=ondaDaCsv(await f.text()); e.target.value=''; if(!sig){ toast('CSV non valido: righe tempo_ms;ampiezza'); return; } _sigData=sig; _sigNome=String(f.name||'').replace(/\.[^.]*$/,'').replace(/[^\w-]+/g,'_').slice(0,40); sigRender(); };
 if($('sigExport')) $('sigExport').onclick=()=>{
   if(!_sigComp){ toast('Importa prima un&rsquo;onda'); return; }
   const c=_sigComp; let csv='tempo_ms;ampiezza\n';
