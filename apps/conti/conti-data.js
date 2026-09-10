@@ -146,7 +146,7 @@ export const DEMO = {
     // CAP, comune e provincia sono entrati il 02/09: servono alla fattura
     // elettronica, e la dimostrazione deve poterne produrre una «pronta»
     { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG", codiceFiscale: "", sconto: 5, fido: 25000, note: "" },
-    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12", cap: "97015", comune: "Modica", provincia: "RG", codiceFiscale: "", sconto: 0, fido: 15000, note: "" },
+    { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12", cap: "97015", comune: "Modica", provincia: "RG", codiceFiscale: "", sconto: 0, fido: 15000, note: "", listinoId: "l1" },
   ],
   gare: [
     { id: "g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: "2026-07-28", stato: "aperta" },
@@ -166,6 +166,13 @@ export const DEMO = {
   ],
   // listino d'esempio: un prodotto venduto a metro cubo (sabbia) accanto a
   // quelli venduti a tonnellata, così si vede subito a cosa serve la densità.
+  /* il listino per cliente (10/09): Stradesud (c2) compra a prezzi suoi su due
+     prodotti, gli altri restano al listino base. Un solo listino in
+     dimostrazione basta a far vedere la forma; Edilcave (c1) resta al base con
+     il suo sconto, così le due strade si vedono accanto. */
+  listini: [
+    { id: "l1", nome: "Cantieri stradali", prezzi: { p1: 8.0, p2: 11.5 } },
+  ],
   prodotti: [
     /* p1 porta una scala a SCONTI, p2 una scala a PREZZI: sono le due forme
        che il listino sa dire, e la dimostrazione le fa vedere tutt'e due
@@ -2594,6 +2601,117 @@ export function applicaScaglione(prodotto, quantita, unita, cliente) {
            scaglione: sc };
 }
 
+// ============================================================
+// I LISTINI PER CLIENTE (10/09)
+// ------------------------------------------------------------
+// Fino a oggi Conti aveva UN listino (`prodotti/{id}.prezzo`) e tre modi di
+// personalizzare un prezzo — lo sconto del cliente, gli scaglioni del prodotto,
+// il prezzo concordato sull'ordine. Mancava la cosa che ogni cava fa col
+// foglio di calcolo: «ai cantieri stradali il pietrisco lo faccio 11,50, ai
+// privati 12». Un LISTINO è un nome più un prezzo per alcuni prodotti; il
+// cliente ne porta al massimo uno (`clienti.listinoId`). Il listino cambia il
+// NUMERO, non l'unità del prodotto (che resta €/t o €/m³ del listino base):
+// due unità per lo stesso prodotto sarebbero due prodotti.
+// ⛔ Il prezzo del listino entra DOVE entra il listino base — `rigaPesata` e
+// `rigaPreventivo` leggono `p.prezzo` — quindi non si tocca la catena
+// (scaglioni, sconto cliente, ordine): si passa loro il prodotto COME LO VEDE
+// QUEL CLIENTE (`prodottoPerCliente`), e la fotografia del prezzo porta il
+// nome del listino, così un DDT dice da dove viene il numero.
+// ⛔ E UN LISTINO ASSEGNATO CHE NON ESISTE PIÙ NON È «LISTINO BASE»: si
+// dichiara (`listinoMancante`), perché un cliente che aveva un prezzo suo e
+// si ritrova col listino base senza che nessuno lo dica è esattamente il
+// numero tranquillo che questa casa non scrive.
+// ============================================================
+
+/* Il listino assegnato a un cliente: `{listino, mancante}` — `listino` è
+   l'oggetto o `null`; `mancante` è l'id assegnato che non trova nessun
+   listino (o `null`). Senza `listinoId` tutt'e due sono `null`: listino base. */
+export function listinoDelCliente(cliente, listini) {
+  const idL = cliente && cliente.listinoId != null ? String(cliente.listinoId).trim() : "";
+  if (!idL) return { listino: null, mancante: null };
+  const l = (listini || []).find((x) => x && String(x.id) === idL) || null;
+  return { listino: l, mancante: l ? null : idL };
+}
+
+/* Il prodotto COME LO VEDE il cliente: una copia con `prezzo` preso dal suo
+   listino se quel listino ha un prezzo per questo prodotto, altrimenti il
+   listino base. `listinoApplicato` dice da dove viene il numero (e quanto
+   valeva il listino base), `listinoMancante` dichiara un'assegnazione rotta.
+   Un prezzo del listino non leggibile (vuoto, «abc», negativo) NON si applica
+   e non fa cadere il prodotto: resta il listino base, dichiarato in
+   `listinoIgnorato` — la validazione lo blocca prima, ma un dato importato può
+   arrivare com'è. */
+export function prodottoPerCliente(prodotto, cliente, listini) {
+  const p = prodotto || {};
+  const { listino, mancante } = listinoDelCliente(cliente, listini);
+  const base = { ...p, listinoApplicato: null, listinoMancante: mancante, listinoIgnorato: null };
+  if (!listino) return base;
+  const prezzi = listino.prezzi || {};
+  if (!Object.prototype.hasOwnProperty.call(prezzi, String(p.id))) return base;
+  const v = prezzi[String(p.id)];
+  const n = v == null || String(v).trim() === "" ? NaN : +v;
+  if (!Number.isFinite(n) || n < 0) return { ...base, listinoIgnorato: { id: listino.id, nome: listino.nome || "", valore: v } };
+  return { ...base, prezzo: round2(n),
+           listinoApplicato: { id: listino.id, nome: String(listino.nome || ""), prezzoBase: round2(+p.prezzo || 0) } };
+}
+
+/* La validazione di un listino prima di salvarlo: nome obbligatorio, ogni
+   prezzo un numero ≥ 0 (la virgola italiana va bene: passa da `numIt`), ogni
+   prodotto esistente. Restituisce i prezzi già normalizzati, così chi salva
+   scrive quello che è stato validato e non una seconda lettura. */
+export function validaListino(listino, prodotti) {
+  const l = listino || {};
+  const errori = [];
+  const nome = String(l.nome || "").trim();
+  if (!nome) errori.push({ campo: "nome", messaggio: "Dai un nome al listino (es. «Cantieri stradali»)." });
+  const ids = new Set((prodotti || []).map((p) => String(p.id)));
+  const prezzi = {};
+  for (const [pid, v] of Object.entries(l.prezzi || {})) {
+    if (v == null || String(v).trim() === "") continue;          // vuoto = listino base
+    if (!ids.has(String(pid))) { errori.push({ campo: pid, messaggio: "Prodotto sconosciuto: " + pid }); continue; }
+    const n = typeof v === "number" ? v : numIt(String(v));
+    if (n == null || !Number.isFinite(n)) { errori.push({ campo: pid, messaggio: "Prezzo non leggibile: «" + v + "»" }); continue; }
+    if (n < 0) { errori.push({ campo: pid, messaggio: "Un prezzo non può essere negativo." }); continue; }
+    prezzi[String(pid)] = round2(n);
+  }
+  return { ok: errori.length === 0, nome, prezzi, errori };
+}
+
+/* «Cantieri stradali: 2 prodotti su 5 con un prezzo proprio · 1 cliente» —
+   la riga dell'elenco. Un listino senza prezzi lo dice: è un nome vuoto. */
+export function descriviListino(listino, prodotti, clienti) {
+  const l = listino || {};
+  const ids = new Set((prodotti || []).map((p) => String(p.id)));
+  const nP = Object.keys(l.prezzi || {}).filter((k) => ids.has(k)).length;
+  const nC = (clienti || []).filter((c) => c && String(c.listinoId || "") === String(l.id)).length;
+  const tot = (prodotti || []).length;
+  return (nP === 0 ? "nessun prezzo proprio: vale il listino base"
+          : nP + (nP === 1 ? " prodotto" : " prodotti") + " su " + tot + " con un prezzo proprio")
+    + " · " + (nC === 0 ? "nessun cliente" : nC === 1 ? "1 cliente" : nC + " clienti");
+}
+
+/* Il CSV dei listini, per il commercialista o per un confronto: una riga per
+   listino e prodotto CON un prezzo proprio, col listino base accanto. I
+   prodotti senza prezzo proprio non ci sono: per loro vale il listino base, e
+   scriverli col numero del base farebbe sembrare che il listino li ridica. */
+export const CSV_LISTINI_INTESTAZIONE = "listino;prodotto;unita_prezzo;prezzo_listino_base;prezzo_del_listino";
+export function csvListini(listini, prodotti) {
+  const righe = [CSV_LISTINI_INTESTAZIONE];
+  for (const l of listini || []) {
+    for (const p of prodotti || []) {
+      const pc = prodottoPerCliente(p, { listinoId: l.id }, [l]);
+      if (!pc.listinoApplicato) continue;
+      /* col PUNTO e con «mc», come scrive `csvListino` (il file gemello del
+         listino base): due file della stessa app che scrivono lo stesso numero
+         in due modi sono la copia debole che la prova di andata e ritorno non
+         vede (CLAUDE.md) */
+      righe.push([csvCell(l.nome || ""), csvCell(p.nome || ""), p.unitaPrezzo === "m3" ? "mc" : "t",
+        String(round2(pc.listinoApplicato.prezzoBase)), String(round2(pc.prezzo))].join(";"));
+    }
+  }
+  return righe.join("\n");
+}
+
 // Riga di pesata completa a partire da pesi, prodotto, anagrafica e CLIENTE:
 // quantità nell'unità in cui il prodotto si VENDE (t o m³), prezzo di listino,
 // sconto del cliente e valore.
@@ -2634,6 +2752,9 @@ export function rigaPesata(prodotto, lordo, tara, cliente, ordine, oggi = new Da
               numero che cambia senza dire perché è un numero che il cliente
               contesta. È la stessa scelta di `rigaPreventivo` con `scaglione`. */
            fontePrezzo: pr.fonte, listino, prezzoOrdine: pr.prezzoUnitario,
+           /* il nome del listino del cliente, se il prezzo viene da lì
+              (`prodottoPerCliente`): `null` col listino base o con l'ordine */
+           listinoNome: !daOrdine && p.listinoApplicato ? p.listinoApplicato.nome : null,
            motivoPrezzo: pr.motivo, perchePrezzo: pr.perche,
            ordineId: daOrdine ? pr.ordine.id : null,
            ordineNumero: daOrdine ? (pr.ordine.numeroOrdine || pr.ordine.numero) : null };
@@ -3361,6 +3482,7 @@ export async function contiData() {
       api = {
         fatture: () => read("fatture"), gare: () => read("gare"), clienti: () => read("clienti"),
         prodotti: () => read("prodotti"), pesate: () => read("pesate"),
+        listini: () => read("listini"),
         // le organizzazioni di prima non hanno la collezione degli incassi:
         // Firestore restituisce semplicemente una lista vuota, niente errori
         incassi: () => read("incassi"),
@@ -3482,6 +3604,7 @@ export async function contiData() {
     api = {
       fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
+      listini: async () => mem.listini || (mem.listini = []),
       incassi: async () => mem.incassi || (mem.incassi = []),
       note: async () => mem.note || (mem.note = []),
       costi: async () => mem.costi || (mem.costi = []),
@@ -4887,6 +5010,7 @@ export function rigaPreventivo(prodotto, quantita, cliente, unitaScelta) {
                  sconto: a.scaglione.scontoScaglione }
              : null,
            scontoCliente: a.scontoCliente, scontoScaglione: a.scontoScaglione,
+           listinoNome: p.listinoApplicato ? p.listinoApplicato.nome : null,
            /* la ragione per cui il prezzo manca, quando manca: la pagina deve
               distinguere «scrivi la densità» da «è una fornitura a chiamata». */
            motivoSenzaPrezzo: prezzoUnitario != null ? ""

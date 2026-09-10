@@ -1508,6 +1508,36 @@ label.item:has(.dw-chk:checked){
   </div>
   <div id="lis-esito" class="esito"></div>
 
+  <!-- I LISTINI PER CLIENTE (10/09): un nome più un prezzo proprio per alcuni
+       prodotti; il cliente ne porta uno dall'anagrafica. Chi non ne ha vede il
+       listino base. -->
+  <div class="sec">Listini per cliente<span class="cnt" id="lst-cnt">—</span></div>
+  <div class="note">Ai cantieri stradali il pietrisco lo fai a un prezzo, ai privati a un altro: un
+    <b>listino</b> è un nome più un prezzo <b>proprio</b> per i prodotti che vuoi, e ogni
+    cliente ne porta al massimo uno (lo scegli nella sua scheda). Per i prodotti che il
+    listino non ridice vale il <b>listino base</b> qui sopra; lo <b>sconto</b> del cliente si
+    applica comunque, e un prezzo concordato sull'ordine vince su tutto.</div>
+  <div id="lst-list"></div>
+  <div class="ord" style="margin-top:12px;">
+    <button class="dw-btn secondary mini" id="btn-lst-csv"
+      title="Scarica i listini in CSV: una riga per prodotto con un prezzo proprio, col listino base accanto">Esporta listini (CSV)</button>
+  </div>
+  <div class="form" id="lst-form" style="margin-top:12px;">
+    <div class="fld w2" id="fld-lst-nome">
+      <label for="lst-nome">Nome del listino</label>
+      <input class="dw-input" id="lst-nome" placeholder="es. Cantieri stradali" autocomplete="off">
+      <span class="err-msg" id="err-lst-nome"></span>
+    </div>
+    <div class="w2" id="lst-prezzi"></div>
+    <div class="ord w2">
+      <button class="dw-btn" id="btn-lst">Aggiungi listino</button>
+      <button class="dw-btn secondary" id="btn-lst-annulla" style="display:none;">Annulla</button>
+    </div>
+    <div class="form-hint w2">Lascia vuoto il prezzo dei prodotti per cui vale il listino base: nel listino
+      entrano solo quelli che scrivi. La virgola va bene (11,50).</div>
+  </div>
+  <div id="lst-esito" class="esito"></div>
+
   <div class="sec">Nuovo prodotto</div>
   <div class="form" id="lis-form">
     <div class="fld w2" id="fld-pr-nome">
@@ -1783,6 +1813,11 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input dec" id="cl-sconto" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" title="Sconto in percentuale, da 0 a 100. La virgola va benissimo: 2,5.">
       <span class="err-msg" id="err-cl-sconto"></span>
     </div>
+    <div class="fld" id="fld-cl-listino" style="flex:1 1 170px;">
+      <label for="cl-listino">Listino</label>
+      <select class="dw-input" id="cl-listino" title="Il listino con i prezzi propri di questo cliente: senza, vale il listino base. Lo sconto si applica comunque."></select>
+      <span class="err-msg" id="err-cl-listino"></span>
+    </div>
     <div class="fld" id="fld-cl-fido" style="flex:1 1 130px;">
       <label for="cl-fido">Fido €</label>
       <input class="dw-input dec" id="cl-fido" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0,00" title="Fido concesso al cliente, in euro. La virgola va benissimo: 25.000,00.">
@@ -2012,7 +2047,8 @@ label.item:has(.dw-chk:checked){
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
     autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO,
     prospettoRimanenze, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze,
-    registroVendite, csvRegistroVendite, descriviRegistroVendite } from "./conti-data.js";
+    registroVendite, csvRegistroVendite, descriviRegistroVendite,
+    prodottoPerCliente, validaListino, descriviListino, csvListini } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -2281,7 +2317,7 @@ label.item:has(.dw-chk:checked){
   // `cellaNum` è salita nel modulo (05/09): la stessa cella per tutti i file
   const marchiaCsv = (el) => { el.download = nomeCsvDimostrazione(el.download, db.mode); return el; };
 
-  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null;
+  let FAT=[], GAR=[], CLI=[], PRO=[], PES=[], INC=[], NOT=[], COS=[], CHI=[], IMP=null, LIS=[];
   /* PREVENTIVI E ORDINI (N9). `ORD` è la lista salvata; `orRighe` sono le
      righe del preventivo che si sta scrivendo, che vivono nella pagina finché
      non si salva — come il carrello dei DDT nella fattura differita. */
@@ -2329,7 +2365,7 @@ label.item:has(.dw-chk:checked){
   // Campi del form fattura: il cliente si sceglie dall'anagrafica (select) e
   // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
   const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-iva","ft-scad"];
-  const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-cap","cl-comune","cl-prov","cl-cf","cl-sconto","cl-fido","cl-note"];
+  const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-cap","cl-comune","cl-prov","cl-cf","cl-sconto","cl-listino","cl-fido","cl-note"];
   const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva"];
   const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
@@ -2346,6 +2382,81 @@ label.item:has(.dw-chk:checked){
   const SCA_CAMPI = ["sca-da", "sca-val"];
   const scaTipo = () => ($("sca-tipo") && $("sca-tipo").value === "sconto" ? "sconto" : "prezzo");
   const scaUnita = () => ($("pr-unita") && $("pr-unita").value === "m3" ? "m3" : "t");
+  // ── I LISTINI PER CLIENTE (10/09): elenco, scheda, CSV ──
+  let editLst = null;
+  function renderListini() {
+    $("lst-cnt").textContent = LIS.length;
+    $("lst-list").innerHTML = LIS.map(l => {
+      const nC = CLI.filter(c => String(c.listinoId || "") === String(l.id));
+      return `<div class="item tocca" data-lst-mod="${esc(l.id)}">
+        <span class="avatar">${esc(iniziali(l.nome || "L"))}</span>
+        <div class="info"><div class="name">${esc(l.nome || "(senza nome)")}</div>
+        <div class="meta">${esc(descriviListino(l, PRO, CLI))}${nC.length ? " · " + esc(nC.map(c => c.ragioneSociale).join(", ")) : ""}</div></div>
+        <div class="acts">
+        <button class="arr" type="button" title="Modifica listino" aria-label="Modifica ${esc(l.nome || "")}" data-lst-mod="${esc(l.id)}">${IC.matita}</button>
+        <button class="arr del" type="button" title="Elimina listino" aria-label="Elimina ${esc(l.nome || "")}" data-lst-del="${esc(l.id)}">${IC.croce}</button></div></div>`;
+    }).join("") || vuoto("listino", "Nessun listino per cliente",
+      "Tutti i clienti comprano al <b>listino base</b> qui sopra, con il loro sconto. Se a qualcuno fai prezzi suoi, dagli un listino dal riquadro qui sotto.");
+    // la scheda: un campo per prodotto, con il listino base accanto
+    const l = editLst ? LIS.find(x => x.id === editLst) : null;
+    const prezzi = (l && l.prezzi) || {};
+    $("lst-prezzi").innerHTML = PRO.length ? `<div class="ponte-wrap"><table class="ponte"><thead><tr><th>prodotto</th><th>listino base</th><th>prezzo proprio</th></tr></thead><tbody>`
+      + PRO.map(p => `<tr><td>${esc(p.nome)}</td><td>${eur(p.prezzo)}/${uni(p.unitaPrezzo)}</td>
+        <td><input class="dw-input dec" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" style="width:110px;" placeholder="base"
+             aria-label="Prezzo di ${esc(p.nome)} in questo listino" data-lst-prezzo="${esc(p.id)}" value="${prezzi[p.id] != null ? esc(itDec(prezzi[p.id])) : ""}"></td></tr>`).join("")
+      + `</tbody></table></div>`
+      : `<div class="note">Prima serve almeno un prodotto nel listino base.</div>`;
+    if (l) $("lst-nome").value = l.nome || "";
+    $("btn-lst").textContent = l ? "Salva modifica" : "Aggiungi listino";
+    $("btn-lst-annulla").style.display = l ? "" : "none";
+  }
+  const pulisciLst = () => { editLst = null; $("lst-nome").value = ""; puliscoErr("lst-nome"); renderListini(); };
+  $("lst-list").addEventListener("click", async (e) => {
+    const bMod = e.target.closest && e.target.closest("[data-lst-mod]");
+    const bDel = e.target.closest && e.target.closest("[data-lst-del]");
+    if (bDel) {
+      const l = LIS.find(x => x.id === bDel.getAttribute("data-lst-del")); if (!l) return;
+      const usano = CLI.filter(c => String(c.listinoId || "") === String(l.id));
+      if (usano.length) {
+        await avvisa("Listino in uso",
+          `<p>Il listino <b>${esc(l.nome || "")}</b> è assegnato a <b>${plur(usano.length, "cliente", "clienti")}</b>: ${esc(usano.map(c => c.ragioneSociale).join(", "))}.</p>
+           <p>Se lo cancellassi ora quei clienti tornerebbero al listino base senza che nessuno l'abbia deciso. Riassegnali prima dalla loro scheda.</p>`);
+        esito("lst-esito", "Non puoi eliminare «" + (l.nome || "") + "»: lo usano " + plur(usano.length, "cliente", "clienti") + ".", "err"); return; }
+      const ok = await chiedi("Elimina listino", `<p>Stai per togliere il listino <b>${esc(l.nome || "")}</b>. Nessun cliente lo usa.</p>`, "Elimina", true);
+      if (!ok) return;
+      await db.rimuovi("listini", l.id); if (editLst === l.id) editLst = null;
+      esito("lst-esito", "Listino «" + (l.nome || "") + "» eliminato.", "success"); refresh(); return; }
+    if (bMod) { editLst = bMod.getAttribute("data-lst-mod"); renderListini();
+      esito("lst-esito", "Stai modificando il listino: cambia i prezzi e premi «Salva modifica».");
+      $("lst-nome").scrollIntoView({ behavior: "smooth", block: "center" }); }
+  });
+  $("btn-lst-annulla").onclick = () => { pulisciLst(); $("lst-esito").textContent = ""; };
+  $("btn-lst").onclick = async () => {
+    const prezzi = {};
+    document.querySelectorAll("[data-lst-prezzo]").forEach(i => { prezzi[i.getAttribute("data-lst-prezzo")] = i.value; });
+    const v = validaListino({ nome: $("lst-nome").value, prezzi }, PRO);
+    puliscoErr("lst-nome");
+    if (!v.ok) {
+      const e0 = v.errori[0];
+      if (e0.campo === "nome") segnaErr("lst-nome", e0.messaggio);
+      esito("lst-esito", e0.campo === "nome" ? e0.messaggio : "Controlla il prezzo di " + (PRO.find(p => p.id === e0.campo) || {}).nome + ": " + e0.messaggio, "err");
+      return; }
+    /* si salva TUTTA la mappa dei prezzi, così un prezzo tolto sparisce davvero:
+       un `aggiorna` con la sola chiave nuova lascerebbe vivo il vecchio */
+    const dati = { nome: v.nome, prezzi: v.prezzi };
+    if (editLst) { await db.aggiorna("listini", editLst, dati); esito("lst-esito", "Listino «" + v.nome + "» aggiornato: " + descriviListino({ id: editLst, ...dati }, PRO, CLI) + ".", "success"); }
+    else { const r = await db.aggiungi("listini", dati); esito("lst-esito", "Listino «" + v.nome + "» creato: " + descriviListino({ id: r && r.id, ...dati }, PRO, CLI) + ". Assegnalo ai clienti dalla loro scheda.", "success"); }
+    editLst = null; $("lst-nome").value = ""; refresh();
+  };
+  $("btn-lst-csv").onclick = () => {
+    const csv = csvListini(LIS, PRO);
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_listini_clienti.csv"; marchiaCsv(a); a.click();
+    const righe = csv.split("\n").length - 1;
+    esito("lst-esito", righe ? "Esportati " + plur(LIS.length, "listino", "listini") + ": " + plur(righe, "prezzo proprio", "prezzi propri") + ", col listino base accanto." : "Nessun prezzo proprio da esportare: tutti i clienti sono al listino base.", righe ? "success" : "");
+  };
+
   function renderScaglioni() {
     /* si valida contro un prodotto FINTO fatto con quello che c'è nel form:
        le stesse regole del salvataggio, viste prima di salvare. */
@@ -3087,6 +3198,7 @@ label.item:has(.dw-chk:checked){
          parte dalla pesata resta valido, l'ordine è un passo IN PIÙ */
       db.ordini ? db.ordini() : [], db.impostazioni()]);
     VER = (db.verbali ? await db.verbali() : []) || [];
+    LIS = (db.listini ? await db.listini() : []) || [];   // i listini per cliente (10/09)
     INC = INC || [];
     ORD = ORD || [];
     NOT = NOT || [];
@@ -3933,6 +4045,13 @@ label.item:has(.dw-chk:checked){
     $("lis-count").innerHTML = lisVisti.length === 0 ? ""
       : "<b>" + lisVisti.length + "</b>" + (lisVisti.length === 1 ? " prodotto" : " prodotti") + (qLis ? " su " + PRO.length : "");
     $("lis-cnt").textContent = PRO.length;
+    renderListini();
+    { // la tendina del listino nella scheda cliente
+      const sel = $("cl-listino"), prima = sel.value;
+      sel.innerHTML = '<option value="">— listino base —</option>'
+        + LIS.map(l => `<option value="${esc(l.id)}">${esc(l.nome || "(senza nome)")}</option>`).join("");
+      sel.value = prima; if (sel.value !== prima) sel.value = "";
+    }
 
     // ══════════════════════════════════════════════════════════════════
     // REGISTRO PESATE / DDT (N3) — netto = lordo − tara, sempre calcolato
@@ -4442,7 +4561,9 @@ label.item:has(.dw-chk:checked){
     // al 03/08 quello sconto non arrivava da nessuna parte.
     const cliAnt = CLI.find(x => x.id === $("pes-cli").value) || null;
     const o = ordinePesata();
-    const r = p ? rigaPesata(p, lordoN, taraN, cliAnt, o) : null;
+    /* il prodotto COME LO VEDE il cliente: col suo listino, se ne ha uno (10/09) */
+    const pc = p ? prodottoPerCliente(p, cliAnt, LIS) : null;
+    const r = p ? rigaPesata(pc, lordoN, taraN, cliAnt, o) : null;
     const daOrdine = r && r.fontePrezzo === "ordine";
     /* ⛔ IL PUNTO IN CUI IL PRINCIPIO SI VEDE. Se il pattuito non è
        determinabile non si disegna nessun prezzo e nessun valore: si scrive
@@ -4457,8 +4578,12 @@ label.item:has(.dw-chk:checked){
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(r.netto)} t</span></div>
          ${r.unitaVendita === "m3"
            ? `<div class="mrec"><span class="k">Volume (netto ÷ densità ${qt(r.densita)})</span><span class="v">${qt(r.quantita)} m³</span></div>` : ""}
-         <div class="mrec"><span class="k">${daOrdine ? "Prezzo concordato" : "Prezzo di listino"}</span>
+         <div class="mrec"><span class="k">${daOrdine ? "Prezzo concordato" : r.listinoNome ? "Prezzo del listino «" + esc(r.listinoNome) + "»" : "Prezzo di listino"}</span>
            <span class="v${daOrdine ? " accent" : ""}">${eur(r.prezzoUnitario)}/${uni(r.unitaVendita)}</span></div>
+         ${/* il listino base resta scritto accanto al prezzo del listino del cliente,
+              come accanto al pattuito: chi guarda vede QUANTO si discostano */
+           !daOrdine && r.listinoNome && pc.listinoApplicato && pc.listinoApplicato.prezzoBase !== r.prezzoUnitario
+             ? `<div class="mrec"><span class="k">Listino base</span><span class="v mute">${eur(pc.listinoApplicato.prezzoBase)}/${uni(r.unitaVendita)}</span></div>` : ""}
          ${/* il listino resta scritto accanto al pattuito: chi guarda deve
               vedere QUANTO si discostano, se no la differenza sembra un errore */
            daOrdine && r.listino !== r.prezzoUnitario
@@ -4466,6 +4591,7 @@ label.item:has(.dw-chk:checked){
          ${r.scontoPct > 0 ? `<div class="mrec"><span class="k">Sconto ${daOrdine ? "concordato" : esc(cliAnt ? cliAnt.ragioneSociale : "")}</span><span class="v">− ${perc(r.scontoPct)}</span></div>` : ""}
          <div class="mrec"><span class="k">Valore della consegna</span><span class="v">${r.valore == null ? "—" : eur(r.valore)}</span></div>
          </div>
+         ${pc.listinoMancante ? `<div class="note" style="border-left-color:var(--warn);margin-top:6px;margin-bottom:0;">Il cliente ha assegnato un listino che non esiste più (<b>${esc(pc.listinoMancante)}</b>): qui vale il <b>listino base</b>. Riassegnalo dall'anagrafica.</div>` : ""}
          ${daOrdine ? `<div class="form-hint" style="margin-top:6px;">${esc(descriviPrezzoOrdine(prezzoDaOrdine(o, { prodottoId: p.id, prodotto: p.nome, unitaVendita: r.unitaVendita, densita: r.densita })))}</div>` : ""}`
       : "";
   }
@@ -6348,6 +6474,7 @@ label.item:has(.dw-chk:checked){
       $("cl-cap").value = c.cap || ""; $("cl-comune").value = c.comune || "";
       $("cl-prov").value = c.provincia || ""; $("cl-cf").value = c.codiceFiscale || "";
       $("cl-sconto").value = itDec(c.sconto); $("cl-fido").value = itDec(c.fido);
+      $("cl-listino").value = c.listinoId || ""; if ($("cl-listino").value !== (c.listinoId || "")) $("cl-listino").value = "";
       $("cl-note").value = c.note || "";
       CL_CAMPI.forEach(puliscoErr);
       $("btn-cl").textContent = "Salva modifica";
@@ -6631,7 +6758,10 @@ label.item:has(.dw-chk:checked){
     const dati = { ragioneSociale, piva: $("cl-piva").value.trim(), sdi: $("cl-sdi").value.trim(),
       indirizzo: $("cl-ind").value.trim(), cap: capV, comune: $("cl-comune").value.trim(), provincia: provV,
       codiceFiscale: $("cl-cf").value.trim().toUpperCase(), sconto: rs.ok ? rs.valore : 0,
-      fido: rf.ok ? rf.valore : 0, note: $("cl-note").value.trim() };
+      fido: rf.ok ? rf.valore : 0, note: $("cl-note").value.trim(),
+      /* il listino del cliente (10/09): vuoto = listino base. Si scrive `null`,
+         non la stringa vuota, così `listinoDelCliente` lo legge come «base» */
+      listinoId: $("cl-listino").value || null };
     if (editCli) {
       await db.aggiorna("clienti", editCli, dati);
       editCli = null; $("btn-cl").textContent = "Aggiungi";
@@ -6964,7 +7094,7 @@ label.item:has(.dw-chk:checked){
       esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
       primoErrore(PES_CAMPI); return; }
     const ordine = ordinePesata();
-    const r = rigaPesata(p, lordo, tara, c, ordine);
+    const r = rigaPesata(prodottoPerCliente(p, c, LIS), lordo, tara, c, ordine);
     if (r.quantita == null) {
       segnaErr("pes-prod", "Questo prodotto si vende a metro cubo ma non ha la densità: aggiungila nel listino, altrimenti non si sa quanti m³ sono queste tonnellate.");
       esito("pes-esito", "Manca la densità di " + p.nome + ": aggiungila nel listino.", "err"); return; }
@@ -7059,7 +7189,7 @@ label.item:has(.dw-chk:checked){
     let registrati = 0, senzaPrezzo = [], numeri = [];
     for (const x of esitoPesa.entrano) {
       const p = PRO.find(z => z.id === x.prodottoId), c = CLI.find(z => z.id === x.clienteId);
-      const r = rigaPesata(p, x.lordo, x.tara, c, null);
+      const r = rigaPesata(prodottoPerCliente(p, c, LIS), x.lordo, x.tara, c, null);
       if (r.quantita == null || r.prezzoUnitario == null) { senzaPrezzo.push({ riga: x.riga, perche: r.quantita == null ? "manca la densità di " + p.nome + " nel listino" : r.perchePrezzo }); continue; }
       const numero = numeroProssimoDdt(x.data); numeri.push(numero);
       await db.aggiungi("pesate", { numero, data: x.data, clienteId: x.clienteId, cliente: c.ragioneSociale,
@@ -7946,7 +8076,7 @@ label.item:has(.dw-chk:checked){
       if (!(n.valore > 0)) { segnaErr("or-qta", "Una quantità ordinata deve essere maggiore di zero. Lasciala vuota se è una fornitura a chiamata."); primoErrore(["or-qta"]); return; }
       quantita = n.valore;
     }
-    const riga = rigaPreventivo(p, quantita, cliente, $("or-unita").value);
+    const riga = rigaPreventivo(prodottoPerCliente(p, cliente, LIS), quantita, cliente, $("or-unita").value);
     /* ⛔ UN PREZZO CHE MANCA HA TRE RAGIONI, E DUE SOLE SONO ERRORI. Fino a
        ieri ce n'era una sola (la densità) e si poteva fermare tutto; da quando
        il listino ha gli scaglioni, «prezzo non determinato» è anche lo stato

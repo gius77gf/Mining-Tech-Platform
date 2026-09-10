@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 34, "i siti di export CSV censiti nelle quattro app")   // 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 35, "i siti di export CSV censiti nelle quattro app")   // 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -39756,6 +39756,69 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     /* la griglia NON si dirada: qui si decide solo chi porta il numero, e la
        prima tacca lo porta sempre perché è l'asse */
     eq(tacchePortate(9, 4)[0], true, "la prima porta sempre l'etichetta");
+  });
+}
+
+
+/* ===== CONTI · I LISTINI PER CLIENTE (10/09) =====
+   Un listino è un nome più un prezzo per ALCUNI prodotti; il cliente ne porta
+   al massimo uno. Il prezzo entra dove entra il listino base — si passa a
+   `rigaPesata`/`rigaPreventivo` il prodotto COME LO VEDE il cliente — e la
+   fotografia porta il nome del listino. Un'assegnazione rotta si dichiara. */
+{
+  const P = [{ id: "p1", nome: "Stabilizzato", prezzo: 8.5, unitaPrezzo: "t", densita: 1.9, iva: 22 },
+             { id: "p2", nome: "Pietrisco", prezzo: 12, unitaPrezzo: "t", densita: 1.5, iva: 22 },
+             { id: "p3", nome: "Sabbia", prezzo: 22, unitaPrezzo: "m3", densita: 1.6, iva: 22 }];
+  const L = [{ id: "l1", nome: "Cantieri stradali", prezzi: { p1: 8, p2: 11.5 } },
+             { id: "l2", nome: "Vuoto", prezzi: {} }];
+  const strade = { id: "c2", ragioneSociale: "Stradesud", sconto: 0, listinoId: "l1" };
+  const base = { id: "c1", ragioneSociale: "Edilcave", sconto: 5 };
+
+  test("listini: il cliente col listino vede il SUO prezzo, gli altri il base", () => {
+    const a = conti.prodottoPerCliente(P[1], strade, L);
+    eq([a.prezzo, a.listinoApplicato.nome, a.listinoApplicato.prezzoBase], [11.5, "Cantieri stradali", 12], "p2 a 11,50 col base dichiarato accanto");
+    eq(conti.prodottoPerCliente(P[2], strade, L).prezzo, 22, "p3 non è nel listino: resta il base");
+    eq(conti.prodottoPerCliente(P[2], strade, L).listinoApplicato, null, "…e lo dice: nessun listino applicato");
+    eq(conti.prodottoPerCliente(P[1], base, L).prezzo, 12, "il cliente senza listino vede il base");
+    eq(conti.prodottoPerCliente(P[1], null, L).prezzo, 12, "senza cliente, il base");
+    eq(conti.prodottoPerCliente(P[1], strade, L).unitaPrezzo, "t", "il listino cambia il numero, non l'unità");
+    eq(P[1].prezzo, 12, "il prodotto originale non viene toccato: è una copia");
+  });
+  test("listini: un'assegnazione rotta e un prezzo illeggibile si DICHIARANO, non si tacciono", () => {
+    const rotto = conti.prodottoPerCliente(P[1], { listinoId: "lx" }, L);
+    eq([rotto.prezzo, rotto.listinoMancante, rotto.listinoApplicato], [12, "lx", null], "listino assegnato che non esiste: base, e `listinoMancante` lo dice");
+    const sporco = conti.prodottoPerCliente(P[1], strade, [{ id: "l1", nome: "X", prezzi: { p2: "abc" } }]);
+    eq([sporco.prezzo, sporco.listinoIgnorato.valore], [12, "abc"], "prezzo non leggibile: base, e `listinoIgnorato` porta il valore");
+    eq(conti.prodottoPerCliente(P[1], strade, [{ id: "l1", nome: "X", prezzi: { p2: -3 } }]).listinoIgnorato.valore, -3, "un prezzo negativo non si applica");
+    eq(conti.listinoDelCliente({ listinoId: "" }, L), { listino: null, mancante: null }, "listinoId vuoto = listino base, non «mancante»");
+  });
+  test("listini: la validazione legge la virgola, rifiuta il negativo e il prodotto sconosciuto", () => {
+    const v = conti.validaListino({ nome: " Privati ", prezzi: { p1: "9,25", p2: "", p9: 3 } }, P);
+    eq(v.ok, false, "p9 non esiste: non passa");
+    eq(v.nome, "Privati", "il nome si pulisce");
+    eq(v.prezzi, { p1: 9.25 }, "la virgola si legge, il vuoto vuol dire «listino base» e non entra");
+    eq(v.errori.map((e) => e.campo), ["p9"], "l'errore nomina il prodotto");
+    eq(conti.validaListino({ nome: "", prezzi: {} }, P).errori[0].campo, "nome", "senza nome non si salva");
+    eq(conti.validaListino({ nome: "A", prezzi: { p1: -1 } }, P).ok, false, "negativo: no");
+    eq(conti.validaListino({ nome: "A", prezzi: { p1: 0 } }, P).prezzi, { p1: 0 }, "zero è un prezzo (omaggio), non un vuoto");
+  });
+  test("listini: la fotografia del prezzo porta il nome del listino, e con l'ordine no", () => {
+    const r = conti.rigaPesata(conti.prodottoPerCliente(P[1], strade, L), 30, 10, strade, null);
+    eq([r.prezzoUnitario, r.listino, r.listinoNome, r.fontePrezzo], [11.5, 11.5, "Cantieri stradali", "listino"], "il DDT dice da dove viene il numero");
+    eq(conti.rigaPesata(P[1], 30, 10, base, null).listinoNome, null, "col listino base il nome è null");
+    const o = { id: "o1", numero: "P1", stato: "confermato", righe: [{ prodottoId: "p2", descrizione: "Pietrisco", unita: "t", prezzoUnitario: 10, scontoPct: 0 }] };
+    const ro = conti.rigaPesata(conti.prodottoPerCliente(P[1], strade, L), 30, 10, strade, o);
+    ok(ro.fontePrezzo === "ordine" ? ro.listinoNome === null : true, "se il prezzo viene dall'ordine, il listino non si dichiara");
+    const rp = conti.rigaPreventivo(conti.prodottoPerCliente(P[0], strade, L), 100, strade, "t");
+    eq([rp.prezzoUnitario, rp.listinoNome], [8, "Cantieri stradali"], "il preventivo parte dal prezzo del listino del cliente");
+  });
+  test("listini: la riga dell'elenco e il CSV", () => {
+    eq(conti.descriviListino(L[0], P, [strade, base]), "2 prodotti su 3 con un prezzo proprio · 1 cliente", "conta i prezzi propri e i clienti assegnati");
+    eq(conti.descriviListino(L[1], P, []), "nessun prezzo proprio: vale il listino base · nessun cliente", "un listino vuoto lo dice");
+    const csv = conti.csvListini(L, P).split("\n");
+    eq(csv[0], conti.CSV_LISTINI_INTESTAZIONE, "intestazione");
+    eq(csv.length, 3, "una riga per prodotto CON prezzo proprio: i due di l1, nessuno di l2");
+    eq(csv[2], "Cantieri stradali;Pietrisco;t;12;11.5", "base e proprio accanto, col PUNTO e le unità di csvListino (il file gemello): non una seconda convenzione");
   });
 }
 

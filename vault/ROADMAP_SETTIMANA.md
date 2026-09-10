@@ -665,6 +665,35 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **I LISTINI PER CLIENTE IN CONTI (10/09) — la mancanza «più listini
+  nominati e assegnabili» della riga «Listini differenziati per cliente» di
+  CONCORRENTI_CONTI (a metà dal 01/08), una delle tre cose indietro rispetto ai
+  concorrenti che il codice può colmare:** `listini/{id}` con `nome` e
+  `prezzi{prodottoId: prezzo}`; il cliente porta `listinoId` (tendina «Listino»
+  nella scheda, «— listino base —» di default); `prodottoPerCliente(prodotto,
+  cliente, listini)` sostituisce il prezzo base PRIMA dello sconto e del prezzo
+  concordato, che restano e vincono come prima — quindi i quattro punti in
+  cui la pagina fa un prezzo (anteprima della pesata, salvataggio, ricalcolo,
+  preventivo) passano tutti di lì; `listinoDelCliente` dichiara
+  l'assegnazione rotta (`mancante`), un prezzo illeggibile o negativo si
+  ignora dicendolo (`listinoIgnorato`), lo zero è un prezzo; `validaListino`
+  (numIt, vuoto = base, prodotto ignoto e negativo rifiutati),
+  `descriviListino` («2 prodotti su 5 con un prezzo proprio · 1 cliente»),
+  `csvListini` col PUNTO e «mc» come `csvListino` — la prima stesura scriveva
+  la virgola, cioè una seconda convenzione nella stessa app, presa dal banco.
+  Pagina: sezione «Listini per cliente» nel Listino (elenco, scheda con un
+  campo per prodotto e il base accanto, modifica, elimina bloccato se un
+  cliente lo usa, «Esporta listini (CSV)»); la pesata scrive «Prezzo del
+  listino «X»» col listino base accanto e avvisa se il listino assegnato non
+  esiste più. Dimostrazione: «Cantieri stradali» (stabilizzato 8,00 e
+  pietrisco 11,50) assegnato a Stradesud. Prove: run-kpi +5 (2815; pin dei
+  siti di export 34 → **35**), `documenti-dimostrazione` 135 documenti,
+  banco `conti-listini.mjs` 38 ok a 430 e 320 (il riepilogo della pesata, la
+  sezione, il CSV letto dal gancio, la tendina del cliente) con controprova
+  20/38 su 3/3 per file (271 esecuzioni, 115 file), copertura 939/939 (fondo
+  Conti 192 → **198**). Scatti guardati con `fette.mjs` a 430 (40 fette, 0
+  errori). Docs: CONCORRENTI_CONTI riga a C'È con i comandi, riepilogo
+  numerico a metà 2 → 1 (somma 18 ✓).
 - [x] **LO STRUMENTO DELLA PASSATA VIVE IN `tests/browser/`, E LE QUATTRO
   PAGINE DI DEEPWORK ID GUARDATE (10/09, dopo il riavvio).** `fette.mjs`: apre
   una superficie qualunque delle 14 a una o più larghezze, va in ogni sezione
@@ -7433,8 +7462,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.291 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2810, `run-stile` 328,
+  **3.296 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2815, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7444,8 +7473,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **269 esecuzioni** che
-  aprono le pagine in un browser vero, da **114** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **271 esecuzioni** che
+  aprono le pagine in un browser vero, da **115** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

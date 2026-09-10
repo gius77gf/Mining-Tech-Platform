@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.291 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/09: 2810 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.296 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 10/09: 2815 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.746** asserzioni su **40** comandi.
+> `node` completo esegue **3.752** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -85,7 +85,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **933 funzioni pure su 933** sono chiamate per nome da quelle prove: tutte e
+E **939 funzioni pure su 939** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
@@ -235,7 +235,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**269 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**271 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 
