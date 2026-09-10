@@ -2483,6 +2483,49 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   due uscite giuste: o il dato va in un posto suo (la sezione che lo riguarda,
   o un `form-hint` sotto la riga, che è la forma che Terra usa già nei lotti),
   o non ci va. Si vede solo nello **scatto**.
+- ⛔ **`elementFromPoint` NON VEDE CHI HA `pointer-events:none`, E QUINDI NON DICE
+  CHI SI DIPINGE SOPRA.** Misurato il 10/09 sulla vetrina: il nastro dei nomi
+  delle app stava da diciassette giorni SOTTO la foto della sezione seguente
+  (`.fondale` assoluto con `inset:-12% 0` e `z-index:0`, che sale sopra un
+  nastro statico), lo scatto mostrava solo la gru — e `elementFromPoint` al
+  centro del nome rispondeva **il nome**, perché il fondale è `pointer-events:
+  none` e l'hit-test lo salta. La domanda «chi si dipinge sopra?» si fa
+  rendendo cliccabile il sospettato **per il solo hit-test** (`style.
+  pointerEvents='auto'`, misura, ripristino): allora rispondeva `span.velo`. E
+  nessun banco lo vedeva: `contrasto` misura il testo contro il fondo che
+  **risale gli antenati**, non contro ciò che un vicino dipinge sopra. Lo
+  scatto l'ha detto per primo, la misura l'ha deciso.
+  ⚠️ Stessa giornata, righello gemello: un elemento `display:none` ha un
+  rettangolo **0×0 che «sta nello schermo»** — il conto dei nomi visibili
+  diceva 18 su 18 coi nove nascosti. Si contano i rettangoli **con larghezza**,
+  non le coordinate.
+- ⛔ **IL ROSSO CRONICO DI UN BANCO NASCONDE IL ROSSO NUOVO — e vale per i banchi
+  quanto per la CI.** Misurato il 10/09: `fuori-schermo.mjs` intero usciva 1 da
+  settimane per i 27 nomi del nastro della vetrina (un ticker, non comandi);
+  sotto quei 27 ce n'erano **4 di Conti** — il cestino «Elimina fattura»
+  fuori dallo schermo a 320 px su tre fatture — che nessuno vedeva perché il
+  banco era rosso comunque. Chiusi tutt'e due (il nastro dichiarato
+  decorativo con `aria-hidden` e CONTATO dal banco; `max-width:100%` sulla
+  riga delle azioni di Conti), il banco esce 0 su 14 superfici × 3 larghezze.
+  Un banco che è rosso «si sa perché» va chiuso o dichiarato **per nome**,
+  se no smette di essere un banco.
+- ⛔ **UNA PASSATA PER APP TROVA I DIFETTI DI TUTTE, perché stanno nel motore e
+  nel foglio CONDIVISI.** Il 10/09, sei app e il core a 320 e 430 px, circa
+  130 fette guardate una per una: i difetti veri erano le tacche dell'asse
+  che si toccavano, le etichette di categoria mute («31… 03…»), il numero
+  sopra le barre doppio («100%100%»), l'etichetta `.fl` nuda fuori dalle
+  modali, `--info-basis` troppo stretto — tutti in `shared/`, tutti visti in
+  un'app e curati in sei. Il core, che quelle regole le definisce, era pulito.
+  Il metodo che regge: fette da 1400 px con `clip` (niente PIL nel
+  contenitore), lette TUTTE; per ogni sospetto una sonda che misura (`.fl` con
+  `getComputedStyle`, le tacche con `getBoundingClientRect`); l'arretrato
+  DICHIARATO dei banchi (`fuori-schermo`, `contrasto`) letto quando si passa
+  sull'app — «22 righe» di Sentinella era una variabile sola.
+  ⚠️ E il contenitore può **riavviarsi a metà ciclo** (successo alle 18:45Z):
+  torna un clone di `main` col nome del ramo di sessione, e lo scratchpad
+  sparisce con tutto quello che non era committato. Le sonde che servono
+  domani vivono in `tests/browser/`, non nello scratchpad — è la regola già
+  scritta sopra, pagata di nuovo.
 - Quando si misura qualcosa nel browser, due trappole già pestate:
   `document.elementFromPoint` vive nel **viewport** (un elemento sotto la piega
   risponde `null` e sembra irraggiungibile: va portato in vista), e «questo

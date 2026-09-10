@@ -665,6 +665,24 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL RIGHELLO DEL CONTRASTO E IL TESTO DENTRO IL MARCHIO (10/09) —
+  `contrasto.mjs` non giudica più i `<text>` degli `svg[aria-hidden]` (il
+  testo dentro un marchio si dipinge sul poligono del logo, non sul fondo
+  della pagina che il banco risale) e LI CONTA nel riepilogo per superficie e
+  in fondo. Sulla vetrina: 5 KO stamattina → 0.** Le tre lezioni della
+  giornata sono entrate in CLAUDE.md: `elementFromPoint` non vede chi ha
+  `pointer-events:none` (si rende cliccabile il sospettato per il solo
+  hit-test); il rosso cronico di un banco nasconde il rosso nuovo; una
+  passata per app trova i difetti di tutte perché stanno in `shared/`. Genesi
+  guardata a 320 e 430 (tre schermate a scorrimento interno, 0 errori):
+  niente da correggere a questo livello.
+  ⛔ **E IL CONTENITORE SI È RIAVVIATO A METÀ CICLO (18:45Z)**: il disco è
+  tornato a un clone di `main` col nome del ramo di sessione, lo scratchpad
+  è sparito con le sonde, gli scatti, il registro del giro filtrato del
+  browser (52 passate, arrivato a metà: KO veri solo i 5 della vetrina, già
+  chiusi) e le modifiche non committate (queste lezioni e questa patch,
+  riscritte). Riallineato con `git checkout -B` sul ramo remoto, senza
+  perdere niente di committato. Il giro filtrato va rilanciato.
 - [x] **LA VETRINA E IL CONTRASTO DEL «FUMO» (10/09) — letto dal giro filtrato
   del browser (sezione 2 di `leggi-giro`): `contrasto` sulla vetrina dava 5
   KO, e rilanciato su `d82a7871` (stamattina) gli stessi 5: preesistenti,
