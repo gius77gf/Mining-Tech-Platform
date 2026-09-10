@@ -5783,6 +5783,111 @@ export function csvPrezziConvertiti(prodotti) {
   return csv;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09). La domanda che il
+   documento dei concorrenti lasciava senza risposta: «quanto vale quello che
+   sta sui cumuli a fine anno?». Conti rifiuta di chiamare scorta il cavato
+   meno il venduto — giusto — ma dal 03/09 gli inventari dei cumuli di Terra
+   arrivano qui come dato: sono la fotografia del piazzale, e con il listino
+   diventano un prospetto. ⛔ Il valore è A LISTINO, e lo dice in ogni frase:
+   il valore FISCALE delle rimanenze (al costo di produzione, o altro) lo
+   decide il commercialista — queste righe gli danno quantità, densità e
+   riferimento, non una cifra di bilancio. ⛔ Un cumulo senza prezzo, senza
+   densità (col prezzo a tonnellata) o senza volume leggibile NON vale zero:
+   resta fuori dal totale con la sua ragione scritta. `null` in = `null` out:
+   Terra non raggiungibile non è «nessun cumulo». Pure. */
+const eurTx = (v) => euroIt(v) + " €";
+const normNome = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+export function inventarioAllaData(inventari, alla) {
+  const lim = alla && dataISOEsiste(String(alla).slice(0, 10)) ? String(alla).slice(0, 10) : null;
+  const buoni = (inventari || []).filter((i) => i && dataISOEsiste(String(i.data || "").slice(0, 10)) && Array.isArray(i.cumuli))
+    .filter((i) => !lim || String(i.data).slice(0, 10) <= lim)
+    .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+  return buoni[0] || null;
+}
+export function rimanenzeDiInventario(inventario, prodotti) {
+  const i = inventario || null;
+  if (!i) return { leggibile: false, motivo: "nessun inventario dei cumuli", righe: [], valore: null, valorizzate: 0, nonValorizzate: [], m3Totale: null };
+  const listino = (prodotti || []).filter(Boolean);
+  const righe = (i.cumuli || []).map((c) => {
+    const materiale = String((c && c.materiale) || "").trim();
+    const m3 = numeroDichiarato(c && c.volumeM3);
+    const p = listino.find((x) => normNome(x.nome) === normNome(materiale)) || null;
+    const dens = p ? densitaValida(p) : null;
+    const prezzo = p ? numeroDichiarato(p.prezzo) : null;
+    const unita = p && p.unitaPrezzo === "m3" ? "m3" : "t";
+    const t = m3 != null && dens ? round2(m3 * dens) : null;
+    let valore = null, perche = "";
+    if (m3 == null) perche = "volume non leggibile";
+    else if (!p) perche = "non è nel listino";
+    else if (prezzo == null || prezzo <= 0) perche = "senza prezzo in listino";
+    else if (unita === "t" && !dens) perche = "senza densità in listino: il prezzo è a tonnellata";
+    else valore = round2(unita === "m3" ? m3 * prezzo : t * prezzo);
+    return { materiale, prodotto: p ? p.nome : null, m3, densita: dens, t, prezzo, unitaPrezzo: p ? unita : null, valore, perche };
+  });
+  const val = righe.filter((r) => r.valore != null);
+  return {
+    leggibile: true, inventario: { id: i.id, data: String(i.data).slice(0, 10), metodo: String(i.metodo || "") },
+    righe, valorizzate: val.length, nonValorizzate: righe.filter((r) => r.valore == null),
+    valore: val.length ? round2(val.reduce((s, r) => s + r.valore, 0)) : null,
+    m3Totale: round2(righe.reduce((s, r) => s + (r.m3 || 0), 0)),
+  };
+}
+export function prospettoRimanenze(inventari, prodotti, alla) {
+  if (inventari == null) return { leggibile: false, motivo: "Terra non raggiungibile", righe: [], valore: null, valorizzate: 0, nonValorizzate: [], m3Totale: null };
+  return rimanenzeDiInventario(inventarioAllaData(inventari, alla), prodotti);
+}
+/* La VARIAZIONE delle rimanenze dell'anno (finali − iniziali), che è la riga
+   che entra in bilancio: iniziali = l'ultimo inventario prima dell'anno,
+   finali = l'ultimo dentro l'anno. Si dice solo se i due inventari
+   valorizzano gli STESSI materiali — se no la differenza confronterebbe due
+   perimetri diversi, e sarebbe un numero senza significato. */
+export function variazioneRimanenze(inventari, prodotti, anno) {
+  const a = +anno;
+  if (!Number.isFinite(a)) return { anno: null, inizio: null, fine: null, leggibile: false, variazione: null, motivo: "anno non leggibile" };
+  const fine = prospettoRimanenze(inventari, prodotti, a + "-12-31");
+  const inizio = prospettoRimanenze(inventari, prodotti, (a - 1) + "-12-31");
+  const nellAnno = fine.leggibile && fine.inventario.data > (a - 1) + "-12-31";
+  const conValore = nellAnno && inizio.leggibile && fine.valore != null && inizio.valore != null;
+  const fuori = (p) => p.nonValorizzate.map((r) => r.materiale).sort();
+  const stessi = conValore && JSON.stringify(fuori(fine)) === JSON.stringify(fuori(inizio));
+  const motivo = inventari == null ? "Terra non raggiungibile"
+    : !inizio.leggibile ? "manca un inventario prima dell'anno"
+    : !nellAnno ? "nessun inventario nell'anno"
+    : !conValore ? "un inventario non ha nessun cumulo valorizzabile"
+    : !stessi ? "i due inventari non valorizzano gli stessi materiali" : "";
+  return { anno: a, inizio, fine, leggibile: stessi, variazione: stessi ? round2(fine.valore - inizio.valore) : null, motivo };
+}
+export function descriviRimanenze(p) {
+  const x = p || {};
+  if (!x.leggibile) return x.motivo === "Terra non raggiungibile"
+    ? "Gli inventari dei cumuli di Terra non arrivano: le rimanenze di piazzale non si possono dire."
+    : "Nessun inventario dei cumuli in Terra: senza una fotografia del piazzale le rimanenze non si possono dire.";
+  const inv = x.inventario, n = x.righe.length, nv = x.nonValorizzate.length;
+  const testa = "Rimanenze al " + dataIt(inv.data) + (inv.metodo === "stima" ? " (una stima, non un rilievo)" : inv.metodo ? " (rilievo " + inv.metodo + " di Terra)" : "") + ": "
+    + n + (n === 1 ? " cumulo" : " cumuli") + " per " + (+x.m3Totale).toLocaleString("it-IT", { useGrouping: true }) + " m³";
+  const val = x.valore == null ? ", nessuno valorizzabile a listino" : ", " + (x.valorizzate === n ? "tutti" : x.valorizzate + " su " + n) + " valorizzati a listino per " + eurTx(x.valore);
+  const fuori = nv ? " — fuori dal valore: " + x.nonValorizzate.map((r) => r.materiale + " (" + r.perche + ")").join(", ") : "";
+  return testa + val + fuori + ". Il valore a listino NON è il valore fiscale delle rimanenze: il criterio (costo di produzione o altro) lo decide il commercialista, e queste righe gli danno quantità e riferimento.";
+}
+export function descriviVariazioneRimanenze(v) {
+  const x = v || {};
+  if (!x.leggibile) return "Variazione delle rimanenze " + (x.anno || "") + ": non si può dire (" + (x.motivo || "") + ").";
+  const d = x.variazione;
+  return "Variazione delle rimanenze " + x.anno + ", a listino: " + (d > 0 ? "+" : d < 0 ? "−" : "") + eurTx(Math.abs(d))
+    + " (da " + eurTx(x.inizio.valore) + " al " + dataIt(x.inizio.inventario.data) + " a " + eurTx(x.fine.valore) + " al " + dataIt(x.fine.inventario.data) + ").";
+}
+export const CSV_RIMANENZE_INTESTAZIONE = "inventario;data;metodo;materiale;prodotto_listino;volume_m3;densita_t_m3;tonnellate;prezzo_listino;unita_prezzo;valore_listino;nel_totale;perche";
+export function csvRimanenze(inventari, prodotti, alla) {
+  const p = prospettoRimanenze(inventari, prodotti, alla);
+  let csv = CSV_RIMANENZE_INTESTAZIONE + "\n";
+  if (!p.leggibile) return csv + `;;;;;;;;;;;no;${csvCell(p.motivo)}\n`;
+  const num = (v) => v == null ? "" : String(v);
+  for (const r of p.righe)
+    csv += `${csvCell(p.inventario.id)};${csvCell(p.inventario.data)};${csvCell(p.inventario.metodo)};${csvCell(r.materiale)};${csvCell(r.prodotto || "")};${num(r.m3)};${num(r.densita)};${num(r.t)};${num(r.prezzo)};${csvCell(r.unitaPrezzo || "")};${num(r.valore)};${r.valore == null ? "no" : "si"};${csvCell(r.perche)}\n`;
+  return csv;
+}
+
 /* IL NOME DEL CLIENTE DI UN PREVENTIVO (05/09, salito dalla pagina): la
    ragione sociale in anagrafica se il cliente c'è ancora, se no il nome
    scritto sul preventivo, se no «Cliente non indicato». */

@@ -977,6 +977,8 @@ const BANCHI = [
   ['versioni dei documenti · controprova', 'scudo-versioni-documenti.mjs', ['--controprova'], true],
   ['il verbale di ispezione di Scudo su carta: la finestra prima, il foglio, le voci senza esito', 'scudo-verbale-ispezione.mjs', []],
   ['verbale di ispezione · controprova', 'scudo-verbale-ispezione.mjs', ['--controprova'], true],
+  ['le rimanenze di piazzale di Conti: a listino, il cumulo non misurato fuori, il CSV dallo stesso conto', 'conti-rimanenze.mjs', []],
+  ['rimanenze di piazzale · controprova', 'conti-rimanenze.mjs', ['--controprova'], true],
   ['il ponte Conti → Flotta: la fattura dell\'officina collegata all\'ordine di lavoro, nelle due pagine', 'ponte-conti-flotta-odl.mjs', []],
   ['ponte Conti → Flotta · controprova', 'ponte-conti-flotta-odl.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha

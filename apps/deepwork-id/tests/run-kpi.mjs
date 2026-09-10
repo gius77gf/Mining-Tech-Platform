@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 32, "i siti di export CSV censiti nelle quattro app")   // 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 33, "i siti di export CSV censiti nelle quattro app")   // 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -39542,6 +39542,95 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine ponte Conti → Flotta, pagine (06/09) ===== */
+
+/* ===== CONTI · LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09) =====
+   L'ultimo inventario dei cumuli di Terra, valorizzato A LISTINO — e ogni
+   frase dice che non è il valore fiscale. Un cumulo senza prezzo, densità o
+   volume resta FUORI dal totale con la ragione, mai a zero; Terra non
+   raggiungibile non è «nessun cumulo». ⚠️ Prove SINCRONE e PRIMA del riepilogo. */
+{
+  const D = conti.DEMO;
+  test("⛔ prospettoRimanenze sulla dimostrazione: l'ultimo inventario, i cumuli fuori con la ragione, il totale solo sui valorizzati", () => {
+    const p = conti.prospettoRimanenze(D.inventariTerra, D.prodotti);
+    eq(p.leggibile, true, "leggibile"); eq(p.inventario.data, "2026-08-30", "l'ultimo inventario"); eq(p.inventario.metodo, "stima", "che è una stima");
+    const per = Object.fromEntries(p.righe.map(r => [r.materiale, r]));
+    eq([per["Stabilizzato 0/30"].t, per["Stabilizzato 0/30"].valore], [475, 4037.5], "250 m³ × 1,9 = 475 t × 8,50 €/t");
+    eq(per["Pietrisco 8/12"].valore, 1152, "64 × 1,5 × 12");
+    eq([per["Sabbia lavata 0/4"].valore, per["Sabbia lavata 0/4"].perche], [null, "volume non leggibile"], "⛔ il cumulo non misurato non vale zero: sta fuori con la ragione");
+    eq([p.valore, p.valorizzate, p.righe.length], [5189.5, 2, 3], "il totale somma SOLO i valorizzati, e dice quanti su quanti");
+    eq(p.nonValorizzate.map(r => r.materiale), ["Sabbia lavata 0/4"], "i fuori, per nome");
+  });
+  test("inventarioAllaData e rimanenzeDiInventario, per nome: l'ultimo inventario leggibile non oltre la data, e il prospetto di UN inventario", () => {
+    eq(conti.inventarioAllaData(D.inventariTerra).id, "i3", "senza data: l'ultimo");
+    eq(conti.inventarioAllaData(D.inventariTerra, "2026-06-27").id, "i2", "alla data stessa dell'inventario: incluso");
+    eq(conti.inventarioAllaData(D.inventariTerra, "2025-01-01"), null, "prima del primo: niente");
+    eq(conti.inventarioAllaData([{ id: "z", data: "2026-02-30", cumuli: [] }, { id: "y", data: "2026-01-01" }]), null, "una data che non esiste e un inventario senza cumuli non contano");
+    const r = conti.rimanenzeDiInventario(D.inventariTerra[0], D.prodotti);
+    eq([r.inventario.id, r.righe.length, r.valore], ["i1", 4, 7522], "il prospetto del primo inventario: 240×1,9×8,5 + 115×22 + 62×1,5×12");
+    eq(conti.rimanenzeDiInventario(null, D.prodotti).leggibile, false, "senza inventario non è leggibile");
+  });
+  test("prospettoRimanenze alla data: l'ultimo inventario NON dopo la data, con «Terre di scavo» fuori dal listino", () => {
+    const p = conti.prospettoRimanenze(D.inventariTerra, D.prodotti, "2026-06-30");
+    eq(p.inventario.data, "2026-06-27", "quello di giugno, non la stima di agosto");
+    const ts = p.righe.find(r => r.materiale === "Terre di scavo");
+    eq([ts.prodotto, ts.valore, ts.perche], [null, null, "non è nel listino"], "un materiale che il listino non ha resta fuori, non a zero");
+    eq(p.valore, 7475.75, "265×1,9×8,5 + 88×22 + 70×1,5×12");
+    eq(p.m3Totale, 453, "i m³ di TUTTI i cumuli, anche quelli fuori dal valore");
+  });
+  test("⛔ null in = null out: Terra non raggiungibile non è «nessun cumulo», e nessun inventario è un'altra frase", () => {
+    const giu = conti.prospettoRimanenze(null, D.prodotti), vuoto = conti.prospettoRimanenze([], D.prodotti);
+    eq([giu.leggibile, giu.motivo, giu.valore], [false, "Terra non raggiungibile", null], "Terra giù");
+    eq([vuoto.leggibile, vuoto.motivo], [false, "nessun inventario dei cumuli"], "nessun inventario");
+    ok(/non arrivano/.test(conti.descriviRimanenze(giu)) && /Nessun inventario/.test(conti.descriviRimanenze(vuoto)), "due frasi diverse");
+    eq(conti.prospettoRimanenze([{ id: "x", data: "2026-13-45", cumuli: [] }], D.prodotti).leggibile, false, "un inventario con una data che non esiste non è un inventario");
+  });
+  test("⛔ un prezzo a tonnellata senza densità non si converte: fuori con la ragione, non a zero", () => {
+    const p = conti.prospettoRimanenze([{ id: "i", data: "2026-01-10", cumuli: [{ materiale: "Ghiaia", volumeM3: 100 }, { materiale: "Sabbia fine", volumeM3: 10 }, { materiale: "Omaggio", volumeM3: 5 }] }],
+      [{ nome: "Ghiaia", unitaPrezzo: "t", prezzo: 10 }, { nome: "Sabbia fine", unitaPrezzo: "m3", prezzo: 20 }, { nome: "Omaggio", unitaPrezzo: "m3", prezzo: 0 }]);
+    const per = Object.fromEntries(p.righe.map(r => [r.materiale, r]));
+    eq([per.Ghiaia.valore, per.Ghiaia.perche], [null, "senza densità in listino: il prezzo è a tonnellata"], "t senza densità");
+    eq(per["Sabbia fine"].valore, 200, "a m³ non serve la densità");
+    eq([per.Omaggio.valore, per.Omaggio.perche], [null, "senza prezzo in listino"], "prezzo a zero non è un valore");
+    eq(p.valore, 200, "il totale");
+    ok(/1 su 3 valorizzati/.test(conti.descriviRimanenze(p)) && /Ghiaia \(senza densità/.test(conti.descriviRimanenze(p)), conti.descriviRimanenze(p));
+  });
+  test("⛔ descriviRimanenze dice SEMPRE che il valore a listino non è quello fiscale", () => {
+    const s = conti.descriviRimanenze(conti.prospettoRimanenze(D.inventariTerra, D.prodotti, "2026-06-30"));
+    ok(/^Rimanenze al 27\/06\/2026 \(rilievo drone di Terra\): 4 cumuli per 453 m³, 3 su 4 valorizzati a listino per 7\.475,75 €/.test(s), s);
+    ok(/NON è il valore fiscale/.test(s) && /lo decide il commercialista/.test(s), "la frase di onestà");
+    ok(/\(una stima, non un rilievo\)/.test(conti.descriviRimanenze(conti.prospettoRimanenze(D.inventariTerra, D.prodotti))), "una stima si dichiara stima");
+    ok(/1 cumulo per/.test(conti.descriviRimanenze(conti.prospettoRimanenze([{ id: "i", data: "2026-01-10", cumuli: [{ materiale: "Pietrisco 8/12", volumeM3: 10 }] }], D.prodotti))), "il singolare");
+  });
+  test("⛔ variazioneRimanenze: solo fra due inventari che valorizzano gli STESSI materiali, se no lo dice", () => {
+    const v = conti.variazioneRimanenze(D.inventariTerra.slice(0, 2), D.prodotti, 2026);
+    eq([v.leggibile, v.variazione], [true, -46.25], "7.475,75 − 7.522");
+    ok(/^Variazione delle rimanenze 2026, a listino: −46,25 € \(da 7\.522 € al 29\/12\/2025 a 7\.475,75 € al 27\/06\/2026\)\.$/.test(conti.descriviVariazioneRimanenze(v)), conti.descriviVariazioneRimanenze(v));
+    const v2 = conti.variazioneRimanenze(D.inventariTerra, D.prodotti, 2026);
+    eq([v2.leggibile, v2.variazione, v2.motivo], [false, null, "i due inventari non valorizzano gli stessi materiali"], "la stima di agosto ha un cumulo non misurato: perimetri diversi");
+    eq(conti.variazioneRimanenze(D.inventariTerra, D.prodotti, 2025).motivo, "manca un inventario prima dell'anno", "2025 senza inizio");
+    eq(conti.variazioneRimanenze(D.inventariTerra.slice(0, 1), D.prodotti, 2026).motivo, "nessun inventario nell'anno", "2026 senza fine");
+    eq(conti.variazioneRimanenze(null, D.prodotti, 2026).motivo, "Terra non raggiungibile", "Terra giù");
+    eq(conti.variazioneRimanenze(D.inventariTerra, D.prodotti, "boh").leggibile, false, "anno illeggibile");
+    ok(/non si può dire \(manca un inventario prima dell'anno\)/.test(conti.descriviVariazioneRimanenze(conti.variazioneRimanenze(D.inventariTerra, D.prodotti, 2025))), "la frase dice perché");
+  });
+  test("csvRimanenze: una riga per cumulo, i fuori con «no» e la ragione; Terra giù = una riga che lo dice", () => {
+    const righe = conti.csvRimanenze(D.inventariTerra, D.prodotti, "2026-06-30").split("\n").filter(Boolean);
+    eq(righe[0], conti.CSV_RIMANENZE_INTESTAZIONE, "l'intestazione");
+    eq(righe.length, 5, "quattro cumuli");
+    ok(righe[1].startsWith("i2;2026-06-27;drone;Stabilizzato 0/30;Stabilizzato 0/30;265;1.9;503.5;8.5;t;4279.75;si;"), righe[1]);
+    ok(righe[4].endsWith(";;;;no;non è nel listino"), righe[4]);
+    ok(/;no;Terra non raggiungibile$/.test(conti.csvRimanenze(null, D.prodotti).trim()), "Terra giù");
+  });
+  test("⛔ la pagina: il prospetto lo compone il modulo, il CSV pure, e la riga c'è", () => {
+    const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+    ok(/const p = prospettoRimanenze\(INV, PRO\);/.test(pagina), "il prospetto dal modulo, su INV (null = Terra giù)");
+    ok(/const csv = csvRimanenze\(INV, PRO\);/.test(pagina), "il CSV dallo stesso conto");
+    ok(/descriviRimanenze\(p\)/.test(pagina) && /descriviVariazioneRimanenze\(v\)/.test(pagina), "le frasi le dice il modulo");
+    ok(/id="ric-rimanenze"/.test(pagina) && /renderRimanenze\(m3f\)/.test(pagina), "il riquadro e la sua chiamata");
+    ok(/if \(!invLetti\) \{ box\.innerHTML = ""; return; \}/.test(pagina), "prima che Terra risponda non si scrive niente");
+  });
+}
+/* ===== fine rimanenze di piazzale (10/09) ===== */
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

@@ -665,6 +665,34 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09) — la riga 2
+  della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI, che restava
+  «senza risposta»:** `prospettoRimanenze(inventari, prodotti, alla)` nel
+  modulo di Conti — l'ultimo inventario dei cumuli di Terra non oltre la data
+  (`inventarioAllaData`), cumulo per cumulo in m³ e in t con la densità del
+  listino, valorizzato **a prezzo di listino** (`rimanenzeDiInventario`);
+  un cumulo senza prezzo, senza densità (col prezzo a tonnellata) o senza
+  volume resta FUORI dal totale con la ragione scritta, mai a zero; `null` in
+  = `null` out (Terra non raggiungibile non è «nessun cumulo»).
+  `variazioneRimanenze(…, anno)` = finali − iniziali, detta SOLO fra due
+  inventari che valorizzano gli stessi materiali, se no la ragione;
+  `descriviRimanenze` e `descriviVariazioneRimanenze` dicono in ogni frase che
+  NON è il valore fiscale (il criterio lo decide il commercialista);
+  `csvRimanenze` con «nel_totale;perche». Pagina: il riquadro «Rimanenze di
+  piazzale» nei Report sotto le scorte misurate (tabella, ragione sotto il
+  nome del cumulo, pastiglia «fuori», piede «Totale (2 su 3)», la variazione
+  con la sua ragione, il CSV col marchio). Prove: run-kpi +9 (2801; e il pin
+  dei siti di export CSV 32 → **33**), `documenti-dimostrazione` 133
+  documenti, banco `conti-rimanenze.mjs` 34 ok a 430 e 320 con controprova
+  26/34 su 3/3 per file (265 esecuzioni, 112 file), copertura 929/929 (fondo
+  Conti 180 → **188**). ⚠️ Lo scatto a 430 ha bocciato la prima stesura: la
+  pastiglia «fuori: volume non leggibile» sfondava la tabella — la ragione è
+  scesa sotto il nome del cumulo e la pastiglia dice solo «fuori». ⚠️ E
+  `euroIt` non scrive il simbolo: «7.475,75» senza € nella frase, preso dal
+  probe. Docs: CONCORRENTI_CONTI riga 2 risposta e riga «Gestione magazzino»
+  con la valorizzazione (resta A METÀ per la ragione sua: niente carico/
+  scarico, disegno voluto — la B4 NON cambia: 37); mondo in
+  RICERCA_CONTINUA_CONTI (seconda mano dichiarata).
 - [x] **IL PONTE CONTI → FLOTTA, SECONDA METÀ: LE DUE PAGINE (06/09, mattina):**
   in Conti la tendina «Ordine di lavoro di Flotta (facoltativo)» nel registro
   costi (`db.ordiniFlotta`: dal vivo l'app Flotta, collezione `manutenzioni`,
@@ -7160,8 +7188,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.273 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2792, `run-stile` 328,
+  **3.282 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2801, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7171,8 +7199,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **263 esecuzioni** che
-  aprono le pagine in un browser vero, da **111** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **265 esecuzioni** che
+  aprono le pagine in un browser vero, da **112** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

@@ -1882,6 +1882,12 @@ label.item:has(.dw-chk:checked){
        scorte è una misura e il triangolo chiude su uno scarto con la sua
        ragione; se no si dice perché, e le scorte restano stimate. -->
   <div id="ric-scorte"></div>
+  <!-- LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09): l'ultimo
+       inventario dei cumuli di Terra, cumulo per cumulo, valorizzato A
+       LISTINO — non è il valore fiscale, e ogni frase lo dice. Un cumulo
+       senza prezzo, senza densità o senza volume resta fuori dal totale con la
+       sua ragione, mai a zero. -->
+  <div id="ric-rimanenze"></div>
   <div id="graf-ric"></div>
   <div id="ric-list"></div>
   <!-- IL VERBALE (02/09): il divario qui sopra, scritto con la causa che
@@ -1997,7 +2003,8 @@ label.item:has(.dw-chk:checked){
     descriviScaglione, confrontoCostiMezzi, pesiPesata, xmlFatturaPA,
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
-    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO } from "./conti-data.js";
+    autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO,
+    prospettoRimanenze, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
      l'intestazione di un'ALTRA nostra tabella?». È l'unica domanda possibile,
      perché il file SENZA intestazione deve continuare a entrare. */
@@ -5596,6 +5603,7 @@ label.item:has(.dw-chk:checked){
         <div class="conf-s"><b>${qt(ven.tConvertite)} t</b> su ${qt(ven.t)} t consegnate, in ${plur(ven.viaggi, "viaggio", "viaggi")}.</div></div>
     </div>`;
     renderScorte(tri, m3f);
+    renderRimanenze(m3f);
 
     // ── il grafico: due grandezze da guardare una accanto all'altra. Non si
     //    sommano (sono lo stesso materiale contato da due parti), quindi
@@ -5691,6 +5699,42 @@ label.item:has(.dw-chk:checked){
   //  · no-terra → Terra non risponde: tono avviso, nessun numero di scorte.
   // Il commento sta QUI e non dentro le stringhe qui sotto: là un commento
   // HTML sarebbe testo, e i suoi apostrofi chiuderebbero il template.
+  /* ── Le rimanenze di piazzale, per il commercialista (10/09) ──
+     Il prospetto lo compone `prospettoRimanenze` (modulo) sull'ultimo
+     inventario di Terra e sul listino; la frase la dice
+     `descriviRimanenze`, compreso «NON è il valore fiscale». `INV` null =
+     Terra non raggiungibile: tono avviso, nessuna cifra. Il CSV esce da
+     `csvRimanenze`, lo stesso conto. */
+  function renderRimanenze(m3f) {
+    const box = $("ric-rimanenze"); if (!box) return;
+    if (!invLetti) { box.innerHTML = ""; return; }
+    const p = prospettoRimanenze(INV, PRO);
+    const v = variazioneRimanenze(INV, PRO, new Date().getFullYear());
+    if (!p.leggibile) {
+      box.innerHTML = `<div class="note ${INV == null ? "warn" : ""}"><b>Rimanenze di piazzale</b> · ${esc(descriviRimanenze(p))}</div>`;
+      return;
+    }
+    const riga = (r) => `<tr>
+      <td>${esc(r.materiale)}${r.valore == null ? `<div class="form-hint" style="margin:2px 0 0;">${esc(r.perche)}</div>` : ""}</td>
+      <td class="num">${r.m3 == null ? "—" : m3f(r.m3)}</td>
+      <td class="num">${r.t == null ? "—" : qt(r.t)}</td>
+      <td class="num">${r.prezzo == null ? "—" : eur(r.prezzo) + "/" + (r.unitaPrezzo === "m3" ? "m³" : "t")}</td>
+      <td class="num">${r.valore == null ? `<span class="badge warn" title="Fuori dal totale: ${esc(r.perche)}">fuori</span>` : "<b>" + eur(r.valore) + "</b>"}</td></tr>`;
+    box.innerHTML = `<div class="note recap"><b>Rimanenze di piazzale</b> · ${esc(descriviRimanenze(p))}
+      <div class="ponte-wrap" style="margin-top:8px;"><table class="ponte"><thead><tr><th>Cumulo</th><th class="num">m³</th><th class="num">t</th><th class="num">listino</th><th class="num">valore a listino</th></tr></thead>
+      <tbody>${p.righe.map(riga).join("")}</tbody>
+      <tfoot><tr><td><b>Totale</b> (${p.valorizzate} su ${p.righe.length})</td><td class="num">${m3f(p.m3Totale)}</td><td></td><td></td><td class="num"><b>${p.valore == null ? "—" : eur(p.valore)}</b></td></tr></tfoot></table></div>
+      <div class="form-hint" id="rim-variazione" style="margin-top:6px;">${esc(descriviVariazioneRimanenze(v))}</div>
+      <div class="tools"><button class="dw-btn secondary" id="btn-rimanenze-csv">Esporta le rimanenze (CSV)</button></div></div>`;
+    const b = $("btn-rimanenze-csv");
+    if (b) b.onclick = () => {
+      const csv = csvRimanenze(INV, PRO);
+      const a = document.createElement("a");
+      a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+      a.download = "conti_rimanenze_piazzale_" + p.inventario.data + ".csv"; marchiaCsv(a); a.click();
+      toast("Rimanenze al " + fmtD(p.inventario.data) + " esportate: valore a listino, non fiscale.");
+    };
+  }
   function renderScorte(tri, m3f) {
     const box = $("ric-scorte"); if (!box) return;
     if (!tri) {

@@ -1155,3 +1155,49 @@ con l'origine; `grep -c "riferimentoInCausale" apps/conti/conti-data.js` → 2.
 Il verdetto del punto 3 (i gestionali abbinano per importo, data e numero di
 fattura) resta: qui il TRN/CRO NON entra nell'abbinamento, è la chiave che
 si legge con la banca, e si dichiara così.*
+
+
+## Ricerca del 2026-09-10 — le rimanenze di piazzale a fine anno: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**: niente `WebSearch` in questa
+unità (scelta per non bruciare crediti); i riferimenti di legge sono citati
+come contesto e **nessun numero di norma entra in una schermata**.
+
+### Che cos'è, fuori
+
+- **Le rimanenze finali** entrano nel bilancio come voce dell'attivo e la
+  loro **variazione** (finali − iniziali) nel conto economico: per una cava
+  sono i cumuli sul piazzale a fine esercizio. Il commercialista chiede
+  **quantità per prodotto e un criterio di valutazione** — di regola il
+  **costo di produzione** (o il minore fra costo e valore di realizzo), non
+  il prezzo di vendita. *[seconda mano: art. 2426 c.c. e principio contabile
+  OIC 13 da memoria, non letti oggi]*
+- **Come lo fanno i gestionali di categoria** (Easyfatt, TeamSystem: censiti
+  in §2): un «inventario di fine anno» con quantità × costo medio o FIFO,
+  esportato al commercialista. Presuppone un magazzino con carico/scarico
+  per articolo. *[dal censimento del 01/08]*
+- **Perché in cava è diverso**: nessuno tiene il carico/scarico dei mucchi;
+  la giacenza è una **fotografia** (rilievo drone o stima) e il costo di
+  produzione per prodotto raramente è noto per cumulo. Quello che l'app può
+  dare con onestà: **quantità misurate** (m³, e t con la densità del
+  materiale sciolto) e un **valore di riferimento a listino**, dichiarando
+  che il criterio fiscale è un'altra cosa. *[dedotto]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi sa quanto sta sui cumuli?* → gli inventari di Terra, letti dal
+   ponte (03/09): non un magazzino di Conti.
+2. *Chi conosce prezzo e densità per prodotto?* → il listino di Conti
+   (`prezzoPerTonnellata`, `densitaValida`).
+3. *Che cosa NON deve dire l'app?* → un valore fiscale. Il valore è a
+   listino e lo dice in ogni frase; un cumulo non valorizzabile resta fuori
+   con la ragione, non a zero.
+
+### Il delta, fatto da chi ha il codice in mano (10/09, contro `d82a7871`)
+
+Fatto nella stessa unità: vedi la voce «LE RIMANENZE DI PIAZZALE PER IL
+COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: un
+**costo unitario per prodotto** compilabile dal gestore (darebbe una
+valutazione al costo, ma è un dato che oggi nessuna app ha, e inventarlo
+sarebbe il difetto del numero tranquillo); il carico/scarico per prodotto
+(disegno scartato: una cava non lo tiene).
