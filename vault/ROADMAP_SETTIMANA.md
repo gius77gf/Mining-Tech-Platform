@@ -665,6 +665,21 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **LO STRUMENTO DELLA PASSATA VIVE IN `tests/browser/`, E LE QUATTRO
+  PAGINE DI DEEPWORK ID GUARDATE (10/09, dopo il riavvio).** `fette.mjs`: apre
+  una superficie qualunque delle 14 a una o più larghezze, va in ogni sezione
+  e scatta la pagina intera a fette da 1400 px con `clip` (niente PIL nel
+  contenitore), stampa scorrimento laterale ed errori; il core col finto
+  Firebase, le pagine di Deepwork ID col finto ID nello scenario scelto
+  (`--scenario=member|anonymous|unauthorized|tour`), con il contrassegno del
+  pid riletto dal server. È la sonda dello scratchpad sparita col riavvio,
+  riscritta dove sopravvive. Con essa: accesso, profilo (owner di
+  `org_cava_alfa` con i dati di `DATI_ORG`), amministrazione, non autorizzato
+  a 320 e 430 — 0 errori di pagina, niente da correggere: i membri con
+  tendina del ruolo e «Rimuovi» a capo a 320, gli inviti con la scadenza
+  («scade tra 11 giorni», «scade domani», «scaduto il»), le app
+  dell'abbonamento con «Attiva / Non inclusa» (Campo con validità passata →
+  non inclusa, giusto).
 - [x] **IL RIGHELLO DEL CONTRASTO E IL TESTO DENTRO IL MARCHIO (10/09) —
   `contrasto.mjs` non giudica più i `<text>` degli `svg[aria-hidden]` (il
   testo dentro un marchio si dipinge sul poligono del logo, non sul fondo
