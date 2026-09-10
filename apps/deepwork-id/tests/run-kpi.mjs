@@ -25126,6 +25126,64 @@ console.log("\n— Campo: i file che escono —");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["ondaDaCsv", "tempiDetonazione", "sommaRitardata"].every((n) => elenco.includes(n)), "la pagina importa tutt'e tre");
   });
+
+  /* ⛔ G24 — LA GEOMETRIA DELLA PIANTA (10/09, sesta fetta di B3): la cresta
+     importata, il burden vero, la spaziatura tipica, il campo dei tempi delle
+     isocrone e il loro passo. Cinque funzioni entrate identiche (vecchie
+     funzioni estratte da HEAD accanto alle nuove: 0 divergenze, i conti sono
+     nel commit). */
+  test("⛔ Genesi · quotaCresta: il profilo della cresta interpolato, gli estremi tenuti, il clamp −6/+10", () => {
+    const pr = [{ x: 0, z: 0 }, { x: 10, z: 2 }, { x: 20, z: -1 }];
+    eq(v.quotaCresta(pr, 5), 1, "a metà del primo tratto: 1 m");
+    eq(v.quotaCresta(pr, 15), 0.5, "a metà del secondo: da 2 a −1, 0,5");
+    eq(v.quotaCresta(pr, -3), 0, "prima del primo punto vale il primo"); eq(v.quotaCresta(pr, 99), -1, "oltre l'ultimo vale l'ultimo");
+    eq(v.quotaCresta(null, 5), 0, "senza profilo il fronte è dritto: 0"); eq(v.quotaCresta([], 5), 0);
+    eq(v.quotaCresta([{ x: 0, z: 40 }, { x: 10, z: -40 }], 0), 10, "il tetto è +10 m"); eq(v.quotaCresta([{ x: 0, z: 40 }, { x: 10, z: -40 }], 10), -6, "il pavimento −6");
+    eq(v.quotaCresta([{ x: 5, z: 1 }, { x: 5, z: 3 }], 5), 1, "due punti sulla stessa x: il primo, senza dividere per zero");
+  });
+  test("⛔ Genesi · distanzaDaSpezzata: il burden VERO è la distanza perpendicolare alla faccia, non quella di progetto", () => {
+    const faccia = [[0, 0], [10, 0]];
+    eq(v.distanzaDaSpezzata(5, 3, faccia), 3, "sopra il tratto: la perpendicolare");
+    eq(v.distanzaDaSpezzata(13, 4, faccia), 5, "oltre l'estremo: la distanza dall'estremo (3-4-5)");
+    eq(+v.distanzaDaSpezzata(5, 3, [[0, 0], [5, 2], [10, 0]]).toFixed(4), 1, "su un fronte che sporge il burden si accorcia: 1 m invece di 3");
+    eq(v.distanzaDaSpezzata(5, 3, [[4, 4]]), null, "un punto solo non è una spezzata: null");
+    eq(v.distanzaDaSpezzata(5, 3, [[2, 2], [2, 2]]), Math.hypot(3, 1), "un segmento degenere conta come il suo punto");
+  });
+  test("⛔ Genesi · spaziaturaTipica: la mediana delle distanze al foro più vicino, e il ripiego arriva da chi chiama", () => {
+    const fori = [{ mx: 0, my: 0 }, { mx: 3, my: 0 }, { mx: 6, my: 0 }, { mx: 6, my: 30 }];
+    eq(v.spaziaturaTipica(fori, 9), 3, "tre fori a 3 m e uno lontano: la mediana resta 3");
+    eq(v.spaziaturaTipica([{ mx: 0, my: 0 }], 4.5), 4.5, "con un foro solo vale il ripiego di progetto");
+    eq(v.spaziaturaTipica(null, 4.5), 4.5); eq(v.spaziaturaTipica([], 3.5), 3.5, "senza fori pure");
+    eq(v.spaziaturaTipica([{ mx: 0, my: 0 }, { mx: 0, my: 4 }], 9), 4, "due fori: la loro distanza");
+  });
+  test("⛔ Genesi · tempoInPunto: il campo dei tempi dai tDet dei fori vicini, e dove non c'è nessuno risponde null", () => {
+    const fila = [{ mx: 0, my: 0, tDet: 0 }, { mx: 3, my: 0, tDet: 25 }, { mx: 6, my: 0, tDet: 50 }, { mx: 9, my: 0, tDet: 75 }];
+    const h2 = Math.pow(1.15 * 3, 2);
+    eq(+v.tempoInPunto(4.5, 0, fila, h2).t.toFixed(6), 37.5, "fra il secondo e il terzo foro il piano lineare dà 37,5 ms esatti");
+    eq(+v.tempoInPunto(3, 0, fila, h2).t.toFixed(1), 25, "sul foro: il suo tempo (a meno dei millesimi che la regolarizzazione su b e c sposta: 25,003)");
+    eq(v.tempoInPunto(3, 0, fila, h2).dmin, 0, "e la distanza dal foro più vicino è zero");
+    const lontano = v.tempoInPunto(100, 100, fila, h2);
+    eq(lontano.t, null, "a cento metri nessun foro pesa: t null, non zero"); eq(+lontano.dmin.toFixed(3), +Math.hypot(91, 100).toFixed(3), "ma dmin dice quanto è lontano il più vicino");
+    eq(v.tempoInPunto(1, 0, [{ mx: 0, my: 0 }, { mx: 3, my: 0 }], h2).t, 0, "fori senza tDet valgono 0 ms, il verso prudente");
+  });
+  test("⛔ Genesi · passoIsocrone: quello scelto a schermo, se no la scala che dà al massimo dieci curve", () => {
+    eq(v.passoIsocrone(7, 462), 7, "il passo scelto vince");
+    eq(v.passoIsocrone(0, 462), 50, "462 ms: 50 dà 9 curve, 25 ne darebbe 18");
+    eq(v.passoIsocrone(null, 84), 10, "84 ms: 10 (8 curve)"); eq(v.passoIsocrone(undefined, 0), 1, "volata istantanea: il primo passo");
+    eq(v.passoIsocrone(0, 99999), 1000, "oltre la scala: l'ultimo passo, senza inventarne uno");
+    eq(v.ISO_PASSI, [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000], "la scala, letta dal modulo");
+  });
+  test("⛔ Genesi · G24: nella pagina i conti non ci sono più, e i tre legami restano", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI/g) || []).length, 0, "le vecchie funzioni e la scala non ci sono più");
+    ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è il legame con P");
+    ok(/function _spazTipico\(H\)\{ return spaziaturaTipica\(H, Math\.max\(D2\.S\|\|3\.5, D2\.B\|\|3\)\); \}/.test(pag), "_spazTipico passa il ripiego di progetto");
+    ok(/function isoPasso\(\)\{ return passoIsocrone\(D2\.isoStep, D2\.lastDet\); \}/.test(pag), "isoPasso passa la scelta a schermo");
+    eq((pag.match(/distanzaDaSpezzata\(/g) || []).length, 2, "i due chiamanti del burden vero (energia 2D e la scheda dei fori)");
+    eq((pag.match(/tempoInPunto\(/g) || []).length, 1, "e il campo dei tempi lo chiama solo il disegno delle isocrone");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone"].every((n) => elenco.includes(n)), "la pagina importa tutt'e cinque");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */

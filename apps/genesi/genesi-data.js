@@ -2464,3 +2464,100 @@ export function sommaRitardata(sig,times){
   for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>ppv) ppv=v; }
   return {comp,dt,ppv,singolo,steps};
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G24 · LA GEOMETRIA DELLA PIANTA — la cresta importata, il burden vero, la
+   spaziatura tipica, il campo dei tempi e il passo delle isocrone (10/09,
+   cantiere B3, sesta fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   Cinque funzioni che la pianta 2D e la scena 3D chiamano per leggere la
+   forma della volata, tutte entrate IDENTICHE (vecchie funzioni estratte da
+   HEAD accanto alle nuove, 0 divergenze; i conti sono nel commit).
+
+   `quotaCresta(profilo, x)` — l'offset z della faccia lungo x dal profilo
+   della cresta importato (spezzata di `{x, z}`): fuori dagli estremi vale
+   l'estremo, in mezzo si interpola, senza profilo vale 0 (fronte dritto), e
+   il risultato è tenuto fra −6 e +10 m (il clamp di sicurezza della pagina).
+   La pagina la chiama con `P.profilo` e `crestZ` resta come legame.
+
+   `distanzaDaSpezzata(px, py, punti)` — la distanza minima da un punto a
+   una spezzata di `[x, y]`: è il BURDEN VERO, cioè la distanza PERPENDICOLARE
+   alla faccia libera, che su un fronte storto si accorcia dove la roccia
+   sporge (è lì che nascono le proiezioni) anche se il foro sta alla distanza
+   di progetto — una cosa diversa dal volume servito. `null` se la spezzata
+   non ha nemmeno un segmento.
+
+   `spaziaturaTipica(fori, ripiego)` — la mediana delle distanze al foro più
+   vicino: con meno di due fori risponde il `ripiego`, che la pagina calcola
+   da progetto (`max(S, B)`) e passa — così questa funzione non legge lo
+   stato. Decide il raggio con cui si cercano i fori ADIACENTI e la larghezza
+   del campo dei tempi.
+
+   `tempoInPunto(px, py, fori, h2)` — il tempo di sparo in un punto della
+   pianta ricostruito DAI `tDet` dei fori vicini: minimi quadrati mobili di un
+   piano t = a + b·dx + c·dy con pesi gaussiani (`h2` è il quadrato della
+   larghezza), regolarizzato su b e c perché regga anche una fila sola.
+   Risponde `{t, dmin}`: `t` null se nessun foro pesa, e `dmin` è la distanza
+   dal foro più vicino con cui chi disegna decide dove NON estrapolare.
+
+   `passoIsocrone(passoScelto, ultimaDetonazione)` — il passo in ms fra due
+   curve: quello scelto a schermo se c'è, se no il primo della scala
+   `ISO_PASSI` che dà al massimo dieci curve sull'ultima detonazione (sei-
+   dieci curve si leggono senza affollare). `isoPasso` resta come legame. */
+export const ISO_PASSI=[1,2,5,10,20,25,50,100,200,250,500,1000];
+export function quotaCresta(profilo, x){
+  const pr = profilo;
+  if(!pr || pr.length<1) return 0;
+  let z;
+  if(x<=pr[0].x) z = pr[0].z;
+  else if(x>=pr[pr.length-1].x) z = pr[pr.length-1].z;
+  else { z = pr[pr.length-1].z; for(let i=1;i<pr.length;i++){ if(x<=pr[i].x){ const a=pr[i-1], b=pr[i]; const t=(x-a.x)/((b.x-a.x)||1); z = a.z+(b.z-a.z)*t; break; } } }
+  return Math.max(-6, Math.min(10, z));   // clamp di sicurezza
+}
+export function distanzaDaSpezzata(px,py,pts){
+  let best=Infinity;
+  for(let i=0;i<pts.length-1;i++){
+    const ax=pts[i][0], ay=pts[i][1], bx=pts[i+1][0], by=pts[i+1][1];
+    const vx=bx-ax, vy=by-ay, L2=vx*vx+vy*vy;
+    let t = L2>1e-9 ? ((px-ax)*vx+(py-ay)*vy)/L2 : 0;
+    t=Math.max(0,Math.min(1,t));
+    const dx=px-(ax+t*vx), dy=py-(ay+t*vy), d=Math.hypot(dx,dy);
+    if(d<best) best=d;
+  }
+  return isFinite(best)?best:null;
+}
+export function spaziaturaTipica(H, ripiego){
+  if(!H||H.length<2) return ripiego;
+  const dd=[];
+  for(let i=0;i<H.length;i++){ let m=Infinity;
+    for(let j=0;j<H.length;j++){ if(j===i) continue; const d=Math.hypot(H[j].mx-H[i].mx,H[j].my-H[i].my); if(d<m)m=d; }
+    if(isFinite(m)) dd.push(m); }
+  dd.sort((a,b)=>a-b);
+  return dd.length? dd[Math.floor(dd.length/2)] : ripiego;
+}
+export function tempoInPunto(px,py,H,h2){
+  let W=0,Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0,St=0,Stx=0,Sty=0,dmin=Infinity;
+  for(let i=0;i<H.length;i++){
+    const dx=H[i].mx-px, dy=H[i].my-py, d2=dx*dx+dy*dy;
+    if(d2<dmin) dmin=d2;
+    if(d2>9*h2) continue;                                    // peso trascurabile: si salta
+    const w=Math.exp(-d2/h2), t=H[i].tDet||0;
+    W+=w; Sx+=w*dx; Sy+=w*dy; Sxx+=w*dx*dx; Sxy+=w*dx*dy; Syy+=w*dy*dy;
+    St+=w*t; Stx+=w*dx*t; Sty+=w*dy*t;
+  }
+  const dm=Math.sqrt(dmin);
+  if(W<=0) return {t:null, dmin:dm};
+  const lam=1e-3*W*h2;                                       // regolarizzazione su b,c: regge i fori allineati
+  const a11=W,a12=Sx,a13=Sy, a22=Sxx+lam,a23=Sxy, a33=Syy+lam;
+  const det=a11*(a22*a33-a23*a23) - a12*(a12*a33-a23*a13) + a13*(a12*a23-a22*a13);
+  if(!isFinite(det) || Math.abs(det)<1e-12) return {t:St/W, dmin:dm};
+  const d0=St*(a22*a33-a23*a23) - a12*(Stx*a33-a23*Sty) + a13*(Stx*a23-a22*Sty);
+  const t=d0/det;
+  return {t:isFinite(t)?t:St/W, dmin:dm};
+}
+export function passoIsocrone(passoScelto, ultimaDetonazione){
+  if(passoScelto>0) return passoScelto;
+  const T=Math.max(1,ultimaDetonazione||0);
+  for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
+  return ISO_PASSI[ISO_PASSI.length-1];
+}

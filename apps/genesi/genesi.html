@@ -1161,7 +1161,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
-         fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata } from './genesi-data.js';
+         fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata,
+         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1712,16 +1713,9 @@ let dynGroup = null;       // oggetti dinamici (pannelli, chunk, polvere, pile)
 let frontMesh = null;      // mesh fronte reale importata (fotogrammetria); null = fronte parametrico
 let frontMeshGroup = null;
 
-/* profilo cresta importato da Deepwork: offset z della faccia lungo x (0 = fronte dritto) */
-function crestZ(x){
-  const pr = P.profilo;
-  if(!pr || pr.length<1) return 0;
-  let z;
-  if(x<=pr[0].x) z = pr[0].z;
-  else if(x>=pr[pr.length-1].x) z = pr[pr.length-1].z;
-  else { z = pr[pr.length-1].z; for(let i=1;i<pr.length;i++){ if(x<=pr[i].x){ const a=pr[i-1], b=pr[i]; const t=(x-a.x)/((b.x-a.x)||1); z = a.z+(b.z-a.z)*t; break; } } }
-  return Math.max(-6, Math.min(10, z));   // clamp di sicurezza
-}
+/* profilo cresta importato da Deepwork: offset z della faccia lungo x (0 = fronte dritto).
+   ⛔ Il conto è `quotaCresta` in `./genesi-data.js` (blocco G24, 10/09): qui resta il legame con `P`. */
+function crestZ(x){ return quotaCresta(P.profilo, x); }
 
 /* ============ costruzione della simulazione (deterministica) ============ */
 function buildSim(){
@@ -5406,19 +5400,8 @@ function _fileDiFori(H){
      che decide il consumo specifico;
    · il burden vero è invece la distanza PERPENDICOLARE alla faccia libera, che
      su un fronte storto si accorcia dove la roccia sporge (è lì che nascono le
-     proiezioni) anche se il foro è stato messo alla distanza di progetto. */
-function _distSpezzata(px,py,pts){
-  let best=Infinity;
-  for(let i=0;i<pts.length-1;i++){
-    const ax=pts[i][0], ay=pts[i][1], bx=pts[i+1][0], by=pts[i+1][1];
-    const vx=bx-ax, vy=by-ay, L2=vx*vx+vy*vy;
-    let t = L2>1e-9 ? ((px-ax)*vx+(py-ay)*vy)/L2 : 0;
-    t=Math.max(0,Math.min(1,t));
-    const dx=px-(ax+t*vx), dy=py-(ay+t*vy), d=Math.hypot(dx,dy);
-    if(d<best) best=d;
-  }
-  return isFinite(best)?best:null;
-}
+     proiezioni) anche se il foro è stato messo alla distanza di progetto.
+   ⛔ È `distanzaDaSpezzata` in `./genesi-data.js` (blocco G24, 10/09): nessuna variabile della pagina. */
 function computeEnergia2D(){
   const H=D2.holes; if(!H||!H.length) return;
   const file=_fileDiFori(H), Hb=Math.max(0.5,D2.prof||10), Snom=Math.max(0.5,D2.S||3.5);
@@ -5442,7 +5425,7 @@ function computeEnergia2D(){
       const py=h.my+interpFronte(h.mx);
       const yPrec = r>0 ? file[r-1].my : 0;
       const b=Math.max(.2, h.my-yPrec);                      // la striscia di roccia che gli tocca: questo fa il volume
-      const dPerp = (davanti.length>1) ? _distSpezzata(h.mx,py,davanti) : null;
+      const dPerp = (davanti.length>1) ? distanzaDaSpezzata(h.mx,py,davanti) : null;
       h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null; // quanto ha davvero davanti, misurato in perpendicolare
       const s=Math.max(.2, sx+dx), vol=b*s*Hb;
       h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
@@ -5533,7 +5516,7 @@ function simulaPerforazione(N){
         : faccia;
       if(davanti.length<2) continue;
       for(const i of file[r].holes){
-        const d=_distSpezzata(p[i].mx, p[i].my+interpFronte(p[i].mx), davanti);
+        const d=distanzaDaSpezzata(p[i].mx, p[i].my+interpFronte(p[i].mx), davanti);
         if(d==null) continue;
         if(d<mn) mn=d; som+=d; n++;
       }
@@ -5608,42 +5591,11 @@ const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in
    distanza (minimi quadrati mobili). La sequenza di Genesi e lineare a tratti, quindi
    il piano la riproduce fedelmente; il termine di regolarizzazione fa reggere anche
    il caso di una fila sola, dove il piano degenera in una retta. */
-function _spazTipico(H){
-  if(!H||H.length<2) return Math.max(D2.S||3.5, D2.B||3);
-  const dd=[];
-  for(let i=0;i<H.length;i++){ let m=Infinity;
-    for(let j=0;j<H.length;j++){ if(j===i) continue; const d=Math.hypot(H[j].mx-H[i].mx,H[j].my-H[i].my); if(d<m)m=d; }
-    if(isFinite(m)) dd.push(m); }
-  dd.sort((a,b)=>a-b);
-  return dd.length? dd[Math.floor(dd.length/2)] : Math.max(D2.S||3.5, D2.B||3);
-}
-function _tempoInPunto(px,py,H,h2){
-  let W=0,Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0,St=0,Stx=0,Sty=0,dmin=Infinity;
-  for(let i=0;i<H.length;i++){
-    const dx=H[i].mx-px, dy=H[i].my-py, d2=dx*dx+dy*dy;
-    if(d2<dmin) dmin=d2;
-    if(d2>9*h2) continue;                                    // peso trascurabile: si salta
-    const w=Math.exp(-d2/h2), t=H[i].tDet||0;
-    W+=w; Sx+=w*dx; Sy+=w*dy; Sxx+=w*dx*dx; Sxy+=w*dx*dy; Syy+=w*dy*dy;
-    St+=w*t; Stx+=w*dx*t; Sty+=w*dy*t;
-  }
-  const dm=Math.sqrt(dmin);
-  if(W<=0) return {t:null, dmin:dm};
-  const lam=1e-3*W*h2;                                       // regolarizzazione su b,c: regge i fori allineati
-  const a11=W,a12=Sx,a13=Sy, a22=Sxx+lam,a23=Sxy, a33=Syy+lam;
-  const det=a11*(a22*a33-a23*a23) - a12*(a12*a33-a23*a13) + a13*(a12*a23-a22*a13);
-  if(!isFinite(det) || Math.abs(det)<1e-12) return {t:St/W, dmin:dm};
-  const d0=St*(a22*a33-a23*a23) - a12*(Stx*a33-a23*Sty) + a13*(Stx*a23-a22*Sty);
-  const t=d0/det;
-  return {t:isFinite(t)?t:St/W, dmin:dm};
-}
-const ISO_PASSI=[1,2,5,10,20,25,50,100,200,250,500,1000];
-function isoPasso(){
-  if(D2.isoStep>0) return D2.isoStep;
-  const T=Math.max(1,D2.lastDet||0);
-  for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
-  return ISO_PASSI[ISO_PASSI.length-1];
-}
+/* ⛔ I CONTI NON SONO PIÙ QUI: `spaziaturaTipica`, `tempoInPunto` e `passoIsocrone` (con la scala
+   `ISO_PASSI`) stanno in `./genesi-data.js`, blocco G24 (10/09). Qui restano i due legami con lo
+   stato: il ripiego della spaziatura viene dal progetto, il passo dalla scelta a schermo. */
+function _spazTipico(H){ return spaziaturaTipica(H, Math.max(D2.S||3.5, D2.B||3)); }
+function isoPasso(){ return passoIsocrone(D2.isoStep, D2.lastDet); }
 /* ⛔ `isoColore` è salita in `genesi-data.js` (blocco G10) il 09/08. */
 function drawIsocrone2D(ctx,g){
   const H=D2.holes; if(!H||H.length<2) return null;
@@ -5661,7 +5613,7 @@ function drawIsocrone2D(ctx,g){
     for(let i=0;i<nx;i++){ const px=x0+i*gs;
       const mx=(px-g.startX)/g.scale, my=(py-g.faceY)/g.scale-interpFronte(mx);   // stessa deformazione con cui sono disegnati i fori
       if(my<-0.25){ val[j*nx+i]=NaN; continue; }             // davanti alla faccia libera non c'e roccia da temporizzare
-      const r=_tempoInPunto(mx,my,H,h2);
+      const r=tempoInPunto(mx,my,H,h2);
       val[j*nx+i]=(r.t==null||r.dmin>mask)?NaN:r.t;          // fuori dalla nuvola dei fori non si estrapola
     } }
   const segs=livelli.map(()=>[]);

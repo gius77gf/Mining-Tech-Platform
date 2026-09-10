@@ -665,6 +665,27 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **SESTA FETTA DI B3 — LA GEOMETRIA DELLA PIANTA ESCE DA GENESI
+  (10/09):** `quotaCresta`, `distanzaDaSpezzata`, `spaziaturaTipica`,
+  `tempoInPunto`, `passoIsocrone` e la scala `ISO_PASSI` in `genesi-data.js`
+  (blocco G24) — la cresta importata interpolata col clamp −6/+10, il BURDEN
+  VERO (la perpendicolare alla faccia libera, che su un fronte storto si
+  accorcia dove nascono le proiezioni), la mediana delle distanze al foro
+  più vicino, il campo dei tempi delle isocrone (minimi quadrati mobili di un
+  piano sui tDet dei fori vicini, regolarizzato) e il passo delle curve.
+  Tutte e cinque entrate identiche: vecchie funzioni estratte da HEAD
+  accanto alle nuove su 20.000 casi ciascuna → 0 divergenze. Nella pagina
+  restano tre legami (`crestZ` con `P.profilo`, `_spazTipico` col ripiego di
+  progetto `max(S, B)`, `isoPasso` con la scelta a schermo); il burden e il
+  campo dei tempi si chiamano diretti. ⚠️ Il primo confronto dava 12.036 e
+  17.472 divergenze: era lo script che passava punti casuali DIVERSI alla
+  vecchia e alla nuova — il righello, non il prodotto; rifatto con gli stessi
+  ingressi, zero. ⚠️ E la seconda: un commento di legame scritto senza `/*`
+  ha rotto la sintassi della pagina, presa da `sintassi-pagine` prima del
+  commit. Prove: run-kpi +6 (2829), copertura genesi-data 88 → **94**,
+  censimento 167 → **165** funzioni nella pagina (56 e 64 invariati: i tre
+  legami leggono ancora una variabile, e le due dirette non erano nella
+  lista «una o due»).
 - [x] **QUINTA FETTA DI B3 — LA FIRMA DEL FORO SINGOLO E LA SOMMA RITARDATA
   ESCONO DA GENESI (10/09):** `ondaDaCsv`, `tempiDetonazione` e
   `sommaRitardata` in `genesi-data.js` (blocco G23) — il PPV composito
@@ -3118,8 +3139,8 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, quinta fetta
-      (G23): **167** nella pagina, **56** a una o due variabili, **64** «il
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, sesta fetta
+      (G24): **165** nella pagina, **56** a una o due variabili, **64** «il
       numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
@@ -7505,8 +7526,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.304 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2823, `run-stile` 328,
+  **3.310 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2829, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
