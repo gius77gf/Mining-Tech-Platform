@@ -76,7 +76,7 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
@@ -3439,6 +3439,21 @@ export async function contiData() {
       // totale a zero, che qui sarebbe la bugia peggiore: darebbe il via libera
       // a scrivere il doppione.
       let idFlotta;                      // undefined = mai provato, null = non c'è
+      /* Gli ORDINI DI LAVORO di Flotta (06/09), per la tendina del registro
+         costi: stessa istanza pigra, `null` se Flotta non risponde — e `null`
+         resta `null`, la tendina lo dice. La forma la decide
+         `ordiniFlottaPerConti` di shared/. */
+      api.ordiniFlotta = async () => {
+        if (idFlotta === undefined) {
+          try { idFlotta = await DeepworkID.init({ appId: "flotta" }); }
+          catch (e) { idFlotta = null; }
+        }
+        if (!idFlotta) return null;
+        try {
+          return ordiniFlottaPerConti((await getDocs(idFlotta.orgCollection("manutenzioni")))
+            .docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) { return null; }
+      };
       api.costiFlotta = async () => {
         if (idFlotta === undefined) {
           try { idFlotta = await DeepworkID.init({ appId: "flotta" }); }
@@ -3484,6 +3499,7 @@ export async function contiData() {
       // e i costi dei mezzi non arrivano da Flotta: sono finti, ma coerenti con
       // i costi d'esempio qui sopra (vedi DEMO.costiFlotta)
       costiFlotta: async () => mem.costiFlotta || [],
+      ordiniFlotta: async () => mem.ordiniFlotta || [],
       rapportiniCampo: async () => mem.rapportiniCampo || [],
       logout: async () => {},
       aggiungi: async (n, d) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[n] = mem[n] || []).push({ id, ...d }); return { id }; },

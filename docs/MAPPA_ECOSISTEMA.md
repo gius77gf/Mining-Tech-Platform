@@ -155,6 +155,20 @@ contano e si dicono (`nonClassificate`), non spariscono.
 
     grep -c "confrontoCostiMezzi" apps/flotta/flotta-data.js apps/flotta/index.html → 1 · 3
 
+✅ **E DAL 06/09 SULLE STESSE DUE DIREZIONI PASSA UNA SECONDA COSA: LA FATTURA
+DELL'OFFICINA COLLEGATA ALL'ORDINE DI LAVORO.** Una spesa in Conti porta
+`ordineFlotta: {id, titolo, mezzo}` (la tendina del registro costi legge gli
+ordini dall'app Flotta, collezione `manutenzioni`, con `ordiniFlottaPerConti`);
+Flotta, che le spese di Conti le leggeva già per non contare due volte, su ogni
+ordine aperto dice quante lo citano, per quanto, e se il conto dell'ordine
+torna (`costiDiOrdine` + `confrontoOrdineConti`, in `shared/dw-ponti.js`,
+ri-esportate da tutt'e due con identità provata). Non è una direzione nuova —
+il conto qui sotto resta **16** — è un secondo oggetto sulle direzioni
+Flotta↔Conti già aperte: il riferimento, non una copia del documento.
+⚠️ E `CC` in Flotta ha TRE valori — `undefined` = non ancora chiesto, `null` =
+Conti non ha risposto, un elenco = la risposta — e il banco ha preso alla prima
+passata la pagina che leggeva `undefined` come «non raggiungibile».
+
 ### 3b. `scadenze` — Terra, Flotta **e** Scudo
 Tre app tengono un proprio scadenzario, ognuna col suo stato. Chi dirige la
 cava non ha un posto solo dove vedere *che cosa scade questo mese*.

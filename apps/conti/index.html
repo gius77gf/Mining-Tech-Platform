@@ -1458,6 +1458,14 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input" id="co-nota" placeholder="es. gasolio pala, fattura 214" autocomplete="off">
       <span class="err-msg" id="err-co-nota"></span>
     </div>
+    <!-- La fattura dell'officina si COLLEGA all'ordine di lavoro di Flotta
+         (06/09): la tendina legge gli ordini dall'app Flotta della stessa
+         organizzazione; se Flotta non risponde lo dice, non resta vuota. -->
+    <div class="fld w2" id="fld-co-odl">
+      <label for="co-odl">Ordine di lavoro di Flotta (facoltativo)</label>
+      <select class="dw-input" id="co-odl"><option value="">— nessun ordine collegato —</option></select>
+      <span class="form-hint" id="co-odl-hint">Se questa spesa è la fattura di un lavoro fatto su un mezzo, collegala all'ordine: Flotta la vede accanto al conto dell'ordine.</span>
+    </div>
     <button class="dw-btn" id="btn-cos">Registra</button>
   </div>
   <div id="co-avviso"></div>
@@ -1978,6 +1986,7 @@ label.item:has(.dw-chk:checked){
     csvSituazioneFatture,
     CAUSALI_TRASPORTO, causaleTrasporto, TRASPORTO_A_CURA, trasportoACura, mancanzeDdt,
     VOCI_COSTO, voceCosto, gruppoDiVoce, riepilogoCosti, costoPerMetroCubo,
+    riferimentoOrdineFlotta, etichettaOrdineFlotta,
     volumeDaTerra, costiFuoriDaiRilievi,
     statoMese, margineMese, perchePeriodoSenzaCosti,
     STATI_PREVENTIVO, statoPreventivoLabel, statoPreventivo, ordineConfermato,
@@ -4965,6 +4974,22 @@ label.item:has(.dw-chk:checked){
     try { CFL = db.costiFlotta ? await db.costiFlotta() : null; } catch (e) { CFL = null; }
     return CFL;
   }
+  /* Gli ordini di lavoro di Flotta per la tendina del registro costi (06/09):
+     letti una volta, come i costi. `null` = Flotta non ha risposto, e la
+     tendina lo DICE con la sua unica voce — non resta muta. */
+  let ODL = null, odlLetti = false;
+  async function caricaOrdiniFlotta() {
+    if (!odlLetti) { odlLetti = true; try { ODL = db.ordiniFlotta ? await db.ordiniFlotta() : null; } catch (e) { ODL = null; } }
+    const sel = $("co-odl"); if (!sel) return ODL;
+    const val = sel.value;
+    sel.innerHTML = ODL === null
+      ? '<option value="">— Flotta non raggiungibile: nessun ordine da collegare —</option>'
+      : '<option value="">— nessun ordine collegato —</option>'
+        + ODL.map(o => `<option value="${esc(o.id)}">${esc(etichettaOrdineFlotta(o))}</option>`).join("");
+    sel.disabled = ODL === null;
+    if ([...sel.options].some(o => o.value === val)) sel.value = val;
+    return ODL;
+  }
   async function caricaRapportiniCampo() {
     if (rapcLetti) return RAPC;
     rapcLetti = true;
@@ -5043,7 +5068,8 @@ label.item:has(.dw-chk:checked){
     const v = voceCosto(c.voce);
     const imp = numeroDichiarato(c.importo);
     const importoScritto = imp == null ? "—" : eur(imp);
-    const meta = [fuoriPeriodo ? "senza data" : fmtD(c.data), c.nota ? esc(c.nota) : ""]
+    const odl = riferimentoOrdineFlotta(c);
+    const meta = [fuoriPeriodo ? "senza data" : fmtD(c.data), c.nota ? esc(c.nota) : "", odl ? "ordine: " + esc(etichettaOrdineFlotta(odl)) : ""]
       .filter(Boolean).join(" · ");
     return `<div class="item ${nc || fuoriPeriodo || imp == null || imp <= 0 ? "st-warn" : "st-accent"}">
       <span class="avatar">${IC[ICONA_GRUPPO[g]] || IC.euro}</span>
@@ -5052,6 +5078,7 @@ label.item:has(.dw-chk:checked){
       <div class="amt"><div class="amt-n">${importoScritto}</div>
         <div class="amt-s">${esc(etichettaGruppo(g))}</div></div>
       ${v && v.daMezzo ? `<span class="badge">anche in Flotta</span>` : ""}
+      ${odl ? `<span class="badge accent" title="Collegata all'ordine di lavoro ${esc(etichettaOrdineFlotta(odl))}">ordine di lavoro</span>` : ""}
       ${nc ? `<span class="badge warn">non classificata</span>` : ""}
       ${fuoriPeriodo ? `<span class="badge warn">senza data</span>` : ""}
       ${imp == null ? `<span class="badge warn">senza importo</span>`
@@ -5354,6 +5381,7 @@ label.item:has(.dw-chk:checked){
       };
       $("cos-gruppi").innerHTML += nota(CFL);
       if (!cflLetti) caricaCostiFlotta().then(() => renderCosti()).catch(() => renderCosti());
+      if (!odlLetti) caricaOrdiniFlotta().catch(() => {});   // la tendina degli ordini di Flotta, una volta
     }
 
     if (G() && gruppi.length >= 2) {
@@ -6744,8 +6772,14 @@ label.item:has(.dw-chk:checked){
        scattare mai perché nessuno le dava il dato. Una funzione che non guarda
        niente è la stessa cosa di un controllo che non guarda niente, in un
        altro vestito. */
-    await db.aggiungi("costi", { data, voce, importo: round2(ri.valore), nota, registratoIl: istanteLocale() });
-    esito("cos-esito", "Costo registrato: " + leggiVoce(voce) + ", " + eur(ri.valore) + " del " + fmtD(data) + ".", "success");
+    /* il riferimento all'ordine di Flotta, se scelto: id, titolo e mezzo
+       come li ha dati la tendina — un riferimento, non una copia */
+    const odlSel = $("co-odl") && $("co-odl").value;
+    const odl = odlSel && ODL ? ODL.find(o => o.id === odlSel) : null;
+    const rec = { data, voce, importo: round2(ri.valore), nota, registratoIl: istanteLocale() };
+    if (odl) rec.ordineFlotta = { id: odl.id, titolo: odl.titolo, mezzo: odl.mezzo };
+    await db.aggiungi("costi", rec);
+    esito("cos-esito", "Costo registrato: " + leggiVoce(voce) + ", " + eur(ri.valore) + " del " + fmtD(data) + (odl ? ", collegato all'ordine «" + etichettaOrdineFlotta(odl) + "»" : "") + ".", "success");
     pulisciCos(); $("co-imp").focus(); await refresh();
   };
   // avviso vivo sotto il form: la voce scelta è una di quelle che Flotta

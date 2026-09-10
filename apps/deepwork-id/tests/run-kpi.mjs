@@ -39514,5 +39514,34 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine ponte Conti → Flotta (06/09) ===== */
 
+/* ===== PONTE CONTI → FLOTTA · LE DUE PAGINE (06/09, seconda metà) =====
+   Quello che le pagine devono fare e che il modulo non può provare da solo:
+   la tendina, il riferimento scritto al salvataggio, la riga di Flotta che
+   legge `CC` nei suoi TRE valori. Le prove sono sul sorgente; il banco
+   `browser/ponte-conti-flotta-odl.mjs` preme davvero. ⚠️ SINCRONE. */
+{
+  const { readFileSync: rfP } = await import("node:fs");
+  const conti = rfP(join(HERE, "../../conti/index.html"), "utf8"), flotta = rfP(join(HERE, "../../flotta/index.html"), "utf8");
+  test("⛔ Conti: la tendina legge gli ordini da Flotta e dice quando Flotta non risponde", () => {
+    ok(/<select class="dw-input" id="co-odl">/.test(conti), "la tendina c'è");
+    ok(/Flotta non raggiungibile: nessun ordine da collegare/.test(conti), "null = lo dice, non resta muta");
+    ok(/sel\.disabled = ODL === null;/.test(conti), "e si disabilita, così non si sceglie il vuoto");
+    ok(/if \(odl\) rec\.ordineFlotta = \{ id: odl\.id, titolo: odl\.titolo, mezzo: odl\.mezzo \};/.test(conti), "al salvataggio il riferimento: id, titolo, mezzo — non una copia");
+    ok(/const odl = riferimentoOrdineFlotta\(c\);/.test(conti) && /ordine di lavoro<\/span>/.test(conti), "la riga lo legge con la funzione di shared e mostra la pastiglia");
+  });
+  test("⛔ Conti: gli ordini arrivano dall'app Flotta con la forma decisa in shared", () => {
+    const md = rfP(join(HERE, "../../conti/conti-data.js"), "utf8");
+    ok(/api\.ordiniFlotta = async \(\) => \{/.test(md) && /orgCollection\("manutenzioni"\)/.test(md) && /ordiniFlottaPerConti\(/.test(md), "istanza pigra sull'app flotta, collezione manutenzioni, forma di shared");
+    ok(/ordiniFlotta: async \(\) => mem\.ordiniFlotta \|\| \[\],/.test(md), "e la dimostrazione ha la sua strada");
+  });
+  test("⛔ Flotta: la riga «In Conti» distingue non chiesto, non risposto e risposto", () => {
+    ok(/CC === undefined \? \{ stato: "in-lettura"/.test(flotta), "undefined = in lettura, non «non raggiungibile»");
+    ok(/if \(!ccChiesto\) caricaCostiConti\(\)\.then\(\(\) => \{ if \(odlId === n\.id\) disegnaOrdine\(\); \}\)/.test(flotta), "e si chiede, ridisegnando l'ordine ancora aperto");
+    ok(/: confrontoOrdineConti\(q\.totale, costiDiOrdine\(n\.id, CC\)\);/.test(flotta), "il verdetto lo dà shared");
+    ok(/data-stato-conti/.test(flotta) && /<div id="odl-conti" class="note"><\/div>/.test(flotta), "la riga esiste e dichiara lo stato");
+  });
+}
+/* ===== fine ponte Conti → Flotta, pagine (06/09) ===== */
+
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);

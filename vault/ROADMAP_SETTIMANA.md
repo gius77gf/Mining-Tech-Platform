@@ -665,6 +665,23 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL PONTE CONTI → FLOTTA, SECONDA METÀ: LE DUE PAGINE (06/09, mattina):**
+  in Conti la tendina «Ordine di lavoro di Flotta (facoltativo)» nel registro
+  costi (`db.ordiniFlotta`: dal vivo l'app Flotta, collezione `manutenzioni`,
+  forma di `ordiniFlottaPerConti`; `null` = «Flotta non raggiungibile» detto
+  nella tendina, disabilitata), il riferimento `ordineFlotta` scritto al
+  salvataggio e la pastiglia «ordine di lavoro» con l'ordine nella riga; in
+  Flotta la riga «In Conti» sull'ordine aperto, col verdetto di
+  `confrontoOrdineConti` e lo stato dichiarato (`data-stato-conti`). ⚠️ **Il
+  banco ha preso un difetto vero alla prima passata**: `CC` in Flotta ha TRE
+  valori (`undefined` non chiesto, `null` non risposto, elenco) e aprendo
+  l'ordine prima della schermata Costi la pagina leggeva `undefined` come «non
+  raggiungibile» — adesso chiede, scrive «in lettura» e ridisegna. Prove:
+  run-kpi +3 (2792); banco `ponte-conti-flotta-odl.mjs` 34 ok a 390 e 320 su
+  Conti E Flotta, controprova 14/34 su 3/3 per file (263 esecuzioni, 111
+  file). Scatti guardati (il form di Conti, l'ordine di Flotta). Docs:
+  CONCORRENTI_FLOTTA da C'È A METÀ a C'È con la prova; MAPPA_ECOSISTEMA §3a
+  (seconda cosa sulle stesse direzioni, il conto resta 16).
 - [x] **IL PONTE CONTI → FLOTTA COME REGOLA, PRIMA METÀ (06/09, mattina) — «Link
   fatture a ordini di lavoro» della B4 di Flotta:** la fattura dell'officina
   esterna è una spesa in Conti che porta `ordineFlotta: {id, titolo, mezzo}`;
@@ -7143,8 +7160,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.270 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2789, `run-stile` 328,
+  **3.273 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2792, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7154,8 +7171,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **261 esecuzioni** che
-  aprono le pagine in un browser vero, da **110** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **263 esecuzioni** che
+  aprono le pagine in un browser vero, da **111** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

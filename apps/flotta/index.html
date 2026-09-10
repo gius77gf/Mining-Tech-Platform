@@ -1266,6 +1266,7 @@ body.dw b.bad{color:var(--ink-dg)}
   <div class="sec">A che punto è</div>
   <div id="odl-stati" class="chgs"></div>
   <div id="odl-stato-nota" class="note norma"></div>
+  <div id="odl-conti" class="note"></div>
 
   <div class="sec">Chi ci ha lavorato<span class="cnt" id="odl-mano-cnt">—</span></div>
   <div id="odl-mano"></div>
@@ -1366,6 +1367,7 @@ body.dw b.bad{color:var(--ink-dg)}
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
            numeroDichiarato,
            confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra, budgetVsSpesa, descriviBudget, csvBudget, ETICHETTA_STATO_BUDGET,
+           costiDiOrdine, confrontoOrdineConti,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
            validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
@@ -3569,6 +3571,23 @@ body.dw b.bad{color:var(--ink-dg)}
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
     $("odl-stato-nota").innerHTML = esc(so.nota)
       + (so.chiave === "attesa-ricambi" ? " I pezzi che mancano si ordinano dal <b>magazzino ricambi</b>, in Officina." : "");
+    /* LA FATTURA DELL'OFFICINA, VISTA DA QUI (06/09): le spese di Conti che
+       citano questo ordine (`CC` è già letto per non contare due volte), col
+       confronto contro il conto dell'ordine. `CC` a null = Conti non
+       raggiungibile, e la frase lo dice: non «nessuna fattura». Il verdetto lo
+       dà `confrontoOrdineConti` di shared/, la pagina lo scrive. */
+    /* ⛔ `CC` ha TRE valori: `undefined` = non ancora chiesto, `null` = Conti
+       non ha risposto, un elenco = la risposta. Il banco l'ha preso alla prima
+       passata: aprendo l'ordine prima della schermata Costi, `undefined`
+       finiva nel confronto come «non raggiungibile» — falso, non era stato
+       chiesto. Qui si chiede, si scrive «in lettura», e si ridisegna. */
+    if (!ccChiesto) caricaCostiConti().then(() => { if (odlId === n.id) disegnaOrdine(); }).catch(() => {});
+    { const cf = CC === undefined ? { stato: "in-lettura", testo: "le spese di Conti sono in lettura: questa riga si aggiorna da sola." }
+        : confrontoOrdineConti(q.totale, costiDiOrdine(n.id, CC));
+      const cls = cf.stato === "uguale" ? "recap" : (cf.stato === "nessuna" || cf.stato === "non-leggibile" || cf.stato === "in-lettura") ? "" : "avviso";
+      $("odl-conti").className = "note " + cls;
+      $("odl-conti").setAttribute("data-stato-conti", cf.stato);
+      $("odl-conti").innerHTML = "<b>In Conti</b> · " + esc(cf.testo); }
 
     $("odl-mano-cnt").textContent = o.manodopera.length;
     $("odl-mano").innerHTML = q.manodopera.righe.map((r, i) =>
