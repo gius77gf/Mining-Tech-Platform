@@ -4,7 +4,10 @@
 // demo in memoria altrimenti (tour/mockup).
 // Collezioni (sotto organizations/{org}/apps/terra/):
 //   fronti/{id}:  { nome, banco, quota, dettaglio,
-//                   avanzamento (0-100), stato: attivo|sospeso }
+//                   avanzamento (0-100), stato: attivo|sospeso,
+//                   altezzaBancoM?, pendenzaGradi? (la geometria del banco
+//                   misurata dal rilievo, 11/09: si confronta con il massimo
+//                   che il progetto dichiara sul lotto o sull'atto) }
 //   rilievi/{id}: { titolo, data (ISO yyyy-mm-dd), tipo,
 //                   volumeM3|null, stato: elaborato|pianificato,
 //                   provenienza: scavo|cumulo (assente = scavo),
@@ -56,8 +59,11 @@ import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsist
 
 export const DEMO = {
   fronti: [
-    { id: "f1", nome: "Fronte Nord", banco: "banco 2", quota: 340, dettaglio: "Prossima volata 12:30", avanzamento: 72, stato: "attivo" },
-    { id: "f2", nome: "Fronte Est", banco: "banco 1", quota: 355, dettaglio: "Perforazione in corso · 14/22 fori", avanzamento: 41, stato: "attivo" },
+    /* la geometria del banco (11/09): f1 dentro il progetto, f2 al limite in
+       altezza e OLTRE in pendenza (78° su 75), f3 senza misure — i tre stati
+       che la scheda deve saper raccontare, tutti nella dimostrazione */
+    { id: "f1", nome: "Fronte Nord", banco: "banco 2", quota: 340, dettaglio: "Prossima volata 12:30", avanzamento: 72, stato: "attivo", altezzaBancoM: 14, pendenzaGradi: 70 },
+    { id: "f2", nome: "Fronte Est", banco: "banco 1", quota: 355, dettaglio: "Perforazione in corso · 14/22 fori", avanzamento: 41, stato: "attivo", altezzaBancoM: 15, pendenzaGradi: 78 },
     { id: "f3", nome: "Fronte Sud", banco: "banco 3", quota: 320, dettaglio: "Verifica stabilità scarpata", avanzamento: 18, stato: "sospeso" },
   ],
   // IL PIANO DI COLTIVAZIONE A LOTTI. I lotti d'esempio sono COERENTI coi
@@ -101,7 +107,7 @@ export const DEMO = {
     { id: "lo4", nome: "Lotto 4 — settore Nord", ordine: 4, superficieMq: 12000, volumeM3: 180000,
       stato: "aperto", apertoIl: "2024-05-02", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
-      frontiId: ["f1"], quotaFondoM: 335, nota: "" },
+      frontiId: ["f1"], quotaFondoM: 335, altezzaBancoMaxM: 16, nota: "" },
     { id: "lo5", nome: "Lotto 5 — settore Est", ordine: 5, superficieMq: 9500, volumeM3: 140000,
       stato: "aperto", apertoIl: "2025-09-08", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
@@ -144,6 +150,10 @@ export const DEMO = {
     { id: "a1", numeroAtto: "Atto n. 128 del 2021 (esempio)", ente: "Ente competente di esempio",
       dataRilascio: "2021-03-15", dataScadenza: "2031-03-14", superficieMq: 78000,
       volumeAutorizzatoM3: 1200000, quotaFondoM: 300,
+      /* la geometria massima dei banchi la dichiara l'utente dal progetto
+         (materia regionale e di progetto: nessun valore nostro); qui i numeri
+         d'esempio di un progetto qualunque */
+      altezzaBancoMaxM: 15, pendenzaMaxGradi: 75,
       /* ⛔ IL «GIÀ ESTRATTO» PORTA LA CAVA OLTRE LA SOGLIA DI GUARDIA, E NON È
          UN NUMERO SCELTO PER FARE COLORE. Con 340.000 la dimostrazione stava al
          36,8% del concesso, cioè in `ok`: misurato il 07/08 navigando tutte e
@@ -3473,7 +3483,8 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
     const lo = lottoDi(f.id);
     return { id: f.id, nome: String(f.nome || "Fronte senza nome"),
       lottoId: lo ? lo.id : null, lottoNome: lo ? String(lo.nome || "") : "",
-      ...conformitaQuota(f, lo, autorizzazione) };
+      ...conformitaQuota(f, lo, autorizzazione),
+      geometria: conformitaGeometria(f, lo, autorizzazione) };   // asse 4 (11/09)
   });
   const quanti = (s) => righe.filter((r) => r.stato === s).length;
   const misurate = righe.filter((r) => r.misurabile);
@@ -3510,6 +3521,26 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
   const oltrePrevisto = conPct.filter((v) => v.pct > 100);
   const fuoriSequenza = perLotto.filter((v) => v.stato === "previsto" && v.misuratoM3 > 0);
 
+  // ── asse 4: la geometria dei banchi (11/09) — stessa forma dell'asse 1 ──
+  const geo = righe.map((r) => ({ id: r.id, nome: r.nome, ...r.geometria }));
+  const geoMis = geo.filter((g) => g.misurabile);
+  const qg = (s) => geo.filter((g) => g.stato === s).length;
+  const massimiSuiLotti = LO.some((l) => misuraNota(l.altezzaBancoMaxM) != null || misuraNota(l.pendenzaMaxGradi) != null);
+  const massimiAtto = geometriaAmmessa(null, autorizzazione);
+  const percheGeo = geoMis.length ? ""
+    : !FR.length
+      ? "Nessun fronte registrato: non c'è ancora nessun banco di cui confrontare la geometria."
+      : (!massimiAtto.altezza.noto && !massimiAtto.pendenza.noto && !massimiSuiLotti)
+        ? "Il progetto non dichiara né l'altezza massima del banco né la pendenza massima della scarpata, né sull'atto né sui lotti: scrivile nella scheda dell'autorizzazione e il confronto comincia."
+        : "Nessuno dei fronti registrati dichiara l'altezza del banco o la pendenza della scarpata: senza quei numeri non c'è niente da confrontare con il progetto.";
+  // il peggiore: fra gli assi misurati di tutti i fronti, il margine più negativo
+  let peggioreGeo = null;
+  for (const g of geoMis) for (const asse of ["altezza", "pendenza"]) {
+    const a = g[asse];
+    if (a.misurabile && a.margine < 0 && (!peggioreGeo || a.margine < peggioreGeo.margine))
+      peggioreGeo = { id: g.id, nome: g.nome, asse, margine: a.margine, misurato: a.misurato, ammesso: a.ammesso };
+  }
+
   return {
     misurabile: misurate.length > 0, perche,
     fondoAtto, fondiSuiLotti, fronti: righe,
@@ -3525,7 +3556,61 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       senzaConfronto: perLotto.length - conPct.length,
       oltrePrevisto, fuoriSequenza,
     },
+    geometria: {
+      misurabile: geoMis.length > 0, perche: percheGeo, fronti: geo,
+      oltre: qg("oltre"), alLimite: qg("al-limite"), dentro: qg("dentro"), nonMisurabili: qg("non-misurabile"),
+      peggiore: peggioreGeo,
+    },
   };
+}
+
+/* ── L'ASSE 4: LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO (11/09, dalla
+   ricerca a rotazione). Il piano di coltivazione disegna i banchi sulle
+   sezioni: un'altezza massima e una pendenza massima della scarpata. Sono
+   numeri DEL PROGETTO (materia regionale e di progetto: nessun valore nostro),
+   dichiarati dall'utente sull'atto o — se un settore ne ha di suoi — sul
+   lotto, con la stessa precedenza della quota di fondo; il fronte porta
+   l'altezza e la pendenza misurate dal rilievo. Il verdetto è LO STESSO della
+   quota (`statoConformitaQuota` sul margine ammesso − misurato): dentro /
+   al-limite / oltre / non-misurabile, e la mappa dei badge della pagina è
+   una sola. Un fronte è giudicato dal peggiore dei suoi due assi misurati; se
+   nessuno dei due è misurato, non è misurabile — e lo dice.
+   ⛔ Altezza e pendenza sono grandezze positive: uno 0 non è una misura
+   (`misuraNota`), com'è già per la quota di fondo. */
+function misuraNota(v) {
+  if (v == null || String(v).trim() === "") return null;
+  const n = +v;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+export function geometriaAmmessa(lotto, autorizzazione) {
+  const una = (campo) => {
+    const dalLotto = misuraNota((lotto || {})[campo]);
+    if (dalLotto != null) return { valore: dalLotto, origine: "lotto", noto: true };
+    const dallAtto = misuraNota((autorizzazione || {})[campo]);
+    if (dallAtto != null) return { valore: dallAtto, origine: "autorizzazione", noto: true };
+    return { valore: null, origine: null, noto: false };
+  };
+  return { altezza: una("altezzaBancoMaxM"), pendenza: una("pendenzaMaxGradi") };
+}
+export function conformitaGeometria(fronte, lotto, autorizzazione) {
+  const amm = geometriaAmmessa(lotto, autorizzazione);
+  const asse = (misurato, ammesso, cosa) => {
+    const m = misuraNota(misurato);
+    if (!ammesso.noto)
+      return { stato: "non-misurabile", misurabile: false, margine: null, misurato: m, ammesso: null, origine: null,
+        perche: "Il progetto non dichiara " + cosa + " massima: senza quel numero non si può dire se il fronte sta dentro." };
+    if (m == null)
+      return { stato: "non-misurabile", misurabile: false, margine: null, misurato: null, ammesso: ammesso.valore, origine: ammesso.origine,
+        perche: "Questo fronte non dichiara " + cosa + ": il confronto non è stato fatto." };
+    const margine = r2(ammesso.valore - m);
+    return { stato: statoConformitaQuota(margine), misurabile: true, margine, misurato: m, ammesso: ammesso.valore, origine: ammesso.origine, perche: "" };
+  };
+  const altezza = asse((fronte || {}).altezzaBancoM, amm.altezza, "l'altezza del banco");
+  const pendenza = asse((fronte || {}).pendenzaGradi, amm.pendenza, "la pendenza della scarpata");
+  const RANGO = { "oltre": 0, "al-limite": 1, "dentro": 2, "non-misurabile": 3 };
+  const misurati = [altezza, pendenza].filter((a) => a.misurabile);
+  const stato = misurati.length ? misurati.reduce((a, b) => (RANGO[b.stato] < RANGO[a.stato] ? b : a)).stato : "non-misurabile";
+  return { stato, misurabile: misurati.length > 0, altezza, pendenza, perche: misurati.length ? "" : altezza.perche };
 }
 
 // ══════════════════════════════════════════════════════════════════════

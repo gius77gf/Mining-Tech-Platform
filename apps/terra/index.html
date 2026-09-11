@@ -597,6 +597,13 @@ a.dw-btn{text-decoration:none}
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-fondo">Quota di fondo autorizzata (<span class="u">m s.l.m.</span>)</label>
         <input class="dw-input dec" id="aut-fondo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 300" title="La quota più bassa a cui il progetto di coltivazione permette di scendere, in metri sul livello del mare. Può essere negativa se la cava scende sotto il livello del mare. La virgola va benissimo: 299,50."></div>
     </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 170px;"><label class="fl" for="aut-altezza">Altezza massima del banco (<span class="u">m</span>)</label>
+        <input class="dw-input dec" id="aut-altezza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 15" title="L'altezza massima del banco che il progetto di coltivazione disegna sulle sezioni, in metri. La virgola va benissimo: 12,5."></div>
+      <div class="fld" style="flex:1 1 170px;"><label class="fl" for="aut-pendenza">Pendenza massima della scarpata (<span class="u">°</span>)</label>
+        <input class="dw-input dec" id="aut-pendenza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 75" title="L'inclinazione massima della scarpata di scavo che il progetto ammette, in gradi sull'orizzontale. La virgola va benissimo: 72,5."></div>
+    </div>
+    <div class="form-hint">La <b>geometria dei banchi</b> è il secondo numero che il progetto scrive sulle sezioni, e quello che l'ente e il geotecnico guardano dopo la quota: se scrivi altezza e pendenza massime, Terra le confronta con quelle misurate su ogni fronte. Anche qui un singolo lotto può averne di sue.</div>
     <div class="form-hint">La <b>quota di fondo</b> è il numero che il progetto di coltivazione scrive sui profili: fin dove si può scendere. Scrivila e Terra ti dice, fronte per fronte, quanti metri mancano — e se qualcuno l'ha già passata. Se un <b>singolo lotto</b> ha un fondo suo (un progetto quasi sempre scende per gradoni) lo scrivi sul lotto, nella scheda <b>Piano</b>, e lì vale quello.</div>
     <div class="frow">
       <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-pregresso">Già estratto prima di Terra (<span class="u">m³</span>)</label>
@@ -704,6 +711,10 @@ a.dw-btn{text-decoration:none}
            fuori perché «m» da solo non sembra un'unità. -->
       <div class="fld" style="flex:1 1 110px;"><label class="fl" for="fro-quota">Quota (<span class="u">m</span>)</label>
         <input class="dw-input dec" id="fro-quota" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 148" title="Quota del fronte in metri. La virgola va benissimo: 148,50."></div>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="fro-altezza">Altezza banco (<span class="u">m</span>)</label>
+        <input class="dw-input dec" id="fro-altezza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 14" title="L'altezza del banco misurata dal rilievo, in metri: si confronta con la massima del progetto. Vuoto = non misurata."></div>
+      <div class="fld" style="flex:1 1 120px;"><label class="fl" for="fro-pendenza">Pendenza (<span class="u">°</span>)</label>
+        <input class="dw-input dec" id="fro-pendenza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 70" title="L'inclinazione della scarpata misurata dal rilievo, in gradi sull'orizzontale: si confronta con la massima del progetto. Vuoto = non misurata."></div>
       <button class="dw-btn" id="btn-fro">Aggiungi</button>
     </div>
   </div>
@@ -713,7 +724,7 @@ a.dw-btn{text-decoration:none}
   </div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>nome; banco; quota; stato</b> — una riga per fronte.</div>
   <div class="note esito" id="fro-esito"></div>
-  <div class="note">Tocca un fronte per sospenderlo o riattivarlo; la matita ne corregge nome, banco e quota senza toccare rilievi e avanzamento.</div>
+  <div class="note">Tocca un fronte per sospenderlo o riattivarlo; la matita ne corregge nome, banco, quota e geometria del banco senza toccare rilievi e avanzamento.</div>
 </div>
 
 <div class="page" id="page-ril">
@@ -903,6 +914,12 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input dec" id="lot-m3" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 180000" title="Volume che il progetto prevede di cavare da questo lotto. La virgola va benissimo."></div>
       <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-fondo">Quota di fondo del lotto (<span class="u">m s.l.m.</span>)</label>
         <input class="dw-input dec" id="lot-fondo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="solo se diversa da quella dell'atto" title="Il fondo scavo che il progetto assegna a QUESTO settore, quando è diverso da quello generale. Lasciala vuota e vale la quota di fondo della scheda Titolo."></div>
+    </div>
+    <div class="frow">
+      <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-altezza">Altezza massima del banco nel lotto (<span class="u">m</span>)</label>
+        <input class="dw-input dec" id="lot-altezza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="solo se diversa da quella dell'atto" title="L'altezza massima del banco che il progetto assegna a QUESTO settore, quando è diversa da quella generale dell'atto."></div>
+      <div class="fld" style="flex:1 1 190px;"><label class="fl" for="lot-pendenza">Pendenza massima nel lotto (<span class="u">°</span>)</label>
+        <input class="dw-input dec" id="lot-pendenza" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="solo se diversa da quella dell'atto" title="La pendenza massima della scarpata che il progetto assegna a QUESTO settore, quando è diversa da quella generale dell'atto."></div>
     </div>
     <div class="form-hint">La <b>quota di fondo del lotto</b> si scrive solo se il progetto ne dà una diversa da quella generale — cosa normale, perché un progetto scende per gradoni e ogni settore ha il suo fondo. Quando c'è, per i fronti di questo lotto vale <b>questa</b>; il confronto dice sempre da quale delle due viene il numero.</div>
     <div class="fld">
@@ -1245,7 +1262,7 @@ a.dw-btn{text-decoration:none}
     editFro = null;
     $("btn-fro").textContent = "Aggiungi";
     $("fro-form-sec").textContent = "Nuovo fronte";
-    ["fro-nome","fro-banco","fro-quota"].forEach(i => { $(i).value = ""; err(i, false); });
+    ["fro-nome","fro-banco","fro-quota","fro-altezza","fro-pendenza"].forEach(i => { $(i).value = ""; err(i, false); });
   }
   document.querySelector(".nav") && document.querySelector(".nav").addEventListener("click", () => {
     if (editFro) { annullaEditFronte(); $("fro-esito").textContent = ""; }
@@ -1287,7 +1304,7 @@ a.dw-btn{text-decoration:none}
       <div class="avatar">${esc(sig(f.nome))}</div>
       <div class="info"><div class="name">${esc(f.nome)}${f.banco ? " — " + esc(f.banco) : ""}</div><div class="meta">${[f.quota == null || f.quota === "" ? "quota non dichiarata" : "Quota " + nD(f.quota) + " m", avFronte(f, "avanzamento"), v ? "estratti " + fmtM3(v) + " m³ (rilievi)" : "", f.dettaglio ? esc(f.dettaglio) : ""].filter(Boolean).join(" · ")}</div></div>
       <div class="acts"><span class="badge ${FB[f.stato][0]}">${FB[f.stato][1]}</span>
-      <button class="arr" type="button" title="Modifica nome, banco e quota" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
+      <button class="arr" type="button" title="Modifica nome, banco, quota e geometria del banco" aria-label="Modifica il fronte ${esc(f.nome)}" data-edit-fro="${f.id}">${A.mod}</button></div></div>`; }).join("")
       || vuoto(I.monte, "Nessun fronte registrato",
           "I fronti sono i posti dove si scava: ogni rilievo del drone e ogni volume estratto si attacca a uno di questi. Senza, i metri cubi non sanno a quale parte della cava appartengono.",
           `<button class="dw-btn secondary mini" data-vuoto-fai="fro-nome">Aggiungi il primo fronte</button>
@@ -2152,6 +2169,16 @@ a.dw-btn{text-decoration:none}
       ? `<div class="riga">${c.volume.senzaConfronto} ${c.volume.senzaConfronto === 1 ? "lotto non ha" : "lotti non hanno"} insieme un volume di progetto e un volume misurato: per ${c.volume.senzaConfronto === 1 ? "quello" : "quelli"} il confronto non è stato fatto — non vuol dire che ${c.volume.senzaConfronto === 1 ? "è" : "sono"} a posto.</div>`
       : "";
 
+    /* L'ASSE 4, la geometria dei banchi (11/09): una riga nel cartellone, con
+       le stesse tre facce degli altri assi — il peggiore quando c'è un oltre,
+       la ragione quando non si è misurato niente, il conto dei non
+       confrontati sempre. */
+    const cg = c.geometria || { misurabile: false, perche: "", oltre: 0, alLimite: 0, dentro: 0, nonMisurabili: 0, peggiore: null };
+    const geometria = !cg.misurabile
+      ? `<div class="riga">${I.allarme}<span><b>Geometria dei banchi: non confrontata.</b> ${esc(cg.perche)}</span></div>`
+      : (cg.oltre
+        ? `<div class="riga att">${I.allarme}<span><b>${cg.oltre} ${cg.oltre === 1 ? "fronte ha un banco fuori dal progetto" : "fronti hanno un banco fuori dal progetto"}</b>${cg.peggiore ? ": il peggiore è <b>" + esc(cg.peggiore.nome) + "</b>, " + (cg.peggiore.asse === "altezza" ? "alto " + nM(cg.peggiore.misurato) + " m su " + nM(cg.peggiore.ammesso) : "a " + nM(cg.peggiore.misurato) + "° su " + nM(cg.peggiore.ammesso)) + " ammessi (" + nM(-cg.peggiore.margine) + " oltre)" : ""}.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato." : " fronti non confrontati.") : ""}</span></div>`
+        : `<div class="riga${cg.alLimite ? " att" : ""}">${cg.alLimite ? I.allarme : ""}<span><b>Geometria dei banchi: ${cg.dentro + cg.alLimite} ${cg.dentro + cg.alLimite === 1 ? "fronte dentro il progetto" : "fronti dentro il progetto"}</b>${cg.alLimite ? ", " + cg.alLimite + (cg.alLimite === 1 ? " al limite" : " al limite") : ""}.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato: manca una misura o il massimo del progetto." : " fronti non confrontati: manca una misura o il massimo del progetto.") : ""}</span></div>`);
     if (!c.misurabile) {
       /* ⛔ Nessuna cifra, nessun verde, nessuna pastiglia di stato: qui la
          quota non è stata misurata da nessuno. C'è un trattino e la ragione —
@@ -2169,7 +2196,7 @@ a.dw-btn{text-decoration:none}
           <span class="vita-cifre">—</span><span class="vita-un">nessun confronto possibile</span>
         </div>
         <div class="riga">${esc(c.perche)}</div>
-        ${volume}${sequenza}${senza}
+        ${volume}${sequenza}${senza}${geometria}
       </div>`;
     }
     const oltre = c.oltre > 0;
@@ -2195,14 +2222,20 @@ a.dw-btn{text-decoration:none}
         : `<div class="riga">Il fronte più vicino al fondo è <b>${esc(rif.nome)}</b>: sta a ${nM(rif.quotaFronte)} m e il progetto lo ferma a ${nM(rif.fondoM)} m, quindi ${rif.margineM === 0 ? "<b>ci è arrivato</b>: da lì non si scende più" : `restano <b>${nM(rif.margineM)} m</b>`}. Il fondo viene ${rif.origineFondo === "lotto" ? "dal <b>lotto</b> a cui il fronte appartiene" : "dalla scheda dell'<b>autorizzazione</b>"}.</div>`}
       ${c.alLimite && !oltre ? `<div class="riga att">${I.allarme}<span><b>${c.alLimite} ${c.alLimite === 1 ? "fronte è arrivato" : "fronti sono arrivati"} esattamente al fondo autorizzato</b>: non è una violazione, ma da lì non si scende più senza una variante.</span></div>` : ""}
       ${c.nonMisurabili ? `<div class="riga att">${I.allarme}<span><b>${c.nonMisurabili} ${c.nonMisurabili === 1 ? "fronte non è stato confrontato" : "fronti non sono stati confrontati"}</b>: ${c.nonMisurabili === 1 ? "non dichiara" : "non dichiarano"} la quota raggiunta. Il conto qui sopra riguarda solo gli altri — ${c.nonMisurabili === 1 ? "quello" : "quelli"} non ${c.nonMisurabili === 1 ? "è" : "sono"} a posto, ${c.nonMisurabili === 1 ? "è" : "sono"} da misurare. ${c.nonMisurabili === 1 ? "Aprilo" : "Aprili"} nella scheda <b>Fronti</b> e ${c.nonMisurabili === 1 ? "scrivi la quota" : "scrivi le quote"}.</span></div>` : ""}
-      ${volume}${sequenza}${senza}
+      ${volume}${sequenza}${senza}${geometria}
     </div>`;
   }
 
   // La riga di un fronte nel confronto con la quota: quota raggiunta, fondo,
   // margine, e da quale delle due carte viene il fondo.
+  // il peggiore fra due stati della stessa scala (quota e geometria): la
+  // striscia della riga e l'ordine dell'elenco seguono LUI, così un fronte
+  // dentro in quota ma con la scarpata fuori progetto non si presenta verde
+  const ORD_CONF = { "oltre": 0, "al-limite": 1, "non-misurabile": 2, "dentro": 3 };
+  const peggioreConf = (a, b) => ((ORD_CONF[a] ?? 9) <= (ORD_CONF[b] ?? 9) ? a : b);
   function itemConformita(r) {
-    const sty = stileQuota(r.stato);
+    const sty = stileQuota(r.stato);                 // il badge della QUOTA dice della quota
+    const styRiga = stileQuota(peggioreConf(r.stato, (r.geometria || {}).stato || "non-misurabile"));   // la striscia, del peggiore
     const meta = [
       r.quotaFronte == null ? "quota non dichiarata" : "quota " + nM(r.quotaFronte) + " m",
       r.fondoM == null ? "fondo non dichiarato" : "fondo " + nM(r.fondoM) + " m",
@@ -2212,11 +2245,27 @@ a.dw-btn{text-decoration:none}
       r.origineFondo === "lotto" ? "fondo del lotto" : r.origineFondo === "autorizzazione" ? "fondo dell'atto" : "",
       r.lottoNome ? esc(r.lottoNome) : "fuori dai lotti",
     ].filter(Boolean).join(" · ");
-    return `<div class="item ${sty[0]}" style="cursor:default;">
-      <div class="avatar ico${sty[3] ? " " + sty[3] : ""}" aria-hidden="true">${I.monte}</div>
+    // la geometria del banco (11/09): una riga sua, con lo stesso vocabolario
+    // dei badge; «non misurata» resta grigia, non verde
+    const g = r.geometria || { stato: "non-misurabile", altezza: {}, pendenza: {} };
+    // i colori sono quelli della quota (una mappa, una regola); le PAROLE no:
+    // «oltre il fondo» parla di metri sotto una quota, un banco è «fuori
+    // progetto». Stesse quattro chiavi di `CQ`, cioè le risposte di
+    // `statoConformitaQuota`
+    const CG_TESTO = { "oltre": "banco fuori progetto", "al-limite": "banco al limite", "dentro": "banco dentro il progetto", "non-misurabile": "banco non misurabile" };
+    const gs = stileQuota(g.stato);
+    const conUn = (v, un) => nM(v) + (un === "°" ? "°" : " " + un);   // i gradi si attaccano al numero, i metri no
+    const asseTx = (a, un) => !a || !a.misurabile
+      ? (a && a.misurato != null ? conUn(a.misurato, un) + " (massimo non dichiarato)" : "non misurata")
+      : conUn(a.misurato, un) + " su " + conUn(a.ammesso, un) + (a.margine < 0 ? " — oltre di " + conUn(-a.margine, un) : a.margine === 0 ? " — al limite" : "");
+    const geoTx = "altezza " + asseTx(g.altezza, "m") + " · pendenza " + asseTx(g.pendenza, "°")
+      + (g.altezza && g.altezza.origine === "lotto" || g.pendenza && g.pendenza.origine === "lotto" ? " · massimi del lotto" : "");
+    return `<div class="item ${styRiga[0]}" style="cursor:default;">
+      <div class="avatar ico${styRiga[3] ? " " + styRiga[3] : ""}" aria-hidden="true">${I.monte}</div>
       <div class="info"><div class="name">${esc(r.nome)}</div><div class="meta">${meta}</div></div>
       <div class="acts"><span class="badge ${sty[1]}">${esc(sty[2])}</span></div>
-      ${r.perche ? `<div class="form-hint">${esc(r.perche)}</div>` : ""}</div>`;
+      ${r.perche ? `<div class="form-hint">${esc(r.perche)}</div>` : ""}
+      <div class="form-hint"><span class="badge ${gs[1]}">${esc(CG_TESTO[g.stato] || g.stato)}</span> ${esc(geoTx)}</div></div>`;
   }
 
   function renderConformita() {
@@ -2226,9 +2275,10 @@ a.dw-btn{text-decoration:none}
        per cui non c'è niente da confrontare sta già nel cartellone, e
        ripeterla in uno stato vuoto sarebbe dirla due volte. E i fronti si
        ordinano dal più critico: chi è oltre il fondo va letto per primo. */
-    const ORD = { "oltre": 0, "al-limite": 1, "non-misurabile": 2, "dentro": 3 };
+    const ORD = ORD_CONF;
+    const stCon = (x) => peggioreConf(x.stato, (x.geometria || {}).stato || "non-misurabile");
     $("lot-conf-fronti").innerHTML = c.fronti.slice()
-      .sort((a, b) => (ORD[a.stato] ?? 9) - (ORD[b.stato] ?? 9)
+      .sort((a, b) => (ORD[stCon(a)] ?? 9) - (ORD[stCon(b)] ?? 9)
         || (a.margineM ?? 1e9) - (b.margineM ?? 1e9)
         || String(a.nome).localeCompare(String(b.nome), "it"))
       .map(itemConformita).join("");
@@ -3066,6 +3116,7 @@ a.dw-btn{text-decoration:none}
     $("aut-volume").value = itDec(a && a.volumeAutorizzatoM3);
     $("aut-pregresso").value = itDec(a && a.estrattoPregressoM3);
     $("aut-fondo").value = itDec(a && a.quotaFondoM);
+    $("aut-altezza").value = itDec(a && a.altezzaBancoMaxM); $("aut-pendenza").value = itDec(a && a.pendenzaMaxGradi);
     v("aut-materiale", a && a.materiale);
     // la densità e la sua provenienza: quattro campi che si leggono insieme,
     // perché una fonte senza il suo documento non regge (e la scheda lo dice)
@@ -3145,7 +3196,10 @@ a.dw-btn{text-decoration:none}
        resterebbero le uniche a non poterlo fare. Stessa scelta già presa per
        la quota del fronte, che infatti si legge senza minimo. */
     const rFondo = numCampo("aut-fondo", { decimali: 2 });
+    // la geometria massima dei banchi (11/09): grandezze positive, vuoto = non dichiarata
+    const rAlt = numCampo("aut-altezza", { decimali: 2, min: 0 }), rPend = numCampo("aut-pendenza", { decimali: 2, min: 0 });
     return {
+      altezzaBancoMaxM: rAlt.ok ? rAlt.valore : null, pendenzaMaxGradi: rPend.ok ? rPend.valore : null,
       numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
       dataRilascio: t("aut-rilascio") || null, dataScadenza: t("aut-scadenza") || null,
       superficieMq: num("aut-superficie"), volumeAutorizzatoM3: num("aut-volume"),
@@ -3446,6 +3500,8 @@ a.dw-btn{text-decoration:none}
     $("lot-mq").value = l ? itDec(l.superficieMq == null ? "" : l.superficieMq) : "";
     $("lot-m3").value = l ? itDec(l.volumeM3 == null ? "" : l.volumeM3) : "";
     $("lot-fondo").value = l ? itDec(l.quotaFondoM == null ? "" : l.quotaFondoM) : "";
+    $("lot-altezza").value = l ? itDec(l.altezzaBancoMaxM == null ? "" : l.altezzaBancoMaxM) : "";
+    $("lot-pendenza").value = l ? itDec(l.pendenzaMaxGradi == null ? "" : l.pendenzaMaxGradi) : "";
     $("lot-vol-rec").value = l ? itDec(l.volumeRecuperoM3 == null ? "" : l.volumeRecuperoM3) : "";
     $("lot-garanzia").value = l ? itDec(l.garanziaEuro == null ? "" : l.garanziaEuro) : "";
     $("lot-nota").value = l ? (l.nota || "") : "";
@@ -3461,6 +3517,7 @@ a.dw-btn{text-decoration:none}
     const mq = numCampo("lot-mq", { min: 0 }), m3 = numCampo("lot-m3", { min: 0 });
     // niente `min: 0` sulla quota: il fondo di una cava in fossa è negativo
     const fondo = numCampo("lot-fondo", { decimali: 2 });
+    const lAlt = numCampo("lot-altezza", { decimali: 2, min: 0 }), lPend = numCampo("lot-pendenza", { decimali: 2, min: 0 });
     /* il volume del recupero si legge con lo STESSO lettore degli altri volumi
        (`numCampo`), non con `parseFloat`: è la regola di casa sui numeri
        scritti a mano, e qui la virgola italiana arriva di sicuro. Vuoto resta
@@ -3479,6 +3536,8 @@ a.dw-btn{text-decoration:none}
       // vuoto = «questo settore non ha un fondo suo», e allora vale quello
       // dell'atto. Non è uno zero, che sarebbe una quota vera.
       quotaFondoM: fondo.ok ? fondo.valore : null,
+      // la geometria massima di QUESTO settore, quando è diversa dall'atto (11/09)
+      altezzaBancoMaxM: lAlt.ok ? lAlt.valore : null, pendenzaMaxGradi: lPend.ok ? lPend.valore : null,
       stato: STATI_LOTTO.includes($("lot-stato").value) ? $("lot-stato").value : "previsto",
       apertoIl: d("lot-aperto"), esauritoIl: d("lot-esaurito"),
       recuperoIniziatoIl: d("lot-rec-inizio"), recuperoFinitoIl: d("lot-rec-fine"),
@@ -4308,10 +4367,11 @@ a.dw-btn{text-decoration:none}
         annullaEditFronte(); esito("fro-esito", "Modifica annullata."); return; }
       editFro = f.id;
       $("fro-nome").value = f.nome || ""; $("fro-banco").value = f.banco || ""; $("fro-quota").value = itDec(f.quota);
-      ["fro-nome","fro-banco","fro-quota"].forEach(i => err(i, false));
+      $("fro-altezza").value = itDec(f.altezzaBancoM == null ? "" : f.altezzaBancoM); $("fro-pendenza").value = itDec(f.pendenzaGradi == null ? "" : f.pendenzaGradi);
+      ["fro-nome","fro-banco","fro-quota","fro-altezza","fro-pendenza"].forEach(i => err(i, false));
       $("btn-fro").textContent = "Salva modifica";
       $("fro-form-sec").textContent = "Fronte in modifica";
-      esito("fro-esito", "Stai modificando «" + f.nome + "»: cambi nome, banco e quota — rilievi e avanzamento restano.");
+      esito("fro-esito", "Stai modificando «" + f.nome + "»: cambi nome, banco, quota e geometria del banco — rilievi e avanzamento restano.");
       $("fro-nome").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     const it = e.target.closest && e.target.closest("[data-fro]");
     if (it) { const f = FRO.find(x => x.id === it.getAttribute("data-fro"));
@@ -4396,6 +4456,15 @@ a.dw-btn{text-decoration:none}
        fronte che nessuno ha misurato, per giunta su un foglio che va a chi fa
        vigilanza. Vuoto vuol dire «non dichiarata», e il confronto non si fa. */
     const quota = rq.ok ? rq.valore : null;
+    // la geometria del banco (11/09): vuoto = non misurata, mai zero; un valore
+    // illeggibile ferma il salvataggio come per la quota
+    const rA = numCampo("fro-altezza", { decimali: 2, min: 0 }), rP = numCampo("fro-pendenza", { decimali: 2, min: 0 });
+    err("fro-altezza", false); err("fro-pendenza", false);
+    if (numIllegibile(rA)) { err("fro-altezza", true); fuoco("fro-altezza");
+      esito("fro-esito", spiegaNum("l'altezza del banco", rA, "m") + " Il fronte non è stato salvato.", "err"); return; }
+    if (numIllegibile(rP)) { err("fro-pendenza", true); fuoco("fro-pendenza");
+      esito("fro-esito", spiegaNum("la pendenza della scarpata", rP, "°") + " Il fronte non è stato salvato.", "err"); return; }
+    const altezzaBancoM = rA.ok ? rA.valore : null, pendenzaGradi = rP.ok ? rP.valore : null;
     if (!nome) { err("fro-nome", true); fuoco("fro-nome");
       esito("fro-esito", "Serve il nome del fronte: è quello che leggerai nelle liste e nei rilievi.", "err"); return; }
     if (FRO.some(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== editFro)) {
@@ -4404,9 +4473,9 @@ a.dw-btn{text-decoration:none}
     err("fro-nome", false);
     const modifica = !!editFro;
     if (editFro) {
-      await db.aggiorna("fronti", editFro, { nome, banco, quota });   // rilievi/avanzamento/stato restano
+      await db.aggiorna("fronti", editFro, { nome, banco, quota, altezzaBancoM, pendenzaGradi });   // rilievi/avanzamento/stato restano
     } else {
-      await db.aggiungi("fronti", { nome, banco, quota, dettaglio: "", stato: "attivo" });
+      await db.aggiungi("fronti", { nome, banco, quota, altezzaBancoM, pendenzaGradi, dettaglio: "", stato: "attivo" });
     }
     annullaEditFronte();
     esito("fro-esito", "Fronte «" + nome + "» " + (modifica ? "aggiornato." : "aggiunto."));

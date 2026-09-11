@@ -803,7 +803,9 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   rilievo, e un verdetto nella stessa forma di `statoConformitaQuota` —
   dentro / al-limite / oltre / non-misurabile — con il conto dei non
   misurabili. Genesi conosce già l'altezza del banco della volata (`H`):
-  un ponte, non un rifacimento. In roadmap come voce aperta.
+  un ponte, non un rifacimento. In roadmap come voce aperta — ✅ **e fatta lo
+  stesso giorno** (`geometriaAmmessa`, `conformitaGeometria`, quarto asse di
+  `conformitaProgetto`): la riga resta per il metodo, non come lavoro da fare.
 - **Domanda 5 — ASSENTE, e chiede una decisione.** `grep -ciE 'fascia di
   rispetto|perimetr'` → **0 e 0** in tutt'e due i file. Confrontare il
   perimetro dello scavo con il limite autorizzato vuol dire avere una

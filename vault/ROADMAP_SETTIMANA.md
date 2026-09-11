@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7843,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.344 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2863, `run-stile` 328,
+  **3.345 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2864, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9047,8 +9046,26 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   manca (7 e 2 occorrenze, tutte testi) → voce aperta qui sotto; il
   **perimetro** è assente e chiede una decisione (geometrie, non numeri):
   dichiarato, non aperto.
-- [ ] **TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO (dalla ricerca a
-  rotazione dell'11/09).** Sul lotto (o sull'atto) `altezzaBancoMaxM` e
+- [x] **TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO (dalla ricerca a
+  rotazione dell'11/09) — FATTA lo stesso giorno:** `geometriaAmmessa(lotto,
+  autorizzazione)` (altezza massima del banco e pendenza massima della
+  scarpata, ognuna con la precedenza lotto → atto e «non nota» senza inventare
+  nulla) e `conformitaGeometria(fronte, lotto, autorizzazione)` — il margine
+  ammesso − misurato per ogni asse, il verdetto da `statoConformitaQuota`
+  (UNA regola per i quattro assi, una mappa di badge `CQ`, regola 18
+  soddisfatta senza una seconda mappa), il fronte giudicato dal peggiore dei
+  suoi assi misurati, «non misurabile» con la ragione quando manca la misura
+  o il massimo; quarto asse dentro `conformitaProgetto` (`geometria`: conti,
+  peggiore con l'asse e il margine, tre ragioni distinte per «non
+  confrontato»). Pagina: campi sull'atto (`aut-altezza`, `aut-pendenza`), sul
+  lotto (solo se diversi) e sul fronte (misurati dal rilievo, con la guardia
+  dei decimali e il salvataggio fermato su un valore illeggibile), la riga
+  della geometria sotto ogni fronte nel confronto (badge «banco …» + altezza
+  e pendenza «su» il massimo, «oltre di N», «al limite», «non misurata»), la
+  riga nel cartellone del Piano. Dimostrazione: f1 dentro (massimo di settore
+  16 m sul lotto Nord), f2 **oltre** (78° su 75, e alto esattamente 15 su 15),
+  f3 senza misure. Prove: run-kpi +1 e una estesa, copertura Terra 89 →
+  **91**; sonda a 320 px, scatti guardati. *(Voce originale:)* Sul lotto (o sull'atto) `altezzaBancoMaxM` e
   `pendenzaMaxGradi` dichiarati dall'utente dal progetto — niente valori
   nostri, sono materia regionale e di progetto —, sul fronte `altezzaBancoM`
   e `pendenzaGradi` dal rilievo, e un verdetto nella forma di

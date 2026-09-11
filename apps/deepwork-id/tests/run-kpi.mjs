@@ -16927,6 +16927,36 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "gli altri stanno sul fondo generale");
     eq(c.volume.senzaConfronto, 4, "quattro lotti su sei non hanno un confronto, e la demo lo mostra");
     eq(c.volume.fuoriSequenza.length, 0, "nessuno scava dove il progetto non ha aperto");
+    // l'asse 4 (11/09): f1 dentro, f2 oltre (78° su 75, e al limite in altezza), f3 senza misure
+    eq([c.geometria.dentro, c.geometria.oltre, c.geometria.alLimite, c.geometria.nonMisurabili], [1, 1, 0, 1], "la dimostrazione mostra tutt'e tre le facce");
+    eq(c.geometria.peggiore && [c.geometria.peggiore.nome, c.geometria.peggiore.asse, c.geometria.peggiore.margine], ["Fronte Est", "pendenza", -3], "il peggiore è la scarpata dell'Est, 3° oltre");
+    eq(c.geometria.fronti.find((g) => g.id === "f1").altezza.origine, "lotto", "il Nord ha un massimo di settore (16 m)");
+    eq(c.geometria.fronti.find((g) => g.id === "f2").altezza.stato, "al-limite", "l'Est è alto esattamente 15 m su 15");
+  });
+  test("⛔ Terra · geometria dei banchi: il massimo viene dal lotto o dall'atto, il verdetto è quello della quota, e senza misura non c'è verde", () => {
+    const atto = { altezzaBancoMaxM: 15, pendenzaMaxGradi: 75 };
+    const amm = terra.geometriaAmmessa({ altezzaBancoMaxM: 12 }, atto);
+    eq([amm.altezza.valore, amm.altezza.origine, amm.pendenza.valore, amm.pendenza.origine], [12, "lotto", 75, "autorizzazione"], "ogni asse ha la sua precedenza");
+    eq(terra.geometriaAmmessa(null, null).altezza, { valore: null, origine: null, noto: false });
+    eq(terra.geometriaAmmessa({ altezzaBancoMaxM: 0 }, { altezzaBancoMaxM: "" }).altezza.noto, false, "0 e vuoto non sono massimi");
+    const g = terra.conformitaGeometria({ altezzaBancoM: 14, pendenzaGradi: 70 }, null, atto);
+    eq([g.stato, g.altezza.stato, g.altezza.margine, g.pendenza.stato, g.pendenza.margine], ["dentro", "dentro", 1, "dentro", 5]);
+    const o = terra.conformitaGeometria({ altezzaBancoM: 15, pendenzaGradi: 78 }, null, atto);
+    eq([o.stato, o.altezza.stato, o.pendenza.stato, o.pendenza.margine], ["oltre", "al-limite", "oltre", -3], "il fronte è giudicato dal peggiore dei due assi");
+    eq(terra.conformitaGeometria({ altezzaBancoM: 15 }, null, atto).stato, "al-limite", "un asse solo misurato: il verdetto è il suo");
+    const n = terra.conformitaGeometria({}, null, atto);
+    eq([n.stato, n.misurabile, n.altezza.misurato, n.altezza.ammesso], ["non-misurabile", false, null, 15], "senza misure sul fronte: non misurabile, col massimo che c'era");
+    ok(/Questo fronte non dichiara l'altezza del banco/.test(n.perche));
+    const s = terra.conformitaGeometria({ altezzaBancoM: 14, pendenzaGradi: 70 }, null, null);
+    eq([s.stato, s.altezza.misurato, s.altezza.ammesso], ["non-misurabile", 14, null], "senza massimi nel progetto: non misurabile, con la misura che c'era");
+    ok(/Il progetto non dichiara l'altezza del banco massima/.test(s.perche));
+    eq(terra.conformitaGeometria({ altezzaBancoM: "14,5" }, null, atto).altezza.margine, null, "una virgola nel dato grezzo non si legge qui: la pagina la converte prima (numCampo)");
+    eq(terra.conformitaGeometria({ altezzaBancoM: 12.34 }, null, { altezzaBancoMaxM: 15 }).altezza.margine, 2.66, "il margine ha due decimali (12,345 darebbe 2,65: in binario 2,655 sta sotto il mezzo, ed è la stessa `r2` della quota)");
+    // il quadro senza massimi e senza fronti dice ragioni diverse
+    const D = terra.DEMO;
+    ok(/né l'altezza massima del banco né la pendenza massima/.test(terra.conformitaProgetto(D.fronti, D.lotti.map((l) => ({ ...l, altezzaBancoMaxM: null, pendenzaMaxGradi: null })), D.rilievi, { ...D.autorizzazioni[0], altezzaBancoMaxM: null, pendenzaMaxGradi: null }).geometria.perche), "senza massimi da nessuna parte lo dice");
+    ok(/Nessuno dei fronti registrati dichiara/.test(terra.conformitaProgetto(D.fronti.map((f) => ({ ...f, altezzaBancoM: null, pendenzaGradi: null })), D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche), "coi massimi ma senza misure lo dice");
+    ok(/Nessun fronte registrato/.test(terra.conformitaProgetto([], D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche));
   });
 }
 
