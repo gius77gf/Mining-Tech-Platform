@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.384 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2903, `run-stile` 328,
+  **3.385 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2904, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9469,7 +9468,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   preset di Scudo MANCA (→ voce aperta piccola); l'ordine di servizio MANCA e
   chiede una decisione (dichiarato); i chili sparati per volata CI SONO. Vedi
   `docs/RICERCA_CONTINUA_GENESI.md`, ricerca dell'11/09 (secondo giro).
-- [ ] **SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE**
+- [x] ✅ 11/09 (unità 102) **SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE**
   *(dalla ricerca dell'11/09, secondo giro su Genesi, domanda 2)*. Il preset
   `fochino` in `SCADENZE_PRESET` ha `mesi: null` e dice «licenza rilasciata
   dal Prefetto: la scadenza è quella indicata sul titolo». Il mondo (di
@@ -9481,6 +9480,11 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   attrezzature» (60). Come si misura: `presetScadenza("fochino").mesi === 36`
   e la prova che elenca i preset con `mesi: null` non lo conta più; il
   preavviso resta quello di tutte le scadenze.
+- [x] **SCUDO — IL PRESET DEL FOCHINO A TRE ANNI (unità 102, 11/09).** `mesi:
+  36`, riferimento «D.P.R. 302/1956, art. 27 — licenza comunale con nulla
+  osta del Prefetto, validità triennale [seconda mano]: la data vera è quella
+  indicata sul titolo», la ragione scritta accanto al preset, una prova.
+  run-kpi +1 (2904).
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

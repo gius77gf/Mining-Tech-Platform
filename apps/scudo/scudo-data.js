@@ -2323,7 +2323,13 @@ export const SCADENZE_PRESET = [
   { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.M. 2 settembre 2021 — aggiornamento periodico degli addetti antincendio." },
   { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico", mesi: 12, riferimento: "D.Lgs 81/2008 art. 37 — aggiornamento annuale (durata secondo il numero di lavoratori)." },
   { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)", mesi: 60, riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
-  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: null, riferimento: "D.P.R. 302/1956 — licenza rilasciata dal Prefetto: la scadenza è quella indicata sul titolo." },
+  /* ⚠️ Fino all'11/09 diceva «rilasciata dal Prefetto» e `mesi: null`: la
+     licenza del fochino è COMUNALE (col nulla osta del Prefetto) e vale tre
+     anni, con rinnovo da chiedere almeno 30 giorni prima — letto di seconda
+     mano su nove Comuni e sul modello della Prefettura (ricerca dell'11/09).
+     La periodicità si PROPONE, come per le altre abilitazioni; la data vera
+     resta quella scritta sul titolo. */
+  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: 36, riferimento: "D.P.R. 302/1956, art. 27 — licenza comunale con nulla osta del Prefetto, validità triennale [seconda mano]: la data vera è quella indicata sul titolo." },
   /* ⛔ AGGIUNTO COL PERMESSO DI LAVORO, e senza di lui il permesso per gli
      spazi confinati non poteva funzionare: `formazionePermesso` chiede a
      `statoRequisito` se chi entra in tramoggia è formato, e senza una chiave

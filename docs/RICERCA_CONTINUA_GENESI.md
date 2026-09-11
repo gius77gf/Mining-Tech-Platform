@@ -779,6 +779,8 @@ osmre.gov.
   riferimento riscritto, con la marcatura di seconda mano; e la voce di
   Scudo che avvisa **30 giorni prima** è già il preavviso di tutte le scadenze
   (`preavvisoGiorni`, `grep -c` → 5), niente da aggiungere.
+  ✅ **FATTO lo stesso giorno, unità 102**: `grep -c 'mesi: 36, riferimento:
+  "D.P.R. 302/1956, art. 27' apps/scudo/scudo-data.js` → 1.
 - **Domanda 3 — MANCA, e chiede una decisione.** `grep -ciE 'ordine di
   servizio'` → 0 in tutt'e tre le app. L'ordine di servizio è un documento
   del direttore responsabile: chi lo scrive, dove si conserva, chi lo firma

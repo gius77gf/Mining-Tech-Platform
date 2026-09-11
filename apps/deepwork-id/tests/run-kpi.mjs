@@ -1546,6 +1546,15 @@ test("⛔ l'api di ogni app espone l'organizzazione attiva, e in dimostrazione d
   const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
   ok(/organizzazione: db\.orgId \|\| null/.test(pagina), "e la pagina lo passa al bottone");
 });
+
+test("Scudo · il preset del fochino propone i tre anni della licenza comunale (11/09)", () => {
+  const p = scudo.presetScadenza("fochino");
+  ok(p, "il preset c'è");
+  eq(p.mesi, 36, "tre anni: la periodicità si propone, la data vera è sul titolo");
+  ok(/licenza comunale/.test(p.riferimento) && /Prefetto/.test(p.riferimento), "il riferimento dice chi la rilascia e chi dà il nulla osta");
+  ok(/seconda mano/.test(p.riferimento), "e dichiara che il termine è letto di seconda mano");
+  eq(p.daVerificare, true, "e resta da verificare, come ogni preset");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");
