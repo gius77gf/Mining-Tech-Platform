@@ -1159,7 +1159,7 @@ condivise su numeri, unità di misura e soldi.
 
 **Le prove automatiche sono passate a 3.331** *(ricontate il 05/09 lanciando le
 suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **271
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **273
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

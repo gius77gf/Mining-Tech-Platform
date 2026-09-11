@@ -2356,7 +2356,7 @@ body.dw b.bad{color:var(--ink-dg)}
       ].filter(Boolean).join(" · ");
       return `<div class="item ${striscia[u.cls] || "st-accent"}" role="button" tabindex="0" data-odl-man="${n.id}" title="Apri l'ordine di lavoro: stato, ore, ricambi, costo">
       <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
-      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${n.orePreviste ? "A " + oreMotoreTx(n.orePreviste) : "Previsto " + dataIt(n.dataPrevista)}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
+      <div class="info"><div class="name">${esc(n.titolo)} — ${esc(n.mezzo)}</div><div class="meta">${quandoTx(n).replace(/^a /, "A ").replace(/^previsto per il /, "Previsto ")}${ritmo}${ricN ? " · usa " + esc(ricN.nome) : ""}</div>${quando ? `<div class="meta norma quando">${I.tachi}${quando}</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}${lav ? `<div class="meta norma">${I.persona}${lav}</div>` : ""}</div>
       <div class="acts">${so.chiave !== "da-fare" ? `<span class="badge ${so.cls}">${so.breve}</span>` : ""}<span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
       <span class="arr ok" role="button" tabindex="0" title="Chiudi l'ordine e registra l'intervento" aria-label="Chiudi ${esc(n.titolo)}" data-man-done="${n.id}">${I.spunta}</span></div></div>`; }).join("")
       || (filtroMan !== "tutti"

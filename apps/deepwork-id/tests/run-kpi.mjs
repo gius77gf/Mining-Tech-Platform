@@ -28460,8 +28460,12 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       "nessun punto della pagina attacca «ore motore» a un numero per conto suo");
     eq((SRC_FLOTTA_UNO.match(/const oreMotoreTx = /g) || []).length, 1,
       "e la funzione che sceglie quella parola è dichiarata una volta sola");
-    ok((SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length >= 12,
-      `e la chiamano ${(SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length} punti della pagina (erano 7 prima delle cinque copie assorbite)`);
+    /* ⏱️ 11/09: le tre frasi «a N ore motore» della lista, dell'ordine e della
+       scheda del mezzo sono diventate UNA (`quandoTx`, «il primo dei due»),
+       che la chiama due volte: 12 → 11 chiamate, e non è una copia tornata —
+       è una copia in meno. Il fondo scende con la ragione scritta. */
+    ok((SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length >= 11,
+      `e la chiamano ${(SRC_FLOTTA_UNO.match(/oreMotoreTx\(/g) || []).length} punti della pagina (erano 7 prima delle cinque copie assorbite; 11 dall'11/09 con quandoTx)`);
   });
 }
 

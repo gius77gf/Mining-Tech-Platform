@@ -43,8 +43,8 @@ const DIFETTI_FLOTTA = [
    ': n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore"'],
   ['? "a " + oreMotoreTx(n.orePreviste, grassetto) + " o entro il "',
    '? "a " + numTx(n.orePreviste) + " ore motore o entro il "'],
-  ['${n.orePreviste ? "A " + oreMotoreTx(n.orePreviste) : "Previsto " + dataIt(n.dataPrevista)}',
-   '${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + dataIt(n.dataPrevista)}'],
+  ['${quandoTx(n).replace(/^a /, "A ").replace(/^previsto per il /, "Previsto ")}',
+   '${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : quandoTx(n).replace(/^previsto per il /, "Previsto ")}'],
   ['${plurale(aff.disponibili, "giorno-macchina lavorabile", "giorni-macchina lavorabili")}',
    'giorni-macchina lavorabili'],
 ];

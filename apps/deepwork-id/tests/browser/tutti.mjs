@@ -985,6 +985,8 @@ const BANCHI = [
   ['registro vendite · controprova', 'conti-registro-vendite.mjs', ['--controprova'], true],
   ['i listini per cliente di Conti: la pesata di Stradesud al SUO prezzo col base accanto, la sezione, il CSV letto', 'conti-listini.mjs', []],
   ['listini per cliente · controprova', 'conti-listini.mjs', ['--controprova'], true],
+  ['«il primo dei due» in Flotta: ore E data, la peggiore comanda, il mezzo fuori parco resta per data', 'flotta-primo-dei-due.mjs', []],
+  ['primo dei due · controprova', 'flotta-primo-dei-due.mjs', ['--controprova'], true],
   ['il ponte Conti → Flotta: la fattura dell\'officina collegata all\'ordine di lavoro, nelle due pagine', 'ponte-conti-flotta-odl.mjs', []],
   ['ponte Conti → Flotta · controprova', 'ponte-conti-flotta-odl.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, stessa famiglia, su Scudo. Qui il censimento ha

@@ -665,6 +665,22 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
+  — la dimostrazione non ha un tagliando con ore E data (di proposito: le
+  prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
+  risposta HTTP del modulo: la data scaduta con le ore lontane (badge
+  «Scaduta» in rosso nella lista, nel Quadro e nell'ordine — prima le ore lo
+  tenevano in verde), le ore a 10 dal traguardo con la data fra 400 giorni
+  («tra 10 h»), e un mezzo FUORI dal parco con la data fra 5 giorni («5 gg»
+  per data, e la riga del Quadro c'è: prima spariva). Si leggono la frase
+  della lista e dell'ordine («A 6.370 ore motore o entro il …, il primo dei
+  due») e il piano nei due passi, a 320 e 390: **24 ok**; controprova con tre
+  difetti per file (la lista che torna a «comandano le ore», il modulo che
+  sceglie sempre le ore, le priorità senza il ramo «entrambi») → cade in 8.
+  ⚠️ Scrivendolo è uscito che la lista dell'Officina aveva una TERZA frase
+  «A N ore motore / Previsto …» non passata da `quandoTx`: adesso passa di
+  lì (e l'iniezione di `frasi-da-uno` che la colpiva segue). Registrato in
+  `tutti.mjs`: 273 esecuzioni da 116 file.
 - [x] **FLOTTA — «IL PRIMO DEI DUE» (11/09):** `prossimoTagliando` con ore
   E mesi scrive tutt'e due le scadenze (`da: "entrambi"`), e con le ore del
   contatore ignote resta la data dichiarando `oreIgnote` — prima rispondeva
@@ -7698,8 +7714,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **271 esecuzioni** che
-  aprono le pagine in un browser vero, da **115** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **273 esecuzioni** che
+  aprono le pagine in un browser vero, da **116** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
