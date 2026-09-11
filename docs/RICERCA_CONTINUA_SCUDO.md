@@ -1274,3 +1274,119 @@ Fatto nella stessa unità: `icsCalendario` in `shared/` (serve a più app),
 Vedi la voce in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato:
 l'**invio** (email/SMS), che chiede un server; e il calendario delle altre
 tre app con scadenzario (Flotta, Sentinella, Terra), candidato.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede l'ispettore in una visita in cava (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Le fasi della visita** (ASL/SPRESAL, SPISAL): arrivo e identificazione,
+  presentazione del motivo, **richiesta dei documenti** (DVR, formazione,
+  appalti, PSC/POS), sopralluogo nelle aree, raccolta di dichiarazioni da
+  datore di lavoro, RSPP e lavoratori, discussione finale e **verbale con le
+  prescrizioni**. *[risultati di ricerca: aulss7.veneto.it, sicurlivegroup.it,
+  gtpsrl.eu, novasafe.it]*
+- **L'elenco minimo dei documenti**: il DVR firmato da datore, RSPP, medico
+  competente e RLS, con le valutazioni specifiche (rumore, vibrazioni, agenti
+  chimici e cancerogeni, stress, elettrico, incendio); l'**organigramma** con
+  datore, dirigenti, preposti e deleghe; la nomina dell'RSPP con i requisiti;
+  la designazione dell'RLS; gli **attestati di formazione** (generale,
+  specifica, attrezzature, DPI); le **idoneità sanitarie** nei termini; le
+  **consegne dei DPI**; il **registro infortuni**; i contratti d'appalto con
+  DUVRI/POS. *[risultati di ricerca: puntosicuro.it «elenco minimo»,
+  cantiereinrete.it, biblus.acca.it, sicuraccess.it]*
+- **Nel settore estrattivo il DVR è il DSS** (D.Lgs. 624/1996, art. 10, che
+  integra l'art. 28 del D.Lgs. 81/2008): valutazioni di vibrazioni, rumore,
+  polveri pneumoconiogene e silice libera cristallina, misure, piano di
+  miglioramento, procedure, ruoli (RSPP, RLS, medico, sorveglianti); il
+  datore di lavoro vi **attesta ogni anno** che luoghi, attrezzature e
+  impianti sono progettati, usati e mantenuti in sicurezza, e lo aggiorna
+  dopo modifiche significative o incidenti gravi, consultando l'RLS.
+  *[risultati di ricerca: puntosicuro.it, unasf.conflavoro.it,
+  studioessepi.it, certifico.com]*
+- **Gli esplosivi**: la licenza del deposito è del Prefetto (art. 47 TULPS)
+  dopo la Commissione tecnica provinciale; il **registro giornaliero delle
+  operazioni** (art. 55 TULPS) è **vidimato dal Prefetto**; il fochino ha una
+  licenza speciale del Comune con il nulla osta del Questore, e la capacità
+  tecnica si prova con un esame davanti alla Commissione. *[risultati di
+  ricerca: prefettura.interno.gov.it (Padova, Grosseto, Parma, Roma),
+  conarmi.org, testo-unico-sicurezza.com]*
+- **I gestionali di settore** (EHS per miniere e cave) vendono la
+  «**inspection readiness**»: cruscotto dello stato di conformità in tempo
+  reale, scadenze delle azioni correttive, tracce di verifica, formazione e
+  certificazioni integrate, checklist da telefono con sincronizzazione
+  offline. *[risultati di ricerca: ehsinsight.com, compliancequest.com,
+  safetymint.com, oxmaint.com]*
+
+### Fonti (seconda mano)
+
+- AULSS 7 Veneto — Ispezione SPISAL, documenti richiesti: https://www.aulss7.veneto.it/Ispezione-SPISAL-documenti-richiesti
+- PuntoSicuro — Ispezioni: l'elenco minimo dei documenti richiesti alle aziende: https://www.puntosicuro.it/documentazione-C-63/ispezioni-l-elenco-minimo-dei-documenti-richiesti-alle-aziende-AR-15782/
+- Sicurlive — Ispezioni ASL sicurezza: come funziona il controllo: https://www.sicurlivegroup.it/it/news/ispezioni-asl-cosa-aspettarsi-da-un-controllo-sulla-sicurezza
+- PuntoSicuro — Come elaborare il documento di sicurezza e salute nel settore estrattivo: https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/
+- UNASF Conflavoro — DSS per il settore estrattivo: https://unasf.conflavoro.it/news/dss-per-il-settore-estrattivo/
+- Certifico — Vademecum sicurezza attività estrattive: https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/vademecum-sicurezza-attivita-estrattive
+- BibLus — Ispezione cantiere edile: figure coinvolte e controlli: https://biblus.acca.it/ispezione-cantiere-edile-figure-coinvolte-e-controlli/
+- Prefettura di Padova — Licenza deposito permanente esplosivi: https://prefettura.interno.gov.it/it/prefetture/padova/licenza-deposito-permanente-esplosivi
+- Conarmi — Vidimazione dei registri di P.S.: https://www.conarmi.org/faq_scheda.jsp?idnews=3056
+- EHS Insight — Mining safety software, MSHA compliance and hazard tracking: https://www.ehsinsight.com/blog/mining-safety-software-msha-compliance-and-hazard-tracking
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi sa in che stato è il DSS, chi l'ha firmato e quando va rifatto?
+2. Chi risponde, persona per persona, a «formazione, idoneità, DPI»?
+3. Chi tiene le nomine e l'organigramma?
+4. Chi registra la visita e le sue prescrizioni?
+5. Chi compone, per la CAVA intera, l'elenco che l'ispettore chiede?
+6. Chi tiene il registro degli esplosivi?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `ca1bb7f0`)
+
+- **Domanda 1 — C'È.** Il ciclo del DSS: `grep -cE '^export function
+  (cicloDss|storicoDss|descriviTrasmissioneDss|motivoRevisioneDss)'
+  apps/scudo/scudo-data.js` → 4 — stato, storico delle revisioni, motivo
+  della revisione (le modifiche significative, l'incidente), trasmissione;
+  con le scadenze `dss`, `dss-certif`, `dss-aggiorn`, `dss-trasmiss` fra i
+  preset. Niente da aggiungere.
+- **Domanda 2 — C'È, per persona.** `cartellaLavoratore`/`fogliaCartella`,
+  `coperturaFormazione`, `giudizioIdoneita`, `riepilogoDpi`,
+  `organigrammaSicurezza`, `nominaAttiva` → 7 funzioni esportate; il
+  fochino è un preset (`chiave: "fochino"` → 2) e una patente nella
+  dimostrazione. La cartella di UNA persona è esattamente quello che
+  l'ispettore chiede quando ferma un lavoratore.
+- **Domanda 3 — C'È.** `NOMINE_RUOLI` (sorvegliante, direttore, preposto,
+  RSPP, medico, RLS, primo soccorso, antincendio, dirigente) e
+  `organigrammaSicurezza`, `nomineDaSistemare`. Niente da aggiungere.
+- **Domanda 4 — C'È.** `fogliaIspezione`, `nuovaIspezioneDaModello`,
+  `riepilogoIspezioni` → 3; le prescrizioni diventano azioni
+  (`azioniDiIspezione`). È la ricerca del 06/09 sul verbale di ispezione.
+- **Domanda 5 — MANCA, ed è il delta.** Scudo compone 12 documenti che
+  escono (`grep -oE '^export function (foglia|prospetto|csv|verbale|testo)…'`),
+  tutti per **un soggetto**: una persona, un'ispezione, una consegna di DPI,
+  un registro. Nessuno risponde all'**elenco dell'ispettore per la cava
+  intera** — DSS (stato e firme), organigramma e nomine, copertura della
+  formazione, idoneità nei termini, consegne DPI, registro infortuni, appalti
+  con DUVRI (`riepilogoAppalti`/`duvriDovuto` → 3), ultime ispezioni —
+  in **un foglio solo**, con «manca» dove manca: `grep -ciE 'fascicolo (di
+  cava|per l.ispettore|ispezione)|prontoPerIspezione|readiness'` su modulo e
+  pagina → apps/scudo/scudo-data.js:0 apps/scudo/index.html:0. Tutti i pezzi esistono e sono funzioni pure: è
+  **composizione**, non calcolo nuovo — e la regola del principio del
+  fondatore vale doppio, perché è il documento che si consegna a chi
+  verifica. **Mancanza confermata, aperta.**
+- **Domanda 6 — MANCA in tutte le app, e chiede una decisione.** Il registro
+  giornaliero degli esplosivi (carico/scarico del deposito, vidimato dal
+  Prefetto): `grep -ciE 'registro (giornaliero|di carico|degli
+  esplosivi)|art\. ?55|vidimat'` su Genesi (modulo e pagina), Sentinella e
+  Scudo → apps/genesi/genesi-data.js:0 apps/genesi/genesi.html:0 apps/sentinella/sentinella-data.js:0 apps/scudo/scudo-data.js:0. Genesi sa la carica per volata, Sentinella i chili sparati
+  per volata (`kgTotali`), nessuno il **deposito** (entrate dal fornitore,
+  uscite per volata, giacenza). Dove vive — Genesi, che progetta la carica,
+  o Sentinella, che registra la volata — è una scelta di prodotto.
+  **Dichiarato, non aperto.**
+
+**Riassunto** — 1 mancanza **confermata e aperta** (il fascicolo per
+l'ispettore, composto dai pezzi esistenti), 1 **dichiarata** che chiede una
+decisione (il registro degli esplosivi), 4 **già a posto** (DSS, cartella per
+persona, nomine, verbale di ispezione).

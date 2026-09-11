@@ -2905,6 +2905,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `SCUDO — IL FASCICOLO PER L'ISPETTORE: UN FOGLIO CHE RISPONDE`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9189,6 +9190,30 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   revisione C'È e lo stato dell'obbligo non si scrive, identità del mezzo e
   sinistro MANCANO e chiedono una decisione (dichiarati). Vedi
   `docs/RICERCA_CONTINUA_FLOTTA.md`, ricerca dell'11/09 (secondo giro).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — SCUDO: CHE COSA CHIEDE L'ISPETTORE
+  IN UNA VISITA IN CAVA (11/09, unità 90, solo documenti).** Mondo di seconda
+  mano (10 fonti): le fasi della visita e l'elenco minimo dei documenti, il
+  DSS come DVR del settore estrattivo, la licenza e il registro degli
+  esplosivi, la «inspection readiness» dei gestionali. Delta dal MECCANISMO
+  contro `ca1bb7f0`: DSS, cartella per persona, nomine e verbale di ispezione CI
+  SONO; il **fascicolo per l'ispettore della cava intera** MANCA (→ voce
+  aperta: composizione di funzioni che esistono); il registro degli esplosivi
+  MANCA in tutte le app e chiede una decisione (dichiarato). Vedi
+  `docs/RICERCA_CONTINUA_SCUDO.md`, ricerca dell'11/09 (secondo giro).
+- [ ] **SCUDO — IL FASCICOLO PER L'ISPETTORE: UN FOGLIO CHE RISPONDE
+  ALL'ELENCO DEI DOCUMENTI RICHIESTI (dalla ricerca dell'11/09).** Una
+  funzione pura `fascicoloIspezione(dati, oggi)` che compone, per la cava
+  intera e nell'ordine in cui l'ispettore li chiede: stato del DSS (ciclo,
+  ultima revisione, trasmissione), organigramma e nomine (chi manca),
+  copertura della formazione (quanti in regola su quanti, chi no), idoneità
+  sanitarie (scadute, in scadenza, mancanti), consegne DPI, registro infortuni
+  e near-miss dell'anno, appalti con DUVRI dovuto e stato, ultime ispezioni e
+  prescrizioni aperte — ogni sezione con «manca»/«non misurato» dove il dato
+  non c'è (principio del fondatore, sul documento che si consegna a chi
+  verifica); `fogliaFascicolo` stampabile sullo stampo di `fogliaCartella`;
+  bottone nel Quadro; prove in run-kpi e in `documenti-dimostrazione`; scatto.
+  Prova che manca: `grep -ciE 'fascicolo (di cava|per l.ispettore|ispezione)'
+  apps/scudo/scudo-data.js apps/scudo/index.html` → 0 e 0.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel
