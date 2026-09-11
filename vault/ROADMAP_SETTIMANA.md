@@ -2909,6 +2909,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE`
+- `TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9220,6 +9222,44 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   px e il foglio intero. Prove: run-kpi +3 (2892), copertura Scudo 217/217; le
   due prove che contavano «tre fogli» rese più giuste (quattro, con la frase
   del fascicolo pretesa per nome).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TERRA: CHE COSA CONSEGNA IL
+  TOPOGRAFO COL RILIEVO ANNUALE, E CHI FIRMA (11/09, unità 92, solo
+  documenti).** Mondo di seconda mano (20 fonti): il capitolato del rilievo di
+  un'area di cava, lo stato di avanzamento che chiede l'ente (sezioni 1:1000
+  con stato originario/attuale/finale, volumi estratti e residui, dwg/dxf),
+  la statistica annuale (produzione e addetti medi), il direttore
+  responsabile del D.P.R. 128, la relazione tecnica del topografo (sistema di
+  riferimento, GCP, RMSE), lo standard ASPRS 2024, il 2-5 % dei volumi da
+  drone. Delta dal MECCANISMO contro `e5e2ea6a`: verbale, volumi
+  estratti/residui e cadenza annuale CI SONO; la **tolleranza dichiarata dal
+  rilevatore** MANCA (Terra usa quella tipica della classe e lo dichiara nel
+  foglio → voce aperta piccola); le tre firme dicono **«direttore dei
+  lavori»** dove Scudo e Sentinella dicono «direttore responsabile» (→ voce
+  aperta di tre righe); geometrie e addetti medi dichiarati, chiedono una
+  decisione. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
+  (secondo giro).
+- [ ] **TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE** *(dalla ricerca
+  dell'11/09, secondo giro, domanda 2)*. Oggi `classeAccuratezza` risponde con
+  la tolleranza **tipica** della classe (2 % survey-grade, 8 % indicativo) e
+  il verbale scrive che «va confermata con i punti di controllo del
+  rilevatore» — ma il rilevatore non ha un posto dove scriverla. Un campo
+  facoltativo nel rilievo (`tolleranzaPct`, in %), letto da
+  `classeAccuratezza` (`fonte: "rilevatore"` quando è un numero > 0, se no
+  `fonte: "classe"` com'è oggi), la banda calcolata su quello, e il verbale
+  che scrive «dichiarata dal rilevatore» o «tipica del metodo» leggendo
+  `fonte`. Come si misura: `classeAccuratezza({metodo:"RTK", gsd:"2",
+  tolleranzaPct: 3.5}).tolleranzaPct === 3.5`, e il verbale sulla
+  dimostrazione (r1, senza il campo) invariato.
+- [ ] **TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME** *(dalla ricerca
+  dell'11/09, secondo giro, domanda 3)*. Le tre righe `class='firma'` di
+  `apps/terra/index.html` (verbale del rilievo, relazione di lotto,
+  riepilogo annuale) scrivono «Il direttore dei lavori»: è la parola del
+  cantiere edile. La figura della polizia mineraria è il **direttore
+  responsabile**, e così lo chiamano già Scudo (`NOMINE_RUOLI`, firme del
+  fascicolo) e Sentinella (relazione per l'ARPA). Come si misura: `grep -oiE
+  'direttore (responsabile|dei lavori)' apps/terra/index.html | sort | uniq
+  -c` → 3 «responsabile», 0 «dei lavori»; e una prova in `run-kpi` che
+  pretende la stessa parola nelle tre app.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

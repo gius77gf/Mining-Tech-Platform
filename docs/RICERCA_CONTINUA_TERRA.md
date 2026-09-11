@@ -814,3 +814,162 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   come **numeri** (il volume del rilievo), non come superfici. Non è un
   campo in più: è una decisione di prodotto (Terra legge file geometrici?).
   Dichiarato, non aperto.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa consegna il topografo col rilievo annuale, e che cosa firma il direttore responsabile (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; le regole restano regionali e le imposta l'utente. Quelli qui
+sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Che cosa deve contenere il rilievo di un'area di cava**, da un capitolato
+  provinciale (Piacenza, «Rilevamento topografico e batimetrico delle aree di
+  cava»): **capisaldi fissi** individuati o materializzati attorno all'area;
+  orografia, idrografia, strade, fabbricati, **limiti e riferimenti
+  catastali**, alberi isolati o in filare, sempre rilevati e riportati.
+  *[risultati di ricerca: provincia.pc.it]*
+- **Che cosa chiede l'ente per lo stato di avanzamento**: sezioni
+  longitudinali e trasversali in scala non inferiore a **1:1000** con lo
+  **stato originario, lo stato attuale e lo stato finale**, e il **calcolo dei
+  volumi estratti e residui** (Regolamento regionale Calabria 8/2023, di
+  attuazione della L.R. 40/2009); rilievo planoaltimetrico dello stato
+  attuale con sezioni (Umbria); rilievo entro sei mesi dall'approvazione del
+  piano, in scala 1:1000/1:500, **georeferenziato** (Gauss-Boaga) e consegnato
+  in **dwg/dxf** (Piano cave Varese). *[risultati di ricerca:
+  olympus.uniurb.it, regione.umbria.it, cartografia.provincia.va.it]*
+- **La statistica annuale**: chi ha un'autorizzazione di cava trasmette ogni
+  anno i **dati statistici** (produzione, e — nel regolamento siciliano di
+  polizia mineraria — il **numero medio degli operai**, che il sindaco riporta
+  all'ufficio minerario entro il primo trimestre) attraverso un servizio
+  telematico regionale (Piemonte, L.R. 23/2016, «Servizio Esercenti
+  Minerari»; Lombardia, catasto cave e miniere CATCM, manuale gennaio 2026).
+  *[risultati di ricerca: regione.piemonte.it, edizionieuropee.it,
+  caveminiere.servizirl.it]*
+- **Chi firma**: la figura della polizia mineraria è il **direttore
+  responsabile** (D.P.R. 128/1959, art. 20: la denuncia di esercizio porta il
+  suo nome e quello dei sorveglianti per turno, ogni cambio si denuncia
+  entro otto giorni; deve essere ingegnere o perito minerario). «Direttore
+  dei lavori» è la parola del cantiere edile, non della cava.
+  *[risultati di ricerca: legislazionetecnica.it, edizionieuropee.it,
+  puntosicuro.it]*
+- **Che cosa consegna il topografo dopo un volo**: una **relazione tecnica del
+  rilievo** (esiste come elaborato depositato: Volterra) con **sistema di
+  riferimento** (acquisizione, riferimento ed elaborazione devono essere
+  coerenti), **numero e precisione dei punti di controllo a terra (GCP)** —
+  l'accuratezza assoluta del rilievo non può superare quella dei GCP, che
+  vanno misurati meglio del GSD — sovrapposizioni (75–85 % frontale, 60–70 %
+  laterale), strumento, data, operatore e i **residui (RMSE)**
+  dell'elaborazione. *[risultati di ricerca: cloud.ldpgis.it/volterra,
+  ispezionicondrone.it, 3dmetrica.it, professionedrone.com]*
+- **Lo standard di accuratezza**: ASPRS «Positional Accuracy Standards for
+  Digital Geospatial Data», edizione 2 versione 2 (2024): l'**RMSE è l'unica
+  misura** riconosciuta; le soglie sono indipendenti da GSD, scala e
+  intervallo di curva; addenda per lidar, fotogrammetria, **UAS** e obliqua.
+  *[risultati di ricerca: asprs.org, support.geocue.com, lidarmag.com]*
+- **Quanto sbaglia un volume da drone**, secondo chi vende il servizio:
+  **2–5 %** con RTK/PPK e buona pianificazione, **1–3 %** con lidar; per i
+  rapporti «difendibili in un audit» (royalty, fatturazione) **4–6 GCP**
+  misurati con GNSS; un caso citato: ±2,6 % contro stazione totale. Il rilievo
+  **annuale** serve a verificare i volumi estratti contro quelli autorizzati;
+  le nuvole «congelano» lo stato del sito e si confrontano anno su anno
+  (CloudCompare, open source); un DTM per i volumi non è un DTM per il
+  progetto o per il drenaggio. *[risultati di ricerca: propelleraero.com,
+  dronedeploy.com, dragonflyaerialsolutions.net, miningsurveys.com,
+  3dmetrica.it, dronezero.net]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+provincia.pc.it (Allegato 7, rilievi topografici aree di cava) ·
+olympus.uniurb.it (Reg. reg. Calabria 8/2023) · regione.umbria.it (rilievo
+planoaltimetrico stato attuale, sezioni) · cartografia.provincia.va.it (Piano
+cave Varese, normativa tecnica) · regione.piemonte.it (statistica mineraria
+annuale) · edizionieuropee.it (D.P.R. 128/1959 art. 20; D.P.Reg. Sicilia
+7/1958) · legislazionetecnica.it (art. 20) · caveminiere.servizirl.it (CATCM
+2.2.1) · cloud.ldpgis.it/volterra (relazione tecnica del rilievo a mezzo
+drone) · ispezionicondrone.it · 3dmetrica.it (rilievo annuale di cava;
+precisione con drone) · professionedrone.com · dronezero.net · asprs.org ·
+support.geocue.com · lidarmag.com · propelleraero.com · dronedeploy.com ·
+dragonflyaerialsolutions.net · miningsurveys.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi compone il verbale di un rilievo, e che cosa ci scrive: data, fronte,
+   metodo, GSD, classe, banda, chi l'ha eseguito, l'atto, il confronto col
+   precedente?
+2. Il rilievo sa da dove viene la sua incertezza — sistema di riferimento,
+   punti di controllo, RMSE — o la tolleranza è quella **tipica** di una
+   classe?
+3. Chi firma i fogli che escono, e con che nome?
+4. Chi calcola i volumi estratti e residui e lo stato originario?
+5. Chi tratta planimetrie, piano quotato, sezioni, dxf?
+6. Chi risponde alla statistica annuale (produzione e addetti medi)?
+7. Chi ricorda che il rilievo è annuale?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `e5e2ea6a`)
+
+- **Domanda 1 — C'È.** `grep -cE '^export function
+  (verbaleRilievo|classeAccuratezza|bandaVolume|confrontoRilievi|rilievoPrecedente)'
+  apps/terra/terra-data.js` → 5. Il verbale scrive data, fronte e quota,
+  scavo o cumulo, tipo di elaborato, metodo, GSD, classe con tolleranza,
+  volume con banda, «eseguito da», i quattro dati dell'atto e il rilievo di
+  partenza; ogni cosa che manca finisce in `nonMisurati`. Niente da
+  aggiungere.
+- **Domanda 2 — MANCA, ed è il delta piccolo.** Il rilievo ha sette campi
+  (`grep -oE 'id="new-ril-[a-z]+"' apps/terra/index.html | sort -u` → data,
+  fronte, gsd, metodo, prov, rilevatore, vol) e la tolleranza è quella della
+  classe: `grep -n 'tolleranzaPct: [0-9]' apps/terra/terra-data.js` → 2 e 8,
+  mentre `grep -cE 'r\.tolleranza|rilievo\.tolleranza'` → 0. Sistema di
+  riferimento, capisaldi e RMSE: `grep -ciE 'epsg|gauss|etrf|sistema di
+  riferimento|capisald|rmse|punti di controllo|ground control'` → modulo 2,
+  pagina 0 — e le due righe del modulo sono la stessa frase del foglio, «le
+  tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i
+  punti di controllo del rilevatore»: Terra **sa** di non averli e lo dichiara.
+  Il mondo dice che il numero vero sta nella relazione del topografo (RMSE,
+  GCP), ed è **quello** che il verbale dovrebbe portare quando c'è: un campo
+  facoltativo con la tolleranza dichiarata dal rilevatore, la banda calcolata
+  su quella, e il foglio che scrive «dichiarata dal rilevatore» invece di
+  «tipica del metodo». Senza il campo, resta la classe. **Mancanza
+  confermata, aperta** — un campo, una riga nel verbale, una prova.
+  ⚠️ Che cosa NON entra: il sistema di riferimento e la nuvola. Terra riceve
+  numeri, non superfici (vedi la domanda 5).
+- **Domanda 3 — C'È, con la parola sbagliata.** I tre fogli di Terra hanno le
+  righe di firma (verbale: «Il rilevatore / Il direttore dei lavori»;
+  relazione di lotto e riepilogo annuale: «Il titolare / Il direttore dei
+  lavori»). `grep -oiE 'direttore (responsabile|dei lavori)'
+  apps/terra/index.html | sort | uniq -c` → 3 «direttore dei lavori», 0
+  «direttore responsabile». La figura del D.P.R. 128 è il **direttore
+  responsabile**, e così lo chiamano già Scudo (`NOMINE_RUOLI`, etichetta
+  «Direttore responsabile»; le firme del fascicolo) e Sentinella (la relazione
+  per l'ARPA: «Il direttore responsabile»). Tre app, due nomi per la stessa
+  persona: **mancanza confermata, aperta** — tre righe, parole del mestiere.
+- **Domanda 4 — C'È.** `grep -cE '^export function
+  (riepilogoAnnuale|prospettoDenuncia|riservaResidua|estrattoComplessivo|vitaCava)'`
+  → 5; lo stato originario è `estrattoPregressoM3` nell'autorizzazione
+  (`grep -c` → 4). Niente da aggiungere.
+- **Domanda 5 — DICHIARATO, non riaperto.** Planimetrie, piano quotato,
+  sezioni, dxf: `grep -ciE 'piano quotato|stato di fatto|sezion[ei]
+  topograf|\.dxf|\.dwg|planimetr'` → modulo 2, pagina 9, e sono la scadenza
+  «Rilievo periodico dei lavori (planimetrie aggiornate)», i commenti «la
+  planimetria resta fuori: Terra non disegna aree» e le classi `.dwg-*` dei
+  grafici. È la domanda 5 della ricerca precedente (fascia di rispetto,
+  perimetro): Terra legge volumi, non superfici, e se debba leggere file
+  geometrici è una decisione di prodotto. Resta dichiarata.
+- **Domanda 6 — DICHIARATO, chiede una decisione.** La produzione annuale
+  c'è (`prospettoDenuncia`, «dichiarazione annuale dei quantitativi estratti»).
+  Il **numero medio di addetti** non lo calcola nessuno: `grep -ciE 'addetti
+  medi|media (degli|dei) addetti|numero medio'` → scudo 0, campo 0, terra 0.
+  I dati ci sono in due app (i lavoratori di Scudo, le presenze di Campo); il
+  modulo è regionale e il posto in cui comporlo (Terra, che parla all'ente,
+  o Scudo, che sa chi lavora) è una scelta di prodotto. Dichiarato, non
+  aperto.
+- **Domanda 7 — C'È.** `grep -c 'chiave: "rilievo"' apps/terra/terra-data.js`
+  → 1: il preset di scadenza del rilievo periodico esiste, con l'etichetta
+  che nomina le planimetrie.
+
+**Riassunto** — 2 mancanze **confermate e aperte**, tutt'e due piccole (la
+tolleranza dichiarata dal rilevatore nel verbale; «direttore responsabile»
+al posto di «direttore dei lavori» nelle tre firme), 2 **dichiarate** che
+chiedono una decisione (le geometrie; la statistica degli addetti), 3 **già a
+posto** (il verbale, i volumi estratti e residui, la cadenza annuale).
