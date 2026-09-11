@@ -5051,3 +5051,64 @@ export function calendarioAmbiente(adempimenti, monitoraggi, programma, oggi = n
   const r = icsCalendario(eventi, { app: "Sentinella", adesso, nome: "Ambiente: adempimenti, tarature, misure (Sentinella)", esempio: avvisoEsempio });
   return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, fuori };
 }
+
+// ============================================================
+// LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO — 11/09, dalla ricerca a
+// rotazione. Lo stato vuoto del registro prometteva «con accanto le misure
+// di quel giorno» e nessuna funzione le metteva: nella dimostrazione il
+// reclamo x1 le portava scritte A MANO nel campo «azione». Qui la domanda
+// si risponde con i dati: dato un reclamo, le letture registrate QUEL
+// GIORNO sui punti che misurano la stessa grandezza (rumore → rumore,
+// polvere → polveri, vibrazione → vibrazioni e airblast, acque → acque;
+// «altro» guarda tutti i punti), prima quelli collegati al ricettore del
+// reclamo. Il verdetto sulla soglia lo dà `statoMisura` — la stessa regola
+// dei badge, non una copia — applicata al valore più alto del giorno.
+// ⛔ L'ASSENZA DELLA MISURA NON È UN RECLAMO INFONDATO: un punto senza
+// letture quel giorno risponde «nessuna lettura», che non è né sotto né
+// sopra soglia, e la frase lo dice così.
+export const GRANDEZZA_RECLAMO = {
+  rumore: ["rumore"], polvere: ["polveri"], vibrazione: ["vibrazioni", "airblast"], acque: ["acque"],
+};
+const VERDETTI_GIORNO = {
+  superamento: "superamento della soglia", attenzione: "vicino alla soglia", conforme: "sotto soglia",
+  "senza-soglia": "senza una soglia da confrontare",
+};
+export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore) {
+  const r = reclamo || {};
+  const data = String(r.data || "").slice(0, 10);
+  const chiave = String(r.tipo || "").toLowerCase();
+  const tipi = GRANDEZZA_RECLAMO[chiave] || null;
+  const grandezza = etichettaReclamo(chiave).toLowerCase();
+  const out = { data: dataISOEsiste(data) ? data : null, tipi, punti: [], conLettura: 0, senzaLettura: 0, peggiore: null, frase: "" };
+  if (!out.data) { out.frase = "Reclamo senza una data: la misura di quel giorno non si può cercare."; return out; }
+  const ricId = (ricettore && ricettore.id) || r.ricettoreId || null;
+  const candidati = (monitoraggi || []).filter(m => m && (!tipi || tipi.includes(String(m.tipo || "").toLowerCase())));
+  for (const m of candidati) {
+    const del = lettureLeggibili(m).filter(l => l.data === data);
+    const max = del.length ? Math.max(...del.map(l => l.valore)) : null;
+    const st = max == null ? null : statoMisura({ valore: max, soglia: m.soglia, letture: del });
+    const quando = del.length ? del.reduce((a, l) => (l.valore === max ? l : a), del[0]).ora : "";
+    out.punti.push({ id: m.id, nome: m.nome || "Punto di misura", tipo: String(m.tipo || "").toLowerCase(), unita: unitaMisura(m),
+      soglia: sogliaValida(m.soglia) ? +m.soglia : null, delRicettore: !!ricId && m.ricettoreId === ricId,
+      letture: del.map(l => ({ ora: l.ora, valore: l.valore })), max, ora: quando,
+      verdetto: st ? st.stato : "nessuna-lettura", cls: st ? st.cls : "warn", ratio: st ? st.ratio : null });
+  }
+  const rango = { superamento: 0, attenzione: 1, conforme: 2, "senza-soglia": 3, "nessuna-lettura": 4 };
+  out.punti.sort((a, b) => (b.delRicettore - a.delRicettore) || (rango[a.verdetto] - rango[b.verdetto]) || String(a.nome).localeCompare(String(b.nome), "it"));
+  out.conLettura = out.punti.filter(p => p.max != null).length;
+  out.senzaLettura = out.punti.length - out.conLettura;
+  out.peggiore = out.punti.filter(p => p.ratio != null).sort((a, b) => b.ratio - a.ratio)[0] || null;
+  const nomi = (l) => l.map(p => p.nome).join(", ");
+  if (!out.punti.length) {
+    out.frase = tipi ? "Nessun punto di misura per " + grandezza + ": la misura di quel giorno non esiste." : "Nessun punto di misura registrato.";
+  } else if (!out.conLettura) {
+    out.frase = "Quel giorno nessuna lettura sui punti di " + grandezza + " (" + nomi(out.punti) + "): non si può dire né sotto né sopra soglia.";
+  } else {
+    const con = out.punti.filter(p => p.max != null).map(p =>
+      p.nome + ": " + numeroIt(p.max) + (p.unita ? " " + p.unita : "") + (p.ora ? " alle " + p.ora : "") + " — " + VERDETTI_GIORNO[p.verdetto]
+      + (p.soglia != null ? " (soglia " + numeroIt(p.soglia) + ")" : ""));
+    const senza = out.punti.filter(p => p.max == null);
+    out.frase = "Quel giorno: " + con.join("; ") + (senza.length ? "; nessuna lettura su " + nomi(senza) : "") + ".";
+  }
+  return out;
+}

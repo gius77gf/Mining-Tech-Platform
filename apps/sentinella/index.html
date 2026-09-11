@@ -388,11 +388,21 @@ body.dw.outdoor-mode .peggio-num small{
    report partirà sul periodo giusto. Lo scatto lo mostrava, il codice no.
    Qui non c'è nessun `clamp`: le date si leggono sempre, e a 320 px vanno a
    capo invece di sparire. */
-.ade-per{
+.ade-per, .rec-misure{
   font-size:11px; line-height:1.35; margin-top:2px; color:var(--muted2);
   font-variant-numeric:tabular-nums; overflow-wrap:anywhere;
 }
 .ade-per.ignoto{color:var(--muted)}
+/* le misure di quel giorno accanto al reclamo (11/09): stessa riga senza
+   taglio del periodo coperto, perché è il dato che l'ente chiede per primo;
+   il colore segue il verdetto del punto peggiore, e «nessuna lettura» resta
+   neutro — l'assenza della misura non è un reclamo infondato.
+   ⛔ `--ink-dg` e non `--danger`: la prima stesura usava `--danger`, che i
+   temi chiaro e sole NON re-inchiostrano, e il banco del contrasto ha
+   misurato 3,24:1 su bianco. `--ink-*` è «lo stato quando fa da inchiostro»
+   (4,86:1 nel chiaro, misurato sopra) ed esiste apposta. */
+.rec-misure.danger{color:var(--ink-dg)}
+.rec-misure.warn{color:var(--ink-wr)}
 .arr{
   color:var(--muted); font-size:15px; line-height:1; background:none; border:none;
   padding:0; min-width:var(--tap); min-height:var(--tap); border-radius:8px;
@@ -1851,7 +1861,7 @@ textarea.dw-input{
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
-           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, firmaLettura,
+           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, misureDelGiornoPerReclamo, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
@@ -2517,11 +2527,15 @@ textarea.dw-input{
       .map(x => {
         const aperto = x.stato !== "chiuso";
         const ric = trovaRicettore(RIC, x.ricettoreId);
+        // le misure di quel giorno le decide il modulo (11/09): la promessa
+        // dello stato vuoto qui sotto, mantenuta con i dati
+        const mis = misureDelGiornoPerReclamo(x, MON, ric);
         return `<div class="item ${aperto ? "st-warn" : "st-ok"}">
         <div class="avatar ${aperto ? "warn" : "ok"}">${I.voce}</div>
         <div class="info"><div class="name">${esc(etichettaReclamo(x.tipo))}${ric ? " · " + esc(ric.nome) : ""}</div>
         <div class="riga"><span class="badge ${aperto ? "warn" : "ok"}">${aperto ? "Aperto" : "Chiuso"}</span>
-        <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}</span></div></div>
+        <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}</span></div>
+        <div class="rec-misure${mis.peggiore ? " " + mis.peggiore.cls : ""}">${esc(mis.frase)}</div></div>
         <span class="acts">
         <button type="button" class="arr" title="${aperto ? "Segna come chiuso" : "Riapri il reclamo"}" aria-label="${aperto ? "Segna come chiuso" : "Riapri"} il reclamo del ${fmtD(x.data)}" data-rec-stato="${x.id}">${I.fatto}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi il reclamo del ${fmtD(x.data)}" data-del-rec="${x.id}">${I.cestino}</button></span></div>`;

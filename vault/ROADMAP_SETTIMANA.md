@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO`
 - `SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
@@ -7844,8 +7843,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.338 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2857, `run-stile` 328,
+  **3.339 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2858, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -8963,8 +8962,29 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       dare nessun errore**. `clip` taglia allo stesso modo — che era la
       ragione misurata per cui quella riga esiste — e non crea il
       contenitore.
-- [ ] **SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO (dalla
-  ricerca a rotazione dell'11/09, delta dal meccanismo).** Lo stato vuoto del
+- [x] **SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO (dalla
+  ricerca a rotazione dell'11/09, delta dal meccanismo) — FATTA lo stesso
+  giorno:** `misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore)` in
+  `sentinella-data.js` (i punti della stessa grandezza — rumore, polveri,
+  vibrazioni+airblast, acque; «altro» tutti — prima quelli del ricettore; il
+  verdetto sul valore più alto del giorno lo dà `statoMisura`, la regola dei
+  badge, non una copia; «nessuna lettura» non è un verdetto), e la riga
+  `.rec-misure` sotto ogni reclamo in `renderReclami`, senza taglio come il
+  periodo coperto degli adempimenti, colorata col verdetto del punto
+  peggiore. ⚠️ E la dimostrazione dice una cosa che il campo «azione» scritto
+  a mano non diceva: il reclamo `x1` (vibrazione del 17/07 a Casa Bianchi)
+  cita «V1 1,8 mm/s sotto soglia» — la lettura del **12/07** — mentre quel
+  giorno V1 non ha letture e **V2 al confine Nord ha letto 5,6 mm/s alle
+  10:25, un superamento, cinque minuti prima della telefonata**. È esattamente
+  il caso per cui la funzione esiste. `x2` (polvere del 20/07): nessuna
+  lettura quel giorno su p1 e pv1, e la riga lo dice senza giudicare. ⛔ E il
+  banco del contrasto ha bocciato la prima stesura della riga: `color:
+  var(--danger)` sul bianco dei temi chiaro e sole fa **3,24:1** (quei temi
+  re-inchiostrano `--ink-*`, non `--danger`); con `--ink-dg` / `--ink-wr` —
+  «lo stato quando fa da inchiostro», 4,86:1 misurato — 468 testi, 0 sotto
+  soglia in tutt'e tre i temi. Prove: run-kpi +1 (2858), copertura Sentinella
+  171 → **173** (con la mappa `GRANDEZZA_RECLAMO`), 946/946; scatto guardato.
+  *(Voce originale:)* Lo stato vuoto del
   registro promette «con accanto le misure di quel giorno» e nessuna funzione
   le mette (`grep -cE 'lettureDelGiorno|misureDelGiorno'` → 0 e 0); nella
   dimostrazione il reclamo `x1` porta la misura scritta A MANO nel campo

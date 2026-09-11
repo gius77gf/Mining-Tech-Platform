@@ -25525,6 +25525,43 @@ console.log("\n— Campo: i file che escono —");
     ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
     eq(terra.calendarioTerra(D.scadenze, D.autorizzazioni, oggi, "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
   });
+  test("⛔ Sentinella · misureDelGiornoPerReclamo: le letture di QUEL giorno sui punti della stessa grandezza, col verdetto dei badge; nessuna lettura non è «infondato»", () => {
+    const D = sentinella.DEMO;
+    const ric = (id) => D.ricettori.find((r) => r.id === id);
+    // x1: vibrazione del 17/07 a Casa Bianchi. V1 (il punto del ricettore) quel
+    // giorno non ha letture; V2 (confine Nord) ha letto 5,6 mm/s alle 10:25 —
+    // un superamento, cinque minuti prima della telefonata. Il campo «azione»
+    // scritto a mano cita la lettura di V1 del 12/07: la funzione dice di più.
+    const a = sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, ric("rc1"));
+    eq(a.data, "2026-07-17"); eq(a.tipi, ["vibrazioni", "airblast"]);
+    eq(a.punti.map((p) => p.id), ["v1", "v2"], "solo i punti di vibrazione, prima quello del ricettore");
+    eq([a.conLettura, a.senzaLettura], [1, 1]);
+    eq(a.punti[0].verdetto, "nessuna-lettura"); eq(a.punti[1].verdetto, "superamento"); eq(a.punti[1].max, 5.6); eq(a.punti[1].ora, "10:25");
+    eq(a.peggiore.id, "v2");
+    eq(a.frase, "Quel giorno: Vibrazioni V2 — confine Nord: 5,6 mm/s alle 10:25 — superamento della soglia (soglia 5); nessuna lettura su Vibrazioni V1 — abitato Sud.");
+    // x2: polvere del 20/07 alla scuola: p1 legge il 19 e il 26, non il 20; pv1 comincia il 22
+    const b = sentinella.misureDelGiornoPerReclamo(D.reclami[1], D.monitoraggi, ric("rc3"));
+    eq([b.conLettura, b.senzaLettura, b.peggiore], [0, 2, null]);
+    ok(b.frase.startsWith("Quel giorno nessuna lettura sui punti di polvere (") && b.frase.endsWith("): non si può dire né sotto né sopra soglia."), "l'assenza della misura non è un verdetto");
+    // il verdetto è quello di statoMisura: 0,9 della soglia è «vicino», sotto è «sotto»
+    // (64 su 70 sarebbe già «vicino»: il 90% di 70 è 63 — la prima stesura di
+    // questa prova lo chiamava «sotto», e la regola dei badge l'ha corretta)
+    const mon = [{ id: "q", nome: "Q", tipo: "rumore", soglia: 70, letture: [{ data: "2026-08-01", ora: "09:00", valore: 58 }, { data: "2026-08-01", ora: "15:00", valore: 61 }] }];
+    const c = sentinella.misureDelGiornoPerReclamo({ tipo: "rumore", data: "2026-08-01" }, mon, null);
+    eq(c.punti[0].max, 61); eq(c.punti[0].ora, "15:00", "l'ora è quella della lettura più alta"); eq(c.punti[0].verdetto, "conforme");
+    ok(c.frase.includes("Q: 61 dB(A) alle 15:00 — sotto soglia (soglia 70)"), "l'unità viene dal tipo quando il punto non la scrive");
+    eq(sentinella.GRANDEZZA_RECLAMO, { rumore: ["rumore"], polvere: ["polveri"], vibrazione: ["vibrazioni", "airblast"], acque: ["acque"] }, "la mappa reclamo → grandezza, senza «altro» (che guarda tutto)");
+    eq(sentinella.misureDelGiornoPerReclamo({ tipo: "rumore", data: "2026-08-01" }, [{ ...mon[0], letture: [{ data: "2026-08-01", valore: 63 }] }], null).punti[0].verdetto, "attenzione", "63 su 70 è oltre il 90%: «vicino alla soglia», la stessa regola dei badge");
+    // senza soglia: né sotto né sopra
+    const d = sentinella.misureDelGiornoPerReclamo({ tipo: "polvere", data: "2026-07-22" }, D.monitoraggi, null);
+    const pv = d.punti.find((p) => p.id === "pv1");
+    eq([pv.verdetto, pv.soglia], ["senza-soglia", null]); ok(d.frase.includes("senza una soglia da confrontare"), "un punto senza soglia lo dice, non giudica");
+    // «altro» guarda tutti i punti; una grandezza senza punti lo dice; senza data non cerca
+    eq(sentinella.misureDelGiornoPerReclamo({ tipo: "altro", data: "2026-07-17" }, D.monitoraggi, null).punti.length, D.monitoraggi.length);
+    eq(sentinella.misureDelGiornoPerReclamo({ tipo: "acque", data: "2026-07-17" }, D.monitoraggi.filter((m) => m.tipo !== "acque"), null).frase, "Nessun punto di misura per acque: la misura di quel giorno non esiste.");
+    eq(sentinella.misureDelGiornoPerReclamo({ tipo: "rumore", data: "2026-02-30" }, D.monitoraggi, null).frase, "Reclamo senza una data: la misura di quel giorno non si può cercare.");
+    eq(sentinella.misureDelGiornoPerReclamo(null, D.monitoraggi, null).data, null);
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
