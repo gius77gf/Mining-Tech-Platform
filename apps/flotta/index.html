@@ -1012,6 +1012,7 @@ body.dw b.bad{color:var(--ink-dg)}
     </div>
     <div class="frow">
       <select class="dw-input" id="man-piano" title="Piano ricorrente: alla chiusura l'app pianifica da sola il prossimo" style="flex:2 1 190px;"></select>
+      <input class="dw-input" id="man-piano-mesi" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="e anche ogni N mesi (facoltativo)" title="Il piano dei libretti è «ogni tot ore O tot mesi, quello che arriva prima»: con un piano a ore scelto qui accanto, scrivi qui i mesi e il prossimo tagliando nascerà con tutt'e due le scadenze" style="flex:1 1 150px;">
       <select class="dw-input" id="man-ricambio" title="Ricambio consumato (facoltativo)" style="flex:2 1 190px;"><option value="">— nessun ricambio —</option></select>
       <button class="dw-btn" id="btn-man">Pianifica</button>
     </div>
@@ -1360,7 +1361,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -1470,6 +1471,17 @@ body.dw b.bad{color:var(--ink-dg)}
   const urgTagliando = (n, m) => m
     ? urgenzaTagliando(n, m.ore, azzeramentiDelMezzo(RIF, n.mezzo))
     : { cls: "", label: "a " + numTx(n.orePreviste) + " h", mancano: null, calcolabile: true, perche: "" };
+  /* QUANDO cade una manutenzione e con che PIANO si ripete (11/09): due frasi
+     che stavano in tre punti della pagina, adesso in uno — così «il primo dei
+     due» (ore E data) si legge uguale nella lista, nella scheda del mezzo e
+     nell'ordine di lavoro. `grassetto` è per i fogli che lo vogliono. */
+  const quandoTx = (n, grassetto) => n.orePreviste && n.dataPrevista
+    ? "a " + oreMotoreTx(n.orePreviste, grassetto) + " o entro il " + (grassetto ? "<b>" + dataIt(n.dataPrevista) + "</b>" : dataIt(n.dataPrevista)) + ", il primo dei due"
+    : n.orePreviste ? "a " + oreMotoreTx(n.orePreviste, grassetto)
+    : n.dataPrevista ? "previsto per il " + (grassetto ? "<b>" + dataIt(n.dataPrevista) + "</b>" : dataIt(n.dataPrevista))
+    : "senza scadenza";
+  const pianoTx = (n, verbo = " · piano: ") => n.ogniOre && n.ogniMesi ? verbo + "ogni " + numTx(n.ogniOre) + " h o " + ogniMesiTx(n.ogniMesi) + ", il primo dei due"
+    : n.ogniOre ? verbo + "ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? verbo + ogniMesiTx(n.ogniMesi) : "";
   // la coda per i FILE che escono (CSV del programma, libretto): quando il
   // tagliando non parla del contatore attuale, il foglio lo dice — chi lo
   // legge confronta quelle ore col contaore della macchina, e sbaglierebbe
@@ -1973,10 +1985,11 @@ body.dw b.bad{color:var(--ink-dg)}
 
     // Urgenza per riga di manutenzione (badge nella lista Manutenzioni): a ore
     // motore usa il contatore del mezzo, altrimenti la data prevista.
-    const urgDi = (n) => {
-      if (n.orePreviste) return urgTagliando(n, MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo));
-      return urgenza(n.dataPrevista);
-    };
+    /* «il primo dei due» (11/09): a ore, a data, o la peggiore delle due —
+       decide `urgenzaManutenzione` nel modulo, lo stesso posto per la lista,
+       la scheda del mezzo, gli ordini e il Quadro */
+    const urgDi = (n) => { const m = MEZ.find(x => x.nome.split(" — ")[0] === n.mezzo);
+      return urgenzaManutenzione(n, m ? m.ore : null, azzeramentiDelMezzo(RIF, n.mezzo)); };
 
     // Priorità operative del giorno: manutenzioni urgenti (a data e a ore) +
     // ricambi sotto scorta + mezzi fermi/in verifica, ordinate danger-first.
@@ -2332,7 +2345,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("man-list").innerHTML = manFiltrate.map(n => {
       const u = urgDi(n);
       const ricN = n.ricambioId ? (RIC.find(r => r.id === n.ricambioId) || null) : null;
-      const ritmo = n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : "";
+      const ritmo = pianoTx(n);
       const so = statoOrdine(n);
       const q = costoOrdine(ordineDaManutenzione(n, RIC));
       const quando = stimaGiorni(n);
@@ -3565,7 +3578,7 @@ body.dw b.bad{color:var(--ink-dg)}
         <div class="sch-sotto"><span class="badge ${so.cls}">${so.etichetta}</span>
           <span class="badge ${u.cls}">${ggU(esc(u.label))}</span>
           ${esc(nomeBreve(n.mezzo) || "senza mezzo")}${m ? " · " + oreMotoreTx(m.ore, grassetto) : " · mezzo non più nel parco"}</div>
-        <div class="sch-sotto">${n.orePreviste ? "Tagliando a " + oreMotoreTx(n.orePreviste, grassetto) : "Previsto per il <b>" + dataIt(n.dataPrevista) + "</b>"}${n.ogniOre ? " · si ripete ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · si ripete " + ogniMesiTx(n.ogniMesi) : ""}${n.nota ? " · " + esc(n.nota) : ""}</div>
+        <div class="sch-sotto">${(n.orePreviste ? "Tagliando " : "") + quandoTx(n, grassetto).replace(/^previsto/, "Previsto")}${pianoTx(n, " · si ripete ")}${n.nota ? " · " + esc(n.nota) : ""}</div>
       </div></div>${contatoreHtml}`;
     $("odl-stati").innerHTML = STATI_ORDINE.map(s =>
       `<button class="chg${s.chiave === so.chiave ? " active" : ""}" data-odl-stato="${s.chiave}">${s.etichetta}</button>`).join("");
@@ -3642,10 +3655,8 @@ body.dw b.bad{color:var(--ink-dg)}
   }
 
   // urgenza di un ordine (a ore motore oppure a data): la stessa della lista
-  const urgDiOrdine = (n) => {
-    if (n.orePreviste) return urgTagliando(n, MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo)));
-    return urgenza(n.dataPrevista);
-  };
+  const urgDiOrdine = (n) => { const m = MEZ.find(x => nomeBreve(x.nome) === nomeBreve(n.mezzo));
+    return urgenzaManutenzione(n, m ? m.ore : null, azzeramentiDelMezzo(RIF, n.mezzo)); };
 
   // RISCRIVERE SUL CONTATORE NUOVO un tagliando scritto sul vecchio (04/09).
   // La proposta è `propostaRiscrittura` (previste − oreVecchie + oreNuove),
@@ -3791,7 +3802,9 @@ body.dw b.bad{color:var(--ink-dg)}
     const oreMezzo = mezzoDi && Number.isFinite(+mezzoDi.ore) && mezzoDi.ore != null
       ? +mezzoDi.ore : NaN;
     const px = prossimoTagliando(n, oreMezzo, oggiISO());
-    if (px && px.da === "ore") {
+    /* «il primo dei due» (11/09): con tutt'e due i passi si chiedono le ore
+       E la data, e il prossimo nasce con tutt'e due le scadenze */
+    if (px && (px.da === "ore" || px.da === "entrambi")) {
       const nx = await chiediNumero("Il prossimo tagliando",
         `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${numTx(px.ogniOre)} ${plurale(px.ogniOre,'ora','ore')}</b>.<br>
          Il contatore segna adesso <b>${numTx(px.oreBase)} ${plurale(px.oreBase,'ora','ore')}</b>: il prossimo cade a
@@ -3805,17 +3818,30 @@ body.dw b.bad{color:var(--ink-dg)}
         { id: "ore", cosa: "le ore del prossimo tagliando", seVuoto: null, opts: { positivo: true, decimali: 1, unita: "h" } });
       if (nx && nx.ore != null) {
         const ore = nx.ore;
+        let dataE = null;
+        if (ore > 0 && px.da === "entrambi") {
+          const nd = await chiediDati("Il prossimo tagliando — la data",
+            `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete anche <b>${ogniMesiTx(px.ogniMesi)}</b>: vale il primo dei due.<br>
+             Fatto oggi, per data il prossimo cade il <b>${dataIt(px.dataPrevista)}</b>. Confermalo, correggilo,
+             oppure <b>svuota il campo</b> per tenere le sole ore.`,
+            [{ id: "data", label: "Data del prossimo", tipo: "date", valore: px.dataPrevista,
+               aiuto: "Vuoto = il prossimo tagliando resta solo a ore motore." }],
+            "Pianifica");
+          const iso = nd ? String(nd.data || "").slice(0, 10) : "";
+          if (iso && !dataISOEsiste(iso)) { toast("La data non è valida: il prossimo resta solo a ore motore.", "err"); }
+          else if (iso) dataE = iso;
+        }
         if (ore > 0) {
-          await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: null,
-            orePreviste: ore, scrittaIl: px.scrittaIl, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: null,
+          await db.aggiungi("manutenzioni", { titolo: px.titolo, mezzo: px.mezzo, dataPrevista: dataE,
+            orePreviste: ore, scrittaIl: px.scrittaIl, ricambioId: px.ricambioId, ogniOre: px.ogniOre, ogniMesi: dataE ? px.ogniMesi : null,
             piano: px.piano, origine: "piano", nota: null, stato: "da-fare",
             manodopera: [], ricambiUsati: [], altreSpese: 0, noteLavoro: "" });
-          toast("Prossimo « " + px.titolo + " » pianificato a " + conta(ore, "ora", "ore") + ".", "success");
+          toast("Prossimo « " + px.titolo + " » pianificato a " + conta(ore, "ora", "ore") + (dataE ? " o entro il " + dataIt(dataE) + ", il primo dei due" : "") + ".", "success");
         }
       } else if (nx) toast("Piano chiuso: « " + px.titolo + " » non si ripete più.");
     } else if (px && px.da === "mesi") {
       const nx = await chiediDati("Il prossimo tagliando",
-        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniMesi} ${px.ogniMesi === 1 ? "mese" : "mesi"}</b>.<br>
+        `<b>${esc(n.titolo)} — ${esc(n.mezzo)}</b> si ripete <b>ogni ${px.ogniMesi} ${px.ogniMesi === 1 ? "mese" : "mesi"}</b>${px.oreIgnote ? " (e ogni " + numTx(px.ogniOre) + " h: ma le ore del contatore di questo mezzo non si conoscono, quindi resta la data)" : ""}.<br>
          Fatto oggi, il prossimo cade il <b>${dataIt(px.dataPrevista)}</b>. Confermalo, correggilo,
          oppure <b>svuota il campo</b> per chiudere qui il piano.`,
         [{ id: "data", label: "Data del prossimo", tipo: "date", valore: px.dataPrevista,
@@ -3917,11 +3943,11 @@ body.dw b.bad{color:var(--ink-dg)}
       || vuoto(I.bilancia, "Nessuna scadenza di legge", "Questa macchina non ha scadenze registrate: verifica periodica, funi e catene, revisione, assicurazione si aggiungono dalla schermata <b>Scadenze</b>.");
 
     $("sch-man").innerHTML = f.manutenzioni.map(n => {
-      const u = n.orePreviste ? urgTagliando(n, m) : urgenza(n.dataPrevista);
+      const u = urgenzaManutenzione(n, m ? m.ore : null, azzeramentiDelMezzo(RIF, n.mezzo));
       return `<div class="item statico ${striscia[u.cls] || "st-accent"}">
         <div class="avatar">${icoOrigine(n.origine) || I.chiave}</div>
         <div class="info"><div class="name">${esc(n.titolo)}</div>
-          <div class="meta">${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}${n.ogniOre ? " · piano: ogni " + numTx(n.ogniOre) + " h" : n.ogniMesi ? " · piano: " + ogniMesiTx(n.ogniMesi) : ""}</div>${u.calcolabile === false ? `<div class="meta norma">${I.tachi}Non confrontabile col contatore attuale: ${esc(u.perche)}. Si riscrive dall'ordine di lavoro, in Officina.</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
+          <div class="meta">${quandoTx(n, false)}${pianoTx(n)}</div>${u.calcolabile === false ? `<div class="meta norma">${I.tachi}Non confrontabile col contatore attuale: ${esc(u.perche)}. Si riscrive dall'ordine di lavoro, in Officina.</div>` : ""}${n.nota ? `<div class="meta norma">${esc(n.nota)}</div>` : ""}</div>
         <span class="badge ${u.cls}">${ggU(esc(u.label))}</span></div>`;
     }).join("")
       || vuoto(I.chiave, "Niente in programma", "Nessun tagliando pianificato su questa macchina. Si pianifica dalla schermata <b>Officina</b>, a data oppure a ore motore.");
@@ -4678,7 +4704,12 @@ body.dw b.bad{color:var(--ink-dg)}
     const pv = $("man-piano").value;
     const pianoOre = pv.startsWith("o") ? pianoTagliando(pv.slice(1)) : null;
     const ogniOre = pianoOre ? pianoOre.ogniOre : null;
-    const ogniMesi = pv.startsWith("m") ? (Math.round(+pv.slice(1)) || null) : null;
+    /* «il primo dei due» (11/09): un piano a ore può portare anche i mesi.
+       Un valore illeggibile nel campo dei mesi non diventa null in silenzio:
+       la riga si ferma e lo dice, come per le ore */
+    const rmm = leggiNumero("man-piano-mesi", "i mesi del piano", { intero: true, positivo: true, unita: "mesi", facoltativo: true }, "man-esito");
+    if (!rmm.ok && !rmm.vuoto) return;
+    const ogniMesi = rmm.ok ? rmm.valore : pv.startsWith("m") ? (Math.round(+pv.slice(1)) || null) : null;
     // `scrittaIl`: il giorno in cui il tagliando è scritto. È ciò che gli
     // permette, se un giorno il contatore del mezzo verrà sostituito, di dire
     // su quale contatore sono le sue ore (04/09).
@@ -4687,8 +4718,8 @@ body.dw b.bad{color:var(--ink-dg)}
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
       + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + oreMotoreTx(orePreviste))
-      + (ogniOre ? ", e si ripete ogni " + plurale(ogniOre, "ora", numTx(ogniOre) + " ore") : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
-    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = "";
+      + (ogniOre && ogniMesi ? ", e si ripete ogni " + numTx(ogniOre) + " ore o " + ogniMesiTx(ogniMesi) + ", il primo dei due" : ogniOre ? ", e si ripete ogni " + plurale(ogniOre, "ora", numTx(ogniOre) + " ore") : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
+    $("man-titolo").value = ""; $("man-data").value = ""; $("man-ore").value = ""; $("man-ricambio").value = ""; $("man-piano").value = ""; $("man-piano-mesi").value = "";
     fuoco("man-titolo"); await refresh();
   };
 

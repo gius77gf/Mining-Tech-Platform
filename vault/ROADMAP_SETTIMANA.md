@@ -665,6 +665,26 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **FLOTTA — «IL PRIMO DEI DUE» (11/09):** `prossimoTagliando` con ore
+  E mesi scrive tutt'e due le scadenze (`da: "entrambi"`), e con le ore del
+  contatore ignote resta la data dichiarando `oreIgnote` — prima rispondeva
+  `null`, cioè un tagliando che sapeva ancora quando cadere per data non
+  veniva ripianificato (misurato prima di scrivere). `urgenzaManutenzione(n,
+  ore, azzeramenti, oggi)` nel modulo è il posto UNICO della decisione — a
+  ore, a data, o la PEGGIORE delle due con `via` e `altra` — e sostituisce
+  la regola «se ha le ore comandano le ore» scritta in tre punti della pagina
+  (lista, ordini, scheda del mezzo) e in `prioritaOperative`, dove un mezzo
+  senza contatore faceva SPARIRE la riga anche con una data fra quattro
+  giorni. `tagliandiInScadenza` con tutt'e due valuta prima la data, così le
+  ore non stimabili non mandano fra i «da stimare» un tagliando che per data
+  si colloca; con entrambe stimabili entra la prima (`anche` dice l'altra).
+  Pagina: `quandoTx`/`pianoTx` (una frase in un posto per lista, ordine e
+  scheda: «a 6.370 h o entro il 11/09/2027, il primo dei due»), la chiusura
+  con `entrambi` chiede le ore E la data (vuota = solo ore), il form ha «e
+  anche ogni N mesi» accanto al piano a ore (intero, facoltativo, illeggibile
+  → la riga si ferma e lo dice). Prove: run-kpi +4 (2850) nei tre versi per
+  `prossimoTagliando`, la peggiore delle due, il contatore ignoto con data,
+  la data oltre l'orizzonte che NON copre le ore non stimabili, le priorità.
 - [x] **RICERCA A ROTAZIONE, FLOTTA — I PIANI A CHILOMETRI E LA REGOLA «IL
   PRIMO DEI DUE» (11/09):** metà sul mondo con `WebSearch` (fonti citate,
   seconda mano dichiarata): i gestionali di flotta tengono piani per km, ore
@@ -678,8 +698,9 @@
   non c'è, ed è del mestiere di Flotta com'è: **prossima unità**. Riga
   «Piani a km» di CONCORRENTI_FLOTTA aggiornata con il delta (verdetto
   invariato, il conto B4 non cambia).
-- [ ] **FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade
-  alla prima delle due** (dalla ricerca dell'11/09). `prossimoTagliando`
+- [x] **FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade
+  alla prima delle due** (dalla ricerca dell'11/09). ✅ **Fatto l'11/09**
+  (stesso giorno): vedi la voce qui sotto. Il piano originale diceva: `prossimoTagliando`
   con tutt'e due i passi scrive tutt'e due le scadenze (ore previste e data
   prevista, `da: "entrambi"`); l'urgenza è la peggiore fra `urgenzaTagliando`
   (ore) e quella per data; la frase della lista e della finestra lo dice
@@ -2712,7 +2733,6 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
-- `FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade alla prima delle due` *(11/09, dalla ricerca)*
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
@@ -7667,8 +7687,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.327 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2846, `run-stile` 328,
+  **3.331 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2850, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

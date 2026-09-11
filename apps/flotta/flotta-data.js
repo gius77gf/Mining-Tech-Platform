@@ -1393,9 +1393,21 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
     oreContatore((mezzi || []).find(x => String(x.nome || "").split(" — ")[0] === nomeMezzo));
   for (const n of manutenzioni || []) {
     let u, dettaglio;
-    if (n.orePreviste) {
-      const ore = oreDi(n.mezzo);
-      if (ore == null) continue;                 // mezzo non trovato: non calcolabile
+    /* «il primo dei due» (11/09): con ore E data decide la peggiore, e se il
+       contatore non si legge resta la data invece di saltare la riga */
+    const oreN = n.orePreviste ? oreDi(n.mezzo) : null;
+    if (n.orePreviste && n.dataPrevista && oreN != null) {
+      u = urgenzaManutenzione(n, oreN, azzeramentiDelMezzo(letture, n.mezzo), oggi);
+      if (u.via === "ore" && !u.calcolabile) {
+        items.push({ gravita: "warn", categoria: "manutenzione", origine: n.origine || null,
+          titolo: (n.titolo || "Manutenzione") + " — " + (n.mezzo || "?"),
+          dettaglio: "a " + mostra(n.orePreviste, 1) + " h motore, " + u.perche + ": da riscrivere sul contatore nuovo",
+          badge: u.label });
+        continue;
+      }
+      dettaglio = "a " + mostra(n.orePreviste, 1) + " h motore o entro il " + dataIt(n.dataPrevista) + ", il primo dei due";
+    } else if (n.orePreviste && oreN != null) {
+      const ore = oreN;
       u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, n.mezzo));
       if (!u.calcolabile) {
         // non è «a posto» e non è un numero: è una cosa da fare, e il Quadro
@@ -1411,6 +1423,7 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       // schermata dell'app, accanto a numeri con la virgola
       dettaglio = "a " + mostra(n.orePreviste, 1) + " h motore";
     } else if (n.dataPrevista) {
+      // anche il tagliando a ore col contatore ignoto, se ha una data
       u = urgenza(n.dataPrevista, oggi);
       /* ⛔ `dataIt`, NON `split("-").reverse()`. La copia di casa scriveva
          «30/02/2026» come una data qualunque e «boh» come «boh»: guardava
@@ -2519,6 +2532,26 @@ export function prossimoTagliando(man, oreAttuali, dataChiusura) {
     origine: "piano",
     nota: m.nota || null,
   };
+  /* ⛔ «IL PRIMO DEI DUE» (11/09). I libretti dicono «ogni 500 h O 12 mesi,
+     quello che arriva prima»; fino a qui un piano con tutt'e due i passi
+     prendeva le ore e IGNORAVA i mesi («due modi, mai insieme»), e con le ore
+     del contatore ignote rispondeva `null` — cioè un tagliando che sapeva
+     ancora quando cadere per data non veniva ripianificato. Adesso con tutt'e
+     due i passi nascono tutt'e due le scadenze (`da: "entrambi"`), e chi le
+     legge (`urgenzaManutenzione`, `tagliandiInScadenza`) prende la prima;
+     con le ore ignote resta la data, dichiarando `oreIgnote`. I due modi da
+     soli sono identici a prima. Ricerca: RICERCA_CONTINUA_FLOTTA, 11/09. */
+  if (ogniOre > 0 && ogniMesi > 0) {
+    const data = aggiungiMesi(dataChiusura, ogniMesi);
+    const oreOk = !(oreAttuali == null || oreAttuali === "");
+    const ore = oreOk ? Math.round(+oreAttuali * 10) / 10 : NaN;
+    if (Number.isFinite(ore) && ore >= 0) {
+      if (!data) return { ...base, orePreviste: ore + ogniOre, dataPrevista: null, da: "ore", oreBase: ore, scrittaIl: isoGiorno(dataChiusura) };
+      return { ...base, orePreviste: ore + ogniOre, dataPrevista: data, da: "entrambi", oreBase: ore, scrittaIl: isoGiorno(dataChiusura) };
+    }
+    if (!data) return null;
+    return { ...base, orePreviste: null, dataPrevista: data, da: "mesi", oreIgnote: true, scrittaIl: isoGiorno(dataChiusura) };
+  }
   if (ogniOre > 0) {
     // un decimo di ora, non un'ora intera: i contaore contano i decimi, e
     // arrotondare 5875,5 a 5876 farebbe scrivere nella finestra «il contatore
@@ -2704,6 +2737,34 @@ export function urgenzaTagliando(man, oreAttuali, azzeramenti) {
   const c = contatoreDelTagliando(man, azzeramenti);
   if (!c.calcolabile) return { cls: "", label: "non confrontabile", mancano: null, oreNote: false, calcolabile: false, perche: c.perche, contatore: c };
   return { ...urgenzaOre(man && man.orePreviste, oreAttuali), calcolabile: true, perche: "", contatore: c };
+}
+
+/* L'URGENZA DI UNA MANUTENZIONE, qualunque sia il modo in cui è programmata
+   (11/09). A ore: `urgenzaTagliando` col contatore del mezzo (o «a N h» senza
+   colore se il contatore non si conosce); a data: `urgenza`; con TUTT'E DUE
+   — il «primo dei due» dei libretti — la PEGGIORE delle due, e `via` dice
+   quale ha deciso (`altra` porta l'altra, per chi vuole scriverle entrambe).
+   Senza né ore né data: nessun colore e «senza scadenza», non un «a ore»
+   inventato. È il posto UNICO da cui la lista, la scheda del mezzo, gli
+   ordini di lavoro e il Quadro leggono la decisione: prima era scritta in
+   tre punti della pagina e uno del modulo, tutti con «se ha le ore comandano
+   le ore». */
+const RANGO_URGENZA = { danger: 0, warn: 1, ok: 2, "": 3 };
+export function urgenzaManutenzione(n, oreAttuali, azzeramenti, oggi = new Date()) {
+  const m = n || {};
+  const aOre = +m.orePreviste > 0;
+  const d = isoGiorno(m.dataPrevista);
+  const uo = aOre ? { ...urgenzaTagliando(m, oreAttuali, azzeramenti), via: "ore" } : null;
+  const ud = d ? { ...urgenza(d, oggi), via: "data" } : null;
+  if (uo && ud) {
+    const ro = RANGO_URGENZA[uo.cls] ?? 3, rd = RANGO_URGENZA[ud.cls] ?? 3;
+    // a parità di colore vince chi ha DECISO di più: le ore, com'era
+    const prima = rd < ro ? ud : uo, dopo = prima === uo ? ud : uo;
+    return { ...prima, altra: dopo };
+  }
+  if (uo) return uo;
+  if (ud) return ud;
+  return { cls: "", label: "senza scadenza", giorni: null, mancano: null, via: null };
 }
 
 // La PROPOSTA per riscrivere sul contatore nuovo un tagliando scritto sul
@@ -4129,11 +4190,18 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
   for (const n of manutenzioni || []) {
     const mezzo = nomeBreve(n && n.mezzo);
     const base = { id: (n && n.id) || "", titolo: (n && n.titolo) || "Manutenzione", mezzo };
-    // Come in prioritaOperative e nella lista Manutenzioni: se un tagliando
-    // ha le ore, sono le ore a comandare. Un solo criterio in tutta l'app.
+    /* Un solo criterio in tutta l'app, ed è `urgenzaManutenzione`: a ore
+       comandano le ore, a data la data, con TUTT'E DUE la prima che arriva
+       (11/09). Qui la data si valuta PRIMA, così che se le ore non si possono
+       collocare (contatore ignoto, contatore sostituito) la data resti — un
+       tagliando che sa quando cadere per data non va fra i «da stimare». */
+    const dEntrambi = +(n && n.orePreviste) > 0 ? isoGiorno(n && n.dataPrevista) : null;
+    const gEntrambi = dEntrambi ? giorniTra(dEntrambi, oggi) : null;
+    const voceData = dEntrambi && gEntrambi <= oriz ? { ...base, via: "data", dataPrevista: dEntrambi, giorni: gEntrambi, scaduto: gEntrambi < 0, anche: "ore" } : null;
     if (+(n && n.orePreviste) > 0) {
       const m = mezzoDi(mezzo);
       const ore = oreContatore(m);
+      if (ore == null && voceData) { voci.push(voceData); continue; }
       if (ore == null) {
         /* DUE ASSENZE DIVERSE, DUE FRASI DIVERSE. Fino al 01/08 ce n'era una
            sola — «il mezzo non è nel parco» — e la si diceva anche del mezzo
@@ -4153,22 +4221,27 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
          un tagliando non confrontabile uscirebbe «scaduto». */
       const u = urgenzaTagliando(n, ore, azzeramentiDelMezzo(letture, mezzo));
       if (!u.calcolabile) {
+        if (voceData) { voci.push(voceData); continue; }
         daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null, perche: u.perche });
         continue;
       }
+      // la voce a ore, e — se c'è anche una data — la prima delle due
+      const conData = (v) => !voceData ? v : (voceData.giorni < v.giorni ? voceData : { ...v, anche: "data" });
       if (u.mancano <= 0) {                     // già oltre le ore: è da fare adesso
-        voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true });
+        voci.push(conData({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true }));
         continue;
       }
       const r = ritmoDelMezzo(ritmi, mezzo);
       const gg = previsioneGiorni(u.mancano, r ? r.oreGiorno : null);
       if (gg == null) {
+        if (voceData) { voci.push(voceData); continue; }
         daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano,
           perche: r ? r.perche : "di questo mezzo non c'è nessuna lettura del contatore con la sua data" });
         continue;
       }
-      if (gg <= oriz) voci.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano,
-        giorni: gg, scaduto: false, oreGiorno: r.oreGiorno });
+      if (gg <= oriz) voci.push(conData({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano,
+        giorni: gg, scaduto: false, oreGiorno: r.oreGiorno }));
+      else if (voceData) voci.push(voceData);
       continue;
     }
     const d = isoGiorno(n && n.dataPrevista);

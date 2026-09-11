@@ -36907,6 +36907,57 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(flotta.DEMO.manutenzioni.find(m => m.id === "n1").scrittaIl, "2026-07-10", "la dimostrazione: n1 porta la data del tagliando precedente");
     ok(flotta.DEMO.manutenzioni.filter(m => m.orePreviste && !m.scrittaIl).length >= 1, "e ne resta almeno uno SENZA, di proposito: l'archivio di prima che la data esistesse");
   });
+
+  /* ⛔ «IL PRIMO DEI DUE» (11/09, dalla ricerca a rotazione su Flotta). I
+     libretti dicono «ogni 500 h o 12 mesi, quello che arriva prima»; Flotta
+     sapeva fare ore OPPURE mesi, mai insieme, e con le ore ignote un piano
+     con tutt'e due i passi rispondeva null. Misurato prima di scrivere. */
+  test("⛔ Flotta · prossimoTagliando con ore E mesi: nascono tutt'e due le scadenze, e con le ore ignote resta la data", () => {
+    const m = { titolo: "Tagliando 500 h", mezzo: "E1", ogniOre: 500, ogniMesi: 12 };
+    const px = flotta.prossimoTagliando(m, 5870, "2026-09-11");
+    eq([px.da, px.orePreviste, px.dataPrevista, px.oreBase, px.scrittaIl], ["entrambi", 6370, "2027-09-11", 5870, "2026-09-11"], "ore E data, il primo dei due");
+    const pi = flotta.prossimoTagliando(m, null, "2026-09-11");
+    eq([pi.da, pi.orePreviste, pi.dataPrevista, pi.oreIgnote], ["mesi", null, "2027-09-11", true], "⛔ contatore ignoto: prima era null (nessun tagliando), adesso la data — e lo dichiara");
+    eq(flotta.prossimoTagliando(m, "", "2026-09-11").da, "mesi", "campo vuoto come null");
+    eq(flotta.prossimoTagliando(m, 5870, "boh"), { ...flotta.prossimoTagliando({ ...m, ogniMesi: null }, 5870, "boh"), ogniMesi: 12 }, "con una data di chiusura illeggibile restano le sole ore, come il piano a ore");
+    eq(flotta.prossimoTagliando(m, null, "boh"), null, "né ore né data leggibili: null");
+    eq(flotta.prossimoTagliando({ ...m, ogniMesi: null }, 5870, "2026-09-11").da, "ore", "solo ore: com'era");
+    eq(flotta.prossimoTagliando({ ...m, ogniOre: null }, null, "2026-09-11").da, "mesi", "solo mesi: com'era");
+  });
+  test("⛔ Flotta · urgenzaManutenzione: a ore, a data, o la PEGGIORE delle due", () => {
+    const oggi = new Date("2026-09-11T10:00:00");
+    const n = { titolo: "T", mezzo: "E1", orePreviste: 6370, dataPrevista: "2026-09-20", scrittaIl: "2026-09-11" };
+    const u = flotta.urgenzaManutenzione(n, 6350, [], oggi);
+    eq([u.cls, u.label, u.via, u.altra.label], ["warn", "tra 20 h", "ore", "9 gg"], "a parità di colore decidono le ore, e l'altra si porta dietro");
+    const s = flotta.urgenzaManutenzione({ ...n, dataPrevista: "2026-09-01" }, 6000, [], oggi);
+    eq([s.cls, s.label, s.via, s.altra.cls], ["danger", "Scaduta", "data", "ok"], "⛔ data scaduta e ore lontane: comanda la data — prima le ore la nascondevano");
+    const o = flotta.urgenzaManutenzione({ ...n, dataPrevista: "2027-09-01" }, 6371, [], oggi);
+    eq([o.cls, o.via], ["danger", "ore"], "ore già superate e data lontana: comandano le ore");
+    eq(flotta.urgenzaManutenzione({ orePreviste: 6370 }, null, []).label, "a 6.370 h", "solo ore col contatore ignoto: nessun colore, «a N h»");
+    eq(flotta.urgenzaManutenzione({ dataPrevista: "2026-09-20" }, null, [], oggi).label, "9 gg", "solo data");
+    eq(flotta.urgenzaManutenzione({}, null, []), { cls: "", label: "senza scadenza", giorni: null, mancano: null, via: null }, "niente: senza scadenza, non «a ore»");
+  });
+  test("⛔ Flotta · tagliandiInScadenza con ore E data: entra la prima, e il contatore ignoto non la manda fra i «da stimare»", () => {
+    const oggi = new Date("2026-09-11T10:00:00"), mezzi = [{ nome: "Escavatore E1 — CAT", ore: 6000 }];
+    const t = flotta.tagliandiInScadenza([{ id: "a", titolo: "A", mezzo: "Escavatore E1", orePreviste: 6370, dataPrevista: "2026-09-20" }], mezzi, [], oggi, 30);
+    eq([t.totale, t.voci[0].via, t.voci[0].giorni, t.voci[0].anche, t.nonStimabili], [1, "data", 9, "ore", 0], "⛔ senza letture le ore non si stimano, ma la data c'è: entra per data (prima finiva fra i «da stimare»)");
+    const t2 = flotta.tagliandiInScadenza([{ id: "b", titolo: "B", mezzo: "Dumper D1", orePreviste: 9000, dataPrevista: "2026-09-25" }], [], [], oggi, 30);
+    eq([t2.totale, t2.voci[0].via, t2.nonStimabili], [1, "data", 0], "mezzo non nel parco ma con una data: entra per data");
+    const t3 = flotta.tagliandiInScadenza([{ id: "c", titolo: "C", mezzo: "Escavatore E1", orePreviste: 5900, dataPrevista: "2026-09-20" }], mezzi, [], oggi, 30);
+    eq([t3.voci[0].via, t3.voci[0].scaduto, t3.voci[0].giorni, t3.voci[0].anche], ["ore", true, 0, "data"], "ore già oltre e data fra 9 giorni: comandano le ore (giorni 0), e la data resta scritta accanto");
+    const t4 = flotta.tagliandiInScadenza([{ id: "d", titolo: "D", mezzo: "Escavatore E1", orePreviste: 6370, dataPrevista: "2027-09-20" }], mezzi, [], oggi, 30);
+    eq([t4.totale, t4.nonStimabili], [0, 1], "data oltre l'orizzonte e ore non stimabili: resta «da stimare» come prima, la data lontana non lo copre");
+  });
+  test("⛔ Flotta · prioritaOperative con ore E data: la peggiore, e il contatore ignoto non fa sparire la riga", () => {
+    const oggi = new Date("2026-09-11T10:00:00");
+    const mezzi = [{ nome: "Escavatore E1 — CAT", ore: 6000, stato: "operativo" }];
+    const p = flotta.prioritaOperative(mezzi, [{ titolo: "T", mezzo: "Escavatore E1", orePreviste: 6370, dataPrevista: "2026-09-01" }], [], oggi);
+    const r = p.find((x) => x.categoria === "manutenzione");
+    ok(r && r.gravita === "danger" && /il primo dei due/.test(r.dettaglio), "data scaduta e ore lontane: in rosso, col dettaglio che nomina tutt'e due — " + JSON.stringify(r));
+    const p2 = flotta.prioritaOperative([], [{ titolo: "T", mezzo: "Escavatore E1", orePreviste: 6370, dataPrevista: "2026-09-15" }], [], oggi);
+    const r2 = p2.find((x) => x.categoria === "manutenzione");
+    ok(r2 && r2.gravita === "warn" && /previsto/.test(r2.dettaglio), "⛔ mezzo fuori dal parco ma data fra 4 giorni: la riga c'è, per data (prima spariva)");
+  });
 }
 /* ===== fine tagliando e contatore (Flotta, 04/09) ===== */
 

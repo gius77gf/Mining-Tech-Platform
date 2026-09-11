@@ -291,6 +291,12 @@ const VOCABOLARIO_MANCANTE = [
   [/^Mancanza materiale$/, "una CAUSALE di fermo di Campo (il materiale non c'era), non un dato assente"],
   [/^Dato mancante$/, "il ripiego generico, quando non si sa quale campo manchi"],
   [/^Senza frequenza$/, "un'IMPOSTAZIONE che manca (ogni quanti giorni), non una misura"],
+  /* ⏱️ 11/09, Flotta: una manutenzione senza né data né ore motore. Non è un
+     dato assente e non è «Senza frequenza»: è un'IMPOSTAZIONE che manca
+     (QUANDO va fatta), sulla riga della lista e dell'ordine di lavoro. Prima
+     `urgenza(null)` rispondeva «a ore» anche quando le ore non c'erano — un
+     ripiego con la faccia di un piano; `urgenzaManutenzione` lo dice. */
+  [/^senza scadenza$/, "una MANUTENZIONE che non dice QUANDO va fatta (né data né ore motore): un'impostazione che manca, non una misura"],
   /* ⛔ LA SORELLA DI «SENZA FREQUENZA», E NON SI SCHIACCIA SU DI LEI (02/08,
      decisione 16). Sono tutt'e due impostazioni che mancano, ma bloccano due
      cose diverse e su schermate diverse: senza frequenza non si sa QUANDO
