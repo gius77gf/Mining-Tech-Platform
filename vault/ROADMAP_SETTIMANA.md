@@ -2909,8 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
-  ANTINCENDIO DELLA CAVA`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7847,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.389 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2908, `run-stile` 328,
+  **3.390 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2909, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9517,9 +9515,9 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   voce aperta; il D.M. 2/9/2021 citato in 4 punti come fonte diretta → nella
   stessa voce; l'appello vive in Campo. Vedi `docs/RICERCA_CONTINUA_SCUDO.md`,
   ricerca dell'11/09 (terzo giro).
-- [ ] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
-  ANTINCENDIO DELLA CAVA** *(dalla ricerca dell'11/09, terzo giro, domande
-  1-4)*. (1) Modello di ispezione `prova-emergenza` (ambito «Sito», `giorni:
+- [x] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA** ✅ 11/09 (unità 110). *(dalla ricerca dell'11/09,
+  terzo giro, domande 1-4)*. (1) Modello di ispezione `prova-emergenza` (ambito «Sito», `giorni:
   365`, riferimento D.Lgs 624/96 art. 10 — la cadenza la scrive il DSS) con
   le voci del verbale del mondo: allarme sentito in tutta la cava, mezzi
   fermati e volata sospesa, tutti al punto di raccolta nel tempo previsto,
@@ -9534,6 +9532,22 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   esiste con `mesi: 12`; `grep -c 'non si applica alle industrie estrattive'`
   ≥ 4 e nessuna citazione del D.M. 2/9/2021 senza il limite; screenshot a
   430 px dell'ispezione aperta sul modello.
+- [x] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA (11/09, unità 110).** Modello `prova-emergenza` in
+  `MODELLI_ISPEZIONE` (ambito «Sito», 365 giorni, riferimento D.Lgs 624/96
+  art. 10) con le otto voci del verbale: scenario e ora dell'allarme nella
+  nota, allarme sentito ovunque, mezzi fermati e volata sospesa, punto di
+  raccolta nel tempo del DSS, appello sulla lista del turno (Campo),
+  chiamata al 118 simulata col punto d'incontro, squadra e presidi,
+  criticità → azioni correttive. Preset `prova-emergenza` (azienda, 12 mesi).
+  Le 4 citazioni del D.M. 2 settembre 2021 riscritte con il limite sulla
+  stessa riga («non si applica alle industrie estrattive», art. 62 del D.Lgs
+  81/08; cadenza quinquennale per analogia, la vera è nel DSS), e la prova
+  pretende che ogni riga che cita il decreto porti il limite. Nessuna
+  collezione nuova: la prova usa il meccanismo delle ispezioni (esiti, azioni,
+  data della successiva, verbale). Screenshot a 430 px guardati (il modello
+  nella tendina con la sua nota, l'ispezione aperta con le 8 voci, 0 errori
+  di pagina). Prove: run-kpi +1 (2909).
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

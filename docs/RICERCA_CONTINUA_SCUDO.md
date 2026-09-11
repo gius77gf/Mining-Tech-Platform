@@ -1528,6 +1528,8 @@ metà sul delta è fatta da chi ha il codice in mano, sotto.*
   criticità scritte e assegnate. Le note della voce portano scenario e
   tempi; una voce non conforme diventa azione; il verbale esce dal
   fascicolo. Costo: un modello (≈15 righe) + il preset + una prova.
+  ✅ **FATTO l'11/09 (unità 110)**: modello `prova-emergenza` (8 voci, 365
+  giorni) e preset `prova-emergenza` (azienda, 12 mesi) in Scudo.
 - **Domanda 4 — C'È, E VA CORRETTA (di seconda mano).** Il modulo cita il
   «D.M. 2 settembre 2021» in **4 punti** (`grep -c '2 settembre 2021'` →
   4: il preset `antincendio`, la nomina «addetto antincendio», il requisito
@@ -1540,6 +1542,8 @@ metà sul delta è fatta da chi ha il codice in mano, sotto.*
   analogia [seconda mano] — quella vera è scritta nel DSS». Un numero di
   legge di seconda mano non entra come verificato: entra come dichiarazione
   del limite.
+  ✅ **FATTO l'11/09 (unità 110)**: le 4 citazioni portano il limite sulla
+  stessa riga, e una prova in `run-kpi` lo pretende per ogni riga futura.
 - **Domanda 5 — VIVE IN CAMPO, e ci resta.** L'appello al punto di raccolta
   è `appelloTurno` / `csvAppello` di Campo (37 occorrenze; in Scudo solo un
   commento che lo cita). La voce del modello dice «appello fatto sulla

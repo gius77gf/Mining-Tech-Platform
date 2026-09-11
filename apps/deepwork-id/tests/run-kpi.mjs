@@ -27146,6 +27146,24 @@ test("Flotta · costoOrarioMezzo col possesso: possesso + esercizio, e senza pos
   const pagina = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
   ok(/id="mez-possesso"/.test(pagina) && /costoOrarioMezzo\(INT, RIF, MEZ\)/.test(pagina) && /euroOraCompleto/.test(pagina), "la pagina salva il possesso e mostra il costo completo");
 });
+test("Scudo · prova di emergenza: modello di ispezione a un anno, preset di scadenza, e le fonti antincendio col limite dichiarato (unità 110)", () => {
+  const m = scudo.modelloIspezione("prova-emergenza");
+  ok(m && m.ambito === "Sito" && m.giorni === 365 && m.voci.length >= 7, "il modello c'è: ambito Sito, un anno, le voci del verbale");
+  ok(/624\/96/.test(m.riferimento) && /DSS/.test(m.riferimento) && !/2 settembre 2021/.test(m.riferimento), "la fonte è il DSS del 624/96, non un decreto che le cave le esclude: " + m.riferimento);
+  ok(m.voci.some(v => /punto di raccolta/.test(v)) && m.voci.some(v => /118/.test(v)) && m.voci.some(v => /[Aa]ppello/.test(v)) && m.voci.some(v => /azioni correttive/.test(v)) && m.voci.some(v => /volata/.test(v)), "le voci sono quelle del verbale del mondo, più il mestiere della cava (mezzi, volata, appello)");
+  const isp = scudo.nuovaIspezioneDaModello("prova-emergenza", { data: "2026-09-11" });
+  eq(isp.periodicitaGiorni, 365, "la successiva si propone a un anno");
+  eq(isp.voci.length, m.voci.length); eq(isp.stato, "in-corso");
+  ok(scudo.MODELLI_ISPEZIONE.some(x => x.chiave === "prova-emergenza") && scudo.MODELLI_ISPEZIONE.some(x => x.chiave === "dpi-emergenza"), "la spunta trimestrale resta, la prova annuale si aggiunge: due domande diverse");
+  const p = scudo.presetScadenza("prova-emergenza");
+  ok(p && p.categoria === "azienda" && p.mesi === 12 && /624\/96/.test(p.riferimento) && /industrie estrattive/.test(p.riferimento), "preset a un anno, con la fonte e il limite: " + JSON.stringify(p && [p.categoria, p.mesi]));
+  // ogni citazione del decreto porta il suo limite sulla STESSA riga: un numero di legge senza il suo campo di applicazione manda in cava una regola d'ufficio
+  const src = readFileSync(join(HERE, "../../scudo/scudo-data.js"), "utf8").split("\n");
+  const cit = src.filter(r => /2 settembre 2021/.test(r));
+  const senza = cit.filter(r => !/industrie estrattive/.test(r));
+  ok(cit.length >= 5, "il decreto è ancora citato (con il limite), " + cit.length + " righe");
+  eq(senza.length, 0, "nessuna citazione del D.M. 2/9/2021 senza «industrie estrattive» sulla stessa riga: " + senza.map(r => r.trim().slice(0, 80)).join(" | "));
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);

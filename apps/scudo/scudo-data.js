@@ -1671,6 +1671,31 @@ export const MODELLI_ISPEZIONE = [
       "Prova di emergenza dell'anno eseguita e verbalizzata",
     ],
   },
+  /* ⚠️ La prova di emergenza è un'ISPEZIONE, non una collezione nuova
+     (11/09, unità 110): il meccanismo che serve — voci con esito, una voce
+     non conforme che diventa azione correttiva, la data della successiva
+     proposta da sola, il fascicolo/verbale — è quello delle ispezioni. Le
+     voci sono i punti di verifica del verbale di una prova (scenario, allarme,
+     mezzi, punto di raccolta, appello, 118, squadra, criticità); scenario e
+     tempi si scrivono nelle note delle voci. In cava la cadenza la fissa il
+     DSS (D.Lgs 624/96 art. 10): un anno è la prassi, e il D.M. 2 settembre
+     2021 — che la chiede annuale fuori dalle cave — alle industrie estrattive
+     non si applica (art. 62 del D.Lgs 81/08). Di seconda mano. */
+  {
+    chiave: "prova-emergenza", nome: "Prova di emergenza — esercitazione dell'anno", ambito: "Sito",
+    giorni: 365,
+    riferimento: "D.Lgs 624/96 art. 10 — il DSS prevede le esercitazioni di sicurezza, l'evacuazione, il servizio di salvataggio e i punti di raduno: la cadenza vera è quella scritta nel DSS, un anno è la prassi.",
+    voci: [
+      "Scenario e ora dell'allarme scritti nella nota (infortunio al fronte, incendio su un mezzo, mancata esplosione…)",
+      "Allarme sentito in tutta la cava, anche sui mezzi e all'impianto",
+      "Mezzi fermati in sicurezza e volata sospesa o rinviata",
+      "Tutti al punto di raccolta entro il tempo previsto dal DSS (tempo misurato scritto nella nota)",
+      "Appello fatto sulla lista del turno (Campo): nessuno lasciato a «non so»",
+      "Chiamata al 118 simulata, con il punto d'incontro per l'ambulanza e chi la guida al fronte",
+      "Addetti primo soccorso e antincendio presenti, cassetta ed estintori raggiunti",
+      "Criticità scritte e assegnate come azioni correttive, con chi e entro quando",
+    ],
+  },
 ];
 
 export function modelloIspezione(chiave) {
@@ -2320,7 +2345,7 @@ export const SCADENZE_PRESET = [
   { chiave: "form-preposto",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento preposto", mesi: 24, riferimento: "D.L. 146/2021 — individuazione obbligatoria del preposto e aggiornamento almeno biennale." },
   { chiave: "form-dirigente",   categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento dirigente", mesi: 60, riferimento: "Accordo Stato-Regioni — aggiornamento periodico del dirigente." },
   { chiave: "primo-soccorso",   categoria: "persona", tipo: "Corso",         etichetta: "Primo soccorso — aggiornamento addetti", mesi: 36, riferimento: "D.M. 388/2003 — aggiornamento della parte pratica di norma triennale." },
-  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.M. 2 settembre 2021 — aggiornamento periodico degli addetti antincendio." },
+  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.Lgs 81/08 artt. 37 c. 9 e 43 — aggiornamento periodico degli addetti antincendio. La cadenza quinquennale è quella del D.M. 2 settembre 2021, che non si applica alle industrie estrattive (art. 62 del D.Lgs 81/08): in cava vale per analogia, e quella vera è scritta nel DSS." },
   { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico", mesi: 12, riferimento: "D.Lgs 81/2008 art. 37 — aggiornamento annuale (durata secondo il numero di lavoratori)." },
   { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)", mesi: 60, riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
   /* ⚠️ Fino all'11/09 diceva «rilasciata dal Prefetto» e `mesi: null`: la
@@ -2348,6 +2373,7 @@ export const SCADENZE_PRESET = [
      aver guardato niente. */
   { chiave: "verifica-attr",    categoria: "azienda", tipo: TIPO_VERIFICA_PERIODICA, etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
   { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)", mesi: 12, riferimento: "D.Lgs 81/2008 art. 35 — almeno una volta l'anno nelle aziende con più di 15 lavoratori, con verbale." },
+  { chiave: "prova-emergenza",  categoria: "azienda", tipo: "Altro",         etichetta: "Prova di emergenza — esercitazione annuale", mesi: 12, riferimento: "D.Lgs 624/96 art. 10 — le esercitazioni di sicurezza stanno nel DSS, che ne fissa la cadenza; un anno è la prassi (fuori dalle cave la chiede il D.M. 2 settembre 2021, che non si applica alle industrie estrattive)." },
   // --- Adempimenti tipici delle industrie estrattive (D.Lgs 624/96) ---
   { chiave: "stabilita-fronti", categoria: "cava"   , tipo: "Altro",         etichetta: "Relazione annuale sulla stabilità dei fronti", mesi: 12, riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: relazione su stabilità dei fronti, caduta massi e franamento, predisposta o aggiornata annualmente." },
   { chiave: "dss-certif",       categoria: "cava"   , tipo: "Altro",         etichetta: "DSS — certificazione annuale del datore di lavoro", mesi: 12, riferimento: "D.Lgs 624/96 art. 6 — il datore di lavoro certifica ogni anno l'attualità del Documento di Sicurezza e Salute." },
@@ -3707,7 +3733,7 @@ export const NOMINE_RUOLI = [
     spiega: "Deve essercene almeno uno presente quando si lavora." },
   { chiave: "antincendio", etichetta: "Addetto antincendio ed evacuazione", breve: "Antincendio", obbligatoria: true, multiplo: true,
     requisito: "antincendio",
-    riferimento: "D.Lgs 81/08 art. 43 e D.M. 2 settembre 2021 — addetti designati e formati.",
+    riferimento: "D.Lgs 81/08 art. 43 e D.Lgs 624/96 art. 10 — addetti designati e formati (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: la formazione è quella dell'art. 37).",
     spiega: "Deve essercene almeno uno presente quando si lavora." },
   { chiave: "dirigente", etichetta: "Dirigente", breve: "Dirigente", obbligatoria: false, multiplo: true,
     requisito: "form-dirigente",
@@ -5628,7 +5654,7 @@ export const MISURE_PERMESSO = [
   { chiave: "infiammabili", nome: "Materiale infiammabile rimosso o protetto attorno al punto di lavoro",
     fonte: "prassi dei permessi per lavoro a caldo" },
   { chiave: "estintore", nome: "Estintore a portata di mano e addetto antincendio presente",
-    fonte: "D.M. 2 settembre 2021 — gestione della sicurezza antincendio nei luoghi di lavoro" },
+    fonte: "D.Lgs 81/08 art. 46 e D.Lgs 624/96 art. 10 — prevenzione incendi (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: qui vale come prassi)" },
   { chiave: "vigilanza-dopo", nome: "Sorveglianza antincendio mantenuta dopo la fine del lavoro",
     fonte: "prassi dei permessi per lavoro a caldo — molti principi d'incendio partono a lavoro finito" },
   { chiave: "ancoraggi", nome: "Punti di ancoraggio verificati e sistema anticaduta indossato",
@@ -5666,8 +5692,8 @@ export const TIPI_PERMESSO = [
     misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
       "sorvegliante-fuori", "recupero", "emergenza", "dpi"] },
   { chiave: "caldo", nome: "Lavoro a caldo — saldatura, taglio, molatura", breve: "Lavoro a caldo",
-    riferimento: "D.M. 2 settembre 2021 e D.Lgs 81/08 titolo I capo III sez. VI — gestione del rischio incendio "
-      + "nei luoghi di lavoro: il lavoro che produce fiamme, scintille o calore va autorizzato e sorvegliato.",
+    riferimento: "D.Lgs 81/08 titolo I capo III sez. VI e D.Lgs 624/96 art. 10 — gestione del rischio incendio (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: si segue per analogia): "
+      + "il lavoro che produce fiamme, scintille o calore va autorizzato e sorvegliato.",
     atmosfera: false, sorvegliante: false,
     requisiti: ["antincendio", "form-generale"],
     misure: ["infiammabili", "estintore", "vigilanza-dopo", "delimitazione", "dpi"] },
