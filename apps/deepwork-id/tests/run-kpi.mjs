@@ -27189,6 +27189,40 @@ test("Terra · giudizioVariante: la soglia è dell'utente, senza soglia «non lo
   const seq = pagina.indexOf("const sequenza ="), geo = pagina.indexOf("const geometria =");
   ok(/variante/.test(pagina.slice(seq, seq + 900)) && /variante/.test(pagina.slice(geo, geo + 1400)), "la sequenza fuori progetto e il banco fuori sagoma nominano la variante");
 });
+test("Sentinella · calibrazione in campo: scarto fra prima e dopo, validità contro lo scarto dichiarato, e mai «valida» senza i due numeri (unità 114)", () => {
+  const P = { tipo: "rumore", scartoCalibrazioneDb: 0.5 };
+  const v1 = sentinella.validitaCalibrazione({ valore: 60, calibrazione: { prima: 94, dopo: 94.3 } }, P);
+  ok(v1.stato === "valida" && v1.scartoDb === 0.3 && v1.maxDb === 0.5 && /0,3 dB/.test(v1.breve) && v1.perche === "", "0,3 su 0,5: valida: " + JSON.stringify(v1));
+  const v2 = sentinella.validitaCalibrazione({ valore: 60, calibrazione: { prima: 94, dopo: 94.7 } }, P);
+  ok(v2.stato === "non-valida" && v2.scartoDb === 0.7 && /calibrazione/.test(v2.perche) && /0,7 dB/.test(v2.breve), "0,7 su 0,5: non valida, e la ragione suggerisce l'annullamento «calibrazione»");
+  eq(sentinella.validitaCalibrazione({ calibrazione: { prima: 94.5, dopo: 94 } }, P).stato, "valida", "alla soglia esatta vale (0,5 ≤ 0,5), e il segno non conta");
+  const v3 = sentinella.validitaCalibrazione({ valore: 60 }, P);
+  ok(v3.stato === "non-registrata" && v3.scartoDb === null && /non registrata/.test(v3.breve), "senza i due valori: non registrata, non «valida»");
+  const v4 = sentinella.validitaCalibrazione({ calibrazione: { prima: 94, dopo: null } }, P);
+  ok(v4.stato === "non-registrata" && /a metà/.test(v4.breve) && /dopo/.test(v4.perche), "un valore solo: a metà, e dice quale manca");
+  const v5 = sentinella.validitaCalibrazione({ calibrazione: { prima: 94, dopo: 94.3 } }, { tipo: "rumore" });
+  ok(v5.stato === "soglia-non-dichiarata" && v5.scartoDb === 0.3 && v5.maxDb === null && /decreto/.test(v5.perche), "senza scarto dichiarato: lo scarto si dice, il verdetto no");
+  ok(sentinella.validitaCalibrazione({ calibrazione: { prima: "94,0", dopo: "94,2" } }, P).stato === "valida", "i valori scritti con la virgola si leggono");
+  eq(sentinella.scartoCalibrazione({ calibrazione: { prima: "abc", dopo: 94 } }).noto, false, "un testo non è un valore");
+  ok(sentinella.RAGIONI_ANNULLAMENTO.some(r => r.chiave === "calibrazione" && !r.nota), "la ragione di annullamento «calibrazione» esiste");
+  // il conto per il report, sulla dimostrazione
+  const D = sentinella.DEMO;
+  const r1 = D.monitoraggi.find(m => m.id === "r1");
+  const c = sentinella.contaCalibrazioni(r1);
+  ok(c.pertinente && c.n === 4 && c.valide === 1 && c.nonValide === 1 && c.nonRegistrate === 2 && c.sogliaNonDichiarata === 0, "r1: 1 valida, 1 fuori scarto, 2 senza calibrazione: " + JSON.stringify(c));
+  ok(/1 valida, 1 fuori scarto, 2 senza calibrazione registrata su 4/.test(c.testo), "il testo del report: " + c.testo);
+  eq(sentinella.contaCalibrazioni(D.monitoraggi.find(m => m.id === "v1")).pertinente, false, "sulle vibrazioni la calibrazione in campo non si giudica");
+  eq(sentinella.contaCalibrazioni(null).pertinente, false);
+  const rep = sentinella.reportConformita({ monitoraggi: D.monitoraggi, ricettori: D.ricettori, volate: D.volate, azioni: [] });
+  const pr = (rep.punti || []).find(p => /Rumore/.test(p.nome));
+  ok(pr && pr.calibrazione && pr.calibrazione.pertinente && pr.calibrazione.nonValide === 1, "il report porta il conto della calibrazione sul punto di rumore");
+  const repLuglio = sentinella.reportConformita({ monitoraggi: D.monitoraggi, ricettori: D.ricettori, volate: D.volate, azioni: [], dal: "2026-07-01", al: "2026-07-31" });
+  const prL = (repLuglio.punti || []).find(p => /Rumore/.test(p.nome));
+  ok(prL && prL.calibrazione.n === 2 && prL.calibrazione.nonValide === 1 && prL.calibrazione.valide === 0 && prL.calibrazione.nonRegistrate === 1, "nel periodo di luglio il conto guarda solo le due letture di luglio, come «letture nel periodo»: " + JSON.stringify(prL && prL.calibrazione));
+  const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+  ok(/id="sen-scarto"/.test(pagina) && /id="mis-cal-prima"/.test(pagina) && /id="mis-cal-dopo"/.test(pagina) && /validitaCalibrazione\(l, m\)/.test(pagina) && /p\.calibrazione\.testo/.test(pagina), "la pagina ha i tre campi, giudica la riga e lo scrive nel report");
+  ok(!/0,5\s*dB/.test(pagina) && !/0\.5\s*dB/.test(pagina), "nessun numero del decreto nella pagina: lo scarto lo dichiara l'utente");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);
@@ -37645,8 +37679,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(!/NON VALIDA/.test(sentinella.descriviProvenienza(L(), { nome: "V2" })), "e tace su una lettura sana");
   });
 
-  test("Sentinella · RAGIONI_ANNULLAMENTO: cinque ragioni, una sola col testo libero", () => {
-    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "meteo", "altro"], "le chiavi, nell'ordine della tendina (cinque dal 05/09: «meteo», la misura di rumore fuori dalle condizioni della norma)");
+  test("Sentinella · RAGIONI_ANNULLAMENTO: sei ragioni, una sola col testo libero", () => {
+    eq(sentinella.RAGIONI_ANNULLAMENTO.map(r => r.chiave), ["mezzo", "temporale", "prova", "meteo", "calibrazione", "altro"], "le chiavi, nell'ordine della tendina (cinque dal 05/09: «meteo», la misura di rumore fuori dalle condizioni della norma; sei dall'11/09: «calibrazione», le due calibrazioni in campo oltre lo scarto)");
     eq(sentinella.RAGIONI_ANNULLAMENTO.filter(r => r.nota).map(r => r.chiave), ["altro"], "solo «altro» vuole il testo");
     for (const r of sentinella.RAGIONI_ANNULLAMENTO) ok(r.etichetta && r.etichetta.length > 3, "ogni ragione ha un'etichetta leggibile: " + r.chiave);
   });

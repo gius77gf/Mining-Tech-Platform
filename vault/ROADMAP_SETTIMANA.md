@@ -2909,8 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
-  SCARTO MASSIMO DICHIARATO DALL'UTENTE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7847,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.391 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2910, `run-stile` 328,
+  **3.392 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2911, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9623,9 +9621,9 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   domanda → voce aperta; la periodicità per tipo SCARTATA (sarebbe un numero
   di seconda mano in un campo). Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`,
   ricerca dell'11/09 (terzo giro).
-- [ ] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
-  SCARTO MASSIMO DICHIARATO DALL'UTENTE** *(dalla ricerca dell'11/09, terzo
-  giro, domanda 3)*. Sulla lettura di un punto di tipo rumore
+- [x] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE** ✅ 11/09 (unità 114). *(dalla
+  ricerca dell'11/09, terzo giro, domanda 3)*. Sulla lettura di un punto di tipo rumore
   `calibrazione: { prima, dopo }` in dB (facoltativi, nel form della misura
   solo quando il punto è di rumore); sul punto `scartoCalibrazioneDb`
   dichiarato dall'utente (il suggerimento dice che lo fissa il decreto sulle
@@ -9640,6 +9638,25 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   valida; con dopo 94,7 → non valida (0,7); senza soglia → «soglia non
   dichiarata»; senza i due valori → «non registrata»; `grep -c '0,5'` nella
   pagina non cresce; screenshot a 430 px del form e della scheda.
+- [x] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE (11/09, unità 114).** Sul punto
+  `scartoCalibrazioneDb` (campo `sen-scarto`, facoltativo, «scrivilo tu dal
+  testo del decreto»); sulla lettura `calibrazione: { prima, dopo }` (due campi
+  nel form della misura, facoltativi, un numero illeggibile ferma); nel modulo
+  `scartoCalibrazione(l)` → `{ noto, scartoDb }`, `validitaCalibrazione(l, m)`
+  → valida / non-valida / non-registrata (anche «a metà», dicendo quale valore
+  manca) / soglia-non-dichiarata, con `breve` e `perche`; `contaCalibrazioni`
+  per il report, **nel periodo** (stesso denominatore di «letture nel
+  periodo»); ragione di annullamento `calibrazione` (sesta). La tabella delle
+  letture del punto di rumore scrive lo stato su ogni riga non annullata; il
+  report scrive «Calibrazione in campo: 1 valida, 1 fuori scarto, 2 senza
+  calibrazione registrata su 4». Dimostrazione: r1 con lo scarto 0,5 dichiarato
+  dal tecnico e due letture con la calibrazione (0,2 e 0,7). Nessun numero del
+  decreto nella pagina (la prova lo pretende). Misurato nel browser: le quattro
+  righe con i quattro stati, il form del punto ricarica «0,5», una misura
+  registrata con 94 → 94,9 finisce nel report come «2 fuori scarto … su 5», 0
+  errori di pagina; screenshot a 430 px guardati. Prove: run-kpi +1 (2911, più
+  la prova delle ragioni aggiornata a sei); copertura 992/992.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

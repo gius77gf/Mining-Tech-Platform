@@ -1336,8 +1336,10 @@ textarea.dw-input{
       <option value="">— pioggia? —</option><option value="no">Senza pioggia</option><option value="si">Con pioggia</option></select>
     <input class="dw-input dec" id="mis-temp" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Temperatura °C" title="Temperatura dell'aria durante la misura" style="flex:1 1 150px;">
     <input class="dw-input dec" id="mis-umid" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Umidità %" title="Umidità relativa dell'aria durante la misura, da 0 a 100" style="flex:1 1 150px;">
+    <input class="dw-input dec" id="mis-cal-prima" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Calibratore prima (dB)" title="Solo per il rumore: il valore letto sul fonometro col calibratore PRIMA della misura" style="flex:1 1 150px;">
+    <input class="dw-input dec" id="mis-cal-dopo" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Calibratore dopo (dB)" title="Solo per il rumore: il valore letto sul fonometro col calibratore DOPO la misura. Se le due letture differiscono più dello scarto massimo scritto sul punto, la misura non vale." style="flex:1 1 150px;">
     <div class="form-hint">Ogni lettura si <b>accoda allo storico</b> del punto: la serie storica qui sopra si aggiorna e mostra subito se il valore ha superato la soglia.
-      Le <b>condizioni meteo</b> sono facoltative ma sul <b>rumore</b> decidono se la misura vale: con vento oltre 5 m/s o con pioggia la norma non la ammette, e l'app lo scrive accanto alla lettura invece di contarla come buona.</div>
+      Le <b>condizioni meteo</b> sono facoltative ma sul <b>rumore</b> decidono se la misura vale: con vento oltre 5 m/s o con pioggia la norma non la ammette, e l'app lo scrive accanto alla lettura invece di contarla come buona. I due valori del <b>calibratore</b>, prima e dopo, valgono anch'essi solo per il rumore: se differiscono più dello scarto massimo scritto sul punto, la misura è segnata <b>fuori scarto</b> e va dichiarata non valida.</div>
   </div>
   <div class="note esito" id="mis-esito"></div>
 
@@ -1492,6 +1494,7 @@ textarea.dw-input{
     </div>
     <div class="frow">
       <input class="dw-input dec" id="sen-soglia" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Soglia" title="Soglia del punto di misura. La virgola va benissimo (2,5)." style="flex:1 1 120px;">
+      <input class="dw-input dec" id="sen-scarto" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Scarto max calibrazione (dB)" title="Solo per il rumore: di quanto possono differire al massimo le due letture del calibratore, prima e dopo la misura, perché la misura valga. Lo fissa il decreto sulle tecniche di rilevamento: scrivilo tu dal testo, Sentinella non lo propone." style="flex:1 1 150px;">
       <select class="dw-input" id="sen-ricettore" style="flex:2 1 190px;"></select>
       <button class="dw-btn" id="btn-sen">Aggiungi</button>
     </div>
@@ -1893,6 +1896,7 @@ textarea.dw-input{
            provenienzaMisura, descriviProvenienza, campiProvenienza, correggiLettura,
            annullaLettura, ripristinaLettura, letturaValida, annullamentoDi, contaAnnullate, letturaSenzaVolata,
            RAGIONI_ANNULLAMENTO,
+           validitaCalibrazione, contaCalibrazioni,
            condizioniMisura, misuraFuoriCondizioni, contaFuoriCondizioni, DIREZIONI_VENTO, proponiColonneMeteo,
            composizioneProvenienza, DICHIARAZIONI_PROVENIENZA, FONTI_MISURA,
            DICHIARAZIONI_COPERTURA,
@@ -2265,6 +2269,7 @@ textarea.dw-input{
     const nascoste = tutte.length - viste.length;
     const ann = contaAnnullate(m.letture);
     const vibrazioni = String(m.tipo || "").trim().toLowerCase() === "vibrazioni";
+    const rumore = String(m.tipo || "").trim().toLowerCase() === "rumore";   // la calibrazione in campo si giudica solo qui
     let suggerite = 0;   // quante righe portano il suggerimento: la spiegazione si scrive UNA volta, sotto
     let fuoriCond = 0;   // e quante sono fuori dalle condizioni della norma sul rumore (stessa forma)
     const righe = viste.map(({ l, i }) => {
@@ -2284,6 +2289,8 @@ textarea.dw-input{
       const cond = condizioniMisura(l);
       const fc = an ? { fuori: false } : misuraFuoriCondizioni(l, m);
       if (fc.fuori) fuoriCond++;
+      // la calibrazione in campo (11/09): sul rumore, e solo sulle righe non annullate — anche «non registrata» è una risposta
+      const vc = rumore && !an ? validitaCalibrazione(l, m) : null;
       return `<tr${an ? ' class="annullata"' : ""}>
         <td>${fmtD(l.data)}<small>${esc(l.ora || "—")}</small></td>
         <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, m)}</td>
@@ -2297,7 +2304,8 @@ textarea.dw-input{
                   an.quando ? ": dichiarata il " + fmtD(String(an.quando).slice(0, 10)) : ""}</span>`
             : senzaVolata ? `<span class="prov-prima ann-hint">nessuna volata registrata quel giorno</span>` : ""}${
           cond.registrate ? `<span class="prov-prima">${esc(cond.testo)}</span>` : ""}${
-          fc.fuori ? `<span class="prov-prima ann-hint" title="${esc(fc.motivo)}">fuori condizioni: ${esc(fc.breve)}</span>` : ""}</td>
+          fc.fuori ? `<span class="prov-prima ann-hint" title="${esc(fc.motivo)}">fuori condizioni: ${esc(fc.breve)}</span>` : ""}${
+          vc ? `<span class="prov-prima${vc.stato === "non-valida" ? " ann-hint" : ""}" title="${esc(vc.perche)}">${esc(vc.breve)}</span>` : ""}</td>
         <td class="stato az">${an
           ? `<button type="button" class="arr rip" title="Ripristina questa misura: torna a contare"
               aria-label="Ripristina la misura del ${fmtD(l.data)} di ${esc(m.nome)}"
@@ -4069,7 +4077,9 @@ textarea.dw-input{
       ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${distanzaDelRicettore(p.ricettore) != null ? " a <b>" + esc(numeroIt(distanzaDelRicettore(p.ricettore))) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
       : "Ricettore: <b>non collegato</b>")
       // com'era prima delle volate: la stessa frase della riga e della risposta al reclamo
-      + (p.statoDiFatto ? `<br>Com'era prima delle volate: ${esc(p.statoDiFatto.testo)}` : "");
+      + (p.statoDiFatto ? `<br>Com'era prima delle volate: ${esc(p.statoDiFatto.testo)}` : "")
+      // la calibrazione in campo (11/09): solo sui punti di rumore, con il conto per esito
+      + (p.calibrazione && p.calibrazione.pertinente ? `<br>Calibrazione in campo: ${esc(p.calibrazione.testo)}.` : "");
     const E = ESITI[p.esito] || ESITI["senza-dati"];
     /* LA TARATURA DI QUESTO STRUMENTO, NELLA SCHEDA DI QUESTO PUNTO.
        ⛔ Il conto per punto lo calcolava `taratureDelReport` da sempre
@@ -5122,7 +5132,7 @@ textarea.dw-input{
         esito("mis-esito", "Modifica annullata: il punto resta com'era.");
         ["sen-nome","sen-unita","sen-soglia"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMon = m.id;
-      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = itDec(m.soglia);
+      $("sen-nome").value = m.nome || ""; $("sen-unita").value = m.unita || ""; $("sen-soglia").value = itDec(m.soglia); $("sen-scarto").value = m.scartoCalibrazioneDb != null && +m.scartoCalibrazioneDb > 0 ? itDec(m.scartoCalibrazioneDb) : "";
       $("sen-ricettore").value = m.ricettoreId || "";
       if ($("sen-preset")) $("sen-preset").value = "";
       if ($("sen-preset-nota")) { $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = ""; }
@@ -5487,6 +5497,14 @@ textarea.dw-input{
     }
     ["sen-nome","sen-unita","sen-soglia"].forEach(i => err(i, false));
     const ricettoreId = $("sen-ricettore").value || "";
+    // lo scarto massimo fra le due calibrazioni (11/09): facoltativo, positivo; un testo illeggibile ferma
+    const rsc = numeroDaCampo($("sen-scarto").value.trim(), { min: 0 });
+    if (!rsc.ok && !rsc.vuoto) {
+      err("sen-scarto", true); fuocoErr(["sen-scarto"]);
+      esito("mis-esito", "«" + $("sen-scarto").value.trim() + "» non è uno scarto in dB che posso leggere. " + AVVISO_DECIMALE, "err", "Lo scarto massimo non è un numero leggibile."); return;
+    }
+    err("sen-scarto", false);
+    const scartoCalibrazioneDb = rsc.ok && rsc.valore > 0 ? rsc.valore : null;
     /* da quale preset nasce la soglia (04/09): si ricorda alla creazione, e in
        modifica resta solo se soglia e unità sono ancora quelle — una soglia
        riscritta a mano non ha più la banda del preset, e `frequenzaFuoriBanda`
@@ -5495,12 +5513,12 @@ textarea.dw-input{
     if (editMon) {
       const prima = MON.find(x => x.id === editMon) || {};
       const sogliaPreset = scelto || (prima.sogliaPreset && +prima.soglia === soglia && String(prima.unita || "") === unita ? prima.sogliaPreset : null);
-      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId, sogliaPreset });   // valore/letture restano
+      await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId, sogliaPreset, scartoCalibrazioneDb });   // valore/letture restano
       editMon = null; $("btn-sen").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, sogliaPreset: scelto || null, valore: 0, letture: [] });
+      await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, sogliaPreset: scelto || null, scartoCalibrazioneDb, valore: 0, letture: [] });
     }
-    $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-ricettore").value = "";
+    $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-scarto").value = ""; $("sen-ricettore").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
     // se il punto è collegato a un ricettore con soglia propria, la soglia
     // che conta cambia: dirlo subito evita che l'utente creda a un numero
@@ -5652,6 +5670,20 @@ textarea.dw-input{
     }
     if ($("mis-vento-da").value) cond.ventoDa = $("mis-vento-da").value;
     if ($("mis-pioggia").value) cond.pioggia = $("mis-pioggia").value === "si";
+    // la calibrazione in campo (11/09): i due valori del calibratore attorno alla misura;
+    // facoltativi, ma un numero scritto male ferma la registrazione come le condizioni
+    const cal = {};
+    for (const [campo, chiave, cosa] of [["mis-cal-prima", "prima", "Il calibratore prima"], ["mis-cal-dopo", "dopo", "Il calibratore dopo"]]) {
+      const t = $(campo).value.trim();
+      if (!t) { err(campo, false); continue; }
+      const rc = numeroDaCampo(t, {});
+      if (!rc.ok) {
+        err(campo, true); fuocoErr([campo]);
+        esito("mis-esito", cosa + " «" + t + "» non è un numero in dB che posso leggere. " + AVVISO_DECIMALE, "err", "La calibrazione non è un numero leggibile."); return;
+      }
+      err(campo, false); cal[chiave] = rc.valore;
+    }
+    if (cal.prima != null || cal.dopo != null) cond.calibrazione = { prima: cal.prima != null ? cal.prima : null, dopo: cal.dopo != null ? cal.dopo : null };
     // storico: ogni registrazione si ACCODA alle letture (max 50), non
     // si perde sovrascrivendo il solo ultimo valore
     /* ⛔ LA CATENA DI CUSTODIA NASCE QUI (T2d). Questa è la strada «a mano»:
@@ -5726,7 +5758,7 @@ textarea.dw-input{
       st.cls === "danger" || fc.fuori ? "err" : "success",
       misuraTxt + " → " + st.label + (fc.fuori ? " · fuori condizioni" : ""));
     $("mis-valore").value = "";
-    for (const c of ["mis-vento", "mis-vento-da", "mis-pioggia", "mis-temp", "mis-umid"]) $(c).value = "";
+    for (const c of ["mis-vento", "mis-vento-da", "mis-pioggia", "mis-temp", "mis-umid", "mis-cal-prima", "mis-cal-dopo"]) $(c).value = "";
     grafMon = id;   // dopo una misura si vede subito l'andamento del punto
     await refresh();
   };
@@ -5739,7 +5771,7 @@ textarea.dw-input{
   clearErr("vol-data", "vol-esito-msg");
   ["vol-kg","vol-kgmax","vol-dist"].forEach(i => clearErr(i, "vol-esito-msg"));
   ["sen-nome","sen-unita","sen-soglia"].forEach(i => clearErr(i, "mis-esito"));
-  ["mis-valore", "mis-vento", "mis-temp", "mis-umid"].forEach(i => clearErr(i, "mis-esito"));
+  ["mis-valore", "mis-vento", "mis-temp", "mis-umid", "mis-cal-prima", "mis-cal-dopo"].forEach(i => clearErr(i, "mis-esito"));
   // le direzioni del vento le dice il modulo: la tendina non ne tiene una copia
   $("mis-vento-da").innerHTML = '<option value="">— vento da —</option>' + DIREZIONI_VENTO.map(d => '<option value="' + d + '">da ' + d + '</option>').join("");
   // Invio da tastiera: premere Invio in un campo del form equivale a

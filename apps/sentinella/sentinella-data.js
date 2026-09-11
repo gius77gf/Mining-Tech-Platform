@@ -3,7 +3,11 @@
 // da autenticati, demo in memoria altrimenti).
 // Collezioni (sotto organizations/{org}/apps/sentinella/):
 //   monitoraggi/{id}: { nome, tipo, valore, soglia, unita, nota,
-//                       ricettoreId, letture:[{data,ora,valore}] }
+//                       ricettoreId, letture:[{data,ora,valore,
+//                       calibrazione?:{prima,dopo} (dB, i due valori del
+//                       calibratore attorno alla misura — solo rumore)}],
+//                       scartoCalibrazioneDb? (lo scarto massimo fra le due
+//                       calibrazioni, dichiarato dall'utente dal decreto) }
 //     → lo stato si CALCOLA: valore/soglia ≥1 superamento, ≥0.9 attenzione
 //   adempimenti/{id}: { titolo, ente, scadenza (ISO) } → urgenza dalle date
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
@@ -99,6 +103,10 @@ export const DEMO = {
          («provenienza non dichiarata»), non un refuso da nascondere. */
       letture: [ { data: "2026-06-14", valore: 22.5 }, { data: "2026-06-21", valore: 31 }, { data: "2026-06-28", valore: 44.2 }, { data: "2026-07-05", valore: 28.4 }, { data: "2026-07-12", valore: 33.7 }, { data: "2026-07-19", valore: 36.8 } ] },
     { id: "r1", nome: "Rumore — perimetro Ovest", tipo: "rumore", valore: 62, soglia: 70, unita: "dB(A)", nota: "campagna 06/2026", ricettoreId: "rc1",
+      /* lo scarto massimo fra le due calibrazioni lo ha scritto il tecnico della
+         dimostrazione dal decreto sulle tecniche di rilevamento (seconda mano):
+         il prodotto non lo propone, lo legge */
+      scartoCalibrazioneDb: 0.5,
       /* TUTTE A MANO, ed è la prassi vera: la campagna fonometrica la fa un
          tecnico acustico esterno, che consegna una relazione su carta. I
          livelli si ricopiano. Non è un errore da correggere — è una strada
@@ -110,9 +118,9 @@ export const DEMO = {
          «non valida per la norma» e lascia la decisione a una persona. La
          prima non ha vento né pioggia registrati: «non si può dire». */
       letture: [ { data: "2026-06-10", ora: "14:30", valore: 58, origine: { da: "manuale", quando: "2026-06-11T09:00:00" } },
-                 { data: "2026-06-24", ora: "15:00", valore: 64, vento: 2, ventoDa: "NO", pioggia: false, temperatura: 26, umidita: 55, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
+                 { data: "2026-06-24", ora: "15:00", valore: 64, vento: 2, ventoDa: "NO", pioggia: false, temperatura: 26, umidita: 55, calibrazione: { prima: 94, dopo: 94.2 }, origine: { da: "manuale", quando: "2026-06-25T08:50:00" } },
                  { data: "2026-07-08", ora: "14:45", valore: 61, vento: 7, ventoDa: "O", pioggia: false, temperatura: 29, umidita: 40, origine: { da: "manuale", quando: "2026-07-09T09:15:00" } },
-                 { data: "2026-07-22", ora: "15:20", valore: 62, vento: 1.5, ventoDa: "S", pioggia: false, temperatura: 31, umidita: 38, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
+                 { data: "2026-07-22", ora: "15:20", valore: 62, vento: 1.5, ventoDa: "S", pioggia: false, temperatura: 31, umidita: 38, calibrazione: { prima: 94, dopo: 94.7 }, origine: { da: "manuale", quando: "2026-07-23T08:40:00" } } ] },
     { id: "a1", nome: "Acque — vasca decantazione", tipo: "acque", valore: 12, soglia: 35, unita: "mg/l SST", nota: "campionamento 15/07" },
     /* ⛔ IL PUNTO SENZA SOGLIA STA NELLA DIMOSTRAZIONE, ed è una scelta presa
        col criterio di `docs/QUANDO_UN_CASO_VA_IN_DIMOSTRAZIONE.md`: è
@@ -2775,12 +2783,79 @@ export function correggiLettura(l, nuovo, quando) {
 // ══════════════════════════════════════════════════════════════════════
 
 // Le ragioni fra cui si sceglie. `nota: true` = vuole il testo libero.
+/* LA CALIBRAZIONE IN CAMPO NON È LA TARATURA (11/09, unità 114). La taratura
+   è del laboratorio, ha un certificato e una scadenza, e Sentinella la sa
+   già raccontare. La calibrazione in campo è il controllo col calibratore
+   PRIMA e DOPO ogni ciclo di misura: per il rumore decide se la misura
+   appena fatta vale — le due letture del calibratore devono stare entro uno
+   scarto massimo. Quello scarto lo fissa il decreto sulle tecniche di
+   rilevamento; qui NON c'è scritto (il testo non è stato letto, ed è un
+   numero di legge): lo dichiara l'utente sul punto, `scartoCalibrazioneDb`.
+   ⛔ Senza i due valori, o senza lo scarto dichiarato, la risposta non è
+   «valida»: è «non registrata» / «scarto non dichiarato», con la ragione.
+   La ragione di annullamento «calibrazione» è la strada per dichiarare non
+   valida una misura fuori scarto: qui si SUGGERISCE, non si toglie. */
+const calibrazioneDi = (l) => { const c = (l || {}).calibrazione; return c && typeof c === "object" ? c : null; };
+const dbIt = (x) => numeroIt(x) + " dB";
+export function scartoCalibrazione(l) {
+  const c = calibrazioneDi(l);
+  // un valore arrivato come testo con la virgola (CSV, digitato altrove) è lo stesso numero
+  const leggi = (x) => numeroDichiarato(typeof x === "string" ? x.trim().replace(",", ".") : x);
+  const p = c ? leggi(c.prima) : null, d = c ? leggi(c.dopo) : null;
+  const pOk = p != null && Number.isFinite(p), dOk = d != null && Number.isFinite(d);
+  if (!pOk || !dOk) return { noto: false, scartoDb: null, prima: pOk ? p : null, dopo: dOk ? d : null };
+  return { noto: true, scartoDb: Math.round(Math.abs(d - p) * 100) / 100, prima: p, dopo: d };
+}
+export function validitaCalibrazione(l, m) {
+  const s = scartoCalibrazione(l);
+  const maxRaw = numeroDichiarato((m || {}).scartoCalibrazioneDb);
+  const max = maxRaw != null && Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : null;
+  if (!s.noto) {
+    const meta = s.prima != null || s.dopo != null;
+    return { stato: "non-registrata", scartoDb: null, maxDb: max,
+      breve: meta ? "calibrazione a metà" : "calibrazione in campo non registrata",
+      perche: meta
+        ? "manca il valore del calibratore " + (s.prima == null ? "prima" : "dopo") + " della misura: con uno solo non si può dire se la misura vale"
+        : "senza i due valori del calibratore, prima e dopo la misura, non si può dire se la misura vale" };
+  }
+  if (max == null) return { stato: "soglia-non-dichiarata", scartoDb: s.scartoDb, maxDb: null,
+    breve: "scarto max non dichiarato · scarto " + dbIt(s.scartoDb),
+    perche: "lo scarto massimo ammesso fra le due calibrazioni non è scritto sul punto: lo fissa il decreto sulle tecniche di rilevamento, e va dichiarato nella scheda del punto" };
+  const ok = s.scartoDb <= max;
+  return { stato: ok ? "valida" : "non-valida", scartoDb: s.scartoDb, maxDb: max,
+    breve: ok ? "calibrazione ok · scarto " + dbIt(s.scartoDb) : "calibrazione fuori scarto: " + dbIt(s.scartoDb) + " su " + dbIt(max),
+    perche: ok ? "" : "le due calibrazioni differiscono di " + dbIt(s.scartoDb) + ", più del massimo dichiarato (" + dbIt(max) + "): la misura non vale, e va dichiarata non valida con la ragione «calibrazione»" };
+}
+// Il conto per il report: solo sui punti di rumore; le annullate restano fuori
+// (sono già dichiarate non valide per conto loro).
+export function contaCalibrazioni(m) {
+  const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+  const vuoto = { pertinente: false, n: 0, valide: 0, nonValide: 0, nonRegistrate: 0, sogliaNonDichiarata: 0, testo: "" };
+  if (tipo !== "rumore") return vuoto;
+  const L = ((m || {}).letture || []).filter(letturaValida);
+  const c = { ...vuoto, pertinente: true, n: L.length };
+  for (const l of L) {
+    const v = validitaCalibrazione(l, m);
+    if (v.stato === "valida") c.valide++; else if (v.stato === "non-valida") c.nonValide++;
+    else if (v.stato === "non-registrata") c.nonRegistrate++; else c.sogliaNonDichiarata++;
+  }
+  c.testo = !L.length ? "nessuna lettura da giudicare"
+    : [c.valide + " " + (c.valide === 1 ? "valida" : "valide"),
+       c.nonValide ? c.nonValide + " fuori scarto" : "",
+       c.nonRegistrate ? c.nonRegistrate + " senza calibrazione registrata" : "",
+       c.sogliaNonDichiarata ? c.sogliaNonDichiarata + " con lo scarto massimo non dichiarato" : ""].filter(Boolean).join(", ")
+      + " su " + L.length;
+  return c;
+}
+
 export const RAGIONI_ANNULLAMENTO = [
   { chiave: "mezzo",     etichetta: "Mezzo di passaggio",      nota: false },
   { chiave: "temporale", etichetta: "Temporale",               nota: false },
   { chiave: "prova",     etichetta: "Prova dello strumento",   nota: false },
   // il rumore misurato con vento oltre 5 m/s o pioggia non vale (DM 16/03/1998, All. B)
   { chiave: "meteo",     etichetta: "Vento oltre 5 m/s o pioggia (rumore: misura non valida)", nota: false },
+  // le due calibrazioni in campo, prima e dopo, oltre lo scarto massimo dichiarato sul punto (11/09)
+  { chiave: "calibrazione", etichetta: "Calibrazione fuori scarto (rumore: misura non valida)", nota: false },
   { chiave: "altro",     etichetta: "Altro (scrivi che cosa)", nota: true },
 ];
 const ragioneAnnullamento = (k) =>
@@ -3300,7 +3375,9 @@ export function reportConformita(o = {}) {
         .map(l => ({ data: String((l || {}).data || "").slice(0, 10), ora: String((l || {}).ora || ""),
                      valore: numeroDichiarato((l || {}).valore),
                      ...((l || {}).origine && typeof l.origine === "object" ? { origine: l.origine } : {}),
-                     ...campiEvento(l), ...campiCondizioni(l) }));
+                     ...campiEvento(l), ...campiCondizioni(l),
+                     // la calibrazione in campo viaggia con la lettura (11/09): il conto del report la legge nel periodo
+                     ...((l || {}).calibrazione && typeof l.calibrazione === "object" ? { calibrazione: l.calibrazione } : {}) }));
       // le letture registrate su questo punto che il documento non può usare:
       // il giorno non esiste, oppure il valore non è un numero
       const scartate = grezze.filter(l => scartataPerData(l) || !Number.isFinite(l.valore)).length;
@@ -3337,6 +3414,8 @@ export function reportConformita(o = {}) {
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
         // com'era il ricettore prima delle volate (11/09): il documento per l'ente lo scrive per ogni punto collegato
         statoDiFatto: trovaRicettore(ricettori, m.ricettoreId) ? descriviStatoDiFatto(trovaRicettore(ricettori, m.ricettoreId)) : null,
+        // la calibrazione in campo (11/09): solo sui punti di rumore, contata sulle letture valide DEL PERIODO — lo stesso denominatore di «letture nel periodo»
+        calibrazione: contaCalibrazioni({ tipo: m.tipo, scartoCalibrazioneDb: m.scartoCalibrazioneDb, letture: grezze.filter(l => letturaValida(l) && Number.isFinite(l.valore) && nelPeriodo(l.data)) }),
         letture, n: letture.length, scartate,
         annullate, annullateLetture,
         max: valori.length ? Math.max(...valori) : null,

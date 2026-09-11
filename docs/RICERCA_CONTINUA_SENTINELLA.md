@@ -953,6 +953,10 @@ codice in mano.*
   verde senza i due numeri; una lettura «non valida» si propone
   all'annullamento con una ragione nuova `calibrazione`, e il report conta
   le letture di rumore senza calibrazione registrata accanto alle coperte.
+  ✅ **FATTO l'11/09 (unità 114)**: `scartoCalibrazioneDb` sul punto,
+  `calibrazione: { prima, dopo }` sulla lettura, `scartoCalibrazione` /
+  `validitaCalibrazione` / `contaCalibrazioni` nel modulo, la ragione
+  «calibrazione», la riga nella tabella e il conto nel report (nel periodo).
 - **Domanda 4 — C'È.** `coperturaTaratura(tarature, data)` risponde per
   ogni lettura coperta / scoperta / prima dello storico / non dichiarata,
   `contaCoperture` li conta in un posto solo (quattro secchi, perché ne
