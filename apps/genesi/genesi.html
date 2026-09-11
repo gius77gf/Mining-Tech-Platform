@@ -1162,7 +1162,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata,
-         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone } from './genesi-data.js';
+         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3367,21 +3368,18 @@ async function cmpScatti(){ const l=await GDB.confronti(); const per=s=>l.find(x
    prima che `costCalcolabile` esistesse non ce l'ha, e leggere una bandiera
    assente come «falsa» accuserebbe di non-calcolabilità un costo sanissimo —
    la stessa trappola degli scatti «senza base registrata». La bandiera serve
-   per la RAGIONE, che gli scatti vecchi giustamente non hanno. */
-function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
-function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
-function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }
+   per la RAGIONE, che gli scatti vecchi giustamente non hanno.
+   ⛔ Le sei celle (`_cmpNum`, `_cmpKg`, `_cmpEur`, `_cmpPf`, `_cmpCm`, `_cmpFly`) stanno in
+   `./genesi-data.js`, blocco G25 (10/09): i due commenti qui sotto restano perché raccontano
+   PERCHÉ si giudica dal numero e la bandiera vale in più. */
 /* ⚠️ GLI SCATTI VECCHI NON HANNO LA BANDIERA. Uno snapshot A/B salvato prima
    del 09/08 ha `pf:0` e `x50:97` senza `fragCalcolabile`: si giudica dal
    NUMERO (`_cmpNum` risponde `null` su `null`), e la bandiera, quando c'è,
    vale in più — così un salvataggio vecchio non fa sparire una riga sana. */
-function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
-function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
 /* ⚠️ «— m» accanto a una GITTATA si legge «zero metri», cioè «nessuno sgombero
    serve»: la stessa ragione per cui la carica totale e il costo hanno le loro
    due righe qui sopra. E come loro si giudica dal NUMERO, con la bandiera in
    più quando c'è, così uno scatto A/B salvato prima del 13/08 non sparisce. */
-function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
 async function cmpRender(){
   const {A,B}=await cmpScatti();
   const body=$('cmpBody');
@@ -5380,19 +5378,8 @@ function reliefCls(r){
    più piccolo l'energia è concentrata: fini inutili, proiezioni, sovraccarico.
    Il blocco servito è  burden × mezza distanza dai vicini di fila × altezza
    del banco. Nessuna stima: sono le posizioni reali dei fori sulla pianta. */
-function _fileDiFori(H){
-  /* i fori si raggruppano in file per distanza dalla faccia; la tolleranza
-     serve perché una fila trascinata a mano non è mai perfettamente dritta */
-  const idx=H.map((h,i)=>i).sort((a,b)=>H[a].my-H[b].my);
-  const file=[]; let cur=null;
-  for(const i of idx){
-    const my=H[i].my;
-    if(!cur || my-cur.myMax>0.45){ cur={ myMax:my, holes:[i] }; file.push(cur); }
-    else { cur.holes.push(i); cur.myMax=Math.max(cur.myMax,my); }
-  }
-  file.forEach(f=>{ f.my=f.holes.reduce((s,i)=>s+H[i].my,0)/f.holes.length; });
-  return file;                                               // già ordinate dalla faccia verso l'interno
-}
+/* ⛔ Le file dei fori le raggruppa `fileDeiFori` in `./genesi-data.js` (blocco G25, 10/09):
+   nessuna variabile della pagina, e ora `node` la prova. */
 /* Distanza minima da un punto a una spezzata. Serve per il BURDEN VERO, che è
    una cosa diversa dal volume servito e non va confusa con esso:
    · il volume che un foro deve rompere è la striscia di roccia fra la fila
@@ -5404,7 +5391,7 @@ function _fileDiFori(H){
    ⛔ È `distanzaDaSpezzata` in `./genesi-data.js` (blocco G24, 10/09): nessuna variabile della pagina. */
 function computeEnergia2D(){
   const H=D2.holes; if(!H||!H.length) return;
-  const file=_fileDiFori(H), Hb=Math.max(0.5,D2.prof||10), Snom=Math.max(0.5,D2.S||3.5);
+  const file=fileDeiFori(H), Hb=Math.max(0.5,D2.prof||10), Snom=Math.max(0.5,D2.S||3.5);
   /* la faccia libera campionata: la spezzata su cui misurare il burden della
      prima fila, estesa mezzo interasse oltre i fori di bordo */
   const xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
@@ -5494,7 +5481,7 @@ function simulaPerforazione(N){
   const xs=H.map(h=>h.mx), fx0=Math.min(...xs)-Snom, fx1=Math.max(...xs)+Snom;
   const passo=Math.max(.4,(fx1-fx0)/60), faccia=[];
   for(let x=fx0;x<=fx1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
-  const file=_fileDiFori(H);
+  const file=fileDeiFori(H);
   /* seme dalla geometria: stessa volata, stessa banda */
   let seme=Math.round((Bnom*1000)+(Snom*97)+(L*31)+H.length*7+(sCol*1e4)+(pDev*1e5));
   const rng=_rngDa(seme);
@@ -5544,7 +5531,7 @@ function simulaPerforazione(N){
   };
 }
 
-const INN_TAGLI=[9,17,25,42,65,100,109,176,200];           // raccordi di superficie di uso comune
+/* ⛔ `INN_TAGLI` (i raccordi di superficie di uso comune) sta in `./genesi-data.js`, blocco G25. */
 function computeInnesco2D(){
   const H=D2.holes; if(!H||!H.length) return;
   const dMax=2.2*Math.max(D2.S||3.5, D2.B||3.0, _spazTipico(H));
@@ -5567,11 +5554,7 @@ function computeInnesco2D(){
   }
 }
 /* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico) */
-function innTaglioOk(dt){
-  if(dt==null) return true;
-  if((D2.innesco||'')==='elettronico') return true;
-  return INN_TAGLI.some(v=>Math.abs(v-dt)<=1.0);
-}
+function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }   // legame con lo stato: il conto è in genesi-data.js (G25)
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
    assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
    loro media, quello che conta è quanto un foro se ne discosta. */

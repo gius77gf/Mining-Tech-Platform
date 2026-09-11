@@ -665,6 +665,24 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **SETTIMA FETTA DI B3 — LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE
+  CELLE DEL CONFRONTO A/B ESCONO DA GENESI, E IL RITARDO VUOTO SI CHIUDE
+  (10/09):** `fileDeiFori` (le file per distanza dalla faccia, tolleranza
+  0,45 m), `INN_TAGLI` + `taglioRealizzabile` (il raccordo esiste a ±1 ms,
+  l'elettronico programma tutto), `_cmpNum/_cmpKg/_cmpEur/_cmpPf/_cmpCm/
+  _cmpFly` (le celle del confronto A/B: «non calcolabile» dal numero, la
+  bandiera vale in più) in `genesi-data.js`, blocco G25 — otto funzioni
+  entrate identiche (vecchie estratte da HEAD accanto alle nuove, 20.000 casi
+  ciascuna → 0 divergenze). Nella pagina `innTaglioOk` resta come legame con
+  `D2.innesco`; `_fileDiFori`, la costante e le sei celle spariscono. ⛔ E in
+  `tempiDetonazione` (G23) il candidato misurato poche ore prima è CHIUSO: un
+  ritardo VUOTO (`null`/`""`) risponde `null` come la griglia illeggibile, non
+  N tempi a 0 ms; lo zero scritto resta zero (è un ritardo legittimo). Due
+  prove vecchie allargate al modulo: la lettura della bandiera
+  `flyCalcolabile` (regola 20) e quella su `_sigDetTimes`. Prove: run-kpi +4
+  (2833), copertura genesi-data 94 → **103**, censimento 165 → **158**
+  funzioni nella pagina (56 → 51 a una o due variabili, 64 → 58 «il numero
+  che conta»).
 - [x] **SESTA FETTA DI B3 — LA GEOMETRIA DELLA PIANTA ESCE DA GENESI
   (10/09):** `quotaCresta`, `distanzaDaSpezzata`, `spaziaturaTipica`,
   `tempoInPunto`, `passoIsocrone` e la scala `ISO_PASSI` in `genesi-data.js`
@@ -703,8 +721,8 @@
   all'italiana giusta 2.000 volte. ⚠️ Misurato e NON deciso, dichiarato nella
   prova: in `tempiDetonazione` un ritardo VUOTO (`null`/`""`) vale 0 (`+null`
   fa 0) → tutti i fori simultanei, il verso prudente ma su un piano che
-  nessuno ha scritto; `undefined` risponde `null`. Candidato B12/G21, la
-  riga della prova cade quando qualcuno lo chiude. Prove: run-kpi +4 (2823),
+  nessuno ha scritto; `undefined` risponde `null`. ✅ **Chiuso in G25 poche ore
+  dopo**: null e "" rispondono null, lo zero scritto resta zero. Prove: run-kpi +4 (2823),
   copertura genesi-data 85 → **88**, censimento 169 → **167** funzioni nella
   pagina (58 → 56 a una o due variabili, 66 → 64 «il numero che conta»).
 - [x] **QUARTA FETTA DI B3 — IL FATTORE ROCCIA E L'x50 MISURATO SUL CUMULO
@@ -3139,8 +3157,8 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, sesta fetta
-      (G24): **165** nella pagina, **56** a una o due variabili, **64** «il
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, settima fetta
+      (G25): **158** nella pagina, **51** a una o due variabili, **58** «il
       numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
@@ -7526,8 +7544,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.310 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2829, `run-stile` 328,
+  **3.314 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2833, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

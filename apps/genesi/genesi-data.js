@@ -36,7 +36,7 @@
    due, sotto il centinaio uno, sopra nessuno), e li scrive chiamando `gnum`
    di `genesi-formato.js`. Una sola implementazione, un parametro diverso. */
 
-import { gnum, gseg, gIn } from './genesi-formato.js';
+import { gnum, gseg, gfix, gIn } from './genesi-formato.js';
 /* il lettore dei numeri italiani e quello dei CSV: vivono in `shared/` perché
    servono a tutte e sei le app, e la regola di casa dice che una regola che
    serve a due app non si riscrive. `_riconParseCampo` li usava già così
@@ -2449,7 +2449,15 @@ export function tempiDetonazione(design){
   const H=D2.holes;
   if(H&&H.length) return H.map(h=>+h.tDet||0);
   const n=foriDiProgetto(D2.perRow, D2.file);
-  const ri=+D2.ritardo, rf=+D2.ritardoFila;
+  /* ⛔ 10/09 (G25): un ritardo VUOTO non è un ritardo di zero. `+null` e `+""`
+     fanno 0, e uno zero è legittimo (tutti simultanei), quindi fino a qui un
+     campo mai scritto produceva N tempi a 0 ms — il composito più alto
+     possibile, su un piano di tiro che nessuno ha scritto. È la stessa
+     famiglia del «18 fori a 25 ms» di G21, un ripiego più in là: adesso
+     null/"" rispondono `null`, come la griglia illeggibile. Lo zero scritto
+     resta uno zero. */
+  const v=(x)=>(x===null||x===undefined||x==='')?NaN:+x;
+  const ri=v(D2.ritardo), rf=v(D2.ritardoFila);
   if(n===null || !Number.isFinite(ri) || ri<0 || !Number.isFinite(rf) || rf<0) return null;
   const nc=Math.max(1,+D2.perRow), nr=Math.max(1,+D2.file), out=[];
   for(let r=0;r<nr;r++) for(let c=0;c<nc;c++) out.push(c*ri+r*rf);
@@ -2561,3 +2569,57 @@ export function passoIsocrone(passoScelto, ultimaDetonazione){
   for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
   return ISO_PASSI[ISO_PASSI.length-1];
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G25 · LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE CELLE DEL CONFRONTO A/B
+   (10/09, cantiere B3, settima fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `fileDeiFori(fori)` — i fori disegnati raggruppati in FILE per distanza
+   dalla faccia (`my`), con una tolleranza di 0,45 m perché una fila
+   trascinata a mano non è mai perfettamente dritta; ogni fila porta gli
+   indici dei suoi fori e la loro distanza media, e le file escono già
+   ordinate dalla faccia verso l'interno. È il primo passo della mappa
+   dell'energia (G5: il burden vero di ogni fila verso quella davanti) e
+   della scheda dei fori. Entrata identica.
+
+   `INN_TAGLI` e `taglioRealizzabile(dt, innesco, tagli)` — i raccordi di
+   superficie di uso comune (9, 17, 25, 42, 65, 100, 109, 176, 200 ms) e la
+   regola «un ritardo di raccordo è realizzabile se esiste il taglio, a ±1 ms,
+   oppure se l'innesco è elettronico (che programma qualunque millisecondo)»;
+   un `dt` assente è realizzabile per definizione (non c'è un raccordo da
+   trovare). La pagina la chiama con `D2.innesco` e `innTaglioOk` resta come
+   legame. Entrata identica.
+
+   `_cmpNum`, `_cmpKg`, `_cmpEur`, `_cmpPf`, `_cmpCm`, `_cmpFly` — le celle
+   del confronto A/B fra due scatti di una volata: si giudica dal NUMERO
+   (`null`, vuoto o illeggibile → «non calcolabile» in giallo, mai uno zero
+   né un trattino che accanto a una gittata si legge «nessuno sgombero»), e
+   la bandiera `fragCalcolabile`/`flyCalcolabile`, quando c'è, vale in più —
+   così uno scatto salvato prima che la bandiera esistesse non fa sparire
+   una riga sana. Entrate identiche, coi loro nomi: sono le celle di un
+   documento che la pagina compone, e da qui `node` le legge. */
+export function fileDeiFori(H){
+  /* i fori si raggruppano in file per distanza dalla faccia; la tolleranza
+     serve perché una fila trascinata a mano non è mai perfettamente dritta */
+  const idx=H.map((h,i)=>i).sort((a,b)=>H[a].my-H[b].my);
+  const file=[]; let cur=null;
+  for(const i of idx){
+    const my=H[i].my;
+    if(!cur || my-cur.myMax>0.45){ cur={ myMax:my, holes:[i] }; file.push(cur); }
+    else { cur.holes.push(i); cur.myMax=Math.max(cur.myMax,my); }
+  }
+  file.forEach(f=>{ f.my=f.holes.reduce((s,i)=>s+H[i].my,0)/f.holes.length; });
+  return file;                                               // già ordinate dalla faccia verso l'interno
+}
+export const INN_TAGLI=[9,17,25,42,65,100,109,176,200];           // raccordi di superficie di uso comune
+export function taglioRealizzabile(dt, innesco, tagli){
+  if(dt==null) return true;
+  if((innesco||'')==='elettronico') return true;
+  return (tagli||INN_TAGLI).some(v=>Math.abs(v-dt)<=1.0);
+}
+export function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
+export function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
+export function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }
+export function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
+export function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
+export function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }

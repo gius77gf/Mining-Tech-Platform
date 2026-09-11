@@ -25091,13 +25091,14 @@ console.log("\n— Campo: i file che escono —");
     eq(v.tempiDetonazione({ perRow: 3, file: 2, ritardo: 25, ritardoFila: 42 }), [0, 25, 50, 42, 67, 92], "la griglia: colonna × ritardo + fila × ritardo di fila");
     eq(v.tempiDetonazione({ perRow: "", file: 1, ritardo: 25, ritardoFila: 42 }), null, "⛔ griglia illeggibile: null, non 18 fori a 25 ms");
     eq(v.tempiDetonazione({ perRow: 12, file: 1, ritardo: undefined, ritardoFila: 42 }), null, "ritardo mai scritto (undefined): null, non 25");
-    /* ⚠️ MISURATO, NON DECISO, e va detto perché è entrata identica: `+null` e
-       `+""` fanno 0, e uno zero è un ritardo legittimo (tutti simultanei),
-       quindi un campo VUOTO produce dodici tempi a 0 ms — il verso prudente
-       (il composito più alto possibile), ma su un piano che nessuno ha
-       scritto. È la famiglia `+null === 0` di CLAUDE.md; sta in roadmap come
-       candidato, e questa riga cade il giorno in cui qualcuno la chiude. */
-    eq(v.tempiDetonazione({ perRow: 3, file: 1, ritardo: null, ritardoFila: 42 }), [0, 0, 0], "⚠️ ritardo VUOTO (null): tre tempi a zero, tutti simultanei — com'era nella pagina");
+    /* ⛔ CHIUSO IN G25 (10/09), poche ore dopo essere stato misurato: fino ad
+       allora `+null` faceva 0 e un campo VUOTO produceva N tempi a 0 ms — il
+       composito più alto possibile su un piano che nessuno ha scritto. Adesso
+       null e "" rispondono null come la griglia illeggibile; lo ZERO scritto
+       resta uno zero, perché è un ritardo legittimo. */
+    eq(v.tempiDetonazione({ perRow: 3, file: 1, ritardo: null, ritardoFila: 42 }), null, "⛔ ritardo VUOTO (null): null, non tre tempi a zero");
+    eq(v.tempiDetonazione({ perRow: 3, file: 1, ritardo: 25, ritardoFila: "" }), null, "ritardo di fila vuoto (\"\"): null");
+    eq(v.tempiDetonazione({ perRow: 3, file: 1, ritardo: 0, ritardoFila: 0 }), [0, 0, 0], "lo zero SCRITTO resta uno zero: tre fori simultanei");
     eq(v.tempiDetonazione({ perRow: 12, file: 1, ritardo: -5, ritardoFila: 42 }), null, "un ritardo negativo non è un piano");
     eq(v.tempiDetonazione(null), null, "niente progetto: null");
   });
@@ -25183,6 +25184,47 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/tempoInPunto\(/g) || []).length, 1, "e il campo dei tempi lo chiama solo il disegno delle isocrone");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone"].every((n) => elenco.includes(n)), "la pagina importa tutt'e cinque");
+  });
+
+  /* ⛔ G25 — LE FILE DEI FORI, I TAGLI DEI RACCORDI, LE CELLE DEL CONFRONTO A/B
+     (10/09, settima fetta di B3). Otto funzioni entrate identiche (vecchie
+     estratte da HEAD accanto alle nuove: 0 divergenze, i conti nel commit);
+     più la chiusura del ritardo vuoto in `tempiDetonazione`, qui sopra. */
+  test("⛔ Genesi · fileDeiFori: i fori si raggruppano in file per distanza dalla faccia, con 0,45 m di tolleranza", () => {
+    const H = [{ my: 3.1 }, { my: 0 }, { my: 6 }, { my: 0.3 }, { my: 3 }];
+    const f = v.fileDeiFori(H);
+    eq(f.map((x) => x.holes), [[1, 3], [4, 0], [2]], "tre file: la prima coi due fori a 0 e 0,3 (fila storta), poi 3 e 3,1, poi 6 — dalla faccia verso l'interno");
+    eq(f.map((x) => +x.my.toFixed(3)), [0.15, 3.05, 6], "ogni fila porta la sua distanza media");
+    eq(v.fileDeiFori([{ my: 0 }, { my: 0.46 }]).length, 2, "a 0,46 m è un'altra fila (la tolleranza è 0,45)");
+    eq(v.fileDeiFori([{ my: 0 }, { my: 0.45 }]).length, 1, "a 0,45 è la stessa");
+    eq(v.fileDeiFori([]), [], "nessun foro, nessuna fila");
+  });
+  test("⛔ Genesi · taglioRealizzabile: il raccordo esiste a ±1 ms, l'elettronico programma tutto, un dt assente non chiede niente", () => {
+    eq(v.INN_TAGLI, [9, 17, 25, 42, 65, 100, 109, 176, 200], "i raccordi di superficie di uso comune");
+    eq(v.taglioRealizzabile(42, "nonel"), true); eq(v.taglioRealizzabile(43, "nonel"), true, "43 sta a 1 ms dal 42");
+    eq(v.taglioRealizzabile(44.5, "nonel"), false, "44,5 no: nessun raccordo lo fa");
+    eq(v.taglioRealizzabile(44.5, "elettronico"), true, "con l'elettronico qualunque millisecondo");
+    eq(v.taglioRealizzabile(null, "nonel"), true); eq(v.taglioRealizzabile(undefined, ""), true, "senza dt non c'è un raccordo da trovare");
+    eq(v.taglioRealizzabile(30, "nonel", [30]), true, "una scala di tagli passata da chi chiama vince su quella comune");
+  });
+  test("⛔ Genesi · le celle del confronto A/B: si giudica dal numero, e la bandiera vale in più", () => {
+    eq(v._cmpNum(null), null); eq(v._cmpNum(""), null); eq(v._cmpNum("abc"), null); eq(v._cmpNum("12.5"), 12.5); eq(v._cmpNum(0), 0, "lo zero è un numero");
+    const NC = '<i style="color:#ffca28">non calcolabile</i>';
+    eq(v._cmpKg({ qtot: 1234.4 }), "1.234 kg"); eq(v._cmpKg({ qtot: null }), NC, "carica assente: non calcolabile, non 0 kg"); eq(v._cmpKg(null), NC, "scatto assente");
+    eq(v._cmpEur({ cost: 2500.6 }), "€2.501"); eq(v._cmpEur({}), NC);
+    eq(v._cmpPf({ pf: 0.5 }), "0,50 kg/m³"); eq(v._cmpPf({ pf: 0.5, fragCalcolabile: false }), NC, "la bandiera falsa vince sul numero");
+    eq(v._cmpPf({ pf: 0, x50: 97 }), "0,00 kg/m³", "uno scatto VECCHIO senza bandiera si giudica dal numero: 0 è un numero (e non sparisce)");
+    eq(v._cmpCm({ x50: 27.44 }, "x50"), "27,4 cm"); eq(v._cmpCm({ x50: null }, "x50"), NC);
+    eq(v._cmpFly({ fly: 101.4 }), "101 m"); eq(v._cmpFly({ fly: 101, flyCalcolabile: false }), NC, "gittata non calcolabile: non «— m», che si legge zero metri");
+  });
+  test("⛔ Genesi · G25: nella pagina i conti non ci sono più", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function _fileDiFori|const INN_TAGLI=|function _cmpNum|function _cmpKg|function _cmpEur|function _cmpPf|function _cmpCm|function _cmpFly/g) || []).length, 0, "le vecchie funzioni e la scala non ci sono più");
+    ok(/function innTaglioOk\(dt\)\{ return taglioRealizzabile\(dt, D2\.innesco, INN_TAGLI\); \}/.test(pag), "innTaglioOk è il legame con l'innesco scelto");
+    eq((pag.match(/fileDeiFori\(/g) || []).length, 2, "i due chiamanti delle file (energia 2D e scheda dei fori)");
+    eq((pag.match(/_cmp(?:Kg|Eur|Pf|Cm|Fly)\(/g) || []).length >= 10, true, "e le celle del confronto A/B si chiamano ancora dalla pagina");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["fileDeiFori", "INN_TAGLI", "taglioRealizzabile", "_cmpNum", "_cmpKg", "_cmpEur", "_cmpPf", "_cmpCm", "_cmpFly"].every((n) => elenco.includes(n)), "la pagina importa tutt'e nove");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
@@ -29850,8 +29892,12 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
     /* una non-misurabilità dichiarata che nessuno legge non protegge niente:
        il numero tranquillo si ridisegna lo stesso e il modulo sembra a posto */
     ok(/flyCalcolabile:\s*fly\.calcolabile/.test(srcG17), "i KPI la dichiarano");
-    const letture = (srcG17.match(/k\.flyCalcolabile|kpi\.flyCalcolabile|k&&k\.flyCalcolabile/g) || []).length;
-    ok(letture >= 4, `e la leggono in ${letture} punti: confronto A/B, CSV della scheda, foglio stampabile`);
+    /* ⏱️ 10/09 (G25): la cella del confronto A/B (`_cmpFly`) è salita in
+       `genesi-data.js` e legge la bandiera da lì — si contano i lettori in
+       tutt'e due i file, se no il trasloco farebbe sembrare persa una lettura. */
+    const srcModuloG = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    const letture = ((srcG17 + srcModuloG).match(/k\.flyCalcolabile|kpi\.flyCalcolabile|k&&k\.flyCalcolabile/g) || []).length;
+    ok(letture >= 4, `e la leggono in ${letture} punti: confronto A/B (nel modulo), CSV della scheda, foglio stampabile`);
     ok(/F\.calcolabile/.test(srcG17), "e la scheda validatori e il disco a terra nel 3D leggono quella di `flyrockEst`");
   });
 }
