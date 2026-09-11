@@ -145,7 +145,9 @@ export const DEMO = {
   clienti: [
     // CAP, comune e provincia sono entrati il 02/09: servono alla fattura
     // elettronica, e la dimostrazione deve poterne produrre una «pronta»
-    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG", codiceFiscale: "", sconto: 5, fido: 25000, note: "" },
+    // fido 10.000 dall'11/09: con 12.300 di residuo aperto (dopo gli incassi) Edilcave è OLTRE fido, così la
+    // dimostrazione mostra l'avviso alla pesata (prima, a 25.000, nessun cliente d'esempio lo superava)
+    { id: "c1", ragioneSociale: "Edilcave Srl", piva: "01234567890", sdi: "ABC1234", indirizzo: "Zona industriale", cap: "97100", comune: "Ragusa", provincia: "RG", codiceFiscale: "", sconto: 5, fido: 10000, note: "" },
     { id: "c2", ragioneSociale: "Stradesud", piva: "09876543210", sdi: "stradesud@pec.example.it", indirizzo: "SS115 km 12", cap: "97015", comune: "Modica", provincia: "RG", codiceFiscale: "", sconto: 0, fido: 15000, note: "", listinoId: "l1" },
   ],
   gare: [
@@ -1438,6 +1440,26 @@ export function clientiDaCollegare(fatture, clienti) {
 // vero). Raggruppa per anagrafica quando il cliente è collegato o riconoscibile
 // dal nome (niente più doppioni da maiuscole/punteggiatura) e segnala il
 // superamento del fido. Ignora le fatture con importo ≤ 0. Pura e testabile.
+/* L'AVVISO ALLA PESATA (11/09, dalla ricerca del terzo giro). I gestionali di
+   cava fermano il carico alla pesa quando il cliente è oltre fido; qui si
+   DICE, non si ferma: fermare un camion è una scelta del titolare, e il
+   programma gliela mette davanti nel momento giusto — quando sceglie il
+   cliente, prima di registrare. Composizione di `esposizioneClienti`, niente
+   ricalcolato: `null` quando non c'è niente da dire (cliente senza fatture
+   aperte, o in regola). Pura e testabile. */
+export function avvisoFidoPesata(clienteId, esposizione) {
+  if (!clienteId) return null;
+  const e = (esposizione || []).find(x => x && x.clienteId === clienteId) || null;
+  if (!e) return null;
+  if (e.oltreFido) return { livello: "fido", cliente: e.cliente,
+    testo: e.cliente + " è oltre fido: " + euro(e.totale) + " di fatture aperte su un fido di " + euro(e.fido)
+      + (e.scaduto > 0 ? ", di cui " + euro(e.scaduto) + " già scaduti" : "")
+      + ". La consegna non si ferma da sola: decidi tu se caricare." };
+  if (e.scaduto > 0) return { livello: "scaduto", cliente: e.cliente,
+    testo: e.cliente + " ha " + euro(e.scaduto) + " scaduti su " + euro(e.totale) + " di fatture aperte." };
+  return null;
+}
+
 export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], note = null) {
   const per = {};
   for (const f of fatture || []) {

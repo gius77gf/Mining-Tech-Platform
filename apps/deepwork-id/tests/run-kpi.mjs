@@ -27076,6 +27076,37 @@ test("csvRilievi → parseRilieviCsv: la tolleranza del rilevatore fa il giro, e
   eq("tolleranzaPct" in terra.parseRilieviCsv("data;volumeM3\n2026-03-01;100\n")[0], false, "una riga a due colonne resta com'era");
   eq(terra.parseRilieviCsv("data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct\n2026-03-01;100;RTK;2;;scavo;0\n")[0].tolleranzaPct, undefined, "zero non è una tolleranza dichiarata");
 });
+
+test("Conti · avvisoFidoPesata: la pesata dice se il cliente è oltre fido o ha dello scaduto, e non ferma niente (11/09)", () => {
+  const espo = [
+    { clienteId: "a", cliente: "Alfa", totale: 18300, scaduto: 18300, fido: 15000, oltreFido: true, conto: 3 },
+    // cifre a CINQUE posizioni: su quattro Node e Chromium raggruppano diversamente (min2), e la prova mentirebbe in uno dei due
+    { clienteId: "b", cliente: "Beta", totale: 19750, scaduto: 19750, fido: 25000, oltreFido: false, conto: 2 },
+    { clienteId: "c", cliente: "Gamma", totale: 4400, scaduto: 0, fido: 0, oltreFido: false, conto: 1 },
+    { clienteId: "d", cliente: "Delta", totale: 20000, scaduto: 0, fido: 10000, oltreFido: true, conto: 1 },
+  ];
+  eq(conti.avvisoFidoPesata("", espo), null, "senza cliente scelto niente da dire");
+  eq(conti.avvisoFidoPesata("zz", espo), null, "un cliente senza fatture aperte: niente da dire");
+  eq(conti.avvisoFidoPesata("c", espo), null, "in regola: niente da dire, la riga sparisce");
+  const a = conti.avvisoFidoPesata("a", espo);
+  eq(a.livello, "fido");
+  // `euro` scrive uno spazio che non si spezza fra il simbolo e la cifra: si confronta a spazi normali
+  const piano = (t) => String(t).replace(/\u00a0/g, " ");
+  eq(piano(a.testo), "Alfa è oltre fido: € 18.300,00 di fatture aperte su un fido di € 15.000,00, di cui € 18.300,00 già scaduti. La consegna non si ferma da sola: decidi tu se caricare.");
+  const d = conti.avvisoFidoPesata("d", espo);
+  ok(/oltre fido: € 20\.000,00 di fatture aperte su un fido di € 10\.000,00\. La consegna/.test(piano(d.testo)), "oltre fido senza scaduto: la frase non inventa uno scaduto: " + d.testo);
+  const b = conti.avvisoFidoPesata("b", espo);
+  eq([b.livello, piano(b.testo)], ["scaduto", "Beta ha € 19.750,00 scaduti su € 19.750,00 di fatture aperte."]);
+  // sulla dimostrazione, con gli incassi applicati come fa la pagina: Edilcave (fido 10.000
+  // dall'11/09, residuo 12.300) è oltre fido, Stradesud ha solo dello scaduto
+  const D = conti.DEMO;
+  const espoD = conti.esposizioneClienti(conti.applicaIncassi(D.fatture, D.incassi), new Date("2026-09-11T10:00:00Z"), D.clienti, null);
+  const ed = conti.avvisoFidoPesata("c1", espoD), st = conti.avvisoFidoPesata("c2", espoD);
+  ok(ed && ed.livello === "fido" && /^Edilcave Srl è oltre fido: € 12\.300,00 di fatture aperte su un fido di € 10\.000,00/.test(piano(ed.testo)), "la dimostrazione ha un cliente oltre fido: " + (ed && ed.testo));
+  ok(st && st.livello === "scaduto", "e uno con dello scaduto ma dentro il fido: " + (st && st.testo));
+  const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+  ok(/id="pes-fido"/.test(pagina) && /aggiornaFidoPesata\(\)/.test(pagina) && (pagina.match(/aggiornaFidoPesata\(\)/g) || []).length >= 2, "la pagina la legge al cambio del cliente e al momento di registrare");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);

@@ -1532,6 +1532,9 @@ plantdemand.com · ractosoft.com.
   prima di registrare — composizione di `esposizioneClienti`, non un calcolo
   nuovo; **fermare** il carico è una scelta del titolare, non del programma.
   **Mancanza confermata, aperta.**
+  ✅ **FATTO lo stesso giorno, unità 106**: `grep -c '^export function
+  avvisoFidoPesata' apps/conti/conti-data.js` → 1; `grep -c 'id="pes-fido"'
+  apps/conti/index.html` → 1.
 - **Domanda 5 — C'È.** `tempiPagamentoClienti` (giorni medi fra emissione e
   saldo, e oltre la scadenza, solo su fatture saldate con data vera),
   `livelloSollecito`, `testoSollecito`, `interessiMora`. Niente da

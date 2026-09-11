@@ -936,6 +936,9 @@ label.item:has(.dw-chk:checked){
   .item.tocca:active,.kpi:active{transform:scale(.985)}
 }
 
+/* l'avviso del fido alla pesata (11/09): oltre fido in tono d'allarme, scaduto in tono d'avviso */
+.pes-fido.fido{color:var(--ink-dg)}
+.pes-fido.scaduto{color:var(--ink-wr)}
 </style>
 </head>
 <body class="dw">
@@ -1269,6 +1272,7 @@ label.item:has(.dw-chk:checked){
       <label for="pes-cli">Cliente</label>
       <select class="dw-input" id="pes-cli"></select>
       <span class="err-msg" id="err-pes-cli"></span>
+      <div class="form-hint pes-fido" id="pes-fido" style="display:none;"></div>
     </div>
     <div class="fld w2" id="fld-pes-prod">
       <label for="pes-prod">Prodotto</label>
@@ -2027,7 +2031,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -2514,8 +2518,19 @@ label.item:has(.dw-chk:checked){
   /* cambiando cliente o prodotto cambia l'elenco degli ordini possibili, e il
      prezzo con lui: le due cose si rifanno insieme, se no la tendina resterebbe
      a mostrare l'ordine di un altro cliente. */
+  /* IL FIDO ALLA PESATA (11/09): scelto il cliente, se è oltre fido o ha dello
+     scaduto lo si dice qui, prima di registrare — la frase la decide il modulo
+     (`avvisoFidoPesata`, composizione di `esposizioneClienti`), il carico non si
+     ferma: è il titolare che decide. Senza niente da dire la riga sparisce. */
+  function aggiornaFidoPesata() {
+    const n = $("pes-fido"); if (!n) return null;
+    const a = avvisoFidoPesata($("pes-cli").value, esposizioneClienti(FAT, new Date(), CLI, NOT));
+    n.textContent = a ? a.testo : ""; n.style.display = a ? "" : "none";
+    n.classList.toggle("fido", !!a && a.livello === "fido"); n.classList.toggle("scaduto", !!a && a.livello === "scaduto");
+    return a;
+  }
   ["pes-cli","pes-prod"].forEach(i => $(i).addEventListener("change", () => {
-    aggiornaOrdiniPesata(); aggiornaNetto(); }));
+    aggiornaOrdiniPesata(); aggiornaNetto(); if (i === "pes-cli") aggiornaFidoPesata(); }));
   $("pes-ordine").addEventListener("change", aggiornaNetto);
 
   /* le due tendine del DDT: l'elenco lo tiene il modulo, la pagina lo disegna */
@@ -7129,6 +7144,9 @@ label.item:has(.dw-chk:checked){
     if (err.length) { err.forEach(x => segnaErr(x[0], x[1]));
       esito("pes-esito", "Compila i campi evidenziati per registrare la pesata.", "err");
       primoErrore(PES_CAMPI); return; }
+    // il fido si ridice al momento di registrare, nella striscia: non blocca
+    const avvisoFido = aggiornaFidoPesata();
+    if (avvisoFido && avvisoFido.livello === "fido") esito("pes-esito", avvisoFido.testo, "");
     const ordine = ordinePesata();
     const r = rigaPesata(prodottoPerCliente(p, c, LIS), lordo, tara, c, ordine);
     if (r.quantita == null) {

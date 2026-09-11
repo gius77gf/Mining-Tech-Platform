@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.387 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2906, `run-stile` 328,
+  **3.388 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2907, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9429,7 +9428,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   non hanno scadenza né stato) e chiede una decisione sul perimetro di Conti
   (decisione 21); il DSCR dipende da quella. Vedi
   `docs/RICERCA_CONTINUA_CONTI.md`, ricerca dell'11/09 (terzo giro).
-- [ ] **CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO** *(dalla
+- [x] ✅ 11/09 (unità 106) **CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO** *(dalla
   ricerca dell'11/09, terzo giro, domanda 4)*. Il modulo sa chi è oltre fido
   (`esposizioneClienti(...).oltreFido`) e chi ha dello scaduto; il form della
   pesata (`pes-cli`) non lo legge. Da fare: scelto il cliente, la striscia
@@ -9440,6 +9439,21 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   c'è, la dimostrazione ne guadagna uno), la striscia compare; con un cliente
   in regola non compare; prova in `run-kpi` sulla frase (funzione pura
   `avvisoFidoPesata(clienteId, esposizione)`), banco che sceglie il cliente.
+- [x] **CONTI — LA PESATA DICE SE IL CLIENTE È OLTRE FIDO (unità 106,
+  11/09).** `avvisoFidoPesata(clienteId, esposizione)` puro: `null` se non
+  c'è niente da dire, livello `fido` («Edilcave Srl è oltre fido: € 12.300,00
+  di fatture aperte su un fido di € 10.000,00, di cui … già scaduti. La
+  consegna non si ferma da sola: decidi tu se caricare.») o `scaduto`; la
+  riga `pes-fido` sotto il cliente nel form della pesata (tono d'allarme o
+  d'avviso) si aggiorna al cambio del cliente e si ridice nella striscia al
+  momento di registrare — non blocca. La dimostrazione ha adesso un cliente
+  oltre fido (Edilcave, fido 10.000 con 12.300 di residuo dopo gli incassi).
+  Misurato a 430 px: c1 in tono d'allarme, c2 (Stradesud) «ha € 9.750,00
+  scaduti», nessun cliente → riga nascosta, 0 errori. run-kpi +1 (2907).
+  ⚠️ Imparato scrivendo la prova: `euro` mette uno spazio che non si spezza
+  fra il simbolo e la cifra, e su quattro cifre Node e Chromium raggruppano
+  diversamente — la prova confronta a spazi normali e su cifre a cinque
+  posizioni.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
