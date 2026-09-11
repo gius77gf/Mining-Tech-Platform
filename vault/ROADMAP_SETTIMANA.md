@@ -665,6 +665,21 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **RICERCA A ROTAZIONE, CONTI — LA RITENUTA D'ACCONTO NON È UNA
+  MANCANZA DI UNA CAVA (11/09):** metà sul mondo con `WebSearch` (fonti
+  citate, seconda mano dichiarata): la ritenuta riguarda compensi di lavoro
+  autonomo e provvigioni (art. 25 e 25-bis DPR 600/73), non la cessione di
+  beni; `DatiRitenuta` in FatturaPA si compila solo su righe con ritenuta.
+  Delta dal MECCANISMO: Conti vende inerti (cessione di beni) → sulle fatture
+  emesse la ritenuta non esiste e `xmlFatturaPA` fa bene a non averla; la
+  cava è sostituto d'imposta solo quando PAGA un professionista (la voce
+  `consulenze`, perizia geologica), cioè nelle fatture passive, che Conti non
+  ha (`grep -ci "fattur[ae] passiv|fornitor"` → 1, il reso dei ricambi). La
+  riga «Ritenuta d'acconto» di CONCORRENTI_CONTI passa da «confermato
+  assente» a **non applicabile alle vendite**, con la mancanza vera
+  reindirizzata al registro acquisti — così nessuno apre un cantiere per
+  costruire una cosa che una cava non userebbe. Nessun numero di norma entra
+  in una schermata. B4: confermate Conti 5 → **4**, totale 37 → **36**.
 - [x] **DECIMA FETTA DI B3 — I CATALOGHI DEL MESTIERE ESCONO DA GENESI
   (11/09):** `INNESCHI` (i quattro sistemi d'innesco) e `ROCCE` (le sei
   litologie con A, rho, vp, UCS, E, giunti, tinta) in `genesi-data.js`,
@@ -4995,8 +5010,8 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella **11** · conti **5** · flotta **3** · terra 4 · **scudo 3** |
-          | totale **37** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40, 39 e 38 nella notte; 37 la mattina del 06/09 perché «link fatture a ordini di lavoro» di Flotta è passata a C'È A METÀ — la regola c'è, le pagine no · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **4** · flotta **3** · terra 4 · **scudo 3** |
+          | totale **36** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40, 39 e 38 nella notte; 36 dall'11/09 perché la «ritenuta d'acconto» di Conti non è applicabile alle vendite di inerti — non una mancanza, una cosa che una cava non usa; 37 la mattina del 06/09 perché «link fatture a ordini di lavoro» di Flotta è passata a C'È A METÀ — la regola c'è, le pagine no · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
 
       ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
       magazzino / giacenze prodotto» di Conti era «confermato assente» dal

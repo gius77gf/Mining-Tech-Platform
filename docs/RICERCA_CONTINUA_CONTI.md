@@ -1242,3 +1242,58 @@ COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: il
 tracciato nativo di un gestionale specifico (serve la specifica letta, non
 ricordata) e il registro degli **acquisti** (Conti non ha le fatture passive:
 i costi sono voci, non documenti con IVA).
+
+## Ricerca del 2026-09-11 — la ritenuta d'acconto: a chi tocca, e se tocca a una cava
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra
+in una schermata; quelli qui sotto servono a decidere il delta.
+
+### Che cos'è, fuori
+
+- La ritenuta d'acconto è la trattenuta che chi **paga** un compenso
+  (il *sostituto d'imposta*) opera e versa all'Erario per conto di chi lo
+  riceve. Riguarda i **compensi di lavoro autonomo** (art. 25 DPR 600/73:
+  professionisti, prestazioni occasionali) e le **provvigioni** di agenti,
+  mediatori, procacciatori (art. 25-bis). *[risultati di ricerca: Agenzia
+  delle Entrate, FISCOeTASSE, leggeinchiaro]*
+- **Non riguarda la cessione di beni**: chi vende inerti emette una fattura
+  con IVA, e nessuna ritenuta. *[risultati di ricerca, e mestiere della
+  contabilità]*
+- Nel tracciato FatturaPA il blocco `DatiRitenuta` (`TipoRitenuta` RT01/RT02,
+  `ImportoRitenuta`, `AliquotaRitenuta`, `CausalePagamento` dal modello CU)
+  si compila **solo** quando una riga porta `Ritenuta = SI`, cioè quando la
+  fattura è un compenso soggetto a ritenuta e il cliente è sostituto
+  d'imposta. *[risultati di ricerca: specifiche tecniche FatturaPA,
+  1C-ERP, Aruba]*
+
+Fonti (risultati di ricerca, non lette per intero):
+[Agenzia delle Entrate — redditi soggetti a ritenuta](https://www.agenziaentrate.gov.it/portale/schede/pagamenti/versamento-modello-f24-ritenute-su-reddito-di-lavoro-autonomo-f24_rit_red_lav_aut/redditi-soggetti-a-ritenuta-f24_rit_red_lav_aut) ·
+[leggeinchiaro — art. 25 DPR 600/73](https://leggeinchiaro.it/articolo-25-del-accertamento-ritenuta-sui-redditi-lavoro-autonomo-sui/) ·
+[FISCOeTASSE — ritenuta per autonomi, agenti e occasionali](https://www.fiscoetasse.com/approfondimenti/12490-la-ritenuta-d-acconto-per-i-professionisti-in-unico-2016.html) ·
+[fatturapa.gov.it — specifiche tecniche v1.3.2](https://www.fatturapa.gov.it/export/documenti/Specifiche_tecniche_del_formato_FatturaPA_v1.3.2.pdf) ·
+[1C-ERP — ritenuta nella fattura XML](https://www.1c-erp.it/supporto/guida-utente-gestionale/fattura-elettronica/ritenuta-di-acconto/).
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Che cosa vende Conti?* → inerti a tonnellata o a metro cubo
+   (`prodotti`, `pesate`, `rigaPesata`): **cessione di beni**. Sulle fatture
+   che Conti EMETTE la ritenuta non esiste, e `xmlFatturaPA` fa bene a non
+   scrivere `DatiRitenuta`.
+2. *Dove la cava è sostituto d'imposta?* → quando **paga** un professionista
+   (il geologo della perizia, il consulente): nel lato **costi**. Conti ha
+   la voce di costo `consulenze` (dimostrazione: «Perizia geologica», 60 €),
+   ma i costi sono **voci**, non fatture passive con IVA e ritenuta — non
+   c'è un fornitore, un imponibile, una ritenuta da versare entro il 16 del
+   mese dopo (F24). *Chi lo sa in Conti?* Nessuno: `grep -ci "fattur[ae] passiv|fornitor" apps/conti/conti-data.js` → **1**, ed è il reso al fornitore dei ricambi, non un documento.
+
+### Il delta, fatto da chi ha il codice in mano (11/09, contro `0ad45296`)
+
+- **Lato vendite**: la riga «Ritenuta d'acconto» di `CONCORRENTI_CONTI` non
+  è una mancanza per una cava: è **non applicabile** alla cessione di
+  inerti. Riscritta così, con la ragione, invece di lasciarla fra le
+  «confermate assenti» a mandare qualcuno a costruirla.
+- **Lato costi**: la ritenuta sui compensi ai professionisti esisterebbe
+  solo con le **fatture passive**, che Conti non ha (i costi sono voci): è
+  quella la mancanza vera, ed è la stessa già dichiarata per il registro
+  degli acquisti. Resta scritta come tale, non come «ritenuta».
