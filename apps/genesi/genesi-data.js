@@ -2718,3 +2718,48 @@ export function _ppvBaseHtml(pv){
     : '');
 }
 export function shade(c,f){ const r=Math.min(255,Math.round(((c>>16)&255)*f)), g=Math.min(255,Math.round(((c>>8)&255)*f)), b=Math.min(255,Math.round((c&255)*f)); return (r<<16)|(g<<8)|b; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G28 · I CATALOGHI DEL MESTIERE — gli inneschi e le litologie — E LA REGOLA
+   CON CUI LA PAGINA SCEGLIE UNA VOCE (11/09, cantiere B3, decima fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `INNESCHI` — i quattro sistemi d'innesco (Nonel, elettronico, elettrico,
+   miccia detonante) con la loro dispersione, i ritardi disponibili, la tenuta
+   all'acqua, pro e contro: sono gli `id` che `scatterInnesco` (G11) conosce.
+   `ROCCE` — le sei litologie: A = rock factor di Kuz-Ram (Cunningham/Lilly),
+   rho in g/cc, vp velocità sonica in m/s (Z = rho·1000·vp è l'impedenza),
+   UCS ed E che `fattoreRoccia` (G22) legge, i parametri dei giunti, la tinta
+   della scena 3D. ⚠️ I loro A «storici» sono un'ETICHETTA: il prodotto usa
+   sempre l'A che `fattoreRoccia` ricava dai parametri, e la prova pinna lo
+   scarto fra i due per ogni litologia — cinque entro 0,3, il basalto a 0,8
+   (12 scritto, 12,8 dai parametri) — così una scheda ritoccata si vede.
+   Entrati IDENTICI, riga per riga, dal letterale della pagina. Gli esplosivi
+   NO: stanno in `esplosivi.json` (la pagina lo carica e tiene il catalogo
+   inline come ripiego), e un file che si scarica non si copia in un modulo.
+
+   `scegliDaCatalogo(catalogo, id, indiceRipiego)` — la regola con cui la
+   pagina sceglie la voce del progetto: quella con l'`id` scelto, se no quella
+   marcata `default`, se no la voce all'indice di ripiego (0 per inneschi ed
+   esplosivi, 2 — il calcare — per le rocce). Era scritta TRE volte nella
+   pagina (`selEsplosivo`, `selInnesco`, `selRoccia`), una copia per catalogo
+   con l'indice diverso: la firma troppo stretta di CLAUDE.md. I tre legami
+   restano nella pagina e passano di qui. */
+export const INNESCHI=[
+  {id:'nonel',short:'Nonel',nome:'Nonel (tubo d\'urto)',tipo:'Non elettrico + connettori MS di superficie',scatter:'~1% del ritardo (cresce col periodo)',ritardi:'17/25/42/65/100 ms',acqua:'Eccellente',pro:'Immune a correnti vaganti/RF, economico, sicuro.',contro:'Ritardi a step, niente verifica continuità, scatter maggiore.',default:true},
+  {id:'elettronico',short:'Elettr.',nome:'Detonatore elettronico',tipo:'Programmabile al ms',scatter:'~0,01–0,05% (molto preciso)',ritardi:'1–10000 ms liberi',acqua:'Eccellente',pro:'Precisione massima: X50 più fine, PPV fino a −50%, verifica pre-sparo.',contro:'Costo elevato, serve logger/blaster dedicato.',default:false},
+  {id:'elettrico',short:'Elettrico',nome:'Detonatore elettrico',tipo:'A ponte resistivo',scatter:'medio',ritardi:'serie MS/LP',acqua:'Buona',pro:'Verifica continuità con ohmetro, economico.',contro:'Sensibile a correnti vaganti/fulmini/RF: rischio sicurezza.',default:false},
+  {id:'cordtex',short:'Cordtex',nome:'Miccia detonante (cordtex)',tipo:'Trunkline + relay di ritardo',scatter:'dipende dai relay',ritardi:'da connettori MS',acqua:'Buona',pro:'Robusta e semplice, innesca tutta la colonna.',contro:'Airblast/rumore in superficie, meno precisa.',default:false},
+];
+/* litologie: A = rock factor Kuz-Ram (Cunningham/Lilly); rho g/cc; vp velocita sonica m/s; Z = rho*1000*vp (impedenza) */
+export const ROCCE=[
+  {id:'marna',nome:'Marna / scisto',cls:'tenera',A:4,rho:2.4,vp:3000,car:'heave',ucs:30,eMod:12,rmd:20,jps:10,jpa:10,jcf:1.5,tint:0x9aa08a,strat:true},
+  {id:'arenaria',nome:'Arenaria',cls:'media-tenera',A:5,rho:2.3,vp:2600,car:'heave',ucs:70,eMod:25,rmd:20,jps:20,jpa:30,jcf:1,tint:0xc9a878,strat:true},
+  {id:'calcare',nome:'Calcare',cls:'medio',A:8,rho:2.6,vp:4500,car:'misto',default:true,ucs:100,eMod:55,rmd:20,jps:50,jpa:30,jcf:1,tint:0xbfb6a2,strat:true},
+  {id:'dolomia',nome:'Dolomia',cls:'dura',A:9,rho:2.8,vp:5000,car:'shock',ucs:150,eMod:65,rmd:20,jps:50,jpa:30,jcf:1,tint:0xb8b0a6,strat:true},
+  {id:'granito',nome:'Granito',cls:'dura',A:10,rho:2.65,vp:5500,car:'shock',ucs:180,eMod:60,rmd:20,jps:50,jpa:40,jcf:1,tint:0xa89c93,strat:false},
+  {id:'basalto',nome:'Basalto / diabase',cls:'molto dura',A:12,rho:2.95,vp:6000,car:'shock',ucs:250,eMod:80,rmd:20,jps:80,jpa:40,jcf:1,tint:0x6f6b65,strat:false},
+];
+export function scegliDaCatalogo(catalogo, id, indiceRipiego){
+  const c=catalogo||[];
+  return c.find(e=>e.id===id) || c.find(e=>e.default) || c[indiceRipiego||0];
+}

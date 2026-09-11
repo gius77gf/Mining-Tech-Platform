@@ -25310,6 +25310,56 @@ console.log("\n— Campo: i file che escono —");
     const form = (pag.match(/import \{([^}]*)\} from '\.\/genesi-formato\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["_sigSpark", "_ppvBaseHtml", "shade"].every((n) => dati.includes(n)) && form.includes("fmtT"), "la pagina importa tutt'e quattro");
   });
+
+  /* ⛔ G28 — I CATALOGHI DEL MESTIERE E LA REGOLA DI SCELTA (11/09, decima
+     fetta di B3). `INNESCHI` e `ROCCE` entrati identici dal letterale della
+     pagina; `scegliDaCatalogo` è la regola che `selEsplosivo`, `selInnesco`
+     e `selRoccia` scrivevano tre volte (provata contro le tre copie estratte
+     da HEAD: 30.000 casi, 0 divergenze). */
+  test("⛔ Genesi · ROCCE: sei litologie complete, un solo default, e i loro A storici tornano dai parametri", () => {
+    eq(v.ROCCE.map((r) => r.id), ["marna", "arenaria", "calcare", "dolomia", "granito", "basalto"], "le sei litologie, dalla più tenera");
+    const campi = ["id", "nome", "cls", "A", "rho", "vp", "car", "ucs", "eMod", "rmd", "jps", "jpa", "jcf", "tint"];
+    eq(v.ROCCE.filter((r) => campi.some((c) => r[c] === undefined || r[c] === null || r[c] === "")).map((r) => r.id), [], "ogni litologia ha tutti i campi che la catena della frammentazione legge (UCS ed E compresi: senza, `fattoreRoccia` risponde NaN)");
+    eq(v.ROCCE.filter((r) => r.default).map((r) => r.id), ["calcare"], "un solo default, il calcare");
+    /* ⚠️ MISURATO, NON DEDOTTO: il commento della pagina diceva «i default per
+       litologia riproducono gli A storici». Cinque su sei sì, entro 0,3; il
+       BASALTO no: dai suoi parametri (rho 2,95, UCS 250, giunti 80+40) esce
+       12,8 contro il 12 scritto. Il prodotto usa SEMPRE l'A calcolato
+       (`fattoreRoccia`), mai `r.A`, quindi nessun numero a schermo cambia; il
+       12 è un'etichetta. Gli scarti si pinnano come sono, così una scheda che
+       si allontana dai suoi parametri si vede, e uno che li ritocca sa che
+       cosa sta cambiando. */
+    eq(Object.fromEntries(v.ROCCE.map((r) => [r.id, +(v.fattoreRoccia(r, {}).A - r.A).toFixed(1)])),
+      { marna: -0.2, arenaria: 0.1, calcare: 0.1, dolomia: 0, granito: -0.3, basalto: 0.8 },
+      "⛔ lo scarto fra l'A storico e quello ricavato dai parametri, litologia per litologia (il basalto è l'unico oltre 0,3)");
+    ok(v.ROCCE.every((r) => r.rho > 2 && r.rho < 3.2 && r.vp >= 2000 && r.vp <= 7000 && r.ucs > 0 && r.eMod > 0), "densità, velocità sonica, UCS ed E in intervalli da roccia");
+  });
+  test("⛔ Genesi · INNESCHI: i quattro sistemi, con gli id che scatterInnesco conosce", () => {
+    eq(v.INNESCHI.map((i) => i.id), ["nonel", "elettronico", "elettrico", "cordtex"], "Nonel, elettronico, elettrico, miccia detonante");
+    ok(v.INNESCHI.every((i) => i.nome && i.short && i.scatter && i.ritardi && i.acqua && i.pro && i.contro), "ogni innesco ha nome, sigla, dispersione, ritardi, acqua, pro e contro");
+    eq(v.INNESCHI.map((i) => v.scatterInnesco(i.id, 100)), [2, 0.1, 0.5, 3], "e per ognuno la dispersione dell'innesco ha una regola sua (nessuno cade nel ripiego)");
+    eq(v.INNESCHI.filter((i) => i.default).length <= 1, true, "al massimo un default");
+  });
+  test("⛔ Genesi · scegliDaCatalogo: l'id scelto, se no il default, se no la voce di ripiego", () => {
+    const C = [{ id: "a" }, { id: "b", default: true }, { id: "c" }];
+    eq(v.scegliDaCatalogo(C, "c", 0).id, "c", "l'id scelto vince");
+    eq(v.scegliDaCatalogo(C, "zzz", 0).id, "b", "un id sconosciuto cade sul default");
+    eq(v.scegliDaCatalogo(C, undefined, 0).id, "b", "e anche nessun id");
+    eq(v.scegliDaCatalogo([{ id: "a" }, { id: "b" }, { id: "c" }], "zzz", 2).id, "c", "senza default vale l'indice di ripiego (il calcare per le rocce)");
+    eq(v.scegliDaCatalogo([{ id: "a" }], "zzz", 2), undefined, "un ripiego oltre il catalogo è undefined, com'era: non si inventa una voce");
+    eq(v.scegliDaCatalogo(null, "a", 0), undefined, "catalogo assente: undefined");
+    eq(v.scegliDaCatalogo(v.ROCCE, "boh", 2).id, "calcare", "sulle rocce vere: il calcare, che è anche il default");
+  });
+  test("⛔ Genesi · G28: nella pagina i cataloghi non ci sono più, e i tre legami passano dalla stessa regola", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/const ROCCE=\[|const INNESCHI=\[/g) || []).length, 0, "i due letterali non ci sono più");
+    ok(/function selEsplosivo\(\)\{ return scegliDaCatalogo\(ESPL, D2\.esplosivo, 0\); \}/.test(pag), "selEsplosivo");
+    ok(/function selInnesco\(\)\{ return scegliDaCatalogo\(INNESCHI, D2\.innesco, 0\); \}/.test(pag), "selInnesco");
+    ok(/function selRoccia\(\)\{ return scegliDaCatalogo\(ROCCE, D2\.roccia, 2\); \}/.test(pag), "selRoccia, col calcare come ripiego");
+    eq((pag.match(/\.find\(e=>e\.default\)|\.find\(r=>r\.default\)/g) || []).length, 0, "la regola non è più scritta in casa in nessuna delle tre forme");
+    const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["INNESCHI", "ROCCE", "scegliDaCatalogo"].every((n) => dati.includes(n)), "la pagina importa tutt'e tre");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -32229,8 +32279,11 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       "e sulla marna il ripiego sbagliava nell'altro verso: dichiarava una gittata più lunga del vero");
     /* ⚠️ il ripiego nuovo non può essere vuoto a sua volta: le sei litologie
        del catalogo inline hanno tutte un `ucs` (misurato, non dedotto) */
-    const rocce = /const ROCCE=\[([\s\S]*?)\n\];/.exec(CODICE_G);
-    ok(rocce, "il catalogo ROCCE è ancora un letterale leggibile");
+    /* ⏱️ 11/09 (G28): il catalogo è salito in `genesi-data.js` ed è un dato,
+       non più un letterale da leggere con una regex: si chiede al modulo. */
+    const rocce = /export const ROCCE=\[([\s\S]*?)\n\];/.exec(readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8"));
+    ok(rocce, "il catalogo ROCCE è un letterale leggibile, nel modulo");
+    eq(/const ROCCE=\[/.test(CODICE_G), false, "e nella pagina non c'è più una seconda copia");
     const voci = rocce[1].split("\n").filter((r) => /\{id:/.test(r));
     eq(voci.length, 6, "sei litologie");
     eq(voci.filter((r) => !/\bucs:\s*\d/.test(r)).length, 0,

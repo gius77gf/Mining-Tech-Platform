@@ -665,6 +665,28 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **DECIMA FETTA DI B3 — I CATALOGHI DEL MESTIERE ESCONO DA GENESI
+  (11/09):** `INNESCHI` (i quattro sistemi d'innesco) e `ROCCE` (le sei
+  litologie con A, rho, vp, UCS, E, giunti, tinta) in `genesi-data.js`,
+  blocco G28, entrati identici riga per riga dal letterale della pagina; e
+  `scegliDaCatalogo(catalogo, id, indiceRipiego)`, la regola che
+  `selEsplosivo`, `selInnesco` e `selRoccia` scrivevano TRE volte con l'indice
+  di ripiego diverso (la firma troppo stretta): i tre restano come legami e
+  passano di lì (30.000 casi contro le tre copie → 0 divergenze). Gli
+  esplosivi NO: stanno in `esplosivi.json` e la pagina tiene l'inline come
+  ripiego. ⚠️ MISURATO scrivendo la prova: il commento della pagina diceva
+  «i default per litologia riproducono gli A storici» — cinque su sei entro
+  0,3, il BASALTO no (12 scritto, 12,8 dai parametri). Il prodotto usa sempre
+  l'A calcolato, mai `r.A`: nessun numero a schermo cambia, e gli scarti sono
+  pinnati litologia per litologia invece di allargare una tolleranza. Prove:
+  run-kpi +4 (2846): i cataloghi completi e coerenti (ogni roccia con UCS ed
+  E, un solo default; gli id degli inneschi che `scatterInnesco` conosce), la
+  regola di scelta nei quattro versi, il legame nella pagina; la prova
+  vecchia che leggeva ROCCE dalla pagina con una regex legge il modulo.
+  Copertura genesi-data 112 → **115**; il censimento resta a 152 (i
+  cataloghi non sono funzioni), ma «a una o due variabili» sale 48 → 50 e il
+  numero che conta 55 → 57: le tre `sel*`, che leggevano il catalogo E `D2`,
+  adesso leggono solo `D2` — sono diventate estraibili.
 - [x] **I SEI KO VERI DEL GIRO FILTRATO DEL 10/09, LETTI E CHIUSI (11/09):**
   il giro (71 passate su una copia di `526cb2a9`, 2h17, arrivato in fondo)
   dichiarava 13 KO veri; letti con `leggi-giro`, erano SEI difetti (gli altri
@@ -3219,8 +3241,8 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, nona fetta
-      (G27): **152** nella pagina, **48** a una o due variabili, **55** «il
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *11/09, decima fetta
+      (G28): **152** nella pagina, **50** a una o due variabili, **57** «il
       numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
@@ -7606,8 +7628,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.323 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2842, `run-stile` 328,
+  **3.327 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2846, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -1164,7 +1164,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
-         ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade } from './genesi-data.js';
+         ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
+         INNESCHI, ROCCE, scegliDaCatalogo } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1321,24 +1322,12 @@ try{
 }catch(e){ /* offline o file mancante: si usa il fallback inline */ }
 let ESPL=[{id:'anfo-standard',nome:'ANFO standard (sfuso)',tipo:'AN poroso/gasolio 94:6',densita_gcc:0.82,vod_ms:3800,rws_pct:100,rbs_pct:100,acqua:'Nulla',applicazione:'Carica di colonna in fori asciutti; scelta base ed economica.',pro:'Costo minimo, ottima energia di heave.',contro:'Zero resistenza all\'acqua, richiede booster.',costo:'Base (1,0x)',default:true}];
 try{ const re=await fetch('./esplosivi.json'); if(re.ok){ const je=await re.json(); if(Array.isArray(je)&&je.length) ESPL=je; } }catch(e){}
-function selEsplosivo(){ return ESPL.find(e=>e.id===D2.esplosivo) || ESPL.find(e=>e.default) || ESPL[0]; }
-const INNESCHI=[
-  {id:'nonel',short:'Nonel',nome:'Nonel (tubo d\'urto)',tipo:'Non elettrico + connettori MS di superficie',scatter:'~1% del ritardo (cresce col periodo)',ritardi:'17/25/42/65/100 ms',acqua:'Eccellente',pro:'Immune a correnti vaganti/RF, economico, sicuro.',contro:'Ritardi a step, niente verifica continuità, scatter maggiore.',default:true},
-  {id:'elettronico',short:'Elettr.',nome:'Detonatore elettronico',tipo:'Programmabile al ms',scatter:'~0,01–0,05% (molto preciso)',ritardi:'1–10000 ms liberi',acqua:'Eccellente',pro:'Precisione massima: X50 più fine, PPV fino a −50%, verifica pre-sparo.',contro:'Costo elevato, serve logger/blaster dedicato.',default:false},
-  {id:'elettrico',short:'Elettrico',nome:'Detonatore elettrico',tipo:'A ponte resistivo',scatter:'medio',ritardi:'serie MS/LP',acqua:'Buona',pro:'Verifica continuità con ohmetro, economico.',contro:'Sensibile a correnti vaganti/fulmini/RF: rischio sicurezza.',default:false},
-  {id:'cordtex',short:'Cordtex',nome:'Miccia detonante (cordtex)',tipo:'Trunkline + relay di ritardo',scatter:'dipende dai relay',ritardi:'da connettori MS',acqua:'Buona',pro:'Robusta e semplice, innesca tutta la colonna.',contro:'Airblast/rumore in superficie, meno precisa.',default:false},
-];
-function selInnesco(){ return INNESCHI.find(e=>e.id===D2.innesco) || INNESCHI.find(e=>e.default) || INNESCHI[0]; }
-/* litologie: A = rock factor Kuz-Ram (Cunningham/Lilly); rho g/cc; vp velocita sonica m/s; Z = rho*1000*vp (impedenza) */
-const ROCCE=[
-  {id:'marna',nome:'Marna / scisto',cls:'tenera',A:4,rho:2.4,vp:3000,car:'heave',ucs:30,eMod:12,rmd:20,jps:10,jpa:10,jcf:1.5,tint:0x9aa08a,strat:true},
-  {id:'arenaria',nome:'Arenaria',cls:'media-tenera',A:5,rho:2.3,vp:2600,car:'heave',ucs:70,eMod:25,rmd:20,jps:20,jpa:30,jcf:1,tint:0xc9a878,strat:true},
-  {id:'calcare',nome:'Calcare',cls:'medio',A:8,rho:2.6,vp:4500,car:'misto',default:true,ucs:100,eMod:55,rmd:20,jps:50,jpa:30,jcf:1,tint:0xbfb6a2,strat:true},
-  {id:'dolomia',nome:'Dolomia',cls:'dura',A:9,rho:2.8,vp:5000,car:'shock',ucs:150,eMod:65,rmd:20,jps:50,jpa:30,jcf:1,tint:0xb8b0a6,strat:true},
-  {id:'granito',nome:'Granito',cls:'dura',A:10,rho:2.65,vp:5500,car:'shock',ucs:180,eMod:60,rmd:20,jps:50,jpa:40,jcf:1,tint:0xa89c93,strat:false},
-  {id:'basalto',nome:'Basalto / diabase',cls:'molto dura',A:12,rho:2.95,vp:6000,car:'shock',ucs:250,eMod:80,rmd:20,jps:80,jpa:40,jcf:1,tint:0x6f6b65,strat:false},
-];
-function selRoccia(){ return ROCCE.find(r=>r.id===D2.roccia) || ROCCE.find(r=>r.default) || ROCCE[2]; }
+function selEsplosivo(){ return scegliDaCatalogo(ESPL, D2.esplosivo, 0); }
+/* ⛔ `INNESCHI` è salito in `./genesi-data.js` (blocco G28, 11/09). */
+function selInnesco(){ return scegliDaCatalogo(INNESCHI, D2.innesco, 0); }
+/* ⛔ `ROCCE` (le litologie, con A = rock factor Kuz-Ram, rho, vp, UCS, E, giunti, tinta) è salito in `./genesi-data.js`,
+   blocco G28 (11/09), insieme a `scegliDaCatalogo`: qui restano i tre legami con lo stato del progetto. */
+function selRoccia(){ return scegliDaCatalogo(ROCCE, D2.roccia, 2); }
 /* rock factor A dall'indice di brillabilità di Cunningham/Lilly: A=0.06·(RMD+JF+RDI+HF).
    ⛔ IL CONTO NON È PIÙ QUI: è `fattoreRoccia` in `./genesi-data.js` (blocco G22, 10/09), dove
    `node` lo prova. Qui resta il LEGAME fra lo stato del progetto e la funzione pura — un punto
