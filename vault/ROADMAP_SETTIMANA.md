@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL RECLAMO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9335,6 +9336,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   «chiesta dal meteo di oggi (Pioggia)»), chiusura respinta senza nome, poi
   «chiusa alle 12:47 da Giulia Verdi · 1 voce non a posto», 0 errori.
   run-kpi 2895 → 2898; copertura campo 147/147, scudo 216/216, dw-ponti 88/88.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — SENTINELLA: CHE COSA CHIEDE L'ENTE
+  DOPO UN RECLAMO PER LE VIBRAZIONI, E CHE COSA PROTEGGE LA CAVA PRIMA (11/09,
+  unità 96, solo documenti).** Mondo di seconda mano (27 fonti): l'esposto va
+  al Comune, che chiede la misura all'ARPA, e «la normativa italiana non
+  tratta la matrice vibrazioni» (i limiti sono norme tecniche di riferimento:
+  UNI 9916, tre assi, dati comparabili nel tempo); come si gestisce un reclamo
+  per una volata (rispetto, accertare di che cosa si lamenta, andare a casa,
+  il sismografo triassiale); il **rilievo preventivo** dello stato delle case
+  vicine (foto delle fessure esistenti: «elimina il 96 % delle richieste
+  pretestuose»). Delta dal MECCANISMO contro `7578e26a`: la relazione per
+  l'ente C'È (5 funzioni), le misure accanto al reclamo CI SONO (dal mattino),
+  la soglia «di riferimento» C'È; lo **stato di fatto del ricettore** MANCA
+  (0 e 0) e la **risposta scritta al reclamo** MANCA come documento (0 fogli)
+  → una voce aperta; l'esposto resta dichiarato. Vedi
+  `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca dell'11/09 (secondo giro).
+- [ ] **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
+  RECLAMO** *(dalla ricerca dell'11/09, secondo giro, domande 3 e 4)*. (1) Sul
+  ricettore un sopralluogo preventivo — `statoDiFatto: { data, chi, note }`
+  (che cosa si è visto: fessure e dove) — scritto nella scheda, richiamato
+  accanto al reclamo di quel ricettore («stato di fatto del 12/03/2026: …»,
+  o «nessun sopralluogo registrato: non si sa com'era prima») e nella
+  relazione per l'ente; le foto restano una decisione (dove si tengono).
+  (2) `rispostaReclamo(reclamo, monitoraggi, ricettore, volate, oggi)` che
+  compone — senza ricalcolare — il reclamo, le misure di quel giorno
+  (`misureDelGiornoPerReclamo`), la soglia col riferimento
+  (`riferimentoSoglia`), la volata coincidente (`coincidenzaVolata`), lo stato
+  di fatto, e chi risponde; foglio stampabile dalla scheda del reclamo con la
+  frase di esempio e le firme («Il direttore responsabile»), registrato in
+  `documenti-dimostrazione`. Come si misura: sulla dimostrazione la risposta
+  del reclamo chiuso cita «1,8 mm/s» e «sotto soglia», quella di un reclamo
+  senza misure dice che non ci sono misure di quel giorno (non «conforme»);
+  un ricettore senza sopralluogo esce con «non si sa com'era prima».
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

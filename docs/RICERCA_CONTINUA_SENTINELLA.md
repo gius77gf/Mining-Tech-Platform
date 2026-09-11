@@ -688,6 +688,11 @@ schermata.*
   **l'assenza della misura non è un reclamo infondato**. Poi la riga del
   registro la stampa. È l'unica cosa che Envirosuite vende su questo fronte e
   che qui manca. **In roadmap come unità.**
+  ✅ **FATTO lo stesso giorno** (roadmap: «Le misure di quel giorno accanto al
+  reclamo»): `grep -c '^export function misureDelGiornoPerReclamo'
+  apps/sentinella/sentinella-data.js` → 1. Questa nota è stata aggiunta
+  dall'unità 96, che ha trovato la riga senza il suo ✅: chi chiude un'unità
+  aggiorna la riga che gliel'aveva proposta.
 - **Domanda 3 — A METÀ.** `riepilogoReclami` conta gli aperti e l'ultimo;
   lo stato è `aperto|chiuso` senza una data di chiusura né di risposta:
   `grep -cE 'dataRisposta|rispostoIl|chiusoIl|apertoDa' apps/sentinella/
@@ -697,9 +702,134 @@ schermata.*
   `apertoDaGiorni` sulla riga aperta e, chiudendo, `chiusoIl` scritto dalla
   pagina; il riepilogo dice il più vecchio aperto. Candidato dichiarato,
   dopo la domanda 2.
+  ✅ **FATTO lo stesso giorno** (roadmap: «Aperto da N giorni» e la data di
+  chiusura): `grep -cE '^export function (apertoDaGiorni|tempoRispostaReclamo)'
+  apps/sentinella/sentinella-data.js` → 2, `chiusoIl` nel record.
 - **Domanda 4 — ASSENTE, e non è detto che serva.** `grep -ciE 'esposto'
   apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **2 e 0**,
   e le due sono la parola «esposto» in un commento, non uno stato. Un reclamo
   che diventa esposto all'ente è un fatto che l'azienda viene a sapere dal
   Comune: la forma minima è una nota nel campo «azione», che c'è già. Nessun
   cantiere.
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede l'ente dopo un reclamo per le vibrazioni, e che cosa protegge la cava prima (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Chi riceve il reclamo, in Italia.** Il cittadino disturbato da rumore o
+  vibrazioni di un'attività produttiva presenta l'**esposto al Comune**, che
+  può chiedere all'**ARPA** la misura strumentale (Lombardia, L.R. 16/1999;
+  Veneto; Marche; Toscana; Puglia; FVG). E la frase che cambia il delta:
+  **«la normativa italiana non tratta la matrice vibrazioni, quindi non ci
+  sono valori limite da verificare»** — il fenomeno vibratorio è di solito
+  accompagnato dal rumore, per cui il Comune è competente. I limiti che si
+  usano sono **norme tecniche di riferimento**, non legge. *[risultati di
+  ricerca: arpalombardia.it, arpa.marche.it, arpat.toscana.it,
+  arpa.veneto.it, arpa.puglia.it, arpa.fvg.it]*
+- **La norma tecnica per gli edifici**: UNI 9916:2014 (in accordo con ISO
+  4866) — criteri di misura e valutazione degli effetti delle vibrazioni sugli
+  edifici, con l'obiettivo dichiarato di **dati comparabili** su uno stesso
+  edificio in tempi diversi o su edifici diversi a parità di sorgente; il
+  parametro è la **velocità di picco lungo i tre assi**, gamma 0,1–150 Hz;
+  si applica a sorgenti esterne come cantieri e traffico. *[risultati di
+  ricerca: va.mite.gov.it (due approfondimenti sulle vibrazioni),
+  ediliziainrete.it, assoacustici.it, dewesoft.com, indaginidiagnostiche.it]*
+- **Come si gestisce un reclamo per una volata, secondo chi lo fa da anni**
+  (Agg-Net, Quarry Magazine): ogni reclamo si tratta con rispetto e
+  credibilità — «la percezione del reclamante è la realtà effettiva», e
+  liquidarlo senza indagine non soddisfa nessuno anche se i livelli erano nei
+  limiti; si accerta **di che cosa** si lamenta (la maggior parte non
+  distingue vibrazione da sovrappressione aerea); il danno va notificato
+  **subito** e un incaricato va **a casa del reclamante**; il sismografo
+  triassiale (verticale, radiale, trasversale) è la registrazione che regge, e
+  «chi monta il sismografo non è per forza qualificato a interpretarne i
+  risultati»; comunicare coi vicini, programmi di comunità, monitoraggio e
+  **rilievi preventivi**. *[risultati di ricerca: agg-net.com,
+  quarrymagazine.com, uwavems.com, geosonicsvibratech.com,
+  seismicsurveys.com]*
+- **Il rilievo preventivo (pre-blast survey)**: la documentazione dello
+  **stato delle proprietà vicine PRIMA** delle volate — foto o video delle
+  **fessure e dei difetti esistenti** con posizione, lunghezza, ampiezza e
+  tipo; tipo e qualità della costruzione; interno ed esterno, porte, muri,
+  finestre, fondazioni. Secondo un liquidatore assicurativo citato **elimina
+  il 96 % delle richieste pretestuose**; per gli avvocati è «la migliore
+  difesa» contro «la mia casa non aveva crepe prima». *[risultati di ricerca:
+  pitandquarry.com, up.codes, preseis.com, preblast.com, rogerstownsend.com,
+  smithadjusting.com, sgwasa.org, hammondriverholdings.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+arpalombardia.it · arpa.marche.it · arpat.toscana.it · arpa.veneto.it ·
+arpa.puglia.it · arpa.fvg.it · euroacustici.org · va.mite.gov.it ·
+ediliziainrete.it · assoacustici.it · dewesoft.com · indaginidiagnostiche.it ·
+portaleagentifisici.it · acusticatecnica.it · agg-net.com ·
+quarrymagazine.com · uwavems.com · geosonicsvibratech.com ·
+seismicsurveys.com · pitandquarry.com · up.codes · preseis.com ·
+preblast.com · rogerstownsend.com · smithadjusting.com · sgwasa.org ·
+hammondriverholdings.com · uttamblastech.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi compone la relazione per l'ente, e che cosa porta: periodo, punti,
+   letture sui tre assi, soglie con il loro riferimento, taratura, condizioni,
+   da dove vengono i numeri?
+2. Chi mette accanto al reclamo la misura di quel giorno?
+3. Chi sa com'era il ricettore PRIMA delle volate — fessure, foto, chi ha
+   guardato e quando?
+4. Chi scrive la risposta al reclamante, e con quali pezzi?
+5. Chi decide che un limite è «di riferimento» e non «di legge»?
+6. Chi tratta l'esposto al Comune e la misura dell'ARPA?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `7578e26a`)
+
+- **Domanda 1 — C'È.** `grep -cE '^export function
+  (reportConformita|taratureDelReport|coperturaTaratura|condizioniMisura|composizioneProvenienza)'
+  apps/sentinella/sentinella-data.js` → 5: il report per l'ente porta il
+  periodo, i punti col ricettore e la soglia efficace, le letture con la
+  provenienza riga per riga, le tarature del periodo, le condizioni della
+  misura; la pagina lo stampa con le firme «Il direttore responsabile / Il
+  tecnico che ha eseguito la misura» (`grep -c 'Il direttore responsabile'
+  apps/sentinella/index.html` → 1). Niente da aggiungere.
+- **Domanda 2 — C'È, dal mattino.** `grep -c '^export function
+  misureDelGiornoPerReclamo'` → 1 (chiusa dalla ricerca del primo giro,
+  unità della roadmap «Le misure di quel giorno accanto al reclamo»).
+- **Domanda 3 — MANCA, ed è la difesa che il mondo mette per prima.**
+  `grep -ciE 'fessur|crep|sopralluogo|stato di fatto|pre-blast|ante operam'`
+  → 0 e 0 (modulo, pagina). Il ricettore porta `nome, tipo, distanza, classe,
+  soglia, unita, nota` (intestazione del modulo): sa **quanto** è lontano e
+  **quanto** regge, non **com'era** prima che si sparasse. Senza lo stato di
+  fatto, «quella crepa l'avete fatta voi» non ha risposta. **Mancanza
+  confermata, aperta**: un sopralluogo per ricettore (`statoDiFatto`: data,
+  chi, che cosa si è visto — fessure e dove), scritto nella scheda del
+  ricettore, richiamato accanto al reclamo di quel ricettore e nella
+  relazione per l'ente. ⚠️ Le **foto** sono una decisione (dove si tengono,
+  quanto pesano): qui entra il testo, la foto resta dichiarata.
+- **Domanda 4 — MANCA come documento.** `grep -cE '^export function
+  (foglia|testo|lettera)[A-Za-z]*Reclam'` → 0; le occorrenze di «risposta»
+  accanto a «reclamo» (`grep -niE 'rispost.*reclam'` → 2 e 4) sono il tempo
+  di risposta e una frase della pagina. I pezzi esistono tutti — il reclamo,
+  le misure di quel giorno (`misureDelGiornoPerReclamo`), la soglia col suo
+  riferimento (`riferimentoSoglia`), la volata coincidente
+  (`coincidenzaVolata`), lo stato di fatto della domanda 3 quando ci sarà —
+  ma nessuno li compone nella **risposta scritta** che si consegna al
+  reclamante o al Comune. **Mancanza confermata, aperta**: composizione, non
+  calcolo, sullo stampo di `fascicoloIspezione`.
+- **Domanda 5 — C'È.** `grep -c 'daVerificare'` → 3 e `riferimentoSoglia` → 1:
+  ogni preset porta «da verificare: sempre», e la soglia scrive il suo
+  riferimento (UNI 9916 / DIN 4150, `grep -ciE 'DIN ?4150'` → 6 nel modulo).
+  È esattamente la posizione dell'ARPA: riferimento tecnico, non limite di
+  legge. Niente da aggiungere.
+- **Domanda 6 — DICHIARATO, non riaperto.** L'esposto al Comune e la misura
+  dell'ARPA sono la domanda 4 della ricerca del mattino («non è detto che
+  serva»): un reclamo che diventa esposto è un `tipo` o uno `stato` in più, e
+  si decide quando un cliente lo chiede.
+
+**Riassunto** — 2 mancanze **confermate e aperte** (lo stato di fatto del
+ricettore prima delle volate; la risposta scritta al reclamo composta dai
+pezzi esistenti), 1 **dichiarata** (l'esposto), 3 **già a posto** (la
+relazione per l'ente, le misure accanto al reclamo, la soglia dichiarata di
+riferimento).
