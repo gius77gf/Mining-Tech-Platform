@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.347 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2866 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.350 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2869 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.804** asserzioni su **40** comandi.
+> `node` completo esegue **3.807** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **280 su 280** in cinque
-moduli: `dw-shell.js` **59/59**, `dw-ponti.js` **87/87**, `genesi-data.js` **120/120**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **284 su 284** in cinque
+moduli: `dw-shell.js` **59/59**, `dw-ponti.js` **87/87**, `genesi-data.js` **124/124**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -126,13 +126,13 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **22** |
-| una o due | **49** |
+| una o due | **48** |
 | da tre a cinque | 20 |
-| da sei a dieci | 23 |
+| da sei a dieci | 24 |
 | più di dieci — lì è un rifacimento | 37 |
 
-Cioè **56 su 151 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 95 sono una decisione di architettura.
+Cioè **55 su 151 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 96 sono una decisione di architettura.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
 27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:

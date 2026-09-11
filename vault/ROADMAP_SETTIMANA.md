@@ -7842,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.347 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2866, `run-stile` 328,
+  **3.350 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2869, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9144,6 +9144,25 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   fine turno che lo stampa con argomento e presenti. Prova che manca:
   `grep -ciE 'briefing' apps/campo/campo-data.js apps/campo/index.html` → 1
   e 0, la sola occorrenza è il testo della voce.
+- [x] **GENESI G30 — LE SOGLIE DELL'ENERGIA SCRITTE UNA VOLTA, LO SCATTO DEI
+  PROFILI, LE ALTEZZE DEI FORI DAL PIEDE (11/09, B3 dodicesima fetta):**
+  `SOGLIE_PF` (75/90/115/140) le legge `pfCls` e ne discende
+  `LEGENDA_ENERGIA`, identica carattere per carattere al letterale che la
+  pagina teneva a mano nel disegno dell'energia (due copie degli stessi
+  quattro numeri, una nel verdetto e una nel suo cartello); `scattoProfili`
+  (copia profonda di cresta e piede per annulla/ripristina) con `mdlProfSnap`
+  legame; `altezzeForiDaPiede(nFori, interasse, prof, piede, opts)` con
+  `mdlSyncAltezze` legame che tiene i due «niente» della pagina (senza piede
+  si azzera, senza fori non si tocca). ⛔ **E la stessa regola era scritta DUE
+  volte nella pagina**: la sincronizzazione 2D→3D la ripeteva, senza piede
+  riempiendo comunque il piano a profondità piena — la firma troppo stretta di
+  CLAUDE.md: la copia è sparita con un argomento (`pianoSenzaPiede`), non con
+  un rifacimento. Confronto vecchio/nuovo sugli stessi 6.001 ingressi: 0
+  diversi (la prima stesura della legenda derivata sbagliava di un «%» — l'ha
+  preso il confronto, non la rilettura). Prove: run-kpi +3 (2869),
+  genesi-data 120 → **124**; il censimento di `genesi-estraibili`: 151
+  funzioni, 55 estraibili (48 a una o due variabili, 24 da sei a dieci),
+  aggiornato in DEVELOPMENT.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va

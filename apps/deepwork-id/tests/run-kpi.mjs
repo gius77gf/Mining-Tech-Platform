@@ -25743,6 +25743,47 @@ console.log("\n— Campo: i file che escono —");
     ok(cons.includes("BRIEFING DI INIZIO TURNO\n- Squadra A (turno Mattina): " + r.argomento + " — tenuto da Mario Rossi — presenti: " + p.testo + " — alle 06:05"), cons.slice(cons.indexOf("BRIEFING"), cons.indexOf("BRIEFING") + 220));
     ok(campo.testoConsegnaTurno({ ...base, briefing: [] }, {}).includes("BRIEFING DI INIZIO TURNO\n- nessun briefing registrato"), "senza briefing la consegna lo dice");
   });
+  /* G30 (11/09, B3 dodicesima fetta): le soglie dell'energia scritte una
+     volta, lo scatto dei profili, le altezze dei fori dal piede. Confrontate
+     vecchio/nuovo in scratchpad (6.001 casi, 0 diversi). */
+  test("⛔ Genesi · G30: le soglie di pfCls sono UNA tabella, e la legenda del disegno ne discende carattere per carattere", () => {
+    eq(genesi.SOGLIE_PF, { moltoBassa: 0.75, bassa: 0.90, ok: 1.15, alta: 1.40 });
+    eq(genesi.LEGENDA_ENERGIA, [["moltoBassa", "< 75%"], ["bassa", "75–90%"], ["ok", "90–115% in linea"], ["alta", "115–140%"], ["moltoAlta", "> 140%"]], "il letterale che la pagina teneva a mano, adesso derivato");
+    eq(genesi.LEGENDA_ENERGIA.map((v) => v[0]), Object.keys(genesi.ENECOL), "una voce per ogni classe che pfCls sa dire, nello stesso ordine");
+    // la prova che sono davvero le soglie: attorno a ognuna pfCls cambia classe
+    for (const [k, s] of Object.entries(genesi.SOGLIE_PF)) ok(genesi.pfCls(s - 0.001) !== genesi.pfCls(s + 0.001), "attorno a " + k + " (" + s + ") la classe cambia");
+  });
+  test("⛔ Genesi · G30 scattoProfili / altezzeForiDaPiede: copie profonde dei soli campi che contano; le altezze dal piede con i due «niente» distinti", () => {
+    const prof = [{ x: 0, z: 1, extra: 9 }, { x: 5, z: 2 }], piede = [{ x: 0, y: -1, extra: 9 }, { x: 10, y: 1 }];
+    const s = genesi.scattoProfili(prof, piede);
+    eq(s, { cresta: [{ x: 0, z: 1 }, { x: 5, z: 2 }], piede: [{ x: 0, y: -1 }, { x: 10, y: 1 }] }, "solo x,z e x,y: niente campi estranei");
+    prof[0].z = 99; eq(s.cresta[0].z, 1, "è una copia: cambiare l'originale non la tocca");
+    eq(genesi.scattoProfili(null, undefined), { cresta: [], piede: [] });
+    // le altezze: al centro di ogni foro, profondità meno il piede, bloccate fra 5 e 20
+    const h = genesi.altezzeForiDaPiede(3, 4, 12, [{ x: 0, y: 0 }, { x: 12, y: 6 }]);
+    eq(h.map((v) => +v.toFixed(2)), [11, 9, 7], "piede che sale di 6 m su 12: ai centri 2, 6, 10 m il piede vale 1, 3, 5 → altezze 11, 9, 7");
+    eq(genesi.altezzeForiDaPiede(2, 4, 12, [{ x: 0, y: -30 }, { x: 8, y: 30 }]), [20, 5], "bloccate fra 5 e 20");
+    eq(genesi.altezzeForiDaPiede(3, 4, 12, [{ x: 0, y: 0 }]), null, "senza un piede con due punti: null (la pagina azzera)");
+    eq(genesi.altezzeForiDaPiede(3, 4, 12, null), null);
+    eq(genesi.altezzeForiDaPiede(0, 4, 12, [{ x: 0, y: 0 }, { x: 12, y: 6 }]), [], "senza fori: lista vuota (la pagina non tocca niente) — un «niente» diverso dal null");
+    eq(genesi.altezzeForiDaPiede("2", 4, 12, [{ x: 0, y: 0 }, { x: 12, y: 0 }]), [12, 12], "un numero scritto si legge");
+    // la seconda copia della pagina (la sincronizzazione 2D→3D) voleva il piano pieno senza piede: un argomento, non una copia
+    eq(genesi.altezzeForiDaPiede(3, 4, 12, null, { pianoSenzaPiede: true }), [12, 12, 12], "senza piede, col piano chiesto: la profondità per ogni foro");
+    eq(genesi.altezzeForiDaPiede(2, 4, 30, [{ x: 0, y: 0 }], { pianoSenzaPiede: true }), [20, 20], "e bloccata a 20 come sempre");
+    eq(genesi.altezzeForiDaPiede(0, 4, 12, null, { pianoSenzaPiede: true }), [], "senza fori niente, in tutt'e due i modi");
+  });
+  test("⛔ Genesi · G30: nella pagina la legenda non è più un letterale, e lo scatto e le altezze sono legami", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/const voci=\[\['moltoBassa'/g) || []).length, 0, "il letterale della legenda non c'è più");
+    ok(/const voci=LEGENDA_ENERGIA;/.test(pag), "la legenda viene dal modulo");
+    ok(/function mdlProfSnap\(\)\{ return scattoProfili\(P\.profilo, D2\.piede\); \}/.test(pag), "mdlProfSnap è un legame");
+    ok(/P\.foriH = altezzeForiDaPiede\(P\.fori, INTERASSE, D2\.prof, D2\.piede, \{ pianoSenzaPiede: true \}\);/.test(pag), "e la sincronizzazione 2D→3D chiama la stessa regola, col piano pieno senza piede (era la seconda copia)");
+    eq((pag.match(/const dv = pieMod \? interpProf/g) || []).length, 0, "la seconda copia non c'è più");
+    ok(/const h=altezzeForiDaPiede\(P\.fori\|\|0, INTERASSE, D2\.prof\|\|P\.prof, D2\.piede\);/.test(pag) && /if\(h===null\)\{ P\.foriH=null; return; \}/.test(pag) && /if\(!h\.length\) return;/.test(pag), "mdlSyncAltezze tiene i due «niente» della pagina e il conto lo chiede al modulo");
+    eq((pag.match(/P\.foriH\.push\(Math\.max\(5, Math\.min\(20/g) || []).length, 0, "il conto delle altezze non è più scritto in casa (gli altri clamp 5–20 della pagina sono d'altre cose)");
+    const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
+    ok(["LEGENDA_ENERGIA", "scattoProfili", "altezzeForiDaPiede"].every((n) => dati.includes(n)), "la pagina importa i tre");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */

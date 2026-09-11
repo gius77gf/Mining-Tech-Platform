@@ -2658,14 +2658,29 @@ export function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.f
    casuale a ogni export non servirebbe a niente. Tutte entrate identiche. */
 export const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
 export const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
+/* LE SOGLIE DEL RAPPORTO COL PROGETTO, scritte una volta (G30, 11/09): le
+   legge `pfCls` e le scrive la legenda del disegno dell'energia, che prima le
+   ripeteva a mano nella pagina («< 75%», «75–90%»…) — due copie degli stessi
+   quattro numeri, una nel verdetto e una nel suo cartello. */
+export const SOGLIE_PF={ moltoBassa:0.75, bassa:0.90, ok:1.15, alta:1.40 };
 export function pfCls(r){
   if(r==null||!isFinite(r)) return 'ok';
-  if(r<0.75) return 'moltoBassa';
-  if(r<0.90) return 'bassa';
-  if(r<=1.15) return 'ok';
-  if(r<=1.40) return 'alta';
+  if(r<SOGLIE_PF.moltoBassa) return 'moltoBassa';
+  if(r<SOGLIE_PF.bassa) return 'bassa';
+  if(r<=SOGLIE_PF.ok) return 'ok';
+  if(r<=SOGLIE_PF.alta) return 'alta';
   return 'moltoAlta';
 }
+// la legenda: [classe, etichetta in percentuale], derivata dalle soglie
+// (identica, carattere per carattere, al letterale che la pagina teneva)
+const _p=(v)=>Math.round(v*100);
+export const LEGENDA_ENERGIA=[
+  ['moltoBassa','< '+_p(SOGLIE_PF.moltoBassa)+'%'],
+  ['bassa',_p(SOGLIE_PF.moltoBassa)+'–'+_p(SOGLIE_PF.bassa)+'%'],
+  ['ok',_p(SOGLIE_PF.bassa)+'–'+_p(SOGLIE_PF.ok)+'% in linea'],
+  ['alta',_p(SOGLIE_PF.ok)+'–'+_p(SOGLIE_PF.alta)+'%'],
+  ['moltoAlta','> '+_p(SOGLIE_PF.alta)+'%'],
+];
 export const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60'};
 export function classeRelief(r, relLo, relHi){
   if(r==null) return 'none';
@@ -2829,4 +2844,45 @@ export function indicePiuVicino(punti, px, py, raggioPx){
     if(d<bd){ bd=d; best=i; }
   });
   return best;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G30 · LO SCATTO DEI PROFILI E LE ALTEZZE DEI FORI DAL PIEDE (11/09,
+   cantiere B3, dodicesima fetta) — più le soglie e la legenda dell'energia,
+   scritte sopra accanto a `pfCls`.
+   ═══════════════════════════════════════════════════════════════════════
+   `scattoProfili(profilo, piede)` — la copia con cui annulla/ripristina
+   salvano INSIEME cresta e piede (una modellazione sbagliata non è mai
+   definitiva, e i due profili si annullano insieme, senza sorprese). Copia
+   profonda dei soli campi che contano: `x,z` sulla cresta, `x,y` sul piede.
+
+   `altezzeForiDaPiede(nFori, interasse, prof, piede)` — il piede modellato
+   riscrive l'altezza della faccia foro per foro: al centro di ogni foro
+   (`i·interasse + interasse/2`) l'altezza è la profondità meno la deviazione
+   del piede in quel punto, bloccata fra 5 e 20 m (stessa regola del 2D).
+   Risponde `null` senza un piede con almeno due punti (la pagina allora
+   AZZERA le altezze) e `[]` senza fori (la pagina allora NON tocca niente):
+   sono due «niente» diversi, ed erano già diversi nella pagina — il legame
+   li tiene distinti. */
+export function scattoProfili(profilo, piede){
+  return { cresta:(profilo||[]).map(p=>({ x:p.x, z:p.z })),
+           piede:(piede||[]).map(p=>({ x:p.x, y:p.y })) };
+}
+/* ⚠️ La stessa regola era scritta DUE volte nella pagina — qui e nella
+   sincronizzazione 2D→3D, che senza piede modellato riempiva comunque le
+   altezze con la profondità bloccata (un fronte dritto). È la firma troppo
+   stretta di CLAUDE.md: la copia sparisce con un argomento, `pianoSenzaPiede`,
+   che dice che cosa fare quando il piede non c'è — `null` per chi azzera
+   (la modellazione), il piano a profondità piena per chi ricostruisce il 3D. */
+export function altezzeForiDaPiede(nFori, interasse, prof, piede, opts){
+  const conPiede = !!(piede && piede.length>=2);
+  if(!conPiede && !(opts && opts.pianoSenzaPiede)) return null;
+  const n=Math.max(0, Math.round(+nFori||0));
+  const out=[];
+  for(let i=0;i<n;i++){
+    const x=i*interasse + interasse/2;
+    const dv = conPiede ? interpProf(piede, x) : 0;
+    out.push(Math.max(5, Math.min(20, prof - dv)));
+  }
+  return out;
 }
