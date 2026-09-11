@@ -3712,12 +3712,12 @@ export function ruoloNomina(chiave) {
   return NOMINE_RUOLI.find(r => r.chiave === chiave) || null;
 }
 // Una nomina è ATTIVA oggi se è già decorsa e non è ancora finita.
-export function nominaAttiva(n, oggi = new Date()) {
-  if (!n) return false;
-  if (n.dal) { const g = giorniTra(n.dal, oggi); if (Number.isFinite(g) && g > 0) return false; }
-  if (n.al)  { const g = giorniTra(n.al, oggi);  if (Number.isFinite(g) && g < 0) return false; }
-  return true;
-}
+/* ⛔ TRASLOCATA in `shared/dw-ponti.js` l'11/09: la legge anche Campo, per
+   proporre il sorvegliante di turno sulla lista di controllo. Qui si
+   RI-ESPORTA col nome di sempre e si importa per l'uso interno — un alias non
+   è una seconda implementazione, e la prova pretende l'identità. */
+export { nominaAttiva } from "../../shared/dw-ponti.js";
+import { nominaAttiva } from "../../shared/dw-ponti.js";
 // L'organigramma della sicurezza: un blocco per ruolo, con chi c'è e com'è
 // messa la sua formazione. `mancante` = ruolo obbligatorio senza nessuno.
 /* ⛔ «DI QUESTA NOMINA UNA DATA NON SI LEGGE» È UNA REGOLA SOLA, E STAVA

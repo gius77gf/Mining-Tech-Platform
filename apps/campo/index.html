@@ -1024,6 +1024,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div class="sec">Checklist di inizio turno</div>
   <div id="chk-board"></div>
   <div id="chk-list"></div>
+  <div class="form col" id="chk-firma" style="display:none;">
+    <label class="fl" for="chk-chiusa-da">Controlli fatti da</label>
+    <input class="dw-input" id="chk-chiusa-da" placeholder="Nome di chi ha fatto i controlli" autocomplete="off">
+    <div class="form-hint" id="chk-chiusa-hint"></div>
+  </div>
   <div class="tools" id="chk-tools" style="display:none;">
     <button class="dw-btn" id="btn-chk-salva"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Chiudi la checklist</button>
     <button class="dw-btn secondary" id="btn-chk-ok"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Tutto a posto</button>
@@ -1241,6 +1246,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            senzaGiornoDiLavoro, avvisoSenzaGiorno, righeVolateDelGiorno, riassuntoVolateDelGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
+           vociChecklist, meteoChiedeRicontrollo, INDICE_RICONTROLLO, sorveglianteDiTurno,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
            minutiOrario, orariPresenza, testoOrari, orariProposti, orariDiTurno,
            RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
@@ -1556,7 +1562,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
   let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[], BRI=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
-  let LAV_HSE = null, SCAD_HSE = null;
+  let LAV_HSE = null, SCAD_HSE = null, NOM_HSE = null;
   let VOL_SENT = null;   // le volate del registro di Sentinella (ponte P6): null = non lo so
   // le azioni correttive lette da Scudo (ponte P4): `null` = non lo sappiamo,
   // che NON è «non ce n'è nessuna» — su questa sezione è la differenza fra
@@ -2038,12 +2044,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // PONTE P5 · il registro dei near-miss, in lettura. Stessa convenzione.
     // PONTE P6 · le volate del giorno, in lettura da Sentinella. Stessa
     // convenzione: `null` = non lo so.
-    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE, VOL_SENT] = await Promise.all([
+    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE, VOL_SENT, NOM_HSE] = await Promise.all([
       db.lavoratoriScudo ? db.lavoratoriScudo() : null,
       db.scadenzeScudo ? db.scadenzeScudo() : null,
       db.azioniScudo ? db.azioniScudo().catch(() => null) : null,
       db.infortuniScudo ? db.infortuniScudo().catch(() => null) : null,
       db.volateSentinella ? db.volateSentinella().catch(() => null) : null,
+      // le nomine di Scudo: chi è il sorvegliante di turno (11/09). `null` = non lo so.
+      db.nomineScudo ? db.nomineScudo().catch(() => null) : null,
     ]);
     /* le volate di oggi, sullo schermo con le stesse parole del foglio:
        `righeVolateDelGiorno` decide la frase in un posto solo */
@@ -2789,11 +2797,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!squ) {
       board.innerHTML = vuoto(I.spunta, "Scegli la squadra",
         "La checklist di inizio turno si compila <b>una per squadra</b>: scegli qui sopra quale, e compaiono i controlli da fare prima di cominciare.");
-      lista.innerHTML = ""; tools.style.display = "none";
+      lista.innerHTML = ""; tools.style.display = "none"; $("chk-firma").style.display = "none";
       return;
     }
     const esiti = (doc && doc.esiti) || {};
-    const st = statoChecklist(esiti);
+    // le voci di QUESTO turno: col maltempo compare il ricontrollo dei fronti
+    const meteoTurno = meteoDi(MET, OGGI, turno);
+    const voci = vociChecklist(meteoTurno);
+    const st = statoChecklist(esiti, voci);
     const chiusa = !!(doc && doc.ora);
     const bloc = eChiuso(OGGI, turno);
     // ⛔ come per l'appello: il lucchetto non tinge di verde una checklist mai
@@ -2805,7 +2816,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         <div><div class="board-num">${st.risposte}/${st.totale}</div>
           <div class="board-lab">Controlli del turno ${esc(turno)}</div></div>
         <div class="board-txt">${esc(squ)} · ${dmy(OGGI)}<br>
-          ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
+          ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>${doc.chiusaDa ? " da <b>" + esc(doc.chiusaDa) + "</b>" : ` <b class="bad">senza il nome di chi ha controllato</b>`}` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
           ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}
           ${bloc ? `<br><b>Turno chiuso e firmato</b>: la checklist non si può più cambiare.` : ""}</div>
       </div>`;
@@ -2813,7 +2824,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        della risposta letto dalle azioni di Scudo — «Nessuna azione» è rosso,
        e se Scudo non si legge si dice «non lo sappiamo», non «nessuna» */
     const nonAPosto = doc ? vociNonAPosto(doc, AZI_HSE) : [];
-    lista.innerHTML = CHECKLIST_INIZIO.map((v, i) => {
+    lista.innerHTML = voci.map((v, i) => {
       const val = esiti[String(i)] || "";
       const stile = val === "no" ? "st-danger" : val === "ok" ? "st-ok" : val === "na" ? "st-mute" : "st-warn";
       const nap = val === "no" ? nonAPosto.find(x => x.indice === i) : null;
@@ -2823,7 +2834,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? `<button type="button" class="dw-btn secondary mini" data-chk-azione="${i}" title="Apri in Scudo l'azione correttiva che rimette a posto «${esc(v.testo)}»">Apri l'azione in Scudo</button>`
             : " Scudo non è raggiungibile: non si sa se un'azione c'è già")}</div>`;
       return `<div class="item ${stile}" style="cursor:default">
-        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}</div></div>
+        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}${i === INDICE_RICONTROLLO ? " · chiesta dal meteo di oggi (" + esc(String((meteoTurno && meteoTurno.cielo) || "")) + ")" : ""}</div></div>
         <div class="chk-row">${ESITI_CHECK.map(e => {
           const [c, lab] = ET_ESITO[e];
           return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"${bloc ? " disabled" : ""}
@@ -2832,6 +2843,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       </div>`;
     }).join("");
     tools.style.display = "flex";
+    /* CHI HA FATTO I CONTROLLI (11/09): il nome si propone dal sorvegliante
+       nominato in Scudo, si scrive a mano se Scudo non lo sa, e senza nome la
+       lista non si chiude. Il campo non si sovrascrive mentre qualcuno scrive:
+       si riempie solo se è vuoto. */
+    const firma = $("chk-firma"), campoNome = $("chk-chiusa-da"), hint = $("chk-chiusa-hint");
+    firma.style.display = "";
+    const sorv = sorveglianteDiTurno(NOM_HSE, LAV_HSE);
+    if (chiusa || bloc) { campoNome.value = (doc && doc.chiusaDa) || ""; campoNome.disabled = true; }
+    else { campoNome.disabled = false; if (!campoNome.value.trim()) campoNome.value = (doc && doc.chiusaDa) || sorv.nomi.join(", "); }
+    hint.innerHTML = !sorv.noto
+      ? "Scudo non è raggiungibile: non si sa chi è il sorvegliante nominato, scrivi il nome a mano."
+      : sorv.nomi.length
+        ? `Proposto dalla nomina di <b>sorvegliante</b> registrata in Scudo (${esc(sorv.nomi.join(", "))}): cambialo se oggi i controlli li ha fatti qualcun altro.`
+        : "In Scudo non risulta nessuna nomina di sorvegliante attiva oggi: scrivi il nome di chi ha fatto i controlli."
+      + (meteoChiedeRicontrollo(meteoTurno) ? "<br>Con il meteo di oggi la lista ha una voce in più: il ricontrollo dei fronti dopo la pioggia forte o il disgelo." : "");
     $("btn-chk-salva").textContent = bloc ? "Turno chiuso" : (chiusa ? "Checklist chiusa" : "Chiudi la checklist");
     $("btn-chk-salva").disabled = chiusa || bloc;
     $("btn-chk-ok").style.display = st.mancanti && !bloc ? "inline-flex" : "none";
@@ -2973,9 +2999,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     esito("bri-esito", "Briefing registrato alle " + ora + " (" + squ + ", turno " + turno + ")" + (gia ? "." : ": la voce della checklist è segnata a posto."), "success");
   };
   $("btn-chk-ok").onclick = async () => {
-    const { doc } = chkCorrente();
+    const { turno, doc } = chkCorrente();
     const esiti = (doc && doc.esiti) || {}, nuovi = {};
-    CHECKLIST_INIZIO.forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
+    vociChecklist(meteoDi(MET, OGGI, turno)).forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
     if (!Object.keys(nuovi).length) return;
     if (!await chiedi("Segnare tutto a posto",
           `Stai per mettere <b>a posto</b> ${plurale(Object.keys(nuovi).length, "l'unica voce", `le ${Object.keys(nuovi).length} voci`)} a cui non hai ancora risposto.<br><br>
@@ -2989,19 +3015,26 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // punto di scrittura 14 — chiusura della checklist
     if (bloccato(OGGI, turno, "la checklist di inizio turno", "chk-esito")) return;
     if (!doc) { esito("chk-esito", "Non hai ancora risposto a niente: tocca una risposta su ogni voce.", "err"); return; }
-    const st = statoChecklist(doc.esiti || {});
+    const st = statoChecklist(doc.esiti || {}, vociChecklist(meteoDi(MET, OGGI, turno)));
     if (!st.completa) {
       esito("chk-esito", `${st.mancanti === 1 ? "Manca ancora una risposta" : "Mancano ancora " + st.mancanti + " risposte"}: rispondi a tutte le voci prima di chiudere la checklist.`, "err");
       return;
     }
+    // senza il nome di chi ha controllato la lista non si chiude: un controllo
+    // senza autore è una spunta, e il registro comincia dal nome
+    const chiusaDa = $("chk-chiusa-da").value.trim();
+    if (!chiusaDa) { err("chk-chiusa-da", true); $("chk-chiusa-da").focus();
+      esito("chk-esito", "Serve il nome di chi ha fatto i controlli: è la prima cosa che un registro deve saper dire.", "err"); return; }
+    err("chk-chiusa-da", false);
+    // (il nome si chiede PRIMA della conferma sulle voci non a posto: confermare e poi essere respinti è una beffa)
     if (st.no && !await chiedi("Chiudere con voci non a posto",
           `Ci ${st.no === 1 ? "è" : "sono"} <b>${st.no}</b> ${st.no === 1 ? "voce non a posto" : "voci non a posto"}:<br>
            ${st.problemi.map(p => "· " + esc(p)).join("<br>")}<br><br>
            Chiudere la checklist così significa <b>cominciare il turno sapendolo</b>. Il rapporto di fine
            turno lo scrive.`, "Chiudo lo stesso", true)) return;
     const ora = new Date().toTimeString().slice(0, 5);
-    await db.aggiorna("checklist", doc.id, { ora });
-    esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} (turno ${turno}).`, st.no ? "" : "success");
+    await db.aggiorna("checklist", doc.id, { ora, chiusaDa });
+    esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} da ${chiusaDa} (turno ${turno}).`, st.no ? "" : "success");
     await refresh();
   };
 

@@ -2060,3 +2060,20 @@ export function pianoDaGenesi(righe, meta) {
     origine: { app: "genesi" },
   };
 }
+
+// ═════════════════════════════════════════════════════════════════
+// LA NOMINA ATTIVA (11/09) — serve a due app, quindi vive qui
+// ═════════════════════════════════════════════════════════════════
+// Scudo la usa per l'organigramma e il fascicolo; Campo per sapere chi è il
+// SORVEGLIANTE di turno da proporre sulla lista di controllo di inizio turno
+// (D.P.R. 128/1959: i sorveglianti sono nominati per turno, e sono loro a
+// visitare i fronti). Traslocata da `apps/scudo/scudo-data.js` com'era, senza
+// cambiare una virgola: Scudo la ri-esporta col nome di sempre.
+// Una nomina è attiva oggi se è già cominciata (`dal`) e non è finita (`al`);
+// senza date è attiva. Pura e testabile.
+export function nominaAttiva(n, oggi = new Date()) {
+  if (!n) return false;
+  if (n.dal) { const g = giorniTra(n.dal, oggi); if (Number.isFinite(g) && g > 0) return false; }
+  if (n.al)  { const g = giorniTra(n.al, oggi);  if (Number.isFinite(g) && g < 0) return false; }
+  return true;
+}

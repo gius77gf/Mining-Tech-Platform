@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL MALTEMPO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.376 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2895, `run-stile` 328,
+  **3.379 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2898, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9298,7 +9297,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   c'è, il ricontrollo no); il «tutti usciti» è dichiarato (obbligo del
   sotterraneo). Una voce aperta, in due pezzi piccoli. Vedi
   `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (secondo giro).
-- [ ] **CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL
+- [x] ✅ 11/09 (unità 95) **CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL
   MALTEMPO** *(dalla ricerca dell'11/09, secondo giro, domande 1 e 3)*. (1)
   `chiusaDa` sulla lista di controllo del turno: il nome di chi l'ha chiusa,
   proposto dal **sorvegliante** nominato in Scudo (`NOMINE_RUOLI`, chiave
@@ -9314,6 +9313,28 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   con meteo «Sereno» la voce non esiste e le nove di sempre bastano;
   `grep -ciE 'chiusaDa'` in modulo e pagina > 0, e il rapporto della
   dimostrazione porta il nome.
+- [x] **CAMPO — CHI HA FATTO I CONTROLLI, E IL RICONTROLLO DEI FRONTI DOPO IL
+  MALTEMPO (unità 95, 11/09).** `nominaAttiva` traslocata in
+  `shared/dw-ponti.js` (Scudo la ri-esporta, prova d'identità) perché la legge
+  anche Campo: `sorveglianteDiTurno(nomine, lavoratori, oggi)` → `{noto, nomi}`
+  (`noto:false` se Scudo non si è letto: «non lo so» non è «nessuno»), col
+  lettore `db.nomineScudo` e la nomina nella dimostrazione (Giulia Verdi). La
+  lista di controllo porta `chiusaDa`: il campo «Controlli fatti da» si
+  propone dal sorvegliante nominato (la frase sotto dice da dove viene, o che
+  Scudo non è raggiungibile), senza nome la lista **non si chiude** — chiesto
+  PRIMA della conferma sulle voci non a posto —, il cartellone, il rapporto di
+  giornata e la consegna scrivono «chiusa alle 07:10 da Giulia Verdi» o
+  «(senza nome)». `VOCE_RICONTROLLO` («Fronti e cigli ricontrollati dopo la
+  pioggia forte o il disgelo»), `INDICE_RICONTROLLO` = 9, `meteoChiedeRicontrollo`
+  (cielo Pioggia / Neve o gelo: la legge parla di piogge e disgelo, le piste no)
+  e `vociChecklist(meteo)` che è LA lista fissa quando non serve (identità) e le
+  dieci quando serve; `statoChecklist`, «tutto a posto», la chiusura, il
+  rapporto e la consegna contano le voci del turno; `vociNonAPosto` e
+  `bozzaAzioneChecklist` sanno aprire l'azione anche sul ricontrollo. Misurato
+  a 430 px: 9 voci col sereno, 10 con la pastiglia «Pioggia» (la decima con
+  «chiesta dal meteo di oggi (Pioggia)»), chiusura respinta senza nome, poi
+  «chiusa alle 12:47 da Giulia Verdi · 1 voce non a posto», 0 errori.
+  run-kpi 2895 → 2898; copertura campo 147/147, scudo 216/216, dw-ponti 88/88.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

@@ -2139,6 +2139,9 @@ heavyvehicleinspection.com · fastfieldforms.com.
   sorvegliante nominato in Scudo quando c'è (ponte, non una seconda
   anagrafe), scritto a mano se no, e stampato nel rapporto di fine turno
   accanto all'ora.
+  ✅ **FATTO lo stesso giorno, unità 95**: `sorveglianteDiTurno`, `chiusaDa`,
+  `nominaAttiva` in `shared/`. Prova: `grep -ciE 'chiusaDa'
+  apps/campo/campo-data.js apps/campo/index.html` → 3 e 7.
 - **Domanda 2 — C'È, e non in Campo.** Il ricontrollo dopo la volata vive
   dove vive la volata: `grep -c '^export function dopoVolata'
   apps/sentinella/sentinella-data.js` → 1, con l'ora di rientro
@@ -2157,6 +2160,9 @@ heavyvehicleinspection.com · fastfieldforms.com.
   ricontrollati dopo la pioggia forte o il disgelo») che compare **solo**
   quando il meteo del turno è avverso, con la sua ora e il suo chi — e che,
   se manca, tiene il turno fuori dal verde come già fa il meteo.
+  ✅ **FATTO lo stesso giorno, unità 95**: `VOCE_RICONTROLLO`, `vociChecklist`,
+  `meteoChiedeRicontrollo`. Prova: `grep -c 'ricontrollati dopo la pioggia'
+  apps/campo/campo-data.js` → 1.
 - **Domanda 4 — DICHIARATO, non aperto.** L'appello del turno ha
   «presente», «assente» e il «non lo so» di chi nessuno ha spuntato
   (ricerca del 04/09); l'obbligo di legge a fine turno è scritto per il

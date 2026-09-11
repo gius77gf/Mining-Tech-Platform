@@ -1363,6 +1363,72 @@ test("⛔ la stessa persona con lo stesso nome nelle tre app che la fanno firmar
   ok(conta("../../scudo/scudo-data.js", /Direttore responsabile/gi) >= 2, "Scudo lo chiama così");
   ok(conta("../../sentinella/index.html", /Il direttore responsabile/g) >= 1, "e Sentinella pure");
 });
+
+test("nominaAttiva vive in shared/ e Scudo la ri-esporta: stesso oggetto (11/09)", () => {
+  ok(scudo.nominaAttiva === ponti.nominaAttiva, "l'alias di Scudo è lo stesso oggetto, non una copia");
+  const oggi = new Date("2026-06-15T10:00:00Z");
+  eq(ponti.nominaAttiva({ dal: "2026-01-01", al: null }, oggi), true, "cominciata e senza fine → attiva");
+  eq(ponti.nominaAttiva({ dal: "2026-07-01" }, oggi), false, "comincia dopo → non ancora");
+  eq(ponti.nominaAttiva({ dal: "2025-01-01", al: "2026-05-31" }, oggi), false, "finita → no");
+  eq(ponti.nominaAttiva({}, oggi), true, "senza date → attiva");
+  eq(ponti.nominaAttiva(null, oggi), false, "niente → no");
+});
+
+test("Campo · il ricontrollo dei fronti compare solo quando il meteo lo chiede (11/09)", () => {
+  eq(campo.meteoChiedeRicontrollo(null), false, "senza meteo registrato: no");
+  eq(campo.meteoChiedeRicontrollo({ cielo: "Sereno" }), false, "sereno: no");
+  eq(campo.meteoChiedeRicontrollo({ cielo: "Nuvoloso", piste: "Fangose" }), false, "le piste non bastano: la legge parla di piogge e disgelo");
+  eq(campo.meteoChiedeRicontrollo({ cielo: "Pioggia" }), true, "pioggia: sì");
+  eq(campo.meteoChiedeRicontrollo({ cielo: "Neve o gelo" }), true, "neve o gelo: sì");
+  ok(campo.vociChecklist(null) === campo.CHECKLIST_INIZIO, "senza maltempo è LA lista fissa, non una copia");
+  ok(campo.vociChecklist({ cielo: "Sereno" }) === campo.CHECKLIST_INIZIO, "col sereno pure");
+  const conP = campo.vociChecklist({ cielo: "Pioggia" });
+  eq(conP.length, campo.CHECKLIST_INIZIO.length + 1, "con la pioggia una voce in più");
+  ok(conP[conP.length - 1] === campo.VOCE_RICONTROLLO && campo.INDICE_RICONTROLLO === campo.CHECKLIST_INIZIO.length, "in coda, con la sua chiave stabile");
+  ok(/ricontrollati dopo la pioggia forte o il disgelo/.test(campo.VOCE_RICONTROLLO.testo), "e dice quello che la legge chiede");
+  // la lista fissa non si tocca
+  eq(campo.CHECKLIST_INIZIO.length, 9, "le nove voci di sempre restano nove");
+  // lo stato la conta: nove risposte con la pioggia NON sono complete
+  const nove = Object.fromEntries(campo.CHECKLIST_INIZIO.map((_, i) => [String(i), "ok"]));
+  const stP = campo.statoChecklist(nove, conP);
+  eq([stP.totale, stP.mancanti, stP.completa], [10, 1, false], "con la pioggia manca il ricontrollo");
+  const stP2 = campo.statoChecklist({ ...nove, [String(campo.INDICE_RICONTROLLO)]: "no" }, conP);
+  eq([stP2.completa, stP2.no, stP2.problemi[0]], [true, 1, campo.VOCE_RICONTROLLO.testo], "e un ricontrollo non a posto è un problema col suo testo");
+  eq(campo.statoChecklist(nove).completa, true, "senza maltempo le nove bastano");
+  // la voce non a posto sa aprire un'azione anche per il ricontrollo
+  const doc = { id: "c9", data: "2026-07-20", turno: "Mattina", squadra: "Squadra A", esiti: { ...nove, [String(campo.INDICE_RICONTROLLO)]: "no" } };
+  const nap = campo.vociNonAPosto(doc, []);
+  eq(nap.map((v) => v.indice), [campo.INDICE_RICONTROLLO], "vociNonAPosto vede il ricontrollo");
+  const b = campo.bozzaAzioneChecklist(doc, campo.INDICE_RICONTROLLO, {});
+  ok(b && /ricontrollati dopo la pioggia/.test(b.descrizione) && b.origineVoce === String(campo.INDICE_RICONTROLLO), "e la bozza dell'azione lo nomina: " + (b && b.descrizione));
+});
+
+test("Campo · chi ha fatto i controlli: il sorvegliante nominato in Scudo, o «non lo so» (11/09)", () => {
+  const LAV = [{ id: "d3", nome: "Giulia Verdi" }, { id: "d1", nome: "Mario Rossi" }];
+  const oggi = new Date("2026-07-20T08:00:00Z");
+  const nonLetto = campo.sorveglianteDiTurno(null, LAV, oggi);
+  eq(nonLetto, { noto: false, nomi: [] }, "Scudo non letto: non lo so, non «nessuno»");
+  eq(campo.sorveglianteDiTurno([], LAV, oggi), { noto: true, nomi: [] }, "letto e vuoto: nessuna nomina, e si sa");
+  eq(campo.sorveglianteDiTurno([{ ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2026-02-01", al: null }], LAV, oggi).nomi, ["Giulia Verdi"], "la nomina attiva dà il nome");
+  eq(campo.sorveglianteDiTurno([{ ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2026-02-01", al: "2026-06-30" }], LAV, oggi).nomi, [], "una nomina finita non conta");
+  eq(campo.sorveglianteDiTurno([{ ruolo: "preposto", lavoratoreId: "d3" }], LAV, oggi).nomi, [], "un altro ruolo non è il sorvegliante");
+  eq(campo.sorveglianteDiTurno([{ ruolo: "sorvegliante", lavoratoreId: "d9" }], LAV, oggi).nomi, ["lavoratore d9 (non in anagrafica)"], "un lavoratore che non c'è si dichiara, non sparisce");
+  // la dimostrazione: Giulia Verdi
+  eq(campo.sorveglianteDiTurno(campo.DEMO.nomineScudo, campo.DEMO.lavoratoriScudo, new Date(campo.DEMO.oggi || "2026-07-20T08:00:00Z")).nomi, ["Giulia Verdi"], "in dimostrazione il sorvegliante è Giulia Verdi");
+  // i fogli lo scrivono, e col maltempo contano il ricontrollo
+  const nove = Object.fromEntries(campo.CHECKLIST_INIZIO.map((_, i) => [String(i), "ok"]));
+  const d = { oggi: "2026-07-20", checklist: [{ id: "c1", data: "2026-07-20", turno: "Mattina", squadra: "Squadra A", esiti: nove, ora: "07:10", chiusaDa: "Giulia Verdi" },
+                                     { id: "c2", data: "2026-07-20", turno: "Pomeriggio", squadra: "Squadra B", esiti: nove, ora: "14:05" }],
+              meteo: [{ data: "2026-07-20", turno: "Mattina", cielo: "Pioggia" }] };
+  const txt = campo.testoConsegnaTurno(d, { avviso: "", dmy: (x) => x });
+  ok(/Squadra A \(turno Mattina\): 9 a posto · 0 n\.a\. · 1 senza risposta.*chiusa alle 07:10 da Giulia Verdi/.test(txt), "la consegna conta il ricontrollo e scrive chi ha chiuso: " + (txt.match(/Squadra A.*$/m) || [])[0]);
+  ok(/Squadra B \(turno Pomeriggio\): 9 a posto · 0 n\.a\. · 0 senza risposta.*chiusa alle 14:05 \(senza nome\)/.test(txt), "senza maltempo le nove bastano, e senza nome lo dice: " + (txt.match(/Squadra B.*$/m) || [])[0]);
+  const R = campo.rapportoGiornata(d, { dmy: (x) => x });
+  const sezC = R.sezioni.find((z) => /Checklist/.test(z.titolo));
+  const righe = sezC.blocchi[0].tabella.righe;
+  eq(righe.map((r) => r[r.length - 1]), ["07:10 da Giulia Verdi", "14:05 (senza nome)"], "e il rapporto della giornata pure");
+  eq(righe[0][2], "9 a posto · 0 n.a. · 1 senza risposta", "con la stessa conta");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");
@@ -39749,7 +39815,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
     eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 8, "le foto stanno fra la disponibilità e la produzione, come sul foglio (8 dall'11/09: c'è il briefing)");
     const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
-    eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10"]);
+    eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10 (senza nome)"]);
     eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");
     ok(typeof Ck[3] === "string" && Ck[3].length > 0, "la colonna delle voci non a posto è sempre scritta («nessuna» quando non ce ne sono) — " + Ck[3]);
     ok(!sez(campo.rapportoGiornata({ oggi: "2026-03-03" }, {}), "Riaperture del turno"), "senza riaperture la sezione non c'è");

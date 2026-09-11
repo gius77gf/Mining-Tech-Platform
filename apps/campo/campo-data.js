@@ -12,7 +12,7 @@
 //   rapportini/{id}: { data, turno, titolo, squadra, prodQta, prodUnita, ora, stato: bozza|inviato }
 //   obiettivi/{id}:  { data, turno, unita, valore }
 //                     (obiettivo del turno: uno per giorno+turno+unità)
-//   checklist/{id}:  { data, turno, squadra, esiti: {"0":"ok"|"no"|"na"}, note, ora }
+//   checklist/{id}:  { data, turno, squadra, esiti: {"0":"ok"|"no"|"na"}, note, ora, chiusaDa? }
 //                     (controlli di inizio turno, uno per giorno+turno+squadra)
 //   briefing/{id}:   { data, turno, squadra, argomento, tenutoDa (id operatore
 //                      o nome), note, ora }
@@ -306,6 +306,10 @@ export const DEMO = {
   infortuniScudo: [
     { id: "i4", data: "2026-07-06", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Nord", luogoTipo: "fronte", categoria: "caduta-massi", rapida: true, descrizione: "Blocco staccato dal ciglio durante il disgaggio" },
     { id: "i5", data: OGGI_DEMO, tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "Impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+  ],
+  // le nomine di Scudo (11/09): Giulia Verdi è il sorvegliante di turno
+  nomineScudo: [
+    { id: "n1", ruolo: "sorvegliante", lavoratoreId: "d3", dal: "2026-02-01", al: null },
   ],
   scadenzeScudo: [
     { id: "s1", lavoratoreId: "d1", tipo: "Visita medica", descrizione: "Visita medica periodica", dataScadenza: "2026-07-02" },
@@ -949,6 +953,47 @@ export function statoChecklist(esiti, voci = CHECKLIST_INIZIO) {
 export function descriviChecklist(st) {
   if (!st) return "";
   return st.ok + " a posto · " + st.na + " n.a. · " + st.mancanti + " senza risposta";
+}
+
+/* IL RICONTROLLO DEI FRONTI DOPO IL MALTEMPO (11/09, dalla ricerca del
+   secondo giro). Il D.P.R. 128 vuole i fronti visitati prima del turno E
+   dopo le piogge forti e il disgelo: la lista fissa risponde alla prima
+   metà, e un fronte che regge alle sette può non reggere dopo due ore di
+   pioggia. La voce in più compare SOLO quando il meteo del turno lo chiede,
+   così nei giorni sereni la lista resta corta (una lista lunga diventa una
+   firma finta). La sua chiave negli esiti è l'indice dopo l'ultimo fisso
+   ("9"): stabile, perché la lista fissa non cambia lunghezza. */
+export const VOCE_RICONTROLLO = { area: "Area", testo: "Fronti e cigli ricontrollati dopo la pioggia forte o il disgelo", condizionale: true };
+export const INDICE_RICONTROLLO = CHECKLIST_INIZIO.length;
+// «piogge forti e disgelo» — il cielo del turno; le piste fangose o ghiacciate
+// dicono la stessa cosa dopo, ma il ricontrollo lo chiede la legge sul cielo
+const METEO_RICONTROLLO = ["Pioggia", "Neve o gelo"];
+export function meteoChiedeRicontrollo(m) {
+  return !!m && METEO_RICONTROLLO.includes(String(m.cielo || ""));
+}
+// Le voci della lista di questo turno: le nove fisse, più il ricontrollo se il
+// meteo lo chiede. Senza meteo (o con meteo buono) è LA STESSA lista, non una
+// copia — così chi confronta per identità non si sbaglia.
+export function vociChecklist(meteo) {
+  return meteoChiedeRicontrollo(meteo) ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : CHECKLIST_INIZIO;
+}
+// La voce di un indice, ricontrollo compreso: chi legge gli esiti salvati
+// trova "9" anche il giorno dopo, quando il meteo non si passa più.
+const voceDiIndice = (i) => CHECKLIST_INIZIO[+i] || (+i === INDICE_RICONTROLLO ? VOCE_RICONTROLLO : undefined);
+
+/* CHI È IL SORVEGLIANTE DI TURNO (11/09). Il registro del mondo comincia dal
+   nome di chi ha guardato, e la denuncia di esercizio nomina il sorvegliante
+   per turno: la nomina vive in Scudo (`nomine`, ruolo `sorvegliante`), e qui
+   si LEGGE, non si tiene una seconda anagrafe. Risponde `{ noto: false }` se
+   Scudo non si è letto (null): «non lo so» non è «nessuno». Con la lettura
+   fatta, `nomi` sono i sorveglianti con nomina attiva oggi — anche zero. */
+export function sorveglianteDiTurno(nomine, lavoratori, oggi = new Date()) {
+  if (!Array.isArray(nomine)) return { noto: false, nomi: [] };
+  const LAV = Array.isArray(lavoratori) ? lavoratori : [];
+  const nomi = nomine
+    .filter((n) => n && String(n.ruolo || "") === "sorvegliante" && nominaAttiva(n, oggi))
+    .map((n) => { const l = LAV.find((x) => x && x.id === n.lavoratoreId); return l && l.nome ? String(l.nome) : "lavoratore " + String(n.lavoratoreId || "?") + " (non in anagrafica)"; });
+  return { noto: true, nomi };
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -3249,7 +3294,7 @@ export function coperturaFermi(attivita, azioni) {
    sono cadute con «statoRisposta is not defined» nel giro dopo. È il modo in
    cui una ri-esportazione fatta a metà si vede subito invece che in
    produzione. */
-import { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
+import { azioniDiOrigine, statoPonte, nominaAttiva } from "../../shared/dw-ponti.js";
 export {
   ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";
@@ -3383,7 +3428,8 @@ export function rapportoGiornata(d, opts) {
   ];
   const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || "";
   // checklist di inizio turno chiuse o in corso oggi
-  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}) }));
+  // le voci sono quelle del turno: col maltempo c'è anche il ricontrollo dei fronti
+  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno))) }));
   const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
     chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
       chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
@@ -3395,7 +3441,9 @@ export function rapportoGiornata(d, opts) {
           ? (Array.isArray(D.azioni)
               ? vociNonAPosto(x.c, D.azioni).map((v) => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
               : x.st.problemi.join("; "))
-          : "nessuna", String(x.c.ora || "non chiusa")])) }] : []);
+          : "nessuna",
+        // chi l'ha chiusa: senza nome si scrive «senza nome», non si tace
+        x.c.ora ? String(x.c.ora) + (x.c.chiusaDa ? " da " + String(x.c.chiusaDa) : " (senza nome)") : "non chiusa"])) }] : []);
   // il briefing di inizio turno (11/09): argomento, chi lo ha tenuto e i
   // presenti dell'appello — con quelli non spuntati detti, non contati presenti
   const BRI = D.briefing || [];
@@ -3569,10 +3617,10 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   const chkT = CHK.filter(c => String(c.data || "") === OGGI);
   txt += "CHECKLIST DI INIZIO TURNO\n";
   // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
-  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
+  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno)));
     return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
       + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
-      + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
+      + (c.ora ? " — chiusa alle " + c.ora + (c.chiusaDa ? " da " + c.chiusaDa : " (senza nome)") : " — non chiusa"); }).join("\n")
     : "- nessuna checklist compilata") + "\n\n";
   const briT = (d.briefing || []).filter(b => b && String(b.data || "") === OGGI);
   txt += "BRIEFING DI INIZIO TURNO\n";
@@ -3759,6 +3807,9 @@ export async function campoData() {
       const apriScudo = () => apriApp("scudo");
       const leggiScudo = (nome) => leggiApp("scudo", nome);
       api.lavoratoriScudo = () => leggiScudo("lavoratori");
+      // le nomine (11/09): chi è il sorvegliante di turno, da proporre sulla
+      // lista di controllo. Sola lettura, `null` = non lo so.
+      api.nomineScudo = () => leggiScudo("nomine");
       // ── PONTE P6 CON SENTINELLA — SOLA LETTURA (05/09) ─────────────────
       // Le volate del registro: la consegna di turno scrive «le volate di oggi»
       // (fronte, fori, chili, PPV se collegata). Sentinella era l'app che
@@ -3812,6 +3863,7 @@ export async function campoData() {
       // in dimostrazione i documenti del personale non arrivano da Scudo: sono
       // finti, ma copiati dalla dimostrazione di Scudo id per id
       lavoratoriScudo: async () => mem.lavoratoriScudo || [],
+      nomineScudo: async () => mem.nomineScudo || [],
       scadenzeScudo: async () => mem.scadenzeScudo || [],
       // ponte P6: le volate di Sentinella, copiate dalla sua dimostrazione
       volateSentinella: async () => mem.volateSentinella || [],
@@ -3877,7 +3929,7 @@ export function azioniDellaVoce(azioni, checklistId, indice) {
 // la apre cambia testo, responsabile e data prima di confermare. Pura.
 export function bozzaAzioneChecklist(doc, indice, opts = {}) {
   if (!doc || !doc.id) return null;
-  const v = CHECKLIST_INIZIO[+indice];
+  const v = voceDiIndice(indice);   // ricontrollo compreso ("9")
   if (!v) return null;
   const fmt = typeof opts.fmtData === "function" ? opts.fmtData : (d) => d;
   const nota = "Controllo di inizio turno (Campo) — «" + v.testo + "» non a posto"
@@ -3907,7 +3959,9 @@ export function bozzaAzioneChecklist(doc, indice, opts = {}) {
 export function vociNonAPosto(doc, azioni) {
   const e = (doc && doc.esiti) || {};
   const out = [];
-  CHECKLIST_INIZIO.forEach((v, i) => {
+  // il ricontrollo dei fronti entra se ha una risposta: è l'ultimo, quindi gli indici restano quelli
+  const lista = (e[String(INDICE_RICONTROLLO)] || e[INDICE_RICONTROLLO]) ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : CHECKLIST_INIZIO;
+  lista.forEach((v, i) => {
     if ((e[String(i)] || e[i]) !== "no") return;
     const az = azioni && doc && doc.id ? azioniDellaVoce(azioni, doc.id, i) : null;
     out.push({ indice: i, testo: v.testo, area: v.area, azioni: az, risposta: az ? statoPonte(az) : null });
