@@ -1921,6 +1921,49 @@ export function ppvDiVolata(v) {
    (il semaforo è della soglia del punto di misura, non della volata).
    `leggibile: false` quando il registro non si è potuto leggere (`null`):
    «non lo so» non è «nessuna volata». I numeri illeggibili restano null. */
+/* IL DOPO-SPARO CON L'ORA DELLO SPARO (11/09, unità 116). Il dopo-volata
+   dell'11/09 registra a che ora si è rientrati nell'area; ma un'ora di
+   rientro senza l'ora dello SPARO non giudica niente: l'ordine di servizio
+   della cava (art. 305 del D.P.R. 128/1959) dice quanti minuti aspettare
+   prima di tornare al fronte, e quei minuti si contano solo con tutt'e due le
+   ore. L'attesa la DICHIARA l'utente dal proprio ordine di servizio
+   (`attesaDopoSparoMin`): i fac-simili dicono un numero, il D.P.R. 302 per la
+   mina mancata un altro, e nessuno dei due è scritto qui — sono di seconda
+   mano. Vive in `shared/` perché la legge Sentinella (il registro) E Campo (la
+   consegna del turno): una regola che serve a due app non si riscrive.
+   ⛔ Senza le due ore la risposta è «non registrato»; senza l'attesa
+   dichiarata i minuti si contano ma il verdetto no. Mai un verde per
+   assenza. Un rientro con l'ora minore dello sparo è passato per la
+   mezzanotte: si conta il giorno dopo, non un numero negativo. */
+const minutiDiOra = (s) => { const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(s || "").trim()); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+export function attesaDopoSparo(v) {
+  const x = v || {};
+  const oraSparo = String(x.oraSparo || "").trim(), oraRientro = String(x.rientroAlle || "").trim();
+  const sparo = minutiDiOra(oraSparo), rientro = minutiDiOra(oraRientro);
+  const aRaw = numeroDichiarato(x.attesaDopoSparoMin);
+  const attesaMin = aRaw != null && Number.isFinite(aRaw) && aRaw > 0 ? aRaw : null;
+  const autorizzatoDa = String(x.rientroAutorizzatoDa || "").trim();
+  if (sparo == null || rientro == null) {
+    return { stato: "non-registrato", minuti: null, attesaMin, autorizzatoDa, testo: "",
+      perche: sparo == null && rientro == null ? "né l'ora dello sparo né quella del rientro sono registrate"
+        : sparo == null ? "l'ora dello sparo non è registrata: i minuti fino al rientro non si possono contare"
+        : "l'ora del rientro non è registrata" };
+  }
+  let minuti = rientro - sparo;
+  if (minuti < 0) minuti += 24 * 60;
+  const base = "rientro alle " + oraRientro + ", " + minuti + " min dopo lo sparo delle " + oraSparo;
+  const chi = autorizzatoDa ? ", autorizzato da " + autorizzatoDa : ", chi ha autorizzato non è scritto";
+  if (attesaMin == null) {
+    return { stato: "attesa-non-dichiarata", minuti, attesaMin: null, autorizzatoDa,
+      perche: "l'attesa minima dell'ordine di servizio non è dichiarata: i minuti si contano, il giudizio no",
+      testo: base + " (attesa dell'ordine di servizio non dichiarata)" + chi };
+  }
+  const ok = minuti >= attesaMin;
+  return { stato: ok ? "dopo-l-attesa" : "prima-dell-attesa", minuti, attesaMin, autorizzatoDa,
+    perche: ok ? "" : "il rientro è avvenuto " + (attesaMin - minuti) + " min prima dell'attesa dichiarata (" + attesaMin + " min)",
+    testo: base + (ok ? " (attesa dichiarata " + attesaMin + " min: rispettata)" : " — PRIMA dell'attesa dichiarata di " + attesaMin + " min") + chi };
+}
+
 export function riassuntoVolateDelGiorno(volate, dataISO) {
   if (!Array.isArray(volate)) return { leggibile: false, n: 0, righe: [] };
   const num = (x) => { const v = (x === null || x === undefined || x === "") ? NaN : +x; return Number.isFinite(v) && v > 0 ? v : null; };
@@ -1928,6 +1971,7 @@ export function riassuntoVolateDelGiorno(volate, dataISO) {
     id: v.id, fronte: String(v.fronte || "").trim(),
     nFori: num(v.nFori), kgTotali: num(v.kgTotali),
     ppv: ppvDiVolata(v), codiceVolata: String(v.codiceVolata || "").trim(),
+    dopo: attesaDopoSparo(v),   // il dopo-sparo (11/09): Campo lo scrive nella consegna del turno
   }));
   return { leggibile: true, n: righe.length, righe };
 }

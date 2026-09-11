@@ -219,7 +219,11 @@ export const DEMO = {
       comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026",
       /* il dopo-volata (11/09): ispezione fatta, niente da segnalare — lo zero è
          una dichiarazione («ho guardato, nessuna»), non un'assenza */
-      mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "11:40", noteDopo: "" },
+      /* il dopo-sparo (11/09): sparo alle 10:30, rientro 70 minuti dopo con
+         l'attesa dell'ordine di servizio della dimostrazione dichiarata dal
+         direttore (60), niente esplosivo reso — dichiarato, non dedotto */
+      mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "11:40", noteDopo: "",
+      oraSparo: "10:30", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 0 },
     // b2 · registrata a mano prima che esistesse il campo «stato»: vale come
     //      ESEGUITA, ed è la prova di compatibilità con lo storico.
     { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "",
@@ -227,7 +231,11 @@ export const DEMO = {
          L'esito resta «regolare» (nessuna contestazione del vicino): sono due
          cose diverse, ed è la scheda a dire che l'ispezione ha trovato qualcosa */
       mancateEsplosioni: 1, mancateGestite: "ritrovata nel foro 18, brillata alle 12:10 con l'area interdetta",
-      proiezioniOltreArea: false, rientroAlle: "11:55", noteDopo: "" },
+      /* e qui il rientro è avvenuto 45 minuti dopo lo sparo, PRIMA dei 60
+         dichiarati: è il caso per cui l'ora dello sparo esiste, e la scheda lo
+         dice invece di scrivere «rientro alle 11:55» come se bastasse */
+      proiezioniOltreArea: false, rientroAlle: "11:55", noteDopo: "",
+      oraSparo: "11:10", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 2.5 },
     // b3 · progettata in Genesi e NON ancora sparata: sta nel registro come
     //      PREVISTA, non conta nei kg del mese e non può diventare un referto.
     { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, kgMaxRitardo: 20, distanzaRicettore: 240, esito: "regolare", note: "",
@@ -1011,6 +1019,9 @@ export function scartiAdempimentiCsv(text) {
    il comportamento: due copie uguali oggi divergono domani senza che nessuno
    lo veda. */
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
+// il dopo-sparo con l'ora dello sparo (11/09): la regola vive in `shared/` perché la legge anche Campo
+export { attesaDopoSparo } from "../../shared/dw-ponti.js";
+import { attesaDopoSparo } from "../../shared/dw-ponti.js";
 import { numeroDichiarato,
          VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
          volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
@@ -1098,7 +1109,8 @@ export function parseVolateCsv(text) {
              ppvMisurata, ppvFonte, ppvPunto, ppvOra,
              stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
              codiceVolata, comunicataA, comunicataIl, comunicazioneRif,
-             mancateEsplosioni, mancateGestite, rientroAlle, proiezioniOltreArea, proiezioniDove, noteDopo] = NOMI.map((nome, i) => per(nome, i));
+             mancateEsplosioni, mancateGestite, rientroAlle, proiezioniOltreArea, proiezioniDove, noteDopo,
+             oraSparo, rientroAutorizzatoDa, attesaDopoSparoMin, kgResi] = NOMI.map((nome, i) => per(nome, i));
       const ppvPrevProvvisoria = per("ppvPrevProvvisoria", -1), ppvPrevReferti = per("ppvPrevReferti", -1);
       let v = {
         data: (data || "").trim(),
@@ -1143,8 +1155,14 @@ export function parseVolateCsv(text) {
         proiezioniOltreArea: sp === "si" || sp === "sì" ? true : sp === "no" ? false : null,
         proiezioniDove: String(proiezioniDove || "").trim(),
         noteDopo: String(noteDopo || "").trim(),
+        // il dopo-sparo (11/09): le celle vuote restano «non dichiarato»
+        oraSparo: String(oraSparo || "").trim(),
+        rientroAutorizzatoDa: String(rientroAutorizzatoDa || "").trim(),
+        attesaDopoSparoMin: /^\d+$/.test(String(attesaDopoSparoMin == null ? "" : attesaDopoSparoMin).trim()) && parseInt(attesaDopoSparoMin, 10) > 0 ? parseInt(attesaDopoSparoMin, 10) : null,
+        kgResi: (() => { const t = String(kgResi == null ? "" : kgResi).trim().replace(",", "."); const n = t === "" ? NaN : +t; return Number.isFinite(n) && n >= 0 ? n : null; })(),
       };
-      if (dopo.mancateEsplosioni != null || dopo.proiezioniOltreArea != null || dopo.rientroAlle || dopo.noteDopo) v = { ...v, ...dopo };
+      if (dopo.mancateEsplosioni != null || dopo.proiezioniOltreArea != null || dopo.rientroAlle || dopo.noteDopo
+          || dopo.oraSparo || dopo.rientroAutorizzatoDa || dopo.attesaDopoSparoMin != null || dopo.kgResi != null) v = { ...v, ...dopo };
       return v;
     })
     .filter(v => dataISOEsiste(v.data));
@@ -4065,7 +4083,9 @@ export function bozzaAzioneDopoVolata(v, opts = {}) {
   const d = dopoVolata(v);
   const dove = (v.fronte ? " sul fronte " + String(v.fronte).trim() : "") + (v.data ? " del " + dataIt(String(v.data).slice(0, 10)) : "");
   const nota = "Dopo-volata (Sentinella) — volata" + dove + " · " + st.anomalie.join(" · ")
-    + (d.rientroAlle ? " · rientro alle " + d.rientroAlle : "")
+    + (attesaDopoSparo(v).stato === "non-registrato"
+        ? (d.rientroAlle ? " · rientro alle " + d.rientroAlle : "")
+        : " · " + attesaDopoSparo(v).testo)
     + (d.noteDopo ? " · «" + d.noteDopo + "»" : "");
   return {
     descrizione: String(opts.descrizione || ("Chiudere le anomalie del dopo-volata" + dove + ": "
@@ -4636,6 +4656,10 @@ export function etichettaStatoVolata(v) {
 //     nessuna»), con `mancateGestite` che dice che cosa si è fatto;
 //   · `proiezioniOltreArea` — `true`/`false`, con `proiezioniDove`;
 //   · `rientroAlle` — l'ora del rientro (HH:MM), facoltativa;
+//   · dall'11/09 (unità 116): `oraSparo` (HH:MM), `rientroAutorizzatoDa`,
+//     `attesaDopoSparoMin` (i minuti dell'ordine di servizio, dichiarati) e
+//     `kgResi` (l'esplosivo tornato indietro) — tutti facoltativi, e
+//     `attesaDopoSparo` di shared/ li giudica insieme;
 //   · `noteDopo` — testo libero.
 // ⛔ Il principio del fondatore: una volata eseguita SENZA questi campi non è
 // «regolare», è «dopo-volata non registrato». Il silenzio non è un esito.
@@ -4653,8 +4677,14 @@ export function dopoVolata(v) {
   const mancate = m != null && Number.isInteger(m) && m >= 0 ? m : null;
   const proiezioni = x.proiezioniOltreArea === true ? true : x.proiezioniOltreArea === false ? false : null;
   const rientro = String(x.rientroAlle || "").trim();
+  const sparo = String(x.oraSparo || "").trim();
+  const attesa = numeroDichiarato(x.attesaDopoSparoMin), resi = numeroDichiarato(typeof x.kgResi === "string" ? x.kgResi.replace(",", ".") : x.kgResi);
   return {
     registrato: mancate != null && proiezioni != null,
+    oraSparo: /^([01]\d|2[0-3]):[0-5]\d$/.test(sparo) ? sparo : "",
+    rientroAutorizzatoDa: String(x.rientroAutorizzatoDa || "").trim(),
+    attesaDopoSparoMin: attesa != null && Number.isInteger(attesa) && attesa > 0 ? attesa : null,
+    kgResi: resi != null && Number.isFinite(resi) && resi >= 0 ? resi : null,
     mancateEsplosioni: mancate,
     mancateGestite: String(x.mancateGestite || "").trim(),
     proiezioniOltreArea: proiezioni,
@@ -4713,12 +4743,33 @@ export function campiDopoVolata(input = {}, volata = null) {
   if (proiezioni === true && !dove) errori.push({ campo: "proiezioniDove", testo: "Con proiezioni oltre l'area va scritto dove sono arrivate." });
   const rientro = String(input.rientroAlle || "").trim();
   if (rientro && !/^([01]\d|2[0-3]):[0-5]\d$/.test(rientro)) errori.push({ campo: "rientroAlle", testo: "L'ora del rientro si scrive come ore:minuti (per esempio 11:40)." });
+  // il dopo-sparo (11/09): ora dello sparo, chi ha autorizzato, l'attesa dell'ordine di servizio, l'esplosivo reso
+  const sparo = String(input.oraSparo || "").trim();
+  if (sparo && !/^([01]\d|2[0-3]):[0-5]\d$/.test(sparo)) errori.push({ campo: "oraSparo", testo: "L'ora dello sparo si scrive come ore:minuti (per esempio 10:45)." });
+  const sa = String(input.attesaDopoSparoMin == null ? "" : input.attesaDopoSparoMin).trim();
+  let attesa = null;
+  if (sa && !/^\d+$/.test(sa)) errori.push({ campo: "attesaDopoSparoMin", testo: "L'attesa si scrive in minuti interi, come sta nel tuo ordine di servizio." });
+  else if (sa) { attesa = parseInt(sa, 10); if (!(attesa > 0)) errori.push({ campo: "attesaDopoSparoMin", testo: "L'attesa è un numero di minuti maggiore di zero: lascia vuoto se non la dichiari." }); }
+  const sr = String(input.kgResi == null ? "" : input.kgResi).trim().replace(",", ".");
+  let resi = null;
+  if (sr) { resi = +sr; if (!Number.isFinite(resi) || resi < 0) { errori.push({ campo: "kgResi", testo: "L'esplosivo reso si scrive in chili (anche zero): «" + sr + "» non si legge." }); resi = null; } }
   const campi = {
     mancateEsplosioni: mancate, mancateGestite: mancate > 0 ? gestite : "",
     proiezioniOltreArea: proiezioni, proiezioniDove: proiezioni === true ? dove : "",
     rientroAlle: rientro, noteDopo: String(input.noteDopo || "").trim(),
+    oraSparo: sparo, rientroAutorizzatoDa: String(input.rientroAutorizzatoDa || "").trim(),
+    attesaDopoSparoMin: attesa, kgResi: resi,
   };
   return { ok: errori.length === 0, errori, campi };
+}
+
+// L'attesa dichiarata più di recente (sulla volata con la data più alta che
+// la porta): serve a precompilare il form, così l'ordine di servizio si
+// scrive una volta e si ritrova. `null` se nessuna volata la dichiara.
+export function attesaDichiarata(volate) {
+  const con = (volate || []).filter(v => v && dopoVolata(v).attesaDopoSparoMin != null)
+    .sort((a, b) => String(a.data || "") < String(b.data || "") ? 1 : -1);
+  return con.length ? dopoVolata(con[0]).attesaDopoSparoMin : null;
 }
 
 // Il conto per la riga sopra il registro: quante ESEGUITE hanno il dopo-volata
@@ -5129,7 +5180,14 @@ export function fogliaVolata(v, opts = {}) {
         : ["Mancate esplosioni", dv.mancateEsplosioni === 0 ? "nessuna" : dv.mancateEsplosioni + (dv.mancateGestite ? " — " + dv.mancateGestite : " — che cosa si è fatto non è scritto"), false],
       dv.proiezioniOltreArea == null ? manca("Proiezioni oltre l'area", "non dichiarate")
         : ["Proiezioni oltre l'area", dv.proiezioniOltreArea ? "sì" + (dv.proiezioniDove ? ": " + dv.proiezioniDove : " (dove non è scritto)") : "no", false],
-      dv.rientroAlle ? ["Rientro", "alle " + dv.rientroAlle, false] : manca("Rientro", "ora non indicata"),
+      dv.oraSparo ? ["Sparo", "alle " + dv.oraSparo, false] : manca("Sparo", "ora non indicata"),
+      dv.rientroAlle ? ["Rientro", "alle " + dv.rientroAlle + (dv.rientroAutorizzatoDa ? " · autorizzato da " + dv.rientroAutorizzatoDa : " · chi ha autorizzato non è scritto"), false] : manca("Rientro", "ora non indicata"),
+      /* l'attesa (11/09): un verdetto solo con le due ore E l'attesa dichiarata; se no la ragione */
+      (() => { const at = attesaDopoSparo(v);
+        return at.stato === "dopo-l-attesa" ? ["Attesa prima del rientro", at.minuti + " min, attesa dichiarata " + at.attesaMin + " min: rispettata", false]
+          : at.stato === "prima-dell-attesa" ? ["Attesa prima del rientro", at.minuti + " min: PRIMA dell'attesa dichiarata di " + at.attesaMin + " min", false]
+          : manca("Attesa prima del rientro", at.perche); })(),
+      dv.kgResi != null ? ["Esplosivo reso", numeroIt(dv.kgResi) + " kg", false] : manca("Esplosivo reso", "non registrato"),
       ["Esito dell'ispezione", sdv.label + (sdv.anomalie.length ? ": " + sdv.anomalie.join(" · ") : ""), false],
       ["Note del dopo-volata", dv.noteDopo || "nessuna", false],
     ] });
@@ -5227,7 +5285,9 @@ export const CSV_VOLATE_INTESTAZIONE =
   /* la comunicazione (05/09), in coda: chi legge diciannove colonne non si accorge di niente */
   + "comunicataA;comunicataIl;comunicazioneRif;"
   /* il dopo-volata (11/09), ancora in coda per la stessa ragione */
-  + "mancateEsplosioni;mancateGestite;rientroAlle;proiezioniOltreArea;proiezioniDove;noteDopo";
+  + "mancateEsplosioni;mancateGestite;rientroAlle;proiezioniOltreArea;proiezioniDove;noteDopo;"
+  /* il dopo-sparo (11/09, unità 116), in coda per la stessa ragione */
+  + "oraSparo;rientroAutorizzatoDa;attesaDopoSparoMin;kgResi";
 
 // Il file del registro volate. Ogni riga dichiara il suo `stato`, così il giro
 // export → import non perde la distinzione fra progetto e evento. Pura e
@@ -5267,6 +5327,8 @@ export function csvRegistroVolate(volate) {
         cella(dopoVolata(v).mancateEsplosioni), csvCell(v.mancateGestite || ""), dopoVolata(v).rientroAlle,
         v.proiezioniOltreArea === true ? "si" : v.proiezioniOltreArea === false ? "no" : "",
         csvCell(v.proiezioniDove || ""), csvCell(v.noteDopo || ""),
+        // il dopo-sparo (11/09): le due ore, chi ha autorizzato, l'attesa dichiarata, i chili resi
+        dopoVolata(v).oraSparo, csvCell(v.rientroAutorizzatoDa || ""), cella(dopoVolata(v).attesaDopoSparoMin), cella(dopoVolata(v).kgResi),
       ].join(";");
     });
   return CSV_VOLATE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");

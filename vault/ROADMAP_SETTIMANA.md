@@ -2909,8 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
-  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7847,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.392 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2911, `run-stile` 328,
+  **3.393 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2912, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9676,9 +9674,9 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   moduli) → voce aperta; le licenze di chi spara le controlla l'appello
   (`idoneitaDiTurno`); la mina mancata è già un'azione per Scudo. Vedi
   `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (terzo giro).
-- [ ] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
-  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO** *(dalla ricerca dell'11/09,
-  terzo giro su Campo, domande 1 e 3)*. Sulla volata `oraSparo` (HH:MM) e
+- [x] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO** ✅ 11/09 (unità 116). *(dalla
+  ricerca dell'11/09, terzo giro su Campo, domande 1 e 3)*. Sulla volata `oraSparo` (HH:MM) e
   `rientroAutorizzatoDa` nel form del dopo-volata, nel CSV delle volate e nel
   diario; l'attesa minima `attesaDopoSparoMin` dichiarata una volta per cava
   dal proprio ordine di servizio (il suggerimento dice che la fissa l'ordine
@@ -9692,6 +9690,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   «dopo l'attesa»; senza `oraSparo` → «non registrato»; senza attesa → «attesa
   non dichiarata»; `grep -c '60 min'` nella pagina non cresce; screenshot a
   430 px del dopo-volata e della consegna di Campo.
+- [x] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO (11/09, unità 116).**
+  `attesaDopoSparo(volata)` in `shared/dw-ponti.js` (ri-esportata da
+  Sentinella, lo STESSO oggetto): con `oraSparo` e `rientroAlle` conta i
+  minuti (anche oltre la mezzanotte), con `attesaDopoSparoMin` dichiarata
+  giudica «dopo l'attesa» / «PRIMA dell'attesa» (con i minuti mancanti), senza
+  attesa «attesa non dichiarata», senza un'ora «non registrato» con la ragione;
+  `rientroAutorizzatoDa` e `kgResi` (l'esplosivo reso) sulla volata. Sentinella:
+  quattro campi nel dopo-volata (l'attesa si precompila dall'ultima dichiarata,
+  `attesaDichiarata`), validazione in `campiDopoVolata`, quattro colonne in coda
+  al CSV (andata e ritorno provati), la riga del registro col verdetto (il
+  rientro prima dell'attesa va per PRIMO e corto, perché la riga è tagliata a
+  due righe — misurato), il foglio della volata con sparo / rientro e chi ha
+  autorizzato / attesa / esplosivo reso, e l'azione per Scudo col testo. Campo:
+  `righeVolateDelGiorno` scrive nella consegna «rientro alle 11:55, 45 min dopo
+  lo sparo delle 11:10 — PRIMA dell'attesa dichiarata di 60 min» o «dopo-sparo:
+  l'ora dello sparo non è registrata» (la copia demo delle volate porta gli
+  stessi campi). Nessun numero di attesa nostro nella pagina. Dimostrazione:
+  b1 70 min su 60 (rispettata), b2 45 su 60 (prima), b3 senza ora dello sparo.
+  Screenshot a 430 px guardati (registro, dopo-volata); 0 errori di pagina.
+  Prove: run-kpi +1 (2912), fondo `dw-ponti` 88 → 89, copertura 993/993.
+  ⚠️ Otto prove pinnate sono cadute per le quattro colonne nuove (la tabella
+  dei campi, la coda del CSV, l'oggetto di `dopoVolata`, le liste «che cosa
+  manca» del foglio): corrette rendendole più giuste — la fixture del foglio
+  «con tutto collegato» ora porta anche il dopo-sparo, e la prova pretende le
+  tre righe nuove.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

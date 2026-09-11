@@ -277,8 +277,13 @@ export const DEMO = {
   // fronti di Terra. Nessuna è di oggi: la consegna in dimostrazione dice
   // «nessuna volata registrata oggi», che è la verità del registro copiato.
   volateSentinella: [
-    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", codiceVolata: "GEN-20260717-4f2a1" },
-    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410 },
+    /* il dopo-sparo (11/09, unità 116) viaggia con la copia: le stesse ore e la
+       stessa attesa dichiarata di Sentinella, se no la consegna direbbe «non
+       registrato» su una volata che di là è giudicata */
+    { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", codiceVolata: "GEN-20260717-4f2a1",
+      oraSparo: "10:30", rientroAlle: "11:40", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 0 },
+    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410,
+      oraSparo: "11:10", rientroAlle: "11:55", rientroAutorizzatoDa: "Sorvegliante L. Bianchi", attesaDopoSparoMin: 60, kgResi: 2.5 },
     { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, stato: "prevista", codiceVolata: "GEN-20260804-9c71b" },
     { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, stato: "eseguita" },
     { id: "b5", data: "2026-07-10", fronte: "Fronte Est", nFori: 40, kgTotali: 455, stato: "eseguita" },
@@ -3082,7 +3087,11 @@ export function righeVolateDelGiorno(r) {
           ? " dal sismografo" + (x.ppv.punto ? " (" + x.ppv.punto + ")" : "") + (x.ppv.ora ? " alle " + x.ppv.ora : "")
           : " trascritta a mano")
       : "PPV non ancora collegata in Sentinella";
-    return dove + (quanto ? " — " + quanto : "") + " · " + ppv;
+    // il dopo-sparo (11/09): nella consegna si scrive quanto si è aspettato prima
+    // di rientrare — o che l'ora dello sparo non è registrata, che è un'assenza
+    // e non un via libera
+    const dopo = x.dopo ? (x.dopo.stato === "non-registrato" ? " · dopo-sparo: " + x.dopo.perche : " · " + x.dopo.testo) : "";
+    return dove + (quanto ? " — " + quanto : "") + " · " + ppv + dopo;
   });
 }
 

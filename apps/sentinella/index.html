@@ -1889,6 +1889,7 @@ textarea.dw-input{
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata, fogliaVolata,
            dopoVolata, statoDopoVolata, campiDopoVolata, riepilogoDopoVolata, bozzaAzioneDopoVolata, ORIGINE_DOPO_VOLATA,
+           attesaDopoSparo, attesaDichiarata,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
@@ -3341,7 +3342,7 @@ textarea.dw-input{
      ha; l'errore si legge in cima al modulo — sei campi non stanno in uno
      schermo, e un avviso in fondo resta sotto la piega (misurato: 854 px
      dall'alto su 605 di corpo). */
-  const CAMPI_DOPO = ["dopo-mancate", "dopo-gestite", "dopo-proiezioni", "dopo-dove", "dopo-rientro", "dopo-note"];
+  const CAMPI_DOPO = ["dopo-mancate", "dopo-gestite", "dopo-proiezioni", "dopo-dove", "dopo-sparo", "dopo-rientro", "dopo-autorizzato", "dopo-attesa", "dopo-resi", "dopo-note"];
   async function registraDopoVolata(id) {
     const v = VOL.find(x => x.id === id); if (!v) return;
     if (volataPrevista(v)) { toast("La volata è ancora prevista: il dopo-volata si registra dopo lo sparo.", "err"); return; }
@@ -3356,8 +3357,16 @@ textarea.dw-input{
       <select class="dw-input" id="dopo-proiezioni"><option value=""${d.proiezioniOltreArea == null ? " selected" : ""}>— da dichiarare —</option><option value="no"${d.proiezioniOltreArea === false ? " selected" : ""}>No</option><option value="si"${d.proiezioniOltreArea === true ? " selected" : ""}>Sì</option></select>
       <label class="fl" for="dopo-dove">Dove sono arrivate (se sì)</label>
       <input class="dw-input" id="dopo-dove" value="${esc(d.proiezioniDove)}" placeholder="pista, strada, fondo del vicino…">
+      <label class="fl" for="dopo-sparo">Sparo alle</label>
+      <input class="dw-input" id="dopo-sparo" type="time" value="${esc(d.oraSparo)}">
       <label class="fl" for="dopo-rientro">Rientro nell'area alle</label>
       <input class="dw-input" id="dopo-rientro" type="time" value="${esc(d.rientroAlle)}">
+      <label class="fl" for="dopo-autorizzato">Rientro autorizzato da</label>
+      <input class="dw-input" id="dopo-autorizzato" value="${esc(d.rientroAutorizzatoDa)}" placeholder="il sorvegliante che ha riaperto il fronte">
+      <label class="fl" for="dopo-attesa">Attesa minima prima del rientro (min)</label>
+      <input class="dw-input" id="dopo-attesa" type="number" min="1" step="1" value="${d.attesaDopoSparoMin != null ? d.attesaDopoSparoMin : (attesaDichiarata(VOL) != null ? attesaDichiarata(VOL) : "")}" placeholder="dal tuo ordine di servizio" title="I minuti che il tuo ordine di servizio impone prima di tornare al fronte: li scrivi tu, Sentinella non li propone. Si ricorda dall'ultima volata.">
+      <label class="fl" for="dopo-resi">Esplosivo reso (kg)</label>
+      <input class="dw-input dec" id="dopo-resi" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${d.kgResi != null ? esc(String(d.kgResi).replace(".", ",")) : ""}" placeholder="quanto è tornato al deposito o sull'automezzo (anche 0)">
       <label class="fl" for="dopo-note">Note del dopo-volata</label>
       <input class="dw-input" id="dopo-note" value="${esc(d.noteDopo)}" placeholder="fumi, vento, chi ha fatto l'ispezione…">`;
     const res = await new Promise(resolve => {
@@ -3368,10 +3377,13 @@ textarea.dw-input{
             mancateEsplosioni: $("dopo-mancate").value, mancateGestite: $("dopo-gestite").value,
             proiezioniOltreArea: $("dopo-proiezioni").value, proiezioniDove: $("dopo-dove").value,
             rientroAlle: $("dopo-rientro").value, noteDopo: $("dopo-note").value,
+            oraSparo: $("dopo-sparo").value, rientroAutorizzatoDa: $("dopo-autorizzato").value,
+            attesaDopoSparoMin: $("dopo-attesa").value, kgResi: $("dopo-resi").value,
           }, v);
           if (c.ok) { chiudiModale(); resolve(c); return; }
           CAMPI_DOPO.forEach(i => err(i, false));
-          const ID = { mancateEsplosioni: "dopo-mancate", mancateGestite: "dopo-gestite", proiezioniOltreArea: "dopo-proiezioni", proiezioniDove: "dopo-dove", rientroAlle: "dopo-rientro" };
+          const ID = { mancateEsplosioni: "dopo-mancate", mancateGestite: "dopo-gestite", proiezioniOltreArea: "dopo-proiezioni", proiezioniDove: "dopo-dove", rientroAlle: "dopo-rientro",
+            oraSparo: "dopo-sparo", attesaDopoSparoMin: "dopo-attesa", kgResi: "dopo-resi" };
           for (const e of c.errori) if (ID[e.campo]) err(ID[e.campo], true);
           const box = $("dopo-err");
           if (box) { box.style.display = ""; box.className = "note avviso"; box.innerHTML = c.errori.map(e => esc(e.testo)).join("<br>"); }
@@ -4783,7 +4795,17 @@ textarea.dw-input{
          è tagliato (due righe), cioè dove non lo legge nessuno */
       const dopo = [];
       if (sdv && sdv.anomalie.length) dopo.push("dopo lo sparo: " + esc(sdv.anomalie.join(" · ")));
-      if (sdv && sdv.registrato && dopoVolata(v).rientroAlle) dopo.push("rientro alle " + esc(dopoVolata(v).rientroAlle));
+      /* il dopo-sparo (11/09): con le due ore si scrive quanto si è aspettato e se
+         basta; con una sola resta «rientro alle», che è tutto quello che si sa */
+      if (sdv && sdv.registrato) {
+        const at = attesaDopoSparo(v);
+        if (at.stato === "non-registrato") { if (dopoVolata(v).rientroAlle) dopo.push("rientro alle " + esc(dopoVolata(v).rientroAlle)); }
+        /* ⛔ il rientro PRIMA dell'attesa va per PRIMO e corto: la riga è tagliata a
+           due righe, e un verdetto in coda a un'anomalia lunga finisce dove non lo
+           legge nessuno (misurato: «PRIMA dell'attesa dichiarata di» troncato) */
+        else if (at.stato === "prima-dell-attesa") dopo.unshift("<b>rientro prima dell'attesa dichiarata: " + at.minuti + " min su " + at.attesaMin + "</b>");
+        else dopo.push(esc(at.testo));
+      }
       // ⛔ la PPV PREVISTA si scrive con la parola «prevista» attaccata, sempre:
       // è l'unica cosa che impedisce di leggerla come una misura
       const vibr = [];

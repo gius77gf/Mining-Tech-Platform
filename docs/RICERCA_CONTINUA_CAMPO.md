@@ -2292,6 +2292,7 @@ codice in mano.*
   sulla categoria residua del Pareto** e sull'avanzamento della giornata, 0
   sull'esplosivo; 0 in Sentinella. **Mancanza confermata, piccola**: un campo
   `kgResi` nel dopo-volata (facoltativo, con «non registrato» quando manca).
+  ✅ **FATTO l'11/09 (unità 116)**: `kgResi` nel dopo-volata e nel foglio.
 - **Domanda 2 — DICHIARATO, e non è un'unità.** Il registro dell'art. 55 lo
   tiene chi gestisce un **deposito**: una cava che consuma in unica soluzione
   non lo tiene, una con deposito giornaliero sì. Se il prodotto debba
@@ -2316,6 +2317,9 @@ codice in mano.*
   dell'attesa (con i minuti) / non registrato / attesa non dichiarata; Campo
   la legge dal ponte (`righeVolateDelGiorno`) e la scrive nella consegna del
   turno.
+  ✅ **FATTO l'11/09 (unità 116)**: `attesaDopoSparo` in `shared/dw-ponti.js`,
+  `oraSparo` / `rientroAutorizzatoDa` / `attesaDopoSparoMin` / `kgResi` sulla
+  volata (form, CSV, foglio, registro), la consegna di Campo la scrive.
 - **Domanda 4 — C'È.** Scudo ha il preset `fochino` (licenza comunale col
   nulla osta del Prefetto, tre anni, corretto l'11/09), la mansione «Fochino»
   con i requisiti `sorv-sanitaria`, `form-generale`, `form-aggiorn`,
