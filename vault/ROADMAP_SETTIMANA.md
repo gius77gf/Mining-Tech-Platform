@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9548,6 +9549,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   data della successiva, verbale). Screenshot a 430 px guardati (il modello
   nella tendina con la sua nota, l'ispezione aperta con le 8 voci, 0 errori
   di pagina). Prove: run-kpi +1 (2909).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — TERRA: QUANDO LO SCAVO ESCE DAL
+  PROGETTO SERVE UNA VARIANTE, E QUALE (11/09, unità 111, solo documenti).**
+  Mondo di seconda mano (sette ricerche): la variante al piano di
+  coltivazione è regionale; la linea fra sostanziale (nuova autorizzazione) e
+  non sostanziale (procedura semplificata) la tira ogni regione — Toscana
+  con una percentuale sui volumi autorizzati, Piemonte con una percentuale
+  sull'estensione dei poli, Veneto e Lombardia con criteri della Giunta; la
+  vigilanza confronta il rilievo annuale col progetto alla stessa scala.
+  Delta dal MECCANISMO contro `727e8b47`: la parola «variante» c'è in 4
+  punti (volume, quota) e manca su geometria e sequenza; la soglia
+  sostanziale/non non c'è (0 e 0) e non può essere un numero nostro → voce
+  aperta (campo dichiarato dall'utente, come la soglia di guardia); la
+  difformità in % c'è (`proiezioneAnno`, `avanzamentoLotto`); la variante
+  vive come pratica `in-esame` e i conti li aggiorna l'utente sull'atto
+  (dichiarato). Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
+  (terzo giro).
+- [ ] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE**
+  *(dalla ricerca dell'11/09, terzo giro, domande 1 e 2)*. Sull'atto un
+  campo facoltativo `difformitaSostanzialePct` (dal regolamento della
+  propria regione; il suggerimento dice che dipende dalla regione, SENZA
+  numeri di legge di seconda mano); una funzione pura
+  `giudizioVariante(difformitaPct, sogliaPct)` → `{ noto, sostanziale:
+  true|false|null, testo }` con `null` quando la soglia o la difformità non
+  si sanno; nella scheda del Titolo, accanto ai verdetti «oltre» (volume
+  dell'anno, lotto), la frase «sopra la soglia che hai dichiarato: la
+  variante sarebbe sostanziale» / «sotto: non sostanziale, procedura
+  semplificata — verifica col tuo regolamento»; e la parola «variante» anche
+  sui verdetti «oltre» della geometria del banco e del lotto non aperto.
+  Come si misura: con la soglia vuota la pagina non giudica (0 frasi); con
+  soglia 5 e difformità 8 dice «sostanziale», con 3 dice «non sostanziale»;
+  `grep -c 'sostanzial'` nel modulo ≥ 1 e nessun «4,5» nella pagina;
+  screenshot a 430 px del Titolo.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

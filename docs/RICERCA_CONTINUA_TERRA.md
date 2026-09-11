@@ -984,3 +984,132 @@ tolleranza dichiarata dal rilevatore nel verbale; «direttore responsabile»
 al posto di «direttore dei lavori» nelle tre firme), 2 **dichiarate** che
 chiedono una decisione (le geometrie; la statistica degli addetti), 3 **già a
 posto** (il verbale, i volumi estratti e residui, la cadenza annuale).
+
+## Ricerca del 2026-09-11 — terzo giro: quando lo scavo esce dal progetto serve una variante — e quale (il mondo)
+
+*Terzo giro su Terra. Strumento: `WebSearch` (sette ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte è stata letta per intero**, tutto
+di seconda mano dai riassunti dei risultati. Segue la metà sul delta, fatta
+da chi ha il codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **La variante è materia REGIONALE, e le regioni non la definiscono allo
+  stesso modo.** Il punto comune è la distinzione fra variante
+  **sostanziale** (nuova autorizzazione, con il suo iter) e **non
+  sostanziale** (procedura semplificata, la durata del titolo non cambia).
+  Che cosa cade di qua o di là lo decide ogni legge regionale:
+  · **Toscana, L.R. 35/2015 art. 23 c. 1** (dai riassunti): è sostanziale la
+    variante con **difformità volumetriche oltre il 4,5 % dei volumi
+    autorizzati** (se almeno 1.000 m³, con un tetto di 9.500 m³), quella
+    che cambia la **configurazione finale** del sito, quella che introduce
+    l'**esplosivo**, e quella che fa crescere la **garanzia finanziaria**.
+    Fuori da questi casi l'autorizzazione si modifica con l'art. 19 della
+    L. 241/1990, mantenendo la durata iniziale;
+  · **Piemonte, L.R. 23/2016**: il «10 %» che circola è sull'**estensione
+    territoriale** dei poli e dei bacini estrattivi del piano regionale (a
+    parità di volumi autorizzabili), cioè un'altra grandezza — non è una
+    soglia sullo scavato;
+  · **Veneto, L.R. 13/2018**: i criteri per riconoscere le modifiche non
+    sostanziali al progetto di coltivazione li fissa la **Giunta**, e la
+    modifica non sostanziale si autorizza (o nega) sentito il Comune;
+  · **Lombardia, L.R. 20/2021**: «modifiche non sostanziali» sono quelle che
+    l'autorità competente giudica di effetto irrilevante sull'ambiente, con
+    le modalità operative rimandate alla Giunta;
+  · in più regioni le modifiche **urgenti per la sicurezza** non contano come
+    variante sostanziale; le varianti fuori da vincoli paesaggistici e
+    ambientali sono spesso «non sostanziali» anche ai fini della VIA.
+- **Che cosa guarda l'ente**: la vigilanza sulle cave è soprattutto la
+  **congruenza fra lo scavo e il progetto autorizzato** (Trentino, relazione
+  di controllo sulle cave; Varese, «controllo dell'attività estrattiva» con
+  computo metrico dei volumi): il rilievo topografico annuale dello **stato
+  di avanzamento** si confronta con il progetto **alla stessa scala e con le
+  stesse sezioni**, i capisaldi restano fissi, i volumi si computano e si
+  firmano; in alcuni comuni il rilievo si fa **in presenza del tecnico
+  comunale** o con perizia giurata.
+- **Il mestiere**: prima di chiedere una variante il direttore
+  responsabile vuole sapere **quanto** è la difformità (in m³ e in %) e su
+  **quale asse** (volume, quota, perimetro, sequenza dei lotti), perché è
+  quel numero — contro la soglia della sua regione — che decide se è un
+  aggiornamento con una lettera o una nuova autorizzazione con VIA.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Toscana: raccoltanormativa.consiglio.regione.toscana.it (L.R. 35/2015, pdf);
+  olympus.uniurb.it (id 29286); regione.toscana.it, decreto 6776 del
+  01/04/2026 all. B «istanza di nuova autorizzazione o variante sostanziale»;
+  edizionieuropee.it § 4.3.19; arpat.toscana.it; quarryandconstructionweb.it.
+- Piemonte: regione.piemonte.it (L.R. 23/2016, BU46S1); olympus.uniurb.it (id
+  17012); legislazionetecnica.it; arianna.consiglioregionale.piemonte.it.
+- Veneto: bur.regione.veneto.it (L.R. 13/2018, id 366192; PRAC variante NTA,
+  all. B); amministrativistiveneti.it «Prime riflessioni sulla L.R. 13/2018».
+- Lombardia: normelombardia.consiglio.regione.lombardia.it (L.R. 20/2021);
+  legislazionetecnica.it; portale.assimpredilance.it; ancebrescia.it.
+- Emilia-Romagna: demetra.regione.emilia-romagna.it (L.R. 17/1991);
+  ambientediritto.it (TAR Parma 256/2011). Sicilia: ars.sicilia.it (L.R.
+  6/2024 e nota di lettura 2023). Abruzzo: consiglio.regione.abruzzo.it.
+- Vigilanza e rilievi: consiglio.provincia.tn.it «Controllo sullo stato di
+  attuazione… cave»; cartografia.provincia.va.it «Rilievi topografici delle
+  cave e controllo dell'attività estrattiva — computo metrico volumi» e
+  «Normativa tecnica»; comune.modena.it (relazione tecnica di un progetto
+  di coltivazione); atti.comune.parma.it (schema di convenzione);
+  3dfotogram.com; exeo.it «L'autorizzazione amministrativa alla coltivazione
+  di una cava»; legislazionetecnica.it (domanda di autorizzazione,
+  disposizioni attuative).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi dice all'utente «qui serve una variante»**, e su quali assi (volume,
+   quota, geometria, sequenza dei lotti)?
+2. **Chi sa se la variante sarebbe sostanziale o no** — cioè chi confronta la
+   difformità con la soglia della regione?
+3. **Chi calcola la difformità** in m³ e in % rispetto all'autorizzato?
+4. **Dove vive una variante** una volta chiesta (una pratica con il suo
+   stato?) e che cosa cambia nei conti quando viene approvata?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `727e8b47`)
+
+- **Domanda 1 — C'È SUL VOLUME E SULLA QUOTA, tace sugli altri due assi.**
+  La pagina nomina la variante in **4 punti** (`grep -c 'chiedi una
+  variante|rinnovo o variante|senza una variante' apps/terra/index.html` →
+  4): la proiezione di fine anno in rosso («rallenta o chiedi una
+  variante»), il volume autorizzato esaurito («fermati o chiedi una
+  variante»), la soglia di guardia («prepara rinnovo o variante»), e il
+  fronte arrivato al fondo («da lì non si scende più senza una variante»). I
+  verdetti «oltre» della **geometria del banco** e del **lotto non ancora
+  aperto** dicono che cosa non va ma non dicono la parola: piccolo delta,
+  una frase per asse, nella stessa voce della domanda 2.
+- **Domanda 2 — MANCA, E NON PUÒ ESSERE UN NUMERO NOSTRO.** `grep -ciE
+  'sostanzial' apps/terra/terra-data.js apps/terra/index.html` → **0 e 0**.
+  La soglia che separa la variante sostanziale (nuova autorizzazione) da
+  quella non sostanziale (procedura semplificata) è **regionale** — in
+  Toscana un 4,5 % sui volumi autorizzati [seconda mano], in Piemonte un
+  10 % che però misura l'estensione dei poli, in Veneto e Lombardia un
+  criterio della Giunta — quindi Terra **non la sa** e non deve inventarla.
+  Quello che può fare è la stessa cosa che fa con la soglia di guardia
+  (`sogliaGuardiaPct`, impostata dall'utente): un campo sull'atto,
+  `difformitaSostanzialePct`, **dichiarato dall'utente dal proprio
+  regolamento**, vuoto di default; quando c'è, la difformità misurata si
+  confronta con lui e la pagina dice «sopra la soglia che hai dichiarato:
+  la variante sarebbe sostanziale» o «sotto: non sostanziale, procedura
+  semplificata — verifica col tuo regolamento»; quando manca, non dice
+  niente e il suggerimento del campo spiega che dipende dalla regione,
+  **senza scrivere il 4,5 %** (un numero di legge di seconda mano non entra
+  in una schermata). **Mancanza confermata, aperta, piccola.**
+- **Domanda 3 — C'È.** La difformità in percentuale la calcolano già
+  `proiezioneAnno` (`pctPiano` contro `pianificatoAnnuoM3`, con «presto»
+  quando l'anno è appena cominciato) e `avanzamentoLotto(lotto, misuratoM3)`
+  (percentuale del lotto, `null` senza rilievi); il cumulato contro il
+  concesso (`riserveM3`) sta nel foglio per l'ente. Un «oltre del X %» è
+  `pct − 100`: il numero esiste, gli manca solo la soglia con cui confrontarsi.
+- **Domanda 4 — C'È COME PRATICA, e i conti non si toccano da soli — ed è
+  giusto.** La collezione `piano` ha lo stato `vigente | in-esame`, e la
+  dimostrazione porta «Variante fronte Sud» in esame. Quando una variante
+  viene approvata i numeri nuovi (quota di fondo, volumi, scadenza) **li
+  scrive l'utente sull'atto**, perché vengono dal titolo nuovo: nessun
+  automatismo, dichiarato.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la soglia della variante
+sostanziale dichiarata dall'utente, più la parola «variante» sui due assi che
+la tacciono), 2 a posto (chi dice «variante» sul volume e sulla quota; chi
+calcola la difformità), 1 dichiarata (il piano in esame non tocca i conti).
