@@ -962,3 +962,68 @@ esportate); ogni «non c'è» con il comando.
   ed `episodi` alla cifra (prova in run-kpi). La frase dei fermi lo scrive
   («1 giorno di fermo scelto … e 13 giorni di fermo subìto»), misurata a 320 e
   390 senza uscire dal riquadro.
+
+## Ricerca del 2026-09-11 — i piani a chilometri, e la regola «il primo dei due»: il mondo
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch`. Nessun intervallo di manutenzione citato qui entra in una
+schermata: i numeri dei tagliandi li dà il libretto del costruttore, non un
+risultato di ricerca.
+
+### Che cos'è, fuori
+
+- I gestionali di flotta (Mainsim, X-Fleet, FleetUP, Avrios, Zucchetti,
+  Michelin Connected Fleet) tengono per ogni bene **piani per chilometri,
+  per ore motore o per calendario**, scelti per categoria: «cambio olio ogni
+  30.000 km» per il camion, «revisione ogni 500 ore» per la macchina
+  operatrice; il contatore giusto lo legge la telematica, se c'è, se no lo
+  scrive una persona. *[risultati di ricerca: Mainsim, X-Fleet, FleetUP]*
+- La regola dei libretti è **«il primo dei due»**: il tagliando si fa quando
+  scade la prima fra la condizione di tempo e quella di percorrenza (o di
+  ore) — «ogni 12-24 mesi o ogni 15-30.000 km, a seconda di quale arriva
+  prima» per un veicolo stradale. *[risultati di ricerca: UnipolMove,
+  DottorGomma, automobilista.it — generici, da automobile]*
+- Per i camion la frequenza dipende da ore d'uso e tipo di attività, e la
+  manutenzione ordinaria è distinta da quella programmata in officina.
+  *[risultati di ricerca: Volvo Trucks, Truck24, Botto Ricambi]*
+
+Fonti (risultati di ricerca, non lette per intero):
+[Mainsim — fleet management](https://www.mainsim.com/settori/fleet-management-software/) ·
+[X-Fleet](https://www.il-software.it/gestionale_flotta_aziendale.htm) ·
+[FleetUP](https://www.fleetup.it/software-gestionale-flotta-aziendale/) ·
+[Michelin Connected Fleet](https://connectedfleet.michelin.com/it/soluzione/software-per-la-gestione-delle-flotte-aziendali) ·
+[Volvo Trucks — manutenzione camion](https://www.volvotrucks.it/it-it/news/il-vocabolario-del-camionista/camion-come-fare-manutenzione.html) ·
+[DottorGomma — km o tempo](https://www.dottorgomma.it/blog/tagliando-auto-ogni-quanto-km-o-tempo/) ·
+[Truck24 — manutenzione mezzo commerciale](https://www.truck24.it/la-manutenzione-di-un-mezzo-commerciale/).
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Che mezzi modella Flotta?* → `TIPI_MEZZO`: escavatore, pala, «dumper /
+   camion», perforatrice, impianto, sollevamento, altro — macchine da cava,
+   il cui contatore è l'ORA MOTORE (`mezzi[].ore`, `ritmoOreMezzi`,
+   `PIANI_TAGLIANDO` 250/500/1000/2000 h). Il mezzo targato esiste come
+   **adempimento** (revisione alla Motorizzazione ogni 5 anni, «mezzo
+   targato»), non come mezzo con un contachilometri.
+2. *Chi decide quando scade un tagliando?* → `prossimoTagliando(man, ore,
+   data)`: «Due modi, MAI insieme» — a ore se il piano ha `ogniOre`, se no a
+   calendario se ha `ogniMesi`. Un piano con tutt'e due prende le ore e
+   **ignora i mesi**. `urgenzaTagliando` legge le ore; l'urgenza per data la
+   dà lo scadenzario. Il «primo dei due» dei libretti **non c'è**.
+
+### Il delta, fatto da chi ha il codice in mano (11/09, contro `36fba50e`)
+
+- **Chilometri**: la riga di `CONCORRENTI_FLOTTA` resta «assente» ed è
+  giusta, ma va detto **per chi**: per i camion stradali di una cava che
+  consegna in proprio. Flotta oggi li classifica sotto «dumper / camion» e li
+  conta a ore. Prima di aggiungere un contachilometri serve una decisione di
+  prodotto (un mezzo ha UN contatore: ore o km, scelto sulla scheda; piani,
+  ritmo e consumo cambiano unità) — è un cantiere da sei-otto unità, e va
+  aperto quando una cava con camion propri lo chiede. **Candidato dichiarato,
+  non aperto.**
+- **Il primo dei due**: questo sì è del mestiere di Flotta com'è, e costa
+  poco. Un tagliando dei libretti è «ogni 500 h **o** 12 mesi, quello che
+  arriva prima»; Flotta lo sa dire solo a ore **oppure** a mesi. Delta
+  concreto: `prossimoTagliando` con tutt'e due i passi scrive tutt'e due le
+  scadenze (ore previste E data prevista), e l'urgenza è la peggiore delle
+  due; la frase lo dice («a 6.370 h o entro il 12/03/2027, quello che arriva
+  prima»). **In roadmap come prossima unità.**

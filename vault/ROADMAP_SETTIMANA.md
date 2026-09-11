@@ -665,6 +665,29 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **RICERCA A ROTAZIONE, FLOTTA — I PIANI A CHILOMETRI E LA REGOLA «IL
+  PRIMO DEI DUE» (11/09):** metà sul mondo con `WebSearch` (fonti citate,
+  seconda mano dichiarata): i gestionali di flotta tengono piani per km, ore
+  motore o calendario per categoria di mezzo; i libretti dicono «ogni N ore
+  o N mesi, quello che arriva prima». Delta dal MECCANISMO: Flotta modella
+  macchine da cava a ORE (`TIPI_MEZZO`, `PIANI_TAGLIANDO` in ore), il mezzo
+  targato è solo un adempimento — il contachilometri riguarda i camion
+  stradali di chi consegna in proprio e chiede una decisione di prodotto (un
+  mezzo, un contatore): **candidato dichiarato, non aperto**. Invece
+  `prossimoTagliando` fa ore OPPURE mesi, «mai insieme» — il «primo dei due»
+  non c'è, ed è del mestiere di Flotta com'è: **prossima unità**. Riga
+  «Piani a km» di CONCORRENTI_FLOTTA aggiornata con il delta (verdetto
+  invariato, il conto B4 non cambia).
+- [ ] **FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade
+  alla prima delle due** (dalla ricerca dell'11/09). `prossimoTagliando`
+  con tutt'e due i passi scrive tutt'e due le scadenze (ore previste e data
+  prevista, `da: "entrambi"`); l'urgenza è la peggiore fra `urgenzaTagliando`
+  (ore) e quella per data; la frase della lista e della finestra lo dice
+  («a 6.370 h o entro il 12/03/2027, quello che arriva prima»); il form del
+  piano permette di scrivere tutt'e due. Prove in run-kpi nei tre versi
+  (solo ore, solo mesi, entrambi con l'una o l'altra che arriva prima) e
+  banco sul rendering. ⚠️ Prima di scrivere: misurare in scratchpad il caso
+  con le ore ignote e i mesi noti (deve rispondere la data, non `null`).
 - [x] **RICERCA A ROTAZIONE, CONTI — LA RITENUTA D'ACCONTO NON È UNA
   MANCANZA DI UNA CAVA (11/09):** metà sul mondo con `WebSearch` (fonti
   citate, seconda mano dichiarata): la ritenuta riguarda compensi di lavoro
@@ -2689,6 +2712,7 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade alla prima delle due` *(11/09, dalla ricerca)*
 - `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
