@@ -127,6 +127,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("sentinella", "csvRegistroVolate", () => sentinella.csvRegistroVolate(D.volate));
   doc("sentinella", "csvRicettori", () => sentinella.csvRicettori(D.ricettori));
   doc("sentinella", "csvTarature", () => sentinella.csvTarature(D.monitoraggi));
+  doc("sentinella", "calendarioAmbiente", () => sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, OGGI, "2026-09-11T02:00:00Z").ics);
   for (const v of D.volate) doc("sentinella", "fogliaVolata " + v.id, () => sentinella.fogliaVolata(v, { monitoraggi: D.monitoraggi, reclami: D.reclami, ricettori: D.ricettori, oggi: OGGI }));
 }
 

@@ -22,7 +22,7 @@
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
          senzaDoppioni, istanteLocale, plurale, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         dataPiuGiorni as dataPiuGiorniShell, mappaColonne, isoLocale } from "../../shared/deepwork-id-client/dw-shell.js";
+         dataPiuGiorni as dataPiuGiorniShell, mappaColonne, isoLocale, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
@@ -4991,4 +4991,63 @@ export async function sentinellaData() {
     };
   }
   return { mode, ...api };
+}
+
+// ============================================================
+// IL CALENDARIO AMBIENTALE (.ics) — 11/09, terza app sul compositore condiviso
+// Tre famiglie di date entrano nell'agenda del telefono, ognuna con le parole
+// che usa già lo schermo:
+//   · gli ADEMPIMENTI (relazione all'ARPA, rinnovo AUA…), col periodo coperto
+//     nella descrizione e il verdetto di oggi dalla regola condivisa
+//     (`statoScadenzaHSE`, la stessa del report);
+//   · le TARATURE degli strumenti — la scadenza dell'ultimo certificato
+//     valido (`statoTaraturaStrumento`); un punto senza taratura dichiarata
+//     non ha una data da mettere in agenda, e si conta;
+//   · il PROGRAMMA di monitoraggio — la prossima misura di ogni riga
+//     (`programmaEsteso`: ultima lettura + ogni quanti giorni), con l'avviso
+//     il giorno prima, perché una cadenza settimanale con un avviso a 30
+//     giorni non avvisa niente. Le righe senza una prossima data (mai
+//     misurate, senza frequenza, sospese) restano fuori e si contano.
+// `avvisoEsempio` lo passa la pagina: all'importazione il nome del file si
+// perde, quindi l'avviso della dimostrazione deve stare nel contenuto.
+export function calendarioAmbiente(adempimenti, monitoraggi, programma, oggi = new Date(), adesso, avvisoEsempio) {
+  const eventi = [], senzaData = [];
+  const fuori = { tarature: 0, programma: 0 };
+  const etichetta = (scad) => {
+    const st = statoScadenzaHSE(scad, oggi);
+    const g = giorniTra(scad, oggi);
+    return st === "scaduta" ? "scaduto da " + (-g) + " gg" : g === 0 ? "scade oggi" : "tra " + g + " gg";
+  };
+  for (const a of adempimenti || []) {
+    if (!a) continue;
+    const scad = String(a.scadenza || "").slice(0, 10);
+    const ente = String(a.ente || "").trim();
+    const titolo = (a.titolo || "Adempimento") + (ente && ente !== "—" ? " · " + ente : "");
+    if (!dataISOEsiste(scad)) { senzaData.push(titolo); continue; }
+    const per = descriviPeriodoAdempimento(a);
+    eventi.push({ uid: "sentinella-adempimento-" + (a.id || (scad + "-" + eventi.length)), data: scad, titolo,
+      descrizione: [per.noto ? "Copre dal " + dataIt(per.dal) + " al " + dataIt(per.al) : "Periodo coperto non dichiarato",
+        "Oggi: " + etichetta(scad), "Da Sentinella, scadenze ambientali"].join("\n"),
+      preavvisiGiorni: [30, 7] });
+  }
+  for (const m of monitoraggi || []) {
+    if (!m) continue;
+    const t = statoTaraturaStrumento(m, oggi);
+    if (!t.scadenza) { fuori.tarature++; continue; }
+    eventi.push({ uid: "sentinella-taratura-" + (m.id || eventi.length), data: t.scadenza,
+      titolo: "Taratura · " + (m.nome || "Punto di misura"),
+      descrizione: [t.ultima.ente ? "Ente: " + t.ultima.ente : "", t.ultima.certificato ? "Certificato: " + t.ultima.certificato : "",
+        "Oggi: " + etichetta(t.scadenza), "Da Sentinella, tarature degli strumenti"].filter(Boolean).join("\n"),
+      preavvisiGiorni: [30, 7] });
+  }
+  for (const v of programmaEsteso(programma, monitoraggi, oggi)) {
+    if (!v.stato.prossima) { fuori.programma++; continue; }
+    eventi.push({ uid: "sentinella-programma-" + (v.riga.id || eventi.length), data: v.stato.prossima,
+      titolo: "Misura · " + v.nome,
+      descrizione: ["Ogni " + v.stato.ogniGiorni + " giorni" + (v.stato.tolleranzaGiorni ? ", tolleranza " + v.stato.tolleranzaGiorni + " giorni" : ""),
+        "Oggi: " + v.stato.label.toLowerCase(), "Da Sentinella, programma di monitoraggio"].join("\n"),
+      preavvisiGiorni: [1] });
+  }
+  const r = icsCalendario(eventi, { app: "Sentinella", adesso, nome: "Ambiente: adempimenti, tarature, misure (Sentinella)", esempio: avvisoEsempio });
+  return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, fuori };
 }

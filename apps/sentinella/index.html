@@ -1666,6 +1666,8 @@ textarea.dw-input{
   </div>
   <div class="form-hint" style="margin-top:8px;">Colonne del file: <b>titolo; ente; scadenza</b>, e — se ci sono —
     <b>mesi coperti; giorni di consegna</b>. Le ultime due sono facoltative: un file con le tre colonne di sempre entra identico a prima.</div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-ade-ics" title="Un file che Google Calendar, Outlook e il calendario del telefono importano: gli adempimenti, le tarature degli strumenti e la prossima misura di ogni riga del programma, con l'avviso prima">Calendario (.ics)</button></div>
+  <div class="form-hint" style="margin-top:8px;">Nel calendario entrano gli <b>adempimenti</b>, le <b>tarature</b> degli strumenti e la <b>prossima misura</b> di ogni riga del programma; quello che non ha una data (un punto senza taratura dichiarata, una riga mai misurata) resta fuori e viene detto.</div>
   <div class="note esito" id="ade-esito"></div>
 </div>
 
@@ -1845,7 +1847,7 @@ textarea.dw-input{
 
 <script type="module">
   import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
-           scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura,
+           scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura, calendarioAmbiente,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
@@ -5257,6 +5259,24 @@ textarea.dw-input{
     r.onerror = () => { adeAlleg = null; $("ade-alleg").value = "";
       esito("ade-esito", "Non sono riuscito a leggere «" + via.nome + "»: riprova a sceglierlo.", "err", "File non letto."); };
     r.readAsDataURL(f);
+  };
+  $("btn-ade-ics").onclick = () => {
+    /* IL CALENDARIO (.ics), 11/09: adempimenti, tarature e prossime misure
+       del programma nell'agenda del telefono. Che cosa entra lo decide il
+       modulo; la riga dei dati di esempio la decide la pagina, che sa in che
+       modo sta girando — e nel calendario deve entrare, perché
+       all'importazione il nome del file si perde. */
+    const r = calendarioAmbiente(ADE, MON, PRG, new Date(), undefined,
+      avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Queste scadenze e questi punti di misura non sono di una cava vera."));
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
+    a.download = "sentinella_calendario_ambiente.ics"; marchiaCsv(a); a.click();
+    const fuori = [];
+    if (r.senzaData.length) fuori.push(plurale(r.senzaData.length, "un adempimento senza data resta fuori", r.senzaData.length + " adempimenti senza data restano fuori") + " (" + r.senzaData.slice(0, 3).join(", ") + ")");
+    if (r.fuori.tarature) fuori.push(plurale(r.fuori.tarature, "un punto senza taratura dichiarata non ha una data da mettere in agenda", r.fuori.tarature + " punti senza taratura dichiarata non hanno una data da mettere in agenda"));
+    if (r.fuori.programma) fuori.push(plurale(r.fuori.programma, "una riga del programma senza una prossima data", r.fuori.programma + " righe del programma senza una prossima data") + " (mai misurata, senza frequenza o sospesa)");
+    esito("ade-esito", "Calendario esportato: " + plurale(r.inclusi, "un evento", r.inclusi + " eventi") + " (adempimenti e tarature con l'avviso a 30 e a 7 giorni, misure del programma il giorno prima)"
+      + (fuori.length ? "; " + fuori.join("; ") : "") + ".", fuori.length ? "warn" : "success", "Calendario esportato: " + plurale(r.inclusi, "un evento", r.inclusi + " eventi") + ".");
   };
   $("btn-ade-import").onclick = () => $("ade-file").click();
   $("ade-file").onchange = async (e) => {

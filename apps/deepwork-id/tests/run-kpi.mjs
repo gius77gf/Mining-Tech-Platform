@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 36, "i siti di export CSV censiti nelle quattro app")   // 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 37, "i siti di export CSV censiti nelle quattro app")   // 37 dall'11/09: il calendario ambientale .ics di Sentinella (sentinella_calendario_ambiente.ics); 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -25458,6 +25458,42 @@ console.log("\n— Campo: i file che escono —");
     eq((rd.ics.match(/^SUMMARY:\[DATI DI ESEMPIO\] /gm) || []).length, rd.inclusi, "OGNI titolo lo dichiara");
     ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
     eq(flotta.calendarioMezzi(D.scadenze, D.manutenzioni, new Date("2026-09-11"), "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
+  });
+  test("⛔ Sentinella · calendarioAmbiente: adempimenti, tarature e prossime misure entrano con le parole dello schermo; senza data, senza taratura e senza prossima restano fuori e si contano", () => {
+    const D = sentinella.DEMO;
+    const oggi = new Date("2026-09-11T10:00:00");
+    const r = sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, oggi, "2026-09-11T02:00:00Z");
+    const tarature = D.monitoraggi.filter((m) => sentinella.statoTaraturaStrumento(m, oggi).scadenza).length;
+    const prog = sentinella.programmaEsteso(D.programma, D.monitoraggi, oggi);
+    const conProssima = prog.filter((v) => v.stato.prossima).length;
+    eq(r.inclusi, D.adempimenti.length + tarature + conProssima, "tre adempimenti, le tarature dichiarate, le righe con una prossima misura");
+    eq(r.fuori, { tarature: D.monitoraggi.length - tarature, programma: prog.length - conProssima }, "e quello che resta fuori è contato per famiglia");
+    ok(r.fuori.tarature >= 1 && r.fuori.programma >= 1, "la dimostrazione esercita tutt'e due i casi (punti senza taratura, la riga «mai misurato»)");
+    eq(r.senzaData, []);
+    const s = r.ics.replace(/\r\n /g, "");
+    ok(s.includes("SUMMARY:Relazione annuale emissioni · ARPA"), "l'adempimento porta titolo ed ente");
+    ok(s.includes("SUMMARY:Verifica fonometrica semestrale\r\n"), "e l'ente «—» non entra nel titolo");
+    ok(s.includes("DESCRIPTION:Copre dal 11/08/2025 al 10/08/2026\\nOggi: scaduto da 32 gg"), "la descrizione porta il periodo coperto e il verdetto di oggi con le parole dello schermo");
+    ok(s.includes("DESCRIPTION:Periodo coperto non dichiarato\\nOggi: tra 19 gg"), "un adempimento senza periodicità lo dice, non lo inventa");
+    ok(s.includes("SUMMARY:Taratura · Vibrazioni V1 — abitato Sud") && s.includes("DTSTART;VALUE=DATE:20270209"), "la taratura è alla scadenza dell'ultimo certificato");
+    ok(s.includes("Certificato: LAT 118-2026/441"), "col numero del certificato");
+    ok(s.includes("SUMMARY:Misura · Polveri PM10 — confine Est") && s.includes("DTSTART;VALUE=DATE:20260726"), "la misura del programma è alla PROSSIMA data della riga (ultima lettura + ogni quanti giorni)");
+    ok(s.includes("Ogni 7 giorni\\, tolleranza 2 giorni\\nOggi: in ritardo di 47 giorni"), "con la cadenza e il ritardo di oggi (la virgola sfuggita, come vuole il formato)");
+    ok(!/Acque — vasca decantazione/.test(s), "la riga «mai misurato» NON è in agenda: non ha una data");
+    ok(s.includes("UID:sentinella-adempimento-d1@deepwork") && s.includes("UID:sentinella-taratura-v1@deepwork") && s.includes("UID:sentinella-programma-pr1@deepwork"), "UID per famiglia e id: reimportare aggiorna, non raddoppia");
+    // gli avvisi: 30 e 7 per adempimenti e tarature, il giorno prima per le misure
+    const blocco = (uid) => s.slice(s.indexOf("UID:" + uid), s.indexOf("END:VEVENT", s.indexOf("UID:" + uid)));
+    ok(blocco("sentinella-adempimento-d2").includes("TRIGGER:-P30D") && blocco("sentinella-adempimento-d2").includes("TRIGGER:-P7D"), "adempimento: 30 e 7 giorni");
+    ok(blocco("sentinella-programma-pr4").includes("TRIGGER:-P1D") && !blocco("sentinella-programma-pr4").includes("TRIGGER:-P30D"), "misura: il giorno prima, non 30 — una cadenza settimanale con un avviso a 30 giorni non avvisa niente");
+    // senza data: nominato, mai inventato
+    const r2 = sentinella.calendarioAmbiente([{ id: "x", titolo: "Rinnovo", ente: "SUAP", scadenza: "" }, { id: "y", titolo: "Boh", ente: "—", scadenza: "2026-02-30" }], [], [], oggi, "2026-09-11T02:00:00Z");
+    eq([r2.inclusi, r2.saltati, r2.senzaData], [0, 2, ["Rinnovo · SUAP", "Boh"]], "il vuoto e il 30 febbraio restano fuori e nominati");
+    // l'avviso della dimostrazione entra nel file
+    const rd = sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, oggi, "2026-09-11T02:00:00Z", "[DATI DI ESEMPIO — modalità tour (demo).]\n\n");
+    ok(rd.ics.replace(/\r\n /g, "").includes("X-WR-CALNAME:DATI DI ESEMPIO · Ambiente: adempimenti\\, tarature\\, misure (Sentinella)"), "il nome del calendario lo dichiara (e le virgole sono sfuggite)");
+    eq((rd.ics.match(/^SUMMARY:\[DATI DI ESEMPIO\] /gm) || []).length, rd.inclusi, "OGNI titolo lo dichiara");
+    ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
+    eq(sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, oggi, "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro

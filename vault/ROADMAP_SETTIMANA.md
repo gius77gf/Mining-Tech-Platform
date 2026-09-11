@@ -737,6 +737,32 @@
   copertura 942/942 (Flotta 136 → **137**); il banco `csv-dimostrazione` sul
   `.ics` di Flotta nei tre modi. Restano Sentinella (adempimenti) e Terra
   (autorizzazioni), un'app per unità.
+- [x] **SENTINELLA — IL CALENDARIO AMBIENTALE (.ics), TERZA APP SUL
+  COMPOSITORE CONDIVISO (11/09):** `calendarioAmbiente(adempimenti,
+  monitoraggi, programma, oggi, adesso, avvisoEsempio)` in
+  `sentinella-data.js`. Tre famiglie di date, ognuna con le parole che usa
+  già lo schermo e col SUO preavviso: gli **adempimenti** (titolo ed ente,
+  il periodo coperto nella descrizione da `descriviPeriodoAdempimento`, il
+  verdetto di oggi dalla regola condivisa `statoScadenzaHSE` — la stessa del
+  report; avvisi a 30 e 7 giorni); le **tarature** degli strumenti (la
+  scadenza dell'ultimo certificato valido da `statoTaraturaStrumento`, con
+  ente e numero; 30 e 7); il **programma** di monitoraggio (la prossima
+  misura di ogni riga da `programmaEsteso` — ultima lettura + ogni quanti
+  giorni — con l'avviso il giorno PRIMA, perché una cadenza settimanale con
+  un avviso a 30 giorni non avvisa niente). ⛔ Quello che non ha una data
+  resta fuori e si CONTA per famiglia: l'adempimento senza data (nominato),
+  il punto senza taratura dichiarata (nella dimostrazione 4 su 6: «non
+  dichiarata» non è una scadenza da inventare), la riga del programma senza
+  una prossima (mai misurata, senza frequenza, sospesa: 1). Bottone
+  «Calendario (.ics)» negli Adempimenti, sotto l'import, con la sua riga di
+  aiuto; la pagina passa l'avviso della dimostrazione da
+  `avvisoTestoDimostrazione(modoDimostrazione(db.mode), …)`. Sonda a 320 px:
+  file «DATI-DI-ESEMPIO_sentinella_calendario_ambiente.ics», 9 eventi, 0
+  errori, scatto guardato (e la frase del bottone corretta allo scatto: «4
+  punti … non hanno», era «non ha»). Prove: run-kpi +1 (2856; pin export
+  «nelle quattro app» 36 → **37**), `documenti-dimostrazione` 138, copertura
+  943/943 (Sentinella 170 → **171**); `csv-dimostrazione` sul `.ics` di
+  Sentinella nei tre modi. Resta Terra (autorizzazioni e concessione).
 - [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
   — la dimostrazione non ha un tagliando con ore E data (di proposito: le
   prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
@@ -7775,8 +7801,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.336 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2855, `run-stile` 328,
+  **3.337 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2856, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
