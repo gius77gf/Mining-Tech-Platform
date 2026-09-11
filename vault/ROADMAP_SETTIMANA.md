@@ -2909,6 +2909,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9716,6 +9718,39 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   manca» del foglio): corrette rendendole più giuste — la fixture del foglio
   «con tutto collegato» ora porta anche il dopo-sparo, e la prova pretende le
   tre righe nuove.
+- [x] **RICERCA A ROTAZIONE, QUARTO GIRO — CONTI: QUANDO LO SDI RISPONDE —
+  SCARTO, MANCATA CONSEGNA E IL TIPO DOCUMENTO DELLA DIFFERITA (11/09, unità
+  117, solo documenti).** Mondo di seconda mano (cinque ricerche): ricevuta
+  di consegna, notifica di scarto (fattura «come non emessa», si rimanda con
+  lo stesso numero e data entro cinque giorni — circ. 13/E/2018 — o con
+  numero nuovo), mancata consegna (fra privati la fattura è emessa e sta nel
+  cassetto fiscale); dal 2021 la differita dell'art. 21 c. 4 usa TD24, non
+  TD01. Delta dal MECCANISMO contro `48a69f3a`: `xmlFatturaPA` costruisce le
+  `DatiDDT` dalle pesate e scrive `TD01` fisso (`grep -c TD24` → 0) →
+  correzione; nessun campo per l'esito dello SdI (`grep -ciE
+  'esitoSdi|statoSdi'` → 0) → voce aperta; l'avviso del cassetto fiscale c'è
+  prima dell'invio, non dopo. Vedi `docs/RICERCA_CONTINUA_CONTI.md`, ricerca
+  dell'11/09 (quarto giro).
+- [ ] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA** *(dalla ricerca dell'11/09, quarto giro, domande 1-4)*. (1)
+  `xmlFatturaPA` scrive `TD24` quando la fattura cita almeno un DDT e `TD01`
+  altrimenti, e lo dichiara negli `avvisi` (codice di seconda mano, scritto
+  nel commento con la fonte). (2) Sulla fattura `sdi: { stato: da-inviare |
+  inviata | consegnata | scartata | mancata-consegna, il, nota }` dichiarato
+  dall'utente dalla ricevuta; `statoSdi(f, oggi)` → `{ stato, giorniDa,
+  testo, perche }`: «scartata» = come non emessa, coi giorni dalla notifica e
+  il promemoria della riemissione (stesso numero e data entro il termine
+  della circolare 13/E/2018, marcato di seconda mano — un promemoria, non un
+  calcolo che decide); «mancata consegna» = emessa, il cliente la trova nel
+  cassetto fiscale; senza stato = «esito non registrato», mai «consegnata».
+  (3) `testoSollecito` e `prioritaIncasso` non sollecitano una fattura
+  scartata (non è emessa) e lo dicono; l'estratto conto scrive «non
+  consegnata: nel cassetto fiscale» dove serve. Come si misura: sulla
+  dimostrazione una fattura con tre DDT esce `TD24` e una senza `TD01`; una
+  fattura `scartata` il 01/09 con oggi 11/09 dice «come non emessa, 10 giorni
+  dalla notifica»; senza `sdi` → «esito non registrato»; il sollecito su una
+  scartata restituisce la ragione invece del testo; `grep -c 'cinque giorni'`
+  nella pagina ≤ 1 e con la fonte accanto; screenshot a 430 px.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

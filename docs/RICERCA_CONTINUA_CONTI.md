@@ -1550,3 +1550,122 @@ avvisa del cliente oltre fido), 1 **decisione** (lo scadenzario fornitori:
 Conti è anche il libro dei debiti?), 1 **dichiarata** che dipende da quella
 (il DSCR), 3 **già a posto** (esposizione e fido, incassi attesi per mese,
 tempi di pagamento e solleciti).
+
+## Ricerca del 2026-09-11 — quarto giro: quando lo SdI risponde — scarto, mancata consegna, e il tipo documento della fattura differita (il mondo)
+
+*Quarto giro su Conti. Strumento: `WebSearch` (cinque ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte letta per intero**, tutto di
+seconda mano dai riassunti. La metà sul delta, sotto, è fatta da chi ha il
+codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **Lo SdI risponde, e le risposte sono poche e precise.** Alla ricezione
+  di un file lo SdI restituisce una **ricevuta di consegna** (il file è
+  arrivato al destinatario), una **notifica di scarto** (il file non ha
+  passato i controlli: la fattura è **come non emessa**), oppure una
+  **notifica di mancata consegna** (indirizzo telematico non disponibile o
+  non indicato — codice destinatario «0000000»): in quest'ultimo caso, fra
+  privati, la fattura **è emessa** e il cliente la trova nel suo **cassetto
+  fiscale**; verso la PA lo SdI riprova per **dieci giorni** e poi rilascia
+  un'**attestazione di avvenuta trasmissione con impossibilità di
+  recapito**, con cui il fornitore la manda per altra via.
+- **La fattura scartata si riemette.** Circolare dell'Agenzia delle Entrate
+  **13/E del 2 luglio 2018**: entro **cinque giorni** dalla notifica di
+  scarto si rimanda allo SdI **con lo stesso numero e la stessa data**;
+  altrimenti con numero e data nuovi rispettando la progressione, oppure
+  con una numerazione dedicata che dica che è la rettifica della
+  precedente. Il termine va rispettato per non incorrere nella sanzione per
+  tardiva emissione.
+- **La fattura differita ha il suo codice.** Dal 1° gennaio 2021 il
+  tracciato distingue **TD01** (immediata) da **TD24** (differita dell'art.
+  21 c. 4 lett. a del D.P.R. 633/72: cessioni documentate da DDT, emessa
+  entro il 15 del mese successivo). La scelta fra immediata e differita è
+  del cedente, ma **chi fa la differita usa TD24**, così SdI e Agenzia
+  riconoscono il documento; sbagliare TD01/TD24 «potrebbe non portare a
+  sanzioni», ma il codice giusto è quello. Nel file la sezione **DatiDDT**
+  ripete numero e data di ogni DDT (facoltativo `RiferimentoNumeroLinea` per
+  legare il DDT alle righe), e più sezioni per più consegne del mese.
+- **Il mestiere**: chi emette dal gestionale vuole sapere, fattura per
+  fattura, **se lo SdI l'ha presa**, e se scartata quanti giorni restano per
+  rispedirla senza cambiare numero; e vuole che la fattura di fine mese sulle
+  pesate esca **come differita**, non travestita da immediata.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Agenzia delle Entrate: «Cosa fa il Sistema di Interscambio quando riceve
+  una fattura»; FAQ «Emissione delle fatture elettroniche» e «Compilazione
+  della fattura elettronica»; circolare 13/E del 02/07/2018 (testo e
+  comunicato stampa); «Guida alla compilazione FE ed esterometro» v1.9
+  (05/03/2024); Allegato A, specifiche tecniche v1.5; provvedimento
+  21/12/2018 all. B (formato 1.2).
+- fatturapa.gov.it: «File, fatture e messaggi»; formato FatturaPA;
+  specifiche tecniche v1.3.1 e v1.3.2; «Suggerimenti per la compilazione»
+  1.6; «Linee guida alla compilazione» 1.0; masaf.gov.it (specifiche v1.0).
+- Scarto e mancata consegna: datalog.it; danea.it; biblus.acca.it;
+  fattura24.com (le notifiche dello SdI); aliasdigital.it (DocEasy);
+  ksgestionali.it; ufficiocamerale.com (due FAQ); fatturapro.click;
+  futurodigitale.infocert.it; soluzionetasse.com; tasse-fisco.com;
+  fattureincloud.it (scartata; differita); studiobrandi-commercialisti.it.
+- TD24 e differita: agendadigitale.eu (tre risposte dell'esperto: TD01/TD24,
+  TD25, righe DDT); recivu.it; 1c-erp.it (TD24; fattura differita; sezioni
+  XML); thecalcoloiva.com (TD24; tipi documento; art. 21); dkpost.it;
+  winddoc.com; help.fattureincloud.it (riferimenti DDT);
+  to.camcom.it (il DDT); fiscomania.com (DDT); pa.sm (Ciscoop);
+  koruspartners.it; fatturafacile.com (tre); edupass.it; gestionale1.it;
+  consulenza.it (Buffetti); 101professionisti.it; advant-nctm.com;
+  eutekne.info; dangelos.it.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Che tipo documento scrive il file** quando la fattura nasce da più DDT
+   (la differita di fine mese sulle pesate)?
+2. **Chi sa se lo SdI ha preso la fattura** — consegnata, scartata, non
+   consegnata — e che cosa cambia nei conti e nei solleciti?
+3. **Una scartata**: chi dice che va rispedita e con quale numero, e conta i
+   giorni?
+4. **Una non consegnata**: chi avvisa il cliente che la trova nel cassetto
+   fiscale?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `48a69f3a`)
+
+- **Domanda 1 — SBAGLIATO A METÀ, ed è il delta più netto.** `xmlFatturaPA`
+  (in `conti-data.js`) costruisce già le sezioni `DatiDDT` dalle pesate
+  (`const datiDdt = ddt.map(…)`, con `ddtCitati` nel risultato) — cioè SA di
+  fare una differita — e scrive **`TipoDocumento` = `TD01` fisso**
+  (`grep -c 'tag("TipoDocumento", "TD01")'` → 1; `grep -c 'TD24'` → 0). Una
+  fattura di fine mese su tre DDT esce come immediata. **Mancanza
+  confermata**: `TD24` quando la fattura cita almeno un DDT, `TD01`
+  altrimenti, con il codice dichiarato negli `avvisi` del file [il codice è
+  di seconda mano, dalle specifiche tecniche e dalla guida dell'Agenzia:
+  si scrive nel commento].
+- **Domanda 2 — MANCA.** La fattura ha `emessa`, `scadenza`, gli incassi e
+  lo stato di incasso (`statoIncasso`, `statoScadenzaFattura`), ma
+  **nessun campo dice che cosa ha risposto lo SdI**: `grep -ciE
+  'esitoSdi|statoSdi|scartata dallo|ricevuta di consegna'` → **0** nel
+  modulo e nella pagina (i «scartat» che ci sono parlano delle righe dei
+  file bancari). Il file XML si prepara e si «invia gratis dal portale»
+  (commento del modulo): quello che torna indietro non ha dove essere
+  scritto. **Mancanza confermata, aperta**: sulla fattura `sdi: { stato:
+  da-inviare | inviata | consegnata | scartata | mancata-consegna, il (ISO),
+  nota }` dichiarato dall'utente leggendo la ricevuta; `statoSdi(f, oggi)`
+  che per «scartata» dice **«come non emessa»** e conta i giorni dalla
+  notifica (il termine dei cinque giorni si scrive con la sua fonte,
+  circolare 13/E/2018, marcato di seconda mano — è un promemoria, non un
+  calcolo che decide), per «mancata consegna» dice che la fattura è emessa
+  e che il cliente la trova nel cassetto fiscale; e il **sollecito** non
+  parte su una fattura scartata (non è emessa: sollecitare un incasso su un
+  documento inesistente è un errore che il cliente nota).
+- **Domanda 3 — MANCA, ed entra nella stessa voce.** Riemissione: stesso
+  numero e data entro il termine, altrimenti numero nuovo. `statoSdi` lo
+  dice; il numero non lo cambia il modulo (è una decisione di chi emette).
+- **Domanda 4 — C'È A METÀ.** L'avviso alla preparazione del file esiste
+  già («il cliente non ha un codice destinatario né una PEC: il file va con
+  «0000000» e il cliente la trova nel suo cassetto fiscale»); manca
+  l'avviso **dopo**, sulla notifica di mancata consegna: con lo stato `sdi`
+  della domanda 2 l'estratto conto del cliente lo può scrivere.
+
+**Riassunto** — 1 **correzione** confermata (TD24 sulla differita), 1
+mancanza **confermata e aperta** (l'esito dello SdI sulla fattura, con la
+scartata «come non emessa» e il sollecito che non parte), 1 a metà (l'avviso
+del cassetto fiscale c'è prima, non dopo).
