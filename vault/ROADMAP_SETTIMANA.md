@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL MALTEMPO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9282,6 +9283,37 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   numero dei turni di Campo, quello che non deve entrare nel riepilogo per
   gli enti — e la prova P2 conta quella parola nel riepilogo intero. Con quel
   nome la prova è caduta al primo giro: stesso suono, altra cosa.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — CAMPO: IL SORVEGLIANTE DI TURNO E
+  LA VISITA DEI FRONTI (11/09, unità 94, solo documenti).** Mondo di seconda
+  mano (14 fonti): il D.P.R. 128 (sorveglianti nominati per turno; fronti
+  visitati prima di ogni turno e dopo volate, piogge forti e disgelo; ogni
+  luogo di lavoro almeno una volta per turno), il registro MSHA 56.18002
+  (nome di chi ha esaminato, data, luoghi, condizioni, data della correzione,
+  un anno di conservazione), i gestionali che aprono l'ordine di lavoro sul
+  posto e i moduli «dopo eventi meteo». Delta dal MECCANISMO contro
+  `df41a83c`: il controllo prima del turno C'È (`CHECKLIST_INIZIO`, per turno
+  e squadra, con ora e area) ma **senza chi** (0 `chiusaDa`, 0 «sorvegliante»
+  in Campo, mentre Scudo ha il ruolo nominato); il dopo-volata C'È in
+  Sentinella; il **ricontrollo dopo il maltempo** MANCA (il meteo del turno
+  c'è, il ricontrollo no); il «tutti usciti» è dichiarato (obbligo del
+  sotterraneo). Una voce aperta, in due pezzi piccoli. Vedi
+  `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (secondo giro).
+- [ ] **CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL
+  MALTEMPO** *(dalla ricerca dell'11/09, secondo giro, domande 1 e 3)*. (1)
+  `chiusaDa` sulla lista di controllo del turno: il nome di chi l'ha chiusa,
+  proposto dal **sorvegliante** nominato in Scudo (`NOMINE_RUOLI`, chiave
+  `sorvegliante`, nomina attiva — ponte, non una seconda anagrafe), scritto
+  a mano se Scudo non lo sa, stampato nel rapporto di fine turno e nella
+  consegna accanto all'ora; senza nome la lista non è «a posto» (è il
+  principio del fondatore: chi non si sa non si conta). (2) Una voce di
+  ricontrollo — «Fronti e cigli ricontrollati dopo la pioggia forte o il
+  disgelo» — che compare **solo** quando il meteo del turno è in
+  `METEO_AVVERSO`, con ora e chi, e che se manca tiene il turno fuori dal
+  verde come già fa il meteo. Come si misura: `statoChecklist` su un turno
+  con meteo «Pioggia» e la voce di ricontrollo senza risposta non è verde;
+  con meteo «Sereno» la voce non esiste e le nove di sempre bastano;
+  `grep -ciE 'chiusaDa'` in modulo e pagina > 0, e il rapporto della
+  dimostrazione porta il nome.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

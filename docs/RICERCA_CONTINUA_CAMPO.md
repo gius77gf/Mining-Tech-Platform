@@ -2064,3 +2064,119 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   `ORIGINI_CAMPO` di Scudo a due voci, la modale dell'azione scritta una
   volta, il rapporto che scrive la risposta accanto alla voce): la riga resta
   per il metodo, non come lavoro da fare.
+
+## Ricerca del 2026-09-11 — secondo giro: il sorvegliante di turno e la visita dei fronti (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **La legge italiana della cava** (D.P.R. 128/1959, norme di polizia delle
+  miniere e delle cave): la denuncia di esercizio porta il nome del direttore
+  responsabile **e dei sorveglianti, per ogni turno** (art. 20). **Prima
+  dell'inizio di ogni turno**, e poi **dopo le volate, le piogge forti e il
+  disgelo**, i fronti di lavoro vanno **visitati dal personale di
+  sorveglianza** per accertare che non ci siano pericoli; per ogni turno i
+  luoghi in cui lavora qualcuno vanno visitati **almeno una volta**; a fine
+  turno la sorveglianza accerta che nessuno sia rimasto (in sotterraneo).
+  *[risultati di ricerca: regione.toscana.it e pugliacon.regione.puglia.it
+  (testo del D.P.R. 128), legislazionetecnica.it, edizionieuropee.it,
+  brascaepartners.it]*
+- **Lo stesso obbligo, scritto come un registro, negli Stati Uniti** (MSHA, 30
+  CFR 56.18002, «examination of working places»): una **persona competente**
+  designata dall'esercente esamina **ogni luogo di lavoro almeno una volta per
+  turno, prima che i minatori ci comincino**, per condizioni che possano
+  nuocere; l'esercente avvia **subito** la correzione. Il **registro** porta:
+  il **nome di chi ha esaminato**, la **data**, i **luoghi esaminati**, la
+  **descrizione di ogni condizione trovata** e la **data della correzione**;
+  si conserva **un anno**. *[risultati di ricerca: ecfr.gov,
+  law.cornell.edu, arlweb.msha.gov, federalregister.gov, ogletree.com]*
+- **Come lo fanno i gestionali**: liste di controllo digitali per cava con
+  foto, posizione e ora su ogni voce; il difetto trovato apre **sul posto**
+  un ordine di lavoro assegnato e tracciato fino alla chiusura (CheckProof
+  per gli inerti); moduli «da usare al cambio turno, negli audit programmati
+  e **dopo eventi meteo**» (Jotform); ispezioni dei mezzi «in meno di 90
+  secondi» che bloccano il mezzo non sicuro (HVI). *[risultati di ricerca:
+  checkproof.com, jotform.com, heavyvehicleinspection.com,
+  fastfieldforms.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+regione.toscana.it e pugliacon.regione.puglia.it (D.P.R. 128/1959) ·
+legislazionetecnica.it (art. 20) · edizionieuropee.it · brascaepartners.it ·
+provinciasondrio.it e parlamento.it (D.Lgs. 624/1996) · ecfr.gov ·
+law.cornell.edu · arlweb.msha.gov (Workplace Examinations, 56.18002) ·
+federalregister.gov (2019) · ogletree.com · checkproof.com · jotform.com ·
+heavyvehicleinspection.com · fastfieldforms.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi controlla i fronti prima del turno, e che cosa ne resta scritto: quando,
+   dove, **chi**?
+2. Chi ricontrolla i fronti dopo la volata?
+3. Chi li ricontrolla dopo la pioggia forte o il disgelo?
+4. Chi accerta a fine turno che nessuno sia rimasto?
+5. Il registro dell'esame — nome, data, luoghi, condizioni trovate, data
+   della correzione — chi lo compone, e quale pezzo manca?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `df41a83c`)
+
+- **Domanda 1 — C'È A METÀ, e la metà che manca è il NOME.** Il controllo
+  prima del turno è la lista di `CHECKLIST_INIZIO`, con la voce «Fronte e
+  cigli controllati: nessun blocco in bilico» (`grep -c 'Fronte e cigli
+  controllati' apps/campo/campo-data.js` → 1), per turno e squadra — e la
+  squadra porta l'area (`grep -c 'area: "fronte'` → 1), cioè il luogo. La
+  collezione porta `data, turno, squadra, esiti, note, ora` (intestazione del
+  modulo) e **nessun chi**: `grep -ciE 'chiusaDa|compilat[ao]Da|firmat[ao]Da'`
+  → 0 e 0 (modulo, pagina), `grep -ciE 'sorvegliant'` → 0 e 0. Il registro
+  del mondo comincia dal nome di chi ha guardato, e la denuncia di esercizio
+  nomina il sorvegliante **per turno**: Scudo quel ruolo ce l'ha
+  (`grep -c 'chiave: "sorvegliante"' apps/scudo/scudo-data.js` → 3, in
+  `NOMINE_RUOLI` con la nomina attiva), Campo non lo legge. **Mancanza
+  confermata, aperta**: `chiusaDa` sulla lista di controllo, proposto dal
+  sorvegliante nominato in Scudo quando c'è (ponte, non una seconda
+  anagrafe), scritto a mano se no, e stampato nel rapporto di fine turno
+  accanto all'ora.
+- **Domanda 2 — C'È, e non in Campo.** Il ricontrollo dopo la volata vive
+  dove vive la volata: `grep -c '^export function dopoVolata'
+  apps/sentinella/sentinella-data.js` → 1, con l'ora di rientro
+  (`rientroAlle`, 16 occorrenze), le mancate esplosioni e le proiezioni fuori
+  area — unità 82 e 83. In Campo `grep -ciE 'dopo (la|lo|una|ogni)
+  (volata|sparo)|post.?volata'` → 0 e 0, ed è giusto così: la regola del
+  `shared/` vale anche fra due app, e la volata si registra una volta.
+  Niente da aggiungere.
+- **Domanda 3 — MANCA, ed è piccola.** Il turno sa che tempo fa
+  (`METEO_CIELO`, e `METEO_AVVERSO` — `grep -c` → 2 — impedisce a un turno
+  chiuso con pioggia di uscire verde), ma nessuno ricontrolla i fronti dopo:
+  `grep -ciE 'ricontroll'` → 0 e 0. La lista di controllo è **una** per turno,
+  fatta all'inizio, e un fronte che regge alle sette del mattino può non
+  reggere dopo due ore di pioggia. **Mancanza confermata, aperta, nella
+  stessa voce della domanda 1**: una voce di ricontrollo («Fronti e cigli
+  ricontrollati dopo la pioggia forte o il disgelo») che compare **solo**
+  quando il meteo del turno è avverso, con la sua ora e il suo chi — e che,
+  se manca, tiene il turno fuori dal verde come già fa il meteo.
+- **Domanda 4 — DICHIARATO, non aperto.** L'appello del turno ha
+  «presente», «assente» e il «non lo so» di chi nessuno ha spuntato
+  (ricerca del 04/09); l'obbligo di legge a fine turno è scritto per il
+  **sotterraneo**, e Campo è nato per la cava a cielo aperto. Se un giorno
+  servirà un «tutti usciti» a fine turno, è l'appello letto una seconda
+  volta, non una funzione nuova.
+- **Domanda 5 — C'È, TRANNE IL NOME.** Del registro del mondo Campo ha la
+  data e il turno, il luogo (l'area della squadra), le condizioni trovate (le
+  voci «non a posto» e le note: `grep -cE '^export function
+  (bozzaAzioneChecklist|vociNonAPosto|checklistDi|statoChecklist)'` → 4) e la
+  correzione (`bozzaAzioneChecklist` apre l'azione in Scudo con l'origine
+  dichiarata; il rapporto scrive la risposta accanto alla voce; lo stato lo
+  legge `azioniDiOrigine` di `shared/dw-ponti.js` — nel modulo di Campo
+  6 occorrenze, in `shared/` 1). Manca **chi**, ed è la domanda 1. La
+  conservazione non è un problema: le liste restano nella collezione e
+  `checklistDi(data, turno)` le rilegge per giorno.
+
+**Riassunto** — 1 mancanza **confermata e aperta** in due pezzi piccoli (il
+nome di chi ha controllato i fronti, proposto dal sorvegliante nominato in
+Scudo; il ricontrollo dopo il maltempo, che compare solo quando serve), 1
+**dichiarata** (il «tutti usciti» a fine turno, obbligo del sotterraneo), 3
+**già a posto** (il controllo prima del turno, il dopo-volata in Sentinella,
+la catena trovato → azione → corretto).
