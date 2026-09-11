@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.366 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2885, `run-stile` 328,
+  **3.368 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2887, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9197,14 +9196,19 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   e toast. Scatto guardato a 430 px (dimostrazione: 8,62 €/m³, 2 cumuli a
   bilancio su 3, la sabbia senza volume fuori con la ragione). Prove: run-kpi
   +4 (2885), copertura Conti 200/200.
-- [ ] **CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).**
-  `canonePeriodo` moltiplica ogni riga per prodotto per la stessa aliquota
-  dell'organizzazione; il mondo tariffa per tipo di materiale e metodo. Sul
-  listino un'aliquota facoltativa per prodotto (`canoneAliquota`), con
-  l'aliquota dell'organizzazione come ripiego DICHIARATO riga per riga («tariffa
-  del prodotto» / «tariffa generale»), e la riga del canone che lo scrive;
-  prove in run-kpi; scatto. Prova: `grep -ciE 'canoneAliquota'
-  apps/conti/conti-data.js` → 5, tutte sull'impostazione unica.
+- [x] **CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (unità 87, 11/09).** Sul
+  listino il campo facoltativo `canoneAliquota` (nell'unità scelta per il
+  canone, non in quella del prezzo; vuoto = `null`, non zero); `canonePeriodo`
+  prende il listino come sesto argomento e ogni riga per prodotto DICHIARA la
+  tariffa usata (`tariffa: "prodotto" | "generale" | null`, con `aliquota` e
+  `noto` suoi); il totale del venduto è la somma delle righe e non si somma se
+  un prodotto è senza tariffa (con i nomi nel `motivo`: un totale che salta un
+  prodotto sarebbe più piccolo del vero); sullo scavato vale la generale e
+  `conTariffaProdotto` lo dice. Pagina: la riga del canone scrive «tariffa del
+  prodotto» / «tariffa generale» / «senza tariffa», il listino scrive «canone:
+  tariffa propria», il modulo del prodotto ha il campo; la dimostrazione dà a
+  Pietrisco 8/12 una tariffa propria. Scatti guardati a 430 px (canone con e
+  senza la generale, il modulo del listino). Prove: run-kpi +2 (2887).
 - [x] **GENESI G31 — LA CARICA DI UN FORO DALLA SUA GEOMETRIA E LE COSTANTI
   PPV DALLA LITOLOGIA (11/09, B3 tredicesima fetta):** `caricaLineare` (i kg
   per metro di colonna, che erano scritti due volte: in `deriveCharge` della

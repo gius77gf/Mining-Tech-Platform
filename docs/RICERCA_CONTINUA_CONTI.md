@@ -1379,6 +1379,11 @@ tariffa entra in una schermata; quelli qui sotto servono a decidere il delta.
   dell'organizzazione come ripiego dichiarato — e la riga del canone che dice
   quale tariffa ha usato per ogni prodotto. Terra tiene i metri cubi
   (`onereEscavazione`) e non fa euro: giusto, resta così.
+  ✅ **FATTO lo stesso giorno, unità 87**: `canoneAliquota` sul listino,
+  `canonePeriodo(…, prodotti)` con `tariffa` dichiarata riga per riga. Prova:
+  `grep -c 'return { aliquota: a, tariffa: "prodotto" }' apps/conti/conti-data.js`
+  → 1 (il comando largo `grep -c 'tariffa: "prodotto"'` risponde 2, perché
+  prende anche il commento: rilanciato prima del commit).
 - **Domanda 2 — C'È, ma AL PREZZO DI LISTINO.** `prospettoRimanenze`
   valorizza i cumuli con `valore = t × prezzo` del listino: `grep -cF 'valore =
   round2(unita === "m3" ? m3 * prezzo : t * prezzo)' apps/conti/conti-data.js`

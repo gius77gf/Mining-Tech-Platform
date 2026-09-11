@@ -6692,6 +6692,34 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
      CLAUDE.md — una prova che passa per un motivo diverso da quello nel suo
      nome: «non inventa un dovuto» era il titolo, e lo zero un dovuto lo
      inventa. L'asserzione è diventata più GIUSTA, non più permissiva. */
+  test("⛔ canonePeriodo: la tariffa PER PRODOTTO dal listino, e la riga dice quale ha usato", () => {
+    /* il mondo tariffa per tipo di materiale e metodo; la tariffa generale
+       resta come ripiego DICHIARATO, non silenzioso */
+    const listino = [{ nome: "misto", canoneAliquota: 0.8 }, { nome: "Sabbia", canoneAliquota: "0" }];
+    const r = conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 0.5 }, "2026-07-01", "2026-07-31", null, listino);
+    const misto = r.perProdotto.find((x) => x.prodotto === "Misto"), sabbia = r.perProdotto.find((x) => x.prodotto === "Sabbia");
+    eq([misto.tariffa, misto.aliquota, misto.dovuto], ["prodotto", 0.8, 48], "60 t × 0,80 del prodotto (il nome si abbina senza badare alle maiuscole)");
+    eq([sabbia.tariffa, sabbia.aliquota, sabbia.dovuto], ["generale", 0.5, 5], "⛔ una tariffa scritta «0» sul prodotto non è una tariffa: vale la generale, e lo dice");
+    eq([r.conTariffaProdotto, r.senzaTariffa], [1, 0], "il conto di chi ha la sua");
+    eq(r.dovuto, 53, "⛔ il totale è la SOMMA delle righe, non base × tariffa generale (che farebbe 35)");
+    eq(r.calcolabile, true);
+    const senzaGen = conti.canonePeriodo(pesate, { canoneUnita: "t" }, "2026-07-01", "2026-07-31", null, listino);
+    eq([senzaGen.perProdotto.find((x) => x.prodotto === "Misto").dovuto, senzaGen.perProdotto.find((x) => x.prodotto === "Sabbia").dovuto], [48, null], "senza la generale il misto ha la sua, la sabbia niente");
+    eq(senzaGen.dovuto, null, "⛔ e il totale non si somma: un totale che salta un prodotto sarebbe più piccolo del vero");
+    eq(senzaGen.senzaTariffa, 1);
+    eq(senzaGen.motivo, "L'aliquota della concessione non è stata scritta: senza la tariffa il dovuto non si calcola. Uno zero direbbe che non c'è niente da versare all'ente, mentre la verità è che manca il prezzo per unità.", "con la generale assente la ragione è quella di sempre");
+    const due = conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 0.5 }, "2026-07-01", "2026-07-31", null, [{ nome: "Misto", canoneAliquota: 0.8 }, { nome: "Sabbia", canoneAliquota: null }]);
+    eq(due.dovuto, 53, "null sul prodotto = generale, come «0»");
+    const uguale = conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 0.5 }, "2026-07-01", "2026-07-31", null, []);
+    eq([uguale.dovuto, uguale.conTariffaProdotto, uguale.perProdotto[0].tariffa], [35, 0, "generale"], "senza tariffe per prodotto il conto è quello di prima: 70 t × 0,50");
+    eq(conti.canonePeriodo(pesate, { canoneUnita: "t", canoneAliquota: 0.5 }, "2026-07-01", "2026-07-31").dovuto, 35, "e senza listino passato (i chiamanti di prima) idem");
+  });
+  test("canonePeriodo: sullo scavato la tariffa per prodotto non si applica (Terra misura il fronte, non il materiale), e si vede in conTariffaProdotto", () => {
+    const ril = [{ data: "2026-07-15", stato: "elaborato", volumeM3: 100, provenienza: "scavo" }];
+    const r = conti.canonePeriodo(pesate, { canoneUnita: "m3", canoneAliquota: 0.5, canoneBase: "scavato" }, "2026-07-01", "2026-07-31", ril, [{ nome: "Misto", canoneAliquota: 9 }]);
+    eq(r.dovuto, 50, "100 m³ × 0,50 generale");
+    eq(r.conTariffaProdotto, 1, "ma la pagina sa che una tariffa per prodotto c'è, e lo dice");
+  });
   test("canonePeriodo senza aliquota non inventa un dovuto", () => {
     const r = conti.canonePeriodo(pesate, {}, "2026-07-01", "2026-07-31");
     eq(r.aliquota, null, "aliquota assente è «non lo so», non zero");

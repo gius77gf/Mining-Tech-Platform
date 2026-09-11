@@ -180,7 +180,9 @@ export const DEMO = {
        si comportano esattamente come prima. */
     { id: "p1", nome: "Stabilizzato 0/30", unitaPrezzo: "t",  prezzo: 8.5,  densita: 1.9, iva: 22,
       scaglioni: [{ da: 250, sconto: 4 }, { da: 1000, sconto: 7 }] },
-    { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22,
+    /* p2 porta anche una TARIFFA DEL CANONE propria (11/09): è il caso del
+       mondo — il materiale con la sua tariffa — e nel Canone la riga lo dice */
+    { id: "p2", nome: "Pietrisco 8/12",    unitaPrezzo: "t",  prezzo: 12,   densita: 1.5, iva: 22, canoneAliquota: 1.1,
       scaglioni: [{ da: 100, prezzo: 11.2 }, { da: 500, prezzo: 10.5 }] },
     { id: "p3", nome: "Sabbia lavata 0/4", unitaPrezzo: "m3", prezzo: 22,   densita: 1.6, iva: 22 },
     { id: "p4", nome: "Massi da scogliera",unitaPrezzo: "t",  prezzo: 15.5, densita: 2.4, iva: 22 },
@@ -3056,7 +3058,19 @@ export const BASI_CANONE = [
 const MOTIVO_SENZA_ALIQUOTA =
   "L'aliquota della concessione non è stata scritta: senza la tariffa il dovuto non si calcola. "
   + "Uno zero direbbe che non c'è niente da versare all'ente, mentre la verità è che manca il prezzo per unità.";
-export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
+/* LA TARIFFA PER PRODOTTO (11/09, dalla ricerca del secondo giro): il mondo
+   tariffa il canone PER TIPO DI MATERIALE E METODO (calcare con esplosivo e
+   con mezzi meccanici hanno due tariffe), e qui c'era una tariffa sola per
+   l'organizzazione. Il listino può portare `canoneAliquota` sul prodotto —
+   nell'unità scelta per il canone (t o m³), non in quella del prezzo — e ogni
+   riga per prodotto DICHIARA quale tariffa ha usato: `tariffa: "prodotto"`,
+   `"generale"` (quella dell'organizzazione, come ripiego dichiarato) o `null`
+   (nessuna delle due: il dovuto della riga è `null`, e il totale con lui). Il
+   totale del venduto è la somma delle righe; sullo scavato non c'è nessuna
+   riga per prodotto (Terra misura il fronte, non il materiale) e vale la
+   tariffa generale — chi ha tariffe per prodotto lo legge in
+   `conTariffaProdotto`, e la pagina lo dice. `prodotti` è facoltativo. */
+export function canonePeriodo(pesate, impostazioni, dal, al, rilievi, prodotti) {
   const cfg = impostazioni || {};
   const unita = cfg.canoneUnita === "t" ? "t" : "m3";
   const baseScelta = cfg.canoneBase === "scavato" ? "scavato" : "venduto";
@@ -3100,13 +3114,24 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
      resta, ed è la riga a dire quanti viaggi mancano. `null` — la convenzione
      dell'ecosistema per «non calcolabile» — si usa solo dove non si converte
      niente, e `calcolabile` è la bandiera che la pagina legge per scriverlo. */
+  const tariffaDi = (nome) => {
+    const p = (prodotti || []).find((x) => x && normNome(x.nome) === normNome(nome)) || null;
+    const a = p ? numeroDichiarato(p.canoneAliquota) : null;
+    if (a != null && a > 0) return { aliquota: a, tariffa: "prodotto" };
+    if (noto) return { aliquota, tariffa: "generale" };
+    return { aliquota: null, tariffa: null };
+  };
   for (const r of perProdotto) {
+    const tf = tariffaDi(r.prodotto);
+    r.aliquota = tf.aliquota; r.tariffa = tf.tariffa; r.noto = tf.aliquota != null;
     r.calcolabile = unita === "t" || r.senzaDensita < r.viaggi;
-    r.dovuto = r.calcolabile && noto ? round2((unita === "t" ? r.t : r.m3) * aliquota) : null;
+    r.dovuto = r.calcolabile && r.noto ? round2((unita === "t" ? r.t : r.m3) * r.aliquota) : null;
   }
   const comune = { unita, aliquota, noto, baseScelta,
     tonnellate: round2(tot.t), metriCubi: round3(tot.m3),
     senzaDensita: tot.senzaDensita, perProdotto,
+    conTariffaProdotto: perProdotto.filter((r) => r.tariffa === "prodotto").length,
+    senzaTariffa: perProdotto.filter((r) => !r.noto).length,
     viaggi: perProdotto.reduce((s, r) => s + r.viaggi, 0) };
 
   /* ⛔ E IL DOVUTO SI COMPONE IN UN POSTO SOLO. Era scritto in quattro punti,
@@ -3162,11 +3187,22 @@ export function canonePeriodo(pesate, impostazioni, dal, al, rilievi) {
      venduto niente), ed è l'asimmetria dichiarata in cima a questa funzione. */
   const baseCalcolabile = unita === "t" || !comune.viaggi || tot.senzaDensita < comune.viaggi;
   const base = unita === "t" ? tot.t : tot.m3;
-  return { ...comune, scavatoM3: null, rilieviUsati: 0, m3DaCumuli: 0,
-    ...importo(base, baseCalcolabile,
-      "Il canone è a metro cubo, e nessuna delle consegne del periodo ha la densità del prodotto: "
+  const motivoVolume = "Il canone è a metro cubo, e nessuna delle consegne del periodo ha la densità del prodotto: "
       + "il volume venduto non lo sa nessuno. Uno zero direbbe che non c'è niente da versare. "
-      + "Aggiungi la densità nel Listino e il calcolo si completa.") };
+      + "Aggiungi la densità nel Listino e il calcolo si completa.";
+  /* con le tariffe per prodotto il totale è la SOMMA delle righe; senza, è
+     base × tariffa generale come sempre (stesso numero, senza gli
+     arrotondamenti riga per riga). Una riga senza nessuna tariffa toglie il
+     totale, non lo abbassa: un totale che salta un prodotto sarebbe più
+     piccolo del vero, cioè la buona notizia. */
+  const senzaT = perProdotto.filter((r) => !r.noto);
+  const esitoVenduto = !baseCalcolabile ? importo(null, false, motivoVolume)
+    : senzaT.length ? { calcolabile: true, base: round3(base), dovuto: null,
+        motivo: noto ? plurale(senzaT.length, "Un prodotto è", senzaT.length + " prodotti sono") + " senza tariffa (" + senzaT.map((r) => r.prodotto).join(", ") + "): il totale non si somma finché non ce l'hanno." : MOTIVO_SENZA_ALIQUOTA }
+    : comune.conTariffaProdotto
+      ? { calcolabile: true, base: round3(base), dovuto: round2(perProdotto.reduce((s, r) => s + (r.dovuto || 0), 0)), motivo: "" }
+      : importo(base, true, "");
+  return { ...comune, scavatoM3: null, rilieviUsati: 0, m3DaCumuli: 0, ...esitoVenduto };
 }
 
 // Venduto per prodotto in un periodo (tonnellate, metri cubi e valore): è la

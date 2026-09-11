@@ -1567,6 +1567,11 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input dec" id="pr-dens" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 1,60" title="Quante tonnellate pesa un metro cubo di questo materiale. La virgola va benissimo: 1,60.">
       <span class="err-msg" id="err-pr-dens"></span>
     </div>
+    <div class="fld" id="fld-pr-canone" style="flex:1 1 150px;">
+      <label for="pr-canone">Tariffa del canone (facoltativa)</label>
+      <input class="dw-input dec" id="pr-canone" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 0,72" title="La tariffa del canone di concessione per questo materiale, nell'unità scelta nel Canone (€ a tonnellata o a metro cubo). Vuota = vale la tariffa generale.">
+      <span class="err-msg" id="err-pr-canone"></span>
+    </div>
     <div class="fld" id="fld-pr-iva" style="flex:1 1 150px;">
       <label for="pr-iva">Aliquota IVA</label>
       <select class="dw-input" id="pr-iva">
@@ -2366,7 +2371,7 @@ label.item:has(.dw-chk:checked){
   // "ft-cli-nuovo" compare solo quando si crea un cliente al volo.
   const FT_CAMPI = ["ft-num","ft-cli","ft-cli-nuovo","ft-imp","ft-iva","ft-scad"];
   const CL_CAMPI = ["cl-nome","cl-piva","cl-sdi","cl-ind","cl-cap","cl-comune","cl-prov","cl-cf","cl-sconto","cl-listino","cl-fido","cl-note"];
-  const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva"];
+  const PR_CAMPI = ["pr-nome","pr-unita","pr-prezzo","pr-dens","pr-iva", "pr-canone"];
   const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
   const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
@@ -4007,6 +4012,7 @@ label.item:has(.dw-chk:checked){
       const meta = [
         d ? "densità " + qt(d) + " t/m³" : "densità mancante",
         "IVA " + perc(p.iva),
+        +p.canoneAliquota > 0 ? "canone: tariffa propria " + eur(p.canoneAliquota) + "/" + uni($("can-unita") ? $("can-unita").value : "t") : "canone: tariffa generale",
         usato ? plur(usato, "pesata registrata", "pesate registrate") : "mai pesato",
       ].join(" · ");
       const conv = d
@@ -5005,7 +5011,7 @@ label.item:has(.dw-chk:checked){
     const cfg = { canoneUnita: $("can-unita").value, canoneBase: $("can-base").value,
                   canoneAliquota: ra.ok ? ra.valore : 0 };
     const c = canonePeriodo(PES, cfg, $("can-dal").value, $("can-al").value,
-                            cfg.canoneBase === "scavato" ? await caricaRilievi() : null);
+                            cfg.canoneBase === "scavato" ? await caricaRilievi() : null, PRO);
     const u = uni(c.unita);
     /* ⛔ Lo stato vuoto dipende dalla BASE scelta, e le due frasi non sono
        intercambiabili: sul venduto «nessuna pesata» vuol dire che non è stato
@@ -5036,8 +5042,12 @@ label.item:has(.dw-chk:checked){
       <div class="cassa-lab">Canone dovuto sul periodo</div></div>
       <div class="cassa-txt">
       ${!c.calcolabile ? esc(c.motivo) + "<br>"
-        : senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra.<br>"
-                   : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b><br>"}
+        : senzaAli ? "Scrivi l'aliquota della tua concessione qui sopra." + (c.conTariffaProdotto ? " " + (c.conTariffaProdotto === 1 ? "Un prodotto ha" : c.conTariffaProdotto + " prodotti hanno") + " già la tariffa propria nel Listino: vale per " + (c.conTariffaProdotto === 1 ? "lui" : "loro") + ", non per gli altri." : "") + "<br>"
+        /* ⛔ con tariffe diverse per riga il totale è una SOMMA, e la riga che lo
+           spiega deve dirlo: «0,55 × 179,30» accanto a 127,00 € era una
+           contraddizione (11/09) */
+        : c.baseScelta !== "scavato" && c.conTariffaProdotto ? "Somma delle righe: " + (c.conTariffaProdotto === 1 ? "un prodotto con la tariffa propria" : c.conTariffaProdotto + " prodotti con la tariffa propria") + " del Listino, gli altri a <b>" + eur(c.aliquota) + "/" + u + "</b>" + (c.senzaTariffa ? " — e " + (c.senzaTariffa === 1 ? "uno senza tariffa" : c.senzaTariffa + " senza tariffa") : "") + ".<br>"
+        : "Aliquota <b>" + eur(c.aliquota) + "/" + u + "</b> × <b>" + qt(c.base) + " " + u + "</b>" + (c.baseScelta === "scavato" && c.conTariffaProdotto ? " (le tariffe per prodotto del Listino non si applicano allo scavato: Terra misura il fronte, non il materiale)" : "") + "<br>"}
       ${c.baseScelta === "scavato"
         ? "Base: <b>" + qt(c.scavatoM3) + " m³ scavati</b> da " + plur(c.rilieviUsati, "rilievo", "rilievi")
           + (c.m3DaCumuli ? " (fuori <b>" + qt(c.m3DaCumuli) + " m³</b> ripresi dai cumuli)" : "")
@@ -5054,7 +5064,9 @@ label.item:has(.dw-chk:checked){
     $("can-list").innerHTML = c.baseScelta === "scavato" ? "" : c.perProdotto.map(r => `<div class="item st-accent">
       <span class="avatar">${IC.listino}</span>
       <div class="info"><div class="name">${esc(r.prodotto)}</div>
-      <div class="meta">${qt(r.t)} t${r.m3 ? " · " + qt(r.m3) + " m³" : ""} · ${plur(r.viaggi, "viaggio", "viaggi")}${r.senzaDensita ? " · " + r.senzaDensita + " senza densità" : ""}</div></div>
+      <div class="meta">${qt(r.t)} t${r.m3 ? " · " + qt(r.m3) + " m³" : ""} · ${plur(r.viaggi, "viaggio", "viaggi")}${r.senzaDensita ? " · " + r.senzaDensita + " senza densità" : ""}</div>
+      ${/* la tariffa usata si DICE riga per riga (11/09): del prodotto, generale, o nessuna */""}
+      <div class="meta">${r.tariffa === "prodotto" ? "tariffa del prodotto: " + eur(r.aliquota) + "/" + u : r.tariffa === "generale" ? "tariffa generale: " + eur(r.aliquota) + "/" + u : "senza tariffa: né sul prodotto nel Listino, né generale"}</div></div>
       ${/* ⛔ la bandiera `calcolabile` si legge QUI: senza, la riga scriveva
             «€ 0,00 · 0,00 m³» su un prodotto venduto e pesato di cui non si
             converte nemmeno un viaggio — cioè «per questo non devi niente»
@@ -6274,6 +6286,7 @@ label.item:has(.dw-chk:checked){
       $("pr-nome").value = p.nome || ""; $("pr-unita").value = p.unitaPrezzo === "m3" ? "m3" : "t";
       $("pr-prezzo").value = itDec(p.prezzo);
       $("pr-dens").value = itDec(p.densita);
+      $("pr-canone").value = +p.canoneAliquota > 0 ? itDec(p.canoneAliquota) : "";
       $("pr-iva").value = String(+p.iva || 0);
       /* la scala si porta dietro come tutto il resto: si modifica il prodotto
          intero, non gli scaglioni per conto loro. */
@@ -6860,6 +6873,8 @@ label.item:has(.dw-chk:checked){
       err.push(["pr-nome", "C'è già un prodotto con questo nome: modifica quello invece di crearne un doppione."]);
     if (numIllegibile(rp)) err.push(["pr-prezzo", spiegaNum("il prezzo di listino", rp, "€")]);
     else if (!(prezzo > 0)) err.push(["pr-prezzo", "Scrivi il prezzo di listino in euro: deve essere maggiore di zero."]);
+    const rc = numCampo("pr-canone", { positivo: true, decimali: 4 });
+    if (numIllegibile(rc)) err.push(["pr-canone", spiegaNum("la tariffa del canone", rc, "€")]);
     if (numIllegibile(rd)) err.push(["pr-dens", spiegaNum("la densità", rd, "t/m³")]);
     else if (rd.vuoto) err.push(["pr-dens", "Serve la densità del materiale (quante tonnellate pesa un metro cubo): senza, €/t e €/m³ non si possono convertire."]);
     else if (!(densita > 0)) err.push(["pr-dens", "Controlla la densità: gli inerti stanno in genere fra 1,2 e 2,8 tonnellate per metro cubo."]);
@@ -6877,6 +6892,9 @@ label.item:has(.dw-chk:checked){
       return;
     }
     const dati = { nome, unitaPrezzo, prezzo: round2(prezzo), densita, iva,
+      /* la tariffa del canone del prodotto (11/09): vuota = null, cioè «vale
+         la generale» — non zero, che direbbe «per questo non si paga» */
+      canoneAliquota: rc.ok && rc.valore > 0 ? rc.valore : null,
       /* niente campo vuoto sui prodotti senza scaglioni: restano identici a
          prima, ed è quello che deve succedere alla stragrande maggioranza. */
       scaglioni: proScaglioni.length ? proScaglioni.map(s => ({ ...s })) : null };
