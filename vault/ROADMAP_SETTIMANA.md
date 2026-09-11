@@ -2905,6 +2905,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO`
+- `CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI C'ERA`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9075,6 +9077,41 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   coerente (regola 18). Prova che manca: `grep -ciE 'pendenza|scarpat|altezza
   (del )?banco' apps/terra/terra-data.js apps/terra/index.html` → 7 e 2,
   tutte in testi. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09.
+- [x] **RICERCA A ROTAZIONE, CAMPO — IL BRIEFING DI INIZIO TURNO E IL
+  CONTROLLO DEL POSTO DI LAVORO: CHE COSA SI REGISTRA FUORI (11/09):** metà
+  sul mondo con `WebSearch` (dieci fonti, tutte di seconda mano): il toolbox
+  talk dura 5–15 minuti su un argomento del giorno e si registra con data,
+  argomento e presenti (la «prova di diligenza»); in Italia è la forma
+  quotidiana dell'informazione ai lavoratori e i modelli sono verbali con
+  presenti e firme; il controllo del posto di lavoro prima del turno (MSHA
+  56.18002) vuole il verbale entro fine turno e, per ogni condizione trovata,
+  l'avviso ai lavoratori e la correzione avviata — e chi cade nelle ispezioni
+  cade perché non sa provare la catena trovato → avvisato → corretto. Delta
+  dal MECCANISMO: il controllo prima del turno **c'è** (`CHECKLIST_INIZIO`,
+  `statoChecklist`, la frase unica, il lucchetto) e il turno dopo lo legge;
+  il briefing è **una spunta** senza argomento né presenti; la voce «non a
+  posto» **non apre niente** (i quattro `bozzaAzione` della pagina sono tutti
+  del fermo macchina). Due voci aperte qui sotto, con la prova accanto.
+- [ ] **CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO
+  (dalla ricerca a rotazione dell'11/09).** Sullo stampo del fermo macchina:
+  `bozzaAzioneChecklist(voce, data, turno, squadra, opts)` in `campo-data.js`
+  con la stessa origine dichiarata (`origineTipo`, `origineId` = id della
+  checklist + indice della voce, `origineVoce` = data, scadenza proposta), il
+  bottone «apri l'azione» accanto alla voce non a posto nella checklist del
+  turno, lo stato dell'azione letto con `azioniDiOrigine` di `shared/` come
+  per i fermi, e il rapporto di fine turno che accanto alla voce dice se
+  l'azione c'è. Prove in run-kpi (bozza, doppione sull'id, stato), scatto.
+  Prova che manca: `grep -n 'bozzaAzione' apps/campo/index.html` → 4 righe,
+  tutte `bozzaAzioneFermo`. Vedi `docs/RICERCA_CONTINUA_CAMPO.md`, 11/09.
+- [ ] **CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI
+  C'ERA (dalla ricerca a rotazione dell'11/09, dopo la voce sopra).** Una
+  collezione `briefing/{id}` per data, turno e squadra (`argomento`,
+  `tenutoDa`, `note`, `ora`), i presenti presi dall'appello dello stesso
+  turno (non una seconda lista), la voce della checklist «Briefing … fatto»
+  che si spunta da sola quando il briefing è registrato, e il rapporto di
+  fine turno che lo stampa con argomento e presenti. Prova che manca:
+  `grep -ciE 'briefing' apps/campo/campo-data.js apps/campo/index.html` → 1
+  e 0, la sola occorrenza è il testo della voce.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va

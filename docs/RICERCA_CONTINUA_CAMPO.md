@@ -1937,3 +1937,121 @@ esistenti.
 *Aggiornamento della notte stessa (commit successivo a `d35278a9`): (a) ✅ e
 (b) ✅ — la consegna porta «LAVORI NON CONCLUSI» e «SEGNALAZIONI DEL TURNO»,
 con le regole dello schermo (`lavoriNonConclusi`, `testoSegnalazioniTurno`).*
+
+## Ricerca del 2026-09-11 — il briefing di inizio turno e il controllo del posto di lavoro: che cosa si registra fuori (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto viene da un risultato di ricerca
+ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Il toolbox talk (briefing di inizio turno) è breve, su UN argomento, e si
+  registra.** Le guide del settore (NSSGA per le cave di aggregati, HSE
+  Network, Safety Evolution, ConstructConnect): 5–15 minuti, un argomento
+  solo legato al lavoro **di quel giorno**, uno che lo conduce, domande
+  preparate prima. Quello che si registra: **data, argomento, chi c'era** (con
+  la firma o la spunta di ognuno), e il registro dei briefing con date,
+  argomenti e presenze è «una prova forte di diligenza» se poi succede
+  qualcosa. [seconda mano]
+- **In Italia il briefing è la forma quotidiana dell'informazione ai
+  lavoratori** (art. 36 del D.Lgs. 81/2008): i modelli in circolazione
+  (Ordine degli ingegneri di Modena, Scuola edile di Pisa, studi di
+  consulenza) sono **verbali** con data, argomenti trattati, elenco dei
+  presenti e firme; per le attività estrattive il vademecum ENBITAL elenca
+  fra gli adempimenti l'informazione e la formazione documentate, e il
+  titolare della cava coordina anche i lavoratori autonomi presenti. [seconda
+  mano — nessuna pagina letta per intero; l'articolo è citato dai modelli, non
+  verificato sul testo]
+- **Il controllo del posto di lavoro prima del turno, dove è una regola
+  scritta.** Negli Stati Uniti (MSHA, 30 CFR 56.18002, cave e miniere a cielo
+  aperto): una persona competente esamina ogni posto di lavoro **almeno una
+  volta per turno, prima che si cominci**; il verbale si fa **prima della fine
+  del turno**, si tiene almeno un anno e si esibisce all'ispettore; chi trova
+  una condizione pericolosa **avvisa subito i lavoratori interessati** e
+  **avvia la correzione**; un pericolo imminente fa ritirare le persone. E la
+  ragione per cui le aziende cadono nelle ispezioni, secondo chi vende le
+  checklist: non perché saltano il giro, ma perché **non sanno provare che il
+  difetto trovato è stato segnalato e corretto**. [seconda mano]
+- **Quindi il registro «giusto», fuori, ha tre pezzi**: il briefing con
+  argomento e presenti; il controllo prima del turno con le condizioni
+  trovate; e — per ogni condizione trovata — **chi è stato avvisato e che
+  cosa si è fatto**, cioè la catena trovato → avvisato → corretto.
+  [deduzione dalle righe sopra]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- NSSGA, *Keeping toolbox talks fresh* — https://www.nssga.org/toolbox_talks
+- HSE Network, *Ultimate guide to toolbox talks* —
+  https://www.hse-network.com/what-is-a-toolbox-talk-the-ultimate-guide-for-2026/
+- Safety Evolution, *What are toolbox talks?* —
+  https://www.safetyevolution.com/blog/what-are-toolbox-talks
+- ConstructConnect, *Importance of safety meetings / toolbox talks* —
+  https://www.constructconnect.com/blog/importance-safety-meetings-toolbox-talks-construction
+- Ordine degli ingegneri di Modena, *Modello di riunione preliminare* —
+  https://www.ordineingegnerimodena.it/Media/Default/Commissioni/SicurezzaCantieri/ModelloFiocchiRiunionePreliminare_784_4233.pdf
+- Scuola edile CPT Pisa, *Verbale di avvenuta informazione (art. 36)* —
+  https://www.scuolaedilecptpisa.it/wp-content/uploads/2021/01/4-Es-Verbale-Informazione-Art36.pdf
+- ENBITAL, *Vademecum adempimenti sicurezza attività estrattive (2022)* —
+  https://enbital.it/docs_upload/VADEMECUM-ADEMPIMENTI-SICUREZZA-ATTIVITA-ESTRATTIVE-Dic-2022_20230228170416.pdf
+- eCFR, *30 CFR 56.18002 — Examination of working places* —
+  https://www.ecfr.gov/current/title-30/chapter-I/subchapter-K/part-56/subpart-Q/section-56.18002
+- MSHA, *Workplace examinations, surface metal/nonmetal* —
+  https://arlweb.msha.gov/training/docs/mnm-workplace-examinations.pdf
+- Heavy Vehicle Inspection, *30 CFR 56.14100 explained* —
+  https://heavyvehicleinspection.com/industries/mining/30-cfr-56-14100-pre-shift-inspection-requirements
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi registra che il briefing è stato fatto, e con che cosa (argomento,
+   chi lo ha tenuto, chi c'era)?
+2. Chi registra il controllo prima del turno e le condizioni trovate?
+3. Per una condizione trovata «non a posto», chi apre la correzione, e dove
+   si legge se è stata fatta?
+4. Il turno dopo viene a sapere che cosa è rimasto in sospeso?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `5a1b1e92`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Domanda 2 — C'È, ed è fatta bene.** `CHECKLIST_INIZIO` (`campo-data.js`)
+  è il controllo prima del turno: nove voci corte per area (persone, mezzi,
+  area, emergenza — «se è lunga nessuno la compila e diventa una firma
+  finta»), tre esiti (a posto / non a posto / non applicabile),
+  `statoChecklist` che distingue le risposte dalle voci **senza risposta** e
+  `descriviChecklist` che lo scrive uguale a schermo, in stampa e nella
+  consegna; il turno chiuso mette il lucchetto e un turno chiuso con 0/9 non
+  esce verde. La collezione porta `ora` (quando è stata chiusa): il «verbale
+  prima della fine del turno» c'è.
+- **Domanda 4 — C'È.** Il rapporto di fine turno stampa le voci non a posto
+  (`st.problemi`, `grep -n 'st.problemi' apps/campo/index.html` → 1 riga nel
+  foglio) e la consegna al turno dopo porta la frase della checklist.
+- **Domanda 1 — A METÀ, ed è la metà che il mondo registra.** Il briefing è
+  **una voce della checklist** («Briefing di inizio turno fatto con la
+  squadra»: `grep -ciE 'briefing' apps/campo/campo-data.js
+  apps/campo/index.html` → **1 e 0**, la sola occorrenza è quel testo): una
+  spunta, senza **argomento**, senza **chi lo ha tenuto**, senza **chi
+  c'era**. L'appello del turno (`presenze`, tre stati) esiste ed è la lista
+  dei presenti — ma non è legata al briefing. **Delta concreto, candidato**:
+  un `briefing/{id}` per turno e squadra con `argomento`, `tenutoDa`, `note`,
+  e i presenti presi dall'appello dello stesso turno (non una seconda lista:
+  la regola del `shared/` vale anche fra due funzioni della stessa app); la
+  voce della checklist che si spunta da sola quando il briefing è registrato,
+  e il rapporto di fine turno che lo stampa con argomento e presenti. Piccolo
+  (una collezione, una scheda, una riga nel foglio), e chiude la riga «prova
+  forte di diligenza» delle guide.
+- **Domanda 3 — MANCA, ed è la ragione per cui si cade nelle ispezioni.** Una
+  voce «non a posto» finisce nel foglio e nella consegna, ma **non apre
+  niente**: `grep -n 'bozzaAzione' apps/campo/index.html` → 4 righe, **tutte
+  di `bozzaAzioneFermo`** (il fermo macchina → azione correttiva in Scudo,
+  ponte del 05/09); per la checklist non c'è un `bozzaAzioneChecklist`, quindi
+  «segnaletica non al suo posto» resta una riga rossa che il turno dopo può
+  solo rileggere. È esattamente la catena trovato → avvisato → corretto che le
+  ispezioni chiedono di provare. **Delta concreto, candidato — prima
+  dell'altro**: `bozzaAzioneChecklist(voce, data, turno, squadra)` sullo
+  stampo di `bozzaAzioneFermo` (stessa origine dichiarata, stesso schema
+  `origineTipo/origineId/origineVoce`, scadenza proposta), il bottone «apri
+  l'azione» accanto alla voce non a posto, e lo stato dell'azione letto con
+  `azioniDiOrigine` di `shared/` come già per i fermi — così la checklist di
+  ieri sa dire se il difetto è stato corretto, e da chi.
