@@ -731,7 +731,18 @@ export function classeAccuratezza(rilievo) {
   const m = String((rilievo && rilievo.metodo) || "").toLowerCase();
   const gsdN = parseFloat(String((rilievo && rilievo.gsd) || "").replace(",", "."));
   const gsdNoto = Number.isFinite(gsdN) && gsdN > 0;
-  if (!m && !gsdNoto) return { classe: "n.d.", label: "Accuratezza n.d.", tolleranzaPct: null, cls: "", gsdNoto: false };
+  /* ⚠️ LA TOLLERANZA DICHIARATA DAL RILEVATORE BATTE QUELLA TIPICA (11/09).
+     Il numero vero sta nella relazione del topografo (residui sui punti di
+     controllo, RMSE): quando l'ha scritto nel rilievo (`tolleranzaPct`, in
+     %), la banda si calcola su quello e `fonte` dice «rilevatore»; se no resta
+     il valore tipico della classe e `fonte` dice «classe». La CLASSE non
+     cambia: è il giudizio su metodo e GSD, e un numero dichiarato non lo
+     riscrive — `tolleranzaTipica` resta accanto, così il foglio può scrivere
+     tutt'e due. Si legge come il GSD: «3,5» con la virgola va bene. */
+  const tdN = parseFloat(String((rilievo && rilievo.tolleranzaPct) == null ? "" : rilievo.tolleranzaPct).replace(",", "."));
+  const tollDich = Number.isFinite(tdN) && tdN > 0 ? tdN : null;
+  const fonte = tollDich != null ? "rilevatore" : "classe";
+  if (!m && !gsdNoto) return { classe: "n.d.", label: "Accuratezza n.d.", tolleranzaPct: tollDich, tolleranzaTipica: null, fonte, cls: "", gsdNoto: false };
   const buonMetodo = _metodoAffidabile(m);
   const gsdOk = gsdNoto ? gsdN <= 2 : true;   // se il GSD è noto dev'essere ≤ 2 cm
   /* ⚠️ `gsdNoto` ESCE, e non è decorazione: quando il GSD non è scritto la
@@ -743,8 +754,8 @@ export function classeAccuratezza(rilievo) {
      ⛔ Il numero NON cambia: se l'assenza del GSD debba far scendere la classe
      è una decisione da fondatore (oggi `PPK` senza GSD è survey-grade, e una
      prova in `run-kpi` lo blinda). Qui si dichiara che manca, non si decide. */
-  if (buonMetodo && gsdOk) return { classe: "survey-grade", label: "Survey-grade", tolleranzaPct: 2, cls: "ok", gsdNoto };
-  return { classe: "indicativo", label: "Indicativo", tolleranzaPct: 8, cls: "warn", gsdNoto };
+  if (buonMetodo && gsdOk) return { classe: "survey-grade", label: "Survey-grade", tolleranzaPct: tollDich != null ? tollDich : 2, tolleranzaTipica: 2, fonte, cls: "ok", gsdNoto };
+  return { classe: "indicativo", label: "Indicativo", tolleranzaPct: tollDich != null ? tollDich : 8, tolleranzaTipica: 8, fonte, cls: "warn", gsdNoto };
 }
 
 // Banda di incertezza sul volume (m³) data una %tolleranza: rende onesto il
@@ -787,15 +798,21 @@ export function bandaVolume(volumeM3, tolleranzaPct) {
    che la somma dichiara CHI copre — e chi legge (`descriviIncertezza`, il
    foglio, il confronto, il verbale) lo scrive accanto al ±. */
 export function incertezzaScavo(rilievi) {
-  let banda = 0, coperti = 0, copertoM3 = 0, scoperti = 0, scopertoM3 = 0;
+  let banda = 0, coperti = 0, copertoM3 = 0, scoperti = 0, scopertoM3 = 0, delRilevatore = 0;
   for (const r of (rilievi || [])) {
     if (!r) continue;
     const ca = classeAccuratezza(r);
     const bv = ca.tolleranzaPct != null ? bandaVolume(r.volumeM3, ca.tolleranzaPct) : null;
-    if (bv) { banda += bv.banda; coperti++; copertoM3 += bv.volume; }
+    if (bv) { banda += bv.banda; coperti++; copertoM3 += bv.volume; if (ca.fonte === "rilevatore") delRilevatore++; }
     else { scoperti++; const v = numeroDichiarato(r.volumeM3); scopertoM3 += v != null && v > 0 ? v : 0; }
   }
-  return { banda, coperti, copertoM3, scoperti, scopertoM3, rilievi: coperti + scoperti, completa: scoperti === 0 };
+  /* `delRilevatore`: quanti dei coperti portano la tolleranza del rilevatore e
+     non quella tipica — lo legge `descriviIncertezza`, se no la frase «tipica
+     del metodo» sarebbe falsa proprio sui rilievi misurati meglio.
+     ⚠️ Non si chiama «dichiarati»: in Terra «dichiarato» è il numero dei turni
+     di Campo, quello che NON deve entrare nel riepilogo per gli enti — e una
+     prova conta quella parola nel riepilogo intero. Stesso suono, altra cosa. */
+  return { banda, coperti, copertoM3, scoperti, scopertoM3, delRilevatore, rilievi: coperti + scoperti, completa: scoperti === 0 };
 }
 
 /* La frase che accompagna il ±, scritta una volta sola: la leggono il foglio
@@ -806,7 +823,9 @@ export function descriviIncertezza(inc) {
   if (!(i.rilievi > 0)) return "";
   const m3 = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 0, useGrouping: true });
   if (i.completa) return i.banda > 0
-    ? `Incertezza complessiva stimata sullo scavo: ± ${m3(i.banda)} m³, ottenuta sommando la tolleranza tipica del metodo di ogni rilievo (stima prudente).`
+    ? `Incertezza complessiva stimata sullo scavo: ± ${m3(i.banda)} m³, ottenuta sommando ${i.delRilevatore > 0
+        ? (i.delRilevatore === i.coperti ? "la tolleranza dichiarata dal rilevatore di ogni rilievo" : "la tolleranza di ogni rilievo (dichiarata dal rilevatore per " + (i.delRilevatore === 1 ? "uno" : i.delRilevatore) + ", tipica del metodo per gli altri)")
+        : "la tolleranza tipica del metodo di ogni rilievo"} (stima prudente).`
     : "";
   if (!(i.coperti > 0))
     return `Incertezza dello scavo non stimabile: ${i.scoperti === 1 ? "l'unico rilievo non dichiara" : "nessuno dei " + i.scoperti + " rilievi dichiara"} il metodo, e senza una tolleranza tipica non c'è niente da sommare.`;
@@ -3194,7 +3213,9 @@ export function verbaleRilievo(rilievo, opzioni) {
     : manca("GSD (dimensione del pixel a terra)", "non dichiarato", "non dichiarato"));
   righe.push(ca.classe === "n.d."
     ? manca("Classe di accuratezza", "non determinabile (metodo e GSD non dichiarati)", "non determinabile: metodo e GSD non dichiarati")
-    : ["Classe di accuratezza", ca.label + " — tolleranza tipica ± " + ca.tolleranzaPct + "%", false]);
+    : ["Classe di accuratezza", ca.label + (ca.fonte === "rilevatore"
+        ? " — tolleranza dichiarata dal rilevatore ± " + itDec(ca.tolleranzaPct) + "% (tipica del metodo ± " + ca.tolleranzaTipica + "%)"
+        : " — tolleranza tipica ± " + ca.tolleranzaPct + "%"), false]);
   // un volume che non si legge non fa una misura: sullo schermo quel rilievo
   // non ha nemmeno il bottone del verbale, ma la funzione è pura e lo dichiara
   const volumeOk = r.volumeM3 != null && r.volumeM3 !== "" && Number.isFinite(+r.volumeM3);
@@ -3250,17 +3271,26 @@ export function verbaleRilievo(rilievo, opzioni) {
      calcolato, non solo con che accuratezza: `descriviOrigine` dice da dove
      viene il numero, e per un rilievo senza provenienza lo dichiara. */
   const banda = bv ? n0(bv.banda) : "—";
+  // la frase sul ± cambia con la FONTE: un numero del rilevatore si dice suo,
+  // e accanto resta quello tipico, così chi legge vede se lo batte o no
+  const dich = ca.fonte === "rilevatore";
+  const chiude = ", cioè circa ± " + banda + " m³ su questo volume.";
+  const suBanda = "%" + chiude;
+  const tollFrase = dich
+    ? "la tolleranza dichiarata dal rilevatore è ± " + itDec(ca.tolleranzaPct) + "% (tipica del metodo ± " + ca.tolleranzaTipica + "%)" + chiude
+    : "la tolleranza tipica è ± " + ca.tolleranzaPct + suBanda;
   const comeNato = (ca.classe === "survey-grade"
     ? (ca.gsdNoto
-        ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: la tolleranza tipica è ± "
-        : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. La tolleranza tipica del metodo è ± ")
-      + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
+        ? "Il metodo dichiarato e il GSD collocano il rilievo nella classe di qualità topografica: " + tollFrase
+        : "Il metodo dichiarato colloca il rilievo nella classe di qualità topografica; il GSD non è dichiarato, quindi la dimensione del pixel a terra non è entrata in questa valutazione. " + (dich ? "La " + tollFrase.slice(3) : "La tolleranza tipica del metodo è ± " + ca.tolleranzaPct + suBanda))
     : ca.classe === "indicativo"
-      ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, con tolleranza tipica ± "
-        + ca.tolleranzaPct + "%, cioè circa ± " + banda + " m³ su questo volume."
-      : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura.")
+      ? "Il metodo dichiarato o il GSD non permettono la classe topografica: il volume vale come misura indicativa, " + (dich ? "ma " + tollFrase : "con tolleranza tipica ± " + ca.tolleranzaPct + suBanda)
+      : "Non essendo dichiarati né il metodo né il GSD, non è possibile attribuire una classe di accuratezza a questa misura."
+        + (dich ? " Il rilevatore ha però dichiarato una tolleranza di ± " + itDec(ca.tolleranzaPct) + suBanda : ""))
     + " " + descriviOrigine(r)
-    + " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore."
+    + (dich
+      ? " La tolleranza è quella dichiarata dal rilevatore nella sua relazione: il valore tipico del metodo resta scritto accanto per confronto."
+      : " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore.")
     + (cum ? " Trattandosi della ripresa di un cumulo, il volume non costituisce nuovo scavo e non consuma il volume concesso dal titolo." : "");
   return { titolo: "Verbale di rilievo — " + (r.titolo || (dataOk ? "rilievo del " + dataRil : "rilievo " + dataRil)), data: dataRil,
     righe, atto, partenza, comeNato, cumulo: cum, nonMisurati };

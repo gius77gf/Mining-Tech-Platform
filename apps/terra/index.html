@@ -837,6 +837,8 @@ a.dw-btn{text-decoration:none}
         </select></div>
       <div class="fld" style="flex:1 1 120px;"><label class="fl" for="new-ril-gsd">GSD (<span class="u">cm</span>)</label>
         <input class="dw-input dec" id="new-ril-gsd" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="es. 2,5" title="Dimensione del pixel a terra, in centimetri. La virgola va benissimo: 2,5."></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="new-ril-toll">Tolleranza dichiarata (<span class="u">%</span>)</label>
+        <input class="dw-input dec" id="new-ril-toll" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="dalla relazione" title="La tolleranza sul volume scritta dal rilevatore nella sua relazione (dai residui sui punti di controllo). Facoltativa: senza, vale quella tipica del metodo."></div>
     </div>
     <div class="frow">
       <div class="fld" style="flex:3 1 220px;"><label class="fl" for="new-ril-rilevatore">Eseguito da</label>
@@ -1346,7 +1348,7 @@ a.dw-btn{text-decoration:none}
       return `<div class="item ${cum ? "st-mute" : r.stato === "elaborato" ? "st-accent" : "st-warn"}" style="cursor:default;">
       <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${giornoMese(r.data)} · ${esc(r.tipo||"")}${volTxt}${qualitaRilievo(r)?" · "+esc(qualitaRilievo(r)):""}</div></div>
       <div class="acts">${cum ? '<span class="badge tag" title="Materiale già estratto, ripreso da un cumulo: non consuma il volume concesso">Da cumulo</span>' : ""}
-      ${ca.cls ? `<span class="badge ${ca.cls}" title="Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore">${ca.label}</span>` : ""}
+      ${ca.cls ? `<span class="badge ${ca.cls}" title="${ca.fonte === "rilevatore" ? "Tolleranza dichiarata dal rilevatore: ± " + String(ca.tolleranzaPct).replace(".", ",") + "% (tipica del metodo ± " + ca.tolleranzaTipica + "%)" : "Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore"}">${ca.label}</span>` : ""}
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${usabile?`<button class="arr" type="button" title="Verbale di rilievo da stampare o salvare in PDF" aria-label="Verbale del rilievo del ${giornoMese(r.data)}" data-verb-ril="${r.id}">${A.verb}</button>`:""}${r.stato==="pianificato"?`<button class="arr del" type="button" title="Annulla il rilievo pianificato" aria-label="Annulla il rilievo pianificato del ${giornoMese(r.data)}" data-del-ril="${r.id}">${A.del}</button>`:""}</div></div>`;
     }).join("")
       || (qRil
@@ -3073,7 +3075,7 @@ a.dw-btn{text-decoration:none}
             + P.nonMisurati.map(esc).join(" · ")
             + ". Questi dati non risultano in Terra: il prospetto non li stima e non li sostituisce con uno zero.</p>"
           : "")
-      + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore dei lavori</div></div>"
+      + "<div class='firma'><div>Luogo e data</div><div>Il titolare / il direttore responsabile</div></div>"
       + "<div class='foot'>Prospetto generato da Deepwork Terra a partire dai rilievi registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: modello, termini e modalità di invio della comunicazione annuale "
       + "cambiano da regione a regione e vanno verificati presso l'ente competente. Questo prospetto non sostituisce il modulo ufficiale.</div>"
@@ -4257,7 +4259,7 @@ a.dw-btn{text-decoration:none}
             + ". Questi dati non risultano in Terra: la relazione non li stima e non li sostituisce con uno zero.</p>"
           : "")
       + (R.nota ? "<h2>Note</h2><p class='mini'>" + esc(R.nota) + "</p>" : "")
-      + "<div class='firma'><div>Luogo e data</div><div>Il titolare</div><div>Il direttore dei lavori</div></div>"
+      + "<div class='firma'><div>Luogo e data</div><div>Il titolare</div><div>Il direttore responsabile</div></div>"
       + "<div class='foot'>Relazione generata da Deepwork Terra a partire dai dati registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: contenuto della relazione, planimetrie da allegare, termini della comunicazione di fine lavori e modalità di svincolo della garanzia "
       + "vanno verificati presso l'ente competente. Questa relazione non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
@@ -4293,7 +4295,7 @@ a.dw-btn{text-decoration:none}
             + V.nonMisurati.map(esc).join(" · ")
             + ". Questi dati non risultano in Terra: il verbale non li stima e non li sostituisce con uno zero.</p>"
           : "")
-      + "<div class='firma'><div>Luogo e data</div><div>Il rilevatore</div><div>Il direttore dei lavori</div></div>"
+      + "<div class='firma'><div>Luogo e data</div><div>Il rilevatore</div><div>Il direttore responsabile</div></div>"
       + "<div class='foot'>Verbale generato da Deepwork Terra a partire dai dati registrati dall'utente. "
       + "Le attività estrattive sono materia regionale: contenuto, forma e destinatari della documentazione di rilievo "
       + "vanno verificati presso l'ente competente. Questo verbale non sostituisce gli elaborati firmati dal tecnico incaricato.</div>"
@@ -4555,7 +4557,15 @@ a.dw-btn{text-decoration:none}
       err("new-ril-vol", false); err("new-ril-gsd", true); fuoco("new-ril-gsd");
       esito("ril-esito", spiegaNum("il GSD", rg, "cm") + " Il rilievo non è stato registrato.", "err"); return;
     }
-    err("new-ril-gsd", false); err("new-ril-vol", false); err("new-ril-data", false);
+    // la tolleranza dichiarata dal rilevatore, in %: facoltativa, e quando c'è
+    // batte quella tipica della classe (la decide `classeAccuratezza`)
+    const rt = numCampo("new-ril-toll", { positivo: true, decimali: 2 });
+    if (numIllegibile(rt)) {
+      err("new-ril-vol", false); err("new-ril-gsd", false); err("new-ril-toll", true); fuoco("new-ril-toll");
+      esito("ril-esito", spiegaNum("la tolleranza dichiarata", rt, "%") + " Il rilievo non è stato registrato.", "err"); return;
+    }
+    err("new-ril-toll", false); err("new-ril-gsd", false); err("new-ril-vol", false); err("new-ril-data", false);
+    const toll = rt.ok ? rt.valore : null;
     const fronteId = $("new-ril-fronte").value || null;
     const fr = FRO.find(f => f.id === fronteId);
     const metodo = $("new-ril-metodo").value || null;
@@ -4572,14 +4582,14 @@ a.dw-btn{text-decoration:none}
          uno scritto a mano resta assente, e assente vuol dire «non lo
          sappiamo» — non «inserito a mano», che sarebbe un'affermazione che
          nessuno ha fatto. */
-      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + giornoMese(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, stato: "elaborato", metodo, gsd, rilevatore, provenienza: prov,
+      await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + giornoMese(data) + (fr ? " — " + fr.nome : ""), data, tipo: "Ortofoto + DEM", volumeM3: vol, fronteId, tolleranzaPct: toll, stato: "elaborato", metodo, gsd, rilevatore, provenienza: prov,
         ...(_origineDalVisore ? { origine: _origineDalVisore } : {}) });
       _origineDalVisore = null;   // il prossimo rilievo non eredita questa provenienza
       esito("ril-esito", "Rilievo del " + fmtData(data) + " registrato: " + vol.toLocaleString("it-IT") + " m³"
         + (fr ? " su " + fr.nome : "")
         + (prov === "cumulo" ? " — ripresa da cumulo: non scala il volume concesso." : "."));
     }
-    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; fuoco("new-ril-data"); await refresh();
+    $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-toll").value = ""; fuoco("new-ril-data"); await refresh();
   };
   // Provenienza del volume: menù sempre pieno, di serie SCAVO — così chi
   // registra un rilievo senza pensarci ottiene il comportamento di prima.

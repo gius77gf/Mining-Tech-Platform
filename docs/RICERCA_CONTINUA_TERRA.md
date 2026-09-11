@@ -932,6 +932,11 @@ dragonflyaerialsolutions.net · miningsurveys.com.
   su quella, e il foglio che scrive «dichiarata dal rilevatore» invece di
   «tipica del metodo». Senza il campo, resta la classe. **Mancanza
   confermata, aperta** — un campo, una riga nel verbale, una prova.
+  ✅ **FATTO lo stesso giorno, unità 93**: `tolleranzaPct` nel rilievo,
+  `classeAccuratezza` con `fonte` e `tolleranzaTipica`, il verbale e la riga
+  che dicono di chi è il numero. Prova: `grep -c '"rilevatore" : "classe"'
+  apps/terra/terra-data.js` → 1 (la sola riga che decide). Il CSV dei rilievi
+  non lo porta ancora: dichiarato in roadmap.
   ⚠️ Che cosa NON entra: il sistema di riferimento e la nuvola. Terra riceve
   numeri, non superfici (vedi la domanda 5).
 - **Domanda 3 — C'È, con la parola sbagliata.** I tre fogli di Terra hanno le
@@ -944,6 +949,10 @@ dragonflyaerialsolutions.net · miningsurveys.com.
   «Direttore responsabile»; le firme del fascicolo) e Sentinella (la relazione
   per l'ARPA: «Il direttore responsabile»). Tre app, due nomi per la stessa
   persona: **mancanza confermata, aperta** — tre righe, parole del mestiere.
+  ✅ **FATTO lo stesso giorno, unità 93**: `grep -oiE 'direttore
+  (responsabile|dei lavori)' apps/terra/index.html | sort | uniq -c` → 3
+  «direttore responsabile», 0 «dei lavori»; una prova in `run-kpi` pretende
+  la stessa parola nelle tre app.
 - **Domanda 4 — C'È.** `grep -cE '^export function
   (riepilogoAnnuale|prospettoDenuncia|riservaResidua|estrattoComplessivo|vitaCava)'`
   → 5; lo stato originario è `estrattoPregressoM3` nell'autorizzazione

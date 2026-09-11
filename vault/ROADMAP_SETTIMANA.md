@@ -2909,8 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE`
-- `TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7847,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.373 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2892, `run-stile` 328,
+  **3.376 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2895, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9238,7 +9236,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   aperta di tre righe); geometrie e addetti medi dichiarati, chiedono una
   decisione. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
   (secondo giro).
-- [ ] **TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE** *(dalla ricerca
+- [x] ✅ 11/09 (unità 93) **TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE** *(dalla ricerca
   dell'11/09, secondo giro, domanda 2)*. Oggi `classeAccuratezza` risponde con
   la tolleranza **tipica** della classe (2 % survey-grade, 8 % indicativo) e
   il verbale scrive che «va confermata con i punti di controllo del
@@ -9250,7 +9248,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   `fonte`. Come si misura: `classeAccuratezza({metodo:"RTK", gsd:"2",
   tolleranzaPct: 3.5}).tolleranzaPct === 3.5`, e il verbale sulla
   dimostrazione (r1, senza il campo) invariato.
-- [ ] **TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME** *(dalla ricerca
+- [x] ✅ 11/09 (unità 93) **TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME** *(dalla ricerca
   dell'11/09, secondo giro, domanda 3)*. Le tre righe `class='firma'` di
   `apps/terra/index.html` (verbale del rilievo, relazione di lotto,
   riepilogo annuale) scrivono «Il direttore dei lavori»: è la parola del
@@ -9260,6 +9258,30 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   'direttore (responsabile|dei lavori)' apps/terra/index.html | sort | uniq
   -c` → 3 «responsabile», 0 «dei lavori»; e una prova in `run-kpi` che
   pretende la stessa parola nelle tre app.
+- [x] **TERRA — LA TOLLERANZA DEL RILEVATORE E IL NOME DI CHI FIRMA (unità 93,
+  11/09).** Le due voci qui sopra, insieme. `classeAccuratezza(r)` legge il
+  campo facoltativo `tolleranzaPct` del rilievo (anche «3,5» con la virgola):
+  quando è un numero > 0 la tolleranza è quella, `fonte: "rilevatore"`, e
+  `tolleranzaTipica` resta accanto; se no com'era (`fonte: "classe"`). La
+  CLASSE non cambia: è il giudizio su metodo e GSD. Lo leggono la banda del
+  volume (riga e verbale: «12.000 m³ ± 420»), la riga «Classe di accuratezza»
+  («tolleranza dichiarata dal rilevatore ± 3,5% (tipica del metodo ± 2%)»),
+  la frase «Come è stato ottenuto il numero» (che non dice più «va confermata
+  con i punti di controllo» a chi li ha già portati), il titolo del badge in
+  elenco, e `incertezzaScavo.delRilevatore` → `descriviIncertezza` («dichiarata
+  dal rilevatore per uno, tipica del metodo per gli altri»). Nella pagina il
+  campo `new-ril-toll` (`dec`, letto con `numCampo`, salvato come numero,
+  svuotato dopo). Le tre firme dicono «direttore responsabile» e una prova
+  pretende la stessa parola in Terra, Scudo e Sentinella. run-kpi +3 (2895).
+  ⚠️ Dichiarato, non fatto: il campo NON entra nel CSV dei rilievi
+  (`csvRilievi`/`parseRilieviCsv`, cinque colonne): un rilievo esportato e
+  reimportato perde la tolleranza del rilevatore e torna a quella tipica.
+  Costa una colonna e il pin di `CSV_TABELLE`; va fatto insieme al prossimo
+  ritocco del CSV, non lasciato in silenzio.
+  ⚠️ E il contatore NON si chiama «dichiarati»: in Terra «dichiarato» è il
+  numero dei turni di Campo, quello che non deve entrare nel riepilogo per
+  gli enti — e la prova P2 conta quella parola nel riepilogo intero. Con quel
+  nome la prova è caduta al primo giro: stesso suono, altra cosa.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

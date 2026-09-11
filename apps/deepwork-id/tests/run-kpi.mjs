@@ -1300,6 +1300,69 @@ test("classeAccuratezza: da metodo+GSD a classe e tolleranza tipica", () => {
   eq(terra.classeAccuratezza({}).classe, "n.d.", "niente → n.d.");
   eq(terra.classeAccuratezza({}).tolleranzaPct, null, "n.d. → tolleranza null");
 });
+
+test("classeAccuratezza: la tolleranza dichiarata dal rilevatore batte quella tipica, e la classe non cambia (11/09)", () => {
+  /* Il numero vero sta nella relazione del topografo (residui sui punti di
+     controllo): quando è scritto nel rilievo la banda si calcola su quello e
+     `fonte` lo dice; il giudizio su metodo e GSD (la classe) resta suo. */
+  const senza = terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: "2" });
+  eq(senza.fonte, "classe", "senza il campo la fonte è la classe");
+  eq(senza.tolleranzaTipica, 2, "e la tipica è scritta accanto");
+  const con = terra.classeAccuratezza({ metodo: "RTK+GCP", gsd: "2", tolleranzaPct: 3.5 });
+  eq(con.classe, "survey-grade", "la classe resta quella di metodo e GSD");
+  eq(con.tolleranzaPct, 3.5, "la tolleranza è quella dichiarata");
+  eq(con.tolleranzaTipica, 2, "la tipica resta accanto per confronto");
+  eq(con.fonte, "rilevatore", "e la fonte lo dice");
+  eq(terra.classeAccuratezza({ metodo: "RTK", gsd: "2", tolleranzaPct: "3,5" }).tolleranzaPct, 3.5, "scritta con la virgola si legge lo stesso");
+  eq(terra.classeAccuratezza({ metodo: "RTK", gsd: "5", tolleranzaPct: 0 }).fonte, "classe", "zero non è una tolleranza dichiarata");
+  eq(terra.classeAccuratezza({ metodo: "RTK", gsd: "5", tolleranzaPct: "abc" }).tolleranzaPct, 8, "una parola non è una tolleranza: resta la tipica");
+  const nd = terra.classeAccuratezza({ tolleranzaPct: 4 });
+  eq(nd.classe, "n.d.", "senza metodo né GSD la classe resta n.d.");
+  eq(nd.tolleranzaPct, 4, "ma la banda si può calcolare sul numero del rilevatore");
+  eq(nd.fonte, "rilevatore", "dichiarandone la fonte");
+  // e la banda del volume la legge davvero
+  eq(terra.bandaVolume(19400, con.tolleranzaPct).banda, 679, "± 3,5 % di 19.400 = 679");
+});
+
+test("verbaleRilievo e descriviIncertezza: dicono di chi è la tolleranza (11/09)", () => {
+  const r = { id: "x", data: "2026-07-15", volumeM3: 19400, metodo: "RTK+GCP", gsd: "2", tolleranzaPct: 3.5, stato: "elaborato" };
+  const V = terra.verbaleRilievo(r, { rilievi: [r], fronti: [], autorizzazioni: [] });
+  const riga = (t) => V.righe.find((x) => x[0] === t) || [];
+  eq(riga("Classe di accuratezza")[1], "Survey-grade — tolleranza dichiarata dal rilevatore ± 3,5% (tipica del metodo ± 2%)", "la riga della classe porta tutt'e due");
+  ok(/± 679 m³/.test(riga("Volume misurato")[1]), "la banda del volume è sul numero dichiarato: " + riga("Volume misurato")[1]);
+  ok(/la tolleranza dichiarata dal rilevatore è ± 3,5% \(tipica del metodo ± 2%\), cioè circa ± 679 m³/.test(V.comeNato), "la frase chiude la parentesi e porta la banda: " + V.comeNato.slice(0, 200));
+  ok(!/valori tipici del metodo di rilievo e vanno confermate/.test(V.comeNato), "e non dice più che va confermata dal rilevatore: l'ha già fatto");
+  ok(/dichiarata dal rilevatore nella sua relazione/.test(V.comeNato), "dice invece da dove viene");
+  // senza il campo, il verbale è quello di prima, parola per parola
+  const r0 = { ...r, tolleranzaPct: undefined };
+  const V0 = terra.verbaleRilievo(r0, { rilievi: [r0], fronti: [], autorizzazioni: [] });
+  eq((V0.righe.find((x) => x[0] === "Classe di accuratezza") || [])[1], "Survey-grade — tolleranza tipica ± 2%", "senza il campo la riga è quella di sempre");
+  ok(/la tolleranza tipica è ± 2%, cioè circa ± 388 m³/.test(V0.comeNato) && /vanno confermate con i punti di controllo del rilevatore/.test(V0.comeNato), "e la frase pure");
+  // n.d. con la tolleranza dichiarata: la classe manca, la banda no
+  const rn = { id: "n", data: "2026-07-15", volumeM3: 10000, tolleranzaPct: 4, stato: "elaborato" };
+  const Vn = terra.verbaleRilievo(rn, { rilievi: [rn] });
+  ok(Vn.nonMisurati.some((m) => /Classe di accuratezza/.test(m)), "la classe resta fra i non misurati");
+  ok(/± 400 m³/.test((Vn.righe.find((x) => x[0] === "Volume misurato") || [])[1]), "ma il volume porta la banda del rilevatore");
+  ok(/Il rilevatore ha però dichiarato una tolleranza di ± 4%, cioè circa ± 400 m³/.test(Vn.comeNato), "e la frase lo spiega: " + Vn.comeNato.slice(0, 220));
+  // l'incertezza dello scavo conta chi la dichiara
+  const i1 = terra.incertezzaScavo([r, { ...r, id: "y", tolleranzaPct: null }]);
+  eq(i1.delRilevatore, 1, "uno su due la porta dal rilevatore");
+  ok(/dichiarata dal rilevatore per uno, tipica del metodo per gli altri/.test(terra.descriviIncertezza(i1)), "e la frase lo dice: " + terra.descriviIncertezza(i1));
+  ok(/sommando la tolleranza dichiarata dal rilevatore di ogni rilievo/.test(terra.descriviIncertezza(terra.incertezzaScavo([r]))), "tutti dichiarati");
+  ok(/sommando la tolleranza tipica del metodo di ogni rilievo/.test(terra.descriviIncertezza(terra.incertezzaScavo([r0]))), "nessuno dichiarato: la frase di prima");
+});
+
+test("⛔ la stessa persona con lo stesso nome nelle tre app che la fanno firmare: «direttore responsabile» (11/09)", () => {
+  /* Terra scriveva «Il direttore dei lavori» nelle tre righe di firma — la
+     parola del cantiere edile — dove Scudo (`NOMINE_RUOLI`, il fascicolo) e
+     Sentinella (la relazione per l'ARPA) scrivono la figura del D.P.R.
+     128/1959. Si prende solo confrontando le app fra loro. */
+  const conta = (rel, re) => (readFileSync(join(HERE, rel), "utf8").match(re) || []).length;
+  eq(conta("../../terra/index.html", /direttore dei lavori/gi), 0, "Terra non dice più «direttore dei lavori»");
+  eq(conta("../../terra/index.html", /direttore responsabile/gi), 3, "le tre firme di Terra dicono «direttore responsabile»");
+  ok(conta("../../scudo/scudo-data.js", /Direttore responsabile/gi) >= 2, "Scudo lo chiama così");
+  ok(conta("../../sentinella/index.html", /Il direttore responsabile/g) >= 1, "e Sentinella pure");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");
@@ -37086,7 +37149,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([i.coperti, i.copertoM3], [1, 10000], "un rilievo coperto, per 10.000 m³");
     eq([i.scoperti, i.scopertoM3], [2, 50000], "due scoperti, per 50.000 m³ — prima sparivano dal conto");
     eq([i.rilievi, i.completa], [3, false], "e la somma si dichiara incompleta");
-    eq(terra.incertezzaScavo([RTK]), { banda: 200, coperti: 1, copertoM3: 10000, scoperti: 0, scopertoM3: 0, rilievi: 1, completa: true },
+    eq(terra.incertezzaScavo([RTK]), { banda: 200, coperti: 1, copertoM3: 10000, scoperti: 0, scopertoM3: 0, delRilevatore: 0, rilievi: 1, completa: true },
       "col solo rilievo con metodo la copertura è piena");
     eq(terra.incertezzaScavo([]).rilievi, 0, "vuoto: zero rilievi");
     eq(terra.incertezzaScavo(null).completa, true, "e null non rompe");
