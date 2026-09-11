@@ -574,3 +574,132 @@ aprendo il modulo (vedi in fondo), non la ricerca.
   apps/sentinella/index.html` → 1 e 2. ⚠️ Le intestazioni dei produttori
   restano **non verificate**: gli indizi sono le parole italiane e inglesi
   ovvie, e l'utente le corregge nella finestra come per gli assi.
+
+## Ricerca del 2026-09-11 — il registro dei reclami: che cosa contiene fuori, e che cosa promette il nostro (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto qui sotto viene da un risultato di
+ricerca ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Che cosa si registra di un reclamo, secondo chi lo fa di mestiere.** Le
+  guide del settore estrattivo (Pit & Quarry, «Managing community blasting
+  complaints»; il modulo comunale «Quarry Event/Complaint Form» di Franklin,
+  WI) elencano: nome e recapito di chi reclama (senza, il reclamo non si può
+  verificare), giorno e ora, che cosa è stato percepito (vibrazione, rumore,
+  polvere), dove, e — se c'è — il danno lamentato con una stima. Una persona
+  sola risponde ai reclami, e la prima cosa da capire al telefono è **la vera
+  origine**: spesso «la volata» è la parola con cui si nomina un fastidio che
+  viene dalla polvere o dal rumore notturno. [seconda mano]
+- **La velocità della risposta è il criterio.** Le stesse guide: si prende sul
+  serio, si risponde presto, si investiga, si chiude — «il peggio è ignorare».
+  Quello che il residente vuole quasi sempre è la **rassicurazione che si sta
+  guardando** (la misura di quel giorno, l'indagine avviata), più che un
+  risarcimento. [seconda mano]
+- **Il collegamento reclamo → misura è il pezzo che i prodotti vendono.**
+  Envirosuite descrive il proprio modulo dei reclami così: ricevuto un reclamo
+  su vibrazione o polvere, l'operatore **accetta o respinge la responsabilità
+  in fretta** perché il reclamo è **affiancato ai dati di monitoraggio** di quel
+  momento, e collega gli eventi acustici alle attività di cantiere per la
+  causa. [seconda mano, sito del produttore]
+- **In Italia l'esposto ha una sua strada, diversa dal reclamo.** Le pagine
+  ARPA (Veneto, Valle d'Aosta, FVG, Piemonte, Lazio): il cittadino presenta
+  un **esposto scritto al Comune** (o alla polizia locale / forestale)
+  indicando la sorgente, gli orari del disturbo e i propri recapiti; il Comune
+  verifica prima che l'attività sia autorizzata e nelle condizioni concesse,
+  poi chiede ad ARPA la **misura fonometrica**, che il tecnico concorda con
+  l'esponente per giorno e ora. Nessuna delle pagine trovate dichiara un
+  termine in giorni per la misura: ARPA «definisce una priorità». [seconda
+  mano]
+- **ISO 14001:2015 chiede la comunicazione esterna e la sua registrazione**
+  (le pagine ARPAV/Assolombarda/SIGE sull'EMAS insistono sulla comunicazione
+  verso l'esterno e sulla trasparenza verso gli enti di controllo); un
+  registro dei reclami con la risposta data è la forma con cui le aziende
+  certificate lo dimostrano. [seconda mano, generico: nessuna pagina cita la
+  clausola]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Pit & Quarry, *Managing community blasting complaints* —
+  https://www.pitandquarry.com/managing-community-blasting-complaints/
+- City of Franklin (WI), *Quarry Complaint Procedures* —
+  https://www.franklinwi.gov/Departments/Planning/Quarry-Monitoring/Quarry-Complaint-Procedures.htm
+- Quarry Magazine, *Managing vibration and airblast issues* —
+  https://www.quarrymagazine.com/managing-vibration-and-airblast-issues
+- CSRM (Univ. of Queensland), *Community complaints and grievance mechanisms* —
+  https://www.csrm.uq.edu.au/media/docs/257/community_complaints_grievance_mechanisms_australian_minerals_industry.pdf
+- Envirosuite, *The smarter way to monitor noise and vibration in mining* —
+  https://envirosuite.com/insights/news/the-smarter-way-to-monitor-noise-and-vibration-in-mining
+- Envirosuite, *Noise monitoring for mine site compliance* —
+  https://envirosuite.com/insights/news/how-can-noise-monitoring-systems-support-compliance-at-mine-sites
+- ARPA Veneto, *Esposti dei cittadini e deroghe* —
+  https://www.arpa.veneto.it/temi-ambientali/rumore/esposti-dei-cittadini-per-rumore
+- ARPA Valle d'Aosta, *Cosa fare se sei disturbato da un rumore* —
+  https://arpa.vda.it/?catid=36&id=1648&view=article
+- ARPA Piemonte, *Come presentare un esposto per rumore?* —
+  https://www.arpa.piemonte.it/faq/come-presentare-un-esposto-per-rumore
+- ARPA Lazio, *Scheda informativa attività di controllo sul rumore* (2020) —
+  https://www.arpalazio.it/documents/20124/b06df591-1b3a-14dc-6cca-a52cb03e7984
+- ARPA Veneto, *ISO 14001 e regolamento EMAS* —
+  https://www.arpa.veneto.it/servizi/altri-servizi/certificazioni-ambientali/gli-strumenti-per-la-certificazione/iso-14001-e-regolamento-emas/iso-14001-e-regolamento-emas
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi decide che cosa si registra di un reclamo? (i campi del modulo e
+   della collezione, non la parola «reclamo»)
+2. Chi mette accanto al reclamo **la misura di quel giorno**? Esiste una
+   funzione che, dato un reclamo, trova le letture del giorno sui punti che
+   misurano la stessa grandezza del ricettore?
+3. Chi sa dire **da quanto** un reclamo è aperto, e quando è stato risposto?
+4. Un reclamo che diventa **esposto** (Comune/ARPA) ha uno stato suo?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `6b2776e1`)
+
+- **Domanda 1 — C'È.** La collezione `reclami/{id}` porta `data, ora, tipo,
+  ricettoreId, chi, descrizione, azione, stato` (intestazione di
+  `sentinella-data.js`), il modulo della pagina ha gli stessi otto campi
+  (`rec-data … rec-azione`), `TIPI_RECLAMO` distingue rumore, polvere,
+  vibrazione, acque, altro. È l'elenco delle guide, compreso il «con parole
+  sue» del segnaposto. E il reclamo apre già un'**azione correttiva in Scudo**
+  con la scadenza (`bozzaAzioneReclamo`, `vociPonte` nella pagina): il «si
+  investiga, si chiude» esiste. *Prova:* `grep -c 'bozzaAzioneReclamo'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **2 e 3**.
+- **Domanda 2 — MANCA, e la pagina lo PROMETTE.** Lo stato vuoto del registro
+  dice: *«Quando arriva l'ente, la risposta è già scritta — con accanto le
+  misure di quel giorno»* (`grep -c 'misure di quel giorno'
+  apps/sentinella/index.html` → **1**). Ma nessuna funzione le mette accanto:
+  `grep -cE 'lettureDelGiorno|letturaDelGiorno|misureDelGiorno'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **0 e 0**,
+  e la riga del reclamo in `renderReclami` stampa tipo, ricettore, stato,
+  data, chi, descrizione e «fatto» — nessuna lettura. Il verso opposto c'è:
+  `fogliaVolata` porta *il reclamo del giorno* accanto alla volata
+  (`reclamiSuoi`), e `coincidenzaVolata` dice se quel giorno c'è stata una
+  volata. Nella dimostrazione il reclamo `x1` porta la misura **scritta a
+  mano** nel campo «azione» («Mostrata la misura di V1 (1,8 mm/s, sotto
+  soglia)»): cioè il prodotto sa che serve, e lo lascia fare all'utente.
+  **Delta concreto**: una funzione pura `misureDelGiornoPerReclamo(reclamo,
+  ricettore, monitoraggi)` che risponde con le letture di quel giorno sui punti
+  che misurano la **stessa grandezza** del ricettore (`ricettore.unita` /
+  `tipo` del punto — il ricettore non ha un `monitoraggioId`, e non serve
+  aggiungerlo), col verdetto sulla soglia (`statoMisura`) e la frase
+  «nessuna lettura quel giorno» quando non c'è — il principio del fondatore:
+  **l'assenza della misura non è un reclamo infondato**. Poi la riga del
+  registro la stampa. È l'unica cosa che Envirosuite vende su questo fronte e
+  che qui manca. **In roadmap come unità.**
+- **Domanda 3 — A METÀ.** `riepilogoReclami` conta gli aperti e l'ultimo;
+  lo stato è `aperto|chiuso` senza una data di chiusura né di risposta:
+  `grep -cE 'dataRisposta|rispostoIl|chiusoIl|apertoDa' apps/sentinella/
+  sentinella-data.js` → **0** (le 2 occorrenze di `dataChiusura` sono
+  dell'AZIONE in Scudo, non del reclamo). Quindi «da quanto è aperto» si può
+  dire (data del reclamo → oggi), «quanto ci abbiamo messo» no. Delta piccolo:
+  `apertoDaGiorni` sulla riga aperta e, chiudendo, `chiusoIl` scritto dalla
+  pagina; il riepilogo dice il più vecchio aperto. Candidato dichiarato,
+  dopo la domanda 2.
+- **Domanda 4 — ASSENTE, e non è detto che serva.** `grep -ciE 'esposto'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → **2 e 0**,
+  e le due sono la parola «esposto» in un commento, non uno stato. Un reclamo
+  che diventa esposto all'ente è un fatto che l'azienda viene a sapere dal
+  Comune: la forma minima è una nota nel campo «azione», che c'è già. Nessun
+  cantiere.

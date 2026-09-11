@@ -789,6 +789,21 @@
   il compositore condiviso `icsCalendario` serve tutte e quattro le app con
   uno scadenzario: Scudo (persone), Flotta (mezzi), Sentinella (ambiente),
   Terra (titolo) — quattro bottoni, una regola, quattro vocabolari.
+- [x] **RICERCA A ROTAZIONE, SENTINELLA — IL REGISTRO DEI RECLAMI: CHE COSA
+  CONTIENE FUORI, E CHE COSA PROMETTE IL NOSTRO (11/09):** metà sul mondo con
+  `WebSearch` (undici fonti citate, tutte di seconda mano): le guide del
+  settore (Pit & Quarry, i moduli comunali del Wisconsin) elencano che cosa si
+  registra di un reclamo e dicono che la velocità della risposta è il
+  criterio; Envirosuite vende il **reclamo affiancato ai dati di monitoraggio
+  di quel momento**; in Italia l'esposto ha la sua strada (Comune → ARPA →
+  misura fonometrica concordata con l'esponente, senza un termine in giorni
+  dichiarato). Delta dal MECCANISMO, verificato contro il commit: i campi del
+  reclamo **ci sono** tutti e il reclamo apre già l'azione in Scudo; le
+  **misure di quel giorno accanto al reclamo** MANCANO — e lo stato vuoto le
+  PROMETTE («con accanto le misure di quel giorno»: nessuna funzione le
+  mette, e nella dimostrazione `x1` le porta scritte a mano); «da quanto è
+  aperto» è a metà (nessuna data di chiusura); lo stato «esposto» è assente e
+  non serve. Due voci aperte qui sotto, con la prova accanto.
 - [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
   — la dimostrazione non ha un tagliando con ore E data (di proposito: le
   prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
@@ -2890,6 +2905,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO`
+- `SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -8946,6 +8963,24 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       dare nessun errore**. `clip` taglia allo stesso modo — che era la
       ragione misurata per cui quella riga esiste — e non crea il
       contenitore.
+- [ ] **SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO (dalla
+  ricerca a rotazione dell'11/09, delta dal meccanismo).** Lo stato vuoto del
+  registro promette «con accanto le misure di quel giorno» e nessuna funzione
+  le mette (`grep -cE 'lettureDelGiorno|misureDelGiorno'` → 0 e 0); nella
+  dimostrazione il reclamo `x1` porta la misura scritta A MANO nel campo
+  «azione». Unità: `misureDelGiornoPerReclamo(reclamo, ricettore, monitoraggi)`
+  pura — le letture di quel giorno sui punti che misurano la stessa grandezza
+  del ricettore, col verdetto sulla soglia (`statoMisura`) e «nessuna lettura
+  quel giorno» quando non c'è (l'assenza della misura non è un reclamo
+  infondato); poi la riga di `renderReclami` la stampa. Prove in run-kpi,
+  scatto della riga. Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca
+  dell'11/09.
+- [ ] **SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO
+  (candidato, dopo la voce sopra).** Lo stato è `aperto|chiuso` senza date
+  (`grep -cE 'dataRisposta|chiusoIl|apertoDa'` → 0): si sa che è aperto, non da
+  quanto, né quanto ci si è messi. Piccolo: `apertoDaGiorni` sulla riga aperta,
+  `chiusoIl` scritto dalla pagina alla chiusura, il riepilogo dice il più
+  vecchio aperto.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
