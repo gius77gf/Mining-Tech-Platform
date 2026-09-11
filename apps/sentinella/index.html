@@ -403,6 +403,9 @@ body.dw.outdoor-mode .peggio-num small{
    (4,86:1 nel chiaro, misurato sopra) ed esiste apposta. */
 .rec-misure.danger{color:var(--ink-dg)}
 .rec-misure.warn{color:var(--ink-wr)}
+/* lo stato di fatto del ricettore, sotto la riga: muto quando c'è, in tono d'avviso quando «non si sa com'era prima» */
+.ric-sdf{margin-top:3px}
+.ric-sdf.manca{color:var(--ink-wr)}
 .arr{
   color:var(--muted); font-size:15px; line-height:1; background:none; border:none;
   padding:0; min-width:var(--tap); min-height:var(--tap); border-radius:8px;
@@ -1458,8 +1461,15 @@ textarea.dw-input{
     </div>
     <div class="frow">
       <input class="dw-input" id="ric-nota" placeholder="Nota (es. orario scolastico 08–16)" style="flex:2 1 200px;">
+    </div>
+    <div class="frow">
+      <input class="dw-input" id="ric-sdf-data" type="date" title="Giorno del sopralluogo preventivo" style="flex:1 1 150px;">
+      <input class="dw-input" id="ric-sdf-chi" placeholder="Chi ha fatto il sopralluogo" style="flex:1 1 170px;">
+      <input class="dw-input" id="ric-sdf-note" placeholder="Com'era prima: fessure e dove, foto agli atti" style="flex:2 1 220px;">
       <button class="dw-btn" id="btn-ric">Aggiungi</button>
     </div>
+    <div class="form-hint"><b>Sopralluogo preventivo</b> (facoltativo): com'era la casa <b>prima</b> delle volate — fessure, dove, foto agli atti.
+      È la prima cosa che si mostra a chi dice «quella crepa l'avete fatta voi»; senza, l'app scrive che non si sa com'era.</div>
     <div class="form-hint">La <b>classe acustica</b> è quella che il Comune ha assegnato alla zona:
       serve a descrivere il ricettore, non a dedurne un limite. Il limite lo scrive
       l'autorizzazione e lo imposti tu. Distanza e soglia si scrivono con la
@@ -1862,6 +1872,7 @@ textarea.dw-input{
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
            reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, misureDelGiornoPerReclamo, apertoDaGiorni, tempoRispostaReclamo, firmaLettura,
+           descriviStatoDiFatto, rispostaReclamo,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
@@ -2482,6 +2493,7 @@ textarea.dw-input{
     CAMPI_RIC.forEach(i => { $(i).value = ""; err(i, false); });
     $("ric-tipo").value = "abitazione"; $("ric-classe").value = "";
     editRic = null; $("btn-ric").textContent = "Aggiungi";
+    ["ric-sdf-data", "ric-sdf-chi", "ric-sdf-note"].forEach(i => { $(i).value = ""; });
   };
 
   function renderRicettori() {
@@ -2505,7 +2517,8 @@ textarea.dw-input{
         <div class="avatar sup">${I.casa}</div>
         <div class="info"><div class="name">${esc(r.nome)}</div>
         <div class="riga"><span class="badge accent">${esc(etichettaTipo(r.tipo))}</span>
-        <span class="meta">${esc(dist)}${cls}${sog} · ${n ? n + (n === 1 ? " punto collegato" : " punti collegati") : "nessun punto collegato"}${r.nota ? " · " + esc(r.nota) : ""}</span></div></div>
+        <span class="meta">${esc(dist)}${cls}${sog} · ${n ? n + (n === 1 ? " punto collegato" : " punti collegati") : "nessun punto collegato"}${r.nota ? " · " + esc(r.nota) : ""}</span></div>
+        <div class="meta ric-sdf${descriviStatoDiFatto(r).noto ? "" : " manca"}">${esc(descriviStatoDiFatto(r).testo)}</div></div>
         <span class="acts">
         <button type="button" class="arr" title="Modifica il ricettore" aria-label="Modifica ${esc(r.nome)}" data-edit-ric="${r.id}">${I.modifica}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi il ricettore" aria-label="Rimuovi ${esc(r.nome)}" data-del-ric="${r.id}">${I.cestino}</button></span></div>`;
@@ -2548,8 +2561,10 @@ textarea.dw-input{
         <div class="info"><div class="name">${esc(etichettaReclamo(x.tipo))}${ric ? " · " + esc(ric.nome) : ""}</div>
         <div class="riga"><span class="badge ${aperto ? "warn" : "ok"}">${badge}</span>
         <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}${chiusura}</span></div>
-        <div class="rec-misure${mis.peggiore ? " " + mis.peggiore.cls : ""}">${esc(mis.frase)}</div></div>
+        <div class="rec-misure${mis.peggiore ? " " + mis.peggiore.cls : ""}">${esc(mis.frase)}</div>
+        ${ric ? `<div class="meta ric-sdf${descriviStatoDiFatto(ric).noto ? "" : " manca"}">${esc(descriviStatoDiFatto(ric).testo)}</div>` : ""}</div>
         <span class="acts">
+        <button type="button" class="arr" title="Risposta scritta al reclamo, da stampare o salvare in PDF" aria-label="Risposta scritta al reclamo del ${fmtD(x.data)}" data-risposta-rec="${x.id}">${I.clip}</button>
         <button type="button" class="arr" title="${aperto ? "Segna come chiuso" : "Riapri il reclamo"}" aria-label="${aperto ? "Segna come chiuso" : "Riapri"} il reclamo del ${fmtD(x.data)}" data-rec-stato="${x.id}">${I.fatto}</button>
         <button type="button" class="arr rimuovi" title="Rimuovi dal registro" aria-label="Rimuovi il reclamo del ${fmtD(x.data)}" data-del-rec="${x.id}">${I.cestino}</button></span></div>`;
       }).join("")
@@ -3381,9 +3396,23 @@ textarea.dw-input{
     + "@media screen and (max-width:520px){.firma{display:block}.firma div{margin-top:20px}}"
     + "@media print{body{margin:14mm;padding:0;max-width:none}h2{page-break-after:avoid}tr{page-break-inside:avoid}}";
   function htmlFogliaVolata(v) {
-    const f = fogliaVolata(v, { monitoraggi: MON, reclami: REC, ricettori: RIC });
-    const demo = avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Questa scheda è composta su dati di esempio: non allegarla a nessuna pratica.").trim();
+    return htmlFoglio(fogliaVolata(v, { monitoraggi: MON, reclami: REC, ricettori: RIC }),
+      "Questa scheda è composta su dati di esempio: non allegarla a nessuna pratica.");
+  }
+  // la risposta scritta al reclamo (11/09): stesso foglio, stesse firme del
+  // modulo, la frase di esempio cambia perché cambia che cosa NON va fatto
+  function htmlRispostaReclamo(x) {
+    return htmlFoglio(rispostaReclamo(x, { monitoraggi: MON, ricettori: RIC, volate: VOL }),
+      "Questa risposta è composta su dati di esempio: non va consegnata a nessuno né allegata a una pratica.");
+  }
+  /* UN FOGLIO SOLO per la scheda della volata e la risposta al reclamo: le
+     sezioni, le righe «manca», l'elenco di ciò che manca, le firme (quelle
+     del modulo, se le dichiara) e la chiusura. Due fogli scritti due volte
+     sarebbero divergenti fra un mese. */
+  function htmlFoglio(f, fraseDemo) {
+    const demo = avvisoTestoDimostrazione(modoDimostrazione(db.mode), fraseDemo).trim();
     const riga = (r) => "<tr><td>" + esc(r[0]) + "</td><td" + (r[2] ? " class=\"manca\"" : "") + ">" + esc(r[1]) + "</td></tr>";
+    const firme = Array.isArray(f.firme) && f.firme.length ? f.firme : ["Luogo e data", "Il direttore responsabile", "Il tecnico che ha eseguito la misura"];
     return "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><title>" + esc(f.titolo) + "</title><style>" + STILE_FOGLIO_VOLATA + "</style></head><body>"
       + (demo ? "<div class=\"demo\">" + esc(demo) + "</div>" : "")
       + "<h1>" + esc(f.titolo) + "</h1><p class=\"sub\">Documento preparato con Deepwork Sentinella il " + esc(f.generatoIl) + "</p>"
@@ -3398,18 +3427,21 @@ textarea.dw-input{
           ? "<h2>Che cosa manca in questa scheda</h2><p class=\"mini\">" + f.nonMisurati.map(esc).join(" · ")
             + ". Questi dati non risultano in Sentinella: la scheda non li stima e non li sostituisce con uno zero.</p>"
           : "")
-      + "<div class=\"firma\"><div>Luogo e data</div><div>Il direttore responsabile</div><div>Il tecnico che ha eseguito la misura</div></div>"
+      + (f.chiusura && f.chiusura.testo ? "<p class=\"" + (f.chiusura.allarme ? "avv" : "mini") + "\"><b>" + esc(f.chiusura.testo) + "</b></p>" : "")
+      + "<div class=\"firma\">" + firme.map(t => "<div>" + esc(t) + "</div>").join("") + "</div>"
       + "<div class=\"foot\">" + esc(f.avvertenza) + " La scheda raccoglie dati registrati dall'utente e letture importate dallo strumento: i limiti e le norme di riferimento sono quelli dichiarati sul punto di misura, e la valutazione degli effetti resta del tecnico che firma.</div>"
       + "</body></html>";
   }
   document.addEventListener("click", (e) => {
-    const b = e.target.closest && e.target.closest("[data-foglio-vol]");
+    const b = e.target.closest && e.target.closest("[data-foglio-vol], [data-risposta-rec]");
     if (!b) return;
     e.preventDefault();
-    const v = VOL.find(x => x.id === b.getAttribute("data-foglio-vol")); if (!v) return;
+    const idV = b.getAttribute("data-foglio-vol"), idR = b.getAttribute("data-risposta-rec");
+    const v = idV ? VOL.find(x => x.id === idV) : null, rec = idR ? REC.find(x => x.id === idR) : null;
+    if (!v && !rec) return;
     const w = window.open("", "_blank");
-    if (!w) { toast("Il browser ha bloccato la finestra della scheda: consenti le finestre per questa pagina.", "err"); return; }
-    w.document.write(htmlFogliaVolata(v)); w.document.close();
+    if (!w) { toast("Il browser ha bloccato la finestra del foglio: consenti le finestre per questa pagina.", "err"); return; }
+    w.document.write(v ? htmlFogliaVolata(v) : htmlRispostaReclamo(rec)); w.document.close();
   });
   /* accogliere una prevista di Genesi: la stessa scrittura dell'import CSV,
      con la stessa firma, e la lista si ridisegna dal registro */
@@ -5141,6 +5173,8 @@ textarea.dw-input{
       $("ric-dist").value = itDec(r.distanza); $("ric-classe").value = r.classe || "";
       $("ric-soglia").value = itDec(r.soglia); $("ric-unita").value = r.unita || "";
       $("ric-nota").value = r.nota || "";
+      const sdf = r.statoDiFatto || {};
+      $("ric-sdf-data").value = String(sdf.data || "").slice(0, 10); $("ric-sdf-chi").value = sdf.chi || ""; $("ric-sdf-note").value = sdf.note || "";
       CAMPI_RIC.forEach(i => err(i, false));
       $("btn-ric").textContent = "Salva modifica";
       esito("ric-esito-form", "Stai modificando «" + r.nome + "»: i punti collegati restano collegati.",
@@ -5966,9 +6000,17 @@ textarea.dw-input{
       esito("ric-esito-form", "Se scrivi una soglia serve anche la sua unità (es. mm/s, dB(A), µg/m³): senza, l'app non sa a quali punti applicarla.", "err", "Serve l'unità della soglia."); return; }
     CAMPI_RIC.forEach(i => err(i, false));
 
+    // il sopralluogo preventivo: entra solo se ha una data; chi e note senza data
+    // non sono un sopralluogo, e si dice
+    const sdfData = $("ric-sdf-data").value, sdfChi = $("ric-sdf-chi").value.trim(), sdfNote = $("ric-sdf-note").value.trim();
+    if (!sdfData && (sdfChi || sdfNote)) {
+      err("ric-sdf-data", true); fuocoErr(["ric-sdf-data"]);
+      esito("ric-esito-form", "Il sopralluogo preventivo ha bisogno della sua data: senza, «com'era prima» non si sa quando è stato visto.", "err", "Manca la data del sopralluogo."); return; }
+    err("ric-sdf-data", false);
     const dati = { nome, tipo: $("ric-tipo").value, classe: $("ric-classe").value,
       distanza: haDist ? dist : null, soglia: haSog ? sog : null,
-      unita, nota: $("ric-nota").value.trim() };
+      unita, nota: $("ric-nota").value.trim(),
+      statoDiFatto: sdfData ? { data: sdfData, chi: sdfChi, note: sdfNote } : null };
     if (editRic) await db.aggiorna("ricettori", editRic, dati);
     else await db.aggiungi("ricettori", dati);
     const modificato = !!editRic;

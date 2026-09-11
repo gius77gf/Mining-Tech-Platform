@@ -57,8 +57,9 @@ const DIFETTI_MODULO = [
 ];
 const DIFETTI_PAGINA = [
   // 1 · il bottone c'è ma il gestore non ritrova la volata: la finestra resta vuota
-  [`const v = VOL.find(x => x.id === b.getAttribute("data-foglio-vol")); if (!v) return;`,
-   `const v = VOL.find(x => x.id === b.getAttribute("data-foglio-vol") + "x"); if (!v) return;`],
+  // (dall'11/09 il gestore serve anche la risposta al reclamo: la riga è quella, riancorata)
+  [`const v = idV ? VOL.find(x => x.id === idV) : null, rec = idR ? REC.find(x => x.id === idR) : null;`,
+   `const v = idV ? VOL.find(x => x.id === idV + "x") : null, rec = idR ? REC.find(x => x.id === idR) : null;`],
   // 4 · il foglio della dimostrazione non dice di essere finto
   [`+ (demo ? "<div class=\\"demo\\">" + esc(demo) + "</div>" : "")`, `+ ""`],
 ];

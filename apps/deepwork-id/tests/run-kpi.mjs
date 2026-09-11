@@ -1429,6 +1429,58 @@ test("Campo · chi ha fatto i controlli: il sorvegliante nominato in Scudo, o «
   eq(righe.map((r) => r[r.length - 1]), ["07:10 da Giulia Verdi", "14:05 (senza nome)"], "e il rapporto della giornata pure");
   eq(righe[0][2], "9 a posto · 0 n.a. · 1 senza risposta", "con la stessa conta");
 });
+
+test("Sentinella · descriviStatoDiFatto: com'era il ricettore prima, o «non si sa» (11/09)", () => {
+  const nessuno = sentinella.descriviStatoDiFatto({ nome: "Casa" });
+  eq(nessuno.noto, false, "senza sopralluogo non è noto");
+  eq(nessuno.testo, "nessun sopralluogo registrato: non si sa com'era prima delle volate", "e lo dice, non tace");
+  eq(sentinella.descriviStatoDiFatto(null).noto, false, "senza ricettore: non noto");
+  const storto = sentinella.descriviStatoDiFatto({ statoDiFatto: { data: "2026-02-30", chi: "X", note: "y" } });
+  ok(!storto.noto && /data che non esiste/.test(storto.testo), "un 30 febbraio non è un sopralluogo: " + storto.testo);
+  const pieno = sentinella.descriviStatoDiFatto({ statoDiFatto: { data: "2026-03-12", chi: "Geom. Ferri", note: "fessura sul vano scala" } });
+  eq([pieno.noto, pieno.data, pieno.chi], [true, "2026-03-12", "Geom. Ferri"]);
+  eq(pieno.testo, "stato di fatto del 12/03/2026 (Geom. Ferri): fessura sul vano scala");
+  eq(sentinella.descriviStatoDiFatto({ statoDiFatto: { data: "2026-03-12" } }).testo, "stato di fatto del 12/03/2026: nessuna annotazione su che cosa si è visto", "senza chi né note lo dice");
+});
+
+test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'è una misura non dice «conforme» (11/09)", () => {
+  const D = sentinella.DEMO;
+  const dati = { monitoraggi: D.monitoraggi, ricettori: D.ricettori, volate: D.volate };
+  const oggi = new Date("2026-09-11T10:00:00Z");
+  const A = sentinella.rispostaReclamo(D.reclami[0], dati, oggi);
+  eq(A.titolo, "Risposta al reclamo del 17/07/2026 — Sig. Bianchi");
+  eq(A.sezioni.map((z) => z.titolo), ["Il reclamo", "Le misure di quel giorno", "La volata di quel giorno", "Com'era il ricettore prima delle volate", "Che cosa abbiamo fatto"], "le cinque sezioni nell'ordine in cui si risponde");
+  const riga = (sez, et) => (A.sezioni.find((z) => z.titolo === sez).righe.find((r) => r[0] === et) || []);
+  eq(riga("Il reclamo", "Ricettore")[1], "Casa Bianchi — via Cava 12 · 320 m dalla cava");
+  eq(riga("Il reclamo", "Stato")[1], "chiuso il 18/07/2026");
+  // le misure sono quelle di misureDelGiornoPerReclamo: V2 5,6 superamento, V1 senza lettura
+  const mis = sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, D.ricettori.find((r) => r.id === "rc1"));
+  const rV2 = riga("Le misure di quel giorno", mis.punti[1].nome), rV1 = riga("Le misure di quel giorno", mis.punti[0].nome);
+  ok(/^5,6 mm\/s alle 10:25 — superamento della soglia \(soglia 5 mm\/s\)$/.test(rV2[1]) && rV2[2] === false, "V2: " + rV2[1]);
+  ok(rV1[1] === "nessuna lettura quel giorno" && rV1[2] === true, "V1 manca, dichiarato");
+  ok(A.sezioni[1].righe.some((r) => /^Riferimento della soglia/.test(r[0]) && /DIN 4150|UNI 9916|riferimento normativo|scritta/.test(r[1])), "ogni punto porta il riferimento della sua soglia: " + JSON.stringify(A.sezioni[1].righe.map((r) => r[0])));
+  ok(/limite di legge/.test(A.sezioni[1].avviso), "l'avviso dice che il limite è un riferimento tecnico");
+  ok(/Fronte Nord/.test(riga("La volata di quel giorno", "Volate registrate")[1]), "la volata di quel giorno: " + riga("La volata di quel giorno", "Volate registrate")[1]);
+  eq(riga("Com'era il ricettore prima delle volate", "Sopralluogo preventivo")[1].slice(0, 45), "stato di fatto del 12/03/2026 (Geom. Ferri, p");
+  ok(A.chiusura.allarme && /superato la soglia di riferimento/.test(A.chiusura.testo), "la chiusura dice del superamento: " + A.chiusura.testo);
+  eq(A.firme, ["Luogo e data", "Il direttore responsabile"]);
+  eq(A.nonMisurati, [mis.punti[0].nome + " (nessuna lettura quel giorno)"], "manca solo la lettura di V1");
+  // x2: polvere alla scuola, nessuna lettura quel giorno, nessun sopralluogo
+  const B = sentinella.rispostaReclamo(D.reclami[1], dati, oggi);
+  ok(B.chiusura.allarme && /non c'è una misura da mostrare/.test(B.chiusura.testo), "senza misure non dice conforme: " + B.chiusura.testo);
+  ok(B.nonMisurati.some((m) => /Sopralluogo preventivo \(non registrato\)/.test(m)), "il sopralluogo mancante è dichiarato: " + JSON.stringify(B.nonMisurati));
+  eq(B.sezioni[3].righe[0][1], "nessun sopralluogo registrato: non si sa com'era prima delle volate");
+  eq(riga.call(null, "Il reclamo", "Stato")[1], "chiuso il 18/07/2026", "(riga di A)");
+  eq(B.sezioni[0].righe.find((r) => r[0] === "Stato")[1], "aperto");
+  // un reclamo nudo: niente data, niente ricettore
+  const C = sentinella.rispostaReclamo({ tipo: "rumore" }, dati, oggi);
+  ok(C.nonMisurati.some((m) => /^Ricevuto il/.test(m)) && C.nonMisurati.some((m) => /^Ricettore/.test(m)) && C.nonMisurati.some((m) => /^Misure di quel giorno/.test(m)), "senza data né ricettore lo dice: " + JSON.stringify(C.nonMisurati));
+  ok(C.chiusura.allarme, "e non conclude niente di tranquillo");
+  // la pagina ha il bottone e la riga
+  const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+  ok(/data-risposta-rec=/.test(pagina) && /htmlRispostaReclamo\(/.test(pagina), "la scheda del reclamo stampa la risposta");
+  ok((pagina.match(/descriviStatoDiFatto\(/g) || []).length >= 3, "lo stato di fatto si legge nella riga del ricettore e in quella del reclamo");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");

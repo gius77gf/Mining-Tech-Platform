@@ -7,7 +7,9 @@
 //     → lo stato si CALCOLA: valore/soglia ≥1 superamento, ≥0.9 attenzione
 //   adempimenti/{id}: { titolo, ente, scadenza (ISO) } → urgenza dalle date
 //   registri/{id}:    { titolo, nota, stato: aggiornato|in-attesa }
-//   ricettori/{id}:   { nome, tipo, distanza, classe, soglia, unita, nota }
+//   ricettori/{id}:   { nome, tipo, distanza, classe, soglia, unita, nota,
+//                       statoDiFatto?: { data (ISO), chi, note } — il sopralluogo
+//                       PRIMA delle volate: com'era la casa (fessure e dove), dal 11/09 }
 //     → il punto sensibile da proteggere (casa, scuola, confine). Le norme
 //       ragionano per RICETTORE: la soglia del ricettore, se impostata,
 //       vince su quella del punto di misura collegato.
@@ -143,7 +145,9 @@ export const DEMO = {
                  { data: "2026-07-31", ora: "09:40", valore: 22.4, origine: { da: "import", file: "PV1_luglio.csv", quando: "2026-08-01T07:50:00" } } ] },
   ],
   ricettori: [
-    { id: "rc1", nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320, classe: "III", soglia: 5, unita: "mm/s", nota: "abitazione più vicina al fronte Sud" },
+    { id: "rc1", nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320, classe: "III", soglia: 5, unita: "mm/s", nota: "abitazione più vicina al fronte Sud",
+      // il sopralluogo prima delle volate (11/09): è la difesa che il mondo mette per prima
+      statoDiFatto: { data: "2026-03-12", chi: "Geom. Ferri, per conto della cava", note: "fessura capillare sull'intonaco del vano scala (40 cm) e sul davanzale della cucina; foto 1-4 agli atti" } },
     { id: "rc2", nome: "Confine Nord — mappale 214", tipo: "confine", distanza: 90, classe: "V", soglia: 20, unita: "mm/s", nota: "confine di proprietà, nessun edificio" },
     { id: "rc3", nome: "Scuola primaria — via Roma 4", tipo: "scuola", distanza: 640, classe: "I", soglia: 40, unita: "µg/m³", nota: "ricettore sensibile: orario scolastico 08–16" },
     /* ⛔ IL RICETTORE DI CUI NON SI SA QUANTO È LONTANO. La distanza governa la
@@ -5317,6 +5321,102 @@ const VERDETTI_GIORNO = {
   superamento: "superamento della soglia", attenzione: "vicino alla soglia", conforme: "sotto soglia",
   "senza-soglia": "senza una soglia da confrontare",
 };
+/* COM'ERA IL RICETTORE PRIMA DELLE VOLATE (11/09, dalla ricerca del secondo
+   giro). Il rilievo preventivo — foto e descrizione delle fessure esistenti —
+   è la prima difesa contro «quella crepa l'avete fatta voi»: fuori si dice che
+   toglie di mezzo la gran parte delle richieste pretestuose. Qui entra il
+   TESTO del sopralluogo (data, chi, che cosa si è visto); le foto restano una
+   decisione. Senza sopralluogo si dice «non si sa com'era prima», non si
+   tace: è il principio del fondatore applicato a un dato che manca. */
+export function descriviStatoDiFatto(ricettore) {
+  const sdf = ricettore && ricettore.statoDiFatto;
+  const data = sdf ? String(sdf.data || "").slice(0, 10) : "";
+  if (!sdf || !dataISOEsiste(data)) {
+    return { noto: false, data: null, chi: "", note: "",
+      testo: sdf && String(sdf.data || "").trim()
+        ? "sopralluogo con una data che non esiste (\u00ab" + String(sdf.data) + "\u00bb): non si sa com'era prima delle volate"
+        : "nessun sopralluogo registrato: non si sa com'era prima delle volate" };
+  }
+  const chi = String(sdf.chi || "").trim(), note = String(sdf.note || "").trim();
+  return { noto: true, data, chi, note,
+    testo: "stato di fatto del " + dataIt(data) + (chi ? " (" + chi + ")" : "") + (note ? ": " + note : ": nessuna annotazione su che cosa si è visto") };
+}
+
+/* LA RISPOSTA SCRITTA AL RECLAMO (11/09). Il mondo la vuole così: rispetto,
+   di che cosa si lamenta, la misura di quel giorno, la volata di quel giorno,
+   com'era la casa prima, che cosa si è fatto — e un limite che è un
+   RIFERIMENTO tecnico, non una legge. Tutto composizione di funzioni che
+   esistono (`misureDelGiornoPerReclamo`, `coincidenzaVolata`,
+   `riferimentoSoglia`, `descriviStatoDiFatto`): niente ricalcolato, così il
+   foglio dice quello che dice lo schermo. Ogni riga porta un terzo elemento
+   `manca`, e `nonMisurati` li elenca per il foglio. */
+export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
+  const r = reclamo || {};
+  const MON = dati.monitoraggi || [], RIC = dati.ricettori || [], VOL = dati.volate || [];
+  const nonMisurati = [];
+  const manca = (etichetta, testo, ragione) => { nonMisurati.push(etichetta + " (" + ragione + ")"); return [etichetta, testo, true]; };
+  const ric = trovaRicettore(RIC, r.ricettoreId);
+  const data = String(r.data || "").slice(0, 10);
+  const dataOk = dataISOEsiste(data);
+  const dm = ric ? distanzaDelRicettore(ric) : null;
+  const sezioni = [];
+  sezioni.push({ titolo: "Il reclamo", righe: [
+    dataOk ? ["Ricevuto il", dataIt(data) + (r.ora ? " alle " + String(r.ora) : ""), false] : manca("Ricevuto il", r.data ? "data non valida: \u00ab" + String(r.data) + "\u00bb" : "senza data", "non registrata"),
+    ["Per che cosa", etichettaReclamo(r.tipo), false],
+    r.chi ? ["Da chi", String(r.chi), false] : manca("Da chi", "non indicato", "non indicato"),
+    ric ? ["Ricettore", String(ric.nome || "senza nome") + (dm != null ? " \u00b7 " + numeroIt(dm) + " m dalla cava" : " \u00b7 distanza non indicata"), false]
+        : manca("Ricettore", r.ricettoreId ? "non pi\u00f9 in elenco" : "non indicato", r.ricettoreId ? "non pi\u00f9 in elenco" : "non indicato"),
+    r.descrizione ? ["Che cosa \u00e8 stato segnalato", String(r.descrizione), false] : manca("Che cosa \u00e8 stato segnalato", "non scritto", "non scritto"),
+    ["Stato", r.stato === "chiuso" ? "chiuso" + (dataISOEsiste(String(r.chiusoIl || "").slice(0, 10)) ? " il " + dataIt(String(r.chiusoIl).slice(0, 10)) : "") : "aperto", false],
+  ] });
+  // le misure di quel giorno: le decide la stessa funzione dello schermo
+  const mis = misureDelGiornoPerReclamo(r, MON, ric);
+  const righeMis = [];
+  if (!mis.data) righeMis.push(manca("Misure di quel giorno", mis.frase, "il reclamo non ha una data"));
+  else if (!mis.punti.length) righeMis.push(manca("Misure di quel giorno", mis.frase, "nessun punto di misura per questa grandezza"));
+  else {
+    for (const p of mis.punti) {
+      const m = MON.find(x => x && x.id === p.id) || null;
+      const rif = m ? riferimentoSoglia(m, RIC) : null;
+      if (p.max == null) righeMis.push(manca(p.nome, "nessuna lettura quel giorno", "nessuna lettura quel giorno"));
+      else righeMis.push([p.nome, numeroIt(p.max) + (p.unita ? " " + p.unita : "") + (p.ora ? " alle " + p.ora : "") + " \u2014 " + VERDETTI_GIORNO[p.verdetto]
+        + (p.soglia != null ? " (soglia " + numeroIt(p.soglia) + (p.unita ? " " + p.unita : "") + ")" : ""), false]);
+      if (rif) righeMis.push(["Riferimento della soglia \u00b7 " + p.nome, rif.testo, false]);
+    }
+  }
+  sezioni.push({ titolo: "Le misure di quel giorno", righe: righeMis,
+    avviso: "I limiti usati qui sono riferimenti tecnici scelti dall'azienda: in Italia non esiste un limite di legge per le vibrazioni, e l'ente valuta caso per caso." });
+  const vol = dataOk ? coincidenzaVolata(VOL, data) : null;
+  sezioni.push({ titolo: "La volata di quel giorno", righe: [
+    !dataOk ? manca("Volate", "non cercabili senza la data del reclamo", "senza data")
+      : vol ? ["Volate registrate", vol.testo, false] : ["Volate registrate", "Nessuna volata registrata quel giorno nel registro di Sentinella.", false],
+  ], avviso: vol ? vol.avviso : "" });
+  const sdf = descriviStatoDiFatto(ric);
+  sezioni.push({ titolo: "Com'era il ricettore prima delle volate", righe: [
+    !ric ? manca("Sopralluogo preventivo", "senza ricettore non c'\u00e8 un sopralluogo da citare", "ricettore non indicato")
+      : sdf.noto ? ["Sopralluogo preventivo", sdf.testo, false] : manca("Sopralluogo preventivo", sdf.testo, "non registrato"),
+  ] });
+  sezioni.push({ titolo: "Che cosa abbiamo fatto", righe: [
+    r.azione ? ["Risposta data", String(r.azione), false] : manca("Risposta data", "non ancora scritta", "non ancora scritta"),
+  ] });
+  // la chiusura dice la cosa che conta, e non dice \u00abconforme\u00bb dove non c'\u00e8 una misura
+  const pegg = mis.peggiore;
+  const chiusura = !mis.data || !mis.punti.length || !mis.conLettura
+    ? { allarme: true, testo: "Di quel giorno non c'\u00e8 una misura da mostrare: questa risposta non pu\u00f2 dire n\u00e9 sotto n\u00e9 sopra soglia, e deve dirlo." }
+    : pegg && pegg.verdetto === "superamento"
+      ? { allarme: true, testo: "Quel giorno una misura ha superato la soglia di riferimento (" + pegg.nome + "): la risposta lo dice e dice che cosa si \u00e8 fatto." }
+      : pegg && pegg.verdetto === "attenzione"
+        ? { allarme: true, testo: "Quel giorno una misura \u00e8 arrivata vicino alla soglia di riferimento (" + pegg.nome + ")." }
+        : { allarme: false, testo: "Le misure di quel giorno sono sotto la soglia di riferimento scelta dall'azienda \u2014 un riferimento tecnico, non un limite di legge." };
+  return {
+    titolo: "Risposta al reclamo" + (dataOk ? " del " + dataIt(data) : "") + (r.chi ? " \u2014 " + String(r.chi) : ""),
+    sezioni, nonMisurati, chiusura,
+    firme: ["Luogo e data", "Il direttore responsabile"],
+    generatoIl: dataIt(isoLocale(oggi)),
+    avvertenza: "Risposta composta da Sentinella con i dati registrati: le registrazioni originali dello strumento e il registro delle volate restano i documenti di riferimento.",
+  };
+}
+
 export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore) {
   const r = reclamo || {};
   const data = String(r.data || "").slice(0, 10);

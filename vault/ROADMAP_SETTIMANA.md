@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL RECLAMO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.379 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2898, `run-stile` 328,
+  **3.381 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2900, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9351,7 +9350,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   (0 e 0) e la **risposta scritta al reclamo** MANCA come documento (0 fogli)
   → una voce aperta; l'esposto resta dichiarato. Vedi
   `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca dell'11/09 (secondo giro).
-- [ ] **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
+- [x] ✅ 11/09 (unità 97) **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
   RECLAMO** *(dalla ricerca dell'11/09, secondo giro, domande 3 e 4)*. (1) Sul
   ricettore un sopralluogo preventivo — `statoDiFatto: { data, chi, note }`
   (che cosa si è visto: fessure e dove) — scritto nella scheda, richiamato
@@ -9365,9 +9364,38 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   di fatto, e chi risponde; foglio stampabile dalla scheda del reclamo con la
   frase di esempio e le firme («Il direttore responsabile»), registrato in
   `documenti-dimostrazione`. Come si misura: sulla dimostrazione la risposta
-  del reclamo chiuso cita «1,8 mm/s» e «sotto soglia», quella di un reclamo
-  senza misure dice che non ci sono misure di quel giorno (non «conforme»);
-  un ricettore senza sopralluogo esce con «non si sa com'era prima».
+  del reclamo chiuso cita la misura di quel giorno decisa da
+  `misureDelGiornoPerReclamo` (V2 «5,6 mm/s alle 10:25 — superamento», V1
+  «nessuna lettura»; ⚠️ la prima stesura di questa voce scriveva «1,8 mm/s,
+  sotto soglia» copiando il campo «azione» scritto a mano nella dimostrazione
+  — è il numero della lettura di V1 del 12/07, non di quel giorno: la
+  funzione dice di più della nota), quella di un reclamo senza misure dice
+  che non ci sono misure di quel giorno (non «conforme»); un ricettore senza
+  sopralluogo esce con «non si sa com'era prima».
+- [x] **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
+  RECLAMO (unità 97, 11/09).** `descriviStatoDiFatto(ricettore)` → `{noto,
+  data, chi, note, testo}` («stato di fatto del 12/03/2026 (chi): …», oppure
+  «nessun sopralluogo registrato: non si sa com'era prima delle volate», e un
+  30 febbraio non è un sopralluogo); il record `statoDiFatto: {data, chi,
+  note}` sul ricettore, tre campi nel form (la data è obbligatoria se si
+  scrive chi o note), la riga del ricettore e quella del reclamo lo mostrano
+  (in tono d'avviso quando manca). `rispostaReclamo(reclamo, {monitoraggi,
+  ricettori, volate}, oggi)`: cinque sezioni nell'ordine in cui si risponde
+  (il reclamo; le misure di quel giorno con il riferimento di ogni soglia e
+  l'avviso «riferimento tecnico, non limite di legge»; la volata di quel
+  giorno con l'avviso di coincidenza; com'era il ricettore prima; che cosa
+  abbiamo fatto), righe «manca» e `nonMisurati`, chiusura che dice del
+  superamento o che «non c'è una misura da mostrare» (mai «conforme» senza
+  misura), firme «Luogo e data / Il direttore responsabile». Nella pagina un
+  foglio solo (`htmlFoglio`) per la scheda della volata e la risposta
+  (firme dal modulo, chiusura stampata), bottone nella riga del reclamo,
+  `documenti-dimostrazione` +2 (142). Misurato a 430 px: le righe dei
+  reclami e dei ricettori con lo stato di fatto, la risposta di x1 con le
+  sei intestazioni e la chiusura sul superamento di V2, 0 errori. run-kpi
+  2898 → 2900; copertura sentinella 187/187.
+  ⚠️ Dichiarato, non fatto: lo stato di fatto non entra ancora nel report di
+  conformità per l'ente (`reportConformita`) né nel CSV dei ricettori
+  (`csvRicettori`): la risposta al reclamo lo porta, il report no.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

@@ -808,6 +808,9 @@ hammondriverholdings.com · uttamblastech.com.
   ricettore, richiamato accanto al reclamo di quel ricettore e nella
   relazione per l'ente. ⚠️ Le **foto** sono una decisione (dove si tengono,
   quanto pesano): qui entra il testo, la foto resta dichiarata.
+  ✅ **FATTO lo stesso giorno, unità 97**: `descriviStatoDiFatto`,
+  `statoDiFatto` sul ricettore, form e righe. Prova: `grep -c '^export
+  function descriviStatoDiFatto' apps/sentinella/sentinella-data.js` → 1.
 - **Domanda 4 — MANCA come documento.** `grep -cE '^export function
   (foglia|testo|lettera)[A-Za-z]*Reclam'` → 0; le occorrenze di «risposta»
   accanto a «reclamo» (`grep -niE 'rispost.*reclam'` → 2 e 4) sono il tempo
@@ -818,6 +821,9 @@ hammondriverholdings.com · uttamblastech.com.
   ma nessuno li compone nella **risposta scritta** che si consegna al
   reclamante o al Comune. **Mancanza confermata, aperta**: composizione, non
   calcolo, sullo stampo di `fascicoloIspezione`.
+  ✅ **FATTO lo stesso giorno, unità 97**: `rispostaReclamo` (cinque sezioni,
+  chiusura, firme), foglio dalla riga del reclamo. Prova: `grep -c '^export
+  function rispostaReclamo' apps/sentinella/sentinella-data.js` → 1.
 - **Domanda 5 — C'È.** `grep -c 'daVerificare'` → 3 e `riferimentoSoglia` → 1:
   ogni preset porta «da verificare: sempre», e la soglia scrive il suo
   riferimento (UNI 9916 / DIN 4150, `grep -ciE 'DIN ?4150'` → 6 nel modulo).
