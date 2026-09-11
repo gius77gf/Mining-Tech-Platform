@@ -665,6 +665,36 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **NONA FETTA DI B3 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE ESCONO
+  DA GENESI (10/09, stesso commit dell'ottava):** `_sigSpark` (la miniatura
+  SVG del composito, normalizzata sul picco e mai divisa per zero),
+  `_ppvBaseHtml` (la base della previsione PPV per il foglio e la scheda, col
+  grassetto sul capo dell'avviso) e `shade` (la tinta della roccia dal
+  litotipo, tetto a 255 per canale) in `genesi-data.js`, blocco G27; `fmtT`
+  (il tempo sull'orologio della scena) in `genesi-formato.js`, perché scrive
+  un numero. Entrate identiche (20.000 casi ciascuna → 0 divergenze). Le
+  iniezioni del banco `genesi-foglio-in-cava` puntano al CHIAMANTE di
+  `_ppvBaseHtml`, che resta nella pagina: non scadono. ⚠️ Un `kill` sul PID
+  sbagliato ha spento il giro di verifica dell'ottava fetta insieme alla
+  catena che voleva fermare: rilanciato; le due fette escono in un commit.
+  Prove: run-kpi +5 (2842), copertura genesi-data 109 → **112** e
+  genesi-formato 8 → **9**, censimento 156 → **152** funzioni nella pagina
+  (51 → 48 a una o due variabili, 58 → 55 «il numero che conta»).
+- [x] **OTTAVA FETTA DI B3 — LE CLASSI DELL'ENERGIA E DEL RELIEF E IL CODICE
+  DELLA VOLATA ESCONO DA GENESI (10/09):** `pfCls` + `ENECOL`/`ENELAB` (la
+  classe di un foro dal RAPPORTO col consumo specifico di progetto, 75/90/
+  115/140 %, col colore e la frase di ogni classe), `classeRelief` + `RELCOL`
+  (la finestra scelta a schermo, il 60 % del minimo, `null` è «none») e
+  `codiceVolataGenesi` (il codice deterministico `GEN-<data>-<impronta>` con
+  cui Sentinella riconosce i doppioni) in `genesi-data.js`, blocco G26 —
+  entrate identiche (20.000 casi ciascuna → 0 divergenze). Nella pagina
+  `reliefCls` resta come legame con `D2.relLo/relHi`; la mappa delle classi
+  CSS del relief, che non leggeva nessuno (`grep -c` → 1, la dichiarazione),
+  è stata tolta. ⛔ E la prova G15 chiamava una `pfCls` RICOPIATA «solo per
+  dimostrare» — la copia debole dentro la prova: adesso chiama quella vera.
+  Le mappe sono provate come la regola 18: coprono tutte le classi che la
+  funzione sa dire. Prove: run-kpi +4 (2837), copertura genesi-data 103 →
+  **109**, censimento 158 → **156** funzioni nella pagina.
 - [x] **SETTIMA FETTA DI B3 — LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE
   CELLE DEL CONFRONTO A/B ESCONO DA GENESI, E IL RITARDO VUOTO SI CHIUDE
   (10/09):** `fileDeiFori` (le file per distanza dalla faccia, tolleranza
@@ -3157,8 +3187,8 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, settima fetta
-      (G25): **158** nella pagina, **51** a una o due variabili, **58** «il
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *10/09, nona fetta
+      (G27): **152** nella pagina, **48** a una o due variabili, **55** «il
       numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
@@ -7544,8 +7574,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.314 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2833, `run-stile` 328,
+  **3.323 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2842, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -2623,3 +2623,98 @@ export function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i styl
 export function _cmpPf(k){ const v=_cmpNum(k&&k.pf); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gfix(v,2)+' kg/m³'; }
 export function _cmpCm(k,campo){ const v=_cmpNum(k&&k[campo]); return (v===null||(k&&k.fragCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,1)+' cm'; }
 export function _cmpFly(k){ const v=_cmpNum(k&&k.fly); return (v===null||(k&&k.flyCalcolabile===false))?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' m'; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G26 · LE CLASSI DELL'ENERGIA E DEL RELIEF, E IL CODICE DELLA VOLATA
+   (10/09, cantiere B3, ottava fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `pfCls(rapporto)` con `ENECOL` e `ENELAB` — la classe di un foro dal
+   RAPPORTO fra il suo consumo specifico locale e quello di progetto (una cava
+   a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla loro media: conta
+   quanto un foro se ne discosta): sotto il 75% «carica molto diluita», sotto
+   il 90% «diluita», fino al 115% «in linea», fino al 140% «energia
+   concentrata», oltre «molto concentrata». ⚠️ Di un rapporto non finito
+   risponde `'ok'`, com'era: sono i CHIAMANTI a non chiederlo quando manca un
+   pezzo (le due guardie pinnate in `run-kpi`, blocco G15), perché un verde
+   su un confronto impossibile è il numero tranquillo. Le due mappe portano
+   il colore e la frase di ogni classe: la prova pretende che coprano tutte
+   le classi che la funzione sa dire (regola 18).
+
+   `classeRelief(relief, relLo, relHi)` con `RELCOL` — la classe del relief di
+   un foro (ms/m verso il vicino che ha già sparato) rispetto alla finestra
+   scelta a schermo: sotto il 60% del minimo «bad», sotto il minimo «warn»,
+   dentro «ok», sopra il massimo «hi»; `null` è «none» (il primo della sua
+   zona spara sulla faccia già aperta). Il massimo sta sempre almeno mezzo
+   ms/m sopra il minimo, e senza finestra valgono 5 e 15. La pagina la chiama
+   con `D2.relLo`/`D2.relHi` e `reliefCls` resta come legame. ⚠️ La mappa
+   `RELSV` (le classi CSS) NON è entrata: nella pagina non la leggeva nessuno
+   (`grep -c RELSV` → 1, la sola dichiarazione), ed è stata tolta.
+
+   `codiceVolataGenesi(dati, data, fronte)` — il CODICE della volata che esce
+   verso Sentinella: deterministico, ricavato dal progetto (data, fronte,
+   fori, chili, MIC, distanza), `GEN-<data senza trattini>-<impronta in base
+   36>`. Serve a Sentinella per riconoscere i doppioni (`firmaVolata`) anche
+   DOPO che la volata è stata confermata correggendo fori e chili: un codice
+   casuale a ogni export non servirebbe a niente. Tutte entrate identiche. */
+export const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
+export const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };
+export function pfCls(r){
+  if(r==null||!isFinite(r)) return 'ok';
+  if(r<0.75) return 'moltoBassa';
+  if(r<0.90) return 'bassa';
+  if(r<=1.15) return 'ok';
+  if(r<=1.40) return 'alta';
+  return 'moltoAlta';
+}
+export const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60'};
+export function classeRelief(r, relLo, relHi){
+  if(r==null) return 'none';
+  const lo=relLo||5, hi=Math.max((relLo||5)+0.5, relHi||15);
+  if(r<lo*0.6) return 'bad';                                 // molto sotto finestra
+  if(r<lo) return 'warn';                                    // sotto finestra
+  if(r<=hi) return 'ok';                                     // in finestra
+  return 'hi';                                               // relief eccessivo
+}
+export function codiceVolataGenesi(d,data,fronte){
+  const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
+  let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;
+  return 'GEN-'+String(data||'').replace(/-/g,'')+'-'+(h>>>0).toString(36);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
+   del composito, la base della previsione PPV, la tinta della roccia
+   (10/09, cantiere B3, nona fetta).
+   ═══════════════════════════════════════════════════════════════════════════
+   `_sigSpark(comp, steps)` — la miniatura SVG dell'onda composita (G23): il
+   tracciato campionato a 240 punti al massimo, normalizzato sul picco (mai
+   diviso per zero: il picco parte da 1e-9), con la linea dello zero. È il
+   disegno che sta sotto il PPV composito nella modale della firma.
+
+   `_ppvBaseHtml(pv)` — la «base della previsione PPV» scritta per il foglio
+   stampabile e per la scheda: il testo di `provenienzaPpv` e, se ci sono, gli
+   avvisi uno per riga col grassetto sul CAPO dell'avviso (prima dei due
+   punti) e non su tutta la frase — sullo scatto a 390 px sei righe intere in
+   grassetto smettono di segnalare qualcosa. Tutto passa da `_rEsc`.
+
+   `shade(colore, fattore)` — il colore della roccia derivato dal litotipo
+   (un fronte di basalto non è un fronte di arenaria): ogni canale RGB del
+   colore intero scalato per il fattore, con il tetto a 255. Lo usano dieci
+   materiali della scena 3D.
+   Tutte e tre entrate identiche (vecchie estratte da HEAD accanto alle
+   nuove, 20.000 casi ciascuna → 0 divergenze). `fmtT`, il quarto pezzo di
+   questa fetta, è salito in `genesi-formato.js` perché scrive un numero. */
+export function _sigSpark(comp,steps){
+  const W=560,Hh=90,st=Math.max(1,Math.floor(steps/240));
+  let mx=1e-9; for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>mx) mx=v; }
+  let d='',j=0;
+  for(let i=0;i<steps;i+=st){ const x=(i/steps)*W, y=Hh/2-(comp[i]/mx)*(Hh/2-4); d+=(j++?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
+  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:80px;background:rgba(0,0,0,.25);border-radius:8px"><line x1="0" y1="'+(Hh/2)+'" x2="'+W+'" y2="'+(Hh/2)+'" stroke="rgba(255,255,255,.15)"/><path d="'+d+'" fill="none" stroke="#ffd54f" stroke-width="1.2"/></svg>';
+}
+export function _ppvBaseHtml(pv){
+  return _rEsc(pv.testo) + (pv.avvisi.length
+    ? '<br>'+pv.avvisi.map(a=>{ const i=a.indexOf(':');
+        return i<0 ? '<b>'+_rEsc(a)+'</b>' : '<b>'+_rEsc(a.slice(0,i))+'</b>'+_rEsc(a.slice(i)); }).join('<br>')
+    : '');
+}
+export function shade(c,f){ const r=Math.min(255,Math.round(((c>>16)&255)*f)), g=Math.min(255,Math.round(((c>>8)&255)*f)), b=Math.min(255,Math.round((c&255)*f)); return (r<<16)|(g<<8)|b; }

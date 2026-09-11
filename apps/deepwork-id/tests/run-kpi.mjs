@@ -25226,6 +25226,90 @@ console.log("\n— Campo: i file che escono —");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["fileDeiFori", "INN_TAGLI", "taglioRealizzabile", "_cmpNum", "_cmpKg", "_cmpEur", "_cmpPf", "_cmpCm", "_cmpFly"].every((n) => elenco.includes(n)), "la pagina importa tutt'e nove");
   });
+
+  /* ⛔ G26 — LE CLASSI DELL'ENERGIA E DEL RELIEF, IL CODICE DELLA VOLATA
+     (10/09, ottava fetta di B3). Tre funzioni e tre mappe entrate identiche
+     (vecchie estratte da HEAD accanto alle nuove: 20.000 casi ciascuna, 0
+     divergenze). */
+  test("⛔ Genesi · pfCls: la classe dal RAPPORTO col progetto, e ogni classe ha colore e frase (regola 18)", () => {
+    eq(["0.5", "0.749", "0.75", "0.899", "0.9", "1.15", "1.151", "1.4", "1.401"].map((x) => v.pfCls(+x)),
+      ["moltoBassa", "moltoBassa", "bassa", "bassa", "ok", "ok", "alta", "alta", "moltoAlta"], "le soglie 75/90/115/140, coi bordi");
+    eq(v.pfCls(null), "ok"); eq(v.pfCls(NaN), "ok"); eq(v.pfCls(Infinity), "ok", "⚠️ un rapporto non finito risponde «ok» com'era: sono i chiamanti a non chiederlo (guardie G15)");
+    const classi = ["moltoBassa", "bassa", "ok", "alta", "moltoAlta"];
+    eq(Object.keys(v.ENECOL), classi, "ENECOL copre tutte le classi che pfCls sa dire, nell'ordine");
+    eq(Object.keys(v.ENELAB), classi, "e ENELAB pure");
+    ok(classi.every((c) => /^#[0-9a-f]{6}$/.test(v.ENECOL[c]) && v.ENELAB[c].length > 8), "ogni classe ha un colore esadecimale e una frase");
+  });
+  test("⛔ Genesi · classeRelief: la finestra scelta a schermo, il 60% del minimo, e null è «none»", () => {
+    eq([2.9, 3, 4.9, 5, 15, 15.1].map((r) => v.classeRelief(r, 5, 15)), ["bad", "warn", "warn", "ok", "ok", "hi"], "finestra 5-15: sotto 3 bad, sotto 5 warn, fino a 15 ok, oltre hi");
+    eq(v.classeRelief(null, 5, 15), "none", "senza vicino che ha già sparato: none (spara sulla faccia aperta)");
+    eq(v.classeRelief(10, undefined, undefined), "ok", "senza finestra valgono 5 e 15");
+    eq(v.classeRelief(10.4, 10, 3), "ok", "un massimo sotto il minimo viene alzato a minimo + 0,5: 10,4 è dentro");
+    eq(v.classeRelief(10.6, 10, 3), "hi", "e 10,6 è fuori");
+    eq(Object.keys(v.RELCOL), ["bad", "warn", "ok", "hi", "none"], "RELCOL copre tutte le classi che classeRelief sa dire");
+  });
+  test("⛔ Genesi · codiceVolataGenesi: deterministico dal progetto, nella forma che Sentinella riconosce", () => {
+    const d = { nFori: 18, kgTotali: 1080, mic: 60, dist: 320 };
+    const c = v.codiceVolataGenesi(d, "2026-07-17", "Fronte Est");
+    ok(/^GEN-20260717-[0-9a-z]+$/.test(c), "GEN-<data senza trattini>-<impronta in base 36>: " + c);
+    eq(v.codiceVolataGenesi(d, "2026-07-17", "Fronte Est"), c, "lo stesso progetto dà lo stesso codice, a ogni export");
+    eq(v.codiceVolataGenesi(d, "2026-07-17", "  fronte est "), c, "il fronte si confronta senza maiuscole né spazi ai bordi");
+    ok(v.codiceVolataGenesi({ ...d, kgTotali: 1081 }, "2026-07-17", "Fronte Est") !== c, "un chilo in più cambia l'impronta");
+    ok(v.codiceVolataGenesi(d, "2026-07-18", "Fronte Est") !== c, "e un giorno dopo pure");
+    ok(/^GEN--[0-9a-z]+$/.test(v.codiceVolataGenesi(d, "", "")), "senza data la parte della data resta vuota: il codice non inventa un giorno");
+  });
+  test("⛔ Genesi · G26: nella pagina i conti non ci sono più, e il legame del relief resta", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function pfCls|function _sentCodice|const ENECOL=|const ENELAB=|const RELCOL=|RELSV/g) || []).length, 0, "le vecchie funzioni, le mappe e la mappa mai letta non ci sono più");
+    ok(/function reliefCls\(r\)\{ return classeRelief\(r, D2\.relLo, D2\.relHi\); \}/.test(pag), "reliefCls è il legame con la finestra a schermo");
+    eq((pag.match(/codiceVolataGenesi\(/g) || []).length, 1, "il codice lo chiede l'export per Sentinella");
+    ok((pag.match(/pfCls\(/g) || []).length >= 5, "pfCls si chiama ancora dalla pagina (pianta, scheda, riepilogo)");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["ENECOL", "ENELAB", "pfCls", "RELCOL", "classeRelief", "codiceVolataGenesi"].every((n) => elenco.includes(n)), "la pagina importa tutt'e sei");
+  });
+
+  /* ⛔ G27 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE (10/09, nona fetta di
+     B3): la miniatura SVG del composito, la base della previsione PPV, la
+     tinta della roccia, e `fmtT` in `genesi-formato.js`. Entrate identiche
+     (vecchie estratte da HEAD accanto alle nuove: 20.000 casi ciascuna, 0
+     divergenze). */
+  const fmtMod = await app("genesi", "genesi-formato.js");
+  test("⛔ Genesi · _sigSpark: la miniatura del composito, normalizzata sul picco e mai divisa per zero", () => {
+    const comp = new Float64Array([0, 2, -4, 2, 0]);
+    const svg = v._sigSpark(comp, 5);
+    ok(/^<svg viewBox="0 0 560 90"/.test(svg) && /<\/svg>$/.test(svg), "è un SVG 560×90");
+    ok(/<line x1="0" y1="45" x2="560" y2="45"/.test(svg), "con la linea dello zero a metà altezza");
+    ok(/<path d="M0.0 45.0L112.0 24.5L224.0 86.0L336.0 24.5L448.0 45.0"/.test(svg), "il tracciato: il picco −4 tocca il fondo (86), +2 sta a metà strada (24,5)");
+    ok(/<path d="M0.0 45.0L112.0 45.0L224.0 45.0L336.0 45.0L448.0 45.0"/.test(v._sigSpark(new Float64Array(5), 5)), "un composito tutto a zero è una riga piatta, non un NaN (il picco parte da 1e-9)");
+    eq((v._sigSpark(new Float64Array(2400).fill(1), 2400).match(/[ML]/g) || []).length, 240, "sopra i 240 campioni si campiona: 2.400 passi → 240 punti");
+  });
+  test("⛔ Genesi · _ppvBaseHtml: il testo della provenienza e gli avvisi col grassetto sul CAPO, tutto sfuggito", () => {
+    eq(v._ppvBaseHtml({ testo: "legge di sito", avvisi: [] }), "legge di sito", "senza avvisi solo il testo");
+    eq(v._ppvBaseHtml({ testo: "litologia <calcare>", avvisi: ["Provvisoria: 3 referti", "senza due punti"] }),
+      "litologia &lt;calcare&gt;<br><b>Provvisoria</b>: 3 referti<br><b>senza due punti</b>", "il grassetto va sul capo prima dei due punti; senza due punti su tutto l'avviso; le parentesi angolari sfuggite");
+    eq(v._ppvBaseHtml({ testo: "", avvisi: ["A & B: c"] }), "<br><b>A &amp; B</b>: c", "e la e commerciale pure");
+  });
+  test("⛔ Genesi · shade: ogni canale scalato per il fattore, col tetto a 255", () => {
+    eq(v.shade(0x808080, 1), 0x808080, "fattore 1: lo stesso colore");
+    eq(v.shade(0x808080, 0.5), 0x404040, "fattore 0,5: metà su ogni canale");
+    eq(v.shade(0xff8000, 2), 0xffff00, "il tetto a 255 su ogni canale, senza traboccare nel canale accanto");
+    eq(v.shade(0x000000, 3), 0, "lo zero resta zero");
+  });
+  test("⛔ Genesi · fmtT: il tempo sull'orologio della scena, ms interi sotto il secondo e secondi con due decimali sopra", () => {
+    eq(fmtMod.fmtT(0), "0 <small>ms</small>"); eq(fmtMod.fmtT(462.4), "462 <small>ms</small>"); eq(fmtMod.fmtT(999.6), "1000 <small>ms</small>", "sotto i 1000 ms si arrotonda l'intero, anche a 1000");
+    eq(fmtMod.fmtT(1000), "1,00 <small>s</small>"); eq(fmtMod.fmtT(2345.6), "2,35 <small>s</small>", "da un secondo in su: secondi con due decimali, virgola italiana");
+  });
+  test("⛔ Genesi · G27: nella pagina i quattro pezzi non ci sono più", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function _sigSpark|function _ppvBaseHtml|function shade\(|function fmtT/g) || []).length, 0, "le vecchie funzioni non ci sono più");
+    eq((pag.match(/_ppvBaseHtml\(/g) || []).length, 2, "la base della PPV la chiedono il foglio stampabile e la scheda");
+    eq((pag.match(/_sigSpark\(/g) || []).length, 1, "la miniatura la chiede la modale della firma");
+    eq((pag.match(/fmtT\(/g) || []).length, 1, "e l'orologio della scena chiama fmtT");
+    ok((pag.match(/[^a-zA-Z_]shade\(/g) || []).length >= 9, "shade si chiama ancora dai materiali della scena");
+    const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    const form = (pag.match(/import \{([^}]*)\} from '\.\/genesi-formato\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(["_sigSpark", "_ppvBaseHtml", "shade"].every((n) => dati.includes(n)) && form.includes("fmtT"), "la pagina importa tutt'e quattro");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -27718,10 +27802,11 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     ok(pfLoc !== null, "il foro il suo consumo specifico ce l'ha: " + pfLoc);
     eq(pfRif, null, "e il riferimento di progetto no");
     eq(Number.isFinite(pfLoc / pfRif), false, "quindi il rapporto fra i due non è un numero: " + (pfLoc / pfRif));
-    /* `pfCls` della pagina, ricopiata qui SOLO per dimostrare che cosa
-       risponderebbe: di ciò che non è finito dice `'ok'`, cioè il VERDE */
-    const pfCls = (r) => (r == null || !isFinite(r)) ? "ok" : (r < 0.75 ? "moltoBassa" : r < 0.90 ? "bassa" : r <= 1.15 ? "ok" : r <= 1.40 ? "alta" : "moltoAlta");
-    eq(pfCls(pfLoc / pfRif), "ok",
+    /* ⏱️ 10/09 (G26): `pfCls` è salita in `genesi-data.js` e qui si chiama
+       quella VERA — prima era ricopiata «solo per dimostrare», cioè la copia
+       debole dentro la prova che CLAUDE.md chiama per nome. Di ciò che non è
+       finito dice `'ok'`, cioè il VERDE */
+    eq(gz15.pfCls(pfLoc / pfRif), "ok",
       "promemoria: senza la guardia il pallino sarebbe VERDE, «in linea col progetto», su un confronto impossibile");
     /* e le due guardie che lo impediscono, pinnate nella pagina */
     eq(/h\.pfLoc!=null && pfRif!==null/.test(srcG15), true,

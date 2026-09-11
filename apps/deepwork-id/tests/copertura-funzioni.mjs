@@ -349,7 +349,7 @@ const CONDIVISI = [
      scritto a mano. Sono arrivate insieme al blocco della riconciliazione
      (`riconDelta` le chiama) e stanno qui perché scrivere e leggere sono le
      due metà della stessa convenzione sui numeri italiani. */
-  { file: "apps/genesi/genesi-formato.js", fondo: 8,
+  { file: "apps/genesi/genesi-formato.js", fondo: 9,
     perche: "come Genesi scrive — e legge — i numeri: spalla, maglia, consumo specifico, chili di esplosivo" },
   /* ⛔ IL SECONDO PEZZO DI GENESI USCITO DALLA PAGINA. Il primo diceva come
      Genesi SCRIVE un numero; questo dice come lo CALCOLA, sul numero che
@@ -407,7 +407,7 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 103,
+  { file: "apps/genesi/genesi-data.js", fondo: 112,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

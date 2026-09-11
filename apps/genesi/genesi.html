@@ -1049,7 +1049,7 @@ body.scr-sim #tl{bottom:80px}
 import * as THREE from 'three';
 /* i formattatori dei numeri: stanno in un modulo perche' `node` non importa
    un file .html, e finche' erano qui dentro non avevano nessuna prova */
-import { gnum, gseg, gfix, gdata, fmtMs, fmtKg, gEsito, gIn } from './genesi-formato.js';
+import { gnum, gseg, gfix, gdata, fmtMs, fmtKg, fmtT, gEsito, gIn } from './genesi-formato.js';
 /* la vibrazione al recettore: la legge di sito dai referti del sismografo, il
    limite di norma, la sovrappressione d'aria. Stesse funzioni di prima, spostate
    parola per parola dove `node` le puo' provare — vedi l'intestazione del file. */
@@ -1163,7 +1163,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly } from './genesi-data.js';
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
+         ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1548,7 +1549,7 @@ function worldJitter(g, off, amp){
   g.computeVertexNormals(); return g;
 }
 /* colore roccia derivato dal litotipo del progetto (fronte di basalto ≠ fronte di arenaria) */
-function shade(c,f){ const r=Math.min(255,Math.round(((c>>16)&255)*f)), g=Math.min(255,Math.round(((c>>8)&255)*f)), b=Math.min(255,Math.round((c&255)*f)); return (r<<16)|(g<<8)|b; }
+/* ⛔ `shade` (il colore della roccia dal litotipo) è salita in `./genesi-data.js`, blocco G27 (10/09). */
 function lithoTint(){ const r=(typeof selRoccia==='function')&&selRoccia(); return (r&&r.tint)||0x9a8a6a; }
 /* texture PBR procedurali (value-noise multi-ottava, generate una volta): albedo neutra ×tinta litotipo, roughness, normal.
    Set 'strat' con bancate orizzontali (sedimentarie) e 'mass' uniforme (granito/basalto). */
@@ -2657,10 +2658,7 @@ function _measUpdate(){
     + _fragCurveSVG(fr, null, m)
     + `<div style="font-size:9.5px;color:var(--mut2);line-height:1.35;margin-top:3px">Confronto qualitativo: campione pesato per volume (d³). Serve un campione rappresentativo e ben misurato; non sostituisce un'analisi granulometrica strumentale.</div>`;
 }
-function fmtT(ms){
-  if(ms<1000) return Math.round(ms)+' <small>ms</small>';
-  return gfix(ms/1000,2)+' <small>s</small>';
-}
+/* ⛔ `fmtT` (il tempo sull'orologio della scena) è salita in `./genesi-formato.js` il 10/09 (G27). */
 function setSimT(t, fromScrub){
   const prev = simT;
   simT = Math.max(0, Math.min(SIM.tEnd, t));
@@ -3605,13 +3603,8 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
    bandiera `pochi` collegata a una schermata sola (03/08); qui la schermata
    dimenticata era un'altra.
    Il grassetto va sul CAPO dell'avviso e non su tutta la frase: sullo scatto a
-   390 px sei righe intere in grassetto smettono di segnalare qualcosa. */
-function _ppvBaseHtml(pv){
-  return _rEsc(pv.testo) + (pv.avvisi.length
-    ? '<br>'+pv.avvisi.map(a=>{ const i=a.indexOf(':');
-        return i<0 ? '<b>'+_rEsc(a)+'</b>' : '<b>'+_rEsc(a.slice(0,i))+'</b>'+_rEsc(a.slice(i)); }).join('<br>')
-    : '');
-}
+   390 px sei righe intere in grassetto smettono di segnalare qualcosa.
+   ⛔ È `_ppvBaseHtml` in `./genesi-data.js` (blocco G27, 10/09), dove `node` la prova. */
 /* Report volata formattato e stampabile (→ PDF con la stampa del browser).
    Emula il "blast report" dei competitor lato browser. Ogni previsione è
    etichettata come tale: è un progetto/stima, non una misura di campo. */
@@ -4183,13 +4176,7 @@ let _sigData=null, _sigComp=null, _sigNome="";
    `_sigParse` e leggeva male i decimali all'italiana) e alla somma ritardata
    (`sommaRitardata`, ex `_sigSuperpose`). Qui resta il LEGAME con lo stato. */
 function _sigDetTimes(){ return tempiDetonazione(D2); }
-function _sigSpark(comp,steps){
-  const W=560,Hh=90,st=Math.max(1,Math.floor(steps/240));
-  let mx=1e-9; for(let i=0;i<steps;i++){ const v=Math.abs(comp[i]); if(v>mx) mx=v; }
-  let d='',j=0;
-  for(let i=0;i<steps;i+=st){ const x=(i/steps)*W, y=Hh/2-(comp[i]/mx)*(Hh/2-4); d+=(j++?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
-  return '<svg viewBox="0 0 '+W+' '+Hh+'" style="width:100%;height:80px;background:rgba(0,0,0,.25);border-radius:8px"><line x1="0" y1="'+(Hh/2)+'" x2="'+W+'" y2="'+(Hh/2)+'" stroke="rgba(255,255,255,.15)"/><path d="'+d+'" fill="none" stroke="#ffd54f" stroke-width="1.2"/></svg>';
-}
+/* ⛔ la miniatura del composito (`_sigSpark`) è salita in `./genesi-data.js`, blocco G27 (10/09). */
 function sigRender(){
   const body=$('sigBody');
   if(!_sigData){ body.innerHTML='<div style="color:var(--mut);font-size:12px;">Importa la <b>registrazione di un foro singolo</b> (CSV: <code>tempo_ms;ampiezza</code>, es. mm/s). Genesi la <b>somma ritardata</b> secondo i tempi di detonazione della volata corrente e stima il <b>PPV composito</b> — il metodo dei big (Orica AVM), più preciso della sola legge di Devine perché usa l&rsquo;onda reale del tuo sito.</div>'; _sigComp=null; return; }
@@ -4728,12 +4715,8 @@ function _sentDati(){
 /* Il CODICE della volata: deterministico, ricavato dal progetto (data, fronte,
    fori, chili, MIC, distanza). Serve a Sentinella per riconoscere i doppioni
    anche DOPO che la volata è stata confermata come eseguita correggendo fori e
-   chili: un codice casuale a ogni export non servirebbe a niente. */
-function _sentCodice(d,data,fronte){
-  const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
-  let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;
-  return 'GEN-'+String(data||'').replace(/-/g,'')+'-'+(h>>>0).toString(36);
-}
+   chili: un codice casuale a ogni export non servirebbe a niente.
+   ⛔ È `codiceVolataGenesi` in `./genesi-data.js` (blocco G26, 10/09). */
 function sentRender(){
   const body=$('sentBody'); if(!body) return;
   const s=_sentStore(), d=_sentDati(), it=(n,dec)=>gnum(n,dec==null?1:dec);
@@ -4798,7 +4781,7 @@ if($('sentExport')) $('sentExport').onclick=async()=>{
   const data=$('sent-data')?$('sent-data').value:'';
   if(!dataISOEsiste(data)){ toast('Serve la data prevista della volata'); return; }
   const fronte=$('sent-fronte')?$('sent-fronte').value.trim():'';
-  const d=_sentDati(), codice=_sentCodice(d,data,fronte);
+  const d=_sentDati(), codice=codiceVolataGenesi(d,data,fronte);
   /* le 8 colonne di sempre · le 4 della PPV misurata (VUOTE: la volata non è
      stata sparata) · le 7 della volata prevista */
   const riga=[data,_sentCell(fronte),_sentNum(d.nFori),_sentNum(d.kgTotali),_sentNum(d.mic),_sentNum(d.dist),
@@ -5357,16 +5340,10 @@ function computeRelief2D(){
     h.relDt = best? +best.dt.toFixed(1) : null;
   }
 }
-const RELCOL={bad:'#ef5350', warn:'#ffb300', ok:'#66bb6a', hi:'#86b0d8', none:'#9b8a60'};
-const RELSV={bad:'sv-bad', warn:'sv-warn', ok:'sv-ok', hi:'sv-info', none:'sv-info'};
-function reliefCls(r){
-  if(r==null) return 'none';
-  const lo=D2.relLo||5, hi=Math.max((D2.relLo||5)+0.5, D2.relHi||15);
-  if(r<lo*0.6) return 'bad';                                 // molto sotto finestra
-  if(r<lo) return 'warn';                                    // sotto finestra
-  if(r<=hi) return 'ok';                                     // in finestra
-  return 'hi';                                               // relief eccessivo
-}
+/* ⛔ `RELCOL` e la classe del relief (`classeRelief`) stanno in `./genesi-data.js`, blocco G26 (10/09):
+   qui resta il legame con la finestra scelta a schermo. La mappa delle classi CSS del relief non la
+   leggeva nessuno ed è stata tolta. */
+function reliefCls(r){ return classeRelief(r, D2.relLo, D2.relHi); }
 
 /* ═══════════ G5 — MAPPA DELL'ENERGIA: il consumo specifico FORO PER FORO ═══
    Il powder factor di progetto (kg/m³) è una media: dice quanta energia
@@ -5558,16 +5535,8 @@ function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); 
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
    assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
    loro media, quello che conta è quanto un foro se ne discosta. */
-function pfCls(r){
-  if(r==null||!isFinite(r)) return 'ok';
-  if(r<0.75) return 'moltoBassa';
-  if(r<0.90) return 'bassa';
-  if(r<=1.15) return 'ok';
-  if(r<=1.40) return 'alta';
-  return 'moltoAlta';
-}
-const ENECOL={ moltoBassa:'#5c8dd6', bassa:'#86b0d8', ok:'#66bb6a', alta:'#ffb300', moltoAlta:'#ef5350' };
-const ENELAB={ moltoBassa:'carica molto diluita', bassa:'carica diluita', ok:'in linea col progetto', alta:'energia concentrata', moltoAlta:'energia molto concentrata' };   /* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
+/* ⛔ `pfCls`, `ENECOL` ed `ENELAB` stanno in `./genesi-data.js`, blocco G26 (10/09). */
+/* i consumi specifici stanno sotto l'unità: due decimali non bastano sempre */
 /* ===== G1 — isocrone dei tempi di sparo sulla pianta =====
    Il campo dei tempi e ricostruito DAI tDet DEI FORI REALI (nessun dato inventato):
    in ogni punto si adatta un piano t = a + b·dx + c·dy sui fori vicini, pesati per
