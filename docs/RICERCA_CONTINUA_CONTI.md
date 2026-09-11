@@ -1438,3 +1438,112 @@ prodotto; rimanenze al costo oltre che al listino), 2 **dichiarate** che
 chiedono una decisione (fondo di ripristino; margine per prodotto), 1 **non
 applicabile** (registro carico/scarico), 1 **già possibile** (le date del
 canone come scadenze).
+
+## Ricerca del 2026-09-11 — terzo giro: che cosa chiede la banca, e che cosa pretende il Codice della crisi (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Che cosa guarda la banca prima di dare un fido a una PMI**: lo storico dei
+  pagamenti, il saldo medio, i debiti già in essere, il **bilancio**, il
+  fatturato e il **cash flow**; la situazione contabile aggiornata (fatturato,
+  costi, margini, crediti, debiti, liquidità), la **mappa degli affidamenti**
+  banca per banca, e lo **scadenzario clienti e fornitori con importi e date
+  previste** di incassi e pagamenti; poi la **Centrale dei Rischi** della Banca
+  d'Italia e le banche dati creditizie (CRIF/EURISC), da leggere insieme a
+  bilanci, estratti conto e piani di ammortamento. Nessuna delle pagine trovate
+  tratta le cave come settore a sé. *[risultati di ricerca: bancobpm.it,
+  finom.co, finera.it, bancaditalia.it (circolare 139), tuttocentralerischi.it,
+  grifofinance.com]*
+- **Che cosa pretende il Codice della crisi d'impresa** (adeguati assetti,
+  art. 2086 c.c.): il **DSCR** — flussi di cassa liberi previsti nei **sei
+  mesi** successivi diviso le uscite per i debiti non operativi in scadenza
+  nello stesso periodo — con dati **prospettici**; un'azienda che non sa
+  produrre previsioni attendibili dei propri flussi denuncia un assetto
+  inadeguato; fra le uscite contano capitale e interessi dei debiti
+  finanziari, i debiti verso fornitori e quelli fiscali e contributivi
+  **scaduti oltre la soglia fisiologica**. *[risultati di ricerca:
+  fiscoetasse.com, ntplusfisco.ilsole24ore.com, focus.namirial.com,
+  confindustriavenest.it, business-plan.it, beneggiassociati.com,
+  studiosimone.com]*
+- **Che cosa fanno i gestionali di cava** sul credito: promemoria di pagamento
+  automatici, tracciamento degli incassi, riconciliazione delle fatture, e il
+  **controllo del credito integrato con la pesa** — «impedisce che un carico
+  non pagato esca dal sito»; moduli «Credit Control» accanto a pesa, prezzi
+  di sito, trasporto e magazzino; il flusso dalla pesa alla fattura come
+  ciclo order-to-cash. *[risultati di ricerca: herbstsoftware.com,
+  weighpay.com, paradigmsoftware.com, cebasolutions.com, creativeinfo.net,
+  plantdemand.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+bancobpm.it · finom.co · finera.it · bancaditalia.it · tuttocentralerischi.it
+· grifofinance.com · fiscoetasse.com · ntplusfisco.ilsole24ore.com ·
+focus.namirial.com · confindustriavenest.it · business-plan.it ·
+beneggiassociati.com · studiosimone.com · herbstsoftware.com · weighpay.com
+· paradigmsoftware.com · aerosol.io · cebasolutions.com · creativeinfo.net ·
+plantdemand.com · ractosoft.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi sa quanto è esposto ogni cliente, e se ha superato il fido?
+2. Chi sa quanto si incasserà nei prossimi mesi (lo scadenzario clienti con le
+   date previste)?
+3. Chi sa quanto si pagherà nei prossimi mesi (lo scadenzario fornitori)?
+4. Chi ferma — o almeno avvisa — quando un carico esce per un cliente già
+   oltre fido?
+5. Chi sa i tempi reali di pagamento dei clienti, e chi sollecita?
+6. Chi calcola il DSCR a sei mesi?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `2766bf9b`)
+
+- **Domanda 1 — C'È.** `esposizioneClienti(fatture, oggi, clienti, note)`
+  raggruppa per anagrafica, conta le fatture aperte, lo scaduto e segnala
+  `oltreFido` (il fido è nel record del cliente: `grep -c 'fido' apps/conti/conti-data.js`
+  → 20 nel modulo, 54 nella pagina); la lista dei clienti e il report lo
+  mostrano col badge «Fido superato» (`grep -c 'oltreFido' apps/conti/index.html`
+  → 8). Niente da aggiungere.
+- **Domanda 2 — C'È.** `incassoAtteso` (i prossimi N giorni), `incassoPerMese`
+  (sei mesi, con le scadute in un secchio loro, «vanno sollecitate, non
+  attese») e `agingIncassi`. È lo scadenzario clienti con le date previste
+  che la banca chiede. Niente da aggiungere.
+- **Domanda 3 — MANCA, e chiede una decisione.** I costi hanno la data del
+  documento e l'importo (`costi/{id}: { data, voce, importo, nota,
+  registratoIl }`), **non una scadenza di pagamento** né uno stato
+  pagato/da pagare: `grep -ciE 'debiti|fornitor.*scadenz|da pagare'
+  apps/conti/conti-data.js` → 3, e nessuno dei tre è uno scadenzario: due
+  sono frasi sul credito del cliente («niente da pagare»), uno è il modo di
+  dire «il prezzo da pagare» in un commento. Senza le uscite previste non c'è uno
+  scadenzario fornitori, e senza quello né il DSCR né la «situazione
+  contabile aggiornata» che la banca chiede. Aggiungerlo vuol dire decidere
+  se Conti è anche il libro dei **debiti** (scadenza, pagato il, fornitore)
+  o se resta il libro delle vendite con i costi «a consuntivo»: è una
+  decisione di prodotto sul perimetro dell'app, prima che un'unità.
+  **Dichiarato, non aperto.**
+- **Domanda 4 — MANCA, ed è il delta piccolo.** Il modulo sa chi è oltre
+  fido, ma la **pesata** non lo legge: nel form della pesata (`pes-cli`,
+  `pes-esito`) `grep -c 'oltreFido'` nella parte della pesata → 0 (gli 8 hit
+  della pagina sono tutti nella lista dei clienti e nel report). I gestionali
+  di cava fermano il carico alla pesa; qui basta **dirlo**: quando il cliente
+  scelto è oltre fido (o ha scaduto), la striscia della pesata lo scrive
+  prima di registrare — composizione di `esposizioneClienti`, non un calcolo
+  nuovo; **fermare** il carico è una scelta del titolare, non del programma.
+  **Mancanza confermata, aperta.**
+- **Domanda 5 — C'È.** `tempiPagamentoClienti` (giorni medi fra emissione e
+  saldo, e oltre la scadenza, solo su fatture saldate con data vera),
+  `livelloSollecito`, `testoSollecito`, `interessiMora`. Niente da
+  aggiungere.
+- **Domanda 6 — DICHIARATO, dipende dalla 3.** `grep -ciE 'DSCR|crisi
+  d.impresa|2086|adeguati assetti'` → 0 e 0. Il DSCR vuole le uscite
+  previste (debiti finanziari, fornitori, fisco): senza la domanda 3 sarebbe
+  un numero senza denominatore, cioè l'assenza travestita da indice. Resta
+  con la decisione della domanda 3.
+
+**Riassunto** — 1 mancanza **confermata e aperta, piccola** (la pesata che
+avvisa del cliente oltre fido), 1 **decisione** (lo scadenzario fornitori:
+Conti è anche il libro dei debiti?), 1 **dichiarata** che dipende da quella
+(il DSCR), 3 **già a posto** (esposizione e fido, incassi attesi per mese,
+tempi di pagamento e solleciti).

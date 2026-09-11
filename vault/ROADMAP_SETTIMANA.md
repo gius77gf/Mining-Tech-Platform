@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9415,6 +9416,30 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   `CSV_TABELLE`, intestazione, frase delle colonne nella pagina; prova di
   andata e ritorno con asserzione sul testo. Chiuso il «dichiarato, non
   fatto» dell'unità 93. run-kpi +1 (2906).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — CONTI: CHE COSA CHIEDE LA BANCA, E
+  CHE COSA PRETENDE IL CODICE DELLA CRISI (11/09, unità 105, solo documenti).**
+  Mondo di seconda mano (21 fonti): che cosa guarda la banca per un fido
+  (bilancio, cash flow, scadenzario clienti e fornitori con le date previste,
+  Centrale dei Rischi), il DSCR a sei mesi degli adeguati assetti (art. 2086),
+  i gestionali di cava col controllo del credito alla pesa («un carico non
+  pagato non esce»). Delta dal MECCANISMO contro `2766bf9b`: esposizione e
+  fido, incassi attesi per mese, tempi di pagamento e solleciti CI SONO; la
+  **pesata non legge il fido** (`oltreFido` vive solo nella lista clienti e nel
+  report → voce aperta piccola); lo **scadenzario fornitori** MANCA (i costi
+  non hanno scadenza né stato) e chiede una decisione sul perimetro di Conti
+  (decisione 21); il DSCR dipende da quella. Vedi
+  `docs/RICERCA_CONTINUA_CONTI.md`, ricerca dell'11/09 (terzo giro).
+- [ ] **CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO** *(dalla
+  ricerca dell'11/09, terzo giro, domanda 4)*. Il modulo sa chi è oltre fido
+  (`esposizioneClienti(...).oltreFido`) e chi ha dello scaduto; il form della
+  pesata (`pes-cli`) non lo legge. Da fare: scelto il cliente, la striscia
+  della pesata (`pes-esito`) dice «Edilcave Srl è oltre fido: esposizione
+  € X su fido € Y» (o «ha € Z scaduti») PRIMA di registrare — composizione,
+  non calcolo; il carico non si ferma (è una scelta del titolare), si dice.
+  Come si misura: sulla dimostrazione, scelto un cliente oltre fido (se non
+  c'è, la dimostrazione ne guadagna uno), la striscia compare; con un cliente
+  in regola non compare; prova in `run-kpi` sulla frase (funzione pura
+  `avvisoFidoPesata(clienteId, esposizione)`), banco che sceglie il cliente.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

@@ -315,6 +315,7 @@ momento.
 | ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
 | **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
 | **20** | i dati alla **fine dell'abbonamento**: quanto restano scaricabili, chi li scarica, se e quando si cancellano (11/09) | una frase tua («restano scaricabili per N giorni, poi …»): da lì una regola in Deepwork ID e una riga nei termini. Intanto il prodotto **non promette niente**, e lo «scarica tutto» si costruisce comunque (voce aperta in roadmap). Vedi la sezione 20. |
+| **21** | **Conti è anche il libro dei debiti?** lo scadenzario fornitori, e con lui la previsione di cassa a sei mesi e il DSCR (11/09) | una parola: **debiti sì** o **debiti no**. Con «sì» il ciclo apre la voce; con «no» resta un limite dichiarato. Vedi la sezione 21. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1185,6 +1186,40 @@ dopo la fine dell'abbonamento, poi …». Da quella frase discendono una regola
 in Deepwork ID (chi legge cosa dopo la scadenza) e una riga nei termini di
 servizio. Fino ad allora il prodotto non promette niente — che è meglio di
 promettere a caso.
+
+## 21. Conti è anche il libro dei debiti? Lo scadenzario fornitori
+
+*(dalla ricerca del terzo giro su Conti, 11/09)*
+
+**Il fatto.** La banca, prima di un fido, chiede lo scadenzario **clienti e
+fornitori** con le date previste di incassi e pagamenti; il Codice della
+crisi (adeguati assetti, art. 2086 c.c.) vuole che un'impresa sappia prevedere
+i propri flussi di cassa a **sei mesi**, e il DSCR si calcola dividendo i
+flussi previsti per le uscite dei debiti in scadenza. Tutto di seconda mano,
+dai risultati di ricerca.
+
+**Come stiamo.** Conti sa tutto del lato **entrate**: esposizione per cliente,
+fido superato, incassi attesi per mese, tempi reali di pagamento, solleciti.
+Del lato **uscite** ha i costi con la data del documento e l'importo — non una
+scadenza di pagamento, non un «pagato il», non un fornitore. Quindi lo
+scadenzario fornitori non c'è, e senza di lui non c'è né la previsione di
+cassa a sei mesi né il DSCR.
+
+**Le strade.**
+1. **Conti diventa anche il libro dei debiti**: ai costi si aggiungono
+   fornitore, scadenza e stato (da pagare / pagato il), e da lì la previsione
+   di cassa a sei mesi (entrate attese meno uscite previste) e, se un giorno
+   entrano i debiti bancari, il DSCR. È lavoro vero: una collezione che
+   cambia, un form, un prospetto, l'export.
+2. **Conti resta il libro delle vendite** con i costi a consuntivo: lo
+   scadenzario fornitori lo tiene il commercialista o un altro programma, e
+   Conti esporta quello che ha. Onesto, e più stretto di quello che la banca
+   chiede.
+3. **Decidere dopo**, quando un cliente lo chiederà.
+
+**Che cosa serve da te.** Una parola: **debiti sì** o **debiti no**. Con «sì»
+il ciclo apre la voce e la porta fino alla previsione di cassa; con «no» la
+domanda 3 della ricerca resta scritta come limite dichiarato del prodotto.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
