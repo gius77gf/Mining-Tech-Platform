@@ -665,6 +665,38 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **I SEI KO VERI DEL GIRO FILTRATO DEL 10/09, LETTI E CHIUSI (11/09):**
+  il giro (71 passate su una copia di `526cb2a9`, 2h17, arrivato in fondo)
+  dichiarava 13 KO veri; letti con `leggi-giro`, erano SEI difetti (gli altri
+  sono lo stesso KO ripetuto per larghezza o per scatto). ① Conti: le unità
+  «m³» e «t» nelle intestazioni della tabella delle rimanenze uscivano in
+  MAIUSCOLO (`.note .ponte th` è uppercase): avvolte in `<span class="u">`
+  con la regola che le esenta, come i badge. ② Scudo: «scaduta da 62 gg» nei
+  badge dello scadenzario in maiuscolo: passa da `ggU` come le pillole dei
+  requisiti già facevano (la regola era in casa, a trenta righe). ③ Campo: il
+  segnaposto «— responsabile da assegnare —» della tendina del responsabile
+  chiedeva 281 px in 242 a 320: «— da assegnare —» (l'etichetta sopra dice già
+  «Chi la fa»). ④ Conti: la modale «Il file XML non è ancora pronto» spiegava
+  in due `<p class="meta">`, che tagliano a due righe: a 320 chiedevano 92 px
+  in 31 — il testo che spiega DOVE si scrivono i dati mancanti era testo
+  morto. Passano a `form-hint`, che non taglia. ⑤ `scudo-disegni`: l'attesa
+  delle persone da sistemare per mansione era scritta a mano (`7·3·1·1·1·1·1·0`)
+  e la dimostrazione ha guadagnato un buco: il prodotto disegnava giusto, era
+  l'ATTESA a essere invecchiata — adesso è DERIVATA da `riepilogoMansioni`
+  sulla stessa copia, come già le altre due del banco. ⑥ `finestra-caricamento`:
+  accusava «Carburante mese —» di Flotta, la cui tessera dice nel titolo
+  «Nessuna voce di carburante registrata questo mese: … non si sa» — il
+  principio del fondatore, non un contatore dimenticato (e la dimostrazione ha
+  le voci a date RELATIVE, quindi il caso va e viene col giorno del mese): un
+  «—» con la RAGIONE nel titolo si conta a parte e si stampa. Rimisurato sul
+  vivo: unità 14 superfici pulite (35 unità cercate); modali Campo 1 pulita
+  (18 aperture, 26 voci di tendina) e Conti 1 pulita (60 aperture, 1.386
+  elementi); Scudo disegni 82 ok / 0 KO con controprova che cade in 40;
+  finestra Flotta 7/0 con la riga «1 contatore a «—» con la RAGIONE nel
+  titolo». ⚠️ E il settimo «KO» della lettura — «terra: 41 passati, 1
+  falliti» — non era di Terra: è la riga di riepilogo di `finestra-caricamento`
+  (che gira tutte le app) caduta sul caso Flotta, attribuita a Terra perché
+  stampata dopo la sua sezione. Un totale letto sotto l'intestazione sbagliata.
 - [x] **NONA FETTA DI B3 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE ESCONO
   DA GENESI (10/09, stesso commit dell'ottava):** `_sigSpark` (la miniatura
   SVG del composito, normalizzata sul picco e mai divisa per zero),

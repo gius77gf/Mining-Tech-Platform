@@ -194,7 +194,7 @@ const FIX = `
    `34 · 1 · 21 · 5 · 2 · 0 · 1` che il giro ha LETTO SULLO SCHERMO. Cioè la
    derivazione combacia con due osservazioni del browser indipendenti. */
 const MESI_MURO = 6;   // viewport 430 → `largoMuro` fra 360 e 600: sei colonne
-const { DEMO: DEMO_SCUDO, muroScadenze, riepilogoNearMiss, causeRicorrenti, coperturaFormazione, daSistemareCopertura } =
+const { DEMO: DEMO_SCUDO, muroScadenze, riepilogoNearMiss, causeRicorrenti, coperturaFormazione, daSistemareCopertura, riepilogoMansioni } =
   await import(pathToFileURL(join(R, "apps/scudo/scudo-data.js")).href);
 /* ⛔ E IL 02/09 LA STESSA ACCUSA FALSA È USCITA DALLE DUE CLASSIFICHE DEI
    NEAR-MISS, per la stessa ragione: `18 · 18 · 6` e `18 · 16 · 6 · 2` erano
@@ -489,7 +489,17 @@ giudicaBarre("muro", await barreDi("graf-muro", false), attesiMuro);
 /* ══ PERSONALE · chi posso mandare ════════════════════════════════════════ */
 await vaiA("nav-pers", "page-pers", "mans");
 console.log("\n· G — persone da sistemare per mansione (barre orizzontali)");
-giudicaBarre("mansioni", await barreDi("graf-mansioni", true), [7, 3, 1, 1, 1, 1, 1, 0]);
+/* ⏱️ Dal 11/09 anche questa attesa si DERIVA. Era scritta a mano
+   (`7 · 3 · 1 · 1 · 1 · 1 · 1 · 0`) e il giro del 10/09 l'ha accusata: l'ultima
+   mansione della dimostrazione ha guadagnato un buco e la barra è diventata 1
+   — il prodotto disegnava giusto, era l'ATTESA a essere invecchiata. La pagina
+   disegna, con `ordina: true`, i buchi (no + attenzione + nonSo, decisione 13)
+   delle mansioni con almeno una persona: si rifà lo stesso conto qui, sulla
+   stessa copia della dimostrazione, con la stessa funzione del modulo. */
+const buchiMans = riepilogoMansioni(COPIA_SCUDO.mansioni, COPIA_SCUDO.lavoratori, COPIA_SCUDO.scadenze, COPIA_SCUDO.dpi)
+  .filter((r) => r.totale > 0).map((r) => r.no + r.attenzione + r.nonSo).sort((a, b) => b - a);
+console.log(`      attesa DERIVATA da riepilogoMansioni sulla stessa dimostrazione: ${buchiMans.join(" · ")}`);
+giudicaBarre("mansioni", await barreDi("graf-mansioni", true), buchiMans);
 
 /* ══ REGISTRO · near-miss e cause ═════════════════════════════════════════ */
 await vaiA("nav-doc", "page-doc");

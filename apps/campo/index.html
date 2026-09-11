@@ -1950,7 +1950,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const bozza = bozzaAzioneFermo(v, { scadenza: dataPiuGiorni(30), fmtData: dmy });
     if (!bozza) return;
     const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
-    const opzResp = '<option value="">— responsabile da assegnare —</option>'
+    const opzResp = '<option value="">— da assegnare —</option>'
       + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
     const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
       + (!v.causale || v.minuti === null

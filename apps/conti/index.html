@@ -257,7 +257,7 @@ body.dw.light-mode, body.dw.outdoor-mode{
    codice non si vede — l'ha trovato `conti-frasi.mjs` chiedendo al browser
    la trasformazione EFFETTIVA. Chi scrive un'unità in un'etichetta la
    avvolge in `.u`, sempre. */
-.badge .u,.fld>label .u{text-transform:none; letter-spacing:.2px}
+.badge .u,.fld>label .u,.note .ponte th .u{text-transform:none; letter-spacing:.2px}
 .kpi .n .u{font-size:19px; font-weight:700; letter-spacing:.5px}
 .kpi .s{font-size:10.5px; color:var(--muted2); margin-top:3px; line-height:1.35}
 
@@ -5858,7 +5858,7 @@ label.item:has(.dw-chk:checked){
       <td class="num">${r.prezzo == null ? "—" : eur(r.prezzo) + "/" + (r.unitaPrezzo === "m3" ? "m³" : "t")}</td>
       <td class="num">${r.valore == null ? `<span class="badge warn" title="Fuori dal totale: ${esc(r.perche)}">fuori</span>` : "<b>" + eur(r.valore) + "</b>"}</td></tr>`;
     box.innerHTML = `<div class="note recap"><b>Rimanenze di piazzale</b> · ${esc(descriviRimanenze(p))}
-      <div class="ponte-wrap" style="margin-top:8px;"><table class="ponte"><thead><tr><th>Cumulo</th><th class="num">m³</th><th class="num">t</th><th class="num">listino</th><th class="num">valore a listino</th></tr></thead>
+      <div class="ponte-wrap" style="margin-top:8px;"><table class="ponte"><thead><tr><th>Cumulo</th><th class="num"><span class="u">m³</span></th><th class="num"><span class="u">t</span></th><th class="num">listino</th><th class="num">valore a listino</th></tr></thead>
       <tbody>${p.righe.map(riga).join("")}</tbody>
       <tfoot><tr><td><b>Totale</b> (${p.valorizzate} su ${p.righe.length})</td><td class="num">${m3f(p.m3Totale)}</td><td></td><td></td><td class="num"><b>${p.valore == null ? "—" : eur(p.valore)}</b></td></tr></tfoot></table></div>
       <div class="form-hint" id="rim-variazione" style="margin-top:6px;">${esc(descriviVariazioneRimanenze(v))}</div>
@@ -6203,8 +6203,8 @@ label.item:has(.dw-chk:checked){
         apriModale("Il file XML non è ancora pronto",
           `<p>Per la fattura <b>${esc(f.numero || "")}</b> ${plur(r.mancanti.length, "manca un dato", "mancano " + r.mancanti.length + " dati")} che lo SdI pretende. Il file non viene scaricato: uno con un buco dentro sarebbe un documento fiscale sbagliato con la faccia di uno giusto.</p>
            <ul class="mancanti">${r.mancanti.map(m => `<li>${esc(m)}</li>`).join("")}</ul>
-           <p class="meta">I dati dell'azienda si scrivono in <b>Listino → Dati della tua azienda</b>; quelli del cliente nella sua scheda in <b>Clienti</b>.</p>
-           <p class="meta">${ONESTA}</p>`,
+           <p class="form-hint">I dati dell'azienda si scrivono in <b>Listino → Dati della tua azienda</b>; quelli del cliente nella sua scheda in <b>Clienti</b>.</p>
+           <p class="form-hint">${ONESTA}</p>`,
           [{ label: "Ho capito", cls: "primary", azione: () => chiudiModale() }]);
         return; }
       const a = document.createElement("a");

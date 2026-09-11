@@ -2558,7 +2558,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <span class="avatar">${r.app === "terra" ? "🏔" : "🚜"}</span>
         <div class="info"><div class="name">${esc(r.tipo)} · ${esc(r.soggetto)}</div>
           <div class="meta">${r.descrizione ? esc(r.descrizione) + " · " : ""}${r.dataScadenza ? dataIt(r.dataScadenza) : "senza data"} · <span class="badge app">${APP[r.app][0]}</span></div></div>
-        <span class="acts"><span class="badge ${B[r.stato][0]}">${r.giorni < 0 ? "scaduta da " + (-r.giorni) + " gg" : r.giorni === 0 ? "scade oggi" : "tra " + r.giorni + " gg"}</span></span></div>`).join("");
+        <span class="acts"><span class="badge ${B[r.stato][0]}">${ggU(r.giorni < 0 ? "scaduta da " + (-r.giorni) + " gg" : r.giorni === 0 ? "scade oggi" : "tra " + r.giorni + " gg")}</span></span></div>`).join("");
       const mancano = u.nonRaggiungibili.filter(a => a !== "scudo");
       const nota = !altreChieste || (SCT === undefined && SCF === undefined)
         ? `<div class="note">Sto chiedendo a <b>Terra</b> e a <b>Flotta</b> le loro scadenze…</div>`
