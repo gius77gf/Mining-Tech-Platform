@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9454,6 +9455,36 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   fra il simbolo e la cifra, e su quattro cifre Node e Chromium raggruppano
   diversamente — la prova confronta a spazi normali e su cifre a cinque
   posizioni.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — FLOTTA: LEASING, VERIFICA PERIODICA E
+  I NUMERI DELLA TELEMATICA (11/09, unità 107, solo documenti).** Mondo di
+  seconda mano (21 fonti): gli obblighi di chi usa un mezzo in leasing e le
+  tre strade alla scadenza (riscatto all'1–5 %, restituzione, rinnovo), la
+  verifica periodica dell'art. 71 (prima verifica INAIL, scheda tecnica,
+  escavatore col gancio annuale), i numeri della telematica (40–60 % al
+  minimo, utilizzo sopra il 60–70 % → comprare, sotto → noleggiare). Delta dal
+  MECCANISMO contro `ab12321f`: le verifiche CI SONO; il costo orario è solo
+  esercizio (officina + carburante) e il **possesso** manca (0 su
+  ammortamento/canone) → voce aperta; il **leasing** entra solo come voce di
+  costo, non come contratto con la sua fine (→ stessa voce); l'utilizzo chiede
+  un denominatore (dichiarato); il tempo al minimo non è misurabile senza
+  telematica e si scrive così. Vedi `docs/RICERCA_CONTINUA_FLOTTA.md`,
+  ricerca dell'11/09 (terzo giro).
+- [ ] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING**
+  *(dalla ricerca dell'11/09, terzo giro, domande 1 e 4)*. (1) Sul mezzo un
+  campo facoltativo `costoPossessoAnnuo` (canone di leasing o quota annua di
+  ammortamento, in €) con `possessoDal`; `costoOrarioMezzo` aggiunge
+  `euroOraPossesso` = possesso annuo / ore all'anno **misurate** (dal ritmo di
+  `ritmoOreMezzi` × 365, o dalle letture del contatore su un anno) e lo
+  dichiara `null` con la ragione quando le ore non si sanno o il possesso non
+  è registrato — mai uno zero; il libretto e il fascicolo del mezzo scrivono
+  tre voci separate (possesso, officina, carburante) e il totale solo se le
+  tre ci sono. (2) Preset di scadenza «Fine leasing / riscatto» (`mesi:
+  null`, la data è quella del contratto; nota sulle tre strade e sulla
+  perizia dell'usato, di seconda mano). Come si misura: sulla dimostrazione un
+  mezzo con possesso registrato ha `euroOraPossesso` > 0 e il libretto scrive
+  «possesso € X/h»; un mezzo senza lo dice («possesso non registrato») e il
+  totale non lo somma; `presetScadenzaFlotta("fine-leasing")` esiste;
+  screenshot del libretto a 430 px.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

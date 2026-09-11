@@ -1132,3 +1132,112 @@ messa in servizio, con la nota RCA), 2 **dichiarate** che chiedono una
 decisione (l'identità del mezzo; il sinistro), 2 **già a posto** (tagliandi a
 ore; assicurazione e revisione come scadenze), 1 stato del mondo che **non si
 scrive** (la revisione non ancora operativa).
+
+## Ricerca del 2026-09-11 — terzo giro: che cosa chiedono il leasing, la verifica periodica e i numeri della telematica (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma o di
+benchmark entra in una schermata; quelli qui sotto servono a decidere il
+delta.
+
+### Come va, fuori
+
+- **Il leasing di una macchina movimento terra**: chi la usa ha obblighi di
+  **conservazione, manutenzione e uso** secondo il libretto del costruttore
+  (niente funzioni diverse né sollecitazioni oltre quelle ammesse); la
+  documentazione della macchina con certificazioni e libretto d'uso e
+  manutenzione viaggia col contratto; per l'usato la società di leasing
+  chiede una **perizia** del valore; alla scadenza tre strade — **riscatto**
+  (valore residuo tipico fra l'1 % e il 5 %), restituzione, o rinnovo con un
+  mezzo nuovo. *[risultati di ricerca: movento.academy, spalease.it,
+  giulianogroup.eu, credemleasing.it, dirittobancario.it]*
+- **La verifica periodica** (D.Lgs. 81/2008, art. 71 c. 11 e Allegato VII):
+  la prima verifica la fa l'INAIL (o un soggetto abilitato) su richiesta del
+  datore di lavoro, che comunica la messa in servizio allegando la
+  dichiarazione CE; poi le periodicità dell'Allegato VII, con la **scheda
+  tecnica** rilasciata dopo la prima verifica; un **escavatore con gancio**
+  usato per sollevare rientra nel gruppo SC ed è soggetto a verifica
+  **annuale** (circolare ISPESL 1088/2003, di seconda mano). *[risultati di
+  ricerca: eurocert.it, biblus.acca.it, tussl.it, puntosicuro.it,
+  notiziariosicurezza.it, vertest.it, kuadrasrl.com, tecnicasrl.net]*
+- **I numeri della telematica** (fornitori e associazioni, non norme): molte
+  macchine stanno **al minimo il 40–60 %** delle ore di funzionamento; un
+  escavatore al minimo brucia circa un gallone l'ora; le flotte migliori
+  tengono gli escavatori sopra il **75 % di utilizzo** contro una media del
+  55–65 %; sopra il **60–70 % di utilizzo** delle ore disponibili conviene
+  **comprare**, sotto **noleggiare**; il carburante può essere il 10 % del
+  ricavo orario prima di manutenzione e ammortamento; la telematica registra
+  ore motore, cicli di benna, tempo al minimo, carico. *[risultati di
+  ricerca: geotab.com, aem.org, envuetelematics.com, cnba.us, fieldfix.ai,
+  quarryingmachinery.com, sectordeepdive.com, pricemachinery.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+movento.academy · spalease.it · giulianogroup.eu · credemleasing.it ·
+dirittobancario.it · eurocert.it · biblus.acca.it · tussl.it · puntosicuro.it
+· notiziariosicurezza.it · vertest.it · kuadrasrl.com · tecnicasrl.net ·
+geotab.com · aem.org · envuetelematics.com · cnba.us · fieldfix.ai ·
+quarryingmachinery.com · sectordeepdive.com · pricemachinery.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi calcola quanto costa un'ora di un mezzo, e che cosa ci mette dentro?
+2. Chi sa quanto un mezzo lavora rispetto a quanto potrebbe (l'utilizzo)?
+3. Chi sa quanto sta al minimo?
+4. Chi ricorda la fine del leasing e il riscatto, e chi sa che cosa vale
+   la restituzione?
+5. Chi tiene le verifiche periodiche dell'Allegato VII, prima verifica e
+   annuali?
+6. Chi legge la telematica?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `ab12321f`)
+
+- **Domanda 1 — C'È A METÀ, ed è il delta.** `costoOrarioMezzo(interventi,
+  rifornimenti)` somma officina e carburante per ora (`euroOra ≈
+  euroOraOfficina + euroOraCarburante`, con la bandiera `parziale` quando
+  manca un importo). Il **possesso** — la quota d'ammortamento o il canone del
+  leasing — non c'è: `grep -ciE 'valore residuo|ammortament|deprezz'` → 0 e 0
+  (modulo, pagina), e il record del mezzo porta `nome, ore, area, stato`. Il
+  costo orario che il mondo confronta col ricavo (e con cui decide se
+  comprare o noleggiare) è **possesso più esercizio**: oggi il nostro è solo
+  esercizio, e non lo dice. **Mancanza confermata, aperta**: un campo
+  facoltativo sul mezzo (`costoPossessoAnnuo`, canone o quota annua, con
+  «da quando»), `costoOrarioMezzo` che aggiunge `euroOraPossesso` quando sa
+  le ore all'anno (dal ritmo misurato, `ritmoOreMezzi`) e dichiara «possesso
+  non registrato» quando no; il libretto e il fascicolo del mezzo che
+  scrivono le tre voci separate.
+- **Domanda 2 — DICHIARATO, chiede una decisione.** `ritmoOreMezzi` misura
+  le ore al giorno dal contatore; l'**utilizzo** vuole un denominatore (le
+  ore in cui il mezzo POTEVA lavorare: i turni della cava, che vivono in
+  Campo) e quel denominatore è una scelta — 8 ore? i turni registrati? Senza
+  di lui il 60–70 % del mondo non si può confrontare. Dichiarato.
+- **Domanda 3 — NON MISURABILE senza telematica, e lo si scrive.** `grep
+  -ciE 'idle|folle|al minimo'` → 0 e 0. Il contatore del mezzo conta le ore
+  motore, non distingue lavoro da minimo: il 40–60 % del mondo è un numero che
+  Flotta **non può** dare, e non lo inventa. Resta con la domanda 6.
+- **Domanda 4 — MANCA, ed è piccola.** I noleggi sono voci di costo («Noleggi
+  esterni») e c'è il preset «Noleggio a freddo» (`grep -c 'noleggio-freddo'`
+  → 1); il **leasing** — fine contratto, riscatto, obblighi di restituzione —
+  non ha un posto: `grep -ciE 'leasing|riscatt'` → 1 e 0, e l'uno è il
+  classificatore delle voci di costo che manda la parola «leasing» fra i
+  noleggi (il canone entra come spesa; il contratto, la sua fine e il
+  riscatto no). Un preset di
+  scadenza «Fine leasing / riscatto» (data del contratto, `mesi: null`, nota
+  sulle tre strade e sulla perizia dell'usato) costa cinque righe ed entra
+  nella stessa voce aperta della domanda 1 (il canone è il costo di possesso).
+- **Domanda 5 — C'È.** I preset dell'art. 71 e dell'Allegato VII (verifica
+  periodica, registro di controllo, prima verifica INAIL entro 60 giorni
+  dall'unità 89) e la famiglia «sollevamento» che riconosce gru, autogrù,
+  piattaforme dal nome: `grep -ciE 'gancio|sollevament|allegato VII|scheda
+  tecnica'` → 9 nel modulo. L'escavatore col gancio è un caso di quella
+  famiglia: la nota lo può nominare, non serve un preset.
+- **Domanda 6 — DICHIARATO (già nel vault).** La telematica è un import
+  (`grep -c 'telemat'` → 3, tutti commenti che rimandano alla nota del vault
+  «Telematics — cosa può fare Flotta»): una decisione su formati e fornitori,
+  non un'unità.
+
+**Riassunto** — 1 mancanza **confermata e aperta** in due pezzi (il costo di
+possesso nel costo orario; il preset «fine leasing / riscatto»), 2
+**dichiarate** (l'utilizzo, che chiede un denominatore; la telematica), 1
+**non misurabile** e scritta come tale (il tempo al minimo), 1 **già a posto**
+(le verifiche periodiche).
