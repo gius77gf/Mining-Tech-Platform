@@ -2,7 +2,8 @@
 // Flotta — accesso dati (C3). Schema condiviso: Firestore via SDK
 // Deepwork ID (orgCollection) da autenticati, demo in memoria
 // altrimenti. Collezioni (sotto organizations/{org}/apps/flotta/):
-//   mezzi/{id}:        { nome, ore, area, stato: operativo|fermo|verifica }
+//   mezzi/{id}:        { nome, ore, area, stato: operativo|fermo|verifica,
+//                        costoPossessoAnnuo? (€: canone di leasing o quota annua), possessoDal? (ISO) — dal 11/09 }
 //   manutenzioni/{id}: { titolo, mezzo, dataPrevista (ISO) }
 //   costi/{id}:        { voce, importo (EUR), nota, data (ISO)|null }
 //                      `data` = giorno a cui la spesa si riferisce (29/07).
@@ -218,7 +219,8 @@ const DEMO_DISPONIBILITA = [
 
 export const DEMO = {
   mezzi: [
-    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore" },
+    // il possesso (11/09): E1 è in leasing, 42.000 €/anno di canone — così il costo orario completo ha un caso nella dimostrazione
+    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore", costoPossessoAnnuo: 42000, possessoDal: "2024-01-15" },
     { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo", tipo: "escavatore" },
     { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo", tipo: "dumper" },
     { id: "m4", nome: "Dumper D3 — CAT 745", ore: 9105, area: "officina", stato: "fermo", tipo: "dumper" },
@@ -493,6 +495,14 @@ export const SCADENZE_MEZZO_PRESET = [
     etichetta: "Sorveglianza macchine e impianti in cava",
     norma: "D.P.R. 128/1959 — polizia delle miniere e delle cave",
     nota: "In cava il direttore responsabile e i sorveglianti garantiscono la sorveglianza su macchine e impianti e tengono i documenti a disposizione dell'ingegnere capo." },
+  /* FINE LEASING (11/09, dalla ricerca del terzo giro): il canone entra come
+     spesa, ma il contratto ha una fine con tre strade — riscatto, restituzione,
+     rinnovo — e chi usa il mezzo lo conserva secondo il libretto fino ad allora.
+     `mesi: null`: la data è quella scritta sul contratto. */
+  { chiave: "fine-leasing", tipo: "Leasing", mesi: null,
+    etichetta: "Fine leasing — riscatto o restituzione",
+    norma: "Contratto di leasing",
+    nota: "Alla scadenza tre strade: riscatto (valore residuo in genere fra l'1 e il 5 % — letto di seconda mano), restituzione o rinnovo con un mezzo nuovo. Chi usa il mezzo lo conserva e lo manutiene secondo il libretto del costruttore; per l'usato la società chiede una perizia. La data è quella del contratto." },
   { chiave: "noleggio-freddo", tipo: "Noleggio a freddo", mesi: null,
     etichetta: "Noleggio a freddo — attestazione e dichiarazioni",
     norma: "D.Lgs. 81/2008, art. 72",
@@ -1028,6 +1038,13 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
     + oreMotoreTesto(m.ore)
     + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo)
     + (dataISOEsiste(String(m.messaInServizio || "").slice(0, 10)) ? " · in servizio dal " + dataIt(String(m.messaInServizio).slice(0, 10)) : ""), "");
+  // il costo di possesso (11/09): canone o quota annua, con da quando; senza, lo dice
+  R("possesso", numeroDichiarato(m.costoPossessoAnnuo) != null && +m.costoPossessoAnnuo > 0 ? "canone o quota annua" : "non registrato",
+    dataISOEsiste(String(m.possessoDal || "").slice(0, 10)) ? dataIt(String(m.possessoDal).slice(0, 10)) : "",
+    numeroDichiarato(m.costoPossessoAnnuo) != null && +m.costoPossessoAnnuo > 0
+      ? "Costo di possesso: entra nel costo orario completo (possesso + officina + carburante) quando le ore all'anno sono misurate."
+      : "Costo di possesso non registrato: il costo orario che vedi è solo esercizio (officina + carburante), non quello completo.",
+    numeroDichiarato(m.costoPossessoAnnuo) != null && +m.costoPossessoAnnuo > 0 ? +m.costoPossessoAnnuo : null);
   const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
   if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
     s.sem.label + (s.mesi ? " · " + ogniMesiTesto(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));
@@ -1954,9 +1971,21 @@ export function costoOfficinaPerMezzo(interventi) {
 //    MINIMO, e lo dichiara la stessa bandiera `parziale` — terza ragione
 //    accanto agli interventi senza costo e a quelli senza data. Sempre una
 //    bandiera sola: dicono tutte e tre «questo numero è un minimo».
-export function costoOrarioMezzo(interventi, rifornimenti) {
+/* IL POSSESSO (11/09, dalla ricerca del terzo giro). Il costo orario che il
+   mondo confronta col ricavo — e con cui decide se comprare o noleggiare — è
+   possesso PIÙ esercizio; fin qui il nostro era solo esercizio (officina e
+   carburante) e non lo diceva. Il possesso è un campo del mezzo
+   (`costoPossessoAnnuo`: canone di leasing o quota annua d'ammortamento) e si
+   spalma sulle ore all'ANNO misurate dal contatore nella stessa finestra del
+   resto (ore coperte × 365 / giorni della finestra): senza il campo, o senza
+   la finestra, `euroOraPossesso` resta `null` con la ragione — mai uno zero,
+   che farebbe sembrare gratis una macchina in leasing. `euroOraCompleto` si
+   scrive solo quando tutt'e due i pezzi ci sono. Il terzo argomento è
+   facoltativo: chi non passa i mezzi ha il conto di sempre. */
+export function costoOrarioMezzo(interventi, rifornimenti, mezzi = []) {
   const off = costoOfficinaPerMezzo(interventi);
   const car = consumoPerMezzo(rifornimenti);
+  const MEZ = Array.isArray(mezzi) ? mezzi : [];
   const nomi = new Set([...off.mezzi.map(m => m.mezzo), ...car.mezzi.map(m => m.mezzo)]);
   nomi.delete("Senza mezzo");
   const righe = [];
@@ -2017,9 +2046,26 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
     if (mancanti > 0) ragioni.push(mancanti + (mancanti === 1 ? " intervento senza costo" : " interventi senza costo"));
     if (sdN > 0) ragioni.push(sdN + (sdN === 1 ? " intervento senza data" : " interventi senza data"));
     if (senzaEuro > 0) ragioni.push(senzaEuro + (senzaEuro === 1 ? " rifornimento senza la spesa" : " rifornimenti senza la spesa"));
+    // il possesso: dal record del mezzo, spalmato sulle ore all'anno della finestra
+    // i rifornimenti e gli interventi nominano il mezzo col nome BREVE («Escavatore E1»), l'anagrafica
+    // col nome intero («Escavatore E1 — CAT 352»): si confronta la parte prima del trattino, come fa la pagina
+    const breve = (n) => String(n || "").split(" — ")[0].trim().toLowerCase();
+    const rec = MEZ.find(x => x && (String(x.nome || "").trim() === mezzo || breve(x.nome) === breve(mezzo))) || null;
+    const possessoAnnuo = rec ? numeroDichiarato(rec.costoPossessoAnnuo) : null;
+    // `giorniTra(x, y)` è x − y: la finestra si prende in valore assoluto
+    const giorniFinestra = ore && da && a ? Math.abs(giorniTra(da, a)) : null;
+    const oreAnno = ore && Number.isFinite(giorniFinestra) && giorniFinestra >= 1 ? ore * 365 / giorniFinestra : null;
+    const euroOraPossesso = possessoAnnuo != null && possessoAnnuo > 0 && oreAnno ? Math.round(100 * possessoAnnuo / oreAnno) / 100 : null;
+    const perchePossesso = euroOraPossesso != null ? ""
+      : !rec ? "il mezzo non è in anagrafica: il possesso non si può leggere"
+      : !(possessoAnnuo != null && possessoAnnuo > 0) ? "possesso non registrato: canone o quota annua non scritti sul mezzo"
+      : "le ore all'anno non si sanno: serve la finestra del contatore";
     righe.push({
       mezzo, officina, carburante, totale: officina + carburante,
       ore, da, a,
+      possessoAnnuo: possessoAnnuo != null && possessoAnnuo > 0 ? possessoAnnuo : null,
+      oreAnno: oreAnno ? Math.round(oreAnno) : null,
+      euroOraPossesso, perchePossesso,
       officinaInFinestra: ore ? Math.round(100 * inFinestra) / 100 : null,
       carburanteInFinestra, spesaInFinestra,
       fuori: { interventi: fuoriN, costo: Math.round(100 * fuoriEuro) / 100 },
@@ -2029,6 +2075,8 @@ export function costoOrarioMezzo(interventi, rifornimenti) {
       euroOraOfficina: ore ? Math.round(100 * inFinestra / ore) / 100 : null,
       euroOraCarburante: c && Number.isFinite(c.euroOra) ? c.euroOra : null,
       euroOra: ore && !nienteSpesa ? Math.round(100 * spesaInFinestra / ore) / 100 : null,
+      // possesso + esercizio, e SOLO quando tutt'e due ci sono: un totale con un addendo nullo mentirebbe
+      euroOraCompleto: ore && !nienteSpesa && euroOraPossesso != null ? Math.round(100 * (spesaInFinestra / ore + euroOraPossesso)) / 100 : null,
       /* ⛔ E LA RAGIONE «LE ORE CI SONO MA IL PERIODO NO» ERA LA SECONDA COPIA
          DI UNA DECISIONE CHE ADESSO STA IN UN POSTO SOLO. Qui c'era un ramo in
          più — `oreNote ? "i rifornimenti col contatore non portano la data" :

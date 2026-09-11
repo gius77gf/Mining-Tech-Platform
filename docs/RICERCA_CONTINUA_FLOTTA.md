@@ -1206,6 +1206,10 @@ quarryingmachinery.com · sectordeepdive.com · pricemachinery.com.
   le ore all'anno (dal ritmo misurato, `ritmoOreMezzi`) e dichiara «possesso
   non registrato» quando no; il libretto e il fascicolo del mezzo che
   scrivono le tre voci separate.
+  ✅ **FATTO l'11/09 (unità 108)**: `costoPossessoAnnuo` + `possessoDal` sul
+  mezzo, `euroOraPossesso` / `oreAnno` / `perchePossesso` / `euroOraCompleto`
+  in `costoOrarioMezzo(interventi, rifornimenti, mezzi)`, riga «possesso» nel
+  libretto, lista con «Col possesso» o «Solo esercizio».
 - **Domanda 2 — DICHIARATO, chiede una decisione.** `ritmoOreMezzi` misura
   le ore al giorno dal contatore; l'**utilizzo** vuole un denominatore (le
   ore in cui il mezzo POTEVA lavorare: i turni della cava, che vivono in
@@ -1225,6 +1229,8 @@ quarryingmachinery.com · sectordeepdive.com · pricemachinery.com.
   scadenza «Fine leasing / riscatto» (data del contratto, `mesi: null`, nota
   sulle tre strade e sulla perizia dell'usato) costa cinque righe ed entra
   nella stessa voce aperta della domanda 1 (il canone è il costo di possesso).
+  ✅ **FATTO l'11/09 (unità 108)**: preset `fine-leasing` in Flotta (`mesi:
+  null`, nota sulle tre strade e la perizia dell'usato, di seconda mano).
 - **Domanda 5 — C'È.** I preset dell'art. 71 e dell'Allegato VII (verifica
   periodica, registro di controllo, prima verifica INAIL entro 60 giorni
   dall'unità 89) e la famiglia «sollevamento» che riconosce gru, autogrù,

@@ -955,9 +955,11 @@ body.dw b.bad{color:var(--ink-dg)}
     <select class="dw-input" id="mez-tipo" title="Tipo di mezzo: decide la checklist del giro macchina" style="flex:1 1 150px;"></select>
     <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1 1 140px;">
     <input class="dw-input" id="mez-servizio" type="date" title="Data di messa in servizio del mezzo (facoltativa): da qui si propone la prima verifica dell'attrezzatura, entro 60 giorni" style="flex:1 1 150px;">
+    <input class="dw-input" id="mez-possesso" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Possesso €/anno" title="Costo di possesso all'anno (facoltativo): il canone di leasing o la quota d'ammortamento, in euro. Entra nel costo orario completo." style="flex:1 1 140px;">
+    <input class="dw-input" id="mez-possesso-dal" type="date" title="Da quando si paga il possesso (facoltativo): inizio del leasing o data d'acquisto" style="flex:1 1 150px;">
     <input class="dw-input" id="mez-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore attuali" title="Ore del contatore, decimi compresi: la virgola va benissimo (1234,5)." style="flex:1 1 120px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-mez">Aggiungi</button>
-    <div class="form-hint">La <b>data</b> è la messa in servizio (facoltativa): da lì Flotta propone la <b>prima verifica</b> dell'attrezzatura, entro 60 giorni. Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
+    <div class="form-hint">La <b>prima data</b> è la messa in servizio (facoltativa): da lì Flotta propone la <b>prima verifica</b> dell'attrezzatura, entro 60 giorni. Il <b>possesso</b> (facoltativo) è quanto costa avere il mezzo anche da fermo — il canone di leasing o la quota d'ammortamento all'anno — e la <b>seconda data</b> è da quando lo paghi: con le ore all'anno misurate entra nel <b>costo orario completo</b>. Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
   </div>
 
   <div class="sec">Registro ore</div>
@@ -2243,7 +2245,7 @@ body.dw b.bad{color:var(--ink-dg)}
     //    pagella qui a fianco diceva l'esatto contrario («Costa di più:
     //    Escavatore E1»). Due schermate accanto che si smentiscono. Si vede
     //    solo nello scatto: leggendo il codice l'ordine sembrava giusto.
-    const oraMezzi = costoOrarioMezzo(INT, RIF);
+    const oraMezzi = costoOrarioMezzo(INT, RIF, MEZ);
     const conOra = oraMezzi.filter(m => m.euroOra !== null)
       .slice().sort((a, b) => b.euroOra - a.euroOra || a.mezzo.localeCompare(b.mezzo, "it"));
     /* ⛔ LA RIGA CHE SI SPEZZAVA IN DUE «MA» — e la versione giusta era già
@@ -2296,6 +2298,9 @@ body.dw b.bad{color:var(--ink-dg)}
         <div class="info"><div class="name">${esc(m.mezzo)} · <b>${eur(m.euroOra)}</b> <span class="u">/h</span></div>
           <div class="meta">${eur(m.spesaInFinestra)} in ${numTx(m.ore)} ${plurale(m.ore, "ora misurata", "ore misurate")} ·
             officina ${eur(m.officinaInFinestra)} + carburante ${eur(m.carburanteInFinestra)}</div>
+          <div class="meta">${m.euroOraCompleto != null
+            ? `Col possesso: <b>${eur(m.euroOraCompleto)}</b> <span class="u">/h</span> (${eur(m.possessoAnnuo)} all'anno su ${numTx(m.oreAnno)} ore all'anno misurate)`
+            : `Solo esercizio: ${esc(m.perchePossesso)}.`}</div>
           <div class="meta norma">${finestraTx(m)}</div></div>
       </div>`).join("")}
       ${senzOra.map(m => `<div class="item statico st-warn">
@@ -3154,7 +3159,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
   function disegnaPagella() {
     const aff = affidabilitaFlotta(FER, MEZ, finestraFer, new Date());
-    const p = pagellaMezzi(costoOrarioMezzo(INT, RIF), aff, MEZ);
+    const p = pagellaMezzi(costoOrarioMezzo(INT, RIF, MEZ), aff, MEZ);
     if (!p.righe.length && !p.senzaCosto.length) { $("pagella").innerHTML = ""; return; }
 
     // Il riepilogo dice i due riferimenti E il fatto che non coprono lo
@@ -4285,6 +4290,8 @@ body.dw b.bad{color:var(--ink-dg)}
       editMez = m.id;
       $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = perCampo(m.ore, 1);
       $("mez-servizio").value = String(m.messaInServizio || "").slice(0, 10);
+      $("mez-possesso").value = m.costoPossessoAnnuo != null && +m.costoPossessoAnnuo > 0 ? String(m.costoPossessoAnnuo).replace(".", ",") : "";
+      $("mez-possesso-dal").value = String(m.possessoDal || "").slice(0, 10);
       $("mez-tipo").value = tipoMezzoDi(m).chiave;   // se non era salvato, è quello indovinato dal nome
       ["mez-nome","mez-area","mez-ore"].forEach(i => err(i, false));
       $("btn-mez").textContent = "Salva modifica";
@@ -4566,13 +4573,19 @@ body.dw b.bad{color:var(--ink-dg)}
     const rmo = leggiNumero("mez-ore", "le ore del contatore", { min: 0, decimali: 1, unita: "h", facoltativo: true }, "ore-esito");
     if (!rmo.ok && !rmo.vuoto) return;
     const ore = rmo.ok ? rmo.valore : null;
+    // il costo di possesso (11/09): facoltativo, ma se è scritto dev'essere un numero > 0 — zero non è un canone
+    const rpo = leggiNumero("mez-possesso", "il costo di possesso all'anno", { positivo: true, decimali: 2, unita: "€", facoltativo: true }, "ore-esito");
+    if (!rpo.ok && !rpo.vuoto) return;
+    const costoPossessoAnnuo = rpo.ok ? rpo.valore : null;
+    const possessoDal = $("mez-possesso-dal").value || null;
     if (editMez) {
-      await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo, messaInServizio: $("mez-servizio").value || null });   // stato/manutenzioni restano
+      await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo, messaInServizio: $("mez-servizio").value || null, costoPossessoAnnuo, possessoDal });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo, messaInServizio: $("mez-servizio").value || null });
+      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo, messaInServizio: $("mez-servizio").value || null, costoPossessoAnnuo, possessoDal });
     }
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro"; $("mez-servizio").value = "";
+    $("mez-possesso").value = ""; $("mez-possesso-dal").value = "";
     esito("ore-esito", "Mezzo salvato: " + nome + " · " + (tipoMezzo(tipo) || { etichetta: "mezzo" }).etichetta
       + " (" + oreMotoreTx(ore) + ")"
       + (ore == null ? ": scrivile quando le leggi, o i tagliandi a ore non si potranno collocare." : "."), "success");

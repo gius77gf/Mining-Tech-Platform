@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.388 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2907, `run-stile` 328,
+  **3.389 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2908, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9469,8 +9468,8 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   un denominatore (dichiarato); il tempo al minimo non è misurabile senza
   telematica e si scrive così. Vedi `docs/RICERCA_CONTINUA_FLOTTA.md`,
   ricerca dell'11/09 (terzo giro).
-- [ ] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING**
-  *(dalla ricerca dell'11/09, terzo giro, domande 1 e 4)*. (1) Sul mezzo un
+- [x] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING**
+  ✅ 11/09 (unità 108). *(dalla ricerca dell'11/09, terzo giro, domande 1 e 4)*. (1) Sul mezzo un
   campo facoltativo `costoPossessoAnnuo` (canone di leasing o quota annua di
   ammortamento, in €) con `possessoDal`; `costoOrarioMezzo` aggiunge
   `euroOraPossesso` = possesso annuo / ore all'anno **misurate** (dal ritmo di
@@ -9485,6 +9484,23 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   «possesso € X/h»; un mezzo senza lo dice («possesso non registrato») e il
   totale non lo somma; `presetScadenzaFlotta("fine-leasing")` esiste;
   screenshot del libretto a 430 px.
+- [x] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING
+  (11/09, unità 108).** Sul mezzo `costoPossessoAnnuo` e `possessoDal` (due
+  campi nel form, numero > 0 facoltativo: uno zero non è un canone);
+  `costoOrarioMezzo(interventi, rifornimenti, mezzi)` spalma il possesso sulle
+  ore all'ANNO misurate nella stessa finestra del contatore (ore × 365 /
+  giorni) e scrive `euroOraPossesso`, `oreAnno`, `perchePossesso` (non
+  registrato / ore all'anno non si sanno / non in anagrafica) e
+  `euroOraCompleto` SOLO quando possesso ed esercizio ci sono tutt'e due. La
+  lista «Quanto costa un'ora di macchina» scrive «Col possesso: € X/h (… su N
+  ore all'anno misurate)» o «Solo esercizio: …»; il libretto ha la riga
+  «possesso». Preset «fine-leasing» (`mesi: null`, nota sulle tre strade e la
+  perizia, di seconda mano). Dimostrazione: E1 a 42.000 €/anno dal
+  15/01/2024 → «€ 56,93 /h su 1.363 ore all'anno misurate»; D1 e P1 «solo
+  esercizio». Screenshot a 430 px guardati (lista e form, la seconda data è
+  spiegata nel suggerimento del form). Prove: run-kpi +1 (2908); il preset
+  `presetScadenzaMezzo("fine-leasing")` è quello del modulo (la voce diceva
+  `presetScadenzaFlotta`, nome indovinato).
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

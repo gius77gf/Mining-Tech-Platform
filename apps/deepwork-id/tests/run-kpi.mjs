@@ -27107,6 +27107,45 @@ test("Conti · avvisoFidoPesata: la pesata dice se il cliente è oltre fido o ha
   const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
   ok(/id="pes-fido"/.test(pagina) && /aggiornaFidoPesata\(\)/.test(pagina) && (pagina.match(/aggiornaFidoPesata\(\)/g) || []).length >= 2, "la pagina la legge al cambio del cliente e al momento di registrare");
 });
+
+test("Flotta · costoOrarioMezzo col possesso: possesso + esercizio, e senza possesso lo dice (11/09)", () => {
+  /* finestra: 50 giorni, 100 ore misurate → 730 ore all'anno; possesso 36.500 €/anno → 50 €/h */
+  const rif = [
+    { mezzo: "Pala X", data: "2026-01-01", ore: 1000, litri: 100, euro: 150 },
+    { mezzo: "Pala X", data: "2026-02-20", ore: 1100, litri: 200, euro: 300 },
+  ];
+  const inter = [{ mezzo: "Pala X", data: "2026-01-20", costo: 400, titolo: "filtri" }];
+  const senza = flotta.costoOrarioMezzo(inter, rif)[0];
+  eq([senza.euroOraPossesso, senza.euroOraCompleto], [null, null], "senza i mezzi: solo esercizio, come sempre");
+  ok(/non è in anagrafica/.test(senza.perchePossesso), "e dice perché: " + senza.perchePossesso);
+  const conMezzo = flotta.costoOrarioMezzo(inter, rif, [{ nome: "Pala X", costoPossessoAnnuo: 36500, possessoDal: "2025-01-01" }])[0];
+  eq(conMezzo.oreAnno, 730, "100 ore in 50 giorni sono 730 ore all'anno");
+  eq(conMezzo.euroOraPossesso, 50, "36.500 € all'anno su 730 ore = 50 €/h");
+  eq(conMezzo.euroOra, 7, "l'esercizio non cambia: (400 + 300) / 100");
+  eq(conMezzo.euroOraCompleto, 57, "completo = possesso + esercizio");
+  const nonReg = flotta.costoOrarioMezzo(inter, rif, [{ nome: "Pala X" }])[0];
+  eq(nonReg.euroOraPossesso, null); ok(/possesso non registrato/.test(nonReg.perchePossesso), nonReg.perchePossesso);
+  eq(nonReg.euroOraCompleto, null, "senza possesso il completo NON è l'esercizio travestito");
+  const zero = flotta.costoOrarioMezzo(inter, rif, [{ nome: "Pala X", costoPossessoAnnuo: 0 }])[0];
+  eq(zero.possessoAnnuo, null, "uno zero non è un canone");
+  const senzaOre = flotta.costoOrarioMezzo(inter, [{ mezzo: "Pala X", data: "2026-01-01", litri: 100, euro: 150 }], [{ nome: "Pala X", costoPossessoAnnuo: 36500 }])[0];
+  eq(senzaOre.euroOraPossesso, null); ok(/ore all'anno non si sanno/.test(senzaOre.perchePossesso), senzaOre.perchePossesso);
+  // la dimostrazione: E1 in leasing
+  const D = flotta.DEMO;
+  const e1 = flotta.costoOrarioMezzo(D.interventi, D.rifornimenti, D.mezzi).find((r) => /E1/.test(r.mezzo));
+  ok(e1 && e1.possessoAnnuo === 42000, "E1 porta il canone nella dimostrazione");
+  ok(e1.euroOraPossesso == null || e1.euroOraCompleto > e1.euroOra, "se le ore all'anno si sanno, il completo è più dell'esercizio: " + JSON.stringify([e1.euroOraPossesso, e1.euroOra, e1.euroOraCompleto, e1.perchePossesso]));
+  // il preset della fine del leasing
+  const pr = flotta.presetScadenzaMezzo("fine-leasing");
+  ok(pr && pr.mesi === null && /riscatto/.test(pr.nota) && /seconda mano/.test(pr.nota), "fine leasing: la data è quella del contratto, la nota dice le tre strade");
+  // il libretto scrive il possesso, o che non c'è
+  const lib = flotta.csvLibretto(D.mezzi.find((m) => m.id === "m1"), D).split("\r\n");
+  ok(lib.some((r) => /^possesso;canone o quota annua;15\/01\/2024;.*;42000$/.test(r)), "E1: riga del possesso con data e importo: " + lib.find((r) => /^possesso;/.test(r)));
+  const lib3 = flotta.csvLibretto(D.mezzi.find((m) => m.id === "m3"), D).split("\r\n");
+  ok(lib3.some((r) => /^possesso;non registrato;;.*solo esercizio.*;$/.test(r)), "D1: il libretto dice che il possesso non è registrato: " + lib3.find((r) => /^possesso;/.test(r)));
+  const pagina = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
+  ok(/id="mez-possesso"/.test(pagina) && /costoOrarioMezzo\(INT, RIF, MEZ\)/.test(pagina) && /euroOraCompleto/.test(pagina), "la pagina salva il possesso e mostra il costo completo");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);
