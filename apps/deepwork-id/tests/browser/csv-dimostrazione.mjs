@@ -372,7 +372,9 @@ const provaApp = async (app) => {
        — la consegna di turno, che passa di mano fra due turni. Un'accusa falsa
        manda a «correggere» un prodotto sano, ed è il verso che costa di più.
        L'estensione decide quali domande hanno senso, e si dichiara. */
-    dice(/\.(csv|txt)$/i.test(u.nome), `${app}: «${u.nome}» ha un'estensione che il banco sa giudicare`, u.nome);
+    /* … e dall'11/09 anche il calendario `.ics` di Scudo, che ha una domanda
+       tutta sua (qui sotto): all'importazione il nome del file si perde. */
+    dice(/\.(csv|txt|ics)$/i.test(u.nome), `${app}: «${u.nome}» ha un'estensione che il banco sa giudicare`, u.nome);
   }
 
   /* ── IL CONTENUTO NON È STATO TOCCATO ────────────────────────────────── */
@@ -409,10 +411,26 @@ const provaApp = async (app) => {
     } else {
       /* la domanda rovesciata, e va fatta: su un documento che si legge a
          occhio la dichiarazione DEVE esserci, e deve stare in alto. */
-      const primeRighe = c.testo.split("\n").slice(0, 3).join("\n");
-      dice(ATTESO ? /DATI DI ESEMPIO/i.test(primeRighe) : !/DATI DI ESEMPIO/i.test(primeRighe),
+      /* ⛔ E UN `.ics` NON SI LEGGE DALL'ALTO: SI IMPORTA, E ALL'IMPORTAZIONE
+         IL NOME DEL FILE MUORE (11/09). Restano gli eventi, nell'agenda di
+         qualcuno. Quindi per un calendario la «testa» è tutto quello che sta
+         prima del primo evento (il nome del calendario), e in più OGNI titolo
+         di evento deve portare la dichiarazione — perché è il titolo che una
+         persona vede sul telefono, non il nome del calendario. Il caso
+         rovesciato (`--live`) pretende che non ne resti traccia da nessuna
+         parte del file, non solo in testa. */
+      const eIcs = /\.ics$/i.test(pulito);
+      const primeRighe = eIcs ? c.testo.split("BEGIN:VEVENT")[0] : c.testo.split("\n").slice(0, 3).join("\n");
+      dice(ATTESO ? /DATI DI ESEMPIO/i.test(primeRighe) : !/DATI DI ESEMPIO/i.test(eIcs ? c.testo : primeRighe),
         `${app}: «${pulito}» — ${ATTESO ? "lo dichiara nelle prime righe, non solo nel nome" : "coi dati veri non dichiara niente"}`,
         primeRighe.slice(0, 120));
+      if (eIcs) {
+        const titoli = c.testo.match(/^SUMMARY:.*$/gm) || [];
+        const dichiarati = titoli.filter((s) => /DATI DI ESEMPIO/i.test(s)).length;
+        dice(titoli.length > 0 && (ATTESO ? dichiarati === titoli.length : dichiarati === 0),
+          `${app}: «${pulito}» — ${ATTESO ? "OGNI titolo di evento dichiara l'esempio (il nome del file all'importazione si perde)" : "nessun titolo di evento porta la dichiarazione"} (${dichiarati}/${titoli.length})`,
+          titoli.slice(0, 2).join(" · ").slice(0, 140));
+      }
     }
     /* il campione scappato: vale per OGNI file che esce, csv o txt che sia —
        un `.txt` che si legge a occhio con quindici decimali in mezzo è anzi

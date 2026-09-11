@@ -689,6 +689,7 @@ import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomi
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+import { icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
 // lo scadenzario di tutta la cava è una regola di shared/ (serve a tre app): qui
@@ -6116,4 +6117,37 @@ export function scartiAzioniCsv(text) {
     });
   }
   return { lette: righe.length, entrano: righe.length - persi.length, persi, vuote: 0 };
+}
+
+/* IL CALENDARIO DELLE SCADENZE (.ics), 11/09 — dalla ricerca a rotazione su
+   Scudo: gli scadenzari HSE in commercio esportano il calendario in ICS per
+   Outlook e Google Calendar; la riga «Allarmi scadenza certificazione» di
+   CONCORRENTI_SCUDO diceva «l'allarme lo deve andare a leggere qualcuno:
+   nessun invio, nessun calendario». Adesso il calendario c'è: un evento di
+   un giorno per scadenza, col lavoratore nel titolo (o «azienda» per quelle
+   senza persona), lo stato di oggi nella descrizione e DUE avvisi, a 30 e a
+   7 giorni — le stesse soglie con cui `livelloScadenza` colora la riga (gialla
+   entro 30, rossa entro 7). Una scadenza SENZA data non entra e si conta:
+   `senzaData` è la stessa regola del CSV del personale, che la scrive invece
+   di tacerla. Il testo lo compone `icsCalendario` in `shared/`. */
+export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), adesso, avvisoEsempio) {
+  const nomeDi = (id) => { const l = (lavoratori || []).find((x) => x && x.id === id); return l ? String(l.nome || "").trim() : ""; };
+  const eventi = [], senzaData = [];
+  for (const s of scadenze || []) {
+    if (!s) continue;
+    const data = String(s.dataScadenza || "").slice(0, 10);
+    const chi = nomeDi(s.lavoratoreId) || "azienda";
+    if (!dataISOEsiste(data)) { senzaData.push((s.tipo || "Scadenza") + " · " + chi); continue; }
+    const st = livelloScadenza(data, oggi);
+    eventi.push({ uid: "scudo-scadenza-" + (s.id || (data + "-" + eventi.length)), data,
+      titolo: (s.tipo || "Scadenza") + " · " + chi,
+      descrizione: [s.descrizione || "", "Oggi: " + st.label, "Da Scudo, scadenzario della sicurezza"].filter(Boolean).join("\n"),
+      preavvisiGiorni: [30, 7] });
+  }
+  // `avvisoEsempio` lo decide la pagina, che sa in che modo sta girando: nel
+  // file entra nel nome del calendario, nei titoli e nelle descrizioni,
+  // perché all'importazione il nome del file si perde (vedi `icsCalendario`)
+  const r = icsCalendario(eventi, { app: "Scudo", adesso, nome: "Scadenze sicurezza (Scudo)", esempio: avvisoEsempio });
+  // `saltati` conta TUTTO ciò che è rimasto fuori: le senza data e quelle col giorno che non esiste
+  return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData };
 }

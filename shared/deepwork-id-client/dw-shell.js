@@ -2012,3 +2012,83 @@ export function foriDalModello(markers, larghezzaM, altezzaM) {
   l.sort((a, b) => fuori(a) - fuori(b) || a.x - b.x);
   return l.map((f, i) => ({ num: i + 1, x: f.x, y: f.y, z: f.z }));
 }
+
+/* IL CALENDARIO CHE SI IMPORTA NEL TELEFONO — iCalendar (RFC 5545), 11/09.
+   ════════════════════════════════════════════════════════════════════════
+   Le scadenze di un'app (visite mediche, corsi, revisioni, adempimenti) hanno
+   un giorno e un preavviso; un file `.ics` è la forma che Google Calendar,
+   Outlook, il calendario dell'iPhone e Thunderbird importano tutti, e che
+   porta con sé gli AVVISI (`VALARM`): è l'allarme di scadenza senza un server
+   che lo mandi. Sta in `shared/` perché la regola serve a più app (Scudo
+   oggi; Flotta, Sentinella, Terra hanno lo stesso scadenzario).
+   `eventi`: [{ uid, data (ISO YYYY-MM-DD), titolo, descrizione, preavvisiGiorni: [30, 7] }]
+   `opzioni`: { app: "Scudo", adesso: "2026-09-11T02:00:00Z" } — `adesso` è il
+   DTSTAMP, passato da fuori così il file è riproducibile e le prove lo
+   confrontano alla lettera.
+   Regole del formato, tutte provate: eventi di UN GIORNO INTERO
+   (`DTSTART;VALUE=DATE`, `DTEND` il giorno dopo, come vuole la specifica);
+   il testo sfuggito (barra rovesciata, punto e virgola, virgola, a capo);
+   righe chiuse da CRLF e PIEGATE a 75 ottetti con uno spazio in testa alla
+   continuazione — è la regola che i generatori fatti a mano sbagliano, e il
+   nuovo Outlook rifiuta il file. Un evento SENZA un giorno che esiste non
+   entra e si conta in `saltati`: un avviso su un giorno inventato è peggio
+   di nessun avviso. */
+export function icsCalendario(eventi, opzioni) {
+  const o = opzioni || {};
+  const sfuggi = (t) => String(t == null ? "" : t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  const piega = (riga) => {
+    // 75 OTTETTI, non caratteri: «à» ne occupa due. Si taglia sui byte e si
+    // torna indietro se il taglio cade in mezzo a un carattere.
+    // TextEncoder e non Buffer: questo modulo lo carica anche il BROWSER, e
+    // «Buffer is not defined» è stato il primo errore del bottone (11/09)
+    const b = new TextEncoder().encode(riga), dec = new TextDecoder(); const out = [];
+    let i = 0, primo = true;
+    while (i < b.length) {
+      let fine = Math.min(b.length, i + (primo ? 75 : 74));
+      while (fine < b.length && fine > i && (b[fine] & 0xC0) === 0x80) fine--;
+      out.push((primo ? "" : " ") + dec.decode(b.subarray(i, fine)));
+      i = fine; primo = false;
+    }
+    return out.join("\r\n");
+  };
+  const giornoPiu = (iso, n) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const compatto = (iso) => iso.replace(/-/g, "");
+  const stamp = (() => {
+    const d = o.adesso ? new Date(o.adesso) : new Date();
+    return isNaN(d) ? "" : d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  })();
+  /* ⛔ IL NOME DEL FILE MUORE ALL'IMPORTAZIONE (11/09, trovato dal banco
+     `csv-dimostrazione`): un calendario importato in Google Calendar o sul
+     telefono lascia il file e tiene gli EVENTI — un «Visita medica · Mario
+     Rossi» di esempio entrerebbe nell'agenda di qualcuno con la faccia di
+     una scadenza vera. Quindi l'avviso della dimostrazione (`o.esempio`) entra
+     nel file, in TRE posti che sopravvivono all'importazione: il nome del
+     calendario, il titolo di ogni evento, la prima riga di ogni descrizione.
+     È la stessa regola della consegna di turno `.txt` di Campo — «un foglio
+     che si legge dall'alto deve dirlo prima di essere creduto». */
+  const avviso = String(o.esempio == null ? "" : o.esempio).trim();
+  const righe = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Deepwork//" + sfuggi(o.app || "Deepwork") + "//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+  if (o.nome || avviso) righe.push("X-WR-CALNAME:" + sfuggi((avviso ? "DATI DI ESEMPIO · " : "") + (o.nome || o.app || "Deepwork")));
+  if (avviso) righe.push("X-DEEPWORK-AVVISO:" + sfuggi(avviso));
+  let inclusi = 0, saltati = 0;
+  for (const e of eventi || []) {
+    const data = String((e && e.data) || "").slice(0, 10);
+    if (!dataISOEsiste(data)) { saltati++; continue; }
+    inclusi++;
+    righe.push("BEGIN:VEVENT",
+      "UID:" + sfuggi(e.uid || (data + "-" + inclusi)) + "@deepwork",
+      "DTSTAMP:" + stamp,
+      "DTSTART;VALUE=DATE:" + compatto(data),
+      "DTEND;VALUE=DATE:" + compatto(giornoPiu(data, 1)),
+      "SUMMARY:" + sfuggi((avviso ? "[DATI DI ESEMPIO] " : "") + (e.titolo || "Scadenza")));
+    const descr = [avviso, e.descrizione].filter(Boolean).join("\n");
+    if (descr) righe.push("DESCRIPTION:" + sfuggi(descr));
+    for (const g of (e.preavvisiGiorni || []).filter((n) => Number.isFinite(+n) && +n >= 0)) {
+      righe.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + sfuggi(e.titolo || "Scadenza"),
+        "TRIGGER:" + (+g === 0 ? "PT0S" : "-P" + Math.round(+g) + "D"), "END:VALARM");
+    }
+    righe.push("END:VEVENT");
+  }
+  righe.push("END:VCALENDAR");
+  return { ics: righe.map(piega).join("\r\n") + "\r\n", inclusi, saltati };
+}

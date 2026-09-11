@@ -665,6 +665,54 @@
   che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
   che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
   non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **RICERCA A ROTAZIONE, SCUDO — IL CALENDARIO CHE SI IMPORTA NEL
+  TELEFONO, E IL DELTA FATTO (11/09):** metà sul mondo con `WebSearch`
+  (fonti citate, seconda mano dichiarata): gli scadenzari HSE in commercio
+  (SICURWEB, iCLhub, MIRMI, EduPLANweb) esportano il calendario delle
+  scadenze in **ICS** per Outlook e Google Calendar; il formato è RFC 5545
+  (eventi di un giorno con `DTSTART;VALUE=DATE`, avvisi `VALARM`, testo
+  sfuggito, righe CRLF piegate a 75 ottetti — e il nuovo Outlook rifiuta il
+  file piegato male). Delta dal MECCANISMO: la riga «Allarmi scadenza
+  certificazione» diceva «l'allarme lo deve andare a leggere qualcuno:
+  nessun invio, nessun calendario» — l'invio chiede un server (decisione),
+  il calendario no. `icsCalendario(eventi, opzioni)` in `shared/dw-shell.js`
+  (compositore puro, riproducibile col `DTSTAMP` da fuori, un giorno che non
+  esiste non entra e si conta) e `calendarioScadenze(scadenze, lavoratori,
+  oggi)` in Scudo (un evento per scadenza col lavoratore nel titolo o
+  «azienda», lo stato di oggi nella descrizione, DUE avvisi a 30 e 7 giorni
+  — le soglie del semaforo — le senza data fuori e nominate, l'UID dall'id
+  così reimportare aggiorna e non raddoppia); bottone «Calendario (.ics)» nel
+  Scadenzario col marchio della dimostrazione nel nome e la frase che conta.
+  ⚠️ Il primo bottone moriva con «Buffer is not defined»: il compositore
+  piegava le righe con `Buffer`, che nel browser non esiste — preso dalla
+  sonda prima del commit, passato a `TextEncoder`. ⚠️ E il pin degli export
+  «nelle quattro app» NON conta Scudo: alzato a 36 e riportato a 35 con la
+  ragione scritta accanto. Prove: run-kpi +4 (2854) — la testa del file, il
+  giorno intero, il DTSTAMP, l'escaping, i due avvisi, CRLF, ≤75 ottetti, la
+  piegatura che non spezza un accento, il 30 febbraio fuori, la
+  riproducibilità, la dimostrazione (26 scadenze); `documenti-dimostrazione`
+  136; copertura 941/941 (dw-shell 58 → **59**, Scudo 214 → **215**). Sta in
+  `shared/` perché Flotta, Sentinella e Terra hanno lo stesso scadenzario:
+  candidato per le tre, dichiarato.
+  ⛔ **E IL BANCO `csv-dimostrazione` HA BOCCIATO LA PRIMA STESURA, A RAGIONE:
+  il nome del file muore all'importazione.** Due KO: «un'estensione che il
+  banco sa giudicare» (il `.ics` non c'era) e «lo dichiara nelle prime righe,
+  non solo nel nome» — e la seconda è un difetto VERO del prodotto, non del
+  banco: un calendario importato in Google Calendar o sul telefono lascia il
+  file e tiene gli EVENTI, quindi «Visita medica · Mario Rossi» di esempio
+  sarebbe entrato nell'agenda di qualcuno con la faccia di una scadenza vera.
+  È la stessa regola della consegna `.txt` di Campo («un foglio che si legge
+  dall'alto deve dirlo prima di essere creduto»), e qui vale di più perché il
+  file non si legge nemmeno. Cura: `icsCalendario` prende `esempio` e lo mette
+  in TRE posti che sopravvivono all'importazione — `X-WR-CALNAME` («DATI DI
+  ESEMPIO · Scadenze sicurezza (Scudo)»), il prefisso di OGNI `SUMMARY`
+  (quello che si vede sul telefono) e la prima riga di ogni `DESCRIPTION`;
+  la pagina passa `avvisoTestoDimostrazione(modoDimostrazione(db.mode), …)`
+  (i siti della decisione nelle pagine 7 → **8**). Il banco giudica il `.ics`
+  con una domanda sua: la testa è tutto ciò che sta prima del primo evento, e
+  OGNI titolo deve dichiarare (26/26); in `--live` non ne resta traccia in
+  nessun punto del file (0/26); in controprova il rosso viene dal nome.
+  Misurato nei tre modi: 39 ok · 39 ok · 6 KO voluti.
 - [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
   — la dimostrazione non ha un tagliando con ore E data (di proposito: le
   prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
@@ -7703,8 +7751,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.331 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2850, `run-stile` 328,
+  **3.335 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2854, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

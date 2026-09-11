@@ -1222,3 +1222,55 @@ Fatto nella stessa unità: vedi la voce «IL VERBALE DI ISPEZIONE SU CARTA» in
 `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: le **foto nel foglio**
 (si contano e si dice dove stanno: stamparle vuol dire decidere una
 risoluzione e un peso di pagina); la **firma** resta a penna sul foglio.
+
+## Ricerca del 2026-09-11 — il calendario che si importa nel telefono: il mondo
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch`. Nessun numero di norma; le regole del formato sono da risultati di
+ricerca e sono state PROVATE alla lettera nel codice.
+
+### Che cos'è, fuori
+
+- Gli scadenzari della sicurezza in commercio (SICURWEB, iCLhub, MIRMI,
+  EduPLANweb, Scadenze in cloud) tengono un calendario delle scadenze —
+  formazione, visite mediche, verifiche — e almeno uno lo **esporta in ICS**
+  («Esportazione calendario» di SICURWEB: una stringa ICS da importare in
+  Outlook o Google Calendar). *[risultati di ricerca]*
+- Il formato è **iCalendar, RFC 5545**: un evento di un giorno intero si
+  scrive con `DTSTART;VALUE=DATE` e un `DTEND` dello stesso tipo; l'avviso è
+  un `VALARM` con `ACTION:DISPLAY` e `TRIGGER` relativo (`-P7D`); il testo di
+  `SUMMARY`/`DESCRIPTION` sfugge virgola, punto e virgola, barra e a capo; le
+  righe chiudono con CRLF e si **piegano a 75 ottetti** con uno spazio in
+  testa alla continuazione. Il nuovo Outlook applica la specifica alla lettera
+  e rifiuta i file dei generatori fatti a mano. *[risultati di ricerca:
+  icalendar.org, RFC editor, dev.to, discussione Marketo/Outlook]*
+
+Fonti (risultati di ricerca, non lette per intero):
+[SICURWEB — esportazione calendario](https://www.sgslweb.it/sicurweb-esportazione-calendario/) ·
+[Scadenzario Sicurezza Lavoro — iCLhub](https://scadenzario.iclhub.it/) ·
+[MIRMI](https://gestionescadenzesicurezza.cloud/) ·
+[EduPLANweb](https://www.eduplanweb.it/software-gestione-scadenze-sicurezza-e-formazione/) ·
+[icalendar.org — VEVENT](https://icalendar.org/iCalendar-RFC-5545/3-6-1-event-component.html) ·
+[icalendar.org — VALARM](https://icalendar.org/iCalendar-RFC-5545/3-6-6-alarm-component.html) ·
+[RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545) ·
+[dev.to — line folding, escaping](https://dev.to/sendotltd/building-an-rfc-5545-ical-file-generator-line-folding-escaping-and-all-5fid) ·
+[New Outlook enforces RFC 5545](https://experienceleaguecommunities.adobe.com/adobe-marketo-engage-27/microsoft-new-outlook-strictly-enforces-rfc-5545-potentially-breaking-ics-file-generators-though-not-marketo-s-147734).
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi decide che una scadenza è vicina?* → `livelloScadenza` (gialla entro
+   30 giorni, rossa entro 7): gli avvisi del calendario prendono le STESSE
+   soglie, così il telefono suona quando la riga cambia colore.
+2. *Chi dice chi è il lavoratore?* → `lavoratori[].nome` per `lavoratoreId`;
+   senza persona la scadenza è dell'azienda, e si scrive così.
+3. *Che cosa NON deve entrare?* → una scadenza senza data (o con un giorno
+   che non esiste): il CSV del personale la scrive invece di tacerla, il
+   calendario la conta e la nomina nella frase.
+
+### Il delta, fatto da chi ha il codice in mano (11/09, contro `f8fca53e`)
+
+Fatto nella stessa unità: `icsCalendario` in `shared/` (serve a più app),
+`calendarioScadenze` in Scudo, bottone «Calendario (.ics)» nel Scadenzario.
+Vedi la voce in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato:
+l'**invio** (email/SMS), che chiede un server; e il calendario delle altre
+tre app con scadenzario (Flotta, Sentinella, Terra), candidato.

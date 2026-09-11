@@ -1220,6 +1220,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     </select>
   </div>
   <input class="dw-input" id="scad-cerca" type="search" placeholder="Cerca per tipo o lavoratore…" style="margin-bottom:8px;">
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-scad-ics" title="Un file che Google Calendar, Outlook e il calendario del telefono importano: un evento per scadenza, con l'avviso 30 e 7 giorni prima">Calendario (.ics)</button>
+  </div>
   <div id="scad-count" class="count"></div>
   <div id="scad-turno"></div>
   <!-- le verifiche periodiche delle attrezzature (art. 71 c.11 D.Lgs 81/08):
@@ -1793,7 +1796,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
     verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite,
-    documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione } from "./scudo-data.js";
+    calendarioScadenze, documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -5110,6 +5113,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     await refresh();
   };
   $("btn-import-csv").onclick = () => $("csv-file").click();
+  $("btn-scad-ics").onclick = () => {
+    /* IL CALENDARIO (.ics), 11/09: un evento per scadenza con l'avviso a 30 e
+       a 7 giorni — l'allarme senza un server che lo mandi. Il testo lo compone
+       il modulo; qui solo il file e la frase. */
+    // la riga dei dati di esempio la decide la pagina, che sa in che modo sta
+    // girando — e nel calendario deve entrare, perché all'importazione il
+    // nome del file si perde e restano solo gli eventi
+    const r = calendarioScadenze(SCA, LAV, new Date(), undefined,
+      avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Queste scadenze non riguardano nessuna persona reale."));
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
+    a.download = "scudo_scadenze.ics"; marchiaCsv(a); a.click();
+    toast("Calendario esportato: " + plurale(r.inclusi, "scadenza", r.inclusi + " scadenze") + " con l'avviso a 30 e a 7 giorni"
+      + (r.senzaData.length ? "; " + plurale(r.senzaData.length, "una senza data resta fuori", r.senzaData.length + " senza data restano fuori") + " (" + r.senzaData.slice(0, 3).join(", ") + ")" : "") + ".", r.senzaData.length ? "warn" : "success");
+  };
   $("btn-export-csv").onclick = () => {
     // backup/condivisione (es. consulente del lavoro): lavoratori con le
     // rispettive scadenze e lo stato CALCOLATO alla data odierna

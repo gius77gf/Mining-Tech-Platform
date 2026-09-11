@@ -230,7 +230,7 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    passati in `shared/dw-ponti.js` (che sale) perché Genesi compone il consuntivo
    letto dall'organizzazione con la stessa funzione con cui Campo scrive il file.
    Campo li ri-esporta come alias. Il totale non scende. */
-const FONDO = { campo: 134, conti: 198, flotta: 136, scudo: 214, sentinella: 170, terra: 88 };
+const FONDO = { campo: 134, conti: 198, flotta: 136, scudo: 215, sentinella: 170, terra: 88 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -334,7 +334,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 58,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 59,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },

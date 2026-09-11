@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 35, "i siti di export CSV censiti nelle quattro app")   // 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 35, "i siti di export CSV censiti nelle quattro app")   // ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23611,7 +23611,9 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        ogni giorno «NON MISURATE: conti — copiano negli appunti ma non hanno
        una riga in COME», cioè nessun bottone era mai stato premuto: è la riga
        «non ho guardato» che va letta PRIMA dei KO. */
-    eq(siti, 7, "i punti che chiedono la decisione nelle quattro pagine");
+    // 7 → 8 l'11/09: il calendario .ics di Scudo, dove l'avviso deve entrare
+    // nel FILE perché all'importazione il nome si perde
+    eq(siti, 8, "i punti che chiedono la decisione nelle quattro pagine");
     console.log(`     (${siti} chiamate in ${QUATTRO.length} pagine, tutte con db.mode passato dalla pagina)`);
   });
 
@@ -25359,6 +25361,70 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/\.find\(e=>e\.default\)|\.find\(r=>r\.default\)/g) || []).length, 0, "la regola non è più scritta in casa in nessuna delle tre forme");
     const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["INNESCHI", "ROCCE", "scegliDaCatalogo"].every((n) => dati.includes(n)), "la pagina importa tutt'e tre");
+  });
+
+  /* ⛔ IL CALENDARIO .ICS (11/09, ricerca a rotazione su Scudo): l'allarme di
+     scadenza senza un server che lo mandi. Il compositore sta in shared/
+     (`icsCalendario`), Scudo lo alimenta con `calendarioScadenze`. Le regole
+     del formato (RFC 5545, da risultati di ricerca — seconda mano, dichiarata
+     nel documento) si provano alla lettera perché il nuovo Outlook rifiuta un
+     file piegato male. */
+  test("⛔ shared · icsCalendario: un file iCalendar valido — giorno intero, avvisi, CRLF, escaping, piegatura a 75 ottetti", () => {
+    const r = shell.icsCalendario([{ uid: "a1", data: "2026-07-02", titolo: "Visita medica · Mario Rossi", descrizione: "Periodica; con esami, urgente\nSeconda riga", preavvisiGiorni: [30, 7] }], { app: "Scudo", adesso: "2026-09-11T02:00:00Z" });
+    eq([r.inclusi, r.saltati], [1, 0]);
+    const righe = r.ics.split("\r\n");
+    eq(righe.slice(0, 5), ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Deepwork//Scudo//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"], "la testa");
+    ok(righe.includes("DTSTART;VALUE=DATE:20260702") && righe.includes("DTEND;VALUE=DATE:20260703"), "evento di un giorno intero: DTEND è il giorno dopo, come vuole la specifica");
+    ok(righe.includes("DTSTAMP:20260911T020000Z"), "il DTSTAMP viene da fuori: il file è riproducibile");
+    ok(righe.includes("UID:a1@deepwork"), "l'UID è quello dato, col dominio");
+    ok(righe.includes("DESCRIPTION:Periodica\\; con esami\\, urgente\\nSeconda riga"), "punto e virgola, virgola e a capo sfuggiti");
+    eq(righe.filter((x) => x === "BEGIN:VALARM").length, 2, "due avvisi");
+    ok(righe.includes("TRIGGER:-P30D") && righe.includes("TRIGGER:-P7D"), "a 30 e a 7 giorni prima");
+    ok(r.ics.endsWith("END:VCALENDAR\r\n"), "chiude con CRLF");
+    ok(!/[^\r]\n/.test(r.ics), "nessun a capo nudo: solo CRLF");
+    ok(righe.every((x) => Buffer.byteLength(x, "utf8") <= 75), "nessuna riga supera i 75 ottetti");
+  });
+  test("⛔ shared · icsCalendario: la piegatura conta gli OTTETTI e non spezza un carattere accentato", () => {
+    const lungo = "à".repeat(60);   // 120 ottetti
+    const r = shell.icsCalendario([{ uid: "b", data: "2026-01-05", titolo: lungo }], { adesso: "2026-01-01T00:00:00Z" });
+    const righe = r.ics.split("\r\n");
+    const i = righe.findIndex((x) => x.startsWith("SUMMARY:"));
+    ok(righe[i + 1].startsWith(" "), "la continuazione comincia con uno spazio");
+    ok(Buffer.byteLength(righe[i], "utf8") <= 75 && !righe[i].includes("\uFFFD") && !righe[i + 1].includes("\uFFFD"), "il taglio non cade in mezzo a un carattere");
+    eq((righe[i] + righe[i + 1].slice(1)), "SUMMARY:" + lungo, "riunite le due righe si rilegge il testo intero");
+  });
+  test("⛔ shared · icsCalendario: un giorno che non esiste non entra, e si conta", () => {
+    const r = shell.icsCalendario([{ data: "2026-02-30", titolo: "x" }, { data: "boh", titolo: "y" }, { data: "", titolo: "z" }, { data: "2026-03-01", titolo: "w" }], { adesso: "2026-01-01T00:00:00Z" });
+    eq([r.inclusi, r.saltati], [1, 3], "il 30 febbraio, «boh» e il vuoto restano fuori — un avviso su un giorno inventato è peggio di nessun avviso");
+    eq(shell.icsCalendario([], {}).inclusi, 0); ok(/BEGIN:VCALENDAR\r\n[\s\S]*END:VCALENDAR\r\n$/.test(shell.icsCalendario(null, {}).ics), "senza eventi un calendario vuoto ma valido");
+    ok(shell.icsCalendario([{ data: "2026-03-01", titolo: "w", preavvisiGiorni: [0, -3, "x"] }], {}).ics.includes("TRIGGER:PT0S"), "un preavviso di zero giorni è «al momento»; quelli negativi o illeggibili si scartano");
+  });
+  test("⛔ Scudo · calendarioScadenze: un evento per scadenza col lavoratore, lo stato di oggi, gli avvisi alle soglie del semaforo, e le senza data contate", () => {
+    const D = scudo.DEMO;
+    const r = scudo.calendarioScadenze(D.scadenze, D.lavoratori, new Date("2026-09-11T10:00:00"), "2026-09-11T02:00:00Z");
+    eq(r.inclusi, D.scadenze.filter((x) => shell.dataISOEsiste(String(x.dataScadenza || "").slice(0, 10))).length, "tutte le scadenze con una data che esiste");
+    eq(r.saltati + r.inclusi, D.scadenze.length, "e il conto torna con la dimostrazione");
+    ok(r.ics.includes("SUMMARY:Visita medica · Mario Rossi"), "il titolo è tipo e lavoratore");
+    ok(r.ics.includes("Oggi: scaduta da 71 gg"), "la descrizione dice lo stato di oggi, con le parole del semaforo");
+    ok(r.ics.includes("UID:scudo-scadenza-s1@deepwork"), "l'UID è l'id della scadenza: reimportare il file aggiorna, non raddoppia");
+    const r2 = scudo.calendarioScadenze([{ id: "q", tipo: "Corso", lavoratoreId: "nessuno", dataScadenza: "2026-10-01" }, { id: "z", tipo: "DPI", lavoratoreId: "d1" }], D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z");
+    ok(r2.ics.includes("SUMMARY:Corso · azienda"), "una scadenza senza persona è «azienda», non un nome vuoto");
+    eq(r2.senzaData, ["DPI · Mario Rossi"], "la scadenza senza data resta fuori ed è nominata");
+    eq([r2.inclusi, r2.saltati], [1, 1]);
+    eq(scudo.calendarioScadenze(D.scadenze, D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z").ics, r.ics, "stesso ingresso, stesso file: riproducibile");
+    /* il nome del file muore all'importazione: l'avviso della dimostrazione
+       entra nel calendario, nei titoli e nelle descrizioni — e senza avviso
+       non ne resta traccia (trovato dal banco `csv-dimostrazione`, 11/09) */
+    ok(!/DATI DI ESEMPIO/.test(r.ics), "senza avviso il file non dice «esempio» da nessuna parte");
+    ok(r.ics.includes("X-WR-CALNAME:Scadenze sicurezza (Scudo)"), "il calendario ha un nome anche sui dati veri");
+    const rd = scudo.calendarioScadenze(D.scadenze, D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z", "[DATI DI ESEMPIO — modalità tour (demo). Queste scadenze non riguardano nessuna persona reale.]\n\n");
+    ok(rd.ics.includes("X-WR-CALNAME:DATI DI ESEMPIO · Scadenze sicurezza (Scudo)"), "il nome del calendario lo dichiara");
+    const titoli = rd.ics.match(/^SUMMARY:.*$/gm);
+    eq(titoli.length, rd.inclusi); ok(titoli.every((s) => s.startsWith("SUMMARY:[DATI DI ESEMPIO] ")), "OGNI titolo lo dichiara: è quello che si vede sul telefono");
+    // la riga è piegata a 75 ottetti: si legge spiegata
+    ok(rd.ics.replace(/\r\n /g, "").includes("DESCRIPTION:[DATI DI ESEMPIO — modalità tour (demo). Queste scadenze non riguardano nessuna persona reale.]\\nVisita medica periodica\\nOggi: scaduta da 71 gg"), "e la descrizione lo dice per prima cosa, prima dello stato");
+    ok(rd.ics.includes("X-DEEPWORK-AVVISO:[DATI DI ESEMPIO"), "e resta scritto per esteso in testa al file");
+    eq(rd.inclusi, r.inclusi, "l'avviso non cambia quanti eventi entrano");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
