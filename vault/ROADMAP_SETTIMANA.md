@@ -2905,6 +2905,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;`
+- `CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9166,6 +9168,36 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   genesi-data 120 → **124**; il censimento di `genesi-estraibili`: 151
   funzioni, 55 estraibili (48 a una o due variabili, 24 da sei a dieci),
   aggiornato in DEVELOPMENT.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — CONTI: CHE COSA CHIEDE IL
+  COMMERCIALISTA A UNA CAVA (11/09, unità 85, solo documenti).** Mondo di
+  seconda mano (8 fonti, `WebSearch`): il canone si tariffa **per tipo di
+  materiale e metodo**, con dichiarazione al 30/04 e due rate (Piemonte); le
+  rimanenze in bilancio al **minore fra costo e realizzo** (OIC 13); il fondo
+  di smantellamento e ripristino (OIC 31); il conto economico per materiale;
+  il registro carico/scarico è dei rifiuti. Delta dal MECCANISMO contro
+  `c1808b17`: canone C'È con una tariffa sola (→ voce aperta), rimanenze C'È ma al
+  listino (→ voce aperta), fondo ripristino e margine per prodotto MANCANO e
+  chiedono una decisione (dichiarati), date del canone già possibili come
+  scadenze, registro non applicabile. Vedi `docs/RICERCA_CONTINUA_CONTI.md`,
+  ricerca dell'11/09 (secondo giro).
+- [ ] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
+  dalla ricerca dell'11/09).** `prospettoRimanenze` valorizza i cumuli solo
+  al prezzo di listino; il bilancio vuole il minore fra costo di produzione e
+  realizzo. Con il costo al m³ del periodo (`costoPerMetroCubo`, che ha già il
+  suo «non calcolabile») il prospetto porta due valori per cumulo — al costo e
+  al listino — e dice quale vale (il minore), con `null` e la ragione quando
+  il costo non si calcola; CSV per il commercialista con tutt'e due; scatto.
+  Prova: `grep -cF 'valore = round2(unita === "m3" ? m3 * prezzo : t *
+  prezzo)' apps/conti/conti-data.js` → 1, ed è l'unica valorizzazione (con
+  `-F`: l'asterisco senza `-F` faceva rispondere 0).
+- [ ] **CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).**
+  `canonePeriodo` moltiplica ogni riga per prodotto per la stessa aliquota
+  dell'organizzazione; il mondo tariffa per tipo di materiale e metodo. Sul
+  listino un'aliquota facoltativa per prodotto (`canoneAliquota`), con
+  l'aliquota dell'organizzazione come ripiego DICHIARATO riga per riga («tariffa
+  del prodotto» / «tariffa generale»), e la riga del canone che lo scrive;
+  prove in run-kpi; scatto. Prova: `grep -ciE 'canoneAliquota'
+  apps/conti/conti-data.js` → 5, tutte sull'impostazione unica.
 - [x] **GENESI G31 — LA CARICA DI UN FORO DALLA SUA GEOMETRIA E LE COSTANTI
   PPV DALLA LITOLOGIA (11/09, B3 tredicesima fetta):** `caricaLineare` (i kg
   per metro di colonna, che erano scritti due volte: in `deriveCharge` della

@@ -1297,3 +1297,135 @@ Fonti (risultati di ricerca, non lette per intero):
   solo con le **fatture passive**, che Conti non ha (i costi sono voci): è
   quella la mancanza vera, ed è la stessa già dichiarata per il registro
   degli acquisti. Resta scritta come tale, non come «ritenuta».
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede il commercialista a una cava (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma o di
+tariffa entra in una schermata; quelli qui sotto servono a decidere il delta.
+
+### Che cosa contiene, fuori
+
+- **Il canone (onere/diritto di escavazione)** si calcola sul **volume
+  estratto nell'anno per tipo di materiale**, con una **tariffa per tipo**
+  fissata dalla Regione e aggiornata (in Piemonte: importi unitari rivisti
+  dal 01/01/2026 con la L.R. 16/2025, poi ogni due anni con l'ISTAT). La
+  **dichiarazione dei volumi** dell'anno precedente si presenta entro il
+  **30 aprile** (Piemonte: «Modello A» sul Servizio Esercenti Minerari) e il
+  versamento è **in un'unica soluzione al 30/04 o in due rate uguali al
+  30/04 e al 31/10**. Esempio di listino regionale trovato: calcare con
+  esplosivo 0,720 €/m³, calcare con mezzi meccanici 1,082 €/m³, materiali da
+  alveo 2,672 €/m³ — cioè **la tariffa cambia col materiale e col metodo**.
+  *[risultati di ricerca: Regione Piemonte, legislazionetecnica.it,
+  gazzettaufficiale.it; tariffe di seconda mano, NON da scrivere in una
+  schermata]*
+- **Le rimanenze di fine anno** (i cumuli a piazzale) vanno in bilancio **al
+  minore fra il costo di produzione e il valore di realizzo desumibile dal
+  mercato** (art. 2426 c.c., OIC 13). Il commercialista chiede il **costo**,
+  non il prezzo di listino: il listino è il tetto, non il valore.
+  *[risultati di ricerca: soluzionetasse, mysolution, fiscoetasse]*
+- **Il fondo di smantellamento e ripristino** (OIC 31): quando esiste
+  un'obbligazione legale di ripristinare il sito — ed è il caso di ogni
+  autorizzazione di cava — si iscrive un fondo per oneri, in contropartita a
+  un aumento del costo del cespite, e lo si alimenta lungo la vita utile; per
+  le cave la prassi citata è un fondo per i **futuri costi di chiusura e di
+  ripristino ambientale dei siti**. La deducibilità fiscale degli
+  accantonamenti è un tema a sé (risposta AdE 64/2023).
+  *[risultati di ricerca: fondazioneoic.eu, dirittobancario.it,
+  quotidianopiu.it, agenziaentrate.gov.it]*
+- **Il conto economico per materiale**: i gestionali di settore chiedono il
+  **costo per tonnellata estratta e lavorata, per tipo di materiale**, con i
+  costi allocati dai volumi (pesa integrata) e le **royalty/canoni legati al
+  tonnellaggio estratto o spedito**; il profitto si legge per linea di
+  prodotto «una volta contato ogni costo». *[risultati di ricerca:
+  hellogravel.com, getclue.com, codelayer.in]*
+- **Il registro di carico e scarico**: quello che la ricerca trova è il
+  registro dei **rifiuti** (D.Lgs. 152/2006), che per il materiale estratto
+  non c'entra; per la cava il tracciato del materiale sono le **pesate/DDT**
+  e la dichiarazione annuale dei volumi. *[risultati di ricerca: mase.gov.it,
+  rifiutoo.com; la non applicabilità è una deduzione di mestiere]*
+
+### Fonti (seconda mano)
+
+- Regione Piemonte — Onere per il diritto di escavazione (materiale estratto nel 2024 e nel 2025): https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/onere-per-diritto-escavazione
+- Bollettino di Legislazione Tecnica — Art. 4, contributi dovuti per attività di cava: https://legislazionetecnica.it/node/8107895
+- Fondazione OIC — OIC 31, Fondi per rischi e oneri: https://www.fondazioneoic.eu/wp-content/uploads/2022/10/2019-01-OIC-31-Fondi-per-rischi-e-oneri-e-TFR.pdf
+- Diritto Bancario — Deducibilità degli accantonamenti ai fondi di ripristino ambientale: https://www.dirittobancario.it/art/deducibilita-degli-accantonamenti-ai-fondi-di-ripristino-ambientale/
+- Agenzia delle Entrate — Risposta n. 64/2023: https://www.agenziaentrate.gov.it/portale/documents/20143/4913743/Risposta+n.+64_2023.pdf
+- MySolution — Valutazione delle rimanenze, OIC 13: https://www.mysolution.it/fisco/guide/guide-bilancio/scritture-contabili/la-rilevazione-in-contabilita-delle-rimanenze-di-magazzino/
+- Hello Gravel — Quarry accounting systems 2026: https://hellogravel.com/quarry-accounting-systems-and-financial-management-for-2026/
+- MASE — Manuale per la tenuta del registro di carico e scarico (rifiuti): https://www.mase.gov.it/portale/documents/d/guest/all_1-manuale_tenuta_registro_carico_scarico-pdf
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi calcola il canone, e con quante tariffe? (una per cava o una per materiale?)
+2. Chi dà un valore ai cumuli di fine anno, e a che valore?
+3. Chi sa quanto costerà il ripristino, e chi lo spalma sui metri cubi?
+4. Chi conosce i costi per prodotto — o solo i ricavi per prodotto?
+5. Chi sa quando si dichiara e quando si versa?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `c1808b17`)
+
+- **Domanda 1 — C'È, con UNA tariffa sola.** `canonePeriodo` in
+  `conti-data.js` fa il conto in euro (base venduto o scavato, unità t o m³,
+  `null` con la ragione quando manca la base o la tariffa) e lo spezza **per
+  prodotto** — ma l'aliquota è **una per l'organizzazione**: `grep -c
+  'aliquota = noto ? +cfg.canoneAliquota : null' apps/conti/conti-data.js` →
+  1, e ogni riga `perProdotto` moltiplica la stessa `aliquota`
+  (`grep -ciE 'canoneAliquota' apps/conti/conti-data.js` → 5, tutte
+  sull'impostazione unica). Il mondo tariffa **per tipo di materiale e
+  metodo**. **Mancanza confermata, piccola e aperta**: la tariffa per
+  prodotto — sul listino di Conti, accanto a `unitaPrezzo`, con l'aliquota
+  dell'organizzazione come ripiego dichiarato — e la riga del canone che dice
+  quale tariffa ha usato per ogni prodotto. Terra tiene i metri cubi
+  (`onereEscavazione`) e non fa euro: giusto, resta così.
+- **Domanda 2 — C'È, ma AL PREZZO DI LISTINO.** `prospettoRimanenze`
+  valorizza i cumuli con `valore = t × prezzo` del listino: `grep -cF 'valore =
+  round2(unita === "m3" ? m3 * prezzo : t * prezzo)' apps/conti/conti-data.js`
+  → 1. ⚠️ *Con `-c` e senza `-F` lo stesso comando rispondeva **0**: l'asterisco
+  di `m3 * prezzo` è un metacarattere, e uno zero così sarebbe finito qui come
+  «non c'è». È la quinta forma del righello di CLAUDE.md, presa perché il
+  comando è stato rilanciato prima del commit su un caso che DEVE trovare.*
+  Per il bilancio il valore è il **minore fra costo e realizzo**: il
+  listino è il tetto. Il costo unitario Conti lo sa già calcolare —
+  `costoPerMetroCubo` (`grep -ciE 'costoPerMetroCubo|costoM3'` → 4
+  occorrenze) — e lo dichiara «non calcolabile» senza i metri cubi di Terra.
+  **Mancanza confermata, aperta**: il prospetto delle rimanenze porta **due
+  valori** — al costo (costo al m³ del periodo × m³ del cumulo) e al listino —
+  e scrive quale dei due vale per il bilancio (il minore), con `null` e la
+  ragione quando il costo non si calcola; il CSV per il commercialista li
+  porta tutt'e due.
+- **Domanda 3 — MANCA, e chiede una decisione.** Nessuna delle app ha un
+  fondo di ripristino: `grep -ciE 'accantonament|fondo (rischi|oneri|ripristino)|smantellament'`
+  su conti-data, conti index e terra-data → apps/conti/conti-data.js:0 apps/conti/index.html:0 apps/terra/terra-data.js:0. Terra ha la **garanzia
+  vincolata** per lotto (`garanziaVincolata`, → 1), che è la quota della
+  polizza — un numero che l'utente scrive — non il costo atteso del
+  ripristino. Spalmare quel costo sui metri cubi (€/m³ da aggiungere al costo
+  di produzione, come vuole l'OIC 31) vuole **un costo atteso dichiarato per
+  lotto** e un criterio (per m³ concesso residuo? per anno?): è una scelta del
+  commercialista e del fondatore. **Dichiarato, non aperto.**
+- **Domanda 4 — SOLO I RICAVI.** `venditePerProdotto` (→ 1) spezza le
+  vendite per prodotto; i costi sono **voci** (personale, carburante,
+  ripristino…) e nessuno li attribuisce a un prodotto: `grep -ciE
+  'costiPerProdotto|margine.*prodotto|perProdotto.*cost' apps/conti/conti-data.js`
+  → 0. Un margine per prodotto vuole una **chiave di riparto** (tonnellate
+  vendute? ore macchina di Flotta?) che nessuno ha deciso. **Dichiarato, non
+  aperto** — e va detto che senza chiave un numero «per prodotto» sarebbe
+  esattamente il numero tranquillo del principio del fondatore.
+- **Domanda 5 — LE DATE NON CI SONO.** In Conti nessuna rata né scadenza del
+  canone: `grep -ciE '\brat[ae]\b|31/10|30/04' apps/conti/conti-data.js` →
+  0; in Terra il riepilogo annuale c'è (`grep -ciE 'dichiarazione
+  annuale|riepilogo annuale'` su index e modulo → apps/terra/index.html:3 apps/terra/terra-data.js:5). Le date sono
+  **regionali** (30/04 e 31/10 in Piemonte; altre regioni, altri termini):
+  entrano come **scadenze dell'organizzazione** (Terra le sa già tenere, tipo
+  «fideiussione»), non come una regola scritta nel codice. **Non applicabile
+  come regola; già possibile come scadenza.**
+- **Registro carico/scarico**: non applicabile al materiale estratto (è dei
+  rifiuti); in Conti `grep -ciE 'carico e scarico|carico/scarico'` → apps/conti/conti-data.js:0 apps/conti/index.html:0,
+  ed è giusto così. Le pesate e i DDT sono il tracciato.
+
+**Riassunto** — 2 mancanze **confermate e aperte** (tariffa del canone per
+prodotto; rimanenze al costo oltre che al listino), 2 **dichiarate** che
+chiedono una decisione (fondo di ripristino; margine per prodotto), 1 **non
+applicabile** (registro carico/scarico), 1 **già possibile** (le date del
+canone come scadenze).
