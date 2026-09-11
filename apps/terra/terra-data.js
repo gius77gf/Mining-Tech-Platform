@@ -2564,6 +2564,8 @@ export async function terraData() {
       const read = async (name) =>
         (await getDocs(id.orgCollection(name))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         fronti: () => read("fronti"),
         rilievi: () => read("rilievi"),
         piano: () => read("piano"),
@@ -2626,6 +2628,8 @@ export async function terraData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       fronti: async () => mem.fronti,
       rilievi: async () => mem.rilievi,
       piano: async () => mem.piano,

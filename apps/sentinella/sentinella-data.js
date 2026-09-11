@@ -4183,6 +4183,8 @@ export async function ponteScudo() {
   } catch (e) { /* SDK assente o non autenticati: si prosegue in demo */ }
   return {
     mode: "demo",
+    // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+    orgId: null,
     azioni: async () => ponteDemoLeggi(),
     /* in dimostrazione Scudo non si può interrogare affatto: è «non leggibile»,
        non «non ce n'è» — la differenza è quella che questa unità esiste per fare */
@@ -5192,6 +5194,8 @@ export async function sentinellaData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         monitoraggi: () => read("monitoraggi"), adempimenti: () => read("adempimenti"), registri: () => read("registri"), volate: () => read("volate"),
         ricettori: () => read("ricettori"), reclami: () => read("reclami"), programma: () => read("programma"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),

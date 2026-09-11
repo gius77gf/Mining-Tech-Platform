@@ -1530,6 +1530,22 @@ test("⛔ ogni app dichiara le sue collezioni, e l'elenco combacia con quello ch
   eq(P.mancanti, [], "e nessuna manca");
   eq(P.collezioni.attivita.length, campo.DEMO.attivita.length, "le attività sono quelle della dimostrazione");
 });
+
+test("⛔ l'api di ogni app espone l'organizzazione attiva, e in dimostrazione dice null (11/09)", () => {
+  /* «Scarica tutto» scrive nel file di quale organizzazione sono i dati: fino
+     all'unità 99 il file usciva «senza-org» anche in esercizio, perché l'api
+     dell'app non esponeva `orgId`. Adesso ogni modulo lo prende dall'SDK nel
+     ramo live e lo dichiara `null` in dimostrazione — non una stringa finta,
+     che nel nome del file sembrerebbe un cliente. La prova è statica: il ramo
+     live vuole la rete. */
+  for (const nome of ["campo", "conti", "flotta", "scudo", "sentinella", "terra"]) {
+    const src = readFileSync(join(HERE, "../../" + nome + "/" + nome + "-data.js"), "utf8");
+    eq((src.match(/orgId: id\.orgId,/g) || []).length, 1, nome + ": il ramo live espone orgId dall'SDK");
+    eq((src.match(/orgId: null,/g) || []).length, 1, nome + ": la dimostrazione dichiara null, una volta");
+  }
+  const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+  ok(/organizzazione: db\.orgId \|\| null/.test(pagina), "e la pagina lo passa al bottone");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");

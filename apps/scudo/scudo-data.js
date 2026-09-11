@@ -4578,6 +4578,8 @@ export async function scudoData() {
       const read = async (name) =>
         (await getDocs(id.orgCollection(name))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         lavoratori: () => read("lavoratori"),
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
@@ -4664,6 +4666,8 @@ export async function scudoData() {
     // demo/tour: dati in memoria, scritture solo locali (non persistite)
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       lavoratori: async () => mem.lavoratori,
       scadenze:   async () => mem.scadenze,
       // in dimostrazione chi è schierato non arriva da Campo: è finto, ma

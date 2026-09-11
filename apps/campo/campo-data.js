@@ -3737,6 +3737,8 @@ export async function campoData() {
       const read = async (name) =>
         (await getDocs(id.orgCollection(name))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         attivita: () => read("attivita"),
         squadre: () => read("squadre"),
         operatori: () => read("operatori"),
@@ -3851,6 +3853,8 @@ export async function campoData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       attivita: async () => mem.attivita,
       squadre: async () => mem.squadre,
       operatori: async () => mem.operatori || (mem.operatori = []),

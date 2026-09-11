@@ -3516,6 +3516,8 @@ export async function contiData() {
       mode = "live";
       const read = async (n) => (await getDocs(id.orgCollection(n))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         fatture: () => read("fatture"), gare: () => read("gare"), clienti: () => read("clienti"),
         prodotti: () => read("prodotti"), pesate: () => read("pesate"),
         listini: () => read("listini"),
@@ -3638,6 +3640,8 @@ export async function contiData() {
   if (mode !== "live") {
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       fatture: async () => mem.fatture, gare: async () => mem.gare, clienti: async () => mem.clienti,
       prodotti: async () => mem.prodotti, pesate: async () => mem.pesate,
       listini: async () => mem.listini || (mem.listini = []),

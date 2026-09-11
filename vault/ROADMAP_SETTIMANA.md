@@ -7845,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.383 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2902, `run-stile` 328,
+  **3.384 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2903, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9447,6 +9447,13 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   nome del file dice «senza-org»): va esposta dall'SDK, un campo; (2) Genesi
   resta fuori (le sue collezioni escono una volata alla volta e la porta ha
   due modi); (3) il rientro del file è una decisione a parte.
+  ✅ (1) fatta nell'unità 100.
+- [x] **L'ORGANIZZAZIONE NEL FILE DI «SCARICA TUTTO» (unità 100, 11/09).**
+  L'api di ogni app espone `orgId` (dall'SDK nel ramo live; `null` in
+  dimostrazione, dichiarato — non una stringa finta che nel nome del file
+  sembrerebbe un cliente); `montaScaricaTutto` già lo leggeva. Una prova
+  statica pretende `orgId: id.orgId` una volta e `orgId: null` una volta in
+  ogni modulo. run-kpi +1 (2903).
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel
