@@ -2763,3 +2763,70 @@ export function scegliDaCatalogo(catalogo, id, indiceRipiego){
   const c=catalogo||[];
   return c.find(e=>e.id===id) || c.find(e=>e.default) || c[indiceRipiego||0];
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G29 · LA RAMPA DELLE QUOTE, IL VERDETTO DI UN VALIDATORE, IL PUNTO PIÙ
+   VICINO SULLA TELA (11/09, cantiere B3, undicesima fetta).
+   ═══════════════════════════════════════════════════════════════════════
+   `QUOTA_RAMPA` / `quotaColore(u, rampa)` — la rampa topografica tenue con cui
+   la scena 3D tinge i vertici per quota (dal blu dell'impluvio all'avorio
+   delle creste, passando per l'ambra di casa): un `u` fra 0 e 1 interpolato
+   linearmente fra le fermate, con `u` fuori intervallo bloccato agli estremi.
+   Entrata identica dal letterale della pagina; la rampa è un parametro con
+   quella di casa come ripiego, così una tavola diversa non chiede una copia.
+
+   `verdettoValidatore(x, lo, hi, wlo, whi)` — la regola con cui la scheda dei
+   validatori colora un rapporto: dentro [lo, hi] è a posto; sotto `lo` è un
+   avviso e sotto `wlo` un difetto; sopra `hi` e sopra `whi` lo stesso. Era
+   dentro `badge`, chiusa in una funzione che la pagina non può provare.
+   ⛔ E aveva un buco della famiglia «l'assenza non è un dato favorevole»: con
+   `x` NaN (una divisione fra due zeri — `rit/S` con S=0) nessun confronto
+   scattava e il rapporto usciva VERDE con la spiegazione del caso a posto.
+   Qui un `x` che non è un numero risponde «non calcolabile», e la pagina lo
+   scrive; la prova lo pinna nei due versi.
+
+   `puntoTela(m, x, y)` / `indicePiuVicino(punti, px, py, raggioPx)` — la
+   proiezione di un punto del modello sulla tela del disegno 2D
+   (`startX + x·scale`, `faceY + y·scale`, la trasformazione che `drawDesign2D`
+   salva in `D2._m`) e la ricerca del punto più vicino a un tocco entro un
+   raggio, con il pari merito al primo. Era scritta due volte nella pagina,
+   una per i fori e una per i punti del profilo (`d2HitTest`, `d2HitTestPt`):
+   i due legami restano e passano di qui. Un tocco senza coordinate leggibili
+   risponde −1, come un tocco lontano. */
+export const QUOTA_RAMPA = [                                  // rampa topografica tenue, dal basso all'alto
+  { t:0.00, c:[0.16,0.34,0.42] },                      // impluvio / quote basse
+  { t:0.28, c:[0.25,0.48,0.35] },                      // verde profondo
+  { t:0.52, c:[0.72,0.68,0.34] },                      // ocra
+  { t:0.76, c:[0.92,0.60,0.22] },                      // ambra (colore di casa)
+  { t:1.00, c:[1.00,0.92,0.78] } ];                    // creste
+export function quotaColore(u, rampa){
+  const R = (rampa && rampa.length) ? rampa : QUOTA_RAMPA;
+  const x=Math.max(0, Math.min(1, +u || 0));
+  for(let i=1;i<R.length;i++){
+    const a=R[i-1], b=R[i];
+    if(x<=b.t){ const k=(x-a.t)/Math.max(1e-6,(b.t-a.t));
+      return [a.c[0]+(b.c[0]-a.c[0])*k, a.c[1]+(b.c[1]-a.c[1])*k, a.c[2]+(b.c[2]-a.c[2])*k]; }
+  }
+  return R[R.length-1].c;
+}
+export function verdettoValidatore(x, lo, hi, wlo, whi){
+  if(!Number.isFinite(+x) || x === null || x === "") return { cls:'sv-warn', quale:'non-calcolabile' };
+  if(x<lo) return { cls:(x<wlo?'sv-bad':'sv-warn'), quale:'basso' };
+  if(x>hi) return { cls:(x>whi?'sv-bad':'sv-warn'), quale:'alto' };
+  return { cls:'sv-ok', quale:'ok' };
+}
+export function puntoTela(m, x, y){
+  if(!m) return null;
+  return { cx:m.startX + (+x)*m.scale, cy:m.faceY + (+y)*m.scale };
+}
+export function indicePiuVicino(punti, px, py, raggioPx){
+  const r = Number.isFinite(+raggioPx) && +raggioPx > 0 ? +raggioPx : 18;
+  if(!Number.isFinite(+px) || !Number.isFinite(+py)) return -1;
+  let best=-1, bd=r*r;
+  (punti||[]).forEach((q, i) => {
+    if(!q) return;
+    const d=(q.cx-px)*(q.cx-px)+(q.cy-py)*(q.cy-py);
+    if(d<bd){ bd=d; best=i; }
+  });
+  return best;
+}

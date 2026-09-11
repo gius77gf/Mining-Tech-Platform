@@ -25588,6 +25588,58 @@ console.log("\n— Campo: i file che escono —");
     eq(sentinella.misureDelGiornoPerReclamo({ tipo: "rumore", data: "2026-02-30" }, D.monitoraggi, null).frase, "Reclamo senza una data: la misura di quel giorno non si può cercare.");
     eq(sentinella.misureDelGiornoPerReclamo(null, D.monitoraggi, null).data, null);
   });
+  /* G29 (11/09, B3 undicesima fetta): la rampa delle quote, il verdetto di un
+     validatore, il punto più vicino sulla tela. Confrontate vecchio/nuovo sugli
+     stessi ingressi in scratchpad (5.007 casi, 0 diversi salvo i NaN, voluti);
+     qui i valori pinnati e la pagina che non tiene più i corpi. */
+  test("⛔ Genesi · G29 quotaColore: fermate esatte, interpolazione fra due, estremi bloccati, rampa passata da fuori", () => {
+    const R = genesi.QUOTA_RAMPA;
+    eq(R.length, 5); eq(R[0].t, 0); eq(R[4].t, 1);
+    eq(genesi.quotaColore(0), R[0].c, "u=0 è la prima fermata");
+    eq(genesi.quotaColore(1), R[4].c, "u=1 è l'ultima");
+    eq(genesi.quotaColore(0.28), R[1].c, "una fermata esatta è la sua tinta");
+    const mezzo = genesi.quotaColore(0.14);
+    eq(mezzo.map((v) => +v.toFixed(3)), [0.205, 0.41, 0.385], "a metà fra la prima e la seconda fermata: la media delle due");
+    eq(genesi.quotaColore(-3), R[0].c, "sotto zero si blocca al basso"); eq(genesi.quotaColore(7), R[4].c, "sopra uno alle creste");
+    eq(genesi.quotaColore("boh"), R[0].c, "un u illeggibile vale zero, non NaN");
+    const mia = [{ t: 0, c: [0, 0, 0] }, { t: 1, c: [1, 1, 1] }];
+    eq(genesi.quotaColore(0.25, mia), [0.25, 0.25, 0.25], "una rampa passata da fuori si usa");
+    eq(genesi.quotaColore(0.25, []), genesi.quotaColore(0.25), "una rampa vuota ricade su quella di casa");
+  });
+  test("⛔ Genesi · G29 verdettoValidatore: dentro è ok, fuori è avviso o difetto per gradi — e un NaN NON è verde", () => {
+    const v = (x) => genesi.verdettoValidatore(x, 1, 2, 0.5, 3);
+    eq(v(1.5), { cls: "sv-ok", quale: "ok" }); eq(v(1), { cls: "sv-ok", quale: "ok" }, "il bordo è dentro"); eq(v(2), { cls: "sv-ok", quale: "ok" });
+    eq(v(0.8), { cls: "sv-warn", quale: "basso" }); eq(v(0.4), { cls: "sv-bad", quale: "basso" }); eq(v(0.5), { cls: "sv-warn", quale: "basso" }, "a wlo esatto è ancora avviso");
+    eq(v(2.5), { cls: "sv-warn", quale: "alto" }); eq(v(3.5), { cls: "sv-bad", quale: "alto" });
+    eq(v(NaN), { cls: "sv-warn", quale: "non-calcolabile" }, "0/0 non è a posto"); eq(v(Infinity), { cls: "sv-warn", quale: "non-calcolabile" }); eq(v(null), { cls: "sv-warn", quale: "non-calcolabile" }); eq(v(""), { cls: "sv-warn", quale: "non-calcolabile" });
+    eq(genesi.verdettoValidatore("1.5", 1, 2, 0.5, 3).quale, "ok", "una stringa numerica si legge");
+  });
+  test("⛔ Genesi · G29 puntoTela / indicePiuVicino: la proiezione modello→tela e il tocco più vicino entro il raggio, pari merito al primo", () => {
+    const m = { startX: 54, faceY: 66, scale: 10 };
+    eq(genesi.puntoTela(m, 2, 3), { cx: 74, cy: 96 }); eq(genesi.puntoTela(null, 2, 3), null, "senza trasformazione niente");
+    const pts = [{ cx: 100, cy: 100 }, { cx: 130, cy: 100 }, { cx: 100, cy: 130 }];
+    eq(genesi.indicePiuVicino(pts, 101, 99), 0); eq(genesi.indicePiuVicino(pts, 128, 104), 1); eq(genesi.indicePiuVicino(pts, 100, 125), 2);
+    eq(genesi.indicePiuVicino(pts, 115, 100), 0, "a pari distanza vince il primo (il confronto è stretto)");
+    // (la prima stesura toccava a x=118: a 18 dal primo punto ma a 12 dal secondo — il righello sbagliava, non la regola)
+    eq(genesi.indicePiuVicino(pts, 82, 100), -1, "a 18 px esatti è fuori: il raggio è esclusivo, com'era nella pagina");
+    eq(genesi.indicePiuVicino(pts, 82.1, 100), 0, "a 17,9 è dentro");
+    eq(genesi.indicePiuVicino(pts, 150, 100, 25), 1, "col raggio passato da fuori");
+    eq(genesi.indicePiuVicino(pts, NaN, 100), -1, "un tocco senza coordinate non è vicino a niente");
+    eq(genesi.indicePiuVicino([], 100, 100), -1); eq(genesi.indicePiuVicino(null, 100, 100), -1);
+    eq(genesi.indicePiuVicino([null, { cx: 100, cy: 100 }], 100, 100), 1, "un punto mancante si salta");
+  });
+  test("⛔ Genesi · G29: nella pagina la rampa, il verdetto e la doppia ricerca del punto non ci sono più; i legami importano dal modulo", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/const QUOTA_RAMPA *= *\[/g) || []).length, 0, "il letterale della rampa non c'è più");
+    eq((pag.match(/function quotaColore\(/g) || []).length, 0, "né il corpo di quotaColore");
+    eq((pag.match(/let best=-1, ?bd=18\*18/g) || []).length, 0, "la ricerca del punto più vicino non è più scritta in casa (era due volte)");
+    ok(/function d2HitTest\(px,py\)\{ if\(!D2\._m\) return -1; return indicePiuVicino\(D2\.holes\.map\(h=>puntoTela\(D2\._m, h\.mx, h\.my\+interpFronte\(h\.mx\)\)\), px, py\); \}/.test(pag), "d2HitTest è un legame");
+    ok(/function d2HitTestPt\(px,py\)\{ if\(!D2\._m\) return -1; return indicePiuVicino\(activeProf\(\)\.map\(q=>puntoTela\(D2\._m, q\.x, q\.y\)\), px, py\); \}/.test(pag), "d2HitTestPt è un legame");
+    ok(/const v=verdettoValidatore\(x,lo,hi,wlo,whi\);/.test(pag) && /non-calcolabile/.test(pag), "badge chiede il verdetto al modulo e sa scrivere «non calcolabile»");
+    eq((pag.match(/if\(x<lo\)\{ cls=/g) || []).length, 0, "la regola non è più scritta in casa");
+    const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
+    ok(["quotaColore", "verdettoValidatore", "puntoTela", "indicePiuVicino"].every((n) => dati.includes(n)), "la pagina importa i quattro");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */

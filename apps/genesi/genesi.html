@@ -1165,7 +1165,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
-         INNESCHI, ROCCE, scegliDaCatalogo } from './genesi-data.js';
+         INNESCHI, ROCCE, scegliDaCatalogo,
+         quotaColore, verdettoValidatore, puntoTela, indicePiuVicino } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1936,21 +1937,8 @@ let quotaFloor=null, quotaBench=null;   // piazzale e banco: servono alla mappa 
    Colora fronte e piazzale in base all'altezza: si legge a colpo d'occhio dove
    il fronte è alto e dove il piazzale non è in piano. I colori moltiplicano la
    texture della roccia, così il rilievo resta visibile. */
-const QUOTA_RAMPA = [                                  // rampa topografica tenue, dal basso all'alto
-  { t:0.00, c:[0.16,0.34,0.42] },                      // impluvio / quote basse
-  { t:0.28, c:[0.25,0.48,0.35] },                      // verde profondo
-  { t:0.52, c:[0.72,0.68,0.34] },                      // ocra
-  { t:0.76, c:[0.92,0.60,0.22] },                      // ambra (colore di casa)
-  { t:1.00, c:[1.00,0.92,0.78] } ];                    // creste
-function quotaColore(u){
-  const x=Math.max(0, Math.min(1, u));
-  for(let i=1;i<QUOTA_RAMPA.length;i++){
-    const a=QUOTA_RAMPA[i-1], b=QUOTA_RAMPA[i];
-    if(x<=b.t){ const k=(x-a.t)/Math.max(1e-6,(b.t-a.t));
-      return [a.c[0]+(b.c[0]-a.c[0])*k, a.c[1]+(b.c[1]-a.c[1])*k, a.c[2]+(b.c[2]-a.c[2])*k]; }
-  }
-  return QUOTA_RAMPA[QUOTA_RAMPA.length-1].c;
-}
+/* la rampa delle quote e `quotaColore` vivono nel modulo (G29): la scena le
+   importa e le chiama come prima */
 let quotaMin=0, quotaMax=1, quotaMesh=[];
 /* tinge i vertici di una mesh in base alla loro quota REALE (world), non locale */
 function quotaTingi(m){
@@ -5894,9 +5882,9 @@ function drawDesign2D(){
   ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne':('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
 }
 function d2EvtToCanvas(e){ const cv=$('d2-canvas'); const r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) }; }
-function d2HitTest(px,py){ if(!D2._m) return -1; let best=-1, bd=18*18; for(let i=0;i<D2.holes.length;i++){ const cx=D2._m.startX+D2.holes[i].mx*D2._m.scale, cy=D2._m.faceY+(D2.holes[i].my+interpFronte(D2.holes[i].mx))*D2._m.scale; const d=(cx-px)*(cx-px)+(cy-py)*(cy-py); if(d<bd){bd=d;best=i;} } return best; }
+function d2HitTest(px,py){ if(!D2._m) return -1; return indicePiuVicino(D2.holes.map(h=>puntoTela(D2._m, h.mx, h.my+interpFronte(h.mx))), px, py); }
 let d2drag=-1;
-function d2HitTestPt(px,py){ if(!D2._m) return -1; const arr=activeProf(); let best=-1,bd=18*18; for(let k=0;k<arr.length;k++){ const cx=D2._m.startX+arr[k].x*D2._m.scale, cy=D2._m.faceY+arr[k].y*D2._m.scale; const d=(cx-px)*(cx-px)+(cy-py)*(cy-py); if(d<bd){bd=d;best=k;} } return best; }
+function d2HitTestPt(px,py){ if(!D2._m) return -1; return indicePiuVicino(activeProf().map(q=>puntoTela(D2._m, q.x, q.y)), px, py); }
 let d2dragPt=-1;
 function d2Down(e){ const p=d2EvtToCanvas(e);
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); let k=d2HitTestPt(p.x,p.y);
@@ -6008,10 +5996,11 @@ function renderScheda2D(){
     RWS:Math.max(8, ((selEsplosivo()||{}).rws_pct||100)*(1-(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0))) });
   const pf=_fg.pf, sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
-    let cls='sv-ok',why=whyOk;
-    if(x<lo){ cls=(x<wlo?'sv-bad':'sv-warn'); why=whyLo; }
-    else if(x>hi){ cls=(x>whi?'sv-bad':'sv-warn'); why=whyHi; }
-    return {lab,valStr,cls,why};
+    // il verdetto lo decide il modulo (G29); un rapporto che non è un numero
+    // (0/0) non è più «a posto»: lo dice
+    const v=verdettoValidatore(x,lo,hi,wlo,whi);
+    const why=v.quale==='basso'?whyLo:v.quale==='alto'?whyHi:v.quale==='non-calcolabile'?'Non calcolabile con questi dati: manca un valore o è zero.':whyOk;
+    return {lab,valStr,cls:v.cls,why};
   }
   /* ⛔ «NON CALCOLABILE» SI SCRIVE IN UN POSTO SOLO. La forma stava già in
      questa funzione, dentro `if(pf===null)`; le due righe che ne hanno avuto

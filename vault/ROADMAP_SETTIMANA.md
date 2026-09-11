@@ -7842,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.340 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2859, `run-stile` 328,
+  **3.344 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2863, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9012,6 +9012,25 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   quanto, né quanto ci si è messi. Piccolo: `apertoDaGiorni` sulla riga aperta,
   `chiusoIl` scritto dalla pagina alla chiusura, il riepilogo dice il più
   vecchio aperto.
+- [x] **GENESI G29 — LA RAMPA DELLE QUOTE, IL VERDETTO DI UN VALIDATORE, IL
+  PUNTO PIÙ VICINO SULLA TELA (11/09, B3 undicesima fetta):** tre estrazioni
+  confrontate vecchio/nuovo sugli stessi 5.007 ingressi generati (0 diversi,
+  salvo il caso voluto). `QUOTA_RAMPA`/`quotaColore(u, rampa)` entrate
+  identiche, la rampa parametro con quella di casa come ripiego, il letterale
+  tolto dalla pagina; `verdettoValidatore(x, lo, hi, wlo, whi)` — la regola
+  con cui la scheda dei validatori colora un rapporto, chiusa dentro `badge`
+  dove nessuna prova la poteva chiamare, ⛔ e con un buco della famiglia
+  «l'assenza non è un dato favorevole»: con `x` NaN (0/0, `rit/S` con S=0)
+  nessun confronto scattava e il rapporto usciva **verde** con la
+  spiegazione del caso a posto — ora «non calcolabile», la pagina lo scrive,
+  40 casi su 2.000 nel confronto; `puntoTela`/`indicePiuVicino` — la
+  proiezione modello → tela e il tocco più vicino entro 18 px (raggio
+  esclusivo, pari merito al primo), scritte due volte nella pagina: i legami
+  `d2HitTest`/`d2HitTestPt` restano. ⚠️ Il righello della prova ha sbagliato
+  prima della regola: toccava a 18 px dal primo punto e a 12 dal secondo.
+  Prove: run-kpi +4 (2863), genesi-data 115 → **120**; il censimento di
+  `genesi-estraibili` passa da 152 a **151** funzioni nella pagina (56 su 151
+  estraibili, 49 a una o due variabili), aggiornato in DEVELOPMENT.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
