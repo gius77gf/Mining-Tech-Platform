@@ -3455,9 +3455,12 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *11/09, decima fetta
-      (G28): **152** nella pagina, **50** a una o due variabili, **57** «il
-      numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.*
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *11/09, tredicesima
+      fetta (G31): **151** nella pagina, **47** a una o due variabili, **55** «il
+      numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.
+      ⚠️ Delle 47 a una o due variabili quasi tutte sono ormai legami di una
+      riga: la prossima fetta si cerca fra le 3-5 e le 6-10 (44 funzioni), con
+      il cambio di firma.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7842,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.359 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2878, `run-stile` 328,
+  **3.362 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2881, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9163,6 +9166,17 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   genesi-data 120 → **124**; il censimento di `genesi-estraibili`: 151
   funzioni, 55 estraibili (48 a una o due variabili, 24 da sei a dieci),
   aggiornato in DEVELOPMENT.
+- [x] **GENESI G31 — LA CARICA DI UN FORO DALLA SUA GEOMETRIA E LE COSTANTI
+  PPV DALLA LITOLOGIA (11/09, B3 tredicesima fetta):** `caricaLineare` (i kg
+  per metro di colonna, che erano scritti due volte: in `deriveCharge` della
+  pagina e in `confinamentoColletto` del modulo — adesso una), `caricaForoDaGeometria`
+  (la carica AUTO con la guardia G17 dentro: `null` se manca uno dei quattro
+  ingressi, densità compresa; la sottoperforazione assente vale zero; mai
+  sotto 2 kg), `costantiPpvLitologia` (K e β dalla velocità delle onde P, 4500
+  quando la roccia non la dichiara; nessuna soglia toccata). Confronto
+  vecchio/nuovo: 6.000 casi per la carica e 12 per le costanti, 0 diversi. Le
+  due prove che sorvegliavano la guardia G17 con una regex sul sorgente della
+  pagina adesso chiamano la funzione. run-kpi +3 (2881), genesi-data 127/127.
 - [x] **RICERCA A ROTAZIONE, GENESI — IL PIANO DI TIRO E IL DOPO-VOLATA:
   CHE COSA SI SCRIVE FUORI, PRIMA E DOPO LO SPARO (11/09):** metà sul mondo
   con `WebSearch` (dieci fonti, tutte di seconda mano): in Italia il piano di

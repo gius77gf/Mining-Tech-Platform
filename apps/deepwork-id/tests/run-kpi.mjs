@@ -25919,6 +25919,46 @@ console.log("\n— Campo: i file che escono —");
     const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
     ok(["LEGENDA_ENERGIA", "scattoProfili", "altezzeForiDaPiede"].every((n) => dati.includes(n)), "la pagina importa i tre");
   });
+  /* G31 (11/09, B3 tredicesima fetta): la carica di un foro dalla sua geometria
+     e le costanti PPV dalla litologia. Confrontate vecchio/nuovo in scratchpad
+     (6.000 casi per la carica, 0 diversi; 12 per le costanti, 0 diversi). */
+  test("⛔ Genesi · G31 caricaForoDaGeometria: la colonna caricata per la carica lineare, mai sotto 2 kg, e null se manca un ingresso", () => {
+    // Ø102, banco 10, sub 0,9, borraggio 2,2 → Lc 8,7 m; 1,15 g/cc → 9,397 kg/m → 81,75 → 82 kg
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 1.15 }), 82, "la geometria di progetto");
+    eq(+genesi.caricaLineare(102, 1.15).toFixed(3), 9.397, "la carica lineare: densità × area della colonna, in kg/m");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: null }), null, "⛔ G17: la densità che il catalogo dichiara di non avere NON diventa 0,82 (usciva 58 kg)");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 }), 58, "e con 0,82 dichiarato sono davvero 58: il numero era plausibile, ed è per questo che nessuno lo guardava");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, stem: 2.2, densita: 1.15 }), 73, "la sottoperforazione assente vale zero: non è un dato mancante (Lc 7,8 → 73 kg)");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: null, stem: 2.2, densita: 1.15 }), 73, "anche scritta null");
+    for (const k of ["diam", "prof", "stem"]) {
+      for (const v of [null, undefined, "", 0, -1, "abc"]) eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 1.15, [k]: v }), null, `senza ${k} (${JSON.stringify(v)}) non si calcola`);
+    }
+    eq(genesi.caricaForoDaGeometria({ diam: 50, prof: 6, sub: 0, stem: 5.8, densita: 0.82 }), 2, "colonna quasi tutta borraggio: Lc bloccata a 0,5 m e la carica non scende sotto 2 kg");
+    eq(genesi.caricaForoDaGeometria({ diam: "102", prof: "10", sub: "0.9", stem: "2.2", densita: "1.15" }), 82, "i numeri scritti si leggono");
+    eq(genesi.caricaForoDaGeometria(null), null, "senza geometria niente");
+    eq(genesi.caricaLineare(0, 1.15), null, "carica lineare senza diametro: null");
+    eq(genesi.caricaLineare(102, 0), null, "e senza densità: null, non zero kg/m");
+    // la stessa formula la usa il confinamento del colletto: una scrittura sola
+    eq(genesi.confinamentoColletto({ kg: 60, stem: 2.2, diam: 102, densita: 1.15 }).qLin, genesi.caricaLineare(102, 1.15), "confinamentoColletto legge la carica lineare dalla stessa funzione");
+  });
+  test("Genesi · G31 costantiPpvLitologia: K conservativo e β dalla velocità delle onde P, con 4500 m/s quando la roccia non la dichiara", () => {
+    eq(genesi.costantiPpvLitologia(4500), { K: 1906, beta: 1.55, fonte: "litologia" }, "il ripiego di sempre: t = 0,559, K = 2800 − 894");
+    eq(genesi.costantiPpvLitologia(2600), { K: 2800, beta: 1.75, fonte: "litologia" }, "roccia tenera: K alto, β alto");
+    eq(genesi.costantiPpvLitologia(6000), { K: 1200, beta: 1.4, fonte: "litologia" }, "roccia dura: attenua meno");
+    eq(genesi.costantiPpvLitologia(9000), genesi.costantiPpvLitologia(6000), "oltre 6000 è bloccata");
+    eq(genesi.costantiPpvLitologia(1000), genesi.costantiPpvLitologia(2600), "sotto 2600 anche");
+    for (const v of [null, undefined, 0, "", "abc"]) eq(genesi.costantiPpvLitologia(v), genesi.costantiPpvLitologia(4500), `vp assente (${JSON.stringify(v)}) → 4500, come la pagina ha sempre fatto`);
+    eq(genesi.costantiPpvLitologia("5200").K, 1576, "un numero scritto si legge");
+  });
+  test("⛔ Genesi · G31: nella pagina la carica derivata e la stima dalla litologia sono legami", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/rhoE\*1000\*Math\.PI\*De\*De\/4\*Lc/g) || []).length, 0, "la formula della carica non è più scritta in casa");
+    eq((pag.match(/2800-1600\*t/g) || []).length, 0, "né quella delle costanti");
+    ok(/D2\.kg=caricaForoDaGeometria\(\{ diam:D2\.diam, prof:D2\.prof, sub:D2\.sub, stem:D2\.stem, densita:\(selEsplosivo\(\)\|\|\{\}\)\.densita_gcc \}\);/.test(pag), "deriveCharge è un legame");
+    ok(/return costantiPpvLitologia\(\(selRoccia\(\)\|\|\{\}\)\.vp\);/.test(pag), "e la litologia di ppvSite anche");
+    const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
+    ok(["caricaForoDaGeometria", "costantiPpvLitologia"].every((n) => dati.includes(n)), "la pagina importa i due");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -28502,10 +28542,15 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
        GIUSTA, non più permissiva — i tre di prima restano pretesi uno per uno,
        e il quarto si aggiunge; una regex più larga (`\|\|.*`) avrebbe smesso
        di sorvegliare i tre. */
-    eq(/if\(!\(\+D2\.diam>0\) \|\| !\(\+D2\.prof>0\) \|\| !\(\+D2\.stem>0\) \|\| !\(\+rhoE>0\)\)\{ D2\.kg=null; gsv\('dKg',null,0\); return; \}/.test(srcG15), true,
-      "la carica AUTO chiede prima se la geometria c'è — e, da G17, anche se l'esplosivo una densità ce l'ha");
-    eq(/D2\.kg=Math\.max\(2, Math\.round\(rhoE\*1000\*Math\.PI\*De\*De\/4\*Lc\)\)/.test(srcG15), true,
-      "e il clamp dei dati veri ed estremi è rimasto dov'era");
+    /* ✅ Dall'11/09 (G31) il conto sta in `caricaForoDaGeometria`, che node può
+       chiamare: la difesa non è più una regex sul sorgente della pagina, è la
+       funzione stessa — e la pagina è un legame che le passa i quattro ingressi */
+    ok(/D2\.kg=caricaForoDaGeometria\(\{ diam:D2\.diam, prof:D2\.prof, sub:D2\.sub, stem:D2\.stem, densita:\(selEsplosivo\(\)\|\|\{\}\)\.densita_gcc \}\);/.test(srcG15),
+      "la carica AUTO è un legame: i quattro ingressi passano al modulo, che chiede prima se ci sono");
+    eq(genesi.caricaForoDaGeometria({ diam: null, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 }), null, "col diametro assente: null, non 2 kg/foro");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: null, sub: 0.9, stem: 2.2, densita: 0.82 }), null, "con l'altezza assente: null, non 3");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: null, densita: 0.82 }), null, "col borraggio assente: null, non 73");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 }), 58, "e con tutto dichiarato il clamp dei dati veri ed estremi è rimasto dov'era: 58");
     /* ⚠️ `+x > 0` risponde da solo a tutte le forme dell'assenza: è la ragione
        per cui la guardia non riscrive la tabella delle coercizioni */
     for (const x of [null, undefined, "", "abc", 0, -1]) eq(+x > 0, false, `${String(x)}: non è un numero positivo`);
@@ -32704,8 +32749,12 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(/densita_gcc\s*\|\|\s*0\.82/.test(_tok.senzaCommenti(
       (/function deriveCharge\(\)\{[\s\S]*?gsv\('dKg',D2\.kg,0\); \}/.exec(CODICE_G) || [""])[0])), false,
       "in `deriveCharge` il ripiego sulla densità non c'è più");
-    eq(/const eP=selEsplosivo\(\)\|\|\{\}, rhoE=eP\.densita_gcc;/.test(CODICE_G), true,
+    /* ✅ dall'11/09 (G31) la densità passa al modulo com'è dichiarata, e la
+       guardia si chiama invece di leggerla nel sorgente */
+    eq(/densita:\(selEsplosivo\(\)\|\|\{\}\)\.densita_gcc \}/.test(CODICE_G), true,
       "la densità si legge come la dichiara il catalogo");
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: null }), null,
+      "e senza densità la carica non si calcola: null, non 58");
     /* DOVE FINIVA quel 58: tutta la catena, chiamata coi due valori. Il campo
        `tDet` è quello che `micFinestra` legge davvero (letto nel suo sorgente,
        non indovinato: una fixture con le colonne sbagliate accusa il prodotto). */

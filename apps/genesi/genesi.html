@@ -1167,7 +1167,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1364,8 +1364,7 @@ function sitoLegge(){ const s=sitoStore(); if(!s.usa) return null; const f=sitoF
 function ppvSite(){
   const f=sitoLegge();
   if(f) return { K:f.K95, beta:f.beta, fonte:'sito', fit:f };
-  const vp=(selRoccia()||{}).vp||4500, t=Math.max(0,Math.min(1,(vp-2600)/(6000-2600)));
-  return { K:Math.round(2800-1600*t), beta:+(1.75-0.35*t).toFixed(2), fonte:'litologia' };
+  return costantiPpvLitologia((selRoccia()||{}).vp);   // G31: la stima dalla litologia sta nel modulo
 }
 /* MIC = massima carica entro finestra 8 ms, raggruppando i fori sui tempi tDet
    reali (V-cut/box: piu fori sullo stesso ritardo). ⛔ Il corpo è salito in
@@ -6751,11 +6750,12 @@ function renderScheda2D(){
    dipendenza vera. È il difetto che `ripieghi-silenziosi` dichiara di sé
    («il censimento si conta addosso la propria documentazione»), applicato a
    un altro strumento: la prosa va sopra la funzione, non dentro. */
+/* ⛔ Il conto è `caricaForoDaGeometria` in `./genesi-data.js` (blocco G31, 11/09), con la
+   guardia G17 dentro (`null` se manca uno dei quattro ingressi, densità compresa): qui resta
+   il legame con lo stato e con il campo. Confrontato vecchio/nuovo su 6.000 casi, 0 diversi. */
 function deriveCharge(){ if(!D2.kgAuto) return;
-  const eP=selEsplosivo()||{}, rhoE=eP.densita_gcc;
-  if(!(+D2.diam>0) || !(+D2.prof>0) || !(+D2.stem>0) || !(+rhoE>0)){ D2.kg=null; gsv('dKg',null,0); return; }
-  const De=+D2.diam/1000, Lc=Math.max(0.5,+D2.prof+(+D2.sub||0)-+D2.stem);
-  D2.kg=Math.max(2, Math.round(rhoE*1000*Math.PI*De*De/4*Lc)); gsv('dKg',D2.kg,0); }
+  D2.kg=caricaForoDaGeometria({ diam:D2.diam, prof:D2.prof, sub:D2.sub, stem:D2.stem, densita:(selEsplosivo()||{}).densita_gcc });
+  gsv('dKg',D2.kg,0); }
 function applyDesign(){
   /* ⛔ LA GEOMETRIA, BLOCCO G15 — la stessa forma già corretta per la carica.
      Ognuna di queste righe era `Math.max(min, Math.min(max, letto||D2.x))`, e

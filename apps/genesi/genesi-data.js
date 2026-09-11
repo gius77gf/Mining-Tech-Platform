@@ -1738,7 +1738,7 @@ export function confinamentoColletto(v){
   }
   const Dm = d / 1000;
   const rho = (Number.isFinite(r) && r > 0) ? r : 0.82;
-  const qLin = rho * 1000 * Math.PI * Dm * Dm / 4;
+  const qLin = caricaLineare(d, rho);   // G31: la stessa formula di `caricaForoDaGeometria`, scritta una volta
   const wTop = Math.min(q, qLin * 10 * Dm);
   const sdob = (s + 5 * Dm) / Math.pow(Math.max(0.1, wTop), 1 / 3);
   return { sdob, wTop, qLin, calcolabile:true,
@@ -2885,4 +2885,41 @@ export function altezzeForiDaPiede(nFori, interasse, prof, piede, opts){
     out.push(Math.max(5, Math.min(20, prof - dv)));
   }
   return out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   G31 · LA CARICA DI UN FORO DALLA SUA GEOMETRIA, E LE COSTANTI PPV DALLA
+   LITOLOGIA (11/09, B3 tredicesima fetta).
+   `caricaLineare(diamMm, densitaGcc)` — i kg per metro di colonna: era
+   scritta due volte, in `deriveCharge` della pagina e in
+   `confinamentoColletto` qui sotto (la firma troppo stretta di CLAUDE.md).
+   `caricaForoDaGeometria({diam, prof, sub, stem, densita})` — la carica per
+   foro che la pagina deriva quando `kgAuto` è acceso: colonna caricata
+   `Lc = max(0,5; prof + sub − stem)`, chili = carica lineare × Lc,
+   arrotondati e mai sotto 2 kg. Risponde `null` — non un numero — se manca
+   uno dei quattro ingressi che contano (diametro, profondità, borraggio,
+   densità dell'esplosivo): è il blocco G17 della pagina, portato qui con
+   la sua ragione (la densità che il catalogo dichiara di non avere non
+   diventa 0,82). La sottoperforazione assente vale zero: «non perforo sotto
+   il piano» è il caso normale, non un dato mancante.
+   `costantiPpvLitologia(vp)` — K e β stimati dalla velocità delle onde P
+   quando non c'è una legge di sito: K conservativo (upper-bound, non media),
+   roccia dura attenua meno. STIMA, da calibrare col monitoraggio reale; `vp`
+   assente → 4500 m/s come sempre. Nessuna soglia toccata. */
+export function caricaLineare(diamMm, densitaGcc){
+  const d = +diamMm, r = +densitaGcc;
+  if(!(d > 0) || !(r > 0)) return null;
+  const Dm = d / 1000;
+  return r * 1000 * Math.PI * Dm * Dm / 4;
+}
+export function caricaForoDaGeometria(g){
+  const o = g || {};
+  if(!(+o.diam > 0) || !(+o.prof > 0) || !(+o.stem > 0) || !(+o.densita > 0)) return null;
+  const Lc = Math.max(0.5, +o.prof + (+o.sub || 0) - +o.stem);
+  return Math.max(2, Math.round(caricaLineare(o.diam, o.densita) * Lc));
+}
+export function costantiPpvLitologia(vp){
+  const v = (+vp > 0) ? +vp : 4500;
+  const t = Math.max(0, Math.min(1, (v - 2600) / (6000 - 2600)));
+  return { K: Math.round(2800 - 1600 * t), beta: +(1.75 - 0.35 * t).toFixed(2), fonte: 'litologia' };
 }
