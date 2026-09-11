@@ -8645,10 +8645,36 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     { id: "r3", data: "boh", tipo: "altro" }];
 
   test("reclami: quanti in tutto, quanti ancora aperti, e l'ultimo", () => {
-    const r = sentinella.riepilogoReclami(reclami);
+    const r = sentinella.riepilogoReclami(reclami, new Date("2026-07-25T10:00:00"));
     eq(r.totale, 3, "tre in tutto");
     eq(r.aperti, 2, "due aperti: chi non ha stato non è chiuso");
     eq(r.ultimo, "2026-07-20", "e una data impossibile non diventa «l'ultimo»");
+    // da quanto (11/09): il più vecchio aperto si conta dalla sua data; chi non ha una data si conta a parte
+    eq(r.piuVecchioAperto, { id: "r1", data: "2026-07-10", giorni: 15 }, "r1 è aperto da 15 giorni");
+    eq(r.apertiSenzaData, 1, "r3 («boh») è aperto ma non si sa da quando");
+    eq([r.chiusiConData, r.rispostaMediaGiorni], [0, null], "r2 è chiuso senza la data di chiusura: la risposta media NON si inventa");
+  });
+  test("⛔ reclami: «aperto da» e «tempo di risposta» — due date che esistono, o niente", () => {
+    const oggi = new Date("2026-07-25T10:00:00");
+    eq(sentinella.apertoDaGiorni({ data: "2026-07-10", stato: "aperto" }, oggi), 15);
+    eq(sentinella.apertoDaGiorni({ data: "2026-07-25" }, oggi), 0, "senza stato è aperto, e di oggi");
+    eq(sentinella.apertoDaGiorni({ data: "2026-07-30", stato: "aperto" }, oggi), 0, "una data nel futuro non fa un negativo");
+    eq(sentinella.apertoDaGiorni({ data: "2026-07-10", stato: "chiuso" }, oggi), null, "un chiuso non è «aperto da»");
+    eq(sentinella.apertoDaGiorni({ data: "2026-02-30", stato: "aperto" }, oggi), null, "il 30 febbraio non è una data da cui contare");
+    eq(sentinella.tempoRispostaReclamo({ data: "2026-07-17", chiusoIl: "2026-07-18", stato: "chiuso" }), 1);
+    eq(sentinella.tempoRispostaReclamo({ data: "2026-07-17", chiusoIl: "2026-07-17", stato: "chiuso" }), 0, "lo stesso giorno è zero, non null");
+    eq(sentinella.tempoRispostaReclamo({ data: "2026-07-17", chiusoIl: "2026-07-10", stato: "chiuso" }), null, "una chiusura prima del reclamo non è un tempo di risposta");
+    eq(sentinella.tempoRispostaReclamo({ data: "2026-07-17", stato: "chiuso" }), null, "chiuso prima che la data esistesse: non si sa");
+    eq(sentinella.tempoRispostaReclamo({ data: "2026-07-17", chiusoIl: "2026-07-18", stato: "aperto" }), null, "un aperto con una chiusura scritta non è chiuso");
+    // la dimostrazione: x1 chiuso il giorno dopo, x2 aperto
+    const D = sentinella.DEMO;
+    const r = sentinella.riepilogoReclami(D.reclami, new Date("2026-09-11T10:00:00"));
+    eq([r.chiusiConData, r.rispostaMediaGiorni], [1, 1], "x1: risposta in un giorno, e il conto dice su quanti è fatto");
+    eq(r.piuVecchioAperto && r.piuVecchioAperto.id, "x2");
+    eq(r.piuVecchioAperto.giorni, 53, "x2 è aperto dal 20/07");
+    // la media: due chiusi con la data, uno senza — la media è sui due
+    const rr = sentinella.riepilogoReclami([{ data: "2026-07-01", chiusoIl: "2026-07-04", stato: "chiuso" }, { data: "2026-07-10", chiusoIl: "2026-07-10", stato: "chiuso" }, { data: "2026-07-12", stato: "chiuso" }], new Date("2026-08-01"));
+    eq([rr.chiusiConData, rr.rispostaMediaGiorni, rr.aperti, rr.piuVecchioAperto], [2, 1.5, 0, null]);
   });
   test("reclami: senza reclami non si inventa una data", () => {
     eq(sentinella.riepilogoReclami([]).ultimo, null, "nessun ultimo");

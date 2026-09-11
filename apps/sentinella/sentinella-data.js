@@ -12,7 +12,9 @@
 //       ragionano per RICETTORE: la soglia del ricettore, se impostata,
 //       vince su quella del punto di misura collegato.
 //   reclami/{id}:     { data, ora, tipo, ricettoreId, chi, descrizione,
-//                       azione, stato: aperto|chiuso }
+//                       azione, stato: aperto|chiuso,
+//                       chiusoIl (ISO, dal 11/09: la pagina la scrive alla
+//                       chiusura; assente sui reclami chiusi prima) }
 //   programma/{id}:   { monitoraggioId, ogniGiorni, tolleranzaGiorni,
 //                       dal, nota, attivo } → il piano di monitoraggio:
 //       che cosa va misurato, dove e ogni quanto. Lo stato (in regola /
@@ -160,7 +162,7 @@ export const DEMO = {
   reclami: [
     { id: "x1", data: "2026-07-17", ora: "10:30", tipo: "vibrazione", ricettoreId: "rc1", chi: "Sig. Bianchi",
       descrizione: "Ha sentito tremare i vetri durante la volata del mattino.",
-      azione: "Mostrata la misura di V1 (1,8 mm/s, sotto soglia) e la scheda della volata.", stato: "chiuso" },
+      azione: "Mostrata la misura di V1 (1,8 mm/s, sotto soglia) e la scheda della volata.", stato: "chiuso", chiusoIl: "2026-07-18" },
     { id: "x2", data: "2026-07-20", ora: "07:45", tipo: "polvere", ricettoreId: "rc3",
       chi: "Direzione scolastica", descrizione: "Polvere sui davanzali lato cava dopo giornata ventosa.",
       azione: "Bagnatura piste raddoppiata, verifica PM10 in corso.", stato: "aperto" },
@@ -3443,14 +3445,59 @@ export const etichettaReclamo = (t) =>
 
 // Riepilogo dei reclami per il quadro: quanti in tutto, quanti ancora
 // aperti, e la data dell'ultimo. Pura e testabile.
-export function riepilogoReclami(reclami) {
+export function riepilogoReclami(reclami, oggi = new Date()) {
   const l = reclami || [];
   let ultimo = null;
   for (const x of l) {
     const d = String((x || {}).data || "");
     if (/^\d{4}-\d{2}-\d{2}$/.test(d) && (!ultimo || d > ultimo)) ultimo = d;
   }
-  return { totale: l.length, aperti: l.filter(x => (x || {}).stato !== "chiuso").length, ultimo };
+  /* DA QUANTO, E QUANTO CI SI È MESSI (11/09, dalla ricerca a rotazione): le
+     guide del mestiere dicono che la velocità della risposta è il criterio, e
+     fino a oggi il riepilogo sapeva solo «quanti aperti». Il più vecchio
+     aperto si conta dalla data del reclamo; la risposta media SOLO sui chiusi
+     che portano `chiusoIl` — quelli chiusi prima che la data esistesse non si
+     inventano, e il numero dichiara su quanti è fatto. */
+  let piuVecchioAperto = null, apertiSenzaData = 0;
+  const risposte = [];
+  for (const x of l) {
+    if (!x) continue;
+    if (x.stato !== "chiuso") {
+      const g = apertoDaGiorni(x, oggi);
+      if (g == null) apertiSenzaData++;
+      else if (!piuVecchioAperto || g > piuVecchioAperto.giorni) piuVecchioAperto = { id: x.id || null, data: String(x.data).slice(0, 10), giorni: g };
+    } else {
+      const tr = tempoRispostaReclamo(x);
+      if (tr != null) risposte.push(tr);
+    }
+  }
+  const rispostaMediaGiorni = risposte.length ? Math.round((risposte.reduce((a, b) => a + b, 0) / risposte.length) * 10) / 10 : null;
+  return { totale: l.length, aperti: l.filter(x => (x || {}).stato !== "chiuso").length, ultimo,
+    piuVecchioAperto, apertiSenzaData, chiusiConData: risposte.length, rispostaMediaGiorni };
+}
+
+// Da quanti giorni un reclamo è aperto (oggi − data del reclamo); `null` se è
+// chiuso o se la data non si legge — un «aperto da 0 giorni» su una data che
+// non c'è sarebbe la risposta tranquilla sul dato mancante.
+export function apertoDaGiorni(reclamo, oggi = new Date()) {
+  const r = reclamo || {};
+  if (r.stato === "chiuso") return null;
+  const d = String(r.data || "").slice(0, 10);
+  if (!dataISOEsiste(d)) return null;
+  const g = giorniTra(d, oggi);                    // data − oggi: negativo se il reclamo è nel passato
+  return Number.isFinite(g) ? Math.max(0, -g) : null;
+}
+
+// Quanti giorni fra il reclamo e la sua chiusura: SOLO se il reclamo è chiuso
+// e tutt'e due le date esistono; una chiusura scritta prima del reclamo non
+// è un tempo di risposta e risponde `null`.
+export function tempoRispostaReclamo(reclamo) {
+  const r = reclamo || {};
+  if (r.stato !== "chiuso") return null;
+  const a = String(r.data || "").slice(0, 10), c = String(r.chiusoIl || "").slice(0, 10);
+  if (!dataISOEsiste(a) || !dataISOEsiste(c)) return null;
+  const g = giorniTra(c, a);                       // chiusura − reclamo
+  return Number.isFinite(g) && g >= 0 ? g : null;
 }
 
 // ══════════════════════════════════════════════════════════════════════

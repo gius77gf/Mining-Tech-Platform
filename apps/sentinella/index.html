@@ -1861,7 +1861,7 @@ textarea.dw-input{
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
-           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, misureDelGiornoPerReclamo, firmaLettura,
+           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, misureDelGiornoPerReclamo, apertoDaGiorni, tempoRispostaReclamo, firmaLettura,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
@@ -2519,8 +2519,16 @@ textarea.dw-input{
   function renderReclami() {
     const r = riepilogoReclami(REC);
     $("rec-tot").textContent = r.totale;
+    // da quanto è aperto il più vecchio, e quanto ci si è messi a rispondere
+    // (solo sui chiusi che hanno la data di chiusura, e lo dice): 11/09
+    const daQuanto = r.piuVecchioAperto
+      ? (r.piuVecchioAperto.giorni === 0 ? ", il più vecchio di oggi" : ", il più vecchio da " + plurale(r.piuVecchioAperto.giorni, "un giorno", r.piuVecchioAperto.giorni + " giorni"))
+      : (r.aperti && r.apertiSenzaData ? ", senza una data da cui contare" : "");
+    const risposta = r.chiusiConData
+      ? ` · risposta in <b>${numeroIt(r.rispostaMediaGiorni)}</b> ${r.rispostaMediaGiorni === 1 ? "giorno" : "giorni"} in media (su ${plurale(r.chiusiConData, "un reclamo chiuso con la data", r.chiusiConData + " reclami chiusi con la data")})`
+      : "";
     $("rec-riep").innerHTML = r.totale
-      ? `Reclami registrati: <b>${r.totale}</b>${r.aperti ? ` · <span class="badge warn" style="font-size:11px;">${r.aperti} ancora ${r.aperti === 1 ? "aperto" : "aperti"}</span>` : " · tutti chiusi"}${r.ultimo ? ` · l'ultimo il <b>${fmtD(r.ultimo)}</b>` : ""}`
+      ? `Reclami registrati: <b>${r.totale}</b>${r.aperti ? ` · <span class="badge warn" style="font-size:11px;">${r.aperti} ancora ${r.aperti === 1 ? "aperto" : "aperti"}</span>${daQuanto}` : " · tutti chiusi"}${r.ultimo ? ` · l'ultimo il <b>${fmtD(r.ultimo)}</b>` : ""}${risposta}`
       : "";
     $("rec-list").innerHTML = REC.slice()
       .sort((a, b) => (String(a.data || "") + (a.ora || "")) < (String(b.data || "") + (b.ora || "")) ? 1 : -1)
@@ -2530,11 +2538,15 @@ textarea.dw-input{
         // le misure di quel giorno le decide il modulo (11/09): la promessa
         // dello stato vuoto qui sotto, mantenuta con i dati
         const mis = misureDelGiornoPerReclamo(x, MON, ric);
+        // «gg» è un'unità: dentro .badge, che è in maiuscolo, diventerebbe «GG»
+        const daG = apertoDaGiorni(x), tr = tempoRispostaReclamo(x);
+        const badge = !aperto ? "Chiuso" : daG == null ? "Aperto" : daG === 0 ? "Aperto oggi" : "Aperto da " + daG + ' <span class="u">gg</span>';
+        const chiusura = !aperto && x.chiusoIl ? " · chiuso il " + fmtD(x.chiusoIl) + (tr == null ? "" : tr === 0 ? " (lo stesso giorno)" : " (dopo " + plurale(tr, "un giorno", tr + " giorni") + ")") : "";
         return `<div class="item ${aperto ? "st-warn" : "st-ok"}">
         <div class="avatar ${aperto ? "warn" : "ok"}">${I.voce}</div>
         <div class="info"><div class="name">${esc(etichettaReclamo(x.tipo))}${ric ? " · " + esc(ric.nome) : ""}</div>
-        <div class="riga"><span class="badge ${aperto ? "warn" : "ok"}">${aperto ? "Aperto" : "Chiuso"}</span>
-        <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}</span></div>
+        <div class="riga"><span class="badge ${aperto ? "warn" : "ok"}">${badge}</span>
+        <span class="meta">${fmtD(x.data)}${x.ora ? " " + esc(x.ora) : ""}${x.chi ? " · " + esc(x.chi) : ""}${x.descrizione ? " · " + esc(x.descrizione) : ""}${x.azione ? " · <b>fatto:</b> " + esc(x.azione) : ""}${chiusura}</span></div>
         <div class="rec-misure${mis.peggiore ? " " + mis.peggiore.cls : ""}">${esc(mis.frase)}</div></div>
         <span class="acts">
         <button type="button" class="arr" title="${aperto ? "Segna come chiuso" : "Riapri il reclamo"}" aria-label="${aperto ? "Segna come chiuso" : "Riapri"} il reclamo del ${fmtD(x.data)}" data-rec-stato="${x.id}">${I.fatto}</button>
@@ -5050,7 +5062,9 @@ textarea.dw-input{
     const recStato = attr(e, "data-rec-stato");
     if (recStato) { const x = REC.find(v => v.id === recStato); if (!x) return;
       const chiuso = x.stato === "chiuso";
-      await db.aggiorna("reclami", recStato, { stato: chiuso ? "aperto" : "chiuso" });
+      // la data di chiusura si scrive qui (11/09): è quella che rende
+      // misurabile «quanto ci abbiamo messo»; riaprendo si toglie
+      await db.aggiorna("reclami", recStato, chiuso ? { stato: "aperto", chiusoIl: null } : { stato: "chiuso", chiusoIl: oggiISO() });
       await refresh();
       toast(chiuso ? "Reclamo riaperto." : "Reclamo segnato come chiuso.", chiuso ? "" : "success"); return; }
     const delRec = attr(e, "data-del-rec");

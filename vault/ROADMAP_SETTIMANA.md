@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7843,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.339 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2858, `run-stile` 328,
+  **3.340 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2859, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -8995,8 +8994,20 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   infondato); poi la riga di `renderReclami` la stampa. Prove in run-kpi,
   scatto della riga. Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca
   dell'11/09.
-- [ ] **SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO
-  (candidato, dopo la voce sopra).** Lo stato è `aperto|chiuso` senza date
+- [x] **SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO
+  (candidato, dopo la voce sopra) — FATTA lo stesso giorno (11/09):**
+  `apertoDaGiorni(reclamo, oggi)` (null se chiuso o senza una data da cui
+  contare), `tempoRispostaReclamo(reclamo)` (solo se chiuso e con TUTT'E DUE
+  le date; una chiusura prima del reclamo non è un tempo di risposta),
+  `riepilogoReclami(reclami, oggi)` che dice il più vecchio aperto, quanti
+  aperti non hanno una data, e la risposta media **solo sui chiusi con la
+  data** dichiarando su quanti è fatta. La pagina scrive `chiusoIl` alla
+  chiusura (e lo toglie riaprendo); il badge dice «Aperto da N gg» (o «Aperto
+  oggi»), la riga chiusa dice «chiuso il … (dopo N giorni)», il riepilogo «il
+  più vecchio da N giorni · risposta in N giorni in media (su M chiusi con la
+  data)». Dimostrazione: `x1` chiuso il 18/07 (un giorno), `x2` aperto dal
+  20/07. Prove: run-kpi +1 e una estesa, copertura Sentinella 173 → **175**;
+  scatto guardato. *(Voce originale:)* Lo stato è `aperto|chiuso` senza date
   (`grep -cE 'dataRisposta|chiusoIl|apertoDa'` → 0): si sa che è aperto, non da
   quanto, né quanto ci si è messi. Piccolo: `apertoDaGiorni` sulla riga aperta,
   `chiusoIl` scritto dalla pagina alla chiusura, il riepilogo dice il più
