@@ -1027,3 +1027,104 @@ Fonti (risultati di ricerca, non lette per intero):
   scadenze (ore previste E data prevista), e l'urgenza è la peggiore delle
   due; la frase lo dice («a 6.370 h o entro il 12/03/2027, quello che arriva
   prima»). **In roadmap come prossima unità.**
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiedono l'officina e l'assicurazione di un mezzo di cava (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Che cosa chiedono, fuori
+
+- **L'officina ragiona a ORE MOTORE, non a calendario**: cambio olio motore e
+  filtri ogni 250 h, filtro aria e controlli ogni 500 h, olio trasmissione e
+  idraulico a 1.000 h; il libretto del fabbricante fissa gli intervalli, e un
+  dumper su tre turni consuma le 250 h in meno di dieci giorni. I gestionali
+  di settore leggono le ore dalla telematica e aprono l'ordine di lavoro al
+  passaggio dell'intervallo, mezzo per mezzo. *[risultati di ricerca:
+  puntosicuro.it, movimento-terra.it, mamsnc.it, getclue.com, fleetrabbit.com]*
+- **L'assicurazione**: dal 2024 l'RCA è **obbligatoria anche per i mezzi che
+  non escono mai dalla cava** (l'obbligo segue l'uso del veicolo, non la
+  strada: cantieri, magazzini, cave); deroga solo per macchine agricole non
+  immatricolate coperte da RCT volontaria; sanzione da 866 a 3.464 €. *[risultati
+  di ricerca: Assimpredil Ance, asaps.it, praugest.it — D.Lgs. 184/2023 di
+  seconda mano, NON da scrivere in una schermata]*
+- **La revisione** delle macchine operatrici immatricolate è ogni **5 anni**
+  (art. 58 CdS), ma l'obbligo **non è ancora operativo**: manca il decreto
+  attuativo, quindi oggi non è sanzionabile. *[risultati di ricerca: Assimpredil
+  Ance, certifico.com, insic.it — stato che cambia, da riverificare]*
+- **Le verifiche INAIL** (D.Lgs. 81/2008, art. 71 e Allegato VII): per gli
+  apparecchi di sollevamento oltre 200 kg il datore di lavoro chiede la **prima
+  verifica entro 60 giorni dalla messa in servizio** (la fa l'INAIL, che
+  redige la scheda tecnica); le successive ogni 1-3 anni secondo tipo ed età,
+  da ASL o soggetti abilitati. *[risultati di ricerca: tussl.it, progetto81.it,
+  biblus.acca.it, puntosicuro.it]*
+- **Il sinistro**: dopo un urto o un danno l'assicurazione chiede una denuncia
+  con data, ora, luogo, mezzo (targa o telaio), conducente, dinamica, danni a
+  cose e persone, testimoni e foto. *[deduzione di mestiere: nessuna fonte
+  trovata sul modulo specifico per le macchine operatrici]*
+
+### Fonti (seconda mano)
+
+- PuntoSicuro — La manutenzione in sicurezza delle macchine movimento terra: https://www.puntosicuro.it/edilizia-C-10/la-manutenzione-in-sicurezza-delle-macchine-movimento-terra-AR-12189/
+- movimento-terra.it — Guida alla manutenzione dei macchinari movimento terra: https://movimento-terra.it/guida-alla-manutenzione-dei-macchinari-movimento-terra/
+- Assimpredil Ance — RCA obbligatoria anche per le macchine operatrici che non circolano su strada: https://portale.assimpredilance.it/articoli/assicurazione-rca-obbligo-anche-per-le-macchine-operatrici-che-non-circolano-su-strada
+- ASAPS — Responsabilità civile macchine operatrici e carrelli elevatori: https://www.asaps.it/downloads/files/responsabilita_macchine_operatrici.pdf
+- Assimpredil Ance — Revisione macchine operatrici, nuove proroghe: https://portale.assimpredilance.it/articoli/revisione-macchine-operatrici-nuove-proroghe
+- Certifico — Revisione generale macchine agricole e operatrici, tabella scadenze: https://www.certifico.com/sicurezza-lavoro/news-sicurezza/revisione-generale-macchine-agricole-e-macchine-operatrici-tabella-scadenze
+- TUSSL — Allegato VII, D.Lgs. 81/2008: https://tussl.it/allegati/allegato-vii
+- Biblus — La guida INAIL per la verifica periodica degli apparecchi di sollevamento: https://biblus.acca.it/guida-inail-apparecchi-di-sollevamento/
+- FleetRabbit — Mining fleet management software for small mines and quarries 2026: https://fleetrabbit.com/industry/mining-fleet-software/best-mining-fleet-management-software-small-mines-quarries-2026
+- Clue — Fleet maintenance software with telematics and ERP: https://www.getclue.com/blog/fleet-maintenance-software-with-telematics-and-erp
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi pianifica il tagliando, e su che cosa: ore o calendario?
+2. Chi sa quando scade la verifica dell'attrezzatura, e chi sa quando scade la PRIMA?
+3. Chi tiene la scadenza dell'assicurazione, e che cosa dice del mezzo che non esce dalla cava?
+4. Chi conosce l'identità del mezzo (targa, telaio, matricola, anno, messa in servizio)?
+5. Chi registra un sinistro, e chi lo consegna all'assicurazione?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `9e56a538`)
+
+- **Domanda 1 — C'È, a ore motore.** `PIANI_TAGLIANDO` con i quattro passi
+  del mondo (`grep -cE 'ogniOre: (250|500|1000|2000)'` → 7),
+  `prossimoTagliando` che pianifica il successivo alla chiusura,
+  `urgenzaTagliando` e `contatoreDelTagliando` sulle ore; la telematica
+  (AEMP/ISO 15143-3) è la ricerca del 04/09 (`grep -cE 'ISO 15143|AEMP'`
+  in questo documento → 33). **Niente da aggiungere.**
+- **Domanda 2 — C'È la periodica, MANCA la prima.** `SCADENZE_MEZZO_PRESET`
+  ha `verifica-periodica` (→ 2) e la nota dice che «la prima verifica la
+  fa l'INAIL» (`grep -ciE 'prima verifica'` → 1, nella nota), ma nessun
+  meccanismo sa QUANDO scade la prima: il mezzo non ha una data di messa in
+  servizio (`grep -ciE 'messaInServizio|messa in servizio|immatricol|telaio|matricola'`
+  su modulo e pagina → apps/flotta/flotta-data.js:2 apps/flotta/index.html:0, e le due del modulo sono «immatricolate» nella nota della revisione) e i 60 giorni non si calcolano — oggi l'utente
+  scrive la data a mano, come per ogni scadenza. **Mancanza confermata,
+  piccola e aperta**: la data di messa in servizio sul mezzo e un preset
+  «prima verifica» a **giorni** (60) da quella data, non a mesi.
+- **Domanda 3 — C'È.** Il preset `assicurazione` (→ 1) a 12 mesi con la
+  data della polizza. Il mondo aggiunge una cosa che la nota non dice: l'RCA
+  vale **anche per il mezzo che non esce mai dalla cava**. **Delta di testo**,
+  senza numero di legge in schermata: si fa insieme alla voce della domanda 2.
+- **Revisione — C'È** (`chiave: "revisione"` → 2, 60 mesi, mezzi targati).
+  Che l'obbligo non sia ancora operativo è uno stato che cambia con un
+  decreto: **non si scrive nel prodotto** — chi lo scrivesse oggi lo
+  troverebbe falso domani. Dichiarato.
+- **Domanda 4 — MANCA, e chiede una decisione.** Il mezzo ha nome, tipo, ore,
+  area e stato: nessuna targa, telaio, matricola, anno (→ apps/flotta/flotta-data.js:2 apps/flotta/index.html:0). Il libretto
+  (`csvLibretto`) e la denuncia di sinistro li vorrebbero. È una scelta di
+  modello dati (quali campi, e se obbligatori): **dichiarato, non aperto** —
+  la data di messa in servizio della domanda 2 ne è il primo campo, e apre
+  la strada.
+- **Domanda 5 — MANCA.** Nessun sinistro in Flotta (`grep -ciE 'sinistr|incidente'`
+  su modulo e pagina → apps/flotta/flotta-data.js:0 apps/flotta/index.html:2, e le due della pagina sono «a sinistra»: la
+  regex prende `sinistr` anche lì — un righello largo, dichiarato); le causali dei fermi sono "guasto-meccanico" "guasto-idraulico" "guasto-elettrico" "gomme-cingoli" "attesa-ricambi" "manutenzione" "verifica" "operatore" "meteo" "altro"— un urto oggi si registra come
+  fermo per guasto, e l'infortunio della persona sta in Scudo. Un sinistro
+  del mezzo è un fatto a cavallo delle due app (fermo + eventuale infortunio
+  + denuncia all'assicurazione): **dove vive** è una decisione. Dichiarato.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la prima verifica dalla
+messa in servizio, con la nota RCA), 2 **dichiarate** che chiedono una
+decisione (l'identità del mezzo; il sinistro), 2 **già a posto** (tagliandi a
+ore; assicurazione e revisione come scadenze), 1 stato del mondo che **non si
+scrive** (la revisione non ancora operativa).

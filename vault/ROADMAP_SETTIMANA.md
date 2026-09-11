@@ -2905,6 +2905,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (dalla ricerca`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9178,6 +9179,26 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   chiedono una decisione (dichiarati), date del canone già possibili come
   scadenze, registro non applicabile. Vedi `docs/RICERCA_CONTINUA_CONTI.md`,
   ricerca dell'11/09 (secondo giro).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — FLOTTA: CHE COSA CHIEDONO
+  L'OFFICINA E L'ASSICURAZIONE (11/09, unità 88, solo documenti).** Mondo di
+  seconda mano (10 fonti): tagliandi a ore motore (250/500/1000 h), RCA
+  obbligatoria anche in area privata, revisione ogni 5 anni ma non ancora
+  operativa, prima verifica INAIL entro 60 giorni dalla messa in servizio,
+  la denuncia di sinistro. Delta dal MECCANISMO contro `9e56a538`: tagliandi C'È
+  (niente da fare), verifica periodica C'È ma la PRIMA non si calcola (→
+  voce aperta), assicurazione C'È (nota da completare, nella stessa voce),
+  revisione C'È e lo stato dell'obbligo non si scrive, identità del mezzo e
+  sinistro MANCANO e chiedono una decisione (dichiarati). Vedi
+  `docs/RICERCA_CONTINUA_FLOTTA.md`, ricerca dell'11/09 (secondo giro).
+- [ ] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (dalla ricerca
+  dell'11/09).** Sul mezzo la data di messa in servizio (facoltativa); in
+  `SCADENZE_MEZZO_PRESET` un preset «prima verifica» che scade a **60
+  giorni** da quella data (i preset oggi ragionano a mesi: serve `giorni`
+  accanto a `mesi`, letto da `presetScadenzaMezzo` e da chi propone la
+  scadenza); nella nota dell'assicurazione la frase «vale anche per il mezzo
+  che non esce mai dalla cava» (senza numero di legge); prove in run-kpi;
+  scatto. Prova: `grep -ciE 'messaInServizio' apps/flotta/flotta-data.js
+  apps/flotta/index.html` → 0 e 0.
 - [x] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
   unità 86, 11/09).** `rimanenzeBilancio(prospetto, costo)` in `conti-data.js`:
   per ogni cumulo il valore al costo (m³ × costo al m³ del periodo, da
