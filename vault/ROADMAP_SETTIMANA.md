@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `SCUDO — IL FASCICOLO PER L'ISPETTORE: UN FOGLIO CHE RISPONDE`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.370 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2889, `run-stile` 328,
+  **3.373 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2892, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9200,20 +9199,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   aperta: composizione di funzioni che esistono); il registro degli esplosivi
   MANCA in tutte le app e chiede una decisione (dichiarato). Vedi
   `docs/RICERCA_CONTINUA_SCUDO.md`, ricerca dell'11/09 (secondo giro).
-- [ ] **SCUDO — IL FASCICOLO PER L'ISPETTORE: UN FOGLIO CHE RISPONDE
-  ALL'ELENCO DEI DOCUMENTI RICHIESTI (dalla ricerca dell'11/09).** Una
-  funzione pura `fascicoloIspezione(dati, oggi)` che compone, per la cava
-  intera e nell'ordine in cui l'ispettore li chiede: stato del DSS (ciclo,
-  ultima revisione, trasmissione), organigramma e nomine (chi manca),
-  copertura della formazione (quanti in regola su quanti, chi no), idoneità
-  sanitarie (scadute, in scadenza, mancanti), consegne DPI, registro infortuni
-  e near-miss dell'anno, appalti con DUVRI dovuto e stato, ultime ispezioni e
-  prescrizioni aperte — ogni sezione con «manca»/«non misurato» dove il dato
-  non c'è (principio del fondatore, sul documento che si consegna a chi
-  verifica); `fogliaFascicolo` stampabile sullo stampo di `fogliaCartella`;
-  bottone nel Quadro; prove in run-kpi e in `documenti-dimostrazione`; scatto.
-  Prova che manca: `grep -ciE 'fascicolo (di cava|per l.ispettore|ispezione)'
-  apps/scudo/scudo-data.js apps/scudo/index.html` → 0 e 0.
+- [x] **SCUDO — IL FASCICOLO PER L'ISPETTORE (unità 91, 11/09).**
+  `fascicoloIspezione(dati, oggi)` in `scudo-data.js`: otto sezioni
+  nell'ordine della visita — DSS cava per cava (`cicloDss`), organigramma e
+  nomine (`organigrammaSicurezza`, con il ruolo obbligatorio scoperto in
+  grassetto e quello non obbligatorio no), formazione per tipo
+  (`coperturaFormazione`), idoneità sanitarie (il giudizio del medico
+  persona per persona, con «senza giudizio registrato» contato), DPI
+  (`allarmiDpi`/`riepilogoDpi`), registro infortuni e near-miss dell'anno
+  (`riepilogoInfortuni`, `riepilogoNearMiss`), appalti (`riepilogoAppalti`),
+  ispezioni interne (`riepilogoIspezioni`) — tutto composizione, niente
+  ricalcolato; due elenchi separati come nella cartella: `nonMisurati` (che
+  cosa non risulta: un DSS non databile, un ruolo scoperto, chi non ha il
+  giudizio) e `daSistemare` (registrato e non in regola), e la chiusura è un
+  allarme se uno dei due non è vuoto; senza dati sette sezioni su otto
+  dichiarano il vuoto e `inRegola` resta senza valore di conforto. Pagina: il
+  bottone «Fascicolo per l'ispettore» nel Quadro, lo stesso disegnatore della
+  cartella (`disegnaFoglioSezioni`), la frase d'esempio sua. Registrato in
+  `documenti-dimostrazione` (140 documenti). Scatti guardati: il Quadro a 430
+  px e il foglio intero. Prove: run-kpi +3 (2892), copertura Scudo 217/217; le
+  due prove che contavano «tre fogli» rese più giuste (quattro, con la frase
+  del fascicolo pretesa per nome).
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

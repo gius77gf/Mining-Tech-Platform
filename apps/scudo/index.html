@@ -1003,6 +1003,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     <div class="kpi warn" role="button" tabindex="0" style="cursor:pointer" data-goto="pers" data-tab="dpi" title="Vedi i DPI mancanti, da sostituire o senza addestramento"><div class="l">DPI da sistemare</div><div class="n" id="k-dpi">—</div></div>
   </div>
 
+  <!-- IL FASCICOLO PER L'ISPETTORE (11/09): l'elenco dei documenti che la
+       visita chiede, per la cava intera, in un foglio solo -->
+  <div class="tools" style="margin-top:10px;"><button class="dw-btn secondary" id="btn-fascicolo" type="button" title="Un foglio con lo stato della cava nell'ordine in cui lo chiede l'ispettore: DSS, nomine, formazione, idoneità, DPI, infortuni, appalti, ispezioni — con scritto che cosa manca">Fascicolo per l'ispettore</button></div>
   <div id="safety-banner"></div>
   <div class="sec">Urgenze</div>
   <div id="urg-list"></div>
@@ -1770,7 +1773,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     REQUISITI_FORMAZIONE, requisitoFormazione, requisitoSicuro, statoRequisito, MANSIONI_PRESET, mansionePreset,
     matriceMansione, riepilogoMansioni, lavoratoriScoperti, abilitazioneLavoratore, daSistemareCopertura, statoCopertura,
     NOMINE_RUOLI, ruoloNomina, nominaAttiva, organigrammaSicurezza, nomineDaSistemare,
-    cartellaLavoratore, fogliaVerbaleDpi, fogliaCartella, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
+    cartellaLavoratore, fogliaVerbaleDpi, fogliaCartella, fascicoloIspezione, descriviCartella, etichettaStatoDocumento, statoPeggioreScadenze,
     TIPI_DPI, tipoDpi, tipoDpiSicuro, ultimaConsegnaDpi, statoConsegnaDpi, allarmiDpi, riepilogoDpi, verbaleDpi,
     MOTIVO_SENZA_SOSTITUZIONE,
     /* `indiciInfortunistici` non si importa più: gli indici dell'anno in corso
@@ -5813,6 +5816,15 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ${F.firme.map(f => `<div style="flex:1;border-top:1px solid #777;padding-top:4px;font-size:11px;color:#555;">${esc(f)}</div>`).join("")}
       </div>`);
   }
+  /* IL FASCICOLO PER L'ISPETTORE (11/09): lo compone `fascicoloIspezione` nel
+     modulo dalle stesse funzioni che decidono a schermo; qui si disegna con lo
+     stesso disegnatore della cartella e del verbale. */
+  function costruisciFascicolo() {
+    disegnaFoglioSezioni(fascicoloIspezione({ cantieri: CANT, documenti: DOC, infortuni: INF, nomine: NOM, lavoratori: LAV,
+      scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI }, new Date()),
+      "Questo fascicolo non riguarda nessuna cava reale: non va esibito a un ispettore né tenuto agli atti.");
+  }
+  $("btn-fascicolo").onclick = costruisciFascicolo;
   function costruisciCartella(c) {
     disegnaFoglioSezioni(fogliaCartella(c, new Date()),
       /* la conseguenza detta per QUESTO foglio: la cartella è il fascicolo

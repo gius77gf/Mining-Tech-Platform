@@ -1376,6 +1376,10 @@ una schermata; quelli qui sotto servono a decidere il delta.
   **composizione**, non calcolo nuovo — e la regola del principio del
   fondatore vale doppio, perché è il documento che si consegna a chi
   verifica. **Mancanza confermata, aperta.**
+  ✅ **FATTO lo stesso giorno, unità 91**: `fascicoloIspezione` (otto sezioni,
+  `nonMisurati` e `daSistemare` separati), il bottone nel Quadro, la
+  registrazione in `documenti-dimostrazione`. Prova: `grep -c "export function
+  fascicoloIspezione" apps/scudo/scudo-data.js` → 1.
 - **Domanda 6 — MANCA in tutte le app, e chiede una decisione.** Il registro
   giornaliero degli esplosivi (carico/scarico del deposito, vidimato dal
   Prefetto): `grep -ciE 'registro (giornaliero|di carico|degli

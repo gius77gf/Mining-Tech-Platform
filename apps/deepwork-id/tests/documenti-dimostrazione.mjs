@@ -100,6 +100,8 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("scudo", "csvAzioni", () => scudo.csvAzioni(D.azioni));
   doc("scudo", "csvProspettoAzioni", () => scudo.csvProspettoAzioni(D.azioni, { lavoratori: D.lavoratori, infortuni: D.infortuni, ispezioni: D.ispezioni }));
   doc("scudo", "csvRiepilogoNearMiss", () => scudo.csvRiepilogoNearMiss(D.infortuni, D.azioni, 90, OGGI));
+  doc("scudo", "fascicoloIspezione", () => scudo.fascicoloIspezione({ cantieri: D.cantieri, documenti: D.documenti, infortuni: D.infortuni, nomine: D.nomine, lavoratori: D.lavoratori,
+    scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, appalti: D.appalti, appaltatori: D.appaltatori, ispezioni: D.ispezioni, azioni: D.azioni }, OGGI));
   doc("scudo", "calendarioScadenze", () => scudo.calendarioScadenze(D.scadenze, D.lavoratori, OGGI, "2026-09-11T02:00:00Z").ics);
   for (const l of D.lavoratori) {
     doc("scudo", "fogliaVerbaleDpi " + l.id, () => scudo.fogliaVerbaleDpi(l, { dpi: D.dpi, mansioni: D.mansioni, oggi: OGGI }));

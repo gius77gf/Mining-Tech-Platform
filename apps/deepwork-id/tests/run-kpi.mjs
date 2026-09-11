@@ -2465,6 +2465,54 @@ test("⛔ una fattura stornata NON finisce nel sollecito né nell'estratto conto
   eq(conti.incassoAtteso([{ ...f, scadenza: "2026-05-20" }], 30, oggi).importo, 1000,
     "e senza note lo conta, come sempre");
 });
+test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, composto dalle funzioni che decidono a schermo", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-09-11T00:00:00");
+  const tutto = { cantieri: D.cantieri, documenti: D.documenti, infortuni: D.infortuni, nomine: D.nomine, lavoratori: D.lavoratori,
+    scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, appalti: D.appalti, appaltatori: D.appaltatori, ispezioni: D.ispezioni, azioni: D.azioni };
+  const f = scudo.fascicoloIspezione(tutto, oggi);
+  eq(f.sezioni.map((z) => z.titolo), ["Documento di sicurezza e salute (DSS)", "Organigramma della sicurezza e nomine", "Formazione e scadenze", "Idoneità sanitarie",
+    "Dispositivi di protezione", "Registro infortuni e near-miss", "Imprese esterne e appalti", "Ispezioni interne e prescrizioni"], "le otto sezioni, nell'ordine della visita");
+  eq(f.sezioni.filter((z) => z.vuoto).length, 0, "sulla dimostrazione nessuna sezione è vuota");
+  eq(f.firme, ["Luogo e data", "Il datore di lavoro", "Il direttore responsabile"], "tre firme: il direttore responsabile è del settore estrattivo");
+  /* ⛔ le due domande, separate come nella cartella: che cosa NON risulta, e che
+     cosa risulta e non è in regola */
+  eq(f.nonMisurati, ["DSS di Cava Monte Alto (non databile)", "DSS di Cantiere cliente Edilcave (assente)", "nomina mancante: Medico competente",
+    "4 lavoratori senza giudizio di idoneità registrato", "1 appalto non verificato"], "⛔ le assenze, per nome — un DSS non databile non è «a posto»");
+  ok(f.daSistemare.includes("nomina da sistemare: Direttore responsabile") && f.daSistemare.includes("1 lavoratore non idoneo in forza")
+    && f.daSistemare.includes("consegne DPI: 5 righe da sistemare") && f.daSistemare.includes("4 near-miss dell'ultimo anno senza azione")
+    && f.daSistemare.includes("ispezioni: 1 scaduta, 4 voci senza esito"), "le righe registrate e non in regola: " + f.daSistemare.join(" | "));
+  eq([f.completo, f.inRegola, f.chiusura.allarme], [false, false, true], "e la chiusura è un allarme");
+  ok(/^Sezioni o dati che in Scudo non risultano: DSS di Cava Monte Alto/.test(f.chiusura.testo) && /⚠️ E non tutto quello che è registrato è in regola/.test(f.chiusura.testo), f.chiusura.testo);
+  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 3, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1 },
+    "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria)");
+  const riga = (t, e) => { const z = f.sezioni.find((x) => x.titolo === t); const r = z && z.righe.find((q) => q[0] === e); return r ? r[1] : undefined; };
+  ok(/^\*\*non databile\*\* — Il DSS è in archivio/.test(riga("Documento di sicurezza e salute (DSS)", "Cava Monte Alto")), "⛔ il DSS non databile è in grassetto, con la ragione del modulo");
+  eq(riga("Organigramma della sicurezza e nomine", "Medico competente"), "**nessuna nomina: ruolo obbligatorio scoperto**", "il ruolo obbligatorio scoperto si vede");
+  eq(riga("Organigramma della sicurezza e nomine", "Dirigente"), "nessuna nomina (ruolo non obbligatorio)", "quello non obbligatorio no");
+  eq(riga("Idoneità sanitarie", "Giudizio del medico"), "idonei 1 · con prescrizioni 1 · **non idonei 1** · **senza giudizio registrato 4**", "⛔ chi non ha un giudizio registrato si conta, in grassetto");
+  eq(riga("Formazione e scadenze", "Visita medica"), "4 su 5 in regola · **1 scaduta**");
+  eq(riga("Registro infortuni e near-miss", "Near-miss nell'ultimo anno"), "5 (5 in tutto) · con azione 1 · **senza azione 4**");
+});
+test("⛔ fascicoloIspezione senza dati: ogni sezione dice che non risulta niente, e niente è «a posto»", () => {
+  const oggi = new Date("2026-09-11T00:00:00");
+  const v = scudo.fascicoloIspezione({}, oggi);
+  eq(v.sezioni.filter((z) => z.vuoto).length, 7, "sette sezioni vuote con la loro frase (l'organigramma ha sempre i ruoli)");
+  ok(v.sezioni.every((z) => z.righe.length || z.vuoto), "nessuna sezione muta");
+  ok(v.nonMisurati.includes("nessuna cava registrata: il DSS non si può collegare a niente") && v.nonMisurati.includes("nessun lavoratore in forza")
+    && v.nonMisurati.includes("registro infortuni e near-miss vuoto: nessun evento registrato, che non è «nessun evento»"), v.nonMisurati.join(" | "));
+  ok(v.nonMisurati.some((x) => /nomina mancante/.test(x)), "i ruoli obbligatori scoperti sono assenze");
+  eq([v.completo, v.inRegola, v.chiusura.allarme], [false, true, true], "⛔ vuoto non è in regola: è non misurato, e l'allarme resta");
+  eq(v.numeri.lavoratori, 0); eq(v.numeri.dssRegolari, 0);
+  const org = v.sezioni.find((z) => z.titolo === "Organigramma della sicurezza e nomine");
+  eq(org.righe.filter((r) => /\*\*nessuna nomina: ruolo obbligatorio scoperto\*\*/.test(r[1])).length, scudo.NOMINE_RUOLI.filter((r) => r.obbligatoria).length, "un ruolo obbligatorio scoperto per ogni ruolo obbligatorio");
+  eq(scudo.fascicoloIspezione(null, oggi).sezioni.length, 8, "null non rompe");
+});
+test("⛔ fascicolo nella pagina: il bottone nel Quadro e il foglio dal modulo, con lo stesso disegnatore", () => {
+  const pag = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+  ok(/id="btn-fascicolo"/.test(pag), "il bottone");
+  ok(/disegnaFoglioSezioni\(fascicoloIspezione\(\{ cantieri: CANT, documenti: DOC, infortuni: INF, nomine: NOM, lavoratori: LAV,\s*scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI \}, new Date\(\)\)/.test(pag), "il foglio dal modulo con tutti i dati della pagina");
+  ok(/\$\("btn-fascicolo"\)\.onclick = costruisciFascicolo;/.test(pag), "collegato");
+});
 test("⛔ cartellaLavoratore: una sezione vuota non e' «non dovuto»", () => {
   /* Un fascicolo stampato mente per OMISSIONE: una sezione vuota su un foglio
      che esce dalla stampante si legge «a questa persona non serve», mentre la
@@ -23378,18 +23426,30 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
     /* Tre, dal 06/09: il verbale di consegna dei DPI, la cartella del
        lavoratore e il verbale di ispezione (che passa da `disegnaFoglioSezioni`
        come la cartella). */
-    eq(M.chiamate.length, 3, "il verbale DPI, la cartella e il verbale di ispezione");
+    /* Quattro, dall'11/09: il fascicolo per l'ispettore, che passa da
+       `disegnaFoglioSezioni` come la cartella e il verbale di ispezione. */
+    eq(M.chiamate.length, 4, "il verbale DPI, la cartella, il verbale di ispezione e il fascicolo per l'ispettore");
     ok(M.chiamate.every((f) => typeof f === "string" && f.length > 40),
       `ogni foglio passa la sua frase: ${JSON.stringify(M.chiamate.map((f) => (f || "").length))}`);
   });
 
-  test("⛔ scudo · i tre fogli non dicono la stessa cosa: la conseguenza è di quel foglio lì", () => {
+  test("⛔ scudo · i quattro fogli non dicono la stessa cosa: la conseguenza è di quel foglio lì", () => {
     /* «Dati di esempio» da solo si legge come una nota di cortesia. Quello che
        serve è l'istruzione: un verbale di consegna si fa FIRMARE (e quindi non
        va firmato), una cartella si ESIBISCE e si tiene agli atti. Un punto
-       solo per la decisione non vuol dire una frase sola per tutti. */
-    const [verb, cart, isp] = M.chiamate;
-    ok(new Set(M.chiamate).size === 3, "le tre frasi sono diverse");
+       solo per la decisione non vuol dire una frase sola per tutti.
+       ⚠️ Le frasi si cercano per SOGGETTO («verbale», «cartella», «fascicolo»,
+       «ispezione»), non per posizione: l'11/09 il fascicolo è entrato nella
+       pagina PRIMA della cartella e una destrutturazione per ordine leggeva
+       la frase del fascicolo credendola quella della cartella. */
+    const pesca = (re) => M.chiamate.find((f) => re.test(f)) || "";
+    const verb = pesca(/^Questo verbale non documenta/i);
+    const cart = pesca(/^Questa cartella/i);
+    const isp = pesca(/organo di vigilanza/i);
+    const fasc = pesca(/^Questo fascicolo/i);
+    ok(new Set(M.chiamate).size === 4, "le quattro frasi sono diverse");
+    ok(new Set([verb, cart, isp, fasc]).size === 4 && [verb, cart, isp, fasc].every(Boolean), "ogni soggetto pesca UNA frase sua");
+    ok(/non va esibito a un ispettore né tenuto agli atti/i.test(fasc), `il fascicolo dice che non va esibito né tenuto agli atti: «${fasc}»`);
     ok(/non va fatto firmare/i.test(verb), `il verbale dice che non va firmato: «${verb}»`);
     ok(/non va esibita a un ispettore/i.test(cart), `la cartella dice che non va esibita: «${cart}»`);
     ok(/non va esibito a un organo di vigilanza/i.test(isp), `il verbale di ispezione dice che non va esibito all'organo di vigilanza: «${isp}»`);

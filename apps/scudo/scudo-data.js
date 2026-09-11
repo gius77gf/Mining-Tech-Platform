@@ -4208,6 +4208,144 @@ export function fogliaVerbaleDpi(lavoratore, opzioni) {
    sezione vuota porta la frase che dice perché, invece di restare bianca.
    La riga di chiusura la scrive `descriviCartella`, con `allarme` quando
    c'è qualcosa da sistemare. Pura. */
+/* ══════════════════════════════════════════════════════════════════════
+   IL FASCICOLO PER L'ISPETTORE (11/09, dalla ricerca del secondo giro). La
+   visita ASL/SPRESAL comincia con l'ELENCO dei documenti: DSS, organigramma e
+   nomine, formazione, idoneità, DPI, registro infortuni, appalti con DUVRI,
+   verbali. Scudo sapeva rispondere a ognuno — ma per UN soggetto alla volta
+   (una persona, un'ispezione, una consegna), mai per la cava intera. Questo
+   foglio è COMPOSIZIONE: ogni sezione chiama la funzione che decide già a
+   schermo (`cicloDss`, `organigrammaSicurezza`, `coperturaFormazione`,
+   `allarmiDpi`/`riepilogoDpi`, `riepilogoInfortuni`, `riepilogoNearMiss`,
+   `riepilogoAppalti`, `riepilogoIspezioni`), niente è ricalcolato qui.
+   ⛔ E ogni sezione dice che cosa MANCA: sul documento che si consegna a chi
+   verifica, una sezione vuota si legge «non dovuto» e un totale tranquillo
+   si legge «a posto». `nonMisurati` raccoglie le assenze, `daSistemare` le
+   righe registrate e non in regola — due domande diverse, come nella
+   cartella del lavoratore. Stessa forma di `fogliaCartella`, stesso
+   disegnatore nella pagina. Pura. */
+export function fascicoloIspezione(dati, oggi = new Date()) {
+  const d = dati || {};
+  const cantieri = d.cantieri || [], documenti = d.documenti || [], infortuni = d.infortuni || [];
+  const nomine = d.nomine || [], lavoratori = d.lavoratori || [], scadenze = d.scadenze || [];
+  const mansioni = d.mansioni || [], dpi = d.dpi || [], appalti = d.appalti || [], appaltatori = d.appaltatori || [];
+  const ispezioni = d.ispezioni || [], azioni = d.azioni || [];
+  const nonMisurati = [], daSistemare = [];
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+  const G = (x) => "**" + x + "**";
+
+  // 1 · il DSS, cava per cava
+  const cave = cantieri.filter((c) => c && c.id);
+  const cicli = cave.map((c) => ({ cantiere: c, ...cicloDss(dssDiCantiere(documenti, c.id)[0] || null, infortuni, oggi) }));
+  for (const c of cicli) {
+    if (!c.noto) nonMisurati.push("DSS di " + String(c.cantiere.nome || c.cantiere.id) + " (" + c.stato.replace(/-/g, " ") + ")");
+    else if (c.stato !== "regolare") daSistemare.push("DSS di " + String(c.cantiere.nome || c.cantiere.id) + " " + c.stato.replace(/-/g, " "));
+  }
+  if (!cave.length) nonMisurati.push("nessuna cava registrata: il DSS non si può collegare a niente");
+  const righeDss = cicli.map((c) => [String(c.cantiere.nome || c.cantiere.id),
+    (c.noto && c.stato === "regolare" ? "in regola" : G(c.stato.replace(/-/g, " ")))
+    + (c.revisione ? " · ultima revisione " + dataIt(c.revisione) + (c.motivoNome ? " (" + c.motivoNome.toLowerCase() + ")" : "") : "")
+    + (c.trasmissione ? " · trasmesso il " + dataIt(c.trasmissione) : c.revisione ? " · " + G("trasmissione non registrata") : "")
+    + " — " + c.perche]);
+
+  // 2 · organigramma e nomine
+  const org = organigrammaSicurezza(nomine, lavoratori, scadenze, oggi);
+  const nomKO = nomineDaSistemare(org);
+  for (const r of org) {
+    if (r.mancante) nonMisurati.push("nomina mancante: " + r.ruolo.etichetta);
+    else if (r.stato === "danger" || r.stato === "warn") daSistemare.push("nomina da sistemare: " + r.ruolo.etichetta);
+  }
+  const righeOrg = org.map((r) => [r.ruolo.etichetta, r.valide.length
+    ? r.valide.map((p) => p.lavoratore.nome + (p.nomina.dal && dataISOEsiste(p.nomina.dal) ? " (dal " + dataIt(p.nomina.dal) + ")" : " (" + G("senza data di nomina") + ")")
+        + (p.formazione && (p.formazione.stato === "mancante" || p.formazione.stato === "scaduta") ? " · " + G("formazione del ruolo " + p.formazione.stato) : "")).join(", ")
+      + (r.senzaPersona ? " · " + G(conta(r.senzaPersona, "nomina a persona non più in anagrafica", "nomine a persone non più in anagrafica")) : "")
+    : r.ruolo.obbligatoria ? G("nessuna nomina: ruolo obbligatorio scoperto") : "nessuna nomina (ruolo non obbligatorio)"]);
+
+  // 3 · formazione
+  const cop = coperturaFormazione(scadenze, oggi, documenti);
+  if (!scadenze.length) nonMisurati.push("nessuna scadenza registrata: formazione e visite non risultano");
+  for (const c of cop) if (c.scadute || c.verificheNegative || c.senzaData) daSistemare.push(c.tipo + ": " + [c.scadute ? conta(c.scadute, "scaduta", "scadute") : "", c.verificheNegative ? conta(c.verificheNegative, "verifica negativa", "verifiche negative") : "", c.senzaData ? conta(c.senzaData, "senza data", "senza data") : ""].filter(Boolean).join(", "));
+  const righeForm = cop.map((c) => [c.tipo, c.regolari + " su " + c.totale + " in regola"
+    + (c.scadute ? " · " + G(conta(c.scadute, "scaduta", "scadute")) : "")
+    + (c.verificheNegative ? " · " + G(conta(c.verificheNegative, "verifica negativa", "verifiche negative")) : "")
+    + (c.inScadenza ? " · " + conta(c.inScadenza, "in scadenza", "in scadenza") : "")
+    + (c.senzaData ? " · " + G(conta(c.senzaData, "senza data", "senza data")) : "")
+    + (c.verificheIncerte ? " · " + conta(c.verificheIncerte, "verifica incerta", "verifiche incerte") : "")]);
+
+  // 4 · idoneità sanitarie: il giudizio del medico, persona per persona
+  const attivi = lavoratori.filter((l) => l && l.attivo !== false);
+  const perGiudizio = { idoneo: 0, prescrizioni: 0, "non-idoneo": 0, "": 0 };
+  for (const l of attivi) perGiudizio[["idoneo", "prescrizioni", "non-idoneo"].includes(l.idoneita) ? l.idoneita : ""]++;
+  if (!attivi.length) nonMisurati.push("nessun lavoratore in forza");
+  if (perGiudizio[""]) nonMisurati.push(conta(perGiudizio[""], "lavoratore senza giudizio di idoneità registrato", "lavoratori senza giudizio di idoneità registrato"));
+  if (perGiudizio["non-idoneo"]) daSistemare.push(conta(perGiudizio["non-idoneo"], "lavoratore non idoneo in forza", "lavoratori non idonei in forza"));
+  const righeIdo = attivi.length ? [
+    ["Lavoratori in forza", String(attivi.length)],
+    ["Giudizio del medico", "idonei " + perGiudizio.idoneo + " · con prescrizioni " + perGiudizio.prescrizioni + " · " + (perGiudizio["non-idoneo"] ? G("non idonei " + perGiudizio["non-idoneo"]) : "non idonei 0")
+      + " · " + (perGiudizio[""] ? G("senza giudizio registrato " + perGiudizio[""]) : "senza giudizio registrato 0")],
+  ] : [];
+
+  // 5 · DPI
+  const al = allarmiDpi(mansioni, lavoratori, dpi, oggi);
+  const rd = riepilogoDpi(dpi, al);
+  if (!dpi.length) nonMisurati.push("nessuna consegna di DPI a registro");
+  if (rd.mancanti || rd.daSostituire || rd.addestramenti || rd.senzaSostituzione) daSistemare.push("consegne DPI: " + conta(rd.daSistemare, "riga da sistemare", "righe da sistemare"));
+  const righeDpi = dpi.length ? [
+    ["Consegne registrate", rd.consegne + " a " + conta(rd.persone, "persona", "persone")],
+    ["Da sistemare", rd.daSistemare ? G(conta(rd.mancanti, "mai consegnato", "mai consegnati")) + " · " + G(conta(rd.daSostituire, "da sostituire", "da sostituire")) + " · " + G(conta(rd.addestramenti, "addestramento non registrato", "addestramenti non registrati")) + " · " + G(conta(rd.senzaSostituzione, "senza data di sostituzione", "senza data di sostituzione")) : "niente: tutte le consegne dovute risultano fatte e in corso di validità"],
+  ] : [];
+
+  // 6 · infortuni e near-miss
+  const ri = riepilogoInfortuni(infortuni, oggi);
+  const rnm = riepilogoNearMiss(infortuni, azioni, 365, oggi);
+  if (!infortuni.length) nonMisurati.push("registro infortuni e near-miss vuoto: nessun evento registrato, che non è «nessun evento»");
+  if (rnm.senzaAzione) daSistemare.push(conta(rnm.senzaAzione, "near-miss dell'ultimo anno senza azione", "near-miss dell'ultimo anno senza azione"));
+  const righeInf = infortuni.length ? [
+    ["Infortuni registrati", ri.infortuni + (ri.gravi ? " · " + G(conta(ri.gravi, "grave", "gravi")) : "") + (ri.prognosiAperte ? " · " + conta(ri.prognosiAperte, "prognosi aperta", "prognosi aperte") : "")
+      + (ri.giorniSenza == null ? " · " + G("giorni senza infortuni non calcolabili") : " · " + conta(ri.giorniSenza, "giorno senza infortuni", "giorni senza infortuni"))],
+    ["Near-miss nell'ultimo anno", rnm.totale + " (" + rnm.totaleStorico + " in tutto) · con azione " + rnm.conAzione + " · " + (rnm.senzaAzione ? G("senza azione " + rnm.senzaAzione) : "senza azione 0")],
+  ] : [];
+
+  // 7 · appalti
+  const rA = riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi);
+  if (!rA.quanti) nonMisurati.push("nessun appalto registrato (non vuol dire nessuna impresa esterna in cava)");
+  if (rA.daSistemare) daSistemare.push(conta(rA.daSistemare, "appalto da sistemare", "appalti da sistemare"));
+  if (rA.nonVerificati) nonMisurati.push(conta(rA.nonVerificati, "appalto non verificato", "appalti non verificati"));
+  const righeApp = rA.quanti ? [["Appalti attivi", rA.quanti + " · a posto " + rA.aPosto + " · " + (rA.daSistemare ? G("da sistemare " + rA.daSistemare) : "da sistemare 0") + " · " + (rA.nonVerificati ? G("non verificati " + rA.nonVerificati) : "non verificati 0")]] : [];
+
+  // 8 · ispezioni e prescrizioni
+  const rI = riepilogoIspezioni(ispezioni, oggi);
+  if (!rI.totale) nonMisurati.push("nessuna ispezione interna registrata");
+  if (rI.scadute || rI.senzaEsito) daSistemare.push("ispezioni: " + [rI.scadute ? conta(rI.scadute, "scaduta", "scadute") : "", rI.senzaEsito ? conta(rI.senzaEsito, "voce senza esito", "voci senza esito") : ""].filter(Boolean).join(", "));
+  const righeIsp = rI.totale ? [["Ispezioni interne", rI.completate + " completate su " + rI.totale + " · da fare " + rI.daFare + (rI.scadute ? " · " + G(conta(rI.scadute, "scaduta", "scadute")) : "") + " · non conformità rilevate " + rI.nonConformi + (rI.senzaEsito ? " · " + G(conta(rI.senzaEsito, "voce senza esito", "voci senza esito")) : "")]] : [];
+
+  const sezioni = [
+    sez("Documento di sicurezza e salute (DSS)", righeDss, "Nessuna cava registrata: il DSS non si può collegare a niente, e questo foglio non può dire se esiste."),
+    sez("Organigramma della sicurezza e nomine", righeOrg, "Nessun ruolo definito."),
+    sez("Formazione e scadenze", righeForm, "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente."),
+    sez("Idoneità sanitarie", righeIdo, "Nessun lavoratore in forza: le idoneità non si possono dire."),
+    sez("Dispositivi di protezione", righeDpi, "Nessuna consegna di DPI a registro."),
+    sez("Registro infortuni e near-miss", righeInf, "Nessun evento registrato. Non è «nessun evento»: è un registro in cui non è stato scritto niente."),
+    sez("Imprese esterne e appalti", righeApp, rA.testo || "Nessun appalto registrato."),
+    sez("Ispezioni interne e prescrizioni", righeIsp, "Nessuna ispezione interna registrata."),
+  ];
+  const completo = !nonMisurati.length, inRegola = !daSistemare.length;
+  const chiusura = (completo
+    ? "Tutte le sezioni del fascicolo contengono dati registrati in Scudo alla data di stampa."
+    : "Sezioni o dati che in Scudo non risultano: " + nonMisurati.join("; ") + ". Non vuol dire che non esistano: vuol dire che da qui non si vedono, e il foglio non li conta come a posto.")
+    + (inRegola ? "" : " ⚠️ E non tutto quello che è registrato è in regola: " + daSistemare.join("; ") + ".");
+  return {
+    titolo: "Fascicolo per l'ispettore",
+    sottotitolo: "Lo stato della cava nell'ordine in cui lo chiede la visita — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),
+    sezioni, chiusura: { testo: chiusura, allarme: !(completo && inRegola) },
+    firme: ["Luogo e data", "Il datore di lavoro", "Il direttore responsabile"],
+    nonMisurati, daSistemare, completo, inRegola,
+    numeri: { cave: cave.length, dssRegolari: cicli.filter((c) => c.noto && c.stato === "regolare").length, nomineDaSistemare: nomKO.length,
+      lavoratori: attivi.length, senzaGiudizio: perGiudizio[""], dpiDaSistemare: rd.daSistemare, infortuni: ri.infortuni, nearMissSenzaAzione: rnm.senzaAzione,
+      appalti: rA.quanti, ispezioniScadute: rI.scadute },
+  };
+}
+
 export function fogliaCartella(cartella, oggi = new Date()) {
   const c = cartella || {};
   const l = c.lavoratore || {};
