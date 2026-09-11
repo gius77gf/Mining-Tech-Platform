@@ -839,3 +839,127 @@ ricettore prima delle volate; la risposta scritta al reclamo composta dai
 pezzi esistenti), 1 **dichiarata** (l'esposto), 3 **già a posto** (la
 relazione per l'ente, le misure accanto al reclamo, la soglia dichiarata di
 riferimento).
+
+## Ricerca del 2026-09-11 — terzo giro: la catena di misura — taratura in laboratorio, calibrazione in campo, e quando una misura non vale (il mondo)
+
+*Terzo giro su Sentinella. Strumento: `WebSearch` (sei ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte letta per intero**, tutto di
+seconda mano dai riassunti. La metà sul delta, sotto, è fatta da chi ha il
+codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **Due cose diverse con nomi che si confondono.** La **taratura** è quella
+  del laboratorio (certificato, tracciabilità ai campioni nazionali, in
+  Italia i laboratori **LAT** accreditati da Accredia), con una **scadenza**;
+  la **calibrazione in campo** è il controllo con un calibratore **prima e
+  dopo ogni ciclo di misura**, che dice se la misura appena fatta vale.
+- **Rumore (fonometro di classe 1)**: il D.M. 16 marzo 1998 (tecniche di
+  rilevamento dell'inquinamento acustico), all. B: strumenti e catena di
+  misura **con certificato di taratura e controllati almeno ogni due anni**;
+  prima e dopo ogni ciclo di misura la catena si controlla con un
+  **calibratore di classe 1**, e la misura è **valida solo se le due
+  calibrazioni differiscono al massimo di 0,5 dB**. Il fonometro di classe 1
+  è quello che la legge italiana pretende per le misure «legali»; la
+  taratura biennale riguarda **tutta la catena** (microfono,
+  preamplificatore, filtri, calibratore).
+- **Vibrazioni (sismografo / geofono)**: la UNI 9916 rimanda alla **verifica
+  annuale** della conformità dei valori letti, come prescritto dal
+  costruttore; per i misuratori di vibrazioni la periodicità di buona
+  pratica è **biennale** (ISO 8041), non fissata da una norma vincolante, e
+  se il costruttore ne indica un'altra vale quella. Gli accelerometri di
+  classe A si tarano ogni due anni, quelli di classe B ogni quattro. La
+  taratura **dell'intera catena** si fa all'inizio e alla fine di ogni ciclo
+  di misura; i laboratori accreditati emettono certificati in **mm/s** con
+  tavola vibrante e campioni tarati.
+- **Che cosa chiede chi controlla** (bandi ARPA, prescrizioni nelle VIA): la
+  strumentazione «tarata secondo ISO 5347 / ISO 16063» con i certificati
+  del costruttore o di un centro che garantisca la tracciabilità; il
+  certificato **allegato** al rapporto di misura.
+- **Il mestiere**: il perito che consegna il rapporto scrive la data e il
+  numero del certificato dello strumento, e per il rumore i due valori del
+  calibratore (prima/dopo) con lo scarto; un ARPA che riceve una misura
+  senza calibrazione registrata la considera **non valida**, non «da
+  verificare».
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- D.M. 16 marzo 1998, testo: anit.it; arpa.veneto.it; regione
+  Emilia-Romagna (ambiente.regione.emilia-romagna.it); olympus.uniurb.it (id
+  184); inquinamentoacustico.it; bgacustica.it; magistersrl.eu; ingcassella.it
+  «DMA 16 marzo 1998»; normativaitaliana.it.
+- Fonometri di classe 1 e taratura biennale: arwmisure.it (tre pagine);
+  antcoviello.wixsite.com; spectra.it; it.rs-online.com; fonometroclick.com;
+  sonorasrl.com «Taratura dei fonometri»; narkive (lavoro.prevenzione).
+- UNI 9916 e taratura dei sismografi: ediliziainrete.it (UNI 9916);
+  geo-tec.it (UNI 9916:2004, pdf); distad.unimi.it (scheda «sismografo»);
+  ntx-int.com «Calibrazione sismografi»; skylabsrl.it (laboratorio di taratura
+  accreditato per vibrazioni); tecnopenta.com (geofoni); winmasw.com;
+  geomarche.eu; bresciaacusticaenergia.com (norme di riferimento).
+- Periodicità e tracciabilità: portaleagentifisici.it (FAQ B.2 e B.3);
+  consiimpianti.it «La validità del certificato di taratura»; samatools.it;
+  ottouno.it (UNI 11568); va.mite.gov.it (documenti 185695 e 1380967:
+  monitoraggi vibrazionali in VIA); arpa.veneto.it (bando «sistema di
+  monitoraggio vibrazioni»).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi decide che la taratura di uno strumento è scaduta**, e da dove
+   viene la scadenza (la scrive l'utente dal certificato? l'app propone una
+   periodicità per tipo di strumento?).
+2. **Che cosa conserva del certificato** (ente, numero, tracciabilità) e
+   che cosa ne scrive nel report per l'ente.
+3. **Chi registra la calibrazione in campo** — i due valori prima/dopo — e
+   chi dice se una misura di rumore **vale** (scarto entro il massimo)?
+4. **Una misura presa con lo strumento scoperto** si distingue da una
+   coperta, nel report e nel file?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `747de8a2`)
+
+- **Domanda 1 — C'È, e la scadenza è dell'utente: giusto così.**
+  `statoTaraturaStrumento(punto)` prende l'ultimo certificato e chiede a
+  `statoScadenzaHSE` (in `shared/`, la stessa di Scudo e Campo) se è
+  regolare / in scadenza / scaduto; senza certificati risponde
+  «non-dichiarata», che è un avviso e non un via libera. La data «Valida
+  fino al» la scrive l'utente dal certificato (`tar-scad`), e la pagina non
+  propone una periodicità (`grep -c 'tar-scad").value ='` → solo lo
+  svuotamento del form): coerente col mondo, dove la periodicità «non è
+  fissata da una norma vincolante» e vale quella del costruttore o del
+  certificato. Una proposta per tipo (24 mesi per il fonometro, 12 per il
+  sismografo) sarebbe un numero di seconda mano messo in un campo: **non
+  si fa**, e la riga resta a posto.
+- **Domanda 2 — C'È.** Il certificato porta `{ data, scadenza, ente,
+  certificato, nota }` (il segnaposto dell'ente dice già «Centro LAT n.
+  118»), e `taratureDelReport` lo scrive nel report per l'ente accanto al
+  conto delle letture coperte — senza toccare l'esito sulle soglie, di
+  proposito.
+- **Domanda 3 — MANCA, ed è il delta.** Le letture portano `{ data, ora,
+  valore }` (più frequenza e meteo dove servono); di **calibrazione in
+  campo** non c'è traccia: `grep -ciE 'calibraz|calibrat'` → 4 nel modulo e
+  tutte sulla **legge di sito** di Genesi («legge calibrata»), 0 sulle
+  letture. Quindi per una misura di rumore nessuno sa dire se i due valori
+  del calibratore, prima e dopo, stavano entro lo scarto: la misura entra
+  nel report come valida **perché nessuno ha chiesto**. Il meccanismo per
+  dichiarare una lettura non valida esiste (`annullaLettura` con le
+  `RAGIONI_ANNULLAMENTO`, `letturaValida`, `contaAnnullate` nel report), ma
+  non c'è la domanda. **Mancanza confermata, aperta**: sulla lettura di
+  rumore `calibrazione: { prima, dopo }` in dB (facoltativi); sul punto lo
+  **scarto massimo ammesso** `scartoCalibrazioneDb`, **dichiarato
+  dall'utente dal decreto** (il testo del decreto non è stato letto: il
+  suggerimento dice che il decreto sulle tecniche di rilevamento lo fissa,
+  senza scrivere il numero); `scartoCalibrazione(lettura)` → `{ noto,
+  scartoDb }` e `validitaCalibrazione(lettura, punto)` → valida / non
+  valida (con lo scarto) / non registrata / soglia non dichiarata — mai un
+  verde senza i due numeri; una lettura «non valida» si propone
+  all'annullamento con una ragione nuova `calibrazione`, e il report conta
+  le letture di rumore senza calibrazione registrata accanto alle coperte.
+- **Domanda 4 — C'È.** `coperturaTaratura(tarature, data)` risponde per
+  ogni lettura coperta / scoperta / prima dello storico / non dichiarata,
+  `contaCoperture` li conta in un posto solo (quattro secchi, perché ne
+  divergevano tre copie), e il file per l'ARPA e il report li scrivono.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la calibrazione in campo
+delle misure di rumore, con lo scarto massimo dichiarato dall'utente), 3 a
+posto (la scadenza della taratura, il certificato nel report, la copertura
+per lettura), e una proposta **scartata** con la ragione (la periodicità per
+tipo: sarebbe un numero di seconda mano in un campo).

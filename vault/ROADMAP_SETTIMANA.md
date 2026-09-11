@@ -2909,6 +2909,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9604,6 +9606,40 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   sostituzione ha preso il ramo sbagliato: la sonda ha mostrato la riga del
   volume senza quella della variante, e solo il `grep` dei due punti l'ha
   detto. Un'iniezione si verifica dove il programma la legge.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — SENTINELLA: LA CATENA DI MISURA, FRA
+  TARATURA IN LABORATORIO E CALIBRAZIONE IN CAMPO (11/09, unità 113, solo
+  documenti).** Mondo di seconda mano (sei ricerche): taratura del laboratorio
+  accreditato (LAT) con certificato e scadenza — biennale per il fonometro di
+  classe 1 e tutta la sua catena (D.M. 16/03/1998), annuale o biennale per
+  sismografi e misuratori di vibrazioni secondo il costruttore (UNI 9916, ISO
+  8041) — e calibrazione in campo prima e dopo ogni ciclo di misura, che per
+  il rumore decide se la misura vale (scarto massimo fissato dal decreto).
+  Delta dal MECCANISMO contro `747de8a2`: la scadenza della taratura, il
+  certificato nel report e la copertura per lettura CI SONO
+  (`statoTaraturaStrumento`, `taratureDelReport`, `coperturaTaratura`,
+  `contaCoperture`); la calibrazione in campo delle misure di rumore MANCA
+  (`grep -ciE 'calibraz|calibrat'` → 4, tutti sulla legge di sito) e il
+  meccanismo per dichiarare una lettura non valida esiste senza quella
+  domanda → voce aperta; la periodicità per tipo SCARTATA (sarebbe un numero
+  di seconda mano in un campo). Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`,
+  ricerca dell'11/09 (terzo giro).
+- [ ] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE** *(dalla ricerca dell'11/09, terzo
+  giro, domanda 3)*. Sulla lettura di un punto di tipo rumore
+  `calibrazione: { prima, dopo }` in dB (facoltativi, nel form della misura
+  solo quando il punto è di rumore); sul punto `scartoCalibrazioneDb`
+  dichiarato dall'utente (il suggerimento dice che lo fissa il decreto sulle
+  tecniche di rilevamento, SENZA il numero); nel modulo
+  `scartoCalibrazione(lettura)` → `{ noto, scartoDb }` e
+  `validitaCalibrazione(lettura, punto)` → `{ stato: valida | non-valida |
+  non-registrata | soglia-non-dichiarata, scartoDb, perche }` — mai «valida»
+  senza i due numeri e la soglia; ragione di annullamento `calibrazione` in
+  `RAGIONI_ANNULLAMENTO`; la scheda del punto mostra lo stato accanto alla
+  lettura e il report conta le letture di rumore senza calibrazione
+  registrata. Come si misura: con prima 94,0 e dopo 94,3 e scarto 0,5 →
+  valida; con dopo 94,7 → non valida (0,7); senza soglia → «soglia non
+  dichiarata»; senza i due valori → «non registrata»; `grep -c '0,5'` nella
+  pagina non cresce; screenshot a 430 px del form e della scheda.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
