@@ -2244,7 +2244,7 @@ export function parseRilieviCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
-      const [data, volumeM3, metodo, gsd, fronte, provenienza] = parseCsvLine(r);
+      const [data, volumeM3, metodo, gsd, fronte, provenienza, tolleranzaPct] = parseCsvLine(r);
       const out = {
         data: (data || "").trim(),
         volumeM3: numIt(volumeM3),
@@ -2254,6 +2254,10 @@ export function parseRilieviCsv(text) {
       };
       const fr = (fronte || "").trim();
       if (fr) out.fronte = fr;   // solo se presente: righe a 4 colonne restano invariate
+      // la tolleranza dichiarata dal rilevatore: solo se è un numero > 0 (anche «3,5»);
+      // una cella vuota o storta NON diventa una chiave, e vale la tipica della classe
+      const t = numIt(tolleranzaPct);
+      if (Number.isFinite(t) && t > 0) out.tolleranzaPct = t;
       return out;
     })
     // un rilievo con una data impossibile finirebbe nell'anno sbagliato del
@@ -2327,7 +2331,9 @@ export function scartiRilieviCsv(text) {
    nasceva da una firma troppo stretta: si aggiunge l'argomento, non un secondo
    scrittore. Senza `fronti` la colonna resta come prima (il nome, se c'è). */
 export function csvRilievi(rilievi, fronti) {
-  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza"];
+  // la settima colonna (11/09): la tolleranza dichiarata dal rilevatore, se c'è —
+  // senza, un rilievo esportato e reimportato tornava alla tolleranza tipica
+  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct"];
   const nomeFronte = new Map((fronti || []).filter(f => f && f.id != null)
     .map(f => [String(f.id), String(f.nome || "").trim()]));
   for (const r of (rilievi || [])) {
@@ -2352,6 +2358,7 @@ export function csvRilievi(rilievi, fronti) {
       csvCell(r.gsd || ""),
       csvCell(r.fronte || (r.fronteId != null ? nomeFronte.get(String(r.fronteId)) : "") || ""),
       csvCell(provenienzaDi(r)),
+      (() => { const t = numeroDichiarato(r.tolleranzaPct); return t != null && t > 0 ? String(t) : ""; })(),
     ].join(";"));
   }
   return righe.join("\n") + "\n";

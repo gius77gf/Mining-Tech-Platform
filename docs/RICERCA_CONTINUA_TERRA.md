@@ -937,6 +937,8 @@ dragonflyaerialsolutions.net · miningsurveys.com.
   che dicono di chi è il numero. Prova: `grep -c '"rilevatore" : "classe"'
   apps/terra/terra-data.js` → 1 (la sola riga che decide). Il CSV dei rilievi
   non lo porta ancora: dichiarato in roadmap.
+  ✅ E il CSV lo porta dall'unità 104: `grep -c 'provenienza;tolleranzaPct'
+  apps/terra/terra-data.js` → 1.
   ⚠️ Che cosa NON entra: il sistema di riferimento e la nuvola. Terra riceve
   numeri, non superfici (vedi la domanda 5).
 - **Domanda 3 — C'È, con la parola sbagliata.** I tre fogli di Terra hanno le

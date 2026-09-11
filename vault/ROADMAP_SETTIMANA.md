@@ -7845,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.386 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2905, `run-stile` 328,
+  **3.387 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2906, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9278,6 +9278,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   reimportato perde la tolleranza del rilevatore e torna a quella tipica.
   Costa una colonna e il pin di `CSV_TABELLE`; va fatto insieme al prossimo
   ritocco del CSV, non lasciato in silenzio.
+  ✅ Fatto nell'unità 104.
   ⚠️ E il contatore NON si chiama «dichiarati»: in Terra «dichiarato» è il
   numero dei turni di Campo, quello che non deve entrare nel riepilogo per
   gli enti — e la prova P2 conta quella parola nel riepilogo intero. Con quel
@@ -9406,6 +9407,14 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   com'è scritto (una data che non esiste non si butta: la dichiara lo
   schermo), pin di `CSV_TABELLE` aggiornato, il pin sulla riga «Cascina al
   confine» reso più giusto (tre celle vuote, non «null»). run-kpi +1 (2905).
+- [x] **TERRA — LA TOLLERANZA DEL RILEVATORE NEL CSV DEI RILIEVI (unità 104,
+  11/09).** Settima colonna `tolleranzaPct` in coda (le righe a sei colonne
+  restano com'erano), scritta col punto e vuota quando non c'è; il lettore
+  la fa rientrare come numero solo se > 0 (anche «3,5»), e senza NON crea la
+  chiave — così `classeAccuratezza` risponde «classe» come prima. Pin di
+  `CSV_TABELLE`, intestazione, frase delle colonne nella pagina; prova di
+  andata e ritorno con asserzione sul testo. Chiuso il «dichiarato, non
+  fatto» dell'unità 93. run-kpi +1 (2906).
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

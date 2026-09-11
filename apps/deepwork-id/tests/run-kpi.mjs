@@ -27055,6 +27055,27 @@ test("csvRilievi → parseRilieviCsv: il giro torna identico su sei campi", () =
   eq(fuori[0].provenienza, "cumulo");
   eq(fuori[1].provenienza, "scavo", "e la provenienza si scrive anche quando è quella di serie");
 });
+test("csvRilievi → parseRilieviCsv: la tolleranza del rilevatore fa il giro, e senza non nasce (11/09)", () => {
+  const dentro = [
+    { data: "2026-03-01", volumeM3: 1234.5, metodo: "RTK+GCP", gsd: "2", provenienza: "scavo", tolleranzaPct: 3.5 },
+    { data: "2026-04-02", volumeM3: 10, provenienza: "scavo" },
+    { data: "2026-05-03", volumeM3: 20, provenienza: "scavo", tolleranzaPct: "abc" },
+  ];
+  const testo = terra.csvRilievi(dentro);
+  const righe = testo.split("\n").filter(Boolean);
+  ok(/;3\.5$/.test(righe[1]), "la riga con la tolleranza la scrive in coda, col punto: " + righe[1]);
+  ok(/;$/.test(righe[2]) && /;$/.test(righe[3]), "senza (o con una parola) la cella esce vuota, non «0» né «abc»");
+  const fuori = terra.parseRilieviCsv(testo);
+  eq(fuori.length, 3);
+  eq(fuori[0].tolleranzaPct, 3.5, "rientra come numero");
+  eq(terra.classeAccuratezza(fuori[0]).fonte, "rilevatore", "e classeAccuratezza la riconosce dopo il giro");
+  eq("tolleranzaPct" in fuori[1], false, "senza tolleranza NON nasce la chiave: vale la tipica");
+  eq(terra.classeAccuratezza(fuori[1]).fonte, "classe");
+  const virgola = terra.parseRilieviCsv("data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct\n2026-03-01;100;RTK;2;;scavo;3,5\n")[0];
+  eq(virgola.tolleranzaPct, 3.5, "scritta con la virgola si legge lo stesso");
+  eq("tolleranzaPct" in terra.parseRilieviCsv("data;volumeM3\n2026-03-01;100\n")[0], false, "una riga a due colonne resta com'era");
+  eq(terra.parseRilieviCsv("data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct\n2026-03-01;100;RTK;2;;scavo;0\n")[0].tolleranzaPct, undefined, "zero non è una tolleranza dichiarata");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);
@@ -27062,7 +27083,7 @@ test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
 });
 test("csvRilievi: l'intestazione è quella che l'importatore salta", () => {
   const t = terra.csvRilievi([]);
-  eq(t.split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza");
+  eq(t.split("\n")[0], "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct");
   eq(terra.parseRilieviCsv(t).length, 0, "un file di sola intestazione non porta dentro righe finte");
 });
 test("csvRilievi: una riga senza volume non torna dentro invece di tornarci come zero", () => {
