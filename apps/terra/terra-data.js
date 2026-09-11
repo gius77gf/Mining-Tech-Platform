@@ -26,7 +26,9 @@
 //                     densitaRiferimento (il documento da esibire),
 //                   prescrizioni,
 //                   riferimenti, stato: vigente|archiviata,
-//                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo }
+//                   sogliaGuardiaPct, preavvisoGiorni, anniRitmo,
+//                   difformitaSostanzialePct? (la soglia REGIONALE della
+//                   variante sostanziale, dichiarata dall'utente; vuota = non dichiarata) }
 //   scadenze/{id}: { tipo, descrizione, dataScadenza (ISO),
 //                   preavvisoGiorni, ricorrenzaMesi|null, note }
 //   lotti/{id}:   { nome, ordine (la sequenza prevista dal progetto),
@@ -3859,4 +3861,45 @@ export function calendarioTerra(scadenze, autorizzazioni, oggi = new Date(), ade
    che l"elenco combaci con le collezioni che il modulo legge davvero
    (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
    confronta col codice invecchia da solo. */
+/* LA VARIANTE: SOSTANZIALE O NO? LA SOGLIA È DELL'UTENTE, NON NOSTRA (11/09,
+   unità 112). Quando lo scavo supera il volume che il progetto assegna a un
+   lotto, la domanda del direttore responsabile è «serve una variante
+   sostanziale — una nuova autorizzazione — o basta la procedura
+   semplificata?». La linea la tira la REGIONE, e ogni regione a modo suo
+   (una percentuale sui volumi autorizzati in una, sull'estensione dei poli in
+   un'altra, criteri della Giunta altrove): Terra non la sa e non deve
+   inventarla. Quindi la soglia la dichiara l'utente sull'atto
+   (`difformitaSostanzialePct`, dal proprio regolamento), come già fa con la
+   soglia di guardia; senza soglia il giudizio è «non lo so», con la ragione —
+   mai un verde. Di seconda mano: le regole regionali della ricerca dell'11/09
+   non sono state lette per intero, ed è per questo che qui non compare
+   nessun numero. */
+const pctIt = (n) => String(r2(n)).replace(".", ",");
+// La difformità volumetrica misurata: il lotto PIÙ oltre il previsto, in punti
+// percentuali sopra il 100. Nessun lotto oltre → `nota: false`, e non è un
+// verde: vuol dire che non c'è niente da giudicare.
+export function difformitaVolumetrica(conformita) {
+  const oltre = (((conformita || {}).volume || {}).oltrePrevisto || [])
+    .filter((v) => v && Number.isFinite(+v.pct) && +v.pct > 100);
+  if (!oltre.length) return { nota: false, pct: null, lotto: null, quanti: 0 };
+  const peggiore = oltre.reduce((a, b) => (+b.pct > +a.pct ? b : a));
+  return { nota: true, pct: r2(+peggiore.pct - 100), lotto: String(peggiore.nome || ""), quanti: oltre.length };
+}
+// Il giudizio: sopra la soglia dichiarata è sostanziale, alla soglia o sotto no;
+// senza soglia o senza difformità risponde `noto: false` con la ragione.
+export function giudizioVariante(difformitaPct, sogliaPct) {
+  const d = +difformitaPct, s = +sogliaPct;
+  const dOk = difformitaPct != null && String(difformitaPct).trim() !== "" && Number.isFinite(d) && d > 0;
+  const sOk = sogliaPct != null && String(sogliaPct).trim() !== "" && Number.isFinite(s) && s > 0;
+  if (!dOk) return { noto: false, sostanziale: null, difformitaPct: null, sogliaPct: sOk ? r2(s) : null, testo: "",
+    perche: "nessuna difformità misurata: non c'è niente da confrontare con la soglia." };
+  if (!sOk) return { noto: false, sostanziale: null, difformitaPct: r2(d), sogliaPct: null, testo: "",
+    perche: "la soglia fra variante sostanziale e non sostanziale dipende dalla regione, e sull'atto non è dichiarata: non so dire quale delle due sarebbe." };
+  const sost = d > s;
+  return { noto: true, sostanziale: sost, difformitaPct: r2(d), sogliaPct: r2(s), perche: "",
+    testo: sost
+      ? "La difformità misurata (" + pctIt(d) + "%) supera la soglia che hai dichiarato (" + pctIt(s) + "%): la variante sarebbe sostanziale, cioè una nuova autorizzazione."
+      : "La difformità misurata (" + pctIt(d) + "%) sta sotto la soglia che hai dichiarato (" + pctIt(s) + "%): variante non sostanziale, procedura semplificata — verifica col tuo regolamento." };
+}
+
 export const TERRA_COLLEZIONI = Object.freeze(["fronti", "rilievi", "piano", "autorizzazioni", "scadenze", "lotti", "inventari"]);

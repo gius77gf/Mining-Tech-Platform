@@ -27164,6 +27164,31 @@ test("Scudo · prova di emergenza: modello di ispezione a un anno, preset di sca
   ok(cit.length >= 5, "il decreto è ancora citato (con il limite), " + cit.length + " righe");
   eq(senza.length, 0, "nessuna citazione del D.M. 2/9/2021 senza «industrie estrattive» sulla stessa riga: " + senza.map(r => r.trim().slice(0, 80)).join(" | "));
 });
+test("Terra · giudizioVariante: la soglia è dell'utente, senza soglia «non lo so», e la pagina non scrive nessun numero di legge (unità 112)", () => {
+  const g1 = terra.giudizioVariante(8, 5);
+  ok(g1.noto && g1.sostanziale === true && /sostanziale/.test(g1.testo) && /8%/.test(g1.testo) && /5%/.test(g1.testo), "8 su 5: sostanziale, coi due numeri nel testo: " + g1.testo);
+  const g2 = terra.giudizioVariante(3, 5);
+  ok(g2.noto && g2.sostanziale === false && /non sostanziale/.test(g2.testo) && /regolamento/.test(g2.testo), "3 su 5: non sostanziale, e rimanda al regolamento");
+  eq(terra.giudizioVariante(5, 5).sostanziale, false, "alla soglia esatta non è oltre («oltre il» è stretto)");
+  eq(terra.giudizioVariante(4.75, 4.5).testo.includes("4,75%") && terra.giudizioVariante(4.75, 4.5).testo.includes("4,5%"), true, "i decimali si scrivono con la virgola");
+  const g4 = terra.giudizioVariante(8, null);
+  ok(!g4.noto && g4.sostanziale === null && /regione/.test(g4.perche) && g4.difformitaPct === 8 && g4.testo === "", "senza soglia: non lo so, con la ragione, e la difformità resta scritta");
+  const g5 = terra.giudizioVariante(null, 5);
+  ok(!g5.noto && /nessuna difformità/.test(g5.perche) && g5.sogliaPct === 5, "senza difformità: niente da giudicare");
+  ok(!terra.giudizioVariante(8, 0).noto && !terra.giudizioVariante(8, "").noto && !terra.giudizioVariante(0, 5).noto, "zero e vuoto non sono soglie né difformità");
+  const dv = terra.difformitaVolumetrica({ volume: { oltrePrevisto: [{ nome: "Lotto 2", pct: 104 }, { nome: "Lotto 3", pct: 108.5 }] } });
+  ok(dv.nota && dv.pct === 8.5 && dv.lotto === "Lotto 3" && dv.quanti === 2, "la difformità è il lotto più oltre, in punti sopra il 100: " + JSON.stringify(dv));
+  const dv0 = terra.difformitaVolumetrica({ volume: { oltrePrevisto: [] } });
+  ok(!dv0.nota && dv0.pct === null && dv0.quanti === 0 && !terra.difformitaVolumetrica(null).nota, "nessun lotto oltre → nota: false, non uno zero");
+  const D = terra.DEMO;
+  const c = terra.conformitaProgetto(D.fronti, D.lotti, D.rilievi, terra.autorizzazioneVigente(D.autorizzazioni));
+  eq(terra.difformitaVolumetrica(c).nota, false, "la dimostrazione non ha lotti oltre il previsto: la scheda non giudica niente");
+  const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  ok(/id="aut-variante"/.test(pagina) && /difformitaSostanzialePct: rVar\.ok/.test(pagina) && /giudizioVariante\(dv\.nota/.test(pagina) && /cardConformita\(c, autorizzazioneVigente\(AUT\)\)/.test(pagina), "la pagina ha il campo, lo salva, e la scheda riceve l'atto");
+  ok(!/4,5\s*%/.test(pagina) && !/4\.5\s*%/.test(pagina), "nessun numero di legge di seconda mano nella pagina (il 4,5:1 del contrasto WCAG è un'altra cosa)");
+  const seq = pagina.indexOf("const sequenza ="), geo = pagina.indexOf("const geometria =");
+  ok(/variante/.test(pagina.slice(seq, seq + 900)) && /variante/.test(pagina.slice(geo, geo + 1400)), "la sequenza fuori progetto e il banco fuori sagoma nominano la variante");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);

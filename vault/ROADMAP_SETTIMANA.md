@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.390 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2909, `run-stile` 328,
+  **3.391 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2910, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9565,8 +9564,8 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   vive come pratica `in-esame` e i conti li aggiorna l'utente sull'atto
   (dichiarato). Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
   (terzo giro).
-- [ ] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE**
-  *(dalla ricerca dell'11/09, terzo giro, domande 1 e 2)*. Sull'atto un
+- [x] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE**
+  ✅ 11/09 (unità 112). *(dalla ricerca dell'11/09, terzo giro, domande 1 e 2)*. Sull'atto un
   campo facoltativo `difformitaSostanzialePct` (dal regolamento della
   propria regione; il suggerimento dice che dipende dalla regione, SENZA
   numeri di legge di seconda mano); una funzione pura
@@ -9581,6 +9580,30 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   soglia 5 e difformità 8 dice «sostanziale», con 3 dice «non sostanziale»;
   `grep -c 'sostanzial'` nel modulo ≥ 1 e nessun «4,5» nella pagina;
   screenshot a 430 px del Titolo.
+- [x] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE
+  (11/09, unità 112).** Sull'atto `difformitaSostanzialePct` (campo `aut-variante`,
+  decimale, facoltativo, «dal tuo regolamento»; letto con `numCampo`, vuoto =
+  non dichiarata); nel modulo `difformitaVolumetrica(conformita)` (il lotto più
+  oltre il previsto, in punti sopra il 100; `nota: false` senza lotti oltre) e
+  `giudizioVariante(difformitaPct, sogliaPct)` → `{ noto, sostanziale, testo,
+  perche }` — sopra la soglia «sostanziale, cioè una nuova autorizzazione»,
+  alla soglia o sotto «non sostanziale, procedura semplificata — verifica col
+  tuo regolamento», senza soglia «non lo so» con la ragione (dipende dalla
+  regione). La scheda «Fin dove si può scendere» scrive la riga SOLO quando
+  c'è una difformità misurata (rossa se sostanziale, ambra se no o se la
+  soglia manca), e riceve l'atto (`cardConformita(c, aut)`); la sequenza dei
+  lotti e il banco fuori sagoma nominano la variante. Nessun numero di legge
+  nella pagina (la prova lo pretende: il 4,5:1 del contrasto è un'altra cosa).
+  Misurato nel browser iniettando nella risposta HTTP un lotto al 108,1 % e
+  la soglia 5: «supera la soglia … sostanziale»; senza soglia: «non so dire
+  quale delle due sarebbe. La scrivi nella scheda dell'atto»; 0 errori di
+  pagina; screenshot a 430 px guardati (scheda con e senza soglia, form
+  dell'atto). Prove: run-kpi +1 (2910).
+  ⚠️ Imparato: la stessa riga di assemblaggio `${volume}${sequenza}…` stava in
+  DUE rami della scheda (quota non misurabile / misurabile) e la prima
+  sostituzione ha preso il ramo sbagliato: la sonda ha mostrato la riga del
+  volume senza quella della variante, e solo il `grep` dei due punti l'ha
+  detto. Un'iniezione si verifica dove il programma la legge.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

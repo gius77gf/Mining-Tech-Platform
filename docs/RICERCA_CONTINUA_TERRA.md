@@ -1096,6 +1096,9 @@ da chi ha il codice in mano.*
   niente e il suggerimento del campo spiega che dipende dalla regione,
   **senza scrivere il 4,5 %** (un numero di legge di seconda mano non entra
   in una schermata). **Mancanza confermata, aperta, piccola.**
+  ✅ **FATTO l'11/09 (unità 112)**: `difformitaSostanzialePct` sull'atto,
+  `difformitaVolumetrica` + `giudizioVariante` nel modulo, la riga nella
+  scheda del Titolo, e la parola «variante» sulla sequenza e sul banco.
 - **Domanda 3 — C'È.** La difformità in percentuale la calcolano già
   `proiezioneAnno` (`pctPiano` contro `pianificatoAnnuoM3`, con «presto»
   quando l'anno è appena cominciato) e `avanzamentoLotto(lotto, misuratoM3)`

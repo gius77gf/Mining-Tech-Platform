@@ -645,6 +645,8 @@ a.dw-btn{text-decoration:none}
         <input class="dw-input" id="aut-anni" type="number" min="1" max="20" value="3"></div>
       <div class="fld" style="flex:1 1 130px;"><label class="fl" for="aut-preavviso">Preavviso predefinito (<span class="u">gg</span>)</label>
         <input class="dw-input" id="aut-preavviso" type="number" min="0" max="1095" value="60"></div>
+      <div class="fld" style="flex:1 1 150px;"><label class="fl" for="aut-variante">Soglia variante sostanziale (<span class="u">%</span>)</label>
+        <input class="dw-input dec" id="aut-variante" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="dal tuo regolamento" title="La difformità volumetrica oltre la quale, nella tua regione, una variante al progetto è sostanziale (nuova autorizzazione) invece che semplificata. Facoltativa: la scrivi tu dal regolamento regionale, Terra non la conosce e non la propone."></div>
     </div>
     <label for="aut-detrai" style="display:flex; gap:9px; align-items:flex-start; margin-top:4px; cursor:pointer;">
       <input type="checkbox" id="aut-detrai" style="margin-top:3px;">
@@ -1054,6 +1056,7 @@ a.dw-btn{text-decoration:none}
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
            STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
+           difformitaVolumetrica, giudizioVariante,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
            inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
@@ -2156,7 +2159,7 @@ a.dw-btn{text-decoration:none}
   /* Il cartellone della conformità: stesso impianto della vita cava e del
      divario, perché è lo stesso genere di numero — quello che si guarda per
      primo, e che finisce davanti a chi fa vigilanza. */
-  function cardConformita(c) {
+  function cardConformita(c, aut) {
     // le tre righe degli assi che NON riguardano la quota: si scrivono comunque,
     // perché una schermata che parla solo di quote lascia credere che il resto
     // sia stato guardato
@@ -2166,7 +2169,7 @@ a.dw-btn{text-decoration:none}
         ? `<div class="riga att">${I.allarme}<span><b>${c.volume.oltrePrevisto.length} ${c.volume.oltrePrevisto.length === 1 ? "lotto ha superato" : "lotti hanno superato"} il volume che il progetto gli assegna</b>: ${c.volume.oltrePrevisto.map(v => esc(v.nome) + " " + articoloNumero("al", un1(v.pct)) + un1(v.pct) + "%").join(", ")}. È il metro cubo in più che l'atto non concede a quel settore.</span></div>`
         : `<div class="riga">Nessun lotto ha superato il volume che il progetto gli assegna, su <b>${c.volume.conConfronto}</b> ${c.volume.conConfronto === 1 ? "confrontabile" : "confrontabili"}.</div>`;
     const sequenza = c.volume.fuoriSequenza.length
-      ? `<div class="riga att">${I.allarme}<span>Ci sono rilievi di scavo su ${c.volume.fuoriSequenza.length === 1 ? "un lotto ancora <b>previsto</b>" : "lotti ancora <b>previsti</b>"} (${c.volume.fuoriSequenza.map(v => esc(v.nome)).join(", ")}): il progetto non li ha ancora aperti, e la sequenza dei lotti è una prescrizione come le altre.</span></div>`
+      ? `<div class="riga att">${I.allarme}<span>Ci sono rilievi di scavo su ${c.volume.fuoriSequenza.length === 1 ? "un lotto ancora <b>previsto</b>" : "lotti ancora <b>previsti</b>"} (${c.volume.fuoriSequenza.map(v => esc(v.nome)).join(", ")}): il progetto non li ha ancora aperti, e la sequenza dei lotti è una prescrizione come le altre — se deve cambiare, si chiede in variante.</span></div>`
       : "";
     /* ⛔ I lotti senza confronto si dicono SEMPRE, anche quando tutto il resto
        è verde: «nessun lotto oltre il previsto» calcolato su due lotti quando
@@ -2179,11 +2182,21 @@ a.dw-btn{text-decoration:none}
        le stesse tre facce degli altri assi — il peggiore quando c'è un oltre,
        la ragione quando non si è misurato niente, il conto dei non
        confrontati sempre. */
+    /* LA VARIANTE: SOSTANZIALE O NO? (11/09, unità 112). La soglia è regionale
+       e la dichiara l'utente sull'atto; senza, la riga dice «non lo so» con la
+       ragione — e si scrive SOLO quando c'è una difformità misurata, perché
+       senza difformità non c'è niente da giudicare (e un verde sarebbe finto). */
+    const dv = difformitaVolumetrica(c);
+    const gv = giudizioVariante(dv.nota ? dv.pct : null, aut ? aut.difformitaSostanzialePct : null);
+    const variante = !dv.nota ? ""
+      : gv.noto
+        ? `<div class="riga${gv.sostanziale ? " dng" : " att"}">${gv.sostanziale ? I.stop : I.allarme}<span><b>${esc(dv.lotto)}</b>: ${esc(gv.testo)}</span></div>`
+        : `<div class="riga att">${I.allarme}<span><b>${esc(dv.lotto)}</b> è oltre il previsto (${un1(dv.pct)}% in più), ma ${esc(gv.perche)} La scrivi nella scheda dell'atto, sotto «Impostazioni del controllo».</span></div>`;
     const cg = c.geometria || { misurabile: false, perche: "", oltre: 0, alLimite: 0, dentro: 0, nonMisurabili: 0, peggiore: null };
     const geometria = !cg.misurabile
       ? `<div class="riga">${I.allarme}<span><b>Geometria dei banchi: non confrontata.</b> ${esc(cg.perche)}</span></div>`
       : (cg.oltre
-        ? `<div class="riga att">${I.allarme}<span><b>${cg.oltre} ${cg.oltre === 1 ? "fronte ha un banco fuori dal progetto" : "fronti hanno un banco fuori dal progetto"}</b>${cg.peggiore ? ": il peggiore è <b>" + esc(cg.peggiore.nome) + "</b>, " + (cg.peggiore.asse === "altezza" ? "alto " + nM(cg.peggiore.misurato) + " m su " + nM(cg.peggiore.ammesso) : "a " + nM(cg.peggiore.misurato) + "° su " + nM(cg.peggiore.ammesso)) + " ammessi (" + nM(-cg.peggiore.margine) + " oltre)" : ""}.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato." : " fronti non confrontati.") : ""}</span></div>`
+        ? `<div class="riga att">${I.allarme}<span><b>${cg.oltre} ${cg.oltre === 1 ? "fronte ha un banco fuori dal progetto" : "fronti hanno un banco fuori dal progetto"}</b>${cg.peggiore ? ": il peggiore è <b>" + esc(cg.peggiore.nome) + "</b>, " + (cg.peggiore.asse === "altezza" ? "alto " + nM(cg.peggiore.misurato) + " m su " + nM(cg.peggiore.ammesso) : "a " + nM(cg.peggiore.misurato) + "° su " + nM(cg.peggiore.ammesso)) + " ammessi (" + nM(-cg.peggiore.margine) + " oltre)" : ""}: un banco fuori sagoma si riporta nel progetto o si chiede in variante.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato." : " fronti non confrontati.") : ""}</span></div>`
         : `<div class="riga${cg.alLimite ? " att" : ""}">${cg.alLimite ? I.allarme : ""}<span><b>Geometria dei banchi: ${cg.dentro + cg.alLimite} ${cg.dentro + cg.alLimite === 1 ? "fronte dentro il progetto" : "fronti dentro il progetto"}</b>${cg.alLimite ? ", " + cg.alLimite + (cg.alLimite === 1 ? " al limite" : " al limite") : ""}.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato: manca una misura o il massimo del progetto." : " fronti non confrontati: manca una misura o il massimo del progetto.") : ""}</span></div>`);
     if (!c.misurabile) {
       /* ⛔ Nessuna cifra, nessun verde, nessuna pastiglia di stato: qui la
@@ -2202,7 +2215,7 @@ a.dw-btn{text-decoration:none}
           <span class="vita-cifre">—</span><span class="vita-un">nessun confronto possibile</span>
         </div>
         <div class="riga">${esc(c.perche)}</div>
-        ${volume}${sequenza}${senza}${geometria}
+        ${volume}${variante}${sequenza}${senza}${geometria}
       </div>`;
     }
     const oltre = c.oltre > 0;
@@ -2228,7 +2241,7 @@ a.dw-btn{text-decoration:none}
         : `<div class="riga">Il fronte più vicino al fondo è <b>${esc(rif.nome)}</b>: sta a ${nM(rif.quotaFronte)} m e il progetto lo ferma a ${nM(rif.fondoM)} m, quindi ${rif.margineM === 0 ? "<b>ci è arrivato</b>: da lì non si scende più" : `restano <b>${nM(rif.margineM)} m</b>`}. Il fondo viene ${rif.origineFondo === "lotto" ? "dal <b>lotto</b> a cui il fronte appartiene" : "dalla scheda dell'<b>autorizzazione</b>"}.</div>`}
       ${c.alLimite && !oltre ? `<div class="riga att">${I.allarme}<span><b>${c.alLimite} ${c.alLimite === 1 ? "fronte è arrivato" : "fronti sono arrivati"} esattamente al fondo autorizzato</b>: non è una violazione, ma da lì non si scende più senza una variante.</span></div>` : ""}
       ${c.nonMisurabili ? `<div class="riga att">${I.allarme}<span><b>${c.nonMisurabili} ${c.nonMisurabili === 1 ? "fronte non è stato confrontato" : "fronti non sono stati confrontati"}</b>: ${c.nonMisurabili === 1 ? "non dichiara" : "non dichiarano"} la quota raggiunta. Il conto qui sopra riguarda solo gli altri — ${c.nonMisurabili === 1 ? "quello" : "quelli"} non ${c.nonMisurabili === 1 ? "è" : "sono"} a posto, ${c.nonMisurabili === 1 ? "è" : "sono"} da misurare. ${c.nonMisurabili === 1 ? "Aprilo" : "Aprili"} nella scheda <b>Fronti</b> e ${c.nonMisurabili === 1 ? "scrivi la quota" : "scrivi le quote"}.</span></div>` : ""}
-      ${volume}${sequenza}${senza}${geometria}
+      ${volume}${variante}${sequenza}${senza}${geometria}
     </div>`;
   }
 
@@ -2276,7 +2289,7 @@ a.dw-btn{text-decoration:none}
 
   function renderConformita() {
     const c = conformitaProgetto(FRO, LOT, RIL, autorizzazioneVigente(AUT));
-    $("lot-conformita").innerHTML = cardConformita(c);
+    $("lot-conformita").innerHTML = cardConformita(c, autorizzazioneVigente(AUT));
     /* L'elenco per fronte si mostra solo se c'è almeno un fronte: la ragione
        per cui non c'è niente da confrontare sta già nel cartellone, e
        ripeterla in uno stato vuoto sarebbe dirla due volte. E i fronti si
@@ -3133,6 +3146,7 @@ a.dw-btn{text-decoration:none}
     disegnaDensAtto();
     v("aut-prescrizioni", a && a.prescrizioni); v("aut-riferimenti", a && a.riferimenti);
     $("aut-soglia").value = a && a.sogliaGuardiaPct != null ? a.sogliaGuardiaPct : 80;
+    $("aut-variante").value = a && a.difformitaSostanzialePct != null && +a.difformitaSostanzialePct > 0 ? String(a.difformitaSostanzialePct).replace(".", ",") : "";
     // spenta di difetto: una concessione di cui non si sa niente NON ammette
     // la detrazione (decisione 18a, l'errore ha un costo asimmetrico)
     $("aut-detrai").checked = !!(a && a.detraiRecupero);
@@ -3204,6 +3218,8 @@ a.dw-btn{text-decoration:none}
     const rFondo = numCampo("aut-fondo", { decimali: 2 });
     // la geometria massima dei banchi (11/09): grandezze positive, vuoto = non dichiarata
     const rAlt = numCampo("aut-altezza", { decimali: 2, min: 0 }), rPend = numCampo("aut-pendenza", { decimali: 2, min: 0 });
+    // la soglia regionale della variante sostanziale (11/09): positiva, vuoto = non dichiarata
+    const rVar = numCampo("aut-variante", { positivo: true, decimali: 2 });
     return {
       altezzaBancoMaxM: rAlt.ok ? rAlt.valore : null, pendenzaMaxGradi: rPend.ok ? rPend.valore : null,
       numeroAtto: t("aut-numero"), ente: t("aut-ente") || null,
@@ -3230,6 +3246,7 @@ a.dw-btn{text-decoration:none}
       densitaRiferimento: t("aut-dens-rif") || null,
       prescrizioni: t("aut-prescrizioni") || null, riferimenti: t("aut-riferimenti") || null,
       sogliaGuardiaPct: numInt("aut-soglia"), anniRitmo: numInt("aut-anni"), preavvisoGiorni: numInt("aut-preavviso"),
+      difformitaSostanzialePct: rVar.ok ? rVar.valore : null,
       detraiRecupero: !!$("aut-detrai").checked,
     };
   }
