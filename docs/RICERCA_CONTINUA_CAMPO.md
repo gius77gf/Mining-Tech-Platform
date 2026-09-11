@@ -2186,3 +2186,152 @@ Scudo; il ricontrollo dopo il maltempo, che compare solo quando serve), 1
 **dichiarata** (il «tutti usciti» a fine turno, obbligo del sotterraneo), 3
 **già a posto** (il controllo prima del turno, il dopo-volata in Sentinella,
 la catena trovato → azione → corretto).
+
+## Ricerca del 2026-09-11 — terzo giro: l'esplosivo in cava — il registro, l'ordine di servizio e il dopo-sparo (il mondo)
+
+*Terzo giro su Campo. Strumento: `WebSearch` (otto ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte letta per intero**, tutto di
+seconda mano dai riassunti. La metà sul delta, sotto, è fatta da chi ha il
+codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **Il registro delle operazioni giornaliere (art. 55 TULPS)** lo tiene chi
+  gestisce una fabbrica, un **deposito** o una rivendita di esplosivi: per
+  ogni operazione la **data**, la **persona o ditta**, la **specie e la
+  quantità** di esplosivo, e come l'acquirente ha provato la propria
+  identità. Si tiene anche in **formato elettronico** secondo il
+  regolamento, va esibito a richiesta agli ufficiali e agenti di P.S., e si
+  conserva per **cinquant'anni**, anche dopo la cessazione dell'attività. La
+  **vidimazione** spetta all'autorità locale di P.S. (il Questore nel
+  capoluogo, il Commissariato o il Sindaco altrove).
+- **La cava come consumatore, non come deposito.** Se l'esplosivo che
+  arriva sul posto viene consumato **in unica soluzione** (dall'automezzo
+  direttamente nei fornelli) non serve la licenza di deposito; se viene
+  consumato **nell'arco della giornata in più riprese** serve un **deposito
+  provvisorio giornaliero** (o l'automezzo resta sul posto tutto il giorno,
+  a 500 m dal centro abitato). La licenza di trasporto verso un deposito di
+  consumo o giornaliero vale al massimo **tre mesi**. La quantità
+  consegnabile a un singolo lavoratore è limitata al **consumo di un turno**
+  e comunque a **25 kg**. Categoria 5 gruppo D fino a 5 kg e gruppo E senza
+  limite: senza licenza e senza denuncia (art. 97 del regolamento).
+- **L'ordine di servizio per l'uso degli esplosivi (art. 305 del D.P.R.
+  128/1959)**, approvato dalla polizia mineraria della Provincia (Brescia,
+  Sondrio, Treviso, Verona pubblicano il fac-simile): l'**elenco del
+  personale** addetto al caricamento e al brillamento (con la licenza di
+  fochino) e di chi sorveglia; i **tipi di esplosivo** ammessi, la
+  **custodia e il trasporto** in cava, le misure di sicurezza, i **modi di
+  brillamento**, le cautele **prima e dopo lo sparo** — segnali acustici,
+  sgombero, e l'**accesso al fronte** solo dopo un tempo d'attesa (i
+  fac-simili dicono **60 minuti** e solo con l'autorizzazione del
+  sorvegliante; il D.P.R. 302/1956, art. 37, per la mina mancata almeno
+  **30 minuti** dall'ultimo colpo: due numeri diversi per due casi diversi).
+- **La Toscana** ha una **procedura regionale** (DGR 64 del 31/01/2017,
+  all. A: «Schema procedura di sicurezza esplosivi») con lo stesso impianto:
+  chi carica e chi spara, materiali, custodia, sparo, prima e dopo.
+- **La mina mancata (D.P.R. 302/1956, art. 37)**: non si scarica; quando si
+  accerta o si dubita che uno o più colpi non siano esplosi, l'accesso al
+  fronte si nega per almeno trenta minuti dall'ultimo colpo, e poi si
+  procede secondo la procedura scritta.
+- **Il mestiere**: il fochino sa quanto ha caricato **per foro** e quanto
+  esplosivo è **tornato indietro** (l'avanzo va ricaricato sull'automezzo o
+  nel deposito, e scritto); il sorvegliante sa **a che ora** si è sparato e
+  **a che ora** ha riaperto il fronte; il direttore responsabile sa che
+  l'ordine di servizio nomina per nome chi può caricare e sparare.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- TULPS e regolamento: brocardi.it (art. 55 TULPS); conarmi.org (tre FAQ
+  sulla vidimazione dei registri artt. 35 e 55); mauromalizia.it «Esplosivi —
+  testo coordinato v3.4»; sicurezzapubblica.wikidot.com «Esplosivi»;
+  legislazionetecnica.it (allegato C, licenze di trasporto); omniavis.it
+  (art. 82 Reg. TULPS); docenti.ing.unipi.it (Frezza, «Produzione, deposito,
+  vendita sostanze esplosive», 2014 e 2015); indicenormativa.it (circolare
+  559/C.16718 del 3/8/1988); patente.it (circolare 557 del 29/05/2018);
+  Ministero dell'Interno, prot. 14502 del 22/12/2023 (olympus.uniurb.it);
+  infocds.it (Baffa, artifici pirotecnici).
+- D.P.R. 302/1956: edizionieuropee.it (§ 77.2.20 e § 53.3.10);
+  legislazionetecnica.it; certifico.com; assoamianto.it;
+  fareimpresa.comune.milano.it (testo). Fochino: comune di Genova, Grosseto,
+  Pistoia, Luserna, Foligno; Prefetture di Parma, Roma, Verona; certifico.com
+  «Il fochino: quadro normativo»; geologico.it (manuale corso fochini).
+- D.P.R. 128/1959 e ordine di servizio: edizionieuropee.it (§ 64.1.20);
+  provincia.brescia.it; provinciasondrio.it (modello .doc);
+  provincia.treviso.it (fac-simile); web.provincia.vr.it;
+  testo-unico-sicurezza.com «Procedura di sicurezza uso degli esplosivi in
+  cava»; brascaepartners.it.
+- Toscana: regione.toscana.it (DGR 64/2017 all. A; «Cave e lapideo»);
+  toscana-notizie.it; agi.it; amblav.it; gonews.it; cpm.lucca.it.
+- Altro: puntosicuro.it «Imparare dagli errori: gallerie, minatori, fochini
+  ed esplosioni»; comune.madruzzo.tn.it (avviso di brillamento);
+  webthesis.biblio.polito.it (tesi sull'abbattimento controllato).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi sa quanti chili di esplosivo sono entrati nei fori** di una volata,
+   e quanti sono **tornati indietro**?
+2. **Chi tiene il registro delle operazioni** (data, ditta, specie,
+   quantità) — e la cava lo deve tenere?
+3. **Chi sa a che ora si è sparato e a che ora si è riaperto il fronte**,
+   e chi ha autorizzato la riapertura?
+4. **Chi sa chi può caricare e sparare** (l'elenco dell'ordine di
+   servizio) e se la licenza è valida quel giorno?
+5. **La mina mancata**: chi la registra, e che cosa scatta?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `1654ea53`)
+
+- **Domanda 1 — C'È PER I FORI, MANCA PER L'AVANZO.** Il piano di carico
+  esce da Genesi come CSV, il fochino lo importa in Campo e registra la
+  **carica reale per foro**: `pianoRiepilogo` / `pianoParziale` /
+  `frasiCaricoParziale` dicono progettati contro caricati, con lo scostamento
+  in percentuale e i fori ripetuti dichiarati invece che tolti
+  (`foriRipetuti`); la volata nel registro di Sentinella porta `kgTotali` e
+  `kgMaxRitardo`. Quanto esplosivo è **tornato indietro** (l'avanzo che va
+  riportato sull'automezzo o al deposito e scritto) non lo sa nessuno:
+  `grep -ciE 'avanz|resid|riconsegn|tornat'` nel modulo di Campo → 4, **tutti
+  sulla categoria residua del Pareto** e sull'avanzamento della giornata, 0
+  sull'esplosivo; 0 in Sentinella. **Mancanza confermata, piccola**: un campo
+  `kgResi` nel dopo-volata (facoltativo, con «non registrato» quando manca).
+- **Domanda 2 — DICHIARATO, e non è un'unità.** Il registro dell'art. 55 lo
+  tiene chi gestisce un **deposito**: una cava che consuma in unica soluzione
+  non lo tiene, una con deposito giornaliero sì. Se il prodotto debba
+  servire la seconda è una decisione del fondatore (e il registro avrebbe
+  la forma di un libro vidimato, con cinquant'anni di conservazione, che
+  oggi nessuna app promette). Il registro **delle volate** — l'adempimento
+  operativo — è quello di Sentinella (`riepilogoVolate`, `parseVolateCsv`,
+  il diario per l'ente dell'unità del 05/09).
+- **Domanda 3 — C'È A METÀ, ed è il delta.** Il dopo-volata dell'11/09 ha
+  già `rientroAlle` (l'ora del rientro, HH:MM), `mancateEsplosioni`,
+  `mancateGestite`, `proiezioniOltreArea`, `noteDopo` — nel form
+  (`dopo-rientro`), nel CSV (`CSV_VOLATE_INTESTAZIONE`) e nel diario. Ma
+  **non c'è l'ora dello sparo** (`grep -c 'oraSparo'` → 0 in tutt'e tre i
+  moduli) né **chi ha autorizzato** il rientro, quindi «rientro alle 11:40»
+  è un'ora senza un'attesa: non si può dire se i minuti dell'ordine di
+  servizio sono passati. **Mancanza confermata, aperta**: `oraSparo` e
+  `rientroAutorizzatoDa` sulla volata (dopo-volata), l'**attesa minima**
+  dichiarata dall'utente dal proprio ordine di servizio (i fac-simili
+  dicono 60 minuti, il D.P.R. 302 per la mina mancata 30: due numeri di
+  seconda mano che il prodotto non scrive), e una funzione
+  `attesaDopoSparo(volata, attesaMin)` → rientro dopo l'attesa / prima
+  dell'attesa (con i minuti) / non registrato / attesa non dichiarata; Campo
+  la legge dal ponte (`righeVolateDelGiorno`) e la scrive nella consegna del
+  turno.
+- **Domanda 4 — C'È.** Scudo ha il preset `fochino` (licenza comunale col
+  nulla osta del Prefetto, tre anni, corretto l'11/09), la mansione «Fochino»
+  con i requisiti `sorv-sanitaria`, `form-generale`, `form-aggiorn`,
+  `fochino`, e `idoneitaDiTurno` in `shared/dw-ponti.js` li confronta per
+  ogni persona del turno: chi carica e spara con la licenza scaduta lo dice
+  l'appello di Campo. L'ordine di servizio come **documento** vive nella
+  collezione `documenti` di Scudo (tipo «Altro»): un preset con la sua
+  scadenza costerebbe una riga, non è aperto.
+- **Domanda 5 — C'È.** `mancateEsplosioni` e `mancateGestite` sul
+  dopo-volata, e `bozzaAzioneDopoVolata` che propone a Scudo un'azione
+  correttiva con origine «dopo-volata» (mancata esplosione o proiezione
+  oltre l'area). L'attesa dei trenta minuti è lo stesso meccanismo della
+  domanda 3, con un secondo numero dichiarato.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (l'ora dello sparo e
+l'attesa prima del rientro, con chi l'ha autorizzato, più l'avanzo reso), 3
+a posto (la carica per foro, le licenze di chi spara, la mina mancata come
+azione), 1 dichiarata (il registro dell'art. 55 è del deposito: decisione
+del fondatore).

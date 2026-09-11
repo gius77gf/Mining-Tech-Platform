@@ -2909,6 +2909,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9657,6 +9659,39 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   registrata con 94 → 94,9 finisce nel report come «2 fuori scarto … su 5», 0
   errori di pagina; screenshot a 430 px guardati. Prove: run-kpi +1 (2911, più
   la prova delle ragioni aggiornata a sei); copertura 992/992.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — CAMPO: L'ESPLOSIVO IN CAVA, FRA IL
+  REGISTRO, L'ORDINE DI SERVIZIO E IL DOPO-SPARO (11/09, unità 115, solo
+  documenti).** Mondo di seconda mano (otto ricerche): il registro delle
+  operazioni giornaliere dell'art. 55 TULPS (data, ditta, specie e quantità;
+  vidimato dall'autorità di P.S.; cinquant'anni di conservazione) che tiene
+  chi gestisce un deposito; la cava che consuma in unica soluzione non ha
+  bisogno del deposito, quella in più riprese sì; l'ordine di servizio
+  dell'art. 305 del D.P.R. 128/1959 (chi carica e spara, materiali, custodia,
+  segnali, attesa prima del rientro — 60 minuti nei fac-simili, 30 per la
+  mina mancata nel D.P.R. 302/1956 art. 37). Delta dal MECCANISMO contro
+  `1654ea53`: la carica per foro c'è (Campo, dal piano di Genesi) e l'avanzo
+  reso no (0 e 0); il registro dell'art. 55 è del deposito → decisione del
+  fondatore, dichiarata; il dopo-volata di Sentinella ha `rientroAlle` ma non
+  l'ora dello sparo né chi ha autorizzato (`grep -c 'oraSparo'` → 0 in tre
+  moduli) → voce aperta; le licenze di chi spara le controlla l'appello
+  (`idoneitaDiTurno`); la mina mancata è già un'azione per Scudo. Vedi
+  `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (terzo giro).
+- [ ] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO** *(dalla ricerca dell'11/09,
+  terzo giro su Campo, domande 1 e 3)*. Sulla volata `oraSparo` (HH:MM) e
+  `rientroAutorizzatoDa` nel form del dopo-volata, nel CSV delle volate e nel
+  diario; l'attesa minima `attesaDopoSparoMin` dichiarata una volta per cava
+  dal proprio ordine di servizio (il suggerimento dice che la fissa l'ordine
+  di servizio, SENZA numeri); `attesaDopoSparo(volata, attesaMin)` → `{ stato:
+  dopo-l-attesa | prima-dell-attesa | non-registrato | attesa-non-dichiarata,
+  minuti, perche }` in `shared/dw-ponti.js` perché la legge anche Campo
+  (`righeVolateDelGiorno` la scrive nella consegna del turno: «rientro alle
+  11:40, 55 min dopo lo sparo, autorizzato da …»); `kgResi` facoltativo nel
+  dopo-volata («non registrato» quando manca). Come si misura: sparo 10:45 e
+  rientro 11:40 con attesa 60 → «prima dell'attesa (55 min)»; con attesa 30 →
+  «dopo l'attesa»; senza `oraSparo` → «non registrato»; senza attesa → «attesa
+  non dichiarata»; `grep -c '60 min'` nella pagina non cresce; screenshot a
+  430 px del dopo-volata e della consegna di Campo.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
