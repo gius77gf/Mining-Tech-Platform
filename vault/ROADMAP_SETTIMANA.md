@@ -819,7 +819,7 @@
   ⚠️ Scrivendolo è uscito che la lista dell'Officina aveva una TERZA frase
   «A N ore motore / Previsto …» non passata da `quandoTx`: adesso passa di
   lì (e l'iniezione di `frasi-da-uno` che la colpiva segue). Registrato in
-  `tutti.mjs`: 273 esecuzioni da 116 file.
+  `tutti.mjs`: 275 esecuzioni da 117 file.
 - [x] **FLOTTA — «IL PRIMO DEI DUE» (11/09):** `prossimoTagliando` con ore
   E mesi scrive tutt'e due le scadenze (`da: "entrambi"`), e con le ore del
   contatore ignote resta la data dichiarando `oreIgnote` — prima rispondeva
@@ -2909,7 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.381 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2900, `run-stile` 328,
+  **3.383 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2902, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -7857,8 +7856,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **273 esecuzioni** che
-  aprono le pagine in un browser vero, da **116** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **275 esecuzioni** che
+  aprono le pagine in un browser vero, da **117** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -9413,7 +9412,7 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   alla fine dell'abbonamento sono una DECISIONE del fondatore (dichiarata in
   `docs/DECISIONI_WEEKEND.md`). Vedi `docs/RICERCA_CONTINUA_DEEPWORKID.md`,
   ricerca dell'11/09 (secondo giro, trasversale).
-- [ ] **TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE**
+- [x] ✅ 11/09 (unità 99) **TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE**
   *(dalla ricerca dell'11/09, secondo giro trasversale, domanda 2)*. Un file
   JSON per app con **tutte** le sue collezioni così come stanno
   nell'archivio (`{ app, organizzazione, quando, commit, collezioni: { nome:
@@ -9428,6 +9427,26 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   dimostrazione di Campo il file porta 12 collezioni e le stesse righe di
   `DEMO`; l'elenco dichiarato di ogni app copre i suoi `db.<nome>()` (prova
   statica); il bottone scarica un `.json` con `app` e `quando` (banco).
+- [x] **TUTTE LE APP — «SCARICA TUTTO» (unità 99, 11/09).** In
+  `shared/deepwork-id-client/dw-shell.js`: `esportaTutto(elenco, letture,
+  meta)` puro (`formato`, `app`, `organizzazione`, `quando`, `commit`,
+  `elenco`, `collezioni` copiate riga per riga, `conteggi`, `mancanti`,
+  `totale`, `completo` — una collezione non letta è dichiarata, non vuota),
+  `nomeFileEsportaTutto` (`deepwork-<app>-<org|senza-org>-<AAAAMMGG-HHMM>.json`)
+  e `montaScaricaTutto` (la sezione «Tutti i dati di questa app» in fondo al
+  Quadro, il bottone, la striscia con righe e collezioni e le mancanti). Le
+  sei app dichiarano `<APP>_COLLEZIONI` (65 in tutto) e una prova pretende
+  che ogni collezione dichiarata sia letta dal modulo e che ogni lettura non
+  dichiarata sia un ponte scritto con la ragione (Sentinella: azioni e
+  lavoratori di Scudo); la pagina monta il bottone col suo elenco. Misurato a
+  430 px su Campo e Sentinella: il file scaricato ha 12 e 7 collezioni, 47 e
+  28 righe, nessuna mancante, 0 errori; banco `browser/scarica-tutto.mjs` nei
+  due versi. run-kpi 2900 → 2902; copertura dw-shell 61/61.
+  ⚠️ Dichiarato, non fatto: (1) `organizzazione` nel file è **null** anche in
+  esercizio, perché l'api dell'app non espone l'organizzazione attiva (il
+  nome del file dice «senza-org»): va esposta dall'SDK, un campo; (2) Genesi
+  resta fuori (le sue collezioni escono una volata alla volta e la porta ha
+  due modi); (3) il rientro del file è una decisione a parte.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

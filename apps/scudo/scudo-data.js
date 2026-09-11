@@ -6297,3 +6297,10 @@ export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), ades
   // `saltati` conta TUTTO ciò che è rimasto fuori: le senza data e quelle col giorno che non esiste
   return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData };
 }
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno"]);

@@ -334,7 +334,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 59,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 61,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
@@ -416,6 +416,7 @@ const CONDIVISI = [
 const FUORI_CONDIVISI = new Map([
   ["montaGuardiaInteri", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["mountExit", "tocca il DOM — provata dai banchi del browser"],
+  ["montaScaricaTutto", "tocca il DOM e scarica un file — provata in browser/scarica-tutto.mjs"],
   ["timbroLocale", "legge l'orologio — provata in browser/"],
   ["interoScritto", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["ESITI_TURNO", "è una costante: non ha comportamento da provare"],

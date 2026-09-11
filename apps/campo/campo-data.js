@@ -4019,3 +4019,10 @@ export function riassuntoBriefing(b, operatori, presenze) {
     presentiTesto: pres.testo || "—",
   };
 }
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const CAMPO_COLLEZIONI = Object.freeze(["attivita", "squadre", "operatori", "rapportini", "obiettivi", "checklist", "briefing", "presenze", "chiusure", "meteo", "durate", "pianocarico"]);

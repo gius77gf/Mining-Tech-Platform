@@ -2092,3 +2092,89 @@ export function icsCalendario(eventi, opzioni) {
   righe.push("END:VCALENDAR");
   return { ics: righe.map(piega).join("\r\n") + "\r\n", inclusi, saltati };
 }
+
+// ═════════════════════════════════════════════════════════════════
+// «SCARICA TUTTO» — l'uscita di tutta l'app in un file (11/09)
+// ═════════════════════════════════════════════════════════════════
+// Dalla ricerca trasversale dell'11/09: 34 collezioni su 65 non avevano
+// nessuna uscita delle righe, e nessuna app un «esporta tutto». Chi compra un
+// gestionale in abbonamento chiede, prima di firmare, di poter portare via i
+// suoi dati COMPLETI senza il fornitore (e il GDPR, art. 20, lo pretende per
+// quelli personali: formato strutturato, di uso comune, leggibile da
+// macchina). Qui non si inventa un formato: le righe escono come stanno
+// nell'archivio, in un JSON con l'intestazione che dice di che app, di quale
+// organizzazione, di quando e di quale commit sono.
+// `esportaTutto` è pura: riceve l'ELENCO dichiarato delle collezioni e le
+// LETTURE già fatte ({nome: righe}); ciò che manca (una collezione non
+// letta, o letta come non-lista) finisce in `mancanti`, non sparisce — un
+// file che tace una collezione la fa passare per vuota.
+export function esportaTutto(elenco, letture, meta = {}) {
+  const nomi = Array.isArray(elenco) ? elenco.map(String) : [];
+  const L = letture && typeof letture === "object" ? letture : {};
+  const collezioni = {}, conteggi = {}, mancanti = [];
+  let totale = 0;
+  for (const n of nomi) {
+    const righe = L[n];
+    if (!Array.isArray(righe)) { mancanti.push(n); continue; }
+    collezioni[n] = righe.map((r) => (r && typeof r === "object") ? { ...r } : r);
+    conteggi[n] = righe.length;
+    totale += righe.length;
+  }
+  const quando = meta.quando instanceof Date ? meta.quando.toISOString()
+    : (typeof meta.quando === "string" && meta.quando ? meta.quando : new Date().toISOString());
+  return {
+    formato: "deepwork/esporta-tutto/1",
+    app: String(meta.app || "").trim() || null,
+    organizzazione: String(meta.organizzazione || "").trim() || null,
+    quando, commit: String(meta.commit || "").trim() || null,
+    elenco: nomi.slice(), collezioni, conteggi, mancanti, totale,
+    completo: mancanti.length === 0,
+  };
+}
+
+// Il nome del file: deepwork-<app>-<org>-<AAAAMMGG-HHMM>.json. Senza
+// organizzazione (dimostrazione) lo dice nel nome, invece di inventarne una.
+export function nomeFileEsportaTutto(pacchetto) {
+  const p = pacchetto || {};
+  const pulito = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const q = String(p.quando || "").replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+  return ["deepwork", pulito(p.app) || "app", pulito(p.organizzazione) || "senza-org", q || "senza-data"].join("-") + ".json";
+}
+
+// Il bottone «Scarica tutto» in fondo alla pagina che lo ospita: legge ogni
+// collezione dell'elenco con `leggi(nome)` (una lettura fallita → mancante,
+// dichiarata nel file e nella striscia), compone il pacchetto e lo scarica.
+// Tocca il DOM: la sua prova sta nei banchi del browser.
+export function montaScaricaTutto(o = {}) {
+  const cont = typeof document !== "undefined" && o.contenitore ? document.getElementById(o.contenitore) : null;
+  if (!cont || cont.querySelector("#btn-scarica-tutto")) return null;
+  const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Tutti i dati di questa app";
+  const tools = document.createElement("div"); tools.className = "tools";
+  const b = document.createElement("button"); b.type = "button"; b.className = "dw-btn secondary"; b.id = "btn-scarica-tutto";
+  b.textContent = "Scarica tutto (JSON)";
+  b.title = "Un file con tutte le collezioni di questa app, così come stanno nell'archivio: la copia che tieni tu.";
+  tools.appendChild(b);
+  const hint = document.createElement("div"); hint.className = "form-hint";
+  hint.innerHTML = "Un file <b>JSON</b> con <b>" + (Array.isArray(o.elenco) ? o.elenco.length : 0) + "</b> collezioni, righe come stanno nell'archivio. "
+    + "\u00c8 la copia che resta a te: si apre con qualunque programma, e non dipende da Deepwork.";
+  cont.appendChild(sec); cont.appendChild(tools); cont.appendChild(hint);
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const letture = {};
+      for (const n of (o.elenco || [])) {
+        try { letture[n] = await o.leggi(n); } catch (e) { letture[n] = null; }
+      }
+      const pacchetto = esportaTutto(o.elenco, letture, { app: o.app, organizzazione: o.organizzazione, commit: o.commit });
+      const nome = nomeFileEsportaTutto(pacchetto);
+      const blob = new Blob([JSON.stringify(pacchetto, null, 1)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      const frase = "Scaricato " + nome + ": " + pacchetto.totale + " righe in " + Object.keys(pacchetto.collezioni).length + " collezioni"
+        + (pacchetto.mancanti.length ? " \u2014 NON lette: " + pacchetto.mancanti.join(", ") + " (il file lo dichiara)" : ".");
+      if (typeof window !== "undefined" && typeof window.toast === "function") window.toast(frase, pacchetto.mancanti.length ? "err" : "success");
+    } finally { b.disabled = false; }
+  };
+  return b;
+}

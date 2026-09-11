@@ -3842,3 +3842,10 @@ export function calendarioTerra(scadenze, autorizzazioni, oggi = new Date(), ade
   const r = icsCalendario(eventi, { app: "Terra", adesso, nome: "Scadenze del titolo (Terra)", esempio: avvisoEsempio });
   return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, titoloGiaInScadenzario };
 }
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const TERRA_COLLEZIONI = Object.freeze(["fronti", "rilievi", "piano", "autorizzazioni", "scadenze", "lotti", "inventari"]);

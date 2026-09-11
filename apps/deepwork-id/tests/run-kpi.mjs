@@ -1481,6 +1481,55 @@ test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'
   ok(/data-risposta-rec=/.test(pagina) && /htmlRispostaReclamo\(/.test(pagina), "la scheda del reclamo stampa la risposta");
   ok((pagina.match(/descriviStatoDiFatto\(/g) || []).length >= 3, "lo stato di fatto si legge nella riga del ricettore e in quella del reclamo");
 });
+
+test("esportaTutto: le righe come stanno, e ciò che manca si dichiara (11/09)", () => {
+  const letture = { a: [{ x: 1 }, { x: 2 }], b: [], c: null };
+  const P = shell.esportaTutto(["a", "b", "c", "d"], letture, { app: "Campo", organizzazione: "Cava Alfa", quando: "2026-09-11T10:00:00.000Z", commit: "abc1234" });
+  eq(P.formato, "deepwork/esporta-tutto/1");
+  eq([P.app, P.organizzazione, P.quando, P.commit], ["Campo", "Cava Alfa", "2026-09-11T10:00:00.000Z", "abc1234"]);
+  eq(P.elenco, ["a", "b", "c", "d"], "l'elenco dichiarato viaggia col file");
+  eq(P.collezioni, { a: [{ x: 1 }, { x: 2 }], b: [] }, "le righe come stanno, e una collezione vuota resta vuota (non manca)");
+  eq(P.conteggi, { a: 2, b: 0 }); eq(P.totale, 2);
+  eq(P.mancanti, ["c", "d"], "non letta (null) e mai letta (assente): tutt'e due mancano, dichiarate");
+  eq(P.completo, false);
+  letture.a[0].x = 99;
+  eq(P.collezioni.a[0].x, 1, "il pacchetto è una copia: chi tocca l'archivio dopo non lo cambia");
+  const Q = shell.esportaTutto(["a"], { a: [] }, {});
+  eq([Q.app, Q.organizzazione, Q.commit, Q.completo], [null, null, null, true], "senza meta: null, non stringhe vuote");
+  ok(/^\d{4}-\d{2}-\d{2}T/.test(Q.quando), "quando è adesso, in ISO");
+  eq(shell.esportaTutto(null, null).mancanti, [], "senza elenco: niente da esportare, niente che manca");
+  // il nome del file
+  eq(shell.nomeFileEsportaTutto(P), "deepwork-campo-cava-alfa-20260911-1000.json");
+  eq(shell.nomeFileEsportaTutto({ app: "terra", quando: "2026-01-05T08:09:10.000Z" }), "deepwork-terra-senza-org-20260105-0809.json", "senza organizzazione lo dice nel nome");
+});
+
+test("⛔ ogni app dichiara le sue collezioni, e l'elenco combacia con quello che il modulo legge (11/09)", () => {
+  /* Un elenco a mano che non si confronta col codice invecchia da solo:
+     qui si legge il modulo e si pretende che ogni collezione dichiarata sia
+     letta con `read("…")`, e che ogni `read` non dichiarato sia un PONTE
+     verso un'altra app, scritto qui con la ragione. */
+  const PONTI = { sentinella: { azioni: "le azioni correttive vivono in Scudo (T7)", lavoratori: "il personale vive in Scudo" } };
+  const casi = [["campo", campo.CAMPO_COLLEZIONI], ["conti", conti.CONTI_COLLEZIONI], ["flotta", flotta.FLOTTA_COLLEZIONI],
+                ["scudo", scudo.SCUDO_COLLEZIONI], ["sentinella", sentinella.SENTINELLA_COLLEZIONI], ["terra", terra.TERRA_COLLEZIONI]];
+  for (const [nome, elenco] of casi) {
+    ok(Array.isArray(elenco) && Object.isFrozen(elenco) && elenco.length >= 7, nome + ": elenco dichiarato e congelato (" + (elenco || []).length + ")");
+    const src = readFileSync(join(HERE, "../../" + nome + "/" + nome + "-data.js"), "utf8");
+    const letti = new Set([...src.matchAll(/read\("([a-zA-Z]+)"\)/g)].map((m) => m[1]));
+    const nonLetti = elenco.filter((c) => !letti.has(c));
+    eq(nonLetti, [], nome + ": ogni collezione dichiarata è letta dal modulo");
+    const fuori = [...letti].filter((c) => !elenco.includes(c) && !((PONTI[nome] || {})[c]));
+    eq(fuori, [], nome + ": ogni lettura non dichiarata è un ponte scritto qui con la ragione");
+    // e la pagina la passa al bottone «Scarica tutto»
+    const pagina = readFileSync(join(HERE, "../../" + nome + "/index.html"), "utf8");
+    ok(new RegExp("montaScaricaTutto\\(\\{ app: \"" + nome + "\", elenco: " + nome.toUpperCase() + "_COLLEZIONI").test(pagina), nome + ": la pagina monta «Scarica tutto» col suo elenco");
+  }
+  // e sulla dimostrazione di Campo il pacchetto ha 12 collezioni e le righe di DEMO
+  const letture = Object.fromEntries(campo.CAMPO_COLLEZIONI.map((c) => [c, campo.DEMO[c] || []]));
+  const P = shell.esportaTutto(campo.CAMPO_COLLEZIONI, letture, { app: "campo" });
+  eq(Object.keys(P.collezioni).length, 12, "Campo: 12 collezioni nel file");
+  eq(P.mancanti, [], "e nessuna manca");
+  eq(P.collezioni.attivita.length, campo.DEMO.attivita.length, "le attività sono quelle della dimostrazione");
+});
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
   eq(terra.bandaVolume(1000, 8), { volume: 1000, banda: 80, min: 920, max: 1080 }, "1000 ±8% = ±80");

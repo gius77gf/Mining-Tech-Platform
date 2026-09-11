@@ -1192,7 +1192,11 @@ a.dw-btn{text-decoration:none}
   const segna = (contId, valore) => document.querySelectorAll("#" + contId + " [data-filtro]")
     .forEach(b => b.classList.toggle("active", b.getAttribute("data-filtro") === valore));
 
+  import { montaScaricaTutto } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { TERRA_COLLEZIONI } from "./terra-data.js";
   const db = await terraData();
+  // «Scarica tutto» (11/09): tutte le collezioni dell'app in un JSON, la copia che tiene il cliente
+  montaScaricaTutto({ app: "terra", elenco: TERRA_COLLEZIONI, leggi: (nome) => db[nome](), contenitore: "page-dash", organizzazione: db.orgId || null });
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
      chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
      d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti

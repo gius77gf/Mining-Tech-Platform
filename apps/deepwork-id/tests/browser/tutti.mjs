@@ -352,6 +352,9 @@ const BANCHI = [
   ['Deepwork ID · controprova', 'id-stati.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
+  /* «Scarica tutto» scarica davvero tutte le collezioni dichiarate (11/09) */
+  ['scarica tutto, in ogni app', 'scarica-tutto.mjs', []],
+  ['scarica tutto · controprova', 'scarica-tutto.mjs', ['--controprova'], true],
   ['navigazione fra le pagine', 'navigazione.mjs', []],
   ['navigazione · controprova', 'navigazione.mjs', ['--senza-guardie'], true],
   ['sconto del cliente', 'sconto-cliente.mjs', []],

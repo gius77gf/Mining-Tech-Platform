@@ -2257,7 +2257,11 @@ label.item:has(.dw-chk:checked){
     if (testo) toast(testo, tipo); };
 
 
+  import { montaScaricaTutto } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { CONTI_COLLEZIONI } from "./conti-data.js";
   const db = await contiData();
+  // «Scarica tutto» (11/09): tutte le collezioni dell'app in un JSON, la copia che tiene il cliente
+  montaScaricaTutto({ app: "conti", elenco: CONTI_COLLEZIONI, leggi: (nome) => db[nome](), contenitore: "page-dash", organizzazione: db.orgId || null });
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
      chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
      d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti

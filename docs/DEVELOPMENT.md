@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.381 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2900 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.383 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2902 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.838** asserzioni su **40** comandi.
+> `node` completo esegue **3.841** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -85,13 +85,13 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **980 funzioni pure su 980** sono chiamate per nome da quelle prove: tutte e
+E **986 funzioni pure su 986** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **288 su 288** in cinque
-moduli: `dw-shell.js` **59/59**, `dw-ponti.js` **88/88**, `genesi-data.js` **127/127**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **290 su 290** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **88/88**, `genesi-data.js` **127/127**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -235,7 +235,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**273 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**275 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

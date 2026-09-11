@@ -215,6 +215,12 @@ della collezione.
   prova pretende che l'elenco copra ciò che la pagina legge con `db.<nome>()`
   — un elenco a mano che non si confronta col codice invecchia da solo. Il
   rientro (importare quel file) è una decisione a parte.
+  ✅ **FATTO lo stesso giorno, unità 99**: `esportaTutto`,
+  `nomeFileEsportaTutto`, `montaScaricaTutto` in `dw-shell.js`,
+  `<APP>_COLLEZIONI` in sei moduli, bottone in sei Quadri. Prova: `grep -c
+  '^export function esportaTutto' shared/deepwork-id-client/dw-shell.js` → 1;
+  `grep -l '_COLLEZIONI = Object.freeze' apps/*/*-data.js | wc -l` → 7 (le
+  sei più Genesi, che l'aveva già).
 - **Domanda 3 — C'È, per chi è già uscito.** Lavoratori e scadenze di Scudo
   (`csvPersonaleScadenze`), clienti di Conti (`csvClienti`), ricettori di
   Sentinella (`csvRicettori`) escono in CSV; gli **operatori** di Campo e i

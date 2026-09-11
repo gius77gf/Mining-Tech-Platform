@@ -1648,7 +1648,11 @@ body.dw b.bad{color:var(--ink-dg)}
   // classe della striscia laterale: lo stato si legge anche senza colore
   const striscia = { danger: "st-danger", warn: "st-warn", ok: "st-ok", info: "st-sup", accent: "st-accent" };
 
+  import { montaScaricaTutto } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { FLOTTA_COLLEZIONI } from "./flotta-data.js";
   const db = await flottaData();
+  // «Scarica tutto» (11/09): tutte le collezioni dell'app in un JSON, la copia che tiene il cliente
+  montaScaricaTutto({ app: "flotta", elenco: FLOTTA_COLLEZIONI, leggi: (nome) => db[nome](), contenitore: "page-dash", organizzazione: db.orgId || null });
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
      chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
      d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti

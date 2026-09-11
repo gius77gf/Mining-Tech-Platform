@@ -4605,3 +4605,10 @@ export function calendarioMezzi(scadenze, manutenzioni, oggi = new Date(), adess
   const r = icsCalendario(eventi, { app: "Flotta", adesso, nome: "Scadenze e tagliandi dei mezzi (Flotta)", esempio: avvisoEsempio });
   return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, tagliandiAOre: aOre, preavvisi };
 }
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const FLOTTA_COLLEZIONI = Object.freeze(["mezzi", "manutenzioni", "costi", "disponibilita", "ricambi", "interventi", "scadenze", "controlli", "rifornimenti", "fermi", "budget"]);

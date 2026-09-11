@@ -6529,3 +6529,10 @@ export function scorteDelVerbale(v, fmt) {
     : `scarto del triangolo ${n(Math.abs(scarto))} t${stato ? ", " + stato : ""}`;
   return { stato: "misurate", scarto, chiusuraStato: stato, motivo: null, testo };
 }
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const CONTI_COLLEZIONI = Object.freeze(["fatture", "clienti", "gare", "prodotti", "listini", "pesate", "ordini", "incassi", "costi", "note", "chiusure", "verbali", "impostazioni"]);
