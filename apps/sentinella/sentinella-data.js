@@ -777,7 +777,7 @@ export function parseRicettoriCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "nome"))
     .map(r => {
-      const [nome, tipo, distanza, classe, soglia, unita, nota] = parseCsvLine(r);
+      const [nome, tipo, distanza, classe, soglia, unita, nota, sdfData, sdfChi, sdfNote] = parseCsvLine(r);
       const ti = (tipo || "").trim().toLowerCase();
       const cl = (classe || "").trim().toUpperCase();
       /* ⛔ `di >= 0` FACEVA ENTRARE LO ZERO, e uno zero entrato qui è un
@@ -795,6 +795,11 @@ export function parseRicettoriCsv(text) {
         soglia: so,
         unita: (unita || "").trim() || "",
         nota: (nota || "").trim() || "",
+        /* il sopralluogo rientra COM'È SCRITTO: una data che non esiste non si
+           butta (sarebbe l'assenza travestita da dato favorevole), la
+           dichiara `descriviStatoDiFatto` a schermo */
+        statoDiFatto: [sdfData, sdfChi, sdfNote].some(x => String(x || "").trim())
+          ? { data: String(sdfData || "").trim(), chi: String(sdfChi || "").trim(), note: String(sdfNote || "").trim() } : null,
       };
     })
     .filter(r => r.nome);
@@ -2215,7 +2220,9 @@ export function abbinaTarature(voci, monitoraggi) {
    ⚠️ `csvCell` anche su tipo e classe, che vengono da un elenco chiuso: è la
    stessa ragione per cui ci passa l'unità, ed era già scritta qui accanto —
    la cintura si allaccia anche per il tratto corto. */
-export const CSV_RICETTORI_INTESTAZIONE = "nome;tipo;distanza;classe;soglia;unita;nota";
+// le tre colonne del sopralluogo preventivo (11/09): il file porta com'era la casa
+// prima delle volate, se no un ricettore esportato e reimportato perde la difesa
+export const CSV_RICETTORI_INTESTAZIONE = "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote";
 
 export function csvRicettori(ricettori) {
   const righe = (ricettori || []).map(r => {
@@ -2225,6 +2232,7 @@ export function csvRicettori(ricettori) {
       d == null ? "" : String(d), csvCell((r || {}).classe || ""),
       s == null ? "" : String(s), csvCell((r || {}).unita || ""),
       csvCell((r || {}).nota || ""),
+      csvCell(((r || {}).statoDiFatto || {}).data || ""), csvCell(((r || {}).statoDiFatto || {}).chi || ""), csvCell(((r || {}).statoDiFatto || {}).note || ""),
     ].join(";");
   });
   return CSV_RICETTORI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
@@ -3327,6 +3335,8 @@ export function reportConformita(o = {}) {
            `null` altrove, e chi disegna non scrive niente */
         risposta: superamenti.length ? rispostaSuperamento(o.azioni, m.id) : null,
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
+        // com'era il ricettore prima delle volate (11/09): il documento per l'ente lo scrive per ogni punto collegato
+        statoDiFatto: trovaRicettore(ricettori, m.ricettoreId) ? descriviStatoDiFatto(trovaRicettore(ricettori, m.ricettoreId)) : null,
         letture, n: letture.length, scartate,
         annullate, annullateLetture,
         max: valori.length ? Math.max(...valori) : null,

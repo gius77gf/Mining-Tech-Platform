@@ -769,7 +769,7 @@ test("parseRicettoriCsv: legge quello che il cliente scrive davvero", () => {
   const r = sentinella.parseRicettoriCsv(csv);
   eq(r.length, 2, "intestazione, riga vuota e riga senza nome fuori");
   eq(r[0], { nome: "Casa Bianchi — via Cava 12", tipo: "abitazione", distanza: 320,
-             classe: "III", soglia: 5, unita: "mm/s", nota: "la più vicina al fronte" },
+             classe: "III", soglia: 5, unita: "mm/s", nota: "la più vicina al fronte", statoDiFatto: null },
      "maiuscole e minuscole non contano, il resto sì");
   eq(r[1].distanza, 1250.5, "distanza all'italiana");
   eq(r[1].soglia, 2.5, "e soglia con la virgola");
@@ -1554,6 +1554,34 @@ test("Scudo · il preset del fochino propone i tre anni della licenza comunale (
   ok(/licenza comunale/.test(p.riferimento) && /Prefetto/.test(p.riferimento), "il riferimento dice chi la rilascia e chi dà il nulla osta");
   ok(/seconda mano/.test(p.riferimento), "e dichiara che il termine è letto di seconda mano");
   eq(p.daVerificare, true, "e resta da verificare, come ogni preset");
+});
+
+test("Sentinella · il sopralluogo preventivo esce nel CSV dei ricettori, rientra, e va nel report per l'ente (11/09)", () => {
+  const con = { nome: "Casa", tipo: "abitazione", distanza: 320, classe: "III", soglia: 5, unita: "mm/s", nota: "n",
+                statoDiFatto: { data: "2026-03-12", chi: "Geom. Ferri; per la cava", note: "fessura sul vano scala" } };
+  const senza = { nome: "Scuola", tipo: "scuola", distanza: 640, classe: "I", soglia: 40, unita: "µg/m³", nota: "" };
+  const testo = sentinella.csvRicettori([con, senza]);
+  const righe = testo.split("\n").filter(Boolean);
+  eq(righe[0], sentinella.CSV_RICETTORI_INTESTAZIONE, "l'intestazione è quella dichiarata");
+  ok(/;sopralluogoData;sopralluogoChi;sopralluogoNote$/.test(righe[0]), "con le tre colonne del sopralluogo in coda");
+  ok(/;2026-03-12;"Geom\. Ferri; per la cava";fessura sul vano scala$/.test(righe[1]), "la riga porta il sopralluogo, col separatore protetto: " + righe[1]);
+  ok(/;;;$/.test(righe[2]), "senza sopralluogo le tre celle sono vuote, non «null»");
+  const r = sentinella.parseRicettoriCsv(testo);
+  eq(r[0].statoDiFatto, con.statoDiFatto, "il sopralluogo rientra identico");
+  eq(r[1].statoDiFatto, null, "e chi non ce l'ha rientra senza");
+  const storto = sentinella.parseRicettoriCsv(sentinella.CSV_RICETTORI_INTESTAZIONE + "\nX;abitazione;;;;;;2026-02-30;;crepa\n")[0];
+  eq(storto.statoDiFatto, { data: "2026-02-30", chi: "", note: "crepa" }, "una data che non esiste rientra com'è scritta: la dichiara lo schermo, non la butta il lettore");
+  ok(!sentinella.descriviStatoDiFatto(storto).noto, "e infatti a schermo non è un sopralluogo noto");
+  // il report per l'ente
+  const D = sentinella.DEMO;
+  const R = sentinella.reportConformita({ monitoraggi: D.monitoraggi, ricettori: D.ricettori, reclami: D.reclami, volate: D.volate, dal: "2026-07-01", al: "2026-07-31" });
+  const v1 = R.punti.find((p) => p.m.id === "v1");
+  ok(v1 && v1.statoDiFatto && v1.statoDiFatto.noto && /12\/03\/2026/.test(v1.statoDiFatto.testo), "il punto della casa Bianchi porta il sopralluogo del 12/03: " + (v1 && v1.statoDiFatto && v1.statoDiFatto.testo));
+  const p1 = R.punti.find((p) => p.m.ricettoreId === "rc3");
+  ok(p1 && p1.statoDiFatto && !p1.statoDiFatto.noto, "il punto della scuola dice che non si sa com'era prima");
+  ok(R.punti.filter((p) => !p.ricettore).every((p) => p.statoDiFatto === null), "un punto senza ricettore non ha un sopralluogo da dire");
+  const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+  ok(/Com'era prima delle volate: \$\{esc\(p\.statoDiFatto\.testo\)\}/.test(pagina), "e la scheda del punto nel report lo stampa");
 });
 test("bandaVolume: banda ± sulla base della %tolleranza", () => {
   eq(terra.bandaVolume(19400, 2), { volume: 19400, banda: 388, min: 19012, max: 19788 }, "19400 ±2% = ±388");
@@ -6855,7 +6883,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ).split("\n")[1];
     /* asserzione sul TESTO del file, non sull'oggetto riletto: una coppia
        scrivi/leggi resta verde anche quando sbagliano tutt'e due insieme */
-    eq(riga, "Cascina al confine;abitazione;;;;;muro sul fronte",
+    eq(riga, "Cascina al confine;abitazione;;;;;muro sul fronte;;;",
        "la cella della distanza esce VUOTA, come lo schermo che scrive «distanza non indicata»");
     ok(!/;0;/.test(riga), "e in nessuna colonna compare lo zero che il gestore a mano scriveva");
   });

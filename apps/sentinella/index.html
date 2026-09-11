@@ -4065,9 +4065,11 @@ textarea.dw-input{
     const conflitto = (s.conflitto
       ? `<br><b>Attenzione:</b> il ricettore <b>${esc(s.ricettore)}</b> ha una soglia in ${esc(s.unitaRicettore || "un'altra unità")}, diversa dall'unità di questo punto (${esc(p.unita)}): non è stata applicata e non è stata convertita.`
       : "") + rif;
-    const ric = p.ricettore
+    const ric = (p.ricettore
       ? `Ricettore: <b>${esc(p.ricettore.nome)}</b> · ${esc(etichettaTipo(p.ricettore.tipo))}${distanzaDelRicettore(p.ricettore) != null ? " a <b>" + esc(numeroIt(distanzaDelRicettore(p.ricettore))) + " m</b>" : ""}${p.ricettore.classe ? " · classe acustica <b>" + esc(p.ricettore.classe) + "</b>" : ""}`
-      : "Ricettore: <b>non collegato</b>";
+      : "Ricettore: <b>non collegato</b>")
+      // com'era prima delle volate: la stessa frase della riga e della risposta al reclamo
+      + (p.statoDiFatto ? `<br>Com'era prima delle volate: ${esc(p.statoDiFatto.testo)}` : "");
     const E = ESITI[p.esito] || ESITI["senza-dati"];
     /* LA TARATURA DI QUESTO STRUMENTO, NELLA SCHEDA DI QUESTO PUNTO.
        ⛔ Il conto per punto lo calcolava `taratureDelReport` da sempre

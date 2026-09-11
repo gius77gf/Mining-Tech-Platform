@@ -7845,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.385 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2904, `run-stile` 328,
+  **3.386 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2905, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9396,6 +9396,16 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   ⚠️ Dichiarato, non fatto: lo stato di fatto non entra ancora nel report di
   conformità per l'ente (`reportConformita`) né nel CSV dei ricettori
   (`csvRicettori`): la risposta al reclamo lo porta, il report no.
+  ✅ Tutt'e due fatti nell'unità 103.
+- [x] **SENTINELLA — IL SOPRALLUOGO NEL REPORT PER L'ENTE E NEL CSV DEI
+  RICETTORI (unità 103, 11/09).** `reportConformita` porta per ogni punto
+  collegato `statoDiFatto` (la frase di `descriviStatoDiFatto`, `null` senza
+  ricettore) e la scheda del punto nel report la stampa («Com'era prima delle
+  volate: …»); `csvRicettori` ha tre colonne in coda (`sopralluogoData`,
+  `sopralluogoChi`, `sopralluogoNote`), `parseRicettoriCsv` le fa rientrare
+  com'è scritto (una data che non esiste non si butta: la dichiara lo
+  schermo), pin di `CSV_TABELLE` aggiornato, il pin sulla riga «Cascina al
+  confine» reso più giusto (tre celle vuote, non «null»). run-kpi +1 (2905).
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

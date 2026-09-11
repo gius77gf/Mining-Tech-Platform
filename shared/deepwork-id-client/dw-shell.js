@@ -558,7 +558,7 @@ export const CSV_TABELLE = [
     fonte: "scudo.csvRiepilogoNearMiss", col: "sezione;voce;numero" },
   // ── Sentinella ──────────────────────────────────────────────────────
   { id: "sentinella.ricettori", app: "Sentinella", etichetta: "l'export dei ricettori di Sentinella",
-    fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota" },
+    fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote" },
   { id: "sentinella.tarature", app: "Sentinella", etichetta: "l'archivio dei certificati di taratura di Sentinella",
     fonte: "sentinella.csvTarature", col: "strumento;data;scadenza;centro;certificato;nota" },
   { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
