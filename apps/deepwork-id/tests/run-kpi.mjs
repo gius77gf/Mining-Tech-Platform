@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 37, "i siti di export CSV censiti nelle quattro app")   // 37 dall'11/09: il calendario ambientale .ics di Sentinella (sentinella_calendario_ambiente.ics); 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 38, "i siti di export CSV censiti nelle quattro app")   // 38 dall'11/09: il calendario del titolo .ics di Terra (terra_scadenze_titolo.ics); 37 dall'11/09: il calendario ambientale .ics di Sentinella (sentinella_calendario_ambiente.ics); 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -23612,8 +23612,9 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        una riga in COME», cioè nessun bottone era mai stato premuto: è la riga
        «non ho guardato» che va letta PRIMA dei KO. */
     // 7 → 8 l'11/09: il calendario .ics di Scudo, dove l'avviso deve entrare
-    // nel FILE perché all'importazione il nome si perde
-    eq(siti, 8, "i punti che chiedono la decisione nelle quattro pagine");
+    // nel FILE perché all'importazione il nome si perde; 8 → 9 lo stesso
+    // giorno per il calendario .ics di Terra (Terra è fra le quattro pagine)
+    eq(siti, 9, "i punti che chiedono la decisione nelle quattro pagine");
     console.log(`     (${siti} chiamate in ${QUATTRO.length} pagine, tutte con db.mode passato dalla pagina)`);
   });
 
@@ -25494,6 +25495,35 @@ console.log("\n— Campo: i file che escono —");
     eq((rd.ics.match(/^SUMMARY:\[DATI DI ESEMPIO\] /gm) || []).length, rd.inclusi, "OGNI titolo lo dichiara");
     ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
     eq(sentinella.calendarioAmbiente(D.adempimenti, D.monitoraggi, D.programma, oggi, "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
+  });
+  test("⛔ Terra · calendarioTerra: ogni scadenza col SUO preavviso, il titolo della scheda una volta sola, le senza data fuori e nominate", () => {
+    const D = terra.DEMO;
+    const oggi = new Date("2026-09-11T10:00:00");
+    const r = terra.calendarioTerra(D.scadenze, D.autorizzazioni, oggi, "2026-09-11T02:00:00Z");
+    const conData = D.scadenze.filter((s) => shell.dataISOEsiste(String(s.dataScadenza || "").slice(0, 10)));
+    eq(r.inclusi, conData.length, "le scadenze con una data entrano; il titolo della scheda NON si aggiunge perché lo scadenzario lo porta già");
+    eq(r.titoloGiaInScadenzario, 1, "e lo dice");
+    eq(r.senzaData, D.scadenze.filter((s) => !shell.dataISOEsiste(String(s.dataScadenza || "").slice(0, 10))).map((s) => s.descrizione || terra.etichettaTipoScadenza(s.tipo)), "la scadenza senza data è fuori e nominata con la sua descrizione");
+    ok(r.senzaData.length === 1, "e la dimostrazione ne ha davvero una (t5)");
+    const s = r.ics.replace(/\r\n /g, "");
+    const blocco = (uid) => s.slice(s.indexOf("UID:" + uid), s.indexOf("END:VEVENT", s.indexOf("UID:" + uid)));
+    ok(blocco("terra-scadenza-t1").includes("TRIGGER:-P180D") && blocco("terra-scadenza-t1").includes("TRIGGER:-P7D"), "il titolo avvisa a 180 giorni — il preavviso scritto su quella scadenza — e a 7");
+    ok(blocco("terra-scadenza-t3").includes("TRIGGER:-P30D") && !blocco("terra-scadenza-t3").includes("TRIGGER:-P180D"), "il rilievo periodico a 30: ogni scadenza ha il suo");
+    ok(blocco("terra-scadenza-t2").includes("SUMMARY:Polizza fideiussoria — rinnovo annuale") && blocco("terra-scadenza-t2").includes("DESCRIPTION:Fideiussione\\nRicorre ogni 12 mesi\\nSi svincola solo dopo il collaudo finale.\\nOggi: tra 19 gg"), "la descrizione porta il tipo, la ricorrenza, la nota e il verdetto di oggi con le parole dello schermo");
+    ok(blocco("terra-scadenza-t4").includes("Oggi: scaduta da 63 gg"), "una scaduta lo dice");
+    ok(!/terra-titolo-/.test(s), "nessun evento «titolo» dalla scheda: sarebbe un doppione");
+    // la scheda entra quando lo scadenzario NON porta il titolo, e solo se vigente
+    const r2 = terra.calendarioTerra([], D.autorizzazioni, oggi, "2026-09-11T02:00:00Z");
+    ok(r2.inclusi === 1 && r2.ics.includes("SUMMARY:Scadenza del titolo · Atto n. 128 del 2021 (esempio)") && r2.ics.includes("UID:terra-titolo-a1@deepwork") && r2.ics.includes("TRIGGER:-P90D"), "dalla scheda, col preavviso della scheda (90)");
+    eq(terra.calendarioTerra([], [{ ...D.autorizzazioni[0], stato: "archiviata" }], oggi, "2026-09-11T02:00:00Z").inclusi, 0, "una scheda archiviata non è una scadenza");
+    eq(terra.calendarioTerra([{ id: "q", tipo: "collaudo", dataScadenza: "2026-02-30", preavvisoGiorni: 5 }], [], oggi, "2026-09-11T02:00:00Z").senzaData, ["Collaudo finale / fine lavori"], "il 30 febbraio è «senza data», col nome del tipo quando la descrizione manca");
+    eq(terra.calendarioTerra([{ id: "q", tipo: "collaudo", dataScadenza: "2026-10-01", preavvisoGiorni: 5 }], [], oggi, "2026-09-11T02:00:00Z").ics.match(/TRIGGER:[^\r]*/g), ["TRIGGER:-P7D"], "un preavviso sotto i 7 giorni non raddoppia: resta il 7");
+    // l'avviso della dimostrazione entra nel file
+    const rd = terra.calendarioTerra(D.scadenze, D.autorizzazioni, oggi, "2026-09-11T02:00:00Z", "[DATI DI ESEMPIO — modalità tour (demo).]\n\n");
+    ok(rd.ics.includes("X-WR-CALNAME:DATI DI ESEMPIO · Scadenze del titolo (Terra)"), "il nome del calendario lo dichiara");
+    eq((rd.ics.match(/^SUMMARY:\[DATI DI ESEMPIO\] /gm) || []).length, rd.inclusi, "OGNI titolo lo dichiara");
+    ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
+    eq(terra.calendarioTerra(D.scadenze, D.autorizzazioni, oggi, "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro

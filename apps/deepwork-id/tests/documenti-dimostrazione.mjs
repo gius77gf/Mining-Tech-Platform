@@ -56,6 +56,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("terra", "csvRilievi", () => terra.csvRilievi(D.rilievi, D.fronti));
   doc("terra", "prospettoDenuncia", () => terra.prospettoDenuncia(DEN, D.fronti, OGGI));
   for (const l of D.lotti) doc("terra", "relazioneLotto " + l.id, () => terra.relazioneLotto(l, D.rilievi, D.fronti, OGGI));
+  doc("terra", "calendarioTerra", () => terra.calendarioTerra(D.scadenze, D.autorizzazioni, OGGI, "2026-09-11T02:00:00Z").ics);
   for (const r of D.rilievi.filter((x) => terra.rilievoUsabile(x))) doc("terra", "verbaleRilievo " + r.id, () => terra.verbaleRilievo(r, { rilievi: D.rilievi, fronti: D.fronti, autorizzazioni: D.autorizzazioni }));
 }
 { // CONTI

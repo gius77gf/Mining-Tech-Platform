@@ -763,6 +763,32 @@
   «nelle quattro app» 36 → **37**), `documenti-dimostrazione` 138, copertura
   943/943 (Sentinella 170 → **171**); `csv-dimostrazione` sul `.ics` di
   Sentinella nei tre modi. Resta Terra (autorizzazioni e concessione).
+- [x] **TERRA — IL CALENDARIO DEL TITOLO (.ics), QUARTA E ULTIMA APP SUL
+  COMPOSITORE CONDIVISO (11/09):** `calendarioTerra(scadenze,
+  autorizzazioni, oggi, adesso, avvisoEsempio)` in `terra-data.js`. Un evento
+  per ogni scadenza dello scadenzario con l'avviso al **preavviso scritto su
+  quella scadenza** (qui non c'è una soglia fissa: le cave sono materia
+  regionale, e il preavviso lo scrive l'utente riga per riga — 180 sul
+  titolo, 90 sulla fideiussione, 30 sul rilievo) più uno a 7 giorni (sotto i
+  7 non raddoppia); nella descrizione il tipo, la ricorrenza, la nota e il
+  verdetto di oggi con le parole dello schermo (`livelloScadenzaTerra`).
+  ⛔ La scadenza del titolo vive in DUE posti — la scheda dell'autorizzazione
+  vigente e lo scadenzario — e il calendario la porta **una volta sola**:
+  dalla scheda entra solo se lo scadenzario non ha già una scadenza di tipo
+  autorizzazione a quella data (nella dimostrazione ce l'ha), e la frase del
+  bottone lo dice — un doppione in agenda è un promemoria che si ignora due
+  volte. Le senza data restano fuori e nominate (nella dimostrazione una:
+  la prescrizione da chiarire con l'ente). Bottone «Calendario (.ics)» sotto
+  lo scadenzario del Titolo; la pagina passa l'avviso della dimostrazione
+  (Terra importa da oggi `avvisoTestoDimostrazione`; i siti della decisione
+  nelle quattro pagine 8 → **9**). Sonda a 320 px: file
+  «DATI-DI-ESEMPIO_terra_scadenze_titolo.ics», 4 scadenze, 0 errori, scatto
+  guardato. Prove: run-kpi +1 (2857; pin export «nelle quattro app» 37 →
+  **38**), `documenti-dimostrazione` 139, copertura 944/944 (Terra 88 →
+  **89**); `csv-dimostrazione` sul `.ics` di Terra nei tre modi. Con questa
+  il compositore condiviso `icsCalendario` serve tutte e quattro le app con
+  uno scadenzario: Scudo (persone), Flotta (mezzi), Sentinella (ambiente),
+  Terra (titolo) — quattro bottoni, una regola, quattro vocabolari.
 - [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
   — la dimostrazione non ha un tagliando con ore E data (di proposito: le
   prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
@@ -7801,8 +7827,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.337 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2856, `run-stile` 328,
+  **3.338 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2857, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

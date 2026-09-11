@@ -204,7 +204,7 @@ Stato di Terra `terra-data.js` + `index.html`:
 | **Concessione e autorizzazioni** | | |
 | Soglia guardia e preavviso | C'è | vitaCava() con sogliaGuardiaPct |
 | Pregresso dichiarato | C'è | estrattoComplessivo() con pregressoDichiarato |
-| Scadenza titolo e residuo | C'è | vitaCava() con dataScadenza, anniResidui, annoEsaurimento |
+| Scadenza titolo e residuo | C'è | vitaCava() con dataScadenza, anniResidui, annoEsaurimento. ⏱️ 11/09: e lo scadenzario del titolo si porta nel calendario del telefono — `calendarioTerra` (`terra-data.js`), bottone «Calendario (.ics)» sotto lo scadenzario, un evento per scadenza col preavviso scritto su ognuna (`grep -c 'calendarioTerra' apps/terra/terra-data.js apps/terra/index.html` → **`1` e `2`**). |
 | Gestione concessione regionale | C'è a metà | vitaCava() generico, niente regole specifiche per regione |
 | **Riepilogo annuale** | | |
 | Riepilogo per ente | C'è | riepilogoAnnuale() per anno, fronte, mese |

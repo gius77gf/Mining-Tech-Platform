@@ -52,7 +52,7 @@
 // ============================================================
 
 import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell, leggiCsv, dataIt,
-         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
   fronti: [
@@ -3681,4 +3681,49 @@ export function rientroInventari(inventari) {
       : conta(scritti - rientrati, "cumulo", "cumuli") + " su " + scritti + (scritti - rientrati === 1 ? " resta" : " restano") + " fuori (" + perche + ")" });
   }
   return { scritti: l.length, cumuli, rientrano: l.length - persi.length, persi };
+}
+
+// ============================================================
+// IL CALENDARIO DEL TITOLO (.ics) — 11/09, quarta e ultima app sul
+// compositore condiviso. Un evento per ogni scadenza dello scadenzario
+// (titolo, fideiussione, screening, rilievo periodico, prescrizioni…) con
+// l'avviso al preavviso che l'utente ha scritto su QUELLA scadenza — qui
+// non c'è una soglia fissa, le cave sono materia regionale — più uno a 7
+// giorni; e la scadenza del titolo vigente presa dalla scheda
+// dell'autorizzazione, ma solo se lo scadenzario non la porta già (nella
+// dimostrazione la porta: stessa data, stesso tipo — non si raddoppia, e si
+// dice). Le senza data restano fuori e nominate. `avvisoEsempio` lo passa la
+// pagina: all'importazione il nome del file si perde.
+export function calendarioTerra(scadenze, autorizzazioni, oggi = new Date(), adesso, avvisoEsempio) {
+  const eventi = [], senzaData = [];
+  const preavvisi = (n) => { const p = Math.round(+n || 0); return p > 7 ? [p, 7] : [7]; };
+  const dateTitolo = new Set();
+  for (const s of scadenze || []) {
+    if (!s) continue;
+    const data = String(s.dataScadenza || "").slice(0, 10);
+    const tipo = etichettaTipoScadenza(s.tipo);
+    const titolo = String(s.descrizione || "").trim() || tipo;
+    if (!dataISOEsiste(data)) { senzaData.push(titolo); continue; }
+    if (s.tipo === "autorizzazione") dateTitolo.add(data);
+    const lv = livelloScadenzaTerra(data, s.preavvisoGiorni, oggi);
+    const ric = Math.round(+s.ricorrenzaMesi || 0);
+    eventi.push({ uid: "terra-scadenza-" + (s.id || (data + "-" + eventi.length)), data, titolo,
+      descrizione: [tipo, ric ? (ric === 1 ? "Ricorre ogni mese" : "Ricorre ogni " + ric + " mesi") : "", String(s.note || "").trim(),
+        "Oggi: " + lv.label, "Da Terra, scadenzario del titolo"].filter(Boolean).join("\n"),
+      preavvisiGiorni: preavvisi(s.preavvisoGiorni) });
+  }
+  let titoloGiaInScadenzario = 0;
+  for (const a of autorizzazioni || []) {
+    if (!a || a.stato !== "vigente") continue;
+    const data = String(a.dataScadenza || "").slice(0, 10);
+    if (!dataISOEsiste(data)) continue;                 // la scheda senza scadenza la racconta il contatore vita cava, non l'agenda
+    if (dateTitolo.has(data)) { titoloGiaInScadenzario++; continue; }
+    const lv = livelloScadenzaTerra(data, a.preavvisoGiorni, oggi);
+    eventi.push({ uid: "terra-titolo-" + (a.id || data), data,
+      titolo: "Scadenza del titolo · " + (String(a.numeroAtto || "").trim() || "atto senza numero"),
+      descrizione: [a.ente ? "Ente: " + a.ente : "", "Oggi: " + lv.label, "Da Terra, scheda dell'autorizzazione vigente"].filter(Boolean).join("\n"),
+      preavvisiGiorni: preavvisi(a.preavvisoGiorni) });
+  }
+  const r = icsCalendario(eventi, { app: "Terra", adesso, nome: "Scadenze del titolo (Terra)", esempio: avvisoEsempio });
+  return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, titoloGiaInScadenzario };
 }

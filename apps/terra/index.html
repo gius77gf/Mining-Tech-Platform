@@ -661,6 +661,7 @@ a.dw-btn{text-decoration:none}
   </div>
   <div id="scad-count" class="count"></div>
   <div id="scad-list"></div>
+  <div class="tools"><button class="dw-btn secondary" id="btn-scad-ics" title="Un file che Google Calendar, Outlook e il calendario del telefono importano: un evento per scadenza, con l'avviso al preavviso scritto su ognuna e a 7 giorni">Calendario (.ics)</button></div>
   <div class="sec">Aggiungi scadenza</div>
   <div class="form col">
     <div class="fld"><label class="fl" for="scad-preset">Adempimento tipico del titolo (facoltativo)</label>
@@ -1020,7 +1021,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, calendarioTerra, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -1044,7 +1045,7 @@ a.dw-btn{text-decoration:none}
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga e'
      l'intestazione di un'ALTRA nostra tabella?». E' l'unica domanda possibile,
      perche' il file SENZA intestazione deve continuare a entrare. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, montaGuardiaInteri, euro0, isoLocale, oggiISO, dataISOEsiste, dataIt, nomeCsvDimostrazione, modoDimostrazione, avvisoTestoDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -3290,6 +3291,23 @@ a.dw-btn{text-decoration:none}
     const b = e.target.closest && e.target.closest("[data-filtro]"); if (!b) return;
     filtroScad = b.getAttribute("data-filtro"); renderTitolo();
   });
+  $("btn-scad-ics").onclick = () => {
+    /* IL CALENDARIO (.ics), 11/09: lo scadenzario del titolo nell'agenda del
+       telefono, con l'avviso al preavviso di ogni scadenza. Che cosa entra lo
+       decide il modulo; la riga dei dati di esempio la decide la pagina, che
+       sa in che modo sta girando — e nel calendario deve entrare, perché
+       all'importazione il nome del file si perde. */
+    const r = calendarioTerra(SCA, AUT, new Date(), undefined,
+      avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Queste scadenze non sono di una cava vera."));
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
+    a.download = "terra_scadenze_titolo.ics"; marchiaCsv(a); a.click();
+    const fuori = [];
+    if (r.senzaData.length) fuori.push(plurale(r.senzaData.length, "una senza data resta fuori", r.senzaData.length + " senza data restano fuori") + " (" + r.senzaData.slice(0, 3).join(", ") + ")");
+    esito("scad-esito", "Calendario esportato: " + plurale(r.inclusi, "una scadenza", r.inclusi + " scadenze") + " con l'avviso al preavviso di ognuna e a 7 giorni"
+      + (r.titoloGiaInScadenzario ? " (la scadenza del titolo c'è una volta sola: la scheda e lo scadenzario dicono la stessa data)" : "")
+      + (fuori.length ? "; " + fuori.join("; ") : "") + ".", fuori.length ? "warn" : "success");
+  };
   $("btn-add-scad").onclick = async () => {
     const desc = $("new-scad-desc").value.trim(), data = $("new-scad-data").value;
     if (!desc || !data) {
