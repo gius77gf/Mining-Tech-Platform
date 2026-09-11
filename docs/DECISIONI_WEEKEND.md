@@ -1172,6 +1172,14 @@ prodotto né in un documento che un cliente possa leggere.
 3. **Decidere dopo**, quando ci sarà il primo contratto. È lecito, ma la
    domanda arriverà **prima** della firma, non dopo.
 
+**Un vincolo trovato dopo (11/09, ricerca sugli esplosivi).** Il registro
+delle operazioni giornaliere del deposito di esplosivi (art. 55 T.U.L.P.S.,
+letto di seconda mano) si conserva **cinquant'anni, anche dopo la cessazione
+dell'attività**: se un giorno un registro così vivesse in una nostra app, non
+potrebbe seguire la regola «si cancella N giorni dopo la fine
+dell'abbonamento». La frase che decidi deve quindi distinguere i dati che **la
+legge obbliga a tenere** (e per quanto) da quelli che il cliente tiene per sé.
+
 **Che cosa serve da te.** Una frase: «i dati restano scaricabili per N giorni
 dopo la fine dell'abbonamento, poi …». Da quella frase discendono una regola
 in Deepwork ID (chi legge cosa dopo la scadenza) e una riga nei termini di

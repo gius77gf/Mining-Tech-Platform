@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9454,6 +9455,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   sembrerebbe un cliente); `montaScaricaTutto` già lo leggeva. Una prova
   statica pretende `orgId: id.orgId` una volta e `orgId: null` una volta in
   ogni modulo. run-kpi +1 (2903).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — GENESI: GLI ESPLOSIVI IN CAVA
+  (11/09, unità 101, solo documenti).** Mondo di seconda mano (25 fonti): le
+  licenze del Prefetto (T.U.L.P.S. 46/47), il registro giornaliero del
+  deposito (art. 55: elettronico, vidimato, esibito a ogni richiesta,
+  conservato cinquant'anni), la licenza comunale triennale del fochino
+  (D.P.R. 302/1956 art. 27, Commissione tecnica provinciale), l'ordine di
+  servizio del direttore responsabile, il riepilogo giornaliero del deposito
+  dell'ATF che quadra coi rapporti di sparo. Delta dal MECCANISMO contro
+  `e1d6a6d1`: il registro del deposito resta la decisione già dichiarata
+  (Scudo D6), con due vincoli nuovi (giornaliero e vidimato; cinquant'anni →
+  scritto nella decisione 20); la periodicità di tre anni del fochino nel
+  preset di Scudo MANCA (→ voce aperta piccola); l'ordine di servizio MANCA e
+  chiede una decisione (dichiarato); i chili sparati per volata CI SONO. Vedi
+  `docs/RICERCA_CONTINUA_GENESI.md`, ricerca dell'11/09 (secondo giro).
+- [ ] **SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE**
+  *(dalla ricerca dell'11/09, secondo giro su Genesi, domanda 2)*. Il preset
+  `fochino` in `SCADENZE_PRESET` ha `mesi: null` e dice «licenza rilasciata
+  dal Prefetto: la scadenza è quella indicata sul titolo». Il mondo (di
+  seconda mano: nove Comuni e la Prefettura) dice licenza **comunale** col
+  nulla osta del Prefetto, **tre anni**, rinnovo almeno 30 giorni prima. Da
+  fare: `mesi: 36` e il riferimento riscritto («D.P.R. 302/1956, art. 27 —
+  licenza comunale con nulla osta del Prefetto, validità triennale [seconda
+  mano]: la data vera è quella sul titolo»), come già per «Abilitazione
+  attrezzature» (60). Come si misura: `presetScadenza("fochino").mesi === 36`
+  e la prova che elenca i preset con `mesi: null` non lo conta più; il
+  preavviso resta quello di tutte le scadenze.
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

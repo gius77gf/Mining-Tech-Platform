@@ -679,3 +679,129 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   (le volate eseguite); confrontarli con un limite vuol dire scrivere quel
   limite da qualche parte (Terra, con l'atto? Sentinella, col registro?), ed
   è una decisione di prodotto prima che un'unità. Dichiarato, non aperto.
+
+## Ricerca del 2026-09-11 — secondo giro: gli esplosivi in cava — licenza, deposito, registro, fochino, ordine di servizio (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta — e due delle
+domande erano già dichiarate come decisioni (Genesi, domanda 4 del mattino;
+Scudo, domanda 6): questa ricerca porta il mondo sotto a quelle decisioni,
+non le riapre.
+
+### Come va, fuori
+
+- **Le licenze** (T.U.L.P.S., artt. 46 e 47): fabbricazione, **deposito**,
+  vendita e **trasporto** di dinamite e prodotti simili, detonatori ed
+  elementi da comporre al momento dell'uso vogliono una licenza; per le
+  categorie I, IV e V la rilascia sempre il **Prefetto**, che è l'autorità
+  competente per i provvedimenti dell'art. 46. *[risultati di ricerca:
+  all4shooters.com, prefettura.it/modena, mauromalizia.it, olympus.uniurb.it
+  (linee guida Ministero dell'Interno 2023)]*
+- **Il registro** (T.U.L.P.S., art. 55): chi esercita fabbriche, **depositi**
+  o rivendite di esplodenti tiene un **registro delle operazioni
+  giornaliere** con le generalità di chi compie l'operazione; il regolamento
+  vuole data, persona o ditta, **specie e quantità** dell'esplosivo, e come
+  l'acquirente ha provato l'identità; tenuto **in formato elettronico**
+  secondo il regolamento; **vidimato dal Prefetto** (o dal Sindaco come
+  autorità locale di P.S.); **esibito a ogni richiesta** di ufficiali e agenti
+  di P.S.; **conservato cinquant'anni**, anche dopo la cessazione
+  dell'attività. *[risultati di ricerca: brocardi.it, vigilfuoco.it (testo
+  coordinato R.D. 635/1940), conarmi.org, tuttoprevenzioneincendi.it]*
+- **Il fochino** (D.P.R. 302/1956, art. 27): licenza **comunale** con il nulla
+  osta del Prefetto, **validità tre anni**, rinnovo da chiedere **almeno 30
+  giorni prima**; serve l'accertamento della capacità tecnica della
+  **Commissione tecnica provinciale per gli esplosivi** (l'esame dell'art. 49
+  T.U.L.P.S.; la commissione è integrata da due ispettori del lavoro, un
+  ingegnere e un medico); le operazioni che la vogliono: disgelamento delle
+  dinamiti, confezionamento e innesco delle cariche e caricamento dei fori,
+  brillamento a fuoco ed elettrico, eliminazione delle cariche inesplose.
+  *[risultati di ricerca: comune.pistoia.it, prefettura.interno.gov.it
+  (modello 3), comune.grosseto.it, certifico.com, comune.genova.it,
+  regione.vda.it, comune.bolzano.bz.it, comune.rovereto.tn.it,
+  comune.torino.it]*
+- **L'ordine di servizio per l'uso degli esplosivi**: il direttore
+  responsabile redige un **ordine di servizio** con le disposizioni
+  regolamentari e tecniche sulle modalità d'uso degli esplosivi in cava
+  (facsimile della Provincia di Treviso; procedura di sicurezza «uso degli
+  esplosivi in cava» della Regione Toscana, delibera 64/2017, allegato A).
+  *[risultati di ricerca: provincia.treviso.it, regione.toscana.it,
+  testo-unico-sicurezza.com, scuolaedile.com]*
+- **Come lo fanno fuori dall'Italia** (ATF, 27 CFR 555): il **riepilogo
+  giornaliero delle operazioni del deposito** (DSMT) è il registro che deve
+  quadrare con l'inventario; una mancanza che i **rapporti di sparo** non
+  spiegano va denunciata; il deposito si **ispeziona almeno ogni sette
+  giorni** per accorgersi di accessi o prelievi non autorizzati (senza
+  obbligo d'inventario a ogni ispezione). *[risultati di ricerca: atf.gov,
+  ecfr.gov, osmre.gov]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+all4shooters.com · prefettura.it (Modena) · mauromalizia.it · olympus.uniurb.it
+· brocardi.it · vigilfuoco.it · conarmi.org · tuttoprevenzioneincendi.it ·
+comune.pistoia.it · prefettura.interno.gov.it · comune.grosseto.it ·
+certifico.com · comune.genova.it · regione.vda.it · comune.bolzano.bz.it ·
+comune.rovereto.tn.it · comune.torino.it · it.wikipedia.org (esplosivista
+civile) · provincia.treviso.it · regione.toscana.it · testo-unico-sicurezza.com
+· scuolaedile.com · parlamento.it (D.Lgs. 624/1996) · atf.gov · ecfr.gov ·
+osmre.gov.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi tiene il registro del deposito (entrate, uscite per volata, giacenza)?
+2. Chi sa quando scade la licenza del fochino, e la propone?
+3. Chi tiene l'ordine di servizio del direttore responsabile sugli esplosivi?
+4. Chi ricorda che il registro si conserva cinquant'anni?
+5. Chi sa quanto esplosivo è stato sparato, volata per volata?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `e1d6a6d1`)
+
+- **Domanda 1 — DICHIARATO IL MATTINO, e il mondo lo conferma.** `grep -ciE
+  'registro (di carico|giornaliero|degli esplosivi)|art\. ?55|vidimat'` su
+  Genesi, Sentinella e Scudo (moduli e pagine) → **0 dappertutto**; `grep
+  -ciE 'deposito'` → Genesi 0 e 2 (il **deposito del materiale abbattuto**
+  nel simulatore, non quello dell'esplosivo), Sentinella 1 e 0 (un commento
+  che dice proprio «esplosivo che è ancora in deposito»), Scudo 0 e 0. È la
+  domanda 6 della ricerca su Scudo: dove viva il registro (Genesi, che
+  progetta la carica, o Sentinella, che registra la volata) resta una
+  **decisione**. Il mondo aggiunge due vincoli che la decisione deve tenere
+  presenti: il registro è **giornaliero e vidimato** (non una vista calcolata
+  dalle volate) e si conserva **cinquant'anni** — vedi la domanda 4.
+- **Domanda 2 — A METÀ, ed è il delta piccolo.** Scudo ha il preset
+  `fochino` (`grep -c 'chiave: "fochino"' apps/scudo/scudo-data.js` → 3, fra
+  le scadenze e fra le mansioni) con `mesi: null` e il riferimento «D.P.R.
+  302/1956 — licenza rilasciata dal Prefetto: la scadenza è quella indicata
+  sul titolo». Due cose non tornano col mondo: la licenza è **comunale** (col
+  nulla osta del Prefetto), e vale **tre anni** — quindi la periodicità si
+  può **proporre** (36 mesi), come già fanno «Abilitazione attrezzature» (60)
+  e gli altri preset con un termine di legge, lasciando alla persona la data
+  del titolo. **Mancanza confermata, aperta, piccola**: `mesi: 36` e il
+  riferimento riscritto, con la marcatura di seconda mano; e la voce di
+  Scudo che avvisa **30 giorni prima** è già il preavviso di tutte le scadenze
+  (`preavvisoGiorni`, `grep -c` → 5), niente da aggiungere.
+- **Domanda 3 — MANCA, e chiede una decisione.** `grep -ciE 'ordine di
+  servizio'` → 0 in tutt'e tre le app. L'ordine di servizio è un documento
+  del direttore responsabile: chi lo scrive, dove si conserva, chi lo firma
+  per presa visione (i fochini, i sorveglianti). Sta fra Scudo (che tiene i
+  documenti di sicurezza e le nomine) e Genesi (che progetta la volata): non
+  è un campo, è un documento con le firme. **Dichiarato, non aperto**.
+- **Domanda 4 — MANCA in tutte le app, e riguarda la decisione 20.** `grep
+  -ciE 'cinquant|50 anni|conservazione'` → 0 nei moduli (i pochi hit nelle
+  pagine sono altro). Un registro che per legge si conserva cinquant'anni
+  **anche dopo la cessazione** non può seguire la regola «i dati si cancellano
+  N giorni dopo la fine dell'abbonamento»: la decisione 20 (i dati alla fine
+  dell'abbonamento) deve distinguere i dati **che la legge obbliga a tenere**
+  da quelli che il cliente tiene per sé. Aggiunto alla decisione 20 come
+  vincolo, non deciso.
+- **Domanda 5 — C'È, in Sentinella.** `grep -c 'kgTotali'
+  apps/sentinella/sentinella-data.js` → 25: i chili sparati per volata sono nel
+  registro delle volate (con `kgMaxRitardo`), e Genesi produce il piano di
+  carico (`fogliaVolata`, `csvRegistroVolate`, `csvRefertiGenesi`). Il
+  «rapporto di sparo» del mondo, quello che spiega le uscite dal deposito,
+  esiste: manca solo il deposito contro cui quadrarlo (domanda 1).
+
+**Riassunto** — 1 mancanza **confermata e aperta, piccola** (la periodicità
+di tre anni del fochino nel preset di Scudo), 2 **dichiarate** (il registro
+del deposito, già decisione; l'ordine di servizio, nuova), 1 **vincolo** per
+la decisione 20 (i cinquant'anni di conservazione), 1 **già a posto** (i
+chili sparati per volata).
