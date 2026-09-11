@@ -40660,13 +40660,70 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(righe[0], conti.CSV_RIMANENZE_INTESTAZIONE, "l'intestazione");
     eq(righe.length, 5, "quattro cumuli");
     ok(righe[1].startsWith("i2;2026-06-27;drone;Stabilizzato 0/30;Stabilizzato 0/30;265;1.9;503.5;8.5;t;4279.75;si;"), righe[1]);
-    ok(righe[4].endsWith(";;;;no;non è nel listino"), righe[4]);
-    ok(/;no;Terra non raggiungibile$/.test(conti.csvRimanenze(null, D.prodotti).trim()), "Terra giù");
+    /* dall'11/09 quattro colonne di bilancio in coda: senza `costo` restano vuote */
+    ok(righe[4].endsWith(";;;;no;non è nel listino;;;;"), righe[4]);
+    ok(/;no;Terra non raggiungibile;;;;$/.test(conti.csvRimanenze(null, D.prodotti).trim()), "Terra giù");
+  });
+  // ── IL VALORE DI BILANCIO (11/09, OIC 13) ──────────────────────────────
+  const COSTO = { calcolabile: true, costoM3: 3.2, motivo: "" };
+  test("⛔ rimanenzeBilancio: il minore fra costo e listino, cumulo per cumulo, e il totale solo su chi ha tutt'e due", () => {
+    const p = conti.prospettoRimanenze(D.inventariTerra, D.prodotti, "2026-06-30");
+    const rb = conti.rimanenzeBilancio(p, COSTO);
+    eq(rb.leggibile, true); eq(rb.costoM3, 3.2, "il costo al m³ com'è arrivato");
+    const stab = rb.righe.find((r) => r.materiale === "Stabilizzato 0/30");
+    eq([stab.valore, stab.valoreCosto, stab.valoreBilancio, stab.criterio], [4279.75, 848, 848, "costo"], "265 m³ × 3,20 = 848 < 4.279,75 a listino: vale il costo");
+    const terre = rb.righe.find((r) => r.materiale === "Terre di scavo");
+    eq([terre.valoreCosto, terre.valoreBilancio, terre.criterio], [96, null, null], "⛔ fuori listino: il costo si calcola (30 × 3,20) ma il minore NO, perché il realizzo non si sa");
+    eq(terre.percheBilancio, "non è nel listino: senza il valore di realizzo il minore non si può dire");
+    eq([rb.suRighe, rb.totaleRighe, rb.alCosto, rb.alListino], [3, 4, 3, 0], "tre su quattro, tutte al costo");
+    eq(rb.valoreCosto, 848 + 281.6 + 224 + 96, "il totale al costo somma anche le Terre (il costo c'è)");
+    eq(rb.valoreBilancio, 848 + 281.6 + 224, "⛔ il totale di bilancio NO: solo chi ha tutt'e due i valori");
+    eq(rb.fuoriBilancio, [{ materiale: "Terre di scavo", perche: "non è nel listino: senza il valore di realizzo il minore non si può dire" }]);
+  });
+  test("⛔ rimanenzeBilancio: quando vince il listino, e i tre «non lo so» del costo", () => {
+    const p = conti.prospettoRimanenze(D.inventariTerra, D.prodotti, "2026-06-30");
+    const caro = conti.rimanenzeBilancio(p, { calcolabile: true, costoM3: 25 });
+    const stab = caro.righe.find((r) => r.materiale === "Stabilizzato 0/30");
+    eq([stab.valoreCosto, stab.valoreBilancio, stab.criterio], [6625, 4279.75, "listino"], "265 × 25 = 6.625 > listino: il listino è il tetto");
+    eq([caro.alCosto, caro.alListino], [0, 3], "tutte al listino (a 20 €/m³ la sabbia, 1.760 contro 1.936 di listino, resterebbe al costo: misurato, non supposto)");
+    const misto = conti.rimanenzeBilancio(p, { calcolabile: true, costoM3: 20 });
+    eq([misto.alCosto, misto.alListino], [1, 2], "e a 20 €/m³ una al costo (la sabbia) e due al listino: il criterio è cumulo per cumulo");
+    for (const [c, m] of [[null, "il costo al metro cubo non è stato calcolato"],
+      [{ calcolabile: false, costoM3: null, motivo: "Nessun rilievo nel periodo" }, "Nessun rilievo nel periodo"],
+      [{ calcolabile: true, costoM3: 0 }, "nessun costo registrato nel periodo: un costo al metro cubo di zero non è un costo di produzione"]]) {
+      const rb = conti.rimanenzeBilancio(p, c);
+      eq([rb.costoM3, rb.valoreCosto, rb.valoreBilancio, rb.suRighe], [null, null, null, 0], "⛔ senza costo niente valore, non zero: " + m);
+      eq(rb.motivoCosto, m, "e la ragione è quella");
+      eq(rb.righe[0].percheBilancio, m, "scritta anche sulla riga");
+    }
+    eq(conti.rimanenzeBilancio(conti.prospettoRimanenze(null, D.prodotti), COSTO).leggibile, false, "Terra giù: non leggibile");
+    eq(conti.rimanenzeBilancio(conti.prospettoRimanenze(null, D.prodotti), COSTO).motivo, "Terra non raggiungibile");
+    eq(conti.rimanenzeBilancio(null, null).leggibile, false, "senza niente, niente");
+    const senzaVol = conti.rimanenzeBilancio({ leggibile: true, inventario: { id: "i", data: "2026-01-10", metodo: "" }, righe: [{ materiale: "X", m3: null, valore: null, perche: "volume non leggibile" }] }, COSTO);
+    eq([senzaVol.righe[0].valoreCosto, senzaVol.righe[0].percheBilancio], [null, "volume non leggibile"], "senza volume nemmeno il costo");
+  });
+  test("descriviRimanenzeBilancio: la frase dice il criterio, su quanti cumuli, e chi resta fuori; senza costo dice perché", () => {
+    const p = conti.prospettoRimanenze(D.inventariTerra, D.prodotti, "2026-06-30");
+    const f = conti.descriviRimanenzeBilancio(conti.rimanenzeBilancio(p, COSTO));
+    ok(/^Al costo di produzione di 3,20 €\/m³/.test(f), f);
+    ok(/il valore di bilancio è 1\.353,60 € su 3 cumuli su 4: il minore fra costo e listino, cumulo per cumulo \(3 al costo, 0 al listino\) — fuori: Terre di scavo \(non è nel listino: senza il valore di realizzo il minore non si può dire\)\. È il criterio dell'art\. 2426 c\.c\. e dell'OIC 13; la scelta finale resta del commercialista\.$/.test(f), f);
+    ok(/non si può dire, perché il costo di produzione al metro cubo non c'è — Nessun rilievo\. Resta il valore a listino, che è il tetto e non il valore\./.test(conti.descriviRimanenzeBilancio(conti.rimanenzeBilancio(p, { calcolabile: false, motivo: "Nessun rilievo" }))), "senza costo");
+    ok(/^Valore di bilancio: non si può dire \(Terra non raggiungibile\)\.$/.test(conti.descriviRimanenzeBilancio(conti.rimanenzeBilancio(conti.prospettoRimanenze(null, D.prodotti), COSTO))), "Terra giù");
+  });
+  test("⛔ csvRimanenze col costo: le quattro colonne in coda, e il criterio scritto", () => {
+    const righe = conti.csvRimanenze(D.inventariTerra, D.prodotti, "2026-06-30", COSTO).split("\n").filter(Boolean);
+    ok(righe[0].endsWith(";perche;costo_m3;valore_costo;valore_bilancio;criterio"), righe[0]);
+    ok(righe[1].endsWith(";4279.75;si;;3.2;848;848;costo"), righe[1]);
+    ok(righe[4].endsWith(";no;non è nel listino;3.2;96;;"), "⛔ le Terre: il costo c'è, il bilancio no, il criterio vuoto — " + righe[4]);
+    const senza = conti.csvRimanenze(D.inventariTerra, D.prodotti, "2026-06-30", { calcolabile: false, costoM3: null, motivo: "x" }).split("\n")[1];
+    ok(senza.endsWith(";4279.75;si;;;;;"), "senza costo le quattro celle restano vuote, non zero: " + senza);
   });
   test("⛔ la pagina: il prospetto lo compone il modulo, il CSV pure, e la riga c'è", () => {
     const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
     ok(/const p = prospettoRimanenze\(INV, PRO\);/.test(pagina), "il prospetto dal modulo, su INV (null = Terra giù)");
-    ok(/const csv = csvRimanenze\(INV, PRO\);/.test(pagina), "il CSV dallo stesso conto");
+    ok(/const csv = csvRimanenze\(INV, PRO, undefined, costo\);/.test(pagina), "il CSV dallo stesso conto, col costo dell'anno dell'inventario");
+    ok(/const rb = rimanenzeBilancio\(p, costo\);/.test(pagina) && /descriviRimanenzeBilancio\(rb\)/.test(pagina), "il valore di bilancio dal modulo, e la sua frase");
+    ok(/const costo = vol\.usabile \? costoPerMetroCubo\(COS, vol\.m3, dal, al\) : \{ calcolabile: false, costoM3: null, motivo: vol\.motivo \};/.test(pagina), "⛔ senza volume da Terra il costo dichiara la ragione di Terra, non uno zero");
     ok(/descriviRimanenze\(p\)/.test(pagina) && /descriviVariazioneRimanenze\(v\)/.test(pagina), "le frasi le dice il modulo");
     ok(/id="ric-rimanenze"/.test(pagina) && /renderRimanenze\(m3f\)/.test(pagina), "il riquadro e la sua chiamata");
     ok(/if \(!invLetti\) \{ box\.innerHTML = ""; return; \}/.test(pagina), "prima che Terra risponda non si scrive niente");

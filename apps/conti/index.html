@@ -2046,7 +2046,7 @@ label.item:has(.dw-chk:checked){
     produzioneDichiarata, confrontoProdottoVenduto,
     CAUSE_DIVARIO, causaDivario, verbaleDelPeriodo, storicoVerbali, componiVerbale, scorteDelVerbale,
     autorizzazioneVigente, densitaDellaCava, cavatoInTonnellate, triangolo, fogliaFattura, fogliaDdt, fogliaPreventivo, ETICHETTA_STATO_PREVENTIVO,
-    prospettoRimanenze, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze,
+    prospettoRimanenze, rimanenzeBilancio, descriviRimanenzeBilancio, variazioneRimanenze, descriviRimanenze, descriviVariazioneRimanenze, csvRimanenze,
     registroVendite, csvRegistroVendite, descriviRegistroVendite,
     prodottoPerCliente, validaListino, descriviListino, csvListini } from "./conti-data.js";
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga è
@@ -5851,25 +5851,39 @@ label.item:has(.dw-chk:checked){
       box.innerHTML = `<div class="note ${INV == null ? "warn" : ""}"><b>Rimanenze di piazzale</b> · ${esc(descriviRimanenze(p))}</div>`;
       return;
     }
-    const riga = (r) => `<tr>
+    /* IL VALORE DI BILANCIO (11/09, OIC 13): il minore fra costo e listino,
+       cumulo per cumulo. Il costo al m³ è quello dell'anno dell'inventario
+       fino alla sua data, sui metri cubi misurati da Terra: i rilievi si
+       leggono una volta sola (`caricaRilievi`), e finché non sono arrivati il
+       riquadro mostra il listino e poi si ridisegna — senza scrivere zero. */
+    if (!rilLetti) { caricaRilievi().then(() => renderRimanenze(m3f)); }
+    const dal = p.inventario.data.slice(0, 4) + "-01-01", al = p.inventario.data;
+    const vol = rilLetti ? volumeDaTerra(RIL, dal, al) : { usabile: false, motivo: "i rilievi di Terra non sono ancora arrivati" };
+    const costo = vol.usabile ? costoPerMetroCubo(COS, vol.m3, dal, al) : { calcolabile: false, costoM3: null, motivo: vol.motivo };
+    const rb = rimanenzeBilancio(p, costo);
+    const perRiga = new Map(rb.righe.map((r) => [r.materiale, r]));
+    const riga = (r) => { const b = perRiga.get(r.materiale) || {}; return `<tr>
       <td>${esc(r.materiale)}${r.valore == null ? `<div class="form-hint" style="margin:2px 0 0;">${esc(r.perche)}</div>` : ""}</td>
       <td class="num">${r.m3 == null ? "—" : m3f(r.m3)}</td>
       <td class="num">${r.t == null ? "—" : qt(r.t)}</td>
       <td class="num">${r.prezzo == null ? "—" : eur(r.prezzo) + "/" + (r.unitaPrezzo === "m3" ? "m³" : "t")}</td>
-      <td class="num">${r.valore == null ? `<span class="badge warn" title="Fuori dal totale: ${esc(r.perche)}">fuori</span>` : "<b>" + eur(r.valore) + "</b>"}</td></tr>`;
+      <td class="num">${r.valore == null ? `<span class="badge warn" title="Fuori dal totale: ${esc(r.perche)}">fuori</span>` : eur(r.valore)}</td>
+      <td class="num">${b.valoreCosto == null ? `<span class="badge warn" title="${esc(b.percheBilancio || rb.motivoCosto)}">n.c.</span>` : eur(b.valoreCosto)}</td>
+      <td class="num">${b.valoreBilancio == null ? `<span class="badge warn" title="${esc(b.percheBilancio || rb.motivoCosto)}">n.c.</span>` : "<b>" + eur(b.valoreBilancio) + "</b> <span class=\"badge tag inline\" title=\"il minore fra costo e listino\">" + (b.criterio === "costo" ? "costo" : "listino") + "</span>"}</td></tr>`; };
     box.innerHTML = `<div class="note recap"><b>Rimanenze di piazzale</b> · ${esc(descriviRimanenze(p))}
-      <div class="ponte-wrap" style="margin-top:8px;"><table class="ponte"><thead><tr><th>Cumulo</th><th class="num"><span class="u">m³</span></th><th class="num"><span class="u">t</span></th><th class="num">listino</th><th class="num">valore a listino</th></tr></thead>
+      <div class="ponte-wrap" style="margin-top:8px;"><table class="ponte"><thead><tr><th>Cumulo</th><th class="num"><span class="u">m³</span></th><th class="num"><span class="u">t</span></th><th class="num">listino</th><th class="num">a listino</th><th class="num">al costo</th><th class="num">bilancio</th></tr></thead>
       <tbody>${p.righe.map(riga).join("")}</tbody>
-      <tfoot><tr><td><b>Totale</b> (${p.valorizzate} su ${p.righe.length})</td><td class="num">${m3f(p.m3Totale)}</td><td></td><td></td><td class="num"><b>${p.valore == null ? "—" : eur(p.valore)}</b></td></tr></tfoot></table></div>
+      <tfoot><tr><td><b>Totale</b> (${p.valorizzate} su ${p.righe.length} a listino, ${rb.suRighe} a bilancio)</td><td class="num">${m3f(p.m3Totale)}</td><td></td><td></td><td class="num">${p.valore == null ? "—" : eur(p.valore)}</td><td class="num">${rb.valoreCosto == null ? "—" : eur(rb.valoreCosto)}</td><td class="num"><b>${rb.valoreBilancio == null ? "—" : eur(rb.valoreBilancio)}</b></td></tr></tfoot></table></div>
+      <div class="form-hint" id="rim-bilancio" style="margin-top:6px;">${esc(descriviRimanenzeBilancio(rb))}</div>
       <div class="form-hint" id="rim-variazione" style="margin-top:6px;">${esc(descriviVariazioneRimanenze(v))}</div>
       <div class="tools"><button class="dw-btn secondary" id="btn-rimanenze-csv">Esporta le rimanenze (CSV)</button></div></div>`;
     const b = $("btn-rimanenze-csv");
     if (b) b.onclick = () => {
-      const csv = csvRimanenze(INV, PRO);
+      const csv = csvRimanenze(INV, PRO, undefined, costo);
       const a = document.createElement("a");
       a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
       a.download = "conti_rimanenze_piazzale_" + p.inventario.data + ".csv"; marchiaCsv(a); a.click();
-      toast("Rimanenze al " + fmtD(p.inventario.data) + " esportate: valore a listino, non fiscale.");
+      toast("Rimanenze al " + fmtD(p.inventario.data) + " esportate: a listino, al costo e il minore dei due per il bilancio" + (rb.costoM3 == null ? " (il costo non si è potuto calcolare: colonne vuote)" : "") + ".");
     };
   }
   function renderScorte(tri, m3f) {

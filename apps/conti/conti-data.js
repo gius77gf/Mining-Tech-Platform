@@ -6001,14 +6001,70 @@ export function descriviVariazioneRimanenze(v) {
   return "Variazione delle rimanenze " + x.anno + ", a listino: " + (d > 0 ? "+" : d < 0 ? "−" : "") + eurTx(Math.abs(d))
     + " (da " + eurTx(x.inizio.valore) + " al " + dataIt(x.inizio.inventario.data) + " a " + eurTx(x.fine.valore) + " al " + dataIt(x.fine.inventario.data) + ").";
 }
-export const CSV_RIMANENZE_INTESTAZIONE = "inventario;data;metodo;materiale;prodotto_listino;volume_m3;densita_t_m3;tonnellate;prezzo_listino;unita_prezzo;valore_listino;nel_totale;perche";
-export function csvRimanenze(inventari, prodotti, alla) {
+/* LE RIMANENZE AL COSTO, E IL VALORE DI BILANCIO (11/09, dalla ricerca del
+   secondo giro su Conti). Il bilancio vuole il MINORE fra il costo di
+   produzione e il valore di realizzo (art. 2426 c.c., OIC 13): il listino è
+   il tetto, non il valore. Il costo unitario Conti lo sa già calcolare —
+   `costoPerMetroCubo` del periodo che finisce con l'inventario — e qui si
+   applica ai metri cubi di ogni cumulo. ⛔ Tre «non lo so» diversi, ognuno
+   con la sua ragione: il costo al m³ non calcolabile (niente volume da Terra,
+   o nessun costo registrato: uno zero €/m³ NON è un costo di produzione, è
+   un periodo senza costi scritti), il cumulo senza volume, il cumulo fuori
+   listino (senza realizzo il minore non si può dire). Il totale di bilancio
+   si fa solo sulle righe che hanno tutt'e due i valori, e dichiara su quante.
+   `costo` è il risultato di `costoPerMetroCubo` (o un oggetto con
+   `calcolabile`, `costoM3`, `motivo`); `null` = non calcolato. Pure. */
+export function rimanenzeBilancio(prospetto, costo) {
+  const p = prospetto || {};
+  const c = costo || null;
+  const costoM3 = c && c.calcolabile && Number.isFinite(+c.costoM3) && +c.costoM3 > 0 ? round2(+c.costoM3) : null;
+  const motivoCosto = costoM3 != null ? ""
+    : c == null ? "il costo al metro cubo non è stato calcolato"
+    : !c.calcolabile ? String(c.motivo || "il costo al metro cubo non si calcola")
+    : "nessun costo registrato nel periodo: un costo al metro cubo di zero non è un costo di produzione";
+  const vuoto = { leggibile: false, righe: [], costoM3, motivoCosto, valoreCosto: null, valoreBilancio: null,
+    suRighe: 0, totaleRighe: 0, alCosto: 0, alListino: 0, fuoriBilancio: [] };
+  if (!p.leggibile) return { ...vuoto, motivo: p.motivo || "prospetto non leggibile" };
+  const righe = (p.righe || []).map((r) => {
+    const vc = costoM3 != null && r.m3 != null ? round2(r.m3 * costoM3) : null;
+    let vb = null, criterio = null, perche = "";
+    if (vc == null) perche = r.m3 == null ? "volume non leggibile" : motivoCosto;
+    else if (r.valore == null) perche = r.perche + ": senza il valore di realizzo il minore non si può dire";
+    else { vb = Math.min(vc, r.valore); criterio = vc <= r.valore ? "costo" : "listino"; }
+    return { ...r, valoreCosto: vc, valoreBilancio: vb, criterio, percheBilancio: perche };
+  });
+  const conCosto = righe.filter((r) => r.valoreCosto != null), conB = righe.filter((r) => r.valoreBilancio != null);
+  return { leggibile: true, inventario: p.inventario, righe, costoM3, motivoCosto,
+    valoreCosto: conCosto.length ? round2(conCosto.reduce((t, r) => t + r.valoreCosto, 0)) : null,
+    valoreBilancio: conB.length ? round2(conB.reduce((t, r) => t + r.valoreBilancio, 0)) : null,
+    suRighe: conB.length, totaleRighe: righe.length,
+    alCosto: conB.filter((r) => r.criterio === "costo").length, alListino: conB.filter((r) => r.criterio === "listino").length,
+    fuoriBilancio: righe.filter((r) => r.valoreBilancio == null).map((r) => ({ materiale: r.materiale, perche: r.percheBilancio })) };
+}
+export function descriviRimanenzeBilancio(rb) {
+  const x = rb || {};
+  if (!x.leggibile) return "Valore di bilancio: non si può dire (" + (x.motivo || "prospetto non leggibile") + ").";
+  if (x.costoM3 == null) return "Valore di bilancio: non si può dire, perché il costo di produzione al metro cubo non c'è — " + x.motivoCosto + ". Resta il valore a listino, che è il tetto e non il valore.";
+  const n = x.totaleRighe, s = x.suRighe;
+  const testa = "Al costo di produzione di " + eurTx(x.costoM3) + "/m³ (i costi dell'anno fino all'inventario sui metri cubi misurati da Terra)";
+  if (!s) return testa + " nessun cumulo ha tutt'e due i valori: il minore fra costo e listino non si può dire" + (x.fuoriBilancio.length ? " — " + x.fuoriBilancio.map((r) => r.materiale + " (" + r.perche + ")").join(", ") : "") + ".";
+  return testa + " il valore di bilancio è " + eurTx(x.valoreBilancio) + (s === n ? "" : " su " + s + " cumuli su " + n)
+    + ": il minore fra costo e listino, cumulo per cumulo (" + x.alCosto + " al costo, " + x.alListino + " al listino)"
+    + (x.fuoriBilancio.length ? " — fuori: " + x.fuoriBilancio.map((r) => r.materiale + " (" + r.perche + ")").join(", ") : "")
+    + ". È il criterio dell'art. 2426 c.c. e dell'OIC 13; la scelta finale resta del commercialista.";
+}
+export const CSV_RIMANENZE_INTESTAZIONE = "inventario;data;metodo;materiale;prodotto_listino;volume_m3;densita_t_m3;tonnellate;prezzo_listino;unita_prezzo;valore_listino;nel_totale;perche;costo_m3;valore_costo;valore_bilancio;criterio";
+export function csvRimanenze(inventari, prodotti, alla, costo) {
   const p = prospettoRimanenze(inventari, prodotti, alla);
   let csv = CSV_RIMANENZE_INTESTAZIONE + "\n";
-  if (!p.leggibile) return csv + `;;;;;;;;;;;no;${csvCell(p.motivo)}\n`;
+  if (!p.leggibile) return csv + `;;;;;;;;;;;no;${csvCell(p.motivo)};;;;\n`;
   const num = (v) => v == null ? "" : String(v);
-  for (const r of p.righe)
-    csv += `${csvCell(p.inventario.id)};${csvCell(p.inventario.data)};${csvCell(p.inventario.metodo)};${csvCell(r.materiale)};${csvCell(r.prodotto || "")};${num(r.m3)};${num(r.densita)};${num(r.t)};${num(r.prezzo)};${csvCell(r.unitaPrezzo || "")};${num(r.valore)};${r.valore == null ? "no" : "si"};${csvCell(r.perche)}\n`;
+  /* le quattro colonne del bilancio (11/09) in coda: senza `costo` restano vuote,
+     che è «non calcolato» — non zero */
+  const rb = rimanenzeBilancio(p, costo === undefined ? null : costo);
+  rb.righe.forEach((r, k) => {
+    csv += `${csvCell(p.inventario.id)};${csvCell(p.inventario.data)};${csvCell(p.inventario.metodo)};${csvCell(r.materiale)};${csvCell(r.prodotto || "")};${num(r.m3)};${num(r.densita)};${num(r.t)};${num(r.prezzo)};${csvCell(r.unitaPrezzo || "")};${num(r.valore)};${r.valore == null ? "no" : "si"};${csvCell(r.perche)};${num(rb.costoM3)};${num(r.valoreCosto)};${num(r.valoreBilancio)};${csvCell(r.criterio || "")}\n`;
+  });
   return csv;
 }
 

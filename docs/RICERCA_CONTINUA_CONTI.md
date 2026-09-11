@@ -1395,6 +1395,10 @@ tariffa entra in una schermata; quelli qui sotto servono a decidere il delta.
   e scrive quale dei due vale per il bilancio (il minore), con `null` e la
   ragione quando il costo non si calcola; il CSV per il commercialista li
   porta tutt'e due.
+  ✅ **FATTO lo stesso giorno, unità 86**: `rimanenzeBilancio`,
+  `descriviRimanenzeBilancio`, quattro colonne in `csvRimanenze`, la pagina
+  del Report. Prova: `grep -c "export function rimanenzeBilancio"
+  apps/conti/conti-data.js` → 1.
 - **Domanda 3 — MANCA, e chiede una decisione.** Nessuna delle app ha un
   fondo di ripristino: `grep -ciE 'accantonament|fondo (rischi|oneri|ripristino)|smantellament'`
   su conti-data, conti index e terra-data → apps/conti/conti-data.js:0 apps/conti/index.html:0 apps/terra/terra-data.js:0. Terra ha la **garanzia

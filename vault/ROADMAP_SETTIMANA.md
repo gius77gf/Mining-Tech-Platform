@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;`
 - `CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
@@ -7847,8 +7846,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.362 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2881, `run-stile` 328,
+  **3.366 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2885, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9180,16 +9179,24 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   chiedono una decisione (dichiarati), date del canone già possibili come
   scadenze, registro non applicabile. Vedi `docs/RICERCA_CONTINUA_CONTI.md`,
   ricerca dell'11/09 (secondo giro).
-- [ ] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
-  dalla ricerca dell'11/09).** `prospettoRimanenze` valorizza i cumuli solo
-  al prezzo di listino; il bilancio vuole il minore fra costo di produzione e
-  realizzo. Con il costo al m³ del periodo (`costoPerMetroCubo`, che ha già il
-  suo «non calcolabile») il prospetto porta due valori per cumulo — al costo e
-  al listino — e dice quale vale (il minore), con `null` e la ragione quando
-  il costo non si calcola; CSV per il commercialista con tutt'e due; scatto.
-  Prova: `grep -cF 'valore = round2(unita === "m3" ? m3 * prezzo : t *
-  prezzo)' apps/conti/conti-data.js` → 1, ed è l'unica valorizzazione (con
-  `-F`: l'asterisco senza `-F` faceva rispondere 0).
+- [x] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
+  unità 86, 11/09).** `rimanenzeBilancio(prospetto, costo)` in `conti-data.js`:
+  per ogni cumulo il valore al costo (m³ × costo al m³ del periodo, da
+  `costoPerMetroCubo`), il valore di bilancio come minore fra costo e listino
+  con il `criterio` scritto, e tre «non lo so» distinti — costo non calcolabile
+  (con la ragione di Terra o dei costi: uno zero €/m³ non è un costo di
+  produzione), cumulo senza volume, cumulo fuori listino (senza realizzo il
+  minore non si dice); il totale di bilancio solo sulle righe che hanno tutt'e
+  due i valori, dichiarando su quante; `descriviRimanenzeBilancio` con la
+  frase per il commercialista (art. 2426 c.c., OIC 13; la scelta resta sua);
+  `csvRimanenze` con quattro colonne in coda (`costo_m3;valore_costo;
+  valore_bilancio;criterio`, vuote senza costo). La pagina (Report): due
+  colonne «al costo» e «bilancio» con il badge del criterio, la frase sotto la
+  tabella, il costo dell'anno dell'inventario sui rilievi di Terra caricati
+  una volta sola (prima che arrivino: listino e poi ridisegno, mai zero), CSV
+  e toast. Scatto guardato a 430 px (dimostrazione: 8,62 €/m³, 2 cumuli a
+  bilancio su 3, la sabbia senza volume fuori con la ragione). Prove: run-kpi
+  +4 (2885), copertura Conti 200/200.
 - [ ] **CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (dalla ricerca dell'11/09).**
   `canonePeriodo` moltiplica ogni riga per prodotto per la stessa aliquota
   dell'organizzazione; il mondo tariffa per tipo di materiale e metodo. Sul
