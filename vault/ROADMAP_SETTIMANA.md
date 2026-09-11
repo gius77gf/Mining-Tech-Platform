@@ -2905,6 +2905,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9031,6 +9032,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   Prove: run-kpi +4 (2863), genesi-data 115 → **120**; il censimento di
   `genesi-estraibili` passa da 152 a **151** funzioni nella pagina (56 su 151
   estraibili, 49 a una o due variabili), aggiornato in DEVELOPMENT.
+- [x] **RICERCA A ROTAZIONE, TERRA — LO SCAVO CONFRONTATO CON IL PROGETTO:
+  CHE COSA CONTROLLA L'ENTE, CHE COSA VENDONO I SOFTWARE (11/09):** metà sul
+  mondo con `WebSearch` (dieci fonti, tutte di seconda mano): in Italia la
+  vigilanza sul progetto approvato è del Comune e la polizia mineraria fa i
+  sopralluoghi e le sanzioni; il piano di coltivazione è per fasi/lotti con
+  cronoprogramma per anno e sezioni 1:500; i software (Propeller) sovrappongono
+  il disegno del pit all'ultimo rilievo per altezze dei banchi, angoli di
+  faccia e avanzamento, e le guide legano la geometria alla stabilità. Delta
+  dal MECCANISMO: quota di fondo, volume del lotto e lotto non ancora aperto
+  **ci sono** in `conformitaProgetto` — e la riga «Pit progression» di
+  `CONCORRENTI_TERRA` era **scaduta** (diceva che nessuna funzione confronta
+  lo scavo col progetto): corretta con la prova; la **geometria dei banchi**
+  manca (7 e 2 occorrenze, tutte testi) → voce aperta qui sotto; il
+  **perimetro** è assente e chiede una decisione (geometrie, non numeri):
+  dichiarato, non aperto.
+- [ ] **TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO (dalla ricerca a
+  rotazione dell'11/09).** Sul lotto (o sull'atto) `altezzaBancoMaxM` e
+  `pendenzaMaxGradi` dichiarati dall'utente dal progetto — niente valori
+  nostri, sono materia regionale e di progetto —, sul fronte `altezzaBancoM`
+  e `pendenzaGradi` dal rilievo, e un verdetto nella forma di
+  `statoConformitaQuota` (dentro / al-limite / oltre / non-misurabile) con il
+  conto dei non misurabili, dentro `conformitaProgetto` come quarto asse.
+  Prove in run-kpi; la riga del fronte nella pagina; mappa dei badge
+  coerente (regola 18). Prova che manca: `grep -ciE 'pendenza|scarpat|altezza
+  (del )?banco' apps/terra/terra-data.js apps/terra/index.html` → 7 e 2,
+  tutte in testi. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va

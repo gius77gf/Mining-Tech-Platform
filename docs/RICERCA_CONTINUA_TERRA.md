@@ -691,3 +691,124 @@ garanzia per lotto scritta dall'utente e sommata sui non collaudati
 `grep -c "collaudoChiestoIl" apps/terra/terra-data.js` → 5;
 `grep -n "^export function \(attesaCollaudo\|garanziaVincolata\|relazioneLotto\)" apps/terra/terra-data.js`
 → 3 righe.*
+
+## Ricerca del 2026-09-11 — lo scavo confrontato con il progetto: che cosa controlla l'ente, che cosa vendono i software (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto viene da un risultato di ricerca
+ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata; le regole restano regionali e le imposta l'utente.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **Chi controlla che lo scavo stia dentro il progetto, in Italia.** Le pagine
+  di Province e Regioni (Lecco, Vicenza, Novara, Piemonte, Città metropolitana
+  di Milano): la vigilanza **amministrativa** sul rispetto del progetto
+  approvato spetta al **Comune**; la **polizia mineraria** (Provincia/Regione)
+  fa i sopralluoghi in cava, accerta le infrazioni, notifica le sanzioni, e
+  vigila su esplosivi, attrezzature e sicurezza dei lavoratori. L'autorizzazione
+  è il progetto esecutivo approvato «in conformità al piano d'area». [seconda
+  mano]
+- **Che cosa è un piano di coltivazione, e a che scala.** Dalle linee guida
+  regionali (Valle d'Aosta) e dai progetti depositati (Sardegna, Toano, Vazzano):
+  la coltivazione avviene **per fasi/lotti** con durata fissata nel decreto, con
+  un **cronoprogramma per anno** (preparazione, opere, estrazione, recupero),
+  **planimetrie e sezioni in scala 1:500** che mostrano le fasi, e — nei
+  pluriennali — un **volume commerciabile annuo per lotto** (un esempio citato:
+  ~50.000 m³/anno). Il recupero è progressivo e i lotti si chiudono in un
+  ordine dichiarato. [seconda mano]
+- **Che cosa vendono i software per il «progetto contro il rilevato».**
+  Propeller: si importa il **disegno del pit** (KML/DXF) e lo si sovrappone
+  all'ultimo rilievo per controllare **altezze dei banchi, angoli di faccia e
+  avanzamento** rispetto alla specifica, e per dire quanto materiale manca al
+  disegno; il confronto fra la superficie attuale e quella di progetto è la
+  misura dell'avanzamento. Le guide dei rilevatori (Angell, AAI, HireDronePilot)
+  aggiungono la ragione geotecnica: **banchi troppo stretti, scarpate troppo
+  ripide, creste scavate oltre il limite** non sono solo un problema di
+  conformità, sono un rischio di instabilità «che cresce piano e cede di
+  colpo». [seconda mano, siti dei produttori e dei fornitori]
+- **Quindi gli assi del confronto, fuori, sono quattro**: la **quota di
+  fondo** (verticale), il **perimetro/limite di scavo** (orizzontale), la
+  **geometria dei banchi** (altezza, larghezza, angolo di scarpata) e il
+  **volume per lotto e per anno** contro il cronoprogramma. [deduzione dalle
+  tre righe sopra]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Città metropolitana di Milano, *Polizia mineraria* —
+  https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria
+- Regione Piemonte, *Polizia mineraria* —
+  https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/polizia-mineraria
+- Provincia di Novara, *Attività estrattive — vigilanza e polizia mineraria* —
+  https://www.provincia.novara.it/Ambiente/DifesaSuolo/AttivitaEstrattive/vigilanza.php
+- Provincia di Lecco, *Suolo, cave e bonifiche* —
+  https://www.provincia.lecco.it/elemento-amministrazione/ufficio-suolo-e-cave/
+- Regione Valle d'Aosta, *Linee guida sulla documentazione da presentare* —
+  https://www.regione.vda.it/allegato.aspx?pk=44927
+- Regione Valle d'Aosta, *Piano di coltivazione di cava* (progetto VIA) —
+  https://www.regione.vda.it/territorio/allegati/progetti_via_1259_27_D.PCC%20Piano%20di%20Coltivazione%20di%20Cava.pdf
+- Comune di Toano, *Piano di coltivazione e progetto di sistemazione* —
+  https://www.comune.toano.re.it/wp-content/uploads/R2.1_PSC_Fora-di-Cavola_Progetto.pdf
+- Propeller, *Quarry surveying software* —
+  https://www.propelleraero.com/aggregatess/
+- Propeller, *How to use drone survey data on your quarry* —
+  https://www.propelleraero.com/blog/how-to-use-drone-survey-data-on-your-quarry/
+- Angell Surveys, *Drone mining & quarry survey guide* —
+  https://angellsurveys.com/insights/drone-mining-quarry-survey-volumetrics-guide/
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi confronta lo scavo con la **quota di fondo** del progetto, e per
+   quale unità (fronte, lotto, atto)?
+2. Chi confronta il **volume** scavato con quello previsto dal lotto e
+   dall'anno?
+3. Chi sa se un lotto è stato scavato **prima di essere aperto** dal
+   cronoprogramma?
+4. Chi confronta la **geometria del banco** (altezza, angolo di scarpata) con
+   il progetto?
+5. Chi confronta il **perimetro** dello scavo con il limite autorizzato?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `3778e399`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Domande 1, 2 e 3 — CI SONO, in una funzione sola**, e la riga «Pit
+  progression monitoring» di `CONCORRENTI_TERRA` era **scaduta**: diceva
+  «nessuna delle due confronta lo scavo con una geometria di progetto», ed è
+  la seconda forma d'invecchiamento (vera quando scritta, poi colmata).
+  `conformitaProgetto(fronti, lotti, rilievi, autorizzazione)` (`terra-data.js`)
+  giudica **tre assi**: più giù del fondo autorizzato (`conformitaQuota` →
+  `fondoAutorizzato`, che prende la quota di fondo dal lotto o, se manca,
+  dall'atto, e la dichiara «non misurabile» senza inventare uno zero;
+  `statoConformitaQuota` → oltre / al-limite / dentro / non-misurabile, senza
+  soglie di guardia inventate), più di quanto il lotto prevede
+  (`avanzamentoLotto`), e in un lotto che il progetto non ha ancora aperto; e
+  restituisce sempre il conto dei non misurabili sui tre assi. La pagina la
+  chiama sul Titolo (`grep -c 'conformitaProgetto(' apps/terra/index.html` →
+  **1**), e la dimostrazione ha una quota di fondo sul lotto (335) e una
+  sull'atto (300): `grep -c 'quotaFondoM:' apps/terra/terra-data.js` → **2**
+  nei dati. Il volume per anno contro il cronoprogramma è la denuncia annuale
+  (`riepilogoAnnuale`). **Riga di `CONCORRENTI_TERRA` corretta oggi.**
+- **Domanda 4 — MANCA, ed è del mestiere.** I fronti hanno `quota` e `banco`
+  ma nessuna geometria: `grep -ciE 'pendenza|scarpat|altezza (del )?banco|angolo'
+  apps/terra/terra-data.js apps/terra/index.html` → **7 e 2**, e le
+  occorrenze sono **tutte testi** («Verifica stabilità scarpata» nel
+  dettaglio di un fronte, «rimodellamento delle scarpate» nella nota di un
+  lotto): nessun campo, nessun confronto. È l'asse che Propeller vende
+  («altezze dei banchi, angoli di faccia contro la specifica») e quello che
+  le guide legano alla stabilità. **Delta concreto, candidato**: sul lotto
+  (o sull'atto) `altezzaBancoMaxM` e `pendenzaMaxGradi` **dichiarati
+  dall'utente** dal progetto (niente valori nostri: sono materia regionale e
+  di progetto), sul fronte `altezzaBancoM` e `pendenzaGradi` misurati dal
+  rilievo, e un verdetto nella stessa forma di `statoConformitaQuota` —
+  dentro / al-limite / oltre / non-misurabile — con il conto dei non
+  misurabili. Genesi conosce già l'altezza del banco della volata (`H`):
+  un ponte, non un rifacimento. In roadmap come voce aperta.
+- **Domanda 5 — ASSENTE, e chiede una decisione.** `grep -ciE 'fascia di
+  rispetto|perimetr'` → **0 e 0** in tutt'e due i file. Confrontare il
+  perimetro dello scavo con il limite autorizzato vuol dire avere una
+  geometria (un poligono dell'area autorizzata e il contorno del rilievo),
+  cioè entrare nel dominio dei DEM e delle ortofoto che Terra oggi riceve
+  come **numeri** (il volume del rilievo), non come superfici. Non è un
+  campo in più: è una decisione di prodotto (Terra legge file geometrici?).
+  Dichiarato, non aperto.
