@@ -23306,7 +23306,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 35, "i siti di export CSV censiti nelle quattro app")   // ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 36, "i siti di export CSV censiti nelle quattro app")   // 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 
@@ -25425,6 +25425,39 @@ console.log("\n— Campo: i file che escono —");
     ok(rd.ics.replace(/\r\n /g, "").includes("DESCRIPTION:[DATI DI ESEMPIO — modalità tour (demo). Queste scadenze non riguardano nessuna persona reale.]\\nVisita medica periodica\\nOggi: scaduta da 71 gg"), "e la descrizione lo dice per prima cosa, prima dello stato");
     ok(rd.ics.includes("X-DEEPWORK-AVVISO:[DATI DI ESEMPIO"), "e resta scritto per esteso in testa al file");
     eq(rd.inclusi, r.inclusi, "l'avviso non cambia quanti eventi entrano");
+  });
+  test("⛔ Flotta · calendarioMezzi: le scadenze di legge e i tagliandi CON una data entrano, quelli a sole ore restano fuori e si contano", () => {
+    const D = flotta.DEMO;
+    const r = flotta.calendarioMezzi(D.scadenze, D.manutenzioni, new Date("2026-09-11T10:00:00"), "2026-09-11T02:00:00Z");
+    const conData = D.manutenzioni.filter((n) => shell.dataISOEsiste(String(n.dataPrevista || "").slice(0, 10))).length;
+    const aOre = D.manutenzioni.filter((n) => !shell.dataISOEsiste(String(n.dataPrevista || "").slice(0, 10)) && +n.orePreviste > 0).length;
+    eq(r.inclusi, D.scadenze.length + conData, "tre scadenze di legge e i tagliandi che hanno una data");
+    eq(r.tagliandiAOre, aOre, "i tagliandi a sole ore sono contati, non nascosti");
+    ok(aOre >= 2, "e la dimostrazione ne ha davvero (n1, n5, n6): il caso è esercitato");
+    eq(r.senzaData, [], "nella dimostrazione niente resta fuori senza spiegazione");
+    ok(r.ics.includes("SUMMARY:Verifica periodica · Escavatore E1"), "il titolo è tipo e mezzo");
+    ok(r.ics.includes("SUMMARY:Rotazione gomme · Dumper D1"), "il tagliando a data è un evento");
+    ok(!/Tagliando 500h/.test(r.ics), "il tagliando a sole ore NON è in agenda");
+    ok(r.ics.includes("UID:flotta-scadenza-sc1@deepwork") && r.ics.includes("UID:flotta-tagliando-n2@deepwork"), "UID dall'id, per tipo: reimportare aggiorna, non raddoppia");
+    ok(r.ics.replace(/\r\n /g, "").includes("DESCRIPTION:Documento: verbale ASL 2025/118\\nOggi: scaduta da 63 gg"), "la descrizione porta il documento e lo stato di oggi con le parole del semaforo");
+    ok(r.ics.includes("TRIGGER:-P30D") && r.ics.includes("TRIGGER:-P7D"), "avvisi al preavviso dello scadenzario (30) e a 7 giorni");
+    eq(r.preavvisi, [30, 7]);
+    // il preavviso è quello scelto nello scadenzario; a 7 non si raddoppia
+    eq(flotta.calendarioMezzi(D.scadenze, [], new Date("2026-09-11"), "2026-09-11T02:00:00Z", "", 60).preavvisi, [60, 7]);
+    eq(flotta.calendarioMezzi(D.scadenze, [], new Date("2026-09-11"), "2026-09-11T02:00:00Z", "", 7).preavvisi, [7]);
+    eq(flotta.calendarioMezzi(D.scadenze, [], new Date("2026-09-11"), "2026-09-11T02:00:00Z", "", "boh").preavvisi, [30, 7], "un preavviso illeggibile ricade sul 30");
+    // senza data: nominata e contata, mai inventata
+    const r2 = flotta.calendarioMezzi([{ id: "x", mezzo: "Pala P1", tipo: "Revisione", dataScadenza: "2026-02-30" }], [{ id: "y", titolo: "Grasso", mezzo: "Dumper D1", dataPrevista: null }], new Date("2026-09-11"), "2026-09-11T02:00:00Z");
+    eq([r2.inclusi, r2.saltati, r2.senzaData, r2.tagliandiAOre], [0, 2, ["Revisione · Pala P1", "Grasso · Dumper D1"], 0], "il 30 febbraio e il tagliando senza data né ore sono fuori e nominati");
+    // il tagliando con TUTT'E DUE (data e ore) entra per la data e lo dice
+    const r3 = flotta.calendarioMezzi([], [{ id: "e", titolo: "Tagliando", mezzo: "Escavatore E1", dataPrevista: "2026-10-01", orePreviste: 6000 }], new Date("2026-09-11"), "2026-09-11T02:00:00Z");
+    ok(r3.inclusi === 1 && r3.ics.replace(/\r\n /g, "").includes("Anche a ore: 6000 h del contatore\\, la prima delle due\\nOggi: tra 20 gg"), "entra per la data e la descrizione dice che comanda la prima delle due");
+    // l'avviso della dimostrazione entra nel file (il nome si perde all'importazione)
+    const rd = flotta.calendarioMezzi(D.scadenze, D.manutenzioni, new Date("2026-09-11"), "2026-09-11T02:00:00Z", "[DATI DI ESEMPIO — modalità tour (demo).]\n\n");
+    ok(rd.ics.includes("X-WR-CALNAME:DATI DI ESEMPIO · Scadenze e tagliandi dei mezzi (Flotta)"), "il nome del calendario lo dichiara");
+    eq((rd.ics.match(/^SUMMARY:\[DATI DI ESEMPIO\] /gm) || []).length, rd.inclusi, "OGNI titolo lo dichiara");
+    ok(!/DATI DI ESEMPIO/.test(r.ics), "e senza avviso non ne resta traccia");
+    eq(flotta.calendarioMezzi(D.scadenze, D.manutenzioni, new Date("2026-09-11"), "2026-09-11T02:00:00Z").ics, r.ics, "riproducibile");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro

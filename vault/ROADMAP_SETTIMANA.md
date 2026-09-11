@@ -713,6 +713,30 @@
   OGNI titolo deve dichiarare (26/26); in `--live` non ne resta traccia in
   nessun punto del file (0/26); in controprova il rosso viene dal nome.
   Misurato nei tre modi: 39 ok · 39 ok · 6 KO voluti.
+- [x] **FLOTTA — IL CALENDARIO DEI MEZZI (.ics), SECONDA APP SUL COMPOSITORE
+  CONDIVISO (11/09):** `calendarioMezzi(scadenze, manutenzioni, oggi, adesso,
+  avvisoEsempio, preavvisoGiorni)` in `flotta-data.js`, sopra `icsCalendario`
+  di `shared/`: un evento per scadenza di legge (tipo e mezzo nel titolo, il
+  documento e lo stato di oggi con le parole del semaforo nella descrizione,
+  `UID flotta-scadenza-<id>`) e uno per ogni tagliando CON UNA DATA
+  (`flotta-tagliando-<id>`; se ha anche le ore la descrizione dice «la prima
+  delle due»). ⛔ **I tagliandi a sole ore restano FUORI e si contano**: la
+  loro scadenza la dice il contatore, e una data stimata dal ritmo di lavoro
+  non è una scadenza — in agenda entrerebbe con la faccia di una data certa
+  (nella dimostrazione: 6 eventi dentro, 3 a sole ore fuori, detti nella
+  frase). Gli avvisi sono al preavviso scelto nello scadenzario e a 7 giorni
+  (a 7 non si raddoppia; un preavviso illeggibile ricade sul 30). Bottone
+  «Calendario (.ics)» accanto all'export CSV delle scadenze; la pagina passa
+  l'avviso della dimostrazione da `avvisoTestoDimostrazione(modoDimostrazione
+  (db.mode), …)` — Flotta lo importa da oggi. Sonda a 320 px: file
+  «DATI-DI-ESEMPIO_flotta-scadenze-mezzi.ics», calendario «DATI DI ESEMPIO ·
+  Scadenze e tagliandi dei mezzi (Flotta)», 0 errori, scatto guardato (i due
+  bottoni si impilano sotto il modulo, come nel core). Prove: run-kpi +1
+  (2855; il pin degli export «nelle quattro app» 35 → **36**, con la ragione:
+  Flotta è fra le quattro, Scudo no), `documenti-dimostrazione` 137,
+  copertura 942/942 (Flotta 136 → **137**); il banco `csv-dimostrazione` sul
+  `.ics` di Flotta nei tre modi. Restano Sentinella (adempimenti) e Terra
+  (autorizzazioni), un'app per unità.
 - [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
   — la dimostrazione non ha un tagliando con ore E data (di proposito: le
   prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
@@ -7751,8 +7775,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.335 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2854, `run-stile` 328,
+  **3.336 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2855, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

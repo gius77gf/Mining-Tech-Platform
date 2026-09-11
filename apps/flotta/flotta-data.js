@@ -91,7 +91,7 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
-         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura, mappaColonne } from "../../shared/deepwork-id-client/dw-shell.js";
+         AVVISO_MIGLIAIA as AVVISO_MIGLIAIA_SHELL, perLettura, mappaColonne, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 
 // Data di oggi in formato ISO (aaaa-mm-gg) nel fuso dell'utente: la stessa
 // che scrive l'app quando registra la fotografia del giorno.
@@ -4526,4 +4526,48 @@ export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), 
   if (st.litriOra == null) return { ...out, perche: "nella storia " + st.perche };
   const forbice = Math.round((100 * (rc.litriOra - st.litriOra)) / st.litriOra * 10) / 10;
   return { ...out, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
+}
+
+// ============================================================
+// IL CALENDARIO DEI MEZZI (.ics) — 11/09, dal calendario di Scudo
+// Un file che Google Calendar, Outlook e il telefono importano: un evento per
+// scadenza di legge (verifica periodica, revisione, funi…) e uno per ogni
+// tagliando che ha una DATA. I tagliandi a sole ore restano fuori e si
+// contano: la loro scadenza la dice il contatore, non il calendario, e una
+// data stimata dal ritmo di lavoro non è una scadenza — è una previsione, e
+// in agenda entrerebbe con la faccia di una data certa. Il compositore è
+// quello condiviso (`icsCalendario`): qui si decide solo che cosa entra e con
+// quali parole. `avvisoEsempio` lo passa la pagina, che sa in che modo gira:
+// all'importazione il nome del file si perde, quindi l'avviso deve stare nel
+// contenuto.
+export function calendarioMezzi(scadenze, manutenzioni, oggi = new Date(), adesso, avvisoEsempio, preavvisoGiorni = 30) {
+  const eventi = [], senzaData = [];
+  let aOre = 0;
+  const pre = +preavvisoGiorni > 0 ? Math.round(+preavvisoGiorni) : 30;
+  const preavvisi = pre === 7 ? [7] : [pre, 7];
+  for (const s of scadenze || []) {
+    if (!s) continue;
+    const data = isoGiorno(s.dataScadenza);
+    const mezzo = nomeBreve(s.mezzo) || "mezzo";
+    if (!data) { senzaData.push((s.tipo || "Scadenza") + " · " + mezzo); continue; }
+    const st = statoScadenzaMezzo(data, oggi, pre);
+    eventi.push({ uid: "flotta-scadenza-" + (s.id || (data + "-" + eventi.length)), data,
+      titolo: (s.tipo || "Scadenza") + " · " + mezzo,
+      descrizione: [s.documento ? "Documento: " + s.documento : "", s.note || "", "Oggi: " + st.label, "Da Flotta, scadenze di legge dei mezzi"].filter(Boolean).join("\n"),
+      preavvisiGiorni: preavvisi });
+  }
+  for (const n of manutenzioni || []) {
+    if (!n) continue;
+    const data = isoGiorno(n.dataPrevista);
+    if (!data) { if (+n.orePreviste > 0) aOre++; else senzaData.push((n.titolo || "Manutenzione") + " · " + (nomeBreve(n.mezzo) || "mezzo")); continue; }
+    const g = giorniTra(data, oggi);
+    eventi.push({ uid: "flotta-tagliando-" + (n.id || (data + "-" + eventi.length)), data,
+      titolo: (n.titolo || "Manutenzione") + " · " + (nomeBreve(n.mezzo) || "mezzo"),
+      descrizione: [+n.orePreviste > 0 ? "Anche a ore: " + n.orePreviste + " h del contatore, la prima delle due" : "",
+        g == null ? "" : g < 0 ? "Oggi: in ritardo di " + (-g) + " gg" : g === 0 ? "Oggi: è per oggi" : "Oggi: tra " + g + " gg",
+        "Da Flotta, officina"].filter(Boolean).join("\n"),
+      preavvisiGiorni: preavvisi });
+  }
+  const r = icsCalendario(eventi, { app: "Flotta", adesso, nome: "Scadenze e tagliandi dei mezzi (Flotta)", esempio: avvisoEsempio });
+  return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData, tagliandiAOre: aOre, preavvisi };
 }

@@ -1129,7 +1129,10 @@ body.dw b.bad{color:var(--ink-dg)}
     </div>
   </div>
   <div class="note esito" id="sca-esito"></div>
-  <div class="tools"><button class="dw-btn secondary" id="btn-sca-csv">Esporta scadenze (CSV)</button></div>
+  <div class="tools">
+    <button class="dw-btn secondary" id="btn-sca-csv">Esporta scadenze (CSV)</button>
+    <button class="dw-btn secondary" id="btn-sca-ics" title="Un file che Google Calendar, Outlook e il calendario del telefono importano: un evento per scadenza di legge e per ogni tagliando con una data, con l'avviso prima">Calendario (.ics)</button>
+  </div>
   <div class="note">La periodicità proposta è solo un punto di partenza: <b>puoi sempre cambiarla</b>, perché cambia da attrezzatura ad attrezzatura e da cantiere a cantiere. I riferimenti di legge sono un'informazione, <b>non una consulenza legale</b>: verificali con il tuo consulente o con l'RSPP.</div>
   <div class="note">Flotta ti <i>ricorda</i> le scadenze e conserva la storia, ma <b>non sostituisce</b> il libretto ufficiale della macchina né i verbali dell'ente che fa la verifica. Le abilitazioni delle <i>persone</i> (patentini, corsi) si gestiscono in Scudo.</div>
 </div>
@@ -1361,7 +1364,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, calendarioMezzi, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -1385,7 +1388,7 @@ body.dw b.bad{color:var(--ink-dg)}
   /* B8 (14/08): `fileDiAltraTabella` risponde «questa prima riga e'
      l'intestazione di un'ALTRA nostra tabella?». E' l'unica domanda possibile,
      perche' il file SENZA intestazione deve continuare a entrare. */
-  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, dataISOEsiste, nomeCsvDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva} from "../../shared/deepwork-id-client/dw-shell.js";
+  import { mountExit, esc, csvCell, statoVuoto, senzaDoppioni, numIt, montaGuardiaInteri, avvolgiUnita, euro, conEuro, oggiISO, dataIt, dataISOEsiste, nomeCsvDimostrazione, plurale, conta, frasePersi, fileDiAltraTabella, fraseFileAltrui, avvisaSeNonSalva, modoDimostrazione, avvisoTestoDimostrazione} from "../../shared/deepwork-id-client/dw-shell.js";
   // gli agganci della struttura condivisa (modale con Escape, riquadri da
   // tastiera, alone che segue il mouse). Va chiamato QUI e non nel blocco
   // classico in linea: i moduli girano dopo gli script `defer`.
@@ -4394,6 +4397,23 @@ body.dw b.bad{color:var(--ink-dg)}
     const scoperti = mezziSenzaScadenze(SCA, MEZ);
     esito("sca-esito", plurale(SCA.length, "Esportata ", "Esportate ") + conta(SCA.length, "scadenza", "scadenze") + " (CSV)"
       + (scoperti.length ? ", più " + scoperti.length + (scoperti.length === 1 ? " mezzo senza nessuna scadenza registrata" : " mezzi senza nessuna scadenza registrata") + ": nel foglio ci sono, marcati «nessuna registrata»." : "."), "success");
+  };
+  $("btn-sca-ics").onclick = () => {
+    /* IL CALENDARIO (.ics), 11/09: le scadenze di legge e i tagliandi con una
+       data, con l'avviso al preavviso dello scadenzario e a 7 giorni. Che cosa
+       entra lo decide il modulo; la riga dei dati di esempio la decide la
+       pagina, che sa in che modo sta girando — e nel calendario deve
+       entrare, perché all'importazione il nome del file si perde. */
+    const r = calendarioMezzi(SCA, MAN, new Date(), undefined,
+      avvisoTestoDimostrazione(modoDimostrazione(db.mode), "Questi mezzi e queste scadenze non sono di un'azienda vera."), preavvisoSca);
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
+    a.download = "flotta-scadenze-mezzi.ics"; marchiaCsv(a); a.click();
+    const fuori = [];
+    if (r.senzaData.length) fuori.push(plurale(r.senzaData.length, "una senza data resta fuori", r.senzaData.length + " senza data restano fuori") + " (" + r.senzaData.slice(0, 3).join(", ") + ")");
+    if (r.tagliandiAOre) fuori.push(plurale(r.tagliandiAOre, "un tagliando a sole ore resta fuori: la sua scadenza la dice il contatore", r.tagliandiAOre + " tagliandi a sole ore restano fuori: la loro scadenza la dice il contatore"));
+    esito("sca-esito", "Calendario esportato: " + plurale(r.inclusi, "un evento", r.inclusi + " eventi") + " con l'avviso a " + r.preavvisi.join(" e a ") + " giorni"
+      + (fuori.length ? "; " + fuori.join("; ") : "") + ".", fuori.length ? "warn" : "success");
   };
   // La data della spesa parte da OGGI: è quasi sempre giusta e non fa perdere
   // un secondo a chi registra. Si può cambiare, e si può anche svuotare — in

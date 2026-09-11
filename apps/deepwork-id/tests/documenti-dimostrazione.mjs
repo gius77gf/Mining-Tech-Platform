@@ -117,6 +117,7 @@ const doc = (a, nome, f) => DOC.push({ app: a, nome, f });
   doc("flotta", "csvListaDellaSpesa", () => flotta.csvListaDellaSpesa(flotta.propostaScorte(D.ricambi, D.interventi, {})));
   doc("flotta", "csvFermiMacchina", () => flotta.csvFermiMacchina(D.fermi, OGGI));
   doc("flotta", "csvBudget", () => flotta.csvBudget(flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI)));
+  doc("flotta", "calendarioMezzi", () => flotta.calendarioMezzi(D.scadenze, D.manutenzioni, OGGI, "2026-09-11T02:00:00Z").ics);
   for (const m of D.mezzi) doc("flotta", "csvLibretto " + (m.id || m.nome), () => flotta.csvLibretto(m, { manutenzioni: D.manutenzioni, interventi: D.interventi, scadenze: D.scadenze, controlli: D.controlli, rifornimenti: D.rifornimenti, fermi: D.fermi }, OGGI, 30));
 }
 { // SENTINELLA
