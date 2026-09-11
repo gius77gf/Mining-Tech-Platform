@@ -1102,6 +1102,10 @@ una schermata; quelli qui sotto servono a decidere il delta.
   scrive la data a mano, come per ogni scadenza. **Mancanza confermata,
   piccola e aperta**: la data di messa in servizio sul mezzo e un preset
   «prima verifica» a **giorni** (60) da quella data, non a mesi.
+  ✅ **FATTO lo stesso giorno, unità 89**: `messaInServizio` sul mezzo,
+  preset `prima-verifica` a 60 giorni, `primaVerificaDa`/`scadenzaDaPreset`,
+  la proposta nella pagina, la nota dell'assicurazione. Prova: `grep -c
+  'chiave: "prima-verifica"' apps/flotta/flotta-data.js` → 1.
 - **Domanda 3 — C'È.** Il preset `assicurazione` (→ 1) a 12 mesi con la
   data della polizza. Il mondo aggiunge una cosa che la nota non dice: l'RCA
   vale **anche per il mezzo che non esce mai dalla cava**. **Delta di testo**,

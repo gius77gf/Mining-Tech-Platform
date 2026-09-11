@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (dalla ricerca`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7846,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.368 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2887, `run-stile` 328,
+  **3.370 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2889, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9190,15 +9189,22 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   revisione C'È e lo stato dell'obbligo non si scrive, identità del mezzo e
   sinistro MANCANO e chiedono una decisione (dichiarati). Vedi
   `docs/RICERCA_CONTINUA_FLOTTA.md`, ricerca dell'11/09 (secondo giro).
-- [ ] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (dalla ricerca
-  dell'11/09).** Sul mezzo la data di messa in servizio (facoltativa); in
-  `SCADENZE_MEZZO_PRESET` un preset «prima verifica» che scade a **60
-  giorni** da quella data (i preset oggi ragionano a mesi: serve `giorni`
-  accanto a `mesi`, letto da `presetScadenzaMezzo` e da chi propone la
-  scadenza); nella nota dell'assicurazione la frase «vale anche per il mezzo
-  che non esce mai dalla cava» (senza numero di legge); prove in run-kpi;
-  scatto. Prova: `grep -ciE 'messaInServizio' apps/flotta/flotta-data.js
-  apps/flotta/index.html` → 0 e 0.
+- [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
+  Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
+  modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel
+  libretto); in `SCADENZE_MEZZO_PRESET` il preset `prima-verifica` a **60
+  giorni** (`giorni` accanto a `mesi`, non ricorrente, con la norma e la nota
+  che dicono chi la fa e da quando si conta); `primaVerificaDa` (in UTC, un
+  30/02 risponde `null` invece di scorrere a marzo) e `scadenzaDaPreset` (a
+  mesi per le ricorrenti con la stessa regola della chiusura, a giorni per la
+  prima verifica, `null` per un preset senza passo — non «oggi»); nel modulo
+  delle scadenze la data si propone dal mezzo scelto e, se il mezzo non la
+  dichiara, il campo si svuota e la nota dice dove scriverla (una data proposta
+  per un altro mezzo lasciata lì sarebbe la scadenza sbagliata di questo); la
+  nota dell'assicurazione dice che vale anche per il mezzo che non esce mai
+  dalla cava, senza numero di legge. Dimostrazione: la Perforatrice P2 in
+  servizio dal 25/08 → proposta 24/10. Scatti guardati a 430 px. Prove: run-kpi
+  +2 (2889), copertura Flotta 139/139.
 - [x] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
   unità 86, 11/09).** `rimanenzeBilancio(prospetto, costo)` in `conti-data.js`:
   per ogni cumulo il valore al costo (m³ × costo al m³ del periodo, da

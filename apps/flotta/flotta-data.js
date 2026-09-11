@@ -222,7 +222,9 @@ export const DEMO = {
     { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo", tipo: "escavatore" },
     { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo", tipo: "dumper" },
     { id: "m4", nome: "Dumper D3 — CAT 745", ore: 9105, area: "officina", stato: "fermo", tipo: "dumper" },
-    { id: "m5", nome: "Perforatrice P2 — Epiroc", ore: 2980, area: "fronte Est", stato: "verifica", tipo: "perforatrice" },
+    /* m5 porta la data di messa in servizio (11/09): è il dato da cui si propone
+       la prima verifica, e la riga del parco lo scrive */
+    { id: "m5", nome: "Perforatrice P2 — Epiroc", ore: 2980, area: "fronte Est", stato: "verifica", tipo: "perforatrice", messaInServizio: "2026-08-25" },
     // m6 di proposito SENZA `tipo`: è un mezzo registrato prima che il campo
     // esistesse. Il tipo si indovina dal nome («Pala») e la checklist del
     // giro macchina funziona lo stesso, senza scrivere niente di finto.
@@ -476,7 +478,17 @@ export const SCADENZE_MEZZO_PRESET = [
   { chiave: "assicurazione", tipo: "Assicurazione", mesi: 12,
     etichetta: "Assicurazione / polizza RC del mezzo",
     norma: "obbligo assicurativo del mezzo",
-    nota: "La data la trovi sulla polizza: metti qui la scadenza concordata con l'assicurazione." },
+    nota: "La data la trovi sulla polizza: metti qui la scadenza concordata con l'assicurazione. Vale anche per il mezzo che non esce mai dalla cava: l'obbligo segue l'uso del veicolo, non la strada." },
+  /* LA PRIMA VERIFICA (11/09, dalla ricerca del secondo giro): per gli apparecchi
+     di sollevamento il datore di lavoro chiede la prima verifica ENTRO 60 GIORNI
+     dalla messa in servizio, e la fa l'INAIL. Non è ricorrente (`mesi: null`) e
+     non si conta a mesi: `giorni` da una data che sta sul MEZZO
+     (`messaInServizio`), non nella scadenza — è `scadenzaDaPreset` a fare il
+     conto, e la pagina la propone quando il mezzo la dichiara. */
+  { chiave: "prima-verifica", tipo: "Prima verifica", mesi: null, giorni: 60,
+    etichetta: "Prima verifica dell'attrezzatura (entro 60 giorni dalla messa in servizio)",
+    norma: "D.Lgs. 81/2008, art. 71 c.11 — prima verifica periodica",
+    nota: "Per gli apparecchi di sollevamento (gru su autocarro, autogrù, carrelli a braccio telescopico, piattaforme) la prima verifica si chiede all'INAIL entro 60 giorni dalla messa in servizio; le successive sono la «Verifica periodica». Scrivi la data di messa in servizio sul mezzo e la scadenza si propone da sola." },
   { chiave: "sorveglianza-cava", tipo: "Sorveglianza cava", mesi: 12,
     etichetta: "Sorveglianza macchine e impianti in cava",
     norma: "D.P.R. 128/1959 — polizia delle miniere e delle cave",
@@ -497,6 +509,27 @@ export const SCADENZE_MEZZO_PRESET = [
 // Preset con quella chiave (o null se non esiste). Pura e testabile.
 export function presetScadenzaMezzo(chiave) {
   return SCADENZE_MEZZO_PRESET.find(p => p.chiave === chiave) || null;
+}
+
+/* LA SCADENZA PROPOSTA DA UN PRESET (11/09): a MESI dalla data di partenza per
+   le ricorrenti (`aggiungiMesi`, la stessa regola della chiusura), a GIORNI
+   per la prima verifica. `dal` è una data ISO (la messa in servizio, o la data
+   dell'ultima verifica); `null` se il preset non c'è, non ha un passo, o la
+   data non è leggibile — un preset senza passo non propone niente, e la pagina
+   lascia il campo vuoto invece di inventare una data. Pura. */
+export function primaVerificaDa(messaInServizio, giorni = 60) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(messaInServizio || "").slice(0, 10));
+  const n = Math.round(+giorni || 0);
+  if (!m || !dataISOEsiste(m[0]) || !(n > 0)) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + n));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+export function scadenzaDaPreset(preset, dal) {
+  const p = preset && typeof preset === "object" ? preset : presetScadenzaMezzo(preset);
+  if (!p) return null;
+  if (p.mesi > 0) return aggiungiMesi(dal, p.mesi);
+  if (p.giorni > 0) return primaVerificaDa(dal, p.giorni);
+  return null;
 }
 
 // Data (ISO) ottenuta aggiungendo `mesi` a una data ISO: serve a PROPORRE
@@ -993,7 +1026,8 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
   R("mezzo", m.nome || "", dataIt(isoLocale(oggi)),
     ((f.tipo || {}).etichetta || "") + " · " + (m.area || "senza area") + " · "
     + oreMotoreTesto(m.ore)
-    + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo), "");
+    + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo)
+    + (dataISOEsiste(String(m.messaInServizio || "").slice(0, 10)) ? " · in servizio dal " + dataIt(String(m.messaInServizio).slice(0, 10)) : ""), "");
   const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);
   if (f.scadenze.length) f.scadenze.forEach(s => R("scadenza di legge", s.tipo || "", dataIt(s.dataScadenza),
     s.sem.label + (s.mesi ? " · " + ogniMesiTesto(s.mesi) : "") + (s.documento ? " · doc. " + s.documento : ""), ""));

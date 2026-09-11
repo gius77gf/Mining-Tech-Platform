@@ -954,9 +954,10 @@ body.dw b.bad{color:var(--ink-dg)}
     <input class="dw-input" id="mez-nome" placeholder="Nome (es. Dumper D4)" style="flex:2 1 170px;">
     <select class="dw-input" id="mez-tipo" title="Tipo di mezzo: decide la checklist del giro macchina" style="flex:1 1 150px;"></select>
     <input class="dw-input" id="mez-area" placeholder="Area (es. piazzale 2)" style="flex:1 1 140px;">
+    <input class="dw-input" id="mez-servizio" type="date" title="Data di messa in servizio del mezzo (facoltativa): da qui si propone la prima verifica dell'attrezzatura, entro 60 giorni" style="flex:1 1 150px;">
     <input class="dw-input" id="mez-ore" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore attuali" title="Ore del contatore, decimi compresi: la virgola va benissimo (1234,5)." style="flex:1 1 120px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-mez">Aggiungi</button>
-    <div class="form-hint">Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
+    <div class="form-hint">La <b>data</b> è la messa in servizio (facoltativa): da lì Flotta propone la <b>prima verifica</b> dell'attrezzatura, entro 60 giorni. Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore (un dumper non ha i cingoli, una perforatrice sì l'abbattimento polveri). Per i mezzi registrati prima, il tipo viene indovinato dal nome finché non lo confermi qui.</div>
   </div>
 
   <div class="sec">Registro ore</div>
@@ -1366,7 +1367,7 @@ body.dw b.bad{color:var(--ink-dg)}
 <script type="module">
   import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, calendarioMezzi, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
-           SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
+           SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, scadenzaDaPreset, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
            numeroDichiarato,
@@ -1804,13 +1805,31 @@ body.dw b.bad{color:var(--ink-dg)}
     $("sca-norma").innerHTML = (p.norma ? `<b>${esc(p.norma)}</b><br>` : "")
       + (p.nota ? esc(p.nota) : "")
       + (p.mesi ? `<br><span style="color:var(--muted2);">Periodicità proposta: ogni ${p.mesi} ${plurale(p.mesi,'mese','mesi')} (modificabile).</span>`
+                : p.giorni ? `<br><span style="color:var(--muted2);">Scade <b>${p.giorni} giorni</b> dopo la messa in servizio del mezzo: ${propostaPrimaVerifica() ? "data proposta dal mezzo scelto (modificabile)." : "il mezzo scelto non ha la data di messa in servizio — scrivila nel Parco mezzi, oppure metti qui la data a mano."}</span>`
                 : `<br><span style="color:var(--muted2);">Non ricorrente: nessuna periodicità proposta.</span>`);
+  }
+  /* la PRIMA VERIFICA si propone dal mezzo (11/09): il conto è `scadenzaDaPreset`
+     sulla data di messa in servizio del mezzo scelto; senza data, niente
+     proposta — il campo resta vuoto, non si inventa una scadenza */
+  function propostaPrimaVerifica() {
+    const p = presetScadenzaMezzo($("sca-preset").value);
+    if (!p || !p.giorni) return null;
+    const m = MEZ.find(x => x.nome.split(" — ")[0] === $("sca-mezzo").value);
+    return m ? scadenzaDaPreset(p, m.messaInServizio) : null;
+  }
+  function proponiData() {
+    const p = presetScadenzaMezzo($("sca-preset").value);
+    if (!p || !p.giorni) return;
+    /* senza proposta il campo si SVUOTA: una data proposta per un altro mezzo,
+       lasciata lì, diventerebbe la scadenza sbagliata di questo */
+    $("sca-data").value = propostaPrimaVerifica() || "";
   }
   $("sca-preset").onchange = () => {
     const p = presetScadenzaMezzo($("sca-preset").value);
     $("sca-mesi").value = p && p.mesi ? p.mesi : "";
-    mostraNorma();
+    proponiData(); mostraNorma();
   };
+  $("sca-mezzo").addEventListener("change", () => { proponiData(); mostraNorma(); });
   mostraNorma();
   $("sca-mesi").value = (SCADENZE_MEZZO_PRESET[0] && SCADENZE_MEZZO_PRESET[0].mesi) || "";
   // Tipo del mezzo: è quello che decide la checklist del giro macchina.
@@ -2139,7 +2158,7 @@ body.dw b.bad{color:var(--ink-dg)}
                        .filter(m => !qMez || ((m.nome || "") + " " + (m.area || "")).toLowerCase().includes(qMez));
     $("mez-list").innerHTML = mezOrd.map(m => `<div class="item ${striscia[MB[m.stato][0]]}" data-mezzo="${m.id}" title="Tocca per cambiare stato: operativo → in verifica → fermo">
       <div class="avatar">${esc(sig(m.nome))}</div>
-      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}${contatoreSostituitoTx(m.nome)}</div></div>
+      <div class="info"><div class="name">${esc(m.nome)}</div><div class="meta">${esc(tipoMezzoDi(m).etichetta)} · ${oreMotoreTx(m.ore)}${m.area ? " · " + esc(m.area) : ""}${m.messaInServizio ? " · in servizio dal " + esc(dataIt(m.messaInServizio)) : ""}${contatoreSostituitoTx(m.nome)}</div></div>
       <div class="acts"><span class="badge ${MB[m.stato][0]}">${MB[m.stato][1]}</span>
       <span class="arr avv" role="button" tabindex="0" title="Segnala un guasto su questo mezzo" aria-label="Segnala un guasto su ${esc(m.nome)}" data-guasto-mezzo="${m.id}">${I.avviso}</span>
       <span class="arr" role="button" tabindex="0" title="Apri la scheda del mezzo (il libretto macchina)" aria-label="Scheda di ${esc(m.nome)}" data-scheda-mezzo="${m.id}">${I.scheda}</span>
@@ -4261,6 +4280,7 @@ body.dw b.bad{color:var(--ink-dg)}
         ["mez-nome","mez-area","mez-ore"].forEach(i => { $(i).value = ""; err(i, false); }); return; }
       editMez = m.id;
       $("mez-nome").value = m.nome || ""; $("mez-area").value = m.area || ""; $("mez-ore").value = perCampo(m.ore, 1);
+      $("mez-servizio").value = String(m.messaInServizio || "").slice(0, 10);
       $("mez-tipo").value = tipoMezzoDi(m).chiave;   // se non era salvato, è quello indovinato dal nome
       ["mez-nome","mez-area","mez-ore"].forEach(i => err(i, false));
       $("btn-mez").textContent = "Salva modifica";
@@ -4543,12 +4563,12 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!rmo.ok && !rmo.vuoto) return;
     const ore = rmo.ok ? rmo.valore : null;
     if (editMez) {
-      await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo });   // stato/manutenzioni restano
+      await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo, messaInServizio: $("mez-servizio").value || null });   // stato/manutenzioni restano
       editMez = null; $("btn-mez").textContent = "Aggiungi";
     } else {
-      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo });
+      await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo, messaInServizio: $("mez-servizio").value || null });
     }
-    $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro";
+    $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro"; $("mez-servizio").value = "";
     esito("ore-esito", "Mezzo salvato: " + nome + " · " + (tipoMezzo(tipo) || { etichetta: "mezzo" }).etichetta
       + " (" + oreMotoreTx(ore) + ")"
       + (ore == null ? ": scrivile quando le leggi, o i tagliandi a ore non si potranno collocare." : "."), "success");

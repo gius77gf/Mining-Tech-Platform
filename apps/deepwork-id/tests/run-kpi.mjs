@@ -10002,6 +10002,34 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.presetScadenzaMezzo("funi-catene").mesi, 3, "funi e catene ogni tre mesi");
     eq(flotta.presetScadenzaMezzo("boh"), null, "e un tipo inventato non esiste");
   });
+  test("⛔ prima verifica (11/09): un preset a GIORNI dalla messa in servizio, non a mesi, e la data si propone dal mezzo", () => {
+    const p = flotta.presetScadenzaMezzo("prima-verifica");
+    eq([p.mesi, p.giorni, p.tipo], [null, 60, "Prima verifica"], "non ricorrente, sessanta giorni");
+    ok(p.norma.includes("81/2008") && /INAIL/.test(p.nota) && /messa in servizio/.test(p.nota), "la norma e la nota dicono chi la fa e da quando si conta");
+    eq(flotta.primaVerificaDa("2026-08-25"), "2026-10-24", "25/08 + 60 giorni = 24/10");
+    eq(flotta.primaVerificaDa("2026-12-15"), "2027-02-13", "scavalca l'anno");
+    eq(flotta.primaVerificaDa("2026-02-30"), null, "⛔ un giorno che non esiste non scorre a marzo: null");
+    eq(flotta.primaVerificaDa(""), null, "senza data niente"); eq(flotta.primaVerificaDa(null), null); eq(flotta.primaVerificaDa("2026-08-25", 0), null, "senza giorni niente");
+    eq(flotta.scadenzaDaPreset(p, "2026-08-25"), "2026-10-24", "dal preset");
+    eq(flotta.scadenzaDaPreset("prima-verifica", "2026-08-25"), "2026-10-24", "anche per chiave");
+    eq(flotta.scadenzaDaPreset(flotta.presetScadenzaMezzo("revisione"), "2026-08-25"), "2031-08-25", "per le ricorrenti è aggiungiMesi: 60 mesi");
+    eq(flotta.scadenzaDaPreset("funi-catene", "2026-01-31"), "2026-04-30", "con la regola dell'ultimo giorno del mese");
+    eq(flotta.scadenzaDaPreset("noleggio-freddo", "2026-08-25"), null, "⛔ un preset senza passo non propone: null, non oggi");
+    eq(flotta.scadenzaDaPreset("boh", "2026-08-25"), null); eq(flotta.scadenzaDaPreset(p, null), null, "senza la messa in servizio non si propone");
+    const m5 = flotta.DEMO.mezzi.find((m) => m.id === "m5");
+    eq(m5.messaInServizio, "2026-08-25", "la dimostrazione ha un mezzo con la data");
+    ok(/in servizio dal 25\/08\/2026/.test(flotta.csvLibretto(m5, {}).split("\n")[1]), "e il libretto la scrive nella riga del mezzo");
+    ok(!/in servizio dal/.test(flotta.csvLibretto(flotta.DEMO.mezzi[0], {}).split("\n")[1]), "chi non la dichiara non la scrive");
+    ok(/non esce mai dalla cava/.test(flotta.presetScadenzaMezzo("assicurazione").nota), "e la nota dell'assicurazione dice che vale anche per il mezzo che resta in cava");
+  });
+  test("⛔ prima verifica nella pagina: il campo sul mezzo, salvato e riletto, e la proposta dal mezzo scelto", () => {
+    const pag = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
+    ok(/id="mez-servizio" type="date"/.test(pag), "il campo della messa in servizio");
+    eq((pag.match(/messaInServizio: \$\("mez-servizio"\)\.value \|\| null/g) || []).length, 2, "salvato in aggiunta E in modifica, vuoto = null");
+    ok(/\$\("mez-servizio"\)\.value = String\(m\.messaInServizio \|\| ""\)\.slice\(0, 10\);/.test(pag), "e riletto nella modifica");
+    ok(/return m \? scadenzaDaPreset\(p, m\.messaInServizio\) : null;/.test(pag), "la proposta viene dal modulo, sul mezzo scelto");
+    ok(/in servizio dal " \+ esc\(dataIt\(m\.messaInServizio\)\)/.test(pag), "e la riga del parco la scrive");
+  });
 }
 
 /* ══ CONTI: LA FATTURA E IL SUO CLIENTE ═════════════════════════════════
