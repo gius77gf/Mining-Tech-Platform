@@ -2909,6 +2909,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9396,6 +9397,37 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   ⚠️ Dichiarato, non fatto: lo stato di fatto non entra ancora nel report di
   conformità per l'ente (`reportConformita`) né nel CSV dei ricettori
   (`csvRicettori`): la risposta al reclamo lo porta, il report no.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
+  (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
+  l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
+  macchina; entro un mese; il CSV come formato comune), la «strategia
+  d'uscita» di chi compra un gestionale (esportazioni complete, senza il
+  fornitore, programmate; i dati cancellati pochi giorni dopo la fine
+  dell'abbonamento), le guide italiane per le PMI che non ne parlano. Delta
+  dal MECCANISMO contro `f33e5ab5`, censendo le collezioni di ogni app (le
+  intestazioni dei moduli più i `db.<nome>()` delle pagine) contro le
+  funzioni di uscita lette con i loro argomenti: **34 collezioni su 65 non
+  hanno un'uscita delle righe** (Campo 9/12, Conti 4/13, Flotta 4/11, Scudo
+  10/15, Sentinella 3/7, Terra 4/7; Genesi esce una volata alla volta);
+  nessuna app ha un «esporta tutto» (0 in pagine e SDK) → voce aperta; i dati
+  alla fine dell'abbonamento sono una DECISIONE del fondatore (dichiarata in
+  `docs/DECISIONI_WEEKEND.md`). Vedi `docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+  ricerca dell'11/09 (secondo giro, trasversale).
+- [ ] **TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE**
+  *(dalla ricerca dell'11/09, secondo giro trasversale, domanda 2)*. Un file
+  JSON per app con **tutte** le sue collezioni così come stanno
+  nell'archivio (`{ app, organizzazione, quando, commit, collezioni: { nome:
+  [righe] } }`), letto con lo stesso SDK che sigilla l'organizzazione
+  (`orgCollection`), e un bottone «Scarica tutto» in ogni app. L'elenco delle
+  collezioni si **dichiara** una volta per app (come `GENESI_COLLEZIONI`) e
+  una prova pretende che copra ogni `db.<nome>()` che la pagina legge fra le
+  collezioni proprie (non i ponti): un elenco che non si confronta col codice
+  invecchia da solo. Il rientro (importare quel file) è una decisione a
+  parte; il compositore è puro (`esportaTutto(elenco, letture, meta)`) e si
+  prova in `run-kpi` sulla dimostrazione di ogni app. Come si misura: sulla
+  dimostrazione di Campo il file porta 12 collezioni e le stesse righe di
+  `DEMO`; l'elenco dichiarato di ogni app copre i suoi `db.<nome>()` (prova
+  statica); il bottone scarica un `.json` con `app` e `quando` (banco).
 - [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
   Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
   modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel

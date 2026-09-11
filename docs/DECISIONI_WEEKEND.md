@@ -314,6 +314,7 @@ momento.
 | ~~**18a**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — la detrazione per recupero | **(c)** un'opzione della concessione, che nasce **spenta**: l'errore ha un costo asimmetrico |
 | ~~**18b**~~ | ✅ **DECISA E COSTRUITA DAL CICLO il 07/08** — recupero a cavallo di due anni | nell'anno in cui **finisce**, l'unica data verificabile |
 | **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
+| **20** | i dati alla **fine dell'abbonamento**: quanto restano scaricabili, chi li scarica, se e quando si cancellano (11/09) | una frase tua («restano scaricabili per N giorni, poi …»): da lì una regola in Deepwork ID e una riga nei termini. Intanto il prodotto **non promette niente**, e lo «scarica tutto» si costruisce comunque (voce aperta in roadmap). Vedi la sezione 20. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1141,6 +1142,41 @@ otto settori; costa una funzione pura e una tendina.
 Finché non decidi, resta com'è: il vento si scrive, e sulle polveri non si
 giudica. È scritto anche nel commento del modulo (`condizioniMisura`), così
 nessuno lo costruisce per conto suo.
+
+## 20. I dati alla fine dell'abbonamento: quanto restano, e chi li scarica?
+
+*(dalla ricerca trasversale dell'11/09 sull'uscita dei dati)*
+
+**Il fatto.** Chi compra un gestionale in abbonamento chiede, prima di
+firmare, che cosa succede ai suoi dati se smette di pagare: molti fornitori li
+cancellano **entro pochi giorni** dalla fine dell'abbonamento, e le guide che
+consigliano un gestionale alle PMI dicono di pretendere un'esportazione
+completa «senza dover chiedere al fornitore». Il GDPR (art. 20) obbliga a
+restituire i dati **personali** in un formato leggibile da macchina entro un
+mese; per il resto (pesate, rilievi, volate) vale il contratto.
+
+**Come stiamo.** Oggi nessuna app ha un «scarica tutto»: 34 collezioni su 65
+non hanno nessuna uscita delle righe (è la voce aperta in roadmap, e si fa
+senza decidere niente qui). Ma **quanto tempo** i dati restano leggibili dopo
+la fine dell'abbonamento, **chi** può ancora scaricarli in quel periodo, e
+**se e quando** si cancellano, non è scritto da nessuna parte: né nel
+prodotto né in un documento che un cliente possa leggere.
+
+**Le strade.**
+1. **Periodo di grazia dichiarato** (per esempio: i dati restano scaricabili
+   in sola lettura per un tempo fissato dopo la scadenza, poi si cancellano
+   con un preavviso scritto). È quello che chi compra si aspetta di leggere.
+2. **Nessuna cancellazione automatica**: i dati restano finché il cliente non
+   chiede la cancellazione. Più semplice da promettere, costa spazio e chiede
+   una regola sull'accesso.
+3. **Decidere dopo**, quando ci sarà il primo contratto. È lecito, ma la
+   domanda arriverà **prima** della firma, non dopo.
+
+**Che cosa serve da te.** Una frase: «i dati restano scaricabili per N giorni
+dopo la fine dell'abbonamento, poi …». Da quella frase discendono una regola
+in Deepwork ID (chi legge cosa dopo la scadenza) e una riga nei termini di
+servizio. Fino ad allora il prodotto non promette niente — che è meglio di
+promettere a caso.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
