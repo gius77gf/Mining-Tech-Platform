@@ -1394,3 +1394,159 @@ una schermata; quelli qui sotto servono a decidere il delta.
 l'ispettore, composto dai pezzi esistenti), 1 **dichiarata** che chiede una
 decisione (il registro degli esplosivi), 4 **già a posto** (DSS, cartella per
 persona, nomine, verbale di ispezione).
+
+## Ricerca del 2026-09-11 — terzo giro: la prova di emergenza in cava, e quale decreto antincendio vale davvero in una cava (il mondo)
+
+*Terzo giro su Scudo. Strumento: `WebSearch` (otto ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`, quindi **nessuna fonte è stata letta per intero**:
+tutto quello che segue è di seconda mano, dai riassunti dei risultati. La
+metà sul delta è fatta da chi ha il codice in mano, sotto.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **In cava il piano di emergenza sta nel DSS.** Il D.Lgs 624/96, art. 10,
+  chiede che il Documento di Sicurezza e Salute individui le misure di
+  prevenzione e protezione **comprese le esercitazioni di sicurezza,
+  l'evacuazione del personale, l'organizzazione del servizio di
+  salvataggio, i criteri per l'addestramento in caso di emergenza e i punti
+  sicuri di raduno**; e che preveda **sistemi di allarme e comunicazione**
+  per far partire subito evacuazione, salvataggio e soccorso. L'art. 25
+  chiede vie e uscite di emergenza sgombre che portino il più in fretta
+  possibile all'aperto o a una zona sicura / punto di raccolta. Cioè: la
+  cadenza della prova, lo scenario e chi fa che cosa **li scrive il DSS**,
+  non un decreto generale.
+- ⛔ **Il D.M. 2 settembre 2021 (il decreto «GSA», gestione della sicurezza
+  antincendio) NON si applica alle industrie estrattive.** Il suo art. 1
+  rimanda ai luoghi di lavoro dell'art. 62 del D.Lgs 81/08, che **esclude**
+  espressamente «le industrie estrattive» (con i mezzi di trasporto, i
+  pescherecci e i campi agricoli). Ai cantieri temporanei e alle aziende
+  Seveso si applicano solo gli artt. 4-6 (designazione, formazione e
+  formatori degli addetti); alle cave nemmeno quelli, per lettera. Il
+  vecchio D.M. 10 marzo 1998 è abrogato dal 29/10/2022 (dal D.M. 3
+  settembre 2021, il «minicodice»).
+  → Conseguenza per un prodotto che cita le norme: in cava l'antincendio
+  poggia sul **D.Lgs 81/08 artt. 43-46** (che valgono per tutti) e sul
+  **D.Lgs 624/96** (DSS); l'**aggiornamento quinquennale** degli addetti e i
+  livelli 1-FOR / 2-FOR / 3-FOR sono del D.M. 2/9/2021, e in cava si
+  adottano **per analogia** (ed è la prassi dei formatori), non per
+  obbligo diretto. La cadenza vera è quella scritta nel DSS.
+- **La prova di evacuazione, fuori dalle cave, è almeno annuale** dove ci
+  sono almeno 10 lavoratori (D.M. 2/9/2021), e **va verbalizzata**. In cava
+  la stessa cadenza annuale è la prassi delle linee guida regionali
+  (Puglia, DGR 570/2015 «Linee guida per la prevenzione e sicurezza in
+  cava»; Toscana, linee guida sul DSS) — di seconda mano, il testo delle
+  linee guida non è stato letto.
+- **Che cosa contiene il verbale della prova**, secondo i modelli in
+  circolazione (Vega Engineering, SafetyCulture, Università di Pavia,
+  Unione Reno-Lavino-Samoggia): dati dell'azienda, **data e luogo**, lo
+  **scenario simulato** (incendio, infortunio, fuga di gas…), **come e a
+  che ora è scattato l'allarme**, i **tempi** di evacuazione e di raduno,
+  l'**elenco dei partecipanti** e i ruoli (datore, RSPP, addetti, RLS), le
+  **verifiche** fatte (l'allarme si sente ovunque, il punto di raccolta
+  raggiunto, l'appello, i mezzi fermati, le utenze), le **criticità
+  rilevate** e le **azioni correttive** con chi le fa, foto o video, e le
+  **firme** (datore di lavoro, RSPP, squadra di emergenza, RLS).
+- **Gli addetti**: primo soccorso con aggiornamento della parte pratica
+  **triennale** (D.M. 388/2003 — già così nel prodotto); antincendio con
+  aggiornamento **quinquennale** dal D.M. 2/9/2021 (che, vedi sopra, in cava
+  vale per analogia). Insieme formano la **squadra di emergenza**.
+- **Il mestiere della cava** aggiunge quello che i modelli generici non
+  hanno: lo scenario tipico non è l'incendio d'ufficio ma l'**infortunio al
+  fronte** o su un mezzo, con il problema dell'**accesso dei soccorsi**
+  (dove si fa entrare l'ambulanza, chi la guida al punto), il **fermo dei
+  mezzi** e la **sospensione della volata**, e l'**appello** al punto di
+  raccolta su chi era in cava in quel turno — cioè l'elenco che Campo tiene
+  già per l'allarme.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- D.Lgs 624/96, testo: parlamento.it/parlam/leggi/deleghe/96624dl.htm;
+  edizionieuropee.it (§ 53.4.70); puntosicuro.it «Il documento di sicurezza e
+  salute nel settore estrattivo»; studioessepi.it «Il DSS per le attività
+  estrattive»; certifico.com «Vademecum sicurezza attività estrattive»;
+  Regione Toscana, linee guida regionali D.Lgs 624/96; Provincia di
+  Treviso, DSS coordinato cava di Nervesa (2015).
+- Puglia, DGR 26/03/2015 n. 570 (olympus.uniurb.it, id 15828).
+- D.M. 2 settembre 2021: reteambiente.it/normativa/45938; olympus.uniurb.it
+  (id 26574); unipr.it «Decreto GSA v2.2»; vegaengineering.com (testo);
+  puntosicuro.it «Entrata in vigore del DM 2 settembre 2021»;
+  siaingegneria.com; vegaformazione.it; progetto81.it; certifico.com «Schemi
+  formazione antincendio 2022»; eclogaitalia.it; novasafe.it; quasam.it.
+- D.M. 10 marzo 1998 e abrogazione: mit.gov.it (testo); vigilfuoco.it (testo
+  coordinato); mauromalizia.it «minicodice».
+- Prova di evacuazione e verbale: impresa8108.it; vegaengineering.com
+  (facsimile verbale e «prova di evacuazione e nuovi decreti»);
+  vegaformazione.it; marcodemitri.it «prova di evacuazione nei siti con
+  viabilità interna»; edafos.it; sslb.it; silaq.com; studioessepi.it;
+  corsisicurezza.it; biblus.acca.it; innovaformazione.it; certifico.com
+  «Piano di emergenza ed evacuazione»; safetyculture.com (due modelli);
+  spp.unipv.it (verbale); testo-unico-sicurezza.com;
+  certificato-prevenzione-incendi.it; unionerenolavinosamoggia.bo.it
+  (Modello 3).
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Chi decide che «la prova di emergenza dell'anno è stata fatta»?** — e
+   dove sta scritto quando è stata fatta, con che scenario e con quali
+   criticità.
+2. **Chi propone la data della prossima prova**, e chi la mette in
+   scadenzario accanto alla riunione periodica?
+3. **Da una criticità della prova nasce un'azione correttiva?** (il
+   meccanismo esiste per le ispezioni: chi lo usa per la prova?)
+4. **Che cosa cita il prodotto come fonte dell'antincendio**, e vale in una
+   cava?
+5. **L'appello della prova** guarda l'elenco di chi era in cava (Campo) o
+   una lista a parte?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `caf157c3`)
+
+- **Domanda 1 — C'È SOLO COME SPUNTA, ed è il delta.** «Prova di emergenza
+  dell'anno eseguita e verbalizzata» è una **voce** della checklist
+  `dpi-emergenza` (ambito «Sito», ogni 90 giorni): l'ispettore risponde
+  conforme / non conforme, e basta. Della prova **non resta niente** — né la
+  data, né lo scenario, né i tempi, né chi c'era, né le criticità:
+  `grep -ciE 'prova di emergenza|prova-emergenza|esercitazion|evacuazion'`
+  → **2** nel modulo (la voce della checklist e il commento sull'appello di
+  Campo) e **0** nella pagina. **Mancanza confermata.**
+- **Domanda 2 — MANCA, ed è una riga.** I preset di scadenza sono 14 (11
+  sulla persona, 3 sull'azienda: `dss`, `dvr`, `riunione-sic`) e la prova
+  non c'è; `riunione-sic` (`mesi: 12`, art. 35) è la gemella esatta della
+  forma che serve.
+- **Domanda 3 — IL MECCANISMO C'È, e la prova lo può usare senza scriverne
+  un altro.** Un'ispezione con una voce non conforme genera un'**azione
+  correttiva** (`azioniDiIspezione`, `origineTipo: "ispezione"`), il
+  modello ricorrente propone da solo la data della successiva (`giorni`), e
+  dall'11/09 (unità 91) l'ispezione ha il suo **fascicolo/verbale**
+  (`fascicoloIspezione`). Quindi la prova di emergenza è **un modello di
+  ispezione** (`prova-emergenza`, ambito «Sito», `giorni: 365`,
+  riferimento D.Lgs 624/96 art. 10) le cui voci sono i punti di verifica
+  del verbale del mondo: l'allarme si è sentito in tutta la cava, i mezzi
+  si sono fermati e la volata è stata sospesa, tutti al punto di raccolta
+  entro il tempo previsto dal DSS, l'appello fatto sulla lista del turno,
+  la chiamata al 118 simulata con il punto d'incontro per l'ambulanza, la
+  squadra (primo soccorso + antincendio) presente e con i presidi, le
+  criticità scritte e assegnate. Le note della voce portano scenario e
+  tempi; una voce non conforme diventa azione; il verbale esce dal
+  fascicolo. Costo: un modello (≈15 righe) + il preset + una prova.
+- **Domanda 4 — C'È, E VA CORRETTA (di seconda mano).** Il modulo cita il
+  «D.M. 2 settembre 2021» in **4 punti** (`grep -c '2 settembre 2021'` →
+  4: il preset `antincendio`, la nomina «addetto antincendio», il requisito
+  `estintore` dei permessi a caldo, il modello ispezione sull'incendio) come
+  fonte diretta, mentre il decreto **esclude le industrie estrattive** (via
+  l'art. 62 del D.Lgs 81/08). La cadenza quinquennale (`mesi: 60`) resta —
+  è la prassi per analogia — ma il riferimento deve dirlo: «D.Lgs 81/08
+  artt. 43-46 e D.Lgs 624/96 art. 10 (DSS); il D.M. 2/9/2021 non si applica
+  alle industrie estrattive e la cadenza quinquennale è adottata per
+  analogia [seconda mano] — quella vera è scritta nel DSS». Un numero di
+  legge di seconda mano non entra come verificato: entra come dichiarazione
+  del limite.
+- **Domanda 5 — VIVE IN CAMPO, e ci resta.** L'appello al punto di raccolta
+  è `appelloTurno` / `csvAppello` di Campo (37 occorrenze; in Scudo solo un
+  commento che lo cita). La voce del modello dice «appello fatto sulla
+  lista del turno (Campo)»; un ponte non serve finché la prova non vuole
+  leggere i nomi.
+
+**Riassunto** — 1 mancanza **confermata e aperta** (la prova di emergenza
+come modello di ispezione + preset di scadenza), 1 **correzione** delle
+fonti (4 citazioni del D.M. 2/9/2021 da riscrivere con il limite dichiarato),
+1 a posto per meccanismo (le azioni), 1 dichiarata (l'appello vive in Campo).

@@ -2909,6 +2909,8 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
+- `SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -9501,6 +9503,37 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   spiegata nel suggerimento del form). Prove: run-kpi +1 (2908); il preset
   `presetScadenzaMezzo("fine-leasing")` è quello del modulo (la voce diceva
   `presetScadenzaFlotta`, nome indovinato).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — SCUDO: LA PROVA DI EMERGENZA IN CAVA
+  E IL DECRETO ANTINCENDIO CHE IN CAVA NON VALE (11/09, unità 109, solo
+  documenti).** Mondo di seconda mano (otto ricerche): in cava il piano di
+  emergenza sta nel DSS (D.Lgs 624/96 art. 10: esercitazioni, salvataggio,
+  addestramento, punti di raduno; art. 25 uscite); il D.M. 2 settembre 2021
+  NON si applica alle industrie estrattive (art. 62 del D.Lgs 81/08) e la
+  cadenza quinquennale degli addetti vale per analogia; la prova annuale e il
+  verbale (scenario, ora dell'allarme, tempi, partecipanti, criticità →
+  azioni, firme). Delta dal MECCANISMO contro `caf157c3`: la prova è solo una
+  SPUNTA nella checklist `dpi-emergenza`, senza data/scenario/tempi; nessun
+  preset; il meccanismo c'è (ispezione ricorrente → azioni → fascicolo) →
+  voce aperta; il D.M. 2/9/2021 citato in 4 punti come fonte diretta → nella
+  stessa voce; l'appello vive in Campo. Vedi `docs/RICERCA_CONTINUA_SCUDO.md`,
+  ricerca dell'11/09 (terzo giro).
+- [ ] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA** *(dalla ricerca dell'11/09, terzo giro, domande
+  1-4)*. (1) Modello di ispezione `prova-emergenza` (ambito «Sito», `giorni:
+  365`, riferimento D.Lgs 624/96 art. 10 — la cadenza la scrive il DSS) con
+  le voci del verbale del mondo: allarme sentito in tutta la cava, mezzi
+  fermati e volata sospesa, tutti al punto di raccolta nel tempo previsto,
+  appello sulla lista del turno (Campo), chiamata al 118 simulata col punto
+  d'incontro, squadra presente coi presidi, criticità scritte e assegnate.
+  (2) Preset di scadenza `prova-emergenza` (categoria azienda, `mesi: 12`).
+  (3) Le 4 citazioni del «D.M. 2 settembre 2021» riscritte col limite: il
+  decreto esclude le industrie estrattive (art. 62 D.Lgs 81/08), la fonte è
+  D.Lgs 81/08 artt. 43-46 + D.Lgs 624/96 art. 10, la cadenza quinquennale è
+  adottata per analogia [seconda mano]. Come si misura: il modello compare
+  fra i modelli d'ispezione e propone la successiva a un anno; il preset
+  esiste con `mesi: 12`; `grep -c 'non si applica alle industrie estrattive'`
+  ≥ 4 e nessuna citazione del D.M. 2/9/2021 senza il limite; screenshot a
+  430 px dell'ispezione aperta sul modello.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
