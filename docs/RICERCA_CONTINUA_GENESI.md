@@ -541,3 +541,134 @@ chiuso: la riga «(a) senza un lettore è un identificatore che nessuno usa»
 non vale più — il lettore c'è. Restano fuori, come deciso: le soglie di
 tolleranza (10/25 %, senza fonte, ora in `shared/`), la deviazione misurata del
 foro (c) e la carica dalla spalla misurata (d).*
+
+## Ricerca del 2026-09-11 — il piano di tiro e il dopo-volata: che cosa si scrive fuori, prima e dopo lo sparo (metà sul mondo)
+
+*Strumento: `WebSearch` (funziona); `WebFetch` è bloccato, quindi **nessuna
+fonte è stata letta per intero**: ogni fatto viene da un risultato di ricerca
+ed è marcato `[seconda mano]`. Nessun numero di legge è entrato in una
+schermata; i tempi di rientro citati sono di procedure aziendali estere, non
+regole nostre.*
+
+### Fatti dal mondo [tutti di seconda mano]
+
+- **In Italia il piano di tiro è un ordine di servizio del direttore.** Dai
+  risultati sul DPR 128/1959 (norme di polizia delle miniere e delle cave):
+  il direttore dei lavori prepara e firma gli ordini di servizio che regolano
+  le modalità d'impiego degli esplosivi (l'art. 305 è citato dai risultati,
+  non letto); l'uso è vincolato a quantità autorizzate (giornaliere e
+  triennali) per categoria di esplosivo; i piani della cava riportano i lavori
+  in corso e le zone già coltivate; la Provincia (Vicenza) ha un modello di
+  «attestazione uso esplosivi» per tipologia. Il **fochino** è la figura che
+  spara; il piano di tiro è la carta che il direttore firma prima. [seconda
+  mano — il testo dell'articolo non è stato verificato]
+- **Nel Regno Unito il «blast specification» è per singola volata e il
+  misfire si registra.** Quarries Regulations 1999 e Quarries (Explosives)
+  Regulations (dai risultati di legislation.gov.uk e HSA irlandese): la
+  specifica di sparo deve essere **specifica di ogni volata**, per tener conto
+  delle condizioni del sito; lo shotfirer che spara tiene un **registro delle
+  mancate esplosioni**, e in caso di mancata esplosione l'operatore consulta
+  la persona nominata e prende provvedimenti sull'area di pericolo; il
+  registro delle nomine degli shotfirer si tiene tre anni. [seconda mano]
+- **Il dopo-volata ha un suo verbale, con tempi.** Dalle procedure aziendali e
+  dalle checklist in circolazione (SOP Freeport-McMoRan «surface blasting»,
+  MSHA «blasting safety», UpCodes «post-blasting procedures», modelli
+  SafetyCulture): prima di rientrare si aspetta che fumi e polvere si
+  disperdano (cinque minuti minimo, venti consigliati in un modello; **trenta**
+  per una mancata esplosione sospetta, con l'area isolata e il rientro del solo
+  fochino); il fochino ispeziona **tutta** l'area prima di far rientrare gli
+  altri, cercando cariche inesplose, detonazioni per simpatia e **proiezioni
+  eccessive**; l'area di sgombero si tiene almeno a 1,5 volte la distanza
+  massima di proiezione mai osservata; ogni mancata esplosione, anche risolta,
+  si registra con causa e azione correttiva. [seconda mano, procedure
+  aziendali statunitensi — non norme italiane]
+- **Quindi il registro «giusto», fuori, ha due carte**: prima, il piano di
+  tiro firmato (fori, cariche, sequenza, quantità nei limiti autorizzati);
+  dopo, il **verbale del dopo-volata** — ora di sparo, ora di rientro,
+  mancate esplosioni (e che cosa si è fatto), fumi, proiezioni oltre l'area,
+  danni — che è ciò che un ispettore chiede quando qualcosa è andato storto.
+  [deduzione dalle righe sopra]
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- DPR 9 aprile 1959, n. 128, *Norme di polizia delle miniere e delle cave* (testo su tuttoprevenzioneincendi.it) —
+  https://www.tuttoprevenzioneincendi.it/images/Norme/DPR_09_04_1959_n_128.pdf
+- Edizioni Europee, *§ 64.1.20 — D.P.R. 9 aprile 1959, n. 128* —
+  https://www.edizionieuropee.it/law/html/35/zn64_01_020.html
+- Provincia di Vicenza, *Modello domanda di attestazione uso esplosivi* —
+  https://www.provincia.vicenza.it/ente/la-struttura-della-provincia/servizi/cave/modello-domanda-di-attestazione-uso-esplosivi
+- legislation.gov.uk, *The Quarries Regulations 1999* —
+  https://www.legislation.gov.uk/uksi/1999/2024/made
+- legislation.gov.uk, *The Quarries (Explosives) Regulations 1988* —
+  https://www.legislation.gov.uk/uksi/1988/1930/made
+- HSA (Irlanda), *Blast specification — shotfiring rules* —
+  https://www.hsa.ie/eng/your_industry/quarrying/drilling_and_blasting/shotfiring_rules/blast_specification/
+- Freeport-McMoRan, *SOP FCX-15 Surface blasting* —
+  https://www.fcx.com/sites/fcx/files/documents/suppliers/surface_blasting_eng.pdf
+- MSHA, *Blasting safety* —
+  https://www.msha.gov/safety-health/safety-health/safety-health-materials/safety-topics/blasting-safety
+- UpCodes, *Post-blasting procedures* — https://up.codes/s/post-blasting-procedures
+- SafetyCulture, *Drill and blast work areas — planned inspection checklist* —
+  https://safetyculture.com/library/mining/planned-inspection-drill-and-blast-work-areas
+
+### Domande per il delta (sul MECCANISMO — nessuna risposta qui)
+
+1. Chi compone la carta di prima (fori, cariche, sequenza), e in che forma
+   esce?
+2. Chi registra che la volata è stata sparata, quando, e con quale esito?
+3. Chi registra il **dopo**: mancate esplosioni, rientro, fumi, proiezioni
+   oltre l'area?
+4. Chi sa dire se la quantità caricata sta dentro le quantità autorizzate?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `b8126436`)
+
+Cercato per **meccanismo**, aprendo le funzioni, non per parola.
+
+- **Domanda 1 — C'È, in tre forme.** Da Genesi escono il piano di carico
+  (`genesi_piano_carico.csv`), il piano d'innesco (`genesi_piano_innesco.xml`)
+  e la scheda della volata (`genesi_scheda_volata.csv`), più il foglio
+  stampabile che si porta in cava (banco `genesi-foglio-in-cava.mjs`, che lo
+  prova premendo il bottone). Il consuntivo di carico **torna** da Campo
+  (`_riconParseCampo`, colonna `carica_reale_kg`) e Genesi lo confronta per
+  volata. Prova: `grep -c "a.download='genesi_" apps/genesi/genesi.html` →
+  **7** file distinti. ⚠️ Una **firma** del direttore o del fochino sul foglio
+  non c'è (`grep -ciE 'firma' apps/genesi/genesi.html` → 5, tutte nel senso
+  di «firma di una funzione» o «segno riconoscibile»): è una riga di
+  stampa, non una funzione — e la decisione se il foglio di Genesi valga
+  come ordine di servizio è del direttore, non nostra.
+- **Domanda 2 — C'È, e non in Genesi: nel registro delle volate di
+  Sentinella**, che è il documento per l'ente. `volate` porta `stato`
+  (prevista / eseguita), `esito` (**regolare** / **con contestazione**: la
+  tendina `vol-esito` della pagina, `grep -c 'value="contestazione"'
+  apps/sentinella/index.html` → 2: il modulo `vol-esito` e la conferma `conf-esito`), la PPV prevista e quella misurata dal
+  sismografo con lo scarto, il codice della volata di Genesi
+  (`codiceVolataGenesi`), la comunicazione all'ente (`comunicataA`,
+  `comunicataIl`); Campo scrive le volate del giorno nella consegna
+  (`righeVolateDelGiorno`). Il «quando» e il «con che esito» ci sono.
+- **Domanda 3 — MANCA, ed è la carta che l'ispettore chiede quando qualcosa
+  è andato storto.** Nessuna delle tre app registra il dopo-volata: `grep
+  -ciE 'mancat[ae] esplosion|inesplos|misfire|rientro|fum[oi]\b' apps/genesi/
+  genesi-data.js apps/genesi/genesi.html apps/sentinella/sentinella-data.js
+  apps/sentinella/index.html` → **0, 1, 1, 0** — e le due occorrenze sono
+  tutte altro: i «fumi NOx» nell'avviso di Genesi sull'ANFO in acqua (una
+  previsione sul prodotto, non una registrazione), e il «rientro» dei rilievi
+  di Terra citato in un commento di Sentinella. L'esito della
+  volata in Sentinella conosce due valori, regolare e con contestazione: una
+  **mancata esplosione** non è nessuno dei due. **Delta concreto, candidato**:
+  sul registro delle volate di Sentinella (dove sta l'esito) il dopo-volata
+  come campi dichiarati dall'utente — `mancateEsplosioni` (quante, e che cosa
+  si è fatto), `rientroAlle`, `proiezioniOltreArea` (sì/no, con dove),
+  `noteDopo` — con la regola del principio del fondatore: un dopo-volata
+  **non compilato** su una volata eseguita si dice «dopo-volata non
+  registrato», non «regolare»; la scheda della volata (`fogliaVolata`) lo
+  stampa in una sezione sua; e una mancata esplosione apre un'azione in
+  Scudo come già il reclamo e il superamento (`bozzaAzioneReclamo` è lo
+  stampo). In roadmap come voce aperta.
+- **Domanda 4 — ASSENTE, e chiede una decisione.** Le quantità autorizzate
+  (giornaliere, triennali, per categoria) sono un dato dell'atto che oggi
+  nessuna app tiene: `grep -ciE 'quantit[àa] autorizzat|kg autorizzat|licenza
+  esplosiv' apps/genesi/genesi-data.js apps/sentinella/sentinella-data.js
+  apps/terra/terra-data.js` → **0, 0, 0**. Sentinella somma già i kg del mese
+  (le volate eseguite); confrontarli con un limite vuol dire scrivere quel
+  limite da qualche parte (Terra, con l'atto? Sentinella, col registro?), ed
+  è una decisione di prodotto prima che un'unità. Dichiarato, non aperto.

@@ -2905,6 +2905,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
+- `SENTINELLA — IL DOPO-VOLATA NEL REGISTRO: MANCATE ESPLOSIONI, RIENTRO, PROIEZIONI OLTRE L'AREA`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -9163,6 +9164,34 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   genesi-data 120 → **124**; il censimento di `genesi-estraibili`: 151
   funzioni, 55 estraibili (48 a una o due variabili, 24 da sei a dieci),
   aggiornato in DEVELOPMENT.
+- [x] **RICERCA A ROTAZIONE, GENESI — IL PIANO DI TIRO E IL DOPO-VOLATA:
+  CHE COSA SI SCRIVE FUORI, PRIMA E DOPO LO SPARO (11/09):** metà sul mondo
+  con `WebSearch` (dieci fonti, tutte di seconda mano): in Italia il piano di
+  tiro è un ordine di servizio che il direttore firma e l'esplosivo è
+  vincolato a quantità autorizzate (DPR 128/1959, citato dai risultati, non
+  letto); nel Regno Unito la specifica di sparo è per singola volata e le
+  mancate esplosioni si registrano; le procedure aziendali del dopo-volata
+  prevedono tempi di rientro, l'ispezione del fochino su tutta l'area,
+  mancate esplosioni con causa e azione, proiezioni oltre l'area. Delta dal
+  MECCANISMO: la carta di prima **c'è** (sette file da Genesi, il consuntivo
+  che torna da Campo), il quando e l'esito **ci sono** nel registro di
+  Sentinella; il **dopo-volata manca** in tutt'e tre le app (0, 1, 1, 0
+  occorrenze, tutte altro: l'esito conosce «regolare» e «con contestazione»,
+  una mancata esplosione non è nessuno dei due) → voce aperta qui sotto; le
+  quantità autorizzate sono assenti e chiedono una decisione (dove vive il
+  limite): dichiarato, non aperto.
+- [ ] **SENTINELLA — IL DOPO-VOLATA NEL REGISTRO: MANCATE ESPLOSIONI,
+  RIENTRO, PROIEZIONI OLTRE L'AREA (dalla ricerca a rotazione su Genesi
+  dell'11/09).** Sul registro delle volate (dove sta l'esito) i campi del
+  dopo-volata dichiarati dall'utente — `mancateEsplosioni` (quante, e che
+  cosa si è fatto), `rientroAlle`, `proiezioniOltreArea` (sì/no, con dove),
+  `noteDopo` —, la regola «dopo-volata non registrato» su una volata eseguita
+  senza quei campi (non «regolare»), la sezione nella scheda della volata
+  (`fogliaVolata`), e una mancata esplosione che apre un'azione in Scudo
+  sullo stampo di `bozzaAzioneReclamo`. Prove in run-kpi, scatto. Prova che
+  manca: `grep -ciE 'mancat[ae] esplosion|inesplos|misfire|rientro'
+  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 1 e 0,
+  l'una un commento sui rilievi di Terra. Vedi `docs/RICERCA_CONTINUA_GENESI.md`, ricerca dell'11/09.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
