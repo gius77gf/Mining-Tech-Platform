@@ -2043,8 +2043,8 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   forte di diligenza» delle guide.
 - **Domanda 3 — MANCA, ed è la ragione per cui si cade nelle ispezioni.** Una
   voce «non a posto» finisce nel foglio e nella consegna, ma **non apre
-  niente**: `grep -n 'bozzaAzione' apps/campo/index.html` → 4 righe, **tutte
-  di `bozzaAzioneFermo`** (il fermo macchina → azione correttiva in Scudo,
+  niente**: `grep -n 'bozzaAzione' apps/campo/index.html` → 3 righe, **tutte
+  di `bozzaAzioneFermo`** (l'import e le due chiamate) (il fermo macchina → azione correttiva in Scudo,
   ponte del 05/09); per la checklist non c'è un `bozzaAzioneChecklist`, quindi
   «segnaletica non al suo posto» resta una riga rossa che il turno dopo può
   solo rileggere. È esattamente la catena trovato → avvisato → corretto che le
