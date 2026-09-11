@@ -422,8 +422,12 @@ const ALLARMI_ACCETTATI = {
     + " chiudere le regole del Firebase pubblico ha reso questo ramo quello che prende TUTTI i visitatori",
   "scudo.azioneLabel":
     "prende lo STATO di un'azione: senza stato ricade sul primo della lista, non è un giudizio su un dato mancante",
-  "scudo.etichettaAmbiente":
-    "è un'etichetta binaria (reclamo/superamento) chiamata solo su azioni che vengono DAVVERO dall'ambiente",
+  /* ✅ TOLTO L'11/09: `scudo.etichettaAmbiente`. Stava qui come «etichetta
+     binaria (reclamo/superamento)» — cioè un ternario che su un'origine
+     sconosciuta rispondeva «Superamento», ed era proprio il difetto: con la
+     terza origine («dopo-volata») è diventata una mappa, e senza origine
+     risponde «Fatto ambientale». L'allarme non si presenta più, e la seconda
+     guardia lo ha preteso fuori. */
   /* `conti.livelloSollecito` stava qui con la ragione «la sonda gli passa anche
      numeri grandi, e allora il rosso è giusto» — cioè era dichiarato accettabile
      un allarme che NON nasceva da un dato mancante. Col filtro `valePer` la

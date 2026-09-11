@@ -1069,13 +1069,17 @@ export function azioniDiIspezione(azioni, ispezioneId) {
 // ogni altra azione correttiva, e vivono nello stesso scadenzario. Queste
 // due funzioni servono solo a RICONOSCERLE, per scrivere l'origine giusta
 // e per non farla cancellare da una modifica fatta dal form.
-export const ORIGINI_AMBIENTE = ["superamento", "reclamo"];
+export const ORIGINI_AMBIENTE = ["superamento", "reclamo", "dopo-volata"];   // «dopo-volata» dall'11/09: una mancata esplosione o una proiezione oltre l'area
 export function daAmbiente(a) {
   return ORIGINI_AMBIENTE.includes(String((a || {}).origineTipo || ""));
 }
-// Etichetta breve dell'origine ambientale, per il badge nell'elenco.
+// Etichetta breve dell'origine ambientale, per il badge nell'elenco. Una
+// MAPPA con tutte le origini (regola 18): un'origine nuova senza etichetta
+// si vedrebbe come «Superamento», che è la copia debole di un ternario.
+export const ETICHETTE_AMBIENTE = { superamento: "Superamento", reclamo: "Reclamo", "dopo-volata": "Dopo-volata" };
+const FRASI_AMBIENTE = { superamento: "da un superamento di soglia", reclamo: "da un reclamo", "dopo-volata": "dalle anomalie di un dopo-volata" };
 export function etichettaAmbiente(a) {
-  return (a || {}).origineTipo === "reclamo" ? "Reclamo" : "Superamento";
+  return ETICHETTE_AMBIENTE[String((a || {}).origineTipo || "")] || "Fatto ambientale";
 }
 // ── Azioni che arrivano dalla PRODUZIONE (Campo) ──────────────────────
 // Un fermo di produzione registrato al fronte — «frantoio intasato, 55 minuti»
@@ -1139,7 +1143,7 @@ export function origineAzione(azione, ctx = {}, opts = {}) {
 
   if (daAmbiente(a)) return nota || (doc
     ? etichettaAmbiente(a) + " (Sentinella)" + quando(a.origineData, "del")
-    : (a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
+    : (FRASI_AMBIENTE[a.origineTipo] || "da un fatto ambientale")
       + " registrato in Sentinella" + quando(a.origineData, "il"));
 
   if (daCampo(a)) {
@@ -1210,6 +1214,7 @@ export function riepilogoAmbiente(azioni) {
     totale: l.length,
     superamenti: l.filter(a => a.origineTipo === "superamento").length,
     reclami: l.filter(a => a.origineTipo === "reclamo").length,
+    dopoVolata: l.filter(a => a.origineTipo === "dopo-volata").length,
     daChiudere: l.filter(a => a.stato !== "chiusa").length,
   };
 }

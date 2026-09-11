@@ -664,6 +664,13 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   stampa in una sezione sua; e una mancata esplosione apre un'azione in
   Scudo come già il reclamo e il superamento (`bozzaAzioneReclamo` è lo
   stampo). In roadmap come voce aperta.
+  ✅ **FATTO lo stesso giorno, unità 82 e 83 (11/09)**: `dopoVolata`,
+  `statoDopoVolata`, `campiDopoVolata`, `riepilogoDopoVolata`,
+  `bozzaAzioneDopoVolata` in `sentinella-data.js`; la sezione «Dopo la volata»
+  in `fogliaVolata`; sei colonne in coda al CSV; la modale dal bottone ✓ della
+  riga; «Cosa abbiamo fatto» nel Quadro elenca le anomalie e apre l'azione in
+  Scudo (`ORIGINI_AMBIENTE` a tre). Prova: `grep -c "export function
+  bozzaAzioneDopoVolata" apps/sentinella/sentinella-data.js` → 1.
 - **Domanda 4 — ASSENTE, e chiede una decisione.** Le quantità autorizzate
   (giornaliere, triennali, per categoria) sono un dato dell'atto che oggi
   nessuna app tiene: `grep -ciE 'quantit[àa] autorizzat|kg autorizzat|licenza

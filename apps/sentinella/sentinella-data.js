@@ -3853,6 +3853,9 @@ export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {
 export const PONTE_APP = "sentinella";
 export const ORIGINE_SUPERAMENTO = "superamento";
 export const ORIGINE_RECLAMO = "reclamo";
+// «dopo-volata» (11/09): una mancata esplosione o una proiezione oltre l'area
+// chiede che qualcuno faccia qualcosa entro una data, come un reclamo.
+export const ORIGINE_DOPO_VOLATA = "dopo-volata";
 
 // Data di oggi + N giorni, in ISO. Serve solo a PROPORRE una scadenza
 // all'azione correttiva: la decide comunque chi la apre.
@@ -3953,6 +3956,36 @@ export function bozzaAzioneReclamo(rec, ricettore, opts = {}) {
     origineId: rec.id, origineVoce: String(rec.data || "reclamo").slice(0, 10),
     origineData: String(rec.data || "").slice(0, 10),
     origineEtichetta: etichettaReclamo(rec.tipo) + (ricettore ? " · " + ricettore.nome : ""),
+    origineNota: nota,
+  };
+}
+
+// La bozza dell'azione correttiva da un DOPO-VOLATA con anomalie (11/09):
+// sullo stampo di `bozzaAzioneReclamo`. `null` se la volata non è eseguita
+// o se l'ispezione non ha trovato niente — un'azione su «regolare» sarebbe
+// un'azione senza fatto; e su «non registrato» il fatto non si sa: prima si
+// registra, poi si decide.
+export function bozzaAzioneDopoVolata(v, opts = {}) {
+  if (!v || !v.id) return null;
+  const st = statoDopoVolata(v);
+  if (st.stato !== DOPO_ANOMALIE) return null;
+  const d = dopoVolata(v);
+  const dove = (v.fronte ? " sul fronte " + String(v.fronte).trim() : "") + (v.data ? " del " + dataIt(String(v.data).slice(0, 10)) : "");
+  const nota = "Dopo-volata (Sentinella) — volata" + dove + " · " + st.anomalie.join(" · ")
+    + (d.rientroAlle ? " · rientro alle " + d.rientroAlle : "")
+    + (d.noteDopo ? " · «" + d.noteDopo + "»" : "");
+  return {
+    descrizione: String(opts.descrizione || ("Chiudere le anomalie del dopo-volata" + dove + ": "
+      + (d.mancateEsplosioni > 0 ? "verificare la bonifica " + (d.mancateEsplosioni === 1 ? "della mancata esplosione" : "delle " + d.mancateEsplosioni + " mancate esplosioni") : "")
+      + (d.mancateEsplosioni > 0 && d.proiezioniOltreArea ? " e " : "")
+      + (d.proiezioniOltreArea ? "rivedere l'area di sicurezza per le proiezioni" + (d.proiezioniDove ? " (" + d.proiezioniDove + ")" : "") : ""))).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_DOPO_VOLATA, origineApp: PONTE_APP,
+    origineId: v.id, origineVoce: String(v.data || "dopo-volata").slice(0, 10),
+    origineData: String(v.data || "").slice(0, 10),
+    origineEtichetta: "Dopo-volata" + (v.fronte ? " · " + String(v.fronte).trim() : ""),
     origineNota: nota,
   };
 }

@@ -3635,7 +3635,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     $("azi-count-tot").textContent = AZI.length;
     $("azi-riep").innerHTML = AZI.length
       ? `Da chiudere: <b>${ra.daChiudere}</b> (di cui <b>${ra.scadute}</b> fuori tempo e ${ra.inScadenza} in scadenza entro 30 giorni) · in corso: <b>${ra.inCorso}</b> · chiuse: <b>${ra.chiuse}</b> su ${ra.totale}.`
-        + (rAmb.totale ? ` Di queste, <b>${rAmb.totale}</b> ${rAmb.totale === 1 ? "nasce" : "nascono"} dall'ambiente (${rAmb.superamenti} da superamenti di soglia, ${rAmb.reclami} da reclami registrati in Sentinella)${rAmb.daChiudere ? `, <b>${rAmb.daChiudere}</b> ancora da chiudere` : ", tutte chiuse"}.` : "")
+        + (rAmb.totale ? ` Di queste, <b>${rAmb.totale}</b> ${rAmb.totale === 1 ? "nasce" : "nascono"} dall'ambiente (${rAmb.superamenti} da superamenti di soglia, ${rAmb.reclami} da reclami, ${rAmb.dopoVolata} dal dopo-volata — registrati in Sentinella)${rAmb.daChiudere ? `, <b>${rAmb.daChiudere}</b> ancora da chiudere` : ", tutte chiuse"}.` : "")
       : "Nessuna azione correttiva registrata. Da ogni infortunio o near-miss dovrebbe nascerne almeno una.";
     const qAzi = ($("azi-cerca").value || "").trim().toLowerCase();
     const passaFiltroAzi = (a) => (filtroOrig && !(a.origineTipo === filtroOrig.tipo && a.origineId === filtroOrig.id)) ? false

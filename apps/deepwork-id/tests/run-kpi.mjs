@@ -8799,6 +8799,25 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.DOPO_NON_REGISTRATO, "non-registrato", "la chiave");
     eq(sentinella.DOPO_NON_APPLICABILE, "non-applicabile", "e l'altra");
   });
+  test("⛔ bozzaAzioneDopoVolata: un'anomalia dopo lo sparo apre un'azione in Scudo, «regolare» e «non registrato» no", () => {
+    const v = { id: "b2", data: "2026-07-03", fronte: "Fronte Est", esito: "regolare", mancateEsplosioni: 1,
+      mancateGestite: "ritrovata nel foro 18, brillata", proiezioniOltreArea: false, rientroAlle: "11:55" };
+    const b = sentinella.bozzaAzioneDopoVolata(v, { scadenza: "2026-07-20" });
+    eq(b.origineTipo, sentinella.ORIGINE_DOPO_VOLATA, "il tipo di fatto");
+    eq(sentinella.ORIGINE_DOPO_VOLATA, "dopo-volata", "la parola");
+    eq([b.origineApp, b.origineId, b.origineVoce, b.origineData], ["sentinella", "b2", "2026-07-03", "2026-07-03"], "l'origine per ritrovarla");
+    eq(b.origineEtichetta, "Dopo-volata · Fronte Est", "l'etichetta");
+    eq(b.origineNota, "Dopo-volata (Sentinella) — volata sul fronte Fronte Est del 03/07/2026 · 1 mancata esplosione — ritrovata nel foro 18, brillata · rientro alle 11:55", "la nota racconta il fatto, in parole");
+    eq(b.descrizione, "Chiudere le anomalie del dopo-volata sul fronte Fronte Est del 03/07/2026: verificare la bonifica della mancata esplosione", "la proposta di cosa fare");
+    eq([b.stato, b.scadenza, b.responsabileId], ["aperta", "2026-07-20", null], "aperta, con la data, senza responsabile");
+    const due = sentinella.bozzaAzioneDopoVolata({ id: "x", data: "2026-07-03", mancateEsplosioni: 2, proiezioniOltreArea: true, proiezioniDove: "pista" });
+    eq(due.descrizione, "Chiudere le anomalie del dopo-volata del 03/07/2026: verificare la bonifica delle 2 mancate esplosioni e rivedere l'area di sicurezza per le proiezioni (pista)", "al plurale, con tutt'e due le anomalie");
+    eq(sentinella.bozzaAzioneDopoVolata({ id: "r", data: "2026-07-03", mancateEsplosioni: 0, proiezioniOltreArea: false }), null, "⛔ su «regolare» nessuna azione: sarebbe un'azione senza fatto");
+    eq(sentinella.bozzaAzioneDopoVolata({ id: "n", data: "2026-07-03", stato: "eseguita" }), null, "⛔ su «non registrato» nemmeno: il fatto non si sa, prima si registra");
+    eq(sentinella.bozzaAzioneDopoVolata({ id: "p", data: "2026-08-04", stato: "prevista", mancateEsplosioni: 1 }), null, "e su una prevista no");
+    eq(sentinella.bozzaAzioneDopoVolata({ mancateEsplosioni: 1, proiezioniOltreArea: false }), null, "senza id niente");
+    eq(sentinella.bozzaAzioneDopoVolata(v, { descrizione: "  Mia  ", responsabileId: "o1" }).descrizione, "Mia", "la descrizione scelta dall'utente vince");
+  });
   test("⛔ dopo-volata nel CSV del registro: esce com'è dichiarato, rientra com'era, e si vede nel TESTO", () => {
     /* la prova di andata e ritorno da sola resta verde se le due metà
        sbagliano insieme: qui si guarda anche la riga scritta */
@@ -8951,12 +8970,24 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(miste.map((a) => scudo.daAmbiente(a)).join(","), "false,false,true,true", "le due ambientali");
     eq(scudo.etichettaAmbiente(miste[2]), "Superamento", "e si dice quale delle due è");
     eq(scudo.etichettaAmbiente(miste[3]), "Reclamo", "l'altra");
+    eq(scudo.etichettaAmbiente({ origineTipo: "dopo-volata" }), "Dopo-volata", "e la terza, dall'11/09");
+    eq(scudo.daAmbiente({ origineTipo: "dopo-volata" }), true, "che è ambientale");
+    /* regola 18: la mappa delle etichette copre tutte le origini che Scudo dice
+       ambientali — e la lista è la STESSA che Sentinella scrive, per identità
+       delle parole (Scudo non può importare il modulo di Sentinella) */
+    eq(scudo.ORIGINI_AMBIENTE.filter((o) => !scudo.ETICHETTE_AMBIENTE[o]), [], "⛔ ogni origine ambientale ha la sua etichetta");
+    eq(scudo.ORIGINI_AMBIENTE, [sentinella.ORIGINE_SUPERAMENTO, sentinella.ORIGINE_RECLAMO, sentinella.ORIGINE_DOPO_VOLATA],
+      "⛔ le parole con cui Sentinella scrive l'origine sono quelle con cui Scudo la riconosce");
+    eq(scudo.etichettaAmbiente({ origineTipo: "boh" }), "Fatto ambientale", "un'origine sconosciuta non diventa un superamento");
+    ok(/dalle anomalie di un dopo-volata registrato in Sentinella il 03\/07\/2026/.test(scudo.origineAzione({ origineTipo: "dopo-volata", origineData: "2026-07-03" })), "e la riga dell'elenco dice da che cosa nasce");
   });
   test("ambiente: il riepilogo separa i superamenti dai reclami", () => {
     const r = scudo.riepilogoAmbiente(miste);
     eq(r.totale, 2, "due ambientali");
     eq(r.superamenti, 1, "un superamento");
     eq(r.reclami, 1, "e un reclamo");
+    eq(r.dopoVolata, 0, "nessuna dal dopo-volata, qui");
+    eq(scudo.riepilogoAmbiente([{ origineTipo: "dopo-volata", stato: "aperta" }]).dopoVolata, 1, "e una quando c'è");
     eq(r.daChiudere, 1, "una sola resta da chiudere");
   });
   test("ambiente: senza nessuna azione ambientale tutti zero, niente si rompe", () => {
@@ -11794,7 +11825,7 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
        senza, Scudo non sarebbe un'app per cave */
     for (const t of ["DSS", "DVR", "POS", "DUVRI", "Nomina"]) ok(scudo.TIPI_DOCUMENTO.includes(t), t);
     eq(scudo.TIPI_DOCUMENTO[scudo.TIPI_DOCUMENTO.length - 1], "Altro", "«Altro» in fondo, non in mezzo");
-    eq(scudo.ORIGINI_AMBIENTE, ["superamento", "reclamo"], "le due origini che arrivano da Sentinella");
+    eq(scudo.ORIGINI_AMBIENTE, ["superamento", "reclamo", "dopo-volata"], "le tre origini che arrivano da Sentinella (la terza dall'11/09)");
   });
 
   test("dataPiuGiorni: conta in giorni di CALENDARIO LOCALI, non in ore", () => {

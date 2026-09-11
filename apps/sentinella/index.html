@@ -1874,7 +1874,7 @@ textarea.dw-input{
            VOL_PREVISTA, statoVolata, volataPrevista, etichettaStatoVolata, previsioneDiVolata,
            testoFontePrevisione, scartoPpvVolata, confermaVolataEseguita, riepilogoPreviste,
            volateOrdinate, firmaVolata, csvRegistroVolate, CSV_VOLATE_INTESTAZIONE, descriviComunicazione, campiComunicazioneVolata, fogliaVolata,
-           dopoVolata, statoDopoVolata, campiDopoVolata, riepilogoDopoVolata,
+           dopoVolata, statoDopoVolata, campiDopoVolata, riepilogoDopoVolata, bozzaAzioneDopoVolata, ORIGINE_DOPO_VOLATA,
            coperturaTaratura, statoTaraturaStrumento, STATI_TARATURA, DICHIARAZIONI_TARATURA,
            parseTaratureCsv, abbinaTarature, csvTarature, allerteTaratura, CSV_TARATURE_INTESTAZIONE,
            csvAmbiente, csvRicettori, CSV_RICETTORI_INTESTAZIONE, contaCoperture,
@@ -2587,6 +2587,16 @@ textarea.dw-input{
         nome: etichettaReclamo(r.tipo), azioni: az,
         ricettore: trovaRicettore(RIC, r.ricettoreId) });
     }
+    /* il dopo-volata con anomalie (11/09): come un reclamo, chiede una
+       risposta — una mancata esplosione o una proiezione oltre l'area sono
+       un fatto, e restano qui finché un'azione non racconta che cosa si fa */
+    for (const v of VOL || []) {
+      if (statoDopoVolata(v).stato !== "anomalie") continue;
+      voci.push({ genere: "dopo-volata", chiave: "dv|" + v.id, vol: v,
+        data: String(v.data || "").slice(0, 10),
+        nome: "Dopo-volata" + (v.fronte ? " · " + v.fronte : ""),
+        azioni: azioniDiOrigine(AZI, ORIGINE_DOPO_VOLATA, v.id) });
+    }
     // prima ciò che è ancora senza risposta, poi dal fatto più recente
     return voci.sort((a, b) => (a.azioni.length ? 1 : 0) - (b.azioni.length ? 1 : 0)
       || String(b.data || "").localeCompare(String(a.data || "")));
@@ -2640,11 +2650,14 @@ textarea.dw-input{
       + (avvisoCieco ? (voci.length ? "<br>" : "") + avvisoCieco : "");
 
     $("pon-list").innerHTML = voci.map(v => {
-      const sup = v.genere === "superamento";
+      const sup = v.genere === "superamento", dv = v.genere === "dopo-volata";
       const st = statoPonte(v.azioni);
-      const coinc = coincidenzaVolata(VOL, v.data);
+      // su un dopo-volata la «coincidenza con la volata» sarebbe la volata stessa
+      const coinc = dv ? null : coincidenzaVolata(VOL, v.data);
       const u = sup && v.sup.unita ? " " + v.sup.unita : "";
-      const meta = sup
+      const meta = dv
+        ? fmtD(v.data) + " · " + esc(statoDopoVolata(v.vol).anomalie.join(" · "))
+        : sup
         ? `<b>${esc(numeroIt(v.sup.valore))}${esc(u)}</b> / soglia ${esc(numeroIt(v.sup.soglia.valore))}${esc(u)}`
           + (v.sup.soglia.fonte === "ricettore" && v.sup.soglia.ricettore ? " (del ricettore " + esc(v.sup.soglia.ricettore) + ")" : "")
           + (v.data ? " · lettura del " + fmtD(v.data) : " · valore inserito a mano, senza data")
@@ -2656,12 +2669,12 @@ textarea.dw-input{
       // la striscia dice che FATTO è (superamento = rosso, reclamo aperto =
       // ambra, reclamo chiuso = verde); il badge colorato dice a che punto è
       // la RISPOSTA — che è la domanda di questa sezione.
-      const cls = sup ? "st-danger" : (v.rec.stato === "chiuso" ? "st-ok" : "st-warn");
-      const av = sup ? "danger" : (v.rec.stato === "chiuso" ? "ok" : "warn");
+      const cls = sup || dv ? "st-danger" : (v.rec.stato === "chiuso" ? "st-ok" : "st-warn");
+      const av = sup || dv ? "danger" : (v.rec.stato === "chiuso" ? "ok" : "warn");
       return `<div class="item pon-voce ${cls}">
-        <div class="avatar ${av}">${sup ? I.sensore : I.voce}</div>
+        <div class="avatar ${av}">${sup ? I.sensore : dv ? I.volata : I.voce}</div>
         <div class="info"><div class="name">${esc(v.nome)}</div>
-        <div class="riga"><span class="badge accent">${sup ? "Superamento" : (v.rec.stato === "chiuso" ? "Reclamo chiuso" : "Reclamo aperto")}</span>
+        <div class="riga"><span class="badge accent">${sup ? "Superamento" : dv ? "Anomalie dopo lo sparo" : (v.rec.stato === "chiuso" ? "Reclamo chiuso" : "Reclamo aperto")}</span>
         <span class="badge ${st.cls}">${esc(st.label)}</span>
         <span class="meta">${meta}</span></div></div></div>
       <div class="pon-det ${cls}">
@@ -2669,7 +2682,7 @@ textarea.dw-input{
           ${esc(coinc.avviso)}</div>` : ""}
         ${v.azioni.length
           ? elencoAzioni(v.azioni)
-          : `<div class="pon-riga">Nessuna azione correttiva aperta su questo ${sup ? "superamento" : "reclamo"}.
+          : `<div class="pon-riga">Nessuna azione correttiva aperta su ${sup ? "questo superamento" : dv ? "queste anomalie" : "questo reclamo"}.
              Se l'ente chiedesse oggi cosa avete fatto, non ci sarebbe niente da mostrare.</div>
              <div class="pon-cmd"><button type="button" class="dw-btn mini" data-pon-nuova="${esc(v.chiave)}">Apri azione correttiva</button></div>`}
       </div>`;
@@ -2701,20 +2714,23 @@ textarea.dw-input{
   async function apriAzione(chiave) {
     const v = vociPonte().find(x => x.chiave === chiave);
     if (!v) { esito("pon-esito", "Questo fatto non è più in elenco: ricarica il quadro.", "err"); return; }
+    const fatto = v.genere === "superamento" ? "superamento" : v.genere === "dopo-volata" ? "dopo-volata" : "reclamo";
     if (v.azioni.length) {   // secondo controllo, al momento del tocco: mai un doppione
-      esito("pon-esito", "Su questo " + (v.genere === "superamento" ? "superamento" : "reclamo")
+      esito("pon-esito", "Su questo " + fatto
         + " un'azione correttiva c'è già: la trovi qui sotto e si gestisce da Scudo.", "err",
         "C'è già un'azione correttiva.");
       renderPonte(); return;
     }
-    const bozza = v.genere === "superamento"
-      ? bozzaAzioneSuperamento(v.sup, { scadenza: dataPiuGiorni(30) })
-      : bozzaAzioneReclamo(v.rec, v.ricettore, { scadenza: dataPiuGiorni(30) });
+    // la bozza la decide il modulo, per genere: qui si sceglie solo QUALE
+    const bozzaDi = (scelta) => v.genere === "superamento" ? bozzaAzioneSuperamento(v.sup, scelta)
+      : v.genere === "dopo-volata" ? bozzaAzioneDopoVolata(v.vol, scelta)
+      : bozzaAzioneReclamo(v.rec, v.ricettore, scelta);
+    const bozza = bozzaDi({ scadenza: dataPiuGiorni(30) });
     if (!bozza) return;
     const opzResp = '<option value="">— responsabile da assegnare —</option>'
       + LAV.slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
         .map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
-    const coinc = coincidenzaVolata(VOL, v.data);
+    const coinc = v.genere === "dopo-volata" ? null : coincidenzaVolata(VOL, v.data);
     const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
       + (coinc ? `<div class="note avviso"><b>Da guardare:</b> ${esc(coinc.testo)} ${esc(coinc.avviso)}</div>` : "")
       + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
@@ -2747,9 +2763,7 @@ textarea.dw-input{
         "Manca il testo o la data.");
       return;
     }
-    const rec = v.genere === "superamento"
-      ? bozzaAzioneSuperamento(v.sup, scelta)
-      : bozzaAzioneReclamo(v.rec, v.ricettore, scelta);
+    const rec = bozzaDi(scelta);
     try {
       await ponte.aggiungi(rec);
     } catch (e) {
@@ -2760,7 +2774,7 @@ textarea.dw-input{
     }
     await refresh();
     esito("pon-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + fmtD(scelta.scadenza)
-      + ". È collegata a questo " + (v.genere === "superamento" ? "superamento" : "reclamo") + " e da adesso compare nello scadenzario di Scudo.",
+      + ". È collegata a questo " + fatto + " e da adesso compare nello scadenzario di Scudo.",
       "success", "Azione correttiva aperta in Scudo.");
   }
 
@@ -3342,7 +3356,7 @@ textarea.dw-input{
     await db.aggiorna("volate", id, res.campi); await refresh();
     const st = statoDopoVolata({ ...v, ...res.campi });
     toast("Dopo-volata del " + fmtD(v.data) + " registrato: "
-      + (st.anomalie.length ? "con anomalie — " + st.anomalie.join("; ") : "regolare, nessuna anomalia") + ".", st.stato === "anomalie" ? "err" : "success");
+      + (st.anomalie.length ? "con anomalie — " + st.anomalie.join("; ") + ". Da «Cosa abbiamo fatto», nel Quadro, si apre l'azione correttiva in Scudo" : "regolare, nessuna anomalia") + ".", st.stato === "anomalie" ? "err" : "success");
   }
   document.addEventListener("click", async (e) => {
     const b = e.target.closest && e.target.closest("[data-dopo-vol]");

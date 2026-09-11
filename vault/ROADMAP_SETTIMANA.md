@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `SENTINELLA — IL DOPO-VOLATA NEL REGISTRO: MANCATE ESPLOSIONI, RIENTRO, PROIEZIONI OLTRE L'AREA`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7843,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.358 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2877, `run-stile` 328,
+  **3.359 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2878, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9203,19 +9202,22 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   registro conta «senza dopo-volata» e «con anomalie dopo lo sparo», la
   conferma invita a registrarlo. Scatti guardati a 430 px (registro, modale
   vuota, modale con errore, registro dopo). Resta il ponte verso Scudo.
-- [ ] **SENTINELLA — IL DOPO-VOLATA NEL REGISTRO: MANCATE ESPLOSIONI,
-  RIENTRO, PROIEZIONI OLTRE L'AREA (dalla ricerca a rotazione su Genesi
-  dell'11/09).** ⏩ *Modulo e pagina sono fatti (unità 82): resta il ponte
-  verso Scudo — una mancata esplosione che apre un'azione.* Sul registro delle volate (dove sta l'esito) i campi del
-  dopo-volata dichiarati dall'utente — `mancateEsplosioni` (quante, e che
-  cosa si è fatto), `rientroAlle`, `proiezioniOltreArea` (sì/no, con dove),
-  `noteDopo` —, la regola «dopo-volata non registrato» su una volata eseguita
-  senza quei campi (non «regolare»), la sezione nella scheda della volata
-  (`fogliaVolata`), e una mancata esplosione che apre un'azione in Scudo
-  sullo stampo di `bozzaAzioneReclamo`. Prove in run-kpi, scatto. Prova che
-  manca: `grep -ciE 'mancat[ae] esplosion|inesplos|misfire|rientro'
-  apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 1 e 0,
-  l'una un commento sui rilievi di Terra. Vedi `docs/RICERCA_CONTINUA_GENESI.md`, ricerca dell'11/09.
+- [x] **SENTINELLA ↔ SCUDO — UNA MANCATA ESPLOSIONE APRE UN'AZIONE (unità 83,
+  11/09): chiusa la voce «il dopo-volata nel registro».** `ORIGINE_DOPO_VOLATA`
+  e `bozzaAzioneDopoVolata` in Sentinella sullo stampo di `bozzaAzioneReclamo`
+  (`null` su «regolare» — un'azione senza fatto — e su «non registrato» — il
+  fatto non si sa, prima si registra); in Scudo `ORIGINI_AMBIENTE` a tre, la
+  mappa `ETICHETTE_AMBIENTE` al posto del ternario (regola 18: un'origine nuova
+  senza etichetta si leggeva «Superamento»), `origineAzione` che dice «dalle
+  anomalie di un dopo-volata», `riepilogoAmbiente.dopoVolata`; l'identità delle
+  parole fra le due app è una prova (`scudo.ORIGINI_AMBIENTE` contro le tre
+  costanti di Sentinella). Nel Quadro di Sentinella «Cosa abbiamo fatto» elenca
+  le volate con anomalie come i reclami, e «Apri azione correttiva» porta la
+  bozza in Scudo; la registrazione con anomalie lo dice nel toast. Scatti
+  guardati a 430 px: la sezione con la voce «Anomalie dopo lo sparo», la modale
+  con l'origine e la proposta, la voce con l'azione aperta. Prove: run-kpi +1
+  (2878), copertura Sentinella 185/185 e Scudo 216/216. La voce di ricerca
+  (`docs/RICERCA_CONTINUA_GENESI.md`, domanda 3) è aggiornata: fatta.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va
