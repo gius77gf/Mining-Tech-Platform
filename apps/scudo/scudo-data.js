@@ -1088,7 +1088,7 @@ export function etichettaAmbiente(a) {
 // Campo (l'isolamento dello SDK è per organizzazione E per app): è la stessa
 // scelta già presa per `ORIGINI_AMBIENTE`. La difesa è la prova che pretende
 // `scudo.ORIGINI_CAMPO` e `campo.ORIGINE_FERMO` uguali.
-export const ORIGINI_CAMPO = ["fermo"];
+export const ORIGINI_CAMPO = ["fermo", "checklist"];   // «checklist» dall'11/09: la voce non a posto del controllo di inizio turno
 export function daCampo(a) {
   return ORIGINI_CAMPO.includes(String((a || {}).origineTipo || ""));
 }
@@ -1142,9 +1142,12 @@ export function origineAzione(azione, ctx = {}, opts = {}) {
     : (a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
       + " registrato in Sentinella" + quando(a.origineData, "il"));
 
-  if (daCampo(a)) return nota || (doc
-    ? "fermo di produzione (Campo)" + quando(a.origineData, "del")
-    : "da un fermo di produzione registrato in Campo" + quando(a.origineData, "il"));
+  if (daCampo(a)) {
+    const chk = a.origineTipo === "checklist";
+    return nota || (doc
+      ? (chk ? "controllo di inizio turno (Campo)" : "fermo di produzione (Campo)") + quando(a.origineData, "del")
+      : (chk ? "da una voce non a posto del controllo di inizio turno in Campo" : "da un fermo di produzione registrato in Campo") + quando(a.origineData, "il"));
+  }
 
   if (a.origineTipo === "evento") {
     const e = infortuni.find(x => x && x.id === a.origineId);

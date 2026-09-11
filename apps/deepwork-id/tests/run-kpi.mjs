@@ -16163,8 +16163,8 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        organizzazione E per app), quindi la parola è scritta in tutt'e due i
        moduli. È esattamente la coppia che si stacca in silenzio: qui si
        pretende che coincida, come già si fa per i fronti della dimostrazione. */
-    eq(scudo.ORIGINI_CAMPO, [campo.ORIGINE_FERMO],
-       "se una delle due cambia, l'azione arriva a Scudo e non viene riconosciuta");
+    eq(scudo.ORIGINI_CAMPO, [campo.ORIGINE_FERMO, campo.ORIGINE_CHECKLIST],
+       "se una delle due cambia, l'azione arriva a Scudo e non viene riconosciuta (dall'11/09 due origini: il fermo e la voce non a posto della checklist)");
     ok(scudo.daCampo(campo.bozzaAzioneFermo(campo.anomalieAperte(FERMI)[0])),
        "Scudo riconosce come sua un'azione preparata da Campo");
     ok(!scudo.daCampo({ origineTipo: "nc" }) && !scudo.daCampo({ origineTipo: "evento" })
@@ -25669,6 +25669,43 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/if\(x<lo\)\{ cls=/g) || []).length, 0, "la regola non è più scritta in casa");
     const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
     ok(["quotaColore", "verdettoValidatore", "puntoTela", "indicePiuVicino"].every((n) => dati.includes(n)), "la pagina importa i quattro");
+  });
+  /* LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO (11/09,
+     dalla ricerca a rotazione su Campo): il fermo lo faceva già, la
+     checklist trovava il difetto e lo lasciava scritto. */
+  test("⛔ Campo · checklist → Scudo: la bozza porta la voce, la sua area e l'identità checklist+indice; due voci sono due azioni", () => {
+    const doc = { id: "c1", data: "2026-03-10", turno: "Mattina", squadra: "Squadra A", ora: "06:40", esiti: { "0": "ok", "5": "no", "6": "no" }, note: "" };
+    const b = campo.bozzaAzioneChecklist(doc, 6, { fmtData: (d) => "10/03/2026" });
+    eq(b.origineTipo, campo.ORIGINE_CHECKLIST); eq(campo.ORIGINE_CHECKLIST, "checklist");
+    eq([b.origineId, b.origineVoce, b.origineData], ["c1", "6", "2026-03-10"], "l'identità è la checklist più l'INDICE della voce");
+    eq(b.descrizione, "Rimettere a posto: Segnaletica e sbarramenti al loro posto");
+    eq(b.origineEtichetta, "Segnaletica e sbarramenti al loro posto · Area");
+    ok(b.origineNota.startsWith("Controllo di inizio turno (Campo) — «Segnaletica e sbarramenti al loro posto» non a posto il 10/03/2026, turno Mattina · Squadra A · area: Area · checklist chiusa alle 06:40"), b.origineNota);
+    eq([b.stato, b.esito, b.dataChiusura, b.responsabileId, b.scadenza], ["aperta", "", null, null, ""]);
+    eq(campo.bozzaAzioneChecklist(doc, 5, { descrizione: "  Ripulire i cigli  ", scadenza: "2026-03-12T10:00", responsabileId: "l1" }).descrizione, "Ripulire i cigli");
+    eq(campo.bozzaAzioneChecklist(doc, 5, { scadenza: "2026-03-12T10:00" }).scadenza, "2026-03-12");
+    ok(/checklist non ancora chiusa/.test(campo.bozzaAzioneChecklist({ ...doc, ora: "" }, 5).origineNota), "una checklist aperta lo dice nella nota");
+    eq(campo.bozzaAzioneChecklist(doc, 99), null, "un indice che non esiste non fa una bozza"); eq(campo.bozzaAzioneChecklist({ esiti: {} }, 5), null, "senza id non c'è a che cosa legarla");
+    ok(scudo.daCampo(b) && !scudo.daAmbiente(b), "Scudo la riconosce come di Campo e non la scambia per un fatto ambientale");
+    ok(!["evento", "ispezione", "nc", "superamento", "reclamo", "fermo"].includes(campo.ORIGINE_CHECKLIST), "provenienza nuova, non riciclata");
+    // le azioni della voce: per indice, e due voci non si mescolano
+    const azioni = [campo.bozzaAzioneChecklist(doc, 6), { ...campo.bozzaAzioneChecklist(doc, 5), stato: "chiusa" }, { ...campo.bozzaAzioneChecklist({ ...doc, id: "c2" }, 6), stato: "in-corso" }];
+    eq(campo.azioniDellaVoce(azioni, "c1", 6).length, 1); eq(campo.azioniDellaVoce(azioni, "c1", 5).length, 1); eq(campo.azioniDellaVoce(azioni, "c1", 3).length, 0);
+    const v = campo.vociNonAPosto(doc, azioni);
+    eq(v.map((x) => [x.indice, x.risposta.cls, x.risposta.label]), [[5, "ok", "Azione chiusa"], [6, "warn", "1 azione da chiudere"]], "ogni voce non a posto porta il semaforo della SUA risposta");
+    eq(campo.vociNonAPosto(doc, []).map((x) => x.risposta.label), ["Nessuna azione", "Nessuna azione"], "senza azioni è rosso, non tranquillo");
+    eq(campo.vociNonAPosto(doc, null).map((x) => [x.azioni, x.risposta]), [[null, null], [null, null]], "Scudo non leggibile: «non lo so», non «nessuna»");
+    eq(campo.vociNonAPosto({ id: "c9", esiti: { "0": "ok", "1": "na" } }, []), [], "senza voci non a posto niente da aprire");
+    // il rapporto: accanto alla voce, la risposta — solo se le azioni sono state lette
+    const base = { oggi: "2026-03-10", checklist: [doc], squadre: [], operatori: [], presenze: [], durate: [], rapportini: [], attivita: [], obiettivi: [], meteo: [], chiusure: [] };
+    const cella = (R) => R.sezioni.find((s) => s.titolo === "Checklist di inizio turno").blocchi[0].tabella.righe[0][3];
+    eq(cella(campo.rapportoGiornata({ ...base, azioni }, {})), "Fronte e cigli controllati: nessun blocco in bilico (azione chiusa); Segnaletica e sbarramenti al loro posto (1 azione da chiudere)");
+    eq(cella(campo.rapportoGiornata({ ...base, azioni: [] }, {})), "Fronte e cigli controllati: nessun blocco in bilico (senza azione); Segnaletica e sbarramenti al loro posto (senza azione)");
+    eq(cella(campo.rapportoGiornata(base, {})), "Fronte e cigli controllati: nessun blocco in bilico; Segnaletica e sbarramenti al loro posto", "senza le azioni lette il foglio non giudica");
+    // e Scudo la racconta con le parole giuste, non come un fermo
+    eq(scudo.origineAzione({ ...b, origineNota: "" }, {}, { voce: "documento" }), "controllo di inizio turno (Campo) del 10/03/2026", "Scudo, nel documento, dice «controllo di inizio turno», non «fermo di produzione»");
+    ok(/da una voce non a posto del controllo di inizio turno in Campo il 10\/03\/2026/.test(scudo.origineAzione({ ...b, origineNota: "" }, {}, {})), "e a schermo lo stesso, con le sue parole");
+    eq(scudo.origineAzione(b, {}, {}), b.origineNota, "quando la nota c'è, vince la nota (la fotografia scritta da Campo)");
   });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro

@@ -626,6 +626,9 @@ button.arr.del:hover{
    guanti. La risposta scelta si accende — colore E parola, mai il solo
    colore. Sotto i 400 px la terna va a capo e prende tutta la riga. */
 .chk-row{display:flex; gap:6px; flex-wrap:wrap; flex:1 1 250px; justify-content:flex-end}
+/* la risposta sotto una voce non a posto (11/09): badge e bottone sulla
+   stessa riga, a capo quando lo schermo è stretto */
+.chk-azione{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px}
 .chk-row .chg{flex:1 1 76px; padding:7px 8px; letter-spacing:.8px}
 .chk-row .chg.active.si{
   background:var(--success); border-color:var(--success); color:var(--on-ok);
@@ -1232,7 +1235,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso, statoMeteo,
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
-           anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
+           anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni, bozzaAzioneChecklist, vociNonAPosto,
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
            segnalazioniDelTurno, lavoriNonConclusi, testoConsegnaTurno, rapportoGiornata, fraseNonRiconosciute as fraseNonRiconosciuteTesto, testoSegnalazioniTurno, categorieGiaSegnalate,
@@ -1949,35 +1952,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     const bozza = bozzaAzioneFermo(v, { scadenza: dataPiuGiorni(30), fmtData: dmy });
     if (!bozza) return;
-    const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
-    const opzResp = '<option value="">— da assegnare —</option>'
-      + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
-    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
-      + (!v.causale || v.minuti === null
-          ? `<div class="note avviso"><b>Quello che manca lo legge anche chi riceve l'azione:</b> `
-            + [!v.causale ? "la causale del fermo non è indicata" : "", v.minuti === null ? "i minuti persi non sono stati scritti" : ""]
-                .filter(Boolean).join(" e ")
-            + `. Si può aprire lo stesso, ma completarlo sull'attività qui sopra vale più di qualunque testo.</div>`
-          : "")
-      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
-      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
-      + '<label class="fl" for="pon-scad">Entro quando</label>'
-      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
-      + (lav.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
-          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
-      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
-      + 'da lì entra nello scadenzario e nel semaforo, e si chiude quando la causa del fermo è stata tolta.</div>';
-    const scelta = await new Promise(res => {
-      apriModale("Apri l'azione correttiva", corpo, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
-        { label: "Apri in Scudo", cls: "primary", azione: () => {
-            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
-            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
-              responsabileId: (r && r.value) || null };
-            chiudiModale(); res(val);
-          } },
-      ]);
-    });
+    const scelta = await chiediAzione(bozza, "quando la causa del fermo è stata tolta",
+      !v.causale || v.minuti === null
+        ? `<div class="note avviso"><b>Quello che manca lo legge anche chi riceve l'azione:</b> `
+          + [!v.causale ? "la causale del fermo non è indicata" : "", v.minuti === null ? "i minuti persi non sono stati scritti" : ""]
+              .filter(Boolean).join(" e ")
+          + `. Si può aprire lo stesso, ma completarlo sull'attività qui sopra vale più di qualunque testo.</div>`
+        : "");
     if (!scelta) return;
     if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
       esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err");
@@ -1993,6 +1974,36 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     await refresh();
     esito("pon-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + dmy(scelta.scadenza)
       + ". È collegata a questo fermo e da adesso compare nello scadenzario di Scudo.", "success");
+  }
+  /* LA MODALE DELL'AZIONE, SCRITTA UNA VOLTA (11/09): la usano il fermo e la
+     voce non a posto della checklist. Restituisce {descrizione, scadenza,
+     responsabileId} o null se si annulla. `chiusura` è la frase «si chiude
+     quando…» dell'origine; `avviso` è l'eventuale riquadro su ciò che manca. */
+  async function chiediAzione(bozza, chiusura, avviso) {
+    const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
+    const opzResp = '<option value="">— da assegnare —</option>'
+      + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
+    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
+      + (avviso || "")
+      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
+      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
+      + '<label class="fl" for="pon-scad">Entro quando</label>'
+      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
+      + (lav.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
+          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
+      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
+      + 'da lì entra nello scadenzario e nel semaforo, e si chiude ' + esc(chiusura) + '.</div>';
+    return await new Promise(res => {
+      apriModale("Apri l'azione correttiva", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: "Apri in Scudo", cls: "primary", azione: () => {
+            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
+            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
+              responsabileId: (r && r.value) || null };
+            chiudiModale(); res(val);
+          } },
+      ]);
+    });
   }
 
   document.addEventListener("click", async (e) => {
@@ -2784,16 +2795,26 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}
           ${bloc ? `<br><b>Turno chiuso e firmato</b>: la checklist non si può più cambiare.` : ""}</div>
       </div>`;
+    /* LA VOCE NON A POSTO E LA SUA AZIONE (11/09): sotto la riga, il semaforo
+       della risposta letto dalle azioni di Scudo — «Nessuna azione» è rosso,
+       e se Scudo non si legge si dice «non lo sappiamo», non «nessuna» */
+    const nonAPosto = doc ? vociNonAPosto(doc, AZI_HSE) : [];
     lista.innerHTML = CHECKLIST_INIZIO.map((v, i) => {
       const val = esiti[String(i)] || "";
       const stile = val === "no" ? "st-danger" : val === "ok" ? "st-ok" : val === "na" ? "st-mute" : "st-warn";
+      const nap = val === "no" ? nonAPosto.find(x => x.indice === i) : null;
+      const azione = !nap ? "" : `<div class="form-hint chk-azione">
+          <span class="badge ${nap.risposta ? nap.risposta.cls : "tag"}">${nap.risposta ? esc(nap.risposta.label) : "Non lo sappiamo"}</span>
+          ${nap.risposta && nap.risposta.n ? " si gestisce da Scudo" : (nap.risposta
+            ? `<button type="button" class="dw-btn secondary mini" data-chk-azione="${i}" title="Apri in Scudo l'azione correttiva che rimette a posto «${esc(v.testo)}»">Apri l'azione in Scudo</button>`
+            : " Scudo non è raggiungibile: non si sa se un'azione c'è già")}</div>`;
       return `<div class="item ${stile}" style="cursor:default">
         <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}</div></div>
         <div class="chk-row">${ESITI_CHECK.map(e => {
           const [c, lab] = ET_ESITO[e];
           return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"${bloc ? " disabled" : ""}
             aria-pressed="${val === e ? "true" : "false"}" title="${bloc ? "Turno chiuso: non si può più cambiare" : esc(v.testo) + ": " + lab}">${lab}</button>`;
-        }).join("")}</div>
+        }).join("")}</div>${azione}
       </div>`;
     }).join("");
     tools.style.display = "flex";
@@ -2848,6 +2869,32 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
 
   document.addEventListener("click", async (e) => {
+    const ba = e.target.closest && e.target.closest("[data-chk-azione]");
+    if (ba) {
+      /* dalla voce non a posto all'azione in Scudo (11/09): stessa modale del
+         fermo, seconda origine. Il doppione si controlla al tocco. */
+      const { doc } = chkCorrente();
+      const i = +ba.getAttribute("data-chk-azione");
+      if (!doc) return;
+      if (AZI_HSE === null) {
+        esito("chk-esito", "Le azioni correttive stanno in Scudo, che adesso non è raggiungibile: aprirne una senza poter vedere quelle che ci sono già rischia di scriverne due uguali. Riprova più tardi.", "err"); return; }
+      const nap = vociNonAPosto(doc, AZI_HSE).find(x => x.indice === i);
+      if (!nap) return;
+      if (nap.azioni && nap.azioni.length) { esito("chk-esito", "Su questa voce un'azione correttiva c'è già: si gestisce da Scudo.", "err"); renderChecklist(); return; }
+      const bozza = bozzaAzioneChecklist(doc, i, { scadenza: dataPiuGiorni(7), fmtData: dmy });
+      if (!bozza) return;
+      const scelta = await chiediAzione(bozza, "quando la voce è stata rimessa a posto", "");
+      if (!scelta) return;
+      if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
+        esito("chk-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err"); return; }
+      try {
+        await db.aggiungiAzioneScudo(bozzaAzioneChecklist(doc, i, { ...scelta, fmtData: dmy }));
+      } catch (err2) {
+        esito("chk-esito", "L'azione non è stata aperta: Scudo non ha accettato la scrittura. Di solito succede quando la tua organizzazione non ha Scudo attivo, oppure quando manca il collegamento. Riprova più tardi.", "err"); return; }
+      await refresh();
+      esito("chk-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + dmy(scelta.scadenza) + ". È collegata a questa voce della checklist.", "success");
+      return;
+    }
     const b = e.target.closest && e.target.closest("[data-chk]");
     if (!b) return;
     await salvaEsiti({ [b.getAttribute("data-chk")]: b.getAttribute("data-esito") });
@@ -4384,7 +4431,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // `rapportoGiornata` nel modulo — le stesse funzioni dello schermo — e qui
     // si disegna e basta (05/09). Il grassetto arriva come «**così**», il
     // corsivo «*così*», l'a capo «\n»: li rende `md`.
-    const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK,
+    const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE,
       meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR }, { dmy });
     const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*([^*\n]+?)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
     const tabella = (T) => `<table><tr>${T.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${

@@ -2025,8 +2025,10 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   esce verde. La collezione porta `ora` (quando è stata chiusa): il «verbale
   prima della fine del turno» c'è.
 - **Domanda 4 — C'È.** Il rapporto di fine turno stampa le voci non a posto
-  (`st.problemi`, `grep -n 'st.problemi' apps/campo/index.html` → 1 riga nel
-  foglio) e la consegna al turno dopo porta la frase della checklist.
+  (`rapportoGiornata` in `campo-data.js`, colonna «Voci non a posto» della
+  tabella della checklist — la riga `st.problemi` della pagina è invece il
+  dialogo di chiusura, che le elenca prima di chiudere) e la consegna al
+  turno dopo porta la frase della checklist.
 - **Domanda 1 — A METÀ, ed è la metà che il mondo registra.** Il briefing è
   **una voce della checklist** («Briefing di inizio turno fatto con la
   squadra»: `grep -ciE 'briefing' apps/campo/campo-data.js
@@ -2055,3 +2057,7 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   l'azione» accanto alla voce non a posto, e lo stato dell'azione letto con
   `azioniDiOrigine` di `shared/` come già per i fermi — così la checklist di
   ieri sa dire se il difetto è stato corretto, e da chi.
+  ✅ **Fatto lo stesso giorno** (`bozzaAzioneChecklist`, `vociNonAPosto`,
+  `ORIGINI_CAMPO` di Scudo a due voci, la modale dell'azione scritta una
+  volta, il rapporto che scrive la risposta accanto alla voce): la riga resta
+  per il metodo, non come lavoro da fare.

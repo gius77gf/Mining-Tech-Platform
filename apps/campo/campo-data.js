@@ -3375,7 +3375,15 @@ export function rapportoGiornata(d, opts) {
   const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
     chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
       chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
-        x.st.problemi.length ? x.st.problemi.join("; ") : "nessuna", String(x.c.ora || "non chiusa")])) }] : []);
+        /* accanto a ogni voce non a posto, se le azioni di Scudo sono state lette
+           (`D.azioni` è una lista), il semaforo della risposta: «senza azione»
+           è una parola che l'ispettore legge — e se Scudo non si legge non si
+           scrive niente, invece di «senza azione» su un dato che non c'è (11/09) */
+        x.st.problemi.length
+          ? (Array.isArray(D.azioni)
+              ? vociNonAPosto(x.c, D.azioni).map((v) => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
+              : x.st.problemi.join("; "))
+          : "nessuna", String(x.c.ora || "non chiusa")])) }] : []);
   const metOggi = TURNI.map((t) => meteoDi(MET, OGGI, t)).filter((m) => m && riassuntoMeteo(m));
   const meteo = sez("Meteo e condizioni del sito", metOggi.length ? "" : "Meteo e condizioni del sito non registrati oggi.",
     metOggi.length ? [{ tabella: tab(["Turno", "Condizioni", "Note sul sito"],
@@ -3817,4 +3825,64 @@ export async function campoData() {
     };
   }
   return { mode, ...api };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO (11/09,
+// dalla ricerca a rotazione). Il controllo di inizio turno trovava il
+// difetto e lo scriveva — nel foglio, nella consegna — e lì finiva: nessuno
+// lo portava a qualcuno che lo rimettesse a posto entro una data. È la
+// catena trovato → avvisato → corretto che le ispezioni chiedono di provare,
+// e il ponte esiste già per il fermo macchina: stesso schema, seconda
+// origine. L'identità dell'azione è la checklist (un turno, una squadra) più
+// l'INDICE della voce in `origineVoce`: due voci non a posto della stessa
+// checklist sono due azioni diverse.
+// ══════════════════════════════════════════════════════════════════
+export const ORIGINE_CHECKLIST = "checklist";
+
+// Le azioni nate da UNA voce di UNA checklist (regola di shared/, tipo e voce fissati).
+export function azioniDellaVoce(azioni, checklistId, indice) {
+  return azioniDiOrigine(azioni, ORIGINE_CHECKLIST, checklistId, String(indice));
+}
+
+// La bozza: prepara il record che va nella collezione `azioni` di Scudo; chi
+// la apre cambia testo, responsabile e data prima di confermare. Pura.
+export function bozzaAzioneChecklist(doc, indice, opts = {}) {
+  if (!doc || !doc.id) return null;
+  const v = CHECKLIST_INIZIO[+indice];
+  if (!v) return null;
+  const fmt = typeof opts.fmtData === "function" ? opts.fmtData : (d) => d;
+  const nota = "Controllo di inizio turno (Campo) — «" + v.testo + "» non a posto"
+    + (doc.data ? " il " + fmt(doc.data) : "")
+    + (doc.turno ? ", turno " + doc.turno : "")
+    + (doc.squadra ? " · " + doc.squadra : "")
+    + " · area: " + v.area
+    + (doc.ora ? " · checklist chiusa alle " + doc.ora : " · checklist non ancora chiusa")
+    + (doc.note ? " · «" + doc.note + "»" : "");
+  return {
+    descrizione: String(opts.descrizione || ("Rimettere a posto: " + v.testo)).trim(),
+    responsabileId: opts.responsabileId || null,
+    scadenza: String(opts.scadenza || "").slice(0, 10),
+    stato: "aperta", esito: "", dataChiusura: null,
+    origineTipo: ORIGINE_CHECKLIST, origineApp: PONTE_APP,
+    origineId: doc.id, origineVoce: String(+indice),
+    origineData: doc.data || "",
+    origineEtichetta: v.testo + " · " + v.area,
+    origineNota: nota,
+  };
+}
+
+// Le voci non a posto di una checklist, ognuna con le sue azioni e il semaforo
+// della risposta. `azioni === null` = «Scudo non si legge»: `azioni` e
+// `risposta` restano null («non lo so»), non una lista vuota che si leggerebbe
+// «nessuna azione». Pura e testabile.
+export function vociNonAPosto(doc, azioni) {
+  const e = (doc && doc.esiti) || {};
+  const out = [];
+  CHECKLIST_INIZIO.forEach((v, i) => {
+    if ((e[String(i)] || e[i]) !== "no") return;
+    const az = azioni && doc && doc.id ? azioniDellaVoce(azioni, doc.id, i) : null;
+    out.push({ indice: i, testo: v.testo, area: v.area, azioni: az, risposta: az ? statoPonte(az) : null });
+  });
+  return out;
 }

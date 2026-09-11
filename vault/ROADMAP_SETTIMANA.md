@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO`
 - `CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI C'ERA`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
@@ -7844,8 +7843,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.345 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2864, `run-stile` 328,
+  **3.346 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2865, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9092,8 +9091,26 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   il briefing è **una spunta** senza argomento né presenti; la voce «non a
   posto» **non apre niente** (le tre occorrenze di `bozzaAzione` nella pagina
   sono tutte del fermo macchina). Due voci aperte qui sotto, con la prova accanto.
-- [ ] **CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO
-  (dalla ricerca a rotazione dell'11/09).** Sullo stampo del fermo macchina:
+- [x] **CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO
+  (dalla ricerca a rotazione dell'11/09) — FATTA lo stesso giorno:**
+  `ORIGINE_CHECKLIST`, `bozzaAzioneChecklist(doc, indice, opts)` sullo stampo
+  del fermo (origine dichiarata, identità = checklist + INDICE della voce in
+  `origineVoce`, nota con turno, squadra, area e se la checklist era chiusa),
+  `azioniDellaVoce` (la regola di `shared/`, tipo e voce fissati),
+  `vociNonAPosto(doc, azioni)` con il semaforo per voce e «non lo so» quando
+  Scudo non si legge; Scudo riconosce la seconda origine (`ORIGINI_CAMPO` =
+  fermo + checklist) e la racconta con le sue parole («controllo di inizio
+  turno», non «fermo di produzione»). Pagina: sotto ogni voce non a posto il
+  badge della risposta («Nessuna azione» rosso) e il bottone «Apri l'azione in
+  Scudo» — la modale dell'azione è UNA (`chiediAzione`, era scritta dentro il
+  gestore del fermo), il doppione si controlla al tocco, la scadenza proposta
+  è a 7 giorni; il rapporto di fine turno scrive accanto a ogni voce non a
+  posto la risposta («senza azione», «1 azione da chiudere»…) SOLO se le
+  azioni di Scudo sono state lette. Sonda a 320 px sulla dimostrazione: voce
+  segnata, modale, conferma, «1 azione da chiudere · si gestisce da Scudo»,
+  0 errori, scatti guardati. Prove: run-kpi +1 (con il ponte a due origini e
+  il rapporto nei tre casi), copertura Campo 134 → **137**.
+  *(Voce originale:)* Sullo stampo del fermo macchina:
   `bozzaAzioneChecklist(voce, data, turno, squadra, opts)` in `campo-data.js`
   con la stessa origine dichiarata (`origineTipo`, `origineId` = id della
   checklist + indice della voce, `origineVoce` = data, scadenza proposta), il
