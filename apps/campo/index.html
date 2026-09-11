@@ -1030,6 +1030,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="note esito" id="chk-esito"></div>
 
+  <div class="sec">Briefing di inizio turno</div>
+  <div id="bri-board"></div>
+  <div class="form col" id="bri-form" style="display:none;">
+    <input class="dw-input" id="bri-argomento" placeholder="Argomento del giorno (es. volata delle 12:30: sgombero e segnali)" maxlength="160">
+    <div class="frow">
+      <select class="dw-input" id="bri-chi" style="flex:1 1 180px;" aria-label="Chi ha tenuto il briefing"></select>
+      <input class="dw-input" id="bri-note" placeholder="Note (facoltative)" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-bri">Registra il briefing</button>
+    </div>
+    <div class="form-hint">Un argomento solo, quello del lavoro di oggi. <b>Chi c'era</b> lo dice l'appello qui sotto: non si scrive due volte. Registrando il briefing, la voce «Briefing di inizio turno fatto» della checklist si spunta da sola se non l'hai ancora toccata.</div>
+  </div>
+  <div class="note esito" id="bri-esito"></div>
+
   <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">—</span></div>
   <div id="pre-board"></div>
   <div id="pre-riposo"></div>
@@ -1236,6 +1249,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso, statoMeteo,
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
            anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni, bozzaAzioneChecklist, vociNonAPosto,
+           briefingDi, presentiAlBriefing, riassuntoBriefing, INDICE_BRIEFING,
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
            segnalazioniDelTurno, lavoriNonConclusi, testoConsegnaTurno, rapportoGiornata, fraseNonRiconosciute as fraseNonRiconosciuteTesto, testoSegnalazioniTurno, categorieGiaSegnalate,
@@ -1540,7 +1554,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[];
+  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[], BRI=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
   let LAV_HSE = null, SCAD_HSE = null;
   let VOL_SENT = null;   // le volate del registro di Sentinella (ponte P6): null = non lo so
@@ -2014,8 +2028,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
 
   async function refresh(){
-    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
-      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate()]);
+    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR,BRI] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
+      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate(), db.briefing()]);
     // PONTE P3 · i documenti del personale, in sola lettura da Scudo. `null` vuol
     // dire «non lo so» — Scudo non c'è o non è leggibile — ed è diverso da «non
     // c'è nessun documento scaduto». La schermata deve dire quale dei due.
@@ -2265,7 +2279,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(squadraBase(q.nome))}</option>`).join("");
     // C3 · Checklist di inizio turno, appello e storico della settimana.
-    renderChecklist();
+    renderChecklist(); renderBriefing();
     renderPresenze();
     renderMeteo();
     renderChiusura();
@@ -2899,9 +2913,65 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!b) return;
     await salvaEsiti({ [b.getAttribute("data-chk")]: b.getAttribute("data-esito") });
   });
-  // squadra e turno in cima alla pagina comandano checklist E appello
-  $("chk-squadra").onchange = () => { renderChecklist(); renderPresenze(); };
-  $("chk-turno").onchange = () => { renderChecklist(); renderPresenze(); renderMeteo(); renderChiusura(); };
+  // squadra e turno in cima alla pagina comandano checklist, briefing E appello
+  $("chk-squadra").onchange = () => { renderChecklist(); renderBriefing(); renderPresenze(); };
+  $("chk-turno").onchange = () => { renderChecklist(); renderBriefing(); renderPresenze(); renderMeteo(); renderChiusura(); };
+
+  /* IL BRIEFING DI INIZIO TURNO (11/09): il cartellone e, se non è ancora
+     registrato, il modulo. I presenti li dice l'appello dello stesso turno
+     (`presentiAlBriefing`), con chi è da spuntare detto e non contato. */
+  function renderBriefing() {
+    const { squ, turno } = chkCorrente();
+    const board = $("bri-board"), form = $("bri-form");
+    if (!squ) { board.innerHTML = ""; form.style.display = "none"; return; }
+    const b = briefingDi(BRI, OGGI, turno, squ);
+    const bloc = eChiuso(OGGI, turno);
+    if (b) {
+      const r = riassuntoBriefing(b, OPER, PRE);
+      const pres = presentiAlBriefing(b, OPER, PRE);
+      board.innerHTML = `<div class="board ${pres.daSpuntare.length ? "warn" : "ok"}">
+        <div class="board-ico">${I.spunta}</div>
+        <div><div class="board-num">${pres.presenti.length}/${pres.totale}</div>
+          <div class="board-lab">Presenti al briefing · turno ${esc(turno)}</div></div>
+        <div class="board-txt"><b>${esc(r.argomento)}</b><br>tenuto da <b>${esc(r.tenutoDa)}</b>${b.ora ? " alle <b>" + esc(b.ora) + "</b>" : ""} · ${esc(squ)} · ${dmy(OGGI)}<br>
+          presenti: ${esc(pres.testo)}${b.note ? "<br>" + esc(b.note) : ""}</div>
+      </div>`;
+      form.style.display = "none";
+      return;
+    }
+    board.innerHTML = `<div class="board warn">
+        <div class="board-ico">${I.allarme}</div>
+        <div><div class="board-num">—</div><div class="board-lab">Briefing · turno ${esc(turno)}</div></div>
+        <div class="board-txt">${bloc ? "<b>Turno chiuso</b>: nessun briefing registrato per " + esc(squ) + "." : "Nessun briefing registrato per <b>" + esc(squ) + "</b>: scrivi l'argomento e chi lo ha tenuto."}</div>
+      </div>`;
+    form.style.display = bloc ? "none" : "";
+    // chi lo ha tenuto: le persone della squadra (tutte, anche chi non è in forza oggi non c'è per definizione)
+    const persone = OPER.filter(o => o && o.squadra === squ && o.stato !== "non-disponibile");
+    const scelto = $("bri-chi").value;
+    $("bri-chi").innerHTML = '<option value="">— chi lo ha tenuto —</option>'
+      + persone.map(o => `<option value="${esc(o.id)}"${o.id === scelto ? " selected" : ""}>${esc(o.nome)}${o.ruolo ? " · " + esc(o.ruolo) : ""}</option>`).join("");
+  }
+  $("btn-bri").onclick = async () => {
+    const { squ, turno, doc } = chkCorrente();
+    if (!squ) return;
+    // punto di scrittura 20 — il briefing di inizio turno
+    if (bloccato(OGGI, turno, "il briefing di inizio turno", "bri-esito")) return;
+    const argomento = $("bri-argomento").value.trim(), tenutoDa = $("bri-chi").value, note = $("bri-note").value.trim();
+    err("bri-argomento", false);
+    // (`fuoco` è di Terra, non di questa pagina: l'ha preso `nomi-liberi` prima del commit)
+    if (!argomento) { err("bri-argomento", true); $("bri-argomento").focus();
+      esito("bri-esito", "Serve l'argomento: è la cosa che il registro deve saper dire dopo un mese.", "err"); return; }
+    if (briefingDi(BRI, OGGI, turno, squ)) { esito("bri-esito", "Il briefing di questo turno è già registrato.", "err"); renderBriefing(); return; }
+    const ora = new Date().toTimeString().slice(0, 5);
+    await db.aggiungi("briefing", { data: OGGI, turno, squadra: squ, argomento, tenutoDa: tenutoDa || "", note, ora });
+    /* la voce della checklist «Briefing … fatto» si spunta da sola SOLO se
+       nessuno l'ha ancora toccata: una risposta data a mano non si sovrascrive */
+    const gia = doc && doc.esiti && (doc.esiti[String(INDICE_BRIEFING)] || doc.esiti[INDICE_BRIEFING]);
+    if (INDICE_BRIEFING >= 0 && !gia) await salvaEsiti({ [String(INDICE_BRIEFING)]: "ok" });
+    $("bri-argomento").value = ""; $("bri-note").value = "";
+    await refresh();
+    esito("bri-esito", "Briefing registrato alle " + ora + " (" + squ + ", turno " + turno + ")" + (gia ? "." : ": la voce della checklist è segnata a posto."), "success");
+  };
   $("btn-chk-ok").onclick = async () => {
     const { doc } = chkCorrente();
     const esiti = (doc && doc.esiti) || {}, nuovi = {};
@@ -4415,7 +4485,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        funzioni dello schermo, sezione per sezione — così la composizione la
        prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
        la pagina, che sa in che modo sta girando. */
-    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK,
+    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, briefing: BRI, operatori: OPER, presenze: PRE,
       meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE }, { avviso: avvisoEsempioTesto(), dmy });
     const fermi = riepilogoFermi(ATT_OGGI);
     const el = document.createElement("a");
@@ -4431,7 +4501,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // `rapportoGiornata` nel modulo — le stesse funzioni dello schermo — e qui
     // si disegna e basta (05/09). Il grassetto arriva come «**così**», il
     // corsivo «*così*», l'a capo «\n»: li rende `md`.
-    const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE,
+    const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,
       meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR }, { dmy });
     const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*([^*\n]+?)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
     const tabella = (T) => `<table><tr>${T.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${

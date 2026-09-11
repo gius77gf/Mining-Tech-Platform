@@ -2905,7 +2905,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI C'ERA`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7843,8 +7842,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.346 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2865, `run-stile` 328,
+  **3.347 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2866, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9120,8 +9119,24 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   l'azione c'è. Prove in run-kpi (bozza, doppione sull'id, stato), scatto.
   Prova che manca: `grep -n 'bozzaAzione' apps/campo/index.html` → 3 righe,
   tutte `bozzaAzioneFermo` (l'import e le due chiamate). Vedi `docs/RICERCA_CONTINUA_CAMPO.md`, 11/09.
-- [ ] **CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI
-  C'ERA (dalla ricerca a rotazione dell'11/09, dopo la voce sopra).** Una
+- [x] **CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI
+  C'ERA (dalla ricerca a rotazione dell'11/09, dopo la voce sopra) — FATTA lo
+  stesso giorno:** collezione `briefing/{id}` (data, turno, squadra,
+  argomento, tenutoDa, note, ora), `briefingDi`, `presentiAlBriefing` — i
+  presenti sono quelli dell'**appello** dello stesso turno e squadra, e chi
+  nessuno ha spuntato si dice «da spuntare», non si conta né presente né
+  assente —, `riassuntoBriefing` (chi lo ha tenuto dall'anagrafica, «non
+  indicato» quando manca), `INDICE_BRIEFING` (la voce della checklist trovata
+  per testo, non per numero). Pagina: sezione «Briefing di inizio turno» sotto
+  la checklist, cartellone con argomento, chi, ora e presenti (giallo se c'è
+  qualcuno da spuntare), modulo con la tendina delle persone della squadra,
+  turno chiuso = lucchetto; registrando, la voce della checklist «Briefing …
+  fatto» si spunta da sola SOLO se nessuno l'aveva toccata. Il rapporto di fine
+  turno ha la sezione (undici fisse) e la consegna la riga. Dimostrazione: il
+  briefing di oggi della squadra A (volata delle 12:30). Sonda a 320 px:
+  cartellone A, modulo B, registrazione, spunta automatica, 0 errori, scatti
+  guardati. Prove: run-kpi +1 (e le due del foglio aggiornate), copertura
+  Campo 138 → **142**. *(Voce originale:)* Una
   collezione `briefing/{id}` per data, turno e squadra (`argomento`,
   `tenutoDa`, `note`, `ora`), i presenti presi dall'appello dello stesso
   turno (non una seconda lista), la voce della checklist «Briefing … fatto»

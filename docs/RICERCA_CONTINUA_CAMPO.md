@@ -2043,6 +2043,9 @@ Cercato per **meccanismo**, aprendo le funzioni, non per parola.
   e il rapporto di fine turno che lo stampa con argomento e presenti. Piccolo
   (una collezione, una scheda, una riga nel foglio), e chiude la riga «prova
   forte di diligenza» delle guide.
+  ✅ **Fatto lo stesso giorno** (`briefingDi`, `presentiAlBriefing`,
+  `riassuntoBriefing`, `INDICE_BRIEFING`, la sezione nella pagina, nel
+  rapporto e nella consegna): la riga resta per il metodo.
 - **Domanda 3 — MANCA, ed è la ragione per cui si cade nelle ispezioni.** Una
   voce «non a posto» finisce nel foglio e nella consegna, ma **non apre
   niente**: `grep -n 'bozzaAzione' apps/campo/index.html` → 3 righe, **tutte

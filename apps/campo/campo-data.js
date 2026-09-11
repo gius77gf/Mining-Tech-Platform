@@ -14,6 +14,11 @@
 //                     (obiettivo del turno: uno per giorno+turno+unità)
 //   checklist/{id}:  { data, turno, squadra, esiti: {"0":"ok"|"no"|"na"}, note, ora }
 //                     (controlli di inizio turno, uno per giorno+turno+squadra)
+//   briefing/{id}:   { data, turno, squadra, argomento, tenutoDa (id operatore
+//                      o nome), note, ora }
+//                     (il briefing di inizio turno — toolbox talk —, uno per
+//                      giorno+turno+squadra, 11/09: i PRESENTI non si scrivono
+//                      qui, sono quelli dell'appello dello stesso turno)
 //   presenze/{id}:   { data, turno, operatoreId, nome, stato: presente|assente,
 //                      ora, entrata, uscita }
 //                     (appello del turno: chi c'è in cava adesso. `ora` è
@@ -342,6 +347,13 @@ export const DEMO = {
     { id: "b1", data: OGGI_DEMO, turno: "Mattina", unita: "t", valore: 260 },
   ],
   checklist: [],
+  /* il briefing di oggi per la squadra A, turno di Mattina (11/09): un
+     argomento del giorno, chi lo ha tenuto; i presenti sono quelli
+     dell'appello qui sotto — che è PARZIALE apposta, così il briefing dice
+     «2 presenti, 1 da spuntare» e non un numero tranquillo */
+  briefing: [
+    { id: "br1", data: GIORNI_FA(0), turno: "Mattina", squadra: "Squadra A", argomento: "Volata delle 12:30: sgombero del piazzale, segnali e punto di raccolta", tenutoDa: "o1", note: "", ora: "06:05" },
+  ],
   /* ⛔ L'APPELLO DEL TURNO, NEI SUOI TRE STATI. Era `presenze: []`, e con
      l'elenco vuoto l'appello mostrava tutti «da spuntare»: si legge come «la
      funzione non e' mai stata usata», non come «di queste persone non si sa
@@ -3384,6 +3396,14 @@ export function rapportoGiornata(d, opts) {
               ? vociNonAPosto(x.c, D.azioni).map((v) => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
               : x.st.problemi.join("; "))
           : "nessuna", String(x.c.ora || "non chiusa")])) }] : []);
+  // il briefing di inizio turno (11/09): argomento, chi lo ha tenuto e i
+  // presenti dell'appello — con quelli non spuntati detti, non contati presenti
+  const BRI = D.briefing || [];
+  const briOggi = BRI.filter((b) => b && String(b.data || "") === OGGI);
+  const briefing = sez("Briefing di inizio turno", briOggi.length ? "" : "Nessun briefing di inizio turno registrato oggi.",
+    briOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Argomento", "Tenuto da", "Presenti", "Alle"],
+      briOggi.map((b) => { const r = riassuntoBriefing(b, OPER, PRE);
+        return [String(b.squadra || "—"), String(b.turno || "—"), r.argomento, r.tenutoDa, r.presentiTesto, String(b.ora || "—")]; })) }] : []);
   const metOggi = TURNI.map((t) => meteoDi(MET, OGGI, t)).filter((m) => m && riassuntoMeteo(m));
   const meteo = sez("Meteo e condizioni del sito", metOggi.length ? "" : "Meteo e condizioni del sito non registrati oggi.",
     metOggi.length ? [{ tabella: tab(["Turno", "Condizioni", "Note sul sito"],
@@ -3490,7 +3510,7 @@ export function rapportoGiornata(d, opts) {
     riapOggi.flatMap((c) => riaperture(c).map((r) => [String(c.turno || ""), String(r.da || "—"), dmy(r.il || "") + (r.ora ? " " + String(r.ora) : ""), String(r.motivo || "—")]))) }],
     ["Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché."]) : null;
   return { titolo: "Rapporto di fine turno", data: dmy(OGGI), quadro, attenzione,
-    sezioni: [checklist, meteo, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
+    sezioni: [checklist, briefing, meteo, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
       .concat([produzione, rapportini, chiusura]).concat(riapertureSez ? [riapertureSez] : []),
     piede: "Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori." };
 }
@@ -3554,6 +3574,12 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
       + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
       + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
     : "- nessuna checklist compilata") + "\n\n";
+  const briT = (d.briefing || []).filter(b => b && String(b.data || "") === OGGI);
+  txt += "BRIEFING DI INIZIO TURNO\n";
+  txt += (briT.length ? briT.map(b => { const r = riassuntoBriefing(b, d.operatori || [], d.presenze || []);
+    return "- " + (b.squadra || "—") + " (turno " + (b.turno || "—") + "): " + r.argomento + " — tenuto da " + r.tenutoDa
+      + " — presenti: " + r.presentiTesto + (b.ora ? " — alle " + b.ora : ""); }).join("\n")
+    : "- nessun briefing registrato") + "\n\n";
   const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
   txt += "METEO E CONDIZIONI DEL SITO\n";
   txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
@@ -3669,6 +3695,7 @@ export async function campoData() {
         rapportini: () => read("rapportini"),
         obiettivi: () => read("obiettivi"),
         checklist: () => read("checklist"),
+        briefing: () => read("briefing"),
         presenze: () => read("presenze"),
         chiusure: () => read("chiusure"),
         meteo: () => read("meteo"),
@@ -3813,6 +3840,7 @@ export async function campoData() {
       frontiTerra: async () => mem.frontiTerra || [],
       obiettivi: async () => mem.obiettivi || (mem.obiettivi = []),
       checklist: async () => mem.checklist || (mem.checklist = []),
+      briefing: async () => mem.briefing || (mem.briefing = []),
       presenze: async () => mem.presenze || (mem.presenze = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
       meteo: async () => mem.meteo || (mem.meteo = []),
@@ -3885,4 +3913,55 @@ export function vociNonAPosto(doc, azioni) {
     out.push({ indice: i, testo: v.testo, area: v.area, azioni: az, risposta: az ? statoPonte(az) : null });
   });
   return out;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IL BRIEFING DI INIZIO TURNO (11/09, dalla ricerca a rotazione). Il toolbox
+// talk del mestiere: cinque-quindici minuti su UN argomento del giorno, con
+// chi lo tiene e chi c'era — ed è il registro che le guide chiamano «la prova
+// di diligenza». Prima era una spunta della checklist («Briefing … fatto»)
+// senza argomento né presenti. I presenti NON sono una seconda lista: sono
+// quelli dell'appello dello stesso turno e squadra, e chi nessuno ha
+// spuntato si dice «da spuntare», non si conta presente (il principio
+// dell'appello, che qui vale uguale).
+// ══════════════════════════════════════════════════════════════════
+export const INDICE_BRIEFING = CHECKLIST_INIZIO.findIndex(v => /briefing/i.test(v.testo));
+
+// Il briefing di quel giorno, turno e squadra (l'ultimo salvato vince). Pura.
+export function briefingDi(lista, data, turno, squadra) {
+  const s = squadraBase(squadra);
+  const trovati = (lista || []).filter(b => b
+    && String(b.data || "") === String(data || "")
+    && String(b.turno || "") === String(turno || "")
+    && squadraBase(b.squadra) === s);
+  return trovati.length ? trovati[trovati.length - 1] : null;
+}
+
+// Chi c'era al briefing: l'appello del turno, con i tre stati. Pura.
+export function presentiAlBriefing(b, operatori, presenze) {
+  if (!b) return { presenti: [], assenti: [], daSpuntare: [], totale: 0, testo: "" };
+  const app = appelloTurno(operatori, presenze, b.data, b.turno, b.squadra);
+  const nomi = (st) => app.righe.filter(r => r.stato === st).map(r => r.operatore.nome);
+  const daSpuntare = app.righe.filter(r => !r.stato).map(r => r.operatore.nome);
+  const presenti = nomi("presente"), assenti = nomi("assente");
+  const testo = !app.totale ? "nessuno in squadra"
+    : presenti.length + " su " + app.totale + (presenti.length ? " (" + presenti.join(", ") + ")" : "")
+      + (daSpuntare.length ? " · " + daSpuntare.length + " da spuntare" : "")
+      + (assenti.length ? " · " + assenti.length + (assenti.length === 1 ? " assente" : " assenti") : "");
+  return { presenti, assenti, daSpuntare, totale: app.totale, testo };
+}
+
+// La riga del briefing per il foglio e la consegna: argomento, chi lo ha
+// tenuto (nome dall'anagrafica se `tenutoDa` è un id, se no com'è scritto) e i
+// presenti. Un argomento vuoto si DICE vuoto. Pura.
+export function riassuntoBriefing(b, operatori, presenze) {
+  const B = b || {};
+  const op = (operatori || []).find(o => o && o.id === B.tenutoDa);
+  const tenutoDa = op ? String(op.nome || "") : (String(B.tenutoDa || "").trim() || "non indicato");
+  const pres = presentiAlBriefing(B.data ? B : null, operatori, presenze);
+  return {
+    argomento: String(B.argomento || "").trim() || "argomento non indicato",
+    tenutoDa, presenti: pres.presenti, daSpuntare: pres.daSpuntare,
+    presentiTesto: pres.testo || "—",
+  };
 }

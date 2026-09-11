@@ -25707,6 +25707,42 @@ console.log("\n— Campo: i file che escono —");
     ok(/da una voce non a posto del controllo di inizio turno in Campo il 10\/03\/2026/.test(scudo.origineAzione({ ...b, origineNota: "" }, {}, {})), "e a schermo lo stesso, con le sue parole");
     eq(scudo.origineAzione(b, {}, {}), b.origineNota, "quando la nota c'è, vince la nota (la fotografia scritta da Campo)");
   });
+  /* IL BRIEFING DI INIZIO TURNO (11/09, dalla ricerca a rotazione su Campo):
+     argomento, chi lo ha tenuto, e i presenti presi dall'appello. */
+  test("⛔ Campo · briefing: uno per giorno+turno+squadra, i presenti sono quelli dell'appello (chi non è spuntato si dice, non si conta), il foglio e la consegna lo scrivono", () => {
+    const D = campo.DEMO;
+    const oggi = D.briefing[0].data;
+    const b = campo.briefingDi(D.briefing, oggi, "Mattina", "Squadra A");
+    eq(b && b.id, "br1"); eq(campo.briefingDi(D.briefing, oggi, "Pomeriggio", "Squadra A"), null); eq(campo.briefingDi(D.briefing, oggi, "Mattina", "Squadra B"), null);
+    eq(campo.briefingDi([b, { ...b, id: "br2", argomento: "dopo" }], oggi, "Mattina", "Squadra A").id, "br2", "l'ultimo salvato vince (come per la checklist)");
+    ok(campo.INDICE_BRIEFING >= 0 && /briefing/i.test(campo.CHECKLIST_INIZIO[campo.INDICE_BRIEFING].testo), "la voce della checklist che il briefing spunta esiste ed è quella");
+    const p = campo.presentiAlBriefing(b, D.operatori, D.presenze);
+    // la squadra A di mattina nella dimostrazione: due persone, tutt'e due spuntate presenti
+    // (la prima stesura di questa prova credeva che il «da spuntare» fosse in squadra A: è in squadra B)
+    eq([p.presenti, p.assenti, p.daSpuntare, p.totale], [["Luca Bianchi", "Mario Rossi"], [], [], 2], "la squadra A di mattina: due presenti, nell'ordine dell'anagrafica della squadra");
+    eq(p.testo, "2 su 2 (Luca Bianchi, Mario Rossi)");
+    // il caso che l'appello esiste per raccontare: chi nessuno ha spuntato si DICE, non si conta
+    const pB = campo.presentiAlBriefing({ data: oggi, turno: "Mattina", squadra: "Squadra B" }, D.operatori, D.presenze);
+    eq([pB.presenti, pB.assenti, pB.daSpuntare, pB.totale], [[], ["Giulia Verdi"], ["Paolo Gallo"], 2], "squadra B: un'assente e uno che nessuno ha spuntato");
+    eq(pB.testo, "0 su 2 · 1 da spuntare · 1 assente", "«da spuntare» si dice, non si conta né presente né assente");
+    const pM = campo.presentiAlBriefing(b, D.operatori, D.presenze.filter((x) => x.operatoreId !== "o2"));
+    eq(pM.testo, "1 su 2 (Mario Rossi) · 1 da spuntare", "togliendo una spunta la persona resta da spuntare, non diventa assente");
+    eq(campo.presentiAlBriefing(null, D.operatori, D.presenze), { presenti: [], assenti: [], daSpuntare: [], totale: 0, testo: "" });
+    eq(campo.presentiAlBriefing({ data: oggi, turno: "Mattina", squadra: "Squadra Z" }, D.operatori, D.presenze).testo, "nessuno in squadra");
+    const r = campo.riassuntoBriefing(b, D.operatori, D.presenze);
+    eq([r.argomento, r.tenutoDa, r.presentiTesto], ["Volata delle 12:30: sgombero del piazzale, segnali e punto di raccolta", "Mario Rossi", "2 su 2 (Luca Bianchi, Mario Rossi)"], "chi lo ha tenuto si legge dall'anagrafica");
+    eq(campo.riassuntoBriefing({ ...b, tenutoDa: "il geometra" }, D.operatori, D.presenze).tenutoDa, "il geometra", "un nome scritto a mano resta com'è");
+    eq(campo.riassuntoBriefing({ ...b, tenutoDa: "", argomento: "  " }, D.operatori, D.presenze), { argomento: "argomento non indicato", tenutoDa: "non indicato", presenti: ["Luca Bianchi", "Mario Rossi"], daSpuntare: [], presentiTesto: p.testo }, "vuoto si dice vuoto");
+    eq(campo.riassuntoBriefing(null, D.operatori, D.presenze).presentiTesto, "—", "senza briefing niente presenti da raccontare");
+    // nel foglio e nella consegna
+    const base = { oggi, briefing: D.briefing, operatori: D.operatori, presenze: D.presenze, checklist: [], squadre: [], durate: [], rapportini: [], attivita: [], obiettivi: [], meteo: [], chiusure: [] };
+    const S = campo.rapportoGiornata(base, {}).sezioni.find((s) => s.titolo === "Briefing di inizio turno");
+    eq(S.blocchi[0].tabella.righe[0], ["Squadra A", "Mattina", r.argomento, "Mario Rossi", p.testo, "06:05"]);
+    eq(campo.rapportoGiornata({ ...base, briefing: [] }, {}).sezioni.find((s) => s.titolo === "Briefing di inizio turno").testo, "Nessun briefing di inizio turno registrato oggi.");
+    const cons = campo.testoConsegnaTurno(base, {});
+    ok(cons.includes("BRIEFING DI INIZIO TURNO\n- Squadra A (turno Mattina): " + r.argomento + " — tenuto da Mario Rossi — presenti: " + p.testo + " — alle 06:05"), cons.slice(cons.indexOf("BRIEFING"), cons.indexOf("BRIEFING") + 220));
+    ok(campo.testoConsegnaTurno({ ...base, briefing: [] }, {}).includes("BRIEFING DI INIZIO TURNO\n- nessun briefing registrato"), "senza briefing la consegna lo dice");
+  });
   test("⛔ Genesi · micFinestra: la roccia sente quello che parte INSIEME, non il totale", () => {
     /* il mestiere: due fori sullo stesso ritardo sono, per il terreno, un foro
        solo di carica doppia. La finestra convenzionale è di 8 ms. */
@@ -39218,8 +39254,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" }, { n: "2.510 t", t: "prodotti" }], "i quattro numeri del Quadro vengono da avanzamentoGiornata, coperturaRapportini e totaliProduzione");
     eq(R.attenzione, campo.avvisoSenzaGiorno(dg(D.attivita), dg(D.rapportini)), "l'avviso sul rapportino senza giorno è quello di avvisoSenzaGiorno");
     ok(/1 rapportino \(2\.300 t\) senza il giorno di lavoro/.test(R.attenzione), R.attenzione);
-    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Meteo e condizioni del sito", "Personale presente", "Obiettivo del turno", "Attività",
-      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "le dieci sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono)");
+    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Briefing di inizio turno", "Meteo e condizioni del sito", "Personale presente", "Obiettivo del turno", "Attività",
+      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "le undici sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono; il briefing dall'11/09)");
     ok(R.piede.startsWith("Generato da Deepwork Campo"));
   });
   test("Campo · rapportoGiornata: il personale — l'appello, il riposo sotto le 11 ore, gli orari che mancano DICHIARATI nella cella", () => {
@@ -39278,7 +39314,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(A.quadro[2], { n: "—", t: "squadre: nessuna in anagrafica" });
     for (const args of [[null], [undefined, null], [{}, {}]]) {
       const N = campo.rapportoGiornata(...args);
-      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 10], "con niente non rompe: " + JSON.stringify(args));
+      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 11], "con niente non rompe: " + JSON.stringify(args));
     }
   });
   test("Campo · rapportoGiornata: chiusure, riaperture, foto e checklist — le sezioni che compaiono solo se c'è qualcosa", () => {
@@ -39293,7 +39329,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(Ri.blocchi[0].tabella.righe[0][2], "03/03/2026 15:30");
     const Fo = sez(R, "Foto delle anomalie");
     ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
-    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 7, "le foto stanno fra la disponibilità e la produzione, come sul foglio");
+    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 8, "le foto stanno fra la disponibilità e la produzione, come sul foglio (8 dall'11/09: c'è il briefing)");
     const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
     eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10"]);
     eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");
