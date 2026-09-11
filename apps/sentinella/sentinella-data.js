@@ -204,10 +204,18 @@ export const DEMO = {
       stato: "eseguita", ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz",
       ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
       /* la comunicazione all'ente (05/09): il diario della linea guida ARPA FVG */
-      comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" },
+      comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026",
+      /* il dopo-volata (11/09): ispezione fatta, niente da segnalare — lo zero è
+         una dichiarazione («ho guardato, nessuna»), non un'assenza */
+      mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "11:40", noteDopo: "" },
     // b2 · registrata a mano prima che esistesse il campo «stato»: vale come
     //      ESEGUITA, ed è la prova di compatibilità con lo storico.
-    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "" },
+    { id: "b2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410, kgMaxRitardo: 22, distanzaRicettore: 280, esito: "regolare", note: "",
+      /* il dopo-volata con un'anomalia VERA: una mancata esplosione, gestita.
+         L'esito resta «regolare» (nessuna contestazione del vicino): sono due
+         cose diverse, ed è la scheda a dire che l'ispezione ha trovato qualcosa */
+      mancateEsplosioni: 1, mancateGestite: "ritrovata nel foro 18, brillata alle 12:10 con l'area interdetta",
+      proiezioniOltreArea: false, rientroAlle: "11:55", noteDopo: "" },
     // b3 · progettata in Genesi e NON ancora sparata: sta nel registro come
     //      PREVISTA, non conta nei kg del mese e non può diventare un referto.
     { id: "b3", data: "2026-08-04", fronte: "Fronte Sud", nFori: 38, kgTotali: 430, kgMaxRitardo: 20, distanzaRicettore: 240, esito: "regolare", note: "",
@@ -222,6 +230,8 @@ export const DEMO = {
        «distanza 0 m», che su un documento si legge come il ricettore dentro
        il fronte, e la distanza scalata non si sarebbe potuta calcolare
        comunque. */
+    /* e b4 resta SENZA dopo-volata: è il caso «non registrato», quello che il
+       prodotto esiste per non far passare come «regolare» (11/09) */
     { id: "b4", data: "2026-07-24", fronte: "Fronte Nord", nFori: 34, kgTotali: 390, kgMaxRitardo: 19, distanzaRicettore: null, esito: "regolare", note: "", stato: "eseguita" },
     /* ⛔ IL LIMITE DI PROGETTO SENZA LA NORMA DA CUI È PRESO. Nella tabella
        «previsto, misurato e scarto» del report l'ultima colonna riporta il
@@ -234,7 +244,8 @@ export const DEMO = {
        Assenza, e additiva: questa volata porta tutti i suoi numeri, quindi non
        cambia il conto delle righe incomplete della tabella sopra. */
     { id: "b5", data: "2026-07-10", fronte: "Fronte Est", nFori: 40, kgTotali: 455, kgMaxRitardo: 21, distanzaRicettore: 300, esito: "regolare", note: "", stato: "eseguita",
-      ppvPrevista: 4.2, ppvPrevLimite: 5, ppvPrevNorma: "", ppvPrevFonte: "manuale" },
+      ppvPrevista: 4.2, ppvPrevLimite: 5, ppvPrevNorma: "", ppvPrevFonte: "manuale",
+      mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "12:05" },
   ],
 };
 
@@ -1069,7 +1080,8 @@ export function parseVolateCsv(text) {
       const [data, fronte, nFori, kgTotali, kgMaxRitardo, distanzaRicettore, esito, note,
              ppvMisurata, ppvFonte, ppvPunto, ppvOra,
              stato, ppvPrevista, ppvPrevLimite, ppvPrevNorma, ppvPrevFonte, airblastPrevisto,
-             codiceVolata, comunicataA, comunicataIl, comunicazioneRif] = NOMI.map((nome, i) => per(nome, i));
+             codiceVolata, comunicataA, comunicataIl, comunicazioneRif,
+             mancateEsplosioni, mancateGestite, rientroAlle, proiezioniOltreArea, proiezioniDove, noteDopo] = NOMI.map((nome, i) => per(nome, i));
       const ppvPrevProvvisoria = per("ppvPrevProvvisoria", -1), ppvPrevReferti = per("ppvPrevReferti", -1);
       let v = {
         data: (data || "").trim(),
@@ -1103,6 +1115,19 @@ export function parseVolateCsv(text) {
          dice se è intera, a metà o assente — il lettore non la giudica */
       const com = campiComunicazioneVolata(comunicataA, comunicataIl, comunicazioneRif).campi;
       if (com.comunicataA || com.comunicataIl || com.comunicazioneRif) v = { ...v, ...com };
+      /* il dopo-volata rientra com'è uscito: «si»/«no» tornano vero/falso, la
+         casella vuota resta «non dichiarato» — la stessa regola delle altre */
+      const sm = String(mancateEsplosioni == null ? "" : mancateEsplosioni).trim();
+      const sp = String(proiezioniOltreArea == null ? "" : proiezioniOltreArea).trim().toLowerCase();
+      const dopo = {
+        mancateEsplosioni: /^\d+$/.test(sm) ? parseInt(sm, 10) : null,
+        mancateGestite: String(mancateGestite || "").trim(),
+        rientroAlle: String(rientroAlle || "").trim(),
+        proiezioniOltreArea: sp === "si" || sp === "sì" ? true : sp === "no" ? false : null,
+        proiezioniDove: String(proiezioniDove || "").trim(),
+        noteDopo: String(noteDopo || "").trim(),
+      };
+      if (dopo.mancateEsplosioni != null || dopo.proiezioniOltreArea != null || dopo.rientroAlle || dopo.noteDopo) v = { ...v, ...dopo };
       return v;
     })
     .filter(v => dataISOEsiste(v.data));
@@ -4471,6 +4496,121 @@ export function etichettaStatoVolata(v) {
     : { stato: VOL_ESEGUITA, cls: "", label: "Eseguita" };
 }
 
+// ── IL DOPO-VOLATA ───────────────────────────────────────────────────
+// Il registro sapeva dire QUANDO e CON CHE ESITO (regolare / con
+// contestazione, cioè il reclamo del vicino). Non sapeva dire che cosa si è
+// trovato DOPO lo sparo — e quella è la carta che l'ispettore chiede quando
+// qualcosa è andato storto (ricerca a rotazione su Genesi, 11/09: nel mondo
+// il dopo-volata è l'ispezione del fochino su tutta l'area, le mancate
+// esplosioni con causa e azione, il rientro, le proiezioni oltre l'area).
+// Tre campi dichiarati dall'utente, mai dedotti:
+//   · `mancateEsplosioni` — quante (zero è una dichiarazione: «ho guardato,
+//     nessuna»), con `mancateGestite` che dice che cosa si è fatto;
+//   · `proiezioniOltreArea` — `true`/`false`, con `proiezioniDove`;
+//   · `rientroAlle` — l'ora del rientro (HH:MM), facoltativa;
+//   · `noteDopo` — testo libero.
+// ⛔ Il principio del fondatore: una volata eseguita SENZA questi campi non è
+// «regolare», è «dopo-volata non registrato». Il silenzio non è un esito.
+export const DOPO_NON_APPLICABILE = "non-applicabile";
+export const DOPO_NON_REGISTRATO = "non-registrato";
+export const DOPO_REGOLARE = "regolare";
+export const DOPO_ANOMALIE = "anomalie";
+
+// La lettura dei campi, in un posto solo. `registrato` è vero solo se le due
+// dichiarazioni che contano ci sono tutt'e due (quante mancate, se ci sono
+// state proiezioni): un rientro scritto da solo non è un'ispezione.
+export function dopoVolata(v) {
+  const x = v || {};
+  const m = numeroDichiarato(x.mancateEsplosioni);
+  const mancate = m != null && Number.isInteger(m) && m >= 0 ? m : null;
+  const proiezioni = x.proiezioniOltreArea === true ? true : x.proiezioniOltreArea === false ? false : null;
+  const rientro = String(x.rientroAlle || "").trim();
+  return {
+    registrato: mancate != null && proiezioni != null,
+    mancateEsplosioni: mancate,
+    mancateGestite: String(x.mancateGestite || "").trim(),
+    proiezioniOltreArea: proiezioni,
+    proiezioniDove: String(x.proiezioniDove || "").trim(),
+    rientroAlle: /^([01]\d|2[0-3]):[0-5]\d$/.test(rientro) ? rientro : "",
+    noteDopo: String(x.noteDopo || "").trim(),
+  };
+}
+
+// Il verdetto sul dopo-volata: UNICO punto in cui si decide. `anomalie` è
+// l'elenco in parole di ciò che l'ispezione ha trovato; `manca` dice che cosa
+// non è stato dichiarato quando non è registrato.
+export function statoDopoVolata(v) {
+  if (volataPrevista(v))
+    return { stato: DOPO_NON_APPLICABILE, registrato: false, cls: "", label: "Non ancora sparata", anomalie: [], manca: [] };
+  const d = dopoVolata(v);
+  if (!d.registrato) {
+    const manca = [];
+    if (d.mancateEsplosioni == null) manca.push("mancate esplosioni (quante, anche zero)");
+    if (d.proiezioniOltreArea == null) manca.push("proiezioni oltre l'area (sì o no)");
+    return { stato: DOPO_NON_REGISTRATO, registrato: false, cls: "warn", label: "Dopo-volata non registrato", anomalie: [], manca };
+  }
+  const anomalie = [];
+  if (d.mancateEsplosioni > 0)
+    anomalie.push(d.mancateEsplosioni + " " + plurale(d.mancateEsplosioni, "mancata esplosione", "mancate esplosioni")
+      + (d.mancateGestite ? " — " + d.mancateGestite : " — che cosa si è fatto non è scritto"));
+  if (d.proiezioniOltreArea)
+    anomalie.push("proiezioni oltre l'area" + (d.proiezioniDove ? " (" + d.proiezioniDove + ")" : " (dove non è scritto)"));
+  return anomalie.length
+    ? { stato: DOPO_ANOMALIE, registrato: true, cls: "danger", label: "Dopo-volata con anomalie", anomalie, manca: [] }
+    : { stato: DOPO_REGOLARE, registrato: true, cls: "ok", label: "Dopo-volata regolare", anomalie: [], manca: [] };
+}
+
+// I campi del dopo-volata come arrivano dal modulo (stringhe). Pura: prepara
+// i campi da salvare sulla volata, non li salva. Le regole: il numero delle
+// mancate è un intero, e va scritto anche quando è zero; le proiezioni si
+// dichiarano sì o no; una mancata esplosione senza «che cosa si è fatto» non
+// si registra (è la riga che l'ispettore legge per prima); una proiezione
+// oltre l'area senza «dove» nemmeno; l'ora del rientro è facoltativa ma, se
+// c'è, deve essere un'ora.
+export function campiDopoVolata(input = {}, volata = null) {
+  const errori = [];
+  if (volata && volataPrevista(volata))
+    errori.push({ campo: "", testo: "La volata è ancora prevista: il dopo-volata si registra dopo lo sparo." });
+  const sm = String(input.mancateEsplosioni == null ? "" : input.mancateEsplosioni).trim();
+  let mancate = null;
+  if (sm === "") errori.push({ campo: "mancateEsplosioni", testo: "Serve il numero delle mancate esplosioni: scrivi 0 se l'ispezione non ne ha trovate." });
+  else if (!/^\d+$/.test(sm)) errori.push({ campo: "mancateEsplosioni", testo: "Le mancate esplosioni si contano: serve un numero intero, senza decimali." });
+  else mancate = parseInt(sm, 10);
+  const sp = String(input.proiezioniOltreArea == null ? "" : input.proiezioniOltreArea).trim().toLowerCase();
+  const proiezioni = sp === "si" || sp === "sì" || sp === "true" ? true : sp === "no" || sp === "false" ? false : null;
+  if (proiezioni == null) errori.push({ campo: "proiezioniOltreArea", testo: "Dichiara se ci sono state proiezioni oltre l'area: sì o no." });
+  const gestite = String(input.mancateGestite || "").trim();
+  if (mancate > 0 && !gestite) errori.push({ campo: "mancateGestite", testo: "Con una mancata esplosione va scritto che cosa si è fatto (ritrovata e brillata, messa in sicurezza, area interdetta…)." });
+  const dove = String(input.proiezioniDove || "").trim();
+  if (proiezioni === true && !dove) errori.push({ campo: "proiezioniDove", testo: "Con proiezioni oltre l'area va scritto dove sono arrivate." });
+  const rientro = String(input.rientroAlle || "").trim();
+  if (rientro && !/^([01]\d|2[0-3]):[0-5]\d$/.test(rientro)) errori.push({ campo: "rientroAlle", testo: "L'ora del rientro si scrive come ore:minuti (per esempio 11:40)." });
+  const campi = {
+    mancateEsplosioni: mancate, mancateGestite: mancate > 0 ? gestite : "",
+    proiezioniOltreArea: proiezioni, proiezioniDove: proiezioni === true ? dove : "",
+    rientroAlle: rientro, noteDopo: String(input.noteDopo || "").trim(),
+  };
+  return { ok: errori.length === 0, errori, campi };
+}
+
+// Il conto per la riga sopra il registro: quante ESEGUITE hanno il dopo-volata
+// e quante no, quante con anomalie, e le mancate totali — sommate solo su chi
+// le ha dichiarate, con il loro denominatore. `null` se nessuno ha dichiarato.
+export function riepilogoDopoVolata(volate) {
+  const es = (volate || []).filter(v => v && !volataPrevista(v));
+  let registrate = 0, conAnomalie = 0, mancateTotali = null, conProiezioni = 0;
+  for (const v of es) {
+    const s = statoDopoVolata(v);
+    if (!s.registrato) continue;
+    registrate++;
+    if (s.stato === DOPO_ANOMALIE) conAnomalie++;
+    const d = dopoVolata(v);
+    mancateTotali = (mancateTotali || 0) + d.mancateEsplosioni;
+    if (d.proiezioniOltreArea) conProiezioni++;
+  }
+  return { eseguite: es.length, registrate, nonRegistrate: es.length - registrate, conAnomalie, conProiezioni, mancateTotali };
+}
+
 // I campi della PREVISIONE arrivata da Genesi. Funzione pura: prepara il
 // record, non lo salva. `null` se non c'è una PPV prevista utilizzabile —
 // senza il numero principale il resto (limite, norma, airblast) non ha un
@@ -4848,6 +4988,23 @@ export function fogliaVolata(v, opts = {}) {
     ["Codice volata", String(x.codiceVolata || "").trim() || "nessuno (volata registrata a mano)", false],
     com.registrata ? ["Comunicazione", com.testo, false] : manca("Comunicazione", com.testo),
   ] });
+  /* 1b · IL DOPO-VOLATA (11/09): la carta che l'ispettore chiede quando
+     qualcosa è andato storto. Il verdetto lo dà `statoDopoVolata`, la stessa
+     funzione dello schermo; su una volata eseguita senza dichiarazioni le
+     righe passano da `manca`, così finiscono in `nonMisurati` invece di
+     leggersi come «nessuna anomalia». */
+  const dv = dopoVolata(x), sdv = statoDopoVolata(x);
+  sez.push({ titolo: "Dopo la volata", righe: volataPrevista(x)
+    ? [["Ispezione dopo lo sparo", "non ancora sparata: niente da ispezionare", false]]
+    : [
+      dv.mancateEsplosioni == null ? manca("Mancate esplosioni", "non dichiarate")
+        : ["Mancate esplosioni", dv.mancateEsplosioni === 0 ? "nessuna" : dv.mancateEsplosioni + (dv.mancateGestite ? " — " + dv.mancateGestite : " — che cosa si è fatto non è scritto"), false],
+      dv.proiezioniOltreArea == null ? manca("Proiezioni oltre l'area", "non dichiarate")
+        : ["Proiezioni oltre l'area", dv.proiezioniOltreArea ? "sì" + (dv.proiezioniDove ? ": " + dv.proiezioniDove : " (dove non è scritto)") : "no", false],
+      dv.rientroAlle ? ["Rientro", "alle " + dv.rientroAlle, false] : manca("Rientro", "ora non indicata"),
+      ["Esito dell'ispezione", sdv.label + (sdv.anomalie.length ? ": " + sdv.anomalie.join(" · ") : ""), false],
+      ["Note del dopo-volata", dv.noteDopo || "nessuna", false],
+    ] });
   // 2 · la previsione, se arrivata da Genesi
   const pv = previsioneDiVolata(x);
   sez.push({ titolo: "Previsione", righe: pv ? [
@@ -4940,7 +5097,9 @@ export const CSV_VOLATE_INTESTAZIONE =
   + "ppvMisurata;ppvFonte;ppvPunto;ppvOra;"
   + "stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;"
   /* la comunicazione (05/09), in coda: chi legge diciannove colonne non si accorge di niente */
-  + "comunicataA;comunicataIl;comunicazioneRif";
+  + "comunicataA;comunicataIl;comunicazioneRif;"
+  /* il dopo-volata (11/09), ancora in coda per la stessa ragione */
+  + "mancateEsplosioni;mancateGestite;rientroAlle;proiezioniOltreArea;proiezioniDove;noteDopo";
 
 // Il file del registro volate. Ogni riga dichiara il suo `stato`, così il giro
 // export → import non perde la distinzione fra progetto e evento. Pura e
@@ -4975,6 +5134,11 @@ export function csvRegistroVolate(volate) {
         q && q.airblast != null ? n(q.airblast) : "",
         csvCell(v.codiceVolata || ""),
         String(v.comunicataA || ""), String(v.comunicataIl || "").slice(0, 10), csvCell(v.comunicazioneRif || ""),
+        /* il dopo-volata: la casella vuota resta vuota (non dichiarato), lo zero
+           è una dichiarazione; le proiezioni si scrivono «si»/«no» */
+        cella(dopoVolata(v).mancateEsplosioni), csvCell(v.mancateGestite || ""), dopoVolata(v).rientroAlle,
+        v.proiezioniOltreArea === true ? "si" : v.proiezioniOltreArea === false ? "no" : "",
+        csvCell(v.proiezioniDove || ""), csvCell(v.noteDopo || ""),
       ].join(";");
     });
   return CSV_VOLATE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");

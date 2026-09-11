@@ -7843,8 +7843,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.350 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2869, `run-stile` 328,
+  **3.358 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2877, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9180,9 +9180,33 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   una mancata esplosione non è nessuno dei due) → voce aperta qui sotto; le
   quantità autorizzate sono assenti e chiedono una decisione (dove vive il
   limite): dichiarato, non aperto.
+- [x] **SENTINELLA — IL DOPO-VOLATA NEL REGISTRO, MODULO E PAGINA (unità 82, 11/09).**
+  In `sentinella-data.js`: `dopoVolata` (la lettura dei campi in un posto
+  solo: le mancate sono un intero, lo zero è una dichiarazione, le proiezioni
+  sono vero/falso, l'ora del rientro è un'ora), `statoDopoVolata` (l'UNICO
+  verdetto: `non-applicabile` su una prevista, `non-registrato` su
+  un'eseguita senza le due dichiarazioni — con `manca` che dice quali —,
+  `regolare`, `anomalie` con l'elenco in parole), `campiDopoVolata` (dal
+  modulo al record: una mancata senza «che cosa si è fatto» e una proiezione
+  senza «dove» non si registrano), `riepilogoDopoVolata` (registrate / non
+  registrate / con anomalie, mancate sommate solo su chi le dichiara, `null`
+  se nessuno). La scheda della volata ha la sezione «Dopo la volata» (le
+  assenze passano da `manca` e finiscono in «che cosa manca»); il CSV del
+  registro porta sei colonne in coda, andata e ritorno con la prova sul
+  testo; la dimostrazione: b1 e b5 regolari, b2 con una mancata esplosione
+  gestita, b4 non registrata. Prove: run-kpi +8 (2877), copertura 183/183.
+  La pagina: il bottone ✓ su ogni eseguita apre la modale del dopo-volata
+  (sei campi, tendina sì/no, l'errore in cima perché sei campi non stanno in
+  uno schermo — misurato: l'avviso in fondo cadeva a 854 px su 605 di corpo),
+  il badge del verdetto nel nome della riga, il dopo-volata su una riga SUA
+  (in coda ai numeri finiva dove il testo è tagliato), la riga sopra il
+  registro conta «senza dopo-volata» e «con anomalie dopo lo sparo», la
+  conferma invita a registrarlo. Scatti guardati a 430 px (registro, modale
+  vuota, modale con errore, registro dopo). Resta il ponte verso Scudo.
 - [ ] **SENTINELLA — IL DOPO-VOLATA NEL REGISTRO: MANCATE ESPLOSIONI,
   RIENTRO, PROIEZIONI OLTRE L'AREA (dalla ricerca a rotazione su Genesi
-  dell'11/09).** Sul registro delle volate (dove sta l'esito) i campi del
+  dell'11/09).** ⏩ *Modulo e pagina sono fatti (unità 82): resta il ponte
+  verso Scudo — una mancata esplosione che apre un'azione.* Sul registro delle volate (dove sta l'esito) i campi del
   dopo-volata dichiarati dall'utente — `mancateEsplosioni` (quante, e che
   cosa si è fatto), `rientroAlle`, `proiezioniOltreArea` (sì/no, con dove),
   `noteDopo` —, la regola «dopo-volata non registrato» su una volata eseguita

@@ -8507,14 +8507,17 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     { id: "v1", data: "2026-07-20", fronte: 'Fronte "A"; nord', nFori: 20, kgTotali: 400,
       kgMaxRitardo: 50, distanzaRicettore: 200, esito: "regolare", note: "tutto ok",
       ppvMisurata: 3.2, ppvFonte: "strumento", ppvPuntoId: "p1", ppvPuntoNome: "Casa Rossi",
-      ppvData: "2026-07-20", ppvOra: "10:30", stato: "eseguita", codiceVolata: "G-77" },
+      ppvData: "2026-07-20", ppvOra: "10:30", stato: "eseguita", codiceVolata: "G-77",
+      mancateEsplosioni: 1, mancateGestite: "ritrovata; brillata", rientroAlle: "11:40",
+      proiezioniOltreArea: true, proiezioniDove: "oltre la pista", noteDopo: "vento da nord" },
     { id: "v2", data: "2026-08-10", fronte: "B", nFori: 15, kgTotali: 300, kgMaxRitardo: 40,
       distanzaRicettore: 180, stato: "prevista", ppvPrevista: 4.2, ppvPrevLimite: 5,
       ppvPrevNorma: "UNI 9916", ppvPrevFonte: "genesi-sito", airblastPrevisto: 120, codiceVolata: "G-78" },
   ];
   const CAMPI = ["data", "fronte", "nFori", "kgTotali", "kgMaxRitardo", "distanzaRicettore",
     "esito", "note", "ppvMisurata", "ppvFonte", "ppvPuntoNome", "ppvOra", "stato",
-    "ppvPrevista", "ppvPrevLimite", "ppvPrevNorma", "ppvPrevFonte", "airblastPrevisto", "codiceVolata"];
+    "ppvPrevista", "ppvPrevLimite", "ppvPrevNorma", "ppvPrevFonte", "airblastPrevisto", "codiceVolata",
+    "mancateEsplosioni", "mancateGestite", "rientroAlle", "proiezioniOltreArea", "proiezioniDove", "noteDopo"];
   const giro = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(volate));
 
   test("⛔ csv: quello che esce rientra IDENTICO, campo per campo", () => {
@@ -8593,7 +8596,9 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     const v = [{ data: "2026-07-20", fronte: "F1", nFori: null, kgTotali: 400,
                  kgMaxRitardo: 20, distanzaRicettore: null, esito: "regolare" }];
     const riga = sentinella.csvRegistroVolate(v).split("\n")[1];
-    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;;;;",
+    /* sei celle vuote in coda dall'11/09: il dopo-volata non dichiarato esce
+       vuoto, per la stessa ragione delle due caselle qui sopra */
+    eq(riga, "2026-07-20;F1;;400;20;;regolare;;;;;;eseguita;;;;;;;;;;;;;;;",
       "le due caselle non dichiarate escono VUOTE, non a zero");
     const back = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(v))[0];
     eq(back.nFori, null, "e rientrano come «non dichiarato»");
@@ -8707,6 +8712,105 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.bozzaAzioneReclamo({ id: "r9", tipo: "altro" }, null).origineVoce, "reclamo",
        "una parola al posto del vuoto");
     eq(sentinella.bozzaAzioneReclamo({ tipo: "rumore" }), null, "e senza id non si prepara niente");
+  });
+
+  // ── IL DOPO-VOLATA (11/09, dalla ricerca a rotazione su Genesi) ──────────
+  test("⛔ dopo-volata: una volata eseguita SENZA dichiarazioni non è «regolare», è «non registrato»", () => {
+    /* il principio del fondatore applicato allo sparo: il silenzio non è
+       un'ispezione. E dice CHE COSA manca, così la pagina lo può chiedere */
+    const s = sentinella.statoDopoVolata({ stato: "eseguita" });
+    eq(s.stato, sentinella.DOPO_NON_REGISTRATO, "non registrato");
+    eq(s.registrato, false, "e la bandiera lo dice");
+    eq(s.cls, "warn", "colore di attenzione, non di quiete");
+    eq(s.manca, ["mancate esplosioni (quante, anche zero)", "proiezioni oltre l'area (sì o no)"], "le due dichiarazioni che mancano");
+    eq(sentinella.statoDopoVolata({}).stato, sentinella.DOPO_NON_REGISTRATO, "una volata senza `stato` è eseguita (storico), quindi vale lo stesso");
+    /* mezza dichiarazione: le proiezioni ci sono, le mancate no */
+    eq(sentinella.statoDopoVolata({ proiezioniOltreArea: false }).manca, ["mancate esplosioni (quante, anche zero)"], "mezza ispezione dice l'altra metà");
+    /* un rientro scritto da solo non è un'ispezione */
+    eq(sentinella.statoDopoVolata({ rientroAlle: "11:40" }).registrato, false, "l'ora del rientro da sola non registra niente");
+  });
+  test("dopo-volata: lo zero è una dichiarazione, e con zero mancate e nessuna proiezione è «regolare»", () => {
+    const s = sentinella.statoDopoVolata({ mancateEsplosioni: 0, proiezioniOltreArea: false });
+    eq(s.stato, sentinella.DOPO_REGOLARE, "regolare");
+    eq(s.registrato, true, "registrato");
+    eq(s.cls, "ok", "verde");
+    eq(s.anomalie, [], "nessuna anomalia");
+    eq(sentinella.DOPO_REGOLARE, "regolare", "la chiave");
+    eq(sentinella.statoDopoVolata({ stato: "prevista" }).stato, sentinella.DOPO_NON_APPLICABILE, "⛔ una prevista non ha dopo-volata: non è «non registrato», è «non ancora sparata»");
+    eq(sentinella.statoDopoVolata({ stato: "prevista" }).cls, "", "e non prende nessun colore di giudizio");
+  });
+  test("⛔ dopo-volata: una mancata esplosione o una proiezione oltre l'area sono ANOMALIE, anche con esito «regolare»", () => {
+    /* l'esito del registro è il reclamo del vicino; l'ispezione è un'altra
+       cosa, e le due non si confondono */
+    const s = sentinella.statoDopoVolata({ esito: "regolare", mancateEsplosioni: 1, mancateGestite: "ritrovata nel foro 18, brillata", proiezioniOltreArea: false });
+    eq(s.stato, sentinella.DOPO_ANOMALIE, "anomalie");
+    eq(s.cls, "danger", "rosso");
+    eq(s.anomalie, ["1 mancata esplosione — ritrovata nel foro 18, brillata"], "al singolare, con che cosa si è fatto");
+    const t = sentinella.statoDopoVolata({ mancateEsplosioni: 2, proiezioniOltreArea: true, proiezioniDove: "sulla pista" });
+    eq(t.anomalie, ["2 mancate esplosioni — che cosa si è fatto non è scritto", "proiezioni oltre l'area (sulla pista)"], "al plurale, e la gestione assente si DICE");
+    eq(sentinella.statoDopoVolata({ mancateEsplosioni: 0, proiezioniOltreArea: true }).anomalie, ["proiezioni oltre l'area (dove non è scritto)"], "proiezioni senza dove");
+    eq(sentinella.DOPO_ANOMALIE, "anomalie", "la chiave");
+  });
+  test("dopo-volata: la lettura dei campi in un posto solo, e un numero non intero non è un conteggio", () => {
+    const d = sentinella.dopoVolata({ mancateEsplosioni: "2", mancateGestite: " brillate ", proiezioniOltreArea: true, proiezioniDove: "", rientroAlle: " 09:05 ", noteDopo: " x " });
+    eq(d, { registrato: true, mancateEsplosioni: 2, mancateGestite: "brillate", proiezioniOltreArea: true, proiezioniDove: "", rientroAlle: "09:05", noteDopo: "x" }, "stringhe ripulite, numero letto");
+    eq(sentinella.dopoVolata({ mancateEsplosioni: 1.5, proiezioniOltreArea: false }).mancateEsplosioni, null, "⛔ 1,5 mancate esplosioni non esistono: non dichiarato");
+    eq(sentinella.dopoVolata({ mancateEsplosioni: -1, proiezioniOltreArea: false }).mancateEsplosioni, null, "nemmeno un numero negativo");
+    eq(sentinella.dopoVolata({ mancateEsplosioni: 0, proiezioniOltreArea: "no" }).proiezioniOltreArea, null, "⛔ le proiezioni sono vero/falso, non una parola: «no» come stringa non è una dichiarazione (il modulo le traduce, il record no)");
+    eq(sentinella.dopoVolata({ rientroAlle: "25:99" }).rientroAlle, "", "un'ora che non esiste non si legge");
+    eq(sentinella.dopoVolata(null).registrato, false, "senza volata niente");
+  });
+  test("⛔ campiDopoVolata: dal modulo al record, con le regole scritte per l'ispettore", () => {
+    const v = sentinella.campiDopoVolata({ mancateEsplosioni: "", proiezioniOltreArea: "" });
+    eq(v.ok, false, "vuoto non si registra");
+    eq(v.errori.map((e) => e.campo), ["mancateEsplosioni", "proiezioniOltreArea"], "i due campi che mancano, per nome");
+    ok(/scrivi 0/.test(v.errori[0].testo), "e dice che lo zero va scritto");
+    eq(sentinella.campiDopoVolata({ mancateEsplosioni: "1,5", proiezioniOltreArea: "no" }).errori[0].campo, "mancateEsplosioni", "un decimale non è un conteggio");
+    const m = sentinella.campiDopoVolata({ mancateEsplosioni: "1", proiezioniOltreArea: "si" });
+    eq(m.errori.map((e) => e.campo), ["mancateGestite", "proiezioniDove"], "⛔ una mancata senza «che cosa si è fatto» e una proiezione senza «dove» non si registrano");
+    eq(sentinella.campiDopoVolata({ mancateEsplosioni: "0", proiezioniOltreArea: "no", rientroAlle: "25:00" }).errori.map((e) => e.campo), ["rientroAlle"], "l'ora del rientro, se c'è, è un'ora");
+    const b = sentinella.campiDopoVolata({ mancateEsplosioni: "1", mancateGestite: "brillata", proiezioniOltreArea: "sì", proiezioniDove: "pista", rientroAlle: "11:40", noteDopo: " n " });
+    eq(b.ok, true, "completo");
+    eq(b.campi, { mancateEsplosioni: 1, mancateGestite: "brillata", proiezioniOltreArea: true, proiezioniDove: "pista", rientroAlle: "11:40", noteDopo: "n" }, "i campi pronti da salvare, con «sì» accentato letto come sì");
+    const z = sentinella.campiDopoVolata({ mancateEsplosioni: "0", proiezioniOltreArea: "no", mancateGestite: "boh", proiezioniDove: "là" });
+    eq(z.campi.mancateGestite, "", "con zero mancate la gestione non si salva");
+    eq(z.campi.proiezioniDove, "", "e senza proiezioni nemmeno il dove");
+    eq(sentinella.campiDopoVolata({ mancateEsplosioni: "0", proiezioniOltreArea: "no" }, { stato: "prevista" }).ok, false, "⛔ su una prevista non si registra: non è ancora stata sparata");
+    eq(sentinella.campiDopoVolata().ok, false, "senza niente, niente");
+  });
+  test("riepilogoDopoVolata: quante eseguite hanno l'ispezione, con il denominatore, e le mancate sommate solo su chi le dichiara", () => {
+    const r = sentinella.riepilogoDopoVolata([
+      { stato: "eseguita" }, { stato: "prevista", mancateEsplosioni: 3, proiezioniOltreArea: true },
+      { mancateEsplosioni: 1, mancateGestite: "b", proiezioniOltreArea: true, proiezioniDove: "s" },
+      { mancateEsplosioni: 0, proiezioniOltreArea: false }]);
+    eq(r, { eseguite: 3, registrate: 2, nonRegistrate: 1, conAnomalie: 1, conProiezioni: 1, mancateTotali: 1 }, "⛔ la prevista non conta, nemmeno con i suoi campi: non è stata sparata");
+    eq(sentinella.riepilogoDopoVolata([{ stato: "eseguita" }]).mancateTotali, null, "⛔ nessuna dichiarazione: le mancate sono «non lo so», non zero");
+    eq(sentinella.riepilogoDopoVolata([]).eseguite, 0, "vuoto");
+    eq(sentinella.riepilogoDopoVolata().nonRegistrate, 0, "senza argomento");
+  });
+  test("dopo-volata nella dimostrazione: una regolare, una con la mancata esplosione, una non registrata, una prevista", () => {
+    const D = sentinella.DEMO.volate;
+    const st = (id) => sentinella.statoDopoVolata(D.find((v) => v.id === id)).stato;
+    eq(st("b1"), sentinella.DOPO_REGOLARE, "b1: ispezione fatta, niente da segnalare");
+    eq(st("b2"), sentinella.DOPO_ANOMALIE, "b2: una mancata esplosione, gestita");
+    eq(st("b4"), sentinella.DOPO_NON_REGISTRATO, "⛔ b4: il caso che il prodotto esiste per non far passare come regolare");
+    eq(st("b3"), sentinella.DOPO_NON_APPLICABILE, "b3: prevista");
+    eq(sentinella.riepilogoDopoVolata(D).nonRegistrate, 1, "una sola eseguita senza ispezione");
+    eq(sentinella.DOPO_NON_REGISTRATO, "non-registrato", "la chiave");
+    eq(sentinella.DOPO_NON_APPLICABILE, "non-applicabile", "e l'altra");
+  });
+  test("⛔ dopo-volata nel CSV del registro: esce com'è dichiarato, rientra com'era, e si vede nel TESTO", () => {
+    /* la prova di andata e ritorno da sola resta verde se le due metà
+       sbagliano insieme: qui si guarda anche la riga scritta */
+    const v = [{ data: "2026-07-20", fronte: "F", stato: "eseguita", mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "11:40" }];
+    const riga = sentinella.csvRegistroVolate(v).split("\n")[1];
+    ok(riga.endsWith(";0;;11:40;no;;"), "lo zero scritto, «no» scritto, il resto vuoto: " + riga);
+    const back = sentinella.parseVolateCsv(sentinella.csvRegistroVolate(v))[0];
+    eq(sentinella.dopoVolata(back), { registrato: true, mancateEsplosioni: 0, mancateGestite: "", proiezioniOltreArea: false, proiezioniDove: "", rientroAlle: "11:40", noteDopo: "" }, "e rientra registrato, con lo zero che resta zero");
+    const s = sentinella.csvRegistroVolate([{ data: "2026-07-21", fronte: "G", stato: "eseguita" }]).split("\n")[1];
+    ok(s.endsWith(";;;;;;"), "⛔ non dichiarato esce VUOTO, non a zero: " + s);
+    eq(sentinella.dopoVolata(sentinella.parseVolateCsv(s)[0]).registrato, false, "e rientra non registrato");
+    ok(sentinella.CSV_VOLATE_INTESTAZIONE.endsWith(";mancateEsplosioni;mancateGestite;rientroAlle;proiezioniOltreArea;proiezioniDove;noteDopo"), "le sei colonne in coda, così chi taglia alle prime ventidue non si accorge di niente");
   });
 
   const volate = [{ id: "v1", data: "2026-07-10", fronte: "A" },
@@ -38182,9 +38286,12 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const con = { id: "z1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, stato: "eseguita", comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
     const senza = { id: "z2", data: "2026-07-03", fronte: "Fronte Est", nFori: 36, kgTotali: 410 };
     const csv = sentinella.csvRegistroVolate([con, senza]);
-    ok(csv.split("\n")[0].endsWith(";codiceVolata;comunicataA;comunicataIl;comunicazioneRif"), "⛔ le tre colonne stanno in CODA: chi legge diciannove colonne non si accorge di niente");
+    /* in coda fino all'11/09; da allora dietro di loro stanno le sei del
+       dopo-volata, per la stessa ragione: chi legge diciannove colonne non si
+       accorge di niente, e chi ne legge ventidue nemmeno */
+    ok(csv.split("\n")[0].includes(";codiceVolata;comunicataA;comunicataIl;comunicazioneRif;mancateEsplosioni;"), "⛔ le tre colonne stanno DOPO le diciannove di prima e prima del dopo-volata");
     eq(csv.split("\n")[0], sentinella.CSV_VOLATE_INTESTAZIONE, "l'intestazione è quella dichiarata");
-    ok(/;ente;2026-07-16;PEC prot\. 4412\/2026$/m.test(csv), "la riga con la comunicazione la scrive tale e quale", csv);
+    ok(/;ente;2026-07-16;PEC prot\. 4412\/2026;/m.test(csv), "la riga con la comunicazione la scrive tale e quale (seguita dalle celle del dopo-volata)", csv);
     ok(/Fronte Est.*;;;$/m.test(csv), "e la riga senza comunicazione scrive tre celle vuote, non «null»", csv);
     const dentro = sentinella.parseVolateCsv(csv);
     eq([dentro[1].comunicataA, dentro[1].comunicataIl, dentro[1].comunicazioneRif], ["ente", "2026-07-16", "PEC prot. 4412/2026"], "rientra intera (le righe sono ordinate per data)");
@@ -38244,9 +38351,15 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   const V = { id: "b1", data: "2026-07-17", fronte: "Fronte Nord", nFori: 42, kgTotali: 480, kgMaxRitardo: 18, distanzaRicettore: 320, esito: "regolare", stato: "eseguita",
     ppvMisurata: 3.4, ppvFonte: "strumento", ppvPuntoId: "v1", ppvPuntoNome: "V1 abitato", ppvData: "2026-07-17", ppvOra: "10:20",
     ppvPrevista: 4.6, ppvPrevLimite: 5, ppvPrevNorma: "DIN residenziale @ 25 Hz", ppvPrevFonte: "genesi-litologia", airblastPrevisto: 118, codiceVolata: "GEN-20260717-4f2a1",
-    comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026" };
+    comunicataA: "ente", comunicataIl: "2026-07-16", comunicazioneRif: "PEC prot. 4412/2026",
+    /* il dopo-volata registrato e regolare (11/09): senza, la scheda avrebbe
+       tre voci in «che cosa manca» — che è la prova dopo questa */
+    mancateEsplosioni: 0, proiezioniOltreArea: false, rientroAlle: "11:40" };
   const riga = (f, sez, eti) => { const z = f.sezioni.find((x) => x.titolo === sez); const r = z && z.righe.find((q) => q[0] === eti); return r ? r[1] : undefined; };
-  const TITOLI = ["Volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Regola del giudizio", "Reclami dello stesso giorno"];
+  /* «Dopo la volata» dall'11/09, subito dopo la volata: è la carta che
+     l'ispettore chiede quando qualcosa è andato storto, e sta prima della
+     previsione perché racconta un fatto, non un progetto */
+  const TITOLI = ["Volata", "Dopo la volata", "Previsione", "Misura dell'evento", "Strumento e taratura", "Regola del giudizio", "Reclami dello stesso giorno"];
   test("Sentinella · fogliaVolata: la volata collegata allo strumento, con la lettura, la taratura e il reclamo del giorno", () => {
     const f = sentinella.fogliaVolata(V, { monitoraggi: MON, reclami: REC, oggi: "2026-09-05" });
     eq(f.titolo, "Scheda della volata del 17/07/2026 — Fronte Nord", "il titolo porta data e fronte");
@@ -38260,7 +38373,10 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/importata dal file «V1_luglio.csv»/.test(riga(f, "Misura dell'evento", "Provenienza della lettura")), "e da dove viene");
     eq(riga(f, "Strumento e taratura", "Punto di misura"), "V1 abitato · mm/s", "lo strumento con la sua unità");
     eq(riga(f, "Strumento e taratura", "Taratura"), "coperta: certificato LAT 118-2026/441, Centro LAT n. 118, dal 10/02/2026 al 09/02/2027", "la taratura che copre la data della lettura");
-    const rec = f.sezioni[5];
+    eq(riga(f, "Dopo la volata", "Esito dell'ispezione"), "Dopo-volata regolare", "l'ispezione dopo lo sparo, registrata e senza anomalie");
+    eq(riga(f, "Dopo la volata", "Mancate esplosioni"), "nessuna", "⛔ lo zero dichiarato si scrive «nessuna», non «0» e non una cella vuota");
+    eq(riga(f, "Dopo la volata", "Rientro"), "alle 11:40", "l'ora del rientro");
+    const rec = f.sezioni[6];
     eq(rec.righe, [["Vibrazione alle 10:30", "Sig. Bianchi: vetri [chiuso]", false]], "⛔ solo il reclamo di QUEL giorno: quello del 20/07 non c'è");
     eq(rec.avviso, sentinella.AVVISO_COINCIDENZA, "e la coincidenza è dichiarata coincidenza, non causa");
     eq(f.nonMisurati, [], "⛔ con tutto collegato non manca niente");
@@ -38269,7 +38385,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   test("Sentinella · fogliaVolata: la volata vuota dichiara ogni assenza a parole, mai «—»", () => {
     const f = sentinella.fogliaVolata({}, { oggi: "2026-09-05" });
     eq(f.titolo, "Scheda della volata", "senza data né fronte il titolo resta nudo");
-    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le sei sezioni ci sono lo stesso");
+    eq(f.sezioni.map((z) => z.titolo), TITOLI, "le sette sezioni ci sono lo stesso");
     eq(riga(f, "Regola del giudizio", "Limite che vale per il punto"), "nessuna PPV collegata: niente da giudicare", "e la regola del giudizio dice che non c'è niente da giudicare");
     eq(riga(f, "Volata", "Data"), "data non leggibile", "la data");
     eq(riga(f, "Volata", "Fori"), "non dichiarato", "i fori");
@@ -38284,7 +38400,9 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(tutte.filter((t) => /—|undefined|NaN|null/.test(String(t))), [], "⛔ nessuna riga tranquilla o rotta");
     eq(f.nonMisurati, ["Data (data non leggibile)", "Fronte (non indicato)", "Fori (non dichiarato)", "Carica totale (non dichiarato)",
       "Carica massima per ritardo (non dichiarato)", "Distanza dal ricettore (non dichiarato)", "Esito (non dichiarato)",
-      "Comunicazione (nessuna comunicazione registrata)", "PPV misurata (non ancora collegata)"],
+      "Comunicazione (nessuna comunicazione registrata)",
+      "Mancate esplosioni (non dichiarate)", "Proiezioni oltre l'area (non dichiarate)", "Rientro (ora non indicata)",
+      "PPV misurata (non ancora collegata)"],
       "⛔ «che cosa manca» è un ELENCO dichiarato dal modulo, con l'etichetta e la ragione");
     ok(!f.nonMisurati.some((t) => /Reclami|Note|Previsione|PPV prevista|Punto di misura/.test(t)),
       "⛔ «nessun reclamo», «note: nessuna», «nessuna previsione» NON mancano: sono fatti, non dati assenti");
@@ -38311,7 +38429,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(f3.nonMisurati, ["Taratura (non coperta: nessuna taratura registrata per questo strumento)"], "la taratura scoperta manca; la lettura annullata è marcata ma non è un dato assente");
     eq(f1.nonMisurati, [], "⛔ una prevista non «manca» della misura: non è ancora stata sparata");
     eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
-    eq(sentinella.fogliaVolata(null).sezioni.length, 6, "null non rompe");
+    eq(sentinella.fogliaVolata(null).sezioni.length, 7, "null non rompe (sette sezioni dall'11/09, con «Dopo la volata»)");
   });
   test("Sentinella · fogliaVolata, la regola del giudizio: lo stesso limite, lo stesso verdetto e la stessa banda dello schermo", () => {
     const P = { ...MON[0], sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
