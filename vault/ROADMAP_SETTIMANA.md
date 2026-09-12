@@ -2909,8 +2909,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
   immagini restano dentro la pagina o diventano file accanto?)*
-- `CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
-  FATTURA`
 
 ## 🎯 L'obiettivo della settimana
 
@@ -7847,8 +7845,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.393 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2912, `run-stile` 328,
+  **3.394 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2913, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
@@ -9731,8 +9729,9 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   'esitoSdi|statoSdi'` → 0) → voce aperta; l'avviso del cassetto fiscale c'è
   prima dell'invio, non dopo. Vedi `docs/RICERCA_CONTINUA_CONTI.md`, ricerca
   dell'11/09 (quarto giro).
-- [ ] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
-  FATTURA** *(dalla ricerca dell'11/09, quarto giro, domande 1-4)*. (1)
+- [x] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA** ✅ 11/09 (unità 118). *(dalla ricerca dell'11/09, quarto giro,
+  domande 1-4)*. (1)
   `xmlFatturaPA` scrive `TD24` quando la fattura cita almeno un DDT e `TD01`
   altrimenti, e lo dichiara negli `avvisi` (codice di seconda mano, scritto
   nel commento con la fonte). (2) Sulla fattura `sdi: { stato: da-inviare |
@@ -9751,6 +9750,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   dalla notifica»; senza `sdi` → «esito non registrato»; il sollecito su una
   scartata restituisce la ragione invece del testo; `grep -c 'cinque giorni'`
   nella pagina ≤ 1 e con la fonte accanto; screenshot a 430 px.
+- [x] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA (11/09, unità 118).** `xmlFatturaPA` scrive `TD24` quando la fattura
+  cita almeno un DDT e `TD01` altrimenti, lo dichiara negli `avvisi` e lo
+  restituisce (`tipoDocumento`; codice di seconda mano, scritto nel commento
+  con la fonte). Sulla fattura `sdi: { stato, il, nota }` dichiarato
+  dall'utente dalla ricevuta (tendina e data nel form, ricaricati in
+  modifica); `STATI_SDI`; `statoSdi(f, oggi)` → «esito non registrato» senza
+  stato (mai «consegnata» per difetto), «da inviare» e «scartata» = come non
+  emessa (coi giorni dalla notifica e il promemoria della riemissione con la
+  fonte, circ. 13/E/2018, marcato di seconda mano — nel modulo, non nella
+  pagina), «mancata consegna» = emessa, nel cassetto fiscale; `sollecitabile`
+  ferma il sollecito su una non emessa e dice che fare; `prioritaIncasso`
+  tiene la scartata in lista marcata `nonEmessa` e il quadro lo scrive;
+  l'estratto conto dice al cliente la mancata consegna e la scartata; la riga
+  dell'elenco porta l'esito (la scartata come badge rosso PRIMA del numero).
+  Dimostrazione: f1 consegnata, f2 non consegnata, f4 scartata, f3 senza
+  esito. Misurato nel browser a 430 px: il toast «non è emessa … prima si
+  rimanda allo SdI, poi si sollecita» premendo il sollecito di f4, la tendina
+  con i cinque stati, le righe con l'esito; 0 errori di pagina; screenshot
+  guardati. Prove: run-kpi +1 (2913, più la prova del file che ora pretende
+  tre avvisi); fondo Conti 200 → 205; copertura 996/996.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

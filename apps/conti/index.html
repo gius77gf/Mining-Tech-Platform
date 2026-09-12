@@ -1055,6 +1055,21 @@ label.item:has(.dw-chk:checked){
       <input class="dw-input" id="ft-scad" type="date">
       <span class="err-msg" id="err-ft-scad"></span>
     </div>
+    <div class="fld" style="flex:1 1 170px;">
+      <label for="ft-sdi">Esito dello SdI</label>
+      <select class="dw-input" id="ft-sdi" title="Che cosa ha risposto lo Sistema di Interscambio: lo leggi sulla ricevuta e lo scrivi qui, Conti non parla con lo SdI. Una scartata è come non emessa.">
+        <option value="">— esito non registrato —</option>
+        <option value="da-inviare">Da inviare</option>
+        <option value="inviata">Inviata, esito da leggere</option>
+        <option value="consegnata">Consegnata</option>
+        <option value="scartata">Scartata (come non emessa)</option>
+        <option value="mancata-consegna">Mancata consegna (nel cassetto fiscale)</option>
+      </select>
+    </div>
+    <div class="fld" style="flex:1 1 150px;">
+      <label for="ft-sdi-il">Data della ricevuta</label>
+      <input class="dw-input" id="ft-sdi-il" type="date" title="La data della ricevuta o della notifica dello SdI">
+    </div>
     <button class="dw-btn" id="btn-ft">Emetti</button>
   </div>
   <div id="ft-riep"></div>
@@ -2031,7 +2046,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, agingIncassi, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -2383,7 +2398,7 @@ label.item:has(.dw-chk:checked){
   const PES_CAMPI = ["pes-data","pes-cli","pes-prod","pes-ordine","pes-lordo","pes-tara","pes-mezzo","pes-dest"];
   let ftNumAuto = true;   // finché è vero, il numero lo propone Conti
   const syncCliNuovo = () => { $("fld-ft-cli-nuovo").style.display = $("ft-cli").value === "__nuovo" ? "" : "none"; };
-  const pulisciFat = () => { FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
+  const pulisciFat = () => { $("ft-sdi").value = ""; $("ft-sdi-il").value = ""; FT_CAMPI.forEach(i => { $(i).value = ""; puliscoErr(i); });
     ftNumAuto = true; $("ft-iva").value = "22"; $("ft-num").value = numeroProssimaFattura();
     aggiornaRiepFat(); syncCliNuovo(); };
   /* ── SCAGLIONI DEL PRODOTTO IN COMPILAZIONE ─────────────────────────
@@ -3291,9 +3306,11 @@ label.item:has(.dw-chk:checked){
     const prio = [
       // fatture ordinate per priorità di incasso (più in ritardo / più grosse)
       ...prioritaIncasso(FAT, new Date(), NOT).slice(0, 3)
-            .map(({ f, ritardo }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
+            .map(({ f, ritardo, nonEmessa }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
               // «scade il —» non è una data: se la scadenza non c'è si dice
-              d: (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni")
+              // e una scartata dallo SdI va rimandata prima di essere sollecitata (11/09)
+              d: (nonEmessa ? "come non emessa (" + statoSdi(f).breve + "): rimandala allo SdI prima di sollecitare · " : "")
+                 + (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni")
                   : f.scadenza ? "scade il " + fmtD(f.scadenza) : "senza scadenza: non si sa entro quando")
                  + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
               /* ⛔ `NOT` VA PASSATO: senza, questa riga scrive «€ 1.000,00 residuo»
@@ -3416,10 +3433,14 @@ label.item:has(.dw-chk:checked){
                   : "senza dettaglio IVA",
         nDdt ? "da " + plur(nDdt, "DDT", "DDT") : "",
         sol && sol.livello ? sol.label : "",
+        // l'esito dello SdI (11/09): «non registrato» si dice, non si tace
+        f.incassata ? "" : statoSdi(f).breve,
       ].filter(Boolean).join(" · ");
+      // una scartata NON è emessa: va detto PRIMA del resto, dove la riga non è tagliata
+      const sdiPrima = !f.incassata && statoSdi(f).nonEmessa ? '<span class="badge danger" style="margin-right:6px;">' + esc(statoSdi(f).breve) + "</span>" : "";
       return `<div class="item tocca ${st}" data-fat="${f.id}" title="${f.incassata ? "Tocca per vedere gli incassi registrati" : "Tocca per registrare un incasso (anche un acconto)"}">
       <span class="avatar">${IC.fattura}</span>
-      <div class="info"><div class="name"><span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
+      <div class="info"><div class="name">${sdiPrima}<span class="num-doc">${esc(f.numero)}</span> · ${esc(nomeCliente(f, CLI))}${clienteDiFattura(f, CLI) ? "" : ' <span class="badge tag" title="Cliente non ancora collegato all\'anagrafica: collegalo dalla scheda Clienti">da collegare</span>'}</div>
       ${/* ⚠️ l'avviso va PRIMA del resto, non in coda: `.meta` è tagliata a due
             righe (`-webkit-line-clamp`), e un dettaglio che finisce dove il
             testo è tagliato è testo morto — CLAUDE.md l'ha già pagato due
@@ -6586,6 +6607,9 @@ label.item:has(.dw-chk:checked){
          CHIEDE i soldi, e chiederli su una fattura già stornata è la forma
          peggiore di questo difetto — non un numero sbagliato in una schermata,
          una lettera che parte verso il cliente. */
+      // si sollecita solo ciò che è emesso (11/09): una scartata prima si rimanda allo SdI
+      const sb = f ? sollecitabile(f, new Date()) : { ok: false, perche: "Fattura non trovata." };
+      if (!sb.ok) { toast(sb.perche, "err"); return; }
       const testo = f && testoSollecito({ ...f, cliente: nomeCliente(f, CLI) }, new Date(), TASSO_MORA_DEFAULT, NOT);
       /* ⛔ E IL MOTIVO DEVE ESSERE QUELLO VERO. «Solo per fatture scadute» era
          falso proprio nel caso più importante: su una fattura scaduta e
@@ -6657,6 +6681,8 @@ label.item:has(.dw-chk:checked){
             + ": salvando, imponibile, IVA e totale vengono riscritti da questi campi ma le righe restano quelle di prima, e sul foglio stampato non torneranno più.";
         aggiornaRiepFat(); }
       $("ft-scad").value = f.scadenza || "";
+      $("ft-sdi").value = f.sdi && STATI_SDI.includes(String(f.sdi.stato || "")) ? f.sdi.stato : "";
+      $("ft-sdi-il").value = f.sdi && f.sdi.il ? String(f.sdi.il).slice(0, 10) : "";
       FT_CAMPI.forEach(puliscoErr);
       $("btn-ft").textContent = "Salva modifica";
       /* ⚠️ L'AVVISO LUNGO NON VA NEL TOAST. `esito()` scrive la nota E alza un
@@ -7971,7 +7997,9 @@ label.item:has(.dw-chk:checked){
     const t = totaliDaRighe([{ imponibile: importo, aliquota }]);
     const dati = { numero, cliente, clienteId, scadenza,
       imponibile: t.imponibile, aliquotaIva: aliquota, ivaImporto: t.ivaImporto,
-      totale: t.totale, importo: t.totale };
+      totale: t.totale, importo: t.totale,
+      // l'esito dello SdI (11/09): vuoto = non registrato, mai «consegnata» per difetto
+      sdi: $("ft-sdi").value ? { stato: $("ft-sdi").value, il: $("ft-sdi-il").value || null, nota: "" } : null };
     if (editFat) {
       await db.aggiorna("fatture", editFat, dati);
       editFat = null; $("btn-ft").textContent = "Emetti";

@@ -3001,7 +3001,7 @@ test("⛔ xmlFatturaPA: una fattura completa produce un file pronto, coi numeri 
   ok(/<UnitaMisura>TN<\/UnitaMisura>/.test(r.xml) && /<UnitaMisura>MC<\/UnitaMisura>/.test(r.xml), "tonnellate e metri cubi con le sigle del tracciato");
   eq(r.ddtCitati, 1, "UN solo DDT citato: quello con la data");
   ok(/<DatiDDT><NumeroDDT>2026\/010<\/NumeroDDT><DataDDT>2026-06-02<\/DataDDT><\/DatiDDT>/.test(r.xml), "ed è il 2026/010 con la sua data");
-  eq(r.avvisi.length, 2, "due avvisi: un DDT fuori archivio e uno senza data");
+  eq(r.avvisi.length, 3, "tre avvisi: un DDT fuori archivio, uno senza data, e la differita TD24 (11/09)");
   ok(r.avvisi.some((a) => /2026\/011/.test(a) && /senza data/.test(a)), "l'avviso nomina il DDT senza data");
   ok(/<DatiPagamento><CondizioniPagamento>TP02<\/CondizioniPagamento><DettaglioPagamento><ModalitaPagamento>MP05<\/ModalitaPagamento><DataScadenzaPagamento>2026-07-30<\/DataScadenzaPagamento><ImportoPagamento>2365.31<\/ImportoPagamento>/.test(r.xml), "il pagamento c'è perché la modalità è stata scelta");
 });
@@ -27263,6 +27263,41 @@ test("Ponte · attesaDopoSparo: le due ore e l'attesa dichiarata danno un verdet
   ok(/id="dopo-sparo"/.test(pagina) && /id="dopo-attesa"/.test(pagina) && /id="dopo-resi"/.test(pagina) && /id="dopo-autorizzato"/.test(pagina) && /attesaDopoSparo\(v\)/.test(pagina), "la pagina ha i quattro campi e giudica la riga");
   ok(!/60 min/.test(pagina) && !/30 min/.test(pagina.replace(/[^]*id="dopo-attesa"/, "").slice(0, 400)), "nessun numero di attesa nostro nella pagina");
 });
+test("Conti · statoSdi e sollecitabile: la scartata è come non emessa, la non consegnata è emessa, senza esito «non registrato» (unità 118)", () => {
+  const oggi = new Date("2026-09-11T10:00:00");
+  const nr = conti.statoSdi({ numero: "X" }, oggi);
+  ok(nr.stato === "non-registrato" && !nr.nonEmessa && /non registrato/.test(nr.testo) && nr.cls === "warn", "senza esito: non registrato, e non è un verde");
+  const sc = conti.statoSdi({ numero: "X", sdi: { stato: "scartata", il: "2026-09-01", nota: "CAP mancante" } }, oggi);
+  ok(sc.nonEmessa && sc.giorniDa === 10 && /come non emessa/.test(sc.testo) && /10 giorni fa/.test(sc.testo) && /13\/E\/2018/.test(sc.testo) && /seconda mano/.test(sc.testo) && /CAP mancante/.test(sc.testo), "scartata: non emessa, i giorni dalla notifica, il promemoria con la fonte: " + sc.testo);
+  const mc = conti.statoSdi({ sdi: { stato: "mancata-consegna", il: "2026-06-26" } }, oggi);
+  ok(!mc.nonEmessa && /cassetto fiscale/.test(mc.testo) && /26\/06\/2026/.test(mc.testo) && mc.cls === "warn", "mancata consegna: emessa, il cliente la trova nel cassetto fiscale");
+  ok(conti.statoSdi({ sdi: { stato: "consegnata", il: "2026-06-08" } }, oggi).cls === "ok" && conti.statoSdi({ sdi: { stato: "da-inviare" } }, oggi).nonEmessa && !conti.statoSdi({ sdi: { stato: "inviata" } }, oggi).nonEmessa, "consegnata ok; da inviare non emessa; inviata in attesa");
+  eq(conti.statoSdi({ sdi: { stato: "boh", il: "2026-13-45" } }, oggi).stato, "non-registrato", "uno stato sconosciuto non è uno stato");
+  eq(conti.statoSdi({ sdi: { stato: "scartata", il: "2026-02-30" } }, oggi).giorniDa, null, "una data che non esiste non conta i giorni, ma lo stato resta");
+  eq(conti.statoSdi(null, oggi).stato, "non-registrato");
+  const sb = conti.sollecitabile({ numero: "2026/036", sdi: { stato: "scartata", il: "2026-07-19" } }, oggi);
+  ok(!sb.ok && /2026\/036/.test(sb.perche) && /rimanda/.test(sb.perche), "una scartata non si sollecita, e la ragione dice che fare: " + sb.perche);
+  ok(conti.sollecitabile({ sdi: { stato: "mancata-consegna" } }, oggi).ok && conti.sollecitabile({}, oggi).ok, "la non consegnata e la senza esito si sollecitano");
+  ok(conti.STATI_SDI.length === 5 && conti.STATI_SDI.includes("scartata") && conti.STATI_SDI.includes("mancata-consegna") && Object.isFrozen(conti.STATI_SDI) === false, "i cinque stati dichiarabili");
+  // la priorità la tiene in lista ma la marca
+  const pr = conti.prioritaIncasso([{ numero: "A", importo: 100, scadenza: "2026-08-01", incassata: false, sdi: { stato: "scartata", il: "2026-07-19" } }, { numero: "B", importo: 100, scadenza: "2026-08-01", incassata: false }], oggi);
+  ok(pr.length === 2 && pr.find(x => x.f.numero === "A").nonEmessa === true && pr.find(x => x.f.numero === "B").nonEmessa === false && pr.find(x => x.f.numero === "A").sdi === "scartata", "la scartata resta un incasso che manca, marcata");
+  // l'estratto conto lo dice al cliente
+  const D = conti.DEMO;
+  const ec = conti.estrattoContoCliente({ cliente: "Stradesud", chiave: null }, D.fatture, oggi, undefined, D.clienti, []);
+  ok(ec && /2026\/034/.test(ec) && /non consegnata dallo SdI: la trovate nel vostro cassetto fiscale/.test(ec), "l'estratto conto di Stradesud dice della mancata consegna: " + String(ec).split("\n").find(r => /034/.test(r)));
+  const ec4 = conti.estrattoContoCliente({ cliente: "Calcestruzzi RG", chiave: null }, D.fatture, oggi, undefined, D.clienti, []);
+  ok(ec4 && /scartata dallo SdI: come non emessa/.test(ec4), "e quello di Calcestruzzi RG dice della scartata");
+  eq(conti.statoSdi(D.fatture.find(f => f.id === "f4"), oggi).stato, "scartata"); eq(conti.statoSdi(D.fatture.find(f => f.id === "f3"), oggi).stato, "non-registrato", "f3 senza esito, di proposito");
+  // il tipo documento segue i DDT
+  const r1 = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES });
+  ok(r1.tipoDocumento === "TD24" && r1.ddtCitati >= 1 && /<TipoDocumento>TD24<\/TipoDocumento>/.test(r1.xml) && r1.avvisi.some(a => /TD24/.test(a)), "con i DDT il file è una differita TD24, e l'avviso lo dice: " + r1.ddtCitati + " DDT");
+  const r0 = conti.xmlFatturaPA({ ...XML_FAT, ddtIds: [] }, XML_CLI, XML_IMP, { pesate: XML_PES });
+  ok(r0.tipoDocumento === "TD01" && /<TipoDocumento>TD01<\/TipoDocumento>/.test(r0.xml) && !r0.avvisi.some(a => /TD24/.test(a)), "senza DDT resta l'immediata TD01");
+  const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+  ok(/id="ft-sdi"/.test(pagina) && /id="ft-sdi-il"/.test(pagina) && /sollecitabile\(f, new Date\(\)\)/.test(pagina) && /statoSdi\(f\)\.breve/.test(pagina) && /nonEmessa \?/.test(pagina), "la pagina salva l'esito, lo scrive in riga, ferma il sollecito e lo dice nel quadro");
+  eq((pagina.match(/cinque giorni/g) || []).length, 0, "il termine dei cinque giorni sta nel modulo con la sua fonte, non nella pagina");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);
@@ -39306,7 +39341,15 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(!flotta.csvCosti(D.costi).includes("\n\n") && flotta.csvCosti(D.costi).includes("\r\n"), "a capo Windows, come il file di prima: lo apre un foglio di calcolo");
   });
   test("Flotta · csvFermiMacchina: le tre risposte di durataFermo nel file, nell'ordine dello schermo", () => {
-    const OGGI = new Date("2026-09-05T10:00:00");
+    /* ⚠️ QUI OGGI NON PUÒ ESSERE FISSO: il fermo aperto della dimostrazione
+       (f1, "Dumper D3") nasce con `inizio: isoIndietro(6)`, cioè relativo
+       all'orologio VERO al momento in cui gira il test — non alla data che
+       gli anni fa qualcuno ha scritto qui. Una data fissa invecchia e supera
+       "oggi", e la riga smette di essere "ancora fermo" per diventare "data
+       non valida" (inizio nel futuro rispetto a un OGGI congelato nel
+       passato). Misurato il 12/09: fissato al 05/09, il fermo apriva il
+       06/09 — un giorno "dopo" quell'OGGI. */
+    const OGGI = new Date();
     const righe = flotta.csvFermiMacchina(D.fermi, OGGI).split("\r\n");
     eq(righe[0], flotta.CSV_FERMI_INTESTAZIONE, "l'intestazione è la costante");
     eq(righe.length, D.fermi.length + 1, "una riga per fermo");

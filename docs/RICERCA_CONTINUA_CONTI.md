@@ -1639,6 +1639,7 @@ codice in mano.*
   altrimenti, con il codice dichiarato negli `avvisi` del file [il codice è
   di seconda mano, dalle specifiche tecniche e dalla guida dell'Agenzia:
   si scrive nel commento].
+  ✅ **FATTO l'11/09 (unità 118)**: `tipoDocumento` in `xmlFatturaPA`.
 - **Domanda 2 — MANCA.** La fattura ha `emessa`, `scadenza`, gli incassi e
   lo stato di incasso (`statoIncasso`, `statoScadenzaFattura`), ma
   **nessun campo dice che cosa ha risposto lo SdI**: `grep -ciE
@@ -1656,14 +1657,18 @@ codice in mano.*
   e che il cliente la trova nel cassetto fiscale; e il **sollecito** non
   parte su una fattura scartata (non è emessa: sollecitare un incasso su un
   documento inesistente è un errore che il cliente nota).
+  ✅ **FATTO l'11/09 (unità 118)**: `sdi` sulla fattura, `statoSdi`,
+  `sollecitabile`, `prioritaIncasso` marcata, estratto conto e riga.
 - **Domanda 3 — MANCA, ed entra nella stessa voce.** Riemissione: stesso
   numero e data entro il termine, altrimenti numero nuovo. `statoSdi` lo
   dice; il numero non lo cambia il modulo (è una decisione di chi emette).
+  ✅ **FATTO l'11/09 (unità 118)**: nel testo di `statoSdi`.
 - **Domanda 4 — C'È A METÀ.** L'avviso alla preparazione del file esiste
   già («il cliente non ha un codice destinatario né una PEC: il file va con
   «0000000» e il cliente la trova nel suo cassetto fiscale»); manca
   l'avviso **dopo**, sulla notifica di mancata consegna: con lo stato `sdi`
   della domanda 2 l'estratto conto del cliente lo può scrivere.
+  ✅ **FATTO l'11/09 (unità 118)**: l'estratto conto lo scrive.
 
 **Riassunto** — 1 **correzione** confermata (TD24 sulla differita), 1
 mancanza **confermata e aperta** (l'esito dello SdI sulla fattura, con la

@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.393 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2912 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.394 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 11/09: 2913 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.851** asserzioni su **40** comandi.
+> `node` completo esegue **3.852** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -85,7 +85,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **993 funzioni pure su 993** sono chiamate per nome da quelle prove: tutte e
+E **996 funzioni pure su 996** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 

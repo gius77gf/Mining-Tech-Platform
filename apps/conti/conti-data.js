@@ -3,7 +3,10 @@
 // autenticati, demo in memoria altrimenti).
 // Collezioni (sotto organizations/{org}/apps/conti/):
 //   fatture/{id}: { numero, cliente, clienteId?, importo, emessa (ISO), scadenza (ISO), incassata (bool),
-//                   imponibile?, ivaImporto?, totale?, righe? [], ddtIds? [], tipo? }
+//                   imponibile?, ivaImporto?, totale?, righe? [], ddtIds? [], tipo?,
+//                   sdi?: { stato: da-inviare|inviata|consegnata|scartata|mancata-consegna,
+//                           il (ISO), nota } — l'esito dello SdI, dichiarato dall'utente
+//                           leggendo la ricevuta (11/09, unità 118) }
 //   clienti/{id}: { ragioneSociale, piva, sdi (codice destinatario o PEC), indirizzo,
 //                   sconto (%), fido (€), note }
 //   gare/{id}:    { titolo, base, scadenza (ISO), stato: aperta|vinta|persa }
@@ -109,10 +112,14 @@ export const DEMO = {
   // con il solo testo libero — e volutamente scritto in modi diversi — per far
   // vedere come funziona il collegamento delle fatture vecchie.
   fatture: [
-    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", clienteId: "c1", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false },
-    { id: "f2", numero: "2026/034", cliente: "Stradesud", clienteId: "c2", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false },
+    /* l'esito dello SdI (11/09, unità 118), dichiarato leggendo le ricevute: f1
+       consegnata, f2 non consegnata (il cliente la trova nel cassetto fiscale),
+       f4 SCARTATA — come non emessa: resta un credito da avere ma non si
+       sollecita finché non si rimanda; f3 senza esito registrato, di proposito */
+    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", clienteId: "c1", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, sdi: { stato: "consegnata", il: "2026-06-08" } },
+    { id: "f2", numero: "2026/034", cliente: "Stradesud", clienteId: "c2", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false, sdi: { stato: "mancata-consegna", il: "2026-06-26", nota: "PEC del cliente piena" } },
     { id: "f3", numero: "2026/035", cliente: "Comune di Modica", importo: 8100, emessa: "2026-07-10", scadenza: "2026-08-10", incassata: false },
-    { id: "f4", numero: "2026/036", cliente: "Calcestruzzi RG", importo: 5900, emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false },
+    { id: "f4", numero: "2026/036", cliente: "Calcestruzzi RG", importo: 5900, emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false, sdi: { stato: "scartata", il: "2026-07-19", nota: "CAP del cliente mancante" } },
     // f5: fattura VECCHIA, marcata incassata e senza data d'incasso. Serve a
     // tenere sotto gli occhi il caso di compatibilità: vale incassata per
     // intero, e nei tempi di pagamento resta contata a parte come "senza data".
@@ -1535,7 +1542,12 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
        dovuto: quello che il cliente ha versato e quello che abbiamo stornato. */
     const dettaglio = [acconti > 0 ? `acconti ${e(acconti)}` : "",
                        stornato > 0 ? `note di credito ${e(stornato)}` : ""].filter(Boolean).join(", ");
-    return `- n. ${(f.numero || "—")} · ${e(imp)}${dettaglio ? ` (residuo, ${dettaglio})` : ""} · scad. ${dataIt(f.scadenza)} · ${coda}`;
+    // l'esito dello SdI (11/09): la scartata e la non consegnata si dicono al cliente, non si tacciono
+    const sd = statoSdi(f, oggi);
+    const codaSdi = sd.stato === "scartata" ? " · scartata dallo SdI: come non emessa, sarà rimandata"
+      : sd.stato === "mancata-consegna" ? " · non consegnata dallo SdI: la trovate nel vostro cassetto fiscale"
+      : sd.stato === "da-inviare" ? " · non ancora inviata allo SdI" : "";
+    return `- n. ${(f.numero || "—")} · ${e(imp)}${dettaglio ? ` (residuo, ${dettaglio})` : ""} · scad. ${dataIt(f.scadenza)} · ${coda}${codaSdi}`;
   });
   const spese = scaduteN * SPESE_RECUPERO_231;
   const totaleDovuto = Math.round((totale + moraTot + spese) * 100) / 100;
@@ -1659,13 +1671,64 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null
    cosa che non si sa vale più attenzione di una che si sa essere a posto. Se
    il fondatore la vuole in cima, si cambia una riga — ma non si torna a
    chiamarla zero. */
+/* L'ESITO DELLO SDI, SULLA FATTURA (11/09, unità 118). Il file si prepara
+   qui e si manda dal portale; quello che torna indietro — ricevuta di
+   consegna, notifica di scarto, mancata consegna — non aveva dove essere
+   scritto, e una fattura scartata restava «emessa» in ogni conto. Lo stato
+   lo DICHIARA l'utente leggendo la ricevuta: Conti non parla con lo SdI.
+   ⛔ Senza uno stato la risposta è «esito non registrato», non «consegnata».
+   Una scartata è «come non emessa» (circolare dell'Agenzia 13/E del 2018,
+   di seconda mano): si rimanda con lo stesso numero e data entro il termine
+   della circolare — cinque giorni, riportati come promemoria con la fonte,
+   non come un conto che decide — oppure con numero nuovo. Una mancata
+   consegna fra privati è emessa: il cliente la trova nel cassetto fiscale,
+   e va avvisato. */
+export const STATI_SDI = ["da-inviare", "inviata", "consegnata", "scartata", "mancata-consegna"];
+export function statoSdi(fattura, oggi = new Date()) {
+  const x = (fattura || {}).sdi;
+  const stato = x && typeof x === "object" ? String(x.stato || "").trim().toLowerCase() : "";
+  const il = x && dataISOEsiste(String(x.il || "").slice(0, 10)) ? String(x.il).slice(0, 10) : null;
+  const nota = x ? String(x.nota || "").trim() : "";
+  const quando = il ? " il " + dataIt(il) : "";
+  // i giorni dalla notifica: `giorni` vuole due date ISO, e «oggi» arriva come Date
+  const od = oggi instanceof Date ? oggi : new Date(oggi);
+  const oiso = Number.isFinite(od.getTime()) ? `${od.getFullYear()}-${String(od.getMonth() + 1).padStart(2, "0")}-${String(od.getDate()).padStart(2, "0")}` : "";
+  const gRaw = il && oiso ? giorni(oiso, il) : NaN;
+  const giorniDa = Number.isFinite(gRaw) && gRaw >= 0 ? gRaw : null;
+  if (!STATI_SDI.includes(stato))
+    return { stato: "non-registrato", il: null, nota, giorniDa: null, nonEmessa: false, cls: "warn",
+      breve: "esito SdI non registrato", testo: "esito dello SdI non registrato",
+      perche: "nessuna ricevuta letta: non si sa se la fattura è arrivata al cliente" };
+  const base = { stato, il, nota, giorniDa };
+  if (stato === "da-inviare") return { ...base, nonEmessa: true, cls: "warn", breve: "da inviare allo SdI",
+    testo: "da inviare allo SdI: finché non passa dallo SdI non è emessa", perche: "" };
+  if (stato === "inviata") return { ...base, nonEmessa: false, cls: "warn", breve: "SdI: esito da leggere",
+    testo: "inviata allo SdI" + quando + ", esito non ancora letto", perche: "" };
+  if (stato === "consegnata") return { ...base, nonEmessa: false, cls: "ok", breve: "consegnata (SdI)",
+    testo: "consegnata dallo SdI" + quando, perche: "" };
+  if (stato === "scartata") return { ...base, nonEmessa: true, cls: "danger", breve: "scartata: come non emessa",
+    testo: "scartata dallo SdI" + quando + (giorniDa != null ? " (" + (giorniDa === 1 ? "1 giorno fa" : giorniDa + " giorni fa") : "") + ": come non emessa. Si rimanda con lo stesso numero e data entro il termine della circolare 13/E/2018 (cinque giorni dalla notifica, di seconda mano: verifica col commercialista), altrimenti con numero e data nuovi" + (nota ? " · " + nota : ""),
+    perche: "una fattura scartata dallo SdI non è emessa: prima si rimanda, poi si sollecita" };
+  return { ...base, nonEmessa: false, cls: "warn", breve: "non consegnata (SdI)",
+    testo: "non consegnata dallo SdI" + quando + ": la fattura è emessa e il cliente la trova nel suo cassetto fiscale — avvisalo" + (nota ? " · " + nota : ""), perche: "" };
+}
+// Si sollecita solo ciò che è emesso: su una scartata (o mai inviata) la
+// lettera chiederebbe soldi per un documento che per il fisco non esiste.
+export function sollecitabile(fattura, oggi = new Date()) {
+  const s = statoSdi(fattura, oggi);
+  if (s.nonEmessa) return { ok: false, stato: s.stato, perche: "La fattura " + String((fattura || {}).numero || "") + " non è emessa (" + s.testo.split(":")[0] + "): prima si rimanda allo SdI, poi si sollecita." };
+  return { ok: true, stato: s.stato, perche: "" };
+}
+
 export function prioritaIncasso(fatture, oggi = new Date(), note = null) {
   return (fatture || [])
     .filter(f => !f.incassata)
     .map(f => {
       const g = giorni(f.scadenza, oggi);
       const noto = Number.isFinite(g);
-      return { f, ritardo: noto ? Math.max(0, -g) : null, senzaScadenza: !noto };
+      // l'esito dello SdI (11/09): una scartata resta in lista — è un incasso che manca — ma la riga dice che prima va rimandata
+      const sd = statoSdi(f, oggi);
+      return { f, ritardo: noto ? Math.max(0, -g) : null, senzaScadenza: !noto, nonEmessa: sd.nonEmessa, sdi: sd.stato };
     })
     .sort((a, b) => {
       const ra = a.ritardo, rb = b.ritardo;
@@ -2030,6 +2093,15 @@ export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], prog
   const ddt = (f.ddtIds || []).map((id) => perId.get(String(id))).filter(Boolean);
   if ((f.ddtIds || []).length && ddt.length < f.ddtIds.length)
     avvisi.push(`${f.ddtIds.length - ddt.length} DDT collegati alla fattura non sono in archivio: il file non li cita`);
+  /* IL TIPO DOCUMENTO SEGUE I DDT (11/09, unità 118). Una fattura che cita i
+     documenti di trasporto è la differita dell'art. 21 c. 4 lett. a del D.P.R.
+     633/72, e dal 2021 il tracciato la distingue con TD24; TD01 è l'immediata.
+     Fino a oggi il file usciva TD01 anche con tre DDT dentro: sapeva di fare
+     una differita e dichiarava un'immediata. Il codice è di seconda mano (dai
+     riassunti delle specifiche tecniche e della guida dell'Agenzia, non letti
+     per intero): l'avviso lo dice a chi prepara il file. */
+  const tipoDocumento = ddt.length ? "TD24" : "TD01";
+  if (ddt.length) avvisi.push(`il file esce come fattura differita (TD24) perché cita ${ddt.length === 1 ? "un DDT" : ddt.length + " DDT"}: se non è quello che vuoi, togli i DDT dalla fattura`);
   const datiDdt = ddt.map((p) => dataISOEsiste(p.data)
     ? blocco("DatiDDT", tag("NumeroDDT", txt(p.numero) || "—") + tag("DataDDT", p.data))
     : (avvisi.push(`il DDT ${txt(p.numero) || p.id} è senza data e nel file non si può citare`), "")).join("");
@@ -2051,11 +2123,11 @@ export function xmlFatturaPA(fattura, cliente, impostazioni, { pesate = [], prog
             blocco("DatiAnagrafici", (/^\d{11}$/.test(piva) ? blocco("IdFiscaleIVA", tag("IdPaese", "IT") + tag("IdCodice", piva)) : "") + tag("CodiceFiscale", cf) + blocco("Anagrafica", tag("Denominazione", txt(c.ragioneSociale))))
             + blocco("Sede", tag("Indirizzo", txt(c.indirizzo)) + tag("CAP", txt(c.cap)) + tag("Comune", txt(c.comune)) + tag("Provincia", txt(c.provincia).toUpperCase()) + tag("Nazione", "IT"))))
     + blocco("FatturaElettronicaBody",
-        blocco("DatiGenerali", blocco("DatiGeneraliDocumento", tag("TipoDocumento", "TD01") + tag("Divisa", "EUR") + tag("Data", txt(f.emessa)) + tag("Numero", numero) + tag("ImportoTotaleDocumento", dec(riep.totale, 2))) + datiDdt)
+        blocco("DatiGenerali", blocco("DatiGeneraliDocumento", tag("TipoDocumento", tipoDocumento) + tag("Divisa", "EUR") + tag("Data", txt(f.emessa)) + tag("Numero", numero) + tag("ImportoTotaleDocumento", dec(riep.totale, 2))) + datiDdt)
         + blocco("DatiBeniServizi", linee.join("") + riepiloghi.join(""))
         + pagamento)
     + `</p:FatturaElettronica>\n`;
-  return { xml, mancanti, avvisi, pronto: mancanti.length === 0, totale: riep.totale, righe: linee.length, ddtCitati: (datiDdt.match(/<DatiDDT>/g) || []).length };
+  return { xml, mancanti, avvisi, pronto: mancanti.length === 0, totale: riep.totale, righe: linee.length, ddtCitati: (datiDdt.match(/<DatiDDT>/g) || []).length, tipoDocumento };
 }
 
 
