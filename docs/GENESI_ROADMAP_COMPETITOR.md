@@ -86,12 +86,7 @@ una foto** del cumulo — quello resta il gap vero.
    con la previsione. Genesi ha la curva prevista, non quella misurata dalla
    foto. ← il gap più importante rimasto (era #3, ora #1: i due che lo
    precedevano sono chiusi).
-2. **Deviazione fori "as-drilled" (boretrack)** — il **boretrak** misura quanto
-   il foro reale devia dal progetto; Genesi *simula* la deviazione (un modello
-   probabilistico Box-Muller sul `%` dichiarato, non un dato importato) e
-   modella quella del *fronte*/*piede*, ma non importa la deviazione **misurata**
-   dei *fori* perforati.
-3. **AI/ML per frammentazione/flyrock/backbreak** — differenziatore recente
+2. **AI/ML per frammentazione/flyrock/backbreak** — differenziatore recente
    (XGBoost R²≈0,82; ensemble ANN-RF per frammentazione **e** vibrazione),
    input burden/spaziatura/powder factor/sottoperforazione/UCS. Pesante.
 
@@ -100,6 +95,23 @@ riverificati nel codice fino ad ora): *riconciliazione previsto-vs-reale*
 (era il gap #1, vedi `confrontoPerForo` sopra — resta aperto solo lo
 **storico multi-volata** persistito, non il confronto in sé) e
 *signature-hole* (era il gap #2, vedi `sommaRitardata` sopra).
+
+⛔ **E CHIUSO ANCHE QUESTO, LO STESSO GIORNO, DALLO STESSO BLOCCO CHE AVEVA
+APPENA CORRETTO IL DOCUMENTO** — riscoperto solo grazie alla regola "chi
+chiude un'unità aggiorna la riga del documento che gliel'aveva proposta":
+*deviazione fori "as-drilled" (boretrack)*, era il gap #2 qui sopra fino a
+poche ore dopo questa stessa riletta. `deviazioneForiDaCsv` (parser CSV
+`foro/id;dx_m;dy_m`) + `burdenVeroDaRilievo` (ricalcola il burden vero
+usando le posizioni MISURATE, non simulate, sulla stessa perpendicolare al
+fronte 3D di `distanzaDaSpezzata`) sono state scritte nella stessa giornata
+(unità 129), wired in pagina (`📡 Importa rilievo deviazione fori`, pannello
+foro-per-foro progetto→vero con lo scarto colorato). ⚠️ **Con un limite da
+dichiarare**: la descrizione originale del gap parlava di mostrare il
+rilievo "nel 3D accanto a quello simulato" — oggi il confronto è un
+**pannello numerico** per foro (burden progetto → burden vero), non un
+overlay visivo 3D del profilo as-drilled accanto a quello simulato. La
+sostanza del gap (dato reale invece che solo simulato, con ricalcolo del
+burden) è chiusa; l'overlay 3D resta un'estensione a sé, non fatta.
 
 ## Roadmap proposta (per impatto/fattibilità) — rinumerata il 12/09 sui soli punti ancora aperti
 
@@ -117,12 +129,10 @@ riverificati nel codice fino ad ora): *riconciliazione previsto-vs-reale*
   `h.burdenVero`, con segnalazione in pagina quando si scosta dal nominale.
 - **Export ai detonatori + IREDES** *(bozza)*: XML `BlastPlan` stile IREDES
   dal Progetto 2D, dichiarato "non conformità certificata".
-
-### P1 — Grande impatto, ancora aperto (browser)
-- **P1.1 Import deviazione fori (boretrack)** *(client)*: importa il profilo
-  "as-drilled" **misurato** (CSV) e mostralo nel 3D accanto a quello *simulato*
-  che Genesi già disegna; ricalcola burden/carica reali per foro. Il dato
-  simulato oggi non ha modo di essere sostituito da un dato vero.
+- **Import deviazione fori (boretrack)** — `deviazioneForiDaCsv` +
+  `burdenVeroDaRilievo` (unità 129), pannello foro-per-foro
+  progetto→burden vero. Manca solo l'overlay visivo 3D del profilo
+  as-drilled accanto al simulato (estensione a sé, non fatta).
 
 ### P2 — Differenziante ma pesante (backend/dati)
 - **P2.1 Frammentazione da immagine del muckpile** *(client base / backend per
@@ -130,8 +140,12 @@ riverificati nel codice fino ad ora): *riconciliazione previsto-vs-reale*
   confronto con Kuz-Ram/KCO. Versione base (watershed) nel browser; versione
   precisa (tipo WipFrag) con ML → backend/GPU. Si integra con la
   riconciliazione già fatta come "pezzatura reale" da affiancare al previsto.
-  ← **il gap più importante rimasto**, l'unico dei tre "chiudi il cerchio"
-  ancora del tutto assente.
+  ← **l'unico gap rimasto dei tre "chiudi il cerchio"**, ancora del tutto
+  assente. Decisione pendente del fondatore: #28 in `docs/DECISIONI_WEEKEND.md`.
+  Ricerca di mondo raccolta (metodi, software di riferimento, librerie
+  open-source realizzabili in browser, limiti noti) in
+  `docs/RICERCA_CONTINUA_GENESI.md`, sezione 12/09 sulla frammentazione da
+  foto — nessun confronto col codice fatto lì, solo il mondo.
 - **P2.2 Modello ML di frammentazione/vibrazione** *(backend per il training,
   client per l'inferenza)*: XGBoost/rete su dati reali; il modello leggero gira
   **nel browser**. Serve un dataset e un passo di training offline.
@@ -143,14 +157,22 @@ riverificati nel codice fino ad ora): *riconciliazione previsto-vs-reale*
 - Feature "enterprise" (flotte perforatrici live, integrazioni proprietarie):
   fase commerciale.
 
-## Sintesi *(riscritta il 12/09, non solo l'ultima riga)*
+## Sintesi *(riscritta il 12/09, corretta di nuovo lo stesso giorno)*
 Genesi è già un simulatore forte, con vibrazioni e airblast inclusi — e chiude
-**già** il cerchio col dato reale su riconciliazione e signature-hole,
-contrariamente a quanto diceva la versione precedente di questa riga. Il gap
-vero che resta, per "raggiungere il loro livello", è **P2.1 — la pezzatura
-misurata da una foto**, seguito da P1.1 (boretrack, dato reale invece che
-simulato) e P2.2 (ML) come differenzianti successivi, pesanti entrambi.
-Nessuno di questi tocca il motore fisico.
+**già** il cerchio col dato reale su riconciliazione, signature-hole **e**
+deviazione fori as-drilled (boretrack), contrariamente a quanto diceva la
+prima riscrittura di questa riga la mattina stessa. L'**unico** gap vero che
+resta, per "raggiungere il loro livello", è **P2.1 — la pezzatura misurata da
+una foto** (bloccato sulla decisione #28, non ancora presa), seguito da
+P2.2 (ML) come differenziante successivo, pesante. Nessuno dei due tocca il
+motore fisico.
+⚠️ *Nota per chi rilegge questa riga in futuro: è la STESSA sezione che il
+12/09 ha dovuto correggersi due volte in poche ore (prima P0.1/P0.2/P1
+scoperte già fatte, poi P1.1). Non è un segno che il documento sia
+inaffidabile — è la prova che la regola "chi chiude un'unità aggiorna la
+riga del documento che gliel'aveva proposta" funziona solo se viene
+davvero applicata: qui non lo era stata, per unità precedenti a questa
+sessione.*
 
 ## Fonti
 - Orica SHOTPlus / BlastIQ / Advanced Vibration Management / FRAGTrack:
