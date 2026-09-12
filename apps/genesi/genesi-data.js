@@ -2865,6 +2865,30 @@ export function scegliDaCatalogo(catalogo, id, indiceRipiego){
   return c.find(e=>e.id===id) || c.find(e=>e.default) || c[indiceRipiego||0];
 }
 
+/* `esplCardHtml` / `innCardHtml` — la scheda di approfondimento di un
+   esplosivo o di un innesco, dai dati di catalogo scelti da
+   `scegliDaCatalogo` sopra. Trasloco 12/09 (unità 124, fascia 6-10 e 11+ di
+   B3): il censimento le marcava legate a dieci-più variabili del modulo
+   ("g, cc, a, m, per, k, RWS, es, nome, ok" per `esplCardHtml`), ed erano
+   tutti falsi positivi della STESSA famiglia già chiusa su `_sitoParseCsv` e
+   `_sentCell`, ma nella veste che quelle due non avevano ancora mostrato: qui
+   le lettere non vengono da una regex, vengono da CONTENUTO DI STRINGHE —
+   `'ritardi '`, `"es-nome"`, `"es"` — che il tokenizzatore dello strumento
+   spezza sui trattini e sugli apici e legge come nomi di variabile. Lette a
+   mano sono pure: prendono un oggetto di catalogo `e` e tornano solo HTML,
+   nessuno stato del progetto. */
+export function esplCardHtml(e){ const specs=[];
+  if(e.densita_gcc!=null) specs.push(gfix(e.densita_gcc,2)+' g/cc');   // 03/09: «0.82 g/cc» accanto a «3,8k m/s» — la virgola la scrive gfix, come per la VOD
+  if(e.vod_ms!=null) specs.push(gfix(e.vod_ms/1000,1)+'k m/s VOD');
+  if(e.rws_pct!=null) specs.push('RWS '+e.rws_pct);
+  if(e.rbs_pct!=null) specs.push('RBS '+e.rbs_pct);
+  specs.push('Acqua: '+e.acqua);
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-app">'+(e.applicazione||'')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div><div class="es-foot"><span class="es-costo">'+(e.costo||'')+'</span></div></div>';
+}
+export function innCardHtml(e){ const specs=['scatter '+e.scatter,'ritardi '+e.ritardi,'Acqua: '+e.acqua];
+  return '<div class="es-card"><div class="es-nome">'+e.nome+'</div><div class="es-tipo">'+e.tipo+'</div><div class="es-specs">'+specs.map(s=>'<span>'+s+'</span>').join('')+'</div><div class="es-pc"><span class="ok">+</span> '+e.pro+'</div><div class="es-pc"><span class="no">-</span> '+e.contro+'</div></div>';
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    G29 · LA RAMPA DELLE QUOTE, IL VERDETTO DI UN VALIDATORE, IL PUNTO PIÙ
    VICINO SULLA TELA (11/09, cantiere B3, undicesima fetta).

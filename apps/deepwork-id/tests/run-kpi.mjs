@@ -25994,6 +25994,34 @@ console.log("\n— Campo: i file che escono —");
     const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["INNESCHI", "ROCCE", "scegliDaCatalogo"].every((n) => dati.includes(n)), "la pagina importa tutt'e tre");
   });
+  test("⛔ Genesi · esplCardHtml e innCardHtml: la scheda di approfondimento da un solo parametro", () => {
+    const e = { nome: "ANFO standard", tipo: "AN poroso/gasolio", densita_gcc: 0.82, vod_ms: 3800,
+      rws_pct: 100, rbs_pct: 100, acqua: "Nulla", applicazione: "Carica di colonna",
+      pro: "Costo minimo", contro: "Zero resistenza", costo: "Base (1,0x)" };
+    const html = v.esplCardHtml(e);
+    ok(html.includes('<span>0,82 g/cc</span>'), "la densità con la virgola italiana");
+    ok(html.includes('<span>3,8k m/s VOD</span>'), "la VOD in km/s, un decimale");
+    ok(html.includes('<span>RWS 100</span>') && html.includes('<span>RBS 100</span>'), "RWS e RBS");
+    ok(html.includes('<div class="es-app">Carica di colonna</div>'), "l'applicazione");
+    ok(html.includes('<span class="es-costo">Base (1,0x)</span>'), "il costo in coda");
+    const minimo = v.esplCardHtml({ nome: "X", tipo: "Y", acqua: "Buona", pro: "P", contro: "C" });
+    ok(!minimo.includes("g/cc") && !minimo.includes("VOD") && !minimo.includes("RWS") && !minimo.includes("RBS"),
+      "⛔ senza densità/VOD/RWS/RBS non si inventa uno zero: le righe spariscono, non restano a 0");
+    ok(minimo.includes('<div class="es-app"></div>') && minimo.includes('<span class="es-costo"></span>'),
+      "applicazione e costo assenti restano vuoti, non «undefined»");
+    const inn = v.innCardHtml({ nome: "Nonel", tipo: "Non elettrico", scatter: "~1%", ritardi: "17/25/42 ms",
+      acqua: "Eccellente", pro: "Immune", contro: "Ritardi a step" });
+    ok(inn.includes('<span>scatter ~1%</span>') && inn.includes('<span>ritardi 17/25/42 ms</span>'), "scatter e ritardi dell'innesco");
+    ok(!inn.includes("es-app") && !inn.includes("es-foot"), "l'innesco non ha applicazione né costo: la scheda è più corta, di proposito");
+  });
+  test("⛔ Genesi · esplCardHtml e innCardHtml sono USCITE dalla pagina, non copiate", () => {
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/function\s+esplCardHtml\s*\(/.test(pag), "nella pagina non c'è più una seconda esplCardHtml");
+    ok(!/function\s+innCardHtml\s*\(/.test(pag), "né una seconda innCardHtml");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("esplCardHtml") && elenco.includes("innCardHtml"), "la pagina importa entrambe da genesi-data.js");
+  });
 
   /* ⛔ IL CALENDARIO .ICS (11/09, ricerca a rotazione su Scudo): l'allarme di
      scadenza senza un server che lo mandi. Il compositore sta in shared/

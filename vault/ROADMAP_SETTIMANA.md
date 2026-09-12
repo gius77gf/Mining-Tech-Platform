@@ -3491,6 +3491,24 @@ numero scritto dove non era stato misurato niente**.*
       `genesi-data.js` per quel terzo export. Fondo di `genesi-data.js`
       128→129, tabella di Genesi 150→149 / 19→18 nel bucket 3-5. Mappa di
       Genesi: **149** funzioni nella pagina.*
+      ✅ **12/09 (unità 124), stesso giorno: `esplCardHtml` e `innCardHtml`,
+      una veste NUOVA dello stesso falso positivo.** Marcate legate a dieci o
+      più variabili del modulo, ma stavolta non per una regex: per il
+      CONTENUTO DELLE STRINGHE della funzione (`'ritardi '`, `"es-nome"`),
+      spezzato dal tokenizzatore sui trattini e sugli apici. Lette a mano:
+      pure, costruiscono solo HTML dall'oggetto di catalogo che ricevono.
+      Traslocate accanto a `scegliDaCatalogo`, che produce l'oggetto che
+      entrambe consumano; 2 nuove prove in `run-kpi.mjs`. Effetto collaterale
+      trovato e corretto: il conto del "contagio" in
+      `docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md` (quante classi del
+      foglio condiviso Genesi ha già nel suo markup) leggeva solo
+      `genesi.html` — spostando le due funzioni il numero scendeva di 4 senza
+      che una classe fosse sparita dalla pagina resa, solo dal testo che la
+      dichiara. `numeri-nei-documenti.mjs` ora legge anche `genesi-data.js`
+      per quel conto. Fondo di `genesi-data.js` 129→131, tabella di Genesi
+      151→147 totali, 55 estraibili invariati. Nessuna iniezione di
+      controprova cita queste due funzioni (verificato con
+      `iniezioni-fresche.mjs`, 559/559).*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7875,8 +7893,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **12/09** (lanciando le suite, non a memoria):
-  **3.397 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2916, `run-stile` 328,
+  **3.399 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2918, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

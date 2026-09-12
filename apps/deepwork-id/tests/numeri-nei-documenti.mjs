@@ -560,8 +560,19 @@ test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto delle variabili 
    Genesi HA GIÀ. Non è la famiglia `.modal-*` il problema — quella la si
    vuole — sono `.kpi`, `.badge`, `.note`, che sono già vestiti. */
 test("docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md: il conto del contagio è quello vero", () => {
+  /* ⛔ IL MARKUP DI GENESI NON VIVE PIÙ SOLO IN `genesi.html`. Dal 12/09
+     (unità 124) `esplCardHtml`/`innCardHtml` — le schede che finiscono per
+     `innerHTML` — sono salite in `genesi-data.js`, e ci portano dietro le
+     classi che disegnano (`es-card`, `es-nome`, `ok`, `no`…): sono markup che
+     Genesi PRODUCE ancora, esattamente come prima, solo che il testo che le
+     dichiara si è spostato. Un conto che leggesse solo `genesi.html`
+     risponderebbe "meno contagio" nel giorno in cui il trasloco è successo,
+     senza che una sola classe sia sparita dalla pagina resa: si legge anche
+     il modulo, per la stessa ragione per cui un elenco di moduli condivisi si
+     deriva e non si scrive a mano. */
+  const genesiDati = readFileSync(join(RADICE, "apps", "genesi", "genesi-data.js"), "utf8");
   const classiInPagina = new Set();
-  for (const m of genesi.matchAll(/class="([^"]+)"/g))
+  for (const m of (genesi + genesiDati).matchAll(/class="([^"]+)"/g))
     for (const c of m[1].split(/\s+/)) if (c) classiInPagina.add(c);
   /* ⛔ LA STESSA ESTRAZIONE ERA SCRITTA DUE VOLTE, E LA SECONDA ERA PIÙ DEBOLE.
      Qui sopra c'è `SELETTORI_FOGLIO`, costruito su `FOGLIO_PULITO` — cioè coi

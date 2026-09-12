@@ -415,8 +415,11 @@ const CONDIVISI = [
      riga esce con la coda «(il fondo era N: alzalo)» e `numeri-nei-documenti`
      smette di leggerla.
      128 → 129 lo stesso giorno (unità 122): `_sentCell`, stessa famiglia e
-     stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g"). */
-  { file: "apps/genesi/genesi-data.js", fondo: 129,
+     stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g").
+     129 → 131 lo stesso giorno (unità 124): `esplCardHtml` e `innCardHtml`,
+     una nuova veste della stessa famiglia — qui le lettere false vengono da
+     CONTENUTO DI STRINGHE (`'ritardi '`, `"es-nome"`), non da una regex. */
+  { file: "apps/genesi/genesi-data.js", fondo: 131,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
