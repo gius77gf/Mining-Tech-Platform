@@ -125,8 +125,9 @@
   toast col valore trovato; prima `selEsplosivo()` ripiegava sul default in
   silenzio. run-kpi +2, banco della porta 32 prove. Del piano Genesi resta
   SOLO la 6 (coda offline in live), che è la decisione 5b del fondatore.
-- [ ] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
-  ponte chiuso: è il registro, e il «6 su 56» deve scendere. *(02/09: 12 su 56.)*
+- [x] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
+  ponte chiuso: è il registro. ✅ 12/09 (unità 119): 16 su 56, tabella di
+  apertura e coda di §4 riallineate alla tabella finale di §6.
 - [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
   file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
   perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
@@ -2888,7 +2889,6 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
-- `Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md``
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
@@ -9771,6 +9771,23 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   con i cinque stati, le righe con l'esito; 0 errori di pagina; screenshot
   guardati. Prove: run-kpi +1 (2913, più la prova del file che ora pretende
   tre avvisi); fondo Conti 200 → 205; copertura 996/996.
+- [x] **`docs/MAPPA_ECOSISTEMA.md` RIMISURATO (12/09, unità 119, solo
+  documenti).** Il documento apriva ogni ciclo automatico ripetendo «Genesi
+  NON esce dal browser: zero orgCollection» e «sei ponti su 56» — ma §3a e §4
+  del documento stesso avevano già le note ✅ che chiudevano quei due punti
+  (02/09 e 05/09 notte), solo che §1 (la tabella di apertura) e la coda di §4
+  non erano state allineate. Rimisurato con
+  `grep -rnoE 'DeepworkID\.init\(\{[^}]*appId[^}]*\}\)'` (che a differenza
+  del vecchio `grep "appId:"` prende anche la scorciatoia di oggetto
+  `{ appId }`, introdotta consolidando le aperture ripetute di Campo e Scudo
+  in una funzione sola) più la lettura a mano delle due fabbriche dinamiche
+  (`apriApp` in Campo, `leggiAltra` in Scudo): **16 collegamenti su 56**, non
+  più 6 — nessuna app isolata, Genesi ha una porta live su cinque
+  `orgCollection` dal 02/09 ed è letta da tre app. Tabella di §1 riscritta con
+  la nuova conta; §4 chiusa con una nota che ritira la sua conclusione («il
+  ponte passa da un file... è questo da sciogliere per primo»), ormai
+  contraddetta dalla nota ✅ che la precedeva nello stesso paragrafo. Nessun
+  codice toccato: solo la misura e il documento che la riporta.
 - [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
   (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
   l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da

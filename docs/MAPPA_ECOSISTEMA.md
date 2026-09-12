@@ -54,6 +54,49 @@ Flotta non scambia **dati** con nessuno, ma usa le **regole** condivise
 Confondere le due porterebbe a cercare il problema di Flotta nel posto
 sbagliato.
 
+✅ **RIMISURATO IL 12/09: SEDICI COLLEGAMENTI, NON SEI — e questa tabella e il
+paragrafo qui sopra erano gli unici due punti del documento rimasti al 26/08
+mentre il resto (§3a, §4) era già stato aggiornato.** Il comando di riga si
+è rivelato **cieco a metà**, ed è la stessa famiglia del «censimento che
+cerca UNA forma»: `grep "appId:"` non vede `DeepworkID.init({ appId })`
+scritto con la **scorciatoia di oggetto** (senza i due punti), che è
+esattamente la forma che Campo e Scudo hanno adottato consolidando le loro
+aperture ripetute in una funzione sola (il commento di Campo lo dice:
+«erano cinque copie della stessa apertura... una copia nasce da una firma
+troppo stretta»). Rifatto con:
+
+    grep -rnoE 'DeepworkID\.init\(\{[^}]*appId[^}]*\}\)' apps/*/*.js apps/*/*.html | grep -v node_modules
+
+più la lettura a mano delle due fabbriche dinamiche che nemmeno questa forma
+prende (`apriApp(appId)` in `campo-data.js`, `leggiAltra(appId)` in
+`scudo-data.js`: l'`appId` lì è un parametro, e la stringa vera sta alla
+chiamata — `leggiApp("terra", …)`, `leggiAltra("flotta")`), il conto vero:
+
+| app | legge i dati di | è letta da |
+|---|---|---|
+| Campo | Terra, Scudo, Genesi, Sentinella | Conti, Scudo, Terra, Genesi |
+| Conti | Terra, Flotta, Campo | Flotta |
+| Flotta | Conti | Conti, Scudo |
+| Scudo | Campo, Terra, Flotta | Campo, Sentinella |
+| Sentinella | Scudo, Genesi | Campo |
+| Terra | Campo, Genesi | Campo, Conti, Scudo |
+| Genesi | Campo | Campo, Sentinella, Terra |
+| Deepwork ID | — | nessuno *(è l'identità, giusto così)* |
+
+**Sedici collegamenti su 56 direzioni possibili** (matura la tabella di §6,
+che già diceva 16 dal 05/09 notte: qui si allinea la tabella di apertura,
+rimasta ferma al conto vecchio). **Nessuna app è più isolata**: Flotta e
+Genesi, le due segnate «nessuno» qui sopra nel 2026, oggi leggono e sono
+lette entrambe. Il triangolo Terra-Campo-Scudo del 26/08 è una rete a sette
+nodi (Deepwork ID esclusa, resta l'identità).
+
+⚠️ Un ponte in più rispetto ai 16 che Campo→Scudo e Sentinella→Scudo
+**scrivono**, non solo leggono (`aggiungiAzioneScudo`, `aggiungiEventoScudo`
+in Campo; `aggiungi` nel `ponteScudo` di Sentinella): la tabella conta
+«legge», non distingue lettura da scrittura — chi cerca un ponte di
+scrittura lo trova nei commenti `PONTE P4`/`PONTE P5` di `campo-data.js` e
+in `ponteScudo` di `sentinella-data.js`, non in questa tabella.
+
 ---
 
 ## 2. Che cosa tiene ciascuna app
@@ -334,7 +377,11 @@ scegliere è `ultimoRitaglioNuvola`, pura e provata (organizzazione se risponde
 e ha un volume, chiave se no, `null` se niente — mai un ritaglio inventato).
 Il testo qui sotto resta come misura di partenza.
 
-⛔ Genesi **non usa `orgCollection` nemmeno una volta**. I suoi dati stanno in
+⛔ *(Riga del 02/09, superata dal blocco ✅ qui sopra, scritto DOPO nello
+stesso aggiornamento: da quel giorno Genesi usa `orgCollection` cinque volte
+— `genesiData()` in `genesi-data.js` — quando c'è un membro di
+un'organizzazione. Resta per mostrare da dove si partiva.)* Genesi
+**non usa `orgCollection` nemmeno una volta**. I suoi dati stanno in
 `localStorage`, con quattro chiavi:
 
     grep -oE "localStorage\.(get|set)Item\('[a-zA-Z]+'" apps/genesi/*.js apps/genesi/genesi.html
@@ -378,9 +425,27 @@ soprattutto qui», con il racconto di un limite non calcolabile che usciva
 come **0** e che Sentinella avrebbe letto come una soglia superata da
 qualunque volata.
 
-⚠️ Ma il ponte passa da un **file**, non dai dati: se le volate di Genesi
-restano nel browser, quel file lo deve esportare e importare una persona. È
-questo che va sciolto per primo.
+⚠️ *(Riga del 02/09.)* Ma il ponte passa da un **file**, non dai dati: se le
+volate di Genesi restano nel browser, quel file lo deve esportare e
+importare una persona. È questo che va sciolto per primo.
+
+✅ **CHIUSO IL 12/09: sciolto dal 05/09 notte, la riga qui sopra non vale più
+— e il titolo di questa sezione nemmeno.** Le volate di Genesi non sono più
+nel browser da quel giorno: `previsteGenesi` in `sentinella-data.js` legge
+`apps/genesi/previste` con una seconda istanza dell'SDK (stessa forma di
+`nuvoleGenesi` in Terra), e la nota inline più in alto in questa sezione lo
+dice già («Genesi→Sentinella (3e, `previste`)»); il pezzo che restava
+davvero da sciogliere — Genesi che legge il piano di Campo, e Campo che
+legge quello di Genesi — è chiuso nella stessa notte (`db.pianoCampo` in
+`genesi-data.js`, `api.pianiGenesi` in `campo-data.js`). Dei quattro ponti
+di file censiti sopra, **tre viaggiano anche sui dati**; resta di sola
+chiave-del-browser solo Genesi→Terra, dichiarato come ripiego due paragrafi
+sopra. **Il titolo «Genesi non esce dal browser» descrive il 26/08, non il
+12/09**: Genesi ha una porta live (§ sopra, cinque `orgCollection`), è letta
+da tre app (Campo, Sentinella, Terra — tabella di §1) e ne legge una
+(Campo). Non è più il blocco strutturale che apriva questa sezione; resta
+solo-locale ciò che nessuno ha ancora chiesto di condividere (i confronti
+A/B nel modulo, oggi non un ponte perché non serve a un'altra app).
 
 ---
 
@@ -424,3 +489,5 @@ Chi costruisce un ponte aggiorna questa tabella.
 ---
 
 Verificato contro il commit `d521c96d` del 2026-08-26.
+
+✅ Sezioni 1 e 4 rimisurate contro il commit `a820c6d2` del 2026-09-12 (le altre sezioni non sono state riverificate in questo passaggio).
