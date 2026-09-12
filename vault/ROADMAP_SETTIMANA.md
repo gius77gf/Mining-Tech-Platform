@@ -3558,6 +3558,18 @@ numero scritto dove non era stato misurato niente**.*
       invariato (137: `troppoFine`/`troppoGrossolano` sono campi dello
       stesso oggetto restituito da una funzione già contata, non funzioni
       nuove). Totale prove senza rete/browser 3.406→3.407.*
+      ⛔ **12/09 (unità 128): il prossimo passo dell'unità 127 era SBAGLIATO
+      — proponeva di costruire una funzione già fatta.** Prima di scrivere
+      il codice di "P0.2 Signature-hole" un `grep` l'ha trovata già scritta,
+      testata (2 test/40 asserzioni) e wired in pagina (`ondaDaCsv` +
+      `sommaRitardata`). Controllando per lo stesso motivo il resto di
+      `docs/GENESI_ROADMAP_COMPETITOR.md` (datato 21/07, mai riverificato):
+      anche P0.1 (riconciliazione foro per foro, `confrontoPerForo`) e P1.1
+      (burden reale dal 3D, `distanzaDaSpezzata`/`h.burdenVero`) erano già
+      fatte — tre gap su sei, e la Sintesi del documento chiamava ancora la
+      riconciliazione "il gap più grande". Documento riscritto (non solo
+      annotato), cronologia dichiarata. Nessun codice toccato. Il gap vero
+      rimasto: P2.1, la pezzatura misurata da una foto del cumulo.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
