@@ -3619,6 +3619,36 @@ numero scritto dove non era stato misurato niente**.*
       5/35→35/35, crash→38/38, 8/36→32/36 (i 4 restanti hanno una causa
       diversa, dichiarata non risolta — vedi checkpoint). Nessun codice di
       prodotto toccato.
+      ✅ **12/09 (unità 133): gli ultimi tre dei quattro residui di
+      `genesi-frasi-limite.mjs` chiusi con lo stesso pattern** (poll ogni
+      400ms invece di attesa fissa) — i tre contatori della Home
+      (`hgVolN`/`hgNuvN`/`hgNuvole`, dietro `await genesiData()` che prova
+      prima una modalità "live") e un toast. 32/36→35/36, controprova
+      confermata.
+      ✅ **12/09 (unità 134): l'ultimo banco della famiglia,
+      `genesi-struttura.mjs`.** I suoi 4 falliti (consenso bloccato, Escape
+      che non chiude, campo "salva la volata" introvabile) sembravano tre
+      difetti diversi ed erano la stessa causa: `$('disclaimerChk')
+      .onchange=...` (riga ~4838) non ancora assegnato quando il banco
+      spuntava la casella. Stessa cura (attesa attiva di `#splash`).
+      14/18→18/18, controprova confermata (4/18 attese sullo stato
+      pre-migrazione). **Con questa si chiude la famiglia "splash lento" su
+      tre dei quattro banchi: 66 falliti pre-esistenti sanati, tutti la
+      stessa causa unica, nessuna regressione (stesso esito su una worktree
+      del commit precedente a tutta la sessione).**
+      ✅ **12/09 (unità 135): il quarto banco chiuso davvero — la diagnosi
+      dell'unità 134 sul residuo isolato di `genesi-frasi-limite.mjs` era
+      SBAGLIATA.** Il fallito «✓ Volata importata: 1 foro» era stato
+      attribuito a un "ordine di intercettazione di `window.toast`":
+      rimisurato, `window.toast` viene assegnato prestissimo (script
+      classico `defer`, prima del modulo lento). La causa vera è la
+      STESSA famiglia — `$('fileIn').onchange=...` (riga ~3053) assegnato
+      durante lo stesso avvio sincrono lento, e il banco sparava il file
+      SUBITO dopo `apri()`, prima che quel gestore esistesse: un evento nel
+      vuoto, non un'attesa troppo corta. Stessa cura (poll su `#splash`).
+      35/36→**36/36**, controprova confermata (16 prove cadute con gli 11
+      difetti rimessi). **La famiglia "splash lento" è chiusa senza
+      residui su tutti e quattro i banchi Genesi coinvolti.**
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
