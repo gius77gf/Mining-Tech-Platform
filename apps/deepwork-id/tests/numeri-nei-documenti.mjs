@@ -537,7 +537,15 @@ test("Genesi: il conto dei selettori condivisi che cadono sul suo markup è quel
      fuori). In Genesi compare in un posto solo, la modale del nome — e questo
      NON si dà per scontato: si pretende qui sotto che ogni riga di Genesi con
      `class="fl"` stia in una stringa di modale, se no l'eccezione nasconderebbe
-     proprio il caso che questa metà esiste per prendere. */
+     proprio il caso che questa metà esiste per prendere.
+     ⏱️ 12/09 (unità 126): la modale dell'obiettivo di pezzatura ha guadagnato
+     una SECONDA `<label class="fl">`, ma il suo campo è un `<input>` senza
+     classe — come quello della modale del nome — perché `classi-orfane.mjs`
+     ha preso al volo un primo tentativo con `class="dw-input"`: quella classe
+     non la dipinge nessun foglio LOCALE di Genesi (il condiviso che la
+     definisce non è caricato) e nessuno script la cerca, quindi non faceva
+     niente — era pura zavorra. Lo stile arriva già dal selettore generico
+     `.modal-body input`, che Genesi ha da sempre. */
   const fuori = CADONO.filter((x) => !/modal|mbtn|toast|dw-vuoto/.test(x) && x !== ".fl");
   ok(fuori.length === 0,
     `${fuori.length} selettori fuori dalla famiglia modale/toast cadrebbero su Genesi: ${fuori.join(", ")}`);

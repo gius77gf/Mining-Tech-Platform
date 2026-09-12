@@ -418,8 +418,13 @@ const CONDIVISI = [
      stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g").
      129 → 131 lo stesso giorno (unità 124): `esplCardHtml` e `innCardHtml`,
      una nuova veste della stessa famiglia — qui le lettere false vengono da
-     CONTENUTO DI STRINGHE (`'ritardi '`, `"es-nome"`), non da una regex. */
-  { file: "apps/genesi/genesi-data.js", fondo: 131,
+     CONTENUTO DI STRINGHE (`'ritardi '`, `"es-nome"`), non da una regex.
+     131 → 137 il 12/09 (unità 126): `ppvDaSd` (la legge di Devine, unificata
+     da due copie inline nella pagina), `rwsEffettiva`/`PENALITA_ACQUA` (la
+     penalità dei fori bagnati, unificata da cinque copie), e l'ottimizzatore
+     `caricaTargetSenzaConto`/`caricaDaX50Target` (la carica per centrare un
+     obiettivo di pezzatura — l'inversa di `fragKuzRam`). */
+  { file: "apps/genesi/genesi-data.js", fondo: 137,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

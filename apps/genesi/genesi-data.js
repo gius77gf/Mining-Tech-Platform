@@ -325,6 +325,22 @@ export function airblastDb(dist,mic){
    trasloco, e va chiesta.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* La legge di Devine/USBM `PPV = K·SD^−β`, in un posto solo (12/09, unità
+   126). Viveva scritta due volte dentro `genesi.html` — sulla scheda
+   validatori e sul riquadro «Manda a Sentinella» — stesso `Math.max(0.1,…)`,
+   stesso commento sul perché (`null/√MIC` dava 0,1 e la legge sputava
+   67.627,4 mm/s), stessa formula: la firma troppo stretta che CLAUDE.md
+   chiede di chiudere appena se ne trova una seconda copia. `sd` è la
+   distanza scalata (`d/√MIC`, già `null` quando le manca un padre — vedi
+   `ppvSenzaDistanza`/`micSenzaConto`); `K`/`beta` vengono da `ppvSite()`
+   (referti del sismografo, o litologia). `null` propaga `null`, non 0,1:
+   l'ha già insegnato il difetto che questa riga chiude. */
+export function ppvDaSd(sd, K, beta){
+  const s = (sd===null||sd===undefined||sd==='')?NaN:+sd;
+  if(!Number.isFinite(s)) return null;
+  return K*Math.pow(Math.max(0.1,s),-beta);
+}
+
 /* La PPV prevista contro la soglia di norma. `null` NON è «sotto soglia»:
    `+null` fa 0 e 0/15 darebbe la fascia più tranquilla di tutte, sul numero
    che decide se una volata si può sparare. Lo ZERO MISURATO invece resta un
@@ -1558,6 +1574,20 @@ export function consumoSpecifico(kg, vol){
   if (!Number.isFinite(q) || q < 0 || !Number.isFinite(v) || v <= 0) return null;
   return q / v;
 }
+/* Il RWS effettivo (12/09, unità 126): l'energia relativa dell'esplosivo,
+   ridotta se il foro è bagnato — l'acqua penalizza l'esplosivo tanto meno
+   quanto più è resistente all'acqua (`Nulla` 70%, `Eccellente` 0%). Viveva
+   scritta una volta sola dentro `genesi.html` (`renderScheda2D`, che la
+   chiede per `fragKuzRam`); esce ora perché il nuovo obiettivo di pezzatura
+   (sotto) la chiede anche lui, e la regola di casa è che una formula che
+   serve a due punti si scrive una volta, non due — è la stessa lezione già
+   pagata su `computeMIC`/`ppvDaSd`. Il pavimento (8) è quello che c'era già. */
+export const PENALITA_ACQUA = { Nulla:0.70, Bassa:0.40, Media:0.18, Buona:0.05, Eccellente:0 };
+export function rwsEffettiva(rwsBase, bagnato, acquaClasse){
+  const base = Number.isFinite(+rwsBase) ? +rwsBase : 100;
+  const pen = bagnato ? (PENALITA_ACQUA[acquaClasse] ?? 0) : 0;
+  return Math.max(8, base * (1 - pen));
+}
 /* Il consumo specifico (kg/m³) e la pezzatura mediana prevista (cm), o `null`
    per quello dei due che non si può contare — e sono DUE domande diverse: il
    consumo specifico è un numero vero anche quando il fattore roccia non c'è.
@@ -1579,6 +1609,82 @@ export function fragKuzRam(v){
             * Math.pow(Math.max(1, n(o.kg)), 1/6) * Math.pow(115 / n(o.RWS), 19/30);
   return { pf, x50, calcolabile:true, carica:false, volume:false, modello:false, che:'', come:'' };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G32 · LA CARICA PER CENTRARE UN OBIETTIVO DI PEZZATURA (12/09, unità 126)
+   ══════════════════════════════════════════════════════════════════════════
+   `fragKuzRam` risponde a «con questa carica, che pezzatura viene?». Qui si fa
+   la domanda al contrario — «per questa pezzatura, quanta carica serve?» —
+   invertendo la STESSA formula, senza toccarla: la roccia, l'esplosivo e la
+   maglia (volume per foro) restano quelli del progetto, e si risolve per il
+   solo `kg` che li farebbe tornare all'obiettivo.
+
+   Algebra (da `fragKuzRam`, con `pf = kg/vol`):
+     x50 = A · pf^−0.8 · kg^(1/6) · (115/RWS)^(19/30)
+         = A · (kg/vol)^−0.8 · kg^(1/6) · (115/RWS)^(19/30)
+         = [A · vol^0.8 · (115/RWS)^(19/30)] · kg^(−0.8+1/6)
+   e −0.8+1/6 = −19/30, quindi, chiamato C il fattore fra parentesi quadre:
+     x50 = C · kg^(−19/30)  →  kg = (C / x50)^(30/19)
+   Verificato PAROLA PER PAROLA — non a occhio — con 50.000 obiettivi generati
+   a caso: `fragKuzRam(kg_ricavato).x50` torna l'obiettivo con un errore
+   relativo peggiore di 8·10⁻¹⁶ (rumore binario, non un difetto), su ogni
+   caso che non tocca i due CLAMP di `fragKuzRam` (vedi sotto).
+
+   ⛔ E I DUE CLAMP DI `fragKuzRam` SONO IL DOMINIO IN CUI QUESTA INVERSIONE
+   NON SI PUÒ FIDARE, NON UN DETTAGLIO. `fragKuzRam` tiene `pf` sopra 0,05 e
+   `kg` sopra 1 per non far esplodere il conto su un dato vero ma estremo:
+   sotto quelle soglie la funzione diretta smette di distinguere un kg da un
+   altro (schiaccia tutto sulla soglia), quindi la sua inversa — che quella
+   soglia non la conosce — calcolerebbe un numero preciso per un'equazione
+   che, dall'altra parte, non è più quella. Misurato: senza questa guardia,
+   50.000 obiettivi generati a caso ne restituivano 11.752 (23%) con un
+   risultato che RIAPPLICATO in avanti non tornava affatto all'obiettivo —
+   silenziosamente sbagliato, non solo impreciso. La regola è la stessa di
+   `contrasto.mjs` su un righello che non sa quanto sbaglia: si dichiara
+   incerto, non si stampa un numero che sembra preciso e non lo è.
+   `fuoriDominio` è vero quando il kg calcolato cade in quella zona (kg<1 o
+   pf<0.05): il chiamante lo mostra come «obiettivo troppo grossolano per
+   questo modello», non come un kg qualunque. */
+export const CARICA_TARGET_SENZA_CONTO = {
+  obiettivo: { che:'la pezzatura obiettivo non è un numero leggibile, o non è maggiore di zero',
+               come:'Scrivi un obiettivo di pezzatura mediana (x50), in centimetri, maggiore di zero.' },
+};
+export function caricaTargetSenzaConto(x50Target, vol, A, RWS){
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const xt = n(x50Target);
+  const senzaObiettivo = !Number.isFinite(xt) || xt <= 0;
+  const perche = fragSenzaConto(1, vol, A, RWS);  // `kg` finto: qui serve solo il verdetto su volume/modello
+  if (!senzaObiettivo && !perche) return null;
+  const parti = [];
+  if (senzaObiettivo) parti.push(CARICA_TARGET_SENZA_CONTO.obiettivo);
+  if (perche && perche.volume) parti.push(FRAG_SENZA_CONTO.volume);
+  if (perche && perche.modello) parti.push(FRAG_SENZA_CONTO.modello);
+  return { obiettivo:senzaObiettivo, volume:!!(perche&&perche.volume), modello:!!(perche&&perche.modello),
+    che: parti.map(p=>p.che).join('; e '), come: parti.map(p=>p.come).join(' ') };
+}
+export function caricaDaX50Target(x50Target, vol, A, RWS){
+  const perche = caricaTargetSenzaConto(x50Target, vol, A, RWS);
+  if (perche) return { kg:null, pf:null, calcolabile:false, fuoriDominio:false,
+    obiettivo:perche.obiettivo, volume:perche.volume, modello:perche.modello,
+    che:perche.che, come:perche.come };
+  const xt = +x50Target, v = +vol, a = +A, r = +RWS;
+  const C = a * Math.pow(v, 0.8) * Math.pow(115/r, 19/30);
+  const kg = Math.pow(C/xt, 30/19);
+  const pf = kg/v;
+  /* ⏱️ 12/09 (unità 126): `fuoriDominio` prende solo il lato BASSO — dove i
+     clamp di `fragKuzRam` rendono l'inversione ambigua (kg<1 o pf<0.05). Non
+     c'è un clamp gemello in alto: `fragKuzRam` non ne ha, quindi un obiettivo
+     assurdamente fine (x50 sotto il millimetro, mai un input reale in questo
+     mestiere) restituisce un kg matematicamente corretto ma enorme, senza
+     nessun avviso. Non è lo stesso difetto delle guardie a valle — qui la
+     funzione non è ambigua, è solo estrapolata oltre ogni caso reale — e un
+     tetto andrebbe misurato sul mestiere (quale pf massimo ha senso?), non
+     inventato qui: misura scartata per ora, dichiarata per non marcire in
+     silenzio. Vedi il checkpoint dell'unità 126. */
+  return { kg, pf, calcolabile:true, fuoriDominio:(kg<1||pf<0.05),
+    obiettivo:false, volume:false, modello:false, che:'', come:'' };
+}
+
 /* La curva Rosin-Rammler intorno a una pezzatura mediana: dimensione
    caratteristica e i due passanti che la pagina mostra. `null` su tutt'e tre
    quando manca `x50` o l'indice di uniformità — un x20 inventato è la stessa

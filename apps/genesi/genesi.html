@@ -768,6 +768,8 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-wrap"><canvas id="d2-canvas" width="960" height="600"></canvas></div>
   <div id="d2-insp"></div>
   <div id="d2-scheda"></div>
+  <button class="btn" id="btn-obiettivo-x50" type="button" style="display:block;margin:10px auto 0;" title="Quanta carica per foro serve per centrare una pezzatura mediana obiettivo, con la roccia e l'esplosivo di questo progetto">🎯 Carica per un obiettivo di pezzatura</button>
+  <div id="d2-obiettivo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn" id="btn-salva-volata" style="display:block;margin:6px auto 0;">💾 Salva nello storico (Home)</button>
@@ -1162,6 +1164,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
+         ppvDaSd, caricaDaX50Target, rwsEffettiva,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -3254,9 +3257,7 @@ function computeKPI(){
      da chiedere: una bandiera che sorveglia metà di un ingresso non sorveglia
      niente. */
   const _m=micDaMostrare(), mic=_m.mic, st=ppvSite();
-  const ppv=Number.isFinite(_m.sd)
-    ? st.K*Math.pow(Math.max(0.1,_m.sd),-st.beta)
-    : null;
+  const ppv=ppvDaSd(_m.sd, st.K, st.beta);
   const lim=ppvLimit(D2.recNorma,D2.recFreq);
   /* ⛔ LA PPV SI PORTA DIETRO LA SUA BASE. Senza, uno scatto A/B non sa da
      dove venissero K e β, e accendere la legge di sito fra i due salvataggi
@@ -3562,6 +3563,56 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
      giorno schermo e file divergessero lo si leggerebbe invece di scoprirlo
      aprendo il CSV. */
   toast('✓ Scheda volata esportata: '+_ricPlur(rows.length,'parametro','parametri'));
+};
+/* L'OBIETTIVO DI PEZZATURA (12/09, unità 126): «voglio una pezzatura x50 di
+   tot cm — quanto devo caricare?», la domanda al contrario di quella che fa
+   già la scheda validatori. Il calcolo (`caricaDaX50Target`) è nel modulo,
+   provato in avanti e indietro su 50.000 casi; qui restano solo le tre cose
+   che appartengono alla pagina: chiedere il numero, leggere la maglia e la
+   roccia di QUESTO progetto, e proiettare l'effetto sulla vibrazione — non
+   ricalcolata da capo, ma SCALATA sulla MIC che la scheda validatori mostra
+   già (stessa sequenza di innesco, carica diversa: MIC nuova = MIC attuale ×
+   kg nuovo / kg attuale). Se la MIC attuale non si può contare, la carica
+   suggerita si mostra lo stesso e la proiezione si dichiara non disponibile
+   — mai un pallino verde su un conto che non è stato fatto. */
+if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
+  const v=await chiediValore('Obiettivo di pezzatura',
+    '<p>Che pezzatura mediana (x50) vuoi ottenere, con la roccia e l’esplosivo di questo progetto? La maglia (spalla, interasse, altezza banco) resta quella che hai disegnato: si ricalcola solo la carica per foro.</p>',
+    '<label class="fl" for="modal-campo">Obiettivo x50 (<span class="u">cm</span>)</label>'
+    +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
+    'Calcola');
+  if(v==null) return;
+  const xt=+String(v).replace(',','.');
+  const box=$('d2-obiettivo-esito'); if(!box) return;
+  const scarto=(msg)=>{ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(msg)+'</div>'; };
+  if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
+  const g=measureGeom2D(), B=g.B, S=g.S, H=D2.prof;
+  const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
+  const r=caricaDaX50Target(xt, volumeForo(B,S,H), A, RWS);
+  if(!r.calcolabile){ scarto(r.che+'. '+r.come); return; }
+  if(r.fuoriDominio){
+    scarto('Un obiettivo di '+gfix(xt,0)+' cm su questa maglia chiederebbe una carica così bassa (o un consumo specifico così basso) che il modello di Kuznetsov non distingue più una pezzatura dall’altra: il numero non sarebbe affidabile. Prova un obiettivo più fine, o allarga la maglia.');
+    return;
+  }
+  const _m=micDaMostrare();
+  const kgAttuale=+D2.kg, differenza=r.kg-kgAttuale, differenzaPct=(kgAttuale>0)?(differenza/kgAttuale*100):null;
+  let vibrazioni='<div style="margin-top:6px;color:var(--mut);font-size:12px;">Effetto sulle vibrazioni non calcolabile: la MIC attuale non è un numero leggibile su questo progetto.</div>';
+  if(_m.calcolabile && _m.caricaLeggibile && kgAttuale>0){
+    const micProiettata=_m.mic*(r.kg/kgAttuale);
+    if(_m.distLeggibile){
+      const st=ppvSite(), sd=D2.recDist/Math.sqrt(Math.max(1,micProiettata));
+      const ppvP=ppvDaSd(sd, st.K, st.beta), lim=ppvLimit(D2.recNorma,D2.recFreq), es=esitoPpv(ppvP,lim);
+      vibrazioni='<div style="margin-top:6px;font-size:13px;" class="'+es.classe+'">MIC proiettata ~'+gfix(micProiettata,1)+' kg · PPV proiettata ~'+gfix(ppvP,1)+' mm/s — '+es.verdetto+(es.consiglio?' ('+_rEsc(es.consiglio)+')':'')+'</div>';
+    } else {
+      vibrazioni='<div style="margin-top:6px;color:var(--mut);font-size:12px;">MIC proiettata ~'+gfix(micProiettata,1)+' kg; la PPV non si proietta perché manca la distanza del recettore.</div>';
+    }
+  }
+  box.innerHTML='<div style="margin-top:8px;padding:9px 11px;border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:13px;">'
+    +'Per un x50 di <b>'+gfix(xt,0)+' cm</b>: carica <b>~'+gfix(r.kg,1)+' kg/foro</b> (consumo specifico '+gfix(r.pf,2)+' kg/m³)'
+    +(kgAttuale>0?' — oggi '+gfix(kgAttuale,1)+' kg/foro, '+(differenza>=0?'+':'')+gfix(differenza,1)+' kg ('+(differenzaPct==null?'—':(differenzaPct>=0?'+':'')+gfix(differenzaPct,0)+'%'+')'):'')
+    +'.'+vibrazioni
+    +'<div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram): resta una previsione, non una garanzia — va verificata sul campo.</div>'
+    +'</div>';
 };
 /* DA DOVE VIENE LA PPV PREVISTA, scritto UNA VOLTA per i due posti che devono
    dirlo (il foglio stampabile e la riconciliazione).
@@ -5937,7 +5988,7 @@ function renderScheda2D(){
      stessa domanda non si scrive due volte in due modi. Oggi le due rispondono
      identiche su questi casi (misurato), e domani no. */
   const _fg=fragKuzRam({ kg:Q, vol:volumeForo(B,S,H), A:rockFactorA().A,
-    RWS:Math.max(8, ((selEsplosivo()||{}).rws_pct||100)*(1-(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0))) });
+    RWS:rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua) });
   const pf=_fg.pf, sb=S/B, hb=H/B, bd=B/Dm, stem=D2.stem, stemB=stem/B, msmHole=rit/S, msmRow=(D2.ritardoFila||rit)/B, sub=D2.sub, subB=sub/B, subRec=0.3*B;
   function badge(x,lab,valStr,lo,hi,wlo,whi,whyOk,whyLo,whyHi){
     // il verdetto lo decide il modulo (G29); un rapporto che non è un numero
@@ -6396,7 +6447,7 @@ function renderScheda2D(){
   /* ⛔ LA DOMANDA SI FA SULLA DISTANZA SCALATA, NON SULLA BANDIERA DELLA MIC —
      vedi `computeKPI`: con la distanza assente `_m2.calcolabile` restava vera,
      `_sd2` era `null` e questa riga dichiarava 67.627,4 mm/s. */
-  const _ppv=Number.isFinite(_sd2)?_st.K*Math.pow(Math.max(0.1,_sd2),-_st.beta):null;
+  const _ppv=ppvDaSd(_sd2, _st.K, _st.beta);
   /* ⚠️ `_rat = _ppv/_lim` è sparita di qui: il rapporto lo calcola `esitoPpv`,
      che sul limite assente risponde «non confrontabile» invece di `NaN` — e un
      `NaN` che scivola in un confronto è il modo in cui questa riga nasconde. */

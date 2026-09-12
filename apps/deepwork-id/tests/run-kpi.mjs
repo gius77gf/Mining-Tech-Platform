@@ -25666,7 +25666,9 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/0\.06\*\(/g) || []).length, 0, "la formula di Lilly non è più scritta nella pagina");
     eq((pag.match(/d\*d\*d/g) || []).length, 0, "e nemmeno il peso per volume del campione");
     ok(/function rockFactorA\(\)\{ return fattoreRoccia\(selRoccia\(\), D2\); \}/.test(pag), "rockFactorA è il legame fra lo stato e la funzione pura");
-    eq((pag.match(/rockFactorA\(\)/g) || []).length, 7, "e i sei chiamanti non sono cambiati (più la dichiarazione del legame): A_rock, il PF, il rigonfiamento, Kuz-Ram, il confronto");
+    /* ⏱️ 12/09 (unità 126): settimo chiamante, `btn-obiettivo-x50` — la carica
+       per un obiettivo di pezzatura chiede lo stesso fattore roccia di Kuz-Ram. */
+    eq((pag.match(/rockFactorA\(\)/g) || []).length, 8, "e i sette chiamanti non sono cambiati (più la dichiarazione del legame): A_rock, il PF, il rigonfiamento, Kuz-Ram, il confronto, l'obiettivo di pezzatura");
     eq((pag.match(/x50DaMisure\(/g) || []).length, 1, "la misura del cumulo chiama il modulo");
     eq((pag.match(/function _measFromSizes/g) || []).length, 0, "e la vecchia funzione non c'è più");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
@@ -28751,6 +28753,101 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       "e quella del volume pure");
   });
 
+  test("⛔ Genesi · caricaDaX50Target: l'inversa di fragKuzRam, verificata in avanti su 50.000 casi", () => {
+    /* Non basta leggere la formula: si genera un obiettivo, si inverte, e si
+       ricontrolla che fragKuzRam(kg_ricavato) torni all'obiettivo — è il
+       contratto vero della funzione, non «recupero il kg di un caso a caso»
+       (quello fallisce vicino ai due CLAMP di fragKuzRam, ed è per quello che
+       esiste `fuoriDominio`: si esclude lì, non altrove). */
+    let seme = 777;
+    const rnd = () => (seme = (seme * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    let casi = 0, fuoriDominio = 0, peggio = 0;
+    for (let i = 0; i < 50000; i++) {
+      const vol = 5 + rnd() * 250, A = 3 + rnd() * 10, RWS = 50 + rnd() * 80;
+      const x50Obiettivo = 5 + rnd() * 150;
+      const r = gz.caricaDaX50Target(x50Obiettivo, vol, A, RWS);
+      casi++;
+      if (r.fuoriDominio) { fuoriDominio++; continue; }
+      const f = gz.fragKuzRam({ kg: r.kg, vol, A, RWS });
+      ok(f.calcolabile, `caso ${i}: il kg ricavato deve restare calcolabile in avanti`);
+      const errRel = Math.abs(f.x50 - x50Obiettivo) / x50Obiettivo;
+      if (errRel > peggio) peggio = errRel;
+    }
+    eq(casi, 50000, "50.000 obiettivi generati");
+    ok(fuoriDominio > 8000 && fuoriDominio < 15000,
+      `una parte finisce fuori dominio (i due clamp di fragKuzRam): ${fuoriDominio} su ${casi}`);
+    ok(peggio < 1e-9, `l'errore peggiore dentro dominio è rumore binario, non un difetto: ${peggio}`);
+  });
+  test("⛔ Genesi · caricaDaX50Target: i numeri veri, e il verso — pezzatura più fine chiede più carica", () => {
+    /* si parte dalla scheda vera (BASE13): fragKuzRam dice che x50 di quella
+       carica è 27,4 cm, e invertendo QUEL x50 deve tornare il kg di partenza */
+    const x50Base = gz.fragKuzRam(BASE13).x50;
+    eq(+x50Base.toFixed(4), 27.3978, "il caso a mano, per non fidarsi solo del round trip");
+    eq(+gz.caricaDaX50Target(x50Base, VOL, 8.1, 100).kg.toFixed(6), BASE13.kg,
+      "invertendo l'x50 vero della scheda si torna al kg vero della scheda");
+    const r30 = gz.caricaDaX50Target(30, VOL, 8.1, 100);
+    ok(r30.calcolabile && !r30.fuoriDominio, "un obiettivo ragionevole si calcola dentro dominio");
+    const r15 = gz.caricaDaX50Target(15, VOL, 8.1, 100);
+    ok(r15.kg > r30.kg, `⛔ una pezzatura più FINE (15 cm) chiede PIÙ carica di una più grossolana (30 cm): ${r15.kg} vs ${r30.kg}`);
+    /* round trip di manuale, sul singolo caso, oltre al giro sui 50.000 */
+    eq(+gz.fragKuzRam({ kg: r30.kg, vol: VOL, A: 8.1, RWS: 100 }).x50.toFixed(6), 30);
+  });
+  test("⛔ Genesi · caricaDaX50Target: le tre mancanze si nominano, e riusano le stesse frasi di fragKuzRam", () => {
+    eq(gz.caricaDaX50Target(0, VOL, 8.1, 100).calcolabile, false, "obiettivo zero: non calcolabile");
+    eq(gz.caricaDaX50Target(-5, VOL, 8.1, 100).obiettivo, true, "obiettivo negativo: colpa dell'obiettivo");
+    eq(gz.caricaDaX50Target(null, VOL, 8.1, 100).che, gz.CARICA_TARGET_SENZA_CONTO.obiettivo.che,
+      "la spiegazione viene dalla tabella dedicata");
+    const senzaVol = gz.caricaDaX50Target(30, 0, 8.1, 100);
+    eq(senzaVol.volume, true, "senza volume: colpa del volume");
+    eq(senzaVol.che, gz.FRAG_SENZA_CONTO.volume.che, "⛔ e la frase è la STESSA di fragKuzRam: una regola, non due copie");
+    const senzaModello = gz.caricaDaX50Target(30, VOL, 0, 100);
+    eq(senzaModello.modello, true, "senza fattore roccia: colpa del modello");
+    eq(senzaModello.che, gz.FRAG_SENZA_CONTO.modello.che, "stessa frase anche qui");
+  });
+  test("⛔ Genesi · caricaTargetSenzaConto: null sul caso sano, e ignora la (finta) carica", () => {
+    eq(gz.caricaTargetSenzaConto(30, VOL, 8.1, 100), null, "sul caso sano non c'è nessuna ragione da dare");
+    /* il trucco interno (passare kg=1 a fragSenzaConto) non deve mai far
+       comparire una mancanza sulla "carica": qui la carica non esiste come
+       ingresso, l'ingresso è l'obiettivo */
+    const r = gz.caricaTargetSenzaConto(null, 0, 0, 0);
+    eq(r.obiettivo && r.volume && r.modello, true, "tutte e tre le mancanze vere, insieme");
+    eq(/carica per foro/.test(r.che), false, "⛔ mai la frase della carica: qui non è un ingresso");
+  });
+  test("⛔ Genesi · caricaDaX50Target: fuoriDominio quando i due CLAMP di fragKuzRam mordono", () => {
+    /* obiettivo molto grossolano su una maglia piccola: il kg che servirebbe
+       è talmente basso che fragKuzRam smette di distinguerlo (pf<0,05) */
+    const r = gz.caricaDaX50Target(150, 5, 8, 100);
+    eq(r.calcolabile, true, "il numero si calcola comunque...");
+    eq(r.fuoriDominio, true, "...ma è dichiarato fuori dal dominio affidabile");
+    ok(r.pf < 0.05 || r.kg < 1, `e il motivo è uno dei due clamp: pf=${r.pf} kg=${r.kg}`);
+    /* un obiettivo ordinario, sulla stessa maglia della scheda validatori, resta dentro */
+    eq(gz.caricaDaX50Target(30, VOL, 8.1, 100).fuoriDominio, false, "un obiettivo ordinario resta dentro dominio");
+  });
+
+  test("⛔ Genesi · ppvDaSd: la legge di Devine/USBM, una sola volta", () => {
+    eq(gz.ppvDaSd(null, 585, 1.45), null, "senza distanza scalata: null, non 0,1 forzato a distanza");
+    eq(gz.ppvDaSd(undefined, 585, 1.45), null);
+    eq(gz.ppvDaSd("", 585, 1.45), null);
+    eq(+gz.ppvDaSd(5, 585, 1.45).toFixed(2), 56.71, "K·SD^-beta, il caso a mano");
+    /* il pavimento a 0,1: una distanza scalata piccolissima non manda la PPV
+       a infinito, resta quella di SD=0,1 — è il difetto già chiuso su questa
+       stessa formula quando viveva (due volte) dentro la pagina */
+    eq(gz.ppvDaSd(0.001, 585, 1.45), gz.ppvDaSd(0.1, 585, 1.45), "sotto 0,1 il pavimento morde uguale");
+    eq(gz.ppvDaSd(0, 585, 1.45), gz.ppvDaSd(0.1, 585, 1.45), "zero scivola sullo stesso pavimento");
+  });
+  test("⛔ Genesi · ppvDaSd è la STESSA formula che viveva due volte nella pagina, adesso una", async () => {
+    const { senzaCommenti } = await import("./tokenizza.mjs");
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    eq((pag.match(/Math\.pow\(Math\.max\(0\.1,\s*_?m?2?\.?_?sd2?\),\s*-\s*_?st\.beta\)/g) || []).length, 0,
+      "⛔ nessuna copia inline della legge di Devine è rimasta nella pagina");
+    ok((pag.match(/\bppvDaSd\(/g) || []).length >= 2,
+      "la pagina la chiama nei due posti dove viveva scritta a mano (scheda validatori e riquadro Sentinella)");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("ppvDaSd") && elenco.includes("caricaDaX50Target"),
+      "la pagina importa entrambe da genesi-data.js");
+  });
+
   test("⛔ Genesi · consumoSpecifico è UNA funzione sola, e fragKuzRam la chiama", () => {
     /* la stessa domanda con due risposte è la copia debole di CLAUDE.md: il
        `pf` di `fragKuzRam` VIENE da `consumoSpecifico`, e il test lo pretende */
@@ -29655,10 +29752,16 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(/sd:\(es\.calcolabile && !senzaDist\)\?D2\.recDist\/Math\.sqrt/.test(srcG16), true,
       "e la distanza scalata è `null` quando manca uno QUALUNQUE dei suoi due padri");
     /* ⛔ la bandiera giusta: `calcolabile` risponde solo «la MIC si conta», e
-       con la distanza assente restava VERA mentre `sd` era già `null` */
-    eq(/const ppv=Number\.isFinite\(_m\.sd\)/.test(srcG16), true,
+       con la distanza assente restava VERA mentre `sd` era già `null`.
+       ⏱️ 12/09 (unità 126): il `Number.isFinite(sd)?...:null` di casa è
+       diventato `ppvDaSd(sd,...)` — la STESSA domanda, fatta dentro la
+       funzione condivisa invece che due volte a mano (vedi i test dedicati
+       `Genesi · ppvDaSd`, che pretendono `ppvDaSd(null,...)===null`). Qui
+       resta da pretendere che i due punti passino `_m.sd`/`_sd2` — la
+       distanza scalata — e non la bandiera `calcolabile`. */
+    eq(/const ppv=ppvDaSd\(_m\.sd,\s*st\.K,\s*st\.beta\)/.test(srcG16), true,
       "i KPI decidono sulla distanza scalata, non sulla bandiera della MIC");
-    eq(/const _ppv=Number\.isFinite\(_sd2\)/.test(srcG16), true, "e la scheda validatori pure");
+    eq(/const _ppv=ppvDaSd\(_sd2,\s*_st\.K,\s*_st\.beta\)/.test(srcG16), true, "e la scheda validatori pure");
     /* ⛔ il «null m»: l'unico valore di `D2` che finiva in una frase senza gnum */
     eq(/\+D2\.recDist\+' m'/.test(srcG16), false,
       "⛔ nessuna frase concatena più `D2.recDist` grezzo: era il «null m» stampato all'utente");
@@ -33503,8 +33606,15 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
        Le righe, al 14/08: `rws_pct||100` → 1707, 2433, 3082, 5740, 6104;
        `densita_gcc||0.82` → 5788, 5808, 6167; `vod_ms||3800` → 1710, 5472,
        5808, 6167, 6350 (questi ultimi oggi MORTI: la VOD c'è in tutte e 14 le
-       voci del catalogo, e la prova qui sopra lo pretende). */
-    eq(quante(/rws_pct\s*\)?\s*\|\|\s*100/g), 5, "energia relativa: 5 copie aperte");
+       voci del catalogo, e la prova qui sopra lo pretende).
+       ⏱️ 12/09: sesta copia, in `btn-obiettivo-x50` (unità 126) — legge lo
+       stesso `rws_pct||100` per passarlo a `rwsEffettiva`, che quello sì è
+       una funzione sola (vedi `genesi-data.js`, blocco G32): il ripiego sul
+       CATALOGO resta aperto, quello sulla PENALITÀ DI BAGNATURA si è chiuso
+       lo stesso giorno (era una tabella `{Nulla:...}` ripetuta cinque volte,
+       ridotta a un'unica `rwsEffettiva`/`PENALITA_ACQUA` — non contata qui
+       perché non è mai stata questo conto). */
+    eq(quante(/rws_pct\s*\)?\s*\|\|\s*100/g), 6, "energia relativa: 6 copie aperte");
     eq(quante(/densita_gcc\s*\|\|\s*0\.82/g), 3, "densità: 3 copie aperte (la quarta, in `deriveCharge`, è chiusa)");
     eq(quante(/vod_ms\s*\)?\s*\|\|\s*3800/g), 5, "VOD: 5 copie, oggi mai raggiunte");
     /* ⚠️ E IL CENSIMENTO NON LE VEDE TUTTE, che è un fatto sullo STRUMENTO e

@@ -3509,6 +3509,34 @@ numero scritto dove non era stato misurato niente**.*
       151→147 totali, 55 estraibili invariati. Nessuna iniezione di
       controprova cita queste due funzioni (verificato con
       `iniezioni-fresche.mjs`, 559/559).*
+      ✅ **12/09 (unità 126): «Carica per un obiettivo di pezzatura», la
+      prima vera funzionalità nuova su Genesi da quando il fondatore ha
+      chiesto di concentrarsi solo su questa app.** Nuova funzione
+      `caricaDaX50Target` (inversione del modello Kuz-Ram: x50 target →
+      kg/foro necessari, con `fuoriDominio` dichiarato per il lato basso
+      del dominio), bottone e modale nella scheda 2D, proiezione MIC/PPV
+      col verdetto di sicurezza già in uso altrove. Consolidate nel farla
+      due duplicazioni preesistenti (`ppvDaSd`; un punto su cinque di
+      `rwsEffettiva`/`PENALITA_ACQUA`, gli altri quattro dichiarati non
+      toccati). Trovato e corretto un difetto vero: il primo tentativo
+      scriveva il campo con `class="dw-input"`, orfana al 100% perché
+      Genesi non carica il foglio condiviso che la definisce (CSS locale
+      con `.modal-body input`) — presa da `classi-orfane.mjs`, invisibile
+      allo screenshot (un selettore generico copriva comunque lo stile).
+      Verificato end-to-end col browser (caso normale e casi limite).
+      +7 test netti in `run-kpi.mjs`, fondo di `genesi-data.js` 131→137,
+      totale prove senza rete/browser 3.399→3.406, giro completo
+      3.857→3.864 (tutti i numeri rimisurati, non ricopiati).
+      ⛔ **Prossimo passo atomico**: `caricaDaX50Target` non ha un tetto
+      per x50 target sub-millimetrici (produce un numero enorme senza
+      avviso, dichiarato nel codice, non nascosto). La ricerca di fianco
+      (`docs/RICERCA_CONTINUA_GENESI.md`, 2026-09-12) trova che nessuna
+      fonte tecnica dichiara un tetto sul powder factor, ma la curva di
+      Rosin-Rammler sottostante è dichiarata precisa solo 10-1000 mm: il
+      vincolo reale è dimensionale, non sul powder factor. Si decide e si
+      implementa `fuoriDominio` su quel range (x50 target < 10 mm →
+      segnalato), sul modello di quella già esistente per il lato basso —
+      non un numero inventato.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7911,9 +7939,9 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **12/09** (lanciando le suite, non a memoria):
-  **3.399 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2918, `run-stile` 328,
+- Stato misurato al **12/09, unità 126** (lanciando le suite, non a memoria):
+  **3.406 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2925, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

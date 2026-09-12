@@ -373,7 +373,7 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **23 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **24 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
 
@@ -412,6 +412,15 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > sta prima della graffa» se li porta dentro tutti. Dichiarato qui invece di
 > essere corretto in silenzio, perché il numero che ne esce è comunque un
 > ordine di grandezza, non una misura fine.
+>
+> ⏱️ **12/09: 23 → 24, per una crescita non isolata.** Un giro completo di
+> verifica (unità 126) trova il foglio condiviso cresciuto da allora (mesi di
+> lavoro sulle altre app), e questo conto tocca **qualunque** selettore
+> nuovo che condivida anche solo una classe con Genesi — non serve un
+> cambiamento in Genesi stessa. Non isolata la classe precisa che ha fatto
+> scattare il +1: il numero è comunque un ordine di grandezza dichiarato, come
+> la nota qui sopra, e si aggiorna quando lo si rimisura, non quando qualcuno
+> ricorda a memoria quale fosse l'ultimo cambiamento.
 
 > ⛔ **QUESTO CONTO ERA SBAGLIATO — rimisurato il 04/08.**
 >
@@ -425,6 +434,19 @@ markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi
 > vestiva solo dentro `.modal-body`, e Conti e Scudo la disegnavano come testo nudo
 > fuori dalle modali. In Genesi cade su UNA `<label class="fl">`, quella della modale
 > del nome: resta dentro la famiglia modale, ed è la metà che conta.)*
+>
+> *(12/09, unità 126: **9 invariato**, dopo un giro completo. Il primo tentativo
+> della nuova modale «obiettivo di pezzatura» scriveva il suo campo con
+> `<input class="dw-input">` — la forma del core — e portava il conto a **22**
+> (tredici selettori in più: gli stati di `.dw-input` e le varianti `select`/
+> `textarea`/data/ricerca). Ma `apps/deepwork-id/tests/classi-orfane.mjs` ha
+> preso la classe come MORTA: nessun foglio LOCALE di Genesi la dipinge (il
+> condiviso che la definisce non è caricato) e nessuno script la cerca — puro
+> peso morto, che uno scatto guardato bene non avrebbe distinto dal campo vero,
+> perché lo stile arriva comunque dal generico `.modal-body input` che Genesi
+> ha da sempre. Tolta la classe (il campo torna un `<input>` nudo, come quello
+> della modale del nome), il conto rientra a 9: la seconda modale usa già gli
+> stessi nove selettori della prima, non ne aggiunge.)*
 >
 > In Genesi **non esiste nessuna** delle classi nominate: `kpi` compare 81
 > volte, ma sempre come **proprietà JavaScript** (`A.kpi.nf`, `snap.kpi`);
