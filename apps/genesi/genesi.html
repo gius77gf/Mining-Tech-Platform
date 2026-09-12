@@ -1167,7 +1167,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
-         ppvDaSd, caricaDaX50Target, rwsEffettiva, deviazioneForiDaCsv, burdenVeroDaRilievo,
+         ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -1788,7 +1788,7 @@ function buildSim(){
   const pfN = Math.min(1.5, Math.max(0.4, (pf===null?0.35:pf)/0.35));  // normalizzato su 0.35 kg/m3 tipico
   const bulgeAmp = Math.min(CAL.bulge.ampiezzaRangeM[1], Math.max(CAL.bulge.ampiezzaRangeM[0], CAL.bulge.ampiezzaBaseM*pfN));
   /* ---- frammentazione Kuz-Ram: granulometria prevista ---- */
-  const _wetE = (D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0) : 0); // perdita energia da fori bagnati con esplosivo non idoneo
+  const _wetE = (D2.bagnato ? (PENALITA_ACQUA[(selEsplosivo()||{}).acqua]||0) : 0); // perdita energia da fori bagnati con esplosivo non idoneo
   /* ⛔ SECONDA COPIA DELL'INDICE DI UNIFORMITÀ, e col suo ripiego: `stemming`
      entrava con `D2.stem||2.5`, cioè un borraggio che nessuno ha scritto, e da
      lì usciva `SIM.frag.x20/x80` — i numeri che il riquadro del 3D e la curva
@@ -3214,7 +3214,7 @@ dwUiAggancia({ alone: '.hg-item' });
 /* ===== Confronto A/B tra progetti (A10): snapshot KPI in localStorage ===== */
 function computeKPI(){
   const B=D2.B, S=D2.S, H=D2.prof, Q=D2.kg, Dm=D2.diam/1000;
-  const wet=(D2.bagnato?({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[(selEsplosivo()||{}).acqua]||0):0);
+  const wet=(D2.bagnato?(PENALITA_ACQUA[(selEsplosivo()||{}).acqua]||0):0);
   const RWS=Math.max(8,((selEsplosivo()||{}).rws_pct||100)*(1-wet));
   const A=rockFactorA().A;
   /* ⛔ SENZA LA CARICA PER FORO NON C'È UN CONSUMO SPECIFICO, E NON C'È
@@ -5767,7 +5767,7 @@ function muckShape(){
   if(seq==='riga') theta=0;                                 // isocrona parallela al fronte
   const thetaDeg=theta*180/Math.PI, Be=(seq==='riga')?B:B*Math.cos(theta), msmRow=tRow/B;
   const _e=selEsplosivo()||{}, vod=_e.vod_ms||3800, shk=Math.max(0.04,Math.min(0.96,(vod*vod-9e6)/(36e6-9e6)));
-  const _wet=(D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_e.acqua]||0) : 0);
+  const _wet=(D2.bagnato ? (PENALITA_ACQUA[_e.acqua]||0) : 0);
   const heaveFac=(0.82+0.48*(1-shk))*(1-0.5*_wet);                    // stessa formula del 3D (fori bagnati inclusi)
   /* ⚠️ SETTIMA COPIA, e qui il numero è di FORMA, non di misura: scala la
      velocità di partenza della faccia nel modello balistico del cumulo. Con la
@@ -6102,7 +6102,7 @@ function renderScheda2D(){
   /* === fori bagnati: penalità separate VOD (desensibilizzazione chimica) ed energia (RWS), no doppio conteggio su heaveFac === */
   const _acqRank={Nulla:0,Bassa:1,Media:2,Buona:3,Eccellente:4}, _eAcqua=_e.acqua||'Buona', _rkA=(_acqRank[_eAcqua]!=null?_acqRank[_eAcqua]:3);
   const _penV = D2.bagnato ? ({Nulla:0.80,Bassa:0.45,Media:0.20,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
-  const _penE = D2.bagnato ? ({Nulla:0.70,Bassa:0.40,Media:0.18,Buona:0.05,Eccellente:0}[_eAcqua]||0) : 0;
+  const _penE = D2.bagnato ? (PENALITA_ACQUA[_eAcqua]||0) : 0;
   const _vodEff=(_e.vod_ms||3800)*(1-_penV), _Pd=(_e.densita_gcc||0.82)*1000*Math.pow(_vodEff,2)/4/1e8;
   rows.push({lab:'Pressione det. (Pd)',valStr:gnum(_Pd,0)+' <span>kbar</span>'+(_penV>0?' <span>↓bagnato</span>':''),cls:'sv-info',
     why:(_penV>0?'ridotta dai fori bagnati (VOD effettiva −'+Math.round(_penV*100)+'%). ':'')+(_Pd<40?'basso → energia di GAS/heave dominante: adatto a roccia tenera/carbone (spinge, muckpile disteso).':(_Pd>90?'alto → energia di SHOCK dominante: adatto a roccia dura (fini uniformi, muckpile compatto).':'medio → equilibrio shock/heave.'))});
