@@ -21809,14 +21809,18 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
        gli apici singoli e senza spazi, quindi quel censimento non la vedeva
        nemmeno se la si aggiungesse all'elenco: qui si guardano le tre righe.
        Erano tre copie più deboli, e due sono sopravvissute alla correzione del
-       03/08 su `csvRiconciliazione` — la stessa `cell` scritta tre volte. */
+       03/08 su `csvRiconciliazione` — la stessa `cell` scritta tre volte.
+       ⚠️ «file per Sentinella» si legge da `genesi-data.js`, non dalla pagina:
+       `_sentCell` è salita di là il 12/09 (unità 122), e la pagina non ne
+       tiene più una copia da controllare. */
     const RIGHE = [
-      ["scheda volata", "+rows.map(r=>csvCell(r[0])+';'+csvCell("],
-      ["legge di sito", "].map(csvCell).join(';')"],
-      ["file per Sentinella", "function _sentCell(v){ return csvCell("],
+      ["scheda volata", sorgente, "+rows.map(r=>csvCell(r[0])+';'+csvCell("],
+      ["legge di sito", sorgente, "].map(csvCell).join(';')"],
+      ["file per Sentinella", readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8"),
+        "export function _sentCell(v) { return csvCell("],
     ];
-    for (const [che, ancora] of RIGHE)
-      ok(sorgente.includes(ancora), `l'export «${che}» protegge le celle con csvCell`);
+    for (const [che, testo, ancora] of RIGHE)
+      ok(testo.includes(ancora), `l'export «${che}» protegge le celle con csvCell`);
     /* e nessuna delle tre copie deboli è tornata: la firma è sempre la stessa,
        le virgolette messe su `; " \n` e la formula no */
     const deboli = (sorgente.match(/\/\[;"\\n\]\/\.test\(s\)/g) || []).length;
@@ -25577,14 +25581,24 @@ console.log("\n— Campo: i file che escono —");
     ok(s(0) > s(0.5) && s(0.5) > s(1), `e la saturazione anche (${s(0)} > ${s(0.5)} > ${s(1)})`);
   });
 
-  test("⛔ Genesi · _sentNum e isoColore sono USCITE dalla pagina, non copiate", () => {
+  test("⛔ Genesi · _sentCell: una cella di testo per Sentinella, normalizzata e protetta", () => {
+    eq(v._sentCell(null), ""); eq(v._sentCell(undefined), "", "vuoto o assente: cella vuota, non «null»/«undefined»");
+    eq(v._sentCell("  ciao  "), "ciao", "spazi ai bordi tolti");
+    eq(v._sentCell("a\nb\tc\r\nd"), "a b c d", "a-capo e tab schiacciati a spazio: la riga CSV non si spacca");
+    eq(v._sentCell("=SUM(1+1)"), "'=SUM(1+1)", "⛔ un fronte/referto che comincia per «=» non esce nudo: apostrofo di guardia");
+    eq(v._sentCell("Fronte; Sud"), '"Fronte; Sud"', "un punto e virgola dentro va virgolettato: è il delimitatore del file");
+    eq(v._sentCell(42), "42", "un numero passa come testo");
+  });
+  test("⛔ Genesi · _sentNum, isoColore e _sentCell sono USCITE dalla pagina, non copiate", () => {
     const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
     ok(!/function\s+_sentNum\s*\(/.test(pag), "nella pagina non c'è più una seconda _sentNum");
     ok(!/function\s+isoColore\s*\(/.test(pag), "né una seconda isoColore");
+    ok(!/function\s+_sentCell\s*\(/.test(pag), "né una seconda _sentCell");
     const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
       .split(",").map(s2 => s2.trim());
     ok(elenco.includes("_sentNum"), "la pagina importa _sentNum da genesi-data.js");
     ok(elenco.includes("isoColore"), "e isoColore");
+    ok(elenco.includes("_sentCell"), "e _sentCell");
   });
 
   /* ⛔ G11 — LA MASSIMA CARICA ISTANTANEA. Terza fetta del cantiere B3, salita

@@ -3478,6 +3478,19 @@ numero scritto dove non era stato misurato niente**.*
       corretta 151→150 / 20→19 nel bucket 3-5). Mappa di Genesi: **150**
       funzioni nella pagina, **55** ancora «il numero che conta» (invariato:
       era già contata, solo nel bucket sbagliato).*
+      ✅ **12/09 (unità 122), stesso giorno: seconda della fascia,
+      `_sentCell`.** Stessa famiglia esatta di `_sitoParseCsv` — legata a
+      quattro variabili del modulo («r, n, t, g») per lo stesso falso
+      positivo (lettere dentro `/[\r\n\t]+/g`), pura alla lettura. Trasloco
+      accanto a `_sentNum`, che già viveva in `genesi-data.js`; portato con
+      lei il commento storico sulla terza copia debole di `csvCell` che
+      questa funzione correggeva. 1 nuova prova di comportamento +
+      aggiornata quella "sono USCITE dalla pagina" per coprire tutt'e tre;
+      corretta anche `i tre file che escono chiamano DAVVERO csvCell`, che
+      cercava la vecchia definizione nella pagina — ora legge
+      `genesi-data.js` per quel terzo export. Fondo di `genesi-data.js`
+      128→129, tabella di Genesi 150→149 / 19→18 nel bucket 3-5. Mappa di
+      Genesi: **149** funzioni nella pagina.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7862,8 +7875,8 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **12/09** (lanciando le suite, non a memoria):
-  **3.396 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2915, `run-stile` 328,
+  **3.397 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2916, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

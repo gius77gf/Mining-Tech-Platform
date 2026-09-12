@@ -71,9 +71,15 @@ const DIFETTI = [
   // 3a · la copia più debole di csvCell nel CSV della legge di sito
   ["].map(csvCell).join(';')).join('\\n')+'\\n';",
    "].map(v=>{ const s=String(v==null?'':v); return /[;\"\\n]/.test(s)?'\"'+s.replace(/\"/g,'\"\"')+'\"':s; }).join(';')).join('\\n')+'\\n';"],
-  // 3b · la copia più debole nel file che importa Sentinella
-  ["function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim()); }",
-   "function _sentCell(v){ const s=String(v==null?'':v).replace(/[\\r\\n\\t]+/g,' ').trim(); return /[;\"]/.test(s)?'\"'+s.replace(/\"/g,'\"\"')+'\"':s; }"],
+  // 3b · la copia più debole nel file che importa Sentinella.
+  // ⛔ `_sentCell` è salita in `genesi-data.js` il 12/09 (unità 122): l'ancora
+  // seguiva il testo della PAGINA e ha smesso di trovare niente il giorno del
+  // trasloco — la stessa famiglia già chiusa qui sopra al punto 4a (una
+  // decisione spostata, l'iniezione rimasta al vecchio indirizzo). Il server
+  // qui sopra ora serve anche `genesi-data.js` sotto controprova, e l'ancora
+  // segue la funzione nel suo indirizzo vero.
+  ["export function _sentCell(v) { return csvCell(String(v == null ? \"\" : v).replace(/[\\r\\n\\t]+/g, \" \").trim()); }",
+   "export function _sentCell(v) { const s = String(v == null ? \"\" : v).replace(/[\\r\\n\\t]+/g, \" \").trim(); return /[;\"]/.test(s) ? '\"' + s.replace(/\"/g, '\"\"') + '\"' : s; }"],
   /* 4a · la legge provvisoria non dichiarata nella scheda validatori.
      ⛔ QUESTA INIEZIONE ERA SCADUTA, e la controprova lo diceva da sé — «1 non
      hanno trovato il loro pezzo» — senza che nessuno leggesse quella riga.
@@ -97,7 +103,7 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA && p.endsWith("apps/genesi/genesi.html")) {
+  if (CONTROPROVA && (p.endsWith("apps/genesi/genesi.html") || p.endsWith("apps/genesi/genesi-data.js"))) {
     let t = corpo.toString("utf8");
     for (const [a, b] of DIFETTI) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");

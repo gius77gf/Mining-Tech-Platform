@@ -1153,6 +1153,24 @@ export function _sentNum(n) {
   return Number.isFinite(v) ? String(Math.round(v * 1e4) / 1e4) : "";
 }
 
+/* `_sentCell` — cella di TESTO per lo stesso file per Sentinella (trasloco
+   12/09, unità 122, fetta di mezzo di B3). Il censimento la marcava legata a
+   quattro variabili del modulo ("r, n, t, g"): sono lettere dentro la sua
+   regex (`/[\r\n\t]+/g`), lo stesso falso positivo del tokenizzatore già
+   chiuso su `_sitoParseCsv` — letta a mano è pura.
+   ⛔ QUI C'ERA LA TERZA COPIA PIÙ DEBOLE DI `csvCell`: virgolettava `; "` e
+   basta, quindi un fronte chiamato `=cmd|'/c calc'!A1` usciva **nudo** —
+   misurato aprendo la pagina e premendo Esporta. È un file che gira fra due
+   aziende e si apre in Excel. Adesso la cella la fa `csvCell` di `shared/`,
+   che l'apostrofo di guardia lo mette, e `parseCsvLine` — quello che
+   `parseVolateCsv` di Sentinella usa davvero — lo toglie: il giro resta chiuso.
+   ⚠️ LA NORMALIZZAZIONE DEI RITORNI A CAPO RESTA, e non è un doppione di
+   `csvCell`: è un requisito del LETTORE. `parseVolateCsv` fa
+   `split(/\r?\n/)` PRIMA di leggere le celle, quindi un a-capo virgolettato —
+   che `csvCell` da sola conserverebbe, giustamente — gli spaccherebbe la riga
+   in due. Si normalizza per chi legge, poi si protegge con la regola di casa. */
+export function _sentCell(v) { return csvCell(String(v == null ? "" : v).replace(/[\r\n\t]+/g, " ").trim()); }
+
 /* `isoColore` — il colore di un'**isocrona** sul disegno 2D, da `u` ∈ [0,1]
    (0 = il primo fronte d'onda, 1 = l'ultimo). Tre canali che si muovono
    insieme: la tinta scorre dal celeste al blu, la saturazione **cala** e la

@@ -413,8 +413,10 @@ const CONDIVISI = [
      (lettere dentro le regex della funzione, prese per nomi). Il fondo si
      alza SUBITO, per la ragione già scritta qui sopra due volte: se no la
      riga esce con la coda «(il fondo era N: alzalo)» e `numeri-nei-documenti`
-     smette di leggerla. */
-  { file: "apps/genesi/genesi-data.js", fondo: 128,
+     smette di leggerla.
+     128 → 129 lo stesso giorno (unità 122): `_sentCell`, stessa famiglia e
+     stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g"). */
+  { file: "apps/genesi/genesi-data.js", fondo: 129,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

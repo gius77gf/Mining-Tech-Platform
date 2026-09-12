@@ -1096,7 +1096,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
 /* seconda fetta del cantiere B3, blocco G10: due funzioncine pure che
    decidono qualcosa che esce (il numero nel file per Sentinella) o che si
    guarda (il colore di un'isocrona sulla tela). */
-         _sentNum, isoColore,
+         _sentNum, _sentCell, isoColore,
 /* la massima carica che parte dentro una finestra di 8 ms: da lei dipendono
    la distanza scalata, la PPV prevista al recettore e quindi il verdetto
    «sotto soglia» — vedi il blocco G11. Qui resta `computeMIC`, che le passa
@@ -4564,19 +4564,13 @@ function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un post
 /* ⛔ `_sentNum` è salita in `genesi-data.js` (blocco G10) il 09/08: porta la
    regola per cui un valore non leggibile esce VUOTO e non «0» dentro il file
    che va a Sentinella, e qui nessuna prova poteva chiamarla. */
-/* cella di testo per il file che importa Sentinella.
-   ⛔ QUI C'ERA LA TERZA COPIA PIÙ DEBOLE DI `csvCell`: virgolettava `; "` e
-   basta, quindi un fronte chiamato `=cmd|'/c calc'!A1` usciva **nudo** —
-   misurato aprendo la pagina e premendo Esporta. È un file che gira fra due
-   aziende e si apre in Excel. Adesso la cella la fa `csvCell` di `shared/`,
-   che l'apostrofo di guardia lo mette, e `parseCsvLine` — quello che
-   `parseVolateCsv` di Sentinella usa davvero — lo toglie: il giro resta chiuso.
-   ⚠️ LA NORMALIZZAZIONE DEI RITORNI A CAPO RESTA, e non è un doppione di
-   `csvCell`: è un requisito del LETTORE. `parseVolateCsv` fa
-   `split(/\r?\n/)` PRIMA di leggere le celle, quindi un a-capo virgolettato —
-   che `csvCell` da sola conserverebbe, giustamente — gli spaccherebbe la riga
-   in due. Si normalizza per chi legge, poi si protegge con la regola di casa. */
-function _sentCell(v){ return csvCell(String(v==null?'':v).replace(/[\r\n\t]+/g,' ').trim()); }
+/* ⛔ IL CONTO NON È PIÙ QUI: `_sentCell` è salita in `./genesi-data.js`
+   (unità 122, 12/09), accanto a `_sentNum`. Era pura — solo `csvCell` di
+   `shared/` e una normalizzazione degli a-capo — e il censimento la
+   marcava legata a quattro variabili del modulo per lo stesso falso
+   positivo già chiuso su `_sitoParseCsv`: lettere dentro la sua regex
+   (`/[\r\n\t]+/g`), non stato vero. Il perché della normalizzazione (un
+   requisito del lettore, non un doppione di `csvCell`) è scritto là. */
 /* I numeri della volata come li vede Genesi ADESSO. Sono gli stessi che
    mostrano la scheda validatori e il report: se qui uscisse un numero diverso
    da quello a schermo, non si saprebbe più a quale credere. */
