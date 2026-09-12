@@ -1658,3 +1658,49 @@ trattamento "ufficiale" del flyrock:
 - Distanza minima di sgombero normativa italiana per proiezione schegge (D.Lgs 624/96 o norme tecniche collegate):
   non trovata negli snippet disponibili.
 - Valori tipici del fattore "k" (costante di roccia) nella formula di Richards & Moore: non trovati.
+
+### Il delta, fatto da chi ha il codice in mano (12/09, analisi — nessuna correzione, per il blocco di sicurezza in `docs/DECISIONI_WEEKEND.md` §6)
+
+⛔ **Solo lettura e confronto: nessuna riga di `genesi.html`/`genesi-data.js`
+è stata toccata da questa analisi.** `flyrockEst()` (`apps/genesi/genesi.html`,
+righe ~1621-1676) combina tre termini, il minore dei tre "vince" (`Lpred`):
+
+- **Lundborg**: `Llund = 30.1 * Dmm^(2/3)` (`Dmm` = diametro foro in mm).
+  Confrontato algebricamente con la formula trovata nel mondo,
+  `Lm = 260 * D_pollici^(2/3)`: convertendo l'esponente da pollici a
+  millimetri, `260 / 25.4^(2/3) = 30.0897…` — **coincide con la cifra nel
+  codice alla quarta cifra significativa**. Verificato con un calcolo
+  diretto (`python3 -c "print(260/25.4**(2/3))"` → `30.0896…`), non
+  a occhio. **Confermato: è la formula di Lundborg (1975), correttamente
+  convertita da pollici a millimetri**, non una formula inventata con lo
+  stesso nome.
+- **"McKenzie"**: `Rmck = 10 * sdob^(-2.167) * Dmm^0.667` (`sdob` = scaled
+  depth of burial, calcolato altrove nel modulo). La ricerca di oggi **non
+  ha trovato la formula esplicita di McKenzie** (solo la descrizione
+  concettuale "scaled depth of burial" — vedi sezione sopra): **non si può
+  confermare né smentire** che questa sia la formula pubblicata. Struttura
+  compatibile col principio dichiarato (dipende da SDOB e dal diametro),
+  ma il confronto numerico resta impossibile senza la fonte primaria.
+- **"Richards & Moore face burst"**: `lff(B) = (kf²/g) * (sqrt(ql)/B)^2.6`
+  (`ql` = carica lineare kg/m). La ricerca di oggi ha trovato **una sola
+  fonte non incrociata** per una forma esplicita di Richards & Moore (una
+  "Gurney modificata", `Lmax = k·g·(m/B²)^0.5·sin(2θ)`), strutturalmente
+  **diversa** da quella nel codice (esponente 0,5 su tutto il rapporto
+  contro 2,6 solo sul rapporto scalato). Ma la stessa ricerca conferma,
+  da più fonti, il **principio concettuale** di Richards & Moore — un
+  "burden scalato" ottenuto dividendo per la radice della carica per
+  ritardo — che è esattamente la forma di `sqrt(ql)/B` nel codice.
+  **Compatibile nel principio, non verificabile nel coefficiente/esponente
+  esatto** con le fonti raccolte oggi (quella trovata è troppo debole per
+  fare da riferimento).
+
+**Conclusione onesta**: un terzo del modello di flyrock di Genesi
+(Lundborg) è verificato **esattamente** contro la letteratura pubblica.
+Gli altri due terzi (McKenzie, Richards & Moore) sono strutturalmente
+plausibili e coerenti coi principi trovati nel mondo, ma **non
+verificabili al coefficiente** con le fonti raccolte finora — servirebbe
+l'accesso ai testi primari (McKenzie 2009, Richards & Moore 2004), bloccato
+in questo ambiente. **Nessuna correzione proposta**: anche se una fonte
+primaria in futuro mostrasse una differenza, la modifica del motore fisico
+resta condizionata al via libera del fondatore (stessa regola della
+segnalazione di sicurezza del 12/09 su burden/boretrack).
