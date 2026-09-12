@@ -190,13 +190,26 @@ async function apri(preludio, coda) {
   pg.__errori = errori;
   return pg;
 }
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer. Un solo click con un'attesa fissa
+   cade quasi sempre PRIMA che lo splash sparisca (misurato con
+   `elementFromPoint` sul bottone: `DIV#splash`, non il bottone) — non è una
+   regressione, lo stesso 28 KO usciva sul commit precedente a questa
+   sessione. Si RIPROVA il click ogni 400ms fino a 25s invece di aspettare
+   una volta sola. Vedi `genesi-numeri-tranquilli.mjs` per la misura
+   completa. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const t = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
-    if (t) t.click();
-  }, schermo);
-  await pg.waitForTimeout(1300);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const t = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
+      if (t) t.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 const dai = async (pg, id, nome, testo, mime) => {

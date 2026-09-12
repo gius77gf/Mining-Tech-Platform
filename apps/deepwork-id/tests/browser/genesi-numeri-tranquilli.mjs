@@ -164,13 +164,31 @@ async function apri(preludio) {
 /* ⚠️ LA PROVA DI AVER NAVIGATO. Genesi non ha `.page`: `setScreen` scrive
    `scr-<nome>` sul body. Un banco che non naviga risponde «tutto a posto» dopo
    aver guardato la schermata sbagliata. */
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer (splash.hide a 1250ms + rimozione a
+   600ms). `pointer-events:none` arriva solo quando la classe `.hide` viene
+   messa, quindi finché lo splash resta sopra il bottone della barra il click
+   non arriva a nessuno — misurato con `elementFromPoint`: `DIV#splash`, non
+   il bottone. Un solo click con un'attesa fissa (anche di 1200-1300ms) cade
+   quasi sempre PRIMA che lo splash sparisca, ed è per questo che questo
+   banco dichiarava 30 KO su un prodotto che, aspettando di più, naviga
+   benissimo (verificato: stessi 30 KO sul commit precedente a qualunque
+   lavoro di questa sessione — non è una regressione, è il banco che non
+   aspettava abbastanza). Si RIPROVA il click ogni 400ms per un tetto di 25s
+   invece di aspettare una volta sola: costa pochi millisecondi quando lo
+   splash è già sparito, e recupera i secondi che servono quando non lo è. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const b = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
-    if (b) b.click();
-  }, schermo);
-  await pg.waitForTimeout(1200);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const b = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
+      if (b) b.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 const righeScheda = (pg) => pg.evaluate(() => {
@@ -234,13 +252,19 @@ console.log("\n· la spalla cancellata: il campo vuoto e i numeri di prima");
 console.log("\n· volata salvata con una normativa che Genesi non conosce");
 {
   const pg = await apri(VOLATA_NORMA_IGNOTA);
-  await pg.evaluate(() => {
-    const it = document.querySelector('.hg-item[data-id="v1"]');
-    const btn = it && it.querySelector('button[data-act="apri"]');
-    if (btn) btn.click();
-  });
-  await pg.waitForTimeout(1400);
-  const cls = await pg.evaluate(() => document.body.className);
+  /* stessa attesa di `vaiA`: anche questo click cade sulla schermata Home,
+     dove lo splash può ancora essere sopra (vedi la nota su `vaiA`). */
+  const scadenzaApri = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="v1"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenzaApri);
   dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
 
   await pg.evaluate(() => document.getElementById("btn-scheda-csv").click());

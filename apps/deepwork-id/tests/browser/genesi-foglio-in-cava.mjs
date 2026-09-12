@@ -183,13 +183,27 @@ async function ganci(pg) {
   });
   await pg.waitForTimeout(600);
 }
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer. Un solo click con un'attesa fissa
+   cade quasi sempre PRIMA che lo splash sparisca (misurato con
+   `elementFromPoint` sul bottone: `DIV#splash`, non il bottone) — non è una
+   regressione, lo stesso schianto (`Cannot read properties of null`, più a
+   valle, dove il codice si aspettava di essere già nel 2D) usciva sul
+   commit precedente a questa sessione. Si RIPROVA il click ogni 400ms fino
+   a 25s invece di aspettare una volta sola. Vedi
+   `genesi-numeri-tranquilli.mjs` per la misura completa. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
-    if (x) x.click();
-  }, schermo);
-  await pg.waitForTimeout(1200);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
+      if (x) x.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 /* il foglio come lo legge una persona: via i tag, una riga per `<tr>` */
@@ -262,14 +276,20 @@ const SITO_TRE = { usa: true, punti: [
   { d: 120, w: 50, ppv: 9.2, fonte: "mano", ts: "2026-06-02", nome: "A" },
   { d: 260, w: 55, ppv: 3.1, fonte: "csv", ts: "2026-06-14", nome: "B" },
   { d: 430, w: 48, ppv: 1.4, fonte: "sentinella", ts: "2026-06-30", nome: "C" }] };
+/* stessa attesa di `vaiA`: questo click cade sulla Home, dove lo splash
+   d'avvio può restare sopra fino a 15-20s in questo ambiente. */
 async function apriVolata(pg) {
-  await pg.evaluate(() => {
-    const it = document.querySelector('.hg-item[data-id="vX"]');
-    const btn = it && it.querySelector('button[data-act="apri"]');
-    if (btn) btn.click();
-  });
-  await pg.waitForTimeout(1500);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="vX"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenza);
   dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
 }
 
