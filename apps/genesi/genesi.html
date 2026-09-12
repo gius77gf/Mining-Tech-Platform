@@ -771,7 +771,7 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn" id="btn-obiettivo-x50" type="button" style="display:block;margin:10px auto 0;" title="Quanta carica per foro serve per centrare una pezzatura mediana obiettivo, con la roccia e l'esplosivo di questo progetto">🎯 Carica per un obiettivo di pezzatura</button>
   <div id="d2-obiettivo-esito"></div>
   <input type="file" id="rilievoDevFile" accept=".csv,text/csv,.txt" style="display:none;">
-  <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m)">📡 Importa rilievo deviazione fori (CSV)</button>
+  <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
   <div id="d2-rilievo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
@@ -3631,6 +3631,22 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
    altro modo sarebbe la stessa famiglia di copia debole già chiusa altrove
    in questo file. */
 if($('btn-rilievo-dev')) $('btn-rilievo-dev').onclick=()=>$('rilievoDevFile').click();
+/* ⛔ 12/09: LA CONVENZIONE DEGLI ASSI dx/dy NON È VERIFICATA, E QUESTO È
+   ESATTAMENTE IL RISCHIO CHE docs/DECISIONI_WEEKEND.md (sezione 6, decisione
+   del 07/08) AVEVA GIÀ NOMINATO PER QUESTA FUNZIONE PRIMA CHE FOSSE SCRITTA —
+   e questa unità (129) l'ha costruita senza controllare quella sezione prima.
+   Il rilievo boretrack porta dx_m/dy_m nella convenzione del SUO strumento;
+   qui vengono sommati direttamente a `h.mx`/`h.my` (gli assi INTERNI del
+   disegno 2D di Genesi) senza nessuna verifica che le due convenzioni
+   coincidano. Se non coincidono — e non c'è modo di saperlo senza un rilievo
+   vero da confrontare — il burden vero calcolato può risultare PIÙ ALTO
+   dov'è in realtà più basso: un avviso di flyrock rovesciato, esattamente
+   la situazione che la decisione del 07/08 voleva evitare bloccando questa
+   stessa funzione fino a conferma. Non si toglie la funzione (il calcolo è
+   corretto DATO un dx/dy nella convenzione giusta) e non si inventa una
+   conversione: si DICHIARA l'incertezza, finché il fondatore non conferma
+   la convenzione su un caso reale (vedi anche l'item 7 della stessa
+   sezione, ancora aperto). */
 if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
   const f=e.target.files&&e.target.files[0]; if(!f) return;
   const testo=await f.text(); e.target.value='';
@@ -3653,11 +3669,12 @@ if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
         +(scarto!=null?'<span style="color:'+colore+';margin-left:6px;">'+(scarto>=0?'+':'')+gfix(scarto,2)+' m</span>':'')+'</div>';
   }).join('');
   box.innerHTML='<div style="margin-top:8px;">'
+    +'<div style="margin-bottom:8px;padding:8px 10px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef5350;font-size:12px;"><b>⚠️ Da verificare prima dell\'uso in cava.</b> La corrispondenza fra gli assi dx/dy del tuo rilievo boretrack e gli assi di Genesi non è ancora stata confermata su un caso reale: se non coincidono, il verso del confronto qui sotto (più o meno roccia davanti al foro) può risultare invertito. Non usare questo pannello da solo per decidere le distanze di sgombero: verifica prima con un tecnico, confrontando un rilievo vero con quanto costruito.</div>'
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:6px;">Rilievo importato: '+_ricPlur(csv.righe.length,'foro','fori')+' misurati'
       +(csv.scartate?' · '+csv.scartate+' righe scartate':'')+(r.orfane.length?' · '+r.orfane.length+' senza foro nel progetto':'')+'</div>'
     +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;">'+righeHtml+'</div>'
     +(r.misurabile?'':'<div style="margin-top:6px;color:var(--mut);font-size:12px;">Nessun foro del rilievo trova un foro nel progetto aperto: controlla che i numeri o gli id corrispondano.</div>')
-    +'<div style="margin-top:8px;color:var(--mut);font-size:11px;">Burden di progetto → burden vero (perpendicolare alla faccia, sulla posizione REALE del piede). Rosso: sotto l\'85% del progetto — il caso classico delle proiezioni.</div>'
+    +'<div style="margin-top:8px;color:var(--mut);font-size:11px;">Burden di progetto → burden vero (perpendicolare alla faccia, sulla posizione REALE del piede, NELLA CONVENZIONE DI ASSI DI GENESI — vedi l\'avviso sopra). Rosso: sotto l\'85% del progetto — il caso classico delle proiezioni.</div>'
     +'</div>';
 };
 /* DA DOVE VIENE LA PPV PREVISTA, scritto UNA VOLTA per i due posti che devono

@@ -551,7 +551,39 @@ presa — misurare bene una cosa che poi non si tocca è lavoro sprecato.)*
       avviso di flyrock rovesciato. Una scelta che non si può misurare non si prende
       per stanchezza.
 
-✅ **DECISA DAL CICLO il 07/08, non dal fondatore.** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+✅ **DECISA DAL CICLO il 07/08, non dal fondatore (sezione 6).** La regola concessa il 01/08: se entro la settimana non arriva una risposta, il ciclo procede con la colonna «la mia risposta» e lo **dichiara nel commit**, così resta chiaro chi l'ha presa e si cambia in qualunque momento con una riga.
+
+⛔ **E IL 12/09 QUESTA RIGA È STATA VIOLATA SENZA ESSERE CAMBIATA CON UNA
+RIGA — è successo dentro questo stesso ciclo, in un'unità diversa da
+quella che ha scritto questo file.** L'unità 129 ha costruito P1.2
+(`deviazioneForiDaCsv` + `burdenVeroDaRilievo`, wired in pagina) leggendo
+solo `docs/GENESI_ROADMAP_COMPETITOR.md` (dove P1.2 è un gap competitivo)
+e **senza controllare questa sezione**, dove la stessa funzione era
+esplicitamente bloccata dal 07/08 in attesa di un caso reale che confermi
+il segno della deviazione. L'item **7** (il volo del drone) è ancora
+`[ ]`, non chiuso: il motivo del blocco non era mai stato risolto.
+Il rischio è reale e specifico, non teorico: `burdenVeroDaRilievo` somma
+`dx_m/dy_m` del CSV boretrack **direttamente** alle coordinate interne
+`mx`/`my` del disegno 2D di Genesi, senza nessuna verifica che gli assi
+del rilievo (che dipendono dallo strumento/operatore che l'ha fatto)
+coincidano con quelli di Genesi. Se non coincidono, il pannello può
+mostrare "più roccia davanti" dove in realtà ce n'è meno — l'avviso di
+flyrock rovesciato che questa sezione voleva evitare.
+**Mitigazione già applicata, non una soluzione**: aggiunto un avviso
+visibile in rosso nel pannello e nel titolo del bottone che dichiara
+l'incertezza e sconsiglia di usare il pannello da solo per decidere le
+distanze di sgombero (stesso commit di questa riga). La funzione NON è
+stata tolta: il calcolo è corretto dato un dx/dy nella convenzione
+giusta, e toglierla sarebbe un'altra decisione unilaterale sullo stesso
+tema. **Decisione che serve davvero dal fondatore, non dal ciclo questa
+volta**: la stessa dell'item 7, mai chiusa — un caso reale (rilievo
+boretrack vero + posizione vera del piede, anche solo di un paio di
+fori) per confermare la convenzione, oppure la conferma che l'avviso
+attuale basta finché quel dato non arriva.
+Lezione generale per i cicli futuri: **prima di costruire un P-qualcosa
+elencato in un documento di roadmap, si controlla anche questa sezione**
+— un gap competitivo e un blocco di sicurezza possono avere lo stesso
+numero (P1.1/P1.2) in due documenti diversi, e leggerne uno solo non basta.
 
 
 ## 7. Drone → Genesi: prova del weekend (priorità ATTUALE)

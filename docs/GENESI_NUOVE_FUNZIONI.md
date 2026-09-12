@@ -76,12 +76,35 @@ fochino resta il "piano di carico" in CSV.
 - **Persone e supporto**: loro hanno team dedicati e assistenza. Noi siamo
   all'inizio.
 
-## Cosa Genesi NON fa ancora (rimandato di proposito, per sicurezza)
+## Attenzione: due funzioni nuove che aspettano una tua conferma
 
-Il **burden reale per foro** e l'**import della deviazione dei fori**
-(boretrack) toccano la geometria del fronte: un avviso di flyrock sbagliato
-sarebbe **pericoloso per il fochino**. Non li spediamo finché non confermi tu
-come va letta la geometria del fronte, meglio con un caso reale della tua cava.
+_Aggiunta 2026-09-12, perché la riga qui sotto (dal 21/07) diceva ancora "non
+le spediamo" mentre nel frattempo sono state costruite e sono già nell'app._
+
+Il **burden reale per foro** (quanta roccia c'è davvero davanti a un foro,
+misurata sul fronte 3D) e l'**import della deviazione dei fori** (boretrack:
+importi un file con quanto ogni foro è deviato dal progetto) **sono già
+nell'app**, non più rimandate. Ma la ragione per cui erano rimandate resta
+vera e **non è ancora risolta**: toccano la geometria del fronte, e un avviso
+sbagliato (dire "hai tanta roccia davanti" quando in realtà ne hai poca, o il
+contrario) sarebbe **pericoloso per il fochino**, perché quell'avviso parla
+proprio del rischio di proiezioni di roccia.
+
+Nello specifico dell'import boretrack: il file che importi ha due numeri per
+ogni foro (di quanto è andato storto, in due direzioni). Genesi li somma
+direttamente alle sue coordinate interne, **senza aver mai verificato** che
+le "due direzioni" del tuo strumento di rilievo siano le stesse due direzioni
+che usa Genesi. Se sono girate, il pannello può dire il contrario della
+realtà. Per questo il pannello ora mostra un **avviso rosso** che lo dice
+chiaramente e sconsiglia di usarlo da solo per decidere le distanze di
+sgombero — ma l'avviso non risolve il problema, lo dichiara.
+
+**Quello che serve da te**: un caso reale — anche solo un paio di fori di una
+tua cava, col rilievo vero del boretrack e la posizione vera che sai essere
+corretta — per controllare se Genesi legge quei due numeri nel verso giusto.
+Finché non arriva, il burden reale per foro (quello calcolato dal fronte 3D
+che disegni a mano) resta affidabile quanto il disegno che fai tu; il
+pannello del boretrack no, ed è per questo che ha l'avviso.
 
 ## In una riga
 
