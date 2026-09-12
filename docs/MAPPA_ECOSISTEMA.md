@@ -447,6 +447,26 @@ da tre app (Campo, Sentinella, Terra — tabella di §1) e ne legge una
 solo-locale ciò che nessuno ha ancora chiesto di condividere (i confronti
 A/B nel modulo, oggi non un ponte perché non serve a un'altra app).
 
+⛔ **E LA RIGA QUI SOPRA ERA ANCORA STRETTA, SCRITTA UN'ORA DOPO QUELLA CHE
+CORREGGEVA — STESSA GIORNATA, STESSO DIFETTO.** «Resta di sola
+chiave-del-browser solo Genesi→Terra» è quello che diceva già il paragrafo
+26/08 di questa sezione, e non l'avevo riverificato nel codice prima di
+riscriverlo. Aperti i tre file: `apps/genesi/genesi-data.js:2075`
+(`nuvole: () => read("nuvole")`, che scrive/legge sotto `orgCollection`
+quando Genesi gira come membro), `apps/terra/terra-data.js:2623-2630`
+(`api.nuvoleGenesi` legge `idGenesi.orgCollection("nuvole")` con una seconda
+istanza dell'SDK, esattamente come `rapportiniCampo` due righe più su — e
+quello lo contiamo già come ponte di dati) e `apps/terra/index.html:4639-4641`
+(`db.nuvoleGenesi()` **letto per primo**, la chiave del browser letta subito
+dopo come ripiego, la scelta affidata a `ultimoRitaglioNuvola`, pura e
+provata). Cioè Genesi→Terra viaggia sui dati **dal 02/09**, non «resta»
+niente: il ripiego sulla chiave è lo stesso di `rapportiniCampo` — la via di
+chi lavora offline o da solo, per design (decisione 5b) — non un bridge
+mancante. **Dei quattro ponti di file censiti in questa sezione, zero
+restano di sola chiave**: tutti e quattro viaggiano anche sui dati, tre dal
+05/09 notte e questo dal 02/09. La riga 481 della tabella in fondo va letta
+con questa correzione, non con quella che sostituisce.
+
 ---
 
 ## 5. Che cosa questo documento NON dice
@@ -478,7 +498,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | | oggi |
 |---|---|
 | ponti di DATI esistenti | **16** su 56 direzioni *(era 6; il 05/09 (notte) sono entrati Genesi→Sentinella (3e), Campo→Genesi (il consuntivo di carico letto dall'organizzazione) e Genesi→Campo (il piano di carico, collezione `piani`): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
-| ponti di FILE | **4** censiti in §4 *(era «almeno 1»)*; dal 05/09 (notte) tre dei quattro hanno anche la strada dei dati (Genesi→Sentinella, Campo→Genesi, Genesi→Campo) e resta solo-chiave-del-browser Genesi→Terra (le nuvole, che nell'organizzazione ci sono già dal 02/09: Terra legge PRIMA di là) |
+| ponti di FILE | **4** censiti in §4 *(era «almeno 1»)*; **zero** restano di sola chiave del browser — corretto il 12/09: i tre dal 05/09 notte (Genesi→Sentinella, Campo→Genesi, Genesi→Campo) e Genesi→Terra dal **02/09**, non oggi (le nuvole: Terra legge `orgCollection` per prima, la chiave resta il ripiego di chi lavora offline o da solo, come `rapportiniCampo`) |
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
@@ -491,3 +511,4 @@ Chi costruisce un ponte aggiorna questa tabella.
 Verificato contro il commit `d521c96d` del 2026-08-26.
 
 ✅ Sezioni 1 e 4 rimisurate contro il commit `a820c6d2` del 2026-09-12 (le altre sezioni non sono state riverificate in questo passaggio).
+✅ Correzione del 2026-09-12 (stesso giorno, passaggio successivo, commit `d7dd157f`): la riga «resta di sola chiave-del-browser Genesi→Terra» era ancora sbagliata dopo la rimisurazione di sopra — vedi il blocco ⛔ in §4 e la riga corretta in §6. Il difetto era lo stesso che la rimisurazione correggeva: fidarsi del testo vecchio invece di riaprire il codice.
