@@ -3591,6 +3591,34 @@ numero scritto dove non era stato misurato niente**.*
       Fondo di `genesi-data.js` 137→140 (`abbinaForiRighe`,
       `deviazioneForiDaCsv`, `burdenVeroDaRilievo`), scomposizione condivisa
       301/301→304/304, totale prove senza rete/browser 3.407→3.410.*
+      ✅ **12/09 (unità 130): decisione P2.1 registrata, NON presa.** Il
+      documento `docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md` (già pronto, con le
+      fonti) chiude da solo con "serve la tua decisione": tocca come Genesi
+      si presenta ai clienti (misura assistita onesta vs. rischio di far
+      sembrare una stima una misura), non solo la tecnica. Registrata come
+      decisione #28 in `docs/DECISIONI_WEEKEND.md` (14→15 aperte), con la
+      raccomandazione già scritta. Nessun codice toccato.
+      ✅ **12/09 (unità 131): le ultime quattro copie della penalità RWS
+      chiuse.** Le quattro occorrenze inline di
+      `{Nulla:0.70,Bassa:0.40,...}` dichiarate ma non toccate dall'unità
+      126 sono state sostituite con `PENALITA_ACQUA` (già esportata).
+      Confermato value-identico, nessun cambiamento di comportamento
+      (screenshot e numeri invariati).
+      ✅ **12/09 (unità 132): tre banchi browser di Genesi non aspettavano
+      abbastanza lo splash d'avvio.** Una verifica di qualità di routine
+      (`genesi-numeri-tranquilli.mjs`) ha dato 30 falliti su 35, tutti
+      "navigato → scr-home" invece che sulla schermata giusta. Misurato con
+      `elementFromPoint`: `DIV#splash` resta sopra i bottoni fino a 15-20s
+      in questo ambiente (senza GPU, la scena 3D iniziale è lenta), non i
+      ~1,85s del suo timer. **Non una regressione**: stesso risultato sulla
+      worktree del commit precedente a tutta la sessione. Stesso difetto in
+      altri due banchi (`genesi-frasi-limite.mjs`, `genesi-foglio-in-
+      cava.mjs`, quest'ultimo si schiantava). Corretto in tutti e tre:
+      il click si riprova ogni 400ms per un tetto di 25s invece di
+      aspettare una volta sola. Risultato, con le controprove riverificate:
+      5/35→35/35, crash→38/38, 8/36→32/36 (i 4 restanti hanno una causa
+      diversa, dichiarata non risolta — vedi checkpoint). Nessun codice di
+      prodotto toccato.
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
