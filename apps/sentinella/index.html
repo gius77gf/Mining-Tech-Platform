@@ -3365,7 +3365,7 @@ textarea.dw-input{
       <input class="dw-input" id="dopo-autorizzato" value="${esc(d.rientroAutorizzatoDa)}" placeholder="il sorvegliante che ha riaperto il fronte">
       <label class="fl" for="dopo-attesa">Attesa minima prima del rientro (min)</label>
       <input class="dw-input" id="dopo-attesa" type="number" min="1" step="1" value="${d.attesaDopoSparoMin != null ? d.attesaDopoSparoMin : (attesaDichiarata(VOL) != null ? attesaDichiarata(VOL) : "")}" placeholder="dal tuo ordine di servizio" title="I minuti che il tuo ordine di servizio impone prima di tornare al fronte: li scrivi tu, Sentinella non li propone. Si ricorda dall'ultima volata.">
-      <label class="fl" for="dopo-resi">Esplosivo reso (kg)</label>
+      <label class="fl" for="dopo-resi">Esplosivo reso (<span class="u">kg</span>)</label>
       <input class="dw-input dec" id="dopo-resi" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${d.kgResi != null ? esc(String(d.kgResi).replace(".", ",")) : ""}" placeholder="quanto è tornato al deposito o sull'automezzo (anche 0)">
       <label class="fl" for="dopo-note">Note del dopo-volata</label>
       <input class="dw-input" id="dopo-note" value="${esc(d.noteDopo)}" placeholder="fumi, vento, chi ha fatto l'ispezione…">`;
