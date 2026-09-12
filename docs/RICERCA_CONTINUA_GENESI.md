@@ -1003,3 +1003,295 @@ mondo sopra rende disponibile.
    grandezza concreto — non un numero — con cui confrontare la propria
    scelta.
 
+
+## Ricerca del 2026-09-12 — presplit e detonatori elettronici/Nonel: la pratica e le norme di settore (metà sul mondo)
+
+⚠️ **Tutto di seconda mano, marcato**: fatta con `WebSearch` soltanto (come
+imposto dal mandato); nessuna pagina primaria è stata letta per intero,
+`WebFetch` non è stato usato — è la restrizione EGRESS_BLOCKED già
+documentata in CLAUDE.md, verificata di nuovo qui (nessun tentativo di
+`curl`/`WebFetch` fatto, per non ripetere l'errore già scritto in
+CLAUDE.md sui "non si può" da rimisurare con lo strumento giusto). Ogni
+numero qui sotto viene da uno **snippet di ricerca**, mai dal testo
+primario del PDF/pagina citata — chi decide il delta e vuole la cifra
+esatta deve aprire la fonte lui stesso. Nessun confronto col nostro codice
+è fatto qui: solo il mondo. Verificato con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md`
+prima di iniziare che nessuna sezione precedente copre presplit o
+detonatori elettronici/Nonel (le sezioni esistenti coprono: rapporto di
+volata, progettato-vs-perforato, piano di tiro, esplosivi/licenze,
+Kuz-Ram/powder factor).
+
+### Fatti dal mondo [tutti di seconda mano]
+
+**1. Presplit blasting — spaziatura, carica, sequenza, tolleranze**
+
+- **Spaziatura**: la regola pratica più ricorrente è **spaziatura = 12 ×
+  diametro del foro** (S = 12D). Il burden del presplit è indicato come
+  **metà del burden della volata di produzione adiacente** (B_presplit =
+  0,5 × B_produzione). *[di seconda mano: fonte aggregata attribuita da
+  WebSearch a "Dyno Nobel Blasting and Explosives Quick Reference Guide" e
+  "Explosives Engineer's Guide 2025"; non verificato sul PDF originale]*
+- **Diametro del foro**: raccomandato ≤ altezza banco (m) × 15, cioè banco
+  ≥ diametro(mm)/15 — un vincolo che lega il diametro scelto all'altezza
+  del gradino. Per presplit in cava/costruzione il diametro tipico è più
+  piccolo di quello di produzione: **2-4 pollici (~50-100 mm)**. *[di
+  seconda mano: stessa fonte aggregata sopra; il valore 2-4" da una
+  seconda query, fonte non identificabile con certezza dallo snippet]*
+- **Decoupling (accoppiamento della carica)**: il diametro della carica
+  raccomandato è **25%-33% del diametro del foro** (25% o meno in fori con
+  presenza d'acqua) — cariche a cartucce, non accoppiate, per ridurre la
+  concentrazione di energia sulla parete del foro e limitare le tensioni
+  che altrimenti fratturerebbero la roccia oltre il piano di taglio
+  voluto. *[di seconda mano: onlinelibrary.wiley.com (Shock and Vibration,
+  2018/2019), saimm.co.za (SOMP 2022), scribd.com "Presplit Calculator"]*
+- **Tratto non caricato in testa**: 10 × D (diametro), fori **non
+  intasati** (senza stemming). Fattore di carica dichiarato per il
+  presplit: **~0,5 kg per m² di parete da tagliare** (un'unità di misura
+  diversa dal kg/m³ della volata di produzione, perché il presplit crea
+  una superficie, non frammenta un volume). *[di seconda mano: stessa
+  fonte aggregata Dyno Nobel]*
+- **Sequenza di innesco**: i fori di presplit vanno fatti brillare **prima
+  della volata di produzione**, oppure sul **primo ritardo** della volata
+  di produzione — mai dopo. Con detonatori elettronici si aprono pratiche
+  più fini: ritardo di **1 ms fra fori adiacenti**, o gruppi/coppie di fori
+  a intervalli di 1 ms, secondo la carica massima per ritardo consentita.
+  Uno studio numerico specifico indica **9 ms** come ritardo ottimale fra
+  fori adiacenti di presplit per il controllo del danno alla roccia
+  circostante e la formazione rapida delle pre-fratture (contro 0, 12, 15
+  ms confrontati nello stesso studio). *[di seconda mano:
+  onlinelibrary.wiley.com, "Numerical Simulation on Selection of Optimal
+  Delay Time for Precise Delay Blasting", Ma et al. 2021]*
+- **Regola sul burden minimo**: il presplit andrebbe evitato quando il
+  burden verso il fronte libero è inferiore a **180 diametri del foro**.
+  *[di seconda mano: stessa fonte aggregata Dyno Nobel]*
+- **Tolleranza di allineamento/deviazione**: nessuna fonte specifica per il
+  *presplit* con una soglia in percentuale è stata trovata. Una
+  specifica tecnica di capitolato per il taglio di scarpate stradali
+  (non un produttore di esplosivo, un documento di appalto) impone che
+  **nessun foro devii più di 6 pollici (~15 cm)** parallelamente o
+  perpendicolarmente rispetto al piano di scarpata progettato. *[di
+  seconda mano: paconstructors.org, "Section 2xx — Blasting for Rock Cut
+  Slope Excavation"]* Per la deviazione dei fori di produzione in
+  generale (non presplit) la letteratura mineraria riporta valori molto
+  più larghi e per fori più lunghi: in miniere sotterranee **15±5% della
+  lunghezza del foro** a fine foro, oppure una deviazione media di
+  **11,6 ± 6,8 cm**. *[di seconda mano: researchgate.net/sciencedirect.com,
+  studi su deviazione di perforazione in miniere sotterranee — **non
+  direttamente applicabili al presplit di cava a cielo aperto**, riportati
+  solo come ordine di grandezza del tema "deviazione", da NON usare come
+  soglia per il presplit senza rileggere la fonte]*
+  ⚠️ Nessuna fonte trovata dà una tolleranza di allineamento espressa in
+  **percentuale della lunghezza del foro specifica per il presplit**: la
+  domanda resta senza risposta di seconda mano solida, va dichiarata
+  assente se il delta la cerca.
+
+**2. Detonatori elettronici vs elettrici/Nonel — differenze normative e di sicurezza**
+
+- **Precisione di temporizzazione, il dato più solido trovato**: i
+  detonatori elettrici/non elettrici comuni (Nonel compreso) hanno
+  un'accuratezza dichiarata di circa **±1%** del tempo di ritardo, che per
+  l'elemento pirotecnico può arrivare fino al **±5%**; un brevetto USA
+  cita per i detonatori elettrici ad accensione a combustione una
+  deviazione fino al **5-10%** rispetto al tempo di riferimento. I
+  detonatori **elettronici** hanno ritardi programmabili a intervalli di
+  **1 ms**, con accuratezza dichiarata di **±0,1 ms** (dipende dal sistema
+  specifico). *[di seconda mano: bibliotekanauki.pl/researchgate.net,
+  "Determining the timing accuracy of electronic detonators using
+  different methods"]*
+- **Numero concreto sullo scatter**: per un ritardo pirotecnico di **700
+  ms** la deviazione standard misurata è di **37,868 ms** contro **0,336
+  ms** per il sistema elettronico equivalente — cioè uno scarto di oltre
+  100 volte fra le due tecnologie sullo stesso tempo nominale. Un sistema
+  elettronico SCB (semiconductor bridge) citato a parte arriva a una
+  deviazione standard **sotto 0,002 ms**. *[di seconda mano: snippet
+  aggregato da ricerca su patent/paper, dominio non identificabile con
+  certezza dallo snippet — probabile fonte accademica/brevettuale, va
+  riletta prima di citarla con precisione]*
+- **Programmazione**: i detonatori elettronici si programmano con
+  un'unità dedicata ("logger"/"tagger"/"programmer") che esegue un test
+  di circuito (continuità, dispersione, presenza del ponte) **prima**
+  della programmazione del ritardo. La **registrazione (logging) di ogni
+  detonatore sul campo è descritta come pratica obbligatoria**, per
+  associare l'identità del singolo detonatore al foro in cui è collocato
+  — o collegando fisicamente il detonatore al logger, o scansionando un
+  codice stampato. *[di seconda mano: fonte aggregata da ricerca su
+  brevetti/IME, incluso "Auto logging of electronic detonators using
+  smart insulation displacement connectors" (patent) e pagine IME]*
+- **Sicurezza da innesco accidentale**: i detonatori elettronici non hanno
+  i reofori collegati direttamente a un ponte/testa d'accensione come gli
+  elettrici, quindi sono dichiarati **non suscettibili a innesco da
+  elettricità statica, corrente vagante o energia a radiofrequenza (RF)**
+  — un rischio che invece riguarda i detonatori **elettrici** propriamente
+  detti (non i Nonel/shock-tube, che sono anch'essi non elettrici e non
+  hanno questo rischio per costruzione, essendo basati su un tubo a
+  trasmissione d'onda d'urto e non su un filo elettrico). *[di seconda
+  mano: fonte aggregata dalla stessa ricerca sopra]*
+- **Standard europei specifici**: la serie **EN 13763** ("Explosives for
+  civil uses — Detonators and detonating cord relays") copre in parti
+  separate: **Parte 1** requisiti generali di detonatori/relè; **Parte
+  15** verifica della capacità di innesco equivalente fra detonatori
+  elettrici, non elettrici ed **elettronici**; **Parte 26** requisiti
+  costruttivi/funzionali per i dispositivi accessori necessari
+  all'innesco affidabile; **Parte 27** (revisione 2025, `EN 13763-27:2025`)
+  metodi di test **specifici per i sistemi di innesco elettronici**
+  (detonatori elettronici, sistemi wireless, unità di sparo/
+  programmazione/test/controllo) — esplicitamente **esclusa** per i
+  detonatori elettrici/non elettrici/Nonel, che restano coperti dalle
+  altre parti della serie. *[di seconda mano: standards.globalspec.com,
+  sis.se, standards.iteh.ai — pagine di cataloghi di enti di
+  normazione (CEN/SIS/BSI/NEN), non il testo della norma]*
+- **Normativa italiana (contesto, non specifica sull'elettronico)**: il
+  quadro di riferimento per esplosivi/detonatori in miniere e cave resta
+  il **D.Lgs. 624/96** insieme al **D.P.R. 128/59**; è **vietato impiegare
+  esplosivi da mina, accessori detonanti e mezzi di accensione non
+  riconosciuti** dal Ministero dell'Interno e ritenuti idonei all'impiego
+  minerario dal Ministero dell'Industria. Una fonte di settore (non
+  normativa primaria) riporta la regola pratica che gli inneschi di una
+  stessa volata **devono appartenere allo stesso lotto di produzione**
+  per garantire uniformità di resistenza/tempo, e che è **vietato l'uso
+  del sistema di brillamento elettrico se un temporale è in atto entro 10
+  km** — un rischio (accensione da scarica atmosferica/corrente indotta)
+  che riguarda per costruzione i sistemi **elettrici a filo**, non i
+  Nonel/shock-tube né gli elettronici (che comunicano su tubo o su bus
+  digitale isolato). *[di seconda mano: folchi-esplosivi.it (dispensa
+  "Innesco degli esplosivi da mina"), testo-unico-sicurezza.com
+  ("Procedura di sicurezza uso degli esplosivi in cava") — **nessuna
+  norma primaria italiana è stata letta**, solo dispense/riassunti di
+  settore che la citano; nessuna fonte trovata impone esplicitamente un
+  obbligo di verifica/logging pre-sparo specifico per l'elettronico nel
+  diritto italiano]*
+- **Obbligo di verifica pre-sparo**: nessuna fonte trovata cita un
+  obbligo normativo *italiano* esplicito di test di continuità/logging
+  prima dello sparo per i sistemi elettronici (a differenza della prassi
+  IME/produttori, che lo descrive come pratica standard del settore ma
+  non necessariamente come obbligo di legge italiano) — da dichiarare
+  assente, non dedotto.
+
+**3. I tagli di ritardo Nonel — corrispondenza con elenchi reali di produttori**
+
+- L'elenco usato da Genesi (dato dal mandato, non verificato sul codice
+  in questa ricerca): **9, 17, 25, 42, 65, 100, 109, 176, 200 ms**.
+- Una fonte aggregata su Nonel generico riporta esplicitamente: **"NONEL
+  surface detonator delay times are available in: 9, 17, 25, 42, 65, 100,
+  150, and 200 ms"** — **7 valori su 9** dell'elenco Genesi (9, 17, 25, 42,
+  65, 100, 200) combaciano **esattamente** con questa fonte; i due che
+  non compaiono in questa fonte sono **109 e 176 ms** (al loro posto
+  questa fonte ha **150 ms**, assente nell'elenco Genesi). *[di seconda
+  mano: snippet aggregato, dominio esatto non identificabile con
+  certezza — la query ha incrociato dynonobel.com e altre pagine
+  Nonel/MS Connector senza indicare quale abbia prodotto la frase
+  esatta; va riletta sulla fonte prima di citarla con precisione]*
+- **109 ms e 176 ms**, i due valori "mancanti" dalla fonte sopra,
+  compaiono **insieme** in una serie di prodotto reale diversa: la
+  **HiNEL Plus® SDD (Surface Delay Detonator) Series** di **Hanwha**
+  (non elettrica, per miniere a cielo aperto e sotterranee), con delay
+  dichiarati **0, 17, 25, 42, 67, 109, 176 ms**. *[di seconda mano:
+  hanwhablastservices.com, pagina "Initiation Systems"]* Nota: questa
+  serie ha **67 ms**, non **65 ms** come in Genesi — un valore vicino ma
+  non identico.
+- Il sistema **Exel™ Connectadet™ SL** di **Orica** (non elettrico) è
+  descritto come basato su **"una serie di otto ritardi da 0 a 176 ms"**,
+  e una variante **Exel Starter SL** ha un ritardo dichiarato di **9 ms**.
+  *[di seconda mano: oricaminingservices.com, forcitexplosives.com —
+  pagine prodotto Exel/Exel Neo; l'elenco completo degli otto valori non
+  è comparso nello snippet, solo gli estremi 0 e 176 e il valore 9 di una
+  variante]*
+- **Valutazione di sintesi (di seconda mano, non un giudizio del codice)**:
+  **6 dei 9 valori dell'elenco Genesi (9, 17, 25, 42, 109, 176)**
+  compaiono, in tutto o in parte, in almeno una serie reale di prodotto
+  trovata via WebSearch (Nonel generico, HiNEL Plus/Hanwha, Exel/Orica);
+  **65 ms e 67 ms** sono vicini ma non identici fra le fonti trovate;
+  **100 e 200 ms** compaiono nella fonte Nonel generica ma non nelle
+  altre due serie citate. **Nessuna fonte trovata elenca gli esatti nove
+  valori di Genesi come un'unica serie di un unico produttore**: l'elenco
+  sembra un **composito plausibile** di valori reali diffusi nel settore
+  (probabilmente Nonel "storico" + una serie con 109/176 tipo HiNEL),
+  non l'invenzione di numeri arbitrari, ma nemmeno la copia esatta di
+  un unico catalogo — questa è una lettura, non un fatto verificato: chi
+  fa il delta dovrebbe cercare la fonte primaria (i tre PDF Dyno
+  Nobel/Orica/Hanwha citati sopra) per una conferma diretta, che qui
+  **non è stata fatta** (restrizione WebFetch).
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+ergindustrial.com ("Pre-Split Blasting Guide: Design, Audit and
+Optimization") · osmre.gov (Module3_0.pdf, "Surface-Blast Design") ·
+onlinelibrary.wiley.com (tre paper Shock and Vibration: Xiao 2019 su
+deep-hole presplit e vibration-isolation, Chen 2018 su empty-hole effect,
+Ma 2021 "Numerical Simulation on Selection of Optimal Delay Time") ·
+saimm.co.za (SOMP 2022, "Influence of controllable factors affecting
+pre-split quality") · sciencedirect.com ("Pre-split blasting design to
+reduce costs and improve safety in underground mining") · scribd.com
+("Presplit Calculator") · paconstructors.org ("Section 2xx — Blasting for
+Rock Cut Slope Excavation") · researchgate.net (più paper distinti:
+"Determining the timing accuracy of electronic detonators using different
+methods"; studi su deviazione di perforazione sotterranea) ·
+bibliotekanauki.pl (stesso paper sulla timing accuracy) ·
+sciencedirect.com/pmc.ncbi.nlm.nih.gov ("Life cycle assessment of
+electronic, electric and nonelectric detonators... Czech Republic") ·
+msha.gov ("IME Alliance Electronic Detonators - Safety Alert") ·
+ime.org ("Safety Library Publications", "Electronic Blasting Initiation
+Systems FAQ") · standards.globalspec.com, sis.se, standards.iteh.ai,
+en-standard.eu, bsbedge.com (pagine di catalogo per EN 13763 parti 1, 15,
+26, 27) · dynonobel.com (varie pagine tecniche Nonel: nonel-slick.pdf,
+NONEL MS Connector, NONEL TD, NONEL SL datasheet) · austinpowder.com
+(Shock*Star Surface Connectors, E*STAR electronic system) ·
+oricaminingservices.com / orica.com (Exel, Exel Connectadet SL, Exel
+Trunkline Delay Detonators, Electronic Blasting Systems) ·
+hanwhablastservices.com ("Initiation Systems", serie HiNEL Plus SDD) ·
+folchi-esplosivi.it (dispensa "Innesco degli esplosivi da mina") ·
+testo-unico-sicurezza.com ("Procedura di sicurezza uso degli esplosivi in
+cava") · all4shooters.com, mauromalizia.it, anim-ingegneriamineraria.it
+(pagine di contesto sulla normativa italiana esplosivi, non lette per
+intero).
+
+### Domande per il delta (sul MECCANISMO, non sul numero da usare)
+
+Nessuna di queste domande propone un valore o un giudizio sul codice:
+chiedono dove, nel meccanismo già esistente di Genesi (presplit,
+`INN_TAGLI`, `taglioRealizzabile`, lo scatter elettronico/Nonel), il mondo
+sopra si aggancerebbe — e questo lo decide chi ha il codice in mano.
+
+1. Genesi modella già il presplit — con quale meccanismo decide spaziatura
+   e carica lineare del foro di presplit rispetto al diametro? È un
+   rapporto fisso (es. un multiplo di D) o un valore libero inserito
+   dall'utente? Se fisso, la sezione 1 sopra (S=12D, decoupling 25-33%,
+   burden = metà produzione) dà un termine di paragone concreto — ma solo
+   chi legge la formula esistente sa dire se si discosta.
+2. La sequenza di innesco presplit-vs-produzione (sezione 1: presplit
+   sempre prima, mai dopo) — Genesi impone già un vincolo d'ordine fra i
+   tempi di innesco del presplit e quelli della volata di produzione, o i
+   due sono trattati come pattern indipendenti che l'utente potrebbe
+   ordinare in modo incoerente senza un avviso?
+3. `INN_TAGLI` elenca nove tagli fissi: la sezione 3 sopra mostra che
+   **65 ms** (o 67?) e la coppia **100/200 ms** non compaiono insieme in
+   nessuna singola serie di prodotto reale trovata, mentre **9-17-25-42-
+   109-176** sì (in due serie diverse). `taglioRealizzabile` — la
+   funzione che decide se un taglio è "ottenibile in commercio" — verifica
+   la lista contro una **singola serie di un produttore**, o contro un
+   composito? Se è un composito dichiarato tale (non spacciato per il
+   catalogo di un singolo produttore), la scelta è difendibile con quanto
+   trovato qui; se invece un testo dell'interfaccia dice o implica "serie
+   Orica Exel" o "serie Dyno Nobel" per l'intero elenco, quella frase
+   andrebbe verificata contro la sezione 3, perché 3 dei 9 valori non
+   trovano riscontro nella stessa fonte degli altri 6.
+4. Lo scatter dichiarato in Genesi per Nonel/elettrico contro elettronico
+   (menzionato nel mandato come già modellato) — è espresso come
+   percentuale del tempo nominale, come deviazione standard assoluta, o
+   come combinazione? La sezione 2 sopra dà due letture diverse dal mondo
+   reale (±1%/±5% "a percentuale" da una fonte, deviazione standard
+   assoluta di 37,868 ms su un ritardo di 700 ms da un'altra) che **non
+   sono la stessa cosa** — 37,868/700 fa il 5,4%, quindi le due fonti
+   sono compatibili fra loro su questo singolo punto, ma solo chi ha la
+   formula di Genesi in mano sa dire se il modello usa una percentuale
+   fissa o scala con il tempo nominale in un altro modo, e se regge
+   anche sui tagli più lunghi (176, 200 ms) dove uno scarto al 5% pesa
+   quasi 9-10 ms.
+5. La sicurezza da innesco accidentale (elettricità statica, corrente
+   vagante, RF, fulmini) è una differenza reale e documentata (sezione 2)
+   fra elettrico-a-filo ed elettronico/Nonel, ma **Genesi non simula
+   rischi di innesco accidentale** per quanto risulta dal contesto del
+   mandato: è un tema che riguarda la sicurezza in cava, non il calcolo
+   della volata — chi ha il codice in mano valuta se è pertinente a
+   Genesi o se appartiene invece a un'altra app dell'ecosistema (Scudo,
+   che tratta sicurezza/HSE).
