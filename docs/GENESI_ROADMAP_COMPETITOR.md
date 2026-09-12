@@ -12,94 +12,126 @@ funzioni**, ordinata per impatto/fattibilità, distinguendo cosa si può fare
 > Le affermazioni sui competitor vengono dalle loro pagine/articoli; le
 > raccomandazioni sono nostre.
 
-## In due righe (per Giuseppe)
-Buona notizia: Genesi è **più avanti di quanto sembri**. Non solo simula la
-frammentazione: ha già la **previsione delle vibrazioni** (PPV) e della
-**sovrappressione** (airblast), la carica massima per ritardo (MIC), il confronto
-tra detonatori elettronici/elettrici, il flyrock, i fori bagnati, il presplit e
-il confronto A/B. Ai leader (Orica, Maptek) manca poco: soprattutto **"chiudere
-il cerchio" col dato reale** — cioè confrontare il previsto con **com'è andata
-davvero** (riconciliazione), calibrare le vibrazioni su una **registrazione vera**
-(signature-hole) e misurare la **pezzatura da una foto** del cumulo. Sono
-esattamente le funzioni che trasformano un ottimo simulatore in uno strumento
-"da cava vera".
+> ⛔ **RILETTO E CORRETTO IL 12/09 (unità 128) — QUESTO DOCUMENTO ERA
+> INVECCHIATO SUI DUE PUNTI PIÙ IMPORTANTI CHE PROPONEVA.** Stavo per aprire
+> un cantiere su "P0.2 Signature-hole": grep prima di scrivere codice
+> (`grep -n "sommaRitardata\|ondaDaCsv" apps/genesi/genesi-data.js`) ha
+> trovato la funzione già scritta, testata (2 test, 40 asserzioni in
+> `run-kpi.mjs`) e
+> **wired in pagina** (`sigFile`/`sigImport`/`sigRender`, con tanto di testo
+> che cita "il metodo dei big (Orica AVM)"). Controllando per lo stesso
+> motivo anche P0.1 e P1.1: **entrambe fatte pure loro**
+> (`confrontoPerForo` con un pannello vero "Foro per foro — progetto aperto
+> contro consuntivo"; `h.burdenVero` da `distanzaDaSpezzata` sul fronte 3D,
+> con la riga rossa/ambra quando si scosta dal nominale). Tre "gap" su
+> sei di questo documento erano già chiusi, e nessuno aveva aggiornato la
+> riga che li proponeva — è la regola di CLAUDE.md *"chi chiude un'unità
+> aggiorna la riga del documento che gliel'aveva proposta"*, qui violata da
+> chi (unità imprecisate, prima del 12/09) le ha chiuse senza tornare qui.
+> Il documento sotto è stato **riscritto per riflettere lo stato vero**,
+> non solo annotato: la versione originale del 21/07 proponeva P0.1/P0.2
+> come "da fare" e la Sintesi le chiamava "il gap più grande" — chi avesse
+> letto solo quelle due righe avrebbe aperto un cantiere su lavoro fatto.
 
-## Cosa ha GIÀ Genesi (punti di forza — verificati nel codice)
+## In due righe (per Giuseppe)
+Buona notizia: Genesi è **più avanti di quanto sembri** — più avanti di quanto
+dicesse questo stesso documento fino al 12/09. Oltre a simulare la
+frammentazione (con la **previsione delle vibrazioni**, la **sovrappressione**,
+la MIC, il confronto detonatori, il flyrock, i fori bagnati, il presplit, il
+confronto A/B), Genesi **chiude già il cerchio col dato reale** su due dei tre
+fronti che separano un simulatore da uno strumento "da cava vera": confronta
+il previsto con **com'è andata davvero** foro per foro (riconciliazione), e
+calibra le vibrazioni su una **registrazione sismografica vera** invece della
+sola legge empirica (signature-hole). Manca ancora la **pezzatura misurata da
+una foto** del cumulo — quello resta il gap vero.
+
+## Cosa ha GIÀ Genesi (punti di forza — verificati nel codice, rimisurati il 12/09)
 - **Frammentazione**: Kuz-Ram (rock-factor di **Lilly/Cunningham**), **KCO/
-  Swebrec** (x50/xmax, fini e blocco massimo), curva granulometrica.
+  Swebrec** (x50/xmax, fini e blocco massimo), curva granulometrica, e
+  l'inversione del modello (obiettivo di pezzatura → carica necessaria,
+  `caricaDaX50Target`, unità 126/127).
 - **Vibrazioni**: PPV al recettore con **legge di Devine/USBM** (`PPV=K·SD^−β`,
   K/β stimati per tipo di roccia), **MIC** = massima carica entro finestra 8 ms
   raggruppando i fori sui ritardi reali, distanza scalata, confronto con la
-  soglia di norma e badge di rischio.
+  soglia di norma e badge di rischio — **e** la calibrazione su una
+  registrazione sismografica vera (**signature-hole**: `ondaDaCsv` importa il
+  CSV tempo-ampiezza, `sommaRitardata` somma le copie ritardate sui tempi di
+  detonazione della volata corrente e stima il PPV composito, affiancato a
+  Devine nella pagina).
+- **Riconciliazione previsto-vs-reale, foro per foro**: `confrontoPerForo`
+  accoppia ogni foro del progetto aperto alla sua riga di consuntivo (per id
+  quando disponibile, per numero altrimenti — dichiarato), con un pannello
+  vero in pagina ("Foro per foro — progetto aperto contro consuntivo") che
+  mostra progetto→reale, scarto e badge di stato per ciascuno.
+- **Burden reale dal 3D del fronte**: `distanzaDaSpezzata` calcola la distanza
+  perpendicolare vera foro↔fronte sulla ricostruzione 3D (non il burden
+  nominale di progetto), salvata per foro (`h.burdenVero`) e segnalata in
+  pagina quando si scosta dal nominale oltre 15 cm (rosso se il burden vero è
+  sotto l'85% — il caso classico delle proiezioni).
 - **Airblast** (sovrappressione), **flyrock** (gittata + anelli di sgombero),
   **presplit**, **confronto A/B**, **fori bagnati** (colonna d'acqua, RWS
   ridotto), **detonatori elettronici vs elettrici** (scatter, effetto su X50/PPV),
-  **timing/sequenze**, **import MWD**, **ricostruzione 3D da foto** del fronte
-  (con deviazione del fronte/piede modellabile), export CSV/PDF.
+  **timing/sequenze**, **ricostruzione 3D da foto** del fronte (con deviazione
+  del fronte/piede *simulata* — non un import di rilievo reale, vedi gap #2
+  sotto), **export IREDES-like** del piano di innesco, export CSV/PDF.
+  ⛔ *"Import MWD" è stato tolto da questa riga il 12/09: cercato (`grep -n
+  "MWD" apps/genesi/*.{html,js}`) e non trovato — zero occorrenze. Non era un
+  "non c'è" scaduto, era scritto così dal 21/07 senza che nessuno l'avesse
+  verificato nel codice: la regola "niente entra sulla parola dell'agente"
+  vale anche per ciò che RESTA scritto, non solo per ciò che entra.*
 
-## Cosa hanno i big che a noi MANCA (i gap reali)
-1. **Riconciliazione previsto-vs-reale (post-volata)** — Maptek BlastLogic è
-   costruito attorno al "single source of truth" e al confronto design-vs-actual
-   in quasi tempo reale (import **as-drilled**, ricalcolo carica da QA/QC);
-   O-PitAnalytics fa post-blast analysis. **Genesi simula ma non registra il
-   risultato reale né lo confronta.** ← gap #1 (il più importante).
-2. **Signature-hole (vibrazioni calibrate su onda reale)** — i big (Orica AVM) e
-   la letteratura registrano un **foro singolo** e **sommano l'onda ritardata**
-   per prevedere il PPV della volata intera, molto più preciso della sola legge
-   di Devine. Genesi ha Devine (site-specific K/β) ma **non la superposizione
-   d'onda da sismogramma reale**. ← gap #2.
-3. **Validazione frammentazione da immagine** — Orica **FRAGTrack**, **WipFrag**,
+## Cosa hanno i big che a noi MANCA (i gap reali, rimisurati il 12/09)
+1. **Validazione frammentazione da immagine** — Orica **FRAGTrack**, **WipFrag**,
    **Split**: foto del muckpile → curva granulometrica **reale** da confrontare
-   con la previsione. Genesi ha la curva prevista, non quella misurata dalla foto.
-4. **Deviazione fori "as-drilled" (boretrack)** — il **boretrak** misura quanto
-   il foro reale devia dal progetto; Genesi modella la deviazione del *fronte* e
-   del *piede*, ma non importa la deviazione dei *fori* perforati.
-5. **Export/interoperabilità (IREDES, programmazione detonatori)** — IREDES (XML)
-   fa parlare perforatrici/software; i ritardi si esportano ai detonatori
-   elettronici. Genesi modella i detonatori ma non esporta questi file.
-6. **AI/ML per frammentazione/flyrock/backbreak** — differenziatore recente
+   con la previsione. Genesi ha la curva prevista, non quella misurata dalla
+   foto. ← il gap più importante rimasto (era #3, ora #1: i due che lo
+   precedevano sono chiusi).
+2. **Deviazione fori "as-drilled" (boretrack)** — il **boretrak** misura quanto
+   il foro reale devia dal progetto; Genesi *simula* la deviazione (un modello
+   probabilistico Box-Muller sul `%` dichiarato, non un dato importato) e
+   modella quella del *fronte*/*piede*, ma non importa la deviazione **misurata**
+   dei *fori* perforati.
+3. **AI/ML per frammentazione/flyrock/backbreak** — differenziatore recente
    (XGBoost R²≈0,82; ensemble ANN-RF per frammentazione **e** vibrazione),
    input burden/spaziatura/powder factor/sottoperforazione/UCS. Pesante.
 
-## Roadmap proposta (per impatto/fattibilità)
+⛔ **Chiusi, e tolti da questo elenco il 12/09** (erano qui dal 21/07, mai
+riverificati nel codice fino ad ora): *riconciliazione previsto-vs-reale*
+(era il gap #1, vedi `confrontoPerForo` sopra — resta aperto solo lo
+**storico multi-volata** persistito, non il confronto in sé) e
+*signature-hole* (era il gap #2, vedi `sommaRitardata` sopra).
 
-### P0 — Grande impatto, fattibile NEL BROWSER (fatelo prima)
-- **P0.1 Riconciliazione previsto-vs-reale** *(client per il confronto; storico
-  su Firestore)*: per ogni volata, affianca il **previsto** (x50, PPV, flyrock,
-  MIC) al **reale** inserito a mano o importato (pezzatura misurata, vibrazione
-  del sismografo, oversize, note). Riusa il ponte Genesi↔Campo già esistente
-  (piano→consuntivo). Affronta un tema che nei leader è centrale, ma da noi è un
-  **primo passo non validato sul campo**, non una parità di funzione. Il confronto è
-  puro client; conviene salvare lo storico multi-volata (come già le app).
-- **P0.2 Signature-hole (superposizione d'onda)** *(client)*: importa la
-  registrazione di un foro singolo (CSV tempo-ampiezza) e **somma le copie
-  ritardate** secondo i ritardi della volata → forma d'onda e PPV attesi,
-  affiancati alla stima Devine già presente. La convoluzione gira benissimo in
-  JS: **nessun backend** per il calcolo. Alza di molto la qualità delle
-  vibrazioni, che Genesi già tratta.
+## Roadmap proposta (per impatto/fattibilità) — rinumerata il 12/09 sui soli punti ancora aperti
 
-### P1 — Grande impatto, più lavoro (browser)
-- **P1.1 Burden reale per foro dal 3D del fronte** *(client)*: dal 3D-da-foto già
-  presente, calcola il burden vero foro↔fronte lungo l'altezza e segnala i fori
-  fuori range (oversize/flyrock). Incrementale sul 3D esistente.
-- **P1.2 Import deviazione fori (boretrack)** *(client)*: importa il profilo
-  "as-drilled" (CSV) e mostralo nel 3D; ricalcola burden/carica reali per foro.
-  Completa P1.1 col dato reale di perforazione.
-- **P1.3 Export ai detonatori + IREDES** *(client)* — **FATTA (bozza)**: dal
-  Progetto 2D il pulsante "Esporta piano di innesco (XML IREDES-like)" produce un
-  XML `BlastPlan` con metadati di volata (maglia, diametro, esplosivo, innesco,
-  sequenza, ritardi, ultima detonazione, MIC) e la lista fori (posizione,
-  profondità, carica, borraggio, ritardo della sequenza), ordinati per tempo. È
-  una **bozza di interscambio in stile IREDES, non conformità certificata** (lo
-  dichiara l'XML stesso): serve per detonatori elettronici/software terzi in
-  fase di integrazione. Il CSV "piano di carico" resta per il fochino.
+### ✅ Fatte (verificate nel codice il 12/09, non solo dichiarate)
+- **Riconciliazione previsto-vs-reale, foro per foro** — `confrontoPerForo` +
+  pannello in pagina. Resta aperto solo lo **storico multi-volata persistito**
+  (oggi il confronto vive nella sessione del progetto aperto, non in un
+  archivio Firestore multi-volata): se servirà, è un'estensione a sé, non una
+  funzione nuova.
+- **Signature-hole (superposizione d'onda)** — `ondaDaCsv` + `sommaRitardata`,
+  2 test dedicati e 40 asserzioni in `run-kpi.mjs` (contate riga per riga,
+  non a memoria), wired in pagina (bottone import + pannello di stima PPV
+  composito).
+- **Burden reale per foro dal 3D del fronte** — `distanzaDaSpezzata` +
+  `h.burdenVero`, con segnalazione in pagina quando si scosta dal nominale.
+- **Export ai detonatori + IREDES** *(bozza)*: XML `BlastPlan` stile IREDES
+  dal Progetto 2D, dichiarato "non conformità certificata".
+
+### P1 — Grande impatto, ancora aperto (browser)
+- **P1.1 Import deviazione fori (boretrack)** *(client)*: importa il profilo
+  "as-drilled" **misurato** (CSV) e mostralo nel 3D accanto a quello *simulato*
+  che Genesi già disegna; ricalcola burden/carica reali per foro. Il dato
+  simulato oggi non ha modo di essere sostituito da un dato vero.
 
 ### P2 — Differenziante ma pesante (backend/dati)
 - **P2.1 Frammentazione da immagine del muckpile** *(client base / backend per
   ML)*: foto del cumulo → segmentazione blocchi → curva granulometrica reale;
   confronto con Kuz-Ram/KCO. Versione base (watershed) nel browser; versione
-  precisa (tipo WipFrag) con ML → backend/GPU. Si integra con P0.1
-  (riconciliazione) come "pezzatura reale".
+  precisa (tipo WipFrag) con ML → backend/GPU. Si integra con la
+  riconciliazione già fatta come "pezzatura reale" da affiancare al previsto.
+  ← **il gap più importante rimasto**, l'unico dei tre "chiudi il cerchio"
+  ancora del tutto assente.
 - **P2.2 Modello ML di frammentazione/vibrazione** *(backend per il training,
   client per l'inferenza)*: XGBoost/rete su dati reali; il modello leggero gira
   **nel browser**. Serve un dataset e un passo di training offline.
@@ -111,13 +143,14 @@ esattamente le funzioni che trasformano un ottimo simulatore in uno strumento
 - Feature "enterprise" (flotte perforatrici live, integrazioni proprietarie):
   fase commerciale.
 
-## Sintesi
-Genesi è già un simulatore forte, con vibrazioni e airblast inclusi. Per
-"raggiungere il loro livello" mancano soprattutto le funzioni che **chiudono il
-cerchio col dato reale**: **P0.1 riconciliazione** (il gap più grande) e **P0.2
-signature-hole**, entrambe **lato browser**. Poi P1 (burden reale, boretrack,
-export) e P2 (immagine/ML) come differenzianti successivi. Nessuna tocca il
-motore fisico.
+## Sintesi *(riscritta il 12/09, non solo l'ultima riga)*
+Genesi è già un simulatore forte, con vibrazioni e airblast inclusi — e chiude
+**già** il cerchio col dato reale su riconciliazione e signature-hole,
+contrariamente a quanto diceva la versione precedente di questa riga. Il gap
+vero che resta, per "raggiungere il loro livello", è **P2.1 — la pezzatura
+misurata da una foto**, seguito da P1.1 (boretrack, dato reale invece che
+simulato) e P2.2 (ML) come differenzianti successivi, pesanti entrambi.
+Nessuno di questi tocca il motore fisico.
 
 ## Fonti
 - Orica SHOTPlus / BlastIQ / Advanced Vibration Management / FRAGTrack:
