@@ -807,3 +807,199 @@ di tre anni del fochino nel preset di Scudo), 2 **dichiarate** (il registro
 del deposito, già decisione; l'ordine di servizio, nuova), 1 **vincolo** per
 la decisione 20 (i cinquant'anni di conservazione), 1 **già a posto** (i
 chili sparati per volata).
+
+## Ricerca del 2026-09-12 — limiti di validità del modello Kuz-Ram e valori tipici di powder factor (metà sul mondo)
+
+⚠️ **Tutto di seconda mano, marcato**: fatta con `WebSearch` soltanto (come
+imposto dal mandato); nessuna pagina primaria è stata letta per intero,
+`WebFetch` non è stato usato. Ogni numero qui sotto è preso da uno snippet
+di ricerca, mai dal testo primario dell'articolo/paper citato — chi decide
+il delta e vuole la cifra esatta deve aprire la fonte. Nessuna soluzione
+numerica per il nostro codice è proposta qui: solo il mondo.
+
+Contesto della domanda (per chi legge questa sezione isolata): in
+`apps/genesi/genesi-data.js` la funzione `caricaDaX50Target` ha un clamp sul
+lato **basso** del dominio (`kg<1 || pf<0.05`) ma nessuno sul lato **alto** —
+un target x50 assurdamente fine (es. 0.001 cm = 10 micron) produce un
+consumo specifico (pf, kg/m³) enorme senza nessun avviso.
+
+### Fatti dal mondo
+
+**1. Range reale di powder factor (consumo specifico) in cava a cielo aperto**
+
+- Per i brillamenti di produzione il powder factor è **generalmente ≤ 1
+  kg/m³**; occasionalmente sale a **~1,5 kg/m³**, e ci sono segnalazioni di
+  punte fino a **2,2 kg/m³** in rare cave a cielo aperto su roccia molto
+  dura. *[di seconda mano: miningandblasting.wordpress.com, "Blasting in
+  Surface Excavation"]*
+- Per tipo di roccia: rocce dure (granito, basalto, quarzite) **0,6–1,2
+  kg/m³**; rocce tenere (calcare, arenaria, scisto) **0,3–0,7 kg/m³**; il
+  range esteso dichiarato va da **0,2 kg/m³** (roccia tenera molto
+  fratturata) a **oltre 1,5 kg/m³** (roccia massiva, dura, abrasiva).
+  *[di seconda mano: toolgrit.com, "Powder Factor & Blast Design Guide"]*
+- Uno studio specifico su cave di calcare raccomanda **0,31–0,51 kg/m³**
+  per ottimizzare il piano di tiro in sicurezza. *[di seconda mano:
+  nature.com/Scientific Reports, "Optimizing blast design and bench
+  geometry... open pit limestone mines"]*
+- Un valore molto più alto compare **fuori dal contesto della volata di
+  produzione**: nella **frantumazione secondaria** (rottura di massi già
+  staccati) i problemi di vibrazione diventano rilevanti oltre **~3,5
+  lb/ton (~3,85 kg/m³)**, e oltre quel valore "non serve altro" per una
+  rottura sufficiente. È un caso d'uso diverso (masso isolato, non banco
+  intero), citato solo per dare un ordine di grandezza dell'estremo
+  superiore che la pratica reale conosce. *[di seconda mano: fonte
+  aggregata dalla ricerca su "maximum practical powder factor"; dominio
+  esatto non identificabile dallo snippet, va riletto sulla fonte prima di
+  usarlo per una soglia]*
+- **Nessuna fonte trovata dichiara un valore "record" o "mai visto" oltre
+  questi ordini di grandezza**: la ricerca non ha incontrato nessun caso
+  reale, nemmeno estremo, sopra qualche kg/m³. Il caso di prova del
+  mandato (609 milioni di kg/foro, cioè un pf di ordini di grandezza
+  superiore) non ha **nessun analogo** in nessuna fonte incontrata.
+
+**2. Limiti dichiarati del modello Kuz-Ram/Kuznetsov-Cunningham**
+
+- Il fattore roccia **A** dell'equazione di Kuznetsov varia tipicamente fra
+  **0,8 e 22**; l'indice di uniformità **n** di Rosin-Rammler è di norma fra
+  **0,7 e 2**. *[di seconda mano: sciencedirect.com/ScienceDirect Topics,
+  voce "Kuznetsov"]*
+- Il modello **sottostima sistematicamente le fini** (la coda fine della
+  distribuzione): predice ragionevolmente bene i frammenti grossi ma non i
+  fini, un limite noto e citato come causa diretta della nascita dei modelli
+  successivi — **KCO (Kuznetsov-Cunningham-Ouchterlony, Cunningham 2005)** e
+  **Modified Kuz-Ram**. *[di seconda mano: scielo.org.za, "Prediction of
+  rock fragmentation using the KCO model"; researchgate.net, "Modified
+  Kuz-Ram fragmentation model... Sungun Copper Mine"]*
+- Per indici di uniformità fra **0,8 e 2,2** l'errore sulla dimensione
+  caratteristica del modello originale arriva a **105%–179%**: cioè anche
+  dentro il range "normale" dei parametri, l'errore di stima è enorme.
+  *[di seconda mano: researchgate.net, "A Correction Relating to the
+  Analysis of the Original Kuz-Ram Model"]*
+- Citazione diretta e rilevante: **"there is a danger of inexperienced
+  users pushing the model beyond its proper range of application"** — dal
+  paper di C.V.B. Cunningham "The Kuz-Ram fragmentation model – 20 years
+  on" (la fonte con il testo più esteso reperibile è il PDF ospitato su
+  smctesting.com). È la conferma, dall'autore stesso del modello, che il
+  problema "un utente spinge il modello fuori dal suo dominio" è
+  **riconosciuto in letteratura da chi l'ha creato** — ma lo snippet non
+  contiene un **numero** di soglia associato a questa frase: non è
+  possibile dire, da questa fonte, se Cunningham indichi un valore preciso
+  oltre cui fermarsi. *[di seconda mano: smctesting.com /
+  semanticscholar.org, "The Kuz-Ram fragmentation model – 20 years on"]*
+- La curva di Rosin-Rammler su cui si basa la coda della distribuzione di
+  Kuz-Ram è dichiarata **precisa nel rappresentare particelle fra 10 mm e
+  1000 mm** — che è il range dimensionale in cui il modello è stato
+  calibrato e verificato. *[di seconda mano: dspace.nitrkl.ac.in, tesi
+  "Optimization and determination of blast design parameters"]*
+  ⚠️ **Questo è il fatto più direttamente rilevante per il caso di prova del
+  mandato**: un target x50 di 0,001 cm (0,01 mm = 10 micron) sta **circa
+  1000 volte sotto** il limite inferiore (10 mm) del range in cui la fonte
+  dichiara il modello verificato — cioè non è solo "un numero enorme", è un
+  target **fuori dal dominio dimensionale su cui la curva è stata tarata**,
+  a prescindere dal valore di pf che ne consegue.
+- **Nessuna fonte trovata dichiara un tetto numerico esplicito sul powder
+  factor** (un valore di pf oltre il quale il modello Kuz-Ram "si dichiara
+  inaffidabile" per costruzione, analogo al clamp basso `pf<0.05` già nel
+  nostro codice). Cercato con più formulazioni («Kuznetsov equation
+  calibration data range validity original dataset powder factor limits»,
+  «maximum practical powder factor... limit», «JKSimBlast SHOTPlus
+  O-Pitblast software warning... powder factor»): **nessun risultato
+  riporta un numero di soglia dichiarato dal modello o da un software
+  commerciale**. Quello che la letteratura dichiara è qualitativo (il
+  rischio di estrapolazione, la sottostima delle fini) e i range **pratici**
+  della sezione 1, non un limite formale del modello.
+
+**3. Prassi UX per un input che porta a un risultato fisicamente implausibile
+per estrapolazione**
+
+- Concetto generale, **sanity check**: "a basic test to quickly evaluate
+  whether a claim or result of a calculation can possibly be true... the
+  point of a sanity test is to rule out certain classes of obviously false
+  results, not to catch every possible error." *[di seconda mano:
+  en.wikipedia.org, "Sanity check"]*
+- Un esempio concreto citato per strumenti di ingegneria: se un calcolo
+  esce con un motore da 1 kW dove prodotti comparabili usano 4 W, è un
+  segnale di errore anche se il software "calcola con precisione e non
+  fallisce" — perché **uno strumento ingegneristico elabora acriticamente
+  un input viziato** e produce comunque un risultato dall'aspetto rifinito.
+  *[di seconda mano: cam.ac.uk, "Design Cookbook: Tips for Doing
+  Calculations"]*
+- Distinzione dichiarata **soft limit / hard limit** in un sistema di
+  modellazione ingegneristica (USDA WEPS): i **soft limit** sono fissati su
+  valori "unlikely to be associated with the parameter" che non è detto
+  rompano il modello scientifico ma possono produrre risultati strani, e
+  fanno scattare **un avviso** che i risultati potrebbero essere strani —
+  distinto da un limite "duro" che blocca l'input. *[di seconda mano:
+  infosys.ars.usda.gov, documentazione WEPS, pagina "softLimits"]*
+- **Defensive design**: la pratica di scrivere controlli di sanità nel
+  codice per intercettare errori dell'utente prima che producano un
+  risultato silenziosamente sbagliato. *[di seconda mano: en.wikipedia.org,
+  "Defensive design"]*
+- **Non trovato**: nessun risultato di ricerca documenta il messaggio o il
+  comportamento specifico di un software di blast design commerciale
+  (JKSimBlast, SHOTPlus, O-Pitblast, Blastware) quando un input calcolato
+  (powder factor, x50 target) esce dal range pratico. Cercato con «warning
+  message input out of typical range powder factor» sui tre nomi: **nessun
+  risultato pertinente**, solo pagine generiche sui prodotti. Non si può
+  quindi dire, da fonte, se questi strumenti abbiano o no un avviso di
+  questo tipo — l'assenza qui è un'assenza di ricerca, non un dato sul
+  mondo, e va dichiarata come tale.
+- Un fatto collaterale ma verificato: il calcolo **inverso** di Kuz-Ram
+  (target di frammentazione → carica necessaria) è una pratica reale e
+  documentata, non un'invenzione nostra — "the Kuz-Ram model can be useful
+  for deciding blast design parameters under a given condition when mean
+  fragment size and charge factor are to be maintained" e un paper dal
+  titolo "Blasting design for obtaining desired fragmentation" affronta
+  esattamente questo verso del calcolo. *[di seconda mano:
+  espace.curtin.edu.au / academia.edu]* Non è emerso, però, nessun dettaglio
+  su come quei lavori trattino un target irrealisticamente fine.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+miningandblasting.wordpress.com · toolgrit.com · nature.com (Scientific
+Reports) · sciencedirect.com · dspace.nitrkl.ac.in · scielo.org.za ·
+researchgate.net (tre paper distinti: "A Correction Relating to the
+Analysis of the Original Kuz-Ram Model", "Modified Kuz-Ram fragmentation
+model... Sungun Copper Mine", voce "Kuznetsov" di ScienceDirect Topics) ·
+smctesting.com / semanticscholar.org ("The Kuz-Ram fragmentation model – 20
+years on") · mdpi.com ("Applications of Kuz-Ram Models in Mine-to-Mill
+Integration and Optimization") · academia.edu · espace.curtin.edu.au ·
+diggy.tools · k-mine.com · en.wikipedia.org (Sanity check; Defensive
+design) · infosys.ars.usda.gov (WEPS, softLimits) · cam.ac.uk (Design
+Cookbook) · o-pitblast.com.
+
+### Domande per il delta (sul MECCANISMO, non sul numero da usare)
+
+Nessuna di queste domande propone un valore: chiedono dove, nel codice e
+nell'interfaccia già esistenti, andrebbe agganciata l'informazione che il
+mondo sopra rende disponibile.
+
+1. Il clamp basso di `caricaDaX50Target` (`kg<1 || pf<0.05`) e il campo
+   `fuoriDominio` — sono già letti da qualche punto dell'interfaccia di
+   Genesi (un badge, un avviso), o restano un valore booleano calcolato e
+   mai mostrato? Se il primo caso, il canale per un avviso sul lato alto
+   **esiste già** e si tratta di allargare la stessa condizione; se il
+   secondo, il principio del fondatore ("l'assenza di un dato non è un
+   dato favorevole") si applica anche qui prima ancora di decidere la
+   soglia.
+2. Il dominio dimensionale della curva di Rosin-Rammler (10–1000 mm,
+   sezione 1 sopra) è un vincolo diverso dal powder factor: riguarda l'x50
+   **target** in sé, non il kg calcolato. C'è già, in `genesi-data.js` o
+   nell'interfaccia, un posto dove l'x50 target viene confrontato con un
+   range dimensionale plausibile (per esempio il range dei setacci usati
+   nel controllo qualità, se esiste), o il target oggi passa senza nessun
+   controllo dimensionale indipendente dal powder factor?
+3. Il modello, per fonte concorde, sottostima le fini proprio nella zona
+   dove un target fine spinge il calcolo (sezione 2 sopra): un avviso
+   "fuori dominio" sul lato alto dovrebbe quindi forse dire qualcosa di
+   diverso da un avviso generico di range — dice il mondo che è un difetto
+   *specifico e noto* del modello, non solo "valore assurdo". Chi ha il
+   codice in mano decide se questa sfumatura vale la pena o è
+   sovraingegnerizzazione per un caso limite.
+4. Powder factor pratico "di produzione" (sezione 1) arriva a ~2,2 kg/m³ in
+   letteratura, e anche il caso limite della frantumazione secondaria (un
+   uso ben diverso, un masso isolato non un banco) non supera qualche
+   kg/m³: quando chi ha il codice deciderà il tetto, ha un ordine di
+   grandezza concreto — non un numero — con cui confrontare la propria
+   scelta.
+
