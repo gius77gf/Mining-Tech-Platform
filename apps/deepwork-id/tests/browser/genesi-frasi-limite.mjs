@@ -183,13 +183,30 @@ async function aspettaTesto(pg, leggi, tetto = 25000) {
   return t;
 }
 
+/* ⏱️ 12/09, seconda misura: NON era un'ordine di intercettazione di
+   `window.toast` — era la STESSA causa di `vaiA` e di `genesi-struttura.mjs`,
+   in una veste che l'aveva nascosta. `$('fileIn').onchange=...` (riga ~3053
+   di genesi.html) viene assegnato durante lo stesso avvio sincrono lento
+   (13-20s senza GPU) di `disclaimerChk.onchange`: il caso «1 · i file
+   importati» chiama `dai(pg,'fileIn',...)` SUBITO dopo `apri()`, prima che
+   quel gestore esista. Il `change` scatta nel vuoto — nessuno lo ascolta —
+   e non si ripresenterà mai, quindi `aspettaToast` esauriva i suoi 25s
+   aspettando un toast che non sarebbe mai arrivato: non un'attesa più
+   lunga, un evento sparato a vuoto. Sostituita l'attesa fissa di 2,6s con
+   un'attesa dello sparire di `#splash` (segno che il grosso del cablaggio,
+   incluso `fileIn.onchange`, è fatto), tetto 25s — stesso pattern di
+   `vaiA` e `genesi-struttura.mjs`. */
 async function apri(preludio, coda) {
   const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
   const errori = [];
   pg.on("pageerror", (e) => errori.push(e.message));
   await pg.addInitScript(preludio || (() => localStorage.setItem("genesiDisclaimerV1", "1")));
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html${coda || ""}`, { waitUntil: "domcontentloaded" });
-  await pg.waitForTimeout(2600);
+  const scadenzaSplash = Date.now() + 25000;
+  while (await pg.evaluate(() => !!document.getElementById("splash")) && Date.now() < scadenzaSplash) {
+    await pg.waitForTimeout(500);
+  }
+  await pg.waitForTimeout(300);
   await pg.evaluate(() => {
     const l = document.getElementById("loginBtn"); if (l) l.click();
     const c = document.getElementById("consensoOk");
