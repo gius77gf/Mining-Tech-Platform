@@ -1,22 +1,26 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-10, 21:47 UTC
-- **Commit di partenza**: `0c686242`
+- **Quando**: 2026-09-12, 09:15 UTC
+- **Commit di partenza**: `5fdfd644`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Il contenitore è stato **riavviato** a metà del ciclo del 10/09 (alle ~18:45Z,
-mentre girava un giro filtrato del browser): il disco è tornato a un clone
-di `main` (91b2377) con il nome del ramo di sessione — riallineato con
-`git checkout -B` sul ramo remoto, senza perdere niente di committato. Perso
-il non committato: le tre lezioni del 10/09 in CLAUDE.md, la patch del banco
-del contrasto, lo scratchpad (sonde, scatti, registro del giro filtrato).
-Si riprende dal checkpoint più recente per data vera
-(`20260910-182351_vetrina-fumo-contrasto.md`, commit `0c686242`): il righello
-del contrasto sul testo dentro il marchio, poi le lezioni in CLAUDE.md, poi il
-giro filtrato del browser da rilanciare.
+Il repository è raggiungibile e HEAD combacia col remoto (nessuna
+divergenza). Nella working tree sono presenti, non ancora committate, le
+modifiche dell'unità 118 (Conti: `xmlFatturaPA` scrive `TD24` quando la
+fattura cita dei DDT, `TD01` altrimenti; `sdi: { stato, il, nota }` sulla
+fattura con `statoSdi`/`sollecitabile`/`prioritaIncasso` marcata; prove in
+run-kpi già verdi nella sessione precedente). Prossimi passi immediati:
+1. Rilanciare il giro `node` sulla worktree e, se verde, committare l'unità
+   118 con checkpoint.
+2. Leggere il giro del browser lanciato su `755ef985` (se ancora vivo o già
+   concluso) con `leggi-giro.mjs` e chiudere eventuali KO veri.
+3. Proseguire con la ricerca a rotazione (quarto giro: Genesi, Scudo,
+   Flotta) o con le unità di prodotto aperte in `vault/ROADMAP_SETTIMANA.md`.
 
-Il ciclo del 10/09 ha chiuso **16 unità** (37 → 52): rimanenze e registro
-vendite in Conti, la passata in profondità a 320/430 px su sette prodotti
-(motore dei grafici, `.fl`, `--info-basis`, la vetrina sotto la foto).
+Nota: questo ciclo ha ricevuto anche il testo standard della routine
+settimanale, che cita la fase dei "ponti fra le app" (docs/MAPPA_ECOSISTEMA.md)
+e la profondità per singola app come priorità generali del fondatore — restano
+valide come sfondo, ma il lavoro puntuale prosegue dal "Prossimo passo
+atomico" del checkpoint più recente per data vera.
