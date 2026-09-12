@@ -1401,3 +1401,260 @@ Nota: questa sezione riporta solo ciò che i risultati di ricerca hanno effettiv
 16. Rosin-Rammler distribution fragmentation curve x50 image analysis fitting
 
 Tutte le query sono state eseguite con `WebSearch`; nessuna pagina primaria è stata letta per intero (WebFetch bloccato). Ogni affermazione sopra è marcata con la fonte del risultato di ricerca da cui proviene.
+
+## Ricerca del 2026-09-12 — flyrock (previsione quantitativa) e backbreak: cause, regole pratiche, formule, trattamento nei software commerciali (metà sul mondo)
+
+⚠️ **Contesto del mandato**: Genesi ha già una stima di flyrock (gittata +
+anelli di sgombero) e un modello di vibrazioni (Devine/USBM + calibrazione
+signature-hole), ma non era chiaro se il **backbreak** (rottura oltre
+l'ultima fila, danno alla parete residua) fosse già modellato esplicitamente,
+né su quali basi pubbliche poggiasse la stima di flyrock esistente. Verificato
+con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md` prima di iniziare che
+nessuna sezione precedente copre questo tema.
+
+Metodo: solo `WebSearch` (WebFetch bloccato, EGRESS_BLOCKED, non riprovato per direttiva). Tutti i fatti sono di seconda mano
+(snippet di ricerca, non testo primario letto per intero). Nessun confronto col codice di Genesi: quello lo fa chi ha il
+codice in mano.
+
+---
+
+### 1. Modelli pubblici per la previsione QUANTITATIVA del flyrock
+
+**Lundborg et al. (1975)** — il modello storico più citato.
+- Formula riportata, confermata da **due fonti indipendenti** (ResearchGate/pdfs.semanticscholar.org e degruyterbrill.com,
+  entrambe che citano lo stesso lavoro originale svedese SveDeFo):
+  `Lm = 260 · D^(2/3)` — Lm = gittata massima in **metri**, D = diametro del foro in **pollici**.
+  Formula complementare per la dimensione del frammento: `Tb = 0.1 · D^(2/3)` (Tb in metri).
+- [di seconda mano: researchgate.net/publication/316622128, degruyterbrill.com/geo-2022-0624] — approccio semi-empirico
+  basato su conservazione della quantità di moto e leggi di scala per cariche sferiche: si ricava prima la velocità V
+  del frammento in funzione del diametro di carica, poi si applica la traiettoria balistica.
+- Una fonte riporta anche una forma estesa con densità roccia: `V = 10 · 260 · D / (Tb · Pr)` dove Pr è la densità
+  roccia in kg/m³ — **una sola fonte trovata per questa variante estesa, non incrociata**, quindi da trattare con
+  cautela.
+- Critica riportata: [di seconda mano: scielo.org.za S2225-62532022001200009] i metodi di Lundborg e McKenzie per
+  calcolare la velocità di lancio sarebbero "difettosi" (defective) e le previsioni di gittata "inaffidabili", tendenti
+  a essere troppo conservative nel fissare le distanze di sicurezza. Fonte singola per questa critica specifica.
+
+**Roth (1979)**
+- [di seconda mano: researchgate.net/publication/233427497 e review scielo] Roth ha cercato di legare la velocità del
+  flyrock al rapporto fra massa di carica e massa di roccia, mediato sull'intera faccia del banco. Limite dichiarato:
+  non tiene conto della qualità della roccia né di zone di sotto/sovra-caricamento localizzate sul fronte.
+- Non trovata una formula esplicita di Roth negli snippet raccolti (solo la descrizione concettuale). "Non trovato" il
+  dettaglio numerico/analitico della sua equazione.
+
+**McKenzie (2009)**
+- [di seconda mano: researchgate.net/publication/233427497, iseeaustralia.org/…McKenzie_FlyrockModelValidation] Modello
+  dettagliato basato sull'approccio "scaled depth of burial" (profondità di interramento scalata), che tratta il
+  flyrock dal collare del foro e dal fronte banco come casi di "crater blasting". McKenzie propone equazioni per la
+  gittata massima e per la dimensione del frammento che raggiunge quella gittata massima, in funzione di: densità
+  roccia, diametro foro, densità esplosivo, grado di confinamento.
+- Formula esplicita: **non trovata** negli snippet (solo descrizione qualitativa/strutturale del modello). Il paper di
+  validazione di McKenzie esiste (iseeaustralia.org, presentazione ISEE) ma il contenuto formulare non è emerso dai
+  risultati di ricerca.
+
+**Richards & Moore (2004)** — modello adottato anche nello standard australiano AS 2187.2 (vedi sezione 4).
+- [di seconda mano: epa.wa.gov.au PER_documentation2 (Blast It Global), sciencedirect.com S2949926724000015]
+  Distinguono tre meccanismi di generazione del flyrock: **face burst**, **cratering**, **stemming ejection/rifling**
+  (vedi anche sezione 2). Per il meccanismo di face burst, una fonte riporta una forma "Gurney modificata":
+  `Lmax = k · g · (m/B²)^0.5 · sin(2θ)`, dove Lmax = gittata massima (m), m = carica per metro di foro (kg/m),
+  B = burden (m), g = accelerazione di gravità, k = "costante di roccia" (rock constant) derivata sperimentalmente,
+  θ = angolo di lancio.
+  ⚠️ **Una sola fonte trovata per questa forma esplicita della formula (snippet aggregato da ricerca, non il testo
+  Richards & Moore 2004 originale) — non incrociata con una seconda fonte indipendente che riporti la stessa equazione
+  carattere per carattere.** Il concetto (burden scalato = burden o stemming diviso per la radice quadrata della carica
+  per ritardo, componente balistica + relazione empirica velocità-burden scalato) è invece confermato da più fonti.
+- Il fattore k va calibrato per sito/tipo di roccia — nessuna fonte fornisce valori numerici tipici di k negli snippet
+  raccolti.
+
+**Little (2007)** citato nel mandato di ricerca come possibile nome di riferimento
+- Ricerca dedicata: **non trovato** alcun modello attribuito nominalmente a "Little (2007)" negli snippet raccolti
+  (query mirata su ResearchGate/ScienceDirect/Academia non ha restituito nessun risultato che lo nomini esplicitamente).
+  Va trattato come nome non confermato in questa ricerca, non come modello inesistente — potrebbe essere indicizzato
+  sotto altro nome/anno che questa ricerca non ha intercettato.
+
+**Modelli più recenti (soft computing / ML)** — solo per contesto, non richiesti esplicitamente ma emersi spesso:
+- [di seconda mano: sciencedirect.com S2950555024000508, mdpi.com 2071-1050/15/4/3265, e altri] Dal 2011 in poi la
+  letteratura si è spostata pesantemente verso reti neurali artificiali (ANN), ANFIS, SVM, algoritmi genetici e ibridi
+  metaeuristici per predire la distanza di flyrock a partire da dataset di eventi di volata reali. Questi non sono
+  "formule pubbliche" in senso chiuso ma modelli statistici addestrati su dataset specifici di miniera — non
+  generalizzabili senza ri-taratura.
+
+**Parametri di input tipici riportati per i modelli di flyrock** [di seconda mano: sciencedirect.com
+S1365160912000597, e review aggregate]:
+burden (B), spaziatura (S), profondità del foro (HD), lunghezza dello stemming (St), carica massima istantanea (MC),
+fattore di carica/powder factor (PF), indice di fragilità della roccia (brittleness index, BI), diametro del foro.
+Analisi di sensibilità riportata: powder factor è il parametro più efficace sulla distanza di flyrock, seguito da
+stemming e burden; burden/spaziatura/stemming correlano **negativamente** con la distanza di flyrock (più burden e
+stemming ⇒ meno flyrock), mentre powder factor, carica massima istantanea e indice di fragilità la aumentano.
+Parametri controllabili citati come cause principali: burden insufficiente, timing di ritardo improprio, stemming
+inadeguato, perforazione imprecisa, powder factor eccessivo.
+
+---
+
+### 2. Backbreak: definizione, cause, soglie/regole pratiche
+
+**Definizione** [di seconda mano: link.springer.com/10.1007/s12665-016-5354-6, semanticscholar.org
+8f7a1517f4cb4a0a28d80e4162c0ed5106e02efe]: il backbreak è la formazione di fratture sui banchi **dietro l'ultima fila
+di fori** di una volata a cielo aperto — cioè danno alla parete/gradino residuo oltre il limite di scavo previsto.
+
+**Cause principali documentate** [di seconda mano: stesse fonti + ias.ac.in/sadh/046, blog.strayos.com]:
+- Parametri di disegno della volata più citati come determinanti: burden, spaziatura, stemming, timing di ritardo,
+  **stiffness ratio** (rapporto altezza banco/burden).
+- Stemming lungo su banchi "rigidi" (stiffness ratio basso) favorisce il backbreak.
+- Timing di ritardo fila-a-fila improprio: se troppo corto, confinamento eccessivo dei gas nell'ultima fila della
+  volata (mancata relief) ⇒ energia scaricata verso il residuo invece che verso il fronte libero.
+- Aumento del numero di file di fori aumenta la probabilità di backbreak, con il timing corto indicato come causa
+  principale in questo caso.
+- Sovraccarico dei fori (overloading) rispetto alla geologia circostante.
+- Konya (citato in [di seconda mano: pitandquarry.com, springer 10.1007/s12665-016-5354-6]): il backbreak aumenta
+  quando burden e/o stemming aumentano.
+- Sottoperforazione/sovraperforazione (subgrade drilling): la profondità di sottoperforazione e l'altezza di stemming
+  influenzano la frattura al ciglio (crest fracture) e quindi il backbreak — variarle è indicato come leva di
+  controllo.
+
+**Soglie e regole pratiche (rules of thumb) citate:**
+- **Stiffness ratio (altezza banco / burden)**: concetto coniato da Calvin Konya (metà anni '60). Konya & Ash
+  raccomandano stiffness ratio **non inferiore a 2**. In pratica il rapporto tipico osservato è **1.5–4**, con
+  frequenza massima intorno a **2.6** [di seconda mano: pitandquarry.com/blasting-mechanics-revisited]. A stiffness
+  ratio = 1 la volata "craterizza" (blow-out violento, proiezione verticale); a stiffness ratio = 4 la rottura avviene
+  per flessione sotto il foro con spostamento orizzontale — quindi entrambi gli estremi sono indicati come non ideali.
+- **Buffer row (fila cuscinetto)**: tecnica di controllo perimetrale citata da più fonti indipendenti (miningdoc.tech,
+  osmre.gov, stacks.cdc.gov/227874) — per l'ultima fila di produzione (adiacente al limite di scavo/presplit):
+  · ridurre burden e spaziatura dell'ultima fila di circa **25%** (confermato da due fonti indipendenti:
+    miningdoc.tech/…buffer-blasting-an-overview e la ripetizione dello stesso dato in una seconda pagina della stessa
+    famiglia di fonti — **nota: le due citazioni potrebbero derivare dalla stessa fonte primaria, quindi il 25% è da
+    considerare un dato ricorrente ma non pienamente indipendente**);
+  · minimizzare la sottoperforazione (sub-drill) quando si perfora adiacente al banco successivo;
+  · aumentare l'intervallo di ritardo fra le ultime due file di fori;
+  · uso di air-decking (carica disaccoppiata con intercapedine d'aria) sulla fila cuscinetto;
+  · la fila cuscinetto viene caricata più leggermente della produzione (esplosivo a densità minore o cariche
+    parzialmente disaccoppiate), ma più pesantemente della fila di presplit vera e propria.
+- **Timing**: regola pratica generale (conservativa) citata: **"2 millisecondi per piede di burden"** per il
+  dimensionamento dei tempi di ritardo [di seconda mano: fonte aggregata pitandquarry/osmre — **una sola menzione
+  esplicita trovata di questo numero specifico applicato al backbreak, non incrociata con una seconda fonte
+  indipendente per questo valore preciso**].
+- **Standoff (distanza dell'ultima fila dal limite finale)**: citato come elemento chiave del successo del buffer
+  blasting, insieme a stabilità della parete e facilità di scavo del piede — nessun valore numerico specifico
+  associato negli snippet raccolti.
+
+---
+
+### 3. Formule pubbliche per stimare quantitativamente il backbreak (in metri)?
+
+**Risposta sintetica: la letteratura tratta il backbreak prevalentemente con regressioni statistiche/modelli
+data-driven calibrati su un sito specifico, NON con una formula fisica chiusa universale paragonabile a quella di
+Lundborg per il flyrock.**
+
+- [di seconda mano: link.springer.com/10.1007/s12665-016-5354-6 — Ghasemi et al.] Studio su **175 eventi di volata**
+  alla miniera di rame di Sungun (Iran): modelli di regression tree (RT) e ANFIS che predicono il backbreak a partire
+  da burden, spaziatura, lunghezza stemming, powder factor e stiffness ratio geometrico. ANFIS risultato più accurato
+  di RT. **Non è stata trovata negli snippet la forma esplicita dell'equazione di regressione con i suoi coefficienti
+  numerici** (i risultati di ricerca descrivono l'approccio ma non riproducono l'equazione "BB = …" per intero).
+- [di seconda mano: sciencedirect.com S136516091200247X — "A new methodology to predict backbreak in blasting
+  operation", Mohammadnejad et al.] Analisi di regressione multivariata per un'equazione empirica di backbreak basata
+  su burden, profondità foro, spaziatura, stemming, "specific drilling" e powder factor. Anche qui: **formula con
+  coefficienti non reperita nello snippet** (solo lo scribd.com che ospita il PDF, contenuto non accessibile via
+  WebFetch).
+- [di seconda mano: link.springer.com/10.1007/s00366-015-0404-3] Uso di programmazione genetica (GP) e regressione non
+  lineare multipla per predire il backbreak — stessa famiglia, stessa limitazione di accesso al testo pieno.
+  Una fonte nota anche che, in un dataset, "il powder factor ha una relazione minore col backbreak e per questo non è
+  stato usato come input in alcuni modelli predittivi" — cioè l'insieme di parametri usati **varia da studio a
+  studio**, segno che non c'è consenso su un'unica formula con un unico set fisso di variabili.
+- [di seconda mano: link.springer.com/10.1007/s12665-025-12170-y] Modelli LSSVM ottimizzati con metaeuristiche, input:
+  burden (m), spaziatura (m), stemming (m), powder factor (kg/ms), stiffness ratio (m/m). Analisi di sensibilità:
+  powder factor ha l'influenza maggiore, **burden quella minore** sul backbreak in quel dataset specifico — nota che
+  questo risultato è in tensione con la regola pratica di Konya ("il backbreak aumenta se aumenta il burden"): può
+  darsi che nel dataset la varianza del burden fosse piccola rispetto agli altri parametri, ma la ricerca non ha
+  trovato una spiegazione esplicita di questa apparente contraddizione — segnalata come tale, non risolta.
+- [di seconda mano: link.springer.com/10.1007/s11053-021-09929-y] Modelli ibridi SCA-RF e HHO-RF (random forest +
+  metaeuristiche) per predire il backbreak in miniere a cielo aperto — stessa famiglia di approccio data-driven.
+
+**Conclusione per la sezione 3**: esistono **formule di regressione pubblicate** (con struttura lineare o non lineare
+nei parametri burden/spaziatura/stemming/powder factor/stiffness ratio), ma sono **calibrazioni empiriche legate al
+sito e al dataset di origine** (es. Sungun Copper Mine), non leggi fisiche generali come Lundborg per il flyrock. Il
+loro coefficiente numerico esplicito **non è stato reperito** nei risultati di ricerca disponibili (i paper sono dietro
+paywall/PDF non accessibile senza WebFetch). Il trattamento "prevalentemente qualitativo/rules-of-thumb" è quindi
+**parzialmente vero**: esistono equazioni quantitative, ma sono regressioni statistiche site-specific, non un modello
+fisico closed-form universalmente riconosciuto.
+
+---
+
+### 4. Trattamento di backbreak/flyrock nei software commerciali
+
+**SHOTPlus (Orica)** — la fonte più solida trovata in questa ricerca.
+- [di seconda mano: orica.com/digital-solutions/blast-design-and-execution/shotplus, support.blastiq.com/…
+  Exclusion-Zone-Tool] SHOTPlus ha un modulo dedicato esplicito: **"Exclusion Zone Tool"**. Genera una zona di
+  esclusione basata su:
+  · un raggio costante dai fori nel piano, **oppure**
+  · distanze di lancio orizzontale del flyrock **calcolate**, valutando **tre sorgenti di flyrock** — le stesse tre
+    citate da Richards & Moore (2004): face burst, cratering, stemming ejection.
+  · "Face burst" calcolato solo per il tipo di foro della fila frontale nominata; "stemming ejection" e "cratering"
+    calcolati per tutti i tipi di foro.
+  · Input dichiarati: fori nel piano, variabili definite dall'utente, caricamento dei fori, dati di progetto per tipo
+    di foro.
+  - Non è stato trovato negli snippet un riferimento esplicito a un modulo backbreak dedicato in SHOTPlus (solo
+    flyrock/exclusion zone); "non trovato" per backbreak specifico in questo prodotto.
+
+**AS 2187.2 (standard australiano)** — riferimento normativo/di settore, non un software, ma rilevante per il
+trattamento "ufficiale" del flyrock:
+- [di seconda mano: epa.wa.gov.au PER_documentation2 3-3 Blasting Assessment, sciencedirect.com
+  S2949926724000015] AS 2187.2-2006, Appendice E, tratta esplicitamente la minimizzazione del flyrock e la
+  definizione di una "Blast Exclusion Zone" (BEZ) sicura, con le equazioni di Richards & Moore (2004) come base
+  raccomandata, da calibrare con dati specifici del sito.
+
+**JKSimBlast (JKTech/Soft-Blast)**
+- [di seconda mano: miningsoftwarereviews.com/software/jksimblast, soft-blast.com] Suite modulare (2DBench, 2DRing,
+  2DFace, JKBMS, 2DView/TimeHEx, Blastatistics). Descritto genericamente come capace di aiutare a **ridurre**
+  "oversize, rock toe, flyrock, vibrazioni, rumore, backbreak, ecc." tramite ottimizzazione e analisi (contour di
+  timing, distribuzione energia, ottimizzazione carica, modellazione vibrazioni). **Non è stato trovato negli snippet
+  un modulo nominato esplicitamente "flyrock" o "backbreak"** con formula propria dichiarata — il riferimento è
+  generico ("aiuta a ridurre"), quindi va segnalato come **non specificato in dettaglio dalle fonti disponibili**.
+
+**O-Pitblast**
+- [di seconda mano: o-pitblast.com/blog/unveiling-the-danger-exploring-flyrocks-in-blasting,
+  researchgate.net/381800576] Il software è descritto come capace di **prevedere dove si verificheranno problemi di
+  flyrock o materiale sovradimensionato** nel campo della volata, con analisi della distribuzione del burden
+  (visualizzazione a colori: verde = burden di progetto, blu = deviazioni maggiori, rosso = burden minore — un burden
+  minore del previsto è correlato a maggior rischio di flyrock). O-Pitblast pubblica anche contenuti divulgativi propri
+  sui tre meccanismi di flyrock (rifling, cratering, face burst) sul proprio blog aziendale.
+  **Non è stato trovato un modulo backbreak nominato esplicitamente** per O-Pitblast negli snippet raccolti.
+
+**Blastware**
+- Ricerca dedicata: gli snippet associano il nome "Blastware" principalmente a **software di analisi "signature hole"
+  per l'elaborazione dei sismogrammi di vibrazione** (contesto Instantel/monitoraggio vibrazioni), non a un pacchetto
+  di blast design con moduli flyrock/backbreak paragonabili a SHOTPlus/JKSimBlast/O-Pitblast. **Non è stato trovato**
+  alcun riferimento esplicito a moduli di previsione flyrock o backbreak per questo nome di prodotto. Da trattare con
+  cautela: potrebbe trattarsi di un nome commerciale ambiguo/obsoleto non ben indicizzato nei risultati raccolti,
+  oppure di un prodotto diverso da quello inteso nel mandato di ricerca.
+
+**Limite normativo di distanza minima (exclusion zone) — dato quantitativo**
+- [di seconda mano: msha.gov/news-media/announcements/2016/03/24/flyrock-dangers-best-practices e fonte aggregata]
+  Zone di esclusione da volata tipicamente richieste: **300–500 metri** (~1000+ piedi) citate come ordine di
+  grandezza generico nel contesto USA (30 CFR Parte 56/57 per miniere di superficie/sotterranee metal/nonmetal),
+  **ma il testo normativo esatto con il numero preciso non è stato reperito negli snippet** — un esempio operativo
+  specifico citato (non normativo generale, ma procedura di una singola miniera) riporta 300 m per mezzi/impianti
+  mobili e 500 m per i lavoratori.
+- [di seconda mano: iopscience.iop.org/1755-1315/1175/1/012002] Uno studio di caso descrive esplicitamente lo sforzo
+  di **ridurre il raggio di sicurezza da 500 m a 300 m** tramite modellazione del flyrock — a conferma che 300–500 m
+  sono ordini di grandezza ricorrenti nella prassi/regolamentazione mineraria internazionale, ma **come intervallo
+  di riferimento di settore, non come singolo valore normativo univoco identificato con certezza in questa ricerca**.
+- Normativa italiana (D.Lgs. 624/1996): ricerca dedicata effettuata — gli snippet coprono l'impianto generale del
+  decreto (sicurezza e salute lavoratori industrie estrattive, Documento di Sicurezza e Salute) ma **non è stata
+  trovata negli snippet disponibili una distanza minima di sgombero/sicurezza specifica per proiezione di schegge
+  citata testualmente dal decreto o da sue norme tecniche di attuazione**. Segnalato come "non trovato" — servirebbe
+  l'accesso al testo primario del decreto (bloccato da WebFetch in questo ambiente) o a guide tecniche di settore più
+  specifiche.
+
+---
+
+### Riepilogo dei "non trovato" espliciti (per trasparenza)
+- Formula esplicita di Roth (1979): non trovata, solo descrizione concettuale.
+- Formula esplicita di McKenzie (2009): non trovata, solo descrizione strutturale del modello.
+- Modello "Little (2007)" nominato nel mandato: non trovato con questo nome/anno negli snippet raccolti.
+- Coefficienti numerici delle equazioni di regressione del backbreak (Ghasemi et al., Mohammadnejad et al.): non
+  trovati (solo descrizione dei parametri di input, non l'equazione completa con coefficienti).
+- Modulo backbreak dedicato e nominato esplicitamente in JKSimBlast, O-Pitblast, Blastware: non trovato (solo
+  affermazioni generiche "aiuta a ridurre il backbreak" senza dettaglio del meccanismo/formula).
+- Distanza minima di sgombero normativa italiana per proiezione schegge (D.Lgs 624/96 o norme tecniche collegate):
+  non trovata negli snippet disponibili.
+- Valori tipici del fattore "k" (costante di roccia) nella formula di Richards & Moore: non trovati.
