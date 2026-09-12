@@ -208,6 +208,13 @@ const conDom = censite.filter((c) => !c.glob.length && c.dom);
    ma con il DOM ricevuto, la tela, il 3D o `localStorage` dentro */
 const conAmbiente = censite.filter((c) => !c.glob.length && !c.dom && c.ambiente);
 const facili = censite.filter((c) => c.glob.length && c.glob.length <= 2);
+/* ⛔ LA PROSSIMA FETTA — «si cerca fra le 3-5 e le 6-10» diceva la roadmap,
+   e nessuno le poteva vedere: `--elenco` stampava solo gli estremi (0, 1-2,
+   11+), lasciando le due colonne di mezzo — 44 funzioni al 09/08 — senza
+   un nome da aprire. Stesso difetto già raccontato qui sopra per «i 47»:
+   un cantiere senza elenco si rifà il censimento a mano. */
+const mediaBassa = censite.filter((c) => c.glob.length >= 3 && c.glob.length <= 5);
+const mediaAlta = censite.filter((c) => c.glob.length >= 6 && c.glob.length <= 10);
 const duri = censite.filter((c) => c.glob.length > 10);
 console.log(`\n  ${subito.length} si portano fuori COME SONO (nessuna variabile del modulo, nessun tocco al DOM)`);
 console.log(`  ${conDom.length} non leggono variabili del modulo ma SCRIVONO NEL DOM con \`$(...)\`: restano nella pagina`);
@@ -255,6 +262,14 @@ if (ELENCO) {
      e senza un elenco chi lo apre deve rifare il censimento a mano (04/09) */
   console.log(`\n── Le ${facili.length} che leggono una o due variabili del modulo, dalla più grossa:`);
   for (const c of facili.slice().sort((a, b) => b.corpo.length - a.corpo.length))
+    console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)} legge: ${c.glob.join(", ")}`
+      + (c.dom ? "  · scrive nel DOM" : "") + (c.ambiente ? "  · ambiente" : "") + (c.chiama.length ? "  · chiama: " + c.chiama.slice(0, 6).join(", ") : ""));
+  console.log(`\n── Le ${mediaBassa.length} che leggono da 3 a 5 variabili del modulo (la fetta di mezzo, dalla più grossa):`);
+  for (const c of mediaBassa.slice().sort((a, b) => b.corpo.length - a.corpo.length))
+    console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)} legge: ${c.glob.join(", ")}`
+      + (c.dom ? "  · scrive nel DOM" : "") + (c.ambiente ? "  · ambiente" : "") + (c.chiama.length ? "  · chiama: " + c.chiama.slice(0, 6).join(", ") : ""));
+  console.log(`\n── Le ${mediaAlta.length} che leggono da 6 a 10 variabili del modulo (dalla più grossa):`);
+  for (const c of mediaAlta.slice().sort((a, b) => b.corpo.length - a.corpo.length))
     console.log(`  ${String(c.corpo.length).padStart(5)} car.  riga ${String(c.riga).padStart(5)}  ${c.nome.padEnd(26)} legge: ${c.glob.join(", ")}`
       + (c.dom ? "  · scrive nel DOM" : "") + (c.ambiente ? "  · ambiente" : "") + (c.chiama.length ? "  · chiama: " + c.chiama.slice(0, 6).join(", ") : ""));
   console.log(`\n── Le ${duri.length} più legate allo stato, dalla peggiore:`);

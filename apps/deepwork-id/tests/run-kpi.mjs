@@ -25680,6 +25680,31 @@ console.log("\n— Campo: i file che escono —");
     eq(v.ondaDaCsv("0;1\n0.01;2\n0.02;3\n").dt, 0.05, "il passo non scende sotto 0,05 ms");
     eq(v.ondaDaCsv("0;1;99\n1;2;99\n2;3;99\n"), { t: [0, 1, 2], a: [1, 2, 3], dt: 1 }, "le colonne oltre la seconda si ignorano");
   });
+  test("⛔ Genesi · _sitoParseCsv: i referti del sismografo, e l'ambiguità della virgola italiana", () => {
+    eq(v._sitoParseCsv("distanza;carica;ppv\n120;5;50\n80;3;22\n"),
+      { righe: [["120", "5", "50"], ["80", "3", "22"]], intest: ["distanza", "carica", "ppv"] },
+      "col punto e virgola: intestazione riconosciuta perché non è fatta di numeri");
+    eq(v._sitoParseCsv("120;5;50\n80;3;22\n"), { righe: [["120", "5", "50"], ["80", "3", "22"]], intest: null },
+      "senza intestazione (prima riga tutta numeri): nessuna riga persa");
+    eq(v._sitoParseCsv("120\t5\t50\n"), { righe: [["120", "5", "50"]], intest: null }, "col TAB");
+    eq(v._sitoParseCsv("distanza,carica,ppv\n120,5,50\n80,3,22\n"), null,
+      "⛔ a virgole, con tre colonne tutte numeriche: la virgola prima di una CIFRA non separa mai, quindi ogni riga dati resta un campo solo e si scarta — un file a virgole con dati numerici non passa MAI da questa strada, di proposito");
+    eq(v._sitoParseCsv("120,5,50,9,2\n"), null,
+      "⛔ a virgole, cinque campi plausibili come cinque interi o tre decimali: l'ambiguità si RIFIUTA, non si indovina");
+    eq(v._sitoParseCsv('"Volata A, fronte est",120.5,50,9.2\n'), null,
+      "la virgola prima del decimale (120.5) resta ambigua anche virgolettata: rifiutata lo stesso");
+    eq(v._sitoParseCsv("120;5\n80;3\n"), null, "sotto tre colonne non è un referto");
+    eq(v._sitoParseCsv(""), null); eq(v._sitoParseCsv(null), null, "vuoto o assente: null, non un elenco vuoto");
+    eq(v._sitoParseCsv("﻿distanza;carica;ppv\n120;5;50\n").intest, ["distanza", "carica", "ppv"],
+      "il BOM di Excel non finisce dentro il nome della prima colonna");
+  });
+  test("⛔ Genesi · _sitoParseCsv è USCITA dalla pagina, non copiata", () => {
+    const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
+    ok(!/function\s+_sitoParseCsv\s*\(/.test(pag), "nella pagina non c'è più una seconda _sitoParseCsv");
+    const elenco = (pag.match(/import\s*\{([^}]*)\}\s*from\s*'\.\/genesi-data\.js'/) || [, ""])[1]
+      .split(",").map(s2 => s2.trim());
+    ok(elenco.includes("_sitoParseCsv"), "la pagina importa _sitoParseCsv da genesi-data.js");
+  });
   test("⛔ Genesi · tempiDetonazione: i fori disegnati vincono, poi la griglia, e la griglia illeggibile è null", () => {
     eq(v.tempiDetonazione({ holes: [{ tDet: 0 }, { tDet: 42 }, { tDet: 84 }], perRow: 18, file: 1, ritardo: 25, ritardoFila: 42 }), [0, 42, 84], "coi fori disegnati contano i loro tDet, non la griglia");
     eq(v.tempiDetonazione({ holes: [{}, { tDet: "17" }] }), [0, 17], "un foro senza tDet parte a zero (il verso prudente), e un tDet scritto come testo si legge");

@@ -1161,7 +1161,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    suoi tre chiamanti, che gli passavano 18 fori al posto di una griglia
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
-         fattoreRoccia, x50DaMisure, ondaDaCsv, tempiDetonazione, sommaRitardata,
+         fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -4438,60 +4438,17 @@ function sitoAggiungi(){
   sitoSalva(st); toast('Referto aggiunto'); sitoRender();
 }
 
-/* Il CSV del sismografo: separatore ; , o tabulazione, decimali con la virgola,
-   intestazione riconosciuta se la prima riga non è fatta di numeri. */
-/* ⛔ IL TAGLIO DELLE RIGHE LO FA `leggiCsv` DI `shared/`, NON PIÙ QUESTA RIGA.
-   Era la terza copia di casa del lettore di CSV, e misurandola contro quella
-   condivisa su dieci file sbagliava in tre punti, tutti nel verso peggiore —
-   un dato perso, non un errore dichiarato:
-     · il nostro export riletto qui riportava dentro **l'apostrofo di guardia**
-       che `csvCell` mette davanti a una formula, quindi il nome del referto
-       cambiava a ogni giro di andata e ritorno;
-     · un riferimento con un **punto e virgola dentro** («Fronte Sud; ovest»),
-       pur virgolettato, veniva spezzato: da lì in poi tutte le colonne
-       scalavano di uno, e la distanza finiva a leggere la carica;
-     · una nota **su due righe fra virgolette** faceva sparire la prima metà
-       della riga — è il difetto che in Conti faceva sparire un bonifico da
-       12.300 €, e qui costava la distanza e la carica di un referto.
-   ⚠️ RESTA il taglio di casa quando il file è a VIRGOLE, e non è pigrizia:
-   `leggiCsv` sulla virgola non sa distinguere il separatore dal decimale
-   italiano, e su «120,5,50,9,2» risponde cinque colonne plausibili invece di
-   fermarsi. Misurato: con la sola `leggiCsv` quel file entrava come
-   distanza 120, carica 5, PPV 50 — un numero sbagliato spacciato per certo, su
-   una carica in chili. Il ripiego di casa lo rifiuta, e rifiutare è la
-   risposta giusta. Il delimitatore lo dichiara `leggiCsv` stessa, così la
-   scelta non è una seconda rilevazione scritta a somiglianza. */
-/* ⚠️ IL RIPIEGO SULLE VIRGOLE È STATO PROVATO A PORTARE IN `shared/` E LA
-   MISURA HA DETTO DI NO — scritto qui perché nessuno lo rifaccia alla cieca.
-   L'idea era dare a `leggiCsv` un'opzione `virgolaDecimale`: con il separatore
-   `,`, una virgola seguita da una CIFRA è un decimale e non un separatore.
-   Costruita in scratchpad e misurata su quattro file:
-     · «120,5,50,9,2» → una cella sola tanto di qua quanto di là, quindi la
-       riga viene **scartata** in tutt'e due i casi. Ed è la cosa giusta: quel
-       file è ambiguo per costruzione (cinque interi o tre decimali?), e
-       accettarlo vorrebbe dire leggere la carica al posto della distanza;
-     · «"Volata A, fronte est",120.5,50,9.2» → **scartata da tutt'e due**,
-       perché la virgola prima del `5` di `120.5` resta ambigua comunque.
-   L'unica differenza è la spazzatura intermedia: la regex di casa spezza
-   DENTRO le virgolette e lascia un `"` a metà campo, la condivisa no. Nessun
-   file cambia esito. Cioè il trasloco sposterebbe righe senza cambiare niente
-   per l'utente, e aggiungerebbe a `shared/` un'opzione con **un solo** utente:
-   la regola «una funzione che serve a due app» qui non si applica.
-   ⛔ Quello che resta valido e non va toccato: il **taglio delle righe e delle
-   virgolette** passa da `leggiCsv`, e solo il ripiego sulle virgole è di casa. */
-function _sitoParseCsv(testo){
-  const L=leggiCsv(testo);
-  const righe = (L.delim !== ',')
-    ? L.righe.map(r=>r.map(c=>String(c==null?'':c).trim())).filter(r=>r.length>=3)
-    : String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
-        .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
-        .filter(r=>r.length>=3);
-  if(!righe.length) return null;
-  const numerica=r=>r.filter(c=>isFinite(parseFloat(String(c).replace(',','.')))).length>=3;
-  let intest=null;
-  if(!numerica(righe[0])){ intest=righe[0]; righe.shift(); }
-  return righe.length?{ righe, intest }:null;
-}
+/* ⛔ IL CONTO NON È PIÙ QUI: `_sitoParseCsv` è salita in `./genesi-data.js`
+   (unità 121, 12/09), insieme al resto della pipeline di import della legge
+   di sito (`_sitoMappaColonne`, `_sitoNormH`, `_sitoFonteDaTesto`). Era già
+   pura — non legge niente dello stato del progetto, solo `leggiCsv` di
+   `shared/` — e il censimento (`genesi-estraibili.mjs`) la marcava come
+   legata a quattro variabili del modulo per un falso positivo del suo
+   tokenizzatore: lettere dentro le regex della funzione (`/\r?\n/`...) e
+   variabili locali di ALTRE funzioni della pagina, scambiate per stato del
+   modulo dalla sua euristica sull'indentazione. Nessun cambio di firma:
+   trasloco puro, parola per parola. Il perché del ripiego sulle virgole è
+   scritto lì, non qui. */
 function sitoImportaConferma(){
   const ci=id=>{ const el=$(id); return el?+el.value:-1; };
   const cd=ci('sito-c-d'), cw=ci('sito-c-w'), cp=ci('sito-c-p'), cr=ci('sito-c-rif');

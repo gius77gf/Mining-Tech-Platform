@@ -407,7 +407,14 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 127,
+  /* 127 → 128 il 12/09 (unità 121): `_sitoParseCsv` è salita da genesi.html,
+     pura — il censimento di `genesi-estraibili.mjs` la marcava come legata a
+     quattro variabili del modulo per un falso positivo del suo tokenizzatore
+     (lettere dentro le regex della funzione, prese per nomi). Il fondo si
+     alza SUBITO, per la ragione già scritta qui sopra due volte: se no la
+     riga esce con la coda «(il fondo era N: alzalo)» e `numeri-nei-documenti`
+     smette di leggerla. */
+  { file: "apps/genesi/genesi-data.js", fondo: 128,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

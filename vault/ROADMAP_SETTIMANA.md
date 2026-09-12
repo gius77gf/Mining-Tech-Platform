@@ -3461,6 +3461,23 @@ numero scritto dove non era stato misurato niente**.*
       ⚠️ Delle 47 a una o due variabili quasi tutte sono ormai legami di una
       riga: la prossima fetta si cerca fra le 3-5 e le 6-10 (44 funzioni), con
       il cambio di firma.*
+      ✅ **12/09 (unità 121): la fetta di mezzo era invisibile, e adesso non
+      lo è più.** `genesi-estraibili.mjs --elenco` stampava solo gli estremi
+      (0, 1-2, 11+): le 44 funzioni «da cercare» non avevano un nome da aprire,
+      e chi voleva continuare doveva rifarsi il censimento a mano. Aggiunta la
+      stampa delle due colonne di mezzo (3-5, 6-10), stesso stile delle altre.
+      Apertane una a mano: `_sitoParseCsv` risultava legata a quattro variabili
+      del modulo («n, t, d, g»), ed era un falso positivo del tokenizzatore
+      dello strumento — quelle lettere sono dentro le regex della funzione
+      (`/\r?\n/`...) e nomi locali di ALTRE funzioni della pagina, presi per
+      variabili del modulo dalla sua euristica sull'indentazione (dichiarata
+      e accettata: «sbaglia nel verso prudente»). Letta a mano: pura, chiama
+      solo `leggiCsv` di `shared/`. Trasloco in `genesi-data.js`, parola per
+      parola, nessun cambio di firma (2 nuove prove in `run-kpi.mjs`, fondo di
+      `genesi-data.js` alzato 127→128, tabella di `docs/DEVELOPMENT.md`
+      corretta 151→150 / 20→19 nel bucket 3-5). Mappa di Genesi: **150**
+      funzioni nella pagina, **55** ancora «il numero che conta» (invariato:
+      era già contata, solo nel bucket sbagliato).*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7844,9 +7861,9 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **3.394 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2913, `run-stile` 328,
+- Stato misurato al **12/09** (lanciando le suite, non a memoria):
+  **3.396 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2915, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

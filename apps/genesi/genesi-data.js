@@ -456,6 +456,74 @@ export function _sitoFonteDaTesto(v){
   if(/mano|manual/.test(s)) return 'mano';
   return 'csv';
 }
+/* IL CSV DEI REFERTI DEL SISMOGRAFO — trasloco 12/09 (unità 121, fetta di
+   mezzo di `genesi-estraibili.mjs`, quella «da 3 a 5 variabili»).
+   ⛔ Il censimento la contava fra le funzioni legate allo stato del modulo
+   («legge: n, t, d, g»), ed era un falso allarme: quelle lettere sono
+   parametri di funzioni freccia dentro le regex della pagina
+   (`/\r?\n/`, `/[;\t]|,(?=\s*[^\d\s])/`) e nomi di variabili LOCALI di altre
+   funzioni della pagina dichiarate a poca indentazione — l'euristica del
+   censimento le prende per «variabili del modulo» di proposito, per
+   sbagliare nel verso prudente (il suo stesso commento lo dice). Letta a
+   mano, la funzione non legge nessuno stato: prende `testo`, chiama
+   `leggiCsv` (già condivisa) e torna righe pulite. Trasloco senza
+   riscrittura, parola per parola.
+   Il ripiego sulla virgola resta di casa: è stato provato a portarlo in
+   `shared/` e la misura ha detto di no (nessun file cambia esito, un solo
+   consumatore) — vedi il commento più lungo qui sotto. */
+/* ⛔ IL TAGLIO DELLE RIGHE LO FA `leggiCsv` DI `shared/`, NON PIÙ QUESTA
+   FUNZIONE DI CASA. Era la terza copia di casa del lettore di CSV, e
+   misurandola contro quella condivisa su dieci file sbagliava in tre punti,
+   tutti nel verso peggiore — un dato perso, non un errore dichiarato:
+     · il nostro export riletto qui riportava dentro **l'apostrofo di guardia**
+       che `csvCell` mette davanti a una formula, quindi il nome del referto
+       cambiava a ogni giro di andata e ritorno;
+     · un riferimento con un **punto e virgola dentro** («Fronte Sud; ovest»),
+       pur virgolettato, veniva spezzato: da lì in poi tutte le colonne
+       scalavano di uno, e la distanza finiva a leggere la carica;
+     · una nota **su due righe fra virgolette** faceva sparire la prima metà
+       della riga — è il difetto che in Conti faceva sparire un bonifico da
+       12.300 €, e qui costava la distanza e la carica di un referto.
+   ⚠️ RESTA il taglio di casa quando il file è a VIRGOLE, e non è pigrizia:
+   `leggiCsv` sulla virgola non sa distinguere il separatore dal decimale
+   italiano, e su «120,5,50,9,2» risponde cinque colonne plausibili invece di
+   fermarsi. Misurato: con la sola `leggiCsv` quel file entrava come
+   distanza 120, carica 5, PPV 50 — un numero sbagliato spacciato per certo, su
+   una carica in chili. Il ripiego di casa lo rifiuta, e rifiutare è la
+   risposta giusta. Il delimitatore lo dichiara `leggiCsv` stessa, così la
+   scelta non è una seconda rilevazione scritta a somiglianza. */
+/* ⚠️ IL RIPIEGO SULLE VIRGOLE È STATO PROVATO A PORTARE IN `shared/` E LA
+   MISURA HA DETTO DI NO — scritto qui perché nessuno lo rifaccia alla cieca.
+   L'idea era dare a `leggiCsv` un'opzione `virgolaDecimale`: con il separatore
+   `,`, una virgola seguita da una CIFRA è un decimale e non un separatore.
+   Costruita in scratchpad e misurata su quattro file:
+     · «120,5,50,9,2» → una cella sola tanto di qua quanto di là, quindi la
+       riga viene **scartata** in tutt'e due i casi. Ed è la cosa giusta: quel
+       file è ambiguo per costruzione (cinque interi o tre decimali?), e
+       accettarlo vorrebbe dire leggere la carica al posto della distanza;
+     · «"Volata A, fronte est",120.5,50,9.2» → **scartata da tutt'e due**,
+       perché la virgola prima del `5` di `120.5` resta ambigua comunque.
+   L'unica differenza è la spazzatura intermedia: la regex di casa spezza
+   DENTRO le virgolette e lascia un `"` a metà campo, la condivisa no. Nessun
+   file cambia esito. Cioè il trasloco sposterebbe righe senza cambiare niente
+   per l'utente, e aggiungerebbe a `shared/` un'opzione con **un solo** utente:
+   la regola «una funzione che serve a due app» qui non si applica.
+   ⛔ Quello che resta valido e non va toccato: il **taglio delle righe e delle
+   virgolette** passa da `leggiCsv`, e solo il ripiego sulle virgole è di casa. */
+export function _sitoParseCsv(testo){
+  const L=leggiCsv(testo);
+  const righe = (L.delim !== ',')
+    ? L.righe.map(r=>r.map(c=>String(c==null?'':c).trim())).filter(r=>r.length>=3)
+    : String(testo||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+        .map(s=>s.split(/[;\t]|,(?=\s*[^\d\s])/).map(c=>c.trim().replace(/^"|"$/g,'')))
+        .filter(r=>r.length>=3);
+  if(!righe.length) return null;
+  const numerica=r=>r.filter(c=>isFinite(parseFloat(String(c).replace(',','.')))).length>=3;
+  let intest=null;
+  if(!numerica(righe[0])){ intest=righe[0]; righe.shift(); }
+  return righe.length?{ righe, intest }:null;
+}
+
 /* intestazione normalizzata: "Distanza_m" e "DISTANZA (m)" devono valere
    uguale, altrimenti il riconoscimento delle colonne è una lotteria */
 export function _sitoNormH(s){
