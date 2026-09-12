@@ -1665,23 +1665,32 @@ export function caricaTargetSenzaConto(x50Target, vol, A, RWS){
 export function caricaDaX50Target(x50Target, vol, A, RWS){
   const perche = caricaTargetSenzaConto(x50Target, vol, A, RWS);
   if (perche) return { kg:null, pf:null, calcolabile:false, fuoriDominio:false,
+    troppoFine:false, troppoGrossolano:false,
     obiettivo:perche.obiettivo, volume:perche.volume, modello:perche.modello,
     che:perche.che, come:perche.come };
   const xt = +x50Target, v = +vol, a = +A, r = +RWS;
+  /* ⏱️ 12/09 (unità 126): il lato BASSO di `fuoriDominio` (kg<1 o pf<0.05)
+     prende dove i clamp di `fragKuzRam` rendono l'inversione ambigua.
+     ⏱️ 12/09 (unità 127, dalla ricerca in docs/RICERCA_CONTINUA_GENESI.md,
+     sezione 2026-09-12): mancava il lato ALTO, ed era un buco diverso, non lo
+     stesso. `fragKuzRam` non ha un clamp gemello in alto, quindi un obiettivo
+     assurdamente fine restituiva un kg matematicamente corretto ma enorme,
+     senza nessun avviso — non ambiguità, estrapolazione. La ricerca (solo
+     risultati WebSearch, marcata di seconda mano, nessuna fonte legge un
+     tetto sul consumo specifico) trova però un vincolo reale: la curva di
+     Rosin-Rammler su cui il Kuz-Ram poggia è dichiarata precisa fra 10 e
+     1000 mm (1-100 cm) — e il vincolo è SIMMETRICO, non solo sul fine: un
+     target grossolano oltre 100 cm è fuori dominio quanto uno sotto 1 cm,
+     e non è detto che ci arrivi passando per `kg<1` (dipende dalla maglia:
+     misurato un caso reale in cui xt=150 cm dà ancora kg>1 e pf>0.05). Né
+     l'uno né l'altro sono un numero di powder factor inventato: è il
+     limite dimensionale che la letteratura dichiara per il modello stesso. */
+  const troppoFine = xt < 1, troppoGrossolano = xt > 100;
   const C = a * Math.pow(v, 0.8) * Math.pow(115/r, 19/30);
   const kg = Math.pow(C/xt, 30/19);
   const pf = kg/v;
-  /* ⏱️ 12/09 (unità 126): `fuoriDominio` prende solo il lato BASSO — dove i
-     clamp di `fragKuzRam` rendono l'inversione ambigua (kg<1 o pf<0.05). Non
-     c'è un clamp gemello in alto: `fragKuzRam` non ne ha, quindi un obiettivo
-     assurdamente fine (x50 sotto il millimetro, mai un input reale in questo
-     mestiere) restituisce un kg matematicamente corretto ma enorme, senza
-     nessun avviso. Non è lo stesso difetto delle guardie a valle — qui la
-     funzione non è ambigua, è solo estrapolata oltre ogni caso reale — e un
-     tetto andrebbe misurato sul mestiere (quale pf massimo ha senso?), non
-     inventato qui: misura scartata per ora, dichiarata per non marcire in
-     silenzio. Vedi il checkpoint dell'unità 126. */
-  return { kg, pf, calcolabile:true, fuoriDominio:(kg<1||pf<0.05),
+  return { kg, pf, calcolabile:true,
+    fuoriDominio:(kg<1||pf<0.05||troppoFine||troppoGrossolano), troppoFine, troppoGrossolano,
     obiettivo:false, volume:false, modello:false, che:'', come:'' };
 }
 

@@ -28774,8 +28774,13 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       if (errRel > peggio) peggio = errRel;
     }
     eq(casi, 50000, "50.000 obiettivi generati");
-    ok(fuoriDominio > 8000 && fuoriDominio < 15000,
-      `una parte finisce fuori dominio (i due clamp di fragKuzRam): ${fuoriDominio} su ${casi}`);
+    /* ⏱️ 12/09 (unità 127): il generatore va da 5 a 155 cm, quindi non tocca
+       mai il lato fine (xt<1) — la fascia 8.000-15.000 misurata prima
+       dell'unità 127 valeva SOLO i due clamp di fragKuzRam. Aggiunto il lato
+       dimensionale (xt>100, ~1/3 del range generato), fuoriDominio è salito
+       a un ordine di grandezza misurato, non ricopiato: 20.839 su 50.000. */
+    ok(fuoriDominio > 18000 && fuoriDominio < 24000,
+      `fuori dominio: clamp di fragKuzRam + lato dimensionale (xt>100, ~1/3 del range generato): ${fuoriDominio} su ${casi}`);
     ok(peggio < 1e-9, `l'errore peggiore dentro dominio è rumore binario, non un difetto: ${peggio}`);
   });
   test("⛔ Genesi · caricaDaX50Target: i numeri veri, e il verso — pezzatura più fine chiede più carica", () => {
@@ -28822,6 +28827,33 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     ok(r.pf < 0.05 || r.kg < 1, `e il motivo è uno dei due clamp: pf=${r.pf} kg=${r.kg}`);
     /* un obiettivo ordinario, sulla stessa maglia della scheda validatori, resta dentro */
     eq(gz.caricaDaX50Target(30, VOL, 8.1, 100).fuoriDominio, false, "un obiettivo ordinario resta dentro dominio");
+  });
+  test("⛔ Genesi · caricaDaX50Target: il lato dimensionale (unità 127), isolato dai due clamp", () => {
+    /* dalla ricerca in docs/RICERCA_CONTINUA_GENESI.md (12/09): Rosin-Rammler,
+       su cui il Kuz-Ram poggia, è dichiarata precisa fra 1 e 100 cm. Qui sotto
+       due casi che NON toccano i clamp di fragKuzRam — kg e pf restano ben
+       dentro i loro margini — eppure sono fuori dominio SOLO per la misura
+       (dimensione del target), non per il calcolo. */
+    const fine = gz.caricaDaX50Target(0.5, VOL, 8.1, 100);
+    eq(fine.calcolabile, true, "il numero si calcola comunque...");
+    eq(fine.fuoriDominio, true, "...ma è fuori dominio");
+    eq(fine.troppoFine, true, "...per il lato fine");
+    eq(fine.troppoGrossolano, false, "...e non per il lato grossolano");
+    ok(fine.kg > 100 && fine.pf > 1, `⛔ isolato dai clamp: qui kg e pf sono ENORMI, non piccoli: kg=${fine.kg} pf=${fine.pf}`);
+
+    const grosso = gz.caricaDaX50Target(120, VOL, 8.1, 100);
+    eq(grosso.calcolabile, true, "il numero si calcola comunque...");
+    eq(grosso.fuoriDominio, true, "...ma è fuori dominio");
+    eq(grosso.troppoGrossolano, true, "...per il lato grossolano");
+    eq(grosso.troppoFine, false, "...e non per il lato fine");
+    ok(grosso.kg >= 1 && grosso.pf >= 0.05,
+      `⛔ isolato dai clamp: qui kg e pf restano SOPRA le due soglie: kg=${grosso.kg} pf=${grosso.pf}`);
+
+    /* i due confini stessi: 1 e 100 cm sono ancora dentro, appena sopra/sotto sono fuori */
+    eq(gz.caricaDaX50Target(1, VOL, 8.1, 100).troppoFine, false, "1 cm è ancora dentro il dominio dichiarato");
+    eq(gz.caricaDaX50Target(0.999, VOL, 8.1, 100).troppoFine, true, "appena sotto 1 cm è fuori");
+    eq(gz.caricaDaX50Target(100, VOL, 8.1, 100).troppoGrossolano, false, "100 cm è ancora dentro il dominio dichiarato");
+    eq(gz.caricaDaX50Target(100.001, VOL, 8.1, 100).troppoGrossolano, true, "appena sopra 100 cm è fuori");
   });
 
   test("⛔ Genesi · ppvDaSd: la legge di Devine/USBM, una sola volta", () => {

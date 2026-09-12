@@ -3537,6 +3537,27 @@ numero scritto dove non era stato misurato niente**.*
       implementa `fuoriDominio` su quel range (x50 target < 10 mm →
       segnalato), sul modello di quella già esistente per il lato basso —
       non un numero inventato.*
+      ✅ **12/09 (unità 127): fatto, e il vincolo è SIMMETRICO — trovato
+      misurando prima di implementare, come pretende questo file.** Il
+      dominio dichiarato dalla ricerca (Rosin-Rammler, 1-100 cm) ha due lati,
+      e il lato grossolano (x50 > 100 cm) NON è sempre coperto dai due clamp
+      di `fragKuzRam` — misurato un caso reale (maglia della scheda
+      validatori, x50=120cm) con kg=5,8 e pf=0,055, cioè sopra tutt'e due le
+      soglie che avrebbero dovuto proteggerlo. `caricaDaX50Target` ha adesso
+      due bandiere distinte, `troppoFine` (xt<1) e `troppoGrossolano`
+      (xt>100), entrambe dentro `fuoriDominio`; la pagina mostra il messaggio
+      giusto per ciascuna (mai "prova un obiettivo più fine" a chi ha già
+      chiesto un obiettivo troppo fine — l'errore opposto sarebbe stato
+      peggio di non avere il messaggio). +1 test dedicato con casi isolati
+      dai clamp (misurati, non dedotti) e i due confini esatti (1 e 100 cm
+      ancora dentro, appena oltre fuori); il test di round-trip sui 50.000
+      casi generati è stato rimisurato: fuoriDominio 8.000-15.000 →
+      18.000-24.000 (misurato 20.839), perché il generatore copre già
+      x50 fino a 155cm. Verificato col browser: i tre messaggi (fine,
+      grossolano, normale) tutti corretti. Fondo di `genesi-data.js`
+      invariato (137: `troppoFine`/`troppoGrossolano` sono campi dello
+      stesso oggetto restituito da una funzione già contata, non funzioni
+      nuove). Totale prove senza rete/browser 3.406→3.407.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7939,9 +7960,9 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **12/09, unità 126** (lanciando le suite, non a memoria):
-  **3.406 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2925, `run-stile` 328,
+- Stato misurato al **12/09, unità 127** (lanciando le suite, non a memoria):
+  **3.407 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2926, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

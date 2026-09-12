@@ -3591,7 +3591,11 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
   const r=caricaDaX50Target(xt, volumeForo(B,S,H), A, RWS);
   if(!r.calcolabile){ scarto(r.che+'. '+r.come); return; }
   if(r.fuoriDominio){
-    scarto('Un obiettivo di '+gfix(xt,0)+' cm su questa maglia chiederebbe una carica così bassa (o un consumo specifico così basso) che il modello di Kuznetsov non distingue più una pezzatura dall’altra: il numero non sarebbe affidabile. Prova un obiettivo più fine, o allarga la maglia.');
+    scarto(r.troppoFine
+      ? 'Un obiettivo di '+gfix(xt,1)+' cm è più fine di quanto il modello di Kuznetsov sappia prevedere: la curva su cui si basa è affidabile solo fra 1 e 100 cm di pezzatura mediana. Sotto 1 cm il numero non sarebbe una previsione, sarebbe un’estrapolazione senza fondamento. Prova un obiettivo più grossolano.'
+      : r.troppoGrossolano
+      ? 'Un obiettivo di '+gfix(xt,0)+' cm è più grossolano di quanto il modello di Kuznetsov sappia prevedere: la curva su cui si basa è affidabile solo fra 1 e 100 cm di pezzatura mediana. Oltre 100 cm il numero non sarebbe una previsione, sarebbe un’estrapolazione senza fondamento. Prova un obiettivo più fine.'
+      : 'Un obiettivo di '+gfix(xt,0)+' cm su questa maglia chiederebbe una carica così bassa (o un consumo specifico così basso) che il modello di Kuznetsov non distingue più una pezzatura dall’altra: il numero non sarebbe affidabile. Prova un obiettivo più fine, o allarga la maglia.');
     return;
   }
   const _m=micDaMostrare();
