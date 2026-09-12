@@ -5236,6 +5236,21 @@ numero scritto dove non era stato misurato niente**.*
       e pretendere che un foro **senza carica reale** non esca come uno zero.
       ⚠️ Non fatto in questa unità e dichiarato: serve la fixture del piano, ed
       è un'unità sua — non un'aggiunta di tre righe.
+      ✅ **FATTO — verificato il 12/09, e la riga qui sopra era invecchiata
+      senza che nessuno la richiudesse.** La sezione «il piano di carico e il
+      consuntivo che torna a Genesi: il quinto bottone» esiste già in
+      `campo-numeri-tranquilli.mjs` (righe 807-978 al 12/09), con la fixture
+      del piano (5 fori, uno senza carica reale — foro 4, `reale:null` — uno a
+      zero VERO — foro 5 — e i casi limite di testo: punto e virgola,
+      virgolette, decimali col punto). Rilanciata a mano per rileggerla invece
+      di fidarsi del commento: **94 verifiche passate, 0 fallite**, comprese
+      esattamente le due che questa riga chiedeva («il foro che nessuno ha
+      pesato esce con le celle VUOTE, non con degli zeri» e «uno zero SCRITTO
+      resta uno zero»), più il giro completo fino al lettore di Genesi
+      (`_riconParseCampo`/`_riconRiassuntoCampo`, 15 valori confrontati
+      schermo→file→Genesi, i totali del riepilogo). Chi ha chiuso questa unità
+      non ha aggiornato questa riga: è la regola 7 di questo file applicata al
+      contrario.
       ⏱️ **E IL DENOMINATORE DI TUTTO L'ECOSISTEMA, misurato subito dopo: è
       L'UNICO.** Censiti tutti i `<button>` d'uscita delle sette superfici (id
       che contiene `export`, `csv`, `pdf`, `stampa`, `scarica`, `download`) e
@@ -5243,6 +5258,10 @@ numero scritto dove non era stato misurato niente**.*
       banco**, e quell'uno è `btn-piano-export`. Cioè la copertura dei punti
       d'uscita è al **97%**, e il buco è esattamente sul ponte fra due app —
       il che lo rende più interessante, non meno.
+      ✅ **12/09: `btn-piano-export` ha il suo banco** (vedi la riga ✅ qui
+      sopra) — chi rifacesse oggi lo stesso censimento troverebbe 0 bottoni
+      senza banco su 39 (o su quanti ce ne sono oggi: il conto non è stato
+      rilanciato per intero, solo verificato questo singolo bottone).
       ⛔ **E il primo conto era 44 e 3, con DUE falsi allarmi su tre**: cercando
       gli `id` senza pretendere che fossero `<button>`, il censimento aveva
       raccolto `pdfm-cava` e `pdfm-mese` del core, che sono un `<select>` e un
