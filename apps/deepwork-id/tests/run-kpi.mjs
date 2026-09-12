@@ -39014,6 +39014,58 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(d.doppie, ["f1-1"], "la chiave ripetuta nel consuntivo si dichiara"); eq(d.righe[0].reale, 61, "e vince la prima riga, non l'ultima");
     eq(genesi.confrontoPerForo([], []), { chiave: "numero", righe: [], senzaRiga: 0, orfane: [], doppie: [], misurabile: false }, "senza fori e senza righe: tutto vuoto e non misurabile");
   });
+  test("⛔ Genesi · abbinaForiRighe: l'abbinamento estratto da confrontoPerForo, chiamato direttamente", () => {
+    /* stesso identico contratto delle prove di confrontoPerForo qui sopra,
+       ma sulla funzione condivisa: prova che l'estrazione (unità 129) sia
+       davvero riusabile con lettori diversi, non solo con idForo/foro */
+    const R = [{ foro: 1, idForo: "f1-1", v: 61 }, { foro: 2, idForo: "f1-2", v: 70 }, { foro: 3, idForo: "f1-3", v: 57 }];
+    const a = genesi.abbinaForiRighe(H, R, (r) => r.idForo, (r) => r.foro);
+    eq(a.chiave, "id");
+    eq(a.abbinati.map((x) => [x.h.id, x.riga && x.riga.v]), [["f1-1", 61], ["f1-3", 57], ["m1", null]],
+      "stesso scivolamento per id di confrontoPerForo, con un lettore di valore diverso (v, non prog/reale)");
+    eq(a.orfane.map((o) => o.idForo), ["f1-2"]);
+    const b = genesi.abbinaForiRighe([], [], (r) => r.idForo, (r) => r.foro);
+    eq(b, { chiave: "numero", abbinati: [], orfane: [], doppie: [] }, "vuoto risponde vuoto");
+  });
+  test("⛔ Genesi · deviazioneForiDaCsv: il rilievo di deviazione (boretrack), col punto o con la virgola italiana", () => {
+    const v = genesi;
+    eq(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n1;0.12;-0.30\n2;-0.05;0.10\n").righe,
+      [{ foro: 1, idForo: "", dx: 0.12, dy: -0.3 }, { foro: 2, idForo: "", dx: -0.05, dy: 0.1 }], "con intestazione, per numero");
+    eq(v.deviazioneForiDaCsv("id_foro;dx_m;dy_m\nf1;0,1;0\nf2;0,2;0\n").righe,
+      [{ foro: null, idForo: "f1", dx: 0.1, dy: 0 }, { foro: null, idForo: "f2", dx: 0.2, dy: 0 }], "con id_foro e la virgola italiana");
+    eq(v.deviazioneForiDaCsv("1;0.12;-0.30\n2;-0.05;0.10\n").righe.length, 2, "senza intestazione: ordine posizionale foro;dx_m;dy_m");
+    eq(v.deviazioneForiDaCsv("").errore, "Il file è vuoto: non c’è nessuna riga da leggere.");
+    eq(v.deviazioneForiDaCsv("pippo;pluto\n1;2\n").errore,
+      "Nessuna riga leggibile: servono il numero (o l’id) del foro e le due deviazioni dx_m/dy_m (ho scartato 2 righe).",
+      "⛔ un'intestazione che non parla di fori/dx non fa credere a un rilievo: scarta tutto e lo dice");
+    eq(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n1;abc;0\n2;0.1;0.1\n").righe.length, 1, "una deviazione illeggibile scarta SOLO quella riga");
+    eq(v.deviazioneForiDaCsv("foro;dx_m;dy_m\n").errore, "Il file ha solo l’intestazione: dentro non c’è nessun foro.");
+  });
+  test("⛔ Genesi · burdenVeroDaRilievo: il burden vero sulle posizioni MISURATE, non su quelle di progetto", () => {
+    /* fila 0 (davanti alla faccia, my=3) e fila 1 (dietro, my=6.5): la
+       geometria è quella di `fileDeiFori`, la stessa che usa la pagina */
+    const H = [
+      { id: "a", mx: 0, my: 3, burdenLoc: 3, seq: 0 },
+      { id: "b", mx: 3.5, my: 3, burdenLoc: 3, seq: 1 },
+      { id: "c", mx: 1.75, my: 6.5, burdenLoc: 3.5, seq: 2 },
+    ];
+    const faccia = [[-10, 0], [10, 0]];
+    const righe = [{ idForo: "a", dx: 0, dy: 0 }, { idForo: "b", dx: 0, dy: 0 }, { idForo: "c", dx: 0, dy: -0.4 }];
+    const r = genesi.burdenVeroDaRilievo(H, [], faccia, righe);
+    eq(r.righe.map((x) => [x.id, x.misurato, x.burdenVero, x.burdenProgetto]),
+      [["a", true, 3, 3], ["b", true, 3, 3], ["c", true, 3.1, 3.5]],
+      "⛔ il foro 'c' è sulla fila DIETRO: il suo burden vero si misura contro la fila davanti nelle sue posizioni REALI, non nominali");
+    eq(r.misurabile, true);
+    /* un foro senza riga di rilievo: dichiarato non misurato, non finto a zero */
+    const r2 = genesi.burdenVeroDaRilievo(H, [], faccia, [{ idForo: "a", dx: 0, dy: 0 }, { idForo: "b", dx: 0, dy: 0 }]);
+    eq(r2.righe[2], { id: "c", numero: 3, misurato: false, burdenVero: null, burdenProgetto: 3.5 },
+      "⛔ 'c' non ha una riga di rilievo: NON misurato, non un burden inventato dalla posizione di progetto");
+    eq(r2.misurabile, true, "ma 'a' e 'b' restano misurati: misurabile è vero se ALMENO uno lo è");
+    eq(genesi.burdenVeroDaRilievo([], [], faccia, righe), null, "senza fori non c'è niente da misurare");
+    /* round trip con confrontoPerForo: stesso abbinamento, stessa dichiarazione dell'orfana */
+    const r3 = genesi.burdenVeroDaRilievo(H, [], faccia, [{ idForo: "a", dx: 0, dy: 0 }, { idForo: "zzz", dx: 1, dy: 1 }]);
+    eq(r3.orfane.map((o) => o.idForo), ["zzz"], "una riga senza foro nel progetto è orfana, come in confrontoPerForo");
+  });
 }
 /* ===== i fori salvati col progetto (Genesi, 05/09) ===== */
 {

@@ -3570,6 +3570,27 @@ numero scritto dove non era stato misurato niente**.*
       riconciliazione "il gap più grande". Documento riscritto (non solo
       annotato), cronologia dichiarata. Nessun codice toccato. Il gap vero
       rimasto: P2.1, la pezzatura misurata da una foto del cumulo.*
+      ✅ **12/09 (unità 129): import rilievo di deviazione fori (boretrack),
+      il P1.1 residuo indicato dall'unità 128.** `deviazioneForiDaCsv` legge
+      un CSV `foro/id_foro;dx_m;dy_m` (deviazione MISURATA del piede, non
+      simulata); `burdenVeroDaRilievo` ricalcola il burden vero — stessa
+      geometria di `simulaPerforazione` (fila per fila, la fila davanti
+      nelle sue posizioni vere) ma su UNA realizzazione sola, quella
+      successa davvero, non centinaia di sorteggi statistici. Bottone e
+      pannello nella scheda 2D, verificati col browser (nessun errore di
+      pagina, tre fori misurati su dodici, scarti e colori corretti).
+      ⛔ **Prima di scrivere codice**: l'abbinamento foro↔riga era già scritto
+      dentro `confrontoPerForo` (la riconciliazione carica, unità precedenti)
+      ed è stato ESTRATTO (`abbinaForiRighe`, con due lettori passati da chi
+      chiama) invece di essere ricopiato — la regola "una copia nasce da una
+      firma troppo stretta". Le tre prove esistenti di `confrontoPerForo`
+      restano verdi INVARIATE dopo l'estrazione: è la controprova che il
+      comportamento non è cambiato. +3 test netti (abbinamento diretto, CSV,
+      burden su due file di fori con la fila davanti nelle posizioni reali e
+      il foro senza rilievo dichiarato non misurato — mai un burden inventato).
+      Fondo di `genesi-data.js` 137→140 (`abbinaForiRighe`,
+      `deviazioneForiDaCsv`, `burdenVeroDaRilievo`), scomposizione condivisa
+      301/301→304/304, totale prove senza rete/browser 3.407→3.410.*
       ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
@@ -7972,9 +7993,9 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **12/09, unità 127** (lanciando le suite, non a memoria):
-  **3.407 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2926, `run-stile` 328,
+- Stato misurato al **12/09, unità 129** (lanciando le suite, non a memoria):
+  **3.410 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2929, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:

@@ -770,6 +770,9 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn" id="btn-obiettivo-x50" type="button" style="display:block;margin:10px auto 0;" title="Quanta carica per foro serve per centrare una pezzatura mediana obiettivo, con la roccia e l'esplosivo di questo progetto">🎯 Carica per un obiettivo di pezzatura</button>
   <div id="d2-obiettivo-esito"></div>
+  <input type="file" id="rilievoDevFile" accept=".csv,text/csv,.txt" style="display:none;">
+  <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m)">📡 Importa rilievo deviazione fori (CSV)</button>
+  <div id="d2-rilievo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn" id="btn-salva-volata" style="display:block;margin:6px auto 0;">💾 Salva nello storico (Home)</button>
@@ -1164,7 +1167,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
-         ppvDaSd, caricaDaX50Target, rwsEffettiva,
+         ppvDaSd, caricaDaX50Target, rwsEffettiva, deviazioneForiDaCsv, burdenVeroDaRilievo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -3616,6 +3619,45 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
     +(kgAttuale>0?' — oggi '+gfix(kgAttuale,1)+' kg/foro, '+(differenza>=0?'+':'')+gfix(differenza,1)+' kg ('+(differenzaPct==null?'—':(differenzaPct>=0?'+':'')+gfix(differenzaPct,0)+'%'+')'):'')
     +'.'+vibrazioni
     +'<div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram): resta una previsione, non una garanzia — va verificata sul campo.</div>'
+    +'</div>';
+};
+/* ⏱️ 12/09 (unità 129) — IL BURDEN VERO SUL RILIEVO MISURATO (boretrack), non
+   sulla banda d'incertezza simulata. `simulaPerforazione`, qui sopra, dice
+   «di quanto la previsione può sbagliare» su centinaia di sorteggi; questo
+   bottone dice invece «cos'è successo davvero» su UNA sola realizzazione —
+   quella che il boretrack ha misurato dopo aver perforato. La faccia libera
+   si ricostruisce con la stessa formula di `computeEnergia2D` (nessuna
+   variabile nuova della pagina): un secondo posto che la ricalcolasse in un
+   altro modo sarebbe la stessa famiglia di copia debole già chiusa altrove
+   in questo file. */
+if($('btn-rilievo-dev')) $('btn-rilievo-dev').onclick=()=>$('rilievoDevFile').click();
+if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const testo=await f.text(); e.target.value='';
+  const box=$('d2-rilievo-esito'); if(!box) return;
+  const csv=deviazioneForiDaCsv(testo);
+  if(csv.errore){ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(csv.errore)+'</div>'; return; }
+  const H=D2.holes;
+  if(!H||!H.length){ box.innerHTML='<div style="margin-top:8px;color:var(--mut);font-size:12px;">Disegna prima la maglia: senza fori non c\'è niente da confrontare.</div>'; return; }
+  const Snom=Math.max(0.5,D2.S||3.5), xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
+  const passo=Math.max(.15,(x1-x0)/240), faccia=[];
+  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
+  const r=burdenVeroDaRilievo(H, D2.profilo, faccia, csv.righe);
+  const righeHtml=r.righe.map(x=>{
+    if(!x.misurato) return '<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span><span style="color:var(--mut);font-size:12px;"> · senza rilievo</span></div>';
+    const bp=x.burdenProgetto, bv=x.burdenVero;
+    const scarto = bp!=null ? bv-bp : null;
+    const colore = scarto!=null && scarto < -bp*0.15 ? '#ef5350' : (scarto!=null && Math.abs(scarto)>0.15 ? '#9b8a60' : 'var(--mut)');
+    return '<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span></div>'
+      +'<div class="r">'+(bp!=null?gfix(bp,2):'—')+' → '+gfix(bv,2)+' m'
+        +(scarto!=null?'<span style="color:'+colore+';margin-left:6px;">'+(scarto>=0?'+':'')+gfix(scarto,2)+' m</span>':'')+'</div>';
+  }).join('');
+  box.innerHTML='<div style="margin-top:8px;">'
+    +'<div style="color:var(--mut);font-size:12px;margin-bottom:6px;">Rilievo importato: '+_ricPlur(csv.righe.length,'foro','fori')+' misurati'
+      +(csv.scartate?' · '+csv.scartate+' righe scartate':'')+(r.orfane.length?' · '+r.orfane.length+' senza foro nel progetto':'')+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;">'+righeHtml+'</div>'
+    +(r.misurabile?'':'<div style="margin-top:6px;color:var(--mut);font-size:12px;">Nessun foro del rilievo trova un foro nel progetto aperto: controlla che i numeri o gli id corrispondano.</div>')
+    +'<div style="margin-top:8px;color:var(--mut);font-size:11px;">Burden di progetto → burden vero (perpendicolare alla faccia, sulla posizione REALE del piede). Rosso: sotto l\'85% del progetto — il caso classico delle proiezioni.</div>'
     +'</div>';
 };
 /* DA DOVE VIENE LA PPV PREVISTA, scritto UNA VOLTA per i due posti che devono

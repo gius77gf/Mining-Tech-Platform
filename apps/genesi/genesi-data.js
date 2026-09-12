@@ -707,19 +707,41 @@ export function _riconParseCampo(testo){
    `misurabile` è vero solo se almeno una riga accoppiata porta la carica
    reale — non esiste uno scostamento piccolo dove nessuno ha pesato. La
    soglia dello stato è `scartoLivello` di `shared/`, la stessa di Campo. Pura. */
-export function confrontoPerForo(holes, righe){
+/* ⏱️ 12/09 (unità 129): L'ABBINAMENTO FORO↔RIGA ERA SCRITTO DENTRO
+   `confrontoPerForo`, e la nuova funzione per il rilievo di deviazione
+   (`burdenVeroDaRilievo`, qui sotto) ha bisogno esattamente dello stesso
+   abbinamento — per ID quando entrambe le parti ce l'hanno, per NUMERO
+   (sequenza+1) altrimenti, con le chiavi doppie e le righe orfane contate.
+   Prima di ricopiarlo (la regola di CLAUDE.md: «una copia nasce quasi
+   sempre da una firma troppo stretta») è stato estratto qui, con due
+   funzioni di lettura passate da chi chiama — perché il consuntivo di
+   carica legge `idForo`/`foro` e il rilievo di deviazione legge gli stessi
+   nomi ma da un oggetto con altri campi (`dx`/`dy` invece di `prog`/`reale`).
+   `confrontoPerForo` sotto è stato riscritto per usarla: le sue prove
+   esistenti (già in `run-kpi.mjs`, scritte per il comportamento, non per il
+   testo del corpo) sono la controprova che l'estrazione non ha cambiato
+   niente. */
+export function abbinaForiRighe(holes, righe, leggiId, leggiNumero){
   const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
   const R = Array.isArray(righe) ? righe.filter(Boolean) : [];
-  const tuttiId = H.length>0 && R.length>0 && H.every(h=>h.id) && R.every(r=>r.idForo);
+  const tuttiId = H.length>0 && R.length>0 && H.every(h=>h.id) && R.every(r=>leggiId(r));
   const chiave = tuttiId ? 'id' : 'numero';
   const numeroDi = (h,i) => Number.isInteger(h.seq) ? h.seq+1 : i+1;
-  const chiaveRiga = (r) => chiave==='id' ? String(r.idForo) : String(r.foro);
+  const chiaveRiga = (r) => chiave==='id' ? String(leggiId(r)) : String(leggiNumero(r));
   const perChiave = new Map(); const doppie = [];
   for (const r of R){ const k = chiaveRiga(r); if (perChiave.has(k)) { if (!doppie.includes(k)) doppie.push(k); } else perChiave.set(k, r); }
   const usate = new Set();
-  const out = H.map((h,i)=>{
+  const abbinati = H.map((h,i)=>{
     const numero = numeroDi(h,i), k = chiave==='id' ? String(h.id) : String(numero);
     const r = perChiave.get(k) || null; if (r) usate.add(k);
+    return { h, numero, riga: r };
+  });
+  const orfane = R.filter(r => !usate.has(chiaveRiga(r)));
+  return { chiave, abbinati, orfane, doppie };
+}
+export function confrontoPerForo(holes, righe){
+  const { chiave, abbinati, orfane, doppie } = abbinaForiRighe(holes, righe, (r)=>r.idForo, (r)=>r.foro);
+  const out = abbinati.map(({ h, numero, riga: r })=>{
     const prog = r && Number.isFinite(+r.prog) ? +r.prog : null;
     const reale = r && r.reale!=null && Number.isFinite(+r.reale) ? +r.reale : null;
     const scartoKg = reale!=null && prog!=null ? +(reale-prog).toFixed(3) : null;
@@ -727,9 +749,85 @@ export function confrontoPerForo(holes, righe){
     const stato = !r ? 'senza-riga' : scartoLivello(reale, prog);
     return { id: h.id||null, numero, mx: h.mx, my: h.my, prog, reale, scartoKg, scartoPct, stato };
   });
-  const orfane = R.filter(r => !usate.has(chiaveRiga(r))).map(r => ({ idForo: r.idForo||'', foro: r.foro, prog: r.prog, reale: r.reale!=null?r.reale:null }));
+  const orfaneOut = orfane.map(r => ({ idForo: r.idForo||'', foro: r.foro, prog: r.prog, reale: r.reale!=null?r.reale:null }));
   return { chiave, righe: out, senzaRiga: out.filter(x=>x.stato==='senza-riga').length,
-           orfane, doppie, misurabile: out.some(x=>x.reale!=null) };
+           orfane: orfaneOut, doppie, misurabile: out.some(x=>x.reale!=null) };
+}
+
+/* ⏱️ 12/09 (unità 129), il "P1.1 residuo" di `docs/GENESI_ROADMAP_COMPETITOR.md`:
+   Genesi SIMULA la deviazione dei fori (banda d'incertezza Monte-Carlo, sopra
+   in `simulaPerforazione` della pagina) ma non ha mai avuto modo di leggere
+   una deviazione MISURATA — il rilievo che un boretrack produce dopo la
+   perforazione vera. Legge un CSV con la deviazione del PIEDE rispetto al
+   progetto (`dx_m`, `dy_m`, nel piano della pianta) e la abbina ai fori con
+   `abbinaForiRighe` (stesso meccanismo di `confrontoPerForo`, non
+   ricopiato). Senza intestazione, l'ordine posizionale è foro;dx_m;dy_m —
+   lo stesso schema del consuntivo di Campo. */
+export function deviazioneForiDaCsv(testo){
+  const { righe: tutte } = leggiCsv(testo);
+  if (!tutte.length) return { errore: 'Il file è vuoto: non c’è nessuna riga da leggere.' };
+  const testa = tutte[0].map(s => String(s).toLowerCase());
+  const haIntestazione = testa.indexOf('foro') >= 0 || testa.some(c => c.indexOf('dx') >= 0 || c.indexOf('id_foro') >= 0);
+  const dati = haIntestazione ? tutte.slice(1) : tutte;
+  const col = (...nomi) => { for (const n of nomi) { const i = testa.indexOf(n); if (i >= 0) return i; } return -1; };
+  const iForo = haIntestazione ? col('foro') : 0;
+  const iId = haIntestazione ? col('id_foro', 'idforo') : -1;
+  const iDx = haIntestazione ? col('dx_m', 'dx') : 1;
+  const iDy = haIntestazione ? col('dy_m', 'dy') : 2;
+  if (haIntestazione && iForo < 0 && iId < 0)
+    return { errore: 'Non trovo la colonna «foro» né «id_foro»: questo non sembra un rilievo di deviazione fori (boretrack).' };
+  if (haIntestazione && iDx < 0 && iDy < 0)
+    return { errore: 'Non trovo le colonne «dx_m»/«dy_m»: questo non sembra un rilievo di deviazione fori (boretrack).' };
+  if (!dati.length) return { errore: 'Il file ha solo l’intestazione: dentro non c’è nessun foro.' };
+  const righe = []; let scartate = 0;
+  for (const r of dati) {
+    const c = r;
+    const foro = iForo >= 0 ? numIt(c[iForo]) : NaN;
+    const idForo = iId >= 0 ? String(c[iId] == null ? '' : c[iId]).trim() : '';
+    if (!(foro > 0) && !idForo) { scartate++; continue; }
+    const dx = numIt(c[iDx]), dy = numIt(c[iDy]);
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) { scartate++; continue; }
+    righe.push({ foro: foro > 0 ? foro : null, idForo, dx, dy });
+  }
+  if (!righe.length) return { errore: 'Nessuna riga leggibile: servono il numero (o l’id) del foro e le due deviazioni dx_m/dy_m'
+    + (scartate ? ` (ho scartato ${scartate} ${scartate === 1 ? 'riga' : 'righe'}).` : '.') };
+  return { righe, scartate, colonneDaNome: haIntestazione };
+}
+
+/* Il burden VERO ricalcolato sulle posizioni MISURATE (non simulate): stessa
+   geometria di `simulaPerforazione` (fila per fila, la fila davanti nelle
+   posizioni vere, non di progetto) ma con UNA realizzazione sola — quella
+   che è successa davvero — invece di centinaia di sorteggi. Un foro senza
+   riga di rilievo resta `misurato:false`: non gli si inventa una posizione,
+   si dichiara che non si sa (lo stesso principio di `confrontoPerForo`). */
+export function burdenVeroDaRilievo(holes, profilo, faccia, righe){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  if (!H.length) return null;
+  const { chiave, abbinati, orfane, doppie } = abbinaForiRighe(holes, righe, (r)=>r.idForo, (r)=>r.foro);
+  const file = fileDeiFori(H);
+  const pos = H.map((h, i) => {
+    const r = abbinati[i] && abbinati[i].riga;
+    const misurato = !!(r && Number.isFinite(+r.dx) && Number.isFinite(+r.dy));
+    return { mx: h.mx + (misurato ? +r.dx : 0), my: h.my + (misurato ? +r.dy : 0), misurato };
+  });
+  const out = new Array(H.length);
+  for (let ri = 0; ri < file.length; ri++) {
+    const davanti = ri > 0
+      ? file[ri-1].holes.map(i => [pos[i].mx, pos[i].my + interpProf(profilo, pos[i].mx)]).sort((a,b)=>a[0]-b[0])
+      : (faccia || []);
+    for (const i of file[ri].holes) {
+      const h = H[i], numero = abbinati[i].numero;
+      const burdenProgetto = h.burdenLoc!=null ? h.burdenLoc : null;
+      if (!pos[i].misurato || davanti.length < 2) {
+        out[i] = { id: h.id||null, numero, misurato: false, burdenVero: null, burdenProgetto };
+        continue;
+      }
+      const py = pos[i].my + interpProf(profilo, pos[i].mx);
+      const d = distanzaDaSpezzata(pos[i].mx, py, davanti);
+      out[i] = { id: h.id||null, numero, misurato: true, burdenVero: d!=null?+d.toFixed(2):null, burdenProgetto };
+    }
+  }
+  return { chiave, righe: out, orfane, doppie, misurabile: out.some(x=>x.misurato) };
 }
 
 // Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o

@@ -423,8 +423,14 @@ const CONDIVISI = [
      da due copie inline nella pagina), `rwsEffettiva`/`PENALITA_ACQUA` (la
      penalità dei fori bagnati, unificata da cinque copie), e l'ottimizzatore
      `caricaTargetSenzaConto`/`caricaDaX50Target` (la carica per centrare un
-     obiettivo di pezzatura — l'inversa di `fragKuzRam`). */
-  { file: "apps/genesi/genesi-data.js", fondo: 137,
+     obiettivo di pezzatura — l'inversa di `fragKuzRam`).
+     137 → 140 il 12/09 (unità 129): `abbinaForiRighe` (l'abbinamento
+     foro↔riga estratto da `confrontoPerForo`, perché la nuova funzione qui
+     sotto ne aveva bisogno identico — "una copia nasce da una firma troppo
+     stretta"), `deviazioneForiDaCsv` (il rilievo boretrack, CSV
+     tempo-ampiezza→dx/dy) e `burdenVeroDaRilievo` (il burden vero sulle
+     posizioni MISURATE, non su quelle simulate o di progetto). */
+  { file: "apps/genesi/genesi-data.js", fondo: 140,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
