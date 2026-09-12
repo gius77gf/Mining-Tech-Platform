@@ -1704,3 +1704,321 @@ in questo ambiente. **Nessuna correzione proposta**: anche se una fonte
 primaria in futuro mostrasse una differenza, la modifica del motore fisico
 resta condizionata al via libera del fondatore (stessa regola della
 segnalazione di sicurezza del 12/09 su burden/boretrack).
+
+## Ricerca del 2026-09-12 — criteri pratici di selezione del tipo di esplosivo in cava (metà sul mondo)
+
+⚠️ **Contesto del mandato**: Genesi ha un catalogo di esplosivi generico
+(densità, VOD, RWS%, RBS%, resistenza all'acqua) da cui l'utente sceglie;
+non era chiaro se i CRITERI di scelta (acqua, roccia, diametro, tempo di
+permanenza in foro, costo) fossero già arricchiti nel testo d'aiuto o
+lasciati impliciti. Verificato con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md`
+prima di iniziare che nessuna sezione precedente copre questo tema.
+
+Metodo: solo `WebSearch` (WebFetch è bloccato in questo ambiente — EGRESS_BLOCKED,
+confermato non usato). Ogni fatto è marcato "[di seconda mano: dominio]" perché
+arriva come snippet/riassunto di ricerca, non come lettura diretta del documento
+primario. Nessun confronto con il codice di Genesi: questo documento contiene
+solo la metà sul mondo.
+
+---
+
+### 1. Criteri pratici di scelta fra ANFO sfuso, heavy ANFO/blend, emulsione, gelatinosi/dinamite
+
+**Acqua nel foro**
+- ANFO sfuso ha resistenza all'acqua scarsa/nulla: il nitrato d'ammonio in prill
+  è solubile in acqua, quindi in un foro bagnato l'AN si scioglie lasciando
+  acqua salata e gasolio — motivo per cui l'ANFO va usato solo in fori
+  asciutti. [di seconda mano: pitandquarry.com; farmonaut.com]
+- Le emulsioni hanno buona resistenza all'acqua e sono la scelta preferita per
+  fori bagnati, geologia variabile, o dove serve maggiore precisione/sicurezza.
+  [di seconda mano: farmonaut.com; ScienceDirect Topics "Charge Diameter"]
+- Gli "wet blasting agents" (water gel/slurry) nascono apposta per la
+  resistenza all'acqua e contengono più del 5% di acqua in peso; hanno anche
+  densità più alta, quindi caricano più energia nel foro a parità di volume.
+  [di seconda mano: courses.ems.psu.edu, MNG 230 — Penn State, cap. 8.2.3]
+- Gli heavy ANFO/blend migliorano la resistenza all'acqua dell'ANFO aggiungendo
+  una quota di emulsione, oltre ad aumentarne la densità. [di seconda mano:
+  pitandquarry.com; ScienceDirect Topics]
+- La dinamite/gelatina è cap-sensitive e ha buona resistenza all'acqua:
+  raccomandata come carica di fondo foro in presenza d'acqua, in ambienti a
+  durezza elevata, o come cartuccia innescante per colonne in fori piccoli/
+  intermedi. [di seconda mano: famesaexplosivos.com; extraco.gr]
+
+**Tipo/durezza della roccia**
+- Per rocce dure e compatte si raccomandano esplosivi ad alta densità e alta
+  VOD (velocità di detonazione): la pressione di detonazione più alta produce
+  fratture più estese. Per rocce a resistenza meccanica minore (tenere/medie)
+  si usano esplosivi a densità e VOD più basse — esplosivi "forti" (alta VOD e
+  pressione) favoriscono grandi fratture in roccia dura, esplosivi "deboli"
+  danno una distribuzione di energia migliore e più fratture diffuse. [di
+  seconda mano: mdpi.com, studio su "Influence of Explosive and Rock Mass
+  Properties on Blast Damage"]
+- Nota: questa è la stessa idea espressa in due fonti indipendenti (MDPI e i
+  risultati aggregati da altri articoli scientifici trovati nella stessa
+  ricerca), quindi è confermata da più di una fonte, anche se non da un
+  manuale di produttore specifico.
+
+**Diametro del foro**
+- ANFO sfuso: diametro critico minimo dichiarato attorno a 3 pollici (~76 mm)
+  per una detonazione affidabile; sotto questa soglia diventa poco affidabile
+  e si passa a esplosivi in cartuccia. Oltre i 250 mm la VOD dell'ANFO si
+  stabilizza (diametri maggiori non danno più pressione aggiuntiva). [di
+  seconda mano: sciencedirect.com/topics "Charge Diameter" — la stessa fonte
+  compare in due ricerche indipendenti con lo stesso numero, ma è UNA fonte
+  sola, non due autori diversi: dichiarato come fonte singola]
+- Una raccomandazione pratica più conservativa, sempre dalla stessa fonte:
+  diametro di carica preferibilmente >150 mm per l'ANFO e >70 mm per le
+  emulsioni, per garantire detonazione affidabile con margine rispetto al
+  diametro critico teorico. [di seconda mano: sciencedirect.com/topics —
+  fonte singola, non confermata altrove]
+- Range operativo citato: ANFO più adatto a diametri 120–250 mm, emulsioni più
+  adatte a 70–120 mm. [di seconda mano: sciencedirect.com/topics — fonte
+  singola]
+- Sotto ~3 pollici (76-89 mm) l'ANFO sfuso non è raccomandato e si passa a
+  esplosivi in cartuccia (dinamite/gelatina, emulsione incartucciata). [di
+  seconda mano: ricerca aggregata su austinpowder.com "The Blaster's Guide" +
+  sciencedirect.com/topics, stesso numero riportato da entrambe le query ma
+  riconducibile alla stessa fonte primaria — trattato come fonte singola]
+
+**Temperatura**
+- Non trovato un criterio numerico specifico "temperatura ambiente/foro →
+  tipo di esplosivo" in fonti indipendenti durante questa ricerca. È emerso
+  solo che le emulsioni sensibilizzate chimicamente possono avere tempi di
+  decomposizione molto più brevi a temperature elevate (vedi sotto, holding
+  time) — ma la fonte (documento brevettuale) descrive un caso di prova
+  specifico, non una regola generale di selezione. [di seconda mano: patent
+  US5874688 via image-ppubs.uspto.gov]
+
+**Holding time / sleep time (tempo di permanenza in foro prima dello sparo)**
+- "Sleep time" = tempo fra il caricamento dell'esplosivo nel foro e lo sparo
+  effettivo. [di seconda mano: documento brevettuale, image-ppubs.uspto.gov]
+- Citati tempi di sleep time fino a 2-3 mesi, e in alcune miniere a cielo
+  aperto fino a 8-12 settimane prima dello sparo — con il problema che alcuni
+  blend perdono le proprietà esplosive durante lo stoccaggio prolungato in
+  foro. [di seconda mano: documento brevettuale via image-ppubs.uspto.gov —
+  fonte unica, non confermata da un secondo documento indipendente]
+- Prova numerica specifica trovata su una scheda tecnica di prodotto reale
+  (Dyno Nobel, "Dyno Gold LD" Heavy ANFO): «dove la geologia è bagnata e sono
+  previsti sleep time estesi, limitare SEMPRE la percentuale di ANFO nel blend
+  Heavy ANFO a meno del 50%»; e per lo stesso prodotto è dichiarato un sleep
+  time di foro di 2 settimane. [di seconda mano: dynonobel.com, scheda tecnica
+  prodotto — fonte singola, specifica di un prodotto Dyno Nobel, non
+  generalizzabile automaticamente ad altri produttori]
+- A temperature elevate, in un test di laboratorio citato in un documento
+  brevettuale, un'emulsione (nome commerciale "APEX 1000") decomponeva in
+  circa 17 ore contro circa 5 ore per l'ANFO standard nelle stesse condizioni
+  di prova. [di seconda mano: documento brevettuale via image-ppubs.uspto.gov
+  — fonte singola, condizioni di test non note, da NON trattare come regola
+  generale]
+
+**Costo relativo**
+- L'ANFO è generalmente descritto come l'esplosivo industriale più economico e
+  il più conveniente in cava, con un costo per unità significativamente
+  inferiore all'emulsione. [di seconda mano: orica.com/pitandquarry.com,
+  riscontro multiplo nei risultati di ricerca]
+- Tuttavia il vantaggio di costo dell'ANFO non è universale: in fori fino a
+  circa 6,5 pollici di diametro l'emulsione sfusa può risultare più
+  conveniente nel costo combinato perforazione+abbattimento, perché consente
+  maglie (burden×spacing) circa doppie rispetto all'ANFO. Uno studio citato
+  riporta che il costo dell'emulsione sfusa pareggia quello dell'ANFO
+  estendendo burden e spacing da 7 m a 8,33 m. [di seconda mano:
+  pitandquarry.com "Utilizing bulk emulsions in quarry blasting" — fonte
+  singola per il numero specifico 7→8,33 m]
+- La ragione di fondo del maggior costo dell'emulsione è la necessità di
+  garantire resistenza all'acqua dove l'ANFO fallirebbe (l'AN in prill si
+  scioglie in acqua). [di seconda mano: pitandquarry.com]
+
+---
+
+### 2. Regole pratiche numeriche citate (con fonte, o "non trovato")
+
+| Regola | Valore | Fonte | Confermato da 2a fonte? |
+|---|---|---|---|
+| Diametro critico minimo ANFO sfuso | ~3 pollici (~76 mm) | [di seconda mano: sciencedirect.com/topics "Charge Diameter"] | Stesso numero compare in due query di ricerca indipendenti, ma entrambe riconducibili alla stessa pagina sorgente: trattato come **fonte singola** |
+| Diametro di carica raccomandato per detonazione affidabile con margine | ANFO >150 mm, emulsioni >70 mm | [di seconda mano: sciencedirect.com/topics] | **Fonte singola**, non confermata altrove |
+| Range diametro operativo tipico | ANFO 120–250 mm, emulsione 70–120 mm | [di seconda mano: sciencedirect.com/topics] | **Fonte singola** |
+| Oltre questo diametro la VOD dell'ANFO non cresce più | >250 mm | [di seconda mano: sciencedirect.com/topics] | **Fonte singola** |
+| % ANFO massima in un blend Heavy ANFO con sleep time estesi e geologia bagnata | <50% ANFO (quindi ≥50% emulsione) | [di seconda mano: dynonobel.com, scheda tecnica "Dyno Gold LD"] | **Fonte singola**, specifica di un prodotto Dyno Nobel |
+| Sleep time dichiarato per lo stesso prodotto | 2 settimane | [di seconda mano: dynonobel.com] | **Fonte singola** |
+| Range tipico di blend Heavy ANFO (ANFO:emulsione) | da 80:20 a 20:80 | [di seconda mano: sciencedirect.com/topics] | **Fonte singola** |
+| Esempio di blend "standard" e uno "field-made" | 70% ANFO/30% emulsione; 65% ANFO/35% emulsione | [di seconda mano: risultati aggregati, riconducibili a pitandquarry.com/ISMR seminar in.gov] | **Fonte singola** per ciascun numero specifico |
+| Densità di un blend 60/40 ANFO/emulsione | ~1,2 g/cm³ | [di seconda mano: pitandquarry.com "Blasting mechanics revisited"] | **Fonte singola** |
+| Contenuto d'acqua minimo per definire un "wet blasting agent" | >5% in peso | [di seconda mano: courses.ems.psu.edu, MNG 230 Penn State] | **Fonte singola** |
+| Booster minimo per innescare in modo affidabile i prodotti citati (contesto specifico di uno studio) | 150 g | [di seconda mano: risultati aggregati, contesto studio non del tutto chiaro dal solo snippet] | **Fonte singola**, contesto incerto — da verificare leggendo il documento primario prima di usarla come regola generale |
+| Oiling ANFO (rapporto gasolio/AN) | 6% ± 0,5% | [di seconda mano: pitandquarry.com "Blasting mechanics revisited"] | **Fonte singola** — non è un criterio di scelta fra tipi ma di formulazione dell'ANFO stesso, riportato per completezza |
+| Soglia acqua nel foro oltre la quale serve resistenza all'acqua di classe elevata (X%) | **non trovato** | — | — |
+| Regola su "sotto diametro X l'ANFO sfuso non si carica bene" in termini di caricamento meccanico (non di detonazione) | **non trovato** distinto dal criterio di diametro critico di detonazione sopra | — | — |
+| Soglia di temperatura ambiente/foro che impone un cambio di tipo di esplosivo | **non trovato** | — | — |
+
+Nota generale: quasi tutti i numeri "di regola pratica" reperiti in questa
+ricerca risalgono a UNA fonte (spesso la stessa pagina aggregatrice
+ScienceDirect Topics, oppure una singola scheda tecnica di prodotto Dyno
+Nobel). Nessuno di essi ha superato una query di controllo con una fonte
+realmente indipendente (autore/dominio diverso, stesso numero). Vanno quindi
+trattati come **candidati da verificare**, non come dati consolidati.
+
+---
+
+### 3. Fattore di accoppiamento (coupling ratio)
+
+- Definizione: il "coupling ratio" (o decoupling ratio/coefficient) è il
+  rapporto fra il diametro del foro e il diametro della colonna esplosiva
+  (cartuccia o carica). Quando il diametro del foro supera quello della
+  carica si forma un'intercapedine anulare riempita d'aria o d'acqua
+  ("decoupled charging"). [di seconda mano: risultati aggregati da
+  sciencedirect.com/ScienceDirect articles + pmc.ncbi.nlm.nih.gov]
+- Per applicazioni di **presplitting/smooth blasting** (dove si vuole solo
+  frattura per trazione fra i fori, senza frantumazione), un rapporto
+  foro:carica di almeno 2,5 è citato come necessario per fornire aria
+  sufficiente a sostenere un'onda d'urto adeguata; con rapporto inferiore a
+  2,5 si ottiene frammentazione peggiore rispetto a rapporti superiori a 2,5.
+  [di seconda mano: risultati aggregati, riconducibili a letteratura tecnica
+  su decoupled charging — fonte non identificata con un dominio unico e
+  affidabile, da trattare con cautela]
+- In un altro studio, con diametro del foro costante (42 mm) e diametro della
+  cartuccia variabile, sono stati testati "decoupling coefficient" K da 2 a 6;
+  all'aumentare del coefficiente da 1,14 a 2,00 gli sforzi effettivi
+  diminuiscono, e la maggiore disparità di energia esplosiva fra lato accoppiato
+  e lato disaccoppiato si verifica a un coefficiente di circa 1,6. [di seconda
+  mano: nature.com/pmc.ncbi.nlm.nih.gov, studio su "stress wave propagation…
+  decoupled blasting"]
+- Misure di pressione sulla parete del foro (in tubi di plexiglass) mostrano
+  che la carica accoppiata dà pressioni più alte (4,78 GPa) rispetto a
+  rapporti di disaccoppiamento 40/35 (3,25 GPa) e 40/25 (2,45 GPa). [di
+  seconda mano: sciencedirect.com, "Experimental investigations of direct
+  measurement of borehole wall pressure under decoupling charge"]
+- **Incidenza pratica sulla scelta del tipo/formato di esplosivo**: per la
+  volata di produzione "normale" (non presplit) l'obiettivo è generalmente un
+  buon accoppiamento (colonna esplosiva vicina al diametro del foro) per
+  massimizzare il trasferimento di energia alla roccia — l'aumento del
+  contatto fra esplosivo e roccia e la riduzione dello sfogo dei gas di
+  esplosione favoriscono il trasferimento di energia. Questo è il motivo per
+  cui, quando il diametro del foro cresce oltre quello disponibile in
+  cartuccia standard, si passa a prodotti sfusi (ANFO/emulsione pompabile) che
+  riempiono l'intera sezione del foro, mentre nei fori piccoli o nel presplit
+  si usano cartucce di diametro inferiore al foro (accoppiamento parziale,
+  volontario) per limitare/controllare la frantumazione. [di seconda mano:
+  sintesi dei risultati aggregati sopra — "accoppiamento" come principio
+  generale è confermato da più fonti indipendenti (ScienceDirect, PMC,
+  Nature); i numeri specifici (2,5; 1,6; 4,78 GPa ecc.) restano ciascuno da
+  fonte singola]
+
+---
+
+### 4. Presentazione della scelta nei software commerciali di blast design
+
+**SHOTPlus (Orica)**
+- Software di blast design e modellazione avanzata, sul mercato da oltre 35
+  anni, considerato uno standard di settore per progettazione 3D, sequenze di
+  accensione, ottimizzazione. Include "loading rules" avanzate che si possono
+  sviluppare e applicare automaticamente ai fori per ottenere powder factor e
+  caricamento ottimali "secondo le proprietà reali della roccia". [di seconda
+  mano: orica.com]
+- **Non trovato** nei risultati di ricerca alcun riferimento esplicito a un
+  "advisor"/wizard che consigli attivamente QUALE TIPO di esplosivo (ANFO vs
+  emulsione vs blend) usare in base a condizioni del foro (acqua, roccia,
+  temperatura). Quello che emerge è un sistema di regole di caricamento
+  configurabili dall'utente/ingegnere (l'utente definisce le regole, non il
+  software le suggerisce da zero) — coerente con un catalogo dati + regole
+  personalizzabili, non un wizard decisionale autonomo.
+
+**O-Pitblast**
+- Include un database esplosivi (proprietà, tabelle di carica lineare per
+  diametro/densità) e un sistema di "charge rules" (regole di carica)
+  configurabili dall'utente e applicabili a tutti i fori o a fori selezionati.
+  [di seconda mano: e38surveysolutions.com; mining-technology.com]
+- **Non trovato** un "advisor" di selezione del tipo di esplosivo basato su
+  condizioni ambientali (acqua, roccia, temperatura): il sistema descritto è
+  un database + motore di regole configurato dall'ingegnere, non un
+  suggeritore automatico del tipo di prodotto.
+- Nota: è citato "O-PitAI" in un post LinkedIn del produttore ("O-PitAI on
+  O-PitBlasting Guide") che lascia intendere una componente IA nel prodotto,
+  ma i risultati di ricerca non descrivono nel dettaglio se e come questa
+  riguardi la selezione del tipo di esplosivo: **non trovato** un dettaglio
+  sufficiente per affermarlo con certezza — segnalato solo come possibile
+  pista da approfondire con una lettura diretta del documento (bloccata qui da
+  EGRESS_BLOCKED su WebFetch).
+
+**JKSimBlast**
+- Sistema modulare (2DBench, 2DRing, 2DFace, JKBMS, 2DView/TimeHEx,
+  Blastatistics) per progettazione e gestione di volate. Permette di
+  "personalizzare completamente i parametri, le proprietà di esplosivo e
+  detonatore" e di simulare la sequenza di detonazione. Dati salvati in
+  database Microsoft Access con proprietà di esplosivi, detonatori, inneschi.
+  [di seconda mano: soft-blast.com; miningsoftwarereviews.com]
+- **Non trovato** alcun riferimento a un wizard/advisor di selezione del tipo
+  di esplosivo: il sistema descritto è ancora un database di proprietà
+  configurabili dall'utente, con enfasi sull'analisi energetica e la
+  simulazione, non sulla raccomandazione del prodotto da usare.
+
+**RIOBLAST (MAXAM)**
+- Software di progettazione e simulazione volate di MAXAM (non di Orica — va
+  corretta una possibile confusione: Orica ha SHOTPlus, RIOBLAST è di MAXAM).
+  Include moduli per terreno, geometria e carica, tempi e sequenza,
+  vibrazioni, frammentazione e proiezioni; permette di importare la topografia
+  reale del terreno. [di seconda mano: mining-technology.com]
+- **Non trovato** nei risultati di ricerca alcun dettaglio su un
+  advisor/wizard di selezione del tipo di esplosivo in RIOBLAST.
+
+**Sintesi punto 4**: in nessuno dei quattro software è emerso, nei risultati
+di ricerca disponibili, un "advisor"/wizard che, dato l'inserimento di
+condizioni (acqua nel foro, tipo di roccia, diametro, temperatura, holding
+time), suggerisca automaticamente all'utente quale TIPO di esplosivo
+scegliere. Il pattern comune descritto è: **catalogo/database di proprietà
+esplosivo** (densità, VOD, energia, ecc.) + **motore di regole di
+caricamento** che l'ingegnere configura e applica ai fori, lasciando la
+decisione di merito (quale tipo di prodotto) al giudizio dell'ingegnere.
+Questo è coerente con quanto descritto nell'articolo "Explosive Selection in
+Rock Blasting" (serie di 4 parti, blog "Blasting Trainings" su LinkedIn), che
+descrive la scelta come basata sul giudizio esperto su diametro del foro,
+durezza della roccia, profondità, presenza d'acqua e tipo di scavo — non su
+un tool automatico. [di seconda mano: linkedin.com/pulse, serie "Blasting
+Trainings"]
+⚠️ Limite dichiarato: la ricerca non ha potuto leggere il contenuto integrale
+di nessuno di questi manuali/software (solo motore di ricerca, niente
+WebFetch): l'assenza di menzione di un "advisor" nei risultati di ricerca
+è un indizio, non una prova definitiva che tale funzione non esista in una
+versione più recente o in una sezione del prodotto non indicizzata dal motore
+di ricerca.
+
+---
+
+### Fonti citate (elenco domini)
+
+- sciencedirect.com/topics/engineering/charge-diameter (fonte ricorrente per
+  numeri di diametro — fonte singola per più regole, dichiarato)
+- courses.ems.psu.edu (Penn State, MNG 230 — corso universitario pubblico)
+- pitandquarry.com (rivista di settore, più articoli della serie "Blasting
+  Mechanics Revisited")
+- farmonaut.com
+- dynonobel.com (schede tecniche di prodotto — fonte di produttore, ma letta
+  solo via snippet di ricerca, quindi marcata di seconda mano)
+- orica.com
+- famesaexplosivos.com, extraco.gr (schede prodotto gelatina dinamite)
+- mdpi.com (articolo scientifico peer-reviewed, "Influence of Explosive and
+  Rock Mass Properties on Blast Damage")
+- image-ppubs.uspto.gov (documenti brevettuali USPTO — attenzione: un brevetto
+  descrive spesso un caso/invenzione specifica, non una regola di settore
+  generale; usato solo dove esplicitamente indicato e con questa cautela)
+- nature.com / pmc.ncbi.nlm.nih.gov (articolo scientifico peer-reviewed)
+- mining-technology.com, e38surveysolutions.com, soft-blast.com,
+  miningsoftwarereviews.com (schede descrittive di software commerciali)
+- linkedin.com/pulse, serie "Blasting Trainings" (blog tecnico di settore, non
+  peer-reviewed — trattato come fonte di opinione/pratica, non come norma)
+
+### Limiti dichiarati di questa ricerca
+
+1. WebFetch non disponibile (EGRESS_BLOCKED): tutte le fonti sono lette solo
+   attraverso i riassunti prodotti da WebSearch, mai il documento primario
+   integrale. Qualsiasi numero riportato andrebbe idealmente riverificato
+   aprendo la fonte primaria prima di usarlo in un documento che il fondatore
+   mostra a un cliente (vedi CLAUDE.md: "un numero di legge riportato di
+   seconda mano... è peggio di un numero assente").
+2. Diversi numeri (diametro critico ANFO 3", range 70-150mm, 120-250mm)
+   risalgono probabilmente alla stessa pagina aggregatrice (ScienceDirect
+   Topics), non a fonti indipendenti multiple: dichiarato esplicitamente
+   ovunque compaiano.
+3. Non è stato possibile determinare con certezza se O-Pitblast (tramite
+   "O-PitAI") o altri prodotti abbiano introdotto di recente funzioni di
+   raccomandazione automatica del tipo di esplosivo: il punto è lasciato
+   aperto, non concluso in un senso o nell'altro.
