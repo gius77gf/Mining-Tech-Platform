@@ -87,6 +87,36 @@ scelte di prodotto.*
 
 ---
 
+## 🟡 12/09 — una decisione nuova, da `docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md`
+
+*Quel documento (già pronto, con le fonti) chiude da solo con la frase
+«serve la tua decisione»: non è un difetto da correggere, è una scelta che
+riguarda come Genesi si presenta ai clienti — se sbagliata, rischia di far
+sembrare una stima assistita una misura vera, ed è esattamente la
+gonfiatura che le regole di questo repository vietano. Per questo il ciclo
+non ha proceduto da solo, nonostante la direttiva di lavorare al massimo
+su Genesi.*
+
+- [ ] **28. Genesi: si procede con la "misura assistita" della pezzatura da
+  foto (P2.1 di `docs/GENESI_ROADMAP_COMPETITOR.md`)?** Il documento di
+  ricerca dedicato conclude: una stima "carica una foto e hai la
+  granulometria esatta" non è affidabile per nessuno, nemmeno per i leader
+  di mercato (Split-Desktop, WipFrag) — serve sempre taratura su vagliatura,
+  telecamere 3D, o correzione umana. La strada onesta e fattibile subito nel
+  browser, senza spese, è la **misura assistita**: l'operatore delimita a
+  mano i frammenti nella foto e posiziona un oggetto di scala nota; il tool
+  calcola area→curva→x50→uniformità e la sovrappone alla curva Kuz-Ram
+  prevista, con un'etichetta esplicita ("stima assistita da immagine, NON
+  vagliatura; i fini sono sottostimati"). Un modello ML (MobileSAM) per
+  aiutare a tracciare i bordi resta un upgrade futuro opzionale, da attivare
+  solo su richiesta (pesa qualche decina di MB). Da decidere: si procede con
+  la misura assistita come prossima unità su Genesi? *La mia risposta, se
+  non rispondi entro la settimana*: sì alla misura assistita (onesta,
+  gratuita, coerente con Genesi = simulatore didattico), MobileSAM resta
+  fuori roadmap finché non lo chiedi tu esplicitamente.
+
+---
+
 ## 🟡 02/09 — tre decisioni nuove, nate dai ponti e dalle ricerche di oggi
 
 *Oggi Genesi è uscita dal browser (sette unità su otto del piano), il triangolo
@@ -218,7 +248,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **14**
+# 📖 Da dove cominciare — le decisioni aperte sono **15**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
