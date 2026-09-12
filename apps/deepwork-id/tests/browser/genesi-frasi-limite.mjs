@@ -165,6 +165,23 @@ const frase = (testo, atteso, vietato, nome) => {
   const t = String(testo == null ? "" : testo).replace(/\s+/g, " ");
   dice(t.includes(atteso) && (!vietato || !t.includes(vietato)), nome, t);
 };
+/* ⏱️ 12/09: RENDERHOME() LEGGE DA `GDB` (`await genesiData()`), CHE PRIMA
+   PROVA UNA MODALITÀ "LIVE" (init dell'SDK identità) prima di ripiegare sul
+   locale — misurato: la Home resta con `hgVolN` VUOTO fino a 13-15s in
+   questo ambiente, non per colpa dello storico iniettato ma per lo stesso
+   motivo dello splash (vedi `vaiA`): la pagina ha semplicemente bisogno di
+   più tempo di quanto un'attesa fissa gli conceda. Si RIPROVA la lettura
+   ogni 400ms fino a un tetto, invece di leggere una volta sola. */
+async function aspettaTesto(pg, leggi, tetto = 25000) {
+  const scadenza = Date.now() + tetto;
+  let t = "";
+  do {
+    t = await pg.evaluate(leggi);
+    if (t) break;
+    await pg.waitForTimeout(400);
+  } while (Date.now() < scadenza);
+  return t;
+}
 
 async function apri(preludio, coda) {
   const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
@@ -217,6 +234,20 @@ const dai = async (pg, id, nome, testo, mime) => {
   await pg.waitForTimeout(1100);
 };
 const toasts = (pg) => pg.evaluate(() => { const t = window.__toasts.slice(); window.__toasts = []; return t.join(" | "); });
+/* ⏱️ 12/09: come `aspettaTesto` ma per i toast — un `dai()` (setInputFiles)
+   subito dopo `apri()` può arrivare prima che la pagina abbia finito di
+   agganciare il suo `onchange`, nello stesso ambiente lento descritto sopra.
+   Si attende che la coda dei toast non sia vuota, senza svuotarla ad ogni
+   giro (altrimenti si perderebbe il toast arrivato tardi). */
+const aspettaToast = async (pg, tetto = 25000) => {
+  const scadenza = Date.now() + tetto;
+  while (Date.now() < scadenza) {
+    const n = await pg.evaluate(() => window.__toasts.length);
+    if (n > 0) break;
+    await pg.waitForTimeout(400);
+  }
+  return toasts(pg);
+};
 
 const UNO = () => {
   localStorage.setItem("genesiDisclaimerV1", "1");
@@ -240,11 +271,11 @@ console.log("\n· la home con UNA volata salvata e UN rilievo da UN punto");
 {
   const pg = await apri(UNO);
   await vaiA(pg, "home");
-  frase(await pg.evaluate(() => (document.getElementById("hgVolN") || {}).textContent),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgVolN") || {}).textContent),
         "1 salvata", "1 salvate", "⛔ il contatore delle volate dice «1 salvata», non «1 salvate»");
-  frase(await pg.evaluate(() => (document.getElementById("hgNuvN") || {}).textContent),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgNuvN") || {}).textContent),
         "1 lavorazione", "1 lavorazioni", "⛔ e quello dei rilievi «1 lavorazione»");
-  frase(await pg.evaluate(() => (document.getElementById("hgNuvole") || {}).innerText),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgNuvole") || {}).innerText),
         "1 punto caricato", "1 punti", "⛔ e la nuvola da un punto solo dice «1 punto caricato»");
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
@@ -256,7 +287,7 @@ console.log("\n· i file importati con un foro / una riga sola");
   const pg = await apri();
   await dai(pg, "fileIn", "volata.json",
     JSON.stringify({ volata: { fori: [{ x: 0, prof: 10, kg: 58, ritardo: "25" }] } }), "application/json");
-  frase(await toasts(pg), "1 foro", "1 fori", "⛔ volata JSON da un foro: «✓ Volata importata: 1 foro»");
+  frase(await aspettaToast(pg), "1 foro", "1 fori", "⛔ volata JSON da un foro: «✓ Volata importata: 1 foro»");
 
   await vaiA(pg, "design");
   await dai(pg, "fileXmlIn", "piano.xml",
