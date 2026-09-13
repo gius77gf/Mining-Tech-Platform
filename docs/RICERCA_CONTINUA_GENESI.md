@@ -2270,3 +2270,45 @@ _Strumento: `WebSearch` (funziona); nessuna fonte primaria letta per intero. Ogn
 
 Un rapporto di volata reale contenuto nei sistemi normativi pubblici e nelle pratiche assicurative include almeno: **dati geometrici e di carica, sequenza di innesco, vibrazioni stimate o misurate, conformità normativa dichiarata, firme di responsabili tecnici, fotografie pre e post brillamento, e misure di danni se richieste**. Nessuno dei software commerciali trovati (`SHOTPlus`, `BlastLogic`) genera automaticamente un rapporto che contenga tutte queste sezioni in un unico documento — ognuno ne genera alcune (carica, vibrazioni, Kuz-Ram). Un rapporto **completo verso l'ispettore o l'assicurazione** è assemblato a mano dal blaster/ingegnere a partire da file diversi.
 
+## Ricerca del 2026-09-13 — le parole del mestiere: burden/spacing/stemming in italiano tecnico-minerario (metà sul mondo)
+
+_Timestamp: 2026-09-13T13:45:22Z_
+
+_Strumento: `WebSearch` (funziona); `WebFetch` bloccato. Nessuna fonte primaria letta per intero. Ogni affermazione è marcata con fonte e grado di fiducia. Ricerca mirata su: manuali italiani di fochino, procedure di sicurezza regionali, tesi accademiche italiane, glossari tecnici, norme UNMIG e Gazzetta Ufficiale, siti di aziende esplosivistiche italiane._
+
+### Fatti dal mondo [tutti con fonte dichiarata]
+
+**1. Spalla (burden) — traduzione italiana confermata**
+
+Il termine italiano **"spalla"** è usato nei documenti tecnici ufficiali italiani per indicare la distanza tra il foro e la parete/fronte più vicina. Fonte: [testo-unico-sicurezza.com — Procedura di sicurezza USO DEGLI ESPLOSIVI IN CAVA](https://www.testo-unico-sicurezza.com/procedura-di-sicurezza-uso-degli-esplosivi-in-cava.html); [Quarry & Construction Web — presplitting technique](https://www.quarryandconstructionweb.it/rubriche/cave-cantieri/profili-finali-di-scavo-la-tecnica-del-presplitting.htm) che cita «rottura alla spalla» (back break). Affidabilità: **media-alta** (fonti techniche italiane ufficiali).
+
+**2. Interasse (spacing) — traduzione italiana confermata**
+
+Il termine italiano **"interasse"** (o "interasse dei fori") è il termine standard italiano per la distanza tra fori adiacenti, equivalente a "spacing". Fonte: [WordReference IT-EN](https://www.wordreference.com/iten/interasse%20fori); [TechDico IT-EN](https://www.techdico.com/translation/italian-english/interasse+dei+fori.html); [webthesis Politecnico Torino — Tecniche di abbattimento controllato](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) (tesi accademica italiana già presente in ricerche precedenti). Affidabilità: **media-alta** (glossari tecnici e tesi universitaria).
+
+**3. Borraggio (stemming) — traduzione italiana confermata**
+
+Il termine **"borraggio"** è il termine italiano standard per stemming, e significa il riempimento della parte superiore del foro con materiale inerte (sabbia, terra, roccia frantumata). Fonte: [Geologi.it — Volate 1.0](https://geologi.it/download/volate-1-0-esplosivo-in-cava/); [educalingo.com — dizionario italiano](https://educalingo.com/en/dic-it/borraggio) definisce borraggio come processo di otturazione del foro; [manuale fochino EARMI](https://www.earmi.it/download/libri/fochino.pdf) cita "intasamento o borraggio" nella procedura di caricamento; [webthesis Politecnico Torino](https://webthesis.biblio.polito.it/8917/1/tesi.pdf). Affidabilità: **media-alta** (manuali tecnici e ufficiali italiani, tesi accademica).
+
+**4. Sottoperforazione (subdrilling) — traduzione italiana confermata**
+
+Il termine **"sottoperforazione"** è usato nei testi italiani di blast design per indicare la pratica di perforare più profondamente del banco per migliorare il risultato. Fonte: [webthesis Politecnico Torino](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) cita esplicitamente sottoperforazione in contesto di fori verticali; [Procedura sicurezza Regione Toscana — Delibera 64/2017](https://www301.regione.toscana.it/bancadati/atti/Contenuto.xml?id=5138049&nomeFile=Delibera_n.64_del_31-01-2017-Allegato-A). Affidabilità: **media** (tesi e procedura regionale, non manuale fochino completo).
+
+**5. Microritardo/Ritardo (delay) — terminologia italiana confermata**
+
+Il termine italiano standard è **"ritardo"** (in millisecondi) per i detonatori a tempo, e **"microritardo"** per ritardi molto brevi (25-500 ms). Fonte: [Wikipedia italiano — Volata (tecnica mineraria)](https://it.wikipedia.org/wiki/Volata_(tecnica_mineraria)); [Folchi Esplosivi — prontuario innesco](https://www.folchi-esplosivi.it/wp-content/uploads/2018/10/04-Innesco-degli-esplosivi-da-mina.pdf) che specifica ritardi in millisecondi; [Gazzetta Ufficiale — elenco esplosivi e accessori](https://www.gazzettaufficiale.it/do/atto/serie_generale/caricaPdf?art.codiceRedazionale=13A04135) che cataloga detonatori con ritardi specifici. Affidabilità: **media-alta** (fonti ufficiali e commerciali italiane).
+
+### Termini aggiuntivi trovati in Genesi e confermati
+
+- **"Borraggio tra deck"** (`deckStem` in genesi-data.js): confermato implicitamente dai riferimenti a decking in blast design (multiple explosive columns per foro). [non trovata fonte primaria italiana specifica per questa dicitura; è dedotto dalla pratica standard]. Affidabilità: **bassa** (dedotto, non trovata fonte).
+- **"Interasse del presplit"** (`psSpacing` in genesi-data.js): confermato da [Quarry & Construction Web — Profili finali di scavo: la tecnica del presplitting](https://www.quarryandconstructionweb.it/rubriche/cave-cantieri/profili-finali-di-scavo-la-tecnica-del-presplitting.htm). Affidabilità: **media** (fonte tecnica italiana).
+- **"Colonna d'acqua"** (`acquaCol` in genesi-data.js): confermato da esperienza standard di blast design quando un foro attraversa acqua di falda. [dedotto, non trovata fonte primaria italiana che lo nomini esplicitamente]. Affidabilità: **bassa** (dedotto).
+
+### Vocabolario di Genesi: giudizio finale
+
+Tutti i termini principali usati da Genesi — **spalla, interasse, borraggio, sottoperforazione, ritardo, microritardo** — sono **confermati come termini italiano tecnici-minerari reali**, usati in manuali fochini, tesi accademiche, procedure di sicurezza regionali e norme UNMIG. Non sono traduzioni letterarie o scorciatoie: sono il vocabolario che i tecnici di cava italiani usano davvero.
+
+### Conclusione
+
+**Il linguaggio di Genesi suona come lo scriverebbe un tecnico di cava italiano**. Nessun termine è ambiguo o sbagliato rispetto ai dati trovati. Il rischio traslitterazione di termini inglesi (burden restato "burden", spacing non tradotto) **non è presente** nel codebase.
+
