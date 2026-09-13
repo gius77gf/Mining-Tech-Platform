@@ -2517,3 +2517,95 @@ libera del fondatore per la correzione (tocca soglie di sicurezza).
 Le due verifiche non si contraddicono: i numeri citati sono giusti, il
 modo in cui il codice li approssima è la parte ancora da sistemare.
 
+## Ricerca del 2026-09-13 — Orica SHOTPlus e Maxam RIOBLAST in dettaglio (metà sul mondo)
+
+_Timestamp: 2026-09-13T13:02:29Z_
+
+_Strumento: `WebSearch` solo. Contesto: ricerca mirata su due concorrenti
+citati in `docs/GENESI_VS_COMPETITOR_MATRICE.md` (Orica SHOTPlus, Maxam
+RIOBLAST) per approfondire funzioni specifiche attuali (2025-2026) oltre
+a quanto già trovato da ricerche precedenti, e cercare case study/recensioni
+indipendenti._
+
+### Orica SHOTPlus — funzioni specifiche attuali
+
+**Detonatori elettronici e tecnologie di innesco (2024-2025):**
+- **Lead-free detonators**: Orica sta espandendo la tecnologia di detonatori
+  senza piombo alla gamma completa dei sistemi di brillamento elettronico.
+  Disponibili da inizio 2025 in Europa: eDev™ II Neo, uni tronic™ 600 Neo,
+  i-kon™ III Neo, con le stesse prestazioni della gamma attuale [fonte produttore:
+  https://www.orica.com/news-media/2024/orica-to-expand-fully-lead-free-detonator-technology-to-its-electronic-blasting-systems-range].
+- **ORBS™ System**: Capacità massima fino a 90.000 detonatori in una singola
+  sequenza di brillamento su più livelli sotterranei. Centralizzato, per operazioni
+  su larga scala [fonte produttore: https://www.orica.com/products-services/initiating-systems/orbs/orbs].
+
+**Flusso di lavoro da campo a cloud:**
+- Field-to-cloud data workflows per dati in tempo reale e decisioni più intelligenti
+  [fonte produttore: https://www.orica.com/blasting-solutions].
+- Integrazione con **BlastIQ** per raccolta, condivisione e analisi dati di sparo
+  acquisiti da SHOTPlus in campo, con controllo esecuzione in tempo reale
+  [fonte produttore: https://www.orica.com/Products---Services/Mining-Services/BlastIQ/].
+
+**Versioning e limitazioni note (da supporto tecnico):**
+- SHOTPlus 6 ha rimosso il supporto per DIPPlus (legacy).
+- Versioni beta e produzioni hanno occasionalmente problemi di compatibilità con
+  BlastIQ [fonte produttore/supporto: https://support.blastiq.com/hc/en-us/articles/360045748973-SHOTPlus-Version-6-vs-SHOTPlus-Version-5].
+
+---
+
+### Maxam RIOBLAST — funzioni specifiche e posizionamento
+
+**Moduli di design e simulazione:**
+- Land mapping, blast geometry and loading, timing and sequencing, vibration prediction,
+  fragmentation prediction, flyrock prediction [fonte produttore: https://fundacionmaxam.com/en/fundacion/catedra_maxam/blasting_solutions/design_and_simulation_of_blasts_rioblast].
+- Import di topografia reale da terreno/banchi e visualizzazione in 3D.
+- Importazione di fotografie satellitari georeferenziate [fonte produttore:
+  https://www.maxamcorp.com/en/blasting-solutions/digital].
+
+**Cloud platform e integrazione multi-sito:**
+- **MAXAM Blast Center** (commercializzato come **RIOCLOUD**): piattaforma cloud
+  che unifica RIOBLAST con data logger da campo, gestione flotta e tracking KPI.
+  Monitoraggio in tempo reale e analisi su siti multipli [fonte produttore:
+  https://www.maxamcorp.com/en/blasting-solutions/digital].
+
+**Target di mercato — piccole cave e quarry:**
+- RIOBLAST è dichiarato idoneo per **quarry, piccoli progetti costruttivi,
+  attività subacquee, mining open-pit e sotterraneo** [fonte produttore:
+  https://www.maxamcorp.com/en/blasting-solutions/quarries].
+- Progetto **SLIM** (Sustainable Low Impact Mining) in corso, per sviluppare
+  soluzioni cost-effective per piccoli giacimenti minerari con esplosivi nuovi
+  e software avanzato [fonte produttore: https://www.maxamcorp.com/en/newsinsights/news/slimprojectmeeting].
+
+---
+
+### Ricerche indipendenti e case study
+
+**Risultato della ricerca:** Non trovate fonti indipendenti che confrontano
+direttamente SHOTPlus vs RIOBLAST con case study dettagliati, difetti reali
+d'uso o benchmark di performance. Le fonti disponibili via `WebSearch` sono
+principalmente documentazione produttore o articoli di settore generici
+(mining-technology.com, miningsoftwarereviews.com), senza analisi critica
+indipendente sulle due piattaforme specificamente su piccole cave [query provate:
+`"SHOTPlus" "RIOBLAST" comparison case study`, `Orica SHOTPlus limitations drawbacks`,
+`Maxam RIOBLAST limitations issues review`].
+
+**Limitazioni della ricerca:** WebFetch è stato bloccato (EGRESS_BLOCKED) su
+tentativi di accesso a siti generici. Non è stata possibile lettura diretta di
+articoli tecnici o case study in PDF. La ricerca rimane confinata a snippet di
+`WebSearch` e pagine di marketing/supporto dei produttori.
+
+---
+
+### Fonti
+
+- [Orica Blasting Solutions](https://www.orica.com/blasting-solutions)
+- [Orica lead-free detonators 2024](https://www.orica.com/news-media/2024/orica-to-expand-fully-lead-free-detonator-technology-to-its-electronic-blasting-systems-range)
+- [Orica Electronic Blasting Systems](https://www.orica.com/en/blasting-solutions/initiating-systems/electronic-blasting-systems)
+- [Orica ORBS System](https://www.orica.com/products-services/initiating-systems/orbs/orbs)
+- [Orica BlastIQ](https://www.orica.com/Products---Services/Mining-Services/BlastIQ/)
+- [SHOTPlus Version 6 vs 5](https://support.blastiq.com/hc/en-us/articles/360045748973-SHOTPlus-Version-6-vs-SHOTPlus-Version-5)
+- [Fundación Maxam — RIOBLAST](https://fundacionmaxam.com/en/fundacion/catedra_maxam/blasting_solutions/design_and_simulation_of_blasts_rioblast)
+- [Maxam Digital Solutions](https://www.maxamcorp.com/en/blasting-solutions/digital)
+- [Maxam Quarries](https://www.maxamcorp.com/en/blasting-solutions/quarries)
+- [Maxam SLIM Project](https://www.maxamcorp.com/en/newsinsights/news/slimprojectmeeting)
+
