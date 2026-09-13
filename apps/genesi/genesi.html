@@ -5986,6 +5986,46 @@ function drawDesign2D(){
       ctx.restore();
     }
   });
+  /* G34ter (13/09) — quota a schermo del foro selezionato: il burden e
+     l'interasse VERI (misurati sul foro, non il B/S nominale di progetto,
+     già calcolati da `computeEnergia2D` e già mostrati nel pannello
+     laterale) disegnati come farebbe un CAD, non solo scritti a fianco.
+     Compaiono solo se il modulo li ha potuti calcolare: mai una quota
+     inventata su un "non calcolabile" (h.burdenLoc/h.spazLoc restano
+     `undefined` finché `computeEnergia2D` non gira, e `Number.isFinite`
+     lo rispetta). */
+  if(D2.sel>=0 && D2.holes[D2.sel]){
+    const h=D2.holes[D2.sel], scx=mx2(h.mx), scy=my2(h.my+interpFronte(h.mx));
+    ctx.save(); ctx.strokeStyle='rgba(255,213,121,.55)'; ctx.fillStyle='#ffd579';
+    ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.textAlign='left';
+    /* ⛔ 13/09, trovato SOLO collaudando a schermo (mai a occhio sul codice),
+       in DUE giri successivi — e la seconda volta la causa non era la prima:
+       (1) la prima stesura centrava l'etichetta sul punto medio del segmento
+       verticale, che per un foro di prima fila cade vicino a faceY+20, la
+       riga dove `drawDesign2D` scrive già "FRONTE — faccia libera" (fissa,
+       non legata al foro selezionato): sovrapposte, illeggibili;
+       (2) spostata l'etichetta accanto al foro invece che sul segmento, la
+       sovrapposizione RESTAVA per il foro 1 — non con "FRONTE", con la quota
+       NOMINALE che `drawDesign2D` disegna già da sempre vicino alla prima
+       fila (righe ~5945-5947: "S ⟨D2.S⟩ m" e "B ⟨D2.B⟩ m" verticale,
+       indipendenti da quale foro è selezionato). Le due etichette
+       convivevano solo perché il foro 1 sta esattamente dove quella quota
+       fissa già scrive. Messe SOTTO al foro invece che sopra, la zona alta
+       (dove vivono "FRONTE" e la quota nominale) resta libera qualunque foro
+       si scelga — sopra c'è sempre spazio quando serve, sotto la fila
+       successiva è lontana un intero passo di banco. */
+    if(Number.isFinite(h.burdenLoc)){
+      const y2=scy-h.burdenLoc*scale;                     // il segmento punta al fronte: my decresce
+      ctx.beginPath(); ctx.moveTo(scx,scy); ctx.lineTo(scx,y2); ctx.stroke();
+      ctx.fillText('B '+gfix(h.burdenLoc,2)+' m', scx+13, scy+15);
+    }
+    if(Number.isFinite(h.spazLoc)){
+      const x2=scx+h.spazLoc*scale;
+      ctx.beginPath(); ctx.moveTo(scx,scy); ctx.lineTo(x2,scy); ctx.stroke();
+      ctx.fillText('S '+gfix(h.spazLoc,2)+' m', scx+13, scy+29);
+    }
+    ctx.restore();
+  }
   const sign=D2.dir==='sx'?1:-1, ax0=sign>0?padX:W-padX, ax1=sign>0?padX+110:W-padX-110;
   ctx.strokeStyle='#66bb6a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax0,34); ctx.lineTo(ax1,34); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(ax1,34); ctx.lineTo(ax1-sign*8,30); ctx.lineTo(ax1-sign*8,38); ctx.fillStyle='#66bb6a'; ctx.fill();
