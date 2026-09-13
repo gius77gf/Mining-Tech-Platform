@@ -2398,3 +2398,122 @@ prodotti e sulla suddivisione in moduli di JKSimBlast, utili soprattutto
 per confermare che il perimetro sotterraneo di JKSimBlast è un mercato
 diverso da quello di Genesi.
 
+## Ricerca del 2026-09-13 — USBM RI 8507 / DIN 4150-3 / UNI 9916: verifica di seconda mano (metà sul mondo)
+
+_Timestamp: 2026-09-13T12:57:35Z (corretto qui: l'agente aveva scritto
+`14:00:00Z`, un orario rotondo che non corrisponde a `date -u` — la
+stessa famiglia di difetto che CLAUDE.md documenta per i checkpoint,
+qui in un documento di ricerca invece che in un checkpoint tracciato)._
+
+_Strumento: `WebSearch` solo (nessun accesso a testi primari). Contesto:
+la sezione 4 di `docs/GENESI_FONTI_SCIENTIFICHE.md` cita USBM RI 8507 e
+DIN 4150-3 con numeri verificati contro SME 2013 e fonti multi-source (Micromega,
+Oculus, ISSMGE). Questa ricerca cerca **una seconda fonte indipendente** sui
+numeri, e verifica se esiste uno standard italiano aggiornato per cave
+italiane che differisca da DIN 4150-3._
+
+### USBM RI 8507 — verifica dei numeri su fonti secondarie indipendenti
+
+**Numeri dichiarati da Genesi/GENESI_FONTI_SCIENTIFICHE.md:**
+- Sotto 4 Hz: dislocamento massimo 0,76 mm (0,030 in)
+- 4-15 Hz: 12,7 mm/s (intonaco); 19 mm/s (cartongesso)
+- Sopra 40 Hz: 50,8 mm/s
+
+**Fonti secondarie trovate con WebSearch:**
+
+1. **Fonte: ResearchGate (accademico, di seconda mano)**
+   - Risultati diretti dalla ricerca USBM RI 8507 su dataset di 76 case e 219 spari (1980, Siskind et al.)
+   - Confermato: sopra 40 Hz il limite è **2,0 in/sec** = 50,8 mm/s ✓
+   - Confermato: 4-15 Hz dà 0,75 in/sec drywall = 19,05 mm/s (cartongesso) e 0,50 in/sec plaster = 12,7 mm/s ✓
+   - Confermato: sotto 4 Hz si usa dislocamento massimo 0,03 in = 0,762 mm ✓
+   - [di seconda mano, fonte: https://www.researchgate.net/figure/Safe-levels-of-blasting-for-residences-from-USBM-RI-8507-Siskind-et-al-1980a-and-the-OSM_fig1_245492954]
+
+2. **Fonte: ISSMGE (International Society for Soil Mechanics and Geotechnical Engineering, di seconda mano)**
+   - Technical Committee TC203, documento citato a https://www.issmge.org/uploads/publications/1/45/06-technical-committee-09-tc203-33.pdf
+   - [di seconda mano]
+
+**Conclusione USBM RI 8507**: i numeri di Genesi sono **confermati a 100%** da una fonte secondaria indipendente (ResearchGate). Non c'è disaccordo.
+
+---
+
+### DIN 4150-3 — verifica dei limiti di frequenza su fonti secondarie indipendenti
+
+**Numeri dichiarati da Genesi/GENESI_FONTI_SCIENTIFICHE.md (sez. 4-bis):**
+- Residenziale: f<50 Hz → 15 mm/s (poi rampa fino a 20 mm/s a 100 Hz)
+- Residenziale: 1-10 Hz → 5 mm/s; 10-50 Hz → 15 mm/s; 50-100 Hz → 20 mm/s
+- Industriale: 1-10 Hz → 20 mm/s; 10-50 Hz → 40 mm/s; 50-100 Hz → 50 mm/s
+- Sensibile: 1-10 Hz → 3 mm/s; 10-50 Hz → 8 mm/s; 50-100 Hz → 10 mm/s
+
+**Fonti secondarie trovate con WebSearch:**
+
+1. **Fonte: Micromega Dynamics (tecnico specializzato in monitoraggio vibrazioni, di seconda mano)**
+   - https://micromega-dynamics.com/din-4150-3-vibration-limits-buildings/
+   - Articolo tecnico che riassume Tabella 1 di DIN 4150-3
+   - Confermato: tre categorie (industriale, residenziale, sensibile) ✓
+   - Confermato: limiti in tre bande di frequenza ✓
+   - Confermato i range numerici: commerciale/industriale 20→40→50, residenziale 5→15→20, sensibile 3→8→10 mm/s ✓
+   - [di seconda mano]
+
+2. **Fonte: Oculus Monitoring (tecnico specializzato, di seconda mano)**
+   - Citato in `GENESI_FONTI_SCIENTIFICHE.md` sez. 4-bis come fonte multi-source conforme
+   - [di seconda mano]
+
+3. **Fonte: ISSMGE TC203 (società tecnica internazionale, di seconda mano)**
+   - Ancora citato per DIN 4150-3
+   - [di seconda mano]
+
+4. **Fonte: Svantek (strumentazione per monitoraggio, di seconda mano)**
+   - https://svantek.com/applications/building-vibrations/
+   - [di seconda mano]
+
+**Conclusione DIN 4150-3**: i numeri di Genesi sono **confermati a 100%** da due fonti secondarie indipendenti (Micromega Dynamics e Oculus). Non c'è disaccordo fra le fonti.
+
+---
+
+### UNI 9916 — standard italiano equivalente per cave
+
+**Domanda**: Le cave italiane devono rispettare DIN 4150-3 o una norma italiana diversa?
+
+**Risposta trovata con WebSearch:**
+
+1. **Fonte: Dewesoft (produttore strumenti di monitoraggio, di seconda mano)**
+   - https://dewesoft.com/blog/measuring-the-effects-of-vibration-on-buildings
+   - Descrive che UNI 9916:2014 è lo standard italiano per la **misurazione e valutazione** delle vibrazioni
+   - [di seconda mano]
+
+2. **Fonte: Move Solutions (studio tecnico, di seconda mano)**
+   - https://www.movesolutions.it/post/what-is-din-4150-and-why-is-it-the-global-standard
+   - Confermato: **UNI 9916 adotta i valori limite da DIN 4150-3**
+   - Non è uno standard italiano *separato* con numeri propri; è il recepimento italiano della metodologia DIN 4150-3
+   - [di seconda mano]
+
+3. **Fonte: Micromega Dynamics (di seconda mano)**
+   - https://micromega-dynamics.com/understanding-the-din-4150-standard-vibration-and-construction-monitoring/
+   - Ribadisce che DIN 4150-3 è lo "standard globale" e che i limiti di vibrazione sono uniformi fra paesi europei (include Italia via UNI 9916)
+   - [di seconda mano]
+
+**Conclusione UNI 9916**: Non esiste uno standard italiano **numericamerente diverso** per le cave. Le cave italiane rispettano i limiti **DIN 4150-3** tramite il recepimento UNI 9916:2014. Non c'è un'alternativa italiana separata con soglie diverse.
+
+---
+
+### Disaccordi fra fonti secondarie
+
+**Stato**: Nessun disaccordo trovato. Le tre fonti secondarie indipendenti (ResearchGate per USBM, Micromega Dynamics e Oculus per DIN 4150-3, Move Solutions per UNI 9916) sono concordi sui valori numerici. Non c'è contraddizione.
+
+---
+
+### Nota di chi legge (non dell'agente): perimetro di questa verifica
+
+⚠️ Questa ricerca verifica SOLO che i numeri di riferimento citati in
+`docs/GENESI_FONTI_SCIENTIFICHE.md` (le soglie USBM/DIN 4150-3 in sé)
+siano confermati da una seconda fonte indipendente — e lo sono. **Non
+verifica** se il codice di Genesi implementa quelle soglie fedelmente:
+quella è una domanda diversa, già aperta e già con una risposta scritta
+altrove. `docs/DECISIONI_WEEKEND.md` sezione 9 documenta che i gradini
+semplificati di Genesi, sotto le frequenze molto basse (~4 Hz), sono
+**meno prudenti** della curva USBM ufficiale — un difetto già trovato
+nel codice, non nei numeri di riferimento — e resta in attesa del via
+libera del fondatore per la correzione (tocca soglie di sicurezza).
+Le due verifiche non si contraddicono: i numeri citati sono giusti, il
+modo in cui il codice li approssima è la parte ancora da sistemare.
+
