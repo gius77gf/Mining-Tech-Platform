@@ -33,12 +33,18 @@ const DIFETTI_FLOTTA = [
    '`Import ricambi: ${agg} aggiunti${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`'],
   ['`Import parco: ${conta(agg, "mezzo aggiunto", "mezzi aggiunti")}${dup ? `, ${conta(dup, "già presente (saltato)", "già presenti (saltati)")}` : ""}${ripetute ? `, ${conta(ripetute, "ripetuto nel file", "ripetuti nel file")}` : ""}.`',
    '`Import parco: ${agg} ${agg === 1 ? "mezzo aggiunto" : "mezzi aggiunti"}${dup ? `, ${dup} già presenti (saltati)` : ""}${ripetute ? `, ${ripetute} ripetuti nel file` : ""}.`'],
-  ['${n.orePreviste ? "a " + oreMotoreTx(n.orePreviste) : "previsto " + esc(dataIt(n.dataPrevista))}',
-   '${n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore" : "previsto " + esc(dataIt(n.dataPrevista))}'],
-  ['${n.orePreviste ? "Tagliando a " + oreMotoreTx(n.orePreviste, grassetto) : "Previsto per il <b>"',
-   '${n.orePreviste ? "Tagliando a <b>" + numTx(n.orePreviste) + "</b> ore motore" : "Previsto per il <b>"'],
-  ['${n.orePreviste ? "A " + oreMotoreTx(n.orePreviste) : "Previsto " + dataIt(n.dataPrevista)}',
-   '${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : "Previsto " + dataIt(n.dataPrevista)}'],
+  /* ⏱️ 11/09: la frase «a N ore motore» della lista, dell'ordine e della scheda
+     del mezzo si compone in UN posto (`quandoTx`, «il primo dei due»): le due
+     iniezioni che prima colpivano la lista e la scheda dell'ordine colpiscono
+     i due rami di quel posto — quello «solo ore» (che la dimostrazione
+     esercita) e quello «ore E data» (che oggi non esercita: si conta lo
+     stesso, e cadrà il giorno in cui la dimostrazione avrà un caso). */
+  [': n.orePreviste ? "a " + oreMotoreTx(n.orePreviste, grassetto)',
+   ': n.orePreviste ? "a " + numTx(n.orePreviste) + " ore motore"'],
+  ['? "a " + oreMotoreTx(n.orePreviste, grassetto) + " o entro il "',
+   '? "a " + numTx(n.orePreviste) + " ore motore o entro il "'],
+  ['${quandoTx(n).replace(/^a /, "A ").replace(/^previsto per il /, "Previsto ")}',
+   '${n.orePreviste ? "A " + (+n.orePreviste).toLocaleString("it-IT") + " ore motore" : quandoTx(n).replace(/^previsto per il /, "Previsto ")}'],
   ['${plurale(aff.disponibili, "giorno-macchina lavorabile", "giorni-macchina lavorabili")}',
    'giorni-macchina lavorabili'],
 ];

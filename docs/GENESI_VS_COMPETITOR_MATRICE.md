@@ -36,7 +36,7 @@ Legenda "fattibile browser": ✅ sì · 🟡 parziale (solo su dati importati/vi
 | **Report volata formattato/stampabile (PDF)** | Austin Global Blast Report, tutti | ✅ **FATTO** (report stampabile → PDF) | ✅ | ✅ inserito |
 | Profilo fronte / point cloud / fotogrammetria | Maptek, Strayos | 🟡 mostra mesh importata | ⛔ cattura | serve **drone/laser** (import sì, cattura no) |
 | MWD / integrazione perforatrici | BlastLogic, RIOBLAST | 🟡 import MWD | ⛔ | serve **hardware sui rig** |
-| Deviazione fori reale (boretrack) | O-PitDev, Strayos | ❌ | ⛔ misura | serve **strumento** in foro |
+| Deviazione fori reale (boretrack) | O-PitDev, Strayos | 🟡 **FATTO** (import CSV del rilievo, ricalcolo burden vero per foro) | ✅ | ✅ inserito — ⚠️ con avviso attivo: la convenzione degli assi dx/dy non è ancora verificata su un rilievo reale (`docs/DECISIONI_WEEKEND.md` §6) |
 | Frammentazione MISURATA da foto | FRAGTrack, Strayos | ❌ (misura assistita sì) | ⛔ auto | serve **ML pre-addestrato** (vedi doc dedicato) |
 | Movimento banco / grade control (BMT/OREPro) | BMT, Orica, Hexagon | ❌ | ⛔ | serve **sensori + rilievo post-volata + block model** |
 | Programmazione detonatori elettronici reali | ShotPlus, E*STAR | ❌ | ⛔ | serve **detonatori + logger** (hardware) |

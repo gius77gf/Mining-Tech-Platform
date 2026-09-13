@@ -72,24 +72,34 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/flotta/flotta-data.js")) corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8");
+  /* ⏱️ DAL 05/09 TRE DIFETTI SU QUATTRO SI RIMETTONO NEL MODULO: il libretto
+     (`csvLibretto`) e lo scadenzario (`mezziSenzaScadenze`) sono saliti da
+     `index.html` a `flotta-data.js`. Il difetto 4 era rimasto ancorato alla
+     pagina per un giro intero — «ancora trovata 0 volte», e la controprova
+     usciva 3 — ed è la ragione per cui ogni iniezione dichiara il suo file. */
+  if (p.endsWith("apps/flotta/flotta-data.js")) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) {
+      /* Difetto 1 — le sezioni vuote del libretto tornano a tacere. Si toglie
+         la sola cosa che le fa parlare: la funzione che scrive la riga. */
+      t = rimetti(t, 'const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);',
+                     "const VUOTA = () => {};");
+      /* Difetto 2 — il consumo non calcolabile torna a sparire dal file
+         invece di dire perché. */
+      t = rimetti(t, '  R("consumo", "litri per ora", "", !f.consumo',
+                     '  if (f.consumo && f.consumo.litriOra != null) R("consumo", "litri per ora", "", !f.consumo');
+      /* Difetto 4 — lo scadenzario del parco torna a far sparire i mezzi su
+         cui nessuno ha registrato nessuna scadenza. */
+      t = rimetti(t, "  return (mezzi || []).filter(Boolean).map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));",
+                     "  return [];");
+    }
+    corpo = Buffer.from(t + CASI, "utf8");
+  }
   if (CONTROPROVA && p.endsWith("apps/flotta/index.html")) {
     let t = corpo.toString("utf8");
-    /* Difetto 1 — le sezioni vuote del libretto tornano a tacere. Si toglie
-       la sola cosa che le fa parlare: la funzione che scrive la riga. */
-    t = rimetti(t, 'const VUOTA = (sez, frase) => R(sez, "nessuna registrata", "", frase, null);',
-                   "const VUOTA = () => {};");
-    /* Difetto 2 — il consumo non calcolabile torna a sparire dal file
-       invece di dire perché. */
-    t = rimetti(t, '    R("consumo", "litri per ora", "", !f.consumo',
-                   '    if (f.consumo && f.consumo.litriOra != null) R("consumo", "litri per ora", "", !f.consumo');
     /* Difetto 3 — gli elenchi tagliati a otto tornano a non dirlo. */
     t = rimetti(t, "  const restoLibretto = (tot) => tot > RIGHE_LIBRETTO",
                    "  const restoLibretto = (tot) => false");
-    /* Difetto 4 — lo scadenzario del parco torna a far sparire i mezzi su
-       cui nessuno ha registrato nessuna scadenza. */
-    t = rimetti(t, "    const scoperti = MEZ.map(m => nomeBreve(m.nome)).filter(n => n && !coperti.has(n));",
-                   "    const scoperti = [];");
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });

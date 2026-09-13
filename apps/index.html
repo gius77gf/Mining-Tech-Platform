@@ -16,7 +16,7 @@
   /* una scala sola per tutto: se un valore non e' qui, non si usa */
   --s1:6px;--s2:12px;--s3:20px;--s4:32px;--s5:52px;--s6:84px;--s7:136px;
   --nero:#08090c;--sotto:#0d0f14;--carta:#12151c;--carta2:#171b24;
-  --inch:#f4f1ea;--inch2:#a8a496;--fumo:#8d8878;
+  --inch:#f4f1ea;--inch2:#a8a496;--fumo:#9a9583; /* ⛔ era #8d8878: sui fondi pieni faceva 4,9–5,6, ma dove il testo piccolo sta a cavallo del gradiente del capo e del piè («Le app», «Il sito», «Deepwork · ecosistema…», «Fotografie di cantiere») il banco del contrasto misurava 4,26 al capo peggiore, sotto il 4,5 dei testi piccoli (10/09, preesistente dal 25/08). Con #9a9583 il rapporto sale del 18% ovunque e resta un grigio fumo. */
   --ambra:#ffab00;--ambra2:#ffd071;--grad:linear-gradient(120deg,#ffc02e,#ff7a00);
   --bordo:rgba(244,241,234,.10);--bordo2:rgba(244,241,234,.18);
   --misura:1200px;
@@ -166,6 +166,23 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .ingresso h1{margin:var(--s5) 0 0;font-size:clamp(34px,5.6vw,76px);max-width:22ch;
   margin-inline:auto;text-wrap:balance}
 .ingresso h1 .r{display:block;overflow:hidden;padding-bottom:.05em}
+/* ⛔ A 34px «NELL'ECOSISTEMA» CHIEDE 340px, e sotto i 380px la colonna non li
+   ha (a 320px ne ha 280): la riga vive in un `.r{overflow:hidden}` per
+   l'animazione d'ingresso, quindi la parola non spingeva la pagina, si
+   TAGLIAVA — «NELL'ECOSISTE» sullo scatto a 320, e nessun righello lo vedeva
+   perche' lo scorrimento laterale era zero. Misurato il 04/09 con la stessa
+   pagina e un foglio iniettato: `calc(10vw - 5px)` da' 27px a 320 (280 = 280),
+   30,9 a 359 (319 = 319), 32,9 a 379 (339 = 339) e a 380 riprende il clamp
+   (34px): nessun salto. Stessa famiglia per la barra: sotto i 352px il bottone
+   «Prova il tour» aveva 93px per un testo da 125 — «ROVA IL TOU». La prima
+   stesura (corpo 11, spaziatura 1,4, riempimento 12) tagliava ANCORA 8px:
+   avevo confrontato il testo con la scatola intera invece che con lo spazio
+   dentro il riempimento. Misurato col Range: con corpo 10,5, spaziatura 1,2,
+   riempimento 10 e il segno a 14px il testo finisce a 290 e lo spazio interno
+   a 290, a 320; a 340 e 359 avanza. */
+@media(max-width:379px){.ingresso h1{font-size:calc(10vw - 5px)}}
+@media(max-width:359px){.barra .bot{padding:0 10px;font-size:10.5px;letter-spacing:1.2px}
+  .barra .segno b{font-size:14px}.barra .d{gap:10px}}
 .ingresso h1 .r>span{display:block;transform:translateY(106%);animation:sali 1.05s var(--posa) .3s forwards}
 .ingresso h1 .r:nth-child(2)>span{animation-delay:.42s}
 .ingresso h1 em{font-style:normal}
@@ -879,13 +896,29 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
 .app.dentro .testo .nome{opacity:1;transform:none}
 
 /* 4. la striscia dei nomi scorre piano, e si ferma quando ci passi sopra */
-.striscia{overflow:hidden}
+/* ⛔ IL NASTRO STAVA SOTTO LA FOTO DELLA SEZIONE DOPO, dal 25/08 (386fde4c).
+   `#storia .fondale` è assoluto con `inset:-12% 0` e `z-index:0`: sale sopra
+   la sezione di 150 px a 1280 e di 225 px a 390 — cioè copre tutto il nastro,
+   che essendo statico si dipinge sotto. Misurato il 10/09 con lo scatto e con
+   elementFromPoint a fondale cliccabile: i nove nomi (e a 390 anche
+   l'etichetta) erano dietro la foto. `position:relative; z-index:1` lo rimette
+   davanti; la foto continua a salire, ma dietro. */
+.striscia{overflow:hidden;position:relative;z-index:1}
 .striscia .scorre{display:flex;gap:var(--s5);align-items:center;width:max-content;
   animation:sfila 44s linear infinite}
 /* ⛔ NON si ferma al passaggio del cursore (fondatore, 25/08): la pausa
    spezzava il movimento proprio mentre uno la guardava. */
 @keyframes sfila{to{transform:translateX(-50%)}}
-@media(prefers-reduced-motion:reduce){.striscia .scorre{animation:none}}
+/* ⛔ CON MENO MOVIMENTO IL NASTRO NON SCORRE, E ALLORA DEVE ANDARE A CAPO.
+   Misurato il 10/09: fermando la sola animazione restavano visibili DUE nomi
+   su nove a 390 e a 320 px (il nastro è largo 2730 px in una scatola con
+   overflow nascosto), e chi chiede meno movimento vedeva un nastro tronco. Qui
+   il nastro si allarga alla riga, va a capo centrato, e la seconda copia dei
+   nove nomi — che serve solo al giro continuo — sparisce. */
+@media(prefers-reduced-motion:reduce){
+  .striscia .scorre{animation:none;width:auto;flex-wrap:wrap;justify-content:center;row-gap:var(--s3)}
+  .striscia .scorre a:nth-child(n+10){display:none}
+}
 
 /* 5. i due numeri contano da zero quando entrano in vista */
 .fascia .cifre b{font-variant-numeric:tabular-nums}
@@ -977,7 +1010,7 @@ body.mossa .barra{background:rgba(8,9,12,.82);backdrop-filter:blur(18px) saturat
     </div>
   </section>
 
-  <section class="striscia"><div class="g"><span class="e">Otto app e un accesso unico</span><div class="scorre"><a href="#app-deepwork" style="--ac:#ffd54f">Deepwork</a><a href="#app-campo" style="--ac:#f49c7d">Campo</a><a href="#app-flotta" style="--ac:#e798cd">Flotta</a><a href="#app-scudo" style="--ac:#b7a8f9">Scudo</a><a href="#app-terra" style="--ac:#9ac577">Terra</a><a href="#app-conti" style="--ac:#4dcebd">Conti</a><a href="#app-sentinella" style="--ac:#78bcfc">Sentinella</a><a href="#app-genesi" style="--ac:#ffab5c">Genesi</a><a href="#app-deepworkid" style="--ac:#e8dcc0">Deepwork ID</a><a href="#app-deepwork" style="--ac:#ffd54f">Deepwork</a><a href="#app-campo" style="--ac:#f49c7d">Campo</a><a href="#app-flotta" style="--ac:#e798cd">Flotta</a><a href="#app-scudo" style="--ac:#b7a8f9">Scudo</a><a href="#app-terra" style="--ac:#9ac577">Terra</a><a href="#app-conti" style="--ac:#4dcebd">Conti</a><a href="#app-sentinella" style="--ac:#78bcfc">Sentinella</a><a href="#app-genesi" style="--ac:#ffab5c">Genesi</a><a href="#app-deepworkid" style="--ac:#e8dcc0">Deepwork ID</a></div></div></section>
+  <section class="striscia"><div class="g"><span class="e">Otto app e un accesso unico</span><div class="scorre" aria-hidden="true"><a tabindex="-1" href="#app-deepwork" style="--ac:#ffd54f">Deepwork</a><a tabindex="-1" href="#app-campo" style="--ac:#f49c7d">Campo</a><a tabindex="-1" href="#app-flotta" style="--ac:#e798cd">Flotta</a><a tabindex="-1" href="#app-scudo" style="--ac:#b7a8f9">Scudo</a><a tabindex="-1" href="#app-terra" style="--ac:#9ac577">Terra</a><a tabindex="-1" href="#app-conti" style="--ac:#4dcebd">Conti</a><a tabindex="-1" href="#app-sentinella" style="--ac:#78bcfc">Sentinella</a><a tabindex="-1" href="#app-genesi" style="--ac:#ffab5c">Genesi</a><a tabindex="-1" href="#app-deepworkid" style="--ac:#e8dcc0">Deepwork ID</a><a tabindex="-1" href="#app-deepwork" style="--ac:#ffd54f">Deepwork</a><a tabindex="-1" href="#app-campo" style="--ac:#f49c7d">Campo</a><a tabindex="-1" href="#app-flotta" style="--ac:#e798cd">Flotta</a><a tabindex="-1" href="#app-scudo" style="--ac:#b7a8f9">Scudo</a><a tabindex="-1" href="#app-terra" style="--ac:#9ac577">Terra</a><a tabindex="-1" href="#app-conti" style="--ac:#4dcebd">Conti</a><a tabindex="-1" href="#app-sentinella" style="--ac:#78bcfc">Sentinella</a><a tabindex="-1" href="#app-genesi" style="--ac:#ffab5c">Genesi</a><a tabindex="-1" href="#app-deepworkid" style="--ac:#e8dcc0">Deepwork ID</a></div></div></section>
 
   <section class="sez" id="storia"><span class="fondale" aria-hidden="true"><img src="img/61b8ab172c0a455e.jpg" alt="Cantiere al lavoro" loading="lazy"><span class="tinta"></span><span class="velo"></span><span class="sfuma su"></span><span class="sfuma giu"></span></span><div class="g">
     <div class="capo mezzo sale"><span class="occhio">La storia</span>

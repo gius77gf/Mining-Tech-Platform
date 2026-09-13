@@ -125,7 +125,7 @@
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
 import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
          csvCell, leggiCsv,
-         dataIt, pezziDataURL, LIMITE_ALLEGATO,
+         dataIt, isoLocale, timbroLocale, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
 
 /* IL `tipo` CHE FA DI UNA SCADENZA UNA VERIFICA PERIODICA DI ATTREZZATURA.
@@ -140,11 +140,17 @@ export const TIPO_VERIFICA_PERIODICA = "Verifica periodica";
 
 export const DEMO = {
   lavoratori: [
+    /* IL GIUDIZIO DEL MEDICO (05/09): tre casi da far vedere — un idoneo, uno
+       con prescrizioni SCRITTE (d5, che in Campo è o4, regolare coi documenti),
+       uno NON idoneo (d2, che in Campo è o2 nella Squadra A operativa), così il
+       ponte ha davanti il caso per cui esiste — e la dimostrazione di Campo
+       continua a mostrare anche una persona in regola.
+       Gli altri restano «n.d.»: è lo stato di chi non ha mai registrato niente. */
     { id: "d1", nome: "Mario Rossi", ruolo: "Fochino", tel: "", attivo: true },
-    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true },
+    { id: "d2", nome: "Luca Bianchi", ruolo: "Escavatorista", tel: "", attivo: true, idoneita: "non-idoneo", giudizioIl: "2026-08-20" },
     { id: "d3", nome: "Giulia Verdi", ruolo: "Preposto", tel: "", attivo: true },
-    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true },
-    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true },
+    { id: "d4", nome: "Anna Neri", ruolo: "Impiegata", tel: "", attivo: true, idoneita: "idoneo", giudizioIl: "2026-03-11" },
+    { id: "d5", nome: "Paolo Gallo", ruolo: "Autista", tel: "", attivo: true, idoneita: "prescrizioni", prescrizioni: "Niente lavori in quota; otoprotettori sempre in cabina", giudizioIl: "2026-06-02" },
     { id: "d6", nome: "Franco Riva", ruolo: "Fochino", tel: "", attivo: true },
     { id: "d7", nome: "Sara Conti", ruolo: "RSPP esterno", tel: "", attivo: true },
   ],
@@ -152,6 +158,23 @@ export const DEMO = {
   // Copiati dalla dimostrazione di Campo id per id: se le due dimostrazioni
   // dicessero cose diverse sulla stessa squadra, l'ecosistema smentirebbe sé
   // stesso proprio nel punto che serve a mostrare che le app si parlano.
+  /* LE SCADENZE DI TERRA E DI FLOTTA, copiate riga per riga dalle loro
+     dimostrazioni (02/09) — `run-kpi` pretende che restino uguali a quelle,
+     id per id e data per data, così una modifica di là si vede di qua. Servono
+     al muro di tutta la cava: c'è la fideiussione in scadenza, la prescrizione
+     senza data, la verifica periodica scaduta. */
+  scadenzeTerra: [
+    { id: "t1", tipo: "autorizzazione", descrizione: "Scadenza del titolo autorizzativo", dataScadenza: "2031-03-14", preavvisoGiorni: 180, ricorrenzaMesi: null, note: "" },
+    { id: "t2", tipo: "fideiussione", descrizione: "Polizza fideiussoria — rinnovo annuale", dataScadenza: "2026-09-30", preavvisoGiorni: 90, ricorrenzaMesi: 12, note: "Si svincola solo dopo il collaudo finale." },
+    { id: "t3", tipo: "rilievo", descrizione: "Rilievo periodico dei lavori", dataScadenza: "2026-08-10", preavvisoGiorni: 30, ricorrenzaMesi: 6, note: "" },
+    { id: "t4", tipo: "screening-via", descrizione: "Prescrizione dello screening da ottemperare", dataScadenza: "2026-07-10", preavvisoGiorni: 60, ricorrenzaMesi: null, note: "" },
+    { id: "t5", tipo: "prescrizione", descrizione: "Prescrizione dell'atto — termine da chiarire con l'ente", dataScadenza: null, preavvisoGiorni: 60, ricorrenzaMesi: null, note: "Sul titolo il termine è illeggibile: chiesto chiarimento." },
+  ],
+  scadenzeFlotta: [
+    { id: "sc1", mezzo: "Escavatore E1", tipo: "Verifica periodica", chiave: "verifica-periodica", dataScadenza: "2026-07-10", mesi: 12, documento: "verbale ASL 2025/118", note: "", ultimaData: "2025-07-10", ultimoEsito: "regolare" },
+    { id: "sc2", mezzo: "Pala P1", tipo: "Funi e catene", chiave: "funi-catene", dataScadenza: "2026-08-12", mesi: 3, documento: "registro di controllo", note: "" },
+    { id: "sc3", mezzo: "Dumper D1", tipo: "Revisione", chiave: "revisione", dataScadenza: "2029-03-01", mesi: 60, documento: "libretto di circolazione", note: "mezzo targato" },
+  ],
   operatoriCampo: [
     { id: "o1", nome: "Mario Rossi", ruolo: "Fochino", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d1" },
     { id: "o2", nome: "Luca Bianchi", ruolo: "Perforatore", squadra: "Squadra A", stato: "in-forza", lavoratoreId: "d2" },
@@ -216,7 +239,11 @@ export const DEMO = {
     { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30" },
   ],
   documenti: [
-    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido" },
+    /* Il DVR in vigore e quello che ha sostituito: l'ispettore chiede tutt'e
+       due (quale valutazione era in vigore il giorno dell'infortunio?). Il
+       vecchio resta, con `stato: "sostituito"` e i due riferimenti. */
+    { id: "c1", titolo: "DVR — Documento Valutazione Rischi", meta: "Aggiornato 03/2026", tipo: "DVR", stato: "valido", sostituisce: "c0" },
+    { id: "c0", titolo: "DVR — Documento Valutazione Rischi (edizione 2025)", meta: "Aggiornato 02/2025", tipo: "DVR", stato: "sostituito", sostituitoDa: "c1", sostituitoIl: "2026-03-10 09:00" },
     { id: "c2", titolo: "Piano di Emergenza", meta: "Aggiornato 01/2026", tipo: "Altro", stato: "valido" },
     { id: "c3", titolo: "Nomine RSPP / addetti", meta: "Revisione richiesta", tipo: "Nomina", stato: "da-rivedere" },
     /* ⛔ IL DSS DELLA CAVA, ED È NON DATABILE DI PROPOSITO. Il documento c'è,
@@ -327,6 +354,13 @@ export const DEMO = {
        è esattamente l'episodio su cui chi segnala NON sa dire come sarebbe
        finita, e costringerlo a scegliere raccoglierebbe un numero inventato. */
     { id: "i5", data: "2026-07-15", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", rapida: true, descrizione: "Riparo del nastro 3 trovato aperto a macchina ferma" },
+    /* LE OSSERVAZIONI DI SICUREZZA (05/09, notte): non un evento, ma un
+       comportamento o una condizione VISTA — buona pratica da lodare, o cosa
+       da correggere prima che diventi un near-miss. Stessa collezione, stesse
+       categorie e luoghi, `tipo: "osservazione"` con `esito`. */
+    { id: "o1", data: "2026-08-12", tipo: "osservazione", esito: "positiva", gravita: "lieve", giorniAssenza: 0, luogo: "fronte Est", luogoTipo: "fronte", categoria: "caduta-massi", descrizione: "Osservazione positiva — Caduta massi · fronte: disgaggio fatto prima del turno, come da procedura" },
+    { id: "o2", data: "2026-08-20", tipo: "osservazione", esito: "da-correggere", gravita: "lieve", giorniAssenza: 0, luogo: "piazzale 1", luogoTipo: "piazzale", categoria: "mezzi", descrizione: "Da correggere — Mezzi · piazzale: retromarcia del dumper senza segnalatore acustico" },
+    { id: "o3", data: "2026-09-02", tipo: "osservazione", esito: "positiva", gravita: "lieve", giorniAssenza: 0, luogo: "impianto", luogoTipo: "impianto", categoria: "impianto", descrizione: "Osservazione positiva — Impianto · impianto: lucchetto sul sezionatore durante la pulizia del nastro" },
     { id: "i6", data: "2026-07-21", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, luogo: "pista di risalita", luogoTipo: "pista", categoria: "mezzi", anonimo: true, rapida: true, gravitaPotenziale: "lieve", descrizione: "Pietra caduta dal cassone su tratto di pista con arginello basso" },
     // i7 sta in un ANNO PRECEDENTE di proposito: senza almeno due anni non
     // esiste un andamento da mostrare, e la dimostrazione deve contenere il
@@ -655,8 +689,12 @@ import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomi
    implementazione (regola del `shared/`) */
 export { percorsiDi, DW_CANCELLA } from "../../shared/dw-ponti.js";
 import { dataPiuGiorni as dataPiuGiorniShell } from "../../shared/deepwork-id-client/dw-shell.js";
+import { icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 const statoScadenza = statoScadenzaHSE;
 export { statoScadenza };
+// lo scadenzario di tutta la cava è una regola di shared/ (serve a tre app): qui
+// solo il nome, lo stesso oggetto
+export { scadenzeUnite } from "../../shared/dw-ponti.js";
 
 // Giudizio di IDONEITÀ SANITARIA (D.Lgs 81/2008 art. 41): esito della
 // sorveglianza sanitaria per la mansione. La data della prossima visita
@@ -677,6 +715,33 @@ export function idoneitaSuccessivo(stato) {
   const i = seq.indexOf(seq.includes(stato) ? stato : "");
   return seq[(i + 1) % seq.length];
 }
+/* IL GIUDIZIO SCRITTO E DATATO (05/09, candidato (b) della ricerca sulla
+   sorveglianza sanitaria). Il mondo dice che il giudizio del medico arriva
+   PER ISCRITTO, con le prescrizioni e una data: fino a oggi il badge ciclava
+   quattro stati senza chiedere niente, e «idoneo con prescrizioni» restava
+   un colore senza il testo — una prescrizione che non si legge è una
+   prescrizione che non si rispetta. Qui si decide che cosa è un giudizio
+   valido: con «prescrizioni» il testo è obbligatorio; con «non idoneo» è
+   facoltativo (il medico può scrivere solo l'inidoneità); la data è
+   facoltativa ma, se c'è, deve esistere e non stare nel futuro; su «idoneo»
+   e «n.d.» le prescrizioni si azzerano (erano del giudizio precedente).
+   ⚠️ Niente «ricorso entro trenta giorni»: è un termine di legge di seconda
+   mano e non entra. Ritorna { ok, idoneita, prescrizioni, giudizioIl,
+   motivo, messaggio }. Pura. */
+export function giudizioIdoneita(stato, testo, data, oggi = new Date()) {
+  const st = ["", "idoneo", "prescrizioni", "non-idoneo"].includes(stato) ? stato : "";
+  const t = String(testo == null ? "" : testo).trim();
+  const d = String(data == null ? "" : data).trim().slice(0, 10);
+  if (st === "prescrizioni" && !t)
+    return { ok: false, motivo: "prescrizioni-mancanti", messaggio: "Un giudizio «con prescrizioni» senza le prescrizioni scritte non si può rispettare: copia quelle del medico." };
+  if (d && !dataISOEsiste(d))
+    return { ok: false, motivo: "data-non-valida", messaggio: "La data del giudizio non è un giorno che esiste." };
+  if (d && giorniTra(d, oggi) > 0)
+    return { ok: false, motivo: "data-futura", messaggio: "La data del giudizio è nel futuro: il medico non l'ha ancora scritto." };
+  return { ok: true, idoneita: st, prescrizioni: st === "prescrizioni" || st === "non-idoneo" ? t : "",
+    giudizioIl: st ? (d || null) : null, motivo: "", messaggio: "" };
+}
+
 // Lavoratori attivi la cui idoneità richiede attenzione (per le urgenze).
 export function idoneitaCriticita(lavoratori) {
   return lavoratori.filter(l => l.attivo && (l.idoneita === "non-idoneo" || l.idoneita === "prescrizioni"));
@@ -1004,13 +1069,17 @@ export function azioniDiIspezione(azioni, ispezioneId) {
 // ogni altra azione correttiva, e vivono nello stesso scadenzario. Queste
 // due funzioni servono solo a RICONOSCERLE, per scrivere l'origine giusta
 // e per non farla cancellare da una modifica fatta dal form.
-export const ORIGINI_AMBIENTE = ["superamento", "reclamo"];
+export const ORIGINI_AMBIENTE = ["superamento", "reclamo", "dopo-volata"];   // «dopo-volata» dall'11/09: una mancata esplosione o una proiezione oltre l'area
 export function daAmbiente(a) {
   return ORIGINI_AMBIENTE.includes(String((a || {}).origineTipo || ""));
 }
-// Etichetta breve dell'origine ambientale, per il badge nell'elenco.
+// Etichetta breve dell'origine ambientale, per il badge nell'elenco. Una
+// MAPPA con tutte le origini (regola 18): un'origine nuova senza etichetta
+// si vedrebbe come «Superamento», che è la copia debole di un ternario.
+export const ETICHETTE_AMBIENTE = { superamento: "Superamento", reclamo: "Reclamo", "dopo-volata": "Dopo-volata" };
+const FRASI_AMBIENTE = { superamento: "da un superamento di soglia", reclamo: "da un reclamo", "dopo-volata": "dalle anomalie di un dopo-volata" };
 export function etichettaAmbiente(a) {
-  return (a || {}).origineTipo === "reclamo" ? "Reclamo" : "Superamento";
+  return ETICHETTE_AMBIENTE[String((a || {}).origineTipo || "")] || "Fatto ambientale";
 }
 // ── Azioni che arrivano dalla PRODUZIONE (Campo) ──────────────────────
 // Un fermo di produzione registrato al fronte — «frantoio intasato, 55 minuti»
@@ -1023,7 +1092,7 @@ export function etichettaAmbiente(a) {
 // Campo (l'isolamento dello SDK è per organizzazione E per app): è la stessa
 // scelta già presa per `ORIGINI_AMBIENTE`. La difesa è la prova che pretende
 // `scudo.ORIGINI_CAMPO` e `campo.ORIGINE_FERMO` uguali.
-export const ORIGINI_CAMPO = ["fermo"];
+export const ORIGINI_CAMPO = ["fermo", "checklist"];   // «checklist» dall'11/09: la voce non a posto del controllo di inizio turno
 export function daCampo(a) {
   return ORIGINI_CAMPO.includes(String((a || {}).origineTipo || ""));
 }
@@ -1074,12 +1143,15 @@ export function origineAzione(azione, ctx = {}, opts = {}) {
 
   if (daAmbiente(a)) return nota || (doc
     ? etichettaAmbiente(a) + " (Sentinella)" + quando(a.origineData, "del")
-    : (a.origineTipo === "reclamo" ? "da un reclamo" : "da un superamento di soglia")
+    : (FRASI_AMBIENTE[a.origineTipo] || "da un fatto ambientale")
       + " registrato in Sentinella" + quando(a.origineData, "il"));
 
-  if (daCampo(a)) return nota || (doc
-    ? "fermo di produzione (Campo)" + quando(a.origineData, "del")
-    : "da un fermo di produzione registrato in Campo" + quando(a.origineData, "il"));
+  if (daCampo(a)) {
+    const chk = a.origineTipo === "checklist";
+    return nota || (doc
+      ? (chk ? "controllo di inizio turno (Campo)" : "fermo di produzione (Campo)") + quando(a.origineData, "del")
+      : (chk ? "da una voce non a posto del controllo di inizio turno in Campo" : "da un fermo di produzione registrato in Campo") + quando(a.origineData, "il"));
+  }
 
   if (a.origineTipo === "evento") {
     const e = infortuni.find(x => x && x.id === a.origineId);
@@ -1090,7 +1162,7 @@ export function origineAzione(azione, ctx = {}, opts = {}) {
     if (!e) return (doc ? "evento non più in archivio" : "da un evento rimosso dal registro") + coda;
     return doc
       ? (e.tipo || "evento") + " del " + dataIt(e.data) + (e.descrizione ? " — " + e.descrizione : "")
-      : "da " + (e.tipo === "infortunio" ? "infortunio" : "near-miss") + " del " + dataIt(e.data);
+      : "da " + (e.tipo === "infortunio" ? "infortunio" : e.tipo === "osservazione" ? "osservazione" : "near-miss") + " del " + dataIt(e.data);
   }
 
   if (a.origineTipo === "ispezione") {
@@ -1142,6 +1214,7 @@ export function riepilogoAmbiente(azioni) {
     totale: l.length,
     superamenti: l.filter(a => a.origineTipo === "superamento").length,
     reclami: l.filter(a => a.origineTipo === "reclamo").length,
+    dopoVolata: l.filter(a => a.origineTipo === "dopo-volata").length,
     daChiudere: l.filter(a => a.stato !== "chiusa").length,
   };
 }
@@ -1177,7 +1250,7 @@ export {
    `categoriaNearMiss` e `luogoNearMiss`: senza questa riga morirebbe con
    «categoriaNearMiss is not defined». È lo stesso inciampo già pagato in
    `apps/campo/campo-data.js` con `statoRisposta`, scritto lì nel commento. */
-import { categoriaNearMiss, luogoNearMiss } from "../../shared/dw-ponti.js";
+import { categoriaNearMiss, luogoNearMiss, bozzaNearMiss } from "../../shared/dw-ponti.js";
 
 // Riepilogo AGGREGATO dei near-miss del periodo (L. 198/2025: dati aggregati
 // sugli eventi *e* sulle azioni correttive adottate). Conta il periodo scelto
@@ -1598,6 +1671,31 @@ export const MODELLI_ISPEZIONE = [
       "Prova di emergenza dell'anno eseguita e verbalizzata",
     ],
   },
+  /* ⚠️ La prova di emergenza è un'ISPEZIONE, non una collezione nuova
+     (11/09, unità 110): il meccanismo che serve — voci con esito, una voce
+     non conforme che diventa azione correttiva, la data della successiva
+     proposta da sola, il fascicolo/verbale — è quello delle ispezioni. Le
+     voci sono i punti di verifica del verbale di una prova (scenario, allarme,
+     mezzi, punto di raccolta, appello, 118, squadra, criticità); scenario e
+     tempi si scrivono nelle note delle voci. In cava la cadenza la fissa il
+     DSS (D.Lgs 624/96 art. 10): un anno è la prassi, e il D.M. 2 settembre
+     2021 — che la chiede annuale fuori dalle cave — alle industrie estrattive
+     non si applica (art. 62 del D.Lgs 81/08). Di seconda mano. */
+  {
+    chiave: "prova-emergenza", nome: "Prova di emergenza — esercitazione dell'anno", ambito: "Sito",
+    giorni: 365,
+    riferimento: "D.Lgs 624/96 art. 10 — il DSS prevede le esercitazioni di sicurezza, l'evacuazione, il servizio di salvataggio e i punti di raduno: la cadenza vera è quella scritta nel DSS, un anno è la prassi.",
+    voci: [
+      "Scenario e ora dell'allarme scritti nella nota (infortunio al fronte, incendio su un mezzo, mancata esplosione…)",
+      "Allarme sentito in tutta la cava, anche sui mezzi e all'impianto",
+      "Mezzi fermati in sicurezza e volata sospesa o rinviata",
+      "Tutti al punto di raccolta entro il tempo previsto dal DSS (tempo misurato scritto nella nota)",
+      "Appello fatto sulla lista del turno (Campo): nessuno lasciato a «non so»",
+      "Chiamata al 118 simulata, con il punto d'incontro per l'ambulanza e chi la guida al fronte",
+      "Addetti primo soccorso e antincendio presenti, cassetta ed estintori raggiunti",
+      "Criticità scritte e assegnate come azioni correttive, con chi e entro quando",
+    ],
+  },
 ];
 
 export function modelloIspezione(chiave) {
@@ -1853,13 +1951,95 @@ export const dataPiuGiorni = dataPiuGiorniShell;
 // "infortunio" oppure "near-miss" (qualsiasi altro valore → near-miss, il caso
 // più prudente per il contatore "giorni senza infortuni"). descrizione/luogo
 // sono testo grezzo → escapare dove mostrati. Pura e testabile.
+/* ══════════════════════════════════════════════════════════════════════════
+   LE OSSERVAZIONI DI SICUREZZA (05/09, notte). Il mondo [seconda mano,
+   docs/RICERCA_CONTINUA_SCUDO.md]: un'osservazione non è un evento — è un
+   comportamento o una condizione VISTA, e si registra nei due versi: la buona
+   pratica da riconoscere e la cosa da correggere prima che diventi un
+   near-miss. La ISO 45001 non le pretende ma le usa (partecipazione dei
+   lavoratori, identificazione dei pericoli, azioni correttive), e quattro
+   concorrenti su quattro le mettono in tendenza per area e per tema.
+   Qui: stessa collezione degli eventi (`infortuni`), stesse categorie e
+   luoghi del near-miss, `tipo: "osservazione"` e `esito`. Nessun conto degli
+   infortuni o dei near-miss le tocca: quei filtri chiedono il tipo per nome.
+   ══════════════════════════════════════════════════════════════════════════ */
+export const TIPI_EVENTO = [
+  { chiave: "infortunio", etichetta: "Infortunio", breve: "Infortunio" },
+  { chiave: "near-miss", etichetta: "Near-miss", breve: "Near-miss" },
+  { chiave: "osservazione", etichetta: "Osservazione di sicurezza", breve: "Osservazione" },
+];
+export function etichettaTipoEvento(tipo, breve = false) {
+  const t = TIPI_EVENTO.find((x) => x.chiave === String(tipo || "").trim());
+  return t ? (breve ? t.breve : t.etichetta) : "Evento";
+}
+export const OSSERVAZIONE_ESITI = [
+  { chiave: "positiva", etichetta: "Comportamento sicuro / buona pratica", breve: "positiva" },
+  { chiave: "da-correggere", etichetta: "Condizione o comportamento da correggere", breve: "da correggere" },
+];
+export function etichettaEsitoOsservazione(esito, breve = false) {
+  const e = OSSERVAZIONE_ESITI.find((x) => x.chiave === String(esito || "").trim());
+  return e ? (breve ? e.breve : e.etichetta) : "";
+}
+/* La bozza dalla segnalazione rapida: stessa forma di `bozzaNearMiss` (la
+   categoria, il luogo, la data che esiste e non è nel futuro, chi segnala),
+   più l'esito, che è la cosa che un'osservazione ha e un near-miss no. */
+export function bozzaOsservazione(s = {}, oggi = new Date()) {
+  const esito = String((s && s.esito) || "").trim();
+  const base = bozzaNearMiss(s, oggi);
+  const problemi = [...(base.problemi || [])];
+  if (!OSSERVAZIONE_ESITI.some((x) => x.chiave === esito))
+    problemi.unshift("Tocca prima se è una buona pratica o una cosa da correggere: è la prima fila di pulsanti.");
+  if (problemi.length) return { ok: false, problemi, record: null, chi: base.chi, noto: base.noto, motivoChi: base.motivoChi };
+  const r = base.record;
+  const prefisso = esito === "positiva" ? "Osservazione positiva — " : "Da correggere — ";
+  return { ...base, record: { ...r, tipo: "osservazione", esito, gravitaPotenziale: undefined, descrizione: prefisso + r.descrizione } };
+}
+/* Il riepilogo per area e per tema, come per i near-miss: stessa finestra,
+   stessa soglia per la tendenza (`pochi`), e in più i due versi. */
+export function riepilogoOsservazioni(infortuni, giorni = 90, oggi = new Date()) {
+  const tutte = (infortuni || []).filter((x) => x && x.tipo === "osservazione");
+  const list = tutte.filter((x) => dentroFinestraNM(x, giorni, oggi));
+  const raggruppa = (etichettaDi) => {
+    const per = {};
+    for (const x of list) { const lab = etichettaDi(x); per[lab] = (per[lab] || 0) + 1; }
+    return Object.entries(per).map(([etichetta, valore]) => ({ etichetta, valore }))
+      .sort((a, b) => b.valore - a.valore || a.etichetta.localeCompare(b.etichetta, "it"));
+  };
+  const positive = list.filter((x) => x.esito === "positiva").length;
+  const daCorreggere = list.filter((x) => x.esito === "da-correggere").length;
+  return {
+    giorni, totale: list.length, totaleStorico: tutte.length, positive, daCorreggere,
+    senzaEsito: list.length - positive - daCorreggere,
+    perTema: raggruppa((x) => categoriaNearMiss(x.categoria) || "Non classificato"),
+    perLuogo: raggruppa(etichettaLuogoNM),
+    pochi: troppoPochiPerTendenza(list.length),
+  };
+}
+export function descriviLetturaOsservazioni(r) {
+  const x = r || {};
+  const t = +x.totale || 0;
+  if (t === 0) {
+    const s = +x.totaleStorico || 0;
+    return s ? "Nessuna osservazione nel periodo scelto: nello storico ce ne sono " + s + ". Allarga il periodo per vederle."
+      : "Nessuna osservazione di sicurezza registrata. Un registro vuoto non vuol dire che nessuno guardi: vuol dire che non si scrive.";
+  }
+  const n = (k, s, p) => k + " " + (k === 1 ? s : p);
+  const testo = n(t, "osservazione", "osservazioni") + " nel periodo: " + n(+x.positive || 0, "buona pratica", "buone pratiche")
+    + " e " + n(+x.daCorreggere || 0, "cosa da correggere", "cose da correggere")
+    + (x.senzaEsito ? " (" + n(+x.senzaEsito, "senza esito dichiarato", "senza esito dichiarato") + ")" : "") + ".";
+  return x.pochi
+    ? testo + " " + (t === 1 ? "Una osservazione è meno" : t + " osservazioni sono meno") + " di " + MIN_TENDENZA + ": non c'è una tendenza per area o per tema da leggere, e disegnarla sarebbe una bugia."
+    : testo;
+}
+
 export function parseInfortuniCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
       const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
-      const tp = (tipo || "").trim().toLowerCase() === "infortunio" ? "infortunio" : "near-miss";
+      const tpRaw = (tipo || "").trim().toLowerCase();
+      const tp = tpRaw === "infortunio" ? "infortunio" : tpRaw === "osservazione" ? "osservazione" : "near-miss";
       return {
         data: (data || "").trim(),
         tipo: tp,
@@ -1937,21 +2117,24 @@ export function csvPersonaleScadenze(lavoratori, scadenze, documenti) {
   const LAV = (lavoratori || []).filter(Boolean);
   const SCA = (scadenze || []).filter(Boolean);
   const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };
-  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica"];
+  /* `prescrizioni` e `giudizio` (la data) in coda dal 05/09: chi taglia alle
+     prime otto ritrova il file di prima; vuote dove il giudizio non c'è */
+  const righe = ["nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio"];
   for (const l of LAV) {
     const idn = idoneitaLabel(l.idoneita).label;
     const sue = SCA.filter((s) => s.lavoratoreId === l.id);
     const chi = [csvCell(l.nome || ""), csvCell(l.ruolo || ""), csvCell(l.tel || ""), csvCell(idn)];
-    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—"].join(";")); continue; }
+    const coda = [csvCell(l.prescrizioni || ""), dataISOEsiste(l.giudizioIl) ? String(l.giudizioIl).slice(0, 10) : ""];
+    if (!sue.length) { righe.push([...chi, "", "", SENZA, "—", ...coda].join(";")); continue; }
     for (const s of sue) {
       righe.push([...chi, csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-        statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+        statoScadenza(s.dataScadenza), csvCell(vf(s)), ...coda].join(";"));
     }
   }
   const noti = new Set(LAV.map((l) => l.id));
   for (const s of SCA.filter((x) => !noti.has(x.lavoratoreId))) {
     righe.push(["AZIENDA", "", "", "", csvCell(etichettaScadenza(s)), s.dataScadenza || "",
-      statoScadenza(s.dataScadenza), csvCell(vf(s))].join(";"));
+      statoScadenza(s.dataScadenza), csvCell(vf(s)), "", ""].join(";"));
   }
   return righe.join("\n") + "\n";
 }
@@ -2000,20 +2183,45 @@ export function csvRegistroInfortuni(eventi) {
    ricevuta. Un `else` finale è comodo finché la funzione che sta sopra non
    impara a dire una risposta in più — ed è precisamente il caso della regola
    18 di `run-stile.mjs`, applicata a un conteggio invece che a una mappa. */
-export function coperturaFormazione(scadenze, oggi = new Date()) {
+/* ⛔ LA VERIFICA PERIODICA HA DUE STATI, E QUESTA FUNZIONE NE LEGGEVA UNO SOLO
+   (02/09). Misurato aprendo la schermata Scadenze sulla dimostrazione: la riga
+   «Verifica periodica» diceva «3 in regola · 0 in scadenza · 0 scadute» con la
+   pastiglia VERDE «tutte regolari», e quindici righe più sotto la stessa
+   schermata — con `verificheDaSistemare` — scriveva «1 con prescrizioni
+   scadute · 1 mai verificata, su 3»; nel Quadro le stesse due attrezzature
+   stavano in rosso e in giallo. Qui contava SOLO la data della prossima
+   verifica, che per tutt'e tre è nel futuro: cioè una verifica mai fatta e una
+   con le prescrizioni scadute entravano fra i «regolari». È l'assenza di un
+   dato letta come dato favorevole, e la regola giusta esisteva già in questo
+   file (`statoVerificaPeriodica`): la copia più debole, non l'invenzione.
+   Adesso ogni riga sta in UN secchio solo, e il peggio vince: la data scaduta
+   prima di tutto (la prossima verifica è dovuta), poi la verifica negativa
+   (non idonea, prescrizioni scadute), poi la data in scadenza o illeggibile,
+   poi la verifica incerta (mai fatta, esito non letto, verbale mancante,
+   prescrizioni aperte o senza data). `documenti` serve al verbale: senza il
+   registro un'«idonea» resta «verbale mancante», che è la verità di quello che
+   qui si vede. Per i tipi che non sono verifiche i due secchi nuovi restano a
+   zero e il conto è quello di prima. */
+export function coperturaFormazione(scadenze, oggi = new Date(), documenti = null) {
   const per = {};
   for (const s of scadenze || []) {
     const t = (s.tipo || "Altro");
-    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0, regolari: 0 });
+    const g = per[t] || (per[t] = { tipo: t, totale: 0, scadute: 0, inScadenza: 0, senzaData: 0,
+      verificheNegative: 0, verificheIncerte: 0, regolari: 0 });
     g.totale++;
     const st = statoScadenza(s.dataScadenza, oggi);
+    const v = scadenzaDiVerifica(s) ? statoVerificaPeriodica(s, documenti, oggi) : null;
     if (st === "scaduta") g.scadute++;
+    else if (v && v.cls === "danger") g.verificheNegative++;
     else if (st === "in-scadenza") g.inScadenza++;
     else if (st === "senza data") g.senzaData++;
+    else if (v && v.cls !== "ok") g.verificheIncerte++;
     else g.regolari++;
   }
+  const rosse = (c) => c.scadute + c.verificheNegative;
+  const gialle = (c) => c.inScadenza + c.senzaData + c.verificheIncerte;
   return Object.values(per).sort((a, b) =>
-    (b.scadute - a.scadute) || (b.inScadenza - a.inScadenza) || (b.senzaData - a.senzaData)
+    (rosse(b) - rosse(a)) || (gialle(b) - gialle(a))
     || a.tipo.localeCompare(b.tipo, "it"));
 }
 
@@ -2026,7 +2234,31 @@ export function coperturaFormazione(scadenze, oggi = new Date()) {
    qualcuno la guardi. */
 export function daSistemareCopertura(c) {
   const x = c || {};
-  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0);
+  return (+x.scadute || 0) + (+x.inScadenza || 0) + (+x.senzaData || 0)
+    + (+x.verificheNegative || 0) + (+x.verificheIncerte || 0);
+}
+
+/* Il colore e la pastiglia di un tipo, decisi in UN posto. La pagina li
+   scriveva due volte con lo stesso ternario (la barra del grafico e la
+   pastiglia dell'elenco), e un secchio nuovo li avrebbe dovuti aggiornare
+   tutt'e due: è così che «tutte regolari» sarebbe rimasto verde su una
+   verifica negativa in uno dei due posti. Il peggio decide, nell'ordine dei
+   secchi di `coperturaFormazione`. */
+export function statoCopertura(c) {
+  const x = c || {};
+  const n = (k) => +x[k] || 0;
+  /* un tipo senza nessuna riga non è «tutte regolari»: non c'è niente da
+     misurare, e lo si dice (è la sonda dei tranquilli a pretenderlo) */
+  if (!n("totale")) return { cls: "warn", badge: "niente registrato" };
+  if (n("scadute")) return { cls: "danger", badge: conta(n("scadute"), "scaduta", "scadute") };
+  /* «negativa» e «incerta» senza la parola «verifica»: la riga porta già il
+     tipo, e a 360 px la pastiglia lunga spingeva il dettaglio oltre le due
+     righe del taglio (misurato il 02/09: «— su 3 in totale» spariva). */
+  if (n("verificheNegative")) return { cls: "danger", badge: conta(n("verificheNegative"), "negativa", "negative") };
+  if (n("inScadenza")) return { cls: "warn", badge: n("inScadenza") + " in scadenza" };
+  if (n("senzaData")) return { cls: "warn", badge: n("senzaData") + " senza data" };
+  if (n("verificheIncerte")) return { cls: "warn", badge: conta(n("verificheIncerte"), "incerta", "incerte") };
+  return { cls: "ok", badge: "tutte regolari" };
 }
 
 // IL MURO DELLE SCADENZE: quante scadenze cadono in ciascuno dei prossimi N
@@ -2113,10 +2345,16 @@ export const SCADENZE_PRESET = [
   { chiave: "form-preposto",    categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento preposto", mesi: 24, riferimento: "D.L. 146/2021 — individuazione obbligatoria del preposto e aggiornamento almeno biennale." },
   { chiave: "form-dirigente",   categoria: "persona", tipo: "Formazione",    etichetta: "Formazione/aggiornamento dirigente", mesi: 60, riferimento: "Accordo Stato-Regioni — aggiornamento periodico del dirigente." },
   { chiave: "primo-soccorso",   categoria: "persona", tipo: "Corso",         etichetta: "Primo soccorso — aggiornamento addetti", mesi: 36, riferimento: "D.M. 388/2003 — aggiornamento della parte pratica di norma triennale." },
-  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.M. 2 settembre 2021 — aggiornamento periodico degli addetti antincendio." },
+  { chiave: "antincendio",      categoria: "persona", tipo: "Corso",         etichetta: "Antincendio — aggiornamento addetti", mesi: 60, riferimento: "D.Lgs 81/08 artt. 37 c. 9 e 43 — aggiornamento periodico degli addetti antincendio. La cadenza quinquennale è quella del D.M. 2 settembre 2021, che non si applica alle industrie estrattive (art. 62 del D.Lgs 81/08): in cava vale per analogia, e quella vera è scritta nel DSS." },
   { chiave: "rls",              categoria: "persona", tipo: "Formazione",    etichetta: "RLS — aggiornamento periodico", mesi: 12, riferimento: "D.Lgs 81/2008 art. 37 — aggiornamento annuale (durata secondo il numero di lavoratori)." },
   { chiave: "patentino-attr",   categoria: "persona", tipo: "Patente",       etichetta: "Abilitazione attrezzature (escavatore, PLE, gru…)", mesi: 60, riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
-  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: null, riferimento: "D.P.R. 302/1956 — licenza rilasciata dal Prefetto: la scadenza è quella indicata sul titolo." },
+  /* ⚠️ Fino all'11/09 diceva «rilasciata dal Prefetto» e `mesi: null`: la
+     licenza del fochino è COMUNALE (col nulla osta del Prefetto) e vale tre
+     anni, con rinnovo da chiedere almeno 30 giorni prima — letto di seconda
+     mano su nove Comuni e sul modello della Prefettura (ricerca dell'11/09).
+     La periodicità si PROPONE, come per le altre abilitazioni; la data vera
+     resta quella scritta sul titolo. */
+  { chiave: "fochino",          categoria: "persona", tipo: "Patente",       etichetta: "Fochino — abilitazione brillamento mine", mesi: 36, riferimento: "D.P.R. 302/1956, art. 27 — licenza comunale con nulla osta del Prefetto, validità triennale [seconda mano]: la data vera è quella indicata sul titolo." },
   /* ⛔ AGGIUNTO COL PERMESSO DI LAVORO, e senza di lui il permesso per gli
      spazi confinati non poteva funzionare: `formazionePermesso` chiede a
      `statoRequisito` se chi entra in tramoggia è formato, e senza una chiave
@@ -2135,6 +2373,7 @@ export const SCADENZE_PRESET = [
      aver guardato niente. */
   { chiave: "verifica-attr",    categoria: "azienda", tipo: TIPO_VERIFICA_PERIODICA, etichetta: "Verifica periodica attrezzature (D.M. 11/04/2011)", mesi: 12, riferimento: "D.M. 11/04/2011 — periodicità secondo l'allegato VII del D.Lgs 81/08: dipende dal tipo di attrezzatura." },
   { chiave: "riunione-sic",     categoria: "azienda", tipo: "Altro",         etichetta: "Riunione periodica di sicurezza (art. 35)", mesi: 12, riferimento: "D.Lgs 81/2008 art. 35 — almeno una volta l'anno nelle aziende con più di 15 lavoratori, con verbale." },
+  { chiave: "prova-emergenza",  categoria: "azienda", tipo: "Altro",         etichetta: "Prova di emergenza — esercitazione annuale", mesi: 12, riferimento: "D.Lgs 624/96 art. 10 — le esercitazioni di sicurezza stanno nel DSS, che ne fissa la cadenza; un anno è la prassi (fuori dalle cave la chiede il D.M. 2 settembre 2021, che non si applica alle industrie estrattive)." },
   // --- Adempimenti tipici delle industrie estrattive (D.Lgs 624/96) ---
   { chiave: "stabilita-fronti", categoria: "cava"   , tipo: "Altro",         etichetta: "Relazione annuale sulla stabilità dei fronti", mesi: 12, riferimento: "D.Lgs 624/96 — coltivazioni a cielo aperto: relazione su stabilità dei fronti, caduta massi e franamento, predisposta o aggiornata annualmente." },
   { chiave: "dss-certif",       categoria: "cava"   , tipo: "Altro",         etichetta: "DSS — certificazione annuale del datore di lavoro", mesi: 12, riferimento: "D.Lgs 624/96 art. 6 — il datore di lavoro certifica ogni anno l'attualità del Documento di Sicurezza e Salute." },
@@ -2580,7 +2819,7 @@ const MESI_CERTIF_DSS = (SCADENZE_PRESET.find((p) => p.chiave === "dss-certif") 
 export function dssDiCantiere(documenti, cantiereId) {
   if (!cantiereId) return [];
   return (documenti || [])
-    .filter((d) => d && d.tipo === "DSS" && d.cantiereId === cantiereId)
+    .filter((d) => d && d.tipo === "DSS" && d.cantiereId === cantiereId && !d.sostituitoDa)   // un DSS sostituito non è più «il DSS della cava»
     .sort((a, b) => String(b.dssRevisione || "").localeCompare(String(a.dssRevisione || "")));
 }
 
@@ -3494,7 +3733,7 @@ export const NOMINE_RUOLI = [
     spiega: "Deve essercene almeno uno presente quando si lavora." },
   { chiave: "antincendio", etichetta: "Addetto antincendio ed evacuazione", breve: "Antincendio", obbligatoria: true, multiplo: true,
     requisito: "antincendio",
-    riferimento: "D.Lgs 81/08 art. 43 e D.M. 2 settembre 2021 — addetti designati e formati.",
+    riferimento: "D.Lgs 81/08 art. 43 e D.Lgs 624/96 art. 10 — addetti designati e formati (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: la formazione è quella dell'art. 37).",
     spiega: "Deve essercene almeno uno presente quando si lavora." },
   { chiave: "dirigente", etichetta: "Dirigente", breve: "Dirigente", obbligatoria: false, multiplo: true,
     requisito: "form-dirigente",
@@ -3505,12 +3744,12 @@ export function ruoloNomina(chiave) {
   return NOMINE_RUOLI.find(r => r.chiave === chiave) || null;
 }
 // Una nomina è ATTIVA oggi se è già decorsa e non è ancora finita.
-export function nominaAttiva(n, oggi = new Date()) {
-  if (!n) return false;
-  if (n.dal) { const g = giorniTra(n.dal, oggi); if (Number.isFinite(g) && g > 0) return false; }
-  if (n.al)  { const g = giorniTra(n.al, oggi);  if (Number.isFinite(g) && g < 0) return false; }
-  return true;
-}
+/* ⛔ TRASLOCATA in `shared/dw-ponti.js` l'11/09: la legge anche Campo, per
+   proporre il sorvegliante di turno sulla lista di controllo. Qui si
+   RI-ESPORTA col nome di sempre e si importa per l'uso interno — un alias non
+   è una seconda implementazione, e la prova pretende l'identità. */
+export { nominaAttiva } from "../../shared/dw-ponti.js";
+import { nominaAttiva } from "../../shared/dw-ponti.js";
 // L'organigramma della sicurezza: un blocco per ruolo, con chi c'è e com'è
 // messa la sua formazione. `mancante` = ruolo obbligatorio senza nessuno.
 /* ⛔ «DI QUESTA NOMINA UNA DATA NON SI LEGGE» È UNA REGOLA SOLA, E STAVA
@@ -3748,6 +3987,12 @@ export function etichettaStatoDocumento(stato) {
     valido:        { cls: "ok",     label: "Valido",      valido: true },
     "da-rivedere": { cls: "warn",   label: "Da rivedere", valido: false },
     scaduto:       { cls: "danger", label: "Scaduto",     valido: false },
+    /* Sostituito da una versione più recente: non è valido — vale la nuova —
+       e non è un problema da contare. Neutro, non giallo: la regola 18 di
+       `run-stile` vuole che chi mappa gli stati li copra tutti, e `DOC_NEXT`
+       nella pagina lo lascia fermo (un documento superato non torna valido con
+       un tocco: si riapre la versione che lo ha sostituito). */
+    sostituito:    { cls: "tag",    label: "Sostituito",  valido: false, superato: true },
   };
   /* Un documento di cui lo stato non è scritto — un import, un archivio
      cartaceo — non è un documento valido: si dichiara che non si sa, in
@@ -3755,6 +4000,103 @@ export function etichettaStatoDocumento(stato) {
      evita. */
   return M[String(stato == null ? "" : stato).trim()]
       || { cls: "warn", label: "Stato non indicato", valido: false };
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LE VERSIONI DI UN DOCUMENTO (06/09, notte). Un DVR nuovo non cancella
+   quello vecchio: lo SOSTITUISCE, e l'ispettore chiede tutt'e due — quale
+   era la valutazione in vigore il giorno dell'infortunio? Il vecchio resta in
+   archivio con `stato: "sostituito"`, `sostituitoDa` e `sostituitoIl`; il
+   nuovo porta `sostituisce`. Nessuna copia del documento: due riferimenti.
+   Il candidato lo propone `documentoPrecedente` (stesso tipo, stesso sito,
+   stesso lavoratore, stessa impresa e qualifica); la DECISIONE è di chi
+   registra — la pagina chiede, non deduce — perché due DVR di due reparti
+   sono due documenti, e solo chi li ha in mano lo sa.
+   ⛔ «Altro» senza un'impresa non ha un ambito: due «Altro» non si
+   sostituiscono da soli. Il DSS ha in più il suo ciclo, e quello si conserva
+   in `dssStorico` quando la data di revisione cambia (`aggiornaCicloDss`).
+   ══════════════════════════════════════════════════════════════════════════ */
+const stessoAmbitoDocumento = (a, b) => !!a && !!b && String(a.tipo || "") === String(b.tipo || "")
+  && (a.cantiereId || null) === (b.cantiereId || null) && (a.lavoratoreId || null) === (b.lavoratoreId || null)
+  && (a.appaltatoreId || null) === (b.appaltatoreId || null) && (a.tipoQualifica || null) === (b.tipoQualifica || null);
+export function documentoPrecedente(nuovo, documenti) {
+  const n = nuovo || {};
+  if (!String(n.tipo || "").trim()) return null;
+  if (n.tipo === "Altro" && !n.appaltatoreId) return null;
+  const cand = (documenti || []).filter((d) => d && d.id && d.id !== n.id && stessoAmbitoDocumento(d, n) && !d.sostituitoDa);
+  return cand.length ? cand[cand.length - 1] : null;   // l'ultimo entrato: il registro cresce in coda
+}
+/* Le due scritture, come oggetti da passare a `db.aggiorna`: una per il
+   vecchio e una per il nuovo. `null` se non c'è niente da sostituire. */
+export function sostituzioneDocumento(vecchio, nuovoId, quando = new Date()) {
+  if (!vecchio || !vecchio.id || !nuovoId || String(vecchio.id) === String(nuovoId)) return null;
+  return {
+    vecchio: { stato: "sostituito", sostituitoDa: String(nuovoId), sostituitoIl: timbroLocale(quando) },
+    nuovo: { sostituisce: String(vecchio.id) },
+  };
+}
+/* La catena all'indietro (i precedenti, dal più recente) e in avanti (chi lo
+   ha sostituito). `spezzata` quando un anello non è più in archivio o la
+   catena gira su sé stessa: la si legge fino a lì e lo si DICE, invece di
+   fermarsi in silenzio a una versione che sembra la prima. */
+export function catenaDocumento(documento, documenti) {
+  const byId = new Map((documenti || []).filter((d) => d && d.id).map((d) => [String(d.id), d]));
+  const d = documento || {};
+  const precedenti = [], visti = new Set([String(d.id)]);
+  let spezzata = false, cur = d;
+  while (cur && cur.sostituisce) {
+    const id = String(cur.sostituisce);
+    if (visti.has(id)) { spezzata = true; break; }
+    const p = byId.get(id);
+    if (!p) { spezzata = true; break; }
+    visti.add(id); precedenti.push(p); cur = p;
+  }
+  const successivo = d.sostituitoDa ? (byId.get(String(d.sostituitoDa)) || null) : null;
+  const successivoPerso = !!d.sostituitoDa && !successivo;
+  return { versione: precedenti.length + 1, precedenti, successivo, successivoPerso, spezzata,
+    sostituito: !!d.sostituitoDa, leggibile: !spezzata && !successivoPerso };
+}
+const ordinale = (n) => n + "ª";
+export function descriviCatena(c) {
+  const x = c || {}, prec = x.precedenti || [];
+  const parti = [];
+  if (prec.length) {
+    const ultimo = prec[0];
+    parti.push(ordinale(x.versione) + " versione: sostituisce " + (prec.length === 1 ? "la precedente" : prec.length + " precedenti")
+      + (ultimo && dataISOEsiste(String(ultimo.sostituitoIl || "").slice(0, 10)) ? " (l'ultima il " + dataIt(String(ultimo.sostituitoIl).slice(0, 10)) + ")" : ""));
+  }
+  if (x.spezzata) parti.push("una versione precedente non è più in archivio: la catena si legge fino a lì");
+  if (x.sostituito) parti.push(x.successivo
+    ? "sostituito da «" + String(x.successivo.titolo || x.successivo.tipo || "documento") + "»"
+    : "sostituito da un documento che non è più in archivio");
+  return parti.join(" · ");
+}
+/* Il ciclo del DSS quando cambia la data di revisione: la revisione prima si
+   conserva in `dssStorico` (al più venti), con il suo motivo e la sua
+   trasmissione. Torna la patch da scrivere e se ha conservato qualcosa. */
+export function aggiornaCicloDss(doc, nuovo, quando = new Date()) {
+  const d = doc || {}, n = nuovo || {};
+  const patch = { dssRevisione: n.dssRevisione || null, dssMotivo: n.dssMotivo || "", dssTrasmissione: n.dssTrasmissione || null };
+  const prima = d.dssRevisione || null;
+  const conservata = !!prima && prima !== patch.dssRevisione;
+  if (conservata) {
+    const storico = Array.isArray(d.dssStorico) ? d.dssStorico.slice() : [];
+    storico.push({ dssRevisione: prima, dssMotivo: d.dssMotivo || "", dssTrasmissione: d.dssTrasmissione || null, sostituitaIl: timbroLocale(quando) });
+    patch.dssStorico = storico.slice(-20);
+  }
+  return { patch, conservata };
+}
+export function storicoDss(doc) {
+  const s = Array.isArray((doc || {}).dssStorico) ? doc.dssStorico : [];
+  return s.filter((r) => r && dataISOEsiste(r.dssRevisione)).map((r) => ({ ...r }))
+    .sort((a, b) => String(b.dssRevisione).localeCompare(String(a.dssRevisione)));
+}
+export function descriviStoricoDss(doc) {
+  const s = storicoDss(doc);
+  if (!s.length) return "";
+  return (s.length === 1 ? "Una revisione precedente" : s.length + " revisioni precedenti") + ": "
+    + s.map((r) => dataIt(r.dssRevisione) + ((motivoRevisioneDss(r.dssMotivo) || {}).nome ? " (" + motivoRevisioneDss(r.dssMotivo).nome.toLowerCase() + ")" : "")).join(", ") + ".";
 }
 
 export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
@@ -3819,7 +4161,7 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
        nomina resta nell'elenco come attiva, e questo foglio non diceva niente.
        L'Organigramma la conta in `senzaData` dal 07/08 e colora il ruolo. */
     [sueNomine.filter(n => dateNominaIlleggibili(n).al).length, "nomina la cui data di fine non si legge", "nomine la cui data di fine non si legge"],
-    [suoiDoc.filter(x => !etichettaStatoDocumento(x.stato).valido).length,
+    [suoiDoc.filter(x => { const e = etichettaStatoDocumento(x.stato); return !e.valido && !e.superato; }).length,
       "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
   ];
   const daSistemare = righeGuaste.filter(([n]) => n > 0).map(([n, uno, tanti]) => conta(n, uno, tanti));
@@ -3835,6 +4177,326 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
    `descriviBaseOnere` in Terra: quello che un documento dichiara è una REGOLA,
    e chi la scrive dev'essere uno solo. Legge `completa`, che altrimenti
    sarebbe una bandiera che non guarda nessuno (regola 20 di run-stile). */
+/* IL VERBALE DI CONSEGNA DEI DPI, LE RIGHE (05/09). Le decideva la pagina
+   (`costruisciVerbale`) a partire da `verbaleDpi`, ma le PAROLE delle celle —
+   «non registrato» sul modello, «non indicata» sulla data illeggibile, «DA
+   SOSTITUIRE» sulla scadenza passata, «fatto (non obbligatorio)» / «DA FARE»
+   sull'addestramento — vivevano lì, dove nessuna prova senza browser le
+   legge. Qui ogni cella è testo, la pagina disegna. Decisione 14: su un
+   foglio stampato «—» si legge «non serve», quindi chi non ha registrato lo
+   dice; la taglia resta col trattino perché «unica» esiste davvero come
+   risposta. Nei testi il grassetto si scrive «**così**». Pura. */
+export function fogliaVerbaleDpi(lavoratore, opzioni) {
+  const { dpi, mansioni, oggi } = opzioni || {};
+  const lav = lavoratore || {};
+  const v = verbaleDpi(lav, Array.isArray(dpi) ? dpi : []);
+  const mans = (Array.isArray(mansioni) ? mansioni : []).filter((m) => m && (m.lavoratoriIds || []).includes(lav.id)).map((m) => m.nome).join(", ");
+  const nonMisurati = [];
+  const conta = (n, s, p) => n + " " + (n === 1 ? s : p);
+  let senzaModello = 0, senzaData = 0, senzaSost = 0, daFare = 0;
+  const righe = v.righe.map((r) => {
+    const c = r.consegna || {};
+    // se l'addestramento non è obbligatorio ma è stato fatto lo stesso, il
+    // foglio lo dice: è lavoro fatto e registrato
+    const add = !r.addestramentoRichiesto
+      ? (r.addestramentoFatto ? "fatto (non obbligatorio)" : "non previsto")
+      : (r.addestramentoFatto ? "fatto" + (c.dataAddestramento ? " il " + dataIt(c.dataAddestramento) : "") : "DA FARE");
+    if (!c.modello) senzaModello++;
+    if (!r.leggibile) senzaData++;
+    if (c.nonScade !== true && r.stato === "senza data") senzaSost++;
+    if (r.addestramentoRichiesto && !r.addestramentoFatto) daFare++;
+    /* la colonna «Sostituire entro» LEGGE lo stato della riga, non ri-decide:
+       una maschera da sostituire da anni non esce come una valida fino al 2099 */
+    const sost = c.nonScade === true ? "non scade (dichiarato)"
+      : r.stato === "senza data" ? "non indicata"
+      : dataIt(c.scadenza) + (r.stato === "scaduta" ? " — DA SOSTITUIRE" : r.stato === "in-scadenza" ? " — da sostituire a breve" : "");
+    return [String(r.tipo.etichetta || c.tipo || ""), String(r.tipo.cat || ""), c.modello ? String(c.modello) : "non registrato",
+      String(c.taglia || "—"), r.leggibile ? dataIt(c.dataConsegna) : "non indicata", sost, add, ""];
+  });
+  if (senzaModello) nonMisurati.push(conta(senzaModello, "dispositivo senza il modello registrato", "dispositivi senza il modello registrato"));
+  if (senzaData) nonMisurati.push(conta(senzaData, "consegna senza la data", "consegne senza la data"));
+  if (senzaSost) nonMisurati.push(conta(senzaSost, "dispositivo senza data di sostituzione", "dispositivi senza data di sostituzione"));
+  if (daFare) nonMisurati.push(conta(daFare, "addestramento da fare", "addestramenti da fare"));
+  return {
+    titolo: "Verbale di consegna dei DPI", sottotitolo: "Dispositivi di protezione individuale — art. 77 D.Lgs 81/2008",
+    dati: [["Azienda / cava", "", true], ["Lavoratore", String(lav.nome || ""), false], ["Mansione", mans || String(lav.ruolo || "—"), false],
+      ["Data del verbale", dataIt(isoLocale(oggi || new Date())), false]],
+    colonne: ["Dispositivo", "Cat.", "Modello", "Taglia", "Consegnato il", "Sostituire entro", "Addestramento", "Firma"],
+    righe, vuota: "Per questa persona non risulta registrata nessuna consegna.",
+    dichiarazione: "Il lavoratore dichiara di aver ricevuto i dispositivi elencati, di essere stato informato sui rischi da cui proteggono e di aver ricevuto l'**addestramento** dove indicato come fatto. Si impegna a **usarli** quando previsto, ad **averne cura**, a **non modificarli** e a **segnalare subito** difetti, danni o smarrimenti al preposto o al datore di lavoro (artt. 20 e 78 D.Lgs 81/2008).",
+    firme: ["Firma del lavoratore", "Firma di chi consegna (datore di lavoro o preposto)"],
+    piede: "Documento preparato con Scudo · Deepwork — " + conta(v.righe.length, "dispositivo", "dispositivi")
+      + (v.addestramentiMancanti ? " · addestramenti ancora da fare: " + v.addestramentiMancanti : "")
+      + ". Nota informativa, non un parere legale: il contenuto va verificato con l'RSPP dell'azienda.",
+    addestramentiMancanti: v.addestramentiMancanti, nonMisurati,
+  };
+}
+
+/* LA CARTELLA DEL LAVORATORE, LE SEZIONI (05/09). `cartellaLavoratore` decide
+   che cosa c'è e che cosa manca; qui si compongono le RIGHE del fascicolo che
+   si esibisce all'ispettore — l'adempimento e non la famiglia
+   (`etichettaScadenza`), l'etichetta del DPI e non la chiave interna, lo stato
+   della consegna, lo stato del documento (`etichettaStatoDocumento`) — e ogni
+   sezione vuota porta la frase che dice perché, invece di restare bianca.
+   La riga di chiusura la scrive `descriviCartella`, con `allarme` quando
+   c'è qualcosa da sistemare. Pura. */
+/* ══════════════════════════════════════════════════════════════════════
+   IL FASCICOLO PER L'ISPETTORE (11/09, dalla ricerca del secondo giro). La
+   visita ASL/SPRESAL comincia con l'ELENCO dei documenti: DSS, organigramma e
+   nomine, formazione, idoneità, DPI, registro infortuni, appalti con DUVRI,
+   verbali. Scudo sapeva rispondere a ognuno — ma per UN soggetto alla volta
+   (una persona, un'ispezione, una consegna), mai per la cava intera. Questo
+   foglio è COMPOSIZIONE: ogni sezione chiama la funzione che decide già a
+   schermo (`cicloDss`, `organigrammaSicurezza`, `coperturaFormazione`,
+   `allarmiDpi`/`riepilogoDpi`, `riepilogoInfortuni`, `riepilogoNearMiss`,
+   `riepilogoAppalti`, `riepilogoIspezioni`), niente è ricalcolato qui.
+   ⛔ E ogni sezione dice che cosa MANCA: sul documento che si consegna a chi
+   verifica, una sezione vuota si legge «non dovuto» e un totale tranquillo
+   si legge «a posto». `nonMisurati` raccoglie le assenze, `daSistemare` le
+   righe registrate e non in regola — due domande diverse, come nella
+   cartella del lavoratore. Stessa forma di `fogliaCartella`, stesso
+   disegnatore nella pagina. Pura. */
+export function fascicoloIspezione(dati, oggi = new Date()) {
+  const d = dati || {};
+  const cantieri = d.cantieri || [], documenti = d.documenti || [], infortuni = d.infortuni || [];
+  const nomine = d.nomine || [], lavoratori = d.lavoratori || [], scadenze = d.scadenze || [];
+  const mansioni = d.mansioni || [], dpi = d.dpi || [], appalti = d.appalti || [], appaltatori = d.appaltatori || [];
+  const ispezioni = d.ispezioni || [], azioni = d.azioni || [];
+  const nonMisurati = [], daSistemare = [];
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+  const G = (x) => "**" + x + "**";
+
+  // 1 · il DSS, cava per cava
+  const cave = cantieri.filter((c) => c && c.id);
+  const cicli = cave.map((c) => ({ cantiere: c, ...cicloDss(dssDiCantiere(documenti, c.id)[0] || null, infortuni, oggi) }));
+  for (const c of cicli) {
+    if (!c.noto) nonMisurati.push("DSS di " + String(c.cantiere.nome || c.cantiere.id) + " (" + c.stato.replace(/-/g, " ") + ")");
+    else if (c.stato !== "regolare") daSistemare.push("DSS di " + String(c.cantiere.nome || c.cantiere.id) + " " + c.stato.replace(/-/g, " "));
+  }
+  if (!cave.length) nonMisurati.push("nessuna cava registrata: il DSS non si può collegare a niente");
+  const righeDss = cicli.map((c) => [String(c.cantiere.nome || c.cantiere.id),
+    (c.noto && c.stato === "regolare" ? "in regola" : G(c.stato.replace(/-/g, " ")))
+    + (c.revisione ? " · ultima revisione " + dataIt(c.revisione) + (c.motivoNome ? " (" + c.motivoNome.toLowerCase() + ")" : "") : "")
+    + (c.trasmissione ? " · trasmesso il " + dataIt(c.trasmissione) : c.revisione ? " · " + G("trasmissione non registrata") : "")
+    + " — " + c.perche]);
+
+  // 2 · organigramma e nomine
+  const org = organigrammaSicurezza(nomine, lavoratori, scadenze, oggi);
+  const nomKO = nomineDaSistemare(org);
+  for (const r of org) {
+    if (r.mancante) nonMisurati.push("nomina mancante: " + r.ruolo.etichetta);
+    else if (r.stato === "danger" || r.stato === "warn") daSistemare.push("nomina da sistemare: " + r.ruolo.etichetta);
+  }
+  const righeOrg = org.map((r) => [r.ruolo.etichetta, r.valide.length
+    ? r.valide.map((p) => p.lavoratore.nome + (p.nomina.dal && dataISOEsiste(p.nomina.dal) ? " (dal " + dataIt(p.nomina.dal) + ")" : " (" + G("senza data di nomina") + ")")
+        + (p.formazione && (p.formazione.stato === "mancante" || p.formazione.stato === "scaduta") ? " · " + G("formazione del ruolo " + p.formazione.stato) : "")).join(", ")
+      + (r.senzaPersona ? " · " + G(conta(r.senzaPersona, "nomina a persona non più in anagrafica", "nomine a persone non più in anagrafica")) : "")
+    : r.ruolo.obbligatoria ? G("nessuna nomina: ruolo obbligatorio scoperto") : "nessuna nomina (ruolo non obbligatorio)"]);
+
+  // 3 · formazione
+  const cop = coperturaFormazione(scadenze, oggi, documenti);
+  if (!scadenze.length) nonMisurati.push("nessuna scadenza registrata: formazione e visite non risultano");
+  for (const c of cop) if (c.scadute || c.verificheNegative || c.senzaData) daSistemare.push(c.tipo + ": " + [c.scadute ? conta(c.scadute, "scaduta", "scadute") : "", c.verificheNegative ? conta(c.verificheNegative, "verifica negativa", "verifiche negative") : "", c.senzaData ? conta(c.senzaData, "senza data", "senza data") : ""].filter(Boolean).join(", "));
+  const righeForm = cop.map((c) => [c.tipo, c.regolari + " su " + c.totale + " in regola"
+    + (c.scadute ? " · " + G(conta(c.scadute, "scaduta", "scadute")) : "")
+    + (c.verificheNegative ? " · " + G(conta(c.verificheNegative, "verifica negativa", "verifiche negative")) : "")
+    + (c.inScadenza ? " · " + conta(c.inScadenza, "in scadenza", "in scadenza") : "")
+    + (c.senzaData ? " · " + G(conta(c.senzaData, "senza data", "senza data")) : "")
+    + (c.verificheIncerte ? " · " + conta(c.verificheIncerte, "verifica incerta", "verifiche incerte") : "")]);
+
+  // 4 · idoneità sanitarie: il giudizio del medico, persona per persona
+  const attivi = lavoratori.filter((l) => l && l.attivo !== false);
+  const perGiudizio = { idoneo: 0, prescrizioni: 0, "non-idoneo": 0, "": 0 };
+  for (const l of attivi) perGiudizio[["idoneo", "prescrizioni", "non-idoneo"].includes(l.idoneita) ? l.idoneita : ""]++;
+  if (!attivi.length) nonMisurati.push("nessun lavoratore in forza");
+  if (perGiudizio[""]) nonMisurati.push(conta(perGiudizio[""], "lavoratore senza giudizio di idoneità registrato", "lavoratori senza giudizio di idoneità registrato"));
+  if (perGiudizio["non-idoneo"]) daSistemare.push(conta(perGiudizio["non-idoneo"], "lavoratore non idoneo in forza", "lavoratori non idonei in forza"));
+  const righeIdo = attivi.length ? [
+    ["Lavoratori in forza", String(attivi.length)],
+    ["Giudizio del medico", "idonei " + perGiudizio.idoneo + " · con prescrizioni " + perGiudizio.prescrizioni + " · " + (perGiudizio["non-idoneo"] ? G("non idonei " + perGiudizio["non-idoneo"]) : "non idonei 0")
+      + " · " + (perGiudizio[""] ? G("senza giudizio registrato " + perGiudizio[""]) : "senza giudizio registrato 0")],
+  ] : [];
+
+  // 5 · DPI
+  const al = allarmiDpi(mansioni, lavoratori, dpi, oggi);
+  const rd = riepilogoDpi(dpi, al);
+  if (!dpi.length) nonMisurati.push("nessuna consegna di DPI a registro");
+  if (rd.mancanti || rd.daSostituire || rd.addestramenti || rd.senzaSostituzione) daSistemare.push("consegne DPI: " + conta(rd.daSistemare, "riga da sistemare", "righe da sistemare"));
+  const righeDpi = dpi.length ? [
+    ["Consegne registrate", rd.consegne + " a " + conta(rd.persone, "persona", "persone")],
+    ["Da sistemare", rd.daSistemare ? G(conta(rd.mancanti, "mai consegnato", "mai consegnati")) + " · " + G(conta(rd.daSostituire, "da sostituire", "da sostituire")) + " · " + G(conta(rd.addestramenti, "addestramento non registrato", "addestramenti non registrati")) + " · " + G(conta(rd.senzaSostituzione, "senza data di sostituzione", "senza data di sostituzione")) : "niente: tutte le consegne dovute risultano fatte e in corso di validità"],
+  ] : [];
+
+  // 6 · infortuni e near-miss
+  const ri = riepilogoInfortuni(infortuni, oggi);
+  const rnm = riepilogoNearMiss(infortuni, azioni, 365, oggi);
+  if (!infortuni.length) nonMisurati.push("registro infortuni e near-miss vuoto: nessun evento registrato, che non è «nessun evento»");
+  if (rnm.senzaAzione) daSistemare.push(conta(rnm.senzaAzione, "near-miss dell'ultimo anno senza azione", "near-miss dell'ultimo anno senza azione"));
+  const righeInf = infortuni.length ? [
+    ["Infortuni registrati", ri.infortuni + (ri.gravi ? " · " + G(conta(ri.gravi, "grave", "gravi")) : "") + (ri.prognosiAperte ? " · " + conta(ri.prognosiAperte, "prognosi aperta", "prognosi aperte") : "")
+      + (ri.giorniSenza == null ? " · " + G("giorni senza infortuni non calcolabili") : " · " + conta(ri.giorniSenza, "giorno senza infortuni", "giorni senza infortuni"))],
+    ["Near-miss nell'ultimo anno", rnm.totale + " (" + rnm.totaleStorico + " in tutto) · con azione " + rnm.conAzione + " · " + (rnm.senzaAzione ? G("senza azione " + rnm.senzaAzione) : "senza azione 0")],
+  ] : [];
+
+  // 7 · appalti
+  const rA = riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi);
+  if (!rA.quanti) nonMisurati.push("nessun appalto registrato (non vuol dire nessuna impresa esterna in cava)");
+  if (rA.daSistemare) daSistemare.push(conta(rA.daSistemare, "appalto da sistemare", "appalti da sistemare"));
+  if (rA.nonVerificati) nonMisurati.push(conta(rA.nonVerificati, "appalto non verificato", "appalti non verificati"));
+  const righeApp = rA.quanti ? [["Appalti attivi", rA.quanti + " · a posto " + rA.aPosto + " · " + (rA.daSistemare ? G("da sistemare " + rA.daSistemare) : "da sistemare 0") + " · " + (rA.nonVerificati ? G("non verificati " + rA.nonVerificati) : "non verificati 0")]] : [];
+
+  // 8 · ispezioni e prescrizioni
+  const rI = riepilogoIspezioni(ispezioni, oggi);
+  if (!rI.totale) nonMisurati.push("nessuna ispezione interna registrata");
+  if (rI.scadute || rI.senzaEsito) daSistemare.push("ispezioni: " + [rI.scadute ? conta(rI.scadute, "scaduta", "scadute") : "", rI.senzaEsito ? conta(rI.senzaEsito, "voce senza esito", "voci senza esito") : ""].filter(Boolean).join(", "));
+  const righeIsp = rI.totale ? [["Ispezioni interne", rI.completate + " completate su " + rI.totale + " · da fare " + rI.daFare + (rI.scadute ? " · " + G(conta(rI.scadute, "scaduta", "scadute")) : "") + " · non conformità rilevate " + rI.nonConformi + (rI.senzaEsito ? " · " + G(conta(rI.senzaEsito, "voce senza esito", "voci senza esito")) : "")]] : [];
+
+  const sezioni = [
+    sez("Documento di sicurezza e salute (DSS)", righeDss, "Nessuna cava registrata: il DSS non si può collegare a niente, e questo foglio non può dire se esiste."),
+    sez("Organigramma della sicurezza e nomine", righeOrg, "Nessun ruolo definito."),
+    sez("Formazione e scadenze", righeForm, "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente."),
+    sez("Idoneità sanitarie", righeIdo, "Nessun lavoratore in forza: le idoneità non si possono dire."),
+    sez("Dispositivi di protezione", righeDpi, "Nessuna consegna di DPI a registro."),
+    sez("Registro infortuni e near-miss", righeInf, "Nessun evento registrato. Non è «nessun evento»: è un registro in cui non è stato scritto niente."),
+    sez("Imprese esterne e appalti", righeApp, rA.testo || "Nessun appalto registrato."),
+    sez("Ispezioni interne e prescrizioni", righeIsp, "Nessuna ispezione interna registrata."),
+  ];
+  const completo = !nonMisurati.length, inRegola = !daSistemare.length;
+  const chiusura = (completo
+    ? "Tutte le sezioni del fascicolo contengono dati registrati in Scudo alla data di stampa."
+    : "Sezioni o dati che in Scudo non risultano: " + nonMisurati.join("; ") + ". Non vuol dire che non esistano: vuol dire che da qui non si vedono, e il foglio non li conta come a posto.")
+    + (inRegola ? "" : " ⚠️ E non tutto quello che è registrato è in regola: " + daSistemare.join("; ") + ".");
+  return {
+    titolo: "Fascicolo per l'ispettore",
+    sottotitolo: "Lo stato della cava nell'ordine in cui lo chiede la visita — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),
+    sezioni, chiusura: { testo: chiusura, allarme: !(completo && inRegola) },
+    firme: ["Luogo e data", "Il datore di lavoro", "Il direttore responsabile"],
+    nonMisurati, daSistemare, completo, inRegola,
+    numeri: { cave: cave.length, dssRegolari: cicli.filter((c) => c.noto && c.stato === "regolare").length, nomineDaSistemare: nomKO.length,
+      lavoratori: attivi.length, senzaGiudizio: perGiudizio[""], dpiDaSistemare: rd.daSistemare, infortuni: ri.infortuni, nearMissSenzaAzione: rnm.senzaAzione,
+      appalti: rA.quanti, ispezioniScadute: rI.scadute },
+  };
+}
+
+export function fogliaCartella(cartella, oggi = new Date()) {
+  const c = cartella || {};
+  const l = c.lavoratore || {};
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+  const sezioni = [
+    sez("Mansioni assegnate", (c.mansioni || []).map((m) => [String(m.nome || ""), (m.requisiti || []).length + " requisiti · " + (m.dpi || []).length + " DPI previsti"]),
+      "Nessuna mansione assegnata: senza mansione non si sa quali corsi e quali DPI gli spettino."),
+    sez("Formazione e scadenze", (c.scadenze || []).map((x) => [etichettaScadenza(x.scadenza),
+      (x.scadenza.dataScadenza ? dataIt(x.scadenza.dataScadenza) : "senza data") + " · " + String(x.stato || "—")]),
+      "Nessuna scadenza registrata: non vuol dire «in regola», vuol dire che non è stato registrato niente."),
+    sez("Dispositivi di protezione consegnati", ((c.verbale || {}).righe || []).map((r) => [String(r.tipo.etichetta || r.consegna.tipo || ""),
+      (r.leggibile ? dataIt(r.consegna.dataConsegna) : "data di consegna non indicata")
+      + (r.consegna.taglia ? " · taglia " + String(r.consegna.taglia) : "")
+      + (r.stato === "scaduta" ? " · **da sostituire**" : r.stato === "in-scadenza" ? " · da sostituire a breve" : r.stato === "senza data" ? " · **senza data di sostituzione**" : "")
+      + (r.addestramentoRichiesto ? (r.addestramentoFatto ? " · addestramento fatto" : " · **addestramento da fare**") : "")]),
+      "Nessun DPI consegnato risulta a registro."),
+  ];
+  if ((c.nomine || []).length)
+    sezioni.push(sez("Nomine attive", c.nomine.map((n) => [(ruoloNomina(n.ruolo) || {}).etichetta || String(n.ruolo || ""), n.dal ? "dal " + dataIt(n.dal) : "senza data di nomina"]), ""));
+  if ((c.documenti || []).length)
+    sezioni.push(sez("Documenti collegati", c.documenti.map((d) => { const e = etichettaStatoDocumento(d.stato);
+      return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));
+  return {
+    titolo: "Cartella del lavoratore",
+    sottotitolo: String(l.nome || "") + (l.ruolo ? " · " + String(l.ruolo) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),
+    sezioni,
+    chiusura: { testo: descriviCartella(c), allarme: !(c.completa && !(c.daSistemare || []).length) },
+    firme: ["Luogo e data", "Il datore di lavoro"],
+    nonMisurati: (c.vuoti || []).concat(c.daSistemare || []),
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte). È il foglio che l'organo
+   di vigilanza chiede dopo la checklist: che cosa è stato guardato, con che
+   esito, e che cosa si è deciso di fare. Stessa forma della cartella
+   (`titolo`, `sottotitolo`, `sezioni[{titolo, righe, vuoto}]`, `chiusura`,
+   `firme`, `nonMisurati`), così la pagina lo disegna con la stessa mano.
+   ⛔ Una voce SENZA ESITO non è conforme: si stampa «senza esito», in
+   grassetto, e la chiusura la conta. ⛔ Una non conformità senza azione
+   correttiva è la riga che il foglio esiste per far vedere: sezione vuota in
+   rosso, non «nessuna azione». Le foto non si stampano: si conta quante sono e
+   si dice dove stanno. Pura; `oggi` iniettabile. */
+export function fogliaIspezione(isp, opzioni = {}) {
+  const i = isp || {};
+  const o = opzioni || {};
+  const cantieri = o.cantieri || [], lavoratori = o.lavoratori || [], azioni = o.azioni || [];
+  const oggi = o.oggi || new Date();
+  const cant = cantieri.find((c) => c && c.id === i.cantiereId) || null;
+  const resp = lavoratori.find((l) => l && l.id === i.responsabileId) || null;
+  const r = riepilogoIspezione(i);
+  const chiusa = i.stato === "completata";
+  const esiti = i.esiti || {};
+  const ETI = { conforme: "conforme", "non-conforme": "**NON CONFORME**", na: "non applicabile" };
+  const foto = fotoDiIspezione(i).length;
+  const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
+
+  const stato = chiusa
+    ? "Completata" + (dataISOEsiste(i.dataChiusura) ? " il " + dataIt(i.dataChiusura) : " (data di chiusura non registrata)")
+    : i.stato === "in-corso" ? "In corso: il foglio riporta la situazione alla data di stampa" : "Programmata: nessuna voce compilata" ;
+  const intestazione = sez("Ispezione", [
+    ["Checklist", String(i.nome || "(senza nome)") + (i.ambito ? " · " + String(i.ambito) : "")],
+    ["Sito", cant ? String(cant.nome || "") : "**sito non indicato**"],
+    ["Responsabile", resp ? String(resp.nome || "") + (resp.ruolo ? " (" + String(resp.ruolo) + ")" : "") : "**non indicato**"],
+    ["Data", dataISOEsiste(i.data) ? dataIt(i.data) : "**senza data**"],
+    ["Stato", stato],
+    ["Periodicità", i.periodicitaGiorni > 0 ? "ogni " + conta(+i.periodicitaGiorni, "giorno", "giorni") : "non indicata"],
+  ].concat(i.riferimento ? [["Riferimento", String(i.riferimento)]] : []), "");
+
+  const voci = (i.voci || []).map((v, k) => {
+    const e = esiti[v.id] || null;
+    const es = e && ETI[e.esito] ? ETI[e.esito] : "**senza esito**";
+    const nFoto = e && Array.isArray(e.foto) ? e.foto.filter((f) => f && f.dataURL).length : 0;
+    return [String(k + 1) + ". " + String(v.testo || ""), es + (e && String(e.nota || "").trim() ? " — " + String(e.nota).trim() : "") + (nFoto ? " · " + conta(nFoto, "foto", "foto") : "")];
+  });
+  const vociSez = sez("Voci della checklist", voci, "Questa checklist non ha nessuna voce: non è stato guardato niente.");
+
+  const esitoRiga = r.totale
+    ? [["Esito", conta(r.totale, "voce", "voci") + ": " + conta(r.conformi, "conforme", "conformi") + ", " + conta(r.nonConformi, "non conforme", "non conformi")
+        + ", " + conta(r.na, "non applicabile", "non applicabili") + (r.daFare ? ", **" + conta(r.daFare, "senza esito", "senza esito") + "**" : "")],
+       ["Foto", foto ? conta(foto, "foto allegata", "foto allegate") + " — non si stampano: si vedono in Scudo, dentro la voce" : "nessuna foto allegata"]]
+    : [];
+  const esitoSez = sez("Esito complessivo", esitoRiga, "Senza voci non c'è nessun esito da riassumere.");
+
+  const nc = vociNonConformi(i);
+  const az = azioniDiIspezione(azioni, i.id);
+  const azRighe = az.map((a) => [String(a.descrizione || "(azione senza descrizione)"),
+    azioneLabel(statoAzione(a, oggi)).label + " · " + (dataISOEsiste(a.scadenza) ? "entro il " + dataIt(a.scadenza) : "**senza scadenza**") + " · " + etichettaResponsabile(a, lavoratori).testo]);
+  const azSez = sez("Azioni correttive nate da questa ispezione", azRighe,
+    nc.length ? "**" + conta(nc.length, "non conformità senza nessuna azione correttiva", "non conformità senza nessuna azione correttiva") + "**: rilevare senza correggere è il modo in cui la stessa riga torna alla prossima ispezione."
+      : r.daFare ? "Nessuna azione correttiva — ma " + conta(r.daFare, "voce è senza esito", "voci sono senza esito") + ": non si può dire che non ce ne fosse bisogno."
+      : "Nessuna non conformità rilevata, quindi nessuna azione correttiva da questa ispezione.");
+
+  const nonMisurati = [];
+  if (!cant) nonMisurati.push("sito non indicato");
+  if (!resp) nonMisurati.push("responsabile non indicato");
+  if (!dataISOEsiste(i.data)) nonMisurati.push("data non leggibile");
+  if (!r.totale) nonMisurati.push("nessuna voce");
+  if (r.daFare) nonMisurati.push(conta(r.daFare, "voce senza esito", "voci senza esito"));
+  if (nc.length && !az.length) nonMisurati.push(conta(nc.length, "non conformità senza azione", "non conformità senza azione"));
+
+  const chiusuraTesto = !r.totale ? "Questo verbale non dimostra niente: la checklist non ha voci."
+    : !chiusa ? "Ispezione non ancora chiusa: " + conta(r.fatte, "voce compilata", "voci compilate") + " su " + r.totale + ". Il foglio vale come stato di avanzamento, non come verbale."
+    : r.daFare ? "Ispezione chiusa con " + conta(r.daFare, "voce senza esito", "voci senza esito") + ": " + (r.daFare === 1 ? "quella voce non è conforme, non è stata guardata" : "quelle voci non sono conformi, non sono state guardate") + "."
+      + (nc.length && !az.length ? " E " + conta(nc.length, "non conformità è", "non conformità sono") + " senza azione correttiva." : "")
+    : nc.length && !az.length ? "Ispezione chiusa con " + conta(nc.length, "non conformità", "non conformità") + " e nessuna azione correttiva collegata: il verbale è completo, la correzione no."
+    : nc.length ? "Ispezione chiusa: " + conta(nc.length, "non conformità", "non conformità") + ", " + conta(az.length, "azione correttiva collegata", "azioni correttive collegate") + "."
+    : "Ispezione chiusa senza non conformità: tutte le voci guardate sono conformi o non applicabili.";
+
+  return {
+    titolo: "Verbale di ispezione",
+    sottotitolo: String(i.nome || "") + (dataISOEsiste(i.data) ? " · " + dataIt(i.data) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi)),
+    sezioni: [intestazione, esitoSez, vociSez, azSez],
+    chiusura: { testo: chiusuraTesto, allarme: !chiusa || !r.totale || r.daFare > 0 || (nc.length > 0 && !az.length) },
+    firme: ["Il responsabile dell'ispezione", "Il datore di lavoro / RSPP"],
+    nonMisurati,
+  };
+}
+
 export function descriviCartella(cartella) {
   const c = cartella || {};
   if (!c.trovato) return c.motivo || "Cartella non disponibile.";
@@ -3948,6 +4610,8 @@ export async function scudoData() {
       const read = async (name) =>
         (await getDocs(id.orgCollection(name))).docs.map(d => ({ id: d.id, ...d.data() }));
       api = {
+        // l'organizzazione attiva (11/09): la legge «Scarica tutto» per scriverla nel file
+        orgId: id.orgId,
         lavoratori: () => read("lavoratori"),
         scadenze:   () => read("scadenze"),
         documenti:  () => read("documenti"),
@@ -4009,6 +4673,22 @@ export async function scudoData() {
       };
       api.operatoriCampo = () => leggiCampo("operatori");
       api.squadreCampo = () => leggiCampo("squadre");
+      /* IL MURO DI TUTTA LA CAVA (02/09, ponte 3b): le scadenze della concessione
+         (Terra) e dei mezzi (Flotta) si leggono con la stessa forma di Campo —
+         una seconda istanza SDK pigra per app, `null` se non risponde. ⛔ Il
+         `null` resta `null` fino alla schermata: «Terra non ha risposto» e
+         «Terra non ha scadenze» sono due frasi diverse, e la seconda sarebbe
+         il via libera a dimenticare il rinnovo della fideiussione. */
+      const leggiAltra = (appId) => { let idAltra;
+        return async (nome) => {
+          if (idAltra === undefined) { try { idAltra = await DeepworkID.init({ appId }); } catch (e) { idAltra = null; } }
+          if (!idAltra) return null;
+          try { return (await getDocs(idAltra.orgCollection(nome))).docs.map(d => ({ id: d.id, ...d.data() })); }
+          catch (e) { return null; }
+        }; };
+      const leggiTerra = leggiAltra("terra"), leggiFlotta = leggiAltra("flotta");
+      api.scadenzeTerra = () => leggiTerra("scadenze");
+      api.scadenzeFlotta = () => leggiFlotta("scadenze");
     } else if (id.authState() === "tour") {
       mode = "tour";
     }
@@ -4018,12 +4698,18 @@ export async function scudoData() {
     // demo/tour: dati in memoria, scritture solo locali (non persistite)
     const mem = JSON.parse(JSON.stringify(DEMO));
     api = {
+      // in dimostrazione non c'è un'organizzazione: `null`, non una stringa finta
+      orgId: null,
       lavoratori: async () => mem.lavoratori,
       scadenze:   async () => mem.scadenze,
       // in dimostrazione chi è schierato non arriva da Campo: è finto, ma
       // copiato dalla dimostrazione di Campo id per id (vedi DEMO.operatoriCampo)
       operatoriCampo: async () => mem.operatoriCampo || [],
       squadreCampo:   async () => mem.squadreCampo || [],
+      // e le scadenze di Terra e di Flotta: finte, copiate dalle loro
+      // dimostrazioni riga per riga (vedi DEMO.scadenzeTerra / scadenzeFlotta)
+      scadenzeTerra:  async () => mem.scadenzeTerra || [],
+      scadenzeFlotta: async () => mem.scadenzeFlotta || [],
       documenti:  async () => mem.documenti,
       // gli eventi di esempio PIÙ i near-miss segnalati dal fronte in Campo
       // (ponte P5 in demo): in esercizio è la stessa collezione e questa riga
@@ -4475,7 +5161,7 @@ export function eventiSenzaAnalisi(infortuni, analisi) {
      lo schermo, il CSV del registro e gli indici: qui c'era la quarta lettura,
      più debole delle altre tre. */
   const gravita = (e) => ((prognosiAperta(e) || giornateAssenza(e) > 0) ? 2
-    : (e || {}).tipo === "near-miss" ? 0 : 1);
+    : ((e || {}).tipo === "near-miss" || (e || {}).tipo === "osservazione") ? 0 : 1);
   return (infortuni || [])
     .filter((e) => e && e.id && !fatti.has(String(e.id)))
     .sort((a, b) => gravita(b) - gravita(a)
@@ -4582,7 +5268,7 @@ export function qualificaAppaltatore(appaltatore, documenti, oggi = new Date()) 
   const id = appaltatore && appaltatore.id;
   const suoi = docDiAppaltatore(documenti, id);
   const per = new Map();
-  for (const d of suoi) if (d.tipoQualifica) per.set(d.tipoQualifica, d);
+  for (const d of suoi) if (d.tipoQualifica && !d.sostituitoDa) per.set(d.tipoQualifica, d);   // il sostituito non vale: vale chi l'ha sostituito
 
   const mancanti = [], scaduti = [], senzaData = [], inScadenza = [];
   for (const t of TIPI_DOC_APPALTATORE) {
@@ -4671,6 +5357,21 @@ export const NATURE_APPALTO = [
 export function duvriDovuto(appalto, cantiere) {
   const a = appalto || {};
   const doc = documentoCoordinamento(cantiere);
+  /* ⛔ UN SITO CHE NON C’È NON È «FUORI CAVA». Misurato il 03/09 svuotando
+     l’anagrafe dei siti nella risposta HTTP del modulo: l’appalto di ripristino
+     della dimostrazione, che ha il DSS coordinato NON sottoscritto, passava da
+     «da sistemare» ad «A POSTO» — perché senza il sito la regola diventava
+     quella del DUVRI, che la firma non la chiede. Il sito manca in due modi
+     veri: il modulo lo lascia facoltativo (`cantiereId: null`) e togliere un
+     sito dall’anagrafe non tocca i suoi appalti. In tutt’e due non si sa se è
+     una cava, quindi non si sa quale documento serve: «non lo sappiamo», non
+     «a posto». La sigla resta quella del DUVRI — un sito che non si trova non
+     diventa una cava con le sue regole — ma il verdetto no. */
+  if (!cantiere)
+    return { ...doc, noto: false, serve: null,
+      perche: "Il sito dell’appalto non è indicato, o non è più in anagrafe: senza sapere se è una cava "
+        + "non si sa se serve il DSS coordinato (art. 9 D.Lgs 624/96) o il DUVRI (art. 26 D.Lgs 81/08), "
+        + "e un appalto di cui non si sa non è un appalto a posto." };
   const rischi = (Array.isArray(a.rischiParticolari) ? a.rischiParticolari : [])
     .map((k) => rischioParticolare(k)).filter(Boolean);
 
@@ -4953,7 +5654,7 @@ export const MISURE_PERMESSO = [
   { chiave: "infiammabili", nome: "Materiale infiammabile rimosso o protetto attorno al punto di lavoro",
     fonte: "prassi dei permessi per lavoro a caldo" },
   { chiave: "estintore", nome: "Estintore a portata di mano e addetto antincendio presente",
-    fonte: "D.M. 2 settembre 2021 — gestione della sicurezza antincendio nei luoghi di lavoro" },
+    fonte: "D.Lgs 81/08 art. 46 e D.Lgs 624/96 art. 10 — prevenzione incendi (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: qui vale come prassi)" },
   { chiave: "vigilanza-dopo", nome: "Sorveglianza antincendio mantenuta dopo la fine del lavoro",
     fonte: "prassi dei permessi per lavoro a caldo — molti principi d'incendio partono a lavoro finito" },
   { chiave: "ancoraggi", nome: "Punti di ancoraggio verificati e sistema anticaduta indossato",
@@ -4991,8 +5692,8 @@ export const TIPI_PERMESSO = [
     misure: ["sezionamento", "svuotamento", "bonifica", "ventilazione", "atmosfera",
       "sorvegliante-fuori", "recupero", "emergenza", "dpi"] },
   { chiave: "caldo", nome: "Lavoro a caldo — saldatura, taglio, molatura", breve: "Lavoro a caldo",
-    riferimento: "D.M. 2 settembre 2021 e D.Lgs 81/08 titolo I capo III sez. VI — gestione del rischio incendio "
-      + "nei luoghi di lavoro: il lavoro che produce fiamme, scintille o calore va autorizzato e sorvegliato.",
+    riferimento: "D.Lgs 81/08 titolo I capo III sez. VI e D.Lgs 624/96 art. 10 — gestione del rischio incendio (il D.M. 2 settembre 2021 non si applica alle industrie estrattive: si segue per analogia): "
+      + "il lavoro che produce fiamme, scintille o calore va autorizzato e sorvegliato.",
     atmosfera: false, sorvegliante: false,
     requisiti: ["antincendio", "form-generale"],
     misure: ["infiammabili", "estintore", "vigilanza-dopo", "delimitazione", "dpi"] },
@@ -5454,6 +6155,66 @@ export const CSV_AZIONI_INTESTAZIONE =
   "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;"
   + "origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta";
 
+/* IL PROSPETTO DELLE AZIONI CORRETTIVE (05/09): il file che si porta al
+   controllo — semaforo, responsabile con la parola, la frase dell'origine.
+   Stava nella pagina, composto cella per cella dalle funzioni giuste
+   (`statoAzione`, `etichettaResponsabile`, `origineAzione`): la composizione
+   però la provava solo il browser. Qui la provano anche le suite `node`, e la
+   pagina fa quello che fa per la copia di sicurezza: chiama. Stesso ordine
+   dell'elenco a schermo (chiuse in fondo, poi per data, senza data in coda).
+   `ctx`: { lavoratori, infortuni, ispezioni }. Pura. */
+export const CSV_PROSPETTO_AZIONI_INTESTAZIONE = "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine";
+export function csvProspettoAzioni(azioni, ctx = {}, oggi = new Date()) {
+  const lav = ctx.lavoratori || [];
+  const nome = (id) => etichettaResponsabile({ responsabileId: id }, lav).nome;
+  const orig = (a) => origineAzione(a, { infortuni: ctx.infortuni || [], ispezioni: ctx.ispezioni || [] }, { voce: "documento" });
+  let csv = CSV_PROSPETTO_AZIONI_INTESTAZIONE + "\n";
+  for (const a of (azioni || []).slice().sort((x, y) => (x.stato === "chiusa") - (y.stato === "chiusa")
+      || String(x.scadenza || "9999").localeCompare(String(y.scadenza || "9999"))))
+    csv += `${csvCell(a.descrizione || "")};${csvCell(nome(a.responsabileId))};${a.scadenza || ""};${statoAzione(a, oggi)};${a.stato || "aperta"};${csvCell(a.esito || "")};${a.dataChiusura || ""};${csvCell(orig(a))}\n`;
+  return csv;
+}
+
+/* IL RIEPILOGO DEI NEAR-MISS PER LA COMUNICAZIONE (05/09): la stessa storia
+   del prospetto qui sopra. Le regole del file — lo storico accanto al periodo,
+   la nota di lettura del modulo, il denominatore prima dei gradini, i luoghi
+   ciechi con la loro riga — c'erano già, sparse nella pagina; adesso stanno
+   in una funzione che `run-kpi` può chiamare. `giorni`: 0 o null = tutto lo
+   storico. Pura. */
+export function etichettaPeriodoNearMiss(giorni) {
+  const g = +giorni;
+  if (!(g > 0)) return "tutto lo storico";
+  if (g === 365) return "ultimi 12 mesi";
+  return "ultimi " + g + " giorni";
+}
+export function csvRiepilogoNearMiss(infortuni, azioni, giorni, oggi = new Date()) {
+  const r = riepilogoNearMiss(infortuni, azioni, giorni || null, oggi);
+  let csv = "sezione;voce;numero\n";
+  csv += `periodo;${csvCell(etichettaPeriodoNearMiss(giorni))};\n`;
+  csv += `totale;near-miss segnalati;${r.totale}\n`;
+  csv += `totale;near-miss nello storico (fuori periodo compresi);${r.totaleStorico}\n`;
+  csv += `totale;di cui in forma anonima;${r.anonime}\n`;
+  { const nota = descriviLetturaNearMiss(r);
+    if (nota) csv += `lettura;${csvCell(nota)};\n`; }
+  for (const t of r.perTipo) csv += `tipo;${csvCell(t.etichetta)};${t.valore}\n`;
+  for (const l of r.perLuogo) csv += `luogo;${csvCell(l.etichetta)};${l.valore}\n`;
+  // le righe «potenziale» non escono MAI da sole: prima il denominatore e la frase
+  { const rp = riepilogoPotenziale(infortuni, giorni || null, oggi);
+    csv += `potenziale;near-miss con la gravità potenziale valutata;${rp.valutati}\n`;
+    csv += `potenziale;near-miss NON valutati;${rp.nonValutati}\n`;
+    csv += `potenziale;${csvCell(descriviRischioPotenziale(rp))};\n`;
+    for (const g of rp.perLivello) csv += `potenziale;se andava male: ${csvCell(g.etichetta.toLowerCase())};${g.quanti}\n`;
+    for (const l of rp.perLuogo)
+      csv += `potenziale;${csvCell(l.etichetta)} — episodi che potevano finire con un infortunio (su ${conta(l.valutati, "valutato", "valutati")}, ${l.nonValutati} no);${l.alto}\n`;
+    for (const l of rp.luoghiCiechi)
+      csv += `potenziale;${csvCell(l.etichetta)} — nessun episodio valutato: non si sa come poteva finire;${l.eventi}\n`; }
+  csv += `azioni;near-miss con almeno un'azione correttiva;${r.conAzione}\n`;
+  csv += `azioni;near-miss ancora senza azione;${r.senzaAzione}\n`;
+  csv += `azioni;azioni correttive aperte da near-miss;${r.azioni}\n`;
+  csv += `azioni;di cui chiuse;${r.azioniChiuse}\n`;
+  return csv;
+}
+
 export function csvAzioni(azioni) {
   const righe = [CSV_AZIONI_INTESTAZIONE];
   for (const a of (azioni || []).slice()
@@ -5539,3 +6300,43 @@ export function scartiAzioniCsv(text) {
   }
   return { lette: righe.length, entrano: righe.length - persi.length, persi, vuote: 0 };
 }
+
+/* IL CALENDARIO DELLE SCADENZE (.ics), 11/09 — dalla ricerca a rotazione su
+   Scudo: gli scadenzari HSE in commercio esportano il calendario in ICS per
+   Outlook e Google Calendar; la riga «Allarmi scadenza certificazione» di
+   CONCORRENTI_SCUDO diceva «l'allarme lo deve andare a leggere qualcuno:
+   nessun invio, nessun calendario». Adesso il calendario c'è: un evento di
+   un giorno per scadenza, col lavoratore nel titolo (o «azienda» per quelle
+   senza persona), lo stato di oggi nella descrizione e DUE avvisi, a 30 e a
+   7 giorni — le stesse soglie con cui `livelloScadenza` colora la riga (gialla
+   entro 30, rossa entro 7). Una scadenza SENZA data non entra e si conta:
+   `senzaData` è la stessa regola del CSV del personale, che la scrive invece
+   di tacerla. Il testo lo compone `icsCalendario` in `shared/`. */
+export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), adesso, avvisoEsempio) {
+  const nomeDi = (id) => { const l = (lavoratori || []).find((x) => x && x.id === id); return l ? String(l.nome || "").trim() : ""; };
+  const eventi = [], senzaData = [];
+  for (const s of scadenze || []) {
+    if (!s) continue;
+    const data = String(s.dataScadenza || "").slice(0, 10);
+    const chi = nomeDi(s.lavoratoreId) || "azienda";
+    if (!dataISOEsiste(data)) { senzaData.push((s.tipo || "Scadenza") + " · " + chi); continue; }
+    const st = livelloScadenza(data, oggi);
+    eventi.push({ uid: "scudo-scadenza-" + (s.id || (data + "-" + eventi.length)), data,
+      titolo: (s.tipo || "Scadenza") + " · " + chi,
+      descrizione: [s.descrizione || "", "Oggi: " + st.label, "Da Scudo, scadenzario della sicurezza"].filter(Boolean).join("\n"),
+      preavvisiGiorni: [30, 7] });
+  }
+  // `avvisoEsempio` lo decide la pagina, che sa in che modo sta girando: nel
+  // file entra nel nome del calendario, nei titoli e nelle descrizioni,
+  // perché all'importazione il nome del file si perde (vedi `icsCalendario`)
+  const r = icsCalendario(eventi, { app: "Scudo", adesso, nome: "Scadenze sicurezza (Scudo)", esempio: avvisoEsempio });
+  // `saltati` conta TUTTO ciò che è rimasto fuori: le senza data e quelle col giorno che non esiste
+  return { ics: r.ics, inclusi: r.inclusi, saltati: r.saltati + senzaData.length, senzaData };
+}
+
+/* LE COLLEZIONI DI QUESTA APP, dichiarate una volta (11/09): le legge il bottone
+   «Scarica tutto» per comporre il file con tutti i dati, e una prova pretende
+   che l"elenco combaci con le collezioni che il modulo legge davvero
+   (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
+   confronta col codice invecchia da solo. */
+export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno"]);

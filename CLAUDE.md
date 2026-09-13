@@ -793,6 +793,20 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   chiamava «quante funzioni delle **app**» e lasciava fuori proprio il codice
   che la regola del `shared/` indica come il più pericoloso. Copertura misurata
   lì: **46 su 46**.
+- ✅ **DAL 05/09 «PREMERE OGNI BOTTONE CHE PRODUCE UN FILE E APRIRE IL FILE» SI
+  FA SENZA BROWSER, SU TUTTI I DOCUMENTI INSIEME.** Il giorno in cui ogni CSV e
+  ogni foglio stampato delle sei app è diventato una funzione pura del modulo
+  (`csv*`, `foglia*`, `rapportoGiornata`, `prospettoDenuncia`,
+  `testoConsegnaTurno`, `verbaleRilievo`, `relazioneLotto`),
+  `apps/deepwork-id/tests/documenti-dimostrazione.mjs` li compone tutti sulla
+  dimostrazione — **110 documenti, 106.000 caratteri, in due secondi** — e
+  giudica quello che si può giudicare senza aprire il file (niente
+  «undefined» / «NaN» / «null» a testo, niente «1 rilievi»), mentre le celle
+  «tranquille» (`€ 0,00`, `0%`, `0 m³`, `;0;`) le **conta e le elenca** con
+  `--dimmi` senza giudicarle: se lo zero sia misurato lo sa solo chi apre il
+  documento. È il posto in cui aggiungere una domanda nuova sui documenti che
+  escono, e la ragione per cui un documento composto nella pagina è un
+  documento che nessuno controlla.
 - Le altre suite locali (`run-demo.mjs`, `run-helpers.mjs`,
   `run-pointcloud.mjs`, `run-manifest.mjs`, `run-stile.mjs`) girano anch'esse
   con `node`.
@@ -1039,6 +1053,32 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   dichiaratore. Costo misurato prima di irrigidire, come pretende la regola qui
   sopra: **0 allarmi** su 18.656 chiamate e 12 pagine sane, **1 e quello
   giusto** col difetto rimesso.
+  ⛔ **E IL 05/09 QUELLA SECONDA DOMANDA HA LASCIATO PASSARE DUE DIFETTI VERI
+  NELLO STESSO GIORNO, PERCHÉ GUARDAVA SOLO LE CHIAMATE.** `nome(` è una forma
+  sola; un nome usato NUDO — in una scorciatoia di oggetto, come argomento,
+  come operando — non passava di lì. Sotto ci stavano: `letture` di Sentinella,
+  dichiarata DENTRO la callback di `db.trasforma` e usata FUORI in `{ ...m,
+  valore, letture }` — «Registra» scriveva la misura e poi moriva, **dall'08/08,
+  in produzione**, con nessuna striscia di conferma e nessuna prova rossa (i
+  banchi non premono quel bottone); e `per` di Scudo, rimasta nella striscia
+  dell'export dei near-miss quando la `const` locale è salita nel modulo la
+  mattina stessa, con un omonimo in un'altra funzione a rendere cieca la prima
+  domanda — il file usciva, la striscia no. Il primo l'ha preso lo **scatto**
+  (la regola «gli screenshot vanno guardati» in una veste nuova: la striscia
+  che NON c'era), il secondo il righello appena scritto.
+  ⚠️ Il costo, misurato PRIMA su una copia come pretende la riga qui sopra:
+  **74.379 riferimenti nudi su 12 pagine e 121.320 su moduli e suite, 1
+  allarme — e quello vero.** Zero rumore: la regex del riferimento nudo è
+  quella della quarta domanda, lo scandaglio delle dichiarazioni e l'ancora
+  sul blocco sono quelli della seconda; è la copia-da-firma-troppo-stretta al
+  contrario, tre pezzi già provati messi insieme. Le controprove rimettono
+  tutt'e due i difetti veri (`fuoriScopeNudi` in `nomi-liberi.mjs`).
+  ⚠️ **E la lezione oltre al caso**: un controllo che risponde «0 fuori scope»
+  su **una forma** del nome dice zero su quella forma. Quando si scrive un
+  righello sui NOMI, la domanda da farsi è *in quante forme un nome può
+  comparire nel codice?* — chiamato, riferito nudo, dentro un `${…}`,
+  importato — e ogni forma non coperta va scritta nel riepilogo come fuori
+  perimetro, non lasciata nel silenzio di uno zero.
   ⚠️ Il difetto sotto ha un fratello che vale da solo: `csv-dimostrazione`
   **ascoltava** gli errori di pagina e li leggeva **prima** di premere i
   bottoni. L'ascoltatore c'era, l'elenco si riempiva, e la domanda arrivava due
@@ -1428,6 +1468,28 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   allarmi, tutti nello stesso banco. La cura non è imparare la terza forma: è
   **non indovinare la posizione e chiedere ai dati** qual è il percorso di
   prodotto vero, così una quarta convenzione non romperebbe niente.
+  ⛔ **E IL 05/09 LA STESSA FAMIGLIA NELLA VESTE CHE `iniezioni-fresche` NON
+  POTEVA VEDERE: L'INIEZIONE È SUL BERSAGLIO, IL BANCO NON LA APPLICA.**
+  Portando quattordici file di Conti e otto di Flotta dal foglio della pagina
+  al modulo, le iniezioni che li citavano sono state riancorate con il terzo
+  elemento (`MODULO`) — e **quattro banchi su quattro** (`flotta-documenti-che-
+  escono`, `conti-documenti-che-escono`, `libretto-vuoti`, `flotta-frasi-da-
+  uno`) avevano un ciclo `for (const [da, a] of DIFETTI)` che applicava tutto
+  alla **sola pagina**. Per `iniezioni-fresche` erano fresche (il pezzo esiste
+  nel modulo), per il banco non esistevano: la controprova stampava
+  «✔ distingue» grazie alle altre, con la riga «**i 8 difetti sono stati
+  rimessi davvero → [0,1,5,7]**» rossa in mezzo, che nessuno leggeva —
+  `libretto-vuoti` è restato con la controprova a exit 3 per una unità intera,
+  e nessun giro `node` lo può vedere. Peggio: un'ancora a sei spazi è una
+  sottostringa della riga a otto del libretto, quindi «mordeva» la pagina nel
+  posto sbagliato e si contava rimessa.
+  Le tre regole che ne escono: **(1)** quando si riancora un'iniezione su un
+  altro file si guarda che il banco **applichi per file**, e la riga «N difetti
+  rimessi davvero» si legge — il «✔» in fondo non basta; **(2)** un'iniezione
+  riscritta coi nomi della pagina (`RIC`, `LAV`) dentro il modulo fa morire
+  l'export e la controprova **scende di controlli** senza dirlo (66 su 80): si
+  guarda il totale; **(3)** `iniezioni-fresche` adesso pretende che ogni banco
+  con un file dentro una tupla lo **legga** dove applica (4 su 4, misurato).
   ⛔ **E LA STESSA UNITÀ È NATA DA UN «NON C'È» FALSO, PRODOTTO DA UN CENSIMENTO
   CHE CERCAVA UN NOME SOLO.** Cercando i punti d'uscita di Scudo ho grepato
   `__usciti` in `scudo-documenti.mjs`, trovato **zero**, e concluso «Scudo non ha
@@ -2421,6 +2483,49 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   due uscite giuste: o il dato va in un posto suo (la sezione che lo riguarda,
   o un `form-hint` sotto la riga, che è la forma che Terra usa già nei lotti),
   o non ci va. Si vede solo nello **scatto**.
+- ⛔ **`elementFromPoint` NON VEDE CHI HA `pointer-events:none`, E QUINDI NON DICE
+  CHI SI DIPINGE SOPRA.** Misurato il 10/09 sulla vetrina: il nastro dei nomi
+  delle app stava da diciassette giorni SOTTO la foto della sezione seguente
+  (`.fondale` assoluto con `inset:-12% 0` e `z-index:0`, che sale sopra un
+  nastro statico), lo scatto mostrava solo la gru — e `elementFromPoint` al
+  centro del nome rispondeva **il nome**, perché il fondale è `pointer-events:
+  none` e l'hit-test lo salta. La domanda «chi si dipinge sopra?» si fa
+  rendendo cliccabile il sospettato **per il solo hit-test** (`style.
+  pointerEvents='auto'`, misura, ripristino): allora rispondeva `span.velo`. E
+  nessun banco lo vedeva: `contrasto` misura il testo contro il fondo che
+  **risale gli antenati**, non contro ciò che un vicino dipinge sopra. Lo
+  scatto l'ha detto per primo, la misura l'ha deciso.
+  ⚠️ Stessa giornata, righello gemello: un elemento `display:none` ha un
+  rettangolo **0×0 che «sta nello schermo»** — il conto dei nomi visibili
+  diceva 18 su 18 coi nove nascosti. Si contano i rettangoli **con larghezza**,
+  non le coordinate.
+- ⛔ **IL ROSSO CRONICO DI UN BANCO NASCONDE IL ROSSO NUOVO — e vale per i banchi
+  quanto per la CI.** Misurato il 10/09: `fuori-schermo.mjs` intero usciva 1 da
+  settimane per i 27 nomi del nastro della vetrina (un ticker, non comandi);
+  sotto quei 27 ce n'erano **4 di Conti** — il cestino «Elimina fattura»
+  fuori dallo schermo a 320 px su tre fatture — che nessuno vedeva perché il
+  banco era rosso comunque. Chiusi tutt'e due (il nastro dichiarato
+  decorativo con `aria-hidden` e CONTATO dal banco; `max-width:100%` sulla
+  riga delle azioni di Conti), il banco esce 0 su 14 superfici × 3 larghezze.
+  Un banco che è rosso «si sa perché» va chiuso o dichiarato **per nome**,
+  se no smette di essere un banco.
+- ⛔ **UNA PASSATA PER APP TROVA I DIFETTI DI TUTTE, perché stanno nel motore e
+  nel foglio CONDIVISI.** Il 10/09, sei app e il core a 320 e 430 px, circa
+  130 fette guardate una per una: i difetti veri erano le tacche dell'asse
+  che si toccavano, le etichette di categoria mute («31… 03…»), il numero
+  sopra le barre doppio («100%100%»), l'etichetta `.fl` nuda fuori dalle
+  modali, `--info-basis` troppo stretto — tutti in `shared/`, tutti visti in
+  un'app e curati in sei. Il core, che quelle regole le definisce, era pulito.
+  Il metodo che regge: fette da 1400 px con `clip` (niente PIL nel
+  contenitore), lette TUTTE; per ogni sospetto una sonda che misura (`.fl` con
+  `getComputedStyle`, le tacche con `getBoundingClientRect`); l'arretrato
+  DICHIARATO dei banchi (`fuori-schermo`, `contrasto`) letto quando si passa
+  sull'app — «22 righe» di Sentinella era una variabile sola.
+  ⚠️ E il contenitore può **riavviarsi a metà ciclo** (successo alle 18:45Z):
+  torna un clone di `main` col nome del ramo di sessione, e lo scratchpad
+  sparisce con tutto quello che non era committato. Le sonde che servono
+  domani vivono in `tests/browser/`, non nello scratchpad — è la regola già
+  scritta sopra, pagata di nuovo.
 - Quando si misura qualcosa nel browser, due trappole già pestate:
   `document.elementFromPoint` vive nel **viewport** (un elemento sotto la piega
   risponde `null` e sembra irraggiungibile: va portato in vista), e «questo
@@ -2484,7 +2589,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
       cd apps/deepwork-id && npx --yes firebase-tools@13 emulators:exec \
         --only firestore --project demo-deepwork "cd tests && node run.mjs"
 
-  **75 prove, tutte verdi**, in pochi minuti. E con `--only firestore,auth`
+  **91 prove, tutte verdi** (75 al 13/08, 91 dal 05/09 con i dieci dei ponti come dati), in pochi minuti. E con `--only firestore,auth`
   girano anche `run-sdk.mjs` (**19**) e `run-bootstrap.mjs` (**8**).
   ⛔ **E IL 13/08 QUESTA STESSA RIGA HA SBAGLIATO PER LA TERZA VOLTA, SEMPRE
   NELLA DIREZIONE CHE FA RINUNCIARE.** Diceva `firebase emulators:exec …`, e in
@@ -2503,7 +2608,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
   un comando che non parte è *«manca la cosa, o manca il modo di chiamarla?»* —
   e costa un `which`.
   ⚠️ E il **denominatore** di questa riga, perché non se ne prenda una parte per
-  il tutto: rimisurato il 13/08 in un contenitore fresco, regole **75/0**, SDK
+  il tutto: rimisurato il 13/08 in un contenitore fresco, regole **75/0** (91/0 al 05/09), SDK
   **19/0**, primo avvio **8/0**.
   ⛔ **E LA RIGA CHE STAVA QUI ERA FALSA DA CINQUE GIORNI, NELLA STESSA
   DIREZIONE.** Diceva: *«quello che NON gira qui è l'emulatore delle FUNZIONI, e
@@ -2520,7 +2625,7 @@ Perché serva davvero e non produca elenchi generici, cinque vincoli:
         "cd tests && node run-fns.mjs"
 
   ⚠️ **Quindi il conto vero di ciò che si verifica in casa è 123**, non 102:
-  regole **75**, SDK **19**, primo avvio **8**, funzioni **21** — e fra quelle 21
+  regole **75** (91 dal 05/09), SDK **19**, primo avvio **8**, funzioni **21** — e fra quelle 21
   ci sono le difese che contano di più (un'email non verificata non riscatta
   inviti, un utente anonimo non crea un'organizzazione). Per cinque giorni
   quelle prove sono state considerate «solo CI» **per una cartella vuota**.

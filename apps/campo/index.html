@@ -626,6 +626,9 @@ button.arr.del:hover{
    guanti. La risposta scelta si accende — colore E parola, mai il solo
    colore. Sotto i 400 px la terna va a capo e prende tutta la riga. */
 .chk-row{display:flex; gap:6px; flex-wrap:wrap; flex:1 1 250px; justify-content:flex-end}
+/* la risposta sotto una voce non a posto (11/09): badge e bottone sulla
+   stessa riga, a capo quando lo schermo è stretto */
+.chk-azione{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px}
 .chk-row .chg{flex:1 1 76px; padding:7px 8px; letter-spacing:.8px}
 .chk-row .chg.active.si{
   background:var(--success); border-color:var(--success); color:var(--on-ok);
@@ -1021,11 +1024,29 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   <div class="sec">Checklist di inizio turno</div>
   <div id="chk-board"></div>
   <div id="chk-list"></div>
+  <div class="form col" id="chk-firma" style="display:none;">
+    <label class="fl" for="chk-chiusa-da">Controlli fatti da</label>
+    <input class="dw-input" id="chk-chiusa-da" placeholder="Nome di chi ha fatto i controlli" autocomplete="off">
+    <div class="form-hint" id="chk-chiusa-hint"></div>
+  </div>
   <div class="tools" id="chk-tools" style="display:none;">
     <button class="dw-btn" id="btn-chk-salva"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Chiudi la checklist</button>
     <button class="dw-btn secondary" id="btn-chk-ok"><svg viewBox="0 0 24 24"><path d="M4.5 12.6l5 5 10-10.6"/></svg>Tutto a posto</button>
   </div>
   <div class="note esito" id="chk-esito"></div>
+
+  <div class="sec">Briefing di inizio turno</div>
+  <div id="bri-board"></div>
+  <div class="form col" id="bri-form" style="display:none;">
+    <input class="dw-input" id="bri-argomento" placeholder="Argomento del giorno (es. volata delle 12:30: sgombero e segnali)" maxlength="160">
+    <div class="frow">
+      <select class="dw-input" id="bri-chi" style="flex:1 1 180px;" aria-label="Chi ha tenuto il briefing"></select>
+      <input class="dw-input" id="bri-note" placeholder="Note (facoltative)" style="flex:2 1 200px;">
+      <button class="dw-btn" id="btn-bri">Registra il briefing</button>
+    </div>
+    <div class="form-hint">Un argomento solo, quello del lavoro di oggi. <b>Chi c'era</b> lo dice l'appello qui sotto: non si scrive due volte. Registrando il briefing, la voce «Briefing di inizio turno fatto» della checklist si spunta da sola se non l'hai ancora toccata.</div>
+  </div>
+  <div class="note esito" id="bri-esito"></div>
 
   <div class="sec">Chi c'è oggi<span class="cnt" id="pre-count">—</span></div>
   <div id="pre-board"></div>
@@ -1125,6 +1146,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     </div>
     <div class="form-hint">La produzione è facoltativa, ma se la registri il turno entra nel totale di giornata (tonnellate e metri cubi restano separati).</div>
   </div>
+  <div class="note" id="turno-volate"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-consegna"><svg viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/><path d="M8.8 13h6.4M8.8 16.6h4.4"/></svg>Consegna di turno (testo)</button>
     <button class="dw-btn secondary" id="btn-rapporto-turno"><svg viewBox="0 0 24 24"><path d="M7 9.2V3.8h10v5.4"/><rect x="4" y="9.2" width="16" height="7.2" rx="1.8"/><path d="M7 14.4h10v5.8H7z"/></svg>Rapporto di fine turno</button>
@@ -1161,6 +1183,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   </div>
   <div class="form-hint" style="margin-top:8px;">Il file da importare è quello esportato dalla <b>Scheda volata di Genesi</b>: colonne <b>foro; x; fila; prof; prog; borr; rit</b>.<br>
     Quando hai finito di caricare, <b>Esporta consuntivo</b> e rileggilo in <b>Genesi → Riconciliazione</b>: la carica reale foro per foro torna da dove è partito il progetto.</div>
+  <!-- i piani scritti da Genesi nell'organizzazione (o nella chiave del browser,
+       sullo stesso computer): si caricano da qui, senza file (05/09, notte) -->
+  <div id="piano-genesi"></div>
   <div id="piano-riep" class="note recap"></div>
   <div id="piano-graf"></div>
   <div id="piano-list"></div>
@@ -1211,16 +1236,17 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
 
 <script type="module">
-  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
+  import { campoData, kpiFrom, parsePianoCsv, scartiPianoCsv, mappaPianoCsv, foriRipetuti, pianoCsvGenesi, pianiGenesiOrdinati, parseSquadreCsv, scartiSquadreCsv, csvSquadre, percorsiDi, scartoPct, scartoLivello, pianoRiepilogo, CAUSALI_FERMO, chiaveCausale, etichettaCausale, descriviCausale, riepilogoFermi, paretoFermi, fermiPerGiorno, mediaFermiAlGiorno, fermiSenzaGiorno, riassuntoRapportino, avanzamentoGiornata, coperturaRapportini,
            oggiISO, TURNI, turnoCorrente, diGiorno, senzaData, UNITA_PRODUZIONE, totaliProduzione, formattaProduzione, normalizzaPiano,
            squadraBase, RUOLI, operatoriDi, etichettaAssegnazione, eMia, caricoSquadre,
            idoneitaDiTurno, idoneitaOperatore, inTurnoOggi,
            UNITA_ATTIVITA, obiettivoDi, statoObiettivo,
            storicoSettimana, totaliSettimana, unitaPrevalente, zeriDelGrafico, registrazioniSenzaGiorno, csvStorico,
            csvAttivita, csvAppello, descriviChecklist,
-           senzaGiornoDiLavoro, avvisoSenzaGiorno,
+           senzaGiornoDiLavoro, avvisoSenzaGiorno, righeVolateDelGiorno, riassuntoVolateDelGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
+           vociChecklist, meteoChiedeRicontrollo, INDICE_RICONTROLLO, sorveglianteDiTurno,
            STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
            minutiOrario, orariPresenza, testoOrari, orariProposti, orariDiTurno,
            RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
@@ -1228,10 +1254,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            FOTO_MAX_BYTE, FOTO_TENTATIVI, eImmagine, byteFoto, eFotoValida, misuraRidotta, formattaByte,
            METEO_CIELO, METEO_PISTE, METEO_VISIBILITA, meteoDi, riassuntoMeteo, meteoAvverso, statoMeteo,
            durataTurnoDi, ultimaDurataTurno, disponibilitaTurno, oreMinuti, minutiFermoTesto,
-           anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni,
+           anomalieAperte, azioniDelFermo, statoRisposta, bozzaAzioneFermo, fermiEAzioni, bozzaAzioneChecklist, vociNonAPosto,
+           briefingDi, presentiAlBriefing, riassuntoBriefing, INDICE_BRIEFING,
            coperturaFermi, dataPiuGiorni,
            NEARMISS_CATEGORIE, NEARMISS_LUOGHI, bozzaNearMiss,
-           segnalazioniDelTurno, testoSegnalazioniTurno, categorieGiaSegnalate,
+           segnalazioniDelTurno, lavoriNonConclusi, testoConsegnaTurno, rapportoGiornata, fraseNonRiconosciute as fraseNonRiconosciuteTesto, testoSegnalazioniTurno, categorieGiaSegnalate,
            pianoParziale, frasiCaricoParziale, pianoConsuntivoCsv,
            numeroIt, segnoIt, numeroItDa, numeroDaCampo } from "./campo-data.js";
   import { misuratoPeriodo, produzioneDichiarata, riconciliazioneTurni,
@@ -1328,6 +1355,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // mangiano la giornata». I minuti sono l'unica grandezza sull'asse: il
   // numero di fermi resta un'etichetta nella riga di spiegazione, mai una
   // seconda scala.
+  /* ⛔ I FERMI CHE STANNO IN «ALTRO» SENZA CHE QUALCUNO L'ABBIA SCELTO. Una
+     causale che l'elenco non conosce — un testo libero, o una voce che è
+     stata rinominata — finisce nella categoria residua del Pareto; qui si
+     dice quanti sono e con quali parole, se no il Pareto scende in silenzio.
+     `html` decide se le parole vanno in grassetto (schermo) o nude (testo). */
+  /* la frase è salita nel modulo (05/09): qui resta la veste dello schermo,
+     con le parole in grassetto */
+  const fraseNonRiconosciute = (pf, html) => fraseNonRiconosciuteTesto(pf, html, (t) => "<b>" + esc(t) + "</b>");
   function grafFermi(pf, tuttiIGiorni) {
     const el = svuotaGraf("fermi-pareto"); if (!el) return;
     const quando = tuttiIGiorni ? "in tutti i giorni" : "oggi";
@@ -1368,7 +1403,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? " " + (pf.voci.filter(v => !v.minuti).length === 1
                 ? "Una causale è a zero perché i suoi minuti non sono stati scritti"
                 : pf.voci.filter(v => !v.minuti).length + " causali sono a zero perché i loro minuti non sono stati scritti")
-              + ", non perché quei fermi non siano costati tempo." : ""),
+              + ", non perché quei fermi non siano costati tempo." : "")
+        + (pf.nonRiconosciute
+            ? " Inoltre " + fraseNonRiconosciute(pf, false).trim() + "."
+            : ""),
       // anche l'aria si declina: chi legge con lo screen reader sente la frase
       // per intero, e «1 minuti» lì suona come a schermo
       aria: "Minuti di fermo per causale " + quando + ": "
@@ -1507,7 +1545,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     });
   }
 
+  import { montaScaricaTutto } from "../../shared/deepwork-id-client/dw-shell.js";
+  import { CAMPO_COLLEZIONI } from "./campo-data.js";
   const db = await campoData();
+  // «Scarica tutto» (11/09): tutte le collezioni dell'app in un JSON, la copia che tiene il cliente
+  montaScaricaTutto({ app: "campo", elenco: CAMPO_COLLEZIONI, leggi: (nome) => db[nome](), contenitore: "page-dash", organizzazione: db.orgId || null });
   /* ⛔ DECISIONE 5a (07/08, presa dal ciclo): se un salvataggio non riesce,
      chi ha premuto Salva lo deve SAPERE — con parole sue, mai un codice
      d'errore. La misura che l'ha resa urgente: nelle sei app 109 punti
@@ -1522,9 +1564,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").textContent = db.mode === "live" ? "Dati reali della tua organizzazione." : "Dati di esempio ("+db.mode+"): le modifiche non vengono salvate.";
 
-  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[];
+  let ATT=[], SQU=[], RAP=[], OPER=[], OBIE=[], CHK=[], PRE=[], CHI=[], MET=[], DUR=[], BRI=[];
   // i documenti del personale letti da Scudo (ponte P3): `null` = non lo sappiamo
-  let LAV_HSE = null, SCAD_HSE = null;
+  let LAV_HSE = null, SCAD_HSE = null, NOM_HSE = null;
+  let VOL_SENT = null;   // le volate del registro di Sentinella (ponte P6): null = non lo so
   // le azioni correttive lette da Scudo (ponte P4): `null` = non lo sappiamo,
   // che NON è «non ce n'è nessuna» — su questa sezione è la differenza fra
   // «nessuno ha fatto niente» e «non siamo riusciti a chiederlo»
@@ -1887,7 +1930,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // — «ripartito» — che a colpo d'occhio non si distinguerebbe.
       const meta = [
         v.chiuso ? "Fermo ripartito" : "",
-        v.causale || "causale non indicata",
+        v.causale ? v.causale + (v.causaleInElenco === false ? " (non in elenco)" : "") : "causale non indicata",
         v.minutiTesto,
         v.turno ? "turno " + v.turno : "",
         v.data ? dmy(v.data) : "senza data",
@@ -1933,35 +1976,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     const bozza = bozzaAzioneFermo(v, { scadenza: dataPiuGiorni(30), fmtData: dmy });
     if (!bozza) return;
-    const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
-    const opzResp = '<option value="">— responsabile da assegnare —</option>'
-      + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
-    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
-      + (!v.causale || v.minuti === null
-          ? `<div class="note avviso"><b>Quello che manca lo legge anche chi riceve l'azione:</b> `
-            + [!v.causale ? "la causale del fermo non è indicata" : "", v.minuti === null ? "i minuti persi non sono stati scritti" : ""]
-                .filter(Boolean).join(" e ")
-            + `. Si può aprire lo stesso, ma completarlo sull'attività qui sopra vale più di qualunque testo.</div>`
-          : "")
-      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
-      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
-      + '<label class="fl" for="pon-scad">Entro quando</label>'
-      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
-      + (lav.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
-          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
-      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
-      + 'da lì entra nello scadenzario e nel semaforo, e si chiude quando la causa del fermo è stata tolta.</div>';
-    const scelta = await new Promise(res => {
-      apriModale("Apri l'azione correttiva", corpo, [
-        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
-        { label: "Apri in Scudo", cls: "primary", azione: () => {
-            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
-            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
-              responsabileId: (r && r.value) || null };
-            chiudiModale(); res(val);
-          } },
-      ]);
-    });
+    const scelta = await chiediAzione(bozza, "quando la causa del fermo è stata tolta",
+      !v.causale || v.minuti === null
+        ? `<div class="note avviso"><b>Quello che manca lo legge anche chi riceve l'azione:</b> `
+          + [!v.causale ? "la causale del fermo non è indicata" : "", v.minuti === null ? "i minuti persi non sono stati scritti" : ""]
+              .filter(Boolean).join(" e ")
+          + `. Si può aprire lo stesso, ma completarlo sull'attività qui sopra vale più di qualunque testo.</div>`
+        : "");
     if (!scelta) return;
     if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
       esito("pon-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err");
@@ -1978,6 +1999,36 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     esito("pon-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + dmy(scelta.scadenza)
       + ". È collegata a questo fermo e da adesso compare nello scadenzario di Scudo.", "success");
   }
+  /* LA MODALE DELL'AZIONE, SCRITTA UNA VOLTA (11/09): la usano il fermo e la
+     voce non a posto della checklist. Restituisce {descrizione, scadenza,
+     responsabileId} o null se si annulla. `chiusura` è la frase «si chiude
+     quando…» dell'origine; `avviso` è l'eventuale riquadro su ciò che manca. */
+  async function chiediAzione(bozza, chiusura, avviso) {
+    const lav = (LAV_HSE || []).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
+    const opzResp = '<option value="">— da assegnare —</option>'
+      + lav.map(l => `<option value="${esc(l.id)}">${esc(l.nome)}</option>`).join("");
+    const corpo = `<div class="note" style="margin-top:0;"><b>Origine, già scritta nell'azione:</b><br>${esc(bozza.origineNota)}</div>`
+      + (avviso || "")
+      + '<label class="fl" for="pon-desc">Cosa si deve fare</label>'
+      + `<textarea class="dw-input" id="pon-desc" rows="3">${esc(bozza.descrizione)}</textarea>`
+      + '<label class="fl" for="pon-scad">Entro quando</label>'
+      + `<input class="dw-input" id="pon-scad" type="date" value="${esc(bozza.scadenza)}">`
+      + (lav.length ? '<label class="fl" for="pon-resp">Chi la fa</label>'
+          + `<select class="dw-input" id="pon-resp">${opzResp}</select>` : "")
+      + '<div class="note" style="margin-bottom:0;">L\'azione nasce in <b>Scudo</b>, nell\'elenco delle azioni correttive: '
+      + 'da lì entra nello scadenzario e nel semaforo, e si chiude ' + esc(chiusura) + '.</div>';
+    return await new Promise(res => {
+      apriModale("Apri l'azione correttiva", corpo, [
+        { label: "Annulla", azione: () => { chiudiModale(); res(null); } },
+        { label: "Apri in Scudo", cls: "primary", azione: () => {
+            const d = $("pon-desc"), s = $("pon-scad"), r = $("pon-resp");
+            const val = { descrizione: (d && d.value || "").trim(), scadenza: (s && s.value) || "",
+              responsabileId: (r && r.value) || null };
+            chiudiModale(); res(val);
+          } },
+      ]);
+    });
+  }
 
   document.addEventListener("click", async (e) => {
     const b = e.target.closest && e.target.closest("[data-pon-nuova]");
@@ -1987,20 +2038,29 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
 
   async function refresh(){
-    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
-      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate()]);
+    [ATT,SQU,RAP,OPER,OBIE,CHK,PRE,CHI,MET,DUR,BRI] = await Promise.all([db.attivita(), db.squadre(), db.rapportini(),
+      db.operatori(), db.obiettivi(), db.checklist(), db.presenze(), db.chiusure(), db.meteo(), db.durate(), db.briefing()]);
     // PONTE P3 · i documenti del personale, in sola lettura da Scudo. `null` vuol
     // dire «non lo so» — Scudo non c'è o non è leggibile — ed è diverso da «non
     // c'è nessun documento scaduto». La schermata deve dire quale dei due.
     // PONTE P4 · le azioni correttive nate dai fermi, in lettura da Scudo.
     // Stessa convenzione: `null` = non lo so.
     // PONTE P5 · il registro dei near-miss, in lettura. Stessa convenzione.
-    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE] = await Promise.all([
+    // PONTE P6 · le volate del giorno, in lettura da Sentinella. Stessa
+    // convenzione: `null` = non lo so.
+    [LAV_HSE, SCAD_HSE, AZI_HSE, INF_HSE, VOL_SENT, NOM_HSE] = await Promise.all([
       db.lavoratoriScudo ? db.lavoratoriScudo() : null,
       db.scadenzeScudo ? db.scadenzeScudo() : null,
       db.azioniScudo ? db.azioniScudo().catch(() => null) : null,
       db.infortuniScudo ? db.infortuniScudo().catch(() => null) : null,
+      db.volateSentinella ? db.volateSentinella().catch(() => null) : null,
+      // le nomine di Scudo: chi è il sorvegliante di turno (11/09). `null` = non lo so.
+      db.nomineScudo ? db.nomineScudo().catch(() => null) : null,
     ]);
+    /* le volate di oggi, sullo schermo con le stesse parole del foglio:
+       `righeVolateDelGiorno` decide la frase in un posto solo */
+    { const tv = $("turno-volate"); if (tv) tv.innerHTML = "<b>Volate di oggi</b> (registro di Sentinella): "
+        + righeVolateDelGiorno(riassuntoVolateDelGiorno(VOL_SENT, OGGI)).map(esc).join("<br>"); }
     // Il giorno di lavoro è la chiave di tutto: i KPI del quadro contano SEMPRE
     // e solo le registrazioni di oggi (prima "Rapportini oggi" sommava tutti i
     // rapportini mai inviati), mentre le liste seguono il selettore "Giorno".
@@ -2011,10 +2071,20 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     ATT_G = tuttiAtt ? ATT : diGiorno(ATT, gAtt); RAP_G = tuttiRap ? RAP : diGiorno(RAP, gRap);
     const k = kpiFrom(ATT_OGGI,SQU,RAP_OGGI);
     const kn = document.querySelectorAll(".kpis .kpi .n");
+    // ⛔ «0 anomalie aperte» su una giornata in cui NESSUNA attività è stata
+    // registrata non è uno zero vero: è «non c'è niente da cui contarle». Il
+    // foglio di fine turno lo decide già così («— anomalie: nessuna attività
+    // registrata oggi», 06/08) e il cartellone dell'avanzamento sparisce; le
+    // due tessere restavano le sole a dire «0» in rosso e in verde, cioè il
+    // numero tranquillo dove non è stato misurato niente (misurato il 03/09
+    // svuotando `attivita` nella risposta HTTP del modulo). Lo zero VERO — ho
+    // guardato e non ce n'è — resta «0»: è quello che si scrive quando oggi ha
+    // delle attività e nessuna è in corso o in anomalia.
+    const nienteAtt = ATT_OGGI.length === 0;
     if (kn[0]) kn[0].textContent = k.squadreAttive;
-    if (kn[1]) kn[1].textContent = k.inCorso;
+    if (kn[1]) kn[1].textContent = nienteAtt ? "—" : k.inCorso;
     if (kn[2]) kn[2].textContent = k.rapportiniOggi;
-    if (kn[3]) kn[3].textContent = k.anomalie;
+    if (kn[3]) kn[3].textContent = nienteAtt ? "—" : k.anomalie;
 
     // ── PONTE P3 NEL QUADRO ───────────────────────────────────────────────
     // La risposta «chi è in turno è in regola?» viveva solo dentro la sezione
@@ -2067,8 +2137,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <div class="avatar">${esc(sig(a.titolo))}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([etichettaAssegnazione(a) || "da assegnare", a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div></div>
       <span class="badge ${AB[a.stato][0]}">${a.stato==="anomalia"?I.allarme:""}${AB[a.stato][1]}</span><span class="arr deco">${I.chevron}</span></div>`).join("")
-      || vuoto(I.picco, "Giornata tranquilla",
-          "Non c'è nessuna attività aperta oggi. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.");
+      // «Giornata tranquilla» è un verdetto, e lo si può dare solo se oggi ha
+      // delle attività e sono tutte concluse. Se non ne è registrata nessuna
+      // non si sa com'è andata: il titolo dice quello, non «tranquilla».
+      || (ATT_OGGI.length
+        ? vuoto(I.picco, "Giornata tranquilla",
+            "Le attività di oggi sono tutte concluse. Ne serve un'altra? Aprila da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno.")
+        : vuoto(I.picco, "Nessuna attività registrata oggi",
+            "Per oggi non è scritto niente, quindi non si sa com'è andata in cava: non vuol dire che sia tutto tranquillo. Aprine una da <b>Attività → Nuova attività</b>: bastano titolo, giorno e turno."));
 
     const ordAtt = { anomalia: 0, "in-corso": 1, pianificata: 2, conclusa: 3 };
     const attCmp = (a, b) => ordAttSel === "titolo"
@@ -2080,7 +2156,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
                         : a.stato === filtroAtt)
                       .filter(a => !qAtt || ((a.titolo || "") + " " + (a.dettaglio || "")).toLowerCase().includes(qAtt))
                       .sort(attCmp);
-    const optCausali = (sel) => CAUSALI_FERMO.map(c => `<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
+    // ⛔ la tendina salva la CHIAVE e mostra l'ETICHETTA; il valore salvato può
+    // essere una chiave o un'etichetta vecchia, e `chiaveCausale` le riconosce
+    // tutt'e due. Un testo che l'elenco non conosce («Nebbia») NON si nasconde
+    // dietro «Causale…» come se nessuno l'avesse compilata: resta a schermo,
+    // segnato «non in elenco», finché qualcuno non sceglie una voce vera.
+    const optCausali = (sel) => { const k = chiaveCausale(sel), fuori = !k && String(sel || "").trim();
+      return CAUSALI_FERMO.map(c => `<option value="${esc(c.chiave)}"${c.chiave===k?" selected":""}>${esc(c.etichetta)}</option>`).join("")
+        + (fuori ? `<option value="${esc(sel)}" selected>${esc(descriviCausale(sel))} (non in elenco)</option>` : ""); };
     $("att-list").innerHTML = attVis.map(a => { const bloc = eChiuso(a.data, a.turno);
       return `<div class="item ${AS[a.stato]||""}" data-att="${a.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: questa attività non si può più cambiare" : "Tocca per far avanzare lo stato"}">
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc([a.dettaglio, a.turno, etData(a)].filter(Boolean).join(" · "))}</div>
@@ -2139,6 +2222,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           + ` su <b>${fermi.length}</b> ${fermi.length === 1 ? "causale" : "causali diverse"}`
           + (anom ? ` · <b>${anom}</b> ${anom === 1 ? "attività ancora aperta" : "attività ancora aperte"} in anomalia`
                   : " · nessuna attività ancora in anomalia")
+          + fraseNonRiconosciute(paretoFermi(ATT_G), true)
         : ""; }
     // PONTE P4 · «e poi?»: a quali fermi è già stata data una risposta.
     renderPonteFermi();
@@ -2184,9 +2268,22 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     $("rap-count").textContent = RAP_G.length;
     $("rap-list").innerHTML = RAP_G.map(r => { const rias = riassuntoRapportino(r), quando = etData(r);
       const bloc = eChiuso(r.data, r.turno);
+      /* ⛔ LA PRODUZIONE NON STA IN FONDO ALLA `.meta`, che è tagliata a due
+         righe: a 320 px la riga «senza data · Turno Mattina · Squadra B ·
+         Produzione: 2.300 t · 13:00» finiva a «Produzione:» e il numero — il
+         solo fatto per cui un rapportino esiste — spariva (misurato il 03/09
+         col Range sui nodi di testo). Stessa cura delle squadre e delle
+         persone: il dato che conta sta in una `.nota-riga` sua, fuori dal
+         taglio. Il riassunto in una riga sola (`riassuntoRapportino`) resta
+         quello della consegna di turno, dove nessuno taglia niente. */
+      const p = produzioneDi(r);
+      const prodTesto = p ? formattaProduzione(p.qta, p.unita) : (r.produzione ? String(r.produzione) : "");
+      const notaRap = [prodTesto ? "Produzione: <b>" + esc(prodTesto) + "</b>" : "", r.note ? "Consegne: " + esc(r.note) : ""].filter(Boolean).join(" · ");
+      const metaRap = [quando, r.turno ? "Turno " + r.turno : "", r.squadra || "", r.ora || ""].filter(Boolean).map(esc).join(" · ") || "—";
       return `<div class="item ${r.stato==="bozza"?"st-warn":"st-ok"}" data-rap="${r.id}" role="button" tabindex="0" style="cursor:pointer" title="${bloc ? "Turno chiuso: il rapportino non si può più cambiare" : (r.stato==="bozza" ? "Tocca per inviare il rapportino" : "Tocca per richiamarlo in bozza")}">
       <div class="avatar sup">${I.foglio}</div>
-      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${quando?esc(quando)+" · ":""}${rias ? esc(rias) : esc(r.squadra||"—")}${r.ora?" · "+esc(r.ora):""}</div>
+      <div class="info"><div class="name">${esc(r.titolo)}</div><div class="meta">${metaRap}</div>
+        ${notaRap ? `<div class="nota-riga">${notaRap}</div>` : ""}
         ${bloc ? `<div class="chi-riga">${pillolaChiuso(r.data, r.turno)}</div>` : ""}</div>
       <span class="badge ${RB[r.stato][0]}">${RB[r.stato][1]}</span>${r.stato==="bozza"&&!bloc?`<button type="button" class="arr del" title="Elimina questa bozza" aria-label="Elimina la bozza ${esc(r.titolo)}" data-del-rap="${r.id}">${I.croce}</button>`:""}</div>`; }).join("")
       || vuoto(I.foglio, tuttiRap ? "Nessun rapportino" : "Nessun rapportino oggi",
@@ -2194,7 +2291,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
     $("new-rap-squadra").innerHTML = SQU.map(q => `<option>${esc(squadraBase(q.nome))}</option>`).join("");
     // C3 · Checklist di inizio turno, appello e storico della settimana.
-    renderChecklist();
+    renderChecklist(); renderBriefing();
     renderPresenze();
     renderMeteo();
     renderChiusura();
@@ -2332,7 +2429,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // veri — è la stessa lezione del ponte con Terra, dove il rischio era che i
   // turni scrivessero numeri prudenti invece di numeri veri.
   const dmyBreve = (iso) => dmy(iso).slice(0, 5);
-  function notaHSE(r) {
+  function notaScadenzeHSE(r) {
     // ⚠️ NIENTE PARTICIPI CONCORDATI col tipo di documento: il genere in italiano
     // non si deduce dalla parola, e «Corso scaduta» è quello che usciva. I tipi
     // sono liberi (li scrive l'utente in Scudo), quindi non si può nemmeno
@@ -2363,6 +2460,21 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (r.stato === "non-collegato") return "non collegato al personale di Scudo";
     return "";
   }
+  /* IL GIUDIZIO DEL MEDICO NELLA RIGA (05/09): «NON idoneo» sta davanti a
+     tutto — coi documenti in corso, prima, questa persona usciva «In forza»
+     senza una parola — e «con prescrizioni» si aggiunge a qualunque stato, col
+     testo se Scudo lo ha e «testo non registrato» se no: una prescrizione che
+     non si legge è una prescrizione che non si rispetta. */
+  function notaHSE(r) {
+    const base = notaScadenzeHSE(r);
+    if (r.giudizio === "non-idoneo")
+      return "<b>NON idoneo</b> secondo il giudizio del medico competente registrato in Scudo: non va mandato in cava finché il giudizio non cambia"
+        + (r.prescrizioni ? " (" + esc(r.prescrizioni) + ")" : "") + (base ? " · " + base : "");
+    if (r.giudizio === "prescrizioni")
+      return (base ? base + " · " : "") + "idoneo <b>con prescrizioni</b> del medico"
+        + (r.prescrizioni ? ": " + esc(r.prescrizioni) : " (testo non registrato in Scudo)");
+    return base;
+  }
   // IL COLORE NON DEVE DIRE QUELLO CHE IL TESTO NON DICE. Le prime versioni
   // coloravano di verde («st-ok», il valore di ripiego della riga) anche chi non è
   // collegato a Scudo: verde vuol dire «a posto», e su una persona di cui non
@@ -2381,7 +2493,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     return ` Di ${tot === 1 ? "una persona" : tot + " persone"} non lo sappiamo: ${pezzi.join(", e ")}.`;
   }
   const CLASSE_HSE = {
-    scaduta: "st-danger", "in-scadenza": "st-warn",
+    scaduta: "st-danger", "in-scadenza": "st-warn", "non-idoneo": "st-danger",
     "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
   };
 
@@ -2444,8 +2556,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const perId = {};
     if (hse) hse.righe.forEach(r => { perId[r.operatore.id] = r; });
     $("ope-hse").innerHTML = !hse || !righe.length ? ""
-      : hse.scadute || hse.inScadenza
-        ? `<div class="note ${hse.scadute ? "avviso" : "recap"}">`
+      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni
+        ? `<div class="note ${hse.scadute || hse.nonIdonei ? "avviso" : "recap"}">`
+          /* il giudizio del medico prima dei documenti (05/09): è la cosa che
+             decide se una persona può scendere in cava oggi */
+          + (hse.nonIdonei
+              ? `<b>${hse.nonIdonei} ${hse.nonIdonei === 1 ? "persona NON è idonea" : "persone NON sono idonee"}</b> secondo il medico competente (Scudo): ${hse.nonIdonei === 1 ? "non va mandata" : "non vanno mandate"} in cava finché il giudizio non cambia. `
+              : "")
+          + (hse.conPrescrizioni ? `${hse.conPrescrizioni} ${hse.conPrescrizioni === 1 ? "ha prescrizioni" : "hanno prescrizioni"} del medico da rispettare: sono scritte sulla riga. ` : "")
           + (hse.scadute
               ? `<b>${hse.scadute} ${hse.scadute === 1 ? "persona ha un documento scaduto" : "persone hanno un documento scaduto"}</b> fra chi è in elenco. `
               : "")
@@ -2465,7 +2583,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <div class="avatar${giu ? " mute" : ""}">${esc((o.nome || "?").split(/\s+/).map(p => p[0] || "").join("").slice(0, 2).toUpperCase())}</div>
       <div class="info"><div class="name">${esc(o.nome)}</div><div class="meta">${esc(o.ruolo || "ruolo non indicato")} · ${esc(squadraBase(o.squadra) || "senza squadra")}${carico ? " · " + carico + " in carico oggi" : ""}</div>
         ${r && notaHSE(r) ? `<div class="nota-riga">${notaHSE(r)}</div>` : ""}</div>
-      <span class="acts"><span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
+      <span class="acts">${r && r.giudizio === "non-idoneo" ? '<span class="badge danger" title="Giudizio del medico competente registrato in Scudo">Non idoneo</span>' : ""}<span class="badge ${giu ? "tag" : "ok"}">${giu ? "Non disponibile" : "In forza"}</span>${LAV_HSE
         ? `<span class="arr" style="cursor:pointer" title="${o.lavoratoreId ? "Cambia la persona collegata in Scudo" : "Collega alla persona registrata in Scudo"}" data-lav-ope="${esc(o.id)}">${o.lavoratoreId ? "↻" : "＋"}</span>`
         : ""}</span></div>`; }).join("")
       || vuoto(I.persona, filtro ? "Nessuno in questa squadra" : "Nessun operatore in anagrafica",
@@ -2683,11 +2801,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!squ) {
       board.innerHTML = vuoto(I.spunta, "Scegli la squadra",
         "La checklist di inizio turno si compila <b>una per squadra</b>: scegli qui sopra quale, e compaiono i controlli da fare prima di cominciare.");
-      lista.innerHTML = ""; tools.style.display = "none";
+      lista.innerHTML = ""; tools.style.display = "none"; $("chk-firma").style.display = "none";
       return;
     }
     const esiti = (doc && doc.esiti) || {};
-    const st = statoChecklist(esiti);
+    // le voci di QUESTO turno: col maltempo compare il ricontrollo dei fronti
+    const meteoTurno = meteoDi(MET, OGGI, turno);
+    const voci = vociChecklist(meteoTurno);
+    const st = statoChecklist(esiti, voci);
     const chiusa = !!(doc && doc.ora);
     const bloc = eChiuso(OGGI, turno);
     // ⛔ come per l'appello: il lucchetto non tinge di verde una checklist mai
@@ -2699,23 +2820,48 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         <div><div class="board-num">${st.risposte}/${st.totale}</div>
           <div class="board-lab">Controlli del turno ${esc(turno)}</div></div>
         <div class="board-txt">${esc(squ)} · ${dmy(OGGI)}<br>
-          ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
+          ${chiusa ? `chiusa alle <b>${esc(doc.ora)}</b>${doc.chiusaDa ? " da <b>" + esc(doc.chiusaDa) + "</b>" : ` <b class="bad">senza il nome di chi ha controllato</b>`}` : (st.mancanti ? `${st.mancanti === 1 ? "manca" : "mancano"} <b>${st.mancanti}</b> ${st.mancanti === 1 ? "risposta" : "risposte"}` : "tutte le risposte ci sono: puoi chiuderla")}
           ${st.no ? ` · <b class="bad">${st.no} ${st.no === 1 ? "voce non a posto" : "voci non a posto"}</b>` : ""}
           ${bloc ? `<br><b>Turno chiuso e firmato</b>: la checklist non si può più cambiare.` : ""}</div>
       </div>`;
-    lista.innerHTML = CHECKLIST_INIZIO.map((v, i) => {
+    /* LA VOCE NON A POSTO E LA SUA AZIONE (11/09): sotto la riga, il semaforo
+       della risposta letto dalle azioni di Scudo — «Nessuna azione» è rosso,
+       e se Scudo non si legge si dice «non lo sappiamo», non «nessuna» */
+    const nonAPosto = doc ? vociNonAPosto(doc, AZI_HSE) : [];
+    lista.innerHTML = voci.map((v, i) => {
       const val = esiti[String(i)] || "";
       const stile = val === "no" ? "st-danger" : val === "ok" ? "st-ok" : val === "na" ? "st-mute" : "st-warn";
+      const nap = val === "no" ? nonAPosto.find(x => x.indice === i) : null;
+      const azione = !nap ? "" : `<div class="form-hint chk-azione">
+          <span class="badge ${nap.risposta ? nap.risposta.cls : "tag"}">${nap.risposta ? esc(nap.risposta.label) : "Non lo sappiamo"}</span>
+          ${nap.risposta && nap.risposta.n ? " si gestisce da Scudo" : (nap.risposta
+            ? `<button type="button" class="dw-btn secondary mini" data-chk-azione="${i}" title="Apri in Scudo l'azione correttiva che rimette a posto «${esc(v.testo)}»">Apri l'azione in Scudo</button>`
+            : " Scudo non è raggiungibile: non si sa se un'azione c'è già")}</div>`;
       return `<div class="item ${stile}" style="cursor:default">
-        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}</div></div>
+        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}${i === INDICE_RICONTROLLO ? " · chiesta dal meteo di oggi (" + esc(String((meteoTurno && meteoTurno.cielo) || "")) + ")" : ""}</div></div>
         <div class="chk-row">${ESITI_CHECK.map(e => {
           const [c, lab] = ET_ESITO[e];
           return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"${bloc ? " disabled" : ""}
             aria-pressed="${val === e ? "true" : "false"}" title="${bloc ? "Turno chiuso: non si può più cambiare" : esc(v.testo) + ": " + lab}">${lab}</button>`;
-        }).join("")}</div>
+        }).join("")}</div>${azione}
       </div>`;
     }).join("");
     tools.style.display = "flex";
+    /* CHI HA FATTO I CONTROLLI (11/09): il nome si propone dal sorvegliante
+       nominato in Scudo, si scrive a mano se Scudo non lo sa, e senza nome la
+       lista non si chiude. Il campo non si sovrascrive mentre qualcuno scrive:
+       si riempie solo se è vuoto. */
+    const firma = $("chk-firma"), campoNome = $("chk-chiusa-da"), hint = $("chk-chiusa-hint");
+    firma.style.display = "";
+    const sorv = sorveglianteDiTurno(NOM_HSE, LAV_HSE);
+    if (chiusa || bloc) { campoNome.value = (doc && doc.chiusaDa) || ""; campoNome.disabled = true; }
+    else { campoNome.disabled = false; if (!campoNome.value.trim()) campoNome.value = (doc && doc.chiusaDa) || sorv.nomi.join(", "); }
+    hint.innerHTML = !sorv.noto
+      ? "Scudo non è raggiungibile: non si sa chi è il sorvegliante nominato, scrivi il nome a mano."
+      : sorv.nomi.length
+        ? `Proposto dalla nomina di <b>sorvegliante</b> registrata in Scudo (${esc(sorv.nomi.join(", "))}): cambialo se oggi i controlli li ha fatti qualcun altro.`
+        : "In Scudo non risulta nessuna nomina di sorvegliante attiva oggi: scrivi il nome di chi ha fatto i controlli."
+      + (meteoChiedeRicontrollo(meteoTurno) ? "<br>Con il meteo di oggi la lista ha una voce in più: il ricontrollo dei fronti dopo la pioggia forte o il disgelo." : "");
     $("btn-chk-salva").textContent = bloc ? "Turno chiuso" : (chiusa ? "Checklist chiusa" : "Chiudi la checklist");
     $("btn-chk-salva").disabled = chiusa || bloc;
     $("btn-chk-ok").style.display = st.mancanti && !bloc ? "inline-flex" : "none";
@@ -2767,17 +2913,99 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   });
 
   document.addEventListener("click", async (e) => {
+    const ba = e.target.closest && e.target.closest("[data-chk-azione]");
+    if (ba) {
+      /* dalla voce non a posto all'azione in Scudo (11/09): stessa modale del
+         fermo, seconda origine. Il doppione si controlla al tocco. */
+      const { doc } = chkCorrente();
+      const i = +ba.getAttribute("data-chk-azione");
+      if (!doc) return;
+      if (AZI_HSE === null) {
+        esito("chk-esito", "Le azioni correttive stanno in Scudo, che adesso non è raggiungibile: aprirne una senza poter vedere quelle che ci sono già rischia di scriverne due uguali. Riprova più tardi.", "err"); return; }
+      const nap = vociNonAPosto(doc, AZI_HSE).find(x => x.indice === i);
+      if (!nap) return;
+      if (nap.azioni && nap.azioni.length) { esito("chk-esito", "Su questa voce un'azione correttiva c'è già: si gestisce da Scudo.", "err"); renderChecklist(); return; }
+      const bozza = bozzaAzioneChecklist(doc, i, { scadenza: dataPiuGiorni(7), fmtData: dmy });
+      if (!bozza) return;
+      const scelta = await chiediAzione(bozza, "quando la voce è stata rimessa a posto", "");
+      if (!scelta) return;
+      if (!scelta.descrizione || !dataISOEsiste(scelta.scadenza)) {
+        esito("chk-esito", "Servono cosa fare e la data entro cui farlo: senza una data l'azione non entra in nessuno scadenzario.", "err"); return; }
+      try {
+        await db.aggiungiAzioneScudo(bozzaAzioneChecklist(doc, i, { ...scelta, fmtData: dmy }));
+      } catch (err2) {
+        esito("chk-esito", "L'azione non è stata aperta: Scudo non ha accettato la scrittura. Di solito succede quando la tua organizzazione non ha Scudo attivo, oppure quando manca il collegamento. Riprova più tardi.", "err"); return; }
+      await refresh();
+      esito("chk-esito", "Azione correttiva aperta in Scudo: «" + scelta.descrizione + "», entro il " + dmy(scelta.scadenza) + ". È collegata a questa voce della checklist.", "success");
+      return;
+    }
     const b = e.target.closest && e.target.closest("[data-chk]");
     if (!b) return;
     await salvaEsiti({ [b.getAttribute("data-chk")]: b.getAttribute("data-esito") });
   });
-  // squadra e turno in cima alla pagina comandano checklist E appello
-  $("chk-squadra").onchange = () => { renderChecklist(); renderPresenze(); };
-  $("chk-turno").onchange = () => { renderChecklist(); renderPresenze(); renderMeteo(); renderChiusura(); };
+  // squadra e turno in cima alla pagina comandano checklist, briefing E appello
+  $("chk-squadra").onchange = () => { renderChecklist(); renderBriefing(); renderPresenze(); };
+  $("chk-turno").onchange = () => { renderChecklist(); renderBriefing(); renderPresenze(); renderMeteo(); renderChiusura(); };
+
+  /* IL BRIEFING DI INIZIO TURNO (11/09): il cartellone e, se non è ancora
+     registrato, il modulo. I presenti li dice l'appello dello stesso turno
+     (`presentiAlBriefing`), con chi è da spuntare detto e non contato. */
+  function renderBriefing() {
+    const { squ, turno } = chkCorrente();
+    const board = $("bri-board"), form = $("bri-form");
+    if (!squ) { board.innerHTML = ""; form.style.display = "none"; return; }
+    const b = briefingDi(BRI, OGGI, turno, squ);
+    const bloc = eChiuso(OGGI, turno);
+    if (b) {
+      const r = riassuntoBriefing(b, OPER, PRE);
+      const pres = presentiAlBriefing(b, OPER, PRE);
+      board.innerHTML = `<div class="board ${pres.daSpuntare.length ? "warn" : "ok"}">
+        <div class="board-ico">${I.spunta}</div>
+        <div><div class="board-num">${pres.presenti.length}/${pres.totale}</div>
+          <div class="board-lab">Presenti al briefing · turno ${esc(turno)}</div></div>
+        <div class="board-txt"><b>${esc(r.argomento)}</b><br>tenuto da <b>${esc(r.tenutoDa)}</b>${b.ora ? " alle <b>" + esc(b.ora) + "</b>" : ""} · ${esc(squ)} · ${dmy(OGGI)}<br>
+          presenti: ${esc(pres.testo)}${b.note ? "<br>" + esc(b.note) : ""}</div>
+      </div>`;
+      form.style.display = "none";
+      return;
+    }
+    board.innerHTML = `<div class="board warn">
+        <div class="board-ico">${I.allarme}</div>
+        <div><div class="board-num">—</div><div class="board-lab">Briefing · turno ${esc(turno)}</div></div>
+        <div class="board-txt">${bloc ? "<b>Turno chiuso</b>: nessun briefing registrato per " + esc(squ) + "." : "Nessun briefing registrato per <b>" + esc(squ) + "</b>: scrivi l'argomento e chi lo ha tenuto."}</div>
+      </div>`;
+    form.style.display = bloc ? "none" : "";
+    // chi lo ha tenuto: le persone della squadra (tutte, anche chi non è in forza oggi non c'è per definizione)
+    const persone = OPER.filter(o => o && o.squadra === squ && o.stato !== "non-disponibile");
+    const scelto = $("bri-chi").value;
+    $("bri-chi").innerHTML = '<option value="">— chi lo ha tenuto —</option>'
+      + persone.map(o => `<option value="${esc(o.id)}"${o.id === scelto ? " selected" : ""}>${esc(o.nome)}${o.ruolo ? " · " + esc(o.ruolo) : ""}</option>`).join("");
+  }
+  $("btn-bri").onclick = async () => {
+    const { squ, turno, doc } = chkCorrente();
+    if (!squ) return;
+    // punto di scrittura 20 — il briefing di inizio turno
+    if (bloccato(OGGI, turno, "il briefing di inizio turno", "bri-esito")) return;
+    const argomento = $("bri-argomento").value.trim(), tenutoDa = $("bri-chi").value, note = $("bri-note").value.trim();
+    err("bri-argomento", false);
+    // (`fuoco` è di Terra, non di questa pagina: l'ha preso `nomi-liberi` prima del commit)
+    if (!argomento) { err("bri-argomento", true); $("bri-argomento").focus();
+      esito("bri-esito", "Serve l'argomento: è la cosa che il registro deve saper dire dopo un mese.", "err"); return; }
+    if (briefingDi(BRI, OGGI, turno, squ)) { esito("bri-esito", "Il briefing di questo turno è già registrato.", "err"); renderBriefing(); return; }
+    const ora = new Date().toTimeString().slice(0, 5);
+    await db.aggiungi("briefing", { data: OGGI, turno, squadra: squ, argomento, tenutoDa: tenutoDa || "", note, ora });
+    /* la voce della checklist «Briefing … fatto» si spunta da sola SOLO se
+       nessuno l'ha ancora toccata: una risposta data a mano non si sovrascrive */
+    const gia = doc && doc.esiti && (doc.esiti[String(INDICE_BRIEFING)] || doc.esiti[INDICE_BRIEFING]);
+    if (INDICE_BRIEFING >= 0 && !gia) await salvaEsiti({ [String(INDICE_BRIEFING)]: "ok" });
+    $("bri-argomento").value = ""; $("bri-note").value = "";
+    await refresh();
+    esito("bri-esito", "Briefing registrato alle " + ora + " (" + squ + ", turno " + turno + ")" + (gia ? "." : ": la voce della checklist è segnata a posto."), "success");
+  };
   $("btn-chk-ok").onclick = async () => {
-    const { doc } = chkCorrente();
+    const { turno, doc } = chkCorrente();
     const esiti = (doc && doc.esiti) || {}, nuovi = {};
-    CHECKLIST_INIZIO.forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
+    vociChecklist(meteoDi(MET, OGGI, turno)).forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
     if (!Object.keys(nuovi).length) return;
     if (!await chiedi("Segnare tutto a posto",
           `Stai per mettere <b>a posto</b> ${plurale(Object.keys(nuovi).length, "l'unica voce", `le ${Object.keys(nuovi).length} voci`)} a cui non hai ancora risposto.<br><br>
@@ -2791,19 +3019,26 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // punto di scrittura 14 — chiusura della checklist
     if (bloccato(OGGI, turno, "la checklist di inizio turno", "chk-esito")) return;
     if (!doc) { esito("chk-esito", "Non hai ancora risposto a niente: tocca una risposta su ogni voce.", "err"); return; }
-    const st = statoChecklist(doc.esiti || {});
+    const st = statoChecklist(doc.esiti || {}, vociChecklist(meteoDi(MET, OGGI, turno)));
     if (!st.completa) {
       esito("chk-esito", `${st.mancanti === 1 ? "Manca ancora una risposta" : "Mancano ancora " + st.mancanti + " risposte"}: rispondi a tutte le voci prima di chiudere la checklist.`, "err");
       return;
     }
+    // senza il nome di chi ha controllato la lista non si chiude: un controllo
+    // senza autore è una spunta, e il registro comincia dal nome
+    const chiusaDa = $("chk-chiusa-da").value.trim();
+    if (!chiusaDa) { err("chk-chiusa-da", true); $("chk-chiusa-da").focus();
+      esito("chk-esito", "Serve il nome di chi ha fatto i controlli: è la prima cosa che un registro deve saper dire.", "err"); return; }
+    err("chk-chiusa-da", false);
+    // (il nome si chiede PRIMA della conferma sulle voci non a posto: confermare e poi essere respinti è una beffa)
     if (st.no && !await chiedi("Chiudere con voci non a posto",
           `Ci ${st.no === 1 ? "è" : "sono"} <b>${st.no}</b> ${st.no === 1 ? "voce non a posto" : "voci non a posto"}:<br>
            ${st.problemi.map(p => "· " + esc(p)).join("<br>")}<br><br>
            Chiudere la checklist così significa <b>cominciare il turno sapendolo</b>. Il rapporto di fine
            turno lo scrive.`, "Chiudo lo stesso", true)) return;
     const ora = new Date().toTimeString().slice(0, 5);
-    await db.aggiorna("checklist", doc.id, { ora });
-    esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} (turno ${turno}).`, st.no ? "" : "success");
+    await db.aggiorna("checklist", doc.id, { ora, chiusaDa });
+    esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} da ${chiusaDa} (turno ${turno}).`, st.no ? "" : "success");
     await refresh();
   };
 
@@ -4283,81 +4518,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
   $("btn-consegna").onclick = () => {
-    const oggi = dmy(OGGI);
-    let txt = "CONSEGNA DI TURNO — " + oggi + "\n\n";
-    txt += avvisoEsempioTesto();
-    /* ⛔ CHI NON HA IL GIORNO SI DICHIARA ANCHE QUI. La consegna è datata in
-       cima e si archivia: senza questa riga i chili di un rapportino che
-       nessuno ha collocato passavano per prodotti oggi, in questo turno.
-       Lo schermo lo scrive due volte, questo foglio zero. */
-    const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
-    txt += "RAPPORTINI\n";
-    txt += (RAP_OGGI.length ? RAP_OGGI.map(r => "- " + r.titolo + (riassuntoRapportino(r) ? " — " + riassuntoRapportino(r) : "")
-      + (senzaGiornoDiLavoro(r) ? " [SENZA DATA]" : "") + " [" + r.stato + "]").join("\n") : "- nessun rapportino") + "\n\n";
-    const tp = totaliProduzione(RAP_OGGI), unita = Object.entries(tp.perUnita);
-    txt += "PRODUZIONE\n";
-    txt += (unita.length ? "- totale: " + unita.map(([u, q]) => formattaProduzione(q, u)).join(" + ") + "\n"
-      + tp.perTurno.map(t => "- turno " + t.turno + ": " + Object.entries(t.perUnita).map(([u, q]) => formattaProduzione(q, u)).join(" + ")).join("\n")
-      : "- nessuna produzione registrata") + "\n";
-    txt += (fuoriOggi ? "- ATTENZIONE: " + fuoriOggi + "\n" : "") + "\n";
-    const obT = OBIE.filter(o => String(o.data || "") === OGGI)
-      .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
-    txt += "OBIETTIVO DEL TURNO\n";
-    txt += (obT.length ? obT.map(o => "- turno " + o.turno + ": "
-      + (o.unita === UNITA_ATTIVITA ? numeroIt(o.fatto, 0) + " su " + numeroIt(o.obiettivo, 0) + " attività concluse"
-                                    : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
-      + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
-      : "- nessun obiettivo impostato") + "\n\n";
-    const chkT = CHK.filter(c => String(c.data || "") === OGGI);
-    txt += "CHECKLIST DI INIZIO TURNO\n";
-    /* ⛔ «4/9 a posto» NASCONDEVA LE VOCI CHE NESSUNO HA GUARDATO. La stessa
-       checklist usciva «6/9 · mancano 3 risposte» a schermo, «4 a posto · 1
-       n.a. · 3 senza risposta» sulla stampa e «4/9 a posto» qui — e questo è
-       il foglio che passa di mano fra due turni. La frase adesso è una sola,
-       `descriviChecklist`, e la scrivono tutt'e due i documenti. */
-    txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {});
-      return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
-        + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
-        + (c.ora ? " — chiusa alle " + c.ora : " — non chiusa"); }).join("\n")
-      : "- nessuna checklist compilata") + "\n\n";
-    const metT = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
-    txt += "METEO E CONDIZIONI DEL SITO\n";
-    txt += (metT.length ? metT.map(m => "- turno " + m.turno + ": " + riassuntoMeteo(m)
-      + (m.note ? " — " + m.note : "")).join("\n")
-      : "- non registrato") + "\n\n";
-    const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
-    txt += "CHIUSURA DEL TURNO\n";
-    txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
-      + (c.note ? " — " + c.note : "")).join("\n")
-      : "- nessun turno chiuso: consegna non firmata") + "\n";
-    // le riaperture non si nascondono nemmeno qui: se un turno firmato è
-    // stato riaperto, chi legge la consegna deve saperlo
-    const riapT = CHI.filter(c => String(c.data || "") === OGGI && riaperture(c).length);
-    if (riapT.length) {
-      txt += "RIAPERTURE DEL TURNO\n";
-      txt += riapT.map(c => riaperture(c).map(r => "- turno " + c.turno + ": "
-        + riassuntoRiapertura(r, dmy)).join("\n")).join("\n") + "\n";
-    }
-    txt += "\n";
-    /* ⛔ LA CONSEGNA PERDEVA I MINUTI. Elencava «causale: quante volte» e basta,
-       mentre lo schermo, sulla stessa giornata, scrive già quanto tempo si è
-       perso e «senza minuti» dove nessuno l'ha misurato. È il documento con cui
-       un turno passa la mano all'altro: chi lo legge deve sapere se un guasto è
-       durato dieci minuti o due ore, e soprattutto se **non lo sa nessuno**. */
+    /* Il testo lo compone `testoConsegnaTurno` nel modulo — le stesse
+       funzioni dello schermo, sezione per sezione — così la composizione la
+       prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
+       la pagina, che sa in che modo sta girando. */
+    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, briefing: BRI, operatori: OPER, presenze: PRE,
+      meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE }, { avviso: avvisoEsempioTesto(), dmy });
     const fermi = riepilogoFermi(ATT_OGGI);
-    const pf = paretoFermi(ATT_OGGI);
-    const minutiDi = (causale) => {
-      const v = pf.voci.find(x => x.causale === causale);
-      return v ? minutiFermoTesto(v.minuti, v.conto, v.senzaMinuti) : "senza minuti";
-    };
-    txt += "ANOMALIE / FERMI\n";
-    txt += (fermi.length
-      ? fermi.map(f => "- " + f.causale + ": " + f.conto + " (" + minutiDi(f.causale) + ")").join("\n")
-      : "- nessuna anomalia aperta") + "\n";
-    if (pf.senzaMinutiTot) {
-      txt += "  (" + conta(pf.senzaMinutiTot, "fermo", "fermi") + " su " + pf.fermiTot
-        + " senza i minuti registrati: il tempo perso qui sopra e' un minimo)\n";
-    }
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
@@ -4367,68 +4534,25 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // il deliverable che i supervisori si aspettano — solo dati già presenti.
   $("btn-rapporto-turno").onclick = () => {
     // Il rapporto è SEMPRE quello della giornata di oggi, qualunque cosa si
-    // stia guardando a schermo: è un documento datato.
-    const oggi = dmy(OGGI);
-    const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
-    const pfOggi = paretoFermi(ATT_OGGI);   // i minuti per causale: la tabella dei fermi ne aveva bisogno
-    const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
-    const somma = (u) => Object.entries(u).map(([un, q]) => formattaProduzione(q, un)).join(" + ");
-    const st = { "in-corso": "In corso", pianificata: "Pianificata", conclusa: "Conclusa", anomalia: "ANOMALIA" };
-    // ⛔ e la RIGA lo dice, non solo il totale: la colonna del turno di una
-    // registrazione senza giorno la attribuiva al turno del giorno stampato
-    const riga = (a) => `<tr><td>${esc(a.turno||"—")}${senzaGiornoDiLavoro(a)?` <b>· senza data</b>`:""}</td><td>${esc(a.titolo)}</td><td>${esc(a.dettaglio||"")}</td><td>${esc(etichettaAssegnazione(a)||"da assegnare")}</td><td>${st[a.stato]||esc(a.stato)}${a.stato==="anomalia"&&a.causale?" — "+esc(a.causale):""}</td></tr>`;
-    const ordR = { anomalia:0, "in-corso":1, pianificata:2, conclusa:3 };
-    // Obiettivi del giorno (uno per turno) con lo scostamento a consuntivo.
-    const obOggi = OBIE.filter(o => String(o.data||"") === OGGI)
-      .map(o => statoObiettivo(o, RAP_OGGI, ATT_OGGI)).filter(Boolean);
-    const segno = (n) => segnoIt(n, 2);
-    // Checklist di inizio turno chiuse o in corso oggi.
-    const chkOggi = CHK.filter(c => String(c.data||"") === OGGI)
-      .map(c => ({ c, st: statoChecklist(c.esiti || {}) }));
-    // Personale presente: la voce che ogni rapporto di turno professionale ha
-    // e che serve, sul serio, all'appello di emergenza.
-    // ⛔ E IL RIPOSO FRA I TURNI ENTRA NEL DOCUMENTO, non solo nello schermo:
-    // è la riga che un ispettore chiede (D.Lgs 66/2003, art. 7) e che oggi si
-    // ricostruisce sfogliando i fogli dei turni a mano. Dove non si può
-    // misurare, il rapporto lo DICHIARA invece di lasciare la cella vuota: una
-    // casella bianca su un documento firmato si legge come «niente da segnalare».
-    /* ⛔ E GLI ORARI VERI ENTRANO NEL DOCUMENTO. È la domanda che un ispettore
-       fa per prima dopo «chi c'era»: «quando è arrivato Rossi, quando se n'è
-       andato». Fino a ieri la risposta non era tracciata, e il rapporto
-       portava la sola ora della SPUNTA — che è quando qualcuno ha toccato lo
-       schermo, non quando la persona ha cominciato a lavorare. Dove l'orario
-       non c'è la cella lo DICHIARA: una casella bianca su un documento
-       firmato si legge come «niente da segnalare». */
-    const preOggi = TURNI.map(t => {
-      const rip = riposoDiTurno(OPER, PRE, DUR, OGGI, t, "");
-      const per = {}; rip.righe.forEach(r => { per[r.operatore.id] = r; });
-      // la riga d'appello E gli istanti che ne escono, per operatore: l'una
-      // porta le due ore come le ha scritte chi era lì, gli altri portano il
-      // conto e il «giorno dopo» del turno di notte
-      const ori = {}; PRE.filter(p => String(p.data || "") === OGGI && String(p.turno || "") === t)
-        .forEach(p => { ori[p.operatoreId] = { rec: p, or: orariPresenza(p) }; });
-      return { turno: t, app: appelloTurno(OPER, PRE, OGGI, t, ""), rip, per, ori,
-               qOra: orariDiTurno(OPER, PRE, OGGI, t, "") };
-    }).filter(x => x.app.presenti || x.app.assenti);
-    // Firme di chiusura: se non ce ne sono, il rapporto porta le righe vuote
-    // da compilare a penna — un documento senza firma resta un appunto.
-    const chiuOggi = CHI.filter(c => String(c.data||"") === OGGI && c.ora);
-    // Riaperture: un turno firmato e poi riaperto va detto sul documento,
-    // altrimenti la firma torna a non voler dire niente.
-    const riapOggi = CHI.filter(c => String(c.data||"") === OGGI && riaperture(c).length);
-    // Meteo e condizioni del sito, turno per turno.
-    const metOggi = TURNI.map(t => meteoDi(MET, OGGI, t)).filter(m => m && riassuntoMeteo(m));
-    // Foto delle anomalie: la prova visiva di cosa è successo.
-    const fotoOggi = ATT_OGGI.filter(a => eFotoValida(a.foto));
-    // Disponibilità, turno per turno. Entrano SOLO i turni che hanno qualcosa
-    // — una durata dichiarata o almeno un'attività: in una cava che lavora un
-    // turno solo, tre righe vuote su tre non sarebbero informazione.
-    // le registrazioni che il giorno non ce l'hanno: un foglio DATATO le deve
-    // dichiarare, perché nei suoi totali ci sono
-    const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);
-    const dispOggi = TURNI.map(t => disponibilitaTurno(ATT_OGGI, DUR, OGGI, t, CHI))
-      .filter(d => d.durataMin !== null || d.attivita > 0);
-    const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Rapporto di fine turno — ${oggi}</title>
+    // stia guardando a schermo: è un documento datato. Le sezioni le compone
+    // `rapportoGiornata` nel modulo — le stesse funzioni dello schermo — e qui
+    // si disegna e basta (05/09). Il grassetto arriva come «**così**», il
+    // corsivo «*così*», l'a capo «\n»: li rende `md`.
+    const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,
+      meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR }, { dmy });
+    const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*([^*\n]+?)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
+    const tabella = (T) => `<table><tr>${T.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${
+      T.righe.map(r => `<tr>${r.map(c => `<td>${md(c)}</td>`).join("")}</tr>`).join("")
+      || (T.vuota ? `<tr><td colspan=${T.colonne.length}>${esc(T.vuota)}</td></tr>` : "")}${
+      T.totale ? `<tr>${T.totale.map(c => `<th>${md(c)}</th>`).join("")}</tr>` : ""}</table>`;
+    const sezione = (S) => `<h2>${esc(S.titolo)}</h2>` + (S.foto
+      ? S.foto.map(f => `<div class="foto"><div>${md(f.didascalia)}</div><img src="${f.src}" alt=""></div>`).join("")
+      : (S.blocchi.length
+          ? S.blocchi.map(b => (b.intro ? `<div>${md(b.intro)}</div>` : "") + (b.tabella ? tabella(b.tabella) : "")).join("")
+          : `<div>${md(S.testo)}</div>`)
+        + (S.firmeInBianco ? `<div style="margin-top:14px">Consegnato da ______________________ &nbsp; Ricevuto da ______________________ &nbsp; Ora ____________</div>` : "")
+        + S.note.map(n => `<div class="muted">${md(n)}</div>`).join(""));
+    const html = `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>${esc(R.titolo)} — ${esc(R.data)}</title>
 <style>body{font:13px/1.45 sans-serif;color:#222;margin:28px;max-width:800px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:12px;font-variant-numeric:tabular-nums}th{background:#f2f2f2}
 /* le cifre incolonnate anche sulla carta: in un rapporto firmato due numeri
@@ -4437,84 +4561,13 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4p
 .muted{color:#666;font-size:11px}.kpi{display:inline-block;margin-right:18px}.kpi b{font-size:17px}
 .foto{margin:10px 0;page-break-inside:avoid}.foto img{max-width:340px;width:100%;border:1px solid #ccc;margin-top:4px}
 ${CSS_ESEMPIO}</style></head><body>
-<h1>Rapporto di fine turno</h1><div class="muted">Deepwork Campo · ${oggi}</div>
+<h1>${esc(R.titolo)}</h1><div class="muted">Deepwork Campo · ${esc(R.data)}</div>
 ${avvisoEsempio()}
 <h2>Quadro</h2>
-${/* ⛔ IL QUADRO DICEVA «0 ANOMALIE APERTE» SU UNA GIORNATA IN CUI NESSUNO
-     AVEVA REGISTRATO NIENTE. Misurato aprendo il foglio con le attività del
-     giorno a zero: usciva «0/0 attività concluse · 0 anomalie aperte», cioè
-     la riga più tranquilla che il documento sappia dire proprio dove non è
-     stato misurato niente — e in cima a un rapporto che si consegna e si
-     archivia, quella riga è la prima che si legge.
-     La regola giusta era già DUE sezioni più sotto, in questo stesso foglio:
-     «Disponibilità del turno» scrive «non calcolata — Non è registrata nessuna
-     attività per questo turno. Un numero qui direbbe che il turno è andato
-     bene, mentre la verità è che non è stato misurato». Il Quadro se n'era
-     tenuta una versione più debole. Il segno è quello scritto in CLAUDE.md:
-     un numero tranquillo dove non è stato misurato niente.
-     E le anomalie si contano una volta sola: `avanzamentoGiornata` le conta
-     già (`av.anomalie`), qui c'era un secondo `filter` sullo stesso stato. */""}
-<div><span class="kpi">${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}</span>
-<span class="kpi">${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}</span>
-<span class="kpi">${cop.totale?`<b>${cop.coperte}/${cop.totale}</b> squadre con rapportino`:`<b>—</b> squadre: nessuna in anagrafica`}</span>
-<span class="kpi"><b>${unitaProd.length?esc(somma(tp.perUnita)):"—"}</b> prodotti</span></div>
-${/* ⛔ E IL QUADRO DICEVA «2.510 t PRODOTTI» SU UN FOGLIO INTESTATO 07/08/2026
-     quando 2.300 di quelle tonnellate stavano su un rapportino che il giorno
-     non ce l'ha. `eDelGiorno` le tiene dentro oggi di proposito, e lo schermo
-     lo dichiara due volte — «(1 rapportino ancora senza data)» e «senza data»
-     sulla riga; questo foglio, che è quello che si consegna e si archivia,
-     zero. La stessa app, nel CSV dello storico, quelle tonnellate le scrive
-     con la data VUOTA: due file, gli stessi chili, due giorni diversi. */""}
-${fuoriOggi?`<div class="muted"><b>Attenzione</b> — ${esc(fuoriOggi)}</div>`:""}
-<h2>Checklist di inizio turno</h2>
-${chkOggi.length?`<table><tr><th>Squadra</th><th>Turno</th><th>Risposte</th><th>Voci non a posto</th><th>Chiusa alle</th></tr>${chkOggi.map(x=>`<tr><td>${esc(x.c.squadra||"—")}</td><td>${esc(x.c.turno||"—")}</td><td>${esc(descriviChecklist(x.st))}</td><td>${x.st.problemi.length?x.st.problemi.map(esc).join("; "):"nessuna"}</td><td>${esc(x.c.ora||"non chiusa")}</td></tr>`).join("")}</table>`:"<div>Nessuna checklist di inizio turno compilata oggi.</div>"}
-<h2>Meteo e condizioni del sito</h2>
-${metOggi.length?`<table><tr><th>Turno</th><th>Condizioni</th><th>Note sul sito</th></tr>${metOggi.map(m=>`<tr><td>${esc(m.turno)}</td><td>${esc(riassuntoMeteo(m))}</td><td>${esc(m.note||"—")}</td></tr>`).join("")}</table>`:"<div>Meteo e condizioni del sito non registrati oggi.</div>"}
-<h2>Personale presente</h2>
-${preOggi.length?preOggi.map(x=>`<div><b>Turno ${esc(x.turno)}</b>: ${x.app.presenti} ${x.app.presenti===1?"presente":"presenti"} su ${x.app.totale}${x.app.daFare?`, ${x.app.daFare} ${x.app.daFare===1?"non spuntato":"non spuntati"}`:""}.${x.rip.sotto?` <b>${x.rip.sotto} ${x.rip.sotto===1?"persona ha":"persone hanno"} meno di ${RIPOSO_MINIMO_ORE} ore di riposo dal turno precedente</b> (D.Lgs 66/2003, art. 7).`:""}${x.rip.nonMisurabili?` Per ${x.rip.nonMisurabili} il riposo non è misurabile.`:""}${x.qOra.totale?(x.qOra.parziali+x.qOra.senza?` Per <b>${x.qOra.parziali+x.qOra.senza}</b> ${x.qOra.parziali+x.qOra.senza===1?"presente":"presenti"} su ${x.qOra.totale} manca l'ora di entrata o quella di uscita${x.qOra.minuti!==null?`; le ore lavorate note sono <b>almeno ${esc(oreMinuti(x.qOra.minuti))}</b>`:""}.`:` Orari dichiarati per tutti i presenti: <b>${esc(oreMinuti(x.qOra.minuti))}</b> lavorate in totale.`):""}${x.qOra.daControllare?` <b>${x.qOra.daControllare} ${x.qOra.daControllare===1?"riga ha":"righe hanno"} orari da controllare.</b>`:""}</div>
-<table><tr><th>Nome</th><th>Ruolo</th><th>Squadra</th><th>Stato</th><th>Entrata</th><th>Uscita</th><th>Ore</th><th>Spuntato alle</th><th>Riposo dal turno precedente</th></tr>${x.app.righe.map(r=>{const v=x.ori[r.operatore.id]||{};const rec=v.rec||{},o=v.or||{};
-// ⛔ per chi non è presente le tre celle degli orari valgono «—» (non lo
-// riguardano); per chi è presente e non li ha, la cella DICHIARA che non sono
-// stati dichiarati — bianca si leggerebbe come «niente da segnalare»
-const cel=(t)=>r.stato!=="presente"?"—":(t||"<i>non dichiarata</i>");
-return `<tr><td>${esc(r.operatore.nome)}</td><td>${esc(r.operatore.ruolo||"—")}</td><td>${esc(squadraBase(r.operatore.squadra)||"—")}</td><td>${r.stato==="presente"?"presente":r.stato==="assente"?"ASSENTE":"non spuntato"}</td><td>${cel(rec.entrata?esc(rec.entrata):"")}</td><td>${cel(rec.uscita?esc(rec.uscita)+(o.oltre?" <span class=\"muted\">(giorno dopo)</span>":""):"")}</td><td>${r.stato!=="presente"?"—":(o.minuti!==null&&o.minuti!==undefined?esc(oreMinuti(o.minuti))+(o.attendibile===false?" <b>(da controllare)</b>":""):"<i>non calcolabili</i>")}</td><td>${esc(r.ora||"")}</td><td>${x.per[r.operatore.id]?esc(testoRiposo(x.per[r.operatore.id], dmy)):"non in turno"}</td></tr>`}).join("")}</table>`).join(""):"<div>Nessun appello registrato oggi.</div>"}
-<h2>Obiettivo del turno</h2>
-${obOggi.length?`<table><tr><th>Turno</th><th>Obiettivo</th><th>Fatto</th><th>Scostamento</th></tr>${obOggi.map(o=>`<tr><td>${esc(o.turno)}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.obiettivo,0)+" attività":formattaProduzione(o.obiettivo,o.unita))}</td><td>${esc(o.unita===UNITA_ATTIVITA?numeroIt(o.fatto,0)+" attività":formattaProduzione(o.fatto,o.unita))} (${o.pct}%)</td><td>${esc(segno(o.scarto))}${o.unita===UNITA_ATTIVITA?" attività":" "+o.unita}</td></tr>`).join("")}</table>`:"<div>Nessun obiettivo impostato per i turni di oggi.</div>"}
-<h2>Attività</h2>
-<table><tr><th>Turno</th><th>Attività</th><th>Dettaglio</th><th>Assegnata a</th><th>Stato</th></tr>${ATT_OGGI.slice().sort((a,b)=>(ordR[a.stato]??4)-(ordR[b.stato]??4)).map(riga).join("")||"<tr><td colspan=5>Nessuna attività registrata.</td></tr>"}</table>
-<h2>Fermi per causale</h2>
-${/* QUESTA TABELLA DICEVA MENO DI QUELLA DELLO SCHERMO. Si componeva con
-     `riepilogoFermi`, che restituisce solo `conto`: «Guasto meccanico | 3»,
-     quante volte e non quanto tempo. Lo schermo usa `paretoFermi` coi minuti,
-     e la consegna di turno e stata corretta stamattina (a6185f9) — il foglio
-     stampato no. E la copia debole della stessa regola, nel posto che
-     CLAUDE.md indica: dove il documento si compone.
-     Attenuante vera, scritta per non gonfiare: piu sotto la tabella
-     «Disponibilita del turno» il tempo perso lo riporta. Il dato non spariva
-     dal foglio; questa tabella pero ne diceva meno del dovuto. */""}
-${fermi.length?`<table><tr><th>Causale</th><th>Anomalie</th><th>Tempo perso</th></tr>${fermi.map(f=>{const v=pfOggi.voci.find(x=>x.causale===f.causale);return `<tr><td>${esc(f.causale)}</td><td>${f.conto}</td><td>${esc(v?minutiFermoTesto(v.minuti,v.conto,v.senzaMinuti):"senza minuti")}</td></tr>`;}).join("")}</table>${pfOggi.senzaMinutiTot?`<div class="muted">${conta(pfOggi.senzaMinutiTot, "fermo", "fermi")} su ${pfOggi.fermiTot} senza i minuti registrati: il tempo perso qui sopra è un minimo.</div>`:""}`:(ATT_OGGI.length?"<div>Nessuna anomalia aperta.</div>":"<div>Nessuna attività registrata oggi: non c'è niente da cui contare i fermi. Questa riga non dice che il turno è andato liscio.</div>")}
-<h2>Disponibilità del turno</h2>
-${dispOggi.length?`<table><tr><th>Turno</th><th>Durata dichiarata</th><th>Fermi</th><th>Tempo perso</th><th>Causale peggiore</th><th>Disponibilità</th></tr>${dispOggi.map(d=>`<tr><td>${esc(d.turno)}</td><td>${d.durataMin===null?"non dichiarata":esc(oreMinuti(d.durataMin))}</td><td>${d.fermi} ${d.fermi===1?"fermo":"fermi"}${d.fermiSenzaMinuti?" (di cui "+d.fermiSenzaMinuti+" senza minuti)":""}</td><td>${d.fermi?esc(minutiFermoTesto(d.fermiMin,d.fermi,d.fermiSenzaMinuti)):"—"}</td><td>${d.peggiore?esc(d.peggiore.causale)+" — "+numeroIt(d.peggiore.minuti,0)+" min su "+d.peggiore.conto+(d.peggiore.conto===1?" fermo":" fermi"):"—"}</td><td>${d.pct===null?"<b>non calcolata</b> — "+esc(d.motivo):(d.parziale?"al più <b>"+d.pct+"%</b>":"<b>"+d.pct+"%</b>")+" ("+esc(oreMinuti(d.lavoratiMin))+" lavorati su "+esc(oreMinuti(d.durataMin))+")"+(d.parziale?"<br>"+esc(d.motivo):"")}</td></tr>`).join("")}</table>
-<div class="muted">Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. <b>Non è l'OEE</b>: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate.</div>`
- :"<div>Nessuna durata di turno dichiarata oggi e nessuna attività da cui misurarla: la disponibilità non è stata calcolata.</div>"}
-${fotoOggi.length?`<h2>Foto delle anomalie</h2>${fotoOggi.map(a=>`<div class="foto"><div><b>${esc(a.titolo)}</b> — turno ${esc(a.turno||"—")}${a.causale?" · "+esc(a.causale):""}${a.fotoOra?" · scattata alle "+esc(a.fotoOra):""}</div><img src="${a.foto}" alt=""></div>`).join("")}`:""}
-<h2>Produzione</h2>
-${unitaProd.length?`<table><tr><th>Turno</th><th>Produzione</th></tr>${tp.perTurno.map(t=>`<tr><td>${esc(t.turno)}</td><td>${esc(somma(t.perUnita))}</td></tr>`).join("")}<tr><th>Totale</th><th>${esc(somma(tp.perUnita))}</th></tr></table>`:"<div>Nessuna produzione registrata.</div>"}
-<h2>Rapportini</h2>
-${RAP_OGGI.length?`<table><tr><th>Titolo</th><th>Squadra · turno</th><th>Produzione</th><th>Consegne al turno dopo</th><th>Stato</th></tr>${RAP_OGGI.map(r=>`<tr><td>${esc(r.titolo)}</td><td>${esc(r.squadra||"—")}${r.turno?" · "+esc(r.turno):""}${senzaGiornoDiLavoro(r)?` <b>· senza data</b>`:""}</td><td>${/* ⛔ la produzione la legge `produzioneDi`, non `+r.prodQta>0` con l'unità
-     GREZZA accanto: un'unità fuori dall'elenco («m3» senza il ³, da un archivio
-     vecchio) veniva STAMPATA com'era in questa tabella e SOMMATA come
-     tonnellate due tabelle più giù — lo stesso documento che si contraddice */""
-   }${(() => { const p = produzioneDi(r); return p ? esc(formattaProduzione(p.qta, p.unita)) : esc(r.produzione || "—"); })()}</td><td>${esc(r.note||"—")}</td><td>${esc(r.stato)}${r.ora?" "+esc(r.ora):""}</td></tr>`).join("")}</table>`:"<div>Nessun rapportino oggi.</div>"}
-${cop.mancanti.length?`<div class="muted" style="margin-top:6px">Squadre senza rapportino: ${cop.mancanti.map(esc).join(", ")}.</div>`:""}
-<h2>Chiusura e firme</h2>
-${chiuOggi.length?`<table><tr><th>Turno</th><th>Consegnato da</th><th>Ricevuto da</th><th>Ora</th><th>Note</th></tr>${chiuOggi.map(c=>`<tr><td>${esc(c.turno)}</td><td>${esc(c.consegna||"—")}</td><td>${esc(c.ricevuta||"—")}</td><td>${esc(c.ora)}</td><td>${esc(c.note||"")}</td></tr>`).join("")}</table>`
- :`<div>Nessun turno chiuso oggi: questo rapporto <b>non è stato consegnato</b> da nessuno.</div>
-   <div style="margin-top:14px">Consegnato da ______________________ &nbsp; Ricevuto da ______________________ &nbsp; Ora ____________</div>`}
-${riapOggi.length?`<h2>Riaperture del turno</h2>
-<div class="muted">Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché.</div>
-<table><tr><th>Turno</th><th>Riaperto da</th><th>Quando</th><th>Motivo</th></tr>${riapOggi.map(c=>riaperture(c).map(r=>`<tr><td>${esc(c.turno)}</td><td>${esc(r.da||"—")}</td><td>${esc(dmy(r.il||"")+(r.ora?" "+r.ora:""))}</td><td>${esc(r.motivo||"—")}</td></tr>`).join("")).join("")}</table>`:""}
-<div class="muted" style="margin-top:20px">Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori.</div>
+<div>${R.quadro.map(k => `<span class="kpi"><b>${esc(k.n)}</b> ${esc(k.t)}</span>`).join("\n")}</div>
+${R.attenzione?`<div class="muted"><b>Attenzione</b> — ${esc(R.attenzione)}</div>`:""}
+${R.sezioni.map(sezione).join("\n")}
+<div class="muted" style="margin-top:20px">${esc(R.piede)}</div>
 <script>window.print()</` + `script></body></html>`;
     const w = window.open("", "_blank"); if(!w){ esito("rap-esito", "Il browser ha bloccato la finestra: sblocca i popup per questo sito e riprova.", "err"); return; }
     w.document.write(html); w.document.close();
@@ -4637,6 +4690,23 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   }
 
   function pianoRender(){
+    /* I PIANI DA GENESI: tre risposte — ce ne sono (si scelgono), nessuno (non
+       si scrive niente), Genesi non leggibile (in live si dice: non è «nessuno») */
+    const pg = pianiGenesiOrdinati(PGEN);
+    /* `null` arriva SOLO dall'organizzazione (da soli la chiave risponde una
+       lista, anche vuota): non serve chiedere il modo per dirlo */
+    $("piano-genesi").innerHTML = !pg.leggibile
+      ? `<div class="note" style="margin-bottom:8px;">I piani di carico di Genesi non si sono potuti leggere: importa il file, o riprova più tardi.</div>`
+      : !pg.piani.length ? ""
+      : `<div class="form-hint" style="margin-top:8px;"><b>Piani da Genesi</b>: ${pg.piani.length === 1 ? "un piano di carico è pronto" : pg.piani.length + " piani di carico sono pronti"}
+           nell'organizzazione. Caricarne uno fa la stessa cosa dell'import dal file${PIANO.length ? " (e ti chiede prima se sostituire quello salvato)" : ""}.</div>`
+        + pg.piani.slice(0, 5).map(p => `<div class="item">
+            <div class="avatar">${I.foglio}</div>
+            <div class="info"><div class="name">${esc(p.nome)}</div>
+              <div class="meta">${conta(p.nFori, "foro", "fori")}${p.quando ? " · esportato il " + dmy(p.quando.slice(0, 10)) + (p.quando.length > 11 ? " alle " + esc(p.quando.slice(11)) : "") : ""}</div></div>
+            <span class="acts"><span class="badge accent">da Genesi</span>
+              <button type="button" class="arr" title="Carica questo piano (come dall'import del file)" aria-label="Carica il piano di carico «${esc(p.nome)}»" data-piano-genesi="${esc(p.impronta || p.id)}">${I.spunta}</button></span>
+          </div>`).join("");
     $("btn-piano-export").style.display = PIANO.length ? "inline-flex" : "none";
     if (!PIANO.length) { $("piano-riep").textContent = "";
       svuotaGraf("piano-graf");
@@ -4688,7 +4758,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       const liv = scartoLivello(p.reale, p.prog);
       return `<div class="item ${liv==="da-registrare"?"st-warn":(liv==="ok"?"st-ok":(liv==="warn"?"st-warn":"st-danger"))}" data-foro-id="${esc(p.id)}" role="button" tabindex="0" style="cursor:pointer" title="Registra la carica reale di questo foro">
       <div class="avatar">${esc(numeroIt(p.foro, 0))}</div>
-      <div class="info"><div class="name">Foro ${esc(numeroIt(p.foro, 0))} · progettati ${esc(numeroIt(p.prog, 3))} kg</div><div class="meta">x ${esc(numeroItDa(p.x, 2))} m · prof. ${esc(numeroItDa(p.prof, 2))} m · borr. ${esc(numeroItDa(p.borr, 2))} m · rit. ${esc(numeroItDa(p.rit, 1))} ms</div></div>
+      <div class="info"><div class="name">Foro ${esc(numeroIt(p.foro, 0))} · progettati ${esc(numeroIt(p.prog, 3))} kg</div><div class="meta">${p.idForo ? "id " + esc(p.idForo) + " · " : ""}x ${esc(numeroItDa(p.x, 2))} m · prof. ${esc(numeroItDa(p.prof, 2))} m · borr. ${esc(numeroItDa(p.borr, 2))} m · rit. ${esc(numeroItDa(p.rit, 1))} ms</div></div>
       <span class="badge ${b[0]}">${b[0]==="danger"?I.allarme:""}${b[1]}</span></div>`; }).join("");
   }
   $("btn-piano").onclick = () => $("piano-file").click();
@@ -4708,10 +4778,22 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
   };
   // Rilettura del piano salvato: si tiene una sola volata alla volta, quindi
   // l'import SOSTITUISCE quella precedente (previa conferma).
-  const pianoRicarica = async () => { PIANO = normalizzaPiano(await db.pianocarico()); pianoRender(); };
+  let PGEN = null;   // i piani scritti da Genesi (null = non leggibile)
+  const pianoRicarica = async () => {
+    PIANO = normalizzaPiano(await db.pianocarico());
+    try { PGEN = db.pianiGenesi ? await db.pianiGenesi() : null; } catch (e) { PGEN = null; }
+    pianoRender();
+  };
   $("piano-file").onchange = async (e) => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     const testo = await file.text();
+    e.target.value = "";
+    await importaPianoDaTesto(testo);
+  };
+  /* LA STESSA STRADA PER IL FILE E PER IL PIANO LETTO DA GENESI (05/09, notte):
+     il record dell'organizzazione si ricompone in testo con `pianoCsvGenesi`
+     e passa di qui, dallo stesso lettore, con le stesse finestre. */
+  async function importaPianoDaTesto(testo) {
     /* B8 · il file di un'altra tabella si NOMINA invece di essere letto per
        posizione: l'intestazione entrerebbe come riga di dati. */
     const pianoAltrove = fileDiAltraTabella(testo, ["campo.piano"]);
@@ -4719,7 +4801,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
       const fraseAltrove = fraseFileAltrui(pianoAltrove, "nel piano di carica");
       $("piano-riep").textContent = fraseAltrove;
       toast(fraseAltrove, "err");
-      e.target.value = ""; return;
+      return;
     }
     const mappa = mappaPianoCsv(testo);
     const righe = parsePianoCsv(testo);
@@ -4730,7 +4812,6 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
        (poco più giù): in un piano di carico una riga in meno non è un
        fastidio da ripulire, è una carica che nessuno metterà. */
     const scartate = scartiPianoCsv(testo);
-    e.target.value = "";
     if (!righe.length) { $("piano-riep").textContent = "Nessuna riga valida nel file: le colonne devono essere foro; x; fila; prof; prog; borr; rit." + frasePersi(scartate);
       toast("File non riconosciuto: controlla le colonne." + frasePersi(scartate), "err"); return; }
     // Come è stato letto il file, detto prima di scrivere. Le colonne si leggono
@@ -4738,7 +4819,7 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     // file con le colonne in ordine diverso si caricava comunque, con la
     // profondità nel borraggio e il ritardo nella carica. Sembrava normale.
     const NOMI_COL = { foro: "foro", x: "posizione x", fila: "fila", prof: "profondità",
-                       prog: "carica progettata", borr: "borraggio", rit: "ritardo" };
+                       prog: "carica progettata", borr: "borraggio", rit: "ritardo", idForo: "id del foro" };
     const avvisi = [];
     if (!mappa.conIntestazione)
       avvisi.push("Il file non ha una riga di intestazione, quindi le colonne sono state lette <b>nell'ordine</b> foro; x; fila; prof; prog; borr; rit. Se il tuo file ha un ordine diverso, aggiungi l'intestazione.");
@@ -4790,10 +4871,20 @@ ${riapOggi.length?`<h2>Riaperture del turno</h2>
     const data = dataPiano, turno = turnoPiano;
     for (const p of righe)
       await db.aggiungi("pianocarico", { data, turno, foro: p.foro, x: p.x, fila: p.fila,
-        prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null });
+        prof: p.prof, prog: p.prog, borr: p.borr, rit: p.rit, reale: null,
+        /* l'id stabile di Genesi, conservato tale e quale per il consuntivo
+           che torna indietro; null se il piano non lo portava */
+        idForo: p.idForo || null });
     await pianoRicarica();
     toast("Piano importato: " + conta(righe.length, "foro", "fori") + " (" + dmy(data) + " · turno " + turno + ").", "success");
-  };
+  }
+  /* i piani che Genesi ha scritto: si sceglie e si carica come dal file */
+  $("piano-genesi").addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-piano-genesi]"); if (!b) return;
+    e.preventDefault();
+    const p = pianiGenesiOrdinati(PGEN).piani.find(x => (x.impronta || x.id) === b.getAttribute("data-piano-genesi")); if (!p) return;
+    await importaPianoDaTesto(pianoCsvGenesi(p.righe));
+  });
   document.addEventListener("click", async (e) => {
     const it = e.target.closest && e.target.closest("[data-foro-id]");
     if (!it) return;

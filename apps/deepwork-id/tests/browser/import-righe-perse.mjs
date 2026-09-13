@@ -98,6 +98,8 @@ const CASI = [
     rotte: [[";Piazzale;100;operativo", "riga 2", "manca il nome del mezzo"]] },
   { app: "flotta", campo: "tele-file", esito: "ore-esito", nome: "telemetria",
     intest: "mezzo;ore;carburante",
+    /* (05/09) l'esito dice da quali colonne vengono mezzo, ore e carburante */
+    extra: [/Colonne riconosciute: mezzo ← «mezzo», ore ← «ore», carburante ← «carburante»\./, "e dice da quali colonne ha letto mezzo, ore e carburante"],
     buone: ["Escavatore di prova;9000;120"],
     rotte: [["Pala di prova;;95", "Pala di prova", "le ore motore non sono state scritte"],
             ["Dumper di prova;abc;80", "Dumper di prova", "le ore motore non si leggono"]] },
@@ -209,6 +211,8 @@ for (const c of CASI) {
   /* 4 · le righe SANE sono entrate davvero: senza questa, un import che non
      importa niente passerebbe tutte le prove qui sopra. */
   dice(!/^Nessun/.test(testo), "e le righe buone sono entrate (non è il caso «non è entrato niente»)", testo);
+  /* 5 · e, dove il caso lo dichiara, la frase in più che l'import deve dire */
+  if (c.extra) dice(c.extra[0].test(testo), c.extra[1], testo);
 }
 
 /* ⛔ LE RIGHE «NON HO GUARDATO» SI LEGGONO PRIME DEI KO, e il banco non può

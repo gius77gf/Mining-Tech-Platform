@@ -475,7 +475,7 @@ export const CSV_TABELLE = [
   { id: "campo.storico", app: "Campo", etichetta: "lo storico dei turni di Campo",
     fonte: "campo.csvStorico", col: "data;minuti_fermo;fermi;fermi_senza_minuti;attivita_totali;attivita_concluse;rapportini_inviati" },
   { id: "campo.pianoConsuntivo", app: "Campo", etichetta: "il consuntivo del piano di carica di Campo",
-    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore" },
+    fonte: "campo.pianoConsuntivoCsv", col: "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro" },
   { id: "campo.piano", app: "Campo", etichetta: "il piano di carica di Campo",
     col: "foro;x;fila;prof;prog;borr;rit" },
   // ── Conti ───────────────────────────────────────────────────────────
@@ -484,7 +484,7 @@ export const CSV_TABELLE = [
   { id: "conti.gare", app: "Conti", etichetta: "l'export delle gare di Conti",
     fonte: "conti.csvGare", col: "titolo;base;scadenza;stato" },
   { id: "conti.clienti", app: "Conti", etichetta: "l'export dei clienti di Conti",
-    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note" },
+    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale" },
   { id: "conti.incassi", app: "Conti", etichetta: "l'export degli incassi di Conti",
     fonte: "conti.csvIncassi", col: "fatturaId;data;importo;metodo" },
   { id: "conti.pesate", app: "Conti", etichetta: "l'export delle pesate di Conti",
@@ -497,22 +497,38 @@ export const CSV_TABELLE = [
      esattamente quelli che i messaggi di questa casa chiamavano «il prospetto
      e non la copia di sicurezza» tirando a indovinare — adesso si nominano. */
   { id: "conti.prospettoIncassi", app: "Conti", etichetta: "il prospetto degli incassi di Conti",
-    pagina: "apps/conti/index.html", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
+    fonte: "conti.csvProspettoIncassi", col: "data;fattura;cliente;importo;metodo;totale_fattura;note_di_credito;residuo_dopo" },
   { id: "conti.prospettoClienti", app: "Conti", etichetta: "il prospetto dei clienti di Conti",
-    pagina: "apps/conti/index.html", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
+    fonte: "conti.csvProspettoClienti", col: "ragione_sociale;piva_cf;sdi_pec;indirizzo;sconto;fido;note" },
   { id: "conti.prospettoCosti", app: "Conti", etichetta: "il prospetto dei costi di Conti",
-    pagina: "apps/conti/index.html", col: "data;voce;gruppo;importo;nota;nel_periodo" },
+    fonte: "conti.csvProspettoCosti", col: "data;voce;gruppo;importo;nota;nel_periodo" },
   { id: "conti.prezziConvertiti", app: "Conti", etichetta: "il prospetto dei prezzi convertiti di Conti",
-    pagina: "apps/conti/index.html", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
+    fonte: "conti.csvPrezziConvertiti", col: "prodotto;prezzo;unita_prezzo;densita_t_m3;prezzo_t;prezzo_m3;iva" },
   { id: "conti.prospettoDdt", app: "Conti", etichetta: "il prospetto dei DDT di Conti",
-    pagina: "apps/conti/index.html", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
+    fonte: "conti.csvProspettoDdt", col: "ddt;data;cliente;prodotto;lordo_t;tara_t;netto_t;quantita;unita;prezzo_unitario;sconto_pct;valore;iva;mezzo;destinatario;fattura;ordine;prezzo_da" },
+  { id: "conti.prospettoPreventivi", app: "Conti", etichetta: "il prospetto dei preventivi di Conti",
+    fonte: "conti.csvProspettoPreventivi", col: "numero;ordine;data;valido al;cliente;stato;prodotto;quantita;unita;prezzo;sconto %;sconto cliente %;sconto scaglione %;scaglione da;imponibile" },
   // ── Flotta ──────────────────────────────────────────────────────────
   { id: "flotta.ricambi", app: "Flotta", etichetta: "l'export del magazzino ricambi di Flotta",
     fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo" },
   { id: "flotta.costi", app: "Flotta", etichetta: "l'export del registro costi di Flotta",
-    pagina: "apps/flotta/index.html", col: "data;voce;importo;nota" },
+    fonte: "flotta.csvCosti", col: "data;voce;importo;nota" },
+  { id: "flotta.budget", app: "Flotta", etichetta: "il budget dell'anno contro la spesa reale di Flotta",
+    fonte: "flotta.csvBudget", col: "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato" },
+  { id: "flotta.fermi", app: "Flotta", etichetta: "il registro dei fermi macchina di Flotta",
+    fonte: "flotta.csvFermiMacchina", col: "mezzo;causale;inizio;fine;giorni;stato;note" },
+  { id: "flotta.giri", app: "Flotta", etichetta: "i giri macchina esportati di Flotta",
+    fonte: "flotta.csvGiriMacchina", col: "data;mezzo;tipo;operatore;ore;esito;anomalie;voci_non_ok;note" },
+  { id: "flotta.scadenzeMezzi", app: "Flotta", etichetta: "lo scadenzario dei mezzi di Flotta",
+    fonte: "flotta.csvScadenzeDiLegge", col: "mezzo;tipo;scadenza;stato;ogni_mesi;documento;ultima_verifica;esito;note;riferimento_normativo" },
+  { id: "flotta.interventi", app: "Flotta", etichetta: "il registro degli interventi di Flotta",
+    fonte: "flotta.csvRegistroInterventi", col: "data;titolo;mezzo;ricambio;costo;note;ore_manodopera;costo_manodopera;costo_ricambi;chi_ha_lavorato" },
+  { id: "flotta.listaSpesa", app: "Flotta", etichetta: "la lista della spesa dei ricambi di Flotta",
+    fonte: "flotta.csvListaDellaSpesa", col: "ricambio;giacenza;da_ordinare;prezzo_unitario;spesa;consumo_al_giorno;copertura_giorni;episodi" },
+  { id: "flotta.libretto", app: "Flotta", etichetta: "il libretto del mezzo di Flotta",
+    fonte: "flotta.csvLibretto", col: "sezione;voce;data;dettaglio;importo" },
   { id: "flotta.prospetto", app: "Flotta", etichetta: "il prospetto della flotta di Flotta",
-    pagina: "apps/flotta/index.html", col: "tipo;nome;stato;dettaglio" },
+    fonte: "flotta.csvSituazione", col: "tipo;nome;stato;dettaglio" },
   { id: "flotta.mezzi", app: "Flotta", etichetta: "l'elenco dei mezzi di Flotta",
     col: "nome;area;ore;stato" },
   { id: "flotta.telemetria", app: "Flotta", etichetta: "la telemetria dei mezzi di Flotta",
@@ -522,7 +538,7 @@ export const CSV_TABELLE = [
     fonte: "genesi.csvRiconciliazione", col: "data;nome;x50_prev_cm;x50_reale_cm;ppv_prev_mms;ppv_reale_mms;flyrock_prev_m;flyrock_reale_m;oversize_reale_pct;note;campo_data;campo_turno;campo_chi;campo_fori_registrati;campo_fori_totali;campo_kg_reali;campo_kg_progetto;campo_scostamento_pct;ppv_prev_base" },
   // ── Scudo ───────────────────────────────────────────────────────────
   { id: "scudo.personaleScadenze", app: "Scudo", etichetta: "l'export del personale con le scadenze di Scudo",
-    fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica" },
+    fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio" },
   { id: "scudo.infortuni", app: "Scudo", etichetta: "il registro infortuni di Scudo",
     fonte: "scudo.csvRegistroInfortuni", col: "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota" },
   { id: "scudo.azioni", app: "Scudo", etichetta: "la copia di sicurezza delle azioni correttive di Scudo",
@@ -532,18 +548,23 @@ export const CSV_TABELLE = [
   { id: "scudo.scadenze", app: "Scudo", etichetta: "lo scadenzario di Scudo",
     col: "lavoratore;tipo;descrizione;scadenza" },
   { id: "scudo.prospettoAzioni", app: "Scudo", etichetta: "il prospetto delle azioni correttive di Scudo",
-    pagina: "apps/scudo/index.html", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
-  { id: "scudo.prospettoIndici", app: "Scudo", etichetta: "il prospetto degli indici infortunistici di Scudo",
-    pagina: "apps/scudo/index.html", col: "sezione;voce;numero" },
+    fonte: "scudo.csvProspettoAzioni", col: "descrizione;responsabile;scadenza;semaforo;stato;esito;dataChiusura;origine" },
+  /* ⏱️ Fino al 05/09 questa riga si chiamava «prospettoIndici» e diceva di
+     leggere la pagina: l'intestazione «sezione;voce;numero» che vi trovava
+     era quella del riepilogo dei NEAR-MISS (un prospetto degli indici come
+     file non esiste) — verde per caso. Adesso nomina il file vero e lo
+     verifica chiamando l'export, che è salito nel modulo. */
+  { id: "scudo.riepilogoNearMiss", app: "Scudo", etichetta: "il riepilogo dei near-miss di Scudo (L. 198/2025)",
+    fonte: "scudo.csvRiepilogoNearMiss", col: "sezione;voce;numero" },
   // ── Sentinella ──────────────────────────────────────────────────────
   { id: "sentinella.ricettori", app: "Sentinella", etichetta: "l'export dei ricettori di Sentinella",
-    fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota" },
+    fonte: "sentinella.csvRicettori", col: "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote" },
   { id: "sentinella.tarature", app: "Sentinella", etichetta: "l'archivio dei certificati di taratura di Sentinella",
     fonte: "sentinella.csvTarature", col: "strumento;data;scadenza;centro;certificato;nota" },
   { id: "sentinella.ambiente", app: "Sentinella", etichetta: "il file per l'ente ambientale di Sentinella",
-    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza" },
+    fonte: "sentinella.csvAmbiente", col: "tipo;nome;valore;unita;soglia;stato;dettaglio;origine_soglia;taratura;provenienza;evento;valore_da;condizioni_ultima;fuori_condizioni" },
   { id: "sentinella.volate", app: "Sentinella", etichetta: "il registro delle volate di Sentinella",
-    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata" },
+    fonte: "sentinella.csvRegistroVolate", col: "data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note;ppvMisurata;ppvFonte;ppvPunto;ppvOra;stato;ppvPrevista;ppvPrevLimite;ppvPrevNorma;ppvPrevFonte;airblastPrevisto;codiceVolata;comunicataA;comunicataIl;comunicazioneRif;mancateEsplosioni;mancateGestite;rientroAlle;proiezioniOltreArea;proiezioniDove;noteDopo;oraSparo;rientroAutorizzatoDa;attesaDopoSparoMin;kgResi" },
   { id: "sentinella.referti", app: "Sentinella", etichetta: "i referti di vibrazione per Genesi di Sentinella",
     fonte: "sentinella.csvRefertiGenesi", col: "distanza_m;carica_per_ritardo_kg;ppv_mms;riferimento;data;origine" },
   { id: "sentinella.monitoraggi", app: "Sentinella", etichetta: "i punti di monitoraggio di Sentinella",
@@ -552,13 +573,15 @@ export const CSV_TABELLE = [
     col: "titolo;ente;scadenza;periodoMesi;giorniConsegna" },
   // ── Terra ───────────────────────────────────────────────────────────
   { id: "terra.rilievi", app: "Terra", etichetta: "l'export dei rilievi di Terra",
-    fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza" },
+    fonte: "terra.csvRilievi", col: "data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct" },
+  { id: "terra.inventari", app: "Terra", etichetta: "l'export degli inventari dei cumuli di Terra",
+    fonte: "terra.csvInventari", col: "data;metodo;materiale;volumeM3;nota;inventarioId" },
   { id: "terra.fronti", app: "Terra", etichetta: "l'elenco dei fronti di Terra",
     col: "nome;banco;quota;stato" },
   { id: "terra.prospettoAvanzamento", app: "Terra", etichetta: "il prospetto dell'avanzamento di Terra",
-    pagina: "apps/terra/index.html", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
+    fonte: "terra.csvRiepilogoAnno", col: "sezione;voce;scavoM3;cumuloM3;rilieviScavo" },
   { id: "terra.prospettoFronti", app: "Terra", etichetta: "il prospetto dei fronti e dei rilievi di Terra",
-    pagina: "apps/terra/index.html", col: "tipo;nome;stato;provenienza;dettaglio" },
+    fonte: "terra.csvFrontiRilievi", col: "tipo;nome;stato;provenienza;dettaglio" },
 ];
 
 // Almeno tre celle: sotto, una riga di dati qualunque comincerebbe a
@@ -572,6 +595,62 @@ export const CSV_MIN_CELLE = 3;
 function _normCol(s) {
   return String(s == null ? "" : s).toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+/* ── LA MAPPA DELLE COLONNE PER NOME (05/09) ──────────────────────────────
+   Quattro app leggevano un file di qualcun altro per NOME di colonna con
+   quattro lettori di casa: `proponiMappa` in Sentinella, `mappaPianoCsv` in
+   Campo, `mappaMovimentiCsv` in Conti, e Flotta stava per scriverne un
+   quarto per la telemetria. La domanda è una: «quale colonna è X?», con gli
+   indizi di X, quelle da ESCLUDERE prima (il saldo che finirebbe fra gli
+   importi), l'ordine di presa e le facoltative. Qui una volta sola.
+   `nomeColonna` tiene gli spazi (a differenza di `_normCol`, che serve alla
+   firma di una tabella): il confronto è per INIZIO di parola — «abi» non
+   prende «cont-abi-le», ma «causale abi» sì. Ritorna
+   { conIntestazione, indici:{campo→i|-1}, riconosciute:[{campo,nome,i}],
+     esclusi:[nomi], ignorate:[nomi], mancanti:[campi obbligatori assenti] }.
+   `opzioni.condizionali[campo](indici)` decide se un campo va cercato dati
+   quelli già presi (l'importo unico solo se non ci sono entrate e uscite);
+   `opzioni.conIntestazione(indici)` dice quando l'intestazione «vale» —
+   senza, vale se almeno una colonna è stata riconosciuta. Pura. */
+export function nomeColonna(s) {
+  return String(s == null ? "" : s).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+export function mappaColonne(intestazione, indizi, opzioni = {}) {
+  const nomi = Array.isArray(intestazione) ? intestazione : [];
+  const celle = nomi.map(nomeColonna);
+  const out = { conIntestazione: false, indici: {}, riconosciute: [], esclusi: [], ignorate: [], mancanti: [] };
+  /* `presi`: colonne già assegnate da chi chiama (Sentinella cerca prima data
+     e ora, poi gli assi, poi il valore fra quello che resta) */
+  const presi = new Set((opzioni.presi || []).filter(i => Number.isInteger(i) && i >= 0));
+  /* tre modi di combaciare, e chi chiama sceglie il suo:
+     · "parola" (il default): l'indizio all'INIZIO di una parola — Conti e
+       Flotta, dove «abi» non deve prendere «contabile»;
+     · "esatto" (o `esatto: true`): il nome è TUTTO l'indizio — Campo, dove
+       «ms» non deve prendere «relief ms per m»;
+     · "dentro": l'indizio in QUALUNQUE punto — Sentinella, dove «vel» deve
+       prendere «velocità (mm/s)» e «db» «dB(L)», com'è sempre stato. */
+  const modo = opzioni.esatto ? "esatto" : (opzioni.modo || "parola");
+  const combacia = modo === "esatto" ? (h, k) => h === k
+    : modo === "dentro" ? (h, k) => h === k || h.includes(k)
+    : (h, k) => h === k || h.startsWith(k + " ") || h.includes(" " + k);
+  const cerca = (chiavi) => { const ks = (chiavi || []).map(nomeColonna).filter(Boolean);
+    return celle.findIndex((h, i) => !presi.has(i) && h && ks.some(k => combacia(h, k))); };
+  for (const chiavi of Object.values(opzioni.escludi || {})) { let i; while ((i = cerca(chiavi)) >= 0) { presi.add(i); out.esclusi.push(String(nomi[i])); } }
+  const ordine = opzioni.ordine || Object.keys(indizi || {});
+  const cond = opzioni.condizionali || {};
+  for (const campo of ordine) {
+    if (typeof cond[campo] === "function" && !cond[campo](out.indici)) { out.indici[campo] = -1; continue; }
+    const i = cerca((indizi || {})[campo]);
+    out.indici[campo] = i;
+    if (i >= 0) { presi.add(i); out.riconosciute.push({ campo, nome: String(nomi[i]), i }); }
+  }
+  celle.forEach((h, i) => { if (h && !presi.has(i)) out.ignorate.push(String(nomi[i])); });
+  const facolt = new Set([...(opzioni.facoltative || []), ...Object.keys(cond)]);
+  out.mancanti = ordine.filter(c => out.indici[c] < 0 && !facolt.has(c));
+  out.conIntestazione = typeof opzioni.conIntestazione === "function" ? !!opzioni.conIntestazione(out.indici) : out.riconosciute.length > 0;
+  return out;
 }
 
 // `celle` combacia con `col` se comincia dalla PRIMA colonna e prosegue in
@@ -1787,6 +1866,68 @@ export function misureVolataFochino(r) {
            conKg, senzaKg, parziale: kg !== null && senzaKg > 0 };
 }
 
+/* L'ESPLOSIVO PER TIPO sul rapportino del fochino (03/09, punto 0 del delta
+   sul rapporto di volata: il dato per foro c'era, chi lo somma per tipo no —
+   e il registro di carico e scarico del mondo vuole i chili per tipo, non il
+   totale). Ogni foro porta `esplosivo` (colonna di fondo), `esplosivo2`
+   (seconda carica) e un solo `kg`: i chili si attribuiscono al primo tipo
+   scritto; un foro con due tipi si CONTA a parte (`conDueTipi`) perché la
+   ripartizione fra i due non è scritta e non si indovina; un foro con i chili
+   ma senza tipo va in `senzaTipo` con i suoi chili, dichiarati e non sommati
+   a nessuno. `dichiarato` = tutti i chili hanno un tipo. */
+export function esplosivoPerTipo(r) {
+  const o = r || {};
+  const dett = Array.isArray(o.fori_dettaglio) ? o.fori_dettaglio : [];
+  const per = new Map();
+  let senzaTipo = { fori: 0, kg: 0 }, conDueTipi = 0, kgTot = 0;
+  for (const f of dett) {
+    const kg = _numRapp(f && f.kg);
+    const k = kg !== null && kg > 0 ? kg : 0;
+    const t1 = String((f && f.esplosivo) || "").trim(), t2 = String((f && f.esplosivo2) || "").trim();
+    if (t1 && t2 && t1 !== t2) conDueTipi++;
+    const tipo = t1 || t2;
+    if (!tipo) { if (k > 0) { senzaTipo.fori++; senzaTipo.kg += k; } continue; }
+    const g = per.get(tipo) || { tipo, kg: 0, fori: 0 };
+    g.kg += k; g.fori++; per.set(tipo, g); kgTot += k;
+  }
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const tipi = [...per.values()].map((g) => ({ ...g, kg: r2(g.kg) })).sort((a, b) => b.kg - a.kg || a.tipo.localeCompare(b.tipo));
+  return { tipi, kgTot: r2(kgTot), senzaTipo: { fori: senzaTipo.fori, kg: r2(senzaTipo.kg) }, conDueTipi,
+           dichiarato: tipi.length > 0 && senzaTipo.kg === 0 };
+}
+
+/* L'ESITO DELLO SPARO sul rapportino del fochino (03/09, dal delta della
+   ricerca sul rapporto di volata: «colpi esplosi contati» e «colpi mancati»
+   erano le due cose che mancavano davvero). Una funzione sola decide i numeri
+   per la lista, il dettaglio e il PDF — così il PDF non può dire una cosa
+   diversa dallo schermo. Le regole del principio del fondatore:
+   · `colpiEsplosi`/`colpiMancati` assenti = NON CONTATI (`contato: false`),
+     mai «0 mancati»: un rapportino vecchio, o uno scritto di fretta, non
+     diventa una volata perfetta per omissione;
+   · un solo numero scritto vale come conto parziale: `contato` resta vero
+     ma `parziale` lo dice, e il mancante si legge `null`;
+   · mancati > fori caricati, o esplosi + mancati > fori: `coerente: false`
+     con la ragione — il conto non si tocca, si dichiara;
+   · con mancati > 0 e senza nota: `notaMancante: true`, perché un colpo
+     mancato senza scritto dov'è e chi bonifica è un pericolo lasciato al
+     turno dopo. */
+export function esitoSparo(r) {
+  const o = r || {};
+  const fori = misureVolataFochino(o).fori;
+  const e = _numRapp(o.colpiEsplosi), m = _numRapp(o.colpiMancati);
+  const esplosi = e !== null && e >= 0 && Number.isInteger(e) ? e : null;
+  const mancati = m !== null && m >= 0 && Number.isInteger(m) ? m : null;
+  const nota = String(o.mancatiNota || "").trim();
+  const contato = esplosi !== null || mancati !== null;
+  const parziale = contato && (esplosi === null || mancati === null);
+  let coerente = true, perche = "";
+  if (mancati !== null && fori > 0 && mancati > fori) { coerente = false; perche = `${mancati} colpi mancati su ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati > fori) { coerente = false; perche = `${esplosi} esplosi più ${mancati} mancati fanno più dei ${fori} fori caricati`; }
+  else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati < fori) { const k = fori - esplosi - mancati; perche = k === 1 ? "un foro caricato senza esito" : `${k} fori caricati senza esito`; }
+  return { fori, esplosi, mancati, nota, contato, parziale, coerente, perche,
+           pericolo: mancati !== null && mancati > 0, notaMancante: mancati !== null && mancati > 0 && !nota };
+}
+
 /* ⛔ E LA TERZA È LA PIÙ NETTA DELLE TRE: LA FRAMMENTAZIONE POST-VOLATA.
    Misurato il 03/08 premendo il bottone. La scheda a schermo, quando nessuno
    ha valutato niente, **tace**: il riquadro dell'indice oversize sta dentro un
@@ -1870,4 +2011,170 @@ export function foriDalModello(markers, larghezzaM, altezzaM) {
   const fuori = (f) => (Number.isFinite(f.x) ? 0 : 1);
   l.sort((a, b) => fuori(a) - fuori(b) || a.x - b.x);
   return l.map((f, i) => ({ num: i + 1, x: f.x, y: f.y, z: f.z }));
+}
+
+/* IL CALENDARIO CHE SI IMPORTA NEL TELEFONO — iCalendar (RFC 5545), 11/09.
+   ════════════════════════════════════════════════════════════════════════
+   Le scadenze di un'app (visite mediche, corsi, revisioni, adempimenti) hanno
+   un giorno e un preavviso; un file `.ics` è la forma che Google Calendar,
+   Outlook, il calendario dell'iPhone e Thunderbird importano tutti, e che
+   porta con sé gli AVVISI (`VALARM`): è l'allarme di scadenza senza un server
+   che lo mandi. Sta in `shared/` perché la regola serve a più app (Scudo
+   oggi; Flotta, Sentinella, Terra hanno lo stesso scadenzario).
+   `eventi`: [{ uid, data (ISO YYYY-MM-DD), titolo, descrizione, preavvisiGiorni: [30, 7] }]
+   `opzioni`: { app: "Scudo", adesso: "2026-09-11T02:00:00Z" } — `adesso` è il
+   DTSTAMP, passato da fuori così il file è riproducibile e le prove lo
+   confrontano alla lettera.
+   Regole del formato, tutte provate: eventi di UN GIORNO INTERO
+   (`DTSTART;VALUE=DATE`, `DTEND` il giorno dopo, come vuole la specifica);
+   il testo sfuggito (barra rovesciata, punto e virgola, virgola, a capo);
+   righe chiuse da CRLF e PIEGATE a 75 ottetti con uno spazio in testa alla
+   continuazione — è la regola che i generatori fatti a mano sbagliano, e il
+   nuovo Outlook rifiuta il file. Un evento SENZA un giorno che esiste non
+   entra e si conta in `saltati`: un avviso su un giorno inventato è peggio
+   di nessun avviso. */
+export function icsCalendario(eventi, opzioni) {
+  const o = opzioni || {};
+  const sfuggi = (t) => String(t == null ? "" : t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  const piega = (riga) => {
+    // 75 OTTETTI, non caratteri: «à» ne occupa due. Si taglia sui byte e si
+    // torna indietro se il taglio cade in mezzo a un carattere.
+    // TextEncoder e non Buffer: questo modulo lo carica anche il BROWSER, e
+    // «Buffer is not defined» è stato il primo errore del bottone (11/09)
+    const b = new TextEncoder().encode(riga), dec = new TextDecoder(); const out = [];
+    let i = 0, primo = true;
+    while (i < b.length) {
+      let fine = Math.min(b.length, i + (primo ? 75 : 74));
+      while (fine < b.length && fine > i && (b[fine] & 0xC0) === 0x80) fine--;
+      out.push((primo ? "" : " ") + dec.decode(b.subarray(i, fine)));
+      i = fine; primo = false;
+    }
+    return out.join("\r\n");
+  };
+  const giornoPiu = (iso, n) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const compatto = (iso) => iso.replace(/-/g, "");
+  const stamp = (() => {
+    const d = o.adesso ? new Date(o.adesso) : new Date();
+    return isNaN(d) ? "" : d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  })();
+  /* ⛔ IL NOME DEL FILE MUORE ALL'IMPORTAZIONE (11/09, trovato dal banco
+     `csv-dimostrazione`): un calendario importato in Google Calendar o sul
+     telefono lascia il file e tiene gli EVENTI — un «Visita medica · Mario
+     Rossi» di esempio entrerebbe nell'agenda di qualcuno con la faccia di
+     una scadenza vera. Quindi l'avviso della dimostrazione (`o.esempio`) entra
+     nel file, in TRE posti che sopravvivono all'importazione: il nome del
+     calendario, il titolo di ogni evento, la prima riga di ogni descrizione.
+     È la stessa regola della consegna di turno `.txt` di Campo — «un foglio
+     che si legge dall'alto deve dirlo prima di essere creduto». */
+  const avviso = String(o.esempio == null ? "" : o.esempio).trim();
+  const righe = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Deepwork//" + sfuggi(o.app || "Deepwork") + "//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+  if (o.nome || avviso) righe.push("X-WR-CALNAME:" + sfuggi((avviso ? "DATI DI ESEMPIO · " : "") + (o.nome || o.app || "Deepwork")));
+  if (avviso) righe.push("X-DEEPWORK-AVVISO:" + sfuggi(avviso));
+  let inclusi = 0, saltati = 0;
+  for (const e of eventi || []) {
+    const data = String((e && e.data) || "").slice(0, 10);
+    if (!dataISOEsiste(data)) { saltati++; continue; }
+    inclusi++;
+    righe.push("BEGIN:VEVENT",
+      "UID:" + sfuggi(e.uid || (data + "-" + inclusi)) + "@deepwork",
+      "DTSTAMP:" + stamp,
+      "DTSTART;VALUE=DATE:" + compatto(data),
+      "DTEND;VALUE=DATE:" + compatto(giornoPiu(data, 1)),
+      "SUMMARY:" + sfuggi((avviso ? "[DATI DI ESEMPIO] " : "") + (e.titolo || "Scadenza")));
+    const descr = [avviso, e.descrizione].filter(Boolean).join("\n");
+    if (descr) righe.push("DESCRIPTION:" + sfuggi(descr));
+    for (const g of (e.preavvisiGiorni || []).filter((n) => Number.isFinite(+n) && +n >= 0)) {
+      righe.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + sfuggi(e.titolo || "Scadenza"),
+        "TRIGGER:" + (+g === 0 ? "PT0S" : "-P" + Math.round(+g) + "D"), "END:VALARM");
+    }
+    righe.push("END:VEVENT");
+  }
+  righe.push("END:VCALENDAR");
+  return { ics: righe.map(piega).join("\r\n") + "\r\n", inclusi, saltati };
+}
+
+// ═════════════════════════════════════════════════════════════════
+// «SCARICA TUTTO» — l'uscita di tutta l'app in un file (11/09)
+// ═════════════════════════════════════════════════════════════════
+// Dalla ricerca trasversale dell'11/09: 34 collezioni su 65 non avevano
+// nessuna uscita delle righe, e nessuna app un «esporta tutto». Chi compra un
+// gestionale in abbonamento chiede, prima di firmare, di poter portare via i
+// suoi dati COMPLETI senza il fornitore (e il GDPR, art. 20, lo pretende per
+// quelli personali: formato strutturato, di uso comune, leggibile da
+// macchina). Qui non si inventa un formato: le righe escono come stanno
+// nell'archivio, in un JSON con l'intestazione che dice di che app, di quale
+// organizzazione, di quando e di quale commit sono.
+// `esportaTutto` è pura: riceve l'ELENCO dichiarato delle collezioni e le
+// LETTURE già fatte ({nome: righe}); ciò che manca (una collezione non
+// letta, o letta come non-lista) finisce in `mancanti`, non sparisce — un
+// file che tace una collezione la fa passare per vuota.
+export function esportaTutto(elenco, letture, meta = {}) {
+  const nomi = Array.isArray(elenco) ? elenco.map(String) : [];
+  const L = letture && typeof letture === "object" ? letture : {};
+  const collezioni = {}, conteggi = {}, mancanti = [];
+  let totale = 0;
+  for (const n of nomi) {
+    const righe = L[n];
+    if (!Array.isArray(righe)) { mancanti.push(n); continue; }
+    collezioni[n] = righe.map((r) => (r && typeof r === "object") ? { ...r } : r);
+    conteggi[n] = righe.length;
+    totale += righe.length;
+  }
+  const quando = meta.quando instanceof Date ? meta.quando.toISOString()
+    : (typeof meta.quando === "string" && meta.quando ? meta.quando : new Date().toISOString());
+  return {
+    formato: "deepwork/esporta-tutto/1",
+    app: String(meta.app || "").trim() || null,
+    organizzazione: String(meta.organizzazione || "").trim() || null,
+    quando, commit: String(meta.commit || "").trim() || null,
+    elenco: nomi.slice(), collezioni, conteggi, mancanti, totale,
+    completo: mancanti.length === 0,
+  };
+}
+
+// Il nome del file: deepwork-<app>-<org>-<AAAAMMGG-HHMM>.json. Senza
+// organizzazione (dimostrazione) lo dice nel nome, invece di inventarne una.
+export function nomeFileEsportaTutto(pacchetto) {
+  const p = pacchetto || {};
+  const pulito = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const q = String(p.quando || "").replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+  return ["deepwork", pulito(p.app) || "app", pulito(p.organizzazione) || "senza-org", q || "senza-data"].join("-") + ".json";
+}
+
+// Il bottone «Scarica tutto» in fondo alla pagina che lo ospita: legge ogni
+// collezione dell'elenco con `leggi(nome)` (una lettura fallita → mancante,
+// dichiarata nel file e nella striscia), compone il pacchetto e lo scarica.
+// Tocca il DOM: la sua prova sta nei banchi del browser.
+export function montaScaricaTutto(o = {}) {
+  const cont = typeof document !== "undefined" && o.contenitore ? document.getElementById(o.contenitore) : null;
+  if (!cont || cont.querySelector("#btn-scarica-tutto")) return null;
+  const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Tutti i dati di questa app";
+  const tools = document.createElement("div"); tools.className = "tools";
+  const b = document.createElement("button"); b.type = "button"; b.className = "dw-btn secondary"; b.id = "btn-scarica-tutto";
+  b.textContent = "Scarica tutto (JSON)";
+  b.title = "Un file con tutte le collezioni di questa app, così come stanno nell'archivio: la copia che tieni tu.";
+  tools.appendChild(b);
+  const hint = document.createElement("div"); hint.className = "form-hint";
+  hint.innerHTML = "Un file <b>JSON</b> con <b>" + (Array.isArray(o.elenco) ? o.elenco.length : 0) + "</b> collezioni, righe come stanno nell'archivio. "
+    + "\u00c8 la copia che resta a te: si apre con qualunque programma, e non dipende da Deepwork.";
+  cont.appendChild(sec); cont.appendChild(tools); cont.appendChild(hint);
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const letture = {};
+      for (const n of (o.elenco || [])) {
+        try { letture[n] = await o.leggi(n); } catch (e) { letture[n] = null; }
+      }
+      const pacchetto = esportaTutto(o.elenco, letture, { app: o.app, organizzazione: o.organizzazione, commit: o.commit });
+      const nome = nomeFileEsportaTutto(pacchetto);
+      const blob = new Blob([JSON.stringify(pacchetto, null, 1)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      const frase = "Scaricato " + nome + ": " + pacchetto.totale + " righe in " + Object.keys(pacchetto.collezioni).length + " collezioni"
+        + (pacchetto.mancanti.length ? " \u2014 NON lette: " + pacchetto.mancanti.join(", ") + " (il file lo dichiara)" : ".");
+      if (typeof window !== "undefined" && typeof window.toast === "function") window.toast(frase, pacchetto.mancanti.length ? "err" : "success");
+    } finally { b.disabled = false; }
+  };
+  return b;
 }

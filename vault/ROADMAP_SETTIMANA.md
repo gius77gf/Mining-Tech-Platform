@@ -1,4 +1,2301 @@
-# Roadmap Settimana — lunedì 03/08 → venerdì 07/08/2026
+# Roadmap Settimana — lunedì 31/08 → venerdì 04/09/2026
+### v7.0 "I DETTAGLI DI OGNI APP" — la fase aperta dal fondatore il 26/08
+
+> Riarmata il 02/09 dalla sessione interattiva insieme al fondatore
+> («riprendiamo il lavoro da dove abbiamo lasciato, con tanto di ripresa della
+> routine»). La routine automatica era ferma dal 14/08.
+> ⚠️ Le settimane precedenti restano **sotto**, in questo stesso file, da
+> «Settimane precedenti» in giù: sono storia, e i loro task aperti valgono
+> ancora — ma la settimana in corso è questa.
+
+## Obiettivi della settimana
+- [x] ✅ 02/09 **Chiudere il primo ponte, Flotta→Conti** — lo stesso euro contato due
+  volte. La funzione condivisa c'è (`confrontoCostiMezzi`, 7 prove); mancano
+  la lettura vera da Conti, i dati di dimostrazione e il punto nella pagina.
+- [x] ✅ 02/09 **Il ponte 3f, Campo→Conti — il terzo lato del triangolo della
+  produzione**: i turni dichiarano in tonnellate, la pesa pesa in tonnellate,
+  e nessuno dei due aveva mai visto l'altro. Misurato PRIMA sulla cava
+  sintetica (confrontabile in 4 trimestri su 4), poi `confrontoProdottoVenduto`
+  in `shared/` (9 prove), la lettura pigra da Campo in Conti, la copia dei
+  rapportini in dimostrazione tenuta uguale da una prova, il riquadro
+  «Prodotto contro venduto» nel Report (verso a parole, coda con i fuori, Campo
+  assente in tono avviso e senza zeri), banco nei tre modi. Mappa: **11** ponti
+  su 56, **1** famiglia scoperta (la 3e, che passa da un file).
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 1 di 8** (`docs/GENESI_FUORI_DAL_BROWSER.md`
+  §5): `genesiData({storage})` in `genesi-data.js`, la porta con la forma delle
+  altre app sopra le stesse cinque chiavi di `localStorage` (nomi, forme e
+  tetti invariati, letti dal sorgente della pagina dalle prove). La pagina non
+  cambia: sono le unità 2 e 3 a chiamarla, sette punti alla volta.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 2 di 8**: la Home di Genesi
+  legge, salva, duplica ed elimina le volate dalla porta (`GDB`), non più con
+  `_lsGet/_lsSet`; stessa chiave sotto, stesso tetto (adesso nella porta).
+  Banco `genesi-locale.mjs` nei due versi (17 / controprova che cade in 8).
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 3 di 8**: anche A/B, lo storico
+  delle riconciliazioni, la legge di sito (copia di lavoro + porta, così la
+  PPV resta sincrona) e le nuvole passano dalla porta; nella pagina restano
+  solo la memoria del modulo e il consenso. `genesi-locale.mjs` copre le
+  cinque chiavi (27 prove). Le unità 1-3 valgono da sole: la pagina non tocca
+  più `localStorage` per i suoi dati, e non è cambiato niente per chi la usa.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 4 di 8 — la modalità live**:
+  `genesiData()` prova l'SDK come `terraData` e con un membro di
+  un'organizzazione lavora su cinque `orgCollection` sotto `apps/genesi/…`;
+  senza rete, senza login o in tour resta locale (misurato staccando la rete
+  al browser: 27 prove identiche). Emulatore: 81 prove (6 nuove su Genesi),
+  nessuna riga nuova nelle regole. Da qui **un ponte di dati verso Genesi è
+  possibile** (mappa §4: il blocco strutturale è tolto).
+- [x] ✅ 02/09 **Il primo ponte di DATI verso Genesi (unità 8): Genesi→Terra, le
+  nuvole**. Terra legge `apps/genesi/nuvole` con una seconda istanza SDK in
+  sola lettura e tiene la chiave del browser come ripiego; la scelta è pura
+  (`ultimoRitaglioNuvola`, 5 prove). Mappa: **12** ponti su 56, Genesi non è
+  più un'app che nessuno legge, zero app senza scambio di dati.
+- [x] ✅ 02/09 **Genesi fuori dal browser, unità 5 di 8 — «Porta
+  nell'organizzazione»**: copia una tantum e idempotente delle cinque chiavi
+  del browser nelle collezioni dell'organizzazione (marca `origine/autore/
+  creatoIl`, non cancella, seconda chiamata scrive zero), 17 asserzioni con
+  due porte locali; bottone in Home nascosto fuori dal live. L'unità 7 è
+  stata MISURATA prima di farla: la metà numerica esisteva già (G14), la metà
+  categorica resta candidata. Del piano restano la 6 (decisione 5b del
+  fondatore) e quella metà della 7.
+- [x] ✅ 02/09 **Il verbale di riconciliazione in Conti** (candidato 5 della
+  ricerca del giorno, meccanismo verificato): il divario del periodo si
+  conserva con la causa scelta fra quelle che la schermata elenca e una nota;
+  il numero salvato è quello sullo schermo (il banco lo legge dallo schermo);
+  lo storico dice se il divario cresce o cala; se i dati cambiano dopo, il
+  riquadro lo dice invece di sovrascrivere. `verbaleDelPeriodo`,
+  `storicoVerbali`, `CAUSE_DIVARIO`; demo con un verbale coerente per prova.
+- [x] ✅ 02/09 **Il verbale anche per «Prodotto contro venduto»**: stesso
+  riquadro, stesse funzioni (`tipo: "prodotto"`), unità in tonnellate e verso
+  detto a parole («prodotte e non uscite dal cancello» / «vendute più del
+  prodotto dichiarato»); gli storici dei due tipi non si mescolano (il banco
+  lo pretende). `conti-verbale.mjs` 20 prove, controprova cade su tutt'e due.
+- [x] ✅ 02/09 sera **Seconda passata in profondità su Conti, dopo che il
+  Report è cresciuto**: la famiglia dei banchi di Conti rilanciata (documenti
+  che escono 81, stampe 20, frasi 22, barre 15, numeri tranquilli 41, frasi
+  da uno 41, XML 17, tutti a zero KO), contrasto nei tre temi (1.049 testi,
+  0 sotto soglia), i casi limite del verbale a mano a 320 px (periodo senza
+  confronto → solo storico; due verbali sullo stesso periodo → l'ultimo, col
+  conto) nei tre temi, scatti guardati. Un difetto di frase: sul terzo lato,
+  con nessun turno e nessuna consegna, «La pesa ha registrato 0,00 t in 0
+  viaggi» — uno zero vero che si legge come un conto; adesso lo dice a parole.
+- [x] ✅ 02/09 sera **Flotta: il consumo di un mezzo contro la sua storia**
+  (candidato 3 della ricerca di Flotta, meccanismo verificato): finestra
+  degli ultimi 30 giorni contro tutto ciò che c'è prima, con le regole di
+  `consumoPerMezzo` (si scarta il primo pieno di ogni tratto) e senza giudizio
+  nel modulo; la tolleranza del 15% è una scelta dichiarata della pagina (la
+  ricerca non ne ha trovata una con la fonte). La riga del mezzo dice il
+  recente contro il suo solito, la forbice, e «da guardare» sopra la
+  tolleranza — o perché non lo si può dire. La dimostrazione resta com'è
+  (cinque prove assolute vivono sui suoi numeri): il caso lo mostra il banco
+  iniettando la storia nel modulo servito. 4 prove in run-kpi, banco nei due
+  versi, copertura flotta 97/97.
+- [x] ✅ 02/09 sera **Passata in profondità su Flotta con la riga nuova**: la
+  famiglia dei banchi rilanciata (consumo contro la storia 9, disegni 54,
+  documenti che escono 79 su 9 punti d'uscita, frasi da uno 42, numeri
+  tranquilli 27, ponte Conti→Flotta 20: zero KO), contrasto nei tre temi (627
+  testi, 0 sotto soglia), la riga «da guardare» guardata a 320 px nei tre temi
+  con la storia iniettata: sta nella scheda, non scorre di lato, il rosso si
+  legge. Nessun difetto trovato.
+- [x] ✅ 02/09 sera **Conti: il cavato anche in tonnellate, con la densità che
+  Terra già dichiara** (candidato 2 della ricerca — era GIÀ IN CASA:
+  `densitaDellaCava` in shared, atto → laboratorio → valore tipico). Conti legge
+  le autorizzazioni di Terra sulla stessa istanza dei rilievi,
+  `cavatoInTonnellate` (shared) converte e dichiara il «da verificare»; la
+  scheda «Cavato dal fronte» dice le tonnellate e la nota sullo scarto
+  sistematico dice che le tre grandezze del triangolo si leggono in un'unità
+  sola. `autorizzazioneVigente` trasloca in shared (Terra la ri-esporta,
+  identità provata). run-kpi +3, copertura dw-ponti 53/53.
+- [x] ✅ 02/09 sera **Passata in profondità su Scudo**: otto schermate aperte
+  a 320 px (nessun elemento sporge, nessun NaN, nessun errore), contrasto nei
+  tre temi (630 testi, 0 sotto soglia), la famiglia dei banchi rilanciata
+  (disegni 82, documenti 89, frasi da uno 47, numeri tranquilli 50, muro unico
+  11, verifica periodica 21: zero KO). Nessun difetto trovato. Le due
+  mancanze della ricerca (denuncia INAIL come scadenza, UNI 7249 per nome)
+  restano sospese a una lettura del testo primario.
+- [x] ✅ 02/09 sera **Passata in profondità su Sentinella**: sei schermate a
+  320 px (nessun NaN né errore; la tabella del Programma scorre dentro il suo
+  `.tab-wrap`, che è il meccanismo previsto), contrasto nei tre temi (458
+  testi, 0 sotto soglia), la famiglia dei banchi rilanciata (disegni 48,
+  numeri tranquilli 26, periodo dell'adempimento 34, dichiarazioni del report
+  21: zero KO). Nessun difetto trovato. Le tre mancanze della ricerca (notifiche
+  fuori dall'app = spesa del fondatore; PM10 giornaliero; classi acustiche)
+  restano sospese come scritto nel delta.
+- [x] ✅ 02/09 sera **Genesi, unità 7 (l'altra metà): le scelte del design che
+  il catalogo non riconosce** — `designSconosciuti` (11 campi non numerici),
+  all'apertura si rimette il valore di partenza anche in `D2` e lo si dice nel
+  toast col valore trovato; prima `selEsplosivo()` ripiegava sul default in
+  silenzio. run-kpi +2, banco della porta 32 prove. Del piano Genesi resta
+  SOLO la 6 (coda offline in live), che è la decisione 5b del fondatore.
+- [x] **Aggiornare la tabella in fondo a `docs/MAPPA_ECOSISTEMA.md`** a ogni
+  ponte chiuso: è il registro. ✅ 12/09 (unità 119): 16 su 56, tabella di
+  apertura e coda di §4 riallineate alla tabella finale di §6.
+- [ ] **Una passata in profondità su un'app** (ogni schermata guardata, ogni
+  file che esce aperto, i numeri tranquilli cercati). Prima candidata: Conti,
+  perché è quella che il ponte tocca e quella che il mercato guarda (la pesa).
+  ✅ **Nona tappa, Deepwork ID e la vetrina (04/09, cantiere parallelo morto
+  con la sesta interruzione PRIMA del rapporto: raccolto dai suoi diff, dai
+  suoi registri e dagli scatti, e rimisurato)**. ⛔ Fino a oggi NESSUN banco
+  aveva mai visto le quattro pagine di Deepwork ID da connessi: il finto
+  Firebase del core risponde vuoto per auth e functions, l'SDK non parte e
+  ogni banco misurava l'ANTEPRIMA. Ora c'è `finto-id.mjs` e il banco
+  `id-stati` (29 prove su 4 pagine negli stati veri: membro, senza
+  organizzazione, ospite del tour, amministrazione owner/semplice/senza rete;
+  controprova 16/16 rimessi, cadono 18). Difetti veri corretti, tutti con la
+  misura nei commenti: profilo, «attiva» decisa con `toDate()` (copia debole
+  di `_entitlementAttivo`: con una scadenza in stringa la pagina moriva nel
+  catch e diceva «Backend non configurato» a un membro connesso); `#msg`
+  senza nessuna regola `.msg` in profilo e amministrazione (testo nudo, 566 px
+  sotto il bottone, fuori finestra: ora le note restano lì e gli esiti passano
+  dal toast del core); «Crea» col nome vuoto partiva e l'organizzazione creata
+  non compariva; amministrazione «scade tra 1 giorni» / «0 giorni» su un invito
+  scaduto, «disabled» in inglese, la guardia dell'anteprima che rispondeva a
+  ogni tocco della pagina (e nel modo vivo rileggeva membri e inviti a ogni
+  click), il modulo d'invito attivo per un membro semplice, «Rimuovi»/«Revoca»
+  a 39 px contro i 44 di `--tap`; accesso, «Qualcosa non ha funzionato» con
+  la password vuota; vetrina, «NELL'ECOSISTE» tagliata a 320 (la riga ha
+  `overflow:hidden` per l'animazione, quindi nessun righello la vedeva) e
+  «ROVA IL TOU» nella barra sotto i 352 px — misurati col Range, corretti con
+  `calc(10vw - 5px)` e i due gradini, in `apps/vetrina/sito.py` e nella pagina
+  generata. `run-stile`: l'esenzione della nota di modo è sull'installazione,
+  non sulla riga (la controprova ci aveva piantato il veleno sopra).
+  Rimisurato dal coordinatore: `id-stati` 29/0 e controprova, `vetrina-
+  collegamenti` 51/0, run-stile 328/0, sintassi 34/0, nomi-liberi 26/0,
+  iniezioni-fresche 496/496; scatti guardati (amministrazione a 320,
+  vetrina a 320). Marchio non toccato (diff: zero righe sull'SVG).
+  ✅ **Ottava tappa, Conti — terza passata (04/09, cantiere parallelo,
+  rimisurata contro una copia di HEAD)**: undici banchi verdi dal disco
+  (documenti che escono 81 su 12 punti d'uscita, stampe 20, frasi 22, barre
+  15, numeri tranquilli 41, ponte Flotta 16, ponte Campo 17, verbale 39,
+  frasi-da-uno 41, XML 17, inventario 47), dodici file usciti e aperti, la
+  dimostrazione svuotata collezione per collezione (13 configurazioni, nessun
+  verde tranquillo), sei periodi letti a 390 e 320 nei due temi. **Un difetto
+  vero**: con «dal» dopo «al» le due schermate raccontavano un periodo VUOTO
+  come misurato — Costi «€ 0,00 · 0 voci» con 24 in archivio, Report «prova ad
+  allargare il periodo» su un intervallo senza giorni. Ora `periodoAlContrario`
+  segna il campo «al» (gli `err-…-al` c'erano e nessuno li scriveva) e le due
+  schermate dicono «non è vuoto — non esiste». Commit `3a2c5902`.
+  ⏱️ Osservazioni, non difetti: Costi su un anno vuoto ma con una voce senza
+  data scrive «€ 0,00 · 0 voci · 1 senza data: fuori» invece dello stato
+  vuoto (zero dichiarato, frase migliorabile); il «97% del prodotto non è
+  uscito dal cancello» è la scala della demo copiata da Campo, non il prodotto.
+  ✅ **Settima tappa, il core (02/09)**: sette banchi a mano senza proxy,
+  tutti verdi (dashboard senza rete 14, date illeggibili 15, documenti che
+  escono 67, PDF senza plugin 12, rapportini non misurati 26, sequenza ritardi
+  7, volate non misurate 13). Una cosa del BANCO: la controprova di
+  `core-date-illeggibili` usciva «A VUOTO» perché il core scrive i totali con
+  `perLettura` e non più con `toFixed` — due guardie aggiornate, la tabella
+  scritta a coppie e `iniezioni-fresche` che da oggi legge anche le tabelle
+  chiamate GUARDIE (prima quel banco non lo guardava nessuno). Zero difetti del
+  prodotto.
+  ✅ **Sesta tappa, Terra (02/09, cantiere parallelo, misurato prima di
+  crederci: suite, banchi nei due versi, scatti guardati)**: tre banchi, un
+  solo KO iniziale ed era del calendario (fixture assoluta: «1,1 anni» invece
+  di «l'ultimo anno», resa relativa). **Quattro difetti veri, corretti nel
+  modulo**: (1) il foglio per l'ENTE chiamava «incertezza complessiva … di
+  ogni rilievo» un ± 388 m³ che copriva UN rilievo su quattro — gli altri tre
+  (60.000 m³ senza metodo) pesavano zero nella somma: ora `incertezzaScavo`
+  dichiara la copertura («stimata sul solo rilievo con metodo dichiarato,
+  19.400 su 79.400 m³») nel foglio, nell'onere, nel confronto e nel verbale;
+  (2) il CSV dei rilievi «che la pagina sa ricaricare» usciva con la colonna
+  `fronte` vuota su tutte le righe (scriveva il nome dove il rilievo porta
+  `fronteId`): ricaricato, la ripartizione per fronte della denuncia spariva;
+  (3) la scadenza «senza data» sul Quadro aveva striscia verde e spunta «a
+  posto» accanto al badge arancione (`itemScadenza` rifaceva il colore a tre
+  stati su quattro invece di leggere `lv.cls`); (4) «previsti · misurati» dei
+  lotti finiva nei puntini del `.meta` a 430 px. run-kpi 2427 → 2431, Terra
+  70/70, `terra-numeri-tranquilli` 49 → 73 prove.
+  ⏱️ **Scritte, non chiuse**: il rilievo pianificato con data passata resta
+  «Pianificato» senza nota (decisione di parole); ✅ **04/09 — nel grafico
+  «Volumi per fronte» Fronte Sud disegnava «0 m³» dove la nota dice «non l'ha
+  misurato nessuno»**: adesso `dw-grafici` a barre accetta `null` (regola pura
+  `geometria.separaMancanti`: la voce resta in coda, senza barra, con la parola
+  «non misurato» al posto del numero, fuori da totale/scala/quota; il guasto —
+  stringhe, NaN — resta fuori come prima) e Terra passa `volumeFronteRilevato`,
+  che dice `null` senza rilievi usabili e la somma, anche zero, con. Misurato
+  nel browser a 390 e 900 px: 2 barre, «non misurato» dentro il riquadro, aria
+  «Una voce non è misurata». I mesi del ritmo restano a zero **di proposito**:
+  un rilievo misura da quello prima, quindi un mese senza rilievo non è «non
+  misurato», e la nota lo dice già. run-kpi +4, Terra 77/77;
+  ✅ **04/09 — il conto «anno per anno» della denuncia perdeva nei puntini il
+  numero di rilievi**: misurato col Range, a 390 e 430 px (col badge accanto
+  che stringe la riga) «Scavati · cumulato · da cumuli · N rilievi» chiedeva
+  tre righe su due in due anni su tre, e l'ultimo pezzo — quanti rilievi
+  reggono quel numero — non lo leggeva nessuno. Ora «Scavati · N rilievi · da
+  cumuli»: il cumulato in m³ se n'è andato (il badge lo dice già in
+  percentuale, i m³ stanno nel riepilogo dell'anno sopra). Dopo: al massimo due
+  righe a 320, 390 e 430, nessuna riga tagliata; banchi Terra numeri tranquilli
+  73/0 e frasi-da-uno 48/0, giro node sulla copia 38/0.
+  ✅ **Quarta e quinta tappa, Campo e Sentinella (02/09)**, senza difetti del
+  prodotto: Campo cinque banchi verdi (disegni 30 geometrie, foglio di turno
+  35 con il file aperto, numeri tranquilli 92, frasi con Sentinella 10 su 18
+  schermate; le controprove cadono), Sentinella quattro (disegni 48 con 33
+  geometrie in pixel, numeri tranquilli 26, periodo dell'adempimento 34,
+  report e dichiarazioni 21). Undici schermate scattate e guardate, rete dei
+  sospetti («€ 0,00», «1 giorni», unità in maiuscolo) vuota su tutte. ⚠️ Il
+  banco `campo-sentinella-frasi` a mano vuole la porta del server statico come
+  argomento (esce 2 senza): non è un KO.
+  ✅ **Terza tappa, Flotta (02/09)**: quattro banchi senza proxy tutti verdi
+  (disegni 54, documenti 79 su 9 punti d'uscita, frasi-da-uno 42, numeri
+  tranquilli 24); la domanda del contatore SCESO ha già la risposta giusta
+  in tre funzioni (`consumoPerMezzo`, `ritmoOreMezzi`, `costoOrarioMezzo`:
+  «una delle due letture è sbagliata: il consumo non si calcola»); sei
+  schermate scattate e guardate. **Un difetto vero, corretto**: sul Quadro la
+  tessera «Carburante mese» scriveva «€ 0,00» col titolo «registrato in
+  questo mese» quando i rifornimenti c'erano ma nessuno cadeva nel mese in
+  corso — adesso «—» e il titolo dice il mese. Caso montato nel banco
+  (voce di due mesi fa, relativa), controprova che cade in 2.
+  ✅ **Seconda tappa, Scudo (02/09, cantiere parallelo, misurato prima di
+  crederci)**: cinque banchi lanciati senza proxy, 7 KO iniziali tutti del
+  banco (fixture con date assolute invecchiate: il near-miss del 18/05 uscito
+  dai 90 giorni, la consegna DPI del 15/08 scaduta davvero) resi derivati o
+  relativi; **un difetto vero del prodotto, corretto nel modulo**: la
+  «Copertura formazione per tipo» diceva «3 in regola · tutte regolari» in
+  verde sulle verifiche periodiche mentre quindici righe sotto la stessa
+  schermata scriveva «1 con prescrizioni scadute · 1 mai verificata» —
+  `coperturaFormazione` non leggeva `statoVerificaPeriodica`. Ora due secchi
+  in più (negativa / incerta), `statoCopertura` decide colore e pastiglia in un
+  posto solo, sul vuoto risponde «niente registrato». Controprova nel modulo.
+  Scritto e non chiuso: a 320 px la riga di dettaglio della copertura è
+  tagliata dal clamp a due righe (anche la forma vecchia lo era); e
+  `csvPersonaleScadenze` scrive `stato=regolare` sulle righe azienda accanto a
+  «Prescrizioni scadute» — scelta di prodotto da decidere.
+  ⏱️ **Prima tappa fatta il 02/09, coi banchi**: le sei passate di Conti
+  (`documenti-che-escono` 12 punti d'uscita su 12 aperti, `stampe`,
+  `numeri-tranquilli`, `barre-peso` 25 barre su 4 liste, `frasi`, `frasi-da-uno`
+  41 controlli) → **0 difetti del prodotto**. I 20+ KO della prima lettura erano
+  tutti dell'AMBIENTE (il proxy del contenitore fa aspettare 12,7 s a ogni
+  pagina: tolto ai figli in `tutti.mjs`) e due del CALENDARIO (fixture con una
+  scadenza assoluta al 30/08 e un costo «sei giorni fa» che il 2 del mese cade
+  nel mese sbagliato: rese relative a oggi). Resta da fare la parte che i banchi
+  non fanno: **guardare** ogni schermata con gli occhi e aprire i file che
+  escono, con la domanda «chi decide i suoi numeri?». La ricerca sulla pesa a
+  ponte (`docs/RICERCA_CONTINUA_CONTI.md`, 02/09) lascia 5 domande sul
+  meccanismo da fare al codice — prima fra tutte: **con la tara non registrata,
+  chi decide il netto?**
+  ✅ **02/09, risposta alla prima domanda, e c'era un difetto vero.** Nella
+  pagina il form si difendeva dal 09/08; nel MODULO no: una pesata con la tara
+  mai scritta (da CSV, ripristino, archivio) usciva nell'elenco «lordo 32,50 −
+  tara **0,00** = netto **0,00 t** · € 0,00», e una col netto copiato dal lordo
+  «vendeva il camion» (32,50 t · € 390,00) con la stessa tara 0,00 mai
+  esistita. Adesso `pesiPesata` (in `conti-data.js`) decide i pesi in un posto
+  solo — lordo e tara → netto sempre ricalcolato; nessuno dei due → netto
+  dichiarato; UNO solo → `incompleto`, netto non noto — e da lì discendono
+  quantità, valore («peso incompleto: manca la tara»), riepilogo del venduto
+  (`senzaPeso`, niente NaN, totale per difetto), mancanze del DDT, stampa («—»
+  al posto di 0,00) e lettore CSV (il netto lo decidono i pesi, non la cella;
+  `scartiPesateCsv.senzaPeso`). 3 prove nuove in `run-kpi` (2.403 → 2.406), il
+  banco `conti-numeri-tranquilli` allunga di 13 asserzioni con la controprova
+  a due pezzi (20 KO voluti). Le altre quattro domande della ricerca restano da
+  fare al codice: il nesso pesata→DDT (`fatturaId`/`ddtIds`), la rettifica di
+  un netto dopo la fattura, l'identità della pesa che ha pesato.
+- [x] **IL TERZO LATO DEL TRIANGOLO: L'INVENTARIO DEI CUMULI (Terra → Conti,
+  03/09)** — il candidato 3 della ricerca di Conti, «il più grosso». Il mondo
+  chiude ogni mese prodotto − venduto = Δ scorte; da noi il terzo termine era
+  «scorte a piazzale STIMATE», cioè il divario chiamato con un altro nome.
+  Adesso Terra registra l'**inventario dei cumuli** (fotografia del piazzale a
+  una data: `inventari/{id}`, con metodo e cumuli materiale+volume; un cumulo
+  può essere «non misurato» = `null`, e la riga lo dichiara con la pastiglia,
+  mai «0 m³»), con lista, dettaglio, modale «Nuovo inventario» e cancellazione
+  nella schermata Rilievi; Conti lo legge sulla stessa istanza SDK dei rilievi
+  e chiude il triangolo **in tonnellate, ognuno con la SUA densità** (il cavato
+  con quella in banco di Terra, i cumuli con quella del listino, che è del
+  materiale sciolto — accoppiati per nome normalizzato, `chiaveMateriale`).
+  Le regole in `shared/dw-ponti.js` (`cumuliUsabili`, `inventarioUsabile`,
+  `volumeInventario`, `variazioneScorte`, `scorteInTonnellate`,
+  `chiusuraTriangolo`, `SOGLIA_TRIANGOLO`), ri-esportate per identità dalle
+  due app; in Conti `densitaDalListino` e `triangolo` con sette stati, ognuno
+  con la ragione. Tre principi del fondatore scritti nel conto: un materiale
+  misurato in UN solo inventario **non vale zero** nell'altro (resta fuori,
+  elencato, e il totale si dichiara parziale — la prima stesura lo contava
+  −880 m³, ed è stata bocciata dal prototipo in scratchpad); un materiale
+  senza densità nel listino resta fuori, elencato; lo scarto in giorni fra
+  l'inventario e il confine del periodo si dichiara. Prove: 8 su shared, 11 su
+  Conti, 6 su Terra in `run-kpi`; banchi `terra-inventario.mjs` (45 prove, 3
+  difetti rimessi) e `conti-inventario.mjs` (47 prove, 4 esiti, 3 difetti
+  rimessi), registrati in `tutti.mjs`.
+  ⚠️ **La dimostrazione di Conti NON è una copia di quella di Terra**, e la
+  prima stesura lo era: la cava di Conti cava decine di metri cubi, quella di
+  Terra ventimila, e con i cumuli alla scala di Terra il triangolo chiudeva
+  «implausibile» in tutt'e due i periodi — per costruzione dei dati, non per
+  un difetto. Riscalata (H1: Δ 6 m³ = 16,3 t, scarto 55,2 t «sparito», 23%,
+  attenzione; anno: Δ 12 m³ = 22 t, scarto −58,76 t «in eccesso», 17%). Un
+  banco che pretendesse quei 923 t avrebbe blindato una dimostrazione
+  incoerente.
+- [x] **IL TERZO LATO DEL TRIANGOLO (03/09): l'inventario dei cumuli, da Terra
+  a Conti, e il verbale che lo registra.** Terra registra la fotografia del
+  piazzale a una data (`inventari/{id}`, un cumulo può essere «non misurato»
+  = null, mai zero); Conti la legge sulla stessa istanza SDK dei rilievi e
+  chiude cavato − venduto − Δscorte in tonnellate, ognuno con la SUA densità
+  (in banco per il cavato, del listino per i cumuli, accoppiati per nome
+  normalizzato: `chiaveMateriale`). Regole in `shared/dw-ponti.js` (7
+  funzioni): un materiale misurato in un solo inventario NON vale zero
+  nell'altro — la prima stesura lo contava −880 m³ e l'ha bocciata il
+  prototipo in scratchpad. Il verbale di riconciliazione registra le scorte
+  misurate e la chiusura (`componiVerbale`, copiate da `triangolo`), o dichiara
+  perché restavano stimate; «Questo mese» fra le scorciatoie. Banchi
+  `terra-inventario` (45), `conti-inventario` (47), `conti-verbale` (39) nei
+  due versi. ⚠️ Lezione: la dimostrazione di Conti è la SUA cava (decine di
+  m³), non quella di Terra (ventimila): alla scala sbagliata il triangolo
+  chiudeva «implausibile» per costruzione. Il candidato 3 della ricerca di
+  Conti è chiuso; la metà del 6 pure; resta il promemoria (decisione 20).
+- [x] **IL CORE, PASSATA IN PROFONDITÀ (04/09): quattro difetti veri, corretti.**
+  9 banchi verdi (223 prove), 14 schermate × 390/320 × scuro/chiaro con zero
+  sovrapposizioni, 9 PDF aperti (jsPDF intercettato: «esplosivo per tipo»
+  identico alla scheda, «non contato» dove non contato), i default svuotati
+  nella risposta HTTP. (1) «SPALLA (M)», «INTERASSE (M)», «BORRAGGIO (M)»:
+  tre unità nude dentro `.fl` nel riquadro della maglia, rimaste fuori dalla
+  correzione del 30/07; (2) il KPI Esplosivo del gemello scriveva «nessuna
+  delle **0 volate** dichiara i chili»; (3) nel disegno della galleria con
+  calotta 0 il titolo «SEZIONE GALLERIA» stava dentro la sezione dove passa la
+  fila di contorno — **2 fori sopra il titolo**, misurato coi rettangoli — ora
+  nel margine; (4) il promemoria con data illeggibile in home diceva «Scaduto
+  il —»: ora la frase delle notifiche («la data non si legge»). Prove sul
+  sorgente in `run-kpi` (4 KO su 4 contro `HEAD`). ⏱️ Candidato dichiarato: il
+  PDF della volata scrive «787.5mc», «56kg» col punto e senza spazio (righe
+  ~7882) dove lo schermo dice «787,5 mc» — da fare INSIEME a
+  `core-documenti-che-escono`, che cita quelle stringhe come bersaglio
+  d'iniezione. Il tema del sole nel core non è raggiungibile dall'utente
+  (`applyTheme` toglie sempre `outdoor-mode`): misurato `light-mode`.
+  ✅ **Il candidato del PDF è chiuso (04/09)**: i tre numeroni di pagina 1 e i
+  totali di pagina 3 passano da `perLettura` («787,5 mc», «56,0 kg», «102,0
+  m»), il banco `core-documenti-che-escono` legge i numeri a schermo per
+  selettore e li confronta col foglio (67 → 70 asserzioni, iniezioni
+  ripuntate, `iniezioni-fresche` 476/476). ✅ **E lo schermo del progetto
+  (04/09)**: la striscia `ec-stats` scriveva «126m · 112kg · 1323mc» e
+  «1240.3mc» col punto a due centimetri dal bottone il cui foglio scrive
+  «1.323,0 mc»; ora metri, chili e mc passano da `perLettura(x,1,true)`, come
+  `volKg`, `volRiga`, il riquadro in sola lettura («102,0 m», «almeno 56,0
+  kg») e `caricaMaxDetta` (che scriveva `toFixed(1)` col punto: «≥ 16,0 kg»).
+  Misurato a 320 px PRIMA: la striscia andava già su due righe (h 63) con la
+  seconda a 120 px su 320, quindi le cifre in più non aprono una terza riga —
+  e DOPO: stesse due righe, 0 fuori, scatto guardato. `core-documenti-che-
+  escono` 70 → 71 (la striscia letta all'italiana, iniezione 15 ripuntata,
+  nessuna striscia col punto), controprova 15/15 e cade; run-kpi +8
+  asserzioni sul sorgente (stesso conto di prove).
+  ✅ **E la maglia e le coordinate (04/09, unità successiva)**: la MAGLIA era
+  col punto dappertutto — striscia «Sp3×I3.5», riquadro «B 3.2 × S 3.8»,
+  etichetta SVG «Sp3m», PDF «3.5 m» — e la tabella dei fori del PDF scriveva le
+  coordinate con `toFixed(2)`; in più tre PDF/Excel (rapportino, totali del
+  mensile, fochino per foro) avevano `toFixed(1).replace('.',',')`, cioè
+  perLettura riscritta senza le migliaia. Tutti da `perLettura` ora («Sp3,2×
+  I3,8», «B 3,2 × S 3,8», «3,2 m», «1,90»/«3,20»). Il banco
+  `core-documenti-che-escono` 71 → 74 (spalla/interasse letti dal foglio,
+  coordinate con la virgola su 12 righe su 12, striscia «Sp3,2×I3,8»),
+  iniezione 17 nei due versi (17/17 rimessi, cade). ⚠️ Il righello ha morso: il
+  lettore dei numeroni cercava la PRIMA «n,n m» del foglio intero e, con la
+  maglia passata alla virgola, prendeva «3,5 m» dell'interasse al posto di
+  «126,0 m»: adesso legge il numero che precede la SUA etichetta (METRI/KG/MC).
+  ✅ **E il Report tecnico (04/09, terza unità della famiglia)**: tabella dei
+  rapportini e piede scrivevano «81.0», «1190.7», «3466.0» col punto — l'ultimo
+  foglio del core con una grafia sua — e la riga dei rapportini collegati nella
+  riconciliazione «126.0m». Ora `perLettura` («1.190,7», «3.466,0», «126,0 m»);
+  il righello del banco legge all'italiana (`num`), e una asserzione nuova
+  pretende che nessuna cella di metri/mc del report sia col punto: banco 74 →
+  75 nei due versi. Nel core non resta nessun `toFixed(1)` su metri e mc dei
+  rapportini (prova sul sorgente).
+  ✅ **E i numeroni a schermo (04/09, quarta e ultima della famiglia)**: i
+  totali della dashboard e del report («3466» mc, «419 m», «112» kg), la
+  `data-val` delle barre mensili, le statistiche del cliente e i g/m del
+  fochino passano da `perLettura(x,0)` («3.466»); `toFixed(0)` resta solo
+  sulle percentuali, e la prova sul sorgente conta che le due forme coincidano.
+  Misurato a 320 e 390: «3.466» dentro la scheda, 0 fuori; banchi
+  `core-dashboard-senza-rete` 14/0 e `core-documenti-che-escono` 75/0 (il suo
+  righello `num` leggeva già all'italiana).
+- [x] **CONTI — dalla ricerca del 05/09 notte (il file dei movimenti bancari),
+  con un difetto MISURATO.** `parseMovimentiCsv` legge le colonne per
+  posizione: sulla forma più citata dai manuali (`Data operazione;Descrizione;
+  Importo entrate;Importo uscite;Saldo progressivo;Causale ABI`) il bonifico da
+  12.300 € esce **−45.210,77** (il saldo letto come uscita) senza nessuno
+  scarto dichiarato, e sulla forma dare/avere la descrizione si perde e la
+  fattura non si abbina. (a) ✅ **fatto la notte stessa** — `mappaMovimentiCsv`
+  legge l'intestazione per nome (indizi cercati all'inizio di una parola:
+  «cont-abi-le» non è «causale ABI»), esclude saldo e causale ABI, e
+  `parseMovimentiCsv` la usa quando c'è; senza, la posizione di sempre; l'esito
+  dell'import dice le colonne riconosciute, quelle lasciate fuori e quelle non
+  riconosciute; col solo saldo come numero il movimento esce scartato, non con
+  il saldo come importo. run-kpi +5; banco nuovo `conti-banca-colonne` che
+  carica i due file veri. (b) ✅ **fatto nel ciclo delle 03:47Z** —
+  `riferimentoInCausale` (TRN/CRO SOLO con l'etichetta davanti: undici cifre
+  nude sono un mandato) e `riferimentoMovimento` (prima la colonna, se il
+  file ce l'ha, poi la causale; `null` quando non c'è); il movimento lo porta
+  come `riferimento`, la riga lo mostra in monospazio con scritto da dove
+  viene, e l'incasso registrato lo conserva. run-kpi +3; il banco carica un
+  terzo file con la colonna TRN e un CRO nella causale: 36/0, controprova
+  16/36. Vedi `docs/RICERCA_CONTINUA_CONTI.md`.
+- [x] **FLOTTA — otto file composti nella pagina, due saliti nel modulo
+  (05/09):** `csvCosti` e `csvFermiMacchina` (con le costanti delle
+  intestazioni) — la data vuota resta vuota, l'importo non dichiarato pure,
+  le tre risposte di `durataFermo` nel file. run-kpi +2 (2665); censimento
+  delle intestazioni: `flotta.costi` verificato chiamando l'export e
+  `flotta.fermi` censito (non c'era); banco `flotta-documenti-che-escono`
+  79/79 e controprova con l'iniezione dei fermi riancorata sul modulo.
+  Poi `csvGiriMacchina` e `csvScadenzeDiLegge` (+ `mezziSenzaScadenze`, la
+  domanda «chi non ha nessuna riga» scritta una volta per foglio e frase):
+  run-kpi +2 (2667), censite `flotta.giri` e `flotta.scadenzeMezzi`, l'iniezione
+  di `statoGiro` riancorata sul modulo. ⚠️ Il modulo non importava `conta`: il
+  banco l'ha preso (il giro di D3 non usciva), `run-kpi` no, perché nella
+  dimostrazione quel caso non c'è — è il banco che lo costruisce.
+  Poi `csvRegistroInterventi` (l'export più grande: la cella dell'importo
+  vuota quando il costo non c'è, lo zero dichiarato tenuto) e
+  `csvListaDellaSpesa(proposta)` (le righe da ordinare e le tre avvertenze in
+  fondo, una per bandiera della proposta): run-kpi +2 (2669), censiti
+  `flotta.interventi` e `flotta.listaSpesa`, tre iniezioni riancorate.
+  Poi `csvSituazione(mezzi, manutenzioni, ricambi, letture)`: run-kpi +1
+  (2670), `flotta.prospetto` passa da «letto nella pagina» a «verificato
+  chiamando l'export». ⛔ E il banco `flotta-documenti-che-escono` applicava
+  le iniezioni SOLO alla pagina: le riancorate sul modulo non mordevano e
+  «✔ distingue» usciva lo stesso — corretto (ogni iniezione al file che
+  dichiara), e da allora si legge la riga «8 difetti rimessi davvero».
+  **Resta nella pagina un file di Flotta**: il libretto (il più lungo, ~60
+  righe di `R(...)`). In Conti sono saliti `csvProspettoIncassi` (il residuo
+  dopo ogni incasso toglie lo stornato) e `csvProspettoClienti` (il fido non
+  impostato esce vuoto), con `nomeMetodo`/`METODI_INCASSO` e `cellaNum`
+  saliti dalla pagina; run-kpi +2 (2672); il banco `conti-documenti-che-escono`
+  aveva lo stesso buco di Flotta (applicava solo alla pagina) e adesso legge
+  «6 difetti rimessi davvero». Poi `csvProspettoCosti` (anche le voci senza
+  data/importo/a zero, marcate a parole) e `csvPrezziConvertiti`, con
+  `ETICHETTA_GRUPPO`/`etichettaGruppo`/`leggiVoce` saliti dalla pagina —
+  ⛔ e un difetto vero: `prezzoPerTonnellata`/`prezzoPerMetroCubo` facevano
+  `+p.prezzo || 0`, quindi un prodotto senza prezzo usciva «0 €/t» (gratis)
+  nel listino per il cliente mentre la colonna `prezzo` accanto era vuota —
+  la cella corretta l'08/08 e le due accanto no; adesso `null`, e lo zero
+  scritto resta zero. run-kpi +2 (2674). Poi `csvProspettoPreventivi` (una
+  riga per riga di preventivo, stato di `statoPreventivo`, scaglione e le due
+  metà dello sconto; `nomeClienteOrdine` salita dalla pagina) e
+  `csvProspettoDdt` (diciotto colonne, il valore solo se `valoreDdt` lo sa
+  calcolare): run-kpi +2 (2676); la frase «N righe nel foglio» conta le righe
+  del file composto. **Conti è a zero file composti nella pagina: 14 export
+  su 14 dal modulo.** E per ultimo il libretto: `csvLibretto(mezzo, dati,
+  oggi, preavviso)` con le sei sezioni vuote che parlano, e le parole che lo
+  schermo e i file dicevano due volte salite nel modulo (`oreMotoreTesto`,
+  `oreLavoroTesto`, `ogniMesiTesto`, `lavorazioneTesto`, `codaContatoreTesto`,
+  `ETICHETTA_STATO_MEZZO`); run-kpi +3 (2679). ⛔ E il banco `libretto-vuoti`
+  aveva la controprova ROSSA da una unità (exit 3: il difetto 4 citava lo
+  scadenzario nella pagina, salito nel modulo poche ore prima) — adesso
+  inietta per file, 4 su 4; `flotta-frasi-da-uno` idem, 24 su 24. **Chiusa:
+  Scudo 2, Campo 1, Flotta 8 su 8, Conti 6 su 6 — tutti i file composti
+  nella pagina sono nel modulo, con la prova in run-kpi e l'intestazione
+  verificata chiamando l'export.**
+- [x] **CAMPO — la consegna di turno si compone nel modulo (05/09):** stessa
+  domanda, stessa risposta. I cinque CSV di Campo erano già del modulo; il
+  foglio `consegna_turno.txt` (cento righe, dieci sezioni) stava nella pagina.
+  `testoConsegnaTurno(d, {avviso, dmy})` e `fraseNonRiconosciute(pf, html,
+  avvolgi)` nel modulo, la pagina chiama e passa la riga dei dati di esempio
+  (che dipende dal modo). run-kpi +3 (2663): dieci sezioni in ordine, nessuna
+  vuota, «registro non letto» ≠ «registro vuoto» per Sentinella e Scudo.
+  Banco `campo-foglio-turno` 44/44 sano, --live e controprova, senza
+  riancorare niente (le iniezioni mordono le funzioni, non la composizione).
+- [x] **TERRA — il riepilogo dell'anno e l'archivio dei fronti e rilievi si
+  compongono nel modulo (05/09):** ultima app della domanda «che cosa esce, e
+  chi decide i suoi numeri?». `csvRiepilogoAnno(DEN, fronti, oggi)` con la
+  costante dell'intestazione: mesi, totale (la cella del totale legge
+  `d.base.calcolabile`, come lo schermo), fronti, banchi, i secchi — compresa
+  la riga «Fronti non più in elenco», che prima spariva dal file — e le due
+  righe del titolo con `R.misurabile`. `csvFrontiRilievi(fronti, rilievi)`:
+  «quota non dichiarata» dove la quota non c'è, «volume non leggibile» su un
+  elaborato col volume illeggibile (`rilievoUsabile`, la stessa dello
+  schermo), la provenienza di `provenienzaDi`, rilievi dal più recente.
+  `MESI_NOME` ed `etichettaFronteDi` saliti dalla pagina. run-kpi +2 (2681);
+  censimento: `terra.prospettoAvanzamento` e `terra.prospettoFronti`
+  verificati chiamando l'export (soglia export 38 → 40, pagine 0). Fondo di
+  copertura di Terra 80 → 86. Il banco `terra-numeri-tranquilli` inietta per
+  file (cinque iniezioni riancorate sul modulo: 2, 6a, 6b, 6c, 7), 19 su 19
+  rimessi; la prova statica delle sette celle del titolo cerca le due celle
+  del CSV nel modulo. **Le sei app sono a zero file composti nella pagina.**
+  ⚠️ Resta il core (`index.html` alla radice): il suo unico CSV
+  (`deepwork_fori_fronte`) vive in un monolite SENZA modulo dati, quindi la
+  regola «lo compone la stessa funzione che decide a schermo» lì non ha un
+  modulo in cui salire — si dice qui e non si apre un cantiere a metà.
+- [x] **TERRA — il verbale di rilievo si compone nel modulo (05/09):** la
+  stessa domanda sui fogli STAMPATI, che non sono CSV ma escono lo stesso:
+  `fogliaVerbale` componeva le righe con le funzioni del modulo, ma parole e
+  formati vivevano nella pagina (la quota col punto fino al 03/08, «il
+  metodo dichiarato e il GSD» accanto a «GSD: non dichiarato»), dove nessuna
+  prova senza browser li legge. `verbaleRilievo(r, {rilievi, fronti,
+  autorizzazioni})` nella forma di `relazioneLotto`: righe
+  `[etichetta, testo, mancante, forte]`, l'atto, «da dove parte la misura»
+  (cumulo / confronto / nessuno), la frase su come è nato il numero, e
+  `nonMisurati` che il foglio stampa in «Che cosa manca in questo verbale»
+  — un fronte che manca su un cumulo NON è un dato mancante («nessuno —
+  ripresa da un cumulo»), il rilevatore non indicato resta la cella vuota
+  da compilare a penna, un volume illeggibile dice «non leggibile» e non
+  «— m³». La pagina disegna e basta. run-kpi +8 (2689), copertura di Terra
+  86 → 87; le due iniezioni dei banchi (`terra-numeri-tranquilli` 6d,
+  `verbale-origine`) riancorate sul modulo, 19/19 e «SA fallire»;
+  `stampe-fs --solo=terra` 17/17, `terra-frasi-da-uno` 48/48.
+  ✅ E `fogliaStampa` è salita lo stesso giorno (voce sotto).
+- [x] **TERRA — il prospetto della denuncia annuale si compone nel modulo
+  (05/09):** `prospettoDenuncia(DEN, fronti, oggi)`, sette sezioni — l'atto,
+  i mesi (tabella `{colonne, numeriche, righe, totale, nota}`), fronti,
+  banchi, posizione rispetto al concesso, base dell'onere, «come sono stati
+  ottenuti i numeri» — più `nonMisurati` stampato in «Che cosa manca in
+  questo prospetto». Le frasi che fino a oggi vivevano nella pagina («nessun
+  rilievo — il volume dell'anno non l'ha misurato nessuno», i singolari
+  «1 rilievo di scavo» / «1 ripresa da cumulo» / «1 indicativo» / «1 fronte
+  non dichiara», la nota del pregresso come «valore minimo») adesso si
+  provano senza browser; il grassetto nelle note viaggia come `**così**` e
+  lo rende la pagina. La voce senza fronte (sole riprese da cumuli) scrive
+  «non misurato» sullo scavo ma NON finisce fra le cose che mancano. La
+  pagina tiene solo HTML e CSS. run-kpi +5 (2694: la dimostrazione, la
+  posizione e l'onere, l'anno CIECO con «non misurato» su totale / cumulato
+  / residuo / imponibile e mai uno zero, i singolari e i secchi, la pagina
+  che non compone più); la prova statica delle celle del titolo tiene le
+  due tessere dello schermo e le due celle del CSV, le tre del foglio si
+  provano chiamando la funzione. Copertura di Terra 87 → 88. Banchi:
+  `terra-numeri-tranquilli` 1, 1b, 8b riancorate sul modulo (73/73, 19/19
+  «SA fallire»; il suo estrattore decodifica le entità, perché il foglio ora
+  passa da `esc`), `terra-frasi-da-uno` applica per file e la n. 8 è sul
+  modulo (48/48, 20/20), `stampe-fs --solo=terra` 17/17, `nomi-liberi` la cui
+  controprova rimette insieme al difetto il `const conta` locale che la
+  pagina non ha più. Scatto del prospetto guardato: identico nel disegno.
+  **Terra: tre fogli su tre (relazione, verbale, prospetto) e due CSV su due
+  composti nel modulo.**
+- [x] **CONTI — il foglio della fattura si compone nel modulo (05/09):** la
+  stessa domanda sui tre fogli che vanno al cliente; il primo è la fattura,
+  quella con più regole. `fogliaFattura(f, {clienti, incassi, note})`:
+  righe (coi DDT e lo sconto come note sotto la cella), piede una riga per
+  aliquota (`riepilogoIvaFattura`, mai una media), avvisi (importo unico,
+  righe che non tornano col piede, note di credito «annullata» / «rettificata
+  in parte»), riquadri (scadenza che manca o non esiste → «non indicato» e
+  nell'elenco di ciò che manca; stato di `statoFattura` con «a credito N da
+  rimborsare»), note di credito e incassi come tabelline, il piede legale;
+  `nonMisurati`. La pagina disegna (grassetto come `**così**`). Due cose
+  dette meglio: su una riga dettagliata una quantità o un prezzo che non ci
+  sono escono «non indicata/o», non «0,00 t» / «€ 0,00». run-kpi +6 (2700):
+  importo unico, dettagliata (10% e 22% in due righe), righe che non
+  tornano, le tre facce delle note di credito, la scadenza, con niente, e la
+  pagina che non compone più. Copertura di Conti 176 → 177. Banchi:
+  `conti-stampe` con le tre iniezioni (piede, stato, righe che non tornano)
+  riancorate sul modulo e il ciclo che applica per file (20/20; controprova
+  «6 difetti rimessi», 10 KO voluti), `stampe-fs` con l'iniezione dei
+  trattini sul modulo (22/22; controprova 2/2), `conti-frasi-da-uno` 41/41,
+  `conti-documenti-che-escono` 81/81. Scatto della fattura guardato.
+  ✅ E `fogliDdt` e `stampaPreventivo` sono saliti lo stesso giorno (voce sotto).
+- [x] **CONTI — il DDT e il preventivo si compongono nel modulo (05/09):**
+  `fogliaDdt(p, {clienti})` — riquadri (causale, trasporto a cura, data del
+  ritiro: «da indicare» in grassetto quando mancano, mai «Vendita» fissa),
+  l'avviso di `mancanzeDdt`, la riga coi pesi di `pesiPesata` («—» dove mai
+  scritto), il prezzo di `numeroDichiarato` («non indicato», mai «€ 0,00/t»;
+  lo zero scritto resta un omaggio), il valore solo se `valoreDdt` lo sa
+  calcolare col suo perché, il volume da `quantitaPesata`, il piede legale;
+  `fogliaPreventivo(o, {clienti, oggi})` — titolo Conferma d'ordine /
+  Preventivo, riquadri con lo stato da `ETICHETTA_STATO_PREVENTIVO` (mappa
+  salita nel modulo: il badge a schermo la legge da lì), l'avviso delle
+  righe a chiamata al singolare/plurale, righe, piede da `totaliPreventivo`
+  con «—» quando non c'è niente da sommare (anche senza righe, prima
+  «€ 0,00»), note, piede legale. La pagina disegna; le unità nelle
+  intestazioni restano protette dal maiuscolo. run-kpi +6 (2706): DDT
+  completo, senza causale/trasporto, il vettore senza nome, il prezzo mai
+  scritto e lo zero scritto, la data inesistente; conferma a chiamata,
+  preventivo coi numeri, senza validità, plurale, senza righe, con niente;
+  la pagina che non compone più. Copertura di Conti 177 → 180. Banchi:
+  `conti-stampe` con l'iniezione 5 («Data del ritiro») sul modulo (20/20,
+  controprova 6 rimessi / 10 KO voluti), `stampe-fs --solo=conti` 22/22,
+  `conti-frasi-da-uno` 41/41, `conti-documenti-che-escono` 81/81. Scatti
+  del DDT e della conferma d'ordine guardati. **Conti: tre fogli su tre e
+  quattordici CSV su quattordici composti nel modulo.**
+- [x] **CAMPO — il rapporto di fine turno stampato si compone nel modulo
+  (05/09):** cento righe di modello HTML nella pagina, dodici sezioni. Adesso
+  `rapportoGiornata(d, {dmy})` restituisce il Quadro («—» con il perché dove
+  non è stato registrato niente, mai «0/0 concluse · 0 anomalie»), l'avviso
+  di chi non ha il giorno, e le sezioni come `{titolo, testo, blocchi:
+  [{intro, tabella: {colonne, righe, totale, vuota}}], note}` — checklist,
+  meteo, personale (appello, riposo sotto le 11 ore in evidenza, orari che
+  mancano DICHIARATI nella cella), obiettivo, attività (anomalie prima),
+  fermi coi minuti di `paretoFermi`, disponibilità con la nota sull'OEE,
+  foto, produzione col totale, rapportini con «· senza data» sulla riga,
+  chiusura con le firme in bianco, riaperture solo se ci sono. Grassetto
+  `**così**`, corsivo `*così*`, a capo `\n`: li rende la pagina, che tiene
+  solo HTML e CSS. run-kpi +6 (2712): il giorno pieno (05/09), il personale,
+  le tabelle coi numeri, la giornata vuota, chiusure/riaperture/foto/
+  checklist, la pagina che non compone più. Copertura di Campo 134 → 135.
+  Banchi: `campo-foglio-turno` 44/44 (le due iniezioni del Quadro sul
+  modulo; controprova 15 rimessi; `--live` 44/44), `campo-numeri-tranquilli`
+  94/94 — e applica per file: le sue iniezioni 4, 5 e 5b anchoravano sul
+  testo della pagina che era già salito con `testoConsegnaTurno` stamattina
+  e non venivano più rimesse; riancorate sul modulo, più una nuova sul
+  `attenzione` del rapporto (controprova 18 su 18 rimessi, 41 cadute su
+  94). Scatto del rapporto guardato: stesso foglio. **Campo: rapporto e
+  consegna composti nel modulo, cinque CSV su cinque.**
+- [x] **SCUDO — il verbale DPI e la cartella del lavoratore si compongono
+  nel modulo (05/09):** i due fogli che si stampano dallo schermo.
+  `fogliaVerbaleDpi(lav, {dpi, mansioni, oggi})` — le otto colonne in testo
+  (il modello mai registrato lo dice, la data illeggibile «non indicata», la
+  scadenza passata «— DA SOSTITUIRE» letta dallo stato di `verbaleDpi`,
+  l'addestramento «fatto (non obbligatorio)» / «non previsto» / «fatto il …»
+  / «DA FARE»), la mansione assegnata, la dichiarazione, le firme, il piede
+  coi conti, `nonMisurati`; `fogliaCartella(c, oggi)` — le sezioni del
+  fascicolo (l'adempimento e non la famiglia, l'etichetta del DPI e non la
+  chiave, lo stato della consegna e del documento in evidenza, nomine e
+  documenti solo se ci sono, ogni sezione vuota con la frase che dice
+  perché), la chiusura di `descriviCartella` con `allarme`. La pagina
+  costruisce il DOM (grassetto `**così**`). run-kpi +5 (2717): le otto
+  colonne su Luca Bianchi, i casi «fatto (non obbligatorio)» / «non scade» /
+  30 febbraio / persona senza consegne, la cartella piena, quella vuota, il
+  documento senza stato, la pagina che non compone più. Copertura di Scudo
+  197 → 199. Banchi: `stampe-fs --solo=scudo` 17/17 con l'iniezione del
+  modello sul modulo (controprova 3 rimessi, 5 KO voluti), `scudo-documenti`
+  89/89 con le iniezioni 7, 13, 14 sul modulo (controprova 27/27 rimessi,
+  43 KO voluti), `scudo-numeri-tranquilli` 50/50 con la n. 4 fra i difetti
+  del modulo (12/12 rimessi). Scatti del verbale e della cartella guardati.
+  ⚠️ `scudo-frasi-da-uno` e `campo-sentinella-frasi` vogliono la porta
+  posizionale di un server GIÀ alzato (`tutti.mjs`): non si lanciano da
+  soli, e non li ho misurati qui. **Con questa unità la domanda «chi decide
+  i numeri di ciò che esce?» è chiusa anche sui fogli stampati: Terra 3,
+  Conti 3, Campo 1 (+ la consegna), Scudo 2, Sentinella 1 — tutti composti
+  nel modulo; Flotta e il report di Sentinella stampano lo schermo.**
+- [x] **TUTTI I DOCUMENTI DELLE SEI APP, SULLA DIMOSTRAZIONE, SENZA BROWSER
+  (05/09):** il dividendo della giornata. Ogni CSV e ogni foglio è una
+  funzione pura, quindi «premere ogni bottone che produce un file e aprire
+  il file» si fa in `node`: `apps/deepwork-id/tests/documenti-dimostrazione.mjs`
+  compone **110 documenti** (terra 18, conti 41, campo 8, scudo 19, flotta
+  14, sentinella 10; 106.000 caratteri) con gli stessi argomenti dei bottoni
+  e giudica: si compongono senza sollevare, nessuno vuoto, niente
+  «undefined» / «NaN» / «[object Object]» / «null» a testo, nessun «1
+  rilievi» (60 plurali cercati). Le celle «tranquille» (`€ 0,00`, `0%`,
+  `0 m³`, `;0;`) le conta e le elenca con `--dimmi` — 117 in 13 documenti —
+  come CANDIDATI, non verdetti. `--controprova` sporca in memoria il primo
+  documento di ogni app e pretende che cadano due prove (SA fallire). In
+  `npm test` e nel giro (38 → 40 comandi). Una riga in CLAUDE.md, sezione
+  Test. ✅ **I 117 candidati guardati uno per uno (05/09, sera), stampando le
+  righe con lo zero: ZERO assenze travestite da zero.** Sono conti
+  (`fermi;0`, `attivita_totali;0`, `note_di_credito;0`, `anomalie;0` con
+  esito «tutto a posto»), valori misurati (`riposo_ore;0` = «nessun riposo
+  fra questo turno e il precedente», `giacenza;0`, `residuo_dopo;0` =
+  saldata), sconti non applicati (`sconto_pct;0` sul DDT e sul preventivo:
+  nessuno sconto È zero), i mesi a zero del modulo dell'ente (col totale
+  che legge la bandiera) e le giornate senza registrazioni di `csvStorico`,
+  che hanno già il prodotto VUOTO. Il numero resta nel banco come misura,
+  non come debito: se sale, qualcuno ha scritto uno zero nuovo e va guardato.
+- [x] **RICERCA A ROTAZIONE, SCUDO — IL CALENDARIO CHE SI IMPORTA NEL
+  TELEFONO, E IL DELTA FATTO (11/09):** metà sul mondo con `WebSearch`
+  (fonti citate, seconda mano dichiarata): gli scadenzari HSE in commercio
+  (SICURWEB, iCLhub, MIRMI, EduPLANweb) esportano il calendario delle
+  scadenze in **ICS** per Outlook e Google Calendar; il formato è RFC 5545
+  (eventi di un giorno con `DTSTART;VALUE=DATE`, avvisi `VALARM`, testo
+  sfuggito, righe CRLF piegate a 75 ottetti — e il nuovo Outlook rifiuta il
+  file piegato male). Delta dal MECCANISMO: la riga «Allarmi scadenza
+  certificazione» diceva «l'allarme lo deve andare a leggere qualcuno:
+  nessun invio, nessun calendario» — l'invio chiede un server (decisione),
+  il calendario no. `icsCalendario(eventi, opzioni)` in `shared/dw-shell.js`
+  (compositore puro, riproducibile col `DTSTAMP` da fuori, un giorno che non
+  esiste non entra e si conta) e `calendarioScadenze(scadenze, lavoratori,
+  oggi)` in Scudo (un evento per scadenza col lavoratore nel titolo o
+  «azienda», lo stato di oggi nella descrizione, DUE avvisi a 30 e 7 giorni
+  — le soglie del semaforo — le senza data fuori e nominate, l'UID dall'id
+  così reimportare aggiorna e non raddoppia); bottone «Calendario (.ics)» nel
+  Scadenzario col marchio della dimostrazione nel nome e la frase che conta.
+  ⚠️ Il primo bottone moriva con «Buffer is not defined»: il compositore
+  piegava le righe con `Buffer`, che nel browser non esiste — preso dalla
+  sonda prima del commit, passato a `TextEncoder`. ⚠️ E il pin degli export
+  «nelle quattro app» NON conta Scudo: alzato a 36 e riportato a 35 con la
+  ragione scritta accanto. Prove: run-kpi +4 (2854) — la testa del file, il
+  giorno intero, il DTSTAMP, l'escaping, i due avvisi, CRLF, ≤75 ottetti, la
+  piegatura che non spezza un accento, il 30 febbraio fuori, la
+  riproducibilità, la dimostrazione (26 scadenze); `documenti-dimostrazione`
+  136; copertura 941/941 (dw-shell 58 → **59**, Scudo 214 → **215**). Sta in
+  `shared/` perché Flotta, Sentinella e Terra hanno lo stesso scadenzario:
+  candidato per le tre, dichiarato.
+  ⛔ **E IL BANCO `csv-dimostrazione` HA BOCCIATO LA PRIMA STESURA, A RAGIONE:
+  il nome del file muore all'importazione.** Due KO: «un'estensione che il
+  banco sa giudicare» (il `.ics` non c'era) e «lo dichiara nelle prime righe,
+  non solo nel nome» — e la seconda è un difetto VERO del prodotto, non del
+  banco: un calendario importato in Google Calendar o sul telefono lascia il
+  file e tiene gli EVENTI, quindi «Visita medica · Mario Rossi» di esempio
+  sarebbe entrato nell'agenda di qualcuno con la faccia di una scadenza vera.
+  È la stessa regola della consegna `.txt` di Campo («un foglio che si legge
+  dall'alto deve dirlo prima di essere creduto»), e qui vale di più perché il
+  file non si legge nemmeno. Cura: `icsCalendario` prende `esempio` e lo mette
+  in TRE posti che sopravvivono all'importazione — `X-WR-CALNAME` («DATI DI
+  ESEMPIO · Scadenze sicurezza (Scudo)»), il prefisso di OGNI `SUMMARY`
+  (quello che si vede sul telefono) e la prima riga di ogni `DESCRIPTION`;
+  la pagina passa `avvisoTestoDimostrazione(modoDimostrazione(db.mode), …)`
+  (i siti della decisione nelle pagine 7 → **8**). Il banco giudica il `.ics`
+  con una domanda sua: la testa è tutto ciò che sta prima del primo evento, e
+  OGNI titolo deve dichiarare (26/26); in `--live` non ne resta traccia in
+  nessun punto del file (0/26); in controprova il rosso viene dal nome.
+  Misurato nei tre modi: 39 ok · 39 ok · 6 KO voluti.
+- [x] **FLOTTA — IL CALENDARIO DEI MEZZI (.ics), SECONDA APP SUL COMPOSITORE
+  CONDIVISO (11/09):** `calendarioMezzi(scadenze, manutenzioni, oggi, adesso,
+  avvisoEsempio, preavvisoGiorni)` in `flotta-data.js`, sopra `icsCalendario`
+  di `shared/`: un evento per scadenza di legge (tipo e mezzo nel titolo, il
+  documento e lo stato di oggi con le parole del semaforo nella descrizione,
+  `UID flotta-scadenza-<id>`) e uno per ogni tagliando CON UNA DATA
+  (`flotta-tagliando-<id>`; se ha anche le ore la descrizione dice «la prima
+  delle due»). ⛔ **I tagliandi a sole ore restano FUORI e si contano**: la
+  loro scadenza la dice il contatore, e una data stimata dal ritmo di lavoro
+  non è una scadenza — in agenda entrerebbe con la faccia di una data certa
+  (nella dimostrazione: 6 eventi dentro, 3 a sole ore fuori, detti nella
+  frase). Gli avvisi sono al preavviso scelto nello scadenzario e a 7 giorni
+  (a 7 non si raddoppia; un preavviso illeggibile ricade sul 30). Bottone
+  «Calendario (.ics)» accanto all'export CSV delle scadenze; la pagina passa
+  l'avviso della dimostrazione da `avvisoTestoDimostrazione(modoDimostrazione
+  (db.mode), …)` — Flotta lo importa da oggi. Sonda a 320 px: file
+  «DATI-DI-ESEMPIO_flotta-scadenze-mezzi.ics», calendario «DATI DI ESEMPIO ·
+  Scadenze e tagliandi dei mezzi (Flotta)», 0 errori, scatto guardato (i due
+  bottoni si impilano sotto il modulo, come nel core). Prove: run-kpi +1
+  (2855; il pin degli export «nelle quattro app» 35 → **36**, con la ragione:
+  Flotta è fra le quattro, Scudo no), `documenti-dimostrazione` 137,
+  copertura 942/942 (Flotta 136 → **137**); il banco `csv-dimostrazione` sul
+  `.ics` di Flotta nei tre modi. Restano Sentinella (adempimenti) e Terra
+  (autorizzazioni), un'app per unità.
+- [x] **SENTINELLA — IL CALENDARIO AMBIENTALE (.ics), TERZA APP SUL
+  COMPOSITORE CONDIVISO (11/09):** `calendarioAmbiente(adempimenti,
+  monitoraggi, programma, oggi, adesso, avvisoEsempio)` in
+  `sentinella-data.js`. Tre famiglie di date, ognuna con le parole che usa
+  già lo schermo e col SUO preavviso: gli **adempimenti** (titolo ed ente,
+  il periodo coperto nella descrizione da `descriviPeriodoAdempimento`, il
+  verdetto di oggi dalla regola condivisa `statoScadenzaHSE` — la stessa del
+  report; avvisi a 30 e 7 giorni); le **tarature** degli strumenti (la
+  scadenza dell'ultimo certificato valido da `statoTaraturaStrumento`, con
+  ente e numero; 30 e 7); il **programma** di monitoraggio (la prossima
+  misura di ogni riga da `programmaEsteso` — ultima lettura + ogni quanti
+  giorni — con l'avviso il giorno PRIMA, perché una cadenza settimanale con
+  un avviso a 30 giorni non avvisa niente). ⛔ Quello che non ha una data
+  resta fuori e si CONTA per famiglia: l'adempimento senza data (nominato),
+  il punto senza taratura dichiarata (nella dimostrazione 4 su 6: «non
+  dichiarata» non è una scadenza da inventare), la riga del programma senza
+  una prossima (mai misurata, senza frequenza, sospesa: 1). Bottone
+  «Calendario (.ics)» negli Adempimenti, sotto l'import, con la sua riga di
+  aiuto; la pagina passa l'avviso della dimostrazione da
+  `avvisoTestoDimostrazione(modoDimostrazione(db.mode), …)`. Sonda a 320 px:
+  file «DATI-DI-ESEMPIO_sentinella_calendario_ambiente.ics», 9 eventi, 0
+  errori, scatto guardato (e la frase del bottone corretta allo scatto: «4
+  punti … non hanno», era «non ha»). Prove: run-kpi +1 (2856; pin export
+  «nelle quattro app» 36 → **37**), `documenti-dimostrazione` 138, copertura
+  943/943 (Sentinella 170 → **171**); `csv-dimostrazione` sul `.ics` di
+  Sentinella nei tre modi. Resta Terra (autorizzazioni e concessione).
+- [x] **TERRA — IL CALENDARIO DEL TITOLO (.ics), QUARTA E ULTIMA APP SUL
+  COMPOSITORE CONDIVISO (11/09):** `calendarioTerra(scadenze,
+  autorizzazioni, oggi, adesso, avvisoEsempio)` in `terra-data.js`. Un evento
+  per ogni scadenza dello scadenzario con l'avviso al **preavviso scritto su
+  quella scadenza** (qui non c'è una soglia fissa: le cave sono materia
+  regionale, e il preavviso lo scrive l'utente riga per riga — 180 sul
+  titolo, 90 sulla fideiussione, 30 sul rilievo) più uno a 7 giorni (sotto i
+  7 non raddoppia); nella descrizione il tipo, la ricorrenza, la nota e il
+  verdetto di oggi con le parole dello schermo (`livelloScadenzaTerra`).
+  ⛔ La scadenza del titolo vive in DUE posti — la scheda dell'autorizzazione
+  vigente e lo scadenzario — e il calendario la porta **una volta sola**:
+  dalla scheda entra solo se lo scadenzario non ha già una scadenza di tipo
+  autorizzazione a quella data (nella dimostrazione ce l'ha), e la frase del
+  bottone lo dice — un doppione in agenda è un promemoria che si ignora due
+  volte. Le senza data restano fuori e nominate (nella dimostrazione una:
+  la prescrizione da chiarire con l'ente). Bottone «Calendario (.ics)» sotto
+  lo scadenzario del Titolo; la pagina passa l'avviso della dimostrazione
+  (Terra importa da oggi `avvisoTestoDimostrazione`; i siti della decisione
+  nelle quattro pagine 8 → **9**). Sonda a 320 px: file
+  «DATI-DI-ESEMPIO_terra_scadenze_titolo.ics», 4 scadenze, 0 errori, scatto
+  guardato. Prove: run-kpi +1 (2857; pin export «nelle quattro app» 37 →
+  **38**), `documenti-dimostrazione` 139, copertura 944/944 (Terra 88 →
+  **89**); `csv-dimostrazione` sul `.ics` di Terra nei tre modi. Con questa
+  il compositore condiviso `icsCalendario` serve tutte e quattro le app con
+  uno scadenzario: Scudo (persone), Flotta (mezzi), Sentinella (ambiente),
+  Terra (titolo) — quattro bottoni, una regola, quattro vocabolari.
+- [x] **RICERCA A ROTAZIONE, SENTINELLA — IL REGISTRO DEI RECLAMI: CHE COSA
+  CONTIENE FUORI, E CHE COSA PROMETTE IL NOSTRO (11/09):** metà sul mondo con
+  `WebSearch` (undici fonti citate, tutte di seconda mano): le guide del
+  settore (Pit & Quarry, i moduli comunali del Wisconsin) elencano che cosa si
+  registra di un reclamo e dicono che la velocità della risposta è il
+  criterio; Envirosuite vende il **reclamo affiancato ai dati di monitoraggio
+  di quel momento**; in Italia l'esposto ha la sua strada (Comune → ARPA →
+  misura fonometrica concordata con l'esponente, senza un termine in giorni
+  dichiarato). Delta dal MECCANISMO, verificato contro il commit: i campi del
+  reclamo **ci sono** tutti e il reclamo apre già l'azione in Scudo; le
+  **misure di quel giorno accanto al reclamo** MANCANO — e lo stato vuoto le
+  PROMETTE («con accanto le misure di quel giorno»: nessuna funzione le
+  mette, e nella dimostrazione `x1` le porta scritte a mano); «da quanto è
+  aperto» è a metà (nessuna data di chiusura); lo stato «esposto» è assente e
+  non serve. Due voci aperte qui sotto, con la prova accanto.
+- [x] **IL BANCO DEL «PRIMO DEI DUE» (11/09):** `tests/browser/flotta-primo-dei-due.mjs`
+  — la dimostrazione non ha un tagliando con ore E data (di proposito: le
+  prove assolute vivono sui suoi numeri), quindi tre casi si INIETTANO nella
+  risposta HTTP del modulo: la data scaduta con le ore lontane (badge
+  «Scaduta» in rosso nella lista, nel Quadro e nell'ordine — prima le ore lo
+  tenevano in verde), le ore a 10 dal traguardo con la data fra 400 giorni
+  («tra 10 h»), e un mezzo FUORI dal parco con la data fra 5 giorni («5 gg»
+  per data, e la riga del Quadro c'è: prima spariva). Si leggono la frase
+  della lista e dell'ordine («A 6.370 ore motore o entro il …, il primo dei
+  due») e il piano nei due passi, a 320 e 390: **24 ok**; controprova con tre
+  difetti per file (la lista che torna a «comandano le ore», il modulo che
+  sceglie sempre le ore, le priorità senza il ramo «entrambi») → cade in 8.
+  ⚠️ Scrivendolo è uscito che la lista dell'Officina aveva una TERZA frase
+  «A N ore motore / Previsto …» non passata da `quandoTx`: adesso passa di
+  lì (e l'iniezione di `frasi-da-uno` che la colpiva segue). Registrato in
+  `tutti.mjs`: 275 esecuzioni da 117 file.
+- [x] **FLOTTA — «IL PRIMO DEI DUE» (11/09):** `prossimoTagliando` con ore
+  E mesi scrive tutt'e due le scadenze (`da: "entrambi"`), e con le ore del
+  contatore ignote resta la data dichiarando `oreIgnote` — prima rispondeva
+  `null`, cioè un tagliando che sapeva ancora quando cadere per data non
+  veniva ripianificato (misurato prima di scrivere). `urgenzaManutenzione(n,
+  ore, azzeramenti, oggi)` nel modulo è il posto UNICO della decisione — a
+  ore, a data, o la PEGGIORE delle due con `via` e `altra` — e sostituisce
+  la regola «se ha le ore comandano le ore» scritta in tre punti della pagina
+  (lista, ordini, scheda del mezzo) e in `prioritaOperative`, dove un mezzo
+  senza contatore faceva SPARIRE la riga anche con una data fra quattro
+  giorni. `tagliandiInScadenza` con tutt'e due valuta prima la data, così le
+  ore non stimabili non mandano fra i «da stimare» un tagliando che per data
+  si colloca; con entrambe stimabili entra la prima (`anche` dice l'altra).
+  Pagina: `quandoTx`/`pianoTx` (una frase in un posto per lista, ordine e
+  scheda: «a 6.370 h o entro il 11/09/2027, il primo dei due»), la chiusura
+  con `entrambi` chiede le ore E la data (vuota = solo ore), il form ha «e
+  anche ogni N mesi» accanto al piano a ore (intero, facoltativo, illeggibile
+  → la riga si ferma e lo dice). Prove: run-kpi +4 (2850) nei tre versi per
+  `prossimoTagliando`, la peggiore delle due, il contatore ignoto con data,
+  la data oltre l'orizzonte che NON copre le ore non stimabili, le priorità.
+- [x] **RICERCA A ROTAZIONE, FLOTTA — I PIANI A CHILOMETRI E LA REGOLA «IL
+  PRIMO DEI DUE» (11/09):** metà sul mondo con `WebSearch` (fonti citate,
+  seconda mano dichiarata): i gestionali di flotta tengono piani per km, ore
+  motore o calendario per categoria di mezzo; i libretti dicono «ogni N ore
+  o N mesi, quello che arriva prima». Delta dal MECCANISMO: Flotta modella
+  macchine da cava a ORE (`TIPI_MEZZO`, `PIANI_TAGLIANDO` in ore), il mezzo
+  targato è solo un adempimento — il contachilometri riguarda i camion
+  stradali di chi consegna in proprio e chiede una decisione di prodotto (un
+  mezzo, un contatore): **candidato dichiarato, non aperto**. Invece
+  `prossimoTagliando` fa ore OPPURE mesi, «mai insieme» — il «primo dei due»
+  non c'è, ed è del mestiere di Flotta com'è: **prossima unità**. Riga
+  «Piani a km» di CONCORRENTI_FLOTTA aggiornata con il delta (verdetto
+  invariato, il conto B4 non cambia).
+- [x] **FLOTTA — «IL PRIMO DEI DUE»: un tagliando con ore E mesi scade
+  alla prima delle due** (dalla ricerca dell'11/09). ✅ **Fatto l'11/09**
+  (stesso giorno): vedi la voce qui sotto. Il piano originale diceva: `prossimoTagliando`
+  con tutt'e due i passi scrive tutt'e due le scadenze (ore previste e data
+  prevista, `da: "entrambi"`); l'urgenza è la peggiore fra `urgenzaTagliando`
+  (ore) e quella per data; la frase della lista e della finestra lo dice
+  («a 6.370 h o entro il 12/03/2027, quello che arriva prima»); il form del
+  piano permette di scrivere tutt'e due. Prove in run-kpi nei tre versi
+  (solo ore, solo mesi, entrambi con l'una o l'altra che arriva prima) e
+  banco sul rendering. ⚠️ Prima di scrivere: misurare in scratchpad il caso
+  con le ore ignote e i mesi noti (deve rispondere la data, non `null`).
+- [x] **RICERCA A ROTAZIONE, CONTI — LA RITENUTA D'ACCONTO NON È UNA
+  MANCANZA DI UNA CAVA (11/09):** metà sul mondo con `WebSearch` (fonti
+  citate, seconda mano dichiarata): la ritenuta riguarda compensi di lavoro
+  autonomo e provvigioni (art. 25 e 25-bis DPR 600/73), non la cessione di
+  beni; `DatiRitenuta` in FatturaPA si compila solo su righe con ritenuta.
+  Delta dal MECCANISMO: Conti vende inerti (cessione di beni) → sulle fatture
+  emesse la ritenuta non esiste e `xmlFatturaPA` fa bene a non averla; la
+  cava è sostituto d'imposta solo quando PAGA un professionista (la voce
+  `consulenze`, perizia geologica), cioè nelle fatture passive, che Conti non
+  ha (`grep -ci "fattur[ae] passiv|fornitor"` → 1, il reso dei ricambi). La
+  riga «Ritenuta d'acconto» di CONCORRENTI_CONTI passa da «confermato
+  assente» a **non applicabile alle vendite**, con la mancanza vera
+  reindirizzata al registro acquisti — così nessuno apre un cantiere per
+  costruire una cosa che una cava non userebbe. Nessun numero di norma entra
+  in una schermata. B4: confermate Conti 5 → **4**, totale 37 → **36**.
+- [x] **DECIMA FETTA DI B3 — I CATALOGHI DEL MESTIERE ESCONO DA GENESI
+  (11/09):** `INNESCHI` (i quattro sistemi d'innesco) e `ROCCE` (le sei
+  litologie con A, rho, vp, UCS, E, giunti, tinta) in `genesi-data.js`,
+  blocco G28, entrati identici riga per riga dal letterale della pagina; e
+  `scegliDaCatalogo(catalogo, id, indiceRipiego)`, la regola che
+  `selEsplosivo`, `selInnesco` e `selRoccia` scrivevano TRE volte con l'indice
+  di ripiego diverso (la firma troppo stretta): i tre restano come legami e
+  passano di lì (30.000 casi contro le tre copie → 0 divergenze). Gli
+  esplosivi NO: stanno in `esplosivi.json` e la pagina tiene l'inline come
+  ripiego. ⚠️ MISURATO scrivendo la prova: il commento della pagina diceva
+  «i default per litologia riproducono gli A storici» — cinque su sei entro
+  0,3, il BASALTO no (12 scritto, 12,8 dai parametri). Il prodotto usa sempre
+  l'A calcolato, mai `r.A`: nessun numero a schermo cambia, e gli scarti sono
+  pinnati litologia per litologia invece di allargare una tolleranza. Prove:
+  run-kpi +4 (2846): i cataloghi completi e coerenti (ogni roccia con UCS ed
+  E, un solo default; gli id degli inneschi che `scatterInnesco` conosce), la
+  regola di scelta nei quattro versi, il legame nella pagina; la prova
+  vecchia che leggeva ROCCE dalla pagina con una regex legge il modulo.
+  Copertura genesi-data 112 → **115**; il censimento resta a 152 (i
+  cataloghi non sono funzioni), ma «a una o due variabili» sale 48 → 50 e il
+  numero che conta 55 → 57: le tre `sel*`, che leggevano il catalogo E `D2`,
+  adesso leggono solo `D2` — sono diventate estraibili.
+- [x] **I SEI KO VERI DEL GIRO FILTRATO DEL 10/09, LETTI E CHIUSI (11/09):**
+  il giro (71 passate su una copia di `526cb2a9`, 2h17, arrivato in fondo)
+  dichiarava 13 KO veri; letti con `leggi-giro`, erano SEI difetti (gli altri
+  sono lo stesso KO ripetuto per larghezza o per scatto). ① Conti: le unità
+  «m³» e «t» nelle intestazioni della tabella delle rimanenze uscivano in
+  MAIUSCOLO (`.note .ponte th` è uppercase): avvolte in `<span class="u">`
+  con la regola che le esenta, come i badge. ② Scudo: «scaduta da 62 gg» nei
+  badge dello scadenzario in maiuscolo: passa da `ggU` come le pillole dei
+  requisiti già facevano (la regola era in casa, a trenta righe). ③ Campo: il
+  segnaposto «— responsabile da assegnare —» della tendina del responsabile
+  chiedeva 281 px in 242 a 320: «— da assegnare —» (l'etichetta sopra dice già
+  «Chi la fa»). ④ Conti: la modale «Il file XML non è ancora pronto» spiegava
+  in due `<p class="meta">`, che tagliano a due righe: a 320 chiedevano 92 px
+  in 31 — il testo che spiega DOVE si scrivono i dati mancanti era testo
+  morto. Passano a `form-hint`, che non taglia. ⑤ `scudo-disegni`: l'attesa
+  delle persone da sistemare per mansione era scritta a mano (`7·3·1·1·1·1·1·0`)
+  e la dimostrazione ha guadagnato un buco: il prodotto disegnava giusto, era
+  l'ATTESA a essere invecchiata — adesso è DERIVATA da `riepilogoMansioni`
+  sulla stessa copia, come già le altre due del banco. ⑥ `finestra-caricamento`:
+  accusava «Carburante mese —» di Flotta, la cui tessera dice nel titolo
+  «Nessuna voce di carburante registrata questo mese: … non si sa» — il
+  principio del fondatore, non un contatore dimenticato (e la dimostrazione ha
+  le voci a date RELATIVE, quindi il caso va e viene col giorno del mese): un
+  «—» con la RAGIONE nel titolo si conta a parte e si stampa. Rimisurato sul
+  vivo: unità 14 superfici pulite (35 unità cercate); modali Campo 1 pulita
+  (18 aperture, 26 voci di tendina) e Conti 1 pulita (60 aperture, 1.386
+  elementi); Scudo disegni 82 ok / 0 KO con controprova che cade in 40;
+  finestra Flotta 7/0 con la riga «1 contatore a «—» con la RAGIONE nel
+  titolo». ⚠️ E il settimo «KO» della lettura — «terra: 41 passati, 1
+  falliti» — non era di Terra: è la riga di riepilogo di `finestra-caricamento`
+  (che gira tutte le app) caduta sul caso Flotta, attribuita a Terra perché
+  stampata dopo la sua sezione. Un totale letto sotto l'intestazione sbagliata.
+- [x] **NONA FETTA DI B3 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE ESCONO
+  DA GENESI (10/09, stesso commit dell'ottava):** `_sigSpark` (la miniatura
+  SVG del composito, normalizzata sul picco e mai divisa per zero),
+  `_ppvBaseHtml` (la base della previsione PPV per il foglio e la scheda, col
+  grassetto sul capo dell'avviso) e `shade` (la tinta della roccia dal
+  litotipo, tetto a 255 per canale) in `genesi-data.js`, blocco G27; `fmtT`
+  (il tempo sull'orologio della scena) in `genesi-formato.js`, perché scrive
+  un numero. Entrate identiche (20.000 casi ciascuna → 0 divergenze). Le
+  iniezioni del banco `genesi-foglio-in-cava` puntano al CHIAMANTE di
+  `_ppvBaseHtml`, che resta nella pagina: non scadono. ⚠️ Un `kill` sul PID
+  sbagliato ha spento il giro di verifica dell'ottava fetta insieme alla
+  catena che voleva fermare: rilanciato; le due fette escono in un commit.
+  Prove: run-kpi +5 (2842), copertura genesi-data 109 → **112** e
+  genesi-formato 8 → **9**, censimento 156 → **152** funzioni nella pagina
+  (51 → 48 a una o due variabili, 58 → 55 «il numero che conta»).
+- [x] **OTTAVA FETTA DI B3 — LE CLASSI DELL'ENERGIA E DEL RELIEF E IL CODICE
+  DELLA VOLATA ESCONO DA GENESI (10/09):** `pfCls` + `ENECOL`/`ENELAB` (la
+  classe di un foro dal RAPPORTO col consumo specifico di progetto, 75/90/
+  115/140 %, col colore e la frase di ogni classe), `classeRelief` + `RELCOL`
+  (la finestra scelta a schermo, il 60 % del minimo, `null` è «none») e
+  `codiceVolataGenesi` (il codice deterministico `GEN-<data>-<impronta>` con
+  cui Sentinella riconosce i doppioni) in `genesi-data.js`, blocco G26 —
+  entrate identiche (20.000 casi ciascuna → 0 divergenze). Nella pagina
+  `reliefCls` resta come legame con `D2.relLo/relHi`; la mappa delle classi
+  CSS del relief, che non leggeva nessuno (`grep -c` → 1, la dichiarazione),
+  è stata tolta. ⛔ E la prova G15 chiamava una `pfCls` RICOPIATA «solo per
+  dimostrare» — la copia debole dentro la prova: adesso chiama quella vera.
+  Le mappe sono provate come la regola 18: coprono tutte le classi che la
+  funzione sa dire. Prove: run-kpi +4 (2837), copertura genesi-data 103 →
+  **109**, censimento 158 → **156** funzioni nella pagina.
+- [x] **SETTIMA FETTA DI B3 — LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE
+  CELLE DEL CONFRONTO A/B ESCONO DA GENESI, E IL RITARDO VUOTO SI CHIUDE
+  (10/09):** `fileDeiFori` (le file per distanza dalla faccia, tolleranza
+  0,45 m), `INN_TAGLI` + `taglioRealizzabile` (il raccordo esiste a ±1 ms,
+  l'elettronico programma tutto), `_cmpNum/_cmpKg/_cmpEur/_cmpPf/_cmpCm/
+  _cmpFly` (le celle del confronto A/B: «non calcolabile» dal numero, la
+  bandiera vale in più) in `genesi-data.js`, blocco G25 — otto funzioni
+  entrate identiche (vecchie estratte da HEAD accanto alle nuove, 20.000 casi
+  ciascuna → 0 divergenze). Nella pagina `innTaglioOk` resta come legame con
+  `D2.innesco`; `_fileDiFori`, la costante e le sei celle spariscono. ⛔ E in
+  `tempiDetonazione` (G23) il candidato misurato poche ore prima è CHIUSO: un
+  ritardo VUOTO (`null`/`""`) risponde `null` come la griglia illeggibile, non
+  N tempi a 0 ms; lo zero scritto resta zero (è un ritardo legittimo). Due
+  prove vecchie allargate al modulo: la lettura della bandiera
+  `flyCalcolabile` (regola 20) e quella su `_sigDetTimes`. Prove: run-kpi +4
+  (2833), copertura genesi-data 94 → **103**, censimento 165 → **158**
+  funzioni nella pagina (56 → 51 a una o due variabili, 64 → 58 «il numero
+  che conta»).
+- [x] **SESTA FETTA DI B3 — LA GEOMETRIA DELLA PIANTA ESCE DA GENESI
+  (10/09):** `quotaCresta`, `distanzaDaSpezzata`, `spaziaturaTipica`,
+  `tempoInPunto`, `passoIsocrone` e la scala `ISO_PASSI` in `genesi-data.js`
+  (blocco G24) — la cresta importata interpolata col clamp −6/+10, il BURDEN
+  VERO (la perpendicolare alla faccia libera, che su un fronte storto si
+  accorcia dove nascono le proiezioni), la mediana delle distanze al foro
+  più vicino, il campo dei tempi delle isocrone (minimi quadrati mobili di un
+  piano sui tDet dei fori vicini, regolarizzato) e il passo delle curve.
+  Tutte e cinque entrate identiche: vecchie funzioni estratte da HEAD
+  accanto alle nuove su 20.000 casi ciascuna → 0 divergenze. Nella pagina
+  restano tre legami (`crestZ` con `P.profilo`, `_spazTipico` col ripiego di
+  progetto `max(S, B)`, `isoPasso` con la scelta a schermo); il burden e il
+  campo dei tempi si chiamano diretti. ⚠️ Il primo confronto dava 12.036 e
+  17.472 divergenze: era lo script che passava punti casuali DIVERSI alla
+  vecchia e alla nuova — il righello, non il prodotto; rifatto con gli stessi
+  ingressi, zero. ⚠️ E la seconda: un commento di legame scritto senza `/*`
+  ha rotto la sintassi della pagina, presa da `sintassi-pagine` prima del
+  commit. Prove: run-kpi +6 (2829), copertura genesi-data 88 → **94**,
+  censimento 167 → **165** funzioni nella pagina (56 e 64 invariati: i tre
+  legami leggono ancora una variabile, e le due dirette non erano nella
+  lista «una o due»).
+- [x] **QUINTA FETTA DI B3 — LA FIRMA DEL FORO SINGOLO E LA SOMMA RITARDATA
+  ESCONO DA GENESI (10/09):** `ondaDaCsv`, `tempiDetonazione` e
+  `sommaRitardata` in `genesi-data.js` (blocco G23) — il PPV composito
+  dell'analisi «signature hole» (l'onda di un foro registrata dal sismografo,
+  sommata a sé stessa sui tempi del piano di tiro), che la modale mostra
+  accanto al limite di norma. `tempiDetonazione` e `sommaRitardata` entrate
+  identiche (vecchie funzioni estratte da HEAD accanto alle nuove: 12.096
+  progetti e 20.000 onde × tempi → 0 divergenze); `_sigDetTimes` resta come
+  legame. ⛔ `ondaDaCsv` NO, di proposito, ed è un difetto vero chiuso:
+  `_sigParse` spezzava ogni riga su `;` `,` e TAB insieme e POI cambiava la
+  virgola in punto, quindi una registrazione all'italiana «0,5;1,23» dava
+  tempo 0 e ampiezza 5 — un composito calcolato su un'onda mai esistita,
+  senza errore. Adesso legge con `leggiCsv` + `numIt` di `shared/`: sui file
+  col punto identica (33.507 file generati → 0 divergenze), su 2.000 file
+  all'italiana giusta 2.000 volte. ⚠️ Misurato e NON deciso, dichiarato nella
+  prova: in `tempiDetonazione` un ritardo VUOTO (`null`/`""`) vale 0 (`+null`
+  fa 0) → tutti i fori simultanei, il verso prudente ma su un piano che
+  nessuno ha scritto; `undefined` risponde `null`. ✅ **Chiuso in G25 poche ore
+  dopo**: null e "" rispondono null, lo zero scritto resta zero. Prove: run-kpi +4 (2823),
+  copertura genesi-data 85 → **88**, censimento 169 → **167** funzioni nella
+  pagina (58 → 56 a una o due variabili, 66 → 64 «il numero che conta»).
+- [x] **QUARTA FETTA DI B3 — IL FATTORE ROCCIA E L'x50 MISURATO SUL CUMULO
+  ESCONO DA GENESI (10/09):** `fattoreRoccia(roccia, scelte)` e
+  `x50DaMisure(misure)` in `genesi-data.js` (blocco G22), cioè la testa e la
+  coda della catena della frammentazione — l'indice di brillabilità di
+  Lilly/Cunningham A = 0,06·(RMD+JF+RDI+HF) da cui partono l'x50 di Kuz-Ram,
+  il consumo specifico consigliato e il rigonfiamento del cumulo, e la
+  pezzatura mediana del campione misurato (pesi per volume d³, interpolazione
+  sul 50%). Entrate IDENTICHE: la vecchia `rockFactorA` estratta da `HEAD` e
+  messa accanto alla nuova su 5.280 casi (8 litologie × 11 UCS × 10 E × 6
+  fratturazioni) → 0 divergenze; `_measFromSizes` contro `x50DaMisure` su
+  20.000 campioni generati → 0 divergenze. Nella pagina `rockFactorA` resta
+  come LEGAME (`return fattoreRoccia(selRoccia(), D2)`, come `computeMIC`),
+  `_measFromSizes` sparisce. ⚠️ Due prove vecchie cadevano per il trasloco e
+  sono state ALLARGATE, non allentate: G18 conta le mappe su `D2.frat` in
+  tutt'e due i file (2 + 1, denominatore 3), G19 cerca `ucs=D2.ucs||r.ucs` nel
+  modulo e pretende che nella pagina NON ci sia più. Prove: run-kpi +4
+  (2819), copertura 939/939 dei sei moduli app + shared, genesi-data 85/85 (fondo 83 → **85**), censimento
+  `genesi-estraibili` 170 → **169** funzioni nella pagina, 59 → 58 che leggono
+  una o due variabili, «il numero che conta» 67 → 66.
+- [x] **I LISTINI PER CLIENTE IN CONTI (10/09) — la mancanza «più listini
+  nominati e assegnabili» della riga «Listini differenziati per cliente» di
+  CONCORRENTI_CONTI (a metà dal 01/08), una delle tre cose indietro rispetto ai
+  concorrenti che il codice può colmare:** `listini/{id}` con `nome` e
+  `prezzi{prodottoId: prezzo}`; il cliente porta `listinoId` (tendina «Listino»
+  nella scheda, «— listino base —» di default); `prodottoPerCliente(prodotto,
+  cliente, listini)` sostituisce il prezzo base PRIMA dello sconto e del prezzo
+  concordato, che restano e vincono come prima — quindi i quattro punti in
+  cui la pagina fa un prezzo (anteprima della pesata, salvataggio, ricalcolo,
+  preventivo) passano tutti di lì; `listinoDelCliente` dichiara
+  l'assegnazione rotta (`mancante`), un prezzo illeggibile o negativo si
+  ignora dicendolo (`listinoIgnorato`), lo zero è un prezzo; `validaListino`
+  (numIt, vuoto = base, prodotto ignoto e negativo rifiutati),
+  `descriviListino` («2 prodotti su 5 con un prezzo proprio · 1 cliente»),
+  `csvListini` col PUNTO e «mc» come `csvListino` — la prima stesura scriveva
+  la virgola, cioè una seconda convenzione nella stessa app, presa dal banco.
+  Pagina: sezione «Listini per cliente» nel Listino (elenco, scheda con un
+  campo per prodotto e il base accanto, modifica, elimina bloccato se un
+  cliente lo usa, «Esporta listini (CSV)»); la pesata scrive «Prezzo del
+  listino «X»» col listino base accanto e avvisa se il listino assegnato non
+  esiste più. Dimostrazione: «Cantieri stradali» (stabilizzato 8,00 e
+  pietrisco 11,50) assegnato a Stradesud. Prove: run-kpi +5 (2815; pin dei
+  siti di export 34 → **35**), `documenti-dimostrazione` 135 documenti,
+  banco `conti-listini.mjs` 38 ok a 430 e 320 (il riepilogo della pesata, la
+  sezione, il CSV letto dal gancio, la tendina del cliente) con controprova
+  20/38 su 3/3 per file (271 esecuzioni, 115 file), copertura 939/939 (fondo
+  Conti 192 → **198**). Scatti guardati con `fette.mjs` a 430 (40 fette, 0
+  errori). Docs: CONCORRENTI_CONTI riga a C'È con i comandi, riepilogo
+  numerico a metà 2 → 1 (somma 18 ✓).
+- [x] **LO STRUMENTO DELLA PASSATA VIVE IN `tests/browser/`, E LE QUATTRO
+  PAGINE DI DEEPWORK ID GUARDATE (10/09, dopo il riavvio).** `fette.mjs`: apre
+  una superficie qualunque delle 14 a una o più larghezze, va in ogni sezione
+  e scatta la pagina intera a fette da 1400 px con `clip` (niente PIL nel
+  contenitore), stampa scorrimento laterale ed errori; il core col finto
+  Firebase, le pagine di Deepwork ID col finto ID nello scenario scelto
+  (`--scenario=member|anonymous|unauthorized|tour`), con il contrassegno del
+  pid riletto dal server. È la sonda dello scratchpad sparita col riavvio,
+  riscritta dove sopravvive. Con essa: accesso, profilo (owner di
+  `org_cava_alfa` con i dati di `DATI_ORG`), amministrazione, non autorizzato
+  a 320 e 430 — 0 errori di pagina, niente da correggere: i membri con
+  tendina del ruolo e «Rimuovi» a capo a 320, gli inviti con la scadenza
+  («scade tra 11 giorni», «scade domani», «scaduto il»), le app
+  dell'abbonamento con «Attiva / Non inclusa» (Campo con validità passata →
+  non inclusa, giusto).
+- [x] **IL RIGHELLO DEL CONTRASTO E IL TESTO DENTRO IL MARCHIO (10/09) —
+  `contrasto.mjs` non giudica più i `<text>` degli `svg[aria-hidden]` (il
+  testo dentro un marchio si dipinge sul poligono del logo, non sul fondo
+  della pagina che il banco risale) e LI CONTA nel riepilogo per superficie e
+  in fondo. Sulla vetrina: 5 KO stamattina → 0.** Le tre lezioni della
+  giornata sono entrate in CLAUDE.md: `elementFromPoint` non vede chi ha
+  `pointer-events:none` (si rende cliccabile il sospettato per il solo
+  hit-test); il rosso cronico di un banco nasconde il rosso nuovo; una
+  passata per app trova i difetti di tutte perché stanno in `shared/`. Genesi
+  guardata a 320 e 430 (tre schermate a scorrimento interno, 0 errori):
+  niente da correggere a questo livello.
+  ⛔ **E IL CONTENITORE SI È RIAVVIATO A METÀ CICLO (18:45Z)**: il disco è
+  tornato a un clone di `main` col nome del ramo di sessione, lo scratchpad
+  è sparito con le sonde, gli scatti, il registro del giro filtrato del
+  browser (52 passate, arrivato a metà: KO veri solo i 5 della vetrina, già
+  chiusi) e le modifiche non committate (queste lezioni e questa patch,
+  riscritte). Riallineato con `git checkout -B` sul ramo remoto, senza
+  perdere niente di committato. Il giro filtrato va rilanciato.
+- [x] **LA VETRINA E IL CONTRASTO DEL «FUMO» (10/09) — letto dal giro filtrato
+  del browser (sezione 2 di `leggi-giro`): `contrasto` sulla vetrina dava 5
+  KO, e rilanciato su `d82a7871` (stamattina) gli stessi 5: preesistenti,
+  non di oggi, e non scritti da nessuna parte.** Quattro erano veri: «Le
+  app», «Il sito» (11,5 px) nel capo e «Deepwork · ecosistema per il
+  cantiere», «Fotografie di cantiere…» (12 px) nel piè, in `--fumo:#8d8878`,
+  a **4,26** al capo peggiore del gradiente su cui stanno (forbice 1,22; sui
+  fondi pieni faceva 4,9–5,6, per questo a occhio passava). Con
+  `--fumo:#9a9583` il rapporto sale del 18% ovunque, resta un grigio fumo, e
+  la vetrina scende a **1 KO su 40 testi**. Il quinto è «FIELD OPERATIONS»
+  (6 px, 1,09:1): è il `<text fill="#3a2a10">` DENTRO il marchio, disegnato
+  sul poligono scuro del logo — il banco lo misura contro il fondo della
+  pagina che risale gli antenati, non contro il poligono, e il marchio non si
+  tocca. È un limite del righello, da chiudere nel banco (saltare i `<text>`
+  degli `svg[aria-hidden]` e CONTARLI), a giro fermo.
+- [x] **PASSATA IN PROFONDITÀ SUL CORE A 320 E 430 px (10/09) — 26 schermate
+  × 2 larghezze (36 fette a 320), col finto Firebase montato e l'accesso
+  riuscito a tutt'e due le larghezze, 0 errori di pagina.** Niente da
+  correggere: le liste (`.sname`/`.ssub` a una riga con ellissi) tagliano a
+  320 la data in coda ai progetti di volata e il telefono in coda a Utenti e
+  Personale, ma è la struttura del core, e il limite a 320 è già dichiarato
+  nel sorgente (commento su `.ssub`: «non ci stanno», misurato a 194 px); il
+  dettaglio li ha per intero. Il rapportino da fochino a 320 tiene tre
+  campi per riga (Esplosivo 1 / Esplosivo 2 / Innesco) con i segnaposto
+  tronchi ma le intestazioni intere; la Dashboard dichiara «i grafici non si
+  vedono» perché la libreria non arriva senza rete, che nel banco è vero.
+  Con questa passata il giro dei sette prodotti (sei app + core) è chiuso:
+  i difetti trovati oggi stavano quasi tutti nel motore e nel foglio
+  condivisi, e il core — che li definisce — era pulito.
+- [x] **LA VETRINA E IL NASTRO CHE SCORRE (10/09) — `fuori-schermo.mjs` intero
+  usciva 1 da prima di oggi (misurato anche su `d82a7871`): 16 comandi «fuori
+  dallo schermo» a 390/360/320, tutti nella vetrina.** Erano le voci del
+  nastro «Otto app e un accesso unico» (`.striscia .scorre`: nove nomi
+  ripetuti due volte per il giro continuo, 2730 px dentro una scatola con
+  overflow nascosto, che scorre per animazione). Non sono il modo di aprire
+  un'app — le schede sotto lo sono — e un nastro che passa non è un comando
+  che una persona raggiunga a colpo sicuro. Decisione: il nastro è
+  DECORATIVO — `aria-hidden="true"` sul nastro (così uno screen reader non
+  legge la lista due volte) e `tabindex="-1"` sulle 18 voci (non entrano nel
+  giro con il tasto Tab); il banco salta i sottoalberi `aria-hidden` E LI
+  CONTA nel riepilogo («16 comandi dentro sottoalberi aria-hidden NON
+  giudicati»), perché un `aria-hidden` su una lista intera spegnerebbe il
+  banco in silenzio. Dopo: 14 superfici × 3 larghezze, 0 fuori; la
+  controprova su Sentinella cade come deve; `vetrina-collegamenti` invariato.
+  ✅ **E CON MENO MOVIMENTO IL NASTRO VA A CAPO (10/09, un'ora dopo).**
+  Misurato con `reducedMotion:'reduce'`: prima 2 nomi visibili su 9 a 390 e a
+  320 px (il nastro fermo restava largo 2730 px dentro l'overflow nascosto);
+  dopo il nastro si allarga alla riga, va a capo centrato, la seconda copia
+  dei nove nomi sparisce (`a:nth-child(n+10)`): 9 su 9 a tutt'e due le
+  larghezze. ⚠️ Il primo righello contava 18 visibili su 18 anche coi nove
+  nascosti: un `display:none` ha un rettangolo 0×0 che «sta nello schermo».
+  Si contano i rettangoli con larghezza, non le coordinate.
+  ⛔ **E MISURANDO QUELLO È SALTATO FUORI CHE IL NASTRO STAVA SOTTO LA FOTO
+  DELLA SEZIONE DOPO, DAL 25/08 (`386fde4c`).** Lo scatto del nastro
+  mostrava solo la gru: `#storia .fondale` è assoluto con `inset:-12% 0` e
+  `z-index:0`, sale sopra la propria sezione di 150 px a 1280 e di 225 px a
+  390 — cioè copre tutto il nastro (e a 390 anche l'etichetta «Otto app e un
+  accesso unico»), che essendo statico si dipinge sotto. `elementFromPoint`
+  non lo diceva perché il fondale ha `pointer-events:none`: reso cliccabile
+  per il solo hit-test, al centro del nome rispondeva `span.velo`. Con
+  `position:relative; z-index:1` sul nastro risponde il nome, a 1280, 390 e
+  con meno movimento; la foto continua a salire, ma dietro. Diciassette
+  giorni sulla prima pagina che un prospect apre, e nessun banco lo vedeva:
+  `contrasto` misura il colore del testo contro il fondo che RISALE gli
+  antenati, non contro ciò che si dipinge SOPRA.
+  ⛔ **E SOTTO I 27 DELLA VETRINA NE STAVANO 4 DI CONTI**, che nessuno vedeva
+  perché il banco usciva rosso comunque: a 320 px «Elimina fattura» delle
+  fatture con il bottone del sollecito stava a 296–340 px in una scheda
+  larga 300 con overflow nascosto — il cestino FUORI DALLO SCHERMO su tre
+  fatture. Causa: nel `@media(max-width:440px)` di Conti la riga delle azioni
+  ha `flex:0 0 auto` e prende la larghezza del contenuto (314 px); costretta
+  con `max-width:100%` usa il proprio flex-wrap e il cestino scende sotto.
+  Dopo: 14 superfici × 3 larghezze, **0 fuori**. È la lezione della CI rossa
+  cronica applicata a un banco: un rosso che c'è sempre nasconde il rosso
+  nuovo.
+- [x] **PASSATA IN PROFONDITÀ SU CAMPO E TERRA A 320 E 430 px (10/09) — 16 +
+  22 fette a 320 guardate; chiude il giro delle sei app cominciato con Conti.**
+  Campo: niente da correggere — i campi senza etichetta («8» ore del turno,
+  «55» minuti di fermo) hanno il segnaposto e il `title`, ed è la forma dei
+  moduli del core; l'appello, i fermi, lo storico e i rapportini tengono a
+  320. Terra: un segnaposto solo — «vuoto = non si ripete» nel campo a mezza
+  larghezza «Si ripete ogni (mesi)» usciva «vuoto = non», che non dice
+  niente: adesso «es. 12» come i fratelli, con la frase intera nel `title` e
+  nella nota sotto il modulo. Visti e lasciati: i badge dei rilievi
+  («DA CUMULO · SURVEY-GRADE · ELABORATO» più la stampa) vanno su due righe a
+  320, leggibili; il titolo delle scadenze del Quadro tagliato a due righe col
+  badge a destra (struttura del core).
+  ⚠️ Il conto della giornata, per chi riprende: sei app, ~130 fette a 320
+  guardate una per una, quattro sonde riusabili in `scratchpad/racc/pass/`
+  (`cammina`, `tacche`, `catlab`, `tabelle`, `riga`, `fl`), e i difetti veri
+  erano quasi tutti nel MOTORE o nel FOGLIO condivisi (tacche, categorie
+  mute, numeri sopra le barre, `.fl`, `--info-basis`): una passata per app
+  trova i difetti di tutte.
+- [x] **PASSATA IN PROFONDITÀ SU SCUDO E SENTINELLA A 320 E 430 px (10/09)
+  — 28 + 20 fette a 320 guardate, tabelle misurate (23 su sei app: 4 più
+  larghe scorrono, 0 tagliate), i punti d'uscita già aperti dai banchi
+  `scudo-documenti` e `documenti-che-escono`.** Scudo: niente da correggere
+  oltre alle sette `.fl` già vestite dalla base condivisa (unità 45); visti e
+  lasciati con la ragione — le righe dello scadenzario col badge a destra
+  tagliano il titolo a due righe a 320 (struttura del core, a 430 respira), e
+  «LTIFR (con…» nell'intestazione della tabella degli indici è un `…` di
+  cella, la tabella non è tagliata. **Sentinella: l'arretrato dichiarato di
+  `fuori-schermo` (22 righe su tre larghezze, dal 03/08) era UNA causa** —
+  `--info-basis:110px`, la più stretta delle sei app, lasciava al testo
+  121–130 px accanto ai comandi (matita + cestino 93 px, col grafico 142), e i
+  badge «In ritardo di 46 giorni» (164 px), «Confine di proprietà» (157),
+  «Taratura non dichiarata» (183) uscivano dal proprio riquadro finendo SOTTO
+  la matita: misurato dal banco e visto allo scatto. A 190 px i comandi vanno
+  a capo sotto il testo quando non ci stanno (come già le righe con tre
+  comandi): 390/360/320 → 0 fuori. Sentinella entra in `PRETESE` del banco
+  (da qui non ci torna), con la controprova rilanciata. ⚠️ Il metodo che ha
+  pagato: leggere l'arretrato DICHIARATO di un banco quando si passa
+  sull'app — «22 righe» era un numero che tutti sapevano e nessuno apriva;
+  aperto, era una riga di CSS.
+- [x] **PASSATA IN PROFONDITÀ SU FLOTTA A 320 E 430 px (10/09) — 6 sezioni ×
+  2 larghezze, 23 fette a 320 guardate, i nove punti d'uscita già aperti dal
+  banco `flotta-documenti-che-escono` (79/0, letto invece di rifatto). Un
+  difetto vero, del MOTORE condiviso, e due varianti della stessa famiglia:**
+  1. **etichette di categoria MUTE** — la disponibilità giorno per giorno
+     (otto colonne) scriveva «31… 03… 04… 05… 07… 08… 09… 10…», e il mese dei
+     rilievi di Terra «n… g… m… a… m… a…»: una banda troppo stretta lascia
+     due caratteri più i puntini, che non dicono niente. Misurato prima su 17
+     grafici con etichette di categoria delle sei app: a 320 px 7 troncavano
+     e 2 a MUTO, a 430 uno e nessuno. Cura: `passoCategorie(banda, largoMax,
+     largoLeggibile, respiro)` in `shared/dw-grafici.js` — tre risposte in
+     ordine: ci stanno tutte; tronche ma LEGGIBILI (tre lettere più i puntini
+     ci stanno: «Impianto e lavoraz…» resta com'è, diradarla toglierebbe il
+     nome a barre che ce l'hanno); una parola INTERA ogni k barre, centrata
+     nella sua finestra di k bande ritagliata al riquadro. ⚠️ La prima
+     stesura centrava sulla barra e la prima etichetta restava «31…»: si
+     centra nella FINESTRA. Dopo: «31/08 · 04/09 · 07/09 · 09/09» e «nov ·
+     gen · mar · mag · lug · set», 0 mute su 34 grafici con categorie;
+  2. **il numero sopra le barre** — «100%100%» su due colonne vicine si
+     leggeva come uno: se il più largo non sta nella sua banda lo porta solo
+     la barra più alta (la regola che valeva già oltre le otto barre);
+  3. il banco `grafici-tacche.mjs` fa adesso TRE domande (tacche, numeri sopra
+     le barre, categorie mute), `--solo=` accetta più app, e la controprova
+     rompe tutt'e due le guardie nel motore servito e pretende che cadano
+     tutt'e due (Conti aging 3 coppie, Flotta disponibilità 8/8 mute). Prove:
+     run-kpi +1 (2810: la decisione pura), banchi 269/114.
+  Visti e lasciati, con la ragione: le schede «non si sa quanto costa un'ora»
+  e «quanto beve» a 320 px tengono il badge a destra e il testo in una colonna
+  stretta (5-6 righe) — è la struttura `.item` del core con la pillola a
+  destra, a 430 respira; «Di questo passo il budget non basta … € 1.844,79
+  in…» tagliato dal `line-clamp`: la frase mette il verdetto PRIMA e il
+  dettaglio dopo, che è la regola. Prossimo: la stessa passata su Scudo.
+- [x] **PASSATA IN PROFONDITÀ SU CONTI A 320 E 430 px (10/09) — ogni sezione
+  scattata a pagina intera e GUARDATA (20 schermate in 82 fette), tre difetti
+  veri, nessuno dei quali si vedeva leggendo il codice:**
+  1. **le etichette dell'asse si leggevano come una parola sola** —
+     l'invecchiamento del credito a 320 px scriveva «€ 0 € 5.000 € 10.000€15.000€20.000»:
+     il conto delle tacche era fisso a quattro, cioè dipendeva dal VALORE e non
+     dallo SPAZIO. Misurato prima di scrivere, su 28 grafici con tacche delle
+     sei app: a 320 px collidevano 3 (Conti aging e venduto, Flotta costi), a
+     430 nessuno. Cura in `shared/dw-grafici.js`: `tacchePerLarghezza` (quante
+     etichette ci stanno, contando che la prima e l'ultima sporgono di mezza
+     etichetta) e `tacchePortate` (una ogni k, a partire dallo zero) — le righe
+     della griglia restano, si dirada solo il numero; esposte in `geometria` e
+     provate in run-kpi (+2). Banco nuovo `tests/browser/grafici-tacche.mjs`:
+     sei app a 320 e 430, 56 grafici con tacche, 0 etichette che si toccano,
+     con controprova (guardia tolta nel motore SERVITO → l'aging torna a 3
+     coppie sovrapposte). ⚠️ Il primo righello accusava un grafico di Scudo per
+     «|» sovrapposte: erano tacche SENZA TESTO allo stesso punto — il righello,
+     non il prodotto; le vuote non contano;
+  2. **`.fl` fuori dalle modali era testo nudo da 16 px** — «Righe dell'offerta»
+     e «Prezzi a scaglioni» in Conti, e — misurato con getComputedStyle su sei
+     app — sette etichette in Scudo (DUVRI, permessi, ciclo del DSS, ore
+     lavorate): il foglio condiviso vestiva `.fl` SOLO dentro `.modal-body`, e
+     le app che non se la ridicevano la perdevano. Base in
+     `shared/dw-app-ui.css` con la forma del core (13 px, Barlow, maiuscolo);
+     Terra la tiene a 10 px con la divergenza dichiarata nel suo foglio, Campo
+     sotto `.fermo`. Il contagio dei selettori condivisi su Genesi passa da 22
+     a 23 (e da 8 a 9 quelli che cadono sul suo markup: il documento lo dice);
+  3. **la tabella «qui in Conti / in Flotta» tagliava l'avviso** — a 320 px la
+     quarta colonna restava larga 40 px e «⚠️ in tutt'e due» si leggeva
+     «⚠️ in» (celle `nowrap`): l'avviso sta sotto la voce, in `<small>`, e la
+     colonna vuota non c'è più.
+  Visti e lasciati, con la ragione: la tabella delle rimanenze a 320 px scorre
+  di lato (`.ponte-wrap`, colonna «valore» oltre il bordo: è il caso ammesso
+  per le tabelle); il sub «il volume / non c'è» del cartellone del costo al
+  metro cubo va a capo di proposito (commento in pagina); `mm/dd/yyyy` nei
+  campi data è la lingua del browser di prova, non della pagina. Prove: run-kpi
+  2809, banchi 269 esecuzioni da 114 file. Prossimo: la stessa passata su
+  Flotta.
+- [x] **IL REGISTRO DELLE VENDITE PER IL COMMERCIALISTA (10/09) — la riga 3
+  della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI («non mandami
+  un CSV leggibile: importamelo»):** `registroVendite(fatture, clienti, note,
+  dal, al)` e `csvRegistroVendite` nel modulo di Conti — una riga per
+  documento e per ALIQUOTA (dalle bande di `riepilogoIvaFattura`; le righe
+  senza totali scritti dai `totaliDaRighe`), partita IVA, codice fiscale e
+  codice destinatario dall'anagrafica, le note di credito col segno meno e
+  «storna <numero>», le bozze fuori; una fattura senza IVA dichiarata esce
+  con aliquota e imposta VUOTE, non zero (la risposta del foglio e di
+  `csvSituazioneFatture`); un documento senza data non sparisce e non entra
+  nel periodo («no (senza data)»); `descriviRegistroVendite` dice quanti
+  documenti, quanti senza IVA dichiarata, quanti senza data. ⛔ NON è il
+  tracciato nativo di un gestionale specifico: quello non si scrive a
+  memoria (formato inventato con la faccia di uno vero) — è il registro
+  generico che ogni gestionale importa con la mappatura, e la riga del
+  documento lo dice per intero. Pagina: «Registro vendite (CSV)» nei Report
+  accanto alla situazione, col marchio della dimostrazione e la striscia.
+  Prove: run-kpi +6 (2807; pin dei siti di export 33 → **34**),
+  `documenti-dimostrazione` 134 documenti, banco
+  `conti-registro-vendite.mjs` 22 ok a 430 e 320 (il file letto dal gancio
+  dell'ancora) con controprova 6/22 su 3/3 per file (267 esecuzioni, 113
+  file), copertura 933/933 (fondo Conti 188 → **192**). ⚠️ La prima fixture
+  della prova — una fattura con le sole righe — dava imponibile 0: la
+  pagina salva SEMPRE i totali accanto alle righe, e il modulo ora li
+  prende dalle righe quando mancano (import, archivi vecchi) invece di
+  scrivere zero. Docs: CONCORRENTI_CONTI riga «Export contabilità» a C'È con
+  la parte «a metà» detta per intero, riga 3 della lista del fisco risposta;
+  B4 invariata (la riga era A METÀ); mondo in RICERCA_CONTINUA_CONTI.
+- [x] **LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09) — la riga 2
+  della lista «quanto le chiede il fisco» di CONCORRENTI_CONTI, che restava
+  «senza risposta»:** `prospettoRimanenze(inventari, prodotti, alla)` nel
+  modulo di Conti — l'ultimo inventario dei cumuli di Terra non oltre la data
+  (`inventarioAllaData`), cumulo per cumulo in m³ e in t con la densità del
+  listino, valorizzato **a prezzo di listino** (`rimanenzeDiInventario`);
+  un cumulo senza prezzo, senza densità (col prezzo a tonnellata) o senza
+  volume resta FUORI dal totale con la ragione scritta, mai a zero; `null` in
+  = `null` out (Terra non raggiungibile non è «nessun cumulo»).
+  `variazioneRimanenze(…, anno)` = finali − iniziali, detta SOLO fra due
+  inventari che valorizzano gli stessi materiali, se no la ragione;
+  `descriviRimanenze` e `descriviVariazioneRimanenze` dicono in ogni frase che
+  NON è il valore fiscale (il criterio lo decide il commercialista);
+  `csvRimanenze` con «nel_totale;perche». Pagina: il riquadro «Rimanenze di
+  piazzale» nei Report sotto le scorte misurate (tabella, ragione sotto il
+  nome del cumulo, pastiglia «fuori», piede «Totale (2 su 3)», la variazione
+  con la sua ragione, il CSV col marchio). Prove: run-kpi +9 (2801; e il pin
+  dei siti di export CSV 32 → **33**), `documenti-dimostrazione` 133
+  documenti, banco `conti-rimanenze.mjs` 34 ok a 430 e 320 con controprova
+  26/34 su 3/3 per file (265 esecuzioni, 112 file), copertura 929/929 (fondo
+  Conti 180 → **188**). ⚠️ Lo scatto a 430 ha bocciato la prima stesura: la
+  pastiglia «fuori: volume non leggibile» sfondava la tabella — la ragione è
+  scesa sotto il nome del cumulo e la pastiglia dice solo «fuori». ⚠️ E
+  `euroIt` non scrive il simbolo: «7.475,75» senza € nella frase, preso dal
+  probe. Docs: CONCORRENTI_CONTI riga 2 risposta e riga «Gestione magazzino»
+  con la valorizzazione (resta A METÀ per la ragione sua: niente carico/
+  scarico, disegno voluto — la B4 NON cambia: 37); mondo in
+  RICERCA_CONTINUA_CONTI (seconda mano dichiarata).
+- [x] **IL PONTE CONTI → FLOTTA, SECONDA METÀ: LE DUE PAGINE (06/09, mattina):**
+  in Conti la tendina «Ordine di lavoro di Flotta (facoltativo)» nel registro
+  costi (`db.ordiniFlotta`: dal vivo l'app Flotta, collezione `manutenzioni`,
+  forma di `ordiniFlottaPerConti`; `null` = «Flotta non raggiungibile» detto
+  nella tendina, disabilitata), il riferimento `ordineFlotta` scritto al
+  salvataggio e la pastiglia «ordine di lavoro» con l'ordine nella riga; in
+  Flotta la riga «In Conti» sull'ordine aperto, col verdetto di
+  `confrontoOrdineConti` e lo stato dichiarato (`data-stato-conti`). ⚠️ **Il
+  banco ha preso un difetto vero alla prima passata**: `CC` in Flotta ha TRE
+  valori (`undefined` non chiesto, `null` non risposto, elenco) e aprendo
+  l'ordine prima della schermata Costi la pagina leggeva `undefined` come «non
+  raggiungibile» — adesso chiede, scrive «in lettura» e ridisegna. Prove:
+  run-kpi +3 (2792); banco `ponte-conti-flotta-odl.mjs` 34 ok a 390 e 320 su
+  Conti E Flotta, controprova 14/34 su 3/3 per file (263 esecuzioni, 111
+  file). Scatti guardati (il form di Conti, l'ordine di Flotta). Docs:
+  CONCORRENTI_FLOTTA da C'È A METÀ a C'È con la prova; MAPPA_ECOSISTEMA §3a
+  (seconda cosa sulle stesse direzioni, il conto resta 16).
+- [x] **IL PONTE CONTI → FLOTTA COME REGOLA, PRIMA METÀ (06/09, mattina) — «Link
+  fatture a ordini di lavoro» della B4 di Flotta:** la fattura dell'officina
+  esterna è una spesa in Conti che porta `ordineFlotta: {id, titolo, mezzo}`;
+  Flotta legge le spese di Conti (le legge già, per non contare due volte) e
+  su ogni ordine dice quante lo citano, per quanto, e se il conto torna. In
+  `shared/dw-ponti.js`: `riferimentoOrdineFlotta`, `etichettaOrdineFlotta`,
+  `ordiniFlottaPerConti` (null resta null: Flotta non raggiungibile non è
+  «nessun ordine»), `costiDiOrdine` (Conti non raggiungibile ≠ nessuna spesa;
+  la riga senza importo si conta e non si somma; importo `null`, non zero),
+  `confrontoOrdineConti` (sei stati con la frase). Conti e Flotta le
+  ri-esportano, identità provata. Dimostrazioni: la fattura 214 dell'officina
+  (`c90` in Conti, `k5` in Flotta) collegata a `n2`, e in Conti l'elenco
+  `ordiniFlotta` scritto a mano (nessuna app importa il modulo di un'altra).
+  run-kpi +7 (2789), copertura di shared 241/241 (dw-ponti 87/87). ⏱️
+  **MANCANO LE DUE PAGINE**, unità successiva: in Conti la tendina «ordine di
+  lavoro di Flotta (facoltativo)» nel registro costi (`db.ordiniFlotta`, live
+  dall'app Flotta) e la riga con l'ordine; in Flotta la frase del confronto
+  sull'ordine aperto (`CC` c'è già); banco con controprova per file.
+- [x] **IL VERBALE DI ISPEZIONE SU CARTA (06/09, notte) — la riga «Report PDF
+  automatico — ispezioni» della B4 di Scudo:** `fogliaIspezione(isp, {cantieri,
+  lavoratori, azioni, oggi})` nel modulo, stessa forma della cartella (titolo,
+  sottotitolo, quattro sezioni, chiusura, firme, `nonMisurati`): intestazione
+  con sito e responsabile per nome (le mancanze in grassetto), esito
+  complessivo con le voci **senza esito** contate, le voci una per una con
+  esito, nota e foto contate (non stampate), le azioni nate dall'ispezione con
+  stato, scadenza e responsabile; una non conformità senza azione è la sezione
+  vuota in rosso, non «nessuna azione»; una chiusa con voci senza esito dice
+  «non sono conformi, non sono state guardate». Pagina: UN disegnatore per i
+  fogli a sezioni (`disegnaFoglioSezioni`, la cartella e il verbale passano di
+  lì — la copia da firma troppo stretta evitata), «Stampa il verbale» nel
+  pannello della checklist, la finestra prima della stampa che dichiara le
+  voci senza esito e le non conformità senza azione. Prove: run-kpi +8 e le
+  prove del punto unico dei fogli ADATTATE (tre fogli, l'inoltro della frase
+  letto un salto più su, iniezioni riancorate — non allargate); `documenti-
+  dimostrazione` compone anche i 21 verbali della dimostrazione (132
+  documenti) — e ha preso un `[object Object]` alla prima stesura (l'etichetta
+  dell'azione è un oggetto: `.label`, `.testo`); banco
+  `scudo-verbale-ispezione.mjs` 46 ok a 390 e 320 (con `window.print`
+  sostituito da un contatore e lo scatto del foglio in `emulateMedia print`),
+  controprova 22/44 su 3/3 per file (261 esecuzioni, 110 file); copertura
+  921/921 (fondo Scudo 214). ⚠️ Il banco a 320 cliccava il CENTRO della riga
+  dell'ispezione e finiva sulla pastiglia delle azioni: si clicca il NOME.
+  Scatti guardati (pannello, finestra, foglio). Docs: CONCORRENTI_SCUDO riga a
+  C'È e mancanza chiusa con le tre prove rilanciate; B4 scudo 4 → **3**,
+  totale **38**; mondo in RICERCA_CONTINUA_SCUDO.
+- [x] **LE VERSIONI DI UN DOCUMENTO IN SCUDO (06/09, notte) — la prima riga
+  della B4 di Scudo che un ispettore chiede davvero:** un DVR nuovo non
+  cancella il vecchio, lo SOSTITUISCE, e si chiede quale valutazione era in
+  vigore il giorno dell'infortunio. Modulo: `documentoPrecedente` (stesso tipo
+  e stesso ambito — sito, lavoratore, impresa e qualifica; «Altro» senza
+  impresa non ha un ambito; il già sostituito non è un candidato),
+  `sostituzioneDocumento` (le due scritture, con `timbroLocale`),
+  `catenaDocumento`/`descriviCatena` (all'indietro e in avanti; un anello
+  mancante o un giro si DICONO), lo stato `sostituito` (neutro, `superato`,
+  non un problema), `dssDiCantiere` e `qualificaAppaltatore` che non contano
+  il sostituito, `aggiornaCicloDss`/`storicoDss`/`descriviStoricoDss` (la
+  revisione precedente del DSS si conserva quando la data cambia, al più
+  venti); nella dimostrazione l'edizione 2025 del DVR, sostituita. Pagina: la
+  DOMANDA all'aggiunta («Sì, lo sostituisce» / «No, sono due documenti» — la
+  decisione è di chi registra, non del modulo), la catena sotto la riga in un
+  `form-hint`, il sostituito senza striscia e senza il tocco che cambia stato
+  (toast), il DSS che scrive la patch del modulo e mostra lo storico. ⚠️ **Il
+  banco ha preso un difetto vero alla prima passata**: la striscia del DSS
+  diceva come «precedente» la data appena scritta, perché nella dimostrazione
+  `db.aggiorna` scrive sullo stesso oggetto di `DOC` — la data conservata si
+  legge dalla PATCH, non da `doc`. Prove: run-kpi +11 (2774), banco
+  `scudo-versioni-documenti.mjs` 46 ok a 390 e 320 con controprova 14/46 su
+  3/3 per file (259 esecuzioni, 109 file). Scatti guardati (la domanda, il
+  sostituito). Docs: CONCORRENTI_SCUDO riga a C'È e mancanza chiusa con la
+  prova rilanciata; B4 scudo 5 → **4**, totale **39**; mondo in
+  RICERCA_CONTINUA_SCUDO (seconda mano dichiarata).
+- [x] **LE OSSERVAZIONI DI SICUREZZA DI SCUDO (06/09, notte) — la riga più
+  chiesta della B4 che non vuole hardware né backend:** una buona pratica
+  vista, o una cosa da correggere PRIMA che succeda qualcosa. Modulo:
+  `TIPI_EVENTO`, `etichettaTipoEvento`, `OSSERVAZIONE_ESITI`,
+  `etichettaEsitoOsservazione`, `bozzaOsservazione` (chiama la STESSA
+  `bozzaNearMiss` di `shared/` e aggiunge l'esito: un compositore solo per il
+  documento), `riepilogoOsservazioni` (per luogo e per tema, `pochi` sotto
+  `MIN_TENDENZA`, i due versi) e `descriviLetturaOsservazioni`; il lettore CSV
+  accetta «osservazione»; `origineAzione` la nomina; tre osservazioni nella
+  dimostrazione. Pagina: «0 · Che cosa segnali» nel modale della segnalazione
+  rapida (near-miss già scelto; la prima etichetta cambia verbo), la buona
+  pratica NON apre la domanda sull'azione correttiva, la cosa da correggere sì;
+  filtro «Osservazioni»; pastiglia dell'ESITO (verde solo la buona pratica);
+  `#oss-riep` sotto il riepilogo dei near-miss, stesso periodo; niente «e se
+  fosse andata male» su un'osservazione. Prove: run-kpi +12 (2763), banco
+  `scudo-osservazioni.mjs` 52 ok a 390 e 320 con controprova 18/52 su 3/3
+  iniezioni per file (257 esecuzioni, 108 file), copertura 913/913 (fondo
+  Scudo 206). Scatti guardati (modale in cima, riepilogo, filtro). ⚠️ Due
+  regex del banco indovinavano la forma della descrizione (`descrizioneNearMiss`
+  col dettaglio scrive SOLO il dettaglio): corrette leggendo il modulo, non
+  allargando. ⚠️ E la controprova ha ucciso il banco al primo giro: il difetto
+  rimesso lascia aperto il modale dell'azione e il click dopo aspettava 30 s —
+  adesso il banco chiude il modale, aspetta 4 s e DICHIARA il passo non
+  raggiunto invece di morire con meno prove. Docs: CONCORRENTI_SCUDO tre righe
+  a C'È e la mancanza chiusa; B4 scudo 6 → **5**, totale **40**; mondo in
+  RICERCA_CONTINUA_SCUDO.
+- [x] **LA PASSATA A 320 PX DIVENTA UN BANCO (05/09, notte):**
+  `tests/browser/numeri-tranquilli-a-320.mjs` — ogni schermata delle sei
+  app a 320 px, linguette chiuse aperte, e il VERDETTO solo sulle quattro
+  parole che non devono comparire mai in una riga visibile («NaN»,
+  «undefined», «null», «[object»); gli zeri con unità e i trattini «—» si
+  CONTANO e si stampano col denominatore (41 schermate, 4.588 righe, 39
+  zeri, 390 trattini — candidati, non verdetti). Registrato in `tutti.mjs`
+  (255 esecuzioni, 107 file); perimetro dichiarato (core e Genesi fuori,
+  con la ragione). ⚠️ **La controprova ha bocciato la prima stesura**: il
+  «undefined» rimesso nel titolo «Registra misura» NON cadeva, perché
+  `innerText` rispetta `text-transform` e i titoli di sezione sono in
+  maiuscolo — «REGISTRA MISURA UNDEFINED» — e la regex era sensibile alle
+  maiuscole. È la trappola già scritta in CLAUDE.md (il maiuscolo e
+  `innerText`) nel verso opposto. Con la `i`: 2 caduti su 24, 2/2 rimessi.
+- [x] **LA PASSATA IN PROFONDITÀ A 320 PX SU TUTTE E SEI LE APP, E LE REGOLE
+  DEI PONTI SOTTO L'EMULATORE (05/09, notte):** (1) uno stesso strumento
+  (`scratchpad/pass-app.mjs`, per ora fuori dal repository: è una MISURA) ha
+  aperto ogni schermata delle sei app a 320 px, aperto ogni linguetta chiusa
+  visibile, e cercato zeri con unità, «0/N», «—», «NaN», «undefined». Esito
+  onesto, con gli scatti guardati: **niente da correggere** — le corrispondenze
+  erano etichette degli assi dei grafici («0 € · 2.000 € · 4.000 €», «0% 25%
+  50%», la scala del calibro «0% … SOGLIA 80%»), i segnaposto delle tendine
+  («— scegli l'impresa —»), le granulometrie («0/30», «0/4») e assenze
+  dichiarate accanto al loro perché («CARBURANTE MESE —», «PPV —»). In Genesi
+  la scheda a 320 px con la carica «abc» non cambia: la guardia del campo la
+  rifiuta prima che entri, e «RAPPORTO DI RIGIDITÀ H/B — FRAMMENTAZIONE» è un
+  trattino di etichetta, non un valore. (2) Le regole di Firestore: i tre
+  ponti nuovi leggono le collezioni di un'ALTRA app con la seconda istanza —
+  `apps/genesi/previste`, `apps/genesi/piani`, `apps/campo/pianocarico` — e
+  la regola che lo consente è la generica `apps/{appId}/**` dentro
+  l'organizzazione. Dieci prove in `run.mjs` sotto l'emulatore, nei due
+  versi: il membro della propria org legge e scrive, il concorrente NON
+  legge, chi non ha nessuna org NON legge. **91 passati, 0 falliti** (era
+  75 al 13/08; il pin in CLAUDE.md era già invecchiato a 81 senza che nessuno
+  lo lanciasse).
+- [x] **GENESI — la passata in profondità, Home e riconciliazione (05/09,
+  notte):** due cose viste guardando le schermate a 320 px. (1) In Home una
+  volata con una data che non esiste (record da un altro browser, o
+  corrotto) scriveva la stringa così com'era («boh · 12 fori»): `gdata`
+  restituisce quello che riceve quando non è una data, e la riga lo prendeva
+  per una data — adesso «senza data», con `dataISOEsiste` a decidere; (2) la
+  frase in cima alla riconciliazione diceva ancora «esporta il CSV e rileggi
+  il file» anche in live, dove c'è il bottone che legge dall'organizzazione
+  — adesso segue il modo. run-kpi +2 (2751). Scatto della Home guardato. La
+  modale «per Sentinella» a 320 px riletta per intero: niente da correggere.
+- [x] **GENESI — i ponti in Home, calcolati (05/09, notte):** il pannello
+  «Ponte Deepwork» diceva che lo scambio passa «tramite file .volata.json» —
+  vero per il core, falso per le altre app da stasera: un testo fisso in una
+  schermata è un «non c'è» scaduto che il fondatore legge. Adesso
+  `riepilogoPontiGenesi({previste, piani, nuvole, mode})` nel modulo dice per
+  Sentinella, Campo e Terra quanti record ha scritto ogni ponte e quando
+  l'ultimo (ISO nel modulo, formattato dalla pagina con `gdata`), «su questo
+  computer» / «nell'organizzazione» secondo il modo, `null` = non leggibile
+  (non zero), e lo stato vuoto dice COME si produce il primo; il .volata.json
+  resta per Deepwork. run-kpi +2 (2749), copertura genesi-data 83. Scatto
+  guardato, vuoto e pieno.
+- [x] **IL PIANO DI CARICO DA GENESI A CAMPO COME DATO (05/09, notte):** il
+  terzo dei quattro ponti di file di §4 che passa dai dati — il giro
+  Genesi↔Campo è chiuso nei due versi senza file. `pianoCsvGenesi` e
+  `pianoDaGenesi` in `shared/dw-ponti.js`: le tredici colonne del piano si
+  compongono in UN posto (prima erano scritte a mano nel gestore del
+  bottone), byte per byte come prima (provato con la riga letterale), e il
+  numero illeggibile esce vuoto. Genesi: collezione `piani` (chiave
+  `genesiPiani`, tetto 20, settima di `GENESI_COLLEZIONI`), il bottone
+  «Esporta piano di carico» scrive il record oltre al file, senza raddoppiare
+  (impronta del testo). Campo: `pianiGenesi()` con la seconda istanza in
+  live e dalla chiave da soli (`pianiDaChiave`), `pianiGenesiOrdinati`
+  (`null` = non leggibile), il blocco «Piani da Genesi» nella sezione del
+  piano con le righe nella forma di Campo, e «carica» che percorre la STESSA
+  strada del file: il gestore del file ora DELEGA a `importaPianoDaTesto`,
+  che il piano dell'organizzazione ricompone in testo con `pianoCsvGenesi` —
+  stesse finestre («Come ho letto il file»), stesso lettore. ⛔ Tre guardie
+  hanno parlato e sono state ascoltate, non zittite: la regola «una sola
+  decisione su `db.mode`» (tolto il confronto: `null` arriva solo
+  dall'organizzazione, non serve chiedere il modo — anche in Sentinella); il
+  censimento dei gestori d'import, che ora SEGUE la delega; la prova che
+  leggeva l'intestazione dal sorgente di Genesi, che ora la legge da
+  shared/ e pretende che la pagina lo usi. run-kpi +5 (2747), copertura
+  campo 134 e `dw-ponti` 82, banco `ponte-genesi-campo.mjs` (26 prove, due
+  pagine, controprova per file 2/2 e 18 caduti), un'iniezione riancorata in
+  `genesi-documenti-che-escono`. Scatto guardato. Mappa: 16 ponti di dati.
+- [x] **IL CONSUNTIVO DI CARICO DA CAMPO A GENESI COME DATO (05/09, notte):**
+  il secondo dei quattro ponti di file di §4 della mappa che passa dai dati.
+  `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` salgono in
+  `shared/dw-ponti.js` (Campo li ri-esporta per identità: `campo.X ===
+  ponti.X`, provato); Genesi legge `pianocarico` di Campo con la seconda
+  istanza dell'SDK (`pianoCampo`, `null` = Campo non leggibile, da soli
+  sempre `null`) e compone il consuntivo con la STESSA funzione con cui Campo
+  scrive il file, letto dallo STESSO `_riconParseCampo` del file — le due
+  strade non possono dire cose diverse. Bottone «Leggi il consuntivo da
+  Campo (organizzazione)» nella riconciliazione, solo in live; da soli resta
+  il file. Copertura: campo 135 → 132 e `dw-ponti` 76 → 79 (spostamento, non
+  perdita: i fondi lo dichiarano). run-kpi +3 (2742). Mappa: 15 ponti di
+  dati, i ponti di file censiti a 4 con i due che hanno anche i dati.
+- [x] **IL PONTE 3e — la volata prevista da Genesi a Sentinella SENZA il file
+  (05/09, notte):** l'ultima famiglia di sovrapposizioni non collegata della
+  mappa, e il primo ponte di dati che ENTRA in Sentinella da Genesi. La forma
+  del record è una, `previstaDaGenesi` in `shared/dw-ponti.js` (i `null`
+  restano `null`: una MIC non calcolabile non è zero). Genesi: collezione
+  `previste` (chiave `genesiPreviste`, tetto 50, sesta di `GENESI_COLLEZIONI`)
+  e il bottone «per Sentinella» che, oltre al file, scrive il record — senza
+  raddoppiare un progetto riesportato (stesso codice) — e lo dice nel toast e
+  nella finestra, in due forme (organizzazione / stesso computer). Sentinella:
+  `previsteGenesi()` con la seconda istanza dell'SDK sull'appId di Genesi
+  (pigra, sola lettura, forma di `nuvoleGenesi` di Terra) o dalla chiave del
+  browser (`previsteDaChiave`); `previsteNuove(previste, volate)` con la firma
+  di sempre (`null` = non leggibile, non «nessuna»); `accogliPrevista` con le
+  STESSE funzioni del lettore CSV — provato che dal ponte e dal file esce la
+  stessa identica volata; blocco «Previste da Genesi» nel registro con la
+  riga nella forma delle altre (avatar · info · acts) e il bottone che
+  accoglie. ⛔ **E la strada del file aveva un buco, trovato confrontando le
+  due strade**: Genesi scrive in coda `ppvPrevProvvisoria;ppvPrevReferti`, il
+  registro di Sentinella `comunicataA;comunicataIl;comunicazioneRif` —
+  stesse posizioni, nomi diversi, nate in giorni diversi — e `parseVolateCsv`
+  leggeva per posizione: il «si» della legge di sito provvisoria finiva in
+  `comunicataA` («comunicazione registrata a metà (non dice a chi)» su una
+  volata mai comunicata) e la provvisorietà, costruita il 03/08 apposta, non
+  veniva letta MAI. Adesso legge per NOME quando l'intestazione c'è (per
+  posizione senza). run-kpi +6 (2739: la forma, l'identità fra le due
+  strade, il buco rimesso, le nuove, la chiave, le pagine), copertura
+  Sentinella 170 e `dw-ponti` 76. Banco `ponte-genesi-sentinella.mjs`: due
+  pagine nello stesso browser, 30 prove, controprova per file (2/2 rimessi,
+  18 caduti); `genesi-locale` e `sentinella-foglio-volata` rilanciati. Mappa:
+  14 ponti di dati, **0** sovrapposizioni non collegate; `GENESI_FUORI_DAL_
+  BROWSER` §3c con la sesta collezione. Scatto guardato (e la prima stesura
+  della riga aveva una forma sua — `.ico/.body/.az` — che il core non ha:
+  rifatta con avatar · info · acts prima di committare).
+- [x] **Due righe di documento, prima di aprire cantieri (05/09, notte):** (1)
+  **decisione 19** in `DECISIONI_WEEKEND` — il ricettore delle polveri e «da
+  che parte sta rispetto alla cava»: il vento ora si registra, ma sulle
+  polveri «sottovento» vorrebbe un campo sul ricettore che compila il
+  fondatore; scritta la regola (aritmetica sugli otto settori) e le due
+  domande, e NON costruita; registrata nella tabella d'ingresso; (2) la riga
+  «Gestione magazzino / giacenze prodotto» di `CONCORRENTI_CONTI` era un
+  **«non c'è» scaduto** dal 03/09: le giacenze esistono come inventari dei
+  cumuli di Terra nel terzo lato del triangolo (`variazioneScorte`,
+  `scorteInTonnellate`, `chiusuraTriangolo`, `triangolo`), e la riga diceva
+  ancora «confermato assente» — stavo per aprire un cantiere su un magazzino
+  che il prodotto ha deciso di non avere. Riscritta «C'È A METÀ» con i comandi
+  e con ciò che resta assente (carico/scarico per prodotto, FIFO). B4 conti
+  6 → 5, totale 42 → 41.
+- [x] **SENTINELLA — il banco del browser sulle condizioni meteo, dal file e a
+  mano (05/09, notte):** `tests/browser/sentinella-meteo-import.mjs`, 46
+  prove a 320 e 390 px, registrato in `tutti.mjs` (249 esecuzioni, 104 file).
+  Cinque tappe: il file del fonometro con la stazione meteo incollato davvero
+  (proposte 4/5/6/7/8, «Evento» NON preso per il vento); l'anteprima con le
+  condizioni sotto il numero, «non letta: vento» e i due tag «fuori
+  condizioni»; l'archivio che tiene le condizioni dopo l'import, coi
+  suggerimenti; **«Registra» a mano con vento 7,5 e la striscia che C'È e
+  avvisa** (è la tappa che esiste per il difetto `letture` dell'08/08: prima
+  di stasera nessun banco premeva quel bottone); il report che conta 4 fuori
+  · 3 dentro · UNA senza condizioni e non giudica polveri e vibrazioni.
+  Controprova con tre difetti applicati PER FILE — il modo «dentro» che fa
+  prendere «Evento», `campiCondizioni` tolto da `unisciLetture`, `letture`
+  rimesso dentro la callback — 3 su 3 rimessi, 30 controlli caduti su 46.
+  `iniezioni-fresche` 529/529 con i file dichiarati. ⚠️ Una prova ha
+  sbagliato la fixture prima di reggere: 63 dB(A) su soglia 70 dà
+  «Attenzione», e il prodotto aveva ragione — si registra 61.
+- [x] **SENTINELLA — le condizioni meteo entrano anche dal file dello
+  strumento (05/09, sera):** il candidato scritto un'unità prima in
+  `RICERCA_CONTINUA_SENTINELLA`. `proponiColonneMeteo(righe, conInt,
+  escludi)` propone vento, direzione, pioggia, temperatura e umidità
+  dall'intestazione (italiano e inglese) in modo «parola» — perché «vento» sta
+  DENTRO «evento», che è una colonna del nostro stesso CSV ambiente, e la
+  direzione si cerca prima della velocità («Dir. vento» contiene «vento»);
+  `direzioneVento` legge la sigla (anche W→O, anche a sedici punte ridotte a
+  otto) o i gradi (settore di 45°); `pioggiaDaCella` legge sì/no in tre
+  lingue o i millimetri. `preparaLetture` porta le condizioni SOLO dalle
+  colonne indicate e, se una cella scelta non si legge, non la trasforma in
+  «non registrata» in silenzio: la riga entra (la misura vale) con
+  `meteoNonLetti`, e l'anteprima scrive «non letta: vento». `unisciLetture`
+  le tiene con `campiCondizioni` (è la copia campo per campo dove si
+  perderebbero). Pagina: terzo blocco di tendine nella finestra delle
+  colonne, proposta automatica, mappa dell'anteprima, e la riga
+  dell'anteprima con le condizioni sotto il numero e il tag «fuori
+  condizioni» già prima di importare. Provato nel browser incollando un file
+  a nove colonne su un punto di rumore: proposte giuste, tre righe entrate,
+  le condizioni sulle righe dell'archivio con i due suggerimenti. run-kpi +5
+  (2733), copertura Sentinella 164 → 167, `sentinella-evento-import` 56 ok e
+  controprova caduta (il file del sismografo non propone nessuna colonna
+  meteo). Scatto dell'anteprima guardato. ⚠️ Dichiarato: le intestazioni
+  vere dei produttori non sono verificate — gli indizi sono le parole ovvie e
+  la finestra lascia correggere, come per gli assi.
+- [x] **`nomi-liberi`: la seconda domanda (lo scope) anche sui riferimenti
+  NUDI — e il secondo difetto vero del giorno, in Scudo (05/09):** dal
+  «candidato lasciato scritto» dell'unità precedente. `fuoriScopeNudi` con
+  la regex del riferimento nudo della quarta domanda, lo scandaglio delle
+  dichiarazioni e l'ancora sul blocco della seconda. **Costo misurato prima,
+  su una copia**: 74.379 riferimenti nudi su 12 pagine e 121.320 su moduli e
+  suite, **1 allarme, e quello vero** — `per` di Scudo, rimasta nella
+  striscia «Riepilogo near-miss esportato (…)» quando `csvRiepilogoNearMiss`
+  è salita nel modulo la mattina (52cb2fdc): il file usciva (l'`a.click()`
+  viene prima) e il gestore moriva subito dopo, con `per` dichiarata in
+  UN'ALTRA funzione della pagina a rendere cieca la prima domanda. Corretto
+  con `etichettaPeriodoNearMiss(nmPeriodo)` del modulo (non ricopiata);
+  premuto nel browser: «Riepilogo near-miss esportato (ultimi 90 giorni).»,
+  file scaricato, 0 errori. In `nomi-liberi`: quattro prove nuove (le due
+  regole su pagine e su moduli+suite, il denominatore, e le controprove che
+  rimettono TUTT'E DUE i difetti di oggi — `letture` di Sentinella e `per` di
+  Scudo — pretendendo che le domande sulle chiamate restino cieche e questa
+  veda), riepilogo con il conto dei nudi. Paragrafo in CLAUDE.md: «in quante
+  forme un nome può comparire?». 26 → 31 prove.
+- [x] **SENTINELLA — le condizioni meteo della misura, e la regola del mestiere
+  sul rumore (05/09):** due righe di `CONCORRENTI_SENTINELLA` («Umidità,
+  temperatura» e «Direzione + velocità vento», confermate assenti dal 02/08)
+  chiuse come UNA unità. Sulla lettura cinque campi **facoltativi** (`vento`
+  m/s, `ventoDa` fra otto direzioni in italiano, `pioggia`, `temperatura`,
+  `umidita`), nel form «Registra misura» sotto il valore. Il mondo [seconda
+  mano, `RICERCA_CONTINUA_SENTINELLA` 05/09]: per il rumore il DM 16/03/1998
+  All. B non ammette misure con vento oltre 5 m/s o pioggia. La regola qui:
+  `misuraFuoriCondizioni(l, m)` risponde **fuori · dentro · non si può dire**
+  (né vento né pioggia registrati — l'assenza non è un dato favorevole; una
+  metà sola registrata non basta a dire «dentro»), e SOLO sul rumore: sulle
+  polveri «sottovento» vorrebbe la posizione della sorgente, che l'app non
+  ha, e lo dice il commento. Nessun conto cambia: è un **suggerimento** sulla
+  riga («fuori condizioni: vento 7 m/s, oltre i 5 m/s ammessi»), come
+  «nessuna volata quel giorno», con la quinta ragione di annullamento
+  `meteo`; la striscia di conferma lo dice nell'istante in cui si registra.
+  Report: la scheda del punto scrive «una lettura fuori condizioni, 2 dentro,
+  una senza vento e pioggia registrati: di quella non si può dire se vale»
+  (`contaFuoriCondizioni`) e la riga porta il tag. CSV ambiente: due colonne
+  in coda, `condizioni_ultima` e `fuori_condizioni` («sì: …» / «no» / «non si
+  può dire»), censimento aggiornato. ⛔ **Due difetti presi facendo l'unità**:
+  (1) le due copie delle letture (CSV `lettureLeggibili` e report `grezze`)
+  ricostruiscono l'oggetto campo per campo, e i campi nuovi SPARIVANO — la
+  prima prova sul CSV rispondeva «vuoto» a una lettura col vento; adesso
+  passano da `campiCondizioni`, scritta una volta; (2) **vecchio e in
+  produzione dall'08/08** (`81f6e768`, «si rilegge dentro la transazione»):
+  `letture` era dichiarata DENTRO la callback di `db.trasforma` e usata
+  FUORI, quindi «Registra» scriveva la misura e poi moriva con «letture is
+  not defined» — nessuna conferma, nessun refresh, campo non svuotato.
+  Nessuna prova rossa: i banchi non premono quel bottone, e `nomi-liberi`
+  (seconda domanda) non vede una `const` di un blocco interno usata in
+  quello che lo contiene — preso dallo scatto. run-kpi +6 (2728), copertura
+  di Sentinella 158 → 164, banchi Sentinella rilanciati (evento-import 56,
+  numeri-tranquilli 28, report-dichiarazioni 27, annullate 60, controprove
+  cadute), due ancore d'iniezione riancorate. Tre scatti guardati (riga,
+  form a 430 px con le tendine rifatte perché tagliavano l'etichetta,
+  report). B4: sentinella 13 → 11, totale 44 → 42.
+  ✅ **Il candidato lasciato scritto qui** (`nomi-liberi` sui riferimenti nudi)
+  **è stato fatto l'unità dopo**: vedi la voce qui sopra.
+- [x] **FLOTTA — il budget dell'anno contro la spesa reale (05/09):** la
+  riga «Budget tracking vs actual» di `CONCORRENTI_FLOTTA` (4 prodotti su
+  14, «oggi è un excel parallelo»), la prima mancanza confermata di B4 a
+  passare a C'È per opera del codice. Collezione `budget` ({anno, voce,
+  importo}; voce vuota = tutta la flotta), `budgetVsSpesa(budget, costi,
+  anno, oggi)` con previsto · speso · **quota attesa a oggi** (pro-rata sui
+  giorni dell'anno: il 5 settembre è il giorno 248 di 365) e cinque stati
+  (`ETICHETTA_STATO_BUDGET`, letta dal badge): sforato, sopra il ritmo (oltre
+  il +10 %), in linea, sotto il ritmo (che NON è «bene»: la frase dice «può
+  essere un risparmio, o una spesa non ancora registrata»), nessuna spesa.
+  Tre cose che non si fanno: un costo senza data non entra nell'anno (si
+  dichiara a parte: «1 costo senza data fuori da ogni anno»); una voce con
+  spese ma senza budget non riceve un budget zero (uscirebbe «sforato
+  dell'infinito»: si elenca «senza budget»); un budget a zero o illeggibile
+  non è un budget. `descriviBudget` scrive la frase; `csvBudget` il file
+  (`flotta_budget_<anno>.csv`, censito in `CSV_TABELLE` con `fonte`, con il
+  previsto VUOTO dove non c'è). Schermata Costi: blocco «Budget dell'anno»
+  con le righe, il form (voce con i nomi già usati nei costi, importo) e
+  l'export; ✕ con la modale del core. Dimostrazione: tre budget (carburante
+  12.000 → in linea, ricambi 8.000 → sopra il ritmo, flotta 30.000 → in
+  linea; gomme e noleggi senza budget). run-kpi +5 (2722), `run-demo`
+  controlla la collezione, `documenti-dimostrazione` 111 documenti, siti di
+  export 31 → 32, copertura di Flotta 130 → 135. Scatto della schermata
+  guardato. B4: flotta 5 → 4, totale 45 → 44; riga del documento aggiornata.
+- [x] **SCUDO — i due file composti nella pagina salgono nel modulo (05/09):**
+  «che cosa esce, e chi decide i suoi numeri?» rifatta su Scudo. Cinque CSV e
+  due fogli; le celle le decidevano già le funzioni giuste, ma la
+  COMPOSIZIONE di due file stava nella pagina, provata solo dal browser:
+  `csvProspettoAzioni(azioni, {lavoratori, infortuni, ispezioni}, oggi)` e
+  `csvRiepilogoNearMiss(infortuni, azioni, giorni, oggi)` (+
+  `etichettaPeriodoNearMiss`) nel modulo, la pagina chiama. run-kpi +3
+  (2660); il censimento delle intestazioni (`CSV_TABELLE`) li verifica
+  chiamando l'export — e «prospettoIndici» era un nome sbagliato che
+  trovava nella pagina l'intestazione del riepilogo near-miss: verde per
+  caso, adesso nomina il file vero. Banco `scudo-documenti` 89/89, 27/27
+  iniezioni riancorate sul modulo (e una senza il «NOME = » davanti, perché
+  `iniezioni-fresche` raccoglie ogni costante di stringa come preambolo).
+- [x] **SENTINELLA — dalla ricerca del 05/09 (il diario delle volate e la
+  relazione per l'ente), delta dal meccanismo.** Il registro volate e i reclami
+  ci sono e il report li porta; mancano, misurati con il comando: la
+  comunicazione fatta per una volata (a chi, quando, riferimento — «comunicat|
+  preavvis» → 0 e 0), la riga di portata del report (danno agli edifici sì,
+  disturbo alle persone UNI 9614 no: «9614|disturbo» → 0 e 0), le azioni
+  correttive accanto ai superamenti (Scudo le ha, il report non le legge), il
+  destinatario e la data di trasmissione sul documento, il foglio della
+  singola volata con la misura. Candidati (a)–(e) in
+  `docs/RICERCA_CONTINUA_SENTINELLA.md`, in ordine di costo. (a) ✅ **05/09**:
+  la comunicazione sulla volata (a chi, quando, riferimento) con
+  `campiComunicazioneVolata`/`descriviComunicazione`, tre colonne in coda al
+  CSV del registro, l'azione sulla riga, la riga e la tabella del report che la
+  scrivono — «nessuna comunicazione registrata» quando manca, mai «—». run-kpi
+  +3 (2646); banchi del registro e del report con le prove nuove. (b) ✅ e
+  (d) ✅ a metà **05/09**: `PORTATA_REPORT` (il documento dice che giudica gli
+  effetti sugli edifici, UNI 9916/DIN 4150-3, e non il disturbo alle persone,
+  UNI 9614) e `intestazioneOrigineReport` (quando parte da un adempimento il
+  foglio scrive per quale, per quale ente, con periodo e scadenza; la riga
+  sparisce se si toccano le date). La data di trasmissione resta un candidato
+  a sé. run-kpi +2 (2648). (c) ✅ **05/09**: `rispostaSuperamento` — il report
+  riceve le azioni da Scudo (`null` quando non si leggono, che non è
+  «nessuna») e la scheda di ogni punto in superamento scrive «Azioni
+  correttive: …» con lo stato di `statoPonte`: la prima domanda
+  dell'ispettore, «e poi?», ha una riga. run-kpi +2 (2650). (e) ✅ **05/09**:
+  `fogliaVolata(v, {monitoraggi, reclami})` — la scheda della singola volata
+  (dati e SD, previsione di Genesi, misura dell'evento con la lettura cercata
+  per data E ora, provenienza, strumento e taratura che copre quel giorno,
+  comunicazione, reclami dello stesso giorno dichiarati coincidenza), aperta
+  dal bottone sulla riga del registro in una finestra da stampare o allegare;
+  ogni assenza a parole («non ancora collegata», «nessun reclamo registrato
+  quel giorno», «non dichiarato»), mai «—»; in dimostrazione il foglio dice in
+  testa che sono dati di esempio. La frase «vale come verbale» NON c'è: il
+  foglio dice che «la registrazione originale dello strumento resta il
+  documento di riferimento». run-kpi +3 (2653); banco nuovo
+  `sentinella-foglio-volata` (27 prove, 5 iniezioni viste una per una).
+  **Seconda iterazione, affiancata alla relazione di fine lavori di Terra**
+  (la prima versione non è mai quella buona): il modulo dichiara «che cosa
+  manca» (`nonMisurati`, terzo elemento `manca` su ogni riga) e il foglio lo
+  elenca in una sezione a sé con la cella in corsivo — la SD non calcolabile
+  NON conta due volte, «nessun reclamo» e «nessuna previsione» NON mancano
+  perché sono fatti; firme, piede coi limiti, stampa che non spezza le
+  tabelle. Banco 35 prove, 6 iniezioni. **Terza iterazione, affiancata al
+  verbale del rilievo di Terra («come è stato ottenuto il numero»)**: sezione
+  «Regola del giudizio» — il limite che vale per il punto (`sogliaEfficace`:
+  vince il ricettore, mai una conversione di unità), il preset con la stessa
+  avvertenza «da verificare» della pagina, l'esito di `statoMisura` col
+  rapporto (pari alla soglia è superamento), la frequenza contro la banda del
+  preset (`frequenzaFuoriBanda`, e il limite dell'altra banda NON si
+  inventa); senza soglia niente esito e la soglia assente sta in «che cosa
+  manca». Tre funzioni chiamate, nessuna riscritta. run-kpi +1 (2654); banco
+  41 prove, 7 iniezioni (la settima è la copia debole che ignora il
+  ricettore). **E il riferimento della soglia va anche nel report per l'ente**
+  (05/09): `riferimentoSoglia(m, ricettori)` — il riferimento del valore che
+  VALE: se vince il ricettore è «scritta sul ricettore», se vale il punto è il
+  preset con l'avvertenza «da verificare» (o «cambiata a mano dopo il
+  preset», o «scritta a mano») — usata dalla scheda della volata e dalla
+  scheda del punto nel report («Riferimento della soglia: …»); la domanda «la
+  soglia è ancora quella del preset?» è `presetDelPunto`, una sola, e
+  `frequenzaFuoriBanda` passa di lì. run-kpi +3 (2657); banco del report +2
+  prove e un'iniezione (la riga che non arriva nel documento). Resta la
+  trasmissione (decisione del fondatore).
+- [x] **SENTINELLA — `proponiMappa` e `proponiColonneEvento` sopra
+  `mappaColonne` (05/09): i quattro lettori per nome sono UNO.** La mappa
+  condivisa ha tre modi dichiarati — «parola» (Conti, Flotta), «esatto»
+  (Campo), «dentro» (Sentinella: «vel» prende «velocità (mm/s)», «db» prende
+  «dB(L)», com'è sempre stato) — e le colonne già prese da chi chiama
+  (`presi`), così l'ordine di Sentinella resta: data, ora, gli assi, la
+  risultante, poi il valore generico. Il ripiego sui dati (prima colonna che
+  è una data, ultima numerica, mai un asse) non si tocca. Prove esistenti
+  invariate, +2 (2643); banco `sentinella-evento-import` 56/0.
+- [x] **CAMPO — `mappaPianoCsv` sopra `mappaColonne` (05/09), e l'export per la
+  fatturazione elettronica MISURATO già fatto.** La lettura del piano di
+  Genesi in Campo usa la mappa condivisa con l'opzione nuova `esatto` (nomi
+  interi: «ms» non deve prendere «relief_ms_per_m», «carica (kg)» resta la
+  carica) e risponde come prima — prove invariate, +1 (2641). Il secondo punto
+  della lista del ciclo («export per la fatturazione elettronica») è stato
+  misurato prima di aprirlo: `xmlFatturaPA` scrive già un blocco `DatiDDT` per
+  ogni pesata collegata e conta `ddtCitati` (`grep -c "DatiDDT"
+  apps/conti/conti-data.js` → 2). Non c'era niente da aggiungere: la riga
+  resta per non farlo riaprire. Dei quattro lettori per nome resta solo
+  `proponiMappa` di Sentinella, dichiarato nella ricerca Flotta.
+- [x] **CONTI — il file della pesa a ponte entra da solo (05/09, punto 3
+  della lista del ciclo: «integrazione con la pesa»).** Misurato prima: Conti
+  rileggeva solo la PROPRIA copia di sicurezza delle pesate (venti colonne per
+  posizione); il CSV del software della pesa non aveva una porta e ogni
+  cartellino si ricopiava a mano. Ora «Importa dalla pesa (CSV)»:
+  `INDIZI_PESA` + `mappaPesaCsv` (colonne per nome con `mappaColonne` di
+  shared; l'unità letta dall'intestazione — «Lordo (kg)» — e altrimenti NON
+  indovinata ma SUGGERITA con la ragione e confermata da una persona nella
+  finestra), `parsePesaCsv` (date italiane, righe rotte con la ragione),
+  `pesateDallaPesa` (cliente e prodotto per nome in anagrafica e listino, chili
+  in tonnellate, doppie per cartellino o per data+targa+lordo+tara, mancanze
+  dette per nome). Il DDT nasce dalla STESSA strada del bottone «Registra
+  pesata» (`rigaPesata` + `numeroProssimoDdt`), con `pesaTicket`/`pesaOra`/
+  `pesaFile` come provenienza. run-kpi +3 (2640); banco `conti-banca-colonne`
+  sezione 4: file in kg con un cliente ignoto e una data rotta → 1 DDT da
+  28,4 t (non 28.400), «Rossi Srl» detto per nome, cartellino 1043 scartato
+  con la ragione; controprova con i chili non convertiti. Toast misurato a
+  320: le colonne le dice la finestra, non l'esito.
+- [x] **FLOTTA + shared — la mappa delle colonne per nome, una volta sola
+  (05/09, candidato (c) della ricerca Flotta).** Quattro lettori di casa
+  facevano la stessa domanda («quale colonna è X?») in quattro modi. Ora
+  `mappaColonne` e `nomeColonna` stanno in `shared/dw-shell.js`; la telemetria
+  di Flotta si legge per nome (`INDIZI_TELEMETRIA`, `mappaTelemetriaCsv`,
+  carburante facoltativo, posizione di sempre senza intestazione) e l'esito
+  dell'import dice le colonne riconosciute e quelle lasciate fuori; Conti ha
+  rifatto `mappaMovimentiCsv` sopra la stessa funzione e risponde come prima
+  (prove e banco invariati e verdi). Misurato: «Litri;Ore motore;Targa» entra
+  giusto — prima la targa finiva nei litri. run-kpi +3 (2637); banco
+  `import-righe-perse` con la frase in più sulla telemetria. ⏱️ Campo
+  (`mappaPianoCsv`) e Sentinella (`proponiMappa`) restano coi loro lettori,
+  candidati dichiarati nella ricerca Flotta.
+- [x] **SENTINELLA→CAMPO — il ponte P6, 05/09: le volate del giorno nella
+  consegna di turno.** La mappa diceva «app che nessuno legge: Sentinella». Il
+  turno entrante deve sapere se e dove si è sparato e se la vibrazione è già
+  stata misurata: la consegna (`consegna_turno.txt`) ha la sezione «VOLATE DEL
+  GIORNO (registro di Sentinella)» prima dei lavori non conclusi, e lo schermo
+  del Turno la stessa frase (`righeVolateDelGiorno`, un posto solo). Registro
+  non leggibile → «non si sanno (non vuol dire che non ce ne siano state)»;
+  nessuna → «nessuna volata registrata oggi»; altrimenti fronte, fori, chili e
+  la PPV con la fonte, SENZA giudizio di conformità (resta di Sentinella, è
+  della soglia del punto di misura). Lo stato della volata e la sua PPV
+  (`statoDaTesto`, `statoVolata`, `volateDelGiorno`, `ppvDiVolata`, costanti)
+  passano in `shared/dw-ponti.js` con `riassuntoVolateDelGiorno`; Sentinella
+  ri-esporta gli stessi oggetti (test d'identità). In Campo le CINQUE copie
+  dell'apertura dell'SDK su un'altra app (Terra tre, Scudo due) diventano
+  `apriApp`/`leggiApp` con l'`appId` come parametro. Dimostrazione: le cinque
+  volate di Sentinella copiate id per id (prova che coincidono), nessuna di
+  oggi. run-kpi +4 (2634); `campo-foglio-turno --caso=consegna` 21/0,
+  controprova con l'iniezione della sezione vuota. Mappa: 13 ponti su 56,
+  «app che nessuno legge» 2 → 1.
+- [x] **GENESI↔CAMPO — il confronto progettato/reale FORO PER FORO, misurato
+  inesistente il 05/09 notte** (`docs/RICERCA_CONTINUA_GENESI.md`, ultima
+  sezione): il `foro` del piano di carico è la posizione nella sequenza di
+  sparo, ricalcolata a ogni `computeSeq2D` — cancellare un foro rinumera gli
+  altri — e `_riconRiassuntoCampo` fa somme e medie sulla volata intera, mai
+  un accoppiamento. Tre pezzi che vanno insieme, in ordine:
+  (1) ✅ **05/09, ciclo delle 03:47Z** — l'id stabile nasce col foro:
+  `idForoMaglia(fila, colonna)` («f2-5», si legge sulla carta) in
+  `genMaglia2D`, `idForoNuovo(holes)` («m1, m2…», il primo numero libero) per
+  il foro aggiunto sulla tela; l'import XML passa da `genMaglia2D` e lo
+  eredita; il piano di carico lo porta come tredicesima colonna `id_foro`
+  (in coda: chi ne conosce dodici non si accorge di niente) e il
+  `.volata.json` chiama i fori con lo stesso id quando la simulazione viene
+  dal progetto 2D (`foro_n` resta per la dimostrazione a una fila, che i fori
+  non li ha battezzati). run-kpi +2; `genesi-documenti-che-escono` 75/0 con
+  due iniezioni nuove (la colonna vuota; il JSON per posizione).
+  ✅ **(4) 05/09, stesso ciclo — e non era una scelta, era un dato perso**: il
+  `design` salvato in Home non portava `D2.holes` e «Apri» rigenerava la
+  maglia dai parametri, quindi un foro TOLTO ricompariva, uno aggiunto sulla
+  tela spariva e un ritardo a mano tornava allo schema. Ora `volSnapshot`
+  scrive `holes` (id, posizione, `tMano`) e «Apri» li rimette con
+  `foriDaDesign` (null per una volata salvata prima → maglia rigenerata come
+  sempre; i fori illeggibili si contano e finiscono nel toast; gli id mancanti
+  si assegnano DOPO aver letto quelli dichiarati, se no un «m1» in fondo
+  diventava un doppione — misurato prima di scrivere). run-kpi +2; banco
+  `genesi-documenti-che-escono` sezione 6: salva → riapri, tre fori coi loro
+  id, f1-2 non ricompare, 99 ms a mano intatti; due iniezioni nuove.
+  (2) ✅ **05/09, stesso ciclo** — Campo conserva l'id (`PIANO_COLONNE.idForo`,
+  FACOLTATIVA: non finisce fra le `mancanti`, se no ogni piano di ieri aprirebbe
+  la finestra), lo salva in `pianocarico` come `idForo`, lo mostra nel `.meta`
+  della riga solo se c'è, e lo rimanda in coda al consuntivo
+  (`CONSUNTIVO_COLONNE` + `id_foro`, censimento aggiornato, banco
+  `campo-numeri-tranquilli` 92/0 sui dieci nomi). ⛔ E scrivendo la prova con
+  l'intestazione VERA di Genesi è uscito un difetto del ponte che nessuna prova
+  vedeva: Campo non riconosceva `fila_m`, `borraggio_prog_m` e `ritardo_ms` —
+  il piano di Genesi entrava con fila, borraggio e ritardo VUOTI e la finestra
+  diceva «Non ho trovato la colonna di: fila, borraggio, ritardo» a ogni
+  import. Tutte le prove di casa usavano nomi corti che non sono quelli del
+  file. Corretto; adesso una prova legge l'intestazione DAL SORGENTE di Genesi
+  (run-kpi +3). (3) ✅ **05/09, stesso ciclo** — `_riconParseCampo` legge
+  `id_foro`; `confrontoPerForo(holes, righe)` in `genesi-data.js` accoppia ogni
+  foro del progetto APERTO alla sua riga per id quando piano e consuntivo lo
+  portano, per numero altrimenti — DICHIARANDO la chiave — e conta i fori
+  senza riga, le righe orfane, le chiavi doppie; `misurabile` solo se almeno
+  una carica reale è accoppiata. Lo scarto usa `scartoLivello`, che dal 05/09
+  vive in `shared/dw-ponti.js` (Campo lo ri-esporta, il test pretende
+  l'identità). La pagina lo disegna sotto la riconciliazione di Campo: due
+  colonne (foro · id · badge / progetto → reale con lo scarto sotto), perché
+  a 320 px sei colonne finivano oltre il bordo del pannello — misurato con
+  lo scatto, tre volte. run-kpi +5 (2628); `genesi-frasi-limite` 36/0 con il
+  caso per id (f1-1 in linea, f1-2 fuori, f1-3 senza riga, f9-9 orfana) e il
+  caso per numero dichiarato.
+- [x] **CAMPO — dalla ricerca del 05/09 notte (il passaggio di consegne fra
+  turni), delta dal meccanismo.** La consegna di turno (`consegna_turno.txt`)
+  c'è, firmata dai due lati, con produzione, checklist, meteo, fermi; le
+  mancano le due cose che il turno entrante legge per prime e che lo schermo
+  ha già: (a) ✅ **fatto la notte stessa** — «LAVORI NON CONCLUSI» da
+  `lavoriNonConclusi` (fermi prima, poi in corso, poi pianificati; chi ce l'ha
+  in carico, «nessuno in carico» dove non c'è un nome; «nessuna attività
+  aperta» quando è vuota); (b) ✅ — «SEGNALAZIONI DEL TURNO» con
+  `testoSegnalazioniTurno` turno per turno, la stessa frase dello schermo, e
+  «non lo sappiamo» quando Scudo non si legge. run-kpi +2; banco
+  `campo-foglio-turno --caso=consegna` esteso con la controprova che rimette
+  «nessuna attività aperta» su un turno con quattro lavori aperti.
+  Vedi `docs/RICERCA_CONTINUA_CAMPO.md`.
+- [x] **SCUDO — dalla ricerca del 05/09 notte (la sorveglianza sanitaria),
+  delta fatto dal meccanismo.** Tre candidati, nessun termine di legge in una
+  schermata: (a) ✅ **fatto la notte stessa** — `idoneitaOperatore` legge il
+  giudizio (`giudizio`, `prescrizioni` nella risposta), «non-idoneo» è uno
+  stato a sé che vince sui documenti in corso e su «senza scadenze»,
+  `idoneitaDiTurno` conta `nonIdonei` e `conPrescrizioni`; Campo lo scrive
+  nella nota dell'elenco («N persona NON è idonea secondo il medico competente
+  (Scudo): non va mandata in cava finché il giudizio non cambia») e nella riga
+  (rossa, col testo delle prescrizioni se Scudo lo ha, «testo non registrato»
+  se no); run-kpi +2 con la controprova che cade; (b) ✅ **fatto subito
+  dopo** — `giudizioIdoneita` (prescrizioni obbligatorie con «prescrizioni»,
+  data facoltativa che deve esistere e non essere futura, azzeramento su
+  idoneo/n.d.), il tocco sul badge apre la modale del core con data e testo
+  invece di ciclare, la riga scrive «Giudizio del … · Prescrizioni del
+  medico: …», il CSV del personale porta `prescrizioni;giudizio` in coda
+  (censimento condiviso allineato); banco nuovo `scudo-giudizio-medico` 32/0
+  con la controprova; niente «trenta giorni»; (c) ✅ le due dimostrazioni portano un idoneo (d4),
+  uno con prescrizioni scritte (d5, in Campo regolare coi documenti) e un NON
+  idoneo (d2, schierato nella Squadra A): Campo continua a mostrare tutti gli
+  stati, e la prova che le due copie dicono lo stesso giudizio c'è.
+  Vedi `docs/RICERCA_CONTINUA_SCUDO.md`.
+- [x] **BANCO `stati-non-misurati`: 4 KO su 79, DUE CAUSE, una del banco e una
+  del prodotto (04/09 sera).** Rilanciato identico su `6eb001ee`, quindi
+  nessuna delle unità di stasera. (1) Sentinella, tre casi su `#rep-doc`: il
+  report apre sugli **ultimi 30 giorni** e le volate della dimostrazione sono
+  di luglio, quindi la tabella delle volate — dove vivono «norma non indicata
+  sul progetto», «non calcolabile» e «non dichiarano tutti i dati» — non si
+  disegnava: il banco scrive il periodo dell'anno della dimostrazione
+  (`scrivi` su `#rep-dal`/`#rep-al`), che non invecchia con l'orologio.
+  (2) Conti, «la fattura senza scadenza compare in #prio-list»: la
+  dimostrazione invecchiando ha **quattro** fatture scadute, e la quinta —
+  senza scadenza, messa da `prioritaIncasso` dopo quelle in ritardo, com'è
+  giusto — cadeva fuori dalle tre righe del Quadro: l'«ordinamento
+  tranquillo» descritto nel modulo, tornato come **taglio**. Il Quadro adesso,
+  se una fattura aperta senza scadenza resta fuori dalle tre, la dice in una
+  riga sua («senza scadenza: non si sa entro quando · fuori dalle tre più
+  urgenti», corta perché il meta è a due righe: misurato a 320). Banco 81/81,
+  controprova che cade; resta 1 non misurato di Campo (la scena intermittente
+  già scritta in CLAUDE.md). ⚠️ Vuole il server esterno: `python3 -m
+  http.server PORTA` e la porta come numero nudo.
+- [x] **TERRA — dalla ricerca del 04/09 sera (garanzia e chiusura del lotto),
+  delta fatto dal meccanismo, non dalla parola.** Tre candidati dichiarativi,
+  nessun importo o termine di legge in una schermata: (1) ✅ **fatto la sera
+  stessa** — `collaudoChiestoIl` sul lotto, `attesaCollaudo` («collaudo chiesto
+  all'ente il … (N giorni fa)» / «recuperato da N giorni, collaudo non ancora
+  chiesto» / «non si sa da quanto»), badge «collaudo chiesto» e «collaudo non
+  chiesto» al posto di «senza collaudo», campo nel modulo del lotto, `lo2`
+  porta la data invece della nota; run-kpi +5, scatti a 320/390;
+  (2) ✅ **fatto** — `garanziaEuro` sul lotto (campo nel modulo, dalla
+  polizza: Terra non la calcola), `garanziaVincolata` (vincolata sui non
+  collaudati, liberabile con l'elenco dei collaudi che la liberano, liberata,
+  `senzaQuota` dichiarato come `senzaMq`), riga nel cartellone del divario e
+  quota nella riga del lotto; la dimostrazione ha tre quote e tre lotti senza,
+  e il cartellone lo dice; run-kpi +4, scatti a 320/390; (3) ✅ **fatto** — `relazioneLotto` nel modulo (le righe, con ogni dato
+  mancante scritto come tale e raccolto in `nonMisurati`), `fogliaRelazione`
+  nella pagina sullo stile del verbale scritto una volta (`STILE_FOGLIO`),
+  bottone nella riga dei lotti recuperati e collaudati; banco nuovo
+  `terra-relazione-lotto` 44/0 con la controprova che rimette «0 m³» (6 su
+  44); run-kpi +4. Vedi `docs/RICERCA_CONTINUA_TERRA.md`.
+- [x] **FLOTTA: IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, cantiere morto due
+  volte per i crediti, raccolto dalla patch in `vault/cantieri-sospesi/` e
+  rimisurato in casa prima di tenerlo).** Dopo un contatore sostituito, un
+  «Tagliando a 6.000 h» scritto sul vecchio diceva «tra 5.790 h» in verde:
+  falso, nella direzione tranquilla. Il tagliando porta `scrittaIl` (chi lo
+  crea o riscrive lo salva; `prossimoTagliando` lo mette da sé); scritto PRIMA
+  dell'ultimo azzeramento → «non confrontabile» col motivo e le due date, senza
+  colore e senza numero, in lista, ordine, scheda del mezzo, Quadro,
+  `tagliandiInScadenza` (che senza la guardia lo avrebbe detto «scaduto»:
+  `null <= 0` è true) e nei file che escono; scritto lo stesso giorno o dopo →
+  il confronto di sempre; senza azzeramenti niente cambia, parola per parola.
+  L'ordine porta «Riscrivi sul contatore nuovo»: `propostaRiscrittura`
+  (previste − oreVecchie + oreNuove) è una proposta con gli addendi in chiaro,
+  una persona la conferma, e la nota tiene com'era. `contatoreDelTagliando`,
+  `urgenzaTagliando`, `propostaRiscrittura`; run-kpi 2562 → 2575 con tre
+  controprove; banco `flotta-contatore` 42 → 72/0 a 320 e 390 con terza
+  iniezione. ⚠️ Due cose che la patch NON aveva e che si sono viste solo
+  misurando: il bottone «Riscrivi» era disegnato e nessun gestore lo
+  ascoltava (premuto, non faceva niente); e l'icona nel riquadro dell'ordine
+  usciva grande quanto il riquadro a 320 px (nessuna regola dimensiona un svg
+  dentro `.note`) — visto nello scatto, non nel codice.
+- [x] **SENTINELLA: IL FILE DEL SISMOGRAFO A PIÙ COLONNE (04/09, cantiere morto
+  due volte per i crediti, raccolto dalla patch e rimisurato in casa).** Un
+  sismografo scrive sulla stessa riga la PPV sui tre assi, il vettore somma,
+  la frequenza e la sovrapressione: la finestra dell'import prendeva una
+  colonna sola e, col solo indizio «ppv», proponeva un ASSE come valore. Ora:
+  la risultante si cerca prima del generico e il ripiego sui dati non propone
+  mai un asse; cinque colonne facoltative (`proponiColonneEvento`) che
+  viaggiano con la lettura da un elenco solo (`campiEvento`: ingresso, ogni
+  schermata, report, CSV in coda con `evento` e `valore_da`); senza colonna
+  del valore ma coi tre assi il valore è √(L²+T²+V²) (`risultanteAssi`), e
+  con un asse vuoto la riga è scartata col motivo — non una risultante a due
+  assi; la riga dell'evento sotto il numero va a capo dentro la cella
+  (`descriviEvento`); il report dichiara le colonne dello strumento e da dove
+  viene il numero (`provenienzaValore`), la sovrapressione senza unità
+  inventata. Un punto di polveri resta identico e la dimostrazione non cambia.
+  run-kpi 2575 → 2585 con tre controprove; banco nuovo
+  `sentinella-evento-import` 52/0 a 320 e 390, controprova 14 su 52. ⚠️ Due
+  cose che la patch non aveva: il ripiego sui dati proponeva la verticale
+  come valore su «Longitudinale;Trasversale;Verticale», e il report scriveva
+  «per tutte» con 2 risultanti su 6 letture (contava le letture con le
+  colonne, non quelle del periodo). ✅ E il candidato (c) è fatto la notte
+  stessa: il punto ricorda il preset da cui nasce la soglia (`sogliaPreset`,
+  alla creazione; in modifica resta solo se soglia e unità non cambiano), i
+  preset dichiarano la banda scritta nella loro etichetta (`bandaPreset`), e
+  `frequenzaFuoriBanda` DICHIARA una lettura con la frequenza fuori dalla
+  banda della soglia applicata — tag «fuori banda» con la ragione, frase nel
+  report — senza inventare il limite della banda giusta, che è un numero di
+  norma di seconda mano e resta fuori; quando non si può giudicare (soglia
+  cambiata a mano, preset senza banda, frequenza non letta) lo dice. Il tag
+  dentro la cella da 55 px a 320 chiedeva 2 px in più e la tabella scorreva:
+  misurato dal banco, stretto. run-kpi +4, banco `sentinella-evento-import`
+  56/0 con terza iniezione.
+- [x] **SENTINELLA: LA LETTURA DICHIARATA NON VALIDA (04/09, cantiere parallelo
+  dal delta della ricerca sui sismografi, rimisurato prima di committare).**
+  Una lettura si dichiara non valida con la ragione (mezzo di passaggio,
+  temporale, prova dello strumento, altro con testo) e resta in archivio col
+  suo valore, barrata; il filtro sta in un posto solo (`lettureLeggibili`) e
+  ogni conto — conformità, serie, periodo, coperture, report per l'ente, CSV —
+  dichiara quante ne ha lasciate fuori; il ripristino lascia traccia; sui
+  punti di vibrazione la lettura senza volata quel giorno porta il
+  suggerimento, che non toglie niente. Di passaggio un difetto latente: la
+  modale della lettura si apriva sull'indice della lista filtrata (con una
+  riga senza valore in mezzo, la misura sbagliata). run-kpi 2531 → 2545,
+  Sentinella 150/150, banco `sentinella-annullate` 60/0 a 320 e 390 con la
+  controprova che cade, giro node sulla copia 38/0. ⏱️ Visto negli scatti e
+  rimisurato su HEAD, quindi NON di questo cantiere: nella scheda del punto a
+  320 px il numerone «44,2 µg/m³» si tronca in «44,2 …» (`.v` 53 px, nowrap +
+  ellissi: l'unità sparisce), e la tabella delle misure scorre nel suo
+  riquadro (335 px in 272) — candidati, unità a sé.
+- [x] **CONTI, TERZA TORNATA — PARZIALE (03-04/09): due difetti veri a 320 px,
+  rimisurati dal coordinatore e chiusi.** Il cantiere è morto col limite di
+  crediti prima del rapporto, lasciando sul disco la correzione con la misura
+  scritta nei commenti; niente entra sulla parola di un agente morto: sonda a
+  `Range` su `HEAD` e sul disco. (1) Il testo dei cartelloni di cassa aveva lo
+  stile IN LINEA (`margin-left:auto;text-align:right`) su dieci cartelloni, e
+  uno stile in linea batte qualunque `@media`: a 320 px la colonna del testo
+  misurava **105 px per 6 righe** su `HEAD`, **264 px per 2** dopo (a 390
+  identico, 137 px). (2) «**il 1%** del cavato»: l'articolo davanti a una
+  percentuale si elide quando il numero letto ad alta voce comincia per
+  vocale (1, 8, 11, 18, 80-89): ora «l'1%», e il secondo `ilPerc` a un
+  decimale con la regola a metà, che nessuno chiamava, è sparito. Undici
+  banchi di Conti verdi sul disco. ⏱️ La terza tornata COMPLETA (riconciliazione
+  a fondo nei quattro periodi, modali, file, demo svuotata) resta da fare.
+- [x] **FLOTTA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 8 banchi
+  verdi (280 prove), 7 tendine chiuse aperte, 4 gruppi di filtri, 5 finestre,
+  il libretto e l'ordine di lavoro a 390/320 nei due temi (288 misure; 18
+  falsi allarmi del righello riconosciuti), 10 file aperti, 10 collezioni
+  svuotate più tutte insieme. Il difetto: nelle tessere «Quanto costa»
+  dell'ORDINE DI LAVORO il corpo fisso a 32 px con `overflow:hidden` tagliava
+  l'importo — «€ 12.750,00» letto **«€ 12.750»** a 320 px, cioè un numero
+  diverso, e già sulla demo «€ 178,50» usciva di 9 px — la stessa famiglia
+  curata a luglio solo per il libretto. Ora la guardia vale per tutt'e due.
+  ⏱️ Da decidere: senza fermi registrati la pagella scrive «100 %» e lo
+  dichiara non distinguibile, ma le righe per mezzo restano «IN LINEA» verdi
+  sotto quell'avviso; la quarta colonna della tabella del ponte con Conti a
+  320 resta fuori dal riquadro scorrevole senza un segno che si può scorrere.
+- [x] **SCUDO, PASSATA COMPLETA (03/09): due difetti veri, corretti.** 100
+  scatti (8 voci + 4 schede × 390/320 × due temi) più le modali vere e
+  un'ispezione e un permesso aperti: zero testi fuori, zero sovrapposizioni;
+  26 file aperti (registro infortuni, near-miss, scadenze, azioni, 7 verbali
+  DPI, 7 cartelle, 5 promemoria) senza un `undefined`; 19 collezioni svuotate
+  una per una più tutte insieme. (1) **`duvriDovuto`: un appalto SENZA SITO
+  diventava «A POSTO»** — senza il cantiere valeva la regola del DUVRI, che la
+  firma del DSS non la chiede, e l'appalto col DSS coordinato non sottoscritto
+  passava da «da sistemare» ad «A POSTO · DUVRI in vigore» (riepilogo «A
+  posto: 2» invece di 1). Ora `noto:false, serve:null` → «Non si può dire ·
+  NON VERIFICATO» con la ragione; 15 asserzioni in `run-kpi`, 9 cadute con il
+  difetto rimesso. (2) La nota «Tutta la cava» col solo ponte di Flotta caduto
+  scriveva «i mezzi non è in questo conto»: il verbo seguiva il numero di app,
+  non il soggetto. Le 7 tendine tagliate: contate, non ricontate. ⏱️ Da
+  decidere: con l'anagrafica vuota il registro DPI dice «27 consegne a 5
+  persone · niente da sistemare» su persone che non esistono più (nessuna
+  pastiglia verde, per questo lasciata).
+- [x] **SENTINELLA, SECONDA TORNATA (03/09): un difetto vero, corretto.** 7
+  banchi verdi (222 prove), un banco di 290 asserzioni sulle modali, i filtri
+  e le tendine a 390/320 nei due temi (zero fuori riquadro, zero errori), 5
+  file aperti (lettura PARI alla soglia: schermo, file ARPA e report dicono
+  «Superamento» tutt'e tre), la demo svuotata in 10 casi. Il difetto: su una
+  cava SENZA nessun punto di misura il Quadro mostrava due spunte verdi —
+  «Nessuna allerta… il quadro resta pulito» e «Niente da rincorrere» — vere a
+  vuoto: «tutto a posto» su niente misurato, nella prima schermata di chi
+  apre l'app da zero. Ora dicono «Niente da sorvegliare, ancora» / «Niente in
+  ascolto, quindi niente da rincorrere», con l'icona del sensore. Le 2 tendine
+  tagliate: contate, non ricontate (col puntatore fine restano 6 px fuori; la
+  voce «chiuse» qui sotto vale per il tocco, dove il carattere è 16 px).
+- [x] **SCUDO, PASSATA IN PROFONDITÀ — PARZIALE (03/09): due difetti veri a
+  320/390 px, corretti e RIMISURATI dal coordinatore.** Il cantiere è morto col
+  limite di crediti prima del rapporto, lasciando sul disco due regole CSS con
+  la misura scritta nel commento e sei apostrofi. Niente entra sulla parola di
+  un agente morto: rimisurato con una sonda a `Range` su `HEAD` e sul disco —
+  nella checklist di un'ispezione i tre esiti (conforme / non conforme / non
+  applicabile) uscivano dal bottone in **24 casi su 24 a 320 px e 8 su 24 a
+  390** («Non applicabile», 84 px in 79); dopo, zero a tutt'e due; la pastiglia
+  «Verbale di verifica periodica» a 320 (213 px in 199) ora dichiara il taglio
+  coi puntini invece di mozzarsi. Banchi di Scudo rilanciati sul disco: tutti
+  verdi. ⏱️ La passata COMPLETA (schermate, file, numeri tranquilli) resta da
+  fare: è la prossima.
+- [x] **CAMPO, PASSATA IN PROFONDITÀ (03/09, con le causali nuove): due difetti
+  veri, corretti.** 5 banchi verdi (180 prove), 20 scatti (5 voci × 390/320 ×
+  due temi) con 0 traboccamenti misurati, 7 file aperti (nessuna chiave esce:
+  sempre l'etichetta), la demo svuotata in cinque fixture. (1) Con `attivita:
+  []` il Quadro scriveva «ATTIVITÀ IN CORSO 0» in verde, «ANOMALIE APERTE 0»
+  in rosso e «Giornata tranquilla» — su una giornata in cui nessuno ha
+  registrato niente: ora «—» e «Nessuna attività registrata oggi — non vuol
+  dire che sia tutto tranquillo»; lo zero VERO (attività ci sono, nessuna in
+  corso) resta «0». (2) A 320 px la riga del rapportino «senza data» perdeva
+  nel `line-clamp` proprio «Produzione: 2.300 t»: la produzione sta ora su una
+  riga sua. ⏱️ Restano dichiarati e non corretti quattro tagli secondari a 390
+  (squadra/data in tre `.meta` delle azioni correttive, «Mattina» nel Quadro).
+- [x] **GENESI, PASSATA IN PROFONDITÀ (03/09): sei difetti veri, uno di cinque
+  settimane, e un dato del fondatore in un file pubblico.** 9 banchi lanciati
+  (327 prove, 9 KO con UNA causa), 26 schermate a 390/320, 7 file aperti, la
+  modalità locale rifatta a mano (54 chiavi identiche dopo la ricarica).
+  · **A, regressione dell'unità 7 di ieri**: `designSconosciuti` rimetteva il
+    valore di partenza anche alla NORMA del recettore, e una norma sconosciuta
+    usciva nel CSV, nel report e nel file per Sentinella come «DIN
+    residenziale» con limite e verdetto — la decisione dell'08/08 era il
+    contrario. Ora `sostituisci:false` per `recNorma`, la frase lo dice, il
+    limite non si calcola; 4 prove in `run-kpi` (una sul sorgente).
+  · **B, la HOME NON SCORREVA sul telefono dal 30/07**: un `position:relative`
+    aggiunto al ritorno all'ecosistema sganciava `#scr-home` dal viewport; «Le
+    tue volate», «Drone & rilievi» e «Ponte Deepwork» irraggiungibili a 390 e
+    320 per cinque settimane, e nessun banco lo vedeva.
+  · C l'orologio del 3D fuori dalla scheda a 390/320; D la colonna
+    «Scostamento» della riconciliazione tagliata a 320; E «SOTTOPERFORAZIONE»
+    sotto il chevron a 390; F «0.82 g/cc» col punto accanto a «3,8k m/s».
+  ⛔ **E `apps/genesi/calibrazione.json` portava nella `_meta` l'elenco della
+  regola ferrea** (maglia, ritardo, numero di fori, litotipo, la ripresa di
+  riferimento, ripetuta in una `_provenienza`): non mostrato da nessuna
+  schermata né file, ma pubblicato tale e quale sul sito. Il commit `e262c880`
+  «rimosse tutte le citazioni» aveva guardato le pagine, non i JSON. Tolto; la
+  regola 26 di `run-stile` ora legge anche i JSON delle app e riconosce il
+  nome della ripresa.
+- [x] **TERRA, PASSATA IN PROFONDITÀ (03/09, dopo le schermate nuove):** 5
+  banchi verdi (255 prove, 0 KO, le righe «non ho guardato» lette: 17 barre
+  sotto il minimo del motore dichiarate e non confrontate), 24 schermate
+  guardate (6 voci × 390/320 × scuro/chiaro) più dettaglio e modale
+  dell'inventario a 320, 6 file aperti (4 CSV, il foglio della denuncia, il
+  verbale), i numeri tranquilli con la demo svuotata pezzo per pezzo. **Un
+  difetto vero, corretto**: nel Piano a 320 px la pastiglia «DENTRO IL
+  PROGETTO» non cedeva e il titolo «Fin dove si può scendere» finiva in 48 px,
+  con «SCENDERE» sovrapposto alla pastiglia di 12 px (misurato col `Range`,
+  scuro e chiaro); ora l'intestazione va a capo e la pastiglia scende sotto a
+  destra, a 390 e 430 nessuna coordinata cambia. ⏱️ Osservazione da decidere:
+  il CSV dei rilievi esporta il rilievo **pianificato** senza una colonna
+  `stato`, e ricaricandolo quella riga viene dichiarata persa («il volume non
+  è stato misurato») — un giro di casa nostra che perde una riga, detto ma non
+  chiuso; e tre «0» dichiarati di proposito nel codice (ripresa da cumuli,
+  mesi senza rilievi nel modulo dell'ente, rilievi drone del mese) che
+  seguono un principio diverso dal «—» accanto.
+- [x] **TERRA: IL CSV DEGLI INVENTARI CHE ESCE E SI RI-CARICA (03/09,
+  decisione 12a applicata agli inventari).** Una riga per cumulo, il volume non
+  misurato scritto VUOTO (mai 0), i numeri col punto — con l'asserzione sul
+  TESTO, perché il lettore legge anche la virgola e il giro da solo non
+  distingue —, le righe perse con la ragione, il file dei rilievi rifiutato
+  fra gli inventari. Voce `terra.inventari` in `CSV_TABELLE`. Banco
+  `terra-inventario-csv` 29 prove, 3 difetti in controprova.
+- [x] **CAMPO: LE CAUSALI DEI FERMI CON CHIAVE (03/09, il candidato unico
+  della ricerca di Campo).** L'etichetta faceva da chiave: rinominare una voce
+  orfanava lo storico e tutto finiva in «Altro» in silenzio. Adesso la forma di
+  Flotta (`{chiave, etichetta}`, etichette identiche a prima), `chiaveCausale`
+  legge chiave, etichetta vecchia e etichetta scritta male (normalizzata con
+  `chiaveMateriale` di shared), e una causale fuori elenco si CONTA e si
+  NOMINA invece di sparire. I tre banchi di Campo verdi senza una riga
+  cambiata; `nomi-doppi` dichiara `etichettaCausale` diversa per mestiere.
+- [x] **L'ESITO DELLO SPARO E I CHILI PER TIPO (03/09, dal delta sul rapporto
+  di volata in `docs/RICERCA_CONTINUA_GENESI.md`).** Sul rapportino fochino
+  del core: colpi esplosi contati e colpi mancati con la nota (`esitoSparo` in
+  dw-shell decide elenco, scheda, PDF e cronologia del gemello; assenti = NON
+  CONTATO, mai «0 mancati»), e i chili di esplosivo per tipo
+  (`esplosivoPerTipo`: i chili senza tipo si dichiarano, non si attribuiscono).
+  Banco `core-esito-sparo` 47 passate, 11 difetti in controprova. Il ponte
+  «colpo mancato → mancato infortunio in Scudo» aspetta la Fase B del core
+  (ARCHITETTURA §8): il core non passa da Deepwork ID, misurato. Resta il
+  registro di carico e scarico degli esplosivi: candidato — **e il 04/09 ha la
+  ricerca (metà sul mondo, seconda mano dichiarata) e il delta fatto dal
+  meccanismo** in `docs/RICERCA_CONTINUA_CORE.md`: il core sa il CONSUMO per
+  volata (`misureVolataFochino`, `esplosivoPerTipo`, `esitoSparo`), non il
+  carico, il lotto, i detonatori contati né la giacenza. Resta candidato:
+  registro con valore legale = decisione del fondatore, norma di seconda mano.
+- [x] **SEI DOCUMENTI DI RICERCA ESISTEVANO DUE VOLTE, con lo stesso nome a
+  maiuscole diverse** (`RICERCA_CONTINUA_CONTI.md` e `RICERCA_CONTINUA_conti.md`,
+  e così campo, flotta, scudo, sentinella, terra) — trovati il 03/09 cercando
+  la ricerca di Conti. Le minuscole erano nate il **14/08** da un agente che
+  cercava il file col nome sbagliato, non lo trovava e ne creava uno: da allora
+  le due serie crescevano ognuna per conto suo (la ricerca del 02/09 scriveva
+  nella minuscola, il delta leggeva la maiuscola). Su Windows e macOS il
+  repository **non si sarebbe clonato intero**. Unite (il contenuto della
+  minuscola in coda alla maiuscola, con la nota), riferimenti corretti, e
+  `tests/omonimi-a-maiuscole.mjs` in `npm test` guarda tutti i 1.818 file
+  tracciati: su `HEAD` prima dell'unione **6 collisioni**, dopo **0**,
+  controprova nei due versi.
+
+## Task
+- [x] ✅ 02/09 **La fattura elettronica, in tre unità** *(punto 5 di
+  `docs/CONTI_FATTURAZIONE_ROADMAP.md`, la cosa che tutti i concorrenti
+  hanno e Conti no — `docs/MERCATO_E_CONCORRENTI.md`)*:
+  - [x] ✅ 02/09 **A. il generatore nel modulo**: `xmlFatturaPA(fattura,
+    cliente, impostazioni, {pesate, progressivo})` → `{xml, mancanti, avvisi,
+    pronto}`. Tracciato FPR12 a memoria della v1.2 (dichiarato nel commento:
+    va passato dal controllo formale del portale). Niente inventato: regime
+    fiscale, CAP, provincia, modalità di pagamento mancanti → non pronto, con
+    la ragione. 3 prove in run-kpi (43 asserzioni), controprova sulla guardia
+    `quadra` fatta a mano (cade 1).
+  - [x] ✅ 02/09 **B. i campi che mancano**: Impostazioni (`aziendaCap`, `aziendaComune`,
+    `aziendaProvincia`, `aziendaRegimeFiscale`, `aziendaCodiceFiscale`,
+    `modalitaPagamento`) e anagrafica cliente (`cap`, `comune`, `provincia`,
+    `codiceFiscale`), nel form, nel CSV dei clienti (andata e ritorno) e nella
+    dimostrazione — così la dimostrazione diventa «pronta».
+  - [x] ✅ 02/09 **C. il bottone** sulla fattura: «Scarica XML per lo SdI», che con
+    `pronto: false` NON scarica e elenca i mancanti col posto dove scriverli;
+    la riga fissa di onestà (Conti prepara, l'invio e la conservazione si
+    fanno gratis dal portale dell'Agenzia o col commercialista); il file
+    aperto da un banco (`conti-documenti-che-escono`, punto d'uscita 13).
+- [x] `apps/conti/conti-data.js`: `api.costiFlotta` sul modello di
+  `api.rilieviTerra` (istanza SDK pigra, `null` se non raggiungibile)
+- [x] dimostrazione: `costiFlotta` coerente con `DEMO.costi`, con almeno una
+  voce `daMezzo` presente in tutt'e due (il caso che il ponte esiste per
+  mostrare) — e dichiarata, non lasciata al caso *(nel commento accanto ai
+  dati: la dimostrazione di Conti non ha un `meta`, e fl1/fl3 sono lo stesso
+  gasolio di c02/c05 alla cifra, non un sorteggio)*
+- [x] `apps/conti/index.html`: il badge «anche in Flotta» diventa il confronto
+  vero; con Flotta assente NON compare uno zero (misurato col browser)
+- [x] la riga 3a della mappa aggiornata, e la tabella in §6 (6 → 7 ponti)
+- [x] ✅ 02/09 **Il ponte 3b, le scadenze di Terra, Flotta e Scudo in un muro solo**:
+  - [x] ✅ 02/09 la misura (34 scadenze, 0 verdetti diversi) e la regola unica
+    `statoScadenza` in shared (HSE è lo stesso oggetto; Terra e Flotta
+    delegano), più `scadenzeUnite` con `completo`/`nonRaggiungibili`; 2 prove
+    (run-kpi +2), copertura dw-ponti 50/50.
+  - [x] ✅ 02/09 il muro di Scudo che mostra anche la concessione (Terra) e i mezzi
+    (Flotta) — fatto: `api.scadenzeTerra/Flotta`, riquadro «Tutta la cava»,
+    banco nei tre esiti, mappa 8 → 10 ponti. Il piano era: `api.scadenzeTerra`/`api.scadenzeFlotta` in `scudo-data.js`
+    (istanze SDK pigre, `null` se non raggiungibili), il muro che legge
+    `scadenzeUnite` e dice per nome le app che non hanno risposto; banco nei
+    tre esiti; mappa §6 → 10 ponti. ⚠️ Da fare quando il cantiere della
+    passata su Scudo ha consegnato (stessi file).
+- [x] ✅ 02/09 **il verso di ritorno, Conti→Flotta** (cantiere parallelo,
+  morto sul limite di sessione a lavoro finito e misurato da chi raccoglie):
+  `api.costiConti`, la traduzione delle voci a testo libero
+  (`chiaveVoceMezzo`/`costiPerConfronto`, con le non riconosciute contate), il
+  contrassegno «anche in Conti» alla cifra (`doppioniAllaCifra`), la nota coi
+  tre esiti; banco `flotta-ponte-conti.mjs` (20 + 9, controprova che cade in
+  3), run-kpi +10, copertura Flotta 95/95. Mappa: 7 → **8** ponti.
+- [ ] checkpoint per ogni unità
+
+## Sospeso, non annullato
+- ⏸️ **Nomi e temi delle app** (fondatore, 27/08): stato e strade scartate in
+  `docs/NOMI_E_MARCHI.md`. I nomi restano quelli attuali.
+
+## Vincoli
+- Niente push su main: PR. Nessuna spesa. Marchio Deepwork e marchio Genesi
+  intoccabili. Le decisioni commerciali sono del fondatore.
+
+## Riferimenti
+- Mappa: `docs/MAPPA_ECOSISTEMA.md` · Mercato: `docs/MERCATO_E_CONCORRENTI.md`
+- Ultimo checkpoint: vedi `node apps/deepwork-id/tests/date-checkpoint.mjs`
+
+---
+
+# Settimane precedenti (archivio, in questo stesso file)
+
+## Roadmap Settimana — lunedì 03/08 → venerdì 07/08/2026
 ### v6.0 "LO STANDARD DELLE FUNZIONI" — dalla sequenza dichiarata dal fondatore il 27/07
 
 > La settimana precedente (27/07 → 01/08, l'estetica) resta nella storia di git:
@@ -414,6 +2711,45 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       | scudo · modulo | 154 | 3 | 131 | 21 | **2** | 1 | 7 |
       | scudo · pagina | 157 | 1 | 155 | 1 | **1** | 0 | 1 |
       | **totale** | **2.510** | **97** | **1.743** | **495** | **272** | **45** | **165** |
+      ✅ **IL FRONTE È CHIUSO (03/09), e il difetto vero non era dove la riga lo
+      cercava.** Letti tutti e otto i punti: `lunghezza_m||20` (4814) è la
+      scena 3D, `||1` (7720) è la scala della planimetria PDF, `pref.fori||5`
+      è il numero di righe vuote del rapportino — DISEGNO e moduli, nessun
+      numero che l'utente legge. I `||5`/`||4` della galleria non partono mai
+      su un campo vuoto: `magliaGenerabile` pretende larghezza e altezza
+      scritte prima di generare, e la creazione le scrive. Quello che restava
+      era `calotta_m||1` in QUATTRO punti: **uno zero scritto** («cielo
+      piatto», campo «Freccia calotta» dell'editor) veniva letto come «mai
+      scritta» — misurato estraendo `galleriaArcY` dal sorgente: con la
+      calotta a 0 il contorno a lato stava a **3,29 m su un cielo a 4,00**,
+      identico al caso assente, e i fori di contorno venivano GENERATI su
+      quell'arco. È la famiglia «un controllo che guarda com'è scritto un
+      dato invece di che cosa vale», nella veste `0||1`. Adesso
+      `calottaDetta(v)` (null = non scritta) e `calottaDisegno(v)` (ripiego
+      1 solo per il disegno, dichiarato); chi genera si ferma se non è
+      scritta. Prova **sul sorgente** in `run-kpi` (le tre funzioni si
+      estraggono e si eseguono: 0 → 4,00; assente → 3,29; «1,2» → 3,15), più
+      il conto che nessun `calotta_m||1` resti. Le due famiglie in coda
+      (`+finite` ×3, `max(0,` ×10) restano candidati da leggere.
+      ✅ **LETTI TUTTI E TREDICI (03/09, cantiere di analisi + correzione):** 7
+      sono DISEGNO (meteo con `null` già escluso, contatore prelievo, opacità
+      3D, nome file, clamp dell'arco, clamp del contenitore), 4 erano
+      CANDIDATI e 2 DIFETTI — e la radice comune stava a monte, in
+      `aggiornaVolata`: `parseNum0('')` scriveva **0** su un campo SVUOTATO,
+      quindi la barra diceva «0 file» (o la parola «null» su una volata
+      importata), la calotta svuotata diventava «cielo piatto», e con la
+      lunghezza svuotata `Math.min(Lm, x)` inchiodava a **x = 0** ogni punto
+      del profilo e ogni foro trascinato. Corretto: svuotato = `null`,
+      `fileDetti(v)` per barra e generatore, i due clamp guardano `Lm>0`.
+      Il secondo difetto era il più visibile: «Carica max/ritardo: **0,0 kg**»
+      su una volata appena generata, perché un foro senza chili pesava zero;
+      il NUMERO di `calcolaCaricaMaxRitardo` non si tocca (soglia di
+      sicurezza, del fondatore), la PAROLA sì: `caricaMaxDetta` dice «—» senza
+      chili scritti e «≥ 16,0 kg» quando i chili sono su una parte dei fori.
+      Prove sul sorgente in `run-kpi` («i residui di B12»); la prova ⏱️ che
+      inchiodava il vecchio «0,0 kg» è diventata ✅. Restano due candidati
+      geometrici (`Math.max(0,Hm-cal)` con freccia > altezza) da misurare, e
+      la nota che «B12» come censimento è chiuso.
 
       ⛔ **La riga che salta agli occhi è Genesi · pagina: 119 ripieghi di
       mestiere, tre volte il core e cinque volte chiunque altro** — ed è
@@ -553,13 +2889,12 @@ nome. Un nome si cerca con `grep`; una riga si sposta.
 grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 ```
 
+- `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
-- `B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER`
-- `B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
 - `B4. Le mancanze confermate del delta`
@@ -569,9 +2904,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E8`
 - `G7–G9`
 - `Q1`
-- `I 20 KO del giro del 09/08, riverificati sul commit di adesso`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
-- `B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -1122,7 +3455,201 @@ numero scritto dove non era stato misurato niente**.*
       **codice di norma sconosciuto** prende in silenzio la soglia residenziale
       (l'etichetta e il numero raccontano due cose diverse), e `sitoFit` scrive
       **`r2: 0`** dove r² non è calcolabile.
-- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *Numeri rimisurati
+- [ ] **B3. Genesi continua a uscire dalla pagina.** ⏱️ *11/09, tredicesima
+      fetta (G31): **151** nella pagina, **47** a una o due variabili, **55** «il
+      numero che conta» — `node apps/deepwork-id/tests/genesi-estraibili.mjs`.
+      ⚠️ Delle 47 a una o due variabili quasi tutte sono ormai legami di una
+      riga: la prossima fetta si cerca fra le 3-5 e le 6-10 (44 funzioni), con
+      il cambio di firma.*
+      ✅ **12/09 (unità 121): la fetta di mezzo era invisibile, e adesso non
+      lo è più.** `genesi-estraibili.mjs --elenco` stampava solo gli estremi
+      (0, 1-2, 11+): le 44 funzioni «da cercare» non avevano un nome da aprire,
+      e chi voleva continuare doveva rifarsi il censimento a mano. Aggiunta la
+      stampa delle due colonne di mezzo (3-5, 6-10), stesso stile delle altre.
+      Apertane una a mano: `_sitoParseCsv` risultava legata a quattro variabili
+      del modulo («n, t, d, g»), ed era un falso positivo del tokenizzatore
+      dello strumento — quelle lettere sono dentro le regex della funzione
+      (`/\r?\n/`...) e nomi locali di ALTRE funzioni della pagina, presi per
+      variabili del modulo dalla sua euristica sull'indentazione (dichiarata
+      e accettata: «sbaglia nel verso prudente»). Letta a mano: pura, chiama
+      solo `leggiCsv` di `shared/`. Trasloco in `genesi-data.js`, parola per
+      parola, nessun cambio di firma (2 nuove prove in `run-kpi.mjs`, fondo di
+      `genesi-data.js` alzato 127→128, tabella di `docs/DEVELOPMENT.md`
+      corretta 151→150 / 20→19 nel bucket 3-5). Mappa di Genesi: **150**
+      funzioni nella pagina, **55** ancora «il numero che conta» (invariato:
+      era già contata, solo nel bucket sbagliato).*
+      ✅ **12/09 (unità 122), stesso giorno: seconda della fascia,
+      `_sentCell`.** Stessa famiglia esatta di `_sitoParseCsv` — legata a
+      quattro variabili del modulo («r, n, t, g») per lo stesso falso
+      positivo (lettere dentro `/[\r\n\t]+/g`), pura alla lettura. Trasloco
+      accanto a `_sentNum`, che già viveva in `genesi-data.js`; portato con
+      lei il commento storico sulla terza copia debole di `csvCell` che
+      questa funzione correggeva. 1 nuova prova di comportamento +
+      aggiornata quella "sono USCITE dalla pagina" per coprire tutt'e tre;
+      corretta anche `i tre file che escono chiamano DAVVERO csvCell`, che
+      cercava la vecchia definizione nella pagina — ora legge
+      `genesi-data.js` per quel terzo export. Fondo di `genesi-data.js`
+      128→129, tabella di Genesi 150→149 / 19→18 nel bucket 3-5. Mappa di
+      Genesi: **149** funzioni nella pagina.*
+      ✅ **12/09 (unità 124), stesso giorno: `esplCardHtml` e `innCardHtml`,
+      una veste NUOVA dello stesso falso positivo.** Marcate legate a dieci o
+      più variabili del modulo, ma stavolta non per una regex: per il
+      CONTENUTO DELLE STRINGHE della funzione (`'ritardi '`, `"es-nome"`),
+      spezzato dal tokenizzatore sui trattini e sugli apici. Lette a mano:
+      pure, costruiscono solo HTML dall'oggetto di catalogo che ricevono.
+      Traslocate accanto a `scegliDaCatalogo`, che produce l'oggetto che
+      entrambe consumano; 2 nuove prove in `run-kpi.mjs`. Effetto collaterale
+      trovato e corretto: il conto del "contagio" in
+      `docs/LA_STRUTTURA_DEL_CORE_SCRITTA_SEI_VOLTE.md` (quante classi del
+      foglio condiviso Genesi ha già nel suo markup) leggeva solo
+      `genesi.html` — spostando le due funzioni il numero scendeva di 4 senza
+      che una classe fosse sparita dalla pagina resa, solo dal testo che la
+      dichiara. `numeri-nei-documenti.mjs` ora legge anche `genesi-data.js`
+      per quel conto. Fondo di `genesi-data.js` 129→131, tabella di Genesi
+      151→147 totali, 55 estraibili invariati. Nessuna iniezione di
+      controprova cita queste due funzioni (verificato con
+      `iniezioni-fresche.mjs`, 559/559).*
+      ✅ **12/09 (unità 126): «Carica per un obiettivo di pezzatura», la
+      prima vera funzionalità nuova su Genesi da quando il fondatore ha
+      chiesto di concentrarsi solo su questa app.** Nuova funzione
+      `caricaDaX50Target` (inversione del modello Kuz-Ram: x50 target →
+      kg/foro necessari, con `fuoriDominio` dichiarato per il lato basso
+      del dominio), bottone e modale nella scheda 2D, proiezione MIC/PPV
+      col verdetto di sicurezza già in uso altrove. Consolidate nel farla
+      due duplicazioni preesistenti (`ppvDaSd`; un punto su cinque di
+      `rwsEffettiva`/`PENALITA_ACQUA`, gli altri quattro dichiarati non
+      toccati). Trovato e corretto un difetto vero: il primo tentativo
+      scriveva il campo con `class="dw-input"`, orfana al 100% perché
+      Genesi non carica il foglio condiviso che la definisce (CSS locale
+      con `.modal-body input`) — presa da `classi-orfane.mjs`, invisibile
+      allo screenshot (un selettore generico copriva comunque lo stile).
+      Verificato end-to-end col browser (caso normale e casi limite).
+      +7 test netti in `run-kpi.mjs`, fondo di `genesi-data.js` 131→137,
+      totale prove senza rete/browser 3.399→3.406, giro completo
+      3.857→3.864 (tutti i numeri rimisurati, non ricopiati).
+      ⛔ **Prossimo passo atomico**: `caricaDaX50Target` non ha un tetto
+      per x50 target sub-millimetrici (produce un numero enorme senza
+      avviso, dichiarato nel codice, non nascosto). La ricerca di fianco
+      (`docs/RICERCA_CONTINUA_GENESI.md`, 2026-09-12) trova che nessuna
+      fonte tecnica dichiara un tetto sul powder factor, ma la curva di
+      Rosin-Rammler sottostante è dichiarata precisa solo 10-1000 mm: il
+      vincolo reale è dimensionale, non sul powder factor. Si decide e si
+      implementa `fuoriDominio` su quel range (x50 target < 10 mm →
+      segnalato), sul modello di quella già esistente per il lato basso —
+      non un numero inventato.*
+      ✅ **12/09 (unità 127): fatto, e il vincolo è SIMMETRICO — trovato
+      misurando prima di implementare, come pretende questo file.** Il
+      dominio dichiarato dalla ricerca (Rosin-Rammler, 1-100 cm) ha due lati,
+      e il lato grossolano (x50 > 100 cm) NON è sempre coperto dai due clamp
+      di `fragKuzRam` — misurato un caso reale (maglia della scheda
+      validatori, x50=120cm) con kg=5,8 e pf=0,055, cioè sopra tutt'e due le
+      soglie che avrebbero dovuto proteggerlo. `caricaDaX50Target` ha adesso
+      due bandiere distinte, `troppoFine` (xt<1) e `troppoGrossolano`
+      (xt>100), entrambe dentro `fuoriDominio`; la pagina mostra il messaggio
+      giusto per ciascuna (mai "prova un obiettivo più fine" a chi ha già
+      chiesto un obiettivo troppo fine — l'errore opposto sarebbe stato
+      peggio di non avere il messaggio). +1 test dedicato con casi isolati
+      dai clamp (misurati, non dedotti) e i due confini esatti (1 e 100 cm
+      ancora dentro, appena oltre fuori); il test di round-trip sui 50.000
+      casi generati è stato rimisurato: fuoriDominio 8.000-15.000 →
+      18.000-24.000 (misurato 20.839), perché il generatore copre già
+      x50 fino a 155cm. Verificato col browser: i tre messaggi (fine,
+      grossolano, normale) tutti corretti. Fondo di `genesi-data.js`
+      invariato (137: `troppoFine`/`troppoGrossolano` sono campi dello
+      stesso oggetto restituito da una funzione già contata, non funzioni
+      nuove). Totale prove senza rete/browser 3.406→3.407.*
+      ⛔ **12/09 (unità 128): il prossimo passo dell'unità 127 era SBAGLIATO
+      — proponeva di costruire una funzione già fatta.** Prima di scrivere
+      il codice di "P0.2 Signature-hole" un `grep` l'ha trovata già scritta,
+      testata (2 test/40 asserzioni) e wired in pagina (`ondaDaCsv` +
+      `sommaRitardata`). Controllando per lo stesso motivo il resto di
+      `docs/GENESI_ROADMAP_COMPETITOR.md` (datato 21/07, mai riverificato):
+      anche P0.1 (riconciliazione foro per foro, `confrontoPerForo`) e P1.1
+      (burden reale dal 3D, `distanzaDaSpezzata`/`h.burdenVero`) erano già
+      fatte — tre gap su sei, e la Sintesi del documento chiamava ancora la
+      riconciliazione "il gap più grande". Documento riscritto (non solo
+      annotato), cronologia dichiarata. Nessun codice toccato. Il gap vero
+      rimasto: P2.1, la pezzatura misurata da una foto del cumulo.*
+      ✅ **12/09 (unità 129): import rilievo di deviazione fori (boretrack),
+      il P1.1 residuo indicato dall'unità 128.** `deviazioneForiDaCsv` legge
+      un CSV `foro/id_foro;dx_m;dy_m` (deviazione MISURATA del piede, non
+      simulata); `burdenVeroDaRilievo` ricalcola il burden vero — stessa
+      geometria di `simulaPerforazione` (fila per fila, la fila davanti
+      nelle sue posizioni vere) ma su UNA realizzazione sola, quella
+      successa davvero, non centinaia di sorteggi statistici. Bottone e
+      pannello nella scheda 2D, verificati col browser (nessun errore di
+      pagina, tre fori misurati su dodici, scarti e colori corretti).
+      ⛔ **Prima di scrivere codice**: l'abbinamento foro↔riga era già scritto
+      dentro `confrontoPerForo` (la riconciliazione carica, unità precedenti)
+      ed è stato ESTRATTO (`abbinaForiRighe`, con due lettori passati da chi
+      chiama) invece di essere ricopiato — la regola "una copia nasce da una
+      firma troppo stretta". Le tre prove esistenti di `confrontoPerForo`
+      restano verdi INVARIATE dopo l'estrazione: è la controprova che il
+      comportamento non è cambiato. +3 test netti (abbinamento diretto, CSV,
+      burden su due file di fori con la fila davanti nelle posizioni reali e
+      il foro senza rilievo dichiarato non misurato — mai un burden inventato).
+      Fondo di `genesi-data.js` 137→140 (`abbinaForiRighe`,
+      `deviazioneForiDaCsv`, `burdenVeroDaRilievo`), scomposizione condivisa
+      301/301→304/304, totale prove senza rete/browser 3.407→3.410.*
+      ✅ **12/09 (unità 130): decisione P2.1 registrata, NON presa.** Il
+      documento `docs/GENESI_FRAMMENTAZIONE_DA_FOTO.md` (già pronto, con le
+      fonti) chiude da solo con "serve la tua decisione": tocca come Genesi
+      si presenta ai clienti (misura assistita onesta vs. rischio di far
+      sembrare una stima una misura), non solo la tecnica. Registrata come
+      decisione #28 in `docs/DECISIONI_WEEKEND.md` (14→15 aperte), con la
+      raccomandazione già scritta. Nessun codice toccato.
+      ✅ **12/09 (unità 131): le ultime quattro copie della penalità RWS
+      chiuse.** Le quattro occorrenze inline di
+      `{Nulla:0.70,Bassa:0.40,...}` dichiarate ma non toccate dall'unità
+      126 sono state sostituite con `PENALITA_ACQUA` (già esportata).
+      Confermato value-identico, nessun cambiamento di comportamento
+      (screenshot e numeri invariati).
+      ✅ **12/09 (unità 132): tre banchi browser di Genesi non aspettavano
+      abbastanza lo splash d'avvio.** Una verifica di qualità di routine
+      (`genesi-numeri-tranquilli.mjs`) ha dato 30 falliti su 35, tutti
+      "navigato → scr-home" invece che sulla schermata giusta. Misurato con
+      `elementFromPoint`: `DIV#splash` resta sopra i bottoni fino a 15-20s
+      in questo ambiente (senza GPU, la scena 3D iniziale è lenta), non i
+      ~1,85s del suo timer. **Non una regressione**: stesso risultato sulla
+      worktree del commit precedente a tutta la sessione. Stesso difetto in
+      altri due banchi (`genesi-frasi-limite.mjs`, `genesi-foglio-in-
+      cava.mjs`, quest'ultimo si schiantava). Corretto in tutti e tre:
+      il click si riprova ogni 400ms per un tetto di 25s invece di
+      aspettare una volta sola. Risultato, con le controprove riverificate:
+      5/35→35/35, crash→38/38, 8/36→32/36 (i 4 restanti hanno una causa
+      diversa, dichiarata non risolta — vedi checkpoint). Nessun codice di
+      prodotto toccato.
+      ✅ **12/09 (unità 133): gli ultimi tre dei quattro residui di
+      `genesi-frasi-limite.mjs` chiusi con lo stesso pattern** (poll ogni
+      400ms invece di attesa fissa) — i tre contatori della Home
+      (`hgVolN`/`hgNuvN`/`hgNuvole`, dietro `await genesiData()` che prova
+      prima una modalità "live") e un toast. 32/36→35/36, controprova
+      confermata.
+      ✅ **12/09 (unità 134): l'ultimo banco della famiglia,
+      `genesi-struttura.mjs`.** I suoi 4 falliti (consenso bloccato, Escape
+      che non chiude, campo "salva la volata" introvabile) sembravano tre
+      difetti diversi ed erano la stessa causa: `$('disclaimerChk')
+      .onchange=...` (riga ~4838) non ancora assegnato quando il banco
+      spuntava la casella. Stessa cura (attesa attiva di `#splash`).
+      14/18→18/18, controprova confermata (4/18 attese sullo stato
+      pre-migrazione). **Con questa si chiude la famiglia "splash lento" su
+      tre dei quattro banchi: 66 falliti pre-esistenti sanati, tutti la
+      stessa causa unica, nessuna regressione (stesso esito su una worktree
+      del commit precedente a tutta la sessione).**
+      ✅ **12/09 (unità 135): il quarto banco chiuso davvero — la diagnosi
+      dell'unità 134 sul residuo isolato di `genesi-frasi-limite.mjs` era
+      SBAGLIATA.** Il fallito «✓ Volata importata: 1 foro» era stato
+      attribuito a un "ordine di intercettazione di `window.toast`":
+      rimisurato, `window.toast` viene assegnato prestissimo (script
+      classico `defer`, prima del modulo lento). La causa vera è la
+      STESSA famiglia — `$('fileIn').onchange=...` (riga ~3053) assegnato
+      durante lo stesso avvio sincrono lento, e il banco sparava il file
+      SUBITO dopo `apri()`, prima che quel gestore esistesse: un evento nel
+      vuoto, non un'attesa troppo corta. Stessa cura (poll su `#splash`).
+      35/36→**36/36**, controprova confermata (16 prove cadute con gli 11
+      difetti rimessi). **La famiglia "splash lento" è chiusa senza
+      residui su tutti e quattro i banchi Genesi coinvolti.**
+      ⏱️ *Numeri rimisurati
       l'**09/08** lanciando `copertura-funzioni.mjs` e `genesi-estraibili.mjs`,
       non a memoria — ed erano di nuovo invecchiati: la riga diceva **171**
       funzioni nella pagina e sono **166**, e **87** estraibili quando sono
@@ -1283,6 +3810,35 @@ numero scritto dove non era stato misurato niente**.*
       di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
       po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
       già pagata su `contrasto.mjs`.
+      ✅ **13/09 (G35): `measureGeom2D` → `misuraGeom2D`, la prima estrazione
+      dalla fetta di mezzo dopo la pausa per il lavoro su richiesta diretta
+      del fondatore (DXF export, aggancio alla griglia).** Stessa logica
+      (burden minimo, interasse fra vicini di fila, estensione della pianta),
+      firma a tre parametri (`holes, Sprog, Bprog`) invece di leggere `D2` a
+      mano — la pagina resta un chiamante come un altro (`return
+      misuraGeom2D(D2.holes, D2.S, D2.B);`). Portato con lei il commento
+      storico sul TypeError del 09/08 (`.toFixed` su un `D2.S` grezzo quando
+      l'interasse manca) e la sua controprova strutturale, spostata a leggere
+      `genesi-data.js` invece della pagina. 3 nuove prove in `run-kpi.mjs`
+      (verificate contro il difetto: tolto il contratto `S:null` nel ripiego,
+      due prove cadono da sole). Fondo di `genesi-data.js` 142→143.
+      Effetto sui bucket del censimento (era un falso positivo del
+      tokenizzatore: due variabili LOCALI, `o` e `minx`, prese per variabili
+      del modulo): 3-5 → 17→16, una-o-due → 48→49, estraibili 56→57 su 148.
+      ✅ **13/09 (G36), stesso giorno: `_puntiNuvola`, stessa famiglia di
+      falso positivo alla quarta occorrenza.** Non leggeva `D2` per niente:
+      marcata legata a nove variabili («lo, conta, c, locale, n, riga, a, si,
+      su») per lettere e parole dentro le sue STRINGHE e i suoi commenti.
+      Traslocata con lo STESSO nome, nessun wrapper in pagina — il call site
+      (in `renderHome`) resta identico, importa direttamente dal modulo. 3
+      nuove prove in `run-kpi.mjs`, con un caso di bordo pinnato apposta
+      (`puntiRitaglio:0` NON entra nel ramo del ritaglio, perché il confronto
+      è `>0` non `!=null`: senza quella prova un cambio silenzioso da `>0` a
+      `!=null` passava lo stesso — misurato prima di consegnare). Fondo di
+      `genesi-data.js` 143→144. Effetto sui bucket: il totale nella pagina
+      scende **148 → 147** (la funzione è uscita del tutto, non lascia un
+      wrapper), il bucket "6-10" scende 23→22, gli estraibili restano 57
+      (una funzione già uscita non è più "da estrarre").
 - [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
       GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
       vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga
@@ -1434,6 +3990,11 @@ numero scritto dove non era stato misurato niente**.*
       raccontano due volate diverse.
       **Come si misura**: apri una volata con `design.B:null` e guarda il burden
       dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
+      ⏸️ **04/09: portata al fondatore come decisione 25** in
+      `docs/DECISIONI_WEEKEND.md` (pianta vuota con la frase, oppure maglia
+      proposta e dichiarata), con la risposta del ciclo se non risponde entro
+      la settimana. Il codice non si tocca prima: farla a metà è la trappola
+      scritta qui sopra.
 
 - [x] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
       MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ✅ *Chiuso il 10/08.*
@@ -1638,8 +4199,18 @@ numero scritto dove non era stato misurato niente**.*
       controprova **20/5** (i difetti rimessi la fanno cadere). Iscritto in
       `tutti.mjs`: esecuzioni **186 → 188**, file di banco **77 → 78**.
 
-- [ ] **B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER
+- [x] **B0-quaterdecies. IL TEMA CHIARO DEL CORE NON È MAI STATO MISURATO PER
       IL CONTRASTO — e la riga che lo dice porta la ragione SBAGLIATA.**
+      ✅ **CHIUSO IL 04/09, rimisurato**: `contrasto.mjs --solo=core
+      --tema=chiaro` sul commit `d2ed4e3b` — **455 testi misurati a 430 px, 0
+      sotto soglia** (165 su griglia 25×25 per i gradienti), e con `--modali`
+      **318 testi dentro 39 finestre aperte su 68** (91 aperture), 0 sotto
+      soglia — le 29 non aperte sono il denominatore dichiarato dal banco,
+      non un verde; 51 classi con fondo
+      proprio fatte comparire e misurate, 0 sotto soglia. I 61 del 13/08 sono
+      stati chiusi lo stesso giorno (inchiostri di stato per il chiaro); qui
+      resta la misura che lo dice. Il tema «sole» il core non ce l'ha, e la
+      riga «non misurata» per lui è vera.
       ⏱️ *Trovato il 13/08 leggendo le righe «non ho guardato» del giro del
       browser, che in questa casa si leggono PRIMA dei KO.* Il banco del
       contrasto stampa, per il tema `chiaro` e per il tema `sole`:
@@ -2106,8 +4677,15 @@ numero scritto dove non era stato misurato niente**.*
       quel numero **non si riproduce** sul fondo vero. La riga adesso chiede a
       chi lo rimette di scrivere **su che fondo** l'ha composto — un rapporto di
       contrasto senza il fondo su cui è stato composto non è una misura.
-- [ ] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
-      GUARDATO — core, Campo, Scudo.** ⏱️ *Censite il 10/08 con lo stesso
+- [x] **B0-duodecies. I CLAMP DELLE TRE SUPERFICI CHE IL CENSIMENTO NON AVEVA
+      GUARDATO — core, Campo, Scudo.** ✅ **CHIUSA il 04/09**: tutte e tre le
+      superfici erano state lette per intero il 13/08 (Campo, Scudo, il core:
+      le righe ✅ qui sotto) e la voce restava aperta solo per le due cose
+      «misurate e non corrette perché non spettano a un cantiere». Quelle due
+      sono adesso le **decisioni 26 e 27** in `docs/DECISIONI_WEEKEND.md`
+      (Campo: lo zero dei minuti di fermo che ha due letture opposte; Scudo: la
+      cella delle giornate d'assenza di un near-miss illeggibile). Una voce
+      che propone un lavoro già fatto lo fa rinascere. ⏱️ *Censite il 10/08 con lo stesso
       comando delle altre cinque app (commenti tolti con `senzaCommenti`, sulle
       pagine solo il contenuto dei `<script>`).*
 
@@ -2827,6 +5405,21 @@ numero scritto dove non era stato misurato niente**.*
       e pretendere che un foro **senza carica reale** non esca come uno zero.
       ⚠️ Non fatto in questa unità e dichiarato: serve la fixture del piano, ed
       è un'unità sua — non un'aggiunta di tre righe.
+      ✅ **FATTO — verificato il 12/09, e la riga qui sopra era invecchiata
+      senza che nessuno la richiudesse.** La sezione «il piano di carico e il
+      consuntivo che torna a Genesi: il quinto bottone» esiste già in
+      `campo-numeri-tranquilli.mjs` (righe 807-978 al 12/09), con la fixture
+      del piano (5 fori, uno senza carica reale — foro 4, `reale:null` — uno a
+      zero VERO — foro 5 — e i casi limite di testo: punto e virgola,
+      virgolette, decimali col punto). Rilanciata a mano per rileggerla invece
+      di fidarsi del commento: **94 verifiche passate, 0 fallite**, comprese
+      esattamente le due che questa riga chiedeva («il foro che nessuno ha
+      pesato esce con le celle VUOTE, non con degli zeri» e «uno zero SCRITTO
+      resta uno zero»), più il giro completo fino al lettore di Genesi
+      (`_riconParseCampo`/`_riconRiassuntoCampo`, 15 valori confrontati
+      schermo→file→Genesi, i totali del riepilogo). Chi ha chiuso questa unità
+      non ha aggiornato questa riga: è la regola 7 di questo file applicata al
+      contrario.
       ⏱️ **E IL DENOMINATORE DI TUTTO L'ECOSISTEMA, misurato subito dopo: è
       L'UNICO.** Censiti tutti i `<button>` d'uscita delle sette superfici (id
       che contiene `export`, `csv`, `pdf`, `stampa`, `scarica`, `download`) e
@@ -2834,6 +5427,10 @@ numero scritto dove non era stato misurato niente**.*
       banco**, e quell'uno è `btn-piano-export`. Cioè la copertura dei punti
       d'uscita è al **97%**, e il buco è esattamente sul ponte fra due app —
       il che lo rende più interessante, non meno.
+      ✅ **12/09: `btn-piano-export` ha il suo banco** (vedi la riga ✅ qui
+      sopra) — chi rifacesse oggi lo stesso censimento troverebbe 0 bottoni
+      senza banco su 39 (o su quanti ce ne sono oggi: il conto non è stato
+      rilanciato per intero, solo verificato questo singolo bottone).
       ⛔ **E il primo conto era 44 e 3, con DUE falsi allarmi su tre**: cercando
       gli `id` senza pretendere che fossero `<button>`, il censimento aveva
       raccolto `pdfm-cava` e `pdfm-mese` del core, che sono un `<select>` e un
@@ -2851,8 +5448,31 @@ numero scritto dove non era stato misurato niente**.*
       il conto qui scritto era del 02/08 e si era mosso parecchio:
 
           | app | «CONFERMATA ASSENTE» | «SCADUTA» |
-          | campo 11 · sentinella 13 · conti 8 · flotta 5 · terra 4 · **scudo 6** |
-          | totale **47** (era 54 · ⛔ NON 42 e NON 41: vedi qui sotto) | totale **14** (⛔ non 18) |
+          | campo 11 · sentinella **11** · conti **4** · flotta **3** · terra 4 · **scudo 3** |
+          | totale **36** (era 54, 47 fino al 05/09, 45, 44, 42 la sera del 05/09, 41, 40, 39 e 38 nella notte; 36 dall'11/09 perché la «ritenuta d'acconto» di Conti non è applicabile alle vendite di inerti — non una mancanza, una cosa che una cava non usa; 37 la mattina del 06/09 perché «link fatture a ordini di lavoro» di Flotta è passata a C'È A METÀ — la regola c'è, le pagine no · ⛔ NON è il «42»/«41» sbagliato di cui parla la nota qui sotto: quello contava una forma di scrittura, questo è il conto rifatto dopo le righe passate a C'È) | totale **14** (⛔ non 18) |
+
+      ⏱️ **42 → 41 il 05/09 (notte), per un «non c'è» SCADUTO**: «Gestione
+      magazzino / giacenze prodotto» di Conti era «confermato assente» dal
+      03/08, e dal 03/09 le giacenze ci sono — come inventari dei cumuli di
+      Terra nel terzo lato del triangolo, non come magazzino. Riga riscritta
+      «C'È A METÀ» con ciò che resta assente (carico/scarico per prodotto).
+      Trovato leggendo la riga PRIMA di aprire un cantiere su di lei.
+
+      ⏱️ **44 → 42 il 05/09 (notte), per opera nostra**: «Umidità, temperatura»
+      e «Direzione + velocità vento» di Sentinella sono passate a **C'È** come
+      UNA unità (le condizioni meteo della misura, e la regola del DM
+      16/03/1998 sul rumore). Righe aggiornate nel documento con i comandi.
+
+      ⏱️ **45 → 44 il 05/09 (sera), per opera nostra**: «Budget tracking vs
+      actual» di Flotta è passata a **C'È** (`budgetVsSpesa`, schermata Costi,
+      CSV censito). Riga aggiornata nel documento con i comandi rilanciati.
+
+
+      ⏱️ **47 → 45 il 05/09, per opera nostra**: due righe di Conti sono
+      passate a «C'È A METÀ» — la fattura elettronica (il file XML c'è dal
+      04/09, l'invio no) e la pesa (il CSV del software di pesatura si importa
+      dal 05/09, il driver dell'indicatore no). Righe aggiornate nel documento
+      con i comandi rilanciati, come pretende la direttiva 7.
 
       ⏱️ **13 → 14 il 09/08, e il verdetto che si è mosso vale più del numero.**
       La riga *hazard / near-miss tracking* di Campo era «**C'È A METÀ**
@@ -3181,8 +5801,73 @@ numero scritto dove non era stato misurato niente**.*
       rifiniture di scena.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
+  ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+  metà sul mondo + delta contro `82d2156d`): i ruoli da software sono tre
+  (`owner|admin|member`, scritti nel token dalle sole Cloud Functions) e **ogni
+  membro vede tutte le app** — le regole non guardano né `appId` né
+  abbonamento, misurato da `tests/sonda-permessi.mjs`. Le figure di legge
+  (direttore responsabile, sorvegliante, RSPP, medico) esistono come **nomine
+  in Scudo**, non come permessi; il core ha la prassi più ricca
+  (`admin|ufficio|fochino|operatore`, `can()` a 20 azioni, perimetro per cava)
+  e nessuna app la eredita. Prerequisito di qualunque «solo il proprio»: un
+  autore sul record — `grep -c "user\.uid\|createdBy"` sulle sette pagine →
+  **0**. Il delta non è nuovo (lo diceva `RICERCA_DEEPWORKID_202607.md` §1.3
+  il 30/07): resta una **decisione di prodotto** del fondatore, poi un campo
+  in `shared/`, poi le regole per app.
 
-- [ ] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
+- [x] **I 20 KO del giro del 09/08, riverificati sul commit di adesso** — la
+  ⏱️ **03/09, due giri di fila morti con la sessione**: quello delle 22:29Z del
+  02/09 dopo 7 minuti (fine del turno), quello delle 00:50Z del 03/09 dopo
+  56 minuti al **limite di crediti** (15 passate su 227: 7 sane, **0 KO**, 8
+  controprove con 75 rossi voluti — letto con `leggi-giro.mjs`, che dichiara
+  «non arrivato in fondo»). La lezione di CLAUDE.md regge alla lettera: un
+  giro più lungo della sessione non finisce mai, e con tre cantieri paralleli
+  sulla stessa macchina va a **quattro minuti a passata**. Si rilancia su uno
+  stato fermo, presto nel ciclo, e si legge quello che ha fatto.
+  ⏱️ **Terzo giro della giornata, stessa fine** (07:00Z, morto alle ~08:00 col
+  limite di crediti a 11 sezioni; quarto alle 15:50Z, morto alle ~17:00 a 23
+  sezioni: 12 passate sane, **0 KO**, 11 controprove). In tre giri parziali le
+  passate sane sono 7 + 7 + 12, tutte a zero KO, sulle prime sezioni
+  dell'elenco (pagine vive, interi, unità, modali, contrasto del core): la
+  coda dell'elenco — dove stanno i banchi delle app toccate stanotte — non è
+  MAI stata raggiunta. Cioè il giro intero come verifica «una volta per
+  blocco» non esiste più in una giornata a tre interruzioni: la strada è
+  `--solo=` per famiglia, una famiglia per ciclo, e il conto di che cosa
+  resta fuori stampato ogni volta.
+  ✅ **CHIUSA IL 04/09 COL PRIMO GIRO FILTRATO ARRIVATO IN FONDO.**
+  `--solo=conti,terra,campo,genesi,core` (89 passate su 229, le altre 140
+  dichiarate non misurate): **1h16, 83 banchi a posto, 6 da guardare** letti
+  con `leggi-giro.mjs` — 74 passate sane, **4 KO veri tutti dello stesso
+  banco** (le voci di tendina del core a 320/360/390/430: «0 finestre aperte»)
+  e lo stesso inciampo su «barra in alto»: `window.__provaUtente is not a
+  function`, cioè il banco non è entrato nell'app. Riverificato da solo,
+  stesso esito; e il PRODOTTO è sano: il core aperto con il finto Firebase
+  montato prima di `goto` parte pulito (zero `pageerror`, `nav` e `fabPrimary`
+  definite), la rotta di `apriSuperficie` inietta la porticina (misurato:
+  `rottaVista: true, iniettato: true, __provaUtente: function`), e il banco
+  `core-esito-sparo` entra e passa 47/47 con la sua iniezione. Quello che si
+  perde sta in `accediAlCore` (il `reload` con `waitUntil:'load'` e i dieci
+  tentativi): sotto quel percorso la porticina non c'è più e il banco misura
+  il guscio dell'accesso. ⏱️ **Cantiere da aprire sul banco, non sul core**:
+  `tendine-nelle-finestre` e `barra-alto-indietro` sul core non misurano
+  niente da (almeno) ieri, e lo DICHIARANO — che è la forma buona.
+  ✅ **E IL CANTIERE SUL BANCO È CHIUSO LO STESSO GIORNO, CON UNA CAUSA CHE
+  NESSUNA LETTURA AVREBBE TROVATO: IL SERVICE WORKER DEL CORE.** Misurato con
+  una sonda datata: il reload di `accediAlCore` finisce in 72-98 ms, ma la
+  rotta di Playwright su `index.html` viene colpita **una volta sola** — al
+  reload la pagina la serve `sw.js` dalla sua cache (cache-first sull'app
+  shell), cioè il core VERO, senza porticina e senza il finto Firestore che
+  rifiuta; e sul guscio ogni `fill`/`click` aspettava 30 s → 31 s × 10
+  tentativi = un quarto d'ora prima del `TypeError`. Cura: contesto del core
+  con `serviceWorkers:'block'` (rotta colpita due volte, dentro in 6,7 s),
+  guardia che DICHIARA il guscio invece di morire, timeout di 5 s sui
+  tentativi. Dopo: `tendine-nelle-finestre --solo=core` **70 finestre aperte,
+  57 voci misurate** (prima: 0), `barra-alto-indietro` 10 barre, 0 da
+  guardare; controprova nei due versi (9/9). ⚠️ Vale per Genesi il giorno in
+  cui un banco la ricaricherà: registra un SW anche lei.
+  I 20 KO del 09/08 non esistono più come lista: le due famiglie (tendine
+  tagliate, Sentinella/Campo) sono chiuse o «aspettano il fondatore» qui
+  sopra; il runner non prende più `--solo=` per la porta (812c04c2).
   riverifica è cominciata e i primi due fronti hanno risposto in modo opposto,
   che è esattamente perché la sezione 0 esiste:
   ⏱️ **AGGIORNAMENTO DEL GIRO SUCCESSIVO (quello delle 06:56Z, letto alle
@@ -4683,7 +7368,7 @@ numero scritto dove non era stato misurato niente**.*
   parte» non era vero: l'emulatore parte, e le 21 cadevano con
   `functions/not-found` perché `apps/deepwork-id/functions/node_modules` era
   **vuota**. Un `npm ci` e sono **21 passati, 0 falliti**. Il giro adesso ne
-  prova **quattro su quattro, 123 prove** (75 · 19 · 8 · 21) e l'elenco `FUORI`
+  prova **quattro su quattro, 123 prove** (75 · 19 · 8 · 21; ⏱️ 139 dal 05/09 notte, regole a 91) e l'elenco `FUORI`
   è **vuoto** — tenuto come riga, non cancellato, così il conto si vede.
   ⛔ Due cose imparate scrivendolo, tutt'e due della famiglia «lo strumento, non
   il mondo»: in un contenitore fresco `firebase` **non è sul PATH** (adesso si
@@ -5395,20 +8080,21 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **18/08** (lanciando le suite, non a memoria):
-  **2.877 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2396, `run-stile` 327,
+- Stato misurato al **13/09** (lanciando le suite, non a memoria — dopo
+  `_puntiNuvola` salita dalla pagina di Genesi, unità G36: +3 in `run-kpi`,
+  2938→2941): **3.422 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2941, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
-  giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
+  giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`
   → **2691** al 09/08.
   ⚠️ *Fino all'08/08 questa riga contava **sei** suite e i tre documenti
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **200 esecuzioni** che
-  aprono le pagine in un browser vero, da **82** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **275 esecuzioni** che
+  aprono le pagine in un browser vero, da **117** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -6064,7 +8750,16 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       **mandata ai due cantieri mentre lavoravano**, col vincolo di dichiarare
       nella consegna ogni forma nuova che dovessero coniare.
 
-- [ ] **B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a
+- [x] ✅ **02/09 sera, rimisurato A MACCHINA FERMA come pretendeva la riga: tre
+      passate di fila sullo stesso commit (`3ae2df59`), nessun altro Chromium in
+      giro — 34 ok, 0 KO, 34 ok, 0 KO, 34 ok, 0 KO; più la quarta della famiglia
+      di Sentinella nel pomeriggio, 34/0.** Le due passate storte del 13/08
+      erano la SCENA sotto contesa (tre cantieri coi loro Chromium), non
+      prodotto: nessun errore di pagina da leggere. Resta valida la nota qui
+      sotto come metodo — il totale che scende è il segno — e l'unico residuo
+      è un candidato piccolo: dare anche al controllo «la pagina non solleva
+      errori» una precondizione dichiarata, come ce l'hanno i casi.
+      *(testo originale)* **B7. `sentinella-periodo-adempimento` È INTERMITTENTE — e va rimisurato a
       MACCHINA FERMA prima che qualcuno ci apra un cantiere.** ⏱️ *13/08, notte,
       rilanciandolo sul committato: è nato oggi e non era mai girato fuori dal
       cantiere che l'ha scritto.*
@@ -6506,6 +9201,1032 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       dare nessun errore**. `clip` taglia allo stesso modo — che era la
       ragione misurata per cui quella riga esiste — e non crea il
       contenitore.
+- [x] **SENTINELLA — LE MISURE DI QUEL GIORNO ACCANTO AL RECLAMO (dalla
+  ricerca a rotazione dell'11/09, delta dal meccanismo) — FATTA lo stesso
+  giorno:** `misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore)` in
+  `sentinella-data.js` (i punti della stessa grandezza — rumore, polveri,
+  vibrazioni+airblast, acque; «altro» tutti — prima quelli del ricettore; il
+  verdetto sul valore più alto del giorno lo dà `statoMisura`, la regola dei
+  badge, non una copia; «nessuna lettura» non è un verdetto), e la riga
+  `.rec-misure` sotto ogni reclamo in `renderReclami`, senza taglio come il
+  periodo coperto degli adempimenti, colorata col verdetto del punto
+  peggiore. ⚠️ E la dimostrazione dice una cosa che il campo «azione» scritto
+  a mano non diceva: il reclamo `x1` (vibrazione del 17/07 a Casa Bianchi)
+  cita «V1 1,8 mm/s sotto soglia» — la lettura del **12/07** — mentre quel
+  giorno V1 non ha letture e **V2 al confine Nord ha letto 5,6 mm/s alle
+  10:25, un superamento, cinque minuti prima della telefonata**. È esattamente
+  il caso per cui la funzione esiste. `x2` (polvere del 20/07): nessuna
+  lettura quel giorno su p1 e pv1, e la riga lo dice senza giudicare. ⛔ E il
+  banco del contrasto ha bocciato la prima stesura della riga: `color:
+  var(--danger)` sul bianco dei temi chiaro e sole fa **3,24:1** (quei temi
+  re-inchiostrano `--ink-*`, non `--danger`); con `--ink-dg` / `--ink-wr` —
+  «lo stato quando fa da inchiostro», 4,86:1 misurato — 468 testi, 0 sotto
+  soglia in tutt'e tre i temi. Prove: run-kpi +1 (2858), copertura Sentinella
+  171 → **173** (con la mappa `GRANDEZZA_RECLAMO`), 946/946; scatto guardato.
+  *(Voce originale:)* Lo stato vuoto del
+  registro promette «con accanto le misure di quel giorno» e nessuna funzione
+  le mette (`grep -cE 'lettureDelGiorno|misureDelGiorno'` → 0 e 0); nella
+  dimostrazione il reclamo `x1` porta la misura scritta A MANO nel campo
+  «azione». Unità: `misureDelGiornoPerReclamo(reclamo, ricettore, monitoraggi)`
+  pura — le letture di quel giorno sui punti che misurano la stessa grandezza
+  del ricettore, col verdetto sulla soglia (`statoMisura`) e «nessuna lettura
+  quel giorno» quando non c'è (l'assenza della misura non è un reclamo
+  infondato); poi la riga di `renderReclami` la stampa. Prove in run-kpi,
+  scatto della riga. Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca
+  dell'11/09.
+- [x] **SENTINELLA — «APERTO DA N GIORNI» E LA DATA DI CHIUSURA DEL RECLAMO
+  (candidato, dopo la voce sopra) — FATTA lo stesso giorno (11/09):**
+  `apertoDaGiorni(reclamo, oggi)` (null se chiuso o senza una data da cui
+  contare), `tempoRispostaReclamo(reclamo)` (solo se chiuso e con TUTT'E DUE
+  le date; una chiusura prima del reclamo non è un tempo di risposta),
+  `riepilogoReclami(reclami, oggi)` che dice il più vecchio aperto, quanti
+  aperti non hanno una data, e la risposta media **solo sui chiusi con la
+  data** dichiarando su quanti è fatta. La pagina scrive `chiusoIl` alla
+  chiusura (e lo toglie riaprendo); il badge dice «Aperto da N gg» (o «Aperto
+  oggi»), la riga chiusa dice «chiuso il … (dopo N giorni)», il riepilogo «il
+  più vecchio da N giorni · risposta in N giorni in media (su M chiusi con la
+  data)». Dimostrazione: `x1` chiuso il 18/07 (un giorno), `x2` aperto dal
+  20/07. Prove: run-kpi +1 e una estesa, copertura Sentinella 173 → **175**;
+  scatto guardato. *(Voce originale:)* Lo stato è `aperto|chiuso` senza date
+  (`grep -cE 'dataRisposta|chiusoIl|apertoDa'` → 0): si sa che è aperto, non da
+  quanto, né quanto ci si è messi. Piccolo: `apertoDaGiorni` sulla riga aperta,
+  `chiusoIl` scritto dalla pagina alla chiusura, il riepilogo dice il più
+  vecchio aperto.
+- [x] **GENESI G29 — LA RAMPA DELLE QUOTE, IL VERDETTO DI UN VALIDATORE, IL
+  PUNTO PIÙ VICINO SULLA TELA (11/09, B3 undicesima fetta):** tre estrazioni
+  confrontate vecchio/nuovo sugli stessi 5.007 ingressi generati (0 diversi,
+  salvo il caso voluto). `QUOTA_RAMPA`/`quotaColore(u, rampa)` entrate
+  identiche, la rampa parametro con quella di casa come ripiego, il letterale
+  tolto dalla pagina; `verdettoValidatore(x, lo, hi, wlo, whi)` — la regola
+  con cui la scheda dei validatori colora un rapporto, chiusa dentro `badge`
+  dove nessuna prova la poteva chiamare, ⛔ e con un buco della famiglia
+  «l'assenza non è un dato favorevole»: con `x` NaN (0/0, `rit/S` con S=0)
+  nessun confronto scattava e il rapporto usciva **verde** con la
+  spiegazione del caso a posto — ora «non calcolabile», la pagina lo scrive,
+  40 casi su 2.000 nel confronto; `puntoTela`/`indicePiuVicino` — la
+  proiezione modello → tela e il tocco più vicino entro 18 px (raggio
+  esclusivo, pari merito al primo), scritte due volte nella pagina: i legami
+  `d2HitTest`/`d2HitTestPt` restano. ⚠️ Il righello della prova ha sbagliato
+  prima della regola: toccava a 18 px dal primo punto e a 12 dal secondo.
+  Prove: run-kpi +4 (2863), genesi-data 115 → **120**; il censimento di
+  `genesi-estraibili` passa da 152 a **151** funzioni nella pagina (56 su 151
+  estraibili, 49 a una o due variabili), aggiornato in DEVELOPMENT.
+- [x] **RICERCA A ROTAZIONE, TERRA — LO SCAVO CONFRONTATO CON IL PROGETTO:
+  CHE COSA CONTROLLA L'ENTE, CHE COSA VENDONO I SOFTWARE (11/09):** metà sul
+  mondo con `WebSearch` (dieci fonti, tutte di seconda mano): in Italia la
+  vigilanza sul progetto approvato è del Comune e la polizia mineraria fa i
+  sopralluoghi e le sanzioni; il piano di coltivazione è per fasi/lotti con
+  cronoprogramma per anno e sezioni 1:500; i software (Propeller) sovrappongono
+  il disegno del pit all'ultimo rilievo per altezze dei banchi, angoli di
+  faccia e avanzamento, e le guide legano la geometria alla stabilità. Delta
+  dal MECCANISMO: quota di fondo, volume del lotto e lotto non ancora aperto
+  **ci sono** in `conformitaProgetto` — e la riga «Pit progression» di
+  `CONCORRENTI_TERRA` era **scaduta** (diceva che nessuna funzione confronta
+  lo scavo col progetto): corretta con la prova; la **geometria dei banchi**
+  manca (7 e 2 occorrenze, tutte testi) → voce aperta qui sotto; il
+  **perimetro** è assente e chiede una decisione (geometrie, non numeri):
+  dichiarato, non aperto.
+- [x] **TERRA — LA GEOMETRIA DEI BANCHI CONTRO IL PROGETTO (dalla ricerca a
+  rotazione dell'11/09) — FATTA lo stesso giorno:** `geometriaAmmessa(lotto,
+  autorizzazione)` (altezza massima del banco e pendenza massima della
+  scarpata, ognuna con la precedenza lotto → atto e «non nota» senza inventare
+  nulla) e `conformitaGeometria(fronte, lotto, autorizzazione)` — il margine
+  ammesso − misurato per ogni asse, il verdetto da `statoConformitaQuota`
+  (UNA regola per i quattro assi, una mappa di badge `CQ`, regola 18
+  soddisfatta senza una seconda mappa), il fronte giudicato dal peggiore dei
+  suoi assi misurati, «non misurabile» con la ragione quando manca la misura
+  o il massimo; quarto asse dentro `conformitaProgetto` (`geometria`: conti,
+  peggiore con l'asse e il margine, tre ragioni distinte per «non
+  confrontato»). Pagina: campi sull'atto (`aut-altezza`, `aut-pendenza`), sul
+  lotto (solo se diversi) e sul fronte (misurati dal rilievo, con la guardia
+  dei decimali e il salvataggio fermato su un valore illeggibile), la riga
+  della geometria sotto ogni fronte nel confronto (badge «banco …» + altezza
+  e pendenza «su» il massimo, «oltre di N», «al limite», «non misurata»), la
+  riga nel cartellone del Piano. Dimostrazione: f1 dentro (massimo di settore
+  16 m sul lotto Nord), f2 **oltre** (78° su 75, e alto esattamente 15 su 15),
+  f3 senza misure. Prove: run-kpi +1 e una estesa, copertura Terra 89 →
+  **91**; sonda a 320 px, scatti guardati. *(Voce originale:)* Sul lotto (o sull'atto) `altezzaBancoMaxM` e
+  `pendenzaMaxGradi` dichiarati dall'utente dal progetto — niente valori
+  nostri, sono materia regionale e di progetto —, sul fronte `altezzaBancoM`
+  e `pendenzaGradi` dal rilievo, e un verdetto nella forma di
+  `statoConformitaQuota` (dentro / al-limite / oltre / non-misurabile) con il
+  conto dei non misurabili, dentro `conformitaProgetto` come quarto asse.
+  Prove in run-kpi; la riga del fronte nella pagina; mappa dei badge
+  coerente (regola 18). Prova che manca: `grep -ciE 'pendenza|scarpat|altezza
+  (del )?banco' apps/terra/terra-data.js apps/terra/index.html` → 7 e 2,
+  tutte in testi. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09.
+- [x] **RICERCA A ROTAZIONE, CAMPO — IL BRIEFING DI INIZIO TURNO E IL
+  CONTROLLO DEL POSTO DI LAVORO: CHE COSA SI REGISTRA FUORI (11/09):** metà
+  sul mondo con `WebSearch` (dieci fonti, tutte di seconda mano): il toolbox
+  talk dura 5–15 minuti su un argomento del giorno e si registra con data,
+  argomento e presenti (la «prova di diligenza»); in Italia è la forma
+  quotidiana dell'informazione ai lavoratori e i modelli sono verbali con
+  presenti e firme; il controllo del posto di lavoro prima del turno (MSHA
+  56.18002) vuole il verbale entro fine turno e, per ogni condizione trovata,
+  l'avviso ai lavoratori e la correzione avviata — e chi cade nelle ispezioni
+  cade perché non sa provare la catena trovato → avvisato → corretto. Delta
+  dal MECCANISMO: il controllo prima del turno **c'è** (`CHECKLIST_INIZIO`,
+  `statoChecklist`, la frase unica, il lucchetto) e il turno dopo lo legge;
+  il briefing è **una spunta** senza argomento né presenti; la voce «non a
+  posto» **non apre niente** (le tre occorrenze di `bozzaAzione` nella pagina
+  sono tutte del fermo macchina). Due voci aperte qui sotto, con la prova accanto.
+- [x] **CAMPO — LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO
+  (dalla ricerca a rotazione dell'11/09) — FATTA lo stesso giorno:**
+  `ORIGINE_CHECKLIST`, `bozzaAzioneChecklist(doc, indice, opts)` sullo stampo
+  del fermo (origine dichiarata, identità = checklist + INDICE della voce in
+  `origineVoce`, nota con turno, squadra, area e se la checklist era chiusa),
+  `azioniDellaVoce` (la regola di `shared/`, tipo e voce fissati),
+  `vociNonAPosto(doc, azioni)` con il semaforo per voce e «non lo so» quando
+  Scudo non si legge; Scudo riconosce la seconda origine (`ORIGINI_CAMPO` =
+  fermo + checklist) e la racconta con le sue parole («controllo di inizio
+  turno», non «fermo di produzione»). Pagina: sotto ogni voce non a posto il
+  badge della risposta («Nessuna azione» rosso) e il bottone «Apri l'azione in
+  Scudo» — la modale dell'azione è UNA (`chiediAzione`, era scritta dentro il
+  gestore del fermo), il doppione si controlla al tocco, la scadenza proposta
+  è a 7 giorni; il rapporto di fine turno scrive accanto a ogni voce non a
+  posto la risposta («senza azione», «1 azione da chiudere»…) SOLO se le
+  azioni di Scudo sono state lette. Sonda a 320 px sulla dimostrazione: voce
+  segnata, modale, conferma, «1 azione da chiudere · si gestisce da Scudo»,
+  0 errori, scatti guardati. Prove: run-kpi +1 (con il ponte a due origini e
+  il rapporto nei tre casi), copertura Campo 134 → **137**.
+  *(Voce originale:)* Sullo stampo del fermo macchina:
+  `bozzaAzioneChecklist(voce, data, turno, squadra, opts)` in `campo-data.js`
+  con la stessa origine dichiarata (`origineTipo`, `origineId` = id della
+  checklist + indice della voce, `origineVoce` = data, scadenza proposta), il
+  bottone «apri l'azione» accanto alla voce non a posto nella checklist del
+  turno, lo stato dell'azione letto con `azioniDiOrigine` di `shared/` come
+  per i fermi, e il rapporto di fine turno che accanto alla voce dice se
+  l'azione c'è. Prove in run-kpi (bozza, doppione sull'id, stato), scatto.
+  Prova che manca: `grep -n 'bozzaAzione' apps/campo/index.html` → 3 righe,
+  tutte `bozzaAzioneFermo` (l'import e le due chiamate). Vedi `docs/RICERCA_CONTINUA_CAMPO.md`, 11/09.
+- [x] **CAMPO — IL BRIEFING DI INIZIO TURNO CON ARGOMENTO, CHI LO TIENE E CHI
+  C'ERA (dalla ricerca a rotazione dell'11/09, dopo la voce sopra) — FATTA lo
+  stesso giorno:** collezione `briefing/{id}` (data, turno, squadra,
+  argomento, tenutoDa, note, ora), `briefingDi`, `presentiAlBriefing` — i
+  presenti sono quelli dell'**appello** dello stesso turno e squadra, e chi
+  nessuno ha spuntato si dice «da spuntare», non si conta né presente né
+  assente —, `riassuntoBriefing` (chi lo ha tenuto dall'anagrafica, «non
+  indicato» quando manca), `INDICE_BRIEFING` (la voce della checklist trovata
+  per testo, non per numero). Pagina: sezione «Briefing di inizio turno» sotto
+  la checklist, cartellone con argomento, chi, ora e presenti (giallo se c'è
+  qualcuno da spuntare), modulo con la tendina delle persone della squadra,
+  turno chiuso = lucchetto; registrando, la voce della checklist «Briefing …
+  fatto» si spunta da sola SOLO se nessuno l'aveva toccata. Il rapporto di fine
+  turno ha la sezione (undici fisse) e la consegna la riga. Dimostrazione: il
+  briefing di oggi della squadra A (volata delle 12:30). Sonda a 320 px:
+  cartellone A, modulo B, registrazione, spunta automatica, 0 errori, scatti
+  guardati. Prove: run-kpi +1 (e le due del foglio aggiornate), copertura
+  Campo 138 → **142**. *(Voce originale:)* Una
+  collezione `briefing/{id}` per data, turno e squadra (`argomento`,
+  `tenutoDa`, `note`, `ora`), i presenti presi dall'appello dello stesso
+  turno (non una seconda lista), la voce della checklist «Briefing … fatto»
+  che si spunta da sola quando il briefing è registrato, e il rapporto di
+  fine turno che lo stampa con argomento e presenti. Prova che manca:
+  `grep -ciE 'briefing' apps/campo/campo-data.js apps/campo/index.html` → 1
+  e 0, la sola occorrenza è il testo della voce.
+- [x] **GENESI G30 — LE SOGLIE DELL'ENERGIA SCRITTE UNA VOLTA, LO SCATTO DEI
+  PROFILI, LE ALTEZZE DEI FORI DAL PIEDE (11/09, B3 dodicesima fetta):**
+  `SOGLIE_PF` (75/90/115/140) le legge `pfCls` e ne discende
+  `LEGENDA_ENERGIA`, identica carattere per carattere al letterale che la
+  pagina teneva a mano nel disegno dell'energia (due copie degli stessi
+  quattro numeri, una nel verdetto e una nel suo cartello); `scattoProfili`
+  (copia profonda di cresta e piede per annulla/ripristina) con `mdlProfSnap`
+  legame; `altezzeForiDaPiede(nFori, interasse, prof, piede, opts)` con
+  `mdlSyncAltezze` legame che tiene i due «niente» della pagina (senza piede
+  si azzera, senza fori non si tocca). ⛔ **E la stessa regola era scritta DUE
+  volte nella pagina**: la sincronizzazione 2D→3D la ripeteva, senza piede
+  riempiendo comunque il piano a profondità piena — la firma troppo stretta di
+  CLAUDE.md: la copia è sparita con un argomento (`pianoSenzaPiede`), non con
+  un rifacimento. Confronto vecchio/nuovo sugli stessi 6.001 ingressi: 0
+  diversi (la prima stesura della legenda derivata sbagliava di un «%» — l'ha
+  preso il confronto, non la rilettura). Prove: run-kpi +3 (2869),
+  genesi-data 120 → **124**; il censimento di `genesi-estraibili`: 151
+  funzioni, 55 estraibili (48 a una o due variabili, 24 da sei a dieci),
+  aggiornato in DEVELOPMENT.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — CONTI: CHE COSA CHIEDE IL
+  COMMERCIALISTA A UNA CAVA (11/09, unità 85, solo documenti).** Mondo di
+  seconda mano (8 fonti, `WebSearch`): il canone si tariffa **per tipo di
+  materiale e metodo**, con dichiarazione al 30/04 e due rate (Piemonte); le
+  rimanenze in bilancio al **minore fra costo e realizzo** (OIC 13); il fondo
+  di smantellamento e ripristino (OIC 31); il conto economico per materiale;
+  il registro carico/scarico è dei rifiuti. Delta dal MECCANISMO contro
+  `c1808b17`: canone C'È con una tariffa sola (→ voce aperta), rimanenze C'È ma al
+  listino (→ voce aperta), fondo ripristino e margine per prodotto MANCANO e
+  chiedono una decisione (dichiarati), date del canone già possibili come
+  scadenze, registro non applicabile. Vedi `docs/RICERCA_CONTINUA_CONTI.md`,
+  ricerca dell'11/09 (secondo giro).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — FLOTTA: CHE COSA CHIEDONO
+  L'OFFICINA E L'ASSICURAZIONE (11/09, unità 88, solo documenti).** Mondo di
+  seconda mano (10 fonti): tagliandi a ore motore (250/500/1000 h), RCA
+  obbligatoria anche in area privata, revisione ogni 5 anni ma non ancora
+  operativa, prima verifica INAIL entro 60 giorni dalla messa in servizio,
+  la denuncia di sinistro. Delta dal MECCANISMO contro `9e56a538`: tagliandi C'È
+  (niente da fare), verifica periodica C'È ma la PRIMA non si calcola (→
+  voce aperta), assicurazione C'È (nota da completare, nella stessa voce),
+  revisione C'È e lo stato dell'obbligo non si scrive, identità del mezzo e
+  sinistro MANCANO e chiedono una decisione (dichiarati). Vedi
+  `docs/RICERCA_CONTINUA_FLOTTA.md`, ricerca dell'11/09 (secondo giro).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — SCUDO: CHE COSA CHIEDE L'ISPETTORE
+  IN UNA VISITA IN CAVA (11/09, unità 90, solo documenti).** Mondo di seconda
+  mano (10 fonti): le fasi della visita e l'elenco minimo dei documenti, il
+  DSS come DVR del settore estrattivo, la licenza e il registro degli
+  esplosivi, la «inspection readiness» dei gestionali. Delta dal MECCANISMO
+  contro `ca1bb7f0`: DSS, cartella per persona, nomine e verbale di ispezione CI
+  SONO; il **fascicolo per l'ispettore della cava intera** MANCA (→ voce
+  aperta: composizione di funzioni che esistono); il registro degli esplosivi
+  MANCA in tutte le app e chiede una decisione (dichiarato). Vedi
+  `docs/RICERCA_CONTINUA_SCUDO.md`, ricerca dell'11/09 (secondo giro).
+- [x] **SCUDO — IL FASCICOLO PER L'ISPETTORE (unità 91, 11/09).**
+  `fascicoloIspezione(dati, oggi)` in `scudo-data.js`: otto sezioni
+  nell'ordine della visita — DSS cava per cava (`cicloDss`), organigramma e
+  nomine (`organigrammaSicurezza`, con il ruolo obbligatorio scoperto in
+  grassetto e quello non obbligatorio no), formazione per tipo
+  (`coperturaFormazione`), idoneità sanitarie (il giudizio del medico
+  persona per persona, con «senza giudizio registrato» contato), DPI
+  (`allarmiDpi`/`riepilogoDpi`), registro infortuni e near-miss dell'anno
+  (`riepilogoInfortuni`, `riepilogoNearMiss`), appalti (`riepilogoAppalti`),
+  ispezioni interne (`riepilogoIspezioni`) — tutto composizione, niente
+  ricalcolato; due elenchi separati come nella cartella: `nonMisurati` (che
+  cosa non risulta: un DSS non databile, un ruolo scoperto, chi non ha il
+  giudizio) e `daSistemare` (registrato e non in regola), e la chiusura è un
+  allarme se uno dei due non è vuoto; senza dati sette sezioni su otto
+  dichiarano il vuoto e `inRegola` resta senza valore di conforto. Pagina: il
+  bottone «Fascicolo per l'ispettore» nel Quadro, lo stesso disegnatore della
+  cartella (`disegnaFoglioSezioni`), la frase d'esempio sua. Registrato in
+  `documenti-dimostrazione` (140 documenti). Scatti guardati: il Quadro a 430
+  px e il foglio intero. Prove: run-kpi +3 (2892), copertura Scudo 217/217; le
+  due prove che contavano «tre fogli» rese più giuste (quattro, con la frase
+  del fascicolo pretesa per nome).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TERRA: CHE COSA CONSEGNA IL
+  TOPOGRAFO COL RILIEVO ANNUALE, E CHI FIRMA (11/09, unità 92, solo
+  documenti).** Mondo di seconda mano (20 fonti): il capitolato del rilievo di
+  un'area di cava, lo stato di avanzamento che chiede l'ente (sezioni 1:1000
+  con stato originario/attuale/finale, volumi estratti e residui, dwg/dxf),
+  la statistica annuale (produzione e addetti medi), il direttore
+  responsabile del D.P.R. 128, la relazione tecnica del topografo (sistema di
+  riferimento, GCP, RMSE), lo standard ASPRS 2024, il 2-5 % dei volumi da
+  drone. Delta dal MECCANISMO contro `e5e2ea6a`: verbale, volumi
+  estratti/residui e cadenza annuale CI SONO; la **tolleranza dichiarata dal
+  rilevatore** MANCA (Terra usa quella tipica della classe e lo dichiara nel
+  foglio → voce aperta piccola); le tre firme dicono **«direttore dei
+  lavori»** dove Scudo e Sentinella dicono «direttore responsabile» (→ voce
+  aperta di tre righe); geometrie e addetti medi dichiarati, chiedono una
+  decisione. Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
+  (secondo giro).
+- [x] ✅ 11/09 (unità 93) **TERRA — LA TOLLERANZA DICHIARATA DAL RILEVATORE** *(dalla ricerca
+  dell'11/09, secondo giro, domanda 2)*. Oggi `classeAccuratezza` risponde con
+  la tolleranza **tipica** della classe (2 % survey-grade, 8 % indicativo) e
+  il verbale scrive che «va confermata con i punti di controllo del
+  rilevatore» — ma il rilevatore non ha un posto dove scriverla. Un campo
+  facoltativo nel rilievo (`tolleranzaPct`, in %), letto da
+  `classeAccuratezza` (`fonte: "rilevatore"` quando è un numero > 0, se no
+  `fonte: "classe"` com'è oggi), la banda calcolata su quello, e il verbale
+  che scrive «dichiarata dal rilevatore» o «tipica del metodo» leggendo
+  `fonte`. Come si misura: `classeAccuratezza({metodo:"RTK", gsd:"2",
+  tolleranzaPct: 3.5}).tolleranzaPct === 3.5`, e il verbale sulla
+  dimostrazione (r1, senza il campo) invariato.
+- [x] ✅ 11/09 (unità 93) **TERRA — «DIRETTORE RESPONSABILE» NELLE TRE FIRME** *(dalla ricerca
+  dell'11/09, secondo giro, domanda 3)*. Le tre righe `class='firma'` di
+  `apps/terra/index.html` (verbale del rilievo, relazione di lotto,
+  riepilogo annuale) scrivono «Il direttore dei lavori»: è la parola del
+  cantiere edile. La figura della polizia mineraria è il **direttore
+  responsabile**, e così lo chiamano già Scudo (`NOMINE_RUOLI`, firme del
+  fascicolo) e Sentinella (relazione per l'ARPA). Come si misura: `grep -oiE
+  'direttore (responsabile|dei lavori)' apps/terra/index.html | sort | uniq
+  -c` → 3 «responsabile», 0 «dei lavori»; e una prova in `run-kpi` che
+  pretende la stessa parola nelle tre app.
+- [x] **TERRA — LA TOLLERANZA DEL RILEVATORE E IL NOME DI CHI FIRMA (unità 93,
+  11/09).** Le due voci qui sopra, insieme. `classeAccuratezza(r)` legge il
+  campo facoltativo `tolleranzaPct` del rilievo (anche «3,5» con la virgola):
+  quando è un numero > 0 la tolleranza è quella, `fonte: "rilevatore"`, e
+  `tolleranzaTipica` resta accanto; se no com'era (`fonte: "classe"`). La
+  CLASSE non cambia: è il giudizio su metodo e GSD. Lo leggono la banda del
+  volume (riga e verbale: «12.000 m³ ± 420»), la riga «Classe di accuratezza»
+  («tolleranza dichiarata dal rilevatore ± 3,5% (tipica del metodo ± 2%)»),
+  la frase «Come è stato ottenuto il numero» (che non dice più «va confermata
+  con i punti di controllo» a chi li ha già portati), il titolo del badge in
+  elenco, e `incertezzaScavo.delRilevatore` → `descriviIncertezza` («dichiarata
+  dal rilevatore per uno, tipica del metodo per gli altri»). Nella pagina il
+  campo `new-ril-toll` (`dec`, letto con `numCampo`, salvato come numero,
+  svuotato dopo). Le tre firme dicono «direttore responsabile» e una prova
+  pretende la stessa parola in Terra, Scudo e Sentinella. run-kpi +3 (2895).
+  ⚠️ Dichiarato, non fatto: il campo NON entra nel CSV dei rilievi
+  (`csvRilievi`/`parseRilieviCsv`, cinque colonne): un rilievo esportato e
+  reimportato perde la tolleranza del rilevatore e torna a quella tipica.
+  Costa una colonna e il pin di `CSV_TABELLE`; va fatto insieme al prossimo
+  ritocco del CSV, non lasciato in silenzio.
+  ✅ Fatto nell'unità 104.
+  ⚠️ E il contatore NON si chiama «dichiarati»: in Terra «dichiarato» è il
+  numero dei turni di Campo, quello che non deve entrare nel riepilogo per
+  gli enti — e la prova P2 conta quella parola nel riepilogo intero. Con quel
+  nome la prova è caduta al primo giro: stesso suono, altra cosa.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — CAMPO: IL SORVEGLIANTE DI TURNO E
+  LA VISITA DEI FRONTI (11/09, unità 94, solo documenti).** Mondo di seconda
+  mano (14 fonti): il D.P.R. 128 (sorveglianti nominati per turno; fronti
+  visitati prima di ogni turno e dopo volate, piogge forti e disgelo; ogni
+  luogo di lavoro almeno una volta per turno), il registro MSHA 56.18002
+  (nome di chi ha esaminato, data, luoghi, condizioni, data della correzione,
+  un anno di conservazione), i gestionali che aprono l'ordine di lavoro sul
+  posto e i moduli «dopo eventi meteo». Delta dal MECCANISMO contro
+  `df41a83c`: il controllo prima del turno C'È (`CHECKLIST_INIZIO`, per turno
+  e squadra, con ora e area) ma **senza chi** (0 `chiusaDa`, 0 «sorvegliante»
+  in Campo, mentre Scudo ha il ruolo nominato); il dopo-volata C'È in
+  Sentinella; il **ricontrollo dopo il maltempo** MANCA (il meteo del turno
+  c'è, il ricontrollo no); il «tutti usciti» è dichiarato (obbligo del
+  sotterraneo). Una voce aperta, in due pezzi piccoli. Vedi
+  `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (secondo giro).
+- [x] ✅ 11/09 (unità 95) **CAMPO — CHI HA CONTROLLATO I FRONTI, E IL RICONTROLLO DOPO IL
+  MALTEMPO** *(dalla ricerca dell'11/09, secondo giro, domande 1 e 3)*. (1)
+  `chiusaDa` sulla lista di controllo del turno: il nome di chi l'ha chiusa,
+  proposto dal **sorvegliante** nominato in Scudo (`NOMINE_RUOLI`, chiave
+  `sorvegliante`, nomina attiva — ponte, non una seconda anagrafe), scritto
+  a mano se Scudo non lo sa, stampato nel rapporto di fine turno e nella
+  consegna accanto all'ora; senza nome la lista non è «a posto» (è il
+  principio del fondatore: chi non si sa non si conta). (2) Una voce di
+  ricontrollo — «Fronti e cigli ricontrollati dopo la pioggia forte o il
+  disgelo» — che compare **solo** quando il meteo del turno è in
+  `METEO_AVVERSO`, con ora e chi, e che se manca tiene il turno fuori dal
+  verde come già fa il meteo. Come si misura: `statoChecklist` su un turno
+  con meteo «Pioggia» e la voce di ricontrollo senza risposta non è verde;
+  con meteo «Sereno» la voce non esiste e le nove di sempre bastano;
+  `grep -ciE 'chiusaDa'` in modulo e pagina > 0, e il rapporto della
+  dimostrazione porta il nome.
+- [x] **CAMPO — CHI HA FATTO I CONTROLLI, E IL RICONTROLLO DEI FRONTI DOPO IL
+  MALTEMPO (unità 95, 11/09).** `nominaAttiva` traslocata in
+  `shared/dw-ponti.js` (Scudo la ri-esporta, prova d'identità) perché la legge
+  anche Campo: `sorveglianteDiTurno(nomine, lavoratori, oggi)` → `{noto, nomi}`
+  (`noto:false` se Scudo non si è letto: «non lo so» non è «nessuno»), col
+  lettore `db.nomineScudo` e la nomina nella dimostrazione (Giulia Verdi). La
+  lista di controllo porta `chiusaDa`: il campo «Controlli fatti da» si
+  propone dal sorvegliante nominato (la frase sotto dice da dove viene, o che
+  Scudo non è raggiungibile), senza nome la lista **non si chiude** — chiesto
+  PRIMA della conferma sulle voci non a posto —, il cartellone, il rapporto di
+  giornata e la consegna scrivono «chiusa alle 07:10 da Giulia Verdi» o
+  «(senza nome)». `VOCE_RICONTROLLO` («Fronti e cigli ricontrollati dopo la
+  pioggia forte o il disgelo»), `INDICE_RICONTROLLO` = 9, `meteoChiedeRicontrollo`
+  (cielo Pioggia / Neve o gelo: la legge parla di piogge e disgelo, le piste no)
+  e `vociChecklist(meteo)` che è LA lista fissa quando non serve (identità) e le
+  dieci quando serve; `statoChecklist`, «tutto a posto», la chiusura, il
+  rapporto e la consegna contano le voci del turno; `vociNonAPosto` e
+  `bozzaAzioneChecklist` sanno aprire l'azione anche sul ricontrollo. Misurato
+  a 430 px: 9 voci col sereno, 10 con la pastiglia «Pioggia» (la decima con
+  «chiesta dal meteo di oggi (Pioggia)»), chiusura respinta senza nome, poi
+  «chiusa alle 12:47 da Giulia Verdi · 1 voce non a posto», 0 errori.
+  run-kpi 2895 → 2898; copertura campo 147/147, scudo 216/216, dw-ponti 88/88.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — SENTINELLA: CHE COSA CHIEDE L'ENTE
+  DOPO UN RECLAMO PER LE VIBRAZIONI, E CHE COSA PROTEGGE LA CAVA PRIMA (11/09,
+  unità 96, solo documenti).** Mondo di seconda mano (27 fonti): l'esposto va
+  al Comune, che chiede la misura all'ARPA, e «la normativa italiana non
+  tratta la matrice vibrazioni» (i limiti sono norme tecniche di riferimento:
+  UNI 9916, tre assi, dati comparabili nel tempo); come si gestisce un reclamo
+  per una volata (rispetto, accertare di che cosa si lamenta, andare a casa,
+  il sismografo triassiale); il **rilievo preventivo** dello stato delle case
+  vicine (foto delle fessure esistenti: «elimina il 96 % delle richieste
+  pretestuose»). Delta dal MECCANISMO contro `7578e26a`: la relazione per
+  l'ente C'È (5 funzioni), le misure accanto al reclamo CI SONO (dal mattino),
+  la soglia «di riferimento» C'È; lo **stato di fatto del ricettore** MANCA
+  (0 e 0) e la **risposta scritta al reclamo** MANCA come documento (0 fogli)
+  → una voce aperta; l'esposto resta dichiarato. Vedi
+  `docs/RICERCA_CONTINUA_SENTINELLA.md`, ricerca dell'11/09 (secondo giro).
+- [x] ✅ 11/09 (unità 97) **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
+  RECLAMO** *(dalla ricerca dell'11/09, secondo giro, domande 3 e 4)*. (1) Sul
+  ricettore un sopralluogo preventivo — `statoDiFatto: { data, chi, note }`
+  (che cosa si è visto: fessure e dove) — scritto nella scheda, richiamato
+  accanto al reclamo di quel ricettore («stato di fatto del 12/03/2026: …»,
+  o «nessun sopralluogo registrato: non si sa com'era prima») e nella
+  relazione per l'ente; le foto restano una decisione (dove si tengono).
+  (2) `rispostaReclamo(reclamo, monitoraggi, ricettore, volate, oggi)` che
+  compone — senza ricalcolare — il reclamo, le misure di quel giorno
+  (`misureDelGiornoPerReclamo`), la soglia col riferimento
+  (`riferimentoSoglia`), la volata coincidente (`coincidenzaVolata`), lo stato
+  di fatto, e chi risponde; foglio stampabile dalla scheda del reclamo con la
+  frase di esempio e le firme («Il direttore responsabile»), registrato in
+  `documenti-dimostrazione`. Come si misura: sulla dimostrazione la risposta
+  del reclamo chiuso cita la misura di quel giorno decisa da
+  `misureDelGiornoPerReclamo` (V2 «5,6 mm/s alle 10:25 — superamento», V1
+  «nessuna lettura»; ⚠️ la prima stesura di questa voce scriveva «1,8 mm/s,
+  sotto soglia» copiando il campo «azione» scritto a mano nella dimostrazione
+  — è il numero della lettura di V1 del 12/07, non di quel giorno: la
+  funzione dice di più della nota), quella di un reclamo senza misure dice
+  che non ci sono misure di quel giorno (non «conforme»); un ricettore senza
+  sopralluogo esce con «non si sa com'era prima».
+- [x] **SENTINELLA — LO STATO DI FATTO DEL RICETTORE E LA RISPOSTA SCRITTA AL
+  RECLAMO (unità 97, 11/09).** `descriviStatoDiFatto(ricettore)` → `{noto,
+  data, chi, note, testo}` («stato di fatto del 12/03/2026 (chi): …», oppure
+  «nessun sopralluogo registrato: non si sa com'era prima delle volate», e un
+  30 febbraio non è un sopralluogo); il record `statoDiFatto: {data, chi,
+  note}` sul ricettore, tre campi nel form (la data è obbligatoria se si
+  scrive chi o note), la riga del ricettore e quella del reclamo lo mostrano
+  (in tono d'avviso quando manca). `rispostaReclamo(reclamo, {monitoraggi,
+  ricettori, volate}, oggi)`: cinque sezioni nell'ordine in cui si risponde
+  (il reclamo; le misure di quel giorno con il riferimento di ogni soglia e
+  l'avviso «riferimento tecnico, non limite di legge»; la volata di quel
+  giorno con l'avviso di coincidenza; com'era il ricettore prima; che cosa
+  abbiamo fatto), righe «manca» e `nonMisurati`, chiusura che dice del
+  superamento o che «non c'è una misura da mostrare» (mai «conforme» senza
+  misura), firme «Luogo e data / Il direttore responsabile». Nella pagina un
+  foglio solo (`htmlFoglio`) per la scheda della volata e la risposta
+  (firme dal modulo, chiusura stampata), bottone nella riga del reclamo,
+  `documenti-dimostrazione` +2 (142). Misurato a 430 px: le righe dei
+  reclami e dei ricettori con lo stato di fatto, la risposta di x1 con le
+  sei intestazioni e la chiusura sul superamento di V2, 0 errori. run-kpi
+  2898 → 2900; copertura sentinella 187/187.
+  ⚠️ Dichiarato, non fatto: lo stato di fatto non entra ancora nel report di
+  conformità per l'ente (`reportConformita`) né nel CSV dei ricettori
+  (`csvRicettori`): la risposta al reclamo lo porta, il report no.
+  ✅ Tutt'e due fatti nell'unità 103.
+- [x] **SENTINELLA — IL SOPRALLUOGO NEL REPORT PER L'ENTE E NEL CSV DEI
+  RICETTORI (unità 103, 11/09).** `reportConformita` porta per ogni punto
+  collegato `statoDiFatto` (la frase di `descriviStatoDiFatto`, `null` senza
+  ricettore) e la scheda del punto nel report la stampa («Com'era prima delle
+  volate: …»); `csvRicettori` ha tre colonne in coda (`sopralluogoData`,
+  `sopralluogoChi`, `sopralluogoNote`), `parseRicettoriCsv` le fa rientrare
+  com'è scritto (una data che non esiste non si butta: la dichiara lo
+  schermo), pin di `CSV_TABELLE` aggiornato, il pin sulla riga «Cascina al
+  confine» reso più giusto (tre celle vuote, non «null»). run-kpi +1 (2905).
+- [x] **TERRA — LA TOLLERANZA DEL RILEVATORE NEL CSV DEI RILIEVI (unità 104,
+  11/09).** Settima colonna `tolleranzaPct` in coda (le righe a sei colonne
+  restano com'erano), scritta col punto e vuota quando non c'è; il lettore
+  la fa rientrare come numero solo se > 0 (anche «3,5»), e senza NON crea la
+  chiave — così `classeAccuratezza` risponde «classe» come prima. Pin di
+  `CSV_TABELLE`, intestazione, frase delle colonne nella pagina; prova di
+  andata e ritorno con asserzione sul testo. Chiuso il «dichiarato, non
+  fatto» dell'unità 93. run-kpi +1 (2906).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — CONTI: CHE COSA CHIEDE LA BANCA, E
+  CHE COSA PRETENDE IL CODICE DELLA CRISI (11/09, unità 105, solo documenti).**
+  Mondo di seconda mano (21 fonti): che cosa guarda la banca per un fido
+  (bilancio, cash flow, scadenzario clienti e fornitori con le date previste,
+  Centrale dei Rischi), il DSCR a sei mesi degli adeguati assetti (art. 2086),
+  i gestionali di cava col controllo del credito alla pesa («un carico non
+  pagato non esce»). Delta dal MECCANISMO contro `2766bf9b`: esposizione e
+  fido, incassi attesi per mese, tempi di pagamento e solleciti CI SONO; la
+  **pesata non legge il fido** (`oltreFido` vive solo nella lista clienti e nel
+  report → voce aperta piccola); lo **scadenzario fornitori** MANCA (i costi
+  non hanno scadenza né stato) e chiede una decisione sul perimetro di Conti
+  (decisione 21); il DSCR dipende da quella. Vedi
+  `docs/RICERCA_CONTINUA_CONTI.md`, ricerca dell'11/09 (terzo giro).
+- [x] ✅ 11/09 (unità 106) **CONTI — LA PESATA AVVISA QUANDO IL CLIENTE È OLTRE FIDO** *(dalla
+  ricerca dell'11/09, terzo giro, domanda 4)*. Il modulo sa chi è oltre fido
+  (`esposizioneClienti(...).oltreFido`) e chi ha dello scaduto; il form della
+  pesata (`pes-cli`) non lo legge. Da fare: scelto il cliente, la striscia
+  della pesata (`pes-esito`) dice «Edilcave Srl è oltre fido: esposizione
+  € X su fido € Y» (o «ha € Z scaduti») PRIMA di registrare — composizione,
+  non calcolo; il carico non si ferma (è una scelta del titolare), si dice.
+  Come si misura: sulla dimostrazione, scelto un cliente oltre fido (se non
+  c'è, la dimostrazione ne guadagna uno), la striscia compare; con un cliente
+  in regola non compare; prova in `run-kpi` sulla frase (funzione pura
+  `avvisoFidoPesata(clienteId, esposizione)`), banco che sceglie il cliente.
+- [x] **CONTI — LA PESATA DICE SE IL CLIENTE È OLTRE FIDO (unità 106,
+  11/09).** `avvisoFidoPesata(clienteId, esposizione)` puro: `null` se non
+  c'è niente da dire, livello `fido` («Edilcave Srl è oltre fido: € 12.300,00
+  di fatture aperte su un fido di € 10.000,00, di cui … già scaduti. La
+  consegna non si ferma da sola: decidi tu se caricare.») o `scaduto`; la
+  riga `pes-fido` sotto il cliente nel form della pesata (tono d'allarme o
+  d'avviso) si aggiorna al cambio del cliente e si ridice nella striscia al
+  momento di registrare — non blocca. La dimostrazione ha adesso un cliente
+  oltre fido (Edilcave, fido 10.000 con 12.300 di residuo dopo gli incassi).
+  Misurato a 430 px: c1 in tono d'allarme, c2 (Stradesud) «ha € 9.750,00
+  scaduti», nessun cliente → riga nascosta, 0 errori. run-kpi +1 (2907).
+  ⚠️ Imparato scrivendo la prova: `euro` mette uno spazio che non si spezza
+  fra il simbolo e la cifra, e su quattro cifre Node e Chromium raggruppano
+  diversamente — la prova confronta a spazi normali e su cifre a cinque
+  posizioni.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — FLOTTA: LEASING, VERIFICA PERIODICA E
+  I NUMERI DELLA TELEMATICA (11/09, unità 107, solo documenti).** Mondo di
+  seconda mano (21 fonti): gli obblighi di chi usa un mezzo in leasing e le
+  tre strade alla scadenza (riscatto all'1–5 %, restituzione, rinnovo), la
+  verifica periodica dell'art. 71 (prima verifica INAIL, scheda tecnica,
+  escavatore col gancio annuale), i numeri della telematica (40–60 % al
+  minimo, utilizzo sopra il 60–70 % → comprare, sotto → noleggiare). Delta dal
+  MECCANISMO contro `ab12321f`: le verifiche CI SONO; il costo orario è solo
+  esercizio (officina + carburante) e il **possesso** manca (0 su
+  ammortamento/canone) → voce aperta; il **leasing** entra solo come voce di
+  costo, non come contratto con la sua fine (→ stessa voce); l'utilizzo chiede
+  un denominatore (dichiarato); il tempo al minimo non è misurabile senza
+  telematica e si scrive così. Vedi `docs/RICERCA_CONTINUA_FLOTTA.md`,
+  ricerca dell'11/09 (terzo giro).
+- [x] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING**
+  ✅ 11/09 (unità 108). *(dalla ricerca dell'11/09, terzo giro, domande 1 e 4)*. (1) Sul mezzo un
+  campo facoltativo `costoPossessoAnnuo` (canone di leasing o quota annua di
+  ammortamento, in €) con `possessoDal`; `costoOrarioMezzo` aggiunge
+  `euroOraPossesso` = possesso annuo / ore all'anno **misurate** (dal ritmo di
+  `ritmoOreMezzi` × 365, o dalle letture del contatore su un anno) e lo
+  dichiara `null` con la ragione quando le ore non si sanno o il possesso non
+  è registrato — mai uno zero; il libretto e il fascicolo del mezzo scrivono
+  tre voci separate (possesso, officina, carburante) e il totale solo se le
+  tre ci sono. (2) Preset di scadenza «Fine leasing / riscatto» (`mesi:
+  null`, la data è quella del contratto; nota sulle tre strade e sulla
+  perizia dell'usato, di seconda mano). Come si misura: sulla dimostrazione un
+  mezzo con possesso registrato ha `euroOraPossesso` > 0 e il libretto scrive
+  «possesso € X/h»; un mezzo senza lo dice («possesso non registrato») e il
+  totale non lo somma; `presetScadenzaFlotta("fine-leasing")` esiste;
+  screenshot del libretto a 430 px.
+- [x] **FLOTTA — IL COSTO DI POSSESSO NEL COSTO ORARIO, E LA FINE DEL LEASING
+  (11/09, unità 108).** Sul mezzo `costoPossessoAnnuo` e `possessoDal` (due
+  campi nel form, numero > 0 facoltativo: uno zero non è un canone);
+  `costoOrarioMezzo(interventi, rifornimenti, mezzi)` spalma il possesso sulle
+  ore all'ANNO misurate nella stessa finestra del contatore (ore × 365 /
+  giorni) e scrive `euroOraPossesso`, `oreAnno`, `perchePossesso` (non
+  registrato / ore all'anno non si sanno / non in anagrafica) e
+  `euroOraCompleto` SOLO quando possesso ed esercizio ci sono tutt'e due. La
+  lista «Quanto costa un'ora di macchina» scrive «Col possesso: € X/h (… su N
+  ore all'anno misurate)» o «Solo esercizio: …»; il libretto ha la riga
+  «possesso». Preset «fine-leasing» (`mesi: null`, nota sulle tre strade e la
+  perizia, di seconda mano). Dimostrazione: E1 a 42.000 €/anno dal
+  15/01/2024 → «€ 56,93 /h su 1.363 ore all'anno misurate»; D1 e P1 «solo
+  esercizio». Screenshot a 430 px guardati (lista e form, la seconda data è
+  spiegata nel suggerimento del form). Prove: run-kpi +1 (2908); il preset
+  `presetScadenzaMezzo("fine-leasing")` è quello del modulo (la voce diceva
+  `presetScadenzaFlotta`, nome indovinato).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — SCUDO: LA PROVA DI EMERGENZA IN CAVA
+  E IL DECRETO ANTINCENDIO CHE IN CAVA NON VALE (11/09, unità 109, solo
+  documenti).** Mondo di seconda mano (otto ricerche): in cava il piano di
+  emergenza sta nel DSS (D.Lgs 624/96 art. 10: esercitazioni, salvataggio,
+  addestramento, punti di raduno; art. 25 uscite); il D.M. 2 settembre 2021
+  NON si applica alle industrie estrattive (art. 62 del D.Lgs 81/08) e la
+  cadenza quinquennale degli addetti vale per analogia; la prova annuale e il
+  verbale (scenario, ora dell'allarme, tempi, partecipanti, criticità →
+  azioni, firme). Delta dal MECCANISMO contro `caf157c3`: la prova è solo una
+  SPUNTA nella checklist `dpi-emergenza`, senza data/scenario/tempi; nessun
+  preset; il meccanismo c'è (ispezione ricorrente → azioni → fascicolo) →
+  voce aperta; il D.M. 2/9/2021 citato in 4 punti come fonte diretta → nella
+  stessa voce; l'appello vive in Campo. Vedi `docs/RICERCA_CONTINUA_SCUDO.md`,
+  ricerca dell'11/09 (terzo giro).
+- [x] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA** ✅ 11/09 (unità 110). *(dalla ricerca dell'11/09,
+  terzo giro, domande 1-4)*. (1) Modello di ispezione `prova-emergenza` (ambito «Sito», `giorni:
+  365`, riferimento D.Lgs 624/96 art. 10 — la cadenza la scrive il DSS) con
+  le voci del verbale del mondo: allarme sentito in tutta la cava, mezzi
+  fermati e volata sospesa, tutti al punto di raccolta nel tempo previsto,
+  appello sulla lista del turno (Campo), chiamata al 118 simulata col punto
+  d'incontro, squadra presente coi presidi, criticità scritte e assegnate.
+  (2) Preset di scadenza `prova-emergenza` (categoria azienda, `mesi: 12`).
+  (3) Le 4 citazioni del «D.M. 2 settembre 2021» riscritte col limite: il
+  decreto esclude le industrie estrattive (art. 62 D.Lgs 81/08), la fonte è
+  D.Lgs 81/08 artt. 43-46 + D.Lgs 624/96 art. 10, la cadenza quinquennale è
+  adottata per analogia [seconda mano]. Come si misura: il modello compare
+  fra i modelli d'ispezione e propone la successiva a un anno; il preset
+  esiste con `mesi: 12`; `grep -c 'non si applica alle industrie estrattive'`
+  ≥ 4 e nessuna citazione del D.M. 2/9/2021 senza il limite; screenshot a
+  430 px dell'ispezione aperta sul modello.
+- [x] **SCUDO — LA PROVA DI EMERGENZA COME MODELLO DI ISPEZIONE, E LE FONTI
+  ANTINCENDIO DELLA CAVA (11/09, unità 110).** Modello `prova-emergenza` in
+  `MODELLI_ISPEZIONE` (ambito «Sito», 365 giorni, riferimento D.Lgs 624/96
+  art. 10) con le otto voci del verbale: scenario e ora dell'allarme nella
+  nota, allarme sentito ovunque, mezzi fermati e volata sospesa, punto di
+  raccolta nel tempo del DSS, appello sulla lista del turno (Campo),
+  chiamata al 118 simulata col punto d'incontro, squadra e presidi,
+  criticità → azioni correttive. Preset `prova-emergenza` (azienda, 12 mesi).
+  Le 4 citazioni del D.M. 2 settembre 2021 riscritte con il limite sulla
+  stessa riga («non si applica alle industrie estrattive», art. 62 del D.Lgs
+  81/08; cadenza quinquennale per analogia, la vera è nel DSS), e la prova
+  pretende che ogni riga che cita il decreto porti il limite. Nessuna
+  collezione nuova: la prova usa il meccanismo delle ispezioni (esiti, azioni,
+  data della successiva, verbale). Screenshot a 430 px guardati (il modello
+  nella tendina con la sua nota, l'ispezione aperta con le 8 voci, 0 errori
+  di pagina). Prove: run-kpi +1 (2909).
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — TERRA: QUANDO LO SCAVO ESCE DAL
+  PROGETTO SERVE UNA VARIANTE, E QUALE (11/09, unità 111, solo documenti).**
+  Mondo di seconda mano (sette ricerche): la variante al piano di
+  coltivazione è regionale; la linea fra sostanziale (nuova autorizzazione) e
+  non sostanziale (procedura semplificata) la tira ogni regione — Toscana
+  con una percentuale sui volumi autorizzati, Piemonte con una percentuale
+  sull'estensione dei poli, Veneto e Lombardia con criteri della Giunta; la
+  vigilanza confronta il rilievo annuale col progetto alla stessa scala.
+  Delta dal MECCANISMO contro `727e8b47`: la parola «variante» c'è in 4
+  punti (volume, quota) e manca su geometria e sequenza; la soglia
+  sostanziale/non non c'è (0 e 0) e non può essere un numero nostro → voce
+  aperta (campo dichiarato dall'utente, come la soglia di guardia); la
+  difformità in % c'è (`proiezioneAnno`, `avanzamentoLotto`); la variante
+  vive come pratica `in-esame` e i conti li aggiorna l'utente sull'atto
+  (dichiarato). Vedi `docs/RICERCA_CONTINUA_TERRA.md`, ricerca dell'11/09
+  (terzo giro).
+- [x] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE**
+  ✅ 11/09 (unità 112). *(dalla ricerca dell'11/09, terzo giro, domande 1 e 2)*. Sull'atto un
+  campo facoltativo `difformitaSostanzialePct` (dal regolamento della
+  propria regione; il suggerimento dice che dipende dalla regione, SENZA
+  numeri di legge di seconda mano); una funzione pura
+  `giudizioVariante(difformitaPct, sogliaPct)` → `{ noto, sostanziale:
+  true|false|null, testo }` con `null` quando la soglia o la difformità non
+  si sanno; nella scheda del Titolo, accanto ai verdetti «oltre» (volume
+  dell'anno, lotto), la frase «sopra la soglia che hai dichiarato: la
+  variante sarebbe sostanziale» / «sotto: non sostanziale, procedura
+  semplificata — verifica col tuo regolamento»; e la parola «variante» anche
+  sui verdetti «oltre» della geometria del banco e del lotto non aperto.
+  Come si misura: con la soglia vuota la pagina non giudica (0 frasi); con
+  soglia 5 e difformità 8 dice «sostanziale», con 3 dice «non sostanziale»;
+  `grep -c 'sostanzial'` nel modulo ≥ 1 e nessun «4,5» nella pagina;
+  screenshot a 430 px del Titolo.
+- [x] **TERRA — LA SOGLIA DELLA VARIANTE SOSTANZIALE, DICHIARATA DALL'UTENTE
+  (11/09, unità 112).** Sull'atto `difformitaSostanzialePct` (campo `aut-variante`,
+  decimale, facoltativo, «dal tuo regolamento»; letto con `numCampo`, vuoto =
+  non dichiarata); nel modulo `difformitaVolumetrica(conformita)` (il lotto più
+  oltre il previsto, in punti sopra il 100; `nota: false` senza lotti oltre) e
+  `giudizioVariante(difformitaPct, sogliaPct)` → `{ noto, sostanziale, testo,
+  perche }` — sopra la soglia «sostanziale, cioè una nuova autorizzazione»,
+  alla soglia o sotto «non sostanziale, procedura semplificata — verifica col
+  tuo regolamento», senza soglia «non lo so» con la ragione (dipende dalla
+  regione). La scheda «Fin dove si può scendere» scrive la riga SOLO quando
+  c'è una difformità misurata (rossa se sostanziale, ambra se no o se la
+  soglia manca), e riceve l'atto (`cardConformita(c, aut)`); la sequenza dei
+  lotti e il banco fuori sagoma nominano la variante. Nessun numero di legge
+  nella pagina (la prova lo pretende: il 4,5:1 del contrasto è un'altra cosa).
+  Misurato nel browser iniettando nella risposta HTTP un lotto al 108,1 % e
+  la soglia 5: «supera la soglia … sostanziale»; senza soglia: «non so dire
+  quale delle due sarebbe. La scrivi nella scheda dell'atto»; 0 errori di
+  pagina; screenshot a 430 px guardati (scheda con e senza soglia, form
+  dell'atto). Prove: run-kpi +1 (2910).
+  ⚠️ Imparato: la stessa riga di assemblaggio `${volume}${sequenza}…` stava in
+  DUE rami della scheda (quota non misurabile / misurabile) e la prima
+  sostituzione ha preso il ramo sbagliato: la sonda ha mostrato la riga del
+  volume senza quella della variante, e solo il `grep` dei due punti l'ha
+  detto. Un'iniezione si verifica dove il programma la legge.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — SENTINELLA: LA CATENA DI MISURA, FRA
+  TARATURA IN LABORATORIO E CALIBRAZIONE IN CAMPO (11/09, unità 113, solo
+  documenti).** Mondo di seconda mano (sei ricerche): taratura del laboratorio
+  accreditato (LAT) con certificato e scadenza — biennale per il fonometro di
+  classe 1 e tutta la sua catena (D.M. 16/03/1998), annuale o biennale per
+  sismografi e misuratori di vibrazioni secondo il costruttore (UNI 9916, ISO
+  8041) — e calibrazione in campo prima e dopo ogni ciclo di misura, che per
+  il rumore decide se la misura vale (scarto massimo fissato dal decreto).
+  Delta dal MECCANISMO contro `747de8a2`: la scadenza della taratura, il
+  certificato nel report e la copertura per lettura CI SONO
+  (`statoTaraturaStrumento`, `taratureDelReport`, `coperturaTaratura`,
+  `contaCoperture`); la calibrazione in campo delle misure di rumore MANCA
+  (`grep -ciE 'calibraz|calibrat'` → 4, tutti sulla legge di sito) e il
+  meccanismo per dichiarare una lettura non valida esiste senza quella
+  domanda → voce aperta; la periodicità per tipo SCARTATA (sarebbe un numero
+  di seconda mano in un campo). Vedi `docs/RICERCA_CONTINUA_SENTINELLA.md`,
+  ricerca dell'11/09 (terzo giro).
+- [x] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE** ✅ 11/09 (unità 114). *(dalla
+  ricerca dell'11/09, terzo giro, domanda 3)*. Sulla lettura di un punto di tipo rumore
+  `calibrazione: { prima, dopo }` in dB (facoltativi, nel form della misura
+  solo quando il punto è di rumore); sul punto `scartoCalibrazioneDb`
+  dichiarato dall'utente (il suggerimento dice che lo fissa il decreto sulle
+  tecniche di rilevamento, SENZA il numero); nel modulo
+  `scartoCalibrazione(lettura)` → `{ noto, scartoDb }` e
+  `validitaCalibrazione(lettura, punto)` → `{ stato: valida | non-valida |
+  non-registrata | soglia-non-dichiarata, scartoDb, perche }` — mai «valida»
+  senza i due numeri e la soglia; ragione di annullamento `calibrazione` in
+  `RAGIONI_ANNULLAMENTO`; la scheda del punto mostra lo stato accanto alla
+  lettura e il report conta le letture di rumore senza calibrazione
+  registrata. Come si misura: con prima 94,0 e dopo 94,3 e scarto 0,5 →
+  valida; con dopo 94,7 → non valida (0,7); senza soglia → «soglia non
+  dichiarata»; senza i due valori → «non registrata»; `grep -c '0,5'` nella
+  pagina non cresce; screenshot a 430 px del form e della scheda.
+- [x] **SENTINELLA — LA CALIBRAZIONE IN CAMPO DELLE MISURE DI RUMORE, E LO
+  SCARTO MASSIMO DICHIARATO DALL'UTENTE (11/09, unità 114).** Sul punto
+  `scartoCalibrazioneDb` (campo `sen-scarto`, facoltativo, «scrivilo tu dal
+  testo del decreto»); sulla lettura `calibrazione: { prima, dopo }` (due campi
+  nel form della misura, facoltativi, un numero illeggibile ferma); nel modulo
+  `scartoCalibrazione(l)` → `{ noto, scartoDb }`, `validitaCalibrazione(l, m)`
+  → valida / non-valida / non-registrata (anche «a metà», dicendo quale valore
+  manca) / soglia-non-dichiarata, con `breve` e `perche`; `contaCalibrazioni`
+  per il report, **nel periodo** (stesso denominatore di «letture nel
+  periodo»); ragione di annullamento `calibrazione` (sesta). La tabella delle
+  letture del punto di rumore scrive lo stato su ogni riga non annullata; il
+  report scrive «Calibrazione in campo: 1 valida, 1 fuori scarto, 2 senza
+  calibrazione registrata su 4». Dimostrazione: r1 con lo scarto 0,5 dichiarato
+  dal tecnico e due letture con la calibrazione (0,2 e 0,7). Nessun numero del
+  decreto nella pagina (la prova lo pretende). Misurato nel browser: le quattro
+  righe con i quattro stati, il form del punto ricarica «0,5», una misura
+  registrata con 94 → 94,9 finisce nel report come «2 fuori scarto … su 5», 0
+  errori di pagina; screenshot a 430 px guardati. Prove: run-kpi +1 (2911, più
+  la prova delle ragioni aggiornata a sei); copertura 992/992.
+- [x] **RICERCA A ROTAZIONE, TERZO GIRO — CAMPO: L'ESPLOSIVO IN CAVA, FRA IL
+  REGISTRO, L'ORDINE DI SERVIZIO E IL DOPO-SPARO (11/09, unità 115, solo
+  documenti).** Mondo di seconda mano (otto ricerche): il registro delle
+  operazioni giornaliere dell'art. 55 TULPS (data, ditta, specie e quantità;
+  vidimato dall'autorità di P.S.; cinquant'anni di conservazione) che tiene
+  chi gestisce un deposito; la cava che consuma in unica soluzione non ha
+  bisogno del deposito, quella in più riprese sì; l'ordine di servizio
+  dell'art. 305 del D.P.R. 128/1959 (chi carica e spara, materiali, custodia,
+  segnali, attesa prima del rientro — 60 minuti nei fac-simili, 30 per la
+  mina mancata nel D.P.R. 302/1956 art. 37). Delta dal MECCANISMO contro
+  `1654ea53`: la carica per foro c'è (Campo, dal piano di Genesi) e l'avanzo
+  reso no (0 e 0); il registro dell'art. 55 è del deposito → decisione del
+  fondatore, dichiarata; il dopo-volata di Sentinella ha `rientroAlle` ma non
+  l'ora dello sparo né chi ha autorizzato (`grep -c 'oraSparo'` → 0 in tre
+  moduli) → voce aperta; le licenze di chi spara le controlla l'appello
+  (`idoneitaDiTurno`); la mina mancata è già un'azione per Scudo. Vedi
+  `docs/RICERCA_CONTINUA_CAMPO.md`, ricerca dell'11/09 (terzo giro).
+- [x] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO** ✅ 11/09 (unità 116). *(dalla
+  ricerca dell'11/09, terzo giro su Campo, domande 1 e 3)*. Sulla volata `oraSparo` (HH:MM) e
+  `rientroAutorizzatoDa` nel form del dopo-volata, nel CSV delle volate e nel
+  diario; l'attesa minima `attesaDopoSparoMin` dichiarata una volta per cava
+  dal proprio ordine di servizio (il suggerimento dice che la fissa l'ordine
+  di servizio, SENZA numeri); `attesaDopoSparo(volata, attesaMin)` → `{ stato:
+  dopo-l-attesa | prima-dell-attesa | non-registrato | attesa-non-dichiarata,
+  minuti, perche }` in `shared/dw-ponti.js` perché la legge anche Campo
+  (`righeVolateDelGiorno` la scrive nella consegna del turno: «rientro alle
+  11:40, 55 min dopo lo sparo, autorizzato da …»); `kgResi` facoltativo nel
+  dopo-volata («non registrato» quando manca). Come si misura: sparo 10:45 e
+  rientro 11:40 con attesa 60 → «prima dell'attesa (55 min)»; con attesa 30 →
+  «dopo l'attesa»; senza `oraSparo` → «non registrato»; senza attesa → «attesa
+  non dichiarata»; `grep -c '60 min'` nella pagina non cresce; screenshot a
+  430 px del dopo-volata e della consegna di Campo.
+- [x] **SENTINELLA (+ PONTE PER CAMPO) — L'ORA DELLO SPARO E L'ATTESA PRIMA DEL
+  RIENTRO, DICHIARATA DALL'ORDINE DI SERVIZIO (11/09, unità 116).**
+  `attesaDopoSparo(volata)` in `shared/dw-ponti.js` (ri-esportata da
+  Sentinella, lo STESSO oggetto): con `oraSparo` e `rientroAlle` conta i
+  minuti (anche oltre la mezzanotte), con `attesaDopoSparoMin` dichiarata
+  giudica «dopo l'attesa» / «PRIMA dell'attesa» (con i minuti mancanti), senza
+  attesa «attesa non dichiarata», senza un'ora «non registrato» con la ragione;
+  `rientroAutorizzatoDa` e `kgResi` (l'esplosivo reso) sulla volata. Sentinella:
+  quattro campi nel dopo-volata (l'attesa si precompila dall'ultima dichiarata,
+  `attesaDichiarata`), validazione in `campiDopoVolata`, quattro colonne in coda
+  al CSV (andata e ritorno provati), la riga del registro col verdetto (il
+  rientro prima dell'attesa va per PRIMO e corto, perché la riga è tagliata a
+  due righe — misurato), il foglio della volata con sparo / rientro e chi ha
+  autorizzato / attesa / esplosivo reso, e l'azione per Scudo col testo. Campo:
+  `righeVolateDelGiorno` scrive nella consegna «rientro alle 11:55, 45 min dopo
+  lo sparo delle 11:10 — PRIMA dell'attesa dichiarata di 60 min» o «dopo-sparo:
+  l'ora dello sparo non è registrata» (la copia demo delle volate porta gli
+  stessi campi). Nessun numero di attesa nostro nella pagina. Dimostrazione:
+  b1 70 min su 60 (rispettata), b2 45 su 60 (prima), b3 senza ora dello sparo.
+  Screenshot a 430 px guardati (registro, dopo-volata); 0 errori di pagina.
+  Prove: run-kpi +1 (2912), fondo `dw-ponti` 88 → 89, copertura 993/993.
+  ⚠️ Otto prove pinnate sono cadute per le quattro colonne nuove (la tabella
+  dei campi, la coda del CSV, l'oggetto di `dopoVolata`, le liste «che cosa
+  manca» del foglio): corrette rendendole più giuste — la fixture del foglio
+  «con tutto collegato» ora porta anche il dopo-sparo, e la prova pretende le
+  tre righe nuove.
+- [x] **RICERCA A ROTAZIONE, QUARTO GIRO — CONTI: QUANDO LO SDI RISPONDE —
+  SCARTO, MANCATA CONSEGNA E IL TIPO DOCUMENTO DELLA DIFFERITA (11/09, unità
+  117, solo documenti).** Mondo di seconda mano (cinque ricerche): ricevuta
+  di consegna, notifica di scarto (fattura «come non emessa», si rimanda con
+  lo stesso numero e data entro cinque giorni — circ. 13/E/2018 — o con
+  numero nuovo), mancata consegna (fra privati la fattura è emessa e sta nel
+  cassetto fiscale); dal 2021 la differita dell'art. 21 c. 4 usa TD24, non
+  TD01. Delta dal MECCANISMO contro `48a69f3a`: `xmlFatturaPA` costruisce le
+  `DatiDDT` dalle pesate e scrive `TD01` fisso (`grep -c TD24` → 0) →
+  correzione; nessun campo per l'esito dello SdI (`grep -ciE
+  'esitoSdi|statoSdi'` → 0) → voce aperta; l'avviso del cassetto fiscale c'è
+  prima dell'invio, non dopo. Vedi `docs/RICERCA_CONTINUA_CONTI.md`, ricerca
+  dell'11/09 (quarto giro).
+- [x] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA** ✅ 11/09 (unità 118). *(dalla ricerca dell'11/09, quarto giro,
+  domande 1-4)*. (1)
+  `xmlFatturaPA` scrive `TD24` quando la fattura cita almeno un DDT e `TD01`
+  altrimenti, e lo dichiara negli `avvisi` (codice di seconda mano, scritto
+  nel commento con la fonte). (2) Sulla fattura `sdi: { stato: da-inviare |
+  inviata | consegnata | scartata | mancata-consegna, il, nota }` dichiarato
+  dall'utente dalla ricevuta; `statoSdi(f, oggi)` → `{ stato, giorniDa,
+  testo, perche }`: «scartata» = come non emessa, coi giorni dalla notifica e
+  il promemoria della riemissione (stesso numero e data entro il termine
+  della circolare 13/E/2018, marcato di seconda mano — un promemoria, non un
+  calcolo che decide); «mancata consegna» = emessa, il cliente la trova nel
+  cassetto fiscale; senza stato = «esito non registrato», mai «consegnata».
+  (3) `testoSollecito` e `prioritaIncasso` non sollecitano una fattura
+  scartata (non è emessa) e lo dicono; l'estratto conto scrive «non
+  consegnata: nel cassetto fiscale» dove serve. Come si misura: sulla
+  dimostrazione una fattura con tre DDT esce `TD24` e una senza `TD01`; una
+  fattura `scartata` il 01/09 con oggi 11/09 dice «come non emessa, 10 giorni
+  dalla notifica»; senza `sdi` → «esito non registrato»; il sollecito su una
+  scartata restituisce la ragione invece del testo; `grep -c 'cinque giorni'`
+  nella pagina ≤ 1 e con la fonte accanto; screenshot a 430 px.
+- [x] **CONTI — IL TIPO DOCUMENTO DELLA DIFFERITA, E L'ESITO DELLO SDI SULLA
+  FATTURA (11/09, unità 118).** `xmlFatturaPA` scrive `TD24` quando la fattura
+  cita almeno un DDT e `TD01` altrimenti, lo dichiara negli `avvisi` e lo
+  restituisce (`tipoDocumento`; codice di seconda mano, scritto nel commento
+  con la fonte). Sulla fattura `sdi: { stato, il, nota }` dichiarato
+  dall'utente dalla ricevuta (tendina e data nel form, ricaricati in
+  modifica); `STATI_SDI`; `statoSdi(f, oggi)` → «esito non registrato» senza
+  stato (mai «consegnata» per difetto), «da inviare» e «scartata» = come non
+  emessa (coi giorni dalla notifica e il promemoria della riemissione con la
+  fonte, circ. 13/E/2018, marcato di seconda mano — nel modulo, non nella
+  pagina), «mancata consegna» = emessa, nel cassetto fiscale; `sollecitabile`
+  ferma il sollecito su una non emessa e dice che fare; `prioritaIncasso`
+  tiene la scartata in lista marcata `nonEmessa` e il quadro lo scrive;
+  l'estratto conto dice al cliente la mancata consegna e la scartata; la riga
+  dell'elenco porta l'esito (la scartata come badge rosso PRIMA del numero).
+  Dimostrazione: f1 consegnata, f2 non consegnata, f4 scartata, f3 senza
+  esito. Misurato nel browser a 430 px: il toast «non è emessa … prima si
+  rimanda allo SdI, poi si sollecita» premendo il sollecito di f4, la tendina
+  con i cinque stati, le righe con l'esito; 0 errori di pagina; screenshot
+  guardati. Prove: run-kpi +1 (2913, più la prova del file che ora pretende
+  tre avvisi); fondo Conti 200 → 205; copertura 996/996.
+- [x] **`docs/MAPPA_ECOSISTEMA.md` RIMISURATO (12/09, unità 119, solo
+  documenti).** Il documento apriva ogni ciclo automatico ripetendo «Genesi
+  NON esce dal browser: zero orgCollection» e «sei ponti su 56» — ma §3a e §4
+  del documento stesso avevano già le note ✅ che chiudevano quei due punti
+  (02/09 e 05/09 notte), solo che §1 (la tabella di apertura) e la coda di §4
+  non erano state allineate. Rimisurato con
+  `grep -rnoE 'DeepworkID\.init\(\{[^}]*appId[^}]*\}\)'` (che a differenza
+  del vecchio `grep "appId:"` prende anche la scorciatoia di oggetto
+  `{ appId }`, introdotta consolidando le aperture ripetute di Campo e Scudo
+  in una funzione sola) più la lettura a mano delle due fabbriche dinamiche
+  (`apriApp` in Campo, `leggiAltra` in Scudo): **16 collegamenti su 56**, non
+  più 6 — nessuna app isolata, Genesi ha una porta live su cinque
+  `orgCollection` dal 02/09 ed è letta da tre app. Tabella di §1 riscritta con
+  la nuova conta; §4 chiusa con una nota che ritira la sua conclusione («il
+  ponte passa da un file... è questo da sciogliere per primo»), ormai
+  contraddetta dalla nota ✅ che la precedeva nello stesso paragrafo. Nessun
+  codice toccato: solo la misura e il documento che la riporta.
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — TRASVERSALE: L'USCITA DEI DATI
+  (11/09, unità 98, solo documenti).** Mondo di seconda mano (23 fonti):
+  l'art. 20 del GDPR (formato strutturato, di uso comune, leggibile da
+  macchina; entro un mese; il CSV come formato comune), la «strategia
+  d'uscita» di chi compra un gestionale (esportazioni complete, senza il
+  fornitore, programmate; i dati cancellati pochi giorni dopo la fine
+  dell'abbonamento), le guide italiane per le PMI che non ne parlano. Delta
+  dal MECCANISMO contro `f33e5ab5`, censendo le collezioni di ogni app (le
+  intestazioni dei moduli più i `db.<nome>()` delle pagine) contro le
+  funzioni di uscita lette con i loro argomenti: **34 collezioni su 65 non
+  hanno un'uscita delle righe** (Campo 9/12, Conti 4/13, Flotta 4/11, Scudo
+  10/15, Sentinella 3/7, Terra 4/7; Genesi esce una volata alla volta);
+  nessuna app ha un «esporta tutto» (0 in pagine e SDK) → voce aperta; i dati
+  alla fine dell'abbonamento sono una DECISIONE del fondatore (dichiarata in
+  `docs/DECISIONI_WEEKEND.md`). Vedi `docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+  ricerca dell'11/09 (secondo giro, trasversale).
+- [x] ✅ 11/09 (unità 99) **TUTTE LE APP — «SCARICA TUTTO»: L'USCITA DI TUTTA L'APP IN UN FILE**
+  *(dalla ricerca dell'11/09, secondo giro trasversale, domanda 2)*. Un file
+  JSON per app con **tutte** le sue collezioni così come stanno
+  nell'archivio (`{ app, organizzazione, quando, commit, collezioni: { nome:
+  [righe] } }`), letto con lo stesso SDK che sigilla l'organizzazione
+  (`orgCollection`), e un bottone «Scarica tutto» in ogni app. L'elenco delle
+  collezioni si **dichiara** una volta per app (come `GENESI_COLLEZIONI`) e
+  una prova pretende che copra ogni `db.<nome>()` che la pagina legge fra le
+  collezioni proprie (non i ponti): un elenco che non si confronta col codice
+  invecchia da solo. Il rientro (importare quel file) è una decisione a
+  parte; il compositore è puro (`esportaTutto(elenco, letture, meta)`) e si
+  prova in `run-kpi` sulla dimostrazione di ogni app. Come si misura: sulla
+  dimostrazione di Campo il file porta 12 collezioni e le stesse righe di
+  `DEMO`; l'elenco dichiarato di ogni app copre i suoi `db.<nome>()` (prova
+  statica); il bottone scarica un `.json` con `app` e `quando` (banco).
+- [x] **TUTTE LE APP — «SCARICA TUTTO» (unità 99, 11/09).** In
+  `shared/deepwork-id-client/dw-shell.js`: `esportaTutto(elenco, letture,
+  meta)` puro (`formato`, `app`, `organizzazione`, `quando`, `commit`,
+  `elenco`, `collezioni` copiate riga per riga, `conteggi`, `mancanti`,
+  `totale`, `completo` — una collezione non letta è dichiarata, non vuota),
+  `nomeFileEsportaTutto` (`deepwork-<app>-<org|senza-org>-<AAAAMMGG-HHMM>.json`)
+  e `montaScaricaTutto` (la sezione «Tutti i dati di questa app» in fondo al
+  Quadro, il bottone, la striscia con righe e collezioni e le mancanti). Le
+  sei app dichiarano `<APP>_COLLEZIONI` (65 in tutto) e una prova pretende
+  che ogni collezione dichiarata sia letta dal modulo e che ogni lettura non
+  dichiarata sia un ponte scritto con la ragione (Sentinella: azioni e
+  lavoratori di Scudo); la pagina monta il bottone col suo elenco. Misurato a
+  430 px su Campo e Sentinella: il file scaricato ha 12 e 7 collezioni, 47 e
+  28 righe, nessuna mancante, 0 errori; banco `browser/scarica-tutto.mjs` nei
+  due versi. run-kpi 2900 → 2902; copertura dw-shell 61/61.
+  ⚠️ Dichiarato, non fatto: (1) `organizzazione` nel file è **null** anche in
+  esercizio, perché l'api dell'app non espone l'organizzazione attiva (il
+  nome del file dice «senza-org»): va esposta dall'SDK, un campo; (2) Genesi
+  resta fuori (le sue collezioni escono una volata alla volta e la porta ha
+  due modi); (3) il rientro del file è una decisione a parte.
+  ✅ (1) fatta nell'unità 100.
+- [x] **L'ORGANIZZAZIONE NEL FILE DI «SCARICA TUTTO» (unità 100, 11/09).**
+  L'api di ogni app espone `orgId` (dall'SDK nel ramo live; `null` in
+  dimostrazione, dichiarato — non una stringa finta che nel nome del file
+  sembrerebbe un cliente); `montaScaricaTutto` già lo leggeva. Una prova
+  statica pretende `orgId: id.orgId` una volta e `orgId: null` una volta in
+  ogni modulo. run-kpi +1 (2903).
+- [x] **RICERCA A ROTAZIONE, SECONDO GIRO — GENESI: GLI ESPLOSIVI IN CAVA
+  (11/09, unità 101, solo documenti).** Mondo di seconda mano (25 fonti): le
+  licenze del Prefetto (T.U.L.P.S. 46/47), il registro giornaliero del
+  deposito (art. 55: elettronico, vidimato, esibito a ogni richiesta,
+  conservato cinquant'anni), la licenza comunale triennale del fochino
+  (D.P.R. 302/1956 art. 27, Commissione tecnica provinciale), l'ordine di
+  servizio del direttore responsabile, il riepilogo giornaliero del deposito
+  dell'ATF che quadra coi rapporti di sparo. Delta dal MECCANISMO contro
+  `e1d6a6d1`: il registro del deposito resta la decisione già dichiarata
+  (Scudo D6), con due vincoli nuovi (giornaliero e vidimato; cinquant'anni →
+  scritto nella decisione 20); la periodicità di tre anni del fochino nel
+  preset di Scudo MANCA (→ voce aperta piccola); l'ordine di servizio MANCA e
+  chiede una decisione (dichiarato); i chili sparati per volata CI SONO. Vedi
+  `docs/RICERCA_CONTINUA_GENESI.md`, ricerca dell'11/09 (secondo giro).
+- [x] ✅ 11/09 (unità 102) **SCUDO — LA LICENZA DEL FOCHINO DURA TRE ANNI: IL PRESET LO PROPONE**
+  *(dalla ricerca dell'11/09, secondo giro su Genesi, domanda 2)*. Il preset
+  `fochino` in `SCADENZE_PRESET` ha `mesi: null` e dice «licenza rilasciata
+  dal Prefetto: la scadenza è quella indicata sul titolo». Il mondo (di
+  seconda mano: nove Comuni e la Prefettura) dice licenza **comunale** col
+  nulla osta del Prefetto, **tre anni**, rinnovo almeno 30 giorni prima. Da
+  fare: `mesi: 36` e il riferimento riscritto («D.P.R. 302/1956, art. 27 —
+  licenza comunale con nulla osta del Prefetto, validità triennale [seconda
+  mano]: la data vera è quella sul titolo»), come già per «Abilitazione
+  attrezzature» (60). Come si misura: `presetScadenza("fochino").mesi === 36`
+  e la prova che elenca i preset con `mesi: null` non lo conta più; il
+  preavviso resta quello di tutte le scadenze.
+- [x] **SCUDO — IL PRESET DEL FOCHINO A TRE ANNI (unità 102, 11/09).** `mesi:
+  36`, riferimento «D.P.R. 302/1956, art. 27 — licenza comunale con nulla
+  osta del Prefetto, validità triennale [seconda mano]: la data vera è quella
+  indicata sul titolo», la ragione scritta accanto al preset, una prova.
+  run-kpi +1 (2904).
+- [x] **FLOTTA — LA PRIMA VERIFICA DALLA MESSA IN SERVIZIO (unità 89, 11/09).**
+  Sul mezzo la data di messa in servizio (`messaInServizio`, facoltativa: nel
+  modulo del parco, salvata in aggiunta e modifica, scritta nella riga e nel
+  libretto); in `SCADENZE_MEZZO_PRESET` il preset `prima-verifica` a **60
+  giorni** (`giorni` accanto a `mesi`, non ricorrente, con la norma e la nota
+  che dicono chi la fa e da quando si conta); `primaVerificaDa` (in UTC, un
+  30/02 risponde `null` invece di scorrere a marzo) e `scadenzaDaPreset` (a
+  mesi per le ricorrenti con la stessa regola della chiusura, a giorni per la
+  prima verifica, `null` per un preset senza passo — non «oggi»); nel modulo
+  delle scadenze la data si propone dal mezzo scelto e, se il mezzo non la
+  dichiara, il campo si svuota e la nota dice dove scriverla (una data proposta
+  per un altro mezzo lasciata lì sarebbe la scadenza sbagliata di questo); la
+  nota dell'assicurazione dice che vale anche per il mezzo che non esce mai
+  dalla cava, senza numero di legge. Dimostrazione: la Perforatrice P2 in
+  servizio dal 25/08 → proposta 24/10. Scatti guardati a 430 px. Prove: run-kpi
+  +2 (2889), copertura Flotta 139/139.
+- [x] **CONTI — LE RIMANENZE ANCHE AL COSTO, E IL MINORE FRA I DUE (OIC 13;
+  unità 86, 11/09).** `rimanenzeBilancio(prospetto, costo)` in `conti-data.js`:
+  per ogni cumulo il valore al costo (m³ × costo al m³ del periodo, da
+  `costoPerMetroCubo`), il valore di bilancio come minore fra costo e listino
+  con il `criterio` scritto, e tre «non lo so» distinti — costo non calcolabile
+  (con la ragione di Terra o dei costi: uno zero €/m³ non è un costo di
+  produzione), cumulo senza volume, cumulo fuori listino (senza realizzo il
+  minore non si dice); il totale di bilancio solo sulle righe che hanno tutt'e
+  due i valori, dichiarando su quante; `descriviRimanenzeBilancio` con la
+  frase per il commercialista (art. 2426 c.c., OIC 13; la scelta resta sua);
+  `csvRimanenze` con quattro colonne in coda (`costo_m3;valore_costo;
+  valore_bilancio;criterio`, vuote senza costo). La pagina (Report): due
+  colonne «al costo» e «bilancio» con il badge del criterio, la frase sotto la
+  tabella, il costo dell'anno dell'inventario sui rilievi di Terra caricati
+  una volta sola (prima che arrivino: listino e poi ridisegno, mai zero), CSV
+  e toast. Scatto guardato a 430 px (dimostrazione: 8,62 €/m³, 2 cumuli a
+  bilancio su 3, la sabbia senza volume fuori con la ragione). Prove: run-kpi
+  +4 (2885), copertura Conti 200/200.
+- [x] **CONTI — LA TARIFFA DEL CANONE PER PRODOTTO (unità 87, 11/09).** Sul
+  listino il campo facoltativo `canoneAliquota` (nell'unità scelta per il
+  canone, non in quella del prezzo; vuoto = `null`, non zero); `canonePeriodo`
+  prende il listino come sesto argomento e ogni riga per prodotto DICHIARA la
+  tariffa usata (`tariffa: "prodotto" | "generale" | null`, con `aliquota` e
+  `noto` suoi); il totale del venduto è la somma delle righe e non si somma se
+  un prodotto è senza tariffa (con i nomi nel `motivo`: un totale che salta un
+  prodotto sarebbe più piccolo del vero); sullo scavato vale la generale e
+  `conTariffaProdotto` lo dice. Pagina: la riga del canone scrive «tariffa del
+  prodotto» / «tariffa generale» / «senza tariffa», il listino scrive «canone:
+  tariffa propria», il modulo del prodotto ha il campo; la dimostrazione dà a
+  Pietrisco 8/12 una tariffa propria. Scatti guardati a 430 px (canone con e
+  senza la generale, il modulo del listino). Prove: run-kpi +2 (2887).
+- [x] **GENESI G31 — LA CARICA DI UN FORO DALLA SUA GEOMETRIA E LE COSTANTI
+  PPV DALLA LITOLOGIA (11/09, B3 tredicesima fetta):** `caricaLineare` (i kg
+  per metro di colonna, che erano scritti due volte: in `deriveCharge` della
+  pagina e in `confinamentoColletto` del modulo — adesso una), `caricaForoDaGeometria`
+  (la carica AUTO con la guardia G17 dentro: `null` se manca uno dei quattro
+  ingressi, densità compresa; la sottoperforazione assente vale zero; mai
+  sotto 2 kg), `costantiPpvLitologia` (K e β dalla velocità delle onde P, 4500
+  quando la roccia non la dichiara; nessuna soglia toccata). Confronto
+  vecchio/nuovo: 6.000 casi per la carica e 12 per le costanti, 0 diversi. Le
+  due prove che sorvegliavano la guardia G17 con una regex sul sorgente della
+  pagina adesso chiamano la funzione. run-kpi +3 (2881), genesi-data 127/127.
+- [x] **RICERCA A ROTAZIONE, GENESI — IL PIANO DI TIRO E IL DOPO-VOLATA:
+  CHE COSA SI SCRIVE FUORI, PRIMA E DOPO LO SPARO (11/09):** metà sul mondo
+  con `WebSearch` (dieci fonti, tutte di seconda mano): in Italia il piano di
+  tiro è un ordine di servizio che il direttore firma e l'esplosivo è
+  vincolato a quantità autorizzate (DPR 128/1959, citato dai risultati, non
+  letto); nel Regno Unito la specifica di sparo è per singola volata e le
+  mancate esplosioni si registrano; le procedure aziendali del dopo-volata
+  prevedono tempi di rientro, l'ispezione del fochino su tutta l'area,
+  mancate esplosioni con causa e azione, proiezioni oltre l'area. Delta dal
+  MECCANISMO: la carta di prima **c'è** (sette file da Genesi, il consuntivo
+  che torna da Campo), il quando e l'esito **ci sono** nel registro di
+  Sentinella; il **dopo-volata manca** in tutt'e tre le app (0, 1, 1, 0
+  occorrenze, tutte altro: l'esito conosce «regolare» e «con contestazione»,
+  una mancata esplosione non è nessuno dei due) → voce aperta qui sotto; le
+  quantità autorizzate sono assenti e chiedono una decisione (dove vive il
+  limite): dichiarato, non aperto.
+- [x] **SENTINELLA — IL DOPO-VOLATA NEL REGISTRO, MODULO E PAGINA (unità 82, 11/09).**
+  In `sentinella-data.js`: `dopoVolata` (la lettura dei campi in un posto
+  solo: le mancate sono un intero, lo zero è una dichiarazione, le proiezioni
+  sono vero/falso, l'ora del rientro è un'ora), `statoDopoVolata` (l'UNICO
+  verdetto: `non-applicabile` su una prevista, `non-registrato` su
+  un'eseguita senza le due dichiarazioni — con `manca` che dice quali —,
+  `regolare`, `anomalie` con l'elenco in parole), `campiDopoVolata` (dal
+  modulo al record: una mancata senza «che cosa si è fatto» e una proiezione
+  senza «dove» non si registrano), `riepilogoDopoVolata` (registrate / non
+  registrate / con anomalie, mancate sommate solo su chi le dichiara, `null`
+  se nessuno). La scheda della volata ha la sezione «Dopo la volata» (le
+  assenze passano da `manca` e finiscono in «che cosa manca»); il CSV del
+  registro porta sei colonne in coda, andata e ritorno con la prova sul
+  testo; la dimostrazione: b1 e b5 regolari, b2 con una mancata esplosione
+  gestita, b4 non registrata. Prove: run-kpi +8 (2877), copertura 183/183.
+  La pagina: il bottone ✓ su ogni eseguita apre la modale del dopo-volata
+  (sei campi, tendina sì/no, l'errore in cima perché sei campi non stanno in
+  uno schermo — misurato: l'avviso in fondo cadeva a 854 px su 605 di corpo),
+  il badge del verdetto nel nome della riga, il dopo-volata su una riga SUA
+  (in coda ai numeri finiva dove il testo è tagliato), la riga sopra il
+  registro conta «senza dopo-volata» e «con anomalie dopo lo sparo», la
+  conferma invita a registrarlo. Scatti guardati a 430 px (registro, modale
+  vuota, modale con errore, registro dopo). Resta il ponte verso Scudo.
+- [x] **SENTINELLA ↔ SCUDO — UNA MANCATA ESPLOSIONE APRE UN'AZIONE (unità 83,
+  11/09): chiusa la voce «il dopo-volata nel registro».** `ORIGINE_DOPO_VOLATA`
+  e `bozzaAzioneDopoVolata` in Sentinella sullo stampo di `bozzaAzioneReclamo`
+  (`null` su «regolare» — un'azione senza fatto — e su «non registrato» — il
+  fatto non si sa, prima si registra); in Scudo `ORIGINI_AMBIENTE` a tre, la
+  mappa `ETICHETTE_AMBIENTE` al posto del ternario (regola 18: un'origine nuova
+  senza etichetta si leggeva «Superamento»), `origineAzione` che dice «dalle
+  anomalie di un dopo-volata», `riepilogoAmbiente.dopoVolata`; l'identità delle
+  parole fra le due app è una prova (`scudo.ORIGINI_AMBIENTE` contro le tre
+  costanti di Sentinella). Nel Quadro di Sentinella «Cosa abbiamo fatto» elenca
+  le volate con anomalie come i reclami, e «Apri azione correttiva» porta la
+  bozza in Scudo; la registrazione con anomalie lo dice nel toast. Scatti
+  guardati a 430 px: la sezione con la voce «Anomalie dopo lo sparo», la modale
+  con l'origine e la proposta, la voce con l'azione aperta. Prove: run-kpi +1
+  (2878), copertura Sentinella 185/185 e Scudo 216/216. La voce di ricerca
+  (`docs/RICERCA_CONTINUA_GENESI.md`, domanda 3) è aggiornata: fatta.
 - [ ] **LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE.** Cinque tavole
       pubblicate il 23/08 (apertura, telefono 390, ponti, nove schede,
       vocabolario dei pezzi). Due decisioni sono **sue** e il lavoro non va

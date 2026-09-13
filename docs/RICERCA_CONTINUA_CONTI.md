@@ -355,3 +355,1322 @@ Nessun risultato.
 - **Due assenze significative**: il campo "Porto" e l'aspetto esteriore sono obbligatori per legge e mancano totalmente da Conti. Sono candidati per un'implementazione.
 - **Conti è corretto nei dati che ha**: numero progressivo, netto calcolato, causale, trasporto a cura — sono tutti presenti e ben strutturati. La mancanza non è un bug, è una lacuna su due elementi normativi.
 
+
+
+---
+
+<!-- UNITO IL 03/09. Le sezioni da qui in giù vivevano in docs/RICERCA_CONTINUA_conti.md
+     (stesso nome, in minuscolo), nato il 14/08 da un agente di ricerca che non ha
+     trovato questo file perché lo cercava con il nome sbagliato. Due file con lo
+     stesso nome a maiuscole diverse non convivono su Windows e macOS: il repository
+     non si sarebbe nemmeno potuto clonare intero. Il contenuto è quello, testuale;
+     i riferimenti nei checkpoint del 02/09 puntano al nome vecchio. -->
+
+# Ricerca continua — Conti
+
+**Data**: 2026-08-14  
+**Verificato contro commit**: 8b364b36  
+**Cosa esiste già**: Conti ha `canonePeriodo(pesate, impostazioni, dal, al, rilievi)` che calcola il dovuto sul periodo in base a scelta della base (venduto/scavato), unità (t/m³) e aliquota. I campi di configurazione sono `canoneUnita`, `canoneBase`, `canoneAliquota`, `canoneNota`. Non c'è un modello di dichiarazione annuale né un export specifico per la conformità normativa.
+
+---
+
+## Il mondo — Canone di escavazione in Italia
+
+### Come funziona il tributo
+
+Il canone (diritto) di escavazione è un tributo che i titolari di concessioni di cavità minerali pagano agli enti pubblici (Regioni, Province, Comuni) sulla base del materiale estratto.
+
+**Chi lo impone**: Le Regioni, sulla base di decreti legislativi dello Stato. Ogni Regione fissa le proprie aliquote e modalità.
+
+**Base di calcolo**: Il volume estratto misurato in metri cubi (m³) o, per alcuni materiali, in tonnellate (t). La base può essere:
+- **Volume estratto** (scavato): misurato da rilievi topografici o volumetrici
+- **Volume venduto**: documenti di trasporto (DDT) e fatture
+
+**Periodicità e versamento**: 
+- Versamento: generalmente **semestrale** o **annuale** secondo le norme regionali
+- Dichiarazione: **annuale**, entro **30 aprile** dell'anno seguente, tramite **Modello A** (compilato per ogni concessione con codice regionale unico)
+- La dichiarazione va trasmessa ai gestori del Servizio Operatori Minerari (via PEC), ai comuni, province e enti gestori di aree protette
+
+**Cosa contiene la dichiarazione annuale (Modello A)**:
+- Codice identificativo della concessione/autorizzazione
+- Volume estratto nel periodo (in m³ o t secondo l'aliquota)
+- Prodotto estratto (calcare, sabbia e ghiaia, argilla, gesso, ecc.)
+- Allegati richiesti (fatture, DDT, rilievi topografici secondo le norme regionali)
+- Firma del titolare della concessione
+
+Fonte: [FAQ Veneto - terre e rocce da scavo](https://www.arpa.veneto.it/temi-ambientali/suolo/faq-su-terre-e-rocce-da-scavo); [Regione Piemonte - Onere per il diritto di escavazione](https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/onere-per-diritto-escavazione)
+
+### Variazioni regionali
+
+#### Piemonte
+- **Base**: Volume estratto (m³ o t)
+- **Aggiornamento 2026**: Adeguamento ISTAT 2,4% su tariffe 2024-2025
+- **Modello**: Dichiarazione entro 30 aprile tramite Servizio Operatori Minerari
+- Fonte: [Regione Piemonte - Onere per diritto escavazione 2025](https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/onere-per-diritto-escavazione-materiale-estratto-nel-2025)
+
+#### Lombardia
+- **Base**: Volume estratto (m³)
+- **Tariffe aggiornate**: Gennaio 2026, adeguamento 2,4% su base ISTAT programmata 2024-2025
+- **Distribuzione**: 84% ai comuni interessati (per infrastrutture e recupero ambientale), 16% a regione/enti
+- **Periodi**: Semestrale o annuale secondo tariffa
+- Fonte: [ANCI Lombardia - Aggiornamento tariffe 2026](https://anci.lombardia.it/dettaglio-circolari/2026122143-aggiornamento-tariffe-di-escavazione/anci.lombardia.it)
+
+#### Toscana
+- **Base**: Volume estratto, espresso in €/m³
+- **Delibera Giunta 736/2021**: Tariffe per estrazioni di materiali industriali e per costruzioni
+- **Aggiornamenti**: Incremento ISTAT 0,6% annuale; +2% se azienda manca di certificazioni ambientali/sicurezza o in aree con vincoli paesaggistici
+- Fonte: [Delibera Regione Toscana 736/2021](https://www.confindustriatoscanasud.it/index.php/edilizia-infrastrutture-e-politiche-territoriali/delibera-regione-toscana-7362021-contributi-escavazione-materiali-industriali-1/)
+
+#### Differenza fra mine e cave
+Secondo Regio Decreto n. 1443/1927: le **cave** sono lasciate al disponibile del proprietario terriero (Pubblica Amministrazione non riscuote canone); il canone si applica solo alle **miniere** dove il deposito è sottratto al proprietario.
+
+Fonte: [Oneri istruttori e diritti di escavazione - Città Metropolitana Milano](https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/oneri_diritti_escavazione.html)
+
+### Come i software di settore lo gestiscono
+
+Software e piattaforme gestionali per cave e miniere (es. Catasto Cave e Miniere):
+- **Calcolo automatico**: Dell'importo dovuto per volume × aliquota regionale configurata
+- **Gestione aliquote**: Lettura da tariffari regionali, aggiornamento per inflazione
+- **Dichiarazioni**: Generazione di moduli conformi alle norme regionali, esportazione dati per Modello A
+- **Non-calcolabilità**: Dichiarazione di impossibilità di calcolo quando aliquota manca o volume non disponibile
+- **Scadenze**: Tracciamento delle scadenze di versamento e dichiarazione per regione
+
+Fonte: [Catasto Cave e Miniere - Manuale Utente v2.2.1 - Gennaio 2026](https://www.caveminiere.servizirl.it/catmc/assets/doc/ManualeUtenteCATCM.pdf)
+
+---
+
+## Il DELTA su Conti — Cosa manca
+
+**Schermata**  |  **Che cosa non va**  |  **Come si vede**  |  **Quanto costa**  |  **Come si misura**
+---|---|---|---|---
+Canone (sezione corrente) | Nessun modello di dichiarazione annuale esportabile (Modello A o simile conforme alle norme regionali) | Nessun bottone "Scarica dichiarazione" o "Esporta modello" nel pannello canone; nessun file CSV/PDF generato | Medio: codificare la struttura del Modello A con i dati del periodo (volume, prodotto, date), esportare in CSV o generico per stampa. Dipende da quale regione si mira per primo (norme diverse). | Cercare nell'indice HTML: `grep -ciE 'dichiarazione.*annuale\|modello.*a\|scarica.*dichia' apps/conti/index.html` → 0; in conti-data.js cercare funzioni di export tipo `export function csvDichiarAnnuale\|dichiarazioneAnnuale` → 0. Nessuna struttura dati.
+Canone (sezione corrente) | Impossibilità di marcare il canone come "dichiarato" o "versato" nella storia (tracciamento della conformità) | No campo di stato (es. "dichiarazione attesa", "versato il 30/04", "controllato"). Il valore resta sempre calcolato, senza storia. | Basso: aggiungere stato/nota sulla dichiarazione e versamento; fare persistere il dato di "data di dichiarazione". | Cercare nello schema di `canonePeriodo` in conti-data.js: controllare se restituisce un oggetto con `dichiarazioneData`, `statoVersamento`, ecc. → `grep -n "dichiarazu\|versatu\|statoCanone" conti-data.js` → 0 risultati.
+Canone (sezione corrente) | Nessuna notifica di scadenza dichiarazione (30 aprile per anno precedente) | No reminder, no toast, no avviso in dashboard KPI | Basso: aggiungere logica di avviso per data di scadenza. È già il modello di Conti per altre scadenze. | `grep -ciE 'april.*30\|scadenza.*dichiar\|30.*april' apps/conti/` → 0.
+Canone (sezione corrente) | Configurazione per materiale non supportata (tariffa diversa per calcare/sabbia/argilla come da norme regionali) | Un'unica aliquota `canoneAliquota` vale per tutto il periodo; nessun "listino" dei materiali con aliquota propria come nel listino dei prodotti | Medio-alto: estendere impostazioni per supportare aliquote per prodotto/materiale. Correlato al listino esistente. | `grep -n "canoneAliquota\|canone.*listino" conti-data.js` → trova 1 solo campo `canoneAliquota` numerico. Nel listino cercare: `grep -ciE 'canone.*aliquota\|prodotto.*canone' conti-data.js` → 0.
+
+**Nessuna delle tre mancanze è stata trovata nel codice.**
+
+#### Ricerche dettagliate
+
+```bash
+# Modelli di dichiarazione
+grep -ciE 'dichiarazione.*annuale|modello.*a|scarica.*modello|export.*dichiar' /home/user/Mining-Tech-Platform/apps/conti/index.html
+# Risultato: 0
+
+# Stato versamento/dichiarazione
+grep -n 'dichiarazioneData\|statoVersamento\|versatu\|dichiaraCome' /home/user/Mining-Tech-Platform/apps/conti/conti-data.js
+# Risultato: nessun match
+
+# Aliquote per materiale
+grep -ciE 'prodotto.*canone|canone.*prodotto|aliquota.*per.*materiale' /home/user/Mining-Tech-Platform/apps/conti/conti-data.js
+# Risultato: 0
+
+# Avvisi di scadenza
+grep -ciE '30.*aprile|scadenza.*dichiarazione|deadline.*canone' /home/user/Mining-Tech-Platform/apps/conti/
+# Risultato: 0
+```
+
+#### Cosa c'è già
+
+- `canonePeriodo(pesate, impostazioni, dal, al, rilievi)` — calcola il dovuto su un periodo
+- Campi `canoneUnita` (t/m³), `canoneBase` (venduto/scavato), `canoneAliquota` (€/unità), `canoneNota`
+- Interfaccia di input (ID: `can-base`, `can-unita`, `can-ali`, `can-nota`) con validazione
+- Nota a display: "Il canone si versa agli enti ... molte regioni chiedono anche una dichiarazione annuale dei quantitativi estratti"
+- Pattern di export CSV già presente per fatture, pesate, incassi, clienti, listino
+
+---
+
+**Proposta prioritaria**: Aggiungere una sezione di riepilogo dichiarativo (numero quantità per anno, verifica rispetto a quanto caricato, data di versamento storico) con opzione di esportazione in formato adatto a Modello A. Non è urgente finché non si sa quale regione seguire per primo (tariffari diversi).
+
+---
+
+## ⛔ RIVERIFICA DEL 14/08 — i verdetti reggono, i RIGHELLI no
+
+*Rimisurato dal ciclo contro il commit `8b364b36`, prima che qualunque riga di
+qui entrasse in roadmap. Vale la regola della casa: **niente entra sulla parola
+dell'agente**, e un «non c'è» senza la sua ricerca accanto vale zero.*
+
+**Esito: 4 mancanze su 4 confermate nel verdetto, 4 prove su 4 da rifare.** È la
+stessa forma già censita per i documenti del delta — *«una prova che invecchia
+non rende la riga sbagliata: la rende non credibile»* — con la differenza che
+qui non è invecchiata: **è nata storta**, e i quattro modi sono tutti già
+scritti in `CLAUDE.md`.
+
+### I quattro righelli, e che cosa rispondono davvero
+
+1. ⛔ **`grep` su una CARTELLA senza `-r`.** Scritto
+   `grep -ciE '30.*aprile|scadenza.*dichiarazione' apps/conti/` → l'uscita vera è
+   `grep: apps/conti/: Is a directory` **e poi `0`**. Cioè lo zero è **del
+   righello**, non del codice. Fatto giusto (`grep -rciE "30 aprile|scadenza.*dichiaraz" apps/conti/`):
+   `README.md:0 · index.html:0 · conti-data.js:0`. **Il verdetto regge**, ma per
+   la prima volta è provato.
+2. ⛔ **La pipe SFUGGITA dentro `-E`.** Nella tabella la prova è scritta
+   `grep -ciE 'dichiarazione.*annuale\|modello.*a\|scarica.*dichia'` → **0**, e
+   quello zero è garantito: con `\|` dentro `-E` la pipe è **letterale**. Senza
+   la sfuggita, lo stesso comando risponde **3**. È la trappola che questo
+   repository ha già pagato il 14/08 sul delta, scritta due volte nello stesso
+   documento.
+3. ⛔ **I refusi nei termini.** `grep -n 'dichiarazu\|versatu\|statoCanone'`:
+   due parole su tre **non esistono in nessuna lingua**, e la terza è cercata
+   senza `-E` con le pipe letterali. Un comando così **non può** rispondere
+   altro che zero.
+4. ⚠️ **Il conto che si contraddice da sé.** La riga «Nessuna delle **tre**
+   mancanze è stata trovata nel codice» sta sotto una tabella che ne elenca
+   **quattro**. È il difetto che togliamo dal prodotto, fatto da noi in un
+   documento — e la difesa è quella già scritta: *ogni addendo ha un lettore che
+   lo conosce, il totale no*.
+
+### Le quattro righe, riverificate una per una
+
+| mancanza | verdetto | la prova, rifatta |
+|---|---|---|
+| nessun modello di dichiarazione annuale esportabile | **VERA**, ma **non** «non se ne parla»: la pagina la **nomina già** | `grep -ciE "dichiarazione annuale\|modello a\b\|scarica.*dichiaraz" apps/conti/index.html` → **1**, ed è la nota del pannello canone («molte regioni chiedono anche una dichiarazione annuale dei quantitativi estratti»). Quello che manca è **l'export**, non la consapevolezza. |
+| nessun campo di stato «dichiarato / versato» | **VERA** | Le impostazioni del canone sono tre e sono queste: `canoneUnita`, `canoneAliquota`, `canoneNota` (più `canoneBase`). Nessun campo di stato, nessuna data di versamento. Letto nel letterale `impostazioni` di `conti-data.js`. |
+| nessun avviso della scadenza | **VERA** | vedi righello 1: `0` su tutti e tre i file, provato. |
+| aliquota unica, non per materiale | **VERA** | `grep -ciE "aliquot" apps/conti/conti-data.js` → **90 righe**, di cui `canoneAliquota` **5** e `aliquotaIva` **23**: cioè la parola «aliquota» in questo file parla quasi sempre di **IVA**, e del canone ce n'è **una sola**, numerica. |
+
+### Quello che NON ho rimisurato, e va detto
+⚠️ **Tutta la metà sul mondo** — le tariffe di Piemonte, Lombardia e Toscana,
+il «Modello A», il termine del 30 aprile, gli adeguamenti ISTAT — è **riportata
+dall'agente con le sue fonti e NON è stata riverificata**. Prima che un numero
+di lì finisca in una schermata o in un documento del prodotto, va aperto il
+testo di legge citato: una tariffa sbagliata detta a un cliente è peggio di una
+tariffa assente.
+
+### E un righello sbagliato l'ho scritto IO, in questa stessa sezione
+⚠️ Nella prima stesura della riga sull'aliquota avevo scritto «`aliquot` dà **8**
+occorrenze, tutte `aliquotaIva`». Sono **90 righe**, di cui 5 del canone e 23
+dell'IVA: avevo riportato il numero di un *altro* comando, più stretto, lanciato
+un minuto prima. Cioè: **stavo correggendo dei righelli falsi con un righello
+falso.** L'ha presa il rilancio del comando prima di committare — non la
+rilettura, che l'aveva lasciato passare. È la ragione per cui in questa casa una
+prova è **un comando con la sua uscita** e non una frase che descrive una
+ricerca.
+
+### Che cosa è cambiato mentre la ricerca girava — ⏱️ SCADUTA IN DUE ORE
+⏱️ La riga qui sopra diceva «un cantiere **sta** togliendo il
+`+cfg.canoneAliquota || 0`». Adesso è **committato**: con l'aliquota mai
+impostata `canonePeriodo` risponde `dovuto: null` con le bandiere `noto` e
+`calcolabile` e un `motivo` che dice quale dei due manca — non più `0`. Quindi
+la descrizione del calcolo scritta più su in questo documento è **scaduta**, ed
+è scaduta in **due ore**: è il «non c'è» scaduto, la seconda forma, e non è
+colpa di nessuno — il cantiere girava di fianco alla ricerca.
+⚠️ Aggiornato qui invece che riscritto sopra, perché **la riga vecchia serve**:
+una ricerca che si autocorregge in silenzio non insegna niente a chi la rilegge
+fra un mese.
+
+---
+
+## Ricerca del 2026-09-02 — la pesa a ponte: che cosa esce e in che forma
+
+### Fatti dal mondo
+
+- **Campi tipici del cartellino di pesata**: numero progressivo pesata, data pesata, ora prima pesata, ora seconda pesata, targa/numero mezzo, cliente/fornitore, materiale/descrizione merce, peso lordo (prima pesata), peso tara (mezzo vuoto, dedotto da seconda pesata prima del carico), peso netto (merce pesata), codice pesata/numero ricevuta. [Bottaro Bilance - software pese a ponte; seconda mano]
+
+- **Struttura di pesata ponte in due tempi**: il mezzo entra (registrazione lordo), poi viene caricato, rientra (registrazione lordo nuovo), dal quale il sistema calcola tara mezzo e netto caricato. Stampa automatica di documenti per il cliente. [seconda mano - pratica industriale standard]
+
+- **Termini base**: peso lordo = totale (merce + contenitore); peso netto = sola merce; tara = solo contenitore/mezzo. [FocusJunior.it, chimica-online.it; seconda mano]
+
+- **Formati di esportazione software pesa**: PDF, Excel, Word, CSV sono i formati comuni citati da Laumas, Dini Argeo, WeightIT. [WeightIT/Metricode; seconda mano]
+
+- **Protocolli di comunicazione peso**: RS232 seriale (standard storico), Modbus RTU su RS232/RS485 (per automazione industriale), Ethernet con DHCP, USB, Wi-Fi opzionale su indicatori Dini Argeo DFWX. [Dini Argeo, Sinergica Soluzioni; seconda mano]
+
+- **Software specializzati per cave di inerti**: Vincro offre software di pesatura con integrazione diretta agli indicatori peso comuni, stampa automatica DDT/ricevute di pesata, gestione prezzi e fatture, esportazione dati. [vincro.it; seconda mano]. Coop Bilanciai fornisce software personalizzato interno con ricezione ordini da gestionale esterno e trasmissione dati pesatura verso gestionale per bollettazione/fatturazione/magazzino. [coopbilanciai.com; seconda mano].
+
+- **Legame pesata → DDT**: il DDT (Documento di Trasporto) contiene numero identificativo, dati delle parti, descrizione merce, numero pezzi, numero pacchi, pesi dei pacchi, data consegna. Quando il sistema di pesata emette un DDT, i dati di carico pesato alimentano automaticamente il campo quantità/peso del DDT. [Fattura24, Fiscomania; seconda mano]
+
+- **DDT nella fattura elettronica SdI**: sezione `DatiDDT` in XML contiene i riferimenti al documento di trasporto. È possibile allegare il DDT nel file XML e inserire più sezioni DatiDDT quando una fattura copre più DDT. Il DDT specifica peso e quantità della merce trasportata, che poi la fattura legge come base di quantificazione. [Fattura.it, WindDoc; seconda mano]
+
+- **Integrazione pesata-gestionale**: piattaforme gestionali come Ergo captano automaticamente i dati di pesatura quando viene emesso un DDT, trasferendo il peso al sistema di gestione magazzino e preparando i dati per la bollettazione e la fatturazione. [infominds.eu; seconda mano]
+
+- **Verifica metrica pesa a ponte**: la normativa cita D.M. 93/2017 per le verifiche periodiche delle bilance industriali. [dedotto da riferimenti a norme metrologiche; non verificato direttamente]
+
+### Formati di export trovati
+
+| Produttore | Formato | Colonne/Campi principali | Fonte |
+|---|---|---|---|
+| Coop Bilanciai | PC/USB (formato non specificato) | Dati pesatura da indicatore → foglio dati/gestionale | coopbilanciai.com |
+| Dini Argeo | Software AF03/AF04/AF05 per indicatori 3590E/CPWE | Configurabile (pesatura, statistiche, etichettatura, pesa-veicoli) | diniargeo.it |
+| Laumas | Supervisory software, formato non nominato | Raccolta e archiviazione dati pesatura per archivio | laumas.com |
+| WeightIT (Metricode) | PDF, Excel, Word | Kilogrammi, clienti/fornitori, descrizione merce | weightit.it |
+| Vincro | CSV/dati strutturati | Carico pesato, DDT, intestazione cliente, materiale, prezzo | vincro.it |
+
+### Domande per chi ha il codice in mano
+
+1. Quando entra in sistema una pesata ponte con tara non registrata (mezzo nuovo, tara mancante), come decide il netto: rimanda l'operatore, assume tara zero, o dichiara non-calcolabile?
+2. Un documento di pesata esce da questa app collegato a un DDT per numero, data e ora, oppure rimane separato e il DDT lo legge in un momento diverso?
+3. Dove nasce il nesso fra la quantità della pesata e il peso dichiarato nel DDT: nella app di pesa, oppure il DDT lo legge da un'esportazione successiva del gestionale?
+4. Se un'esportazione CSV di pesate verso la fatturazione specifica il netto, e il cliente dopo il carico scopre che il netto era sbagliato, con quale meccanismo si nota il disallineamento (nota di credito, rettifica)?
+5. Il sistema conosce quale indicatore peso (quale pesa a ponte, quale ID di dispositivo) ha registrato una pesata, o è trasparente e scrive solo il numero finale?
+
+**Delta fatto da chi ha il codice in mano (05/09, commit successivo a
+`3058e71e`).** Misurato: `grep -n "parsePesateCsv\|cellePesate" conti-data.js`
+→ il solo lettore era quello della COPIA DI SICUREZZA di Conti (venti colonne
+per posizione, `isIntestazione(…, "numero")`); un CSV del software della pesa
+non aveva una porta. Fatto: `mappaPesaCsv` / `parsePesaCsv` / `pesateDallaPesa`
++ il bottone «Importa dalla pesa (CSV)». Risposte alle cinque domande: (1) tara
+mancante → il DDT entra «incompleto» come già per la registrazione a mano
+(`pesiPesata`), non tara zero; (2)(3) il DDT nasce dalla pesata importata con
+la stessa `rigaPesata`, e porta `pesaTicket`; (4) il netto NON si legge dal
+file quando ci sono lordo e tara: lo calcola Conti — un netto del file diverso
+dal lordo−tara si vedrebbe nel DDT; (5) l'indicatore no: si conserva il nome
+del file (`pesaFile`) e il cartellino, non l'ID del dispositivo. Nomi delle
+colonne: seconda mano, da questa ricerca; nessun export vero letto.
+
+
+---
+
+## Ricerca del 2026-09-02 — riconciliazione prodotto / venduto / scorte (metà sul mondo)
+
+**Che cosa esiste già**: non verificato da questa ricerca; il delta lo fa chi ha il codice.
+
+### Grandezze confrontate in una riconciliazione di inventario
+
+Una riconciliazione mensile di inventario in una cava confronta quattro classi di dati [seconda mano: Birdi, minebright]:
+
+1. **Tonnellate prodotte da turni**: volumi estratti stimati dai turni di lavoro e dalle schermate operative
+2. **Tonnellate pesate in uscita**: totale lordo dalle pese a ponte, meno pesi a vuoto, registrato su DDT e fatture
+3. **Rilievi volumetrici di cumuli (stockpile)**: misurati con drone (fotogrammetria, LiDAR) e convertiti in tonnellate tramite densità
+4. **Densità**: fattore cruciale che lega volume a tonnellate; distinto in densità in banco (1,55–2,75 g/cm³ per calcare) e densità sciolta/bulk (1,4–1,5 t/m³ per aggregati) [seconda mano: CivilToday, calcolatori aggregati]
+
+### Tolleranze e frequenze
+
+**Tolleranza accettata**: ±2–5% di varianza su drone con densità verificata; ±5–10% con rilievi GPS tradizionali [seconda mano: Birdi, Propeller Aero, Kespry].
+
+**Frequenza di riconciliazione**: **mensile** per la maggior parte delle cave attive; settimanale per siti ad alto throughput, trimestrale per materiali lenti. L'allineamento con cicli di reporting finanziario è lo standard [seconda mano: Propeller Aero, DroneDeploy].
+
+### Cause tipiche degli scarti
+
+1. **Stima a occhio dei volumi estratti**: i turni dichiarano volumi senza verifiche; errori di ±10–15% comuni
+2. **Swell/shrinkage non controllato**: materiale sciolto vs compatto varia 20–40% a seconda di umidità e granulometria; errori densità ±10%, errori swell ±33% possibili [seconda mano: DroneDeploy, Propeller Aero]
+3. **Densità non aggiornata**: una variazione 1,60 → 1,55 t/m³ su 50.000 m³ = 2.500 t di differenza [seconda mano: Propeller Aero]
+4. **Doppi conteggi in pesata**: stesso carico pesato due volte, o pesata parziale non tracciata
+5. **Cumuli non rilevati**: stockpile piccoli o nascosti non entrano nel rilievo drone
+6. **Vendite senza pesata**: consegne non registrate sulla pesa (astuccaggio informale)
+
+### Software del settore
+
+| Software | Che cosa riconcilia | Fonte |
+|----------|-------------------|-------|
+| **Command Alkon / Apex** | Ticketing scale, inventario, dispatch; integra pese con produzione e fleet tracking | [seconda mano: Command Alkon] |
+| **Trimble Business Center** | Volume stockpile da rilievi (SX12, X9 laser); estrae volumi automatici per reportistica | [seconda mano: Trimble Geospatial] |
+| **Propeller Aero / Stockpile Reports** | Drone volumetria + storici; esporta a ERP per riconciliazione; tolleranza 2–5% | [seconda mano: Propeller Aero] |
+| **Kespry Cloud** | Mining-only, volumetria entro 1–3%, integrazione ERP, esportazione liste per riconciliazione mensile | [seconda mano: Kespry] |
+| **Birdi** | Multi-site, collaborative, drone volumetria con shrink/swell, target 2–5% | [seconda mano: Birdi] |
+| **Datamine (Tier 1 Mining)** | Enterprise production accounting; mine-to-mill reconciliation completa, metallurgical accounting | [seconda mano: Datamine Software] |
+
+### Domande per il delta (confronto con app)
+
+1. **Come la nostra app raccoglie le stime di tonnellate prodotte da turno?** Deriva da volumi eye estimate (m³ scavato) o da pesate progressive?
+2. **Distingue densità in banco da densità sciolta (bulk)?** E traccia quando la densità viene aggiornata (per cambi di materiale, umidità)?
+3. **Chi decide la base di riconciliazione** — scavato, venduto, o rilievi drone?
+4. **Esiste un flusso di storico dei rilievi volumetrici** (cumuli per data) con versioning, o ogni nuovo rilievo sovrascrive il precedente?
+5. **Come si registra un'anomalia di riconciliazione** (es. prodotto 1.000 t, venduto 950 t, cumulo +30 t → delta −20 t)? C'è campo di causa, chi indaga, follow-up?
+6. **La frequenza di riconciliazione è programmabile?** (mensile, settimanale, su richiesta)
+
+### Fonti
+
+- [Birdi: How to reconcile stockpile volumes](https://www.birdi.io/blog-post/how-to-reconcile-stockpile-volumes-a-step-by-step-guide-for-mine-and-quarry-operators)
+- [Propeller Aero: Streamline Inventory Management](https://www.propelleraero.com/blog/streamline-inventory-management-at-your-quarry-or-mine-with-stockpile-reports/)
+- [Kespry: Inventory Management](https://kespry.com/aerial-intelligence/use-cases/inventory-management/)
+- [DroneDeploy: Accurate Stockpile Measurements](https://www.dronedeploy.com/blog/how-to-get-accurate-stockpile-measurements-in-mining)
+- [Propeller Aero: Calculating Shrink/Swell](https://help.propelleraero.com/hc/en-us/articles/28452401313559-Calculating-Shrink-Swell)
+- [Propeller Aero: Audit Aggregate Inventory](https://www.propelleraero.com/blog/audit-aggregate-inventory/)
+- [Minebright: Mine Reconciliation Guide](https://minebright.com/reconciliation-guide/)
+- [Datamine: Production Accounting](https://dataminesoftware.com/solutions/production/)
+- [Trimble Geospatial: Mining Operations](https://geospatial.trimble.com/en/industries/mining/operations-and-processing)
+- [CivilToday: Density of Aggregate](https://civiltoday.com/civil-engineering-materials/aggregate/198-density-of-aggregate)
+
+
+### Il delta, fatto da chi ha il codice in mano (02/09, contro `f20b9668`)
+
+Le sei domande, risposte aprendo le funzioni e non cercando i nomi. Per ogni
+«non c'è» il comando e la sua uscita, così si rilancia.
+
+1. **Come si raccolgono le stime dei turni** → esiste: il rapportino di Campo
+   porta `prodQta` + `prodUnita`, e `produzioneRapportino` in `shared/dw-ponti.js`
+   accetta tre unità — `grep -oE 'RAPP_UNITA = \[[^]]*\]' shared/dw-ponti.js` →
+   `["t", "m³", "viaggi"]`. È una stima a occhio di fine turno, come nel mondo;
+   nessuna pesata progressiva, e il ponte 3f la confronta con la pesa **solo in
+   tonnellate**, dichiarando fuori m³ e viaggi.
+2. **Densità in banco contro densità sciolta** → **non c'è come dato, c'è come
+   avvertenza**. Il listino ha UNA densità per prodotto (`prodotti.densita`, in
+   t/m³, 69 occorrenze in `conti-data.js`) ed è quella di vendita; ogni DDT ne
+   conserva una copia (`pesate.densita`), quindi lo storico per consegna esiste.
+   Un campo distinto per la densità in banco: `grep -cE
+   'densitaBanco|densitaInBanco|densitaSciolta|inBanco' apps/conti/conti-data.js
+   apps/terra/terra-data.js` → **0 e 0**. La schermata «Cavato contro venduto»
+   lo DICE («il rilievo misura il volume in banco, mentre la densità del
+   listino è quella con cui vendi… Conti non lo corregge con nessun coefficiente
+   inventato») — è il principio giusto applicato a un dato che manca. ⏱️
+   **Candidato**: una densità in banco per litotipo, dichiarata dall'azienda
+   (non inventata), che permetta di convertire il cavato di Terra in tonnellate
+   e chiudere il triangolo su una sola unità. ✅ **Fatto il 02/09 sera, ed era
+   GIÀ IN CASA**: la densità in banco della cava la dichiara Terra
+   sull'autorizzazione vigente — `densitaDellaCava` in `shared/dw-ponti.js`
+   (atto → laboratorio → valore tipico da verificare), la chiamavano già Terra e
+   Campo. Il delta era una LETTURA, non un campo nuovo: Conti legge le
+   autorizzazioni di Terra sulla stessa istanza dei rilievi, `cavatoInTonnellate`
+   (in shared) fa la conversione e dichiara quando la densità è un valore
+   tipico; la scheda «Cavato dal fronte» dice anche le tonnellate, e la nota
+   sullo scarto sistematico dice che le tre grandezze si leggono in un'unità
+   sola. Il `grep` del delta di mezzogiorno cercava `densitaBanco|inBanco`:
+   ancora una volta il NOME del mondo dentro il nostro codice (CLAUDE.md, 14/08).
+3. **La base della riconciliazione** → oggi sono DUE confronti a coppie sulla
+   stessa schermata: cavato (Terra) contro venduto, prodotto (Campo) contro
+   venduto. La terza grandezza del mondo — **le scorte a piazzale misurate come
+   inventario** — non esiste in nessuna delle tre app: `grep -ciE
+   'stockpile|scorte a piazzale|inventario' apps/terra/terra-data.js` → **0**,
+   idem in Conti. Terra conosce il cumulo solo come *provenienza* di un volume
+   rimosso (`provenienza: "cumulo"`, 32 occorrenze), non come volume che sta
+   fermo sul piazzale. Quindi l'equazione che il mondo chiude ogni mese —
+   prodotto − venduto = Δ scorte — da noi ha il terzo termine mancante, e la
+   schermata lo chiama onestamente «scorte a piazzale **stimate**». ⏱️
+   **Candidato** (il più grosso): un rilievo di Terra di tipo «inventario dei
+   cumuli» (volume per prodotto, alla data), e in Conti la chiusura del
+   triangolo. Valore alto, costo alto (Terra + Conti + ponte). *Proposto da
+   ricerca, meccanismo verificato.* ✅ **Fatto il 03/09**: Terra registra
+   l'«Inventario dei cumuli» (collezione `inventari/{id}`: data, metodo,
+   cumuli con materiale e volume, e un cumulo può essere «non misurato»:
+   `null`, mai zero), Conti lo legge sulla stessa istanza dei rilievi e chiude
+   il triangolo in tonnellate — ognuno con la SUA densità: il cavato con quella
+   in banco dichiarata da Terra, i cumuli con quella del listino (materiale
+   sciolto), accoppiati per nome normalizzato (`chiaveMateriale`). Le regole
+   sono in `shared/dw-ponti.js` (`variazioneScorte`, `scorteInTonnellate`,
+   `chiusuraTriangolo`): un materiale misurato in un solo inventario resta
+   fuori ed è elencato, un materiale senza densità pure, e il conto si dichiara
+   parziale. Banchi `terra-inventario.mjs` e `conti-inventario.mjs` nei due
+   versi. ⚠️ La dimostrazione di Conti resta la SUA cava (decine di m³): alla
+   scala di Terra il triangolo chiudeva «implausibile» per costruzione.
+4. **Storico dei rilievi con versioni** → esiste: ogni rilievo è un record
+   datato in `rilievi` di Terra, mai sovrascritto (la dimostrazione ne ha sette
+   da tre anni, t0–t6, e il confronto sceglie per periodo).
+5. **Registrare un'anomalia con la causa** → **non c'è**: `grep -n divario
+   apps/conti/conti-data.js | grep -ciE 'aggiungi|salva|storico|chiusur'` →
+   **0**. Il divario si calcola ogni volta e non si conserva; le tre cause
+   possibili la schermata le elenca già, in ordine, ma nessuno può scrivere
+   «era la seconda» e ritrovarlo il mese dopo. Le `chiusure` di Conti chiudono
+   i COSTI del mese (`statoMese`), non la riconciliazione. ✅ **Fatto il
+   02/09, la sera stessa**: `verbali/{id}` in Conti (`CAUSE_DIVARIO`,
+   `verbaleDelPeriodo`, `storicoVerbali`), il riquadro sotto «Cavato contro
+   venduto» con «Scrivi il verbale», lo storico col verso del passo, e il
+   confronto allora/adesso che dice quando i dati sono cambiati dopo il
+   verbale. Banco `tests/browser/conti-verbale.mjs` nei due versi.
+6. **Frequenza programmabile** → parziale: il periodo è libero (dal/al) con i
+   due scorciatoie «Quest'anno» / «Anno scorso» (`grep -cE 'btn-ric-anno|
+   btn-ric-prec' apps/conti/index.html` → 4); manca un «questo mese» e non c'è
+   nessun promemoria. Costo basso, ma da solo vale poco senza il punto 5.
+
+Riassunto: **tre esistono (1, 4, e il principio del 2), due mancano davvero
+(3 e 5), una è a metà (6)**. Nessuna delle due mancanze entra in roadmap sulla
+parola di questa ricerca: entrano quando un cantiere le sceglie, e il primo
+candidato per costo/valore è il **5** (il verbale), perché dà uno storico ai
+due confronti che esistono già. *(02/09 sera: il 5 è fatto, e il 2 era già in
+casa ed è collegato; restano il 3 — l'inventario dei cumuli — e la metà del 6.)*
+*(03/09: il 3 è FATTO — `inventari` in Terra, `triangolo` in Conti, il verbale
+che registra il terzo lato, commit `b110e3e1` e seguente; «Questo mese» c'è.
+Del 6 resta il promemoria, che è la decisione 20 del fondatore.)*
+*(03/09: anche il 3 è fatto. Resta la metà del 6, il «questo mese» e un
+promemoria.)*
+
+
+---
+
+## Ricerca del 2026-09-04 — la fattura elettronica differita dalle pesate (metà sul mondo)
+
+⛔ **Nessuna pagina primaria è stata letta**: ogni campo, codice, scadenza o
+regola citata in questa sezione viene da risultati di ricerca (`WebSearch`) ed
+è di **SECONDA MANO**. `WebFetch`/`curl` non sono stati usati (bloccati per
+mandato). Dove una query non ha dato un risultato utilizzabile è scritto
+«non trovato con WebSearch», mai dedotto.
+
+### Già scritto (non ripetuto qui)
+
+- `docs/RICERCA_CONTINUA_CONTI.md`, sezione del 07/08 «le parole del DDT»:
+  elementi obbligatori del DDT cartaceo (DPR 472/1996), lordo/tara/netto,
+  causale trasporto, trasporto a cura, porto, aspetto esteriore dei beni —
+  **questa ricerca non li ripete**, si occupa solo di ciò che succede DOPO,
+  quando il DDT diventa una riga della fattura elettronica.
+- `docs/MERCATO_E_CONCORRENTI.md`, riga 185: Conti genera già un file XML
+  FPR12 (funzione `xmlFatturaPA` in `conti-data.js`, dal 02/09), **scritto a
+  memoria della v1.2** e dichiarato esplicitamente da rivedere «dal controllo
+  formale del portale prima del primo invio vero» (vedi anche
+  `docs/CONTI_FATTURAZIONE_ROADMAP.md`, punto 5, Fascia 2). Questa ricerca
+  esiste per dare a quella revisione i riferimenti di seconda mano su cui
+  poggiare, non per rifare la Fascia 1-3 già decisa in quel documento (linea
+  rossa: Conti prepara, non invia né conserva — resta la scelta giusta anche
+  alla luce di quanto trovato oggi).
+- `docs/CONTI_FATTURAZIONE_ROADMAP.md` marca già come «verificare col
+  commercialista, mai automatico» il reverse charge edilizia: coerente con
+  quanto trovato oggi (blocco 2).
+
+Non risulta invece già scritto, in nessuno dei due documenti: la struttura a
+blocchi del tracciato XML nel dettaglio (DatiDDT/RiferimentoNumeroLinea,
+decimali, DatiPagamento), i codici di scarto SdI, e la distinzione
+FPA12/FPR12 e codice destinatario 6/7 caratteri.
+
+---
+
+### Blocco 1 — Lo schema FatturaPA: i blocchi obbligatori
+
+| Voce | Che cosa dice la ricerca | Fonte (fiducia) |
+|---|---|---|
+| Versione corrente | v1.2.2, in vigore dal 01/10/2022 (adeguamento specifiche tecniche 1.7.1); XSD pubblicato da fatturapa.gov.it | fatturapa.gov.it, metodo.com (alta) |
+| `DatiTrasmissione` | Blocco **sempre obbligatorio**: identifica chi trasmette, il documento, il formato, il destinatario | risultati di ricerca su fatturapa.gov.it (media — non ho letto lo XSD direttamente) |
+| `FormatoTrasmissione` | **FPA12** per fatture verso Pubblica Amministrazione, **FPR12** per fatture verso privati/B2B (compreso lo split payment B2B) | intesa.it, fatturapa.gov.it via ricerca (media) |
+| `CodiceDestinatario` | **7 caratteri** per B2B/privati (canale software/intermediario), **6 caratteri** (Codice Univoco Ufficio, CUU) per la PA; per i privati senza codice si usa **`0000000`** (sette zeri) valorizzando anche `PecDestinatario` | fiscozen.it, soluzionetasse.com, freeinvoice.it (media-alta, più fonti concordi) |
+| `CedentePrestatore` / `CessionarioCommittente` | Blocchi anagrafici standard del tracciato, presenti in ogni fattura; dettagli di obbligatorietà dei sotto-campi non confermati puntualmente dalla ricerca | fatturapa.gov.it (bassa sul dettaglio dei sotto-campi, non verificato sullo XSD) |
+| `DatiGeneraliDocumento` — `TipoDocumento` | **TD01** fattura ordinaria/immediata (emessa entro 12 giorni dall'operazione, art. 6 DPR 633/72); **TD24** fattura differita per cessioni di beni accompagnate da DDT o servizi con documentazione idonea (art. 21 c.4 lett. a DPR 633/72), emissione entro il **15 del mese successivo**, aggrega più operazioni verso lo stesso cliente | agendadigitale.eu (più articoli concordi), recivu.it, thecalcoloiva.com (alta) |
+| Sanzioni per TD01/TD24 scambiati | Segnalato che l'errore TD01↔TD24 "potrebbe non portare a sanzioni" in alcuni casi — non approfondito, citato solo per completezza | agendadigitale.eu (bassa, titolo di un solo articolo, non letto il merito) |
+| `DatiDDT` (blocco 2.1.8) | Contiene `NumeroDDT`, `DataDDT`; su una fattura differita generata da più DDT questi campi vengono **valorizzati automaticamente dal numero/data dei DDT di origine** | ReadyPro (manuale utente, help.readypro.it), winddoc.com, agendadigitale.eu (media-alta) |
+| `RiferimentoNumeroLinea` (dentro `DatiDDT`) | Numero della riga/delle righe di dettaglio fattura a cui il singolo DDT si riferisce; **se il DDT copre l'intera fattura questo campo NON va valorizzato** | fex-app.com (media) |
+| `DettaglioLinee` | `UnitaMisura` è **campo libero, non un codice fisso da tabella**: unità viste in pratica «TO, TN, T, KG, K», ma anche `mc`, `pz`, `LT`, `UTA` ecc. — nessuna evidenza di una codelist obbligatoria per gli inerti | conai.org (guida CONAI, citata via ricerca), fex-app.com (media) |
+| Decimali — `PrezzoUnitario`/quantità | Prezzo unitario e prezzo totale di riga **possono avere fino a 8 decimali** e non vanno arrotondati alla seconda cifra in questa fase; solo il **totale finale della riga** (quantità × prezzo unitario) va arrotondato a **2 decimali** | github.com/OCA/l10n-italy (issue tecnico), celdes.it, gestionaleamica.com (media — fonti tecniche/blog, non lo XSD) |
+| Regola di arrotondamento | Arrotondamento per eccesso se la terza cifra decimale è >5, per difetto altrimenti (arrotondamento "commerciale" standard) | gestionaleamica.com, ksgestionali.it (media) |
+| Sconto di riga | Il campo sconto in XML ammette **solo 2 decimali** mentre il prezzo unitario ne ammette 8: causa nota di scarti/differenze di arrotondamento quando lo sconto è calcolato con più precisione a monte | github.com/OCA/l10n-italy issue #1340 (media, riportato come "problematica comune" non come norma) |
+| `DatiPagamento` | `ModalitaPagamento` **MP05 = bonifico**; `CondizioniPagamento` **TP02 = pagamento in un'unica soluzione** (pagamento completo, non a rate) | fex-app.com, help.danea.it (media) |
+| Allegati | Non approfondito in dettaglio in questa ricerca — solo confermato che il tracciato prevede un blocco Allegati opzionale (es. per allegare copia del DDT) | winddoc.com, fattura.it (bassa, cenno) |
+
+---
+
+### Blocco 2 — Fattura differita, split payment, reverse charge, bollo
+
+- **Fattura differita (art. 21 c.4 lett. a, DPR 633/72)**: emissione entro il
+  **15 del mese successivo** a quello delle consegne; codice `TD24`; un DDT
+  (o più DDT) collegati alle righe fattura tramite `DatiDDT`. Fonte:
+  agendadigitale.eu, recivu.it (alta — più articoli concordi sulla scadenza
+  del 15).
+- **Correlazione righe DDT ↔ righe fattura**: la ricerca conferma che esiste
+  un articolo dedicato ("La correlazione tra le righe dei Documenti di
+  trasporto e le righe-articoli della fattura elettronica differita",
+  agendadigitale.eu) proprio sul caso — frequente in cava — di **più DDT per
+  fattura** e più pesate riferite allo stesso cliente/prodotto nello stesso
+  mese; il contenuto specifico dell'articolo (come si aggregano righe di DDT
+  diversi sullo stesso materiale) **non è stato letto**, solo il titolo/estratto
+  breve — fiducia bassa su questo punto specifico, media sull'esistenza del
+  problema.
+- **Caso "cliente con più cantieri/destinazioni" o "resi"**: **non trovato con
+  WebSearch** con le query usate (`"franco cava" "franco cantiere" trasporto
+  inerti causale DDT aspetto beni terminologia`, `DDT causale cantieri`); la
+  ricerca ha trovato solo la regola generale sulla causale di trasporto per
+  beni destinati a cantieri quando **non c'è passaggio di proprietà** (conto
+  lavorazione, conto visione, reso, omaggio) — non specifica per il caso
+  "stesso cliente, più cantieri, stesso mese" che interessa una cava.
+- **Split payment (PA)**: dal 2018 obbligo di indicare in fattura la dicitura
+  "operazione soggetta a scissione dei pagamenti ex art. 17-ter, comma 1-bis,
+  DPR 633/72"; si applica alle fatture verso PA. Fonte: aterbl.it, ecnews.it
+  (media — cenni, non uno studio specifico sul settore inerti/PA).
+- **Reverse charge edilizia**: **NON si applica** alla semplice cessione di
+  beni (sabbia, ghiaia, mattoni, laterizi, infissi) **anche quando comprende
+  la posa in opera**, perché l'installazione è accessoria alla cessione — si
+  applica solo a servizi/subappalti nel comparto edile (art. 17 c.6 lett. a
+  DPR 633/72). Fonte: fiscomania.com, contrino.it, odcec.torino.it (alta —
+  più fonti concordi, coerente con quanto già scritto nella roadmap Conti).
+- **Bollo virtuale**: 2 € su fatture **non soggette a IVA** (esenti, non
+  imponibili, fuori campo, regime forfettario) quando l'importo supera
+  **77,47 €**; per la fattura elettronica si valorizza il campo dedicato
+  "bollo virtuale" senza indicare l'importo in dettaglio; versamento tramite
+  F24 (codice tributo 2521) entro il 30 aprile dell'anno successivo. Per gli
+  inerti (vendita soggetta a IVA 22% ordinaria) il bollo **non dovrebbe
+  applicarsi quasi mai**, salvo casi di operazioni esenti/fuori campo che la
+  ricerca non ha individuato come tipici della cava. Fonte: fiscomania.com,
+  partitaiva.it (alta sulla regola generale, bassa sulla pertinenza al
+  settore inerti — non trovata una fonte specifica cava+bollo).
+
+---
+
+### Blocco 3 — Errori di scarto SdI più comuni
+
+| Codice | Significato (da ricerca) | Fonte / fiducia |
+|---|---|---|
+| **00404** | Fattura duplicata: stesso numero documento + progressivo di invio già presente/accettato nel cassetto fiscale (capita tipicamente quando la stessa numerazione viene usata due volte, es. un canale elettronico e uno cartaceo/email in parallelo) | cloudfinance.it, fattureincloud.it, guide.pec.it (alta — molte fonti concordi) |
+| **00423** | `PrezzoTotale` di riga non calcolato secondo le regole delle specifiche tecniche (cioè non coerente con quantità × prezzo unitario, arrotondamenti compresi) | fatturah.it, fattura24.com (media-alta) |
+| **00421** | `Imposta` non calcolata secondo le regole delle specifiche tecniche (riepilogo IVA non coerente con imponibile × aliquota) | fatturah.it (media — stesso pattern di 00423, non trovata una fonte che lo tratti in isolamento con lo stesso dettaglio) |
+| **00305** | Partita IVA del cessionario/committente non valida (non "IdFiscale" generico come ipotizzato nella domanda, ma nello specifico la P.IVA del cliente) | fatturah.it (media) |
+| **CodiceDestinatario a 6 vs 7 caratteri** | Confermato: 7 per privati/B2B, 6 per PA (Codice Univoco Ufficio); errore di lunghezza/formato è causa nota di scarto ma **non è stato trovato un codice SdI specifico dedicato solo a questo** nelle query fatte (probabile che rientri in codici più generici di formato XML, "00" iniziali, non identificati puntualmente) | fiscozen.it, freeinvoice.it (media) |
+| Come i gestionali prevengono gli scarti | La ricerca conferma in generale l'esistenza di un elenco ufficiale di codici errore SdI pubblicato dall'Agenzia (`assistenza.agenziaentrate.gov.it/.../Elenco_Codici_errore_SdI.pdf`), ma **il contenuto puntuale delle prevenzioni lato-gestionale (controllo quadratura riga, arrotondamenti, validazione formato codice destinatario) non è stato approfondito articolo per articolo** — è dedotto solo dal fatto che 00423/00421 esistono apposta per quelle quadrature, quindi un gestionale che calcola prezzo totale e imposta con le stesse regole delle specifiche tecniche (arrotondamento a 2 decimali sul totale riga, IVA su imponibile arrotondato) li evita per costruzione | agenziaentrate.gov.it (fonte del PDF ufficiale, non letto il contenuto integrale — solo il titolo/indice via ricerca) |
+
+---
+
+### Blocco 4 — Come lo fanno i gestionali di cava/pesa
+
+- **InfoMinds/Ergo**: gestionale verticale per "produttori di inerti, cave e
+  calcestruzzo" — dichiara integrazione diretta con software di pesatura
+  (cita esplicitamente "Coop. Bilanciai") e sistemi di produzione (cita
+  "Dorner"), per evitare doppia digitazione fra cantiere/impianto e ufficio;
+  flusso integrato preventivo → ordine → listino → **DDT** → **fattura**, con
+  controllo costi e statistiche di vendita. Fonte: infominds.eu (alta — sito
+  ufficiale del produttore, contenuto commerciale quindi da leggere come
+  dichiarazione del fornitore, non verifica indipendente).
+- **Vincro**: software di pesatura con gestionale per cave di inerti e
+  marmo; funzioni dichiarate: recupero peso, stampa DDT (bolla o "ticket di
+  pesata"), gestione prezzi (opzionale), gestione fatture (opzionale),
+  esportazione dati verso altre applicazioni (es. contabilità/commercialista).
+  Fonte: vincro.it (alta come fonte, stessa cautela: sito del fornitore).
+- **Zucchetti, TeamSystem, Fatture in Cloud, Aruba**: **non approfonditi in
+  questa ricerca** — le query si sono concentrate su InfoMinds e Vincro, che
+  sono i due nominati anche in `docs/MERCATO_E_CONCORRENTI.md`. Non trovato
+  con WebSearch, in questa sessione, un confronto diretto fra questi quattro
+  e la fatturazione differita da pesate nel settore inerti specificamente.
+- **Terminologia del mestiere confermata**:
+  - «fattura differita» e «fattura riepilogativa» — termini standard,
+    confermati da più fonti (agendadigitale.eu, biblus.acca.it).
+  - «DDT» — confermato termine universale.
+  - «causale di trasporto» — confermato, con gli esempi tipici (omaggio,
+    conto visione, reso, conto lavorazione) quando non c'è passaggio di
+    proprietà.
+  - «aspetto dei beni» — non ricercato di nuovo in questa sessione (già
+    coperto dalla ricerca del 07/08 su RICERCA_CONTINUA_CONTI.md).
+  - **«franco cava»**: confermato termine commerciale reale, con listini
+    prezzi pubblici che lo usano ("LISTINO PREZZI DEI MATERIALI F.CO CAVA")
+    — significa prezzo del materiale caricato su automezzo in cava, IVA
+    esclusa, **senza** le spese di trasporto fino a destinazione. Fonte:
+    pisellicave.it, gruppofranzosi.it (listini reali di cave, alta).
+  - **«franco cantiere»**: confermato termine logistico/commerciale reale —
+    il venditore/produttore si fa carico del trasporto fino al cantiere,
+    quindi il prezzo include la consegna. Fonte: francocantiere.it,
+    logisticaefficiente.it, wikipedia (porto franco) (media-alta — nessuna
+    fonte è un listino di cava che usi letteralmente questa dicitura, ma il
+    significato logistico generale è confermato da più fonti indipendenti).
+  - **Conservazione a norma 10 anni**: confermato obbligo di conservazione
+    sostitutiva per 10 anni di ogni fattura elettronica emessa/ricevuta,
+    coerente con quanto già scritto in `docs/CONTI_FATTURAZIONE_ROADMAP.md`
+    (servizio gratuito dell'Agenzia). Fonte: gtechgroup.it, fidocommercialista.it,
+    fattureincloud.it (alta — più fonti concordi sul numero di anni).
+
+---
+
+### Fonti (elenco)
+
+| URL | Che cosa dice | Fiducia |
+|---|---|---|
+| fatturapa.gov.it (XSD e specifiche tecniche v1.2.2) | Schema ufficiale del tracciato, versione corrente | alta (fonte primaria istituzionale, ma letta solo via estratto di ricerca, non aperta direttamente) |
+| agendadigitale.eu (più articoli: TD01/TD24, correlazione DDT-righe fattura) | Regole su fattura differita, scelta del tipo documento, correlazione righe | alta |
+| recivu.it, thecalcoloiva.com | Spiegazioni divulgative TD01/TD24 | media |
+| help.readypro.it (manuale ReadyPro) | Comportamento pratico di un gestionale sul blocco DatiDDT | media-alta |
+| fex-app.com (dizionario campi FatturaPA) | Definizioni puntuali dei singoli campi XML | media |
+| github.com/OCA/l10n-italy issue #1340 | Problema tecnico reale di arrotondamento prezzo unitario/sconto | media (issue di un progetto open source, non norma) |
+| cloudfinance.it, fattureincloud.it, guide.pec.it, aiuto.libero.it | Codice errore 00404 (fattura duplicata) | alta |
+| fatturah.it | Codici 00423, 00421, 00305 | media |
+| assistenza.agenziaentrate.gov.it (PDF elenco codici errore SdI) | Fonte ufficiale dell'elenco errori, non letta integralmente | alta come fonte, bassa come lettura (solo titolo/indice) |
+| fiscozen.it, soluzionetasse.com, freeinvoice.it | Codice destinatario 6/7 caratteri, "0000000" | alta |
+| intesa.it | Differenza FPA12/FPR12 | media |
+| fiscomania.com, contrino.it, odcec.torino.it | Reverse charge edilizia escluso per cessione di beni | alta |
+| aterbl.it, ecnews.it | Split payment PA | media |
+| fiscomania.com, partitaiva.it | Bollo virtuale 2€/77,47€ | alta |
+| infominds.eu, vincro.it | Funzioni dichiarate dai gestionali di cava/pesa | alta come fonte, ma commerciale (sito del fornitore) |
+| pisellicave.it, gruppofranzosi.it | Listini reali che usano "franco cava" | alta |
+| francocantiere.it, logisticaefficiente.it, wikipedia | Significato di "franco cantiere" / porto franco | media-alta |
+| gtechgroup.it, fidocommercialista.it, fattureincloud.it | Conservazione sostitutiva 10 anni | alta |
+| conai.org (guida CONAI) | Unità di misura ammesse in UnitaMisura | media |
+
+---
+
+### Domande per il delta (sul MECCANISMO — non risposte)
+
+1. Chi, in Conti, compone oggi il blocco `DatiDDT` della fattura differita
+   (`xmlFatturaPA` in `conti-data.js`)? Da quali pesate legge `NumeroDDT` e
+   `DataDDT`, e quando una fattura raggruppa più DDT dello stesso cliente,
+   scrive un blocco `DatiDDT` per ciascuno o li comprime in uno solo?
+2. Chi decide il numero di decimali di `Quantita` e `PrezzoUnitario` scritti
+   nell'XML — è lo stesso punto che decide il netto (lordo−tara) delle
+   pesate, o una conversione separata fatta solo al momento dell'export?
+3. Chi controlla, prima di scrivere l'XML, che `PrezzoTotale` di riga sia
+   uguale a quantità × prezzo unitario arrotondato secondo la regola dei 2
+   decimali (quella che evita l'errore SdI 00423), e che l'imposta di
+   `DatiRiepilogo` sia coerente con imponibile × aliquota (errore 00421)?
+4. Chi sceglie `TipoDocumento` (TD01 vs TD24) su una fattura generata dai
+   DDT — è automatico in base al fatto che la fattura derivi da pesate, o è
+   una scelta manuale dell'utente?
+5. Chi valorizza `CodiceDestinatario`/`PecDestinatario` per un cliente senza
+   codice destinatario noto — c'è un campo in anagrafica cliente che
+   distingue "ho il codice a 7 caratteri" da "uso 0000000 + PEC", o si
+   assume sempre uno dei due?
+6. Come viene trattato oggi, se viene trattato, il caso di un cliente con
+   più cantieri/destinazioni nello stesso mese: una fattura per cantiere, o
+   una fattura sola con DDT di cantieri diversi mescolati nelle stesse
+   righe?
+7. C'è un punto in cui Conti applica o esclude il reverse charge per riga —
+   e se sì, è già coerente con "mai automatico, solo con nota per il
+   commercialista" come indicato nella roadmap, o esiste un automatismo da
+   verificare?
+8. Il bollo virtuale (2€ sopra 77,47€ su importi non IVA) ha un punto in
+   cui Conti lo calcola o lo propone, oppure — coerentemente col fatto che
+   gli inerti sono quasi sempre a IVA 22% — è semplicemente assente perché
+   il caso non si presenta mai nella pratica della cava?
+9. `UnitaMisura` nell'XML: chi decide come tradurre "t" o "m³" del listino
+   nel testo libero che va nel campo — c'è già una tabella di conversione, o
+   il valore del listino viene scritto tale e quale?
+
+### Il delta, fatto da chi ha il codice in mano (04/09, verificato contro il commit `6d92a9f3`)
+
+Le nove domande, risposte aprendo `xmlFatturaPA` in `apps/conti/conti-data.js`
+(e non cercando i nomi dello schema nel codice); ogni «non c'è» col comando.
+
+1. **DatiDDT.** Li compone `xmlFatturaPA` da `f.ddtIds` → pesate in archivio
+   (`perId`), **un blocco `DatiDDT` per DDT** con `NumeroDDT` e `DataDDT`; un DDT
+   collegato ma non in archivio, o senza data, si dichiara negli `avvisi` e
+   non si cita. Manca `RiferimentoNumeroLinea`: i DDT non sono legati alle
+   righe (`grep -c "RiferimentoNumeroLinea" conti-data.js` → 0), quindi con
+   più DDT e più righe il file non dice quale riga viene da quale bolla.
+2. **I decimali.** Il netto (lordo − tara) lo decidono le pesate a monte
+   (`convertiQuantita`, `round3`); nell'XML fino a oggi `Quantita` e
+   `PrezzoUnitario` uscivano a **due decimali fissi** (`dec(q,2)`): «33,333 t ×
+   30 €» diventava 33.33 × 30.00 = 999.90 accanto a un totale di riga di
+   999.99. ✅ **Fatto il 04/09**: si scrivono coi decimali che hanno (almeno
+   due, al più otto, `decRiga`).
+3. **La quadratura di riga.** Prima: NESSUNO. `riep.quadra` confronta la somma
+   delle righe con i totali registrati e il totale con imponibile + IVA, ma
+   una riga il cui `imponibile` registrato non è quantità × prezzo usciva lo
+   stesso (misurato: 33,33 × 30 con imponibile 1000 → `pronto: true`).
+   ✅ **Fatto il 04/09**: la riga si confronta con sé stessa COME VIENE SCRITTA
+   (un centesimo di tolleranza per gli arrotondamenti) e il file si ferma
+   nominando la riga in italiano («dice 1.000,00 € ma 33,33 × 30,00 fa 999,90
+   €»). L'imposta di `DatiRiepilogo` è già `round2(imponibile × aliquota/100)`
+   per banda (`totaliDaRighe`).
+4. **TD01 / TD24.** Sempre `TD01` (`grep -c "TD24" conti-data.js` → 0), anche
+   quando la fattura nasce dai DDT (`f.tipo: "differita"`). Il codice della
+   fattura differita è norma di **seconda mano** in questa ricerca: candidato
+   da confermare col commercialista/testo primario prima di cambiarlo.
+5. **CodiceDestinatario / PEC.** Un campo solo in anagrafica, `c.sdi`: sette
+   caratteri alfanumerici → codice; con una chiocciola → PEC con «0000000»;
+   altrimenti «0000000» e un avviso. Un codice IPA da **sei** caratteri (ente
+   pubblico) non passa la forma e finirebbe in «0000000» con l'avviso:
+   candidato, insieme allo split payment (`EsigibilitaIVA` è sempre «I»:
+   `grep -n '"EsigibilitaIVA"' conti-data.js` → una riga, fissa).
+6. **Più cantieri dello stesso cliente.** Nessuna destinazione per riga o per
+   DDT nel file; la fattura raggruppa le pesate del cliente e basta (la
+   parola «cantiere» compare 12 volte nel modulo, per le gare e i clienti,
+   e 0 nelle 110 righe di `xmlFatturaPA`). Candidato di
+   prodotto, non di codice: prima si decide se una fattura per cantiere o una
+   riga per cantiere.
+7. **Reverse charge.** Nessun automatismo (`grep -ci "reverse\|inversione" conti-data.js` → 0):
+   coerente con «mai automatico», ed è giusto per la cessione di inerti.
+8. **Bollo virtuale.** Assente (`grep -ci "bollo" conti-data.js` → 0): le
+   righe senza IVA non hanno nemmeno una `Natura` (`grep -c '"Natura"'` → 0),
+   quindi una riga esente non si può scrivere. Il caso in cava è raro;
+   resta dichiarato.
+9. **UnitaMisura.** Tabella di due voci scritta dentro `xmlFatturaPA`:
+   `m3` → «MC», tutto il resto → «TN». Un'unità diversa (viaggi, colli)
+   uscirebbe «TN»: candidato piccolo, dichiarare l'unità sconosciuta invece di
+   scrivere tonnellate.
+
+**Che cosa ne segue**: fatti il 2 e il 3 (quadratura e decimali, con prove
+in run-kpi e il banco `conti-xml-sdi` verde nei due versi). Candidati: (a) TD24
+per la differita e il codice IPA a sei caratteri + split payment — norma di
+seconda mano, decisione del fondatore col commercialista; (b) `Natura` per
+le righe esenti e il bollo, solo se il caso si presenta; (c) ✅ fatta il 04/09 — l'unità
+si traduce se è una delle due di vendita, si scrive com'è se è un'altra
+(«viaggi»), e se manca il tag facoltativo non si scrive (prima: «TN» a tutti); (d) `RiferimentoNumeroLinea` e la destinazione per
+DDT — dipende dalla scelta di prodotto sui cantieri.
+
+## Ricerca del 2026-09-05 (notte) — il file dei movimenti bancari: in che forma esce dalle banche (metà sul mondo)
+
+*Metà sul mondo con `WebSearch` (tre ricerche); il testo primario non si
+legge da qui, quindi tutto è **[seconda mano: risultato di ricerca]**. Seconda
+tornata su Conti: le precedenti coprivano la pesa, la riconciliazione
+prodotto/venduto/scorte e la fattura differita.*
+
+**Che cosa succede fuori.**
+
+1. **Ogni banca esporta le colonne a modo suo.** I manuali degli importatori
+   di estratto conto (Datalog, Gaianet, Tandem, MoneySaving) descrivono la
+   stessa cosa in quattro modi: «Data valuta, data documento, importi,
+   causale», «Data operazione, Descrizione movimento (max 200 caratteri),
+   Importo entrate, Importo uscite, Saldo progressivo, Causale ABI
+   opzionale», «Data Operazione, Data Valuta, Import Entrata, Import Uscita»;
+   e «ogni banca usa un suo sistema e un suo ordinamento, così come per le
+   causali», per cui gli importatori prevedono **una mappatura per istituto**.
+   La descrizione è spesso «causale descrittiva + descrizione» in una cella
+   sola. [seconda mano: datalog.it, gaianet.it, tandemservizi.it,
+   moneysaving.it]
+2. **Lo standard vero è il CBI**: il flusso «RH — rendicontazione saldi e
+   movimenti di conto corrente» (record 61 saldo iniziale, 62 movimento, fino
+   a 5 record 63 di descrizione; importi con virgola e due decimali). È quello
+   che i gestionali importano quando vogliono un tracciato uguale per tutte
+   le banche — ma è un file a posizioni fisse, non un CSV, e lo scaricano gli
+   utenti corporate. [seconda mano: edupass.it (Mexal), unicreditcorporate.it,
+   babons.it]
+3. **Il bonifico si riconosce dal riferimento.** Il TRN (30 caratteri
+   alfanumerici, obbligatorio per i bonifici SEPA dal 2016) e il CRO (11
+   cifre, bonifici nazionali) compaiono nella descrizione; i gestionali
+   abbinano per importo, data e testo della causale (numero di fattura),
+   e i più recenti «anche quando i dati non sono perfettamente identici».
+   [seconda mano: sumup.com, fiweb.it, bpilot.it]
+
+Fonti (risultati di ricerca):
+https://www.datalog.it/importazione-automatica-degli-estratti-conto-bancari-nel-software-contabile/ ·
+https://www.gaianet.it/wp-content/uploads/2018/09/Import-Estratto-conto-Bancario.pdf ·
+https://www.tandemservizi.it/wp-content/uploads/2019/11/Note-Operative-Importatore-Estratto-Conto.pdf ·
+https://www.edupass.it/manuali/manualistica-mexal/manuale-prodotto?a=manuale-prodotto/contabilita/appendice-h--riconciliazione-bancaria/riconciliazione/importazione-movimenti-bancari-da-file-cbi-rh ·
+https://babons.it/wp-content/uploads/CBI-RND.pdf ·
+https://www.sumup.com/it-it/gestire-attivita/pagamenti/cro-bonifico/
+
+### Il delta, fatto da chi ha il codice in mano (verificato contro il codice al commit `ba8fe866`) — con una MISURA, non un grep
+
+- **Chi legge il file della banca?** `parseMovimentiCsv` in `conti-data.js`:
+  legge il testo intero con `leggiCsv` (le descrizioni su più righe non si
+  spezzano), riconosce l'intestazione solo per saltarla
+  (`INTESTAZIONE_ESTRATTO = /^\s*"?(?:data|date)\b/i`) e poi prende le celle
+  **per posizione**: `[dataRaw, valutaRaw, descr, a, b]`, con «se le ultime
+  due sono numeri è entrate/uscite». Cioè conosce **una** forma, quella del
+  file d'esempio (`data;valuta;descrizione;importo`), e il mondo (punto 1)
+  dice che le forme sono tante.
+- **Misurato in scratchpad, tre file veri per forma**:
+  · `Data;Valuta;Descrizione;Importo` → giusto (12.300, descrizione intera);
+  · `Data operazione;Descrizione movimento;Importo entrate;Importo uscite;
+    Saldo progressivo;Causale ABI` (la forma più citata dai manuali) → il
+    bonifico da 12.300 € esce come **−45.210,77 €** (il SALDO letto come
+    uscita, la descrizione persa: «12.300,00» al suo posto), e il pagamento
+    F24 da 1.250 come **−42.710,77**. Nessuno scarto dichiarato: `scarto: ""`,
+    cioè il numero sbagliato con la faccia tranquilla, sui soldi;
+  · `Data contabile;Data valuta;Dare;Avere;Descrizione` → importo giusto ma
+    **descrizione vuota**, quindi `abbinaMovimenti` non trova il numero della
+    fattura e il bonifico resta «da abbinare a mano».
+- **Chi abbina?** `abbinaMovimenti` cerca i NOSTRI numeri di fattura nella
+  causale (il verso giusto: punto 3) e `movimentoGiaRegistrato` evita i
+  doppioni: tutto giusto, **a valle di una lettura che può essere sbagliata**.
+- **Il TRN/CRO** non è letto né conservato: `grep -c "TRN\|CRO" conti-data.js`
+  → 0. Serve poco all'abbinamento (il numero di fattura basta) ma è la chiave
+  di un movimento: candidato a costo basso, dopo la mappa.
+
+Candidati: (a) **`mappaMovimentiCsv(intestazione)` per nome di colonna**,
+come `proponiMappa` di Sentinella — data (contabile/operazione), data valuta,
+descrizione/causale, e l'importo in una delle tre forme (importo; entrate e
+uscite; dare e avere), con **saldo** e **causale ABI** riconosciuti per
+ESCLUDERLI; senza intestazione resta la lettura per posizione di oggi;
+l'esito dell'import dice quali colonne ha riconosciuto e quali ha ignorato,
+e una riga con l'importo preso da una colonna che non si chiama importo NON
+esce tranquilla. Costo basso-medio; misura: i tre file qui sopra danno gli
+stessi tre movimenti giusti, e un file con solo `saldo` come numero esce con
+lo scarto «nessuna colonna dell'importo». (b) il TRN/CRO conservato sul
+movimento (basso, dopo (a)).
+
+*Aggiornamento della notte stessa (commit successivo a `e889b513`): (a) ✅ —
+`mappaMovimentiCsv` e `parseMovimentiCsv` per nome; i tre file della misura
+danno i tre movimenti giusti. (b) ✅ nel ciclo delle 03:47Z (commit successivo
+a `6bf96943`): `riferimentoInCausale` + `riferimentoMovimento`, il
+riferimento sul movimento e sull'incasso registrato, la riga che lo mostra
+con l'origine; `grep -c "riferimentoInCausale" apps/conti/conti-data.js` → 2.
+Il verdetto del punto 3 (i gestionali abbinano per importo, data e numero di
+fattura) resta: qui il TRN/CRO NON entra nell'abbinamento, è la chiave che
+si legge con la banca, e si dichiara così.*
+
+
+## Ricerca del 2026-09-10 — le rimanenze di piazzale a fine anno: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**: niente `WebSearch` in questa
+unità (scelta per non bruciare crediti); i riferimenti di legge sono citati
+come contesto e **nessun numero di norma entra in una schermata**.
+
+### Che cos'è, fuori
+
+- **Le rimanenze finali** entrano nel bilancio come voce dell'attivo e la
+  loro **variazione** (finali − iniziali) nel conto economico: per una cava
+  sono i cumuli sul piazzale a fine esercizio. Il commercialista chiede
+  **quantità per prodotto e un criterio di valutazione** — di regola il
+  **costo di produzione** (o il minore fra costo e valore di realizzo), non
+  il prezzo di vendita. *[seconda mano: art. 2426 c.c. e principio contabile
+  OIC 13 da memoria, non letti oggi]*
+- **Come lo fanno i gestionali di categoria** (Easyfatt, TeamSystem: censiti
+  in §2): un «inventario di fine anno» con quantità × costo medio o FIFO,
+  esportato al commercialista. Presuppone un magazzino con carico/scarico
+  per articolo. *[dal censimento del 01/08]*
+- **Perché in cava è diverso**: nessuno tiene il carico/scarico dei mucchi;
+  la giacenza è una **fotografia** (rilievo drone o stima) e il costo di
+  produzione per prodotto raramente è noto per cumulo. Quello che l'app può
+  dare con onestà: **quantità misurate** (m³, e t con la densità del
+  materiale sciolto) e un **valore di riferimento a listino**, dichiarando
+  che il criterio fiscale è un'altra cosa. *[dedotto]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi sa quanto sta sui cumuli?* → gli inventari di Terra, letti dal
+   ponte (03/09): non un magazzino di Conti.
+2. *Chi conosce prezzo e densità per prodotto?* → il listino di Conti
+   (`prezzoPerTonnellata`, `densitaValida`).
+3. *Che cosa NON deve dire l'app?* → un valore fiscale. Il valore è a
+   listino e lo dice in ogni frase; un cumulo non valorizzabile resta fuori
+   con la ragione, non a zero.
+
+### Il delta, fatto da chi ha il codice in mano (10/09, contro `d82a7871`)
+
+Fatto nella stessa unità: vedi la voce «LE RIMANENZE DI PIAZZALE PER IL
+COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: un
+**costo unitario per prodotto** compilabile dal gestore (darebbe una
+valutazione al costo, ma è un dato che oggi nessuna app ha, e inventarlo
+sarebbe il difetto del numero tranquillo); il carico/scarico per prodotto
+(disegno scartato: una cava non lo tiene).
+
+
+## Ricerca del 2026-09-10 — il registro delle vendite che il commercialista importa: il mondo
+
+⚠️ **Seconda mano e deduzione dichiarata**: niente `WebSearch` in questa
+unità; nessun numero di norma entra in una schermata.
+
+### Che cos'è, fuori
+
+- Il **registro IVA delle vendite** è l'elenco dei documenti emessi con, per
+  ogni documento e per ogni aliquota, imponibile e imposta separati; le
+  note di credito lo riducono. È ciò che il commercialista **registra** in
+  contabilità, e ciò che il suo gestionale **importa**. *[mestiere della
+  contabilità, da memoria]*
+- **I tracciati nativi** (TeamSystem, Zucchetti, Danea…) sono formati
+  proprietari con colonne e codici causale propri, documentati dal
+  produttore: chi li scrive senza la specifica in mano produce un file che
+  **sembra** giusto e viene rifiutato all'import — o peggio, importato con
+  le colonne scambiate. *[dedotto: le specifiche non sono state lette]*
+- **La via che regge senza specifica**: un CSV generico con le colonne che
+  ogni importatore sa mappare (tipo documento, numero, data, cliente,
+  partita IVA, codice fiscale, codice destinatario, aliquota, imponibile,
+  imposta, totale), una riga per aliquota. È la forma che i gestionali
+  chiamano «import da CSV con mappatura». *[dedotto dalla pratica diffusa]*
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Chi sa imponibile e imposta per aliquota?* → `riepilogoIvaFattura`
+   (le bande) e `totaliDaRighe`: non si riscrive.
+2. *Chi sa la partita IVA del cliente?* → l'anagrafica (`clienti.piva`,
+   `sdi`, `codiceFiscale`): dalla fattura si risale con `clienteId`.
+3. *Che cosa NON deve fare il file?* → scrivere «aliquota 0, imposta 0» su
+   una fattura senza IVA dichiarata: la risposta di casa è vuoto, non zero.
+
+### Il delta, fatto da chi ha il codice in mano (10/09)
+
+Fatto nella stessa unità: vedi la voce «IL REGISTRO DELLE VENDITE PER IL
+COMMERCIALISTA» in `vault/ROADMAP_SETTIMANA.md`. Resta fuori, dichiarato: il
+tracciato nativo di un gestionale specifico (serve la specifica letta, non
+ricordata) e il registro degli **acquisti** (Conti non ha le fatture passive:
+i costi sono voci, non documenti con IVA).
+
+## Ricerca del 2026-09-11 — la ritenuta d'acconto: a chi tocca, e se tocca a una cava
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra
+in una schermata; quelli qui sotto servono a decidere il delta.
+
+### Che cos'è, fuori
+
+- La ritenuta d'acconto è la trattenuta che chi **paga** un compenso
+  (il *sostituto d'imposta*) opera e versa all'Erario per conto di chi lo
+  riceve. Riguarda i **compensi di lavoro autonomo** (art. 25 DPR 600/73:
+  professionisti, prestazioni occasionali) e le **provvigioni** di agenti,
+  mediatori, procacciatori (art. 25-bis). *[risultati di ricerca: Agenzia
+  delle Entrate, FISCOeTASSE, leggeinchiaro]*
+- **Non riguarda la cessione di beni**: chi vende inerti emette una fattura
+  con IVA, e nessuna ritenuta. *[risultati di ricerca, e mestiere della
+  contabilità]*
+- Nel tracciato FatturaPA il blocco `DatiRitenuta` (`TipoRitenuta` RT01/RT02,
+  `ImportoRitenuta`, `AliquotaRitenuta`, `CausalePagamento` dal modello CU)
+  si compila **solo** quando una riga porta `Ritenuta = SI`, cioè quando la
+  fattura è un compenso soggetto a ritenuta e il cliente è sostituto
+  d'imposta. *[risultati di ricerca: specifiche tecniche FatturaPA,
+  1C-ERP, Aruba]*
+
+Fonti (risultati di ricerca, non lette per intero):
+[Agenzia delle Entrate — redditi soggetti a ritenuta](https://www.agenziaentrate.gov.it/portale/schede/pagamenti/versamento-modello-f24-ritenute-su-reddito-di-lavoro-autonomo-f24_rit_red_lav_aut/redditi-soggetti-a-ritenuta-f24_rit_red_lav_aut) ·
+[leggeinchiaro — art. 25 DPR 600/73](https://leggeinchiaro.it/articolo-25-del-accertamento-ritenuta-sui-redditi-lavoro-autonomo-sui/) ·
+[FISCOeTASSE — ritenuta per autonomi, agenti e occasionali](https://www.fiscoetasse.com/approfondimenti/12490-la-ritenuta-d-acconto-per-i-professionisti-in-unico-2016.html) ·
+[fatturapa.gov.it — specifiche tecniche v1.3.2](https://www.fatturapa.gov.it/export/documenti/Specifiche_tecniche_del_formato_FatturaPA_v1.3.2.pdf) ·
+[1C-ERP — ritenuta nella fattura XML](https://www.1c-erp.it/supporto/guida-utente-gestionale/fattura-elettronica/ritenuta-di-acconto/).
+
+### Domande per il delta (fatte al meccanismo)
+
+1. *Che cosa vende Conti?* → inerti a tonnellata o a metro cubo
+   (`prodotti`, `pesate`, `rigaPesata`): **cessione di beni**. Sulle fatture
+   che Conti EMETTE la ritenuta non esiste, e `xmlFatturaPA` fa bene a non
+   scrivere `DatiRitenuta`.
+2. *Dove la cava è sostituto d'imposta?* → quando **paga** un professionista
+   (il geologo della perizia, il consulente): nel lato **costi**. Conti ha
+   la voce di costo `consulenze` (dimostrazione: «Perizia geologica», 60 €),
+   ma i costi sono **voci**, non fatture passive con IVA e ritenuta — non
+   c'è un fornitore, un imponibile, una ritenuta da versare entro il 16 del
+   mese dopo (F24). *Chi lo sa in Conti?* Nessuno: `grep -ci "fattur[ae] passiv|fornitor" apps/conti/conti-data.js` → **1**, ed è il reso al fornitore dei ricambi, non un documento.
+
+### Il delta, fatto da chi ha il codice in mano (11/09, contro `0ad45296`)
+
+- **Lato vendite**: la riga «Ritenuta d'acconto» di `CONCORRENTI_CONTI` non
+  è una mancanza per una cava: è **non applicabile** alla cessione di
+  inerti. Riscritta così, con la ragione, invece di lasciarla fra le
+  «confermate assenti» a mandare qualcuno a costruirla.
+- **Lato costi**: la ritenuta sui compensi ai professionisti esisterebbe
+  solo con le **fatture passive**, che Conti non ha (i costi sono voci): è
+  quella la mancanza vera, ed è la stessa già dichiarata per il registro
+  degli acquisti. Resta scritta come tale, non come «ritenuta».
+
+## Ricerca del 2026-09-11 — secondo giro: che cosa chiede il commercialista a una cava (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma o di
+tariffa entra in una schermata; quelli qui sotto servono a decidere il delta.
+
+### Che cosa contiene, fuori
+
+- **Il canone (onere/diritto di escavazione)** si calcola sul **volume
+  estratto nell'anno per tipo di materiale**, con una **tariffa per tipo**
+  fissata dalla Regione e aggiornata (in Piemonte: importi unitari rivisti
+  dal 01/01/2026 con la L.R. 16/2025, poi ogni due anni con l'ISTAT). La
+  **dichiarazione dei volumi** dell'anno precedente si presenta entro il
+  **30 aprile** (Piemonte: «Modello A» sul Servizio Esercenti Minerari) e il
+  versamento è **in un'unica soluzione al 30/04 o in due rate uguali al
+  30/04 e al 31/10**. Esempio di listino regionale trovato: calcare con
+  esplosivo 0,720 €/m³, calcare con mezzi meccanici 1,082 €/m³, materiali da
+  alveo 2,672 €/m³ — cioè **la tariffa cambia col materiale e col metodo**.
+  *[risultati di ricerca: Regione Piemonte, legislazionetecnica.it,
+  gazzettaufficiale.it; tariffe di seconda mano, NON da scrivere in una
+  schermata]*
+- **Le rimanenze di fine anno** (i cumuli a piazzale) vanno in bilancio **al
+  minore fra il costo di produzione e il valore di realizzo desumibile dal
+  mercato** (art. 2426 c.c., OIC 13). Il commercialista chiede il **costo**,
+  non il prezzo di listino: il listino è il tetto, non il valore.
+  *[risultati di ricerca: soluzionetasse, mysolution, fiscoetasse]*
+- **Il fondo di smantellamento e ripristino** (OIC 31): quando esiste
+  un'obbligazione legale di ripristinare il sito — ed è il caso di ogni
+  autorizzazione di cava — si iscrive un fondo per oneri, in contropartita a
+  un aumento del costo del cespite, e lo si alimenta lungo la vita utile; per
+  le cave la prassi citata è un fondo per i **futuri costi di chiusura e di
+  ripristino ambientale dei siti**. La deducibilità fiscale degli
+  accantonamenti è un tema a sé (risposta AdE 64/2023).
+  *[risultati di ricerca: fondazioneoic.eu, dirittobancario.it,
+  quotidianopiu.it, agenziaentrate.gov.it]*
+- **Il conto economico per materiale**: i gestionali di settore chiedono il
+  **costo per tonnellata estratta e lavorata, per tipo di materiale**, con i
+  costi allocati dai volumi (pesa integrata) e le **royalty/canoni legati al
+  tonnellaggio estratto o spedito**; il profitto si legge per linea di
+  prodotto «una volta contato ogni costo». *[risultati di ricerca:
+  hellogravel.com, getclue.com, codelayer.in]*
+- **Il registro di carico e scarico**: quello che la ricerca trova è il
+  registro dei **rifiuti** (D.Lgs. 152/2006), che per il materiale estratto
+  non c'entra; per la cava il tracciato del materiale sono le **pesate/DDT**
+  e la dichiarazione annuale dei volumi. *[risultati di ricerca: mase.gov.it,
+  rifiutoo.com; la non applicabilità è una deduzione di mestiere]*
+
+### Fonti (seconda mano)
+
+- Regione Piemonte — Onere per il diritto di escavazione (materiale estratto nel 2024 e nel 2025): https://www.regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/onere-per-diritto-escavazione
+- Bollettino di Legislazione Tecnica — Art. 4, contributi dovuti per attività di cava: https://legislazionetecnica.it/node/8107895
+- Fondazione OIC — OIC 31, Fondi per rischi e oneri: https://www.fondazioneoic.eu/wp-content/uploads/2022/10/2019-01-OIC-31-Fondi-per-rischi-e-oneri-e-TFR.pdf
+- Diritto Bancario — Deducibilità degli accantonamenti ai fondi di ripristino ambientale: https://www.dirittobancario.it/art/deducibilita-degli-accantonamenti-ai-fondi-di-ripristino-ambientale/
+- Agenzia delle Entrate — Risposta n. 64/2023: https://www.agenziaentrate.gov.it/portale/documents/20143/4913743/Risposta+n.+64_2023.pdf
+- MySolution — Valutazione delle rimanenze, OIC 13: https://www.mysolution.it/fisco/guide/guide-bilancio/scritture-contabili/la-rilevazione-in-contabilita-delle-rimanenze-di-magazzino/
+- Hello Gravel — Quarry accounting systems 2026: https://hellogravel.com/quarry-accounting-systems-and-financial-management-for-2026/
+- MASE — Manuale per la tenuta del registro di carico e scarico (rifiuti): https://www.mase.gov.it/portale/documents/d/guest/all_1-manuale_tenuta_registro_carico_scarico-pdf
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi calcola il canone, e con quante tariffe? (una per cava o una per materiale?)
+2. Chi dà un valore ai cumuli di fine anno, e a che valore?
+3. Chi sa quanto costerà il ripristino, e chi lo spalma sui metri cubi?
+4. Chi conosce i costi per prodotto — o solo i ricavi per prodotto?
+5. Chi sa quando si dichiara e quando si versa?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `c1808b17`)
+
+- **Domanda 1 — C'È, con UNA tariffa sola.** `canonePeriodo` in
+  `conti-data.js` fa il conto in euro (base venduto o scavato, unità t o m³,
+  `null` con la ragione quando manca la base o la tariffa) e lo spezza **per
+  prodotto** — ma l'aliquota è **una per l'organizzazione**: `grep -c
+  'aliquota = noto ? +cfg.canoneAliquota : null' apps/conti/conti-data.js` →
+  1, e ogni riga `perProdotto` moltiplica la stessa `aliquota`
+  (`grep -ciE 'canoneAliquota' apps/conti/conti-data.js` → 5, tutte
+  sull'impostazione unica). Il mondo tariffa **per tipo di materiale e
+  metodo**. **Mancanza confermata, piccola e aperta**: la tariffa per
+  prodotto — sul listino di Conti, accanto a `unitaPrezzo`, con l'aliquota
+  dell'organizzazione come ripiego dichiarato — e la riga del canone che dice
+  quale tariffa ha usato per ogni prodotto. Terra tiene i metri cubi
+  (`onereEscavazione`) e non fa euro: giusto, resta così.
+  ✅ **FATTO lo stesso giorno, unità 87**: `canoneAliquota` sul listino,
+  `canonePeriodo(…, prodotti)` con `tariffa` dichiarata riga per riga. Prova:
+  `grep -c 'return { aliquota: a, tariffa: "prodotto" }' apps/conti/conti-data.js`
+  → 1 (il comando largo `grep -c 'tariffa: "prodotto"'` risponde 2, perché
+  prende anche il commento: rilanciato prima del commit).
+- **Domanda 2 — C'È, ma AL PREZZO DI LISTINO.** `prospettoRimanenze`
+  valorizza i cumuli con `valore = t × prezzo` del listino: `grep -cF 'valore =
+  round2(unita === "m3" ? m3 * prezzo : t * prezzo)' apps/conti/conti-data.js`
+  → 1. ⚠️ *Con `-c` e senza `-F` lo stesso comando rispondeva **0**: l'asterisco
+  di `m3 * prezzo` è un metacarattere, e uno zero così sarebbe finito qui come
+  «non c'è». È la quinta forma del righello di CLAUDE.md, presa perché il
+  comando è stato rilanciato prima del commit su un caso che DEVE trovare.*
+  Per il bilancio il valore è il **minore fra costo e realizzo**: il
+  listino è il tetto. Il costo unitario Conti lo sa già calcolare —
+  `costoPerMetroCubo` (`grep -ciE 'costoPerMetroCubo|costoM3'` → 4
+  occorrenze) — e lo dichiara «non calcolabile» senza i metri cubi di Terra.
+  **Mancanza confermata, aperta**: il prospetto delle rimanenze porta **due
+  valori** — al costo (costo al m³ del periodo × m³ del cumulo) e al listino —
+  e scrive quale dei due vale per il bilancio (il minore), con `null` e la
+  ragione quando il costo non si calcola; il CSV per il commercialista li
+  porta tutt'e due.
+  ✅ **FATTO lo stesso giorno, unità 86**: `rimanenzeBilancio`,
+  `descriviRimanenzeBilancio`, quattro colonne in `csvRimanenze`, la pagina
+  del Report. Prova: `grep -c "export function rimanenzeBilancio"
+  apps/conti/conti-data.js` → 1.
+- **Domanda 3 — MANCA, e chiede una decisione.** Nessuna delle app ha un
+  fondo di ripristino: `grep -ciE 'accantonament|fondo (rischi|oneri|ripristino)|smantellament'`
+  su conti-data, conti index e terra-data → apps/conti/conti-data.js:0 apps/conti/index.html:0 apps/terra/terra-data.js:0. Terra ha la **garanzia
+  vincolata** per lotto (`garanziaVincolata`, → 1), che è la quota della
+  polizza — un numero che l'utente scrive — non il costo atteso del
+  ripristino. Spalmare quel costo sui metri cubi (€/m³ da aggiungere al costo
+  di produzione, come vuole l'OIC 31) vuole **un costo atteso dichiarato per
+  lotto** e un criterio (per m³ concesso residuo? per anno?): è una scelta del
+  commercialista e del fondatore. **Dichiarato, non aperto.**
+- **Domanda 4 — SOLO I RICAVI.** `venditePerProdotto` (→ 1) spezza le
+  vendite per prodotto; i costi sono **voci** (personale, carburante,
+  ripristino…) e nessuno li attribuisce a un prodotto: `grep -ciE
+  'costiPerProdotto|margine.*prodotto|perProdotto.*cost' apps/conti/conti-data.js`
+  → 0. Un margine per prodotto vuole una **chiave di riparto** (tonnellate
+  vendute? ore macchina di Flotta?) che nessuno ha deciso. **Dichiarato, non
+  aperto** — e va detto che senza chiave un numero «per prodotto» sarebbe
+  esattamente il numero tranquillo del principio del fondatore.
+- **Domanda 5 — LE DATE NON CI SONO.** In Conti nessuna rata né scadenza del
+  canone: `grep -ciE '\brat[ae]\b|31/10|30/04' apps/conti/conti-data.js` →
+  0; in Terra il riepilogo annuale c'è (`grep -ciE 'dichiarazione
+  annuale|riepilogo annuale'` su index e modulo → apps/terra/index.html:3 apps/terra/terra-data.js:5). Le date sono
+  **regionali** (30/04 e 31/10 in Piemonte; altre regioni, altri termini):
+  entrano come **scadenze dell'organizzazione** (Terra le sa già tenere, tipo
+  «fideiussione»), non come una regola scritta nel codice. **Non applicabile
+  come regola; già possibile come scadenza.**
+- **Registro carico/scarico**: non applicabile al materiale estratto (è dei
+  rifiuti); in Conti `grep -ciE 'carico e scarico|carico/scarico'` → apps/conti/conti-data.js:0 apps/conti/index.html:0,
+  ed è giusto così. Le pesate e i DDT sono il tracciato.
+
+**Riassunto** — 2 mancanze **confermate e aperte** (tariffa del canone per
+prodotto; rimanenze al costo oltre che al listino), 2 **dichiarate** che
+chiedono una decisione (fondo di ripristino; margine per prodotto), 1 **non
+applicabile** (registro carico/scarico), 1 **già possibile** (le date del
+canone come scadenze).
+
+## Ricerca del 2026-09-11 — terzo giro: che cosa chiede la banca, e che cosa pretende il Codice della crisi (il mondo)
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (che risponde), non con
+`WebFetch` (che non legge il testo primario). Nessun numero di norma entra in
+una schermata; quelli qui sotto servono a decidere il delta.
+
+### Come va, fuori
+
+- **Che cosa guarda la banca prima di dare un fido a una PMI**: lo storico dei
+  pagamenti, il saldo medio, i debiti già in essere, il **bilancio**, il
+  fatturato e il **cash flow**; la situazione contabile aggiornata (fatturato,
+  costi, margini, crediti, debiti, liquidità), la **mappa degli affidamenti**
+  banca per banca, e lo **scadenzario clienti e fornitori con importi e date
+  previste** di incassi e pagamenti; poi la **Centrale dei Rischi** della Banca
+  d'Italia e le banche dati creditizie (CRIF/EURISC), da leggere insieme a
+  bilanci, estratti conto e piani di ammortamento. Nessuna delle pagine trovate
+  tratta le cave come settore a sé. *[risultati di ricerca: bancobpm.it,
+  finom.co, finera.it, bancaditalia.it (circolare 139), tuttocentralerischi.it,
+  grifofinance.com]*
+- **Che cosa pretende il Codice della crisi d'impresa** (adeguati assetti,
+  art. 2086 c.c.): il **DSCR** — flussi di cassa liberi previsti nei **sei
+  mesi** successivi diviso le uscite per i debiti non operativi in scadenza
+  nello stesso periodo — con dati **prospettici**; un'azienda che non sa
+  produrre previsioni attendibili dei propri flussi denuncia un assetto
+  inadeguato; fra le uscite contano capitale e interessi dei debiti
+  finanziari, i debiti verso fornitori e quelli fiscali e contributivi
+  **scaduti oltre la soglia fisiologica**. *[risultati di ricerca:
+  fiscoetasse.com, ntplusfisco.ilsole24ore.com, focus.namirial.com,
+  confindustriavenest.it, business-plan.it, beneggiassociati.com,
+  studiosimone.com]*
+- **Che cosa fanno i gestionali di cava** sul credito: promemoria di pagamento
+  automatici, tracciamento degli incassi, riconciliazione delle fatture, e il
+  **controllo del credito integrato con la pesa** — «impedisce che un carico
+  non pagato esca dal sito»; moduli «Credit Control» accanto a pesa, prezzi
+  di sito, trasporto e magazzino; il flusso dalla pesa alla fattura come
+  ciclo order-to-cash. *[risultati di ricerca: herbstsoftware.com,
+  weighpay.com, paradigmsoftware.com, cebasolutions.com, creativeinfo.net,
+  plantdemand.com]*
+
+### Fonti (risultati di ricerca, non lette per intero)
+
+bancobpm.it · finom.co · finera.it · bancaditalia.it · tuttocentralerischi.it
+· grifofinance.com · fiscoetasse.com · ntplusfisco.ilsole24ore.com ·
+focus.namirial.com · confindustriavenest.it · business-plan.it ·
+beneggiassociati.com · studiosimone.com · herbstsoftware.com · weighpay.com
+· paradigmsoftware.com · aerosol.io · cebasolutions.com · creativeinfo.net ·
+plantdemand.com · ractosoft.com.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi sa quanto è esposto ogni cliente, e se ha superato il fido?
+2. Chi sa quanto si incasserà nei prossimi mesi (lo scadenzario clienti con le
+   date previste)?
+3. Chi sa quanto si pagherà nei prossimi mesi (lo scadenzario fornitori)?
+4. Chi ferma — o almeno avvisa — quando un carico esce per un cliente già
+   oltre fido?
+5. Chi sa i tempi reali di pagamento dei clienti, e chi sollecita?
+6. Chi calcola il DSCR a sei mesi?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `2766bf9b`)
+
+- **Domanda 1 — C'È.** `esposizioneClienti(fatture, oggi, clienti, note)`
+  raggruppa per anagrafica, conta le fatture aperte, lo scaduto e segnala
+  `oltreFido` (il fido è nel record del cliente: `grep -c 'fido' apps/conti/conti-data.js`
+  → 20 nel modulo, 54 nella pagina); la lista dei clienti e il report lo
+  mostrano col badge «Fido superato» (`grep -c 'oltreFido' apps/conti/index.html`
+  → 8). Niente da aggiungere.
+- **Domanda 2 — C'È.** `incassoAtteso` (i prossimi N giorni), `incassoPerMese`
+  (sei mesi, con le scadute in un secchio loro, «vanno sollecitate, non
+  attese») e `agingIncassi`. È lo scadenzario clienti con le date previste
+  che la banca chiede. Niente da aggiungere.
+- **Domanda 3 — MANCA, e chiede una decisione.** I costi hanno la data del
+  documento e l'importo (`costi/{id}: { data, voce, importo, nota,
+  registratoIl }`), **non una scadenza di pagamento** né uno stato
+  pagato/da pagare: `grep -ciE 'debiti|fornitor.*scadenz|da pagare'
+  apps/conti/conti-data.js` → 3, e nessuno dei tre è uno scadenzario: due
+  sono frasi sul credito del cliente («niente da pagare»), uno è il modo di
+  dire «il prezzo da pagare» in un commento. Senza le uscite previste non c'è uno
+  scadenzario fornitori, e senza quello né il DSCR né la «situazione
+  contabile aggiornata» che la banca chiede. Aggiungerlo vuol dire decidere
+  se Conti è anche il libro dei **debiti** (scadenza, pagato il, fornitore)
+  o se resta il libro delle vendite con i costi «a consuntivo»: è una
+  decisione di prodotto sul perimetro dell'app, prima che un'unità.
+  **Dichiarato, non aperto.**
+- **Domanda 4 — MANCA, ed è il delta piccolo.** Il modulo sa chi è oltre
+  fido, ma la **pesata** non lo legge: nel form della pesata (`pes-cli`,
+  `pes-esito`) `grep -c 'oltreFido'` nella parte della pesata → 0 (gli 8 hit
+  della pagina sono tutti nella lista dei clienti e nel report). I gestionali
+  di cava fermano il carico alla pesa; qui basta **dirlo**: quando il cliente
+  scelto è oltre fido (o ha scaduto), la striscia della pesata lo scrive
+  prima di registrare — composizione di `esposizioneClienti`, non un calcolo
+  nuovo; **fermare** il carico è una scelta del titolare, non del programma.
+  **Mancanza confermata, aperta.**
+  ✅ **FATTO lo stesso giorno, unità 106**: `grep -c '^export function
+  avvisoFidoPesata' apps/conti/conti-data.js` → 1; `grep -c 'id="pes-fido"'
+  apps/conti/index.html` → 1.
+- **Domanda 5 — C'È.** `tempiPagamentoClienti` (giorni medi fra emissione e
+  saldo, e oltre la scadenza, solo su fatture saldate con data vera),
+  `livelloSollecito`, `testoSollecito`, `interessiMora`. Niente da
+  aggiungere.
+- **Domanda 6 — DICHIARATO, dipende dalla 3.** `grep -ciE 'DSCR|crisi
+  d.impresa|2086|adeguati assetti'` → 0 e 0. Il DSCR vuole le uscite
+  previste (debiti finanziari, fornitori, fisco): senza la domanda 3 sarebbe
+  un numero senza denominatore, cioè l'assenza travestita da indice. Resta
+  con la decisione della domanda 3.
+
+**Riassunto** — 1 mancanza **confermata e aperta, piccola** (la pesata che
+avvisa del cliente oltre fido), 1 **decisione** (lo scadenzario fornitori:
+Conti è anche il libro dei debiti?), 1 **dichiarata** che dipende da quella
+(il DSCR), 3 **già a posto** (esposizione e fido, incassi attesi per mese,
+tempi di pagamento e solleciti).
+
+## Ricerca del 2026-09-11 — quarto giro: quando lo SdI risponde — scarto, mancata consegna, e il tipo documento della fattura differita (il mondo)
+
+*Quarto giro su Conti. Strumento: `WebSearch` (cinque ricerche); `WebFetch`
+risponde `EGRESS_BLOCKED`: **nessuna fonte letta per intero**, tutto di
+seconda mano dai riassunti. La metà sul delta, sotto, è fatta da chi ha il
+codice in mano.*
+
+### Come va, fuori [tutto di seconda mano]
+
+- **Lo SdI risponde, e le risposte sono poche e precise.** Alla ricezione
+  di un file lo SdI restituisce una **ricevuta di consegna** (il file è
+  arrivato al destinatario), una **notifica di scarto** (il file non ha
+  passato i controlli: la fattura è **come non emessa**), oppure una
+  **notifica di mancata consegna** (indirizzo telematico non disponibile o
+  non indicato — codice destinatario «0000000»): in quest'ultimo caso, fra
+  privati, la fattura **è emessa** e il cliente la trova nel suo **cassetto
+  fiscale**; verso la PA lo SdI riprova per **dieci giorni** e poi rilascia
+  un'**attestazione di avvenuta trasmissione con impossibilità di
+  recapito**, con cui il fornitore la manda per altra via.
+- **La fattura scartata si riemette.** Circolare dell'Agenzia delle Entrate
+  **13/E del 2 luglio 2018**: entro **cinque giorni** dalla notifica di
+  scarto si rimanda allo SdI **con lo stesso numero e la stessa data**;
+  altrimenti con numero e data nuovi rispettando la progressione, oppure
+  con una numerazione dedicata che dica che è la rettifica della
+  precedente. Il termine va rispettato per non incorrere nella sanzione per
+  tardiva emissione.
+- **La fattura differita ha il suo codice.** Dal 1° gennaio 2021 il
+  tracciato distingue **TD01** (immediata) da **TD24** (differita dell'art.
+  21 c. 4 lett. a del D.P.R. 633/72: cessioni documentate da DDT, emessa
+  entro il 15 del mese successivo). La scelta fra immediata e differita è
+  del cedente, ma **chi fa la differita usa TD24**, così SdI e Agenzia
+  riconoscono il documento; sbagliare TD01/TD24 «potrebbe non portare a
+  sanzioni», ma il codice giusto è quello. Nel file la sezione **DatiDDT**
+  ripete numero e data di ogni DDT (facoltativo `RiferimentoNumeroLinea` per
+  legare il DDT alle righe), e più sezioni per più consegne del mese.
+- **Il mestiere**: chi emette dal gestionale vuole sapere, fattura per
+  fattura, **se lo SdI l'ha presa**, e se scartata quanti giorni restano per
+  rispedirla senza cambiare numero; e vuole che la fattura di fine mese sulle
+  pesate esca **come differita**, non travestita da immediata.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- Agenzia delle Entrate: «Cosa fa il Sistema di Interscambio quando riceve
+  una fattura»; FAQ «Emissione delle fatture elettroniche» e «Compilazione
+  della fattura elettronica»; circolare 13/E del 02/07/2018 (testo e
+  comunicato stampa); «Guida alla compilazione FE ed esterometro» v1.9
+  (05/03/2024); Allegato A, specifiche tecniche v1.5; provvedimento
+  21/12/2018 all. B (formato 1.2).
+- fatturapa.gov.it: «File, fatture e messaggi»; formato FatturaPA;
+  specifiche tecniche v1.3.1 e v1.3.2; «Suggerimenti per la compilazione»
+  1.6; «Linee guida alla compilazione» 1.0; masaf.gov.it (specifiche v1.0).
+- Scarto e mancata consegna: datalog.it; danea.it; biblus.acca.it;
+  fattura24.com (le notifiche dello SdI); aliasdigital.it (DocEasy);
+  ksgestionali.it; ufficiocamerale.com (due FAQ); fatturapro.click;
+  futurodigitale.infocert.it; soluzionetasse.com; tasse-fisco.com;
+  fattureincloud.it (scartata; differita); studiobrandi-commercialisti.it.
+- TD24 e differita: agendadigitale.eu (tre risposte dell'esperto: TD01/TD24,
+  TD25, righe DDT); recivu.it; 1c-erp.it (TD24; fattura differita; sezioni
+  XML); thecalcoloiva.com (TD24; tipi documento; art. 21); dkpost.it;
+  winddoc.com; help.fattureincloud.it (riferimenti DDT);
+  to.camcom.it (il DDT); fiscomania.com (DDT); pa.sm (Ciscoop);
+  koruspartners.it; fatturafacile.com (tre); edupass.it; gestionale1.it;
+  consulenza.it (Buffetti); 101professionisti.it; advant-nctm.com;
+  eutekne.info; dangelos.it.
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. **Che tipo documento scrive il file** quando la fattura nasce da più DDT
+   (la differita di fine mese sulle pesate)?
+2. **Chi sa se lo SdI ha preso la fattura** — consegnata, scartata, non
+   consegnata — e che cosa cambia nei conti e nei solleciti?
+3. **Una scartata**: chi dice che va rispedita e con quale numero, e conta i
+   giorni?
+4. **Una non consegnata**: chi avvisa il cliente che la trova nel cassetto
+   fiscale?
+
+### Il delta, fatto da chi ha il codice in mano (11/09, verificato contro il commit `48a69f3a`)
+
+- **Domanda 1 — SBAGLIATO A METÀ, ed è il delta più netto.** `xmlFatturaPA`
+  (in `conti-data.js`) costruisce già le sezioni `DatiDDT` dalle pesate
+  (`const datiDdt = ddt.map(…)`, con `ddtCitati` nel risultato) — cioè SA di
+  fare una differita — e scrive **`TipoDocumento` = `TD01` fisso**
+  (`grep -c 'tag("TipoDocumento", "TD01")'` → 1; `grep -c 'TD24'` → 0). Una
+  fattura di fine mese su tre DDT esce come immediata. **Mancanza
+  confermata**: `TD24` quando la fattura cita almeno un DDT, `TD01`
+  altrimenti, con il codice dichiarato negli `avvisi` del file [il codice è
+  di seconda mano, dalle specifiche tecniche e dalla guida dell'Agenzia:
+  si scrive nel commento].
+  ✅ **FATTO l'11/09 (unità 118)**: `tipoDocumento` in `xmlFatturaPA`.
+- **Domanda 2 — MANCA.** La fattura ha `emessa`, `scadenza`, gli incassi e
+  lo stato di incasso (`statoIncasso`, `statoScadenzaFattura`), ma
+  **nessun campo dice che cosa ha risposto lo SdI**: `grep -ciE
+  'esitoSdi|statoSdi|scartata dallo|ricevuta di consegna'` → **0** nel
+  modulo e nella pagina (i «scartat» che ci sono parlano delle righe dei
+  file bancari). Il file XML si prepara e si «invia gratis dal portale»
+  (commento del modulo): quello che torna indietro non ha dove essere
+  scritto. **Mancanza confermata, aperta**: sulla fattura `sdi: { stato:
+  da-inviare | inviata | consegnata | scartata | mancata-consegna, il (ISO),
+  nota }` dichiarato dall'utente leggendo la ricevuta; `statoSdi(f, oggi)`
+  che per «scartata» dice **«come non emessa»** e conta i giorni dalla
+  notifica (il termine dei cinque giorni si scrive con la sua fonte,
+  circolare 13/E/2018, marcato di seconda mano — è un promemoria, non un
+  calcolo che decide), per «mancata consegna» dice che la fattura è emessa
+  e che il cliente la trova nel cassetto fiscale; e il **sollecito** non
+  parte su una fattura scartata (non è emessa: sollecitare un incasso su un
+  documento inesistente è un errore che il cliente nota).
+  ✅ **FATTO l'11/09 (unità 118)**: `sdi` sulla fattura, `statoSdi`,
+  `sollecitabile`, `prioritaIncasso` marcata, estratto conto e riga.
+- **Domanda 3 — MANCA, ed entra nella stessa voce.** Riemissione: stesso
+  numero e data entro il termine, altrimenti numero nuovo. `statoSdi` lo
+  dice; il numero non lo cambia il modulo (è una decisione di chi emette).
+  ✅ **FATTO l'11/09 (unità 118)**: nel testo di `statoSdi`.
+- **Domanda 4 — C'È A METÀ.** L'avviso alla preparazione del file esiste
+  già («il cliente non ha un codice destinatario né una PEC: il file va con
+  «0000000» e il cliente la trova nel suo cassetto fiscale»); manca
+  l'avviso **dopo**, sulla notifica di mancata consegna: con lo stato `sdi`
+  della domanda 2 l'estratto conto del cliente lo può scrivere.
+  ✅ **FATTO l'11/09 (unità 118)**: l'estratto conto lo scrive.
+
+**Riassunto** — 1 **correzione** confermata (TD24 sulla differita), 1
+mancanza **confermata e aperta** (l'esito dello SdI sulla fattura, con la
+scartata «come non emessa» e il sollecito che non parte), 1 a metà (l'avviso
+del cassetto fiscale c'è prima, non dopo).

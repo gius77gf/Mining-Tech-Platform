@@ -165,14 +165,48 @@ const frase = (testo, atteso, vietato, nome) => {
   const t = String(testo == null ? "" : testo).replace(/\s+/g, " ");
   dice(t.includes(atteso) && (!vietato || !t.includes(vietato)), nome, t);
 };
+/* ⏱️ 12/09: RENDERHOME() LEGGE DA `GDB` (`await genesiData()`), CHE PRIMA
+   PROVA UNA MODALITÀ "LIVE" (init dell'SDK identità) prima di ripiegare sul
+   locale — misurato: la Home resta con `hgVolN` VUOTO fino a 13-15s in
+   questo ambiente, non per colpa dello storico iniettato ma per lo stesso
+   motivo dello splash (vedi `vaiA`): la pagina ha semplicemente bisogno di
+   più tempo di quanto un'attesa fissa gli conceda. Si RIPROVA la lettura
+   ogni 400ms fino a un tetto, invece di leggere una volta sola. */
+async function aspettaTesto(pg, leggi, tetto = 25000) {
+  const scadenza = Date.now() + tetto;
+  let t = "";
+  do {
+    t = await pg.evaluate(leggi);
+    if (t) break;
+    await pg.waitForTimeout(400);
+  } while (Date.now() < scadenza);
+  return t;
+}
 
+/* ⏱️ 12/09, seconda misura: NON era un'ordine di intercettazione di
+   `window.toast` — era la STESSA causa di `vaiA` e di `genesi-struttura.mjs`,
+   in una veste che l'aveva nascosta. `$('fileIn').onchange=...` (riga ~3053
+   di genesi.html) viene assegnato durante lo stesso avvio sincrono lento
+   (13-20s senza GPU) di `disclaimerChk.onchange`: il caso «1 · i file
+   importati» chiama `dai(pg,'fileIn',...)` SUBITO dopo `apri()`, prima che
+   quel gestore esista. Il `change` scatta nel vuoto — nessuno lo ascolta —
+   e non si ripresenterà mai, quindi `aspettaToast` esauriva i suoi 25s
+   aspettando un toast che non sarebbe mai arrivato: non un'attesa più
+   lunga, un evento sparato a vuoto. Sostituita l'attesa fissa di 2,6s con
+   un'attesa dello sparire di `#splash` (segno che il grosso del cablaggio,
+   incluso `fileIn.onchange`, è fatto), tetto 25s — stesso pattern di
+   `vaiA` e `genesi-struttura.mjs`. */
 async function apri(preludio, coda) {
   const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
   const errori = [];
   pg.on("pageerror", (e) => errori.push(e.message));
   await pg.addInitScript(preludio || (() => localStorage.setItem("genesiDisclaimerV1", "1")));
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html${coda || ""}`, { waitUntil: "domcontentloaded" });
-  await pg.waitForTimeout(2600);
+  const scadenzaSplash = Date.now() + 25000;
+  while (await pg.evaluate(() => !!document.getElementById("splash")) && Date.now() < scadenzaSplash) {
+    await pg.waitForTimeout(500);
+  }
+  await pg.waitForTimeout(300);
   await pg.evaluate(() => {
     const l = document.getElementById("loginBtn"); if (l) l.click();
     const c = document.getElementById("consensoOk");
@@ -190,13 +224,26 @@ async function apri(preludio, coda) {
   pg.__errori = errori;
   return pg;
 }
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer. Un solo click con un'attesa fissa
+   cade quasi sempre PRIMA che lo splash sparisca (misurato con
+   `elementFromPoint` sul bottone: `DIV#splash`, non il bottone) — non è una
+   regressione, lo stesso 28 KO usciva sul commit precedente a questa
+   sessione. Si RIPROVA il click ogni 400ms fino a 25s invece di aspettare
+   una volta sola. Vedi `genesi-numeri-tranquilli.mjs` per la misura
+   completa. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const t = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
-    if (t) t.click();
-  }, schermo);
-  await pg.waitForTimeout(1300);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const t = [...document.querySelectorAll("#bottomnav button")].find((x) => x.dataset.scr === s);
+      if (t) t.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 const dai = async (pg, id, nome, testo, mime) => {
@@ -204,6 +251,20 @@ const dai = async (pg, id, nome, testo, mime) => {
   await pg.waitForTimeout(1100);
 };
 const toasts = (pg) => pg.evaluate(() => { const t = window.__toasts.slice(); window.__toasts = []; return t.join(" | "); });
+/* ⏱️ 12/09: come `aspettaTesto` ma per i toast — un `dai()` (setInputFiles)
+   subito dopo `apri()` può arrivare prima che la pagina abbia finito di
+   agganciare il suo `onchange`, nello stesso ambiente lento descritto sopra.
+   Si attende che la coda dei toast non sia vuota, senza svuotarla ad ogni
+   giro (altrimenti si perderebbe il toast arrivato tardi). */
+const aspettaToast = async (pg, tetto = 25000) => {
+  const scadenza = Date.now() + tetto;
+  while (Date.now() < scadenza) {
+    const n = await pg.evaluate(() => window.__toasts.length);
+    if (n > 0) break;
+    await pg.waitForTimeout(400);
+  }
+  return toasts(pg);
+};
 
 const UNO = () => {
   localStorage.setItem("genesiDisclaimerV1", "1");
@@ -227,11 +288,11 @@ console.log("\n· la home con UNA volata salvata e UN rilievo da UN punto");
 {
   const pg = await apri(UNO);
   await vaiA(pg, "home");
-  frase(await pg.evaluate(() => (document.getElementById("hgVolN") || {}).textContent),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgVolN") || {}).textContent),
         "1 salvata", "1 salvate", "⛔ il contatore delle volate dice «1 salvata», non «1 salvate»");
-  frase(await pg.evaluate(() => (document.getElementById("hgNuvN") || {}).textContent),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgNuvN") || {}).textContent),
         "1 lavorazione", "1 lavorazioni", "⛔ e quello dei rilievi «1 lavorazione»");
-  frase(await pg.evaluate(() => (document.getElementById("hgNuvole") || {}).innerText),
+  frase(await aspettaTesto(pg, () => (document.getElementById("hgNuvole") || {}).innerText),
         "1 punto caricato", "1 punti", "⛔ e la nuvola da un punto solo dice «1 punto caricato»");
   dice(pg.__errori.length === 0, "la pagina non solleva errori", pg.__errori[0]);
   await pg.close();
@@ -243,7 +304,7 @@ console.log("\n· i file importati con un foro / una riga sola");
   const pg = await apri();
   await dai(pg, "fileIn", "volata.json",
     JSON.stringify({ volata: { fori: [{ x: 0, prof: 10, kg: 58, ritardo: "25" }] } }), "application/json");
-  frase(await toasts(pg), "1 foro", "1 fori", "⛔ volata JSON da un foro: «✓ Volata importata: 1 foro»");
+  frase(await aspettaToast(pg), "1 foro", "1 fori", "⛔ volata JSON da un foro: «✓ Volata importata: 1 foro»");
 
   await vaiA(pg, "design");
   await dai(pg, "fileXmlIn", "piano.xml",
@@ -270,6 +331,34 @@ console.log("\n· i file importati con un foro / una riga sola");
     dice(!/Carica reale totale — 0 kg/.test(q) && /Carica reale totale — NESSUNA CARICA REALE/i.test(q.replace(/\s+/g, " ")),
          "⛔ e «Carica reale totale» non scrive 0 kg dove nessuno ha registrato niente",
          (q.match(/Carica reale totale[^A-Z]{0,60}[A-Z ]{0,30}/) || [])[0]);
+  }
+  /* il confronto FORO PER FORO (05/09): il progetto aperto ha tre fori
+     (f1-1, f1-2, f1-3: la maglia minima dopo l'import XML da un foro). Un
+     consuntivo con gli id accoppia per id e dichiara il foro senza riga e la
+     riga senza foro; uno senza id accoppia per numero e lo dice. */
+  {
+    await dai(pg, "riconCampoFile", "consuntivo_id.csv",
+      "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro\n"
+      + "2026-09-05;mattino;1;58;61;5;3;;Rossi;f1-1\n2026-09-05;mattino;2;58;70;21;12;;Rossi;f1-2\n2026-09-05;mattino;9;58;58;0;0;;Rossi;f9-9\n");
+    await pg.waitForTimeout(500);
+    const q = await pg.evaluate(() => (document.getElementById("riconBody") || {}).innerText.replace(/\s+/g, " "));
+    const stati = await pg.$$eval(".ricamp-ft .ricamp-b", (e) => e.map((x) => x.innerText.trim().toLowerCase()));
+    const ids = await pg.$$eval(".ricamp-ft .mono", (e) => e.map((x) => x.innerText.trim()));
+    frasi++;
+    dice(ids.join("|") === "f1-1|f1-2|f1-3" && stati.join("|") === "in linea|fuori 10–25 %|senza riga",
+         "⛔ foro per foro: f1-1 in linea (61 su 58), f1-2 fuori (70 su 58), f1-3 senza riga — accoppiati per id, non per posizione", ids.join("|") + " / " + stati.join("|"));
+    dice(/Accoppiati per id del foro/.test(q) && /1 foro del progetto senza riga/.test(q) && /1 riga del consuntivo senza foro nel progetto aperto \(f9-9\)/.test(q),
+         "⛔ e la nota dichiara la chiave, il foro senza riga e la riga orfana per nome", (q.match(/Accoppiati.{0,260}/) || [])[0]);
+    const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+    dice(largo, "la griglia foro per foro non fa scorrere la pagina di lato");
+    await dai(pg, "riconCampoFile", "consuntivo_vecchio.csv",
+      "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct\n2026-09-05;mattino;1;58;61;5\n2026-09-05;mattino;2;58;;\n");
+    await pg.waitForTimeout(500);
+    const q2 = await pg.evaluate(() => (document.getElementById("riconBody") || {}).innerText.replace(/\s+/g, " "));
+    dice(/Accoppiati per numero/.test(q2) && /senza nessun avviso/.test(q2),
+         "⛔ un consuntivo di ieri, senza id: accoppiati per NUMERO, e la nota dice che un foro tolto sposta gli altri", (q2.match(/Accoppiati.{0,200}/) || [])[0]);
+    const stati2 = await pg.$$eval(".ricamp-ft .ricamp-b", (e) => e.map((x) => x.innerText.trim().toLowerCase()));
+    dice(stati2.join("|") === "in linea|da registrare|senza riga", "e il foro 2 con la carica vuota dice «da registrare», non «in linea»", stati2.join("|"));
   }
   await pg.evaluate(() => { const c = document.getElementById("riconClose"); if (c) c.click(); });
   await pg.waitForTimeout(400);

@@ -107,7 +107,14 @@ DEMO.ordini.push({ id: "u-o1", numero: "PREV/2026/001", numeroOrdine: "ORD/2026/
 DEMO.gare.length = 0;
 DEMO.gare.push({ id: "u-g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: _gU(-20), stato: "aperta" });
 DEMO.costi.length = 0;
-DEMO.costi.push({ id: "u-k1", data: _gU(6), voce: "personale", importo: 55, nota: "Squadra di fronte" });
+/* ⛔ OGGI, NON «SEI GIORNI FA»: la frase «manca il costo di personale» nasce
+   confrontando il mese PRECEDENTE con gli ALTRI mesi, quindi l'unico costo deve
+   stare nel mese in corso. Con _gU(6) ci stava solo dal 7 del mese in poi: il
+   02/09 cadeva il 27/08, cioè NEL mese da chiudere, «altri mesi» restava
+   vuoto, il modulo rispondeva «non misurabile» e il banco accusava il
+   prodotto. Una garanzia che dipende dal giorno del calendario non è una
+   garanzia (CLAUDE.md, le lezioni del simulatore). Misurato il 02/09. */
+DEMO.costi.push({ id: "u-k1", data: _gU(0), voce: "personale", importo: 55, nota: "Squadra di fronte" });
 DEMO.rilieviTerra.length = 0;
 DEMO.rilieviTerra.push({ id: "u-t1", titolo: "Rilievo di fine mese", data: _gU(5), volumeM3: 47,
   stato: "elaborato", metodo: "RTK+GCP", gsd: "2" });

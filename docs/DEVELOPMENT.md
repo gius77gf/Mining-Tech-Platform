@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**2.877 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 25/08: 2396 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.422 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 13/09, dopo `_puntiNuvola` salita dalla pagina: 2941 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.282** asserzioni su **37** comandi.
+> `node` completo esegue **3.880** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -78,21 +78,20 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > 2.251» mentre il titolo sopra diceva già 2.310: il controllo sorveglia il
 > **totale**, non la prosa che lo spiega. È la quarta forma di invecchiamento
 > raccolta in `CLAUDE.md`.*
-> **Il numero da citare resta 2.877**, e la ragione è che le altre dieci contano
+> **Il numero da citare resta 3.203**, e la ragione è che le altre dieci contano
 > **file, non prove**: `import esistenti` fa un'asserzione per file e `classi
 > orfane` una per pagina, quindi il loro totale si muove ogni volta che nasce un
 > file — un numero che cresce senza che nessuno abbia scritto una prova è un
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **760 funzioni pure su 760** sono chiamate per nome da quelle prove: tutte e
+E **996 funzioni pure su 996** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 
-⚠️ **Quel 760 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **183 su 183** in cinque
-moduli: `dw-shell.js` **54/54**, `dw-ponti.js` **47/47**, `genesi-data.js`
-**69/69**, `genesi-formato.js` **8/8**, `pointcloud.js` **5/5**. Vanno guardati
+⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
+lo dice («in 6 app»). I condivisi si contano a parte — **308 su 308** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **144/144**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -110,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **170 funzioni** stanno dentro
+importa. **Genesi no**: le sue **147 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,14 +125,49 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 
 | variabili del modulo che legge | funzioni |
 |---|---|
-| nessuna — si porta fuori com'è | **29** |
-| una o due | **59** |
-| da tre a cinque | 23 |
-| da sei a dieci | 26 |
-| più di dieci — lì è un rifacimento | 33 |
+| nessuna — si porta fuori com'è | **23** |
+| una o due | **49** |
+| da tre a cinque | 16 |
+| da sei a dieci | 22 |
+| più di dieci — lì è un rifacimento | 37 |
 
-Cioè **66 su 170 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 105 sono una decisione di architettura.
+Cioè **57 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 90 sono una decisione di architettura.
+
+✅ **13/09 (G34): 147 → 148.** `_snapXY`, l'aggancio opzionale alla griglia nel
+Progetto 2D (disegno di precisione — secondo pezzo di "tutte e tre le
+alternative"), è nuova nella pagina e legge due variabili del modulo
+(`D2.snap`, `D2.snapPasso`): cade nel bucket "una o due" e alza sia il totale
+sia gli estraibili (55 → 56).
+
+✅ **13/09 (G35), stesso giorno: `measureGeom2D` è salita in genesi-data.js
+come `misuraGeom2D`.** Il totale nella pagina resta 148 (il wrapper c'è
+ancora, una riga sola), ma la sua forma ridotta a `return
+misuraGeom2D(D2.holes, D2.S, D2.B);` sposta il conteggio del censimento
+statico dal bucket "3-5" (dove viveva per un falso positivo del
+tokenizzatore sulle variabili locali `o`/`minx`) al bucket "una o due" (17→16,
+48→49): il totale estraibile sale di uno (56→57), perché il wrapper stesso è
+ormai un legame di una riga.
+
+✅ **13/09 (G36), stesso giorno: `_puntiNuvola` è salita in genesi-data.js
+con lo stesso nome, senza lasciare un wrapper.** Non leggeva `D2` per
+niente: il censimento la marcava legata a nove variabili del modulo
+(«lo, conta, c, locale, n, riga, a, si, su») per lo stesso falso positivo
+già preso tre volte su questo file — lettere e parole dentro le sue
+STRINGHE («nel ritaglio», «caricati», «disegnati su») e nei suoi commenti.
+Effetto: il totale nella pagina scende **148 → 147** (nessun wrapper resta,
+l'import la sostituisce), il bucket "6-10" scende **23 → 22**, gli
+estraibili restano **57** (non erano mai stati contati lì: una funzione
+tolta dalla pagina non è più "da estrarre", è già uscita).
+
+✅ **12/09 (unità 121, 122 e 124): 151 → 147.** `_sitoParseCsv`, `_sentCell`,
+`esplCardHtml` e `innCardHtml` sono salite in `genesi-data.js`: il censimento
+le marcava legate a variabili del modulo per due varianti dello stesso falso
+positivo del suo tokenizzatore — lettere dentro le regex della funzione
+(`_sitoParseCsv`, `_sentCell`) o dentro le sue STRINGHE (`esplCardHtml`,
+`innCardHtml`: `'ritardi '`, `"es-nome"`) — lette a mano non leggevano nessuno
+stato. I 55 estraibili non cambiano: erano già in quel conto, solo nel bucket
+sbagliato.
 
 ⏱️ **Questi sette numeri erano tutt'e sette diversi fino al 09/08** — 46 · 64 ·
 27 · 31 · 24, cioè «110 su 192» — e non perché qualcuno li avesse sbagliati:
@@ -187,8 +221,11 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**123 con l'emulatore Firestore** (**75** regole di sicurezza, 19 SDK, 21
+**139 con l'emulatore Firestore** (**91** regole di sicurezza, 19 SDK, 21
 funzioni, 8 primo avvio) — servono `firebase-tools` e Java.
+✅ *Rimisurati il 05/09 in questo contenitore, in un solo* `emulators:exec
+--only firestore,auth,functions` *(la CLI con* `npx --yes firebase-tools@13`*, le
+dipendenze già installate): 81 + 19 + 8 + 21, tutti verdi, in circa un minuto.*
 ⏱️ **Qui c'era scritto 125, e i quattro addendi accanto ne fanno 123**: due
 numeri che si contraddicono **nella stessa frase**, che è peggio di un numero
 vecchio perché fanno dubitare di tutti gli altri. `STATO_PRODOTTO.md`, con gli
@@ -212,7 +249,7 @@ difetto nostro: `firebase` non è sul PATH e le `node_modules` non ci sono. Il
 giro che gira davvero è uno solo:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 123 prove: 75 regole, 19 SDK, 8 primo avvio, 21 funzioni
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 139 prove: 91 regole, 19 SDK, 8 primo avvio, 21 funzioni
 ```
 
 Un comando solo, che alza l'emulatore da sé, ripiega su `npx firebase-tools@13`
@@ -233,7 +270,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**200 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**275 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

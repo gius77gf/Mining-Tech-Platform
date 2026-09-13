@@ -60,6 +60,12 @@
   .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
   .foot-links { margin-top: 16px; display: flex; gap: 18px; justify-content: center; font-size: 13px; }
   .foot-links a { color: var(--muted2); cursor: pointer; text-decoration: underline; }
+  /* ⛔ I tre collegamenti in linea («Prova la modalità tour», «Esci
+     dall'account», «Invia di nuovo l'email») erano alti 15px, misurati il
+     04/09 a 320/390/900, contro i 44 di `--tap`. Riempimento compensato dal
+     margine negativo: il testo non si muove, la zona che risponde al dito
+     passa da 15 a 41px. */
+  .foot-links a, #btn-reverify { display: inline-block; padding: 13px 6px; margin: -13px -6px; }
 </style>
 </head>
 <body class="dw">
@@ -124,6 +130,9 @@
       $('who-email').textContent = id.user.email || '—';
       if (!id.emailVerified()) $('verify-row').style.display = 'block';
     }
+    /* l'ospite del tour È connesso (anonimo): dirgli «non risulti connesso»
+       era falso — misurato il 04/09 aprendo la pagina nello stato tour */
+    else if (s === 'tour') { msg('Sei nel tour, senza un profilo: questa pagina serve a chi si è registrato e non è ancora in nessuna organizzazione. Per avere la tua, esci dal tour e crea un profilo.'); }
     else { msg('Non risulti connesso: questa pagina compare dopo l\'accesso, quando l\'account non è ancora in nessuna organizzazione. Anteprima mockup.'); }
   } catch (e) {
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');

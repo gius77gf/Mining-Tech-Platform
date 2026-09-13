@@ -244,6 +244,10 @@ console.log("\n· il bottone porta al Report con le due date già nei campi");
     dice(/Periodo dell'adempimento «Verifica fonometrica semestrale»: dal 01\/04\/2026 al 30\/09\/2026/.test(s.origine),
       "e lo dice per nome, con le date", s.origine);
     dice(/183 giorni/.test(s.origine), "con quanti giorni sono", s.origine);
+    /* e il DOCUMENTO (05/09), non solo lo schermo: la riga «Redatto per
+       l'adempimento…» sta nel foglio che va all'ente */
+    dice(/Redatto per l'adempimento «Verifica fonometrica semestrale», periodo dal 01\/04\/2026 al 30\/09\/2026, scadenza il 30\/09\/2026\./.test(s.doc),
+      "⛔ e il documento stesso scrive per quale adempimento è redatto, col periodo e la scadenza", (s.doc.match(/.{0,20}Redatto.{0,140}/) || [])[0] || s.doc.slice(0, 120));
     dice(/non sono state scelte a mano/.test(s.origine), "e che non le ha scelte nessuno a mano", s.origine);
     dice(s.doc.length > 200, "il documento si è composto davvero", s.doc.slice(0, 120));
 

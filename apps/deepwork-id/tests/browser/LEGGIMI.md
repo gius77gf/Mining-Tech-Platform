@@ -111,7 +111,52 @@ non sta misurando la guardia — ed è già capitato: la riga di montaggio del c
 «0 fallite» voleva dire soltanto «non ho tolto niente». Adesso una controprova
 inerte lo dice a voce alta.
 
+## `id-stati.mjs` — le pagine di Deepwork ID negli stati veri
+
+⛔ **Fino al 04/09 nessun banco aveva mai visto queste quattro pagine da
+connessi.** `apriSuperficie` monta il finto Firebase solo per il core, e anche
+montandolo `finto-firebase.mjs` risponde `export default {}` per
+`firebase-auth.js` e `firebase-functions.js`: l'SDK importa nomi da tutt'e due,
+l'import fallisce al collegamento e le pagine scivolano nell'anteprima
+(«Backend non ancora configurato»). Cioè contrasto, id doppi, fuori schermo,
+bersagli di tocco hanno sempre misurato l'anteprima, mai il prodotto che un
+cliente vede dopo l'accesso. `finto-id.mjs` (non è un banco: è il finto che si
+monta prima di `goto`, con uno scenario in `window.__scenarioId`) fa partire
+l'SDK e porta le pagine negli stati `member`, `unauthorized`, `tour`, con le
+risposte o gli errori delle funzioni.
+
+Alla prima passata sono usciti ventidue difetti veri su ventinove prove (la
+copia più debole di `_entitlementAttivo` nel profilo, `#msg` senza nessuna
+regola `.msg`, «scade tra 1 giorni», «disabled», la guardia dell'anteprima che
+rispondeva a qualunque tocco, «Qualcosa non ha funzionato» con la password
+vuota…), tutti corretti lo stesso giorno. La controprova rimette nel corpo
+servito i difetti **com'erano**, e conta per iniezione, non per caricamento.
+
+```sh
+node apps/deepwork-id/tests/browser/id-stati.mjs 8823
+node apps/deepwork-id/tests/browser/id-stati.mjs 8823 --controprova   # deve cadere
+```
+
+⚠️ I codici d'errore del finto (`auth/missing-password`, `auth/user-not-found`,
+`auth/popup-closed-by-user`…) sono quelli documentati dall'SDK Firebase v10:
+riprodotti, non misurati contro Firebase vero.
+
 ## `vetrina-collegamenti.mjs`
+
+⛔ **Riscritto il 04/09.** La vetrina è stata rifatta il 25-26/08 e il banco
+cercava ancora `.scheda`, `.cta.primaria`, `.cifra`, `.ponte`, `.anteprima
+img`: sul disco dava 3 passate, 5 fallite e **zero riquadri seguiti** — cioè
+era rosso su HEAD da dieci giorni e dichiarava «da guardare» una cosa che
+nessuno guardava. Adesso usa i selettori della pagina nuova (`a.apri`,
+`a.bot.pri`), gli stessi di `apps/vetrina/strumenti/tour-aperto.mjs`: chi
+cambia l'uno guardi l'altro. In più pretende che i nove nomi siano quelli
+**attuali** (i nomi nuovi sono sospesi, `docs/NOMI_E_MARCHI.md`), che i sei
+marchi della pagina siano identici a quello canonico del core — letti dal
+sorgente servito, non dall'`outerHTML`, che serializza `<polygon/>` in modo
+diverso — che «Prova il tour» porti dove porta il riquadro di Deepwork, e che
+tutti i collegamenti interni rispondano. Le destinazioni con un segno d'avvio
+sono **nove** (sei app, core, Genesi e Deepwork ID, il cui segno è il gestore
+di «Accedi»).
 
 Apre la vetrina, segue **tutti e nove i riquadri** e pretende tre cose per
 ognuno: che la pagina risponda, che monti davvero qualcosa (non basta lo stato
@@ -190,8 +235,9 @@ stato scelto misurando la stessa pagina viva e morta e tenendo ciò che cambia.
 Il caso del core è il più istruttivo: vivo e morto hanno **lo stesso testo
 visibile** — 258 caratteri, la schermata d'accesso — quindi nessuna misura di
 «quanto c'è in pagina» potrà mai distinguerli. Con `--senza-programma` si uccide
-il modulo e si pretende che tutte e **otto** le superfici con un programma se ne
-accorgano. La vetrina è esclusa **per dichiarazione, non per svista**.
+il modulo e si pretende che tutte e **nove** le destinazioni con un programma se
+ne accorgano (dal 04/09 anche Deepwork ID). La vetrina non è una destinazione
+di sé stessa ed è esclusa **per dichiarazione, non per svista**.
 
 ```sh
 node apps/deepwork-id/tests/browser/vetrina-collegamenti.mjs 8823 --senza-programma
@@ -1151,3 +1197,16 @@ lavorazione da un altro cantiere nello stesso momento, e sovrapporsi a chi
 scrive è il difetto che `git stash` con cantieri aperti ha già fatto pagare.
 Va unita al primo passaggio: finché ci sono due elenchi, «nessuna frase al
 plurale» vuol dire due cose diverse a seconda di chi lo stampa.
+
+## Un banco lanciato a mano si lancia SENZA le variabili del proxy *(02/09)*
+
+Chromium legge `HTTPS_PROXY` dall'ambiente e ci manda l'import di Firebase da
+gstatic: il proxy del contenitore tiene la connessione **12,7 secondi** prima
+di azzerarla, e solo allora l'app ripiega sulla dimostrazione. Un banco che
+aspetta 2,6 s fissi misura una schermata vuota e accusa il prodotto («#vend-list
+è vuota», «il file esce davvero: KO»). `tutti.mjs` toglie quelle variabili ai
+figli; a mano si fa così:
+
+    env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy node conti-frasi.mjs
+
+Misurato: con le variabili i dati arrivano dopo 12.680 ms, senza dopo 260.

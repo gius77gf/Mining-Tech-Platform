@@ -162,6 +162,13 @@ async function apri(preludio, arg) {
   if (preludio) await pg.addInitScript(preludio, arg);
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
+  await ganci(pg);
+  pg.__errori = errori;
+  return pg;
+}
+/* i ganci del banco sulla pagina (consenso, finestra di stampa, il CSV che
+   esce): vivono nella pagina, quindi una RICARICA li perde e vanno rimessi */
+async function ganci(pg) {
   await pg.evaluate(() => {
     const l = document.getElementById("loginBtn"); if (l) l.click();
     const c = document.getElementById("consensoOk");
@@ -175,16 +182,28 @@ async function apri(preludio, arg) {
     };
   });
   await pg.waitForTimeout(600);
-  pg.__errori = errori;
-  return pg;
 }
+/* ⏱️ 12/09: LO SPLASH D'AVVIO PRENDE FINO A 15-20s A SPARIRE IN QUESTO
+   AMBIENTE (senza GPU: la scena 3D iniziale è lenta a costruirsi), non i
+   ~1,85s previsti dal suo stesso timer. Un solo click con un'attesa fissa
+   cade quasi sempre PRIMA che lo splash sparisca (misurato con
+   `elementFromPoint` sul bottone: `DIV#splash`, non il bottone) — non è una
+   regressione, lo stesso schianto (`Cannot read properties of null`, più a
+   valle, dove il codice si aspettava di essere già nel 2D) usciva sul
+   commit precedente a questa sessione. Si RIPROVA il click ogni 400ms fino
+   a 25s invece di aspettare una volta sola. Vedi
+   `genesi-numeri-tranquilli.mjs` per la misura completa. */
 async function vaiA(pg, schermo) {
-  await pg.evaluate((s) => {
-    const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
-    if (x) x.click();
-  }, schermo);
-  await pg.waitForTimeout(1200);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate((s) => {
+      const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === s);
+      if (x) x.click();
+    }, schermo);
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-" + schermo) && Date.now() < scadenza);
   dice(cls.includes("scr-" + schermo), `navigato davvero (→ ${schermo})`, cls);
 }
 /* il foglio come lo legge una persona: via i tag, una riga per `<tr>` */
@@ -257,14 +276,20 @@ const SITO_TRE = { usa: true, punti: [
   { d: 120, w: 50, ppv: 9.2, fonte: "mano", ts: "2026-06-02", nome: "A" },
   { d: 260, w: 55, ppv: 3.1, fonte: "csv", ts: "2026-06-14", nome: "B" },
   { d: 430, w: 48, ppv: 1.4, fonte: "sentinella", ts: "2026-06-30", nome: "C" }] };
+/* stessa attesa di `vaiA`: questo click cade sulla Home, dove lo splash
+   d'avvio può restare sopra fino a 15-20s in questo ambiente. */
 async function apriVolata(pg) {
-  await pg.evaluate(() => {
-    const it = document.querySelector('.hg-item[data-id="vX"]');
-    const btn = it && it.querySelector('button[data-act="apri"]');
-    if (btn) btn.click();
-  });
-  await pg.waitForTimeout(1500);
-  const cls = await pg.evaluate(() => document.body.className);
+  const scadenza = Date.now() + 25000;
+  let cls = "";
+  do {
+    await pg.evaluate(() => {
+      const it = document.querySelector('.hg-item[data-id="vX"]');
+      const btn = it && it.querySelector('button[data-act="apri"]');
+      if (btn) btn.click();
+    });
+    await pg.waitForTimeout(400);
+    cls = await pg.evaluate(() => document.body.className);
+  } while (!cls.includes("scr-design") && Date.now() < scadenza);
   dice(cls.includes("scr-design"), "la volata salvata si apre davvero nel 2D", cls);
 }
 
@@ -367,6 +392,13 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
   await pg.evaluate(() => document.getElementById("cmpSaveA").click());
   await pg.waitForTimeout(300);
   await pg.evaluate((s) => localStorage.setItem("genesiSito", JSON.stringify(s)), SITO_TRE);
+  /* ⛔ Dal 02/09 (unità 3 di GENESI_FUORI_DAL_BROWSER) la legge di sito si legge
+     UNA volta all'apertura, dalla porta sui dati: chi la cambia dall'app passa
+     da `sitoSalva`, che aggiorna la copia di lavoro. Scrivere la chiave a mano
+     è una scorciatoia del banco, non un gesto dell'utente — quindi si ricarica,
+     come farebbe un secondo dispositivo. Lo scatto A è già nella sua chiave. */
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => document.getElementById("cmpSaveB").click());
   await pg.waitForTimeout(300);
   await pg.evaluate(() => document.getElementById("cmpShow").click());
@@ -394,8 +426,11 @@ console.log("\n· A e B sono lo STESSO progetto, e fra i due scatti si accende l
      identico ad A — la terza causa dell'elenco, l'iniezione che non inietta.
      Misurato: la prima stesura di questa riga dava «0 celle verdi» e sembrava
      un difetto della correzione. */
+  await pg.evaluate(() => localStorage.removeItem("genesiSito"));
+  // stessa ragione di sopra: la legge tolta a mano si vede alla riapertura
+  await pg.reload({ waitUntil: "domcontentloaded" }); await pg.waitForTimeout(2500); await ganci(pg);
+  await vaiA(pg, "design");
   await pg.evaluate(() => {
-    localStorage.removeItem("genesiSito");
     const e = document.getElementById("dKg");
     e.value = "30";
     e.dispatchEvent(new Event("input", { bubbles: true }));

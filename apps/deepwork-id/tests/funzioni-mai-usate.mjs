@@ -42,6 +42,11 @@ const MODULI = [
   "shared/deepwork-id-client/dw-shell.js",
   "shared/dw-grafici.js",
   "apps/genesi/pointcloud.js",
+  /* ⛔ Genesi non stava nell'elenco perché non è in APP (la sua pagina si chiama
+     genesi.html e il suo modulo è nato dopo): un controllo che esclude un modulo
+     è cieco lì. Misurato il 02/09 prima di aggiungerlo: 768 funzioni al posto di
+     717, e UN allarme nuovo — genesiData, dichiarata qui sotto da collegare. */
+  "apps/genesi/genesi-data.js",
 ];
 
 /* ⛔ LE ECCEZIONI, DICHIARATE UNA PER UNA CON LA RAGIONE E CON LA DECISIONE.

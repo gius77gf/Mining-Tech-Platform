@@ -209,7 +209,28 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `descriviPeriodoAdempimento`) più le due arrivate prima e mai raccolte. Il
    conto vero è 139/139; lasciato a 134 il fondo starebbe cinque sotto, cioè
    sarebbe una guardia che per scattare aspetta di perdere cinque prove. */
-const FONDO = { campo: 126, conti: 139, flotta: 92, scudo: 191, sentinella: 143, terra: 68 };
+/* ⏱️ `flotta` 92 → 95 il 02/09: le tre funzioni del ponte Conti→Flotta
+   (`chiaveVoceMezzo`, `costiPerConfronto`, `doppioniAllaCifra`), provate in
+   run-kpi nel blocco «PONTE CONTI → FLOTTA». Il conto vero è 95/95. */
+/* ⏱️ `sentinella` 143 → 150 il 04/09: la lettura dichiarata non valida
+   (`RAGIONI_ANNULLAMENTO`, `annullamentoDi`, `letturaValida`, `annullaLettura`,
+   `ripristinaLettura`, `contaAnnullate`, `letturaSenzaVolata`). */
+/* ⏱️ `flotta` 98 → 102 il 04/09: il contatore sostituito o azzerato
+   (`azzeramentiDelMezzo`, `spezzaLetture`, `trattoCorrente`,
+   `fraseContatoreSostituito`) più `validaRifornimento` e le tre sorelle del
+   conto sul tratto corrente, provate in run-kpi nel blocco «IL CONTATORE
+   SOSTITUITO O AZZERATO». Il conto vero è 102/102. */
+/* ⚠️ `sentinella` SCENDE da 150 a 147 il 05/09, e non è una funzione persa: lo
+   stato della volata e la sua PPV (statoDaTesto, statoVolata, volateDelGiorno,
+   ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
+   Sentinella li ri-esporta come alias — il censimento conta le funzioni
+   DEFINITE in un file, non quelle che espone. Il totale non scende. */
+/* ⚠️ `campo` SCENDE da 135 a 132 il 05/09 (notte), stessa ragione di Sentinella
+   qui sopra: `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` sono
+   passati in `shared/dw-ponti.js` (che sale) perché Genesi compone il consuntivo
+   letto dall'organizzazione con la stessa funzione con cui Campo scrive il file.
+   Campo li ri-esporta come alias. Il totale non scende. */
+const FONDO = { campo: 147, conti: 205, flotta: 139, scudo: 216, sentinella: 187, terra: 91 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -293,7 +314,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 47,
+  { file: "shared/dw-ponti.js", fondo: 89,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
@@ -313,7 +334,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 54,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 61,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
@@ -328,7 +349,7 @@ const CONDIVISI = [
      scritto a mano. Sono arrivate insieme al blocco della riconciliazione
      (`riconDelta` le chiama) e stanno qui perché scrivere e leggere sono le
      due metà della stessa convenzione sui numeri italiani. */
-  { file: "apps/genesi/genesi-formato.js", fondo: 8,
+  { file: "apps/genesi/genesi-formato.js", fondo: 9,
     perche: "come Genesi scrive — e legge — i numeri: spalla, maglia, consumo specifico, chili di esplosivo" },
   /* ⛔ IL SECONDO PEZZO DI GENESI USCITO DALLA PAGINA. Il primo diceva come
      Genesi SCRIVE un numero; questo dice come lo CALCOLA, sul numero che
@@ -386,7 +407,49 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 69,
+  /* 127 → 128 il 12/09 (unità 121): `_sitoParseCsv` è salita da genesi.html,
+     pura — il censimento di `genesi-estraibili.mjs` la marcava come legata a
+     quattro variabili del modulo per un falso positivo del suo tokenizzatore
+     (lettere dentro le regex della funzione, prese per nomi). Il fondo si
+     alza SUBITO, per la ragione già scritta qui sopra due volte: se no la
+     riga esce con la coda «(il fondo era N: alzalo)» e `numeri-nei-documenti`
+     smette di leggerla.
+     128 → 129 lo stesso giorno (unità 122): `_sentCell`, stessa famiglia e
+     stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g").
+     129 → 131 lo stesso giorno (unità 124): `esplCardHtml` e `innCardHtml`,
+     una nuova veste della stessa famiglia — qui le lettere false vengono da
+     CONTENUTO DI STRINGHE (`'ritardi '`, `"es-nome"`), non da una regex.
+     131 → 137 il 12/09 (unità 126): `ppvDaSd` (la legge di Devine, unificata
+     da due copie inline nella pagina), `rwsEffettiva`/`PENALITA_ACQUA` (la
+     penalità dei fori bagnati, unificata da cinque copie), e l'ottimizzatore
+     `caricaTargetSenzaConto`/`caricaDaX50Target` (la carica per centrare un
+     obiettivo di pezzatura — l'inversa di `fragKuzRam`).
+     137 → 140 il 12/09 (unità 129): `abbinaForiRighe` (l'abbinamento
+     foro↔riga estratto da `confrontoPerForo`, perché la nuova funzione qui
+     sotto ne aveva bisogno identico — "una copia nasce da una firma troppo
+     stretta"), `deviazioneForiDaCsv` (il rilievo boretrack, CSV
+     tempo-ampiezza→dx/dy) e `burdenVeroDaRilievo` (il burden vero sulle
+     posizioni MISURATE, non su quelle simulate o di progetto).
+     140 → 141 il 13/09 (G33, richiesta diretta del fondatore "rendere Genesi
+     più simile a un CAD"): `dxfPianoFori`, che esporta in DXF (formato che
+     AutoCAD/LibreCAD/QGIS sanno aprire) i fori e il profilo del fronte già
+     calcolati — nessun numero nuovo, nessuna soglia di sicurezza toccata. Le
+     quattro funzioni interne (`_dxfNum`, `_dxfCerchio`, `_dxfTesto`,
+     `_dxfPolilinea`) non hanno il prefisso `export` e quindi questo
+     censimento non le vede: le prova la stessa suite attraverso
+     `dxfPianoFori`, che le chiama tutte.
+     141 → 142 il 13/09 (G34, stesso giorno): `snapAGriglia`, l'aggancio
+     opzionale alla griglia per il posizionamento manuale (disegno di
+     precisione — secondo pezzo di "tutte e tre le alternative").
+     142 → 143 il 13/09 (G35, stesso giorno): `misuraGeom2D`, salita da
+     `genesi.html` (`measureGeom2D`) nel filone "Genesi continua a uscire
+     dalla pagina" — stessa logica, firma a parametri invece di leggere `D2`
+     a mano; la pagina resta un chiamante come un altro.
+     143 → 144 il 13/09 (G36, stesso giorno): `_puntiNuvola`, stessa fetta —
+     non leggeva `D2` per niente (falso positivo del tokenizzatore, la
+     quarta volta sullo stesso file), traslocata parola per parola con lo
+     stesso nome: nessun wrapper resta in pagina, l'import la sostituisce. */
+  { file: "apps/genesi/genesi-data.js", fondo: 144,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
@@ -395,6 +458,7 @@ const CONDIVISI = [
 const FUORI_CONDIVISI = new Map([
   ["montaGuardiaInteri", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["mountExit", "tocca il DOM — provata dai banchi del browser"],
+  ["montaScaricaTutto", "tocca il DOM e scarica un file — provata in browser/scarica-tutto.mjs"],
   ["timbroLocale", "legge l'orologio — provata in browser/"],
   ["interoScritto", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["ESITI_TURNO", "è una costante: non ha comportamento da provare"],
@@ -451,7 +515,9 @@ console.log(`\n${coperteC} funzioni condivise coperte su ${guardateC} guardate, 
 const genesiPagina = (() => {
   try {
     const t = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
-    return (t.match(/^\s*function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
+    // `async function` conta come le altre (02/09): è la stessa forma di
+    // `genesi-estraibili`, che per un giorno non le vedeva e perdeva renderHome
+    return (t.match(/^\s*(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
   } catch { return null; }
 })();
 /* ⚠️ Questa riga diceva «di Genesi entra solo pointcloud.js» ed è stata

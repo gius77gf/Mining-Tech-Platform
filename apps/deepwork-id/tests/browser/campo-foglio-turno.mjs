@@ -134,15 +134,26 @@ DEMO.attivita = []; DEMO.rapportini = []; DEMO.presenze = []; DEMO.checklist = [
    giusto: cresce con le pagine, non coi difetti.
    Le altre due rimettono i due numeri tranquilli del Quadro. */
 const DIFETTI = {
+  /* (05/09) la consegna che dice «nessuna attività aperta» su un turno con
+     quattro lavori aperti: `lavoriNonConclusi` che risponde sempre vuoto */
+  "apps/campo/campo-data.js": [
+    ['  return (attivita || []).filter((a) => a && a.stato !== "conclusa")',
+     '  return (attivita || []).filter(() => false)   /* difetto rimesso dal banco */'],
+    /* (05/09) la sezione delle volate che resta VUOTA quando oggi non ce ne sono:
+       una sezione vuota si legge come «niente da dire», non come «nessuna» */
+    ['  if (!r.n) return ["nessuna volata registrata oggi in Sentinella"];',
+     '  if (!r.n) return [];   /* difetto rimesso dal banco */'],
+    /* ⏱️ dal 05/09 il Quadro del rapporto stampato lo compone `rapportoGiornata`
+       nel modulo: i due «0/0 concluse · 0 anomalie» si rimettono qui, non più
+       nella pagina (che disegna e basta) */
+    ['    av.totale ? { n: String(av.anomalie), t: av.anomalie === 1 ? "anomalia aperta" : "anomalie aperte" } : { n: "—", t: "anomalie: nessuna attività da cui contarle" },',
+     '    { n: String(av.anomalie), t: "anomalie aperte" },'],
+    ['    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },',
+     '    { n: av.concluse + "/" + av.totale, t: "attività concluse" },'],
+  ],
   "shared/deepwork-id-client/dw-shell.js": [
     ['  return modo === "live" ? null : String(modo || "non dichiarata");',
      "  return null;"],
-  ],
-  "apps/campo/index.html": [
-    ['${av.totale?`<b>${av.anomalie}</b> ${av.anomalie===1?"anomalia aperta":"anomalie aperte"}`:`<b>—</b> anomalie: nessuna attività da cui contarle`}',
-     '<b>${av.anomalie}</b> anomalie aperte'],
-    ['${av.totale?`<b>${av.concluse}/${av.totale}</b> attività concluse`:`<b>—</b> attività: nessuna registrata oggi`}',
-     '<b>${av.concluse}/${av.totale}</b> attività concluse'],
   ],
 };
 
@@ -454,6 +465,37 @@ if (fai("consegna")) {
   // (b) e non ha mangiato il documento
   for (const t of ["RAPPORTINI", "PRODUZIONE", "CHIUSURA DEL TURNO", "ANOMALIE / FERMI"])
     dice(testo.includes(t), `la consegna ha ancora la sezione «${t}»`);
+  /* le volate di oggi dal registro di Sentinella (ponte P6, 05/09): la sezione
+     c'è sempre, e quando oggi non ce ne sono lo DICE — in dimostrazione il
+     registro copiato non ne ha nessuna di oggi; fingendo la produzione
+     Sentinella non si raggiunge, e nemmeno quello è «nessuna». */
+  const sezVol = (testo.split("VOLATE DEL GIORNO (registro di Sentinella)\n")[1] || "").split("\n\n")[0];
+  dice(sezVol.length > 0 && testo.indexOf("VOLATE DEL GIORNO") < testo.indexOf("LAVORI NON CONCLUSI"),
+    "la consegna ha la sezione «VOLATE DEL GIORNO», da Sentinella, prima dei lavori non conclusi", sezVol || "(vuota)");
+  /* ⚠️ anche con `--live` i dati restano quelli della dimostrazione (le
+     iniezioni «come live» cambiano il MODO dichiarato, non la memoria): quindi
+     la frase giusta è «nessuna» in tutt'e due i casi. La frase del registro
+     non leggibile («non si sanno») la prova run-kpi sul modulo, con `null`. */
+  dice(/^- nessuna volata registrata oggi in Sentinella$/m.test(sezVol),
+    "⛔ la sezione dice che oggi non ne risulta nessuna, invece di restare vuota", sezVol || "(vuota)");
+  /* ⛔ LE DUE COSE CHE IL TURNO ENTRANTE LEGGE PER PRIME (05/09): i lavori non
+     conclusi e le segnalazioni. Lo schermo le aveva, il foglio no. La regola
+     dei lavori è `lavoriNonConclusi` (fermi prima, chi ce l'ha in carico,
+     «nessuno in carico» dove non c'è un nome), quella delle segnalazioni è
+     `testoSegnalazioniTurno`, la stessa frase della riga dei near-miss. La
+     controprova rimette `lavoriNonConclusi` che risponde sempre vuoto: la
+     consegna scriverebbe «nessuna attività aperta» su un turno con quattro
+     lavori aperti, e il banco deve cadere. */
+  const sezLav = (testo.split("LAVORI NON CONCLUSI\n")[1] || "").split("\n\n")[0];
+  const sezSeg = (testo.split("SEGNALAZIONI DEL TURNO\n")[1] || "").split("\n\n")[0];
+  dice(sezLav.length > 0 && testo.indexOf("LAVORI NON CONCLUSI") < testo.indexOf("CHIUSURA DEL TURNO"), "la consegna ha la sezione «LAVORI NON CONCLUSI», prima della chiusura", testo.slice(0, 80));
+  const righeLav = sezLav.split("\n").filter((r) => r.startsWith("- "));
+  dice(righeLav.length >= 3 && /^- Frantoio primario \(Fermo per intasamento tramoggia\) — nessuno in carico \[fermo \/ anomalia\]$/.test(righeLav[0]), "⛔ il fermo sta per primo, col dettaglio, e «nessuno in carico» dove l'attività non ha un nome sopra", righeLav.join(" | "));
+  dice(righeLav.some((r) => /^- Perforazione fronte Est \(14\/22 fori\) — Luca Bianchi \[in corso\]$/.test(r)), "un lavoro in corso porta chi ce l'ha in carico e lo stato in italiano", righeLav.join(" | "));
+  dice(!righeLav.some((r) => /Controllo pre-turno mezzi/.test(r)), "e l'attività conclusa non c'è: non è un lavoro da consegnare", righeLav.join(" | "));
+  dice(!/nessuna attività aperta/.test(sezLav), "⛔ e non dice «nessuna attività aperta» su un turno con lavori aperti", sezLav);
+  dice(sezSeg.length > 0 && /senza turno indicato \(non si sa se di questo turno\)/.test(sezSeg), "la sezione «SEGNALAZIONI DEL TURNO» porta la segnalazione di oggi senza turno, dichiarata così — la stessa frase dello schermo", sezSeg);
+  dice(!/nessuna segnalazione oggi/.test(sezSeg), "e non dice «nessuna segnalazione» quando ce n'è una", sezSeg);
   dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
   await ctx.close();
 }

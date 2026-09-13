@@ -115,7 +115,23 @@ const pg = await b.newPage({ viewport: { width: 1400, height: 950 } });
 const errori = [];
 pg.on("pageerror", (e) => errori.push(e.message));
 await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
-await pg.waitForTimeout(2500);
+/* ⏱️ 12/09: LO SCRIPT DELLA PAGINA IMPIEGA 13-20s A FINIRE DI CABLARE TUTTO
+   IN QUESTO AMBIENTE (senza GPU: la scena 3D iniziale è lenta), non i
+   ~2,5s che un'attesa fissa concedeva — misurato altrove in questa stessa
+   sessione (vedi `genesi-numeri-tranquilli.mjs`, `genesi-frasi-limite.mjs`)
+   con `elementFromPoint` sullo splash e col contatore della Home. Qui
+   l'effetto è che `$('disclaimerChk').onchange=...` (riga ~4838 di
+   genesi.html) non è ancora assegnato quando il banco spunta la casella:
+   il bottone del consenso resta "disabled" anche dopo, perché nessun
+   gestore ha mai ascoltato il `change`. Si aspetta che lo splash sia
+   sparito (segno che il grosso del cablaggio è fatto) invece di un tempo
+   fisso, con un tetto di 25s per non restare appesi se qualcosa è
+   genuinamente rotto. */
+const scadenzaSplash = Date.now() + 25000;
+while (await pg.evaluate(() => !!document.getElementById("splash")) && Date.now() < scadenzaSplash) {
+  await pg.waitForTimeout(500);
+}
+await pg.waitForTimeout(300);
 
 dice(errori.length === 0, "la pagina non solleva errori", errori.slice(0, 2));
 

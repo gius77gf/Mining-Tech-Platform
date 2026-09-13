@@ -11,10 +11,24 @@
 <style>
   :root { --app-accent:#c7b794; --app-accent2:#e8dcc0; }
   .role-sel { width: auto; min-width: 96px; padding: 6px 8px; font-size: 12px; }
+  /* «Rimuovi» e «Revoca» erano alti 39px (min-height 34 + bordi), misurati il
+     04/09 a 320/390/900: sotto i 44 di `--tap` che vale per ogni altro
+     bottone. Mini in larghezza, non nel bersaglio. */
   .btn-mini {
-    width: auto; min-height: 34px; padding: 4px 10px; font-size: 11px;
+    width: auto; min-height: var(--tap); padding: 4px 10px; font-size: 11px;
     letter-spacing: 1px;
   }
+  /* ⛔ `#msg` ERA UN TESTO NUDO: nessun foglio caricato da questa pagina
+     definisce `.msg`, quindi «Ruolo aggiornato», «Sei membro semplice» e gli
+     errori del server uscivano senza fondo né bordo né colore di stato
+     (misurato il 04/09: `background rgba(0,0,0,0)`, bordo 0, padding 0). Le
+     regole sono quelle di index.html (copia dichiarata: il posto giusto è
+     `shared/`, che questo cantiere non tocca). Qui `#msg` tiene le NOTE che
+     restano (anteprima, membro semplice); gli esiti di un'azione passano dal
+     toast del core, che sta sempre nella finestra. */
+  .msg { display: none; margin: 14px 16px 0; padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.4; }
+  .msg.error { display: block; background: rgba(239,83,80,.12); border: 1px solid var(--danger); color: #ffb4b2; }
+  .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
   .btn-danger { border-color: var(--danger) !important; color: var(--danger) !important; background: none !important; }
   .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .form-row .dw-input { flex: 1; min-width: 120px; }
@@ -84,7 +98,9 @@
   <div class="note" id="mode-note" style="text-align:left;"></div>
 </div>
 
-<div id="msg" class="msg" style="margin:0 16px;"></div>
+<div id="msg" class="msg"></div>
+<!-- il toast del core: `toast()` di dw-app-ui.js lo cerca per id e senza tace -->
+<div class="toast" id="toast"></div>
 
 <!-- modale del core: sostituisce il confirm() del browser sulla rimozione di
      un membro, che è l'azione più delicata di questa pagina -->
@@ -97,18 +113,24 @@
 </div>
 
 <script type="module">
-  import { esc } from '../../shared/deepwork-id-client/dw-shell.js';
+  import { esc, dataIt, giorniTra, dataPiuGiorni } from '../../shared/deepwork-id-client/dw-shell.js';
   const $ = (id) => document.getElementById(id);
+  /* le NOTE che restano (anteprima, membro semplice) stanno in #msg; gli esiti
+     di un'azione passano dal toast del core, che sta nella finestra — #msg è
+     in fondo alla pagina e «Ruolo aggiornato» compariva a 1096px in una
+     finestra da 844 (misurato il 04/09), cioè non compariva. */
   const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
+  const esito = (text, kind = 'info') => {
+    if (typeof toast === 'function' && $('toast')) toast(text, kind === 'error' ? 'err' : (kind === 'ok' ? 'success' : ''));
+    else msg(text, kind);
+  };
   const RB = { owner: 'ok', admin: 'warn', member: 'ok' };
+  /* lo stato del membro in italiano: «disabled» usciva così com'è scritto nel
+     documento (misurato il 04/09 con un membro disattivato) */
+  const STATO = { active: 'Attivo', invited: 'Invitato', disabled: 'Disattivato' };
   const sig = (s) => (s || '?').slice(0, 2).toUpperCase();
   const quando = (ts) => {
     try { return ts && ts.toDate ? ts.toDate() : new Date(ts); } catch (e) { return null; }
-  };
-  const giorniA = (ts) => {
-    const d = quando(ts);
-    if (!d || Number.isNaN(d.getTime())) return '—';
-    return Math.max(0, Math.ceil((d - new Date()) / 86400000));
   };
   /* ⛔ UN TEMPO RELATIVO PORTA CON SÉ LA DATA. «Scade tra 11 giorni» si legge
      al volo mentre si scorre l'elenco, ma quando si ha qualcuno al telefono
@@ -117,12 +139,26 @@
      un banco ha aperto questa pagina.
      ⚠️ La data si compone dall'orologio LOCALE, non da `toISOString()`: a
      cavallo della mezzanotte quello scrive il giorno prima (regola di
-     `shared/`, misurata in `docs/RICERCA_GIORNO_LOCALE_202607.md`). */
-  const dataIt = (ts) => {
+     `shared/`, misurata in `docs/RICERCA_GIORNO_LOCALE_202607.md`). Per questo
+     il giorno passa da `dataPiuGiorni(0, d)` di `shared/`, e da lì `dataIt` e
+     `giorniTra` sono quelli che usano tutte le app, non una copia locale.
+     ⛔ E I GIORNI SI DICONO COME LI DIREBBE UNA PERSONA: il 04/09 un invito che
+     scadeva l'indomani diceva «scade tra 1 giorni», e uno già scaduto —
+     ancora `pending`, perché il server lo segna «expired» solo quando
+     l'invitato prova a riscattarlo — diceva «scade tra 0 giorni». */
+  const scadenzaInvito = (ts) => {
     const d = quando(ts);
-    if (!d || Number.isNaN(d.getTime())) return '';
-    const p = (n) => String(n).padStart(2, '0');
-    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+    if (!d || Number.isNaN(d.getTime())) return 'senza scadenza';
+    const iso = dataPiuGiorni(0, d);
+    const n = giorniTra(iso);
+    const data = dataIt(iso);
+    if (!Number.isFinite(n)) return 'senza scadenza';
+    /* corto: la riga di dettaglio è tagliata a due righe, e a 320 px «scaduto
+       il … : revocalo o invita di nuovo» finiva nei puntini (misurato) */
+    if (n < 0) return `scaduto il ${data}`;
+    if (n === 0) return `scade oggi (${data})`;
+    if (n === 1) return `scade domani (${data})`;
+    return `scade tra ${n} giorni (${data})`;
   };
 
   // dati demo per l'anteprima senza backend
@@ -142,21 +178,28 @@
     else {
       myUid = id.user.uid;
       isAdmin = ['owner', 'admin'].includes(id.role());
-      if (!isAdmin) msg('Sei membro semplice: puoi vedere i membri ma solo owner e admin possono gestirli.');
+      if (!isAdmin) {
+        msg('Sei membro semplice: puoi vedere i membri ma solo owner e admin possono gestirli.');
+        /* il modulo d'invito restava attivo e rispondeva «permission-denied»
+           dal server (misurato il 04/09): si spegne, la nota sopra dice perché */
+        for (const i of ['inv-email', 'inv-role', 'btn-invite']) $(i).disabled = true;
+      }
     }
   } catch (e) { /* backend assente: anteprima */ }
 
   const live = () => id && id.authState() === 'member';
+  /* lo stato non cambia finché la pagina è aperta: si legge una volta */
+  const VIVO = live();
   $('mode-note').textContent = live() ? 'Dati reali della tua organizzazione.' : 'Anteprima con dati di esempio: le azioni saranno attive col backend.';
 
   async function refresh() {
-    const mem = live() ? await id.listMembers() : DEMO_MEM;
-    const inv = live() ? await id.listPendingInvites() : DEMO_INV;
-    const canManage = live() ? isAdmin : true;   // in anteprima mostra i comandi
+    const mem = VIVO ? await id.listMembers() : DEMO_MEM;
+    const inv = VIVO ? await id.listPendingInvites() : DEMO_INV;
+    const canManage = VIVO ? isAdmin : true;   // in anteprima mostra i comandi
 
     $('mem-list').innerHTML = mem.map(m => `<div class="item" style="cursor:default;">
       <div class="avatar">${esc(sig(m.email || m.uid))}</div>
-      <div class="info"><div class="name">${esc(m.email || m.uid)}</div><div class="meta">${m.status === 'active' ? 'Attivo' : m.status || ''}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
+      <div class="info"><div class="name">${esc(m.email || m.uid)}</div><div class="meta">${esc(STATO[m.status] || m.status || '')}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
       ${canManage && m.uid !== myUid ? `
         <select class="dw-input role-sel" data-role="${m.uid}">
           ${['owner','admin','member'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
@@ -167,19 +210,31 @@
 
     $('inv-list').innerHTML = inv.map(i => `<div class="item" style="cursor:default;">
       <div class="avatar">✉</div>
-      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${i.role} · scade tra ${giorniA(i.expiresAt)} giorni${dataIt(i.expiresAt) ? ` (${dataIt(i.expiresAt)})` : ''}</div></div>
+      <div class="info"><div class="name">${esc(i.email)}</div><div class="meta">Ruolo ${esc(i.role)} · ${scadenzaInvito(i.expiresAt)}</div></div>
       ${canManage ? `<button class="dw-btn secondary btn-mini btn-danger" data-revoke="${i.id}">Revoca</button>` : ''}
     </div>`).join('') || '<div class="note" style="text-align:left;">Nessun invito in attesa.</div>';
   }
 
+  /* ⛔ I GESTORI STANNO SUL DOCUMENTO, quindi ricevono OGNI tocco e ogni
+     cambio: fino al 04/09 la guardia rispondeva «Anteprima: le azioni saranno
+     attive…» a un tocco sull'intestazione «Membri» o nel campo dell'email per
+     scriverci, e nel modo vivo rileggeva membri e inviti (due letture) a ogni
+     click ovunque nella pagina — misurato. Adesso ogni gestore dice PRIMA se
+     il tocco era un'azione sua; la guardia parla, e rilegge, solo allora. */
+  const anteprima = () => { msg('Anteprima: le azioni saranno attive quando il backend Firebase sarà configurato.'); return false; };
   const guard = (fn) => async (...a) => {
-    if (!live()) { msg('Anteprima: le azioni saranno attive quando il backend Firebase sarà configurato.'); return; }
-    try { await fn(...a); await refresh(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+    let fatto = false;
+    try { fatto = await fn(...a); }
+    catch (e) { esito(e.message || 'Operazione non riuscita.', 'error'); fatto = true; }
+    if (fatto && VIVO) await refresh();
   };
 
   document.addEventListener('change', guard(async (e) => {
     const uid = e.target.getAttribute && e.target.getAttribute('data-role');
-    if (uid) { await id.updateMemberRole(uid, e.target.value); msg('Ruolo aggiornato.'); }
+    if (!uid) return false;
+    if (!VIVO) return anteprima();
+    await id.updateMemberRole(uid, e.target.value); esito('Ruolo aggiornato.', 'ok');
+    return true;
   }));
   /* ── Modale del core: al posto del confirm() del browser ──────────────
      Non è un dettaglio di stile: rimuovere un membro è l'azione più delicata
@@ -198,6 +253,9 @@
 
   document.addEventListener('click', guard(async (e) => {
     const rm = e.target.getAttribute && e.target.getAttribute('data-remove');
+    const rv = e.target.getAttribute && e.target.getAttribute('data-revoke');
+    if (!rm && !rv) return false;
+    if (!VIVO) return anteprima();
     if (rm) {
       // il nome si legge dalla riga: la conferma deve dire CHI, non «questo membro»
       const riga = e.target.closest('.item');
@@ -208,11 +266,10 @@
         + 'Quello che ha già registrato <b>resta</b> nell\'organizzazione, con il '
         + 'suo nome. Per farlo rientrare servirà un nuovo invito.</p>',
         'Rimuovi', true);
-      if (!si) return;
-      await id.removeMember(rm); msg('Membro rimosso.'); return;
+      if (!si) return false;
+      await id.removeMember(rm); esito('Membro rimosso.', 'ok'); return true;
     }
-    const rv = e.target.getAttribute && e.target.getAttribute('data-revoke');
-    if (rv) {
+    {
       const riga = e.target.closest('.item');
       const chi = riga ? (riga.querySelector('.name') || {}).textContent : '';
       // revocare un invito si può disfare (basta reinvitare), quindi la
@@ -220,16 +277,19 @@
       const si = await chiedi('Revocare l\'invito?',
         '<p>L\'invito a <b>' + esc(chi || 'questo indirizzo') + '</b> non sarà più valido. '
         + 'Se serve, puoi invitare di nuovo la stessa persona.</p>', 'Revoca');
-      if (!si) return;
-      await id.revokeInvite(rv); msg('Invito revocato.');
+      if (!si) return false;
+      await id.revokeInvite(rv); esito('Invito revocato.', 'ok');
+      return true;
     }
   }));
   $('btn-invite').onclick = guard(async () => {
+    if (!VIVO) return anteprima();
     const email = $('inv-email').value.trim();
-    if (!email) { msg('Scrivi l\'email del collega da invitare.', 'error'); return; }
+    if (!email) { esito('Scrivi l\'email del collega da invitare.', 'error'); $('inv-email').focus(); return false; }
     await id.inviteMember(email, $('inv-role').value);
     $('inv-email').value = '';
-    msg('Invito inviato: scade tra 14 giorni.');
+    esito('Invito inviato a ' + email + ': scade tra 14 giorni.', 'ok');
+    return true;
   });
 
   await refresh();

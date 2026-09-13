@@ -64,6 +64,13 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
 /* I DIFETTI DA RIMETTERE, uno per riga, nella forma in cui stavano nella
    pagina prima del 06/08. Si contano: una controprova che non sostituisce
    niente non prova niente. */
+const PAGINA = "apps/flotta/index.html", MODULO = "apps/flotta/flotta-data.js";
+/* ⛔ OGNI INIEZIONE DICHIARA IL FILE IN CUI MORDE (05/09): senza il terzo
+   elemento vale la pagina, come sempre; con MODULO si applica a
+   flotta-data.js, dove le parole del libretto sono salite. Prima il banco
+   applicava tutto alla sola pagina, e un'iniezione salita nel modulo restava
+   «trovata» da `iniezioni-fresche` ma mai rimessa — è lo stesso buco chiuso
+   oggi in tre banchi di documenti. */
 const DIFETTI = [
   // 1 · il quadrante del Quadro e la riga in cima al parco
   ['<b>${disp.operativi}</b> ${plurale(disp.operativi, "mezzo operativo", "mezzi operativi")} su <b>${disp.totale}</b>',
@@ -86,11 +93,14 @@ const DIFETTI = [
   [': plurale(aff.episodi, ", già chiuso", ", tutti già chiusi")}`\n          + `, ${plurale(aff.episodi, "lungo", "lunghi")} in media',
    ': ", tutti già chiusi"}`\n          + `, lunghi in media'],
   // 5 · la ricorrenza a mesi, scritta una volta sola
-  ['const ogniMesiTx = (n) => "ogni " + plurale(n, "mese", n + " mesi");',
-   'const ogniMesiTx = (n) => "ogni " + n + " mesi";'],
+  /* ⏱️ RI-ANCORATE il 05/09 sul MODULO (5, 6, 8, 9): le parole del libretto
+     sono salite in flotta-data.js (`ogniMesiTesto`, `oreMotoreTesto`,
+     `csvLibretto`), e ogni iniezione dichiara il file in cui morde. */
+  ['export function ogniMesiTesto(n) { return "ogni " + plurale(n, "mese", n + " mesi"); }',
+   'export function ogniMesiTesto(n) { return "ogni " + n + " mesi"; }', MODULO],
   // 6 · le ore del contatore
   ['return (marca ? marca(n) : n) + " " + plurale(v, "ora motore", "ore motore");',
-   'return (marca ? marca(n) : n) + " ore motore";'],
+   'return (marca ? marca(n) : n) + " ore motore";', MODULO],
   // 7 · i giorni della scorta
   ['${plurale(consegna, "giorno", "giorni")} di consegna', 'giorni di consegna'],
   ['${plurale(consegna + sicurezza, "giorno", "giorni")}</b> di consumo', 'giorni</b> di consumo'],
@@ -98,10 +108,10 @@ const DIFETTI = [
   // 8 · le ore di lavoro coperte dai contatori
   ['"misurato su " + conta(m.oreCoperte, "ora di lavoro", "ore di lavoro")', '"misurato su " + m.oreCoperte + " ore di lavoro"'],
   ['${plurale(m.ore, "ora misurata", "ore misurate")} ·', 'ore misurate ·'],
-  ['conta(f.consumo.oreCoperte, "ora", "ore")', 'f.consumo.oreCoperte + " ore"'],
+  ['conta(f.consumo.oreCoperte, "ora", "ore")', 'f.consumo.oreCoperte + " ore"', MODULO],
   // 9 · il totale d'officina nel CSV del libretto
-  ['conta(f.officina.interventi, "intervento", "interventi")\n      + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")',
-   'f.officina.interventi + " interventi"\n      + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : "")'],
+  ['conta(f.officina.interventi, "intervento", "interventi")\n    + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")',
+   'f.officina.interventi + " interventi"\n    + (f.officina.ore ? " · " + f.officina.ore + " ore di manodopera" : "")', MODULO],
   // 10 · i sette messaggi di export
   ['toast(plurale(INT.length, "Esportato ", "Esportati ") + conta(INT.length, "intervento", "interventi") + " (CSV).", "success");',
    'toast("Esportati " + INT.length + " interventi (CSV).", "success");'],
@@ -154,14 +164,18 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/flotta/flotta-data.js")) corpo = Buffer.from(corpo.toString("utf8") + CASO_UNO, "utf8");
-  if (CONTROPROVA && p.endsWith("apps/flotta/index.html")) {
+  /* si contano i DIFETTI RIMESSI, non le sostituzioni: la pagina viene
+     caricata più volte e un conto crescente direbbe «66 su 22». */
+  const applica = (t, file) => {
+    for (const [a, b, f] of DIFETTI) { if ((f || PAGINA) === file && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
     let t = corpo.toString("utf8");
-    /* si contano i DIFETTI RIMESSI, non le sostituzioni: la pagina viene
-       caricata più volte e un conto crescente direbbe «66 su 22». */
-    for (const [a, b] of DIFETTI) { if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); } }
-    corpo = Buffer.from(t, "utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASO_UNO, "utf8");
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });
