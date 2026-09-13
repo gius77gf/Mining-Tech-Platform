@@ -568,12 +568,25 @@ body.scr-sim #tl{bottom:80px}
 #d2-cta:hover{filter:brightness(1.06)}
 @media (max-width:760px){
   #brand h1{font-size:17px} #brand .tag{display:none} #brand .mark svg{width:32px}
-  /* SOTTO I 420 px IL NOME SPARISCE E RESTA IL SEGNO. Misurato a 390: il
+  /* SOTTO I 630 px IL NOME SPARISCE E RESTA IL SEGNO. Misurato a 390: il
      marchio arriva a 243 px e la barra dei comandi comincia a 85 — 158 px di
      sovrapposizione, con i bottoni scritti sopra il nome dell'app. Il nome
      però lo si è appena letto entrando: sulla schermata 3D lo spazio serve ai
-     comandi, e il segno da solo basta a dire dove si è. */
-  @media(max-width:420px){
+     comandi, e il segno da solo basta a dire dove si è.
+     ⛔ 13/09: LA SOGLIA ERA 420, E IL DIFETTO CHE DOVEVA CHIUDERE RESTAVA
+     APERTO DA 421 A 620 px — la fascia di larghezza più comune per un
+     telefono in verticale (iPhone standard, molti Android). `#brand` e
+     `#topright` sono due HUD `position:fixed` indipendenti (righe 40, 57,
+     95): non si accorgono l'uno dell'altro, quindi qualunque soglia fissa
+     regge solo finché qualcuno la rimisura. Misurato con
+     `getBoundingClientRect()` sulla schermata 3D (l'unica dove `#topright`
+     è visibile, riga 401): il nome finisce a 243 px indipendentemente dalla
+     larghezza; la barra dei comandi (6 bottoni) è ancorata a destra e la sua
+     larghezza, una volta su una riga sola, resta costante a 361 px — quindi
+     il suo bordo sinistro supera i 243 px solo oltre 243+16+361=620 px. La
+     soglia vecchia (420) copriva solo il primo terzo della sovrapposizione
+     vera. Corretta a 630 (margine di 10 px). */
+  @media(max-width:630px){
     #brand h1{display:none}
     #brand{gap:0}
   }
