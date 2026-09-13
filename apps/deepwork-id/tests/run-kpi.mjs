@@ -41170,6 +41170,38 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine misuraGeom2D salita dalla pagina (13/09) ===== */
 
+/* ===== GENESI · _puntiNuvola SALITA DA genesi.html (13/09, G36) =====
+   Non leggeva `D2`: il caso che conta di più è quello del 03/08, quando la
+   nuvola INTERA e il suo RITAGLIO si scrivevano come se fossero la stessa
+   cosa (vedi il commento nel modulo). */
+{
+  test("Genesi · _puntiNuvola: senza evento, o senza nessun conto, non scrive niente", () => {
+    eq(genesi._puntiNuvola(null), "");
+    eq(genesi._puntiNuvola(undefined), "");
+    eq(genesi._puntiNuvola({}), "", "nessun campo di conto: nessuna frase, non uno zero inventato");
+  });
+  test("Genesi · _puntiNuvola: col ritaglio, si scrive QUELLO e si dice che è il ritaglio", () => {
+    eq(genesi._puntiNuvola({ puntiRitaglio: 1234, puntiTotali: 900000 }), " · 1.234 punti nel ritaglio",
+      "il ritaglio vince anche se c'è un totale: sono due misure diverse, non si sommano e non si confondono");
+    /* ⚠️ `puntiRitaglio:0` NON entra in questo ramo (il confronto è `>0`, non
+       `!=null`): cade sul ramo della nuvola caricata. È il comportamento di
+       PRIMA del trasloco, pinnato qui apposta — cambiarlo è una decisione di
+       prodotto, non questa unità. Senza questa riga il trasloco potrebbe
+       cambiare silenziosamente `>0` in `!=null` senza che nessuna prova se ne
+       accorga (misurato: senza questa riga la sostituzione passa lo stesso). */
+    eq(genesi._puntiNuvola({ puntiRitaglio: 0, puntiMostrati: 500, puntiTotali: 500 }), " · 500 punti caricati");
+  });
+  test("Genesi · _puntiNuvola: senza ritaglio, la nuvola caricata — sottocampionata o no", () => {
+    eq(genesi._puntiNuvola({ puntiMostrati: 41230, puntiTotali: 3000000 }), " · 41.230 punti disegnati su 3.000.000 caricati",
+      "sottocampionata: si dice ANCHE il totale, non solo quanti si vedono");
+    eq(genesi._puntiNuvola({ puntiMostrati: 900, puntiTotali: 900 }), " · 900 punti caricati",
+      "mostrati = totali: nessun bisogno di dire «su»");
+    eq(genesi._puntiNuvola({ punti: 500 }), " · 500 punti caricati",
+      "un record vecchio ha solo `punti`: si mostra così com'era, senza inventare un secondo numero");
+  });
+}
+/* ===== fine _puntiNuvola salita dalla pagina (13/09) ===== */
+
 
 
 

@@ -1202,7 +1202,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -4973,37 +4973,12 @@ function volSnapshot(nome){
       holes:(D2.holes||[]).map(h=>({ id:h.id||null, mx:h.mx, my:h.my, tMano:(h.tMano!=null&&isFinite(h.tMano))?+h.tMano:null }))})),
     sintesi:sintesi };
 }
-/* ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
-   «250.000 punti» accanto a «volume ≈ 1.234 m³»: il primo era la nuvola INTERA
-   (per giunta sottocampionata a quello che si riesce a disegnare), il secondo
-   il RITAGLIO. Due numeri di due cose diverse, uno accanto all'altro, che
-   chiunque legge come «il ritaglio ha 250.000 punti» — cioè un numero
-   tranquillo dove non era stato misurato niente.
-   Adesso: se il conto del ritaglio c'è, si scrive QUELLO e si dice che è del
-   ritaglio; altrimenti si scrive quello della nuvola dicendo che è caricata, e
-   se era sottocampionata si scrive anche su quanti.
-   I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
-function _puntiNuvola(e){
-  if(!e) return '';
-  /* ⛔ IL NUMERO SI RAGGRUPPA, LA PAROLA SI ACCORDA — e adesso lo fa `conta`.
-     Qui c'era una funzioncina locale, `nPunti = gnum(n,0) + " " + plurale(…)`,
-     scritta il 09/08 perché `conta` di `shared/` formattava il numero con
-     `String(n)` e non raggruppava: la riga usciva «41230 punti nel ritaglio»
-     accanto a «3.000.000 caricati», due notazioni nella stessa frase.
-     ⛔ Quella funzioncina era la **copia** di cui parla CLAUDE.md, e come
-     sempre nasceva da una firma che faceva metà del mestiere: nove punti di
-     Genesi avevano ricominciato a comporre la stessa cosa a mano. La cura non
-     era ricopiarla meglio, era **finire `conta`** — fatto lo stesso giorno,
-     con `perLettura` e `useGrouping` esplicito. Quindi qui si torna a
-     `_ricPlur`, che è `conta`, e la copia sparisce. */
-  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
-  const mostrati = e.puntiMostrati || e.punti || 0;
-  if(!mostrati) return '';
-  const tot = e.puntiTotali || 0;
-  return tot>mostrati
-    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
-    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
-}
+/* 13/09 (G36, "Genesi continua a uscire dalla pagina"): `_puntiNuvola` è
+   salita in genesi-data.js, parola per parola — non leggeva `D2`, il
+   censimento statico la marcava legata a nove variabili per lo stesso falso
+   positivo già preso tre volte su questo file (lettere dentro le sue
+   stringhe). Il racconto di QUALE conto di punti si sta scrivendo (il difetto
+   del 03/08: nuvola intera confusa col ritaglio) è andato con lei. */
 async function renderHome(){
   const arr=await GDB.volate();
   if($('hgVolN')) $('hgVolN').textContent=arr.length? _ricPlur(arr.length,'salvata','salvate'):'';

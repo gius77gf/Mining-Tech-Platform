@@ -3825,6 +3825,20 @@ numero scritto dove non era stato misurato niente**.*
       Effetto sui bucket del censimento (era un falso positivo del
       tokenizzatore: due variabili LOCALI, `o` e `minx`, prese per variabili
       del modulo): 3-5 → 17→16, una-o-due → 48→49, estraibili 56→57 su 148.
+      ✅ **13/09 (G36), stesso giorno: `_puntiNuvola`, stessa famiglia di
+      falso positivo alla quarta occorrenza.** Non leggeva `D2` per niente:
+      marcata legata a nove variabili («lo, conta, c, locale, n, riga, a, si,
+      su») per lettere e parole dentro le sue STRINGHE e i suoi commenti.
+      Traslocata con lo STESSO nome, nessun wrapper in pagina — il call site
+      (in `renderHome`) resta identico, importa direttamente dal modulo. 3
+      nuove prove in `run-kpi.mjs`, con un caso di bordo pinnato apposta
+      (`puntiRitaglio:0` NON entra nel ramo del ritaglio, perché il confronto
+      è `>0` non `!=null`: senza quella prova un cambio silenzioso da `>0` a
+      `!=null` passava lo stesso — misurato prima di consegnare). Fondo di
+      `genesi-data.js` 143→144. Effetto sui bucket: il totale nella pagina
+      scende **148 → 147** (la funzione è uscita del tutto, non lascia un
+      wrapper), il bucket "6-10" scende 23→22, gli estraibili restano 57
+      (una funzione già uscita non è più "da estrarre").
 - [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
       GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
       vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga
@@ -8067,9 +8081,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **13/09** (lanciando le suite, non a memoria — dopo
-  `misuraGeom2D` salita dalla pagina di Genesi, unità G35: +3 in `run-kpi`,
-  2935→2938): **3.419 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2938, `run-stile` 328,
+  `_puntiNuvola` salita dalla pagina di Genesi, unità G36: +3 in `run-kpi`,
+  2938→2941): **3.422 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2941, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -3364,3 +3364,38 @@ export function misuraGeom2D(holes, Sprog, Bprog){
   if(!isFinite(Sm)) Sm=Sp;
   return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G36 · UN'ALTRA FETTA DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
+   ══════════════════════════════════════════════════════════════════════════
+   `_puntiNuvola` non leggeva affatto `D2`: il censimento statico
+   (`genesi-estraibili.mjs`) la marcava legata a nove variabili del modulo
+   («lo, conta, c, locale, n, riga, a, si, su») per lo stesso falso positivo
+   già preso tre volte su questo file (unità 121, 122, 124) — lettere e
+   parole dentro le STRINGHE della funzione ("nel ritaglio", "caricati",
+   "disegnati su") e nei suoi commenti, spezzate dal tokenizzatore
+   sull'indentazione. Letta a mano: pura, prende un evento/record e chiama
+   solo `_ricPlur` (alias di `conta`, già in questo modulo) e `gnum` (già
+   importato da `genesi-formato.js`). Nessun cambio di firma: prendeva un
+   parametro prima, lo prende identico adesso.
+
+   ⛔ QUALE conto di punti si sta scrivendo? Fino al 03/08 lo storico metteva
+   «250.000 punti» accanto a «volume ≈ 1.234 m³»: il primo era la nuvola
+   INTERA (per giunta sottocampionata a quello che si riesce a disegnare), il
+   secondo il RITAGLIO. Due numeri di due cose diverse, uno accanto all'altro,
+   che chiunque legge come «il ritaglio ha 250.000 punti» — cioè un numero
+   tranquillo dove non era stato misurato niente.
+   Adesso: se il conto del ritaglio c'è, si scrive QUELLO e si dice che è del
+   ritaglio; altrimenti si scrive quello della nuvola dicendo che è caricata,
+   e se era sottocampionata si scrive anche su quanti.
+   I record vecchi hanno solo `punti`: si mostrano com'erano, senza inventare. */
+export function _puntiNuvola(e){
+  if(!e) return '';
+  if(e.puntiRitaglio>0) return ' · '+_ricPlur(e.puntiRitaglio,'punto','punti')+' nel ritaglio';
+  const mostrati = e.puntiMostrati || e.punti || 0;
+  if(!mostrati) return '';
+  const tot = e.puntiTotali || 0;
+  return tot>mostrati
+    ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
+    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
+}
