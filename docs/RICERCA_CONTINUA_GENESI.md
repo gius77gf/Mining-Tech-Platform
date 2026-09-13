@@ -2659,3 +2659,72 @@ di **Scudo** (sicurezza/conformità) e **Terra** (quantitativi estratti)
 chi lo userà per un delta lo leggerà sapendo a quale app appartiene di
 più.
 
+## Ricerca del 2026-09-13 — lo standard IREDES per l'export di innesco (metà sul mondo)
+
+_Timestamp: 2026-09-13T17:01:36Z_
+
+⛔ **Nessuna pagina primaria è stata letta**: ogni fatto viene da un risultato di `WebSearch` ed è marcato `[secondo mano]`. `WebFetch` sui siti `iredes.org/irdocs` è stato bloccato (403/timeout). Nessun numero di legge entra qui; nessun dato di riferimento del fondatore.
+
+### Che cos'è IREDES
+
+**IREDES** (International Rock Excavation Data Exchange Standard) è uno standard XML per lo scambio dati tra attrezzature di scavo/perforazione e sistemi IT di ufficio. È mantenuto da un'organizzazione **non-profit con sede a Ladbergen (Germania)**, fondata dai principali produttori minerari mondiali e finanziata dai membri su base di cost-sharing [fonte: IREDES.org, WebSearch — fiducia media]. 
+
+Nato per **unificare la comunicazione fra perforatrici, macchine di caricamento esplosivo e software di progettazione** (tunneling, mining, quarry), il suo proposito dichiarato è creare un "linguaggio elettronico comune" riconosciuto da tutti i sistemi di automazione nella miniera [fonte: IREDES.org Purpose, WebSearch — fiducia media].
+
+La prima versione risale agli **anni 2000 circa** (non confermata data esatta con questa ricerca). Una **versione 2.0 è in sviluppo** con supporto per JSON in aggiunta a XML, un profilo drill-rig rivisto e il modello GMG di timeseries [fonte: IREDES.org Roadmap, WebSearch — fiducia media].
+
+### Organizzazione e membri
+
+IREDES è una **global non-profit initiative** composta da full members (seduti nel board) e associated members. I **full members confermati** includono: **Epiroc** (percussive drilling, ex-Atlas Copco drilling division), **Sandvik Mining & Construction**, **LKAB** (operatore minerario svedese), **Rio Tinto** (operatore globale) [fonte: WebSearch — fiducia media]. 
+
+Gli **associated members** includono **Komatsu**, **Orica** (esplosivi e sistemi di detonazione), **Micromine** (software mining), e altri [fonte: WebSearch, IREDES members page — fiducia media; la lista completa 2026 non è stata estrapolata].
+
+### La struttura dati di IREDES: DrillPlan
+
+IREDES definisce un profilo **DrillPlan** (piano di perforazione) che contiene per ogni foro: **ID** (numerico, obbligatorio), **nome**, **tipo** (split / blast / extra / unknown), **orientamento** (azimut), **inclinazione**, **diametro**, **lunghezza**, **coordinate del colletto** (x, y, z) [fonte: IREDES.org irdocs/drillplan.html (non accessibile), Trimble Help, WebSearch — fiducia media].
+
+Il **DrillPlan** è accompagnato da eventuali dati **MWD** (Measurement While Drilling) — azimut e inclinazione misurati durante la perforazione — che possono essere usati per ricalibrare i piani di carica sulla base delle condizioni riscontrate [fonte: WebSearch — pratica documentata dai produttori — fiducia media].
+
+**Non è stata trovata conferma diretta di uno schema IREDES dedicato al "BlastPlan"** (piano di innesco con carica, ritardi, detonatori per foro). Le fonti confermano che IREDES copre "drill plans and production reports" per perforatrici, macchine di caricamento esplosivo e di sparo, ma la documentazione dello schema specifico per il piano di innesco rimane non accessibile con questa ricerca.
+
+### Software che supporta IREDES
+
+Le seguenti software/produttori sono confermati come utilizzatori di IREDES per drill & blast:
+
+- **Maptek Vulcan** (2025): esporta dati di fori perforati a IREDES formato XML per il blast, consentendo di selezionare sottoinsiemi di fori per l'esportazione [fonte: Maptek Help 2025, WebFetch — fiducia media].
+- **Micromine** (Glencore): supporta import/export IREDES DrillPlan con vincoli su ID numerico dei fori [fonte: Micromine docs, WebSearch — fiducia media].
+- **Trimble TBC**: importa piani di tunnel e perforazione IREDES (.xml) [fonte: Trimble Help, WebSearch — fiducia media].
+
+**Orica BlastIQ / SHOTPlus**: la ricerca non ha confermato se BlastIQ importa IREDES direttamente, ma Orica è membro associato IREDES e la sua piattaforma gestisce "blast plans" [fonte: Orica website, WebSearch — fiducia bassa-media].
+
+### Confronto tra la struttura di Genesi e IREDES
+
+Genesi genera un export XML dichiarato come **"bozza di interscambio in stile IREDES (non conformità certificata)"** (`xmlns="urn:genesi:blastplan:draft"`). La struttura contiene:
+- **`<PlanData>`**: MeshBurden (m), MeshSpacing (m), HoleDiameter (mm), Explosive (tipo), Initiation (tipo innesco), Sequence, HoleDelay (ms), RowDelay (ms), LastDetonation (ms), **MaxInstantCharge** (kg, con window_ms="8")
+- **`<Holes>`**: per ogni foro — Position (x, y in m), Depth (m), Charge (kg), Stemming (m), Delay (ms di detonazione del foro)
+
+**Divergenza strutturale rispetto a ciò che la ricerca conferma di IREDES:**
+1. IREDES DrillPlan è per la **geometria dei fori perforati** (posizione, profondità, diametro); Genesi BlastPlan contiene la **carica e i ritardi** — due aspetti diversi.
+2. Genesi aggiunge campi di **carica massima per ritardo (MaxInstantCharge)** con una finestra temporale, specifici per il controllo dei detonatori — non confermato come parte dello schema IREDES.
+3. Genesi esporta **per intera volata con tutti i fori** in un singolo file XML; Maptek Vulcan consente di selezionare sottoinsiemi di fori per l'export — design pattern diverso.
+4. L'elemento **`<Sequence>`** (sequenza di sparo: diagonale, lineare, per fila) non è stato confermato come parte dello schema DrillPlan di IREDES.
+
+⚠️ **Non è stata trovata nessuna fonte che nomini uno standard IREDES "BlastPlan"** distinto dal DrillPlan. È possibile che:
+- Il "BlastPlan" di Genesi sia un'estensione proprietaria (bozza: `urn:genesi:blastplan:draft`)
+- IREDES copra "blast reports" (rapporti post-sparo) separati dai piani di carica
+- La documentazione ufficiale dello schema sia non accessibile con WebSearch/WebFetch da questa sessione
+- IREDES versione 2.0 (in sviluppo) aggiunga il profilo di innesco/carica fra le novità non ancora pubblicate
+
+### Fonti
+
+- [IREDES Organization](https://iredes.org/)
+- [IREDES Purpose](https://iredes.org/purpose/)
+- [IREDES Members](https://iredes.org/iredes-members/)
+- [IREDES Architecture](https://iredes.org/architecture-2/)
+- [IREDES Roadmap](https://iredes.org/roadmap/)
+- [IREDES DrillPlan Docs](https://iredes.org/irdocs/drillplan.html) — non accessibile
+- [Maptek Vulcan IREDES Export (2025)](https://help.maptek.com/vulcan/2025/Content/topics/Drill_and_Blast/Analysis_and_Reporting/DrillandBlast_Export_to_IREDES.htm)
+- [Trimble TBC IREDES Import](https://help.fieldsystems.trimble.com/tbc/12438.htm)
+- [Micromine IREDES Support](https://webhelp.micromine.com/mm/latest/English/Content/mmring/IDH_IMPORT_IREDES.htm)
+- [Wikipedia — IREDES](https://en.wikipedia.org/wiki/IREDES)
+
