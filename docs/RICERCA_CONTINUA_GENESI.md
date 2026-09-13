@@ -2160,3 +2160,53 @@ Il documento di Jhanwar dichiara che la tecnica è in uso pratico da oltre 70 an
 - mdpi.com — "Numerical Investigation of Bench Blasting in Hard–Soft Interbedded Rock Masses" (2026)
 - semanticscholar.org — "Influence of air-deck length on fragmentation in quarry blasting"
 - brevetti USPTO (patents.google.com / image-ppubs.uspto.gov) — vari, su detonatori a ritardo, decking multi-strato, "High energy blasting" — usati come fonti tecniche generiche sulla tecnologia, non come casi di studio operativi
+
+## Ricerca del 2026-09-13 — import CAD/DXF: come i software commerciali evitano l'errore di convenzione degli assi
+
+_Timestamp: 2026-09-13T12:00:43Z_
+
+_Strumento: `WebSearch` (funziona); nessuna fonte primaria letta per intero. Ogni affermazione è marcata esplicitamente con la fonte e il grado di fiducia. Nessun numero di legge entra qui; il contesto è il rischio di sicurezza in un import DXF futuro, non il presente._
+
+### Fatti dal mondo
+
+**IREDES (International Rock Excavation Data Exchange Standard):**
+IREDES è lo standard XML internazionale per lo scambio dati fra perforatrici e software di progettazione in miniera (lanciato nel 2000). Il suo capitolo su **Coordinate System handling** dichiara che i sistemi di coordinate e le loro relazioni sono "Commonly Used Objects" usati in diversi profili e dataset IREDES. La versione del 2025 include un aggiornamento alla descrizione della coordinate system che non è specificata in dettaglio negli snippet trovati. Fonte: `iredes.org/architecture-2/`, profilo IREDES organization · affidabilità **media-alta** (standard formale, ma gli snippet non contengono la specifica tecnica completa).
+
+**AutoCAD DXF e Object Coordinate System (OCS):**
+Il formato DXF di AutoCAD usa un **Object Coordinate System (OCS)** per descrivere entità in 3D. L'unica informazione aggiuntiva necessaria è il vettore 3D che descrive l'asse Z dell'OCS (chiamato "extrusion vector") e il valore di elevazione. L'algoritmo dell'asse arbitrario di AutoCAD genera l'asse X corrispondente, e l'asse Y segue per applicazione della **regola della mano destra**. Fonte: `documentation.help/AutoCAD-DXF/` e `ezdxf.readthedocs.io` · affidabilità **media-alta** (documentazione tecnica ufficiale, ma gli snippet non coprono implementazioni minerarie specifiche).
+
+**LandXML e coordinate shift noto nel settore:**
+LandXML è un formato di scambio per coordinate in applicazioni civili/topografiche. Dopo l'import in software CAD, i disegni **"possono saltare a locazioni inaspettate, il piano può essere corretto ma solo l'elevazione sbagliata, o lievi mismatch compaiono quando si sovrappongono dati esistenti"**. Casi tipici documentati: confusione fra metri e millimetri, mescolanza di coordinate rettangolari piane e coordinate locali, differenze in elevation datum, spiegazione insufficiente di dati con origine traslata, confusione fra risultati di survey e standard di disegno per modelli di design. La causa è che LandXML precede la geometria con metadati di riferimento, ma differenze nei sistemi di riferimento emergono spesso. Fonte: `lefixea.com` (pagina su "6 Measures Against Coordinate Shift LandXML") · affidabilità **media** (fonte tecnica commerciale, non un caso documentato di miniera/cava specifico).
+
+**Maptek BlastLogic — validazione geometria importata:**
+BlastLogic ha un workflow dedicato di **validazione** che include: (1) auto-associazione di dati drilling reali ai fori di progetto importati, usando un raggio di ricerca configurabile e la **posizione più vicina non ancora associata**; (2) un report specifico **"Drill Collar Deviation"**; (3) calcolo di tolleranze per **Collar XY tolerance, Overdrill tolerance, Underdrill tolerance**, configurabili per tipo di foro nel software di progetto (SHOTPlus). Fonte: `help.maptek.com/blastlogic/` · affidabilità **media** (pagine di supporto ufficiali del software, non uno studio di caso).
+
+**Deswik Spatial — automatic repair di geometrie invalide:**
+Deswik Spatial è una piattaforma CAD per miniera che include una funzione di **automatic repair for invalid solids imported from other mining systems**. L'esistenza di questa funzione suggerisce che il rischio di geometrie invalide da import esterno è noto e frequente nel settore. Fonte: `deswik.com/products/spatial` · affidabilità **media** (dichiarazione prodotto, non uno studio indipendente).
+
+**Coordinate conventions geografiche in mining — non univoche:**
+In applicazioni geografiche e di survey sono in uso due famiglie di convenzioni: **ENU (East-North-Up)**, usato in geografia, e **NED (North-East-Down)**, usato in aerospazio. In topografia mineraria non è stata trovata una **convenzione singola universale**: un documento su topografia mineraria cita "x-axis points north parallel to geoid, y-axis points east, z-axis points down", suggerendo **North=X o Y** a seconda della fonte. Fonte: `wikipedia.org` (articolo "Axes conventions"), fonti tecniche su mineraria · affidabilità **bassa-media** (manca una fonte primaria di standard minerario unico).
+
+**GPS e posizionamento fori da blast hole drilling:**
+In miniera a cielo aperto, gli operatori posizionano gli **coordinate per tutti i fori perforati usando un'apparecchiatura portatile equipaggiata con unità di posizionamento ad alta precisione**. Quando la **posizione ricevuta da un'unità GPS non corrisponde esattamente alla posizione programmata di nessun foro**, un processore identifica il **foro programmato più vicino** entro una certa distanza. Fonte: brevetti mining (`patents.google.com` — "Blast hole seeking and dipping", "Tracking system for blast holes") e `geoforce.com`, `septentrio.com` · affidabilità **media** (brevetti e case study, non uno studio indipendente sugli errori).
+
+**Flyrock e burden — parametri di sicurezza critici:**
+Il **burden** (distanza perpendicolare dal foro alla parete libera più vicina) e il **flyrock** (frammenti di roccia lanciati oltre l'area controllata) sono **parametri critici di sicurezza** in blast design. Errori di design che portano a flyrock includono: **insufficient burden, improper spacing, large blast holes on small benches, improper delay timing, inadequate stemming**. Un incidente documentato: un frammento di flyrock ha percorso **280 m** da una fonte, causando la morte di una persona — la causa possibile è stata una **zona debole nella stratificazione rocciosa**. Se una convenzione di assi inversa produce burden calcolati in direzione opposta, il risultato sarebbe **burden insufficiente dal lato dove viene stimato**, con rischio massimo di flyrock. Fonte: `tmi2001.com`, `miningdoc.tech`, `ergindustrial.com`, studi accademici via ScienceDirect · affidabilità **media-alta** (documenti su sicurezza e casi documentati di incidenti).
+
+**Strumenti di posizionamento che calcolano automaticamente burden e spacing:**
+Software come **O-Pitblast** descrivono esplicitamente che il **fronte di cava è spesso irregolare, quindi il burden REALE misurato da fotogrammetria/3D può scostarsi molto da quello progettato**. Se un file DXF importato avesse assi invertiti, il calcolo geometrico di burden (distanza dal foro al fronte) **varierebbe dramaticamente a seconda della direzione di misurazione** — i software che calcolano automaticamente questo valore sarebbero esposti a errori silenziosi se non validano prima la convenzione. Fonte: `o-pitblast.com` (O-PitAnalytics), fonti accademiche via ricerca · affidabilità **media** (descrizione del meccanismo, non un caso di errore documentato).
+
+**Nessun caso noto di errore di convenzione assi trovato:**
+Ricerca diretta per termini come `"coordinate system error" "blast design"`, `"axis convention" "mining incident"` non ha prodotto nessun articolo o rapporto tecnico che documenti un **incidente causato specificamente da errore di convenzione assi in un import DXF/CAD per blast design**. Questo non significa che il rischio non esista — significa che **non è stato trovato un precedente documentato con queste parole-chiave esatte**. [dedotto, non trovata una fonte primaria]. Affidabilità: **non verificabile** — l'assenza di una fonte non è una conferma che il rischio sia raro o inesistente.
+
+### Sintesi dal mondo
+
+Il settore ha **quattro linee di difesa** contro l'errore di convenzione assi:
+
+1. **Uno standard di scambio dati (IREDES)** che **dichiara** di gestire coordinate system, anche se non tutti i software lo usano strictamente.
+2. **Formati con metadati (LandXML)** che **tentano** di includere georeferenziamento, ma i cui problemi di coordinate shift sono **noti e frequenti**.
+3. **Validazione automatica post-import** (Maptek BlastLogic, Deswik) che confronta il **più vicino** e genera report di deviazione — una difesa di **plausibilità**, non di convenzione.
+4. **Calcolo automatico di parametri critici (burden)** da geometria importata — una difesa per **catturare l'errore nei risultati** se le coordinate fossero sbagliate.
+
+Nessuna fonte trovata descrive una **validazione esplicita della convenzione di assi** (es: "il fronte deve essere nella direzione positiva di X" o "l'asse Z deve puntare verso l'alto") prima di usare la geometria per il calcolo di burden/safety.
+
