@@ -566,6 +566,7 @@ body.scr-sim #tl{bottom:80px}
 .sv-bip-why{font-size:11px;color:var(--mut2);line-height:1.42;margin-top:7px}
 #d2-cta{display:block;margin:14px auto 0;background:linear-gradient(135deg,#ffc12e,#ff8c1d);border:none;color:#3a1e00;font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:12px 22px;border-radius:11px;box-shadow:0 10px 28px rgba(255,150,30,.4);text-shadow:0 1px 0 rgba(255,228,180,.4);cursor:pointer}
 #d2-cta:hover{filter:brightness(1.06)}
+.ric-in{width:70px}
 @media (max-width:760px){
   #brand h1{font-size:17px} #brand .tag{display:none} #brand .mark svg{width:32px}
   /* SOTTO I 630 px IL NOME SPARISCE E RESTA IL SEGNO. Misurato a 390: il
@@ -590,6 +591,16 @@ body.scr-sim #tl{bottom:80px}
     #brand h1{display:none}
     #brand{gap:0}
   }
+  /* LA GRIGLIA DELLA RICONCILIAZIONE (previsto/reale/scarto) chiedeva di
+     scorrere DENTRO il riquadro fino a 390 px inclusi, misurato con
+     scrollWidth/clientWidth: a 320 servivano 318 px in 238 disponibili,
+     a 390 servivano gli stessi 318 in 308. Le colonne erano già a `fr`
+     (non si restringono sotto il contenuto minimo) e il campo numerico
+     era largo 70 px fissi in ognuna delle tre righe. `minmax(0,…)` sulle
+     colonne (vedi il grid-template-columns generato) permette alla
+     griglia di restringersi davvero; qui si restringe anche il campo,
+     che a 54 px resta comodo per un numero con una decimale. */
+  .ric-in{width:54px}
   /* Su schermo stretto la barra va a capo: le sta larga solo il 60% e finiva
      sopra il titolo dell'app. Le si lascia più spazio e i bottoni non si
      accavallano più col nome. */
@@ -4073,11 +4084,11 @@ async function riconRender(){
   body.innerHTML=
     _riconCampoHtml()
     +'<div style="color:var(--mut);font-size:12px;margin-bottom:10px;">Dopo lo sparo inserisci i valori <b>misurati</b> per confrontarli con la previsione della volata corrente (dalla Scheda validatori). Verde = scostamento &lt;15%, giallo &lt;35%, rosso oltre.</div>'
-    +'<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1.2fr;gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;overflow-x:auto;">'
-    +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700">Previsto</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scostamento</div>'
-    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" type="text" inputmode="decimal" min="0" style="width:70px"> cm</div><div id="ric-d-x50">—</div>'
-    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" type="text" inputmode="decimal" min="0" step="0.1" style="width:70px"> mm/s</div><div id="ric-d-ppv">—</div>'
-    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" type="text" inputmode="decimal" min="0" style="width:70px"> m</div><div id="ric-d-fly">—</div>'
+    +'<div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1.1fr);gap:6px 8px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums;overflow-x:auto;">'
+    +'<div style="color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase">Metrica</div><div style="color:#ffd54f;font-weight:700" title="Previsto">Prev.</div><div style="color:#ffd54f;font-weight:700">Reale</div><div style="color:#ffd54f;font-weight:700">Scarto</div>'
+    +'<div style="color:var(--mut)">X50 pezzatura</div><div>'+gnum(prev.x50,1)+' cm</div><div><input id="ric-x50" class="ric-in" type="text" inputmode="decimal" min="0"> cm</div><div id="ric-d-x50">—</div>'
+    +'<div style="color:var(--mut)">PPV vibrazione</div><div>'+gnum(prev.ppv,1)+' mm/s</div><div><input id="ric-ppv" class="ric-in" type="text" inputmode="decimal" min="0" step="0.1"> mm/s</div><div id="ric-d-ppv">—</div>'
+    +'<div style="color:var(--mut)">Gittata flyrock</div><div>'+gnum(prev.fly,0)+' m</div><div><input id="ric-fly" class="ric-in" type="text" inputmode="decimal" min="0"> m</div><div id="ric-d-fly">—</div>'
     +'</div>'
     /* la base della PPV prevista sta SOTTO la griglia e non dentro la cella
        «Previsto»: a 430 px quella colonna sta in 80 px, e una frase lì dentro
