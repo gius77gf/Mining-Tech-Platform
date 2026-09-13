@@ -2609,3 +2609,53 @@ articoli tecnici o case study in PDF. La ricerca rimane confinata a snippet di
 - [Maxam Quarries](https://www.maxamcorp.com/en/blasting-solutions/quarries)
 - [Maxam SLIM Project](https://www.maxamcorp.com/en/newsinsights/news/slimprojectmeeting)
 
+---
+
+## Ricerca del 2026-09-13 — dichiarazione annuale ed ispezioni periodiche in cava (metà sul mondo)
+
+_Timestamp: 2026-09-13T13:06:52Z_
+
+⚠️ **Corretto qui, non dall'agente**: la sua scrittura in coda aveva
+spostato l'ultima voce della lista fonti della sezione precedente
+(Orica/Maxam, "Maxam SLIM Project") fuori dal suo elenco e in fondo a
+QUESTA sezione, orfana e senza intestazione — un difetto di
+inserimento, non di contenuto. Rimessa al suo posto nell'elenco fonti
+di Orica/Maxam; il contenuto di questa sezione non ne risente. Lezione
+per i cicli futuri: **anche un "append" può corrompere ciò che c'era
+prima**, non solo ciò che si aggiunge — la rilettura dopo la scrittura
+va fatta guardando la GIUNZIONE fra le due sezioni, non solo che la
+sezione nuova esista.
+
+### Dichiarazione annuale dei quantitativi estratti (Modello A)
+
+La **dichiarazione annuale dei quantitativi estratti** è regolata in Italia dal **DPR 128/1959** (Testo Unico delle norme di Polizia Mineraria) e rappresenta un obbligo documentale per tutte le cave che estraggono materiali [fonte: WebSearch — secondo il contesto normativo italiano standard, fiducia media].
+
+Il modulo utilizzato è comunemente noto come **Modello A** e viene gestito dall'**UNMIG** (Ufficio Nazionale Minerario per gli Idrocarburi e le Georisorse, dipendente dal **MASE** — Ministero dell'Ambiente e della Sicurezza Energetica) [fonte: riferimenti amministrativi standard MASE, fiducia media; secondo-hand].
+
+La **periodicità è annuale**: la dichiarazione deve essere presentata entro scadenze stabilite a livello nazionale, con eventuali varianti regionali. In **Piemonte**, ad esempio, è stato istituito un sistema di reporting integrato tramite DGR 23-6964 [fonte: WebSearch — regolamenti regionali Piemonte, fiducia media; secondo-hand].
+
+Contenuti principali della dichiarazione: quantità totale estratta (in tonnellate o m³), date di inizio/fine estrazione, coordinate geografiche della cava, tipologia di materiale estratto, destinazione dei materiali (usi commerciali, riciclaggio, rinaturalizzazione) [fonte: standard dichiarazioni minerarie europee / italiana, fiducia media; secondo-hand].
+
+### Ispezioni periodiche in cava — regolazione e autorità competente
+
+Le **ispezioni periodiche in cava** sono prescritte dal **DPR 128/1959** e dal **TULPS** (Testo Unico delle Leggi di Pubblica Sicurezza) in relazione al maneggio di esplosivi e alla sicurezza mineraria [fonte: WebSearch — normativa italiana su sicurezza esplosivi in miniera, fiducia media; secondo-hand].
+
+L'**autorità competente** per le ispezioni è la **Commissione Mineraria** locale (presso le Soprintendenze o Uffici Regionali di Competenza), con rappresentanti del **Corpo Nazionale dei Vigili del Fuoco**, **INAIL** (Istituto Nazionale per l'Assicurazione contro gli Infortuni sul Lavoro) e **ARPA** (Agenzia Regionale per la Protezione Ambientale) [fonte: WebSearch — struttura amministrativa ispettiva italiana, fiducia media; secondo-hand].
+
+**Periodicità:** le ricerche non hanno restituito una periodicità standard univoca (annuale, biennale, quinquennale) a livello nazionale centralizzato. La frequenza dipende dal profilo di rischio della cava, dalla tipologia di estrazione (a braccia, con esplosivi, con macchine) e dalle disposizioni regionali [fonte: WebSearch — indirizzo generale su ispezioni minerarie, fiducia bassa-media; secondo-hand].
+
+### Esplosivi — registrazione e obbligo documentale
+
+Ogni cava che utilizza **esplosivi** è obbligata a mantenere un registro tecnico (**Registro degli Esplosivi**) con traccia di: quantità, tipologia, date di utilizzo, numero di mine, operatori abilitati impiegati [fonte: WebSearch — standard TULPS e DPR 128/1959 su gestione esplosivi, fiducia media; secondo-hand].
+
+L'ispezione verifica il **corretto stoccaggio**, l'**assenza di scadenze** sugli esplosivi, la **conformità dei progettisti di scavo** (qualificazione IMPATTO/ESAME per piani di tiro), e il rispetto delle **distanze di sicurezza** da abitazioni e infrastrutture critiche [fonte: WebSearch — norme europee e italiane su sicurezza esplosivi, fiducia media; secondo-hand].
+
+### A chi appartiene questo materiale
+
+Genesi progetta la singola volata; la dichiarazione annuale dei
+quantitativi e il registro degli esplosivi sono più vicini al mestiere
+di **Scudo** (sicurezza/conformità) e **Terra** (quantitativi estratti)
+— questo materiale resta qui perché la ricerca era mirata a Genesi, ma
+chi lo userà per un delta lo leggerà sapendo a quale app appartiene di
+più.
+
