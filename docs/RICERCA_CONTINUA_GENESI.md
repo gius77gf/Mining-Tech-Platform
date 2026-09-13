@@ -2210,3 +2210,63 @@ Il settore ha **quattro linee di difesa** contro l'errore di convenzione assi:
 
 Nessuna fonte trovata descrive una **validazione esplicita della convenzione di assi** (es: "il fronte deve essere nella direzione positiva di X" o "l'asse Z deve puntare verso l'alto") prima di usare la geometria per il calcolo di burden/safety.
 
+
+## Ricerca del 2026-09-13 — che cosa contiene davvero un rapporto di volata (metà sul mondo)
+
+_Timestamp: 2026-09-13T12:21:11Z_
+
+_Strumento: `WebSearch` (funziona); nessuna fonte primaria letta per intero. Ogni affermazione è marcata esplicitamente con fonte e grado di fiducia. Ricerca mirata su quattro angoli: norme USA (MSHA), moduli statali, software commerciali di blast design, requisiti assicurativi e ispezione._
+
+### Fatti dal mondo
+
+**1. Requisiti normativi USA (MSHA) per la documentazione di volata**
+
+- **Il Mining Safety and Health Administration (MSHA) degli USA richiede** che ogni operatore di cava a cielo aperto tenga un **registro permanente di tutti i brillamenti**, contenente almeno: data, ora, ubicazione, quantità e tipo di esplosivo usato, numero e disposizione dei fori, peso della carica per foro, sequenza di innesco e ritardi, numero di persone presenti al momento del brillamento, risultati della vibrazione misurata (se richiesta dalla distanza dalla struttura vicina). [di seconda mano: fonte aggregata via WebSearch da mining.gov e msha.gov documenti di linea guida, mai verificati per intero]. Affidabilità: **media-alta** (agenzia governativa ufficiale, snippet non contiene il testo completo della norma).
+- **30 CFR 77.1908** (titolo della norma federale USA): "Blast records and reports" — il testo specifico richiede cartaccia o digitale contenente dettagli pre-blast e post-blast. Nessuno snippet trovato ha specificato il testo completo della norma. [di seconda mano, affidabilità media].
+
+**2. Moduli di stato per la notifica/registrazione di volate (esempi specifici)**
+
+- **Tennessee** richiede un **"Pre-blast Survey Report"** e un **"Post-blast Damage Inspection Report"** quando la volata è entro 500 piedi (~152 m) da una struttura sensibile (abitazioni, edifici commerciali). Il pre-blast documenta le condizioni della struttura prima della volata (foto, misurazioni). Il post-blast registra eventuali danni visibili e vibrazioni misurate. [di seconda mano: fonte aggregata da ricerca su moduli Tennessee blasting, mai scaricati e letti per intero]. Affidabilità: **media**.
+- **Pennsylvania** usa un modulo **"Blaster's Report"** che include: nome del blaster, data/ora, ubicazione della volata, distanza alla struttura più vicina, metodo di vibrazione utilizzato (se applicabile), risultati della vibrazione, numero di fori, tipo e quantità di esplosivo, sequenza di innesco dichiarata, e firma del blaster. [di seconda mano: fonte aggregata, non verificata sul PDF dello stato]. Affidabilità: **media**.
+
+**3. Struttura dei report nei software commerciali (Orica SHOTPlus, Maptek BlastLogic)**
+
+- **Orica SHOTPlus** genera automaticamente un **"Blast Report"** che include: scheda progetto (geometria, roccia, esplosivo), curva di frammentazione Kuz-Ram prevista, grafico di carica per profondità, sequenza di innesco animata (timing di ogni foro), tabella di vibrazioni stimate (PPV per distanza e direzione), stime di flyrock e zone di sgombero, confronto con normativa vibrazionale locale. Il report è esportabile in PDF verso il cliente/ispettore. [di seconda mano: fonte aggregata da pagine di supporto e marketing Orica, non verificate per intero]. Affidabilità: **media**.
+- **Maptek BlastLogic** genera report che includono: progetto di carica con dettagli geometrici, stima della vibrazione, dati di conformità alle norme locali, visualizzazione 3D dei fori e della sequenza, integrazione con misure post-blast di accelerometri veri (se disponibili). [di seconda mano: fonte aggregata da help.maptek.com, affidabilità media].
+
+**4. Requisiti assicurativi e ispettivi per la documentazione di danno**
+
+- **Le assicurazioni di responsabilità civile per cave e miniere richiedono** un dossier documentale che includa: registro di progettazione della volata firmato dal responsabile tecnico, calcoli di carica e spacing approvati, dati di vibrazione misurati (sensore esterno o modello validato), documentazione fotografica pre-blast della zona circostante, dichiarazione di conformità alle norme locali, e (se richiesto) rapporto di ispezione post-volata. In caso di reclamo per danno, l'assicurazione può richiedere il **"load-out"** digitale della volata (file binario dal sito di caricamento esplosivi che registra ogni cartuccia e detonatore posizionato). [di seconda mano: fonte aggregata da ricerche su seguros/liability quarry drilling, con riferimenti generici a prassi industriale, non a polizza specifica]. Affidabilità: **bassa-media** (dedotto da logica di responsabilità civile, non da contratto assicurativo letto).
+- **Gli ispettori di enti regolatori** (es. MSHA, dipartimenti ambientali regionali) controllano che il rapporto di volata contenga almeno: coerenza fra carica dichiarata e record di acquisto di esplosivi, vibrazioni misurate entro limiti normativi locali, e distanze di sicurezza rispettate. Mancanza di documentazione può portare a sanzioni o sospensione della licenza di brillamento. [di seconda mano, affidabilità media].
+
+**5. Standard internazionali (ISEE, AS 2187, EN 13763)**
+
+- **ISEE (International Society of Explosives Engineers)** pubblica pratiche di blast design che includono una sezione **"Blast Records and Reporting"** raccomandando documentazione pre/post-blast e archiviazione permanente. Non è stato trovato il testo completo dello standard. [di seconda mano: fonte aggregata, affidabilità media].
+- **AS 2187-2 (Australian Standard)** include requisiti per la **documentazione del brillamento** in cave a cielo aperto e miniere a superficie, comprendendo: data, ora, ubicazione, numero di fori, carica totale, tipo di roccia, metodo di vibrazione, risultati vibrazionali, nomi e firme di personale autorizzato. [di seconda mano, affidabilità media].
+
+**6. Pre-blast e post-blast monitoring — vibrazione e danni**
+
+- **Pre-blast**: fotografico (stato della struttura vicina), survey con strumento di misura (livellazione ottica, GPS se richiesto di precisione), creazione di baseline di vibrazione (se possibile, sensore geofono su struttura preesistente). [di seconda mano, affidabilità media].
+- **Post-blast**: ripetizione della fotografia dalla stessa angolazione, ispezione tattile per crepe/danni visibili, rimisurazione con strumento (per variazioni di assestamento se il terreno si muove), registrazione di vibrazione con accelerometri posizionati dalla parte della struttura esposta al foro (picco di velocità in cm/s e frequenza dominante). Se la vibrazione supera soglia locale (es. USA 2 in/s ~5 cm/s per strutture abitative, 1 in/s per aree sensibili), scatta l'obbligo di rapporto dettagliato. [di seconda mano: fonte aggregata da msha.gov, stato-specifiche, affidabilità media-alta].
+
+**7. Contenuti specifici NON trovati in fonti pubbliche**
+
+- **Nessuna fonte accessibile ha fornito il testo completo di un modulo/rapporto reale** (documento scaricato e letto). Tutti i dettagli sopra derivano da **snippet di ricerca, riassunti di fornitori, o deduzione dalla logica di norma**. Chi vuole il modulo vero deve contattare direttamente MSHA, il dipartimento di stato, o scaricare da siti ufficiali.
+- **Nessun caso studio pubblico** di un reclamo assicurativo per danno da volata è stato trovato che descrivesse in dettaglio quali documenti l'assicurazione ha richiesto e accettato come prova.
+
+### Fonti principali citate
+
+- mining.gov / msha.gov — documenti di linea guida MSHA su blasting records
+- 30 CFR 77.1908 (titolo della norma federale, testo non verificato per intero)
+- Dipartimento di stato Tennessee — "Pre-blast and Post-blast Inspection Requirements"
+- Dipartimento di stato Pennsylvania — "Blaster's Report Form" (modulo, non scaricato)
+- orica.com / Orica SHOTPlus — pagine di supporto su blast report generation
+- help.maptek.com / Maptek BlastLogic — pagine su report e compliance
+- isee.org — International Society of Explosives Engineers (standard, non letto per intero)
+- Standards Australia (AS 2187-2) — Australian Standard for Explosives in Mining and Quarrying (standard, non letto per intero)
+- Ricerche generiche su "blast report content," "quarry damage insurance," "vibration limits"
+
+### Sintesi dal mondo
+
+Un rapporto di volata reale contenuto nei sistemi normativi pubblici e nelle pratiche assicurative include almeno: **dati geometrici e di carica, sequenza di innesco, vibrazioni stimate o misurate, conformità normativa dichiarata, firme di responsabili tecnici, fotografie pre e post brillamento, e misure di danni se richieste**. Nessuno dei software commerciali trovati (`SHOTPlus`, `BlastLogic`) genera automaticamente un rapporto che contenga tutte queste sezioni in un unico documento — ognuno ne genera alcune (carica, vibrazioni, Kuz-Ram). Un rapporto **completo verso l'ispettore o l'assicurazione** è assemblato a mano dal blaster/ingegnere a partire da file diversi.
+
