@@ -127,9 +127,9 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
 | una o due | **49** |
-| da tre a cinque | 16 |
+| da tre a cinque | 15 |
 | da sei a dieci | 22 |
-| più di dieci — lì è un rifacimento | 37 |
+| più di dieci — lì è un rifacimento | 38 |
 
 Cioè **57 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 90 sono una decisione di architettura.
@@ -159,6 +159,15 @@ Effetto: il totale nella pagina scende **148 → 147** (nessun wrapper resta,
 l'import la sostituisce), il bucket "6-10" scende **23 → 22**, gli
 estraibili restano **57** (non erano mai stati contati lì: una funzione
 tolta dalla pagina non è più "da estrarre", è già uscita).
+
+⚠️ **13/09, stesso giorno: `d2Down` passa dal bucket "3-5" a "11+" per un
+commento, non per il codice.** Aggiungendo la memoria dell'ultima selezione
+(`D2.selPrev`, per la misura fra due fori qualunque — vedi G34quinquies in
+`genesi.html`) è entrato anche un commento esplicativo di sei righe: il
+tokenizzatore del censimento conta le parole sull'indentazione, non
+distingue prosa da codice, e alcune parole del commento sono finite lette
+come variabili del modulo. Non è un difetto della funzione (che legge
+sempre `D2` e basta): 16→**15**, 37→**38**.
 
 ✅ **12/09 (unità 121, 122 e 124): 151 → 147.** `_sitoParseCsv`, `_sentCell`,
 `esplCardHtml` e `innCardHtml` sono salite in `genesi-data.js`: il censimento

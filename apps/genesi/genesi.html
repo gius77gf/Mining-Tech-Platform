@@ -1466,7 +1466,7 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
+const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, selPrev:-1, lastDet:0, _m:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
   errColl:0.15, dev:2.5,
@@ -5084,7 +5084,7 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        ricalcola; se non li porta (volata salvata prima) la maglia si rigenera
        come sempre. I fori illeggibili si contano e si dicono nel toast. */
     const _fd=foriDaDesign(arr[i].design);
-    D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1;
+    D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1; D2.selPrev=-1;
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
@@ -5333,7 +5333,7 @@ function genMaglia2D(){
   /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
   const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
-  D2.holes=holes; D2.sel=-1; computeSeq2D();
+  D2.holes=holes; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
   if(aMano && typeof toast==='function') toast('Maglia rigenerata: '+(aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'));
 }
 function computeSeq2D(){
@@ -6021,6 +6021,12 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   let i=d2HitTest(p.x,p.y);
   if(i<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
     if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+  /* G34quinquies (13/09) — memoria dell'ultima selezione, per la misura fra
+     due fori qualunque (non solo il più vicino): si aggiorna solo quando la
+     selezione cambia DAVVERO su un foro esistente, mai su un ri-clic dello
+     stesso foro (altrimenti trascinare lo stesso foro lo farebbe "misurare
+     da sé stesso" a ogni movimento). */
+  if(i>=0 && D2.sel>=0 && D2.sel!==i) D2.selPrev=D2.sel;
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
   if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(mx); my=_snapXY(my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
@@ -6073,10 +6079,22 @@ function renderInspector(){
      foro più vicino), mai la posizione lungo la fila. Chi allinea i fori a
      mano con l'aggancio alla griglia deve poter VERIFICARE il numero che ha
      ottenuto, non dedurlo guardando il disegno. */
-  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>x '+gfix(h.mx,2)+' m · spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
+  /* G34quinquies (13/09) — "vicino" risponde sempre alla stessa domanda (il
+     foro più prossimo), ma disegnare due file distanti chiede la distanza fra
+     DUE FORI QUALUNQUE, scelti da chi disegna: si selezionano in sequenza (il
+     precedente resta in `D2.selPrev`) e la distanza tornata si aggiunge qui,
+     senza un secondo strumento né un secondo click. */
+  const distPrevTx = (D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel)
+    ? ' · dal foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+': '+gfix(Math.hypot(D2.holes[D2.selPrev].mx-h.mx,D2.holes[D2.selPrev].my-h.my),2)+' m'
+    : '';
+  el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>x '+gfix(h.mx,2)+' m · spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m'+distPrevTx+' · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
     +ritTx
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
-  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  /* ⚠️ `D2.selPrev` va azzerato QUI, non solo dove nasce un array nuovo:
+     `splice` sposta tutti gli indici dopo quello tolto, quindi un indice
+     vecchio dopo una cancellazione punta a un ALTRO foro, non a "nessuno" —
+     misurare una distanza dal foro sbagliato senza che nulla lo dica. */
+  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; D2.selPrev=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
   /* Il ritardo si applica quando si conferma, non a ogni tasto premuto:
      digitando «120» si passerebbe da 1 a 12 a 120, e a ogni passaggio la
      sequenza si riordinerebbe sotto le dita. */
