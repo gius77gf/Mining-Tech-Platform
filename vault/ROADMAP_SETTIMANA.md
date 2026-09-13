@@ -3810,6 +3810,21 @@ numero scritto dove non era stato misurato niente**.*
       di libreria) non si distinguono senza sapere i **tipi**, e un righello «un
       po' meno sbagliato» è peggio di uno che dichiara il suo dubbio — regola
       già pagata su `contrasto.mjs`.
+      ✅ **13/09 (G35): `measureGeom2D` → `misuraGeom2D`, la prima estrazione
+      dalla fetta di mezzo dopo la pausa per il lavoro su richiesta diretta
+      del fondatore (DXF export, aggancio alla griglia).** Stessa logica
+      (burden minimo, interasse fra vicini di fila, estensione della pianta),
+      firma a tre parametri (`holes, Sprog, Bprog`) invece di leggere `D2` a
+      mano — la pagina resta un chiamante come un altro (`return
+      misuraGeom2D(D2.holes, D2.S, D2.B);`). Portato con lei il commento
+      storico sul TypeError del 09/08 (`.toFixed` su un `D2.S` grezzo quando
+      l'interasse manca) e la sua controprova strutturale, spostata a leggere
+      `genesi-data.js` invece della pagina. 3 nuove prove in `run-kpi.mjs`
+      (verificate contro il difetto: tolto il contratto `S:null` nel ripiego,
+      due prove cadono da sole). Fondo di `genesi-data.js` 142→143.
+      Effetto sui bucket del censimento (era un falso positivo del
+      tokenizzatore: due variabili LOCALI, `o` e `minx`, prese per variabili
+      del modulo): 3-5 → 17→16, una-o-due → 48→49, estraibili 56→57 su 148.
 - [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
       GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
       vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga
@@ -8052,9 +8067,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **13/09** (lanciando le suite, non a memoria — dopo
-  l'aggancio alla griglia di Genesi, unità G34: +3 in `run-kpi`, 2932→2935):
-  **3.416 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2935, `run-stile` 328,
+  `misuraGeom2D` salita dalla pagina di Genesi, unità G35: +3 in `run-kpi`,
+  2935→2938): **3.419 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2938, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

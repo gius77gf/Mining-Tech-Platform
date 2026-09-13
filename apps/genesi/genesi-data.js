@@ -3334,3 +3334,33 @@ export function snapAGriglia(v, passo){
   if(!Number.isFinite(p) || p<=0) return x;               // passo non valido: nessun aggancio, si passa il valore invariato
   return Math.round(x/p)*p;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)
+   ══════════════════════════════════════════════════════════════════════════
+   `measureGeom2D` misura la maglia DISEGNATA (non quella di progetto): il
+   burden minimo fra i fori, l'interasse fra fori affiancati sulla stessa
+   fila (entro mezzo metro di my — la tolleranza che distingue "stessa fila"
+   da "fila diversa"), e la lunghezza totale della pianta. Nessun calcolo
+   nuovo: era già così nella pagina, cambia solo la firma — legge tre valori
+   passati come parametri invece di leggere `D2` direttamente, così può
+   girare sotto `node` e la pagina resta un chiamante come un altro.
+   ⛔ `Number.isFinite` sul valore GREZZO di `Sprog`, non su `+Sprog`: `+null`
+   fa 0, che è finito — è la riga di CLAUDE.md, già pagata una volta in
+   `valoreCampo`. E vale anche per la via SENZA fori: prima restituiva
+   `Sprog` così com'era (poteva essere `undefined`, una stringa, qualunque
+   cosa); il contratto di questa funzione è UNO — S è un numero, oppure
+   `null` — e due uscite con due contratti diversi sono una copia più
+   debole (la stessa famiglia di CLAUDE.md sulle firme strette). */
+export function misuraGeom2D(holes, Sprog, Bprog){
+  const Sp = Number.isFinite(Sprog) ? Sprog : null;
+  const H = Array.isArray(holes) ? holes : [];
+  if(!H.length) return { n:0, B:Bprog, S:Sp, Lm:0 };
+  let Bm=Infinity, minx=Infinity, maxx=-Infinity, Sm=Infinity;
+  for(const h of H){ if(h.my<Bm)Bm=h.my; if(h.mx<minx)minx=h.mx; if(h.mx>maxx)maxx=h.mx; }
+  for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
+    if(Math.abs(H[i].my-H[j].my)<0.5){ const d=Math.abs(H[i].mx-H[j].mx); if(d>0.05 && d<Sm) Sm=d; }
+  }
+  if(!isFinite(Sm)) Sm=Sp;
+  return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
+}

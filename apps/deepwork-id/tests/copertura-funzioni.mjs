@@ -440,8 +440,12 @@ const CONDIVISI = [
      `dxfPianoFori`, che le chiama tutte.
      141 → 142 il 13/09 (G34, stesso giorno): `snapAGriglia`, l'aggancio
      opzionale alla griglia per il posizionamento manuale (disegno di
-     precisione — secondo pezzo di "tutte e tre le alternative"). */
-  { file: "apps/genesi/genesi-data.js", fondo: 142,
+     precisione — secondo pezzo di "tutte e tre le alternative").
+     142 → 143 il 13/09 (G35, stesso giorno): `misuraGeom2D`, salita da
+     `genesi.html` (`measureGeom2D`) nel filone "Genesi continua a uscire
+     dalla pagina" — stessa logica, firma a parametri invece di leggere `D2`
+     a mano; la pagina resta un chiamante come un altro. */
+  { file: "apps/genesi/genesi-data.js", fondo: 143,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

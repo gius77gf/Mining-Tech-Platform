@@ -29403,7 +29403,7 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
      Con `design.B:null` — che non passa di lì — la scheda usciva intera e il
      toast compariva: è la coppia che dice che il difetto è nel ripiego di `S`,
      non nell'apertura. */
-  test("⛔ Genesi · B0-nonies: `measureGeom2D` non passa più un dato di progetto GREZZO a `.toFixed`", () => {
+  test("⛔ Genesi · B0-nonies: `misuraGeom2D` non passa più un dato di progetto GREZZO a `.toFixed`", () => {
     /* i due promemoria che spiegano il difetto, e che nessuno può cambiare */
     let scoppiato = false;
     try { (null).toFixed(2); } catch (e) { scoppiato = true; }
@@ -29414,37 +29414,38 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
       eq(Number.isFinite(x), false, `${JSON.stringify(x)}: non è un interasse leggibile`);
     for (const x of [3.5, 8, 0.05]) eq(Number.isFinite(x), true, `${x}: lo è`);
 
-    /* il corpo della funzione, isolato: un «non c'è più» su tutta la pagina
-       direbbe di sì anche se la forma vecchia vivesse in un'altra funzione */
-    const i = srcG15.indexOf("function measureGeom2D(){");
-    eq(i > 0, true, "il corpo di `measureGeom2D` si trova nella pagina");
-    const corpo = srcG15.slice(i, srcG15.indexOf("\nfunction ", i + 10));
+    /* 13/09 (G35): la funzione è salita in genesi-data.js — "Genesi continua
+       a uscire dalla pagina". Il corpo, isolato allo stesso modo: un «non
+       c'è più» su tutto il modulo direbbe di sì anche se la forma vecchia
+       vivesse in un'altra funzione. È l'ULTIMA funzione del file, quindi si
+       affetta fino alla fine invece che fino alla prossima dichiarazione. */
+    const srcGD35 = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
+    const i = srcGD35.indexOf("export function misuraGeom2D(holes, Sprog, Bprog){");
+    eq(i > 0, true, "il corpo di `misuraGeom2D` si trova nel modulo, con la firma nuova a tre parametri");
+    const corpo = srcGD35.slice(i);
     eq(corpo.split("\n").length > 8, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
 
     eq(/S:\+Sm\.toFixed\(2\)/.test(corpo), false,
       "la forma che uccideva la pagina non c'è più");
-    eq(/const Sprog = Number\.isFinite\(D2\.S\) \? D2\.S : null;/.test(corpo), true,
-      "l'interasse di progetto si legge una volta sola, e se non si legge vale `null`");
-    eq(/if\(!isFinite\(Sm\)\) Sm=Sprog;/.test(corpo), true,
-      "il ripiego prende quel valore, non `D2.S` grezzo");
+    eq(/const Sp = Number\.isFinite\(Sprog\) \? Sprog : null;/.test(corpo), true,
+      "l'interasse di progetto si legge una volta sola, e se non si legge vale `null` — ora dal PARAMETRO, non da `D2.S`");
+    eq(/if\(!isFinite\(Sm\)\) Sm=Sp;/.test(corpo), true,
+      "il ripiego prende quel valore, non il parametro grezzo");
     eq(/S:\(Sm===null\?null:\+Sm\.toFixed\(2\)\)/.test(corpo), true,
       "e la risposta quando l'interasse non c'è è `null`, la convenzione dell'ecosistema");
-    eq(/if\(!H\.length\) return \{ n:0, B:D2\.B, S:Sprog, Lm:0 \};/.test(corpo), true,
+    eq(/if\(!H\.length\) return \{ n:0, B:Bprog, S:Sp, Lm:0 \};/.test(corpo), true,
       "anche l'uscita senza fori risponde col contratto nuovo: due uscite con due contratti sono una copia più debole");
 
     /* ⛔ IL DENOMINATORE, che è la parte che spiega PERCHÉ era `S` e non gli
-       altri: `D2.S` dentro questa funzione si legge in UN posto solo, e gli
-       altri tre valori del risultato escono dalle coordinate dei fori — che
-       sono sempre numeri, perché `genMaglia2D` scrive `c*D2.S+off` e `c*null`
-       fa 0. Non era fortuna: era che nessun altro leggeva `D2.*` grezzo. */
-    /* ⚠️ si contano le RIGHE, non le occorrenze: `Number.isFinite(D2.S) ? D2.S`
-       nomina il campo due volte sulla stessa riga, e una prova scritta
-       `.match(/D2\.S/g).length === 1` cadeva su un codice sano — presa
-       facendo girare queste prove prima di consegnarle. */
-    const conD2S = corpo.split("\n").filter((r) => /D2\.S/.test(r));
-    eq(conD2S.length, 1, "`D2.S` si legge su una riga sola");
-    eq(/^\s*const Sprog /.test(conD2S[0]), true, "e quella riga è la dichiarazione di `Sprog`: nessun altro punto legge il grezzo");
-    eq(/B:\+Bm\.toFixed\(2\)/.test(corpo), true, "`B` esce dalle coordinate dei fori (nessun ripiego su `D2.B`)");
+       altri: gli altri tre valori del risultato escono dalle coordinate dei
+       fori — che sono sempre numeri, perché `genMaglia2D` scrive `c*D2.S+off`
+       e `c*null` fa 0. Non era fortuna: era che nessun altro leggeva un
+       valore di progetto grezzo. Ora la garanzia è più forte della riga che
+       sostituisce: la funzione, spostata, non legge `D2` per niente — il
+       valore le arriva già come parametro, quindi non può nemmeno tornare a
+       leggerlo grezzo da un'altra proprietà domani. */
+    eq(/\bD2\./.test(corpo), false, "la funzione pura non legge `D2`: ogni valore le arriva come parametro");
+    eq(/B:\+Bm\.toFixed\(2\)/.test(corpo), true, "`B` esce dalle coordinate dei fori (nessun ripiego sul parametro `Bprog`)");
     eq(/Lm:\+\(maxx-minx\)\.toFixed\(1\)/.test(corpo), true, "e `Lm` pure");
     eq(0 * null, 0, "promemoria: `c*null` fa 0 — è per questo che `Bm` e `maxx` restavano finiti mentre `Sm` no");
   });
@@ -41144,6 +41145,30 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
 }
 /* ===== fine l'aggancio alla griglia (13/09) ===== */
+
+/* ===== GENESI · misuraGeom2D SALITA DA genesi.html (13/09, G35) =====
+   "Genesi continua a uscire dalla pagina": stessa logica, cambia solo che
+   legge tre parametri invece di `D2` a mano. Il caso che contava di più —
+   l'interasse assente che uccideva la pagina con un TypeError, chiuso il
+   09/08 — è la prima prova qui sotto. */
+{
+  test("Genesi · misuraGeom2D senza fori: B e S dal progetto, S è null se il progetto non ce l'ha", () => {
+    eq(genesi.misuraGeom2D([], 3.5, 3.0), { n:0, B:3.0, S:3.5, Lm:0 });
+    eq(genesi.misuraGeom2D([], null, 3.0), { n:0, B:3.0, S:null, Lm:0 }, "⛔ il caso che uccideva la pagina: null.toFixed non parte più, perché S resta null invece di venire trattato come un numero");
+    eq(genesi.misuraGeom2D(null, undefined, 3.0), { n:0, B:3.0, S:null, Lm:0 }, "holes non è nemmeno un array: si tratta come vuoto, non si solleva");
+  });
+  test("Genesi · misuraGeom2D con i fori: B è il burden minimo, S l'interasse fra vicini di fila, Lm l'estensione", () => {
+    const H=[{mx:0,my:3},{mx:3.5,my:3},{mx:7,my:3},{mx:1.8,my:6.2}];  // le prime tre in fila, la quarta su un'altra fila (my diverso di oltre 0,5)
+    const r=genesi.misuraGeom2D(H, 3.5, 3.0);
+    eq(r.n, 4); eq(r.B, 3); eq(r.S, 3.5); eq(r.Lm, 7);
+  });
+  test("Genesi · misuraGeom2D: con un'unica fila e nessuna coppia a passo misurabile, S ripiega sul progetto", () => {
+    const H=[{mx:0,my:3}];                                            // un solo foro: nessuna coppia da cui misurare l'interasse
+    eq(genesi.misuraGeom2D(H, 4.2, 3.0).S, 4.2);
+    eq(genesi.misuraGeom2D(H, null, 3.0).S, null, "e se nemmeno il progetto ce l'ha, resta null — non un numero inventato");
+  });
+}
+/* ===== fine misuraGeom2D salita dalla pagina (13/09) ===== */
 
 
 

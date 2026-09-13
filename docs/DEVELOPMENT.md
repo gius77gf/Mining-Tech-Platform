@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.416 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 13/09, dopo l'aggancio alla griglia di Genesi: 2935 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.419 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 13/09, dopo `misuraGeom2D` salita dalla pagina: 2938 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.874** asserzioni su **40** comandi.
+> `node` completo esegue **3.877** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **306 su 306** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **142/142**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **307 su 307** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **143/143**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -126,19 +126,28 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **48** |
-| da tre a cinque | 17 |
+| una o due | **49** |
+| da tre a cinque | 16 |
 | da sei a dieci | 23 |
 | più di dieci — lì è un rifacimento | 37 |
 
-Cioè **56 su 148 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 92 sono una decisione di architettura.
+Cioè **57 su 148 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 91 sono una decisione di architettura.
 
 ✅ **13/09 (G34): 147 → 148.** `_snapXY`, l'aggancio opzionale alla griglia nel
 Progetto 2D (disegno di precisione — secondo pezzo di "tutte e tre le
 alternative"), è nuova nella pagina e legge due variabili del modulo
 (`D2.snap`, `D2.snapPasso`): cade nel bucket "una o due" e alza sia il totale
 sia gli estraibili (55 → 56).
+
+✅ **13/09 (G35), stesso giorno: `measureGeom2D` è salita in genesi-data.js
+come `misuraGeom2D`.** Il totale nella pagina resta 148 (il wrapper c'è
+ancora, una riga sola), ma la sua forma ridotta a `return
+misuraGeom2D(D2.holes, D2.S, D2.B);` sposta il conteggio del censimento
+statico dal bucket "3-5" (dove viveva per un falso positivo del
+tokenizzatore sulle variabili locali `o`/`minx`) al bucket "una o due" (17→16,
+48→49): il totale estraibile sale di uno (56→57), perché il wrapper stesso è
+ormai un legame di una riga.
 
 ✅ **12/09 (unità 121, 122 e 124): 151 → 147.** `_sitoParseCsv`, `_sentCell`,
 `esplCardHtml` e `innCardHtml` sono salite in `genesi-data.js`: il censimento

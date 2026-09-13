@@ -1202,7 +1202,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5859,35 +5859,13 @@ function muckShape(){
   else { spreadLat='moderato'; phiDeg=Math.round(thetaDeg); dirTxt='asimmetrico verso il lato di partenza, baricentro ruotato di ~'+Math.round(thetaDeg)+'°'; }
   return { theta:Math.round(thetaDeg), Be:+Be.toFixed(2), msmRow, v0:+v0.toFixed(1), L:+L.toFixed(1), SF, cls, formaTxt, spreadLat, phiDeg, dirTxt, seq };
 }
-/* ⛔ `S` È L'UNICO VALORE DI QUESTA FUNZIONE CHE RIPIEGA SU UN DATO DI PROGETTO,
-   ed è per questo che era l'unico a UCCIDERE la pagina — non per fortuna degli
-   altri tre. `n`, `B` e `Lm` escono dalle COORDINATE dei fori, e quelle sono
-   sempre numeri: `genMaglia2D` scrive `c*D2.S+off`, e `c*null` fa **0**. Quindi
-   con l'interasse assente la maglia degenera (tutti i fori a mx 0) ma `Bm`,
-   `minx` e `maxx` restano finiti e il loro `.toFixed` regge. `Sm` no: quando
-   nessuna coppia di fori dà un passo misurabile ripiega su `D2.S`, che arriva
-   grezzo da `Object.assign` e può essere `null` — e `null.toFixed` è un
-   **TypeError** che spezzava `measureGeom2D → renderScheda2D → draw2D →
-   setScreen` e lasciava la scheda validatori a ZERO righe (misurato: 0 invece
-   di 28, con l'errore di pagina «Cannot read properties of null»).
-   La risposta quando il dato non c'è è `null`, la convenzione dell'ecosistema:
-   le righe della scheda la sanno già trattare. E la domanda si fa con
-   `Number.isFinite` sul valore GREZZO, non su `+D2.S`: `+null` fa 0, che è
-   finito — è la riga di CLAUDE.md, già pagata una volta in `valoreCampo`.
-   ⚠️ Vale anche per la via senza fori, che prima restituiva `D2.S` così com'era:
-   il contratto di questa funzione è UNO — `S` è un numero, oppure `null` —
-   e due uscite con due contratti diversi sono una copia più debole. */
+/* 13/09 (G35, "Genesi continua a uscire dalla pagina"): il corpo è salito in
+   genesi-data.js come `misuraGeom2D(holes, Sprog, Bprog)` — stessa logica,
+   stesso contratto sul null (vedi il commento lì, che spiega anche il
+   TypeError che questa funzione uccideva in pagina prima della correzione
+   del 09/08), cambia solo che legge tre parametri invece di `D2` a mano. */
 function measureGeom2D(){
-  const Sprog = Number.isFinite(D2.S) ? D2.S : null;      // l'interasse di progetto, o niente
-  const H=D2.holes;
-  if(!H.length) return { n:0, B:D2.B, S:Sprog, Lm:0 };
-  let Bm=Infinity, minx=Infinity, maxx=-Infinity, Sm=Infinity;
-  for(const h of H){ if(h.my<Bm)Bm=h.my; if(h.mx<minx)minx=h.mx; if(h.mx>maxx)maxx=h.mx; }
-  for(let i=0;i<H.length;i++) for(let j=i+1;j<H.length;j++){
-    if(Math.abs(H[i].my-H[j].my)<0.5){ const d=Math.abs(H[i].mx-H[j].mx); if(d>0.05 && d<Sm) Sm=d; }
-  }
-  if(!isFinite(Sm)) Sm=Sprog;
-  return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
+  return misuraGeom2D(D2.holes, D2.S, D2.B);
 }
 /* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale
    del fronte in mx. ⛔ Il corpo è salito in `genesi-data.js` (blocco G9) il
