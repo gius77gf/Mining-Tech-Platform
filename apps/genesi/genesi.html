@@ -5990,6 +5990,19 @@ function drawDesign2D(){
   if(D2.rel) drawReliefLegenda(ctx,gGeo);
   else if(D2.ene) drawEnergiaLegenda(ctx,gGeo,eneInfo);      // una legenda per volta in fondo alla pianta: due si sovrapporrebbero
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); arr.forEach((p,k)=>{ const X=mx2(p.x), Y=my2(p.y); ctx.beginPath(); ctx.arc(X,Y,7,0,7); ctx.fillStyle=(k===D2.selPt)?'#fff':(D2.tool==='piede'?'#ffe27a':'#ffd54f'); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#ff6d00'; ctx.stroke(); }); }
+  /* G34quater (13/09) — stessa idea di quota di G34ter (chi modella la
+     cresta a mano vuole sapere DOVE ha messo il punto, non solo vederlo
+     spostarsi), ma NON accanto al punto: quella zona (fronte + quota
+     nominale di B/S) è già affollata di etichette fisse, e due tentativi
+     di ancorare l'etichetta al punto ci sono finiti sopra — trovato
+     entrambe le volte solo aprendo davvero la pagina, mai a occhio sul
+     codice (vedi lo screenshot in scratchpad). La riga libera è quella in
+     alto a destra, dove il fori-mode scrive già il riepilogo: y=66 non la
+     usa nessun'altra riga (30 = riepilogo fori, 48 = isocrone). */
+  if((D2.tool==='fronte'||D2.tool==='piede') && D2.selPt>=0){
+    const arr=activeProf(), p=arr[D2.selPt];
+    if(p){ ctx.fillStyle='#ffd579'; ctx.textAlign='right'; ctx.font="600 12px 'Barlow Condensed',sans-serif";
+      ctx.fillText('punto selezionato: x '+gfix(p.x,2)+' m · y '+gfix(p.y,2)+' m', W-padX, 66); } }
   ctx.fillStyle='#7a6a44'; ctx.textAlign='center'; ctx.font="10px 'Barlow',sans-serif";
   ctx.fillText(D2.tool==='fori'?'trascina un foro · clic sul vuoto per aggiungerne':('tocca per aggiungere un punto · trascina per modellare il '+(D2.tool==='piede'?'piede':'fronte')), W/2, Hc-12);
 }
