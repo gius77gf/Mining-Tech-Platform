@@ -3315,3 +3315,22 @@ export function dxfPianoFori(fori, diamMm, profilo){
   ent += _dxfPolilinea('FRONTE', P.map(p=>({x:p.x, y:p.y})));
   return '0\nSECTION\n2\nENTITIES\n'+ent+'0\nENDSEC\n0\nEOF\n';
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G34 · L'AGGANCIO ALLA GRIGLIA (13/09, secondo pezzo di "tutte e tre le
+   alternative": dopo l'interoperabilità DXF, il disegno di precisione).
+   ══════════════════════════════════════════════════════════════════════════
+   Un CAD vero non lascia che un trascinamento a mano libera sposti un punto
+   di 3 cm senza che chi disegna se ne accorga: aggancia la posizione al passo
+   scelto. È un aiuto OPZIONALE (si accende e si spegne dalla pagina, spento
+   di default): un progetto salvato prima di questa unità continua a
+   disegnare esattamente gli stessi punti, perché niente qui viene applicato
+   da solo — la pagina chiama questa funzione solo mentre l'utente sta
+   posizionando un punto col mouse/dito, mai sui dati già salvati. */
+export function snapAGriglia(v, passo){
+  const x = +v;
+  if(!Number.isFinite(x)) return x;                      // un valore già illeggibile resta illeggibile: non è questa funzione a doverlo dichiarare
+  const p = +passo;
+  if(!Number.isFinite(p) || p<=0) return x;               // passo non valido: nessun aggancio, si passa il valore invariato
+  return Math.round(x/p)*p;
+}

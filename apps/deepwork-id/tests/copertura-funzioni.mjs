@@ -437,8 +437,11 @@ const CONDIVISI = [
      quattro funzioni interne (`_dxfNum`, `_dxfCerchio`, `_dxfTesto`,
      `_dxfPolilinea`) non hanno il prefisso `export` e quindi questo
      censimento non le vede: le prova la stessa suite attraverso
-     `dxfPianoFori`, che le chiama tutte. */
-  { file: "apps/genesi/genesi-data.js", fondo: 141,
+     `dxfPianoFori`, che le chiama tutte.
+     141 → 142 il 13/09 (G34, stesso giorno): `snapAGriglia`, l'aggancio
+     opzionale alla griglia per il posizionamento manuale (disegno di
+     precisione — secondo pezzo di "tutte e tre le alternative"). */
+  { file: "apps/genesi/genesi-data.js", fondo: 142,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

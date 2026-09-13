@@ -781,6 +781,10 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="dlRel" class="dl-tog" title="Millisecondi disponibili a ogni foro per metro di roccia da liberare (ms/m)"><i></i>Relief</button>
     <button type="button" id="dlEne" class="dl-tog" title="Consumo specifico foro per foro: quanta energia tocca al blocco di roccia che ciascun foro serve davvero"><i></i>Energia</button>
     <button type="button" id="dlInn" class="dl-tog" title="Rete di innesco: quale foro accende quale, e con che ritardo di raccordo"><i></i>Innesco</button>
+    <button type="button" id="dlSnap" class="dl-tog" title="Aggancia alla griglia il posizionamento manuale di fori, fronte e piede — un aiuto opzionale, non tocca i punti già posizionati"><i></i>Griglia</button>
+    <label class="dl-f" id="dlSnapPassoF"><span>passo <u class="uni">m</u></span><select id="dlSnapPasso">
+      <option value="0.1">0,10</option><option value="0.25" selected>0,25</option>
+      <option value="0.5">0,50</option><option value="1">1,00</option></select></label>
     <label class="dl-f" id="dlIsoStepF"><span>passo</span><select id="dlIsoStep">
       <option value="0" selected>auto</option><option value="5">5 ms</option><option value="10">10 ms</option>
       <option value="20">20 ms</option><option value="25">25 ms</option><option value="50">50 ms</option>
@@ -1198,7 +1202,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1465,7 +1469,11 @@ const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, 
 const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, lastDet:0, _m:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
-  errColl:0.15, dev:2.5 };
+  errColl:0.15, dev:2.5,
+  /* G34 (13/09) — aggancio alla griglia: aiuto opzionale al posizionamento
+     manuale, spento di default così un progetto aperto da prima di questa
+     unità disegna e si comporta esattamente come prima. */
+  snap:false, snapPasso:0.25 };
 /* i valori di partenza degli undici campi non numerici del design: sono quelli
    che rientrano quando una volata salvata porta una scelta che il catalogo non
    riconosce (vedi `designSconosciuti`, all'azione «apri») */
@@ -5914,6 +5922,17 @@ function drawDesign2D(){
   ctx.strokeStyle='rgba(255,210,140,.05)'; ctx.lineWidth=1;
   for(let r=0;r<D2.file;r++){ const yy=my2(D2.B+r*D2.bf); ctx.beginPath(); ctx.moveTo(padX-12,yy); ctx.lineTo(W-padX+12,yy); ctx.stroke(); }
   const mxL=(padX-22-startX)/scale, mxR=(W-padX+22-startX)/scale;
+  /* G34 — la griglia si vede solo quando l'aggancio è acceso: un aiuto muto
+     non aiuta. Il tetto di 400 tratti per asse è una difesa, non un limite
+     d'uso: un passo scelto dai valori del menù (0,10-1,00 m) su una pianta
+     di poche decine di metri non lo tocca mai; protegge solo da un valore
+     scritto a mano fuori da quell'intervallo. */
+  if(D2.snap && Number.isFinite(D2.snapPasso) && D2.snapPasso>0){
+    const passo=D2.snapPasso; ctx.save(); ctx.strokeStyle='rgba(255,220,150,.10)'; ctx.lineWidth=1;
+    let n=0; for(let gx=Math.ceil(mxL/passo)*passo; gx<=mxR+1e-6 && n<400; gx+=passo, n++){ const X=mx2(gx); ctx.beginPath(); ctx.moveTo(X,padTop); ctx.lineTo(X,bottomY); ctx.stroke(); }
+    n=0; for(let gy=Math.ceil(minY/passo)*passo; gy<=maxy+1e-6 && n<400; gy+=passo, n++){ const Y=my2(gy); ctx.beginPath(); ctx.moveTo(padX,Y); ctx.lineTo(W-padX,Y); ctx.stroke(); }
+    ctx.restore();
+  }
   const fpts=[mxL]; D2.profilo.map(p=>p.x).filter(x=>x>mxL&&x<mxR).sort((a,b)=>a-b).forEach(x=>fpts.push(x)); fpts.push(mxR);
   ctx.save(); ctx.shadowColor='rgba(255,109,0,.75)'; ctx.shadowBlur=14; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=3; ctx.beginPath();
   fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpFronte(mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
@@ -5986,17 +6005,20 @@ function d2HitTest(px,py){ if(!D2._m) return -1; return indicePiuVicino(D2.holes
 let d2drag=-1;
 function d2HitTestPt(px,py){ if(!D2._m) return -1; return indicePiuVicino(activeProf().map(q=>puntoTela(D2._m, q.x, q.y)), px, py); }
 let d2dragPt=-1;
+/* G34 — l'aggancio si applica SOLO mentre l'utente posiziona un punto col
+   mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta. */
+function _snapXY(v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
 function d2Down(e){ const p=d2EvtToCanvas(e);
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); let k=d2HitTestPt(p.x,p.y);
-    if(k<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
+    if(k<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(p.x,p.y);
-  if(i<0 && D2._m){ const mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale;
+  if(i<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
     if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
-  if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
-  if(d2drag<0||!D2._m) return; e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+  if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(mx); my=_snapXY(my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
+  if(d2drag<0||!D2._m) return; e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(mx); my=Math.max(0.3,_snapXY(my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ d2drag=-1; d2dragPt=-1; }
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
@@ -7072,6 +7094,8 @@ function syncLayerUI(){
   if($('dlRelWinF')) $('dlRelWinF').classList.toggle('on', !!D2.rel);
   if($('dlEne')) $('dlEne').classList.toggle('on', !!D2.ene);
   if($('dlInn')) $('dlInn').classList.toggle('on', !!D2.inn);
+  if($('dlSnap')) $('dlSnap').classList.toggle('on', !!D2.snap);
+  if($('dlSnapPassoF')) $('dlSnapPassoF').classList.toggle('on', !!D2.snap);
 }
 if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso()+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
@@ -7082,6 +7106,9 @@ if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLa
 if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });
+if($('dlSnap')) $('dlSnap').addEventListener('click', ()=>{ D2.snap=!D2.snap; syncLayerUI(); drawDesign2D();
+  if(typeof toast==='function') toast(D2.snap?('Griglia attiva — passo '+D2.snapPasso+' m: il posizionamento a mano si aggancia, i fori già piazzati restano dove sono'):'Griglia disattivata'); });
+if($('dlSnapPasso')) $('dlSnapPasso').addEventListener('change', ()=>{ D2.snapPasso=Math.max(0.01,+$('dlSnapPasso').value||0.25); if(D2.snap) drawDesign2D(); });
 ['dlRelLo','dlRelHi'].forEach(id=>{ const el=$(id); if(!el) return; el.addEventListener('change', ()=>{
   /* ⛔ G20 · LA FINESTRA DEL RELIEF È UN INGRESSO, NON UNA SOGLIA DI
      SICUREZZA: è l'intervallo ms/m contro cui la mappa giudica ogni foro, e lo

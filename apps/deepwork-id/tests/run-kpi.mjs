@@ -41121,6 +41121,30 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine il piano che apre un CAD vero (13/09) ===== */
 
+/* ===== GENESI · L'AGGANCIO ALLA GRIGLIA (13/09) =====
+   snapAGriglia è la sola parte di questa unità che `node` può testare: il
+   resto (checkbox, disegno della griglia, il collegamento nei gestori del
+   mouse) vive dentro genesi.html e lo verifica `sintassi-pagine.mjs` più la
+   lettura a occhio, perché tocca il DOM. */
+{
+  test("Genesi · snapAGriglia aggancia al multiplo più vicino del passo", () => {
+    eq(genesi.snapAGriglia(3.13, 0.25), 3.25);
+    eq(genesi.snapAGriglia(3.10, 0.25), 3);
+    eq(genesi.snapAGriglia(0, 0.5), 0);
+    eq(genesi.snapAGriglia(-1.2, 0.5), -1);
+  });
+  test("Genesi · snapAGriglia con un passo non valido non tocca il valore", () => {
+    eq(genesi.snapAGriglia(3.137, 0), 3.137, "passo zero: nessun aggancio possibile, si passa il valore così com'è");
+    eq(genesi.snapAGriglia(3.137, -0.5), 3.137, "passo negativo: stesso ripiego");
+    eq(genesi.snapAGriglia(3.137, "boh"), 3.137, "passo non numerico: stesso ripiego");
+  });
+  test("Genesi · snapAGriglia con un valore già illeggibile lo lascia illeggibile", () => {
+    ok(Number.isNaN(genesi.snapAGriglia(NaN, 0.25)), "NaN non diventa un numero per magia");
+    ok(Number.isNaN(genesi.snapAGriglia("boh", 0.25)), "una stringa non numerica resta NaN, non 0");
+  });
+}
+/* ===== fine l'aggancio alla griglia (13/09) ===== */
+
 
 
 
