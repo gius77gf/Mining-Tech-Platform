@@ -585,6 +585,22 @@ elencato in un documento di roadmap, si controlla anche questa sezione**
 — un gap competitivo e un blocco di sicurezza possono avere lo stesso
 numero (P1.1/P1.2) in due documenti diversi, e leggerne uno solo non basta.
 
+📎 **13/09 — materiale extra per QUANDO deciderai, non una proposta di
+soluzione**: una ricerca di fianco (mondo, non delta — vedi la sezione
+"Ricerca del 2026-09-13 — import CAD/DXF" in
+`docs/RICERCA_CONTINUA_GENESI.md`) ha guardato come i software
+commerciali di blast design/CAD minerario si difendono da un errore
+di convenzione degli assi quando una geometria esterna alimenta un
+calcolo di sicurezza — lo stesso rischio di questa sezione. Sintesi:
+il settore ha validazione di **plausibilità** post-import (punto più
+vicino, tolleranze di deviazione — Maptek BlastLogic, Deswik), non
+una validazione **esplicita della convenzione** prima dell'uso; nessun
+caso pubblico trovato di incidente causato specificamente da questo
+errore in un import CAD per blast design (assenza non confermata come
+prova che il rischio sia raro). Non cambia la decisione che serve
+(resta quella dell'item 7): è solo altro contesto, nel caso torni utile
+guardare come se ne difendono gli altri mentre aspetti il caso reale.
+
 
 ## 7. Drone → Genesi: prova del weekend (priorità ATTUALE)
 - **Stato**: il visore nuvola `apps/genesi/nuvola-poc.html` è **pronto per la
