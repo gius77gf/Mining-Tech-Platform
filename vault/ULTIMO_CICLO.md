@@ -1,12 +1,16 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-12, 21:45 UTC
-- **Commit di partenza**: `2f902d5b`
+- **Quando**: 2026-09-13, 04:04 UTC
+- **Commit di partenza**: `45dc8a6e`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Repository raggiungibile, `HEAD` combacia col remoto, working tree pulita.
+Il contenitore si è riavviato durante il blocco precedente. Nessun lavoro
+è andato perso: l'unico processo in background interrotto era un ciclo di
+attesa (`pgrep -f giro-node.mjs`) il cui risultato era già stato letto e
+usato prima del riavvio — non una verifica mai raccolta. Repository
+raggiungibile, `HEAD` combacia col remoto, working tree pulita.
 
 ⚠️ **Direttiva del fondatore in conversazione, più recente e più specifica
 del prompt fisso di questa routine**: concentrarsi SOLO sull'app Genesi
@@ -17,47 +21,64 @@ seguito alla lettera finché questa direttiva resta in vigore: si resta su
 Genesi.
 
 ⛔ **SEGNALAZIONE DI SICUREZZA APERTA, DA LEGGERE PRIMA DI TOCCARE
-GEOMETRIA/FLYROCK/BURDEN.** Nel blocco precedente (checkpoint
-`20260912-200615_genesi-boretrack-avviso-sicurezza.md`) è emerso che
-l'unità 129 aveva costruito l'import del rilievo boretrack
-(`deviazioneForiDaCsv`/`burdenVeroDaRilievo`) senza controllare che
-`docs/DECISIONI_WEEKEND.md` (sezione 6) bloccava esplicitamente quella
-stessa funzione dal 07/08, in attesa di un caso reale che confermi la
-convenzione degli assi dx/dy — un errore di segno inverte l'avviso di
-flyrock mostrato al fochino. Aggiunto un avviso visibile nel pannello
-(non rimossa la funzione, non indovinata una correzione). **Resta
-bloccato sul fondatore**: serve un caso reale (anche solo un paio di
-fori con rilievo vero) o la sua conferma esplicita che l'avviso basta
-per ora. Fino ad allora: **nessuna nuova unità tocca la geometria del
-fronte 3D, il flyrock o il burden reale per foro** — il resto di Genesi
-(frammentazione, vibrazioni non legate al burden, riconciliazione
-carica, presplit, export, ricerca di fianco) resta aperto.
+GEOMETRIA/FLYROCK/BURDEN.** Un gate di sicurezza del 07/08 su
+`deviazioneForiDaCsv`/`burdenVeroDaRilievo` (import del rilievo boretrack)
+è stato violato da un'unità di questo stesso blocco senza controllarlo
+prima: un errore nella convenzione degli assi dx/dy potrebbe invertire
+l'avviso di flyrock mostrato al fochino. Aggiunto un avviso visibile in
+rosso nel pannello (non rimossa la funzione, non indovinata una
+correzione). **Resta bloccato sul fondatore**: serve un caso reale (anche
+solo un paio di fori con rilievo vero) o la sua conferma esplicita che
+l'avviso basta per ora. Dettaglio completo in
+`docs/DECISIONI_WEEKEND.md` (sezione 6) e nel checkpoint
+`20260912-200615_genesi-boretrack-avviso-sicurezza.md`. Fino ad allora:
+**nessuna nuova unità MODIFICA la geometria del fronte 3D, il flyrock o
+il burden reale per foro** — la sola LETTURA/analisi resta permessa
+(dimostrato dal confronto formula-per-formula del flyrock, fatto senza
+toccare codice). Il resto di Genesi (frammentazione, vibrazioni non
+legate al burden, riconciliazione carica, presplit, decking, export,
+ricerca di fianco) resta aperto.
 
-Unità completate da quando è iniziato questo blocco (126-135 + due
-correzioni di documenti + la segnalazione di sicurezza), tutte su
-Genesi: nuova funzione "carica per un obiettivo di pezzatura" con tetto
-dimensionale onesto; import del rilievo boretrack (ora con l'avviso
-sopra); chiusa la famiglia di 66 falliti pre-esistenti nei banchi
-browser di Genesi (tutti la stessa causa: lo splash d'avvio impiega
-15-20s a sparire in questo ambiente senza GPU, non i ~1,85s previsti);
-corretto due volte lo stesso documento di roadmap competitor (prima tre
-funzioni, poi una quarta, dichiarate "da fare" quando erano già
-costruite); due ricerche di fianco raccolte (misura della
-frammentazione da foto, per la decisione #28 ancora aperta; flyrock
-quantitativo e backbreak). Dettagli negli ultimi checkpoint in
-`vault/checkpoints/` (dal 20260912-161749 al 20260912-200615).
+Unità completate da quando è iniziato questo blocco (126-136 + sei
+correzioni di documenti + la segnalazione di sicurezza + quattro
+ricerche di fianco), tutte su Genesi. Le più recenti:
+- Chiusa senza residui la famiglia "splash lento" nei banchi browser di
+  Genesi (66 falliti pre-esistenti, quattro banchi, stessa causa unica).
+- Scoperta di sicurezza sul rilievo boretrack (sopra), con avviso
+  applicato e propagato a **cinque documenti** che contenevano la stessa
+  affermazione scaduta ("Genesi non importa la deviazione fori").
+- Confronto formula-per-formula: il termine "Lundborg" del motore
+  flyrock è verificato **esattamente** contro la formula pubblica
+  (260/25.4^(2/3) = 30.09, coincide con la costante nel codice) — solo
+  analisi, nessuna riga toccata.
+- B3 (funzioni estraibili da `genesi.html`) riconfermato esaurito con un
+  campione più ampio (7 funzioni su 47 controllate, non solo le 4
+  originarie).
+- Quattro ricerche di fianco raccolte (frammentazione da foto — per la
+  decisione #28 ancora aperta; flyrock quantitativo/backbreak; criteri
+  di selezione del tipo di esplosivo; decking/air-decking) — **nessuna
+  tradotta in codice**: quasi tutti i numeri specifici trovati sono
+  dichiarati dalla ricerca stessa come fonte singola non incrociata, e
+  la regola di questo repository ("niente entra sulla parola
+  dell'agente") vieta di costruire testo o calcoli di prodotto su
+  quelle cifre senza prima riverificarle.
+
+Dettagli completi negli ultimi checkpoint in `vault/checkpoints/` (dal
+20260912-161749 al 20260912-221343).
 
 ## Prossimi passi immediati
 
-1. Rispettare il blocco di sicurezza sopra: niente lavoro su
-   geometria/flyrock/burden finché non arriva una risposta.
+1. Rispettare il blocco di sicurezza sopra: niente MODIFICA di
+   geometria/flyrock/burden finché non arriva una risposta del fondatore.
 2. Il gap P2.1 (frammentazione da foto) resta bloccato sulla decisione
-   #28 in `docs/DECISIONI_WEEKEND.md`; la ricerca di mondo è già
-   raccolta in `docs/RICERCA_CONTINUA_GENESI.md`.
-3. Il cantiere B3 (funzioni estraibili da `genesi.html`) è in gran
-   parte esaurito dei candidati facili (checkpoint 20260912-175849).
-4. Continuare con ricerca di fianco a rotazione su angoli Genesi non
-   ancora coperti, o con verifiche di qualità (screenshot, sonda-vuoto,
+   #28 in `docs/DECISIONI_WEEKEND.md`.
+3. B3 è esaurito (verificato due volte, l'ultima con campione più ampio):
+   non cercare altri candidati lì senza una ragione nuova.
+4. Le quattro ricerche di fianco raccolte restano materiale in attesa:
+   non tradurle in codice senza prima riverificare i numeri su una
+   seconda fonte indipendente.
+5. Continuare con una nuova ricerca di fianco su un angolo Genesi non
+   ancora coperto, o con verifiche di qualità (screenshot, sonda-vuoto,
    documenti invecchiati) su superfici che non toccano il blocco al
    punto 1.
 
