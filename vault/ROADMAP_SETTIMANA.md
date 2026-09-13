@@ -8051,12 +8051,13 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **12/09, unità 129** (lanciando le suite, non a memoria):
-  **3.410 prove girano senza rete**. La frase va letta stretta: è la somma
-  delle **nove** suite che contano asserzioni (`run-kpi` 2929, `run-stile` 328,
+- Stato misurato al **13/09** (lanciando le suite, non a memoria — dopo
+  l'export DXF di Genesi, unità G33: +1 in `run-kpi`, 2929→2932):
+  **3.413 prove girano senza rete**. La frase va letta stretta: è la somma
+  delle **nove** suite che contano asserzioni (`run-kpi` 2932, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
-  giro `node` — che di comandi ne ha **34** e di asserzioni ne esegue di più:
+  giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`
   → **2691** al 09/08.
   ⚠️ *Fino all'08/08 questa riga contava **sei** suite e i tre documenti

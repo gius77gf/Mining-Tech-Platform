@@ -798,6 +798,7 @@ body.scr-sim #tl{bottom:80px}
   <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
   <div id="d2-rilievo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
+  <button class="btn" id="btn-piano-dxf" style="display:block;margin:8px auto 0;" title="Fori (cerchio + numero) e profilo del fronte, in un file che AutoCAD, LibreCAD, QCAD e QGIS sanno aprire (DXF R12)">📐 Esporta piano fori (DXF per CAD)</button>
   <button class="btn" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn" id="btn-salva-volata" style="display:block;margin:6px auto 0;">💾 Salva nello storico (Home)</button>
   <button class="btn" id="btn-report" style="display:block;margin:8px auto 0;" title="Report della volata formattato, stampabile o salvabile in PDF (stampa del browser)">🖨 Report volata (stampa / PDF)</button>
@@ -1197,7 +1198,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5202,6 +5203,23 @@ $('btn-piano-csv').onclick=async()=>{
     +(pianoInOrg?(GDB.mode==='live'?' — e scritto nell\'organizzazione: in Campo compare in «Piano di carico → Piani da Genesi»':' — sullo stesso computer Campo lo trova in «Piano di carico → Piani da Genesi»'):'')
     +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
     _pcMancanti.length?'err':undefined);
+};
+/* G33 (13/09) — Export piano fori in DXF, per aprire in un CAD vero. SOLO
+   esportazione: `dxfPianoFori` in genesi-data.js non calcola niente di
+   nuovo, scrive in un contenitore diverso i numeri che Genesi ha già
+   (mx/my dei fori, il profilo del fronte se disegnato/importato). */
+if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
+  if(!D2.holes.length) genMaglia2D();
+  const dxf=dxfPianoFori(D2.holes, D2.diam, D2.profilo);
+  const a=document.createElement('a');
+  a.href='data:application/dxf;charset=utf-8,'+encodeURIComponent(dxf);
+  a.download='genesi_piano_fori.dxf'; a.click();
+  /* Il profilo del fronte non sempre c'è (va disegnato o importato a parte):
+     chi esporta deve saperlo, non scoprirlo aprendo il file in CAD e
+     trovando un solo livello invece di due. */
+  const haFronte = Array.isArray(D2.profilo) && D2.profilo.filter(p=>p&&Number.isFinite(+p.x)&&Number.isFinite(+p.y)).length>=2;
+  if(typeof toast==='function') toast('✓ Piano fori DXF esportato: '+_ricPlur(D2.holes.length,'foro','fori')
+    +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI'));
 };
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
    detonatori elettronici e software terzi). NON è conformità IREDES certificata:

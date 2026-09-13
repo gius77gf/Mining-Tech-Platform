@@ -41077,6 +41077,50 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine passata Genesi, Home e riconciliazione (05/09) ===== */
 
+/* ===== GENESI · IL PIANO CHE APRE UN CAD VERO (13/09) =====
+   dxfPianoFori è solo esportazione (nessun calcolo nuovo, vedi il commento
+   G33 nel modulo): qui si verifica che il testo prodotto sia un DXF
+   strutturalmente valido — non solo "assomiglia" a un DXF. La verifica con
+   un lettore vero (ezdxf, fuori da questa suite perché richiede Python) ha
+   già trovato un difetto reale (LWPOLYLINE non valido senza HEADER/TABLES);
+   qui si controllano invece i contenuti che un `node` può giudicare da solo:
+   struttura SECTION/ENDSEC, filtro dei fori senza coordinate numeriche, il
+   raggio dal diametro, e l'assenza del livello FRONTE quando il profilo non
+   c'è (mai una linea disegnata a caso). */
+{
+  test("Genesi · dxfPianoFori produce una SECTION di ENTITIES valida, un cerchio+etichetta per foro buono", () => {
+    const fori = [
+      { id: 1, mx: 0, my: 0 },
+      { id: 2, mx: 3.5, my: 0 },
+      { id: "x", mx: NaN, my: 1 }, // scartato: mx non numerico
+      { id: "y", mx: 2, my: "abc" }, // scartato: my non numerico (⚠️ non usare `null`: +null è 0, cioè finito)
+    ];
+    const dxf = genesi.dxfPianoFori(fori, 102, []);
+    ok(dxf.startsWith("0\nSECTION\n2\nENTITIES\n"), "apre con l'intestazione minima di una SECTION ENTITIES");
+    ok(dxf.trim().endsWith("0\nENDSEC\n0\nEOF"), "chiude con ENDSEC ed EOF");
+    eq((dxf.match(/0\nCIRCLE\n/g) || []).length, 2, "solo i due fori con mx e my numerici diventano un cerchio: i due scartati non lasciano traccia");
+    eq((dxf.match(/0\nTEXT\n/g) || []).length, 2, "un'etichetta per ogni cerchio, non di più");
+    ok(dxf.includes("\n40\n0.051\n"), "raggio = diametro/2000: 102 mm -> 0.051 m");
+    ok(!dxf.includes("POLYLINE"), "senza punti di profilo il livello FRONTE non esce affatto, non si inventa una linea");
+  });
+  test("Genesi · dxfPianoFori con un diametro non valido usa 50mm di default, mai un cerchio a raggio zero", () => {
+    const dxf1 = genesi.dxfPianoFori([{ id: 1, mx: 0, my: 0 }], 0, []);
+    const dxf2 = genesi.dxfPianoFori([{ id: 1, mx: 0, my: 0 }], "boh", []);
+    ok(dxf1.includes("\n40\n0.050\n"), "diametro 0 non è un diametro valido: ripiega sul default, non su un raggio nullo");
+    ok(dxf2.includes("\n40\n0.050\n"), "diametro non numerico: stesso ripiego");
+  });
+  test("Genesi · dxfPianoFori disegna il profilo del fronte come POLYLINE solo con almeno due punti validi", () => {
+    const profilo = [{ x: -1, y: -1 }, { x: 5, y: -1 }, { x: "boh", y: 9 }, { x: 5, y: 6 }];
+    const dxf = genesi.dxfPianoFori([], null, profilo);
+    ok(dxf.includes("0\nPOLYLINE\n8\nFRONTE\n"), "col profilo presente il livello FRONTE esce");
+    eq((dxf.match(/0\nVERTEX\n/g) || []).length, 3, "il punto con coordinata non numerica è scartato: restano 3 vertici su 4");
+    ok(dxf.includes("0\nSEQEND\n0\nENDSEC\n0\nEOF"), "la polilinea si chiude con SEQEND prima della fine della section");
+    const conUnPunto = genesi.dxfPianoFori([], null, [{ x: 1, y: 1 }]);
+    ok(!conUnPunto.includes("POLYLINE"), "un solo punto non basta per disegnare una linea: nessuna POLYLINE");
+  });
+}
+/* ===== fine il piano che apre un CAD vero (13/09) ===== */
+
 
 
 

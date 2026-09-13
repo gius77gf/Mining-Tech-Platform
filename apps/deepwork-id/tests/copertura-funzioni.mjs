@@ -429,8 +429,16 @@ const CONDIVISI = [
      sotto ne aveva bisogno identico — "una copia nasce da una firma troppo
      stretta"), `deviazioneForiDaCsv` (il rilievo boretrack, CSV
      tempo-ampiezza→dx/dy) e `burdenVeroDaRilievo` (il burden vero sulle
-     posizioni MISURATE, non su quelle simulate o di progetto). */
-  { file: "apps/genesi/genesi-data.js", fondo: 140,
+     posizioni MISURATE, non su quelle simulate o di progetto).
+     140 → 141 il 13/09 (G33, richiesta diretta del fondatore "rendere Genesi
+     più simile a un CAD"): `dxfPianoFori`, che esporta in DXF (formato che
+     AutoCAD/LibreCAD/QGIS sanno aprire) i fori e il profilo del fronte già
+     calcolati — nessun numero nuovo, nessuna soglia di sicurezza toccata. Le
+     quattro funzioni interne (`_dxfNum`, `_dxfCerchio`, `_dxfTesto`,
+     `_dxfPolilinea`) non hanno il prefisso `export` e quindi questo
+     censimento non le vede: le prova la stessa suite attraverso
+     `dxfPianoFori`, che le chiama tutte. */
+  { file: "apps/genesi/genesi-data.js", fondo: 141,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

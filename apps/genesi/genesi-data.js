@@ -3246,3 +3246,72 @@ export function costantiPpvLitologia(vp){
   const t = Math.max(0, Math.min(1, (v - 2600) / (6000 - 2600)));
   return { K: Math.round(2800 - 1600 * t), beta: +(1.75 - 0.35 * t).toFixed(2), fonte: 'litologia' };
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G33 · IL PIANO CHE APRE UN CAD VERO (13/09, su richiesta diretta del
+   fondatore: "potremmo rendere Genesi più simile a un CAD?")
+   ══════════════════════════════════════════════════════════════════════════
+   Genesi non sapeva parlare con AutoCAD/LibreCAD/QGIS né con i programmi che
+   un topografo o un ufficio tecnico di cava usano già: era un "non c'è"
+   confermato con la ricerca (docs/GENESI_EVOLUZIONE_STRATEGICA.md), non
+   dedotto. Il DXF è il formato che tutti quei programmi sanno aprire.
+
+   Questa è SOLO ESPORTAZIONE, e di proposito: i numeri che escono (mx, my
+   dei fori, i punti del profilo del fronte) sono quelli che Genesi ha GIÀ
+   calcolato e mostra a schermo — nessun calcolo nuovo, nessuna soglia di
+   sicurezza toccata. È l'opposto del rischio già segnalato sull'IMPORT del
+   rilievo boretrack (dove un numero ESTERNO entra e la sua convenzione di
+   assi non è verificata): qui i numeri restano nella convenzione di Genesi
+   dall'inizio alla fine, escono soltanto in un contenitore che altri
+   programmi sanno leggere.
+
+   Formato scelto: DXF versione R12 (AC1009) — la più vecchia e compatibile,
+   letta da qualunque programma CAD esistente, anche quelli di vent'anni fa.
+   Struttura minima valida: una sola SECTION di ENTITIES (niente HEADER né
+   TABLES, che servono solo a dichiarare stili non necessari qui). Verificata
+   con un lettore DXF vero (`ezdxf`, libreria Python installata apposta per
+   questo controllo — non a occhio sul testo): la prima stesura usava
+   `LWPOLYLINE` ed era invalida (vedi il commento sopra `_dxfPolilinea`), la
+   correzione è stata riverificata con lo stesso lettore dopo il fix.
+
+   Due livelli (layer), così chi apre il file può accendere/spegnere:
+   "FORI" (un cerchio per foro, raggio dal diametro di progetto, più
+   un'etichetta col numero/id del foro) e "FRONTE" (la linea spezzata del
+   profilo, se è stato disegnato/importato — mai inventata: se `profilo` è
+   vuoto o ha meno di due punti, il livello FRONTE semplicemente non esce,
+   non si disegna una linea a caso). */
+function _dxfNum(x){ const v=+x; return Number.isFinite(v) ? v.toFixed(3) : '0.000'; }
+function _dxfCerchio(layer, x, y, raggio){
+  return '0\nCIRCLE\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(raggio)+'\n';
+}
+function _dxfTesto(layer, x, y, altezza, testo){
+  const t = String(testo==null?'':testo).replace(/[\r\n]/g,' ');
+  return '0\nTEXT\n8\n'+layer+'\n10\n'+_dxfNum(x)+'\n20\n'+_dxfNum(y)+'\n30\n0.0\n40\n'+_dxfNum(altezza)+'\n1\n'+t+'\n';
+}
+/* ⛔ 13/09: QUI STAVA `LWPOLYLINE` — e un DXF R12 senza HEADER/TABLES
+   (la forma minima scelta per la compatibilità più larga possibile) NON HA
+   i marcatori di sottoclasse (`AcDbPolyline`) che `LWPOLYLINE` pretende dal
+   DXF R14 in poi: aperto con un lettore vero (`ezdxf`, non letto a occhio
+   sul testo) dava `DXFStructureError: missing 'AcDbPolyline' subclass`. La
+   forma che regge dal DXF più vecchio in poi è quella classica a tre pezzi
+   — `POLYLINE` d'apertura, un `VERTEX` per punto, `SEQEND` di chiusura —
+   verificata di nuovo con lo stesso lettore dopo la correzione. */
+function _dxfPolilinea(layer, punti){
+  if(!Array.isArray(punti) || punti.length<2) return '';
+  let s='0\nPOLYLINE\n8\n'+layer+'\n66\n1\n70\n0\n';
+  for(const p of punti) s+='0\nVERTEX\n8\n'+layer+'\n10\n'+_dxfNum(p.x)+'\n20\n'+_dxfNum(p.y)+'\n30\n0.0\n';
+  s+='0\nSEQEND\n';
+  return s;
+}
+export function dxfPianoFori(fori, diamMm, profilo){
+  const H = Array.isArray(fori) ? fori.filter(h=>h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) : [];
+  const raggio = (Number.isFinite(+diamMm) && +diamMm>0) ? (+diamMm/2000) : 0.05; // 50mm di default, mai zero: un cerchio a raggio 0 non si vede e sembra un foro mancante
+  let ent = '';
+  for(const h of H){
+    ent += _dxfCerchio('FORI', h.mx, h.my, raggio);
+    ent += _dxfTesto('FORI', h.mx+raggio*1.3, h.my, Math.max(0.15, raggio*0.9), h.id!=null ? String(h.id) : '');
+  }
+  const P = Array.isArray(profilo) ? profilo.filter(p=>p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) : [];
+  ent += _dxfPolilinea('FRONTE', P.map(p=>({x:p.x, y:p.y})));
+  return '0\nSECTION\n2\nENTITIES\n'+ent+'0\nENDSEC\n0\nEOF\n';
+}
