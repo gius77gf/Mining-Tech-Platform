@@ -2312,3 +2312,89 @@ Tutti i termini principali usati da Genesi — **spalla, interasse, borraggio, s
 
 **Il linguaggio di Genesi suona come lo scriverebbe un tecnico di cava italiano**. Nessun termine è ambiguo o sbagliato rispetto ai dati trovati. Il rischio traslitterazione di termini inglesi (burden restato "burden", spacing non tradotto) **non è presente** nel codebase.
 
+## Ricerca del 2026-09-13 — Maptek BlastLogic e JKSimBlast in dettaglio (metà sul mondo)
+
+_Timestamp: 2026-09-13T12:51:33Z_
+
+_Strumento: `WebSearch`. Contesto letto prima di iniziare:
+`docs/GENESI_VS_COMPETITOR_MATRICE.md` e le sezioni precedenti di questo
+file — BlastLogic era già citato per il modulo di ottimizzazione
+automatica del pattern (BlastMCF) e per la validazione post-import
+(punto più vicino, tolleranze Collar/Overdrill/Underdrill); qui si
+approfondisce il resto del prodotto, non si ripete quella parte. Ogni
+affermazione è marcata con fonte e con la distinzione fra fonte del
+PRODUTTORE (marketing) e fonte INDIPENDENTE._
+
+### Maptek BlastLogic
+
+- **Architettura**: piattaforma enterprise con sincronizzazione in tempo
+  reale fra ufficio e campo tramite un'app tablet, su un repository
+  unico dei dati di ogni volata. Fonte: `maptek.com` e documentazione
+  di supporto (produttore) · affidabilità **media** (marketing di
+  prodotto, nessuna fonte indipendente che lo confermi in uso).
+- **Controllo dell'energia multi-zona**: dichiarato dal produttore, non
+  approfondito con dettagli tecnici negli estratti trovati. Fonte:
+  `maptek.com` · affidabilità **bassa-media** (solo produttore).
+- **Licenza e prezzo**: modello a licenza enterprise perpetua + posti
+  cliente in abbonamento (ufficio) + istanze tablet (campo) — coerente
+  con quanto già trovato in una ricerca precedente di questo file
+  (nessun prezzo pubblico). Fonte: `maptek.com` · affidabilità **media**
+  (struttura di licenza dichiarata dal produttore, cifre assenti).
+- **Un problema d'uso riportato**: difficoltà note in ambienti desktop
+  virtualizzati (VDI) con policy di sicurezza informatica stringenti.
+  Fonte: pagine di supporto/community tecniche (dominio non specifico
+  trovato con certezza) · affidabilità **bassa** (segnalazione isolata,
+  non confermata da una seconda fonte indipendente).
+
+### JKTech JKSimBlast
+
+- **Moduli**: `2DBench` (cava a cielo aperto), `2DRing` (sotterraneo),
+  `2DFace` (galleria), `JKBMS` (gestione), `2DView`/`TimeHEx`,
+  `Blastatistics`. Fonte: `jktech.com.au` (produttore) · affidabilità
+  **media** (elenco prodotto, non verificato da terzi).
+  ⚠️ Nota per chi legge: la copertura sotterraneo/galleria (`2DRing`,
+  `2DFace`) è **fuori dal perimetro di Genesi**, che è dichiaratamente a
+  cielo aperto — non è un gap da colmare, è un mercato diverso.
+- **Visualizzazione 3D dell'energia esplosiva**: dichiarata dal
+  produttore come elemento distintivo rispetto ai concorrenti. Fonte:
+  `jktech.com.au`, `soft-blast.com` · affidabilità **bassa-media** (
+  rivendicazione di unicità dichiarata dal venditore, non confrontata
+  con una fonte terza che verifichi se altri prodotti abbiano lo stesso).
+- **Requisito hardware**: chiave elettronica USB (dongle Hardlock/Sentinel
+  o Keylok) — conferma quanto già scritto in una ricerca precedente di
+  questo file sulla complessità di licenza dei prodotti enterprise.
+  Fonte: `soft-blast.com` (rivenditore) · affidabilità **media**.
+- **Sistema operativo**: solo Windows. Fonte: `jktech.com.au` ·
+  affidabilità **media**.
+- **Base utenti dichiarata**: circa 750 utenti in 60 paesi (cifra del
+  produttore, non verificata indipendentemente). Fonte: `jktech.com.au`
+  · affidabilità **bassa** (numero di marketing, nessuna fonte terza
+  che lo confermi).
+- **Prezzo**: non pubblico, licenza modulare (si paga per i moduli
+  attivati). Fonte: `jktech.com.au` · affidabilità **media** (struttura
+  dichiarata, cifre assenti — stessa situazione di BlastLogic e degli
+  altri prodotti enterprise già censiti in questo file).
+
+### Recensioni o case study indipendenti
+
+Nessuna recensione indipendente sostanziale trovata per nessuno dei due
+prodotti (nel senso di un cliente reale che descriva pregi/difetti
+concreti d'uso, non una citazione del produttore). Le fonti raccolte
+sono per lo più pagine di prodotto, documentazione di supporto, e un
+riferimento accademico (ResearchGate) che cita JKSimBlast come strumento
+usato in uno studio, senza valutarlo. [dedotto: l'assenza di recensioni
+indipendenti pubblicamente indicizzate non significa che il prodotto sia
+poco usato — il settore enterprise minerario B2B raramente produce
+recensioni pubbliche].
+
+### Esito della ricerca
+
+Rispetto a quanto già scritto in `docs/GENESI_VS_COMPETITOR_MATRICE.md`
+e nelle sezioni precedenti di questo file, questa ricerca **non ha
+trovato funzionalità sostanzialmente nuove** oltre a quanto già censito
+per BlastLogic (ottimizzazione automatica, validazione post-import) —
+ha aggiunto dettagli sulla struttura di licenza/hardware di entrambi i
+prodotti e sulla suddivisione in moduli di JKSimBlast, utili soprattutto
+per confermare che il perimetro sotterraneo di JKSimBlast è un mercato
+diverso da quello di Genesi.
+
