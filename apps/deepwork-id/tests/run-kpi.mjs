@@ -25667,8 +25667,11 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/d\*d\*d/g) || []).length, 0, "e nemmeno il peso per volume del campione");
     ok(/function rockFactorA\(\)\{ return fattoreRoccia\(selRoccia\(\), D2\); \}/.test(pag), "rockFactorA è il legame fra lo stato e la funzione pura");
     /* ⏱️ 12/09 (unità 126): settimo chiamante, `btn-obiettivo-x50` — la carica
-       per un obiettivo di pezzatura chiede lo stesso fattore roccia di Kuz-Ram. */
-    eq((pag.match(/rockFactorA\(\)/g) || []).length, 8, "e i sette chiamanti non sono cambiati (più la dichiarazione del legame): A_rock, il PF, il rigonfiamento, Kuz-Ram, il confronto, l'obiettivo di pezzatura");
+       per un obiettivo di pezzatura chiede lo stesso fattore roccia di Kuz-Ram.
+       ⏱️ 14/09 (G38, prima fetta di G7): ottavo chiamante, `btn-confronta-
+       burden` — la stessa domanda ripetuta su un intorno di burden invece
+       che su uno solo, quindi lo stesso fattore roccia. */
+    eq((pag.match(/rockFactorA\(\)/g) || []).length, 9, "e gli otto chiamanti non sono cambiati (più la dichiarazione del legame): A_rock, il PF, il rigonfiamento, Kuz-Ram, il confronto, l'obiettivo di pezzatura, il confronto burden");
     eq((pag.match(/x50DaMisure\(/g) || []).length, 1, "la misura del cumulo chiama il modulo");
     eq((pag.match(/function _measFromSizes/g) || []).length, 0, "e la vecchia funzione non c'è più");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
@@ -33646,8 +33649,11 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
        CATALOGO resta aperto, quello sulla PENALITÀ DI BAGNATURA si è chiuso
        lo stesso giorno (era una tabella `{Nulla:...}` ripetuta cinque volte,
        ridotta a un'unica `rwsEffettiva`/`PENALITA_ACQUA` — non contata qui
-       perché non è mai stata questo conto). */
-    eq(quante(/rws_pct\s*\)?\s*\|\|\s*100/g), 6, "energia relativa: 6 copie aperte");
+       perché non è mai stata questo conto).
+       ⏱️ 14/09: settima copia, in `btn-confronta-burden` (G38, prima fetta
+       di G7) — stessa lettura, stesso passaggio a `rwsEffettiva`: la
+       domanda si ripete su un intorno di burden invece che su uno solo. */
+    eq(quante(/rws_pct\s*\)?\s*\|\|\s*100/g), 7, "energia relativa: 7 copie aperte");
     eq(quante(/densita_gcc\s*\|\|\s*0\.82/g), 3, "densità: 3 copie aperte (la quarta, in `deriveCharge`, è chiusa)");
     eq(quante(/vod_ms\s*\)?\s*\|\|\s*3800/g), 5, "VOD: 5 copie, oggi mai raggiunte");
     /* ⚠️ E IL CENSIMENTO NON LE VEDE TUTTE, che è un fatto sullo STRUMENTO e

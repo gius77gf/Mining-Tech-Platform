@@ -798,6 +798,8 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn" id="btn-obiettivo-x50" type="button" style="display:block;margin:10px auto 0;" title="Quanta carica per foro serve per centrare una pezzatura mediana obiettivo, con la roccia e l'esplosivo di questo progetto">🎯 Carica per un obiettivo di pezzatura</button>
   <div id="d2-obiettivo-esito"></div>
+  <button class="btn" id="btn-confronta-burden" type="button" style="display:block;margin:8px auto 0;" title="A parità di pezzatura obiettivo, quanto cambia la carica per foro variando la spalla intorno a quella di oggi (rapporto spalla/interasse invariato). Non ricalcola vibrazione né sequenza.">📊 Confronta burden per lo stesso obiettivo</button>
+  <div id="d2-confronta-esito"></div>
   <input type="file" id="rilievoDevFile" accept=".csv,text/csv,.txt" style="display:none;">
   <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
   <div id="d2-rilievo-esito"></div>
@@ -1202,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3653,6 +3655,46 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
     +'.'+vibrazioni
     +'<div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram): resta una previsione, non una garanzia — va verificata sul campo.</div>'
     +'</div>';
+};
+/* CONFRONTA BURDEN (14/09, G38 — prima fetta scomposta di G7, l'ottimizzatore
+   di volata: vedi vault/ROADMAP_SETTIMANA.md). La domanda che l'obiettivo di
+   pezzatura qui sopra fa per UN burden solo (quello disegnato), questo
+   bottone la fa per un piccolo intorno: «se scegliessi un burden diverso,
+   mantenendo lo stesso rapporto spalla/interasse e la stessa pezzatura
+   obiettivo, quanto cambierebbe la carica?». `curvaBurdenCarica` è pura ed
+   è già provata nel modulo: qui restano solo le tre cose di pagina — leggere
+   la maglia disegnata (per il rapporto S/B e per centrare l'intorno su di
+   essa), chiedere l'obiettivo, e comporre la tabella.
+   ⛔ Non ricalcola vibrazione né sequenza, e lo dice: quella logica vive in
+   `computeSeq2D`/PPV di questa stessa pagina e serve un'unità a sé — farla
+   qui sarebbe una terza copia della stessa domanda. */
+if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
+  const v=await chiediValore('Confronta burden',
+    '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare burden diversi dal tuo? La maglia resta quella disegnata: cambia solo il burden, in un intorno di ±1 m attorno a quello di oggi, mantenendo lo stesso rapporto spalla/interasse. Vibrazione e sequenza non sono ricalcolate qui.</p>',
+    '<label class="fl" for="modal-campo">Obiettivo x50 (<span class="u">cm</span>)</label>'
+    +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
+    'Confronta');
+  if(v==null) return;
+  const xt=+String(v).replace(',','.');
+  const box=$('d2-confronta-esito'); if(!box) return;
+  const scarto=(msg)=>{ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(msg)+'</div>'; };
+  if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
+  const g=measureGeom2D(), Bnom=g.B, Snom=g.S;
+  if(!(Bnom>0) || !(Snom>0)){ scarto('Manca il burden o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
+  const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
+  const righe=curvaBurdenCarica({ bMin:Math.max(1.5,Bnom-1), bMax:Bnom+1, passo:0.25,
+    rapportoSB:Snom/Bnom, prof:D2.prof, A, RWS, x50Target:xt });
+  if(!righe.length){ scarto('Nessun burden calcolabile in questo intorno: controlla il rapporto spalla/interasse di oggi.'); return; }
+  box.innerHTML='<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px">'
+    +'<tr style="color:var(--mut);text-align:left"><th style="font-weight:600;padding:2px 4px">Spalla</th><th style="font-weight:600;padding:2px 4px">Interasse</th><th style="font-weight:600;padding:2px 4px" colspan="2">Per l’obiettivo di '+gfix(xt,0)+' cm</th></tr>'
+    +righe.map(r=>{
+      const oggi = Math.abs(r.B-Bnom)<0.01;
+      const cella = r.fuoriDominio
+        ? '<td colspan="2" style="color:#ffca28;padding:2px 4px">'+(r.troppoFine?'obiettivo troppo fine per questo burden':r.troppoGrossolano?'obiettivo troppo grossolano per questo burden':'fuori dal dominio del modello')+'</td>'
+        : '<td style="padding:2px 4px">'+gfix(r.kg,1)+' kg/foro</td><td style="padding:2px 4px">'+gfix(r.pf,2)+' kg/m³</td>';
+      return '<tr'+(oggi?' style="font-weight:700;color:var(--cu)"':'')+'><td style="padding:2px 4px">'+gfix(r.B,2)+' m'+(oggi?' (oggi)':'')+'</td><td style="padding:2px 4px">'+gfix(r.S,2)+' m</td>'+cella+'</tr>';
+    }).join('')
+    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram), a parità di pezzatura obiettivo: resta una previsione, non una garanzia. Vibrazione e sequenza non sono ricalcolate qui — vedi la Scheda volata per la maglia disegnata.</div>';
 };
 /* ⏱️ 12/09 (unità 129) — IL BURDEN VERO SUL RILIEVO MISURATO (boretrack), non
    sulla banda d'incertezza simulata. `simulaPerforazione`, qui sopra, dice
