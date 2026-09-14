@@ -3093,3 +3093,64 @@ grep -nE "overlap|sovrappos|distance.*hole.*hole|hole.*geometry.*check|boundary.
 - [O-Pit Blast — Vibration control using electronic detonators](https://www.o-pitblast.com/blog/vibration-control-using-electronic-detonators-optimize-the-blasting-sequence)
 - [ResearchGate — JKSimBlast Application in drifting operations](https://www.researchgate.net/publication/338913443_Application_of_JKSimBlast_software_in_drifting_operations)
 
+## Nota del 2026-09-14T09:52:05Z — un agente di ricerca ha dichiarato di aver scritto qui e non l'ha fatto
+
+⛔ **Lanciato un agente per preparare il terreno alla domanda del
+fondatore ("Genesi come un CAD?", ancora senza risposta): ha restituito
+un riassunto con affermazioni precise, ma NON ha scritto niente in questo
+file** — verificato con `wc -l` e `tail`: il file finiva ancora con le
+fonti della ricerca precedente, byte per byte identico a prima del suo
+lancio. È la stessa famiglia già scritta in CLAUDE.md: *"uno script che
+non fallisce non ha per forza fatto qualcosa"*, qui nella veste di un
+agente che dichiara un file scritto senza che l'operazione sia avvenuta.
+
+**E due delle sue affermazioni, verificate a mano invece di fidarsi, erano
+sbagliate — nei due versi opposti**:
+
+1. *"Genesi ha già 9 layer funzionanti (lGetti, lChunk, lGonna, lNuvola,
+   lMuck, lFly, lXray, lQuote, lAudio)"* — **fuorviante**: quell'oggetto
+   `layers[id]` (riga 2813 di `genesi.html`) accende e spegne effetti
+   della **simulazione 3D** dello sparo (particelle, gonna del cumulo,
+   nuvola di polvere, raggi-X, quote, audio) — non sono layer di
+   **disegno** nel senso CAD (niente colore proprio, niente blocco,
+   niente creazione di un layer nuovo). Chiamarli "layer" senza
+   distinguere le due cose avrebbe fatto credere al fondatore che
+   quell'asse fosse già coperto quando non lo è.
+2. *"Nessun undo/redo rilevato"* — **falso**: Genesi ha già un annulla/
+   ripristina vero, con scorciatoie da tastiera (Ctrl+Z/Ctrl+Y),
+   bottoni dedicati (`#mdlUndo`, `#mdlRedo`) e una cronologia a 40 passi
+   (`MDL_UNDO_MAX=40`, `mdlUndoStack`, `mdlPushUndo`) — verificato
+   `grep -n "mdlUndo\b|mdlRedo\b|mdlPushUndo\b|MDL_UNDO_MAX"
+   apps/genesi/genesi.html` → righe 966, 967, 2864, 2867, 2869, 2896,
+   2902, 3012. Oggi serve a editare il **profilo del fronte** (`mdl`),
+   non il posizionamento dei fori — ma l'infrastruttura di
+   annulla/ripristina con cronologia, uno degli assi da "CAD" più
+   citati, ESISTE già in una parte del prodotto.
+
+**Rifatta a mano, in tre secondi per asse, la verifica sui quattro assi
+della domanda originale** (per essere pronti quando il fondatore
+risponde, senza il rischio di ripetere l'errore appena descritto):
+
+- **Precisione/snap**: `D2.snap` + `D2.snapPasso` (default 0,25 m),
+  bottone `#dlSnap` che accende una griglia disegnata sul canvas
+  (`genesi.html:5887-5888`), `_snapXY`/`snapAGriglia` applicati al drag
+  dei punti. **Esiste ed è completo per lo snap**; manca l'input di
+  coordinate esatte da tastiera e i vincoli di allineamento/parallelismo.
+- **Layer di disegno veri** (colore proprio, blocco, creazione): **non
+  esistono**. Esistono due famiglie diverse che si potrebbero scambiare
+  per layer CAD e non lo sono: i toggle di analisi del 2D (Relief,
+  Energia, Innesco, Isocrone — mostrano/nascondono un CALCOLO, non un
+  gruppo di disegno) e i toggle della simulazione 3D elencati sopra.
+- **Strumenti di disegno liberi** (linee/polilinee arbitrarie, forme,
+  testo, copia-incolla): **non esistono** per la maglia dei fori — si
+  posiziona un punto alla volta (foro, fronte, piede). L'annulla/
+  ripristina però esiste già come infrastruttura (sopra), riusabile.
+- **Import/export CAD**: **solo export**, un verso solo —
+  `dxfPianoFori` (in `genesi-data.js`, già pura e provata) scrive un DXF
+  del piano fori. `grep -nE "DXFImport|importaDxf|parseDxf|leggiDxf"` su
+  tutto `apps/genesi/` → **zero righe**: nessun import DXF/DWG.
+
+Questa nota non sceglie fra i quattro assi — è preparazione, non una
+proposta — e va letta insieme alla domanda ancora aperta in conversazione
+col fondatore su quale aspetto di "CAD" gli interessa davvero.
+
