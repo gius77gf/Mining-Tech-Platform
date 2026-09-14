@@ -417,6 +417,14 @@ const BANCHI = [
      nuovo il browser invece di fidarsi dello screenshot vecchio. */
   ['obiettivo x50 e confronta burden di Genesi', 'genesi-obiettivo-burden.mjs', []],
   ['obiettivo/confronta burden · controprova', 'genesi-obiettivo-burden.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09: censiti tutti i bottoni `btn-*` premuti da tutta la
+     superficie browser di Genesi, ne restavano due senza banco —
+     `btn-piano-dxf` (G33, costruita il 13/09 su richiesta diretta del
+     fondatore) e `btn-rilievo-dev`, che resta FUORI di proposito perché è
+     l'import del rilievo boretrack, dietro il gate di sicurezza bloccato
+     sul fondatore (DECISIONI_WEEKEND.md §6) — questo blocco non lo tocca. */
+  ['il piano fori DXF di Genesi (G33)', 'genesi-piano-dxf.mjs', []],
+  ['piano fori DXF · controprova', 'genesi-piano-dxf.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col
