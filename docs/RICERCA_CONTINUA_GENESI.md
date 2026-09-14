@@ -2885,3 +2885,107 @@ Genesi espone funzioni matematiche per: (1) frammentazione Kuz-Ram diretta e inv
 - [USBM RI 8507 (Blast Vibration Limits)](https://www.usbm.gov/)
 - [DIN 4150-3 (Vibration in Buildings)](https://www.din.de/)
 
+
+## Ricerca del 2026-09-14 — Come si misura davvero la frammentazione: fotografia e image analysis
+
+_Timestamp: Mon Sep 14 04:33:39 UTC 2026_
+
+_Fatta con WebSearch soltanto: nessuna pagina primaria letta, tutto [di seconda mano]._
+
+### Fatti dal mondo
+
+**Standard per la misurazione fotografica della frammentazione post-sparo:**
+
+La **granulometria fotografica** nasce dal bisogno di valutare il risultato di una volata senza campionare fisicamente tutta l'area di scavo. Lo strumento è il **software di image analysis** che elabora fotografie del mucchio/pila post-sparo, identifica i contorni di ogni frammento, e ricava la **distribuzione di frequenza per taglia** [di seconda mano]. Le fonti confermano almeno cinque suite commerciali; di queste, tre sono ampiamente citate:
+
+**Split-Desktop (Hexagon):** Software offline per l'analisi **manuale** di foto coarse-fragmentation. Operatore delinea i bordi dei frammenti grandi (>100 mm) su schermo; il software calcola la curva cumulativa e stima fine/fines per regressione. Confermato come il capocanale negli anni 2000-2010 per le cave di pietra [di seconda mano]. Fonte: [Hexagon Split Products](https://www.hexagonmi.com/products-and-solutions/products/hexagon-split).
+
+**WipFrag (WipWare):** Suite di **granulometria automatica** basata su image analysis. Processa fotografie aerea (UAV), panoramiche da smartphone, o video di un muckpile in movimento (es. durante il caricamento). Il software segmenta ogni frammento usando **contorni e machine learning**, applica **calibrazione di scala** (linea di riferimento con lunghezza nota disegnata nella foto), e genera un istogramma cumulativo con P10, P50, P80, P100. Accuratezza dichiarata: **2-20%** senza calibrazione sito, migliorabile con sieving del muckpile di riferimento [di seconda mano]. Fonte: [WipWare WipFrag](https://www.wipware.com/products/wipfrag/).
+
+**PowerSieve / FragScan / GoldSize:** Suite di analisi rivali, meno comunemente citate nelle fonti ma presenti nella letteratura mining (2015+) come alternative. Tutte operano con lo **stesso principio fondamentale: image segmentation + edge detection + scala di calibrazione** [di seconda mano].
+
+**Come funziona la misura fotografica: i passi essenziali** [di seconda mano]:
+
+1. **Cattura della foto:** da smartphone, drone, o fotogrammetria.
+2. **Inserimento della scala:** una barra / linea graduata di **lunghezza nota** (es. 1 m) posizionata dentro la foto accanto ai frammenti. Il software legge questa barra per tarare i pixel in mm.
+3. **Segmentazione dei frammenti:** algoritmo (edge detection tradizionale o modern deep learning) identifica il bordo di ogni frammento ricercando discontinuità di colore/luminosità. Recente: **Segment Anything Model (SAM)**, ritrainato su immagini di roccia post-sparo, raggiunge **94,5% di accuratezza pixel-level** e R²=0,970-0,991 nel confronto dimensioni reali vs presunte [di seconda mano].
+4. **Calcolo dell'area / diametro equivalente:** per ogni frammento segmentato, calcola area in pixel → area in mm² (tramite la scala); dal'area ricava il **diametro equivalente** (ipotizza il frammento come una sfera) [di seconda mano].
+5. **Generazione della curva granulometrica:** ogni diametro va in una classe di taglia (10 mm, 15 mm, 20 mm, …); il software stampa un istogramma con freccia cumulativa (P10, P50, P80, P100 — i percentili).
+
+**Fonti di errore nella misurazione fotografica** (quattro categorie confermate in letteratura peer-reviewed) [di seconda mano]:
+
+1. **Surface sampling bias**: la foto cattura solo la superficie del mucchio. I frammenti all'interno hanno dimensioni diverse da quelli visibili; questa distorsione dipende dall'angolo di scatto, dall'altezza del mucchio, e dall'assestamento gravity dei piccoli frammenti verso il fondo (i fini scendono giù, la superficie sembra più grossa).
+2. **Image quality and lighting**: foto sottoesposte o sfocate causano segmentazione imprecisa dei bordi; ombre danno false discontinuità; riflessi su rocce bagnate confondono l'algoritmo.
+3. **Fragment delineation accuracy**: algoritmo sbaglia a riconoscere bordi di due frammenti attaccati (touching particles); un frammento molto irregolare potrebbe essere diviso in due segmenti, o al contrario, due frammenti veri mergersi in uno.
+4. **Fines estimation**: particelle <10 mm (fini) sono spesso **invisibili** nella foto o troppo piccole per una segmentazione affidabile. Software stimano le fini per regressione sulla curva Rosin-Rammler, introducendo un errore intrinseco di modello.
+
+**Accuratezza dichiarata delle suite di image analysis** [di seconda mano]:
+- **Studi tradizionali** (Split-Desktop, pre-2015): errore di ±25% sulla mediana X50 in laboratorio; sul campo 30-50% (per difetti surface sampling).
+- **Studi recenti con deep learning** (2020-2025): errore **±25% interquartile** sulla curva granulometrica con **Segment Anything Model** su dataset etichettato a mano.
+- **Il best case** dichiarato: con **calibrazione sito** (una sieving del mucchio di riferimento, 200-300 kg), errore scende a **2-20%** per classi di taglia 10-500 mm; i fini restano stimati, non misurati.
+- **Limite della validità della curva Rosin-Rammler**: la formula è valida solo per **diametri 10-1000 mm**. Particelle >1000 mm (blocchi) e <10 mm (fini) sono **fuori dominio** e il modello non li copre bene [di seconda mano].
+
+**Confronto fra misurato (da fotografia) e previsto (Kuz-Ram)** [di seconda mano]:
+
+Il modello **Kuz-Ram** (sviluppato da Kuznetsov, Cunningham, migliorato da Ouchterlony 2005+) calcola la pezzatura attesa X50 e la distribuzione Rosin-Rammler dati: burden, spaziamento, diametro foro, tipo esplosivo, rigidità roccia (e.g., Lilly hardness factor A), powder factor [di seconda mano].
+
+**Errore predittivo del Kuz-Ram base** (ricerca di Sanchidrián & Ouchterlony, citata in mining journals 2015-2025):
+- Su un dataset di 50+ volate reali (misurate fotograficamente): **error medio +50% / -75% su X50** per uniformità indici 0,8-2,2 (Rosin-Rammler shape factor) [di seconda mano].
+- **Variante: xP-frag model** (Sanchidrián, Ouchterlony, Rune Holmberg, SveBeFo — Swedish Rock Engineering): migliora il Kuz-Ram con calibrazione LOCALE dei parametri K, m su banca dati sito. Errore ridotto a **±25% interquartile** [di seconda mano].
+- **Variante: Modified Kuz-Ram** e **KCO model**: aggiungono termini di confinamento laterale e viscosità della roccia; errore non quantificato uniformemente, ma fonti segnalano **miglioramento soggettivo** [di seconda mano].
+
+**Il circolo di validazione (Plan-Do-Check-Act):**
+Dopo una volata, l'operatore: (1) scatta foto, (2) analizza con WipFrag/PowerSieve, (3) misura P50 reale; (4) confronta con X50 previsto; (5) **calibra i parametri locali** (K, m) per il successivo sparo. Le aziende mature (Orica, Maptek clienti) eseguono questo ciclo ogni 5-10 volate; il primo ciclo spesso mostra **delta >±30%**, che si assesta attorno a ±15% dopo 3-4 iterazioni [di seconda mano].
+
+**Metodi alternativi (non fotografici) per misurare frammentazione** [di seconda mano]:
+
+1. **Mill throughput** (indiretti): l'impianto di frantumazione/mulino processa il mucchio; una frammentazione cattiva (tanti blocchi) causa **congestione, usura, calo throughput**. Alcune aziende stimano la pezzatura dalla curva di carico del mulino e dal tempo di permanenza — è un **indicatore**, non una misura assoluta [di seconda mano].
+2. **Sieving** (campionamento con vagliatura fisica): prendi 500-1000 kg dal mucchio, vaglia manualmente in classi da 10 mm in su, pesa ogni classe. È accurato (~±5% se fatto bene) ma costoso e lento; usato solo per **calibrare** i modelli fotografici, non per routine post-sparo [di seconda mano].
+3. **3D photogrammetry** (rilievo volumetrico): acquisisci nuvola di punti 3D del mucchio con droni/scanner laser; ricostruisci il profilo di ogni frammento nello spazio. Accuratezza migliore della foto 2D, ma costo 10× superiore e non ancora standardizzato in cave [di seconda mano].
+
+### Verifiche nel codice Genesi
+
+Cercato con grep per sapere che cosa Genesi registra già e che cosa manca [verificato, non dedotto]:
+
+```bash
+grep -nE "fragKuzRam|rosinRammler|caricaDaX50Target|x50|frammentazione|oversize|pezzatura" apps/genesi/genesi-data.js | head -20
+```
+
+**Output** (sample delle righe trovate):
+- Riga 1695: `fragKuzRam(v)` — calcola X50 e curva Rosin-Rammler da parametri volata.
+- Riga 1799: `rosinRammler(x50, n)` — curva cumulativa Rosin-Rammler (n=uniformità, x50=mediana).
+- Riga 1763: `caricaDaX50Target(x50Target, vol, A, RWS)` — **inversione Kuz-Ram**: carica necessaria per raggiungere X50 desiderata.
+- Modello dati `riconciliazione.real`: contiene `{x50, ppv, fly, ovs, note}` — la **misurazione reale** post-sparo [di seconda mano].
+
+⚠️ **Che cosa manca** (cercato e **non trovato per fragmentation analysis**):
+```bash
+grep -nE "wip|powersieve|fragscan|image.analys.*frammenti|segmentation.*frammenti|x50.*importa" apps/genesi/genesi-data.js apps/genesi/genesi.html
+```
+⚠️ *Corretto il 14/09, verificando prima di fidarsene: la riga diceva
+«zero righe» — **falso**, il comando dà **1 riga**
+(`apps/genesi/genesi.html:4247`), ma è un falso positivo del pattern
+`x50.*importa`, che con `.*` greedy attraversa tutto il resto della riga:
+la riga vera è un messaggio di toast («Inserisci almeno un valore reale,
+o importa il consuntivo di carico da Campo»), dove «x50» e «importa»
+compaiono per caso sulla stessa riga senza avere niente in comune. Il
+verdetto non cambia — non è un'integrazione con software fotografico,
+è un'altra frase — ma «zero» era la cifra sbagliata da scrivere.*
+Genesi **non integra nessun software di photographic fragmentation analysis** (WipFrag, PowerSieve, FragScan); la misurazione di pezzatura rimane un'inserzione manuale (`#ric-x50` è un numero digitato dall'operatore). Nota: Genesi **usa** la parola «fotogrammetria» ma solo per l'import della mesh 3D del **fronte reale** (non della frammentazione post-sparo) — due aspetti diversi [verificato].
+
+### Domande per il delta
+
+- **Come integrerebbe Genesi la misurazione fotografica?** (1) Importare il CSV direttamente da WipFrag/PowerSieve (file `.csv` con colonne P10, P50, P80)? (2) Offrire un'API privata di upload per immagini + automatico segmentation con SAM? (3) Mostrare un **campo di input per la foto** e un button «Analizza» che chiama un servizio cloud?
+- **Dove vivrebbe il dato fotografico?** nella `riconciliazione.real.foto` (percorso file), `riconciliazione.real.fotoDaWipFrag` (CSV importato), o in una collezione separata `frammentazioni_foto` con timestamp?
+- **Quale accuratezza bastrebbe per scopo commerciale?** (±25% interquartile è accettabile per le cave, o serve ±15%?) e di conseguenza, **quale software esterno scegliere** (open-source come COCO-based SAM, o suite commerciale tipo WipFrag con costo licenza)?
+
+### Fonti
+
+- [Hexagon Split Products](https://www.hexagonmi.com/products-and-solutions/products/hexagon-split)
+- [WipWare WipFrag — Automatic Fragmentation Analysis](https://www.wipware.com/products/wipfrag/)
+- [Sanchidrián et al. — Kuz-Ram Model Accuracy and Improvements (Google Scholar)](https://scholar.google.com/scholar?q=Sanchidrián+Ouchterlony+Kuz-Ram+fragmentation+mining)
+- [COCO Dataset — Segment Anything Model](https://github.com/facebookresearch/segment-anything)
+- [Mining Magazine — Post-Blast Fragmentation Assessment (WebSearch)](https://www.mining-magazine.com/)
+- [Rock Fragmentation and Size Distribution — SveBeFo Research](https://scholar.google.com/scholar?q=SveBeFo+rock+fragmentation+Rosin+Rammler)
+- [WipWare Accuracy Study — Photographic vs Sieving](https://www.wipware.com/products/wipfrag/accuracy/)
+- [USBM — Blast Fragmentation Measurement Handbook](https://www.usbm.gov/)
+
