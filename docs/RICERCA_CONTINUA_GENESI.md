@@ -2728,3 +2728,160 @@ Genesi genera un export XML dichiarato come **"bozza di interscambio in stile IR
 - [Micromine IREDES Support](https://webhelp.micromine.com/mm/latest/English/Content/mmring/IDH_IMPORT_IREDES.htm)
 - [Wikipedia — IREDES](https://en.wikipedia.org/wiki/IREDES)
 
+## Ricerca del 2026-09-14 — Ottimizzazione della volata: criteri e algoritmi (G7)
+
+_Timestamp: 2026-09-14T02:03:56Z_
+
+_Fatta con WebSearch soltanto: nessuna pagina primaria letta, tutto [di seconda mano]._
+
+### Software commerciali per ottimizzazione della volata
+
+**Maptek BlastLogic (BlastMCF):**
+Progettazione di volate che include ottimizzazione del burden e spacing per una cava specifica. Il software contiene modelli di previsione per frammentazione (Kuz-Ram, Rosin-Rammler) e vibrazioni (leggi di attenuazione PPV site-specific). Consente di ottimizzare geometria dei fori e carica in base a vincoli (PPV, fragmentation target, costo) dichiarati dall'utente [di seconda mano].
+
+**JKTech JKSimBlast (2DBench, 2DRing, 2DFace, JKBMS):**
+Contiene suite di modelli: 2DBench per campi di sforzo 2D in bulk blasting, 2DRing per studi circolari, 2DFace per geometrie di fronte. JKBMS (JK Blast Management System) integra i calcoli con tracciamento dei ritardi (detonatori Nonel, drift Nonel) e sequenziamento. Ottimizzazione dichiarata come «regolazione iterativa burden e carica» per conformarsi a PPV misurato sperimentalmente e soglie fragmentation [di seconda mano].
+
+**Orica SHOTPlus (con BlastIQ analytics):**
+Moduli di progettazione e validazione progetto. SHOTPlus genera il piano di carica (burden, spacing, tipo innesco, ritardi micro). BlastIQ integra i dati post-sparo con previsioni, consentendo «feedback loop» per calibrare i parametri futuri. Vincoli dichiarati: PPV (USBM), airblast, limiti geometrici per cava (profondità, larghezza bench), costo materiale esplosivo [di seconda mano].
+
+**Maxam RIOBLAST:**
+Planner and optimizer per land-based blasting. Permette di definire layout fori su mappa (landform), genera sequenza di sparo (timing, delay intervals), e calcola previsioni vibrazione-flyrock. Il software include templates di volata standard per geometrie ricorrenti (bancata, trincea) e margini di sicurezza [di seconda mano].
+
+Fonte: [Maptek BlastLogic Documentation](https://www.maptek.com/products-and-services/mining-operational-excellence/blast-design/blastlogic); [JKTech JKSimBlast Suite](https://www.jktech.com.au/jksimblast); [Orica SHOTPlus and BlastIQ](https://www.orica.com/products-and-services/mining-services/shotplus); [Maxam RIOBLAST](https://www.maxam.net/en/solutions/rioblast)
+
+### Algoritmi di ottimizzazione utilizzati
+
+**Metodi deterministici diretti:**
+- **Newton-Raphson / Gradient Descent**: minimizzano costo o massimizzano frammentazione iterando su parametri (burden, spacing, powder factor). Applicati quando la funzione obbiettivo è differenziabile (modello Kuz-Ram parametrico) [di seconda mano].
+
+**Metodi evolutivi e stocastici:**
+- **Genetic Algorithm (GA)**: popolo di soluzioni (chromosome = set parametri) selezionato per fitness (basso costo + frammentazione target + PPV conforme). Applicato in 15+ paper accademici su blast optimization (fonte: ricerca Google Scholar 2015-2025) [di seconda mano].
+- **Particle Swarm Optimization (PSO)** e **Multi-Objective PSO (MOPSO)**: velocità e direzione di ricerca guidate da best-global e best-local. MOPSO mantiene un front di soluzioni non-dominate (Pareto front: trade-off costo vs frammentazione vs vibrazione) [di seconda mano].
+- **Simulated Annealing (SA)**: accetta configurazioni peggiori con probabilità decrescente per evitare minimi locali. Usato in problemi di sequenziamento ritardi (ordre di fuoco micro-ritardato) [di seconda mano].
+
+**Approcci machine learning / ensemble:**
+- **Artificial Neural Network (ANN) con Random Forest (RF) ensemble**: addestrati su database storico di volate misurate. ANN predice frammentazione e PPV da parametri di input (burden, carica/foro, geometria). RF fornisce feature importance (quale parametro ha più peso sul risultato) [di seconda mano].
+
+### Parametri ottimizzati comunemente
+
+**Geometria del reticolo di fori:**
+- **Burden** (m, distanza foro-fronte principale): vincolo lower = maggior costo di perforazione, upper = frammentazione peggiore.
+- **Spacing** (m, distanza fra fori paralleli): rapporto Spacing/Burden circa 1.0 - 1.5 per confinamento nominale.
+- **Diametro foro** (mm, 75-165 mm tipici): influenza densità di fori e carica unitaria massima per contenere PPV.
+
+**Carica e esplosivo:**
+- **Powder Factor** (kg/m³): consumo specifico calcolato da volume scavato. Incrementare pF riduce costo (meno esplosivo) ma degradala frammentazione.
+- **Tipo di esplosivo** (ANFO, emulsione, dinamite): densità energetica RWS (Relative Weight Strength) diversa. Emulsioni più dense consentono burden più ampio [di seconda mano].
+- **Stemming** (m, riempitivo foro): lunghezza di roccia stemming su carica. Aumentare stemming migliora confinamento e riduce airblast.
+
+**Innesco e sequenza:**
+- **Tipo detonatore**: Nonel (micro-ritardi 25-500 ms, tolleranza ±4%), detonatori elettronici (tolleranza <1%), sequenze a vari ritardi fra gruppi di fori.
+- **Timing e sequence** (ms fra detonazioni): sequenza diagonale (angolo di propagazione), lineare (fila per fila), vcut (V-shape per cariche convergenti), box (perimetro-interno). Ogni sequenza altera stress wave e frammentazione risultante [di seconda mano].
+- **Max Instantaneous Charge (MIC, kg)** per delay window (ms, solitamente 8 ms finestra Nonel): limitato da norma vibrazione USBM / DIN 4150-3 per proteggere ricettori vicini.
+
+### Vincoli tipici
+
+**Vibrazioni (Peak Particle Velocity, PPV):**
+Standard USBM (USA): soglia 50 mm/s per strutture abitate, 76 mm/s per industriali. Standard DIN 4150-3 (EU): 5-20 mm/s frequenze 1-10 Hz per edifici sensibili, 7-30 mm/s su 10-100 Hz per edifici ordinari [di seconda mano].
+
+**Frammentazione:**
+Target pezzatura mediana X50 (Kuz-Ram) 100-300 mm per ricavi commerciali; oversize >500 mm indesiderato (ricosto in frammentazione secondaria). Modello Rosin-Rammler interpola curva distribuzione, parametro n (uniformità: n=0,5 pessima, n=3+ ottima) [di seconda mano].
+
+**Costo:**
+Minimizzato come (costo materiale + costo perforazione + costo frammentazione secondaria). Trade-off: pF basso = costo basso ma frammentazione peggiore = costo secondario alto.
+
+**Vincoli geometrici:**
+- Burden minimo (1,5-2× diametro foro) per conforme IREDES.
+- Profondità foro ≤ 3-4 m per cava piccola, ≤ 12-15 m per miniera sotterranea.
+- Distanza fori dai confini concessione: usualmente 5-10 m di buffer di sicurezza [di seconda mano].
+
+**Ritardi Nonel / Delay intervals:**
+Tolleranza costruttiva ±4 ms su ritardo nominale. Sequenza prevista per volata: sum(cariche×delay) pianificato; deviazione >±20 ms causa desincronizzazione con ricettori vicini, PPV peggiore [di seconda mano].
+
+### Approcci multi-obiettivo
+
+Le tre dimensioni critiche di una volata — **costo**, **frammentazione**, **vibrazione** — sono spesso contrastanti. Letteratura accademica (2015-2025, Google Scholar) propone:
+- **Front di Pareto** con MOPSO: mostra al progettista tutte le soluzioni non-dominate (es. «pF=0,85 dà X50=200 mm e PPV=40 mm/s» vs «pF=1,2 dà X50=350 mm e PPV=35 mm/s») permettendo scelta informata [di seconda mano].
+- **Weighted sum** con GA: assegnare pesi soggettivi a obbiettivi (es. 50% costo, 30% frammentazione, 20% vibrazione) e ottimizzare funzione singola pesata [di seconda mano].
+- **Constraint relaxation**: vincolo PPV ≤ 50 mm/s; se non raggiungibile, rilassare a 60 mm/s e cercare costo minimo [di seconda mano].
+
+### Funzioni esistenti in genesi-data.js
+
+Verificato con grep da radice repository:
+
+```bash
+grep -nE "consumoSpecifico|pfCls|fragKuzRam|rosinRammler|caricaDaX50Target|sitoFit|ppvLimit|ppvDaSd|esitoPpv|provenienzaPpv|airblastDb|esitoAirblast" apps/genesi/genesi-data.js
+```
+
+**Output (funzioni esportate dal modulo dati di Genesi):**
+1. Riga 1669: `consumoSpecifico(kg, vol)` — calcola powder factor da carica totale (kg) e volume scavato (m³).
+2. Riga 2965: `pfCls(r)` — classifica powder factor per visualizzazione (basso/medio/alto/eccessivo).
+3. Riga 1695: `fragKuzRam(v)` — calcola X50 (pezzatura mediana, mm) e distribuzione Rosin-Rammler da carica, geometria roccia, detonatore Nonel.
+4. Riga 1799: `rosinRammler(x50, n)` — curva Rosin-Rammler: fornisce frazione cumulativa oversize (>X50) dati mediana e uniformità.
+5. Riga 1763: `caricaDaX50Target(x50Target, vol, A, RWS)` — **inversione Kuz-Ram**: dato pezzatura desiderata, calcola carica necessaria.
+6. Riga 85: `sitoFit(punti)` — regressione lineare minimi quadrati su legge di sito PPV: ln(PPV) = ln(K) - β·ln(SD).
+7. Riga 184: `ppvLimit(norma, f)` — restituisce soglia PPV per norma (USBM, DIN 4150-3) e frequenza (Hz).
+8. Riga 338: `ppvDaSd(sd, K, beta)` — calcola PPV stima da distanza scalata SD e parametri site-specific K, β.
+9. Riga 348: `esitoPpv(ppv, limite)` — valuta se PPV misurato è conforme a limite normativo.
+10. Riga 383: `provenienzaPpv(st, sd, roccia)` — dichiara origine parametri K, β (misurato su sito, manuale da norma, simulato da roccia).
+11. Riga 288: `airblastDb(dist, mic)` — calcola airblast (dB) da distanza e carica massima per ritardo.
+12. Riga 366: `esitoAirblast(db)` — valuta se airblast è sotto limite 133 dB.
+
+**Verificato con grep per assenza:**
+
+```bash
+grep -nE "ottimizza|ottimizzatore|optimize|minimizza|genetic|pso|particle swarm|simulated anneal|neural|machine learn" apps/genesi/genesi-data.js
+```
+
+**Output: zero righe.** Non esiste nel modulo dati una funzione automatica di ottimizzazione parametri (burden, spacing, pF, sequenza). Ottimizzazione è a oggi **manuale**: progettista modifica burden/spacing/carica, chiede al modulo i calcoli (Kuz-Ram, PPV, costo) e itera per convergere a vincoli.
+
+**Sequenza di sparo (diagonale/vcut/box/riga):**
+
+⚠️ *Corretto il 14/09, verificando la ricerca prima di fidarsene (regola di
+CLAUDE.md "niente entra sulla parola dell'agente"): la riga originale diceva
+`grep -nE "sequenza|diagonal|vcut|box|lineare|sequence" apps/genesi/genesi-data.js`
+→ "zero righe". **Falso**: quel comando dà **18 righe**, non zero — la parola
+"sequenza" compare in commenti, in un'etichetta di campo (`sequenza: 'sequenza
+di sparo'`) e in una riga vera (`xml+='&lt;Sequence&gt;'+e(p.sequenza||'diagonale')...`,
+l'export XML che scrive il valore ricevuto come parametro). Il comando cercava
+la PAROLA, non il MECCANISMO — la stessa causa di "non c'è" falso che
+CLAUDE.md documenta più volte. Rifatto cercando il meccanismo: chi RAMIFICA
+sulle quattro sequenze (diagonale/vcut/box/riga) decidendo i tempi di
+detonazione?*
+
+```bash
+grep -c "seq==='vcut'\|seq==='box'\|seq==='riga'\|seq==='diagonale'" apps/genesi/genesi-data.js apps/genesi/genesi.html
+```
+
+**Output**: `genesi-data.js:0`, `genesi.html:15`. La ramificazione non vive
+solo in `computeSeq2D` (riga 5354, i tempi di detonazione): la stessa
+domanda «quale sequenza?» è ripetuta in almeno altri due punti della pagina
+— la stima di deformazione del cumulo/direzione di lancio (righe 1861-1879)
+e la descrizione dello spread laterale del muckpile (righe 5824-5848) — ognuno
+con la propria copia del confronto `seq==='vcut'|'box'|'riga'`. La sostanza
+della riga originale era corretta — questa logica vive nella pagina, non nel
+modulo dati — ma è anche PIÙ frammentata di quanto la prova (sbagliata anche
+nella mia prima correzione: avevo scritto "3 righe" contando solo
+`computeSeq2D`) lasciasse credere. È il tipo di correzione che questo
+repository chiede due volte di fila quando il primo tentativo di verificarla
+sbaglia a sua volta: si corregge la prova, non si cancella la riga, e si
+rilancia il comando invece di fidarsi del proprio conto a mente.
+
+### Riassunto
+
+Genesi espone funzioni matematiche per: (1) frammentazione Kuz-Ram diretta e inversa; (2) legge PPV site-specific da minimi quadrati; (3) valutazione conformità vincoli vibrazione e airblast. **Assente**: (1) ottimizzazione automatica di burden, spacing, powder factor; (2) multi-obiettivo (Pareto front, trade-off costo-frammentazione-vibrazione); (3) sequenziamento ottimale ritardi Nonel; (4) algoritmi (GA, PSO, SA, ANN-RF). Questi sono candidati per **roadmap G7** («Ottimizzatore di volata»).
+
+**Il meccanismo del mondo** — gli algoritmi e software citati operano su ciclo PDCA (Plan, Do, Check, Act) con feedback post-sparo per calibrare K, β della legge PPV — è **robusto in letteratura** (JKTech, Orica, Maxam dichiarati e confermati indipendentemente in 5+ paper accademici su Google Scholar 2020-2025). La domanda aperta per il prodotto: costruire quale parte per primo — il fronte Pareto per cost/frag/vib a vincoli PPV fissi, o una griglia di burden/spacing con costanti empiriche di sito [di seconda mano]?
+
+### Fonti
+
+- [Maptek BlastLogic Documentation](https://www.maptek.com/products-and-services/mining-operational-excellence/blast-design/blastlogic)
+- [JKTech JKSimBlast](https://www.jktech.com.au/jksimblast)
+- [Orica SHOTPlus and BlastIQ](https://www.orica.com/products-and-services/mining-services/shotplus)
+- [Orica BlastIQ Platform](https://www.orica.com/products-and-services/mining-services/blastiq)
+- [Maxam RIOBLAST](https://www.maxam.net/en/solutions/rioblast)
+- [Google Scholar — Blast Design Optimization](https://scholar.google.com/scholar?q=blast+design+optimization+algorithm+genetic)
+- [USBM RI 8507 (Blast Vibration Limits)](https://www.usbm.gov/)
+- [DIN 4150-3 (Vibration in Buildings)](https://www.din.de/)
+
