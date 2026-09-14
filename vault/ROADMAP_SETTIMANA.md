@@ -2903,6 +2903,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E8`
 - `G7–G9`
 - `G46 (candidato, non preso)`
+- `G47 — "GENESI SIMILE A UN CAD"`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
@@ -6049,6 +6050,47 @@ numero scritto dove non era stato misurato niente**.*
       ma resta comunque la scelta di UN formato fra tre concorrenti senza
       che nessuno l'abbia chiesta: si costruisce quando si decide, non
       per anticipare la decisione.
+- [ ] **G47 — "GENESI SIMILE A UN CAD": IL FONDATORE HA RISPOSTO, 14/09,
+      ORE 18:55Z circa — "Tutto".** Chiedendo quale dei quattro assi
+      intendesse (precisione/snap, layer, strumenti di disegno,
+      import/export CAD — la domanda del checkpoint `20260914-100055`),
+      la risposta in conversazione è stata: tutti e quattro. Scomposto
+      prima di scrivere codice, stessa disciplina di G7/G38:
+      1. **G47a — coordinate esatte e vincoli di allineamento.** L'asse
+         più maturo: `D2.snap`/`snapPasso`/`snapAGriglia` (G34, 13/09)
+         già esistono. Manca un campo per scrivere la posizione esatta
+         di un punto e un vincolo "allinea con l'ultimo punto"
+         (orizzontale/verticale/parallelo). Rischio più basso: nessuna
+         soglia di sicurezza, nessun formato esterno.
+      2. **G47b — livelli di disegno veri.** Oggi non esistono: i due
+         insiemi di interruttori già in pagina (Relief/Energia/Innesco/
+         Isocrone nel 2D, i toggle della simulazione 3D) mostrano un
+         CALCOLO o una vista, non un gruppo di disegno con colore/
+         blocco/creazione proprio. Un vero layer CAD servirebbe a
+         separare fori, profilo fronte, piede, quote — oggi tutti sullo
+         stesso "livello" implicito.
+      3. **G47c — strumenti di disegno liberi.** Oggi si piazza un punto
+         alla volta (foro, fronte, piede): mancano linee/polilinee
+         libere, forme, testo. L'infrastruttura di annulla/ripristina
+         (`mdlUndo`/`mdlRedo`/`mdlPushUndo`, `MDL_UNDO_MAX=40`) esiste
+         già e è riusabile: il pezzo che di solito costa di più in un
+         editor vettoriale è già lì.
+      4. **G47d — import CAD (DXF in lettura).** Oggi Genesi sa solo
+         ESPORTARE (`dxfPianoFori`, G33, 13/09). Il rischio è reale e
+         già segnalato dalla ricerca del 13/09
+         (`docs/RICERCA_CONTINUA_GENESI.md`, "import CAD/DXF: come i
+         software commerciali evitano l'errore di convenzione degli
+         assi"): un file esterno può avere una convenzione di assi
+         diversa da quella di Genesi, e un import che non la controlla
+         calcolerebbe burden/distanze nella direzione sbagliata in
+         silenzio — la stessa famiglia di rischio del rilievo boretrack
+         (gate di sicurezza, sezione 6 di `docs/DECISIONI_WEEKEND.md`).
+         Va fatto per ultimo, con una validazione esplicita della
+         convenzione prima di fidarsi di un punto importato.
+      **Ordine di lavoro**: a → b → c → d, dal più maturo/meno rischioso
+      al più delicato. Ogni fetta con la sua verifica (screenshot,
+      banco browser, giro completo) prima di passare alla successiva —
+      nessuna fetta si dichiara fatta senza le tre.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
