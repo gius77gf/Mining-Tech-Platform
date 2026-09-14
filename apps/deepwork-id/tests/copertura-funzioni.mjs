@@ -517,8 +517,19 @@ const CONDIVISI = [
      il commento descriveva l'architettura di allora, non un divieto a
      finire l'estrazione dopo. I suoi due chiamanti (`drawDesign2D`,
      `renderInspector`) leggono già `D2` per conto proprio: nessuno
-     spostamento di bucket, misurato confrontando `--elenco` prima/dopo. */
-  { file: "apps/genesi/genesi-data.js", fondo: 156,
+     spostamento di bucket, misurato confrontando `--elenco` prima/dopo.
+     156 → 157 il 14/09 (B3, stesso giorno): `computeEnergia2D`, stesso
+     schema (`computeEnergia2D(D2)`), componeva solo `energiaSuMaglia`
+     già pura dal blocco G41 (14/09). A differenza di `reliefCls`, la
+     funzione esce DEL TUTTO dalla pagina (non lascia un wrapper: era
+     void, un solo punto di chiamata dentro `computeSeq2D`), quindi il
+     totale nella pagina scende di uno invece di restare fermo (152→151,
+     bucket "1-2" 57→56, estraibili 65→64). L'unico effetto collaterale
+     misurato confrontando `--elenco` prima/dopo è che `computeSeq2D`
+     perde `computeEnergia2D` dal proprio elenco "chiama": non è più una
+     funzione della pagina da chiamare, è un import — nessuno
+     spostamento di bucket vero. */
+  { file: "apps/genesi/genesi-data.js", fondo: 157,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

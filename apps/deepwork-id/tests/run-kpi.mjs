@@ -26108,13 +26108,26 @@ console.log("\n— Campo: i file che escono —");
     genesi.energiaSuMaglia(undefined, 10, 3.5, 45, []);
     const vuoto = []; genesi.energiaSuMaglia(vuoto, 10, 3.5, 45, []); eq(vuoto, []);
   });
-  test("⛔ Genesi · G41: nella pagina il conto non c'è più, e il legame resta", () => {
+  test("⛔ Genesi · G41: nella pagina il conto non c'è più (⚠️ 14/09, B3: anche il legame è uscito)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/function computeEnergia2D\(\)\{ energiaSuMaglia\(D2\.holes, D2\.prof, D2\.S, D2\.kg, D2\.profilo\); \}/.test(pag),
-      "computeEnergia2D è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/function computeEnergia2D/g) || []).length, 0, "il legame a zero argomenti non c'è più nella pagina");
     eq((pag.match(/h\.burdenVero=dPerp/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    ok(typeof v.computeEnergia2D === "function", "computeEnergia2D vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/computeEnergia2D\(D2\)/g) || []).length, 1, "e la pagina lo chiama dal suo unico punto, passando D2");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(elenco.includes("energiaSuMaglia"), "la pagina importa la funzione");
+    ok(elenco.includes("energiaSuMaglia") && elenco.includes("computeEnergia2D"), "la pagina importa tutt'e due");
+  });
+  test("⛔ Genesi · computeEnergia2D (B3, trasloco con cambio di firma)", () => {
+    const holesA = [{ mx: 0, my: 0 }, { mx: 3.5, my: 0 }, { mx: 7, my: 0 }];
+    const holesB = holesA.map((h) => ({ ...h }));
+    const D2x = { holes: holesA, prof: 10, S: 3.5, kg: 45, profilo: [] };
+    v.computeEnergia2D(D2x);
+    v.energiaSuMaglia(holesB, 10, 3.5, 45, []);
+    eq(holesA, holesB, "compone energiaSuMaglia con lo stato del progetto: stesso risultato della chiamata diretta, foro per foro");
+    ok(holesA[0].volLoc != null, "e il conto è avvenuto davvero (non un no-op silenzioso)");
+    const senzaFori = { holes: [], prof: 10, S: 3.5, kg: 45, profilo: [] };
+    v.computeEnergia2D(senzaFori); // non deve sollevare
+    eq(senzaFori.holes, [], "senza fori non tocca niente");
   });
 
   /* ⛔ G42 — LA SEQUENZA DI SPARO FORO PER FORO (14/09, cantiere B3, ULTIMA
@@ -26173,7 +26186,7 @@ console.log("\n— Campo: i file che escono —");
       "computeSeq2D è il legame fra lo stato e la funzione pura");
     ok(/function computeSeq2D\(\)\{/.test(pag), "computeSeq2D esiste ancora");
     eq((pag.match(/computeRelief2D\(\);/g) || []).length >= 1, true, "e orchestra ancora relief");
-    eq((pag.match(/computeEnergia2D\(\);/g) || []).length >= 1, true, "e orchestra ancora energia");
+    eq((pag.match(/computeEnergia2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora energia");
     eq((pag.match(/computeInnesco2D\(\);/g) || []).length >= 1, true, "e orchestra ancora innesco");
     eq((pag.match(/h\.tDet = \(h\.tMano/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());

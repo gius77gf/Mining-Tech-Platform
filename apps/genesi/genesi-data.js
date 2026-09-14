@@ -3180,6 +3180,7 @@ export function energiaSuMaglia(H, prof, S, kg, profilo){
     }
   }
 }
+export function computeEnergia2D(D2){ energiaSuMaglia(D2.holes, D2.prof, D2.S, D2.kg, D2.profilo); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    G42 · LA SEQUENZA DI SPARO FORO PER FORO (14/09, cantiere B3, ULTIMA
