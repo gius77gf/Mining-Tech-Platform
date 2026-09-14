@@ -95,18 +95,16 @@ const DIFETTI = [
    "$('hgVolN').textContent=arr.length? (arr.length+' salvate'):'';"],
   ["$('hgNuvN').textContent=nv.length? _ricPlur(nv.length,'lavorazione','lavorazioni'):'';",
    "$('hgNuvN').textContent=nv.length? (nv.length+' lavorazioni'):'';"],
-  /* ⏱️ RI-ANCORATA il 09/08: la riga non passa più da `_ricPlur` ma da
-     `nPunti`, che è `gnum` + `plurale` — perché `conta` sceglie bene la parola
-     ma NON raggruppa, e i punti di una nuvola sono decine di migliaia («41230»
-     accanto a «3.000.000» nella stessa frase). Il difetto rimesso resta lo
-     stesso: il plurale scritto a mano, che su un punto solo direbbe «1 punti
-     caricati». */
-  /* ⏱️ Stessa storia, stesso giorno: `nPunti` era la funzioncina locale nata
-     perché `conta` non raggruppava, ed è sparita quando `conta` ha finito il
-     suo mestiere. Il difetto rimesso resta lo stesso: il plurale scritto a
-     mano, che su un punto solo direbbe «1 punti caricati». */
-  ["    : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');",
-   "    : ' · '+gnum(mostrati,0)+' punti caricati';"],
+  /* ⛔ TOLTA il 14/09: il giro completo del browser ha preso questa voce
+     con «1 non hanno trovato il loro pezzo» — la riga che descriveva non
+     esiste più in `genesi.html`, perché G36 (13/09, cantiere B3) ha
+     traslocato `_puntiNuvola` in `genesi-data.js` come funzione pura. Il
+     caso del singolo punto («1 punto caricato», non «1 punti caricati»)
+     non è sparito: vive ora come prova in `run-kpi.mjs`
+     ("Genesi · _puntiNuvola: UN punto solo, non «1 punti»"), verificata
+     contro il difetto storico. Un'iniezione di controprova che segue il
+     suo bersaglio dopo un trasloco non serve più: il bersaglio è una
+     funzione pura, provata più vicino a dove vive. */
   // 5b · i due chili che restavano tranquilli sopra il loro stesso trattino
   ["    + riga('Carica reale totale', c.misurabile?_ricKg(c.kgReale)+' kg':'—',\n" +
    "           c.misurabile?'dal file':'nessuna carica reale')",

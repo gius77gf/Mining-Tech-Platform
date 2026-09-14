@@ -8299,10 +8299,11 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo
-  `vibrazionePerBurden`, unità G44 (cantiere B3): +6 in `run-kpi`,
-  2963→2969): **3.450 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2969, `run-stile` 328,
+- Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo aver
+  spostato in `run-kpi` la prova del singolare di `_puntiNuvola`, andata
+  stale in un banco del browser dopo il trasloco G36: 2969→2970):
+  **3.451 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2970, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

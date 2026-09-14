@@ -41476,6 +41476,19 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(genesi._puntiNuvola({ punti: 500 }), " · 500 punti caricati",
       "un record vecchio ha solo `punti`: si mostra così com'era, senza inventare un secondo numero");
   });
+  /* ⏱️ 14/09: questo caso viveva come iniezione nel BANCO DEL BROWSER
+     (`genesi-frasi-limite.mjs`, sul testo della pagina prima del trasloco
+     G36). Il trasloco ha spostato la logica qui, e l'iniezione ha smesso
+     di trovare il suo pezzo in `genesi.html` — «UN'INIEZIONE CHE NON TROVA
+     PIÙ IL SUO PEZZO SPEGNE LA CONTROPROVA IN SILENZIO» (CLAUDE.md), preso
+     dal giro completo del browser, non da una rilettura a occhio. La prova
+     del singolare non era mai stata riscritta qui: la si aggiunge ora, sul
+     livello giusto — la funzione pura, non più la pagina. */
+  test("Genesi · _puntiNuvola: UN punto solo, non «1 punti»", () => {
+    eq(genesi._puntiNuvola({ puntiMostrati: 1, puntiTotali: 1 }), " · 1 punto caricato");
+    eq(genesi._puntiNuvola({ punti: 1 }), " · 1 punto caricato");
+    eq(genesi._puntiNuvola({ puntiRitaglio: 1, puntiTotali: 900000 }), " · 1 punto nel ritaglio");
+  });
 }
 /* ===== fine _puntiNuvola salita dalla pagina (13/09) ===== */
 
