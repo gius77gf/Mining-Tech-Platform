@@ -1,111 +1,89 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-14, 00:47 UTC
-- **Commit di partenza**: `b6e131ac`
+- **Quando**: 2026-09-14, 04:32 UTC
+- **Commit di partenza**: `d8d7953d`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Repository raggiungibile, `HEAD` combacia col remoto, working tree pulita
-(`git pull` senza cambiamenti).
+Questa non è una ripresa da fermo: la routine "Weekly Dev Session" ha
+sparato una nuova accensione (fuoco delle 03:45 UTC, recapitato in coda)
+mentre questa stessa sessione stava già lavorando senza interruzioni dal
+canarino precedente (00:47 UTC). Repository raggiungibile, `HEAD` combacia
+col remoto, working tree pulita (`git pull` senza cambiamenti). Questo
+aggiornamento del canarino documenta lo stato reale, non un riavvio.
 
 ⚠️ **Direttiva del fondatore in conversazione, più recente e più specifica
-del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA in questo
-ciclo**: concentrarsi SOLO sull'app Genesi. Il prompt fisso di oggi
-(nuovo giorno, "fase dei dettagli di ogni app", ponti fra le app,
-lavoro multi-app in parallelo) resta un template generico non
-personalizzato a questa direttiva puntuale: non lo seguo alla lettera
-finché la direttiva resta in vigore, esattamente come nel blocco
-precedente.
-
-📎 **Nota utile dal prompt fisso di oggi, dentro il perimetro di Genesi
-(non una violazione della direttiva)**: "Genesi NON esce dal browser
-(localStorage, zero orgCollection): finché resta così, nessun ponte di
-dati verso Genesi è possibile." Questo tocca SOLO il codice di Genesi
-(più eventualmente `shared/dw-ponti.js`), quindi rientra nel perimetro
-"solo Genesi" — ma prima di considerarlo un'unità da fare, va
-verificato: nella sessione precedente ho letto in `genesi.html` chiamate
-a `GDB.volate()`, `GDB.aggiungi('piani', …)`, `GDB.nuvole()`, `GDB.piani()`
-— da capire se `GDB` è già il client org-aware condiviso (in tal caso
-l'affermazione del prompt fisso sarebbe scaduta) o un wrapper locale che
-imita la stessa interfaccia sopra `localStorage` (in tal caso l'affermazione
-è vera e il gap è reale). Prima azione di questo ciclo: leggere `GDB` e
-deciderlo con la misura, non supporre.
+del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA**: concentrarsi
+SOLO sull'app Genesi. Il prompt fisso di questa accensione (ponti fra le
+app, lavoro multi-app in parallelo, "Genesi NON esce dal browser") resta
+un template generico non personalizzato — la seconda parte è anche
+**scaduta**, verificato e documentato nel checkpoint `20260914-005111`: il
+gap "Genesi non esce dal browser" è stato chiuso il 02/09, non c'è lavoro
+da fare lì.
 
 ⛔ **SEGNALAZIONE DI SICUREZZA APERTA, INVARIATA — DA LEGGERE PRIMA DI
 TOCCARE GEOMETRIA/FLYROCK/BURDEN.** Il gate su
 `deviazioneForiDaCsv`/`burdenVeroDaRilievo` (import del rilievo boretrack)
-resta bloccato sul fondatore: dettaglio in `docs/DECISIONI_WEEKEND.md`
-(sezione 6, con una nota aggiunta il 13/09 che rimanda a una ricerca di
-fianco sulla convenzione degli assi — materiale extra, non una
-soluzione). Fino a risposta: **nessuna unità MODIFICA la geometria del
-fronte 3D, il flyrock o il burden reale per foro** — lettura/analisi resta
-permessa. Le soglie di sicurezza USBM/DIN restano un'altra decisione
-aperta (sezione 9 di DECISIONI_WEEKEND.md), invariata.
+resta bloccato sul fondatore (`docs/DECISIONI_WEEKEND.md`, sezione 6).
+Le soglie di sicurezza USBM/DIN restano un'altra decisione aperta (sezione
+9), anch'essa invariata. Nessuna delle due è stata toccata in questo blocco.
 
-## Cosa è successo nel blocco precedente (13/09, dopo la richiesta diretta del fondatore "rendere Genesi più simile a un CAD")
+## Cosa è successo nel blocco in corso (14/09, dal canarino delle 00:47)
 
-**Prodotto — "tutte e tre le alternative" (risposta del fondatore via
-AskUserQuestion), parti 1 e 2 coperte tecnicamente**:
-- Export DXF del piano fori (fori + profilo fronte), verificato con un
-  vero lettore DXF (`ezdxf`) che ha trovato e fatto correggere un bug
-  reale (`LWPOLYLINE` invalido) prima del commit.
-- Disegno di precisione completo: aggancio alla griglia opzionale,
-  coordinata x del foro in chiaro, quote a schermo per fori e per
-  punti fronte/piede (due collisioni reali con etichette fisse trovate
-  SOLO aprendo la pagina con Playwright, mai a occhio sul codice),
-  distanza fra due fori qualunque selezionati in sequenza.
-- Parte 3 (aspetto "CAD") resta ferma: in tensione con la regola
-  "struttura identica al core" (item E7 della roadmap, preesistente
-  alla richiesta) — domanda posta al fondatore, nessuna risposta
-  ancora arrivata.
+**B0-septies decisa e chiusa** (`vault/checkpoints/20260914-015629` e
+seguenti): la decisione roadmap del 04/09 su "che cosa disegna una pianta
+senza maglia" era scaduta di dieci giorni senza risposta, auto-decide non
+revocato per questa voce (a differenza della segnalazione boretrack sopra).
+Misurato con Node (non dedotto) che con burden/interasse assenti la maglia
+collassava tutti i fori sullo stesso punto — non "3,5×4" come lasciava
+intendere una riga di `DECISIONI_WEEKEND.md`, corretta sul posto. Curata
+alla radice (`magliaAssenteMotivo` in `genesi-data.js`, blocco G37):
+`genMaglia2D` non genera più coordinate quando la maglia non è
+posizionabile, e i cinque consumatori a valle non vengono mai chiamati su
+una maglia vuota (avevano già la guardia). Verificato nel browser vero.
 
-**Filone B3 ("Genesi continua a uscire dalla pagina")**: due funzioni
-estratte da `genesi.html` a `genesi-data.js` (`misuraGeom2D`,
-`_puntiNuvola`), entrambe casi del solito falso positivo del
-censimento statico (variabili locali o parole nei commenti scambiate
-per variabili del modulo), con test che catturano i difetti storici
-che quelle stesse funzioni avevano già causato.
+**Un difetto ambientale reale trovato e corretto in nove banchi**: in
+questo contenitore l'import Firebase da `gstatic.com` non fallisce subito
+come in un contenitore senza rete — resta appeso fino al taglio del proxy
+(~13s per pagina). La cura era già scritta in `genesi-locale.mjs` e non
+applicata altrove: estesa a tutti i banchi `genesi-*.mjs`/`ponte-genesi-
+*.mjs` che ne erano privi. Un banco è passato da "non apre nemmeno la prima
+pagina in 90s" a passare per intero in minuti; un altro da un crash a
+funzionare; un terzo (`genesi-struttura.mjs`) da 29,2s a 17,0s, smentendo
+una diagnosi di un mese fa che dava tutta la colpa alla scena 3D "senza
+GPU" — era una causa vera ma incompleta.
 
-**Ricerca di fianco**: otto round in background, tutti raccolti in
-`docs/RICERCA_CONTINUA_GENESI.md` e VERIFICATI a mano prima del commit
-(non solo fidandosi del riepilogo dell'agente) — tre avevano difetti di
-processo reali (un file mai scritto nonostante il "fatto", un timestamp
-fabbricato, una giunzione fra sezioni corrotta da un append), corretti
-tutti prima che raggiungessero un commit. Argomenti: import CAD/DXF e
-sicurezza degli assi (materiale per la segnalazione sopra), contenuto
-di un rapporto di volata, vocabolario tecnico-minerario (confermato
-pulito), quattro concorrenti enterprise (BlastLogic, JKSimBlast,
-SHOTPlus, RIOBLAST), norme di vibrazione (USBM/DIN 4150-3/UNI 9916,
-confermate di seconda mano), dichiarazione annuale/ispezioni in cava
-(più vicine a Scudo/Terra, dichiarato), standard IREDES (scoperta:
-nessuna fonte conferma uno schema IREDES "BlastPlan" per carica/
-ritardi — solo "DrillPlan" per la geometria; il codice di Genesi
-dichiara già onestamente "non conformità certificata", nessuna
-correzione necessaria).
+**G7 (ottimizzatore di volata) scomposto e la prima fetta consegnata**:
+verificato che l'ottimizzatore vero (multi-obiettivo, con la vibrazione)
+non è una fetta piccola — la sequenza che decide la MIC vive nella pagina,
+non nel modulo dati. La prima fetta onesta (`curvaBurdenCarica`: burden
+variabile, stessa frammentazione target, quanta carica serve) è stata
+implementata come funzione pura, provata con iniezione del difetto, e
+**collegata a schermo** (bottone "Confronta burden per lo stesso
+obiettivo"), verificata nel browser vero con screenshot.
 
-**Verifica**: ogni unità di codice passata dal giro completo
-(`giro-node.mjs`, 40 comandi) su una `git worktree` isolata prima del
-commit — sempre 0 caduti alla consegna. Container riavviato durante
-l'attesa dell'ottava ricerca: verificato subito dopo la ripresa che
-nessun lavoro fosse andato perso (`HEAD` combaciava col remoto).
+**Nove unità committate e pushate**, ognuna verificata su `git worktree`
+isolata con `giro-node.mjs` (40 comandi, 0 caduti) prima del commit, con
+la cascata di numeri nei documenti (`numeri-nei-documenti.mjs`) corretta
+ogni volta che una nuova funzione o un nuovo banco la faceva scadere.
+
+**Ricerca di fianco**: una sezione su G7 (ottimizzazione — con un
+autocorreggersi di una prova sbagliata, due volte di fila, prima di
+committarla), una su come si misura davvero la frammentazione (fotografia/
+image analysis) lanciata in background, non ancora raccolta.
 
 ## Prossimo passo atomico
 
-1. Leggere `GDB` in `genesi.html`/`shared/` per stabilire con la misura
-   se Genesi scrive già nell'organizzazione condivisa o solo in
-   `localStorage` — prima di decidere se "Genesi non esce dal browser"
-   è un gap vero o un'affermazione scaduta del prompt fisso.
-2. Se il gap è confermato reale: è un cantiere grande (persistenza dei
-   dati), da scomporre in unità piccole e verificabili una per volta,
-   non un salto unico — e da valutare se serva prima una domanda al
-   fondatore data la sua portata, oppure se rientri comunque nel "resto
-   di Genesi... resta aperto" già scritto sopra.
-3. In parallelo/alternativa: continuare con altre unità sicure su
-   Genesi (rilettura di `vault/ROADMAP_SETTIMANA.md` e del checkpoint
-   più recente per `date-checkpoint.mjs` per eventuali voci aperte non
-   ancora considerate), o ricerca di fianco su un argomento ancora
-   scoperto.
+1. Raccogliere e verificare (non fidarsi sulla parola) la ricerca sulla
+   misura fotografica della frammentazione, appena pronta.
+2. Rileggere l'indice `## 🧭 Le voci APERTE, per nome` in
+   `vault/ROADMAP_SETTIMANA.md` per la prossima voce Genesi ancora aperta
+   (B3 è agli sgoccioli per le estrazioni meccaniche: i bucket "0" e "1-2"
+   variabili sono confermati esauriti — quello che resta è un rifacimento,
+   non un trasloco).
+3. In alternativa: valutare se scomporre l'estrazione di `computeSeq2D`
+   (sbloccherebbe la parte vibrazione/sequenza di G7) come cantiere B3 a
+   sé, con la stessa disciplina di scomposizione-prima-del-codice.
 
-Nessuno stop volontario: si prosegue subito con la prossima unità dopo
-il canarino.
+Nessuno stop volontario: si prosegue subito.
