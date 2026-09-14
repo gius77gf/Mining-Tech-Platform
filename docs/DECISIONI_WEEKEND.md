@@ -114,6 +114,17 @@ su Genesi.*
   non rispondi entro la settimana*: sì alla misura assistita (onesta,
   gratuita, coerente con Genesi = simulatore didattico), MobileSAM resta
   fuori roadmap finché non lo chiedi tu esplicitamente.
+  ⏱️ *14/09 — una seconda ricerca (`docs/RICERCA_CONTINUA_GENESI.md`,
+  sezione "Come si misura davvero la frammentazione") ha confermato lo
+  stesso quadro senza saperlo (partita da zero, non da questo documento):
+  le suite commerciali (WipFrag, Split-Desktop) restano stime con errore
+  dichiarato 2-25% anche con calibrazione di sito, i fini restano sempre
+  stimati per regressione, e nessuna sostituisce la vagliatura. Non cambia
+  la scadenza né la risposta di default sopra — resta un'attesa di
+  risposta, non un "non c'è" da colmare da solo — ma vale la pena
+  segnalarlo: due ricerche indipendenti concordano, il che rende la
+  risposta di default più solida se il termine dei sette giorni scade
+  senza risposta.*
 
 ---
 
