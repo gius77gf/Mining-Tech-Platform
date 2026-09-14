@@ -231,6 +231,15 @@ async function apriSenza(chiave, extra) {
     localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord",
       data: "2026-07-12", sintesi: "12 fori", design: dd }]));
   }, d);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s PER OGNI pagina aperta (sono sedici): lo si taglia
+     subito, come già fa `genesi-locale.mjs` per lo stesso identico import.
+     Trovato il 14/09 scrivendo `genesi-maglia-assente.mjs`: senza questa
+     riga il banco impiegava minuti invece di secondi per aprire una sola
+     volata, in un contenitore dove la rete verso gstatic non fallisce
+     subito ma resta appesa — un ambiente diverso da quello in cui questo
+     banco era stato scritto e verificato l'ultima volta. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2200);
   await pg.evaluate(() => {
