@@ -1,95 +1,87 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-14, 15:46 UTC
-- **Commit di partenza**: `18625e8b`
+- **Quando**: 2026-09-14, 18:22 UTC
+- **Commit di partenza**: `34837eca`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
-Nuova accensione della routine "Weekly Dev Session" (fuoco delle
-15:45:23 UTC), stessa conversazione col fondatore aperta dalle 09:47.
-Repository raggiungibile, `git pull` senza cambiamenti (`HEAD` già
-allineato al remoto).
+Stessa conversazione col fondatore aperta dalle 09:47, nessuna nuova
+accensione della routine da quella delle 15:45 UTC. Repository
+raggiungibile, `HEAD` allineato al remoto.
 
-⚠️ **Stato particolare, invariato dai canarini precedenti**: il
-fondatore ha chiesto *"hai riflettuto su come rendere Genesi simile ad
-un CAD?"*, gli è stata rimandata una domanda di chiarimento (quale
-asse: precisione/snap, layer, strumenti di disegno, o import/export
-CAD) — **non ha ancora risposto**, sono passate circa sei ore. Finché
-non risponde, non si scompone né si costruisce niente in quella
-direzione.
+⚠️ **Stato particolare, invariato**: il fondatore ha chiesto *"hai
+riflettuto su come rendere Genesi simile ad un CAD?"*, gli è stata
+rimandata una domanda di chiarimento — **non ha ancora risposto**, oltre
+otto ore e mezza. Finché non risponde, non si scompone né si costruisce
+niente in quella direzione.
 
-⚠️ **Direttiva del fondatore in conversazione, più recente e più
-specifica del prompt fisso di questa routine — CONFERMATA ANCORA
-VALIDA per la sesta volta**: concentrarsi SOLO sull'app Genesi. Il
-prompt fisso di questa accensione (ponti fra le app, lavoro multi-app
-in parallelo, "Genesi NON esce dal browser") resta un template generico
-non personalizzato — la seconda parte è anche **scaduta**, verificato e
-documentato nel checkpoint `20260914-005111`: il gap è stato chiuso il
-02/09.
+⚠️ **Direttiva del fondatore in conversazione — CONFERMATA ANCORA
+VALIDA per la settima volta**: concentrarsi SOLO sull'app Genesi.
 
-⛔ **SEGNALAZIONE DI SICUREZZA APERTA, INVARIATA — DA LEGGERE PRIMA DI
-TOCCARE GEOMETRIA/FLYROCK/BURDEN.** Il gate su
+⛔ **SEGNALAZIONE DI SICUREZZA APERTA, INVARIATA**: il gate su
 `deviazioneForiDaCsv`/`burdenVeroDaRilievo` resta bloccato sul fondatore
 (`docs/DECISIONI_WEEKEND.md`, sezione 6). Le soglie USBM/DIN restano
-un'altra decisione aperta (sezione 9), invariata. Nessuna delle due è
-stata toccata in questo blocco.
+un'altra decisione aperta (sezione 9). Nessuna delle due toccata.
 
-## Cosa è successo nel blocco in corso (dal canarino delle 13:48)
+## Cosa è successo dal canarino delle 15:46
 
-Otto unità di lavoro, tutte committate e pushate, working tree pulita:
+Cinque unità di lavoro, tutte committate e pushate, working tree
+pulita:
 
-1. Backlog di ricerca continua su Genesi riletto a fondo (sei sezioni,
-   quattro già chiuse, due candidati dichiaratamente non costruiti per
-   mancanza di dati — decking/air-decking, diametro critico esplosivo).
-2. Voce **G46** aggiunta alla roadmap (frammentazione misurata via
-   foto/image-analysis) — non costruita, tocca la regola SOLDI.
-3. **B3** (censimento estrazioni) aggiornata: era ferma al 13/09 con 57
-   estraibili, il lavoro G39-G43 di questo stesso blocco l'aveva
-   portata a 61 senza che la riga lo registrasse.
-4. Due errori propri trovati e corretti PRIMA del commit (con
-   `git status` e `numeri-nei-documenti.mjs`, non dopo): un commit che
-   aveva lasciato fuori due note già scritte; un `Edit` che aveva
-   inghiottito la prima riga di una voce di roadmap successiva.
-5. **Difetto reale trovato con una seconda verifica nel browser**: la
-   riga di provenienza sotto "Confronta burden" (G44) scriveva "e da
-   **da** litologia (Calcare)" — parola doppia. Corretto, e scritto un
-   banco browser nuovo (`genesi-obiettivo-burden.mjs`, in `tutti.mjs`)
-   che copre G38/G44 con una difesa che resta.
-6. **G8, prima fetta**: confrontato il Report volata con la ricerca su
-   che cosa contiene davvero un rapporto di volata — il solo gap reale
-   (firma del responsabile del tiro, come nei moduli Pennsylvania/AS
-   2187-2) colmato con tre campi da riempire a penna, verificato con
-   screenshot nel browser vero.
+1. **G45 preso e costruito**: verdetto di sintesi sopra la scheda
+   validatori (forma (a) già scelta in roadmap, con la clausola di
+   perimetro sempre visibile). Trovato e corretto un difetto di layout
+   nella stessa unità (flex che spezzava il testo a 430px), preso con
+   uno screenshot prima di committare.
+2. **Censimento per-bottone di Genesi**: tutti i bottoni che producono
+   un file, confrontati coi banchi committati. Trovato l'unico scoperto
+   che non è dietro il gate di sicurezza — `btn-piano-dxf` (G33) — e
+   scritto un banco nuovo (`genesi-piano-dxf.mjs`) che legge il DXF sul
+   testo e verifica cerchi/raggio/coordinate/profilo indipendentemente
+   dal modulo.
+3. Chiusura del delta G8 (il requisito MSHA sul numero di presenti
+   appartiene a Campo, non a Genesi — verificato, non un'azione).
+4. **Raccolto il giro completo del browser** (lanciato alle 13:44Z,
+   concluso dopo oltre quattro ore — solo le ultime 42 righe recuperate
+   per un errore mio di redirezione, dichiarato nel checkpoint). L'unico
+   difetto Genesi trovato: una controprova stale in
+   `genesi-frasi-limite.mjs` (il trasloco G36 aveva spostato la logica
+   che testava senza che l'iniezione del banco venisse aggiornata).
+   Corretto al livello giusto: nuova prova su `_puntiNuvola` in
+   `run-kpi.mjs`, iniezione stale tolta dal banco del browser.
+   **Nota di visibilità, non un'azione**: il registro mostra anche un
+   KO reale su Conti (rimanenze di piazzale) — fuori perimetro, non
+   toccato.
 
 Ogni unità verificata su `git worktree` isolata (`giro-node.mjs`, 40/0)
 prima del commit, con cascata sui quattro documenti sorvegliati dove
-serviva.
+serviva. Un mio errore (parentesi annidata che rompeva il parser di
+`numeri-nei-documenti.mjs`) preso e corretto prima del commit, non dopo.
 
-## In corso adesso
+## Bilancio del blocco (dal canarino delle 00:47 del 14/09)
 
-Il **giro completo del browser** (`tutti.mjs`), lanciato alle 13:44Z su
-una copia congelata del commit `477ac992`, è **ancora in esecuzione**
-alle 15:46Z — circa due ore, in linea con la durata tipica dichiarata
-in CLAUDE.md. Il ramo è andato avanti di **3 commit** da allora, uno
-solo dei quali tocca una superficie che il giro misura
-(`apps/genesi/genesi.html`, la firma di G8 — già verificata a parte con
-screenshot, quindi non è un problema se il giro non la vede). Non è
-"decine di commit sulle superfici misurate": non vale la pena spegnerlo
-e rilanciarlo, si aspetta che finisca.
+Diciassette unità di lavoro più cinque canarini/aggiornamenti di stato,
+tutte committate e pushate. Chiuso: gruppo B3 (estrazione), G7 (due
+fette), G8 (report), G45 (sintesi validatori), il backlog di ricerca
+continua (dieci sezioni rilette), il censimento per-bottone di Genesi,
+un giro completo del browser raccolto e il suo unico difetto corretto.
+Aperto e dichiarato: G46 (candidato, frammentazione misurata — tocca la
+regola SOLDI), la domanda CAD del fondatore.
 
 ## Prossimo passo atomico
 
-1. Quando il giro del browser finisce: raccoglierlo, leggere quanti
-   commit di scarto la sua sezione 0 dichiara, e correggere quello che
-   trova con la stessa disciplina di oggi (misura, non deduzione).
-2. Nel frattempo, se serve altro lavoro prima che il giro finisca o che
-   il fondatore risponda: il backlog di ricerca e il censimento di
-   estrazione risultano entrambi sostanzialmente esauriti — resta il
-   fallback generico della roadmap, o una revisione di qualità su
-   un'altra funzione recente (stesso schema di G38/G44).
-3. Continuare ad aspettare la risposta del fondatore sulla domanda CAD
+1. Continuare ad aspettare la risposta del fondatore sulla domanda CAD
    — non presumerla, non costruire in quella direzione.
+2. Backlog di ricerca e censimento estrazione entrambi esauriti;
+   censimento per-bottone completo; giro completo del browser raccolto.
+   Se serve altro lavoro: una nuova iterazione di verifica visiva su
+   una funzione già costruita (la regola dell'eccellenza chiede almeno
+   tre confronti affiancati), o il fallback generico della roadmap.
+3. Se si rilancia il giro completo del browser: **redirigere lo stdout
+   su file per intero**, non attraverso un `tail` che tronca la fonte —
+   è la lezione di questo blocco, altrimenti `leggi-giro.mjs` non può
+   leggerlo davvero.
 
 Nessuno stop volontario: si prosegue subito, rispettando la domanda
 ancora aperta col fondatore.
