@@ -88,6 +88,9 @@ for (const W of [320, 390]) {
 
   // ── 2 · Sentinella, stesso browser: la vede e la accoglie ───────────────
   const s = await ctx.newPage(); s.on("pageerror", (e) => errori.push("sentinella: " + e.message));
+  // senza rete vera in questo contenitore, l'import da gstatic morirebbe da solo dopo ~13 s
+  // per ogni pagina aperta: lo si taglia subito, come già fa la pagina di Genesi due righe sopra.
+  await s.route("https://www.gstatic.com/**", (r) => r.abort());
   await s.goto(`http://127.0.0.1:${PORTA}/apps/sentinella/index.html`); await s.waitForTimeout(2500);
   await s.click("#nav-reg").catch(() => {}); await s.waitForTimeout(600);
   const viste = await s.$$eval(".page", (e) => e.filter((x) => getComputedStyle(x).display !== "none").map((x) => x.id));

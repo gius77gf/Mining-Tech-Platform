@@ -84,6 +84,9 @@ for (const W of [320, 390]) {
 
   // ── 2 · Campo, stesso browser: lo vede e lo carica come dal file ─────────
   const c = await ctx.newPage(); c.on("pageerror", (e) => errori.push("campo: " + e.message));
+  // senza rete vera in questo contenitore, l'import da gstatic morirebbe da solo dopo ~13 s
+  // per ogni pagina aperta: lo si taglia subito, come già fa la pagina di Genesi due righe sopra.
+  await c.route("https://www.gstatic.com/**", (r) => r.abort());
   await c.goto(`http://127.0.0.1:${PORTA}/apps/campo/index.html`); await c.waitForTimeout(2500);
   await c.click("#nav-rap").catch(() => {}); await c.waitForTimeout(600);
   const prima = await c.evaluate(() => ({ testo: document.getElementById("piano-genesi").innerText.replace(/\s+/g, " ").trim(), n: document.querySelectorAll("#piano-genesi [data-piano-genesi]").length, fori: document.querySelectorAll("#piano-list [data-foro-id]").length }));
