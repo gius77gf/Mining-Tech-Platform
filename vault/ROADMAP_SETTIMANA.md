@@ -3839,6 +3839,25 @@ numero scritto dove non era stato misurato niente**.*
       scende **148 → 147** (la funzione è uscita del tutto, non lascia un
       wrapper), il bucket "6-10" scende 23→22, gli estraibili restano 57
       (una funzione già uscita non è più "da estrarre").
+      ✅ **14/09 (G39-G43): 57 → 61 estraibili, questa riga era rimasta
+      indietro rispetto al lavoro già fatto e già in `docs/DEVELOPMENT.md`
+      — chiusa qui, non un cantiere nuovo.** Quattro traslochi in fila,
+      tutti la stessa famiglia di falso positivo del tokenizzatore già
+      raccolta sopra: `computeInnesco2D`→`innescoSuMaglia` (G39, 58),
+      `computeRelief2D`→`reliefSuMaglia` (G40, 59),
+      `computeEnergia2D`→`energiaSuMaglia` (G41, 60),
+      `computeSeq2D`→`sequenzaSuMaglia` (G42, 61) — ognuno un legame di
+      una riga in pagina, nessun cambio di firma. `genMaglia2D` (G43) è
+      stata letta e confermata **non** un falso positivo (orchestrazione
+      vera su `D2`, non solo lettura): resta nel bucket "più di dieci"
+      di proposito, solo la sua parte di calcolo puro è salita
+      (`generaMaglia`, dentro l'estrazione di G39-G42, non una quinta
+      voce separata). **Verificato ora, non ricopiato**:
+      `genesi-estraibili.mjs` dà oggi 147 totali, 53 "una o due", 37
+      "più di dieci", **61 estraibili** — combacia con
+      `docs/DEVELOPMENT.md`. La colonna "una o due" (53) resta il
+      cantiere che serve un cambio di firma, non un trasloco: **B3 non
+      si chiude da solo**, ma il numero che dichiarava è aggiornato.
 - [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
       GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
       vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga

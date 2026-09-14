@@ -3224,3 +3224,97 @@ codice:
 cantiere. Il valore sta nel togliere quattro voci dal novero delle "ricerche
 da controllare", così un ciclo futuro non le rilegga da capo credendole
 aperte.
+
+## Nota del 2026-09-14T12:57:30Z — decking/air-decking (12/09, righe 2026-2163): un delta trovato, e perché NON si costruisce con questi numeri
+
+A differenza delle quattro sezioni chiuse nella nota precedente, questa
+ricerca (righe 2026-2163, "Decking e air-decking") non aveva mai avuto
+domande per il delta — solo il mondo. Guardando il meccanismo (non il
+nome) è emerso un delta reale, e insieme la ragione per cui non lo si
+costruisce con i numeri di questa ricerca.
+
+**Il delta reale, verificato leggendo il codice**: Genesi modella già il
+decking (`D2.decks` 1-3 cariche/foro, `D2.deckStem` borraggio tra deck
+0,3-4 m, `genesi.html` righe 725-726, 2032, 2216-2219, 6835-6841) — ma a
+differenza del **Presplit**, che ha una riga nella scheda validatori con
+verdetto `sv-ok`/`sv-warn` (righe 6370-6391), il **Decking non ha nessuna
+riga di giudizio**: compare solo come numero grezzo nell'export/riepilogo
+(riga 3874, `['Decking', …]`), mai valutato. È esattamente l'asimmetria
+che il principio del fondatore chiede di notare — un dato mostrato ma mai
+giudicato.
+
+**Perché non lo si colma con i numeri di QUESTA ricerca**: i benefici
+quantitativi trovati (risparmio 10-35% di esplosivo, ADF 0,10-0,35,
+riduzione backbreak/vibrazione) riguardano tutti l'**air-decking** — un
+distanziatore **d'aria** fra deck, con un meccanismo fisico dichiarato
+esplicitamente diverso (onde di shock riflesse nel gap, Melnikov 1971).
+Il decking che Genesi ha già implementato è **inerte** (`deckStem` è
+"borraggio tra deck", cioè materiale solido, non un'intercapedine
+d'aria) — un meccanismo fisico diverso, con benefici e regole di
+dimensionamento diversi. Applicare l'ADF (rapporto lunghezza aria/carica)
+a un borraggio inerte sarebbe la stessa famiglia di errore già raccolta
+in CLAUDE.md sotto "le due densità non sono la stessa cosa": un numero
+del mondo preso a prestito per un meccanismo che non è quello per cui è
+stato misurato.
+
+Quello che la ricerca conferma **senza bisogno dell'ADF**, perché non è
+specifico dell'aria: **2-4 cariche indipendenti per foro sono il range
+tipico** (sezione 4, riga 2115) — Genesi limita già a 1-3
+(`Math.min(3, D2.decks||1)`, riga 2032/6835), dentro quel range.
+
+**Non aperto un cantiere**: costruire una riga di giudizio sul decking
+richiederebbe o (a) trovare regole pratiche per il decking **inerte**
+specificamente (non fatto in questa ricerca, che ha centrato l'aria), o
+(b) implementare l'air-decking come meccanismo distinto (un cantiere di
+prodotto, non un delta di una ricerca già fatta). Entrambe restano
+aperte per una ricerca o una decisione future, non per questa nota.
+
+## Nota del 2026-09-14T12:58:50Z — criteri di scelta dell'esplosivo (12/09, righe 1708-2025): acqua già oltre la ricerca, diametro non costruibile con questi dati
+
+Stessa lettura per meccanismo, non per nome. La sezione tratta quattro
+criteri (acqua, roccia, diametro, costo); tre sono già chiusi, uno resta
+aperto per mancanza di dati sufficienti — non per pigrizia.
+
+**Acqua (sezione 1) — già implementato, e più dettagliato della
+ricerca.** `genesi.html` ha una riga "Resistenza all'acqua" nella scheda
+validatori (righe 6226-6247) che, con foro bagnato e un esplosivo a
+resistenza "Nulla" (come l'ANFO), scrive esplicitamente *"l'ANFO si
+desensibilizza in acqua → probabile MANCATA DETONAZIONE e fumi NOx
+tossici"* e **suggerisce un'alternativa concreta dal catalogo stesso**
+(`_e.acqua`/`ESPL.filter(...)`). La penalità è anche doppia e distinta
+(VOD/desensibilizzazione chimica ed energia RWS, `PENALITA_ACQUA` in
+`genesi-data.js` riga 1683), non un singolo numero. Copre il criterio
+del mondo (ANFO inadatto al bagnato, emulsione preferita) e va oltre
+(fumi tossici, suggerimento di sostituzione).
+
+**Roccia (sezione 1) — già coperto altrove**: la riga "Pressione det.
+(Pd)" (`genesi.html` righe 6224-6225) distingue già energia di shock
+(roccia dura) da energia di gas/heave (roccia tenera), lo stesso
+principio qualitativo della ricerca ("esplosivi forti per roccia dura,
+deboli per roccia tenera").
+
+**Costo (sezione 1) — già presente, qualitativo**: ogni voce del
+catalogo (`apps/genesi/esplosivi.json`) porta un campo `costo` relativo
+all'ANFO (es. "Medio-alto (1,4-1,7x ANFO)"), coerente col principio del
+mondo (ANFO più economico, l'emulsione recupera su maglie più larghe) —
+non un confronto costo/maglia esplicito, ma il dato di base c'è.
+
+**Diametro (sezione 1) — delta reale, NON costruito, e il perché è
+misurato**: non esiste nessun controllo "diametro del foro vs tipo di
+esplosivo" in Genesi (`grep` su "diametro critico|diamCritico" in
+`genesi.html`/`genesi-data.js` → zero righe). La ricerca dà numeri solo
+per due categorie generiche — "ANFO" (min ~76mm, ottimale 120-250mm) ed
+"emulsione" (ottimale 70-120mm) — **e li dichiara essa stessa fonte
+singola** (sciencedirect.com/topics, stessa fonte in due ricerche
+diverse). Il catalogo reale di Genesi ha **14 prodotti**
+(`apps/genesi/esplosivi.json`: tre varianti ANFO, tre Heavy ANFO, tre
+emulsioni, un watergel bulk, uno in cartuccia, dinamite/gelatina,
+watergel in cartuccia, booster) — assegnare un diametro critico a
+ciascuno usando solo i due numeri generici trovati sarebbe inventare
+undici valori su tredici. È esattamente la famiglia già raccolta in
+CLAUDE.md ("misura prima di irrigidire" / "niente entra sulla parola
+dell'agente"): un controllo costruito su dati che coprono un settimo del
+catalogo darebbe falsi "ok" silenziosi sugli altri dodici. Resta
+**candidato, non preso**: servirebbe prima una ricerca dedicata per
+diametro critico per famiglia di prodotto (o il dato del produttore reale
+dietro ciascuna voce del catalogo), non questa ricerca generica.
