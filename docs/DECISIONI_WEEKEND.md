@@ -1345,7 +1345,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.453** *(ricontate il 14/09, dopo aver
+**Le prove automatiche sono passate a 3.454** *(ricontate il 14/09, dopo aver
 aggiunto la prova di `dxfInTratti` (G47d) a `run-kpi.mjs`, lanciando le
 suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **289

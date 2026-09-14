@@ -29212,6 +29212,21 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     eq(gz.pfNominale({ ...D2, B: 0 }), null, "burden zero (volume zero) -> non calcolabile");
   });
 
+  test("Genesi · pieDev (B3, trasloco con cambio di firma)", () => {
+    /* andata e ritorno contro interpProf, che già componeva a mano nella
+       pagina (con D2 dalla chiusura invece che come parametro). */
+    const piede = [{ x: 5, y: -1 }, { x: 20, y: -2.5 }, { x: 35, y: -1.5 }];
+    eq(gz.pieDev({ piede }, 20), gz.interpProf(piede, 20),
+      "stessa risposta di interpProf, sui punti veri del piede");
+    eq(gz.pieDev({ piede }, 12.5), gz.interpProf(piede, 12.5),
+      "e a metà fra due punti (interpolazione)");
+    /* i due "niente da interpolare" che pieDev dichiara PRIMA di chiamare
+       interpProf, senza indovinare un punto che non c'è */
+    eq(gz.pieDev({ piede: [] }, 20), 0, "piede non ancora disegnato -> 0, non un valore inventato");
+    eq(gz.pieDev({ piede: [{ x: 5, y: -1 }] }, 20), 0, "un solo punto non è ancora un piede -> 0");
+    eq(gz.pieDev({ piede: null }, 20), 0, "piede assente -> 0");
+  });
+
   test("⛔ Genesi · rosinRammler: senza x50 o senza uniformità non inventa una curva", () => {
     const r = gz.rosinRammler(27.397817288977084, 1.5);
     eq(r.calcolabile, true, "col caso sano la curva c'è");

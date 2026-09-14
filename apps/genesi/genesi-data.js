@@ -1238,6 +1238,15 @@ export function interpProf(arr, mx) {
   }
   return 0;
 }
+/* B3 (14/09) — trasloco con cambio di firma, stesso schema di
+   `pfNominale`: `pieDev` componeva solo `interpProf`, già pura in
+   questo modulo. La deviazione del PIEDE in un punto x, per la
+   maniglia gialla della modellazione 3D (avanzando il piede la faccia
+   si alza, come nel 2D) — zero se il piede non è ancora disegnato o
+   ha meno di due punti. */
+export function pieDev(D2, x){
+  return (D2.piede && D2.piede.length >= 2) ? interpProf(D2.piede, x) : 0;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    G10 — DUE FUNZIONCINE PURE CHE STAVANO FUORI DALLA PORTATA DELLE PROVE

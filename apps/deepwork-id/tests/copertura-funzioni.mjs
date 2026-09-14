@@ -499,8 +499,17 @@ const CONDIVISI = [
      altro "legame di una riga" di questa fascia. Il consumo specifico
      nominale di progetto, già composto da due funzioni pure
      (`consumoSpecifico`, `volumeForo`) già in questo modulo: la funzione
-     stessa non calcolava niente di nuovo. */
-  { file: "apps/genesi/genesi-data.js", fondo: 154,
+     stessa non calcolava niente di nuovo.
+     154 → 155 il 14/09 (B3, stesso giorno): `pieDev`, stesso schema
+     (`pieDev(D2, x)`), componeva solo `interpProf` già pura. Effetto
+     collaterale VERO (non rumore del tokenizzatore): `mdlBuild`, che la
+     chiama, è passata da 10 a 11 variabili lette — perché ora deve
+     scrivere `D2` esplicitamente nella chiamata (`pieDev(D2, x)` invece
+     di `pieDev(x)`), e quel token è nel suo corpo per davvero. Misurato
+     confrontando l'elenco `--elenco` prima/dopo: è l'unica funzione
+     spostata di bucket, ed è un effetto reale del cambio di firma, non
+     un margine accettato dello strumento. */
+  { file: "apps/genesi/genesi-data.js", fondo: 155,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

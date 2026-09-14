@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.453 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `pfNominale`, cantiere B3: 2972 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.454 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `pieDev`, cantiere B3: 2973 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.918** asserzioni su **40** comandi.
+> `node` completo esegue **3.919** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **318 su 318** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **154/154**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **319 su 319** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **155/155**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **154 funzioni** stanno dentro
+importa. **Genesi no**: le sue **153 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,21 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **59** |
+| una o due | **58** |
 | da tre a cinque | 15 |
-| da sei a dieci | 19 |
-| più di dieci — lì è un rifacimento | 38 |
+| da sei a dieci | 18 |
+| più di dieci — lì è un rifacimento | 39 |
 
-Cioè **67 su 154 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **66 su 153 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 87 sono una decisione di architettura.
+⏱️ *59→58, 67→66 e 154→153 il 14/09 (B3, stesso giorno): `pieDev` è
+uscita dalla pagina, stesso cambio di firma (`pieDev(D2, x)`). Effetto
+collaterale VERO, non rumore dello strumento: `mdlBuild` (che la
+chiama) è passata dal bucket "sei-dieci" a "più di dieci" (19→18,
+38→39) perché ora scrive `D2` esplicitamente nella chiamata — quel
+token è nel suo corpo per davvero, non nel commento di qualcun altro.
+Misurato confrontando `--elenco` prima/dopo: è l'unica funzione che ha
+cambiato bucket.*
 ⏱️ *60→59, 68→67 e 155→154 il 14/09 (B3, cantiere del trasloco di Genesi,
 ripreso dopo G47): `pfNominale` è uscita dalla pagina, con CAMBIO DI
 FIRMA (`pfNominale(D2)` invece di leggere `D2` dalla chiusura) — lo

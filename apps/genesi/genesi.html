@@ -1178,7 +1178,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    `fragSenzaConto`, che chiede se il dato c'è. La bandiera da leggere è
    `calcolabile`; senza, `pf` a zero e `x50` a 97 cm si ridisegnano tranquilli
    come prima, in due direzioni opposte. */
-         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, pfNominale, fragKuzRam, rosinRammler,
+         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, pfNominale, pieDev, fragKuzRam, rosinRammler,
 /* i CAMPI, un piano sopra ai tre blocchi qui sopra — vedi il blocco G14.
    ⛔ Le tre guardie non servivano a niente finché due clic le spegnevano:
    `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))` con la carica assente
@@ -2891,7 +2891,8 @@ renderer.domElement.addEventListener('pointerdown', e=>{
 /* ===== Modellazione fronte in 3D — proportional editing stile Blender: trascini una maniglia sulla cresta, le vicine seguono con falloff gaussiano ===== */
 let modella=false, mdlHandles=[], mdlPie=[], mdlDrag=-1, mdlTipo='cresta', mdlBase=null, mdlGroup=null;
 /* deviazione del piede in x (m): negativo = piede avanzato verso il piazzale → faccia più alta */
-function pieDev(x){ return (D2.piede && D2.piede.length>=2) ? interpProf(D2.piede, x) : 0; }
+/* B3 (14/09) — traslocata in genesi-data.js con cambio di firma
+   (`pieDev(D2, x)` invece di leggere `D2` dalla chiusura). */
 const mdlRay=new THREE.Raycaster(), mdlV2=new THREE.Vector2(), mdlPlane=new THREE.Plane(new THREE.Vector3(0,1,0), 0);
 /* raggio d'influenza: quanta cresta segue la maniglia trascinata, in % della lunghezza del fronte */
 let mdlRaggioPct=20;
@@ -2980,7 +2981,7 @@ function mdlBuild(){
     s.position.set(x, Hh+0.5, crestZ(x)); s.userData.i=i; s.userData.tipo='cresta';
     mdlGroup.add(s); mdlHandles.push(s);
     /* maniglia di PIEDE (giallo chiaro, a terra): avanzando il piede la faccia si alza (come il 2D) */
-    const pz=crestZ(x) + pieDev(x);
+    const pz=crestZ(x) + pieDev(D2, x);
     const b=new THREE.Mesh(new THREE.SphereGeometry(0.48,12,10),
       new THREE.MeshStandardMaterial({ color:0xffe27a, emissive:0xffc04a, emissiveIntensity:0.6 }));
     b.position.set(x, 0.45, pz); b.userData.i=i; b.userData.tipo='piede';
