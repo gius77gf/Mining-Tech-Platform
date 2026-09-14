@@ -1,26 +1,27 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-14, 04:32 UTC
-- **Commit di partenza**: `d8d7953d`
+- **Quando**: 2026-09-14, 06:46 UTC
+- **Commit di partenza**: `e27b11a3`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
 Questa non è una ripresa da fermo: la routine "Weekly Dev Session" ha
-sparato una nuova accensione (fuoco delle 03:45 UTC, recapitato in coda)
-mentre questa stessa sessione stava già lavorando senza interruzioni dal
-canarino precedente (00:47 UTC). Repository raggiungibile, `HEAD` combacia
-col remoto, working tree pulita (`git pull` senza cambiamenti). Questo
-aggiornamento del canarino documenta lo stato reale, non un riavvio.
+sparato una nuova accensione (fuoco delle 06:45:50 UTC, recapitato in coda)
+mentre questa stessa sessione stava già lavorando senza interruzioni dai
+canarini precedenti (00:47 e 04:32 UTC). Repository raggiungibile, `HEAD`
+combacia col remoto, `git pull` senza cambiamenti. Questo aggiornamento
+documenta lo stato reale, non un riavvio — l'unità in corso (vedi sotto)
+resta aperta e riprende subito dopo questo commit.
 
 ⚠️ **Direttiva del fondatore in conversazione, più recente e più specifica
-del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA**: concentrarsi
-SOLO sull'app Genesi. Il prompt fisso di questa accensione (ponti fra le
-app, lavoro multi-app in parallelo, "Genesi NON esce dal browser") resta
-un template generico non personalizzato — la seconda parte è anche
-**scaduta**, verificato e documentato nel checkpoint `20260914-005111`: il
-gap "Genesi non esce dal browser" è stato chiuso il 02/09, non c'è lavoro
-da fare lì.
+del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA per la terza
+volta**: concentrarsi SOLO sull'app Genesi. Il prompt fisso di questa
+accensione (ponti fra le app, lavoro multi-app in parallelo, "Genesi NON
+esce dal browser") resta un template generico non personalizzato — la
+seconda parte è anche **scaduta**, verificato e documentato nel checkpoint
+`20260914-005111`: il gap "Genesi non esce dal browser" è stato chiuso il
+02/09, non c'è lavoro da fare lì.
 
 ⛔ **SEGNALAZIONE DI SICUREZZA APERTA, INVARIATA — DA LEGGERE PRIMA DI
 TOCCARE GEOMETRIA/FLYROCK/BURDEN.** Il gate su
@@ -31,59 +32,58 @@ Le soglie di sicurezza USBM/DIN restano un'altra decisione aperta (sezione
 
 ## Cosa è successo nel blocco in corso (14/09, dal canarino delle 00:47)
 
-**B0-septies decisa e chiusa** (`vault/checkpoints/20260914-015629` e
-seguenti): la decisione roadmap del 04/09 su "che cosa disegna una pianta
-senza maglia" era scaduta di dieci giorni senza risposta, auto-decide non
-revocato per questa voce (a differenza della segnalazione boretrack sopra).
-Misurato con Node (non dedotto) che con burden/interasse assenti la maglia
-collassava tutti i fori sullo stesso punto — non "3,5×4" come lasciava
-intendere una riga di `DECISIONI_WEEKEND.md`, corretta sul posto. Curata
-alla radice (`magliaAssenteMotivo` in `genesi-data.js`, blocco G37):
-`genMaglia2D` non genera più coordinate quando la maglia non è
-posizionabile, e i cinque consumatori a valle non vengono mai chiamati su
-una maglia vuota (avevano già la guardia). Verificato nel browser vero.
+**Il gruppo B3 diagnosticato in una sessione precedente è chiuso**: le
+quattro funzioni che il censimento statico (`genesi-estraibili.mjs`)
+marcava «più di dieci variabili del modulo» per un falso positivo del
+tokenizzatore (parole interne confuse con `const` omonimi dichiarati
+altrove nel file a bassa indentazione) sono ora tutte pure in
+`genesi-data.js`, ognuna verificata con lo stesso rigore — confronto
+byte-per-byte con la vecchia forma inline, iniezione del difetto storico,
+verifica nel browser vero, cascata sui quattro documenti sorvegliati:
+- `innescoSuMaglia` (G39, da `computeInnesco2D`)
+- `reliefSuMaglia` (G40, da `computeRelief2D`)
+- `energiaSuMaglia` (G41, da `computeEnergia2D`)
+- `sequenzaSuMaglia` (G42, da `computeSeq2D` — ULTIMA del gruppo)
 
-**Un difetto ambientale reale trovato e corretto in nove banchi**: in
-questo contenitore l'import Firebase da `gstatic.com` non fallisce subito
-come in un contenitore senza rete — resta appeso fino al taglio del proxy
-(~13s per pagina). La cura era già scritta in `genesi-locale.mjs` e non
-applicata altrove: estesa a tutti i banchi `genesi-*.mjs`/`ponte-genesi-
-*.mjs` che ne erano privi. Un banco è passato da "non apre nemmeno la prima
-pagina in 90s" a passare per intero in minuti; un altro da un crash a
-funzionare; un terzo (`genesi-struttura.mjs`) da 29,2s a 17,0s, smentendo
-una diagnosi di un mese fa che dava tutta la colpa alla scena 3D "senza
-GPU" — era una causa vera ma incompleta.
+Con questo, **la barriera che il documento di scomposizione di G7
+segnalava è caduta**: "la sequenza vive nella pagina, non nel modulo dati"
+non è più vero, e un ottimizzatore che voglia includere MIC/PPV nel
+confronto burden può riusare direttamente `sequenzaSuMaglia` e
+`innescoSuMaglia`. Nota aggiornata in `vault/ROADMAP_SETTIMANA.md`.
 
-**G7 (ottimizzatore di volata) scomposto e la prima fetta consegnata**:
-verificato che l'ottimizzatore vero (multi-obiettivo, con la vibrazione)
-non è una fetta piccola — la sequenza che decide la MIC vive nella pagina,
-non nel modulo dati. La prima fetta onesta (`curvaBurdenCarica`: burden
-variabile, stessa frammentazione target, quanta carica serve) è stata
-implementata come funzione pura, provata con iniezione del difetto, e
-**collegata a schermo** (bottone "Confronta burden per lo stesso
-obiettivo"), verificata nel browser vero con screenshot.
+**Unità aggiuntiva, non un falso positivo**: `generaMaglia` (G43, da
+`genMaglia2D`) — quella funzione muta davvero `D2` ed è per questo
+genuinamente nel bucket "11+"; è uscito solo il calcolo delle coordinate
+(righe/colonne, sfalsamento), riusabile da un futuro ottimizzatore che
+deve provare un burden diverso senza toccare il progetto disegnato a
+schermo.
 
-**Nove unità committate e pushate**, ognuna verificata su `git worktree`
-isolata con `giro-node.mjs` (40 comandi, 0 caduti) prima del commit, con
-la cascata di numeri nei documenti (`numeri-nei-documenti.mjs`) corretta
-ogni volta che una nuova funzione o un nuovo banco la faceva scadere.
+⏱️ **Unità in corso al momento di questo canarino**: G43 (`generaMaglia`)
+ha superato la prima passata di verifica su worktree isolata (40/40
+comandi, 0 caduti) e la correzione a cascata dei quattro documenti
+sorvegliati; la seconda passata di convergenza (necessaria per il
+totale-asserzioni, quirk già documentato in CLAUDE.md) sta girando in
+background mentre questo canarino viene scritto. Il lavoro NON è stato
+interrotto: le modifiche restano sul disco, non ancora committate.
 
-**Ricerca di fianco**: una sezione su G7 (ottimizzazione — con un
-autocorreggersi di una prova sbagliata, due volte di fila, prima di
-committarla), una su come si misura davvero la frammentazione (fotografia/
-image analysis) lanciata in background, non ancora raccolta.
+**Tre unità in più committate e pushate** rispetto al canarino delle
+04:32 (G40, G41, G42), ognuna verificata su `git worktree` isolata con
+`giro-node.mjs` (40 comandi, 0 caduti, due passate per la convergenza del
+totale) prima del commit.
 
 ## Prossimo passo atomico
 
-1. Raccogliere e verificare (non fidarsi sulla parola) la ricerca sulla
-   misura fotografica della frammentazione, appena pronta.
-2. Rileggere l'indice `## 🧭 Le voci APERTE, per nome` in
-   `vault/ROADMAP_SETTIMANA.md` per la prossima voce Genesi ancora aperta
-   (B3 è agli sgoccioli per le estrazioni meccaniche: i bucket "0" e "1-2"
-   variabili sono confermati esauriti — quello che resta è un rifacimento,
-   non un trasloco).
-3. In alternativa: valutare se scomporre l'estrazione di `computeSeq2D`
-   (sbloccherebbe la parte vibrazione/sequenza di G7) come cantiere B3 a
-   sé, con la stessa disciplina di scomposizione-prima-del-codice.
+1. **Immediato**: raccogliere l'esito della seconda passata di verifica di
+   G43 (in corso), scrivere il checkpoint, committare con `git commit -F`
+   e pushare — esattamente come fatto per G39/G40/G41/G42.
+2. Con la barriera di G7 caduta, valutare la **seconda fetta**
+   dell'ottimizzatore di volata: includere MIC/PPV nel confronto burden
+   (riusando `sequenzaSuMaglia`/`innescoSuMaglia`/`micFinestra`/`ppvDaSd`)
+   — un cantiere di prodotto che richiede la stessa disciplina di
+   scomposizione-prima-del-codice di G7 (decisioni di UX da chiarire
+   leggendo `docs/RICERCA_CONTINUA_GENESI.md`, sezione 14/09).
+3. In alternativa: continuare il censimento `genesi-estraibili.mjs` per
+   altri candidati genuini (non falsi positivi) nel bucket "3-5" o
+   rivedere se restano candidati non ancora esaminati nel bucket "1-2".
 
 Nessuno stop volontario: si prosegue subito.
