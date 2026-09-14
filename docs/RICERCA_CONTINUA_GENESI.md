@@ -2989,3 +2989,107 @@ Genesi **non integra nessun software di photographic fragmentation analysis** (W
 - [WipWare Accuracy Study — Photographic vs Sieving](https://www.wipware.com/products/wipfrag/accuracy/)
 - [USBM — Blast Fragmentation Measurement Handbook](https://www.usbm.gov/)
 
+
+---
+
+## Ricerca del 2026-09-14 — Controlli automatici di validazione nei software di blast design commerciali (metà sul mondo)
+
+_Fatta con WebSearch soltanto: nessuna pagina letta, tutto [di seconda mano]._
+
+### Fatti dal mondo
+
+**Maptek BlastLogic — Validazione automatica di fori:**
+BlastLogic confronta automaticamente i fori perforati (as-drilled) contro la progettazione, validando i fori se le proprietà combaciano o sono entro l'intervallo impostato nei parametri di validazione. Il sistema contrassegna qualunque foro al di fuori delle specifiche di progetto e consente decisioni rapide su ri-perforazione o rinterramento [di seconda mano]. Il workflow permette il ricalcolo automatico delle regole di carica in base alle condizioni della cava [di seconda mano].
+
+**Orica SHOTPlus — Diagnostica timing e controlli di prossimità:**
+SHOTPlus include strumenti QA/QC per identificare il design di volata più efficiente. Il software gestisce automaticamente i tempi di sequenza dei brillamenti, evidenzia problemi e verifica il timing prima dell'applicazione al brillamento reale. La diagnostica al clic mostra possibili problemi di mancate accensioni e altre questioni di prossimità [di seconda mano]. Il sistema rileva automaticamente le variazioni fra carica programmata e reale durante il caricamento [di seconda mano].
+
+**JKSimBlast — Vincoli geometrici e parametri:**
+JKSimBlast memorizza parametri del foro fra cui inclinazione, azimut, diametro, lunghezza, burden e spaziatura. I vincoli di progettazione includono valori minimo/massimo per burden (distanza foro-fronte rocciosa), spaziatura fori e almeno uno fra il Material Factor e l'Energy Factor; il software confronta il burden calcolato di ogni foro contro i vincoli per determinare le deviazioni dalla progettazione [di seconda mano].
+
+**Standard industriale — Vincoli geometrici standard:**
+Il burden standard è fra 20 e 35 diametri di buco, ma varia da 15 a 40 a seconda delle situazioni. La spaziatura è generalmente fra 1,0 e 1,8 volte il burden; alcune miniere in open-pit ottengono risultati con rapporto S/B pari a 3 [di seconda mano]. Minime distanze dal boundary sono calcolate e applicate automaticamente dai software (es. Maptek BlastMCF regola automaticamente burden e spaziatura al boundary) [di seconda mano].
+
+**Maxam RIOBLAST — Moduli di validazione:**
+RIOBLAST include moduli per geometria della maglia, carica e sequenziamento, predizione di vibrazione, frammentazione attesa e predizione della gittata dei frammenti (flyrock). La suite integra dati da misure durante perforazione e simula il progetto completo in ambiente 3D [di seconda mano].
+
+**Controlli sulla carica massima per ritardo (MCD/MIC):**
+Carica Massima Istantanea per ritardo è il driver principale per vibrazione (PPV) insieme a distanza e burden. I software moderni come O-PitSurface consentono di selezionare il ritardo fra buchi e usano detonatori elettronici per ridurre la MIC, controllando così la PPV prevista. Con un'opzione "fix" il software corregge automaticamente i tempi affinché un solo buco detoni a un tempo specifico [di seconda mano].
+
+**Validazione connettività detonatori e timing:**
+I software moderni controllano automaticamente la continuità della rete di innesco: identificano connessioni mancanti, detonatori non programmati o non funzionanti, e testano segnali/alimentazione. Nessun timing conflict non rilevato dovrebbe restare inosservato — la diagnostica grafica mostra gli errori di connessione prima dello sparo [di seconda mano].
+
+**Predizione di flyrock e frammentazione:**
+I software di blast design avanzati includono moduli di predizione per gittata dei frammenti e distribuzione granulometrica stimata. Usano ottimizzazione multi-obiettivo basata su vincoli regolativi (vibrazione, airblast, gittata) combinata con modelli ML per ottimizzare carica/timing/geometria [di seconda mano].
+
+### Verifiche nel codice Genesi
+
+Cercato con grep per sapere che cosa Genesi valida già e che cosa manca [verificato, non dedotto]:
+
+```bash
+grep -nE "esitoPpv|esitoAirblast|esitoMic|magliaAssenteMotivo|caricaSenzaConto|volataSenzaValori|sequenzaSuMaglia|innescoSuMaglia" apps/genesi/genesi-data.js | wc -l
+```
+
+**Output**: 60 linee trovate. Genesi ha:
+
+1. **Validazione di parametri obbligatori**: `magliaAssenteMotivo(B, S)` verifica che burden e interasse siano > 0 e finiti prima di generare la maglia [verificato].
+
+2. **Validazione di carica e KPI**: `caricaSenzaConto(nf, kg)` restituisce un oggetto con bandiera `calcolabile`; `esitoMic(mic)` fornisce il verdetto su MIC (calcolabile/leggibile/non-calcolabile); `esitoPpv(ppv, limite)` verifica PPV contro soglia di norma; `esitoAirblast(db)` idem per pressione sonora [verificato].
+
+3. **Sequenzazione**: `sequenzaSuMaglia(H, tHole, tRowRaw, S, dir, sequenza)` assegna automaticamente i tempi di sparo su quattro schemi (diagonale, vcut, box, riga) [verificato].
+
+4. **Innesco**: `innescoSuMaglia(H, S, B)` costruisce automaticamente la rete di innesco controllando:
+   - Che l'accensione arrivi solo da fori che sparano PRIMA (dt > 0) [verificato]
+   - Che la distanza fra fori sia fra 0,05 m e 2,2 × max(S, B) [verificato]
+   - Sceglie l'accensione dal foro più vicino fra quelli compatibili per ritardo [verificato]
+
+5. **Validazione volata completa**: `volataSenzaValori(design)` controlla 30 campi della volata e restituisce il primo campo nullo/non-finito/fuori range [verificato in genesi.html linea 1939].
+
+⚠️ **Che cosa manca** [cercato e NON trovato]:
+
+```bash
+grep -nE "overlap|sovrappos|distance.*hole.*hole|hole.*geometry.*check|boundary.*distance|burden.*minimum|spacing.*minimum" apps/genesi/genesi-data.js apps/genesi/genesi.html
+```
+
+⚠️ **Output**: 0 linee esatte per questi pattern. Genesi **non valida**:
+
+- **Sovrapposizione fra fori**: nessun controllo che due fori non occupino lo stesso spazio 3D (dato che i fori sono su una griglia regolare senza variabilità geometrica, questo non è un rischio con `generaMaglia`, ma potrebbe esserlo se importati da rilievo boretrack o aggiusti manuali) [assente].
+- **Distanza minima dal boundary della cava**: non c'è un vincolo su quanto il foro può stare vicino al limite della proprietà [assente].
+- ~~**Vincolo sul rapporto S/B**: nessun avviso se spacing non è fra 1,0 e 1,8 × burden [assente].**~~
+  ⛔ **FALSO, corretto il 14/09 rileggendo il codice invece di fidarsi del
+  grep in inglese** (la stessa famiglia di errore che CLAUDE.md chiama
+  "cercare la nostra parola nel mondo, non il suo meccanismo in casa
+  nostra"): la "Rapporto S/B" è la **prima riga** della scheda validatori
+  di Genesi (`renderScheda2D`, `apps/genesi/genesi.html`, badge su `sb=S/B`
+  con fascia tipica 1,0–1,4 e avviso 0,85–1,6), con testo dedicato per
+  "maglia stretta in larghezza" e "interasse molto > spalla". Il grep del
+  mondo (`spacing.*minimum`) non l'ha trovata perché il nome è italiano
+  ("Rapporto S/B", non "spacing constraint"). Verificato leggendo il
+  sorgente, non deducendo dall'assenza di un pattern inglese.
+- **Convalida della rete di innesco su connettività esterna**: `innescoSuMaglia` convalida che i raccordi abbiano lunghezza ragionevole, ma non simula la vera connettività della miccia/cavo nel modello 3D [assente].
+- **Controllo pre-export**: non c'è un "validazione finale prima di esportazione" che sintetizzi i risultati di tutte le prove (MIC, PPV, airblast, flyrock, carica per foro, sequenza) e dica "OK per sparare" o "correggere prima" [assente].
+
+### Domande per il delta
+
+- **Dovrebbe Genesi aggiungere un modulo «Controlla piano» che, a clic su un bottone, lancia `volataSenzaValori()` SINTETIZZATO con i vari esiti (KPI) e stampa un rapporto "🟢 PRONTO A SPARARE" o "🔴 CORREGGERE prima" con l'elenco dei campi a rischio?** Dove metterlo nella UI (sotto i KPI, o come sezione separata della scheda validatori)?
+
+- **Come dovrebbe comportarsi Genesi se l'operatore importa un rilievo boretrack con fori che si sovrappongono fra loro o distanti > 2 m dal progetto?** (1) Silenzio (oggi); (2) Avviso, pero continua; (3) Blocco fino a correzione?
+
+- **Il vincolo di distanza minima dal boundary dovrebbe essere dichiarato come parametro del sito** (es. `minDistBoundary: 5 m`) oppure automatico in base al diametro (es. min = 1,5 × D)?
+
+- **La rete di innesco dovrebbe essere visualizzata in 3D sulla pianta** (linee fra fori che rappresentano i raccordi, colorate per ritardo)? Questo renderebbe evidente un errore di tempo-raccordo al colpo d'occhio.
+
+### Fonti
+
+- [Maptek BlastLogic — Validation Panel](https://help.maptek.com/blastlogic/2024/topics/menus-and-tools/drilling/validation.htm)
+- [Maptek — BlastLogic automatic explosives loading and validation (Video)](https://www.maptek.com/video/blastlogic-automatic-explosives-loading-and-validation/)
+- [Orica SHOTPlus Underground — Blast Design Software](https://www.orica.com/digital-solutions/blast-design-and-execution/shotplus)
+- [Orica — Single-click diagnostics for blast timing (Support article)](https://support.blastiq.com/hc/en-us/articles/360035102934-Reports-in-SHOTPlus-Underground)
+- [Australian Mining — Orica enhances SHOTPlus Underground](https://www.australianmining.com.au/orica-enhances-shotplus-underground-blast-design-software/)
+- [ScienceDirect — Explainable AI for blast-induced ground vibrations (2025)](https://www.sciencedirect.com/science/article/pii/S2590123025021188)
+- [Coal Age Magazine — Software Solutions for Better Blasting](https://www.coalage.com/features/software-solutions-for-better-blasting/)
+- [Maptek BlastMCF — Optimisation settings](https://help.maptek.com/blastlogic/2022/topics/menus-and-tools/blastmcf/optimisation.htm)
+- [K-MINE — Drill and Blast Design Software for Open Pit Mines](https://k-mine.com/mining-software/drill-blast-design/)
+- [O-Pit Blast — Vibration control using electronic detonators](https://www.o-pitblast.com/blog/vibration-control-using-electronic-detonators-optimize-the-blasting-sequence)
+- [ResearchGate — JKSimBlast Application in drifting operations](https://www.researchgate.net/publication/338913443_Application_of_JKSimBlast_software_in_drifting_operations)
+

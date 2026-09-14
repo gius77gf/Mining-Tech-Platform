@@ -2902,6 +2902,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E7`
 - `E8`
 - `G7–G9`
+- `G45 (candidato, non preso)`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
@@ -5883,6 +5884,41 @@ numero scritto dove non era stato misurato niente**.*
       `docs/RICERCA_CONTINUA_GENESI.md` (2026-09-14) su quale costruire
       per primo resta aperta, ma ora con gli ingredienti pronti per
       entrambe le strade.
+- [ ] **G45 (candidato, non preso).** Genesi: un verdetto di SINTESI sopra
+      la scheda validatori (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`,
+      sezione "Controlli automatici di validazione" — verificato nel
+      codice, non sulla parola dell'agente: la ricerca proponeva anche un
+      vincolo S/B "assente" che invece ESISTE GIÀ da tempo come prima riga
+      della scheda, `sb=S/B` con fascia 1,0–1,4 — corretto nel documento).
+      Il gap vero, verificato leggendo `renderScheda2D`: ogni indicatore
+      della scheda (S/B, H/B, spalla/Ø, powder factor, confinamento
+      colletto/SDOB, gittata flyrock, timing inter-foro/fila…) ha il suo
+      badge colorato, ma NESSUNA riga li riassume in un giudizio unico —
+      un progettista deve scorrere N righe per sapere se qualcosa è fuori
+      fascia. I software commerciali citati (BlastLogic, SHOTPlus) hanno
+      un QA/QC che sintetizza prima dell'esecuzione.
+      ⛔ **PERCHÉ NON L'HO PRESO DA SOLO, ED È DIVERSO DA UN TRASLOCO
+      QUALUNQUE**: aggregare i `cls` (`sv-ok`/`sv-warn`/`sv-bad`) già
+      calcolati in un badge "N indicatori fuori fascia" è tecnicamente
+      banale (nessuna formula nuova, solo un `reduce` su dati già pronti).
+      Il rischio è nella PAROLA: la scheda validatori copre solo geometria
+      ed esplosivo (progetto), NON il pannello KPI separato dove vivono
+      MIC/PPV/airblast (le soglie di legge verso il recettore, calcolate
+      da `computeKPI` altrove in pagina). Un badge che dicesse "🟢 pronto"
+      o peggio "pronto a sparare" senza includere quelle tre soglie
+      sarebbe un caso da manuale di "l'assenza di un dato non è un dato
+      favorevole" — un sintetizzatore che promette più di quanto guarda è
+      peggio di nessun sintetizzatore, perché invita a smettere di
+      guardare le altre righe. È lo stesso principio delle due decisioni
+      di sicurezza che questo ciclo non prende da solo (sezione 🔴 di
+      `docs/DECISIONI_WEEKEND.md`): qui non è una soglia numerica, ma è
+      comunque una frase che un cliente potrebbe leggere come garanzia
+      di sicurezza. **Prima di costruirlo**: decidere se (a) la sintesi
+      resta scoperta esplicitamente ("N indicatori di PROGETTO fuori
+      fascia — non copre vibrazione/airblast, guarda il pannello KPI"),
+      o (b) si aspetta di unire i due pannelli in un'unica scheda con un
+      solo verdetto vero. La (a) è costruibile subito e onesta; la (b) è
+      un cantiere di struttura, non di un pomeriggio.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
