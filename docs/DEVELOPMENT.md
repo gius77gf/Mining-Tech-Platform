@@ -49,7 +49,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 **3.451 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver spostato qui la prova del singolare di `_puntiNuvola`, andata stale in un banco del browser: 2970 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.913** asserzioni su **40** comandi.
+> `node` completo esegue **3.914** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **153 funzioni** stanno dentro
+importa. **Genesi no**: le sue **154 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,17 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **59** |
+| una o due | **60** |
 | da tre a cinque | 15 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 38 |
 
-Cioè **67 su 153 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **68 su 154 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *59→60, 67→68 e 153→154 il 14/09 (G47c-2): una funzione nuova
+(`syncTrattoUI`, la primitiva di disegno libero — tratti/polilinee senza
+la semantica di prodotto di foro/fronte/piede), anche lei nel bucket
+"una o due" (legge poco `D2`/`D2.tratti`).*
 ⏱️ *53→59, 61→67 e 147→153 il 14/09 (G47c-1): sei funzioni nuove
 (`d2Snap`, `d2BtnSync`, `d2PushUndo`, `d2ApplySnap`, `d2Undo`, `d2Redo`),
 l'annulla/ripristina per l'editor 2D che l'editor di modellazione 3D già
@@ -322,7 +326,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**283 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**285 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

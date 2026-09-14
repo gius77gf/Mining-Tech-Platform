@@ -6118,6 +6118,18 @@ numero scritto dove non era stato misurato niente**.*
       il suo Ctrl+Z). Banco browser committato
       (`genesi-d2-undo.mjs`, 8 prove + controprova) invece che uno
       scratchpad che sparirebbe alla sessione dopo.
+      ✅ **14/09 — G47c-2 FATTA (e con lei tutta G47c)**: `D2.tratti`,
+      la prima entità 2D senza semantica di prodotto (non è un foro, non
+      modella la faccia — segna una faglia, una pista, un confine).
+      Un clic aggiunge un punto al tratto in costruzione; "Fine tratto"
+      lo chiude e il clic successivo ne apre uno NUOVO — il caso che
+      conta, e che un banco superficiale (che guarda solo "il numero di
+      punti sale") non prenderebbe. `d2Snap`/`d2ApplySnap` di G47c-1
+      estesi dal primo giorno, non recuperati dopo: l'annulla/
+      ripristina copre anche i tratti. Banco browser committato
+      (`genesi-tratti.mjs`, 10 prove + controprova che rimette il
+      difetto esatto — un clic dopo "Fine tratto" che allunga il
+      tratto vecchio invece di aprirne uno nuovo).
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8413,8 +8425,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **283 esecuzioni** che
-  aprono le pagine in un browser vero, da **121** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **285 esecuzioni** che
+  aprono le pagine in un browser vero, da **122** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

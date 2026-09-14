@@ -432,6 +432,12 @@ const BANCHI = [
      di sola selezione non deve mai pushare niente", e Ctrl+Z/Ctrl+Y. */
   ["l'annulla/ripristina dell'editor 2D di Genesi (G47c-1)", 'genesi-d2-undo.mjs', []],
   ['annulla/ripristina 2D · controprova', 'genesi-d2-undo.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47c-2): la primitiva di disegno libero — un
+     tratto/polilinea senza la semantica di prodotto di foro/fronte/
+     piede. Il caso che conta è "Fine tratto" seguito da un nuovo clic:
+     deve aprire un SECONDO tratto, non allungare quello appena chiuso. */
+  ["i tratti liberi dell'editor 2D di Genesi (G47c-2)", 'genesi-tratti.mjs', []],
+  ['tratti liberi 2D · controprova', 'genesi-tratti.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col
