@@ -5904,6 +5904,27 @@ numero scritto dove non era stato misurato niente**.*
       `docs/RICERCA_CONTINUA_GENESI.md` (2026-09-14) su quale costruire
       per primo resta aperta, ma ora con gli ingredienti pronti per
       entrambe le strade.
+      ✅ **14/09 — G8, prima fetta piccola: la firma.** Confrontato il
+      Report volata con la ricerca dell'13/09 su che cosa contiene
+      davvero un rapporto di volata (`docs/RICERCA_CONTINUA_GENESI.md`):
+      geometria, carica/sequenza, vibrazioni con verdetto, conformità
+      normativa, flyrock/sgombero, economia — **tutti già presenti**, e
+      Genesi copre più sezioni in un solo documento di quante ne copra
+      ognuno dei due software commerciali citati (SHOTPlus, BlastLogic),
+      che secondo la ricerca coprono "solo alcune" sezioni ciascuno. Il
+      solo gap reale, confrontato coi moduli statali citati
+      (Pennsylvania "Blaster's Report", AS 2187-2): **nessuna riga per
+      nome e firma di chi risponde del tiro**. Aggiunta una sezione a
+      fondo pagina, tre campi da riempire a penna dopo la stampa (nome,
+      firma, data/ora dello sparo) — non un campo D2 nuovo: Genesi non
+      tiene un'anagrafica di persone, e il "responsabile del tiro" è già
+      un ruolo citato in prosa in dieci punti della pagina, mai un dato.
+      Verificato nel browser vero con screenshot (report aperto in
+      popup, nessun errore di pagina, sezione visibile e ben allineata).
+      **Non è un cantiere chiuso**: G8 resta aperto per chi volesse un
+      report più ricco (foto, dossier assicurativo) — quella parte
+      richiede dati che Genesi oggi non raccoglie (foto pre/post-sparo),
+      un cantiere diverso e più grande, non implicito in questa fetta.
 - [ ] **G45 (candidato, non preso).** Genesi: un verdetto di SINTESI sopra
       la scheda validatori (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`,
       sezione "Controlli automatici di validazione" — verificato nel
