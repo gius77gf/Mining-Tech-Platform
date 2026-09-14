@@ -6091,6 +6091,22 @@ numero scritto dove non era stato misurato niente**.*
       al più delicato. Ogni fetta con la sua verifica (screenshot,
       banco browser, giro completo) prima di passare alla successiva —
       nessuna fetta si dichiara fatta senza le tre.
+      ✅ **14/09 — G47a FATTA** (`bc8544f6`): due campi editabili (x,
+      spalla) nell'ispettore del foro selezionato, più un pulsante
+      "allinea" che riusa `D2.selPrev`. Verificata con screenshot
+      Playwright (click reali sui fori, non su funzioni interne non
+      esposte) e un test genuino dell'allineamento (spalla spostata a
+      un valore diverso prima di premere il pulsante, non due fori già
+      uguali). Checkpoint `20260914-191659`.
+      ⏱️ **14/09 — G47c si divide in due**, scoperto lavorando su G47a:
+      l'editor 2D (`D2.holes`/`profilo`/`piede`) non ha nessun
+      undo/redo, a differenza dell'editor di modellazione 3D
+      (`mdlUndo`/`mdlRedo`, riga 2863-2905, scoped SOLO al 3D). **G47c-1
+      — undo/redo per l'editor 2D** (prerequisito, stesso pattern
+      riusato), poi **G47c-2 — la primitiva di disegno libero vera**
+      (linea/polilinea, come già descritto qui sopra: mancano linee/
+      polilinee/forme/testo, il punto singolo esiste già per
+      foro/fronte/piede).
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
