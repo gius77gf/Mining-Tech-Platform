@@ -3858,6 +3858,26 @@ numero scritto dove non era stato misurato niente**.*
       `docs/DEVELOPMENT.md`. La colonna "una o due" (53) resta il
       cantiere che serve un cambio di firma, non un trasloco: **B3 non
       si chiude da solo**, ma il numero che dichiarava è aggiornato.
+      ✅ **14/09, ripreso dopo la chiusura di G47: prima fetta VERA con
+      cambio di firma (`pfNominale`).** Componeva solo due funzioni già
+      pure del modulo (`consumoSpecifico`, `volumeForo`): niente calcolo
+      nuovo, solo l'argomento esplicito (`pfNominale(D2)` invece di
+      leggere `D2` dalla chiusura) — lo stesso schema già scelto per
+      ogni "legame di una riga" di questa fascia, applicato per la prima
+      volta a una funzione del bucket "una o due" invece che "sei-dieci
+      /più di dieci". I cinque punti che la chiamavano nella pagina
+      passano ora `D2`. Due prove storiche in `run-kpi.mjs` sono state
+      trovate STALE durante il trasloco (pinnavano il testo sorgente
+      esatto della vecchia definizione a zero argomenti): corrette per
+      leggere la nuova forma, non cancellate. 1 nuova prova diretta,
+      verificata contro un difetto iniettato (argomento `prof`
+      sostituito con `B`) prima di committare.
+      **Verificato ora**: `genesi-estraibili.mjs` dà **154** totali, 59
+      "una o due", **67 estraibili** — scesi di uno perché una funzione
+      del cantiere è uscita del tutto (non un wrapper: `pfNominale` non
+      esiste più nella pagina). Fondo di `genesi-data.js` 153→154.
+      Restano **59** funzioni nel bucket "una o due" da cui pescare la
+      prossima fetta con lo stesso schema.
 - [x] ✅ **IL GIRO DEL 09/08 LETTO CON `leggi-giro.mjs` — UN SOLO KO VERO, E ERA
       GIÀ CHIUSO QUATTRO ORE DOPO.** Lettura **parziale**: il giro era ancora
       vivo quando l'ho letto, e lo strumento lo dichiara da sé («né una riga
@@ -8449,9 +8469,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo aver
-  aggiunto a `run-kpi` la prova di `dxfInTratti` (G47d): 2970→2971):
-  **3.452 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2971, `run-stile` 328,
+  aggiunto a `run-kpi` la prova di `pfNominale`, cantiere B3: 2971→2972):
+  **3.453 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2972, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

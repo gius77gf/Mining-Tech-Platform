@@ -1672,6 +1672,16 @@ export function consumoSpecifico(kg, vol){
   if (!Number.isFinite(q) || q < 0 || !Number.isFinite(v) || v <= 0) return null;
   return q / v;
 }
+/* B3 (14/09) — trasloco con cambio di firma: `pfNominale` viveva nella
+   pagina come funzione di un argomento solo (nessuno, leggeva `D2` dalla
+   chiusura), qui prende `D2` come parametro — stesso schema già usato per
+   ogni altra funzione "legame di una riga" di questa fascia. Il consumo
+   specifico DI PROGETTO: quanti kg di esplosivo per m³ di roccia, dalla
+   maglia nominale (non dal foro reale, che ha `pfLoc` — vedi il commento
+   di `consumoSpecifico` su Kuz-Ram). */
+export function pfNominale(D2){
+  return consumoSpecifico(D2.kg, volumeForo(D2.B, D2.S, D2.prof));
+}
 /* Il RWS effettivo (12/09, unità 126): l'energia relativa dell'esplosivo,
    ridotta se il foro è bagnato — l'acqua penalizza l'esplosivo tanto meno
    quanto più è resistente all'acqua (`Nulla` 70%, `Eccellente` 0%). Viveva

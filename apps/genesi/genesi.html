@@ -1178,7 +1178,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    `fragSenzaConto`, che chiede se il dato c'è. La bandiera da leggere è
    `calcolabile`; senza, `pf` a zero e `x50` a 97 cm si ridisegnano tranquilli
    come prima, in due direzioni opposte. */
-         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, fragKuzRam, rosinRammler,
+         FRAG_SENZA_CONTO, fragSenzaConto, consumoSpecifico, pfNominale, fragKuzRam, rosinRammler,
 /* i CAMPI, un piano sopra ai tre blocchi qui sopra — vedi il blocco G14.
    ⛔ Le tre guardie non servivano a niente finché due clic le spegnevano:
    `Math.max(5, Math.min(200, gvv('dKg')||D2.kg))` con la carica assente
@@ -5557,7 +5557,9 @@ function computeEnergia2D(){ energiaSuMaglia(D2.holes, D2.prof, D2.S, D2.kg, D2.
    `computeSeq2D`, `computeRelief2D`) sono una decisione diversa e più grande —
    lì servono a disegnare qualcosa invece di niente — e non sono stati toccati:
    sono dichiarati nel rapporto dell'unità, non nascosti qui. */
-function pfNominale(){ return consumoSpecifico(D2.kg, volumeForo(D2.B, D2.S, D2.prof)); }
+/* B3 (14/09) — traslocata in genesi-data.js con cambio di firma
+   (`pfNominale(D2)` invece di leggere `D2` dalla chiusura): i cinque
+   punti che la chiamano nella pagina passano ora `D2` esplicitamente. */
 
 /* ═══════════ G4 — LE LINEE DI INNESCO ═══════════
    La sequenza dice a che millisecondo spara ogni foro. Sul campo però nessuno
@@ -5762,7 +5764,7 @@ function drawIsocrone2D(ctx,g){
    prima fila hanno profondità diverse, ed è proprio quello che si deve vedere. */
 function drawEnergia2D(ctx,g){
   const H=D2.holes; if(!H||!H.length) return null;
-  const pfNom=pfNominale();
+  const pfNom=pfNominale(D2);
   /* senza il riferimento non c'è un confronto da colorare: `pfCls(NaN)`
      risponde 'ok', cioè dipingerebbe di VERDE tutti i blocchi */
   if(pfNom===null) return null;
@@ -6006,7 +6008,7 @@ function drawDesign2D(){
   if(D2.ene) eneInfo=drawEnergia2D(ctx,gGeo);                // il campo pieno sta sotto a tutto: è uno sfondo di lettura
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
-  const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale();
+  const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale(D2);
   if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(h.relief);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
@@ -6223,7 +6225,7 @@ function renderInspector(){
        (— % del progetto)»: la frase più tranquilla che sappia dire, accanto a
        un progetto che non c'è. Il consumo specifico del foro è un numero vero
        e si mostra lo stesso; quello che sparisce è il verdetto. */
-    const pfRif=pfNominale(), rap=(pfRif===null)?null:h.pfLoc/pfRif, ecl=(rap===null)?null:pfCls(rap);
+    const pfRif=pfNominale(D2), rap=(pfRif===null)?null:h.pfLoc/pfRif, ecl=(rap===null)?null:pfCls(rap);
     eneTx='<div style="margin-top:3px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'
       +'<b style="color:'+(ecl===null?'var(--mut2)':ENECOL[ecl])+';margin-right:6px">'+fmtKg(h.pfLoc)+' kg/m³</b>'
       +'<span>'+(ecl===null
@@ -6671,7 +6673,7 @@ function renderScheda2D(){
       'ci sono '+_ricPlur(_disegnati,'foro','fori')+' nel disegno, ma il consumo specifico del singolo foro non si conta: '+_fg.che+'. '+_fg.come)); return; }
     if(HH.length<2){ rows.push({lab:'Energia per foro',valStr:'—',cls:'sv-info',
       why:'con un foro solo non c\'è un confronto: il consumo specifico locale coincide con quello di progetto.'}); return; }
-    const pfRif=pfNominale(), rr=HH.map(h=>h.pfLoc), mn=Math.min(...rr), mx=Math.max(...rr);
+    const pfRif=pfNominale(D2), rr=HH.map(h=>h.pfLoc), mn=Math.min(...rr), mx=Math.max(...rr);
     if(pfRif===null){ rows.push(nonCalcolabile('Energia per foro',
       'il consumo specifico del singolo foro si confronta con quello medio di progetto, e quello non c\'è: '+_fg.che+'. '+_fg.come)); return; }
     const gi=HH.filter(h=>pfCls(h.pfLoc/pfRif)==='moltoBassa').length + HH.filter(h=>pfCls(h.pfLoc/pfRif)==='bassa').length;
@@ -7417,7 +7419,7 @@ if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLa
 if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLayerUI(); drawDesign2D(); renderInspector();
   if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
 if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLayerUI(); drawDesign2D(); renderInspector();
-  if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+(pfNominale()===null?'non calcolabile':fmtKg(pfNominale())+' kg/m³')+' di progetto'):'Mappa dell’energia disattivata'); });
+  if(typeof toast==='function') toast(D2.ene?('Mappa dell’energia attiva — riferimento '+(pfNominale(D2)===null?'non calcolabile':fmtKg(pfNominale(D2))+' kg/m³')+' di progetto'):'Mappa dell’energia disattivata'); });
 if($('dlInn')) $('dlInn').addEventListener('click', ()=>{ D2.inn=!D2.inn; syncLayerUI(); drawDesign2D();
   if(typeof toast==='function') toast(D2.inn?'Rete di innesco attiva — sulle linee il ritardo che deve avere il raccordo':'Rete di innesco disattivata'); });
 if($('dlIsoStep')) $('dlIsoStep').addEventListener('change', ()=>{ D2.isoStep=Math.max(0,+$('dlIsoStep').value||0); drawDesign2D(); });

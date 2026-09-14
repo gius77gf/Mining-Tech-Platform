@@ -29197,6 +29197,21 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
         `stessa risposta su vol=${String(vol)}`);
   });
 
+  test("Genesi · pfNominale (B3, trasloco con cambio di firma)", () => {
+    /* andata e ritorno contro le due funzioni pure che già componeva a mano
+       nella pagina: consumoSpecifico(kg, volumeForo(B,S,H)). Il cambio di
+       firma è SOLO l'argomento (da chiusura su D2 a parametro D2) — il
+       calcolo deve restare identico, punto per punto. */
+    const D2 = { kg: 60, B: 3, S: 3.5, prof: 10 };
+    eq(gz.pfNominale(D2), gz.consumoSpecifico(D2.kg, gz.volumeForo(D2.B, D2.S, D2.prof)),
+      "stessa risposta della composizione a mano, sui valori di progetto");
+    /* i casi che consumoSpecifico dichiara "non calcolabile" (null) devono
+       restare null anche passando da pfNominale, non un numero indovinato */
+    eq(gz.pfNominale({ ...D2, kg: null }), null, "carica non leggibile -> non calcolabile");
+    eq(gz.pfNominale({ ...D2, kg: -5 }), null, "carica negativa -> non calcolabile");
+    eq(gz.pfNominale({ ...D2, B: 0 }), null, "burden zero (volume zero) -> non calcolabile");
+  });
+
   test("⛔ Genesi · rosinRammler: senza x50 o senza uniformità non inventa una curva", () => {
     const r = gz.rosinRammler(27.397817288977084, 1.5);
     eq(r.calcolabile, true, "col caso sano la curva c'è");
@@ -29604,7 +29619,7 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     /* e le due guardie che lo impediscono, pinnate nella pagina */
     eq(/h\.pfLoc!=null && pfRif!==null/.test(srcG15), true,
       "il pallino sulla pianta si colora solo se ci sono TUTT'E DUE i pezzi del rapporto");
-    eq(/const pfRif=pfNominale\(\), rap=\(pfRif===null\)\?null:h\.pfLoc\/pfRif/.test(srcG15), true,
+    eq(/const pfRif=pfNominale\(D2\), rap=\(pfRif===null\)\?null:h\.pfLoc\/pfRif/.test(srcG15), true,
       "e la scheda del foro non calcola un rapporto che non esiste");
     eq(/non confrontabile/.test(srcG15), true, "e lo dice, invece di tacere in verde");
   });
@@ -29640,8 +29655,14 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     /* la riga del consumo specifico di progetto */
     eq(/\(D2\.B\|\|3\)\*\(D2\.S\|\|3\.5\)\*\(D2\.prof\|\|10\)/.test(srcG15), false,
       "e `pfNominale` non costruisce più il suo volume con tre ripieghi");
-    eq(/function pfNominale\(\)\{ return consumoSpecifico\(D2\.kg, volumeForo\(D2\.B, D2\.S, D2\.prof\)\); \}/.test(srcG15), true,
-      "lo chiede a `volumeForo`, che sa rispondere «non lo so»");
+    /* ⏱️ B3 (14/09): `pfNominale` non vive più qui dentro come funzione a
+       zero argomenti — è traslocata in genesi-data.js con `D2` come
+       parametro (stesso cambio di firma degli altri "legami di una riga"
+       di questa fascia). La pagina la chiama `pfNominale(D2)`. */
+    eq(/function pfNominale\(\)\{ return consumoSpecifico\(D2\.kg, volumeForo\(D2\.B, D2\.S, D2\.prof\)\); \}/.test(srcG15), false,
+      "B3: pfNominale non è più definita dentro la pagina");
+    eq(typeof gz15.pfNominale, "function",
+      "lo chiede a `volumeForo`, in genesi-data.js — che sa rispondere «non lo so»");
   });
 
   test("⛔ Genesi · i CLAMP della geometria non sono stati portati via insieme al difetto", () => {

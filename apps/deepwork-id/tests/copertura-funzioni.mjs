@@ -492,8 +492,15 @@ const CONDIVISI = [
      dentro come tratti (mai come fori/fronte/piede: è la scelta di
      sicurezza sulla convenzione degli assi, vedi il commento della
      funzione). `_dxfEntita` resta privata (non esportata), non entra nel
-     conto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 153,
+     conto.
+     153 → 154 il 14/09 (B3, cantiere del trasloco di Genesi, ripreso dopo
+     G47): `pfNominale`, con CAMBIO DI FIRMA (`pfNominale(D2)` invece di
+     leggere `D2` dalla chiusura) — lo stesso schema già usato per ogni
+     altro "legame di una riga" di questa fascia. Il consumo specifico
+     nominale di progetto, già composto da due funzioni pure
+     (`consumoSpecifico`, `volumeForo`) già in questo modulo: la funzione
+     stessa non calcolava niente di nuovo. */
+  { file: "apps/genesi/genesi-data.js", fondo: 154,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
