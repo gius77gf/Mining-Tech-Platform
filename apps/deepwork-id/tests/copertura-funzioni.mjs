@@ -560,8 +560,28 @@ const CONDIVISI = [
      `innTaglioOk`). 148→146 funzioni nella pagina, bucket "1-2" 54→52,
      estraibili 62→60. Nessuno spostamento di bucket per altre funzioni
      (i due chiamanti di `innTaglioOk`, `drawInnesco2D`/`renderScheda2D`,
-     sono già nel bucket "11+" e non ne escono). */
-  { file: "apps/genesi/genesi-data.js", fondo: 162,
+     sono già nel bucket "11+" e non ne escono).
+     162 → 165 il 14/09 (B3, stesso giorno): TRE funzioni uscite insieme
+     — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px,
+     py)` — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/
+     `indicePiuVicino` (già pure) e `d2HitTestPt` compone anche
+     `activeProf`: non potevano cambiare firma separatamente.
+     `activeProf` non delega a nessuna funzione del modulo (calcola
+     direttamente da `D2.tool`): è la prima fetta di B3 senza una
+     funzione pura preesistente da comporre, solo pura di suo.
+     `d2HitTest` sostituisce `interpFronte(mx)` (wrapper di pagina, che
+     resta: sedici altri punti di chiamata) con `interpProf(D2.profilo,
+     mx)` diretto, come già fatto per G41. Nessuna delle tre lascia un
+     wrapper: sei punti di chiamata in tutto. 146→143 funzioni nella
+     pagina, bucket "1-2" 52→49, estraibili 60→57.
+     ⚠️ Effetto collaterale nel censimento, non un bucket-shift:
+     `d2Move` mostra `computeSeq2D` nel proprio elenco "chiama" dove
+     prima non compariva — quella chiamata è nel suo corpo da sempre
+     (riga già presente, non toccata da questa unità), il censimento la
+     vedeva mascherata mentre elencava `activeProf`. Margine noto dello
+     strumento (stessa famiglia delle parole corte nei commenti), non
+     un difetto di questa fetta: bucket "3-5" di `d2Move` invariato. */
+  { file: "apps/genesi/genesi-data.js", fondo: 165,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.460 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto le prove di `_spazTipico`/`innTaglioOk`, cantiere B3: 2979 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.461 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `activeProf`/`d2HitTest`/`d2HitTestPt`, cantiere B3: 2980 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.925** asserzioni su **40** comandi.
+> `node` completo esegue **3.926** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **326 su 326** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **162/162**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **329 su 329** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **165/165**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **146 funzioni** stanno dentro
+importa. **Genesi no**: le sue **143 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,28 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **52** |
+| una o due | **49** |
 | da tre a cinque | 14 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **60 su 146 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **57 su 143 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
+insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
+— perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`
+già pure e `d2HitTestPt` compone anche `activeProf`: non potevano cambiare
+firma separatamente. `activeProf` è la prima fetta di B3 senza una funzione
+pura preesistente da comporre — calcola direttamente da `D2.tool`, pura di
+suo. `d2HitTest` sostituisce `interpFronte(mx)` (wrapper di pagina, resta:
+sedici altri punti di chiamata) con `interpProf(D2.profilo, mx)` diretto,
+come già per G41. Nessuna delle tre lascia un wrapper: sei punti di chiamata
+in tutto.
+⚠️ Effetto collaterale nel censimento, non un bucket-shift: `d2Move` mostra
+`computeSeq2D` nel proprio elenco "chiama" dove prima non compariva — quella
+chiamata è nel suo corpo da sempre (riga non toccata da questa unità), il
+censimento la vedeva mascherata mentre elencava `activeProf`. Margine noto
+dello strumento, non un difetto di questa fetta.*
 ⏱️ *54→52, 62→60 e 148→146 il 14/09 (B3, stesso giorno): DUE funzioni
 indipendenti in un'unica unità — `_spazTipico(D2, H)` (componeva solo
 `spaziaturaTipica` già pura dal blocco G24) e `innTaglioOk(D2, dt)`

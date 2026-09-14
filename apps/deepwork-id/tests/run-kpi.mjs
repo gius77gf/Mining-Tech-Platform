@@ -26633,12 +26633,25 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/const QUOTA_RAMPA *= *\[/g) || []).length, 0, "il letterale della rampa non c'è più");
     eq((pag.match(/function quotaColore\(/g) || []).length, 0, "né il corpo di quotaColore");
     eq((pag.match(/let best=-1, ?bd=18\*18/g) || []).length, 0, "la ricerca del punto più vicino non è più scritta in casa (era due volte)");
-    ok(/function d2HitTest\(px,py\)\{ if\(!D2\._m\) return -1; return indicePiuVicino\(D2\.holes\.map\(h=>puntoTela\(D2\._m, h\.mx, h\.my\+interpFronte\(h\.mx\)\)\), px, py\); \}/.test(pag), "d2HitTest è un legame");
-    ok(/function d2HitTestPt\(px,py\)\{ if\(!D2\._m\) return -1; return indicePiuVicino\(activeProf\(\)\.map\(q=>puntoTela\(D2\._m, q\.x, q\.y\)\), px, py\); \}/.test(pag), "d2HitTestPt è un legame");
+    eq((pag.match(/function d2HitTest|function d2HitTestPt|function activeProf/g) || []).length, 0, "⚠️ 14/09, B3: d2HitTest, d2HitTestPt e activeProf sono usciti insieme, i legami non ci sono più");
+    ok(typeof v.d2HitTest === "function" && typeof v.d2HitTestPt === "function" && typeof v.activeProf === "function", "vivono nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/d2HitTest\(D2,/g) || []).length, 1, "d2HitTest dal suo unico punto");
+    eq((pag.match(/d2HitTestPt\(D2,/g) || []).length, 1, "d2HitTestPt dal suo unico punto");
+    eq((pag.match(/activeProf\(D2\)/g) || []).length, 4, "activeProf dai suoi quattro punti");
     ok(/const v=verdettoValidatore\(x,lo,hi,wlo,whi\);/.test(pag) && /non-calcolabile/.test(pag), "badge chiede il verdetto al modulo e sa scrivere «non calcolabile»");
     eq((pag.match(/if\(x<lo\)\{ cls=/g) || []).length, 0, "la regola non è più scritta in casa");
     const dati = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map((s2) => s2.trim());
-    ok(["quotaColore", "verdettoValidatore", "puntoTela", "indicePiuVicino"].every((n) => dati.includes(n)), "la pagina importa i quattro");
+    ok(["quotaColore", "verdettoValidatore", "puntoTela", "indicePiuVicino", "activeProf", "d2HitTest", "d2HitTestPt"].every((n) => dati.includes(n)), "la pagina importa tutti e sette");
+  });
+  test("⛔ Genesi · activeProf/d2HitTest/d2HitTestPt (B3, trasloco con cambio di firma)", () => {
+    eq(v.activeProf({ tool: "piede", piede: [{ x: 1 }], profilo: [{ x: 2 }] }), [{ x: 1 }], "col tool piede risponde il piede");
+    eq(v.activeProf({ tool: "fronte", piede: [{ x: 1 }], profilo: [{ x: 2 }] }), [{ x: 2 }], "con qualunque altro tool risponde il profilo");
+    eq(v.d2HitTest({ _m: null }, 10, 10), -1, "senza mappatura attiva non c'è niente da colpire");
+    const D2m = { _m: { startX: 0, faceY: 0, scale: 10 }, holes: [{ mx: 0, my: 0 }, { mx: 5, my: 0 }], profilo: [] };
+    eq(v.d2HitTest(D2m, 0, 0), 0); eq(v.d2HitTest(D2m, 50, 0), 1);
+    eq(v.d2HitTestPt({ _m: null }, 10, 10), -1);
+    const D2p = { _m: { startX: 0, faceY: 0, scale: 10 }, tool: "piede", profilo: [{ x: 99, y: 99 }], piede: [{ x: 0, y: 0 }, { x: 5, y: 0 }] };
+    eq(v.d2HitTestPt(D2p, 0, 0), 0); eq(v.d2HitTestPt(D2p, 50, 0), 1, "compone activeProf (qui il piede, per il tool scelto), non un proprio elenco");
   });
   /* LA VOCE «NON A POSTO» DELLA CHECKLIST APRE UN'AZIONE IN SCUDO (11/09,
      dalla ricerca a rotazione su Campo): il fermo lo faceva già, la

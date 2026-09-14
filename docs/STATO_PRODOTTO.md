@@ -210,9 +210,9 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(ricontato il 14/09, dopo aver aggiunto le
-prove di `_spazTipico`/`innTaglioOk` (B3) a `run-kpi.mjs`, lanciando le suite, non a
-memoria)*: **3.460** prove automatiche che girano senza rete — **2979** sulle
+**Quanto è controllato, oggi** *(ricontato il 14/09, dopo aver aggiunto la
+prova di `activeProf`/`d2HitTest`/`d2HitTestPt` (B3) a `run-kpi.mjs`, lanciando le suite, non a
+memoria)*: **3.461** prove automatiche che girano senza rete — **2980** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.460** conta nove suite: il giro completo ne esegue **3.925** (misura del 14/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.461** conta nove suite: il giro completo ne esegue **3.926** (misura del 14/09; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le

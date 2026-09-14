@@ -3483,6 +3483,15 @@ export function indicePiuVicino(punti, px, py, raggioPx){
   });
   return best;
 }
+/* Trasloco B3 (14/09): tre "legami" del picking sull'editor 2D, usciti
+   insieme perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/
+   `indicePiuVicino` qui sopra e `activeProf`. `D2` come primo argomento
+   esplicito, come già per le fette precedenti. `interpFronte(mx)` (wrapper
+   di pagina, resta lì: sedici altri punti di chiamata) diventa qui
+   `interpProf(D2.profilo, mx)` diretto, come già fatto per G41. */
+export function activeProf(D2){ return D2.tool==='piede'?D2.piede:D2.profilo; }
+export function d2HitTest(D2, px, py){ if(!D2._m) return -1; return indicePiuVicino(D2.holes.map(h=>puntoTela(D2._m, h.mx, h.my+interpProf(D2.profilo, h.mx))), px, py); }
+export function d2HitTestPt(D2, px, py){ if(!D2._m) return -1; return indicePiuVicino(activeProf(D2).map(q=>puntoTela(D2._m, q.x, q.y)), px, py); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    G30 · LO SCATTO DEI PROFILI E LE ALTEZZE DEI FORI DAL PIEDE (11/09,
