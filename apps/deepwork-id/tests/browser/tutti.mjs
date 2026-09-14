@@ -445,6 +445,14 @@ const BANCHI = [
      su un foro già selezionato prima del blocco. */
   ["i livelli veri dell'editor 2D di Genesi (G47b)", 'genesi-strati.mjs', []],
   ['livelli veri 2D · controprova', 'genesi-strati.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47d, ULTIMA fetta di G47): import DXF in sola
+     lettura, ma SOLO come tratti — mai come fori/fronte/piede, la scelta
+     di sicurezza che chiude la ricerca del 13/09 sulla convenzione degli
+     assi. Il caso che conta è che i CIRCLE/TEXT dei fori non diventino
+     tratti, e che un import di più entità sia UN'unica operazione
+     annullabile (Ctrl+Z toglie tutto in un colpo, non un tratto alla volta). */
+  ["l'import DXF come tratti di Genesi (G47d)", 'genesi-dxf-import.mjs', []],
+  ['import DXF · controprova', 'genesi-dxf-import.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col

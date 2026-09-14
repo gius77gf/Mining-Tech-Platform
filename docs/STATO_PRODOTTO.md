@@ -210,16 +210,16 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
   e per i soldi, valida in tutte le app — con i controlli automatici che
   impediscono a un'app di riscriversene una propria.
 
-**Quanto è controllato, oggi** *(ricontato il 14/09, dopo aver spostato la
-prova del singolare di `_puntiNuvola` dal banco del browser (voce andata
-stale) a `run-kpi.mjs`, lanciando le suite, non a memoria)*: **3.451** prove automatiche che girano senza rete — **2970** sulle
+**Quanto è controllato, oggi** *(ricontato il 14/09, dopo aver aggiunto la
+prova di `dxfInTratti` (G47d) a `run-kpi.mjs`, lanciando le suite, non a
+memoria)*: **3.452** prove automatiche che girano senza rete — **2971** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **19** sull'ordine con cui due trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
 primo avvio, 3 sulle superfici che stampano e su chi le preme — più **139** che
 girano con l'emulatore Firestore (**91** sulle
 **regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
-**287 esecuzioni** che aprono davvero le pagine in un browser.
+**289 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle
 rivendicazioni, che dove le Cloud Functions girano è di* `rebuildClaims` *e non
@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.451** conta nove suite: il giro completo ne esegue **3.915** (misura del 14/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.452** conta nove suite: il giro completo ne esegue **3.917** (misura del 14/09; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le

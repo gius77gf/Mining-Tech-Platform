@@ -486,8 +486,14 @@ const CONDIVISI = [
      nuova — la seconda fetta di G7, resa possibile da G39-G43 (sequenza e
      maglia ora pure): per ogni burden candidato di `curvaBurdenCarica`,
      genera una maglia di prova, la sequenzia con le impostazioni di oggi e
-     stima MIC/PPV con le stesse funzioni pure della Scheda volata. */
-  { file: "apps/genesi/genesi-data.js", fondo: 152,
+     stima MIC/PPV con le stesse funzioni pure della Scheda volata.
+     152 → 153 il 14/09 (G47d, ULTIMA fetta di "Genesi simile a un CAD"):
+     `dxfInTratti`, il lettore DXF in sola lettura — porta LINE e POLYLINE
+     dentro come tratti (mai come fori/fronte/piede: è la scelta di
+     sicurezza sulla convenzione degli assi, vedi il commento della
+     funzione). `_dxfEntita` resta privata (non esportata), non entra nel
+     conto. */
+  { file: "apps/genesi/genesi-data.js", fondo: 153,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

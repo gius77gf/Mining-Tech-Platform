@@ -3575,6 +3575,60 @@ function _dxfPolilinea(layer, punti){
   s+='0\nSEQEND\n';
   return s;
 }
+/* G47d (14/09) — import DXF in SOLA LETTURA, ultima fetta di "Genesi
+   simile a un CAD" (il fondatore ha risposto "tutto"). Legge LINE e
+   POLYLINE (col suo VERTEX/SEQEND, la stessa forma che `_dxfPolilinea`
+   scrive) e li porta dentro come TRATTI (D2.tratti), MAI come fori,
+   fronte o piede.
+
+   È la scelta di sicurezza che chiude la ricerca del 13/09
+   (docs/RICERCA_CONTINUA_GENESI.md, "import CAD/DXF: come i software
+   commerciali evitano l'errore di convenzione degli assi"): un file
+   esterno può avere una convenzione di assi diversa dalla nostra, e la
+   ricerca non ha trovato nessun software del settore che validi
+   esplicitamente la convenzione prima di fidarsi della geometria per un
+   calcolo di burden/sicurezza — solo difese indirette (associazione al
+   più vicino, tolleranze). Qui il rischio non si valida: si TOGLIE alla
+   radice. Un tratto non entra in NESSUN calcolo (relief, energia,
+   burden, flyrock) — è un riferimento visivo sulla pianta, esattamente
+   come i tratti disegnati a mano da G47c-2. Un orientamento sbagliato si
+   VEDE (la pagina lo dice: "verifica l'orientamento") e si annulla con
+   un Ctrl+Z, non produce un numero sbagliato — è la stessa differenza
+   fra "protegge da un errore" e "un errore qui non può fare danno". */
+function _dxfEntita(testo){
+  const righe = String(testo||'').split(/\r\n|\r|\n/);
+  const entita = [];
+  let cur = null;
+  for(let i=0; i+1<righe.length; i+=2){
+    const codice = righe[i].trim(), valore = righe[i+1];
+    if(codice==='0'){
+      const tipo = valore.trim();
+      if(tipo==='LINE' || tipo==='POLYLINE' || tipo==='VERTEX' || tipo==='SEQEND'){ cur={tipo, campi:{}}; entita.push(cur); }
+      else cur = null;
+    } else if(cur){ cur.campi[codice]=valore; }
+  }
+  return entita;
+}
+export function dxfInTratti(testo){
+  const entita = _dxfEntita(testo);
+  const tratti = [];
+  let poliCorrente = null;
+  for(const e of entita){
+    if(e.tipo==='LINE'){
+      const a={x:+e.campi['10'], y:+e.campi['20']}, b={x:+e.campi['11'], y:+e.campi['21']};
+      if([a.x,a.y,b.x,b.y].every(Number.isFinite) && (a.x!==b.x || a.y!==b.y)) tratti.push({pts:[a,b]});
+    } else if(e.tipo==='POLYLINE'){
+      poliCorrente = [];
+    } else if(e.tipo==='VERTEX' && poliCorrente){
+      const p={x:+e.campi['10'], y:+e.campi['20']};
+      if(Number.isFinite(p.x) && Number.isFinite(p.y)) poliCorrente.push(p);
+    } else if(e.tipo==='SEQEND'){
+      if(poliCorrente && poliCorrente.length>=2) tratti.push({pts:poliCorrente});
+      poliCorrente = null;
+    }
+  }
+  return tratti;
+}
 export function dxfPianoFori(fori, diamMm, profilo){
   const H = Array.isArray(fori) ? fori.filter(h=>h && Number.isFinite(+h.mx) && Number.isFinite(+h.my)) : [];
   const raggio = (Number.isFinite(+diamMm) && +diamMm>0) ? (+diamMm/2000) : 0.05; // 50mm di default, mai zero: un cerchio a raggio 0 non si vede e sembra un foro mancante

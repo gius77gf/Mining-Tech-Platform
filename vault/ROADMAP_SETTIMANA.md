@@ -2903,7 +2903,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E8`
 - `G7–G9`
 - `G46 (candidato, non preso)`
-- `G47 — "GENESI SIMILE A UN CAD"`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
@@ -6050,7 +6049,7 @@ numero scritto dove non era stato misurato niente**.*
       ma resta comunque la scelta di UN formato fra tre concorrenti senza
       che nessuno l'abbia chiesta: si costruisce quando si decide, non
       per anticipare la decisione.
-- [ ] **G47 — "GENESI SIMILE A UN CAD": IL FONDATORE HA RISPOSTO, 14/09,
+- [x] **G47 — "GENESI SIMILE A UN CAD": IL FONDATORE HA RISPOSTO, 14/09,
       ORE 18:55Z circa — "Tutto".** Chiedendo quale dei quattro assi
       intendesse (precisione/snap, layer, strumenti di disegno,
       import/export CAD — la domanda del checkpoint `20260914-100055`),
@@ -6146,6 +6145,28 @@ numero scritto dove non era stato misurato niente**.*
       sul canvas, e la prova lo vede contando i comandi `arc` che il
       disegnatore esegue davvero, non solo leggendo `D2.strati`).
       Con questa fetta restano solo G47d.
+      ✅ **14/09 — G47d FATTA (e con lei TUTTA G47)**: `dxfInTratti`
+      legge LINE e POLYLINE da un file DXF esterno e li porta dentro
+      SOLO come `D2.tratti` — mai come fori, fronte o piede. È la
+      scelta di sicurezza che chiude la ricerca del 13/09 sulla
+      convenzione degli assi: nessun software del settore trovato
+      valida esplicitamente la convenzione prima di fidarsi della
+      geometria per un calcolo di burden/sicurezza, quindi qui il
+      rischio non si valida — si toglie alla radice. Un tratto non
+      entra in NESSUN calcolo (relief, energia, burden, flyrock);
+      un orientamento sbagliato si VEDE (tratteggio distinto, avviso
+      esplicito sulla convenzione degli assi) e si annulla con UN
+      Ctrl+Z (l'intero import è un'unica operazione annullabile, non
+      un tratto alla volta — verificato con la controprova). Round-trip
+      testato contro il nostro stesso export (G33, `dxfPianoFori`).
+      Banco browser committato (`genesi-dxf-import.mjs`, 8 prove +
+      controprova) e test puro in `run-kpi.mjs`.
+      **Le quattro fette di G47 sono tutte chiuse**: G47a (coordinate
+      esatte e allineamento), G47c-1 (annulla/ripristina 2D), G47c-2
+      (tratti liberi), G47b (livelli veri), G47d (import DXF come
+      tratti). Il fondatore aveva risposto "tutto" — le quattro
+      direzioni proposte nel checkpoint `20260914-100055` sono tutte
+      state costruite, verificate e commesse.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8428,10 +8449,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo aver
-  spostato in `run-kpi` la prova del singolare di `_puntiNuvola`, andata
-  stale in un banco del browser dopo il trasloco G36: 2969→2970):
-  **3.451 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2970, `run-stile` 328,
+  aggiunto a `run-kpi` la prova di `dxfInTratti` (G47d): 2970→2971):
+  **3.452 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2971, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8441,8 +8461,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **287 esecuzioni** che
-  aprono le pagine in un browser vero, da **123** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **289 esecuzioni** che
+  aprono le pagine in un browser vero, da **124** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

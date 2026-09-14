@@ -1345,10 +1345,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.451** *(ricontate il 14/09, dopo aver
-spostato la prova del singolare di `_puntiNuvola` da un banco del browser
-andato stale a `run-kpi.mjs`, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **287
+**Le prove automatiche sono passate a 3.452** *(ricontate il 14/09, dopo aver
+aggiunto la prova di `dxfInTratti` (G47d) a `run-kpi.mjs`, lanciando le
+suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **289
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

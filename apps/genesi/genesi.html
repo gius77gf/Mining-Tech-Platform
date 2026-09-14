@@ -821,6 +821,9 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-rilievo-esito"></div>
   <button class="btn" id="btn-piano-csv" style="display:block;margin:10px auto 0;">📤 Esporta piano di carico (CSV per il fochino)</button>
   <button class="btn" id="btn-piano-dxf" style="display:block;margin:8px auto 0;" title="Fori (cerchio + numero) e profilo del fronte, in un file che AutoCAD, LibreCAD, QCAD e QGIS sanno aprire (DXF R12)">📐 Esporta piano fori (DXF per CAD)</button>
+  <input type="file" id="dxfImportFile" accept=".dxf,text/plain" style="display:none;">
+  <button class="btn" id="btn-dxf-import" type="button" style="display:block;margin:8px auto 0;" title="Legge LINE e POLYLINE da un file DXF e li porta sulla pianta come tratti liberi (riferimento visivo: non entrano in nessun calcolo di burden/relief/energia — un file esterno può avere una convenzione di assi diversa dalla nostra, verifica l'orientamento dopo l'importazione)">📥 Importa da DXF (come tratti)</button>
+  <div id="d2-dxf-import-esito"></div>
   <button class="btn" id="btn-scheda-csv" style="display:block;margin:8px auto 0;">📄 Esporta scheda volata (CSV)</button>
   <button class="btn" id="btn-salva-volata" style="display:block;margin:6px auto 0;">💾 Salva nello storico (Home)</button>
   <button class="btn" id="btn-report" style="display:block;margin:8px auto 0;" title="Report della volata formattato, stampabile o salvabile in PDF (stampa del browser)">🖨 Report volata (stampa / PDF)</button>
@@ -1220,7 +1223,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5314,6 +5317,28 @@ if($('btn-piano-dxf')) $('btn-piano-dxf').onclick=()=>{
   if(typeof toast==='function') toast('✓ Piano fori DXF esportato: '+_ricPlur(D2.holes.length,'foro','fori')
     +(haFronte?' + profilo del fronte':' — nessun profilo del fronte disegnato: esce solo il livello FORI'));
 };
+/* G47d (14/09) — Import DXF in SOLA LETTURA, come TRATTI (mai come fori/
+   fronte/piede): la scelta di sicurezza spiegata sopra `dxfInTratti` in
+   genesi-data.js. Un errore di convenzione assi qui produce un'annotazione
+   storta, mai un calcolo sbagliato — ma l'avviso resta esplicito perché
+   l'utente lo veda e lo controlli, non perché il rischio sia lo stesso
+   del rilievo boretrack (quello sì entra nel calcolo del burden vero). */
+if($('btn-dxf-import')) $('btn-dxf-import').onclick=()=>$('dxfImportFile').click();
+if($('dxfImportFile')) $('dxfImportFile').onchange=async(e)=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const testo=await f.text(); e.target.value='';
+  const box=$('d2-dxf-import-esito');
+  const tratti=dxfInTratti(testo);
+  if(!tratti.length){
+    if(box) box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">Nessun tratto trovato in «'+_rEsc(f.name)+'»: il file non contiene LINE o POLYLINE leggibili (i CIRCLE/TEXT dei fori non vengono importati).</div>';
+    toast('Nessun tratto leggibile in questo file'); return;
+  }
+  d2PushUndo();
+  tratti.forEach(t=> D2.tratti.push({ pts:t.pts, aperto:false, origine:'dxf' }));
+  drawDesign2D(); renderScheda2D(); syncTrattoUI();
+  if(box) box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef5350;font-size:12px;"><b>⚠️ Verifica l\'orientamento.</b> Un file DXF esterno può avere una convenzione di assi diversa da quella di Genesi (davanti/dietro, sinistra/destra): guarda dove sono comparsi i tratti sulla pianta prima di fidartene. Sono un riferimento VISIVO — non entrano in nessun calcolo (burden, relief, energia, flyrock) — e si tolgono con ↩ Annulla se l\'orientamento non torna.</div>';
+  toast('✓ Importati da «'+f.name+'»: '+_ricPlur(tratti.length,'tratto','tratti')+' — verifica l\'orientamento sulla pianta');
+};
 /* P1.3 — Export piano di innesco in XML stile IREDES (interoperabilità con
    detonatori elettronici e software terzi). NON è conformità IREDES certificata:
    è una bozza di interscambio con i dati che Genesi già calcola (posizione foro,
@@ -5959,7 +5984,14 @@ function drawDesign2D(){
      x, un ordinamento la spezzerebbe. Colore neutro apposta: non deve
      competere con fronte (arancio) e piede (giallo tratteggiato), che
      hanno un significato di progetto. */
-  if(D2.strati.tratti.visibile) D2.tratti.forEach(t=>{ if(t.pts.length<2) return; ctx.save(); ctx.strokeStyle='rgba(140,190,220,.85)'; ctx.lineWidth=2; ctx.beginPath();
+  /* G47d — un tratto importato da DXF si distingue a vista (tratteggio
+     invece di linea piena): è la stessa idea del "verifica l'orientamento"
+     nel toast, applicata al disegno — chi guarda la pianta deve poter
+     dire da solo quali tratti li ha disegnati lui e quali sono arrivati
+     da un file esterno, senza aprire un pannello. */
+  if(D2.strati.tratti.visibile) D2.tratti.forEach(t=>{ if(t.pts.length<2) return; ctx.save(); ctx.strokeStyle='rgba(140,190,220,.85)'; ctx.lineWidth=2;
+    if(t.origine==='dxf') ctx.setLineDash([5,4]);
+    ctx.beginPath();
     t.pts.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.restore(); });
   ctx.fillStyle='#ffab00'; ctx.textAlign='left'; ctx.font="600 12px 'Barlow Condensed',sans-serif"; ctx.fillText('FRONTE — faccia libera', padX-18, faceY+20);
   const dimC='#86b0d8'; const fr=H.filter(h=>Math.abs(h.my-D2.B)<0.4).sort((a,b)=>a.mx-b.mx);
@@ -6101,7 +6133,10 @@ function _snapXY(v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
 let d2UndoStack=[], d2RedoStack=[];
 const D2_UNDO_MAX=40;
 function d2Snap(){ return { holes:D2.holes.map(h=>({...h})), profilo:D2.profilo.map(p=>({...p})), piede:D2.piede.map(p=>({...p})),
-  tratti:D2.tratti.map(t=>({ pts:t.pts.map(p=>({...p})), aperto:!!t.aperto })) }; }
+  /* G47d — copia TUTTI i campi del tratto (spread), non solo pts/aperto:
+     un tratto importato porta anche `origine:'dxf'`, e una copia che
+     ricostruisse la forma a mano lo perderebbe al primo annulla. */
+  tratti:D2.tratti.map(t=>({ ...t, pts:t.pts.map(p=>({...p})) })) }; }
 function d2BtnSync(){
   const u=$('d2Undo'), r=$('d2Redo');
   if(u) u.disabled=!d2UndoStack.length;
@@ -6116,7 +6151,7 @@ function d2ApplySnap(s){
   D2.holes=(s.holes||[]).map(h=>({...h}));
   D2.profilo=(s.profilo||[]).map(p=>({...p}));
   D2.piede=(s.piede||[]).map(p=>({...p}));
-  D2.tratti=(s.tratti||[]).map(t=>({ pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));
+  D2.tratti=(s.tratti||[]).map(t=>({ ...t, pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));
   D2.sel=-1; D2.selPrev=-1; D2.selPt=-1;
   computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); syncTrattoUI();
 }

@@ -15812,6 +15812,38 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "un file che non c'entra niente non produce numeri, produce una frase");
   });
 
+  test("Genesi · dxfInTratti (G47d) legge LINE e POLYLINE, mai altro", () => {
+    /* andata e ritorno contro il nostro STESSO export (dxfPianoFori,
+       livello FRONTE): un profilo di quattro punti esce come POLYLINE e
+       deve rientrare come UN tratto con gli stessi quattro punti,
+       nell'ordine — non i cerchi/testi dei fori sullo stesso file. */
+    const profilo = [{x:5,y:0},{x:20,y:3},{x:35,y:1},{x:50,y:2}];
+    const fori = [{id:1,mx:0,my:3},{id:2,mx:3.5,my:3}];
+    const dxf = genesi.dxfPianoFori(fori, 102, profilo);
+    const tratti = genesi.dxfInTratti(dxf);
+    eq(tratti.length, 1, "un file con fori+fronte porta dentro UN tratto solo (i cerchi/testi dei fori non diventano tratti)");
+    eq(tratti[0].pts.length, 4, "il tratto ha i quattro punti del profilo esportato");
+    for(let i=0;i<profilo.length;i++){
+      ok(Math.abs(tratti[0].pts[i].x-profilo[i].x)<0.001 && Math.abs(tratti[0].pts[i].y-profilo[i].y)<0.001,
+         `punto ${i}: andata e ritorno esatto (${mostra(profilo[i])} -> ${mostra(tratti[0].pts[i])})`);
+    }
+
+    /* un LINE a sé (due punti, il caso più semplice che un CAD produce) */
+    const unaLinea = "0\nSECTION\n2\nENTITIES\n0\nLINE\n8\nQUALSIASI\n10\n1.000\n20\n2.000\n30\n0.0\n11\n8.000\n21\n2.000\n30\n0.0\n0\nENDSEC\n0\nEOF\n";
+    const t2 = genesi.dxfInTratti(unaLinea);
+    eq(t2.length, 1, "un LINE isolato diventa un tratto di due punti");
+    eq(t2[0].pts.length, 2, "due punti, non di più");
+    eq(t2[0].pts[0].x, 1, "primo estremo letto giusto"); eq(t2[0].pts[1].x, 8, "secondo estremo letto giusto");
+
+    /* i casi che NON devono produrre un tratto */
+    eq(genesi.dxfInTratti("").length, 0, "un file vuoto non produce niente (non un errore)");
+    eq(genesi.dxfInTratti("boh, non è un DXF").length, 0, "un file che non c'entra niente non produce niente");
+    const lineaZero = "0\nLINE\n10\n5.0\n20\n5.0\n11\n5.0\n21\n5.0\n";
+    eq(genesi.dxfInTratti(lineaZero).length, 0, "un LINE di lunghezza zero (stesso punto due volte) non è un tratto");
+    const poliUnPunto = "0\nPOLYLINE\n0\nVERTEX\n10\n1.0\n20\n1.0\n0\nSEQEND\n";
+    eq(genesi.dxfInTratti(poliUnPunto).length, 0, "una POLYLINE con un solo VERTEX non è un tratto (serve almeno un segmento)");
+  });
+
   test("⛔ Genesi · fra tirare a indovinare e dirlo, dice", () => {
     /* `numIt` di shared rifiuta «12,5 kg» invece di leggerne 12,5 come farebbe
        `parseFloat` (che accetterebbe anche «12,5 pippo»): la riga finisce fra

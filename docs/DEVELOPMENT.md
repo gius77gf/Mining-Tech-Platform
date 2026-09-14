@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.451 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver spostato qui la prova del singolare di `_puntiNuvola`, andata stale in un banco del browser: 2970 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.452 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `dxfInTratti`: 2971 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.915** asserzioni su **40** comandi.
+> `node` completo esegue **3.917** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **316 su 316** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **152/152**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **317 su 317** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **153/153**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -126,13 +126,22 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **61** |
+| una o due | **60** |
 | da tre a cinque | 15 |
-| da sei a dieci | 18 |
+| da sei a dieci | 19 |
 | più di dieci — lì è un rifacimento | 38 |
 
-Cioè **69 su 155 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 86 sono una decisione di architettura.
+Cioè **68 su 155 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 87 sono una decisione di architettura.
+⏱️ *61→60, 18→19 e 69→68 il 14/09 (G47d, ULTIMA fetta di G47), e come per
+G47a QUESTA VOLTA NON È UN CANTIERE VERO: `d2Snap` (una riga, legge solo
+`D2` davvero) è finita nel bucket "sei-dieci" perché il commento italiano
+appena scritto sopra di lei contiene le parole «dxf», «pts», «e», «a»,
+«lo» — lo stesso margine accettato dello strumento già misurato su G47a.
+`d2Down`/`drawDesign2D` hanno guadagnato "tratti" nel loro elenco per la
+stessa ragione (il commento su G47d nomina "tratti" più volte). 155 non
+cambia: nessuna funzione nuova, solo tre lette come se leggessero più
+variabili di quante ne leggano davvero.*
 ⏱️ *60→61, 68→69 e 154→155 il 14/09 (G47b): una funzione nuova
 (`syncStratiUI`, i livelli veri — mostra/nascondi/blocca per entità,
 non i vecchi interruttori di un calcolo).*
@@ -329,7 +338,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**287 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**289 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 
