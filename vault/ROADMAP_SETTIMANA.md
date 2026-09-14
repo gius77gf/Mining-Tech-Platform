@@ -2903,6 +2903,7 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E8`
 - `G7–G9`
 - `G45 (candidato, non preso)`
+- `G46 (candidato, non preso)`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
@@ -5938,6 +5939,36 @@ numero scritto dove non era stato misurato niente**.*
       o (b) si aspetta di unire i due pannelli in un'unica scheda con un
       solo verdetto vero. La (a) è costruibile subito e onesta; la (b) è
       un cantiere di struttura, non di un pomeriggio.
+- [ ] **G46 (candidato, non preso).** Genesi: un percorso per il dato di
+      frammentazione MISURATO (foto/vagliatura), non solo digitato a mano
+      (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`, sezione "Come si
+      misura davvero la frammentazione: fotografia e image analysis" —
+      verificato nel codice: `riconciliazione.real.x50` esiste già ed è
+      un numero digitato da `#ric-x50`, nessuna integrazione con software
+      di image analysis, confermato con `grep` mirato — un primo
+      tentativo di quel `grep` aveva dato "zero righe" per un pattern
+      troppo largo (`.*` greedy), corretto nel documento prima di
+      scriverlo qui).
+      Il mondo usa tre suite (Split-Desktop, WipFrag, PowerSieve/FragScan/
+      GoldSize) che condividono lo stesso principio — foto + calibrazione
+      di scala + segmentazione — e lo stesso formato di uscita **P10/P50/
+      P80/P100**, con un ciclo di calibrazione locale (K, m) ripetuto ogni
+      5-10 volate nelle aziende mature.
+      ⛔ **PERCHÉ NON L'HO PRESO DA SOLO**: la ricerca stessa lascia
+      aperte tre domande di prodotto, non tecniche — (1) importare un CSV
+      P10/P50/P80 da un software esterno, offrire upload foto + analisi
+      cloud, o solo un campo dato più strutturato?; (2) dove vive il dato
+      (`riconciliazione.real.foto`? una collezione a parte?); (3) quale
+      accuratezza basta e quale software esterno scegliere. La (1) nella
+      sua forma "upload foto + servizio cloud" tocca la regola SOLDI
+      (nessuna spesa prima della commercializzazione) — un servizio di
+      segmentation è quasi sempre a pagamento, e sceglierlo da solo
+      sarebbe esattamente il tipo di decisione che questo file riserva al
+      fondatore. La forma "importa un CSV P10/P50/P80" è a costo zero e
+      coerente con gli import CSV che Genesi già ha altrove (`leggiCsv`),
+      ma resta comunque la scelta di UN formato fra tre concorrenti senza
+      che nessuno l'abbia chiesta: si costruisce quando si decide, non
+      per anticipare la decisione.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
