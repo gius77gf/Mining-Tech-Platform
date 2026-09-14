@@ -3154,3 +3154,73 @@ Questa nota non sceglie fra i quattro assi — è preparazione, non una
 proposta — e va letta insieme alla domanda ancora aperta in conversazione
 col fondatore su quale aspetto di "CAD" gli interessa davvero.
 
+
+## Nota del 2026-09-14T12:52:58Z — raccolta: quattro ricerche già esaurite, verificato meccanismo per meccanismo
+
+In attesa della risposta del fondatore sulla domanda CAD (ancora aperta),
+ho riletto quattro ricerche più vecchie di questo documento per cercare un
+delta pronto da chiudere — non collegato al CAD. Tutte e quattro risultano
+**già chiuse**, verificato leggendo il codice riga per riga (non sulla
+parola di chi le aveva scritte):
+
+**1. "Il piano di tiro e il dopo-volata" (11/09, righe 545-682).** Le
+quattro domande del delta: la carta di prima (già composta), la
+registrazione dello sparato (già in Sentinella), il dopo-volata — mancate
+esplosioni/rientro/proiezioni (**✅ FATTO, unità 82-83 dell'11/09**, con i
+nomi di funzione citati nel documento stesso), le quantità autorizzate
+(dichiarato ASSENTE e **esplicitamente rimandato a una decisione del
+fondatore**, non un "non c'è" dimenticato). Zero righe aperte.
+
+**2. "Gli esplosivi in cava" (11/09, righe 683-809).** Il delta (righe
+749-809) ha lo stesso schema: gap reali già implementati con riferimento
+d'unità, gli altri correttamente dichiarati come decisioni aperte, non
+mancanze.
+
+**3. "Limiti di validità del modello Kuz-Ram e powder factor" (12/09,
+righe 811-1006).** Le quattro "Domande per il delta" (righe 971-1004)
+chiedevano: il canale d'avviso su `fuoriDominio` esiste già in interfaccia?
+il dominio dimensionale di Rosin-Rammler (10-1000mm) è verificato
+indipendentemente dal powder factor? un avviso "troppo fine" dovrebbe dire
+qualcosa di più specifico del generico "valore assurdo"? — **tutte e tre
+risolte**, e non da questa sessione: `caricaDaX50Target` in
+`genesi-data.js` (righe 1763-1793) porta già `troppoFine`/`troppoGrossolano`
+come campi distinti (xt<1 o xt>100 cm, cioè il range 10-1000mm della fonte,
+convertito), col commento datato 12/09 (unità 127) che cita **questa
+stessa sezione di ricerca** come fonte del vincolo. `genesi.html` (righe
+3631-3636) mostra tre messaggi distinti — fine/grossolano/ambiguo — non un
+avviso generico. Chiuso prima che questa nota venisse scritta.
+
+**4. "Presplit e detonatori elettronici/Nonel" (12/09, righe 1007-1298).**
+Le cinque domande del delta (righe 1255-1297), verificate contro il
+codice:
+- **Spaziatura/carica del presplit** (Q1): non è un rapporto fisso, è un
+  input libero (`D2.psSpacing`, `D2.psCharge`) validato contro una
+  finestra derivata dal mondo — 8-14 diametri per la spaziatura, 0,25-0,9
+  kg/m per la carica lineare (`genesi.html` righe 6370-6391) — coerente
+  coi valori trovati dalla ricerca stessa (S=12D, decoupling 0,3-0,9 kg/m
+  per Ø76-115). Nessun divario.
+- **Sequenza presplit-prima-di-produzione** (Q2): non è un vincolo
+  strutturale perché il presplit in Genesi non è un insieme di fori con
+  un proprio tempo d'innesco nella sequenza — è un parametro di progetto
+  con un avviso testuale ("va sparata PRIMA della volata principale",
+  riga 6391). Non c'è un caso in cui l'utente possa ordinarlo male nel
+  motore di sequenza, quindi non c'è un vincolo mancante da aggiungere.
+- **`INN_TAGLI` spacciato per catalogo di un produttore** (Q3): **falso
+  allarme evitato in partenza** — il testo mostrato all'utente (riga 6518)
+  dice "raccordi di uso comune", mai il nome di un produttore. Il
+  composito è già dichiarato per quello che è.
+- **Formula dello scatter, percentuale o assoluta** (Q4): percentuale del
+  tempo di riferimento (Nonel 2%, cordtex 3%), fissa in ms per
+  elettronico/elettrico (`scatterInnesco`, `genesi-data.js` righe
+  1431-1433) — scala correttamente sui tagli lunghi per costruzione
+  (è un fattore moltiplicativo, non un'approssimazione che si allontana),
+  coerente con le due fonti del mondo (che si accordavano già fra loro,
+  5,4% ≈ 2-5%).
+- **Sicurezza da innesco accidentale** (Q5): la ricerca stessa la dichiara
+  fuori perimetro di Genesi (tema di sicurezza in cava, non di calcolo
+  volata) e la assegna a Scudo — nessuna azione qui per costruzione.
+
+**Nessuna correzione scritta in questa nota**: è una raccolta, non un
+cantiere. Il valore sta nel togliere quattro voci dal novero delle "ricerche
+da controllare", così un ciclo futuro non le rilegga da capo credendole
+aperte.
