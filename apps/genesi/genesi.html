@@ -1220,7 +1220,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
-         ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
+         ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
          LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
@@ -5513,10 +5513,10 @@ function scatterMs(){
    vera solo D2. `dtMin` resta calcolato qui perché chiede tre campi di D2
    (ritardo, lastDet, innesco) che a `reliefSuMaglia` non servono altrimenti. */
 function computeRelief2D(){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs()); }
-/* ⛔ `RELCOL` e la classe del relief (`classeRelief`) stanno in `./genesi-data.js`, blocco G26 (10/09):
-   qui resta il legame con la finestra scelta a schermo. La mappa delle classi CSS del relief non la
-   leggeva nessuno ed è stata tolta. */
-function reliefCls(r){ return classeRelief(r, D2.relLo, D2.relHi); }
+/* ⛔ `RELCOL` e la classe del relief (`classeRelief`) stanno in `./genesi-data.js`, blocco G26 (10/09).
+   Trasloco B3 (14/09): anche il legame di una riga (`reliefCls`) è uscito — `D2` come primo
+   argomento esplicito, come già per `pfNominale`/`pieDev`. La mappa delle classi CSS del relief
+   non la leggeva nessuno ed è stata tolta. */
 
 /* ═══════════ G5 — MAPPA DELL'ENERGIA: il consumo specifico FORO PER FORO ═══
    Il powder factor di progetto (kg/m³) è una media: dice quanta energia
@@ -6011,7 +6011,7 @@ function drawDesign2D(){
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale(D2);
   if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
-    const rcl=reliefCls(h.relief);
+    const rcl=reliefCls(D2, h.relief);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
        precedenza perché è quello che segnala un rischio, l'energia viene dopo */
     /* ⛔ SERVONO TUTT'E DUE I PEZZI DEL RAPPORTO, e fino al 09/08 se ne
@@ -6212,7 +6212,7 @@ function renderInspector(){
   for(let i=0;i<D2.holes.length;i++){ if(i===D2.sel) continue; const o=D2.holes[i]; const d=Math.hypot(o.mx-h.mx,o.my-h.my); if(d<nn) nn=d; }
   el.style.display='flex';
   /* G2 — il relief del singolo foro in chiaro nella sua scheda */
-  const rcl=reliefCls(h.relief), from=(h.relFrom>=0 && D2.holes[h.relFrom])?((D2.holes[h.relFrom].seq||0)+1):null;
+  const rcl=reliefCls(D2, h.relief), from=(h.relFrom>=0 && D2.holes[h.relFrom])?((D2.holes[h.relFrom].seq||0)+1):null;
   const relTx = (h.relief==null)
     ? '<span style="color:'+RELCOL.none+'">relief — primo della sua zona: spara sulla faccia gia libera</span>'
     : '<b style="color:'+RELCOL[rcl]+';margin-right:6px">'+fmtMs(h.relief)+' ms/m</b><span>relief'+(from?' dal foro '+from:'')+' · '+fmtMs(h.relDt)+' ms su '+fmtMs(h.relD)+' m'

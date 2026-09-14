@@ -3051,6 +3051,7 @@ export function classeRelief(r, relLo, relHi){
   if(r<=hi) return 'ok';                                     // in finestra
   return 'hi';                                               // relief eccessivo
 }
+export function reliefCls(D2, r){ return classeRelief(r, D2.relLo, D2.relHi); }
 export function codiceVolataGenesi(d,data,fronte){
   const base=[data,String(fronte||'').trim().toLowerCase(),d.nFori,d.kgTotali,d.mic,d.dist].join('|');
   let h=0; for(let i=0;i<base.length;i++) h=(Math.imul(h,31)+base.charCodeAt(i))|0;

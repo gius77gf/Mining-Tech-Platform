@@ -25929,14 +25929,23 @@ console.log("\n— Campo: i file che escono —");
     ok(v.codiceVolataGenesi(d, "2026-07-18", "Fronte Est") !== c, "e un giorno dopo pure");
     ok(/^GEN--[0-9a-z]+$/.test(v.codiceVolataGenesi(d, "", "")), "senza data la parte della data resta vuota: il codice non inventa un giorno");
   });
-  test("⛔ Genesi · G26: nella pagina i conti non ci sono più, e il legame del relief resta", () => {
+  test("⛔ Genesi · G26: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche il legame del relief è uscito)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    eq((pag.match(/function pfCls|function _sentCodice|const ENECOL=|const ENELAB=|const RELCOL=|RELSV/g) || []).length, 0, "le vecchie funzioni, le mappe e la mappa mai letta non ci sono più");
-    ok(/function reliefCls\(r\)\{ return classeRelief\(r, D2\.relLo, D2\.relHi\); \}/.test(pag), "reliefCls è il legame con la finestra a schermo");
+    eq((pag.match(/function pfCls|function _sentCodice|const ENECOL=|const ENELAB=|const RELCOL=|RELSV|function reliefCls/g) || []).length, 0, "le vecchie funzioni, le mappe, la mappa mai letta e il legame del relief non ci sono più");
+    ok(typeof v.reliefCls === "function", "reliefCls vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/reliefCls\(D2,/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
     eq((pag.match(/codiceVolataGenesi\(/g) || []).length, 1, "il codice lo chiede l'export per Sentinella");
     ok((pag.match(/pfCls\(/g) || []).length >= 5, "pfCls si chiama ancora dalla pagina (pianta, scheda, riepilogo)");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(["ENECOL", "ENELAB", "pfCls", "RELCOL", "classeRelief", "codiceVolataGenesi"].every((n) => elenco.includes(n)), "la pagina importa tutt'e sei");
+    ok(["ENECOL", "ENELAB", "pfCls", "RELCOL", "classeRelief", "reliefCls", "codiceVolataGenesi"].every((n) => elenco.includes(n)), "la pagina importa tutt'e sette");
+  });
+  test("⛔ Genesi · reliefCls (B3, trasloco con cambio di firma)", () => {
+    const D2x = { relLo: 5, relHi: 15 };
+    eq(v.reliefCls(D2x, 2.9), v.classeRelief(2.9, D2x.relLo, D2x.relHi), "compone classeRelief con la finestra del progetto, non la ricalcola");
+    eq(v.reliefCls(D2x, 2.9), "bad"); eq(v.reliefCls(D2x, 10), "ok"); eq(v.reliefCls(D2x, 20), "hi");
+    eq(v.reliefCls({}, 10), "ok", "senza finestra scelta a schermo valgono i ripieghi 5 e 15 di classeRelief");
+    eq(v.reliefCls(D2x, null), "none", "nessun vicino che ha già sparato: il caso lo decide classeRelief, non il legame");
+    ok(v.reliefCls({ relLo: 10, relHi: 3 }, 10.4) !== v.reliefCls({ relLo: 3, relHi: 10 }, 10.4), "relLo e relHi non sono intercambiabili: scambiarli cambia il verdetto");
   });
 
   /* ⛔ G39 — LA RETE DI COLLEGAMENTO DELL'INNESCO (14/09, cantiere B3).

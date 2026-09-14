@@ -508,8 +508,17 @@ const CONDIVISI = [
      di `pieDev(x)`), e quel token è nel suo corpo per davvero. Misurato
      confrontando l'elenco `--elenco` prima/dopo: è l'unica funzione
      spostata di bucket, ed è un effetto reale del cambio di firma, non
-     un margine accettato dello strumento. */
-  { file: "apps/genesi/genesi-data.js", fondo: 155,
+     un margine accettato dello strumento.
+     155 → 156 il 14/09 (B3, stesso giorno): `reliefCls`, stesso schema
+     (`reliefCls(D2, r)`), componeva solo `classeRelief` già pura — un
+     "legame di una riga" del blocco G26 (10/09), la prima volta che B3
+     tocca una funzione già marcata "resta come legame" da un cantiere
+     precedente invece di una nascosta nel bucket "1-2" senza commento:
+     il commento descriveva l'architettura di allora, non un divieto a
+     finire l'estrazione dopo. I suoi due chiamanti (`drawDesign2D`,
+     `renderInspector`) leggono già `D2` per conto proprio: nessuno
+     spostamento di bucket, misurato confrontando `--elenco` prima/dopo. */
+  { file: "apps/genesi/genesi-data.js", fondo: 156,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
