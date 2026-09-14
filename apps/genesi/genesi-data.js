@@ -2912,6 +2912,10 @@ export function spaziaturaTipica(H, ripiego){
   dd.sort((a,b)=>a-b);
   return dd.length? dd[Math.floor(dd.length/2)] : ripiego;
 }
+/* Trasloco B3 (14/09): il legame di una riga sul ripiego di progetto è
+   uscito anche lui — `D2` come primo argomento esplicito, come già per
+   `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`/`isoPasso`/`scatterMs`. */
+export function _spazTipico(D2, H){ return spaziaturaTipica(H, Math.max(D2.S||3.5, D2.B||3)); }
 export function tempoInPunto(px,py,H,h2){
   let W=0,Sx=0,Sy=0,Sxx=0,Sxy=0,Syy=0,St=0,Stx=0,Sty=0,dmin=Infinity;
   for(let i=0;i<H.length;i++){
@@ -2987,6 +2991,10 @@ export function taglioRealizzabile(dt, innesco, tagli){
   if((innesco||'')==='elettronico') return true;
   return (tagli||INN_TAGLI).some(v=>Math.abs(v-dt)<=1.0);
 }
+/* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico).
+   Trasloco B3 (14/09): il legame con l'innesco scelto è uscito anche lui —
+   `D2` come primo argomento esplicito, stesso schema delle altre fette. */
+export function innTaglioOk(D2, dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }
 export function _cmpNum(v){ return (v===null||v===undefined||v==='')?null:(isFinite(+v)?+v:null); }
 export function _cmpKg(k){ const v=_cmpNum(k&&k.qtot); return v===null?'<i style="color:#ffca28">non calcolabile</i>':gnum(v,0)+' kg'; }
 export function _cmpEur(k){ const v=_cmpNum(k&&k.cost); return v===null?'<i style="color:#ffca28">non calcolabile</i>':'€'+gnum(v,0); }

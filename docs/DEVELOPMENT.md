@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.458 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `scatterMs`/`computeRelief2D`, cantiere B3: 2977 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.460 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto le prove di `_spazTipico`/`innTaglioOk`, cantiere B3: 2979 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.923** asserzioni su **40** comandi.
+> `node` completo esegue **3.925** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **324 su 324** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **160/160**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **326 su 326** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **162/162**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **148 funzioni** stanno dentro
+importa. **Genesi no**: le sue **146 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,21 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **54** |
+| una o due | **52** |
 | da tre a cinque | 14 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **62 su 148 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **60 su 146 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *54→52, 62→60 e 148→146 il 14/09 (B3, stesso giorno): DUE funzioni
+indipendenti in un'unica unità — `_spazTipico(D2, H)` (componeva solo
+`spaziaturaTipica` già pura dal blocco G24) e `innTaglioOk(D2, dt)`
+(componeva solo `taglioRealizzabile` già pura dal blocco G25). Non
+accoppiate come `scatterMs`/`computeRelief2D`: erano semplicemente gli
+ultimi due "legami di una riga" rimasti nei rispettivi blocchi. Nessuna
+delle due lascia un wrapper (tre punti di chiamata in tutto). Nessuno
+spostamento di bucket per altre funzioni.*
 ⏱️ *55→54, 15→14, 63→62 e 150→148 il 14/09 (B3, stesso giorno): DUE funzioni in un'unica
 unità, perché accoppiate — `scatterMs(D2)` (dal bucket "3-5": un falso
 positivo del censimento, leggeva solo `D2` più tre parole corte di un

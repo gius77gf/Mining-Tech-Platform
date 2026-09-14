@@ -25847,17 +25847,25 @@ console.log("\n— Campo: i file che escono —");
     eq(v.passoIsocrone(0, 99999), 1000, "oltre la scala: l'ultimo passo, senza inventarne uno");
     eq(v.ISO_PASSI, [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000], "la scala, letta dal modulo");
   });
-  test("⛔ Genesi · G24: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche isoPasso è uscita, due legami restano)", () => {
+  test("⛔ Genesi · G24: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche isoPasso e _spazTipico sono uscite)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI|function isoPasso/g) || []).length, 0, "le vecchie funzioni, la scala e il legame del passo non ci sono più");
-    ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è il legame con P");
-    ok(/function _spazTipico\(H\)\{ return spaziaturaTipica\(H, Math\.max\(D2\.S\|\|3\.5, D2\.B\|\|3\)\); \}/.test(pag), "_spazTipico passa il ripiego di progetto");
+    eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI|function isoPasso|function _spazTipico/g) || []).length, 0, "le vecchie funzioni, la scala e i due legami non ci sono più");
+    ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è l'unico legame rimasto, con P");
     ok(typeof v.isoPasso === "function", "isoPasso vive nel modulo, con D2 come primo argomento esplicito");
     eq((pag.match(/isoPasso\(D2\)/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
+    ok(typeof v._spazTipico === "function", "_spazTipico vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/_spazTipico\(D2,/g) || []).length, 1, "e la pagina lo chiama dal suo unico punto, passando D2");
     eq((pag.match(/distanzaDaSpezzata\(/g) || []).length, 1, "un solo chiamante nella pagina, la scheda dei fori (⚠️ 2→1 il 14/09, G41: energia 2D è salita in genesi-data.js, stessa famiglia di G39/G40)");
     eq((pag.match(/tempoInPunto\(/g) || []).length, 1, "e il campo dei tempi lo chiama solo il disegno delle isocrone");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone", "isoPasso"].every((n) => elenco.includes(n)), "la pagina importa tutt'e sei");
+    ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "_spazTipico", "tempoInPunto", "passoIsocrone", "isoPasso"].every((n) => elenco.includes(n)), "la pagina importa tutte e sette");
+  });
+  test("⛔ Genesi · _spazTipico (B3, trasloco con cambio di firma)", () => {
+    const H = [{ mx: 0, my: 0 }, { mx: 4, my: 0 }, { mx: 8, my: 0 }];
+    eq(v._spazTipico({ S: 3.5, B: 3 }, H), v.spaziaturaTipica(H, Math.max(3.5, 3)), "compone spaziaturaTipica col ripiego di progetto, non lo ricalcola");
+    eq(v._spazTipico({}, []), Math.max(3.5, 3), "senza fori risponde il ripiego di default (S/B assenti)");
+    eq(v._spazTipico({ S: 10, B: 2 }, []), Math.max(10, 2), "il ripiego prende il maggiore fra S e B: qui è S");
+    eq(v._spazTipico({ S: 2, B: 10 }, []), Math.max(2, 10), "e qui è B — S e B sono commutativi in questo ripiego (Math.max), a differenza di innTaglioOk");
   });
   test("⛔ Genesi · isoPasso (B3, trasloco con cambio di firma)", () => {
     eq(v.isoPasso({ isoStep: 7, lastDet: 462 }), 7, "il passo scelto vince, passato dallo stato del progetto");
@@ -25898,14 +25906,21 @@ console.log("\n— Campo: i file che escono —");
     eq(v._cmpCm({ x50: 27.44 }, "x50"), "27,4 cm"); eq(v._cmpCm({ x50: null }, "x50"), NC);
     eq(v._cmpFly({ fly: 101.4 }), "101 m"); eq(v._cmpFly({ fly: 101, flyCalcolabile: false }), NC, "gittata non calcolabile: non «— m», che si legge zero metri");
   });
-  test("⛔ Genesi · G25: nella pagina i conti non ci sono più", () => {
+  test("⛔ Genesi · G25: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche innTaglioOk è uscita)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    eq((pag.match(/function _fileDiFori|const INN_TAGLI=|function _cmpNum|function _cmpKg|function _cmpEur|function _cmpPf|function _cmpCm|function _cmpFly/g) || []).length, 0, "le vecchie funzioni e la scala non ci sono più");
-    ok(/function innTaglioOk\(dt\)\{ return taglioRealizzabile\(dt, D2\.innesco, INN_TAGLI\); \}/.test(pag), "innTaglioOk è il legame con l'innesco scelto");
+    eq((pag.match(/function _fileDiFori|const INN_TAGLI=|function _cmpNum|function _cmpKg|function _cmpEur|function _cmpPf|function _cmpCm|function _cmpFly|function innTaglioOk/g) || []).length, 0, "le vecchie funzioni, la scala e il legame dell'innesco non ci sono più");
+    ok(typeof v.innTaglioOk === "function", "innTaglioOk vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/innTaglioOk\(D2,/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
     eq((pag.match(/fileDeiFori\(/g) || []).length, 1, "un solo chiamante nella pagina, la scheda dei fori (⚠️ 2→1 il 14/09, G41: energia 2D è salita in genesi-data.js, stessa famiglia di G39/G40)");
     eq((pag.match(/_cmp(?:Kg|Eur|Pf|Cm|Fly)\(/g) || []).length >= 10, true, "e le celle del confronto A/B si chiamano ancora dalla pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(["fileDeiFori", "INN_TAGLI", "taglioRealizzabile", "_cmpNum", "_cmpKg", "_cmpEur", "_cmpPf", "_cmpCm", "_cmpFly"].every((n) => elenco.includes(n)), "la pagina importa tutt'e nove");
+    ok(["fileDeiFori", "INN_TAGLI", "taglioRealizzabile", "innTaglioOk", "_cmpNum", "_cmpKg", "_cmpEur", "_cmpPf", "_cmpCm", "_cmpFly"].every((n) => elenco.includes(n)), "la pagina importa tutte e dieci");
+  });
+  test("⛔ Genesi · innTaglioOk (B3, trasloco con cambio di firma)", () => {
+    eq(v.innTaglioOk({ innesco: "nonel" }, 42), true, "compone taglioRealizzabile con l'innesco del progetto");
+    eq(v.innTaglioOk({ innesco: "nonel" }, 50), false, "50 non è un raccordo di INN_TAGLI");
+    eq(v.innTaglioOk({ innesco: "elettronico" }, 43), true, "con l'elettronico qualunque millisecondo, indipendentemente da INN_TAGLI");
+    eq(v.innTaglioOk({}, null), true, "senza dt non c'è un raccordo da trovare");
   });
 
   /* ⛔ G26 — LE CLASSI DELL'ENERGIA E DEL RELIEF, IL CODICE DELLA VOLATA

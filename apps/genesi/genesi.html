@@ -1218,8 +1218,8 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo,
-         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone, isoPasso,
-         fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
+         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
+         fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
@@ -5652,11 +5652,9 @@ function simulaPerforazione(N){
    ./genesi-data.js — la funzione era marcata «più di dieci» variabili del
    modulo, falso positivo del censimento (la sua dipendenza vera è solo D2),
    letta a mano e spostata parola per parola. Qui resta il legame con lo
-   stato, come già per `_spazTipico`/`reliefCls` (⚠️ `isoPasso` è uscita
-   anche lei il 14/09, B3: non è più un legame di pagina). */
+   stato (⚠️ `_spazTipico`/`reliefCls`/`isoPasso`/`innTaglioOk` sono usciti
+   anche loro entro il 14/09, B3: non sono più legami di pagina). */
 function computeInnesco2D(){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
-/* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico) */
-function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }   // legame con lo stato: il conto è in genesi-data.js (G25)
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
    assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
    loro media, quello che conta è quanto un foro se ne discosta. */
@@ -5669,11 +5667,11 @@ function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); 
    il piano la riproduce fedelmente; il termine di regolarizzazione fa reggere anche
    il caso di una fila sola, dove il piano degenera in una retta. */
 /* ⛔ I CONTI NON SONO PIÙ QUI: `spaziaturaTipica`, `tempoInPunto` e `passoIsocrone` (con la scala
-   `ISO_PASSI`) stanno in `./genesi-data.js`, blocco G24 (10/09). Qui resta il legame con lo
-   stato per la spaziatura, il cui ripiego viene dal progetto.
-   Trasloco B3 (14/09): il legame del passo (`isoPasso`) è uscito anche lui — `D2` come primo
-   argomento esplicito, come già per `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`. */
-function _spazTipico(H){ return spaziaturaTipica(H, Math.max(D2.S||3.5, D2.B||3)); }
+   `ISO_PASSI`) stanno in `./genesi-data.js`, blocco G24 (10/09).
+   Trasloco B3 (14/09, stesso giorno): anche i due legami di una riga che restavano qui
+   (`_spazTipico` per il ripiego di spaziatura, `isoPasso` per il passo scelto a schermo)
+   sono usciti — `D2` come primo argomento esplicito, come già per
+   `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`/`scatterMs`. */
 /* ⛔ `isoColore` è salita in `genesi-data.js` (blocco G10) il 09/08. */
 function drawIsocrone2D(ctx,g){
   const H=D2.holes; if(!H||H.length<2) return null;
@@ -5681,7 +5679,7 @@ function drawIsocrone2D(ctx,g){
   const passo=isoPasso(D2), livelli=[];
   for(let L=passo; L<T-1e-6; L+=passo) livelli.push(+L.toFixed(3));
   if(!livelli.length) return {passo:passo, n:0};
-  const sp=_spazTipico(H), h2=Math.pow(1.15*sp,2), mask=Math.max(1.15*sp, (D2.B||3)*0.9);
+  const sp=_spazTipico(D2, H), h2=Math.pow(1.15*sp,2), mask=Math.max(1.15*sp, (D2.B||3)*0.9);
   const gs=8;                                                // passo di campionamento in pixel (le curve restano dritte dove il campo e lineare)
   const x0=Math.max(2,g.padX-30), x1=Math.min(g.W-2,g.W-g.padX+30);
   const y0=Math.max(2,g.padTop-16), y1=Math.min(g.Hc-2,g.bottomY+16);
@@ -5816,7 +5814,7 @@ function drawInnesco2D(ctx,g){
     if(h.innFrom==null || h.innFrom<0) continue;
     const o=H[h.innFrom]; if(!o) continue;
     nColl++; tagli.add(fmtMs(h.innDt));
-    const ok=innTaglioOk(h.innDt); if(!ok) nFuori++;
+    const ok=innTaglioOk(D2, h.innDt); if(!ok) nFuori++;
     const x1=g.startX+o.mx*g.scale, y1=g.faceY+(o.my+interpFronte(o.mx))*g.scale;
     const x2=g.startX+h.mx*g.scale, y2=g.faceY+(h.my+interpFronte(h.mx))*g.scale;
     /* la linea si ferma prima del pallino del foro: se ci entra sotto,
@@ -6735,7 +6733,7 @@ function renderScheda2D(){
     if(HH.length<1){ rows.push({lab:'Rete di innesco',valStr:'—',cls:'sv-info',
       why:'con un foro solo, o con tutti i fori sullo stesso istante, non c\'è una rete da collegare.'}); return; }
     const elettr=(D2.innesco||'')==='elettronico';
-    const fuori=HH.filter(h=>!innTaglioOk(h.innDt));
+    const fuori=HH.filter(h=>!innTaglioOk(D2, h.innDt));
     const tagli=[...new Set(HH.map(h=>fmtMs(h.innDt)))].sort((a,b)=>parseFloat(a.replace(',','.'))-parseFloat(b.replace(',','.')));
     const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
     /* per ogni ritardo non disponibile, qual è il taglio più vicino che

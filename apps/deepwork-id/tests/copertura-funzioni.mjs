@@ -548,8 +548,20 @@ const CONDIVISI = [
      estraibili 63→62. Unico effetto collaterale reale: `computeSeq2D`
      perde `computeRelief2D` dal proprio elenco "chiama" (stessa
      famiglia di `computeEnergia2D`), misurato confrontando `--elenco`
-     prima/dopo. */
-  { file: "apps/genesi/genesi-data.js", fondo: 160,
+     prima/dopo.
+     160 → 162 il 14/09 (B3, stesso giorno): DUE funzioni indipendenti
+     in un'unica unità — `_spazTipico(D2, H)` (componeva solo
+     `spaziaturaTipica` già pura dal blocco G24) e `innTaglioOk(D2, dt)`
+     (componeva solo `taglioRealizzabile` già pura dal blocco G25).
+     Non accoppiate come `scatterMs`/`computeRelief2D`: raggruppate solo
+     perché entrambe erano gli ultimi "legami di una riga" rimasti nei
+     rispettivi blocchi. Nessuna delle due lascia un wrapper (tre punti
+     di chiamata in tutto: uno per `_spazTipico`, due per
+     `innTaglioOk`). 148→146 funzioni nella pagina, bucket "1-2" 54→52,
+     estraibili 62→60. Nessuno spostamento di bucket per altre funzioni
+     (i due chiamanti di `innTaglioOk`, `drawInnesco2D`/`renderScheda2D`,
+     sono già nel bucket "11+" e non ne escono). */
+  { file: "apps/genesi/genesi-data.js", fondo: 162,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
