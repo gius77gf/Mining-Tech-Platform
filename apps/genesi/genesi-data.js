@@ -3039,6 +3039,46 @@ export function codiceVolataGenesi(d,data,fronte){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   G39 · LA RETE DI COLLEGAMENTO DELL'INNESCO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   `computeInnesco2D` era marcata nel censimento come legata a «più di dieci»
+   variabili del modulo — falso, per la STESSA famiglia di falso positivo già
+   presa quattro volte su questo file (unità 121, 122, 124, e ancora): la sua
+   dipendenza vera è UNA sola, `D2`, e le altre lettere («si», «ci», «sotto»,
+   «L», «r»…) sono nomi locali di ALTRE funzioni della pagina, scritti con
+   un'indentazione bassa che l'euristica del censimento (dichiarata e accettata
+   come prudente) scambia per variabili del modulo. Letta a mano: pura, chiama
+   solo `spaziaturaTipica` — già in questo file — per la stessa soglia che
+   `_spazTipico` calcolava nella pagina.
+   Per ogni foro, cerca fra quelli che sparano PRIMA di lui quello che arriva
+   con il ritardo più piccolo (il raccordo più economico, quello che si vede
+   tirare in cava): è la rete che `drawInnesco2D` disegna sopra i fori. Entrata
+   identica, `H` mutato sul posto come faceva la pagina (`innFrom`, `innDt` su
+   ogni foro) — non è stata cambiata la forma dei dati, solo dove vive il
+   calcolo. */
+export function innescoSuMaglia(H, S, B){
+  if(!H||!H.length) return;
+  const dMax=2.2*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; h.innFrom=-1; h.innDt=null;
+    let best=null;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=+(h.tDet-H[j].tDet).toFixed(1);
+      if(dt<=0) continue;                                  // solo fori che sparano PRIMA: da lì può arrivare l'accensione
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05 || d>dMax) continue;                       // troppo lontano: nessuno tira un raccordo così
+      /* il fuoco arriva da chi ha sparato POCO PRIMA, non da chi sta più
+         vicino: si sceglie il ritardo più piccolo, e a parità il foro più
+         vicino. È anche il collegamento più economico — meno raccordi lunghi
+         — ed è quello che si vede tirare in cava. */
+      if(!best || dt<best.dt-0.05 || (Math.abs(dt-best.dt)<=0.05 && d<best.d)) best={j:j,d:d,dt:dt};
+    }
+    if(best){ h.innFrom=best.j; h.innDt=best.dt; }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
    del composito, la base della previsione PPV, la tinta della roccia
    (10/09, cantiere B3, nona fetta).

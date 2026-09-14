@@ -458,8 +458,14 @@ const CONDIVISI = [
      145 → 146 il 14/09 (G38, prima fetta scomposta di G7 — l'ottimizzatore
      di volata): `curvaBurdenCarica`, nuova — per un burden variabile e una
      frammentazione target fissa, quanta carica servirebbe: riusa
-     `volumeForo` e `caricaDaX50Target`, già in questo file. */
-  { file: "apps/genesi/genesi-data.js", fondo: 146,
+     `volumeForo` e `caricaDaX50Target`, già in questo file.
+     146 → 147 il 14/09 (G39, cantiere B3): `innescoSuMaglia`, salita da
+     `genesi.html` (`computeInnesco2D`) — quinta volta che il censimento
+     statico bucketizzava una funzione come «più di dieci variabili» per un
+     falso positivo dell'euristica sull'indentazione, quando la dipendenza
+     vera era una sola (`D2`). Entrata identica, confrontata byte per byte
+     con una copia della vecchia forma inline su cinque casi. */
+  { file: "apps/genesi/genesi-data.js", fondo: 147,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

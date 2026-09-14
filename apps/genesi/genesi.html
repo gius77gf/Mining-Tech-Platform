@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5626,27 +5626,12 @@ function simulaPerforazione(N){
 }
 
 /* ⛔ `INN_TAGLI` (i raccordi di superficie di uso comune) sta in `./genesi-data.js`, blocco G25. */
-function computeInnesco2D(){
-  const H=D2.holes; if(!H||!H.length) return;
-  const dMax=2.2*Math.max(D2.S||3.5, D2.B||3.0, _spazTipico(H));
-  for(let i=0;i<H.length;i++){
-    const h=H[i]; h.innFrom=-1; h.innDt=null;
-    let best=null;
-    for(let j=0;j<H.length;j++){
-      if(j===i) continue;
-      const dt=+(h.tDet-H[j].tDet).toFixed(1);
-      if(dt<=0) continue;                                  // solo fori che sparano PRIMA: da lì può arrivare l'accensione
-      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
-      if(d<0.05 || d>dMax) continue;                       // troppo lontano: nessuno tira un raccordo così
-      /* il fuoco arriva da chi ha sparato POCO PRIMA, non da chi sta più
-         vicino: si sceglie il ritardo più piccolo, e a parità il foro più
-         vicino. È anche il collegamento più economico — meno raccordi lunghi
-         — ed è quello che si vede tirare in cava. */
-      if(!best || dt<best.dt-0.05 || (Math.abs(dt-best.dt)<=0.05 && d<best.d)) best={j:j,d:d,dt:dt};
-    }
-    if(best){ h.innFrom=best.j; h.innDt=best.dt; }
-  }
-}
+/* ⛔ Trasloco G39 (14/09, cantiere B3): il conto vero è `innescoSuMaglia` in
+   ./genesi-data.js — la funzione era marcata «più di dieci» variabili del
+   modulo, falso positivo del censimento (la sua dipendenza vera è solo D2),
+   letta a mano e spostata parola per parola. Qui resta il legame con lo
+   stato, come già per `_spazTipico`/`isoPasso`/`reliefCls`. */
+function computeInnesco2D(){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
 /* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico) */
 function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }   // legame con lo stato: il conto è in genesi-data.js (G25)
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori

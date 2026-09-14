@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.429 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo `curvaBurdenCarica` — G38, prima fetta di G7: 2948 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.432 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo `innescoSuMaglia` — G39, cantiere B3: 2951 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.888** asserzioni su **40** comandi.
+> `node` completo esegue **3.891** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **310 su 310** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **146/146**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **311 su 311** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **147/147**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -126,13 +126,17 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **49** |
+| una o due | **50** |
 | da tre a cinque | 15 |
-| da sei a dieci | 21 |
+| da sei a dieci | 20 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **57 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 90 sono una decisione di architettura.
+Cioè **58 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 89 sono una decisione di architettura.
+⏱️ *21→20 il 14/09 (G39): `computeInnesco2D` è diventata un legame di una
+riga (`innescoSuMaglia` è salita in `genesi-data.js`), e il legame stesso
+legge una sola variabile del modulo — scivolato da "sei-dieci" a "una o
+due". Il 58 sale di uno per la stessa ragione.*
 ⏱️ *22→21 e 38→39 il 14/09: `genMaglia2D` ha guadagnato una variabile del
 modulo in più (la dichiarazione della maglia assente, G37/B0-septies) ed è
 scivolata da "sei-dieci" a "più di dieci". Il 57 non cambia: le due colonne
