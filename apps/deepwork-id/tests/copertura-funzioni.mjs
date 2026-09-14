@@ -454,8 +454,12 @@ const CONDIVISI = [
      (burden e interasse leggibili) prima che `genMaglia2D` generi le
      coordinate, così i cinque consumatori a valle (`computeEnergia2D` e c.)
      restano protetti dalla loro guardia già scritta su `H.length===0`
-     invece di calcolare su una maglia degenerata. */
-  { file: "apps/genesi/genesi-data.js", fondo: 145,
+     invece di calcolare su una maglia degenerata.
+     145 → 146 il 14/09 (G38, prima fetta scomposta di G7 — l'ottimizzatore
+     di volata): `curvaBurdenCarica`, nuova — per un burden variabile e una
+     frammentazione target fissa, quanta carica servirebbe: riusa
+     `volumeForo` e `caricaDaX50Target`, già in questo file. */
+  { file: "apps/genesi/genesi-data.js", fondo: 146,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

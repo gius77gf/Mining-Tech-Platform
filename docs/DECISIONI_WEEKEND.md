@@ -1334,8 +1334,8 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.425** *(ricontate il 14/09, dopo
-`magliaAssenteMotivo` — G37, B0-septies —, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+**Le prove automatiche sono passate a 3.429** *(ricontate il 14/09, dopo
+`curvaBurdenCarica` — G38, prima fetta di G7 —, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **277
 esecuzioni** che aprono davvero le pagine in un browser.
 

@@ -1792,6 +1792,49 @@ export function caricaDaX50Target(x50Target, vol, A, RWS){
     obiettivo:false, volume:false, modello:false, che:'', come:'' };
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   G38 · LA PRIMA FETTA DI G7 (ottimizzatore di volata), 14/09
+   ══════════════════════════════════════════════════════════════════════════
+   Scomposto prima di scrivere codice (vedi vault/ROADMAP_SETTIMANA.md, voce
+   G7): un ottimizzatore vero tocca anche la vibrazione, e la sequenza che
+   decide la MIC vive in `computeSeq2D`, nella PAGINA — costruirla qui
+   sarebbe la TERZA copia della stessa domanda (la firma troppo stretta che
+   CLAUDE.md avverte di non ricopiare). Questa prima fetta resta dentro il
+   dominio già coperto da funzioni pure ESISTENTI: dato un intervallo di
+   burden e una frammentazione TARGET fissa, quanta carica servirebbe per
+   ogni burden della griglia? Nessuna soglia di sicurezza, nessuna vibrazione,
+   nessuna sequenza — solo `volumeForo` + `caricaDaX50Target`, già in questo
+   modulo, chiamate una per riga.
+   Il rapporto S/B è un parametro: la funzione non lo assume mai 1 o 1,15
+   (quel numero di mestiere non è suo — chi chiama lo decide, come fa già
+   `genMaglia2D` con `D2.stagger`). */
+export function curvaBurdenCarica(opz){
+  const o = opz || {};
+  const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
+  const bMin = n(o.bMin), bMax = n(o.bMax), passo = n(o.passo), rapportoSB = n(o.rapportoSB);
+  const H = n(o.prof), A = n(o.A), RWS = n(o.RWS), x50Target = n(o.x50Target);
+  if (!Number.isFinite(bMin) || bMin <= 0 || !Number.isFinite(bMax) || bMax < bMin
+      || !Number.isFinite(passo) || passo <= 0 || !Number.isFinite(rapportoSB) || rapportoSB <= 0)
+    return [];
+  /* tetto difensivo, non un limite d'uso (la stessa forma della griglia dei
+     4 mm di `drawDesign2D`): un passo scritto a mano fuori misura non deve
+     produrre un array senza fine */
+  const righe = [];
+  for (let i = 0; i * passo <= (bMax - bMin) + 1e-9 && righe.length < 200; i++) {
+    const B = +(bMin + i * passo).toFixed(3);
+    const S = +(B * rapportoSB).toFixed(3);
+    const vol = volumeForo(B, S, H);
+    const t = caricaDaX50Target(x50Target, vol, A, RWS);
+    righe.push({ B, S,
+      kg: t.kg === null ? null : +t.kg.toFixed(2),
+      pf: t.pf === null ? null : +t.pf.toFixed(3),
+      calcolabile: t.calcolabile, fuoriDominio: t.fuoriDominio,
+      troppoFine: t.troppoFine, troppoGrossolano: t.troppoGrossolano,
+      che: t.che, come: t.come });
+  }
+  return righe;
+}
+
 /* La curva Rosin-Rammler intorno a una pezzatura mediana: dimensione
    caratteristica e i due passanti che la pagina mostra. `null` su tutt'e tre
    quando manca `x50` o l'indice di uniformità — un x20 inventato è la stessa

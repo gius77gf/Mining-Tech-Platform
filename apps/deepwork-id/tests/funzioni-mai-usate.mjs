@@ -81,6 +81,13 @@ const ACCETTATE = new Map([
     "TENUTA. È `numeroScritto` con `intero:true`: la offre lo strato condiviso perché una app non se la "
     + "riscriva addosso — ed è esattamente il difetto che questo repository ha pagato più volte. "
     + "Nessuna l'ha ancora chiesta."],
+  ["apps/genesi/genesi-data.js|curvaBurdenCarica",
+    "DA COLLEGARE, deliberatamente non ancora fatto (14/09). È la prima fetta scomposta di G7 "
+    + "(l'ottimizzatore di volata — vedi vault/ROADMAP_SETTIMANA.md): per un burden variabile e una "
+    + "frammentazione target fissa, la carica necessaria. Provata a fondo nel modulo (run-kpi, con "
+    + "iniezione del difetto verificata a mano); il collegamento a schermo (un pulsante, una tabella) è "
+    + "un'unità a sé — farlo insieme sarebbe stato consegnare la parte di prodotto prima di aver visto i "
+    + "numeri della funzione pura, l'errore che questo file chiama 'farla a metà'."],
 ]);
 
 /* le pagine si derivano dal disco: un elenco a mano si accorcia da solo */

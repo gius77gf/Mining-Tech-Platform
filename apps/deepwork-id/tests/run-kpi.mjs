@@ -41229,6 +41229,51 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine magliaAssenteMotivo (14/09) ===== */
 
+/* ===== GENESI · curvaBurdenCarica (14/09, G38 — prima fetta di G7) =====
+   Prima fetta onestamente piccola dell'ottimizzatore di volata (scomposta
+   in vault/ROADMAP_SETTIMANA.md, voce G7): dato un burden variabile e una
+   frammentazione target fissa, quanta carica servirebbe? Riusa
+   `volumeForo` e `caricaDaX50Target`, già pure e già provate altrove: qui
+   si prova solo la GRIGLIA — che cresca nel verso giusto, che dichiari
+   l'ingresso illeggibile invece di inventare una riga, che non nasconda un
+   obiettivo fuori dominio in mezzo a righe sane. */
+{
+  test("Genesi · curvaBurdenCarica: il burden più grande chiede più carica per la STESSA pezzatura", () => {
+    const r = genesi.curvaBurdenCarica({ bMin: 2, bMax: 3, passo: 0.5, rapportoSB: 1.15,
+      prof: 10, A: 9, RWS: 100, x50Target: 30 });
+    eq(r.length, 3, "tre burden nella griglia: 2, 2.5, 3");
+    eq(r.map(x => x.B), [2, 2.5, 3]);
+    eq(r.map(x => x.S), [2.3, 2.875, 3.45], "l'interasse segue il rapporto dato, non un rapporto di mestiere fisso");
+    eq(r[0].kg, 21.65); eq(r[1].kg, 38.04); eq(r[2].kg, 60.3);
+    eq(r[0].pf, 0.471); eq(r[1].pf, 0.529); eq(r[2].pf, 0.583);
+    ok(r[0].kg < r[1].kg && r[1].kg < r[2].kg, "la carica cresce col burden: un volume più grande vuole più esplosivo per la stessa mediana");
+    for (const riga of r) eq(riga.fuoriDominio, false, "nessuna riga di questa griglia sana è fuori dominio");
+  });
+  test("Genesi · curvaBurdenCarica: un ingresso illeggibile dà una griglia vuota, non una inventata", () => {
+    eq(genesi.curvaBurdenCarica({ bMin: 2, bMax: 3, passo: 0.5, rapportoSB: 0, prof: 10, A: 9, RWS: 100, x50Target: 30 }), [],
+      "rapporto S/B a zero: nessun interasse leggibile, quindi nessuna riga");
+    eq(genesi.curvaBurdenCarica({ bMin: 3, bMax: 2, passo: 0.5, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: 30 }), [],
+      "il massimo sotto il minimo non produce una griglia al contrario: dichiara vuota");
+    eq(genesi.curvaBurdenCarica({ bMin: 2, bMax: 3, passo: 0, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: 30 }), [],
+      "passo zero girerebbe per sempre: si dichiara vuota, non si va in loop");
+    eq(genesi.curvaBurdenCarica(null), [], "senza opzioni: vuota, non un TypeError");
+  });
+  test("Genesi · curvaBurdenCarica: un obiettivo fuori dominio in mezzo alla griglia si DICHIARA, non si nasconde", () => {
+    /* target grossolano (>100 cm): fuori dal dominio in cui Rosin-Rammler è dichiarato preciso.
+       La riga non sparisce e non mente: il numero c'è, la bandiera pure. */
+    const r = genesi.curvaBurdenCarica({ bMin: 2, bMax: 2, passo: 1, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: 150 });
+    eq(r.length, 1);
+    eq(r[0].troppoGrossolano, true);
+    eq(r[0].fuoriDominio, true, "la bandiera composita segue quella specifica: un difetto qui è un difetto anche nel riepilogo");
+    ok(r[0].kg !== null, "il numero resta calcolato — non è 'non calcolabile', è 'calcolato ma fuori dal dominio dichiarato dal modello'");
+  });
+  test("Genesi · curvaBurdenCarica: il tetto di 200 righe è una difesa, non un limite d'uso", () => {
+    const r = genesi.curvaBurdenCarica({ bMin: 1, bMax: 1000, passo: 0.001, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: 30 });
+    eq(r.length, 200, "un passo scritto a mano fuori misura non produce un array senza fine");
+  });
+}
+/* ===== fine curvaBurdenCarica (14/09) ===== */
+
 
 
 

@@ -5816,6 +5816,44 @@ numero scritto dove non era stato misurato niente**.*
       saperlo.
 - [ ] **G7–G9.** Genesi: ottimizzatore di volata, report professionale,
       rifiniture di scena.
+      ⏱️ **14/09 — scomposizione di G7, prima di scrivere codice** (la stessa
+      disciplina di B0-septies: farlo a metà è la trappola, si scompone
+      prima). Ricerca di fianco raccolta in
+      `docs/RICERCA_CONTINUA_GENESI.md` (sezione 14/09): i concorrenti
+      (BlastLogic, JKSimBlast, SHOTPlus, RIOBLAST) ottimizzano con
+      algoritmi (GA, PSO, simulated annealing, front di Pareto) su tre
+      dimensioni contrastanti — costo, frammentazione, vibrazione — e
+      **nessuno** dei due lo fa in un modulo dati puro: la sequenza di
+      sparo (che decide MIC e quindi PPV) vive in `computeSeq2D`, nella
+      PAGINA, non in `genesi-data.js` (verificato: 0 righe nel modulo,
+      15 nella pagina in tre punti diversi — vedi la correzione del 14/09
+      nella ricerca stessa, che la prima volta aveva sbagliato il conto).
+      ⛔ **Perché "varia il burden e guarda la PPV" non è un trasloco
+      piccolo**: un'iterazione su B/S vera dovrebbe ricalcolare non solo
+      frammentazione e costo (`caricaDaX50Target`, `consumoSpecifico`,
+      `volumeForo` — già pure, già in `genesi-data.js`, riusabili subito)
+      ma anche la MIC, che dipende da come i fori vengono raggruppati e
+      sequenziati — e quella logica non esiste ancora fuori dalla pagina.
+      Costruire un ottimizzatore "vero" (multi-obiettivo, con la PPV)
+      vorrebbe dire O estrarre `computeSeq2D`/`computeInnesco2D` prima
+      (un cantiere B3 a sé, probabilmente nel bucket "11+" per lo stesso
+      censimento che tiene fuori quelle funzioni), O costruire un modello
+      approssimato della MIC dentro l'ottimizzatore stesso — che sarebbe
+      una **terza copia** della stessa domanda (la prima regola di questo
+      file: "una copia nasce quasi sempre da una firma troppo stretta").
+      **La prima fetta onestamente piccola, quindi**: una curva
+      **burden → carica necessaria per la STESSA frammentazione target**
+      (fisso S/B, diametro, roccia, esplosivo — le stesse variabili che
+      `caricaDaX50Target` già accetta), senza toccare vibrazione o
+      sequenza. Dà all'utente la prima metà della domanda del mondo
+      ("che cosa costa cambiare il burden?") con funzioni che esistono
+      già, zero rischio sulla sicurezza (nessuna soglia toccata), e
+      lascia dichiarato — non nascosto — che la seconda metà (PPV, MIC,
+      vero multi-obiettivo) aspetta l'estrazione della sequenza.
+      **Non fatto in questo blocco**: implementarlo va oltre il tempo
+      rimasto in questo ciclo con margine per la verifica come si deve
+      (test con iniezione del difetto, verifica su schermo). Lasciato
+      come prossimo passo atomico scomposto, non come lavoro immaginato.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8098,9 +8136,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo
-  `magliaAssenteMotivo` salita in Genesi, unità G37/B0-septies: +3 in `run-kpi`,
-  2941→2944): **3.425 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2944, `run-stile` 328,
+  `curvaBurdenCarica`, unità G38 (prima fetta scomposta di G7): +4 in `run-kpi`,
+  2944→2948): **3.429 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2948, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
