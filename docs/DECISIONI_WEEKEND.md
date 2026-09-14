@@ -1336,7 +1336,7 @@ condivise su numeri, unità di misura e soldi.
 
 **Le prove automatiche sono passate a 3.425** *(ricontate il 14/09, dopo
 `magliaAssenteMotivo` — G37, B0-septies —, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **275
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **277
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

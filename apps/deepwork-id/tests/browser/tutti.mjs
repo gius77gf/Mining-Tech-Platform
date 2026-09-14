@@ -401,6 +401,12 @@ const BANCHI = [
   ['recettore assente · controprova', 'genesi-recettore-assente.mjs', ['--controprova'], true],
   ['i campi di Genesi che restano vuoti', 'genesi-campi-assenti.mjs', []],
   ['campi vuoti di Genesi · controprova', 'genesi-campi-assenti.mjs', ['--controprova'], true],
+  /* B0-SEPTIES, 14/09: con burden o interasse non numerici `genMaglia2D` non
+     genera più coordinate (prima: tutti i fori sovrapposti sullo stesso
+     punto per coercizione di `null` a zero). Il banco arriva dalla via vera
+     — `localStorage` → Home → «Apri» — la stessa di B0-nonies. */
+  ['la maglia assente di Genesi non si disegna', 'genesi-maglia-assente.mjs', []],
+  ['maglia assente di Genesi · controprova', 'genesi-maglia-assente.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
