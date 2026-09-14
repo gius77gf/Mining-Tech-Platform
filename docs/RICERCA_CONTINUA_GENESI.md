@@ -3318,3 +3318,27 @@ catalogo darebbe falsi "ok" silenziosi sugli altri dodici. Resta
 **candidato, non preso**: servirebbe prima una ricerca dedicata per
 diametro critico per famiglia di prodotto (o il dato del produttore reale
 dietro ciascuna voce del catalogo), non questa ricerca generica.
+
+## Nota del 2026-09-14T16:28:01Z — chiusura del delta G8: il requisito MSHA "numero di persone presenti" appartiene a Campo, non a Genesi
+
+Chiudendo il confronto con la ricerca "che cosa contiene davvero un
+rapporto di volata" (13/09) dopo aver costruito G8 (firma del
+responsabile del tiro nel Report volata), resta un solo punto della
+sezione 1 (requisiti MSHA) non ancora confrontato col codice: il
+registro permanente richiesto da MSHA include, oltre a geometria/carica/
+sequenza/vibrazioni (tutti già nel Report volata), il **"numero di
+persone presenti al momento del brillamento"**.
+
+**Verificato, non dedotto**: è un dato di ESECUZIONE (chi c'era quando
+si è sparato), non di PROGETTO — e Genesi è un simulatore di
+progettazione, non un registro di cantiere. `grep -n "appelloTurno" apps/campo/campo-data.js` →
+la funzione esiste già (riga 1030) e implementa esattamente questo
+concetto per l'app che tiene il turno reale ("l'appello del turno: chi
+c'è in cava adesso"), con lo stesso principio del fondatore già
+applicato lì ("chi nessuno ha spuntato non si conta né presente né
+assente"). Nessun gap per Genesi: il dato appartiene a un'altra app
+dell'ecosistema che lo tiene già, non a un report di progettazione che
+si genera prima dello sparo.
+
+G8 resta chiuso nella forma già costruita (firma) più questa
+verifica: nessun'altra azione.
