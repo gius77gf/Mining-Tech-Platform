@@ -1218,7 +1218,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
          ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo,
-         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone,
+         quotaCresta, distanzaDaSpezzata, spaziaturaTipica, tempoInPunto, passoIsocrone, isoPasso,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
@@ -5658,7 +5658,8 @@ function simulaPerforazione(N){
    ./genesi-data.js — la funzione era marcata «più di dieci» variabili del
    modulo, falso positivo del censimento (la sua dipendenza vera è solo D2),
    letta a mano e spostata parola per parola. Qui resta il legame con lo
-   stato, come già per `_spazTipico`/`isoPasso`/`reliefCls`. */
+   stato, come già per `_spazTipico`/`reliefCls` (⚠️ `isoPasso` è uscita
+   anche lei il 14/09, B3: non è più un legame di pagina). */
 function computeInnesco2D(){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
 /* un ritardo è realizzabile se esiste il raccordo (o se si usa l'elettronico) */
 function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); }   // legame con lo stato: il conto è in genesi-data.js (G25)
@@ -5674,15 +5675,16 @@ function innTaglioOk(dt){ return taglioRealizzabile(dt, D2.innesco, INN_TAGLI); 
    il piano la riproduce fedelmente; il termine di regolarizzazione fa reggere anche
    il caso di una fila sola, dove il piano degenera in una retta. */
 /* ⛔ I CONTI NON SONO PIÙ QUI: `spaziaturaTipica`, `tempoInPunto` e `passoIsocrone` (con la scala
-   `ISO_PASSI`) stanno in `./genesi-data.js`, blocco G24 (10/09). Qui restano i due legami con lo
-   stato: il ripiego della spaziatura viene dal progetto, il passo dalla scelta a schermo. */
+   `ISO_PASSI`) stanno in `./genesi-data.js`, blocco G24 (10/09). Qui resta il legame con lo
+   stato per la spaziatura, il cui ripiego viene dal progetto.
+   Trasloco B3 (14/09): il legame del passo (`isoPasso`) è uscito anche lui — `D2` come primo
+   argomento esplicito, come già per `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`. */
 function _spazTipico(H){ return spaziaturaTipica(H, Math.max(D2.S||3.5, D2.B||3)); }
-function isoPasso(){ return passoIsocrone(D2.isoStep, D2.lastDet); }
 /* ⛔ `isoColore` è salita in `genesi-data.js` (blocco G10) il 09/08. */
 function drawIsocrone2D(ctx,g){
   const H=D2.holes; if(!H||H.length<2) return null;
   const T=D2.lastDet||0; if(T<0.5) return null;              // volata praticamente istantanea: non c'e nulla da separare
-  const passo=isoPasso(), livelli=[];
+  const passo=isoPasso(D2), livelli=[];
   for(let L=passo; L<T-1e-6; L+=passo) livelli.push(+L.toFixed(3));
   if(!livelli.length) return {passo:passo, n:0};
   const sp=_spazTipico(H), h2=Math.pow(1.15*sp,2), mask=Math.max(1.15*sp, (D2.B||3)*0.9);
@@ -7418,7 +7420,7 @@ function syncLayerUI(){
   if($('dlSnapPassoF')) $('dlSnapPassoF').classList.toggle('on', !!D2.snap);
 }
 if($('dlIso')) $('dlIso').addEventListener('click', ()=>{ D2.iso=!D2.iso; syncLayerUI(); drawDesign2D();
-  if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso()+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
+  if(typeof toast==='function') toast(D2.iso?('Isocrone attive — passo '+isoPasso(D2)+' ms: ogni curva unisce i punti che sparano nello stesso istante'):'Isocrone disattivate'); });
 if($('dlRel')) $('dlRel').addEventListener('click', ()=>{ D2.rel=!D2.rel; syncLayerUI(); drawDesign2D(); renderInspector();
   if(typeof toast==='function') toast(D2.rel?('Relief per foro attivo — finestra '+fmtMs(D2.relLo)+'–'+fmtMs(D2.relHi)+' ms/m'):'Mappa del relief disattivata'); });
 if($('dlEne')) $('dlEne').addEventListener('click', ()=>{ D2.ene=!D2.ene; syncLayerUI(); drawDesign2D(); renderInspector();

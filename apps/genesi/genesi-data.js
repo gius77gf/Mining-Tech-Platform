@@ -2930,6 +2930,7 @@ export function passoIsocrone(passoScelto, ultimaDetonazione){
   for(let i=0;i<ISO_PASSI.length;i++) if(T/ISO_PASSI[i]<=10) return ISO_PASSI[i];   // ~6-10 curve: leggibili senza affollare
   return ISO_PASSI[ISO_PASSI.length-1];
 }
+export function isoPasso(D2){ return passoIsocrone(D2.isoStep, D2.lastDet); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    G25 · LE FILE DEI FORI, I TAGLI DEI RACCORDI E LE CELLE DEL CONFRONTO A/B

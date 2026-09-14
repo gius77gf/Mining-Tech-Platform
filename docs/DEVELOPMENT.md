@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.456 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `computeEnergia2D`, cantiere B3: 2975 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.457 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `isoPasso`, cantiere B3: 2976 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.921** asserzioni su **40** comandi.
+> `node` completo esegue **3.922** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **321 su 321** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **157/157**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **322 su 322** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **158/158**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **151 funzioni** stanno dentro
+importa. **Genesi no**: le sue **150 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,18 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **56** |
+| una o due | **55** |
 | da tre a cinque | 15 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **64 su 151 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **63 su 150 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 87 sono una decisione di architettura.
+⏱️ *56→55, 64→63 e 151→150 il 14/09 (B3, stesso giorno): `isoPasso`, stesso
+schema (`isoPasso(D2)`), componeva solo `passoIsocrone` già pura dal blocco
+G24 (10/09) — come `computeEnergia2D`, esce DEL TUTTO dalla pagina (nessun
+wrapper: due punti di chiamata, entrambi aggiornati a `isoPasso(D2)`).
+Nessuno spostamento di bucket per altre funzioni.*
 ⏱️ *57→56, 65→64 e 152→151 il 14/09 (B3, stesso giorno): `computeEnergia2D`
 è uscita dalla pagina DEL TUTTO (non lascia un wrapper: era void, un solo
 punto di chiamata dentro `computeSeq2D`), stesso schema

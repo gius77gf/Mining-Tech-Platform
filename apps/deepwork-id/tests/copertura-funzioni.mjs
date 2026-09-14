@@ -528,8 +528,14 @@ const CONDIVISI = [
      misurato confrontando `--elenco` prima/dopo è che `computeSeq2D`
      perde `computeEnergia2D` dal proprio elenco "chiama": non è più una
      funzione della pagina da chiamare, è un import — nessuno
-     spostamento di bucket vero. */
-  { file: "apps/genesi/genesi-data.js", fondo: 157,
+     spostamento di bucket vero.
+     157 → 158 il 14/09 (B3, stesso giorno): `isoPasso`, stesso schema
+     (`isoPasso(D2)`), componeva solo `passoIsocrone` già pura dal
+     blocco G24 (10/09) — come `computeEnergia2D`, esce DEL TUTTO dalla
+     pagina (nessun wrapper: due punti di chiamata, entrambi aggiornati
+     a `isoPasso(D2)`). Nessuno spostamento di bucket per altre
+     funzioni, misurato confrontando `--elenco` prima/dopo. */
+  { file: "apps/genesi/genesi-data.js", fondo: 158,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

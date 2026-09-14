@@ -25845,16 +25845,24 @@ console.log("\n— Campo: i file che escono —");
     eq(v.passoIsocrone(0, 99999), 1000, "oltre la scala: l'ultimo passo, senza inventarne uno");
     eq(v.ISO_PASSI, [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000], "la scala, letta dal modulo");
   });
-  test("⛔ Genesi · G24: nella pagina i conti non ci sono più, e i tre legami restano", () => {
+  test("⛔ Genesi · G24: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche isoPasso è uscita, due legami restano)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI/g) || []).length, 0, "le vecchie funzioni e la scala non ci sono più");
+    eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI|function isoPasso/g) || []).length, 0, "le vecchie funzioni, la scala e il legame del passo non ci sono più");
     ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è il legame con P");
     ok(/function _spazTipico\(H\)\{ return spaziaturaTipica\(H, Math\.max\(D2\.S\|\|3\.5, D2\.B\|\|3\)\); \}/.test(pag), "_spazTipico passa il ripiego di progetto");
-    ok(/function isoPasso\(\)\{ return passoIsocrone\(D2\.isoStep, D2\.lastDet\); \}/.test(pag), "isoPasso passa la scelta a schermo");
+    ok(typeof v.isoPasso === "function", "isoPasso vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/isoPasso\(D2\)/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
     eq((pag.match(/distanzaDaSpezzata\(/g) || []).length, 1, "un solo chiamante nella pagina, la scheda dei fori (⚠️ 2→1 il 14/09, G41: energia 2D è salita in genesi-data.js, stessa famiglia di G39/G40)");
     eq((pag.match(/tempoInPunto\(/g) || []).length, 1, "e il campo dei tempi lo chiama solo il disegno delle isocrone");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone"].every((n) => elenco.includes(n)), "la pagina importa tutt'e cinque");
+    ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone", "isoPasso"].every((n) => elenco.includes(n)), "la pagina importa tutt'e sei");
+  });
+  test("⛔ Genesi · isoPasso (B3, trasloco con cambio di firma)", () => {
+    eq(v.isoPasso({ isoStep: 7, lastDet: 462 }), 7, "il passo scelto vince, passato dallo stato del progetto");
+    eq(v.isoPasso({ isoStep: 0, lastDet: 462 }), v.passoIsocrone(0, 462), "senza scelta compone passoIsocrone, non lo ricalcola");
+    eq(v.isoPasso({ isoStep: null, lastDet: 84 }), 10);
+    eq(v.isoPasso({ isoStep: undefined, lastDet: 0 }), 1, "volata istantanea: il primo passo");
+    ok(v.isoPasso({ isoStep: 5, lastDet: 462 }) !== v.isoPasso({ isoStep: 462, lastDet: 5 }), "isoStep e lastDet non sono intercambiabili: scambiarli cambia il risultato");
   });
 
   /* ⛔ G25 — LE FILE DEI FORI, I TAGLI DEI RACCORDI, LE CELLE DEL CONFRONTO A/B
