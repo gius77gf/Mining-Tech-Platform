@@ -471,8 +471,13 @@ const CONDIVISI = [
      148 → 149 il 14/09 (G41, cantiere B3, stesso giorno): `energiaSuMaglia`,
      sesta volta sulla stessa famiglia — salita da `computeEnergia2D`.
      `interpFronte(mx)` (wrapper di pagina) è diventata `interpProf(profilo,
-     mx)` nella forma pura, con `D2.profilo` passato come parametro esplicito. */
-  { file: "apps/genesi/genesi-data.js", fondo: 149,
+     mx)` nella forma pura, con `D2.profilo` passato come parametro esplicito.
+     149 → 150 il 14/09 (G42, cantiere B3, stesso giorno, ULTIMA fetta del
+     gruppo): `sequenzaSuMaglia`, salita da `computeSeq2D` — settima volta
+     sulla stessa famiglia. Fa solo il calcolo (tCalc/tDet/seq, `lastDet`
+     come valore di ritorno); l'orchestrazione delle altre tre (relief,
+     energia, innesco) resta nel wrapper di pagina, per scelta dichiarata. */
+  { file: "apps/genesi/genesi-data.js", fondo: 150,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

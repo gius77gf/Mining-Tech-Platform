@@ -26076,6 +26076,69 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("energiaSuMaglia"), "la pagina importa la funzione");
   });
 
+  /* ⛔ G42 — LA SEQUENZA DI SPARO FORO PER FORO (14/09, cantiere B3, ULTIMA
+     fetta del gruppo G39/G40/G41, stessa famiglia di falso positivo).
+     `sequenzaSuMaglia` fa solo il calcolo (tCalc/tDet/seq, lastDet come
+     valore di ritorno); l'orchestrazione (chiamare relief/energia/innesco
+     dopo) resta nel wrapper di pagina — è una decisione dichiarata, non un
+     trasloco a metà: vedi il commento in testa al blocco G42 del modulo. */
+  test("⛔ Genesi · sequenzaSuMaglia: identica alla vecchia forma inline, su una maglia diagonale", () => {
+    const vecchia = (H, tHole, tRowRaw, S, dir, sequenza) => {
+      if (!H.length) return 0;
+      const tRow = tRowRaw || tHole * 2, Snom = S || 3.5;
+      const mxs = H.map((h) => h.mx), minMx = Math.min(...mxs), maxMx = Math.max(...mxs), cxMx = (minMx + maxMx) / 2;
+      const rys = [...new Set(H.map((h) => Math.round(h.my * 10)))].sort((a, b) => a - b);
+      const nRow = rys.length, centerRow = (nRow - 1) / 2, seq = sequenza || "diagonale";
+      H.forEach((h) => {
+        const rowI = rys.indexOf(Math.round(h.my * 10));
+        const cd = (dir === "sx" ? (h.mx - minMx) : (maxMx - h.mx)) / Snom;
+        const cc = Math.abs(h.mx - cxMx) / Snom;
+        let t;
+        if (seq === "vcut") t = rowI * tRow + cc * tHole;
+        else if (seq === "box") t = Math.abs(rowI - centerRow) * tRow + cc * tHole;
+        else if (seq === "riga") t = rowI * tRow + cd * 1.5;
+        else t = rowI * tRow + cd * tHole;
+        h.tCalc = +t.toFixed(1);
+        h.tDet = (h.tMano != null && isFinite(h.tMano)) ? +(+h.tMano).toFixed(1) : h.tCalc;
+      });
+      H.map((h, i) => i).sort((a, b) => H[a].tDet - H[b].tDet).forEach((i, k) => { H[i].seq = k; });
+      return Math.max(...H.map((h) => h.tDet));
+    };
+    const casi = [
+      () => [{ mx: 0, my: 0 }, { mx: 3.5, my: 0 }, { mx: 7, my: 0 }, { mx: 0, my: 3 }, { mx: 3.5, my: 3 }, { mx: 7, my: 3 }],
+      () => Array.from({ length: 20 }, (_, i) => ({ mx: (i % 5) * 3.2 + Math.sin(i) * 0.3, my: Math.floor(i / 5) * 3.0, tMano: i === 7 ? 12.5 : null })),
+      () => [{ mx: 5, my: 0 }],
+      () => [{ mx: 0, my: 0 }, { mx: 0, my: 0 }, { mx: 6, my: 0 }],
+      () => [],
+    ];
+    const varianti = [];
+    for (const sequenza of ["diagonale", "vcut", "box", "riga"]) for (const dir of ["sx", "dx"]) varianti.push([42, dir === "dx" ? null : 84, 3.5, dir, sequenza]);
+    for (const gen of casi) for (const [tHole, tRow, S, dir, sequenza] of varianti) {
+      const A = gen(), B = gen();
+      const lastA = vecchia(A, tHole, tRow, S, dir, sequenza);
+      const lastB = genesi.sequenzaSuMaglia(B, tHole, tRow, S, dir, sequenza);
+      eq(lastB, lastA, `${A.length} fori, ${sequenza}/${dir}: lastDet deve coincidere`);
+      eq(B, A, `${A.length} fori, ${sequenza}/${dir}: la nuova forma deve coincidere byte per byte con la vecchia`);
+    }
+  });
+  test("⛔ Genesi · sequenzaSuMaglia: senza fori non tocca niente, ritorna 0, non solleva errori", () => {
+    eq(genesi.sequenzaSuMaglia(null, 42, 84, 3.5, "sx", "diagonale"), 0);
+    eq(genesi.sequenzaSuMaglia(undefined, 42, 84, 3.5, "sx", "diagonale"), 0);
+    const vuoto = []; eq(genesi.sequenzaSuMaglia(vuoto, 42, 84, 3.5, "sx", "diagonale"), 0); eq(vuoto, []);
+  });
+  test("⛔ Genesi · G42: nella pagina il conto non c'è più, l'orchestrazione e il legame restano", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/D2\.lastDet ?= ?sequenzaSuMaglia\(D2\.holes, ?D2\.ritardo, ?D2\.ritardoFila, ?D2\.S, ?D2\.dir, ?D2\.sequenza\);/.test(pag),
+      "computeSeq2D è il legame fra lo stato e la funzione pura");
+    ok(/function computeSeq2D\(\)\{/.test(pag), "computeSeq2D esiste ancora");
+    eq((pag.match(/computeRelief2D\(\);/g) || []).length >= 1, true, "e orchestra ancora relief");
+    eq((pag.match(/computeEnergia2D\(\);/g) || []).length >= 1, true, "e orchestra ancora energia");
+    eq((pag.match(/computeInnesco2D\(\);/g) || []).length >= 1, true, "e orchestra ancora innesco");
+    eq((pag.match(/h\.tDet = \(h\.tMano/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("sequenzaSuMaglia"), "la pagina importa la funzione");
+  });
+
   /* ⛔ G27 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE (10/09, nona fetta di
      B3): la miniatura SVG del composito, la base della previsione PPV, la
      tinta della roccia, e `fmtT` in `genesi-formato.js`. Entrate identiche

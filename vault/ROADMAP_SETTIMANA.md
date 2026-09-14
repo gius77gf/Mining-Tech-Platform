@@ -5824,23 +5824,35 @@ numero scritto dove non era stato misurato niente**.*
       algoritmi (GA, PSO, simulated annealing, front di Pareto) su tre
       dimensioni contrastanti — costo, frammentazione, vibrazione — e
       **nessuno** dei due lo fa in un modulo dati puro: la sequenza di
-      sparo (che decide MIC e quindi PPV) vive in `computeSeq2D`, nella
+      sparo (che decide MIC e quindi PPV) viveva in `computeSeq2D`, nella
       PAGINA, non in `genesi-data.js` (verificato: 0 righe nel modulo,
       15 nella pagina in tre punti diversi — vedi la correzione del 14/09
       nella ricerca stessa, che la prima volta aveva sbagliato il conto).
-      ⛔ **Perché "varia il burden e guarda la PPV" non è un trasloco
-      piccolo**: un'iterazione su B/S vera dovrebbe ricalcolare non solo
-      frammentazione e costo (`caricaDaX50Target`, `consumoSpecifico`,
-      `volumeForo` — già pure, già in `genesi-data.js`, riusabili subito)
-      ma anche la MIC, che dipende da come i fori vengono raggruppati e
-      sequenziati — e quella logica non esiste ancora fuori dalla pagina.
-      Costruire un ottimizzatore "vero" (multi-obiettivo, con la PPV)
-      vorrebbe dire O estrarre `computeSeq2D`/`computeInnesco2D` prima
-      (un cantiere B3 a sé, probabilmente nel bucket "11+" per lo stesso
-      censimento che tiene fuori quelle funzioni), O costruire un modello
-      approssimato della MIC dentro l'ottimizzatore stesso — che sarebbe
-      una **terza copia** della stessa domanda (la prima regola di questo
-      file: "una copia nasce quasi sempre da una firma troppo stretta").
+      ✅ **14/09, STESSO GIORNO, LA BARRIERA È CADUTA — il cantiere B3
+      (`innescoSuMaglia`/G39, `reliefSuMaglia`/G40, `energiaSuMaglia`/G41,
+      `sequenzaSuMaglia`/G42) l'ha estratta tutta.** Non era un rifacimento
+      da bucket "11+": era un falso positivo del censimento statico
+      (`genesi-estraibili.mjs` confondeva parole interne con `const`
+      omonimi dichiarati altrove nel file), letto a mano ogni volta — la
+      dipendenza vera di tutt'e quattro le funzioni era solo `D2`. Le
+      quattro funzioni pure vivono ora in `genesi-data.js`, verificate
+      byte per byte contro la vecchia forma inline, con iniezione del
+      difetto storico su ciascuna. `computeSeq2D` (il wrapper di pagina)
+      orchestra ancora le altre tre dopo il calcolo — è una decisione
+      dichiarata (l'ordine delle chiamate resta di pagina), non un residuo
+      del vecchio blocco.
+      ⛔ **Perché "varia il burden e guarda la PPV" non era un trasloco
+      piccolo, e adesso lo È**: un'iterazione su B/S vera deve ricalcolare
+      non solo frammentazione e costo (`caricaDaX50Target`,
+      `consumoSpecifico`, `volumeForo` — già pure) ma anche la MIC, che
+      dipende da come i fori vengono raggruppati e sequenziati — logica
+      che ora ESISTE fuori dalla pagina (`sequenzaSuMaglia` +
+      `innescoSuMaglia`). Costruire un ottimizzatore "vero"
+      (multi-obiettivo, con la PPV) può riusare queste funzioni pure
+      direttamente, senza costruire un modello approssimato della MIC
+      dentro l'ottimizzatore stesso — che sarebbe stato una **terza copia**
+      della stessa domanda (la prima regola di questo file: "una copia
+      nasce quasi sempre da una firma troppo stretta").
       **La prima fetta onestamente piccola, quindi**: una curva
       **burden → carica necessaria per la STESSA frammentazione target**
       (fisso S/B, diametro, roccia, esplosivo — le stesse variabili che
@@ -8136,9 +8148,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo
-  `energiaSuMaglia`, unità G41 (cantiere B3): +3 in `run-kpi`,
-  2954→2957): **3.438 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2957, `run-stile` 328,
+  `sequenzaSuMaglia`, unità G42 (cantiere B3): +3 in `run-kpi`,
+  2957→2960): **3.441 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2960, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

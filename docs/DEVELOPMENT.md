@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.438 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo `energiaSuMaglia` — G41, cantiere B3: 2957 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.441 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo `sequenzaSuMaglia` — G42, cantiere B3: 2960 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.897** asserzioni su **40** comandi.
+> `node` completo esegue **3.900** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **313 su 313** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **149/149**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **314 su 314** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **150/150**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -126,13 +126,17 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **52** |
+| una o due | **53** |
 | da tre a cinque | 15 |
 | da sei a dieci | 19 |
-| più di dieci — lì è un rifacimento | 38 |
+| più di dieci — lì è un rifacimento | 37 |
 
-Cioè **60 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
-stato**, e le restanti 87 sono una decisione di architettura.
+Cioè **61 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
+stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *38→37 il 14/09 (G42), stesso giorno, ULTIMA fetta del gruppo:
+`computeSeq2D` è diventata un legame di poche righe (`sequenzaSuMaglia` è
+salita in `genesi-data.js`), settima volta sulla stessa famiglia di falso
+positivo di G39/G40/G41. Il 60 sale a 61 per la stessa ragione.*
 ⏱️ *39→38 il 14/09 (G41), stesso giorno: `computeEnergia2D` è diventata un
 legame di una riga (`energiaSuMaglia` è salita in `genesi-data.js`), sesta
 volta sulla stessa famiglia di falso positivo di G39/G40. Il 59 sale a 60 per

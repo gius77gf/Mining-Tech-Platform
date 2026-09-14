@@ -3162,6 +3162,47 @@ export function energiaSuMaglia(H, prof, S, kg, profilo){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   G42 · LA SEQUENZA DI SPARO FORO PER FORO (14/09, cantiere B3, ULTIMA
+   fetta del gruppo diagnosticato con `computeInnesco2D`/G39,
+   `computeRelief2D`/G40, `computeEnergia2D`/G41).
+   ═══════════════════════════════════════════════════════════════════════════
+   Ottava volta sulla stessa famiglia di falso positivo di `genesi-estraibili.mjs`.
+   Letta a mano: la dipendenza vera è `D2.holes`, `D2.ritardo`,
+   `D2.ritardoFila`, `D2.S`, `D2.dir`, `D2.sequenza` (`h.tMano` è una
+   proprietà per foro, non un campo di `D2`).
+   ⚠️ SCELTA ARCHITETTURALE (dichiarata, non presa di default): questa
+   funzione pura fa SOLO il calcolo di `tCalc`/`tDet`/`seq` e ritorna il
+   `lastDet` (il tempo più tardo). NON chiama `reliefSuMaglia`/
+   `energiaSuMaglia`/`innescoSuMaglia` al suo interno, anche se sono ormai
+   tutte pure e nello stesso modulo: comporle è una decisione di
+   ORCHESTRAZIONE (in che ordine si ricalcola la pagina dopo un cambio di
+   sequenza), non di calcolo, e resta nel wrapper di pagina — lo stesso
+   principio per cui `shared/dw-ponti.js` tiene la logica FRA le app e non
+   la duplica, applicato qui alla logica FRA le fasi del progetto. Il
+   trasloco resta "parola per parola" sul calcolo, non un rifacimento. */
+export function sequenzaSuMaglia(H, tHole, tRowRaw, S, dir, sequenza){
+  if(!H||!H.length) return 0;
+  const tRow=tRowRaw||tHole*2, Snom=S||3.5;
+  const mxs=H.map(h=>h.mx), minMx=Math.min(...mxs), maxMx=Math.max(...mxs), cxMx=(minMx+maxMx)/2;
+  const rys=[...new Set(H.map(h=>Math.round(h.my*10)))].sort((a,b)=>a-b);
+  const nRow=rys.length, centerRow=(nRow-1)/2, seq=sequenza||'diagonale';
+  H.forEach(h=>{
+    const rowI=rys.indexOf(Math.round(h.my*10));
+    const cd=(dir==='sx'?(h.mx-minMx):(maxMx-h.mx))/Snom;
+    const cc=Math.abs(h.mx-cxMx)/Snom;
+    let t;
+    if(seq==='vcut') t=rowI*tRow + cc*tHole;
+    else if(seq==='box') t=Math.abs(rowI-centerRow)*tRow + cc*tHole;
+    else if(seq==='riga') t=rowI*tRow + cd*1.5;
+    else t=rowI*tRow + cd*tHole;
+    h.tCalc=+t.toFixed(1);
+    h.tDet = (h.tMano!=null && isFinite(h.tMano)) ? +(+h.tMano).toFixed(1) : h.tCalc;
+  });
+  H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
+  return Math.max(...H.map(h=>h.tDet));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
    del composito, la base della previsione PPV, la tinta della roccia
    (10/09, cantiere B3, nona fetta).

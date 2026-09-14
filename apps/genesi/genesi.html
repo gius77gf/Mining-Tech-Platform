@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5393,30 +5393,15 @@ function genMaglia2D(){
   D2.holes=holes; D2.sel=-1; D2.selPrev=-1; computeSeq2D();
   if(aMano && typeof toast==='function') toast('Maglia rigenerata: '+(aMano===1?'il ritardo messo a mano non vale più':'i '+aMano+' ritardi messi a mano non valgono più'));
 }
+/* ⛔ Trasloco G42 (14/09, cantiere B3, ultima fetta del gruppo): il conto
+   vero è `sequenzaSuMaglia` in ./genesi-data.js — stessa famiglia di falso
+   positivo di G39/G40/G41, dipendenza vera D2.holes/ritardo/ritardoFila/S/
+   dir/sequenza. L'orchestrazione (chi si ricalcola dopo, in che ordine)
+   resta qui: è una decisione di pagina, non di calcolo (vedi il commento
+   in testa a G42 in genesi-data.js). */
 function computeSeq2D(){
-  const H=D2.holes; if(!H.length){ D2.lastDet=0; return; }
-  const tHole=D2.ritardo, tRow=D2.ritardoFila||tHole*2, S=D2.S||3.5;
-  const mxs=H.map(h=>h.mx), minMx=Math.min(...mxs), maxMx=Math.max(...mxs), cxMx=(minMx+maxMx)/2;
-  const rys=[...new Set(H.map(h=>Math.round(h.my*10)))].sort((a,b)=>a-b);
-  const nRow=rys.length, centerRow=(nRow-1)/2, seq=D2.sequenza||'diagonale';
-  H.forEach(h=>{
-    const rowI=rys.indexOf(Math.round(h.my*10));
-    const cd=(D2.dir==='sx'?(h.mx-minMx):(maxMx-h.mx))/S;   // col dal lato di partenza
-    const cc=Math.abs(h.mx-cxMx)/S;                          // col dal centro
-    let t;
-    if(seq==='vcut') t=rowI*tRow + cc*tHole;                 // V: dal centro verso i lati (converge)
-    else if(seq==='box') t=Math.abs(rowI-centerRow)*tRow + cc*tHole;  // radiale dal centro
-    else if(seq==='riga') t=rowI*tRow + cd*1.5;              // fila quasi simultanea (~1,5 ms/foro): isocrona parallela al fronte, MIC alta
-    else t=rowI*tRow + cd*tHole;                             // diagonale: dal lato di partenza
-    h.tCalc=+t.toFixed(1);                                   // il tempo che esce dallo schema scelto
-    /* G4 — ritardo messo a mano su un singolo foro. In cava capita: un foro
-       va spostato nella sequenza per una frattura, un vuoto, un edificio da
-       proteggere. Il valore a mano vince sullo schema, ma resta riconoscibile
-       e si può togliere: non si perde traccia di qual era il tempo calcolato. */
-    h.tDet = (h.tMano!=null && isFinite(h.tMano)) ? +(+h.tMano).toFixed(1) : h.tCalc;
-  });
-  H.map((h,i)=>i).sort((a,b)=>H[a].tDet-H[b].tDet).forEach((i,k)=>{ H[i].seq=k; });
-  D2.lastDet = Math.max(...H.map(h=>h.tDet));
+  D2.lastDet = sequenzaSuMaglia(D2.holes, D2.ritardo, D2.ritardoFila, D2.S, D2.dir, D2.sequenza);
+  if(!D2.holes.length) return;
   computeRelief2D();                                         // il relief dipende solo dai tDet appena calcolati
   computeEnergia2D();                                        // il consumo specifico dipende solo dalle posizioni: nessun tempo in gioco
   computeInnesco2D();                                        // la rete di collegamento si ricostruisce dai tempi appena calcolati
