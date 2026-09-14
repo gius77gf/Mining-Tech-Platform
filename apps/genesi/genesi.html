@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5467,43 +5467,11 @@ function reliefCls(r){ return classeRelief(r, D2.relLo, D2.relHi); }
      su un fronte storto si accorcia dove la roccia sporge (è lì che nascono le
      proiezioni) anche se il foro è stato messo alla distanza di progetto.
    ⛔ È `distanzaDaSpezzata` in `./genesi-data.js` (blocco G24, 10/09): nessuna variabile della pagina. */
-function computeEnergia2D(){
-  const H=D2.holes; if(!H||!H.length) return;
-  const file=fileDeiFori(H), Hb=Math.max(0.5,D2.prof||10), Snom=Math.max(0.5,D2.S||3.5);
-  /* la faccia libera campionata: la spezzata su cui misurare il burden della
-     prima fila, estesa mezzo interasse oltre i fori di bordo */
-  const xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
-  const passo=Math.max(.15,(x1-x0)/240), faccia=[];
-  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
-  for(let r=0;r<file.length;r++){
-    const f=file[r];
-    const ord=f.holes.slice().sort((a,b)=>H[a].mx-H[b].mx);
-    /* la fila davanti: per la prima è la faccia libera, per le altre la
-       spezzata che passa per i fori della fila precedente */
-    const davanti = r>0
-      ? file[r-1].holes.slice().sort((a,b)=>H[a].mx-H[b].mx).map(i=>[H[i].mx, H[i].my+interpFronte(H[i].mx)])
-      : faccia;
-    for(let k=0;k<ord.length;k++){
-      const h=H[ord[k]];
-      const sx = k>0 ? (h.mx-H[ord[k-1]].mx)/2 : Snom/2;     // ai bordi non c'è un vicino: gli tocca mezzo interasse nominale
-      const dx = k<ord.length-1 ? (H[ord[k+1]].mx-h.mx)/2 : Snom/2;
-      const py=h.my+interpFronte(h.mx);
-      const yPrec = r>0 ? file[r-1].my : 0;
-      const b=Math.max(.2, h.my-yPrec);                      // la striscia di roccia che gli tocca: questo fa il volume
-      const dPerp = (davanti.length>1) ? distanzaDaSpezzata(h.mx,py,davanti) : null;
-      h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null; // quanto ha davvero davanti, misurato in perpendicolare
-      const s=Math.max(.2, sx+dx), vol=b*s*Hb;
-      h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
-      /* ⚠️ QUINTA E SESTA COPIA DELLA STESSA DIVISIONE (qui e in `pfNominale`
-         due righe più giù): con la carica per foro illeggibile davano **0**, e
-         la riga «Energia per foro» della scheda usciva «0,000–0,000 kg/m³ ·
-         0 diluiti / 0 concentrati» col pallino **VERDE** — cioè dichiarava una
-         distribuzione perfetta della carica su una carica mai letta. */
-      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(D2.kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
-      h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
-    }
-  }
-}
+/* ⛔ Trasloco G41 (14/09, cantiere B3): il conto vero è `energiaSuMaglia` in
+   ./genesi-data.js — stessa famiglia di falso positivo di G39/G40, dipendenza
+   vera D2.holes/prof/S/kg/profilo. `interpFronte(mx)` (wrapper di pagina) è
+   diventata `interpProf(D2.profilo, mx)` dentro la forma pura. */
+function computeEnergia2D(){ energiaSuMaglia(D2.holes, D2.prof, D2.S, D2.kg, D2.profilo); }
 /* Il consumo specifico MEDIO di progetto: il riferimento con cui si giudica
    quello del singolo foro. `null` quando la carica per foro NON è leggibile —
    e, dal 09/08, anche quando non lo è la GEOMETRIA su cui si dividerebbe.

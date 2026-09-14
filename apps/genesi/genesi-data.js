@@ -3119,6 +3119,49 @@ export function innescoSuMaglia(H, S, B){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   G41 · LA MAPPA DELL'ENERGIA FORO PER FORO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   Sesta volta sulla stessa famiglia di falso positivo di `genesi-estraibili.mjs`
+   già diagnosticata per G39/G40: `computeEnergia2D` era marcata «più di dieci
+   variabili del modulo» per l'incrocio fra parole interne (`file`, `faccia`,
+   `davanti`, `ord`…) e `const` omonimi dichiarati altrove nel file a bassa
+   indentazione. Letta a mano: la dipendenza vera è `D2.holes`, `D2.prof`,
+   `D2.S`, `D2.kg` e `D2.profilo` (quest'ultimo passato esplicitamente, perché
+   `interpFronte(mx)` nella pagina è un wrapper di una riga che legge
+   `D2.profilo` e delega a `interpProf` — già pura, sopra in questo stesso
+   file — sostituito qui dalla chiamata diretta `interpProf(profilo, mx)`).
+   Nessuna riga di logica cambiata: trasloco parola per parola, firma nuova
+   `energiaSuMaglia(H, prof, S, kg, profilo)`. */
+export function energiaSuMaglia(H, prof, S, kg, profilo){
+  if(!H||!H.length) return;
+  const file=fileDeiFori(H), Hb=Math.max(0.5,prof||10), Snom=Math.max(0.5,S||3.5);
+  const xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
+  const passo=Math.max(.15,(x1-x0)/240), faccia=[];
+  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpProf(profilo,x)]);
+  for(let r=0;r<file.length;r++){
+    const f=file[r];
+    const ord=f.holes.slice().sort((a,b)=>H[a].mx-H[b].mx);
+    const davanti = r>0
+      ? file[r-1].holes.slice().sort((a,b)=>H[a].mx-H[b].mx).map(i=>[H[i].mx, H[i].my+interpProf(profilo,H[i].mx)])
+      : faccia;
+    for(let k=0;k<ord.length;k++){
+      const h=H[ord[k]];
+      const sx = k>0 ? (h.mx-H[ord[k-1]].mx)/2 : Snom/2;
+      const dx = k<ord.length-1 ? (H[ord[k+1]].mx-h.mx)/2 : Snom/2;
+      const py=h.my+interpProf(profilo,h.mx);
+      const yPrec = r>0 ? file[r-1].my : 0;
+      const b=Math.max(.2, h.my-yPrec);
+      const dPerp = (davanti.length>1) ? distanzaDaSpezzata(h.mx,py,davanti) : null;
+      h.burdenVero = dPerp!=null ? +dPerp.toFixed(2) : null;
+      const s=Math.max(.2, sx+dx), vol=b*s*Hb;
+      h.burdenLoc=+b.toFixed(2); h.spazLoc=+s.toFixed(2);
+      h.volLoc=+vol.toFixed(1); { const _p=consumoSpecifico(kg, vol); h.pfLoc = _p===null?null:+_p.toFixed(3); }
+      h.enX0=h.mx-sx; h.enX1=h.mx+dx; h.enY0=yPrec; h.enY1=h.my; h.enFila=r;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
    del composito, la base della previsione PPV, la tinta della roccia
    (10/09, cantiere B3, nona fetta).

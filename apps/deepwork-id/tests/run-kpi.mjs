@@ -25819,7 +25819,7 @@ console.log("\n— Campo: i file che escono —");
     ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è il legame con P");
     ok(/function _spazTipico\(H\)\{ return spaziaturaTipica\(H, Math\.max\(D2\.S\|\|3\.5, D2\.B\|\|3\)\); \}/.test(pag), "_spazTipico passa il ripiego di progetto");
     ok(/function isoPasso\(\)\{ return passoIsocrone\(D2\.isoStep, D2\.lastDet\); \}/.test(pag), "isoPasso passa la scelta a schermo");
-    eq((pag.match(/distanzaDaSpezzata\(/g) || []).length, 2, "i due chiamanti del burden vero (energia 2D e la scheda dei fori)");
+    eq((pag.match(/distanzaDaSpezzata\(/g) || []).length, 1, "un solo chiamante nella pagina, la scheda dei fori (⚠️ 2→1 il 14/09, G41: energia 2D è salita in genesi-data.js, stessa famiglia di G39/G40)");
     eq((pag.match(/tempoInPunto\(/g) || []).length, 1, "e il campo dei tempi lo chiama solo il disegno delle isocrone");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["quotaCresta", "distanzaDaSpezzata", "spaziaturaTipica", "tempoInPunto", "passoIsocrone"].every((n) => elenco.includes(n)), "la pagina importa tutt'e cinque");
@@ -25860,7 +25860,7 @@ console.log("\n— Campo: i file che escono —");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     eq((pag.match(/function _fileDiFori|const INN_TAGLI=|function _cmpNum|function _cmpKg|function _cmpEur|function _cmpPf|function _cmpCm|function _cmpFly/g) || []).length, 0, "le vecchie funzioni e la scala non ci sono più");
     ok(/function innTaglioOk\(dt\)\{ return taglioRealizzabile\(dt, D2\.innesco, INN_TAGLI\); \}/.test(pag), "innTaglioOk è il legame con l'innesco scelto");
-    eq((pag.match(/fileDeiFori\(/g) || []).length, 2, "i due chiamanti delle file (energia 2D e scheda dei fori)");
+    eq((pag.match(/fileDeiFori\(/g) || []).length, 1, "un solo chiamante nella pagina, la scheda dei fori (⚠️ 2→1 il 14/09, G41: energia 2D è salita in genesi-data.js, stessa famiglia di G39/G40)");
     eq((pag.match(/_cmp(?:Kg|Eur|Pf|Cm|Fly)\(/g) || []).length >= 10, true, "e le celle del confronto A/B si chiamano ancora dalla pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["fileDeiFori", "INN_TAGLI", "taglioRealizzabile", "_cmpNum", "_cmpKg", "_cmpEur", "_cmpPf", "_cmpCm", "_cmpFly"].every((n) => elenco.includes(n)), "la pagina importa tutt'e nove");
@@ -26012,6 +26012,68 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/h\.relFrom=best\.j/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(elenco.includes("reliefSuMaglia"), "la pagina importa la funzione");
+  });
+
+  /* ⛔ G41 — LA MAPPA DELL'ENERGIA FORO PER FORO (14/09, cantiere B3, sesta
+     volta sulla stessa famiglia di falso positivo di G39/G40). Stesso metodo:
+     confronto byte per byte con una copia della vecchia forma inline (che
+     riusa gli stessi aiuti già puri — `fileDeiFori`, `distanzaDaSpezzata`,
+     `consumoSpecifico`, `interpProf` — perché quello che si sta verificando
+     è la trascrizione dell'ORCHESTRAZIONE, non quegli aiuti). */
+  test("⛔ Genesi · energiaSuMaglia: identica alla vecchia forma inline, su una maglia diagonale", () => {
+    const vecchia = (H, prof, S, kg, profilo) => {
+      const file = genesi.fileDeiFori(H), Hb = Math.max(0.5, prof || 10), Snom = Math.max(0.5, S || 3.5);
+      const xs = H.map((h) => h.mx), x0 = Math.min(...xs) - Snom, x1 = Math.max(...xs) + Snom;
+      const passo = Math.max(.15, (x1 - x0) / 240), faccia = [];
+      for (let x = x0; x <= x1 + 1e-9; x += passo) faccia.push([x, genesi.interpProf(profilo, x)]);
+      for (let r = 0; r < file.length; r++) {
+        const f = file[r];
+        const ord = f.holes.slice().sort((a, b) => H[a].mx - H[b].mx);
+        const davanti = r > 0
+          ? file[r - 1].holes.slice().sort((a, b) => H[a].mx - H[b].mx).map((i) => [H[i].mx, H[i].my + genesi.interpProf(profilo, H[i].mx)])
+          : faccia;
+        for (let k = 0; k < ord.length; k++) {
+          const h = H[ord[k]];
+          const sx = k > 0 ? (h.mx - H[ord[k - 1]].mx) / 2 : Snom / 2;
+          const dx = k < ord.length - 1 ? (H[ord[k + 1]].mx - h.mx) / 2 : Snom / 2;
+          const py = h.my + genesi.interpProf(profilo, h.mx);
+          const yPrec = r > 0 ? file[r - 1].my : 0;
+          const b = Math.max(.2, h.my - yPrec);
+          const dPerp = (davanti.length > 1) ? genesi.distanzaDaSpezzata(h.mx, py, davanti) : null;
+          h.burdenVero = dPerp != null ? +dPerp.toFixed(2) : null;
+          const s = Math.max(.2, sx + dx), vol = b * s * Hb;
+          h.burdenLoc = +b.toFixed(2); h.spazLoc = +s.toFixed(2);
+          h.volLoc = +vol.toFixed(1); { const _p = genesi.consumoSpecifico(kg, vol); h.pfLoc = _p === null ? null : +_p.toFixed(3); }
+          h.enX0 = h.mx - sx; h.enX1 = h.mx + dx; h.enY0 = yPrec; h.enY1 = h.my; h.enFila = r;
+        }
+      }
+    };
+    const casi = [
+      () => ({ H: [{ mx: 0, my: 0 }, { mx: 3, my: 0 }, { mx: 6, my: 0 }, { mx: 0, my: 3 }, { mx: 3.2, my: 3 }, { mx: 6, my: 3 }], prof: 10, S: 3.5, kg: 45, profilo: [{ x: -5, y: 0 }, { x: 20, y: 0.4 }] }),
+      () => ({ H: Array.from({ length: 20 }, (_, i) => ({ mx: (i % 5) * 3.2 + Math.sin(i) * 0.3, my: Math.floor(i / 5) * 3.0 })), prof: 12, S: 3.2, kg: 60, profilo: [{ x: -2, y: 0.1 }, { x: 18, y: -0.2 }] }),
+      () => ({ H: [{ mx: 5, my: 0 }], prof: 9, S: 3.5, kg: 30, profilo: null }),
+      () => ({ H: [{ mx: 0, my: 0 }, { mx: 0, my: 0 }, { mx: 6, my: 0 }], prof: 10, S: 3.5, kg: 45, profilo: [] }),
+      () => ({ H: [], prof: 10, S: 3.5, kg: 45, profilo: [] }),
+    ];
+    for (const gen of casi) {
+      const cA = gen(), cB = gen();
+      vecchia(cA.H, cA.prof, cA.S, cA.kg, cA.profilo);
+      genesi.energiaSuMaglia(cB.H, cB.prof, cB.S, cB.kg, cB.profilo);
+      eq(cB.H, cA.H, `${cA.H.length} fori: la nuova forma deve coincidere byte per byte con la vecchia`);
+    }
+  });
+  test("⛔ Genesi · energiaSuMaglia: senza fori non tocca niente, non solleva errori", () => {
+    genesi.energiaSuMaglia(null, 10, 3.5, 45, []);
+    genesi.energiaSuMaglia(undefined, 10, 3.5, 45, []);
+    const vuoto = []; genesi.energiaSuMaglia(vuoto, 10, 3.5, 45, []); eq(vuoto, []);
+  });
+  test("⛔ Genesi · G41: nella pagina il conto non c'è più, e il legame resta", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/function computeEnergia2D\(\)\{ energiaSuMaglia\(D2\.holes, D2\.prof, D2\.S, D2\.kg, D2\.profilo\); \}/.test(pag),
+      "computeEnergia2D è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/h\.burdenVero=dPerp/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("energiaSuMaglia"), "la pagina importa la funzione");
   });
 
   /* ⛔ G27 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE (10/09, nona fetta di

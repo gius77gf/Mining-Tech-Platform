@@ -467,8 +467,12 @@ const CONDIVISI = [
      con una copia della vecchia forma inline su cinque casi.
      147 → 148 il 14/09 (G40, cantiere B3, stesso giorno): `reliefSuMaglia`,
      stessa famiglia esatta — salita da `computeRelief2D`. Stesso metodo di
-     verifica. */
-  { file: "apps/genesi/genesi-data.js", fondo: 148,
+     verifica.
+     148 → 149 il 14/09 (G41, cantiere B3, stesso giorno): `energiaSuMaglia`,
+     sesta volta sulla stessa famiglia — salita da `computeEnergia2D`.
+     `interpFronte(mx)` (wrapper di pagina) è diventata `interpProf(profilo,
+     mx)` nella forma pura, con `D2.profilo` passato come parametro esplicito. */
+  { file: "apps/genesi/genesi-data.js", fondo: 149,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
