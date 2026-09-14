@@ -6793,6 +6793,32 @@ function renderScheda2D(){
   /* descrizioni compatte (richiesta fondatore 25/07): nome+valore sempre visibili,
      spiegazione solo al clic sulla voce (stato ricordato tra i ricalcoli) */
   const rowsHtml=rows.map(r=>'<div class="sv-row'+(SVOPEN.has(r.lab)?' open':'')+'" data-lab="'+r.lab.replace(/"/g,'&quot;')+'"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div><span class="sv-chev">▼</span></div>').join('');
+  /* G45 (14/09, da docs/RICERCA_CONTINUA_GENESI.md, "Controlli automatici
+     di validazione"): un verdetto di SINTESI sopra le decine di badge della
+     scheda, la forma (a) già scelta in vault/ROADMAP_SETTIMANA.md — dichiara
+     esplicitamente il proprio perimetro invece di promettere un "pronto"
+     generico, perché QUESTA scheda copre solo geometria/carica/esplosivo di
+     PROGETTO: vibrazione (PPV), airblast e flyrock vivono nel pannello KPI a
+     schermo, con le loro soglie di legge verso il recettore, e un badge che
+     tacesse questo limite sarebbe una garanzia di sicurezza che non dà.
+     `cls` di `verdettoValidatore`/`nonCalcolabile` usa 'sv-warn' sia per «un
+     po' fuori fascia» sia per «non calcolabile»: qui li si conta insieme di
+     proposito — un indicatore che non si può contare non è un indicatore a
+     posto (il principio del fondatore: l'assenza di un dato non è un dato
+     favorevole). Le righe 'sv-info' (Pressione det., Resistenza all'acqua
+     quando il foro è asciutto, Presplit non previsto) restano fuori dal
+     conto: sono descrittive, non validate contro una fascia. */
+  const _sintN=rows.filter(r=>r.cls==='sv-ok'||r.cls==='sv-warn'||r.cls==='sv-bad').length;
+  const _sintFuori=rows.filter(r=>r.cls==='sv-warn'||r.cls==='sv-bad').length;
+  const _sintGravi=rows.filter(r=>r.cls==='sv-bad').length;
+  const sintesiHtml='<div style="margin:8px 0;padding:7px 10px;border-radius:8px;font-size:11.5px;line-height:1.4;'
+    +(_sintGravi>0?'border:1px solid rgba(239,83,80,.35);background:rgba(239,83,80,.07)'
+      :(_sintFuori>0?'border:1px solid rgba(255,167,38,.3);background:rgba(255,167,38,.06)'
+        :'border:1px solid rgba(102,187,106,.3);background:rgba(102,187,106,.06)'))+'">'
+    +(_sintGravi>0?'🔴 <b>'+_ricPlur(_sintGravi,'indicatore','indicatori')+' di progetto fuori fascia</b> ('+_sintFuori+' in totale su '+_sintN+')'
+      :(_sintFuori>0?'🟡 <b>'+_ricPlur(_sintFuori,'indicatore','indicatori')+' di progetto fuori fascia</b> su '+_sintN
+        :'🟢 <b>Tutti i '+_sintN+' indicatori di progetto</b> sono nella fascia consigliata'))
+    +' <span style="color:var(--mut2)">— geometria/carica/esplosivo. Non copre vibrazione, airblast né flyrock: guarda il pannello KPI qui sopra.</span></div>';
   /* === barra bipolare shock <-> heave (carattere energetico esplosivo, da VOD) === */
   const _vod=_e.vod_ms||3800;
   const _shock=Math.max(0.04,Math.min(0.96,(_vod*_vod-3000*3000)/(6000*6000-3000*3000)));
@@ -6867,6 +6893,7 @@ function renderScheda2D(){
     }
   }
   el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub">'+_ricPlur(g.n,'foro','fori')+' · '+gnum(g.Lm,1)+' m fronte<br>Ø'+gnum(Dmm,0)+' mm · '+gnum(Q,1)+' kg/foro · H '+gnum(H,1)+' m<br>'+(selEsplosivo()?'Esplosivo: '+selEsplosivo().nome:'')+(selInnesco()?' / innesco '+selInnesco().short:'')+(selRoccia()?'<br>Roccia: '+selRoccia().nome+' ('+selRoccia().cls+')':'')+'<br><i style="color:var(--mut2)">tocca una voce per i dettagli</i></span></div>'
+    +sintesiHtml
     +bipHtml
     +'<div class="sv-grid">'+rowsHtml+'</div>'
     +'<div class="sv-scale"><div class="sv-lab">Rapporto di rigidità H/B — frammentazione attesa</div>'

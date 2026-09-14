@@ -2902,7 +2902,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `E7`
 - `E8`
 - `G7–G9`
-- `G45 (candidato, non preso)`
 - `G46 (candidato, non preso)`
 - `Q1`
 - `«Adempimenti» è la parola che governa il minimo di Sentinella`
@@ -5925,7 +5924,7 @@ numero scritto dove non era stato misurato niente**.*
       report più ricco (foto, dossier assicurativo) — quella parte
       richiede dati che Genesi oggi non raccoglie (foto pre/post-sparo),
       un cantiere diverso e più grande, non implicito in questa fetta.
-- [ ] **G45 (candidato, non preso).** Genesi: un verdetto di SINTESI sopra
+- [x] ✅ **G45 — PRESO E COSTRUITO il 14/09, forma (a).** Genesi: un verdetto di SINTESI sopra
       la scheda validatori (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`,
       sezione "Controlli automatici di validazione" — verificato nel
       codice, non sulla parola dell'agente: la ricerca proponeva anche un
@@ -5960,6 +5959,35 @@ numero scritto dove non era stato misurato niente**.*
       o (b) si aspetta di unire i due pannelli in un'unica scheda con un
       solo verdetto vero. La (a) è costruibile subito e onesta; la (b) è
       un cantiere di struttura, non di un pomeriggio.
+      ✅ **14/09, presa la (a).** Un `<div>` fra l'intestazione della
+      scheda e la barra shock/heave, colorato sv-ok/warn/bad in base a
+      quanti dei 22 indicatori VALIDATI (esclusi i tre puramente
+      descrittivi: Pressione det., Resistenza all'acqua a secco,
+      Presplit non previsto — mai contati né come "a posto" né come
+      "fuori fascia") sono `sv-warn`/`sv-bad`. Il non-calcolabile conta
+      come "fuori fascia" di proposito: `verdettoValidatore` gli dà già
+      `cls:'sv-warn'`, e un indicatore che non si può contare non è un
+      indicatore a posto — lo stesso principio del fondatore applicato
+      al conteggio, non solo al singolo badge. La frase di perimetro
+      ("Non copre vibrazione, airblast né flyrock: guarda il pannello
+      KPI qui sopra") è **sempre** presente, in verde come in rosso —
+      il posto in cui un sintetizzatore che promette troppo si tradisce
+      è proprio lo stato tranquillo, non quello allarmante.
+      ⚠️ **Prima stesura scartata dopo il primo confronto affiancato**:
+      un `display:flex` a tre colonne (emoji, conteggio in grassetto,
+      frase di perimetro) spezzava il testo su tre righe strette a 430
+      px invece di scorrere come un paragrafo — lo stesso difetto già
+      raccolto in CLAUDE.md sulle etichette più larghe del loro spazio,
+      qui nel verso opposto (un contenitore più STRETTO del suo testo).
+      Tolto il flex, il testo scorre come le altre righe "why" della
+      scheda. Verificato con screenshot a 430 px e a 1400 px, sul caso
+      con difetti veri (3 gravi, 11 su 22 fuori fascia) — il caso "tutto
+      verde" non è stato fotografato separatamente: la stessa espressione
+      ternaria già passata sul ramo rosso decide anche gli altri due.
+      `genesi-campi-assenti.mjs` (55/0) e `genesi-frasi-limite.mjs`
+      (36/0), che esercitano `renderScheda2D` sui casi limite, restano
+      verdi: nessun conteggio di riga è cambiato, solo un `<div>` in più
+      prima di esse.
 - [ ] **G46 (candidato, non preso).** Genesi: un percorso per il dato di
       frammentazione MISURATO (foto/vagliatura), non solo digitato a mano
       (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`, sezione "Come si
