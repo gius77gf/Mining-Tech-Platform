@@ -26139,6 +26139,45 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("sequenzaSuMaglia"), "la pagina importa la funzione");
   });
 
+  /* ⛔ G43 — LA GENERAZIONE DELLA MAGLIA (14/09, cantiere B3, nuova
+     estrazione — non un falso positivo: `genMaglia2D` muta D2 davvero, ed
+     è per questo che il censimento la marca "11+" a ragione. Solo il
+     calcolo delle coordinate esce, riusabile da un futuro ottimizzatore
+     che vuole provare un burden diverso senza toccare il progetto. */
+  test("⛔ Genesi · generaMaglia: identica alla vecchia forma inline, con e senza sfalsamento", () => {
+    const vecchia = (B, S, nFile, perRow, bf, stagger) => {
+      const holes = [];
+      for (let r = 0; r < nFile; r++) {
+        const my = B + r * bf;
+        const off = (stagger && r % 2 === 1) ? S / 2 : 0;
+        for (let c = 0; c < perRow; c++) holes.push({ id: genesi.idForoMaglia(r + 1, c + 1), mx: +(c * S + off).toFixed(3), my: +my.toFixed(3) });
+      }
+      return holes;
+    };
+    const casi = [
+      [3, 3.5, 3, 6, 3, true], [3, 3.5, 3, 6, 3, false], [2.5, 4, 1, 12, 2.5, true],
+      [3, 3.5, 5, 4, 2.8, true], [3, 3.5, 0, 6, 3, true], [3, 3.5, 1, 1, 3, false],
+    ];
+    for (const [B, S, nFile, perRow, bf, stagger] of casi) {
+      eq(genesi.generaMaglia(B, S, nFile, perRow, bf, stagger), vecchia(B, S, nFile, perRow, bf, stagger),
+        `B=${B} S=${S} ${nFile}×${perRow} bf=${bf} stagger=${stagger}: deve coincidere byte per byte con la vecchia`);
+    }
+  });
+  test("⛔ Genesi · generaMaglia: nessuna fila o nessun foro per fila dà un elenco vuoto", () => {
+    eq(genesi.generaMaglia(3, 3.5, 0, 6, 3, true), []);
+    eq(genesi.generaMaglia(3, 3.5, 3, 0, 3, true), []);
+  });
+  test("⛔ Genesi · G43: nella pagina il conto non c'è più, la mutazione e il legame restano", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/const holes=generaMaglia\(D2\.B, D2\.S, D2\.file, D2\.perRow, D2\.bf, D2\.stagger\);/.test(pag),
+      "genMaglia2D è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/holes\.push\(\{ id:idForoMaglia/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    ok(/D2\.magliaAssente = magliaAssenteMotivo\(D2\.B, D2\.S\);/.test(pag), "la guardia sulla maglia assente resta");
+    ok(/D2\.holes=holes; D2\.sel=-1; D2\.selPrev=-1; computeSeq2D\(\);/.test(pag), "la mutazione di D2 e l'orchestrazione della sequenza restano nel wrapper");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("generaMaglia"), "la pagina importa la funzione");
+  });
+
   /* ⛔ G27 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE (10/09, nona fetta di
      B3): la miniatura SVG del composito, la base della previsione PPV, la
      tinta della roccia, e `fmtT` in `genesi-formato.js`. Entrate identiche

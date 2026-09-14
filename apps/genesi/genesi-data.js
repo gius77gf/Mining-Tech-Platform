@@ -3203,6 +3203,29 @@ export function sequenzaSuMaglia(H, tHole, tRowRaw, S, dir, sequenza){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   G43 · LA GENERAZIONE DELLA MAGLIA (14/09, cantiere B3 — nuova estrazione,
+   non un falso positivo del censimento: `genMaglia2D` cade davvero nel
+   bucket "11+" perché la sua funzione vera è mutare `D2` (assegna
+   `D2.holes`/`D2.sel`/`D2.selPrev`/`D2.bf`/`D2.magliaAssente`, avvisa con
+   un toast se rigenerando perde ritardi messi a mano, e orchestra
+   `computeSeq2D`), non calcolare. Qui esce SOLO il calcolo delle
+   coordinate — righe e colonne, sfalsamento a file alterne — che è la
+   parte riusabile: la stessa griglia serve a un ottimizzatore che vuole
+   provare un burden diverso SENZA toccare il progetto disegnato a
+   schermo. Il resto (guardia su B/S assenti, mutazione di D2, il toast,
+   l'orchestrazione della sequenza) resta nel wrapper di pagina — è la
+   stessa distinzione calcolo/orchestrazione di G42. */
+export function generaMaglia(B, S, nFile, perRow, bf, stagger){
+  const holes=[];
+  for(let r=0;r<nFile;r++){
+    const my = B + r*bf;
+    const off = (stagger && r%2===1) ? S/2 : 0;
+    for(let c=0;c<perRow;c++) holes.push({ id:idForoMaglia(r+1,c+1), mx:+(c*S+off).toFixed(3), my:+my.toFixed(3) });
+  }
+  return holes;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
    del composito, la base della previsione PPV, la tinta della roccia
    (10/09, cantiere B3, nona fetta).

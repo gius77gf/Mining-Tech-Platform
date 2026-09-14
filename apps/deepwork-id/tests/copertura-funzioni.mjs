@@ -476,8 +476,13 @@ const CONDIVISI = [
      gruppo): `sequenzaSuMaglia`, salita da `computeSeq2D` — settima volta
      sulla stessa famiglia. Fa solo il calcolo (tCalc/tDet/seq, `lastDet`
      come valore di ritorno); l'orchestrazione delle altre tre (relief,
-     energia, innesco) resta nel wrapper di pagina, per scelta dichiarata. */
-  { file: "apps/genesi/genesi-data.js", fondo: 150,
+     energia, innesco) resta nel wrapper di pagina, per scelta dichiarata.
+     150 → 151 il 14/09 (G43, cantiere B3, stesso giorno): `generaMaglia`,
+     salita da `genMaglia2D` — NON un falso positivo (quella funzione muta
+     `D2` davvero ed è per questo genuinamente nel bucket "11+"): solo il
+     calcolo delle coordinate esce, riusabile da un futuro ottimizzatore
+     che deve provare un burden diverso senza toccare il progetto disegnato. */
+  { file: "apps/genesi/genesi-data.js", fondo: 151,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

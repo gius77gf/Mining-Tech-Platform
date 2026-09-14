@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5381,12 +5381,11 @@ function genMaglia2D(){
   D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);
   if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; return; }
   D2.bf = D2.B;                                            // burden tra file = spalla
-  const holes=[];
-  for(let r=0;r<D2.file;r++){
-    const my = D2.B + r*D2.bf;
-    const off = (D2.stagger && r%2===1) ? D2.S/2 : 0;
-    for(let c=0;c<D2.perRow;c++) holes.push({ id:idForoMaglia(r+1,c+1), mx:+(c*D2.S+off).toFixed(3), my:+my.toFixed(3) });
-  }
+  /* ⛔ Trasloco G43 (14/09, cantiere B3): il calcolo delle coordinate è
+     `generaMaglia` in ./genesi-data.js — non un falso positivo del
+     censimento (questa funzione muta D2 ed è genuinamente orchestrazione),
+     ma la parte riusabile (griglia da B/S/file/perRow) sì. */
+  const holes=generaMaglia(D2.B, D2.S, D2.file, D2.perRow, D2.bf, D2.stagger);
   /* rigenerare la maglia butta via i ritardi messi a mano, ed è giusto: i fori
      non sono più quelli. Ma va detto, altrimenti spariscono in silenzio. */
   const aMano=(D2.holes||[]).filter(h=>h.tMano!=null).length;
