@@ -510,6 +510,10 @@ body.scr-sim #tl{bottom:80px}
 .dt-undo{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut2);font-size:15px;width:32px;height:32px;border-radius:9px;cursor:pointer;line-height:1}
 .dt-undo:hover:not(:disabled){border-color:var(--cu);color:var(--cu)}
 .dt-undo:disabled{opacity:.35;cursor:default}
+#d2-strati{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px;display:flex;flex-wrap:wrap;gap:8px}
+.ds-chip{display:flex;align-items:center;gap:7px;background:#1a140b;border:1px solid var(--line);border-radius:11px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--mut2)}
+.ds-occhio,.ds-lucchetto{background:none;border:none;color:var(--mut2);font-size:13px;cursor:pointer;padding:2px;line-height:1;opacity:.95}
+.ds-occhio.off,.ds-lucchetto.off{opacity:.3}
 /* livelli di lettura della pianta (isocrone dei tempi, mappa del relief) */
 #d2-layers{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .dl-tog{display:flex;align-items:center;gap:6px;background:#1a140b;border:1px solid var(--line);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;border-radius:11px;cursor:pointer;min-height:38px;transition:.15s}
@@ -781,6 +785,12 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="d2Redo" class="dt-undo" title="Ripristina (Ctrl+Y)" disabled>↪</button>
     <button type="button" id="dtTrattoFine" class="dt-reset" hidden>✓ Fine tratto</button>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
+  </div>
+  <div id="d2-strati">
+    <div class="ds-chip"><span>Fori</span><button type="button" class="ds-occhio" data-strato="fori" title="Mostra/nascondi i fori">👁</button><button type="button" class="ds-lucchetto" data-strato="fori" title="Blocca/sblocca i fori (bloccato: niente clic né trascinamento)">🔓</button></div>
+    <div class="ds-chip"><span>Fronte</span><button type="button" class="ds-occhio" data-strato="fronte" title="Mostra/nascondi il fronte">👁</button><button type="button" class="ds-lucchetto" data-strato="fronte" title="Blocca/sblocca il fronte">🔓</button></div>
+    <div class="ds-chip"><span>Piede</span><button type="button" class="ds-occhio" data-strato="piede" title="Mostra/nascondi il piede">👁</button><button type="button" class="ds-lucchetto" data-strato="piede" title="Blocca/sblocca il piede">🔓</button></div>
+    <div class="ds-chip"><span>Tratti</span><button type="button" class="ds-occhio" data-strato="tratti" title="Mostra/nascondi i tratti liberi">👁</button><button type="button" class="ds-lucchetto" data-strato="tratti" title="Blocca/sblocca i tratti liberi">🔓</button></div>
   </div>
   <div id="d2-layers">
     <button type="button" id="dlIso" class="dl-tog" title="Isolinee dei tempi di sparo: uniscono i punti che detonano nello stesso istante"><i></i>Isocrone</button>
@@ -1480,6 +1490,18 @@ const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, 
      pista, un confine). `aperto:true` sul tratto in costruzione: il click
      successivo gli aggiunge un punto, finché non si preme "Fine tratto". */
   tratti:[],
+  /* G47b (14/09) — livelli di disegno VERI: mostra/nascondi e blocca
+     ogni tipo di entità disegnabile. Nome "strati" apposta, non
+     "layers": `D2.iso`/`rel`/`ene`/`inn` qui sotto si chiamano già
+     così nel commento e sono un'altra cosa — interruttori di un
+     CALCOLO, non di un'entità disegnata. Un'entità bloccata non riceve
+     click né trascinamento (vedi `d2Down`), non solo la vista: sono
+     due domande diverse (si vede? si può toccare?) e non si può dedurre
+     l'una dall'altra, un profilo finito si vuole ancora VEDERE mentre è
+     bloccato. Nomi fissi (le quattro entità che esistono oggi), non un
+     registro creabile dall'utente: se servirà, è un'estensione con un
+     secondo consumatore, non una firma allargata "per sicurezza". */
+  strati:{ fori:{visibile:true,bloccato:false}, fronte:{visibile:true,bloccato:false}, piede:{visibile:true,bloccato:false}, tratti:{visibile:true,bloccato:false} },
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
   errColl:0.15, dev:2.5,
@@ -5920,18 +5942,24 @@ function drawDesign2D(){
     n=0; for(let gy=Math.ceil(minY/passo)*passo; gy<=maxy+1e-6 && n<400; gy+=passo, n++){ const Y=my2(gy); ctx.beginPath(); ctx.moveTo(padX,Y); ctx.lineTo(W-padX,Y); ctx.stroke(); }
     ctx.restore();
   }
-  const fpts=[mxL]; D2.profilo.map(p=>p.x).filter(x=>x>mxL&&x<mxR).sort((a,b)=>a-b).forEach(x=>fpts.push(x)); fpts.push(mxR);
-  ctx.save(); ctx.shadowColor='rgba(255,109,0,.75)'; ctx.shadowBlur=14; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=3; ctx.beginPath();
-  fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpFronte(mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
-  ctx.stroke(); ctx.restore();
-  if(D2.piede.length){ const pp=[...D2.piede].sort((a,b)=>a.x-b.x); ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle='#ffd54f'; ctx.lineWidth=2; ctx.beginPath(); pp.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); ctx.fillStyle='#caa84a'; ctx.textAlign='left'; ctx.font="10px 'Barlow',sans-serif"; ctx.fillText('piede', mx2(pp[pp.length-1].x)+6, my2(pp[pp.length-1].y)+4); }
+  /* G47b — un livello nascosto non disegna la sua entità. La forma del
+     fronte resta usata per i CALCOLI (interpFronte sotto i fori) anche
+     se nascosta: "visibile" governa il disegno, non il dato — nascondere
+     la linea del fronte non deve spostare i fori che ci si appoggiano. */
+  if(D2.strati.fronte.visibile){
+    const fpts=[mxL]; D2.profilo.map(p=>p.x).filter(x=>x>mxL&&x<mxR).sort((a,b)=>a-b).forEach(x=>fpts.push(x)); fpts.push(mxR);
+    ctx.save(); ctx.shadowColor='rgba(255,109,0,.75)'; ctx.shadowBlur=14; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=3; ctx.beginPath();
+    fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpFronte(mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+    ctx.stroke(); ctx.restore();
+  }
+  if(D2.strati.piede.visibile && D2.piede.length){ const pp=[...D2.piede].sort((a,b)=>a.x-b.x); ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle='#ffd54f'; ctx.lineWidth=2; ctx.beginPath(); pp.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); ctx.fillStyle='#caa84a'; ctx.textAlign='left'; ctx.font="10px 'Barlow',sans-serif"; ctx.fillText('piede', mx2(pp[pp.length-1].x)+6, my2(pp[pp.length-1].y)+4); }
   /* G47c-2 — tratti liberi: NESSUN riordino per x (a differenza del
      piede sopra), l'ordine dei punti è l'ordine in cui sono stati
      disegnati — una faglia o una pista può tornare indietro sull'asse
      x, un ordinamento la spezzerebbe. Colore neutro apposta: non deve
      competere con fronte (arancio) e piede (giallo tratteggiato), che
      hanno un significato di progetto. */
-  D2.tratti.forEach(t=>{ if(t.pts.length<2) return; ctx.save(); ctx.strokeStyle='rgba(140,190,220,.85)'; ctx.lineWidth=2; ctx.beginPath();
+  if(D2.strati.tratti.visibile) D2.tratti.forEach(t=>{ if(t.pts.length<2) return; ctx.save(); ctx.strokeStyle='rgba(140,190,220,.85)'; ctx.lineWidth=2; ctx.beginPath();
     t.pts.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.restore(); });
   ctx.fillStyle='#ffab00'; ctx.textAlign='left'; ctx.font="600 12px 'Barlow Condensed',sans-serif"; ctx.fillText('FRONTE — faccia libera', padX-18, faceY+20);
   const dimC='#86b0d8'; const fr=H.filter(h=>Math.abs(h.my-D2.B)<0.4).sort((a,b)=>a.mx-b.mx);
@@ -5947,7 +5975,7 @@ function drawDesign2D(){
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale();
-  H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
+  if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(h.relief);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
        precedenza perché è quello che segnala un rischio, l'energia viene dopo */
@@ -6107,6 +6135,12 @@ function d2Redo(){
 let d2dragPushed=false;
 function d2Down(e){ const p=d2EvtToCanvas(e);
   d2dragPushed=false;
+  /* G47b — un'entità bloccata non riceve NIENTE qui: né un punto nuovo
+     né un trascinamento. Toccarla mentre è bloccata non deve fallire in
+     silenzio (nessun errore, nessuna riga) — si dice perché. */
+  if(D2.tool==='tratto' && D2.strati.tratti.bloccato){ toast('I tratti sono bloccati — sblocca dal pannello sopra la tela'); return; }
+  if((D2.tool==='fronte'||D2.tool==='piede') && D2.strati[D2.tool].bloccato){ toast((D2.tool==='piede'?'Il piede':'Il fronte')+' è bloccato — sblocca dal pannello sopra la tela'); return; }
+  if(D2.tool==='fori' && D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
   if(D2.tool==='tratto'){
     if(!D2._m) return;
     const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
@@ -6221,12 +6255,20 @@ function renderInspector(){
      `splice` sposta tutti gli indici dopo quello tolto, quindi un indice
      vecchio dopo una cancellazione punta a un ALTRO foro, non a "nessuno" —
      misurare una distanza dal foro sbagliato senza che nulla lo dica. */
-  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; d2PushUndo(); D2.holes.splice(D2.sel,1); D2.sel=-1; D2.selPrev=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  /* G47b — i fori bloccati non si toccano nemmeno da qui: un foro
+     selezionato PRIMA di bloccare il livello resta a schermo (bloccare
+     non deve far sparire quello che si stava già guardando), ma i
+     comandi che lo modificherebbero si fermano con lo stesso avviso
+     del canvas — un livello bloccato è bloccato ovunque, non solo dove
+     si clicca sulla tela. */
+  const foriBloccati=()=>{ if(D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return true; } return false; };
+  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0||foriBloccati()) return; d2PushUndo(); D2.holes.splice(D2.sel,1); D2.sel=-1; D2.selPrev=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
   /* Il ritardo si applica quando si conferma, non a ogni tasto premuto:
      digitando «120» si passerebbe da 1 a 12 a 120, e a ogni passaggio la
      sequenza si riordinerebbe sotto le dita. */
   const ri=$('diRit');
   if(ri) ri.onchange=()=>{
+    if(foriBloccati()){ ri.value=h.tDet||0; return; }
     const v=+String(ri.value).replace(',','.');
     if(!isFinite(v)||v<0){ toast('Il ritardo è un numero di millisecondi, da zero in su'); ri.value=h.tDet||0; return; }
     d2PushUndo(); h.tMano=+v.toFixed(1);
@@ -6234,7 +6276,7 @@ function renderInspector(){
     toast('Foro a '+fmtMs(h.tMano)+' ms — messo a mano');
   };
   const ra=$('diRitAuto');
-  if(ra) ra.onclick=()=>{ d2PushUndo(); h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+  if(ra) ra.onclick=()=>{ if(foriBloccati()) return; d2PushUndo(); h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro tornato al ritardo calcolato dallo schema'); };
   /* G47a — le due coordinate esatte, sullo stesso schema difensivo del
      ritardo qui sopra: si applica al `change` (non a ogni tasto), un
@@ -6248,6 +6290,7 @@ function renderInspector(){
      esattamente il caso che un annulla deve coprire. */
   const dx=$('diX');
   if(dx) dx.onchange=()=>{
+    if(foriBloccati()){ dx.value=gfix(h.mx,2); return; }
     const v=+String(dx.value).replace(',','.');
     if(!isFinite(v)){ toast('La posizione lungo la fila è un numero, in metri'); dx.value=gfix(h.mx,2); return; }
     d2PushUndo(); h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
@@ -6255,6 +6298,7 @@ function renderInspector(){
   };
   const dy=$('diY');
   if(dy) dy.onchange=()=>{
+    if(foriBloccati()){ dy.value=gfix(h.my,2); return; }
     const v=+String(dy.value).replace(',','.');
     if(!isFinite(v)||v<0.3){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
     d2PushUndo(); h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
@@ -6262,7 +6306,7 @@ function renderInspector(){
   };
   const da=$('diAllinea');
   if(da) da.onclick=()=>{
-    if(D2.selPrev<0 || !D2.holes[D2.selPrev]) return;
+    if(D2.selPrev<0 || !D2.holes[D2.selPrev] || foriBloccati()) return;
     const rif=D2.holes[D2.selPrev], n=((rif.seq!=null?rif.seq:D2.selPrev)+1);
     d2PushUndo(); h.my=rif.my; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Spalla allineata al foro '+n+': '+gfix(h.my,2)+' m (la posizione lungo la fila non è cambiata)');
@@ -7404,7 +7448,11 @@ if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
 if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
 if($('dtPiede')) $('dtPiede').onclick=()=>setTool('piede');
 if($('dtTratto')) $('dtTratto').onclick=()=>setTool('tratto');
-if($('dtReset')) $('dtReset').onclick=()=>{ d2PushUndo(); if(D2.tool==='tratto')D2.tratti=[]; else if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); syncTrattoUI(); };
+if($('dtReset')) $('dtReset').onclick=()=>{
+  const chiave=D2.tool==='tratto'?'tratti':(D2.tool==='piede'?'piede':'fronte');
+  if(D2.strati[chiave].bloccato){ toast((chiave==='tratti'?'I tratti sono':chiave==='piede'?'Il piede è':'Il fronte è')+' bloccato — sblocca dal pannello sopra la tela'); return; }
+  d2PushUndo(); if(D2.tool==='tratto')D2.tratti=[]; else if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); syncTrattoUI();
+};
 /* G47c-2 — "Fine tratto" chiude la polilinea in costruzione (il click
    successivo ne apre una nuova invece di allungare questa) e "Reset
    tratti" prende il posto di "Reset fronte/piede" mentre lo strumento
@@ -7418,13 +7466,33 @@ function syncTrattoUI(){
 if($('dtTrattoFine')) $('dtTrattoFine').onclick=()=>{
   const t=D2.tratti[D2.tratti.length-1];
   if(!t || !t.aperto) return;
+  if(D2.strati.tratti.bloccato){ toast('I tratti sono bloccati — sblocca dal pannello sopra la tela'); return; }
   d2PushUndo(); t.aperto=false; syncTrattoUI(); drawDesign2D();
   toast('Tratto chiuso — '+t.pts.length+' punti');
 };
+/* G47b — livelli veri: mostra/nascondi e blocca per entità. Niente
+   `d2PushUndo`: `D2.strati` è stato dell'INTERFACCIA (cosa si vede o si
+   può toccare), non un dato disegnato — un annulla che "disfacesse"
+   uno show/hide sorprenderebbe chi lo preme aspettandosi di tornare
+   sul disegno, non sulla vista. */
+function syncStratiUI(){
+  document.querySelectorAll('.ds-occhio').forEach(b=>{ const s=D2.strati[b.dataset.strato]; if(!s) return; b.classList.toggle('off',!s.visibile); });
+  document.querySelectorAll('.ds-lucchetto').forEach(b=>{ const s=D2.strati[b.dataset.strato]; if(!s) return; b.classList.toggle('off',!s.bloccato); b.textContent=s.bloccato?'🔒':'🔓'; });
+}
+document.querySelectorAll('.ds-occhio').forEach(b=> b.onclick=()=>{
+  const s=D2.strati[b.dataset.strato]; if(!s) return;
+  s.visibile=!s.visibile; syncStratiUI(); drawDesign2D();
+  toast((s.visibile?'Mostrati: ':'Nascosti: ')+b.dataset.strato);
+});
+document.querySelectorAll('.ds-lucchetto').forEach(b=> b.onclick=()=>{
+  const s=D2.strati[b.dataset.strato]; if(!s) return;
+  s.bloccato=!s.bloccato; syncStratiUI();
+  toast((s.bloccato?'Bloccati: ':'Sbloccati: ')+b.dataset.strato);
+});
 if($('d2-mat')) $('d2-mat').onclick=()=>showEsplInfo('esplosivo');
 if($('d2Undo')) $('d2Undo').onclick=d2Undo;
 if($('d2Redo')) $('d2Redo').onclick=d2Redo;
-d2BtnSync(); syncTrattoUI();
+d2BtnSync(); syncTrattoUI(); syncStratiUI();
 /* scorciatoie SOLO quando la scheda 2D è quella aperta e non è aperta la
    modellazione 3D del fronte (che ha già Ctrl+Z/Ctrl+Y sua, riga ~3024):
    due editor diversi non devono litigarsi lo stesso tasto. */

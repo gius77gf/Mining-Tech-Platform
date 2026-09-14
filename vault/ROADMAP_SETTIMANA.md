@@ -6130,6 +6130,22 @@ numero scritto dove non era stato misurato niente**.*
       (`genesi-tratti.mjs`, 10 prove + controprova che rimette il
       difetto esatto — un clic dopo "Fine tratto" che allunga il
       tratto vecchio invece di aprirne uno nuovo).
+      ✅ **14/09 — G47b FATTA**: `D2.strati`, i livelli VERI (nome
+      apposta diverso da `D2.iso`/`rel`/`ene`/`inn`, che restano
+      interruttori di un CALCOLO) — mostra/nascondi e blocca per
+      ciascuna delle quattro entità disegnabili (fori, fronte, piede,
+      tratti). Bloccare ferma il click e il trascinamento nel canvas
+      E i comandi dell'ispettore su un foro già selezionato prima del
+      blocco (un gap trovato scrivendo il banco: bloccare da fuori la
+      tela non doveva lasciare una porta aperta da dentro l'ispettore).
+      Nessuna estensione di `d2Snap`/`d2ApplySnap`: i livelli sono
+      stato dell'interfaccia, non un dato disegnato — annullare non
+      deve disfare uno show/hide. Banco browser committato
+      (`genesi-strati.mjs`, 7 prove + controprova che rimette il
+      difetto esatto — il blocco dei fori smette di fermare il clic
+      sul canvas, e la prova lo vede contando i comandi `arc` che il
+      disegnatore esegue davvero, non solo leggendo `D2.strati`).
+      Con questa fetta restano solo G47d.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8425,8 +8441,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **285 esecuzioni** che
-  aprono le pagine in un browser vero, da **122** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **287 esecuzioni** che
+  aprono le pagine in un browser vero, da **123** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
