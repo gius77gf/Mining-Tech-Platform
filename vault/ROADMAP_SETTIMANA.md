@@ -5866,6 +5866,23 @@ numero scritto dove non era stato misurato niente**.*
       rimasto in questo ciclo con margine per la verifica come si deve
       (test con iniezione del difetto, verifica su schermo). Lasciato
       come prossimo passo atomico scomposto, non come lavoro immaginato.
+      ✅ **14/09, STESSO GIORNO — LA SECONDA FETTA È FATTA**: dopo che il
+      cantiere B3 ha reso pure `sequenzaSuMaglia`/`innescoSuMaglia`/
+      `generaMaglia` (G39-G43), `vibrazionePerBurden` (G44) chiude la
+      seconda metà dichiarata sopra. Per ogni burden candidato genera una
+      maglia di prova (stessa forma di oggi: file, fori per fila,
+      sfalsamento), la sequenzia con le impostazioni correnti, e stima
+      MIC/PPV con le STESSE funzioni pure della Scheda volata
+      (`micFinestra`, `ppvDaSd`, `esitoPpv`, gli stessi parametri di sito
+      da `ppvSite()`) — non una terza copia della formula. Collegato al
+      bottone "Confronta burden", che ora mostra due colonne in più (MIC,
+      PPV stimata) colorate col verdetto di soglia, verificato nel browser
+      vero con screenshot. Il multi-obiettivo vero (Pareto front, pesi
+      soggettivi) resta fuori: qui c'è un vincolo singolo mostrato per
+      riga, non un fronte — la domanda del mondo aperta in
+      `docs/RICERCA_CONTINUA_GENESI.md` (2026-09-14) su quale costruire
+      per primo resta aperta, ma ora con gli ingredienti pronti per
+      entrambe le strade.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8148,9 +8165,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo
-  `generaMaglia`, unità G43 (cantiere B3): +3 in `run-kpi`,
-  2960→2963): **3.444 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2963, `run-stile` 328,
+  `vibrazionePerBurden`, unità G44 (cantiere B3): +6 in `run-kpi`,
+  2963→2969): **3.450 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2969, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

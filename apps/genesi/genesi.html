@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3665,12 +3665,18 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
    è già provata nel modulo: qui restano solo le tre cose di pagina — leggere
    la maglia disegnata (per il rapporto S/B e per centrare l'intorno su di
    essa), chiedere l'obiettivo, e comporre la tabella.
-   ⛔ Non ricalcola vibrazione né sequenza, e lo dice: quella logica vive in
-   `computeSeq2D`/PPV di questa stessa pagina e serve un'unità a sé — farla
-   qui sarebbe una terza copia della stessa domanda. */
+   ✅ **14/09, G44 (seconda fetta di G7): ORA RICALCOLA ANCHE VIBRAZIONE E
+   SEQUENZA** — la riga qui sopra lo dichiarava esplicitamente fuori
+   perimetro finché `computeSeq2D`/`computeInnesco2D` vivevano solo nella
+   pagina (G39-G42 li ha resi puri, G43 la maglia). `vibrazionePerBurden`
+   genera per ogni candidato una maglia di PROVA con la stessa forma di
+   oggi (file, fori per fila, sfalsamento) e la stessa sequenza/ritardo,
+   e stima MIC/PPV con le STESSE funzioni pure della Scheda volata
+   (`micFinestra`, `ppvDaSd`, `esitoPpv`, tramite `ppvSite()` per i
+   parametri di sito — non una terza copia della formula). */
 if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const v=await chiediValore('Confronta burden',
-    '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare burden diversi dal tuo? La maglia resta quella disegnata: cambia solo il burden, in un intorno di ±1 m attorno a quello di oggi, mantenendo lo stesso rapporto spalla/interasse. Vibrazione e sequenza non sono ricalcolate qui.</p>',
+    '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare burden diversi dal tuo? La maglia resta quella disegnata (stesse file, stessi fori per fila, stesso sfalsamento): cambia solo il burden, in un intorno di ±1 m attorno a quello di oggi, mantenendo lo stesso rapporto spalla/interasse. Anche MIC e PPV stimata al recettore sono ricalcolate, con la stessa sequenza di sparo di oggi.</p>',
     '<label class="fl" for="modal-campo">Obiettivo x50 (<span class="u">cm</span>)</label>'
     +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
     'Confronta');
@@ -3682,19 +3688,27 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const g=measureGeom2D(), Bnom=g.B, Snom=g.S;
   if(!(Bnom>0) || !(Snom>0)){ scarto('Manca il burden o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
-  const righe=curvaBurdenCarica({ bMin:Math.max(1.5,Bnom-1), bMax:Bnom+1, passo:0.25,
+  let righe=curvaBurdenCarica({ bMin:Math.max(1.5,Bnom-1), bMax:Bnom+1, passo:0.25,
     rapportoSB:Snom/Bnom, prof:D2.prof, A, RWS, x50Target:xt });
   if(!righe.length){ scarto('Nessun burden calcolabile in questo intorno: controlla il rapporto spalla/interasse di oggi.'); return; }
+  const st=ppvSite();
+  righe=vibrazionePerBurden(righe,
+    { nFile:D2.file, perRow:D2.perRow, stagger:D2.stagger },
+    { tHole:D2.ritardo, tRowRaw:D2.ritardoFila, dir:D2.dir, sequenza:D2.sequenza },
+    { recDist:D2.recDist, K:st.K, beta:st.beta, limite:ppvLimit(D2.recNorma,D2.recFreq) });
+  const pv=provenienzaPpv(st, null, (selRoccia()||{}).nome||D2.roccia);
   box.innerHTML='<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px">'
-    +'<tr style="color:var(--mut);text-align:left"><th style="font-weight:600;padding:2px 4px">Spalla</th><th style="font-weight:600;padding:2px 4px">Interasse</th><th style="font-weight:600;padding:2px 4px" colspan="2">Per l’obiettivo di '+gfix(xt,0)+' cm</th></tr>'
+    +'<tr style="color:var(--mut);text-align:left"><th style="font-weight:600;padding:2px 4px">Spalla</th><th style="font-weight:600;padding:2px 4px">Interasse</th><th style="font-weight:600;padding:2px 4px" colspan="2">Per l’obiettivo di '+gfix(xt,0)+' cm</th><th style="font-weight:600;padding:2px 4px">MIC</th><th style="font-weight:600;padding:2px 4px">PPV stimata</th></tr>'
     +righe.map(r=>{
       const oggi = Math.abs(r.B-Bnom)<0.01;
       const cella = r.fuoriDominio
         ? '<td colspan="2" style="color:#ffca28;padding:2px 4px">'+(r.troppoFine?'obiettivo troppo fine per questo burden':r.troppoGrossolano?'obiettivo troppo grossolano per questo burden':'fuori dal dominio del modello')+'</td>'
         : '<td style="padding:2px 4px">'+gfix(r.kg,1)+' kg/foro</td><td style="padding:2px 4px">'+gfix(r.pf,2)+' kg/m³</td>';
-      return '<tr'+(oggi?' style="font-weight:700;color:var(--cu)"':'')+'><td style="padding:2px 4px">'+gfix(r.B,2)+' m'+(oggi?' (oggi)':'')+'</td><td style="padding:2px 4px">'+gfix(r.S,2)+' m</td>'+cella+'</tr>';
+      const cellaMic='<td style="padding:2px 4px">'+(r.mic==null?'<span class="sv-warn">non calcolabile</span>':gfix(r.mic,1)+' kg')+'</td>';
+      const cellaPpv='<td style="padding:2px 4px">'+(r.ppv==null?'<span class="sv-warn">non calcolabile</span>':'<span class="'+(r.esitoV?r.esitoV.classe:'sv-info')+'">'+gfix(r.ppv,1)+' mm/s</span>')+'</td>';
+      return '<tr'+(oggi?' style="font-weight:700;color:var(--cu)"':'')+'><td style="padding:2px 4px">'+gfix(r.B,2)+' m'+(oggi?' (oggi)':'')+'</td><td style="padding:2px 4px">'+gfix(r.S,2)+' m</td>'+cella+cellaMic+cellaPpv+'</tr>';
     }).join('')
-    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram), a parità di pezzatura obiettivo: resta una previsione, non una garanzia. Vibrazione e sequenza non sono ricalcolate qui — vedi la Scheda volata per la maglia disegnata.</div>';
+    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram) e da '+_rEsc(pv.breve||'')+', a parità di pezzatura obiettivo, forma della maglia e sequenza di sparo: resta una previsione, non una garanzia.</div>';
 };
 /* ⏱️ 12/09 (unità 129) — IL BURDEN VERO SUL RILIEVO MISURATO (boretrack), non
    sulla banda d'incertezza simulata. `simulaPerforazione`, qui sopra, dice

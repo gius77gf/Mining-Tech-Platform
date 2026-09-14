@@ -3226,6 +3226,48 @@ export function generaMaglia(B, S, nFile, perRow, bf, stagger){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   G44 · LA VIBRAZIONE PER OGNI BURDEN CANDIDATO — la seconda fetta di G7
+   (14/09, cantiere B3), resa possibile da G39-G43 (sequenza e maglia ora
+   pure). Risponde alla domanda che il bottone "Confronta burden" dichiarava
+   esplicitamente di NON rispondere ("Non ricalcola vibrazione né
+   sequenza... farla qui sarebbe una terza copia della stessa domanda"):
+   per ogni burden candidato già uscito da `curvaBurdenCarica` (stessa
+   pezzatura obiettivo, stesso rapporto spalla/interasse), genera una
+   maglia di PROVA con la stessa forma del progetto disegnato (file, fori
+   per fila, sfalsamento), la sequenzia con le stesse impostazioni di oggi
+   (ritardo, direzione, schema), e stima MIC e PPV al recettore con le
+   STESSE funzioni pure che la Scheda volata usa per il progetto reale
+   (`micFinestra`, `ppvDaSd`, `esitoPpv`) — non una terza copia della
+   formula, la stessa, con input diversi.
+   ⚠️ Il burden fra file (`bf`) è sempre uguale al burden candidato
+   (`r.B`), la stessa convenzione di `genMaglia2D` (`D2.bf=D2.B`): il
+   progetto disegnato può avere un `bf` diverso da `B` se qualcuno l'ha
+   editato a mano, ma qui si genera una maglia NUOVA, non si tocca quella
+   disegnata — quindi la convenzione di partenza (bf=B) è quella giusta,
+   non un'approssimazione.
+   ⚠️ La carica per foro è quella che la riga già dichiara (target di
+   frammentazione), assunta UNIFORME su tutti i fori — la stessa
+   assunzione di `computeMIC`/`micFinestra` sul progetto reale (`D2.kg`
+   unico, non per-foro).
+   Righe non calcolabili (`kg===null`) restano tali: non si inventa una
+   vibrazione su una carica che non si conosce. */
+export function vibrazionePerBurden(righe, geom, seqOpz, sito){
+  const nFile=geom.nFile, perRow=geom.perRow, stagger=geom.stagger;
+  const tHole=seqOpz.tHole, tRowRaw=seqOpz.tRowRaw, dir=seqOpz.dir, sequenza=seqOpz.sequenza;
+  const recDist=sito.recDist, K=sito.K, beta=sito.beta, limite=sito.limite;
+  return righe.map(r=>{
+    if(!r.calcolabile || r.kg===null) return { ...r, mic:null, ppv:null, esitoV:null };
+    const H=generaMaglia(r.B, r.S, nFile, perRow, r.B, stagger);
+    sequenzaSuMaglia(H, tHole, tRowRaw, r.S, dir, sequenza);
+    const mic=micFinestra(H, r.kg);
+    const sd=(mic!=null && ppvSenzaDistanza(recDist)===null) ? recDist/Math.sqrt(Math.max(1,mic)) : null;
+    const ppv=sd!=null ? ppvDaSd(sd, K, beta) : null;
+    const esitoV=ppv!=null ? esitoPpv(ppv, limite) : null;
+    return { ...r, mic: mic===null?null:+mic.toFixed(1), ppv: ppv===null?null:+ppv.toFixed(2), esitoV };
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    G27 · TRE PEZZI DI DOCUMENTO CHE LA PAGINA COMPONEVA IN CASA — la miniatura
    del composito, la base della previsione PPV, la tinta della roccia
    (10/09, cantiere B3, nona fetta).

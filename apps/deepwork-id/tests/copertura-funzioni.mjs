@@ -481,8 +481,13 @@ const CONDIVISI = [
      salita da `genMaglia2D` — NON un falso positivo (quella funzione muta
      `D2` davvero ed è per questo genuinamente nel bucket "11+"): solo il
      calcolo delle coordinate esce, riusabile da un futuro ottimizzatore
-     che deve provare un burden diverso senza toccare il progetto disegnato. */
-  { file: "apps/genesi/genesi-data.js", fondo: 151,
+     che deve provare un burden diverso senza toccare il progetto disegnato.
+     151 → 152 il 14/09 (G44, cantiere B3, stesso giorno): `vibrazionePerBurden`,
+     nuova — la seconda fetta di G7, resa possibile da G39-G43 (sequenza e
+     maglia ora pure): per ogni burden candidato di `curvaBurdenCarica`,
+     genera una maglia di prova, la sequenzia con le impostazioni di oggi e
+     stima MIC/PPV con le stesse funzioni pure della Scheda volata. */
+  { file: "apps/genesi/genesi-data.js", fondo: 152,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

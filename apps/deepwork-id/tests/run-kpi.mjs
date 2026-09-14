@@ -41551,6 +41551,57 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine curvaBurdenCarica (14/09) ===== */
 
+/* ===== GENESI · vibrazionePerBurden (14/09, G44 — seconda fetta di G7) =====
+   Risponde alla domanda che il bottone "Confronta burden" dichiarava di NON
+   rispondere: per ogni riga già uscita da `curvaBurdenCarica`, genera una
+   maglia di prova (stessa forma del progetto: file, fori per fila,
+   sfalsamento), la sequenzia con le impostazioni di oggi, e stima MIC/PPV
+   con le STESSE funzioni pure della Scheda volata (`micFinestra`,
+   `ppvDaSd`, `esitoPpv`) — non una terza copia della formula. */
+{
+  const RIGA_B2 = () => genesi.curvaBurdenCarica({ bMin: 2, bMax: 2, passo: 1, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: 30 });
+  const GEOM = { nFile: 2, perRow: 2, stagger: false };
+  const SITO = { recDist: 300, K: 700, beta: 1.6, limite: 15 };
+  test("Genesi · vibrazionePerBurden: sequenza diagonale, un foro per finestra, MIC = carica di un foro solo", () => {
+    const seqOpz = { tHole: 42, tRowRaw: 84, dir: "sx", sequenza: "diagonale" };
+    const r = genesi.vibrazionePerBurden(RIGA_B2(), GEOM, seqOpz, SITO);
+    eq(r.length, 1);
+    eq(r[0].B, 2); eq(r[0].kg, 21.65, "la riga di curvaBurdenCarica resta intatta (spread, non riscritta)");
+    eq(r[0].mic, 21.6, "diagonale: ogni foro spara da solo nella sua finestra di 8 ms, MIC = carica di un foro");
+    eq(r[0].ppv, 0.89);
+    eq(r[0].esitoV.stato, "sotto"); eq(r[0].esitoV.confrontabile, true);
+  });
+  test("Genesi · vibrazionePerBurden: sequenza riga, fori quasi simultanei, MIC raggruppa tutta la maglia", () => {
+    const seqOpz = { tHole: 42, tRowRaw: 1, dir: "sx", sequenza: "riga" };
+    const r = genesi.vibrazionePerBurden(RIGA_B2(), GEOM, seqOpz, SITO);
+    eq(r[0].mic, 86.6, "riga quasi isocrona con tRow minimo: i 4 fori cadono nella stessa finestra di 8 ms, MIC = 4× la carica di un foro");
+    ok(r[0].ppv > 2, "una MIC più alta prevede una PPV più alta, a parità di distanza");
+    eq(r[0].esitoV.stato, "sotto");
+  });
+  test("Genesi · vibrazionePerBurden: una riga non calcolabile resta tale, non inventa una vibrazione", () => {
+    const righeNull = genesi.curvaBurdenCarica({ bMin: 2, bMax: 2, passo: 1, rapportoSB: 1.15, prof: 10, A: 9, RWS: 100, x50Target: null });
+    eq(righeNull[0].calcolabile, false);
+    const r = genesi.vibrazionePerBurden(righeNull, GEOM, { tHole: 42, tRowRaw: 1, dir: "sx", sequenza: "riga" }, SITO);
+    eq(r[0].mic, null); eq(r[0].ppv, null); eq(r[0].esitoV, null);
+    eq(r[0].che, righeNull[0].che, "la ragione della non calcolabilità (di curvaBurdenCarica) resta leggibile, non sovrascritta");
+  });
+  test("Genesi · vibrazionePerBurden: senza fori nella geometria di prova la MIC è non calcolabile, non zero", () => {
+    const r = genesi.vibrazionePerBurden(RIGA_B2(), { nFile: 0, perRow: 2, stagger: false }, { tHole: 42, tRowRaw: 1, dir: "sx", sequenza: "riga" }, SITO);
+    eq(r[0].mic, null, "micSenzaConto vede la maglia di prova vuota: null, non 0");
+    eq(r[0].ppv, null); eq(r[0].esitoV, null);
+  });
+  test("Genesi · vibrazionePerBurden: senza distanza del recettore la MIC resta leggibile, solo la PPV no", () => {
+    const r = genesi.vibrazionePerBurden(RIGA_B2(), GEOM, { tHole: 42, tRowRaw: 1, dir: "sx", sequenza: "riga" }, { recDist: null, K: 700, beta: 1.6, limite: 15 });
+    eq(r[0].mic, 86.6, "la carica per foro è leggibile: la MIC si conta comunque");
+    eq(r[0].ppv, null, "ma senza distanza non c'è una PPV da prevedere");
+    eq(r[0].esitoV, null, "e quindi nemmeno un verdetto — i due «non lo so» non si sommano, sono dichiarati separatamente");
+  });
+  test("Genesi · vibrazionePerBurden: nessuna riga in ingresso, nessuna riga in uscita", () => {
+    eq(genesi.vibrazionePerBurden([], GEOM, { tHole: 42, tRowRaw: 84, dir: "sx", sequenza: "diagonale" }, SITO), []);
+  });
+}
+/* ===== fine vibrazionePerBurden (14/09) ===== */
+
 
 
 
