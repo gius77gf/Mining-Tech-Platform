@@ -1,27 +1,36 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-14, 06:46 UTC
-- **Commit di partenza**: `e27b11a3`
+- **Quando**: 2026-09-14, 09:47 UTC
+- **Commit di partenza**: `a27ae45a`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
 Questa non è una ripresa da fermo: la routine "Weekly Dev Session" ha
-sparato una nuova accensione (fuoco delle 06:45:50 UTC, recapitato in coda)
-mentre questa stessa sessione stava già lavorando senza interruzioni dai
-canarini precedenti (00:47 e 04:32 UTC). Repository raggiungibile, `HEAD`
-combacia col remoto, `git pull` senza cambiamenti. Questo aggiornamento
-documenta lo stato reale, non un riavvio — l'unità in corso (vedi sotto)
-resta aperta e riprende subito dopo questo commit.
+sparato una nuova accensione (fuoco delle 09:45:38 UTC) mentre questa
+stessa sessione era in una **conversazione dal vivo col fondatore**, non
+in un ciclo automatico isolato. Repository raggiungibile, `HEAD` allineato
+al remoto, `git pull` senza cambiamenti.
+
+⚠️ **Stato particolare da dichiarare**: il fondatore ha appena chiesto in
+conversazione *"hai riflettuto su come rendere Genesi simile ad un CAD?"*
+e gli ho rimandato una domanda di chiarimento (quale aspetto intende:
+precisione/snap, layer, strumenti di disegno veri, o import/export CAD) —
+**non ancora risposta**. Finché non risponde, non scompongo né avvio
+quel cantiere: sarebbe esattamente l'errore che questo file documenta
+altrove ("niente entra sulla parola dell'agente" applicato a sé stessi —
+qui varrebbe "niente si costruisce su una domanda aperta del fondatore
+senza la sua risposta"). Il lavoro automatico prosegue su altro nel
+frattempo (ricerca continua, revisione), non si ferma.
 
 ⚠️ **Direttiva del fondatore in conversazione, più recente e più specifica
-del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA per la terza
-volta**: concentrarsi SOLO sull'app Genesi. Il prompt fisso di questa
-accensione (ponti fra le app, lavoro multi-app in parallelo, "Genesi NON
-esce dal browser") resta un template generico non personalizzato — la
-seconda parte è anche **scaduta**, verificato e documentato nel checkpoint
-`20260914-005111`: il gap "Genesi non esce dal browser" è stato chiuso il
-02/09, non c'è lavoro da fare lì.
+del prompt fisso di questa routine — CONFERMATA ANCORA VALIDA per la
+quarta volta**: concentrarsi SOLO sull'app Genesi. Il prompt fisso di
+questa accensione (ponti fra le app, lavoro multi-app in parallelo,
+"Genesi NON esce dal browser") resta un template generico non
+personalizzato — la seconda parte è anche **scaduta**, verificato e
+documentato nel checkpoint `20260914-005111`: il gap "Genesi non esce dal
+browser" è stato chiuso il 02/09.
 
 ⛔ **SEGNALAZIONE DI SICUREZZA APERTA, INVARIATA — DA LEGGERE PRIMA DI
 TOCCARE GEOMETRIA/FLYROCK/BURDEN.** Il gate su
@@ -32,58 +41,50 @@ Le soglie di sicurezza USBM/DIN restano un'altra decisione aperta (sezione
 
 ## Cosa è successo nel blocco in corso (14/09, dal canarino delle 00:47)
 
-**Il gruppo B3 diagnosticato in una sessione precedente è chiuso**: le
-quattro funzioni che il censimento statico (`genesi-estraibili.mjs`)
-marcava «più di dieci variabili del modulo» per un falso positivo del
-tokenizzatore (parole interne confuse con `const` omonimi dichiarati
-altrove nel file a bassa indentazione) sono ora tutte pure in
-`genesi-data.js`, ognuna verificata con lo stesso rigore — confronto
-byte-per-byte con la vecchia forma inline, iniezione del difetto storico,
-verifica nel browser vero, cascata sui quattro documenti sorvegliati:
-- `innescoSuMaglia` (G39, da `computeInnesco2D`)
-- `reliefSuMaglia` (G40, da `computeRelief2D`)
-- `energiaSuMaglia` (G41, da `computeEnergia2D`)
-- `sequenzaSuMaglia` (G42, da `computeSeq2D` — ULTIMA del gruppo)
+**Il gruppo B3 diagnosticato è chiuso** (G39-G43): `innescoSuMaglia`,
+`reliefSuMaglia`, `energiaSuMaglia`, `sequenzaSuMaglia`, `generaMaglia` —
+tutte pure in `genesi-data.js`, ognuna verificata byte per byte contro la
+vecchia forma, con iniezione del difetto e screenshot nel browser vero.
 
-Con questo, **la barriera che il documento di scomposizione di G7
-segnalava è caduta**: "la sequenza vive nella pagina, non nel modulo dati"
-non è più vero, e un ottimizzatore che voglia includere MIC/PPV nel
-confronto burden può riusare direttamente `sequenzaSuMaglia` e
-`innescoSuMaglia`. Nota aggiornata in `vault/ROADMAP_SETTIMANA.md`.
+**G7 ha una seconda fetta consegnata** (G44): `vibrazionePerBurden` —
+il confronto burden ora stima anche MIC/PPV, riusando le funzioni pure
+del gruppo appena chiuso. Wired al bottone "Confronta burden".
 
-**Unità aggiuntiva, non un falso positivo**: `generaMaglia` (G43, da
-`genMaglia2D`) — quella funzione muta davvero `D2` ed è per questo
-genuinamente nel bucket "11+"; è uscito solo il calcolo delle coordinate
-(righe/colonne, sfalsamento), riusabile da un futuro ottimizzatore che
-deve provare un burden diverso senza toccare il progetto disegnato a
-schermo.
+**Una ricerca automatica verificata e in parte corretta**: proponeva
+"manca un vincolo S/B" — falso, esiste già (prima riga della scheda
+validatori). Il gap vero trovato (nessun verdetto di sintesi sopra i
+singoli badge) è stato loggato come candidato **G45**, non costruito: un
+badge "pronto" che non copre il pannello KPI separato (MIC/PPV/airblast)
+rischierebbe di leggersi come una garanzia di sicurezza che non dà.
 
-⏱️ **Unità in corso al momento di questo canarino**: G43 (`generaMaglia`)
-ha superato la prima passata di verifica su worktree isolata (40/40
-comandi, 0 caduti) e la correzione a cascata dei quattro documenti
-sorvegliati; la seconda passata di convergenza (necessaria per il
-totale-asserzioni, quirk già documentato in CLAUDE.md) sta girando in
-background mentre questo canarino viene scritto. Il lavoro NON è stato
-interrotto: le modifiche restano sul disco, non ancora committate.
+**Revisione completa dei banchi del browser di Genesi**: rilanciati tutti
+e dodici, trovati e corretti **due difetti reali**, entrambi test
+invecchiati (non regressioni di prodotto):
+1. `genesi-campi-assenti.mjs` non sapeva che B0-septies (di questa stessa
+   sessione) fa uscire la scheda validatori PRIMA di disegnare righe
+   quando burden/interasse mancano — corretto rendendo l'asserzione più
+   giusta per quei due campi soli.
+2. `ponte-genesi-campo.mjs`/`ponte-genesi-sentinella.mjs` non tagliavano
+   l'import Firebase appeso (~13s) sul lato Campo/Sentinella, solo su
+   quello Genesi — applicata la stessa difesa già su nove altri file.
 
-**Tre unità in più committate e pushate** rispetto al canarino delle
-04:32 (G40, G41, G42), ognuna verificata su `git worktree` isolata con
-`giro-node.mjs` (40 comandi, 0 caduti, due passate per la convergenza del
-totale) prima del commit.
+**Ora tutta la superficie Genesi del browser è verde**: 12 banchi, 400+
+verifiche, zero KO.
+
+**Sei unità di estrazione/prodotto + tre unità di revisione/ricerca +
+tre canarini**, tutte committate e pushate, ognuna verificata su
+`git worktree` isolata con `giro-node.mjs` prima del commit.
 
 ## Prossimo passo atomico
 
-1. **Immediato**: raccogliere l'esito della seconda passata di verifica di
-   G43 (in corso), scrivere il checkpoint, committare con `git commit -F`
-   e pushare — esattamente come fatto per G39/G40/G41/G42.
-2. Con la barriera di G7 caduta, valutare la **seconda fetta**
-   dell'ottimizzatore di volata: includere MIC/PPV nel confronto burden
-   (riusando `sequenzaSuMaglia`/`innescoSuMaglia`/`micFinestra`/`ppvDaSd`)
-   — un cantiere di prodotto che richiede la stessa disciplina di
-   scomposizione-prima-del-codice di G7 (decisioni di UX da chiarire
-   leggendo `docs/RICERCA_CONTINUA_GENESI.md`, sezione 14/09).
-3. In alternativa: continuare il censimento `genesi-estraibili.mjs` per
-   altri candidati genuini (non falsi positivi) nel bucket "3-5" o
-   rivedere se restano candidati non ancora esaminati nel bucket "1-2".
+1. **Immediato**: aspettare la risposta del fondatore sulla domanda CAD
+   prima di scomporre o costruire qualunque cosa in quella direzione.
+2. Nel frattempo: ricerca continua su un altro argomento a rotazione, o
+   ulteriore revisione/pulizia se emerge qualcosa di verificabile.
+3. Se il fondatore non risponde e serve comunque proseguire: tornare al
+   censimento `genesi-estraibili.mjs` (già esaminato a fondo, risultato
+   sostanzialmente esaurito) o alla lista "SE LA ROADMAP SEMBRA FINITA"
+   del prompt fisso della routine.
 
-Nessuno stop volontario: si prosegue subito.
+Nessuno stop volontario: si prosegue subito, rispettando la domanda
+ancora aperta col fondatore.
