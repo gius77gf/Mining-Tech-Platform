@@ -534,8 +534,22 @@ const CONDIVISI = [
      blocco G24 (10/09) — come `computeEnergia2D`, esce DEL TUTTO dalla
      pagina (nessun wrapper: due punti di chiamata, entrambi aggiornati
      a `isoPasso(D2)`). Nessuno spostamento di bucket per altre
-     funzioni, misurato confrontando `--elenco` prima/dopo. */
-  { file: "apps/genesi/genesi-data.js", fondo: 158,
+     funzioni, misurato confrontando `--elenco` prima/dopo.
+     158 → 160 il 14/09 (B3, stesso giorno): DUE funzioni in un'unica
+     unità, perché accoppiate — `computeRelief2D` chiama `scatterMs`,
+     quindi non si poteva cambiare la firma dell'una senza l'altra.
+     `scatterMs(D2)` componeva solo `scatterInnesco` già pura (dal
+     bucket "3-5", falso vero: leggeva `D2` più tre parole corte di un
+     commento vicino, non un vero incrocio); `computeRelief2D(D2)`
+     componeva `reliefSuMaglia` già pura dal blocco G40 (14/09). Nessuno
+     dei due lascia un wrapper (tre punti di chiamata in tutto,
+     aggiornati tutti a passare `D2`): 150→148 funzioni nella pagina,
+     bucket "1-2" 55→54, bucket "3-5" 15→14 (usciva `scatterMs`),
+     estraibili 63→62. Unico effetto collaterale reale: `computeSeq2D`
+     perde `computeRelief2D` dal proprio elenco "chiama" (stessa
+     famiglia di `computeEnergia2D`), misurato confrontando `--elenco`
+     prima/dopo. */
+  { file: "apps/genesi/genesi-data.js", fondo: 160,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

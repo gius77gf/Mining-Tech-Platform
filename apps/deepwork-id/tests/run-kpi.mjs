@@ -25653,8 +25653,10 @@ console.log("\n— Campo: i file che escono —");
     ok(Number.isNaN(v.scatterInnesco("nonel", undefined)), "un tempo assente resta NaN, com'era: chi chiama passa un numero");
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     eq((pag.match(/0\.03\*|0\.02\*/g) || []).length, 0, "nella pagina il ternario non c'è più");
-    eq((pag.match(/scatterInnesco\(/g) || []).length, 3, "e i tre punti chiamano la funzione: il foro, l'uniformità di Cunningham, il badge/rilascio");
-    ok(/function scatterMs\(\)\{[\s\S]{0,400}return scatterInnesco\(D2\.innesco, tmx\);/.test(pag), "scatterMs resta come legame fra lo stato e la funzione, come computeMIC");
+    eq((pag.match(/scatterInnesco\(/g) || []).length, 2, "e i due punti restanti chiamano la funzione direttamente (il foro, l'uniformità di Cunningham); il terzo — il badge/rilascio — passa per scatterMs, uscita dalla pagina il 14/09 (B3)");
+    eq((pag.match(/function scatterMs/g) || []).length, 0, "⚠️ 14/09, B3: scatterMs è uscita anche lei, il legame non c'è più nella pagina");
+    ok(typeof v.scatterMs === "function", "scatterMs vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/scatterMs\(D2\)/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
   });
 
   /* ⛔ G22 — IL FATTORE ROCCIA E L'x50 MISURATO (10/09, quarta fetta di B3):
@@ -26054,13 +26056,25 @@ console.log("\n— Campo: i file che escono —");
     genesi.reliefSuMaglia(undefined, 3, 3.5, 8);
     const vuoto = []; genesi.reliefSuMaglia(vuoto, 3, 3.5, 8); eq(vuoto, []);
   });
-  test("⛔ Genesi · G40: nella pagina il conto non c'è più, e il legame resta", () => {
+  test("⛔ Genesi · G40: nella pagina il conto non c'è più (⚠️ 14/09, B3: anche il legame è uscito)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/function computeRelief2D\(\)\{ reliefSuMaglia\(D2\.holes, D2\.S, D2\.B, scatterMs\(\)\); \}/.test(pag),
-      "computeRelief2D è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/function computeRelief2D/g) || []).length, 0, "il legame a zero argomenti non c'è più nella pagina");
     eq((pag.match(/h\.relFrom=best\.j/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    ok(typeof v.computeRelief2D === "function", "computeRelief2D vive nel modulo, con D2 come primo argomento esplicito");
+    eq((pag.match(/computeRelief2D\(D2\)/g) || []).length, 1, "e la pagina lo chiama dal suo unico punto, passando D2");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(elenco.includes("reliefSuMaglia"), "la pagina importa la funzione");
+    ok(elenco.includes("reliefSuMaglia") && elenco.includes("computeRelief2D"), "la pagina importa tutt'e due");
+  });
+  test("⛔ Genesi · scatterMs e computeRelief2D (B3, trasloco con cambio di firma)", () => {
+    const D2x = { ritardo: 42, lastDet: 200, innesco: "nonel" };
+    eq(v.scatterMs(D2x), v.scatterInnesco("nonel", 200), "compone scatterInnesco con Th/tmx dello stato, non li ricalcola");
+    eq(v.scatterMs({ ritardo: 10, lastDet: 5, innesco: "elettronico" }), 0.1, "tmx non scende sotto Th anche se lastDet è più piccolo");
+    const holesA = [{ mx: 0, my: 0, tDet: 0 }, { mx: 3.5, my: 0, tDet: 20 }];
+    const holesB = holesA.map((h) => ({ ...h }));
+    v.computeRelief2D({ holes: holesA, S: 3.5, B: 3, ritardo: 42, lastDet: 20, innesco: "nonel" });
+    v.reliefSuMaglia(holesB, 3.5, 3, v.scatterMs({ ritardo: 42, lastDet: 20, innesco: "nonel" }));
+    eq(holesA, holesB, "compone reliefSuMaglia con lo scatter dello stato: stesso risultato della chiamata diretta");
+    ok(holesA[1].relief != null, "e il conto è avvenuto davvero");
   });
 
   /* ⛔ G41 — LA MAPPA DELL'ENERGIA FORO PER FORO (14/09, cantiere B3, sesta
@@ -26193,7 +26207,7 @@ console.log("\n— Campo: i file che escono —");
     ok(/D2\.lastDet ?= ?sequenzaSuMaglia\(D2\.holes, ?D2\.ritardo, ?D2\.ritardoFila, ?D2\.S, ?D2\.dir, ?D2\.sequenza\);/.test(pag),
       "computeSeq2D è il legame fra lo stato e la funzione pura");
     ok(/function computeSeq2D\(\)\{/.test(pag), "computeSeq2D esiste ancora");
-    eq((pag.match(/computeRelief2D\(\);/g) || []).length >= 1, true, "e orchestra ancora relief");
+    eq((pag.match(/computeRelief2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora relief");
     eq((pag.match(/computeEnergia2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora energia");
     eq((pag.match(/computeInnesco2D\(\);/g) || []).length >= 1, true, "e orchestra ancora innesco");
     eq((pag.match(/h\.tDet = \(h\.tMano/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");

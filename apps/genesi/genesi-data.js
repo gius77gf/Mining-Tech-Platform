@@ -1440,6 +1440,14 @@ export function esitoMic(mic) {
 export function scatterInnesco(innesco, tRif) {
   return (innesco === "elettronico") ? 0.1 : ((innesco === "elettrico") ? 0.5 : ((innesco === "cordtex") ? 0.03 * tRif : 0.02 * tRif));
 }
+/* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
+   separati da meno di così sparano di fatto insieme e non si liberano a vicenda.
+   Trasloco B3 (14/09): `D2` come primo argomento esplicito, come già per
+   `pfNominale`/`pieDev`/`reliefCls`/`computeEnergia2D`/`isoPasso`. */
+export function scatterMs(D2){
+  const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
+  return scatterInnesco(D2.innesco, tmx);
+}
 
 export function micFinestra(holes, kg) {
   const H = holes;
@@ -3117,6 +3125,11 @@ export function reliefSuMaglia(H, S, B, dtMin){
     h.relDt = best? +best.dt.toFixed(1) : null;
   }
 }
+/* Trasloco B3 (14/09): con `scatterMs` uscita anche lei (D2 esplicito), il
+   legame di pagina che componeva `dtMin` da tre campi di D2 non serve più —
+   `computeRelief2D` diventa una composizione diretta, senza wrapper, come
+   già `computeEnergia2D`/`isoPasso`. */
+export function computeRelief2D(D2){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs(D2)); }
 export function innescoSuMaglia(H, S, B){
   if(!H||!H.length) return;
   const dMax=2.2*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));

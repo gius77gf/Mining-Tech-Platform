@@ -1159,7 +1159,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    ⚠️ `esitoMic` e `micSenzaConto` sono le DUE METÀ che rendono utile il `null`:
    la bandiera `calcolabile` (che la pagina deve leggere, se no il numero
    tranquillo si ridisegna lo stesso) e la ragione da mostrare a chi guarda. */
-         micFinestra, esitoMic, micSenzaConto, scatterInnesco,
+         micFinestra, esitoMic, micSenzaConto, scatterInnesco, scatterMs,
 /* la carica totale della volata e il COSTO che la usa — vedi il blocco G12.
    ⛔ `costoVolata` è il punto UNICO in cui si decide quanto costa una volata:
    la formula era scritta tre volte (KPI, foglio stampabile, scheda
@@ -1223,7 +1223,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5489,7 +5489,7 @@ function genMaglia2D(){
 function computeSeq2D(){
   D2.lastDet = sequenzaSuMaglia(D2.holes, D2.ritardo, D2.ritardoFila, D2.S, D2.dir, D2.sequenza);
   if(!D2.holes.length) return;
-  computeRelief2D();                                         // il relief dipende solo dai tDet appena calcolati
+  computeRelief2D(D2);                                        // il relief dipende solo dai tDet appena calcolati
   computeEnergia2D(D2);                                      // il consumo specifico dipende solo dalle posizioni: nessun tempo in gioco
   computeInnesco2D();                                        // la rete di collegamento si ricostruisce dai tempi appena calcolati
 }
@@ -5500,19 +5500,13 @@ function computeSeq2D(){
    gia sparati vince il PIU VINCOLANTE (rapporto piu basso): e quello che decide se
    la roccia davanti ha fatto in tempo a muoversi. NON tocca tDet/seq, quindi la
    catena sequenza -> computeMIC() -> vibrazioni resta identica. ===== */
-/* dispersione dell'innesco (stessa formula del badge "Scatter innesco"): due fori
-   separati da meno di cosi sparano di fatto insieme e non si liberano a vicenda */
-function scatterMs(){
-  /* legame fra lo stato del progetto e la formula pura di genesi-data, come
-     `computeMIC` → `micFinestra` (04/09) */
-  const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
-  return scatterInnesco(D2.innesco, tmx);
-}
 /* ⛔ Trasloco G40 (14/09, cantiere B3): il conto vero è `reliefSuMaglia` in
    ./genesi-data.js — stessa famiglia di falso positivo di G39, dipendenza
-   vera solo D2. `dtMin` resta calcolato qui perché chiede tre campi di D2
-   (ritardo, lastDet, innesco) che a `reliefSuMaglia` non servono altrimenti. */
-function computeRelief2D(){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs()); }
+   vera solo D2.
+   Trasloco B3 (14/09, stesso giorno): `scatterMs` e `computeRelief2D` sono
+   usciti anche loro, entrambi con `D2` come primo argomento esplicito —
+   nessuno dei due lascia un legame di pagina, come già `computeEnergia2D`/
+   `isoPasso`. */
 /* ⛔ `RELCOL` e la classe del relief (`classeRelief`) stanno in `./genesi-data.js`, blocco G26 (10/09).
    Trasloco B3 (14/09): anche il legame di una riga (`reliefCls`) è uscito — `D2` come primo
    argomento esplicito, come già per `pfNominale`/`pieDev`. La mappa delle classi CSS del relief
@@ -6659,7 +6653,7 @@ function renderScheda2D(){
         +'<b>Sopra</b>: passa troppo tempo, la roccia è già andata via e il foro lavora da solo → pezzatura più grossa e cumulo sparpagliato. '
         +(nLo+nHi>0?'Qui '+_ricPlur(nLo+nHi,'foro','fori')+' fuori finestra: il livello <b>Relief</b> '+(nLo+nHi===1?'lo':'li')+' segna con un anello sulla pianta. Da guardare: ritardo tra fori e tra file, distanza fra i fori interessati, ordine della sequenza. '
                    :'Tutti i fori sono dentro la finestra impostata. ')
-        +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs())+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
+        +'I fori che partono entro la dispersione dell\'innesco ('+fmtMs(scatterMs(D2))+' ms) contano come un istante solo: sparando insieme non si liberano a vicenda. I badge Timing inter-foro/inter-fila restano la media di progetto. '
         +'Letteratura: ≈8–14 ms/m tra prima e seconda fila, ≈5 tra le ultime. È una <b>diagnosi</b>, non un\'istruzione: i ritardi restano decisione del responsabile del tiro.'});
   })();
   /* G5 — energia foro per foro: il powder factor medio non dice DOVE la carica
@@ -6781,7 +6775,7 @@ function renderScheda2D(){
      davanti ai clamp. `_fg` è calcolato in cima a questa funzione, con lo
      stesso RWS effettivo (bagnato incluso) di prima. */
   const _x50=_fg.x50;
-  const _Th=rit, _sd=scatterMs(), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
+  const _Th=rit, _sd=scatterMs(D2), _Rs=_sd/Math.max(1,_Th);   // scatter: unica formula, condivisa col relief per foro
   rows.push({lab:'Brillabilità (BI/A)',valStr:gfix(_A,1)+' <span>A · BI '+gnum(_rf.BI,0)+'</span>',cls:(_A<=6?'sv-ok':(_A<=10?'sv-warn':'sv-bad')),
     why:'rock factor A=0,06·(RMD+JF+RDI+HF) (Lilly/Cunningham): '+_rk.nome+', UCS '+(D2.ucs||_rk.ucs)+' MPa, E '+(D2.eMod||_rk.eMod)+' GPa, fratturazione '+D2.frat+'. RDI '+_rf.RDI+', HF '+_rf.HF+', JF '+_rf.JF+'. '+(_A<=6?'roccia facile: frammenta bene con PF moderato.':(_A<=10?'brillabilità media: cura PF e timing per evitare oversize.':'roccia dura/massiccia: serve PF alto, Ø piccolo o esplosivo ad alta VOD.'))});
   rows.push(_x50===null
