@@ -464,8 +464,11 @@ const CONDIVISI = [
      statico bucketizzava una funzione come «più di dieci variabili» per un
      falso positivo dell'euristica sull'indentazione, quando la dipendenza
      vera era una sola (`D2`). Entrata identica, confrontata byte per byte
-     con una copia della vecchia forma inline su cinque casi. */
-  { file: "apps/genesi/genesi-data.js", fondo: 147,
+     con una copia della vecchia forma inline su cinque casi.
+     147 → 148 il 14/09 (G40, cantiere B3, stesso giorno): `reliefSuMaglia`,
+     stessa famiglia esatta — salita da `computeRelief2D`. Stesso metodo di
+     verifica. */
+  { file: "apps/genesi/genesi-data.js", fondo: 148,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

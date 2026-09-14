@@ -1204,7 +1204,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5436,27 +5436,11 @@ function scatterMs(){
   const Th=D2.ritardo||42, tmx=Math.max(Th, D2.lastDet||Th);
   return scatterInnesco(D2.innesco, tmx);
 }
-function computeRelief2D(){
-  const H=D2.holes; if(!H||!H.length) return;
-  const dMax=1.5*Math.max(D2.S||3.5, D2.B||3.0, _spazTipico(H));   // solo i fori ADIACENTI: oltre, la roccia in mezzo e di un altro foro
-  const dtMin=Math.max(1, scatterMs());                      // sotto la dispersione dell'innesco i due fori sono un istante solo
-  for(let i=0;i<H.length;i++){
-    const h=H[i]; let best=null;
-    for(let j=0;j<H.length;j++){
-      if(j===i) continue;
-      const dt=(h.tDet||0)-(H[j].tDet||0);
-      if(dt<dtMin) continue;                                 // solo fori che hanno gia sparato, e non "insieme" a questo
-      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
-      if(d<0.05 || d>dMax) continue;
-      const r=dt/d;                                          // ms/m disponibili verso QUEL foro
-      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};        // vince il vincolo piu stretto
-    }
-    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino ha gia sparato: si libera sulla faccia gia aperta
-    h.relFrom = best? best.j : -1;
-    h.relD = best? +best.d.toFixed(2) : null;
-    h.relDt = best? +best.dt.toFixed(1) : null;
-  }
-}
+/* ⛔ Trasloco G40 (14/09, cantiere B3): il conto vero è `reliefSuMaglia` in
+   ./genesi-data.js — stessa famiglia di falso positivo di G39, dipendenza
+   vera solo D2. `dtMin` resta calcolato qui perché chiede tre campi di D2
+   (ritardo, lastDet, innesco) che a `reliefSuMaglia` non servono altrimenti. */
+function computeRelief2D(){ reliefSuMaglia(D2.holes, D2.S, D2.B, scatterMs()); }
 /* ⛔ `RELCOL` e la classe del relief (`classeRelief`) stanno in `./genesi-data.js`, blocco G26 (10/09):
    qui resta il legame con la finestra scelta a schermo. La mappa delle classi CSS del relief non la
    leggeva nessuno ed è stata tolta. */

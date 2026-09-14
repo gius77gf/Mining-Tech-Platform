@@ -25960,6 +25960,60 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("innescoSuMaglia"), "la pagina importa la funzione");
   });
 
+  /* ⛔ G40 — IL BURDEN RELIEF FORO PER FORO (14/09, cantiere B3, stessa
+     famiglia di falso positivo di G39). Stesso metodo: confronto byte per
+     byte con una copia della vecchia forma inline su casi via via più fitti,
+     più i due casi limite (un foro solo, due fori sovrapposti). */
+  test("⛔ Genesi · reliefSuMaglia: identica alla vecchia forma inline, su una maglia diagonale", () => {
+    const vecchia = (H, S, B, dtMinRaw) => {
+      const dMax = 1.5 * Math.max(S || 3.5, B || 3.0, genesi.spaziaturaTipica(H, Math.max(S || 3.5, B || 3)));
+      const dtMin = Math.max(1, dtMinRaw);
+      for (let i = 0; i < H.length; i++) {
+        const h = H[i]; let best = null;
+        for (let j = 0; j < H.length; j++) {
+          if (j === i) continue;
+          const dt = (h.tDet || 0) - (H[j].tDet || 0);
+          if (dt < dtMin) continue;
+          const d = Math.hypot(H[j].mx - h.mx, H[j].my - h.my);
+          if (d < 0.05 || d > dMax) continue;
+          const r = dt / d;
+          if (!best || r < best.r) best = { r, j, d, dt };
+        }
+        h.relief = best ? +best.r.toFixed(2) : null;
+        h.relFrom = best ? best.j : -1;
+        h.relD = best ? +best.d.toFixed(2) : null;
+        h.relDt = best ? +best.dt.toFixed(1) : null;
+      }
+    };
+    const casi = [
+      () => [{ mx: 0, my: 3, tDet: 0 }, { mx: 3.5, my: 3, tDet: 17 }, { mx: 7, my: 3, tDet: 34 },
+        { mx: 0, my: 6, tDet: 42 }, { mx: 3.5, my: 6, tDet: 59 }, { mx: 7, my: 6, tDet: 76 }],
+      () => Array.from({ length: 20 }, (_, i) => ({ mx: (i % 5) * 3.2 + Math.sin(i) * 0.3, my: Math.floor(i / 5) * 3.0, tDet: i * 13.7 + ((i * 37) % 5) })),
+      () => [{ mx: 0, my: 0, tDet: 5 }],
+      () => [{ mx: 0, my: 0, tDet: 0 }, { mx: 0, my: 0, tDet: 0 }],
+      () => [],
+    ];
+    for (const gen of casi) {
+      const A = gen(), B = gen();
+      vecchia(A, 3.5, 3, 8);
+      genesi.reliefSuMaglia(B, 3.5, 3, 8);
+      eq(B, A, `${A.length} fori: la nuova forma deve coincidere byte per byte con la vecchia`);
+    }
+  });
+  test("⛔ Genesi · reliefSuMaglia: senza fori non tocca niente, non solleva errori", () => {
+    genesi.reliefSuMaglia(null, 3, 3.5, 8);
+    genesi.reliefSuMaglia(undefined, 3, 3.5, 8);
+    const vuoto = []; genesi.reliefSuMaglia(vuoto, 3, 3.5, 8); eq(vuoto, []);
+  });
+  test("⛔ Genesi · G40: nella pagina il conto non c'è più, e il legame resta", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/function computeRelief2D\(\)\{ reliefSuMaglia\(D2\.holes, D2\.S, D2\.B, scatterMs\(\)\); \}/.test(pag),
+      "computeRelief2D è il legame fra lo stato e la funzione pura");
+    eq((pag.match(/h\.relFrom=best\.j/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("reliefSuMaglia"), "la pagina importa la funzione");
+  });
+
   /* ⛔ G27 — TRE PEZZI DI DOCUMENTO E UN FORMATTATORE (10/09, nona fetta di
      B3): la miniatura SVG del composito, la base della previsione PPV, la
      tinta della roccia, e `fmtT` in `genesi-formato.js`. Entrate identiche

@@ -3056,6 +3056,46 @@ export function codiceVolataGenesi(d,data,fronte){
    identica, `H` mutato sul posto come faceva la pagina (`innFrom`, `innDt` su
    ogni foro) — non è stata cambiata la forma dei dati, solo dove vive il
    calcolo. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   G40 · IL BURDEN RELIEF FORO PER FORO (14/09, cantiere B3).
+   ═══════════════════════════════════════════════════════════════════════════
+   Il ms/m dei badge è una media di progetto: qui diventa un valore del
+   singolo foro, che è dove nascono blocchi, picchi di vibrazione e
+   proiezioni. Per ogni foro: quanti millisecondi passano dal foro che gli ha
+   già aperto lo spazio, diviso la distanza da quel foro. Fra tutti i vicini
+   già sparati vince il PIÙ VINCOLANTE (rapporto più basso): è quello che
+   decide se la roccia davanti ha fatto in tempo a muoversi.
+   Stessa famiglia di falso positivo di `innescoSuMaglia` qui sopra (G39):
+   `computeRelief2D` era marcata dal censimento come dipendente da più di
+   dieci variabili del modulo; letta a mano, la sua dipendenza vera è `D2`
+   (per `S`/`B`, la soglia di distanza) più `dtMin`, che nella pagina viene
+   dalla dispersione dell'innesco (`scatterMs()`, un altro legame di una
+   riga su `scatterInnesco`, già in questo modulo) — passato qui come
+   parametro invece di ricalcolato, perché richiede altri tre campi di `D2`
+   (`ritardo`, `lastDet`, `innesco`) che non servono a nient'altro in questa
+   funzione. Entrata identica, `H` mutato sul posto. */
+export function reliefSuMaglia(H, S, B, dtMin){
+  if(!H||!H.length) return;
+  const dMax=1.5*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));   // solo i fori ADIACENTI: oltre, la roccia in mezzo e di un altro foro
+  const soglia=Math.max(1, dtMin);                             // sotto la dispersione dell'innesco i due fori sono un istante solo
+  for(let i=0;i<H.length;i++){
+    const h=H[i]; let best=null;
+    for(let j=0;j<H.length;j++){
+      if(j===i) continue;
+      const dt=(h.tDet||0)-(H[j].tDet||0);
+      if(dt<soglia) continue;                                 // solo fori che hanno gia sparato, e non "insieme" a questo
+      const d=Math.hypot(H[j].mx-h.mx, H[j].my-h.my);
+      if(d<0.05 || d>dMax) continue;
+      const r=dt/d;                                          // ms/m disponibili verso QUEL foro
+      if(!best || r<best.r) best={r:r,j:j,d:d,dt:dt};        // vince il vincolo piu stretto
+    }
+    h.relief = best? +best.r.toFixed(2) : null;              // null = nessun vicino ha gia sparato: si libera sulla faccia gia aperta
+    h.relFrom = best? best.j : -1;
+    h.relD = best? +best.d.toFixed(2) : null;
+    h.relDt = best? +best.dt.toFixed(1) : null;
+  }
+}
 export function innescoSuMaglia(H, S, B){
   if(!H||!H.length) return;
   const dMax=2.2*Math.max(S||3.5, B||3.0, spaziaturaTipica(H, Math.max(S||3.5, B||3)));
