@@ -409,6 +409,14 @@ const BANCHI = [
   ['maglia assente di Genesi · controprova', 'genesi-maglia-assente.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09: G38 (obiettivo di pezzatura) e G44 (confronta burden
+     con MIC/PPV) erano verificati solo con uno screenshot in scratchpad —
+     mai un banco vero. Rilanciando la verifica per revisione qualità è
+     saltato fuori un difetto reale (parola doppia nella riga di
+     provenienza, «e da da litologia»), preso solo perché si è aperto di
+     nuovo il browser invece di fidarsi dello screenshot vecchio. */
+  ['obiettivo x50 e confronta burden di Genesi', 'genesi-obiettivo-burden.mjs', []],
+  ['obiettivo/confronta burden · controprova', 'genesi-obiettivo-burden.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col

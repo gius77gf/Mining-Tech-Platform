@@ -3708,7 +3708,7 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
       const cellaPpv='<td style="padding:2px 4px">'+(r.ppv==null?'<span class="sv-warn">non calcolabile</span>':'<span class="'+(r.esitoV?r.esitoV.classe:'sv-info')+'">'+gfix(r.ppv,1)+' mm/s</span>')+'</td>';
       return '<tr'+(oggi?' style="font-weight:700;color:var(--cu)"':'')+'><td style="padding:2px 4px">'+gfix(r.B,2)+' m'+(oggi?' (oggi)':'')+'</td><td style="padding:2px 4px">'+gfix(r.S,2)+' m</td>'+cella+cellaMic+cellaPpv+'</tr>';
     }).join('')
-    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram) e da '+_rEsc(pv.breve||'')+', a parità di pezzatura obiettivo, forma della maglia e sequenza di sparo: resta una previsione, non una garanzia.</div>';
+    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram) e '+_rEsc(pv.breve||'')+', a parità di pezzatura obiettivo, forma della maglia e sequenza di sparo: resta una previsione, non una garanzia.</div>';
 };
 /* ⏱️ 12/09 (unità 129) — IL BURDEN VERO SUL RILIEVO MISURATO (boretrack), non
    sulla banda d'incertezza simulata. `simulaPerforazione`, qui sopra, dice
