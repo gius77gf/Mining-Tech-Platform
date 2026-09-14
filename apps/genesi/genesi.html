@@ -1202,7 +1202,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -1466,7 +1466,7 @@ const SEED = 19250606;
 /* ============ parametri correnti ============ */
 const P = { fori:12, ritardo:42, dir:'sx', prof:10, kg:60, diam:102, vento:0.8, profilo:[], foriH:null };
 /* modello di progettazione 2D (Fase 1) — editor multi-fila disaccoppiato dal 3D single-row */
-const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, selPrev:-1, lastDet:0, _m:null,
+const D2 = { B:3.0, S:3.5, file:1, perRow:12, bf:3.0, diam:102, prof:10, kg:60, ritardo:42, ritardoFila:84, stem:2.2, sub:0.9, dir:'sx', stagger:true, incl:0, kgAuto:true, esplosivo:'anfo-standard', innesco:'nonel', roccia:'calcare', ucs:100, eMod:55, frat:'media', bagnato:false, acquaCol:0, presplit:false, psSpacing:0.9, psCharge:0.4, sequenza:'diagonale', recDist:300, recNorma:'din-res', recFreq:25, cPerf:8, cExpl:1.5, cInnesco:12, valMat:0, decks:1, deckStem:1.0, tool:'fori', profilo:[], piede:[], selPt:-1, holes:[], sel:-1, selPrev:-1, lastDet:0, _m:null, magliaAssente:null,
   /* livelli di lettura della pianta: isocrone dei tempi + mappa del burden relief (ms/m per foro) */
   iso:false, isoStep:0, rel:false, relLo:5, relHi:15, ene:false, inn:false,
   errColl:0.15, dev:2.5,
@@ -5085,6 +5085,12 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        come sempre. I fori illeggibili si contano e si dicono nel toast. */
     const _fd=foriDaDesign(arr[i].design);
     D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[]; D2.sel=-1; D2.selPt=-1; D2.selPrev=-1;
+    /* G37 — `magliaAssente` non è un parametro salvato col progetto (si
+       ricalcola da B/S), e senza questo azzeramento resterebbe quello
+       dell'ultima volata aperta: una volata sana aperta dopo una rotta
+       mostrerebbe ancora "pianta non disegnabile". Se qui non ci sono fori
+       salvati, sarà `genMaglia2D()` a deciderlo di nuovo con la misura. */
+    D2.magliaAssente=null;
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
@@ -5323,6 +5329,15 @@ function draw2D(){
   renderInspector();
 }
 function genMaglia2D(){
+  /* G37 (B0-septies, 14/09) — con burden o interasse non numerici le
+     coordinate `c*D2.S+off`/`D2.B+r*D2.bf` degenerano per coercizione di
+     `null` a ZERO: ogni foro finiva disegnato sullo stesso punto, con un
+     conteggio corretto sopra una geometria falsa. Non si disegna una
+     pianta inventata: si dichiara, e i cinque consumatori a valle
+     (`computeEnergia2D` e c.) non vengono nemmeno chiamati, perché hanno
+     già una guardia su `H.length===0`. Vedi genesi-data.js, blocco G37. */
+  D2.magliaAssente = magliaAssenteMotivo(D2.B, D2.S);
+  if(D2.magliaAssente){ D2.holes=[]; D2.sel=-1; D2.selPrev=-1; D2.lastDet=0; return; }
   D2.bf = D2.B;                                            // burden tra file = spalla
   const holes=[];
   for(let r=0;r<D2.file;r++){
@@ -5852,7 +5867,19 @@ function activeProf(){ return D2.tool==='piede'?D2.piede:D2.profilo; }
 function drawDesign2D(){
   const cv=$('d2-canvas'); if(!cv) return; const W=cv.width;
   const H=D2.holes; const padX=54, padTop=66, padBot=56;
-  if(!H.length){ const c0=cv.getContext('2d'); c0.clearRect(0,0,W,cv.height); return; }
+  if(!H.length){
+    const c0=cv.getContext('2d'); c0.clearRect(0,0,W,cv.height);
+    /* G37 — una pianta vuota per assenza di dati non è la stessa cosa di una
+       pianta vuota perché non si è ancora disegnato niente: la prima si
+       dichiara, altrimenti il vuoto sembra un progetto nuovo invece di un
+       progetto rotto. */
+    if(D2.magliaAssente){
+      c0.fillStyle='#1c150b'; c0.fillRect(0,0,W,cv.height);
+      c0.fillStyle='#ffca28'; c0.textAlign='center'; c0.font="600 13px 'Barlow Condensed',sans-serif";
+      c0.fillText('Pianta non disegnabile: manca '+D2.magliaAssente, W/2, cv.height/2);
+    }
+    return;
+  }
   const xs=H.map(h=>h.mx), ys=H.map(h=>h.my+interpFronte(h.mx)), pys=D2.profilo.map(p=>p.y), pieY=D2.piede.map(p=>p.y);
   const minx=Math.min(...xs), maxx=Math.max(...xs);
   const maxy=Math.max(D2.B, ...ys, ...pys);
@@ -6124,7 +6151,16 @@ const SVOPEN=new Set();
   });
 })();
 function renderScheda2D(){
-  const el=$('d2-scheda'); if(!el) return; const g=measureGeom2D();
+  const el=$('d2-scheda'); if(!el) return;
+  /* G37 — con la maglia dichiarata assente non si calcola nessun badge: B ed
+     S sono null, e le decine di rapporti di questa scheda (S/B, H/B, B/Dm…)
+     darebbero NaN o zeri di coercizione invece di "non calcolabile". Si esce
+     prima, con la sola frase dichiarata — non con una scheda a metà. */
+  if(D2.magliaAssente && !D2.holes.length){
+    el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub" style="color:#ffca28">Pianta non disegnabile: manca '+_rEsc(D2.magliaAssente)+'. Nessun foro è stato disegnato — una maglia non si inventa quando manca il dato che la genera.</span></div></div>';
+    return;
+  }
+  const g=measureGeom2D();
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
   if(document.activeElement!==$('dKgTot')) syncKgTot();
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;

@@ -3399,3 +3399,35 @@ export function _puntiNuvola(e){
     ? ' · '+_ricPlur(mostrati,'punto disegnato','punti disegnati')+' su '+gnum(tot,0)+' caricati'
     : ' · '+_ricPlur(mostrati,'punto caricato','punti caricati');
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   G37 · CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA (B0-septies, 04/09 → 14/09)
+   ══════════════════════════════════════════════════════════════════════════
+   Col burden o l'interasse di progetto non numerici — misurato reale: si
+   arriva qui aprendo una volata salvata prima del 05/09 (senza fori propri)
+   il cui progetto porta un valore assente, la stessa via già usata per la
+   controprova di B0-nonies — la pagina costruiva comunque una maglia: le
+   coordinate dei fori degenerano per coercizione di un valore assente a
+   ZERO (non a un ripiego "plausibile" come i cinque consumatori a valle,
+   che invece ripiegano su un burden e un interasse finti), quindi TUTTI i
+   fori finivano disegnati sovrapposti nello stesso punto — un conteggio
+   foro corretto sopra una geometria completamente falsa. Da lì i cinque
+   ripieghi a valle (`computeEnergia2D`, `computeSeq2D`, `computeRelief2D`,
+   `_spazTipico`, `drawInnesco2D`) calcolavano numeri su una maglia che non
+   esiste.
+   ⛔ **Farla a metà era la trappola scritta nella roadmap**: correggere i
+   cinque consumatori uno per uno rischiava di lasciarne indietro uno (sono
+   risultati 11+ punti che leggono lo stesso ripiego nella pagina, non
+   cinque) e di far divergere fra loro i valori di scorta. La cura sta
+   invece alla RADICE: se la maglia non si può posizionare, non la si
+   genera — e i cinque consumatori NON vengono mai chiamati su una maglia
+   vuota, perché ciascuno ha già una guardia sull'assenza di fori scritta
+   per altre ragioni. Una guardia sola, non cinque riscritture.
+   Questa funzione decide SE la maglia è disegnabile; la pagina la chiama
+   prima di generare le coordinate. */
+export function magliaAssenteMotivo(B, S){
+  const bOk = Number.isFinite(B) && B>0, sOk = Number.isFinite(S) && S>0;
+  if(bOk && sOk) return null;
+  if(!bOk && !sOk) return 'burden e interasse';
+  return !bOk ? 'burden' : 'interasse';
+}

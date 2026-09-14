@@ -187,6 +187,26 @@ cosa **non abbiamo toccato**, perché è roba tua.*
    muove**: svuotando l'interasse i fori passano da 16 a 14 e i metri cubi
    restano **1512, identici** (126×3×4 fa quanto 144×3×3,5). Cioè guardare due
    schermate affiancate non basta a vedere il difetto.
+   ✅ **14/09 — B0-septies decisa dal ciclo** (la settimana concessa il 04/09 è
+   passata senza risposta, e per questa voce l'auto-decide non è mai stato
+   revocato, a differenza della segnalazione boretrack più giù). Non si è
+   scelto fra "pianta vuota" e "maglia proposta": scomponendo il lavoro sono
+   emersi 11+ punti di ripiego, non i cinque nominati nella roadmap, e farli
+   convergere uno per uno era la stessa trappola descritta sopra.
+   ⚠️ *E qui sopra la riga «il disegno continua a usare 3,5 e 4» non descrive
+   più quello che genera oggi la maglia: misurato direttamente (Node, non
+   deduzione) su `genMaglia2D` con burden e interasse assenti, le coordinate
+   NON diventano 3,5×4 — diventano tutte **(0,0)**, per coercizione di un
+   valore assente a zero nella moltiplicazione. Non un ripiego "plausibile":
+   un collasso di tutti i fori nello stesso punto. Non si sa se la riga del
+   14/08 descriveva una forma di `genMaglia2D` diversa da quella di oggi o se
+   era già imprecisa allora — resta qui per chi la rilegge, corretta invece
+   di cancellata.*
+   La cura è alla radice — la maglia non si genera più quando burden o
+   interasse non sono leggibili, invece di collassare a un punto solo —
+   quindi 2D e metri cubi ora raccontano la stessa cosa per costruzione, non
+   per disciplina di chi scrive il codice dopo. Dettaglio in
+   `vault/ROADMAP_SETTIMANA.md`, voce B0-septies.
 
 *Nella stessa giornata è stato corretto anche un difetto tecnico degli accessi
 (due aggiornamenti ravvicinati potevano far sparire un'organizzazione dal
@@ -1314,8 +1334,8 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.422** *(ricontate il 13/09, dopo
-`_puntiNuvola` salita dalla pagina di Genesi — G36 —, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+**Le prove automatiche sono passate a 3.425** *(ricontate il 14/09, dopo
+`magliaAssenteMotivo` — G37, B0-septies —, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **275
 esecuzioni** che aprono davvero le pagine in un browser.
 

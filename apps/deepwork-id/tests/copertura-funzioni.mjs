@@ -448,8 +448,14 @@ const CONDIVISI = [
      143 → 144 il 13/09 (G36, stesso giorno): `_puntiNuvola`, stessa fetta —
      non leggeva `D2` per niente (falso positivo del tokenizzatore, la
      quarta volta sullo stesso file), traslocata parola per parola con lo
-     stesso nome: nessun wrapper resta in pagina, l'import la sostituisce. */
-  { file: "apps/genesi/genesi-data.js", fondo: 144,
+     stesso nome: nessun wrapper resta in pagina, l'import la sostituisce.
+     144 → 145 il 14/09 (G37, B0-septies — la decisione roadmap del 04/09):
+     `magliaAssenteMotivo`, nuova — decide SE la maglia si può disegnare
+     (burden e interasse leggibili) prima che `genMaglia2D` generi le
+     coordinate, così i cinque consumatori a valle (`computeEnergia2D` e c.)
+     restano protetti dalla loro guardia già scritta su `H.length===0`
+     invece di calcolare su una maglia degenerata. */
+  { file: "apps/genesi/genesi-data.js", fondo: 145,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

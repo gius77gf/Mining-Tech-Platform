@@ -2894,7 +2894,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
-- `B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
 - `B0. I CANTIERI DEL BROWSER E IL GIRO SI RUBANO LA MACCHINA — misurato`
 - `B4. Le mancanze confermate del delta`
@@ -3973,28 +3972,46 @@ numero scritto dove non era stato misurato niente**.*
       **senza che i soggetti guardati calino** (aperture, elementi, voci,
       comandi).
 
-- [ ] **B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA — i ripieghi
-      rimasti, e sono una DECISIONE, non un trasloco.** Cinque funzioni di
-      disegno tengono ancora `D2.S||3.5`, `D2.B||3`, `D2.prof||10`:
-      `computeEnergia2D`, `computeSeq2D`, `computeRelief2D`, `_spazTipico`,
-      `drawInnesco`. Sono la ragione per cui, con la spalla illeggibile, **la
-      maglia degenera a un burden di 0,3 m** — ed è da lì che nasceva l'8,33
-      kg/m³ che accusava dodici fori.
-      ⚠️ **Non è la stessa cosa dei numeri**: un numero che non si può calcolare
-      si dichiara «non calcolabile» e chi lo legge lo capisce. Una **pianta** non
-      può dichiararsi: o disegna qualcosa, o non disegna niente. Quindi la
-      domanda è di prodotto, non di codice — *che cosa vede l'utente che apre il
-      2D di una volata a cui manca la maglia?* Una pianta vuota con una frase, o
-      la maglia di progetto dichiarata come proposta?
-      ⛔ Farla a metà è la trappola: se le cinque divergono, la pianta e i numeri
-      raccontano due volate diverse.
-      **Come si misura**: apri una volata con `design.B:null` e guarda il burden
-      dei fori disegnati — se è 0,3 m, il difetto è ancora lì.
-      ⏸️ **04/09: portata al fondatore come decisione 25** in
-      `docs/DECISIONI_WEEKEND.md` (pianta vuota con la frase, oppure maglia
-      proposta e dichiarata), con la risposta del ciclo se non risponde entro
-      la settimana. Il codice non si tocca prima: farla a metà è la trappola
-      scritta qui sopra.
+- [x] **B0-septies. CHE COSA DISEGNA UNA PIANTA SENZA MAGLIA.** ✅ *Chiuso il
+      14/09, decisione presa dal ciclo dopo che la settimana concessa il 04/09
+      è passata senza risposta — auto-decide MAI revocato per questa voce
+      (a differenza della segnalazione boretrack §6, che resta bloccata sul
+      fondatore).*
+      **Scoperto scomponendo il lavoro, prima di scrivere codice**: i punti che
+      leggono un ripiego (`||3.5`/`||3`/`||10`) sono **11+**, non le cinque
+      funzioni nominate qui — e sono tutti nella pagina, non nel modulo. Farli
+      convergere uno per uno era esattamente la trappola scritta sopra: bastava
+      dimenticarne uno perché la pianta e i numeri raccontassero due volate
+      diverse.
+      **La cura è alla RADICE, non sui cinque consumatori**: `genMaglia2D` (la
+      sola funzione che genera le coordinate, senza ripiego) ora si rifiuta di
+      costruire una maglia quando burden o interasse non sono numeri leggibili
+      — nuova funzione pura `magliaAssenteMotivo(B,S)` in `genesi-data.js`
+      (blocco G37) che dice QUALE dei due manca. Con la maglia dichiarata
+      assente restano zero fori, e i cinque consumatori a valle non vengono
+      MAI chiamati: ciascuno ha già una guardia su «zero fori» scritta per
+      altre ragioni, quindi la scelta fra le due opzioni della domanda di
+      prodotto era già decisa dal codice esistente — non li si è mai dovuti
+      far concordare. **Scelta A** (pianta vuota con una frase), la
+      conservativa, coerente col principio "l'assenza di un dato non è un
+      dato favorevole" già applicato al caso gemello (B0-nonies, l'interasse):
+      il canvas e la scheda mostrano "Pianta non disegnabile: manca burden/
+      interasse" invece di un vuoto muto o di una maglia proposta.
+      **Verificato**: prima del difetto, `genMaglia2D` con `design.B:null`
+      disegnava comunque N fori — tutti sovrapposti nello stesso punto per
+      coercizione di un valore assente a zero (`c*null`, `r*null` fanno 0):
+      un conteggio corretto sopra una geometria completamente falsa. Dopo, zero
+      fori e il messaggio dichiarato. Gli export (piano CSV, DXF) e il report
+      stampabile restano sicuri sulla maglia vuota (verificato: header-only,
+      nessun crash) — mostrano onestamente 0 fori invece dei fori fantasma di
+      prima, un miglioramento non richiesto dalla decisione ma non evitabile
+      dato che condividono `D2.holes`.
+      **Come si misura**: apri una volata con `design.B:null` (o `design.S:null`)
+      — zero fori disegnati, canvas e scheda dichiarano la ragione, nessun
+      valore fabbricato in nessuno dei tre punti. `run-kpi.mjs` prova
+      `magliaAssenteMotivo` su tutti i casi (0/negativo/NaN/stringa/entrambi
+      mancanti), col difetto rimesso (`B||3` invece della guardia) la prova
+      cadrebbe perché tornerebbe a generare fori invece di dichiarare.
 
 - [x] **B0-nonies. CON L'INTERASSE ASSENTE LA PAGINA DI GENESI *MUORE*, E IL
       MESSAGGIO CHE DOVEVA SPIEGARLO NON ARRIVA MAI.** ✅ *Chiuso il 10/08.*
@@ -8080,10 +8097,10 @@ numero scritto dove non era stato misurato niente**.*
   (640 precedenti alla regola, contati da `date-checkpoint.mjs`). Chi va per
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
-- Stato misurato al **13/09** (lanciando le suite, non a memoria — dopo
-  `_puntiNuvola` salita dalla pagina di Genesi, unità G36: +3 in `run-kpi`,
-  2938→2941): **3.422 prove girano senza rete**. La frase va letta stretta:
-  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2941, `run-stile` 328,
+- Stato misurato al **14/09** (lanciando le suite, non a memoria — dopo
+  `magliaAssenteMotivo` salita in Genesi, unità G37/B0-septies: +3 in `run-kpi`,
+  2941→2944): **3.425 prove girano senza rete**. La frase va letta stretta:
+  è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2944, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

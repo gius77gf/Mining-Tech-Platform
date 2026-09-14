@@ -41202,6 +41202,33 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine _puntiNuvola salita dalla pagina (13/09) ===== */
 
+/* ===== GENESI · magliaAssenteMotivo (14/09, G37, B0-septies) =====
+   Prima di questa unità `genMaglia2D` costruiva comunque la maglia con
+   `D2.B`/`D2.S` non numerici: `c*null` e `r*null` sono coercizioni a 0,
+   quindi ogni foro finiva disegnato sullo stesso punto — un conteggio
+   corretto sopra una geometria falsa. Questa funzione decide SE la maglia
+   è disegnabile, prima che le coordinate vengano generate. */
+{
+  test("Genesi · magliaAssenteMotivo: con burden e interasse leggibili, la maglia si disegna", () => {
+    eq(genesi.magliaAssenteMotivo(3, 3.5), null);
+    eq(genesi.magliaAssenteMotivo(1.5, 8), null, "gli estremi ammessi dal campo restano leggibili");
+  });
+  test("Genesi · magliaAssenteMotivo: nomina QUALE dei due manca, non solo che manca qualcosa", () => {
+    eq(genesi.magliaAssenteMotivo(null, 3.5), "burden");
+    eq(genesi.magliaAssenteMotivo(3, null), "interasse");
+    eq(genesi.magliaAssenteMotivo(null, null), "burden e interasse");
+  });
+  test("Genesi · magliaAssenteMotivo: zero, negativo e NaN sono assenza, non un dato vero", () => {
+    eq(genesi.magliaAssenteMotivo(0, 3.5), "burden", "un burden a zero non genera una maglia: zero fori distinti");
+    eq(genesi.magliaAssenteMotivo(-2, 3.5), "burden");
+    eq(genesi.magliaAssenteMotivo(NaN, 3.5), "burden");
+    eq(genesi.magliaAssenteMotivo(3, undefined), "interasse");
+    eq(genesi.magliaAssenteMotivo(3, "3.5"), "interasse",
+      "una stringa non è un numero per questa funzione: `Number.isFinite` non converte, a differenza di `+x`");
+  });
+}
+/* ===== fine magliaAssenteMotivo (14/09) ===== */
+
 
 
 
