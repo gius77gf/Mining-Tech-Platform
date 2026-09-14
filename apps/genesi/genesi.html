@@ -6795,19 +6795,32 @@ function renderScheda2D(){
   const rowsHtml=rows.map(r=>'<div class="sv-row'+(SVOPEN.has(r.lab)?' open':'')+'" data-lab="'+r.lab.replace(/"/g,'&quot;')+'"><span class="sv-dot '+r.cls+'"></span><div class="sv-tx"><div class="sv-lab">'+r.lab+'</div><div class="sv-val">'+r.valStr+'</div><div class="sv-why">'+r.why+'</div></div><span class="sv-chev">▼</span></div>').join('');
   /* G45 (14/09, da docs/RICERCA_CONTINUA_GENESI.md, "Controlli automatici
      di validazione"): un verdetto di SINTESI sopra le decine di badge della
-     scheda, la forma (a) già scelta in vault/ROADMAP_SETTIMANA.md — dichiara
-     esplicitamente il proprio perimetro invece di promettere un "pronto"
-     generico, perché QUESTA scheda copre solo geometria/carica/esplosivo di
-     PROGETTO: vibrazione (PPV), airblast e flyrock vivono nel pannello KPI a
-     schermo, con le loro soglie di legge verso il recettore, e un badge che
-     tacesse questo limite sarebbe una garanzia di sicurezza che non dà.
+     scheda, la forma (a) già scelta in vault/ROADMAP_SETTIMANA.md.
+     ⛔ CORRETTO IL 14/09, STESSO GIORNO, in una seconda verifica: la
+     prima stesura scriveva "non copre vibrazione, airblast né flyrock:
+     guarda il pannello KPI qui sopra" — **falso**, e preso costruendo lo
+     screenshot del caso "tutto verde" invece di fidarsi della prima prova
+     sul caso rosso. Cercato un "pannello KPI" separato nella pagina:
+     `grep -c 'id="d2-scheda"'` dà **1** (un contenitore solo), e le righe
+     `PPV al recettore`/`MIC (carica/ritardo)`/`Airblast (sovrappr.)`
+     sono `rows.push(...)` **dentro questa stessa funzione**, nello
+     STESSO array che il badge conta — non altrove. Il "pannello KPI"
+     esiste sì, ma è la tabella del confronto A/B (`cmpRender`, un modale
+     diverso, aperto da un altro bottone): non "qui sopra". La frase
+     originale — ripresa dalla ricerca del 14/09 senza riverificarla nel
+     codice — prometteva MENO di quanto il badge fa davvero: il rischio
+     opposto a quello per cui G45 era stato scomposto con cautela, ma
+     falso allo stesso modo. Tolta la frase di esclusione: il badge
+     copre già geometria, carica, esplosivo, vibrazione, airblast e
+     flyrock, perché sono tutti badge della stessa scheda.
      `cls` di `verdettoValidatore`/`nonCalcolabile` usa 'sv-warn' sia per «un
      po' fuori fascia» sia per «non calcolabile»: qui li si conta insieme di
      proposito — un indicatore che non si può contare non è un indicatore a
      posto (il principio del fondatore: l'assenza di un dato non è un dato
      favorevole). Le righe 'sv-info' (Pressione det., Resistenza all'acqua
-     quando il foro è asciutto, Presplit non previsto) restano fuori dal
-     conto: sono descrittive, non validate contro una fascia. */
+     quando il foro è asciutto, Presplit non previsto, Direzione cumulo,
+     X50 prevista, curva KCO) restano fuori dal conto: sono descrittive,
+     non validate contro una fascia. */
   const _sintN=rows.filter(r=>r.cls==='sv-ok'||r.cls==='sv-warn'||r.cls==='sv-bad').length;
   const _sintFuori=rows.filter(r=>r.cls==='sv-warn'||r.cls==='sv-bad').length;
   const _sintGravi=rows.filter(r=>r.cls==='sv-bad').length;
@@ -6815,10 +6828,10 @@ function renderScheda2D(){
     +(_sintGravi>0?'border:1px solid rgba(239,83,80,.35);background:rgba(239,83,80,.07)'
       :(_sintFuori>0?'border:1px solid rgba(255,167,38,.3);background:rgba(255,167,38,.06)'
         :'border:1px solid rgba(102,187,106,.3);background:rgba(102,187,106,.06)'))+'">'
-    +(_sintGravi>0?'🔴 <b>'+_ricPlur(_sintGravi,'indicatore','indicatori')+' di progetto fuori fascia</b> ('+_sintFuori+' in totale su '+_sintN+')'
-      :(_sintFuori>0?'🟡 <b>'+_ricPlur(_sintFuori,'indicatore','indicatori')+' di progetto fuori fascia</b> su '+_sintN
-        :'🟢 <b>Tutti i '+_sintN+' indicatori di progetto</b> sono nella fascia consigliata'))
-    +' <span style="color:var(--mut2)">— geometria/carica/esplosivo. Non copre vibrazione, airblast né flyrock: guarda il pannello KPI qui sopra.</span></div>';
+    +(_sintGravi>0?'🔴 <b>'+_ricPlur(_sintGravi,'indicatore','indicatori')+' fuori fascia</b> ('+_sintFuori+' in totale su '+_sintN+')'
+      :(_sintFuori>0?'🟡 <b>'+_ricPlur(_sintFuori,'indicatore','indicatori')+' fuori fascia</b> su '+_sintN
+        :'🟢 <b>Tutti i '+_sintN+' indicatori</b> sono nella fascia consigliata'))
+    +' <span style="color:var(--mut2)">— geometria, carica, esplosivo, vibrazione, airblast e flyrock. Stima di progetto: non sostituisce una misura sul campo.</span></div>';
   /* === barra bipolare shock <-> heave (carattere energetico esplosivo, da VOD) === */
   const _vod=_e.vod_ms||3800;
   const _shock=Math.max(0.04,Math.min(0.96,(_vod*_vod-3000*3000)/(6000*6000-3000*3000)));

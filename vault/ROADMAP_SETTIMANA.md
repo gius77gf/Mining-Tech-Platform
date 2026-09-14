@@ -5988,6 +5988,37 @@ numero scritto dove non era stato misurato niente**.*
       (36/0), che esercitano `renderScheda2D` sui casi limite, restano
       verdi: nessun conteggio di riga è cambiato, solo un `<div>` in più
       prima di esse.
+      ⛔ **E QUEL "CASO VERDE NON FOTOGRAFATO", COSTRUITO DUE ORE DOPO,
+      HA TROVATO UN DIFETTO VERO NELLA FRASE DI PERIMETRO STESSA.**
+      Costruendo davvero lo screenshot del caso verde (impostando `D2`
+      prima di navigare al 2D, non mutandolo dopo) e leggendo l'elenco
+      completo delle righe con `.sv-dot`/`.sv-lab`, sono uscite
+      `PPV al recettore`, `MIC (carica/ritardo)` e `Airblast (sovrappr.)`
+      **come righe `rows.push(...)` DENTRO `renderScheda2D`, nello
+      STESSO array che il badge conta** — non in un "pannello KPI"
+      separato. Cercato con `grep -c 'id="d2-scheda"'`: **1**, un
+      contenitore solo; l'unico posto della pagina con la scritta "KPI"
+      è l'intestazione della tabella di confronto A/B (`cmpRender`), un
+      modale diverso aperto da un altro bottone — non "qui sopra".
+      La frase di perimetro scritta nell'unità precedente ("non copre
+      vibrazione, airblast né flyrock") era **falsa**, ripresa dalla
+      ricerca del 14/09 e da questa stessa voce di roadmap senza
+      riverificarla nel codice — esattamente l'errore che "niente entra
+      sulla parola dell'agente" esiste per prendere, e che questa volta
+      ha preso **me**, non un agente di ricerca. Tolta la frase: il
+      badge copre già geometria, carica, esplosivo, vibrazione, airblast
+      e flyrock, perché sono tutti badge della stessa scheda. Corretto
+      anche il commento in `genesi.html` con la stessa misura.
+      ⚠️ **La direzione dell'errore è l'opposto di quella temuta
+      all'inizio**: il rischio scomposto con cautela era "il badge
+      promette PIÙ di quanto guarda" (un falso 🟢 pronto); quello uscito
+      era "il badge dichiara di guardare MENO di quanto guarda davvero"
+      — comunque un numero (qui, un perimetro) scritto senza misurarlo,
+      la stessa famiglia in una veste diversa. **La lezione**: una frase
+      di perimetro copiata da un documento di ricerca vuole la stessa
+      verifica nel codice di qualunque altro "non c'è" — non basta che
+      la CAUTELA sia giusta, il FATTO dentro la cautela va misurato lo
+      stesso.
 - [ ] **G46 (candidato, non preso).** Genesi: un percorso per il dato di
       frammentazione MISURATO (foto/vagliatura), non solo digitato a mano
       (14/09, da `docs/RICERCA_CONTINUA_GENESI.md`, sezione "Come si
