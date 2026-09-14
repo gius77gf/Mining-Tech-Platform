@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.461 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `activeProf`/`d2HitTest`/`d2HitTestPt`, cantiere B3: 2980 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.462 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `_snapXY`, cantiere B3: 2981 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.926** asserzioni su **40** comandi.
+> `node` completo esegue **3.927** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **329 su 329** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **165/165**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **330 su 330** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **166/166**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **143 funzioni** stanno dentro
+importa. **Genesi no**: le sue **142 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,13 +126,22 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **49** |
+| una o due | **48** |
 | da tre a cinque | 14 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **57 su 143 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **56 su 142 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
+l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
+alla griglia) — componeva solo `snapAGriglia` già pura. Dieci punti di
+chiamata nella pagina, tutti dentro gli event handler del mouse dell'editor
+2D, tutti aggiornati a passare `D2` (sostituzione globale sicura: `_snapXY(`
+non compare in nessun altro contesto). Nessun wrapper lasciato. Stesso
+margine dello strumento già visto su `activeProf`: `d2Move` guadagna
+`renderInspector` nel proprio elenco "chiama" (chiamata presente nel suo
+corpo da sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato.*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`

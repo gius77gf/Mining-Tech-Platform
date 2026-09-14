@@ -41540,9 +41540,11 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 /* ===== fine il piano che apre un CAD vero (13/09) ===== */
 
 /* ===== GENESI · L'AGGANCIO ALLA GRIGLIA (13/09) =====
-   snapAGriglia è la sola parte di questa unità che `node` può testare: il
-   resto (checkbox, disegno della griglia, il collegamento nei gestori del
-   mouse) vive dentro genesi.html e lo verifica `sintassi-pagine.mjs` più la
+   snapAGriglia era la sola parte di questa unità che `node` poteva testare;
+   dal 14/09 (B3) anche `_snapXY` — il legame coi campi del progetto — è
+   uscita dalla pagina, `D2` come primo argomento esplicito. Il resto
+   (checkbox, disegno della griglia, il collegamento nei gestori del mouse)
+   vive dentro genesi.html e lo verifica `sintassi-pagine.mjs` più la
    lettura a occhio, perché tocca il DOM. */
 {
   test("Genesi · snapAGriglia aggancia al multiplo più vicino del passo", () => {
@@ -41559,6 +41561,14 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   test("Genesi · snapAGriglia con un valore già illeggibile lo lascia illeggibile", () => {
     ok(Number.isNaN(genesi.snapAGriglia(NaN, 0.25)), "NaN non diventa un numero per magia");
     ok(Number.isNaN(genesi.snapAGriglia("boh", 0.25)), "una stringa non numerica resta NaN, non 0");
+  });
+  test("⛔ Genesi · _snapXY (B3, trasloco con cambio di firma)", () => {
+    eq(genesi._snapXY({ snap: true, snapPasso: 0.5 }, 3.13), genesi.snapAGriglia(3.13, 0.5), "con l'aggancio acceso compone snapAGriglia, non lo ricalcola");
+    eq(genesi._snapXY({ snap: false, snapPasso: 0.5 }, 3.13), 3.13, "con l'aggancio spento il valore passa invariato: non è lo stesso codice, è il ramo opposto");
+    eq(genesi._snapXY({ snap: true, snapPasso: 0 }, 3.137), 3.137, "acceso ma senza un passo valido: nessun aggancio possibile");
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/function _snapXY/g) || []).length, 0, "il legame non c'è più nella pagina");
+    eq((pag.match(/_snapXY\(D2,/g) || []).length, 10, "e la pagina lo chiama dai suoi dieci punti, passando D2");
   });
 }
 /* ===== fine l'aggancio alla griglia (13/09) ===== */

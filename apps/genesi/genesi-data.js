@@ -3712,6 +3712,11 @@ export function snapAGriglia(v, passo){
   if(!Number.isFinite(p) || p<=0) return x;               // passo non valido: nessun aggancio, si passa il valore invariato
   return Math.round(x/p)*p;
 }
+/* Trasloco B3 (14/09): il legame di una riga con l'aggancio opzionale è
+   uscito anche lui — `D2` come primo argomento esplicito, come già per le
+   fette precedenti. Dieci punti di chiamata nella pagina, tutti dentro gli
+   event handler del mouse dell'editor 2D. */
+export function _snapXY(D2, v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    G35 · IL PROSSIMO PEZZO DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)

@@ -580,8 +580,19 @@ const CONDIVISI = [
      (riga già presente, non toccata da questa unità), il censimento la
      vedeva mascherata mentre elencava `activeProf`. Margine noto dello
      strumento (stessa famiglia delle parole corte nei commenti), non
-     un difetto di questa fetta: bucket "3-5" di `d2Move` invariato. */
-  { file: "apps/genesi/genesi-data.js", fondo: 165,
+     un difetto di questa fetta: bucket "3-5" di `d2Move` invariato.
+     165 → 166 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`, l'ultimo
+     legame di una riga rimasto nel blocco G34 (l'aggancio opzionale
+     alla griglia) — componeva solo `snapAGriglia` già pura. Dieci
+     punti di chiamata nella pagina, tutti dentro gli event handler del
+     mouse dell'editor 2D, tutti aggiornati a passare `D2` (sostituzione
+     globale sicura: `_snapXY(` non compare in nessun altro contesto).
+     Nessun wrapper lasciato: 143→142 funzioni nella pagina, bucket
+     "1-2" 49→48, estraibili 57→56. Stesso margine dello strumento già
+     visto su `activeProf`: `d2Move` guadagna `renderInspector` nel
+     proprio elenco "chiama" (chiamata presente nel suo corpo da
+     sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato. */
+  { file: "apps/genesi/genesi-data.js", fondo: 166,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

@@ -1223,7 +1223,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -6117,8 +6117,9 @@ function d2EvtToCanvas(e){ const cv=$('d2-canvas'); const r=cv.getBoundingClient
 let d2drag=-1;
 let d2dragPt=-1;
 /* G34 — l'aggancio si applica SOLO mentre l'utente posiziona un punto col
-   mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta. */
-function _snapXY(v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
+   mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta.
+   ⛔ Trasloco B3 (14/09): il legame è uscito in `./genesi-data.js` — `D2`
+   come primo argomento esplicito, come già per le fette precedenti. */
 /* G47c-1 (14/09) — annulla/ripristina per l'editor 2D (fori, fronte,
    piede). `mdlUndo`/`mdlRedo` (riga 2863) esistono già ma sono
    dell'editor di modellazione 3D del fronte: non coprono un clic o un
@@ -6178,7 +6179,7 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   if(D2.tool==='fori' && D2.strati.fori.bloccato){ toast('I fori sono bloccati — sblocca dal pannello sopra la tela'); return; }
   if(D2.tool==='tratto'){
     if(!D2._m) return;
-    const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
+    const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale);
     d2PushUndo();
     const ultimo=D2.tratti[D2.tratti.length-1];
     if(ultimo && ultimo.aperto) ultimo.pts.push({x:+mx.toFixed(2),y:+my.toFixed(2)});
@@ -6186,10 +6187,10 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
     e.preventDefault(); drawDesign2D(); renderScheda2D(); syncTrattoUI(); return;
   }
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(D2); let k=d2HitTestPt(D2, p.x,p.y);
-    if(k<0 && D2._m){ d2PushUndo(); d2dragPushed=true; const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
+    if(k<0 && D2._m){ d2PushUndo(); d2dragPushed=true; const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(D2, p.x,p.y);
-  if(i<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
+  if(i<0 && D2._m){ const mx=_snapXY(D2, (p.x-D2._m.startX)/D2._m.scale), my=_snapXY(D2, (p.y-D2._m.faceY)/D2._m.scale);
     if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ d2PushUndo(); d2dragPushed=true; D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   /* G34quinquies (13/09) — memoria dell'ultima selezione, per la misura fra
      due fori qualunque (non solo il più vicino): si aggiorna solo quando la
@@ -6199,8 +6200,8 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   if(i>=0 && D2.sel>=0 && D2.sel!==i) D2.selPrev=D2.sel;
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
-  if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(D2); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(mx); my=_snapXY(my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
-  if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(mx); my=Math.max(0.3,_snapXY(my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+  if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(D2); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(D2, mx); my=_snapXY(D2, my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
+  if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(D2, mx); my=Math.max(0.3,_snapXY(D2, my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ d2drag=-1; d2dragPt=-1; }
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
