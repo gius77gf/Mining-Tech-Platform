@@ -6107,6 +6107,17 @@ numero scritto dove non era stato misurato niente**.*
       (linea/polilinea, come già descritto qui sopra: mancano linee/
       polilinee/forme/testo, il punto singolo esiste già per
       foro/fronte/piede).
+      ✅ **14/09 — G47c-1 FATTA**: pila annulla/ripristina per fori,
+      fronte e piede (aggiunta/trascinamento/eliminazione, e le
+      scritture di G47a), con la scelta di spingere alla PRIMA mossa
+      vera di un trascinamento invece che subito e togliere dopo (come
+      fa il 3D): un clic di sola selezione non genera mai un evento di
+      movimento, quindi non sporca mai la cronologia — verificato su
+      pagina fresca. Due pulsanti (↩/↪) e Ctrl+Z/Ctrl+Y, attivi solo
+      sulla scheda 2D e mai insieme alla modellazione 3D (che ha già
+      il suo Ctrl+Z). Banco browser committato
+      (`genesi-d2-undo.mjs`, 8 prove + controprova) invece che uno
+      scratchpad che sparirebbe alla sessione dopo.
 - [ ] **Q1.** Proposte di `docs/RICERCA_DEEPWORKID_202607.md` (ruoli reali
       dentro l'organizzazione) — legata alla decisione **10b/10c**.
   ⏱️ **03/09, rimisurato dal meccanismo** (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
@@ -8402,8 +8413,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **281 esecuzioni** che
-  aprono le pagine in un browser vero, da **120** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **283 esecuzioni** che
+  aprono le pagine in un browser vero, da **121** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

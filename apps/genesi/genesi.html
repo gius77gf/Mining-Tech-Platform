@@ -507,6 +507,9 @@ body.scr-sim #tl{bottom:80px}
 .dt-seg button.on{background:linear-gradient(135deg,#ffc12e,#ff8c1d);color:#3a1e00;box-shadow:0 4px 12px rgba(255,150,30,.3)}
 .dt-reset{margin-left:auto;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut2);font-family:'Barlow',sans-serif;font-size:11.5px;padding:7px 11px;border-radius:9px;cursor:pointer}
 .dt-reset:hover{border-color:var(--cu);color:var(--cu)}
+.dt-undo{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--mut2);font-size:15px;width:32px;height:32px;border-radius:9px;cursor:pointer;line-height:1}
+.dt-undo:hover:not(:disabled){border-color:var(--cu);color:var(--cu)}
+.dt-undo:disabled{opacity:.35;cursor:default}
 /* livelli di lettura della pianta (isocrone dei tempi, mappa del relief) */
 #d2-layers{width:100%;max-width:560px;margin:8px auto 0;padding:0 14px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .dl-tog{display:flex;align-items:center;gap:6px;background:#1a140b;border:1px solid var(--line);color:var(--mut);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;border-radius:11px;cursor:pointer;min-height:38px;transition:.15s}
@@ -774,6 +777,8 @@ body.scr-sim #tl{bottom:80px}
   </div>
   <div id="d2-tools">
     <div class="dt-seg"><button type="button" id="dtFori" class="on">Fori</button><button type="button" id="dtFronte">Fronte</button><button type="button" id="dtPiede">Piede</button></div>
+    <button type="button" id="d2Undo" class="dt-undo" title="Annulla l'ultima modifica (Ctrl+Z)" disabled>↩</button>
+    <button type="button" id="d2Redo" class="dt-undo" title="Ripristina (Ctrl+Y)" disabled>↪</button>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
   </div>
   <div id="d2-layers">
@@ -6033,13 +6038,58 @@ let d2dragPt=-1;
 /* G34 — l'aggancio si applica SOLO mentre l'utente posiziona un punto col
    mouse/dito: mai sui dati già salvati, e mai quando la griglia è spenta. */
 function _snapXY(v){ return D2.snap ? snapAGriglia(v, D2.snapPasso) : v; }
+/* G47c-1 (14/09) — annulla/ripristina per l'editor 2D (fori, fronte,
+   piede). `mdlUndo`/`mdlRedo` (riga 2863) esistono già ma sono
+   dell'editor di modellazione 3D del fronte: non coprono un clic o un
+   trascinamento fatto qui. Stesso pattern (pila con cap, scatto
+   dell'intero stato disegnabile — mai un campo solo, un annulla deve
+   restituire la scena intera), ma con una differenza voluta: invece di
+   spingere subito e togliere dopo se non c'è stato movimento (come fa
+   `mdlPushUndo`+il pop di riga ~2993), qui si spinge alla PRIMA mossa
+   vera del trascinamento (`d2dragPushed`), così un clic di sola
+   selezione — che non genera nessun evento di movimento — non push mai
+   niente: niente da togliere dopo, perché non c'è mai stato messo. */
+let d2UndoStack=[], d2RedoStack=[];
+const D2_UNDO_MAX=40;
+function d2Snap(){ return { holes:D2.holes.map(h=>({...h})), profilo:D2.profilo.map(p=>({...p})), piede:D2.piede.map(p=>({...p})) }; }
+function d2BtnSync(){
+  const u=$('d2Undo'), r=$('d2Redo');
+  if(u) u.disabled=!d2UndoStack.length;
+  if(r) r.disabled=!d2RedoStack.length;
+}
+function d2PushUndo(){
+  d2UndoStack.push(d2Snap());
+  if(d2UndoStack.length>D2_UNDO_MAX) d2UndoStack.shift();
+  d2RedoStack=[]; d2BtnSync();
+}
+function d2ApplySnap(s){
+  D2.holes=(s.holes||[]).map(h=>({...h}));
+  D2.profilo=(s.profilo||[]).map(p=>({...p}));
+  D2.piede=(s.piede||[]).map(p=>({...p}));
+  D2.sel=-1; D2.selPrev=-1; D2.selPt=-1;
+  computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+}
+function d2Undo(){
+  if(!d2UndoStack.length) return;
+  d2RedoStack.push(d2Snap());
+  d2ApplySnap(d2UndoStack.pop()); d2BtnSync();
+  toast('↩ Modifica annullata');
+}
+function d2Redo(){
+  if(!d2RedoStack.length) return;
+  d2UndoStack.push(d2Snap());
+  d2ApplySnap(d2RedoStack.pop()); d2BtnSync();
+  toast('↪ Modifica ripristinata');
+}
+let d2dragPushed=false;
 function d2Down(e){ const p=d2EvtToCanvas(e);
+  d2dragPushed=false;
   if(D2.tool==='fronte'||D2.tool==='piede'){ const arr=activeProf(); let k=d2HitTestPt(p.x,p.y);
-    if(k<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
+    if(k<0 && D2._m){ d2PushUndo(); d2dragPushed=true; const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale); arr.push({x:+mx.toFixed(2),y:+my.toFixed(2)}); k=arr.length-1; }
     D2.selPt=k; d2dragPt=k; e.preventDefault(); drawDesign2D(); renderScheda2D(); return; }
   let i=d2HitTest(p.x,p.y);
   if(i<0 && D2._m){ const mx=_snapXY((p.x-D2._m.startX)/D2._m.scale), my=_snapXY((p.y-D2._m.faceY)/D2._m.scale);
-    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
+    if(my>0.2 && p.x>20 && p.x<($('d2-canvas').width-20)){ d2PushUndo(); d2dragPushed=true; D2.holes.push({id:idForoNuovo(D2.holes), mx:+mx.toFixed(2), my:+Math.max(0.3,my).toFixed(2)}); i=D2.holes.length-1; computeSeq2D(); } }
   /* G34quinquies (13/09) — memoria dell'ultima selezione, per la misura fra
      due fori qualunque (non solo il più vicino): si aggiorna solo quando la
      selezione cambia DAVVERO su un foro esistente, mai su un ri-clic dello
@@ -6048,8 +6098,8 @@ function d2Down(e){ const p=d2EvtToCanvas(e);
   if(i>=0 && D2.sel>=0 && D2.sel!==i) D2.selPrev=D2.sel;
   D2.sel=i; d2drag=i; if(i>=0) e.preventDefault(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Move(e){
-  if(d2dragPt>=0 && D2._m){ e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(mx); my=_snapXY(my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
-  if(d2drag<0||!D2._m) return; e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(mx); my=Math.max(0.3,_snapXY(my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
+  if(d2dragPt>=0 && D2._m){ if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); const arr=activeProf(); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(-D2.B*1.2,Math.min(D2.B*1.6,my)); mx=_snapXY(mx); my=_snapXY(my); if(arr[d2dragPt]) arr[d2dragPt]={x:+mx.toFixed(2),y:+my.toFixed(2)}; drawDesign2D(); renderScheda2D(); return; }
+  if(d2drag<0||!D2._m) return; if(!d2dragPushed){ d2PushUndo(); d2dragPushed=true; } e.preventDefault(); const p=d2EvtToCanvas(e); let mx=(p.x-D2._m.startX)/D2._m.scale, my=(p.y-D2._m.faceY)/D2._m.scale; my=Math.max(0.3,my); mx=Math.max(-3,Math.min(D2.perRow*D2.S+5,mx)); mx=_snapXY(mx); my=Math.max(0.3,_snapXY(my)); D2.holes[d2drag].mx=+mx.toFixed(2); D2.holes[d2drag].my=+my.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); }
 function d2Up(){ d2drag=-1; d2dragPt=-1; }
 function renderInspector(){
   const el=$('d2-insp'); if(!el) return;
@@ -6139,7 +6189,7 @@ function renderInspector(){
      `splice` sposta tutti gli indici dopo quello tolto, quindi un indice
      vecchio dopo una cancellazione punta a un ALTRO foro, non a "nessuno" —
      misurare una distanza dal foro sbagliato senza che nulla lo dica. */
-  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; D2.holes.splice(D2.sel,1); D2.sel=-1; D2.selPrev=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
+  const db=$('diDel'); if(db) db.onclick=()=>{ if(D2.sel<0) return; d2PushUndo(); D2.holes.splice(D2.sel,1); D2.sel=-1; D2.selPrev=-1; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector(); };
   /* Il ritardo si applica quando si conferma, non a ogni tasto premuto:
      digitando «120» si passerebbe da 1 a 12 a 120, e a ogni passaggio la
      sequenza si riordinerebbe sotto le dita. */
@@ -6147,12 +6197,12 @@ function renderInspector(){
   if(ri) ri.onchange=()=>{
     const v=+String(ri.value).replace(',','.');
     if(!isFinite(v)||v<0){ toast('Il ritardo è un numero di millisecondi, da zero in su'); ri.value=h.tDet||0; return; }
-    h.tMano=+v.toFixed(1);
+    d2PushUndo(); h.tMano=+v.toFixed(1);
     computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro a '+fmtMs(h.tMano)+' ms — messo a mano');
   };
   const ra=$('diRitAuto');
-  if(ra) ra.onclick=()=>{ h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+  if(ra) ra.onclick=()=>{ d2PushUndo(); h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro tornato al ritardo calcolato dallo schema'); };
   /* G47a — le due coordinate esatte, sullo stesso schema difensivo del
      ritardo qui sopra: si applica al `change` (non a ogni tasto), un
@@ -6161,26 +6211,28 @@ function renderInspector(){
      spalla non può essere zero o negativa: è la stessa soglia (0.3 m)
      che il trascinamento col mouse già rispetta in `d2Down`/`d2Move` —
      un secondo modo di scrivere lo stesso punto non può avere un
-     vincolo più permissivo del primo. */
+     vincolo più permissivo del primo. Ogni scrittura valida passa da
+     `d2PushUndo` (G47c-1): un numero sbagliato scritto a tastiera è
+     esattamente il caso che un annulla deve coprire. */
   const dx=$('diX');
   if(dx) dx.onchange=()=>{
     const v=+String(dx.value).replace(',','.');
     if(!isFinite(v)){ toast('La posizione lungo la fila è un numero, in metri'); dx.value=gfix(h.mx,2); return; }
-    h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    d2PushUndo(); h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro spostato a x '+gfix(h.mx,2)+' m');
   };
   const dy=$('diY');
   if(dy) dy.onchange=()=>{
     const v=+String(dy.value).replace(',','.');
     if(!isFinite(v)||v<0.3){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
-    h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    d2PushUndo(); h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro spostato a spalla '+gfix(h.my,2)+' m');
   };
   const da=$('diAllinea');
   if(da) da.onclick=()=>{
     if(D2.selPrev<0 || !D2.holes[D2.selPrev]) return;
     const rif=D2.holes[D2.selPrev], n=((rif.seq!=null?rif.seq:D2.selPrev)+1);
-    h.my=rif.my; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    d2PushUndo(); h.my=rif.my; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Spalla allineata al foro '+n+': '+gfix(h.my,2)+' m (la posizione lungo la fila non è cambiata)');
   };
 }
@@ -7319,8 +7371,23 @@ function setTool(t){ D2.tool=t; D2.selPt=-1; [['dtFori','fori'],['dtFronte','fro
 if($('dtFori')) $('dtFori').onclick=()=>setTool('fori');
 if($('dtFronte')) $('dtFronte').onclick=()=>setTool('fronte');
 if($('dtPiede')) $('dtPiede').onclick=()=>setTool('piede');
-if($('dtReset')) $('dtReset').onclick=()=>{ if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); };
+if($('dtReset')) $('dtReset').onclick=()=>{ d2PushUndo(); if(D2.tool==='piede')D2.piede=[]; else D2.profilo=[]; D2.selPt=-1; drawDesign2D(); renderScheda2D(); };
 if($('d2-mat')) $('d2-mat').onclick=()=>showEsplInfo('esplosivo');
+if($('d2Undo')) $('d2Undo').onclick=d2Undo;
+if($('d2Redo')) $('d2Redo').onclick=d2Redo;
+d2BtnSync();
+/* scorciatoie SOLO quando la scheda 2D è quella aperta e non è aperta la
+   modellazione 3D del fronte (che ha già Ctrl+Z/Ctrl+Y sua, riga ~3024):
+   due editor diversi non devono litigarsi lo stesso tasto. */
+addEventListener('keydown', e=>{
+  if(modella || !document.body.classList.contains('scr-design')) return;
+  const t=e.target, tag=t&&t.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)) return;
+  if(!(e.ctrlKey||e.metaKey)) return;
+  const k=e.key.toLowerCase();
+  if(k==='z' && !e.shiftKey){ e.preventDefault(); d2Undo(); }
+  else if(k==='y' || (k==='z' && e.shiftKey)){ e.preventDefault(); d2Redo(); }
+});
 
 /* ============ qualità adattiva ============ */
 let fpsAcc=0, fpsN=0, fpsLow=0;

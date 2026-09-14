@@ -425,6 +425,13 @@ const BANCHI = [
      sul fondatore (DECISIONI_WEEKEND.md §6) — questo blocco non lo tocca. */
   ['il piano fori DXF di Genesi (G33)', 'genesi-piano-dxf.mjs', []],
   ['piano fori DXF · controprova', 'genesi-piano-dxf.mjs', ['--controprova'], true],
+  /* AGGIUNTO IL 14/09 (G47c-1): l'editor di modellazione 3D del fronte ha
+     annulla/ripristina da mesi (mdlUndo/mdlRedo); l'editor 2D (fori,
+     fronte, piede — e i campi x/spalla/allinea di G47a) non aveva nessuna
+     cronologia. Copre l'aggiunta/eliminazione di un foro, il caso "un clic
+     di sola selezione non deve mai pushare niente", e Ctrl+Z/Ctrl+Y. */
+  ["l'annulla/ripristina dell'editor 2D di Genesi (G47c-1)", 'genesi-d2-undo.mjs', []],
+  ['annulla/ripristina 2D · controprova', 'genesi-d2-undo.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 07/08, e completa la domanda qui sopra: il foglio stampato
      era UNA delle uscite di Genesi, e i nove bottoni che salvano un FILE non
      li aveva ancora aperti nessuno. Aprendoli: la scheda volata archiviata col
