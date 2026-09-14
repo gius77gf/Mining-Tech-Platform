@@ -6106,7 +6106,33 @@ function renderInspector(){
   const distPrevTx = (D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel)
     ? ' · dal foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+': '+gfix(Math.hypot(D2.holes[D2.selPrev].mx-h.mx,D2.holes[D2.selPrev].my-h.my),2)+' m'
     : '';
+  /* G47a (14/09) — LA PRIMA FETTA DI "GENESI SIMILE A UN CAD" (il
+     fondatore ha risposto "tutto" ai quattro assi proposti nel
+     checkpoint 20260914-100055; questo è il più maturo). Prima si
+     poteva solo LEGGERE x/spalla qui sopra, o trascinare il punto col
+     mouse (con l'aggancio alla griglia opzionale, G34): mancava
+     scriverli a tastiera per un valore esatto, e un modo di allineare
+     due fori senza indovinare a occhio il trascinamento. Due campi
+     (non uno "posizione" unico): x e spalla sono due misure diverse
+     per chi lavora in cava (lungo la fila / dal fronte), la stessa
+     distinzione che il resto della scheda usa già. L'allineamento
+     riusa `D2.selPrev`, già tracciato dal 13/09 per la distanza fra
+     due fori qualunque: non un vincolo geometrico nuovo, lo stesso dato
+     letto per un'azione in più. Nessun aggancio alla griglia qui: chi
+     scrive un numero a mano lo vuole esatto, l'aggancio è per chi
+     disegna col mouse. */
+  const posTx='<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+    +'<span style="color:var(--mut2);font-size:12px">x</span>'
+    +'<input id="diX" type="text" inputmode="decimal" value="'+gfix(h.mx,2)+'" style="width:66px" title="Posizione lungo la fila, in metri, dal primo foro">'
+    +'<span style="color:var(--mut2);font-size:12px">spalla</span>'
+    +'<input id="diY" type="text" inputmode="decimal" value="'+gfix(h.my,2)+'" style="width:66px" title="Distanza dal fronte, in metri">'
+    +'<span style="color:var(--mut2);font-size:12px">m</span>'
+    +(D2.selPrev>=0 && D2.holes[D2.selPrev] && D2.selPrev!==D2.sel
+      ? '<button class="btn sm" id="diAllinea" style="padding:2px 8px" title="Porta la spalla di questo foro alla stessa distanza dal fronte del foro '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+', senza toccare la posizione lungo la fila">⊥ allinea al '+((D2.holes[D2.selPrev].seq!=null?D2.holes[D2.selPrev].seq:D2.selPrev)+1)+'</button>'
+      : '')
+    +'</div>';
   el.innerHTML='<div class="di-info"><b>Foro '+((h.seq!=null?h.seq:D2.sel)+1)+'</b><span>x '+gfix(h.mx,2)+' m · spalla '+gfix(h.my,1)+' m · vicino '+(isFinite(nn)?gfix(nn,1):'—')+' m'+distPrevTx+' · t '+gnum(h.tDet||0,1)+' ms'+(aMano?' (a mano)':'')+'</span>'
+    +posTx
     +ritTx
     +'<div style="margin-top:4px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">'+relTx+'</div>'+eneTx+'</div><button class="di-del" id="diDel">✕ Elimina</button>';
   /* ⚠️ `D2.selPrev` va azzerato QUI, non solo dove nasce un array nuovo:
@@ -6128,6 +6154,35 @@ function renderInspector(){
   const ra=$('diRitAuto');
   if(ra) ra.onclick=()=>{ h.tMano=null; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
     toast('Foro tornato al ritardo calcolato dallo schema'); };
+  /* G47a — le due coordinate esatte, sullo stesso schema difensivo del
+     ritardo qui sopra: si applica al `change` (non a ogni tasto), un
+     valore illeggibile o fuori dominio si rifiuta con un toast e il
+     campo torna al valore vero, non resta un numero a metà scritto. La
+     spalla non può essere zero o negativa: è la stessa soglia (0.3 m)
+     che il trascinamento col mouse già rispetta in `d2Down`/`d2Move` —
+     un secondo modo di scrivere lo stesso punto non può avere un
+     vincolo più permissivo del primo. */
+  const dx=$('diX');
+  if(dx) dx.onchange=()=>{
+    const v=+String(dx.value).replace(',','.');
+    if(!isFinite(v)){ toast('La posizione lungo la fila è un numero, in metri'); dx.value=gfix(h.mx,2); return; }
+    h.mx=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    toast('Foro spostato a x '+gfix(h.mx,2)+' m');
+  };
+  const dy=$('diY');
+  if(dy) dy.onchange=()=>{
+    const v=+String(dy.value).replace(',','.');
+    if(!isFinite(v)||v<0.3){ toast('La spalla è la distanza dal fronte: un numero da 0,3 m in su'); dy.value=gfix(h.my,2); return; }
+    h.my=+v.toFixed(2); computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    toast('Foro spostato a spalla '+gfix(h.my,2)+' m');
+  };
+  const da=$('diAllinea');
+  if(da) da.onclick=()=>{
+    if(D2.selPrev<0 || !D2.holes[D2.selPrev]) return;
+    const rif=D2.holes[D2.selPrev], n=((rif.seq!=null?rif.seq:D2.selPrev)+1);
+    h.my=rif.my; computeSeq2D(); drawDesign2D(); renderScheda2D(); renderInspector();
+    toast('Spalla allineata al foro '+n+': '+gfix(h.my,2)+' m (la posizione lungo la fila non è cambiata)');
+  };
 }
 (function(){ const cv=$('d2-canvas'); if(cv){ cv.addEventListener('pointerdown',d2Down); cv.addEventListener('pointermove',d2Move); window.addEventListener('pointerup',d2Up); } })();
 

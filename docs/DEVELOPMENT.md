@@ -128,11 +128,27 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | nessuna — si porta fuori com'è | **23** |
 | una o due | **53** |
 | da tre a cinque | 15 |
-| da sei a dieci | 19 |
-| più di dieci — lì è un rifacimento | 37 |
+| da sei a dieci | 18 |
+| più di dieci — lì è un rifacimento | 38 |
 
 Cioè **61 su 147 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
+⏱️ *19→18 e 37→38 il 14/09 (G47a, prima fetta di "Genesi simile a un CAD" —
+il fondatore ha risposto "tutto" alla domanda di chiarimento), e QUESTA VOLTA
+NON È UN CANTIERE VERO: è il margine accettato dello strumento stesso
+(intestazione di `genesi-estraibili.mjs`, "contenuto di stringa o commento
+scambiato per una dipendenza da variabile del modulo"). Misurato confrontando
+l'elenco `--elenco` prima/dopo in una worktree su HEAD: il commento italiano
+aggiunto contiene 4 volte la parola «da» e il codice dichiara 5 volte `dy`
+(il nome del nuovo campo "spalla") — due token corti che lo strumento tratta
+come nomi di variabili del modulo ovunque compaiano nel testo, non solo dove
+sono davvero letti. Sette funzioni lontanissime dal punto toccato
+(`riconRender`, `_riconCampoHtml`, `sitoRender`, `applyDesign`,
+`_riconForiHtml`, `sentRender`, `drawIsocrone2D`, `salvaVolata`,
+`rockTextures`, `drawInnesco2D`, `flyrockInv`…) hanno guadagnato "da" o "dy"
+nel proprio elenco di letture senza che una sola riga del loro corpo sia
+cambiata — la riga numeri è la stessa, solo spostata più in basso nel file.
+61 non si tocca: nessuna funzione ha cambiato bucket per una ragione vera.*
 ⏱️ *38→37 il 14/09 (G42), stesso giorno, ULTIMA fetta del gruppo:
 `computeSeq2D` è diventata un legame di poche righe (`sequenzaSuMaglia` è
 salita in `genesi-data.js`), settima volta sulla stessa famiglia di falso
