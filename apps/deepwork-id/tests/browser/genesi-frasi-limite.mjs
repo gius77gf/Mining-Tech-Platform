@@ -201,6 +201,9 @@ async function apri(preludio, coda) {
   const errori = [];
   pg.on("pageerror", (e) => errori.push(e.message));
   await pg.addInitScript(preludio || (() => localStorage.setItem("genesiDisclaimerV1", "1")));
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html${coda || ""}`, { waitUntil: "domcontentloaded" });
   const scadenzaSplash = Date.now() + 25000;
   while (await pg.evaluate(() => !!document.getElementById("splash")) && Date.now() < scadenzaSplash) {

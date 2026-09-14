@@ -101,6 +101,10 @@ async function apriSenza(chiave) {
     localStorage.setItem("genesiDisclaimerV1", "1");
     localStorage.setItem("genesiVolate", JSON.stringify([{ id:"v1", nome:"Fronte Nord", data:"2026-07-12", sintesi:"12 fori", design: dd }]));
   }, d);
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s PER OGNI pagina aperta (sono quindici): lo si taglia
+     subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil:"domcontentloaded" });
   await pg.waitForTimeout(2200);
   await pg.evaluate(() => { const l = document.getElementById("loginBtn"); if (l) l.click();

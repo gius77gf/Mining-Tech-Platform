@@ -213,6 +213,9 @@ async function apri(sito, design) {
       data: "2026-07-12", sintesi: "12 fori", design: arg.design }]));
     if (arg.sito) localStorage.setItem("genesiSito", JSON.stringify(arg.sito));
   }, { design: design || BASE, sito });
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await pg.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
   /* si intercetta il salvataggio del file: sia la forma `data:` (i CSV e

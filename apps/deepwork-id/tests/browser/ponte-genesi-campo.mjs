@@ -66,6 +66,9 @@ for (const W of [320, 390]) {
 
   // ── 1 · Genesi: «Esporta piano di carico» scrive anche nella collezione ──
   const g = await ctx.newPage(); g.on("pageerror", (e) => errori.push("genesi: " + e.message));
+  /* senza rete vera in questo contenitore, l'import da gstatic morirebbe da
+     solo dopo ~13 s: lo si taglia subito, come in `genesi-locale.mjs`. */
+  await g.route("https://www.gstatic.com/**", (r) => r.abort());
   await g.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`); await g.waitForTimeout(3000);
   await g.evaluate(() => { HTMLAnchorElement.prototype.click = function () { window.__scaricati = (window.__scaricati || []).concat([this.download]); }; });
   await g.evaluate(() => document.getElementById("btn-piano-csv")?.click()); await g.waitForTimeout(1200);
