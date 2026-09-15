@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.466 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto a `run-kpi` la prova dell'appello che non perde uno spunto già fatto: 2985 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.468 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto a `run-kpi` le due prove sull'associazione ambigua del sismogramma nel core: 2987 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.932** asserzioni su **40** comandi.
+> `node` completo esegue **3.934** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da

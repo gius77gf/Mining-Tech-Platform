@@ -2893,16 +2893,26 @@ function renderSismogrammi(){
   el.innerHTML=list.length?list.map(s=>{const c=DB.cave.find(x=>x.id===s.cavaId);const nf=(s.files||[]).length;return`<div class="sitem" onclick="apriSismoDett('${s.id}')"><div class="av av-cv">〰️</div><div class="sinfo"><div class="sname">${fmt(s.data)}${c?' · '+escHtml(c.nome):''}</div><div class="ssub">${nf} file${nf===1?'':'s'}${s.note?' · '+escHtml(s.note.slice(0,40)):''}</div></div><div class="sarr">›</div></div>`;}).join(''):'<div class="empty-state"><div class="empty-icon">〰️</div><div class="empty-title">Nessun sismogramma</div><div class="empty-sub">Carica i sismogrammi registrati e associali a una volata.</div></div>';
 }
 // associazione AUTOMATICA per data+cava (niente scelta manuale → più precisione)
+// ⛔ E «PIÙ PRECISIONE» VALEVA SOLO FINCHÉ C'ERA UN CANDIDATO SOLO (15/09). Con
+// due volate della stessa cava nello stesso giorno — normale in una cava
+// attiva, più spari in un turno — il `.find()` prendeva la PRIMA e la
+// associava con un bollino verde "✓ Volata associata", senza che nessuno
+// avesse scelto quella invece dell'altra: un sismogramma di sicurezza
+// (vibrazioni) finiva legato al progetto sbagliato con la faccia della
+// certezza. Adesso l'ambiguità si dichiara invece di essere risolta a caso.
 function _findVolata(data,cavaId){
   if(!data)return null;
-  let m=(DB.rapportiniFoc||[]).find(r=>r.data===data&&(!cavaId||r.cavaId===cavaId));
-  if(m)return{ref:'R:'+m.id,label:'Volata fochino del '+fmt(m.data)};
-  m=(DB.volate||[]).find(v=>v.data===data&&(!cavaId||v.cavaId===cavaId));
-  if(m)return{ref:'V:'+m.id,label:(m.nome||'Progetto volata')};
+  const foc=(DB.rapportiniFoc||[]).filter(r=>r.data===data&&(!cavaId||r.cavaId===cavaId));
+  if(foc.length===1)return{ref:'R:'+foc[0].id,label:'Volata fochino del '+fmt(foc[0].data)};
+  if(foc.length>1)return{ambiguo:true,n:foc.length};
+  const vol=(DB.volate||[]).filter(v=>v.data===data&&(!cavaId||v.cavaId===cavaId));
+  if(vol.length===1)return{ref:'V:'+vol[0].id,label:(vol[0].nome||'Progetto volata')};
+  if(vol.length>1)return{ambiguo:true,n:vol.length};
   return null;
 }
 function _sismoAssocHtml(){
   const s=state._tempSismo;const f=_findVolata(s.data,s.cavaId);
+  if(f&&f.ambiguo){s.volataRef='';return`<div style="background:var(--card2);border-left:3px solid var(--warn);padding:8px 12px;font-size:12.5px;color:var(--warn);"><b>${f.n} volate</b> in questa data e cava: non posso scegliere da sola quale associare. Il sismogramma resta comunque salvato con data+cava.</div>`;}
   if(f){s.volataRef=f.ref;return`<div style="background:var(--card2);border-left:3px solid var(--bar-ok);padding:8px 12px;font-size:12.5px;"><b style="color:var(--ink-ok);">✓ Volata associata</b> — ${f.label}<div style="color:var(--muted);font-size:11px;">automatico, in base a data + cava</div></div>`;}
   s.volataRef='';return`<div style="background:var(--card2);border-left:3px solid var(--muted);padding:8px 12px;font-size:12.5px;color:var(--muted);">Nessuna volata trovata per questa data e cava — il sismogramma resta comunque salvato e associato a data+cava.</div>`;
 }
@@ -3003,7 +3013,11 @@ function aggiungiSismoFile(){
 function rimuoviSismoFile(i){if(!state._tempSismo||!state._tempSismo.files)return;state._tempSismo.files.splice(i,1);renderSismoModal();}
 async function salvaSismo(){
   const s=state._tempSismo;if(!s)return;
-  s.data=$('sm-data')?.value||today();s.cavaId=$('sm-cava')?.value||'';s.note=$('sm-note')?.value||'';const _fv=_findVolata(s.data,s.cavaId);s.volataRef=_fv?_fv.ref:'';
+  s.data=$('sm-data')?.value||today();s.cavaId=$('sm-cava')?.value||'';s.note=$('sm-note')?.value||'';const _fv=_findVolata(s.data,s.cavaId);
+  // ⛔ `_fv` è truthy anche quando è ambiguo ({ambiguo:true}, senza `.ref`):
+  // `_fv?_fv.ref:''` scriveva `volataRef: undefined` su un'ambiguità. Si
+  // salva il riferimento solo quando c'è, univoco.
+  s.volataRef=(_fv&&_fv.ref)?_fv.ref:'';
   if(!(s.files||[]).length && !s.note){toast('Aggiungi almeno un file o una nota','err');return;}
   const id='sis_'+genId();
   await fbSet('sismogrammi',id,{id,data:s.data,cavaId:s.cavaId,volataRef:s.volataRef,files:s.files||[],note:s.note,createdAt:Date.now(),createdBy:state.user?.id});

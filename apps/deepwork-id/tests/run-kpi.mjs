@@ -37684,6 +37684,64 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
 }
 /* ===== fine core · la calotta non può superare la sezione ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CORE · DUE VOLATE STESSA DATA E CAVA: L'ASSOCIAZIONE DEL SISMOGRAMMA NON
+   NE SCEGLIE UNA A CASO (15/09). `_findVolata` associa un sismogramma alla
+   volata con `.find()` su data+cava, e il commento dichiarava la scelta
+   («niente scelta manuale → più precisione») come se fosse sempre valida.
+   In una cava con più spari nello stesso giorno (normale) c'erano DUE
+   candidati, e `.find()` prendeva il primo con un bollino verde "✓ Volata
+   associata" — un file di sicurezza (vibrazioni) legato al progetto
+   sbagliato con la faccia della certezza. Adesso l'ambiguità si dichiara.
+   ⚠️ Prove SINCRONE e PRIMA del riepilogo. ══════════════════════════════ */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  const prendi = (nome) => {
+    const idx = coreSrc.indexOf("function " + nome + "(");
+    if (idx < 0) return null;
+    const apre = coreSrc.indexOf("{", idx);
+    if (apre < 0) return null;
+    let d = 0, i = apre;
+    for (; i < coreSrc.length; i++) {
+      if (coreSrc[i] === "{") d++;
+      else if (coreSrc[i] === "}") { d--; if (!d) break; }
+    }
+    return coreSrc.slice(idx, i + 1);
+  };
+  test("⛔ core: due volate della stessa data e cava non fanno scegliere a caso l'associazione del sismogramma", () => {
+    const src = prendi("_findVolata");
+    ok(src, "_findVolata si trova nel sorgente");
+    ok(!/\.find\(/.test(src), "non usa più .find() (che prenderebbe la prima a caso): " + src);
+    const f = new Function("DB", "fmt", src + "\nreturn _findVolata;")(
+      { rapportiniFoc: [], volate: [] }, (d) => String(d));
+    eq(f(null, "c1"), null, "senza data: niente da cercare");
+    const DB1 = { rapportiniFoc: [{ id: "r1", data: "2026-08-01", cavaId: "c1" }], volate: [] };
+    const f1 = new Function("DB", "fmt", src + "\nreturn _findVolata;")(DB1, (d) => String(d));
+    eq(f1("2026-08-01", "c1"), { ref: "R:r1", label: "Volata fochino del 2026-08-01" }, "un solo candidato: associazione automatica, come prima");
+    // due rapportini fochino nella stessa data e cava: due spari nello stesso giorno, normale in una cava attiva
+    const DB2 = { rapportiniFoc: [{ id: "r1", data: "2026-08-01", cavaId: "c1" }, { id: "r2", data: "2026-08-01", cavaId: "c1" }], volate: [] };
+    const f2 = new Function("DB", "fmt", src + "\nreturn _findVolata;")(DB2, (d) => String(d));
+    const amb = f2("2026-08-01", "c1");
+    ok(amb && amb.ambiguo === true && amb.n === 2, "due candidati: l'ambiguità si dichiara, non si sceglie il primo: " + JSON.stringify(amb));
+    ok(!amb.ref, "e non porta un riferimento (nessuna scelta fatta a caso)");
+    // stesso difetto sul secondo ramo (progetti volata, non rapportini fochino)
+    const DB3 = { rapportiniFoc: [], volate: [{ id: "v1", data: "2026-08-01", cavaId: "c1", nome: "Fronte Nord" }, { id: "v2", data: "2026-08-01", cavaId: "c1", nome: "Fronte Sud" }] };
+    const f3 = new Function("DB", "fmt", src + "\nreturn _findVolata;")(DB3, (d) => String(d));
+    const amb2 = f3("2026-08-01", "c1");
+    ok(amb2 && amb2.ambiguo === true && amb2.n === 2, "l'ambiguità si vede anche fra progetti volata: " + JSON.stringify(amb2));
+    // cave diverse nello stesso giorno restano due candidati SEPARATI, non un'ambiguità
+    const DB4 = { rapportiniFoc: [{ id: "r1", data: "2026-08-01", cavaId: "c1" }, { id: "r2", data: "2026-08-01", cavaId: "c2" }], volate: [] };
+    const f4 = new Function("DB", "fmt", src + "\nreturn _findVolata;")(DB4, (d) => String(d));
+    eq(f4("2026-08-01", "c1"), { ref: "R:r1", label: "Volata fochino del 2026-08-01" }, "la cava filtra: non è un'ambiguità se sono di cave diverse");
+  });
+  test("⛔ core: la scrittura del sismogramma non salva «undefined» quando l'associazione è ambigua", () => {
+    ok(/const _fv=_findVolata\(s\.data,s\.cavaId\);/.test(coreSrc), "salvaSismo chiama _findVolata");
+    ok(/s\.volataRef=\(_fv&&_fv\.ref\)\?_fv\.ref:'';/.test(coreSrc),
+      "e legge `_fv.ref` solo se `_fv` esiste E ha un ref — non `_fv?_fv.ref:''`, che scriverebbe `undefined` su {ambiguo:true}");
+  });
+}
+/* ===== fine core · due volate stessa data e cava ===== */
+
 /* CORE · I RESIDUI DI B12 (03/09): un campo svuotato non vale 0; la barra non
    dice «0 file» né «null»; la carica massima per ritardo dice «—» senza chili
    scritti e «≥» quando i chili sono solo su una parte dei fori — il NUMERO di
