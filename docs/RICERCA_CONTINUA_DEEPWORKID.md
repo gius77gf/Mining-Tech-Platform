@@ -238,3 +238,196 @@ un file, con l'elenco dichiarato delle collezioni), 34 collezioni su 65 senza
 un'uscita delle righe (misurate, e sono la ragione della prima), 1
 **decisione** per il fondatore (i dati alla fine dell'abbonamento), 1 a metà
 (i dati personali escono per tre app su cinque che ne tengono).
+
+## Ricerca del 2026-09-15 — i ruoli DENTRO L'ORGANIZZAZIONE: come li disegnano i migliori prodotti multi-tenant SaaS (Auth0, WorkOS, Okta...), non i migliori software di cava
+
+**Che cosa esiste già, letto prima di proporre.** La ricerca del 2026-09-03
+(qui sopra) ha già coperto la domanda dei ruoli da **due** dei tre lati
+possibili: le figure di legge/prassi della cava (direttore responsabile,
+sorvegliante, fochino...) e il censimento «per meccanismo» di come Deepwork ID
+li implementa oggi (§1-3 di quella ricerca: 3 ruoli `owner|admin|member`,
+`appRoles` mai implementato — un commento solo, `firestore.rules:84` — e la
+decisione aperta `Q1` in `vault/ROADMAP_SETTIMANA.md:6210`). Questa ricerca
+copre il **terzo lato**, quello che quella del 03/09 non aveva: non «come lo
+chiama la cava» ma **«come lo strutturano i concorrenti veri di Deepwork ID»**
+— identity-as-a-service e billing SaaS multi-tenant, non altri software
+minerari. Rimisurato il codice: nessun commit ha toccato `firestore.rules`,
+`admin.html`, `functions/index.js` o `ARCHITETTURA.md` fra il 03/09 e oggi
+(`git log --oneline --since=2026-09-03 -- apps/deepwork-id/firestore.rules
+apps/deepwork-id/admin.html apps/deepwork-id/functions/index.js
+apps/deepwork-id/ARCHITETTURA.md` → un solo commit, `122197a2`, e tocca solo
+i banchi di prova delle pagine da connessi, non i ruoli) — quindi il §1-3 del
+03/09 è ancora la fotografia vera, verificato di nuovo qui sotto sui punti che
+contano per questa domanda.
+
+### Come va, fuori — SOLO WebSearch, marcato [di seconda mano]
+
+- **Ogni decisione di autorizzazione dev'essere «tenant-aware» a due livelli,
+  non uno**: non «questo utente è admin?» ma «questo utente è admin **in
+  questa organizzazione**?». Il modello che regge è un'unità logica costante:
+  *Attore (utente + organizzazione) → Azione → Risorsa (delimitata
+  all'organizzazione)*. [di seconda mano — permit.io, WorkOS]
+  **Deepwork ID questo pezzo ce l'ha**: il claim è `orgs:{orgId:role}` — un
+  ruolo diverso per organizzazione, non uno globale — verificato di nuovo
+  (`firestore.rules:22-27`, `roleIn(orgId)`). Non è la parte che manca.
+- **Le imprese vogliono ruoli SU MISURA, non il set fisso.** Un set fisso
+  (owner/admin/member) va bene per una piccola azienda; le aziende più grandi
+  chiedono ruoli **per compito**, con nomi come «Billing Admin» o «Compliance
+  Auditor» — non varianti dello stesso "admin", ruoli **diversi**, ognuno con
+  un perimetro proprio. [di seconda mano — workos.com/blog/how-to-design-
+  multi-tenant-rbac-saas]
+- **La regola più citata, e la più operativa**: *«i ruoli delegati vanno
+  disegnati intorno ai COMPITI, non all'AUTORITÀ»* — gestire gli utenti non
+  implica automaticamente vedere tutti i loro dati, aiutare col supporto non
+  richiede poter cambiare le impostazioni di sicurezza. Se questi poteri non
+  sono separati con chiarezza, chi ha un compito ristretto finisce per poter
+  vedere o toccare cose che non gli competono. [di seconda mano — appomni.com,
+  «User Roles and Least Privilege in SaaS Security»]
+- **Il Billing Admin è il caso da manuale della separazione**: dovrebbe poter
+  gestire SOLO l'abbonamento, senza toccare i dati degli utenti — e i sistemi
+  di governance raccomandano di valutare un ruolo su misura piuttosto che dare
+  pieni poteri d'account solo per far gestire la fattura a qualcuno. [di
+  seconda mano — appomni.com, cloudnuro.ai]
+- **Il fallimento tipico di RBAC in SaaS non è nello schema, è nelle regole
+  mai scritte**: *«RBAC raramente si rompe perché lo schema è sbagliato: si
+  rompe perché le regole intorno allo schema non sono mai state decise, e la
+  gente le inventa ad-hoc nel tempo. Prima di spedire RBAC multi-tenant vale
+  la pena scrivere le decisioni di policy come si scriverebbe un contratto
+  API.»* [di seconda mano — workos.com/blog/how-to-design-multi-tenant-rbac-saas]
+- **Oltre RBAC, per le gerarchie complesse**: Auth0 FGA (costruito su OpenFGA/
+  Zanzibar, lo stesso modello usato internamente da Google) usa il
+  Relationship-Based Access Control per modellare permessi **per singola
+  risorsa** («Manager di questo Reparto», «Editor di questo Documento»)
+  restando compatibile col vocabolario RBAC (ruoli, permessi, assegnazioni) ma
+  aggiungendone lo scoping gerarchico. È il livello sopra i tre ruoli piatti
+  di oggi, non il prossimo passo immediato. [di seconda mano — auth0.com/fine-
+  grained-authorization, docs.fga.dev]
+- **Anche il fornitore dei prompt di questa stessa sessione lo fa**: i piani
+  Enterprise di Anthropic offrono «ruoli personalizzati» oltre a quelli fissi
+  — cioè il pattern «ruoli su misura per compito» non è solo dei tre
+  concorrenti cercati, è lo standard del settore. [di seconda mano —
+  support.claude.com/manage-custom-roles-on-enterprise-plans]
+
+### Il delta, fatto da chi ha il codice in mano (15/09, verificato contro `9b91fb93`)
+
+**(1) Il ruolo `admin` di oggi è un unico contenitore che somma DUE compiti
+non correlati, e i migliori prodotti li separano.** Letto `firestore.rules`
+per intero (`sed -n '55,145p'`): la stessa funzione `isAdmin(orgId)` decide
+**sia** chi invita/rimuove membri (`invites/{inviteId}` righe 51-53) **sia**
+chi corregge o cancella un documento già EMESSO in **qualunque** app —
+comprese le carte di sicurezza di Scudo (`documentoEmesso`, righe 128-141:
+`conti/fatture`, `conti/note`, `scudo/documenti`). Non c'è un modo di dare a
+qualcuno «puoi gestire gli inviti» senza dargli anche «puoi cancellare un
+verbale DPI o un documento d'ispezione di Scudo». È esattamente il pattern
+descritto sopra — *«gestire gli utenti non implica automaticamente vedere
+tutti i loro dati»* — capovolto: qui gestire gli utenti implica **anche**
+poter cancellare i documenti di sicurezza di un'app che quell'admin magari
+non usa mai. Ed è la stessa domanda che CLAUDE.md lascia aperta sul confine
+APP (*«non è un problema di `appId`, è la decisione sui ruoli»*): qui si vede
+il caso concreto in cui la mancanza morde già, non in teoria.
+- **Verificato**: `grep -n "isAdmin(" apps/deepwork-id/firestore.rules` →
+  **5 righe**: `32` (la definizione: `owner` o `admin`, senza distinzione),
+  `51-53` (le tre operazioni sugli inviti — create/read/update-delete), `138`
+  (`documentoEmesso`, la cancellazione dei documenti emessi di Scudo e Conti).
+  Stesso predicato per due compiti scoperti — inviti e cancellazione
+  documenti — zero distinzione per app o per compito.
+- **schermata**: nessuna oggi (`admin.html` mostra solo `owner|admin|member`
+  nella tendina, riga 180 `isAdmin = ['owner','admin'].includes(id.role())`) ·
+  **che cosa non va**: un secondo `admin` nominato per aiutare con gli inviti
+  di un'app (es. Campo) riceve anche, senza poterlo evitare, il potere di
+  cancellare i documenti emessi di Scudo (sicurezza) e Conti (fiscali) · **come
+  si vede**: si nomina un admin, si apre Scudo con quell'account, si cancella
+  un documento del registro — nessuna regola lo impedisce se non è owner ·
+  **quanto costa**: M — richiede prima la decisione di prodotto su QUALI
+  compiti diventano permessi separati (proposta concreta, sul modello del
+  mondo: «gestione membri» e «cancellazione documenti emessi» come DUE
+  booleani distinti nel documento membership, non un solo ruolo che li somma),
+  poi la riscrittura di `isAdmin` in due funzioni · **come si misura**: lo
+  stesso grep sopra, e la controprova negativa già esistente in `run.mjs:249-
+  276` (le 8 prove della 10b) andrebbe raddoppiata per provare che un admin
+  «solo inviti» **non** possa cancellare un documento emesso — oggi quella
+  prova non può nemmeno essere scritta perché il ruolo non esiste.
+  **Non è un "non c'è" nuovo sull'esistenza di `appRoles`** (quello lo dice
+  già il 03/09): è la prova che la mancanza ha un **costo concreto e già
+  presente**, non solo teorico — un secondo admin nominato oggi stesso eredita
+  un potere che nessuno gli ha chiesto di dargli.
+
+**(2) Non esiste, e non può esistere con il modello a 3 ruoli, un «Billing
+Admin».** `owner` è oggi l'unico che tocca i metadati dell'organizzazione
+(`isOwner(orgId)`, riga 62) e, secondo `ARCHITETTURA.md:98` (§6), è anche
+l'unico designato per «fatturazione, gestione membri, tutto» — un solo ruolo
+per tre compiti che il mondo separa.
+- **Verificato**: `grep -rn -i "billing\|fatturazione" apps/deepwork-id/
+  *.rules apps/deepwork-id/*.html apps/deepwork-id/functions/*.js
+  shared/deepwork-id-client/*.js` → **0 righe** in tutti i file — non è
+  implementato, e nemmeno nominato come concetto separato da `owner`. La
+  collezione `entitlements/{appId}` (l'abbonamento) è scritta solo dal
+  backend (`allow write: if false`, riga 80) quindi oggi il tema non morde
+  ancora — ma quando arriverà Stripe (raccomandato in `ARCHITETTURA.md:135-
+  137`, non implementato: nessuna spesa prima della commercializzazione, per
+  la regola SOLDI di CLAUDE.md) il modello a 3 ruoli non ha un posto dove
+  mettere «chi gestisce SOLO l'abbonamento» senza dargli anche la gestione dei
+  membri e dei metadati dell'org.
+- **schermata**: nessuna (la fatturazione non è ancora costruita) · **che
+  cosa non va**: quando arriverà, andrà o tutta sull'`owner` (un solo collo di
+  bottiglia per cava, che il mondo sconsiglia per il rischio di un singolo
+  account compromesso) o dentro `admin` (che eredita anche il punto 1) ·
+  **come si vede**: non ancora — è una scelta di design da prendere PRIMA di
+  scrivere l'integrazione Stripe, non dopo, perché cambiare la forma del
+  ruolo quando ci sono già organizzazioni paganti è più caro · **quanto
+  costa**: S da dichiarare ora (nessun campo Firestore da toccare finché la
+  fatturazione non esiste), M quando si implementerà davvero · **come si
+  misura**: lo stesso grep sopra, da rilanciare quando si apre il cantiere
+  Stripe — se risponde ancora 0, la decisione va presa prima del codice.
+
+**(3) Il pattern per-risorsa (non solo per-organizzazione) che il mondo
+raccomanda per le gerarchie complesse (Auth0 FGA / ReBAC: «editor di QUESTO
+documento», non «editor dell'organizzazione») non ha equivalente in Deepwork
+ID nemmeno nella forma più semplice — per APP.** Questo **non è un "non c'è"
+nuovo**: è la stessa mancanza di `appRoles` già confermata il 03/09
+(`grep -rn "appRoles" ... → 1 riga, ed è un commento`, rilanciato qui e
+confermato identico), letta ora con il nome che le dà il mondo — «org-scoped
+role» contro «per-resource role» (WorkOS, Clerk Organizations) — invece che
+con il nome della cava. Non aggiunge una riga alla roadmap: aggiunge la
+conferma che la forma corretta del passo successivo, quando si deciderà di
+farlo, è la stessa che i concorrenti veri (non i software di cava) hanno già
+scelto: un ruolo per organizzazione **e** un ruolo (o permesso) più fine per
+singola app/risorsa sopra di esso — non un ruolo unico più largo.
+
+**Che cosa NON è un "non c'è" qui.** Il modello di isolamento fra
+organizzazioni (path-based, claim `orgs`) è esattamente la struttura che il
+mondo raccomanda per il multi-tenant («ogni edge del grafo di autorizzazione
+porta lo scope del tenant») — verificato di nuovo, non riproposto. E la
+regola generale del mondo — *«le regole di RBAC vanno scritte come un
+contratto PRIMA di scrivere il codice»* — è esattamente la forma che
+CLAUDE.md già chiede per la decisione `Q1` (*«una conversazione col
+fondatore», Riassunto del 03/09): non è una funzione mancante, è una
+conferma che il metodo già scelto (decidere prima, poi `appRoles`, poi le
+regole) è quello giusto secondo il mondo, non solo secondo questa casa.
+
+### Fonti (WebSearch, non lette per intero — [di seconda mano])
+
+- [WorkOS: How to design an RBAC model for multi-tenant SaaS](https://workos.com/blog/how-to-design-multi-tenant-rbac-saas)
+- [Permit.io: Best Practices for Multi-Tenant Authorization](https://www.permit.io/blog/best-practices-for-multi-tenant-authorization)
+- [Auth0: How to Choose the Right Authorization Model for Your Multi-Tenant SaaS Application](https://auth0.com/blog/how-to-choose-the-right-authorization-model-for-your-multi-tenant-saas-application/)
+- [Auth0: Fine-Grained Authorization (FGA)](https://auth0.com/fine-grained-authorization)
+- [Auth0 FGA docs: Modeling Roles and Permissions](https://docs.fga.dev/modeling/basics/roles-and-permissions)
+- [AppOmni: User Roles and Least Privilege in SaaS Security](https://appomni.com/learn/saas-security-fundamentals/user-roles-and-least-privilege-in-saas-apps/)
+- [CloudNuro: Managing Admin Roles in SaaS, Reducing Super Admin Risk](https://www.cloudnuro.ai/blog/saas-admin-governance)
+- [Clerk Docs: B2B/B2C Roles and Permissions with Clerk Organizations](https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions)
+- [Descope: Top 7 RBAC Providers for B2B SaaS Apps](https://www.descope.com/blog/post/rbac-providers-b2b-saas)
+- [LoginRadius: Access Control SaaS Guide for B2B & Multi-Tenant Platforms](https://www.loginradius.com/blog/engineering/rbac-saas-multi-tenant-b2b-platforms)
+- [Anthropic Help Center: Manage custom roles on Enterprise plans](https://support.claude.com/en/articles/13930452-manage-custom-roles-on-enterprise-plans)
+
+**Riassunto** — 0 mancanze NUOVE sull'esistenza di `appRoles` (già confermata
+il 03/09, rilanciata identica: `firestore.rules:84`, un commento). 1
+mancanza **confermata con costo concreto**: `isAdmin` somma «gestione
+membri» e «cancellazione documenti emessi di qualunque app» in un solo
+predicato (5 righe in `firestore.rules`: la definizione, 3 sugli inviti,
+1 su `documentoEmesso`), pattern che il mondo chiama
+«ruoli disegnati per autorità invece che per compito». 1 mancanza
+**dichiarata in anticipo** (nessun Billing Admin possibile col modello a 3
+ruoli — non urgente, perché la fatturazione non esiste ancora, ma da
+decidere PRIMA di costruirla). 1 conferma che il modello di isolamento fra
+organizzazioni già scelto è quello che il mondo raccomanda. Tutto verificato
+contro il commit `9b91fb93`.
