@@ -1765,7 +1765,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.532** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.534** *(ricontate il 15/09, dopo aver
+riscritto in Sentinella la provenienza del periodo di un adempimento al
+positivo e aggiunto la regola 33 di `run-stile.mjs` (mai «non rilevato», dal
+delta su PAROLE proposta 3 metà b), dopo aver
 aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
 numero di riga fisico nel file al posto della posizione nell'elenco già
 scartato, dal delta della riverifica sul documento invecchiato PAROLE — e

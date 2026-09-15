@@ -8539,9 +8539,11 @@ numero scritto dove non era stato misurato niente**.*
   dopo aver esteso la funzione per accettare anche un predicato oltre a
   una parola chiave — a `scartiLavoratoriCsv` di Scudo (restano cinque
   forme non standard), 3038→3039, e a `genesi.burdenPerForo` (il pannello
-  «Burden per foro», dal secondo giro di ricerca su Genesi), 3039→3040):
-  **3.532 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3040, `run-stile` 328,
+  «Burden per foro», dal secondo giro di ricerca su Genesi), 3039→3040. E in
+  `run-stile.mjs`, dal delta su PAROLE: la regola 33 (mai «non rilevato»),
+  328→330):
+  **3.534 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3040, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -582,7 +582,21 @@ proposta — è la sola cosa che fa scendere il numero dei documenti invecchiati
   `tests/browser/sentinella-periodo-adempimento.mjs` pretende «ricavato» e
   vieta «scelt[ae] a mano», con una sesta iniezione dedicata nella sua
   controprova.
-- Proposta 3 (una parola sola + divieto di «non rilevato») — **aperta**
+- Proposta 3 (una parola sola + divieto di «non rilevato») — ⚠️ **PARZIALMENTE
+  CHIUSA il 15/09**: la metà (b), il divieto di «non rilevato», è fatta —
+  regola 33 di `run-stile.mjs`, che oggi conta 0 occorrenze e cade se
+  qualcuno la scrive. La metà (a), unificare `n.d.` ("non determinabile" di
+  Terra) con «non calcolabile», è stata MISURATA e NON fatta: `grep -rn
+  "non determinabile" apps/ shared/` trova **un solo** punto di produzione
+  vero (`apps/terra/terra-data.js:3343`), e quel punto è la *Classe di
+  accuratezza* di un rilievo — un concetto diverso da "non si può
+  calcolare": `n.d.` è un GRADINO di una scala di classi (come A/B/C), non
+  un ripiego generico. Unificarlo con «non calcolabile» cancellerebbe
+  l'informazione che la classe stessa esiste come concetto — sarebbe il
+  «cercare la nostra parola nel mondo» applicato al contrario: due parole
+  che sembrano lo stesso concetto letto di fretta, e non lo sono. Resta
+  **aperta** solo questa metà, e solo se qualcuno la rilegge e conferma la
+  distinzione (o la smentisce) prima di toccare codice.
 - Proposta 4 (numero di riga del file negli import) — ✅ **CHIUSA il 15/09**,
   commit `6a5707e7` e i successivi lotti: `righeCsvNumerate` in
   `shared/deepwork-id-client/dw-shell.js` numera sulla riga fisica del file,

@@ -3997,5 +3997,55 @@ test("regola 32: la controprova — nei due versi", () => {
   ok(RE_FRASE_IMPORT.test(con), "la regola 32 non riconosce l'import buono");
 });
 
+/* ⛔ REGOLA 33 (15/09, dal delta della riverifica su PAROLE, proposta 3):
+   MAI «non rilevato» in nessun testo che l'utente legge. Non è una
+   preferenza di stile: nei rapporti di prova italiani «n.r.» / «non
+   rilevato» vuol dire il CONTRARIO di «nessuno ha misurato» — significa
+   *misurato e sotto il limite di rilevabilità dello strumento*. Oggi
+   l'ecosistema non usa mai questa parola (giusto: dice sempre «non
+   misurato»/«non calcolabile»), ma quel risultato buono è affidato alla
+   memoria di chi scrive domani, non a una regola. La prima persona che
+   scriverà «non rilevato» pensando che significhi «non misurato» starà
+   dichiarando, senza saperlo, una misura mai fatta nel verso
+   tranquillizzante — e niente diventerebbe rosso.
+   Si cerca nel TESTO (`senzaCommenti`, non `mascheraCodice`: la parola vive
+   dentro le stringhe, che qui vanno guardate, non nascoste), su pagine e
+   moduli dati insieme. */
+function nonRilevatoIn(src) {
+  const vivo = senzaCommenti(src);
+  const fuori = [];
+  const re = /non\s+rilevat[oaie]/gi;
+  let m;
+  while ((m = re.exec(vivo))) {
+    const riga = vivo.slice(0, m.index).split("\n").length;
+    fuori.push({ riga, testo: vivo.split("\n")[riga - 1].trim().slice(0, 100) });
+  }
+  return fuori;
+}
+console.log("\n── Regola 33: mai «non rilevato» — nei rapporti di prova vuol dire il contrario ──");
+{
+  let guardate = 0;
+  const male = [];
+  for (const [nome, rel] of SUPERFICI.concat(MODULI)) {
+    const src = leggi(rel);
+    if (src === null) continue;
+    guardate++;
+    for (const v of nonRilevatoIn(src)) male.push(`${nome} riga ${v.riga}: «${v.testo}»`);
+  }
+  test("regola 33: nessuna superficie scrive «non rilevato»", () => {
+    ok(guardate === SUPERFICI.length + MODULI.length,
+      `la regola 33 ha guardato ${guardate} superfici su ${SUPERFICI.length + MODULI.length}: non sta guardando dove crede`);
+    ok(male.length === 0, "«non rilevato» compare dove significa il contrario di quel che intende dire:\n  " + male.join("\n  "));
+  });
+}
+test("regola 33: la controprova — nei due versi", () => {
+  const rotta = 'el.textContent = "Punto 3: valore non rilevato nel periodo scelto.";';
+  ok(nonRilevatoIn(rotta).length === 1, "la regola 33 non vede la frase rimessa");
+  const commentata = "// prima dicevamo 'non rilevato', adesso 'non misurato'";
+  ok(nonRilevatoIn(commentata).length === 0, "la regola 33 accusa un commento");
+  ok(nonRilevatoIn('const x = "non misurato";').length === 0, "la regola 33 non confonde «non misurato» con «non rilevato»");
+  ok(nonRilevatoIn('const x = "il rilevatore è acceso";').length === 0, "«rilevatore» da solo, senza «non» davanti, non è il difetto");
+});
+
 console.log(`\nRisultato Stile: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);
 process.exit(failed > 0 ? 1 : 0);
