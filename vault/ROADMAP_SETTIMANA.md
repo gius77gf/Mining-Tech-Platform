@@ -8520,9 +8520,10 @@ numero scritto dove non era stato misurato niente**.*
   vocabolario invece del campo grezzo, 3019→3020, e alla barra in basso di
   Sentinella il bottone «Scadenze» al posto di «Adempimenti», 3020→3021, e a
   `etaMezzo` di Flotta la messa in servizio prima e il possesso come ripiego,
-  3021→3022):
-  **3.506 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3022, `run-stile` 328,
+  3021→3022, e alla pagella di Flotta il costo col possesso portato in riga,
+  3022→3023):
+  **3.507 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3023, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

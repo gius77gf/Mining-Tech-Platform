@@ -18944,6 +18944,26 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     eq(q.righe.map((r) => r.verdetto), p.righe.map((r) => r.verdetto),
        "gli altri verdetti no: sulla dimostrazione nessuno passa a «costa di più» (e va detto, non gonfiato)");
   });
+
+  test("⛔ Flotta · pagella: euroOraCompleto (15/09) passa alla riga, e NON tocca verdetto/scostamento/ordine", () => {
+    // qui, e SOLO qui in questo blocco, `costoOrarioMezzo` prende i mezzi:
+    // senza il terzo argomento `euroOraCompleto` è sempre null (nessuna
+    // anagrafica da cui leggere `costoPossessoAnnuo`), com'è negli altri test
+    const p = pag();
+    const costiConMezzi = flotta.costoOrarioMezzo(D.interventi, D.rifornimenti, D.mezzi);
+    const e1prima = costi.find((c) => c.mezzo === "Escavatore E1");
+    const e1dopo = costiConMezzi.find((c) => c.mezzo === "Escavatore E1");
+    ok(e1dopo.euroOraCompleto != null, "l'Escavatore E1 ha possesso registrato nella dimostrazione: il completo si calcola");
+    eq(e1dopo.euroOra, e1prima.euroOra, "il €/h di solo esercizio non cambia passando i mezzi");
+    const q = flotta.pagellaMezzi(costiConMezzi, aff, D.mezzi);
+    const e1riga = q.righe.find((r) => r.mezzo === "Escavatore E1");
+    eq(e1riga.euroOraCompleto, e1dopo.euroOraCompleto, "la pagella porta lo stesso numero di costoOrarioMezzo, non un secondo conto");
+    eq(q.righe.map((r) => [r.mezzo, r.verdetto, r.scostamentoCosto]),
+       p.righe.map((r) => [r.mezzo, r.verdetto, r.scostamentoCosto]),
+       "⛔ il costo col possesso è un'informazione in più sulla riga, non un secondo asse di giudizio: verdetto, scostamento e ordine restano quelli di sempre");
+    const senzaAnagrafica = flotta.pagellaMezzi(costi, aff, D.mezzi).righe.find((r) => r.mezzo === "Escavatore E1");
+    eq(senzaAnagrafica.euroOraCompleto, null, "senza passare i mezzi a costoOrarioMezzo, costoOrarioMezzo stesso dice null: non un finto zero");
+  });
 }
 
 // ── Scudo · appaltatori e DUVRI ──────────────────────────────────────

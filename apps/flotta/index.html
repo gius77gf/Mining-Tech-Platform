@@ -3220,7 +3220,8 @@ body.dw b.bad{color:var(--ink-dg)}
       return `<div class="item statico ${striscia[st] || "st-mute"}">
         <div class="info"><div class="name">${esc(r.mezzo)} · <b>${eur(r.euroOra)}</b><span class="u">/h</span></div>
           <div class="meta">${r.scostamentoCosto == null ? "costo non confrontabile"
-            : "costo " + scostTx(r.scostamentoCosto) + "% sulla media"} · disponibilità ${
+            : "costo " + scostTx(r.scostamentoCosto) + "% sulla media"}${
+            r.euroOraCompleto != null ? " · col possesso: <b>" + eur(r.euroOraCompleto) + "</b><span class=\"u\">/h</span>" : ""} · disponibilità ${
             r.disponibilita == null ? "non calcolata" : pctTx(r.disponibilita)
             + (r.scostamentoFermo == null ? "" : " (" + scostTx(r.scostamentoFermo) + " punti)")}${
             r.giorniFermo ? " · " + ggTx(r.giorniFermo) + " di fermo" : ""}${

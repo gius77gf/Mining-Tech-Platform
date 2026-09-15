@@ -4141,7 +4141,12 @@ export function pagellaMezzi(righeCosto, aff, mezzi) {
       : costo === "piu" ? "costa"
       : fermo === "piu" ? "ferma"
       : costo != null && fermo != null ? "in-linea" : "solo-meta";
-    righe.push({ ...base, euroOra: c.euroOra, ore: c.ore, costo, scostamentoCosto, verdetto });
+    // il costo COL possesso (15/09, dal delta TCO): esiste già su ogni riga
+    // di `costoOrarioMezzo` (`euroOraCompleto`) ma la pagella lo scartava —
+    // qui non entra nel verdetto (quale banda usare per il possesso è una
+    // scelta del fondatore, non tecnica): si porta solo il NUMERO, così chi
+    // guarda il confronto vede anche il costo pieno riga per riga
+    righe.push({ ...base, euroOra: c.euroOra, euroOraCompleto: c.euroOraCompleto, ore: c.ore, costo, scostamentoCosto, verdetto });
   }
   // Il peggiore in cima: è l'unico ordine che serve a chi apre la schermata
   // per decidere su quale macchina andare a guardare per prima.
