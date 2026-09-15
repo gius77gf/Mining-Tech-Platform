@@ -33159,6 +33159,26 @@ const SCARTI_PROVATI = new Set();
     eq(v.persi[0].nome, "riga 4", "la riga CSV vuota è una posizione fisica vera (a differenza della bianca): sposta comunque il numero della rotta");
   });
 
+  test("⛔ B12 (15/09, secondo lotto): scudo.scartiScadenzeCsv/scartiInfortuniCsv e i quattro di Sentinella migrati, stessa prova", () => {
+    const s1 = scudo.scartiScadenzeCsv("lavoratore;tipo;descrizione;scadenza\nMario Rossi;visita;;2026-06-01\n\n;;;abc\n");
+    eq(s1.vuote, 0);
+    eq(s1.persi.length, 1);
+    eq(s1.persi[0].nome, "riga 4", "1=intestazione, 2=sana, 3=bianca, 4=rotta (senza nessun campo da usare come nome)");
+    const s2 = scudo.scartiInfortuniCsv("data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-09-01;infortunio;lieve;2;caduta;piazzale\n\n\n;infortunio;lieve;2;caduta;piazzale\n");
+    eq(s2.vuote, 0);
+    eq(s2.persi.length, 1);
+    eq(s2.persi[0].nome, "riga 5", "due bianche di fila (3 e 4): la rotta è la 5");
+    const m = sentinella.scartiMonitoraggiCsv("nome;tipo;valore;soglia;unita;nota\nPunto 1;polveri;10;50;mg/m3;\n\n;polveri;10;50;mg/m3;\n");
+    eq(m.persi[0].nome, "riga 4");
+    const r = sentinella.scartiRicettoriCsv(sentinella.CSV_RICETTORI_INTESTAZIONE
+      + "\nCascina;abitazione;320;III;5;mm/s;\n\n;abitazione;320;III;5;mm/s;\n");
+    eq(r.persi[0].nome, "riga 4", "scartiRicettoriCsv non ha un fallback sul nome: sempre 'riga N'");
+    const a = sentinella.scartiAdempimentiCsv("titolo;ente;scadenza\nVerifica impianto;ARPA;2026-06-01\n\n;ARPA;abc\n");
+    eq(a.persi[0].nome, "riga 4", "titolo vuoto: nessun fallback, quindi 'riga N'");
+    const vo = sentinella.scartiVolateCsv("data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n2026-03-01;Fronte Nord;10;100;5;200;regolare;\n\n;;1;1;1;1;;\n");
+    eq(vo.persi[0].nome, "riga 4", "data e fronte entrambi vuoti: niente fallback, 'riga N'");
+  });
+
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
      una dichiarazione che nessuno legge non protegge niente. Il difetto vero
      non è la funzione che manca, è la funzione che c'è e che nessuno chiama —

@@ -123,7 +123,7 @@
    parole — sono state rinominate (`raggruppa`, `quanti`) proprio perché
    ombreggiavano questo nome: un `conta(n, "voce", "voci")` scritto dentro una
    di quelle funzioni avrebbe chiamato in silenzio l'altra cosa. */
-import { parseCsvLine, numIt, giorniTra, isIntestazione, senzaDoppioni, dataISOEsiste,
+import { parseCsvLine, numIt, giorniTra, isIntestazione, righeCsvNumerate, senzaDoppioni, dataISOEsiste,
          csvCell, leggiCsv,
          dataIt, isoLocale, timbroLocale, pezziDataURL, LIMITE_ALLEGATO,
          conta, plurale } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -2237,12 +2237,10 @@ export function parseInfortuniCsv(text) {
    calcolo che salva `;;;;;`) da una scartata per un dato, e dice perché.
    Pura. */
 export function scartiInfortuniCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "data"));
+  const righe = righeCsvNumerate(text, "data");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseInfortuniCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -3470,12 +3468,10 @@ export function parseScadenzeCsv(text) {
    restituito. Le righe cadute qui dentro non erano mai esistite per lei, e un
    messaggio che elenca due categorie su tre si legge come completo. */
 export function scartiScadenzeCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "lavoratore"));
+  const righe = righeCsvNumerate(text, "lavoratore");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseScadenzeCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }

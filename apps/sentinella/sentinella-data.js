@@ -27,7 +27,7 @@
 //       da fare / in ritardo) si CALCOLA dall'ultima lettura del punto.
 // ============================================================
 
-import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, dataISOEsiste,
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, numeroScritto, dataISOEsiste,
          senzaDoppioni, istanteLocale, plurale, conta,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell, mappaColonne, isoLocale, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
@@ -772,12 +772,10 @@ export function parseMonitoraggiCsv(text) {
    dice perché, con le stesse cascate di ragioni di `parseMonitoraggiCsv`.
    Pura. */
 export function scartiMonitoraggiCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseMonitoraggiCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -884,12 +882,10 @@ export function parseRicettoriCsv(text) {
    l'utente di un difetto del suo Excel è il falso allarme che insegna a non
    guardare i messaggi. */
 export function scartiRicettoriCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseRicettoriCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -1006,12 +1002,10 @@ export function parseAdempimentiCsv(text) {
    ⚠️ Le due colonne in coda (periodo e giorni di consegna) sono facoltative per
    decisione scritta sopra e non fanno perdere niente: non hanno una ragione. */
 export function scartiAdempimentiCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "titolo"));
+  const righe = righeCsvNumerate(text, "titolo");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseAdempimentiCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -1218,12 +1212,10 @@ export function parseVolateCsv(text) {
    volata non è ancora un referto). La data no: senza, la volata non ha un
    giorno in cui è avvenuta, e un evento senza quando non è un evento. */
 export function scartiVolateCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "data"));
+  const righe = righeCsvNumerate(text, "data");
   const persi = [];
-  let nRiga = 0, vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0;
+  for (const { nRiga, riga } of righe) {
     if (parseVolateCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
