@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **137 funzioni** stanno dentro
+importa. **Genesi no**: le sue **136 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,12 +126,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **40** |
+| una o due | **39** |
 | da tre a cinque | 17 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **48 su 137 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **47 su 136 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 89 sono una decisione di architettura.
 ⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
 l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
@@ -200,6 +200,19 @@ Nessuno spostamento di bucket per altre funzioni: i sette chiamanti
 leggevano già abbastanza altre variabili di modulo, come per `crestZ`
 e a differenza di `mdlProfSnap`, misurato confrontando `--elenco`
 prima/dopo.*
+⏱️ *40→39, 48→47 e 137→136 il 15/09 (B3, stesso giorno): `interpFronte`
+è uscita del tutto dalla pagina
+(nessuna funzione nuova: componeva SOLO `interpProf(D2.profilo, mx)`,
+già pura dal blocco G9 del 09/08). Il legame più grande chiuso finora
+per punti di chiamata (sedici, sparsi su funzioni di rendering non
+correlate — il disegno 2D, la mappa dell'energia, la rete di
+collegamento, l'editor del piede), sostituito con uno script Python
+di replace globale (sicuro: la sottostringa non compare altrove,
+confermato con `grep -c` prima e dopo). Nessuno spostamento di bucket
+per altre funzioni, misurato confrontando `--elenco` prima/dopo: i
+sedici chiamanti erano già in buckets più alti. Resta deferred il
+gruppo `selRoccia`/`selEsplosivo`/`selInnesco` (46 punti di chiamata,
+quasi tre volte questo).*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`

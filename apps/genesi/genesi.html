@@ -3786,7 +3786,7 @@ if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
   if(!H||!H.length){ box.innerHTML='<div style="margin-top:8px;color:var(--mut);font-size:12px;">Disegna prima la maglia: senza fori non c\'è niente da confrontare.</div>'; return; }
   const Snom=Math.max(0.5,D2.S||3.5), xs=H.map(h=>h.mx), x0=Math.min(...xs)-Snom, x1=Math.max(...xs)+Snom;
   const passo=Math.max(.15,(x1-x0)/240), faccia=[];
-  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
+  for(let x=x0;x<=x1+1e-9;x+=passo) faccia.push([x, interpProf(D2.profilo, x)]);
   const r=burdenVeroDaRilievo(H, D2.profilo, faccia, csv.righe);
   const righeHtml=r.righe.map(x=>{
     if(!x.misurato) return '<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span><span style="color:var(--mut);font-size:12px;"> · senza rilievo</span></div>';
@@ -5540,8 +5540,8 @@ function computeSeq2D(){
    ⛔ È `distanzaDaSpezzata` in `./genesi-data.js` (blocco G24, 10/09): nessuna variabile della pagina. */
 /* ⛔ Trasloco G41 (14/09, cantiere B3): il conto vero è `energiaSuMaglia` in
    ./genesi-data.js — stessa famiglia di falso positivo di G39/G40, dipendenza
-   vera D2.holes/prof/S/kg/profilo. `interpFronte(mx)` (wrapper di pagina) è
-   diventata `interpProf(D2.profilo, mx)` dentro la forma pura.
+   vera D2.holes/prof/S/kg/profilo. `interpFronte(mx)` (wrapper di pagina, uscito
+   anche lui il 15/09) è diventata `interpProf(D2.profilo, mx)` dentro la forma pura.
    Trasloco B3 (14/09, stesso giorno): anche il legame di una riga
    (`computeEnergia2D`) è uscito — `D2` come primo argomento esplicito, come
    già per `pfNominale`/`pieDev`/`reliefCls`. */
@@ -5601,7 +5601,7 @@ function simulaPerforazione(N){
      il risultato di una simulazione statistica */
   const xs=H.map(h=>h.mx), fx0=Math.min(...xs)-Snom, fx1=Math.max(...xs)+Snom;
   const passo=Math.max(.4,(fx1-fx0)/60), faccia=[];
-  for(let x=fx0;x<=fx1+1e-9;x+=passo) faccia.push([x, interpFronte(x)]);
+  for(let x=fx0;x<=fx1+1e-9;x+=passo) faccia.push([x, interpProf(D2.profilo, x)]);
   const file=fileDeiFori(H);
   /* seme dalla geometria: stessa volata, stessa banda */
   let seme=Math.round((Bnom*1000)+(Snom*97)+(L*31)+H.length*7+(sCol*1e4)+(pDev*1e5));
@@ -5620,11 +5620,11 @@ function simulaPerforazione(N){
     let mn=Infinity, som=0, n=0;
     for(let r=0;r<file.length;r++){
       const davanti = r>0
-        ? file[r-1].holes.map(i=>[p[i].mx, p[i].my+interpFronte(p[i].mx)]).sort((a,b)=>a[0]-b[0])
+        ? file[r-1].holes.map(i=>[p[i].mx, p[i].my+interpProf(D2.profilo, p[i].mx)]).sort((a,b)=>a[0]-b[0])
         : faccia;
       if(davanti.length<2) continue;
       for(const i of file[r].holes){
-        const d=distanzaDaSpezzata(p[i].mx, p[i].my+interpFronte(p[i].mx), davanti);
+        const d=distanzaDaSpezzata(p[i].mx, p[i].my+interpProf(D2.profilo, p[i].mx), davanti);
         if(d==null) continue;
         if(d<mn) mn=d; som+=d; n++;
       }
@@ -5691,7 +5691,7 @@ function drawIsocrone2D(ctx,g){
   const val=new Float32Array(nx*ny);
   for(let j=0;j<ny;j++){ const py=y0+j*gs;
     for(let i=0;i<nx;i++){ const px=x0+i*gs;
-      const mx=(px-g.startX)/g.scale, my=(py-g.faceY)/g.scale-interpFronte(mx);   // stessa deformazione con cui sono disegnati i fori
+      const mx=(px-g.startX)/g.scale, my=(py-g.faceY)/g.scale-interpProf(D2.profilo, mx);   // stessa deformazione con cui sono disegnati i fori
       if(my<-0.25){ val[j*nx+i]=NaN; continue; }             // davanti alla faccia libera non c'e roccia da temporizzare
       const r=tempoInPunto(mx,my,H,h2);
       val[j*nx+i]=(r.t==null||r.dmin>mask)?NaN:r.t;          // fuori dalla nuvola dei fori non si estrapola
@@ -5728,7 +5728,7 @@ function drawIsocrone2D(ctx,g){
   });
   /* etichette: una per curva, sfalsate in verticale, mai sopra un foro o sopra un'altra etichetta */
   let nEtich=0;
-  const pos=H.map(h=>[g.startX+h.mx*g.scale, g.faceY+(h.my+interpFronte(h.mx))*g.scale]), messe=[];
+  const pos=H.map(h=>[g.startX+h.mx*g.scale, g.faceY+(h.my+interpProf(D2.profilo, h.mx))*g.scale]), messe=[];
   livelli.forEach((L,k)=>{
     if(!segs[k].length) return;
     const ty=g.padTop+(((k*0.37)%1)*0.74+0.13)*(g.bottomY-g.padTop);
@@ -5780,9 +5780,9 @@ function drawEnergia2D(ctx,g){
        seguono la curva del fronte invece di tagliarla di netto */
     const N=8, pts=[];
     for(let k=0;k<=N;k++){ const mx=h.enX0+(h.enX1-h.enX0)*k/N;
-      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY0+interpFronte(mx))*g.scale]); }
+      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY0+interpProf(D2.profilo, mx))*g.scale]); }
     for(let k=N;k>=0;k--){ const mx=h.enX0+(h.enX1-h.enX0)*k/N;
-      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY1+interpFronte(mx))*g.scale]); }
+      pts.push([g.startX+mx*g.scale, g.faceY+(h.enY1+interpProf(D2.profilo, mx))*g.scale]); }
     ctx.beginPath(); pts.forEach((p,k)=>{ if(k===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.closePath();
     ctx.fillStyle=ENECOL[cls]; ctx.globalAlpha=(cls==='ok')?0.13:0.26; ctx.fill();
     ctx.globalAlpha=(cls==='ok')?0.28:0.6; ctx.strokeStyle=ENECOL[cls]; ctx.lineWidth=1; ctx.stroke();
@@ -5819,8 +5819,8 @@ function drawInnesco2D(ctx,g){
     const o=H[h.innFrom]; if(!o) continue;
     nColl++; tagli.add(fmtMs(h.innDt));
     const ok=innTaglioOk(D2, h.innDt); if(!ok) nFuori++;
-    const x1=g.startX+o.mx*g.scale, y1=g.faceY+(o.my+interpFronte(o.mx))*g.scale;
-    const x2=g.startX+h.mx*g.scale, y2=g.faceY+(h.my+interpFronte(h.mx))*g.scale;
+    const x1=g.startX+o.mx*g.scale, y1=g.faceY+(o.my+interpProf(D2.profilo, o.mx))*g.scale;
+    const x2=g.startX+h.mx*g.scale, y2=g.faceY+(h.my+interpProf(D2.profilo, h.mx))*g.scale;
     /* la linea si ferma prima del pallino del foro: se ci entra sotto,
        il numero della sequenza diventa illeggibile */
     const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy)||1, r=11;
@@ -5909,11 +5909,11 @@ function muckShape(){
    del 09/08). ⏱️ 15/09 (B3): anche il legame di una riga che stava qui è
    uscito — `measureGeom2D(D2)` vive nel modulo, con lo stesso nome. */
 /* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale
-   del fronte in mx. ⛔ Il corpo è salito in `genesi-data.js` (blocco G9) il
-   09/08: qui non c'era nessuna prova che potesse chiamarlo, e da quel numero
-   dipendono la posizione dei fori sul disegno e la burden reale di ognuno. Il
-   nome è lo stesso, quindi nessuna chiamata di questa pagina è cambiata. */
-function interpFronte(mx){ return interpProf(D2.profilo,mx); }
+   del fronte in mx. Il corpo è salito in `genesi-data.js` (blocco G9) il
+   09/08, da quel numero dipendono la posizione dei fori sul disegno e la
+   burden reale di ognuno. ⏱️ 15/09 (B3): anche il legame di una riga che
+   stava qui è uscito — sedici punti di chiamata, tutti aggiornati a passare
+   `D2.profilo` a `interpProf` direttamente. */
 function drawDesign2D(){
   const cv=$('d2-canvas'); if(!cv) return; const W=cv.width;
   const H=D2.holes; const padX=54, padTop=66, padBot=56;
@@ -5934,7 +5934,7 @@ function drawDesign2D(){
      tratto disegnato fuori dalla maglia non deve restare tagliato fuori
      dalla tela. */
   const trattiPts=D2.tratti.flatMap(t=>t.pts);
-  const xs=H.map(h=>h.mx).concat(trattiPts.map(p=>p.x)), ys=H.map(h=>h.my+interpFronte(h.mx)), pys=D2.profilo.map(p=>p.y), pieY=D2.piede.map(p=>p.y), trattiY=trattiPts.map(p=>p.y);
+  const xs=H.map(h=>h.mx).concat(trattiPts.map(p=>p.x)), ys=H.map(h=>h.my+interpProf(D2.profilo, h.mx)), pys=D2.profilo.map(p=>p.y), pieY=D2.piede.map(p=>p.y), trattiY=trattiPts.map(p=>p.y);
   const minx=Math.min(...xs), maxx=Math.max(...xs);
   const maxy=Math.max(D2.B, ...ys, ...pys, ...trattiY);
   const minY=Math.min(0, ...pieY, ...trattiY);            // il piede sta DAVANTI al fronte (my<0)
@@ -5968,13 +5968,13 @@ function drawDesign2D(){
     ctx.restore();
   }
   /* G47b — un livello nascosto non disegna la sua entità. La forma del
-     fronte resta usata per i CALCOLI (interpFronte sotto i fori) anche
+     fronte resta usata per i CALCOLI (l'interpolazione sotto i fori) anche
      se nascosta: "visibile" governa il disegno, non il dato — nascondere
      la linea del fronte non deve spostare i fori che ci si appoggiano. */
   if(D2.strati.fronte.visibile){
     const fpts=[mxL]; D2.profilo.map(p=>p.x).filter(x=>x>mxL&&x<mxR).sort((a,b)=>a-b).forEach(x=>fpts.push(x)); fpts.push(mxR);
     ctx.save(); ctx.shadowColor='rgba(255,109,0,.75)'; ctx.shadowBlur=14; ctx.strokeStyle='#ff6d00'; ctx.lineWidth=3; ctx.beginPath();
-    fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpFronte(mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+    fpts.forEach((mx,k)=>{ const X=mx2(mx), Y=my2(interpProf(D2.profilo, mx)); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
     ctx.stroke(); ctx.restore();
   }
   if(D2.strati.piede.visibile && D2.piede.length){ const pp=[...D2.piede].sort((a,b)=>a.x-b.x); ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle='#ffd54f'; ctx.lineWidth=2; ctx.beginPath(); pp.forEach((p,k)=>{ const X=mx2(p.x),Y=my2(p.y); if(k===0)ctx.moveTo(X,Y); else ctx.lineTo(X,Y); }); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); ctx.fillStyle='#caa84a'; ctx.textAlign='left'; ctx.font="10px 'Barlow',sans-serif"; ctx.fillText('piede', mx2(pp[pp.length-1].x)+6, my2(pp[pp.length-1].y)+4); }
@@ -6007,7 +6007,7 @@ function drawDesign2D(){
   if(D2.iso) isoInfo=drawIsocrone2D(ctx,gGeo);
   if(D2.inn) innInfo=drawInnesco2D(ctx,gGeo);                // la rete sopra i campi, sotto i fori
   const tMax=Math.max(1,D2.lastDet||1), pfRif=pfNominale(D2);
-  if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpFronte(h.mx)), u=(h.tDet||0)/tMax;
+  if(D2.strati.fori.visibile) H.forEach((h,i)=>{ const cx=mx2(h.mx), cy=my2(h.my+interpProf(D2.profilo, h.mx)), u=(h.tDet||0)/tMax;
     const rcl=reliefCls(D2, h.relief);
     /* il pallino del foro prende il colore del livello attivo: il relief ha la
        precedenza perché è quello che segnala un rischio, l'energia viene dopo */
@@ -6050,7 +6050,7 @@ function drawDesign2D(){
      `undefined` finché `computeEnergia2D` non gira, e `Number.isFinite`
      lo rispetta). */
   if(D2.sel>=0 && D2.holes[D2.sel]){
-    const h=D2.holes[D2.sel], scx=mx2(h.mx), scy=my2(h.my+interpFronte(h.mx));
+    const h=D2.holes[D2.sel], scx=mx2(h.mx), scy=my2(h.my+interpProf(D2.profilo, h.mx));
     ctx.save(); ctx.strokeStyle='rgba(255,213,121,.55)'; ctx.fillStyle='#ffd579';
     ctx.font="600 10px 'Barlow Condensed',sans-serif"; ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.textAlign='left';
     /* ⛔ 13/09, trovato SOLO collaudando a schermo (mai a occhio sul codice),

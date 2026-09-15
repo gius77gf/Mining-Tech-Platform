@@ -27062,8 +27062,10 @@ console.log("\n— Campo: i file che escono —");
        e importare anche la nuova. La pagina userebbe la sua, e le quattro prove
        qui sopra blinderebbero una funzione che nessuno chiama.
        ⚠️ Qui il nome NON basta: nella pagina `computeMIC` resta — è il legame
-       fra lo stato del progetto e la funzione pura, come `interpFronte` per
-       `interpProf`. Quello che deve essere sparito è il CORPO, cioè la finestra
+       fra lo stato del progetto e la funzione pura (⏱️ 15/09: a differenza di
+       `interpFronte`, uscito anche lui da B3, questo resta DELIBERATAMENTE,
+       per tenere in un punto solo la composizione che il test qui sotto
+       sorveglia). Quello che deve essere sparito è il CORPO, cioè la finestra
        di 8 ms; e `computeMIC` deve limitarsi a passare lo stato. */
     const pag = senzaCommenti(readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8"));
     ok(!/t\s*<\s*t0\s*\+\s*8/.test(pag), "nella pagina non c'è più la finestra di 8 ms");
