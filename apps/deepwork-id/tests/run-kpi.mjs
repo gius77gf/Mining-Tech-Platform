@@ -41898,8 +41898,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" }, { n: "2.510 t", t: "prodotti" }], "i quattro numeri del Quadro vengono da avanzamentoGiornata, coperturaRapportini e totaliProduzione");
     eq(R.attenzione, campo.avvisoSenzaGiorno(dg(D.attivita), dg(D.rapportini)), "l'avviso sul rapportino senza giorno è quello di avvisoSenzaGiorno");
     ok(/1 rapportino \(2\.300 t\) senza il giorno di lavoro/.test(R.attenzione), R.attenzione);
-    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Briefing di inizio turno", "Meteo e condizioni del sito", "Personale presente", "Obiettivo del turno", "Attività",
-      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "le undici sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono; il briefing dall'11/09)");
+    eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Briefing di inizio turno", "Meteo e condizioni del sito", "Volate del giorno (registro di Sentinella)", "Personale presente", "Obiettivo del turno", "Attività",
+      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "⛔ le dodici sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono; le volate dal 15/09, dal ponte P6 che già serviva la consegna testuale)");
     ok(R.piede.startsWith("Generato da Deepwork Campo"));
   });
   test("Campo · rapportoGiornata: il personale — l'appello, il riposo sotto le 11 ore, gli orari che mancano DICHIARATI nella cella", () => {
@@ -41952,13 +41952,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(sez(R, "Attività").blocchi[0].tabella.righe, []); eq(sez(R, "Personale presente").testo, "Nessun appello registrato oggi.");
     eq(sez(R, "Produzione").testo, "Nessuna produzione registrata."); eq(sez(R, "Rapportini").testo, "Nessun rapportino oggi.");
     eq(sez(R, "Obiettivo del turno").testo, "Nessun obiettivo impostato per i turni di oggi.");
+    // ⛔ senza volateSentinella (undefined, non letto) la frase parla del PONTE, non della cava
+    eq(sez(R, "Volate del giorno (registro di Sentinella)").testo,
+      "Sentinella non raggiungibile: le volate di oggi non si sanno (non vuol dire che non ce ne siano state).", "undefined = non letto, non «nessuna volata»");
+    const R0 = campo.rapportoGiornata({ oggi: "2026-01-10", squadre: D.squadre, volateSentinella: [] }, {});
+    eq(sez(R0, "Volate del giorno (registro di Sentinella)").testo, "Nessuna volata registrata oggi in Sentinella.", "un array vuoto letto davvero è un'altra frase, non «non raggiungibile»");
     const A = campo.rapportoGiornata({ oggi: "2026-01-10", attivita: [{ id: "a", data: "2026-01-10", turno: "Mattina", titolo: "X", stato: "conclusa" }] }, {});
     eq(sez(A, "Fermi per causale").testo, "Nessuna anomalia aperta.", "con attività registrate e nessuna anomalia la frase è quella");
     eq(A.quadro[0], { n: "1/1", t: "attività concluse" }); eq(A.quadro[1], { n: "0", t: "anomalie aperte" });
     eq(A.quadro[2], { n: "—", t: "squadre: nessuna in anagrafica" });
     for (const args of [[null], [undefined, null], [{}, {}]]) {
       const N = campo.rapportoGiornata(...args);
-      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 11], "con niente non rompe: " + JSON.stringify(args));
+      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 12], "con niente non rompe: " + JSON.stringify(args));
     }
   });
   test("Campo · rapportoGiornata: chiusure, riaperture, foto e checklist — le sezioni che compaiono solo se c'è qualcosa", () => {
@@ -41973,7 +41978,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(Ri.blocchi[0].tabella.righe[0][2], "03/03/2026 15:30");
     const Fo = sez(R, "Foto delle anomalie");
     ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
-    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 8, "le foto stanno fra la disponibilità e la produzione, come sul foglio (8 dall'11/09: c'è il briefing)");
+    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 9, "le foto stanno fra la disponibilità e la produzione, come sul foglio (9 dal 15/09: c'è anche la sezione delle volate)");
     const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
     eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10 (senza nome)"]);
     eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");

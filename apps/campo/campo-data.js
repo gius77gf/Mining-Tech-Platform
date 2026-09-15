@@ -3496,8 +3496,9 @@ export function testoSegnalazioniTurno(s) {
    Nei testi il grassetto si scrive «**così**», il corsivo «*così*», l'a capo
    «\n»: li rende la pagina. `d`: { oggi (ISO), rapportini e attivita GIÀ del
    giorno, obiettivi, checklist, meteo, chiusure, squadre, operatori,
-   presenze, durate (archivi interi: si filtrano qui) }; `opts.dmy` la data in
-   italiano. Pura. */
+   presenze, durate (archivi interi: si filtrano qui), volateSentinella
+   (ponte P6, `undefined` = non letto) }; `opts.dmy` la data in italiano.
+   Pura. */
 export function rapportoGiornata(d, opts) {
   const D = d || {}, O = opts || {};
   const OGGI = String(D.oggi || "");
@@ -3505,6 +3506,7 @@ export function rapportoGiornata(d, opts) {
   const RAP_OGGI = D.rapportini || [], ATT_OGGI = D.attivita || [];
   const OBIE = D.obiettivi || [], CHK = D.checklist || [], MET = D.meteo || [], CHI = D.chiusure || [];
   const SQU = D.squadre || [], OPER = D.operatori || [], PRE = D.presenze || [], DUR = D.durate || [];
+  const VOL = D.volateSentinella === undefined ? null : D.volateSentinella;
   const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
   const pf = paretoFermi(ATT_OGGI);
   const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
@@ -3551,6 +3553,18 @@ export function rapportoGiornata(d, opts) {
   const meteo = sez("Meteo e condizioni del sito", metOggi.length ? "" : "Meteo e condizioni del sito non registrati oggi.",
     metOggi.length ? [{ tabella: tab(["Turno", "Condizioni", "Note sul sito"],
       metOggi.map((m) => [String(m.turno), riassuntoMeteo(m), String(m.note || "—")])) }] : []);
+  /* LE VOLATE DI OGGI (ponte P6, 15/09 — dal delta della ricerca sul
+     "mestiere della cava"): `testoConsegnaTurno`, il documento SORELLA di
+     questo, le legge già; questo rapporto — quello stampato e FIRMATO — non
+     le aveva mai lette. Sentinella non raggiungibile si dice con le sue
+     parole (non vuol dire che non ce ne siano state), come già fa la
+     consegna: si riusa `righeVolateDelGiorno`, non se ne riscrive una
+     versione più debole. */
+  const rv = riassuntoVolateDelGiorno(VOL, OGGI);
+  const volate = sez("Volate del giorno (registro di Sentinella)",
+    !rv || !rv.leggibile ? "Sentinella non raggiungibile: le volate di oggi non si sanno (non vuol dire che non ce ne siano state)."
+      : !rv.n ? "Nessuna volata registrata oggi in Sentinella." : "",
+    rv && rv.leggibile && rv.n ? [{ tabella: tab(["Volata"], righeVolateDelGiorno(rv).map((r) => [r])) }] : []);
   /* PERSONALE PRESENTE, turno per turno: l'appello, il riposo fra i turni
      (D.Lgs 66/2003, art. 7) e gli orari veri. Dove non si può misurare il
      rapporto lo DICHIARA invece di lasciare la cella vuota: una casella bianca
@@ -3653,7 +3667,7 @@ export function rapportoGiornata(d, opts) {
     riapOggi.flatMap((c) => riaperture(c).map((r) => [String(c.turno || ""), String(r.da || "—"), dmy(r.il || "") + (r.ora ? " " + String(r.ora) : ""), String(r.motivo || "—")]))) }],
     ["Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché."]) : null;
   return { titolo: "Rapporto di fine turno", data: dmy(OGGI), quadro, attenzione,
-    sezioni: [checklist, briefing, meteo, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
+    sezioni: [checklist, briefing, meteo, volate, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
       .concat([produzione, rapportini, chiusura]).concat(riapertureSez ? [riapertureSez] : []),
     piede: "Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori." };
 }
