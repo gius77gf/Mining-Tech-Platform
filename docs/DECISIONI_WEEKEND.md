@@ -433,6 +433,8 @@ momento.
 | **19** | il ricettore delle polveri: **da che parte sta** rispetto alla cava (05/09) | (1) se il campo lo mettiamo lo dici **tu** — è un dato che compili tu, per ogni ricettore; (2) la mia risposta: **(b)** etichetta sulla lettura E conto nel report. ⛔ Non si costruisce finché non rispondi alla (1): una tendina vuota su ogni scheda è rumore |
 | **20** | i dati alla **fine dell'abbonamento**: quanto restano scaricabili, chi li scarica, se e quando si cancellano (11/09) | una frase tua («restano scaricabili per N giorni, poi …»): da lì una regola in Deepwork ID e una riga nei termini. Intanto il prodotto **non promette niente**, e lo «scarica tutto» si costruisce comunque (voce aperta in roadmap). Vedi la sezione 20. |
 | **21** | **Conti è anche il libro dei debiti?** lo scadenzario fornitori, e con lui la previsione di cassa a sei mesi e il DSCR (11/09) | una parola: **debiti sì** o **debiti no**. Con «sì» il ciclo apre la voce; con «no» resta un limite dichiarato. Vedi la sezione 21. |
+| **22** | Scudo: **quale scadenza INAIL** tracciare, delle tre che esistono — 48h/2gg/24h (15/09) | una delle tre strade (solo la più urgente, tutte e tre automatiche, o solo il documento da allegare), o quale termine tracciare per primo se si parte in piccolo. Vedi la sezione 22. |
+| **23** | Conti: **uno scoring cliente** — sì, e con quali classi? (15/09) | una parola — **scoring sì**, **cruscotto**, o **no** — e se sì quali classi/soglie: è un giudizio su un cliente vero, non un calcolo neutro. Vedi la sezione 23. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1385,6 +1387,98 @@ cassa a sei mesi né il DSCR.
 **Che cosa serve da te.** Una parola: **debiti sì** o **debiti no**. Con «sì»
 il ciclo apre la voce e la porta fino alla previsione di cassa; con «no» la
 domanda 3 della ricerca resta scritta come limite dichiarato del prodotto.
+
+## 22. Scudo: quale scadenza INAIL tracciare, delle tre che esistono
+
+*(dalla ricerca dell'ottavo giro su Scudo, secondo passaggio su
+infortuni/INAIL, 15/09)*
+
+**Il fatto.** Quando succede un infortunio, l'INAIL non chiede UNA denuncia:
+ne chiede **tre**, con termini diversi e per casi diversi (di seconda mano,
+dai risultati di ricerca):
+- **48 ore** — comunicazione statistica, per qualunque assenza di almeno un
+  giorno oltre a quello dell'evento;
+- **2 giorni** — la denuncia vera e propria (Mod. 4bis), quando la prognosi
+  supera i 3 giorni;
+- **24 ore** — per un infortunio mortale o con pericolo di vita.
+
+Oggi Scudo non traccia nessuna delle tre: `grep -ciE "entro (2|due) giorni|48
+ore|24 ore|denuncia inail" apps/scudo/scudo-data.js apps/scudo/index.html` →
+1 e 0, e l'unica occorrenza parla di provvedimenti disciplinari, non della
+denuncia. `SCADENZE_PRESET` non ha una voce per nessuna delle tre, e
+`TIPI_DOCUMENTO` (9 voci: DSS, POS, DVR, DUVRI, Nomina, Verbale DPI, Verbale
+di verifica periodica, Idoneità sanitaria, Attestato formazione, Altro) non
+ne ha una per «denuncia infortunio».
+
+**Come stiamo.** Il registro infortuni registra l'evento, la gravità (ora a
+quattro gradini, dal 15/09) e — da oggi — la persona coinvolta: tutto il
+materiale per calcolare quale delle tre scadenze scatta c'è già nel record.
+Manca solo il collegamento: nessuna delle tre finisce a schermo come
+promemoria con una data-entro-cui.
+
+**Le strade.**
+1. **Solo la più urgente**: quando un infortunio nasce con gravità
+   «mortale» o «permanente», Scudo genera in automatico un promemoria a 24
+   ore. Copre il caso che fa più danno se saltato, costo piccolo (una
+   funzione pura + un promemoria, stesso schema di `testoPromemoria`).
+2. **Tutte e tre, automatiche**: alla registrazione di ogni infortunio
+   Scudo genera i promemoria che si applicano (48h sempre, 2gg se
+   `giorniAssenza > 3` o prognosi ancora aperta, 24h se mortale/permanente),
+   con lo stato che scala a "scaduto" se nessuno lo segna fatto. Copertura
+   completa, costo medio: tre regole di attivazione da mettere alla prova
+   una per una, e un modo di dire "fatta" diverso da una scadenza normale
+   (qui non si rinnova, si chiude).
+3. **Solo il documento**: aggiungere «Denuncia INAIL» a `TIPI_DOCUMENTO`
+   così si può allegare la ricevuta della denuncia già fatta altrove (per
+   esempio su MyINAIL), senza calcolare nessuna scadenza. Il più semplice,
+   ma non avvisa nessuno prima che il termine scada — la parte che serve di
+   più a chi rischia di dimenticarsene.
+
+**Che cosa serve da te.** Quale delle tre strade (o quale termine tracciare
+per primo, se si parte in piccolo con la strada 1 e si allarga dopo).
+
+## 23. Conti: uno scoring cliente — sì, e con quali ingredienti?
+
+*(dalla ricerca del settimo giro su Conti, gestione del credito, 15/09)*
+
+**Il fatto.** Conti ha già, separati, i tre ingredienti di un giudizio sul
+cliente — `esposizioneClienti` (quanto deve), `tempiPagamentoClienti`
+(quanto ci mette di solito), `agingIncassi` (da quanto è scaduto) — ma
+nessuna funzione li combina in un numero o in un'etichetta unica.
+`grep -inE "scoring|rating|classe di rischio|affidabilit"
+apps/conti/conti-data.js` → **0** occorrenze: non c'è nemmeno l'abbozzo.
+
+**Come stiamo.** Chi oggi vuole sapere "questo cliente è affidabile?" deve
+aprire tre schermate diverse e farsi un'opinione a mente. Le banche e i
+software di credit management costruiscono invece un giudizio unico
+(spesso una lettera o una classe di rischio) dalla combinazione di
+esposizione, puntualità storica e anzianità del credito scaduto.
+
+**Perché serve una decisione, non un'unità automatica.** Uno scoring non è
+un calcolo neutro come un totale: è un GIUDIZIO su un cliente reale, che il
+titolare potrebbe mostrargli o usare per decidere se continuare a
+vendergli a credito. Il principio del fondatore vale qui più che altrove —
+**l'assenza di un dato non è un dato favorevole** — quindi uno scoring
+scritto male (per esempio un cliente nuovo senza storia classificato come
+"a rischio" invece di "non ancora valutabile") farebbe più danno di non
+averlo.
+
+**Le strade.**
+1. **Scoring sì**, con la formula e la scala decise insieme (per esempio
+   tre classi — regolare / da monitorare / a rischio — o un punteggio), e
+   con un quarto stato esplicito per "non abbastanza storia per giudicare"
+   invece di far scivolare un cliente nuovo sul gradino più tranquillo o
+   più severo per default.
+2. **Scoring no, per ora**: i tre ingredienti restano tre schermate
+   separate, e chi decide resta una persona, non il software.
+3. **Solo un cruscotto che li affianca** (i tre numeri fianco a fianco per
+   cliente, senza combinarli in un giudizio unico): via di mezzo, nessun
+   giudizio automatico ma meno click per vederli insieme.
+
+**Che cosa serve da te.** Una parola — **scoring sì**, **cruscotto**, o
+**no** — e, se sì, quali classi/soglie usare: è la parte che un ciclo
+automatico non può decidere da solo, perché è una scelta di prodotto su
+come Conti *giudica* un cliente vero.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
