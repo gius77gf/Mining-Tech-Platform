@@ -358,6 +358,87 @@ produzione), non del confronto.
 non serve a fine turno, e nessuno l'ha chiesto. Il triangolo è chiuso come
 riconciliazione, non come tre ponti bidirezionali.
 
+### 3g. Il meteo del sito — Campo (per turno) **e** Sentinella (per lettura) · *cercata il 15/09, nuova*
+
+Due app registrano **le stesse condizioni atmosferiche della stessa cava**,
+in due posti che non si parlano, per due scopi diversi:
+
+    grep -n "meteo/{id}\|export const METEO_CIELO" apps/campo/campo-data.js
+    → 36:   meteo/{id}:      { data, turno, cielo, piste, visibilita, note, ora }
+      1241: export const METEO_CIELO = ["Sereno", "Nuvoloso", "Pioggia", "Vento forte", "Nebbia", "Neve o gelo", "Caldo estremo"];
+
+    grep -c "vento" apps/campo/campo-data.js apps/sentinella/sentinella-data.js
+    → apps/campo/campo-data.js:4
+      apps/sentinella/sentinella-data.js:71
+
+Campo tiene una collezione `meteo` **per turno** (data, turno, cielo, piste,
+visibilità, ora), pensata per il rapportino: spiega un fermo, spiega una
+produzione bassa. Sentinella tiene condizioni meteo **per singola lettura**
+(vento in m/s, direzione, pioggia, temperatura, umidità), e le usa per un
+motivo normativo preciso — il DM 16/03/1998, All. B, dice che una misura di
+rumore con vento oltre 5 m/s o pioggia **non è valida**:
+
+    grep -n "export function misuraFuoriCondizioni" -A 6 apps/sentinella/sentinella-data.js
+    → 4225: export function misuraFuoriCondizioni(l, m) {
+      4226:   const tipo = String((m || {}).tipo || "").trim().toLowerCase();
+      4227:   if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
+      4228:   const c = condizioniMisura(l);
+      4229:   if (c.vento == null && c.pioggia == null)
+      4230:     return { pertinente: true, giudicabile: false, fuori: false, breve: "", motivo: "vento e pioggia non registrati: non si può dire se la misura è valida per il DM 16/03/1998" };
+
+Oggi quel dato lo scrive **una persona a mano** (o un import CSV dal
+fonometro, se lo strumento ce l'ha) *ad ogni singola lettura*; e quando manca
+— cosa che il commento del modulo dichiara esplicitamente possibile («prima
+non ha vento né pioggia registrati») — Sentinella risponde «non si può dire»
+invece che «conforme» o «non conforme», cioè perde il verdetto proprio sul
+punto che il principio del fondatore protegge (assenza ≠ dato favorevole).
+Campo, nello stesso momento e sulla stessa cava, ha **già** un turno con
+`cielo: "Pioggia"` o `"Vento forte"` scritto per un'altra ragione (spiegare
+il rapportino), e nessuna delle due app lo sa dell'altra:
+
+    grep -n 'appId: "campo"' apps/sentinella/sentinella-data.js
+    → (nessuna riga: Sentinella non legge Campo, oggi)
+
+Verificato anche che non sia già il ponte P6 (Campo legge le **volate** di
+Sentinella per la consegna di turno — un dato diverso, direzione opposta):
+
+    grep -n "volateSentinella\|riassuntoVolateDelGiorno" apps/campo/campo-data.js | head -3
+    → 61: … riassuntoVolateDelGiorno, PPV_STRUMENTO } from "../../shared/dw-ponti.js";
+      64: export { riassuntoVolateDelGiorno } from "../../shared/dw-ponti.js";
+      279: volateSentinella: [
+
+⚠️ **E il ponte non chiuderebbe il buco da solo, e va detto prima di
+proporlo come facile.** Campo registra il cielo a **categorie** («Vento
+forte», non un numero in m/s: il commento del modulo lo dichiara di
+proposito — «niente servizi meteo esterni, niente abbonamenti»), mentre la
+soglia del DM 16/03/1998 è **numerica** (5 m/s). Quindi Campo non può mai
+dare a Sentinella un «giudicabile: true» sul vento: può solo confermare o
+smentire la **pioggia** (booleana in tutt'e due le app) e segnalare un
+sospetto qualitativo sul vento («quel turno Campo aveva scritto "vento
+forte": la lettura senza dato numerico merita un controllo», invece di un
+silenzioso «non si può dire»). È un miglioramento parziale, non la soluzione
+del «non si può dire»: va scritto così, non spacciato per una soglia
+mancante che si materializza da sola.
+
+**Valore: medio.** Non tocca un totale in euro come 3a, ma tocca un
+**verdetto di conformità ambientale che oggi si perde** in silenzio quando
+manca il dato — esattamente la famiglia di difetto che questo repository
+tratta come strutturale (l'assenza di un dato non è un dato favorevole, e
+qui è anche peggio: l'assenza fa perdere la domanda, non solo la risposta).
+Il beneficio pratico è circoscritto alla sola `pioggia` (booleana, i due
+vocabolari combaciano) più un avviso qualitativo sul vento.
+
+**Costo: medio.** Il collegamento tecnico è lo stesso schema già usato
+altrove (istanza SDK pigra con `appId: "campo"`, `null` se Campo non
+risponde, mai uno zero di comodo): poche righe. Il costo vero è a monte,
+nel prodotto: decidere **come** mostrare un avviso qualitativo dentro una
+funzione che oggi risponde con tre soli esiti netti (fuori · dentro · non
+si può dire) senza sembrare un quarto verdetto finto.
+
+**Direzione naturale:** Sentinella **consulta**, Campo è la **fonte** — è
+Campo che scrive il meteo per un altro scopo (il rapportino) prima che
+Sentinella ne abbia bisogno per la sua lettura, non il contrario.
+
 ---
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
@@ -502,7 +583,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **0** *(era 1 fino al 05/09 notte: la 3e passava da un file, adesso passa dai dati; era 6: 3a, 3b e 3f collegate il 02/09; 3c e 3d erano già collegate — la fonte è Scudo — e le righe lo dicevano male)* |
+| sovrapposizioni non collegate | **1** *(era 0 fino al 15/09: censita 3g — meteo del sito, Campo per turno / Sentinella per lettura — cercata di proposito e trovata nuova, non ancora costruita; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
@@ -512,3 +593,5 @@ Verificato contro il commit `d521c96d` del 2026-08-26.
 
 ✅ Sezioni 1 e 4 rimisurate contro il commit `a820c6d2` del 2026-09-12 (le altre sezioni non sono state riverificate in questo passaggio).
 ✅ Correzione del 2026-09-12 (stesso giorno, passaggio successivo, commit `d7dd157f`): la riga «resta di sola chiave-del-browser Genesi→Terra» era ancora sbagliata dopo la rimisurazione di sopra — vedi il blocco ⛔ in §4 e la riga corretta in §6. Il difetto era lo stesso che la rimisurazione correggeva: fidarsi del testo vecchio invece di riaprire il codice.
+
+✅ §3g aggiunta il 2026-09-15, censimento puro (nessun comando `git`, nessun tocco a codice): letto per intero il documento contro `HEAD` (`refs/heads/claude/scheduled-tasks-remote-control-bk4ap6`, commit `0d8498c8b3ce58f864d3f50b8aa0eb1458fb9802`, letto da `.git/` senza eseguire `git`) prima di scrivere, per non riproporre una sovrapposizione già censita.
