@@ -3159,6 +3159,12 @@ export function innescoSuMaglia(H, S, B){
     if(best){ h.innFrom=best.j; h.innDt=best.dt; }
   }
 }
+/* Trasloco B3 (15/09): il G39 del 14/09 aveva estratto `innescoSuMaglia` ma
+   lasciato in pagina il legame `computeInnesco2D()` a zero argomenti — stessa
+   forma di `computeEnergia2D`/`computeRelief2D` prima di loro, stesso unico
+   punto di chiamata (dentro `computeSeq2D`, già con `D2` in scope). Nessuna
+   ragione strutturale per fermarsi un passo prima delle sue due sorelle. */
+export function computeInnesco2D(D2){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    G41 · LA MAPPA DELL'ENERGIA FORO PER FORO (14/09, cantiere B3).

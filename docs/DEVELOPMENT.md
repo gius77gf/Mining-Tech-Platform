@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.462 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 14/09, dopo aver aggiunto la prova di `_snapXY`, cantiere B3: 2981 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.463 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto la prova di `computeInnesco2D`, cantiere B3: 2982 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
 > `node` completo esegue **3.927** asserzioni su **40** comandi.
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **330 su 330** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **166/166**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **331 su 331** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **167/167**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **142 funzioni** stanno dentro
+importa. **Genesi no**: le sue **141 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,12 +126,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **48** |
+| una o due | **47** |
 | da tre a cinque | 14 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **56 su 142 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **55 su 141 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
 ⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
 l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
@@ -142,6 +142,19 @@ non compare in nessun altro contesto). Nessun wrapper lasciato. Stesso
 margine dello strumento già visto su `activeProf`: `d2Move` guadagna
 `renderInspector` nel proprio elenco "chiama" (chiamata presente nel suo
 corpo da sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato.*
+⏱️ *48→47, 56→55 e 142→141 il 15/09 (B3, cantiere ripreso dopo la misura
+sul costo di `selRoccia`/`selEsplosivo`/`selInnesco`, vedi checkpoint
+`20260914-234319`): `computeInnesco2D(D2)`. Il G39 del 14/09 aveva già
+estratto `innescoSuMaglia`, ma aveva lasciato in pagina il legame a zero
+argomenti — stessa forma di `computeEnergia2D`/`computeRelief2D` prima di
+loro, e nessuna ragione strutturale per fermarsi un passo prima: unico
+chiamante (`computeSeq2D`) già con `D2` in scope. Non lascia un wrapper
+(era già zero-arg, ora è un'importazione). Difetto iniettato provato e
+rimesso: uno scambio S/B è invisibile per costruzione (usati solo dentro
+un `Math.max` simmetrico); il difetto verificabile è sulla sorgente dei
+fori. Unico effetto collaterale: `computeSeq2D` perde `computeInnesco2D`
+dal proprio elenco "chiama" (stessa famiglia già vista su
+`computeEnergia2D`/`computeRelief2D`).*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`

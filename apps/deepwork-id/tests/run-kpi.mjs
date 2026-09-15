@@ -26017,13 +26017,31 @@ console.log("\n— Campo: i file che escono —");
     genesi.innescoSuMaglia(undefined, 3, 3.5);
     const vuoto = []; genesi.innescoSuMaglia(vuoto, 3, 3.5); eq(vuoto, []);
   });
-  test("⛔ Genesi · G39: nella pagina il conto non c'è più, e il legame resta", () => {
+  test("⛔ Genesi · computeInnesco2D (B3, trasloco con cambio di firma, 15/09)", () => {
+    /* ⚠️ NON uno scambio S/B come difetto iniettato: `innescoSuMaglia` li usa
+       solo dentro un `Math.max(S,B,...)` simmetrico, quindi scambiarli è
+       invisibile per costruzione (stessa trappola già presa su `_spazTipico`
+       e `computeRelief2D`). Il difetto verificabile è sulla SORGENTE dei
+       fori: se il composer leggesse `D2.piede` invece di `D2.holes`, questo
+       confronto lo becca (array diverso, nessun campo `innFrom` scritto). */
+    const holesA = [{ mx: 0, my: 3, tDet: 0 }, { mx: 3.5, my: 3, tDet: 17 }, { mx: 7, my: 3, tDet: 34 }];
+    const holesB = holesA.map((h) => ({ ...h }));
+    const D2x = { holes: holesA, S: 3.5, B: 3, piede: [] };
+    v.computeInnesco2D(D2x);
+    v.innescoSuMaglia(holesB, 3.5, 3);
+    eq(holesA, holesB, "compone innescoSuMaglia con lo stato del progetto: stesso risultato della chiamata diretta, foro per foro");
+    ok(holesA[1].innFrom === 0, "e il conto è avvenuto davvero (non un no-op silenzioso)");
+    const senzaFori = { holes: [], S: 3.5, B: 3 };
+    v.computeInnesco2D(senzaFori); // non deve sollevare
+    eq(senzaFori.holes, [], "senza fori non tocca niente");
+  });
+  test("⛔ Genesi · G39: nella pagina il conto non c'è più, e dal 15/09 nemmeno il legame", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/function computeInnesco2D\(\)\{ innescoSuMaglia\(D2\.holes, D2\.S, D2\.B\); \}/.test(pag),
-      "computeInnesco2D è il legame fra lo stato e la funzione pura");
+    ok(!/function computeInnesco2D\(\)/.test(pag),
+      "⏱️ 15/09 (B3): il legame a zero argomenti è uscito anche lui, come le sue due sorelle");
     eq((pag.match(/h\.innFrom=best\.j/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
-    ok(elenco.includes("innescoSuMaglia"), "la pagina importa la funzione");
+    ok(elenco.includes("innescoSuMaglia") && elenco.includes("computeInnesco2D"), "la pagina importa tutt'e due");
   });
 
   /* ⛔ G40 — IL BURDEN RELIEF FORO PER FORO (14/09, cantiere B3, stessa
@@ -26224,7 +26242,7 @@ console.log("\n— Campo: i file che escono —");
     ok(/function computeSeq2D\(\)\{/.test(pag), "computeSeq2D esiste ancora");
     eq((pag.match(/computeRelief2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora relief");
     eq((pag.match(/computeEnergia2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora energia");
-    eq((pag.match(/computeInnesco2D\(\);/g) || []).length >= 1, true, "e orchestra ancora innesco");
+    eq((pag.match(/computeInnesco2D\(D2\);/g) || []).length >= 1, true, "e orchestra ancora innesco, dal 15/09 passando D2 esplicito");
     eq((pag.match(/h\.tDet = \(h\.tMano/g) || []).length, 0, "il vecchio corpo non è più scritto nella pagina");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(elenco.includes("sequenzaSuMaglia"), "la pagina importa la funzione");

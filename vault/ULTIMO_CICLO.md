@@ -1,15 +1,25 @@
 # Ultimo ciclo di lavoro automatico
 
-- **Quando**: 2026-09-14, 21:45 UTC
-- **Commit di partenza**: `5a438a2e`
+- **Quando**: 2026-09-15, 00:46 UTC
+- **Commit di partenza**: `992d6168`
 - **Branch**: `claude/scheduled-tasks-remote-control-bk4ap6`
 
 ## Che cosa sta per succedere
 
 Nuova accensione della routine "Weekly Dev Session" (fuoco delle
-21:45:15 UTC), sessione ancora nella stessa conversazione col
-fondatore aperta dal mattino. Repository raggiungibile, `HEAD`
+00:45:28 UTC), stessa conversazione. Repository raggiungibile, `HEAD`
 allineato al remoto (`git fetch` senza divergenza).
+
+Cantiere B3 (Genesi) ripreso dopo la pausa misurata sul costo di
+`selRoccia`/`selEsplosivo`/`selInnesco` (checkpoint `20260914-234319`):
+estratta `computeInnesco2D(D2)` — il G39 del 14/09 aveva già portato
+fuori `innescoSuMaglia` ma lasciato in pagina il legame a zero
+argomenti. Modifiche già verificate su una worktree isolata; il primo
+giro di verifica è morto a metà senza un errore visibile (processo in
+background non più vivo, registro fermo a 39 righe senza la riga
+finale) — probabilmente un riavvio del contenitore fra un fuoco e
+l'altro della routine. Sto rilanciando il giro prima di committare,
+per non fidarmi di un registro troncato.
 
 ✅ **LA DOMANDA CAD HA AVUTO RISPOSTA — il canarino precedente diceva
 "non ha ancora risposto": ora sì, e con una parola sola: "Tutto".**

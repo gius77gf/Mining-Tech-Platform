@@ -1223,7 +1223,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -5491,7 +5491,7 @@ function computeSeq2D(){
   if(!D2.holes.length) return;
   computeRelief2D(D2);                                        // il relief dipende solo dai tDet appena calcolati
   computeEnergia2D(D2);                                      // il consumo specifico dipende solo dalle posizioni: nessun tempo in gioco
-  computeInnesco2D();                                        // la rete di collegamento si ricostruisce dai tempi appena calcolati
+  computeInnesco2D(D2);                                      // la rete di collegamento si ricostruisce dai tempi appena calcolati
 }
 /* ===== G2 — burden relief FORO PER FORO (il ms/m dei badge e una media di progetto:
    qui diventa un valore del singolo foro, che e dove nascono blocchi, picchi di
@@ -5648,13 +5648,12 @@ function simulaPerforazione(N){
 }
 
 /* ⛔ `INN_TAGLI` (i raccordi di superficie di uso comune) sta in `./genesi-data.js`, blocco G25. */
-/* ⛔ Trasloco G39 (14/09, cantiere B3): il conto vero è `innescoSuMaglia` in
-   ./genesi-data.js — la funzione era marcata «più di dieci» variabili del
-   modulo, falso positivo del censimento (la sua dipendenza vera è solo D2),
-   letta a mano e spostata parola per parola. Qui resta il legame con lo
-   stato (⚠️ `_spazTipico`/`reliefCls`/`isoPasso`/`innTaglioOk` sono usciti
-   anche loro entro il 14/09, B3: non sono più legami di pagina). */
-function computeInnesco2D(){ innescoSuMaglia(D2.holes, D2.S, D2.B); }
+/* ⛔ Trasloco G39 (14/09, cantiere B3), completato il 15/09: `innescoSuMaglia`
+   in ./genesi-data.js era già uscita, ma il legame di pagina `computeInnesco2D()`
+   a zero argomenti era rimasto — stessa forma di `computeEnergia2D`/
+   `computeRelief2D` prima di loro. Ora è anche lei un'importazione diretta,
+   con `D2` esplicito passato dal suo unico chiamante (`computeSeq2D`, che
+   `D2` ce l'ha già). Nessun legame di pagina qui sotto. */
 /* Le classi sono RAPPORTI sul consumo specifico di progetto, non valori
    assoluti: una cava a 0,25 kg/m³ e una a 0,7 hanno entrambe diritto alla
    loro media, quello che conta è quanto un foro se ne discosta. */

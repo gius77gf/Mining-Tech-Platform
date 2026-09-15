@@ -591,8 +591,24 @@ const CONDIVISI = [
      "1-2" 49→48, estraibili 57→56. Stesso margine dello strumento già
      visto su `activeProf`: `d2Move` guadagna `renderInspector` nel
      proprio elenco "chiama" (chiamata presente nel suo corpo da
-     sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato. */
-  { file: "apps/genesi/genesi-data.js", fondo: 166,
+     sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato.
+     ⏱️ 15/09: `computeInnesco2D(D2)`. Il G39 del 14/09 aveva già estratto
+     `innescoSuMaglia` ma lasciato in pagina il legame a zero argomenti
+     (stessa forma di `computeEnergia2D`/`computeRelief2D` prima di
+     loro) — misurato che non c'era nessuna ragione strutturale per
+     fermarsi un passo prima delle sue due sorelle: unico chiamante
+     (`computeSeq2D`, dentro `computeSeq2D`) già con `D2` in scope.
+     Nessun wrapper lasciato: 142 funzioni nella pagina (invariate,
+     nessuna eliminata: era già zero-arg, ora è un'importazione),
+     bucket "1-2" 48→47, estraibili 56→55. Difetto iniettato provato e
+     rimesso: uno scambio S/B è invisibile per costruzione (usati solo
+     dentro un `Math.max` simmetrico, stessa trappola già presa su
+     `_spazTipico`); il difetto verificabile è sulla sorgente dei fori
+     (`D2.piede` al posto di `D2.holes`), catturato dal confronto con
+     la chiamata diretta a `innescoSuMaglia`. Nessuno spostamento di
+     bucket per altre funzioni, misurato confrontando `--elenco`
+     prima/dopo su una worktree. */
+  { file: "apps/genesi/genesi-data.js", fondo: 167,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
