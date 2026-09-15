@@ -77,7 +77,7 @@
 // KPI CALCOLATI: da incassare, in scadenza, gare aperte, età media del credito.
 // ============================================================
 
-import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, dataISOEsiste, dataIt, conta, plurale, isoLocale,
+import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, dataISOEsiste, dataIt, conta, plurale, isoLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
 import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
@@ -893,13 +893,10 @@ export function parseFattureCsv(text) {
    un difetto del suo Excel è il falso allarme che insegna a non guardare i
    messaggi. */
 export function scartiFattureCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "numero"));
+  const righe = righeCsvNumerate(text, "numero");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseFattureCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -963,13 +960,10 @@ export function parseGareCsv(text) {
    ⛔ E LA RIGA DI CODA `;;;` che un foglio di calcolo salva da sé non è una
    perdita: si conta a parte (`vuote`) e resta muta. */
 export function scartiGareCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "titolo"));
+  const righe = righeCsvNumerate(text, "titolo");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseGareCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -1107,14 +1101,11 @@ export function parseListinoCsv(text) {
    Vedi il blocco lungo sopra `scartiFattureCsv` per la forma e per il perché
    il verdetto si chiede al lettore invece di riscriverlo. */
 export function scartiListinoCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
   const avvisi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     const c = parseCsvLine(riga);
     if (parseListinoCsv(riga).length) {
       /* ⛔ LE RIGHE CHE ENTRANO CON UN VALORE MESSO DA NOI. Questa funzione

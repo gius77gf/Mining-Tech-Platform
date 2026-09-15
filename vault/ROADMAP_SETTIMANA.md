@@ -8533,10 +8533,12 @@ numero scritto dove non era stato misurato niente**.*
   fronte, dal sesto giro di ricerca), 3033→3034, e a `righeCsvNumerate`
   condivisa (dal delta della riverifica su PAROLE) migrata ai primi due
   lettori di Terra, 3034→3035, a un secondo lotto (Scudo, Sentinella: sei
-  lettori in più), 3035→3036, e a un terzo (Campo, Flotta: quattro lettori
-  in più — restano nove, tre con forma non standard), 3036→3037):
-  **3.528 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3037, `run-stile` 328,
+  lettori in più), 3035→3036, a un terzo (Campo, Flotta: quattro lettori
+  in più), 3036→3037, e a un quarto (Conti: tre lettori standard in più —
+  i 18 lettori standard sono ora tutti migrati, restano sei forme non
+  standard), 3037→3038):
+  **3.529 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3038, `run-stile` 328,
   `run-helpers` 82, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -33034,7 +33034,7 @@ const SCARTI_PROVATI = new Set();
      ["Misto di cava;t;8,50;1,9;22"],
      [["Stabilizzato 0/30;t;;1,9;22", "il prezzo non è stato scritto", "Stabilizzato 0/30"],
       ["Pietrisco;t;abc;1,9;22", "il prezzo non si legge", "Pietrisco"],
-      [";t;12,00;1,9;22", "manca il nome del prodotto", "riga 4"]]],
+      [";t;12,00;1,9;22", "manca il nome del prodotto", "riga 5"]]],   // 15/09: riga FISICA (1=intestazione, 2=sana, 3-4=rotte precedenti)
     ["flotta.parseTelemetriaCsv", flotta.parseTelemetriaCsv, flotta.scartiTelemetriaCsv, "mezzo;ore;carburante",
      ["Escavatore 1;6375;120"],
      [["Pala 2;;95", "le ore motore non sono state scritte", "Pala 2"],
@@ -33188,6 +33188,15 @@ const SCARTI_PROVATI = new Set();
     eq(fr.persi[0].nome, "riga 4");
     const fm = flotta.scartiMezziCsv("nome;area;ore;stato\nEscavatore 1;Fronte Nord;6375;operativo\n\n;Piazzale;100;operativo\n");
     eq(fm.persi[0].nome, "riga 4");
+  });
+
+  test("⛔ B14 (15/09, quarto lotto): conti.scartiFattureCsv/scartiGareCsv/scartiListinoCsv migrati, stessa prova", () => {
+    const cf = conti.scartiFattureCsv("numero;cliente;importo;emessa;scadenza;incassata\n2026/001;Edilcave Srl;4400;2026-06-18;2026-07-18;no\n\n;;;2026-06-19;;no\n");
+    eq(cf.persi[0].nome, "riga 4", "numero e cliente entrambi vuoti: nessun fallback, 'riga N' fisica");
+    const cg = conti.scartiGareCsv("titolo;base;scadenza;stato\nGara comunale;12000;2026-09-01;aperta\n\n;8000;2026-09-02;aperta\n");
+    eq(cg.persi[0].nome, "riga 4");
+    const cl = conti.scartiListinoCsv("nome;unita;prezzo;densita;iva\nMisto di cava;t;8,50;1,9;22\n\n;t;12,00;1,9;22\n");
+    eq(cl.persi[0].nome, "riga 4", "nome vuoto: 'riga N' fisica");
   });
 
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
@@ -33597,7 +33606,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         non contiene il caso legittimo non distingue «perde le righe rotte» da
         «perde tutto quello che non è pieno». */
      ["Gara comunale;12000;2026-09-01;aperta", "Gara senza base;;2026-09-05;aperta"],
-     [[";8000;2026-09-02;aperta", "manca il titolo della gara", "riga 3"]]],
+     [[";8000;2026-09-02;aperta", "manca il titolo della gara", "riga 4"]]],   // 15/09: riga FISICA (1=intestazione, 2-3=sane)
     ["conti.parseClientiCsv", conti.parseClientiCsv, conti.scartiClientiCsv, conti.CSV_CLIENTI_INTESTAZIONE,
      ["C1;Alfa Srl;123;AAA;via Roma;5;1000;"],
      [["C2;;456;BBB;via Po;;;", "manca la ragione sociale", "C2"],

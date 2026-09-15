@@ -1726,17 +1726,18 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.528** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.529** *(ricontate il 15/09, dopo aver
 aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
 numero di riga fisico nel file al posto della posizione nell'elenco già
 scartato, dal delta della riverifica sul documento invecchiato PAROLE — e
-migrati un primo, un secondo e un terzo lotto
-(`scartiFrontiCsv`/`scartiRilieviCsv` di Terra,
+migrati quattro lotti (`scartiFrontiCsv`/`scartiRilieviCsv` di Terra,
 `scartiScadenzeCsv`/`scartiInfortuniCsv` di Scudo,
 `scartiMonitoraggiCsv`/`scartiRicettoriCsv`/`scartiAdempimentiCsv`/`scartiVolateCsv`
 di Sentinella, `scartiSquadreCsv`/`scartiPianoCsv` di Campo,
-`scartiRicambiCsv`/`scartiMezziCsv` di Flotta — restano nove: i sei di Conti e
-tre forme non standard),
+`scartiRicambiCsv`/`scartiMezziCsv` di Flotta,
+`scartiFattureCsv`/`scartiGareCsv`/`scartiListinoCsv` di Conti — i 18 lettori
+in forma standard sono tutti migrati: restano sei forme non standard, basate
+su celle già parsate invece che su testo grezzo),
 dopo aver aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
 trasversali per fronte, additiva e collegata subito al posto di
 `conformitaGeometria` senza cambiare nessun contratto — dopo aver aggiunto a
