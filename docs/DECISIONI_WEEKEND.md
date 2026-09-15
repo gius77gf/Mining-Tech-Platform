@@ -1345,9 +1345,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.468** *(ricontate il 15/09, dopo aver
-aggiunto a `run-kpi.mjs` le due prove sull'associazione ambigua del
-sismogramma nel core, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+**Le prove automatiche sono passate a 3.470** *(ricontate il 15/09, dopo aver
+aggiunto a `run-kpi.mjs` le due prove sull'appello di `riposoDiTurno`/
+`orariDiTurno` in Campo, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
 esecuzioni** che aprono davvero le pagine in un browser.
 

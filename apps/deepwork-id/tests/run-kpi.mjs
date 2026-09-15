@@ -17768,6 +17768,20 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const q2 = campo.riposoDiTurno(OP, lavoro, DUR, OGGI_R, "Mattina", "");
     contiene(q2, { totale: 2, sotto: 2 }, "nessuno spuntato oggi: si guardano tutt'e due");
   });
+
+  test("⛔ Campo · riposo: uno spunto già fatto non sparisce se dopo si segna non disponibile (stessa famiglia di appelloTurno, 2d6870b9)", () => {
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "non-disponibile" }];
+    // o1 è spuntato presente oggi (violazione vera: rientrato da meno di 11 ore), POI il suo stato anagrafico cambia
+    const P = [pre(IERI, "Pomeriggio", "o1", "presente"), pre(IERI, "Notte", "o1", "assente"),
+               pre(OGGI_R, "Mattina", "o1", "presente")];
+    const dopoIlCambio = OP.map((o) => o.id === "o1" ? { ...o, stato: "non-disponibile" } : o);
+    const q = campo.riposoDiTurno(dopoIlCambio, P, DUR, OGGI_R, "Mattina", "");
+    ok(q.righe.some((r) => r.operatore.id === "o1"), "o1 resta nel conto del riposo, non sparisce");
+    contiene(q, { totale: 1, sotto: 1 }, "e la sua violazione (sotto le 11 ore) resta contata, non svanisce col cambio di stato");
+    // come prima: chi non ha MAI uno spunto per questo turno resta fuori se non-disponibile
+    ok(!q.righe.some((r) => r.operatore.id === "o2"), "o2, mai spuntato e non disponibile fin dall'inizio, resta fuori");
+  });
 }
 
 // ── Campo · gli orari veri del turno, persona per persona ──────────────
@@ -18089,6 +18103,16 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
              "turno in corso: entrati sì, usciti non ancora — e nessun totale di ore");
     ok(campo.testoOrari(o.righe[0].orari).includes("non dichiarata"),
        "e la frase lo dice invece di lasciare la riga muta");
+  });
+
+  test("⛔ Campo · orari: uno spunto già fatto non sparisce se dopo si segna non disponibile (stessa famiglia di appelloTurno, 2d6870b9)", () => {
+    const OP = [{ id: "o1", nome: "A", squadra: "Squadra A", stato: "in-forza" },
+                { id: "o2", nome: "B", squadra: "Squadra A", stato: "non-disponibile" }];
+    const P = [p(OGGI_R, "Mattina", "o1", "presente", "06:00", "14:00")];
+    const dopoIlCambio = OP.map((o) => o.id === "o1" ? { ...o, stato: "non-disponibile" } : o);
+    const q = campo.orariDiTurno(dopoIlCambio, P, OGGI_R, "Mattina", "");
+    contiene(q, { totale: 1, completi: 1, minuti: 480 }, "o1 resta nel conto delle ore, non sparisce col cambio di stato");
+    ok(!q.righe.some((r) => r.operatore.id === "o2"), "o2, mai spuntato e non disponibile fin dall'inizio, resta fuori");
   });
 }
 

@@ -1952,11 +1952,20 @@ export function orariProposti(durate, data, turno) {
 // bugia della disponibilità calcolata senza denominatore.
 // Pura e testabile.
 export function orariDiTurno(operatori, presenze, data, turno, squadra) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
-    .map(o => ({ operatore: o, presenza: presenzaDi(presenze, data, turno, o.id) }))
-    .filter(x => x.presenza && String(x.presenza.stato || "") === "presente")
-    .map(x => ({ operatore: x.operatore, orari: orariPresenza(x.presenza) }));
+  /* ⛔ FINO AL 15/09 QUESTA RIGA ERA UNA COPIA PIÙ DEBOLE DI `appelloTurno`
+     (chiuso lo stesso giorno, commit `2d6870b9`): filtrava `stato !==
+     "non-disponibile"` PRIMA di guardare lo spunto di presenza, quindi un
+     operatore già spuntato "presente" spariva da qui — insieme alle sue
+     ore lavorate — se il suo stato anagrafico cambiava dopo in
+     "non-disponibile". Trovato da una ricerca mirata sulla stessa famiglia,
+     perché il commit di oggi correggeva `appelloTurno` ma non le sue due
+     sorelle. Si prende l'elenco già corretto invece di reimplementare la
+     stessa unione una terza volta — è la "copia debole" che CLAUDE.md
+     descrive: una regola scritta due volte diverge alla prima modifica di
+     una sola delle due. */
+  const righe = appelloTurno(operatori, presenze, data, turno, squadra).righe
+    .filter(r => r.stato === "presente")
+    .map(r => ({ operatore: r.operatore, orari: orariPresenza(presenzaDi(presenze, data, turno, r.operatore.id)) }));
   const completi = righe.filter(r => r.orari.minuti !== null);
   const parziali = righe.filter(r => r.orari.minuti === null
     && (r.orari.entrata !== null || r.orari.uscita !== null));
@@ -2152,8 +2161,15 @@ export function testoRiposo(r, fmtData) {
 // più semplice di rendere inutile un controllo di sicurezza.
 // Pura e testabile.
 export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra, giorni = 7) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
+  /* ⛔ FINO AL 15/09 QUESTA RIGA ERA UNA COPIA PIÙ DEBOLE DI `appelloTurno`
+     (chiuso lo stesso giorno, commit `2d6870b9`), nella stessa forma di
+     `orariDiTurno` qui sopra: filtrava `stato !== "non-disponibile"` PRIMA
+     di guardare lo spunto, quindi un operatore già spuntato "presente"
+     spariva dal conto del riposo — e dal rapporto di fine turno che cita
+     l'obbligo di legge (D.Lgs 66/2003, art. 7) — se il suo stato
+     anagrafico cambiava dopo in "non-disponibile". Si prende l'elenco già
+     corretto invece di reimplementare la stessa unione una terza volta. */
+  const righe = appelloTurno(operatori, presenze, data, turno, squadra).righe
     /* ⛔ CHI È STATO SPUNTATO ASSENTE OGGI NON ENTRA, e non è per far pulizia:
        dire «Rossi ha meno di undici ore di riposo» di qualcuno che oggi non è
        venuto è un'accusa falsa su un documento firmato — il riposo prima di un
@@ -2162,11 +2178,8 @@ export function riposoDiTurno(operatori, presenze, durate, data, turno, squadra,
        dentro, perché «non lo so» non è «non c'è» — è la stessa distinzione su
        cui è costruito l'appello, e toglierlo qui vorrebbe dire non guardare il
        riposo proprio di chi nessuno ha ancora visto. */
-    .filter(o => {
-      const p = presenzaDi(presenze, data, turno, o.id);
-      return !(p && String(p.stato || "") === "assente");
-    })
-    .map(o => ({ operatore: o, ...riposoPrimaDelTurno(o.id, presenze, durate, data, turno, giorni) }));
+    .filter(r => r.stato !== "assente")
+    .map(r => ({ operatore: r.operatore, ...riposoPrimaDelTurno(r.operatore.id, presenze, durate, data, turno, giorni) }));
   const conta = (s) => righe.filter(r => r.stato === s).length;
   return {
     righe,
