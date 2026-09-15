@@ -922,10 +922,18 @@ test("la controprova dell'emulatore: un totale coerente coi SUOI addendi ma fals
    ⚠️ E l'elenco dei moduli è **derivato dall'uscita del censimento**, non
    scritto qui: un elenco a mano non può accorgersi di un modulo che non sa
    esistere — è il difetto che l'07/08 è costato `chiediDati`, sei chiamate a
-   una funzione mai definita, perché `UI_CONDIVISA` era scritto a mano. */
+   una funzione mai definita, perché `UI_CONDIVISA` era scritto a mano.
+   ⛔ E IL 15/09 UN MODULO SALITO DI COPERTURA HA FATTO SPARIRE SÉ STESSO DAL
+   CONTO: `copertura-funzioni.mjs` appende «(il fondo era N: alzalo)» a ogni
+   riga che supera il proprio minimo storico — dw-shell.js l'ha fatto passando
+   da 61/61 a 62/62 — e l'ancora di fine riga (`\s*$`) di questa regex non
+   ammetteva nessun testo dopo `N/N`: quella riga smetteva di combaciare,
+   `perModulo.length` scendeva da 5 a 4, e il controllo si dichiarava cieco
+   proprio mentre la copertura migliorava. La cura non tocca il fondo: tollera
+   qualunque coda dopo lo slash, sulla stessa riga. */
 let nominatiDoc = 0;
 const mCondivisi = /(\d+) funzioni condivise coperte su (\d+) guardate, in (\d+) moduli/.exec(String(cop.stdout || ""));
-const perModulo = [...String(cop.stdout || "").matchAll(/^\s*✓\s+([\w.-]+\.js)\s+(\d+)\/(\d+)\s*$/gm)]
+const perModulo = [...String(cop.stdout || "").matchAll(/^\s*✓\s+([\w.-]+\.js)\s+(\d+)\/(\d+)(?:[ \t].*)?$/gm)]
   .map((m) => ({ file: m[1], coperte: +m[2], guardate: +m[3] }));
 test("docs/DEVELOPMENT.md: la scomposizione del codice condiviso è quella vera, modulo per modulo", () => {
   ok(mCondivisi, "il censimento non ha stampato la riga dei moduli condivisi");

@@ -421,6 +421,35 @@ export function isIntestazione(row, primaColonna) {
   return new RegExp("^" + escKw + "\\s*[;,\\t]", "i").test(String(row || "").trim());
 }
 
+/* ⛔ IL «riga N» DEI LETTORI SCARTI*CSV CONTAVA LA POSIZIONE NELL'ELENCO GIÀ
+   FILTRATO, NON LA RIGA FISICA DEL FILE (15/09, dalla riverifica sul
+   documento invecchiato RICERCA_CONTINUA_PAROLE, proposta 4 del Blocco 2 —
+   riscontrato IDENTICO oggi in tutti e 21 i lettori). Ogni `scarti*Csv`
+   toglieva prima le righe vuote e l'intestazione (`.filter(Boolean).filter(r
+   => !isIntestazione(...))`) e SOLO DOPO incrementava `nRiga` scorrendo
+   l'elenco già ripulito: un file con l'intestazione più una riga vuota prima
+   della riga rotta diceva «riga 1» a un utente che, aprendo lo stesso file in
+   un foglio elettronico, la trova alla riga 3. Il messaggio esiste apposta
+   per farla ritrovare — un numero sbagliato la fa cercare nel posto
+   sbagliato, che è peggio di non nominarla.
+   La funzione condivisa numera PRIMA di scartare: `nRiga` è la posizione
+   fisica 1-based nel testo originale (quella che conta anche un editor di
+   testo), e si saltano solo le righe davvero vuote e l'intestazione — lo
+   stesso insieme che ogni lettore toglieva già, quindi `righe.length` (e di
+   conseguenza `lette = righe.length - vuote`) non cambia: cambia solo il
+   numero che finisce nel messaggio. */
+export function righeCsvNumerate(text, primaColonna) {
+  const tutte = String(text || "").split(/\r?\n/);
+  const righe = [];
+  for (let i = 0; i < tutte.length; i++) {
+    const riga = tutte[i].trim();
+    if (!riga) continue;
+    if (isIntestazione(riga, primaColonna)) continue;
+    righe.push({ nRiga: i + 1, riga });
+  }
+  return righe;
+}
+
 /* ⛔ IL FILE SBAGLIATO ENTRAVA IN SILENZIO — e la difesa ovvia era già stata
    esclusa da una scelta di prodotto.
    ══════════════════════════════════════════════════════════════════════════

@@ -33021,7 +33021,7 @@ const SCARTI_PROVATI = new Set();
      [[";Piazzale;100;operativo", "manca il nome del mezzo", "riga 3"]]],
     ["terra.parseFrontiCsv", terra.parseFrontiCsv, terra.scartiFrontiCsv, "nome;banco;quota;stato",
      ["Fronte Nord;Banco A;340;attivo", "Fronte Sud;Banco B;;attivo"],
-     [[";Banco D;300;attivo", "manca il nome del fronte", "riga 3"]]],
+     [[";Banco D;300;attivo", "manca il nome del fronte", "riga 4"]]],   // 15/09: riga FISICA (1=intestazione, 2-3=sane), non più posizione nell'elenco filtrato
     ["conti.parseFattureCsv", conti.parseFattureCsv, conti.scartiFattureCsv,
      "numero;cliente;importo;emessa;scadenza;incassata",
      ["2026/001;Edilcave Srl;4400;2026-06-18;2026-07-18;no"],
@@ -33045,7 +33045,7 @@ const SCARTI_PROVATI = new Set();
      ["2026-03-01;1200;RTK;2;Fronte Nord"],
      [["2026-03-02;;RTK;2;Fronte Nord", "il volume non è stato misurato", "2026-03-02"],
       ["2026-03-03;abc;RTK;2;Fronte Nord", "il volume non si legge", "2026-03-03"],
-      [";1500;RTK;2;Fronte Nord", "la data non è stata scritta", "riga 4"],
+      [";1500;RTK;2;Fronte Nord", "la data non è stata scritta", "riga 5"],   // 15/09: riga FISICA (1=intestazione, 2=sana, 3-4=rotte precedenti)
       ["2026-02-30;1500;RTK;2;Fronte Nord", "la data non esiste", "2026-02-30"],
       ["2026-03-04;-50;RTK;2;Fronte Nord", "il volume è negativo", "2026-03-04"]]],
   ];
@@ -33122,6 +33122,42 @@ const SCARTI_PROVATI = new Set();
       }
     });
   }
+
+  /* ⛔ B10 (15/09, dalla riverifica sul documento invecchiato PAROLE): il
+     numero di riga dei lettori migrati a `righeCsvNumerate` è quello FISICO
+     nel file, non la posizione nell'elenco già scartato. Il caso che il
+     censimento NOVE/QUATTRO/B5-bis non copre — perché le sue fixture non
+     hanno righe vuote prima della rotta — è esattamente quello per cui la
+     funzione condivisa è nata: senza di lei, una riga vuota o l'intestazione
+     prima della riga rotta sfasavano il numero. */
+  test("⛔ B10 · terra.scartiRilieviCsv e scartiFrontiCsv: una riga vuota prima della rotta non sfasa più il numero", () => {
+    // una riga BIANCA (niente, o solo spazi) non è un dato: righeCsvNumerate
+    // la salta come faceva già il vecchio `.filter(Boolean)`, ma la sua
+    // posizione FISICA resta contata per chi viene dopo — non va in `vuote`,
+    // che è la conta delle righe CSV con tutte le celle vuote (es. ";;;;"),
+    // un caso diverso (un file di calcolo che chiude con una riga di soli
+    // separatori, già coperto dal test "coda «;;;»" qui sopra).
+    const csvR = "data;volumeM3\n2026-03-01;1200\n\n;1500\n";   // riga 3 è bianca, la 4 è la rotta
+    const r = terra.scartiRilieviCsv(csvR);
+    eq(r.vuote, 0, "una riga bianca non è una riga CSV a celle vuote: non entra in `vuote`");
+    eq(r.lette, 2, "e non entra nemmeno in `lette`: la sua posizione fisica non produce un soggetto");
+    eq(r.persi.length, 1);
+    eq(r.persi[0].nome, "riga 4", "riga fisica: 1=intestazione, 2=sana, 3=bianca (saltata), 4=rotta — non 'riga 2' come darebbe l'elenco filtrato");
+    // due righe bianche di fila spostano di due, non di zero
+    const csvF = "nome;banco\nFronte Nord;A\n\n\n;B\n";
+    const f = terra.scartiFrontiCsv(csvF);
+    eq(f.vuote, 0);
+    eq(f.persi.length, 1);
+    eq(f.persi[0].nome, "riga 5", "1=intestazione, 2=sana, 3 e 4=bianche, 5=rotta");
+    // e la riga CSV a celle vuote (";" — non bianca come testo) resta un caso
+    // diverso: conta in `vuote`, e la sua posizione fisica sposta lo stesso
+    // il numero di chi viene dopo
+    const csvV = "nome;banco\nFronte Nord;A\n;\n;B\n";   // riga 3 è ";" (celle vuote, non testo vuoto), la 4 è la rotta
+    const v = terra.scartiFrontiCsv(csvV);
+    eq(v.vuote, 1, "«;» ha celle tutte vuote: è una riga CSV vuota, diversa dalla riga bianca");
+    eq(v.persi.length, 1);
+    eq(v.persi[0].nome, "riga 4", "la riga CSV vuota è una posizione fisica vera (a differenza della bianca): sposta comunque il numero della rotta");
+  });
 
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
      una dichiarazione che nessuno legge non protegge niente. Il difetto vero

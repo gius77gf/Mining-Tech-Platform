@@ -1726,8 +1726,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.518** *(ricontate il 15/09, dopo aver
-aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
+**Le prove automatiche sono passate a 3.526** *(ricontate il 15/09, dopo aver
+aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
+numero di riga fisico nel file al posto della posizione nell'elenco già
+scartato, dal delta della riverifica sul documento invecchiato PAROLE — e
+migrati i primi due lettori (`scartiFrontiCsv`, `scartiRilieviCsv` di Terra),
+dopo aver aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
 trasversali per fronte, additiva e collegata subito al posto di
 `conformitaGeometria` senza cambiare nessun contratto — dopo aver aggiunto a
 `scudo-data.js`/`sentinella-data.js` gli ultimi due lettori CSV

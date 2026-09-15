@@ -8530,10 +8530,12 @@ numero scritto dove non era stato misurato niente**.*
   3031→3032, e a `scartiInfortuniCsv`/`scartiMonitoraggiCsv` (Scudo/Sentinella,
   gli ultimi due lettori «muti» dal delta della riverifica su ASSENZA), 3032→3033,
   e a `sezionePeggiore` di Terra (prima fetta delle sezioni trasversali per
-  fronte, dal sesto giro di ricerca), 3033→3034):
-  **3.518 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3034, `run-stile` 328,
-  `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
+  fronte, dal sesto giro di ricerca), 3033→3034, e a `righeCsvNumerate`
+  condivisa (dal delta della riverifica su PAROLE) migrata ai primi due
+  lettori di Terra, 3034→3035):
+  **3.526 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3035, `run-stile` 328,
+  `run-helpers` 82, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`

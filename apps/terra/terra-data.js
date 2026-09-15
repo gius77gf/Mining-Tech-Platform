@@ -56,7 +56,7 @@
 // REGIONALE, quindi soglie, preavvisi e periodicità li imposta l'utente.
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, giorniTra, isoLocale, dataISOEsiste, conta, csvCell, leggiCsv, dataIt,
+import { parseCsvLine, numIt, isIntestazione, righeCsvNumerate, giorniTra, isoLocale, dataISOEsiste, conta, csvCell, leggiCsv, dataIt,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 
 export const DEMO = {
@@ -2305,13 +2305,10 @@ export function parseFrontiCsv(text) {
    `vuote`, e non si dicono. È la differenza fra un `.filter` giusto (la
    riga d'intestazione, la riga di coda) e uno che cancella un dato. */
 export function scartiFrontiCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseFrontiCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -2369,13 +2366,10 @@ export function parseRilieviCsv(text) {
    vuota, nel secondo c'è scritto qualcosa che non è un numero (una nota, una
    virgola di troppo, un «n.d.»). Sono due azioni diverse. */
 export function scartiRilieviCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "data"));
+  const righe = righeCsvNumerate(text, "data");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseRilieviCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
