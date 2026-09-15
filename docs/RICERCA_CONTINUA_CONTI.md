@@ -1769,3 +1769,170 @@ una decisione del fondatore prima di essere scritto in codice, non
 un'unità automatica: uno scoring tocca come si presenta un giudizio su un
 cliente reale). **Il settimo giro di ricerca su Conti è chiuso su tutto
 ciò che si può fare senza una decisione del fondatore.**
+
+## 15/09 — ottavo giro: fido/affidamento — il mondo dice di guardare anche il "non ancora fatturato", Conti lo fa solo alla pesata e mai come somma
+
+*Domanda mirata data dal coordinatore: come gestiscono i migliori software di
+fatturazione B2B (o le prassi italiane sul credito commerciale) l'affidamento
+di un cliente — cioè un limite di credito oltre il quale un nuovo DDT/ordine
+va segnalato o bloccato. Strumento: `WebSearch` (due ricerche, caricato con
+`ToolSearch({query:"select:WebSearch,WebFetch"})` — era davvero solo da
+caricare, non un limite di rete). `WebFetch` non provato in questo giro:
+tutto il "mondo" sotto è di seconda mano, dai riassunti di ricerca.*
+
+*Prima di cercare: il settimo giro (sopra, stesso giorno) aveva già chiuso
+tre lacune sul credito (livelloSollecito, scoring, aging per fascia). Questo
+giro riparte dalla domanda specifica del fido/affidamento, che il terzo giro
+(11/09) aveva già dichiarato "C'È" per l'esposizione+fido e "FATTO" per
+l'avviso alla pesata (`avvisoFidoPesata`, unità 106). Quindi non è un
+territorio vergine: la domanda qui è se quel "C'È" copre anche il pezzo che
+il mondo tratta come standard, cioè il non-ancora-fatturato.*
+
+### Come fanno, fuori [tutto di seconda mano, WebSearch]
+
+- **Il fido è un campo dell'anagrafica cliente, e il controllo scatta alla
+  CREAZIONE del documento** (ordine, DDT, fattura) — non solo alla fattura:
+  fra le fonti italiane, la voce di knowledge-base di un ERP generalista
+  descrive esplicitamente "Controllo automatico del Fido Cliente in
+  creazione documento (ordine, fattura, etc) e Blocco di un Cliente"
+  *[risultato di ricerca: help.progestnow.com]*, e il glossario di un
+  software di fatturazione descrive il fido commerciale come linea di
+  credito che va "definita e approvata prima di iniziare la relazione
+  commerciale, con revisioni" *[fattura24.com]*. Nei gestionali di cava già
+  censiti nel primo giro, il controllo è "integrato con la pesa" e "impedisce
+  che un carico non pagato esca dal sito" *[herbstsoftware.com, weighpay.com
+  — già citati nel primo giro]*.
+- **Il punto tecnico che qui conta di più**: nei sistemi enterprise
+  (Oracle Order Management, NetSuite, Microsoft Dynamics 365) il calcolo
+  dell'ESPOSIZIONE usata per il controllo del fido non guarda solo le
+  fatture aperte, ma somma esplicitamente gli **ordini già inseriti e non
+  ancora fatturati** ("unbilled orders"): la documentazione Oracle parla di
+  "credit check rules... formulas used to calculate total credit exposure
+  for a customer... can include or exclude several different balances",
+  e la nota su NetSuite/Dynamics conferma che si può includere "orders
+  entered but not yet billed... to ensure customers don't place orders over
+  their credit limit" *[risultati di ricerca: docs.oracle.com,
+  oracleebslearning.blogspot.com, learn.microsoft.com/dynamics365,
+  docs.oracle.com/netsuite]*. Cioè il "quanto deve" che conta per il
+  blocco/avviso non è solo il debito già certificato in fattura, è il debito
+  già certificato **più l'impegno già consegnato e non ancora fatturato** —
+  perché in un ciclo a fatturazione differita quest'ultimo può essere
+  grande quanto il primo.
+- **Chi decide se bloccare o solo avvisare, e chi può sbloccare**, è un
+  secondo strato che i sistemi enterprise trattano come una politica
+  separata (soglie di autorizzazione, sblocco manuale) — dettaglio utile ma
+  non necessario al confronto qui sotto, e comunque Conti ha già scelto
+  deliberatamente "solo avviso, mai blocco" (vedi il codice, sotto): non lo
+  riapro.
+
+### Fonti (WebSearch, di seconda mano, non lette per intero)
+
+softwareb2b.it · cloudfinance.it · help.progestnow.com · learn.microsoft.com
+(Dynamics 365, sospensioni credito e credit-hold-faq) · fattura24.com ·
+appartners.it · docs.oracle.com (Order Management Implementation Manual,
+Credit Check/Exposure) · oracleebslearning.blogspot.com · bectran.com ·
+docs.oracle.com/netsuite (Credit Limit Preferences) · virtualcreditmgr.
+substack.com.
+
+### Il delta, verificato sul codice vero (commit di partenza: HEAD di questa
+sessione, `apps/conti/conti-data.js` e `apps/conti/index.html`)
+
+**Prima, che cosa Conti fa già bene (per non ripetere il terzo giro):**
+`esposizioneClienti(fatture, oggi, clienti, note)` somma il residuo aperto
+delle FATTURE non incassate per cliente e segnala `oltreFido`;
+`avvisoFidoPesata(clienteId, esposizione)` la usa per scrivere l'avviso
+**alla pesata**, prima di registrare il DDT — esattamente il punto che il
+mondo (herbstsoftware/weighpay, primo giro) descrive come il migliore
+("impedisce che un carico non pagato esca dal sito"), e con la stessa
+scelta deliberata di *avvisare, non bloccare* ("la consegna non si ferma da
+sola: decidi tu se caricare", commento a riga 1514-1516 di
+`conti-data.js`). Questo pezzo è più fine di molti gestionali generalisti
+perché il controllo è per-carico, non per-ordine.
+
+**Il buco — CONFERMATO.** L'esposizione che alimenta sia l'avviso alla
+pesata sia il badge "Fido superato" in anagrafica sia il grafico del
+Report conta **solo le fatture emesse**, mai le pesate/DDT già consegnati e
+**non ancora fatturati** (`fatturaId: null`), che in un ciclo a
+fatturazione differita (fine mese + termine SdI) possono restare tali per
+settimane:
+
+```
+$ grep -ciE "nonFatturat|daFatturare.*fido|impegnatoNonFatturato|valoreNonFatturato" apps/conti/conti-data.js apps/conti/index.html
+apps/conti/conti-data.js:0
+apps/conti/index.html:0
+
+$ grep -n "esposizioneClienti(" apps/conti/conti-data.js apps/conti/index.html
+apps/conti/conti-data.js:1533:export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], note = null) {
+apps/conti/index.html:2545:    const a = avvisoFidoPesata($("pes-cli").value, esposizioneClienti(FAT, new Date(), CLI, NOT));
+apps/conti/index.html:3550:    for (const c of esposizioneClienti(FAT, new Date(), CLI, NOT)) if (c.clienteId) espoPerId[c.clienteId] = c;
+apps/conti/index.html:3970:    const espo = esposizioneClienti(FAT, new Date(), CLI, NOT);
+apps/conti/index.html:6600:    if (btnEspo) { const c = esposizioneClienti(FAT, new Date(), CLI, NOT)[+btnEspo.getAttribute("data-espo")];
+```
+
+In tutte e quattro le chiamate della pagina il primo argomento è sempre
+`FAT` (le fatture), mai `PES` (le pesate): la funzione non ha nemmeno il
+parametro per riceverle. Il modulo ha già, e li usa altrove, sia l'elenco
+delle pesate non fatturate (`pesateDaFatturare`, filtra `!p.fatturaId`) sia
+il loro valore in euro (`valorePesata`, che nel caso non calcolabile
+dichiara 0 invece di un `null` scomodo — la stessa disciplina di sempre) —
+ma nessuna funzione li somma per cliente e li combina con `esposizioneClienti`.
+La dimostrazione lo rende visibile senza inventare niente: `d1, d3, d5, d8`
+sono quattro pesate di Edilcave (`c1`) con `fatturaId: null` (consegnate a
+luglio, mai fatturate nella demo); Edilcave è già oltre fido solo di
+fatture (18.300 aperti − 6.000 incassati = 12.300 su un fido di 10.000), ma
+per un cliente **appena sotto** il proprio fido lo stesso schema
+nasconderebbe l'aggravarsi della situazione finché quelle pesate non
+diventano fatture — cioè per settimane, con la fatturazione differita di
+fine mese.
+
+- **schermata**: pesata (form "Registra DDT", striscia `#pes-fido` accanto
+  alla scelta del cliente); anagrafica clienti (badge "Fido superato");
+  Report → grafico esposizione per cliente.
+- **che cosa non va**: il numero che decide se un cliente è "oltre fido" è
+  il debito già fatturato, non il debito reale (fatturato + già consegnato
+  e non ancora fatturato). Un cliente che ha ricevuto molto materiale nelle
+  ultime settimane ma non ha ancora ricevuto la fattura di fine mese appare
+  "in regola" quando in realtà è già oltre, o vicino a esserlo.
+- **come si vede**: si prendono le pesate demo di Edilcave con
+  `fatturaId: null` (`d1, d3, d5, d8`, righe 252-303 di `conti-data.js`),
+  se ne somma il valore con `valorePesata` (~1.194 € nella demo — piccolo
+  perché la demo Edilcave è già oltre fido di suo; il caso che il mondo
+  descrive è quello di un cliente **appena sotto** che con quelle pesate
+  sommate lo supererebbe, e la demo attuale non ne contiene uno) — quel
+  totale non compare né nell'avviso alla pesata né nel badge né nel grafico.
+- **quanto costa** (stima non verificata, da rimisurare da chi apre
+  l'unità): piccolo-medio. Una funzione `pesateNonFatturateCliente(pesate,
+  clienteId)` che somma `valorePesata` sulle pesate con `!p.fatturaId` di
+  quel cliente esiste quasi da sola componendo `pesateDaFatturare` +
+  `valorePesata` (nessun calcolo nuovo, stessa disciplina della domanda 4
+  del terzo giro); la parte da decidere è **come mostrarlo senza confondere
+  due cose diverse** — il debito già scaduto/fatturato (obbligazione certa)
+  e l'impegno consegnato non ancora fatturato (non è ancora un credito
+  esigibile) — quindi il campo va tenuto **distinto** nell'avviso e nel
+  badge ("12.300 € fatturati + 1.194 € consegnati non ancora fatturati"),
+  non sommato in un unico numero che travestirebbe una stima da certezza.
+- **come si misura**: una prova pura in scratchpad prima di scrivere nel
+  modulo (regola di questo file): costruire un cliente con fido 10.000,
+  fatture aperte per 8.000 e pesate non fatturate per 3.000, e pretendere
+  che il nuovo indicatore segnali "oltre fido" (8.000+3.000 > 10.000)
+  mentre `esposizioneClienti` da sola continuerebbe a dire "in regola"
+  (8.000 < 10.000) — è la controprova che dimostra il buco prima di
+  chiuderlo, come richiesto altrove in questo file per ogni controllo nuovo.
+
+**Nota minore, non aperta come lacuna a sé (variante piccola dello stesso
+buco)**: la tendina cliente della nuova fattura manuale (`id="ft-cli"`,
+riga 1029 di `index.html`) non ha nessun avviso di fido —
+`grep -n 'id="ft-fido"\|aggiornaFidoFattura' apps/conti/index.html` → 0
+risultati. Rilevanza bassa: nel flusso normale le fatture nascono da
+`fatturaDaPesate` (le pesate già passate dall'avviso), la fattura manuale
+serve per casi eccezionali (es. canoni, note di credito) — la si segnala
+qui per completezza, non la si propone come unità separata.
+
+**Riassunto** — 1 lacuna **confermata** (l'esposizione per il fido non
+somma le pesate consegnate e non ancora fatturate, in tutti e tre i punti
+in cui l'esposizione compare), costo piccolo-medio con una decisione di
+presentazione (due numeri distinti, non uno sommato); 1 nota minore
+(fattura manuale senza avviso fido, bassa priorità, non aperta). Nessuna
+delle domande del terzo/settimo giro sul fido viene riaperta: l'avviso alla
+pesata, il badge e il grafico restano corretti su quello che già sanno —
+gli manca solo un ingrediente che il mondo tratta come standard.
