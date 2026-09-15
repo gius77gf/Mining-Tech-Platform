@@ -1453,16 +1453,24 @@ test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'
   const riga = (sez, et) => (A.sezioni.find((z) => z.titolo === sez).righe.find((r) => r[0] === et) || []);
   eq(riga("Il reclamo", "Ricettore")[1], "Casa Bianchi — via Cava 12 · 320 m dalla cava");
   eq(riga("Il reclamo", "Stato")[1], "chiuso il 18/07/2026");
-  // le misure sono quelle di misureDelGiornoPerReclamo: V2 5,6 superamento, V1 senza lettura
-  const mis = sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, D.ricettori.find((r) => r.id === "rc1"));
+  /* ⛔ E FINO AL 15/09 QUESTA LETTERA ACCUSAVA UN SUPERAMENTO FALSO — trovato
+     da una ricerca mirata sulla famiglia «ricerca per campo trova il record
+     sbagliato». V2 è collegato a rc2 (confine Nord, nessun edificio, soglia
+     propria 20 mm/s): la schermata Monitoraggi, che passa da `sogliaEfficace`
+     (`conSoglia`), dice «Conforme» per la stessa lettura di 5,6 mm/s. Questa
+     lettera leggeva `m.soglia` grezza (5) e basta: accusava un superamento
+     che l'app stessa, un click più in là, negava. Le righe sono quelle di
+     misureDelGiornoPerReclamo con l'elenco dei ricettori (quarto argomento,
+     nuovo): V2 5,6 CONFORME (soglia vera 20), V1 senza lettura. */
+  const mis = sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, D.ricettori.find((r) => r.id === "rc1"), D.ricettori);
   const rV2 = riga("Le misure di quel giorno", mis.punti[1].nome), rV1 = riga("Le misure di quel giorno", mis.punti[0].nome);
-  ok(/^5,6 mm\/s alle 10:25 — superamento della soglia \(soglia 5 mm\/s\)$/.test(rV2[1]) && rV2[2] === false, "V2: " + rV2[1]);
+  ok(/^5,6 mm\/s alle 10:25 — sotto soglia \(soglia 20 mm\/s\)$/.test(rV2[1]) && rV2[2] === false, "V2, con la soglia del SUO ricettore: " + rV2[1]);
   ok(rV1[1] === "nessuna lettura quel giorno" && rV1[2] === true, "V1 manca, dichiarato");
   ok(A.sezioni[1].righe.some((r) => /^Riferimento della soglia/.test(r[0]) && /DIN 4150|UNI 9916|riferimento normativo|scritta/.test(r[1])), "ogni punto porta il riferimento della sua soglia: " + JSON.stringify(A.sezioni[1].righe.map((r) => r[0])));
   ok(/limite di legge/.test(A.sezioni[1].avviso), "l'avviso dice che il limite è un riferimento tecnico");
   ok(/Fronte Nord/.test(riga("La volata di quel giorno", "Volate registrate")[1]), "la volata di quel giorno: " + riga("La volata di quel giorno", "Volate registrate")[1]);
   eq(riga("Com'era il ricettore prima delle volate", "Sopralluogo preventivo")[1].slice(0, 45), "stato di fatto del 12/03/2026 (Geom. Ferri, p");
-  ok(A.chiusura.allarme && /superato la soglia di riferimento/.test(A.chiusura.testo), "la chiusura dice del superamento: " + A.chiusura.testo);
+  ok(!A.chiusura.allarme && /sotto la soglia di riferimento/.test(A.chiusura.testo), "e la chiusura non allarma più su un superamento che non c'è: " + A.chiusura.testo);
   eq(A.firme, ["Luogo e data", "Il direttore responsabile"]);
   eq(A.nonMisurati, [mis.punti[0].nome + " (nessuna lettura quel giorno)"], "manca solo la lettura di V1");
   // x2: polvere alla scuola, nessuna lettura quel giorno, nessun sopralluogo
@@ -26600,6 +26608,30 @@ console.log("\n— Campo: i file che escono —");
     eq(a.punti[0].verdetto, "nessuna-lettura"); eq(a.punti[1].verdetto, "superamento"); eq(a.punti[1].max, 5.6); eq(a.punti[1].ora, "10:25");
     eq(a.peggiore.id, "v2");
     eq(a.frase, "Quel giorno: Vibrazioni V2 — confine Nord: 5,6 mm/s alle 10:25 — superamento della soglia (soglia 5); nessuna lettura su Vibrazioni V1 — abitato Sud.");
+    /* ⛔ E QUEL «SUPERAMENTO» ERA FALSO — trovato il 15/09 da una ricerca
+       mirata. V2 è collegato a rc2 (confine Nord, nessun edificio, soglia
+       propria 20 mm/s): la schermata Monitoraggi lo sa (`conSoglia`) e per
+       la stessa identica lettura di 5,6 mm/s dice «Conforme». La card del
+       reclamo e la lettera di risposta leggevano `m.soglia` grezza (5) e
+       basta, senza mai passare da `sogliaEfficace` — accusavano un
+       superamento che l'app stessa, un click più in là, negava. Passando
+       ADESSO l'elenco dei ricettori (quarto argomento, nuovo) il verdetto
+       si allinea. */
+    const a2 = sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, ric("rc1"), D.ricettori);
+    const v2riga = a2.punti.find((p) => p.id === "v2");
+    eq([v2riga.verdetto, v2riga.soglia, v2riga.cls], ["conforme", 20, "ok"], "con la soglia del SUO ricettore (confine Nord, 20) la stessa lettura è conforme, non un superamento");
+    eq(a2.peggiore.id, "v2"); eq(a2.peggiore.verdetto, "conforme");
+    ok(!/superamento/.test(a2.frase) && /sotto soglia \(soglia 20\)/.test(a2.frase), "e la frase non parla più di superamento: " + a2.frase);
+    // e senza passare i ricettori il comportamento di prima resta quello di prima (nessuna regressione sui chiamanti che non li hanno)
+    eq(sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, ric("rc1")).punti.find((p) => p.id === "v2").verdetto, "superamento", "senza il quarto argomento l'unica soglia nota resta quella del punto");
+    // e nel verso opposto: un ricettore SENSIBILE con soglia propria stretta copre un vero superamento se non lo si guarda
+    const monStretto = [{ id: "s1", nome: "Sensibile S1", tipo: "vibrazioni", soglia: 10, unita: "mm/s", ricettoreId: "rsx",
+      letture: [{ data: "2026-08-09", ora: "09:00", valore: 6 }] }];
+    const ricStretto = [{ id: "rsx", nome: "Casa vicina", soglia: 3, unita: "mm/s" }];
+    const senzaRic = sentinella.misureDelGiornoPerReclamo({ tipo: "vibrazione", data: "2026-08-09" }, monStretto, null);
+    const conRic = sentinella.misureDelGiornoPerReclamo({ tipo: "vibrazione", data: "2026-08-09" }, monStretto, null, ricStretto);
+    eq(senzaRic.punti[0].verdetto, "conforme", "con la soglia grezza del punto (10) una lettura di 6 sembra a posto");
+    eq(conRic.punti[0].verdetto, "superamento", "ma con la soglia vera del ricettore (3, la casa vicina) la stessa lettura è un superamento — il caso che questo principio vieta: un «conforme» tranquillo su un dato che nessuno ha guardato");
     // x2: polvere del 20/07 alla scuola: p1 legge il 19 e il 26, non il 20; pv1 comincia il 22
     const b = sentinella.misureDelGiornoPerReclamo(D.reclami[1], D.monitoraggi, ric("rc3"));
     eq([b.conLettura, b.senzaLettura, b.peggiore], [0, 2, null]);

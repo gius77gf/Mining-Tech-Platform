@@ -2564,7 +2564,7 @@ textarea.dw-input{
         const ric = trovaRicettore(RIC, x.ricettoreId);
         // le misure di quel giorno le decide il modulo (11/09): la promessa
         // dello stato vuoto qui sotto, mantenuta con i dati
-        const mis = misureDelGiornoPerReclamo(x, MON, ric);
+        const mis = misureDelGiornoPerReclamo(x, MON, ric, RIC);
         // «gg» è un'unità: dentro .badge, che è in maiuscolo, diventerebbe «GG»
         const daG = apertoDaGiorni(x), tr = tempoRispostaReclamo(x);
         const badge = !aperto ? "Chiuso" : daG == null ? "Aperto" : daG === 0 ? "Aperto oggi" : "Aperto da " + daG + ' <span class="u">gg</span>';

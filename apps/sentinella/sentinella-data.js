@@ -5525,7 +5525,7 @@ export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
     ["Stato", r.stato === "chiuso" ? "chiuso" + (dataISOEsiste(String(r.chiusoIl || "").slice(0, 10)) ? " il " + dataIt(String(r.chiusoIl).slice(0, 10)) : "") : "aperto", false],
   ] });
   // le misure di quel giorno: le decide la stessa funzione dello schermo
-  const mis = misureDelGiornoPerReclamo(r, MON, ric);
+  const mis = misureDelGiornoPerReclamo(r, MON, ric, RIC);
   const righeMis = [];
   if (!mis.data) righeMis.push(manca("Misure di quel giorno", mis.frase, "il reclamo non ha una data"));
   else if (!mis.punti.length) righeMis.push(manca("Misure di quel giorno", mis.frase, "nessun punto di misura per questa grandezza"));
@@ -5572,7 +5572,7 @@ export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
   };
 }
 
-export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore) {
+export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore, ricettori = []) {
   const r = reclamo || {};
   const data = String(r.data || "").slice(0, 10);
   const chiave = String(r.tipo || "").toLowerCase();
@@ -5582,13 +5582,27 @@ export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore) {
   if (!out.data) { out.frase = "Reclamo senza una data: la misura di quel giorno non si può cercare."; return out; }
   const ricId = (ricettore && ricettore.id) || r.ricettoreId || null;
   const candidati = (monitoraggi || []).filter(m => m && (!tipi || tipi.includes(String(m.tipo || "").toLowerCase())));
+  /* ⛔ FINO AL 15/09 QUI SI LEGGEVA `m.soglia` GREZZA — la stessa lettura che
+     `conSoglia` (index.html) esiste apposta per correggere, col commento che
+     lo dice a chiare lettere: «tutto ciò che nell'app calcola uno stato —
+     semaforo, KPI, grafico, allerte, report — deve passare da qui». La card
+     del reclamo e la lettera di risposta ne erano rimaste fuori: un punto
+     collegato a un ricettore con soglia propria più permissiva (es. un
+     confine senza edifici) risultava «superamento» qui e «Conforme» nella
+     schermata Monitoraggi per la STESSA lettura, e nella direzione opposta
+     — un ricettore più sensibile — «conforme» qui avrebbe coperto un
+     superamento vero. `ricettori` è nuovo apposta: il terzo argomento
+     (`ricettore`) resta per `delRicettore` (è il PUNTO collegato al
+     reclamante, non la fonte della soglia di ogni punto candidato — che può
+     essere un ricettore diverso, o nessuno). */
   for (const m of candidati) {
     const del = lettureLeggibili(m).filter(l => l.data === data);
     const max = del.length ? Math.max(...del.map(l => l.valore)) : null;
-    const st = max == null ? null : statoMisura({ valore: max, soglia: m.soglia, letture: del });
+    const sogliaEff = sogliaEfficace(m, ricettori).valore;
+    const st = max == null ? null : statoMisura({ valore: max, soglia: sogliaEff, letture: del });
     const quando = del.length ? del.reduce((a, l) => (l.valore === max ? l : a), del[0]).ora : "";
     out.punti.push({ id: m.id, nome: m.nome || "Punto di misura", tipo: String(m.tipo || "").toLowerCase(), unita: unitaMisura(m),
-      soglia: sogliaValida(m.soglia) ? +m.soglia : null, delRicettore: !!ricId && m.ricettoreId === ricId,
+      soglia: sogliaValida(sogliaEff) ? +sogliaEff : null, delRicettore: !!ricId && m.ricettoreId === ricId,
       letture: del.map(l => ({ ora: l.ora, valore: l.valore })), max, ora: quando,
       verdetto: st ? st.stato : "nessuna-lettura", cls: st ? st.cls : "warn", ratio: st ? st.ratio : null });
   }
