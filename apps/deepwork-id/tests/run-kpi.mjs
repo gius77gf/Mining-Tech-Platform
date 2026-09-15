@@ -27788,6 +27788,26 @@ test("Conti · statoSdi e sollecitabile: la scartata è come non emessa, la non 
   const ec4 = conti.estrattoContoCliente({ cliente: "Calcestruzzi RG", chiave: null }, D.fatture, oggi, undefined, D.clienti, []);
   ok(ec4 && /scartata dallo SdI: come non emessa/.test(ec4), "e quello di Calcestruzzi RG dice della scartata");
   eq(conti.statoSdi(D.fatture.find(f => f.id === "f4"), oggi).stato, "scartata"); eq(conti.statoSdi(D.fatture.find(f => f.id === "f3"), oggi).stato, "non-registrato", "f3 senza esito, di proposito");
+  /* ⛔ E FINO AL 15/09 LA STESSA SCARTATA CHE `sollecitabile` RIFIUTA VENIVA
+     COMUNQUE CHIESTA NELL'ESTRATTO CONTO — la lettera gemella multi-fattura,
+     che non passava mai da `statoSdi().nonEmessa`. f4 (Calcestruzzi RG,
+     € 5.900, scartata) è l'unica fattura aperta di quel cliente: il totale
+     dovuto formale, con mora ex D.Lgs 231/2002, doveva sparire — non
+     scendere a un numero più piccolo, sparire — perché non c'è nessuna
+     fattura EMESSA da chiedere. */
+  ok(ec4 && /Totale aperto: € 0\b/.test(ec4) && /Di cui scaduto: € 0\b/.test(ec4), "e il suo totale aperto/scaduto è azzerato: l'unica fattura è come non emessa: " + ec4);
+  ok(!/Totale dovuto ad oggi/.test(ec4) && !/Interessi di mora/.test(ec4), "niente mora e niente «totale dovuto» su una fattura che il fisco non ha mai visto: " + ec4);
+  ok(/Di cui non ancora emesse.*1 fattura.*€ 5\.900/.test(ec4), "e il documento lo DICHIARA in un secchio suo, non lo tace: " + ec4);
+  // difesa in profondità: `testoSollecito` non emette la lettera nemmeno se qualcuno la chiama senza passare prima da `sollecitabile`
+  eq(conti.testoSollecito(D.fatture.find(f => f.id === "f4"), oggi), null, "e la lettera per singola fattura rifiuta la stessa scartata, chiamata direttamente");
+  // e su un cliente con UNA fattura emessa e scaduta E una scartata, la scartata non si somma alla prima
+  const mix = [
+    { id: "mx1", numero: "M/1", cliente: "Prova Mista Srl", importo: 1000, incassata: false, scadenza: "2026-08-01" },
+    { id: "mx2", numero: "M/2", cliente: "Prova Mista Srl", importo: 2000, incassata: false, scadenza: "2026-08-01", sdi: { stato: "scartata", il: "2026-08-05" } },
+  ];
+  const ecMix = conti.estrattoContoCliente("Prova Mista Srl", mix, oggi, undefined, [], []);
+  ok(/Totale aperto: € 1\.000\b/.test(ecMix), "solo la fattura emessa entra nel totale aperto: " + ecMix);
+  ok(/Di cui non ancora emesse.*1 fattura.*€ 2\.000/.test(ecMix), "e la scartata resta nel suo secchio, non sparisce e non si somma: " + ecMix);
   // il tipo documento segue i DDT
   const r1 = conti.xmlFatturaPA(XML_FAT, XML_CLI, XML_IMP, { pesate: XML_PES });
   ok(r1.tipoDocumento === "TD24" && r1.ddtCitati >= 1 && /<TipoDocumento>TD24<\/TipoDocumento>/.test(r1.xml) && r1.avvisi.some(a => /TD24/.test(a)), "con i DDT il file è una differita TD24, e l'avviso lo dice: " + r1.ddtCitati + " DDT");

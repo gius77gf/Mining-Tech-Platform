@@ -1330,6 +1330,16 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
   const acconti = round2(Math.max(0, totDoc - stornato - imp));
   const g = giorni(f.scadenza, oggi);
   if (imp <= 0 || !Number.isFinite(g) || g >= 0) return null;   // non scaduta, saldata o dati non validi
+  /* ⛔ NON SI SOLLECITA CIÒ CHE NON È EMESSO — dentro la funzione, non solo
+     nel bottone che la chiama. Fino al 15/09 questo controllo viveva SOLO in
+     `sollecitabile()`, dietro il pulsante «Sollecito»: `testoSollecito`, la
+     funzione pura, non lo sapeva. La lettera gemella `estrattoContoCliente`
+     ha dimostrato quanto costa — includeva la stessa fattura scartata dallo
+     SdI nel «Totale dovuto». Se domani un secondo chiamante (un job, un
+     export) invoca `testoSollecito` senza passare prima da `sollecitabile`,
+     eredita la stessa lettera sbagliata: la difesa vive qui, non nel
+     chiamante di oggi. */
+  if (statoSdi(f, oggi).nonEmessa) return null;
   const ritardo = -g;
   const m = interessiMora(imp, ritardo, tassoAnnuo);
   const totale = Math.round((imp + m.interessi + SPESE_RECUPERO_231) * 100) / 100;
@@ -1513,6 +1523,7 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
   aperte.sort((a, b) => (a.scadenza || "").localeCompare(b.scadenza || ""));
   const e = (v) => "€ " + euroIt(v);
   let totale = 0, scaduto = 0, moraTot = 0, scaduteN = 0;
+  let nonEmesseN = 0, nonEmesseImp = 0;
   const righe = aperte.map(f => {
     const imp = apertoDi(f, note);                        // residuo dovuto, meno lo stornato
     /* ⛔ E QUI LA STESSA BUGIA DEL SOLLECITO, nella lettera gemella. La riga
@@ -1526,24 +1537,39 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
        censimento a vista non lo aveva visto, perché la riga sembra giusta. */
     const stornato = Math.min(stornatoDi(f.id, note), round2(+f.importo || 0));
     const acconti = round2(Math.max(0, round2(+f.importo || 0) - stornato - imp));
-    totale += imp;
     const g = giorni(f.scadenza, oggi);
     const ritardo = Number.isFinite(g) && g < 0 ? -g : 0;
+    // l'esito dello SdI (11/09, allargato il 15/09): la scartata e la non
+    // consegnata si dicono al cliente, non si tacciono
+    const sd = statoSdi(f, oggi);
+    /* ⛔ E FINO A OGGI QUESTA ERA SOLO UNA FRASE INFORMATIVA IN CODA ALLA
+       RIGA: una fattura «come non emessa» (scartata dallo SdI, o mai
+       inviata) restava dentro `totale`, `scaduto`, la mora e il «Totale
+       dovuto ad oggi» — lo stesso `sollecitabile()` che blocca il bottone
+       «Sollecito» su questa fattura non veniva mai chiamato qui, nella
+       lettera gemella che riepiloga TUTTO l'aperto di un cliente. Una
+       lettera che chiede interessi di mora ex D.Lgs 231/2002 su un
+       documento che per il fisco non è mai stato emesso è la stessa bugia
+       di `sollecitabile`, in un posto che nessuno proteggeva. */
     let coda;
-    if (ritardo > 0) {
-      scaduto += imp; scaduteN++;
-      const m = interessiMora(imp, ritardo, tassoAnnuo);
-      moraTot += m.interessi;
-      coda = `scaduta da ${ritardo} gg · mora ~${e(m.interessi)}`;
+    if (sd.nonEmessa) {
+      nonEmesseN++; nonEmesseImp += imp;
+      coda = ritardo > 0 ? `scaduta da ${ritardo} gg (esclusa dal totale: non ancora emessa)` : "non ancora emessa";
     } else {
-      coda = Number.isFinite(g) ? "non ancora scaduta" : "senza scadenza";
+      totale += imp;
+      if (ritardo > 0) {
+        scaduto += imp; scaduteN++;
+        const m = interessiMora(imp, ritardo, tassoAnnuo);
+        moraTot += m.interessi;
+        coda = `scaduta da ${ritardo} gg · mora ~${e(m.interessi)}`;
+      } else {
+        coda = Number.isFinite(g) ? "non ancora scaduta" : "senza scadenza";
+      }
     }
     /* le due voci si nominano una per una, nell'ordine in cui abbassano il
        dovuto: quello che il cliente ha versato e quello che abbiamo stornato. */
     const dettaglio = [acconti > 0 ? `acconti ${e(acconti)}` : "",
                        stornato > 0 ? `note di credito ${e(stornato)}` : ""].filter(Boolean).join(", ");
-    // l'esito dello SdI (11/09): la scartata e la non consegnata si dicono al cliente, non si tacciono
-    const sd = statoSdi(f, oggi);
     const codaSdi = sd.stato === "scartata" ? " · scartata dallo SdI: come non emessa, sarà rimandata"
       : sd.stato === "mancata-consegna" ? " · non consegnata dallo SdI: la trovate nel vostro cassetto fiscale"
       : sd.stato === "da-inviare" ? " · non ancora inviata allo SdI" : "";
@@ -1563,6 +1589,8 @@ export function estrattoContoCliente(cliente, fatture, oggi = new Date(), tassoA
     `Totale aperto: ${e(totale)}`,
     `Di cui scaduto: ${e(scaduto)}`,
   ];
+  if (nonEmesseN > 0)
+    out.push(`Di cui non ancora emesse, escluse dal totale sopra e non richiedibili finché non lo sono: ${conta(nonEmesseN, "fattura", "fatture")} · ${e(nonEmesseImp)}`);
   if (scaduteN > 0) {
     out.push(`Interessi di mora stimati (D.Lgs 231/2002, ${String(tassoAnnuo).replace(".", ",")}%): ${e(moraTot)}`);
     /* la stessa frase del sollecito, dalla stessa funzione: due lettere che
