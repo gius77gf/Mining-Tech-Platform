@@ -8490,9 +8490,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **15/09** (lanciando le suite, non a memoria — dopo aver
-  aggiunto a `run-kpi` le due prove sull'associazione ambigua del
-  spunto in `riposoDiTurno`/`orariDiTurno` di Campo, 2987→2989): **3.470 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2989, `run-stile` 328,
+  aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere
+  insieme in `statoFattura` di Conti, 2989→2990): **3.471 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2990, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

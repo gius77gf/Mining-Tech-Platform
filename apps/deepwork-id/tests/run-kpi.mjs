@@ -34685,6 +34685,19 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     }
   });
 
+  test("⛔ Conti · statoFattura: «saldata» e «parziale» non sono mai vere insieme (15/09)", () => {
+    /* un acconto sul totale grezzo (7.000 su 10.000) che diventa un saldo
+       pieno una volta tolta la nota di credito (3.000): statoIncasso, che
+       non conosce le note, dichiara `parziale:true` sul grezzo — e quel
+       campo, senza questa guardia, sopravviveva intatto anche quando
+       `statoFattura` decideva "saldata" sull'esigibile netto */
+    const s = conti.statoFattura(FAT, [{ fatturaId: "F1", importo: 7000, data: "2026-02-10" }],
+                                  [{ fatturaId: "F1", totale: 3000, bozza: false }]);
+    eq(s.stato, "saldata", "l'esigibile (7.000) è coperto dall'incasso (7.000)");
+    eq(s.saldata, true);
+    eq(s.parziale, false, "⛔ e non è ANCHE «parziale»: i due campi non si contraddicono");
+  });
+
   test("⛔ Conti · statoFattura: una nota che annulla una fattura già pagata è tutta da rimborsare", () => {
     const s = conti.statoFattura(FAT, SALDATA, [{ fatturaId: "F1", totale: 10000, bozza: false }]);
     eq(s.stato, "stornata", "annullata per intero");

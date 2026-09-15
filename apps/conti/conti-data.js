@@ -3951,9 +3951,21 @@ export function statoFattura(fattura, incassi, note) {
   if (stornato > 0 && esigibile === 0)
     return { ...s, stato: "stornata", stornato, esigibile, residuo: 0, aCreditoCliente, saldata: false,
              contaNeiTempi: false, parziale: false };
+  /* ⛔ E QUI IL RAMO GEMELLO DI «STORNATA» NON RIPETEVA LA STESSA GUARDIA
+     (15/09). «Stornata» azzera esplicitamente `parziale`; questo ramo
+     spargeva `...s` lasciando il `parziale` di `statoIncasso` — calcolato
+     sul totale GREZZO, senza note — così com'era. Con un incasso inferiore
+     al totale ma che salda l'ESIGIBILE (nota di credito parziale + il
+     resto pagato), il risultato dichiarava contemporaneamente `stato:
+     "saldata"` e `parziale: true`: due campi della stessa funzione pura in
+     contraddizione. Oggi nessun chiamante lo mostra (tutti e quattro
+     controllano `.saldata` prima di `.parziale`), ma è lo stesso contratto
+     traballante chiuso stamattina su `testoSollecito`: un quinto chiamante
+     futuro che leggesse `parziale` da solo erediterebbe la contraddizione
+     senza saperlo. */
   if (residuo === 0 && s.incassato > 0)
     return { ...s, stato: "saldata", stornato, esigibile, residuo: 0, aCreditoCliente, saldata: true,
-             contaNeiTempi: true };
+             parziale: false, contaNeiTempi: true };
   return { ...s, stato: "aperta", stornato, esigibile, residuo, aCreditoCliente, saldata: false,
            parziale: s.incassato > 0, contaNeiTempi: false };
 }
