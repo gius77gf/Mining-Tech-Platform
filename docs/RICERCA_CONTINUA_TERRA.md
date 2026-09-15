@@ -1198,3 +1198,98 @@ modo misurabile (silenzio quando la finestra corta non ha abbastanza
 storico: non si forza un "non lo so" su una nota secondaria).
 **Il quinto giro di ricerca su Terra è ora chiuso su tutte e tre le sue
 lacune.**
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: conformità geometrica del fronte e sezioni trasversali
+
+### Come il mondo lo fa
+
+**Conformità geometrica**: il monitoraggio della geometria dei fronti di scavo va oltre il semplice controllo volumetrico. Nel settore estrattivo, la conformità geometrica si verifica tramite sezioni trasversali misurate a intervalli regolari lungo l'asse del fronte — **ogni 5-10 m nella fase esecutiva** [fonte: Provincia di Varese, documento normativa tecnica per cave; ANAS S.p.A., standard per rilievi di gallerie]. 
+
+Le sezioni trasversali registrano:
+- **Quota di fondo** — verifica se il banco è stato scavato fino alla profondità autorizzata (under-break: scavo insufficiente; over-break: scavo oltre il previsto)
+- **Pendenza della scarpata** — verifica se l'inclinazione rimane entro i massimi stabiliti
+- **Altezza del banco** — verifica la distanza fra fondo e cresta del fronte
+- **Andamento lineare** — progressione della cresta (arretramento del crest) lungo l'asse
+
+**Strumenti**: software specializzato (es. Strayos Highwall Compliance) crea modelli 3D della cava, genera profili di sezioni trasversali da rilievi fotogrammetrici, e **confronta automaticamente il profilo reale con quello del progetto**, producendo mappe di calore che identificano:
+- **Crest loss** — perdita di spalla superiore (scavo troppo profondo ai margini)
+- **Toe flare** — allargamento laterale del piede del fronte (over-break ai lati)
+- **Over-break localizzato** — scavo oltre la quota di fondo in zone specifiche
+- **Under-break localizzato** — scavo incompleto in sezioni isolate
+
+[fonte: blog.strayos.com "Highwall Compliance"; topodrone.com "Quarry Surveying"; MDPI "Qualitative Assessment of Point Cloud from SLAM-Based MLS for Quarry Digital Twin Creation"]
+
+### Che cosa fa Terra oggi
+
+`conformitaGeometria(fronte, lotto, autorizzazione)` [terra-data.js:3759] confronta **due assi**:
+1. **Altezza del banco**: `fronte.altezzaBancoM` vs `amm.altezza.valore` (massimo dichiarato)
+2. **Pendenza**: `fronte.pendenzaGradi` vs `amm.pendenza.valore` (massimo dichiarato)
+
+Ogni asse produce:
+- `misurabile: true/false` — se il confronto è stato fatto
+- `stato: "oltre" | "al-limite" | "dentro" | "non-misurabile"` — esito della conformità
+- `margine` — differenza fra misurato e massimo (gradi/metri)
+
+Visualizzazione sulla schermata [index.html:2315-2328]: "altezza 3.8 m su 5 m · pendenza 70° su 75° · massimi del lotto" — verdetto colorato "banco dentro il progetto" o "fuori progetto".
+
+Dati misurati sono caricati come:
+- `altezzaBancoM` — altezza totale del banco misurata
+- `pendenzaGradi` — inclinazione misurata
+- `fronteId` — identificativo del fronte
+- Nessun dato per sezioni trasversali, profili, o variabilità geometrica lungo l'asse
+
+### Il delta
+
+| Aspetto | Nel mondo | In Terra | Costo |
+|---------|-----------|----------|-------|
+| **Sezioni trasversali** | Multiple (ogni 5-10 m), profili misurati a intervalli | Una sola misurazione per fronte (punto singolo) | Aggiungere storage e funzioni per profili multipli |
+| **Over-break localizzato** | Rilevato e mappato in sezioni specifiche | Non monitorato (solo altezza totale) | Aggiungere confronto quota di fondo per sezione |
+| **Variabilità geometrica** | Identificazione di crest loss, toe flare per zona | Non rilevata (media unica per fronte) | Funzioni di interpolazione e confronto per sezioni |
+| **Reportistica** | Mappe di calore, visualizzazione spaziale, profili | Testo "altezza X su Y" · "pendenza X su Y" | UI di visualizzazione profili + export dati sezioni |
+| **Automazione conformità** | Sistema identifica over/under-break per ogni sezione | Utente scrive manualmente altezza e pendenza misurate | Interfaccia per acquisire profilo trasversale da rilievo |
+
+### Proposta per il delta
+
+Le tre lacune costituiscono una famiglia (il "dettaglio geometrico" della conformità):
+
+1. **Piccola**: aggiungere un campo `quotaFondoM` al fronte per monitorare over-break/under-break — non solo l'altezza totale del banco (altezza = quota cresta - quota fondo). La formula esiste già (`conformitaProgetto` legge `quotaScavoAutorizzata`), manca il confronto nel modulo. `grep -n "quotaFondo\|quotaScavo" apps/terra/terra-data.js` → funzione `conformitaQuota` (riga 3586) controlla la quota di fondo rispetto a quella autorizzata, quindi il confronto esiste già ma vive **separato** da `conformitaGeometria` (che controlla altezza e pendenza). Unificazione: `conformitaGeometria` dovrebbe includere also `quotaFondoM` o un campo merged. **Mancanza confermata**: il fronte non dichiara la quota di fondo separatamente, il modulo la deduce dall'altezza, il confronto esiste per la quota ma non è esposto nella geometria del fronte.
+
+   ⛔ **SMENTITA (15/09, riverifica di persona prima di scrivere qualunque
+   cosa in roadmap): «vive separato» è falso, e la "mancanza confermata"
+   non c'è.** `conformitaQuota` e `conformitaGeometria` non sono separate:
+   `conformitaProgetto` (`terra-data.js:3626`) le chiama ENTRAMBE per ogni
+   fronte e le combina nello stesso oggetto riga — `{...conformitaQuota(f,
+   lo, autorizzazione), geometria: conformitaGeometria(f, lo,
+   autorizzazione)}` (riga 3640-3641) — cioè esattamente l'unificazione
+   che la ricerca proponeva di costruire. E la pagina la usa così:
+   `apps/terra/index.html:2298` sceglie il PEGGIORE fra `r.stato` (quota) e
+   `(r.geometria||{}).stato` (altezza/pendenza) con `peggioreConf(...)` per
+   decidere il colore della riga — un fronte fuori quota E dentro
+   geometria, o viceversa, mostra comunque il colore allarmante. La
+   ricerca ha guardato `conformitaGeometria` da sola e ha concluso che il
+   confronto sulla quota le mancasse, senza risalire a chi la chiama
+   (`conformitaProgetto`) e a come il risultato arriva alla pagina — la
+   stessa famiglia di errore di "cercare il nome invece del meccanismo",
+   applicata a una funzione che esiste ma **un livello più in su** di dove
+   si è guardato. Nessuna azione: la funzione che questa proposta voleva
+   costruire c'è già.
+
+2. **Media**: aggiungere supporto per **sezioni trasversali multiple** — la pagina consente oggi un `fronteId` per rilievo ma non più sezioni di uno stesso fronte. Una struttura come `sezioniM3: [{distanzaM: 0, altezzaBancoM: 5.2, pendenzaGradi: 72, quotaFondoM: 345}, {distanzaM: 10, altezzaBancoM: 5.1, pendenzaGradi: 71, quotaFondoM: 344.5}, ...]` permetterebbe di rilevare variabilità. **Mancanza confermata**: nessun campo per sezioni trasversali. Il rilievo di una cava professionale le produce sempre (drone + DEM genera ortofoto + DEM ad alta risoluzione da cui si estraggono sezioni), ma Terra le scarta — tiene solo volumetria aggregata.
+
+3. **Grande**: non è propriamente una "mancanza" di Terra bensì una scelta di **ambito di responsabilità**. Le mappe di calore e l'identificazione automatica di over-break/toe flare/crest loss richiederebbero un modello 3D della cava e funzioni di confronto geometrico che escono dal dominio di Terra (volume estratto, stato della cava, vita della concessione). La visione corretta è che Terra **acquisisce i dati** (sezioni trasversali, profili) e **un modulo di conformità geometrica** (oggi esterno, domani possibile integrazione) li analizza. Finché il modulo non esiste, l'acquisizione rimane un dettaglio opzionale.
+
+### Riassunto
+
+**Una lacuna confermata, una smentita, una fuori scope** (riverificato il 15/09):
+1. ⛔ **SMENTITA** — «quota di fondo non unificata con la geometria»: `conformitaProgetto` le combina già entrambe per ogni fronte, e la pagina sceglie il peggiore dei due stati (`terra-data.js:3626-3641`, `index.html:2298`). Vedi la correzione qui sopra. Nessuna azione.
+2. **Confermata** — Nessun supporto per sezioni trasversali multiple: il rilievo professionale le genera sempre (5-10 m di passo), Terra tiene solo un punto per fronte. Media, strutturalmente fattibile (aggiungere un array di sezioni), non ancora riverificata riga per riga sul codice di persona prima di scriverla in roadmap.
+3. **Fuori scope, dichiarato dalla ricerca stessa** — mappe di calore/rilevazione automatica di crest loss/toe flare: richiedono un modello 3D di confronto geometrico che esula dal dominio di Terra (che acquisisce dati, non li analizza geometricamente). Non un cantiere.
+
+**Fonti citate**:
+- [Provincia di Varese, Piano Cave, Normativa tecnica](https://cartografia.provincia.va.it/downloads/Pianocave/pianocave_adottato/relazioni/Normativa_tecnica.pdf)
+- [ANAS S.p.A., standard per rilievi in sotterraneo](https://va.mite.gov.it/File/Documento/9333)
+- [Strayos, Highwall Compliance](https://blog.strayos.com/product-spotlight-highwall-compliance/)
+- [TopoDrone, Quarry Surveying](https://topodrone.com/services/quarry-surveying/)
+- [MDPI, Point Cloud SLAM per Digital Twin](https://www.mdpi.com/2076-3417/15/22/12326)
