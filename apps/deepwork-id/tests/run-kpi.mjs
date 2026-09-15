@@ -40205,11 +40205,39 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ];
     const r = campo.lavoriNonConclusi(A);
     eq(r.map((x) => x.id), ["a4", "a3", "a1", "a2"], "l'ordine: fermo, in corso (alfabetico), pianificata; la conclusa fuori");
-    eq(r[0], { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", chi: "nessuno in carico", stato: "anomalia", etichetta: "fermo / anomalia" }, "il fermo, senza nome sopra");
+    eq(r[0], { id: "a4", titolo: "Frantoio", dettaglio: "intasamento", chi: "nessuno in carico", stato: "anomalia", etichetta: "fermo / anomalia", causale: "", minuti: null }, "il fermo, senza nome sopra, e senza causale/minuti (mai scritti in questa scena)");
     eq([r[2].chi, r[2].etichetta], ["Luca", "in corso"], "chi ce l'ha in carico e l'etichetta in italiano");
     eq(campo.lavoriNonConclusi([{ id: "x", stato: "boh" }]).map((x) => [x.titolo, x.etichetta]), [["(senza titolo)", "boh"]], "uno stato sconosciuto si scrive com'è, e un titolo mancante si dichiara");
     eq(campo.lavoriNonConclusi(null), [], "con niente in mano, niente");
     eq(campo.lavoriNonConclusi([{ stato: "conclusa" }]), [], "tutto concluso: vuoto — e la consegna scriverà «nessuna attività aperta»");
+  });
+  test("⛔ Campo · lavoriNonConclusi (15/09, dal delta della ricerca sulla consegna di turno): causale e minuti arrivano, non solo per i lavori in corso o pianificati", () => {
+    const A = [
+      { id: "a1", titolo: "Frantoio", operatore: "", stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 },
+      { id: "a2", titolo: "Nastro", operatore: "", stato: "anomalia", causale: "intasamento-impianto", fermoMin: 0 },
+      { id: "a3", titolo: "Pista", operatore: "", stato: "anomalia" },   // né causale né minuti
+      { id: "a4", titolo: "Volata", operatore: "Mario", stato: "pianificata" },   // non è un fermo: niente causale/minuti
+    ];
+    const r = campo.lavoriNonConclusi(A);
+    const per = Object.fromEntries(r.map((x) => [x.id, x]));
+    eq(per.a1.causale, "Intasamento impianto", "l'etichetta, non la chiave grezza");
+    eq(per.a1.minuti, 55, "i minuti scritti");
+    eq(per.a2.causale, "Intasamento impianto", "la chiave e l'etichetta storica finiscono nella stessa causa, come fa paretoFermi");
+    eq(per.a2.minuti, 0, "zero minuti è una misura, non un'assenza");
+    eq([per.a3.causale, per.a3.minuti], ["", null], "un fermo senza né causale né minuti: stringa vuota e null, non inventati");
+    eq([per.a4.causale, per.a4.minuti], ["", null], "un pianificato non è un fermo: niente causale né minuti, per costruzione");
+  });
+  test("⛔ Campo · testoConsegnaTurno: il perché e i minuti di un fermo arrivano nella riga stampata, non solo nel Pareto", () => {
+    const D = campo.DEMO;
+    const OGGI_D = D.attivita[0].data;
+    const ATT_D = campo.diGiorno(D.attivita, OGGI_D).map((a) => a.stato === "anomalia"
+      ? { ...a, causale: "Intasamento impianto", fermoMin: 55 } : a);
+    const txt = campo.testoConsegnaTurno({ oggi: OGGI_D, attivita: ATT_D });
+    const i = txt.indexOf("LAVORI NON CONCLUSI\n");
+    const resto = txt.slice(i + "LAVORI NON CONCLUSI\n".length);
+    const sez = resto.slice(0, resto.indexOf("\n\n"));
+    ok(/Intasamento impianto/.test(sez), "la causale è nella riga della consegna, non solo nel riepilogo fermi: " + sez);
+    ok(/55 min/.test(sez), "e i minuti anche");
   });
   test("Campo · ETICHETTA_STATO_ATTIVITA copre i quattro stati della dimostrazione", () => {
     const stati = new Set(campo.DEMO.attivita.map((a) => a.stato));

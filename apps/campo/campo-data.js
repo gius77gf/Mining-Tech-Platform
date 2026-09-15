@@ -2518,14 +2518,24 @@ export function fermiSenzaGiorno(attivita) {
    no. Prima i fermi, poi i lavori in corso, poi i pianificati; chi ce l'ha in
    carico, e «nessuno in carico» dove l'attività non ha un nome sopra (che è
    un dato, non un buco: nella dimostrazione due su cinque non ce l'hanno).
-   Ritorna [{ id, titolo, dettaglio, chi, stato, etichetta }]. Pura. */
+   Ritorna [{ id, titolo, dettaglio, chi, stato, etichetta, causale, minuti }].
+   Pura. */
 export const ETICHETTA_STATO_ATTIVITA = { pianificata: "pianificata", "in-corso": "in corso", anomalia: "fermo / anomalia", conclusa: "conclusa" };
 export function lavoriNonConclusi(attivita) {
   const ordine = { anomalia: 0, "in-corso": 1, pianificata: 2 };
   return (attivita || []).filter((a) => a && a.stato !== "conclusa")
     .map((a) => ({ id: a.id, titolo: String(a.titolo || "").trim() || "(senza titolo)", dettaglio: String(a.dettaglio || "").trim(),
       chi: String(a.operatore || "").trim() || "nessuno in carico", stato: String(a.stato || ""),
-      etichetta: ETICHETTA_STATO_ATTIVITA[a.stato] || String(a.stato || "stato non indicato") }))
+      etichetta: ETICHETTA_STATO_ATTIVITA[a.stato] || String(a.stato || "stato non indicato"),
+      /* ⛔ PERCHÉ (15/09, dal delta della ricerca sulla consegna di turno):
+         `causale`/`minuti` erano già calcolati altrove nello stesso modulo
+         (`descriviCausale`, `minutiFermoDi`) e non arrivavano mai qui, quindi
+         il turno entrante leggeva «Frantoio primario (fermo per intasamento
+         tramoggia) — [nessuno in carico] [fermo / anomalia]» senza sapere
+         PERCHÉ né DA QUANTI MINUTI — due dati a un `grep` di distanza, mai
+         portati nel testo che il turno successivo legge per primo. */
+      causale: a.stato === "anomalia" ? (descriviCausale(a.causale) || "") : "",
+      minuti: a.stato === "anomalia" ? minutiFermoDi(a) : null }))
     .sort((x, y) => (ordine[x.stato] ?? 9) - (ordine[y.stato] ?? 9) || x.titolo.localeCompare(y.titolo, "it"));
 }
 
@@ -3725,7 +3735,11 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   const aperti = lavoriNonConclusi(ATT_OGGI);
   txt += "LAVORI NON CONCLUSI\n";
   txt += (aperti.length
-    ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]").join("\n")
+    ? aperti.map(a => "- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]"
+        // il perché e il da quanti minuti, SOLO per i fermi: sono i due dati
+        // che il turno entrante chiede per primi su un impianto ancora fermo
+        + (a.stato === "anomalia" ? " · " + (a.causale || "causale non indicata")
+          + " · " + (a.minuti != null ? numeroIt(a.minuti, 0) + " min" : "minuti non registrati") : "")).join("\n")
     : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
   txt += "SEGNALAZIONI DEL TURNO\n";
   const segT = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(d.infortuniScudo === undefined ? null : d.infortuniScudo, OGGI, t) }))
