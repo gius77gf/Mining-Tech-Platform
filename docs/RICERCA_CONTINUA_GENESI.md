@@ -3447,3 +3447,36 @@ posto, non chiamando una funzione già pronta). Le proposte 1 (burden map)
 e 3 (annotazione on-hover) non citano funzioni inesistenti e restano
 verificate come scritte.
 
+⛔ **SECONDA CORREZIONE (15/09, più tardi lo stesso giorno): LA PROPOSTA
+3 ERA SBAGLIATA NEL PREMESSA, NON SOLO NEI DETTAGLI — e la prima
+riverifica non l'aveva presa.** La ricerca cercava `CSS2DRenderer`,
+`CSS3DRenderer` o "sprite system" per concludere che nessuna annotazione
+3D esistesse: **cercava il MECCANISMO invece del RISULTATO**, la stessa
+famiglia d'errore che questo file segnala altrove ("cercare la nostra
+parola nel mondo" al contrario — qui è cercare la SUA tecnologia in
+casa nostra). Genesi ha già un pannello HUD per foro, costruito con un
+`Raycaster` su `pointerdown` e un overlay DOM (`#holeInfo`), NON con
+`CSS2DRenderer`:
+
+```
+grep -n "holeInfoShow\|holeRay\|#holeInfo" apps/genesi/genesi.html
+→ 2860: const holeRay=new THREE.Raycaster()...
+→ 2863: function holeInfoShow(g){ ... }
+→ 2876: renderer.domElement.addEventListener('pointerdown', e=>{ ... })
+```
+
+`holeInfoShow` (riga 2863) scrive già «Foro N · fila M · spara a X ms ·
+profondità Y m · carica Z kg · borraggio W m · Ø D mm» in un pannello
+che segue la selezione — il "legend fisso/tooltip con dettagli" che la
+proposta 3 chiedeva **esiste**, con due differenze reali dalla proposta:
+(a) scatta al CLIC, non all'hover — una scelta di prodotto già fatta,
+non un buco; (b) non mostra **burden** né **PPV** per foro, che sono i
+due dati nuovi della proposta 1 e del cantiere `vibrazionePerBurden`
+(G44, dello stesso giorno).
+**Il delta vero, molto più piccolo di quanto scritto sopra**: aggiungere
+due righe a `holeInfoShow` (burden e, se calcolabile, PPV del foro) —
+non costruire un sistema di annotazione da zero. Non implementato qui:
+richiede leggere come `sequenzaSuMaglia`/`micFinestra` espongono un
+valore PER FORO (oggi chiamate su un gruppo di fori, non verificato se
+restituiscono un burden individuale) prima di scrivere la riga giusta.
+
