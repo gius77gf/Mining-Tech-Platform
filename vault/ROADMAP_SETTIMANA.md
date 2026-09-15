@@ -8493,8 +8493,9 @@ numero scritto dove non era stato misurato niente**.*
   aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere
   insieme in `statoFattura` di Conti, 2989→2990, a `claims-convergenza` il
   limite a tre scritture ravvicinate, 19→22, e a `kpiFrom` di Scudo un `oggi`
-  fisso, 2990→2991): **3.475 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2991, `run-stile` 328,
+  fisso, 2990→2991, e alla conformità di Terra il fronte conteso fra due
+  lotti, 2991→2992): **3.476 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2992, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

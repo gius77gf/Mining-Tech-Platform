@@ -3516,16 +3516,35 @@ export function conformitaQuota(fronte, lotto, autorizzazione) {
    ⛔ E il conto dei NON misurabili si restituisce sempre, sui tre assi: un
    «nessun fronte oltre il fondo» calcolato su due fronti quando ce ne sono
    otto è la buona notizia che nasconde le altre sei. */
+// ⛔ UN FRONTE ASSEGNATO A DUE LOTTI PRENDEVA IN SILENZIO IL PRIMO (15/09):
+// `.find()` su una chiave che l'interfaccia non tiene esclusiva — nessuna
+// guardia impedisce di aggiungere lo stesso fronte a un secondo lotto — è
+// esattamente il difetto chiuso oggi nel core (`_findVolata`, il sismogramma
+// associato a caso fra due volate della stessa data/cava): una chiave debole,
+// più di un candidato, e la scelta arbitraria di chi arriva prima nell'array
+// (che non ha un ordine garantito, `getDocs()` senza `orderBy`). Qui il danno
+// è doppio: il fronte viene attribuito al lotto SBAGLIATO per la conformità
+// di quota/geometria, e — separatamente, in `volumeMisuratoDiLotto`, che non
+// ha visibilità sugli altri lotti e quindi non si tocca qui — lo stesso
+// rilievo viene sommato per intero in OGNI lotto che condivide il fronte,
+// gonfiando la somma dei lotti oltre il volume davvero misurato. Si dichiara
+// l'ambiguità (nessun lotto scelto a caso, `lo=null` è già un contratto
+// esistente e sicuro: `fondoAutorizzato`/`conformitaQuota` lo trattano come
+// "nessun lotto", non vanno in errore) invece di scegliere in silenzio.
 export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
   const FR = (fronti || []).filter(Boolean);
   const LO = (lotti || []).filter(Boolean);
-  const lottoDi = (id) => LO.find((l) =>
-    ((l || {}).frontiId || []).map((x) => String(x || "")).includes(String(id))) || null;
+  const lottiDi = (id) => LO.filter((l) =>
+    ((l || {}).frontiId || []).map((x) => String(x || "")).includes(String(id)));
 
   const righe = FR.map((f) => {
-    const lo = lottoDi(f.id);
+    const candidati = lottiDi(f.id);
+    const ambiguo = candidati.length > 1;
+    const lo = ambiguo ? null : (candidati[0] || null);
     return { id: f.id, nome: String(f.nome || "Fronte senza nome"),
       lottoId: lo ? lo.id : null, lottoNome: lo ? String(lo.nome || "") : "",
+      lottoAmbiguo: ambiguo,
+      lottiCondivisi: ambiguo ? candidati.map((l) => l.id) : [],
       ...conformitaQuota(f, lo, autorizzazione),
       geometria: conformitaGeometria(f, lo, autorizzazione) };   // asse 4 (11/09)
   });
@@ -3584,9 +3603,19 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       peggioreGeo = { id: g.id, nome: g.nome, asse, margine: a.margine, misurato: a.misurato, ammesso: a.ammesso };
   }
 
+  // ⛔ E CHI GUARDA `perLotto` DEVE SAPERE CHE LA SOMMA PUÒ ESSERE GONFIATA:
+  // `volumeMisuratoDiLotto` non vede gli altri lotti, quindi un fronte
+  // condiviso viene sommato per intero in ognuno. Non si tocca l'aritmetica
+  // (cambierebbe il contratto di una funzione che il foglio ufficiale usa
+  // per ogni lotto preso da solo) — si dichiara qui, dove i lotti si vedono
+  // tutti insieme, quali fronti condivisi rendono la somma non affidabile.
+  const frontiAmbigui = righe.filter((r) => r.lottoAmbiguo)
+    .map((r) => ({ id: r.id, nome: r.nome, lotti: r.lottiCondivisi }));
+
   return {
     misurabile: misurate.length > 0, perche,
     fondoAtto, fondiSuiLotti, fronti: righe,
+    frontiAmbigui,
     oltre: quanti("oltre"), alLimite: quanti("al-limite"), dentro: quanti("dentro"),
     nonMisurabili: quanti("non-misurabile"),
     piuVicino: minimo(ancoraSopra), peggiore: minimo(oltreIlFondo),

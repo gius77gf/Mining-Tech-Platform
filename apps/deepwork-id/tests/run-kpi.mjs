@@ -17482,6 +17482,34 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "e il più vicino al fondo comprende chi ci è arrivato esatto: è il fronte da guardare");
   });
 
+  /* ⛔ UN FRONTE ASSEGNATO A DUE LOTTI: `.find()` prendeva il primo in
+     silenzio (15/09, stessa famiglia del sismogramma del core chiuso
+     lo stesso giorno — chiave debole, più di un candidato). Trovato da
+     ricerca mirata, riprodotto indipendentemente, non implementato sulla
+     parola dell'agente. */
+  test("⛔ Terra · conformità: un fronte in due lotti si dichiara ambiguo, non si sceglie a caso", () => {
+    const condiviso = [{ id: "fc", nome: "Fronte condiviso", quota: 310 }];
+    const dueLotti = [
+      { id: "lA", nome: "Lotto A", frontiId: ["fc"], volumeM3: 20000, stato: "attivo" },
+      { id: "lB", nome: "Lotto B", frontiId: ["fc"], volumeM3: 20000, stato: "attivo" },
+    ];
+    const c = terra.conformitaProgetto(condiviso, dueLotti, [], ATTO);
+    const riga = c.fronti.find((r) => r.id === "fc");
+    eq(riga.lottoAmbiguo, true, "il fronte è dichiarato ambiguo");
+    eq(riga.lottiCondivisi, ["lA", "lB"], "e si sa da quali lotti è conteso");
+    eq(riga.lottoId, null, "nessun lotto scelto a caso: né A né B");
+    // `lo=null` è un contratto già esistente e sicuro (lotto assente): il
+    // confronto ricade sul fondo dell'ATTO, esattamente come per un fronte
+    // mai assegnato a nessun lotto — non "non-misurabile" per forza.
+    eq(riga.stato, "dentro", "il confronto ricade sul fondo dell'atto, come per un fronte non assegnato");
+    eq(c.frontiAmbigui, [{ id: "fc", nome: "Fronte condiviso", lotti: ["lA", "lB"] }],
+       "e il riepilogo lo elenca: chi guarda i lotti tutti insieme deve saperlo");
+    // un fronte in UN lotto solo resta come prima: nessun rumore introdotto
+    const unoSolo = terra.conformitaProgetto(FRO, LOT, [], ATTO);
+    eq(unoSolo.frontiAmbigui, [], "nessun fronte condiviso: la lista resta vuota");
+    ok(unoSolo.fronti.every((r) => r.lottoAmbiguo === false), "e nessuna riga si dichiara ambigua per errore");
+  });
+
   test("Terra · conformità: quota 0 non è una quota — è quello che il vecchio form scriveva sul campo vuoto", () => {
     // fino al 05/08 il form salvava `rq.ok ? rq.valore : 0` e parseFrontiCsv
     // faceva lo stesso: in archivio lo zero e il «mai inserito» sono uguali
