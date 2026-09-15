@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **139 funzioni** stanno dentro
+importa. **Genesi no**: le sue **138 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,12 +126,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **42** |
+| una o due | **41** |
 | da tre a cinque | 17 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **50 su 139 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **49 su 138 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 89 sono una decisione di architettura.
 ⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
 l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
@@ -176,6 +176,16 @@ letture dirette e tutti e tre salgono dal bucket "1-2" al "3-5" (bucket
 "1-2" 46→42, "3-5" 14→17: −4 e +3, non −1 e +0 come nelle unità
 precedenti). Misurato confrontando `--elenco` prima/dopo su una
 worktree, non dedotto.*
+⏱️ *42→41, 50→49 e 139→138 il 15/09 (B3, stesso giorno): `crestZ` è
+uscita del tutto dalla pagina (nessuna funzione nuova: componeva SOLO
+`quotaCresta(P.profilo, x)`, già pura dal blocco G24 del 10/09). I sei
+chiamanti — sparsi su funzioni non correlate (la scheda dei fori, la
+sincronizzazione 3D del modello, l'esportazione del piede) — chiamano
+`quotaCresta(P.profilo, x)` direttamente. A differenza di `mdlProfSnap`,
+nessuno spostamento di bucket per altre funzioni: i sei chiamanti
+leggevano già altre variabili proprie in numero sufficiente da non
+cambiare scaglione con l'aggiunta di `P`, misurato confrontando
+`--elenco` prima/dopo.*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`

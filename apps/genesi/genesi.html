@@ -1783,8 +1783,9 @@ let frontMesh = null;      // mesh fronte reale importata (fotogrammetria); null
 let frontMeshGroup = null;
 
 /* profilo cresta importato da Deepwork: offset z della faccia lungo x (0 = fronte dritto).
-   ⛔ Il conto è `quotaCresta` in `./genesi-data.js` (blocco G24, 10/09): qui resta il legame con `P`. */
-function crestZ(x){ return quotaCresta(P.profilo, x); }
+   Il conto è `quotaCresta` in `./genesi-data.js` (blocco G24, 10/09). ⏱️ 15/09
+   (B3): il legame di una riga che stava qui è uscito — nessun valore nel
+   tenerlo, i sei chiamanti passano `P.profilo` direttamente. */
 
 /* ============ costruzione della simulazione (deterministica) ============ */
 function buildSim(){
@@ -1800,7 +1801,7 @@ function buildSim(){
       const hh=P.holes[i], x=hh.x;
       const col=Math.max(0, Math.min((P.foriH?P.foriH.length:1)-1, Math.round((x-INTERASSE/2)/INTERASSE)));
       const h=(P.foriH && P.foriH[col]!=null) ? P.foriH[col] : prof;
-      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:crestZ(x), zoff:hh.zoff||0, kg:P.kg });
+      fori.push({ i, id:hh.id||null, x, tDet:hh.tDet||0, prof:h, h, cz:quotaCresta(P.profilo, x), zoff:hh.zoff||0, kg:P.kg });
     }
   } else {
     for(let i=0;i<n;i++){                                          // fallback demo manuale: una fila, sequenza ricostruita
@@ -1810,7 +1811,7 @@ function buildSim(){
       else td = ((P.dir==='sx') ? i : (n-1-i))*rit;                // diagonale: dal lato di partenza
       const x = i*INTERASSE + INTERASSE/2;
       const h = (P.foriH && P.foriH[i]!=null) ? P.foriH[i] : prof;
-      fori.push({ i, x, tDet: td, prof:h, h, cz: crestZ(x), zoff:0, kg:P.kg });
+      fori.push({ i, x, tDet: td, prof:h, h, cz: quotaCresta(P.profilo, x), zoff:0, kg:P.kg });
     }
   }
   const Lm = useHoles ? (Math.max(...fori.map(f=>f.x)) + INTERASSE/2) : n*INTERASSE;   // lunghezza fronte sparato
@@ -2954,7 +2955,7 @@ function mdlQuoteShow(i0, dz){
   const raggio=(SIM.Lm*mdlRaggioPct/100);
   if(mdlTipo==='piede'){
     /* col piede l'informazione utile è l'altezza della faccia che ne risulta */
-    const dev=h.position.z-crestZ(h.position.x);
+    const dev=h.position.z-quotaCresta(P.profilo, h.position.x);
     const hFaccia=Math.max(5, Math.min(20, (D2.prof||P.prof) - dev));
     el.innerHTML='<b>Piede '+sposta+' m</b> · '+dir
       +'<div class="q-sub">punto '+(i0+1)+'/'+(seg+1)+' a '+gfix(h.position.x,1)+' m dall\'inizio'
@@ -2980,10 +2981,10 @@ function mdlBuild(){
     /* maniglia di CRESTA (arancio, in alto): sposta la faccia avanti/indietro in pianta */
     const s=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,10),
       new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.75 }));
-    s.position.set(x, Hh+0.5, crestZ(x)); s.userData.i=i; s.userData.tipo='cresta';
+    s.position.set(x, Hh+0.5, quotaCresta(P.profilo, x)); s.userData.i=i; s.userData.tipo='cresta';
     mdlGroup.add(s); mdlHandles.push(s);
     /* maniglia di PIEDE (giallo chiaro, a terra): avanzando il piede la faccia si alza (come il 2D) */
-    const pz=crestZ(x) + pieDev(D2, x);
+    const pz=quotaCresta(P.profilo, x) + pieDev(D2, x);
     const b=new THREE.Mesh(new THREE.SphereGeometry(0.48,12,10),
       new THREE.MeshStandardMaterial({ color:0xffe27a, emissive:0xffc04a, emissiveIntensity:0.6 }));
     b.position.set(x, 0.45, pz); b.userData.i=i; b.userData.tipo='piede';
@@ -3025,7 +3026,7 @@ addEventListener('pointerup', ()=>{
   if(Math.abs(dzFin)<0.005){ mdlUndoStack.pop(); mdlBtnSync(); return; }   // tocco senza spostamento: non sporcare la cronologia
   if(mdlTipo==='piede'){
     /* il piede è memorizzato come deviazione rispetto alla cresta: è quella che alza/abbassa la faccia */
-    D2.piede=set.map(h=>({ x:+h.position.x.toFixed(2), y:+(h.position.z-crestZ(h.position.x)).toFixed(2) }));
+    D2.piede=set.map(h=>({ x:+h.position.x.toFixed(2), y:+(h.position.z-quotaCresta(P.profilo, h.position.x)).toFixed(2) }));
     mdlSyncAltezze();
     const t0=simT; rebuild(); setSimT(Math.min(t0, SIM.tEnd), true);
     mdlBuild();

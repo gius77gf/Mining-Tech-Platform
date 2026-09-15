@@ -25851,7 +25851,8 @@ console.log("\n— Campo: i file che escono —");
   test("⛔ Genesi · G24: nella pagina i conti non ci sono più (⚠️ 14/09, B3: anche isoPasso e _spazTipico sono uscite)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
     eq((pag.match(/function _distSpezzata|function _tempoInPunto|const ISO_PASSI|function isoPasso|function _spazTipico/g) || []).length, 0, "le vecchie funzioni, la scala e i due legami non ci sono più");
-    ok(/function crestZ\(x\)\{ return quotaCresta\(P\.profilo, x\); \}/.test(pag), "crestZ è l'unico legame rimasto, con P");
+    eq((pag.match(/function crestZ/g) || []).length, 0, "⏱️ 15/09 (B3): anche il legame con P è uscito, i sei chiamanti passano P.profilo direttamente");
+    eq((pag.match(/quotaCresta\(P\.profilo,/g) || []).length, 6, "i sei ex-chiamanti di crestZ");
     ok(typeof v.isoPasso === "function", "isoPasso vive nel modulo, con D2 come primo argomento esplicito");
     eq((pag.match(/isoPasso\(D2\)/g) || []).length, 2, "e la pagina lo chiama dai suoi due punti, passando D2");
     ok(typeof v._spazTipico === "function", "_spazTipico vive nel modulo, con D2 come primo argomento esplicito");
