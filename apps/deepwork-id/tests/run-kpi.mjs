@@ -7421,6 +7421,38 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(terra.ritmoMedioAnnuo(rilieviFinestra, "3", oggiR).volume, 30000,
        '"3" è tre anni, non un valore illeggibile');
   });
+
+  test("⛔ tendenzaRitmo: il ritmo corto contro il lungo, RIUSA ritmoMedioAnnuo (lacuna 3 del quinto giro su Terra)", () => {
+    eq(terra.TOLLERANZA_RITMO_PCT, 20);
+    const accelera = [
+      { data: "2024-07-01", volumeM3: 10000, stato: "elaborato" },
+      { data: "2025-07-01", volumeM3: 10000, stato: "elaborato" },
+      { data: "2026-04-10", volumeM3: 5000, stato: "elaborato" },    // dentro gli ultimi 90 gg
+      { data: "2026-06-20", volumeM3: 15000, stato: "elaborato" },   // dentro gli ultimi 90 gg, ritmo alto
+    ];
+    const t = terra.tendenzaRitmo(accelera, oggiR, 3, 90);
+    eq(t.calcolabile, true); eq(t.finestraGiorni, 90);
+    ok(t.lungo && t.lungo.annuo > 0, "il lungo periodo c'è (RIUSA ritmoMedioAnnuo)");
+    eq(t.lungo.annuo, terra.ritmoMedioAnnuo(accelera, 3, oggiR).annuo, "stesso numero della funzione che riusa, non una copia");
+    ok(t.corto.annuo > t.lungo.annuo, "il corto (dominato dai due rilievi recenti e alti) è sopra il lungo");
+    eq(t.verso, "accelera"); ok(t.forbicePct > 20, "ben sopra la tolleranza: caso costruito apposta senza ambiguità");
+
+    const rallenta = accelera.map(r => (r.data === "2026-04-10" || r.data === "2026-06-20") ? { ...r, volumeM3: 500 } : r);
+    const t2 = terra.tendenzaRitmo(rallenta, oggiR, 3, 90);
+    eq(t2.calcolabile, true); eq(t2.verso, "rallenta"); ok(t2.forbicePct < 0);
+
+    // meno di 15 giorni di storico nella finestra corta: non calcolabile, ma il lungo resta noto
+    const troppoCorto = accelera.filter(r => r.data !== "2026-04-10" && r.data !== "2026-06-20")
+      .concat([{ data: "2026-06-29", volumeM3: 9999, stato: "elaborato" }]);   // 2 giorni prima di oggiR
+    const t3 = terra.tendenzaRitmo(troppoCorto, oggiR, 3, 90);
+    eq(t3.calcolabile, false); ok(t3.lungo != null, "il lungo periodo resta calcolabile anche se il corto non lo è");
+    ok(/troppo presto/.test(t3.perche), t3.perche);
+
+    // senza un lungo periodo calcolabile (storico troppo corto), niente da confrontare
+    const soloRecente = terra.tendenzaRitmo([{ data: "2026-06-20", volumeM3: 5000, stato: "elaborato" }], oggiR);
+    eq(soloRecente.calcolabile, false); eq(soloRecente.lungo, null);
+    ok(/lungo periodo non è ancora calcolabile/.test(soloRecente.perche), soloRecente.perche);
+  });
 }
 
 /* ══ CHI PUÒ SALIRE SU UN MEZZO ═════════════════════════════════════════

@@ -1044,7 +1044,7 @@ a.dw-btn{text-decoration:none}
 
 <script type="module">
   import { terraData, calendarioTerra, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, varianzaMensilePiano, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
-           autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
+           autorizzazioneVigente, vitaCava, TOLLERANZA_RITMO_PCT, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
@@ -2016,6 +2016,21 @@ a.dw-btn{text-decoration:none}
          stampa «1» e il valore non è 1 — chi legge vedeva «ultimi 1 anni». */
       ? `Al ritmo medio di <b>${n0(vc.ritmoAnnuo)} m³/anno</b> (dai rilievi ${plurale(un1(vc.ritmo.durataAnni), "dell'ultimo anno", "degli ultimi " + un1(vc.ritmo.durataAnni) + " anni")}) ${plurale(un1(vc.anniResidui), "resta", "restano")} circa <b>${un1(vc.anniResidui)} ${plurale(un1(vc.anniResidui), "anno", "anni")}</b>, esaurimento stimato verso il <b>${vc.annoEsaurimento}</b>.`
       : `Ritmo medio non ancora calcolabile: servono almeno tre mesi di rilievi elaborati per stimare gli anni che restano.`;
+    /* IL RITMO CORTO CONTRO QUELLO LUNGO (15/09): il ritmo qui sopra guarda
+       gli anni di sempre — un'accelerazione recente resta nascosta finché
+       non si vede nel cumulato annuale. Solo quando c'è abbastanza storico
+       nella finestra corta (`calcolabile`): senza, si tace, non si forza un
+       "non lo so" su una nota secondaria. */
+    const tendenza = vc.tendenza && vc.tendenza.calcolabile && vc.tendenza.verso !== "stabile"
+      ? (() => {
+          const t = vc.tendenza, fp = t.forbicePct, forte = t.verso === "accelera" && fp > TOLLERANZA_RITMO_PCT;
+          const pct = Math.abs(fp).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + "%";
+          return ` Negli ultimi ${t.finestraGiorni} giorni il ritmo ` + (forte
+            ? `<b class="bad">accelera del ${pct}</b>: oltre la tolleranza del ${TOLLERANZA_RITMO_PCT}%, l'esaurimento potrebbe arrivare prima della stima qui sopra.`
+            : t.verso === "accelera" ? `accelera del ${pct} rispetto al suo solito (dentro la tolleranza del ${TOLLERANZA_RITMO_PCT}%).`
+            : `rallenta del ${pct} rispetto al suo solito.`);
+        })()
+      : "";
     const avviso = vc.stato === "danger"
       ? `<div class="riga dng">${I.stop}<span><b>Volume autorizzato esaurito o superato.</b> Fermati o chiedi una variante prima di continuare a scavare.</span></div>`
       : vc.stato === "warn"
@@ -2060,7 +2075,7 @@ a.dw-btn{text-decoration:none}
       <div class="riga">Consumato <b>${un1(vc.pct)}%</b> del concesso${vc.pregresso ? `, di cui ${n0(vc.pregresso)} m³ dichiarati prima di Terra` : ""}.</div>
       ${vc.pregressoDichiarato ? "" : `<div class="riga att">${I.allarme}<span>Il <b>già estratto prima di Terra</b> non è dichiarato nella scheda: questo conto tiene solo i rilievi registrati qui, quindi il consumato è un <b>minimo</b> e il residuo è la cifra <b>più alta possibile</b>. Se prima di Terra si era già cavato, scrivilo nella scheda.</span></div>`}
       ${vc.daCumulo > 0 ? `<div class="riga">Altri <b>${n0(vc.daCumulo)} m³</b> arrivano dalla <b>ripresa di cumuli</b>: era materiale già scavato, quindi <b>non</b> scala il volume concesso.</div>` : ""}
-      <div class="riga">${ritmo}</div>
+      <div class="riga">${ritmo}${tendenza}</div>
       ${breve ? "" : titolo}${avviso}
     </div>`;
   }

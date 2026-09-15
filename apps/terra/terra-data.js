@@ -1074,19 +1074,14 @@ export function estrattoComplessivo(rilievi, autorizzazione) {
    morde come prima su una finestra vera e piccola (0,2 anni → 0,5).
    ⚠️ Uno zero SCRITTO resta un dato e passa dal clamp; è l'ASSENZA che
    ricade sui tre anni dichiarati. */
-export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
-  const letto = (anni === null || anni === undefined || anni === "") ? NaN : +anni;
-  const n = Number.isFinite(letto) ? Math.max(0.5, letto) : 3;
-  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
-  const ANNO_MS = 365.25 * 86400000;
-  const dal = new Date(o.getTime() - n * ANNO_MS);
-  // ⛔ il giorno si legge in ora LOCALE: `toISOString()` su una mezzanotte
-  // locale scrive le 22:00 del giorno prima, e l'estremo alto della finestra
-  // diventerebbe IERI — il rilievo elaborato oggi resterebbe fuori dal conto
-  // che stima quando finisce il volume concesso (misurato il 31/07)
-  const dalISO = isoLocale(dal);
-  // solo SCAVO: il ritmo serve a stimare quando finisce il volume concesso,
-  // e i cumuli ripresi non lo consumano
+const ANNO_MS = 365.25 * 86400000;
+// Il volume di SOLO SCAVO nella finestra [dalISO, o], e il ritmo annualizzato
+// che ne risulta — l'unica versione di questo calcolo: `ritmoMedioAnnuo` e
+// `tendenzaRitmo` la chiamano tutt'e due, invece di riscriversela ognuna con
+// la propria soglia minima di durata. `null` se non c'è abbastanza storico o
+// volume nella finestra. Non esportata: è un dettaglio delle due funzioni che
+// la usano, non un contratto pubblico del modulo.
+function ritmoNellaFinestra(rilievi, dalISO, o, minDurataAnni) {
   const el = soloScavo(rilievi)
     .filter(rilievoUsabileConData)
     .filter(r => String(r.data) >= dalISO && String(r.data) <= isoLocale(o));
@@ -1096,8 +1091,58 @@ export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
   const primo = el.map(r => String(r.data)).sort()[0];
   const inizio = new Date(primo + "T00:00:00");
   const durataAnni = (o - inizio) / ANNO_MS;
-  if (!(durataAnni >= 0.25)) return null;       // meno di 3 mesi: media senza senso
+  if (!(durataAnni >= minDurataAnni)) return null;
   return { volume, durataAnni, annuo: volume / durataAnni, dal: primo, rilievi: el.length };
+}
+export function ritmoMedioAnnuo(rilievi, anni, oggi = new Date()) {
+  const letto = (anni === null || anni === undefined || anni === "") ? NaN : +anni;
+  const n = Number.isFinite(letto) ? Math.max(0.5, letto) : 3;
+  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
+  const dal = new Date(o.getTime() - n * ANNO_MS);
+  // ⛔ il giorno si legge in ora LOCALE: `toISOString()` su una mezzanotte
+  // locale scrive le 22:00 del giorno prima, e l'estremo alto della finestra
+  // diventerebbe IERI — il rilievo elaborato oggi resterebbe fuori dal conto
+  // che stima quando finisce il volume concesso (misurato il 31/07)
+  const dalISO = isoLocale(dal);
+  // solo SCAVO: il ritmo serve a stimare quando finisce il volume concesso,
+  // e i cumuli ripresi non lo consumano. Meno di 3 mesi: media senza senso.
+  return ritmoNellaFinestra(rilievi, dalISO, o, 0.25);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   IL RITMO CORTO CONTRO IL RITMO LUNGO (15/09, quinto giro di ricerca su
+   Terra: lacuna 3, la sola rimasta aperta)
+   ────────────────────────────────────────────────────────────────────────
+   `ritmoMedioAnnuo` guarda una finestra di anni (minimo sei mesi, per
+   costruzione — è la storia sistemata a costo, il conto qui accanto lo
+   spiega). Una cava che negli ultimi tre mesi ha quasi raddoppiato il ritmo
+   non lo si vede finché non si vede nel cumulato dell'anno: qui il
+   confronto è tra una finestra CORTA (`finestraGiorni`, default 90) e
+   quella lunga di sempre. RIUSA `ritmoNellaFinestra`, non la ricalcola con
+   una propria versione — la stessa regola di `consumoControStoria` in
+   Flotta. Soglia dichiarata `TOLLERANZA_RITMO_PCT`: nessuna fonte del
+   15/09 dà una tolleranza di settore per l'accelerazione di uno scavo, è
+   una scelta nostra, più larga di quella del carburante perché il ritmo di
+   cava oscilla più di un consumo di gasolio (weekend, manutenzioni
+   programmate, un fronte che cambia). Pura e testabile; `oggi` iniettabile. */
+export const TOLLERANZA_RITMO_PCT = 20;
+export function tendenzaRitmo(rilievi, oggi = new Date(), anni, finestraGiorni = 90) {
+  const lungo = ritmoMedioAnnuo(rilievi, anni, oggi);
+  if (!lungo) return { calcolabile: false, lungo: null, perche: "il ritmo di lungo periodo non è ancora calcolabile: servono almeno tre mesi di rilievi elaborati" };
+  const o = new Date(oggi); o.setHours(0, 0, 0, 0);
+  const giorni = Math.max(1, Math.round(+finestraGiorni || 90));
+  const dalISO = isoLocale(new Date(o.getTime() - giorni * 86400000));
+  // la finestra corta chiede solo 15 giorni di storico dentro di sé, non tre
+  // mesi: è fatta apposta per vedere un segnale PRIMA che il lungo periodo
+  // lo assorba — ma sotto quindici giorni il rumore di un solo rilievo
+  // grosso o piccolo domina il numero, e annualizzarlo mentirebbe
+  const MIN_GIORNI_CORTO = 15;
+  const corto = ritmoNellaFinestra(rilievi, dalISO, o, MIN_GIORNI_CORTO / 365.25);
+  if (!corto) return { calcolabile: false, lungo,
+    perche: "negli ultimi " + giorni + " giorni non ci sono almeno " + MIN_GIORNI_CORTO + " giorni di rilievi elaborati: troppo presto per un confronto" };
+  const forbicePct = Math.round((100 * (corto.annuo - lungo.annuo)) / lungo.annuo * 10) / 10;
+  return { calcolabile: true, lungo, corto, finestraGiorni: giorni, forbicePct,
+    verso: forbicePct > 0 ? "accelera" : forbicePct < 0 ? "rallenta" : "stabile" };
 }
 
 // CONTATORE VITA CAVA: volume totale autorizzato − estratto complessivo =
@@ -1158,6 +1203,7 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
     misurabile, pregressoDichiarato: est.pregressoDichiarato, rilieviScavo: est.rilieviScavo,
     residuo, pct, soglia, stato, ritmoAnnuo: annuo > 0 ? annuo : null,
     ritmo: rm, anniResidui, annoEsaurimento, scadePrimaIlTitolo, margineGiorni,
+    tendenza: tendenzaRitmo(rilievi, oggi, a.anniRitmo),
   };
 }
 

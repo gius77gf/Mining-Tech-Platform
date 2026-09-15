@@ -1183,6 +1183,18 @@ non è un mese a zero, è "non ancora misurato", e la funzione lo dichiara
 invece di calcolare uno scarto finto. Riusa `volumiPerMese` (stessa regola
 di aggregazione, non riscritta). Wired nella schermata del piano estrattivo
 (`pia-mese`), accanto alla proiezione di fine anno.
-⏱️ **Resta aperta la lacuna 3**: nessun confronto fra una finestra corta
-(es. ultimi 90 giorni) e quella lunga di `ritmoMedioAnnuo` per rilevare
-un'accelerazione o un rallentamento del ritmo.
+✅ **FATTO lo stesso giorno**: la lacuna 3, `tendenzaRitmo(rilievi, oggi,
+anni, finestraGiorni=90)` — confronta il ritmo degli ultimi 90 giorni
+(default) con quello di `ritmoMedioAnnuo`. Non riscrive il calcolo: il
+corpo comune (filtro solo-scavo, volume, durata, annualizzazione) è stato
+estratto in un helper privato `ritmoNellaFinestra`, e sia `ritmoMedioAnnuo`
+sia `tendenzaRitmo` lo chiamano — la stessa regola di `shared/` applicata
+dentro un modulo solo, per non avere due copie della stessa formula che
+divergono in silenzio. Soglia dichiarata `TOLLERANZA_RITMO_PCT = 20` (più
+larga di quella del carburante di Flotta: il ritmo di una cava oscilla di
+più — weekend, manutenzioni, cambio fronte — di un consumo di gasolio).
+Wired nel riquadro "Vita della cava", solo quando accelera o rallenta in
+modo misurabile (silenzio quando la finestra corta non ha abbastanza
+storico: non si forza un "non lo so" su una nota secondaria).
+**Il quinto giro di ricerca su Terra è ora chiuso su tutte e tre le sue
+lacune.**
