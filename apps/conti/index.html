@@ -3246,7 +3246,7 @@ label.item:has(.dw-chk:checked){
     // ogni fattura porta con sé il suo stato di incasso (incassato, residuo,
     // giorni reali di pagamento). Senza movimenti registrati residuo = importo:
     // tutti i conti restano quelli di prima, al centesimo.
-    FAT = applicaIncassi(FATG, INC);
+    FAT = applicaIncassi(FATG, INC, NOT);
     IMP = (IMPL || [])[0] || null;
     const k = kpiFrom(FAT, GAR, new Date(), NOT);
     const aperte  = FAT.filter(f => !f.incassata);

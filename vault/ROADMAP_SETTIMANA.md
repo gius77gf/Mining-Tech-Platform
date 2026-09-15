@@ -8496,8 +8496,9 @@ numero scritto dove non era stato misurato niente**.*
   fisso, 2990→2991, e alla conformità di Terra il fronte conteso fra due
   lotti, 2991→2992, e a `tagliandiInScadenza` di Flotta lo stesso criterio
   di `urgenzaManutenzione`, 2992→2993, e a `fogliaVolata` di Sentinella la
-  lettura trovata per valore, 2993→2994): **3.478 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2994, `run-stile` 328,
+  lettura trovata per valore, 2993→2994, e a `applicaIncassi` di Conti le
+  note di credito, 2994→2995): **3.479 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2995, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

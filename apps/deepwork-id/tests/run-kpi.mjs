@@ -4219,6 +4219,40 @@ test("l'aperto scende del SOLO acconto, non dell'intera fattura", () => {
   const a = conti.applicaIncassi([f], [{ fatturaId: "f1", importo: 3000.50, data: "2026-07-20" }]);
   ok(Math.abs(conti.apertoDi(a[0]) - 6749.50) < 0.005, `aperto ${conti.apertoDi(a[0])} invece di 6749,50`);
 });
+/* ⛔ `applicaIncassi` NON VEDEVA LE NOTE DI CREDITO (15/09), mentre
+   `statoFattura` (chiamata fresca nel sotto-testo del residuo e nel foglio
+   stampato) sì: un incasso parziale seguito da una nota che azzera il
+   residuo — il caso normale, "prima il cliente salda, poi si emette la
+   nota" — faceva dire a `FAT` (filtri, contatori, colore di riga, badge:
+   «tutta l'app» per commento) ancora «aperta, parziale», mentre due righe
+   sotto, sullo stesso riquadro, il sotto-testo diceva già «saldata». */
+test("⛔ applicaIncassi: una nota che azzera il residuo dopo un incasso parziale non lascia la fattura «parziale»", () => {
+  const f = { id: "F1", importo: 10000, totale: 10000, emessa: "2026-06-01", scadenza: "2026-07-01" };
+  const INC = [{ fatturaId: "F1", importo: 7000, data: "2026-07-10" }];
+  const NOT = [{ fatturaId: "F1", totale: 3000, bozza: false }];
+  const senzaNote = conti.applicaIncassi([f], INC)[0];
+  eq([senzaNote.incassata, senzaNote.parziale, senzaNote.residuo], [false, true, 3000],
+    "senza passare le note: come prima, il comportamento non cambia (compatibilità)");
+  const conNote = conti.applicaIncassi([f], INC, NOT)[0];
+  eq([conNote.incassata, conNote.parziale, conNote.residuo], [true, false, 0],
+    "con le note: la fattura è saldata, non più «parziale» — lo stesso verdetto di statoFattura");
+  eq(conNote, { ...f, ...(() => { const s = conti.statoFattura(f, INC, NOT);
+    return { incassata: s.saldata, incassato: s.incassato, residuo: s.residuo, eccedenza: s.eccedenza,
+      parziale: s.parziale, conMovimenti: s.conMovimenti, nMovimenti: s.movimenti.length,
+      dataSaldo: s.dataSaldo, ultimoIncasso: s.ultimo, senzaDataIncasso: s.senzaData,
+      giorniPagamento: s.giorniPagamento, ritardoPagamento: s.ritardoPagamento }; })() },
+    "e non è un secondo calcolo: è statoFattura con i nomi di campo di applicaIncassi");
+  // sulla dimostrazione vera, senza note, zero differenze: la compatibilità
+  // non è un'affermazione, è misurata
+  const D = conti.DEMO;
+  const vecchia = conti.applicaIncassi(D.fatture, D.incassi);
+  const conStatoFattura = D.fatture.map((ff) => { const s = conti.statoFattura(ff, D.incassi, undefined);
+    return { ...ff, incassata: s.conMovimenti ? s.saldata : !!ff.incassata, incassato: s.incassato,
+      residuo: s.residuo, eccedenza: s.eccedenza, parziale: s.parziale, conMovimenti: s.conMovimenti,
+      nMovimenti: s.movimenti.length, dataSaldo: s.dataSaldo, ultimoIncasso: s.ultimo,
+      senzaDataIncasso: s.senzaData, giorniPagamento: s.giorniPagamento, ritardoPagamento: s.ritardoPagamento }; });
+  eq(vecchia, conStatoFattura, "sui sette conti della dimostrazione, senza note: zero differenze col comportamento di prima");
+});
 // COMPATIBILITÀ: è il punto che romperebbe i conti di chi usa già l'app
 test("una fattura vecchia incassata SENZA data resta incassata", () => {
   const vecchia = { id: "f0", importo: 5000, emessa: "2026-05-12", incassata: true };

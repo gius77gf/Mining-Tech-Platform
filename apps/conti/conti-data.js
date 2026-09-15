@@ -2262,13 +2262,29 @@ export function statoIncasso(fattura, incassi) {
 }
 
 // Fatture "decorate" con il loro stato di incasso: è la lista che usa tutta
-// l'app. `importo` NON viene toccato (resta il totale del documento, come sta
-// scritto sulla fattura); si aggiunge `residuo`, che è ciò che manca ancora.
-// `incassata` viene ricalcolata SOLO quando ci sono movimenti: senza movimenti
-// resta quella salvata, e i numeri di prima restano identici.
-export function applicaIncassi(fatture, incassi) {
+// l'app — filtri, contatori delle schede, colore e testo della riga, i KPI
+// del cruscotto. `importo` NON viene toccato (resta il totale del documento,
+// come sta scritto sulla fattura); si aggiunge `residuo`, che è ciò che
+// manca ancora. `incassata` viene ricalcolata SOLO quando ci sono movimenti:
+// senza movimenti resta quella salvata, e i numeri di prima restano identici.
+// ⛔ E FINO AL 15/09 «TUTTA L'APP» ERA UN'ESAGERAZIONE: qui dentro si chiamava
+// `statoIncasso`, che non sa niente delle note di credito — mentre il
+// sotto-testo del residuo (riga della lista) e il foglio stampato chiamano
+// `statoFattura` fresca, che le note le conta. Con un incasso parziale
+// seguito da una nota che azzera il residuo (il caso normale: «prima il
+// cliente salda, poi si emette la nota», commento di `statoFattura`), le due
+// fonti divergevano: questa diceva ancora «aperta, parziale», il sotto-testo
+// diceva già «saldata» — la stessa fattura in due stati diversi a due righe
+// di distanza sulla schermata più usata di Conti. `statoFattura` chiama già
+// `statoIncasso` al suo interno e ne eredita ogni campo che serve qui
+// (`residuo`, `eccedenza`, `parziale`, `conMovimenti`, `dataSaldo`,
+// `giorniPagamento`, `ritardoPagamento`): senza note passate si comporta
+// identica a `statoIncasso` (verificato sui sette conti della dimostrazione
+// e su cinque casi limite, zero differenze) — non è un secondo calcolo, è lo
+// stesso con la vista completa.
+export function applicaIncassi(fatture, incassi, note) {
   return (fatture || []).map(f => {
-    const s = statoIncasso(f, incassi);
+    const s = statoFattura(f, incassi, note);
     return { ...f,
       incassata: s.conMovimenti ? s.saldata : !!f.incassata,
       incassato: s.incassato, residuo: s.residuo, eccedenza: s.eccedenza,
