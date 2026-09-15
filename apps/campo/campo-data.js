@@ -1064,6 +1064,26 @@ export function appelloTurno(operatori, presenze, data, turno, squadra) {
   };
 }
 
+/* GLI AVVISI DELLA CHIUSURA (15/09, quinto giro di ricerca su Campo):
+   `btn-fir` chiudeva il turno validando SOLO che ci fosse scritto un nome —
+   niente diceva se l'appello era ancora incompleto, un'attività era rimasta
+   "in corso", o un fermo non aveva i suoi minuti. Non è un blocco: un
+   turno si chiude anche con cose in sospeso, è la vita vera della cava
+   passarle al turno dopo. Sono un AVVISO — la stessa distinzione fra
+   "manca il nome di chi consegna" (blocca: senza non è un documento) e
+   "ci sono cose in sospeso" (si dichiara, non si impedisce).
+   Riusa `appelloTurno` (non ricalcola `completo`/`daFare` qui) e
+   `minutiFermoDi` per i fermi. Pura e testabile. */
+export function avvisiChiusuraTurno(attivita, appello) {
+  const app = appello || { completo: true, daFare: 0 };
+  const att = attivita || [];
+  const attivitaAperte = att.filter(a => a && a.stato === "in-corso").length;
+  const fermiSenzaMinuti = att.filter(a => a && a.stato === "anomalia" && minutiFermoDi(a) === null).length;
+  const appelloDaFare = app.completo ? 0 : app.daFare;
+  return { appelloDaFare, attivitaAperte, fermiSenzaMinuti,
+    niente: appelloDaFare === 0 && attivitaAperte === 0 && fermiSenzaMinuti === 0 };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // CHIUSURA DEL TURNO — la firma della consegna (C3)
 // ══════════════════════════════════════════════════════════════════════

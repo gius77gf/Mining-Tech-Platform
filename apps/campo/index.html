@@ -1169,6 +1169,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       <button class="dw-btn" id="btn-fir">Chiudi il turno</button>
     </div>
     <div class="form-hint">La chiusura mette <b>due nomi e un'ora</b> sul rapporto di fine turno: chi consegna e chi riceve. Vale per il turno scelto in cima alla pagina.</div>
+    <div class="note" id="fir-avvisi"></div>
   </div>
   <div class="tools" id="fir-tools" style="display:none;">
     <button class="dw-btn secondary" id="btn-fir-riapri"><svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M3 12l2.6 2.8L8.4 12"/></svg>Riapri il turno</button>
@@ -1247,7 +1248,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
            vociChecklist, meteoChiedeRicontrollo, INDICE_RICONTROLLO, sorveglianteDiTurno,
-           STATI_PRESENZA, presenzaDi, appelloTurno, chiusuraDi, riassuntoChiusura,
+           STATI_PRESENZA, presenzaDi, appelloTurno, avvisiChiusuraTurno, chiusuraDi, riassuntoChiusura,
            minutiOrario, orariPresenza, testoOrari, orariProposti, orariDiTurno,
            RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
            turnoChiuso, riaperture, riassuntoRiapertura, ultimaRiapertura,
@@ -3487,6 +3488,22 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           : "");
     $("fir-form").style.display = chiuso ? "none" : "flex";
     $("fir-tools").style.display = chiuso ? "flex" : "none";
+    /* GLI AVVISI DELLA CHIUSURA (15/09): un turno si chiude anche con cose
+       in sospeso — è un AVVISO, non un blocco (solo il nome di chi
+       consegna e di chi riceve bloccano, perché senza non è un documento).
+       L'appello si guarda su TUTTA la squadra del turno (""), non sul
+       filtro della schermata Presenze: la chiusura riguarda il turno
+       intero, non quello che l'utente ha scelto di vedere lì. */
+    if (!chiuso) {
+      const app = appelloTurno(OPER, PRE, OGGI, turno, "");
+      const av = avvisiChiusuraTurno(ATT_OGGI, app);
+      $("fir-avvisi").innerHTML = av.niente ? "" : `<b>Prima di chiudere</b>: `
+        + [av.appelloDaFare ? conta(av.appelloDaFare, "persona senza spunta nell'appello", "persone senza spunta nell'appello") : "",
+           av.attivitaAperte ? conta(av.attivitaAperte, "attività ancora in corso", "attività ancora in corso") : "",
+           av.fermiSenzaMinuti ? conta(av.fermiSenzaMinuti, "fermo senza i minuti", "fermi senza i minuti") : ""]
+          .filter(Boolean).join(" · ")
+        + `. Si può chiudere lo stesso: restano scritte per il turno che segue.`;
+    } else $("fir-avvisi").innerHTML = "";
   }
 
   // La riapertura chiede NOME e MOTIVO: senza nome non è una riapertura
@@ -3524,8 +3541,17 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!consegna) { sbaglia("fir-consegna", "fir-esito",
       "Manca il nome di chi consegna: è la firma della consegna, senza non è un documento."); return; }
     err("fir-consegna", false);
+    const ricevuta = $("fir-ricevuta").value.trim();
+    /* ⛔ «CHI RICEVE» ERA LETTO E MAI RICHIESTO (15/09, lacuna 2 del quinto
+       giro di ricerca): il form-hint qui sopra dice già «due nomi», ma solo
+       uno era controllato. Una consegna con un nome solo non è una
+       consegna, è un appunto: la stessa ragione per cui manca `consegna`
+       blocca. */
+    if (!ricevuta) { sbaglia("fir-ricevuta", "fir-esito",
+      "Manca il nome di chi riceve: senza, non è una consegna fra due persone, è un appunto."); return; }
+    err("fir-ricevuta", false);
     const turno = $("chk-turno").value || turnoCorrente();
-    const ricevuta = $("fir-ricevuta").value.trim(), note = $("fir-note").value.trim();
+    const note = $("fir-note").value.trim();
     const ora = new Date().toTimeString().slice(0, 5);
     const gia = chiusuraDi(CHI, OGGI, turno);
     if (gia) await db.aggiorna("chiusure", gia.id, { consegna, ricevuta, note, ora });

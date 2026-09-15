@@ -10218,6 +10218,23 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(a.righe.some((r) => r.operatore.id === "o3"), false, "Carla resta fuori: nessuno spunto per lei");
   });
 
+  test("⛔ avvisiChiusuraTurno: appello incompleto, attività aperte e fermi senza minuti si dichiarano, non si inventano un blocco", () => {
+    const attivita = [
+      { id: "a1", stato: "in-corso" }, { id: "a2", stato: "conclusa" },
+      { id: "a3", stato: "anomalia", fermoMin: 20 }, { id: "a4", stato: "anomalia", fermoMin: null },
+    ];
+    const appIncompleto = campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "Squadra A");   // daFare: 1
+    const av = campo.avvisiChiusuraTurno(attivita, appIncompleto);
+    eq(av.appelloDaFare, 1); eq(av.attivitaAperte, 1); eq(av.fermiSenzaMinuti, 1); eq(av.niente, false);
+    // appello COMPLETO (nessuno da spuntare) e niente in sospeso: nessun avviso
+    const completo = { completo: true, daFare: 5 };   // daFare si legge solo se NON completo
+    eq(campo.avvisiChiusuraTurno([], completo), { appelloDaFare: 0, attivitaAperte: 0, fermiSenzaMinuti: 0, niente: true });
+    // senza niente passato non esplode, e appello mancante vale «a posto»
+    eq(campo.avvisiChiusuraTurno(null, null).niente, true, "senza dati, niente da segnalare (non un falso allarme)");
+    // un'anomalia con 0 minuti dichiarati NON è «senza minuti»: zero è un valore vero
+    eq(campo.avvisiChiusuraTurno([{ stato: "anomalia", fermoMin: 0 }], completo).fermiSenzaMinuti, 0, "0 minuti è un dato, non un'assenza");
+  });
+
   test("⛔ checklist: quello che non è stato spuntato NON risulta a posto", () => {
     /* stessa regola delle ispezioni di Scudo: un controllo mai finito non deve
        sembrare un controllo superato */

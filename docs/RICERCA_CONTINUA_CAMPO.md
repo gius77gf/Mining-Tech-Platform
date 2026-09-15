@@ -2396,3 +2396,27 @@ e il rapporto più ricco che l'app sa produrre non è tracciabile). La terza
 è la più seria: un audit o un ispettore che chiede "che cosa diceva la
 consegna di quel turno" oggi dipende da un file scaricato a mano, non da
 un dato dell'app.
+
+⏱️ **LA LACUNA 3 ERA GIÀ CHIUSA — dallo stesso ciclo, prima che questo
+round di ricerca finisse di scrivere il documento.** Il round è nato da un
+commit perduto e riscritto a memoria (vedi la nota di processo qui sopra),
+quindi il confronto col codice vero è avvenuto DOPO che un'altra unità di
+questo stesso ciclo (commit `574163d2`, "il ponte consegnava una falsità")
+aveva già fatto scrivere a `btn-consegna` il testo completo
+(`testoConsegna`) e l'ora (`oraTestoConsegna`) sulla stessa `chiusure` di
+`btn-fir`. Verificato: `grep -n "testoConsegna:" apps/campo/index.html` →
+righe 4546-4547, `db.aggiorna`/`db.aggiungi("chiusure", {...
+testoConsegna: txt, oraTestoConsegna...})`. Nessuna azione da fare qui: la
+riga resta per il metodo — la stessa lezione già scritta altrove in questa
+sessione (Terra, `margineGiorni`) — non come lavoro aperto.
+✅ **FATTO il 15/09 (stessa unità)**: la lacuna 2 (`ricevuta` non
+richiesta) — `btn-fir` ora blocca anche senza il nome di chi riceve, con
+lo stesso messaggio-stile di quello di chi consegna. E la parte della
+lacuna 1 che si può dare senza inventare un blocco che l'app non ha mai
+avuto altrove: `avvisiChiusuraTurno(attivita, appello)`, un AVVISO (non
+bloccante) che dichiara appello incompleto, attività rimaste "in corso" e
+fermi senza i minuti — riusa `appelloTurno` e `minutiFermoDi`, non li
+ricalcola. Un turno si chiude comunque: è la vita vera della cava passare
+le cose in sospeso al turno dopo, e il principio "l'assenza di un dato non
+è un dato favorevole" chiede di DICHIARARE, non di bloccare un'operazione
+che a volte è legittima.
