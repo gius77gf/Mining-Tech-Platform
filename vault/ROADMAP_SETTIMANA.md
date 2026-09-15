@@ -8526,9 +8526,10 @@ numero scritto dove non era stato misurato niente**.*
   promemoria per il responsabile di un'azione correttiva, 3024→3026, e a
   `lavoriNonConclusi` di Campo la causale e i minuti nella consegna,
   3026→3028, e a `attesaRecupero` di Terra il gemello di `attesaCollaudo`,
-  3028→3031):
-  **3.515 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3031, `run-stile` 328,
+  3028→3031, e alla causale della nota nel registro vendite di Conti,
+  3031→3032):
+  **3.516 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3032, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

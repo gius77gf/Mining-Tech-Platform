@@ -43438,7 +43438,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   test("⛔ una fattura senza IVA dichiarata: aliquota e imposta VUOTE, non zero — la stessa risposta del foglio", () => {
     const r = conti.registroVendite([fSenza], CLI, []);
     eq([r.righe[0].aliquota, r.righe[0].imposta, r.righe[0].imponibile, r.righe[0].senzaIva], [null, null, 500, true], "vuoto, non zero");
-    ok(/;;500;;500;;si$/.test(conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]), "nel CSV le due celle restano vuote: " + conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]);
+    ok(/;;500;;500;;si;$/.test(conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]), "nel CSV le due celle restano vuote (e la causale, di una fattura, pure): " + conti.csvRegistroVendite([fSenza], CLI, []).trim().split("\n")[1]);
     eq(r.senzaIva, 1, "contata");
     ok(/1 senza IVA dichiarata \(aliquota e imposta vuote, non zero\)/.test(conti.descriviRegistroVendite(r)), conti.descriviRegistroVendite(r));
   });
@@ -43459,13 +43459,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(r.righe.filter(q => q.tipo === "nota di credito").length, 1, "la bozza non entra");
     eq([r.documenti, r.imponibile, r.imposta], [2, 819.67, 180.33], "i totali al netto della nota");
   });
+  test("⛔ registroVendite/csvRegistroVendite (15/09, dal delta sul trasporto conto terzi e le rese): la causale della nota, non tacciuta come prima", () => {
+    const n = conti.notaDaFattura(fImm, "resa", 220, "NC 2026/03"); n.emessa = "2026-08-20";
+    const r = conti.registroVendite([fImm], CLI, [n]);
+    const x = r.righe.find(q => q.tipo === "nota di credito");
+    eq(x.causale, "Merce resa o rifiutata", "l'etichetta, non la chiave grezza — stesso vocabolario di validaNota");
+    const f = r.righe.find(q => q.tipo === "fattura");
+    eq(f.causale, "", "una fattura non ha causale: vuota, non inventata");
+    const riga = conti.csvRegistroVendite([fImm], CLI, [n]).trim().split("\n").find(l => l.startsWith("nota di credito"));
+    ok(riga.endsWith(";Merce resa o rifiutata"), "la causale è l'ultima colonna del CSV: " + riga);
+  });
   test("csvRegistroVendite: intestazione, ordine per data, e la dimostrazione (tutte senza IVA dichiarata, com'è)", () => {
     const righe = conti.csvRegistroVendite(D.fatture, CLI, D.note || []).trim().split("\n");
     eq(righe[0], conti.CSV_REGISTRO_VENDITE_INTESTAZIONE, "l'intestazione");
     eq(righe.length - 1, D.fatture.length, "una riga per fattura: nessuna ha bande");
     const date = righe.slice(1).map(l => l.split(";")[2]);
     eq(date.slice().sort().join(), date.join(), "per data");
-    ok(righe.slice(1).every(l => /;;\d+(\.\d+)?;;\d+(\.\d+)?;;si$/.test(l)), "aliquota e imposta vuote su tutte: " + righe[1]);
+    ok(righe.slice(1).every(l => /;;\d+(\.\d+)?;;\d+(\.\d+)?;;si;$/.test(l)), "aliquota e imposta vuote su tutte, e la causale (nessuna riga qui è una nota): " + righe[1]);
     eq(conti.descriviRegistroVendite(conti.registroVendite([], CLI, [])), "Nessun documento da mettere nel registro delle vendite.", "vuoto");
   });
   test("⛔ la pagina: il bottone c'è, il file lo compone il modulo, la frase pure", () => {

@@ -6345,19 +6345,26 @@ export function csvRimanenze(inventari, prodotti, alla, costo) {
    esce con «aliquota 0, imposta 0»: aliquota e imposta restano vuote (la
    stessa risposta di `csvSituazioneFatture` e del foglio stampato). ⛔ Un
    documento senza data non sparisce e non entra nel periodo: «no (senza
-   data)». Pura, per nome. */
+   data)». ⛔ E LA CAUSALE DI UNA NOTA (15/09, dal delta della ricerca su
+   trasporto conto terzi e rese) era già scritta su ogni nota e già mostrata
+   nell'estratto conto, ma il registro per il commercialista la taceva: chi
+   lo importava vedeva un totale negativo senza sapere se fosse un reso
+   (comma 2, senza termine) o un errore di fatturazione (comma 3, dodici
+   mesi) — la distinzione che `validaNota` già applica in casa e che qui
+   spariva. Una fattura non ha causale: colonna vuota, non inventata. Pura,
+   per nome. */
 export function registroVendite(fatture, clienti, note, dal, al) {
   const d1 = dal && dataISOEsiste(String(dal).slice(0, 10)) ? String(dal).slice(0, 10) : null;
   const d2 = al && dataISOEsiste(String(al).slice(0, 10)) ? String(al).slice(0, 10) : null;
   const cli = (id) => (clienti || []).find((c) => c && c.id === id) || null;
   const nelPeriodo = (data) => !data ? "no (senza data)" : (d1 && data < d1) || (d2 && data > d2) ? "no (fuori periodo)" : "si";
   const righe = [];
-  const doc = (tipo, x, numero, data, riferimento, bande, im, segno) => {
+  const doc = (tipo, x, numero, data, riferimento, bande, im, segno, causale) => {
     const c = cli(x.clienteId);
     const iso = dataISOEsiste(String(data || "").slice(0, 10)) ? String(data).slice(0, 10) : "";
     const base = { tipo, numero: String(numero || ""), data: iso, cliente: nomeCliente(x, clienti),
       piva: c ? String(c.piva || "") : "", cf: c ? String(c.codiceFiscale || "") : "", sdi: c ? String(c.sdi || "") : "",
-      totale: round2(segno * im.totale), riferimento, nel: nelPeriodo(iso) };
+      totale: round2(segno * im.totale), riferimento, nel: nelPeriodo(iso), causale: causale || "" };
     if (!bande.length) righe.push({ ...base, aliquota: null, imponibile: round2(segno * im.imponibile), imposta: null, senzaIva: true });
     for (const b of bande) righe.push({ ...base, aliquota: b.aliquota, imponibile: round2(segno * b.imponibile), imposta: round2(segno * b.imposta), senzaIva: false });
   };
@@ -6373,7 +6380,8 @@ export function registroVendite(fatture, clienti, note, dal, al) {
   for (const n of (note || []).filter((x) => x && !x.bozza).slice().sort((a, b) => String(a.emessa || "").localeCompare(String(b.emessa || "")))) {
     const im = { imponibile: +n.imponibile || 0, ivaImporto: +n.ivaImporto || 0, totale: Math.abs(+n.totale || 0) };
     const bande = n.aliquotaIva != null ? [{ aliquota: +n.aliquotaIva, imponibile: im.imponibile, imposta: im.ivaImporto }] : [];
-    doc("nota di credito", n, n.numero, n.emessa, n.fatturaNumero ? "storna " + n.fatturaNumero : "", bande, im, -1);
+    doc("nota di credito", n, n.numero, n.emessa, n.fatturaNumero ? "storna " + n.fatturaNumero : "", bande, im, -1,
+      (causaleNota(n.causale) || {}).label || "");
   }
   const chiave = (r) => r.tipo + "|" + r.numero;
   const nel = righe.filter((r) => r.nel === "si");
@@ -6385,13 +6393,13 @@ export function registroVendite(fatture, clienti, note, dal, al) {
     imponibile: round2(nel.reduce((s, r) => s + r.imponibile, 0)),
     imposta: round2(nel.reduce((s, r) => s + (r.imposta || 0), 0)) };
 }
-export const CSV_REGISTRO_VENDITE_INTESTAZIONE = "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo";
+export const CSV_REGISTRO_VENDITE_INTESTAZIONE = "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo;causale";
 export function csvRegistroVendite(fatture, clienti, note, dal, al) {
   const r = registroVendite(fatture, clienti, note, dal, al);
   const num = (v) => v == null ? "" : String(v);
   let csv = CSV_REGISTRO_VENDITE_INTESTAZIONE + "\n";
   for (const x of r.righe)
-    csv += `${csvCell(x.tipo)};${csvCell(x.numero)};${x.data};${csvCell(x.cliente)};${csvCell(x.piva)};${csvCell(x.cf)};${csvCell(x.sdi)};${num(x.aliquota)};${num(x.imponibile)};${num(x.imposta)};${num(x.totale)};${csvCell(x.riferimento)};${x.nel}\n`;
+    csv += `${csvCell(x.tipo)};${csvCell(x.numero)};${x.data};${csvCell(x.cliente)};${csvCell(x.piva)};${csvCell(x.cf)};${csvCell(x.sdi)};${num(x.aliquota)};${num(x.imponibile)};${num(x.imposta)};${num(x.totale)};${csvCell(x.riferimento)};${x.nel};${csvCell(x.causale)}\n`;
   return csv;
 }
 /* la frase per chi preme il bottone: quanti documenti, quanti senza IVA
