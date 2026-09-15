@@ -599,3 +599,96 @@ volendo**.
 L'ordine di valore è questo: prima P1 (una riga non sparisce senza che qualcuno
 lo dica), poi P3 (il file spiega sé stesso, e costa una riga), poi P2 (la
 ragione diventa leggibile da un programma).
+
+## 15/09 — riverifica della sezione D2: quanti degli otto «muti» lo sono ancora
+
+⏱️ **Riverifica mirata, non nuova ricerca.** La sezione D2 (04/08-13/08)
+elencava otto lettori CSV «MUTI»: `conti/fatture`, `conti/incassi`,
+`conti/listino`, `conti/pesate`, `scudo/infortuni`, `sentinella/monitoraggi`,
+`sentinella/volate`, `terra/rilievi`. Il documento ha più di un mese ed è
+codice che nel frattempo è stato lavorato: **sei degli otto sono invecchiati**,
+non solo `terra/rilievi` (già segnalato prima di aprire questa riverifica).
+
+Per ogni voce: (1) esiste una funzione sorella `scarti<Nome>Csv` parallela al
+lettore? (2) è davvero chiamata nella pagina, o esiste e basta?
+
+| voce originale | sorella `scarti*Csv` esiste? | è chiamata nella pagina? | stato oggi |
+|---|---|---|---|
+| conti/fatture | sì, `scartiFattureCsv` (conti-data.js:895) | sì | **RISOLTO** |
+| conti/incassi | sì, `scartiIncassiCsv` (conti-data.js:6515) | sì | **RISOLTO** |
+| conti/listino | sì, `scartiListinoCsv` (conti-data.js:1109) | sì | **RISOLTO** |
+| conti/pesate | sì, `scartiPesateCsv` (conti-data.js:5797) | sì | **RISOLTO** |
+| scudo/infortuni | **no** | — | ancora MUTO |
+| sentinella/monitoraggi | **no** | — | ancora MUTO |
+| sentinella/volate | sì, `scartiVolateCsv` (sentinella-data.js:1186) | sì | **RISOLTO** |
+| terra/rilievi | sì, `scartiRilieviCsv` (terra-data.js:2371) | sì (index.html:4804) | **RISOLTO** (segnalato prima della riverifica) |
+
+Comandi e uscite:
+
+```
+$ grep -n "^export function scarti" apps/conti/conti-data.js
+895:export function scartiFattureCsv(text) {
+965:export function scartiGareCsv(text) {
+1109:export function scartiListinoCsv(text) {
+5797:export function scartiPesateCsv(text) {
+6515:export function scartiIncassiCsv(text) {
+6614:export function scartiClientiCsv(text) {
+
+$ grep -n "^export function scarti" apps/scudo/scudo-data.js
+3310:export function scartiLavoratoriCsv(text) {
+3444:export function scartiScadenzeCsv(text) {
+6525:export function scartiAzioniCsv(text) {
+  → nessuna riga per `scartiInfortuniCsv`: la funzione non esiste
+
+$ grep -n "^export function scarti" apps/sentinella/sentinella-data.js
+852:export function scartiRicettoriCsv(text) {
+974:export function scartiAdempimentiCsv(text) {
+1186:export function scartiVolateCsv(text) {
+  → nessuna riga per `scartiMonitoraggiCsv`: la funzione non esiste
+
+$ grep -n "^export function scarti" apps/terra/terra-data.js
+2307:export function scartiFrontiCsv(text) {
+2371:export function scartiRilieviCsv(text) {
+
+$ grep -n "scartiFattureCsv(" apps/conti/index.html
+8053:    const scartate = scartiFattureCsv(testoFat);
+
+$ grep -n "scartiIncassiCsv(" apps/conti/index.html
+6786:    const scartate = scartiIncassiCsv(testoInc);
+
+$ grep -n "scartiListinoCsv(" apps/conti/index.html
+7865:    const scartate = scartiListinoCsv(testoLis);
+
+$ grep -n "scartiPesateCsv(" apps/conti/index.html
+7340:    const scartate = scartiPesateCsv(testoPes);
+
+$ grep -n "scartiVolateCsv(" apps/sentinella/index.html
+5366:    const scartate = scartiVolateCsv(testoVol);
+
+$ grep -n "scartiRilieviCsv(" apps/terra/index.html
+4804:    const scartate = scartiRilieviCsv(testoRil);
+
+$ grep -c "scartiInfortuniCsv(" apps/scudo/index.html
+0
+
+$ grep -c "scartiMonitoraggiCsv(" apps/sentinella/index.html
+0
+```
+
+**Conteggio finale: ancora davvero «muti» oggi 2 su 8** —
+`scudo/infortuni` (`parseInfortuniCsv`, scudo-data.js:2185) e
+`sentinella/monitoraggi` (`parseMonitoraggiCsv`, sentinella-data.js:749). Per
+questi due non esiste nessuna funzione `scarti*Csv` sorella: il filtro dentro
+il lettore scarta ancora in silenzio, esattamente come descritto in D2.
+Gli altri sei — i quattro lettori di Conti, `sentinella/volate` e
+`terra/rilievi` — hanno **entrambi** i requisiti (sorella scritta e sorella
+chiamata nella pagina reale) e non sono più un caso della sezione D2.
+
+⚠️ **Nota per chi userà P1-P4**: le proposte del documento erano pensate per
+un «dove» di otto punti. Quel «dove» oggi è **due**, non otto: prima di
+tradurre P1 (o le altre) in codice va riletta la sezione D2 alla luce di
+questa riga, perché il lavoro da fare non è più «costruire scartiXCsv su otto
+lettori» — è già stato fatto su sei di essi in un momento non tracciato da
+questo documento — ma solo «farlo, e chiamarlo dalla pagina, sui due che
+restano: `scudo/infortuni` e `sentinella/monitoraggi`». Un cantiere aperto
+sugli otto originali rifarebbe sei volte un lavoro già in produzione.
