@@ -94,7 +94,12 @@ for (const W of [430, 320]) {
   const stab = righe.find((r) => /Stabilizzato/.test(r[0]));
   dice(!!stab && /^250/.test(stab[1]) && /^475/.test(stab[2]) && /8,50/.test(stab[3]) && /4\.037,50/.test(stab[4]), "lo stabilizzato: 250 m³ → 475 t × 8,50 €/t = 4.037,50 €", JSON.stringify(stab));
   const piede = await testo(pg, "#ric-rimanenze tfoot");
-  dice(/Totale \(2 su 3\)/.test(piede) && /5\.189,50/.test(piede), "il piede dice «2 su 3» e il totale dei soli valorizzati", piede);
+  /* ⛔ ERA `/Totale \(2 su 3\)/`, e il piede da tempo scrive «2 su 3 A
+     LISTINO, 2 A BILANCIO» (11/09, `rimanenzeBilancio`): la regex chiedeva
+     la parentesi chiusa subito dopo "3" e non combaciava più — un banco che
+     porta dentro la forma esatta del testo invecchia quando il testo si
+     arricchisce, la stessa famiglia già raccolta per i numeri. */
+  dice(/Totale \(2 su 3 a listino/.test(piede) && /5\.189,50/.test(piede), "il piede dice «2 su 3» e il totale dei soli valorizzati", piede);
   const var_ = await testo(pg, "#rim-variazione");
   dice(/^Variazione delle rimanenze \d{4}: non si può dire \(i due inventari non valorizzano gli stessi materiali\)\.$/.test(var_), "⛔ la variazione dell'anno DICE perché non si può dire, invece di una cifra", var_);
   await pg.evaluate(() => document.getElementById("ric-rimanenze")?.scrollIntoView({ block: "start" }));
@@ -106,11 +111,19 @@ for (const W of [430, 320]) {
   dice(sc.length === 1 && /conti_rimanenze_piazzale_2026-08-30\.csv$/.test(sc[0].nome), "il CSV esce col nome che porta la data dell'inventario (nella dimostrazione col marchio davanti)", JSON.stringify(sc.map((s) => s.nome)));
   const csv = sc.length ? decodeURIComponent(sc[0].href.replace(/^data:text\/csv;charset=utf-8,/, "")) : "";
   const righeCsv = csv.split("\n").filter((r) => r && !/^#/.test(r));
-  dice(righeCsv[0] === "inventario;data;metodo;materiale;prodotto_listino;volume_m3;densita_t_m3;tonnellate;prezzo_listino;unita_prezzo;valore_listino;nel_totale;perche", "l'intestazione del CSV", righeCsv[0]);
-  dice(righeCsv.some((r) => /^i3;2026-08-30;stima;Sabbia lavata 0\/4;Sabbia lavata 0\/4;;1\.6;;22;m3;;no;volume non leggibile$/.test(r)), "⛔ nel CSV la sabbia ha «no» e la ragione, non uno zero", righeCsv.find((r) => /Sabbia/.test(r)));
-  dice(righeCsv.some((r) => /^i3;2026-08-30;stima;Stabilizzato 0\/30;Stabilizzato 0\/30;250;1\.9;475;8\.5;t;4037\.5;si;$/.test(r)), "e lo stabilizzato ha «si» col suo valore", righeCsv.find((r) => /Stabil/.test(r)));
+  /* ⛔ ERANO 13 COLONNE, ORA 17 (11/09, `rimanenzeBilancio`): le quattro in
+     coda — costo_m3, valore_costo, valore_bilancio, criterio — sono il
+     valore al costo di produzione e il minore fra costo e listino per il
+     bilancio (art. 2426 c.c.), e questo banco non le conosceva ancora. Il
+     costo al m³ della dimostrazione (8,62 €) e i valori di riga sono presi
+     dall'uscita vera della pagina, non ricalcolati qui. */
+  dice(righeCsv[0] === "inventario;data;metodo;materiale;prodotto_listino;volume_m3;densita_t_m3;tonnellate;prezzo_listino;unita_prezzo;valore_listino;nel_totale;perche;costo_m3;valore_costo;valore_bilancio;criterio", "l'intestazione del CSV", righeCsv[0]);
+  dice(righeCsv.some((r) => /^i3;2026-08-30;stima;Sabbia lavata 0\/4;Sabbia lavata 0\/4;;1\.6;;22;m3;;no;volume non leggibile;8\.62;;;$/.test(r)), "⛔ nel CSV la sabbia ha «no» e la ragione, non uno zero", righeCsv.find((r) => /Sabbia/.test(r)));
+  dice(righeCsv.some((r) => /^i3;2026-08-30;stima;Stabilizzato 0\/30;Stabilizzato 0\/30;250;1\.9;475;8\.5;t;4037\.5;si;;8\.62;2155;2155;costo$/.test(r)), "e lo stabilizzato ha «si» col suo valore", righeCsv.find((r) => /Stabil/.test(r)));
   const toastT = await testo(pg, "#toast");
-  dice(/Rimanenze al 30\/08\/2026 esportate: valore a listino, non fiscale\./.test(toastT), "il toast ripete che è a listino, non fiscale", toastT);
+  /* ⛔ ERA «valore a listino, non fiscale», ora dice anche il criterio di
+     bilancio nella stessa frase (11/09): stesso principio, testo cresciuto. */
+  dice(/Rimanenze al 30\/08\/2026 esportate: a listino, al costo e il minore dei due per il bilancio\./.test(toastT), "il toast ripete che è a listino, non fiscale", toastT);
 
   dice(errori.length === 0, "la pagina non ha sollevato errori in tutto il giro", errori[0]);
   dice(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "la pagina non scorre in orizzontale");

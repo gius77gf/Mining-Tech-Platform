@@ -175,7 +175,16 @@ if (nota) {
     dice(!!carb && /8\.400/.test(carb.celle[1]) && /1 riga/.test(carb.celle[1]), "qui il carburante fa 8.400 su 1 riga (la colonna «qui» legge v.flotta)", carb && carb.celle[1]);
     dice(!!carb && /8\.900/.test(carb.celle[2]) && /2 righe/.test(carb.celle[2]), "in Conti fa 8.900 su 2 righe (8.400 + 500 senza data)", carb && carb.celle[2]);
     const man = nota.righe.find((r) => /manutenzione/i.test(r.celle[0]));
-    dice(!!man && man.doppia && /10\.790/.test(man.celle[1]) && /4 righe/.test(man.celle[1]) && /640/.test(man.celle[2]), "manutenzione: 10.790 qui su 4 righe, 640 in Conti, doppia", man);
+    /* ⛔ ERA 640, ORA 840 (15/09): la dimostrazione di Conti ha guadagnato
+       una spesa di manutenzione da € 200 collegata a un ordine di Flotta
+       (`c90`, "Rotazione gomme", `ordineFlotta.id: "n2"`) — la stessa
+       famiglia di "un banco che porta dentro un numero atteso invecchia
+       col crescere della dimostrazione" già raccolta in questo repository.
+       Il carburante (8.400/8.900) e il noleggio (3.300) non sono cambiati:
+       solo questa riga, e solo per quella spesa nuova. Si corregge il
+       numero atteso, non il prodotto: `confrontoCostiMezzi` risponde
+       esattamente la somma vera delle spese `daMezzo` di Conti. */
+    dice(!!man && man.doppia && /10\.790/.test(man.celle[1]) && /4 righe/.test(man.celle[1]) && /840/.test(man.celle[2]), "manutenzione: 10.790 qui su 4 righe, 840 in Conti, doppia", man);
     const nol = nota.righe.find((r) => /noleggi/i.test(r.celle[0]));
     dice(!!nol && !nol.doppia && nol.celle[2] === "—" && /3\.300/.test(nol.celle[1]), "noleggio: solo qui (3.300), Conti dice «—» e non zero", nol);
     dice(/gonfiato/.test(nota.testo), "il verdetto dice «gonfiato»");
