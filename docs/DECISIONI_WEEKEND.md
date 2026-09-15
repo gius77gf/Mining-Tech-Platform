@@ -10,6 +10,39 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 15/09 — una decisione nuova, dal secondo giro di ricerca su Deepwork ID
+
+*Il secondo giro di ricerca mirata (Deepwork ID, mai passata al setaccio finora
+in questa sessione) ha trovato un verdetto scaduto in
+`docs/REVISIONE_SICUREZZA_202607.md` — corretto in questa stessa unità, non è
+una decisione — e un candidato di scope che invece lo è.*
+
+- [ ] **29. Conti: il DDT (`pesate`) resta fuori da `documentoEmesso` — va
+  aggiunto come quarta collezione protetta?** La decisione 10b (07/08) ha
+  limitato **cancellare/modificare un documento emesso ai soli admin** per
+  tre collezioni: `conti/fatture`, `conti/note`, `scudo/documenti`
+  (`firestore.rules:128-131`). Il DDT di Conti (collezione `pesate`) non
+  c'è: qualunque membro può cancellarlo o modificarlo su Firestore anche
+  dopo che è stato agganciato a una fattura (`fatturaId` valorizzato) —
+  l'interfaccia nasconde solo il bottone («Elimina pesata» sparisce quando
+  `p.fatturaId` è valorizzato, `apps/conti/index.html:4185»), ma è un
+  vincolo di sola UI, non una regola server. L'app stessa tratta il DDT come
+  un documento fiscale con "numerazione progressiva, senza salti né
+  doppioni", regolato dal DPR 472/1996 (`apps/conti/index.html:1379`) — la
+  stessa natura di una fattura. ⚠️ **E la voce 19 qui sopra dà per scontato
+  che la 10b copra "chi cancella un DDT emesso" applicandola all'esplosivo
+  di Genesi: non è così per il DDT di Conti**, che non è mai stato incluso.
+  Non è cross-organizzazione (resta dentro la stessa azienda: l'isolamento
+  fra org non c'entra) — è la stessa domanda del punto 2 originale di
+  luglio, sulla quarta voce dell'elenco che CLAUDE.md dichiara
+  esplicitamente "corto e volontario, da allargare il giorno che ne servirà
+  una quarta". *La mia risposta, se non rispondi entro la settimana*:
+  aggiungere `conti/pesate` all'elenco — è coerente con le altre tre e con
+  quanto l'app già dichiara nella propria interfaccia — ma non la applico da
+  solo perché è esattamente il tipo di scelta che la 10b ha riservato a te.
+
+---
+
 ## 🟡 04/09 — sei decisioni nuove, nate dalle passate in profondità
 
 *Il 3 e il 4 settembre tutte le superfici hanno avuto la passata in profondità
@@ -279,7 +312,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **15**
+# 📖 Da dove cominciare — le decisioni aperte sono **16**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -1345,9 +1378,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.471** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.474** *(ricontate il 15/09, dopo aver
 aggiunto a `run-kpi.mjs` la prova che «saldata» e «parziale» non sono mai vere
-insieme in `statoFattura` di Conti, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+insieme in `statoFattura` di Conti e a `claims-convergenza.mjs` il limite a
+tre scritture ravvicinate, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
 esecuzioni** che aprono davvero le pagine in un browser.
 
