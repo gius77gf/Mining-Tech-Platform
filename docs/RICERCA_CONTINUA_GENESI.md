@@ -3480,3 +3480,26 @@ richiede leggere come `sequenzaSuMaglia`/`micFinestra` espongono un
 valore PER FORO (oggi chiamate su un gruppo di fori, non verificato se
 restituiscono un burden individuale) prima di scrivere la riga giusta.
 
+⛔ **TERZA CORREZIONE (15/09, stesso giorno, sulla MIA stessa frase qui
+sopra): "due righe" era ottimista — misurato, non stimato, e il costo
+vero è "medio", non "piccolo".** Prima di scrivere codice ho seguito la
+catena vera: `h.burdenLoc` esiste ed è popolato **sempre**
+(`computeSeq2D` → `computeEnergia2D` → `energiaSuMaglia`, chiamata
+incondizionata a ogni rigenerazione della maglia — non dietro un layer
+2D da attivare, come temevo in un primo momento e che sarebbe stato un
+difetto). Ma quell'oggetto `h` vive in `D2.holes` (lo stato del
+Progetto 2D), **non** in `SIM.fori`. E `SIM.fori` — l'array che
+`holeInfoShow` legge tramite `g.userData.f` — non è lo stesso `h`: è
+ricostruito da zero in `buildSim()` (`genesi.html:1791`) a partire da
+`P.holes` (un TERZO stato, diverso sia da `D2` sia dall'oggetto che
+porta `burdenLoc`), con un letterale che copia solo un sottoinsieme di
+campi — `{i, id, x, tDet, prof, h, cz, zoff, kg}` — **senza**
+`burdenLoc`/`volLoc`/`pfLoc`/`burdenVero`. Aggiungere il burden al
+pannello vuol dire toccare quella ricostruzione (capire come `P.holes`
+si allinea a `D2.holes` per indice o per `id`, e portare il campo
+attraverso `buildSim`), non scrivere due righe su un pannello che già
+riceve il dato. Resta un cantiere fattibile — il dato ESISTE da qualche
+parte nel sistema, non va inventato — ma è "medio": tocca la funzione
+che ricostruisce l'intera scena 3D, con almeno tre stati (`P`, `D2`,
+`SIM`) da tenere dritti. Non preso per costruzione oggi.
+
