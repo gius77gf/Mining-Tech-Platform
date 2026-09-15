@@ -4535,12 +4535,21 @@ export function descriviCartella(cartella) {
    Era scritta lì per Campo e violata qui.
    `senzaScadenze` sta a parte e non si somma: non è un allarme (una persona
    appena assunta ci passa) ma nemmeno un «a posto», e chi guarda deve leggerlo. */
-export function kpiFrom(lavoratori, scadenze) {
-  const st = scadenze.map(s => statoScadenza(s.dataScadenza));
+// ⛔ E LA FIRMA ERA PIÙ STRETTA DI QUELLA DELLE SUE SORELLE (15/09): `kpiFrom`
+// di Conti, Terra e Flotta accetta un `oggi` esplicito, apposta per essere
+// interrogata su una data fissa (report, screenshot, prove che non dipendono
+// da quando girano); quella di Scudo no, e i due `statoScadenza(...)` qui
+// sotto usavano sempre `new Date()` vera. Non produceva un numero SBAGLIATO
+// (la pagina live non ha comunque un "oggi" fisso da passare), ma rendeva
+// impossibile scrivere una prova che fissi un giorno di confine — ed è per
+// questo che le prove esistenti aggirano il problema con date estreme
+// (`PAST`/`FUT`, anno 2000/2099) invece di verificarlo davvero.
+export function kpiFrom(lavoratori, scadenze, oggi = new Date()) {
+  const st = scadenze.map(s => statoScadenza(s.dataScadenza, oggi));
   const scadute = st.filter(x => x === "scaduta").length;
   const trenta = st.filter(x => x === "in-scadenza").length;
   const conProblemi = new Set(
-    scadenze.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
+    scadenze.filter(s => statoScadenza(s.dataScadenza, oggi) !== "regolare")
             .map(s => s.lavoratoreId).values());
   const conScadenze = new Set(scadenze.map(s => s.lavoratoreId));
   const attivi = lavoratori.filter(l => l.attivo);

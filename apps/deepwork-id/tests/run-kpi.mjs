@@ -434,6 +434,32 @@ test("statoScadenza: una scadenza con la data illeggibile NON è regolare", () =
   eq(scudo.statoScadenza("2026-08-10", o), "in-scadenza", "entro 30");
   eq(scudo.statoScadenza("2027-01-01", o), "regolare", "lontana");
 });
+/* ⛔ `kpiFrom` DI SCUDO NON ACCETTAVA UN `oggi` FISSO — a differenza delle
+   sorelle di Conti, Terra e Flotta (15/09). Non produceva un numero sbagliato
+   sulla pagina live (che non ha comunque un "oggi" fisso da darle), ma
+   rendeva impossibile fissare un giorno di confine in una prova: le prove
+   qui sopra lo aggirano con `PAST`/`FUT` (anno 2000/2099), che restano
+   scadute/regolari qualunque sia il giorno vero in cui gira la suite — e
+   quindi non dicono niente sul confine dei 30 giorni. Aggiunto `oggi = new
+   Date()` come terzo parametro opzionale (comportamento invariato quando
+   omesso), sul modello di `conti.kpiFrom(fatture, gare, oggi)`. */
+test("⛔ kpiFrom: con un oggi FISSO il confine dei 30 giorni è verificabile, non solo aggirabile", () => {
+  const o = new Date("2026-07-20T00:00:00");
+  const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }];
+  const sca = [
+    { lavoratoreId: "l1", dataScadenza: "2026-07-19" }, // ieri rispetto a `o`: scaduta
+    { lavoratoreId: "l2", dataScadenza: "2026-08-10" },  // entro 30gg da `o`: in-scadenza
+  ];
+  eq(scudo.kpiFrom(lav, sca, o), { scadute: 1, trenta: 1, regolari: 0, senzaScadenze: 0 },
+    "il conto dipende dall'oggi passato, non da quando gira la suite");
+  // la stessa coppia, letta il giorno dopo la seconda scadenza: adesso
+  // entrambe sono scadute — la prova PRIMA non poteva dimostrarlo, perché
+  // senza `oggi` la funzione guardava sempre la data vera del computer
+  const dopo = new Date("2026-08-11T00:00:00");
+  eq(scudo.kpiFrom(lav, sca, dopo).scadute, 2, "il confine si sposta con l'oggi passato, non da solo");
+  // omesso, il comportamento resta quello di sempre (guardia di compatibilità)
+  ok(typeof scudo.kpiFrom(lav, sca) === "object", "oggi resta opzionale");
+});
 test("idoneitaLabel: esito → classe/etichetta (art. 41)", () => {
   eq(scudo.idoneitaLabel("idoneo").cls, "ok", "idoneo");
   eq(scudo.idoneitaLabel("prescrizioni").cls, "warn", "prescrizioni");

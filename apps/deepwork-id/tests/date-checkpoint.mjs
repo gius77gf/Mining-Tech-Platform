@@ -244,6 +244,10 @@ const SCUSATI = new Map([
   ["vault/checkpoints/20260813-164000_due-cantieri-e-la-copia-che-si-annuncia-gemella.md",
     "13/08: ora PREDETTA invece che letta da `date -u`, 2 minuti avanti. Il file è già stato rinominato "
     + "col nome giusto; resta il PERCORSO nella storia, e toglierlo chiede un force-with-lease fermo al fondatore."],
+  ["vault/checkpoints/20260915-070900_deepworkid-verdetto-scaduto-convergiclaims.md",
+    "15/09: stessa causa del 13/08, un minuto invece di due — l'ora scritta nel nome era una STIMA, non `date -u` "
+    + "letta prima di creare il file (era entrato alle 07:08:24, il nome diceva 07:09:00). Rinominato col nome "
+    + "giusto (`20260915-070824_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
 ]);
 
 test("nessun checkpoint NUOVO è datato dopo l'ORA in cui è entrato in git", () => {

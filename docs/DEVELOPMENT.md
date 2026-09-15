@@ -46,7 +46,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.474 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09: 2990 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 22), dopo aver aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere insieme in `statoFattura` di Conti e a `claims-convergenza` il limite a tre scritture:
+**3.475 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09: 2991 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 22), dopo aver aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere insieme in `statoFattura` di Conti, a `claims-convergenza` il limite a tre scritture e a `kpiFrom` di Scudo un `oggi` fisso:
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
 > `node` completo esegue **3.940** asserzioni su **40** comandi.
