@@ -2420,3 +2420,185 @@ ricalcola. Un turno si chiude comunque: è la vita vera della cava passare
 le cose in sospeso al turno dopo, e il principio "l'assenza di un dato non
 è un dato favorevole" chiede di DICHIARARE, non di bloccare un'operazione
 che a volte è legittima.
+
+
+## 15/09 — sesto giro di ricerca mirata: il MEZZO FERMO nella consegna — l'avviso di chiusura non lo vede
+
+*Legge prima di proporre: la consegna di turno di Campo è già stata oggetto
+di due giri precedenti in questo stesso documento — "Ricerca del
+2026-09-05 (notte) — il passaggio di consegne fra turni" (righe 1846+, che
+ha aggiunto "LAVORI NON CONCLUSI" e "SEGNALAZIONI DEL TURNO" al testo della
+consegna) e "15/09 — quinto giro" (righe 2345+, che ha aggiunto l'avviso
+`avvisiChiusuraTurno` e reso obbligatorio il nome di chi riceve). Questo
+sesto giro NON ripete quel lavoro: cerca specificamente che cosa i migliori
+prodotti dichiarano OBBLIGATORIO passare fra turni per un mezzo fermo,
+un'area non sicura e un ordine in sospeso, e verifica punto per punto se
+`avvisiChiusuraTurno` — la funzione nata proprio dal giro precedente — li
+vede davvero.*
+
+### Il mondo [tutto di seconda mano: `WebSearch`, quattro ricerche;
+`WebFetch` non è stato riprovato in questo giro (già `EGRESS_BLOCKED` sei
+volte nei giri precedenti su questo stesso file — non si rilancia una prova
+già fatta)]
+
+1. **Un mezzo/impianto fuori uso non è "una nota nel registro": è un
+   cartellino che lo toglie dal servizio finché non è riparato, e il difetto
+   deve entrare in un percorso tracciato, assegnato e chiuso.** Fonte: la
+   regola MSHA (30 CFR) sull'ispezione prima-turno — "unsafe equipment must
+   be tagged and removed from service until repaired", e la lettura dei
+   risultati di ricerca aggiunge esplicitamente: *"which means the defect
+   has to flow into a tracked, assigned, closed-out repair"*.
+   [seconda mano: fleetrabbit.com/blogs/post/msha-pre-shift-inspection-best-practices,
+   heavyvehicleinspection.com/blog/post/mining-equipment-pre-shift-inspection-checklist-remote-sites]
+2. **Il cambio di consegna su un'energia isolata (lockout/tagout) non è un
+   testo, è un passaggio di mano fisico e tracciato**: nel lockout di
+   gruppo, il turno uscente NON toglie i propri lucchetti finché quello
+   entrante non ha messo i suoi — protezione continua senza soluzione di
+   continuità — e il trasferimento di responsabilità (chi tiene la chiave
+   ora) **si registra sul permesso di isolamento**. [seconda mano:
+   risultati di ricerca su astragroup.com.au (SOP Isolation and Tagging
+   v3.0) e coresafety.org]
+3. **Le condizioni anormali/di manutenzione sono la categoria a più alto
+   rischio di miscomunicazione alla consegna**, non una fra tante: l'HSE
+   britannico, esaminando 16 compagnie offshore oil&gas, ha trovato incidenti
+   causati da comunicazione imprecisa sullo stato di manutenzione/impianto
+   proprio al cambio turno, e la letteratura cita Piper Alpha, Texas City,
+   Buncefield e Deepwater Horizon come casi in cui la consegna di turno ha
+   avuto un ruolo. Una statistica riportata: le fasi di
+   avviamento/fermata/cambio pesano <5% del tempo operativo ma generano
+   **40% degli incidenti di impianto**. [seconda mano: ehstoday.com/safety/
+   article/21920292, hazardexonthenet.net/article/178567,
+   hsseworld.com/why-poor-shift-handover-can-lead-to-serious-oil-gas-incidents]
+4. **Conseguenza pratica per il disegno di un prodotto**: le fonti sopra
+   convergono su un punto preciso — le informazioni "anomale" (mezzo fermo,
+   isolamento attivo, area non sicura) vanno **isolate visivamente e non
+   mescolate nel flusso di note ordinarie**, e chi entra deve **poter
+   confermare di averle viste**, non solo leggerle in un testo scorrevole.
+   [dedotto dalla lettura congiunta delle tre fonti sopra, non affermato
+   testualmente da nessuna di esse]
+
+### Domande per il delta (sul meccanismo, non sul nome)
+
+1. Un'attività ancora **ferma** (mezzo/impianto fuori servizio, causale e
+   minuti già registrati) genera un avviso quando si chiude il turno, o
+   sparisce dai radar perché "i dati sono completi"?
+2. Il testo della consegna, quando elenca un lavoro non concluso che è un
+   fermo, dice **perché** è fermo e **da quanto**, o solo il titolo?
+3. Chi entra ha un modo di **confermare** di aver visto un fermo/anomalia
+   ancora aperta, o la firma riguarda solo il documento nel suo insieme?
+
+### Il delta, verificato nel codice (commit `bfec9751`, apps/campo/campo-data.js e index.html)
+
+- **Domanda 1 — MANCANZA CONFERMATA.** `avvisiChiusuraTurno` (definita
+  `apps/campo/campo-data.js:1077-1085`) è la funzione nata dal giro
+  precedente apposta per avvisare "prima di chiudere". Legge il codice per
+  intero:
+  ```
+  export function avvisiChiusuraTurno(attivita, appello) {
+    const app = appello || { completo: true, daFare: 0 };
+    const att = attivita || [];
+    const attivitaAperte = att.filter(a => a && a.stato === "in-corso").length;
+    const fermiSenzaMinuti = att.filter(a => a && a.stato === "anomalia" && minutiFermoDi(a) === null).length;
+    const appelloDaFare = app.completo ? 0 : app.daFare;
+    return { appelloDaFare, attivitaAperte, fermiSenzaMinuti,
+      niente: appelloDaFare === 0 && attivitaAperte === 0 && fermiSenzaMinuti === 0 };
+  }
+  ```
+  Conta **`attivitaAperte`** solo per `stato === "in-corso"` e
+  **`fermiSenzaMinuti`** solo per le anomalie a cui MANCANO i minuti. Una
+  volta che il capocantiere ha scritto causale e minuti di un fermo
+  (`stato` resta `"anomalia"` — il commento a riga 3290 del modulo lo dice
+  esplicitamente: *"Quando il capocantiere rimette l'attività «in corso»,
+  il fermo [...]"*, cioè `anomalia` **è** lo stato di "ancora fermo, non
+  ancora rimesso in servizio"), l'avviso **tace**: nessuna delle due conte
+  lo vede. Verificato anche sul lato pagina,
+  `grep -n "avvisiChiusuraTurno" apps/campo/index.html` → una sola chiamata
+  (riga 3499, `const av = avvisiChiusuraTurno(ATT_OGGI, app);`), e il testo
+  che ne esce (righe 3500-3506) mostra solo tre voci: persone senza spunta,
+  attività ancora in corso, fermi senza i minuti — **mai** "fermi ancora
+  aperti". Un capocantiere può chiudere il turno con il frantoio
+  formalmente registrato come "Fermo per intasamento, 55 minuti, causale
+  Intasamento impianto" **e stato ancora `anomalia`** (cioè non rimesso in
+  servizio) senza che l'app gli dica niente — la stessa cosa che la
+  domanda 1 del mondo (MSHA: il difetto deve restare tracciato finché non è
+  chiuso, non finché non ha una cifra) e la domanda 3 (le condizioni
+  anormali sono la categoria a più alto rischio proprio perché si perdono
+  nella consegna) chiedono di sorvegliare.
+  ⛔ Il caso demo lo conferma: righe 219/226/230 di `campo-data.js`
+  registrano tre attività con `stato: "anomalia"` (frantoio, nastro,
+  trasporto) tutte con `causale` e `fermoMin` già compilati — cioè, con i
+  dati della dimostrazione, **tre fermi reali resterebbero fuori
+  dall'avviso di chiusura anche nella demo stessa**.
+- **Domanda 2 — PARZIALE, meno grave, costo basso.** `lavoriNonConclusi`
+  (`apps/campo/campo-data.js:2514-2521`) **include già** le attività in
+  stato `anomalia` (le mette per prime: `ordine = { anomalia: 0, ... }`) —
+  quindi il mezzo fermo NON sparisce dal testo della consegna, a differenza
+  di quanto temuto leggendo solo l'avviso di chiusura. Ma l'oggetto che
+  costruisce porta `titolo`, `dettaglio`, `chi`, `stato/etichetta`
+  (`ETICHETTA_STATO_ATTIVITA.anomalia === "fermo / anomalia"`) — **non**
+  `causale` né `minuti`, che pure sono già calcolati altrove nello stesso
+  modulo (`descriviCausale`, `minutiFermoDi`) e già stampati nella sezione
+  separata "RIEPILOGO FERMI" del foglio. `grep -n "causale" -A2 -B2` sulla
+  funzione `lavoriNonConclusi` conferma che l'oggetto restituito non ha
+  quella chiave. In `testoConsegnaTurno` (riga 3719) la riga stampata è:
+  `"- " + a.titolo + (a.dettaglio ? " (" + a.dettaglio + ")" : "") + " — " + a.chi + " [" + a.etichetta + "]"`
+  — quindi chi legge la consegna vede *"Frantoio primario (Fermo per
+  intasamento tramoggia) — [nessuno in carico] [fermo / anomalia]"* ma non
+  vede *perché* (causale) né *da quanti minuti*, mentre quei due dati sono
+  a un `grep` di distanza nello stesso modulo.
+- **Domanda 3 — MANCANZA CONFERMATA.** La firma di chiusura (`btn-fir`,
+  campi `fir-consegna`/`fir-ricevuta`) è **una sola per l'intero turno**:
+  chi riceve conferma di aver preso in carico il documento nel suo insieme,
+  non conferma riga per riga di aver visto un fermo specifico. Non esiste
+  in `campo-data.js` nessuna funzione che leghi una singola voce di
+  `anomalieAperte`/`lavoriNonConclusi` a un "visto da" distinto dalla firma
+  generale: `grep -ciE "presoInCarico|confermaLettura|vistoDa" apps/campo/campo-data.js`
+  → **0**. È coerente con quanto trovato nel mondo (punto 2, il
+  trasferimento di responsabilità su un'energia isolata si registra per
+  singolo permesso, non genericamente): oggi Campo non distingue.
+  ⚠️ Va detto: questa è la mancanza **più cara da colmare** delle tre (serve
+  un meccanismo nuovo, non un campo in più su un oggetto esistente), e il
+  mandato di questo giro non la propone come cantiere — la registra come
+  domanda aperta, perché la si decida con la misura, non sulla mia parola.
+
+### Riepilogo per la forma fissa
+
+- **Schermata**: la finestra di chiusura turno (`#fir-avvisi`, sopra il
+  bottone "Chiudi il turno") e il testo scaricabile da "Consegna di turno",
+  sezione "LAVORI NON CONCLUSI".
+- **Che cosa non va**: un fermo/anomalia con causale e minuti già compilati
+  (cioè "dati completi" secondo l'unico criterio che l'app oggi controlla)
+  non genera nessun avviso alla chiusura, anche se il mezzo o l'impianto è
+  **ancora fermo**; e quando compare nel testo della consegna, compare
+  senza dire perché è fermo né da quanto.
+- **Come si vede**: si chiude un turno demo con il frantoio primario ancora
+  in stato `anomalia` (dati della dimostrazione, righe 219/226/230 di
+  `campo-data.js`) — `#fir-avvisi` non lo nomina; si scarica la "Consegna di
+  turno (testo)" — la riga del frantoio in "LAVORI NON CONCLUSI" non porta
+  causale né minuti, che sono comunque scritti due sezioni più sotto in
+  "RIEPILOGO FERMI".
+- **Quanto costa**: basso per le prime due (un conteggio in più dentro
+  `avvisiChiusuraTurno` — `att.filter(a => a && a.stato === "anomalia").length`,
+  già la stessa forma delle altre due righe della funzione; e due campi in
+  più nell'oggetto di `lavoriNonConclusi`, già disponibili via
+  `descriviCausale`/`minutiFermoDi` — zero calcolo nuovo). Il terzo punto
+  (conferma per singola voce) è un meccanismo nuovo, non un campo: costo
+  più alto, non stimato qui.
+- **Come si misura**: `avvisiChiusuraTurno` con un'attività `{stato:
+  "anomalia", causale: "guasto-meccanico", fermoMin: 30}` deve restituire
+  `niente: false` con una terza (o quarta) voce diversa da zero — oggi
+  restituisce `niente: true` se quell'unica attività ha già i minuti; e
+  `lavoriNonConclusi` sullo stesso caso deve portare `causale`/`minuti`
+  nell'oggetto, non solo `titolo`/`dettaglio`/`etichetta`.
+
+**Riassunto** — 2 mancanze **confermate e a costo basso** (l'avviso di
+chiusura non vede un fermo ancora aperto se i suoi dati sono completi; il
+testo della consegna non dice perché un mezzo è fermo né da quanto,
+avendo già i due dati altrove nello stesso modulo), 1 domanda **aperta e
+dichiarata cara** (nessuna conferma per singola voce, solo la firma
+generale del documento) che il mondo giustifica ma che questo giro non
+propone come cantiere. Punto già a posto e non riproposto: il mondo chiede
+che un lavoro non concluso compaia comunque nella consegna anche se
+tecnicamente "ha tutti i suoi dati" — e questo Campo lo fa già da sé (`stato
+!== "conclusa"` include l'anomalia), è solo l'*avviso di chiusura* a non
+guardare lo stesso insieme del testo che genera.
