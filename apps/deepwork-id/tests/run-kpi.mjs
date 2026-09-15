@@ -10488,14 +10488,35 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ];
     const appIncompleto = campo.appelloTurno(operatori, presenze, OGGI, "Mattina", "Squadra A");   // daFare: 1
     const av = campo.avvisiChiusuraTurno(attivita, appIncompleto);
-    eq(av.appelloDaFare, 1); eq(av.attivitaAperte, 1); eq(av.fermiSenzaMinuti, 1); eq(av.niente, false);
+    eq(av.appelloDaFare, 1); eq(av.attivitaAperte, 1); eq(av.fermiSenzaMinuti, 1); eq(av.fermiDocumentati, 1); eq(av.niente, false);
     // appello COMPLETO (nessuno da spuntare) e niente in sospeso: nessun avviso
     const completo = { completo: true, daFare: 5 };   // daFare si legge solo se NON completo
-    eq(campo.avvisiChiusuraTurno([], completo), { appelloDaFare: 0, attivitaAperte: 0, fermiSenzaMinuti: 0, niente: true });
+    eq(campo.avvisiChiusuraTurno([], completo), { appelloDaFare: 0, attivitaAperte: 0, fermiSenzaMinuti: 0, fermiDocumentati: 0, niente: true });
     // senza niente passato non esplode, e appello mancante vale «a posto»
     eq(campo.avvisiChiusuraTurno(null, null).niente, true, "senza dati, niente da segnalare (non un falso allarme)");
     // un'anomalia con 0 minuti dichiarati NON è «senza minuti»: zero è un valore vero
     eq(campo.avvisiChiusuraTurno([{ stato: "anomalia", fermoMin: 0 }], completo).fermiSenzaMinuti, 0, "0 minuti è un dato, non un'assenza");
+  });
+  test("⛔ avvisiChiusuraTurno (15/09, dal delta della ricerca sulla consegna di turno): un fermo DOCUMENTATO non è un fermo RISOLTO", () => {
+    const completo = { completo: true, daFare: 0 };
+    // la scheda è compilata alla perfezione (causale E minuti) ma lo stato
+    // resta "anomalia": prima di questa unità l'avviso diceva "niente da
+    // segnalare" su un impianto ancora fermo
+    const fermoCompilato = [{ id: "a4", stato: "anomalia", causale: "Intasamento impianto", fermoMin: 55 }];
+    const av = campo.avvisiChiusuraTurno(fermoCompilato, completo);
+    eq(av.fermiSenzaMinuti, 0, "i minuti ci sono: non è «senza minuti»");
+    eq(av.fermiDocumentati, 1, "ma il fermo è ancora aperto (stato anomalia), e va detto lo stesso");
+    eq(av.niente, false, "⛔ prima di questa riga qui sarebbe stato true: un impianto fermo sparirebbe dall'avviso");
+    // un'anomalia CONCLUSA (stato passato a "conclusa") non conta più:
+    // qui il conteggio si azzera perché non è più fra le anomalie, non
+    // perché qualcuno abbia scritto i minuti
+    eq(campo.avvisiChiusuraTurno([{ ...fermoCompilato[0], stato: "conclusa" }], completo).fermiDocumentati, 0,
+      "conclusa: sparisce perché il turno l'ha chiusa, non per un dato mancante");
+    // fermiSenzaMinuti e fermiDocumentati sono complementari sullo stesso
+    // insieme di anomalie, mai la stessa unità contata due volte
+    const misto = [{ stato: "anomalia", fermoMin: 10 }, { stato: "anomalia", fermoMin: null }, { stato: "anomalia", fermoMin: 0 }];
+    const avMisto = campo.avvisiChiusuraTurno(misto, completo);
+    eq(avMisto.fermiSenzaMinuti + avMisto.fermiDocumentati, misto.length, "ogni anomalia sta in uno dei due conti, e in uno solo");
   });
 
   test("⛔ checklist: quello che non è stato spuntato NON risulta a posto", () => {

@@ -3500,7 +3500,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       $("fir-avvisi").innerHTML = av.niente ? "" : `<b>Prima di chiudere</b>: `
         + [av.appelloDaFare ? conta(av.appelloDaFare, "persona senza spunta nell'appello", "persone senza spunta nell'appello") : "",
            av.attivitaAperte ? conta(av.attivitaAperte, "attività ancora in corso", "attività ancora in corso") : "",
-           av.fermiSenzaMinuti ? conta(av.fermiSenzaMinuti, "fermo senza i minuti", "fermi senza i minuti") : ""]
+           av.fermiSenzaMinuti ? conta(av.fermiSenzaMinuti, "fermo senza i minuti", "fermi senza i minuti") : "",
+           av.fermiDocumentati ? conta(av.fermiDocumentati, "fermo già documentato ma ancora aperto", "fermi già documentati ma ancora aperti") : ""]
           .filter(Boolean).join(" · ")
         + `. Si può chiudere lo stesso: restano scritte per il turno che segue.`;
     } else $("fir-avvisi").innerHTML = "";

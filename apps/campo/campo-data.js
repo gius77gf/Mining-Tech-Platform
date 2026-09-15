@@ -1078,10 +1078,19 @@ export function avvisiChiusuraTurno(attivita, appello) {
   const app = appello || { completo: true, daFare: 0 };
   const att = attivita || [];
   const attivitaAperte = att.filter(a => a && a.stato === "in-corso").length;
-  const fermiSenzaMinuti = att.filter(a => a && a.stato === "anomalia" && minutiFermoDi(a) === null).length;
+  const anomalie = att.filter(a => a && a.stato === "anomalia");
+  const fermiSenzaMinuti = anomalie.filter(a => minutiFermoDi(a) === null).length;
+  /* ⛔ UN FERMO CON CAUSALE E MINUTI SCRITTI NON È UN FERMO RISOLTO (15/09,
+     dal delta della ricerca sulla consegna di turno): `stato` resta
+     "anomalia" finché nessuno lo conclude, quindi prima di questa riga un
+     impianto ancora fermo, ma con la scheda compilata alla perfezione,
+     spariva dall'avviso appena qualcuno finiva di scriverne i minuti — la
+     stessa faccia dell'assenza di un dato scambiata per un dato favorevole,
+     qui al contrario: un dato PRESENTE scambiato per «risolto». */
+  const fermiDocumentati = anomalie.length - fermiSenzaMinuti;
   const appelloDaFare = app.completo ? 0 : app.daFare;
-  return { appelloDaFare, attivitaAperte, fermiSenzaMinuti,
-    niente: appelloDaFare === 0 && attivitaAperte === 0 && fermiSenzaMinuti === 0 };
+  return { appelloDaFare, attivitaAperte, fermiSenzaMinuti, fermiDocumentati,
+    niente: appelloDaFare === 0 && attivitaAperte === 0 && fermiSenzaMinuti === 0 && fermiDocumentati === 0 };
 }
 
 // ══════════════════════════════════════════════════════════════════════
