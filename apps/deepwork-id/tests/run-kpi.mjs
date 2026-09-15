@@ -37560,6 +37560,63 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
 }
 /* ===== fine core · la freccia della calotta ===== */
 
+/* ══════════════════════════════════════════════════════════════════════
+   CORE · LA CALOTTA NON PUÒ ESSERE PIÙ ALTA DELLA SEZIONE (15/09, ultimo
+   residuo geometrico di B12). L'arco (calotta) sta SOPRA i piedritti, quindi
+   la sua freccia non può da sola superare l'altezza intera: se lo fa,
+   `galleriaArcY` scende sotto zero vicino alle pareti — misurato, non
+   dedotto: con altezza 4 e calotta 10, a x=0,4 restituiva **-3,06**, un
+   punto sotto il pavimento. `generaGalleria` piazza lì i fori di contorno
+   (`add(x, galleriaArcY(v,x)-0.15, 'cont')`), e `add()` scarta ogni punto
+   con y<0,25: quei fori sparivano in silenzio dallo schema, senza nessun
+   avviso — un utente che scrive una calotta troppo grande per errore si
+   ritrova un contorno incompleto e non lo sa. Difesa: `magliaGenerabile`
+   blocca la generazione con un messaggio, PRIMA che `galleriaArcY` venga
+   mai chiamata con quello stato. ⚠️ Prove SINCRONE e messe PRIMA del
+   riepilogo. ══════════════════════════════════════════════════════════ */
+{
+  const coreSrc = readFileSync(join(HERE, "../../../index.html"), "utf8");
+  /* estrazione a graffe bilanciate (come genesi-estraibili.mjs): il
+     `prendi` a riga sola usato sopra per la calotta funziona solo perché
+     quelle tre funzioni sono scritte su UNA riga — `magliaGenerabile` e
+     `magliaDetta` no, e un `prendi` che si fermasse alla prima riga
+     prenderebbe solo la firma. */
+  const prendi = (nome) => {
+    const idx = coreSrc.indexOf("function " + nome + "(");
+    if (idx < 0) return null;
+    const apre = coreSrc.indexOf("{", idx);
+    if (apre < 0) return null;
+    let d = 0, i = apre;
+    for (; i < coreSrc.length; i++) {
+      if (coreSrc[i] === "{") d++;
+      else if (coreSrc[i] === "}") { d--; if (!d) break; }
+    }
+    return coreSrc.slice(idx, i + 1);
+  };
+  test("⛔ core: la calotta più alta della sezione blocca la generazione, non la disegna storta in silenzio", () => {
+    const magliaGenerabileSrc = prendi("magliaGenerabile");
+    ok(magliaGenerabileSrc, "magliaGenerabile si trova nel sorgente");
+    ok(/calottaDetta\(v\)>parseNum\(fr\.altezza_m\)/.test(magliaGenerabileSrc),
+      "il controllo confronta la calotta DETTA con l'altezza SCRITTA, non i ripieghi di disegno");
+    const testi = ["parseNum", "calottaDetta", "calottaDisegno", "magliaDetta", "galleriaArcY"].map(prendi).filter(Boolean);
+    ok(testi.length === 5, `estratte tutte e cinque le dipendenze: ${testi.length}`);
+    const f = new Function(testi.join("\n") + "\n" + magliaGenerabileSrc + "\nreturn { magliaGenerabile, galleriaArcY, calottaDetta };")();
+    const v = (altezza, calotta) => ({ tipo: "galleria", maglia: { spaziatura: 3.5 }, fronte: { lunghezza_m: 5, altezza_m: altezza, calotta_m: calotta } });
+    eq(f.magliaGenerabile(v(4, 3)), [], "calotta sotto l'altezza: generabile");
+    eq(f.magliaGenerabile(v(4, 4)), [], "calotta UGUALE all'altezza: ancora generabile (i piedritti si azzerano, non è un errore)");
+    const bloccata = f.magliaGenerabile(v(4, 10));
+    eq(bloccata.length, 1, "calotta più alta dell'altezza: bloccata");
+    ok(/calotta/.test(bloccata[0]) && /alta/.test(bloccata[0]), `il messaggio parla di altezza: «${bloccata[0]}»`);
+    eq(f.magliaGenerabile(v(null, 10)).length, 1,
+      "senza altezza scritta manca solo QUELLA: il controllo nuovo non si attiva da solo e non raddoppia l'avviso");
+    /* la prova che il difetto era vero: senza il blocco, `galleriaArcY` va
+       sotto zero esattamente dove i fori di contorno la usano */
+    ok(f.galleriaArcY({ fronte: { lunghezza_m: 5, altezza_m: 4, calotta_m: 10 } }, 0.4) < 0,
+      "senza il blocco a monte, l'arco scenderebbe sotto il pavimento vicino alla parete");
+  });
+}
+/* ===== fine core · la calotta non può superare la sezione ===== */
+
 /* CORE · I RESIDUI DI B12 (03/09): un campo svuotato non vale 0; la barra non
    dice «0 file» né «null»; la carica massima per ritardo dice «—» senza chili
    scritti e «≥» quando i chili sono solo su una parte dei fori — il NUMERO di

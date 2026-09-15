@@ -7549,6 +7549,16 @@ function magliaGenerabile(v){
     if(!scritto(fr.lunghezza_m)) manca.push('la larghezza della sezione');
     if(!scritto(fr.altezza_m)) manca.push('l\'altezza della sezione');
     if(calottaDetta(v)===null) manca.push('la freccia della calotta (0 se il cielo è piatto)');
+    /* ⛔ B12, residuo geometrico (15/09): la freccia della calotta non può
+       superare l'altezza — l'arco sta SOPRA i piedritti, non può essere lui
+       da solo più alto dell'intera sezione. Senza questo controllo
+       `galleriaArcY` scende sotto zero vicino alle pareti (misurato:
+       altezza 4, calotta 10 → -3,06 m a x=0,4), e i fori di contorno che ci
+       cadono sopra spariscono in silenzio dal `add()` che scarta y<0,25 —
+       stessa famiglia già chiusa per il ripiego di comodo sulla calotta
+       in questo stesso cantiere, qui sull'altro lato del confronto. */
+    if(calottaDetta(v)!==null && scritto(fr.altezza_m) && calottaDetta(v)>parseNum(fr.altezza_m))
+      manca.push('una freccia della calotta non più alta della sezione (adesso la supera)');
   }else{
     if(mg.borraggio===null) manca.push('la spalla (fronte-foro)');
     if(!scritto(fr.lunghezza_m)) manca.push('la lunghezza del fronte');

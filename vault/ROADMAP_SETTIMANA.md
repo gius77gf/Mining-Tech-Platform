@@ -2618,7 +2618,7 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       così — la prima fixture del cantiere usava `D.eventi` e
       `D.modelliIspezione`, che **non esistono**: la solita tabella indovinata.
 
-- [ ] **B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non
+- [x] ✅ 15/09 **B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non
       difetti.** ⏱️ *14/08, censimento statico fatto da me; il core è l'unica
       superficie che i tre cantieri di questa notte non hanno guardato, ed è
       quella che il fondatore mostra per prima.*
@@ -2750,6 +2750,28 @@ chiuse. Le aperte sono **24**; la pagina d'ingresso di
       inchiodava il vecchio «0,0 kg» è diventata ✅. Restano due candidati
       geometrici (`Math.max(0,Hm-cal)` con freccia > altezza) da misurare, e
       la nota che «B12» come censimento è chiuso.
+      ✅ **IL CANDIDATO GEOMETRICO È MISURATO E CHIUSO (15/09).** `Math.max(0,
+      Hm-cal)` nei due disegni (3D, canvas) era già al sicuro — il clamp tiene
+      `wallH` non negativo comunque. Il difetto vero stava un piano sotto, in
+      `galleriaArcY`, che quella difesa NON aveva: `(H-cal)+cal*Math.max(0,
+      1-t*t)` scende sotto zero vicino alle pareti quando la freccia supera
+      l'altezza — misurato, non dedotto: altezza 4, calotta 10 → **-3,06** a
+      x=0,4. `generaGalleria` piazza lì i fori di contorno
+      (`add(x, galleriaArcY(v,x)-0.15, 'cont')`), e `add()` scarta ogni punto
+      con y<0,25: quei fori sparivano in silenzio dallo schema generato,
+      senza nessun avviso — la stessa famiglia del `calotta_m||1` già chiuso
+      in questo stesso cantiere, sul lato opposto (lì un valore scritto letto
+      come assente, qui un valore assurdo letto come valido).
+      La difesa non tocca `galleriaArcY` (un secondo clamp lì avrebbe rotto
+      l'invariante «al centro vale sempre l'altezza intera», misurato prima
+      di scriverlo): `magliaGenerabile` blocca la generazione con un
+      messaggio quando la calotta scritta supera l'altezza scritta, PRIMA
+      che `galleriaArcY` venga mai chiamata con quello stato. Prova sul
+      sorgente in `run-kpi` (estrazione a graffe bilanciate, non a riga
+      sola: `magliaGenerabile`/`magliaDetta` sono multi-riga, a differenza
+      delle tre funzioni della calotta già estratte con quel metodo più
+      semplice), con la controprova che il difetto tolto fa cadere il test.
+      **B12 è chiuso per intero, censimento e i due residui.**
 
       ⛔ **La riga che salta agli occhi è Genesi · pagina: 119 ripieghi di
       mestiere, tre volte il core e cinque volte chiunque altro** — ed è
@@ -2891,7 +2913,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 
 - `Una passata in profondità su un'app`
 - `D-ter. Le otto verdi che vogliono un cantiere`
-- `B12. IL RIPIEGO SILENZIOSO NEL CORE — censito, e sono CANDIDATI, non`
 - `D. Le 24 decisioni ancora aperte`
 - `B3. Genesi continua a uscire dalla pagina`
 - `B0-bis. TRE FAMIGLIE DI INIEZIONI CHE NESSUN CONTROLLO SORVEGLIA — e`
@@ -8469,9 +8490,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **15/09** (lanciando le suite, non a memoria — dopo aver
-  aggiunto a `run-kpi` la prova di `measureGeom2D`,
-  cantiere B3: 2982→2983): **3.464 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2983, `run-stile` 328,
+  aggiunto a `run-kpi` la prova sulla calotta della galleria (B12, core),
+  2983→2984): **3.465 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2984, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
