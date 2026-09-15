@@ -84,6 +84,13 @@ const DIFETTI = [
      (che morde a 320, dove larghezza da guadagnare non ce n'è) */
   ['id="nm-chi" title="Chi segnala" style="flex:1 1 240px;"', 'id="nm-chi" title="Chi segnala" style="flex:1 1 160px;"'],
   ['<option value="">Chi segnala (facoltativo)</option>', '<option value="">— chi segnala (facoltativo) —</option>'],
+  // 6 · il messaggio dell'appalto appena creato si rilegge per CONTENUTO, non per id
+  /* ⏱️ trovato il 15/09 con un banco nuovo (nav-appa non aveva ancora un
+     banco dedicato): due appalti della stessa impresa con lo stesso oggetto
+     — normalissimo in cava («Trasporto inerti», «Manutenzione») — e il
+     `.find` per testo prendeva il primo, spesso il vecchio già a posto. */
+  ['const salvato = ref && ref.id ? APPA.find(x => x.id === ref.id) : null;',
+   'const salvato = APPA.find(x => x.oggetto === oggetto && x.appaltatoreId === impresa);'],
 ];
 
 /* I CASI, aggiunti in coda al modulo dati: `DEMO` è un oggetto e la pagina ne
@@ -441,6 +448,42 @@ for (const W of [390, 320]) {
     + (m ? ` (le servono ${m.serve} px, la tendina ne è larga ${m.largo})` : ""), m);
   dice(!!m && /facoltativo/i.test(m.voce),
     `@${W} e resta scritto che il campo è facoltativo`, m && m.voce);
+  await pg.close();
+}
+
+// ── 6 · L'APPALTO GEMELLO: STESSO OGGETTO, STESSA IMPRESA ─────────────────
+/* La dimostrazione ha già `pa1`, "Trasporto inerti al piazzale" dell'impresa
+   "Autotrasporti Valle srl" (ap1), A POSTO (sito e DUVRI presenti). Si crea
+   un SECONDO appalto della stessa impresa con lo STESSO oggetto, senza sito
+   né uomini-giorno: se il messaggio si rilegge per contenuto invece che per
+   id, trova pa1 e dice "Appalto registrato." tranquillo su un appalto senza
+   sito né DUVRI — mentre l'elenco, che si ridisegna dallo stato vero, resta
+   corretto. È il difetto che si vede solo nel MESSAGGIO, non nella lista. */
+console.log("\n· l'appalto gemello (stesso oggetto, stessa impresa): il messaggio non deve leggere quello vecchio");
+FIXTURE = "";
+{
+  const pg = await apri("nav-appa");
+  await pg.selectOption("#appa-impresa", "ap1").catch(() => {});
+  await pg.fill("#appa-oggetto", "Trasporto inerti al piazzale").catch(() => {});
+  await pg.click("#btn-appa").catch(() => {});
+  await pg.waitForTimeout(500);
+  const r = await pg.evaluate(() => {
+    const es = document.getElementById("appa-esito");
+    const righe = [...document.querySelectorAll("#appa-list .item")];
+    const ultima = righe[righe.length - 1];
+    return { esito: es ? es.innerText : null, esitoCls: es ? es.className : null,
+      ultimaRiga: ultima ? ultima.innerText : null,
+      ultimaBadge: ultima && ultima.querySelector(".badge") ? ultima.querySelector(".badge").innerText : null };
+  });
+  dice(!!r && /Trasporto inerti al piazzale/.test(r.ultimaRiga || ""),
+    "il nuovo appalto è nell'elenco", r);
+  dice(!!r && /NON VERIFICATO|non.verificat/i.test(r.ultimaBadge || ""),
+    "⛔ e la sua pastiglia dice onestamente che manca qualcosa (l'elenco è già corretto)", r);
+  dice(!!r && /err/.test(r.esitoCls || ""),
+    "⛔ il MESSAGGIO di conferma parla dell'appalto appena creato, non del gemello già a posto",
+    r && (r.esito + " · " + r.esitoCls));
+  dice(!!r && /Resta da fare/.test(r.esito || ""),
+    "e nomina che cosa manca, come per un oggetto senza gemelli", r && r.esito);
   await pg.close();
 }
 

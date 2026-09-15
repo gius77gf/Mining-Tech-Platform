@@ -4765,14 +4765,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       natura: $("appa-natura").value, rischiParticolari: [...bozzaAppalto.rischi],
       rischiValutati: bozzaAppalto.valutati,
       coordRedattore: "", coordData: null, coordSottoscritto: false, stato: "attivo" };
-    await db.aggiungi("appalti", rec);
+    const ref = await db.aggiungi("appalti", rec);
     $("appa-oggetto").value = ""; $("appa-ug").value = ""; $("appa-costi").value = ""; $("appa-inizio").value = "";
     bozzaAppalto = { rischi: [], valutati: false };
     for (const b of $("appa-rischi").querySelectorAll(".chg")) { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); }
     $("appa-valutati").classList.remove("active"); $("appa-valutati").setAttribute("aria-pressed", "false");
     await refresh();
-    // si rilegge lo stato APPENA salvato e si dice quello che manca, per nome
-    const salvato = APPA.find(x => x.oggetto === oggetto && x.appaltatoreId === impresa);
+    /* ⛔ SI RILEGGE PER ID, NON PER CONTENUTO: `oggetto`+`appaltatoreId`
+       trovava il PRIMO appalto con quel testo — se un'impresa ha già un
+       appalto con lo stesso oggetto (nomi come "Trasporto inerti" o
+       "Manutenzione" si ripetono in cava), il messaggio di conferma
+       leggeva lo stato del vecchio appalto, magari già a posto, invece
+       di quello appena creato — un «Appalto registrato.» tranquillo su
+       un appalto senza sito né DUVRI. `db.aggiungi` restituisce già
+       l'id: lo stesso schema di `permAperto = (ref && ref.id) || null`
+       usato per i permessi, qui applicato al messaggio invece che a uno
+       stato di pagina. */
+    const salvato = ref && ref.id ? APPA.find(x => x.id === ref.id) : null;
     const st = salvato ? statoAppalto(salvato, CANT.find(c => c.id === salvato.cantiereId),
       APPT.find(t => t.id === impresa), DOC) : null;
     esito("appa-esito", st && st.esito !== "a-posto"
