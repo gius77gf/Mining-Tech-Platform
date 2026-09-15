@@ -49,7 +49,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 **3.463 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto la prova di `computeInnesco2D`, cantiere B3: 2982 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.927** asserzioni su **40** comandi.
+> `node` completo esegue **3.928** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **141 funzioni** stanno dentro
+importa. **Genesi no**: le sue **140 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,12 +126,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **47** |
+| una o due | **46** |
 | da tre a cinque | 14 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **55 su 141 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **54 su 140 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 86 sono una decisione di architettura.
 ⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
 l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
@@ -155,6 +155,14 @@ un `Math.max` simmetrico); il difetto verificabile è sulla sorgente dei
 fori. Unico effetto collaterale: `computeSeq2D` perde `computeInnesco2D`
 dal proprio elenco "chiama" (stessa famiglia già vista su
 `computeEnergia2D`/`computeRelief2D`).*
+⏱️ *47→46, 55→54 e 141→140 il 15/09 (B3, stesso giorno): `_sigDetTimes`
+è uscita del tutto dalla pagina (nessuna funzione nuova nel modulo:
+componeva SOLO `tempiDetonazione(D2)`, già esattamente la forma che
+`genesi-data.js` espone dal G23 del 10/09 — un alias senza logica
+propria, come `sitoStore`). I suoi due chiamanti (la modale del PPV
+composito, il nome del file esportato) chiamano `tempiDetonazione(D2)`
+direttamente. Nessuno spostamento di bucket per altre funzioni,
+misurato confrontando `--elenco` prima/dopo.*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`

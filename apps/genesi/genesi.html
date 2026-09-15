@@ -4404,8 +4404,10 @@ let _sigData=null, _sigComp=null, _sigNome="";
    ⛔ IL CONTO NON È PIÙ QUI: `tempiDetonazione` in `./genesi-data.js` (blocco
    G23, 10/09), insieme al lettore dell'onda (`ondaDaCsv`, che prima era
    `_sigParse` e leggeva male i decimali all'italiana) e alla somma ritardata
-   (`sommaRitardata`, ex `_sigSuperpose`). Qui resta il LEGAME con lo stato. */
-function _sigDetTimes(){ return tempiDetonazione(D2); }
+   (`sommaRitardata`, ex `_sigSuperpose`). ⏱️ Il legame di una riga che stava
+   qui è uscito il 15/09 (B3): componeva SOLO il conto del modulo passandogli
+   `D2`, già la forma esatta che vuole — nessun valore nel tenerlo, i suoi
+   due chiamanti lo chiamano direttamente. */
 /* ⛔ la miniatura del composito (`_sigSpark`) è salita in `./genesi-data.js`, blocco G27 (10/09). */
 function sigRender(){
   const body=$('sigBody');
@@ -4414,7 +4416,7 @@ function sigRender(){
      inventava (18 fori a 25 ms) e la modale mostrava un PPV composito con la
      faccia di una previsione: adesso `_sigDetTimes` risponde `null` e qui si
      dice, invece di sommare l'onda su tempi che nessuno ha scritto. */
-  const times=_sigDetTimes();
+  const times=tempiDetonazione(D2);
   if(times===null){
     const _sv=volataSenzaValori({perRow:D2.perRow, file:D2.file, ritardo:D2.ritardo, ritardoFila:D2.ritardoFila});
     body.innerHTML='<div style="color:#ffca28;font-size:12px;line-height:1.45"><b>PPV composito non calcolabile.</b> La somma ritardata ha bisogno dei tempi di detonazione, e questa volata non ha fori disegnati né una griglia di progetto leggibile'
@@ -4468,11 +4470,11 @@ if($('sigExport')) $('sigExport').onclick=()=>{
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   /* la volata la conosciamo (fori e ritardo), l'onda la nominiamo con il file
      da cui viene: due confronti diversi non si sovrascrivono più */
-  /* ⚠️ `_sigDetTimes()` può rispondere `null`, ma qui non ci si arriva: il
+  /* ⚠️ `tempiDetonazione` può rispondere `null`, ma qui non ci si arriva: il
      bottone esce sopra se `_sigComp` non c'è, e `_sigComp` esiste solo se i
      tempi si erano letti. Il `|| []` è la guardia che lo rende vero anche
      domani, invece di lasciare un `.length` su un `null`. */
-  const _pezzo=[(_sigNome||'onda'), (_sigDetTimes()||[]).length+'fori', (D2.ritardo||0)+'ms'].join('_');
+  const _pezzo=[(_sigNome||'onda'), (tempiDetonazione(D2)||[]).length+'fori', (D2.ritardo||0)+'ms'].join('_');
   a.download='genesi_composito_'+_pezzo+'.csv'; a.click();
   toast('✓ Onda composita esportata: '+_ricPlur(c.steps,'campione','campioni'));
 };

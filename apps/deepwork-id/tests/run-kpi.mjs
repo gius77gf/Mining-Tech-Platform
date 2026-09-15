@@ -25796,7 +25796,8 @@ console.log("\n— Campo: i file che escono —");
     eq((pag.match(/new Float64Array/g) || []).length, 0, "e la somma non è riscritta in casa");
     eq((pag.match(/ondaDaCsv\(/g) || []).length, 1, "il file del sismografo passa dal modulo");
     eq((pag.match(/sommaRitardata\(/g) || []).length, 1, "e la somma pure");
-    eq((pag.match(/_sigDetTimes\(\)/g) || []).length, 4, "il legame `_sigDetTimes`, i suoi due chiamanti (la modale e il nome del file) e il commento che lo cita");
+    eq((pag.match(/function _sigDetTimes/g) || []).length, 0, "⏱️ 15/09 (B3): il legame a zero argomenti è uscito, come `computeInnesco2D`");
+    eq((pag.match(/tempiDetonazione\(D2\)/g) || []).length, 2, "e i suoi due chiamanti (la modale e il nome del file) passano D2 direttamente");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(["ondaDaCsv", "tempiDetonazione", "sommaRitardata"].every((n) => elenco.includes(n)), "la pagina importa tutt'e tre");
   });
@@ -34286,10 +34287,11 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     /* la modale della firma: la griglia inventata decideva i tempi di
        detonazione su cui si somma l'onda registrata, cioè il PPV composito */
     /* ⏱️ 10/09: `_sigDetTimes` è diventata `tempiDetonazione` in `genesi-data.js`
-       (G23), stessa riga: la si cerca lì, e nella pagina resta il legame. */
+       (G23). ⏱️ 15/09 (B3): il legame di pagina è uscito anche lui — i due
+       chiamanti passano `D2` direttamente, come per `computeInnesco2D`. */
     eq(/const n=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8")), true,
       "`tempiDetonazione` (l'ex `_sigDetTimes`, salita nel modulo) non si inventa più 18 fori a 25 ms");
-    eq(/function _sigDetTimes\(\)\{ return tempiDetonazione\(D2\); \}/.test(CODICE_G), true, "e nella pagina `_sigDetTimes` è il legame con lo stato");
+    eq(/function _sigDetTimes/.test(CODICE_G), false, "e nella pagina non c'è più nemmeno il legame");
     eq(quante(/\+D2\.ritardo\|\|25/g), 0, "e nemmeno il ritardo");
     /* il campo «carica totale»: senza sapere quanti fori sono, dividere per 1
        vuol dire assegnare a un foro solo la carica di tutta la volata */
