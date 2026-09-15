@@ -772,6 +772,27 @@ export function stileBarraPeso(valore, massimo) {
   return `width:${+Math.min(100, (v / m) * 100).toFixed(4)}%;min-width:3px`;
 }
 
+/* LA FASCIA DI AGING DI UNA FATTURA: la SOLA versione della scala 30/60/90
+   giorni, chiamata sia da `agingIncassi` (gli aggregati) sia da
+   `fattureOltre90` (l'elenco per il commercialista) — se un giorno la scala
+   cambia, cambia in un posto solo. `g` è il risultato di `giorni(scadenza,
+   oggi)`: negativo se scaduta. */
+function fasciaAging(g) {
+  /* ⛔ UNA FATTURA SENZA SCADENZA HA UN SECCHIO SUO. Fino a ieri finiva in
+     «non scaduto», con la motivazione — giusta a metà — che non bisogna
+     gonfiare lo scaduto. Ma «non scaduto» è la fascia TRANQUILLA: un credito
+     di cui nessuno sa quando dovrebbe rientrare veniva contato, in verde,
+     insieme a quello nei termini, e nulla nel risultato diceva che era lì.
+     È la stessa cosa dell'appello di Campo: chi nessuno ha spuntato non si
+     conta né presente né assente. Le fatture senza scadenza esistono davvero
+     — `parseFattureCsv` lascia `scadenza: null` quando la colonna del file è
+     vuota — e la risposta giusta è farle vedere per quello che sono, così
+     chi le trova ci scrive la data. */
+  if (!Number.isFinite(g)) return "senzaScadenza";
+  if (g >= 0) return "nonScaduto";
+  const r = -g;
+  return r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90";
+}
 export function agingIncassi(fatture, oggi = new Date(), note = null) {
   const b = {
     nonScaduto: { conto: 0, importo: 0 },
@@ -779,7 +800,6 @@ export function agingIncassi(fatture, oggi = new Date(), note = null) {
     g31_60:     { conto: 0, importo: 0 },
     g61_90:     { conto: 0, importo: 0 },
     oltre90:    { conto: 0, importo: 0 },
-    // ⛔ NÉ SCADUTA NÉ NON SCADUTA: vedi qui sotto.
     senzaScadenza: { conto: 0, importo: 0 },
   };
   for (const f of fatture) {
@@ -788,25 +808,42 @@ export function agingIncassi(fatture, oggi = new Date(), note = null) {
     // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
     // arrivato non è più credito scaduto
     const imp = apertoDi(f, note);
-    let k;
-    /* ⛔ UNA FATTURA SENZA SCADENZA HA UN SECCHIO SUO. Fino a ieri finiva in
-       «non scaduto», con la motivazione — giusta a metà — che non bisogna
-       gonfiare lo scaduto. Ma «non scaduto» è la fascia TRANQUILLA: un credito
-       di cui nessuno sa quando dovrebbe rientrare veniva contato, in verde,
-       insieme a quello nei termini, e nulla nel risultato diceva che era lì.
-       È la stessa cosa dell'appello di Campo: chi nessuno ha spuntato non si
-       conta né presente né assente. Le fatture senza scadenza esistono davvero
-       — `parseFattureCsv` lascia `scadenza: null` quando la colonna del file è
-       vuota — e la risposta giusta è farle vedere per quello che sono, così
-       chi le trova ci scrive la data. Lo `scadutoTot` non cambia di un
-       centesimo: quella metà della vecchia decisione resta. */
-    if (!Number.isFinite(g)) k = "senzaScadenza";
-    else if (g >= 0) k = "nonScaduto";
-    else { const r = -g; k = r <= 30 ? "g1_30" : r <= 60 ? "g31_60" : r <= 90 ? "g61_90" : "oltre90"; }
+    const k = fasciaAging(g);
     b[k].conto++; b[k].importo += imp;
   }
   b.scadutoTot = b.g1_30.importo + b.g31_60.importo + b.g61_90.importo + b.oltre90.importo;
   return b;
+}
+
+/* LE FATTURE OLTRE 90 GIORNI — l'elenco, non solo il totale (15/09,
+   settimo giro di ricerca su Conti: `agingIncassi` sa già QUANTO pesa la
+   fascia "oltre90", ma non dice QUALI fatture ci sono dentro. Chi deve
+   decidere un accantonamento (fondo svalutazione crediti) ha bisogno
+   dell'elenco, base dichiarata per la decisione — che resta del
+   commercialista: qui non si calcola NESSUN fondo, sarebbe il "numero
+   tranquillo" inventato che questo file mette in guardia da sempre.
+   RIUSA `fasciaAging`, la stessa soglia di `agingIncassi`: non la
+   riscrive con un `> 90` per conto suo. Ordinato dal più vecchio, perché
+   è quello con cui si comincia una decisione di questo tipo. Pura e
+   testabile. */
+export function fattureOltre90(fatture, oggi = new Date(), note = null) {
+  const righe = [];
+  for (const f of fatture || []) {
+    if (f.incassata) continue;
+    const g = giorni(f.scadenza, oggi);
+    if (fasciaAging(g) !== "oltre90") continue;
+    const imp = apertoDi(f, note);
+    if (imp <= 0) continue;   // già saldata per intero al netto di acconti/storni: niente da segnalare
+    righe.push({ numero: f.numero || "—", cliente: f.cliente || "", scadenza: f.scadenza, ritardo: -g, importo: imp });
+  }
+  righe.sort((a, b) => b.ritardo - a.ritardo || b.importo - a.importo);
+  return righe;
+}
+export function csvFattureOltre90(fatture, oggi = new Date(), note = null) {
+  let csv = "numero;cliente;scadenza;giorni_di_ritardo;importo_aperto\n";
+  for (const r of fattureOltre90(fatture, oggi, note))
+    csv += `${csvCell(r.numero)};${csvCell(r.cliente)};${r.scadenza || ""};${r.ritardo};${r.importo}\n`;
+  return csv;
 }
 
 // Import fatture da CSV (per l'avvio: caricare le fatture esistenti invece

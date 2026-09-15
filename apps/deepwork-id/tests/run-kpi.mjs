@@ -591,6 +591,45 @@ test("agingIncassi: scadenza esattamente oggi = non scaduto (g=0)", () => {
   eq(a.nonScaduto.conto, 1, "g=0 non scaduto");
   eq(a.scadutoTot, 0, "niente scaduto");
 });
+test("⛔ fattureOltre90: l'elenco per il commercialista, RIUSA la stessa soglia di agingIncassi (finding 4 del settimo giro su Conti)", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const fatture = [
+    { numero: "A1", cliente: "Cava Rossi", importo: 100, incassata: false, scadenza: "2026-08-01" },  // non scaduta
+    { numero: "A2", cliente: "Edilcave",   importo: 200, incassata: false, scadenza: "2026-07-10" },  // 10 gg: dentro 90
+    { numero: "A3", cliente: "Stradesud",  importo: 500, incassata: false, scadenza: "2026-03-01" },  // 141 gg: oltre 90
+    { numero: "A4", cliente: "Betoncave",  importo: 300, incassata: false, scadenza: "2026-01-01" },  // 200 gg: oltre 90, ancora più vecchia
+    { numero: "A5", cliente: "Senza data", importo: 400, incassata: false },                          // senza scadenza: non è "oltre 90", è un'altra domanda
+    { numero: "A6", cliente: "Già incassata", importo: 999, incassata: true, scadenza: "2026-01-01" },
+  ];
+  const el = conti.fattureOltre90(fatture, oggi);
+  eq(el.length, 2, "solo A3 e A4 sono oltre i 90 giorni");
+  eq(el[0].numero, "A4", "la più vecchia (200 gg) viene prima");
+  eq(el[1].numero, "A3");
+  eq(el[0].ritardo, 200); eq(el[1].ritardo, 141);
+  eq(el[0].cliente, "Betoncave"); eq(el[0].importo, 300);
+  // identità con agingIncassi: stessa soglia, stesso conto — se un giorno
+  // divergono, questa prova cade prima che divergano in silenzio
+  eq(conti.agingIncassi(fatture, oggi).oltre90.conto, el.length, "stesso numero della fascia aggregata");
+
+  // un acconto che copre tutto il residuo: niente da segnalare, anche se scaduta da tempo
+  const conAcconto = conti.fattureOltre90(
+    [{ id: "z", numero: "A7", cliente: "Saldata con acconto", importo: 500, incassata: false, scadenza: "2026-01-01" }],
+    oggi, [{ tipo: "acconto", fatturaId: "z", totale: 500 }]);
+  eq(conAcconto.length, 0, "un acconto che copre tutto: niente residuo, niente riga");
+
+  eq(conti.fattureOltre90([], oggi), [], "senza fatture: elenco vuoto, non un crash");
+});
+test("csvFattureOltre90: intestazione e righe, vuoto quando non c'è niente oltre 90", () => {
+  const oggi = new Date("2026-07-20T00:00:00");
+  const csv = conti.csvFattureOltre90(
+    [{ numero: "B1", cliente: "Solo, S.p.A.", importo: 1234.5, incassata: false, scadenza: "2026-01-01" }], oggi);
+  const righe = csv.trim().split("\n");
+  eq(righe[0], "numero;cliente;scadenza;giorni_di_ritardo;importo_aperto");
+  eq(righe.length, 2, "intestazione + una riga");
+  ok(righe[1].includes("B1") && righe[1].includes("2026-01-01") && righe[1].includes("1234.5") && righe[1].includes("Solo"), righe[1]);
+  const vuoto = conti.csvFattureOltre90([{ numero: "X", importo: 10, incassata: false, scadenza: "2026-08-01" }], oggi);
+  eq(vuoto.trim(), "numero;cliente;scadenza;giorni_di_ritardo;importo_aperto", "nessuna fattura oltre 90: solo l'intestazione");
+});
 test("gareRiepilogo: conta stati, valori e tasso di vittoria (solo decise)", () => {
   const gare = [
     { stato: "aperta", base: 100 },
@@ -24271,7 +24310,7 @@ test("⛔ etichettaStatoDocumento: la mappa esce dalla pagina e la leggono in du
        (decisione 12a). Il numero è scritto a mano di proposito — è un
        censimento, e un export nuovo deve costringere qualcuno a guardarlo
        invece di entrare in silenzio. */
-    eq(tot, 38, "i siti di export CSV censiti nelle quattro app")   // 38 dall'11/09: il calendario del titolo .ics di Terra (terra_scadenze_titolo.ics); 37 dall'11/09: il calendario ambientale .ics di Sentinella (sentinella_calendario_ambiente.ics); 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
+    eq(tot, 39, "i siti di export CSV censiti nelle quattro app")   // 39 dal 15/09: l'elenco dei crediti oltre 90 giorni di Conti (conti_crediti_oltre_90gg.csv); 38 dall'11/09: il calendario del titolo .ics di Terra (terra_scadenze_titolo.ics); 37 dall'11/09: il calendario ambientale .ics di Sentinella (sentinella_calendario_ambiente.ics); 36 dall'11/09: il calendario .ics dei mezzi di Flotta (flotta-scadenze-mezzi.ics); ⚠️ 11/09: il calendario .ics di Scudo NON entra qui — Scudo non è fra le quattro pagine di questo censimento (la sua marcatura la guarda `scudo-documenti`); 35 dal 10/09: i listini per cliente di Conti (conti_listini_clienti.csv); 34 dal 10/09: il registro delle vendite di Conti (conti_registro_vendite.csv); 33 dal 10/09: le rimanenze di piazzale di Conti (conti_rimanenze_piazzale_<data>.csv); 32 dal 05/09: il budget dell'anno di Flotta (flotta_budget_<anno>.csv); 31 dal 03/09: gli inventari dei cumuli di Terra (decisione 12a, il file che si ri-carica); 30 dal 02/09: il file XML della fattura elettronica (Conti);
     console.log(`     (${tot} siti di export guardati in ${PAGINE.length} pagine)`);
   });
 

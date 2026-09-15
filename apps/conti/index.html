@@ -1993,6 +1993,9 @@ label.item:has(.dw-chk:checked){
   <div class="sec">Aging incassi — crediti aperti per ritardo</div>
   <div id="graf-aging"></div>
   <div id="aging-list"></div>
+  <div class="tools" style="margin-top:0;">
+    <button class="dw-btn secondary" id="btn-export-oltre90" title="L'elenco delle fatture scadute da oltre 90 giorni: la base per la decisione del commercialista su un fondo svalutazione crediti — la decisione resta sua, non è calcolata qui">Esporta crediti oltre 90 giorni (CSV)</button>
+  </div>
   <div class="sec">Previsione incassi (prossimi mesi)</div>
   <div id="graf-prev"></div>
   <div id="prev-list"></div>
@@ -2046,7 +2049,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, fattureOltre90, csvFattureOltre90, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, cancellazioneLasciaBuco, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -6738,6 +6741,21 @@ label.item:has(.dw-chk:checked){
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = "conti_situazione_fatture.csv"; marchiaCsv(a); a.click();
     esito("rep-esito", plurale(FAT.length, "Esportata ", "Esportate ") + plur(FAT.length, "fattura", "fatture") + " in CSV.", "success");
+  };
+  /* L'ELENCO OLTRE 90 GIORNI (15/09): `agingIncassi` (qui sopra) dà il
+     totale della fascia, questo bottone dà l'ELENCO — la base che il
+     commercialista chiede per decidere un fondo svalutazione crediti. Il
+     modulo non calcola nessun fondo: solo l'elenco, ordinato dal credito
+     più vecchio. */
+  $("btn-export-oltre90").onclick = () => {
+    const righe = fattureOltre90(FAT, new Date(), NOT);
+    const csv = csvFattureOltre90(FAT, new Date(), NOT);
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "conti_crediti_oltre_90gg.csv"; marchiaCsv(a); a.click();
+    esito("rep-esito", righe.length
+      ? plurale(righe.length, "Esportata ", "Esportate ") + conta(righe.length, "fattura", "fatture") + " oltre i 90 giorni di ritardo."
+      : "Nessuna fattura oltre i 90 giorni di ritardo: file esportato con la sola intestazione.", "success");
   };
   // Prima nota degli incassi: ogni versamento con la sua data vera. È il file
   // che il commercialista incrocia con l'estratto conto della banca.

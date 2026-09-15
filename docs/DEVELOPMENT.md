@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.492 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09: 3008 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 22), dopo aver aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere insieme in `statoFattura` di Conti, a `claims-convergenza` il limite a tre scritture, a `kpiFrom` di Scudo un `oggi` fisso, alla conformità di Terra il fronte conteso fra due lotti, a `tagliandiInScadenza` di Flotta lo stesso criterio di `urgenzaManutenzione`, a `fogliaVolata` di Sentinella la lettura trovata per valore e non solo per (data, ora), a `applicaIncassi` di Conti la cecità alle note di credito, a `cancellazioneLasciaBuco` la numerazione DDT senza salti dichiarata ma non imposta, al margine fra esaurimento e scadenza in `vitaCava` di Terra, alla sospensione temporanea in `abilitazioneLavoratore` di Scudo, a `reclamiPerRicettore` di Sentinella l'aggregazione per punto, a `costoControStoria` di Flotta il costo medio per intervento contro la sua storia, a `varianzaMensilePiano` di Terra lo scarto del mese corrente dal piano annuo, a `prioritaOperative` di Flotta le voci "trend" sul consumo e sul costo fuori tolleranza, a `avvisiChiusuraTurno` di Campo gli avvisi (non bloccanti) sull'appello e sulle attività aperte alla chiusura del turno, a `tendenzaRitmo` di Terra il ritmo corto contro quello lungo, e a `testoSollecito` di Conti l'escalation per livello del sollecito:
+**3.494 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09: 3010 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 22), dopo aver aggiunto a `run-kpi` la prova che «saldata» e «parziale» non sono mai vere insieme in `statoFattura` di Conti, a `claims-convergenza` il limite a tre scritture, a `kpiFrom` di Scudo un `oggi` fisso, alla conformità di Terra il fronte conteso fra due lotti, a `tagliandiInScadenza` di Flotta lo stesso criterio di `urgenzaManutenzione`, a `fogliaVolata` di Sentinella la lettura trovata per valore e non solo per (data, ora), a `applicaIncassi` di Conti la cecità alle note di credito, a `cancellazioneLasciaBuco` la numerazione DDT senza salti dichiarata ma non imposta, al margine fra esaurimento e scadenza in `vitaCava` di Terra, alla sospensione temporanea in `abilitazioneLavoratore` di Scudo, a `reclamiPerRicettore` di Sentinella l'aggregazione per punto, a `costoControStoria` di Flotta il costo medio per intervento contro la sua storia, a `varianzaMensilePiano` di Terra lo scarto del mese corrente dal piano annuo, a `prioritaOperative` di Flotta le voci "trend" sul consumo e sul costo fuori tolleranza, a `avvisiChiusuraTurno` di Campo gli avvisi (non bloccanti) sull'appello e sulle attività aperte alla chiusura del turno, a `tendenzaRitmo` di Terra il ritmo corto contro quello lungo, a `testoSollecito` di Conti l'escalation per livello del sollecito, e a `fattureOltre90` di Conti l'elenco per il commercialista:
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.915** asserzioni su **40** comandi.
+> `node` completo esegue **3.917** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -85,7 +85,7 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 > numero che non vuol dire niente. Le sei suite contano **casi**, e per questo
 > sono quelle sorvegliate da `numeri-nei-documenti.mjs`.
 
-E **1004 funzioni pure su 1004** sono chiamate per nome da quelle prove: tutte e
+E **1006 funzioni pure su 1006** sono chiamate per nome da quelle prove: tutte e
 sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nessuno ha
 ancora guardato», che è il minimo e finora non c'era.
 

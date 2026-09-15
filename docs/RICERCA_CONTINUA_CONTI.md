@@ -1750,6 +1750,22 @@ comunicazione precedente rimasta senza riscontro, livello 3 ("ultimo
 avviso") avvisa esplicitamente di messa in mora formale e azioni di
 recupero del credito. Il resto della lettera (numeri, interessi di mora,
 riepilogo) è identico a ogni livello: solo il tono cambia, non i conti.
-⏱️ **Restano aperti**: il finding 4 (export mirato oltre-90-giorni, medio)
-e il finding 2 (scoring cliente, grande — attende una decisione del
-fondatore prima di essere scritto in codice, non un'unità automatica).
+✅ **FATTO lo stesso giorno**: il finding 4. `fattureOltre90(fatture, oggi,
+note)` — l'elenco delle fatture scadute da oltre 90 giorni, ordinato dal
+credito più vecchio, base dichiarata per la decisione del commercialista
+su un fondo svalutazione crediti (che il modulo NON calcola: sarebbe il
+"numero tranquillo" inventato che questo file mette in guardia da
+sempre). RIUSA la stessa soglia di `agingIncassi` (`fasciaAging`, estratta
+in un helper comune così le due funzioni non possono divergere in
+silenzio). Wired con un bottone "Esporta crediti oltre 90 giorni (CSV)"
+accanto all'aging incassi nella pagina Report.
+**Il costo era stato stimato "medio" dall'agente e si è rivelato piccolo**
+una volta che il refactoring di `agingIncassi` ha reso disponibile
+`fasciaAging`: la parte cara di un export non era il calcolo, era evitare
+una seconda copia della soglia dei 90 giorni.
+
+⏱️ **Resta aperto solo il finding 2** (scoring cliente, grande — attende
+una decisione del fondatore prima di essere scritto in codice, non
+un'unità automatica: uno scoring tocca come si presenta un giudizio su un
+cliente reale). **Il settimo giro di ricerca su Conti è chiuso su tutto
+ciò che si può fare senza una decisione del fondatore.**
