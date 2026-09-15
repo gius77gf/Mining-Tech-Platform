@@ -5590,12 +5590,23 @@ function computeSeq2D(){
    parte del caso che non legge niente della pagina, e in `node` si prova.
    Qui resta `simulaPerforazione`, che legge lo stato del progetto (`D2`). */
 
+/* ⛔ `D2.B||3`, `D2.S||3.5` E `D2.prof||10` (15/09) ERANO LA STESSA SPALLA DI
+   3 M GIÀ TOLTA PIÙ SU (blocco G15, `_Bprog`) PER `pfNominale` — qui il
+   numero inventato non finiva in una frase, alimentava un'intera
+   simulazione Monte Carlo (300 tiri) che tornava con una banda di burden
+   precisa al centimetro e un «rischio» in percento, su una geometria mai
+   dichiarata: `simulaPerforazione` può partire su fori importati (DXF,
+   point cloud) che non passano mai da `applyDesign`, dove B/S/prof restano
+   scritti su `D2`. Stesso contratto di `volumeForo` (che B, S e H li
+   chiede leggibili e positivi): la si riusa come guardia, non se ne
+   riscrive una seconda copia. */
 function simulaPerforazione(N){
   const H=D2.holes; if(!H||H.length<1) return null;
   const sCol=Math.max(0,+D2.errColl||0), pDev=Math.max(0,+D2.dev||0)/100;
   if(sCol<=0 && pDev<=0) return { perfetta:true };
-  const L=Math.max(0.5,(D2.prof||10)+(D2.sub||0)), Bnom=Math.max(0.2,D2.B||3);
-  const Snom=Math.max(0.5,D2.S||3.5);
+  if(volumeForo(D2.B, D2.S, D2.prof)===null) return null;
+  const L=Math.max(0.5,(+D2.prof)+(+D2.sub||0)), Bnom=Math.max(0.2,+D2.B);
+  const Snom=Math.max(0.5,+D2.S);
   /* la faccia libera campionata più grossolanamente che nella mappa
      dell'energia: qui serve tante volte, e mezzo metro di passo non cambia
      il risultato di una simulazione statistica */
