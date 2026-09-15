@@ -436,6 +436,8 @@ momento.
 | **22** | Scudo: **quale scadenza INAIL** tracciare, delle tre che esistono — 48h/2gg/24h (15/09) | una delle tre strade (solo la più urgente, tutte e tre automatiche, o solo il documento da allegare), o quale termine tracciare per primo se si parte in piccolo. Vedi la sezione 22. |
 | **23** | Conti: **uno scoring cliente** — sì, e con quali classi? (15/09) | una parola — **scoring sì**, **cruscotto**, o **no** — e se sì quali classi/soglie: è un giudizio su un cliente vero, non un calcolo neutro. Vedi la sezione 23. |
 | **24** | Sentinella: **chi ha modificato** una lettura o una soglia — si traccia l'operatore, non solo il timestamp? (15/09) | se costruirlo (e da dove: tutto o solo le soglie), e se il meccanismo per leggere l'identità va scritto in `shared/` pensando alle altre app. Vedi la sezione 24. |
+| **25** | Flotta: quando segnalare che **conviene sostituire** un mezzo — quale soglia sul costo pieno? (15/09) | una delle tre strade (soglia sul costo pieno, soglia composita con età e trend, o nessuna soglia automatica) e, se sì, quale percentuale. Vedi la sezione 25. |
+| **26** | Conti: le **pesate non ancora fatturate** entrano nel fido del cliente? (15/09) | una delle tre strade (sommarle al valore pieno, mostrarle separate, o lasciare il limite dichiarato) e, se sì, come valorizzarle senza listino noto. Vedi la sezione 26. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1538,6 +1540,117 @@ guardia altrove.
 solo le soglie), e se il meccanismo di lettura dell'identità va scritto
 subito in `shared/` (pensando alle altre app) o solo dentro Sentinella
 per ora.
+
+## 25. Flotta: quando segnalare che conviene sostituire un mezzo — quale soglia?
+
+*(dal settimo giro di ricerca su Flotta, TCO e decisione di sostituzione,
+15/09 — riverificata di persona: la mancanza sull'ammortamento nel costo
+orario era falsa, corretta e già costruita in questa stessa unità; questa
+voce riguarda solo ciò che resta genuinamente aperto)*
+
+**Il fatto.** Flotta sa già dire, per un mezzo, il costo di esercizio
+(`euroOra`), il costo pieno con l'ammortamento del possesso
+(`euroOraCompleto`, oggi visibile sia nel fascicolo del mezzo sia — da
+questa unità — nel confronto fra mezzi della pagella) e l'età
+(`etaMezzo`, aggiunta in questa stessa unità). Nessuna funzione li
+combina in un segnale "conviene sostituirlo": `grep -n "tcoMezzo\|
+meritoDiSostituzione\|sogliaSostituzione" apps/flotta/flotta-data.js` →
+**0** occorrenze.
+
+**Come stiamo.** I tre numeri esistono già, separati: chi vuole
+decidere se sostituire un mezzo deve aprirne il fascicolo, leggere
+l'età, il costo pieno e il trend dei costi (`costoControStoria`, già
+costruito), e farsi un'opinione a mente — la stessa situazione di
+Conti prima della decisione #23 sullo scoring cliente. La pratica di
+settore (di seconda mano, dai risultati di ricerca — non verificata da
+fonti primarie): un mezzo si segnala per la sostituzione quando il suo
+costo orario supera una soglia (spesso il 50-60% del valore di un
+mezzo nuovo equivalente, o quando il costo orario di manutenzione da
+solo supera un multiplo di quello di un mezzo nuovo), non solo per
+l'età anagrafica — un mezzo vecchio ma economico da mantenere non va
+segnalato quanto uno giovane con un guasto ricorrente.
+
+**Perché serve una decisione, non un'unità automatica.** Una soglia di
+sostituzione è un giudizio economico su un bene reale (il mezzo che
+oggi lavora in cava), non un calcolo neutro — la stessa ragione già
+scritta per lo scoring cliente di Conti (decisione #23): una soglia
+scritta a caso (per esempio segnalando ogni mezzo sopra una certa età,
+ignorando quanto costa davvero mantenerlo) farebbe più danno di non
+averla, mandando a sostituire mezzi sani e a ignorare mezzi costosi ma
+giovani.
+
+**Le strade.**
+1. **Soglia sul costo pieno**: si segnala un mezzo quando
+   `euroOraCompleto` supera una percentuale dichiarata (es. 50%) sopra
+   la media di flotta per quel tipo di mezzo — riusa `BANDA_PAGELLA`
+   come modello, ma su una soglia diversa, dedicata al costo pieno.
+2. **Soglia composita**: costo pieno **e** età **e** trend in aumento
+   insieme (tre condizioni), per non segnalare un mezzo che costa
+   molto ma stabilmente (magari è sempre costato così, non sta
+   peggiorando).
+3. **Nessuna soglia automatica, solo il numero esposto**: ci si ferma a
+   quanto già fatto in questa unità (il costo pieno visibile riga per
+   riga nel confronto) e la decisione resta a chi guarda la pagella —
+   nessun segnale, nessun rischio di un falso allarme o di un mancato
+   allarme.
+
+**Che cosa serve da te.** Una delle tre strade, e se sì quale soglia
+percentuale (o quale combinazione di condizioni) usare: è lo stesso
+tipo di scelta della decisione #23, applicata a un mezzo invece che a
+un cliente.
+
+## 26. Conti: le pesate non ancora fatturate entrano nel fido del cliente?
+
+*(dal quarto giro di ricerca su Conti, fido cliente ed esposizione,
+15/09 — riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** `esposizioneClienti` — la funzione che alimenta
+`avvisoFidoPesata`, l'avviso mostrato quando si registra una pesata —
+somma solo le **fatture** aperte di un cliente. Le pesate/DDT già
+consegnati ma non ancora fatturati (`fatturaId: null`, 8 in
+dimostrazione) non entrano nel conto: `grep -n
+"esposizioneClienti("` mostra che tutte le quattro chiamate nella
+pagina passano solo `FAT`, e la funzione non ha nemmeno il parametro
+per riceverle.
+
+**Come stiamo.** In un ciclo a fatturazione differita (materiale
+consegnato oggi, fatturato fra settimane) un cliente può restare "in
+regola" con l'avviso del fido per settimane, mentre il materiale già
+uscito dalla cava lo ha già portato oltre il limite — il fido, così
+com'è, misura solo ciò che è già diventato un credito documentato, non
+ciò che la cava ha già impegnato. I sistemi enterprise di gestione
+ordini (Oracle, NetSuite, Dynamics — di seconda mano) sommano
+all'esposizione anche gli "unbilled": consegnato-non-fatturato.
+
+**Perché serve una decisione, non un'unità automatica.** Sommare le
+pesate significa decidere **come** contarle: al valore pieno stimato
+(che può differire dal valore di fattura, per sconti o correzioni
+successive), e soprattutto **cosa succede quando la fattura viene
+emessa** — la pesata esce dal conto delle "non fatturate" e la
+fattura entra in quello delle "aperte": se il passaggio non è atomico
+(un momento in cui né l'una né l'altra contano, o entrambe contano)
+il fido può mentire per un istante nella direzione sbagliata. È lo
+stesso principio delle "due grandezze scorrelate" e delle "copie
+deboli" che questo repository ha già pagato: un conto sbagliato per un
+attimo, se cade proprio mentre si emette una fattura vicina al fido,
+è il momento in cui l'avviso serve di più.
+
+**Le strade.**
+1. **Sì, sommare le pesate non fatturate** al valore pieno stimato
+   (prezzo di listino del cliente, se noto), con la regola di
+   passaggio esplicita e provata nei due versi (pesata→fattura non
+   deve né sparire né raddoppiare il conto).
+2. **Sì, ma solo come informazione separata** ("impegnato non
+   fatturato: X €" accanto all'esposizione da fatture, non sommato):
+   meno rischio di un conto che sbaglia per un istante, ma chi guarda
+   deve ancora sommare a mente.
+3. **No, per ora**: si resta sull'esposizione da fatture, dichiarando
+   il limite (un cliente vicino al fido può restare "in regola" per il
+   tempo che intercorre fra consegna e fatturazione).
+
+**Che cosa serve da te.** Una delle tre strade, e se sì (1 o 2) se il
+valore delle pesate va stimato al prezzo di listino del cliente o
+lasciato "non calcolabile" quando il listino non è noto.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
