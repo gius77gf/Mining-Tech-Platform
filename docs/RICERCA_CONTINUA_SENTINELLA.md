@@ -1007,3 +1007,99 @@ UI per mostrarle), piccolo per l'aggregazione reclami per punto (un
 verificate anche nei giri di ricerca precedenti su Sentinella per altri
 scopi, e in nessuno di quei giri era stato notato il limite a due mesi o
 l'assenza di aggregazione per punto).
+
+---
+
+## 15/09 — settimo giro di ricerca mirata: catena di custodia e attributione delle modifiche
+
+*Nota di processo: Il tema affronta un requisito legale (chi ha modificato la soglia il 10/09 alle 14:30?) rilevante per le dispute con i ricettori. Ricerca sulla pratica mondiale di audit trail in software di monitoraggio ambientale, seguito da verifica del codice Sentinella. Nessun git.*
+
+**PASSO 2 — il mondo: come la pratica professionale traccia le modifiche**
+
+Ricerca su audit trail in software di monitoraggio ambientale per cave/miniere:
+
+1. **Compliance software LIMS (Laboratory Information Management Systems)** per ambienti minerari:
+   - OnLIMS (per laboratori di mining): "audit trails, status controls, historical QC record retention, electronic sample locks" — ogni modifica registra timestamp E credenziali autenticate dell'operatore [dedotto da risultati ricerca, non documento primario consultato];
+   - Quentic (piattaforma cloud-based per dati ambientali, permessi, documenti): documentazione descrive "audit-ready deliverables" e traccia delle modifiche con ruoli/utenti [dedotto];
+   - KPMIS (consulting-backed suite per compliance mineraria): offre "audit trails, emissions tracking" con tracciamento delle operazioni [dedotto].
+
+2. **Monitoraggio vibrazioni in campo**: Instantel e Sigicom (i due leader mondiali, ricerca confermata) distribuiscono monitor (Micromate, Minimate Pro, INFRA C22) con cloud connectivity per "remote management" e "post-processing". La ricerca non ha esplicitato se tracciano user attribution su modifiche da remoto, ma il linguaggio "remote management" implica accesso autenticato (utente + sessione).
+
+3. **Standard di settore**: ISO 9916 (vibrazione, edifici) e UNI 9916 non contengono nel loro standard formale il requisito di audit trail esplicito, ma la pratica professionale di "chain of custody" in laboratori di mining — come descritto dai sistemi LIMS — è universale: ogni trasferimento/modifica registra timestamp + operatore.
+
+**Riassunto metà 1 — il mondo** [dedotto, non primary source]:
+- Professional LIMS systems registrano **chi** ha fatto una modifica, **quando** e spesso **come** (quale valore era, quale è diventato);
+- Questo è lo standard per difendersi legalmente quando il ricettore contesta una misura o una decisione di soglia;
+- La pratica è quasi universale in software di compliance per ambienti minerari/estrattivi.
+
+---
+
+**PASSO 3 — il delta: che cosa manca a Sentinella**
+
+Verifica nel codice di Sentinella:
+
+```bash
+$ grep -n "chi\|utente\|user\|who" apps/sentinella/sentinella-data.js | head -20
+```
+
+Risultato: i commenti del file DESCRIVONO l'attesa di un campo `chi`:
+- Riga 15: `statoDiFatto?: { data (ISO), chi, note } — il sopralluogo`
+- Riga 20-21: `reclami/{id}: { data, ora, tipo, ricettoreId, chi, descrizione, ...}`
+
+Ma il codice REALE non lo implementa. Controllando la struttura `origine` (dove si traccia la provenienza di una lettura):
+
+```javascript
+// Letture importate:
+origine: { da: "import", file: "V1_giugno.csv", quando: "2026-07-01T08:42:00" }
+
+// Letture manuali con correzione:
+origine: { da: "manuale", quando: "2026-06-27T17:10:00", corretta: { quando: "2026-06-28T08:30:00", prima: 4.2 } }
+
+// Nessun campo "chi" in nessun caso
+```
+
+La funzione `correggiLettura(l, nuovo, quando)` (riga 2737) accetta solo timestamp, non utente. Nessun parametro `chi` nella firma; il timestamp viene scritto in `origine.corretta.quando` ma non chi l'ha fatto.
+
+Inoltre:
+- `annullaLettura(l, perche, quando)` (riga 2915): registra il motivo, il timestamp, ma non l'operatore.
+
+⛔ **CORREZIONE (15/09, riverifica di persona prima di scrivere la
+decisione)**: `statoDiFatto(ricettore, data, chi, note)` **non è una
+funzione** — `grep -n "function statoDiFatto"
+apps/sentinella/sentinella-data.js` → zero occorrenze. `statoDiFatto` è
+un CAMPO del ricettore (`{data, chi, note}`, dichiarato nel commento
+dello schema a riga 15), e il suo `chi` è già scritto e persistito: la
+pagina lo legge da un input libero (`#rec-... `→ `sdfChi`) e lo salva nel
+record (`index.html:6080`, `sentinella-data.js:817-818`). Lo stesso vale
+per i reclami: hanno GIÀ un campo `chi` (riga 20 dello schema,
+`index.html:6108` → `$("rec-chi").value`) — ma è **chi ha SEGNALATO** il
+reclamo (un nome del ricettore, es. "Sig. Bianchi", "Direzione
+scolastica"), non l'operatore interno che ha chiuso o modificato la
+pratica. La distinzione fra le due cose resta vera e regge il delta
+(nessuna funzione traccia l'operatore INTERNO che corregge una lettura,
+cambia una soglia o chiude un reclamo) — solo l'affermazione specifica
+sulla funzione inesistente era sbagliata.
+
+**Delta confermato — Sentinella traccia QUANDO ma non CHI:**
+
+1. Tutte le modifiche hanno `quando` (timestamp ISO);
+2. Nessuna ha `chi` (l'operatore che l'ha fatta);
+3. Il campo `chi` di `statoDiFatto` e dei reclami esiste ed è persistito, ma è **chi ha SEGNALATO** (il ricettore), non l'operatore interno — vedi la correzione qui sopra;
+4. Correzioni, annullamenti, soglie cambiate, reclami chiusi — nessuno registra l'utente.
+
+**Impatto legale** (il perché conta):
+- Ricettore contesta: "Avete cambiato la soglia da 5 a 6 mm/s il 10/09 alle 14:30 per nascondere il superamento";
+- Risposta oggi: "Abbiamo il timestamp 2026-09-10T14:30:00, ma non sappiamo chi l'ha fatto — era uno dei 3 tecnici, e nessuno ricorda";
+- Risposta in un sistema con audit trail: "L'ingegnere Rossi (credenziali utente ROS_2026) ha cambiato la soglia il 10/09 alle 14:30:23 da 5 a 6 mm/s. Prima lettura con nuova soglia: 6,2 mm/s il 12/09."
+
+Questo è la ragione per cui ogni LIMS professionale lo traccia.
+
+**Costo indicativo**: medio-grande. Richiede:
+- Aggiungere `chi` (o `idUtente`, `emailUtente`) ai parametri di ogni funzione che modifica dati (correggiLettura, annullaLettura, cambio soglia, chiusura reclamo, stato di fatto);
+- Persistenza: scrivere il campo nei dati memorizzati (Firestore);
+- Fonte: leggere l'identità dall'SDK di deepwork-id al momento della modifica (presumibilmente disponibile in `orgCollection`);
+- UI: mostrarla nei dettagli della lettura, della soglia, del reclamo (chi l'ha modificato, quando);
+- Report: opzionalmente un export per audit esterno ("storico completo delle modifiche a ricettore X dal 01/01/2026").
+
+**Riassunto** — 1 lacuna **confermata** (Sentinella traccia i timestamp delle modifiche ma non l'operatore). Il delta è legittimo: è uno standard di settore, richiesto dalle dispute legali, e implementato da tutti i software LIMS professionali. La pratica mondiale lo tiene come standard per "chain of custody". Verificato non primario (la ricerca non accedeva ai documenti tecnici ufficiali di OnLIMS/Quentic/KPMIS, solo a descrizioni marketing e risultati ricerca web), ma il principio è coerente e il motivo è tangibile.
+

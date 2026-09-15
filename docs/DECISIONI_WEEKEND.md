@@ -435,6 +435,7 @@ momento.
 | **21** | **Conti è anche il libro dei debiti?** lo scadenzario fornitori, e con lui la previsione di cassa a sei mesi e il DSCR (11/09) | una parola: **debiti sì** o **debiti no**. Con «sì» il ciclo apre la voce; con «no» resta un limite dichiarato. Vedi la sezione 21. |
 | **22** | Scudo: **quale scadenza INAIL** tracciare, delle tre che esistono — 48h/2gg/24h (15/09) | una delle tre strade (solo la più urgente, tutte e tre automatiche, o solo il documento da allegare), o quale termine tracciare per primo se si parte in piccolo. Vedi la sezione 22. |
 | **23** | Conti: **uno scoring cliente** — sì, e con quali classi? (15/09) | una parola — **scoring sì**, **cruscotto**, o **no** — e se sì quali classi/soglie: è un giudizio su un cliente vero, non un calcolo neutro. Vedi la sezione 23. |
+| **24** | Sentinella: **chi ha modificato** una lettura o una soglia — si traccia l'operatore, non solo il timestamp? (15/09) | se costruirlo (e da dove: tutto o solo le soglie), e se il meccanismo per leggere l'identità va scritto in `shared/` pensando alle altre app. Vedi la sezione 24. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1479,6 +1480,64 @@ averlo.
 **no** — e, se sì, quali classi/soglie usare: è la parte che un ciclo
 automatico non può decidere da solo, perché è una scelta di prodotto su
 come Conti *giudica* un cliente vero.
+
+## 24. Sentinella: chi ha modificato una lettura o una soglia — attribuzione, sì?
+
+*(dalla ricerca del settimo giro su Sentinella, catena di custodia, 15/09
+— riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** Sentinella registra **quando** ogni lettura è stata
+corretta o annullata (`correggiLettura`/`annullaLettura`, con un
+`quando` in `origine.corretta`), ma non **chi** l'ha fatto: nessun
+parametro utente nella firma di quelle funzioni, nessun campo nei dati
+scritti. Lo stesso vale per un cambio di soglia o la chiusura di un
+reclamo. `grep -n "chi\|utente"` sulle funzioni che modificano dati →
+solo `quando`, mai un operatore. (Un campo `chi` esiste già, ma è **chi
+ha SEGNALATO** un reclamo o fatto un sopralluogo — un nome del
+ricettore, non l'operatore interno di Sentinella: due cose diverse che
+condividono solo il nome del campo.)
+
+**Come stiamo.** Se un ricettore contesta «avete abbassato la soglia il
+10/09 alle 14:30 per nascondere un superamento», Sentinella oggi può
+rispondere solo con l'ora — non con chi, dei tecnici che hanno accesso,
+l'ha fatto davvero. I software professionali di monitoraggio ambientale
+per l'estrattivo (LIMS come OnLIMS, Quentic — descritti da fonti
+secondarie, non documentazione tecnica primaria) tracciano sempre
+timestamp **e** operatore su ogni modifica: è lo standard per reggere
+una contestazione legale, non un dettaglio tecnico.
+
+**Perché serve una decisione, non un'unità automatica.** Non è un
+`grep`-e-aggiungi: serve leggere l'identità di chi è collegato **dallo
+SDK deepwork-id** al momento della modifica — un meccanismo che
+**nessun'altra app di questo ecosistema usa ancora per questo scopo**
+(cercato con `grep`: nessun pattern "utente corrente"/"chi sono io"
+riusabile in Sentinella né altrove). Quindi non è un piccolo aggiunta a
+Sentinella sola: è la prima volta che una funzione di prodotto legge
+l'identità dell'operatore per scriverla nei dati, e la risposta a "come
+si fa" andrebbe probabilmente **in `shared/`**, perché la stessa domanda
+(chi ha chiuso questa scadenza in Scudo? chi ha corretto questo importo
+in Conti?) si riproporrà nelle altre app — costruirla dentro Sentinella
+sola rischierebbe la stessa copia debole che questo file mette in
+guardia altrove.
+
+**Le strade.**
+1. **Sì, e si parte da Sentinella**: si aggiunge `chi` (letto dall'SDK,
+   non digitato) a `correggiLettura`, `annullaLettura`, al cambio soglia
+   e alla chiusura di un reclamo — il meccanismo nasce in `shared/` così
+   le altre app lo trovano già pronto quando servirà a loro. Costo
+   medio-grande: firme di funzione, schema Firestore, UI che mostra "chi
+   ha corretto", e un export per un audit esterno.
+2. **Sì, ma solo dove conta di più**: le soglie (l'unico dato che decide
+   se una cava è "conforme"), non le letture o i reclami — un
+   sottoinsieme più piccolo, stesso meccanismo.
+3. **No, per ora**: si resta con solo il timestamp, dichiarando il
+   limite (nessuna app di questo ecosistema traccia oggi l'operatore su
+   una modifica).
+
+**Che cosa serve da te.** Se costruirlo (e da dove: tutte le modifiche o
+solo le soglie), e se il meccanismo di lettura dell'identità va scritto
+subito in `shared/` (pensando alle altre app) o solo dentro Sentinella
+per ora.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
