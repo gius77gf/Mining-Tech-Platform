@@ -212,7 +212,7 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
 
 **Quanto è controllato, oggi** *(ricontato il 15/09, dopo aver aggiunto a
 `run-kpi.mjs` le due prove sull'associazione ambigua del sismogramma nel
-core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su «saldata»/«parziale» in `statoFattura`, poi le tre sul limite a tre scritture di `convergiClaims`, poi quella su `kpiFrom` di Scudo con un `oggi` fisso, poi quella sul fronte conteso fra due lotti di Terra, poi quella sul criterio unico di `tagliandiInScadenza` in Flotta, poi quella sulla lettura per valore di `fogliaVolata` in Sentinella, poi quella sulle note di credito di `applicaIncassi` in Conti, poi quella sulla numerazione DDT senza salti dichiarata ma non imposta, poi quella sul margine fra esaurimento e scadenza in `vitaCava` di Terra, poi quella sulla sospensione temporanea in `abilitazioneLavoratore` di Scudo, poi quella sull'aggregazione per ricettore in `reclamiPerRicettore` di Sentinella, poi quella sul costo medio per intervento in `costoControStoria` di Flotta, poi quella sullo scarto del mese in `varianzaMensilePiano` di Terra, poi quella sulle voci "trend" di `prioritaOperative` in Flotta, poi quella sugli avvisi di `avvisiChiusuraTurno` in Campo, poi quella sul ritmo corto contro il lungo in `tendenzaRitmo` di Terra, poi quella sull'escalation per livello in `testoSollecito` di Conti, poi quella sull'elenco dei crediti oltre 90 giorni in `fattureOltre90` di Conti, poi quella sugli infortuni della persona in `cartellaLavoratore` di Scudo, lanciando le suite, non a memoria)*: **3.495** prove automatiche che girano senza rete — **3011** sulle
+core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su «saldata»/«parziale» in `statoFattura`, poi le tre sul limite a tre scritture di `convergiClaims`, poi quella su `kpiFrom` di Scudo con un `oggi` fisso, poi quella sul fronte conteso fra due lotti di Terra, poi quella sul criterio unico di `tagliandiInScadenza` in Flotta, poi quella sulla lettura per valore di `fogliaVolata` in Sentinella, poi quella sulle note di credito di `applicaIncassi` in Conti, poi quella sulla numerazione DDT senza salti dichiarata ma non imposta, poi quella sul margine fra esaurimento e scadenza in `vitaCava` di Terra, poi quella sulla sospensione temporanea in `abilitazioneLavoratore` di Scudo, poi quella sull'aggregazione per ricettore in `reclamiPerRicettore` di Sentinella, poi quella sul costo medio per intervento in `costoControStoria` di Flotta, poi quella sullo scarto del mese in `varianzaMensilePiano` di Terra, poi quella sulle voci "trend" di `prioritaOperative` in Flotta, poi quella sugli avvisi di `avvisiChiusuraTurno` in Campo, poi quella sul ritmo corto contro il lungo in `tendenzaRitmo` di Terra, poi quella sull'escalation per livello in `testoSollecito` di Conti, poi quella sull'elenco dei crediti oltre 90 giorni in `fattureOltre90` di Conti, poi quella sugli infortuni della persona in `cartellaLavoratore` di Scudo, poi quella sulla visita medica di rientro dopo un'assenza oltre 60 giorni in `visitaRientroNecessaria`/`cartellaLavoratore`/`riepilogoInfortuni` di Scudo, lanciando le suite, non a memoria)*: **3.498** prove automatiche che girano senza rete — **3014** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **22** sull'ordine con cui due o più trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.495** conta nove suite: il giro completo ne esegue **3.918** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.498** conta nove suite: il giro completo ne esegue **3.921** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
@@ -244,10 +244,10 @@ l'08/08 e questa unità ha aggiunto un caso»), e diceva **2.728** dove il vero 
 ricopiato — ed è la stessa ragione per cui la riga qui sopra era rimasta ferma a
 2.251 e 2.474 mentre il titolo era già aggiornato: il controllo sorveglia il
 **totale**, non la prosa che lo spiega.
-⚠️ E il giro lo stampa **col suo denominatore**: 22 comandi su 34 hanno una riga
-da sommare, e gli altri **12 sono nominati** — non vuol dire che non abbiano
+⚠️ E il giro lo stampa **col suo denominatore**: 26 comandi su 40 hanno una riga
+da sommare (misura del 15/09), e gli altri **14 sono nominati** — non vuol dire che non abbiano
 provato niente, vuol dire che quel conto non li vede.)*
-E **1006 funzioni pure su 1006** delle sei app sono chiamate per nome dalle prove:
+E **1007 funzioni pure su 1007** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
 guardato — non che siano provate *bene*, che è un'altra domanda.
 ✅ *E quella rinuncia era falsa, come misurato il 13/08 e rimisurato il 05/09 in

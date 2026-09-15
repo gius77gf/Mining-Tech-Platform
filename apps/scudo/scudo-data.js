@@ -374,6 +374,14 @@ export const DEMO = {
        scadenza in Conti — e le frasi «almeno N giornate perse» e «indice di
        gravità (minimo)» sarebbero state codice morto. */
     { id: "i8", data: "2026-07-28", tipo: "infortunio", gravita: "lieve", giorniAssenza: null, luogo: "piazzale 2", luogoTipo: "piazzale", descrizione: "Distorsione alla caviglia scendendo dalla cabina del dumper — prognosi ancora aperta" },
+    /* UN INFORTUNIO OLTRE I 60 GIORNI DI ASSENZA — finding 4 del secondo
+       giro di ricerca su Scudo (15/09): senza un caso così in dimostrazione
+       la visita di rientro (art. 41 c.2 lett. e-ter) resterebbe codice
+       morto, come la fattura senza scadenza in Conti o la prognosi aperta
+       qui sopra. Collegato a d2 (Luca Bianchi), il cui giudizio d'idoneità
+       "non-idoneo" del 2026-08-20 è successivo alla chiusura di questa
+       assenza: coerente con un infortunio che porta a una prescrizione. */
+    { id: "i9", data: "2026-05-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 75, lavoratoreId: "d2", luogo: "piazzale 1", luogoTipo: "piazzale", descrizione: "Caduta da un mezzo durante la manutenzione — frattura" },
   ],
   /* LE ORE LAVORATE, ANNO PER ANNO — il denominatore dei tre indici.
      ⛔ Il 2026 NON c'è, ed è la parte più importante della dimostrazione: è
@@ -895,6 +903,21 @@ export function prognosiAperta(evento) {
   return !!(evento && evento.tipo === "infortunio") && giornateAssenza(evento) === null;
 }
 
+/* La visita medica di rientro obbligatoria dopo un'assenza per malattia o
+   infortunio superiore a 60 giorni continuativi (D.Lgs 81/2008 art. 41 c.2
+   lett. e-ter) — finding 4 del secondo giro di ricerca su Scudo (15/09).
+   La domanda ha senso SOLO quando si sa quanti giorni sono stati persi: un
+   infortunio a prognosi ancora aperta (`giornateAssenza` → `null`) non può
+   dire «più di 60» né «meno di 60», e trattarlo come «non ancora sopra
+   soglia» sarebbe la stessa risposta tranquilla su un dato non misurato che
+   questo file mette in guardia altrove. Un near-miss non ha un ferito:
+   resta fuori per costruzione (`giornateAssenza` risponde `0`, mai `null`,
+   per un `tipo` diverso da «infortunio»). Pura. */
+export function visitaRientroNecessaria(evento) {
+  const g = giornateAssenza(evento);
+  return !!(evento && evento.tipo === "infortunio") && g != null && g > 60;
+}
+
 export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const list = infortuni || [];
   const veri = list.filter(x => x.tipo === "infortunio");
@@ -933,8 +956,13 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const giorniAssenzaTot = veri.reduce((s, x) => s + (giornateAssenza(x) || 0), 0);
   const prognosiAperte = veri.filter(prognosiAperta).length;
   const gravi = veri.filter(x => x.gravita === "grave").length;
+  // quanti infortuni superano i 60 giorni di assenza e aspettano ancora la
+  // visita medica di rientro (art. 41 c.2 lett. e-ter): un conteggio per la
+  // cava intera, gemello del `daSistemare` che `cartellaLavoratore` fa per
+  // singola persona.
+  const rientriDaProgrammare = veri.filter(visitaRientroNecessaria).length;
   return { infortuni: veri.length, nearMiss: nearMiss.length, gravi, giorniSenza, ultimo,
-    giorniAssenzaTot, prognosiAperte,
+    giorniAssenzaTot, prognosiAperte, rientriDaProgrammare,
     /* quanti infortuni non hanno una data che si possa leggere: il conteggio
        dei giorni non li vede, e chi disegna il cartellone deve dirlo invece di
        lasciar credere che il numero grande li comprenda. */
@@ -4189,6 +4217,13 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
     [sueNomine.filter(n => dateNominaIlleggibili(n).al).length, "nomina la cui data di fine non si legge", "nomine la cui data di fine non si legge"],
     [suoiDoc.filter(x => { const e = etichettaStatoDocumento(x.stato); return !e.valido && !e.superato; }).length,
       "documento non valido o dallo stato non registrato", "documenti non validi o dallo stato non registrato"],
+    /* Finding 4 del secondo giro di ricerca (15/09): la visita di rientro
+       dopo un'assenza oltre 60 giorni (art. 41 c.2 lett. e-ter) non aveva
+       nessun follow-up a livello di persona. `visitaRientroNecessaria` è
+       pura e già usata dal cartellone di cava (`riepilogoInfortuni`); qui è
+       lo stesso conto, ristretto agli infortuni di QUESTA persona. */
+    [suoiInfortuni.filter(visitaRientroNecessaria).length,
+      "visita medica di rientro da programmare (assenza oltre 60 giorni)", "visite mediche di rientro da programmare (assenza oltre 60 giorni)"],
   ];
   const daSistemare = righeGuaste.filter(([n]) => n > 0).map(([n, uno, tanti]) => conta(n, uno, tanti));
 
@@ -4431,6 +4466,7 @@ export function fogliaCartella(cartella, oggi = new Date()) {
       return [dataIt(x.data),
         (g ? g.charAt(0).toUpperCase() + g.slice(1) : "—")
         + " · " + (x.giorniAssenza == null ? "**prognosi ancora aperta**" : conta(x.giorniAssenza, "giorno di assenza", "giorni di assenza"))
+        + (visitaRientroNecessaria(x) ? " · **visita medica di rientro da programmare (art. 41 c.2 lett. e-ter)**" : "")
         + (x.descrizione ? " · " + String(x.descrizione) : "")]; }), ""));
   return {
     titolo: "Cartella del lavoratore",

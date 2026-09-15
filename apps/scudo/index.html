@@ -1781,7 +1781,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        si prendono da `andamentoIndici`, che è l'unico posto in cui le ore
        registrate per un anno si leggono con la regola degli anni doppi. */
     andamentoIndici, avvisoGravitaMinima, avvisoInfortuniSenzaAnno, avvisoAndamentoMinimo,
-    giornateAssenza, prognosiAperta, descriviGiornatePerse,
+    giornateAssenza, prognosiAperta, visitaRientroNecessaria, descriviGiornatePerse,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
     testoBilancioFoto, pastigliaFoto, contestoFoto,
@@ -3392,7 +3392,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          prognosi aperta era la frase più tranquilla che questa riga sapesse
          dire, e nessuno l'aveva misurata. La frase la scrive il modulo
          (`descriviGiornatePerse`), che legge la bandiera `noto`. */
-      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · ${esc(descriviGiornatePerse(ri))}`;
+      `Infortuni: <b>${ri.infortuni}</b>${ri.gravi ? ` (di cui <b>${ri.gravi}</b> gravi)` : ""} · near-miss: <b>${ri.nearMiss}</b> · ${esc(descriviGiornatePerse(ri))}`
+      + (ri.rientriDaProgrammare ? ` · ⚠️ ${conta(ri.rientriDaProgrammare, "visita di rientro da programmare", "visite di rientro da programmare")} (art. 41 c.2 lett. e-ter)` : "");
 
     // ── S2 · RIEPILOGO AGGREGATO DEI NEAR-MISS (L. 198/2025) ─────────────
     // Quanti nel periodo, per tipo e per luogo: è così che si vede DOVE il
@@ -3630,7 +3631,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
              title="Nessuno ha ancora detto come poteva finire — tocca per dirlo (è facoltativo)"
              aria-label="Gravità potenziale non valutata: tocca per valutarla">Non valutata</span>`;
       return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${pb}${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo === "osservazione" ? " · " + esc(etichettaEsitoOsservazione(x.esito) || "esito non dichiarato") : x.tipo !== "near-miss" ? " · " + (x.gravita ? esc(x.gravita) : "gravità non dichiarata") : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo === "osservazione" ? " · " + esc(etichettaEsitoOsservazione(x.esito) || "esito non dichiarato") : x.tipo !== "near-miss" ? " · " + (x.gravita ? esc(x.gravita) : "gravità non dichiarata") : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${visitaRientroNecessaria(x) ? " · <b>visita di rientro da programmare</b>" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
@@ -6730,7 +6731,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            due tocchi più in là, scrive «prognosi ancora aperta». È la stessa
            frase dell'elenco, decisa dalle stesse due funzioni. */
         + (prognosiAperta(ev) ? " · prognosi ancora aperta"
-            : (giornateAssenza(ev) ? " · " + giornateAssenza(ev) + " gg di assenza" : "")) + "</div>"
+            : (giornateAssenza(ev) ? " · " + giornateAssenza(ev) + " gg di assenza" : ""))
+        + (visitaRientroNecessaria(ev) ? " · <b>visita di rientro da programmare</b>" : "") + "</div>"
       + '<div class="nm-lab">1 · La catena dei perché</div>'
       + '<div id="an-perche">' + righe.join("") + "</div>"
       + '<div class="frow" style="margin-top:10px;">'

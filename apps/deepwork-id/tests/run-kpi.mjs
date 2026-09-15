@@ -2905,7 +2905,10 @@ test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, compos
     && f.daSistemare.includes("ispezioni: 1 scaduta, 4 voci senza esito"), "le righe registrate e non in regola: " + f.daSistemare.join(" | "));
   eq([f.completo, f.inRegola, f.chiusura.allarme], [false, false, true], "e la chiusura è un allarme");
   ok(/^Sezioni o dati che in Scudo non risultano: DSS di Cava Monte Alto/.test(f.chiusura.testo) && /⚠️ E non tutto quello che è registrato è in regola/.test(f.chiusura.testo), f.chiusura.testo);
-  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 3, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1 },
+  // infortuni: 4 dal 15/09 (i9, l'infortunio oltre i 60 giorni che esercita
+  // visitaRientroNecessaria in dimostrazione — finding 4 del secondo giro di
+  // ricerca su Scudo); 3 prima.
+  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 4, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1 },
     "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria)");
   const riga = (t, e) => { const z = f.sezioni.find((x) => x.titolo === t); const r = z && z.righe.find((q) => q[0] === e); return r ? r[1] : undefined; };
   ok(/^\*\*non databile\*\* — Il DSS è in archivio/.test(riga("Documento di sicurezza e salute (DSS)", "Cava Monte Alto")), "⛔ il DSS non databile è in grassetto, con la ragione del modulo");
@@ -3006,6 +3009,44 @@ test("⛔ cartellaLavoratore: gli infortuni della PERSONA entrano nel fascicolo 
   const cVuoto = scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d4"), dati, oggi);
   ok(!scudo.fogliaCartella(cVuoto, oggi).sezioni.some(s => s.titolo === "Infortuni"),
     "senza infortuni collegati la sezione non esce affatto, non esce vuota");
+});
+test("⛔ visitaRientroNecessaria: la visita di rientro (art. 41 c.2 lett. e-ter) sopra i 60 giorni (finding 4, 15/09)", () => {
+  const inf = (giorniAssenza) => ({ tipo: "infortunio", giorniAssenza });
+  ok(scudo.visitaRientroNecessaria(inf(61)), "61 giorni: sopra soglia");
+  ok(!scudo.visitaRientroNecessaria(inf(60)), "60 giorni esatti: non ANCORA sopra soglia (\"superiore\", non \"pari o superiore\")");
+  ok(!scudo.visitaRientroNecessaria(inf(10)), "assenza breve: non serve");
+  ok(!scudo.visitaRientroNecessaria(inf(null)), "prognosi ancora aperta: non si sa ancora, non è «non serve»");
+  ok(!scudo.visitaRientroNecessaria({ tipo: "near-miss", giorniAssenza: 90 }),
+    "un near-miss non ha un ferito, resta fuori anche con un numero grande scritto per errore");
+  ok(!scudo.visitaRientroNecessaria(null), "un evento assente non rompe");
+});
+test("⛔ cartellaLavoratore + fogliaCartella: la visita di rientro entra nel «da sistemare» e nel foglio (finding 4, 15/09)", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
+  const lav = D.lavoratori.find(x => x.id === "d1");
+  const infortuni = [
+    { id: "y1", data: "2026-03-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 75, lavoratoreId: lav.id, descrizione: "Frattura" },
+  ];
+  const dati = { scadenze: [], mansioni: [], dpi: [], nomine: [], documenti: [], infortuni };
+  const c = scudo.cartellaLavoratore(lav, dati, oggi);
+  ok(c.daSistemare.some(x => /visita medica di rientro/.test(x)),
+    `il «da sistemare» segnala la visita: ${JSON.stringify(c.daSistemare)}`);
+  const f = scudo.fogliaCartella(c, oggi);
+  const sezInf = f.sezioni.find(s => s.titolo === "Infortuni");
+  ok(sezInf.righe[0][1].includes("visita medica di rientro da programmare"),
+    `la riga del foglio lo scrive: ${sezInf.righe[0][1]}`);
+  // sotto soglia: nessuna riga in più, nessun daSistemare
+  const cCorta = scudo.cartellaLavoratore(lav, { ...dati, infortuni: [{ ...infortuni[0], giorniAssenza: 10 }] }, oggi);
+  ok(!cCorta.daSistemare.some(x => /visita medica di rientro/.test(x)), "10 giorni: non serve nessuna visita");
+  ok(!scudo.fogliaCartella(cCorta, oggi).sezioni.find(s => s.titolo === "Infortuni").righe[0][1].includes("rientro"),
+    "e il foglio non lo scrive");
+});
+test("⛔ la dimostrazione contiene l'infortunio oltre i 60 giorni (finding 4, 15/09)", () => {
+  const D = scudo.DEMO;
+  const oltre = D.infortuni.filter(scudo.visitaRientroNecessaria);
+  eq(oltre.length, 1, "uno solo, senza il quale la visita di rientro sarebbe codice morto in dimostrazione");
+  eq(oltre[0].id, "i9");
+  const r = scudo.riepilogoInfortuni(D.infortuni, new Date("2026-08-02T00:00:00"));
+  eq(r.rientriDaProgrammare, 1, "e il cartellone di cava lo conta");
 });
 test("descriviCartella: la frase del fascicolo la scrive il modulo, non la pagina", () => {
   const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");

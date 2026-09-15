@@ -8510,8 +8510,10 @@ numero scritto dove non era stato misurato niente**.*
   Terra il ritmo corto contro il lungo, 3006→3007, e a `testoSollecito` di
   Conti l'escalation per livello, 3007→3008, e a `fattureOltre90` di Conti
   l'elenco per il commercialista, 3008→3010, e a `cartellaLavoratore` di
-  Scudo gli infortuni della persona, 3010→3011): **3.495 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3011, `run-stile` 328,
+  Scudo gli infortuni della persona, 3010→3011, e a `visitaRientroNecessaria`/
+  `cartellaLavoratore`/`riepilogoInfortuni` di Scudo la visita medica di
+  rientro dopo un'assenza oltre 60 giorni, 3011→3014): **3.498 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3014, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
