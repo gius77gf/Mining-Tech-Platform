@@ -705,19 +705,15 @@ body.dw.outdoor-mode .peggio-num small{
    `clientWidth` e basta, quindi 292,78 e 302,30 si leggono tutt'e due «302 in
    302». Il margine vero lo dà la somma delle min-content.
 
-   ⛔ QUELLO CHE RESTA, DICHIARATO INVECE CHE NASCOSTO:
-   · fra «Monitoraggi», «Programma» e «Adempimenti» restano **2px** di aria —
-     cioè il solo padding — e restano 2px anche a 390px e a 430px, perché
-     quelle tre tracce sono già alla loro min-content e l'avanzo lo prendono
-     solo le colonne strette. Non è questa correzione a introdurlo e non è una
-     correzione di foglio di stile a toglierlo: la strada vera è **accorciare
-     una parola**, che è una decisione di prodotto (proposta: «Adempimenti» →
-     «Scadenze», la parola che Scudo e Flotta usano già per la stessa cosa);
-   · il bersaglio di tocco delle voci strette resta **41,4 × 55px**, sotto i
-     44 di larghezza. Con sei colonne in 302px il massimo possibile sarebbe
-     50,3, ma solo se le colonne fossero uguali — e non possono esserlo finché
-     «Monitoraggi» ne chiede 61. Prima della correzione era 40,1 **e tagliato**:
-     si migliora di poco in larghezza e di molto in esistenza. */
+   ✅ **PRESA IL 15/09 la strada dichiarata qui sopra**: «Adempimenti» →
+   «Scadenze» (la parola che Scudo e Flotta usano già per la stessa cosa —
+   e che la sezione stessa porta già nel titolo, «Scadenze ambientali»: il
+   pulsante diceva una parola diversa dalla sezione a cui porta). Misurato
+   con Playwright a 320px, non stimato: i bersagli di tocco sono saliti da
+   **41,4** a **45,61–46,86 px** (tutti e sei sopra i 44 richiesti; prima
+   della correzione «Adempimenti» erano tagliati a 40,1). `barra-etichette.mjs
+   --solo=sentinella` conferma: 24 etichette su 4 larghezze, 0 fuori posto,
+   0 tagliate, a 320px incluso. */
 @media(max-width:345px){
   .nav button{font-size:7.5px; letter-spacing:.45px}
 }
@@ -1853,7 +1849,7 @@ textarea.dw-input{
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-mon" onclick="go('mon')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 21v-6.2"/><path d="M4.6 15.2A9.4 9.4 0 0 1 3.2 10 8.8 8.8 0 0 1 12 2.6 8.8 8.8 0 0 1 20.8 10a9.4 9.4 0 0 1-1.4 5.2"/><path d="M7.9 13.6A5.6 5.6 0 0 1 7 10.4 5 5 0 0 1 12 6a5 5 0 0 1 5 4.4 5.6 5.6 0 0 1-.9 3.2"/><circle cx="12" cy="10.4" r="1.5"/><path d="M8.8 21h6.4"/></svg></span>Monitoraggi</button>
   <button id="nav-prog" onclick="go('prog')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M8.4 4.2H6.6a2 2 0 0 0-2 2v12.6a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2V6.2a2 2 0 0 0-2-2h-1.8"/><rect x="8.4" y="2.6" width="7.2" height="3.2" rx="1.1"/><path d="M8.6 11.2l1.8 1.8 3.4-3.6"/><path d="M8.6 16.6h6.8"/></svg></span>Programma</button>
-  <button id="nav-ade" onclick="go('ade')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/><path d="M8.6 13.6l2.2 2.2 4.4-4.4"/></svg></span>Adempimenti</button>
+  <button id="nav-ade" onclick="go('ade')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="16.5" rx="2.4"/><path d="M4 9.4h16"/><path d="M8.4 2.6v3.6M15.6 2.6v3.6"/><path d="M8.6 13.6l2.2 2.2 4.4-4.4"/></svg></span>Scadenze</button>
   <button id="nav-reg" onclick="go('reg')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5a2.4 2.4 0 0 1 2.4-2.4H19V18H6.4A2.4 2.4 0 0 0 4 20.4z"/><path d="M4 20.4A2.4 2.4 0 0 1 6.4 18H19v3.4H6.4A2.4 2.4 0 0 1 4 20.4z"/><path d="M8.4 7.4h6.2M8.4 11h4.2"/></svg></span>Registri</button>
   <button id="nav-rep" onclick="go('rep')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 2.6h7.6L19 8v13.4H6z"/><path d="M13.4 2.6V8H19"/><path d="M9 12.6h6M9 16.2h4"/></svg></span>Report</button>
 </nav>

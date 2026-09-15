@@ -1585,6 +1585,21 @@ test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'
   ok(/data-risposta-rec=/.test(pagina) && /htmlRispostaReclamo\(/.test(pagina), "la scheda del reclamo stampa la risposta");
   ok((pagina.match(/descriviStatoDiFatto\(/g) || []).length >= 3, "lo stato di fatto si legge nella riga del ricettore e in quella del reclamo");
 });
+test("⛔ la barra in basso di Sentinella dice «Scadenze», non «Adempimenti» (15/09)", () => {
+  /* «Adempimenti» (11 lettere) era la voce che teneva i bersagli di tocco
+     sotto i 44px a 320px — misurato con Playwright: 41,4 px, tagliati a
+     40,1 prima della correzione precedente sul foglio di stile. La sola
+     strada rimasta era accorciare la parola, e la sezione a cui porta si
+     chiama già «Scadenze ambientali»: il pulsante diceva una parola
+     diversa dalla propria sezione. Rinominato a «Scadenze» (la stessa
+     parola che Scudo e Flotta usano già per lo stesso concetto) — misurato
+     di nuovo: 45,61–46,86 px, tutti sopra i 44. */
+  const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+  ok(/id="nav-ade" onclick="go\('ade'\)">[\s\S]{0,300}?<\/span>Scadenze<\/button>/.test(pagina),
+    "il bottone del registro scadenze dice «Scadenze»");
+  ok(!/id="nav-ade" onclick="go\('ade'\)">[\s\S]{0,300}?<\/span>Adempimenti<\/button>/.test(pagina),
+    "e non più «Adempimenti»");
+});
 
 test("esportaTutto: le righe come stanno, e ciò che manca si dichiara (11/09)", () => {
   const letture = { a: [{ x: 1 }, { x: 2 }], b: [], c: null };

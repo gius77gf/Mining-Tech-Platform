@@ -1495,7 +1495,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.504** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.505** *(ricontate il 15/09, dopo aver
 aggiunto a `run-kpi.mjs` la prova che «saldata» e «parziale» non sono mai vere
 insieme in `statoFattura` di Conti, a `claims-convergenza.mjs` il limite a
 tre scritture ravvicinate, a `kpiFrom` di Scudo un `oggi` fisso, alla
@@ -1515,8 +1515,10 @@ turno, a `tendenzaRitmo` di Terra il ritmo corto contro il lungo e a
 `fattureOltre90` di Conti l'elenco per il commercialista e a
 `cartellaLavoratore` di Scudo gli infortuni della persona, la visita
 medica di rientro dopo un'assenza oltre 60 giorni, il terzo/quarto gradino
-di gravità (permanente/mortale) coi giorni convenzionali UNI 7249, e la
+di gravità (permanente/mortale) coi giorni convenzionali UNI 7249, la
 lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
+e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
+Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
 esecuzioni** che aprono davvero le pagine in un browser.

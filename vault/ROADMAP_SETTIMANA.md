@@ -2925,7 +2925,6 @@ grep -n "^- \[ \] \*\*" vault/ROADMAP_SETTIMANA.md
 - `G7–G9`
 - `G46 (candidato, non preso)`
 - `Q1`
-- `«Adempimenti» è la parola che governa il minimo di Sentinella`
 - `LA TELA DELLA VETRINA È IN ATTESA DEL FONDATORE` *(la fotografia di cava,
   e il sì o il no alla sezione chiara)*
 - `DECISIONE DEL FONDATORE:` *(la vetrina sostituisce `apps/index.html`? e le
@@ -7237,11 +7236,13 @@ numero scritto dove non era stato misurato niente**.*
   in `CLAUDE.md`: un banco che trova la porta occupata e la riusa misura la
   copia di qualcun altro. Ho servito la mia cartella su 8990 e **verificato che
   fosse la mia** prima di credere a un numero.
-- [ ] **«Adempimenti» è la parola che governa il minimo di Sentinella** (11
-  lettere, 64,81 px): accorciarla toglierebbe ~18 px, ed è la sola strada per
-  portare i bersagli di tocco a 320 px sopra i 44 (oggi tre voci stanno a
-  41,4). È una decisione di **prodotto**, non presa — e «Scadenze» è già la voce
-  di Scudo e di Flotta.
+- [x] ✅ **«Adempimenti» è la parola che governava il minimo di Sentinella —
+  PRESA E FATTA il 15/09.** Rinominata a «Scadenze» (la parola che Scudo e
+  Flotta usano già per la stessa cosa, e che la sezione stessa porta nel
+  titolo — «Scadenze ambientali»). Misurato con Playwright, non stimato:
+  i bersagli di tocco a 320px sono saliti da 41,4 a 45,61–46,86 px, tutti
+  sopra i 44 richiesti. `barra-etichette.mjs --solo=sentinella`: 0 fuori
+  posto, 0 tagliate a nessuna delle quattro larghezze.
 - [x] ✅ **La parte 7 estesa col terzo livello** (`84de2d8`) e **la ricerca su
   Scudo** (`a01bbcc`, 127 righe, 34 con fonte, ~45 `[dedotto]` — da rimisurare
   prima di diventare unità).
@@ -8516,8 +8517,10 @@ numero scritto dove non era stato misurato niente**.*
   `GRAVITA_INFORTUNIO`/`infortunioGrave`/`giornateConvenzionali` di Scudo il
   terzo e quarto gradino di gravità e i giorni convenzionali UNI 7249,
   3014→3019, e a `#inf-list` la lettura dell'etichetta di gravità dal
-  vocabolario invece del campo grezzo, 3019→3020): **3.504 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3020, `run-stile` 328,
+  vocabolario invece del campo grezzo, 3019→3020, e alla barra in basso di
+  Sentinella il bottone «Scadenze» al posto di «Adempimenti», 3020→3021):
+  **3.505 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3021, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
