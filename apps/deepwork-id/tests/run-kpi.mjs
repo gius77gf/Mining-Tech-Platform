@@ -33015,10 +33015,10 @@ const SCARTI_PROVATI = new Set();
   const NOVE = [
     ["campo.parseSquadreCsv", campo.parseSquadreCsv, campo.scartiSquadreCsv, "nome;persone;area;stato",
      ["Squadra A;4;Fronte Nord;operativa", "Squadra B;;Piazzale;operativa"],
-     [[";6;Fronte Sud;operativa", "manca il nome della squadra", "riga 3"]]],
+     [[";6;Fronte Sud;operativa", "manca il nome della squadra", "riga 4"]]],   // 15/09: riga FISICA (1=intestazione, 2-3=sane)
     ["flotta.parseMezziCsv", flotta.parseMezziCsv, flotta.scartiMezziCsv, "nome;area;ore;stato",
      ["Escavatore 1;Fronte Nord;6375;operativo", "Pala 2;Piazzale;;operativo"],
-     [[";Piazzale;100;operativo", "manca il nome del mezzo", "riga 3"]]],
+     [[";Piazzale;100;operativo", "manca il nome del mezzo", "riga 4"]]],   // 15/09: riga FISICA (1=intestazione, 2-3=sane)
     ["terra.parseFrontiCsv", terra.parseFrontiCsv, terra.scartiFrontiCsv, "nome;banco;quota;stato",
      ["Fronte Nord;Banco A;340;attivo", "Fronte Sud;Banco B;;attivo"],
      [[";Banco D;300;attivo", "manca il nome del fronte", "riga 4"]]],   // 15/09: riga FISICA (1=intestazione, 2-3=sane), non più posizione nell'elenco filtrato
@@ -33177,6 +33177,17 @@ const SCARTI_PROVATI = new Set();
     eq(a.persi[0].nome, "riga 4", "titolo vuoto: nessun fallback, quindi 'riga N'");
     const vo = sentinella.scartiVolateCsv("data;fronte;nFori;kgTotali;kgMaxRitardo;distanzaRicettore;esito;note\n2026-03-01;Fronte Nord;10;100;5;200;regolare;\n\n;;1;1;1;1;;\n");
     eq(vo.persi[0].nome, "riga 4", "data e fronte entrambi vuoti: niente fallback, 'riga N'");
+  });
+
+  test("⛔ B13 (15/09, terzo lotto): campo.scartiSquadreCsv/scartiPianoCsv e flotta.scartiRicambiCsv/scartiMezziCsv migrati, stessa prova", () => {
+    const cq = campo.scartiSquadreCsv("nome;persone;area;stato\nSquadra A;4;Fronte Nord;operativa\n\n;6;Fronte Sud;operativa\n");
+    eq(cq.persi[0].nome, "riga 4", "1=intestazione, 2=sana, 3=bianca, 4=rotta");
+    const cp = campo.scartiPianoCsv("foro;x;fila;prof;prog;borr;rit\n1;0;A;12;5,5;3;0\n\n;1,5;A;12;5,5;3;25\n");
+    eq(cp.persi[0].nome, "riga 4", "foro vuoto: nessun fallback su 'foro N', quindi 'riga N' fisica");
+    const fr = flotta.scartiRicambiCsv("nome;giacenza;sogliaMin;prezzo\nFiltro olio;10;2;15\n\n;5;1;9\n");
+    eq(fr.persi[0].nome, "riga 4");
+    const fm = flotta.scartiMezziCsv("nome;area;ore;stato\nEscavatore 1;Fronte Nord;6375;operativo\n\n;Piazzale;100;operativo\n");
+    eq(fm.persi[0].nome, "riga 4");
   });
 
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
@@ -33574,7 +33585,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   const QUATTRO = [
     ["campo.parsePianoCsv", campo.parsePianoCsv, campo.scartiPianoCsv, "foro;x;fila;prof;prog;borr;rit",
      ["1;0;A;12;5,5;3;0"],
-     [[";1,5;A;12;5,5;3;25", "manca il numero del foro", "riga 2"],
+     [[";1,5;A;12;5,5;3;25", "manca il numero del foro", "riga 3"],   // 15/09: riga FISICA (1=intestazione, 2=sana)
       ["abc;3;A;12;5,5;3;50", "il numero del foro non si legge", "foro abc"],
       ["0;4;A;12;5,5;3;75", "il numero del foro non è maggiore di zero", "foro 0"],
       ["5;5;A;12;;3;100", "la carica progettata non è stata scritta", "foro 5"],
@@ -33597,7 +33608,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
         senza quantità è un pezzo che non c'è), soglia mancante = vuota,
         prezzo mancante = vuoto. */
      ["Filtro olio;10;2;15", "Cinghia;;1;40", "Guarnizione;3;;"],
-     [[";5;1;9", "manca il nome del ricambio", "riga 4"]]],
+     [[";5;1;9", "manca il nome del ricambio", "riga 5"]]],   // 15/09: riga FISICA (1=intestazione, 2-4=sane)
   ];
   eq(QUATTRO.length, 4,
     "⛔ INGRESSO · la tabella copre tutti e quattro i lettori lasciati muti dalla passata del mattino");

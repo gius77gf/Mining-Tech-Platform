@@ -54,7 +54,7 @@
 // restano visibili come "senza data", vedi eDelGiorno).
 // ============================================================
 
-import { parseCsvLine, numIt, isIntestazione, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
+import { parseCsvLine, numIt, isIntestazione, righeCsvNumerate, csvCell, numeroScritto, oggiISO as oggiISOShell, isoLocale,
          dataISOEsiste, dataPiuGiorni as dataPiuGiorniShell, conta, plurale, perLettura, mappaColonne, dataIt } from "../../shared/deepwork-id-client/dw-shell.js";
 /* la regola sui numeri dichiarati vive in `shared/`: si importa, non si riscrive */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, chiaveMateriale, scartoPct, scartoLivello,
@@ -2744,13 +2744,10 @@ export function parseSquadreCsv(text) {
    `persone: null` («niente zero di comodo», la regola qui sopra). Quello che
    fa perdere la riga è il NOME, che è l'identità. */
 export function scartiSquadreCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseSquadreCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -2902,19 +2899,16 @@ export function parsePianoCsv(text) {
    righe di coda come `;;;`, che dopo il `trim` non è vuota e arriva fino al
    filtro. Si contano a parte (`vuote`) e non si dicono. */
 export function scartiPianoCsv(text) {
-  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-  const testa = tutte.find(r => isIntestazione(r, "foro"));
-  const righe = tutte.filter(r => !isIntestazione(r, "foro"));
+  const testa = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean).find(r => isIntestazione(r, "foro"));
+  const righe = righeCsvNumerate(text, "foro");
   const m = mappaPianoCsv(text);
   const cella = (c, campo, pos) => {
     const i = m.conIntestazione ? m.indici[campo] : pos;
     return i === undefined ? "" : String(c[i] == null ? "" : c[i]).trim();
   };
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parsePianoCsv(testa ? testa + "\n" + riga : riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }

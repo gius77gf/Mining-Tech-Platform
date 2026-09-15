@@ -87,7 +87,7 @@
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
 import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
-import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, numeroScritto, oggiISO,
+import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale, conta, euro, isoLocale,
          messaggioNumero as messaggioNumeroShell,
          perCampo as perCampoShell,
@@ -802,13 +802,10 @@ export function parseRicambiCsv(text) {
    e resta muta: accusare l'utente di un difetto del suo Excel è il falso
    allarme che insegna a non guardare i messaggi. */
 export function scartiRicambiCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseRicambiCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
@@ -1161,13 +1158,10 @@ export function parseMezziCsv(text) {
    `ore: null` (la regola «niente zero di comodo sulle ore», qui sopra).
    Quello che fa perdere la riga è il NOME, che è l'identità del mezzo. */
 export function scartiMezziCsv(text) {
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !isIntestazione(r, "nome"));
+  const righe = righeCsvNumerate(text, "nome");
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseMezziCsv(riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
