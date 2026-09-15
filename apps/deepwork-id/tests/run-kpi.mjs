@@ -37376,6 +37376,50 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
 /* ===== fine Flotta · il consumo contro la storia ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · IL COSTO D'OFFICINA DI UN MEZZO CONTRO LA SUA STORIA (15/09,
+   sesto giro di ricerca su Flotta: manutenzione predittiva da trend, non
+   solo soglie fisse). Stessa forma di `consumoControStoria`, ma il tasso è
+   la MEDIA per intervento, non una somma per ora — nessun contatore in
+   mezzo.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const O = new Date("2026-09-15T12:00:00Z");
+  const g = (n) => new Date(O.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const R = [
+    { mezzo: "Dumper D1", data: g(200), costo: 400 }, { mezzo: "Dumper D1", data: g(150), costo: 600 },
+    { mezzo: "Dumper D1", data: g(40), costo: 900 }, { mezzo: "Dumper D1", data: g(10), costo: 1100 },
+    { mezzo: "Dumper D1", data: g(5), costo: 0 },   // senza costo: manodopera interna, non conta
+    { mezzo: "Pala P1", data: g(20), costo: 300 },
+    { mezzo: "Esc E2", data: g(150), costo: 700 },
+  ];
+  const C = flotta.costoControStoria;
+  test("costoControStoria: confronta il costo MEDIO per intervento, non una somma", () => {
+    const r = C(R, "Dumper D1", O);
+    eq(r.calcolabile, true); eq(r.finestra, 90);
+    eq(r.storia, { costoMedio: 500, interventi: 2 }, "storia: (400+600)/2");
+    eq(r.recente, { costoMedio: 1000, interventi: 2 }, "recente: (900+1100)/2, il costo 0 non entra nel conto né nel numero di interventi");
+    eq(r.forbicePct, 100); eq(r.verso, "sopra");
+  });
+  test("senza una storia (o senza niente nella finestra) non si confronta, e si dice quale metà manca", () => {
+    const p = C(R, "Pala P1", O);
+    eq(p.calcolabile, false); eq(p.storia, null); eq(p.recente, { costoMedio: 300, interventi: 1 });
+    ok(/prima della finestra non c'è nessun intervento/.test(p.perche), p.perche);
+    const e = C(R, "Esc E2", O);
+    eq(e.calcolabile, false); eq(e.recente, null);
+    ok(/nella finestra non c'è nessun intervento/.test(e.perche), e.perche);
+    eq(C(null, "", O).perche, "manca il nome del mezzo");
+    ok(/nella finestra non c'è nessun intervento/.test(C(R, "Boh", O).perche), "mezzo ignoto: stessa frase di 'niente in finestra', non un caso a parte");
+  });
+  test("nel modulo non c'è un giudizio: la tolleranza è una scelta dichiarata della pagina", () => {
+    eq(flotta.TOLLERANZA_COSTO_PCT, 25);
+    const r = C(R, "Dumper D1", O); ok(!("stato" in r) && !("allarme" in r), "niente stato né allarme nel risultato");
+    const meno = R.map((x) => (x.mezzo === "Dumper D1" && x.data >= g(90) ? { ...x, costo: 100 } : x));
+    eq(C(meno, "Dumper D1", O).verso, "sotto", "interventi recenti più economici della storia: sotto");
+  });
+}
+/* ===== fine Flotta · il costo d'officina contro la storia ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    CONTI · IL CAVATO IN TONNELLATE CON LA DENSITÀ CHE TERRA DICHIARA (02/09,
    candidato 2 della ricerca di Conti — che stava già in casa: `densitaDellaCava`
    in shared, la chiamavano Terra e Campo). `autorizzazioneVigente` trasloca in

@@ -1294,3 +1294,31 @@ una volta che il trend esiste.
 **Riassunto** — 2 lacune **confermate** (nessuna funzione di trend esiste,
 verificato indipendentemente sul codice vero); nessuna era già coperta
 dai giri di ricerca precedenti su Flotta.
+
+⛔ **CORREZIONE DEL 15/09, RIVERIFICANDO PRIMA DI IMPLEMENTARE: UN TERZO DELLA
+LACUNA 1 ERA GIÀ FALSA.** Il grep dell'agente (`trend|predict|degrad`) non
+trova `consumoControStoria` (`flotta-data.js`), che fa esattamente «consumo
+medio storico vs attuale» — finestra recente contro tutto ciò che c'è prima,
+con `TOLLERANZA_CONSUMO_PCT` dichiarata — **da prima di questo giro di
+ricerca** (nata il 02/09, un giro di ricerca precedente su Flotta, già wired
+in `index.html` e mostrata riga per riga nella lista rifornimenti). È lo
+stesso difetto descritto altrove in questo file — «cercare il nome del mondo
+invece del meccanismo» — applicato dall'agente a sé stesso, dentro la sua
+propria area di competenza.
+✅ **FATTO lo stesso giorno**: la parte vera della lacuna 1, «costo per
+intervento in aumento», mancava davvero (`grep -in "trend\|predict\|degrad"`
+confermato a zero anche da qui). Aggiunta `costoControStoria(interventi,
+nomeMezzo, oggi, finestraGiorni=90)`, stessa forma di `consumoControStoria`
+ma sulla MEDIA per intervento (non una somma per ora — un mezzo con un
+intervento in più nella finestra non deve sembrare più caro se ognuno gli
+costa uguale). Soglia dichiarata `TOLLERANZA_COSTO_PCT = 25` (più larga di
+quella del carburante: il costo di un intervento varia da sé fra un
+tagliando e una riparazione, nessuna fonte del 15/09 dà una tolleranza di
+settore per questo segnale). Wired in `fascicoloMezzo` (`costoStoria`) e
+nel libretto macchina (`sch-int`), accanto al recap dell'officina.
+⏱️ **Restano aperte**: «frequenza fermi in aumento/calo» (terzo segnale
+della lacuna 1 — richiede storicizzare `durataFermo`/`giorniFermo` come
+serie, non solo un totale) e la lacuna 2 (`prioritaOperative` che riordina
+anche sul trend, non solo sui giorni alla scadenza) — quest'ultima, per la
+stima dell'agente, è "piccola" ORA che `consumoControStoria` e
+`costoControStoria` esistono entrambi come segnali da combinare.

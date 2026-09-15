@@ -1377,7 +1377,7 @@ body.dw b.bad{color:var(--ink-dg)}
            costiDiOrdine, confrontoOrdineConti,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
            PIANI_TAGLIANDO, pianoTagliando, propostaTagliando, prossimoTagliando,
-           validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, fascicoloMezzo,
+           validaRifornimento, consumoPerMezzo, consumoControStoria, TOLLERANZA_CONSUMO_PCT, TOLLERANZA_COSTO_PCT, fascicoloMezzo,
            azzeramentiDelMezzo, fraseContatoreSostituito, urgenzaTagliando, contatoreDelTagliando, propostaRiscrittura,
            STATI_ORDINE, statoOrdine, costoOrdine, ordineDaManutenzione,
            validaRigaManodopera, validaRigaRicambio, riepilogoOrdini,
@@ -3987,6 +3987,25 @@ body.dw b.bad{color:var(--ink-dg)}
        sezione sua (`note recap`, la stessa forma dei fermi qui sotto) e non
        appesa in coda al dettaglio di una riga: il dettaglio è tagliato a due
        righe e una dichiarazione che finisce lì dentro non la legge nessuno. */
+    /* IL COSTO D'OFFICINA CONTRO LA STORIA DEL MEZZO (15/09): stessa domanda
+       già fatta al consumo di carburante — «il costo per intervento sta
+       salendo?» — spesso il primo segno che qualcosa sta per cedere, prima
+       che scada un tagliando a ore o a data. `f.costoStoria` arriva già
+       calcolato da `fascicoloMezzo`, con la stessa disciplina: non si
+       giudica sotto la soglia, `TOLLERANZA_COSTO_PCT` è una scelta dichiarata
+       e non una norma. */
+    const cs = f.costoStoria;
+    const storiaOfficinaTx = !cs || !cs.recente ? "" : !cs.calcolabile
+      ? ` Ultimi ${cs.finestra} giorni: ${esc(cs.perche)}.`
+      : (() => {
+          const fp = cs.forbicePct, sopra = cs.verso === "sopra" && fp > TOLLERANZA_COSTO_PCT;
+          const pct = Math.abs(fp).toLocaleString("it-IT", { maximumFractionDigits: 0 }) + "%";
+          return ` Ultimi ${cs.finestra} giorni: <b>${eur(cs.recente.costoMedio)}</b> a intervento contro ${eur(cs.storia.costoMedio)} del suo solito → `
+            + (cs.verso === "pari" ? "uguale"
+              : sopra ? `<b class="bad">+${pct}, sopra la tolleranza del ${TOLLERANZA_COSTO_PCT}%: da guardare</b>`
+              : cs.verso === "sopra" ? `+${pct}, dentro la tolleranza del ${TOLLERANZA_COSTO_PCT}%`
+              : `−${pct}, costa meno di prima`) + ".";
+        })();
     $("sch-int").innerHTML = (f.officina.interventi
         ? `<div class="note recap"><b>${f.officina.interventi}</b> ${f.officina.interventi === 1 ? "intervento chiuso" : "interventi chiusi"}`
           + (f.officina.misurato
@@ -3995,6 +4014,7 @@ body.dw b.bad{color:var(--ink-dg)}
                     ? `. <span class="giallo">Su ${f.officina.senzaCosto} non è scritto quanto ${f.officina.senzaCosto === 1 ? "è costato" : "sono costati"}: il totale è un minimo.</span>`
                     : ".")
               : `. <span class="giallo">Su nessuno è scritto quanto è costato: quanto ha speso l'officina su questa macchina non si sa.</span>`)
+          + storiaOfficinaTx
           + "</div>"
         : "")
       + (f.interventi.map(w => `<div class="item statico st-ok">

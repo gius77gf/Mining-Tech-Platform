@@ -3226,6 +3226,7 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
     speso: Math.round((officina + (consumo ? consumo.euro : 0)) * 100) / 100,
     ultimoControllo: controlli[0] || null,
     ultimoIntervento: interventi[0] || null,
+    costoStoria: costoControStoria(interventi, nome, oggi),
   };
 }
 
@@ -4629,6 +4630,52 @@ export function consumoControStoria(rifornimenti, nomeMezzo, oggi = new Date(), 
   if (st.litriOra == null) return { ...out, perche: "nella storia " + st.perche };
   const forbice = Math.round((100 * (rc.litriOra - st.litriOra)) / st.litriOra * 10) / 10;
   return { ...out, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   IL COSTO D'OFFICINA DI UN MEZZO CONTRO LA SUA STORIA (15/09)
+   ────────────────────────────────────────────────────────────────────────
+   Stessa domanda di `consumoControStoria`, sull'altro segnale che la ricerca
+   sulla manutenzione predittiva del 15/09 aveva trovato assente: «il costo
+   per intervento sta salendo?» — spesso il primo segno che un pezzo sta per
+   cedere, prima che scada un tagliando a soglia fissa. Qui non serve un
+   contatore: ogni intervento chiuso porta già il suo costo e la sua data, e
+   il "tasso" è la MEDIA per intervento, non una somma per ora — un mezzo che
+   fa un intervento in più nella finestra non deve sembrare più caro, deve
+   sembrarlo solo se ogni intervento gli costa di più.
+   Le stesse regole di onestà: interventi senza costo (`costo <= 0`) non
+   contano né nella storia né nella finestra — è manodopera interna, non una
+   spesa, la stessa regola di `costoOfficinaPerMezzo`; con zero interventi
+   validi in un tratto non si dice «0 €», si dice `perche`; non si giudica,
+   `forbicePct` dice la differenza percentuale e `verso` la dice a parole.
+   La soglia da cui la pagina scrive «da guardare» (`TOLLERANZA_COSTO_PCT`) è
+   una SCELTA nostra, più larga di quella del carburante: il costo di un
+   intervento varia da sé (un tagliando e una riparazione non costano
+   uguale), quindi ci vuole uno scarto più grande prima che valga la pena
+   di guardare — nessuna fonte del 15/09 dà una tolleranza di settore per
+   questo segnale, e un numero senza fonte non si spaccia per norma.
+   Pura e testabile: `oggi` iniettabile. */
+export const TOLLERANZA_COSTO_PCT = 25;
+export function costoControStoria(interventi, nomeMezzo, oggi = new Date(), finestraGiorni = 90) {
+  const n = nomeBreve(nomeMezzo);
+  const finestra = Math.max(1, Math.round(+finestraGiorni || 90));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const validi = (interventi || [])
+    .filter((w) => w && nomeBreve(w.mezzo) === n && +w.costo > 0)
+    .map((w) => ({ data: String(w.data || "").slice(0, 10), costo: +w.costo }))
+    .filter((w) => dataISOEsiste(w.data));
+  const base = { mezzo: n, finestra, dal: da, al: a, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
+  if (!n) return { ...base, perche: "manca il nome del mezzo" };
+  const storia = validi.filter((w) => w.data < da), recenti = validi.filter((w) => w.data >= da);
+  const medie = (lista) => lista.length
+    ? { costoMedio: Math.round((lista.reduce((t, w) => t + w.costo, 0) / lista.length) * 100) / 100, interventi: lista.length }
+    : null;
+  const rc = medie(recenti), st = medie(storia);
+  if (!rc) return { ...base, storia: st, perche: "nella finestra non c'è nessun intervento con un costo registrato" };
+  if (!st) return { ...base, recente: rc, perche: "prima della finestra non c'è nessun intervento con un costo registrato: non c'è una storia con cui confrontare" };
+  const forbice = Math.round((100 * (rc.costoMedio - st.costoMedio)) / st.costoMedio * 10) / 10;
+  return { ...base, recente: rc, storia: st, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
 }
 
 // ============================================================
