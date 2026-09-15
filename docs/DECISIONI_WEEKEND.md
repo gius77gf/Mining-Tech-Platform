@@ -10,12 +10,14 @@ può procedere con l'attuazione.
 
 ---
 
-## 🟡 15/09 — una decisione nuova, dal secondo giro di ricerca su Deepwork ID
+## 🟡 15/09 — due decisioni nuove, da due giri di ricerca su Deepwork ID
 
 *Il secondo giro di ricerca mirata (Deepwork ID, mai passata al setaccio finora
 in questa sessione) ha trovato un verdetto scaduto in
 `docs/REVISIONE_SICUREZZA_202607.md` — corretto in questa stessa unità, non è
-una decisione — e un candidato di scope che invece lo è.*
+una decisione — e un candidato di scope che invece lo è. Il sesto giro (stessa
+sessione, ore dopo) ne ha trovato un secondo, sull'invito/rimozione dei
+membri.*
 
 - [ ] **29. Conti: il DDT (`pesate`) resta fuori da `documentoEmesso` — va
   aggiunto come quarta collezione protetta?** La decisione 10b (07/08) ha
@@ -40,6 +42,27 @@ una decisione — e un candidato di scope che invece lo è.*
   aggiungere `conti/pesate` all'elenco — è coerente con le altre tre e con
   quanto l'app già dichiara nella propria interfaccia — ma non la applico da
   solo perché è esattamente il tipo di scelta che la 10b ha riservato a te.
+- [ ] **30. Un membro rimosso dall'organizzazione: che fine fanno i dati che
+  ha creato?** `removeMember` (`apps/deepwork-id/functions/index.js:206`)
+  cancella solo il documento di membership (`memRef.delete()`): un
+  hard-delete secco. I dati che quella persona ha creato nelle app —
+  rapportini, scadenze, azioni, con un `createdBy` che punta al suo uid —
+  restano dell'organizzazione (coerente con la barriera multi-tenant reale,
+  quella fra organizzazioni), ma nessuno decide né traccia che cosa
+  succede a QUEL riferimento: resta un uid orfano, senza nome recuperabile
+  se la persona viene ricreata con un altro id, e senza un audit trail di
+  chi ha creato che cosa prima di uscire. I sistemi B2B maturi (Auth0,
+  Clerk, WorkOS — pattern citati da una ricerca web, **non verificati
+  primariamente**) dichiarano sempre questa scelta esplicitamente: o
+  soft-delete (`status: inactive`, il nome resta leggibile nell'audit) o
+  hard-delete con trasferimento esplicito di proprietà su chi resta. Qui
+  non è mai stata presa. *La mia risposta, se non rispondi entro la
+  settimana*: soft-delete (`status: "removed"` sul documento membership
+  invece di cancellarlo, con `removedAt`/`removedBy`) — è la scelta più
+  economica da implementare sopra il modello esistente e non perde
+  informazione, ma è **la tua chiamata**: cambia il modo in cui "chi era in
+  questa cava" si racconta a un ispettore o in un contenzioso, ed è
+  esattamente il tipo di decisione che questo file esiste per raccogliere.
 
 ---
 
@@ -312,7 +335,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **16**
+# 📖 Da dove cominciare — le decisioni aperte sono **17**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si

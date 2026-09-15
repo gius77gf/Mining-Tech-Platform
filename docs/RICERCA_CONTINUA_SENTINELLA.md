@@ -967,3 +967,43 @@ delle misure di rumore, con lo scarto massimo dichiarato dall'utente), 3 a
 posto (la scadenza della taratura, il certificato nel report, la copertura
 per lettura), e una proposta **scartata** con la ragione (la periodicità per
 tipo: sarebbe un numero di seconda mano in un campo).
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: trend multi-mese e reclami ricorrenti per punto
+
+*Nota di processo: prodotta da un agente in background isolato in worktree
+(dopo un primo tentativo andato perso per un crash da compattazione del
+contesto dell'agente stesso — nessun difetto del repository, solo un
+limite dell'agente, risolto rilanciandolo). Riverificato di persona sul
+codice vero prima di entrare qui.*
+
+**Delta 1 — CONFERMATO. Il confronto è solo mese-su-mese, mai una serie.**
+`confrontoMesi` (`sentinella-data.js:3887`, che calcola `deltaMedia` e
+`deltaPct` alle righe 3895-3901) confronta sempre e solo il mese in corso
+col mese immediatamente precedente — nessun ciclo su finestre più ampie,
+nessuna media mobile, nessuna distribuzione stagionale. Verificato
+leggendo l'intera funzione: `p = new Date(o.getFullYear(), o.getMonth() -
+1, 1)` è l'unico mese di confronto possibile. Un punto le cui volate si
+stanno avvicinando sistematicamente alla soglia nell'arco di 4-5 mesi (mai
+superandola in un singolo mese) non riceve nessun segnale — ogni confronto
+vede solo l'ultimo gradino, mai la salita.
+
+**Delta 2 — CONFERMATO. I reclami non si aggregano per punto.**
+`riepilogoReclami` (`sentinella-data.js:3584`) restituisce `totale`,
+`aperti`, `ultimo` e (dall'11/09) i tempi di risposta — ma nessun
+raggruppamento per `ricettoreId`. Un tecnico non può chiedere "questo
+ricettore si lamenta sempre?" al sistema: dovrebbe scorrere l'elenco a
+mano. Verificato: la funzione non contiene `ricettoreId` da nessuna parte
+nel suo corpo.
+
+**Costo indicativo** (stima dell'agente, non verificato): medio per il
+trend multi-mese (serve iterare su N finestre invece di una fissa, più la
+UI per mostrarle), piccolo per l'aggregazione reclami per punto (un
+`reduce` in più sopra dati già esistenti).
+
+**Riassunto** — 2 lacune **confermate** (nessuna delle due esisteva prima:
+`confrontoMesi` e `riepilogoReclami` sono entrambe funzioni mature,
+verificate anche nei giri di ricerca precedenti su Sentinella per altri
+scopi, e in nessuno di quei giri era stato notato il limite a due mesi o
+l'assenza di aggregazione per punto).

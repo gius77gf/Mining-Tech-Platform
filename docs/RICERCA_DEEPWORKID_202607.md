@@ -410,3 +410,55 @@ Tutto il blocco 1-5 sta **dentro il piano gratuito**.
 - `docs/ISOLAMENTO_CORE.md` — piano per portare il core dentro il multi-tenant.
 - `docs/ONBOARDING_DATI.md` — come preparare i CSV per caricare una cava.
 - `apps/deepwork-id/ARCHITETTURA.md` · `GUIDA_FIREBASE.md` · `ATTIVAZIONE_LIVE.md`.
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: invito e rimozione di un membro
+
+*Nota di processo: prodotta da un agente in background, isolato in worktree
+per la lezione pagata nel giro precedente. L'agente è andato in crash per
+esaurimento di contesto ("autocompact thrashing") subito dopo aver scritto
+questa sezione ma prima di riuscire a committare: il contenuto è stato
+recuperato dalla sua worktree (modifiche non salvate, mai perse perché il
+file system della worktree resta) e riverificato di persona sul codice
+vero prima di entrare qui — non copiato dal suo testo.*
+
+**Il meccanismo, verificato**: `inviteMember` (`functions/index.js:132`)
+crea un invito con status `pending` senza mai controllare se `cleanEmail`
+corrisponde già a un utente registrato. `acceptInvites`
+(`functions/index.js:243`) consuma gli inviti pendenti per l'email
+dell'utente autenticato con email verificata, sia che l'utente sia nuovo
+sia che esista già — e gestisce correttamente il caso "già membro"
+(riga 265-271: non sovrascrive il ruolo, consuma comunque l'invito).
+`removeMember` (`functions/index.js:206-224`) fa `memRef.delete()`: un
+hard-delete secco, nessun flag, nessuna gestione dei dati che il membro
+ha creato nell'organizzazione.
+
+**GAP 1 — ridimensionato dopo la verifica.** L'agente proponeva "l'invito
+a un'email già registrata sorprende la persona e i claim non si
+aggiornano finché lei non accetta, cosa che non potrebbe fare" — **letto
+`acceptInvites` riga per riga, questa seconda parte è sbagliata**: la
+funzione gestisce correttamente sia l'utente nuovo sia quello già
+esistente, in entrambi i casi l'accettazione funziona e i claim si
+ricostruiscono. Il fatto grezzo resta vero (`inviteMember` non guarda se
+l'email esiste già), ma non è un difetto funzionale: è l'assenza di una
+cortesia UX ("questa persona ha già un account, lo sai?") su un flusso
+che funziona comunque. Non entra come lacuna: il "non c'è" era vero, il
+"quindi è un problema" no.
+
+**GAP 2 — confermato, ed è una decisione di prodotto, non un bug.**
+`removeMember` non dichiara né decide che cosa succede ai dati che il
+membro rimosso ha creato nell'organizzazione (rapportini, scadenze,
+azioni con `createdBy` puntato a un uid che non è più membro). Verificato:
+nessun campo di stato soft-delete, nessuna funzione che riassegna o
+audita i dati residui. Il mondo (fonti citate dall'agente, marcate
+`[proposto da ricerca, non verificato]`: Auth0, Clerk, WorkOS) dichiara
+sempre esplicitamente questa scelta — soft-delete per conservare l'audit
+trail, o hard-delete con trasferimento di proprietà — e qui non è mai
+stata presa. Coerente con la barriera multi-tenant già misurata in
+CLAUDE.md (§ "e il confine fra APP non è una barriera di sicurezza"): i
+dati restano dell'organizzazione, ma "restano" non è lo stesso di
+"restano tracciabili a chi li ha creati".
+
+**Non implementato**: è per definizione una decisione, non un fix — va in
+`docs/DECISIONI_WEEKEND.md` come nuova voce, non nel codice.

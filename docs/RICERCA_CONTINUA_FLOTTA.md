@@ -1247,3 +1247,50 @@ possesso nel costo orario; il preset «fine leasing / riscatto»), 2
 **dichiarate** (l'utilizzo, che chiede un denominatore; la telematica), 1
 **non misurabile** e scritta come tale (il tempo al minimo), 1 **già a posto**
 (le verifiche periodiche).
+
+---
+
+## 15/09 — sesto giro di ricerca mirata: manutenzione preventiva basata sul trend, non solo su soglie fisse
+
+*Nota di processo: prodotta da un agente in background, lanciato stavolta
+con `isolation: "worktree"` per la lezione pagata nel giro precedente
+(collisione fra agenti nella stessa cartella). La worktree era però
+staccata da un commit di fine agosto, quindi il suo `git log`/i suoi
+numeri di riga non sono quelli di questa sessione: il contenuto sotto è
+stato riverificato di persona sul codice VERO di questa sessione (righe
+corrette), non copiato dal suo report.*
+
+**Il meccanismo, verificato**: Flotta decide le manutenzioni SOLO su
+soglie fisse — `urgenzaManutenzione` (`flotta-data.js:2835`) confronta
+`urgenzaTagliando` (via ore) e `urgenza` (via data), nessuna delle due
+guarda un trend. `prioritaOperative` (`flotta-data.js:1429`) fa lo stesso.
+I dati per un trend ESISTONO già come funzioni-punto (non serie storiche):
+`consumoPerMezzo` (`flotta-data.js:2941`), `costoOfficinaPerMezzo`
+(`flotta-data.js:1888`), `durataFermo`/`giorniFermo`
+(`flotta-data.js:3756`/`3749`) — ma calcolano un valore per il periodo
+scelto, non una tendenza nel tempo. Verificato:
+`grep -in "trend\|predict\|degrad" apps/flotta/flotta-data.js` → **zero
+occorrenze** (confermato anche sul codice di questa sessione, non solo su
+quello della worktree).
+
+**Le due lacune (confermate)**:
+1. **Fascicolo mezzo**: nessun "consumo medio storico vs attuale" né
+   "costo per intervento in aumento" né "frequenza fermi in aumento/calo"
+   — solo i totali. I CMMS professionali segnalano un mezzo 20-45 giorni
+   prima del guasto usando esattamente questi tre segnali (fonti citate
+   dall'agente, marcate `[proposto da ricerca, non verificato]`: oxmaint,
+   heavyvehicleinspection, fleetrabbit — cifre di settore non riverificate
+   da qui, solo la lacuna nel codice lo è).
+2. **Priorità operative**: `prioritaOperative` riordina solo su giorni
+   rimasti alla scadenza, mai su un segnale di trend — un mezzo con
+   consumi in forte aumento non sale in priorità anche se la scadenza è
+   lontana.
+
+**Costo indicativo** (stima dell'agente, non verificato): medio-alto per
+il fascicolo (serve storicizzare i valori, oggi calcolati "a periodo" e
+non conservati come serie), piccolo per il riordino di `prioritaOperative`
+una volta che il trend esiste.
+
+**Riassunto** — 2 lacune **confermate** (nessuna funzione di trend esiste,
+verificato indipendentemente sul codice vero); nessuna era già coperta
+dai giri di ricerca precedenti su Flotta.
