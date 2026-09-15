@@ -3342,3 +3342,86 @@ si genera prima dello sparo.
 
 G8 resta chiuso nella forma già costruita (firma) più questa
 verifica: nessun'altra azione.
+
+## Ricerca del 2026-09-15 — Rifiniture di scena 3D: visualizzazioni di rischio e annotazioni (il mondo + il delta)
+
+### Il mondo: come si presenta un progetto di volata nei software professionali
+
+La ricerca ha scandagliato quattro categorie di software di progettazione blast utilizzati nel settore estrattivo: **BlastLogic** (Maptek, 30 anni di expertise in 3D modelling), **SHOTPlus** (Orica, usato in surface/underground/quarrying), **RIOBLAST** (MAXAM, simulazione 3D), **BlastMetriX** (3GSM, basato su fotogrammetria da drone).
+
+Tutte le quattro piattaforme mettono in evidenza nella visualizzazione 3D non solo la **geometria** del progetto (fori, carica, sequenza — i punti fondamentali di Genesi), ma anche:
+
+1. **Color-coded burden maps** — il banco di ripresa è dipinto con colori che rappresentano la distanza del foro dalla faccia. BlastMetriX in specifico dichiara: "**colour-coded burden maps that highlight problem areas**" con la rappresentazione istantanea che si aggiorna mentre si posizionano i fori. Maptek BlastLogic: "**proximity… including blast face and drill floor**", con "ring to ring and hole to hole interactions" visualizzati. 
+
+2. **Heat maps per distribuzione di carichi** — laddove BlastMetriX misura *deviazioni* fra fori progettati e fori reali ("as planned" vs "as drilled") con **heat mapping of borehole deviations**. È una sovrapposizione visiva su mappa.
+
+3. **Isolines di vibrazione superimposte** — RIOBLAST dichiara esplicitamente: "**vibration isolines superimposed on the georeferenced satellite images**". Non è un disegno astratto: sono le curve di uguale vibrazione (PPV) sovrapposte alla foto della cava, geo-referenziata.
+
+4. **Overlay geologici** — RIOBLAST importa "**topography of terrain/bench**" e "**georeferenced satellite photographs**"; BlastMetriX ha aggiunto "**geological mapping integration** allowing users to visualize dips, strikes, seams and voids throughout the drilling pattern". È la roccia che circonda il progetto, non la roccia del progetto.
+
+5. **Annotazioni e label 3D** — La ricerca generale su annotazioni in 3D visualization rivela che per scene interattive e 3D, le best practice sono **fixed legend-like regions rather than attaching many moving labels directly to 3D data elements**. Per il blast design, questo si traduce in: il progetto ha label per ogni foro o gruppo di fori (ID, carica, burden, timing), collocate in legend laterali o in pannelli fissi HUD per evitare clutter.
+
+6. **Export per presentazione client** — K-MINE "generates blast reports with pattern layouts, charge details, timing diagrams, safety zone maps, with export to CSV, PDF, and other formats". È documentazione: la visualizzazione 3D diventa immagine per relazioni di progetto.
+
+**Denominatore comune**: nessuno dei quattro software mostra **solo** il blast nel vuoto (come Genesi oggi). Tutti lo circondano di contesto — rischi, carichi, assetto geologico — e lo presentano come sovrapposizione di strati informativi colorati e annotati.
+
+### Lo stato reale di Genesi: quello che c'è, e quello che non c'è
+
+**Verificato nel codice (genesi.html, genesi-data.js):**
+
+✅ **HUD legend elements**: Genesi ha `#quotaLeg`, un elemento CSS con stile "HUD vetro" (backdrop-filter blur, bordo ambra, RGBA scuro) che mostra la legenda di quota. Esiste anche `drawEnergiaLegenda()` per disegnare una legenda di energia sulla pianta. Sono **fixed legend-like regions** — esattamente il pattern che la ricerca dice sia la best practice.
+
+✅ **3D mesh con colori**: Il codice contiene differenti materiali per i cilindri (carica gialla con `emissiveIntensity:0.5`, primer rosso con `emissiveIntensity:0.85`, stemming grigio-beige, acqua blu semitrasparente). I colori su entrambi sono **hard-coded per categorie**: giallo→carica, rosso→primer, blu→acqua. Non sono derivati da valori continui (come un burden map sarebbe).
+
+✅ **Cerchio di rischio flyrock**: Codice a riga ~2193 disegna un disco semitrasparente giallo (`0xffab00`, opacity 10%) di raggio `F.Lpred` (distanza di gittata predetta). È una visualizzazione di rischio, ma **monocromatica e non scalata**: tutti i fori hanno lo stesso cerchio di raggio diverso.
+
+✅ **Muckpile ring**: Anelli concentrici che rappresentano il cumulo risultante. Non è una burden map, ma una conseguenza simulata.
+
+❌ **Burden map colorato**: Non esiste codice che colori il banco (`backWall`) o qualunque mesh con gradienti di colore in base al burden reale (distanza foro-faccia). Il burden è calcolato (`burdenVeroDaRilievo()` in genesi-data.js), ma non visualizzato come sovrapposizione di colore. Cerca: `burden.*color|color.*burden` → nessuna riga.
+
+❌ **Isolines di vibrazione**: PPV è calcolato nel modulo dati (funzione `ppvAltezza()`), ma non c'è codice che lo visualizzi come mappe di colore o curve di isolivello sulla scena 3D. La vibrazione resta un numero nei report, non una visualizzazione nella progettazione interattiva.
+
+❌ **Overlay geologici**: Genesi può importare il profilo della cresta reale da fotogrammetria (OBJ), e mostra il profilo da Deepwork — è il limite superiore della scena. Non visualizza la geologia attorno (strati, fratture, durezza variabile per zona).
+
+❌ **Annotazioni 3D per foro**: Non esiste CSS2DRenderer, CSS3DRenderer, o sprite system che posizioni label (numero foro, carica, burden, timing) nello spazio 3D e le mantenga visibili durante la rotazione della camera. Le label esistono solo sulla pianta 2D.
+
+❌ **Export immagine 3D con annotazioni**: No canvas.toDataURL() per salvare screenshot con overlaid legend/burden map/labels. Solo i dati si esportano (CSV), non la presentazione visiva.
+
+### Il delta reale
+
+| **Capacità** | **Il mondo** | **Genesi oggi** | **Come si misura** |
+|---|---|---|---|
+| **Burden map colorato** | BlastMetriX, SHOTPlus, BlastLogic: mesh della faccia dipinta con gradiente burden → rosso(alto rischio) a blu(basso rischio). Aggiorna in tempo reale mentre si muovono i fori. | Burden calcolato, non visualizzato. Mesh `backWall` è monocromatica (grigio scuro). | Screenshot di progetto con carica variata: aspettarsi mappa di colori sul banco in scene future, misurare rapporto pixel-rosso / pixel-totali del banco. Oggi = 0%. |
+| **Heat map deviazioni** | BlastMetriX mostra "as planned" vs "as drilled" con calore (bianco→rosso per deviazioni). | Genesi non ha feedback post-sparo integrato. È un simulatore, non un tracker. Non applicable. | N/A (dato di esecuzione, non di progetto). |
+| **Isolines PPV overlay** | RIOBLAST sovrappone curve di vibrazione colorata sulla foto satellite georeferenziata. | PPV calcolato (modulo dati) e mostrato solo in numerici nei report. Nessuna mappa visuale nella scena. | Misurare: scena con due cariche diverse, aspettarsi isolinee PPV colorate attorno ai fori nella vista 3D. Oggi = assente. |
+| **Geological overlay** | BlastMetriX: "visualize dips, strikes, seams and voids". RIOBLAST: importa topografia + foto satellitare. | Genesi importa profilo cresta (OBJ) e bordo da Deepwork. Nessuna stratificazione di durezza/fratture nella roccia attorno. | Misurare: sezione geologica della cava (durezza per zona, famiglia di fratture) importata e resa come mesh sottile davanti alla roccia, visibile in X-ray. Oggi = assente. |
+| **Annotazioni 3D per foro** | Best practice (ricerca generale 3D viz): legend fisso laterale + tooltip on-hover con ID/carica/burden/timing. | `#quotaLeg` e `drawEnergiaLegenda()` per **plottings** (pianta 2D), non per scene 3D. Nessun label posizionato nello spazio 3D. | Misurare: hover su un foro in scena → aspettarsi pannello HUD con dettagli. Oggi in scena 3D = 0 fori annotati. Nella pianta 2D = legend a lato (esiste per energia). |
+| **Export immagine con overlay** | K-MINE, BlastMetriX: PDF, PNG con layout + diagrammi + legend. | Esportazione CSV del progetto. Nessuna resa visuale salvata come immagine. | Misurare: premere bottone "Scarica visualizzazione 3D" → atteso PNG con scene 3D + legend. Oggi = assente. |
+| **Scala del rischio visuale** | Tutti: colori caldi (rosso) = alto rischio/burden alto; freddi (blu) = basso rischio. Scala uniforme. | Flyrock disc è monocromatico giallo (10% opacity) — un colore solo. Muckpile rings sono grigi. | Misurare: paletta colori risk implementata, con almeno 3 gradini (verde→giallo→rosso) e applicata a burden map. Oggi = 1 colore (giallo). |
+
+### Il candidato per il prossimo blocco: rifiniture di scena 3D per la presentazione al cliente
+
+**Non è necessariamente "tutto il delta":** la ricerca mondiale mostra che le rifiniture di scena che il settore usa sono tutte relative a **sovrapposizioni di informazione visuale** (burden, vibrazione, geologia, annotations). Genesi le **calcola** (burden, PPV nel modulo), ma non le **mostra** in 3D.
+
+Il piano di PIANO_3D.md dice: *"Rifiniture estetiche mirate SOLO se emergono debolezze visive nei confronti prima/dopo"*. Il delta dice: **le debolezze visive emergono rispetto a quello che il cliente si aspetta**, non rispetto a sé stesso. Se il concorrente BlastLogic mostra un burden map e il progettista di Genesi mostra un banco grigio, la scelta del cliente non è sulla "bellezza" — è sulla **capacità di comunicare il rischio**.
+
+**Tre punti misurabili, in ordine di valore percepito:**
+
+1. **Burden map a colori (alto impatto, medio sforzo)**: Colorare il banco `backWall` con gradiente burden. Rosso (burden < 1 m) → Giallo (1-2 m) → Verde (> 2 m). La legenda aggiornata in `#quotaLeg` spiega la scala. **Misura**: screenshot a progetto completato, verificare che il banco abbia almeno 3 colori visibili e che la legenda li spieghi.
+
+2. **PPV isoline (basso impatto iniziale, misurabile dopo)**: Disegnare cerchi/ellissi di isolivello PPV attorno ai fori (linee tratteggiate colorate) calcolate da `ppvAltezza()`. Verde (< 10 mm/s), Giallo (10-20), Rosso (> 20). **Non è un requirement MSHA** (come il burden), ma aumenta fiducia sul calcolo. **Misura**: screenshot con alcool nitrato, verificare presenza isolinee.
+
+3. **Annotazione foro on-hover (impatto medio, fondamentale per usabilità)**: Quando il mouse passa su un cilindro di carica, pannello HUD mostra ID foro, burden, carica, PPV. Come `#quotaLeg` ma dinamico. **Misura**: hover tester sul foro → pannello HUD atteso con 4 campi.
+
+**Fonti verificate (world research):**
+- [Maptek BlastLogic – 3D graphics and automated functionality](https://www.maptek.com/blogs/blastlogic-august-blog/)
+- [Maptek – Blast design, modelling & analysis](https://www.maptek.com/products/blastlogic/)
+- [Orica SHOTPlus – advanced blast design](https://www.orica.com/digital-solutions/blast-design-and-execution/shotplus)
+- [MAXAM RIOBLAST – Design and simulation in 3D](https://fundacionmaxam.com/en/fundacion/catedra_maxam/blasting_solutions/design_and_simulation_of_blasts_rioblast)
+- [3GSM BlastMetriX – Blast Design Software, Redefined](https://3gsm.at/learning/blastmetrix-blast-design-software-redefined/)
+- [RocScience BlastMetriX – Blast Design and Analysis Using 3D Models](https://www.rocscience.com/software/blastmetrix)
+
+**Candidato per roadmap**: ✅ **Proposto**, non verificato. La ricerca dice che il delta esiste (il mondo colora il rischio, Genesi non lo fa). Il valore è presente (il cliente vede subito dove sta il pericolo). La misura è obiettiva (numero di colori sulla mesh, confronto screenshot). 
+
+**Status**: Non preso per costruzione finché non si decide il timing con gli altri G7-G10. G9 dipende da G7 (ottimizzatore finito?), oppure no: una rifinitira può partire indipendente.
+
