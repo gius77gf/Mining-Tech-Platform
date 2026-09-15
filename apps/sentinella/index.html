@@ -1785,6 +1785,7 @@ textarea.dw-input{
        pronta quando arriva l'ente. -->
   <div class="sec">Reclami ed esposti<span class="cnt" id="rec-tot">—</span></div>
   <div id="rec-riep" class="note recap" style="margin-top:0;"></div>
+  <div id="rec-frequenti" class="note" style="margin-top:0;"></div>
   <div id="rec-list" style="margin-top:10px;"></div>
   <div class="sec">Registra un reclamo</div>
   <div class="form col">
@@ -1874,7 +1875,7 @@ textarea.dw-input{
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
            TIPI_RICETTORE, CLASSI_ACUSTICHE, etichettaTipo, trovaRicettore, sogliaEfficace,
-           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, misureDelGiornoPerReclamo, apertoDaGiorni, tempoRispostaReclamo, firmaLettura,
+           reportConformita, ESITI, TIPI_RECLAMO, etichettaReclamo, riepilogoReclami, reclamiPerRicettore, misureDelGiornoPerReclamo, apertoDaGiorni, tempoRispostaReclamo, firmaLettura,
            descriviStatoDiFatto, rispostaReclamo,
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
@@ -2556,6 +2557,16 @@ textarea.dw-input{
       : "";
     $("rec-riep").innerHTML = r.totale
       ? `Reclami registrati: <b>${r.totale}</b>${r.aperti ? ` · <span class="badge warn" style="font-size:11px;">${r.aperti} ancora ${r.aperti === 1 ? "aperto" : "aperti"}</span>${daQuanto}` : " · tutti chiusi"}${r.ultimo ? ` · l'ultimo il <b>${fmtD(r.ultimo)}</b>` : ""}${risposta}`
+      : "";
+    /* ⛔ UN EPISODIO ISOLATO O UN PROBLEMA STRUTTURALE? (15/09, dalla ricerca
+       mirata): il riepilogo sopra conta l'azienda intera, non il punto. Solo
+       i ricettori con più di un reclamo negli ultimi sei mesi entrano qui —
+       un ricettore con un reclamo solo non è "frequente", e riempirebbe la
+       riga di rumore. */
+    const freq = reclamiPerRicettore(REC, RIC).filter(x => x.nellaFinestra > 1);
+    $("rec-frequenti").innerHTML = freq.length
+      ? `<b>Ricettori con più reclami negli ultimi sei mesi:</b> ` + freq.map(x =>
+          `${esc(x.nome || x.ricettoreId)} (${x.nellaFinestra})`).join(" · ")
       : "";
     $("rec-list").innerHTML = REC.slice()
       .sort((a, b) => (String(a.data || "") + (a.ora || "")) < (String(b.data || "") + (b.ora || "")) ? 1 : -1)

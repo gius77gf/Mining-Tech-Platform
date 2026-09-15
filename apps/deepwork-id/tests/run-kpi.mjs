@@ -9157,6 +9157,33 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.riepilogoReclami([]).ultimo, null, "nessun ultimo");
     eq(sentinella.riepilogoReclami(null).totale, 0, "e nemmeno con la lista mancante");
   });
+  /* ⛔ EPISODIO ISOLATO O PROBLEMA STRUTTURALE? (15/09, dalla ricerca
+     mirata): riepilogoReclami conta l'azienda, non il punto. */
+  test("⛔ reclamiPerRicettore: raggruppa per punto, ordina per frequenza NELLA FINESTRA, non per il totale storico", () => {
+    const oggi = new Date("2026-09-15T00:00:00Z");
+    const ric = [{ id: "rc1", nome: "Casa Bianchi" }, { id: "rc2", nome: "Confine Nord" }];
+    const reclami = [
+      { id: "x1", ricettoreId: "rc1", data: "2026-08-01", stato: "chiuso" },
+      { id: "x2", ricettoreId: "rc1", data: "2026-07-01", stato: "chiuso" },
+      { id: "x3", ricettoreId: "rc1", data: "2024-01-01", stato: "chiuso" },  // vecchio: fuori dalla finestra
+      { id: "x4", ricettoreId: "rc2", data: "2026-09-10", stato: "aperto" },
+      { id: "x5", ricettoreId: null, data: "2026-09-01", stato: "aperto" },  // senza ricettore: non entra in nessun gruppo
+    ];
+    const r = sentinella.reclamiPerRicettore(reclami, ric, oggi);
+    eq(r.length, 2, "due ricettori distinti, il reclamo senza ricettoreId non crea un terzo gruppo fittizio");
+    eq([r[0].ricettoreId, r[0].totale, r[0].nellaFinestra], ["rc1", 3, 2],
+      "rc1: 3 reclami in tutto, ma solo 2 negli ultimi sei mesi — quello del 2024 non conta per «è un problema recente?»");
+    eq(r[0].nome, "Casa Bianchi", "il nome si risolve da trovaRicettore, non resta l'id nudo");
+    eq(r[1].ricettoreId, "rc2", "rc2 ha un solo reclamo recente, ma esce lo stesso: la soglia «più di uno» la mette la pagina, non il modulo");
+    // ordine: rc1 ha 2 nella finestra, rc2 ha 1 — rc1 prima, non per ordine di inserimento né per totale storico
+    ok(r[0].nellaFinestra >= r[1].nellaFinestra, "ordinato per frequenza recente, il punto più «caldo» prima");
+    // la finestra è parametrica: con 3650 giorni anche il reclamo del 2024 rientra
+    const rLungo = sentinella.reclamiPerRicettore(reclami, ric, oggi, 3650);
+    eq(rLungo.find(x => x.ricettoreId === "rc1").nellaFinestra, 3, "allargando la finestra rientra anche il reclamo vecchio");
+    eq(sentinella.reclamiPerRicettore([], ric, oggi), [], "nessun reclamo: nessun gruppo, non un errore");
+    eq(sentinella.reclamiPerRicettore(reclami, [], oggi)[0].nome, null,
+      "ricettore non trovato nell'anagrafica: il nome è null, non l'id travestito da nome o una stringa inventata");
+  });
   test("reclami: un tipo sconosciuto finisce sotto «Altro», non sparisce", () => {
     eq(sentinella.etichettaReclamo("POLVERE"), "Polvere", "il maiuscolo non conta");
     eq(sentinella.etichettaReclamo("boh"), "Altro", "e l'ignoto ha un posto dove stare");

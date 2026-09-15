@@ -3624,6 +3624,41 @@ export function apertoDaGiorni(reclamo, oggi = new Date()) {
   return Number.isFinite(g) ? Math.max(0, -g) : null;
 }
 
+/* ⛔ QUANTE VOLTE SI È LAMENTATO QUEL RICETTORE, NON SOLO QUANTI RECLAMI IN
+   TUTTO (15/09, dalla ricerca mirata). `riepilogoReclami` conta il totale
+   dell'azienda ma non raggruppa per punto: un tecnico che si chiede «questo
+   ricettore si lamenta sempre?» doveva scorrere l'elenco a mano — la
+   differenza fra un episodio isolato e un problema strutturale sta
+   esattamente in quel conto. Raggruppa SOLO i reclami con un `ricettoreId`
+   leggibile: uno senza (già dichiarato altrove nel riepilogo generale) non
+   entra in nessun gruppo — non gli si inventa un padrone. Ordinato per
+   frequenza NELLA FINESTRA (i punti più "caldi" prima, non il totale
+   storico): cinque reclami nell'ultimo semestre sono un problema diverso da
+   cinque spalmati su tre anni, e il totale da solo non li distingue. */
+export function reclamiPerRicettore(reclami, ricettori, oggi = new Date(), finestraGiorni = 180) {
+  const gruppi = new Map();
+  for (const x of reclami || []) {
+    if (!x || !x.ricettoreId) continue;
+    if (!gruppi.has(x.ricettoreId)) gruppi.set(x.ricettoreId, []);
+    gruppi.get(x.ricettoreId).push(x);
+  }
+  const righe = [];
+  for (const [ricettoreId, gr] of gruppi) {
+    const ric = trovaRicettore(ricettori, ricettoreId);
+    let ultimo = null, nellaFinestra = 0;
+    for (const x of gr) {
+      const d = String(x.data || "").slice(0, 10);
+      if (!dataISOEsiste(d)) continue;
+      if (!ultimo || d > ultimo) ultimo = d;
+      const g = giorniTra(d, oggi);
+      if (Number.isFinite(g) && -g >= 0 && -g <= finestraGiorni) nellaFinestra++;
+    }
+    righe.push({ ricettoreId, nome: ric ? ric.nome : null, totale: gr.length, nellaFinestra, ultimo });
+  }
+  righe.sort((a, b) => b.nellaFinestra - a.nellaFinestra || b.totale - a.totale);
+  return righe;
+}
+
 // Quanti giorni fra il reclamo e la sua chiusura: SOLO se il reclamo è chiuso
 // e tutt'e due le date esistono; una chiusura scritta prima del reclamo non
 // è un tempo di risposta e risponde `null`.

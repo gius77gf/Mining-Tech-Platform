@@ -8500,8 +8500,9 @@ numero scritto dove non era stato misurato niente**.*
   note di credito, 2994→2995, e a `cancellazioneLasciaBuco` la numerazione
   DDT senza salti dichiarata ma non imposta, 2995→2996, e a `vitaCava` di
   Terra il margine fra esaurimento e scadenza, 2996→2997, e a
-  `abilitazioneLavoratore` di Scudo la sospensione temporanea, 2997→2998): **3.482 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2998, `run-stile` 328,
+  `abilitazioneLavoratore` di Scudo la sospensione temporanea, 2997→2998, e
+  a `reclamiPerRicettore` di Sentinella l'aggregazione per punto, 2998→2999): **3.483 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2999, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
