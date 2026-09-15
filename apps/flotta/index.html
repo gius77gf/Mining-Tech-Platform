@@ -2026,7 +2026,7 @@ body.dw b.bad{color:var(--ink-dg)}
     const PRIO_ICO = { scadenza: I.bilancia, manutenzione: I.chiave, ricambio: I.bullone, mezzo: I.mezzo };
     // le letture del contatore servono a sapere se un tagliando a ore parla
     // del contatore che il mezzo ha oggi (contatore sostituito, 04/09)
-    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER, [...RIF, ...CTR]);
+    const prio = prioritaOperative(MEZ, MAN, RIC, new Date(), SCA, preavvisoSca, FER, [...RIF, ...CTR], RIF, INT);
     $("alert-list").innerHTML = prio.map(a => `<div class="item statico ${striscia[a.gravita] || "st-accent"}">
       <div class="avatar${a.categoria === "ricambio" || a.categoria === "mezzo" ? " sup" : ""}">${icoOrigine(a.origine) || PRIO_ICO[a.categoria] || I.avviso}</div>
       <div class="info"><div class="name">${esc(a.titolo)}</div><div class="meta">${esc(a.dettaglio)}</div></div>

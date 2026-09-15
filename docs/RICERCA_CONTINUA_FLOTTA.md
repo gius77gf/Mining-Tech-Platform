@@ -1316,9 +1316,15 @@ quella del carburante: il costo di un intervento varia da sé fra un
 tagliando e una riparazione, nessuna fonte del 15/09 dà una tolleranza di
 settore per questo segnale). Wired in `fascicoloMezzo` (`costoStoria`) e
 nel libretto macchina (`sch-int`), accanto al recap dell'officina.
-⏱️ **Restano aperte**: «frequenza fermi in aumento/calo» (terzo segnale
+✅ **FATTO lo stesso giorno**: la lacuna 2, `prioritaOperative` che ora
+accetta anche `rifornimenti` e `interventi` (facoltativi) e aggiunge una
+voce categoria "trend" (gravità "warn") per ogni mezzo OPERATIVO il cui
+consumo o costo per intervento è sopra la sua tolleranza dichiarata —
+RIUSA `consumoControStoria`/`costoControStoria`, non ne riscrive una copia
+qui dentro. Un mezzo fermo o in verifica non riceve il trend: è già in
+cima per una ragione più urgente. Wired in `index.html` passando `RIF` e
+`INT` alla chiamata esistente; senza i due parametri il comportamento
+resta quello di prima, parola per parola.
+⏱️ **Resta aperta**: «frequenza fermi in aumento/calo» (terzo segnale
 della lacuna 1 — richiede storicizzare `durataFermo`/`giorniFermo` come
-serie, non solo un totale) e la lacuna 2 (`prioritaOperative` che riordina
-anche sul trend, non solo sui giorni alla scadenza) — quest'ultima, per la
-stima dell'agente, è "piccola" ORA che `consumoControStoria` e
-`costoControStoria` esistono entrambi come segnali da combinare.
+serie, non solo un totale). È l'unica lacuna del sesto giro ancora aperta.

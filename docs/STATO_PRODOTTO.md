@@ -212,7 +212,7 @@ Il racconto è in `docs/IL_CONFORME_CHE_NESSUNO_HA_MISURATO.md`.
 
 **Quanto è controllato, oggi** *(ricontato il 15/09, dopo aver aggiunto a
 `run-kpi.mjs` le due prove sull'associazione ambigua del sismogramma nel
-core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su «saldata»/«parziale» in `statoFattura`, poi le tre sul limite a tre scritture di `convergiClaims`, poi quella su `kpiFrom` di Scudo con un `oggi` fisso, poi quella sul fronte conteso fra due lotti di Terra, poi quella sul criterio unico di `tagliandiInScadenza` in Flotta, poi quella sulla lettura per valore di `fogliaVolata` in Sentinella, poi quella sulle note di credito di `applicaIncassi` in Conti, poi quella sulla numerazione DDT senza salti dichiarata ma non imposta, poi quella sul margine fra esaurimento e scadenza in `vitaCava` di Terra, poi quella sulla sospensione temporanea in `abilitazioneLavoratore` di Scudo, poi quella sull'aggregazione per ricettore in `reclamiPerRicettore` di Sentinella, poi quella sul costo medio per intervento in `costoControStoria` di Flotta, poi quella sullo scarto del mese in `varianzaMensilePiano` di Terra, lanciando le suite, non a memoria)*: **3.487** prove automatiche che girano senza rete — **3003** sulle
+core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su «saldata»/«parziale» in `statoFattura`, poi le tre sul limite a tre scritture di `convergiClaims`, poi quella su `kpiFrom` di Scudo con un `oggi` fisso, poi quella sul fronte conteso fra due lotti di Terra, poi quella sul criterio unico di `tagliandiInScadenza` in Flotta, poi quella sulla lettura per valore di `fogliaVolata` in Sentinella, poi quella sulle note di credito di `applicaIncassi` in Conti, poi quella sulla numerazione DDT senza salti dichiarata ma non imposta, poi quella sul margine fra esaurimento e scadenza in `vitaCava` di Terra, poi quella sulla sospensione temporanea in `abilitazioneLavoratore` di Scudo, poi quella sull'aggregazione per ricettore in `reclamiPerRicettore` di Sentinella, poi quella sul costo medio per intervento in `costoControStoria` di Flotta, poi quella sullo scarto del mese in `varianzaMensilePiano` di Terra, poi quella sulle voci "trend" di `prioritaOperative` in Flotta, lanciando le suite, non a memoria)*: **3.489** prove automatiche che girano senza rete — **3005** sulle
 funzioni delle app, **328** sulle regole di stile, 75 sugli aiuti condivisi, 32
 sulla nuvola di punti, **22** sull'ordine con cui due o più trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.487** conta nove suite: il giro completo ne esegue **3.910** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.489** conta nove suite: il giro completo ne esegue **3.912** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le

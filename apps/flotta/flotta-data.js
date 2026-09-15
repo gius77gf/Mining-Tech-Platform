@@ -1426,7 +1426,17 @@ const oreContatore = (mezzo) => {
 // mezzo ha oggi. Un tagliando non confrontabile è una riga `warn`, perché
 // chiede un'azione (riscriverlo sul contatore nuovo); senza letture, o senza
 // azzeramenti, il comportamento è quello di prima.
-export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = [], letture = []) {
+// Dal 15/09 accetta anche RIFORNIMENTI e INTERVENTI (facoltativi, sesto
+// giro di ricerca su Flotta: manutenzione predittiva da trend): un mezzo
+// OPERATIVO il cui consumo o il cui costo per intervento sta salendo sopra
+// la sua tolleranza dichiarata (`TOLLERANZA_CONSUMO_PCT`,
+// `TOLLERANZA_COSTO_PCT`) entra come voce "trend" — un mezzo con la
+// scadenza lontana, ma un segnale che vale la pena guardare, non restava
+// più muto fino a quando il numero non si vedeva nel cumulato del mese.
+// Non sostituisce `consumoControStoria`/`costoControStoria`: le RIUSA (la
+// stessa soglia, lo stesso calcolo), non ne riscrive una versione debole
+// qui dentro. Senza i due parametri, il comportamento è quello di prima.
+export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = [], letture = [], rifornimenti = [], interventi = []) {
   const items = [];
   for (const s of scadenze || []) {
     const sem = statoScadenzaMezzo(s.dataScadenza, oggi, preavvisoGiorni);
@@ -1514,8 +1524,26 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       titolo: m.nome || "Mezzo", dettaglio: perche,
       badge: m.stato === "fermo" ? "Fermo" : "In verifica" });
   }
+  // TREND: solo sui mezzi operativi (uno fermo o in verifica è già in cima
+  // alla lista per una ragione più urgente). "warn", non "danger": è un
+  // segnale da guardare, non un obbligo scaduto.
+  for (const m of mezzi || []) {
+    if ((m.stato || "operativo") !== "operativo" || !m.nome) continue;
+    const cs = consumoControStoria(rifornimenti, m.nome, oggi);
+    if (cs.calcolabile && cs.verso === "sopra" && cs.forbicePct > TOLLERANZA_CONSUMO_PCT) {
+      items.push({ gravita: "warn", categoria: "trend", titolo: m.nome,
+        dettaglio: "consumo +" + Math.round(cs.forbicePct) + "% sul suo solito negli ultimi " + cs.finestra + " giorni: filtri, iniettori, freni che strisciano",
+        badge: "Consumo in aumento" });
+    }
+    const co = costoControStoria(interventi, m.nome, oggi);
+    if (co.calcolabile && co.verso === "sopra" && co.forbicePct > TOLLERANZA_COSTO_PCT) {
+      items.push({ gravita: "warn", categoria: "trend", titolo: m.nome,
+        dettaglio: "costo d'officina +" + Math.round(co.forbicePct) + "% a intervento sul suo solito negli ultimi " + co.finestra + " giorni",
+        badge: "Costo in aumento" });
+    }
+  }
   const rank = { danger: 0, warn: 1 };
-  const catRank = { scadenza: 0, manutenzione: 1, ricambio: 2, mezzo: 3 };
+  const catRank = { scadenza: 0, manutenzione: 1, trend: 2, ricambio: 3, mezzo: 4 };
   return items.sort((a, b) =>
     (rank[a.gravita] - rank[b.gravita]) ||
     (catRank[a.categoria] - catRank[b.categoria]) ||

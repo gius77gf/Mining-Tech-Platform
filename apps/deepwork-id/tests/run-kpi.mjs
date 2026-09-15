@@ -37443,6 +37443,55 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
 /* ===== fine Flotta · il costo d'officina contro la storia ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · PRIORITÀ OPERATIVE SUL TREND (15/09, chiude la lacuna 2 del
+   sesto giro di ricerca: un mezzo con la scadenza lontana ma un segnale in
+   forte aumento non restava muto fino al cumulato del mese). RIUSA
+   `consumoControStoria`/`costoControStoria`, non ne riscrive una copia.
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const O = new Date("2026-09-15T12:00:00Z");
+  const g = (n) => new Date(O.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const mezzi = [{ nome: "Dumper D1", ore: 8500, stato: "operativo" }];
+  const rifSopraSoglia = [
+    { mezzo: "Dumper D1", data: g(70), litri: 400, ore: 8000 }, { mezzo: "Dumper D1", data: g(55), litri: 380, ore: 8100 },
+    { mezzo: "Dumper D1", data: g(40), litri: 390, ore: 8200 },
+    { mezzo: "Dumper D1", data: g(20), litri: 390, ore: 8300 }, { mezzo: "Dumper D1", data: g(9), litri: 415, ore: 8390 },
+    { mezzo: "Dumper D1", data: g(2), litri: 360, ore: 8416 },
+  ];
+  const intSopraSoglia = [
+    { mezzo: "Dumper D1", data: g(200), costo: 400 }, { mezzo: "Dumper D1", data: g(150), costo: 600 },
+    { mezzo: "Dumper D1", data: g(40), costo: 900 }, { mezzo: "Dumper D1", data: g(10), costo: 1100 },
+  ];
+  test("prioritaOperative: un mezzo con consumo o costo sopra tolleranza entra come voce 'trend'", () => {
+    ok(flotta.consumoControStoria(rifSopraSoglia, "Dumper D1", O).forbicePct > flotta.TOLLERANZA_CONSUMO_PCT, "premessa: il consumo è davvero sopra soglia");
+    ok(flotta.costoControStoria(intSopraSoglia, "Dumper D1", O).forbicePct > flotta.TOLLERANZA_COSTO_PCT, "premessa: il costo è davvero sopra soglia");
+    const p = flotta.prioritaOperative(mezzi, [], [], O, [], 30, [], [], rifSopraSoglia, intSopraSoglia);
+    const trend = p.filter(x => x.categoria === "trend");
+    eq(trend.length, 2, "un mezzo, due segnali indipendenti: consumo e costo");
+    ok(trend.every(x => x.gravita === "warn"), "un trend è un segnale da guardare, non un obbligo scaduto");
+    ok(trend.some(x => x.badge === "Consumo in aumento" && x.titolo === "Dumper D1"));
+    ok(trend.some(x => x.badge === "Costo in aumento" && x.titolo === "Dumper D1"));
+  });
+  test("senza rifornimenti/interventi (o sotto soglia) il comportamento è quello di prima: nessuna voce 'trend'", () => {
+    eq(flotta.prioritaOperative(mezzi, [], [], O), [], "senza i due parametri facoltativi, esattamente come prima del 15/09");
+    const rifSottoSoglia = [
+      { mezzo: "Dumper D1", data: g(70), litri: 400, ore: 8000 }, { mezzo: "Dumper D1", data: g(55), litri: 380, ore: 8100 },
+      { mezzo: "Dumper D1", data: g(40), litri: 390, ore: 8200 },
+      { mezzo: "Dumper D1", data: g(20), litri: 310, ore: 8300 }, { mezzo: "Dumper D1", data: g(9), litri: 310, ore: 8390 },
+      { mezzo: "Dumper D1", data: g(2), litri: 310, ore: 8416 },
+    ];
+    ok(flotta.consumoControStoria(rifSottoSoglia, "Dumper D1", O).forbicePct < flotta.TOLLERANZA_CONSUMO_PCT, "premessa: stavolta sotto soglia");
+    eq(flotta.prioritaOperative(mezzi, [], [], O, [], 30, [], [], rifSottoSoglia, []).filter(x => x.categoria === "trend").length, 0,
+      "sotto la tolleranza dichiarata: nessun avviso, non è un giudizio nostro da inventare");
+    // un mezzo fermo è già in cima per una ragione più urgente: il trend non gli si somma
+    const fermo = flotta.prioritaOperative([{ nome: "Dumper D1", ore: 8500, stato: "fermo" }], [], [], O, [], 30, [], [], rifSopraSoglia, intSopraSoglia);
+    eq(fermo.filter(x => x.categoria === "trend").length, 0, "mezzo fermo: niente trend, c'è già la voce 'mezzo'");
+    ok(fermo.some(x => x.categoria === "mezzo" && x.badge === "Fermo"));
+  });
+}
+/* ===== fine Flotta · priorità operative sul trend ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    CONTI · IL CAVATO IN TONNELLATE CON LA DENSITÀ CHE TERRA DICHIARA (02/09,
    candidato 2 della ricerca di Conti — che stava già in casa: `densitaDellaCava`
    in shared, la chiamavano Terra e Campo). `autorizzazioneVigente` trasloca in

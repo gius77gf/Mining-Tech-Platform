@@ -8504,8 +8504,9 @@ numero scritto dove non era stato misurato niente**.*
   a `reclamiPerRicettore` di Sentinella l'aggregazione per punto, 2998→2999, e
   a `costoControStoria` di Flotta il costo medio per intervento contro la sua
   storia, 2999→3002, e a `varianzaMensilePiano` di Terra lo scarto del mese
-  corrente dal piano annuo, 3002→3003): **3.487 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3003, `run-stile` 328,
+  corrente dal piano annuo, 3002→3003, e a `prioritaOperative` di Flotta le
+  voci "trend", 3003→3005): **3.489 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3005, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
