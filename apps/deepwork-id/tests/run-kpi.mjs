@@ -2657,6 +2657,28 @@ test("senza prefisso si comporta esattamente come prima", () => {
     eq(conti.prossimoNumero(caso, 2026, 3), conti.prossimoNumero(caso, 2026, 3), `su ${JSON.stringify(caso)}`);
 });
 
+/* ⛔ «SENZA SALTI» ERA DICHIARATO E NON IMPOSTO (15/09): il dialogo di
+   cancellazione di un DDT prometteva sempre «il numero che si libera
+   verrà riusato dalla prossima», vero solo se si cancella l'ULTIMO della
+   serie dell'anno — `prossimoNumero` propone sempre max+1, e togliere un
+   documento che non teneva il massimo non abbassa niente. */
+test("⛔ cancellazioneLasciaBuco: vero solo quando NON si cancella l'ultimo della serie", () => {
+  const a = { id: "a", numero: "2026/001" }, b = { id: "b", numero: "2026/002" }, c = { id: "c", numero: "2026/003" };
+  eq(conti.cancellazioneLasciaBuco(b, [a, b, c]), true,
+    "b non è l'ultimo: c'è ancora c dopo di lui — cancellarlo lascia un buco");
+  eq(conti.cancellazioneLasciaBuco(c, [a, b, c]), false,
+    "c È l'ultimo: cancellarlo libera davvero il suo numero, che prossimoNumero riproporrà");
+  eq(conti.cancellazioneLasciaBuco(a, [a]), false,
+    "unico documento della serie: cancellarlo non lascia nessun buco");
+  eq(conti.cancellazioneLasciaBuco({ id: "z" }, [a, b, c]), false,
+    "senza numero (mai salvato) non c'è niente da lasciare libero: falso, non un errore");
+  // l'anno è quello del documento, non quello di oggi: un DDT del 2025 in
+  // mezzo a fatture del 2026 non deve confondersi con la serie sbagliata
+  const vecchio = { id: "v", numero: "2025/005" };
+  eq(conti.cancellazioneLasciaBuco(vecchio, [vecchio, a, b, c]), false,
+    "vecchio DDT 2025, unico della sua annata: cancellarlo non lascia buchi nel 2025, anche con fatture 2026 accanto");
+});
+
 console.log("\n— la validazione: dice perché, e avvisa senza bloccare —");
 
 test("senza fattura collegata e senza causale non si emette, e dice perché", () => {

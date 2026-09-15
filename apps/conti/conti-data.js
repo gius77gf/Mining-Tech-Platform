@@ -2177,6 +2177,27 @@ export function prossimoNumero(numeri, anno = new Date().getFullYear(), cifre = 
   }
   return p + y + "/" + String(max + 1).padStart(cifre, "0");
 }
+/* ⛔ «SENZA SALTI» ERA DICHIARATO NEL COMMENTO QUI SOPRA E NEL DIALOGO DI
+   CANCELLAZIONE DEL DDT (15/09), MA NON IMPOSTO: `prossimoNumero` propone
+   sempre max+1, quindi cancellare un documento libera davvero il suo
+   numero SOLO se era quello con il numero più alto della serie — se ne
+   esistono già di successivi salvati, il numero cancellato resta un buco
+   permanente, mai più riproposto. Il messaggio all'utente prometteva
+   sempre il riuso: falso ogni volta che non si cancella l'ULTIMO della
+   serie, che è la situazione più comune (si corregge la pesata sbagliata
+   di ieri, non quella di un minuto fa). Non si tocca la possibilità di
+   cancellare (resta una scelta di chi usa l'app): si dice la verità
+   PRIMA di chiederla, riusando `prossimoNumero` invece di riscriverne il
+   parsing — se il numero che propone non cambia togliendo QUESTO
+   documento dall'elenco, qualcun altro teneva già lo stesso massimo. */
+export function cancellazioneLasciaBuco(daCancellare, tutti, anno) {
+  const d = daCancellare || {};
+  if (!d.numero) return false;
+  const y = anno != null ? anno : (/^\d{4}\//.test(String(d.numero)) ? +String(d.numero).slice(0, 4) : new Date().getFullYear());
+  const conLui = (tutti || []).map(x => x.numero);
+  const senzaLui = (tutti || []).filter(x => x && x.id !== d.id).map(x => x.numero);
+  return prossimoNumero(conLui, y) === prossimoNumero(senzaLui, y);
+}
 
 // ============================================================
 // INCASSI — LA DATA VERA IN CUI I SOLDI SONO ARRIVATI (N6)

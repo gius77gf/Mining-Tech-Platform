@@ -2048,7 +2048,7 @@ label.item:has(.dw-chk:checked){
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
            contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
-    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
+    importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, cancellazioneLasciaBuco, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
     cavatoPeriodo, vendutoPeriodo, riconciliazione, valoreCavato, SOGLIA_DIVARIO,
     applicaIncassi, apertoDi, statoIncasso, movimentiDiFattura, incassatoPeriodo,
@@ -6376,6 +6376,16 @@ label.item:has(.dw-chk:checked){
       return; }
     const btnDelPes = e.target.closest && e.target.closest("[data-del-pes]");
     if (btnDelPes) { const p = PES.find(x => x.id === btnDelPes.getAttribute("data-del-pes")); if (!p) return;
+      /* ⛔ «IL NUMERO CHE SI LIBERA VERRÀ RIUSATO, COSÌ LA NUMERAZIONE RESTA
+         SENZA SALTI» (15/09) ERA VERO SOLO SE SI CANCELLA L'ULTIMO DDT
+         DELL'ANNO — vedi `cancellazioneLasciaBuco` in conti-data.js. Non si
+         tocca la possibilità di cancellare (è una scelta di chi usa l'app):
+         si dice la verità PRIMA che la prema. */
+      const _lasciaBuco = cancellazioneLasciaBuco(p, PES);
+      const _annoDdt = /^\d{4}\//.test(p.numero || "") ? +String(p.numero).slice(0, 4) : new Date().getFullYear();
+      const _msgNumerazione = _lasciaBuco
+        ? `<b>Attenzione</b>: questo NON è l'ultimo DDT della serie ${_annoDdt} — dopo di lui ne esistono già altri con un numero più alto. Cancellandolo il suo numero resta senza titolare: un <b>buco permanente</b> nella sequenza, non più «senza salti» come richiede il DPR 472/1996. Se il documento è già stato consegnato, valuta una nota di credito invece della cancellazione.`
+        : `<b>Fallo solo per correggere una pesata sbagliata</b> e non ancora consegnata: il numero che si libera verrà riusato dalla prossima, così la numerazione resta senza salti.`;
       const ok = await chiedi("Elimina pesata",
         `<p>Stai per eliminare il documento di trasporto <b>DDT ${esc(p.numero || "—")}</b>.</p>
          <div class="mrec"><span class="k">Cliente</span><span class="v">${esc(p.cliente || "—")}</span></div>
@@ -6383,8 +6393,7 @@ label.item:has(.dw-chk:checked){
          <div class="mrec"><span class="k">Netto</span><span class="v">${qt(p.netto)} t</span></div>
          <div class="mrec"><span class="k">Valore</span><span class="v accent">${(() => { const v = valoreDdt(p); return v.calcolabile ? eur(v.valore) : "non calcolabile"; })()}</span></div>
          <p style="margin-top:10px;">Esce dal registro, dal venduto e dal conto del canone.
-           <b>Fallo solo per correggere una pesata sbagliata</b> e non ancora consegnata: il numero
-           che si libera verrà riusato dalla prossima, così la numerazione resta senza salti.</p>`,
+           ${_msgNumerazione}</p>`,
         "Elimina", true);
       if (ok) { await db.rimuovi("pesate", p.id); difSel.delete(p.id);
         esito("pes-esito", "DDT " + (p.numero || "") + " eliminato.", "success"); await refresh(); }
