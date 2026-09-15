@@ -438,6 +438,7 @@ momento.
 | **24** | Sentinella: **chi ha modificato** una lettura o una soglia — si traccia l'operatore, non solo il timestamp? (15/09) | se costruirlo (e da dove: tutto o solo le soglie), e se il meccanismo per leggere l'identità va scritto in `shared/` pensando alle altre app. Vedi la sezione 24. |
 | **25** | Flotta: quando segnalare che **conviene sostituire** un mezzo — quale soglia sul costo pieno? (15/09) | una delle tre strade (soglia sul costo pieno, soglia composita con età e trend, o nessuna soglia automatica) e, se sì, quale percentuale. Vedi la sezione 25. |
 | **26** | Conti: le **pesate non ancora fatturate** entrano nel fido del cliente? (15/09) | una delle tre strade (sommarle al valore pieno, mostrarle separate, o lasciare il limite dichiarato) e, se sì, come valorizzarle senza listino noto. Vedi la sezione 26. |
+| **27** | Sentinella: le **condizioni meteo** contano anche per polveri e vibrazioni, non solo rumore? (15/09) | se procedere con la strada 1 (solo contesto informativo, nessun giudizio di invalidità) o aspettare una ricerca normativa dedicata prima di costruire un giudizio vero. Vedi la sezione 27. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1651,6 +1652,64 @@ attimo, se cade proprio mentre si emette una fattura vicina al fido,
 **Che cosa serve da te.** Una delle tre strade, e se sì (1 o 2) se il
 valore delle pesate va stimato al prezzo di listino del cliente o
 lasciato "non calcolabile" quando il listino non è noto.
+
+## 27. Sentinella: le condizioni meteo contano anche per polveri e vibrazioni?
+
+*(dall'ottavo giro di ricerca su Sentinella, meteo e superamenti, 15/09
+— riverificata di persona sul codice vero prima di scriverla qui)*
+
+**Il fatto.** Sentinella ha già `misuraFuoriCondizioni`, che dichiara
+non valida una misura di **rumore** con vento oltre 5 m/s o pioggia,
+per il DM 16/03/1998 (All. B) — una norma citata con la sua soglia
+precisa. La stessa funzione è **gated su `tipo === "rumore"`**: `grep
+-n 'tipo !== "rumore"'` in `sentinella-data.js` mostra tre punti
+(`misuraFuoriCondizioni`, `contaFuoriCondizioni`, `contaCalibrazioni`)
+che escludono polveri e vibrazioni a monte. Temperatura e umidità
+sono già importate e composte in un testo (`condizioniMisura`), ma
+nessuna funzione le legge per un giudizio: `grep -n '\.temperatura\b'`
+→ solo 2 righe, la mappatura dell'import e la composizione del testo.
+
+**Come stiamo.** Di seconda mano (WebSearch, non verificato da testi
+primari): il vento in direzione del ricettore aggrava un superamento
+di polveri (può giustificare la sospensione delle attività
+polverose); l'inversione termica altera la propagazione del rumore
+oltre a quanto già coperto da vento/pioggia; il terreno saturo d'acqua
+attenua le vibrazioni fino al 37% nel passaggio roccia→suolo — un
+effetto fisico, non un problema di installazione della strumentazione
+(corregge una deduzione di un giro precedente, il 05/09, che l'aveva
+scartato come tale).
+
+**Perché serve una decisione, non un'unità automatica.** Il rumore ha
+una soglia scritta in un decreto (5 m/s, pioggia sì/no): un giudizio
+netto, con la norma citata. Per polveri e vibrazioni non c'è una
+soglia altrettanto precisa nei risultati di ricerca — solo un
+principio qualitativo. Scrivere "vento in direzione del ricettore →
+misura invalidata" senza una soglia numerica citabile sarebbe lo
+stesso errore già pagato in questo repository: **un numero di legge
+riportato di seconda mano e scritto in una schermata è peggio di un
+numero assente**. Qui il rischio è anche più sottile — non un numero,
+ma un **giudizio di invalidità** presentato con la stessa autorità del
+DM 16/03/1998 senza avere una norma equivalente per polveri e
+vibrazioni.
+
+**Le strade.**
+1. **Solo contesto, nessun giudizio**: mostrare `condizioniMisura(l).
+   testo` (già calcolato, non gated su tipo) accanto anche alle
+   letture di polveri e vibrazioni, senza dichiarare nessuna "fuori
+   condizioni" — chi legge vede il meteo e valuta da sé. Costo
+   piccolo: la funzione non giudica niente di nuovo, solo mostra un
+   dato già presente.
+2. **Ricerca normativa dedicata** prima di costruire un giudizio vero
+   per polveri (di solito nei piani di monitoraggio ambientale delle
+   cave la sospensione delle attività polverose con vento forte è un
+   impegno assunto nell'autorizzazione, non una legge unica — va letto
+   il piano di monitoraggio del cliente, che questo ciclo non ha).
+3. **Niente per ora**: si resta su rumore, dichiarando il limite.
+
+**Che cosa serve da te.** Se procedere con la strada 1 (informazione
+in più, senza giudizio) come primo passo sicuro, o se preferisci
+aspettare la strada 2 quando ci sarà un piano di monitoraggio vero da
+leggere.
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde
