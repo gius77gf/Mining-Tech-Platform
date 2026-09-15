@@ -1141,6 +1141,45 @@ export function etichettaResponsabile(azione, lavoratori) {
     stato: s.stato, noto: s.noto };
 }
 
+/* PROMEMORIA DI UN'AZIONE CORRETTIVA (15/09, dal delta della ricerca sulle
+   azioni correttive): il bottone «Promemoria» esiste per le scadenze di un
+   lavoratore (`testoPromemoria`) ma era esplicitamente negato per le azioni
+   — il messaggio a schermo diceva «solo per la scadenza di un lavoratore».
+   Non è escalation automatica (quella richiederebbe un canale di invio che
+   questa app non ha, e non si inventa qui): è lo stesso gesto manuale della
+   sorella — un testo pronto da copiare e mandare al responsabile — sul
+   soggetto giusto. Stessa disciplina del quarto caso «senza data», stesso
+   singolare/plurale sui giorni. Ritorna null se l'azione è chiusa, regolare,
+   o se non c'è un responsabile vero a cui indirizzarlo (un'azione senza
+   responsabile, o con uno non più in anagrafica, non ha un destinatario:
+   inventarne uno sarebbe la stessa bugia di uno zero al posto di un «non
+   lo so»). Pura e testabile: nessun DOM, `oggi` iniettabile. */
+export function testoPromemoriaAzione(azione, lavoratori, oggi = new Date()) {
+  const a = azione || {};
+  if (a.stato === "chiusa") return null;
+  const st = statoAzione(a, oggi);
+  if (st === "regolare") return null;
+  const resp = etichettaResponsabile(a, lavoratori);
+  if (resp.stato !== "trovato") return null;
+  const g = giorniTra(a.scadenza, oggi);
+  const cosa = (a.descrizione || "").trim() || "azione correttiva";
+  const quando = st === "senza data"
+    ? "va chiusa, ma nel nostro scadenzario non risulta una data di scadenza leggibile: non possiamo dirti entro quando"
+    : st === "scaduta"
+      ? `risulta SCADUTA dal ${dataIt(a.scadenza)} (${conta(-g, "giorno", "giorni")} fa)`
+      : g === 0
+        ? `scade OGGI, ${dataIt(a.scadenza)}`
+        : `scade il ${dataIt(a.scadenza)} (tra ${g} ${g === 1 ? "giorno" : "giorni"})`;
+  return [
+    `Oggetto: promemoria azione correttiva`,
+    ``,
+    `Gentile ${resp.nome},`,
+    `ti ricordiamo che l'azione correttiva «${cosa}» ${quando}.`,
+    `Ti chiediamo di darne aggiornamento o di chiuderla appena possibile.`,
+    `Grazie per la collaborazione.`,
+  ].join("\n");
+}
+
 // Azioni ancora da chiudere che sono scadute o in scadenza: sono quelle che
 // devono entrare nel semaforo del Quadro e nello scadenzario, prima le più
 // urgenti. Pura e testabile; `oggi` iniettabile.

@@ -1765,7 +1765,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 
 
 <script type="module">
-  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, giudizioIdoneita, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
+  import { scudoData, statoScadenza, inTurnoOggi, kpiFrom, idoneitaLabel, idoneitaSuccessivo, giudizioIdoneita, idoneitaCriticita, livelloScadenza, coperturaFormazione, muroScadenze, MESI_NOMI, testoPromemoria, testoPromemoriaAzione, riepilogoInfortuni, parseInfortuniCsv, csvRegistroInfortuni, csvPersonaleScadenze, percorsiDi, DW_CANCELLA, parseScadenzeCsv, parseLavoratoriCsv, scartiScadenzeCsv, scartiLavoratoriCsv, scartiAzioniCsv, SCADENZE_PRESET, presetScadenza, dataDaPeriodicita, TIPI_DOCUMENTO, azioneLabel, azioneStatoSuccessivo, statoAzione, etichettaResponsabile, azioniUrgenti, riepilogoAzioni, azioniDiEvento,
     daAmbiente, etichettaAmbiente, riepilogoAmbiente, origineAzione, csvAzioni, csvProspettoAzioni, csvRiepilogoNearMiss, etichettaPeriodoNearMiss, parseAzioniCsv, etichettaScadenza,
     NEARMISS_CATEGORIE, NEARMISS_LUOGHI, categoriaNearMiss, luogoNearMiss, descrizioneNearMiss, riepilogoNearMiss, descriviLetturaNearMiss, bozzaNearMiss,
     etichettaTipoEvento, etichettaEsitoOsservazione, bozzaOsservazione, riepilogoOsservazioni, descriviLetturaOsservazioni,
@@ -3701,6 +3701,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         <span class="acts">
         <span class="badge ${al.cls}" style="cursor:pointer" title="Tocca per far avanzare lo stato (aperta → in corso → chiusa)" data-azi-stato="${a.id}">${al.label}</span>
         ${(a.stato !== "chiusa" && st !== "regolare") ? `<span class="badge ${B[st][0]}">${B[st][1]}</span>` : ""}
+        ${(a.stato !== "chiusa" && st !== "regolare" && resp.stato === "trovato") ? `<button class="dw-btn secondary mini" data-prom-azi="${a.id}" title="Copia il promemoria da inviare al responsabile">Promemoria</button>` : ""}
         ${(a.origineTipo === "evento" && infById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'evento che l'ha generata" data-vai-evt="${a.origineId}">↗</span>` : ""}
         ${(a.origineTipo === "ispezione" && ispById[a.origineId]) ? `<span class="arr" style="cursor:pointer" title="Vai all'ispezione che l'ha generata" data-vai-isp="${a.origineId}">↗</span>` : ""}
         <span class="arr" style="cursor:pointer" title="Modifica azione" data-edit-azi="${a.id}">✎</span>
@@ -4582,6 +4583,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         apriModale("Promemoria per " + (lav ? lav.nome : "il lavoratore"),
           "Gli appunti non sono disponibili in questo browser. Copia il testo qui sotto (Ctrl/Cmd+C) e incollalo nell'email o nell'SMS."
           + '<label class="fl" for="modal-campo">Testo del promemoria</label><textarea class="dw-input" id="modal-campo" rows="6" readonly>' + esc(testo) + "</textarea>",
+          [{ label: "Chiudi", cls: "primary", azione: chiudiModale }]);
+      }
+      return; }
+    const promAzi = e.target.getAttribute && e.target.getAttribute("data-prom-azi");
+    if (promAzi) { const a = AZI.find(x => x.id === promAzi);
+      const resp = a && etichettaResponsabile(a, LAV);
+      const nudo = a && testoPromemoriaAzione(a, LAV);
+      const testoAzi = nudo && avvisoEsempioTesto(nudo);
+      if (!testoAzi) { esito("azi-esito-msg", "Il promemoria si può preparare solo per un'azione ancora aperta, scaduta o in scadenza, e con un responsabile in anagrafica.", "err"); return; }
+      const okAzi = () => esito("azi-esito-msg", "Promemoria per " + resp.nome + " copiato: incollalo nell'email o nell'SMS.", "success");
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(testoAzi); okAzi(); }
+        else { const ta = document.createElement("textarea"); ta.value = testoAzi; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); okAzi(); }
+      } catch (_) {
+        apriModale("Promemoria per " + resp.nome,
+          "Gli appunti non sono disponibili in questo browser. Copia il testo qui sotto (Ctrl/Cmd+C) e incollalo nell'email o nell'SMS."
+          + '<label class="fl" for="modal-campo">Testo del promemoria</label><textarea class="dw-input" id="modal-campo" rows="6" readonly>' + esc(testoAzi) + "</textarea>",
           [{ label: "Chiudi", cls: "primary", azione: chiudiModale }]);
       }
       return; }

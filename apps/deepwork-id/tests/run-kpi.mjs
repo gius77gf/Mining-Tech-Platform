@@ -1103,6 +1103,39 @@ test("testoPromemoria: null se regolare o senza lavoratore — ma NON senza data
   eq(t, scudo.testoPromemoria({ tipo: "X", descrizione: "Corso", dataScadenza: "2026-13-45" }, { nome: "Y" }, new Date(2026, 6, 21)),
     "e le due strade dicono la stessa identica frase: lo schermo le tratta uguali");
 });
+// — Scudo: testo del promemoria delle azioni correttive (15/09, dal delta
+// della ricerca sulle azioni correttive: il bottone esisteva per le
+// scadenze e non per le azioni, senza nessuna ragione di mestiere) —
+test("⛔ testoPromemoriaAzione: stesso gesto del promemoria scadenze, ma per il responsabile di un'azione", () => {
+  const LAV = [{ id: "d3", nome: "Mario Rossi" }];
+  const scaduta = scudo.testoPromemoriaAzione(
+    { descrizione: "Disgaggio del fronte Est", responsabileId: "d3", scadenza: "2026-07-02", stato: "aperta" },
+    LAV, new Date(2026, 6, 21));   // scaduta da 19 gg
+  for (const s of ["Mario Rossi", "Disgaggio del fronte Est", "SCADUTA", "02/07/2026", "19 giorni fa"])
+    if (!scaduta.includes(s)) throw new Error(`manca "${s}" nel promemoria (scaduta)`);
+  const prox = scudo.testoPromemoriaAzione(
+    { descrizione: "Ripristino segnaletica", responsabileId: "d3", scadenza: "2026-08-10", stato: "in-corso" },
+    LAV, new Date(2026, 6, 21));   // tra 20 gg
+  for (const s of ["Mario Rossi", "scade il 10/08/2026", "tra 20 giorni"])
+    if (!prox.includes(s)) throw new Error(`manca "${s}" nel promemoria (in scadenza)`);
+});
+test("⛔ testoPromemoriaAzione: null se chiusa, regolare, o senza un responsabile VERO a cui indirizzarlo", () => {
+  const LAV = [{ id: "d3", nome: "Mario Rossi" }];
+  const base = { descrizione: "X", responsabileId: "d3", scadenza: "2000-01-01", stato: "aperta" };
+  eq(scudo.testoPromemoriaAzione({ ...base, stato: "chiusa" }, LAV, new Date(2026, 6, 21)), null, "chiusa: mai un promemoria per un'azione già fatta");
+  eq(scudo.testoPromemoriaAzione({ ...base, scadenza: "2099-12-31" }, LAV, new Date(2026, 6, 21)), null, "regolare: niente da sollecitare");
+  // niente responsabile assegnato: non c'è a chi indirizzarlo
+  eq(scudo.testoPromemoriaAzione({ ...base, responsabileId: null }, LAV, new Date(2026, 6, 21)), null, "senza responsabile assegnato");
+  // responsabile che non è (più) in anagrafica: stesso esito, per la stessa ragione
+  eq(scudo.testoPromemoriaAzione({ ...base, responsabileId: "sparito" }, LAV, new Date(2026, 6, 21)), null, "responsabile non più in anagrafica");
+  eq(scudo.testoPromemoriaAzione(null, LAV, new Date(2026, 6, 21)), null, "senza azione non esplode");
+  // ⛔ senza data leggibile l'azione resta comunque da sollecitare (stessa
+  // regola del quarto caso di testoPromemoria: «senza data» non è «regolare»)
+  const senzaData = scudo.testoPromemoriaAzione({ ...base, scadenza: "" }, LAV, new Date(2026, 6, 21));
+  ok(senzaData, "il campo scadenza mai scritto non è «regolare»: il promemoria si prepara");
+  ok(/non risulta una data di scadenza leggibile/.test(senzaData), "e dice perché non c'è un entro-quando");
+  ok(!/NaN|undefined|scade il/.test(senzaData), "senza inventare un entro-quando");
+});
 test("prioritaIncasso: fattura senza data — non in cima per errore, ma nemmeno «a posto»", () => {
   /* ⚠️ QUESTA PROVA BLINDAVA IL DIFETTO. Pretendeva `ritardo: 0` su una
      fattura senza data, e metà della ragione era giusta — quella nel nome:
