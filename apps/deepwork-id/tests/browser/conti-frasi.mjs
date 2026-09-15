@@ -65,6 +65,13 @@ const DIMMI = process.argv.includes("--dimmi");
    giorno, e la prova direbbe cose diverse a seconda di quando gira. */
 const ieri = new Date(); ieri.setDate(ieri.getDate() - 1);
 const IERI = `${ieri.getFullYear()}-${String(ieri.getMonth() + 1).padStart(2, "0")}-${String(ieri.getDate()).padStart(2, "0")}`;
+/* ⛔ E LA SECONDA FATTURA DELLO STESSO CLIENTE DEVE SCADERE NEL FUTURO, per lo
+   stesso motivo: era scritta «2026-08-30», e dal 31/08 l'estratto conto diceva
+   «× 2 fatture scadute» dove il banco pretendeva UNA — un banco che porta
+   dentro una data assoluta invecchia col calendario, e accusa il prodotto di
+   una cosa che ha fatto il tempo. Misurato il 02/09. */
+const fra = new Date(); fra.setDate(fra.getDate() + 30);
+const FRA30 = `${fra.getFullYear()}-${String(fra.getMonth() + 1).padStart(2, "0")}-${String(fra.getDate()).padStart(2, "0")}`;
 const CASI = `
 /* ── casi montati dal banco conti-frasi.mjs (mai sul disco) ── */
 DEMO.clienti.push({ id: "zc1", ragioneSociale: "Monoscadenza Srl", piva: "11111111111",
@@ -80,7 +87,7 @@ DEMO.fatture.push({ id: "zddt", numero: "2026/098", cliente: "Monoscadenza Srl",
   importo: 122, imponibile: 100, ivaImporto: 22, totale: 122, aliquotaIva: 22, tipo: "differita",
   righe: [{ descrizione: DEMO.prodotti[0].nome, quantita: 10, unita: "t", prezzoUnitario: 10,
             scontoPct: 0, imponibile: 100, aliquota: 22, ddt: ["2026/099"] }],
-  ddtIds: ["zp1"], emessa: "2026-07-30", scadenza: "2026-08-30", incassata: false });
+  ddtIds: ["zp1"], emessa: "2026-07-30", scadenza: "${FRA30}", incassata: false });
 `;
 
 /* LA CONTROPROVA rimette i plurali fissi nella PAGINA servita, e CONTA le

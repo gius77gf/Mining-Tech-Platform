@@ -38,6 +38,16 @@
   .app-tile.on .st { color: var(--success); }
   .app-tile.off .nm { color: var(--muted); }
   .app-tile.off .st { color: var(--muted); }
+  /* ⛔ `#msg` ERA UN TESTO NUDO. Questa pagina non caricava nessuna regola
+     `.msg`: «Organizzazione creata», «Cambio organizzazione non riuscito» e
+     ogni errore del server uscivano senza fondo, senza bordo, senza colore di
+     stato — misurato il 04/09: `background rgba(0,0,0,0)`, bordo 0, padding 0,
+     a 566px sotto il bottone premuto e fuori dalla finestra (top 982 su 844).
+     Le regole sono quelle di index.html e non-autorizzato.html (terza copia,
+     dichiarata: il posto giusto è `shared/`, che questo cantiere non tocca). */
+  .msg { display: none; margin: 14px 16px 0; padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.4; }
+  .msg.error { display: block; background: rgba(239,83,80,.12); border: 1px solid var(--danger); color: #ffb4b2; }
+  .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
 </style>
 </head>
 <body class="dw">
@@ -104,12 +114,18 @@
   <div class="note">Mockup: con il backend attivo, organizzazioni, ruoli e app si caricano dal tuo profilo reale.</div>
 </div>
 
-<div id="msg" class="msg" style="margin:0 16px;"></div>
+<div id="msg" class="msg"></div>
 
 <script type="module">
   import { esc } from '../../shared/deepwork-id-client/dw-shell.js';
   const $ = (id) => document.getElementById(id);
-  const msg = (text, kind = 'info') => { const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text; };
+  /* il messaggio sta in fondo alla pagina e i bottoni a metà: se non è nella
+     finestra lo si porta in vista, se no la risposta a «Crea» non la vede
+     nessuno (misurato il 04/09: 566px sotto il bottone, oltre la piega) */
+  const msg = (text, kind = 'info') => {
+    const el = $('msg'); el.className = 'msg ' + kind; el.textContent = text;
+    try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+  };
 
   let id = null;
   try {
@@ -122,15 +138,19 @@
       $('avatar').textContent = (id.user.email || '?').slice(0, 2).toUpperCase();
       await id.redeemInvites();   // riscatta inviti pendenti al volo
     }
+    if (id.authState() === 'tour') {
+      /* l'ospite del tour non ha un profilo: i dati d'esempio qui sotto NON
+         sono suoi, e la nota lo diceva al contrario («con il backend attivo…»
+         mentre il backend era attivo). Misurato il 04/09 aprendo il profilo
+         da anonimo: «utente@esempio.it», «Cava Alfa Srl · Owner». */
+      $('who-email').textContent = 'Ospite del tour';
+      $('avatar').textContent = '?';
+      const note = $('apps-grid').nextElementSibling;
+      if (note) note.textContent = 'Sei nel tour: organizzazioni e app qui sopra sono un esempio. Per avere le tue serve un profilo registrato.';
+    }
     if (id.authState() === 'member') {
-      // organizzazioni REALI dai claims: tocco → cambio org attiva
-      const sigla = (s) => (s || '?').replace(/^org_?/i, '').slice(0, 2).toUpperCase();
-      $('orgs-list').innerHTML = Object.entries(id.orgs).map(([oid, role]) =>
-        `<div class="item ${oid === id.orgId ? 'org-active' : ''}" data-org="${oid}" style="cursor:pointer">
-          <div class="avatar">${esc(sigla(oid))}</div>
-          <div class="info"><div class="name">${esc(oid)}</div><div class="meta">${oid === id.orgId ? 'Organizzazione attiva' : 'Tocca per attivare'}</div></div>
-          <span class="badge ${role === 'owner' ? 'ok' : 'warn'} org-role">${role[0].toUpperCase() + role.slice(1)}</span>
-        </div>`).join('');
+      await disegnaOrgs();
+      await disegnaApp();
       $('orgs-list').addEventListener('click', async (e) => {
         const el = e.target.closest && e.target.closest('[data-org]');
         if (!el) return;
@@ -139,34 +159,72 @@
         try { await id.switchOrg(oid); location.reload(); }
         catch (err) { msg(err.message || 'Cambio organizzazione non riuscito.', 'error'); }
       });
-      // griglia app da entitlement REALI dell'organizzazione attiva
-      const APPS = ['Deepwork', 'Genesi', 'Scudo', 'Campo', 'Flotta', 'Conti', 'Sentinella', 'Terra'];
-      const ents = await id.listEntitlements();
-      const ok = (e) => !!(e && e.active && (!e.validUntil || e.validUntil.toDate() > new Date()));
-      $('apps-grid').innerHTML = APPS.map((n) => {
-        const on = ok(ents[n.toLowerCase()]);
-        return `<div class="app-tile ${on ? 'on' : 'off'}"><div class="nm">${n}</div><div class="st">${on ? 'Attiva' : 'Non inclusa'}</div></div>`;
-      }).join('');
-      const note = $('apps-grid').nextElementSibling;
-      if (note) note.textContent = "App attive secondo l'abbonamento della tua organizzazione.";
     }
   } catch (e) {
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
   }
 
+  /* organizzazioni REALI dai claims: tocco → cambio org attiva.
+     ⚠️ Il claim porta l'ID dell'organizzazione, non il nome: qui si legge
+     quello, e in produzione è un identificativo casuale (misurato il 04/09
+     sulle funzioni: `db.collection("organizations").doc()`). Il nome sta nel
+     documento dell'organizzazione, che i membri possono leggere, ma l'SDK non
+     ha ancora una funzione che lo consegni: quando ce l'avrà, si legge qui. */
+  async function disegnaOrgs() {
+    const sigla = (s) => (s || '?').replace(/^org_?/i, '').slice(0, 2).toUpperCase();
+    $('orgs-list').innerHTML = Object.entries(id.orgs).map(([oid, role]) =>
+      `<div class="item ${oid === id.orgId ? 'org-active' : ''}" data-org="${oid}" style="cursor:pointer">
+        <div class="avatar">${esc(sigla(oid))}</div>
+        <div class="info"><div class="name">${esc(oid)}</div><div class="meta">${oid === id.orgId ? 'Organizzazione attiva' : 'Tocca per attivare'}</div></div>
+        <span class="badge ${role === 'owner' ? 'ok' : 'warn'} org-role">${esc(String(role || '?')[0].toUpperCase() + String(role || '').slice(1))}</span>
+      </div>`).join('');
+  }
+  /* griglia app dagli entitlement REALI dell'organizzazione attiva.
+     ⛔ «ATTIVA» LO DECIDE L'SDK, NON QUESTA PAGINA. Fino al 04/09 qui c'era
+     `e.validUntil.toDate() > new Date()`: una copia più debole della regola
+     di `_entitlementAttivo`, che accetta Timestamp, stringa ISO e millisecondi
+     «perché un writer diverso non deve far crashare il gate». Con una scadenza
+     scritta come stringa la pagina moriva nel `catch` e mostrava «Backend non
+     ancora configurato» a un membro connesso, con la griglia del MOCKUP
+     (Deepwork e Scudo «attive») al posto di quella vera. Misurato il 04/09.
+     `listEntitlements` consegna già `attivo` calcolato con la regola giusta. */
+  async function disegnaApp() {
+    const APPS = ['Deepwork', 'Genesi', 'Scudo', 'Campo', 'Flotta', 'Conti', 'Sentinella', 'Terra'];
+    const ents = await id.listEntitlements();
+    $('apps-grid').innerHTML = APPS.map((n) => {
+      const e = ents[n.toLowerCase()];
+      const on = !!(e && e.attivo);
+      return `<div class="app-tile ${on ? 'on' : 'off'}"><div class="nm">${n}</div><div class="st">${on ? 'Attiva' : 'Non inclusa'}</div></div>`;
+    }).join('');
+    const note = $('apps-grid').nextElementSibling;
+    if (note) note.textContent = "App attive secondo l'abbonamento della tua organizzazione.";
+  }
+
   const guard = (fn) => async () => {
     if (!id || !id.user) { msg('Backend non ancora configurato: azione disponibile dopo il setup Firebase.'); return; }
+    if (id.user.isAnonymous) { msg('Sei nel tour: per creare un\'organizzazione o invitare qualcuno serve un profilo registrato.', 'error'); return; }
     try { await fn(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
   };
 
+  /* i campi vuoti si dicono PRIMA di chiamare il server (come fa già
+     non-autorizzato.html): il 04/09 «Crea» col nome vuoto partiva lo stesso, e
+     l'organizzazione appena creata non compariva nell'elenco finché non si
+     ricaricava la pagina — il messaggio diceva «creata» e l'elenco no. */
   $('btn-create-org').onclick = guard(async () => {
     const name = $('new-org').value.trim();
+    if (!name) { msg('Scrivi il nome della nuova organizzazione.', 'error'); $('new-org').focus(); return; }
     const orgId = await id.createOrganization(name);
-    msg(`Organizzazione creata (${orgId}). Sei owner.`);
+    $('new-org').value = '';
+    await disegnaOrgs();
+    await disegnaApp();
+    msg(`Organizzazione «${name}» creata: è quella attiva e ne sei owner.`);
   });
   $('btn-invite').onclick = guard(async () => {
-    await id.inviteMember($('inv-email').value.trim());
-    msg('Invito inviato: scade tra 14 giorni.');
+    const email = $('inv-email').value.trim();
+    if (!email) { msg('Scrivi l\'email del collega da invitare.', 'error'); $('inv-email').focus(); return; }
+    await id.inviteMember(email);
+    $('inv-email').value = '';
+    msg('Invito inviato a ' + email + ': scade tra 14 giorni.');
   });
   $('btn-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
   // Invio da tastiera: creare l'org o inviare l'invito senza toccare il pulsante

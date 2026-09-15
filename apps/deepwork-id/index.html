@@ -45,6 +45,13 @@
   .tour-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.5; }
   .switch { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted2); }
   .switch a { color: var(--app-accent); cursor: pointer; text-decoration: underline; }
+  /* ⛔ «Registrati» e «Password dimenticata?» erano alti 15px (misurati il 04/09
+     a 320/390/900: 54,9×15 e 134,4×15), contro i 44 di `--tap` che il resto
+     della pagina rispetta. Il bersaglio si allarga con un riempimento
+     compensato dal margine negativo: il testo resta dov'era e com'era (la
+     struttura del core ha lo stesso `.link-small` in linea), cambia solo la
+     zona che risponde al dito: 15 → 41px. */
+  .switch a { display: inline-block; padding: 13px 6px; margin: -13px -6px; }
   .msg { display: none; margin-top: 14px; padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.4; }
   .msg.error { display: block; background: rgba(239,83,80,.12); border: 1px solid var(--danger); color: #ffb4b2; }
   .msg.info  { display: block; background: rgba(199,183,148,.10); border: 1px solid var(--border2); color: var(--muted2); }
@@ -144,7 +151,29 @@
     if (c.includes('invalid-email')) return 'Indirizzo email non valido.';
     if (c.includes('too-many-requests')) return 'Troppi tentativi: aspetta qualche minuto e riprova.';
     if (c.includes('network')) return 'Problema di rete: riprova.';
+    /* ⛔ UN ERRORE CHE DICE «QUALCOSA» NON SPIEGA NIENTE. Misurato il 04/09
+       premendo ogni bottone con un Firebase finto che risponde i codici
+       dell'SDK v10: la finestra di Google chiusa a metà, l'accesso anonimo
+       spento sul progetto (è il tour della vetrina) e un tipo di accesso non
+       abilitato cadevano tutti su «Qualcosa non ha funzionato». Ognuno ha una
+       cosa precisa da fare, ed è scritta qui. I codici sono quelli documentati
+       dall'SDK (AuthErrorCode), non misurati contro Firebase vero. */
+    if (c.includes('popup-closed-by-user') || c.includes('cancelled-popup-request')) return 'La finestra di Google si è chiusa prima di finire: tocca di nuovo «Accedi con Google» e completa l\'accesso.';
+    if (c.includes('popup-blocked')) return 'Il browser ha bloccato la finestra di Google: consenti le finestre a comparsa per questo sito e riprova.';
+    if (c.includes('admin-restricted-operation') || c.includes('operation-not-allowed')) return 'Questo tipo di accesso non è attivo sul progetto Deepwork: avvisa chi lo amministra.';
+    if (c.includes('missing-password')) return 'Scrivi la password.';
+    if (c.includes('missing-email')) return 'Scrivi la tua email.';
     return 'Qualcosa non ha funzionato. Riprova.';
+  };
+  /* ⛔ I CAMPI VUOTI SI DICONO PRIMA DI CHIAMARE FIREBASE. Premendo «Accedi»
+     con la password vuota la risposta era «Qualcosa non ha funzionato.
+     Riprova.» (misurato il 04/09): il codice che torna in quel caso non era
+     fra quelli tradotti. Un campo vuoto non è un errore del server, è una
+     cosa che la pagina sa da sola — e la dice mettendo il cursore nel campo. */
+  const campiPieni = (emailId, passId) => {
+    if (!$(emailId).value.trim()) { msg('Scrivi la tua email.'); $(emailId).focus(); return false; }
+    if (!$(passId).value) { msg('Scrivi la password.'); $(passId).focus(); return false; }
+    return true;
   };
 
   const afterAuth = () => {
@@ -154,9 +183,9 @@
     else if (s === 'unauthorized') { msg('Profilo creato. Ti spieghiamo il prossimo passo…', 'info'); location.href = './non-autorizzato.html'; }
   };
 
-  $('btn-login').onclick    = guard(async () => { await id.loginWithEmail($('login-email').value.trim(), $('login-pass').value); afterAuth(); });
+  $('btn-login').onclick    = guard(async () => { if (!campiPieni('login-email', 'login-pass')) return; await id.loginWithEmail($('login-email').value.trim(), $('login-pass').value); afterAuth(); });
   $('btn-google').onclick   = guard(async () => { await id.loginWithGoogle(); afterAuth(); });
-  $('btn-register').onclick = guard(async () => { await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
+  $('btn-register').onclick = guard(async () => { if (!campiPieni('reg-email', 'reg-pass')) return; await id.registerWithEmail($('reg-email').value.trim(), $('reg-pass').value); afterAuth(); });
   $('btn-tour').onclick     = guard(async () => { await id.loginTour(); afterAuth(); });
 
   /* ⛔ CHI ARRIVA CON «#tour» HA GIÀ CHIESTO IL TOUR: non glielo si richiede.
@@ -182,7 +211,18 @@
   $('btn-reset').onclick    = guard(async () => {
     const email = $('login-email').value.trim();
     if (!email) { msg('Scrivi prima la tua email nel campo sopra, poi tocca di nuovo "Password dimenticata?".'); return; }
-    await id.requestPasswordReset(email);
+    /* ⛔ «EMAIL O PASSWORD NON CORRETTI» DOPO AVER CHIESTO UNA PASSWORD NUOVA.
+       `errorText` traduce `user-not-found` così per l'ACCESSO, dove è giusto;
+       qui nessuno ha scritto una password, e la frase manda a ricontrollarne
+       una che non c'è (misurato il 04/09). L'email sconosciuta ha la sua
+       risposta. Con la protezione dall'enumerazione attiva Firebase non
+       distingue più e risponde «inviata» comunque: allora si passa di là. */
+    try { await id.requestPasswordReset(email); }
+    catch (e) {
+      const c = e && e.code || '';
+      if (c.includes('user-not-found') || c.includes('invalid-email')) { msg('Nessun profilo con l\'email ' + email + ': controlla come l\'hai scritta, oppure registrati.'); return; }
+      throw e;
+    }
     msg('Email inviata a ' + email + ': apri il link per scegliere una nuova password. Controlla anche lo spam.', 'info');
   });
 </script>

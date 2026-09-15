@@ -241,13 +241,27 @@ console.log("");
      disegnano più della fascia accanto che è vuota davvero?*
      Il conto delle fasce dipende dalla demo e quindi **si stampa**, invece di
      essere una soglia che un dato nuovo fa cadere. */
-  dice(zeri.length >= 1,
-    `e accanto c'è una fascia a zero da confrontare (${zeri.length} vuote su ${ag.length}: ${zeri.map((r) => r.riga).join(", ") || "nessuna"})`);
-  if (mini && zeri.length) {
-    dice(mini.px > 0, `12 € veri disegnano più di zero pixel (${mini.px} px)`, mini);
-    dice(mini.px > zeri[0].px,
-      `e disegnano PIÙ di una fascia vuota: 12 € -> ${mini.px} px, € 0 -> ${zeri[0].px} px`,
-      { mini: mini.px, zero: zeri[0].px });
+  /* ⛔ E IL 15/09 LA FASCIA VUOTA È SPARITA DEL TUTTO — terza volta che
+     questo banco invecchia sulla stessa domanda. La dimostrazione di Conti
+     ora ha un importo vero in tutt'e sei le fasce (compresa «Senza
+     scadenza», che il commit `069d70e` aveva riempito): non c'è più
+     nessuna fascia a zero con cui confrontare i 12 € DENTRO questa lista.
+     Non è un difetto — sei fasce vere è una demo più completa, non più
+     povera — ed è esattamente il caso per cui il commento qui sopra dice
+     «il conto si stampa, non è una soglia che un dato nuovo fa cadere»: qui
+     mancava applicarlo. La domanda «lo zero si disegna zero, sistematico»
+     resta comunque risposta dalla sezione 2 (8 righe a zero su TUTTE le
+     liste), che non dipende da questa fascia. */
+  if (zeri.length >= 1) {
+    dice(true, `e accanto c'è una fascia a zero da confrontare (${zeri.length} vuote su ${ag.length}: ${zeri.map((r) => r.riga).join(", ")})`);
+    if (mini) {
+      dice(mini.px > 0, `12 € veri disegnano più di zero pixel (${mini.px} px)`, mini);
+      dice(mini.px > zeri[0].px,
+        `e disegnano PIÙ di una fascia vuota: 12 € -> ${mini.px} px, € 0 -> ${zeri[0].px} px`,
+        { mini: mini.px, zero: zeri[0].px });
+    }
+  } else {
+    console.log(`  ·   nessuna fascia a zero in aging-list da confrontare coi 12 € (dichiarato, non giudicato: lo zero-disegna-zero lo controlla la sezione 2, su tutte le liste)`);
   }
   const espo = raccolto["espo-list"] || [];
   const cli = espo.find((r) => r.importo === 12);

@@ -159,8 +159,9 @@ const MODULO = join("apps", "flotta", "flotta-data.js");
    `iniezioni-fresche.mjs` rilegge questa tabella da fermo, in `npm test`. */
 const DIFETTI = [
   // 1 · la parola fissa al posto dello stato vero
-  ["};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? \"a \" + (+n.orePreviste).toLocaleString(\"it-IT\", { useGrouping: true }) + \" h motore\"",
-   "};pianificata;${csvCell(n.orePreviste ? \"a \" + n.orePreviste + \" h motore\""],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): le ore passano da `it()`. */
+  ["};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? \"a \" + it(n.orePreviste) + \" h motore\"",
+   "};pianificata;${csvCell(n.orePreviste ? \"a \" + n.orePreviste + \" h motore\"", MODULO],
   /* 2 · l'esito del giro deciso dalle sole voci, ignorando `anomalie`.
      ⚠️ L'ANCORA È CORTA DI PROPOSITO, e questa riga è nata sbagliata: la
      prima stesura citava le CINQUE righe del modello di riga, e un'ora dopo
@@ -176,38 +177,45 @@ const DIFETTI = [
      ⚠️ Otto spazi, non sei: la stessa riga esiste anche nel libretto (4529).
      Con l'indentazione i soggetti restano uno, e se un giorno diventassero
      due il banco lo dice invece di sceglierne uno a caso. */
-  ["        const s = statoGiro(c);",
-   "        const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvGiriMacchina`): due spazi in meno. */
+  ["      const s = statoGiro(c);",
+   "      const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();", MODULO],
   // 3 · lo zero sommabile al posto della cella vuota, nel registro interventi
-  ["                   numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
-   "                   (+w.costo) || 0, w.note || \"\","],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvRegistroInterventi`): due spazi in meno. */
+  ["                 numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
+   "                 (+w.costo) || 0, w.note || \"\",", MODULO],
   // 4 · la lista della spesa senza la colonna `episodi`
-  ["                           r.episodi == null ? \"\" : r.episodi].map(csvCell).join(\";\")));",
-   "                           \"\"].map(csvCell).join(\";\")));"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvListaDellaSpesa`): due spazi in meno. */
+  ["                         r.episodi == null ? \"\" : r.episodi].map(csvCell).join(\";\")));",
+   "                         \"\"].map(csvCell).join(\";\")));", MODULO],
   /* 5 · e la lista della spesa senza l'avvertenza sugli interventi rimasti
      fuori dal conto. Sta qui perché senza di lei quelle due prove non
      sapevano fallire: la quarta iniezione toglie la COLONNA, non la CODA, e
      una prova che nessuna iniezione può far cadere è una prova che non
      dimostra niente — anche quando il riepilogo intorno a lei è rosso. */
-  ["    if (p.senzaData) {", "    if (false) {"],
+  ["  if (p.senzaData) {", "  if (false) {", MODULO],   /* ⏱️ sul MODULO dal 05/09 */
   /* 6 · il file perde una riga in silenzio e la FRASE non se ne accorge: è la
      forma esatta del difetto che il confronto frase↔file esiste per prendere.
      Un mezzo sparisce dalla situazione, e il riepilogo continua a dire sei. */
-  ["    for (const m of MEZ.slice().sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))",
-   "    for (const m of MEZ.slice(1).sort((a, b) => a.nome.localeCompare(b.nome, \"it\")))"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: `MEZ` lì si chiama `mezzi`. */
+  ["  for (const m of (mezzi || []).filter(Boolean).slice().sort(",
+   "  for (const m of (mezzi || []).filter(Boolean).slice(1).sort(", MODULO],
   /* 7 · la colonna «stato» dei fermi che sa dire due cose su tre: un fermo con
      una data illeggibile usciva «chiuso», e la colonna dei giorni vuota.
      ⚠️ L'ancora è la riga della CELLA, non l'intero modello: sopra di lei c'è
      un commento lungo che racconta il difetto, e citarlo lo renderebbe
      un'iniezione scaduta al primo ritocco della prosa. */
-  ["         f.statoTx, f.note || \"\"].map(csvCell).join(\";\")));",
-   "         f.aperto ? \"ancora fermo\" : \"chiuso\", f.note || \"\"].map(csvCell).join(\";\")));"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO: il registro dei fermi è salito in
+     `csvFermiMacchina`, con due spazi in meno di indentazione. */
+  ["       f.statoTx, f.note || \"\"].map(csvCell).join(\";\")));",
+   "       f.aperto ? \"ancora fermo\" : \"chiuso\", f.note || \"\"].map(csvCell).join(\";\")));", MODULO],
   /* 8 · e la riga del ricambio nella situazione, che a un pezzo senza soglia
      minima diceva «ok» con accanto «soglia min 0» — una soglia che nessuno ha
      scritto. La decisione adesso la prende `statoScorta`, la stessa che
      disegna la pastiglia sullo schermo. */
-  ["      const s = statoScorta(r);\n      csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
-   "      const scorta = new Set(sottoScorta(RIC).map(x => x.id));\n      csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;"],
+  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): due spazi in meno. */
+  ["    const s = statoScorta(r);\n    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
+   "    const scorta = new Set(sottoScorta(ricambi).map(x => x.id));\n    csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;", MODULO],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta
@@ -287,8 +295,18 @@ const CASI = `
 `;
 
 let iniezioni = 0, rimessi = new Set();
+/* ⛔ OGNI INIEZIONE DICHIARA IL SUO FILE, E SI APPLICA SOLO LÌ (05/09). Fino a
+   oggi `applica` girava sulla sola PAGINA e ignorava il terzo elemento: le
+   iniezioni riancorate sul MODULO (i fermi, `statoGiro`, il costo, `episodi`,
+   `senzaData`) non mordevano niente, e la controprova stampava «✔ distingue»
+   grazie alle altre — con la riga «i 8 difetti sono stati rimessi davvero»
+   rossa in mezzo, che nessuno leggeva. Peggio: l'ancora di `statoGiro` a sei
+   spazi è una SOTTOSTRINGA della riga a otto del libretto, quindi mordeva la
+   pagina nel posto sbagliato e si contava rimessa. Un'iniezione senza file
+   vale per la pagina, come prima. */
 const applica = (t, file) => {
-  for (const [i, [da, a]] of DIFETTI.entries()) {
+  for (const [i, [da, a, f]] of DIFETTI.entries()) {
+    if ((f || PAGINA) !== file) continue;
     if (!t.includes(da)) continue;
     const n = t.split(da).length - 1;
     if (n !== 1) { console.log(`⛔ INIEZIONE MANCATA (#${i + 1}): ${n} soggetti`); continue; }
@@ -306,7 +324,11 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith(MODULO)) { corpo = Buffer.from(corpo.toString("utf8") + CASI, "utf8"); iniezioni++; }
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    corpo = Buffer.from(t + CASI, "utf8"); iniezioni++;
+  }
   if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);

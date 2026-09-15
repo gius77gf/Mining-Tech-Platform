@@ -287,3 +287,118 @@ una decisione, non una correzione.
 ---
 
 **Verificato il 03/08/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-15 — il D.Lgs 624/96 e il DSS di Scudo (il mondo + il delta)
+
+**Data**: 15/09/2026  
+**Tema**: D.Lgs 624/96 (Decreto sulle industrie estrattive) — rileggere articolo per articolo il ciclo di vita del DSS, verificare che la certificazione annuale e i tempi di revisione siano corretti.
+
+### PASSO 1 — Che cosa Scudo fa già (verificato nel codice)
+
+**Comando grep usato:**
+```bash
+grep -rn "DSS\|dss\|cicloDss\|dssRevisione\|dssTrasmissione\|dssMotivo\|MESI_CERTIF_DSS\|motivoRevisioneDss" apps/scudo/scudo-data.js
+```
+
+**Uscita sommaria (righe rilevanti):**
+- Righe 16-25: Ciclo di vita su documenti tipo "DSS" con tre campi: `dssRevisione` (ISO), `dssMotivo` (chiave), `dssTrasmissione` (ISO)
+- Riga 2113: `MOTIVI_REVISIONE_DSS` — prima stesura, revisione periodica, dopo evento, dopo modifica
+- Riga 2130: `MESI_CERTIF_DSS = 12` (da SCADENZE_PRESET chiave "dss-certif")
+- Riga 2162: `aggiornaCicloDss()` — conserva storico quando la data di revisione cambia
+- Riga 2962: `cicloDss()` — tre stati: non-databile, regolare, scaduto, in-scadenza
+- Righe 2483-2497: Scadenzario: `dss`, `dss-certif` (annuale), `dss-aggiorn`, `dss-trasmiss`
+
+**Funzioni gestite:**
+1. `dssDiCantiere(documenti, cantiereId)` — DSS collegati a una cava
+2. `cicloDss(documento, infortuni, oggi)` — stato del ciclo DSS
+3. `motivoRevisioneDss(chiave)` — descrizione del motivo
+4. `dssDaSeguire()` — DSS che richiedono azione
+5. Storico conservato in `dssStorico` array (max 20 revisioni)
+
+**Cicli di stato riconosciuti:**
+- **non-databile**: DSS in archivio ma senza data di revisione (nessun valore di legge, è uno stato temporaneo)
+- **regolare**: ultima revisione entro 12 mesi
+- **in-scadenza**: ultima revisione fra 12 e 13 mesi fa
+- **scaduto**: ultima revisione oltre 13 mesi fa
+
+---
+
+### PASSO 2 — Che cosa il D.Lgs 624/96 richiede davvero
+
+**Fonti primarie consultate:**
+- Parlamento.it: https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm (decreto completo)
+- Provincia di Sondrio: https://www.provinciasondrio.it/sites/default/files/contents/pagine/2740/allegati/decreto-legislativo-624-96.pdf
+
+**Articolo 6 del D.Lgs 624/96 — Documento di sicurezza e di salute (DSS):**
+
+**Comma 1**: Per il settore estrattivo, il documento di cui all'art. 4 comma 2 del D.Lgs 626/1994 prende il nome di "Documento di Sicurezza e Salute" (DSS).
+
+**Comma 2**: Il datore di lavoro, nel DSS, oltre a quanto previsto dall'art. 4 del D.Lgs 626/1994, indica quanto previsto dall'art. 10 e **attesta annualmente che i luoghi di lavoro, le attrezzature e gli impianti sono progettati, utilizzati e mantenuti in modo efficiente e sicuro**.
+
+**Comma 3**: Il datore di lavoro aggiorna il DSS se i luoghi di lavoro hanno subito **significative modificazioni**, nonché, ove necessario, a seguito di **significativi incidenti**.
+
+**Comma 4**: Il datore di lavoro trasmette all'autorità di vigilanza:
+- a) il DSS **prima dell'inizio delle attività**;
+- b) gli aggiornamenti del DSS.
+
+**Interpretazione della legge (da fonti specializzate):**
+
+La "certificazione annuale" richiesta dal comma 2 è un'**attestazione da parte del datore di lavoro** che lo stato dei places/equipment/impianti rimane efficiente e sicuro. NON è una revisione automatica ogni anno — è una conferma che niente è cambiato (o che i cambiamenti sono già stati incorporati nel DSS).
+
+La **revisione** è obbligatoria soltanto quando:
+1. **Significative modificazioni** ai luoghi di lavoro
+2. **Significativi incidenti** (con riferimento particolare ai quasi-incidenti se la cava li classifica così)
+
+La norma **non specifica una soglia numerica o temporale** per "significativo" — è una valutazione legale/tecnica che il datore di lavoro deve fare insieme all'RSPP.
+
+---
+
+### PASSO 3 — Il delta (differenze fra norma e app)
+
+**Proposta 1:**
+**Schermata**: Ciclo del DSS (Scudo > S1 Documenti > Il DSS e il suo ciclo)  
+**Che cosa non va**: La scadenzario presenta "DSS — certificazione annuale del datore di lavoro" come **una revisione periodica obbligatoria ogni 12 mesi**, mentre il D.Lgs 624/96 richiede soltanto un'**attestazione annuale che il DSS rimane valido**.  
+**Come si vede**: L'app mostra ogni anno una **nuova data di revisione** come se fosse dovuta per legge; la norma permette di **non toccare il DSS** se niente è cambiato (e attestare solo l'attualità).  
+**Quanto costa**: Comportamentale — comporta un'azione annuale che potrebbe essere sostituita da un'attestazione semplice, e rischia di indurre il datore di lavoro a caricare il documento di revisioni fittizie solo per rispettare l'app.  
+**Come si misura**: Leggere l'art. 6 comma 2 e 3 del D.Lgs 624/96; verificare in Scudo che il ciclo DSS distingua fra **revisione** (quando c'è un evento/modifica) e **attestazione annuale** (quando niente cambia). La nota informativa dovrebbe chiarire: *«Se la cava non ha subito modificazioni significative, attestate l'attualità del DSS senza cambiarne la data di revisione»*.
+
+**Proposta 2:**
+**Schermata**: Motivi di revisione del DSS (form "Registra una revisione del DSS")  
+**Che cosa non va**: I motivi riconosciuti ("prima stesura", "revisione periodica", "dopo un evento", "dopo una modifica") includono "revisione periodica", ma il D.Lgs 624/96 non obbliga revisioni periodiche — solo attestazione annuale.  
+**Come si vede**: Selezionando "revisione periodica" come motivo, l'app registra una nuova data di revisione come se fosse stata forzata dalla legge; il datore di lavoro legge il form e crede che la legge lo richieda ogni anno.  
+**Quanto costa**: Confusione normativa — una voce nel form è assorbita come obbligo legale quando è solo una **opzione** che il datore usa se sceglie di aggiornare il documento comunque.  
+**Come si misura**: Leggere la descrizione del motivo "revisione periodica" in Scudo; confrontarla con l'art. 6 comma 3 del D.Lgs 624/96 che dice "aggiorna il DSS se... **significative modificazioni**" o "a seguito di **significativi incidenti**" — nessun obbligo di revisione "ogni X mesi" è citato. Se la revisione è scelta volontaria dal datore (non dalla norma), il tooltip dovrebbe dirlo: *«Il datore di lavoro ha scelto di aggiornare il DSS come buona pratica annuale, pur non essendo obbligato se nessun evento significativo è accaduto»*.
+
+**Proposta 3:**
+**Schermata**: Scadenzario adempimenti (S3 Scadenze)  
+**Che cosa non va**: La voce "DSS — certificazione annuale del datore di lavoro" (chiave `dss-certif`, periodicità 12 mesi) è trattata come un **adempimento con scadenza**, mentre la "certificazione annuale" richiesta dal D.Lgs è un **atto di attestazione**, non uno scadenzario con data limite.  
+**Come si vede**: Il KPI del Quadro conta `dss-certif` fra gli "adempimenti da seguire"; se il datore di lavoro non tocca la data di revisione del DSS per 13 mesi, il semaforo diventa rosso — ma la legge non fissa una data limite per l'attestazione, richiede solo che sia fatta.  
+**Quanto costa**: Psicologico e procedurale — il rosso suggerisce un'infrazione quando la situazione (DSS invariato, attestazione data a voce a novembre) può essere completamente legale.  
+**Come si misura**: Leggere il D.Lgs 624/96 art. 6 comma 2 e verificare che non nomina una data scadenza per l'attestazione annuale (la dice solo "annualmente"); aprire Scudo > Quadro e controllare che `dss-certif` **non generi un semaforo "scaduto"** se il DSS non è stato toccato — piuttosto un promemoria neutro: *«L'attestazione annuale del datore che il DSS rimane attuale è dovuta entro [data]; non comporta una nuova revisione se la cava non ha subito modificazioni»*.
+
+**Proposte escluse (già corrette):**
+- **Trasmissione all'autorità**: Il codice registra `dssTrasmissione` (data) e la norma chiede trasmissione "prima dell'inizio delle attività" e "degli aggiornamenti". È gestito bene ✓
+- **Motivi di revisione "dopo evento" e "dopo modifica"**: Corrispondono esattamente all'art. 6 comma 3 ✓
+- **Motivo "prima stesura"**: Corrisponde all'art. 6 comma 1 ✓
+
+---
+
+### Riepilogo per il team
+
+| Voce | Stato | Azione |
+|------|-------|--------|
+| **Distinzione revisione vs. attestazione annuale** | IMPRECISO | Chiarire nella nota: se niente cambia, attestate senza toccare la data. Aggiungere voce "Attestazione annuale" o "Conferma di attualità" separata. |
+| **Motivo "revisione periodica"** | AMBIGUO | Rinominare in "Aggiornamento su scelta del datore" + tooltip che spiega che non è obbligatorio se nessun evento è accaduto. |
+| **Scadenzario `dss-certif`** | CONCETTUALMENTE ERRATO | La "certificazione annuale" non genera una scadenza legale; è un atto che il datore fa (attestazione), non una data limite. Rivedere il semaforo: **non dovrebbe uscire rosso** se il DSS è invariato. |
+
+**Fonti consultate:**
+- [D.Lgs 624/96 completo (Parlamento.it)](https://www.parlamento.it/parlam/leggi/deleghe/96624dl.htm)
+- [D.Lgs 624/96 PDF (Provincia Sondrio)](https://www.provinciasondrio.it/sites/default/files/contents/pagine/2740/allegati/decreto-legislativo-624-96.pdf)
+- [Salute e Sicurezza industrie estrattive (Certifico)](https://www.certifico.com/sicurezza-lavoro/documenti-sicurezza/documenti-riservati-sicurezza/salute-e-sicurezza-lavoratori-industrie-estrattive-d-lgs-624-1996)
+- [Il documento di sicurezza nel settore estrattivo (PuntoSicuro)](https://www.puntosicuro.it/valutazione-dei-rischi-C-59/come-elaborare-il-documento-di-sicurezza-salute-nel-settore-estrattivo-AR-23129/)
+
+---
+
+**Verificato il 15/09/2026 da ricerca continua.**

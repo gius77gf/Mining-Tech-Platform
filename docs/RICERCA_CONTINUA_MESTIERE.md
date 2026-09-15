@@ -363,3 +363,193 @@ misura**. Nessuna entra in roadmap sulla parola di questa ricerca.
   **prova**, non un verdetto, e le prove che invecchiano rendono non credibile
   la riga giusta che le accompagna.
   ([Wikipedia — DSS](https://it.wikipedia.org/wiki/Documento_di_sicurezza_e_salute) *(non aperta: proxy)*)
+
+---
+
+## Tornata 2 — 15/09/2026 · «Il rapporto di fine turno stampabile: che cosa entra davvero»
+
+**Verificato contro il commit `f17245f5`** (15/09/2026 18:52 UTC).
+**Domanda**: che cosa contiene davvero un rapportino/giornale di cava italiano
+(produzione, mezzi, personale, eventi, consumi), e quali di queste voci
+mancano ancora nella funzione `rapportoGiornata` di `apps/campo/campo-data.js`
+— il documento che l'app genera davvero, non un modello astratto.
+
+### 0 · Lo strumento
+
+`WebSearch` ha funzionato su tutte le query di questa tornata (nessun
+`EGRESS_BLOCKED`). Non è stato necessario `WebFetch`. Nessuna fonte è stata
+letta per intero: quello che segue viene dal testo restituito da `WebSearch`
+(titolo + estratto), con il link accanto a ogni voce — e questo va dichiarato,
+perché un estratto non è il testo primario.
+
+### 1 · Che cosa esiste già in casa (letto prima di proporre)
+
+Letta per intero la **Tornata 1** qui sopra (13/08/2026): ha già censito il
+lato normativo (DSS, denuncia di esercizio, infortuni, silice, esplosivi) e ha
+già scritto, in tabella, che il rapporto di fine turno di Campo è «**C'È, e più
+ricco della prassi**» — ma lì la funzione non era stata letta riga per riga,
+solo citata per intervallo di righe di `index.html`. Questa tornata legge la
+funzione vera (`campo-data.js:3488-3659`, salita dalla pagina il 05/09) e la
+confronta voce per voce, cosa che la Tornata 1 non aveva fatto.
+
+Letto per intero `rapportoGiornata` (righe 3488-3659) e, per contesto,
+`testoConsegnaTurno` (righe 3673 in poi, stessa area del file — è la SECONDA
+funzione che compone un documento di fine turno, quella testuale per il turno
+entrante).
+
+**Le sezioni che `rapportoGiornata` scrive già, verificate a codice**:
+checklist di inizio turno (con le voci senza risposta dichiarate), briefing di
+inizio turno (chi l'ha tenuto, i presenti dell'appello), meteo e condizioni
+del sito per turno, **personale presente** (appello con «non lo so» ≠
+assente, riposo minimo D.Lgs 66/2003 art. 7 con lo stato «non misurabile»,
+orari di entrata/uscita con «non dichiarata» quando manca, ore lavorate),
+obiettivo del turno con lo scostamento, attività (con le anomalie in cima e
+«senza data» dichiarato), **fermi per causale** con i minuti (`paretoFermi`,
+causali non riconosciute contate e nominate invece di sparire in «Altro»),
+**disponibilità del turno** (con l'avviso esplicito che «non è l'OEE»), foto
+delle anomalie, **produzione** per turno e totale (t / m³ / viaggi, mai
+sommate fra loro), rapportini con le squadre senza rapportino elencate,
+chiusura e firme (righe in bianco se nessuno ha chiuso), riaperture del turno
+mai cancellate. È un documento denso e disciplinato sul principio
+dell'assenza dichiarata — conferma quanto scritto nella Tornata 1.
+
+### 2 · IL MONDO — che cosa contiene davvero un rapportino di cava/cantiere
+
+| Voce | Che cosa dice la prassi | Fonte |
+|---|---|---|
+| Contenuto minimo di un rapportino giornaliero | Data, riferimento alla commessa/sito, **lavorazioni eseguite**, **personale presente con ore lavorate**, subappaltatori, **mezzi e attrezzature utilizzati**, materiali impiegati, misure rilevate, spese sostenute, fotografie, note operative, approvazione del responsabile | [PlanRadar](https://www.planradar.com/it/rapportino-giornaliero-cantiere-modello/) · [Infominds](https://infominds.eu/rapportino-di-cantiere/) *(estratti, non testo primario)* |
+| Elementi specifici per turno | Data, cantiere, nominativi e ore dei lavoratori, **mezzi e attrezzature impiegati**, materiali, lavorazioni eseguite, **note su meteo, fermi o imprevisti** | [Geobadge](https://geo-badge.com/blog/rapportini-cantiere-modello-strumenti/) · [Constrack](https://constrack.pro/blog/it/site-work-report-template-download/) |
+| Registro/giornale dei lavori (cantiere, forma affine) | Riporta **operatori e attrezzature** impiegati dall'impresa, con **osservazioni e istruzioni** di direzione lavori/coordinatori/ispettori; le attrezzature (escavatori, mini-escavatori, autocarri) sono elencate col **numero di ore usate per ciascuna** | [MyAedes — giornale lavori](https://www.myaedes.com/blog/giornale-lavori-esempio-modello-pdf-word-app/) *(estratto)* |
+| Fasi operative di cava (esempio da progetto autorizzativo) | Le fasi dichiarano il **numero massimo di mezzi di scavo e trasporto usati contemporaneamente** (es. 2 escavatori e 2 pale gommate) | [Schema di convenzione attività estrattiva](https://atti.comune.parma.it/AttiVisualizzatore/download/allegato/529295?fId=529296) *(estratto)* |
+
+`[dedotto]` La lettura che ne do: nessuna delle fonti trovate è un modulo di
+«rapportino di cava» italiano compilato e pubblicato online (i risultati sono
+per cantieri edili in generale, più affini ma non identici); non ho trovato,
+in questa tornata, un fac-simile specifico di cava di inerti/calcare. Quello
+che è **coerente su tutte le fonti**, cantiere o cava, è che **i mezzi
+impiegati e le loro ore** sono una voce ricorrente quanto le presenze — non
+un dettaglio.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+**Delta 1 — i mezzi non sono una voce di `rapportoGiornata`, né altrove in
+Campo.**
+
+`$ grep -riE "mezzo|mezzi|gasolio|carburante|consumo" apps/campo/campo-data.js`
+→ **9 righe**, lette una per una: una voce di checklist («Controllo pre-turno
+mezzi»), una causale di fermo («Attesa mezzo»), una nota di commento («in
+mezzo»/«mezzogiorno»/«pavimento in mezzo» — non pertinenti). **Zero righe**
+riguardano *quale* mezzo ha lavorato, *quante ore*, o *quanto ha consumato*.
+`$ grep -n "mezzo" apps/campo/campo-data.js` sulle righe delle attività/rapportini
+di esempio (211-231, 2560-2580) conferma: né `attivita` né `rapportini`
+portano un campo `mezzo`.
+
+Questo dato **esiste**, ma in **Flotta**: `consumoPerMezzo`,
+`costoOfficinaPerMezzo`, `oreContatore`, `azzeramentiDelMezzo` in
+`apps/flotta/flotta-data.js` (confermato leggendo le righe 1387-1944). E
+`$ grep -n "campo\|Campo" shared/dw-ponti.js` → conferma i ponti esistenti:
+Campo↔Terra (volumi), Campo↔Conti (prodotto vs venduto), Campo↔Scudo
+(personale) — **nessun ponte Campo↔Flotta**. Il rapporto di fine turno può
+dire «14 viaggi» ma non sa dire con quale dumper, né per quante ore ha
+lavorato l'escavatore, né quanto gasolio è stato bruciato — dato che il mondo
+tratta come ordinario quanto le presenze, e che oggi vive isolato in un'altra
+app.
+
+**Delta 2 — le volate del giorno entrano nella consegna testuale ma NON nel
+rapporto stampabile: due funzioni-sorelle, un dato in una sola.**
+
+Verificato leggendo tutt'e due le funzioni per intero:
+`$ sed -n '3501,3659p' apps/campo/campo-data.js | grep -niE 'volat|sentinella'`
+→ **0 righe**: dentro `rapportoGiornata` (il documento stampabile, quello
+firmato) non compare mai la parola «volata» né «Sentinella».
+Alla riga 3732-3733, dentro **`testoConsegnaTurno`** (la seconda funzione che
+compone un documento di fine turno, quella in testo semplice per il turno
+entrante), c'è invece:
+```
+txt += "VOLATE DEL GIORNO (registro di Sentinella)\n";
+txt += righeVolateDelGiorno(riassuntoVolateDelGiorno(d.volateSentinella === undefined ? null : d.volateSentinella, OGGI))…
+```
+col commento proprio accanto: *«le due cose che il turno entrante legge per
+prime: i lavori non conclusi e i pericoli segnalati»* — le volate sono
+esplicitamente trattate come informazione di prima lettura in **un** dei due
+documenti. `rapportoGiornata` non riceve nemmeno `d.volateSentinella` in
+ingresso: la destrutturazione in testa alla funzione (`const D = d || {}...`)
+non lo nomina. Non è un «non misurato» dichiarato — è un'assenza silenziosa,
+la stessa famiglia della «copia debole» che CLAUDE.md descrive per le
+funzioni gemelle che compongono un documento: una ha la regola giusta, l'altra
+non la eredita.
+Il mondo conferma solo indirettamente qui (la volata è l'evento di produzione
+per eccellenza di una cava a cielo aperto con abbattimento a fuoco — è la
+premessa di Genesi e di Sentinella stesse, già censita nella Tornata 1 con
+**114 righe** su `esplosiv`), ma il delta è soprattutto una prova di codice:
+il prodotto stesso sa già, in un punto, che questa informazione va data per
+prima, e non lo applica al documento che si stampa e si firma.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la produzione per
+«viaggi» (`UNITA_PRODUZIONE = ["t", "m³", "viaggi"]`, riga 2560) **esiste
+già** — un rapportino può contare i viaggi di un camion. Quello che manca non
+è la quantità, è **l'identità del mezzo** che l'ha fatta.
+
+### 4 · Le proposte (formato fisso)
+
+1. **Campo → `rapportoGiornata` · Le volate del giorno non compaiono nel
+   documento stampato e firmato, solo nella consegna testuale** · Il turno
+   entrante che legge il PDF/foglio stampato non vede la sezione che il
+   commento del codice stesso chiama «da leggere per prima»; chi legge invece
+   `testoConsegnaTurno` la vede · `sed -n '3501,3659p' campo-data.js | grep -niE
+   'volat|sentinella'` → 0 righe, contro le 2 righe (3732-3733) di
+   `testoConsegnaTurno` · **costo: basso** — una sezione in più in
+   `rapportoGiornata`, costruita con le stesse due funzioni già importate
+   (`riassuntoVolateDelGiorno`, `righeVolateDelGiorno`), passando
+   `d.volateSentinella` che la funzione oggi ignora · **come si misura**: con
+   `d.volateSentinella` popolato, `rapportoGiornata(d,opts).sezioni` deve
+   contenere una sezione «Volate del giorno» con lo stesso testo che
+   `testoConsegnaTurno` produce per lo stesso `d`; controprova: i due
+   documenti generati dallo stesso `d` non devono più poter dire cose diverse
+   su quante volate ci sono state oggi (oggi possono: uno le dice, l'altro
+   tace).
+
+2. **Campo → attività/rapportini · Nessun campo lega un'attività o una riga di
+   produzione a un mezzo, quindi il rapporto di fine turno non può mai dire
+   quali mezzi hanno lavorato né per quante ore** · Il mondo tratta «mezzi e
+   attrezzature impiegati» come voce ordinaria quanto le presenze (vedi §2); da
+   noi il dato per-mezzo esiste ma vive isolato in Flotta · `grep -riE
+   "mezzo|mezzi|gasolio|carburante|consumo" apps/campo/campo-data.js` → 9
+   righe, nessuna sull'identità o le ore di un mezzo; nessun `ponteFlotta` in
+   `shared/dw-ponti.js` (`grep -n "flotta" shared/dw-ponti.js` → righe tutte
+   su Terra/Scudo/Conti, mai Campo) · **costo: medio** — non è un campo solo:
+   serve decidere se il legame nasce sull'attività (`mezzoId` opzionale, come
+   `operatore`) o sul rapportino, e poi un ponte `shared/dw-ponti.js` sul
+   modello di `ponteScudo`/`ponteScudo` per leggere ore e consumi da Flotta
+   senza che Campo costruisca percorsi Firestore suoi · **come si misura**:
+   con un'attività che porta `mezzoId` e Flotta raggiungibile, la sezione
+   «Attività» o «Produzione» del rapporto deve poter mostrare il nome del
+   mezzo; con Flotta **non raggiungibile** deve dire «mezzi non raggiungibili»
+   e non tacere — è la stessa regola già scritta in `dw-ponti.js` per
+   `costiFlotta == null` («flotta-non-raggiungibile» non è flotta a zero).
+   ⚠️ Proposta più grande delle prime: **non è detto che vada fatta subito**,
+   perché tocca uno schema dati oltre a un testo — la scrivo per completezza
+   del delta, non come priorità.
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Un fac-simile di «rapportino di cava»** da copiare voce per voce: non
+  l'ho trovato in questa tornata (§2 lo dichiara), e i modelli di cantiere
+  edile trovati sono **affini ma non identici** — differiscono per assenza di
+  «commessa/cliente» (che in cava non esiste allo stesso modo) e per
+  l'assenza, nei modelli generici, di produzione per volata/abbattimento.
+  Copiare un modello di cantiere edile sarebbe importare vocabolario
+  sbagliato nello stesso modo che CLAUDE.md descrive per i concorrenti
+  internazionali: il documento di Campo è già più specifico di mestiere di
+  quei modelli (fermi per causale, disponibilità, riposo D.Lgs 66/2003) e non
+  va impoverito per somigliargli.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- Nessun fac-simile di rapportino di cava (solo di cantiere edile) è stato
+  trovato: resta aperta la domanda se in cava si usi un formato diverso per
+  la sezione mezzi (es. contaore fotografato a inizio/fine turno) rispetto al
+  contaore digitale che Flotta già legge.
+- Non ho letto il testo primario di nessuna fonte (solo estratti di
+  `WebSearch`): dove serve una citazione precisa per un testo di prodotto, va
+  riletta la pagina.

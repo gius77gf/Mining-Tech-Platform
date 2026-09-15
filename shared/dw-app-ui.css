@@ -709,6 +709,20 @@ input[type=date].dw-input::-webkit-calendar-picker-indicator:hover{
   user-select:text;
 }
 .modal-body b{color:var(--text)}
+/* ETICHETTA DI CAMPO (`.fl`): la forma del core (index.html, «Font minimi
+   leggibili»), qui perché serve a più app. ⛔ Fino al 10/09 il foglio condiviso
+   la vestiva SOLO dentro `.modal-body` (margine), e le app che non se la
+   ridicevano — Conti, Scudo — la disegnavano fuori dalle modali come testo
+   nudo da 16 px: «Righe dell'offerta» e «Prezzi a scaglioni» in Conti, sette
+   etichette del DUVRI e del registro infortuni in Scudo. Misurato con
+   getComputedStyle su sei app: 9 etichette nude, tutte in quelle due. Terra la
+   ridice a 10 px e a parità di specificità vince perché il suo foglio viene
+   dopo (divergenza dichiarata lì); Campo la ridice sotto `.fermo`, che vince
+   per specificità; dentro le modali vincono i `.modal-body .fl` delle app. */
+.fl{
+  display:block; font-family:'Barlow',sans-serif; font-size:13px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+}
 .modal-body .fl{margin:12px 0 6px}
 .modal-foot{
   padding:12px 18px; border-top:1px solid var(--border); background:var(--dark);

@@ -272,6 +272,11 @@ const LEGGI = () => {
     tipo, id: e.id || "", cls: [...e.classList].join("."),
     eti: (e.parentElement ? (e.parentElement.textContent || "") : "").replace(/\s+/g, " ").trim().slice(0, 60),
     t: (e.textContent || "").trim(), v: vis(e),
+    /* la RAGIONE che il prodotto scrive accanto a un «—»: il titolo della
+       tessera («…non si sa», «nessuna voce…»). È il principio del fondatore
+       — l'assenza del dato dichiarata — e non va letto come un contatore
+       dimenticato. Si guarda l'antenato più vicino con un `title`. */
+    dich: ((e.closest("[title]") || {}).getAttribute ? e.closest("[title]").getAttribute("title") : "") || "",
   }));
   return [...raccogli("span.cnt", "contatore"), ...raccogli(".kpi .n", "kpi")];
 };
@@ -460,7 +465,19 @@ for (const app of APPS) {
       + `(il loro pannello è chiuso: il «—» non lo legge nessuno, e si riempie quando si apre): `
       + nascosti.map((d) => d.id || d.cls).join(", "));
   }
-  const rimasti = visibili.filter((d) => d.t === "—" && !ecc.includes(d.id));
+  /* ⏱️ 11/09: un «—» con la ragione scritta nel titolo della tessera («non si
+     sa», «nessuna voce») NON è un contatore rimasto vuoto: è il prodotto che
+     dichiara di non poter misurare. Il giro del 10/09 accusava «Carburante
+     mese —» di Flotta, la cui tessera dice «Nessuna voce di carburante
+     registrata questo mese: quanto sia stato speso … non si sa» — e la
+     dimostrazione ha le voci a date RELATIVE, quindi il caso va e viene col
+     giorno del mese. Si contano a parte e si stampano. */
+  const dichiaratiDalProdotto = visibili.filter((d) => d.t === "—" && !ecc.includes(d.id) && /non si sa|nessuna voce|non è stato misurato|non misurat/i.test(d.dich));
+  if (dichiaratiDalProdotto.length) {
+    console.log(`  ·   ${app}: ${dichiaratiDalProdotto.length} contatori a «—» con la RAGIONE nel titolo della tessera (il prodotto dichiara di non poter misurare): `
+      + dichiaratiDalProdotto.map((d) => `${d.id || d.cls} «${d.eti}» — ${d.dich.slice(0, 70)}`).join(" | "));
+  }
+  const rimasti = visibili.filter((d) => d.t === "—" && !ecc.includes(d.id) && !dichiaratiDalProdotto.includes(d));
   /* ⚠️ E se non se n'è visto NESSUNO la risposta non è «a posto» e non è
      nemmeno KO: è NON MISURATO, che è un terzo esito e ha una riga sua. Un KO
      si legge come un difetto del prodotto e manda ad aprire un cantiere. */

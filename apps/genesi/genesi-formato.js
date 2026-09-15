@@ -89,3 +89,12 @@ export function fmtKg(v){ return gfix(v, v<0.1?3:2); }
    ~30 punti che vogliono un numero e basta. */
 export function gEsito(v, opts){ return numeroScritto(v, { decimali: 6, ...(opts||{}) }); }
 export function gIn(v){ const r = gEsito(v); return r.ok ? r.valore : NaN; }
+
+/* Il tempo della simulazione sull'orologio della scena 3D: sotto il secondo
+   in millisecondi interi, da un secondo in su in secondi con due decimali,
+   con l'unità in piccolo (è HTML, e va in un `innerHTML`). Salita dalla
+   pagina il 10/09 (blocco G27 del cantiere B3), entrata identica. */
+export function fmtT(ms){
+  if(ms<1000) return Math.round(ms)+' <small>ms</small>';
+  return gfix(ms/1000,2)+' <small>s</small>';
+}

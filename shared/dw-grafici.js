@@ -299,6 +299,54 @@
      dire la stessa cosa divergono al primo che ne cambia una. */
   var RESPIRO_ET = 4;
 
+  /* QUANTE ETICHETTE DI TACCA CI STANNO su un asse ORIZZONTALE largo `largoAsse`
+     px, se la più larga misura `largoEt` px. Le etichette sono centrate sulla
+     tacca, quindi la prima e l'ultima sporgono di mezza larghezza fuori dall'asse:
+     lo spazio vero è largoAsse + largoEt. Mai meno di due (gli estremi).
+     ⛔ Nato il 10/09 da uno scatto a 320 px: l'invecchiamento del credito di
+     Conti scriveva «€ 0 € 5.000 € 10.000€15.000€20.000» — cinque etichette da
+     42 px su un asse da 126, che si leggevano come una parola sola. Il conto
+     delle tacche era fisso a quattro, cioè dipendeva dal valore e non dallo
+     spazio; a 430 px le stesse cinque ci stavano. Misurato prima di scrivere:
+     su 28 grafici con tacche delle sei app, a 320 px ne collidevano 3 (Conti
+     aging e venduto, Flotta costi), a 430 nessuno. */
+  function tacchePerLarghezza(largoAsse, largoEt, respiro) {
+    var r = respiro == null ? 6 : respiro;
+    if (!(largoEt > 0) || !(largoAsse > 0)) return 2;
+    return Math.max(2, Math.floor((largoAsse + largoEt + r) / (largoEt + r)));
+  }
+  /* Fra `n` tacche, quali PORTANO l'etichetta perché ne restino al più
+     `ciStanno`: si tiene una tacca ogni ceil(n / ciStanno), a partire dalla
+     prima (lo zero, che è l'asse). Le righe della griglia restano tutte: è solo
+     il numero a diradarsi. */
+  /* OGNI QUANTE BARRE UN'ETICHETTA DI CATEGORIA. Una banda troppo stretta
+     lascia della parola due caratteri più i puntini — «31…», «n…» — che non
+     dicono niente: meglio una parola INTERA ogni k barre, e la tabella sotto
+     per le altre. Tre risposte, in ordine: se la più larga ci sta, tutte; se
+     tronca resta LEGGIBILE (`largoLeggibile` è la larghezza della parola più
+     larga tagliata a tre lettere più i puntini), tutte tronche; se no, una ogni
+     k, con k = quante bande servono alla parola intera più il respiro.
+     ⛔ Nato il 10/09 dallo scatto di Flotta a 320 px: la disponibilità giorno
+     per giorno (otto colonne) scriveva «31… 03… 04… 05… 07… 08… 09… 10…», e
+     il mese dei rilievi di Terra «n… g… m… a… m… a…». Misurato prima di
+     scrivere, su 17 grafici con etichette di categoria delle sei app: a 320 px
+     7 troncavano e 2 troncavano a MUTO, a 430 uno troncava e nessuno a muto.
+     Le tronche leggibili («Impianto e lavoraz…») restano: diradarle toglierebbe
+     il nome a barre che ce l'hanno. */
+  function passoCategorie(banda, largoMax, largoLeggibile, respiro) {
+    var r = respiro == null ? RESPIRO_ET : respiro;
+    if (!(banda > 0) || !(largoMax > 0)) return 1;
+    if (largoMax <= banda - r) return 1;
+    if (largoLeggibile > 0 && largoLeggibile <= banda - r) return 1;
+    return Math.max(1, Math.ceil((largoMax + r) / banda));
+  }
+  function tacchePortate(n, ciStanno) {
+    var k = Math.max(1, Math.ceil(n / Math.max(1, ciStanno)));
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(i % k === 0);
+    return out;
+  }
+
   /* TRONCARE MISURANDO, non contando i caratteri. Il nome di una voce che non ci
      sta va accorciato, ma «quanti caratteri ci stanno» dipende da QUALI caratteri
      sono — «Illi» e «Wowm» hanno lo stesso conto e larghezze diverse — e dal
@@ -1008,11 +1056,37 @@
      2 · BARRE (verticali e orizzontali, ordinabili tipo Pareto)
      ══════════════════════════════════════════════════════════════════════ */
 
+  /* ⛔ UNA BARRA A ZERO È UNA MISURA; UNA VOCE CHE NESSUNO HA MISURATO NON LO È.
+     Fino al 04/09 il motore BUTTAVA VIA ogni voce senza numero, e chi voleva
+     tenerla in vista (Terra, «Volumi per fronte»: un fronte senza rilievi va
+     mostrato, se no sparisce e sembra che non esista) doveva passare uno zero
+     — e lo zero si disegnava con la sua stanghetta minima, che sul disegno si
+     legge «da lì non è uscito niente». È il principio del fondatore applicato
+     alla geometria, nella veste già scritta per i buchi della linea: un
+     `null` si DICHIARA, non si disegna. Qui: la voce resta in elenco, in
+     coda, senza barra, con la scritta «non misurato» al posto del numero, e
+     fuori da totale, scala, quota e taglio di Pareto. Una stringa, un NaN o un
+     oggetto rotto restano fuori come prima: quello non è «non misurato», è
+     un dato guasto. La regola è pura e sta in `geometria.separaMancanti`,
+     così la suite `node` la difende senza browser. */
+  function separaMancanti(valori) {
+    var misurati = [], mancanti = [];
+    (valori || []).forEach(function (v) {
+      if (!v) return;
+      if (num(v.valore)) misurati.push(v);
+      else if (v.valore === null || v.valore === undefined) mancanti.push(v);
+    });
+    return { misurati: misurati, mancanti: mancanti };
+  }
+
   function disegnaBarre(g) {
     var s = g.spec, fmt = formatterDi(s);
-    var dati = (s.valori || []).filter(function (v) { return v && num(v.valore); });
-    if (!dati.length) { vuoto(g, 'Nessun dato da mostrare'); return; }
+    var sep = separaMancanti(s.valori);
+    var dati = sep.misurati;
+    if (!dati.length) { vuoto(g, sep.mancanti.length ? 'Niente di misurato, ancora' : 'Nessun dato da mostrare'); return; }
     if (s.ordina) dati = dati.slice().sort(function (a, b) { return b.valore - a.valore; });
+    var misurati = dati;
+    var testoManca = s.testoMancante || 'non misurato';
 
     var oriz = s.orientamento === 'orizzontale';
     var largo = g._larg;
@@ -1021,17 +1095,20 @@
        somma non significa niente: 67% + 83% non fa 150% di qualcosa. In quel
        caso il totale resta zero e la quota non viene mostrata. */
     var sommabile = (s.unita || '').trim() !== '%' && s.quota !== false;
-    var totale = sommabile ? dati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
-    var vmax = Math.max.apply(null, dati.map(function (d) { return d.valore; }));
-    var sc = scala(Math.min(0, Math.min.apply(null, dati.map(function (d) { return d.valore; }))), vmax, oriz ? 4 : 4);
+    var totale = sommabile ? misurati.reduce(function (a, b) { return a + b.valore; }, 0) : 0;
+    var vmax = Math.max.apply(null, misurati.map(function (d) { return d.valore; }));
+    var sc = scala(Math.min(0, Math.min.apply(null, misurati.map(function (d) { return d.valore; }))), vmax, oriz ? 4 : 4);
 
     /* taglio di Pareto: dove la somma arriva alla percentuale chiesta.
        È una tacca sull'UNICO asse — mai un secondo asse con un'altra scala. */
     var taglio = -1;
     if (s.taglio && s.ordina && totale > 0) {
       var acc = 0;
-      for (var i = 0; i < dati.length; i++) { acc += dati[i].valore; if (acc / totale * 100 >= s.taglio) { taglio = i; break; } }
+      for (var i = 0; i < misurati.length; i++) { acc += misurati[i].valore; if (acc / totale * 100 >= s.taglio) { taglio = i; break; } }
     }
+    /* le voci non misurate vanno in CODA, dopo l'ordinamento e dopo il taglio:
+       non hanno un posto in una classifica, hanno solo il diritto di esserci */
+    dati = misurati.concat(sep.mancanti.map(function (v) { return { etichetta: v.etichetta, valore: null, stato: v.stato, manca: true }; }));
 
     var svg, box, alto;
     if (oriz) {
@@ -1043,18 +1120,22 @@
       var bandaO = (box.y1 - box.y0) / dati.length;
       var spessO = Math.min(24, bandaO * 0.62);
       var pxv = function (v) { return box.x0 + (box.x1 - box.x0 - 46) * (v - sc.min) / (sc.max - sc.min); };
+      /* le etichette dell'asse si diradano quando non ci stanno (vedi tacchePerLarghezza) */
+      var etT = sc.tacche.map(function (v) { return fmt(v); });
+      var largoEtT = Math.max.apply(null, etT.map(function (x) { return testoLargo(x, 10); }));
+      var portaT = tacchePortate(sc.tacche.length, tacchePerLarghezza(box.x1 - box.x0 - 46, largoEtT));
 
-      sc.tacche.forEach(function (v) {
+      sc.tacche.forEach(function (v, iT) {
         svg.appendChild(nodo('line', { 'class': 'dwg-grid', x1: pxv(v).toFixed(1), y1: box.y0, x2: pxv(v).toFixed(1), y2: box.y1 }));
-        svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: pxv(v).toFixed(1), y: box.y1 + 14, 'text-anchor': 'middle' }, fmt(v)));
+        if (portaT[iT]) svg.appendChild(nodo('text', { 'class': 'dwg-tick', x: pxv(v).toFixed(1), y: box.y1 + 14, 'text-anchor': 'middle' }, etT[iT]));
       });
       svg.appendChild(nodo('line', { 'class': 'dwg-ax', x1: pxv(0).toFixed(1), y1: box.y0, x2: pxv(0).toFixed(1), y2: box.y1 }));
 
       dati.forEach(function (d, i) {
         var cy = box.y0 + bandaO * (i + 0.5);
-        var y = cy - spessO / 2, w = lunghezzaBarra(pxv(d.valore) - pxv(0), 2);
+        var y = cy - spessO / 2, w = d.manca ? 0 : lunghezzaBarra(pxv(d.valore) - pxv(0), 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: box.x0 - etLargh - 8, y: cy - bandaO / 2, width: box.x1 - box.x0 + etLargh + 8, height: bandaO, 'data-i': i }));
-        svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
+        if (!d.manca) svg.appendChild(barraPath(pxv(0), y, w, spessO, 4, true, classeBarra(d, i, taglio, s)));
         /* nell'orizzontale lo spazio riservato è `etLargh`, ma è TAGLIATO al 38%
            della larghezza: se il nome è più lungo di così, senza troncarlo esce dal
            disegno a sinistra (misurato a 390 px con «Cava di Monte Cerreto —
@@ -1063,7 +1144,8 @@
         var elCatO = nodo('text', { 'class': 'dwg-catlab', x: box.x0 - 8, y: (cy + 3.8).toFixed(1), 'text-anchor': 'end' }, '');
         svg.appendChild(elCatO);
         troncaTesto(elCatO, d.etichetta, etLargh, 11);
-        svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: (pxv(d.valore) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, conUnita(fmt(d.valore), s.unita)));
+        if (d.manca) svg.appendChild(nodo('text', { 'class': 'dwg-vallab dwg-manca', x: (pxv(0) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, testoManca));
+        else svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: (pxv(d.valore) + 7).toFixed(1), y: (cy + 4).toFixed(1), 'text-anchor': 'start' }, conUnita(fmt(d.valore), s.unita)));
       });
       if (taglio >= 0 && taglio < dati.length - 1) {
         var yTag = box.y0 + bandaO * (taglio + 1);
@@ -1086,19 +1168,60 @@
       });
       svg.appendChild(nodo('line', { 'class': 'dwg-ax', x1: box.x0, y1: pyv(0).toFixed(1), x2: box.x1, y2: pyv(0).toFixed(1) }));
 
-      var etichettaTutte = dati.length <= 8;
+      /* le larghezze VERE delle etichette, misurate su un nodo di prova (una
+         stima le sbagliava di un terzo): la più larga intera e la più larga
+         ridotta a tre lettere più i puntini — è su quelle che passoCategorie
+         decide se scrivere tutte, tutte tronche o una ogni k */
+      var elMis = nodo('text', { 'class': 'dwg-catlab', x: 0, y: 0 }, '');
+      svg.appendChild(elMis);
+      var largoMaxCat = 0, largoLeggCat = 0;
+      dati.forEach(function (d) {
+        elMis.textContent = String(d.etichetta == null ? '' : d.etichetta);
+        largoMaxCat = Math.max(largoMaxCat, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+        elMis.textContent = tagliaA(d.etichetta, 3);
+        largoLeggCat = Math.max(largoLeggCat, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+      });
+      /* e il numero sopra ogni barra: se il più largo non sta nella sua banda
+         (a 320 px «100%100%» su due colonne vicine si leggeva come uno), lo
+         porta solo la barra più alta — la regola che valeva già oltre le otto */
+      elMis.setAttribute('class', 'dwg-vallab');
+      var largoValMax = 0;
+      dati.forEach(function (d) {
+        if (d.manca) return;
+        elMis.textContent = fmt(d.valore);
+        largoValMax = Math.max(largoValMax, largoTesto(elMis) || testoLargo(elMis.textContent, 11));
+      });
+      svg.removeChild(elMis);
+      var etichettaTutte = dati.length <= 8 && largoValMax <= banda - RESPIRO_ET;
+      var kCat = passoCategorie(banda, largoMaxCat, largoLeggCat, RESPIRO_ET);
+      var maxScritto = false;
       dati.forEach(function (d, i) {
         var cx = box.x0 + banda * (i + 0.5);
-        var x = cx - spess / 2, y = pyv(d.valore), h = lunghezzaBarra(pyv(0) - y, 2);
+        var x = cx - spess / 2, y = d.manca ? pyv(0) : pyv(d.valore), h = d.manca ? 0 : lunghezzaBarra(pyv(0) - y, 2);
         svg.appendChild(nodo('rect', { 'class': 'dwg-hit', x: (cx - banda / 2).toFixed(1), y: box.y0 - 14, width: banda.toFixed(1), height: box.y1 - box.y0 + 26, 'data-i': i }));
-        svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
+        if (!d.manca) svg.appendChild(barraPath(x, y, spess, h, 4, false, classeBarra(d, i, taglio, s)));
         /* l'etichetta sta nella sua banda MENO il respiro: due nomi che si toccano
            si leggono come una parola sola, e la troncatura di prima — a conto di
-           caratteri, senza respiro — li lasciava attaccati (misurato: 4 px) */
-        var elCat = nodo('text', { 'class': 'dwg-catlab', x: cx.toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
-        svg.appendChild(elCat);
-        troncaTesto(elCat, d.etichetta, banda - RESPIRO_ET, 11);
-        if (etichettaTutte || d.valore === vmax) {
+           caratteri, senza respiro — li lasciava attaccati (misurato: 4 px).
+           Con kCat > 1 la porta una barra ogni k, e può allargarsi sulle bande
+           vicine (mute) — ma non oltre il bordo del riquadro, se no la prima
+           finirebbe sopra i numeri dell'asse verticale */
+        if (i % kCat === 0) {
+          /* la finestra dell'etichetta: k bande centrate sulla barra, ritagliate
+             al riquadro — e il testo si centra NELLA FINESTRA, così la prima
+             etichetta scivola un po' a destra invece di restare muta (la prima
+             stesura la centrava sulla barra e «31…» restava «31…») */
+          var sinCat = Math.max(box.x0, cx - kCat * banda / 2), desCat = Math.min(box.x1, cx + kCat * banda / 2);
+          var elCat = nodo('text', { 'class': 'dwg-catlab', x: ((sinCat + desCat) / 2).toFixed(1), y: box.y1 + 15, 'text-anchor': 'middle' }, '');
+          svg.appendChild(elCat);
+          troncaTesto(elCat, d.etichetta, desCat - sinCat - RESPIRO_ET, 11);
+        }
+        if (d.manca) {
+          if (etichettaTutte) svg.appendChild(nodo('text', { 'class': 'dwg-vallab dwg-manca', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, testoManca));
+        } else if (etichettaTutte || (d.valore === vmax && !maxScritto)) {
+          /* a pari merito il numero lo porta la PRIMA barra più alta: due «100%»
+             vicini a 320 px si leggevano come uno (Flotta, disponibilità) */
+          maxScritto = true;
           svg.appendChild(nodo('text', { 'class': 'dwg-vallab', x: cx.toFixed(1), y: (y - 7).toFixed(1), 'text-anchor': 'middle' }, fmt(d.valore)));
         }
       });
@@ -1123,6 +1246,7 @@
         'qui si arriva al ', s.taglio + '% del totale'));
     }
     g.tabella(['Voce', conUnita('Valore', s.unita), 'Quota'], dati.map(function (d) {
+      if (d.manca) return [String(d.etichetta), testoManca, '—'];
       return [String(d.etichetta), fmt(d.valore), totale ? (d.valore / totale * 100).toFixed(1).replace('.', ',') + '%' : '—'];
     }));
   }
@@ -1154,7 +1278,8 @@
     var evid = nodo('rect', { 'class': 'dwg-evid', opacity: '0', x: 0, y: 0, width: 0, height: 0, rx: 6 });
     svg.insertBefore(evid, svg.firstChild);
     g._evid = evid;
-    var acc = 0, cum = dati.map(function (d) { acc += d.valore; return totale ? acc / totale * 100 : 0; });
+    var acc = 0, cum = dati.map(function (d) { if (num(d.valore)) acc += d.valore; return totale ? acc / totale * 100 : 0; });
+    var testoManca = s.testoMancante || 'non misurato';
 
     function mostra(hit, e) {
       var i = +hit.getAttribute('data-i');
@@ -1167,6 +1292,7 @@
       var r = svg.getBoundingClientRect();
       var sx = e ? e.clientX - r.left : (+hit.getAttribute('x') + +hit.getAttribute('width') / 2) / +svg.viewBox.baseVal.width * r.width;
       var sy = e ? e.clientY - r.top : r.height / 2;
+      if (d.manca) { g.mostraTip(sx, sy, d.etichetta, [{ valore: testoManca, nome: 'nessuna misura', cls: 'manca' }], null); return; }
       g.mostraTip(sx, sy, d.etichetta, [{
         valore: conUnita(fmt(d.valore), s.unita),
         nome: d.stato ? ({ ok: 'a posto', warn: 'da tenere d\'occhio', danger: 'critico' }[d.stato] || d.stato) : '',
@@ -1195,9 +1321,12 @@
   }
 
   function ariaBarre(s, dati, fmt) {
-    var top = dati.slice().sort(function (a, b) { return b.valore - a.valore; })[0];
+    var mis = dati.filter(function (d) { return num(d.valore); });
+    var top = mis.slice().sort(function (a, b) { return b.valore - a.valore; })[0];
+    var manca = dati.length - mis.length;
     return (s.titolo || 'Confronto') + ': ' + dati.length + ' voci, la più alta è ' +
-      top.etichetta + ' con ' + conUnita(fmt(top.valore), s.unita) + '.';
+      top.etichetta + ' con ' + conUnita(fmt(top.valore), s.unita) + '.' +
+      (manca ? ' ' + (manca === 1 ? 'Una voce non è misurata.' : manca + ' voci non sono misurate.') : '');
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1540,7 +1669,7 @@
        restituisce un altro, quindi la sua prova vive in `node` e gira sempre —
        la miniatura tutta NaN si sarebbe vista con un `Math.min` in tre righe,
        e invece è stata trovata aprendo la pagina. */
-    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia },
+    geometria: { tratti: tratti, percorso: percorso, tenuteX: tenuteX, tagliaA: tagliaA, dimCheCiSta: dimCheCiSta, normSoglia: normSoglia, separaMancanti: separaMancanti, tacchePerLarghezza: tacchePerLarghezza, tacchePortate: tacchePortate, passoCategorie: passoCategorie },
     versione: '1.0'
   };
 

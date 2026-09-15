@@ -85,6 +85,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    pagina: un `replace` che non sostituisce niente esce in silenzio, e una
    controprova che non inietta niente dichiara «non so fallire» per il motivo
    sbagliato. */
+const PAGINA = "apps/campo/index.html", MODULO = "apps/campo/campo-data.js";
 const DIFETTI = [
   // 1 · il CSV dello storico costruito a mano, con gli zeri di comodo
   ["a.href = \"data:text/csv;charset=utf-8,\" + encodeURIComponent(csvStorico(SET_RIGHE, fuori));",
@@ -103,18 +104,23 @@ const DIFETTI = [
   // 3 · la sottrazione a mano del ponte con Terra
   ["const inConto = rapportiniInConto(r.dich);",
    "const inConto = { conto: r.dich.turni - (r.dich.viaggi > 0 ? 1 : 0), delPeriodo: r.dich.turni, noto: true };"],
-  // 4 · la riga dei rapportini nel rapporto stampato, con l'unità GREZZA
-  ["}${(() => { const p = produzioneDi(r); return p ? esc(formattaProduzione(p.qta, p.unita)) : esc(r.produzione || \"—\"); })()}</td>",
-   "}${esc(+r.prodQta>0?formattaProduzione(r.prodQta,r.prodUnita):(r.produzione||\"—\"))}</td>"],
-  /* 5 · l'avviso «senza il giorno di lavoro» sui due documenti DATATI. La riga
-     è la stessa nella consegna e nel rapporto, quindi questa sola sostituzione
-     li spegne tutt'e due — ed è giusto così: è UNA decisione. */
+  /* 4 · la riga dei rapportini nel rapporto stampato, con l'unità GREZZA
+     (⏱️ dal 05/09 il rapporto lo compone `rapportoGiornata` nel MODULO: il
+     terzo posto della tupla dice a quale file va l'iniezione) */
+  ["pr ? formattaProduzione(pr.qta, pr.unita) : String(r.produzione || \"—\")",
+   "+r.prodQta > 0 ? formattaProduzione(r.prodQta, r.prodUnita) : String(r.produzione || \"—\")", MODULO],
+  /* 5 · l'avviso «senza il giorno di lavoro» sui due documenti DATATI. Erano
+     UNA riga nella pagina; dal 05/09 la consegna (`testoConsegnaTurno`) e il
+     rapporto (`rapportoGiornata`) la leggono ognuno nel modulo: due iniezioni,
+     una decisione (`avvisoSenzaGiorno`). */
   ["const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);",
-   "const fuoriOggi = \"\";"],
-  // 5b · e le tre RIGHE che se lo portavano addosso
-  ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\""],
-  ["senzaGiornoDiLavoro(a)?", "false?"],
-  ["senzaGiornoDiLavoro(r)?", "false?"],
+   "const fuoriOggi = \"\";", MODULO],
+  ["const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || \"\";",
+   "const attenzione = \"\";", MODULO],
+  // 5b · e le tre RIGHE che se lo portavano addosso (consegna, attività e rapportini del rapporto)
+  ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\"", MODULO],
+  ["(senzaGiornoDiLavoro(a) ? \" **· senza data**\" : \"\")", "(false ? \" **· senza data**\" : \"\")", MODULO],
+  ["(senzaGiornoDiLavoro(r) ? \" **· senza data**\" : \"\")", "(false ? \" **· senza data**\" : \"\")", MODULO],
   // 6 · le frasi col numero UNO che accompagnano i file
   ["conta(app.totale, \"persona\", \"persone\")", "app.totale + \" persone\""],
   ["plurale(SQU.length, \"Esportata \", \"Esportate \") + conta(SQU.length, \"squadra\", \"squadre\")",
@@ -194,17 +200,22 @@ const srv = createServer((q, s) => {
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (p.endsWith("apps/campo/campo-data.js") && FIXTURE) {
-    corpo = Buffer.from(corpo.toString("utf8") + FIXTURE, "utf8");
-  }
-  if (CONTROPROVA && p.endsWith("apps/campo/index.html")) {
-    let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI) {
-      if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
-    }
+  /* ogni difetto va al file che dichiara (terzo posto della tupla; senza, la
+     pagina): applicare tutto alla pagina lascia le iniezioni sul modulo
+     «fresche» per iniezioni-fresche e MAI rimesse per questo banco. Sul modulo
+     l'iniezione va PRIMA della fixture, che è testo aggiunto in coda. */
+  const applica = (t, file) => {
+    for (const [a, b, f] of DIFETTI) if ((f || PAGINA) === file && t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
     iniezioni = colpiti.size;
+    return t;
+  };
+  if (p.endsWith(MODULO)) {
+    let t = corpo.toString("utf8");
+    if (CONTROPROVA) t = applica(t, MODULO);
+    if (FIXTURE) t += FIXTURE;
     corpo = Buffer.from(t, "utf8");
   }
+  if (CONTROPROVA && p.endsWith(PAGINA)) corpo = Buffer.from(applica(corpo.toString("utf8"), PAGINA), "utf8");
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
   s.end(corpo);
 });
@@ -800,11 +811,11 @@ console.log("\n· il piano di carico e il consuntivo che torna a Genesi: il quin
 FIXTURE = `
 {
   DEMO.pianocarico = [
-    { id:"pc1", data:"2026-07-29", turno:"Mattina", foro:1, fila:"A", x:1.5, prof:12, borr:2.4, rit:0,   prog:100,  reale:118.5,    squadra:"Squadra A", da:"Rossi Mario" },
-    { id:"pc2", data:"2026-07-29", turno:"Mattina", foro:2, fila:"A", x:4.5, prof:12, borr:2.4, rit:25,  prog:100,  reale:86.7,     squadra:"Squadra A", da:"Rossi;Mario" },
-    { id:"pc3", data:"2026-07-29", turno:"Mattina", foro:3, fila:"A", x:7.5, prof:12, borr:2.4, rit:50,  prog:1250, reale:1234.567, squadra:"Squadra \\"B\\"", da:"Bianchi Luca" },
+    { id:"pc1", data:"2026-07-29", turno:"Mattina", foro:1, fila:"A", x:1.5, prof:12, borr:2.4, rit:0,   prog:100,  reale:118.5,    squadra:"Squadra A", da:"Rossi Mario", idForo:"f1-1" },
+    { id:"pc2", data:"2026-07-29", turno:"Mattina", foro:2, fila:"A", x:4.5, prof:12, borr:2.4, rit:25,  prog:100,  reale:86.7,     squadra:"Squadra A", da:"Rossi;Mario", idForo:"f1-2" },
+    { id:"pc3", data:"2026-07-29", turno:"Mattina", foro:3, fila:"A", x:7.5, prof:12, borr:2.4, rit:50,  prog:1250, reale:1234.567, squadra:"Squadra \\"B\\"", da:"Bianchi Luca", idForo:"m1" },
     { id:"pc4", data:"2026-07-29", turno:"Mattina", foro:4, fila:"B", x:1.5, prof:12, borr:2.4, rit:75,  prog:58,   reale:null,     squadra:"", da:"" },
-    { id:"pc5", data:"2026-07-29", turno:"Mattina", foro:5, fila:"B", x:4.5, prof:12, borr:2.4, rit:100, prog:58,   reale:0,        squadra:"Squadra A", da:"Verdi Anna" }
+    { id:"pc5", data:"2026-07-29", turno:"Mattina", foro:5, fila:"B", x:4.5, prof:12, borr:2.4, rit:100, prog:58,   reale:0,        squadra:"Squadra A", da:"Verdi Anna", idForo:"f2-2" }
   ];
 }
 `;
@@ -864,8 +875,18 @@ FIXTURE = `
   await confrontaFraseColFile(pg, "btn-piano-export", righe);
 
   // ── gamba 1 · IL TESTO, per chi apre il file con un altro programma ──
-  dice(testa === "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore",
-    "⛔ l'intestazione porta i nove nomi di colonna, separati da «;»", testa);
+  dice(testa === "data;turno;foro;carica_prog_kg;carica_reale_kg;scarto_pct;scarto_kg;squadra;operatore;id_foro",
+    "⛔ l'intestazione porta i dieci nomi di colonna, separati da «;» (id_foro in coda, dal 05/09)", testa);
+  /* l'id stabile di Genesi torna in coda TALE E QUALE, e il foro 4 — che nel
+     piano non lo aveva — scrive la cella vuota, non «null». L'ultima cella si
+     legge con un'ancora sul «;» finale perché l'operatore di riga 2 è
+     «Rossi;Mario» fra virgolette e uno split cieco lo spezzerebbe. */
+  const ultime = dati.map((r) => (/;([^;"]*)$/.exec(r) || [, "?"])[1]);
+  dice(ultime.join("|") === "f1-1|f1-2|m1||f2-2",
+    "⛔ id_foro torna tale e quale per ogni foro, e vuoto — non «null» — per il foro che non lo aveva", ultime);
+  const metaId = await pg.$$eval("#piano-list .item .meta", (e) => e.map((x) => x.innerText.replace(/\s+/g, " ").trim()));
+  dice(metaId.filter((m) => /^id (f\d+-\d+|m\d+) · /.test(m)).length === 4 && metaId.some((m) => !/\bid /.test(m)),
+    "⛔ sullo schermo l'id sta nella riga del foro quando c'è, e non compare — nemmeno come «—» — dove non c'è", metaId);
   dice(csv.includes(";118.5;") && !csv.includes("118,5"),
     "⛔ i decimali col PUNTO, come nel piano arrivato da Genesi: mai la virgola", csv.slice(0, 300));
   dice(csv.includes(";1234.567;") && !csv.includes("1.234,567") && !csv.includes(";1.250;"),

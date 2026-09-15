@@ -209,7 +209,28 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    `descriviPeriodoAdempimento`) più le due arrivate prima e mai raccolte. Il
    conto vero è 139/139; lasciato a 134 il fondo starebbe cinque sotto, cioè
    sarebbe una guardia che per scattare aspetta di perdere cinque prove. */
-const FONDO = { campo: 126, conti: 139, flotta: 92, scudo: 191, sentinella: 143, terra: 68 };
+/* ⏱️ `flotta` 92 → 95 il 02/09: le tre funzioni del ponte Conti→Flotta
+   (`chiaveVoceMezzo`, `costiPerConfronto`, `doppioniAllaCifra`), provate in
+   run-kpi nel blocco «PONTE CONTI → FLOTTA». Il conto vero è 95/95. */
+/* ⏱️ `sentinella` 143 → 150 il 04/09: la lettura dichiarata non valida
+   (`RAGIONI_ANNULLAMENTO`, `annullamentoDi`, `letturaValida`, `annullaLettura`,
+   `ripristinaLettura`, `contaAnnullate`, `letturaSenzaVolata`). */
+/* ⏱️ `flotta` 98 → 102 il 04/09: il contatore sostituito o azzerato
+   (`azzeramentiDelMezzo`, `spezzaLetture`, `trattoCorrente`,
+   `fraseContatoreSostituito`) più `validaRifornimento` e le tre sorelle del
+   conto sul tratto corrente, provate in run-kpi nel blocco «IL CONTATORE
+   SOSTITUITO O AZZERATO». Il conto vero è 102/102. */
+/* ⚠️ `sentinella` SCENDE da 150 a 147 il 05/09, e non è una funzione persa: lo
+   stato della volata e la sua PPV (statoDaTesto, statoVolata, volateDelGiorno,
+   ppvDiVolata) sono passati in `shared/dw-ponti.js`, che sale di dodici, e
+   Sentinella li ri-esporta come alias — il censimento conta le funzioni
+   DEFINITE in un file, non quelle che espone. Il totale non scende. */
+/* ⚠️ `campo` SCENDE da 135 a 132 il 05/09 (notte), stessa ragione di Sentinella
+   qui sopra: `CONSUNTIVO_COLONNE`, `normalizzaPiano` e `pianoConsuntivoCsv` sono
+   passati in `shared/dw-ponti.js` (che sale) perché Genesi compone il consuntivo
+   letto dall'organizzazione con la stessa funzione con cui Campo scrive il file.
+   Campo li ri-esporta come alias. Il totale non scende. */
+const FONDO = { campo: 147, conti: 205, flotta: 139, scudo: 216, sentinella: 187, terra: 91 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
@@ -293,7 +314,7 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 47,
+  { file: "shared/dw-ponti.js", fondo: 89,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
@@ -313,7 +334,7 @@ const CONDIVISI = [
      senza intestazione. Il fondo si alza DOPO aver visto il conto salire
      (53/53), e si alza perché un fondo che sta cinque sotto il conto vero non
      può più scattare. */
-  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 54,
+  { file: "shared/deepwork-id-client/dw-shell.js", fondo: 61,
     perche: "gli aiuti che tutte le app importano (numeri, date, CSV)" },
   { file: "apps/genesi/pointcloud.js", fondo: 5,
     perche: "il calcolo del volume dal drone: da lì passano i m³ che consumano la concessione" },
@@ -328,7 +349,7 @@ const CONDIVISI = [
      scritto a mano. Sono arrivate insieme al blocco della riconciliazione
      (`riconDelta` le chiama) e stanno qui perché scrivere e leggere sono le
      due metà della stessa convenzione sui numeri italiani. */
-  { file: "apps/genesi/genesi-formato.js", fondo: 8,
+  { file: "apps/genesi/genesi-formato.js", fondo: 9,
     perche: "come Genesi scrive — e legge — i numeri: spalla, maglia, consumo specifico, chili di esplosivo" },
   /* ⛔ IL SECONDO PEZZO DI GENESI USCITO DALLA PAGINA. Il primo diceva come
      Genesi SCRIVE un numero; questo dice come lo CALCOLA, sul numero che
@@ -386,7 +407,220 @@ const CONDIVISI = [
      `FLY_SENZA_SPALLA` e `gittataSenzaSpalla` — la gittata flyrock quando la
      spalla non c'è, tolta dal ripiego `D2.B||SPALLA` che la ricavava da un
      burden che nessuno aveva scritto. */
-  { file: "apps/genesi/genesi-data.js", fondo: 69,
+  /* 127 → 128 il 12/09 (unità 121): `_sitoParseCsv` è salita da genesi.html,
+     pura — il censimento di `genesi-estraibili.mjs` la marcava come legata a
+     quattro variabili del modulo per un falso positivo del suo tokenizzatore
+     (lettere dentro le regex della funzione, prese per nomi). Il fondo si
+     alza SUBITO, per la ragione già scritta qui sopra due volte: se no la
+     riga esce con la coda «(il fondo era N: alzalo)» e `numeri-nei-documenti`
+     smette di leggerla.
+     128 → 129 lo stesso giorno (unità 122): `_sentCell`, stessa famiglia e
+     stesso falso positivo (lettere di `/[\r\n\t]+/g` lette come "r, n, t, g").
+     129 → 131 lo stesso giorno (unità 124): `esplCardHtml` e `innCardHtml`,
+     una nuova veste della stessa famiglia — qui le lettere false vengono da
+     CONTENUTO DI STRINGHE (`'ritardi '`, `"es-nome"`), non da una regex.
+     131 → 137 il 12/09 (unità 126): `ppvDaSd` (la legge di Devine, unificata
+     da due copie inline nella pagina), `rwsEffettiva`/`PENALITA_ACQUA` (la
+     penalità dei fori bagnati, unificata da cinque copie), e l'ottimizzatore
+     `caricaTargetSenzaConto`/`caricaDaX50Target` (la carica per centrare un
+     obiettivo di pezzatura — l'inversa di `fragKuzRam`).
+     137 → 140 il 12/09 (unità 129): `abbinaForiRighe` (l'abbinamento
+     foro↔riga estratto da `confrontoPerForo`, perché la nuova funzione qui
+     sotto ne aveva bisogno identico — "una copia nasce da una firma troppo
+     stretta"), `deviazioneForiDaCsv` (il rilievo boretrack, CSV
+     tempo-ampiezza→dx/dy) e `burdenVeroDaRilievo` (il burden vero sulle
+     posizioni MISURATE, non su quelle simulate o di progetto).
+     140 → 141 il 13/09 (G33, richiesta diretta del fondatore "rendere Genesi
+     più simile a un CAD"): `dxfPianoFori`, che esporta in DXF (formato che
+     AutoCAD/LibreCAD/QGIS sanno aprire) i fori e il profilo del fronte già
+     calcolati — nessun numero nuovo, nessuna soglia di sicurezza toccata. Le
+     quattro funzioni interne (`_dxfNum`, `_dxfCerchio`, `_dxfTesto`,
+     `_dxfPolilinea`) non hanno il prefisso `export` e quindi questo
+     censimento non le vede: le prova la stessa suite attraverso
+     `dxfPianoFori`, che le chiama tutte.
+     141 → 142 il 13/09 (G34, stesso giorno): `snapAGriglia`, l'aggancio
+     opzionale alla griglia per il posizionamento manuale (disegno di
+     precisione — secondo pezzo di "tutte e tre le alternative").
+     142 → 143 il 13/09 (G35, stesso giorno): `misuraGeom2D`, salita da
+     `genesi.html` (`measureGeom2D`) nel filone "Genesi continua a uscire
+     dalla pagina" — stessa logica, firma a parametri invece di leggere `D2`
+     a mano; la pagina resta un chiamante come un altro.
+     143 → 144 il 13/09 (G36, stesso giorno): `_puntiNuvola`, stessa fetta —
+     non leggeva `D2` per niente (falso positivo del tokenizzatore, la
+     quarta volta sullo stesso file), traslocata parola per parola con lo
+     stesso nome: nessun wrapper resta in pagina, l'import la sostituisce.
+     144 → 145 il 14/09 (G37, B0-septies — la decisione roadmap del 04/09):
+     `magliaAssenteMotivo`, nuova — decide SE la maglia si può disegnare
+     (burden e interasse leggibili) prima che `genMaglia2D` generi le
+     coordinate, così i cinque consumatori a valle (`computeEnergia2D` e c.)
+     restano protetti dalla loro guardia già scritta su `H.length===0`
+     invece di calcolare su una maglia degenerata.
+     145 → 146 il 14/09 (G38, prima fetta scomposta di G7 — l'ottimizzatore
+     di volata): `curvaBurdenCarica`, nuova — per un burden variabile e una
+     frammentazione target fissa, quanta carica servirebbe: riusa
+     `volumeForo` e `caricaDaX50Target`, già in questo file.
+     146 → 147 il 14/09 (G39, cantiere B3): `innescoSuMaglia`, salita da
+     `genesi.html` (`computeInnesco2D`) — quinta volta che il censimento
+     statico bucketizzava una funzione come «più di dieci variabili» per un
+     falso positivo dell'euristica sull'indentazione, quando la dipendenza
+     vera era una sola (`D2`). Entrata identica, confrontata byte per byte
+     con una copia della vecchia forma inline su cinque casi.
+     147 → 148 il 14/09 (G40, cantiere B3, stesso giorno): `reliefSuMaglia`,
+     stessa famiglia esatta — salita da `computeRelief2D`. Stesso metodo di
+     verifica.
+     148 → 149 il 14/09 (G41, cantiere B3, stesso giorno): `energiaSuMaglia`,
+     sesta volta sulla stessa famiglia — salita da `computeEnergia2D`.
+     `interpFronte(mx)` (wrapper di pagina) è diventata `interpProf(profilo,
+     mx)` nella forma pura, con `D2.profilo` passato come parametro esplicito.
+     149 → 150 il 14/09 (G42, cantiere B3, stesso giorno, ULTIMA fetta del
+     gruppo): `sequenzaSuMaglia`, salita da `computeSeq2D` — settima volta
+     sulla stessa famiglia. Fa solo il calcolo (tCalc/tDet/seq, `lastDet`
+     come valore di ritorno); l'orchestrazione delle altre tre (relief,
+     energia, innesco) resta nel wrapper di pagina, per scelta dichiarata.
+     150 → 151 il 14/09 (G43, cantiere B3, stesso giorno): `generaMaglia`,
+     salita da `genMaglia2D` — NON un falso positivo (quella funzione muta
+     `D2` davvero ed è per questo genuinamente nel bucket "11+"): solo il
+     calcolo delle coordinate esce, riusabile da un futuro ottimizzatore
+     che deve provare un burden diverso senza toccare il progetto disegnato.
+     151 → 152 il 14/09 (G44, cantiere B3, stesso giorno): `vibrazionePerBurden`,
+     nuova — la seconda fetta di G7, resa possibile da G39-G43 (sequenza e
+     maglia ora pure): per ogni burden candidato di `curvaBurdenCarica`,
+     genera una maglia di prova, la sequenzia con le impostazioni di oggi e
+     stima MIC/PPV con le stesse funzioni pure della Scheda volata.
+     152 → 153 il 14/09 (G47d, ULTIMA fetta di "Genesi simile a un CAD"):
+     `dxfInTratti`, il lettore DXF in sola lettura — porta LINE e POLYLINE
+     dentro come tratti (mai come fori/fronte/piede: è la scelta di
+     sicurezza sulla convenzione degli assi, vedi il commento della
+     funzione). `_dxfEntita` resta privata (non esportata), non entra nel
+     conto.
+     153 → 154 il 14/09 (B3, cantiere del trasloco di Genesi, ripreso dopo
+     G47): `pfNominale`, con CAMBIO DI FIRMA (`pfNominale(D2)` invece di
+     leggere `D2` dalla chiusura) — lo stesso schema già usato per ogni
+     altro "legame di una riga" di questa fascia. Il consumo specifico
+     nominale di progetto, già composto da due funzioni pure
+     (`consumoSpecifico`, `volumeForo`) già in questo modulo: la funzione
+     stessa non calcolava niente di nuovo.
+     154 → 155 il 14/09 (B3, stesso giorno): `pieDev`, stesso schema
+     (`pieDev(D2, x)`), componeva solo `interpProf` già pura. Effetto
+     collaterale VERO (non rumore del tokenizzatore): `mdlBuild`, che la
+     chiama, è passata da 10 a 11 variabili lette — perché ora deve
+     scrivere `D2` esplicitamente nella chiamata (`pieDev(D2, x)` invece
+     di `pieDev(x)`), e quel token è nel suo corpo per davvero. Misurato
+     confrontando l'elenco `--elenco` prima/dopo: è l'unica funzione
+     spostata di bucket, ed è un effetto reale del cambio di firma, non
+     un margine accettato dello strumento.
+     155 → 156 il 14/09 (B3, stesso giorno): `reliefCls`, stesso schema
+     (`reliefCls(D2, r)`), componeva solo `classeRelief` già pura — un
+     "legame di una riga" del blocco G26 (10/09), la prima volta che B3
+     tocca una funzione già marcata "resta come legame" da un cantiere
+     precedente invece di una nascosta nel bucket "1-2" senza commento:
+     il commento descriveva l'architettura di allora, non un divieto a
+     finire l'estrazione dopo. I suoi due chiamanti (`drawDesign2D`,
+     `renderInspector`) leggono già `D2` per conto proprio: nessuno
+     spostamento di bucket, misurato confrontando `--elenco` prima/dopo.
+     156 → 157 il 14/09 (B3, stesso giorno): `computeEnergia2D`, stesso
+     schema (`computeEnergia2D(D2)`), componeva solo `energiaSuMaglia`
+     già pura dal blocco G41 (14/09). A differenza di `reliefCls`, la
+     funzione esce DEL TUTTO dalla pagina (non lascia un wrapper: era
+     void, un solo punto di chiamata dentro `computeSeq2D`), quindi il
+     totale nella pagina scende di uno invece di restare fermo (152→151,
+     bucket "1-2" 57→56, estraibili 65→64). L'unico effetto collaterale
+     misurato confrontando `--elenco` prima/dopo è che `computeSeq2D`
+     perde `computeEnergia2D` dal proprio elenco "chiama": non è più una
+     funzione della pagina da chiamare, è un import — nessuno
+     spostamento di bucket vero.
+     157 → 158 il 14/09 (B3, stesso giorno): `isoPasso`, stesso schema
+     (`isoPasso(D2)`), componeva solo `passoIsocrone` già pura dal
+     blocco G24 (10/09) — come `computeEnergia2D`, esce DEL TUTTO dalla
+     pagina (nessun wrapper: due punti di chiamata, entrambi aggiornati
+     a `isoPasso(D2)`). Nessuno spostamento di bucket per altre
+     funzioni, misurato confrontando `--elenco` prima/dopo.
+     158 → 160 il 14/09 (B3, stesso giorno): DUE funzioni in un'unica
+     unità, perché accoppiate — `computeRelief2D` chiama `scatterMs`,
+     quindi non si poteva cambiare la firma dell'una senza l'altra.
+     `scatterMs(D2)` componeva solo `scatterInnesco` già pura (dal
+     bucket "3-5", falso vero: leggeva `D2` più tre parole corte di un
+     commento vicino, non un vero incrocio); `computeRelief2D(D2)`
+     componeva `reliefSuMaglia` già pura dal blocco G40 (14/09). Nessuno
+     dei due lascia un wrapper (tre punti di chiamata in tutto,
+     aggiornati tutti a passare `D2`): 150→148 funzioni nella pagina,
+     bucket "1-2" 55→54, bucket "3-5" 15→14 (usciva `scatterMs`),
+     estraibili 63→62. Unico effetto collaterale reale: `computeSeq2D`
+     perde `computeRelief2D` dal proprio elenco "chiama" (stessa
+     famiglia di `computeEnergia2D`), misurato confrontando `--elenco`
+     prima/dopo.
+     160 → 162 il 14/09 (B3, stesso giorno): DUE funzioni indipendenti
+     in un'unica unità — `_spazTipico(D2, H)` (componeva solo
+     `spaziaturaTipica` già pura dal blocco G24) e `innTaglioOk(D2, dt)`
+     (componeva solo `taglioRealizzabile` già pura dal blocco G25).
+     Non accoppiate come `scatterMs`/`computeRelief2D`: raggruppate solo
+     perché entrambe erano gli ultimi "legami di una riga" rimasti nei
+     rispettivi blocchi. Nessuna delle due lascia un wrapper (tre punti
+     di chiamata in tutto: uno per `_spazTipico`, due per
+     `innTaglioOk`). 148→146 funzioni nella pagina, bucket "1-2" 54→52,
+     estraibili 62→60. Nessuno spostamento di bucket per altre funzioni
+     (i due chiamanti di `innTaglioOk`, `drawInnesco2D`/`renderScheda2D`,
+     sono già nel bucket "11+" e non ne escono).
+     162 → 165 il 14/09 (B3, stesso giorno): TRE funzioni uscite insieme
+     — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px,
+     py)` — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/
+     `indicePiuVicino` (già pure) e `d2HitTestPt` compone anche
+     `activeProf`: non potevano cambiare firma separatamente.
+     `activeProf` non delega a nessuna funzione del modulo (calcola
+     direttamente da `D2.tool`): è la prima fetta di B3 senza una
+     funzione pura preesistente da comporre, solo pura di suo.
+     `d2HitTest` sostituisce `interpFronte(mx)` (wrapper di pagina, che
+     resta: sedici altri punti di chiamata) con `interpProf(D2.profilo,
+     mx)` diretto, come già fatto per G41. Nessuna delle tre lascia un
+     wrapper: sei punti di chiamata in tutto. 146→143 funzioni nella
+     pagina, bucket "1-2" 52→49, estraibili 60→57.
+     ⚠️ Effetto collaterale nel censimento, non un bucket-shift:
+     `d2Move` mostra `computeSeq2D` nel proprio elenco "chiama" dove
+     prima non compariva — quella chiamata è nel suo corpo da sempre
+     (riga già presente, non toccata da questa unità), il censimento la
+     vedeva mascherata mentre elencava `activeProf`. Margine noto dello
+     strumento (stessa famiglia delle parole corte nei commenti), non
+     un difetto di questa fetta: bucket "3-5" di `d2Move` invariato.
+     165 → 166 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`, l'ultimo
+     legame di una riga rimasto nel blocco G34 (l'aggancio opzionale
+     alla griglia) — componeva solo `snapAGriglia` già pura. Dieci
+     punti di chiamata nella pagina, tutti dentro gli event handler del
+     mouse dell'editor 2D, tutti aggiornati a passare `D2` (sostituzione
+     globale sicura: `_snapXY(` non compare in nessun altro contesto).
+     Nessun wrapper lasciato: 143→142 funzioni nella pagina, bucket
+     "1-2" 49→48, estraibili 57→56. Stesso margine dello strumento già
+     visto su `activeProf`: `d2Move` guadagna `renderInspector` nel
+     proprio elenco "chiama" (chiamata presente nel suo corpo da
+     sempre, prima mascherata da `_snapXY`) — bucket "3-5" invariato.
+     ⏱️ 15/09: `computeInnesco2D(D2)`. Il G39 del 14/09 aveva già estratto
+     `innescoSuMaglia` ma lasciato in pagina il legame a zero argomenti
+     (stessa forma di `computeEnergia2D`/`computeRelief2D` prima di
+     loro) — misurato che non c'era nessuna ragione strutturale per
+     fermarsi un passo prima delle sue due sorelle: unico chiamante
+     (`computeSeq2D`, dentro `computeSeq2D`) già con `D2` in scope.
+     Nessun wrapper lasciato: 142 funzioni nella pagina (invariate,
+     nessuna eliminata: era già zero-arg, ora è un'importazione),
+     bucket "1-2" 48→47, estraibili 56→55. Difetto iniettato provato e
+     rimesso: uno scambio S/B è invisibile per costruzione (usati solo
+     dentro un `Math.max` simmetrico, stessa trappola già presa su
+     `_spazTipico`); il difetto verificabile è sulla sorgente dei fori
+     (`D2.piede` al posto di `D2.holes`), catturato dal confronto con
+     la chiamata diretta a `innescoSuMaglia`. Nessuno spostamento di
+     bucket per altre funzioni, misurato confrontando `--elenco`
+     prima/dopo su una worktree.
+     ⏱️ 15/09: `measureGeom2D(design)`. Il G35 del 13/09 aveva già
+     estratto `misuraGeom2D` ma lasciato in pagina il legame a zero
+     argomenti — sette punti di chiamata, tenuto per il nome corto.
+     Nessun wrapper lasciato: 138 funzioni nella pagina (era 139:
+     -1 per il legame tolto), bucket "1-2" 41→40 (nessuno spostamento
+     collaterale, a differenza di `mdlProfSnap`: i sette chiamanti
+     leggevano già abbastanza altre variabili di modulo), estraibili
+     49→48. Difetto iniettato provato e rimesso: uno scambio S/B nel
+     composer si vede SOLO nel caso senza fori (con fori veri la
+     spaziatura si ricalcola dalle posizioni, stessa famiglia di
+     `_spazTipico`/`computeInnesco2D`), catturato dal test dedicato
+     con `holes: []`. */
+  { file: "apps/genesi/genesi-data.js", fondo: 168,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o
@@ -395,6 +629,7 @@ const CONDIVISI = [
 const FUORI_CONDIVISI = new Map([
   ["montaGuardiaInteri", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["mountExit", "tocca il DOM — provata dai banchi del browser"],
+  ["montaScaricaTutto", "tocca il DOM e scarica un file — provata in browser/scarica-tutto.mjs"],
   ["timbroLocale", "legge l'orologio — provata in browser/"],
   ["interoScritto", "tocca il DOM — provata in browser/interi-superfici.mjs"],
   ["ESITI_TURNO", "è una costante: non ha comportamento da provare"],
@@ -451,7 +686,9 @@ console.log(`\n${coperteC} funzioni condivise coperte su ${guardateC} guardate, 
 const genesiPagina = (() => {
   try {
     const t = readFileSync(join(RADICE, "apps/genesi/genesi.html"), "utf8");
-    return (t.match(/^\s*function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
+    // `async function` conta come le altre (02/09): è la stessa forma di
+    // `genesi-estraibili`, che per un giorno non le vedeva e perdeva renderHome
+    return (t.match(/^\s*(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/gm) || []).length;
   } catch { return null; }
 })();
 /* ⚠️ Questa riga diceva «di Genesi entra solo pointcloud.js» ed è stata

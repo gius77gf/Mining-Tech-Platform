@@ -996,6 +996,17 @@ const MISURA = (LATO) => {
     if (dentroSvg) {
       const f = cs.fill;
       if (!f || f === 'none') return;
+      /* ⛔ IL TESTO DENTRO UN MARCHIO NON SI GIUDICA CONTRO IL FONDO DELLA PAGINA.
+         «FIELD OPERATIONS» (6 px, fill #3a2a10) sta DENTRO il marchio Deepwork,
+         disegnato sul poligono scuro del logo: misurato contro il fondo che
+         risale gli antenati dava 1,09:1 sulla vetrina, e il marchio non si tocca
+         (regola del fondatore). Un SVG `aria-hidden="true"` è dichiarato
+         decorativo dalla pagina: il suo testo si conta, non si giudica — e il
+         conto esce nel riepilogo, se no un aria-hidden su un grafico intero
+         spegnerebbe il banco in silenzio (10/09). */
+      if (el.ownerSVGElement && el.ownerSVGElement.closest('[aria-hidden="true"]')) {
+        window.__dwDecorativi = (window.__dwDecorativi || 0) + 1; return;
+      }
       inkFisso = [f];
       pila = pilaDi(el.ownerSVGElement ? el.ownerSVGElement.parentElement || el : el);
     } else if (ritaglio === 'text') {
@@ -1290,7 +1301,7 @@ const FAI_COMPARIRE = ({ elenco, fondo }) => {
 };
 
 const b = await chromium.launch({ executablePath: CHROMIUM });
-let misurati = 0, bocciati = 0;
+let misurati = 0, bocciati = 0, decorativiTot = 0;
 let maiComparse = 0, maiMisurate = 0, maiBocciate = 0, maiCieche = 0, maiComposte = 0;
 const scusateComposte = new Set();
 const nonMisurabili = [];
@@ -2035,14 +2046,16 @@ for (const [nome, via] of SUPERFICI) {
   const sfumati = await p.evaluate(() => window.__dwSfumati || 0).catch(() => 0);
   const pulsanti = await p.evaluate(() => window.__dwPulsanti || 0).catch(() => 0);
   const spenti = await p.evaluate(() => window.__dwSpenti || 0).catch(() => 0);
+  const decorativi = await p.evaluate(() => window.__dwDecorativi || 0).catch(() => 0);
   const nonRis = await p.evaluate(() => [window.__dwNonRisolti || 0, [...(window.__dwNonRisoltiQuali || [])],
     window.__dwConGriglia || 0]).catch(() => [0, [], 0]);
   nonRisoltiTot += nonRis[0]; for (const q of nonRis[1]) nonRisoltiQuali.add(q); conGrigliaTot += nonRis[2];
-  sfumatiTot += sfumati; pulsantiTot += pulsanti; spentiTot += spenti;
+  sfumatiTot += sfumati; pulsantiTot += pulsanti; spentiTot += spenti; decorativiTot += decorativi;
   console.log(`  ${misuratiQui} testi misurati, ${bocciatiQui} sotto soglia`
     + (sfumati ? ` · ${sfumati} in dissolvenza, non misurabili` : '')
     + (pulsanti ? ` · ${pulsanti} in pulsazione, non misurabili` : '')
     + (spenti ? ` · ${spenti} spenti, esclusi dalla WCAG 1.4.3` : '')
+    + (decorativi ? ` · ${decorativi} testi dentro un SVG decorativo (aria-hidden), non giudicati` : '')
     + (CONTROPROVA ? ` · controprova ${presaQui ? 'PRESA' : 'NON PRESA'}` : ''));
   if (illeggibiliQui.length) console.log(`  ⚠️  ${illeggibiliQui.length} testi NON misurabili qui (il browser non sa convertire il loro colore): ${[...new Set(illeggibiliQui)].slice(0, 5).join(", ")}`);
   /* ⛔ IL DENOMINATORE DELLE FINESTRE, per superficie e SUBITO — non in fondo.
@@ -2165,7 +2178,8 @@ console.log(`\n${misurati} testi misurati in tutto, ${bocciati} sotto soglia`
   + (forbiciLarghe ? ` · ${forbiciLarghe} con FORBICE larga: il contrasto cambia di oltre 1 da un capo all'altro delle lettere` : '')
   + (sfumatiTot ? ` · ${sfumatiTot} saltati perché in dissolvenza (dichiarati, non nascosti)` : '')
   + (pulsantiTot ? ` · ${pulsantiTot} saltati perché in pulsazione (dichiarati, non nascosti)` : '')
-  + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : ''));
+  + (spentiTot ? ` · ${spentiTot} comandi spenti, che la WCAG 1.4.3 esclude (dichiarati, non nascosti)` : '')
+  + (decorativiTot ? ` · ${decorativiTot} testi dentro SVG decorativi (aria-hidden), contati e non giudicati` : ''));
 /* ⛔ E ANCHE QUESTA VA LETTA PRIMA DEI KO, perché è dove il RIGHELLO non sa
    guardare. La geometria risolve i gradienti LINEARI e i RADIALI; restano
    fuori i RIPETUTI, i CONICI, le fermate in pixel su un'ellisse e gli strati
