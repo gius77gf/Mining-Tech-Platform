@@ -1116,3 +1116,50 @@ da chi ha il codice in mano.*
 sostanziale dichiarata dall'utente, più la parola «variante» sui due assi che
 la tacciono), 2 a posto (chi dice «variante» sul volume e sulla quota; chi
 calcola la difformità), 1 dichiarata (il piano in esame non tocca i conti).
+
+---
+
+## 15/09 — quinto giro di ricerca mirata: riconciliazione piano-vs-reale e margine autorizzazione
+
+*Nota di processo: prodotta da un agente in background (mandato "prima il
+mondo, poi la nostra app", fonti Datamine/K-MINE/FleetRabbit), riverificata
+di persona sul codice vero prima di entrare qui. Il file è finito, per
+errore di prompt, sotto il nome sbagliato (`docs/RICERCA_CONTINUA_terra.md`,
+minuscolo — lo stesso incidente "sei documenti doppi" già chiuso il 05/09):
+il contenuto vero è stato unito qui e il duplicato cancellato.*
+
+**Lacuna 1 — CONFERMATA, con una sfumatura.** `proiezioneAnnua()`
+(`terra-data.js:655`) dà già `pctPiano`, cioè quanto il ritmo ANNUALE si
+discosta dal piano annuo — non è vero che manchi ogni "scarto piano-vs-
+reale", come diceva la prima stesura della ricerca. Manca però la
+granularità MENSILE che la ricerca chiedeva davvero: nessuna funzione
+confronta "volume pianificato del mese" con "volume reale del mese" per
+dire "avanti/indietro di N m³ questo mese". Verificato:
+`grep -i "varianza\|variance\|scarto.*piano" apps/terra/terra-data.js` →
+zero. Costo indicativo: una funzione che divide il piano annuo per 12 e
+confronta col mese corrente di `volumiPerMese()`.
+
+**Lacuna 2 — CONFERMATA, i dati grezzi ci sono già.** `vitaCava()`
+(`terra-data.js:1074`) calcola sia `anniResidui` (anni al ritmo medio) sia,
+internamente, `giorniTra(dataScadenza, oggi)` — e li confronta per dare
+`scadePrimaIlTitolo` (booleano). Ma il **margine** fra i due (quanti giorni
+o mesi separano l'esaurimento dalla scadenza) non è calcolato né restituito:
+solo "chi arriva prima", non "di quanto". `annoEsaurimento` è un ANNO, non
+una data — troppo grezzo per un margine in giorni. Non è un dato mancante
+dal modulo (gli ingredienti — `anniResidui`, `dataScadenza` — sono già nel
+valore di ritorno): è un calcolo in più, non una ricerca nuova.
+
+**Lacuna 3 — CONFERMATA.** `ritmoMedioAnnuo()` (`terra-data.js:1041`)
+calcola UN SOLO ritmo, sulla finestra dichiarata dall'utente (`anniRitmo`,
+default 3 anni) — nessun confronto fra una finestra corta (es. ultimi 90
+giorni) e quella lunga per rilevare un'accelerazione o un rallentamento.
+Verificato: `grep -n "ultimi.*giorni\|trend\|accelera\|decelera" apps/terra/terra-data.js`
+→ zero. Una cava che negli ultimi tre mesi ha quasi raddoppiato il ritmo
+non riceve nessun avviso finché non si vede nel cumulato dell'anno.
+
+**Riassunto** — 3 lacune **confermate**, tutte e tre nella stessa famiglia
+(la riconciliazione ha i FONDAMENTALI — vita cava, proiezione annuale,
+confronto con la scadenza del titolo — ma non le metriche comparative a
+grana più fine: mese contro mese, giorni di margine, finestra corta contro
+lunga). Nessuna è un dato nuovo da raccogliere: sono tutti calcoli
+aggiuntivi sopra dati che Terra ha già in mano.

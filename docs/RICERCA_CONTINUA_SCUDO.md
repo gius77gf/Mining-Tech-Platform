@@ -1554,3 +1554,54 @@ metà sul delta è fatta da chi ha il codice in mano, sotto.*
 come modello di ispezione + preset di scadenza), 1 **correzione** delle
 fonti (4 citazioni del D.M. 2/9/2021 da riscrivere con il limite dichiarato),
 1 a posto per meccanismo (le azioni), 1 dichiarata (l'appello vive in Campo).
+
+---
+
+## 15/09 — quinto giro di ricerca mirata: l'agibilità del lavoratore in caso di condizioni multiple scadute
+
+*Nota di processo: questa ricerca è stata prodotta da un agente in
+background con un mandato "prima il mondo, poi la nostra app" e
+riconsegnata come tre lacune "verificate". Riverificando di persona
+(regola "niente entra sulla parola dell'agente") con gli stessi comandi
+grep dichiarati, **due delle tre erano false**: il difetto tipico di
+questo file, colto sul fatto. Il file era anche finito, per errore di
+prompt, sotto il nome sbagliato (`docs/RICERCA_CONTINUA_scudo.md`,
+minuscolo — lo stesso incidente già chiuso il 05/09 con "sei documenti
+doppi"): il contenuto vero è stato unito qui e il duplicato cancellato.*
+
+**Lacuna 1 — CONFERMATA, aperta.** Il modello del lavoratore ha solo
+`attivo: true|false` (in forza sì/no); non esiste una sospensione
+disciplinare o cautelare temporanea, distinta dall'essere "in forza".
+Verificato: `grep -n "sospens" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ **zero occorrenze** in tutt'e due i file. Nel mestiere, una persona può
+essere sospesa per un periodo definito (es. 48 ore dopo un infortunio, o
+per disciplina) restando comunque "in forza". Costo indicativo: un campo
+`sospesoFinoa: ISO|null` sul lavoratore + una riga in più dentro
+`abilitazioneLavoratore` (bloccante se `giorniTra(sospesoFinoa, oggi) > 0`).
+
+**Lacuna 2 — FALSA.** La ricerca sosteneva "soglia unica di 30 giorni,
+nessuna classificazione per urgenza" col comando
+`grep -nE "\b[7][\s]*giorni\b|\b15[\s]*giorni\b" apps/scudo/scudo-data.js`
+→ zero, **ma cercava nel file sbagliato**: `livelloScadenza`
+(`apps/scudo/scudo-data.js:763`) classifica già in tre fasce — rosso
+(scaduta o entro 7 gg), giallo (entro 30), verde (oltre) — col commento
+che cita esplicitamente "fasce ispirate ai promemoria multi-soglia
+(60/30/15/7/1 gg)" come riferimento del mondo già consultato. La cascata
+c'è, additiva rispetto a `statoScadenza` (che alimenta i KPI e resta a
+soglia unica di proposito). Verificato: `sed -n '763,772p'
+apps/scudo/scudo-data.js`.
+
+**Lacuna 3 — FALSA.** La ricerca sosteneva "nessun toggle anonimo nel
+form near-miss" col comando `grep -n "anonimo\|anonymous"
+apps/scudo/index.html` → zero — **comando rilanciato e la stessa ricerca
+in questo file dà 11 righe**, tutte nel gestore del form near-miss
+(`apps/scudo/index.html:6201-6366`): un bottone che alterna
+`NM.anonimo`, disabilita il campo "chi" quando attivo, mostra il toast
+"Segnalazione anonima: il nome non viene salvato" e marca il record
+`anonimo: true` nel riepilogo. Il toggle esiste, funziona, ed è già
+collaudato dai dati della dimostrazione (`scudo-data.js:347,364`).
+
+**Riassunto** — 1 mancanza **confermata e aperta** (sospensione
+disciplinare separata da "in forza"), 2 **false** (soglie a cascata e
+toggle anonimo: già costruite entrambe, trovate dal secondo giro di
+verifica invece che dal primo di ricerca).
