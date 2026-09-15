@@ -8509,8 +8509,9 @@ numero scritto dove non era stato misurato niente**.*
   non bloccanti alla chiusura del turno, 3005→3006, e a `tendenzaRitmo` di
   Terra il ritmo corto contro il lungo, 3006→3007, e a `testoSollecito` di
   Conti l'escalation per livello, 3007→3008, e a `fattureOltre90` di Conti
-  l'elenco per il commercialista, 3008→3010): **3.494 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3010, `run-stile` 328,
+  l'elenco per il commercialista, 3008→3010, e a `cartellaLavoratore` di
+  Scudo gli infortuni della persona, 3010→3011): **3.495 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3011, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

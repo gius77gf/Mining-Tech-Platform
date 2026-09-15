@@ -2972,6 +2972,41 @@ test("⛔ cartellaLavoratore: una sezione vuota non e' «non dovuto»", () => {
   eq(scudo.cartellaLavoratore(null, dati, oggi).trovato, false,
     "senza lavoratore risponde «non trovato», non una cartella vuota che sembra a posto");
 });
+test("⛔ cartellaLavoratore: gli infortuni della PERSONA entrano nel fascicolo (secondo giro di ricerca su Scudo, 15/09)", () => {
+  const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
+  const lav = D.lavoratori.find(x => x.id === "d1");
+  const infortuni = [
+    { id: "x1", data: "2026-03-10", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, lavoratoreId: lav.id, descrizione: "Taglio alla mano" },
+    { id: "x2", data: "2026-06-01", tipo: "infortunio", gravita: "grave", giorniAssenza: null, lavoratoreId: lav.id, descrizione: "Caduta dal mezzo — prognosi ancora aperta" },
+    // near-miss con lo STESSO lavoratoreId: non ha un ferito, non deve entrare
+    { id: "x3", data: "2026-07-01", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0, lavoratoreId: lav.id, descrizione: "Quasi caduto" },
+    // infortunio di un ALTRO lavoratore: non deve entrare
+    { id: "x4", data: "2026-05-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: 2, lavoratoreId: "qualcun-altro", descrizione: "Non è il suo" },
+    // infortunio senza lavoratoreId (il caso più comune oggi, dato facoltativo): non deve entrare
+    { id: "x5", data: "2026-04-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: 1, descrizione: "Nessuno collegato" },
+  ];
+  const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti, infortuni };
+  const c = scudo.cartellaLavoratore(lav, dati, oggi);
+  eq(c.infortuni.length, 2, "solo x1 e x2: non il near-miss, non quello di un altro, non quello scollegato");
+  eq(c.infortuni[0].id, "x2", "il più recente viene prima");
+  eq(c.infortuni[1].id, "x1");
+  // zero infortuni non è un buco nei dati: non entra in vuoti
+  ok(!c.vuoti.some(v => /infortun/i.test(v)), "gli infortuni non compaiono fra i 'vuoti': zero è lo stato sperato, non un dato mancante");
+  // senza il parametro (retrocompatibilità: chi non lo passa ha il comportamento di prima)
+  const senzaParam = scudo.cartellaLavoratore(lav, { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, nomine: D.nomine, documenti: D.documenti }, oggi);
+  eq(senzaParam.infortuni, [], "senza il parametro infortuni: lista vuota, non un errore");
+
+  const f = scudo.fogliaCartella(c, oggi);
+  const sezInf = f.sezioni.find(s => s.titolo === "Infortuni");
+  ok(sezInf, "la sezione compare quando ci sono infortuni collegati");
+  eq(sezInf.righe.length, 2);
+  ok(sezInf.righe[0][1].includes("prognosi ancora aperta"), `x2 ha la prognosi ancora aperta: ${sezInf.righe[0][1]}`);
+  ok(sezInf.righe[1][1].includes("4 giorni di assenza"), `x1 ha 4 giorni: ${sezInf.righe[1][1]}`);
+  // senza nessun infortunio collegato, la sezione non compare affatto
+  const cVuoto = scudo.cartellaLavoratore(D.lavoratori.find(x => x.id === "d4"), dati, oggi);
+  ok(!scudo.fogliaCartella(cVuoto, oggi).sezioni.some(s => s.titolo === "Infortuni"),
+    "senza infortuni collegati la sezione non esce affatto, non esce vuota");
+});
 test("descriviCartella: la frase del fascicolo la scrive il modulo, non la pagina", () => {
   const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
   const dati = { scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi,

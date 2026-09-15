@@ -1605,3 +1605,96 @@ collaudato dai dati della dimostrazione (`scudo-data.js:347,364`).
 disciplinare separata da "in forza"), 2 **false** (soglie a cascata e
 toggle anonimo: già costruite entrambe, trovate dal secondo giro di
 verifica invece che dal primo di ricerca).
+
+## 15/09 — secondo passaggio: infortuni e denuncia INAIL, più a fondo
+
+*Nota di processo: prodotta da un agente in background con `isolation:
+"worktree"`. Il suo append a questo file NON è mai arrivato — l'agente
+aveva scritto la sezione dentro il proprio worktree senza committarla, e
+il worktree è stato rimosso (`git worktree remove --force`) prima che ci
+si accorgesse che il contenuto era ancora solo nel working tree, non nel
+ramo. È la stessa famiglia dell'incidente Campo del 5° giro (commit mai
+arrivato), in una veste diversa: qui non era il push a mancare, era il
+commit stesso. Il contenuto sostanziale è stato recuperato dal report
+finale dell'agente (ancora nel contesto della conversazione) e OGNI
+affermazione è stata riverificata di persona sul codice vero prima di
+scriverla qui — le citazioni di riga sono mie, rilanciando i comandi
+dell'agente.*
+
+**Che cosa esiste già** (verificato con grep): il registro eventi ha già
+una prognosi-aperta-come-stato (`giorniAssenza: null`, decisione 17 del
+02/08); gli indici IF/IG/LTIFR (`indiciInfortunistici`) si rifiutano di
+stimare quando le ore lavorate mancano; il ciclo DSS è già collegato agli
+infortuni gravi (`cicloDss`); le azioni correttive nascono già collegate
+all'evento di origine.
+
+**Il mondo** (WebSearch, fonti citate dall'agente — non lette per intero,
+solo risultati di ricerca): la denuncia INAIL ha tre termini distinti, non
+uno solo — comunicazione statistica entro 48 ore per un'assenza di almeno
+un giorno, denuncia vera e propria (Mod. 4bis) entro 2 giorni per una
+prognosi oltre 3 giorni, 24 ore per un infortunio mortale o con pericolo
+di morte; il registro infortuni cartaceo è abolito dal 2015, sostituito
+dal flusso telematico MyINAIL; i software HSE di riferimento classificano
+la gravità su almeno quattro gradini (primo soccorso senza assenza /
+registrabile / con giorni persi / mortale); l'art. 41 c.2 lett. e-ter del
+D.Lgs 81/2008 impone una visita medica di rientro dopo un'assenza per
+malattia superiore a 60 giorni.
+
+**Il delta**, riverificato di persona sul codice vero (non sul worktree
+dell'agente, indietro rispetto a questa sessione):
+
+**Finding 1 — CONFERMATO.** Nessuna scadenza né documento per la denuncia
+INAIL. `grep -ciE "entro (2|due) giorni|48 ore|24 ore|denuncia inail" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ 1 e 0, e l'unica occorrenza (`scudo-data.js:3599`, "es. 48 ore dopo un
+infortunio") parla di provvedimenti disciplinari, non della denuncia. E
+`TIPI_DOCUMENTO` (`scudo-data.js:666`) ha 9 voci — DSS, POS, DVR, DUVRI,
+Nomina, Verbale DPI, Verbale di verifica periodica, Idoneità sanitaria,
+Attestato formazione, Altro — nessuna per una denuncia infortunio.
+
+**Finding 2 — CONFERMATO.** La classificazione di gravità di un
+infortunio VERO resta a due valori. Il selettore `#inf-gravita`
+(`index.html:1543`) ha solo `<option>Lieve</option><option>Grave</option>`.
+`GRAVITA_POTENZIALE` (tre gradini, incluso "mortale") esiste ma è
+dichiarata dal proprio commento per il "che cosa sarebbe potuto succedere"
+di un near-miss, non per l'esito vero di un infortunio — riusarla
+tal quale sarebbe la copia debole che questo file mette in guardia.
+
+**Finding 3 — CONFERMATO, la radice degli altri tre.** Nessun
+`lavoratoreId` sul record infortunio. `grep -c "lavoratoreId"
+apps/scudo/scudo-data.js` → 95 occorrenze nel modulo, **zero** dentro i
+record di `infortuni` (righe 344-368 della dimostrazione): l'unico
+riferimento a una persona è `segnalatoDaId` — chi SEGNALA, non chi si è
+fatto male. Conseguenza verificata: `cartellaLavoratore` (riga 4111) legge
+`scadenze, mansioni, dpi, nomine, documenti` ma non `infortuni` — il
+fascicolo personale di un lavoratore non include la sua storia di
+infortuni.
+
+**Finding 4 — CONFERMATO.** Nessun follow-up del caso a livello di
+PERSONA: a livello di cava è già buono (DSS + azioni correttive
+collegate), ma l'infortunio non porta un campo `stato`
+(aperto/chiuso) come lo portano i permessi (`stato: bozza|aperto|sospeso|
+chiuso|revocato`, `scudo-data.js:98`), e nessuna visita di rientro dopo 60
+giorni è collegata all'evento.
+
+⚠️ **Rischio a valle segnalato dall'agente, non ancora attivo**:
+`indiciInfortunistici` somma i giorni di assenza reali per l'indice di
+gravità, senza le convenzioni UNI 7249 (permanente ×75 giorni convenzionali,
+mortale 7.500). Oggi è innocuo perché quei due esiti non si possono
+nemmeno registrare (finding 2); diventerebbe un difetto silenzioso se un
+domani si allargasse la scala di gravità senza toccare anche questo calcolo.
+Dichiarato per chi apre quel cantiere, non un'azione di questa unità.
+
+✅ **FATTO lo stesso giorno, parzialmente**: il finding 3, la radice.
+`cartellaLavoratore` accetta ora anche `infortuni` (facoltativo) e include
+nel fascicolo gli infortuni VERI (non i near-miss) collegati al
+lavoratore tramite un nuovo campo `lavoratoreId`, facoltativo, aggiunto al
+form di registrazione (`#inf-lavoratore`). Zero infortuni non entra fra i
+`vuoti` del fascicolo: è lo stato sperato di una persona, non un dato
+mancante come una scadenza mai registrata. `fogliaCartella` stampa una
+sezione "Infortuni" solo quando ce n'è almeno uno collegato.
+⏱️ **Restano aperti**: il finding 1 (scadenza/documento per la denuncia
+INAIL — richiede una decisione su quale termine tracciare, dato che sono
+tre e diversi), il finding 2 (terzo gradino di gravità per gli infortuni
+veri — tocca anche il rischio UNI 7249 segnalato sopra, va fatto insieme)
+e il finding 4 (stato aperto/chiuso e visita di rientro — dipende dal
+finding 3 appena fatto, ora possibile).

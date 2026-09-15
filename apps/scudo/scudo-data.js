@@ -4113,7 +4113,8 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
   if (!l) return { trovato: false, motivo: "Nessun lavoratore scelto.", vuoti: [], daSistemare: [], completa: false };
   const d = dati || {};
   const scadenze = d.scadenze || [], mansioni = d.mansioni || [],
-        dpi = d.dpi || [], nomine = d.nomine || [], documenti = d.documenti || [];
+        dpi = d.dpi || [], nomine = d.nomine || [], documenti = d.documenti || [],
+        infortuni = d.infortuni || [];
 
   const sue = scadenze
     .filter(s => s && String(s.lavoratoreId || "") === String(l.id))
@@ -4126,6 +4127,22 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
   const verbale = verbaleDpi(l, dpi, oggi);
   const sueNomine = nomine.filter(n => n.lavoratoreId === l.id && nominaAttiva(n, oggi));
   const suoiDoc = documenti.filter(x => x.lavoratoreId === l.id);
+  /* ⛔ IL FASCICOLO PERSONALE NON CONTENEVA GLI INFORTUNI DELLA PERSONA
+     (15/09, secondo giro di ricerca su Scudo): il registro infortuni li
+     tiene per la CAVA, ma `infortuni` non porta un `lavoratoreId`, quindi
+     `cartellaLavoratore` non poteva collegarli — non è un dato mancante da
+     chiedere all'utente, era un campo che il record non aveva mai avuto.
+     Filtrato su `tipo === "infortunio"`: un near-miss non ha un ferito, e
+     mescolarlo qui confonderebbe «gli è successo» con «poteva succedergli».
+     Il campo resta FACOLTATIVO — molte cave storiche non lo sanno per gli
+     eventi passati — e un infortunio senza `lavoratoreId` continua a
+     contare nel registro e negli indici come sempre: qui si aggiunge un
+     collegamento, non si cambia il conto. Non entra in `vuoti`: zero
+     infortuni è lo stato SPERATO di un lavoratore, non un buco nei dati
+     come una scadenza mai registrata. */
+  const suoiInfortuni = infortuni
+    .filter(x => x && x.tipo === "infortunio" && String(x.lavoratoreId || "") === String(l.id))
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 
   const vuoti = [];
   if (!mie.length)
@@ -4177,7 +4194,7 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
 
   return {
     trovato: true, lavoratore: l,
-    scadenze: sue, mansioni: mie, verbale, nomine: sueNomine, documenti: suoiDoc,
+    scadenze: sue, mansioni: mie, verbale, nomine: sueNomine, documenti: suoiDoc, infortuni: suoiInfortuni,
     vuoti, daSistemare, completa: vuoti.length === 0,
   };
 }
@@ -4409,6 +4426,12 @@ export function fogliaCartella(cartella, oggi = new Date()) {
   if ((c.documenti || []).length)
     sezioni.push(sez("Documenti collegati", c.documenti.map((d) => { const e = etichettaStatoDocumento(d.stato);
       return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));
+  if ((c.infortuni || []).length)
+    sezioni.push(sez("Infortuni", c.infortuni.map((x) => { const g = String(x.gravita || "");
+      return [dataIt(x.data),
+        (g ? g.charAt(0).toUpperCase() + g.slice(1) : "—")
+        + " · " + (x.giorniAssenza == null ? "**prognosi ancora aperta**" : conta(x.giorniAssenza, "giorno di assenza", "giorni di assenza"))
+        + (x.descrizione ? " · " + String(x.descrizione) : "")]; }), ""));
   return {
     titolo: "Cartella del lavoratore",
     sottotitolo: String(l.nome || "") + (l.ruolo ? " · " + String(l.ruolo) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi || new Date())),

@@ -1545,6 +1545,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     <div class="frow">
       <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1 1 150px;">
       <input class="dw-input" id="inf-luogo" placeholder="Luogo (es. fronte Est)" style="flex:1 1 150px;">
+      <select class="dw-input" id="inf-lavoratore" style="flex:1 1 170px;" title="Facoltativo: collega l'evento al fascicolo personale — un near-miss non ha un ferito, quindi vale solo per un infortunio"><option value="">— chi si è fatto male (facoltativo) —</option></select>
     </div>
     <!-- decisione 17: per un INFORTUNIO la casella vuota non vale zero, vuol
          dire che la prognosi e' ancora aperta. Va scritto dove si compila, se
@@ -3563,6 +3564,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const tbDi = (x) => x.tipo === "osservazione"
       ? (x.esito === "positiva" ? ["ok", "Buona pratica"] : ["warn", x.esito === "da-correggere" ? "Da correggere" : "Osservazione"])
       : (TB[x.tipo] || ["warn", esc(x.tipo || "—")]);
+    // il selettore «chi si è fatto male»: stesso pattern del selettore
+    // lavoratore del form documento (`selL`), popolato solo se la lista è
+    // cambiata invece che a ogni giro di refresh
+    { const selInfLav = $("inf-lavoratore");
+      if (selInfLav && selInfLav.children.length !== LAV.length + 1)
+        selInfLav.innerHTML = '<option value="">— chi si è fatto male (facoltativo) —</option>' + LAV.map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join(""); }
     const infVis = INF.filter(x => filtroInf === "tutti" || x.tipo === filtroInf);
     $("inf-list").innerHTML = infVis.slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1).map(x => {
       const tb = tbDi(x);
@@ -5108,8 +5115,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         ? (tipo === "infortunio" ? null : 0)
         : Math.max(0, +$("inf-giorni").value || 0),
       descrizione: desc, luogo: $("inf-luogo").value.trim(),
+      // un near-miss non ha un ferito: il collegamento vale solo per un infortunio vero
+      lavoratoreId: tipo === "infortunio" ? ($("inf-lavoratore").value || null) : null,
     });
-    $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = "";
+    $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = ""; $("inf-lavoratore").value = "";
     esito("inf-esito", (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + fmtData(data) + ".", "success");
     await refresh();
   };
@@ -5908,7 +5917,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!lav) { err("dpi-verb-lav", true); $("dpi-verb-lav").focus();
       esito("dpi-esito", "Scegli di chi è la cartella.", "err"); return; }
     err("dpi-verb-lav", false);
-    const c = cartellaLavoratore(lav, { scadenze: SCA, mansioni: MANS, dpi: DPI, nomine: NOM, documenti: DOC });
+    const c = cartellaLavoratore(lav, { scadenze: SCA, mansioni: MANS, dpi: DPI, nomine: NOM, documenti: DOC, infortuni: INF });
     const ok = await chiedi("Cartella — " + lav.nome,
       (c.completa
         ? "Tutte le sezioni contengono dati registrati in Scudo."
