@@ -4517,7 +4517,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
 
   // Consegna di turno (handover): un testo con i rapportini e le anomalie
   // aperte, pronto da passare al turno successivo o da archiviare.
-  $("btn-consegna").onclick = () => {
+  // ⛔ «O DA ARCHIVIARE» ERA SCRITTO NEL COMMENTO E NON FATTO (15/09): il
+  // testo usciva SOLO come .txt scaricato, senza mai toccare `db` — la
+  // consegna a cui i preposti danno valore legale è invece quella scritta
+  // in `chiusure` (vedi il commento sopra `chiusuraDi`: «distingue un
+  // appunto da una consegna fatta»), che porta solo nome/nome/ora, non il
+  // contenuto vero. In caso di contestazione, il database non sapeva più
+  // che cosa diceva la consegna — solo un file scaricato a mano, se
+  // qualcuno l'aveva conservato. Il testo si salva ora nella stessa
+  // `chiusura` del turno corrente (stesso upsert di `btn-fir`, così le
+  // due si scrivono sullo stesso documento invece di ignorarsi), oltre a
+  // restare scaricabile com'era: non si toglie niente, si smette di
+  // perdere quello che si è già composto.
+  $("btn-consegna").onclick = async () => {
     /* Il testo lo compone `testoConsegnaTurno` nel modulo — le stesse
        funzioni dello schermo, sezione per sezione — così la composizione la
        prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
@@ -4528,7 +4540,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
-    esito("rap-esito", "Consegna di turno esportata: " + conta(RAP_OGGI.length, "rapportino", "rapportini") + " e " + conta(fermi.length, "causale di fermo", "causali di fermo") + ".", "success");
+    const turno = $("chk-turno").value || turnoCorrente();
+    const gia = chiusuraDi(CHI, OGGI, turno);
+    const oraConsegna = new Date().toTimeString().slice(0, 5);
+    if (gia) await db.aggiorna("chiusure", gia.id, { testoConsegna: txt, oraTestoConsegna: oraConsegna });
+    else await db.aggiungi("chiusure", { data: OGGI, turno, testoConsegna: txt, oraTestoConsegna: oraConsegna });
+    esito("rap-esito", "Consegna di turno esportata e archiviata: " + conta(RAP_OGGI.length, "rapportino", "rapportini") + " e " + conta(fermi.length, "causale di fermo", "causali di fermo") + ".", "success");
+    await refresh();
   };
   // Rapporto di fine turno STAMPABILE (stesso pattern del report di Genesi):
   // il deliverable che i supervisori si aspettano — solo dati già presenti.

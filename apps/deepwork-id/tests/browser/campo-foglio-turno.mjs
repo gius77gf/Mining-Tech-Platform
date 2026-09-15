@@ -496,7 +496,18 @@ if (fai("consegna")) {
   dice(!/nessuna attività aperta/.test(sezLav), "⛔ e non dice «nessuna attività aperta» su un turno con lavori aperti", sezLav);
   dice(sezSeg.length > 0 && /senza turno indicato \(non si sa se di questo turno\)/.test(sezSeg), "la sezione «SEGNALAZIONI DEL TURNO» porta la segnalazione di oggi senza turno, dichiarata così — la stessa frase dello schermo", sezSeg);
   dice(!/nessuna segnalazione oggi/.test(sezSeg), "e non dice «nessuna segnalazione» quando ce n'è una", sezSeg);
-  dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
+  /* ⛔ IL TESTO SI ARCHIVIA, NON SOLO SI SCARICA (15/09): prima usciva solo
+     come .txt, ora `btn-consegna` scrive anche `testoConsegna` sulla
+     `chiusura` del turno (stesso upsert di `btn-fir`). Un secondo clic deve
+     passare dal ramo `aggiorna` invece di `aggiungi` (`chiusuraDi` trova
+     già il documento) senza sollevare niente — è il ramo che un solo clic
+     non esercita mai. */
+  const [dl2] = await Promise.all([
+    pg.waitForEvent("download", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-consegna"),
+  ]);
+  dice(!!dl2, "un secondo clic scarica di nuovo (non si blocca sull'upsert)");
+  dice(errori.length === 0, "e un secondo clic — il ramo che aggiorna invece di creare — non solleva niente", errori.slice(0, 2));
   await ctx.close();
 }
 
