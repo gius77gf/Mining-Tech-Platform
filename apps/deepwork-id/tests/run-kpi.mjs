@@ -882,6 +882,27 @@ test("testoSollecito: null se non scaduta o dati non validi", () => {
   eq(conti.testoSollecito({ numero: "X", importo: 0, scadenza: "2000-01-01" }, new Date(2026, 6, 21)), null, "importo 0");
   eq(conti.testoSollecito({ numero: "X", importo: 100 }, new Date(2026, 6, 21)), null, "senza scadenza");
 });
+test("⛔ testoSollecito: RIUSA livelloSollecito, e la lettera non è più identica a ogni livello (settimo giro di ricerca su Conti)", () => {
+  const f = { numero: "2026/050", cliente: "Escalation Srl", importo: 5000, scadenza: "2026-01-01" };
+  // livello 1 (1-15 gg): 13 giorni, come il test sopra — oggetto invariato
+  const l1 = conti.testoSollecito({ ...f, scadenza: "2026-07-08" }, new Date(2026, 6, 21));
+  ok(l1.startsWith("Oggetto: sollecito di pagamento"), l1.split("\n")[0]);
+  ok(!/secondo sollecito|ultimo avviso|messa in mora formale/.test(l1), "livello 1: niente linguaggio da escalation");
+  // livello 2 (16-45 gg): 30 giorni
+  const l2 = conti.testoSollecito({ ...f, scadenza: "2026-06-22" }, new Date(2026, 6, 21));
+  eq(conti.livelloSollecito(30).livello, 2, "premessa: 30 giorni è livello 2");
+  ok(l2.startsWith("Oggetto: secondo sollecito di pagamento"), l2.split("\n")[0]);
+  ok(/precedente comunicazione rimasta senza riscontro/.test(l2), "livello 2: fa riferimento al sollecito precedente");
+  ok(!/messa in mora formale/.test(l2), "livello 2: non ancora l'ultimo avviso");
+  // livello 3 (oltre 45 gg, "ultimo avviso"): 60 giorni
+  const l3 = conti.testoSollecito({ ...f, scadenza: "2026-05-23" }, new Date(2026, 6, 21));
+  eq(conti.livelloSollecito(60).livello, 3, "premessa: 60 giorni è livello 3");
+  ok(l3.startsWith("Oggetto: ultimo avviso di pagamento"), l3.split("\n")[0]);
+  ok(/messa in mora formale/.test(l3) && /azioni di recupero del credito/.test(l3), "livello 3: il linguaggio più forte c'è");
+  // il resto della lettera (numeri, mora, riepilogo) non cambia struttura fra i livelli
+  for (const t of [l1, l2, l3]) for (const s of ["2026/050", "Escalation Srl", "231/2002", "Totale dovuto"])
+    if (!t.includes(s)) throw new Error(`manca "${s}" a un livello: ${t.split("\n")[0]}`);
+});
 test("estrattoContoCliente: elenca le fatture aperte del cliente con totali e mora", () => {
   const fatture = [
     { numero: "2026/031", cliente: "Edilcave Srl", importo: 18300, scadenza: "2026-07-08", incassata: false },  // scaduta 13 gg

@@ -1347,8 +1347,24 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
   const numero = (f.numero || "").trim() || "—";
   const tassoTxt = String(tassoAnnuo).replace(".", ",");
   const e = (v) => "€ " + euroIt(v);
+  /* ⛔ LA LETTERA ERA LA STESSA A OGNI LIVELLO (15/09, settimo giro di
+     ricerca su Conti): `livelloSollecito` esisteva già per il badge a
+     schermo (1° sollecito / 2° sollecito / ultimo avviso), ma
+     `testoSollecito` — la lettera vera che parte — non lo leggeva mai: un
+     cliente con 3 giorni di ritardo e uno con 90 ricevevano la stessa
+     identica frase. RIUSA `livelloSollecito(ritardo)`, non ricalcola le
+     soglie qui: se un giorno cambiano, cambiano in un posto solo. */
+  const lv = livelloSollecito(ritardo);
+  const oggetto = lv.livello >= 3 ? `ultimo avviso di pagamento — fattura ${numero}`
+    : lv.livello === 2 ? `secondo sollecito di pagamento — fattura ${numero}`
+    : `sollecito di pagamento — fattura ${numero}`;
+  const escalation = lv.livello >= 3
+    ? ` Si tratta dell'ultimo avviso prima di procedere, senza ulteriore preavviso, con la messa in mora formale e le azioni di recupero del credito, comprese quelle in sede giudiziale.`
+    : lv.livello === 2
+    ? ` Il presente sollecito fa seguito a una precedente comunicazione rimasta senza riscontro.`
+    : ``;
   return [
-    `Oggetto: sollecito di pagamento — fattura ${numero}`,
+    `Oggetto: ${oggetto}`,
     ``,
     `Spett.le ${cliente},`,
     /* ⚠️ tre cose diverse, tre frasi diverse: un acconto lo ha versato il
@@ -1363,7 +1379,7 @@ export function testoSollecito(fattura, oggi = new Date(), tassoAnnuo = TASSO_MO
         } resta scoperto ${e(imp)}.`
       : `risulta non ancora saldata la fattura n. ${numero} di ${e(imp)}, scaduta il ${dataIt(f.scadenza)} (${conta(ritardo, "giorno", "giorni")} di ritardo).`,
     ``,
-    `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).${frasiTassoMora(oggi)}`,
+    `La preghiamo di provvedere al pagamento nel più breve tempo possibile. Ai sensi del D.Lgs 231/2002 sulle transazioni commerciali, dalla scadenza maturano interessi di mora al tasso del ${tassoTxt}% annuo, oltre a ${e(SPESE_RECUPERO_231)} di spese forfettarie di recupero (art. 6).${frasiTassoMora(oggi)}${escalation}`,
     ``,
     `Riepilogo alla data odierna:`,
     ...(acconti > 0 || stornato > 0

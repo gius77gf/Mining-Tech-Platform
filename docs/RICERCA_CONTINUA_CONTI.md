@@ -1674,3 +1674,82 @@ codice in mano.*
 mancanza **confermata e aperta** (l'esito dello SdI sulla fattura, con la
 scartata «come non emessa» e il sollecito che non parte), 1 a metà (l'avviso
 del cassetto fiscale c'è prima, non dopo).
+
+## 15/09 — settimo giro di ricerca mirata: gestione del credito e riconciliazione bancaria
+
+*Nota di processo: prodotta da un agente in background con `isolation:
+"worktree"`, che ha dichiarato da sé un limite importante — il suo worktree
+era ancorato a un commit molto più vecchio (`91b23776`) del branch di questa
+sessione, con `conti-data.js` sensibilmente più corto (6713 righe sul branch
+vero contro una versione precedente nel suo checkout) e funzioni assenti nel
+suo checkout che qui esistono già. Le quattro affermazioni sono state
+riverificate DI PERSONA sul codice VERO di questa sessione, non copiate dal
+suo report — è la stessa disciplina già pagata più volte in questa
+sessione (Terra `margineGiorni`, Terra `consumoControStoria`/lacuna 1 di
+Flotta, Campo `testoConsegnaTurno`): un giro di ricerca in background può
+scrivere un "non c'è" vero sul SUO stato e falso su quello reale.*
+
+**Finding 1 — CONFERMATO.** `testoSollecito` (`conti-data.js:1307`) compone
+sempre la stessa lettera («Oggetto: sollecito di pagamento») a prescindere
+dal livello di ritardo: `livelloSollecito` (righe 1250-1256, tre soglie: 1-15
+gg, 16-45 gg, oltre 45 gg "ultimo avviso") esiste ma **non è nemmeno un
+parametro** di `testoSollecito` — serve solo al badge a schermo. Verificato
+leggendo entrambe le funzioni per intero: nessun ramo di `testoSollecito`
+legge `livelloSollecito` o cambia tono/oggetto in base al ritardo.
+
+**Finding 2 — CONFERMATO.** `grep -inE "scoring|rating|classe di rischio|affidabilit" apps/conti/conti-data.js`
+→ **0** occorrenze. I tre ingredienti per uno scoring esistono come funzioni
+separate e mai combinate: `esposizioneClienti` (riga 1480), `tempiPagamentoClienti`
+(riga 2381), `agingIncassi` (riga 775) sono chiamate ciascuna per conto suo
+nella pagina (`grep -n` sulle tre nel file mostra sei chiamate, mai nello
+stesso punto), nessuna funzione le combina in un giudizio unico per cliente.
+
+**Finding 3 — SMENTITO, esattamente per la ragione che l'agente stesso aveva
+dichiarato: il suo worktree era indietro.** L'agente scriveva "la
+riconciliazione legge per POSIZIONE fissa, zero `mappaMovimentiCsv`,
+TRN/CRO mai catturato". Sul codice vero: `mappaMovimentiCsv` **esiste**
+(`conti-data.js:4634`, dal 05/09 — prima di questa sessione), e
+`parseMovimentiCsv` (riga 4680) la chiama alla riga 4694 per leggere il CSV
+bancario **per intestazione**, con la posizione fissa solo come ripiego
+dichiarato (`perNome = !!(m && m.conIntestazione)`) quando l'intestazione
+non si riconosce. E il riferimento del bonifico (TRN/CRO) è già catturato
+da due funzioni dedicate, `riferimentoInCausale` e `riferimentoMovimento`
+(righe 4649-4667), con la stessa disciplina di questo file su un numero
+nudo in causale ("undici cifre nude non sono un CRO"). **Nessuna azione**:
+la riconciliazione bancaria di Conti è già più avanti di quanto il round
+di ricerca potesse vedere dal suo checkout.
+
+**Finding 4 — CONFERMATO, piccolo.** `agingIncassi` calcola già le 5 fasce
+(incluso "oltre90") ma restituisce solo **conteggi e totali aggregati per
+fascia**, non l'elenco delle fatture che ci sono dentro (`grep -n "conto:
+0, importo: 0"` in `agingIncassi` mostra sei secchi, tutti aggregati).
+`csvSituazioneFatture` esporta ogni fattura con `scadenza` e `stato`, ma
+senza una fascia di aging calcolata riga per riga: chi vuole "le fatture
+oltre 90 giorni come base per il fondo svalutazione crediti" deve
+ricavarsele da sé, sottraendo a mano `scadenza` da oggi su ogni riga.
+Nessuna lacuna sull'aging in sé (già alla granularità di un audit); nessun
+fondo svalutazione automatico (**giusto** non calcolarlo da soli — sarebbe
+il "numero tranquillo" inventato che questo file mette in guardia da
+sempre, una decisione del commercialista, non del software).
+
+**Riassunto** — **3 lacune confermate** (1, 2, 4) e **1 smentita dal codice
+vero** (3, già risolta prima di questo giro). Costo indicativo (stima non
+verificata, da rimisurare da chi apre l'unità): piccolo per il finding 1
+(threading di `livelloSollecito` dentro `testoSollecito`, i tre testi
+esistono già come tre soglie), medio per il finding 4 (una funzione che
+espone l'elenco per fascia, non solo il totale), grande e a decisione del
+fondatore per il finding 2 (uno scoring cliente tocca come si presenta un
+giudizio su un cliente reale — non è solo codice, è una scelta di prodotto
+che merita una `docs/DECISIONI_WEEKEND.md` prima di scriverla).
+
+✅ **FATTO lo stesso giorno**: il finding 1. `testoSollecito` ora RIUSA
+`livelloSollecito(ritardo)` (non ricalcola le soglie) per variare
+l'oggetto della lettera e aggiungere una riga di escalation: livello 1
+invariato, livello 2 ("secondo sollecito") fa riferimento a una
+comunicazione precedente rimasta senza riscontro, livello 3 ("ultimo
+avviso") avvisa esplicitamente di messa in mora formale e azioni di
+recupero del credito. Il resto della lettera (numeri, interessi di mora,
+riepilogo) è identico a ogni livello: solo il tono cambia, non i conti.
+⏱️ **Restano aperti**: il finding 4 (export mirato oltre-90-giorni, medio)
+e il finding 2 (scoring cliente, grande — attende una decisione del
+fondatore prima di essere scritto in codice, non un'unità automatica).
