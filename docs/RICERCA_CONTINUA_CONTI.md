@@ -1936,3 +1936,215 @@ presentazione (due numeri distinti, non uno sommato); 1 nota minore
 delle domande del terzo/settimo giro sul fido viene riaperta: l'avviso alla
 pesata, il badge e il grafico restano corretti su quello che già sanno —
 gli manca solo un ingrediente che il mondo tratta come standard.
+
+## 15/09 — nono giro: trasporto conto terzi e rese — il mondo dice "fatturare separatamente e collegare", il codice già distingue le CAUSE ma non le somma
+
+*Domanda mirata data dal coordinatore: come i software di fatturazione
+italiani per il settore estrattivo/aggregati gestiscono il trasporto conto
+terzi e le rese (fuori specifica, eccesso di consegna), senza sporcare il
+fatturato vero di vendita. Strumento: `WebSearch` (quattro ricerche,
+caricato con `ToolSearch({query:"select:WebSearch,WebFetch"})` — era solo
+da caricare). `WebFetch` non provato in questo giro: tutto il "mondo" sotto
+è di seconda mano, dai riassunti di ricerca, nessuna fonte letta per
+intero.*
+
+*Prima di cercare nel codice: il terzo giro (11/09) aveva già verificato lo
+scadenzario fatture e il registro vendite per aliquota come "C'È"; questo
+giro riparte dalla domanda specifica di resi/trasporto-terzi, che nessun
+giro precedente aveva aperto per nome (`grep -ciE "reso|vettore" docs/RICERCA_CONTINUA_CONTI.md`
+sulle sezioni precedenti a questa non dà occorrenze pertinenti — solo
+"preso"/"ripreso"/"impegno preso", falsi positivi della radice corta, la
+prima causa di falso "non c'è" già scritta in CLAUDE.md).*
+
+### Come fanno, fuori [tutto di seconda mano, WebSearch, non letto per intero]
+
+- **Il reso si chiude con una nota di credito che cita il DDT di reso.**
+  Quando il cliente restituisce merce (fuori specifica, rifiutata,
+  eccedente), il fornitore emette una nota di credito ex art. 26 DPR
+  633/72; è prassi consigliata **allegare o citare nella descrizione della
+  nota il DDT di reso**, sia per chiarezza interna sia per un eventuale
+  controllo *[gefad.it]*. La causale "merce resa o rifiutata" rientra nel
+  **comma 2** dell'art. 26 (variazione per motivi originari del
+  contratto), che **non ha un termine temporale**, a differenza delle
+  variazioni per "accordo sopravvenuto" del comma 3, soggette al limite di
+  **un anno** dall'emissione della fattura originaria *[admassociati.it,
+  studioclericuzio.it]*. Se consegna e reso cadono nello **stesso mese di
+  competenza**, alcuni operatori ritengono non necessario emettere fattura
+  e nota di credito separate *[fiscoetasse.com, forum]* — punto di prassi,
+  non di legge, marcato come tale.
+- **Il trasporto conto terzi (vettore) si fattura separatamente dal
+  materiale, ma con un "collegamento" dichiarato.** Le prestazioni
+  accessorie di autotrasporto per conto terzi possono essere fatturate a
+  parte rispetto alla fattura del materiale, "a patto che vengano indicati
+  gli estremi delle fatture relative a queste ultime per garantire il
+  necessario collegamento previsto dalla normativa", e che le prestazioni
+  di trasporto/accessorie siano "distintamente descritte nei documenti e
+  annotate separatamente nelle scritture contabili" *[gia.pr.it, che cita
+  chiarimenti dell'Agenzia delle Entrate sul regime degli
+  autotrasportatori]*. Cioè il mondo tratta trasporto-fatturato-a-parte e
+  vendita-di-materiale come **due registrazioni contabili distinte con un
+  riferimento incrociato**, non come un'unica fattura mista.
+- **Sul DDT il vettore terzo va indicato per nome**, quando il trasporto
+  non è a cura del mittente o del destinatario *[biblus.acca.it,
+  fidocommercialista.it — già in linea con quanto il primo giro aveva
+  trovato su herbstsoftware/weighpay]*.
+- **Il mestiere**: chi tiene la contabilità di una cava vuole, aprendo una
+  nota di credito, sapere **perché** è stata emessa senza dover riaprire
+  ogni singolo documento — un reso ripetuto sullo stesso prodotto è un
+  segnale di qualità del materiale, un errore di fatturazione ripetuto è un
+  segnale di processo, e i due non vanno confusi in un unico "storni del
+  mese" quando si guarda l'andamento.
+
+### Fonti (WebSearch, di seconda mano, non lette per intero)
+
+mysolution.it · fiscoetasse.com (rassegna stampa + forum) · admassociati.it
+· ecnews.it (note di credito e retrovendite) · monami3000.it ·
+studioassociatosimoni.it · alpeadriaimprese.it · studioclericuzio.it ·
+gefad.it (DDT di reso e nota di credito) · sibill.com · biblus.acca.it (DDT
+trasporto) · fiscomania.com (DDT) · recivu.it · fidocommercialista.it ·
+studioassociatozanovello.it (circolare 13/2016 su DDT e fatturazione) ·
+gestionaleamica.com (guida DDT) · softwaresemplice.it · news.bomasoftware.it
+(due articoli) · forum-macchine.it · rentedrive.it · trasportofacile.it ·
+gia.pr.it (chiarimenti Agenzia Entrate su autotrasporto e fattura
+elettronica) · assodimi.it · marchegianionline.net (due articoli) ·
+3bconsultingsas.wordpress.com (due articoli su corretta prassi contabile
+autotrasporto conto terzi e resi).
+
+### Il delta, verificato sul codice vero (apps/conti/conti-data.js, apps/conti/index.html)
+
+**Prima, quello che Conti GIÀ FA — verificato riga per riga, non sulla
+parola:**
+
+- **Il vettore terzo esiste già come campo dichiarato sul DDT, non come
+  testo libero.** `TRASPORTO_A_CURA` (conti-data.js:3960-3964) ha tre
+  opzioni — mittente, destinatario, **vettore** — e `mancanzeDdt` (riga
+  3974) rifiuta un DDT "a cura di vettore" senza il nome scritto (riga
+  3987-3988: `mancano.push("il nome del vettore…")`). Nella dimostrazione
+  la pesata `s4` (Stradesud, 22/05) porta `trasportoACura: "vettore",
+  vettore: "Autotrasporti Ragusa Srl"` (riga 236-238). Verificato:
+
+      $ grep -n "id: \"vettore\"" apps/conti/conti-data.js
+      3963:  { id: "vettore", label: "Vettore", spiega: "Un trasportatore terzo, che va indicato sul documento." }
+
+  Corrisponde esattamente a quanto il mondo chiede sul DDT (indicare il
+  vettore quando il trasporto non è a cura di mittente/destinatario). Il
+  campo è **informativo sul documento di trasporto**, non una fatturazione
+  del servizio: Conti non fattura MAI il trasporto come prestazione a sé
+  (vedi sotto), quindi qui non c'è niente da "sporcare" — il vettore non
+  entra in nessun totale di vendita.
+
+- **Il reso NON è indifferenziato: è già una causale distinta della nota
+  di credito, con il regime giusto.** `CAUSALI_NOTA` (riga 3916-3923) ha
+  sei causali, e la prima è proprio il reso:
+
+      $ grep -n "id: \"resa\"\|id: \"errore\"\|id: \"accordo\"" apps/conti/conti-data.js
+      3917:  { id: "resa", label: "Merce resa o rifiutata", comma: 2, termine: null },
+      3920:  { id: "errore", label: "Errore di fatturazione", comma: 3, termine: 12 },
+      3921:  { id: "accordo", label: "Accordo sopravvenuto fra le parti", comma: 3, termine: 12 },
+
+  `"resa"` è comma 2 con `termine: null` (nessun limite temporale) mentre
+  `"errore"`/`"accordo"`/`"sconto-successivo"` sono comma 3 con
+  `termine: 12` mesi — `validaNota` (riga 4092-4104) legge `c.termine` e
+  avvisa solo per le causali che lo hanno. Questo è **esattamente** la
+  distinzione che il mondo descrive (comma 2 senza termine per resi/motivi
+  originari, comma 3 coi 12 mesi per gli accordi successivi): non è
+  un'approssimazione, è il regime corretto applicato per causale, non
+  genericamente a ogni nota. Nessuna azione: il punto specifico "il reso è
+  tutto indifferenziato?" è **falso** — smentito dal codice, non solo
+  dichiarato.
+
+**Il buco — CONFERMATO, piccolo: il registro vendite per il commercialista
+non porta la causale della nota, solo il fatto che è una nota.**
+`registroVendite`/`csvRegistroVendite` (righe 6349-6396) — verificato già
+"C'È" in un giro precedente per lo scadenzario e il registro IVA — mettono
+ogni nota di credito nel file con colonna `riferimento` = `"storna " +
+numeroFattura`, ma **non** con la causale (resa / errore / accordo /
+sconto):
+
+    $ sed -n '6349,6396p' apps/conti/conti-data.js | grep -n "causale"
+    (nessuna riga)
+
+    $ head -1 <<< "$(grep -n CSV_REGISTRO_VENDITE_INTESTAZIONE apps/conti/conti-data.js)"
+    6388:export const CSV_REGISTRO_VENDITE_INTESTAZIONE = "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo";
+
+La causale **è già disponibile** (`n.causale`, la stessa che
+`causaleNota()` risolve altrove — usata solo nell'estratto conto UI, riga
+3381-3388 di index.html) ma non passa nel documento che va al
+commercialista. Sul lato fiscale l'importo è comunque corretto (resa ed
+errore riducono l'IVA allo stesso modo): il buco non è un errore di
+calcolo, è che chi importa il registro **non può distinguere un reso da un
+errore di fatturazione senza riaprire ogni singola nota**, mentre il
+codice quella distinzione la conosce già.
+
+- **schermata**: Report → "Registro vendite" (bottone di export CSV).
+- **che cosa non va**: la riga di ogni nota di credito nel CSV dice "nota
+  di credito, storna fattura N" ma non dice *perché* — reso, errore,
+  sconto o accordo sono la stessa riga indistinguibile a valle.
+- **come si vede**: `csvRegistroVendite(FAT, CLI, NOT, dal, al)` sulla
+  dimostrazione produce righe `nota di credito;...;storna 2026/003;...`
+  senza nessuna colonna che dica `resa` o `errore`; la stessa nota, nella
+  UI dell'estratto conto (index.html:3388), mostra correttamente `· Merce
+  resa o rifiutata`.
+- **quanto costa** (stima non verificata, da rimisurare da chi apre
+  l'unità): piccolo. Una colonna in più nell'intestazione CSV
+  (`;causale`) e un `csvCell((causaleNota(n.causale)||{}).label || "")`
+  nella riga `n` di `doc()` — nessun calcolo nuovo, il dato esiste già su
+  ogni nota.
+- **come si misura**: una nota con `causale: "resa"` e una con `causale:
+  "errore"` nella dimostrazione, e pretendere che le due righe del CSV
+  abbiano un valore diverso nella colonna causale (oggi sarebbero
+  indistinguibili se non per il totale).
+
+**Seconda mancanza — CONFERMATA, piccolo-medio: nessuna funzione somma le
+note per causale**, quindi non esiste un modo di chiedere "quanto abbiamo
+perso in resi questo mese" separato da "quanto in sconti/errori":
+
+    $ grep -niE "reduce.*causale|group.*causale|perCausale|totaleResi" apps/conti/conti-data.js
+    (nessuna riga)
+
+Il modulo ha già `stornatoDi` (somma tutte le note su una fattura, senza
+distinguere causale) e mostra la causale solo nell'elenco per-nota
+dell'estratto conto; non c'è un `noteRaggruppatePerCausale(note, dal, al)`
+che, come il mondo suggerisce indirettamente (il reso è un segnale di
+qualità, distinto da un errore di processo), permetta di vedere
+l'andamento dei resi nel tempo senza aprire nota per nota. Non è
+un'urgenza fiscale (il registro vendite già dichiara gli importi giusti):
+è un **segnale di prodotto/qualità** che oggi non ha un numero.
+
+- **schermata**: nessuna — non esiste ancora un pannello "note per
+  causale" nel Report.
+- **che cosa non va**: per sapere "quanti resi abbiamo avuto a settembre e
+  per quale prodotto" bisogna aprire ogni nota di credito del mese e
+  leggerne la causale a mano; non c'è un totale.
+- **come si vede**: `NOT.filter(n=>n.causale==="resa")` va scritto a mano
+  in console — nessuna funzione del modulo lo fa.
+- **quanto costa** (stima non verificata): piccolo-medio. Una funzione pura
+  che raggruppa `note` per `causale` in un intervallo, riusando `causaleNota`
+  per l'etichetta — nessun nuovo dato, solo un'aggregazione che oggi manca.
+- **come si misura**: tre note nella dimostrazione con causali diverse
+  (resa, errore, sconto-contratto) e pretendere che la funzione restituisca
+  tre secchi con i totali giusti, non uno solo.
+
+**Fuori scope, non una lacuna — dichiarato con la ragione:** la
+fatturazione del trasporto come prestazione a sé (il vettore che fattura
+il proprio servizio, separatamente dal materiale) presuppone che Conti
+gestisca fatture **passive** (verso fornitori/vettori) — e questo è già
+un punto **aperto come decisione**, non come mancanza, nel giro del
+11/09-15/09 sullo scadenzario fornitori ("Conti è anche il libro dei
+debiti?", terzo/settimo giro sopra). Non lo riapro qui: la domanda del
+mondo su "trasporto fatturato a parte, con collegamento nelle scritture"
+ricade nella stessa decisione già registrata, non in una lacuna nuova.
+Verificato che Conti non ha nessuna nozione di fattura fornitore/vettore:
+
+    $ grep -niE "fattura.*fornitore|fornitore.*fattura|fatturaPassiva" apps/conti/conti-data.js
+    (nessuna riga)
+
+**Riassunto** — 2 lacune **confermate, piccole** (colonna causale mancante
+nel registro vendite CSV; nessuna funzione che somma le note per causale
+nel tempo), entrambe a costo basso perché il dato (`causale`) esiste già
+su ogni nota; 2 punti **già a posto e verificati riga per riga** (il campo
+vettore sul DDT copre esattamente quanto il mondo chiede per il trasporto
+a cura di terzi; la causale "resa" è già distinta con comma e termine
+corretti, non indifferenziata); 1 punto **fuori scope, ricondotto a una
+decisione già aperta** in un giro precedente (fatturazione passiva del
+vettore) invece di essere proposto come lacuna nuova.
