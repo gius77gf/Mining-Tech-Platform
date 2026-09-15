@@ -29,7 +29,7 @@ inizializza l'SDK con l'`appId` di qualcun altro:
 | Campo | Terra (3 punti), Scudo | Terra, Scudo |
 | Scudo | Campo | Campo, Sentinella |
 | Conti | Terra | **nessuno** |
-| Sentinella | Scudo | Campo *(P6, 05/09: le volate del giorno nella consegna di turno)* |
+| Sentinella | Scudo | Campo *(P6, 05/09: le volate del giorno nella consegna di turno; dal 15/09 anche nel rapporto di fine turno stampato e firmato — stesso ponte, un secondo consumatore)* |
 | **Flotta** | **nessuno** | **nessuno** |
 | **Genesi** | **nessuno** | **nessuno** |
 | Deepwork ID | — | — *(è l'identità, non produce dati di cava: giusto così)* |
