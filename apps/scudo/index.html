@@ -2416,11 +2416,21 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const st = statoPeggioreScadenze(sue);
       const bg = st ? B[st] : ["warn", "Nessuna scadenza"];
       const idn = idoneitaLabel(l.idoneita);
+      /* ⛔ LA SOSPENSIONE TEMPORANEA NON SI VEDEVA DA NESSUNA PARTE (15/09):
+         `abilitazioneLavoratore` la sa leggere (`sospesoFinoa`), ma senza un
+         posto per scriverla restava un campo che nessuno avrebbe mai potuto
+         valorizzare. Stesso pattern del badge idoneità: si tocca, si scrive
+         con `chiediDati`, mai un `prompt()` del browser. */
+      const sospeso = l.sospesoFinoa && dataISOEsiste(l.sospesoFinoa) && giorniTra(l.sospesoFinoa, new Date()) >= 0;
+      const badgeSosp = sospeso
+        ? `<span class="badge inline danger" style="cursor:pointer" title="Sospeso — tocca per cambiare o togliere la sospensione" data-sosp="${l.id}">Sospeso fino al ${dataIt(l.sospesoFinoa)}</span>`
+        : "";
       return `<div class="item ${striscia[bg[0]]}">
         <div class="avatar">${esc(initials(l.nome))}</div>
-        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span></div>${l.prescrizioni || dataISOEsiste(l.giudizioIl) ? `<div class="meta norma">${dataISOEsiste(l.giudizioIl) ? "Giudizio del " + dataIt(l.giudizioIl) + (l.prescrizioni ? " · " : "") : ""}${l.prescrizioni ? "Prescrizioni del medico: " + esc(l.prescrizioni) : ""}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
+        <div class="info"><div class="name">${esc(l.nome)} <span class="badge inline ${idn.cls}" style="cursor:pointer" title="Idoneità sanitaria (art. 41) — tocca per cambiare esito" data-idon="${l.id}">${idn.label}</span>${badgeSosp}</div>${l.prescrizioni || dataISOEsiste(l.giudizioIl) ? `<div class="meta norma">${dataISOEsiste(l.giudizioIl) ? "Giudizio del " + dataIt(l.giudizioIl) + (l.prescrizioni ? " · " : "") : ""}${l.prescrizioni ? "Prescrizioni del medico: " + esc(l.prescrizioni) : ""}</div>` : ""}<div class="meta">${esc(l.ruolo || "ruolo non indicato")}${prob.length ? " · " + esc(prob[0].descrizione) : (sue.length ? "" : " · né visita medica né corsi in scadenzario")}</div></div>
         <span class="acts">
         <span class="badge ${bg[0]}" title="${sue.length ? sue.length + (sue.length === 1 ? " scadenza registrata" : " scadenze registrate") : "nessun adempimento registrato per questa persona"}">${bg[1]}</span>
+        <span class="arr" style="cursor:pointer" title="${sospeso ? "Cambia o togli la sospensione" : "Sospendi temporaneamente"}" data-sosp="${l.id}">${sospeso ? "⏸" : "⏵"}</span>
         <span class="arr" style="cursor:pointer" title="Modifica lavoratore" data-edit-lav="${l.id}">✎</span>
         <span class="arr" style="cursor:pointer" title="Rimuovi lavoratore" data-del-lav="${l.id}">✕</span></span></div>`;
     }).join("") || (q
@@ -4519,6 +4529,27 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (!g.ok) { toast(g.messaggio, "err"); return; }
       await db.aggiorna("lavoratori", l.id, { idoneita: g.idoneita, prescrizioni: g.prescrizioni, giudizioIl: g.giudizioIl });
       await refresh(); return; }
+    /* ⛔ LA SOSPENSIONE TEMPORANEA NON SI SCRIVEVA DA NESSUNA PARTE (15/09):
+       `abilitazioneLavoratore` sa leggere `sospesoFinoa` e bloccare la
+       persona, ma senza questo tocco il campo restava sempre vuoto. Stesso
+       pattern del giudizio di idoneità: `chiediDati`, mai un `prompt()`. */
+    const sosp = e.target.getAttribute && e.target.getAttribute("data-sosp");
+    if (sosp && db.aggiorna) { const l = LAV.find(x => x.id === sosp);
+      if (!l) return;
+      const attiva = l.sospesoFinoa && dataISOEsiste(l.sospesoFinoa) && giorniTra(l.sospesoFinoa, new Date()) >= 0;
+      const v = await chiediDati(attiva ? "Cambia o togli la sospensione" : "Sospendi temporaneamente",
+        "<b>" + esc(l.nome) + "</b> · " + esc(l.ruolo || "") + (attiva ? "<br>Sospeso fino al " + dataIt(l.sospesoFinoa) + "." : "") +
+        "<br>Resta «in forza» ma non abilitato finché la data non è passata: la scheda del turno lo blocca come un requisito scaduto. Lascia il campo vuoto per togliere la sospensione.",
+        [{ id: "fino", label: "Sospeso fino al (incluso)", tipo: "date", valore: attiva ? l.sospesoFinoa : "",
+           aiuto: "L'ultimo giorno in cui NON può lavorare. Dal giorno dopo torna abilitato da solo." }],
+        attiva ? "Salva" : "Sospendi");
+      if (v === null) return;
+      const fino = (v.fino || "").trim();
+      if (fino && !dataISOEsiste(fino)) { toast("Data non valida: controlla giorno e mese.", "err"); return; }
+      await db.aggiorna("lavoratori", l.id, { sospesoFinoa: fino || null });
+      await refresh();
+      esito("lav-esito", fino ? "Sospensione registrata fino al " + dataIt(fino) + "." : "Sospensione tolta.", "success");
+      return; }
     const prom = e.target.getAttribute && e.target.getAttribute("data-prom-scad");
     if (prom) { const sc = SCA.find(x => x.id === prom);
       const lav = sc && LAV.find(x => x.id === sc.lavoratoreId);

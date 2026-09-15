@@ -1378,7 +1378,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.481** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.482** *(ricontate il 15/09, dopo aver
 aggiunto a `run-kpi.mjs` la prova che «saldata» e «parziale» non sono mai vere
 insieme in `statoFattura` di Conti, a `claims-convergenza.mjs` il limite a
 tre scritture ravvicinate, a `kpiFrom` di Scudo un `oggi` fisso, alla
@@ -1386,7 +1386,8 @@ conformità di Terra il fronte conteso fra due lotti, a `tagliandiInScadenza`
 di Flotta lo stesso criterio di `urgenzaManutenzione`, a `fogliaVolata` di
 Sentinella la lettura trovata per valore, a `applicaIncassi` di Conti le
 note di credito, a `cancellazioneLasciaBuco` la numerazione DDT senza
-salti e a `vitaCava` di Terra il margine fra esaurimento e scadenza,
+salti, a `vitaCava` di Terra il margine fra esaurimento e scadenza e a
+`abilitazioneLavoratore` di Scudo la sospensione temporanea,
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
 esecuzioni** che aprono davvero le pagine in un browser.

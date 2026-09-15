@@ -3594,6 +3594,15 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
   });
   const bloccanti = [], attenzioni = [];
   if (l.attivo === false) bloccanti.push("non è in forza");
+  /* ⛔ LA SOSPENSIONE TEMPORANEA NON ERA MODELLATA (15/09): il modello aveva
+     solo `attivo: true|false` (in forza sì/no), e una persona sospesa per
+     disciplina o cautela (es. 48 ore dopo un infortunio) resta in forza —
+     non è la stessa domanda. `sospesoFinoa` è una data ISO: sospeso se
+     quella data è oggi o nel futuro (l'ultimo giorno della sospensione
+     conta ancora), letta con `dataISOEsiste` perché una data illeggibile
+     non deve né sospendere né liberare nessuno per sbaglio. */
+  if (l.sospesoFinoa && dataISOEsiste(l.sospesoFinoa) && giorniTra(l.sospesoFinoa, oggi) >= 0)
+    bloccanti.push("sospeso fino al " + dataIt(l.sospesoFinoa));
   if (l.idoneita === "non-idoneo") bloccanti.push("giudicato non idoneo alla visita medica");
   if (l.idoneita === "prescrizioni") attenzioni.push("idoneo con prescrizioni");
   for (const r of requisiti) {

@@ -4383,6 +4383,27 @@ test("chi non è in forza non può andare comunque", () => {
   const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: false }, m, sc, [], oggi);
   ok(a.esito === "no" && a.bloccanti.some(b => /in forza/.test(b)), `${a.esito}: ${a.bloccanti.join(" | ")}`);
 });
+/* ⛔ LA SOSPENSIONE TEMPORANEA NON ERA MODELLATA (15/09): `attivo` è
+   in-forza-sì/no, una sospensione disciplinare o cautelare (es. 48 ore
+   dopo un infortunio) resta in forza — non è la stessa domanda, e nel
+   mondo EHS le due si distinguono sempre. */
+test("⛔ abilitazioneLavoratore: sospeso resta in forza ma non può andare, e si libera da solo", () => {
+  const oggi = new Date("2026-09-15T12:00:00Z");
+  const nessunRequisito = { requisiti: [], nessunRequisito: true };
+  const aDom = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: "2026-09-16" }, nessunRequisito, [], [], oggi);
+  ok(aDom.esito === "no" && aDom.bloccanti.some(b => /sospeso/.test(b)), `sospeso fino a domani: ${aDom.esito}: ${aDom.bloccanti.join(" | ")}`);
+  const aOggi = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: "2026-09-15" }, nessunRequisito, [], [], oggi);
+  eq(aOggi.esito, "no", "l'ultimo giorno della sospensione conta ancora: non si libera all'alba");
+  const aIeri = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: "2026-09-14" }, nessunRequisito, [], [], oggi);
+  eq(aIeri.esito, "puo", "sospensione scaduta ieri: si libera da sola, nessuno deve ricordarsene");
+  const aNiente = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: null }, nessunRequisito, [], [], oggi);
+  eq(aNiente.esito, "puo", "nessuna sospensione: nessun bloccante inventato");
+  const aRotta = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: "2026-13-45" }, nessunRequisito, [], [], oggi);
+  eq(aRotta.esito, "puo", "⛔ una data illeggibile (dataISOEsiste) non sospende nessuno per sbaglio — la stessa lezione di «2026-02-30»");
+  // in forza E sospeso: sono due domande diverse, la sospensa resta in forza
+  const aAttiva = scudo.abilitazioneLavoratore({ id: "L1", attivo: true, sospesoFinoa: "2026-09-16" }, nessunRequisito, [], [], oggi);
+  eq(aAttiva.lavoratore.attivo, true, "sospeso ≠ non in forza: il campo attivo non si tocca");
+});
 test("collezioni di formazione e DPI assenti: nessun crash e nessun NaN", () => {
   const r = scudo.riepilogoMansioni([_mansFoch()], [{ id: "L1", attivo: true }], undefined, undefined,
                                     new Date("2026-07-29T12:00:00Z"));
