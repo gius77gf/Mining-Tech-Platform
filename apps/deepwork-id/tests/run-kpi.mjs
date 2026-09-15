@@ -18121,6 +18121,35 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(/Nessuno dei fronti registrati dichiara/.test(terra.conformitaProgetto(D.fronti.map((f) => ({ ...f, altezzaBancoM: null, pendenzaGradi: null })), D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche), "coi massimi ma senza misure lo dice");
     ok(/Nessun fronte registrato/.test(terra.conformitaProgetto([], D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche));
   });
+  test("⛔ Terra · sezionePeggiore (15/09, prima fetta della lacuna 2 sul sesto giro di ricerca): zero sezioni ricade sugli scalari, con sezioni sceglie la peggiore", () => {
+    const atto = { altezzaBancoMaxM: 15, pendenzaMaxGradi: 75 };
+    const fronte = { altezzaBancoM: 14, pendenzaGradi: 70 };
+    const base = terra.conformitaGeometria(fronte, null, atto);
+    eq(terra.sezionePeggiore(fronte, null, atto), { ...base, sezioneId: null, sezioneNome: null, nSezioni: 0 },
+      "senza `sezioni`: stesso identico verdetto di conformitaGeometria, più le tre chiavi nuove a vuoto");
+    eq(terra.sezionePeggiore({ ...fronte, sezioni: [] }, null, atto), { ...base, sezioneId: null, sezioneNome: null, nSezioni: 0 },
+      "un array vuoto si comporta come l'assenza");
+    eq(terra.sezionePeggiore({ ...fronte, sezioni: "boh" }, null, atto), { ...base, sezioneId: null, sezioneNome: null, nSezioni: 0 },
+      "una `sezioni` che non è un array non manda in errore: si tratta come vuota");
+    const conSezioni = { sezioni: [
+      { id: "s1", nome: "Punto A", altezzaBancoM: 14, pendenzaGradi: 70 },   // dentro
+      null,                                                                  // filtrata, non conta
+      { id: "s2", nome: "Punto B", altezzaBancoM: 15, pendenzaGradi: 78 },   // oltre — la peggiore
+      { id: "s3", nome: "Punto C", altezzaBancoM: 15 },                      // al-limite (solo altezza)
+    ] };
+    const p = terra.sezionePeggiore(conSezioni, null, atto);
+    eq([p.stato, p.sezioneId, p.sezioneNome, p.nSezioni], ["oltre", "s2", "Punto B", 3],
+      "tre sezioni valide (il null è filtrato): vince la peggiore, non la prima né una media");
+    eq(p.pendenza.margine, -3, "il margine riportato è quello della sezione vincente, non del fronte");
+    const tutteOk = terra.sezionePeggiore({ sezioni: [
+      { id: "s1", altezzaBancoM: 10, pendenzaGradi: 60 },
+      { id: "s2", altezzaBancoM: 11, pendenzaGradi: 62 },
+    ] }, null, atto);
+    eq([tutteOk.stato, tutteOk.sezioneId, tutteOk.nSezioni], ["dentro", "s1", 2],
+      "a parità di stato vince la prima incontrata, come già fa conformitaGeometria fra i due assi");
+    eq(terra.sezionePeggiore({ sezioni: [{ id: "s1", nome: "  " }] }, null, atto).sezioneNome, null,
+      "un nome bianco non è un nome: resta null, non una stringa vuota");
+  });
 }
 
 // ── Campo · riposo fra due turni ───────────────────────────────────────

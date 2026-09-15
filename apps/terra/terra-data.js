@@ -3667,7 +3667,7 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       lottoAmbiguo: ambiguo,
       lottiCondivisi: ambiguo ? candidati.map((l) => l.id) : [],
       ...conformitaQuota(f, lo, autorizzazione),
-      geometria: conformitaGeometria(f, lo, autorizzazione) };   // asse 4 (11/09)
+      geometria: sezionePeggiore(f, lo, autorizzazione) };   // asse 4 (11/09), sezioni multiple dal 15/09
   });
   const quanti = (s) => righe.filter((r) => r.stato === s).length;
   const misurate = righe.filter((r) => r.misurabile);
@@ -3804,6 +3804,32 @@ export function conformitaGeometria(fronte, lotto, autorizzazione) {
   const misurati = [altezza, pendenza].filter((a) => a.misurabile);
   const stato = misurati.length ? misurati.reduce((a, b) => (RANGO[b.stato] < RANGO[a.stato] ? b : a)).stato : "non-misurabile";
   return { stato, misurabile: misurati.length > 0, altezza, pendenza, perche: misurati.length ? "" : altezza.perche };
+}
+
+/* ⛔ LA PRIMA FETTA DI «SEZIONI TRASVERSALI MULTIPLE PER FRONTE» (15/09,
+   dal sesto giro di ricerca su Terra, lacuna 2 — scomposta il 15/09 nel
+   checkpoint 20260915-162437 prima di scrivere codice). Oggi un fronte porta
+   un'unica coppia (altezzaBancoM, pendenzaGradi): un fronte lungo può avere
+   punti diversi, e la conformità andrebbe giudicata sul punto PEGGIORE, non
+   su una media che lo nasconde. Il modello dati è additivo: `fronte.sezioni`
+   è un array OPZIONALE di `{id, nome, altezzaBancoM, pendenzaGradi}`; con
+   zero sezioni (il caso di OGGI, nessuna pagina le scrive ancora) il
+   risultato è identico a `conformitaGeometria(fronte, ...)`, quindi questo
+   pezzo si può collegare subito senza cambiare nessun contratto esistente.
+   Il form a righe ripetibili per scrivere le sezioni è la fetta successiva,
+   dichiarata e non ancora costruita. */
+export function sezionePeggiore(fronte, lotto, autorizzazione) {
+  const sezioni = Array.isArray((fronte || {}).sezioni) ? (fronte.sezioni || []).filter(Boolean) : [];
+  if (!sezioni.length)
+    return { ...conformitaGeometria(fronte, lotto, autorizzazione), sezioneId: null, sezioneNome: null, nSezioni: 0 };
+  const RANGO = { "oltre": 0, "al-limite": 1, "dentro": 2, "non-misurabile": 3 };
+  const valutate = sezioni.map((s) => ({
+    ...conformitaGeometria({ altezzaBancoM: s.altezzaBancoM, pendenzaGradi: s.pendenzaGradi }, lotto, autorizzazione),
+    sezioneId: s.id != null ? String(s.id) : null,
+    sezioneNome: s.nome != null && String(s.nome).trim() !== "" ? String(s.nome) : null,
+  }));
+  const peggiore = valutate.reduce((a, b) => (RANGO[b.stato] < RANGO[a.stato] ? b : a));
+  return { ...peggiore, nSezioni: sezioni.length };
 }
 
 // ══════════════════════════════════════════════════════════════════════
