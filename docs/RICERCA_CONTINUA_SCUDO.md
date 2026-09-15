@@ -1698,3 +1698,157 @@ tre e diversi), il finding 2 (terzo gradino di gravità per gli infortuni
 veri — tocca anche il rischio UNI 7249 segnalato sopra, va fatto insieme)
 e il finding 4 (stato aperto/chiuso e visita di rientro — dipende dal
 finding 3 appena fatto, ora possibile).
+
+---
+
+## 15/09 — sesto giro: le azioni correttive nate da un evento — chiusura, verifica, scadenza
+
+*Sesto giro su Scudo. Domanda mirata (non generica): dopo che un infortunio o
+un near-miss produce un'azione correttiva, chi si assicura che venga fatta
+davvero — con responsabile e scadenza — e chi segnala che è scaduta senza
+essere chiusa? Strumento: `WebSearch` (due ricerche mirate); `WebFetch` non
+provato (limite già misurato nei giri precedenti — `EGRESS_BLOCKED`), quindi
+tutta la metà sul mondo è di **seconda mano**, dai riassunti dei risultati,
+non dal testo primario.*
+
+### Come va, fuori [WebSearch, seconda mano — nessuna fonte letta per intero]
+
+- I sistemi CAPA (Corrective/Preventive Action) di riferimento assegnano ad
+  ogni azione **un solo responsabile**, una scadenza, una priorità e uno
+  stato; le regole di **escalation per il ritardo** sono definite a monte
+  (per proteggere che l'azione venga davvero eseguita), non lasciate al
+  caso.
+- **Escalation automatica**: i sistemi migliori mandano promemoria
+  automatici e, se l'azione resta scaduta, **la fanno salire al
+  responsabile superiore** (SLA configurabile per categoria di azione);
+  riepiloghi settimanali automatici al posto di doverli "rincorrere" a
+  mano.
+- **Chiusura ≠ verifica di efficacia**: lo standard ISO 45001 (clausola
+  10.2, che tratta esplicitamente **incidente** — mortale, con lesione o
+  **near-miss** — insieme alla non conformità) chiede non solo di fare
+  l'azione ma di **valutarne l'efficacia dopo** e di dire se il problema si
+  è ripresentato; il software di riferimento struttura la chiusura con
+  **evidenze allegate** e un passaggio di **verifica dell'efficacia**
+  prima della chiusura vera e propria — spesso fatto da una persona
+  diversa da chi ha eseguito l'azione.
+- **KPI citati come standard**: tasso di chiusura in tempo (on-time closure
+  rate), giorni medi per chiudere un'azione, tasso di segnalazioni
+  ripetute (repeat finding rate) — cioè quanto spesso la stessa causa
+  ritorna dopo che un'azione l'aveva già "chiusa".
+
+Fonti (risultati di ricerca, seconda mano):
+- EHS Insight — CAPA Management System: https://www.ehsinsight.com/capa-management-system
+- Operandio — Top 5 Corrective Action (CAPA) Software: https://operandio.com/corrective-action-software/
+- CORE EHS — Corrective & Preventive Action (CAPA) Software: https://coreehs.com/software/capa-tracking-softwarecapa/
+- EasyRCA — Corrective Action Software That Actually Works: https://easyrca.com/blog/corrective-action-software/
+- Speak Up 4 Safety — Corrective Action Plan: Steps, Examples & Tracking: https://speakup4safetyapp.com/blog/how-to-strengthen-corrective-action-plan-for-safer-workplace/
+- EHS Software (blog) — Corrective Action Management: From Open Item to Verified Fix: https://blog.ehssoftware.io/safetyinsiderblog/corrective-action-management
+- Certainty Software — 5 Corrective Action Examples (with Verified Closure): https://www.certaintysoftware.com/corrective-action-examples/
+- ISO-Docs — ISO 45001 Clause 10.2 The Incident, Nonconformity, and Corrective Action: https://iso-docs.com/blogs/iso-45001-standard/iso-45001-clause-10-2-the-incident-nonconformity-and-corrective-action
+- SBN Software — How Does Software Verify Corrective Action Effectiveness Over Time?: https://sbnsoftware.com/blog/how-does-software-verify-corrective-action-effectiveness-over-time/
+
+### Quello che Scudo ha già [verificato nel codice — è tanto, va detto con precisione]
+
+Il modello `azioni` (`scudo-data.js:403-408`, dichiarazione a riga 28) ha
+già: `responsabileId`, `scadenza`, `stato` (aperta/in-corso/chiusa),
+`esito`, `dataChiusura`, `origineTipo`/`origineId`/`origineNota`. Non è un
+database disaccoppiato dagli eventi (l'unica cosa che il quarto giro,
+11/09, aveva ancora dichiarato aperta — "visibile dalla schermata
+Infortuni" — risulta **già fatta**, `azioniDiEvento` compare nella pagina):
+
+- **Collegamento evento → azione, in un posto solo**: `azioniDiEvento` e
+  `azioniDiIspezione` (righe 1167-1174) risalgono da un infortunio/near-miss
+  o da una voce non conforme di ispezione alle sue azioni; e non solo da
+  Scudo — `ORIGINI_AMBIENTE` (Sentinella: superamento/reclamo/dopo-volata,
+  righe 1183-1190) e `ORIGINI_CAMPO` (fermo di produzione/checklist di
+  inizio turno, righe 1206-1209) fanno arrivare anche i fatti delle **altre
+  app** nello stesso scadenzario di azioni, con l'origine raccontata in un
+  posto solo (`origineAzione`, righe 1245-1287) sia per lo schermo sia per
+  il CSV — il documento che esce.
+- **Semaforo della scadenza**, con lo stesso schema di legge/documenti:
+  `statoAzione` (riga 1110) restituisce scaduta/in-scadenza/regolare
+  riusando `statoScadenza`, quindi un'azione senza data non risulta
+  tranquilla (principio del fondatore, già applicato qui dal 04/08).
+- **KPI e navigazione**: il Quadro ha la card "Azioni fuori tempo"
+  (`index.html:998`) cliccabile che porta alla pagina Azioni filtrata; la
+  pagina Azioni mostra i 5 più urgenti in ordine di scadenza
+  (`azioniUrgenti`, usata a `index.html:2232`) e il riepilogo
+  aperte/in-corso/chiuse/scadute/in-scadenza (`riepilogoAzioni`).
+- **Il responsabile**, deciso in un posto solo e condiviso con Sentinella
+  via `shared/dw-ponti.js` (`etichettaResponsabile`, righe 1134-1142): sa
+  distinguere "da assegnare" da "non più in anagrafica" (un lavoratore
+  cancellato non fa sparire in silenzio la responsabilità).
+- **La causa radice** è già tracciata a monte dell'azione: il modulo
+  `analisi` (righe 417-432) registra i "5 perché" e la categoria di causa,
+  collegati all'azione tramite `azioniId` — cioè l'azione non nasce senza
+  un perché scritto, per i due eventi analizzati nella dimostrazione.
+- **Export CSV** con tutti i campi (`CSV_PROSPETTO_AZIONI_INTESTAZIONE`,
+  riga 6364): descrizione, responsabile (nome risolto), scadenza, semaforo,
+  stato, esito, data di chiusura, origine — il foglio che uscirebbe per un
+  ispettore.
+
+Il meccanismo di fondo, quindi, **c'è** ed è più maturo di quanto un
+censimento superficiale avrebbe concluso.
+
+### Il delta (verificato nel codice, comandi con la loro uscita)
+
+**1 — CONFERMATO. Nessuna verifica di efficacia distinta dalla chiusura, e
+nessun secondo verificatore.**
+`grep -ciE "efficacia|verific(a|ato)Efficacia|verificatoDa|approvat" apps/scudo/scudo-data.js apps/scudo/index.html`
+→ **0** e **0**. Chiudere un'azione è un tap sul badge che fa scorrere lo
+stato `aperta → in-corso → chiusa` (`azioneStatoSuccessivo`, riga 1094) più
+un campo di testo libero `esito`: nessun campo dice **chi** ha controllato
+che l'azione avesse davvero risolto il problema, né **quando**, né se il
+controllo è stato fatto da una persona diversa da chi ha eseguito l'azione
+— che è esattamente il punto che la ISO 45001 10.2 e il software del mondo
+trattano come un passaggio distinto dalla chiusura.
+Come si vede: aprire un'azione chiusa nella pagina Azioni — lo storico
+mostra `stato: chiusa`, `esito` (testo libero), `dataChiusura`, e basta.
+Quanto costa: basso — un campo opzionale `verificaEfficacia: {fatta, quando,
+daChi, esito}` sul modello e una domanda in più nel modulo di chiusura
+(non bloccante, come il resto del principio del fondatore: assente ≠
+verificata).
+
+**2 — CONFERMATO. Nessuna escalation, nemmeno come promemoria manuale (che
+invece esiste per le scadenze personali).**
+`grep -n "notifica\|invia(\|email(" apps/scudo/scudo-data.js` → **0**
+occorrenze in tutto il modulo dati: nessun invio, automatico o manuale, in
+tutta l'app. Per le scadenze di documento/persona esiste almeno un
+promemoria **manuale** da copiare (`testoPromemoria`, riga 820, usato a
+`index.html:4568`); per le azioni correttive quello stesso bottone è
+esplicitamente **negato**: il messaggio d'errore alla riga 4573 di
+`index.html` dice testualmente *"Il promemoria si può preparare solo per
+la scadenza di un lavoratore"* — non è un'assenza casuale o dimenticata, è
+un ramo di codice che la esclude per nome. Un'azione scaduta risulta solo
+nel KPI passivo (il badge rosso "Azioni fuori tempo" nel Quadro, che va
+guardato) e nella pagina Azioni: nessuna forma di sollecito verso il
+responsabile, nemmeno manuale.
+Come si vede: aprire un'azione scaduta nella pagina Azioni — non c'è un
+bottone "Promemoria" come quello della scheda scadenze del lavoratore.
+Quanto costa: medio-basso — una `testoPromemoriaAzione(azione, lavoratori)`
+sul modello di `testoPromemoria` (stesso schema: scaduta/in-scadenza/senza
+data) più il bottone nella riga della lista Azioni. L'invio **automatico**
+resta fuori portata perché — dichiarazione, non un difetto di Scudo — **in
+tutto l'ecosistema Deepwork non esiste invio automatico di notifiche**
+(nessuna delle sei app ha una funzione di invio email/push): l'escalation
+"automatica" del mondo, oggi, si può realizzare solo come promemoria
+pronto da copiare, non come una spedizione reale.
+
+**3 — DICHIARATO, minore. Nessun KPI di tempo di chiusura o di recidiva.**
+`grep -n "giorni medi\|tempoMedio\|tassoChius\|onTime\|in tempo" apps/scudo/scudo-data.js`
+→ **0** occorrenze. `riepilogoAzioni` conta aperte/in-corso/chiuse/scadute/
+in-scadenza ma non il tempo medio di chiusura né quante azioni nascono
+dalla stessa causa ricorrente (per quello esiste già `causeRicorrenti`,
+ma è sulle CAUSE degli eventi, non sul tasso di successo delle azioni che
+le hanno chiuse). Non aperto come mancanza urgente — è un affinamento, non
+un buco nel principio del fondatore — ma dichiarato perché il mondo lo cita
+come KPI standard.
+
+**Riassunto** — 2 mancanze **confermate** (verifica di efficacia separata
+dalla chiusura; escalation/promemoria per azioni scadute — assente anche
+nella forma manuale che esiste già per le scadenze personali), 1
+**dichiarata** minore (KPI di tempo di chiusura/recidiva), e una conferma
+importante: il collegamento evento→azione→responsabile→scadenza→semaforo,
+che tre giri fa un censimento superficiale avrebbe potuto dichiarare
+mancante, è **già costruito, condiviso con due app esterne (Sentinella,
+Campo) e testato**.
