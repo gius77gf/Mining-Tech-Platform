@@ -1223,7 +1223,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -3664,7 +3664,7 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
   const box=$('d2-obiettivo-esito'); if(!box) return;
   const scarto=(msg)=>{ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(msg)+'</div>'; };
   if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
-  const g=measureGeom2D(), B=g.B, S=g.S, H=D2.prof;
+  const g=measureGeom2D(D2), B=g.B, S=g.S, H=D2.prof;
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
   const r=caricaDaX50Target(xt, volumeForo(B,S,H), A, RWS);
   if(!r.calcolabile){ scarto(r.che+'. '+r.come); return; }
@@ -3725,7 +3725,7 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const box=$('d2-confronta-esito'); if(!box) return;
   const scarto=(msg)=>{ box.innerHTML='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,202,40,.35);border-radius:8px;background:rgba(255,202,40,.07);color:#ffca28;font-size:13px;">'+_rEsc(msg)+'</div>'; };
   if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
-  const g=measureGeom2D(), Bnom=g.B, Snom=g.S;
+  const g=measureGeom2D(D2), Bnom=g.B, Snom=g.S;
   if(!(Bnom>0) || !(Snom>0)){ scarto('Manca il burden o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
   let righe=curvaBurdenCarica({ bMin:Math.max(1.5,Bnom-1), bMax:Bnom+1, passo:0.25,
@@ -3829,7 +3829,7 @@ if($('rilievoDevFile')) $('rilievoDevFile').onchange=async(e)=>{
 if($('btn-report')) $('btn-report').onclick=()=>{
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
-  const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
+  const k=computeKPI(), F=flyrockEst(), g=measureGeom2D(D2), E=selEsplosivo()||{}, I=selInnesco()||{}, R=selRoccia()||{};
   /* ⛔ QUESTA ERA LA SECONDA DELLE TRE COPIE della formula del costo, e il
      foglio è la cosa che si porta in cava: `kgTot = nf*D2.kg` con una carica
      per foro illeggibile faceva zero, e la sezione «Stima economica»
@@ -4837,7 +4837,7 @@ function _sentOggi(){ return oggiISO(); }   // stessa regola di shared/, un post
 function _sentDati(){
   if(!D2.holes.length) genMaglia2D();
   computeSeq2D();
-  const g=measureGeom2D(), k=computeKPI(), st=ppvSite(), _m=micDaMostrare(), mic=_m.mic;
+  const g=measureGeom2D(D2), k=computeKPI(), st=ppvSite(), _m=micDaMostrare(), mic=_m.mic;
   const nf=g.n||k.nf;                       /* i fori DAVVERO in pianta */
   /* ⛔ QUI IL `null` DEVE RESTARE `null` FINO ALLA CELLA. `Math.round(null*10)/10`
      fa **0**, e uno 0 nella colonna della carica massima per ritardo di un
@@ -5906,10 +5906,8 @@ function muckShape(){
    genesi-data.js come `misuraGeom2D(holes, Sprog, Bprog)` — stessa logica,
    stesso contratto sul null (vedi il commento lì, che spiega anche il
    TypeError che questa funzione uccideva in pagina prima della correzione
-   del 09/08), cambia solo che legge tre parametri invece di `D2` a mano. */
-function measureGeom2D(){
-  return misuraGeom2D(D2.holes, D2.S, D2.B);
-}
+   del 09/08). ⏱️ 15/09 (B3): anche il legame di una riga che stava qui è
+   uscito — `measureGeom2D(D2)` vive nel modulo, con lo stesso nome. */
 /* fronte modellabile (porting da Deepwork interpolaFronte): deviazione verticale
    del fronte in mx. ⛔ Il corpo è salito in `genesi-data.js` (blocco G9) il
    09/08: qui non c'era nessuna prova che potesse chiamarlo, e da quel numero
@@ -6375,7 +6373,7 @@ function renderScheda2D(){
     el.innerHTML='<div class="sv-card"><div class="sv-h"><b>Scheda volata</b><span class="sv-sub" style="color:#ffca28">Pianta non disegnabile: manca '+_rEsc(D2.magliaAssente)+'. Nessun foro è stato disegnato — una maglia non si inventa quando manca il dato che la genera.</span></div></div>';
     return;
   }
-  const g=measureGeom2D();
+  const g=measureGeom2D(D2);
   if($('d2-mat')) $('d2-mat').textContent='⛏ '+(selEsplosivo()?selEsplosivo().nome.split(' ')[0]:'—')+' · '+(selInnesco()?selInnesco().short:'—')+(D2.bagnato?' · 💧':'');
   if(document.activeElement!==$('dKgTot')) syncKgTot();
   const B=g.B, S=g.S, H=D2.prof, Dmm=D2.diam, Dm=Dmm/1000, Q=D2.kg, rit=D2.ritardo;
@@ -7453,7 +7451,7 @@ if($('dKg')) $('dKg').addEventListener('input', ()=>{ D2.kgAuto=false; });
    `caricaTotale`, che è la funzione del blocco G12 e risponde `null` quando
    non c'è niente da moltiplicare — `gsv` un `null` lo scrive come campo vuoto.
    Era la terza scrittura della stessa riga, ed è il difetto della copia debole. */
-function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',caricaTotale(measureGeom2D().n||0, D2.kg),0); }
+function syncKgTot(){ if($('dKgTot')) gsv('dKgTot',caricaTotale(measureGeom2D(D2).n||0, D2.kg),0); }
 if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
   /* ⛔ E SVUOTARLO NON VUOL DIRE «ZERO CHILI»: qui `tot` diventava 0, il ramo
      non partiva, e il campo restava VUOTO mentre la volata continuava ad avere
@@ -7471,7 +7469,7 @@ if($('dKgTot')) $('dKgTot').addEventListener('change', ()=>{
      il tetto del clamp, su un progetto che nessuno aveva toccato.
      Senza sapere quanti fori sono non si può dividere: si dice e non si
      riscrive niente. */
-  const n=(measureGeom2D().n || foriDiProgetto(D2.perRow, D2.file));
+  const n=(measureGeom2D(D2).n || foriDiProgetto(D2.perRow, D2.file));
   if(n===null || !(n>0)){
     toast('Non so su quanti fori dividere questa carica: la griglia di progetto (fori per fila × numero di file) non si legge. Riscrivila nei parametri.');
     syncKgTot(); return;

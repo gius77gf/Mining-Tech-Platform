@@ -3753,6 +3753,12 @@ export function misuraGeom2D(holes, Sprog, Bprog){
   if(!isFinite(Sm)) Sm=Sp;
   return { n:H.length, B:+Bm.toFixed(2), S:(Sm===null?null:+Sm.toFixed(2)), Lm:+(maxx-minx).toFixed(1) };
 }
+/* Trasloco B3 (15/09): il legame di pagina `measureGeom2D()` componeva SOLO
+   questa funzione con tre campi dello stato del progetto — sette punti di
+   chiamata, tenuto per il nome corto invece di ripetere i tre campi ad ogni
+   chiamata. Nessuna ragione per lasciarlo in pagina: stesso nome, lo stato
+   passato esplicito come primo argomento. */
+export function measureGeom2D(design){ return misuraGeom2D(design.holes, design.S, design.B); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    G36 · UN'ALTRA FETTA DI "GENESI CONTINUA A USCIRE DALLA PAGINA" (13/09)

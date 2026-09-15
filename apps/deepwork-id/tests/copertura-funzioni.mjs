@@ -607,8 +607,20 @@ const CONDIVISI = [
      (`D2.piede` al posto di `D2.holes`), catturato dal confronto con
      la chiamata diretta a `innescoSuMaglia`. Nessuno spostamento di
      bucket per altre funzioni, misurato confrontando `--elenco`
-     prima/dopo su una worktree. */
-  { file: "apps/genesi/genesi-data.js", fondo: 167,
+     prima/dopo su una worktree.
+     ⏱️ 15/09: `measureGeom2D(design)`. Il G35 del 13/09 aveva già
+     estratto `misuraGeom2D` ma lasciato in pagina il legame a zero
+     argomenti — sette punti di chiamata, tenuto per il nome corto.
+     Nessun wrapper lasciato: 138 funzioni nella pagina (era 139:
+     -1 per il legame tolto), bucket "1-2" 41→40 (nessuno spostamento
+     collaterale, a differenza di `mdlProfSnap`: i sette chiamanti
+     leggevano già abbastanza altre variabili di modulo), estraibili
+     49→48. Difetto iniettato provato e rimesso: uno scambio S/B nel
+     composer si vede SOLO nel caso senza fori (con fori veri la
+     spaziatura si ricalcola dalle posizioni, stessa famiglia di
+     `_spazTipico`/`computeInnesco2D`), catturato dal test dedicato
+     con `holes: []`. */
+  { file: "apps/genesi/genesi-data.js", fondo: 168,
     perche: "la vibrazione al recettore e la riconciliazione previsto-vs-reale: i due numeri di Genesi che decidono qualcosa" },
 ];
 /* Fuori per un motivo, non per dimenticanza. Le prime tre toccano il DOM o

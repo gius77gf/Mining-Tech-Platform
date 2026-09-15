@@ -27076,6 +27076,20 @@ console.log("\n— Campo: i file che escono —");
     ok(elenco.includes("micFinestra"), "e la pagina la importa da genesi-data.js");
     eq(typeof v.micFinestra, "function", "il modulo la esporta");
   });
+
+  test("⛔ Genesi · measureGeom2D (B3, trasloco con cambio di firma, 15/09)", () => {
+    /* il legame di pagina componeva SOLO `misuraGeom2D` con tre campi dello
+       stato del progetto, già provata sopra: qui basta provare che il
+       composer passi i CAMPI GIUSTI, nell'ordine giusto. ⚠️ Senza fori,
+       `misuraGeom2D` ripiega sui due campi così come arrivano — è l'UNICO
+       caso in cui uno scambio fra loro nel composer si vede, perché con
+       fori veri la spaziatura si ricalcola dalle posizioni e il ripiego non
+       serve mai (stessa trappola già presa su `_spazTipico`/`computeRelief2D`). */
+    eq(v.measureGeom2D({ holes: [], S: 3.5, B: 3 }), { n: 0, B: 3, S: 3.5, Lm: 0 },
+      "senza fori, il ripiego tiene S e B distinti: scambiarli qui li scambierebbe nella risposta");
+    eq(v.measureGeom2D({ holes: [{ mx: 0, my: 0 }, { mx: 3.5, my: 0 }], S: 99, B: 99 }).n, 2,
+      "e il conto è avvenuto davvero (non un no-op silenzioso)");
+  });
 }
 
 /* ⛔ `terra.numeroRegistrato` — la guardia che dal 07/08 vive anche dalla parte
@@ -29852,12 +29866,16 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
     /* 13/09 (G35): la funzione è salita in genesi-data.js — "Genesi continua
        a uscire dalla pagina". Il corpo, isolato allo stesso modo: un «non
        c'è più» su tutto il modulo direbbe di sì anche se la forma vecchia
-       vivesse in un'altra funzione. È l'ULTIMA funzione del file, quindi si
-       affetta fino alla fine invece che fino alla prossima dichiarazione. */
+       vivesse in un'altra funzione. ⏱️ 15/09 (B3): non è più l'ultima
+       funzione del file — subito dopo è salito `measureGeom2D(D2)`, il suo
+       stesso legame di pagina — quindi si affetta fino a QUELLA
+       dichiarazione invece che fino alla fine del file. */
     const srcGD35 = readFileSync(join(HERE, "../../genesi/genesi-data.js"), "utf8");
     const i = srcGD35.indexOf("export function misuraGeom2D(holes, Sprog, Bprog){");
     eq(i > 0, true, "il corpo di `misuraGeom2D` si trova nel modulo, con la firma nuova a tre parametri");
-    const corpo = srcGD35.slice(i);
+    const iFine = srcGD35.indexOf("export function measureGeom2D", i);
+    eq(iFine > i, true, "e subito dopo c'è il suo legame `measureGeom2D`");
+    const corpo = srcGD35.slice(i, iFine);
     eq(corpo.split("\n").length > 8, true, `il corpo guardato ha ${corpo.split("\n").length} righe, non è una fetta vuota`);
 
     eq(/S:\+Sm\.toFixed\(2\)/.test(corpo), false,
@@ -34297,8 +34315,8 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(quante(/\+D2\.ritardo\|\|25/g), 0, "e nemmeno il ritardo");
     /* il campo «carica totale»: senza sapere quanti fori sono, dividere per 1
        vuol dire assegnare a un foro solo la carica di tutta la volata */
-    eq(/measureGeom2D\(\)\.n \|\| foriDiProgetto\(D2\.perRow, D2\.file\)/.test(CODICE_G), true,
-      "e il campo della carica totale non divide più per un foro immaginario");
+    eq(/measureGeom2D\(D2\)\.n \|\| foriDiProgetto\(D2\.perRow, D2\.file\)/.test(CODICE_G), true,
+      "e il campo della carica totale non divide più per un foro immaginario (⏱️ 15/09, B3: measureGeom2D vive nel modulo, D2 esplicito)");
     eq(quante(/D2\.perRow\*D2\.file \|\| 1/g), 0, "il `|| 1` che riscriveva il progetto non c'è più");
     /* ⚠️ E DUE ALTRI CAMPI DELLA STESSA FAMIGLIA, chiusi nello stesso giro:
        il numero fori del pannello rapido ripiegava su 12 invece che sul valore

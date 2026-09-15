@@ -8469,9 +8469,9 @@ numero scritto dove non era stato misurato niente**.*
   nome apre il file sbagliato credendo che sia il più fresco.
 - Le decisioni: `docs/DECISIONI_WEEKEND.md` — pagina d'ingresso in cima.
 - Stato misurato al **15/09** (lanciando le suite, non a memoria — dopo aver
-  aggiunto a `run-kpi` la prova di `computeInnesco2D`,
-  cantiere B3: 2981→2982): **3.463 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2982, `run-stile` 328,
+  aggiunto a `run-kpi` la prova di `measureGeom2D`,
+  cantiere B3: 2982→2983): **3.464 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 2983, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 19, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -46,10 +46,10 @@ segnaposto («Funzione nav non ancora pronta»). Per aprirlo davvero si monta
 
 ## Le prove
 
-**3.463 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto la prova di `computeInnesco2D`, cantiere B3: 2982 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
+**3.464 prove girano senza rete e senza browser**, con `node` (contate lanciandole, non a memoria — al 15/09, dopo aver aggiunto la prova di `measureGeom2D`, cantiere B3: 2983 + 328 + 75 + 32 + 9 + 8 + 7 + 3 + 19):
 
 > ⚠️ **E quel numero conta NOVE suite, non tutto quello che gira.** Il giro
-> `node` completo esegue **3.928** asserzioni su **40** comandi.
+> `node` completo esegue **3.929** asserzioni su **40** comandi.
 > ⏱️ **Dal 09/08 quel numero non si scrive più a mano: lo stampa il giro**
 > (`node apps/deepwork-id/tests/giro-node.mjs`, riga «Asserzioni eseguite dal
 > giro»), col suo denominatore accanto — 22 comandi su 34 hanno una riga da
@@ -90,8 +90,8 @@ sei le app al 100%. Non è «provate bene» — è «non ce n'è nessuna che nes
 ancora guardato», che è il minimo e finora non c'era.
 
 ⚠️ **Quel 802 conta le sei app, non i moduli condivisi**, e la riga di riepilogo
-lo dice («in 6 app»). I condivisi si contano a parte — **331 su 331** in cinque
-moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **167/167**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
+lo dice («in 6 app»). I condivisi si contano a parte — **332 su 332** in cinque
+moduli: `dw-shell.js` **61/61**, `dw-ponti.js` **89/89**, `genesi-data.js` **168/168**, `genesi-formato.js` **9/9**, `pointcloud.js` **5/5**. Vanno guardati
 con più attenzione delle app, non con meno: una funzione sbagliata lì sbaglia in
 sei posti insieme.
 ⏱️ **Questi sei numeri sono invecchiati due volte in due giorni, e la seconda
@@ -109,7 +109,7 @@ esiste.
 
 ⛔ **E il 100% vale per il perimetro misurato, non per tutto il prodotto.**
 Le sei app hanno la loro logica in `apps/<nome>/<nome>-data.js`, che `node`
-importa. **Genesi no**: le sue **138 funzioni** stanno dentro
+importa. **Genesi no**: le sue **137 funzioni** stanno dentro
 `apps/genesi/genesi.html`, e da lì non si importano — di Genesi entrano nel
 conto solo i moduli già tirati fuori (`pointcloud.js`, `genesi-formato.js`,
 `genesi-data.js`, elencati con i loro conti nella tabella dei condivisi qui
@@ -126,12 +126,12 @@ funzioni si possono portare fuori **senza cambiargli la firma**:
 | variabili del modulo che legge | funzioni |
 |---|---|
 | nessuna — si porta fuori com'è | **23** |
-| una o due | **41** |
+| una o due | **40** |
 | da tre a cinque | 17 |
 | da sei a dieci | 18 |
 | più di dieci — lì è un rifacimento | 39 |
 
-Cioè **49 su 138 si estraggono senza rifare il modo in cui Genesi tiene il suo
+Cioè **48 su 137 si estraggono senza rifare il modo in cui Genesi tiene il suo
 stato**, e le restanti 89 sono una decisione di architettura.
 ⏱️ *49→48, 57→56 e 143→142 il 14/09 (B3, stesso giorno): `_snapXY(D2, v)`,
 l'ultimo "legame di una riga" rimasto nel blocco G34 (l'aggancio opzionale
@@ -186,6 +186,20 @@ nessuno spostamento di bucket per altre funzioni: i sei chiamanti
 leggevano già altre variabili proprie in numero sufficiente da non
 cambiare scaglione con l'aggiunta di `P`, misurato confrontando
 `--elenco` prima/dopo.*
+⏱️ *41→40, 49→48, 168 su 168 condivisi (era 167) e 138→137 il 15/09
+(B3, stesso giorno): `measureGeom2D(design)`. Il G35 del 13/09 aveva
+già estratto `misuraGeom2D` ma lasciato in pagina il legame a zero
+argomenti — sette punti di chiamata, tenuto per il nome corto invece
+di ripetere tre campi ad ogni chiamata. Nessuna ragione per lasciarlo
+in pagina: stesso nome, salito nel modulo con lo stato come primo
+argomento esplicito. Difetto iniettato provato e rimesso: uno scambio
+dei due campi nel composer si vede SOLO nel caso senza fori (con fori
+veri la spaziatura si ricalcola dalle posizioni, stessa famiglia di
+`_spazTipico`/`computeInnesco2D`), catturato dal test dedicato.
+Nessuno spostamento di bucket per altre funzioni: i sette chiamanti
+leggevano già abbastanza altre variabili di modulo, come per `crestZ`
+e a differenza di `mdlProfSnap`, misurato confrontando `--elenco`
+prima/dopo.*
 ⏱️ *52→49, 60→57 e 146→143 il 14/09 (B3, stesso giorno): TRE funzioni uscite
 insieme — `activeProf(D2)`, `d2HitTest(D2, px, py)`, `d2HitTestPt(D2, px, py)`
 — perché `d2HitTest`/`d2HitTestPt` compongono `puntoTela`/`indicePiuVicino`
