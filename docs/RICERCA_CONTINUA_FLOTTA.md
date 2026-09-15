@@ -1328,3 +1328,74 @@ resta quello di prima, parola per parola.
 ⏱️ **Resta aperta**: «frequenza fermi in aumento/calo» (terzo segnale
 della lacuna 1 — richiede storicizzare `durataFermo`/`giorniFermo` come
 serie, non solo un totale). È l'unica lacuna del sesto giro ancora aperta.
+
+---
+
+## 15/09 — settimo giro di ricerca mirata: decisioni di sostituzione mezzi e total cost of ownership
+
+**Tema**: Supporto alle decisioni di sostituzione dell'attrezzatura basato su costo totale di proprietà (TCO), ciclo di vita e analisi di convenienza economica fra riparazione e sostituzione.
+
+### Che cosa esiste già in Flotta
+
+**PASSO 1 - Verifica dei meccanismi** (ripetibile con `grep -in`):
+- `possessoDal`: data d'inizio possesso/locazione (ISO) — aggiunto 11/09
+- `costoPossessoAnnuo`: canone annuo di leasing o quota annua d'ammortamento (EUR) — aggiunto 11/09
+- `messaInServizio`: data di messa in servizio dell'attrezzatura (ISO) — aggiunto 11/09
+- `costoOrarioMezzo(interventi, rifornimenti)` — calcola costo orario medio per mezzo (interventi + carburante)
+- `costoControStoria(interventi, nomeMezzo)` — trend dei costi di manutenzione (finestra recente vs storico)
+- `consumoControStoria(rifornimenti, nomeMezzo)` — trend di consumo carburante
+- `affidabilitaFlotta(fermi, mezzi)` — tempo di fermo e perdita di disponibilità per mezzo
+- `ritmoOreMezzi(letture)` — ritmo di accumulo delle ore motore (previsione di tagliandi futuri)
+
+**Uscita grep**:
+```
+grep -n "possessoDal\|costoPossessoAnnuo\|messaInServizio" apps/flotta/flotta-data.js | head -5
+6:                        costoPossessoAnnuo? (€: canone di leasing o quota annua), possessoDal? (ISO) — dal 11/09 }
+223:    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore", costoPossessoAnnuo: 42000, possessoDal: "2024-01-15" },
+229:    { id: "m5", nome: "Perforatrice P2 — Epiroc", ore: 2980, area: "fronte Est", stato: "verifica", tipo: "perforatrice", messaInServizio: "2026-08-25" },
+530:export function primaVerificaDa(messaInServizio, giorni = 60) {
+```
+
+### PASSO 2 - Ricerca mirata: pratica mondiale su TCO e decisioni di sostituzione
+
+**Query WebSearch**: "fleet vehicle replacement decision total cost of ownership mining equipment 2026"
+
+**Risultati primari** (fonti di seconda mano — non verificate da primarie):
+1. **Total Cost of Ownership (TCO)**: include acquisition cost, fuel consumption, maintenance labor, parts, insurance, depreciation, disposal, e downtime cost. Mining equipment replacement è guidato da costo orario crescente e perdita di produttività.
+2. **Maintenance cost thresholds** (NFPA, industry practice): attrezzatura nuova ~$0.15–$0.25/hour (all-in: fuel + preventive maintenance); attrezzatura >10 anni ~$1.10+/hour (reactive repairs, downtime). Soglia tipica di sostituzione: quando la manutenzione supera il 60% del valore attuale o costo orario raddoppia.
+3. **Residual value** (leasing standard): equipment residuale tipico 1–5% del valore di acquisto a fine leasing (come già citato in RICERCA_FLOTTA 4, del 02/09).
+4. **Mining-specific**: decisione repowering vs. sostituzione dipende da produttività marginale, conformità normativa (emissioni), e costo di opportunità del fermo.
+5. **AEMP 2.0 / ISO 15143-3** telemetry standard (giro 3, già documentato): integra dati motore (ore, consumi, temperature, codici guasto) con costi per decisioni automizzate.
+
+**Dichiarazione di fonte**: tutti i numeri ($0.15–$0.25/hour, 60%, 1–5%) sono riportati da risultati di ricerca, non verificati da testi primari. La soglia del 60% è pratica dichiarata, non legge.
+
+### PASSO 3 - Delta: Flotta vs. pratica mondiale
+
+**Schermata**: Fasciicolo del mezzo (`fascicoloMezzo` in `index.html`). Mostra ore attuali, stato, manutenzioni, consumo carburante, costi di officina, tendenza di consumo e costo — ma NESSUN dato di ciclo di vita economico.
+
+**Che cosa non va**: Flotta traccia costi operativi (manutenzione, carburante) e disponibilità, ma NON calcola:
+- **Total Cost of Ownership (TCO)**: somma unica di acquisition + operating costs + downtime
+- **Costo orario ammortizzato**: `costoOrarioMezzo` include solo interventi + rifornimenti, non la quota di ammortamento del possesso annuale
+- **Età dell'attrezzatura e deprecazione**: `possessoDal` e `messaInServizio` esistono ma nessuna funzione le usa per calcolare anni di servizio o residuo
+- **Soglia di sostituzione**: nessun meccanismo per confrontare "cost to repair" (intervento singolo) vs. "cost to replace" (TCO di un mezzo nuovo)
+- **Previsione di convenienza**: nessun segnale quando il costo orario supera una soglia di industria (tipo i $1.10/h per mezzo >10 anni)
+
+**Come si vede**: Nella lista priorità (`prioritaOperative`), un mezzo vecchio che costa molto di manutenzione appare solo come "trend warn" (costo per intervento in aumento), non come "decision point: convenibile sostituirlo?". Chi legge vede i numeri e sa che costano molto, ma non ha un numero unico (TCO o costo orario ammortizzato) che dica sì/no.
+
+**Quanto costa** (sforzo per colmarla):
+- Calcolare età in anni: `etaMezziAnni(possessoDal, oggi)` — una riga, usabile in `costoOrarioMezzo` e in filtri
+- Amortizzare costo annuale: `costoAmmortizzatoOreAnnuali(costoPossessoAnnuo, oreAnnue)` — aggiunge quota possesso al costo orario
+- TCO su base storica: `tcoMezzo(mezzo, interventi, rifornimenti, anni_possesso)` — un'unica funzione che somma acquisition (costoPossessoAnnuo × anni) + operating costs (interventi + rifornimenti) + availability loss (downtime cost).
+- Soglia di sostituzione: `meritoDiSostituzione(mezzo, dati)` — segnala se TCO orario supera soglia di industria (60% di valore nuovo, o $1.10/h per >10 anni)
+
+**Come si misura**:
+- **Verifica d'esito**: per tre mezzi di età diversa (2, 6, 12 anni), `tcoMezzo` deve restituire somma di: (costoPossessoAnnuo × anni) + (sum interventi) + (sum rifornimenti). Controllare su una copia fissa che il numero cambi se si varia uno dei tre addendi.
+- **Accuratezza TCO orario**: per mezzo di 10 anni con 50.000 ore, costo possesso €50k/anno (€500k totale), interventi €120k, rifornimenti €180k → TCO totale €800k → €16/ora. Verificare che `tcoMezzo` non esca né 12/h (missing possesso) né 18/h (double-counting).
+- **Segnale soglia**: un mezzo a €1.50/ora deve accendere il segnale di sostituzione (oltre la soglia); uno a €0.90/h no. Testare su due ricette di dati, una per lado della soglia.
+- **Coerenza con costoOrarioMezzo**: il nuovo TCO orario deve dichiarare che cosa include e cosa no (es. «include amortamento, esclude downtime» se si sceglie di non pesare il fermo) — un conto nascosto è un conto che diverge dal vecchio senza che nessuno lo veda.
+
+### Note e fonti
+
+- **Tema già toccato?**: No. I giri precedenti hanno coperto AEMP 2.0, costi di manutenzione per intervento, consumo carburante, trend di affidabilità. Nessuno ha unificato questi nella decisione di sostituzione e ciclo di vita economico.
+- **False mancanze corrette**: no — il tema è genuino e misurabile.
+- **Checkpoint di progetto**: il commit `c3888fe` (fine 14/09) non contiene TCO, amortamento o segnale di sostituzione. La ricerca è contemporanea a quella data.
