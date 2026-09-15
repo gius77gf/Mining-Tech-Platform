@@ -39150,6 +39150,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const t4 = flotta.tagliandiInScadenza([{ id: "d", titolo: "D", mezzo: "Escavatore E1", orePreviste: 6370, dataPrevista: "2027-09-20" }], mezzi, [], oggi, 30);
     eq([t4.totale, t4.nonStimabili], [0, 1], "data oltre l'orizzonte e ore non stimabili: resta «da stimare» come prima, la data lontana non lo copre");
   });
+  /* ⛔ E IL «PRIMO DEI DUE» AVEVA DUE CONTRATTI (15/09, dalla ricerca a
+     rotazione): `urgenzaManutenzione` — la fonte unica dichiarata per
+     lista/scheda/ordini/Quadro — decide con RANGO_URGENZA (il colore); qui
+     dentro `conData` confrontava i «giorni grezzi», su due scale diverse
+     (0 fisso se già scaduta a ore, giorni di calendario veri sul lato
+     data): la STESSA coppia (ore, data) poteva uscire "via: ore" dalla
+     fonte unica e "via: data" dalla tessera del cruscotto. Riprodotto:
+     scaduta di 100 h E di 5 giorni, e a parità di colore "warn"/"warn". */
+  test("⛔ Flotta · tagliandiInScadenza: la tessera del cruscotto non contraddice più la scheda del mezzo", () => {
+    const oggi = new Date("2026-09-15T12:00:00Z"), mezzi = [{ nome: "Escavatore E1 — CAT 352", ore: 6100 }];
+    const scadPerTutto = { id: "e1", titolo: "T", mezzo: "Escavatore E1", orePreviste: 6000, dataPrevista: "2026-09-10" };
+    const u1 = flotta.urgenzaManutenzione(scadPerTutto, 6100, [], oggi);
+    const t1 = flotta.tagliandiInScadenza([scadPerTutto], mezzi, [], oggi, 30);
+    eq(u1.via, "ore", "la fonte unica: scaduta di più a ore (100h) che a data (5gg), comandano le ore");
+    eq(t1.voci[0].via, u1.via, "e il cruscotto adesso dice la stessa cosa: prima diceva «data»");
+    eq([t1.aOre, t1.aData], [1, 0], "un tagliando a ore, zero a data — prima era il contrario");
+
+    // il pareggio di colore (warn/warn), dove il criterio giusto conta di più
+    const letture = Array.from({ length: 20 }, (_, i) =>
+      ({ mezzo: "Escavatore E1", data: "2026-08-" + String(6 + i).padStart(2, "0"), ore: 5960 - (19 - i) * 8 }));
+    const vicini = { id: "e2", titolo: "T2", mezzo: "Escavatore E1", orePreviste: 6000, dataPrevista: "2026-09-18" };
+    const u2 = flotta.urgenzaManutenzione(vicini, 5960, [], oggi);
+    const t2 = flotta.tagliandiInScadenza([vicini], mezzi, letture, oggi, 30);
+    eq([u2.cls, u2.altra.cls], ["warn", "warn"], "pareggio di colore su tutt'e due le vie");
+    eq(t2.voci[0].via, u2.via, "a parità di colore vince chi ha deciso di più (le ore), qui come nella fonte unica");
+  });
   test("⛔ Flotta · prioritaOperative con ore E data: la peggiore, e il contatore ignoto non fa sparire la riga", () => {
     const oggi = new Date("2026-09-11T10:00:00");
     const mezzi = [{ nome: "Escavatore E1 — CAT", ore: 6000, stato: "operativo" }];

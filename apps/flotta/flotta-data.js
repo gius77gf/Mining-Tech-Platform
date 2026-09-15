@@ -4272,14 +4272,25 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
   for (const n of manutenzioni || []) {
     const mezzo = nomeBreve(n && n.mezzo);
     const base = { id: (n && n.id) || "", titolo: (n && n.titolo) || "Manutenzione", mezzo };
-    /* Un solo criterio in tutta l'app, ed è `urgenzaManutenzione`: a ore
-       comandano le ore, a data la data, con TUTT'E DUE la prima che arriva
-       (11/09). Qui la data si valuta PRIMA, così che se le ore non si possono
+    /* Un solo criterio in tutta l'app, ed è `urgenzaManutenzione` — ma fino
+       al 15/09 questo commento lo dichiarava e il codice non lo faceva:
+       `conData` qui sotto confrontava i «giorni grezzi» delle due vie, che
+       vivono su DUE SCALE diverse (sul lato ore uno stimato dal ritmo di
+       consumo, o 0 fisso se già scaduta; sul lato data i giorni di
+       calendario veri) — la stessa coppia (ore, data) poteva risultare "a
+       parità di colore" per `urgenzaManutenzione` (che decide con lo stesso
+       `RANGO_URGENZA` usato qui sotto) e "diseguale" per questa funzione,
+       con esito opposto: la scheda del mezzo diceva «SCADUTA (+100 h)», la
+       tessera del cruscotto contava lo stesso tagliando «1 a data». Adesso
+       il confronto usa `urgenza(...).cls`, lo stesso criterio, non i giorni.
+       Qui la data si valuta PRIMA, così che se le ore non si possono
        collocare (contatore ignoto, contatore sostituito) la data resti — un
        tagliando che sa quando cadere per data non va fra i «da stimare». */
     const dEntrambi = +(n && n.orePreviste) > 0 ? isoGiorno(n && n.dataPrevista) : null;
-    const gEntrambi = dEntrambi ? giorniTra(dEntrambi, oggi) : null;
-    const voceData = dEntrambi && gEntrambi <= oriz ? { ...base, via: "data", dataPrevista: dEntrambi, giorni: gEntrambi, scaduto: gEntrambi < 0, anche: "ore" } : null;
+    const uData = dEntrambi ? urgenza(dEntrambi, oggi) : null;
+    const gEntrambi = uData ? uData.giorni : null;
+    const voceData = uData && gEntrambi != null && gEntrambi <= oriz
+      ? { ...base, via: "data", dataPrevista: dEntrambi, giorni: gEntrambi, scaduto: gEntrambi < 0, anche: "ore" } : null;
     if (+(n && n.orePreviste) > 0) {
       const m = mezzoDi(mezzo);
       const ore = oreContatore(m);
@@ -4307,8 +4318,14 @@ export function tagliandiInScadenza(manutenzioni, mezzi, letture, oggi = new Dat
         daStimare.push({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: null, perche: u.perche });
         continue;
       }
-      // la voce a ore, e — se c'è anche una data — la prima delle due
-      const conData = (v) => !voceData ? v : (voceData.giorni < v.giorni ? voceData : { ...v, anche: "data" });
+      // la voce a ore, e — se c'è anche una data — la peggiore delle due,
+      // con lo STESSO criterio di `urgenzaManutenzione`: rango del colore,
+      // e a parità vince chi ha deciso di più (le ore, com'era)
+      const conData = (v) => {
+        if (!voceData) return v;
+        const ro = RANGO_URGENZA[u.cls] ?? 3, rd = RANGO_URGENZA[uData.cls] ?? 3;
+        return rd < ro ? voceData : { ...v, anche: "data" };
+      };
       if (u.mancano <= 0) {                     // già oltre le ore: è da fare adesso
         voci.push(conData({ ...base, via: "ore", orePreviste: +n.orePreviste, mancano: u.mancano, giorni: 0, scaduto: true }));
         continue;
