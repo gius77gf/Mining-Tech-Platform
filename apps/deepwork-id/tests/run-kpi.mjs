@@ -40184,6 +40184,36 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
     eq(sentinella.fogliaVolata(null).sezioni.length, 7, "null non rompe (sette sezioni dall'11/09, con «Dopo la volata»)");
   });
+  /* ⛔ DUE LETTURE, STESSO GIORNO, ENTRAMBE SENZA ORA — CHIAVE DEBOLE (15/09,
+     stessa famiglia di `_findVolata` del core, chiusa oggi). `ora` è
+     facoltativa nell'import CSV: quando la PPV confermata non la porta, la
+     ricerca per (data, ora) da sola prende la PRIMA in archivio, a
+     prescindere da quale sia quella vera — anche se è quella ANNULLATA,
+     nascondendo l'avviso di sicurezza. Con `ppv.valore` nel confronto il
+     caso qui sotto si risolve (i due valori sono diversi); quando anche il
+     valore combacia, si dichiara l'ambiguità invece di scegliere a caso. */
+  test("⛔ Sentinella · fogliaVolata: la lettura giusta si trova per valore, non solo per (data, ora) — e con vera ambiguità lo dice", () => {
+    const validaSenzaOra = { data: "2026-07-17", valore: 4.2, assi: { L: 1, T: 1, V: 4.2 } };
+    const annullataSenzaOra = { data: "2026-07-17", valore: 9.8,
+      origine: { annullata: { perche: "prova-strumento", quando: "2026-07-17T09:00:00" } } };
+    const puntoAmbiguo = { ...MON[0], letture: [validaSenzaOra, annullataSenzaOra] };
+    const Vsu = { ...V, ppvMisurata: 9.8, ppvOra: "" };   // la PPV confermata è quella ANNULLATA
+    const fA = sentinella.fogliaVolata(Vsu, { monitoraggi: [puntoAmbiguo] });
+    const fB = sentinella.fogliaVolata(Vsu, { monitoraggi: [{ ...puntoAmbiguo, letture: [annullataSenzaOra, validaSenzaOra] }] });
+    for (const [nome, f] of [["ordine A", fA], ["ordine B (invertito)", fB]]) {
+      ok(riga(f, "Misura dell'evento", "Attenzione") !== undefined,
+        nome + ": l'avviso di sicurezza c'è comunque, non dipende dall'ordine nell'archivio — " + JSON.stringify(f.sezioni.find(s => s.titolo === "Misura dell'evento").righe));
+    }
+    // il valore da solo, senza vera ambiguità di valore, trova la lettura giusta
+    ok(/dichiarata non valida/.test(riga(fA, "Misura dell'evento", "Attenzione")), "il valore (9,8) distingue le due letture: si trova quella vera, annullata");
+
+    // vera ambiguità: DUE letture con lo stesso giorno E lo stesso valore
+    const gemella = { data: "2026-07-17", valore: 9.8 };   // stesso valore dell'annullata, ma valida
+    const puntoVeroAmbiguo = { ...MON[0], letture: [annullataSenzaOra, gemella] };
+    const fAmb = sentinella.fogliaVolata(Vsu, { monitoraggi: [puntoVeroAmbiguo] });
+    eq(riga(fAmb, "Misura dell'evento", "Componenti dell'evento"), "più di una lettura di questo punto combacia con questa PPV (stessa data, stesso valore): non si sa quale sia quella confermata", "l'ambiguità si dichiara, non si sceglie a caso");
+    ok(/non valida/.test(riga(fAmb, "Misura dell'evento", "Attenzione") || ""), "e siccome UNA delle due candidate è annullata, l'avviso resta acceso per prudenza");
+  });
   test("Sentinella · fogliaVolata, la regola del giudizio: lo stesso limite, lo stesso verdetto e la stessa banda dello schermo", () => {
     const P = { ...MON[0], sogliaPreset: "din-res-fond", ricettoreId: "rc1" };
     const RIC = [{ id: "rc1", nome: "Casa Bianchi", soglia: 5, unita: "mm/s" }];

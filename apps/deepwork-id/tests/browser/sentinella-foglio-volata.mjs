@@ -47,7 +47,16 @@ const DIFETTI_MODULO = [
   // 3 · e i reclami assenti pure
   [`[["Reclami", "nessun reclamo registrato quel giorno", false]]`, `[["Reclami", "—", false]]`],
   // 2 · la lettura si cerca per data e basta: esce quella sbagliata
-  [`&& (!ppv.ora || String(l.ora || "") === ppv.ora)) || null : null;`, `) || null : null;`],
+  // (15/09: il codice si è mosso — da un .find() a chiave debole (data,ora) a
+  // un .filter() che aggiunge ppv.valore e dichiara l'ambiguità invece di
+  // sceglierne una — l'iniezione torna a "solo data, prima trovata, mai ambigua")
+  [`        && (!ppv.ora || String(l.ora || "") === ppv.ora)
+        && Number.isFinite(+((l || {}).valore)) && +l.valore === ppv.valore) : [];
+      const ambigua = candidati.length > 1;
+      lettura = candidati.length === 1 ? candidati[0] : null;`,
+   `) : [];
+      const ambigua = false;
+      lettura = candidati[0] || null;`],
   // 5 · «che cosa manca» non viene dichiarato: la riga resta ma l'elenco e la marca spariscono
   [`const manca = (etichetta, testo) => { nonMisurati.push(etichetta + " (" + testo + ")"); return [etichetta, testo, true]; };`,
    `const manca = (etichetta, testo) => [etichetta, testo, false];`],

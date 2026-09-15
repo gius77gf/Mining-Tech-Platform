@@ -5207,12 +5207,34 @@ export function fogliaVolata(v, opts = {}) {
     righeMisura.push(["PPV misurata", numeroIt(ppv.valore) + " mm/s · " + testoFontePpv(ppv), false]);
     if (ppv.fonte === PPV_STRUMENTO) {
       punto = mon.find(m => m && m.id === ppv.puntoId) || null;
-      lettura = punto ? (punto.letture || []).find(l => l && String(l.data || "").slice(0, 10) === ppv.data && (!ppv.ora || String(l.ora || "") === ppv.ora)) || null : null;
+      /* ⛔ CHIAVE DEBOLE, PIÙ CANDIDATI (15/09, stessa famiglia di `_findVolata`
+         nel core, chiusa oggi): cercare la lettura per (data, ora) sceglieva in
+         silenzio la PRIMA in archivio quando `ora` è vuota (facoltativa
+         nell'import) e più letture dello stesso punto cadono nello stesso
+         giorno — poteva far sparire l'avviso "lettura dichiarata non valida"
+         se la lettura confermata era quella annullata ma non la prima
+         nell'array. `ppv.valore` (il numero che l'utente ha confermato) è già
+         scritto sulla volata: si aggiunge al confronto, e con più di un
+         candidato residuo si dichiara l'ambiguità invece di sceglierne uno. */
+      const candidati = punto ? (punto.letture || []).filter(l => l
+        && String(l.data || "").slice(0, 10) === ppv.data
+        && (!ppv.ora || String(l.ora || "") === ppv.ora)
+        && Number.isFinite(+((l || {}).valore)) && +l.valore === ppv.valore) : [];
+      const ambigua = candidati.length > 1;
+      lettura = candidati.length === 1 ? candidati[0] : null;
       const ev = lettura ? descriviEvento(lettura) : "";
       if (ev) righeMisura.push(["Componenti dell'evento", ev, false]);
-      else righeMisura.push(manca("Componenti dell'evento", lettura ? "la lettura non porta assi, frequenza o aria" : punto ? "lettura non trovata nel punto «" + (punto.nome || punto.id) + "»" : "punto di misura non trovato" + (ppv.puntoId ? " (" + ppv.puntoId + ")" : "")));
+      else righeMisura.push(manca("Componenti dell'evento",
+        ambigua ? "più di una lettura di questo punto combacia con questa PPV (stessa data, stesso valore): non si sa quale sia quella confermata"
+          : lettura ? "la lettura non porta assi, frequenza o aria"
+          : punto ? "lettura non trovata nel punto «" + (punto.nome || punto.id) + "»"
+          : "punto di misura non trovato" + (ppv.puntoId ? " (" + ppv.puntoId + ")" : "")));
       if (lettura) righeMisura.push(["Provenienza della lettura", descriviProvenienza(lettura, punto), false]);
       if (lettura && !letturaValida(lettura)) righeMisura.push(["Attenzione", "la lettura è stata dichiarata non valida: " + annullamentoDi(lettura).etichetta, true]);
+      // l'ambiguità non deve nascondere un allarme di sicurezza: se anche solo
+      // una delle letture in dubbio è stata annullata, l'avviso resta acceso
+      else if (ambigua && candidati.some(l => !letturaValida(l)))
+        righeMisura.push(["Attenzione", "fra le letture che combaciano con questa PPV almeno una è stata dichiarata non valida: verificare a mano quale sia la misura vera", true]);
     }
   } else if (volataPrevista(x)) righeMisura.push(["PPV misurata", "non ancora sparata: nessuna misura", false]);
   else righeMisura.push(manca("PPV misurata", "non ancora collegata"));
