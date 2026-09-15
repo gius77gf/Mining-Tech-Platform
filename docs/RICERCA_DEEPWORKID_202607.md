@@ -462,3 +462,36 @@ dati restano dell'organizzazione, ma "restano" non è lo stesso di
 
 **Non implementato**: è per definizione una decisione, non un fix — va in
 `docs/DECISIONI_WEEKEND.md` come nuova voce, non nel codice.
+
+---
+
+## 15/09 — riverifica di R4 contro il codice vero (terzo giro di ricerca del giorno)
+
+R4 ("la revoca non è immediata") diceva già, correttamente, che sul
+percorso gratuito attuale "il claim resta valido" finché non si rilancia
+un aggiornamento manuale: quella parte non è una scoperta di oggi. La
+riverifica ha aggiunto un fatto verificato riga per riga che R4 non
+conteneva: **oggi non esiste nemmeno lo strumento per rilanciarlo.**
+
+- `apps/deepwork-id/ATTIVAZIONE_LIVE.md`: il progetto live gira sul piano
+  gratuito Spark ("niente Cloud Functions, niente Blaze"). Le funzioni
+  `onMemberWrite`/`rebuildClaims`/`removeMember` esistono nel repository
+  (e sono testate: 91 prove sotto l'emulatore) ma **non sono mai state
+  deployate**.
+- `grep -rn "revokeRefreshTokens|disableUser" apps/deepwork-id
+  --exclude=node_modules` → 0 usi reali (solo `input.disabled` HTML,
+  non c'entra).
+- `ls apps/deepwork-id/scripts/` → solo `bootstrap-owner.mjs`. Nessuno
+  script di rimozione/revoca esiste oggi.
+
+Conseguenza: se un membro venisse rimosso cancellando a mano il documento
+`members/{uid}` dalla console Firebase, nessun trigger se ne
+accorgerebbe (non deployato) — il claim resterebbe quello di prima **a
+tempo indeterminato**, non "circa un'ora", finché qualcuno non lo
+riscrivesse a mano con l'Admin SDK.
+
+**Non implementato**: la proposta **P1** di questo stesso documento
+(regole Firestore che leggono `members/{uid}` con `get()` invece del
+solo custom claim) risolverebbe il problema **senza il piano Blaze**, ma
+non è mai stata costruita. È una decisione di sicurezza multi-tenant, non
+un fix automatico: voce **31** in `docs/DECISIONI_WEEKEND.md`.

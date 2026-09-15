@@ -177,6 +177,17 @@ test("righeCsvNumerate: la controprova — se tornasse a numerare l'elenco filtr
     throw new Error(`la vecchia regola (posizione nell'elenco) avrebbe detto "${numeriVecchi}", uguale alla nuova "${numeriNuovi}": la controprova non distingue`);
   eq(numeriVecchi, "1,2", "la vecchia regola diceva 1 e 2 — il difetto vero, riprodotto");
 });
+test("righeCsvNumerate: un PREDICATO al posto della parola chiave (15/09, per scartiLavoratoriCsv) — stesso comportamento fisico", () => {
+  // scudo.scartiLavoratoriCsv riconosce l'intestazione guardando la prima
+  // CELLA già scomposta ("nome" o "azienda"), non isIntestazione: il
+  // contratto a stringa resta quello di sempre, e un predicato fa lo stesso
+  // lavoro sulla riga di testo grezza.
+  const soloCella = (riga) => /^(nome|azienda)$/i.test((riga.split(";")[0] || "").trim());
+  const r = righeCsvNumerate("nome;azienda\n\nMario Rossi;Cave Alfa\n\n\nLuigi Verdi;Beta Srl\n", soloCella);
+  eq(r.map((x) => x.nRiga).join(","), "3,6", "la 1 (intestazione: prima cella 'nome') e le vuote (2,4,5) non entrano; le due righe di dati restano alla loro riga fisica");
+  eq(righeCsvNumerate("qualcosa;altro", () => true).length, 0, "un predicato che dice sempre sì scarta tutto");
+  eq(righeCsvNumerate("qualcosa;altro", () => false).length, 1, "un predicato che dice sempre no non scarta niente");
+});
 
 /* ── UNA DATA ESISTE DAVVERO? ─────────────────────────────────────────
    Nata il 03/08 da un difetto vero in Scudo: l'import delle scadenze filtrava

@@ -33199,6 +33199,12 @@ const SCARTI_PROVATI = new Set();
     eq(cl.persi[0].nome, "riga 4", "nome vuoto: 'riga N' fisica");
   });
 
+  test("⛔ B15 (15/09): scudo.scartiLavoratoriCsv migrato con un PREDICATO al posto di una parola chiave, stessa prova", () => {
+    const l = scudo.scartiLavoratoriCsv("nome;ruolo;tel\nMario Rossi;operatore;123\n\n;autista;456\n");
+    eq(l.persi.length, 1);
+    eq(l.persi[0].nome, "riga 4", "1=intestazione (prima cella 'nome'), 2=sana, 3=bianca, 4=rotta (nome vuoto)");
+  });
+
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
      una dichiarazione che nessuno legge non protegge niente. Il difetto vero
      non è la funzione che manca, è la funzione che c'è e che nessuno chiama —

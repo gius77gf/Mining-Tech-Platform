@@ -8534,12 +8534,14 @@ numero scritto dove non era stato misurato niente**.*
   condivisa (dal delta della riverifica su PAROLE) migrata ai primi due
   lettori di Terra, 3034→3035, a un secondo lotto (Scudo, Sentinella: sei
   lettori in più), 3035→3036, a un terzo (Campo, Flotta: quattro lettori
-  in più), 3036→3037, e a un quarto (Conti: tre lettori standard in più —
-  i 18 lettori standard sono ora tutti migrati, restano sei forme non
-  standard), 3037→3038):
-  **3.529 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3038, `run-stile` 328,
-  `run-helpers` 82, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
+  in più), 3036→3037, a un quarto (Conti: tre lettori standard in più —
+  i 18 lettori standard sono ora tutti migrati), 3037→3038, e infine —
+  dopo aver esteso la funzione per accettare anche un predicato oltre a
+  una parola chiave — a `scartiLavoratoriCsv` di Scudo (restano cinque
+  forme non standard), 3038→3039):
+  **3.531 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3039, `run-stile` 328,
+  `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`

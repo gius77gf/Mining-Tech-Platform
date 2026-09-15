@@ -3335,13 +3335,11 @@ export function parseLavoratoriCsv(text) {
    un'invariante che si può controllare, non un conto da credere. */
 export function scartiLavoratoriCsv(text) {
   const intestazione = (c) => /^(nome|azienda)$/i.test(String(c == null ? "" : c).trim());
-  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
-    .filter(r => !intestazione(parseCsvLine(r)[0]));
+  const righe = righeCsvNumerate(text, (r) => intestazione(parseCsvLine(r)[0]));
   const persi = [];
   const visti = new Set();
-  let nRiga = 0, vuote = 0, ripetute = 0;
-  for (const riga of righe) {
-    nRiga++;
+  let vuote = 0, ripetute = 0;
+  for (const { nRiga, riga } of righe) {
     const c = parseCsvLine(riga);
     if (parseLavoratoriCsv(riga).length) {
       /* il doppione lo decide `senzaDoppioni`, che il lettore chiama sul file

@@ -10,14 +10,19 @@ può procedere con l'attuazione.
 
 ---
 
-## 🟡 15/09 — due decisioni nuove, da due giri di ricerca su Deepwork ID
+## 🟡 15/09 — tre decisioni nuove, da tre giri di ricerca su Deepwork ID
 
 *Il secondo giro di ricerca mirata (Deepwork ID, mai passata al setaccio finora
 in questa sessione) ha trovato un verdetto scaduto in
 `docs/REVISIONE_SICUREZZA_202607.md` — corretto in questa stessa unità, non è
 una decisione — e un candidato di scope che invece lo è. Il sesto giro (stessa
 sessione, ore dopo) ne ha trovato un secondo, sull'invito/rimozione dei
-membri.*
+membri. Un terzo giro, più tardi lo stesso giorno, ha riverificato la revoca
+degli accessi contro il codice vero: R4 (26/07) aveva già scritto che sul
+percorso gratuito il claim "resta valido" finché non si rilancia un
+aggiornamento manuale — non una scoperta nuova — ma oggi si conferma che
+manca anche lo script per farlo, e la proposta P1 che risolverebbe tutto
+senza costi non è mai stata costruita.*
 
 - [ ] **29. Conti: il DDT (`pesate`) resta fuori da `documentoEmesso` — va
   aggiunto come quarta collezione protetta?** La decisione 10b (07/08) ha
@@ -63,6 +68,40 @@ membri.*
   informazione, ma è **la tua chiamata**: cambia il modo in cui "chi era in
   questa cava" si racconta a un ispettore o in un contenzioso, ed è
   esattamente il tipo di decisione che questo file esiste per raccogliere.
+- [ ] **31. La revoca di un membro: R4 aveva già scritto "peggio di
+  un'ora" il 26/07 — oggi si conferma che manca anche lo strumento per
+  farla, non solo il tempismo.** `docs/RICERCA_DEEPWORKID_202607.md`
+  (R4) diceva già, correttamente, che sul percorso gratuito attuale "il
+  claim resta valido" finché non si rilancia un aggiornamento manuale —
+  quindi la parte "non è immediata" NON è una scoperta di oggi. Quello che
+  la riverifica del 15/09 ha aggiunto, verificato riga per riga: **oggi
+  non esiste nemmeno lo script da rilanciare.** `apps/deepwork-id/
+  ATTIVAZIONE_LIVE.md` conferma che il progetto live gira sul piano
+  gratuito Spark ("niente Cloud Functions"): `onMemberWrite`/
+  `rebuildClaims`/`removeMember` esistono nel repository ma non sono mai
+  state deployate, e `ls apps/deepwork-id/scripts/` mostra solo
+  `bootstrap-owner.mjs` — nessuno script di rimozione. Se il fondatore
+  cancellasse a mano un documento `members/{uid}` dalla console Firebase,
+  nessun trigger se ne accorgerebbe: il claim resterebbe quello di prima
+  finché qualcuno non lo riscrivesse a mano con l'Admin SDK (strumento che
+  oggi non c'è). La voce 30 qui sopra presuppone che `removeMember` giri:
+  oggi non gira, e la proposta **P1** di R4 (regole che leggono il
+  documento di membership invece del solo claim, `docs/
+  RICERCA_DEEPWORKID_202607.md` riga 310) è già la strada giusta per
+  risolverlo **senza il piano a pagamento** — non è mai stata presa in
+  costruzione. **Perché serve una decisione, non un'unità automatica**:
+  tocca la sicurezza multi-tenant fra aziende concorrenti (massima
+  priorità dichiarata in CLAUDE.md) e una scelta già presa dal fondatore
+  (niente Blaze per ora). **Le strade**: (a) costruire P1 — far leggere
+  alle regole Firestore il documento `members/{uid}` con `get()`, gratis
+  su Spark, con il costo di una lettura in più per ogni valutazione di
+  regola, e la parte ancora da decidere di CHI/COME cancella la
+  membership senza una Cloud Function (oggi `allow write: if false` dal
+  client); (b) attivare Blaze e deployare le funzioni già scritte (P20);
+  (c) accettare il rischio per ora, dichiarato qui invece che lasciato
+  scritto solo in un documento di ricerca di due mesi fa. **Che cosa
+  serve da te**: quale delle tre — e se (a), l'autorizzazione a costruire
+  P1, che oggi è solo una proposta.
 
 ---
 
@@ -335,7 +374,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **17**
+# 📖 Da dove cominciare — le decisioni aperte sono **18**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -1726,7 +1765,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.529** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.531** *(ricontate il 15/09, dopo aver
 aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
 numero di riga fisico nel file al posto della posizione nell'elenco già
 scartato, dal delta della riverifica sul documento invecchiato PAROLE — e
@@ -1736,8 +1775,11 @@ migrati quattro lotti (`scartiFrontiCsv`/`scartiRilieviCsv` di Terra,
 di Sentinella, `scartiSquadreCsv`/`scartiPianoCsv` di Campo,
 `scartiRicambiCsv`/`scartiMezziCsv` di Flotta,
 `scartiFattureCsv`/`scartiGareCsv`/`scartiListinoCsv` di Conti — i 18 lettori
-in forma standard sono tutti migrati: restano sei forme non standard, basate
-su celle già parsate invece che su testo grezzo),
+in forma standard sono tutti migrati), poi estesa `righeCsvNumerate` per
+accettare anche un predicato oltre a una parola chiave (senza cambiare il
+contratto a stringa per chi già la usa) e migrato con lei
+`scudo.scartiLavoratoriCsv` — restano cinque forme non standard, basate
+su celle già parsate invece che su testo grezzo,
 dopo aver aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
 trasversali per fronte, additiva e collegata subito al posto di
 `conformitaGeometria` senza cambiare nessun contratto — dopo aver aggiunto a

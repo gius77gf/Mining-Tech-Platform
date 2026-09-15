@@ -438,13 +438,24 @@ export function isIntestazione(row, primaColonna) {
    stesso insieme che ogni lettore toglieva già, quindi `righe.length` (e di
    conseguenza `lette = righe.length - vuote`) non cambia: cambia solo il
    numero che finisce nel messaggio. */
-export function righeCsvNumerate(text, primaColonna) {
+/* ⚠️ (15/09) UN LETTORE, `scartiLavoratoriCsv`, non riconosce l'intestazione
+   con `isIntestazione` (una parola sola prima del separatore): la sua
+   accetta "nome" O "azienda" sulla prima CELLA già scomposta. Prima di
+   allargare il contratto qui — che avrebbe rotto i 18 chiamanti già
+   migrati a una sola parola chiave — si accetta anche un PREDICATO: una
+   funzione che riceve la riga di testo e decide da sola. Il contratto a
+   stringa resta quello di sempre e produce lo stesso identico risultato
+   per chi lo usa già. */
+export function righeCsvNumerate(text, primaColonnaOPredicato) {
+  const eIntestazione = typeof primaColonnaOPredicato === "function"
+    ? primaColonnaOPredicato
+    : (riga) => isIntestazione(riga, primaColonnaOPredicato);
   const tutte = String(text || "").split(/\r?\n/);
   const righe = [];
   for (let i = 0; i < tutte.length; i++) {
     const riga = tutte[i].trim();
     if (!riga) continue;
-    if (isIntestazione(riga, primaColonna)) continue;
+    if (eIntestazione(riga)) continue;
     righe.push({ nRiga: i + 1, riga });
   }
   return righe;
