@@ -2158,7 +2158,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (tra && !dataISOEsiste(tra)) {
       esito("dss-esito", "La data di trasmissione all'autorità di vigilanza non si legge. Lasciala vuota se non la sai: qui un campo vuoto vale più di una data inventata.", "err"); return; }
     if (!mot) {
-      esito("dss-esito", "Scegli perché il DSS è stato rivisto: prima stesura, revisione periodica, dopo un evento o dopo una modifica delle lavorazioni.", "err"); return; }
+      esito("dss-esito", "Scegli perché il DSS è stato aggiornato: prima stesura, certificazione annuale, dopo un evento o dopo una modifica delle lavorazioni.", "err"); return; }
     /* La revisione prima non sparisce: `aggiornaCicloDss` la conserva in
        `dssStorico` quando la data cambia, e lo dice nella striscia. */
     const agg = aggiornaCicloDss(doc, { dssRevisione: rev, dssMotivo: mot, dssTrasmissione: tra || null });

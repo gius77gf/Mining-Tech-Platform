@@ -2908,17 +2908,37 @@ export function verificheDaSistemare(scadenze, documenti, oggi = new Date()) {
 // parere legale» — e la periodicità di dodici mesi è quella del preset
 // `dss-certif`, cioè una PROPOSTA, non una verità di legge riga per riga.
 
-// Perché il DSS è stato rivisto. I due motivi «dopo…» sono i fatti che la
-// norma indica come scatenanti; gli altri due sono il calendario e l'origine.
+/* Perché il DSS è stato rivisto. I due motivi «dopo…» sono i fatti che la
+   norma indica come scatenanti la REVISIONE (contenuto del documento che
+   cambia); gli altri due sono il calendario e l'origine.
+   ⚠️ «periodica» NON è una revisione nello stesso senso delle altre tre —
+   trovato dalla ricerca continua del 15/09 su `docs/RICERCA_CONTINUA_NORME.md`
+   e riverificato sulla fonte primaria (art. 6 del decreto, letto via
+   ricerca, non solo di seconda mano): il comma 2 chiede un'ATTESTAZIONE
+   annuale che i luoghi di lavoro restino efficienti e sicuri, non una
+   riscrittura del documento — la revisione vera scatta solo dopo
+   modifiche o incidenti significativi (comma 3), che sono gli altri due
+   motivi di questo elenco. L'etichetta diceva «Revisione periodica» mentre
+   il `riferimento` accanto — rimasto INVARIATO da prima di questa
+   correzione — già descriveva correttamente una certificazione: il numero
+   era giusto, l'etichetta mentiva. Corretta per essere lo stesso termine
+   già usato in `SCADENZE_PRESET` («dss-certif», «certificazione annuale»)
+   invece di inventarne uno diverso per la stessa cosa.
+   ⛔ Non toccata la PERIODICITÀ (12 mesi, `MESI_CERTIF_DSS`): resta una
+   PROPOSTA dichiarata — «non una verità di legge riga per riga» — perché
+   la ricerca conferma che un evento annuale è dovuto per legge, non ne
+   contesta la cadenza. Cambiare il semaforo dei 13 mesi sarebbe un'altra
+   decisione, non fatta qui: tocca come Scudo segnala la conformità
+   all'ispettore, e questa correzione riguarda solo la PAROLA sbagliata. */
 export const MOTIVI_REVISIONE_DSS = [
   { chiave: "prima-stesura", nome: "Prima stesura",
     riferimento: "D.Lgs 624/96 art. 6 — il DSS è redatto prima dell'inizio dei lavori." },
-  { chiave: "periodica", nome: "Revisione periodica",
-    riferimento: "D.Lgs 624/96 art. 6 — il datore di lavoro certifica ogni anno l'attualità del documento." },
+  { chiave: "periodica", nome: "Certificazione annuale",
+    riferimento: "D.Lgs 624/96 art. 6 comma 2 — un'attestazione che i luoghi di lavoro, le attrezzature e gli impianti restano efficienti e sicuri: non richiede di per sé riscrivere il documento, a differenza dei due motivi «dopo…» qui sotto." },
   { chiave: "dopo-evento", nome: "Dopo un infortunio o un incidente",
-    riferimento: "D.Lgs 624/96 artt. 6 e 10 — la data la fissa l'evento, non il calendario." },
+    riferimento: "D.Lgs 624/96 art. 6 comma 3 — la data la fissa l'evento, non il calendario." },
   { chiave: "dopo-modifica", nome: "Dopo una modifica delle lavorazioni",
-    riferimento: "D.Lgs 624/96 artt. 6 e 10 — nuovo fronte, nuovo metodo di coltivazione, nuovo impianto." },
+    riferimento: "D.Lgs 624/96 art. 6 comma 3 — nuovo fronte, nuovo metodo di coltivazione, nuovo impianto." },
 ];
 export function motivoRevisioneDss(chiave) {
   return MOTIVI_REVISIONE_DSS.find((m) => m.chiave === chiave) || null;

@@ -20530,6 +20530,21 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
     eq(scudo.motivoRevisioneDss("dopo-evento").nome, "Dopo un infortunio o un incidente");
     eq(scudo.motivoRevisioneDss("inventato"), null, "una chiave sconosciuta non inventa un motivo");
     eq(scudo.motivoRevisioneDss(""), null);
+    /* ⛔ «periodica» NON È UNA REVISIONE (ricerca continua, 15/09,
+       docs/RICERCA_CONTINUA_NORME.md, riverificata sulla fonte primaria):
+       il D.Lgs 624/96 art. 6 comma 2 chiede un'ATTESTAZIONE annuale che i
+       luoghi di lavoro restano sicuri, non una riscrittura del documento —
+       a differenza dei due motivi «dopo…», che il comma 3 lega a un evento
+       vero. L'etichetta diceva «Revisione periodica»: stessa parola dei
+       motivi che cambiano il contenuto, per una cosa che non lo cambia
+       necessariamente. */
+    const periodica = scudo.motivoRevisioneDss("periodica");
+    eq(periodica.nome, "Certificazione annuale", "non «revisione»: è la stessa parola di SCADENZE_PRESET «dss-certif»");
+    ok(/comma 2/.test(periodica.riferimento) && /attestazione/.test(periodica.riferimento),
+      "il riferimento cita il comma giusto e dice che è un'attestazione: " + periodica.riferimento);
+    ok(scudo.motivoRevisioneDss("dopo-evento").riferimento.includes("comma 3")
+      && scudo.motivoRevisioneDss("dopo-modifica").riferimento.includes("comma 3"),
+      "i due motivi che CAMBIANO il documento citano il comma che li lega a un evento vero, non al calendario");
   });
 
   test("Scudo · dssDiCantiere: solo i DSS di quella cava, dal più recente", () => {

@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.503** conta nove suite: il giro completo ne esegue **3.926** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.503** conta nove suite: il giro completo ne esegue **3.969** (misura del 15/09; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le
@@ -244,8 +244,8 @@ l'08/08 e questa unità ha aggiunto un caso»), e diceva **2.728** dove il vero 
 ricopiato — ed è la stessa ragione per cui la riga qui sopra era rimasta ferma a
 2.251 e 2.474 mentre il titolo era già aggiornato: il controllo sorveglia il
 **totale**, non la prosa che lo spiega.
-⚠️ E il giro lo stampa **col suo denominatore**: 26 comandi su 40 hanno una riga
-da sommare (misura del 15/09), e gli altri **14 sono nominati** — non vuol dire che non abbiano
+⚠️ E il giro lo stampa **col suo denominatore**: 27 comandi su 40 hanno una riga
+da sommare (misura del 15/09), e gli altri **13 sono nominati** — non vuol dire che non abbiano
 provato niente, vuol dire che quel conto non li vede.)*
 E **1012 funzioni pure su 1012** delle sei app sono chiamate per nome dalle prove:
 tutte al 100%. Vuol dire che non ne resta nessuna che nessuno ha ancora
