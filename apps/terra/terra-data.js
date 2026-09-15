@@ -3153,6 +3153,35 @@ export function attesaCollaudo(lotto, oggi = new Date()) {
       : "recuperato da " + (g === 1 ? "1 giorno" : g + " giorni") + ", collaudo non ancora chiesto" };
 }
 
+/* L'ATTESA DEL RECUPERO (15/09, dal delta della ricerca sul ripristino
+   progressivo): il gemello di `attesaCollaudo`, una transizione più indietro.
+   L'atto prescrive «recupero ambientale contestuale alla coltivazione, lotto
+   per lotto» — ma finché nessuno guarda da quanto un lotto è «esaurito» senza
+   che il recupero sia partito, quella contestualità non si può verificare: un
+   lotto esaurito da mesi si legge uguale a uno esaurito ieri. `esauritoIl` è
+   già scritto sul lotto (lo stesso campo che `divarioRecupero` somma), qui si
+   usa solo per dire DA QUANTO — non se sia in ritardo: i termini di legge
+   restano fuori, come già scelto per `attesaCollaudo`. Uno stato «esaurito»
+   ha per costruzione `recuperoIniziatoIl` vuoto (quando il recupero parte, lo
+   stato passa a «in-recupero»): niente ramo «già iniziato», a differenza del
+   collaudo dove «chiesto» e «non chiesto» convivono. Ritorna { pertinente,
+   stato: esaurito|<stato del lotto>, giorni, frase }; `pertinente` false su
+   un lotto che non è «esaurito», e allora la frase è vuota. Pura. */
+export function attesaRecupero(lotto, oggi = new Date()) {
+  const l = lotto || {};
+  const st = statoLotto(l);
+  if (st !== "esaurito") return { pertinente: false, stato: st, giorni: null, frase: "" };
+  const esaurito = dataISOEsiste(l.esauritoIl) ? String(l.esauritoIl).slice(0, 10) : null;
+  if (!esaurito) return { pertinente: true, stato: "esaurito", giorni: null,
+    frase: "recupero non ancora iniziato, e senza la data di esaurimento non si sa da quanto" };
+  const g = giorniTra(esaurito, oggi);
+  const daQuanto = g == null ? null : -g;
+  return { pertinente: true, stato: "esaurito", giorni: daQuanto,
+    frase: daQuanto == null ? "recupero non ancora iniziato"
+      : daQuanto <= 0 ? "lotto esaurito, recupero non ancora iniziato"
+      : "esaurito da " + (daQuanto === 1 ? "1 giorno" : daQuanto + " giorni") + ", recupero non ancora iniziato" };
+}
+
 /* LA GARANZIA ANCORA VINCOLATA (04/09). Il mondo dimensiona la fideiussione
    sul recupero e la svincola PER LOTTO, sul verbale di collaudo: quindi la
    domanda che un'azienda si fa è «quanta garanzia è ancora ferma, e quale

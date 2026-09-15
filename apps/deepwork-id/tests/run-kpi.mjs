@@ -39987,6 +39987,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     }
     eq(terra.attesaCollaudo(null, O).pertinente, false, "con niente in mano non esplode");
   });
+  test("⛔ Terra · attesaRecupero (15/09, il gemello di attesaCollaudo un passo prima): esaurito SENZA recupero iniziato → «esaurito da N giorni»", () => {
+    const a = terra.attesaRecupero({ stato: "esaurito", esauritoIl: "2026-05-22" }, O);
+    eq([a.pertinente, a.stato, a.giorni], [true, "esaurito", 105], "105 giorni dal 22/05, come il conto gemello");
+    eq(a.frase, "esaurito da 105 giorni, recupero non ancora iniziato", "la frase");
+    eq(terra.attesaRecupero({ stato: "esaurito", esauritoIl: "2026-09-03" }, O).frase, "esaurito da 1 giorno, recupero non ancora iniziato", "singolare");
+    eq(terra.attesaRecupero({ stato: "esaurito", esauritoIl: "2026-09-04" }, O).frase, "lotto esaurito, recupero non ancora iniziato", "esaurito oggi: niente «da 0 giorni»");
+  });
+  test("⛔ Terra · attesaRecupero: senza la data di esaurimento non si inventa da quanto", () => {
+    const a = terra.attesaRecupero({ stato: "esaurito" }, O);
+    eq([a.stato, a.giorni], ["esaurito", null], "null, non zero");
+    ok(/non si sa da quanto/.test(a.frase), "e lo dice — era «" + a.frase + "»");
+    eq(terra.attesaRecupero({ stato: "esaurito", esauritoIl: "2026-02-30" }, O).giorni, null, "il 30 febbraio non scorre al 2 marzo");
+  });
+  test("⛔ Terra · attesaRecupero: pertinente SOLO su «esaurito» — non è un secondo attesaCollaudo travestito", () => {
+    for (const st of ["previsto", "aperto", "in-recupero", "recuperato", "collaudato"]) {
+      const a = terra.attesaRecupero({ stato: st, esauritoIl: "2026-05-22" }, O);
+      eq([a.pertinente, a.stato, a.frase], [false, st, ""], st);
+    }
+    eq(terra.attesaRecupero(null, O).pertinente, false, "con niente in mano non esplode");
+    // i due conti gemelli non si confondono: un lotto recuperato non aspetta
+    // il recupero, e uno esaurito non aspetta il collaudo
+    const recuperato = { stato: "recuperato", recuperoFinitoIl: "2026-05-22" };
+    ok(terra.attesaCollaudo(recuperato, O).pertinente && !terra.attesaRecupero(recuperato, O).pertinente, "recuperato: solo il collaudo è pertinente");
+    const esaurito = { stato: "esaurito", esauritoIl: "2026-05-22" };
+    ok(terra.attesaRecupero(esaurito, O).pertinente && !terra.attesaCollaudo(esaurito, O).pertinente, "esaurito: solo il recupero è pertinente");
+  });
   test("Terra · la dimostrazione: lo2 porta la richiesta come DATA, non più come nota", () => {
     const lo2 = terra.DEMO.lotti.find(l => l.id === "lo2");
     eq([lo2.stato, lo2.collaudoChiestoIl, lo2.collaudatoIl, lo2.nota], ["recuperato", "2026-06-10", null, ""], "recuperato, chiesto, non collaudato, nota vuota");

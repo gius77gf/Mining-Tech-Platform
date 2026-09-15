@@ -1055,7 +1055,7 @@ a.dw-btn{text-decoration:none}
            numeroDaCampo, AVVISO_DECIMALE, origineDi, descriviOrigine, numeroRegistrato,
            FONTI_DENSITA, densitaDichiarata, densitaPerEnte, descriviDensita, densitaDellaCava,
            DENS_ATTO, DENS_LABORATORIO, DENS_PRESET, DENS_MANO, DENS_NON_DICHIARATA,
-           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, garanziaVincolata, relazioneLotto, avanzamentoLotto,
+           STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, attesaRecupero, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            difformitaVolumetrica, giudizioVariante,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
@@ -2444,6 +2444,8 @@ a.dw-btn{text-decoration:none}
     const av = avanzamentoLotto(l, vm.misurabile ? vm.m3 : null);
     // fra «recupero finito» e «verbale»: chiesto il …, oppure da quanto si aspetta (04/09)
     const att = attesaCollaudo(l, new Date());
+    // fra «esaurito» e «recupero iniziato»: da quanto si aspetta (15/09)
+    const attR = attesaRecupero(l, new Date());
     const nome = esc(l.nome || "Lotto senza nome");
     const dd = DATA_LOTTO[st];
     const conData = dd && dataISOEsiste(l[dd[0]]);
@@ -2479,6 +2481,7 @@ a.dw-btn{text-decoration:none}
         ? "Lo stato dice «" + sty[2].toLowerCase() + "» ma la data non è registrata: senza quella data non si può dimostrare quando è successo."
         : "",
       att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
+      attR.pertinente ? attR.frase.charAt(0).toUpperCase() + attR.frase.slice(1) + "." : "",
       l.garanziaEuro != null && l.garanziaEuro !== "" && Number.isFinite(+l.garanziaEuro) ? "Quota di garanzia: " + euro0(l.garanziaEuro) + (st === "collaudato" ? ", liberata col collaudo." : ".") : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");
