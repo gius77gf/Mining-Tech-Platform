@@ -1399,3 +1399,60 @@ grep -n "possessoDal\|costoPossessoAnnuo\|messaInServizio" apps/flotta/flotta-da
 - **Tema già toccato?**: No. I giri precedenti hanno coperto AEMP 2.0, costi di manutenzione per intervento, consumo carburante, trend di affidabilità. Nessuno ha unificato questi nella decisione di sostituzione e ciclo di vita economico.
 - **False mancanze corrette**: no — il tema è genuino e misurabile.
 - **Checkpoint di progetto**: il commit `c3888fe` (fine 14/09) non contiene TCO, amortamento o segnale di sostituzione. La ricerca è contemporanea a quella data.
+
+---
+
+## 15/09 — correzione (mia, non della ricerca): "costo orario ammortizzato" era già scritto
+
+⛔ **Riletto il codice PRIMA di scrivere la prima fetta del delta, e la
+mancanza n. 2 sopra è FALSA — `costoOrarioMezzo` l'ammortamento del
+possesso lo calcola già.** `grep -n "euroOraCompleto\|euroOraPossesso"
+apps/flotta/flotta-data.js apps/flotta/index.html`:
+
+```
+apps/flotta/flotta-data.js:2085:    const euroOraPossesso = possessoAnnuo != null && possessoAnnuo > 0 && oreAnno ? Math.round(...) : null;
+apps/flotta/flotta-data.js:2103:      euroOraPossesso, perchePossesso,
+apps/flotta/flotta-data.js:2110:      euroOraCompleto: ore && !nienteSpesa && euroOraPossesso != null ? Math.round(100 * (spesaInFinestra / ore + euroOraPossesso)) / 100 : null,
+apps/flotta/index.html:2301:          <div class="meta">${m.euroOraCompleto != null
+apps/flotta/index.html:2302:            ? `Col possesso: <b>${eur(m.euroOraCompleto)}</b> <span class="u">/h</span> (${eur(m.possessoAnnuo)} all'anno su ${numTx(m.oreAnno)} ore all'anno misurate)`
+```
+
+`euroOraCompleto` spalma `costoPossessoAnnuo` sulle ore/anno della
+finestra del contatore e lo somma a officina+carburante — esattamente
+l'"ammortizzare costo annuale" che la mancanza n. 2 proponeva di
+costruire da zero — ed è già mostrato nel fascicolo del mezzo
+(`sch-kpi`, riga "Col possesso"). La mancanza n. 2 e la relativa voce
+di "quanto costa"/"come si misura" sopra non vanno tradotte in codice.
+
+**Il delta vero, molto più stretto**: `pagellaMezzi` — la funzione che
+CONFRONTA i mezzi fra loro e alimenta `prioritaOperative` — usa
+`c.euroOra` (solo officina+carburante) contro `mediaEuroOra` (anch'essa
+solo esercizio), MAI `euroOraCompleto`. Verificato leggendo
+`pagellaMezzi` (flotta-data.js:4048-4132): lo scostamento che decide
+`fermo`/`costo`/`verdetto` è tutto calcolato sul €/h di solo esercizio.
+Quindi: un mezzo con un canone di leasing alto ma poca officina appare
+"in linea" o "sotto media" nella pagella — la schermata che il parco
+usa per decidere quale mezzo guardare per primo — anche se il suo
+costo pieno (mostrato solo nel SUO fascicolo, mai nel confronto) è il
+più alto della flotta. È lo stesso principio del fondatore delle
+mancanze n. 3/4/5 sopra (nessun segnale unico che dica "conviene
+sostituirlo"), ma la causa è diversa e più piccola: non manca il
+calcolo, manca il suo USO nel confronto fra macchine.
+
+**Quanto costa**: molto meno della n. 2 originale — `pagellaMezzi` già
+riceve `righeCosto` (l'array di `costoOrarioMezzo`, che porta
+`euroOraCompleto`); serve aggiungere una seconda media
+(`mediaEuroOraCompleto`, sugli stessi mezzi con `euroOraCompleto` non
+nullo) e un secondo scostamento, SENZA toccare `costoOrarioMezzo`.
+
+**Come si misura**: due mezzi con lo stesso `euroOra` di esercizio ma
+`costoPossessoAnnuo` diverso (uno 0/non registrato, uno alto) devono
+avere lo stesso verdetto sull'esercizio e uno scostamento diverso sul
+completo — e un mezzo senza `costoPossessoAnnuo` registrato non deve
+uscire "in linea" per finta: deve dichiarare che il confronto pieno
+non è possibile per lui (stessa regola delle bandiere non lette,
+regola 20 di `run-stile`).
+
+Non preso per costruzione in questa unità: prima fetta del delta TCO
+fatta separatamente (`etaMezzo`, sull'età del mezzo, indipendente da
+questo e già committata).
