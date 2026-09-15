@@ -374,14 +374,20 @@ export const DEMO = {
        scadenza in Conti — e le frasi «almeno N giornate perse» e «indice di
        gravità (minimo)» sarebbero state codice morto. */
     { id: "i8", data: "2026-07-28", tipo: "infortunio", gravita: "lieve", giorniAssenza: null, luogo: "piazzale 2", luogoTipo: "piazzale", descrizione: "Distorsione alla caviglia scendendo dalla cabina del dumper — prognosi ancora aperta" },
-    /* UN INFORTUNIO OLTRE I 60 GIORNI DI ASSENZA — finding 4 del secondo
-       giro di ricerca su Scudo (15/09): senza un caso così in dimostrazione
-       la visita di rientro (art. 41 c.2 lett. e-ter) resterebbe codice
-       morto, come la fattura senza scadenza in Conti o la prognosi aperta
-       qui sopra. Collegato a d2 (Luca Bianchi), il cui giudizio d'idoneità
-       "non-idoneo" del 2026-08-20 è successivo alla chiusura di questa
-       assenza: coerente con un infortunio che porta a una prescrizione. */
-    { id: "i9", data: "2026-05-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 75, lavoratoreId: "d2", luogo: "piazzale 1", luogoTipo: "piazzale", descrizione: "Caduta da un mezzo durante la manutenzione — frattura" },
+    /* UN INFORTUNIO OLTRE I 60 GIORNI DI ASSENZA, CON UN'INVALIDITÀ
+       PERMANENTE — finding 4 e finding 2 dell'ottavo giro di ricerca su
+       Scudo (15/09): senza un caso così in dimostrazione la visita di
+       rientro (art. 41 c.2 lett. e-ter) e il terzo gradino di gravità
+       resterebbero codice morto, come la fattura senza scadenza in Conti o
+       la prognosi aperta qui sopra. Collegato a d2 (Luca Bianchi), il cui
+       giudizio d'idoneità "non-idoneo" del 2026-08-20 è successivo alla
+       chiusura di questa assenza: coerente con un infortunio che lascia una
+       prescrizione. Il quarto gradino (mortale) resta fuori dalla
+       dimostrazione per scelta — non per un buco: una cava di fantasia
+       mostrata a un cliente non ha bisogno di un morto immaginario per
+       provare che l'app sa contarlo, e la copertura ce l'ha lo stesso
+       tramite i test sintetici. */
+    { id: "i9", data: "2026-05-01", tipo: "infortunio", gravita: "permanente", giorniAssenza: 75, lavoratoreId: "d2", luogo: "piazzale 1", luogoTipo: "piazzale", descrizione: "Caduta da un mezzo durante la manutenzione — frattura con esiti permanenti" },
   ],
   /* LE ORE LAVORATE, ANNO PER ANNO — il denominatore dei tre indici.
      ⛔ Il 2026 NON c'è, ed è la parte più importante della dimostrazione: è
@@ -918,6 +924,80 @@ export function visitaRientroNecessaria(evento) {
   return !!(evento && evento.tipo === "infortunio") && g != null && g > 60;
 }
 
+/* La scala di gravità di un infortunio VERO — finding 2 dell'ottavo giro di
+   ricerca su Scudo (15/09). Fino ad oggi il campo `gravita` di un infortunio
+   sapeva dire solo due cose, «lieve» e «grave»: un'invalidità permanente o un
+   esito mortale finivano scritti come «grave», alla pari di una medicazione
+   con qualche giorno di assenza — o restavano fuori dal vocabolario.
+   ⚠️ NON è `GRAVITA_POTENZIALE`, e non lo diventa nemmeno riusandone i nomi:
+   quella scala risponde «che cosa SAREBBE potuto succedere» di un near-miss
+   (un danno EVITATO), questa «che cosa È successo» di un infortunio (un
+   danno AVVENUTO). Sono domande diverse anche quando condividono una parola
+   — riusare la stessa costante sarebbe la copia debole che questo file
+   mette in guardia altrove.
+   Vocabolario CHIUSO, dal meno al più grave, stessa forma di
+   `GRAVITA_POTENZIALE` e per la stessa ragione (regola 18 di `run-stile`:
+   una mappa di stati deve coprire tutti gli stati che la sua funzione sa
+   dire). `cls` è la pastiglia con cui la pagina lo disegna: portandosi il
+   proprio colore, chi lo mostra non tiene una mappa parallela da allineare. */
+export const GRAVITA_INFORTUNIO = [
+  { chiave: "lieve",      ordine: 1, etichetta: "Lieve",      cls: "ok",
+    domanda: "Una medicazione, nessun giorno di assenza" },
+  { chiave: "grave",      ordine: 2, etichetta: "Grave",      cls: "warn",
+    domanda: "Uno o più giorni di assenza" },
+  { chiave: "permanente", ordine: 3, etichetta: "Permanente", cls: "danger",
+    domanda: "Un'invalidità permanente accertata" },
+  { chiave: "mortale",    ordine: 4, etichetta: "Mortale",    cls: "danger",
+    domanda: "Esito mortale" },
+];
+// Il livello, oppure `null` se non è nel vocabolario (un valore vecchio, un
+// import, un campo mai scritto): stessa regola di `potenzialeDi`, mai far
+// scivolare un valore sconosciuto sul gradino più basso.
+export function gravitaInfortunioDi(evento) {
+  const c = String((evento || {}).gravita || "").trim();
+  return GRAVITA_INFORTUNIO.find((g) => g.chiave === c) || null;
+}
+// Da quale gradino in su un infortunio VERO conta come «grave» negli
+// aggregati (il cartellone, il ciclo del DSS): gemello di
+// `ORDINE_POTENZIALE_ALTO`, in una costante per la stessa ragione — tre
+// confronti scritti a mano divergono al primo ripensamento sulla soglia.
+export const ORDINE_INFORTUNIO_GRAVE = 2;
+export function infortunioGrave(evento) {
+  // `gravitaInfortunioDi` guarda solo il campo `gravita`: un near-miss può
+  // portarne uno (oggi sempre «lieve», vestigiale — usa `gravitaPotenziale`
+  // per il suo giudizio vero) e un domani potrebbe portarne uno scritto
+  // male. Il tipo si controlla QUI, non nel lookup, perché il lookup resta
+  // una funzione pura di lettura e questa è la sola che promette «infortunio
+  // VERO» nel suo nome.
+  if (!evento || evento.tipo !== "infortunio") return false;
+  const g = gravitaInfortunioDi(evento);
+  return !!g && g.ordine >= ORDINE_INFORTUNIO_GRAVE;
+}
+
+/* Quanti giorni «pesa» un infortunio per l'indice di gravità (UNI 7249) —
+   il rischio dichiarato dalla ricerca del 15/09 e rimasto latente finché la
+   scala di gravità aveva solo lieve/grave: un'invalidità permanente o un
+   esito mortale non si contano con i giorni di assenza VERI (che per un
+   esito mortale non hanno nemmeno senso, e per una permanente possono
+   restare `null` mentre il caso è ancora aperto), ma con un numero di
+   giorni CONVENZIONALI fissato dalla norma — il danno che rappresentano
+   non è commensurabile con un'assenza che finisce.
+   [seconda mano, da VERIFICARE con l'RSPP prima di usarlo in un documento
+   ufficiale: la norma prevede tabelle di conversione per percentuale di
+   invalidità; qui si usa la sola cifra citata dalla ricerca per
+   l'invalidità permanente — 75 giorni — come valore rappresentativo unico,
+   non una tabella completa per percentuale.]
+   `giornateAssenza` resta INTOCCATA: è la verità sull'assenza reale, e la
+   usano il fascicolo e il registro. Solo il conto dell'indice di gravità
+   passa da qui. */
+export function giornateConvenzionali(evento) {
+  const e = evento || {};
+  if (e.tipo !== "infortunio") return 0;
+  if (e.gravita === "mortale") return 7500;
+  if (e.gravita === "permanente") return 75;
+  return giornateAssenza(e) || 0;
+}
+
 export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const list = infortuni || [];
   const veri = list.filter(x => x.tipo === "infortunio");
@@ -955,7 +1035,10 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   const giorniSenza = ultimo ? Math.max(0, -giorniTra(ultimo, oggi)) : null;
   const giorniAssenzaTot = veri.reduce((s, x) => s + (giornateAssenza(x) || 0), 0);
   const prognosiAperte = veri.filter(prognosiAperta).length;
-  const gravi = veri.filter(x => x.gravita === "grave").length;
+  // «grave» qui vuol dire «grave o peggio» (finding 2, 15/09): un'invalidità
+  // permanente o un esito mortale non devono sparire da questo conteggio
+  // solo perché il loro valore letterale non è la stringa "grave".
+  const gravi = veri.filter(infortunioGrave).length;
   // quanti infortuni superano i 60 giorni di assenza e aspettano ancora la
   // visita medica di rientro (art. 41 c.2 lett. e-ter): un conteggio per la
   // cava intera, gemello del `daSistemare` che `cartellaLavoratore` fa per
@@ -2083,10 +2166,15 @@ export function parseInfortuniCsv(text) {
            gravità, in mezzo a loro, ricadeva sulla parola che tranquillizza.
            `null` è la convenzione di casa per «non dichiarato» (la stessa di
            `giorniAssenza` a prognosi aperta e di `scadenza` in
-           `parseAzioniCsv`): il KPI degli infortuni gravi conta `=== "grave"`
-           e quindi non cambia, l'export scrive la cella vuota invece di una
-           parola falsa, e la riga a schermo lo dichiara. */
-        gravita: ["grave", "lieve"].includes((gravita || "").trim().toLowerCase())
+           `parseAzioniCsv`): l'export scrive la cella vuota invece di una
+           parola falsa, e la riga a schermo lo dichiara.
+           ⚠️ Il vocabolario si legge da `GRAVITA_INFORTUNIO`, non da un
+           elenco scritto qui a mano (finding 2, 15/09): fino ad oggi
+           l'elenco era `["grave", "lieve"]` — la stessa svista che questo
+           commento mette in guardia, spostata di un livello più su. Un file
+           di un altro gestionale con «permanente» o «mortale» in colonna
+           sarebbe caduto su `null` anche dopo aver ampliato la scala. */
+        gravita: GRAVITA_INFORTUNIO.some((v) => v.chiave === (gravita || "").trim().toLowerCase())
           ? (gravita || "").trim().toLowerCase() : null,
         /* decisione 17: la colonna vuota di un INFORTUNIO non è uno zero — la
            prognosi può essere ancora aperta. Per un near-miss lo è, ed è il
@@ -2877,12 +2965,15 @@ export function cicloDss(documento, infortuni, oggi = new Date()) {
   const tra = d && dataISOEsiste(d.dssTrasmissione) ? String(d.dssTrasmissione).slice(0, 10) : null;
   const mot = (d && d.dssMotivo) || "";
   const veri = (infortuni || []).filter((x) => x && x.tipo === "infortunio" && dataISOEsiste(x.data));
-  const graviRegistrati = veri.filter((x) => x.gravita === "grave").length;
+  // «grave» qui vuol dire «grave o peggio» (finding 2, 15/09): un'invalidità
+  // permanente o un esito mortale sono la ragione più forte per rivedere il
+  // DSS, non una più debole — non devono sparire da questo conto.
+  const graviRegistrati = veri.filter(infortunioGrave).length;
   // Confronto STRETTO: un infortunio dello stesso giorno della revisione si
   // considera già dentro il documento. Con `>=` una cava che rivede il DSS il
   // giorno dell'incidente — cioè che fa la cosa giusta — resterebbe rossa.
   const dopo = rev ? veri.filter((x) => String(x.data).slice(0, 10) > rev) : [];
-  const graviDopo = dopo.filter((x) => x.gravita === "grave");
+  const graviDopo = dopo.filter(infortunioGrave);
   const giorni = rev ? -giorniTra(rev, oggi) : null;
   const scadenzaCertificazione = rev
     ? dataDaPeriodicita(MESI_CERTIF_DSS, new Date(rev + "T00:00:00")) : null;
@@ -4462,9 +4553,9 @@ export function fogliaCartella(cartella, oggi = new Date()) {
     sezioni.push(sez("Documenti collegati", c.documenti.map((d) => { const e = etichettaStatoDocumento(d.stato);
       return [String(d.titolo || ""), (e.valido ? e.label : "**" + e.label + "**") + (d.meta ? " · " + String(d.meta) : "")]; }), ""));
   if ((c.infortuni || []).length)
-    sezioni.push(sez("Infortuni", c.infortuni.map((x) => { const g = String(x.gravita || "");
+    sezioni.push(sez("Infortuni", c.infortuni.map((x) => { const gInf = gravitaInfortunioDi(x);
       return [dataIt(x.data),
-        (g ? g.charAt(0).toUpperCase() + g.slice(1) : "—")
+        (gInf ? gInf.etichetta : "—")
         + " · " + (x.giorniAssenza == null ? "**prognosi ancora aperta**" : conta(x.giorniAssenza, "giorno di assenza", "giorni di assenza"))
         + (visitaRientroNecessaria(x) ? " · **visita medica di rientro da programmare (art. 41 c.2 lett. e-ter)**" : "")
         + (x.descrizione ? " · " + String(x.descrizione) : "")]; }), ""));
@@ -4883,14 +4974,24 @@ export function indiciInfortunistici(infortuni, oreLavorate, anno = new Date().g
      (regola 20: una bandiera che non legge nessuno non protegge niente). */
   const senzaAnno = (infortuni || []).filter(i =>
     i && i.tipo === "infortunio" && annoRegistrato(i) === null).length;
-  const conAssenza = nell_anno.filter(i => (giornateAssenza(i) || 0) > 0);
+  /* ⛔ E «CON ASSENZA» SI CHIEDE A `giornateConvenzionali`, NON A
+     `giornateAssenza` (finding 2, 15/09). Un esito mortale non ha
+     "giorni di assenza" nel senso in cui li ha una medicazione — la
+     persona non torna — e il campo grezzo può restare `0` o `null`: con
+     `giornateAssenza` una fatalità sarebbe uscita dal LTIFR, l'indice
+     costruito apposta per contare gli infortuni con perdita di tempo.
+     `giornateConvenzionali` sostituisce i giorni convenzionali UNI 7249
+     proprio per i due esiti in cui il conto vero non ha senso; per tutti
+     gli altri è identica a `giornateAssenza`, quindi il comportamento di
+     prima non cambia. */
+  const conAssenza = nell_anno.filter(i => (giornateConvenzionali(i) || 0) > 0);
   /* ⛔ decisione 17: l'infortunio a prognosi aperta NON entra fra quelli «con
      assenza» (non si sa se ce ne sarà) e NON entra fra quelli senza (che è la
      lettura tranquilla che il vecchio `|| 0` produceva da solo). Ha un secchio
      suo — assenza **da quantificare** — ed è lui a rendere IG e LTIFR un
      minimo invece che un consuntivo. */
   const daQuantificare = nell_anno.filter(prognosiAperta).length;
-  const giornatePerse = nell_anno.reduce((t, i) => t + Math.max(0, giornateAssenza(i) || 0), 0);
+  const giornatePerse = nell_anno.reduce((t, i) => t + Math.max(0, giornateConvenzionali(i) || 0), 0);
   const ore = +oreLavorate;
   const base = { anno: +anno, infortuni: nell_anno.length, conAssenza: conAssenza.length,
                  daQuantificare,

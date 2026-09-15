@@ -211,10 +211,20 @@ test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta dat
      soprattutto **«mortale» → «lieve»**, cioè un evento importato da un altro
      gestionale usciva dal nostro CSV verso l'RSPP declassato. */
   eq(solo[0].gravita, null, "⛔ e la gravità NON dichiarata non diventa «lieve»");
+  /* ⛔ E IL 15/09 (finding 2) LA CORREZIONE ERA RIMASTA A METÀ: la lezione qui
+     sopra era di non declassare un evento vero, e nel frattempo «mortale» —
+     l'esempio letterale del commento — restava scartato lo stesso, perché il
+     vocabolario del prodotto aveva solo due gradini. Ora ne ha quattro
+     (`GRAVITA_INFORTUNIO`), e l'importatore li riconosce tutti: una parola
+     ancora fuori da quel vocabolario resta scartata, non declassata. */
   const gr = scudo.parseInfortuniCsv("2026-01-01;infortunio;mortale;;;");
-  eq(gr[0].gravita, null, "⛔ né una parola che non è delle nostre due: «mortale» non è «lieve»");
+  eq(gr[0].gravita, "mortale", "«mortale» è nel vocabolario dal 15/09: si legge, non si scarta più");
+  const perm = scudo.parseInfortuniCsv("2026-01-01;infortunio;PERMANENTE;;;");
+  eq(perm[0].gravita, "permanente", "e «permanente» pure, maiuscole comprese");
+  const finta = scudo.parseInfortuniCsv("2026-01-01;infortunio;boh;;;");
+  eq(finta[0].gravita, null, "ma una parola che non è nel vocabolario resta scartata, non indovinata");
   const ok2 = scudo.parseInfortuniCsv("2026-01-01;infortunio;GRAVE;;;");
-  eq(ok2[0].gravita, "grave", "e quelle che riconosce le legge ancora, maiuscole comprese");
+  eq(ok2[0].gravita, "grave", "e quelle di sempre le legge ancora, maiuscole comprese");
 });
 test("parseScadenzeCsv: legge lav/tipo/desc/data, azienda=null, scarta data non valida", () => {
   const csv = "lavoratore;tipo;descrizione;scadenza\n"
@@ -3034,6 +3044,12 @@ test("⛔ cartellaLavoratore + fogliaCartella: la visita di rientro entra nel «
   const sezInf = f.sezioni.find(s => s.titolo === "Infortuni");
   ok(sezInf.righe[0][1].includes("visita medica di rientro da programmare"),
     `la riga del foglio lo scrive: ${sezInf.righe[0][1]}`);
+  // la gravità nel foglio viene dal vocabolario chiuso, non da una
+  // capitalizzazione a mano — «permanente»/«mortale» si leggono come tutte
+  // le altre (finding 2, 15/09)
+  const cPerm = scudo.cartellaLavoratore(lav, { ...dati, infortuni: [{ ...infortuni[0], gravita: "permanente" }] }, oggi);
+  ok(scudo.fogliaCartella(cPerm, oggi).sezioni.find(s => s.titolo === "Infortuni").righe[0][1].startsWith("Permanente"),
+    "il foglio scrive «Permanente», non «permanente» né «—»");
   // sotto soglia: nessuna riga in più, nessun daSistemare
   const cCorta = scudo.cartellaLavoratore(lav, { ...dati, infortuni: [{ ...infortuni[0], giorniAssenza: 10 }] }, oggi);
   ok(!cCorta.daSistemare.some(x => /visita medica di rientro/.test(x)), "10 giorni: non serve nessuna visita");
@@ -3562,6 +3578,57 @@ test("un anno senza infortuni dà indici a ZERO, che è un fatto — non l'assen
   eq(r.calcolabile, true, "le ore ci sono, quindi si calcola");
   eq([r.indiceFrequenza, r.indiceGravita, r.ltifr], [0, 0, 0], "zero infortuni = indici zero");
   eq(r.infortuni, 0, "ed è dichiarato che sono zero");
+});
+test("⛔ GRAVITA_INFORTUNIO: il terzo e il quarto gradino, e NON è GRAVITA_POTENZIALE (finding 2, 15/09)", () => {
+  eq(scudo.GRAVITA_INFORTUNIO.map(g => g.chiave), ["lieve", "grave", "permanente", "mortale"]);
+  ok(scudo.GRAVITA_INFORTUNIO !== scudo.GRAVITA_POTENZIALE, "due vocabolari distinti: un danno avvenuto non è un danno evitato");
+  eq(scudo.gravitaInfortunioDi({ gravita: "permanente" }).etichetta, "Permanente");
+  eq(scudo.gravitaInfortunioDi({ gravita: "mortale" }).etichetta, "Mortale");
+  eq(scudo.gravitaInfortunioDi({ gravita: "boh" }), null, "un valore fuori dal vocabolario non scivola sul gradino più basso");
+  eq(scudo.gravitaInfortunioDi(null), null, "e non rompe su niente");
+});
+test("⛔ infortunioGrave: «grave» negli aggregati vuol dire «grave o peggio» (finding 2, 15/09)", () => {
+  eq(scudo.ORDINE_INFORTUNIO_GRAVE, 2, "la soglia è il gradino di «grave» in GRAVITA_INFORTUNIO");
+  ok(!scudo.infortunioGrave({ tipo: "infortunio", gravita: "lieve" }));
+  ok(scudo.infortunioGrave({ tipo: "infortunio", gravita: "grave" }));
+  ok(scudo.infortunioGrave({ tipo: "infortunio", gravita: "permanente" }), "un'invalidità permanente non deve sparire dal conto dei «gravi»");
+  ok(scudo.infortunioGrave({ tipo: "infortunio", gravita: "mortale" }));
+  ok(!scudo.infortunioGrave({ tipo: "near-miss", gravita: "mortale" }), "il campo è quello di un infortunio VERO, non del near-miss");
+  ok(!scudo.infortunioGrave(null));
+});
+test("⛔ giornateConvenzionali: UNI 7249, i giorni CONVENZIONALI per permanente e mortale (finding 2, 15/09, rischio dichiarato dalla ricerca)", () => {
+  eq(scudo.giornateConvenzionali({ tipo: "infortunio", gravita: "mortale", giorniAssenza: null }), 7500,
+    "un esito mortale pesa 7500 giorni convenzionali, non i giorni di assenza reali (che non hanno senso)");
+  eq(scudo.giornateConvenzionali({ tipo: "infortunio", gravita: "mortale", giorniAssenza: 0 }), 7500,
+    "anche se qualcuno ha scritto 0 nel campo grezzo");
+  eq(scudo.giornateConvenzionali({ tipo: "infortunio", gravita: "permanente", giorniAssenza: null }), 75,
+    "e una permanente pesa 75 giorni convenzionali anche a prognosi ancora aperta");
+  eq(scudo.giornateConvenzionali({ tipo: "infortunio", gravita: "grave", giorniAssenza: 10 }), 10,
+    "per gli altri gradini il conto resta quello vero: nessun cambiamento di comportamento");
+  eq(scudo.giornateConvenzionali({ tipo: "infortunio", gravita: "lieve", giorniAssenza: null }), 0,
+    "prognosi aperta su un lieve: 0, come sempre (il minimo che diventa noto:false più su)");
+  eq(scudo.giornateConvenzionali({ tipo: "near-miss", gravita: "mortale", giorniAssenza: 999 }), 0,
+    "un near-miss non ha un ferito: zero qualunque cosa ci sia scritto nella gravità");
+  eq(scudo.giornateConvenzionali(null), 0);
+});
+test("⛔ indiciInfortunistici: un esito mortale entra nell'indice di gravità E nel LTIFR coi giorni UNI 7249 (finding 2, 15/09)", () => {
+  const inf = [{ data: "2026-03-01", tipo: "infortunio", gravita: "mortale", giorniAssenza: null }];
+  const senza = scudo.indiciInfortunistici([{ data: "2026-03-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: null }], 100000, 2026);
+  const r = scudo.indiciInfortunistici(inf, 100000, 2026);
+  eq(r.calcolabile, true);
+  eq(r.giornatePerse, 7500, "i 7500 giorni convenzionali, non zero");
+  eq(r.conAssenza, 1, "e la fatalità conta come «con perdita di tempo» per il LTIFR — prima del 15/09 sarebbe uscita 0");
+  eq(r.ltifr, 10, "1 × 1.000.000 / 100.000");
+  eq(r.indiceGravita, 75, "7500 × 1.000 / 100.000");
+  ok(senza.conAssenza === 0 && senza.giornatePerse === 0, "controprova sul vicino: un lieve a prognosi aperta resta a zero, invariato");
+});
+test("⛔ la dimostrazione contiene l'infortunio con un'invalidità permanente (finding 2, 15/09)", () => {
+  const D = scudo.DEMO;
+  const perm = D.infortuni.filter(x => x.gravita === "permanente");
+  eq(perm.length, 1, "senza questo caso il terzo gradino sarebbe codice morto in dimostrazione");
+  eq(perm[0].id, "i9");
+  const r = scudo.riepilogoInfortuni(D.infortuni, new Date("2026-08-02T00:00:00"));
+  ok(r.gravi >= 1, "e il cartellone lo conta fra i «gravi»: " + r.gravi);
 });
 
 // ── Scudo · andamento indici ────────────────────────────────────────────────

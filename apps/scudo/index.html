@@ -1540,7 +1540,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     <div class="frow">
       <input class="dw-input" id="inf-data" type="date" style="flex:1 1 150px;">
       <select class="dw-input" id="inf-tipo" style="flex:2 1 200px;"><option value="near-miss">Near-miss (mancato infortunio)</option><option value="infortunio">Infortunio</option></select>
-      <select class="dw-input" id="inf-gravita" style="flex:1 1 130px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select>
+      <select class="dw-input" id="inf-gravita" style="flex:1 1 130px;"><option value="lieve">Lieve</option><option value="grave">Grave</option></select><!-- opzioni ricostruite da GRAVITA_INFORTUNIO: vedi aggiornaGravita() -->
     </div>
     <div class="frow">
       <input class="dw-input" id="inf-giorni" type="number" min="0" placeholder="Giorni assenza" style="flex:1 1 150px;">
@@ -1782,6 +1782,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        registrate per un anno si leggono con la regola degli anni doppi. */
     andamentoIndici, avvisoGravitaMinima, avvisoInfortuniSenzaAnno, avvisoAndamentoMinimo,
     giornateAssenza, prognosiAperta, visitaRientroNecessaria, descriviGiornatePerse,
+    GRAVITA_INFORTUNIO, gravitaInfortunioDi, ORDINE_INFORTUNIO_GRAVE,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     MAX_FOTO, pesoFoto, fotoDiEvento, fotoDiVoce, fotoDiIspezione, bilancioFoto, bilancioFotoVoce,
     testoBilancioFoto, pastigliaFoto, contestoFoto,
@@ -5098,6 +5099,22 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   }
   $("inf-tipo").addEventListener("change", notaGiorniAssenza);
   notaGiorniAssenza();
+  /* ⛔ FINDING 2 DELL'OTTAVO GIRO DI RICERCA (15/09): un near-miss non ha un
+     ferito, quindi «permanente»/«mortale» non hanno senso lì — offrirli
+     confonderebbe la scelta. Le opzioni si ricostruiscono da
+     `GRAVITA_INFORTUNIO` (elenco DERIVATO dal modulo, non un secondo
+     elenco scritto qui a mano) e si restringono a lieve/grave quando il
+     tipo è near-miss, preservando la scelta corrente se resta valida. */
+  function aggiornaGravita() {
+    const inf = $("inf-tipo").value === "infortunio";
+    const sel = $("inf-gravita");
+    const cur = sel.value;
+    const opzioni = inf ? GRAVITA_INFORTUNIO : GRAVITA_INFORTUNIO.filter((g) => g.ordine < ORDINE_INFORTUNIO_GRAVE + 1);
+    sel.innerHTML = opzioni.map((g) => `<option value="${g.chiave}">${esc(g.etichetta)}</option>`).join("");
+    sel.value = opzioni.some((g) => g.chiave === cur) ? cur : opzioni[0].chiave;
+  }
+  $("inf-tipo").addEventListener("change", aggiornaGravita);
+  aggiornaGravita();
   $("btn-inf").onclick = async () => {
     const data = $("inf-data").value, desc = $("inf-desc").value.trim();
     if (!data) { err("inf-data", true); $("inf-data").focus();
