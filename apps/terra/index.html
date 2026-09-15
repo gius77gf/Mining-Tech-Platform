@@ -867,6 +867,7 @@ a.dw-btn{text-decoration:none}
   <div class="sec">Piano estrattivo</div>
   <div id="pia-riserva" class="note recap"></div>
   <div id="pia-proiezione" class="note"></div>
+  <div id="pia-mese" class="note"></div>
   <div id="pia-list"></div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-terra-export">Esporta fronti e rilievi (CSV)</button>
@@ -1042,7 +1043,7 @@ a.dw-btn{text-decoration:none}
 
 
 <script type="module">
-  import { terraData, calendarioTerra, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
+  import { terraData, calendarioTerra, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, varianzaMensilePiano, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
            provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
@@ -1424,6 +1425,21 @@ a.dw-btn{text-decoration:none}
               : pr.stato === "warn"
                 ? ` — vicino al limite autorizzato, tienilo d'occhio.`
                 : ` — sotto il limite autorizzato.`);
+
+    /* LO SCARTO DEL MESE (15/09): la proiezione qui sopra guarda l'anno
+       intero, questa guarda il mese corrente — arriva prima. L'"atteso" è
+       il piano annuo diviso 12: una media dichiarata, non un piano mensile
+       vero (Terra non ne ha uno), quindi il testo lo dice sempre, non solo
+       quando conviene. */
+    const vm = refP ? varianzaMensilePiano(RIL, refP.pianificatoAnnuoM3) : null;
+    $("pia-mese").innerHTML = !vm ? "" : !vm.calcolabile
+      ? (vm.perche.startsWith("manca") ? "" : `Questo mese: ${esc(vm.perche)}.`)
+      : `Questo mese: <b>${fmtM3(vm.reale)} m³</b> contro un atteso di ${fmtM3(vm.atteso)} m³ (piano annuo diviso 12, non un piano mensile vero) → `
+        + (vm.verso === "in pari" ? "in pari"
+          : vm.verso === "avanti" ? `<b>avanti</b> di ${fmtM3(vm.scartoM3)} m³${vm.scartoPct != null ? " (" + vm.scartoPct + "%)" : ""}`
+          : `<b class="bad">indietro</b> di ${fmtM3(-vm.scartoM3)} m³${vm.scartoPct != null ? " (" + (-vm.scartoPct) + "%)" : ""}`)
+        + ".";
+
     $("pia-list").innerHTML = PIA.map(p => `<div class="item ${p.stato === "vigente" ? "st-accent" : "st-warn"}" ${p.pianificatoAnnuoM3?`data-piano="${p.id}" title="Tocca per modificare il volume annuo pianificato"`:'style="cursor:default;"'}>
       <div class="info"><div class="name">${esc(p.titolo)}</div><div class="meta">${esc(p.dettaglio||"")}${p.pianificatoAnnuoM3?" · piano annuo "+fmtM3(p.pianificatoAnnuoM3)+" m³":""}${p.riserveM3?" · riserve "+fmtM3(p.riserveM3)+" m³":""}</div></div>
       <div class="acts"><span class="badge ${PB[p.stato][0]}">${PB[p.stato][1]}</span>${p.pianificatoAnnuoM3?`<span class="arr" aria-hidden="true">${A.mod}</span>`:""}</div></div>`).join("")

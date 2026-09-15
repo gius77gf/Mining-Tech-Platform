@@ -1163,3 +1163,26 @@ confronto con la scadenza del titolo — ma non le metriche comparative a
 grana più fine: mese contro mese, giorni di margine, finestra corta contro
 lunga). Nessuna è un dato nuovo da raccogliere: sono tutti calcoli
 aggiuntivi sopra dati che Terra ha già in mano.
+
+⏱️ **LA LACUNA 2 ERA GIÀ CHIUSA IL GIORNO STESSO — è la stessa famiglia del
+«non c'è» scaduto, dentro la stessa sessione.** L'agente ha scritto questa
+riga il 15/09 leggendo `vitaCava()` senza `margineGiorni`; un cantiere di
+codice, nello stesso ciclo e nello stesso giorno (unità precedente,
+`014f20b7`), l'aveva già aggiunto — la ricerca gira in background mentre
+altri cantieri avanzano, e i due non si parlano finché non si confronta il
+documento col codice PRIMA di scrivere. `grep -n "margineGiorni"
+apps/terra/terra-data.js` → 3 occorrenze (dichiarazione, calcolo, valore di
+ritorno). Nessuna azione da fare qui: la riga resta per il metodo, non come
+lavoro aperto.
+✅ **FATTO il 15/09 (unità di questo blocco)**: la lacuna 1,
+`varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi)` — il mese
+corrente contro il piano annuo diviso 12 (dichiarato come media, non un
+piano mensile vero: Terra non ne ha uno), con la stessa disciplina
+dell'assenza-non-favorevole: un mese senza nessun rilievo di scavo elaborato
+non è un mese a zero, è "non ancora misurato", e la funzione lo dichiara
+invece di calcolare uno scarto finto. Riusa `volumiPerMese` (stessa regola
+di aggregazione, non riscritta). Wired nella schermata del piano estrattivo
+(`pia-mese`), accanto alla proiezione di fine anno.
+⏱️ **Resta aperta la lacuna 3**: nessun confronto fra una finestra corta
+(es. ultimi 90 giorni) e quella lunga di `ritmoMedioAnnuo` per rilevare
+un'accelerazione o un rallentamento del ritmo.

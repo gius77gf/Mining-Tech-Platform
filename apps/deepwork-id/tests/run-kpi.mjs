@@ -2573,6 +2573,29 @@ test("proiezioneAnnua: senza niente da proiettare lo stato NON è «ok»", () =>
   eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 47500, stato: "elaborato" }], piano, meta).stato, "warn", "warn c'è ancora");
   eq(terra.proiezioneAnnua([{ data: "2026-04-01", volumeM3: 60000, stato: "elaborato" }], piano, meta).stato, "danger", "danger c'è ancora");
 });
+test("⛔ varianzaMensilePiano: il mese corrente contro il piano annuo diviso 12, e l'assenza di un rilievo NON è uno zero", () => {
+  const piano = 120000, oggi = new Date(2026, 6, 15);   // atteso: 10.000 m³/mese
+  const avanti = terra.varianzaMensilePiano([{ data: "2026-07-05", volumeM3: 15000, stato: "elaborato" }], piano, oggi);
+  eq(avanti.calcolabile, true); eq(avanti.atteso, 10000); eq(avanti.reale, 15000);
+  eq(avanti.scartoM3, 5000); eq(avanti.scartoPct, 50); eq(avanti.verso, "avanti");
+  const indietro = terra.varianzaMensilePiano([{ data: "2026-07-05", volumeM3: 6000, stato: "elaborato" }], piano, oggi);
+  eq(indietro.scartoM3, -4000); eq(indietro.scartoPct, -40); eq(indietro.verso, "indietro");
+  eq(terra.varianzaMensilePiano([{ data: "2026-07-05", volumeM3: 10000, stato: "elaborato" }], piano, oggi).verso, "in pari");
+  // senza nessun rilievo QUESTO mese: non è uno zero, è "non lo so ancora"
+  const senza = terra.varianzaMensilePiano([{ data: "2026-06-05", volumeM3: 8000, stato: "elaborato" }], piano, oggi);
+  eq(senza.calcolabile, false); eq(senza.reale, undefined, "nessun 'reale' quando non è calcolabile");
+  ok(/non è detto che sia zero/.test(senza.perche), senza.perche);
+  const vuoto = terra.varianzaMensilePiano([], piano, oggi);
+  eq(vuoto.calcolabile, false); ok(/non è detto che sia zero/.test(vuoto.perche));
+  // senza un piano annuo: dichiarato, non un errore
+  eq(terra.varianzaMensilePiano([{ data: "2026-07-05", volumeM3: 15000, stato: "elaborato" }], 0, oggi).calcolabile, false);
+  ok(/manca un piano annuo/.test(terra.varianzaMensilePiano([], 0, oggi).perche));
+  // riusa volumiPerMese: una ripresa da cumulo non è scavo e non entra nel reale del mese
+  const conCumulo = terra.varianzaMensilePiano(
+    [{ data: "2026-07-05", volumeM3: 10000, stato: "elaborato" }, { data: "2026-07-10", volumeM3: 4000, stato: "elaborato", provenienza: "cumulo" }],
+    piano, oggi);
+  eq(conCumulo.reale, 10000, "il cumulo non consuma il piano di scavo, la regola è la stessa di volumiPerMese");
+});
 /* ── LA NOTA DI CREDITO ────────────────────────────────────────────────────
    La prima prova non è aritmetica, ed è quella che l'unità esiste per reggere:
    una fattura stornata al 100% NON deve entrare nei tempi di pagamento. Il

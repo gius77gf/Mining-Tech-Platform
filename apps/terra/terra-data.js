@@ -879,6 +879,42 @@ export function volumiPerMese(rilievi, mesi = 12, oggi = new Date()) {
   return primo < 0 ? [] : out.slice(primo);
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   LO SCARTO DEL MESE CORRENTE DAL PIANO (15/09, quinto giro di ricerca su
+   Terra: riconciliazione piano-vs-reale a grana più fine)
+   ────────────────────────────────────────────────────────────────────────
+   `proiezioneAnnua` dice se al ritmo attuale si sfonderà il piano ANNUO;
+   qui la domanda è più stretta — «questo mese siamo avanti o indietro?» —
+   e la risposta arriva prima, non a fine anno. Terra non ha un piano
+   MENSILE (solo `pianificatoAnnuoM3`): l'"atteso" è la sua ripartizione
+   uniforme su dodici mesi, che è una SEMPLIFICAZIONE dichiarata, non un
+   piano vero — una cava con stagionalità (fermi invernali, punte estive)
+   ha un ritmo reale diverso mese per mese, e questo numero non lo sa. Va
+   letto come «il ritmo medio che servirebbe», non come un obiettivo del
+   mese.
+   ⛔ L'ASSENZA DI UN DATO NON È UN DATO FAVOREVOLE: un mese senza nessun
+   rilievo elaborato non è un mese a zero — è un mese non ancora misurato,
+   e uno scarto calcolato su uno zero finto direbbe "indietro" a chi
+   semplicemente non ha ancora caricato il rilievo. Si dichiara `perche`
+   invece di un numero.
+   Riusa `volumiPerMese` (stessa regola di aggregazione, non riscritta):
+   la regola del `shared/` applicata dentro un'app sola. Pura e testabile;
+   `oggi` iniettabile. */
+export function varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi = new Date()) {
+  const piano = +pianificatoAnnuoM3 || 0;
+  if (piano <= 0) return { calcolabile: false, perche: "manca un piano annuo con cui confrontare il mese" };
+  const atteso = Math.round(piano / 12);
+  const mesi = volumiPerMese(rilievi, 1, oggi);
+  const corrente = mesi[mesi.length - 1] || null;
+  if (!corrente || corrente.rilievi === 0)
+    return { calcolabile: false, atteso, perche: "nessun rilievo di scavo elaborato in questo mese: non è detto che sia zero, non si sa ancora quanto è stato scavato" };
+  const reale = corrente.volume;
+  const scartoM3 = reale - atteso;
+  const scartoPct = atteso > 0 ? Math.round(100 * scartoM3 / atteso) : null;
+  return { calcolabile: true, atteso, reale, rilievi: corrente.rilievi, scartoM3, scartoPct,
+    verso: scartoM3 > 0 ? "avanti" : scartoM3 < 0 ? "indietro" : "in pari" };
+}
+
 // ============================================================
 // CONFRONTO FRA DUE RILIEVI DELLO STESSO FRONTE
 // La domanda vera del direttore di cava è «quanto abbiamo cavato da lì fra
