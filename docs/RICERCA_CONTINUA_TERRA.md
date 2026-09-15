@@ -1293,3 +1293,46 @@ Le tre lacune costituiscono una famiglia (il "dettaglio geometrico" della confor
 - [Strayos, Highwall Compliance](https://blog.strayos.com/product-spotlight-highwall-compliance/)
 - [TopoDrone, Quarry Surveying](https://topodrone.com/services/quarry-surveying/)
 - [MDPI, Point Cloud SLAM per Digital Twin](https://www.mdpi.com/2076-3417/15/22/12326)
+
+## 15/09 — scomposizione della lacuna 2 (sezioni trasversali), prima di scrivere codice
+
+*(stessa disciplina già usata su Genesi G7: farlo a metà è la trappola,
+si scompone prima — verificato leggendo il codice di persona, non sulla
+parola della ricerca)*
+
+**Che cosa c'è oggi, misurato riga per riga.** Un fronte (`fronti/{id}`)
+porta tre grandezze SCALARI, un valore solo ciascuna: `quota`,
+`altezzaBancoM`, `pendenzaGradi` — scritte da un form a riga singola
+(`#fro-quota`/`#fro-altezza`/`#fro-pendenza`, `index.html:4433-4542`) e
+lette da `conformitaQuota`/`conformitaGeometria` (`terra-data.js:3586`,
+`3759`) per il verdetto di conformità. Non c'è NESSUN posto, né nei dati
+né nella pagina, che tenga più di un punto per fronte: aggiungere
+sezioni trasversali non è "estendere un campo", è un modello nuovo.
+
+**Perché non si scrive oggi.** Tre pezzi, e sono di taglia diversa:
+1. **Il modello dati**: un array `sezioni: [{distanzaM, quotaM,
+   altezzaBancoM, pendenzaGradi}, …]` sul fronte, **opzionale e
+   additivo** — i tre scalari esistenti restano (retrocompatibilità: un
+   fronte già in produzione non ne ha bisogno finché nessuno lo chiede),
+   e diventano il caso "una sezione sola, senza distanza".
+2. **Il calcolo**: una funzione pura che, DATO un fronte con sezioni,
+   trova la peggiore (stesso principio di `conformitaGeometria`: il
+   verdetto è quello del margine più stretto, non una media che
+   nasconde un punto fuori soglia) — e che con zero sezioni ricade sugli
+   scalari di oggi, così `conformitaQuota`/`conformitaGeometria` non
+   cambiano contratto per chi le chiama già.
+3. **Il form**: un sotto-modulo che aggiunge/toglie righe di sezione
+   dentro la scheda del fronte — oggi è un form a riga singola, questo è
+   un pattern che Terra non ha ancora da nessuna parte (il pattern più
+   vicino è l'elenco cumuli di un inventario, ma è un record separato,
+   non righe dentro un altro form).
+
+**La prima fetta onestamente piccola**: (1) da sola — il campo
+`sezioni` opzionale, popolabile solo per import (non ancora dal form a
+mano), e una funzione pura `sezionePeggiore(fronte)` che la scheda di
+conformità userebbe se presente. Zero rischio sulla sicurezza (nessuna
+soglia cambiata), zero rischio sul form esistente (non si tocca).
+**Non fatto in questo blocco**: la fetta 1 da sola non dà ancora nessun
+valore visibile a chi lavora in cava (un campo che nessuna schermata
+scrive), quindi non vale la pena costruirla isolata dal pezzo 3 — è
+dichiarata come prossimo passo atomico scomposto, non lavoro immaginato.
