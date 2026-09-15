@@ -40656,6 +40656,26 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const r3 = genesi.burdenVeroDaRilievo(H, [], faccia, [{ idForo: "a", dx: 0, dy: 0 }, { idForo: "zzz", dx: 1, dy: 1 }]);
     eq(r3.orfane.map((o) => o.idForo), ["zzz"], "una riga senza foro nel progetto è orfana, come in confrontoPerForo");
   });
+  test("⛔ Genesi · burdenPerForo (15/09): legge burdenVero/burdenLoc già scritti su ogni foro, nessun calcolo nuovo", () => {
+    const H = [
+      { id: "a", seq: 0, burdenLoc: 3, burdenVero: 3 },       // dentro (rapporto 1.0)
+      { id: "b", seq: 1, burdenLoc: 3, burdenVero: 2.5 },     // oltre: 2.5/3 = 0.833 < 0.85
+      { id: "c", seq: 2, burdenLoc: 3, burdenVero: 2.55 },    // dentro per un pelo: 0.85 esatto NON è "oltre"
+      { id: "d", burdenLoc: 3, burdenVero: null },            // non misurabile: burdenVero assente
+      { id: "e", burdenLoc: null, burdenVero: 3 },            // non misurabile: burdenLoc assente (foro non ancora coperto dalla maglia)
+    ];
+    const r = genesi.burdenPerForo(H);
+    eq(r.map((x) => [x.numero, x.misurabile, x.stato, x.scarto]),
+      [[1, true, "dentro", 0], [2, true, "oltre", -0.5], [3, true, "dentro", -0.45],
+       [4, false, "non-misurabile", null], [5, false, "non-misurabile", null]]);
+    eq(r.map((x) => x.id), ["a", "b", "c", "d", "e"]);
+    eq(genesi.burdenPerForo([]), [], "senza fori: elenco vuoto, non un errore");
+    eq(genesi.burdenPerForo(null), [], "null non manda in errore");
+    // il numero segue seq quando c'è, la posizione nell'array quando manca (un progetto vecchio)
+    eq(genesi.burdenPerForo([{ burdenLoc: 3, burdenVero: 3 }, { burdenLoc: 3, burdenVero: 3 }]).map((x) => x.numero), [1, 2]);
+    eq(genesi.numeroForo({ seq: 4 }, 0), 5, "seq vince sempre sulla posizione, quando c'è");
+    eq(genesi.numeroForo({}, 2), 3, "senza seq: la posizione nell'array, 1-based");
+  });
 }
 /* ===== i fori salvati col progetto (Genesi, 05/09) ===== */
 {

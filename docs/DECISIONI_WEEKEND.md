@@ -1765,7 +1765,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.531** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.532** *(ricontate il 15/09, dopo aver
 aggiunto a `shared/deepwork-id-client/dw-shell.js` `righeCsvNumerate` — il
 numero di riga fisico nel file al posto della posizione nell'elenco già
 scartato, dal delta della riverifica sul documento invecchiato PAROLE — e
@@ -1779,7 +1779,10 @@ in forma standard sono tutti migrati), poi estesa `righeCsvNumerate` per
 accettare anche un predicato oltre a una parola chiave (senza cambiare il
 contratto a stringa per chi già la usa) e migrato con lei
 `scudo.scartiLavoratoriCsv` — restano cinque forme non standard, basate
-su celle già parsate invece che su testo grezzo,
+su celle già parsate invece che su testo grezzo, poi aver aggiunto a
+Genesi `burdenPerForo` — il pannello «Burden per foro» sulla scheda
+Progetto 2D (dal secondo giro di ricerca su Genesi), verificato anche
+nel browser,
 dopo aver aggiunto a `terra-data.js` `sezionePeggiore` — la prima fetta delle sezioni
 trasversali per fronte, additiva e collegata subito al posto di
 `conformitaGeometria` senza cambiare nessun contratto — dopo aver aggiunto a
@@ -1809,7 +1812,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **293
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

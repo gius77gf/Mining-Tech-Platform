@@ -8538,9 +8538,10 @@ numero scritto dove non era stato misurato niente**.*
   i 18 lettori standard sono ora tutti migrati), 3037→3038, e infine —
   dopo aver esteso la funzione per accettare anche un predicato oltre a
   una parola chiave — a `scartiLavoratoriCsv` di Scudo (restano cinque
-  forme non standard), 3038→3039):
-  **3.531 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3039, `run-stile` 328,
+  forme non standard), 3038→3039, e a `genesi.burdenPerForo` (il pannello
+  «Burden per foro», dal secondo giro di ricerca su Genesi), 3039→3040):
+  **3.532 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3040, `run-stile` 328,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8550,8 +8551,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **291 esecuzioni** che
-  aprono le pagine in un browser vero, da **125** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **293 esecuzioni** che
+  aprono le pagine in un browser vero, da **126** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

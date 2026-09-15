@@ -816,6 +816,8 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-obiettivo-esito"></div>
   <button class="btn" id="btn-confronta-burden" type="button" style="display:block;margin:8px auto 0;" title="A parità di pezzatura obiettivo, quanto cambia la carica per foro (e la MIC/PPV stimata) variando la spalla intorno a quella di oggi, con la stessa maglia e la stessa sequenza di sparo.">📊 Confronta burden per lo stesso obiettivo</button>
   <div id="d2-confronta-esito"></div>
+  <button class="btn" id="btn-burden-foro" type="button" style="display:block;margin:8px auto 0;" title="Il burden vero di OGNI foro, calcolato dalla ricostruzione automatica del fronte (nessun import: lo stesso dato che l'ispettore del foro mostra uno alla volta, qui su tutta la maglia insieme).">📐 Burden per foro (dalla maglia)</button>
+  <div id="d2-burden-esito"></div>
   <input type="file" id="rilievoDevFile" accept=".csv,text/csv,.txt" style="display:none;">
   <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
   <div id="d2-rilievo-esito"></div>
@@ -1217,7 +1219,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
    illeggibile e 0,9 m di perforazione al posto di un banco illeggibile. */
          foriDiProgetto, metriPerforati, genesiData, portaNellOrganizzazione, designSconosciuti, riepilogoPontiGenesi,
          fattoreRoccia, x50DaMisure, ondaDaCsv, _sitoParseCsv, tempiDetonazione, sommaRitardata,
-         ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo,
+         ppvDaSd, caricaDaX50Target, rwsEffettiva, PENALITA_ACQUA, deviazioneForiDaCsv, burdenVeroDaRilievo, burdenPerForo,
          quotaCresta, distanzaDaSpezzata, spaziaturaTipica, _spazTipico, tempoInPunto, passoIsocrone, isoPasso,
          fileDeiFori, INN_TAGLI, taglioRealizzabile, innTaglioOk, _cmpNum, _cmpKg, _cmpEur, _cmpPf, _cmpCm, _cmpFly,
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
@@ -3759,6 +3761,30 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
    variabile nuova della pagina): un secondo posto che la ricalcolasse in un
    altro modo sarebbe la stessa famiglia di copia debole già chiusa altrove
    in questo file. */
+/* ⏱️ 15/09: il burden vero di TUTTI i fori, letto da `h.burdenVero`/`h.burdenLoc`
+   — già scritti su ogni foro da `computeEnergia2D` a ogni rigenerazione della
+   maglia, sempre. Nessun import, nessun ricalcolo: stesso dato che l'ispettore
+   del foro mostra uno alla volta (riga 6246 sopra), qui su tutta la maglia. */
+if($('btn-burden-foro')) $('btn-burden-foro').onclick=()=>{
+  const box=$('d2-burden-esito'); if(!box) return;
+  const H=D2.holes;
+  if(!H||!H.length){ box.innerHTML='<div style="margin-top:8px;color:var(--mut);font-size:12px;">Disegna prima la maglia: senza fori non c\'è niente da mostrare.</div>'; return; }
+  const righe=burdenPerForo(H);
+  const righeHtml=righe.map(x=>{
+    if(!x.misurabile) return '<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span><span style="color:var(--mut);font-size:12px;"> · non calcolabile</span></div>';
+    const colore = x.stato==='oltre' ? '#ef5350' : 'var(--mut)';
+    return '<div><b>'+x.numero+'</b> <span class="mono">'+_rEsc(x.id||'')+'</span></div>'
+      +'<div class="r">'+gfix(x.burdenProgetto,2)+' → '+gfix(x.burdenVero,2)+' m'
+        +'<span style="color:'+colore+';margin-left:6px;">'+(x.scarto>=0?'+':'')+gfix(x.scarto,2)+' m</span></div>';
+  }).join('');
+  const oltre=righe.filter(x=>x.stato==='oltre').length;
+  box.innerHTML='<div style="margin-top:8px;">'
+    +'<div style="color:var(--mut);font-size:12px;margin-bottom:6px;">'+_ricPlur(righe.length,'foro','fori')+' sulla maglia'
+      +(oltre?' · <span style="color:#ef5350;">'+_ricPlur(oltre,'foro','fori')+' con meno dell\'85% del burden di progetto</span>':'')+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;">'+righeHtml+'</div>'
+    +'<div style="margin-top:8px;color:var(--mut);font-size:11px;">Burden di progetto → burden vero (perpendicolare alla faccia, dalla ricostruzione automatica del fronte). Rosso: sotto l\'85% del progetto — meno roccia del previsto davanti al foro.</div>'
+    +'</div>';
+};
 if($('btn-rilievo-dev')) $('btn-rilievo-dev').onclick=()=>$('rilievoDevFile').click();
 /* ⛔ 12/09: LA CONVENZIONE DEGLI ASSI dx/dy NON È VERIFICATA, E QUESTO È
    ESATTAMENTE IL RISCHIO CHE docs/DECISIONI_WEEKEND.md (sezione 6, decisione

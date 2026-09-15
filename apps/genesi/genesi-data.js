@@ -830,6 +830,38 @@ export function burdenVeroDaRilievo(holes, profilo, faccia, righe){
   return { chiave, righe: out, orfane, doppie, misurabile: out.some(x=>x.misurato) };
 }
 
+/* Il numero d'ordine di un foro: la sequenza di sparo se c'è, altrimenti la
+   posizione nell'array. Stessa forma già scritta in `abbinaForiRighe`
+   (sopra), nell'export IREDES e nel disegno 2D — qui è la forma per la prima
+   funzione NUOVA che ne ha bisogno, non un riordino delle copie esistenti. */
+export function numeroForo(h, i){ return Number.isInteger(h.seq) ? h.seq+1 : i+1; }
+
+/* ⏱️ 15/09, dal secondo giro di ricerca su Genesi: manca un pannello che
+   elenchi il burden VERO di TUTTI i fori insieme — a differenza della carica
+   (`confrontoPerForo`) e del rilievo boretrack (`burdenVeroDaRilievo`), che
+   ce l'hanno già. Il dato non serve importarlo: `energiaSuMaglia` (sopra)
+   scrive `h.burdenVero`/`h.burdenLoc` su OGNI foro a ogni rigenerazione della
+   maglia, sempre, dalla ricostruzione automatica del fronte — oggi si vede
+   solo un foro alla volta (l'ispettore, il disegno 2D) o aggregato (min/max
+   nella riga KPI «Energia per foro»). Nessun calcolo nuovo: solo lettura e
+   presentazione di un campo già scritto. Lo stato non si giudica quando manca
+   uno dei due numeri (foro non ancora coperto dalla maglia, prima fila senza
+   una faccia libera dietro): `misurabile:false`, niente inventato — lo stesso
+   principio di `confrontoPerForo`/`burdenVeroDaRilievo`. La soglia (85%) è la
+   stessa già usata nell'avviso «fronte stretto» della riga KPI, qui applicata
+   foro per foro invece che sul solo minimo. */
+export function burdenPerForo(holes){
+  const H = Array.isArray(holes) ? holes.filter(Boolean) : [];
+  return H.map((h, i) => {
+    const burdenProgetto = h.burdenLoc != null ? h.burdenLoc : null;
+    const burdenVero = h.burdenVero != null ? h.burdenVero : null;
+    const misurabile = burdenProgetto != null && burdenVero != null;
+    const scarto = misurabile ? +(burdenVero - burdenProgetto).toFixed(2) : null;
+    const stato = !misurabile ? 'non-misurabile' : (burdenVero < burdenProgetto * 0.85 ? 'oltre' : 'dentro');
+    return { id: h.id || null, numero: numeroForo(h, i), burdenProgetto, burdenVero, scarto, misurabile, stato };
+  });
+}
+
 // Dai fori del file ai numeri della riconciliazione. Tutto qui è SOMMA o
 // MEDIA di quello che c'è nel file: niente stime, niente riempimenti.
 export function _riconRiassuntoCampo(p, nomeFile){

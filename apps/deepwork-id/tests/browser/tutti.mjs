@@ -417,6 +417,8 @@ const BANCHI = [
      nuovo il browser invece di fidarsi dello screenshot vecchio. */
   ['obiettivo x50 e confronta burden di Genesi', 'genesi-obiettivo-burden.mjs', []],
   ['obiettivo/confronta burden · controprova', 'genesi-obiettivo-burden.mjs', ['--controprova'], true],
+  ['burden per foro di Genesi (15/09, dalla ricostruzione automatica)', 'genesi-burden-per-foro.mjs', []],
+  ['burden per foro · controprova', 'genesi-burden-per-foro.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09: censiti tutti i bottoni `btn-*` premuti da tutta la
      superficie browser di Genesi, ne restavano due senza banco —
      `btn-piano-dxf` (G33, costruita il 13/09 su richiesta diretta del
