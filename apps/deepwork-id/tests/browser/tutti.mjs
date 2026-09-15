@@ -1165,6 +1165,13 @@ const BANCHI = [
      con ventotto chiamate all'assenza, non aveva niente. */
   ['i numeri tranquilli di Flotta', 'flotta-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Flotta · controprova', 'flotta-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* 15/09: l'import CSV del parco confrontava il nome INTERO contro
+     l'archivio invece del nome breve (la chiave vera, dichiarata dal
+     modulo) — un mezzo già registrato con marca/modello non fermava una
+     riga CSV che portava solo il nome corto, e nasceva un secondo
+     documento con lo stesso nome breve. */
+  ['Flotta · l\'import del parco non sdoppia un mezzo per il nome breve', 'flotta-import-mezzi-nome-breve.mjs', []],
+  ['Flotta · import parco nome breve · controprova', 'flotta-import-mezzi-nome-breve.mjs', ['--controprova'], true],
   /* ⛔ E DAL 06/08 LE FRASI, non i numeri. Il numero era giusto e a mentire era
      la frase intorno: undici punti incollavano un plurale a un conto che può
      valere uno («Consuntivo importato: 1 fori», «Il file ha 1 righe», e —

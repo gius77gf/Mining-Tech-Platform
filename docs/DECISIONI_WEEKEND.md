@@ -1348,7 +1348,7 @@ condivise su numeri, unità di misura e soldi.
 **Le prove automatiche sono passate a 3.466** *(ricontate il 15/09, dopo aver
 aggiunto la prova dell'appello che non perde uno spunto già fatto a
 `run-kpi.mjs`, lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **289
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **291
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

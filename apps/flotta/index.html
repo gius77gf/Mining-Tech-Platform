@@ -4674,13 +4674,24 @@ body.dw b.bad{color:var(--ink-dg)}
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
        Fino al 31/07 si guardava solo il secondo, e l'elenco non si aggiornava
        mentre il file scorreva: mezzi già scritti due volte nello stesso file
-       entravano tutte. */
-    const righe = senzaDoppioni(lette, x => x.nome);
+       entravano tutte.
+       ⛔ E in TUTT'E DUE i posti la chiave dev'essere il NOME BREVE, non il
+       nome intero — perché è il nome breve la chiave con cui il resto
+       dell'app collega manutenzioni, scadenze, fermi e rifornimenti
+       (`nomeBreve`, sopra). Il form interattivo di un mezzo nuovo lo confronta
+       già per nome breve (vedi il controllo su "editMez" più sotto); qui
+       confrontava il nome INTERO, quindi «Escavatore E1 — CAT 320» già in
+       archivio non fermava un CSV con la riga «Escavatore E1»: nasceva un
+       secondo mezzo con lo stesso nome breve, e da lì in poi ogni ricerca per
+       nome breve (tagliandi, libretto, affidabilità del parco) trova un
+       documento a caso fra i due — un tagliando scaduto sul mezzo vero può
+       leggersi "tranquillo" sul fantasma appena creato. */
+    const righe = senzaDoppioni(lette, x => nomeBreve(x.nome));
     const ripetute = lette.length - righe.length;
     if (!righe.length) { esito("ore-esito", "Nessun mezzo è entrato: le colonne devono essere nome;area;ore;stato, una riga per mezzo." + frasePersi(scartate), "err"); e.target.value = ""; return; }
     let agg = 0, dup = 0;
     for (const r of righe) {
-      if (MEZ.some(m => m.nome.trim().toLowerCase() === r.nome.toLowerCase())) { dup++; continue; }  // già presente
+      if (MEZ.some(m => nomeBreve(m.nome) === nomeBreve(r.nome))) { dup++; continue; }  // già presente (stesso nome breve)
       await db.aggiungi("mezzi", { nome: r.nome, area: r.area, ore: r.ore, stato: r.stato });
       agg++;
     }
