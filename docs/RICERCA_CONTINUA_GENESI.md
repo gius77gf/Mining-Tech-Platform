@@ -3425,3 +3425,25 @@ Il piano di PIANO_3D.md dice: *"Rifiniture estetiche mirate SOLO se emergono deb
 
 **Status**: Non preso per costruzione finché non si decide il timing con gli altri G7-G10. G9 dipende da G7 (ottimizzatore finito?), oppure no: una rifinitira può partire indipendente.
 
+⛔ **CORREZIONE (15/09, riverifica di persona prima di prendere in mano il
+candidato)**: `ppvAltezza()`, citata due volte qui sopra come la funzione
+che calcola il PPV per l'isolina, **non esiste**. `grep -n "function ppv"
+apps/genesi/genesi-data.js` → nessuna occorrenza per quel nome; le funzioni
+PPV vere sono `ppvDaSd(sd, K, beta)`, `ppvSenzaSoglia(norma,f)`,
+`ppvLimit(norma,f)`, `esitoPpv(ppv, limite)`, e `ppvSite()` **nella
+pagina**, non nel modulo. La "verifica meccanica" del passo 3 dichiarava
+di aver controllato il codice ma il nome non regge a un `grep` — è la
+stessa famiglia già raccolta in questo file: un "non c'è" (o qui, un
+"c'è, si chiama così") va provato con un comando, non affermato. Le altre
+due verifiche di codice della stessa ricerca reggono (`burdenVeroDaRilievo`
+esiste, riga 803 di `genesi-data.js`; `backWall` usa `rockMat(shade(_lt,
+0.8), true)` — un'ombreggiatura fissa, nessun gradiente da burden — quindi
+il delta sulla "burden map colorata" resta vero).
+Effetto pratico: la proposta 2 ("PPV isoline") ha un costo/fattibilità
+**non verificato quanto sembrava** — chi la prendesse in mano dovrebbe
+prima capire da quali funzioni vere derivare il PPV per punto nello
+spazio (probabilmente componendo `ppvDaSd` con una distanza calcolata sul
+posto, non chiamando una funzione già pronta). Le proposte 1 (burden map)
+e 3 (annotazione on-hover) non citano funzioni inesistenti e restano
+verificate come scritte.
+
