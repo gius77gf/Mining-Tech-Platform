@@ -1103,3 +1103,240 @@ Questo è la ragione per cui ogni LIMS professionale lo traccia.
 
 **Riassunto** — 1 lacuna **confermata** (Sentinella traccia i timestamp delle modifiche ma non l'operatore). Il delta è legittimo: è uno standard di settore, richiesto dalle dispute legali, e implementato da tutti i software LIMS professionali. La pratica mondiale lo tiene come standard per "chain of custody". Verificato non primario (la ricerca non accedeva ai documenti tecnici ufficiali di OnLIMS/Quentic/KPMIS, solo a descrizioni marketing e risultati ricerca web), ma il principio è coerente e il motivo è tangibile.
 
+---
+
+## 15/09 — ottavo giro di ricerca mirata: le condizioni meteo nella valutazione di un superamento (vento sulle polveri, inversione termica sul rumore, terreno saturo sulle vibrazioni)
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: `WebSearch` (tre
+ricerche, tutte hanno risposto); `WebFetch` non è stato provato in questo
+giro — per lo stesso limite già misurato più volte in questo file
+(`EGRESS_BLOCKED` su dominio generico), si presume valga ancora e non si
+ripete la prova. **Nessuna fonte è stata letta per intero**: ogni riga sul
+mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+**Punto 1 del protocollo — che cosa esiste già, dichiarato prima di
+proporre.** La ricerca del 05/09 (sezione qui sopra, «le condizioni meteo
+della misura») ha già costruito: cinque campi meteo facoltativi sulla
+lettura (`vento`, `ventoDa`, `pioggia`, `temperatura`, `umidita`), un
+giudizio di validità **solo sul rumore** (`misuraFuoriCondizioni`: vento
+oltre 5 m/s o pioggia → misura non valida per il DM 16/03/1998, All. B),
+l'import da file con `proponiColonneMeteo`, e ha **deliberatamente
+escluso** un verdetto «sottovento» sulle polveri perché servirebbe la
+posizione della sorgente rispetto al ricettore, che l'app non ha. Questo
+giro **non ripete** quella domanda (l'attribuzione di un PM10 misurato alla
+sorgente): guarda una domanda diversa e più stretta — se le condizioni
+meteo cambiano l'**urgenza della risposta operativa** a un superamento già
+misurato, e se lo fanno anche per rumore e vibrazioni, non solo per la
+validità del rumore.
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Polveri — TARP (Trigger Action Response Plan).** Le miniere che fanno
+  monitoraggio in tempo reale usano un TARP dinamico: un sistema di supporto
+  alla decisione che combina le letture di polvere in tempo reale con le
+  condizioni meteo locali (vento, temperatura, umidità) per **prevenire un
+  superamento prima che avvenga**, non solo per giudicarlo dopo. Quando il
+  vento o la quantità di particolato superano una soglia di innesco, può
+  essere necessario **alterare o sospendere le operazioni** per proteggere
+  la popolazione vicina; alcuni sistemi sono cablati per innescare
+  automaticamente la soppressione polveri (nebulizzatori) al superamento di
+  un livello predeterminato. *[risultati di ricerca: envirosuite.com (quattro
+  pagine, tra cui una specifica sui TARP), aeroqual.com, metone.com,
+  makesafetyeasy.com — nessuna letta per intero]*
+- **Rumore — inversione termica.** Di sera il gradiente di temperatura si
+  inverte (più freddo al suolo): il suono si piega verso il basso e torna a
+  terra lungo percorsi che in condizioni diurne normali si perdono in cielo,
+  risultando in livelli **più alti** alla posizione dell'ascoltatore. È una
+  condizione **comunissima**, presente in quasi tutte le notti calme e
+  serene. Il rumore di una cava/miniera può così essere regolarmente
+  udibile a **5 km o più** in quelle condizioni. Temperatura e gradiente del
+  vento insieme possono spostare il livello misurato fino a **20 dB**
+  rispetto a quanto la sola distanza predirebbe — una differenza enorme (20
+  dB ≈ un fattore 100 in energia sonora). Le condizioni notturne favorevoli
+  alla propagazione sono: atmosfera stabile, umidità alta, forte inversione
+  termica, forte wind shear. *[risultati di ricerca: hbkworld.com (Brüel &
+  Kjær), abdengineering.com, mocpa.com, iere.org, train-horn.com — nessuna
+  letta per intero]*
+- **Vibrazioni — condizioni del terreno.** La velocità di picco (PPV) si
+  attenua secondo un andamento logaritmico con la distanza, e quanto si
+  attenua dipende dallo spessore del suolo e dalla presenza di uno strato di
+  roccia alterata; passando da roccia a terreno la PPV verticale **cala del
+  37,2%** all'interfaccia roccia-suolo. Un peso specifico del suolo più alto
+  riduce le sollecitazioni indotte e la PPV per maggiore smorzamento; una
+  falda più profonda **aumenta** invece spostamenti e PPV. Cioè le
+  condizioni del terreno — di cui l'umidità/saturazione è una componente —
+  cambiano la propagazione in entrambe le direzioni a seconda del caso, non
+  in una sola. *[risultati di ricerca: sciencedirect.com (due articoli),
+  researchgate.net, mdpi.com — nessuna letta per intero, solo abstract/estratti]*
+
+### PASSO 2 — il delta: verifica nel codice (15/09, contro il commit `a06c7830`)
+
+Comandi eseguiti e uscite reali:
+
+```
+$ grep -c 'vento' apps/sentinella/sentinella-data.js
+71
+$ grep -c 'meteo' apps/sentinella/sentinella-data.js
+13
+$ grep -c 'direzioneVento' apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:2
+apps/sentinella/index.html:0
+$ grep -c 'condizioniMeteo' apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:0
+```
+
+`condizioniMeteo` non esiste come nome: il nome vero, trovato leggendo il
+file, è `condizioniMisura` (`grep -c 'condizioniMisura'
+apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 3 e 4) —
+è la quarta causa di falso «non c'è» di CLAUDE.md (cercare la parola del
+mondo invece del meccanismo) presa e corretta sul nascere, non subita.
+
+```
+$ grep -n 'tipo !== "rumore"' apps/sentinella/sentinella-data.js
+2852:  if (tipo !== "rumore") return vuoto;
+4227:  if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
+4242:  if (tipo !== "rumore") return { pertinente: false, totale: L.length, fuori: 0, dentro: 0, nonGiudicabili: 0 };
+```
+
+Le tre righe sono `contaCalibrazioni` (2852, sul calibratore — non c'entra
+col meteo), `misuraFuoriCondizioni` (4227) e `contaFuoriCondizioni` (4242).
+**Ogni** giudizio meteo che l'app sa dare è gated su `tipo === "rumore"`:
+per vibrazioni e polveri, `misuraFuoriCondizioni` torna sempre
+`pertinente: false` a prescindere da che cosa contiene la lettura.
+
+E il modulo di lettura registra vento/pioggia/temperatura/umidità **per
+qualunque tipo di punto**, non solo per il rumore: il form «Registra
+misura» (`apps/sentinella/index.html:1317-1334`) è lo stesso form per
+rumore, vibrazioni e polveri (`mis-sensore` sceglie il punto, i campi meteo
+sono sempre visibili sotto), e `condizioniMisura(l)` (riga 4208) legge
+`vento`, `ventoDa`, `pioggia`, `temperatura`, `umidita` dalla lettura senza
+mai guardare il tipo del punto — la selezione per tipo avviene **dopo**,
+solo dentro `misuraFuoriCondizioni`. Quindi oggi un tecnico può registrare
+«PM10 36,8, vento 12 m/s da Sud (verso l'abitato Sud)» o «PPV 4,2 dopo tre
+giorni di pioggia» e l'app li scrive, li mostra nella riga, li mette nel
+CSV — e non ne fa **nulla**: nessuna funzione li rilegge per giudicare
+niente su quei due tipi.
+
+Confermato anche per la temperatura/umidità **su ogni tipo, rumore
+compreso**:
+
+```
+$ grep -n '\.temperatura\b' apps/sentinella/sentinella-data.js
+1525:    ...colTemp: INDIZI_METEO.temperatura...   (mappatura colonne import)
+4213:  const temperatura = numeroDichiarato(x.temperatura);   (dentro condizioniMisura, solo per comporre il TESTO)
+```
+
+Nessun'altra occorrenza. `temperatura` e `umidita` sono lette **una sola
+volta**, dentro `condizioniMisura`, e servono solo a costruire la frase
+mostrata a schermo (`testo`); nessuna funzione di giudizio (`misuraFuoriCondizioni`
+compresa) le rilegge mai per decidere niente — nemmeno per il rumore, dove
+la norma citata nel commento del modulo riguarda solo vento e pioggia.
+
+### Il delta
+
+**Delta 1 — CONFERMATO. Le polveri non hanno nessuna nozione di urgenza
+legata al vento**, mentre il mondo (TARP) la costruisce apposta per
+decidere se sospendere un'attività polverosa in corso.
+- **Schermata**: Quadro e scheda del punto polveri (es. «Polveri PM10 —
+  confine Est»), quando una lettura è registrata con vento sostenuto.
+- **Che cosa non va**: un superamento di soglia PM10 registrato con vento
+  forte in atteggiamento dispersivo verso un ricettore e uno registrato in
+  calma piatta ricevono la **stessa** riga, lo stesso colore, lo stesso
+  posto in `superamentiAperti` (ordinato solo per `valore/soglia`, verificato
+  leggendo la funzione a riga 4033 del modulo). Il mondo tratta questi due
+  casi in modo diverso: il primo giustifica una sospensione immediata delle
+  attività polverose, il secondo no.
+- **Come si vede**: si registra una lettura di polveri sopra soglia con
+  `vento` alto (es. 12 m/s) e una identica con `vento` basso (es. 0,5 m/s):
+  in `superamentiAperti` compaiono con lo stesso `st.cls: "danger"` e lo
+  stesso ordinamento per ratio, nessun segno le distingue.
+- **Quanto costa** (stima non verificata): piccolo-medio. Non servirebbe
+  ricostruire il verdetto «sottovento» già scartato (quello vorrebbe la
+  geometria sorgente-ricettore, che manca): basterebbe una soglia di **sola
+  velocità del vento** dichiarata sul punto polveri (come già esiste
+  `scartoCalibrazioneDb` per il rumore), e una bandiera «vento sostenuto
+  durante il superamento» sulla riga del `superamentiAperti`, senza calcolare
+  nessuna direzione — un fatto in più da leggere, non un verdetto nuovo da
+  inventare.
+- **Come si misura**: si registrerebbe con `funzione(vento, sogliaVento) →
+  { sopraSoglia, breve }` pura, provabile in `run-kpi.mjs` senza browser,
+  sullo schema delle funzioni meteo già esistenti (`misuraFuoriCondizioni`).
+
+**Delta 2 — CONFERMATO. Il rumore non tiene conto delle condizioni che
+favoriscono la propagazione (inversione termica).** `temperatura` e
+`umidita` sono raccolte e mostrate ma **mai lette da nessun giudizio**
+(vedi grep sopra): l'app oggi può solo dire «vento/pioggia fuori norma →
+misura NON valida», mai «condizioni favorevoli alla propagazione → una
+lettura conforme oggi potrebbe non esserlo in una notte calma e serena».
+- **Schermata**: scheda del punto rumore, riga della lettura con condizioni
+  registrate di notte, calma, cielo sereno (vento basso, umidità alta).
+- **Che cosa non va**: una lettura fatta di giorno con vento moderato che
+  risulta «dentro soglia» non dice niente su una notte calma, dove — per il
+  mondo — lo stesso rumore può propagarsi fino a 20 dB più lontano. L'app
+  non lo segnala mai: il campo che servirebbe (temperatura, umidità, ora)
+  esiste già ma non è collegato a nessun avviso.
+- **Come si vede**: `misuraFuoriCondizioni` con una lettura che ha
+  `temperatura: 8, umidita: 90, vento: 0.3` (condizioni da manuale da
+  inversione termica) torna lo stesso esito di una lettura diurna e ventosa
+  purché entrambe rispettino il limite di 5 m/s e assenza di pioggia:
+  nessuna delle due riceve un avviso diverso.
+- **Quanto costa** (stima non verificata, e onestamente incerta): questa è
+  la proposta più delicata delle tre, perché il mondo non dà una soglia
+  numerica netta («inversione sì/no») paragonabile ai 5 m/s del DM
+  16/03/1998 — è un fenomeno che si riconosce (notte, cielo sereno, vento
+  debole) più che si misura con un singolo numero. Un avviso **descrittivo**
+  («condizioni tipiche da inversione termica: vento debole, notte — una
+  lettura conforme oggi non garantisce le stesse condizioni sfavorevoli»),
+  senza toccare l'esito di conformità, sarebbe piccolo; un calcolo che
+  stimi l'entità dell'effetto sarebbe grande e vorrebbe dati che l'app non
+  ha (gradiente termico verticale, non solo la temperatura al suolo).
+- **Come si misura**: una funzione pura `condizioniFavorevoliPropagazione(l)`
+  che guarda ora (notte, se registrata), vento basso, umidità alta e torna
+  un avviso testuale, mai un blocco — sullo stesso principio prudente di
+  `AVVISO_COINCIDENZA` per le volate (si dichiara la correlazione, mai la
+  causa).
+
+**Delta 3 — PARZIALMENTE CONFERMATO, e corregge una deduzione precedente
+non verificata.** La ricerca del 05/09 scriveva, marcata come *deduzione*:
+«nessuna condizione meteo invalida una misura di PPV; il vento forte può
+muovere il geofono mal accoppiato, ma è un problema d'installazione, non
+una soglia». Il mondo (ricerca vera, non deduzione, di questo giro) dice
+di più: le condizioni del **terreno** — di cui l'umidità è una componente —
+cambiano davvero la propagazione fisica della vibrazione (fino al 37% in
+meno passando da roccia a suolo; falda più profonda e suolo più denso
+spingono la PPV in direzioni opposte). Non è un problema di installazione:
+è fisica dell'attenuazione. La deduzione del 05/09 resta corretta
+sull'esito pratico («nessuna condizione invalida la misura come per il
+rumore» — qui non c'è un DM che fissa un limite di vento per le vibrazioni)
+ma sbagliava la ragione.
+- **Schermata**: scheda del punto vibrazioni, dopo una pioggia prolungata o
+  un periodo di siccità, quando la PPV di uno stesso punto cambia
+  sensibilmente a parità di carica esplosiva dichiarata.
+- **Che cosa non va**: `condizioniMisura` accetta pioggia anche su una
+  lettura di vibrazioni (il form è generico, vedi sopra), ma nessuna
+  funzione la rilegge: un salto di PPV dopo giorni di pioggia (terreno più
+  saturo) non ha nessun contesto scritto accanto, mentre per il rumore un
+  meccanismo di "condizione registrata" (seppure diverso) già esiste.
+- **Come si vede**: `grep -n 'pertinente: false' apps/sentinella/sentinella-data.js`
+  (righe 4227 e 4242 già citate) — la pioggia registrata su una lettura di
+  vibrazioni non entra in nessun conto, nemmeno descrittivo.
+- **Quanto costa** (stima non verificata): piccolo. Non un giudizio di
+  validità (il mondo non lo prevede per le vibrazioni, a differenza del
+  rumore), ma una riga di contesto pura sullo schema di `coincidenzaVolata`:
+  «pioggia registrata nei N giorni precedenti» accanto a una PPV anomala,
+  mai un blocco.
+- **Come si misura**: funzione pura che conta i giorni di pioggia registrati
+  sulle letture precedenti dello stesso punto, provabile senza browser.
+
+**Riassunto** — 3 delta, **nessuno già coperto** (verificato: i tre gate
+`tipo !== "rumore"` a riga 2852/4227/4242 sono le uniche porte che il
+giudizio meteo attraversa, e temperatura/umidità non sono mai lette per un
+verdetto nemmeno sul rumore). Il delta 1 (polveri/vento/urgenza) e il delta
+3 (vibrazioni/terreno) sono proposte di **contesto descrittivo**, non di
+nuove soglie — coerenti con la scelta già presa il 05/09 di non inventare
+verdetti che l'app non ha i dati per sostenere. Il delta 2 (rumore/inversione
+termica) è il più fondato dal mondo (fonte tecnica specializzata, non
+marketing) ma anche il più difficile da tradurre in un numero, ed è scritto
+come tale: un avviso descrittivo, non un calcolo.
+
