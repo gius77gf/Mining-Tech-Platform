@@ -631,9 +631,14 @@ export function storicoSettimana(attivita, rapportini, giorni = 7, oggi = new Da
       // tre guasti mai misurati e quella senza nemmeno un fermo escono dalla
       // stessa parte, «0 min», che è il numero tranquillo dove non è stato
       // misurato niente (stessa regola di `disponibilitaTurno`)
-      const m = Math.max(0, +a.fermoMin || 0);
-      g.minutiFermo += m; g.fermi++;
-      if (!m) g.fermiSenzaMinuti++;
+      // ⛔ E QUI C'ERA LA COPIA DEBOLE (15/09): `Math.max(0, +a.fermoMin || 0)`
+      // tratta un fermo misurato DAVVERO a zero minuti come «senza minuti» —
+      // esattamente il contrario di quello che il commento appena scritto
+      // sopra dichiara. `minutiFermoDi` (definita più sotto, unica fonte)
+      // distingue già `0` da `null`: si chiama lei, non si ricopia il conto.
+      g.fermi++;
+      const grezzo = minutiFermoDi(a);
+      if (grezzo === null) g.fermiSenzaMinuti++; else g.minutiFermo += grezzo;
     }
   }
   for (const r of rapportini || []) {
@@ -762,10 +767,11 @@ export function registrazioniSenzaGiorno(attivita, rapportini) {
   }
   const anomalie = att.filter(a => a.stato === "anomalia");
   let minutiFermo = 0, fermiSenzaMinuti = 0;
+  // ⛔ stessa copia debole di `storicoSettimana` (15/09): un fermo misurato a
+  // zero minuti non è «senza minuti». `minutiFermoDi` distingue le due cose.
   for (const a of anomalie) {
-    const m = Math.max(0, +a.fermoMin || 0);
-    minutiFermo += m;
-    if (!m) fermiSenzaMinuti++;
+    const grezzo = minutiFermoDi(a);
+    if (grezzo === null) fermiSenzaMinuti++; else minutiFermo += grezzo;
   }
   return {
     data: "",
@@ -1602,7 +1608,13 @@ export function disponibilitaTurno(attivita, durate, data, turno, chiusure) {
   const par = paretoFermi(delTurno);
   const fermiMin = par.totaleMin;
   const anomalie = delTurno.filter(a => a.stato === "anomalia");
-  const conMinuti = anomalie.filter(a => Math.max(0, +a.fermoMin || 0) > 0).length;
+  // ⛔ QUI LA FUNZIONE SI CONTRADDICEVA DA SOLA (15/09): `par`, due righe sopra,
+  // usa già `minutiFermoDi` (zero è una misura) — ma `conMinuti` rifaceva il
+  // conto con `Math.max(0, +a.fermoMin || 0) > 0`, che tratta un fermo a zero
+  // come mai misurato. Un turno con l'unico fermo cronometrato DAVVERO a zero
+  // minuti risultava «non-calcolabile» pur avendo tutti i dati. Si deriva da
+  // `par`, non si ricalcola: `par.fermiTot` è lo stesso insieme di `anomalie`.
+  const conMinuti = par.fermiTot - par.senzaMinutiTot;
   const out = {
     data: d, turno: t,
     durataMin, fermiMin,
@@ -2316,9 +2328,15 @@ export function csvAppello(operatori, presenze, durate, data, turno, squadra, fm
    `csvStorico` (cella VUOTA quando `senza >= fermi`). Scriverne una terza qui
    sarebbe la stessa regola scritta due volte, la seconda più debole — che in
    questa casa è già costata ventiquattro difetti veri in una notte.
-   ⚠️ «Con i minuti» vuol dire `fermoMin > 0`, esattamente come lo intendono le
-   due sorelle: un fermo dichiarato di zero minuti non è un fermo misurato a
-   zero, è un fermo che nessuno ha cronometrato. */
+   ⛔ E QUESTA RIGA STESSA ERA LA REGOLA SCRITTA PIÙ DEBOLE, misurato il 15/09:
+   diceva «"con i minuti" vuol dire `fermoMin > 0`, un fermo a zero non è
+   misurato a zero» — cioè rifaceva, con un'altra faccia, esattamente il
+   numero tranquillo descritto due paragrafi sopra: un fermo cronometrato
+   DAVVERO a zero minuti (il guasto è durato un istante, o si è risolto da
+   sé) veniva contato come «mai misurato», nella stessa funzione che si
+   vantava di distinguere le due cose. La distinzione vera è quella di
+   `minutiFermoDi`: `null` è «non misurato», qualunque numero — zero compreso
+   — è una misura. Non si ricopia il confronto, si chiama lei. */
 export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
   const fine = oggiISO(oggi);
   const acc = {};
@@ -2331,10 +2349,10 @@ export function fermiPerGiorno(attivita, giorni = 14, oggi = new Date()) {
     if (!acc[d]) acc[d] = vuota(d);
     acc[d].registrate++;
     if (a.stato === "anomalia") {
-      const m = Math.max(0, +a.fermoMin || 0);
-      acc[d].minuti += m;
+      const grezzo = minutiFermoDi(a);
       acc[d].fermi++;
-      if (m) acc[d].fermiConMinuti++; else acc[d].fermiSenzaMinuti++;
+      if (grezzo === null) acc[d].fermiSenzaMinuti++;
+      else { acc[d].minuti += grezzo; acc[d].fermiConMinuti++; }
     }
   }
   if (!primo) return [];
@@ -3163,14 +3181,16 @@ export function anomalieAperte(attivita) {
       // leggere — e `causaleInElenco` dice che non è una voce dell'elenco
       const causale = descriviCausale(a.causale);
       const causaleInElenco = chiaveCausale(a.causale) !== null;
-      /* ⛔ la guardia PRIMA della conversione: `+null` fa 0 e `Number.isFinite(0)`
-         risponde true, quindi «nessuno ha misurato» diventerebbe «zero minuti
-         persi». Lo zero esplicito conta come non misurato per la stessa ragione
-         per cui il campo della pagina lo mostra vuoto: in cava un fermo che dura
-         zero minuti non è un fermo. */
-      const grezzo = a.fermoMin;
-      const n = (grezzo === null || grezzo === undefined || String(grezzo).trim() === "") ? NaN : +grezzo;
-      const minuti = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+      /* ⛔ ERA LA STESSA COPIA DEBOLE di `storicoSettimana`/`registrazioniSenzaGiorno`/
+         `fermiPerGiorno`/`disponibilitaTurno`, chiusa il 15/09 — e con la sua
+         stessa giustificazione difensiva capovolta: «lo zero esplicito conta
+         come non misurato... in cava un fermo che dura zero minuti non è un
+         fermo» è la frase che descrive l'errore, non la regola. Un fermo
+         cronometrato DAVVERO a zero minuti è una misura (si è fermato e non
+         è costato niente); l'assenza è `null`, non `0`. `minutiFermoDi` è
+         l'unica fonte, non se ne ricopia il confronto. */
+      const grezzo = minutiFermoDi(a);
+      const minuti = grezzo === null ? null : Math.round(grezzo);
       const data = String(a.data || "").slice(0, 10);
       return {
         a, id: a.id,

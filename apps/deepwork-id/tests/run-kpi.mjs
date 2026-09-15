@@ -13395,16 +13395,30 @@ test("⛔ disponibilità: i tre modi in cui il numero NON si fa", () => {
   const senzaAttivita = campo.disponibilitaTurno([], D, "2026-07-20", "Mattino");
   eq(senzaAttivita.pct, null, "un turno senza nessuna attività non è un turno perfetto");
   ok(senzaAttivita.mancano.includes("attività"), "e si dice così");
-  /* Il caso insidioso: dei fermi ci sono, ma nessuno ha i minuti. La somma
-     farebbe 0 minuti persi e quindi il 100% — il voto più alto proprio al
-     turno che ha registrato guasti e non li ha misurati. */
-  const fermiMuti = campo.disponibilitaTurno(att({ fermoMin: 0 }), D, "2026-07-20", "Mattino");
+  /* Il caso insidioso: dei fermi ci sono, ma nessuno ha i minuti — `fermoMin`
+     è `null` (o assente), NON zero. La somma farebbe 0 minuti persi e quindi
+     il 100% — il voto più alto proprio al turno che ha registrato guasti e
+     non li ha misurati. */
+  const fermiMuti = campo.disponibilitaTurno(att({ fermoMin: null }), D, "2026-07-20", "Mattino");
   eq(fermiMuti.pct, null, "fermi senza minuti non fanno «100%»");
   ok(fermiMuti.mancano.includes("minuti"), "e il motivo lo nomina");
   /* ⚠️ La prima stesura cercava «fermo è senza minuti» e il testo vero dice
      «L'unico fermo registrato è senza minuti»: era la prova a indovinare la
      frase, non il codice a sbagliarla. */
   ok(/senza minuti/.test(fermiMuti.motivo), "a parole: " + fermiMuti.motivo.slice(0, 50));
+  /* ⛔ E IL CASO OPPOSTO, aggiunto il 15/09 dopo aver corretto QUATTRO copie
+     deboli che confondevano «mai cronometrato» con «cronometrato a zero»
+     (`storicoSettimana`, `registrazioniSenzaGiorno`, `fermiPerGiorno`, e
+     questa stessa `disponibilitaTurno`, che si contraddiceva da sola: `par`
+     due righe sopra usava già `minutiFermoDi`, `conMinuti` no). Un fermo
+     DAVVERO cronometrato a zero minuti (il guasto è durato un istante) È una
+     misura: il turno è calcolabile, e se non ha perso altro tempo è al 100%.
+     Prima della correzione questo caso risultava, con la stessa identica
+     faccia del test qui sopra, «non-calcolabile · manca minuti» — un fermo
+     misurato spariva insieme a uno mai misurato. */
+  const fermoZero = campo.disponibilitaTurno(att({ fermoMin: 0 }), D, "2026-07-20", "Mattino");
+  eq(fermoZero.pct, 100, "un fermo misurato DAVVERO a zero minuti è calcolabile, non «manca minuti»");
+  ok(!fermoZero.mancano.includes("minuti"), "e non finisce fra i «manca minuti»: qui non manca niente");
 });
 test("⛔ disponibilità: una misura PARZIALE non prende mai il verde", () => {
   /* Con alcuni fermi misurati e altri no la percentuale è un MASSIMO: quella
@@ -13413,7 +13427,9 @@ test("⛔ disponibilità: una misura PARZIALE non prende mai il verde", () => {
   const D = [{ data: "2026-07-20", turno: "Mattino", minuti: 480 }];
   const att = [
     { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Guasto", fermoMin: 20 },
-    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Attesa mezzo", fermoMin: 0 },
+    // ⛔ era `fermoMin: 0`, e voleva dire «mai cronometrato» — ma zero è una
+    // misura (15/09): il fermo davvero senza minuti è `null`, non zero.
+    { data: "2026-07-20", turno: "Mattino", stato: "anomalia", causale: "Attesa mezzo", fermoMin: null },
     { data: "2026-07-20", turno: "Mattino", stato: "fatta" },
   ];
   const r = campo.disponibilitaTurno(att, D, "2026-07-20", "Mattino");
@@ -16622,10 +16638,12 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(senza.minuti === null, "il fermo senza minuti risponde null, non 0");
     eq(senza.minutiTesto, "senza minuti", "e a parole lo dice");
     eq(con.minutiTesto, "55 min", "mentre quello misurato scrive la misura");
-    // lo zero SCRITTO conta come non misurato: in cava un fermo di zero minuti
-    // non è un fermo, ed è la stessa convenzione del campo nella pagina
-    ok(campo.anomalieAperte([{ id: "z", stato: "anomalia", titolo: "T", fermoMin: 0 }])[0].minuti === null,
-       "e nemmeno uno zero scritto a mano diventa una misura");
+    // ⛔ era il contrario (15/09): lo zero SCRITTO è una misura vera, non
+    // un'assenza travestita — la stessa correzione di `minutiFermoDi`,
+    // `storicoSettimana`, `registrazioniSenzaGiorno`, `fermiPerGiorno` e
+    // `disponibilitaTurno`, tutte lo stesso giorno.
+    eq(campo.anomalieAperte([{ id: "z", stato: "anomalia", titolo: "T", fermoMin: 0 }])[0].minuti, 0,
+       "e uno zero scritto a mano È una misura, qui come ovunque nell'app");
   });
 
   test("Campo: una causale fuori dall'elenco standard non si traduce in «Altro»", () => {
@@ -31137,15 +31155,17 @@ test("fermiPerGiorno: la riga porta quanti fermi hanno i minuti e quanti no", ()
     { data: "2026-08-09", minuti: 30, fermi: 2, fermiConMinuti: 1, fermiSenzaMinuti: 1, registrate: 2 },
     "uno misurato e uno no: i 30 minuti sono un pavimento, e la riga lo dice");
 });
-test("fermiPerGiorno: `fermoMin: 0` non è un fermo misurato a zero", () => {
-  /* è la stessa lettura di `storicoSettimana` (`if (!m) g.fermiSenzaMinuti++`)
-     e di `disponibilitaTurno` (`+a.fermoMin > 0`): uno zero scritto nel campo
-     dei minuti è un fermo che nessuno ha cronometrato, non un fermo costato
-     nulla — se no la casella lasciata vuota e quella riempita di zero
-     direbbero due cose diverse a chi legge il grafico */
+test("⛔ fermiPerGiorno: `fermoMin: 0` È un fermo misurato a zero (15/09)", () => {
+  /* Era il contrario, ed era scritto qui come se fosse la regola giusta: «è
+     la stessa lettura di storicoSettimana e di disponibilitaTurno» — le due
+     COPIE DEBOLE GEMELLE, corrette lo stesso giorno. Tutt'e tre confondevano
+     «mai cronometrato» (`null`) con «cronometrato a zero» (`0`), che è
+     esattamente il numero tranquillo che `minutiFermoDi` esiste per evitare:
+     la funzione lo chiama, adesso, invece di ricopiare il confronto. */
   const g = campo.fermiPerGiorno([{ data: "2026-08-09", stato: "anomalia", fermoMin: 0 }], 14, OGGI_MF)[0];
-  eq(g.fermiSenzaMinuti, 1, "senza minuti");
-  eq(g.fermiConMinuti, 0, "e nessuno misurato");
+  eq(g.fermiSenzaMinuti, 0, "zero è una misura: non manca niente");
+  eq(g.fermiConMinuti, 1, "e il fermo È fra quelli misurati");
+  eq(g.minuti, 0, "contribuisce con zero minuti alla somma, non ne resta fuori");
 });
 test("fermiPerGiorno: una conclusa non sposta nessuno dei due conti", () => {
   const g = campo.fermiPerGiorno([
@@ -35533,42 +35553,28 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
 /* ===== fine Conti · il ripiego silenzioso ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
-   CAMPO · LO ZERO DIGITATO NEI MINUTI DI FERMO — decisione APERTA,
-   dichiarata e SORVEGLIATA (14/08, dal censimento dei clamp B0-duodecies)
+   CAMPO · LO ZERO DIGITATO NEI MINUTI DI FERMO — ✅ CHIUSA IL 15/09
    ══════════════════════════════════════════════════════════════════════
-   ⛔ QUESTO BLOCCO NON CHIUDE LA DECISIONE, E NON DEVE. Il 13/08, chiudendo il
-   punto di scrittura dei minuti di fermo, un cantiere l'aveva già trovata e
-   lasciata aperta con la ragione scritta accanto alla prova «file e schermo
-   dicono la stessa cosa»: «su quel valore il modulo ha oggi DUE letture
-   diverse … è una decisione di prodotto ancora aperta, e una prova che la
-   fissasse in un verso o nell'altro blinderebbe una delle due». Quel giudizio
-   regge, e queste prove non lo toccano.
-   Quello che NON era stato misurato è l'AMPIEZZA, e cambia chi deve decidere:
-
-   · la nota diceva «DUE letture» (`minutiFermoDi` contro `anomalieAperte`). I
-     punti che decidono «questo fermo ha i minuti?» sono **SEI**: uno risponde
-     MISURA, cinque rispondono ASSENZA. Non è una divergenza fra pari: è un
-     posto solo fuori passo rispetto a cinque;
-   · e collocava il danno fra il CSV e lo schermo. Misurato oggi chiamando le
-     funzioni, la divergenza arriva sul RAPPORTO STAMPATO — quello che si
-     consegna al capocantiere e che un ispettore chiede — in due tabelle a
-     poche righe di distanza:
-         «Fermi per causale»       -> | Guasto meccanico | 1 | 0 min |, e NESSUNA coda
-         «Disponibilità del turno» -> | 1 fermo (di cui 1 senza minuti) | senza minuti |
-     che è, parola per parola, la geometria per cui il difetto del 13/08
-     contava. Il 13/08 è stata tolta la strada che produceva quello zero per
-     SBAGLIO (il campo svuotato); chi digita «0» apposta ci arriva ancora.
-   ⚠️ E la prova del 13/08 che si chiama «le due tabelle dello STESSO rapporto
-     stampato non si smentiscono più» prova `fermoMin: null` — non lo `0` che
-     la sua prima riga di commento nomina. È la quinta causa di «non
-     distingue»: il caso difeso non c'è nella prova.
-
-   ⛔ PERCHÉ UNA SORVEGLIANZA E NON UNA CORREZIONE. Chi chiuderà la decisione
-   deve toccare SEI posti; chiuderne uno solo non produce un errore, produce lo
-   stesso foglio che si contraddice da un'altra parte — cioè il difetto
-   spostato, non tolto. Queste prove cadono il giorno in cui qualcuno ne muove
-   uno e gli mettono davanti l'elenco intero. È l'eccezione dichiarata per nome,
-   con la ragione, e sorvegliata: non può sopravvivere alla sua causa.
+   Il 14/08 questo blocco dichiarava la faccenda una «decisione di prodotto
+   ancora aperta», ereditando dal 13/08 il timore che «una prova che la
+   fissasse in un verso o nell'altro blinderebbe una delle due» letture. Non
+   era una biforcazione legittima: era la stessa copia debole ripetuta in
+   cinque punti su sei, con una giustificazione scritta a posteriori («in
+   cava un fermo che dura zero minuti non è un fermo») che descriveva il
+   difetto come se fosse una scelta. La sesta lettura, `minutiFermoDi`,
+   esiste dal 07/08 apposta per questa distinzione (`0` è una misura, `null`
+   è l'assenza) ed è già la fonte unica di `paretoFermi` e `csvAttivita`: non
+   c'era una vera alternativa da preservare.
+   Chiuso il 15/09 portando gli altri cinque punti a chiamare `minutiFermoDi`
+   invece di ricopiarne il confronto: `anomalieAperte` (la riga a schermo),
+   `storicoSettimana`, `registrazioniSenzaGiorno`, `fermiPerGiorno` (tutte e
+   tre le loro copie del confronto `Math.max(0, +a.fermoMin || 0)`) e
+   `disponibilitaTurno`, che si contraddiceva DA SOLA — il suo stesso `par`,
+   due righe più su, usava già `minutiFermoDi` per `paretoFermi`.
+   Le prove qui sotto, che fino a ieri sorvegliavano la divergenza perché non
+   si allargasse, adesso sorvegliano l'ACCORDO: se un domani qualcuno
+   reintroduce una settima copia debole, cadono di nuovo, con l'elenco
+   intero davanti.
    ⚠️ Prove SINCRONE e PRIMA del riepilogo: l'`await Promise.all(inVolo)` sta
    migliaia di righe più su, quindi una prova `async` messa qui verrebbe
    messa in volo e il totale si stamperebbe senza aspettarla. */
@@ -35600,16 +35606,14 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       (m) => campo.fermiPerGiorno([zAnom(m)], 14, zOggi)[0].fermiSenzaMinuti === 1],
   ];
 
-  test("⛔ Campo · lo ZERO nei minuti di fermo: sei punti decidono, e NON dicono la stessa cosa", () => {
+  test("⛔ Campo · lo ZERO nei minuti di fermo: sei punti, e adesso sono tutti d'accordo", () => {
     /* il denominatore è dichiarato: se domani nascesse un settimo punto e
        nessuno lo aggiungesse qui, questa riga se ne accorgerebbe da sola */
     eq(ZPUNTI.length, 6, "sei punti di decisione guardati");
     const assenza = ZPUNTI.filter(([, f]) => f(0)).map(([n]) => n);
     const misura = ZPUNTI.filter(([, f]) => !f(0)).map(([n]) => n);
-    eq(assenza.length + " contro " + misura.length, "5 contro 1",
-      "lo zero digitato: cinque punti lo leggono ASSENZA, uno MISURA — " + misura.join(", "));
-    eq(misura, ["minutiFermoDi (e con lei paretoFermi e csvAttivita)"],
-      "e il punto fuori passo è quello, per nome: chi chiude la decisione sa dove guardare");
+    eq(assenza.length + " contro " + misura.length, "0 contro 6",
+      "lo zero digitato: tutti e sei i punti lo leggono MISURA — quello fuori passo era " + assenza.join(", "));
   });
 
   test("⛔ Campo · sull'assenza vera e sulla misura vera i sei punti sono d'accordo", () => {
@@ -35623,7 +35627,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(ZPUNTI.length, 6, "sei punti guardati due volte ciascuno: dodici risposte");
   });
 
-  test("⛔ Campo · con lo ZERO digitato il RAPPORTO STAMPATO si smentisce da sé, due tabelle sotto", () => {
+  test("⛔ Campo · con lo ZERO digitato il RAPPORTO STAMPATO non si smentisce più, due tabelle sotto", () => {
     /* le due tabelle si compongono qui come le compone la pagina: la prima da
        `riepilogoFermi` + `paretoFermi`, la seconda da `disponibilitaTurno`,
        tutt'e due passando da `minutiFermoTesto`. Chiamare il codice di
@@ -35646,16 +35650,15 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     const c0 = tabellaCausali(zero), d0 = tabellaDisponibilita(zero);
     eq(c0.righe, ["0 min"], "in alto il foglio AFFERMA una misura: «0 min»");
     eq(c0.coda, false, "e non stampa la coda «N su M senza i minuti registrati»: per lei non manca nessuno");
-    eq(d0.tempoPerso, "senza minuti", "poche righe più giù, lo STESSO foglio dice «senza minuti»");
-    eq(d0.senzaMinuti, 1, "e conta quel fermo fra quelli che nessuno ha misurato");
-    /* ⛔ il verso in cui la contraddizione è cara: chi legge la tabella di
-       sopra conclude che il turno non ha perso tempo. La riga qui sotto è la
-       differenza fra «si sono contraddette» e «si contraddicono su QUESTO». */
-    ok(c0.righe[0] !== d0.tempoPerso,
-      "le due tabelle dello stesso foglio dicono due cose diverse dello stesso fermo");
+    // ⛔ prima del 15/09 qui sotto c'era «senza minuti»: la stessa copia debole
+    // di `disponibilitaTurno` faceva dire al foglio, poche righe più giù,
+    // l'esatto contrario di quello che aveva appena affermato.
+    eq(d0.tempoPerso, "0 min", "poche righe più giù, lo STESSO foglio dice la STESSA cosa");
+    eq(d0.senzaMinuti, 0, "e non conta quel fermo fra quelli mai misurati: lo è stato, a zero");
+    ok(c0.righe[0] === d0.tempoPerso,
+      "le due tabelle dello stesso foglio raccontano lo stesso fermo allo stesso modo");
 
-    /* e sui due valori su cui la decisione NON è aperta il foglio è coerente:
-       se cadessero anche queste, la prova non starebbe misurando lo zero */
+    // e sugli altri due valori il foglio resta coerente come sempre
     for (const [m, atteso] of [[null, "senza minuti"], [55, "55 min"]]) {
       const att = [zAnom(m)];
       eq(tabellaCausali(att).righe[0], tabellaDisponibilita(att).tempoPerso,
@@ -35664,10 +35667,11 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     }
   });
 
-  test("⛔ Campo · e i DUE file che escono dalla stessa app raccontano lo stesso fermo in due modi", () => {
-    /* `csvAttivita` passa da `minutiFermoDi` (per lei lo zero è una misura),
-       `csvStorico` dalle righe di `storicoSettimana` (per lei è un'assenza).
-       Chi apre i due file e somma la colonna trova due totali. */
+  test("⛔ Campo · e i DUE file che escono dalla stessa app raccontano lo stesso fermo allo stesso modo", () => {
+    /* `csvAttivita` passa da `minutiFermoDi`, `csvStorico` dalle righe di
+       `storicoSettimana` — che dal 15/09 chiama la stessa `minutiFermoDi`
+       invece di ricopiarne il confronto. Chi apre i due file e somma la
+       colonna trova adesso lo stesso totale. */
     const colAtt = campo.ATTIVITA_COLONNE.indexOf("minuti_fermo");
     ok(colAtt >= 0, "la colonna dei minuti esiste nel CSV delle attività");
     const cellaAttivita = (m) => campo.csvAttivita([zAnom(m)]).trim().split("\n")[1].split(";")[colAtt];
@@ -35676,11 +35680,13 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       return campo.csvStorico([g], null).trim().split("\n")[1].split(";")[1];
     };
     eq(cellaAttivita(0), "0", "campo_attivita.csv scrive uno ZERO, cioè una misura");
-    eq(cellaStorico(0), "", "campo_storico.csv lascia la cella VUOTA, cioè «non misurato»");
-    ok(cellaAttivita(0) !== cellaStorico(0), "sullo stesso fermo i due file non dicono la stessa cosa");
+    // ⛔ prima del 15/09: `""`, la cella vuota di «non misurato» — la stessa
+    // copia debole di `disponibilitaTurno` viveva anche in `storicoSettimana`.
+    eq(cellaStorico(0), "0", "campo_storico.csv scrive lo stesso ZERO, non più una cella vuota");
+    ok(cellaAttivita(0) === cellaStorico(0), "sullo stesso fermo i due file dicono la stessa cosa");
     for (const m of [null, 55]) {
       eq(cellaAttivita(m), cellaStorico(m),
-        "fermoMin=" + mostra(m) + ": qui i due file coincidono, ed è il contratto che non deve cambiare");
+        "fermoMin=" + mostra(m) + ": qui i due file coincidono, ed è il contratto che non è cambiato");
     }
   });
 }
