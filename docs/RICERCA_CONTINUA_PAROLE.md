@@ -576,9 +576,22 @@ va però saputo che a un RSPP quella parola evoca un adempimento abolito.
 proposta — è la sola cosa che fa scendere il numero dei documenti invecchiati)*
 
 - Proposta 1 (denuncia riepilogativa mensile) — **aperta** al 13/08, commit `5fae710a`
-- Proposta 2 (provenienza del periodo in Sentinella) — **aperta**
+- Proposta 2 (provenienza del periodo in Sentinella) — ✅ **CHIUSA il 15/09**:
+  la frase in `apps/sentinella/index.html` è al
+  positivo ("Periodo ricavato dalla scadenza del..."), il banco
+  `tests/browser/sentinella-periodo-adempimento.mjs` pretende «ricavato» e
+  vieta «scelt[ae] a mano», con una sesta iniezione dedicata nella sua
+  controprova.
 - Proposta 3 (una parola sola + divieto di «non rilevato») — **aperta**
-- Proposta 4 (numero di riga del file negli import) — **aperta**
+- Proposta 4 (numero di riga del file negli import) — ✅ **CHIUSA il 15/09**,
+  commit `6a5707e7` e i successivi lotti: `righeCsvNumerate` in
+  `shared/deepwork-id-client/dw-shell.js` numera sulla riga fisica del file,
+  migrati i 18 lettori in forma standard più `scudo.scartiLavoratoriCsv`
+  (predicato). Restano cinque lettori con forma non standard (celle già
+  parsate: `scudo.scartiAzioniCsv`, `flotta.scartiTelemetriaCsv`,
+  `conti.scartiPesateCsv`/`scartiIncassiCsv`/`scartiClientiCsv`), fuori scope
+  perché richiedono di dare a `leggiCsv`/parser dedicati il numero di riga
+  fisico — cambiamento più grande, non fatto qui.
 - Proposta 5 (pesato / presunto in Conti) — **aperta**
 - Proposta 6 (sterile e cappellaccio) — **aperta, da decidere prima di costruire**
 

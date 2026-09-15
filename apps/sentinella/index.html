@@ -6244,7 +6244,7 @@ textarea.dw-input{
     if (el) {
       el.textContent = "Periodo dell'adempimento «" + a.titolo + "»: dal " + fmtD(p.dal)
         + " al " + fmtD(p.al) + " (" + p.giorni + (p.giorni === 1 ? " giorno" : " giorni")
-        + "). Le date non sono state scelte a mano: si ricavano dalla scadenza del "
+        + "). Periodo ricavato dalla scadenza del "
         + fmtD(a.scadenza) + "."
         + (senzaLetture ? " " + DICHIARAZIONI_COPERTURA["senza-letture"].testo : "");
       el.className = "note esito" + (senzaLetture ? " err" : "");
