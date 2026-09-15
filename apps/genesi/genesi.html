@@ -2899,10 +2899,12 @@ let mdlRaggioPct=20;
 /* cronologia annulla/ripristino: pile di profili (copie), così una modellazione sbagliata non è mai definitiva */
 let mdlUndoStack=[], mdlRedoStack=[];
 const MDL_UNDO_MAX=40;
-/* uno scatto salva ENTRAMBI i profili: cresta e piede si annullano insieme, senza sorprese */
-function mdlProfSnap(){ return scattoProfili(P.profilo, D2.piede); }
+/* uno scatto salva ENTRAMBI i profili: cresta e piede si annullano insieme,
+   senza sorprese. ⏱️ 15/09 (B3): il legame di una riga che stava qui è
+   uscito — nessun valore nel tenerlo, i tre chiamanti passano P.profilo/
+   D2.piede direttamente a `scattoProfili`, già pura dal blocco G30. */
 function mdlPushUndo(){
-  mdlUndoStack.push(mdlProfSnap());
+  mdlUndoStack.push(scattoProfili(P.profilo, D2.piede));
   if(mdlUndoStack.length>MDL_UNDO_MAX) mdlUndoStack.shift();
   mdlRedoStack=[]; mdlBtnSync();
 }
@@ -2932,13 +2934,13 @@ function mdlSyncAltezze(){
 }
 function mdlUndo(){
   if(!mdlUndoStack.length) return;
-  mdlRedoStack.push(mdlProfSnap());
+  mdlRedoStack.push(scattoProfili(P.profilo, D2.piede));
   mdlApplyProf(mdlUndoStack.pop()); mdlBtnSync();
   toast('↩ Modifica annullata');
 }
 function mdlRedo(){
   if(!mdlRedoStack.length) return;
-  mdlUndoStack.push(mdlProfSnap());
+  mdlUndoStack.push(scattoProfili(P.profilo, D2.piede));
   mdlApplyProf(mdlRedoStack.pop()); mdlBtnSync();
   toast('↪ Modifica ripristinata');
 }
