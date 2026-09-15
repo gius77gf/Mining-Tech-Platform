@@ -33677,6 +33677,10 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     + ";ARPA;2026-09-30;6;30\nSenza data;ARPA;;6;30\n";
   const CSV_VOL = "data;ora;cava;carica;fori\n2026-09-01;10:00;Cava A;120;20\n;10:00;Cava A;120;20\n"
     + "2026-13-45;10:00;Cava A;120;20\n";
+  const CSV_INF = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-09-01;infortunio;lieve;2;caduta;piazzale\n"
+    + ";infortunio;lieve;2;caduta;piazzale\n2026-13-45;infortunio;lieve;2;caduta;piazzale\n";
+  const CSV_MON = "nome;tipo;valore;soglia;unita;nota\nPunto 1;polveri;10;50;mg/m3;\n"
+    + ";polveri;10;50;mg/m3;\nPunto 2;polveri;;50;mg/m3;\nPunto 3;polveri;10;;mg/m3;\n";
 
   /* ⚠️ LA TABELLA STA FUORI DALLA PROVA dal 14/08, e non è un vezzo: il
      censimento B9 in fondo al file raccoglie da qui quali lettori hanno dei
@@ -33689,6 +33693,8 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     [sentinella.scartiRicettoriCsv, sentinella.parseRicettoriCsv, CSV_RIC],
     [sentinella.scartiAdempimentiCsv, sentinella.parseAdempimentiCsv, CSV_ADE],
     [sentinella.scartiVolateCsv, sentinella.parseVolateCsv, CSV_VOL],
+    [scudo.scartiInfortuniCsv, scudo.parseInfortuniCsv, CSV_INF],
+    [sentinella.scartiMonitoraggiCsv, sentinella.parseMonitoraggiCsv, CSV_MON],
   ];
   for (const c of coppie) SCARTI_PROVATI.add(c[0]);
 
@@ -33735,6 +33741,20 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(v.persi.length, 2, "la data vuota e quella inesistente sono due perdite distinte");
     ok(v.persi[0].ragione !== v.persi[1].ragione,
       "e con RAGIONI diverse: «non è stata scritta» non è «non esiste»");
+  });
+  test("⛔ B5-bis (15/09, dal delta della riverifica su ASSENZA): Scudo infortuni e Sentinella monitoraggi non erano più muti", () => {
+    const i = scudo.scartiInfortuniCsv(CSV_INF);
+    eq(i.entrano, 1, "entra solo l'infortunio con la data in forma ISO ed esistente");
+    eq(i.persi.length, 2, "gli altri due sono nominati, non spariscono");
+    ok(/non è stata scritta/.test(i.persi[0].ragione), `vuota → «non è stata scritta»: ${i.persi[0].ragione}`);
+    ok(/non esiste/.test(i.persi[1].ragione), `2026-13-45 → «non esiste»: ${i.persi[1].ragione}`);
+    const m = sentinella.scartiMonitoraggiCsv(CSV_MON);
+    eq(m.entrano, 1, "entra solo il punto con nome, valore e soglia tutti presenti");
+    eq(m.persi.length, 3, "gli altri tre sono nominati, con tre ragioni diverse");
+    const r = m.persi.map(p => p.ragione);
+    ok(/nome non è stato scritto/.test(r[0]), `senza nome: ${r[0]}`);
+    ok(/valore non è stato misurato/.test(r[1]), `senza valore: ${r[1]}`);
+    ok(/soglia non è stata scritta/.test(r[2]), `senza soglia: ${r[2]}`);
   });
 
   test("⛔ B5-bis · un file sano non accusa nessuno", () => {
@@ -34174,13 +34194,13 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     for (const m of src.matchAll(/^export function (scarti[A-Za-z]*Csv)\b/gm)) TUTTI.push([chi, m[1], f]);
   }
 
-  test("⛔ B9 · il censimento dei lettori CSV è DERIVATO dal disco, e sono 19", () => {
-    /* ⛔ il denominatore dichiarato: se domani ne nascesse uno ventesimo
+  test("⛔ B9 · il censimento dei lettori CSV è DERIVATO dal disco, e sono 21", () => {
+    /* ⛔ il denominatore dichiarato: se domani ne nascesse uno ventiduesimo
        questa riga cadrebbe, e chi lo ha scritto deciderebbe se provarlo o
        dichiararlo. Un `>=` non lo farebbe — è la soglia su un valore
        monotòno, già pagata da `copertura-funzioni`. */
-    eq(TUTTI.length, 19,
-      "⛔ 19 `export function scarti*Csv` su disco: 13 in Campo/Conti/Flotta/Terra, 3 in Scudo, 3 in Sentinella");
+    eq(TUTTI.length, 21,
+      "⛔ 21 `export function scarti*Csv` su disco: 13 in Campo/Conti/Flotta/Terra, 4 in Scudo, 4 in Sentinella (15/09: scartiInfortuniCsv e scartiMonitoraggiCsv chiudevano gli ultimi due «muti» del delta ASSENZA)");
     for (const [chi, n] of TUTTI)
       ok(typeof (chi === "shell" ? shell : chi === "ponti" ? ponti : MODULI[chi])[n] === "function",
         `${chi}.${n} è esportata davvero, non solo scritta`);
@@ -34211,26 +34231,26 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
       eq(coda.persi.length, 0, `${chi}.${n}: la riga «;;;» non accusa nessuno`);
       eq(coda.lette, 0, `${chi}.${n}: e non finisce nemmeno fra le righe lette`);
     }
-    eq(chiamate, 19 * 4, "⛔ quanti soggetti ha guardato davvero: 19 lettori × 4 file");
+    eq(chiamate, 21 * 4, "⛔ quanti soggetti ha guardato davvero: 21 lettori × 4 file");
   });
 
-  test("⛔ B9 · e 19 su 19 hanno una tabella di casi PROPRIA, raccolta da chi li prova", () => {
+  test("⛔ B9 · e 21 su 21 hanno una tabella di casi PROPRIA, raccolta da chi li prova", () => {
     /* ⛔ IL NUMERATORE È RACCOLTO, NON RISCRITTO: `SCARTI_PROVATI` lo riempiono
-       le tre tabelle di casi (NOVE, QUATTRO, le sei coppie di B5-bis) mentre
+       le tre tabelle di casi (NOVE, QUATTRO, le otto coppie di B5-bis) mentre
        girano. Un elenco riscritto qui direbbe «coperto» un nome che nessuno ha
        chiamato — è lo stesso difetto dell'etichetta più larga del numero, un
        piano più sotto.
        ⚠️ «Tabella propria» vuol dire un CSV scritto apposta per quel lettore,
        con i suoi casi rotti. Non vuol dire che ogni sua ragione sia provata:
-       i sei di Scudo e Sentinella hanno una tabella più magra dei tredici
+       gli otto di Scudo e Sentinella hanno una tabella più magra dei tredici
        delle altre quattro app, e questo resta vero. */
     const scoperti = TUTTI
       .map(([chi, n, f]) => [chi, n, f, (chi === "shell" ? shell : chi === "ponti" ? ponti : MODULI[chi])[n]])
       .filter(([, , , fn]) => !SCARTI_PROVATI.has(fn));
     eq(scoperti.map(([chi, n]) => chi + "." + n), [],
       "⛔ nessun lettore CSV senza una tabella di casi propria");
-    eq(SCARTI_PROVATI.size, 19,
-      "⛔ e le tabelle ne hanno provati 19, non uno di meno: 9 (NOVE) + 4 (QUATTRO) + 6 (B5-bis)");
+    eq(SCARTI_PROVATI.size, 21,
+      "⛔ e le tabelle ne hanno provati 21, non uno di meno: 9 (NOVE) + 4 (QUATTRO) + 8 (B5-bis, dal 15/09 con infortuni e monitoraggi)");
   });
 }
 

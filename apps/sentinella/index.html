@@ -1866,7 +1866,7 @@ textarea.dw-input{
 
 
 <script type="module">
-  import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, parseRicettoriCsv,
+  import { sentinellaData, descriviResponsabile, statoMisura, giorni, kpiFrom, SOGLIE_PRESET, presetSoglia, scaledDistance, caricaMax, riepilogoConformita, prioritaConformita, riepilogoVolate, parseVolateCsv, parseAdempimentiCsv, parseMonitoraggiCsv, scartiMonitoraggiCsv, parseRicettoriCsv,
            scartiVolateCsv, scartiAdempimentiCsv, scartiRicettoriCsv, serieStorica, numeroIt, unitaMisura, calendarioAmbiente,
            leggiCsv, paresIntestazione, proponiMappa, preparaLetture, unisciLetture, MAX_LETTURE,
            proponiColonneEvento, descriviEvento, provenienzaValore, frequenzaFuoriBanda,
@@ -5642,6 +5642,7 @@ textarea.dw-input{
     const monAltrove = fileDiAltraTabella(testoMon, ["sentinella.monitoraggi"]);
     if (monAltrove) { esito("mis-esito", fraseFileAltrui(monAltrove, "fra i punti di monitoraggio"), "err", "File di un'altra tabella."); e.target.value = ""; return; }
     const lette = parseMonitoraggiCsv(testoMon);
+    const scartate = scartiMonitoraggiCsv(testoMon);
     /* Il doppione si cerca in DUE posti, e sono due domande diverse: qui
        dentro il file appena letto (regola condivisa, shared/dw-shell.js), e
        sotto contro quello che è GIÀ in archivio — che solo la pagina conosce.
@@ -5650,7 +5651,7 @@ textarea.dw-input{
        entravano tutte. */
     const righe = senzaDoppioni(lette, x => x.nome);
     const ripetute = lette.length - righe.length;
-    if (!righe.length) { esito("mis-esito", "Nessuna riga valida nel file: le colonne devono essere nome; tipo; valore; soglia; unita; nota.", "err", "Nessuna riga valida: controlla le colonne."); e.target.value = ""; return; }
+    if (!righe.length) { esito("mis-esito", "Nessuna riga valida nel file: le colonne devono essere nome; tipo; valore; soglia; unita; nota." + frasePersi(scartate), "err", "Nessuna riga valida: controlla le colonne." + frasePersi(scartate)); e.target.value = ""; return; }
     let agg = 0, saltati = 0;
     for (const m of righe) {
       if (MON.some(x => x.nome.toLowerCase() === m.nome.toLowerCase())) { saltati++; continue; }
@@ -5660,7 +5661,7 @@ textarea.dw-input{
     $("mon-file").value = "";
     esito("mis-esito", "Import sensori: " + conta(agg, "sensore aggiunto", "sensori aggiunti")
       + (saltati ? ", " + conta(saltati, "già presente (saltato)", "già presenti (saltati)") : "")
-      + (ripetute ? ", " + conta(ripetute, "ripetuto nel file", "ripetuti nel file") : "") + ".", agg ? "success" : "");
+      + (ripetute ? ", " + conta(ripetute, "ripetuto nel file", "ripetuti nel file") : "") + "." + frasePersi(scartate), agg ? "success" : "");
     await refresh();
   };
   $("btn-mis").onclick = async () => {

@@ -763,6 +763,40 @@ export function parseMonitoraggiCsv(text) {
     .filter(m => m.nome && Number.isFinite(m.valore) && m.valore >= 0 && Number.isFinite(m.soglia) && m.soglia > 0);
 }
 
+/* LE RIGHE DI MONITORAGGI CHE NON ENTRANO, CON LA RAGIONE (15/09, dal delta
+   della riverifica sul documento ASSENZA): `parseMonitoraggiCsv` scarta una
+   riga senza nome, senza un valore leggibile o senza una soglia positiva,
+   restituendo solo le sopravvissute — chi chiama non ha mai avuto in mano le
+   righe cancellate. Stessa forma di `scartiRilieviCsv` (Terra): rilegge riga
+   per riga, distingue una riga davvero vuota da una scartata per un dato, e
+   dice perché, con le stesse cascate di ragioni di `parseMonitoraggiCsv`.
+   Pura. */
+export function scartiMonitoraggiCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "nome"));
+  const persi = [];
+  let nRiga = 0, vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseMonitoraggiCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const nome = (c[0] || "").trim(), val = (c[2] || "").trim(), sog = (c[3] || "").trim();
+    const v = numIt(val), s = numIt(sog);
+    persi.push({
+      nome: nome || "riga " + nRiga,
+      ragione: !nome ? "il nome non è stato scritto"
+        : !val ? "il valore non è stato misurato"
+        : !Number.isFinite(v) || v < 0 ? "il valore non si legge"
+        : !sog ? "la soglia non è stata scritta"
+        : !Number.isFinite(s) || s <= 0 ? "la soglia non si legge"
+        : "il lettore la scarta",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 // IMPORT DEI RICETTORI DA CSV.
 // Perché esiste: il ricettore è l'anagrafica su cui poggia tutto il
 // monitoraggio — è quello che trasforma «una misura» in «una misura IN UN PUNTO

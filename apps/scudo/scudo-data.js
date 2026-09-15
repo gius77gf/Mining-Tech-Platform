@@ -2228,6 +2228,34 @@ export function parseInfortuniCsv(text) {
     .filter(x => dataISOEsiste(x.data));
 }
 
+/* LE RIGHE DI INFORTUNI CHE NON ENTRANO, CON LA RAGIONE (15/09, dal delta
+   della riverifica sul documento ASSENZA): `parseInfortuniCsv` scarta una
+   riga senza una data leggibile, restituendo solo le sopravvissute — chi
+   chiama non ha mai avuto in mano le righe cancellate, quindi non poteva
+   dichiararle nemmeno volendo. Stessa forma di `scartiRilieviCsv` (Terra):
+   rilegge riga per riga, distingue una riga davvero vuota (un foglio di
+   calcolo che salva `;;;;;`) da una scartata per un dato, e dice perché.
+   Pura. */
+export function scartiInfortuniCsv(text) {
+  const righe = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
+    .filter(r => !isIntestazione(r, "data"));
+  const persi = [];
+  let nRiga = 0, vuote = 0;
+  for (const riga of righe) {
+    nRiga++;
+    if (parseInfortuniCsv(riga).length) continue;
+    const c = parseCsvLine(riga);
+    if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
+    const data = (c[0] || "").trim();
+    persi.push({
+      nome: data || "riga " + nRiga,
+      ragione: !data ? "la data non è stata scritta" : "la data non esiste",
+    });
+  }
+  const lette = righe.length - vuote;
+  return { lette, entrano: lette - persi.length, persi, vuote };
+}
+
 /* ⛔ IL REGISTRO CHE SI CONSEGNA ALL'RSPP LO SCRIVE UNA FUNZIONE, non una
    stringa nella pagina — e qui la ragione pesa più che altrove, perché le sue
    celle le decidono `prognosiAperta` e `giornateAssenza`, cioè **le stesse che
