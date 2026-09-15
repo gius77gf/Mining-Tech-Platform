@@ -2005,10 +2005,20 @@ a.dw-btn{text-decoration:none}
       : vc.stato === "warn"
         ? `<div class="riga att">${I.allarme}<span><b>Soglia di guardia superata</b> (l'hai messa ${articoloNumero("al", un1(vc.soglia))}${un1(vc.soglia)}%): è il momento di preparare rinnovo o variante.</span></div>`
         : "";
+    /* ⛔ IL BOOLEANO DICEVA CHI ARRIVA PRIMO, NON DI QUANTO (15/09): un mese
+       di margine e un decennio di margine leggevano la stessa frase. Il
+       margine lo calcola già `vitaCava` (`margineGiorni`): qui si aggiunge
+       solo la parola, in giorni sotto i due mesi (dove un "circa N mesi"
+       nasconderebbe l'urgenza) e in mesi sopra, arrotondato come il resto
+       della riga — coerente con `un1`. */
+    const margine = vc.margineGiorni == null ? ""
+      : vc.margineGiorni < 60
+        ? ` Margine residuo: circa <b>${n0(vc.margineGiorni)} ${plurale(vc.margineGiorni, "giorno", "giorni")}</b>.`
+        : ` Margine residuo: circa <b>${un1(vc.margineGiorni / 30.44)} ${plurale(un1(vc.margineGiorni / 30.44), "mese", "mesi")}</b>.`;
     const titolo = vc.scadePrimaIlTitolo === true
-      ? `<div class="riga">L'autorizzazione scade <b>prima</b> che il volume finisca: il vincolo che arriva per primo è la data del titolo.</div>`
+      ? `<div class="riga">L'autorizzazione scade <b>prima</b> che il volume finisca: il vincolo che arriva per primo è la data del titolo.${margine}</div>`
       : vc.scadePrimaIlTitolo === false
-        ? `<div class="riga">Il volume finisce <b>prima</b> della scadenza del titolo: il vincolo che arriva per primo sono i m³.</div>` : "";
+        ? `<div class="riga">Il volume finisce <b>prima</b> della scadenza del titolo: il vincolo che arriva per primo sono i m³.${margine}</div>` : "";
     const bStato = vc.stato === "danger" ? '<span class="badge danger">Fuori limite</span>'
       : vc.stato === "warn" ? '<span class="badge warn">In guardia</span>'
       : '<span class="badge ok">Nei limiti</span>';

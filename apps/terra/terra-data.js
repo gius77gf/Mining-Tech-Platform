@@ -1101,17 +1101,27 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
   }
   // Confronto con la scadenza del titolo: arriva prima l'esaurimento del
   // volume o la scadenza dell'atto? Cambia completamente cosa si deve fare.
-  let scadePrimaIlTitolo = null;
+  // ⛔ E DI QUANTO ERA L'UNICA DOMANDA CHE MANCAVA (15/09): il booleano
+  // diceva CHI arriva prima, non di quanto margine si dispone — un mese di
+  // scarto e un decennio di scarto rispondevano la stessa frase. I due
+  // ingredienti (giorni alla scadenza dell'atto, anni al ritmo medio) sono
+  // già calcolati qui sopra: il margine è la loro differenza, non un dato
+  // nuovo da andare a cercare.
+  let scadePrimaIlTitolo = null, margineGiorni = null;
   if (anniResidui != null && /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataScadenza || ""))) {
     const g = giorniTra(String(a.dataScadenza), oggi);
-    if (Number.isFinite(g)) scadePrimaIlTitolo = (g / 365.25) < anniResidui;
+    if (Number.isFinite(g)) {
+      const giorniEsaurimento = anniResidui * 365.25;
+      scadePrimaIlTitolo = g < giorniEsaurimento;
+      margineGiorni = Math.round(Math.abs(g - giorniEsaurimento));
+    }
   }
   return {
     totale, estratto: est.totale, rilevato: est.rilevato, pregresso: est.pregresso,
     daCumulo: est.daCumulo,
     misurabile, pregressoDichiarato: est.pregressoDichiarato, rilieviScavo: est.rilieviScavo,
     residuo, pct, soglia, stato, ritmoAnnuo: annuo > 0 ? annuo : null,
-    ritmo: rm, anniResidui, annoEsaurimento, scadePrimaIlTitolo,
+    ritmo: rm, anniResidui, annoEsaurimento, scadePrimaIlTitolo, margineGiorni,
   };
 }
 

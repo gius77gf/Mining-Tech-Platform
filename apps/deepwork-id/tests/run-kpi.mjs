@@ -14518,6 +14518,27 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "e quando misura, le soglie funzionano come prima");
   });
 
+  /* ⛔ `scadePrimaIlTitolo` DICEVA CHI ARRIVA PRIMO, NON DI QUANTO (15/09):
+     un mese di scarto e un decennio di scarto rispondevano la stessa
+     frase. `margineGiorni` è la differenza, non un dato nuovo — i due
+     ingredienti (giorni alla scadenza, anni al ritmo medio) c'erano già. */
+  test("⛔ Terra: il margine fra esaurimento e scadenza si dice in giorni, non solo chi arriva prima", () => {
+    const attoScad = { ...attoT, dataScadenza: "2029-12-31" };
+    // ritmo alto su residuo scarso: il volume finisce PRIMA della scadenza
+    const volumePrima = terra.vitaCava(attoScad, [scavo(10000, "2025-08-01"), scavo(75000, "2026-07-01")], oggiT);
+    eq(volumePrima.scadePrimaIlTitolo, false, "il volume finisce prima: il titolo non scade per primo");
+    ok(Number.isFinite(volumePrima.margineGiorni) && volumePrima.margineGiorni > 0,
+      "e il margine è un numero di giorni positivo, non solo il booleano — " + volumePrima.margineGiorni);
+    // ritmo basso su residuo abbondante: il titolo scade PRIMA dell'esaurimento
+    const titoloPrima = terra.vitaCava(attoScad, [scavo(500, "2025-08-01"), scavo(1000, "2026-07-01")], oggiT);
+    eq(titoloPrima.scadePrimaIlTitolo, true, "qui invece scade prima il titolo");
+    ok(titoloPrima.margineGiorni > volumePrima.margineGiorni,
+      "un ritmo molto più lento allarga il margine, non lo racconta uguale");
+    // senza scadenza dichiarata: né il booleano né il margine si inventano
+    const senzaScadenza = terra.vitaCava({ ...attoT, dataScadenza: undefined }, [scavo(10000, "2025-08-01"), scavo(75000, "2026-07-01")], oggiT);
+    eq([senzaScadenza.scadePrimaIlTitolo, senzaScadenza.margineGiorni], [null, null],
+      "senza data di scadenza non c'è niente da confrontare: null, non un numero a caso");
+  });
   test("⛔ Terra: la vita cava dice se il pregresso è dichiarato", () => {
     /* il consumato calcolato senza il pregresso è un MINIMO, e la scheda lo
        deve poter dire: senza questa bandiera il residuo si legge come la
