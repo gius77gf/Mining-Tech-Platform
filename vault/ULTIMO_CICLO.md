@@ -1,21 +1,28 @@
-# Ultimo ciclo — stato vivo
+# Ultimo ciclo — canarino
 
-**Ora (UTC, vera, da `date -u`)**: 2026-09-15T13:11:36Z
+## Quando
+2026-09-15T15:59:48Z (letto da `date -u`, non predetto)
 
-**Sto per fare**: nessuna unità di codice in sospeso — lo stato è pulito
-(`git status --short` vuoto, ultimo commit `5347936e`, tutti e cinque i
-giri di ricerca aperti in questo ciclo — Flotta, Sentinella, Terra,
-Campo, Conti — chiusi su tutto ciò che era traducibile in codice senza
-una decisione del fondatore). In questo momento girano DUE cantieri in
-background: (1) un ottavo giro di ricerca continua, secondo passaggio più
-approfondito su Scudo (infortuni e denuncia INAIL), agente con
-`isolation:"worktree"`; (2) un giro browser mirato
-(`tutti.mjs --solo=campo,conti,flotta,terra --limite=1800`) per
-verificare a livello di rendering le modifiche UI di oggi (non solo che
-le funzioni pure passino in Node). Appena uno dei due torna: riverifica
-di persona (niente entra sulla parola dell'agente), poi si continua
-immediatamente — o traducendo in codice un nuovo finding, o aprendo un
-nono giro di ricerca su un'altra app, secondo la lista di CLAUDE.md
-"se la roadmap sembra finita".
+## Commit di partenza
+3a236d98 — chore(vault): checkpoint QA visiva Scudo + fix etichetta gravità
 
-**Hash di partenza di questo ciclo**: 142d4e3d
+## Cosa sto per fare
+Chiudere l'unità in corso (già verificata con `run-kpi`/`run-stile`/
+`numeri-nei-documenti.mjs`, giro isolato su worktree in corso in
+background): la barra in basso di Sentinella dice ora «Scadenze» invece
+di «Adempimenti» (i bersagli di tocco a 320px erano sotto i 44px richiesti,
+ora sopra — misurato con Playwright, non stimato), più la cascata dei
+quattro documenti dei conteggi aggiornata di conseguenza. Appena il giro
+isolato conferma, commit + push + checkpoint di questa unità.
+
+Poi, per la regola del fondatore (mai fermarsi finché i crediti non sono
+esauriti): riverificare di persona (non sulla parola dell'agente) la
+ricerca appena tornata da un agente in background su Sentinella —
+attribuzione delle modifiche (chi ha cambiato una soglia, non solo
+quando) — prima di considerarla azionabile, poi proseguire col ciclo
+normale (nuova ricerca in background su un'altra app, seconda iterazione
+UX di un'app diversa, o il prossimo cantiere che emerge dalla roadmap).
+
+Working tree al momento del canarino: sette file modificati e non ancora
+committati, tutti dell'unità Sentinella in chiusura (nessun lavoro perso,
+nessuna sovrapposizione con altri cantieri).
