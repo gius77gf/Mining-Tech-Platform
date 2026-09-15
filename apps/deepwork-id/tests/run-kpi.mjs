@@ -3630,6 +3630,19 @@ test("⛔ la dimostrazione contiene l'infortunio con un'invalidità permanente (
   const r = scudo.riepilogoInfortuni(D.infortuni, new Date("2026-08-02T00:00:00"));
   ok(r.gravi >= 1, "e il cartellone lo conta fra i «gravi»: " + r.gravi);
 });
+test("⛔ nella pagina, l'etichetta di gravità nell'elenco eventi viene dal vocabolario, non dal campo grezzo (trovato da una QA visiva, 15/09)", () => {
+  /* La cartella (fogliaCartella, nel modulo) scriveva già «Permanente» dal
+     vocabolario; questa riga della PAGINA (#inf-list, il registro a
+     schermo) leggeva `x.gravita` grezzo e minuscolo — «permanente» invece
+     di «Permanente» — la stessa domanda, la stessa risposta scritta due
+     volte in due forme diverse. Trovato da una QA visiva sul browser vero,
+     non da una lettura del codice: lo screenshot della cartella diceva
+     «Permanente», il registro a schermo per lo STESSO infortunio diceva
+     «permanente». */
+  const pag = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
+  ok(/\(gravitaInfortunioDi\(x\) \|\| \{\}\)\.etichetta/.test(pag),
+    "l'elenco eventi legge l'etichetta dal vocabolario, non il campo grezzo");
+});
 
 // ── Scudo · andamento indici ────────────────────────────────────────────────
 console.log("\n— Scudo: l'andamento degli indici anno per anno —");

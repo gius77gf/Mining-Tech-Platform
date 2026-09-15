@@ -8515,8 +8515,9 @@ numero scritto dove non era stato misurato niente**.*
   rientro dopo un'assenza oltre 60 giorni, 3011→3014, e a
   `GRAVITA_INFORTUNIO`/`infortunioGrave`/`giornateConvenzionali` di Scudo il
   terzo e quarto gradino di gravità e i giorni convenzionali UNI 7249,
-  3014→3019): **3.503 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3019, `run-stile` 328,
+  3014→3019, e a `#inf-list` la lettura dell'etichetta di gravità dal
+  vocabolario invece del campo grezzo, 3019→3020): **3.504 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3020, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
