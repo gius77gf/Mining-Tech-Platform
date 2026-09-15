@@ -10041,6 +10041,21 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(campo.appelloTurno([], [], OGGI, "Mattina", "").completo, false,
        "zero persone spuntate su zero non è «fatto»");
   });
+  test("⛔ appello: uno spunto già fatto non sparisce se dopo si segna non disponibile", () => {
+    /* 15/09: diverso dal caso di Carla sopra — lì «non disponibile» viene
+       PRIMA e non c'è mai stato uno spunto, qui lo spunto (o1, presente alle
+       06:05) viene PRIMA e «non disponibile» arriva dopo, a turno in corso.
+       Il ruolo attuale non deve cancellare una presenza già registrata: è la
+       stessa distinzione «non lo so / non c'è», applicata al tempo. */
+    const dopoIlCambio = operatori.map((o) => o.id === "o1" ? { ...o, stato: "non-disponibile" } : o);
+    const a = campo.appelloTurno(dopoIlCambio, presenze, OGGI, "Mattina", "Squadra A");
+    eq(a.righe.some((r) => r.operatore.id === "o1"), true, "Anna resta nell'elenco");
+    eq(a.presenti, 1, "e il suo spunto «presente» non si perde");
+    eq(a.totale, 2, "il totale non scende: era spuntata, non è sparita");
+    /* e la squadra continua a filtrare chi non ha nessuno spunto: Carla,
+       già non disponibile dall'inizio e mai spuntata, resta fuori */
+    eq(a.righe.some((r) => r.operatore.id === "o3"), false, "Carla resta fuori: nessuno spunto per lei");
+  });
 
   test("⛔ checklist: quello che non è stato spuntato NON risulta a posto", () => {
     /* stessa regola delle ispezioni di Scudo: un controllo mai finito non deve

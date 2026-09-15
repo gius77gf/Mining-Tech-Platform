@@ -1028,8 +1028,22 @@ export function presenzaDi(presenze, data, turno, operatoreId) {
 // Ritorna { righe:[{operatore, stato, ora}], presenti, assenti, daFare, totale }.
 // Pura e testabile.
 export function appelloTurno(operatori, presenze, data, turno, squadra) {
-  const righe = operatoriDi(operatori, squadra)
-    .filter(o => o.stato !== "non-disponibile")
+  const daRuolo = operatoriDi(operatori, squadra).filter(o => o.stato !== "non-disponibile");
+  /* ⛔ CHI HA GIÀ UNO SPUNTO PER QUESTO TURNO NON SPARISCE SE NEL FRATTEMPO
+     VIENE MESSO "non disponibile": misurato il 15/09 — segnare non
+     disponibile un operatore già presente nell'appello del turno in corso
+     lo toglieva dalla lista SENZA nessun avviso, né come presente né come
+     assente: proprio l'inverso del principio scritto sopra ("non lo so" e
+     "non c'è" non sono la stessa risposta), applicato al TEMPO invece che
+     al dato mancante. Chi ha uno spunto vero resta, con quello spunto. */
+  const idGiaInRuolo = new Set(daRuolo.map(o => o.id));
+  const s = squadraBase(squadra);
+  const conSpuntoOrfano = (operatori || []).filter(o => o
+    && !idGiaInRuolo.has(o.id)
+    && (!s || squadraBase(o.squadra) === s)
+    && presenzaDi(presenze, data, turno, o.id));
+  const righe = [...daRuolo, ...conSpuntoOrfano]
+    .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))
     .map(o => {
       const p = presenzaDi(presenze, data, turno, o.id);
       return { operatore: o, stato: p ? String(p.stato || "") : "", ora: (p && p.ora) || "" };
