@@ -2339,3 +2339,60 @@ l'attesa prima del rientro, con chi l'ha autorizzato, più l'avanzo reso), 3
 a posto (la carica per foro, le licenze di chi spara, la mina mancata come
 azione), 1 dichiarata (il registro dell'art. 55 è del deposito: decisione
 del fondatore).
+
+---
+
+## 15/09 — quinto giro di ricerca mirata: chiusura e consegna di turno
+
+*Nota di processo: prodotta da un agente in background (mandato "prima il
+mondo, poi la nostra app", fonti sugli standard di shift handover
+industriale), ma il suo commit non è mai arrivato — nessuna traccia in
+`git log`, `git log --all` né `git reflog`, il file non esisteva su disco
+nonostante l'agente dichiarasse "git add + commit + push completati". Causa
+più probabile: tre agenti in background scrivevano nella STESSA cartella di
+lavoro (lanciati senza `isolation: "worktree"`, un errore di processo — vedi
+il checkpoint `20260915-094731`) e le operazioni git si sono sovrapposte.
+Il contenuto era comunque arrivato nel riepilogo finale dell'agente: le tre
+affermazioni sono state riverificate di persona da zero, riga per riga sul
+codice vero (regola "niente entra sulla parola dell'agente" — vale anche
+quando il "non c'è" viene da un lavoro che si crede perduto), e tutt'e tre
+reggono.*
+
+**Lacuna 1 — CONFERMATA.** Il gestore di `btn-fir` ("Chiudi il turno",
+`index.html:3522`) valida SOLO che il campo `consegna` (nome di chi
+consegna) non sia vuoto; nessun controllo su appello incompleto, attività
+senza `fine`, fermi senza minuti. Verificato leggendo l'intero gestore
+(righe 3522-3537): l'unica riga di validazione è
+`if (!consegna) { sbaglia(...); return; }`. Non esiste nel modulo nessuna
+funzione tipo "attività ancora aperte" o "appello incompleto" pronta da
+riusare — non è un controllo dimenticato, è un controllo mai scritto.
+
+**Lacuna 2 — CONFERMATA.** Il campo `fir-ricevuta` (`index.html:1165`,
+"Chi riceve") è un `<input>` di testo libero, senza `required`: si legge
+con `.value.trim()` (riga 3528) e non partecipa a nessuna validazione — la
+consegna si chiude anche senza scrivere chi la riceve. Verificato:
+`grep -n "fir-ricevuta" apps/campo/index.html` mostra la dichiarazione del
+campo e le sue tre letture, nessuna delle quali lo richiede.
+
+**Lacuna 3 — CONFERMATA, e più precisa del riepilogo originale.** Campo ha
+DUE meccanismi di consegna distinti e SCOLLEGATI fra loro:
+1. `btn-fir` ("Chiudi il turno") **scrive davvero** su Firestore
+   (`db.aggiorna`/`db.aggiungi("chiusure", {...})`, riga 3531-3532) — ma
+   solo `consegna`, `ricevuta`, `note`, `ora`: un record minimo, non il
+   rapporto completo.
+2. `btn-consegna` ("Consegna di turno", che chiama `testoConsegnaTurno`,
+   `campo-data.js:3645`) compone un testo completo a 12 sezioni (rapportini,
+   anomalie, meteo, presenze…) ma lo **scarica soltanto** come file
+   `.txt` (`el.href = "data:text/plain..."`, `index.html:4528-4530`):
+   non tocca mai `db`, non entra mai nella collezione `chiusure` né in
+   nessun'altra. Il rapporto ricco e il record persistito non sono la
+   stessa cosa e non si parlano: chi vuole ritrovare "che cosa diceva la
+   consegna del 12/09 turno mattina" non lo trova nel database, solo se
+   qualcuno ha conservato il file scaricato.
+
+**Riassunto** — 3 lacune **confermate**, tutte nella stessa area (la
+chiusura/consegna di turno accetta la firma ma non verifica il contenuto,
+e il rapporto più ricco che l'app sa produrre non è tracciabile). La terza
+è la più seria: un audit o un ispettore che chiede "che cosa diceva la
+consegna di quel turno" oggi dipende da un file scaricato a mano, non da
+un dato dell'app.
