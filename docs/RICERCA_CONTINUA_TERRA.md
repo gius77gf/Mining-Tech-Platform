@@ -1336,3 +1336,208 @@ soglia cambiata), zero rischio sul form esistente (non si tocca).
 valore visibile a chi lavora in cava (un campo che nessuna schermata
 scrive), quindi non vale la pena costruirla isolata dal pezzo 3 — è
 dichiarata come prossimo passo atomico scomposto, non lavoro immaginato.
+
+---
+
+## 15/09 — settimo giro di ricerca mirata: ripristino ambientale progressivo e garanzia finanziaria
+
+*Domanda del mandato: molte concessioni impongono un ripristino per fasi
+(non tutto alla fine) con una fideiussione proporzionale all'area non
+ancora ripristinata — Terra lo traccia, o solo l'estrazione? Strumento:
+`WebSearch` (due ricerche); nessuna fonte letta per intero — tutto di
+seconda mano dai riassunti dei risultati. Il codice è stato letto di
+persona, riga per riga, prima di scrivere qualunque verdetto — è la
+lezione pagata più volte in questo file su "niente entra sulla parola
+dell'agente".*
+
+### Come va, fuori [tutto di seconda mano, WebSearch]
+
+- **Il ripristino per fasi è la norma, non l'eccezione, e la garanzia lo
+  segue.** Negli USA (SMCRA/OSMRE, 30 CFR 800 [eCFR]) l'importo della
+  fideiussione si dimensiona sul costo di ripristino dell'area
+  **disturbata e non ancora recuperata**, e cresce **prima** che si apra
+  una nuova porzione di cava ("prior to disturbing new acreage, the
+  permittee must post additional bond"): non è una garanzia unica fissata
+  all'inizio, è una garanzia che segue l'area aperta meno quella chiusa.
+  In Australia Occidentale il tasso minimo si calcola sulla superficie
+  disturbata.
+- **In Italia lo svincolo è esplicitamente PARZIALE E PER LOTTO.** Dai
+  riassunti dei risultati (nessuna fonte letta per intero): "le garanzie
+  possono essere svincolate parzialmente, con cadenza almeno annuale, per
+  l'importo dei lavori di recupero completati. Al termine del recupero
+  ambientale di ogni singolo lotto, l'operatore può chiedere lo svincolo
+  parziale della garanzia finanziaria"; "in caso di progetti suddivisi in
+  lotti di coltivazione, la garanzia finanziaria può essere svincolata per
+  singolo lotto secondo le modalità e i criteri richiesti
+  dall'Amministrazione"; lo svincolo lo ordina la Provincia/l'ente **dopo
+  aver verificato** che le opere di recupero previste dall'autorizzazione
+  sono state completate, anche con riduzione proporzionale ai lavori
+  parziali verificati.
+- **L'IMPORTO unitario della garanzia è materia di listino regionale**, non
+  un calcolo che un software fa da solo: fra i risultati compare un
+  documento di aggiornamento delle "Linee Guida per gli interventi di
+  recupero ambientale di siti di cava e **relativi importi economici
+  unitari**, da utilizzare per il calcolo delle fideiussioni" (regione non
+  identificabile con certezza dal solo riassunto — probabile Lombardia,
+  citato art. 7 L.R. 22/11/1978 n. 69, di seconda mano) — cioè la stessa
+  distinzione che Terra fa già nel proprio commento di codice fra "quanta
+  garanzia è vincolata" (misurabile) e "quanto VALE" (listino regionale,
+  fuori).
+
+### Cosa fa Terra oggi [verificato nel codice, riga per riga]
+
+**Il ripristino per fasi non solo è tracciato: è il modello dati portante
+del piano lotti.** Sei stati, non due (`STATI_LOTTO`,
+`apps/terra/terra-data.js:3062`): `previsto → aperto → esaurito →
+in-recupero → recuperato → collaudato`, ognuno con la propria data
+(`apertoIl`, `esauritoIl`, `recuperoIniziatoIl`, `recuperoFinitoIl`,
+`collaudoChiestoIl`, `collaudatoIl`). Il commento di modulo (righe
+3042-3048) dichiara esplicitamente la premessa di dominio: «Il recupero
+contestuale non è una buona pratica: è la condizione con cui
+l'autorizzazione è stata data, e quasi sempre è assistita da una garanzia
+finanziaria che si svincola per stralci, lotto per lotto» — e la stessa
+frase, «recupero ambientale contestuale alla coltivazione, lotto per
+lotto», è già nelle prescrizioni dell'atto demo
+(`grep -n 'contestuale alla coltivazione' apps/terra/terra-data.js` → riga
+186).
+
+Funzioni pure verificate, con firma e scopo:
+- `divarioRecupero(lotti)` (`terra-data.js:3080`) — la superficie (e il
+  volume) aperti-ma-non-ancora-chiusi: `apertiMq - chiusiMq`. Distingue
+  "non misurabile" (nessun lotto registrato) da "0 perché tutto
+  recuperato" e conta a parte i lotti che non dichiarano superficie/volume
+  (altrimenti il divario si legge più piccolo del vero, mai più grande —
+  principio dell'assenza non favorevole applicato due volte, una per i m²
+  e una, corretta dopo un difetto misurato il 07/08, per i m³).
+- `garanziaVincolata(lotti)` (`terra-data.js:3169`) — somma la quota di
+  garanzia (`garanziaEuro`, scritta dall'utente lotto per lotto dalla
+  propria polizza) in tre corpi: `vincolata` (lotti non collaudati),
+  `liberabile` (recuperati, in attesa del verbale), `liberata`
+  (collaudati). Dichiara esplicitamente, nel commento (riga 3159), che
+  **Terra non calcola l'importo**: "gli importi unitari sono listini
+  regionali, di seconda mano, e restano fuori" — la stessa distinzione
+  confermata ora dal mondo (i listini regionali di importi economici
+  unitari citati sopra).
+- `attesaCollaudo(lotto, oggi)` (`terra-data.js:3132`) — quanti giorni un
+  lotto **recuperato** aspetta la richiesta di collaudo, o da quando è
+  stata chiesta; dichiara esplicitamente di non giudicare un ritardo
+  (righe 3127-3128): "i termini di legge sono regionali e di seconda mano
+  e NON entrano: qui si dice da quanto si aspetta, non se si è in
+  ritardo" — la stessa cautela che questo file raccomanda per ogni
+  soglia di seconda mano.
+- `relazioneLotto(lotto, rilievi, fronti, oggi)` (`terra-data.js:3208`) —
+  compone il foglio "relazione di fine lavori" da presentare per chiedere
+  collaudo e svincolo, con tutte le date del ciclo di vita, il volume
+  rimesso in cava per il recupero e la quota di garanzia del lotto; i dati
+  mancanti finiscono in `nonMisurati` invece di sparire (stessa
+  disciplina del verbale di rilievo).
+- Deduzione volumetrica: righe 1381-1396 (`DECISIONE 18`) — se la
+  concessione lo ammette, il volume rimesso in cava per il recupero
+  (`volumeRecuperoM3`, sul lotto) si detrae dalla base dell'onere di
+  escavazione, contato nell'anno in cui il recupero **finisce** (unica
+  data verificabile), con la scelta esplicitamente dichiarata "spenta di
+  default" per il costo asimmetrico dell'errore.
+- Il modulo scadenze porta già una voce dedicata `chiave: "fideiussione"`
+  (`terra-data.js:2163`, «Fideiussione — validità o rinnovo della
+  polizza») e un caso demo con rinnovo annuale
+  (`terra-data.js:237`) — il rinnovo della polizza nel suo complesso è
+  già nello scadenzario generico, separato dalla quota per lotto.
+
+UI (`index.html`): il badge di stato lotto (righe 2347-2367) colora
+`esaurito` e `in-recupero` come "warn"; il cartellone del divario
+(`cardDivario`/`rigaGaranzia`, righe 2369-2382) mostra "Garanzia ancora
+vincolata: € X su N lotti non collaudati · liberabile dopo il collaudo di
+…"; il form del lotto (righe 953-955) ha i campi `lot-garanzia` e
+`lot-vol-rec` con il tooltip esplicito «Terra non la calcola: la scrivi tu
+dalla polizza»; lo stato lotto pieno con etichette descrittive (riga 3551)
+include «In recupero — i lavori di ripristino sono in corso».
+
+**Verifica comandi:**
+`grep -c 'contestuale alla coltivazione' apps/terra/terra-data.js` → 1.
+`grep -n 'export function divarioRecupero\|export function
+garanziaVincolata\|export function attesaCollaudo\|export function
+relazioneLotto' apps/terra/terra-data.js` → 4 righe (3080, 3169, 3132,
+3208). `grep -c 'garanziaEuro' apps/terra/terra-data.js` → 8.
+
+### Il delta — un solo punto piccolo, stessa famiglia di uno già costruito
+
+**Confermato — manca il gemello di `attesaCollaudo` per la transizione
+precedente.** `attesaCollaudo` misura da quanto un lotto **recuperato**
+aspetta il collaudo. Non esiste l'equivalente per la transizione
+**precedente**, quella che la prescrizione «contestuale alla
+coltivazione» riguarda più da vicino: da quanto un lotto è **esaurito**
+(scavo finito, `esauritoIl` valorizzato) senza che il recupero sia
+**iniziato** (`recuperoIniziatoIl` ancora vuoto). Verificato:
+`grep -niE 'attesaRecupero|attesa.*esaurit|esaurit.*attesa'
+apps/terra/terra-data.js apps/terra/index.html` → **nessuna riga** (uscita
+vuota). `recuperoIniziatoIl` è scritto e letto in altri sei punti
+(dichiarazione del modello, dati demo, form, `relazioneLotto`, etichetta
+di stato) ma **mai confrontato con la data odierna**: `grep -n
+'recuperoIniziatoIl' apps/terra/terra-data.js apps/terra/index.html` → 12
+righe, nessuna con un calcolo di giorni.
+
+- **Schermata**: la scheda del piano lotti, dove oggi il badge «Esaurito»
+  (warn, arancione) e la riga «scavo finito il …» sono l'unica cosa che si
+  vede — un lotto esaurito da tre giorni e uno esaurito da tre anni senza
+  che il recupero sia mai iniziato **hanno lo stesso badge**.
+- **Che cosa non va**: nessun numero dice da quanto tempo lo scavo è
+  finito senza che il recupero sia partito — cioè manca proprio la misura
+  che rende visibile una violazione della "contestualità" che l'atto
+  stesso prescrive («recupero ambientale contestuale alla coltivazione,
+  lotto per lotto»). `divarioRecupero` dà il numero aggregato (m² e m³
+  aperti meno chiusi) ma non ha una dimensione temporale per lotto, e
+  `attesaCollaudo` copre solo la fase successiva.
+- **Come si vede**: apri un lotto demo con `stato: "aperto"` e
+  `esauritoIl` valorizzato manualmente a una data vecchia (nessuno dei sei
+  lotti demo attuali è "esaurito" senza recupero iniziato — verificato,
+  righe 79-119 del modulo dati) e osserva che nessuna scritta racconta
+  l'attesa, a differenza di un lotto "recuperato" che aspetta il collaudo.
+- **Quanto costa**: piccolo, stesso pattern già scritto e collaudato — una
+  funzione pura `attesaRecupero(lotto, oggi)` che rispecchia
+  `attesaCollaudo` (pertinente solo su stato `esaurito`, `daQuanto` già
+  scritto lì vicino, stessa dichiarazione esplicita di non giudicare un
+  ritardo perché i termini sono regionali e di seconda mano), più una
+  riga in `index.html` accanto al badge «Esaurito», sul modello di
+  `rigaGaranzia`/`attesaCollaudo` già cablati.
+- **Come si misura**: `node apps/deepwork-id/tests/run-kpi.mjs` con un
+  caso `attesaRecupero({stato:"esaurito", esauritoIl:"…"}, oggi)` che
+  pretenda `pertinente:true` e un conteggio di giorni corretto (stessa
+  forma delle prove già scritte per `attesaCollaudo`); nessun banco
+  browser necessario, è una funzione pura.
+
+**Tutto il resto della domanda del mandato è già coperto, e in profondità
+maggiore di quanto la domanda stessa presupponesse**: il ripristino per
+fasi non è "assente", è il modello a sei stati che governa l'intero piano
+lotti; la garanzia proporzionale all'area non ripristinata non è
+"assente", è `divarioRecupero` (l'area) più `garanziaVincolata` (la quota
+finanziaria dichiarata dall'utente per lotto, sommata secondo lo stesso
+stato); l'importo unitario della fideiussione **manca di proposito**, per
+una decisione già scritta nel codice e ora confermata dal mondo (è
+materia di listino regionale, di seconda mano). Non ci sono altre
+mancanze da proporre su questa domanda.
+
+**Riassunto** — 1 delta piccolo confermato (il gemello temporale di
+`attesaCollaudo` per la transizione esaurito→recupero iniziato), il resto
+della domanda del mandato **già costruito** (verificato leggendo il
+codice riga per riga, non sulla parola della ricerca) e 1 scelta di
+design **dichiarata e confermata giusta dal mondo** (nessun calcolo
+dell'importo unitario della garanzia).
+
+**Fonti** (WebSearch, di seconda mano, nessuna letta per intero):
+- [U.S. GAO — Coal Mine Reclamation: Federal and State Agencies Face
+  Challenges in Managing Billions in Financial Assurances](https://www.gao.gov/products/gao-18-305)
+- [eCFR — 30 CFR Part 800, Bond and Insurance Requirements for Surface
+  Coal Mining](https://www.ecfr.gov/current/title-30/chapter-VII/subchapter-J/part-800)
+- [Office of Surface Mining Reclamation and Enforcement — Reclamation
+  Bonds](https://www.osmre.gov/resources/reclamation-bonds)
+- [BLM — Bonding, Energy and Minerals](https://www.blm.gov/programs/energy-and-minerals/mining-and-minerals/bonding)
+- [Government of South Australia — Financial assurance, Energy &
+  Mining](https://www.energymining.sa.gov.au/industry/minerals-and-mining/mining/operational-information/financial-assurance)
+- [legislazionetecnica.it — Aggiornamento Linee Guida recupero ambientale
+  siti di cava e importi economici unitari per il calcolo delle
+  fideiussioni](https://legislazionetecnica.it/node/1519701)
+- [regioni.it — Nuova disciplina generale in materia di attività
+  estrattive](https://www.regioni.it/upload/DDLatt.estrattive.pdf)
+- [edizionieuropee.it — L.R. 5 luglio 2019 n. 22, § IV.2.6](https://www.edizionieuropee.it/LAW/HTML/213/pu4_02_006.html)
+- [fantigrossi.it — Il recupero ambientale delle cave: un vincolo spesso
+  disatteso](https://fantigrossi.it/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/)
