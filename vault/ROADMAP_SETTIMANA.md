@@ -8518,9 +8518,11 @@ numero scritto dove non era stato misurato niente**.*
   terzo e quarto gradino di gravità e i giorni convenzionali UNI 7249,
   3014→3019, e a `#inf-list` la lettura dell'etichetta di gravità dal
   vocabolario invece del campo grezzo, 3019→3020, e alla barra in basso di
-  Sentinella il bottone «Scadenze» al posto di «Adempimenti», 3020→3021):
-  **3.505 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3021, `run-stile` 328,
+  Sentinella il bottone «Scadenze» al posto di «Adempimenti», 3020→3021, e a
+  `etaMezzo` di Flotta la messa in servizio prima e il possesso come ripiego,
+  3021→3022):
+  **3.506 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3022, `run-stile` 328,
   `run-helpers` 75, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -1037,7 +1037,9 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
     ((f.tipo || {}).etichetta || "") + " · " + (m.area || "senza area") + " · "
     + oreMotoreTesto(m.ore)
     + " · " + (ETICHETTA_STATO_MEZZO[m.stato] || ETICHETTA_STATO_MEZZO.operativo)
-    + (dataISOEsiste(String(m.messaInServizio || "").slice(0, 10)) ? " · in servizio dal " + dataIt(String(m.messaInServizio).slice(0, 10)) : ""), "");
+    + (dataISOEsiste(String(m.messaInServizio || "").slice(0, 10)) ? " · in servizio dal " + dataIt(String(m.messaInServizio).slice(0, 10)) : "")
+    // età (15/09): SOLO se misurabile — l'assenza di una data non è un'età di zero anni
+    + (f.eta && f.eta.misurabile ? " · età " + f.eta.anni.toLocaleString("it-IT", { useGrouping: false }) + (f.eta.anni === 1 ? " anno" : " anni") : ""), "");
   // il costo di possesso (11/09): canone o quota annua, con da quando; senza, lo dice
   R("possesso", numeroDichiarato(m.costoPossessoAnnuo) != null && +m.costoPossessoAnnuo > 0 ? "canone o quota annua" : "non registrato",
     dataISOEsiste(String(m.possessoDal || "").slice(0, 10)) ? dataIt(String(m.possessoDal).slice(0, 10)) : "",
@@ -3177,6 +3179,26 @@ export function consumoPerMezzo(rifornimenti) {
   };
 }
 
+/* ETÀ DEL MEZZO (15/09, dal delta della ricerca sul TCO): quanti anni sono
+   passati dalla messa in servizio, o dal possesso se la messa in servizio
+   non è nota — nessuna delle due va inventata se manca. Non si SALVA mai:
+   si calcola dalla data, come lo stato delle scadenze. `misurabile: false`
+   quando non c'è nessuna data leggibile o quando la data letta è nel
+   futuro (un mezzo non può avere un'età negativa): l'assenza di un dato
+   non è un dato favorevole, quindi il ritorno dice ESPLICITAMENTE che non
+   sa, invece di lasciare `anni: null` a essere letto come zero. Pura. */
+export function etaMezzo(mezzo, oggi = new Date()) {
+  const m = mezzo || {};
+  const servizio = String(m.messaInServizio || "").slice(0, 10);
+  const possesso = String(m.possessoDal || "").slice(0, 10);
+  const fonte = dataISOEsiste(servizio) ? "messaInServizio" : dataISOEsiste(possesso) ? "possessoDal" : null;
+  if (!fonte) return { anni: null, giorni: null, dal: null, fonte: null, misurabile: false };
+  const dal = fonte === "messaInServizio" ? servizio : possesso;
+  const giorni = -giorniTra(dal, oggi);
+  if (!(giorni >= 0)) return { anni: null, giorni: null, dal, fonte, misurabile: false };
+  return { anni: Math.round((giorni / 365.25) * 10) / 10, giorni, dal, fonte, misurabile: true };
+}
+
 // ============================================================
 // L1 — FASCICOLO DEL MEZZO
 // Tutto quello che l'app sa di UNA macchina, raccolto in un posto solo:
@@ -3255,6 +3277,7 @@ export function fascicoloMezzo(mezzo, dati, oggi = new Date(), preavvisoGiorni =
     ultimoControllo: controlli[0] || null,
     ultimoIntervento: interventi[0] || null,
     costoStoria: costoControStoria(interventi, nome, oggi),
+    eta: etaMezzo(m, oggi),
   };
 }
 

@@ -12222,6 +12222,36 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     contiene(F, { speso: 0 }, "zero speso perché non c'è niente, e la pagina ha i contatori per dirlo");
     eq(F.ultimoControllo, null, "nessun giro fatto: null, non una data di comodo");
   });
+  test("⛔ etaMezzo (15/09): messa in servizio prima, possesso come ripiego, e MAI un'età negativa (delta della ricerca sul TCO)", () => {
+    // data locale al test, non l'OGGI ambiente: qui il blocco è annidato in
+    // altri con un proprio OGGI di sezione, e un valore preso in prestito da
+    // fuori è esattamente la copia debole che questo file mette in guardia
+    const D = new Date("2026-07-20T00:00:00");
+    eq(flotta.etaMezzo({ messaInServizio: "2024-01-15" }, D),
+      { anni: 2.5, giorni: 917, dal: "2024-01-15", fonte: "messaInServizio", misurabile: true },
+      "917 giorni fra il 15/01/2024 e il 20/07/2026, 2,5 anni");
+    eq(flotta.etaMezzo({ possessoDal: "2024-01-15" }, D),
+      { anni: 2.5, giorni: 917, dal: "2024-01-15", fonte: "possessoDal", misurabile: true },
+      "senza messa in servizio, il possesso fa lo stesso conto");
+    eq(flotta.etaMezzo({ messaInServizio: "2024-01-15", possessoDal: "2020-01-01" }, D).fonte, "messaInServizio",
+      "con tutt'e due presenti vince la messa in servizio, non il possesso più vecchio");
+    eq(flotta.etaMezzo({}, D), { anni: null, giorni: null, dal: null, fonte: null, misurabile: false },
+      "nessuna data: non misurabile, non un'età di comodo");
+    const futura = flotta.etaMezzo({ messaInServizio: "2026-08-25" }, D);
+    eq([futura.anni, futura.giorni, futura.misurabile], [null, null, false],
+      "⛔ una data nel futuro non dà un'età negativa: dichiara di non sapere");
+    eq(futura.dal, "2026-08-25", "ma la data letta resta dichiarata, per chi vuole capire perché");
+    eq(flotta.etaMezzo({ messaInServizio: "2026-02-30" }, D).misurabile, false,
+      "⛔ un giorno che non esiste non scorre a marzo: non misurabile, come dataISOEsiste");
+    const m1 = flotta.DEMO.mezzi.find((m) => m.id === "m1");
+    eq(m1.possessoDal, "2024-01-15", "il mezzo m1 della dimostrazione ha solo il possesso, non la messa in servizio");
+    eq(flotta.fascicoloMezzo(m1, {}, D).eta, flotta.etaMezzo(m1, D),
+      "il fascicolo porta lo stesso oggetto che darebbe etaMezzo chiamata da sola");
+    ok(/età 2,5 anni/.test(flotta.csvLibretto(m1, {}, D).split("\r\n")[1]),
+      "e il libretto la scrive nella riga del mezzo, con la virgola italiana");
+    ok(!/età/.test(flotta.csvLibretto(flotta.DEMO.mezzi.find((m) => m.id === "m5"), {}, D).split("\r\n")[1]),
+      "un mezzo con la data nel futuro (m5, rispetto a questa D) non scrive un'età che non ha");
+  });
   test("ritmoDelMezzo: si cerca col nome breve, e se non c'è risponde null", () => {
     eq(flotta.ritmoDelMezzo([{ mezzo: "Escavatore E1", oreGiorno: 7 }], "Escavatore E1 — CAT 352").oreGiorno, 7, "trovato");
     eq(flotta.ritmoDelMezzo([{ mezzo: "Pala P2" }], "Escavatore E1"), null, "non c'è: null, non un ritmo medio");

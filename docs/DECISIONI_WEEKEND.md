@@ -1554,7 +1554,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.505** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.506** *(ricontate il 15/09, dopo aver
 aggiunto a `run-kpi.mjs` la prova che «saldata» e «parziale» non sono mai vere
 insieme in `statoFattura` di Conti, a `claims-convergenza.mjs` il limite a
 tre scritture ravvicinate, a `kpiFrom` di Scudo un `oggi` fisso, alla
