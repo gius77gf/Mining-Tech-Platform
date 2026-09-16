@@ -1823,7 +1823,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.594** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.595** *(ricontate il 16/09, dopo aver
+migrato a Conti (`csvPesate`) il quarto scrittore del vocabolario condiviso
+di P2 — la prima volta con un TERZO codice, `illeggibile` per un ticket
+della pesa con un solo peso dei due, diverso da `mai-misurato` (nessun
+peso) — riusando `pesiPesata`, la stessa funzione che decide `netto` a
+schermo, senza un secondo giudizio — dopo aver
 migrato a Conti (`csvIncassi`) il terzo scrittore del vocabolario
 condiviso di P2 — scelto invece di `csvPesate` perché più semplice,
 stesso binario su `importo` — dopo aver

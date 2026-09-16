@@ -29232,7 +29232,7 @@ test("shared · STATI_CELLA: il vocabolario P2 (i quattro codici non ancora usat
 });
 
 /* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */
-test("csvPesate → parsePesateCsv: il giro torna identico su venti campi", () => {
+test("csvPesate → parsePesateCsv: il giro torna identico su venti campi (la ventunesima, `stato`, non si rilegge ancora)", () => {
   const dentro = {
     numero: "2026/013", data: "2026-03-01", clienteId: "c1", cliente: "Edilcave",
     prodottoId: "p1", prodotto: "Misto", lordo: 32.4, tara: 12.2, netto: 20.2,
@@ -29256,9 +29256,29 @@ test("csvPesate: `fontePrezzo` vuoto NON diventa «listino»", () => {
 test("CSV_PESATE_INTESTAZIONE: il file esce con le colonne che il lettore si aspetta", () => {
   eq(conti.csvPesate([]).split("\n")[0], conti.CSV_PESATE_INTESTAZIONE,
     "una sola verità sulle colonne, come nel registro volate");
-  eq(conti.CSV_PESATE_INTESTAZIONE.split(";").length, 20, "venti campi");
+  eq(conti.CSV_PESATE_INTESTAZIONE.split(";").length, 21, "venti campi che il lettore usa, più `stato` (P2, 16/09)");
   eq(conti.parsePesateCsv(conti.csvPesate([])).length, 0,
     "e la sola intestazione non porta dentro righe finte");
+});
+test("shared · P2 (quarto scrittore, 16/09): csvPesate porta un TERZO codice — pesiPesata già distingue «un solo peso» da «nessun peso»", () => {
+  // misurato: entrambi i pesi, o il netto dichiarato direttamente
+  const misurato = conti.csvPesate([{ numero: "1", data: "2026-03-01", lordo: 32.4, tara: 12.2 }]).split("\n")[1];
+  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "lordo e tara: misurato — " + misurato);
+  const nettoDiretto = conti.csvPesate([{ numero: "1", data: "2026-03-01", netto: 20 }]).split("\n")[1];
+  ok(nettoDiretto.endsWith(";" + ponti.STATO_CELLA_MISURATO), "netto dichiarato direttamente: misurato — " + nettoDiretto);
+  // illeggibile: UN SOLO peso dei due — un ticket letto a metà, non «nessuno ha pesato»
+  const incompleto = conti.csvPesate([{ numero: "1", data: "2026-03-01", lordo: 32.4 }]).split("\n")[1];
+  ok(incompleto.endsWith(";" + ponti.STATO_CELLA_ILLEGGIBILE), "solo il lordo: illeggibile, non mai-misurato — " + incompleto);
+  const soloTara = conti.csvPesate([{ numero: "1", data: "2026-03-01", tara: 12.2 }]).split("\n")[1];
+  ok(soloTara.endsWith(";" + ponti.STATO_CELLA_ILLEGGIBILE), "solo la tara: illeggibile — " + soloTara);
+  // mai-misurato: nessun peso di nessun tipo
+  const maiMisurato = conti.csvPesate([{ numero: "1", data: "2026-03-01" }]).split("\n")[1];
+  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "nessun peso: mai-misurato — " + maiMisurato);
+  // compatibilità all'indietro: un file a venti colonne (senza `stato`) rientra lo stesso
+  const vecchio = "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;"
+    + "quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo\n"
+    + "1;2026-03-01;;;;;32.4;12.2;;t;;;;;;;;;;\n";
+  eq(conti.parsePesateCsv(vecchio).length, 1, "un file vecchio senza la ventunesima colonna resta leggibile");
 });
 test("csvPesate: i numeri escono col PUNTO e la data non scivola", () => {
   const t = conti.csvPesate([{ numero: "1", data: "2026-03-01", netto: 20.2 }]);

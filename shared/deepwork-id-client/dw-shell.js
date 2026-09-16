@@ -528,7 +528,7 @@ export const CSV_TABELLE = [
   { id: "conti.incassi", app: "Conti", etichetta: "l'export degli incassi di Conti",
     fonte: "conti.csvIncassi", col: "fatturaId;data;importo;metodo;stato" },
   { id: "conti.pesate", app: "Conti", etichetta: "l'export delle pesate di Conti",
-    fonte: "conti.csvPesate", col: "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo" },
+    fonte: "conti.csvPesate", col: "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo;stato" },
   { id: "conti.situazioneFatture", app: "Conti", etichetta: "il prospetto della situazione fatture di Conti",
     fonte: "conti.csvSituazioneFatture", col: "numero;cliente;emessa;imponibile;aliquota;iva;totale;stornato;scadenza;stato;incassato;residuo;data_incasso;giorni_pagamento;ddt;righe_non_tornano" },
   { id: "conti.fatture", app: "Conti", etichetta: "l'elenco delle fatture di Conti",

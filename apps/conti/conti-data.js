@@ -79,7 +79,7 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, dataISOEsiste, dataIt, conta, plurale, isoLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti, STATO_CELLA_MISURATO, STATO_CELLA_MAI_MISURATO } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti, STATO_CELLA_MISURATO, STATO_CELLA_MAI_MISURATO, STATO_CELLA_ILLEGGIBILE } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
@@ -5797,14 +5797,30 @@ export function preventiviDaSeguire(ordini, oggi = new Date(), entroGiorni = 7) 
    dichiarata» invece di tirare a indovinare. */
 export const CSV_PESATE_INTESTAZIONE =
   "numero;data;clienteId;cliente;prodottoId;prodotto;lordo;tara;netto;unitaVendita;"
-  + "quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo";
+  + "quantita;densita;prezzoUnitario;scontoPct;aliquotaIva;mezzo;destinatario;fatturaId;ordineId;fontePrezzo;stato";
 
+/* la ventunesima colonna (16/09, P2 di docs/RICERCA_CONTINUA_ASSENZA.md §4,
+   quarto scrittore): a differenza di Flotta/Terra/Conti-incassi, qui il
+   modello SA distinguere due ragioni diverse — non solo il binario. `pesiPesata`
+   (la stessa funzione che decide `netto` a schermo, riusata qui apposta: non
+   se ne scrive un secondo giudizio) dice già `incompleto: true` quando è
+   arrivato UN SOLO peso dei due (lordo o tara, non entrambi) — un ticket
+   della pesa letto a metà, diverso da un peso mai preso: il primo è un
+   guasto/refuso, il secondo è "nessuno ha pesato". Sono la prima occasione
+   in cui il vocabolario condiviso usa un TERZO codice oltre al binario già
+   visto tre volte:
+     · nessun peso dichiarato (né lordo/tara né netto diretto) → mai-misurato
+     · un solo peso dei due, incompleto → illeggibile (un ticket a metà)
+     · un peso pieno (o il netto dichiarato direttamente) → misurato
+   Prima fetta come le altre tre: solo lo scrittore, `parsePesateCsv` resta
+   posizionale a venti colonne. */
 export function csvPesate(pesate) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 1e4) / 1e4); };
   const righe = [CSV_PESATE_INTESTAZIONE];
   for (const p of (pesate || []).slice()
     .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
     if (!p) continue;
+    const pp = pesiPesata(p);
     righe.push([
       csvCell(p.numero || ""), p.data || "",
       csvCell(p.clienteId || ""), csvCell(p.cliente || ""),
@@ -5815,6 +5831,7 @@ export function csvPesate(pesate) {
       csvCell(p.mezzo || ""), csvCell(p.destinatario || ""),
       csvCell(p.fatturaId || ""), csvCell(p.ordineId || ""),
       csvCell(p.fontePrezzo === "ordine" ? "ordine" : p.fontePrezzo === "listino" ? "listino" : ""),
+      pp.incompleto ? STATO_CELLA_ILLEGGIBILE : pp.noto ? STATO_CELLA_MISURATO : STATO_CELLA_MAI_MISURATO,
     ].join(";"));
   }
   return righe.join("\n") + "\n";

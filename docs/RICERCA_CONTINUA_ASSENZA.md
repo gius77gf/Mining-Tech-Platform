@@ -801,6 +801,39 @@ dal pattern appena chiuso qui.
 
 ---
 
+**✅ 16/09 (stesso giorno) — P2, QUARTO SCRITTORE: `csvPesate` di Conti, e
+il PRIMO USO DI UN TERZO CODICE.** Letto `pesiPesata` prima di scrivere
+codice (è la stessa funzione che decide `netto` a schermo — riusata, non
+riscritta): distingue già `noto` (un peso completo, o il netto dichiarato
+direttamente), `incompleto` (arrivato UN SOLO peso dei due, lordo o tara)
+e "niente" (nessuno dei tre). Sono tre stati genuinamente diversi, non due:
+un ticket della pesa letto a metà (`incompleto`) è un guasto o un refuso,
+diverso da "nessuno ha pesato" — quindi qui il binario già usato tre volte
+NON bastava, ed è la prima occasione in cui il vocabolario condiviso porta
+un terzo codice:
+  - nessun peso di nessun tipo → `STATO_CELLA_MAI_MISURATO`
+  - un solo peso dei due (`incompleto`) → `STATO_CELLA_ILLEGGIBILE`
+    (un ticket a metà, non un'assenza)
+  - un peso pieno o il netto dichiarato → `STATO_CELLA_MISURATO`
+
+Ventunesima colonna, prima fetta: solo lo scrittore, `parsePesateCsv`
+resta posizionale a venti campi. Aggiornata `CSV_TABELLE` (guardia B8) e
+le due asserzioni che contavano le colonne dichiarate. Controprova sul
+codice vero: collassato `incompleto` su `mai-misurato` invece di
+`illeggibile`, confermato che il test dedicato alla distinzione dei tre
+stati cade, ripristinato.
+
+**Con questo, quattro scrittori su undici sono migrati** (Flotta, Terra,
+Conti-incassi, Conti-pesate) e tutti e tre i codici usati finora
+(`misurato`, `mai-misurato`, `illeggibile`) sono ora esercitati da almeno
+un caso reale — restano `non-applicabile` e `non-ancora`, ancora solo
+dichiarati. Il passo successivo, quando si riprenderà P2, è uno degli
+altri sette CSV di D1 (scadenze, listino, fatture, gare, mezzi/ricambi di
+Flotta, scadenze/lavoratori di Scudo, monitoraggi/volate di Sentinella —
+l'elenco esatto va riletto in §3 di questo documento prima di scegliere).
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 
