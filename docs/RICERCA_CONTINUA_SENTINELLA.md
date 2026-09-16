@@ -1588,3 +1588,7 @@ strumento) è più incerto perché nessuna fonte conferma che il caso d'uso
 verificato con il fondatore o con un cliente prima di costruirlo, non
 dedotto dal mondo dei laboratori.
 
+
+**✅ 16/09 — il delta 2 (escalation sui superamenti ripetuti) è stato implementato**, riverificato indipendentemente riga per riga prima di scrivere codice: commit `747d6431`. `superamentiUltimiGiorni` in `sentinella-data.js`, `bozzaAzioneSuperamento` reso pattern-aware, badge nel ponte. Il caso non è nella dimostrazione reale (zero superamenti aperti oggi, misurato) — verificato iniettando un punto/ricettore nel browser, mai sul file su disco (`tests/browser/sentinella-escalation-superamenti.mjs`).
+
+**⏸️ Il delta 1 (identità dello strumento) NON è stato implementato**, di proposito: la ricerca stessa lo dichiara incerto (nessuna fonte conferma strumenti itineranti nel settore estrattivo specifico). Diventato la decisione 28 in `docs/DECISIONI_WEEKEND.md`, in attesa di conferma del fondatore prima di costruirlo.

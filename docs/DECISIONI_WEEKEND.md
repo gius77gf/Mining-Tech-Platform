@@ -478,6 +478,7 @@ momento.
 | **25** | Flotta: quando segnalare che **conviene sostituire** un mezzo — quale soglia sul costo pieno? (15/09) | una delle tre strade (soglia sul costo pieno, soglia composita con età e trend, o nessuna soglia automatica) e, se sì, quale percentuale. Vedi la sezione 25. |
 | **26** | Conti: le **pesate non ancora fatturate** entrano nel fido del cliente? (15/09) | una delle tre strade (sommarle al valore pieno, mostrarle separate, o lasciare il limite dichiarato) e, se sì, come valorizzarle senza listino noto. Vedi la sezione 26. |
 | **27** | Sentinella: le **condizioni meteo** contano anche per polveri e vibrazioni, non solo rumore? (15/09) | se procedere con la strada 1 (solo contesto informativo, nessun giudizio di invalidità) o aspettare una ricerca normativa dedicata prima di costruire un giudizio vero. Vedi la sezione 27. |
+| **28** | Sentinella: uno **strumento ha un'identità propria**, distinta dal punto di misura — matricola itinerante fra postazioni? (16/09) | se le cave clienti usano uno strumento fisso per punto (il delta resta teorico) o strumenti che girano fra più postazioni (allora vale costruire il campo). Vedi la sezione 28. |
 
 ⚠️ **Correzione, 02/08.** Qui prima c'era scritto che *dieci* di queste
 diciannove erano la stessa domanda. **Sono quattro.** Le ho contate una per una
@@ -1766,6 +1767,46 @@ vibrazioni.
 in più, senza giudizio) come primo passo sicuro, o se preferisci
 aspettare la strada 2 quando ci sarà un piano di monitoraggio vero da
 leggere.
+
+## 28. Sentinella: uno strumento ha un'identità propria, distinta dal punto?
+
+*(dal nono giro di ricerca su Sentinella, catena di custodia dello
+strumento ed escalation, 16/09 — riverificata di persona sul codice vero
+prima di scriverla qui)*
+
+**Il fatto.** In Sentinella la taratura è un array dentro il **punto di
+misura** (`m.tarature: [{data, scadenza, ente, certificato, nota}]`), e
+`chiaveStrumento` normalizza il **nome del punto**, non un campo
+strumento a sé: `grep -ciE 'numeroSerie|matricola|serieStrumento'
+apps/sentinella/sentinella-data.js` → **0**. Il commento del codice
+dichiara la scelta a proposito («un punto di misura non è
+un'etichetta: porta una soglia») e regge per lo scopo per cui è nato.
+
+**Come stiamo.** Di seconda mano (WebSearch, mai letto il testo
+primario): i LIMS ambientali per il settore minerario tracciano la
+catena di custodia a livello dello **strumento del singolo
+prelievo/evento**, non del punto fisso — uno stesso fonometro o
+sismografo, con lo stesso certificato, che viene spostato su più
+postazioni in date diverse è descritto come prassi comune nel mondo
+dei laboratori.
+
+**Perché serve una decisione, non un'unità automatica.** Il modello
+attuale (soglia legata al punto) è corretto per lo scopo per cui è
+nato e non tocca nessun esito di conformità. Costruire un'identità
+propria dello strumento (campo `strumento: {nome, matricola}` sulla
+taratura, raggruppamento per matricola invece che per punto) avrebbe
+senso SOLO se le cave clienti tengono davvero strumenti itineranti fra
+più postazioni — e nessuna fonte di questo giro lo conferma per il
+settore estrattivo specificamente: è un'inferenza dal mondo dei
+laboratori, non un fatto verificato per il nostro dominio. Costruirlo
+sulla parola dell'agente sarebbe esattamente ciò che la regola "niente
+entra sulla parola dell'agente" vieta.
+
+**Che cosa serve da te.** Se le cave clienti usano uno strumento fisso
+per ogni punto (il delta resta teorico, non si costruisce) o se
+capita davvero che lo stesso fonometro/sismografo giri fra più
+postazioni (allora vale la pena costruire il campo, costo stimato
+medio).
 
 ## Cosa procede intanto SENZA di te
 I cicli automatici continuano su ciò che è sicuro e non gated: seconde

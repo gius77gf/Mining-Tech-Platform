@@ -10866,3 +10866,17 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       (`tests/browser/terra-sequenza-lotto.mjs`, controprovato). Restano
       aperti tre delta dello stesso giro di ricerca. Vedi checkpoint
       `20260916-082030_terra-sequenza-lotto.md`.
+
+## Sentinella — nono giro di ricerca continua (16/09)
+- [x] **L'ESCALATION SUI SUPERAMENTI RIPETUTI** *(16/09, unità completata)*.
+      Riverificato indipendentemente sul codice vero: nessuna funzione
+      esistente somma i superamenti di tutti i punti di un ricettore su
+      una finestra mobile. `superamentiUltimiGiorni` (soglia come
+      parametro, nessun numero cablato), `bozzaAzioneSuperamento`
+      pattern-aware, badge nel ponte. Il caso non è nella dimostrazione
+      reale (zero superamenti aperti); verificato iniettando un caso nel
+      browser (`tests/browser/sentinella-escalation-superamenti.mjs`,
+      controprovato). L'altra mancanza della stessa ricerca (identità
+      propria dello strumento) è andata in `DECISIONI_WEEKEND.md`
+      (decisione 28): la ricerca stessa la dichiara incerta. Vedi
+      checkpoint `20260916-090430_sentinella-escalation.md`.
