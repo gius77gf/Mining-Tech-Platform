@@ -317,7 +317,7 @@ export const DEMO = {
 // serve a Terra, al ponte P2 e a Conti nel confronto cavato-contro-venduto: tre
 // posti, una regola. Qui resta il nome con cui Terra l'ha sempre chiamata.
 export { provenienzaDi as provenienzaRilievo } from "../../shared/dw-ponti.js";
-import { provenienzaDi, applicaPercorsi, traduciCancellazioni, statoScadenza } from "../../shared/dw-ponti.js";
+import { provenienzaDi, applicaPercorsi, traduciCancellazioni, statoScadenza, STATO_CELLA_MISURATO, STATO_CELLA_MAI_MISURATO } from "../../shared/dw-ponti.js";
 /* ⛔ «QUESTO NUMERO L'HA SCRITTO QUALCUNO?» — la regola sta in `shared/` e la
    usano già Conti e Sentinella; Terra era la terza app a averne bisogno e se ne
    teneva una versione più debole nel file che ESCE (`csvRilievi`). Non si
@@ -2457,11 +2457,21 @@ export function scartiRilieviCsv(text) {
 export function csvRilievi(rilievi, fronti) {
   // la settima colonna (11/09): la tolleranza dichiarata dal rilevatore, se c'è —
   // senza, un rilievo esportato e reimportato tornava alla tolleranza tipica
-  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct"];
+  /* l'ottava colonna (16/09, P2 di docs/RICERCA_CONTINUA_ASSENZA.md §4, secondo
+     scrittore dopo Flotta): la cella del volume esce vuota quando nessuno l'ha
+     misurato, ma finora niente nel file diceva PERCHÉ — chi riapre il CSV fra
+     sei mesi non distingue «il drone non è passato» da un refuso di battitura.
+     Prima fetta come in Flotta: solo lo scrittore, `parseRilieviCsv` non
+     rilegge ancora questa colonna (l'intestazione a 7 campi resta leggibile,
+     posizionale). Qui il modello non distingue ancora PERCHÉ il volume manchi
+     (illeggibile? non applicabile?), quindi il binario è lo stesso già usato
+     da Flotta: misurato o mai-misurato, non tutto il vocabolario. */
+  const righe = ["data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct;stato"];
   const nomeFronte = new Map((fronti || []).filter(f => f && f.id != null)
     .map(f => [String(f.id), String(f.nome || "").trim()]));
   for (const r of (rilievi || [])) {
     if (!r) continue;
+    const vol = numeroDichiarato(r.volumeM3);
     righe.push([
       csvCell(r.data || ""),
       /* il punto decimale, non la virgola: il file esce dall'azienda e lo
@@ -2477,12 +2487,13 @@ export function csvRilievi(rilievi, fronti) {
          una cella vuota, e il lettore la scarta: la riga si perde, e
          `rientroRilievi` lo dice PRIMA di scaricare invece di lasciarlo
          scoprire. */
-      (() => { const v = numeroDichiarato(r.volumeM3); return v == null ? "" : String(v); })(),
+      vol == null ? "" : String(vol),
       csvCell(r.metodo || ""),
       csvCell(r.gsd || ""),
       csvCell(r.fronte || (r.fronteId != null ? nomeFronte.get(String(r.fronteId)) : "") || ""),
       csvCell(provenienzaDi(r)),
       (() => { const t = numeroDichiarato(r.tolleranzaPct); return t != null && t > 0 ? String(t) : ""; })(),
+      vol == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO,
     ].join(";"));
   }
   return righe.join("\n") + "\n";

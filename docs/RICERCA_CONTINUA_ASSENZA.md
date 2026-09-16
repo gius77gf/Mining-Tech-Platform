@@ -751,6 +751,32 @@ pesate/incassi di Conti).
 
 ---
 
+**✅ 16/09 (stesso giorno) — P2, SECONDO SCRITTORE: `csvRilievi` di Terra.**
+A differenza di Flotta (che aveva già i due stati scritti a mano), qui il
+modello non distingue nessuna ragione per un volume mancante — quindi il
+codice giusto è il binario più semplice, lo stesso di Flotta:
+`STATO_CELLA_MISURATO` quando `volumeM3` è un numero (zero compreso: uno
+zero CONTATO è un dato, non un'assenza — la stessa regola che questo
+documento ripete per Flotta), `STATO_CELLA_MAI_MISURATO` quando manca.
+L'ottava colonna del file, aggiunta dopo la settima (tolleranza, 11/09).
+
+Prima fetta come P4: solo lo scrittore. `parseRilieviCsv` non rilegge
+ancora la colonna — resta posizionale a sette campi, quindi un file
+vecchio senza `stato` continua a rientrare identico (provato: un CSV a
+sette colonne scritto a mano rientra con la stessa lunghezza di prima).
+Aggiornata anche `CSV_TABELLE` in `shared/deepwork-id-client/dw-shell.js`
+(l'intestazione dichiarata per l'auto-riconoscimento del file, B8) — presa
+dalla prova B8 stessa, che confronta il censimento con l'export VERO e
+avrebbe fatto cadere qualunque copia scritta a mano.
+
+Il candidato successivo (pesate/incassi di Conti) resta il passo dopo:
+lì il file ha venti colonne e un meccanismo di lettura diverso (`leggiCsv`
+sull'intero testo, per via degli a capo dentro le celle — vedi il
+commento sopra `cellePesate`), quindi merita la stessa cura dedicata data
+qui a Terra, non una fretta.
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 
