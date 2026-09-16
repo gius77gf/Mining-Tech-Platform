@@ -716,3 +716,29 @@ tradotta in P2**: `parseRicambiCsv` non rilegge ancora la colonna (il
 modello dati di un ricambio non ha oggi un posto dove tenere questa
 distinzione, e introdurlo qui sarebbe la decisione che P2 vuole prendere
 in comune per tutti e undici i CSV). P2, P3 restano aperte.
+
+---
+
+**⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
+come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
+
+```
+$ node -e "import('./apps/flotta/flotta-data.js').then(m => {
+  const csv = '# riga di convenzione\nnome;giacenza;sogliaMin;prezzo;stato\nFiltro olio;4;2;18,9;misurato\n';
+  console.log(JSON.stringify(m.parseRicambiCsv(csv)));
+});"
+→ [{"nome":"# riga di convenzione","giacenza":0,"sogliaMin":null,"prezzo":null},
+   {"nome":"Filtro olio","giacenza":4,"sogliaMin":2,"prezzo":18.9}]
+```
+
+`isIntestazione` scarta solo la riga che INIZIA con la parola chiave attesa
+(`"nome"` per `parseRicambiCsv`): una riga di commento davanti diventa una
+riga di DATO fantasma — qui un ricambio chiamato «# riga di convenzione».
+La proposta originale l'aveva previsto come rischio possibile ("va misurato
+prima..."): è successo. Il costo vero non è "una riga di commento in un
+posto solo": è insegnare a **ognuno dei 21 lettori** a riconoscere e
+scartare una riga di convenzione PRIMA del controllo sull'intestazione — lo
+stesso ordine di grandezza di P1 (8 lettori) ma su tutti e 21, perché un
+lettore che non lo sa fa esattamente il danno mostrato sopra. **Non
+implementata**: resta un cantiere a sé, con questo costo scritto per chi lo
+aprirà, non più una stima ottimistica.
