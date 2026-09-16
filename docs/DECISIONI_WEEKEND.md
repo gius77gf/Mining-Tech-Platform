@@ -1765,7 +1765,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.535** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.537** *(ricontate il 16/09, dopo aver
+aggiunto a Conti `concentrazionePortafoglio` (dal delta della ricerca
+continua, decimo giro) — la quota del cliente più esposto sul credito
+aperto, verificata anche nel browser — dopo aver
 migrato `flotta.scartiTelemetriaCsv` — l'ultima forma non standard con
 intestazione per NOME di colonna — a riga fisica, dopo aver
 riscritto in Sentinella la provenienza del periodo di un adempimento al

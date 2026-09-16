@@ -2049,7 +2049,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, fattureOltre90, csvFattureOltre90, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, fattureOltre90, csvFattureOltre90, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, concentrazionePortafoglio, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, cancellazioneLasciaBuco, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -3969,6 +3969,11 @@ label.item:has(.dw-chk:checked){
     // separate. Con il fido impostato segnala anche chi lo ha superato.
     const espo = esposizioneClienti(FAT, new Date(), CLI, NOT);
     const espoMax = Math.max(1, ...espo.map(c => c.totale || 0));
+    // Concentrazione del portafoglio (dal delta della ricerca continua su
+    // Conti, decimo giro): quanto pesa il cliente più esposto sul totale.
+    // Solo il numero, dichiarato — nessun giudizio automatico, nessun
+    // blocco: è una spia per il titolare, non una regola che decide da sola.
+    const conc = concentrazionePortafoglio(FAT, new Date(), CLI, NOT);
     $("espo-list").innerHTML = espo.length
       ? espo.map((c, i) => `<div class="item st-${c.oltreFido ? "danger" : c.scaduto > 0 ? "warn" : "accent"}">
         <span class="avatar">${iniziali(c.cliente)}</span>
@@ -3980,6 +3985,9 @@ label.item:has(.dw-chk:checked){
         ${barraPeso(c.totale, espoMax)}</div>`).join("")
         + `<div class="tot"><span class="tot-l">Credito aperto totale</span>
            <span class="tot-n">${eur(espo.reduce((t,c) => t + (+c.totale || 0), 0))}</span></div>`
+        + (conc.calcolabile && conc.top.length > 1
+          ? `<div class="form-hint">Il più esposto, <b>${esc(conc.primo.cliente)}</b>, pesa il <b>${conc.primo.quota}%</b> del credito aperto totale${conc.top.length > 2 ? ` (i primi ${conc.top.length} insieme, <b>${conc.quotaTop}%</b>)` : ""}.</div>`
+          : "")
       : vuoto("spunta", "Nessun credito aperto", "Tutte le fatture emesse risultano incassate: non c'è nessuno da chiamare.");
 
     // ── Grafico dell'esposizione per cliente CON LA TACCA DEL FIDO (N3),

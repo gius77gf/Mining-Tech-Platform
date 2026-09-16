@@ -1543,6 +1543,27 @@ export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], not
     .sort((a, b) => b.totale - a.totale || a.cliente.localeCompare(b.cliente, "it"));
 }
 
+// Concentrazione del PORTAFOGLIO: quanto pesa il cliente più grande (e i
+// primi `primi`) sul credito aperto totale — una proprietà del portafoglio,
+// non del singolo cliente (il fido guarda uno alla volta, questa guarda
+// l'insieme). Riusa `esposizioneClienti`, già ordinata per totale
+// decrescente: non la ricalcola una seconda volta, perché una seconda copia
+// diverge dalla prima alla prossima modifica (dal delta della ricerca
+// continua su Conti, decimo giro). `calcolabile:false` quando il credito
+// aperto è zero: una percentuale su zero non vuol dire niente, non è uno
+// zero tranquillo (il principio del fondatore).
+export function concentrazionePortafoglio(fatture, oggi = new Date(), clienti = [], note = null, primi = 5) {
+  const esp = esposizioneClienti(fatture, oggi, clienti, note);
+  const totale = esp.reduce((s, p) => s + p.totale, 0);
+  if (totale <= 0) return { calcolabile: false, perche: "nessun credito aperto", totale: 0, primo: null, top: [] };
+  const top = esp.slice(0, primi).map(p => ({
+    cliente: p.cliente, clienteId: p.clienteId, totale: p.totale,
+    quota: +(p.totale / totale * 100).toFixed(1),
+  }));
+  const quotaTop = +(top.reduce((s, p) => s + p.totale, 0) / totale * 100).toFixed(1);
+  return { calcolabile: true, totale, primo: top[0] || null, top, quotaTop };
+}
+
 // ESTRATTO CONTO di un cliente: testo pronto (email/PEC) che elenca TUTTE le
 // sue fatture aperte con importo, scadenza, ritardo e interessi di mora, e
 // chiude con i totali (aperto, scaduto, mora, spese €40 per fattura scaduta,

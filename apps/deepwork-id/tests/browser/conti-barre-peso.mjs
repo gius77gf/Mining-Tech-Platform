@@ -349,6 +349,38 @@ console.log("");
   dice(scollate.length === 0, "la percentuale dichiarata si risolve nei pixel che dice", scollate.slice(0, 3));
 }
 
+// ══ 6. LA CONCENTRAZIONE DEL PORTAFOGLIO (dal delta della ricerca continua
+//    su Conti, decimo giro): la nota sotto la lista dice la quota del
+//    cliente più esposto, e quella quota deve essere quella che le RIGHE
+//    STESSE della lista dichiarano — non una copia debole ricalcolata a
+//    parte. Si prende il totale dai `.amt-n` già letti da `leggiBarre` (la
+//    stessa fonte che le sezioni 1-5 hanno già verificato pixel per pixel),
+//    non da `concentrazionePortafoglio` una seconda volta: se il modulo e
+//    la pagina divergessero, ricalcolare qui nasconderebbe lo scarto.
+{
+  const espo = raccolto["espo-list"] || [];
+  const nota = await pg.evaluate((id) => {
+    const el = document.getElementById(id);
+    const hint = el && el.querySelector(".form-hint");
+    return hint ? hint.textContent.trim() : null;
+  }, "espo-list");
+  const totale = espo.reduce((s, r) => s + (Number.isFinite(r.importo) ? r.importo : 0), 0);
+  const top = espo.slice().sort((a, b) => b.importo - a.importo)[0];
+  dice(espo.length > 1 ? !!nota : true,
+    espo.length > 1 ? "con più di un cliente, la nota di concentrazione è nella pagina" : "un solo cliente: nessuna nota da mostrare (dichiarato, non un errore)",
+    nota);
+  if (nota && top && totale > 0) {
+    const attesa = +(top.importo / totale * 100).toFixed(1);
+    const m = /(\d+(?:[.,]\d+)?)%/.exec(nota);
+    const trovata = m ? parseFloat(m[1].replace(",", ".")) : null;
+    dice(trovata === attesa,
+      `la quota scritta nella nota (${trovata}%) è quella che le righe stesse danno (${attesa}%, ${top.riga} su ${totale})`,
+      { nota, attesa, trovata });
+    dice(nota.includes(top.riga.split(" ")[0]) || new RegExp(top.riga.split(" ")[0], "i").test(nota),
+      "il nome del cliente più esposto nella nota corrisponde alla riga in cima alla lista", { nota, top: top.riga });
+  }
+}
+
 console.log(`\n${ok} ok, ${ko} KO  ·  ${misurate} barre misurate su ${Object.keys(raccolto).length} liste${SCATTI ? ` · scatti in ${CARTELLA_SCATTI}` : ""}`);
 if (CONTROPROVA) console.log(ko > 0 ? "CONTROPROVA: il difetto rimesso fa cadere il banco ✔" : "⛔ CONTROPROVA: il difetto è dentro e il banco NON se ne accorge");
 await b.close(); srv.close();

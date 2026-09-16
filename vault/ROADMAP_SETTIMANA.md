@@ -8544,9 +8544,12 @@ numero scritto dove non era stato misurato niente**.*
   328→330. E a `flotta.scartiTelemetriaCsv` — l'ultima forma non standard
   con intestazione per NOME di colonna, migrata a riga fisica con un
   predicato che chiede «sono la prima riga vista?» invece della parola
-  chiave —, 3040→3041):
-  **3.535 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3041, `run-stile` 330,
+  chiave —, 3040→3041. E a `conti.concentrazionePortafoglio` (dal delta
+  della ricerca continua, decimo giro) — la quota del cliente più esposto
+  sul credito aperto, che riusa `esposizioneClienti` invece di ricalcolare
+  il totale una seconda volta —, 3041→3043):
+  **3.537 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3043, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

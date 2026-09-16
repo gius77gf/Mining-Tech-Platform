@@ -746,6 +746,29 @@ test("esposizioneClienti: totale non incassato per cliente, con scaduto, dal pi�
 });
 test("esposizioneClienti: nessuna fattura aperta = lista vuota (niente crash)", () =>
   eq(conti.esposizioneClienti([{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }]), [], "tutte incassate"));
+
+test("⛔ concentrazionePortafoglio (dal delta della ricerca continua su Conti, decimo giro): la quota del cliente più grande, non il fido di uno solo", () => {
+  const oggi = new Date(2026, 6, 20);
+  const fatture = [
+    { cliente: "Edil Srl", importo: 5000, incassata: false, scadenza: "2026-07-10" },
+    { cliente: "Edil Srl", importo: 3000, incassata: false, scadenza: "2026-08-30" },
+    { cliente: "Strade Spa", importo: 2000, incassata: false, scadenza: "2026-08-01" },
+  ];
+  const c = conti.concentrazionePortafoglio(fatture, oggi);
+  eq(c.calcolabile, true, "calcolabile: c'è credito aperto");
+  eq(c.totale, 10000, "il totale è la somma dell'esposizione, non ricalcolato a mano");
+  eq(c.primo.cliente, "Edil Srl", "il primo è il più esposto");
+  eq(c.primo.quota, 80, "Edil Srl pesa l'80% del credito aperto");
+  eq(c.top.map(t => t.cliente), ["Edil Srl", "Strade Spa"], "i primi N, nell'ordine di esposizioneClienti");
+  eq(c.quotaTop, 100, "coi soli due clienti che esistono, il totale dei primi copre tutto");
+});
+test("⛔ concentrazionePortafoglio: nessun credito aperto NON è zero per cento, è NON CALCOLABILE", () => {
+  const c = conti.concentrazionePortafoglio([{ cliente: "X", importo: 100, incassata: true, scadenza: "2026-07-01" }]);
+  eq(c.calcolabile, false, "il principio del fondatore: l'assenza non è un dato favorevole");
+  eq(c.perche, "nessun credito aperto");
+  eq(c.primo, null);
+  eq(c.top, []);
+});
 test("parseFattureCsv: legge le fatture, coerce importo/incassata, scarta rotte", () => {
   const csv = "numero;cliente;importo;emessa;scadenza;incassata\n"
     + "2026/050;Edil Srl;1000,50;2026-07-01;2026-08-01;si\n"
