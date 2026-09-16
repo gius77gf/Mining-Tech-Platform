@@ -29576,7 +29576,7 @@ test("csvIncassi → parseIncassiCsv: il giro torna identico", () => {
 });
 test("csvIncassi: il metodo esce con la CHIAVE, non col nome leggibile", () => {
   const t = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 10, metodo: "riba" }]);
-  ok(/;riba$/m.test(t.trim()), t);
+  ok(/;riba;misurato$/m.test(t.trim()), "il metodo, poi lo stato (quinta colonna, P2): " + t);
   const [m] = conti.parseIncassiCsv(t);
   eq(m.metodo, "riba", "un file che rientra parla la lingua del programma");
 });
@@ -29587,6 +29587,18 @@ test("csvIncassi: senza importo o con una data impossibile NON rientra", () => {
     "e il 30 febbraio non scivola al 2 marzo dentro i tempi di pagamento");
   eq(conti.parseIncassiCsv(conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 0 }])).length, 1,
     "ma uno ZERO dichiarato resta un movimento vero");
+});
+test("shared · P2 (terzo scrittore, 16/09): csvIncassi porta la quinta colonna `stato` dal vocabolario condiviso", () => {
+  const misurato = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 10 }]).split("\n")[1];
+  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "importo presente: misurato — " + misurato);
+  const zeroMisurato = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 0 }]).split("\n")[1];
+  ok(zeroMisurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "⛔ uno zero dichiarato è un movimento vero, non un'assenza — " + zeroMisurato);
+  const maiMisurato = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: null }]).split("\n")[1];
+  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza importo: mai-misurato — " + maiMisurato);
+  eq(conti.csvIncassi([]).split("\n")[0], "fatturaId;data;importo;metodo;stato");
+  // compatibilità all'indietro: un file a quattro colonne (senza `stato`) rientra lo stesso
+  eq(conti.parseIncassiCsv("fatturaId;data;importo;metodo\nf1;2026-03-01;10;bonifico\n").length, 1,
+    "un file vecchio senza la quinta colonna resta leggibile");
 });
 test("csvIncassi: i numeri escono col PUNTO", () => {
   const t = conti.csvIncassi([{ fatturaId: "f1", data: "2026-03-01", importo: 1200.5 }]);

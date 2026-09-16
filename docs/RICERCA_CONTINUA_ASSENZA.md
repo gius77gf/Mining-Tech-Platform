@@ -777,6 +777,30 @@ qui a Terra, non una fretta.
 
 ---
 
+**✅ 16/09 (stesso giorno) — P2, TERZO SCRITTORE: `csvIncassi` di Conti.**
+Scelto invece di `csvPesate` perché genuinamente più semplice: quattro
+colonne, un solo campo che il lettore scarta se assente (`importo`,
+esattamente come `volumeM3` per Terra), nessun campo derivato o
+condizionale che complichi la scelta del codice. Stesso binario, stessa
+disciplina già usata due volte: `STATO_CELLA_MISURATO` quando `importo` è
+un numero (zero dichiarato compreso — un incasso a zero è un movimento
+vero, non un'assenza, la stessa regola di sempre), `STATO_CELLA_MAI_MISURATO`
+quando manca. Quinta colonna, prima fetta: solo lo scrittore,
+`parseIncassiCsv` resta a quattro colonne posizionali e un file vecchio
+rientra identico. Aggiornata `CSV_TABELLE` in `dw-shell.js` per
+`conti.incassi` (la stessa guardia B8 che aveva già preso Terra).
+Controprova sul codice vero: sostituita la costante con una stringa quasi
+identica, confermato che il test cade, ripristinato.
+
+`csvPesate`/`parsePesateCsv` (venti colonne, `netto` derivato non letto,
+`fontePrezzo` scritto solo se dichiarato) resta il candidato successivo:
+lì la scelta di QUALE campo porti lo stato — e se il binario basti o serva
+un terzo codice (`non-applicabile` per una pesata a peso dove la densità
+non serve) — merita ancora la stessa cura dedicata, non riusata di corsa
+dal pattern appena chiuso qui.
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 

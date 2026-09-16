@@ -79,7 +79,7 @@
 
 import { parseCsvLine, leggiCsv, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, dataISOEsiste, dataIt, conta, plurale, isoLocale,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL, mappaColonne, nomeColonna, euro } from "../../shared/deepwork-id-client/dw-shell.js";
-import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti } from "../../shared/dw-ponti.js";
+import { provenienzaDi, misuratoPeriodo, numeroDichiarato, applicaPercorsi, traduciCancellazioni, ordiniFlottaPerConti, STATO_CELLA_MISURATO, STATO_CELLA_MAI_MISURATO } from "../../shared/dw-ponti.js";
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 /* la classificazione dei costi vive in shared/ perché serve anche a Flotta:
    qui si RI-ESPORTA, non si riscrive. Un alias non è una seconda
@@ -6008,7 +6008,7 @@ export function scartiPesateCsv(text) {
    programma, non quella dell'occhio. E una chiave sconosciuta non diventa
    «bonifico»: resta com'è scritta, perché inventare il metodo di un pagamento
    è peggio che non saperlo. */
-export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo";
+export const CSV_INCASSI_INTESTAZIONE = "fatturaId;data;importo;metodo;stato";
 
 /* I METODI DI INCASSO E IL LORO NOME (05/09, saliti dalla pagina): la tendina
    e i file li leggono dallo stesso elenco. Un metodo che non c'è si scrive «—». */
@@ -6654,13 +6654,23 @@ export function csvProspettoDdt(pesate, fatture, ordini) {
   return csv;
 }
 
+/* la quinta colonna (16/09, P2 di docs/RICERCA_CONTINUA_ASSENZA.md §4, terzo
+   scrittore dopo Flotta e Terra): un incasso senza importo esce già con la
+   cella vuota (il codice sotto lo scartava già in silenzio), ma niente nel
+   file diceva perché — chi lo riapre non distingue un refuso da un incasso
+   ancora da registrare per bene. Come per Terra, il modello non sa dire
+   PERCHÉ manchi (solo CHE manca): stesso binario misurato/mai-misurato,
+   prima fetta — solo lo scrittore, `parseIncassiCsv` resta a quattro
+   colonne posizionali. */
 export function csvIncassi(incassi) {
   const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
   const righe = [CSV_INCASSI_INTESTAZIONE];
   for (const m of (incassi || []).slice()
     .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))) {
     if (!m) continue;
-    righe.push([csvCell(m.fatturaId || ""), m.data || "", num(m.importo), csvCell(m.metodo || "")].join(";"));
+    const imp = numeroDichiarato(m.importo);
+    righe.push([csvCell(m.fatturaId || ""), m.data || "", num(m.importo), csvCell(m.metodo || ""),
+      imp == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO].join(";"));
   }
   return righe.join("\n") + "\n";
 }

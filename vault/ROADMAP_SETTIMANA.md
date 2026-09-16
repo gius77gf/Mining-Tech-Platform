@@ -8654,9 +8654,10 @@ numero scritto dove non era stato misurato niente**.*
   ASSENZA) in `shared/dw-ponti.js` — sei costanti `STATO_CELLA_*`, un solo
   scrittore migrato come prima fetta (`csvRicambi` di Flotta), poi il
   secondo scrittore (`csvRilievi` di Terra, binario misurato/mai-misurato,
-  ottava colonna, prima fetta) (3097→3099):
-  **3.593 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3099, `run-stile` 330,
+  ottava colonna, prima fetta), poi il terzo (`csvIncassi` di Conti,
+  scelto invece di `csvPesate` perché più semplice) (3097→3100):
+  **3.594 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3100, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

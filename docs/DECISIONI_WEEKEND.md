@@ -1823,7 +1823,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.593** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.594** *(ricontate il 16/09, dopo aver
+migrato a Conti (`csvIncassi`) il terzo scrittore del vocabolario
+condiviso di P2 — scelto invece di `csvPesate` perché più semplice,
+stesso binario su `importo` — dopo aver
 migrato a Terra (`csvRilievi`) il secondo scrittore del vocabolario
 condiviso di P2 — qui il binario misurato/mai-misurato è l'unico
 possibile perché il modello non distingue nessuna ragione più fine per un
