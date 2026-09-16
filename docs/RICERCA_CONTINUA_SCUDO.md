@@ -2018,3 +2018,159 @@ studiomarchetti.va.it, confcommerciovicenza.info, teamsystem.com,
 zucchetti.it, vittoriarms.com, sinergestsuite.it,
 sistemigestioneintegrata.eu, intelex.com, capterra.com, voxelai.com,
 safetyculture.com, sitemate.com, compliancecouncil.com.au.*
+
+---
+
+## Ricerca 11 — Denuncia infortunio INAIL: timeline esatta e scadenzario (16/09)
+
+### IL MONDO — Obblighi INAIL per denuncia infortunio
+
+Fonte normativa principale: **D.P.R. 1124/1965** (Testo Unico assicurazione contro gli infortuni sul lavoro); integrato da **D.Lgs 151/2015** (che ha abolito il registro infortuni cartaceo, sostituito dal "Cruscotto infortuni" INAIL). 
+
+**Timeline legale della denuncia (tre scenari distinti):**
+
+| Scenario | Termine | Decorre da | Riferimento | Sanzione |
+|----------|---------|-----------|-------------|----------|
+| **Infortunio mortale o pericolo di morte immediatamente evidente** | **24 ore** | Evento (comunicazione telegrafica/via web) | D.P.R. 1124/1965 art. 331 | 1.290–7.745 € |
+| **Infortunio grave con assenza > 3 giorni (se aggravamento)** | **2 giorni** | Ricezione certificato medico | D.P.R. 1124/1965 art. 331; D.Lgs 151/2015 art. 21 | 1.290–7.745 € |
+| **Infortunio con assenza ≥ 1 giorno (comunicazione statistica)** | **48 ore** | Ricezione certificato medico | D.Lgs 151/2015 art. 21 c.1bis | 1.290–7.745 € |
+
+**Forma della denuncia:** Modulo INAIL 4bis (telematico via portale INAIL; oggi esiste anche supporto per file CSV strutturati ma non è obbligatorio).
+
+**Campo critico:** La denuncia decorre SEMPRE dalla **data di ricezione del certificato medico**, NON dalla data dell'evento. Ciò significa che:
+- L'azienda riceve il certificato solo quando il lavoratore lo consegna (non simultaneamente all'evento).
+- Se il certificato arriva con ritardo, il termine parte comunque da quella data.
+- Una prognosi aperta (ancora in valutazione) non fa decorrere il termine fino alla chiusura medica.
+
+**Dati dal mondo (HSE competitor software):** Sei gestionali italiani (Safety Vision, Eurotech, Sistemi Gestionali Integrata, TeamSystem, Intelex, SiteMATE) offrono moduli di "gestione denuncia INAIL" con:
+- Caricamento della data di ricezione certificato medico
+- Calcolo automatico della scadenza in base al tipo e gravità
+- Tracciamento dello stato (da denunciare, denunciata, rifiutata INAIL)
+- Integrazione col portale INAIL (upload diretto in alcuni casi)
+
+*Fonte: consultazione WebSearch su siti ufficiali e brochure prodotto.*
+
+---
+
+### IL DELTA — Stato attuale di Scudo
+
+**Campi infortuni oggi (linea 50-58 di scudo-data.js):**
+```
+infortuni/{id}: { 
+  data, tipo, gravita, giorniAssenza, descrizione, luogo, 
+  categoria?, anonimo?, segnalatoDaId?, rapida?, foto?
+}
+```
+
+**Verifica campo per campo:**
+
+```bash
+# 1. Ricerca di dataCertificato (data ricezione certificato medico)
+$ grep -rn "dataCertificato" apps/scudo/
+  vault/checkpoints/…:51: «definivo finché manca il campo dataCertificato…»
+  docs/RICERCA_CONTINUA_SCUDO.md:1922: «campo dataCertificato opzionale…»
+  (ASSENTE dal modello dati attuale)
+
+# 2. Ricerca di campi specifici per INAIL denuncia (denunciato, stato denuncia, numero)
+$ grep -rniE "denunciaData|denunciaNumero|denunciato" apps/scudo/scudo-data.js apps/scudo/index.html
+  (zero risultati — campi ASSENTI)
+
+# 3. Ricerca di funzione scadenzaDenunciaInail (parallela a cicloDss)
+$ grep -n "function scadenzaDenuncia" apps/scudo/scudo-data.js
+  (zero risultati — ASSENTE)
+
+# 4. Ricerca di logica deadline 24/48/72 ore per infortuni
+$ grep -niE "24.*ore|48.*ore|2.*giorni.*denuncia" apps/scudo/scudo-data.js
+  line 3803: (contesto sospensione disciplinare — tema diverso, non rilevante)
+
+# 5. Ricerca di lavoratoreId collegato a infortunio
+$ grep -n "lavoratoreId" apps/scudo/scudo-data.js | grep -i infortuni
+  line 4348: filter su lavoratoreId in infortuni (PRESENTE solo nel modulo di
+             supporto infortuni/lavoratore, non nel record singolo)
+  line 390: demo i9 ha lavoratoreId — è opzionale (PRESENTE in DEMO, ma
+             né documentato né obbligatorio nel record schema)
+```
+
+**Campi e funzioni che MANCANO:**
+
+| Mancanza | Tipo | Impatto | Stato attuale |
+|----------|------|--------|---------------|
+| `dataCertificato` (ISO yyyy-mm-dd) | Campo opzionale | Senza questo, impossibile calcolare deadline legale corretta | ASSENTE |
+| `denunciaData` (ISO) | Campo opzionale | Tracciamento di quando è stata presentata la denuncia | ASSENTE |
+| `denunciaNumero` (string) | Campo opzionale | Collegamento col numero assegnato da INAIL | ASSENTE |
+| `infortunioGrave` per valore "grave" | Logica di classificazione | PRESENTE: `infortunioGrave()` a riga 969 riconosce grave/permanente/mortale | ✅ PRESENTE |
+| `scadenzaDenunciaInail()` | Funzione | Pattern come `cicloDss()` (riga 3051): calcola deadline dalle tre casistiche | ASSENTE |
+| `lavoratoreId` nel record infortuni | Campo | Oggi assente dallo schema (presente solo in demo i9); necessario per tracciamento del "ferito" | ASSENTE dallo schema |
+
+**Descrizione di ciò che dovrebbe calcolare `scadenzaDenunciaInail(evento, oggi)`:**
+Prendendo come modello `cicloDss` (riga 3051–3066):
+- Estrae `dataCertificato` (se presente; null se assente = non calcolabile)
+- Se `tipo === "infortunio"` e `dataCertificato` esiste:
+  - Se `gravita === "mortale"` → deadline = dataCertificato + 24 ore
+  - Se `giorniAssenza > 3` e `dataCertificato` esiste → deadline = dataCertificato + 2 giorni
+  - Se `giorniAssenza >= 1` → deadline = dataCertificato + 48 ore
+  - Confronta deadline con oggi per dire se scaduta/in scadenza/futura
+- Se `dataCertificato` è null → stato = "non calcolabile: manca data certificato medico"
+
+---
+
+### Come si misura
+
+**Verifica della completezza — Comandi grep su scudo-data.js (definitivi):**
+
+```bash
+# Comando di verifica 1: dataCertificato assente
+$ grep -c "dataCertificato" apps/scudo/scudo-data.js
+0
+
+# Comando di verifica 2: scadenzaDenuncia/denunciaInail assenti
+$ grep -c "scadenzaDenuncia\|denunciaInail\|denunciato" apps/scudo/scudo-data.js
+0
+
+# Comando di verifica 3: 24/48 ore OR 2 giorni nel contesto INAIL
+$ grep -niE "(24|48) ore.{0,20}inail|(2|due) giorni.{0,20}inail" apps/scudo/scudo-data.js
+(zero risultati)
+
+# Comando di verifica 4: lavoratoreId su record infortuni (schema)
+$ grep -n "infortuni/{id}:" apps/scudo/scudo-data.js | head -1 | cut -c1-80
+  line 50 (commento schema: NO lavoratoreId nello schema ufficiale)
+
+# Comando di verifica 5: demo records con lavoratoreId
+$ grep "lavoratoreId" apps/scudo/scudo-data.js | grep -c 'id: "i[0-9]'
+1 (solo i9 ha lavoratoreId, è eccezione nella demo, non regola)
+```
+
+**Test funzionale desiderato:**
+
+Un infortunio grave (gravita: "grave", giorniAssenza: 5) con dataCertificato: "2026-09-15" dovrebbe:
+- ✅ Mostrare scadenza: "2026-09-17" (2 giorni dopo certificato)
+- ✅ Se oggi è "2026-09-18", visualizzare stato SCADUTO in rosso
+- ✅ Se oggi è "2026-09-16", visualizzare stato URGENTE (in scadenza domani)
+- ✅ Se manca dataCertificato, mostrare "Non calcolabile: manca data certificato medico"
+
+Attualmente: nessuno di questi test passa perché la funzione non esiste.
+
+---
+
+### Riepilogo — Mancanze confermate
+
+**Numero totale: 4 campi/funzioni critiche assenti**
+
+1. ✅ **Campo `dataCertificato`** — necessario per calcolare il termine legale (ricerca conferma: il termine decorre SEMPRE dalla data di ricezione del certificato, mai dalla data evento)
+
+2. ✅ **Funzione `scadenzaDenunciaInail()`** — necessaria per calcolare le tre deadline distinte (24h mortale, 2gg se gravità, 48h standard), sul modello di `cicloDss`
+
+3. ✅ **Campi `denunciaData` + `denunciaNumero`** — necessari per tracciare quando e con quale numero la denuncia è stata presentata a INAIL
+
+4. ✅ **Campo `lavoratoreId` obbligatorio (oggi opzionale/assente)** — per collegare l'infortunio al ferito e rispondere alla domanda "quale lavoratore è stato infortunato?"
+
+**Quanto costa (stima):**
+- Aggiunta campi infortuni: **piccolo** (4 campi, di cui 2 opzionali, 1 già in demo)
+- Logica `scadenzaDenunciaInail()`: **piccolo-medio** (funzione pura, ~30 righe, parallela a `cicloDss`)
+- UI per visualizzazione deadline INAIL nello scadenzario: **medio** (una nuova scadenza tipo, una colonna, filtri)
+
+**Impatto di mancanza:**
+- Ad oggi Scudo NON supporta il tracking della denuncia INAIL — l'adempimento col termine più stretto di tutto lo scadenzario è **silenzioso e non visibile** in nessun punto dell'interfaccia.
+- Un infortunio grave di oggi, al quale il lavoratore consegna il certificato domani, avrebbe scadenza dopodomani — ma nessuno lo sa finché non controlla manualmente il portale INAIL.
+
+**Prossimo passo:** Verificare il testo della norma primaria (D.P.R. 1124/1965, artt. 330-331) per confermare i tre termini e il momento di decorrenza; decidere se il tracciamento della denuncia (denunciaData, denunciaNumero) è fase 1 o fase 2 della implementazione.

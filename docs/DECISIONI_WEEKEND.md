@@ -1480,6 +1480,23 @@ promemoria con una data-entro-cui.
 **Che cosa serve da te.** Quale delle tre strade (o quale termine tracciare
 per primo, se si parte in piccolo con la strada 1 e si allarga dopo).
 
+⚠️ **Addendum dall'undicesimo giro di ricerca su Scudo (16/09, riverificato
+indipendentemente).** La ricerca conferma questo stesso punto — nessuna
+delle tre scadenze è tracciata (`dataCertificato`, `scadenzaDenunciaInail`,
+`denunciaData`/`denunciaNumero`: 0 occorrenze ciascuno, riverificato con
+`grep`) — e non è una mancanza nuova: è la stessa dell'ottavo giro. Il
+dettaglio che NON era ancora scritto qui, di seconda mano e da verificare
+sulla fonte primaria prima di scriverlo in una scadenza vera: i tre termini
+decorrerebbero dalla **data di ricezione del certificato medico**, non
+dalla data dell'evento — cioè servirebbe un campo `dataCertificato` distinto
+da `data` (quando l'evento è successo) per calcolare la scadenza giusta. Se
+si sceglie la strada 2 o 3 questo campo va aggiunto da subito, o le
+scadenze calcolate sull'evento invece che sul certificato sarebbero
+sbagliate nella direzione pericolosa (termine dichiarato più lungo di
+quello vero). Non verificato sulla norma primaria (D.P.R. 1124/1965 artt.
+330-331): **prima di calcolare una data vera da mostrare al cliente, questo
+punto va confermato**, non solo dedotto dai risultati di ricerca.
+
 ## 23. Conti: uno scoring cliente — sì, e con quali ingredienti?
 
 *(dalla ricerca del settimo giro su Conti, gestione del credito, 15/09)*
@@ -1765,8 +1782,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.549** *(ricontate il 16/09, dopo aver
-aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
+**Le prove automatiche sono passate a 3.552** *(ricontate il 16/09, dopo aver
+aggiunto a Conti `statoRecupero` — lo storico dei solleciti DAVVERO inviati
+("mai comunicato" è uno stato dichiarato, non un livello zero), un bottone
+"Segna come inviato" senza nessun invio automatico, verificato nel browser
+(un ID scambiato per il numero della fattura non lo vedrebbe nessuna suite
+`node`) — dopo aver aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
 punto di partenza sulle ore del mezzo per pneumatici, cingoli e denti benna
 — verificato nel browser dopo un primo collegamento alla pagina sbagliato
 (filtro per mezzo su un elenco già scoperto a un mezzo solo) che nessuna
@@ -1838,7 +1859,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **297
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **299
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
