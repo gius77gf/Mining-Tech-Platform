@@ -10889,6 +10889,19 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       aperto un solo delta dello stesso giro (report per banco×anno con
       stato progettuale storico). Vedi checkpoint
       `20260916-094443_terra-apertura-programma.md`.
+- [x] **IL BANCO DA SEMPRE, ANNO PER ANNO** *(16/09, unità completata, IN
+      PARTE e di proposito)*. Sesto e ultimo delta dello stesso giro. Il
+      totale «almeno 62.700 m³ · misurato in 2 anni su 3» diceva CHE manca
+      una misura, non DOVE: `banchiDaSempre` guadagna `serieAnni` (il
+      valore anno per anno, già calcolato internamente e buttato via).
+      Restano deliberatamente fuori `statoProgettuale`/`volumePianificato`
+      per banco: non esiste un'entità "banco" col proprio ciclo di vita nel
+      modello, e inventarla qui sarebbe la decisione architetturale che il
+      delta chiedeva di prendere a parte. Verificato anche nel browser
+      (`tests/browser/terra-banchi-serie-anni.mjs`, controprovato). **Con
+      questa unità si chiudono tutti e sei i delta del tredicesimo giro di
+      ricerca continua su Terra.** Vedi checkpoint
+      `20260916-102046_terra-banchi-serie-anni.md`.
 
 ## Sentinella — nono giro di ricerca continua (16/09)
 - [x] **L'ESCALATION SUI SUPERAMENTI RIPETUTI** *(16/09, unità completata)*.
