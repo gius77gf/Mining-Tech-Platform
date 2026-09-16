@@ -6769,7 +6769,7 @@ export function scartiIncassiCsv(text) {
    elettronica (CAP, comune, provincia, codice fiscale): stanno in fondo così
    un file scritto prima rientra tale e quale — le celle che non ci sono
    leggono vuoto, non zero e non «undefined». */
-export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato";
+export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato;listinoId";
 
 export function csvClienti(clienti) {
   const num = (v) => v == null ? "" : String(Math.round(v * 100) / 100);
@@ -6782,7 +6782,8 @@ export function csvClienti(clienti) {
       csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(numeroDichiarato(c.sconto)), num(fido),
       csvCell(c.note || ""), csvCell(c.cap || ""), csvCell(c.comune || ""),
       csvCell(c.provincia || ""), csvCell(c.codiceFiscale || ""),
-      fido == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO].join(";"));
+      fido == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO,
+      csvCell(c.listinoId || "")].join(";"));
   }
   return righe.join("\n") + "\n";
 }
@@ -6795,7 +6796,7 @@ export function parseClientiCsv(text) {
        «ragioneSociale». La prima colonna è `id`. */
     .filter((c) => c.length && !isIntestazione(c.join(";"), "id"))
     .map((c) => {
-      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note, cap, comune, provincia, codiceFiscale] = c;
+      const [id, ragioneSociale, piva, sdi, indirizzo, sconto, fido, note, cap, comune, provincia, codiceFiscale, , listinoId] = c;
       const t = (x) => { const v = String(x == null ? "" : x).trim(); return v || null; };
       const n = (x) => { const v = numIt(x); return numeroDichiarato(v === null || Number.isNaN(v) ? null : v); };
       return {
@@ -6804,6 +6805,10 @@ export function parseClientiCsv(text) {
         sconto: n(sconto), fido: n(fido), note: t(note) || "",
         cap: t(cap) || "", comune: t(comune) || "", provincia: (t(provincia) || "").toUpperCase(),
         codiceFiscale: (t(codiceFiscale) || "").toUpperCase(),
+        // il listino del cliente (10/09 sullo schermo, 16/09 sul file): senza,
+        // `listinoDelCliente` legge «base» — la stessa convenzione già scritta
+        // a schermo, non un secondo giudizio.
+        listinoId: t(listinoId),
       };
     })
     /* ⛔ un cliente senza ragione sociale non è un cliente: è una riga vuota

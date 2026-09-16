@@ -29748,20 +29748,38 @@ test("csvClienti: senza ragione sociale non è un cliente", () => {
 });
 test("shared · P2 (ottavo scrittore, 16/09): csvClienti porta la tredicesima colonna `stato` — a differenza di csvGare, NON ha nessuna collisione di nome (correzione di una riga precedente della ricerca)", () => {
   const misurato = conti.csvClienti([{ id: "c1", ragioneSociale: "Edilcave Srl", fido: 25000 }]).split("\n")[1];
-  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "fido presente: misurato — " + misurato);
+  ok(/;misurato;$/.test(misurato), "fido presente: misurato — " + misurato);
   const maiMisurato = conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }]).split("\n")[1];
-  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza fido: mai-misurato — " + maiMisurato);
+  ok(/;mai-misurato;$/.test(maiMisurato), "senza fido: mai-misurato — " + maiMisurato);
   const zeroMisurato = conti.csvClienti([{ id: "c3", ragioneSociale: "Fido zero", fido: 0 }]).split("\n")[1];
-  ok(zeroMisurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "⛔ un fido deciso a zero è un dato vero, non un'assenza — " + zeroMisurato);
+  ok(/;misurato;$/.test(zeroMisurato), "⛔ un fido deciso a zero è un dato vero, non un'assenza — " + zeroMisurato);
   // la riga ENTRA comunque: come i ricettori/tarature, non come rilievi/incassi/listino
   eq(conti.parseClientiCsv(conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }])).length, 1,
     "un cliente senza fido resta un cliente: la riga non si perde");
   eq(conti.csvClienti([]).split("\n")[0],
-    "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato");
-  // compatibilità all'indietro: un file a dodici colonne (senza `stato`) rientra lo stesso
+    "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato;listinoId");
+  // compatibilità all'indietro: un file a dodici colonne (senza `stato`/`listinoId`) rientra lo stesso
   eq(conti.parseClientiCsv(
     "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale\nc1;Vecchia Srl;;;;;25000;;;;;\n"
   ).length, 1, "un file vecchio senza la tredicesima colonna resta leggibile");
+});
+test("⛔ Conti · csvClienti/parseClientiCsv: listinoId fa il giro — prima si perdeva in silenzio nella copia di sicurezza (16/09)", () => {
+  /* Trovato col censimento a doppio punto di chiamata: il salvataggio
+     manuale (index.html:6971) scrive `listinoId`, la copia di sicurezza
+     (csvClienti → parseClientiCsv) non lo portava affatto — un cliente
+     con un listino personalizzato, ri-caricato dal backup, tornava
+     silenziosamente al listino base (listinoDelCliente legge `null` come
+     «base»): niente errore, prezzi sbagliati sulle pesate successive. */
+  const testo = conti.csvClienti([{ id: "c2", ragioneSociale: "Stradesud", fido: 15000, listinoId: "l1" }]);
+  const riga = testo.split("\n")[1];
+  ok(riga.endsWith(";l1"), "il listino esce in coda, dopo `stato` — quattordicesima colonna: " + riga);
+  const [fuori] = conti.parseClientiCsv(testo);
+  eq(fuori.listinoId, "l1", "e rientra");
+  const senza = conti.parseClientiCsv(conti.csvClienti([{ id: "c1", ragioneSociale: "Edilcave Srl" }]))[0];
+  eq(senza.listinoId, null, "senza listino dichiarato: null, non una stringa vuota — la stessa convenzione dello schermo");
+  eq(conti.parseClientiCsv(
+    "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato\nc1;Vecchia Srl;;;;;;;;;;;misurato\n"
+  )[0].listinoId, null, "un file scritto prima della quattordicesima colonna rientra con listino null, non rotto");
 });
 
 /* ── DECISIONE 12a, sesta voce: le AZIONI CORRETTIVE che si ri-caricano ── */

@@ -524,7 +524,7 @@ export const CSV_TABELLE = [
   { id: "conti.gare", app: "Conti", etichetta: "l'export delle gare di Conti",
     fonte: "conti.csvGare", col: "titolo;base;scadenza;stato" },
   { id: "conti.clienti", app: "Conti", etichetta: "l'export dei clienti di Conti",
-    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato" },
+    fonte: "conti.csvClienti", col: "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato;listinoId" },
   { id: "conti.incassi", app: "Conti", etichetta: "l'export degli incassi di Conti",
     fonte: "conti.csvIncassi", col: "fatturaId;data;importo;metodo;stato" },
   { id: "conti.pesate", app: "Conti", etichetta: "l'export delle pesate di Conti",

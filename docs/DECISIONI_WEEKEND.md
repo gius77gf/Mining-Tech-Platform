@@ -1823,8 +1823,15 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.600** *(ricontate il 16/09, dopo una
-passata di profondità su Terra — binario 2, lettura diretta del sorgente,
+**Le prove automatiche sono passate a 3.601** *(ricontate il 16/09, dopo aver
+corretto in Conti — censimento a doppio punto di chiamata, terzo difetto
+vero trovato con lo stesso metodo nello stesso giorno — `csvClienti`/
+`parseClientiCsv`: la copia di sicurezza dell'anagrafica non portava
+`listinoId`, quindi un cliente col listino personalizzato ri-caricato dal
+backup tornava silenziosamente al listino base; quattordicesima colonna,
+scrittore e lettore insieme (il campo esisteva già su entrambi i lati
+dello schermo, non è una prima fetta), nuovo test con controprova — dopo
+una passata di profondità su Terra — binario 2, lettura diretta del sorgente,
 nessun agente di ricerca: `tolleranzaPct` del rilevatore era wired solo a
 metà, provato a livello di modulo (`csvRilievi`/`parseRilieviCsv`/
 `classeAccuratezza`) ma non passato dal gestore di import CSV a

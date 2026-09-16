@@ -2370,3 +2370,52 @@ invecchia mentre la si scrive" già nota a questo file):
 
 Verificato con `grep -n "^export function <nome>"` diretto sul codice, non
 sulla parola del documento. Zero mancanze residue da questo giro.
+
+---
+
+## 16/09 — passata di profondità (binario 2, censimento a doppio punto di chiamata, nessun agente di ricerca sul mondo)
+
+⛔ **Trovato: `csvClienti`/`parseClientiCsv` — la copia di sicurezza
+dell'anagrafica perdeva `listinoId` in silenzio.** Terza volta nello stesso
+giorno che questo metodo (confrontare le chiavi passate a una stessa
+scrittura da due punti diversi della pagina) trova un difetto vero — dopo
+`rapportoGiornata` di Campo e `db.aggiungi("rilievi",...)` di Terra.
+
+Il salvataggio manuale del cliente (`index.html:6971`) scrive
+`listinoId: $("cl-listino").value || null`. La copia di sicurezza
+(`csvClienti` → `parseClientiCsv`, lo stesso scrittore/lettore appena
+migrato a P2 in questa sessione per la colonna `stato`) non portava
+`listinoId` da nessuna parte: né nell'intestazione, né nel corpo, né nel
+lettore. Un cliente con un listino personalizzato, ri-esportato e
+ri-caricato dal backup, tornava silenziosamente al listino base —
+`listinoDelCliente`/`prodottoPerCliente` (conti-data.js:2976) leggono
+`null` come «base», senza nessun errore — con prezzi sbagliati su tutte le
+pesate successive di quel cliente.
+
+```
+$ grep -n "listinoId" apps/conti/index.html apps/conti/conti-data.js
+```
+conferma: `index.html:6971` lo scrive nel salvataggio manuale,
+`conti-data.js:2976` lo legge per decidere il listino, ma prima di questa
+correzione **nessuna riga** di `csvClienti`/`parseClientiCsv` lo nominava.
+Il dato demo (`conti-data.js:176`, cliente "c2"/Stradesud,
+`listinoId: "l1"`) conferma che è un campo reale e popolato, non teorico.
+
+**Corretto**: quattordicesima colonna (dopo `stato`), scrittore e lettore
+insieme — a differenza delle sette unità P2 di questa sessione (dove la
+colonna `stato` viene scritta ma non ancora riletta, "prima fetta"
+deliberata), qui il campo esiste già da tempo su entrambi i lati dello
+schermo: mancava solo il transito nel file, quindi non c'è ragione di
+fare una prima fetta a metà. Compatibilità all'indietro provata (un file
+a dodici o tredici colonne rientra con `listinoId: null`).
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Conti · csvClienti/parseClientiCsv:
+listinoId fa il giro" — con controprova (rimessa l'omissione nello
+scrittore, due asserzioni cadono, ripristinato).
+
+I due candidati controllati e scartati dallo stesso censimento: le
+differenze fatture manuale/CSV (`imponibile`/`ivaImporto`/...) sono già
+gestite dal fallback dichiarato di `importiFattura` (conti-data.js:2064);
+gli incassi manuale/riconciliazione bancaria differiscono di proposito
+(`nota`/`riferimento` sono campi bancari, la copia di sicurezza manuale
+dichiara di portare solo i quattro campi grezzi).
