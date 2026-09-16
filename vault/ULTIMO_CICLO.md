@@ -1,33 +1,28 @@
 # Ultimo ciclo
 
 ## Ora UTC (letta da `date -u`, mai predetta)
-2026-09-15T21:48:13Z
+2026-09-16T03:48:08Z
 
 ## Commit di partenza
-42936c01 (checkpoint: righeCsvNumerate, secondo lotto migrato (Scudo/Sentinella))
+5d15f4c7 (chore(vault): checkpoint unità flotta componenti a vita propria)
 
 ## Cosa sto per fare
-Terzo lotto della migrazione `righeCsvNumerate` (numero di riga fisico
-nel file per i lettori `scarti*Csv`, dal delta della riverifica su
-`docs/RICERCA_CONTINUA_PAROLE.md`) è già scritto e testato in locale
-(Campo: `scartiSquadreCsv`, `scartiPianoCsv`; Flotta: `scartiRicambiCsv`,
-`scartiMezziCsv`; nuovo test B13; controprova già fatta e ripristinata).
-Sto verificando su una worktree isolata (`giro-node.mjs` già girato,
-`numeri-nei-documenti.mjs` in corso su una seconda passata dopo la
-correzione dei numeri nei quattro documenti — run-kpi 3036→3037, somma
-nove suite 3.527→3.528, asserzioni giro 3.993→3.994). Dopo la verifica:
-commit, push, checkpoint, poi si prosegue subito con il quarto lotto
-(Conti, sei lettori) e con le tre forme non standard rimaste
-(`scartiLavoratoriCsv`/`scartiAzioniCsv` di Scudo, `scartiTelemetriaCsv`
-di Flotta), come da "prossimo passo atomico" del checkpoint precedente.
-
-## Che cosa resta aperto
-- Migrare i sei lettori di Conti a `righeCsvNumerate`.
-- Estendere `righeCsvNumerate` per accettare un predicato (non solo una
-  parola chiave) per `scartiLavoratoriCsv`, verificando che il
-  contratto esistente (stringa) non cambi per i chiamanti già migrati.
-- `scartiAzioniCsv` e `scartiTelemetriaCsv` restano fuori finché non si
-  decide come dare a `leggiCsv`/al parser posizionale il numero di riga
-  fisico: un cambiamento più grande, da scomporre a parte.
-- Dopo i lettori CSV: rotazione della ricerca continua (Deepwork ID e
-  il core non hanno ancora avuto una passata questo ciclo).
+Storico dei solleciti in Conti (decimo giro di ricerca continua):
+`statoRecupero` in `conti-data.js` (confronta il livello DAVVERO segnato
+come inviato con quello che il ritardo attuale implicherebbe — "mai
+comunicato" dichiarato come stato a sé, non un livello zero), bottone
+"Segna come inviato" accanto a "Sollecito" nella pagina, con una modale
+che mostra lo storico e permette di correggere un errore. Test in
+run-kpi.mjs scritti e verdi (3057). Nuovo banco browser
+`conti-solleciti-storico.mjs` scritto, verificato (12/12) e controprovato
+(la controprova cade come atteso, difetto simulato: bottone collegato al
+NUMERO della fattura invece che all'ID). Registrato in `tutti.mjs`.
+Sto verificando su una worktree isolata: `giro-node.mjs` in corso
+(node-only già verde: KPI 3057, Stile 330, Helper 83, ecc. — manca la
+sezione browser e `numeri-nei-documenti.mjs`, atteso far west sui quattro
+documenti di doc-cascade da correggere con i numeri VERI misurati, non
+stimati). In parallelo gira in background un agente di ricerca (haiku)
+sulla denuncia INAIL in Scudo (decimo/undicesimo tema). Dopo la verifica:
+correggere doc-cascade, ricommittare la worktree e rilanciare il giro per
+il totale vero, poi commit, push, checkpoint — quindi proseguire subito
+con l'unità successiva (rotazione ricerca o un altro tema aperto).
