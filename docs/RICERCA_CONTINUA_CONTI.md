@@ -2319,6 +2319,32 @@ parziale). Nessuna delle quattro riapre i temi già dichiarati nei giri
 precedenti dello stesso giorno (scoring cliente, scadenzario fornitori,
 pesate non fatturate nel fido, causale nel registro vendite CSV).
 
+**✅ 16/09 — CHIUSE TUTTE E QUATTRO, lo stesso giorno del giro che le ha
+proposte.** Le prove «grep a zero» sopra erano vere quando scritte e sono
+scadute nel giro di ore: il cantiere di prodotto che colmava le quattro
+mancanze è girato subito dopo, senza saperlo l'uno dell'altro (la stessa
+famiglia già censita altrove in questo repository come "documento
+invecchiato" — la prova, non il verdetto, era il pezzo che marciva).
+Rifatto qui il grep, oggi, per chiudere onestamente:
+
+    $ grep -ciE "concentrazione|pareto|herfindahl|\bhhi\b" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:2   apps/conti/index.html:3
+    $ grep -ciE "sconto.{0,15}(cassa|anticipat)|pagamento anticipato" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:14  apps/conti/index.html:0
+    $ grep -ciE "storicoSollecit|solleciti(Inviat|Registrat)|statoRecupero|faseRecupero|passaggioLegale" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:2   apps/conti/index.html:4
+    $ grep -ciE "pianoRientro|statoPianoRientro" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:3   apps/conti/index.html:2
+
+Tutt'e quattro implementate, coi commit che le hanno aggiunte:
+1. Piano di rientro → `statoPianoRientro` — commit `0caac90b`.
+2. Concentrazione del portafoglio → `concentrazionePortafoglio` — commit `6125ff90`.
+3. Sconto cassa → `scontoCassaMaturato` (e la correzione di `esitoMovimento`) — commit `925ef62b`.
+4. Storico dei solleciti → `statoRecupero` — commit `343e896f`.
+
+Nessun lavoro nuovo da fare qui: questa nota chiude la riga che li aveva
+proposti, com'è regola dopo ogni cantiere che colma un delta.
+
 *Fonti (di seconda mano, via WebSearch): sagresgestioni.it, teamsystem.com,
 agicap.com, recuperosmart.it, daniloansalone.it, highradius.com, getapp.com,
 bectran.com, invoiced.com, paidnice.com, corporatefinanceinstitute.com,
