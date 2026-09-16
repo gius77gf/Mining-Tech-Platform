@@ -1,22 +1,13 @@
 # Ultimo ciclo
 
-## Ora UTC (letta da `date -u`, mai predetta)
-2026-09-16T15:47:21Z
-
-## Commit di partenza
-0c1b3540 (docs: checkpoint della prima fetta di P2 (ASSENZA))
-
-## Cosa sto per fare
-Riprendo dal checkpoint `20260916-141632_assenza-p2-prima-fetta.md`
-(confermato il più recente per data vera da `date-checkpoint.mjs`). Nel
-blocco precedente: chiuso il finding sulla nota INAIL di Scudo, corretto un
-buco di cablaggio reale in Campo (`rapportoGiornata` non riceveva mai
-`volateSentinella`), chiuse due sezioni di ricerca invecchiate (Conti,
-Scudo), costruito `prove-grep-scadute.mjs` (nuovo strumento di verifica),
-e avviata la prima fetta di P2 di ASSENZA (vocabolario condiviso
-`STATO_CELLA_*` in `shared/dw-ponti.js`, un solo scrittore migrato:
-`csvRicambi` di Flotta). Prossimo passo atomico dichiarato nel checkpoint:
-scegliere il SECONDO scrittore da migrare al vocabolario condiviso (Terra
-rilievi o Conti pesate/incassi — entrambi richiedono più cura di Flotta
-perché partono da zero, non da uno stato locale già scritto a mano) oppure
-riprendere la passata in profondità su Campo.
+- **Timestamp (UTC, letto da `date -u`)**: 2026-09-16T18:51:23Z
+- **Commit di partenza**: 210c26b3 (checkpoint del sesto scrittore di P2, Conti/listino)
+- **Ripresa da**: vault/checkpoints/20260916-172558_conti-listino-p2-sesto-scrittore.md
+- **Cosa sto per fare**: punto di decisione esplicito lasciato da quel checkpoint —
+  o il settimo scrittore di P2 (rileggere §3 di docs/RICERCA_CONTINUA_ASSENZA.md
+  per i cinque candidati rimasti, controllando per ciascuno la collisione di nome
+  `stato` PRIMA di scrivere codice), oppure una passata in profondità (binario 2)
+  su Terra o una nuova sovrapposizione nella mappa ecosistema — lo Scudo oltre
+  l'unità INAIL è già stato coperto nel ciclo precedente, quindi resta escluso.
+  Deciderò in base a quale candidato P2 supera per primo il controllo di
+  collisione del nome.
