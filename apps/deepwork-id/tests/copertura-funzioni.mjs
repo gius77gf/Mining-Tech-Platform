@@ -277,6 +277,7 @@ const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 195
 const FUORI = new Set([
   "campoData", "contiData", "flottaData", "scudoData", "sentinellaData", "terraData",
   "ponteScudo", "ponteDemoLeggi", "ponteDemoScrivi", "PONTE_DEMO_KEY",
+  "ponteCampo",
 ]);
 
 const kpi = readFileSync(join(QUI, "run-kpi.mjs"), "utf8");
@@ -352,8 +353,12 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 89,
+  { file: "shared/dw-ponti.js", fondo: 90,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
+  /* 89 → 90 il 16/09: `meteoDelGiorno`, la traduzione del vocabolario meteo
+     di Campo (`cielo`) per il ponte 3g con Sentinella — serve a due app per
+     costruzione (solo Sentinella la chiama oggi, ma la FORMA che interpreta
+     è di Campo). */
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
      Terra, Campo) e nessuna delle quattro era misurabile da qui — una funzione

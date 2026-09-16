@@ -2121,3 +2121,32 @@ export function nominaAttiva(n, oggi = new Date()) {
   if (n.al)  { const g = giorniTra(n.al, oggi);  if (Number.isFinite(g) && g < 0) return false; }
   return true;
 }
+
+// ═════════════════════════════════════════════════════════════════
+// IL METEO DI CAMPO LETTO DA SENTINELLA (16/09, sovrapposizione 3g di
+// docs/MAPPA_ECOSISTEMA.md) — serve a due app, quindi vive qui.
+// ═════════════════════════════════════════════════════════════════
+// Campo registra il cielo per TURNO in categorie (mai un numero: «niente
+// servizi meteo esterni», dichiarato nel suo modulo); Sentinella deve sapere
+// se pioveva per giudicare se una misura di rumore è valida (DM 16/03/1998,
+// All. B). I due vocabolari combaciano SOLO sulla pioggia (booleana in
+// tutt'e due le app): sul vento Campo sa dire solo «vento forte» o niente,
+// mai un numero in m/s — non può mai dare un VERDETTO, solo un sospetto
+// qualitativo. Va detto così e non spacciato per una soglia che si
+// materializza da sola.
+// Il confronto è per GIORNO, non per l'istante della misura: Sentinella non
+// registra il turno della lettura, quindi non si sa se la pioggia di Campo
+// cadeva ESATTAMENTE quando lo strumento misurava — è un'approssimazione
+// dichiarata, non una conferma strumentale. Con più turni dello stesso
+// giorno che si CONTRADDICONO (uno «Pioggia», un altro no) il segnale è
+// AMBIGUO (`null`), mai spacciato per un accordo che non c'è: l'assenza di
+// un accordo non è un accordo, è la stessa regola di sempre applicata a un
+// voto invece che a un dato solo. Pura e testabile.
+export function meteoDelGiorno(turniMeteo) {
+  const validi = (Array.isArray(turniMeteo) ? turniMeteo : []).filter((t) => t && typeof t.cielo === "string" && t.cielo);
+  if (!validi.length) return { pioggia: null, ventoForte: false, turni: 0 };
+  const conPioggia = validi.filter((t) => t.cielo === "Pioggia").length;
+  const pioggia = conPioggia === validi.length ? true : conPioggia === 0 ? false : null;
+  const ventoForte = validi.some((t) => t.cielo === "Vento forte");
+  return { pioggia, ventoForte, turni: validi.length };
+}

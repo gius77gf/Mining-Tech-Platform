@@ -1823,7 +1823,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.579** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.582** *(ricontate il 16/09, dopo aver
+costruito il ponte Campo→Sentinella (sovrapposizione 3g della mappa
+ecosistema, cercata il 15/09) — `meteoDelGiorno` traduce i turni meteo di
+Campo in pioggia/vento forte per giudicare le misure di rumore fuori
+condizioni (DM 16/03/1998), con la pioggia confermata solo se tutti i turni
+del giorno sono d'accordo e il vento forte mai un verdetto, solo un
+sospetto; non testabile end-to-end in demo (come `ponteScudo`) — dopo aver
 aggiunto a Terra `serieAnni` dentro `banchiDaSempre` — il valore anno per
 anno di ogni banco, non solo il totale «almeno» che diceva CHE manca una
 misura senza dire DOVE (ultimo delta del tredicesimo giro di ricerca

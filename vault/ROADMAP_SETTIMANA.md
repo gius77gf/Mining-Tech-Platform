@@ -8624,9 +8624,18 @@ numero scritto dove non era stato misurato niente**.*
   banco×anno di Terra (ultimo delta del tredicesimo giro: `serieAnni`
   espone il valore anno per anno che `banchiDaSempre` calcolava già e
   buttava via, invece del solo totale «almeno» — verificato anche nel
-  browser, `terra-banchi-serie-anni.mjs`, 3084→3085):
-  **3.579 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3085, `run-stile` 330,
+  browser, `terra-banchi-serie-anni.mjs`, 3084→3085). E al ponte
+  Campo→Sentinella (sovrapposizione 3g della mappa ecosistema, cercata il
+  15/09): `meteoDelGiorno` (in `shared/dw-ponti.js`) traduce i turni meteo
+  di un giorno in pioggia/vento forte per giudicare le misure di rumore
+  fuori condizioni (DM 16/03/1998) — pioggia solo se tutti i turni del
+  giorno sono d'accordo, vento forte mai un verdetto (solo un sospetto:
+  Campo non sa dare un numero in m/s), un dato misurato in loco vince
+  sempre su uno dedotto da Campo. Non testabile end-to-end nel browser
+  demo (come `ponteScudo`/`AZI`): verificato con test puri più un
+  controllo sul cablaggio nel sorgente della pagina, 3085→3088):
+  **3.582 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3088, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

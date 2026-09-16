@@ -43047,6 +43047,42 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq([polveri.pertinente, polveri.fuori], [false, false], "sulle polveri non si giudica: dire «sottovento» vorrebbe la posizione della sorgente, che l'app non ha");
     eq(sentinella.misuraFuoriCondizioni({ vento: 9 }, null).pertinente, false, "senza punto non c'è regola");
   });
+  test("meteoDelGiorno (shared/dw-ponti.js, letto dal ponte con Campo): pioggia solo se TUTTI i turni d'accordo", () => {
+    eq(ponti.meteoDelGiorno([]), { pioggia: null, ventoForte: false, turni: 0 }, "nessun turno: nessun segnale, mai uno zero di comodo");
+    eq(ponti.meteoDelGiorno(null), { pioggia: null, ventoForte: false, turni: 0 }, "null non rompe");
+    eq(ponti.meteoDelGiorno([{ cielo: "Pioggia" }]), { pioggia: true, ventoForte: false, turni: 1 });
+    eq(ponti.meteoDelGiorno([{ cielo: "Sereno" }, { cielo: "Nuvoloso" }]), { pioggia: false, ventoForte: false, turni: 2 });
+    eq(ponti.meteoDelGiorno([{ cielo: "Pioggia" }, { cielo: "Sereno" }]).pioggia, null,
+      "⛔ due turni in disaccordo: l'assenza di un accordo non è un accordo, mai un pioggia dedotto a caso");
+    eq(ponti.meteoDelGiorno([{ cielo: "Vento forte" }]), { pioggia: false, ventoForte: true, turni: 1 },
+      "«Vento forte» e «Pioggia» sono categorie diverse: un turno ventoso conferma anche che non pioveva");
+    eq(ponti.meteoDelGiorno([{ cielo: "" }, { note: "senza cielo" }]), { pioggia: null, ventoForte: false, turni: 0 },
+      "un turno senza cielo dichiarato non entra nel conto (non è uno 0 turni sereni)");
+  });
+  test("⛔ Sentinella · misuraFuoriCondizioni col ponte di Campo: un dato misurato vince SEMPRE su uno dedotto dal turno", () => {
+    const daCampoPioggia = ponti.meteoDelGiorno([{ cielo: "Pioggia" }]);
+    const daCampoSereno = ponti.meteoDelGiorno([{ cielo: "Sereno" }]);
+    const daCampoVento = ponti.meteoDelGiorno([{ cielo: "Vento forte" }]);
+    // senza NESSUN dato in loco, Campo confermato pioggia UPGRADE a "fuori"
+    const daCampo = sentinella.misuraFuoriCondizioni({ valore: 60 }, R, daCampoPioggia);
+    eq([daCampo.pertinente, daCampo.giudicabile, daCampo.fuori], [true, true, true],
+      "la pioggia del turno di Campo basta a invalidare la misura, come quella misurata");
+    ok(/quel giorno, dal turno di Campo/.test(daCampo.breve), "e la frase dichiara la provenienza: " + daCampo.breve);
+    // Campo sereno: ancora "a metà" perché il vento resta ignoto — un solo asse noto non basta
+    const sereno = sentinella.misuraFuoriCondizioni({ valore: 60 }, R, daCampoSereno);
+    eq([sereno.fuori, sereno.giudicabile], [false, false], "pioggia (no) nota da Campo non basta da sola: il vento resta ignoto");
+    ok(/nota dal turno di Campo/.test(sereno.motivo), sereno.motivo);
+    // il vento forte è SOLO un sospetto qualitativo, mai un verdetto
+    const vento = sentinella.misuraFuoriCondizioni({ valore: 60 }, R, daCampoVento);
+    eq(vento.giudicabile, false, "⛔ vento forte di Campo NON diventa mai un verdetto (Campo non sa dare un numero in m/s)");
+    ok(/vento forte: verifica consigliata/.test(vento.motivo), vento.motivo);
+    // un dato misurato IN LOCO vince sempre: pioggia falsa strumentale non si lascia scavalcare da Campo
+    const strumentoVince = sentinella.misuraFuoriCondizioni({ valore: 60, pioggia: false }, R, daCampoPioggia);
+    ok(!/dal turno di Campo/.test(strumentoVince.motivo), "la lettura porta già la sua pioggia: Campo non entra. " + strumentoVince.motivo);
+    // retrocompatibilità: senza terzo argomento si comporta come prima
+    eq(sentinella.misuraFuoriCondizioni({ valore: 60 }, R), sentinella.misuraFuoriCondizioni({ valore: 60 }, R, null),
+      "omettere il terzo argomento o passare null è la stessa cosa");
+  });
   test("Sentinella · contaFuoriCondizioni: il conto del report, con i tre cassetti", () => {
     const L = [{ valore: 60, vento: 7, pioggia: false }, { valore: 58, vento: 2, pioggia: false }, { valore: 59 }, { valore: null, vento: 9 }, { valore: 61, vento: 1, pioggia: false }];
     eq(sentinella.contaFuoriCondizioni(L, R), { pertinente: true, totale: 4, fuori: 1, dentro: 2, nonGiudicabili: 1 }, "la lettura senza valore non si conta; quella senza condizioni va nel terzo cassetto");
@@ -43097,6 +43133,19 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/DIREZIONI_VENTO\.map\(/.test(pagina), "le direzioni della tendina vengono dal modulo");
     ok(!/<option value="NE">/.test(pagina), "e non sono scritte a mano nella pagina");
     ok(/\.\.\.campiProvenienza\(FONTE_MANO\), \.\.\.cond \}/.test(pagina), "le condizioni entrano nella lettura registrata a mano");
+  });
+  test("⛔ Sentinella · il ponte con Campo (3g) è wired: fetch, indice per giorno, passato a misuraFuoriCondizioni", () => {
+    // ponteScudo/AZI non hanno un banco browser dedicato per lo stesso motivo:
+    // in demo/tour il ponte torna sempre "non leggibile", quindi qui si
+    // verifica il CABLAGGIO nel sorgente — la stessa forma già usata sopra
+    // per il conteggio delle chiamate a misuraFuoriCondizioni.
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/const ponteMeteo = await ponteCampo\(\);/.test(pagina), "il ponte si inizializza una volta, come ponteScudo");
+    ok(/await ponteMeteo\.meteo\(\)/.test(pagina), "e si legge dentro refresh(), come ponte.lavoratori()");
+    ok(/IDX_METEO_GIORNO\.get\(String\(l\.data \|\| ""\)\.slice\(0, 10\)\) \|\| \[\]/.test(pagina),
+      "l'indice si consulta per il GIORNO della lettura, mai per l'istante (Sentinella non registra il turno)");
+    ok(/meteoDelGiorno\(IDX_METEO_GIORNO\.get/.test(pagina), "il verdetto del giorno passa da meteoDelGiorno, non da un confronto rifatto in pagina");
+    ok(/misuraFuoriCondizioni\(l, m, meteoDelGiorno/.test(pagina), "e arriva come terzo argomento a misuraFuoriCondizioni");
   });
 }
 /* ===== fine condizioni meteo della misura (05/09) ===== */

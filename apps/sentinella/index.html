@@ -1877,6 +1877,7 @@ textarea.dw-input{
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
            superamentiUltimiGiorni,
+           ponteCampo, meteoDelGiorno,
            bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            accorciaVoceTendina,
@@ -2078,6 +2079,12 @@ textarea.dw-input{
   // qui si tengono solo in memoria per mostrare a che punto sono.
   const ponte = await ponteScudo();
   let AZI = [], LAV = [], LAV_LEGGIBILI = true, ponteKO = "";
+  // 3g della mappa ecosistema: il meteo per turno di Campo, letto per
+  // giudicare le misure di rumore fuori condizioni (DM 16/03/1998). Un
+  // indice per GIORNO, costruito una volta a `refresh()` e non ad ogni riga:
+  // `meteoDelGiorno` fa il resto, sempre sull'array del giorno (mai `undefined`).
+  const ponteMeteo = await ponteCampo();
+  let IDX_METEO_GIORNO = new Map();
   let filtroPrg = "tutte";   // filtro dell'elenco del programma
   let editPrg = null;        // id della riga di programma in modifica
   let andRic = null;         // ricettore scelto per l'andamento nel tempo
@@ -2286,7 +2293,8 @@ textarea.dw-input{
          RUMORE, se mettono la misura fuori norma, la riga lo suggerisce con la
          stessa forma di «nessuna volata»: candidata, non tolta */
       const cond = condizioniMisura(l);
-      const fc = an ? { fuori: false } : misuraFuoriCondizioni(l, m);
+      const fc = an ? { fuori: false }
+        : misuraFuoriCondizioni(l, m, meteoDelGiorno(IDX_METEO_GIORNO.get(String(l.data || "").slice(0, 10)) || []));
       if (fc.fuori) fuoriCond++;
       // la calibrazione in campo (11/09): sul rumore, e solo sulle righe non annullate — anche «non registrata» è una risposta
       const vc = rumore && !an ? validitaCalibrazione(l, m) : null;
@@ -4375,6 +4383,23 @@ textarea.dw-input{
        la bandiera arriva dal modulo e la legge `descriviResponsabile`. */
     try { const r = await ponte.lavoratori(); LAV = (r && r.lista) || []; LAV_LEGGIBILI = !!(r && r.leggibile); }
     catch (e) { LAV = []; LAV_LEGGIBILI = false; }
+    // 3g: il meteo di Campo. Non leggibile o vuoto degradano allo stesso
+    // modo — nessun segnale, cioè la pagina si comporta come prima del
+    // ponte — perché qui non c'è un «da assegnare» da confondere con un
+    // «non si sa»: l'unico uso è un'aggiunta di informazione, mai una
+    // sottrazione, quindi un fallimento silenzioso non perde niente che
+    // prima ci fosse.
+    try {
+      const r = await ponteMeteo.meteo();
+      const lista = (r && r.lista) || [];
+      IDX_METEO_GIORNO = new Map();
+      for (const t of lista) {
+        const d = String((t && t.data) || "").slice(0, 10);
+        if (!d) continue;
+        if (!IDX_METEO_GIORNO.has(d)) IDX_METEO_GIORNO.set(d, []);
+        IDX_METEO_GIORNO.get(d).push(t);
+      }
+    } catch (e) { IDX_METEO_GIORNO = new Map(); }
     // MONE = i punti con la SOGLIA CHE VALE (quella del ricettore se c'è).
     // Da qui in giù si conta sempre su MONE: KPI, semafori, grafici e
     // report leggono tutti lo stesso numero.

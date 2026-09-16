@@ -17,6 +17,8 @@ Verificato contro il commit dichiarato in fondo.
 
 > ⏱️ Scritto il 26/08. Dal 02/09 sono **sette**: il settimo è Flotta→Conti, e sta
 > raccontato in §3a. Il titolo resta com'era perché il conto vivo è la tabella in §6.
+> Dal 16/09 Sentinella legge ANCHE Campo (il meteo del turno, §3g): non riscrivo
+> la tabella qui sotto per lo stesso motivo — il conto vivo è §6.
 
 Un ponte è un'app che legge i dati di un'altra. Si misura cercando chi
 inizializza l'SDK con l'`appId` di qualcun altro:
@@ -439,6 +441,30 @@ si può dire) senza sembrare un quarto verdetto finto.
 Campo che scrive il meteo per un altro scopo (il rapportino) prima che
 Sentinella ne abbia bisogno per la sua lettura, non il contrario.
 
+**✅ 16/09 — costruito, ESATTAMENTE nella forma parziale descritta sopra**,
+commit da verificare nel checkpoint `20260916-*_sentinella-ponte-campo-meteo.md`.
+`meteoDelGiorno` (in `shared/dw-ponti.js`, perché guarda la FORMA del dato di
+Campo) traduce i turni di un giorno in `{pioggia, ventoForte}`: `pioggia` solo
+se TUTTI i turni di quel giorno sono d'accordo (altrimenti `null`, mai
+dedotta a caso), `ventoForte` è **sempre e solo** un sospetto qualitativo,
+mai un verdetto — esattamente il limite dichiarato sopra, rispettato nel
+codice. `ponteCampo()` in `sentinella-data.js` (stessa forma di `ponteScudo`,
+esclusa dalla copertura per lo stesso motivo: vuole rete e SDK) fa da async
+fetch; `misuraFuoriCondizioni` accetta un terzo argomento opzionale
+(retrocompatibile: senza di lui si comporta come prima). Wired in
+`apps/sentinella/index.html`: un solo punto di consumo, la riga della
+lettura nel pannello del punto — CSV ed export restano sul comportamento di
+prima, deliberatamente (prima fetta). **Limite dichiarato nel codice, non
+solo qui**: il confronto è per GIORNO, non per l'istante della misura
+(Sentinella non registra il turno della lettura), quindi una pioggia
+confermata da Campo è un'approssimazione, non una lettura strumentale — la
+frase mostrata all'utente lo dice sempre («quel giorno, dal turno di
+Campo»). Non testabile end-to-end nel browser demo per lo stesso motivo di
+`ponteScudo`/`AZI`: in demo/tour il ponte torna sempre "non leggibile", zero
+segnale — verificato con test puri su `meteoDelGiorno` e
+`misuraFuoriCondizioni`, più un controllo sul cablaggio nel sorgente della
+pagina (la stessa forma già usata per `misuraFuoriCondizioni` altrove).
+
 ---
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
@@ -578,12 +604,12 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 
 | | oggi |
 |---|---|
-| ponti di DATI esistenti | **16** su 56 direzioni *(era 6; il 05/09 (notte) sono entrati Genesi→Sentinella (3e), Campo→Genesi (il consuntivo di carico letto dall'organizzazione) e Genesi→Campo (il piano di carico, collezione `piani`): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale |
+| ponti di DATI esistenti | **17** su 56 direzioni *(era 6; il 05/09 (notte) sono entrati Genesi→Sentinella (3e), Campo→Genesi (il consuntivo di carico letto dall'organizzazione) e Genesi→Campo (il piano di carico, collezione `piani`): la volata prevista senza il file; il 05/09 è entrato Sentinella→Campo (P6): le volate eseguite del giorno nella consegna di turno, lette con `riassuntoVolateDelGiorno` di `shared/`; il 02/09 sono entrati Flotta→Conti, Conti→Flotta (§3a), Terra→Scudo e Flotta→Scudo (§3b), Campo→Conti (§3f), Genesi→Terra (§4, le nuvole))* — e il 03/09 il ponte Terra→Conti porta anche gli **inventari dei cumuli**, il terzo lato del triangolo: stessa direzione, un dato in più, il conto non sale — e il 16/09 è entrato **Campo→Sentinella** (§3g, il meteo del turno per giudicare le misure di rumore fuori condizioni): direzione NUOVA, distinta da Sentinella→Campo (P6, che va nel verso opposto) |
 | ponti di FILE | **4** censiti in §4 *(era «almeno 1»)*; **zero** restano di sola chiave del browser — corretto il 12/09: i tre dal 05/09 notte (Genesi→Sentinella, Campo→Genesi, Genesi→Campo) e Genesi→Terra dal **02/09**, non oggi (le nuvole: Terra legge `orgCollection` per prima, la chiave resta il ripiego di chi lavora offline o da solo, come `rapportiniCampo`) |
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **1** *(era 0 fino al 15/09: censita 3g — meteo del sito, Campo per turno / Sentinella per lettura — cercata di proposito e trovata nuova, non ancora costruita; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
+| sovrapposizioni non collegate | **0** *(era 1 dal 15/09 al 16/09: 3g — meteo del sito — censita il 15/09 e costruita il 16/09, nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 

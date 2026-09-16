@@ -41,6 +41,10 @@ import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomi
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
    che è un alias e non una seconda implementazione. */
 export { azioniDiOrigine, statoPonte } from "../../shared/dw-ponti.js";
+/* `meteoDelGiorno` vive in `shared/dw-ponti.js` perché guarda la FORMA del
+   dato di Campo (il vocabolario `cielo`), non un fatto di Sentinella: se un
+   giorno servisse a una terza app, non si riscrive. */
+export { meteoDelGiorno } from "../../shared/dw-ponti.js";
 /* ⛔ `leggiCsv` STAVA QUI, ed era l'unico lettore di CSV completo
    dell'ecosistema: regge il separatore deciso su tutto il file, le virgolette
    doppie raddoppiate, il BOM e — quello che conta — **l'a capo DENTRO un campo
@@ -4289,19 +4293,33 @@ export function condizioniMisura(l) {
   if (umidita != null) pezzi.push("umidità " + numeroIt(umidita) + " %");
   return { registrate: pezzi.length > 0, vento, da, pioggia, temperatura, umidita, testo: pezzi.join(" · ") };
 }
-export function misuraFuoriCondizioni(l, m) {
+export function misuraFuoriCondizioni(l, m, meteoGiorno) {
   const tipo = String((m || {}).tipo || "").trim().toLowerCase();
   if (tipo !== "rumore") return { pertinente: false, giudicabile: false, fuori: false, breve: "", motivo: "" };
   const c = condizioniMisura(l);
-  if (c.vento == null && c.pioggia == null)
-    return { pertinente: true, giudicabile: false, fuori: false, breve: "", motivo: "vento e pioggia non registrati: non si può dire se la misura è valida per il DM 16/03/1998" };
+  const mg = meteoGiorno || null;
+  /* IL PONTE CON CAMPO (16/09): un dato misurato in loco vince SEMPRE su uno
+     dedotto dal turno di Campo — `daCampo` scatta solo quando la lettura non
+     porta già la sua pioggia. È un'approssimazione per GIORNO, non per
+     l'istante della misura (Sentinella non registra il turno): la frase lo
+     dice sempre, per non spacciare un indizio per uno strumento. */
+  const daCampo = c.pioggia == null && mg && (mg.pioggia === true || mg.pioggia === false);
+  const pioggia = c.pioggia != null ? c.pioggia : (daCampo ? mg.pioggia : null);
+  const ventoSospetto = c.vento == null && !!(mg && mg.ventoForte === true);
+  if (c.vento == null && pioggia == null)
+    return { pertinente: true, giudicabile: false, fuori: false, breve: "",
+      motivo: "vento e pioggia non registrati: non si può dire se la misura è valida per il DM 16/03/1998"
+        + (ventoSospetto ? " (quel giorno Campo segnalava vento forte: verifica consigliata)" : "") };
   const motivi = [];
   if (c.vento != null && c.vento > VENTO_MAX_RUMORE_MS) motivi.push("vento " + numeroIt(c.vento) + " m/s, oltre i " + VENTO_MAX_RUMORE_MS + " m/s ammessi");
-  if (c.pioggia === true) motivi.push("pioggia");
+  if (pioggia === true) motivi.push(daCampo ? "pioggia (quel giorno, dal turno di Campo)" : "pioggia");
   if (motivi.length) return { pertinente: true, giudicabile: true, fuori: true, breve: motivi.join(" e "), motivo: motivi.join(" e ") + ": per il DM 16/03/1998 (All. B) la misura di rumore non è valida" };
   // dentro, ma con una metà sola registrata lo si dice
-  const meta = c.vento == null ? " (pioggia registrata, vento no)" : c.pioggia == null ? " (vento registrato, pioggia no)" : "";
-  return { pertinente: true, giudicabile: meta === "", fuori: false, breve: "", motivo: meta ? "condizioni registrate a metà" + meta : "" };
+  const meta = c.vento == null ? " (pioggia " + (daCampo ? "nota dal turno di Campo" : "registrata") + ", vento no)"
+    : pioggia == null ? " (vento registrato, pioggia no)" : "";
+  return { pertinente: true, giudicabile: meta === "", fuori: false, breve: "",
+    motivo: (meta ? "condizioni registrate a metà" + meta : "")
+      + (ventoSospetto && meta ? " · quel giorno Campo segnalava vento forte: verifica consigliata" : "") };
 }
 export function contaFuoriCondizioni(letture, m) {
   const L = (Array.isArray(letture) ? letture : []).filter((l) => l && numeroDichiarato(l.valore) != null);
@@ -4405,6 +4423,37 @@ export async function ponteScudo() {
       ponteDemoScrivi([...ponteDemoLeggi(), nuova]);
       return nuova;
     },
+  };
+}
+
+/* IL PONTE VERSO CAMPO (16/09, sovrapposizione 3g della mappa ecosistema):
+   la lettura del meteo per turno che Campo tiene per il rapportino, letta
+   qui per giudicare se una misura di rumore è valida secondo il DM
+   16/03/1998. Stessa forma di `ponteScudo`: `mode` dichiara live/demo,
+   `meteo()` non fallisce mai in silenzio — una lettura non riuscita torna
+   `leggibile:false`, mai una lista vuota che sembra «Campo non ha meteo».
+   La TRADUZIONE del dato (quali turni contano pioggia/vento forte) è
+   `meteoDelGiorno` in `shared/dw-ponti.js`, perché quella regola guarda la
+   FORMA del dato di Campo — se un giorno servisse a una terza app, non si
+   riscrive. */
+export async function ponteCampo() {
+  try {
+    const { DeepworkID } = await import("../../shared/deepwork-id-client/index.js");
+    const id = await DeepworkID.init({ appId: "campo" });
+    if (id.user && id.authState() === "member") {
+      const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      return {
+        mode: "live",
+        meteo: () => getDocs(id.orgCollection("meteo")).then(
+          (s) => ({ lista: s.docs.map((d) => ({ id: d.id, ...d.data() })), leggibile: true }),
+          () => ({ lista: [], leggibile: false })),
+      };
+    }
+  } catch (e) { /* SDK assente o non autenticati: si prosegue in demo */ }
+  return {
+    mode: "demo",
+    // in dimostrazione Campo non si può interrogare affatto: è «non leggibile», non «non ce n'è»
+    meteo: async () => ({ lista: [], leggibile: false }),
   };
 }
 
