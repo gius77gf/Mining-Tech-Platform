@@ -2259,3 +2259,63 @@ sezione "Infortuni" da stampare). Verificato: run-kpi 3094→3096, giro isolato
 su worktree 40/40 comandi puliti, iniezione di `scudo-documenti.mjs` (punto 4)
 ri-ancorata sulla nuova forma. Checkpoint:
 `vault/checkpoints/20260916-125703_scudo-csv-nota-composta.md`.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata (quinto difetto vero trovato con lo stesso metodo nello stesso giorno, dopo Campo, Terra, Conti, Sentinella — ma di forma diversa)
+
+⛔ **Trovato: la denuncia INAIL non faceva il giro export→import del
+registro infortuni.** `csvRegistroInfortuni` (`scudo-data.js:2408-2434`)
+scrive già `dataCertificato`/`denunciaData`/`denunciaNumero` **dentro alla
+settima colonna**, come frase per l'RSPP («denuncia INAIL entro il...» /
+«SCADUTA» / «da valutare»); il salvataggio manuale
+(`index.html:5248-5264`, aggiunto lo stesso 16/09) li scrive come dati
+veri sull'oggetto infortunio. Ma `parseInfortuniCsv` non li rileggeva mai
+come dati: legge sei colonne per posizione (data;tipo;gravita;
+giorniAssenza;descrizione;luogo) e la settima resta annotazione,
+esplicitamente («non un dato che rientra», commento originale).
+
+**Verificato leggendo il consumatore**: `scadenzaDenunciaInail`
+(`scudo-data.js:3196-3224`) legge `x.dataCertificato`/`x.denunciaData`
+direttamente dall'oggetto — non dalla settima colonna. Un registro
+esportato e ri-caricato perdeva quindi la denuncia già presentata, e
+tornava a proporla come pendente («da valutare» o addirittura SCADUTA);
+e siccome **non esiste nessuna modale per correggere questi tre campi
+dopo la registrazione** (verificato: `grep -n
+"dataCertificato\|denunciaData\|denunciaNumero" apps/scudo/index.html`
+trova solo il form di creazione), l'unico modo per rimediare sarebbe
+stato cancellare l'evento e ricrearlo — su un registro di infortuni, che
+è di sola aggiunta per scelta.
+
+⚠️ **Questa NON è della stessa forma esatta dei quattro difetti trovati
+oggi su Campo/Terra/Conti/Sentinella.** Lì un lettore CSV aveva già
+parsato il campo sull'oggetto riga, e una SOLA chiamata fra due lo
+scartava. Qui `parseInfortuniCsv` non lo leggeva affatto — il gap era nel
+lettore stesso, non in una delle sue chiamate (e infatti il fix non ha
+toccato `index.html`: la pagina passa già l'intero oggetto riletto a
+`db.aggiungi`, quindi basta insegnare al lettore a leggere). È più vicino,
+nella forma, al caso scartato su Flotta (un campo che il formato non
+porta) — ma diverso nella sostanza: qui il file **dichiara già** di essere
+un giro identico ("il giro deve restare identico", commento originale) e
+il campo mancante è già scritto nello scrittore in una forma non
+rileggibile (dentro una frase), non assente del tutto. Il rischio è reale
+e più serio del solito perché tocca un obbligo di legge (denuncia INAIL) e
+non ha via di correzione manuale dopo la registrazione.
+
+**Corretto**: ottava, nona e decima colonna in coda (dopo `nota`), sia
+nello scrittore sia nel lettore — compatibilità all'indietro provata su
+file a sei e sette colonne. `dataCertificato`/`denunciaData` validate con
+`dataISOEsiste` (una data rotta nel file non deve rientrare come se il
+certificato fosse arrivato quel giorno), `denunciaNumero` testo libero.
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Scudo · censimento a doppio punto di
+chiamata: la denuncia INAIL fa il giro export→import" — con controprova
+(rimessa la lettura delle tre colonne, due asserzioni cadono).
+
+⚠️ **Candidato NON esteso in questa unità**: `lavoratoreId` (il
+collegamento al lavoratore ferito) è scritto dal salvataggio manuale ma
+non fa parte del giro CSV. Non verificato se sia un'omissione o una
+scelta deliberata (un id locale potrebbe non avere senso dopo un
+re-import, a differenza di Terra che risolve `fronteId` per NOME) — resta
+una domanda aperta per chi riprenderà questo censimento, non una
+conclusione.

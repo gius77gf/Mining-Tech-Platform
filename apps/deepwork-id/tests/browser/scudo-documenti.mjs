@@ -222,8 +222,13 @@ const DIFETTI = [
      ma un `note` composto — prognosi aperta, visita di rientro, denuncia
      INAIL, uniti con ` · ` — perché un documento che ESCE deve poter dire
      PIÙ cose insieme, non una sola. La seconda metà dell'iniezione ora toglie
-     la riga che aggiunge la nota della prognosi aperta all'array. */
-  ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];',
+     la riga che aggiunge la nota della prognosi aperta all'array.
+     ⏱️ RI-ANCORATA una TERZA volta lo stesso 16/09 (censimento a doppio punto
+     di chiamata): l'intestazione ha guadagnato tre colonne in coda
+     (`dataCertificato;denunciaData;denunciaNumero`, la denuncia INAIL che
+     prima non faceva il giro export→import) — la vecchia citazione a sette
+     colonne non combaciava più. */
+  ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero"];',
    'const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo"];', MODULO],
   ['    if (aperta) note.push(NOTA_PROGNOSI_APERTA);\n', "", MODULO],
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè

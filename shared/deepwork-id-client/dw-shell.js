@@ -580,7 +580,7 @@ export const CSV_TABELLE = [
   { id: "scudo.personaleScadenze", app: "Scudo", etichetta: "l'export del personale con le scadenze di Scudo",
     fonte: "scudo.csvPersonaleScadenze", col: "nome;ruolo;telefono;idoneita;scadenza;data;stato;verifica periodica;prescrizioni;giudizio" },
   { id: "scudo.infortuni", app: "Scudo", etichetta: "il registro infortuni di Scudo",
-    fonte: "scudo.csvRegistroInfortuni", col: "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota" },
+    fonte: "scudo.csvRegistroInfortuni", col: "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero" },
   { id: "scudo.azioni", app: "Scudo", etichetta: "la copia di sicurezza delle azioni correttive di Scudo",
     fonte: "scudo.csvAzioni", col: "id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;origineTipo;origineId;origineVoce;origineNota;origineApp;origineData;origineEtichetta" },
   { id: "scudo.lavoratori", app: "Scudo", etichetta: "l'anagrafica dei lavoratori di Scudo",

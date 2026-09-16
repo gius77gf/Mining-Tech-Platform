@@ -221,7 +221,8 @@ test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta dat
   const csv = "data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-02-03;infortunio;lieve;4;Taglio alla mano;officina\n2026-05-18;near-miss;lieve;0;Caduta massi;fronte Est\n15/05/2026;infortunio;grave;10;;\n";
   const p = scudo.parseInfortuniCsv(csv);
   eq(p.length, 2, "solo le 2 righe con data ISO");
-  eq(p[0], { data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, descrizione: "Taglio alla mano", luogo: "officina" }, "riga completa");
+  eq(p[0], { data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, descrizione: "Taglio alla mano", luogo: "officina",
+    dataCertificato: null, denunciaData: null, denunciaNumero: null }, "riga completa");
   eq(p[1].tipo, "near-miss", "near-miss riconosciuto");
   const solo = scudo.parseInfortuniCsv("2026-01-01;xyz;;;;");
   eq(solo[0].tipo, "near-miss", "tipo sconosciuto → near-miss (prudente)");
@@ -29201,7 +29202,7 @@ test("⛔ csvRegistroInfortuni: la settima colonna compone PIÙ avvisi, non ne s
   ok(t.includes(scudo.NOTA_PROGNOSI_APERTA + " · denuncia INAIL da valutare"), "unite con · , non una al posto dell'altra: " + t);
   // un evento senza nessun avviso: la cella resta vuota, non un elenco vuoto scritto comunque
   const nessunaNota = { data: "2026-09-01", tipo: "near-miss", gravita: "lieve" };
-  ok(/^2026-09-01;near-miss;lieve;0;;;$/m.test(scudo.csvRegistroInfortuni([nessunaNota])),
+  ok(/^2026-09-01;near-miss;lieve;0;;;;;;$/m.test(scudo.csvRegistroInfortuni([nessunaNota])),
     "un near-miss non porta nessuna delle tre note: " + scudo.csvRegistroInfortuni([nessunaNota]));
   // il termine ordinario, calcolabile con un certificato: la nota dice la data, non "da valutare"
   const conCertificato = { data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-02" };
@@ -29215,6 +29216,40 @@ test("⛔ csvRegistroInfortuni: la settima colonna compone PIÙ avvisi, non ne s
   const presentata = { data: "2026-09-01", tipo: "infortunio", gravita: "mortale", denunciaData: "2026-09-02" };
   ok(!/denuncia INAIL/.test(scudo.csvRegistroInfortuni([presentata])),
     "⛔ una denuncia già fatta non compare come avviso pendente: " + scudo.csvRegistroInfortuni([presentata]));
+});
+test("⛔ Scudo · censimento a doppio punto di chiamata (16/09): la denuncia INAIL fa il giro export→import, prima si perdeva su un registro ri-caricato", () => {
+  /* csvRegistroInfortuni scriveva dataCertificato/denunciaData/denunciaNumero
+     dentro alla SETTIMA colonna (una frase per l'RSPP), ma parseInfortuniCsv
+     non li rileggeva mai come dati: un registro esportato e ri-caricato
+     perdeva la denuncia INAIL già presentata, e senza nessuna modale per
+     correggerla dopo la registrazione l'unico modo per rimediare sarebbe
+     stato cancellare l'evento e ricrearlo — trovato col censimento a doppio
+     punto di chiamata, quinto difetto vero nello stesso giorno (dopo Campo,
+     Terra, Conti, Sentinella), anche se qui la forma è diversa: non un
+     ponte fra due chiamate della pagina, ma un contratto CSV documentato
+     ("il giro deve restare identico") esteso senza aggiornare la metà che
+     rilegge. */
+  const dentro = { data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10,
+    descrizione: "x", luogo: "y", dataCertificato: "2026-09-02", denunciaData: "2026-09-05", denunciaNumero: "INAIL-2026-00123" };
+  const testo = scudo.csvRegistroInfortuni([dentro]);
+  ok(testo.split("\n")[1].endsWith(";2026-09-02;2026-09-05;INAIL-2026-00123"),
+    "le tre colonne escono in coda, dopo `nota`: " + testo.split("\n")[1]);
+  const [fuori] = scudo.parseInfortuniCsv(testo);
+  eq(fuori.dataCertificato, "2026-09-02", "il certificato rientra");
+  eq(fuori.denunciaData, "2026-09-05", "la data della denuncia rientra");
+  eq(fuori.denunciaNumero, "INAIL-2026-00123", "e il numero di protocollo pure");
+  // senza denuncia dichiarata: le tre chiavi tornano null, non stringa vuota
+  const senza = scudo.parseInfortuniCsv(scudo.csvRegistroInfortuni(
+    [{ data: "2026-09-01", tipo: "near-miss", gravita: "lieve" }]))[0];
+  eq(senza.dataCertificato, null); eq(senza.denunciaData, null); eq(senza.denunciaNumero, null);
+  // una data rotta nel file (30 febbraio) NON rientra come se il certificato fosse arrivato quel giorno
+  eq(scudo.parseInfortuniCsv(
+    "data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero\n2026-09-01;infortunio;grave;10;;;;2026-02-30;;\n"
+  )[0].dataCertificato, null, "una data che non esiste non diventa un certificato arrivato quel giorno");
+  // compatibilità all'indietro: un file a sei o sette colonne (senza la denuncia) rientra lo stesso
+  eq(scudo.parseInfortuniCsv(
+    "data;tipo;gravita;giorniAssenza;descrizione;luogo\n2026-09-01;infortunio;grave;10;;\n"
+  )[0].dataCertificato, null, "un file vecchio a sei colonne resta leggibile");
 });
 test("Scudo · fogliaCartella: l'infortunio del fascicolo porta anche la denuncia INAIL pendente", () => {
   const cartella = { lavoratore: { id: "l1", nome: "Rossi" },

@@ -8677,9 +8677,13 @@ numero scritto dove non era stato misurato niente**.*
   difetto vero nello stesso giorno): `db.aggiungi("adempimenti",...)`
   sull'import CSV non passava `periodoMesi`/`giorniConsegna` già letti
   dal parser — un adempimento re-importato perdeva il periodo e il
-  report si rifiutava di partire (3097→3108):
-  **3.602 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3108, `run-stile` 330,
+  report si rifiutava di partire, poi una correzione in Scudo (stesso
+  censimento, quinto difetto vero nello stesso giorno, di forma diversa:
+  il lettore non leggeva affatto le tre colonne, non una chiamata che le
+  scartava): il registro infortuni esportato e ri-caricato perdeva la
+  denuncia INAIL (3097→3109):
+  **3.603 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3109, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

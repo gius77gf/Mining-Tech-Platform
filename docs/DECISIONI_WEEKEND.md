@@ -1823,8 +1823,17 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.602** *(ricontate il 16/09, dopo aver
-corretto in Sentinella — censimento a doppio punto di chiamata, quarto
+**Le prove automatiche sono passate a 3.603** *(ricontate il 16/09, dopo aver
+corretto in Scudo — censimento a doppio punto di chiamata, quinto difetto
+vero nello stesso giorno, ma di forma diversa dagli altri quattro: il
+lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della
+denuncia INAIL (non una singola chiamata fra due che le scartava) — un
+registro infortuni esportato e ri-caricato perdeva `dataCertificato`/
+`denunciaData`/`denunciaNumero`, e senza nessuna modale per correggerli
+dopo la registrazione l'unico modo per rimediare sarebbe stato cancellare
+l'evento e ricrearlo; ottava/nona/decima colonna in coda, scrittore e
+lettore insieme, nuovo test con controprova — dopo aver corretto in
+Sentinella — censimento a doppio punto di chiamata, quarto
 difetto vero trovato con lo stesso metodo nello stesso giorno —
 `db.aggiungi("adempimenti",...)`: l'import CSV non passava `periodoMesi`/
 `giorniConsegna` che `parseAdempimentiCsv` già leggeva; un adempimento

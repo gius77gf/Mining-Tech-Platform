@@ -2258,8 +2258,14 @@ export function parseInfortuniCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
-      const [data, tipo, gravita, giorniAssenza, descrizione, luogo] = parseCsvLine(r);
+      const [data, tipo, gravita, giorniAssenza, descrizione, luogo, , dataCertificato, denunciaData, denunciaNumero] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
+      // le tre colonne della denuncia INAIL (16/09 a schermo, qui il 16/09
+      // stesso): due date, valide solo se esistono davvero — un file di un
+      // altro gestionale può scrivere una data storta, e una data storta
+      // NON deve rientrare come se il certificato fosse arrivato quel giorno.
+      const d = (v) => { const s = String(v == null ? "" : v).trim(); return dataISOEsiste(s) ? s : null; };
+      const t = (v) => { const s = String(v == null ? "" : v).trim(); return s || null; };
       const tpRaw = (tipo || "").trim().toLowerCase();
       const tp = tpRaw === "infortunio" ? "infortunio" : tpRaw === "osservazione" ? "osservazione" : "near-miss";
       return {
@@ -2293,6 +2299,7 @@ export function parseInfortuniCsv(text) {
         giorniAssenza: Number.isFinite(g) ? Math.max(0, g) : (tp === "infortunio" ? null : 0),
         descrizione: (descrizione || "").trim(),
         luogo: (luogo || "").trim(),
+        dataCertificato: d(dataCertificato), denunciaData: d(denunciaData), denunciaNumero: t(denunciaNumero),
       };
     })
     // un infortunio con una data che non esiste entrerebbe negli indici
@@ -2337,6 +2344,18 @@ export function scartiInfortuniCsv(text) {
    parole perché quella cella è vuota — in **coda** e non in mezzo, perché
    `parseInfortuniCsv` legge sei colonne per posizione e il giro deve restare
    identico.
+   ⛔ E IL GIRO ERA IDENTICO SU SEI COLONNE, MA NE MANCAVANO TRE (16/09,
+   censimento a doppio punto di chiamata): la denuncia INAIL
+   (`dataCertificato`/`denunciaData`/`denunciaNumero`, aggiunta lo stesso
+   giorno al salvataggio manuale) non faceva il giro — un registro
+   esportato e ri-caricato perdeva la denuncia già presentata, e senza
+   nessuna modale per correggerle DOPO la registrazione l'unico modo per
+   rimediare sarebbe stato cancellare l'evento e ricrearlo. Ottava, nona e
+   decima colonna, in coda come la settima: `parseInfortuniCsv` continua a
+   leggere sei colonne per posizione per i primi sei campi, la settima resta
+   annotazione, le ultime tre rientrano per posizione anche loro — un file
+   scritto prima di oggi (sei o sette colonne) rientra identico, con le tre
+   nuove chiavi a `null`.
    L'ordine per data fa parte della forma del file e sta qui. */
 /* ⛔ IL FOGLIO DI CONFORMITÀ DEL PERSONALE — l'ultimo dei sette file che si
    ri-caricano a stare dentro la pagina, e quello che portava più regole scritte
@@ -2406,7 +2425,7 @@ export const NOTA_PROGNOSI_APERTA =
    rientra): allargarla non tocca il giro di andata e ritorno sulle sei
    colonne davanti. */
 export function csvRegistroInfortuni(eventi, oggi = new Date()) {
-  const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];
+  const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero"];
   const ordinati = (eventi || []).filter(Boolean)
     .slice().sort((a, b) => ((a.data || "") < (b.data || "") ? -1 : 1));
   for (const x of ordinati) {
@@ -2426,6 +2445,9 @@ export function csvRegistroInfortuni(eventi, oggi = new Date()) {
       csvCell(x.descrizione || ""),
       csvCell(x.luogo || ""),
       csvCell(note.join(" · ")),
+      x.dataCertificato || "",
+      x.denunciaData || "",
+      csvCell(x.denunciaNumero || ""),
     ].join(";"));
   }
   return righe.join("\n") + "\n";
