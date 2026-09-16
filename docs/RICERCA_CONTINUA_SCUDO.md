@@ -2193,3 +2193,29 @@ modo di scrivere queste date dopo la registrazione iniziale — resta un
 passo successivo, non implementato qui di proposito (nessun'altra parte
 del registro lo permette oggi). Verificato anche nel browser
 (`scudo-denuncia-inail.mjs`).
+
+---
+
+**⚠️ 16/09 — trovato in una revisione di qualità dopo il commit, non ancora
+chiuso: `csvRegistroInfortuni` non porta la nota della denuncia INAIL.**
+Lo schermo (registro degli eventi, modale di analisi) mostra la nota
+("denuncia INAIL da valutare/scaduta/urgente/entro il...") accanto
+all'evento; il file che va all'RSPP/consulente (`csvRegistroInfortuni`,
+colonna `nota`) oggi porta SOLO `NOTA_PROGNOSI_APERTA` — non la nota INAIL,
+e nemmeno `visitaRientroNecessaria` (gap preesistente, non introdotto oggi).
+È la stessa famiglia di difetto che questo repository chiama "dove un
+documento compone qualcosa che ESCE, chi decide i suoi numeri": lo schermo
+sa una cosa che il documento non dice. Non implementato ora (sarebbe un
+secondo cantiere sulla stessa colonna `nota`, che oggi accetta solo UN
+messaggio alla volta — un `? :` singolo, non un elenco componibile — e va
+riprogettata per portare più note insieme senza tagliare quelle già scritte
+in silenzio). Verificato per grep diretto, nessun codice toccato:
+
+    grep -n "NOTA_PROGNOSI_APERTA\|visitaRientroNecessaria\|scadenzaDenunciaInail" apps/scudo/scudo-data.js
+    → NOTA_PROGNOSI_APERTA usata in csvRegistroInfortuni (riga ~2410)
+    → visitaRientroNecessaria: usata in cartellaLavoratore (riga ~4832), MAI in csvRegistroInfortuni
+    → scadenzaDenunciaInail: MAI usata né in csvRegistroInfortuni né in cartellaLavoratore
+
+`cartellaLavoratore` (il fascicolo del lavoratore) mostra già
+`visitaRientroNecessaria` ma non `scadenzaDenunciaInail`: la stessa
+incoerenza, in un secondo documento.
