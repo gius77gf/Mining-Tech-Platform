@@ -1610,6 +1610,19 @@ codice (nessun cliente ha ancora chiesto il campionamento olio). Il tema più
 piccolo e pronto per un'unità di codice è il n°3 (trend frequenza fermi):
 copia diretta di un pattern già scritto due volte nel modulo.
 
+**✅ 16/09 — il n°3 (frequenza dei fermi contro la storia) è stato
+implementato**, commit `9820cb83` (delle 01:10 UTC, prima che questo giro di
+ricerca finisse di scrivere il proprio riepilogo — è la forma "il verdetto
+regge e la riga invecchia mentre la si scrive" già nota a questo file):
+`frequenzaFermiControStoria` in `flotta-data.js`, terza sorella di
+`consumoControStoria`/`costoControStoria`, tasso in episodi/giorno (non un
+conteggio nudo, i due periodi hanno lunghezze diverse), `TOLLERANZA_FERMI_PCT`
+dichiarata come scelta nostra (nessuna fonte di settore la dà). Wired in
+`index.html` (riga 1557), test in `run-kpi.mjs`. Restano aperte quattro
+mancanze dello stesso giro (costo/tonnellata — decisione architetturale;
+manutenzione su condizione — verifica di mercato; curva di costo/vita
+economica; guasto→causale con codici DTC).
+
 *Fonti (di seconda mano, via WebSearch): oxmaint.com, uffizio-telematics.com,
 raptormining.com, mining-technology.com, bradken.com, cat.com, komatsu.com,
 berrytractor.com, opsima.com, heavyvehicleinspection.com,
