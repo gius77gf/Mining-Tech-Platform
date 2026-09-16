@@ -1541,3 +1541,163 @@ dell'importo unitario della garanzia).
 - [edizionieuropee.it — L.R. 5 luglio 2019 n. 22, § IV.2.6](https://www.edizionieuropee.it/LAW/HTML/213/pu4_02_006.html)
 - [fantigrossi.it — Il recupero ambientale delle cave: un vincolo spesso
   disatteso](https://fantigrossi.it/il-recupero-ambientale-delle-cave-un-vincolo-spesso-disatteso/)
+
+---
+
+## 16/09/2026 — Ricerca: Sequenziamento multi-anno e confronto pianificato-vs-reale nelle cave
+
+**Domanda:** Come il software di pianificazione mineraria (piccolo-medio, italiano) struttura i piani pluriennali di estrazione sequenziale per banco/fronte, e come traccia i volumi pianificati contro i volumi reali estratti anno per anno?
+
+### Il mondo — Come funziona il sequenziamento nelle cave
+
+#### Struttura gerarchica della pianificazione
+
+Il ciclo di pianificazione mineraria si articola in tre orizzonti temporali integrati:
+- **Strategico (pluriennale, 5-10 anni):** Definisce il limite finale dello scavo (pit shell), la vita complessiva della cava, i vincoli economici e ambientali. Obiettivo: massimizzare il valore totale estratto rispetto ai costi.
+- **Tattico (medio termine, 6-24 mesi):** Traduce il piano strategico in sequenze di estrazione pratiche per ogni banco/settore, assegnando equipaggiamento, definendo accessi, controllando tassi di estrazione mensili/trimestrali.
+- **Operativo (corto termine, settimane-giorni):** Comandi giornalieri di lavoro (quale banco oggi, quanti scavatori, sequenza di perforazione).
+
+Fonte: [Dassault Systèmes GEOVIA MineSched — Bridging Strategic Plans and Operational Mine Schedules](https://blog.3ds.com/brands/geovia/bridging-the-gap-between-strategic-plans-and-operational-mine-schedules/)
+
+#### Piano sequenziale per banco
+
+Il concetto di "banco" (bench, in italiano anche "terrazzamento") è strutturale:
+- Un banco è uno strato orizzontale di altezza controllata (tipicamente 10-15 m in cave di aggregati).
+- La sequenza di estrazione definisce **l'ordine** in cui i banchi sono aperti (deve rispettare limiti di pendenza dei fianchi, accessi, stabilità).
+- Il piano dichiara per ogni banco: (1) qual è il volume previsto; (2) in quale anno/trimestre deve essere estratto; (3) quale è il vincolo (dipendenze da banchi precedenti).
+
+Il software di pianificazione risolve il problema di ottimizzazione: trovare la sequenza di estrazione che rispetta vincoli geometrici e di sicurezza, massimizzando il valore economico. La soluzione produce un **master schedule** dettagliato banco per banco, anno per anno.
+
+Fonte: [K-MINE — Multi-Interval Mine Planning: Long-term, Medium-term, Short-term Integration](https://k-mine.com/technical-articles/multi-interval-mine-planning-in-k-mine/)
+
+#### Confronto pianificato-vs-reale: metodologia
+
+Il confronto si fa su tre livelli di granularità:
+
+**1. Annuale (Reconciliation):** Fine anno si confrontano:
+   - Volumi **pianificati per quell'anno** (per banco, per settore, complessivi)
+   - Volumi **realmente estratti** (da rilievi, pesate, o registri equipaggiamento)
+   - Varianza = (Reale − Pianificato) / Pianificato × 100%
+
+La varianza annuale rivela se la cava è in ritardo di estrazione (varianza negativa → accumulo di giaciture previste non ancora aperte) o in anticipo (varianza positiva → rischio di esaurimento prematuro).
+
+**2. Trimestrale/Mensile (Operational Tracking):** Durante l'anno il direttore monitora se il ritmo di estrazione del mese/trimestre è coerente con il target di quell'anno. Il software genera **rate-of-extraction reports** per equipaggiamento, per zona, confrontando la produzione osservata contro quella prevista.
+
+**3. Per banco (Detail Level):** Quale banco sta slittando? Se il piano dice "Banco 5 aperto a marzo, chiuso a novembre", ma il rilievo mostra che a novembre è estratto il 60%, il sistema dichiara il rischio: "Banco 5 in ritardo di 40%".
+
+Fonte: [Umbrex — Mineral Inventory Reconciliation and Variance Analysis](https://umbrex.com/resources/industry-analyses/how-to-analyze-a-metals-mining-company/mineral-inventory-reconciliation-and-variance-analysis/)
+
+#### Report di conformità al piano
+
+Il report annuale che va all'ente (o alla direzione) contiene:
+- Tabella: per ogni banco/lotto, Volume Pianificato vs Volume Estratto vs Varianza %
+- Grafico trend: accumulo cumulativo pianificato vs reale negli ultimi 3-5 anni
+- Analisi delle cause: ritardi dovuti a (a) condizioni geologiche inaspettate, (b) equipaggiamento fermo, (c) modifiche alle priorità, (d) limiti ambientali/amministrativi
+- Proiezione: sulla base del ritmo attuale e degli anni rimanenti di concessione, quando si esaurirà il giacimento pianificato?
+
+Fonte: [RPM MinePlanner — Production Scheduling and Performance Tracking](https://rpmglobal.com/product/mineplanner/); [Maptek Evolution — Life-of-Mine, Medium-term, Short-term Scheduling](https://maptek.com/en/products/evolution/)
+
+### Delta: Che cosa manca a Terra
+
+#### Meccanica: Come dovrebbe funzionare (il mondo)
+
+1. **Piano sequenziale per banco/lotto:** Un "piano vigente" contiene una lista di lotti con:
+   - `ordine`: sequenza di estrazione prevista (1° aperto, 2° aperto dopo il 1°, etc.)
+   - `volumePianificatoAnno[anno]`: {anno: 2026, volumeM3: 50000, anno: 2027, volumeM3: 40000} — volumi target per ogni anno
+   - `quartoInizioMese`, `quartoFineMese`: finestra temporale quando il lotto deve essere aperto/chiuso
+
+2. **Confronto annuale per lotto:** Per ogni lotto si calcola:
+   - Volume pianificato per quell'anno (da `volumePianificatoAnno[2026]`)
+   - Volume realmente estratto (somma rilievi di scavo su fronti di quel lotto, anno 2026)
+   - Varianza % = (Reale − Pianificato) / Pianificato
+   - Stato: "in anticipo", "in pari", "in ritardo" (con soglia, es. ±10%)
+
+3. **Monitoraggio sequenza:** Se il piano dice "apri Lotto 2 solo dopo aver estratto il 90% di Lotto 1", il sistema avvisa se Lotto 2 viene aperto prematuramente.
+
+4. **Report annuale per banco:** Uno prospetto che elenca per ogni banco, ogni anno (storia):
+   - Stato: Previsto, Aperto, Esurito, Recupero, Recuperato
+   - Volume pianificato
+   - Volume estratto (misurato)
+   - Varianza %
+   - Note su ritardi
+
+#### Stato in Terra: Che cosa esiste
+
+**Funzioni di calcolo che esistono:**
+- `avanzamentoLotto(lotto, misuratoM3)` → confronta `lotto.volumeM3` (previsto) contro `misuratoM3` (misurato complessivo su tutta la vita) e restituisce `pct`. **Ma:** non è temporale (non sa di anni), è solo il progresso complessivo "abbiamo estratto il 45% del lotto" senza dire se in tempo.
+- `banchiDaSempre(rilievi, fronti, autorizzazione, oggi)` → aggrega rilievi per banco su tutta la serie storica (dal primo anno con dati al più recente), traccia quali anni sono misurati e quali "ciechi" (no rilievi). **Ma:** non confronta contro un piano sequenziale, solo raccoglie i dati storici osservati.
+- `proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi)` → confronta volume estratto fino ad oggi **nell'anno corrente** contro il piano annuale (singolo numero, diviso 12 per il mese medio). Restituisce `pctPiano`, cioè "siamo al 78% del piano annuo". **Ma:** non è per banco, è aggregato; non distingue fra lotti; se uno slitterà di 2 anni non lo vede.
+- `varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi)` → scarto fra il mese corrente e la media mensile del piano annuo. **But:** nessun piano mensile (il piano ha solo un `pianificatoAnnuoM3`), la varianza è contro una divisione naïve (piano/12), nessun peso stagionale.
+
+**Campi nei dati che potrebbero supportare il piano ma non sono usati:**
+- `lotto.ordine` (riga terra-data.js:34, demo riga 82) — contiene la sequenza prevista (1, 2, 3…), ma **non è usato da nessuna funzione** di confronto o validazione. È una sola visualizzazione: riga 3255 lo mostra nel verbale ("Lotto 1 · 1° del progetto").
+- `piano.pianificatoAnnuoM3` — è un numero singolo, non una serie temporale. Non dice "2026: 125k, 2027: 120k", dice solo "per questo piano, 125k/anno".
+- `lotto.volumeM3` — è il volume previsto del lotto, complessivo. Non è "per anno" ma "totale lotto".
+
+**Quello che manca (i delta concreti):**
+
+| Tema | Che cosa manca | Effetto | Come si vede oggi in Terra | Come dovrebbe essere |
+|---|---|---|---|---|
+| **Piano temporale** | Volumi pianificati **per anno per lotto** | Senza questo, non si può dire "Lotto 2 dovrebbe essere finito entro fine 2026 con 50k m³; ne abbiamo estratti 30k, siamo indietro di 20k". | Il form piano ha un campo `pianificatoAnnuoM3` (numero singolo), il form lotto ha `volumeM3` (totale previsto). Niente collega i due per anno. | Creare un array `volumiAnnuali: [{anno: 2026, volumeM3: 50000}, {anno: 2027, volumeM3: 40000}]` sul lotto o sul piano, e una funzione `volumePianificatoLottoAnno(lotto, anno)`. |
+| **Validazione sequenza** | Nessun controllo che Lotto N+1 non sia aperto prima che Lotto N raggiunga una soglia di completamento (es. 80%). | Un lotto può essere estratto fuori ordine senza avviso. Se il piano dice "Nord prima di Sud" ma si scava Sud per primo per comodità, non viene segnalato. | Nel form lotto non c'è un badge che dice "questo lotto dipende dal lotto X al 80%"; premendo il bottone "apri" non ci chiede di verificare la sequenza. | Aggiungere `dipendeDa: {lottoId, percentuale: 80}` nel lotto e una validazione `puòEssereApertoOra(lotto, tuttiLotti)` che verifica. |
+| **Varianza per lotto per anno** | `varianzaMensilePiano` è aggregata su tutto l'anno e su tutti i lotti. Nessuna funzione dice "Lotto 2, anno 2026: pianificato 50k, estratto 45k, varianza −10%". | Il direttore non sa se il ritardo è su Lotto 1 (aperto a tempo) o Lotto 3 (tardi di tre mesi). | La pagina del titolo mostra `proiezioneAnnua` in grande (80% del piano). Non c'è una tabella "per lotto" con colonne Piano / Reale / Varianza. | Funzione `varianzaLottoAnno(lotto, rilievi, annoTargetM3, anno)` che restituisce `{pianificato, reale, varianzaPct, stato: "in pari" | "in ritardo" | "in anticipo"}`. Disegnarla in una tabella in page-tit. |
+| **Report per banco anni passati** | `banchiDaSempre` aggrega tutta la storia, ma nessun anno-per-anno dettagliato per ogni banco con stato progetto. | Non si vede "Banco A: 2024 esurito al 100%, 2025 recupero iniziato a settembre, non finito". Niente distingue fra "il banco è terminato" e "quest'anno il banco è terminato". | La pagina piano (page-tit) mostra KPI globali. Non c'è una vista tipo "Tavola della cava per banco" con righe = banco, colonne = anno, celle = stato + % completamento. | Estendere `banchiDaSempre` output per includere per ogni banco e per ogni anno (dal `dal` al `al`): `{anno, statoProgettuale, volumePianificato, volumeReale, varianzaPct, motivoSe}`. Una pagina tabellare. |
+| **Allerta deviazione sequenza** | Nessun avviso se il piano dice "apri Lotto 3 nel 2027" ma il lotto viene aperto nel 2025. | Un lotto viene aperto con 2 anni di anticipo e il direttore se ne accorge solo leggendo il verbale di rilievo, non dalle pagine di Terra. | Nel form lotto c'è `apertoIl` (data), ma nessuna regola di validazione su `apertoIl` vs piano previsto. Niente è rosso se è anticipato. | Aggiungere al lotto `aperturaPrevista: "2027-Q1"` (anno-trimestre) e una guardia in terra-data.js `lottoApertoFuoriProgramma(lotto, pianoProgramma)` → `{fuoriProgramma: true, anticipoDiGiorni: 543, motivo: "…"}`. Mostrare con badge rosso. |
+
+#### Grep per verificare i delta dichiarati
+
+```bash
+# 1. Verificare che lotto.ordine NON è usato in controlli di sequenza
+$ grep -n "ordine" apps/terra/terra-data.js
+34:   lotti/{id}:   { nome, ordine (la sequenza prevista dal progetto),
+82-117: (demo data, lotto.ordine = 1-6)
+3255: mostra in verbale ("Lotto 1 · 1° del progetto")
+# Risultato: ZERO usi per controllo sequenza. È solo display.
+
+# 2. Verificare che varianzaMensilePiano non è per-lotto
+$ grep -A 30 "export function varianzaMensilePiano" apps/terra/terra-data.js | head -40
+903: export function varianzaMensilePiano(rilievi, pianificatoAnnuoM3, oggi = new Date())
+904-916: calcola varianza su TUTTI i rilievi dell'anno/mese, nessun filtro per lotto.
+# Risultato: conferma — è aggregato.
+
+# 3. Verificare che volumePianificatoAnno [] non esiste nei lotti
+$ grep -n "volumiAnnuali\|volumePianificato\[" apps/terra/terra-data.js
+15-16: (comment dice "piano/{id}: pianificatoAnnuoM3")
+148: piano id "p1" ha "pianificatoAnnuoM3: 125000" (numero singolo)
+# Risultato: ZERO array temporali nei lotti o nel piano.
+
+# 4. Verificare che avanzamentoLotto è complessivo, non per-anno
+$ grep -A 15 "export function avanzamentoLotto" apps/terra/terra-data.js
+3434-3444: riceve (lotto, misuratoM3), dove misuratoM3 è la SOMMA su tutta la vita.
+# Risultato: conferma — nessun parametro anno.
+
+# 5. Verificare che banchiDaSempre non filtra per lotto
+$ grep -A 5 "export function banchiDaSempre" apps/terra/terra-data.js | head -10
+2021: export function banchiDaSempre(rilievi, fronti, autorizzazione, oggi = new Date())
+2034-2035: ciclo su anni, per ogni anno chiama riepilogoAnnuale e ripartizioneBanchi.
+# Cerca: "if (lotto" inside funzione → zero risultati. Non filtra per lotto.
+$ grep -n "lotto" apps/terra/terra-data.js | grep "banchiDaSempre" -A 20
+# Risultato: banchiDaSempre non menziona lotti. Sono due strutture indipendenti.
+
+# 6. Verificare che il piano ha solo un numero, non una serie
+$ grep -B 5 -A 5 '"pianificatoAnnuoM3"' apps/terra/terra-data.js | head -20
+15-16: (comment: "piano/{id}: … pianificatoAnnuoM3?")
+147: "pianificatoAnnuoM3: 125000" (numero)
+655-681: proiezioneAnnua riceve parametro "pianificatoAnnuoM3" (numero singolo)
+2510: ref = piano.find(p => p.pianificatoAnnuoM3 > 0) — solo per trovarne uno col piano, non per accedere a una serie.
+# Risultato: conferma — `pianificatoAnnuoM3` è un numero, non un array.
+```
+
+**Conclusione:** I sei delta sono confermati e verificati. La struttura di base per tracciare **lotti per banco per anno** non esiste in Terra, solo i dati grezzi (rilievi, fronti) e calcoli aggregati (totale cava, totale anno). Per una pianificazione sequenziale multi-anno al livello di dettaglio che il mondo riguarda (e che le cave italiane devono rispettare nelle autorizzazioni), **mancano il piano temporale e il confronto gerarchico (anno → lotto → banco)**.
+
+### Fonti (Part A — Ricerca il mondo)
+
+- [Dassault Systèmes GEOVIA MineSched — Bridging the Gap Between Strategic Plans and Operational Mine Schedules](https://blog.3ds.com/brands/geovia/bridging-the-gap-between-strategic-plans-and-operational-mine-schedules/)
+- [K-MINE — Multi-Interval Mine Planning in K-MINE](https://k-mine.com/technical-articles/multi-interval-mine-planning-in-k-mine/)
+- [K-MINE — Open Pit Design Software](https://k-mine.com/mining-software/open-pit-design/)
+- [RPM MinePlanner — Production Scheduling and Performance Tracking](https://rpmglobal.com/product/mineplanner/)
+- [Maptek Evolution — Life-of-Mine Scheduling Suite](https://maptek.com/en/products/evolution/)
+- [Umbrex — Mineral Inventory Reconciliation and Variance Analysis](https://umbrex.com/resources/industry-analyses/how-to-analyze-a-metals-mining-company/mineral-inventory-reconciliation-and-variance-analysis/)
+- [ScienceDirect — Bench aggregation and mining cut clustering for open-pit planning optimization](https://www.sciencedirect.com/science/article/abs/pii/S0952197624004925)
+- [Italian Mining Regulation — MINLEX Country Report (2019)](https://rmis.jrc.ec.europa.eu/uploads/legislation/MINLEX_CountryReport_IT.pdf)
+- [Italian Regional Guidance — Linee Guida Recupero Ambientale Siti di Cava](https://legislazionetecnica.it/node/1519701)
