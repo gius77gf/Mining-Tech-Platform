@@ -10829,3 +10829,16 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       successivo. Verificato anche nel browser
       (`tests/browser/scudo-verifica-periodica.mjs`, esteso e controprovato).
       Vedi checkpoint `20260916-070636_scudo-fascicolo-macchina.md`.
+
+## Terra — tredicesimo giro di ricerca continua (16/09)
+- [x] **IL PIANO PLURIENNALE, UN ANNO ALLA VOLTA** *(16/09, unità completata)*.
+      Riverificato indipendentemente sul codice vero: `varianzaMensilePiano`
+      è aggregata su TUTTI i lotti, non dice quale lotto sta slittando.
+      Campo opzionale `lotto.volumiAnnuali`, `volumePianificatoLottoAnno` +
+      `varianzaLottoAnno` (riusa `volumeMisuratoDiLotto`, non un sesto
+      ponte). Prima fetta: un solo lotto della dimostrazione dichiara il
+      piano. Verificato anche nel browser
+      (`tests/browser/terra-piano-lotto-anno.mjs`, controprovato). Restano
+      aperti cinque delta dello stesso giro di ricerca (validazione
+      sequenza, allerta apertura fuori programma, report per banco×anno).
+      Vedi checkpoint `20260916-074324_terra-piano-pluriennale.md`.

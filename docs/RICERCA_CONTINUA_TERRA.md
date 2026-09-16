@@ -1690,6 +1690,8 @@ $ grep -B 5 -A 5 '"pianificatoAnnuoM3"' apps/terra/terra-data.js | head -20
 
 **Conclusione:** I sei delta sono confermati e verificati. La struttura di base per tracciare **lotti per banco per anno** non esiste in Terra, solo i dati grezzi (rilievi, fronti) e calcoli aggregati (totale cava, totale anno). Per una pianificazione sequenziale multi-anno al livello di dettaglio che il mondo riguarda (e che le cave italiane devono rispettare nelle autorizzazioni), **mancano il piano temporale e il confronto gerarchico (anno → lotto → banco)**.
 
+**✅ 16/09 — il primo delta (Piano temporale + confronto annuale per lotto) è stato implementato**, riverificato indipendentemente riga per riga prima di scrivere codice: commit `0c6f5820`. `lotto.volumiAnnuali` (campo opzionale, additivo) + `volumePianificatoLottoAnno`/`varianzaLottoAnno` in `terra-data.js`, wired nella riga del lotto in pagina Titolo, verificato anche nel browser (`terra-piano-lotto-anno.mjs`). Prima fetta: un solo lotto della dimostrazione dichiara il piano. Restano aperti gli altri cinque delta (validazione sequenza, allerta apertura fuori programma, report per banco×anno) — vedi checkpoint `20260916-074324_terra-piano-pluriennale.md` per la scomposizione di quello successivo più pronto.
+
 ### Fonti (Part A — Ricerca il mondo)
 
 - [Dassault Systèmes GEOVIA MineSched — Bridging the Gap Between Strategic Plans and Operational Mine Schedules](https://blog.3ds.com/brands/geovia/bridging-the-gap-between-strategic-plans-and-operational-mine-schedules/)
