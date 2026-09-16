@@ -1,13 +1,16 @@
 # Ultimo ciclo
 
-- **Timestamp (UTC, letto da `date -u`)**: 2026-09-16T18:51:23Z
-- **Commit di partenza**: 210c26b3 (checkpoint del sesto scrittore di P2, Conti/listino)
-- **Ripresa da**: vault/checkpoints/20260916-172558_conti-listino-p2-sesto-scrittore.md
-- **Cosa sto per fare**: punto di decisione esplicito lasciato da quel checkpoint —
-  o il settimo scrittore di P2 (rileggere §3 di docs/RICERCA_CONTINUA_ASSENZA.md
-  per i cinque candidati rimasti, controllando per ciascuno la collisione di nome
-  `stato` PRIMA di scrivere codice), oppure una passata in profondità (binario 2)
-  su Terra o una nuova sovrapposizione nella mappa ecosistema — lo Scudo oltre
-  l'unità INAIL è già stato coperto nel ciclo precedente, quindi resta escluso.
-  Deciderò in base a quale candidato P2 supera per primo il controllo di
-  collisione del nome.
+- **Timestamp (UTC, letto da `date -u`)**: 2026-09-16T21:46:10Z
+- **Commit di partenza**: 27bf61ac (checkpoint: ricerca Flotta corretta, giro browser completo in corso)
+- **Ripresa da**: vault/checkpoints/20260916-213925_flotta-ricerca-mondo-corretta-giro-browser-in-corso.md
+- **Cosa sto per fare**: il giro completo del browser lanciato nel ciclo precedente
+  (PID 26733) **non è arrivato in fondo** — il processo non esiste più e il
+  registro non ha la riga di fine (`leggi-giro.mjs` lo conferma: "nessuna riga
+  di fine, il giro NON è arrivato in fondo"), quasi certamente per un riavvio
+  del contenitore fra un turno e l'altro (nessun processo orfano né porta
+  occupata trovati). Il ramo è avanzato di soli 2 commit dalla misura, nessuno
+  sulle superfici misurate, quindi le misure parziali già raccolte restano
+  valide ma il giro va rilanciato per arrivare in fondo. Lo rilancio subito
+  dopo questo commit e proseguo con il lavoro di codice solo dopo averlo letto
+  con `leggi-giro.mjs` (non a occhio), rispettando il divieto di toccare
+  moduli dati o pagine mentre gira.
