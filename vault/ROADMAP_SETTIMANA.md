@@ -8645,9 +8645,14 @@ numero scritto dove non era stato misurato niente**.*
   `fogliaCartella` non portavano la nota della denuncia INAIL che lo schermo
   già mostrava — la settima colonna del CSV ora COMPONE più avvisi insieme
   invece di sceglierne uno solo, e `csvRegistroInfortuni` ha guadagnato un
-  `oggi` iniettabile (3094→3096):
-  **3.590 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3096, `run-stile` 330,
+  `oggi` iniettabile (3094→3096), poi un buco di cablaggio corretto in Campo:
+  `rapportoGiornata` (il rapporto di fine turno stampato e firmato) non
+  riceveva mai `volateSentinella` dalla pagina — il ponte P6 la leggeva già
+  per il documento gemello `testoConsegnaTurno`, ma il controllo di
+  cablaggio esistente guardava solo l'inizio della chiamata e non se n'era
+  mai accorto (3096→3097):
+  **3.591 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3097, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

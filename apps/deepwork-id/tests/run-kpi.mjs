@@ -42907,6 +42907,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       ok(!pagina.includes(et), "la pagina contiene ancora " + et);
     ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI/.test(pagina), "e chiama rapportoGiornata con i dati vivi");
   });
+  /* ⛔ 16/09 — QUI stava il buco: la riga sopra controllava che la pagina
+     chiamasse rapportoGiornata con «i dati vivi», ma guardava solo l'INIZIO
+     della chiamata (fino ad attivita: ATT_OGGI). Il modulo aveva guadagnato
+     la sezione "Volate del giorno" il 15/09 (commit 21759bfe), testata a
+     fondo come funzione pura — ma la pagina non passava mai `volateSentinella:
+     VOL_SENT`: il rapporto STAMPATO E FIRMATO diceva sempre «Sentinella non
+     raggiungibile», anche quando il ponte P6 aveva letto dati veri. Lo stesso
+     ponte che già serviva testoConsegnaTurno (riga sopra) restava muto per il
+     suo secondo consumatore. Trovato con una lettura diretta del sorgente
+     (nessun agente, nessuna ricerca), non da nessun banco: il controllo
+     esisteva ma non guardava abbastanza della riga che doveva sorvegliare. */
+  test("⛔ Campo · il ponte P6 è wired ANCHE sul rapporto stampato, non solo sulla consegna testuale", () => {
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    ok(/testoConsegnaTurno\(\{[^;]*volateSentinella: VOL_SENT/.test(pagina),
+      "la consegna testuale passa VOL_SENT (era già vero: qui si fissa che resti tale)");
+    ok(/rapportoGiornata\(\{[^;]*volateSentinella: VOL_SENT/.test(pagina),
+      "e ANCHE il rapporto stampato lo passa — il difetto trovato il 16/09, corretto nello stesso commit");
+  });
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
 

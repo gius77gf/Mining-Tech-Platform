@@ -4584,7 +4584,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // si disegna e basta (05/09). Il grassetto arriva come «**così**», il
     // corsivo «*così*», l'a capo «\n»: li rende `md`.
     const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,
-      meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR }, { dmy });
+      meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT }, { dmy });
     const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*([^*\n]+?)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
     const tabella = (T) => `<table><tr>${T.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${
       T.righe.map(r => `<tr>${r.map(c => `<td>${md(c)}</td>`).join("")}</tr>`).join("")

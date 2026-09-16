@@ -1823,7 +1823,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.590** *(ricontate il 16/09, dopo una
+**Le prove automatiche sono passate a 3.591** *(ricontate il 16/09, dopo aver
+corretto in Campo un buco di cablaggio trovato leggendo direttamente il
+sorgente: il rapporto di fine turno stampato e firmato non riceveva mai le
+volate di Sentinella dalla pagina, anche se il ponte P6 le leggeva già per il
+documento gemello — dopo una
 revisione di qualità sulla stessa unità: `csvRegistroInfortuni` e
 `fogliaCartella` non portavano la nota della denuncia INAIL — lo schermo la
 mostrava, il CSV e il foglio stampabile per il consulente no, la stessa
