@@ -1782,8 +1782,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.554** *(ricontate il 16/09, dopo aver
-aggiunto a Scudo `notificheScadenzeNonLette` — un contatore di scadenze
+**Le prove automatiche sono passate a 3.555** *(ricontate il 16/09, dopo aver
+aggiunto a Scudo il preset `rischio-chimico` (gemello di `rumore-vibraz`,
+titolo IX D.Lgs 81/08) e il tipo di documento «Scheda dati di sicurezza
+(SDS)» — prima fetta nel ciclo di vita generico dei documenti, i campi
+propri (sostanza, classificazione, revisione) restano il passo successivo
+— dopo aver aggiunto a Scudo `notificheScadenzeNonLette` — un contatore di scadenze
 urgenti persistente finché la pagina non si visita, "nuova" dedotta dal
 tempo confrontando `livelloScadenza` all'ultima visita con quello di oggi,
 verificato nel browser dopo aver trovato un difetto CSS reale (`.badge`

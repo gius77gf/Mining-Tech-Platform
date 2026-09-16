@@ -695,6 +695,16 @@ export const TIPI_DOCUMENTO = [
      quello che l'organo di vigilanza chiede in mano. Sta in questo registro e
      non in un archivio suo, come i documenti di qualifica degli appaltatori. */
   "Verbale di verifica periodica",
+  /* La scheda dati di sicurezza di un agente chimico (dal delta della
+     ricerca continua, dodicesimo giro): oggi un DVR può solo NOMINARE una
+     sostanza pericolosa, mai allegarne la SDS che il fornitore è obbligato a
+     dare (Titolo IX). Prima fetta: entra nel registro documenti con lo
+     stesso ciclo di vita generico (valido → da rivedere → scaduto) di ogni
+     altro tipo — i campi propri (sostanza, classificazione, data di
+     revisione del fornitore) restano il passo successivo, additivo: una
+     SDS di un solo campo titolo/nota è già più di quanto c'è oggi (niente),
+     e non impone ancora la forma della sua estensione. */
+  "Scheda dati di sicurezza (SDS)",
   "Idoneità sanitaria", "Attestato formazione", "Altro",
 ];
 
@@ -2597,6 +2607,13 @@ export const SCADENZE_PRESET = [
   { chiave: "dss-trasmiss",     categoria: "cava"   , tipo: "Altro",         etichetta: "DSS — trasmissione all'autorità di vigilanza", mesi: null, riferimento: "D.Lgs 624/96 — il DSS va trasmesso all'autorità di vigilanza prima dell'inizio dei lavori (e dopo gli aggiornamenti)." },
   { chiave: "esposti-silice",   categoria: "cava"   , tipo: "Altro",         etichetta: "Registro esposti — silice cristallina respirabile", mesi: 36, riferimento: "D.Lgs 81/08 art. 243 (silice cristallina respirabile da processo: allegato XLII dal D.Lgs 44/2020) — registro degli esposti aggiornato almeno ogni tre anni." },
   { chiave: "rumore-vibraz",    categoria: "cava"   , tipo: "Altro",         etichetta: "Valutazione rumore e vibrazioni — aggiornamento", mesi: 48, riferimento: "D.Lgs 81/08 titolo VIII capi II e III — la valutazione va aggiornata periodicamente e a ogni modifica rilevante delle lavorazioni." },
+  /* IL GEMELLO MANCANTE DI `rumore-vibraz` (dal delta della ricerca continua,
+     dodicesimo giro): Scudo valuta già rumore/vibrazioni (titolo VIII) e ha un
+     registro esposti alla silice, ma nessuna scadenza per la valutazione del
+     rischio da AGENTI CHIMICI (titolo IX) nel suo complesso — non solo la
+     silice. Stessa `categoria`/`tipo`/periodicità della sorella: un rischio
+     valutato una volta e mai riaperto non è diverso da uno mai valutato. */
+  { chiave: "rischio-chimico",  categoria: "cava"   , tipo: "Altro",         etichetta: "Valutazione del rischio chimico — aggiornamento", mesi: 48, riferimento: "D.Lgs 81/08 titolo IX — la valutazione preliminare degli agenti chimici pericolosi va aggiornata periodicamente e a ogni modifica delle sostanze o lavorazioni impiegate [seconda mano]." },
   { chiave: "sorvegliante",     categoria: "cava"   , tipo: "Altro",         etichetta: "Sorvegliante di cava — nomina e formazione", mesi: null, riferimento: "D.Lgs 624/96 — figura obbligatoria nelle attività estrattive: verificare nomina in essere e formazione aggiornata." },
 ];
 

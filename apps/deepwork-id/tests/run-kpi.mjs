@@ -392,6 +392,16 @@ test("presetScadenza: chiave valida → daVerificare true; inesistente → null"
   eq(p.categoria, "persona", "categoria persona");
   eq(scudo.presetScadenza("boh"), null, "chiave inesistente = null");
 });
+test("⛔ rischio-chimico (dal delta della ricerca continua su Scudo, dodicesimo giro): gemello di rumore-vibraz, stessa categoria/periodicità", () => {
+  const rc = scudo.presetScadenza("rischio-chimico");
+  const rv = scudo.presetScadenza("rumore-vibraz");
+  ok(rc, "il preset esiste");
+  eq(rc.categoria, rv.categoria, "stessa categoria (cava) della sorella titolo VIII");
+  eq(rc.mesi, rv.mesi, "stessa periodicità proposta della sorella");
+  eq(rc.daVerificare, true);
+  ok(scudo.TIPI_DOCUMENTO.includes("Scheda dati di sicurezza (SDS)"), "il tipo documento esiste");
+  eq(scudo.TIPI_DOCUMENTO[scudo.TIPI_DOCUMENTO.length - 1], "Altro", "«Altro» resta in fondo dopo l'aggiunta");
+});
 test("kpiFrom conta scadute/in-scadenza e lavoratori regolari", () => {
   const lav = [{ id: "l1", attivo: true }, { id: "l2", attivo: true }, { id: "l3", attivo: false }];
   const sca = [

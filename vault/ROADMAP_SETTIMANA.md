@@ -8579,9 +8579,13 @@ numero scritto dove non era stato misurato niente**.*
   un contatore di scadenze urgenti persistente finché la pagina Scadenze
   non si visita, "nuova" dedotta dal tempo e non salvata, verificato nel
   browser dopo aver trovato un difetto CSS reale (`.badge` batte
-  `[hidden]` a parità di specificità) —, 3059→3060):
-  **3.554 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3060, `run-stile` 330,
+  `[hidden]` a parità di specificità) —, 3059→3060). E al preset
+  `rischio-chimico`/tipo documento «Scheda dati di sicurezza (SDS)» di
+  Scudo (dal delta della ricerca continua, dodicesimo giro) — il gemello
+  mancante di `rumore-vibraz`, prima fetta nel ciclo di vita generico dei
+  documenti —, 3060→3061):
+  **3.555 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3061, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
