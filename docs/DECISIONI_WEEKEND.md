@@ -1823,7 +1823,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.596** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.597** *(ricontate il 16/09, dopo aver
+migrato a Conti (`csvListino`) il sesto scrittore del vocabolario condiviso
+di P2 — `prezzo` è il campo per cui D1 misurava una riga persa, stesso
+binario, sei scrittori su undici (più della metà) — dopo aver
 migrato a Sentinella (`csvRicettori`) il quinto scrittore del vocabolario
 condiviso di P2 — la prima volta che la riga NON sparisce mai senza il
 valore misurato (un ricettore senza distanza resta un ricettore); scartati

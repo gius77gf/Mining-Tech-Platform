@@ -872,6 +872,33 @@ di scrivere codice.
 
 ---
 
+**✅ 16/09 (stesso giorno) — P2, SESTO SCRITTORE: `csvListino` di Conti.**
+Controllato PRIMA di scrivere: nessuna colonna `stato` preesistente (a
+differenza di `csvClienti`/`csvGare`, scartati in questa stessa ricerca
+poco sopra) — candidato pulito. `prezzo` è esattamente il campo per cui
+D1 misurava «1→0 RIGA PERSA»: senza un prezzo leggibile `parseListinoCsv`
+scarta la riga (`.filter(p => p.nome && p.prezzo != null)`), la stessa
+famiglia di `volumeM3` per Terra e `importo` per gli incassi di Conti.
+Stesso binario, nessuna ragione più fine da distinguere: `STATO_CELLA_MISURATO`
+quando `prezzo` è un numero, `STATO_CELLA_MAI_MISURATO` quando manca.
+
+Sesta colonna, prima fetta: solo lo scrittore, `parseListinoCsv` resta
+posizionale a cinque campi. Aggiornata `CSV_TABELLE` (guardia B8, sesto
+colpo consecutivo della stessa guardia) e le due asserzioni esistenti che
+ancoravano la fine della riga sull'aliquota IVA. Controprova sul codice
+vero: sostituita la costante con una stringa quasi identica, confermato
+che il test dedicato cade, ripristinato.
+
+**Sei scrittori su undici migrati — più della metà.** Restano cinque:
+fatture/gare-residue di Conti (probabilmente entrambe con lo stesso
+problema di `csvClienti`/`csvGare`, da controllare), mezzi/ricambi-residui
+di Flotta, lavoratori di Scudo, monitoraggi/volate di Sentinella. Le
+scadenze unificate (Terra/Flotta/Scudo dietro `statoScadenza`)
+probabilmente non sono un buon candidato per la stessa ragione della
+collisione di nome, ma vanno controllate, non assunte.
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 

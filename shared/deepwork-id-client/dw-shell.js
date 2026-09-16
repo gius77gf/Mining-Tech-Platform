@@ -520,7 +520,7 @@ export const CSV_TABELLE = [
     col: "foro;x;fila;prof;prog;borr;rit" },
   // ── Conti ───────────────────────────────────────────────────────────
   { id: "conti.listino", app: "Conti", etichetta: "l'export del listino di Conti",
-    fonte: "conti.csvListino", col: "nome;unita;prezzo;densita;iva" },
+    fonte: "conti.csvListino", col: "nome;unita;prezzo;densita;iva;stato" },
   { id: "conti.gare", app: "Conti", etichetta: "l'export delle gare di Conti",
     fonte: "conti.csvGare", col: "titolo;base;scadenza;stato" },
   { id: "conti.clienti", app: "Conti", etichetta: "l'export dei clienti di Conti",

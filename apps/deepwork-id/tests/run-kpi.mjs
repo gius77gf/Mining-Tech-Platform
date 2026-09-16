@@ -29066,8 +29066,18 @@ test("csvListino: i numeri escono col PUNTO, e l'intestazione è quella che il l
   const t = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: 1234.5, densita: 1.6, iva: 22 }]);
   ok(/;1234\.5;/.test(t), t);
   eq(/;1234,5;/.test(t), false, "una virgola qui la leggerebbe solo la nostra app");
-  eq(conti.csvListino([]).split("\n")[0], "nome;unita;prezzo;densita;iva");
+  eq(conti.csvListino([]).split("\n")[0], "nome;unita;prezzo;densita;iva;stato");
   eq(conti.parseListinoCsv(conti.csvListino([])).length, 0, "un file di sola intestazione non porta dentro righe finte");
+});
+test("shared · P2 (sesto scrittore, 16/09): csvListino porta la sesta colonna `stato` — `prezzo` è il campo per cui D1 misurava una riga persa", () => {
+  const misurato = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: 8.5 }]).split("\n")[1];
+  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "prezzo presente: misurato — " + misurato);
+  const maiMisurato = conti.csvListino([{ nome: "X", unitaPrezzo: "t" }]).split("\n")[1];
+  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza prezzo: mai-misurato — " + maiMisurato);
+  eq(conti.csvListino([]).split("\n")[0], "nome;unita;prezzo;densita;iva;stato");
+  // compatibilità all'indietro: un file a cinque colonne (senza `stato`) rientra lo stesso
+  eq(conti.parseListinoCsv("nome;unita;prezzo;densita;iva\nX;t;8.5;;22\n").length, 1,
+    "un file vecchio senza la sesta colonna resta leggibile");
 });
 test("csvListino: un prezzo che non c'è esce VUOTO, mai «undefined» né zero", () => {
   /* ⛔ era il valore scritto crudo in mezzo a due guardati: `${p.densita ?? ""}`
@@ -36823,7 +36833,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(conti.ALIQUOTA_ORDINARIA, 22, "la costante è il 22 ordinario italiano");
     eq(conti.leggiAliquotaListino("boh").iva, conti.ALIQUOTA_ORDINARIA, "il lettore usa quella");
     const csv = conti.csvListino([{ nome: "X", unitaPrezzo: "t", prezzo: 1 }]);
-    ok(csv.includes(";" + conti.ALIQUOTA_ORDINARIA + "\n"), "e lo scrittore scrive quella");
+    ok(csv.includes(";" + conti.ALIQUOTA_ORDINARIA + ";" + ponti.STATO_CELLA_MISURATO + "\n"), "e lo scrittore scrive quella (poi `stato`, P2, sesta colonna)");
     eq(conti.parseListinoCsv(csv)[0].iva, conti.ALIQUOTA_ORDINARIA, "quindi il giro torna identico");
   });
 

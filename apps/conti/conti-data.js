@@ -1177,8 +1177,14 @@ export function scartiListinoCsv(text) {
    La convenzione è quella del LETTORE qui sopra, non una nuova: prezzo assente
    → cella vuota (mai uno zero, che farebbe sembrare gratis un prodotto che non
    lo è), densità assente → cella vuota, IVA assente → 22. */
+/* la sesta colonna (16/09, P2 di docs/RICERCA_CONTINUA_ASSENZA.md §4, sesto
+   scrittore): `prezzo` è il campo per cui D1 misura "1→0 RIGA PERSA" — senza
+   un prezzo leggibile la riga non rientra affatto (`parseListinoCsv`, poco
+   sotto). Stesso binario di Terra e degli incassi di Conti: nessuna ragione
+   più fine da distinguere. Prima fetta: solo lo scrittore, `parseListinoCsv`
+   resta posizionale a cinque campi. */
 export function csvListino(prodotti) {
-  const righe = ["nome;unita;prezzo;densita;iva"];
+  const righe = ["nome;unita;prezzo;densita;iva;stato"];
   for (const p of (prodotti || [])) {
     if (!p) continue;
     const pr = numeroDichiarato(p.prezzo);
@@ -1194,6 +1200,7 @@ export function csvListino(prodotti) {
          cambiarne uno solo dei due avrebbe fatto divergere il giro
          scrivi → rileggi senza che niente diventasse rosso */
       iv == null ? String(ALIQUOTA_ORDINARIA) : String(iv),
+      pr == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO,
     ].join(";"));
   }
   return righe.join("\n") + "\n";
