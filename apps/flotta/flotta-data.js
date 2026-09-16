@@ -1543,6 +1543,15 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
         dettaglio: "costo d'officina +" + Math.round(co.forbicePct) + "% a intervento sul suo solito negli ultimi " + co.finestra + " giorni",
         badge: "Costo in aumento" });
     }
+    // dal delta della ricerca continua, undicesimo giro: riprende il gap 2
+    // del sesto giro (15/09) — terza sorella di consumo/costo, sul RITMO
+    // dei fermi invece che sulla loro entità
+    const ff = frequenzaFermiControStoria(fermi, m.nome, oggi);
+    if (ff.calcolabile && ff.verso === "sopra" && ff.forbicePct > TOLLERANZA_FERMI_PCT) {
+      items.push({ gravita: "warn", categoria: "trend", titolo: m.nome,
+        dettaglio: "si ferma +" + Math.round(ff.forbicePct) + "% più spesso del suo solito negli ultimi " + ff.finestra + " giorni",
+        badge: "Fermi in aumento" });
+    }
   }
   const rank = { danger: 0, warn: 1 };
   const catRank = { scadenza: 0, manutenzione: 1, trend: 2, ricambio: 3, mezzo: 4 };
@@ -4731,6 +4740,61 @@ export function costoControStoria(interventi, nomeMezzo, oggi = new Date(), fine
   if (!rc) return { ...base, storia: st, perche: "nella finestra non c'è nessun intervento con un costo registrato" };
   if (!st) return { ...base, recente: rc, perche: "prima della finestra non c'è nessun intervento con un costo registrato: non c'è una storia con cui confrontare" };
   const forbice = Math.round((100 * (rc.costoMedio - st.costoMedio)) / st.costoMedio * 10) / 10;
+  return { ...base, recente: rc, storia: st, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA FREQUENZA DEI FERMI CONTRO LA SUA STORIA (16/09)
+   ────────────────────────────────────────────────────────────────────────
+   Terza sorella di `consumoControStoria`/`costoControStoria` (dal delta
+   della ricerca continua su Flotta, undicesimo giro — riprende un gap
+   dichiarato aperto il 15/09): `affidabilitaFlotta` calcola l'MTBF
+   semplificato (`fraUnFermoELaltro`) su UNA SOLA finestra, un valore
+   puntuale. Qui si confronta il RITMO recente con quello storico dello
+   stesso mezzo: un mezzo che si ferma il doppio di quanto si fermava prima
+   è spesso il primo segnale che un componente sta per cedere, prima che
+   scada un tagliando a soglia fissa.
+   Il tasso è EPISODI AL GIORNO, non giorni persi al giorno: un fermo lungo
+   e uno corto contano allo stesso modo — è la frequenza degli eventi, non
+   la loro durata (già coperta da `affidabilitaFlotta`), a dire se il mezzo
+   si guasta più spesso. E i due periodi hanno lunghezze diverse per
+   costruzione (la finestra recente è fissa, la storia è tutto ciò che
+   viene prima): senza dividere ciascun conteggio per i giorni del proprio
+   periodo, un mezzo vecchio sembrerebbe sempre più affidabile di uno nuovo
+   solo perché ha più tempo alle spalle su cui spalmare gli stessi fermi.
+   Regole di onestà, le stesse delle due sorelle: un fermo non
+   COLLOCABILE (`fermoCollocabile`) non entra in nessuno dei due conti — un
+   fermo che non so datare non è un fermo che non c'è stato, quindi non
+   conta né a favore né contro; con zero fermi prima della finestra non c'è
+   una storia con cui confrontare, si dichiara `perche`, mai uno zero di
+   comodo; non si giudica, `forbicePct` dice la differenza percentuale del
+   tasso e `verso` la dice a parole. La soglia (`TOLLERANZA_FERMI_PCT`) è
+   una SCELTA nostra: nessuna fonte della ricerca dà una tolleranza di
+   settore per questo segnale, e un numero senza fonte non si spaccia per
+   norma.
+   Pura e testabile: `oggi` iniettabile. */
+export const TOLLERANZA_FERMI_PCT = 40;
+export function frequenzaFermiControStoria(fermi, nomeMezzo, oggi = new Date(), finestraGiorni = 90) {
+  const n = nomeBreve(nomeMezzo);
+  const finestra = Math.max(1, Math.round(+finestraGiorni || 90));
+  const a = oggiIso(oggi);
+  const da = oggiIso(new Date(Date.parse(a + "T12:00:00Z") - (finestra - 1) * 86400000));
+  const validi = (fermi || [])
+    .filter((f) => f && nomeBreve(f.mezzo) === n && fermoCollocabile(f))
+    .map((f) => ({ data: isoGiorno(f.inizio) }))
+    .filter((f) => !!f.data)
+    .sort((x, y) => x.data.localeCompare(y.data));
+  const base = { mezzo: n, finestra, dal: da, al: a, recente: null, storia: null, forbicePct: null, verso: null, calcolabile: false, perche: "" };
+  if (!n) return { ...base, perche: "manca il nome del mezzo" };
+  const storia = validi.filter((f) => f.data < da), recenti = validi.filter((f) => f.data >= da);
+  const rc = { episodi: recenti.length, giorni: finestra, tasso: +(recenti.length / finestra).toFixed(4) };
+  if (!storia.length) return { ...base, recente: rc,
+    perche: "prima della finestra non c'è nessun fermo: non c'è una storia con cui confrontare" };
+  const giorniStoria = Math.max(1, giorniFra(storia[0].data, da));
+  const st = { episodi: storia.length, giorni: giorniStoria, tasso: +(storia.length / giorniStoria).toFixed(4) };
+  if (st.tasso === 0) return { ...base, recente: rc, storia: st,
+    perche: "nella storia il tasso è zero: non si può confrontare una percentuale contro zero" };
+  const forbice = Math.round((100 * (rc.tasso - st.tasso)) / st.tasso * 10) / 10;
   return { ...base, recente: rc, storia: st, calcolabile: true, forbicePct: forbice, verso: forbice > 0 ? "sopra" : forbice < 0 ? "sotto" : "pari" };
 }
 

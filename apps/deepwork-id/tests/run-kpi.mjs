@@ -38012,6 +38012,75 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
 /* ===== fine Flotta · il costo d'officina contro la storia ===== */
 
 /* ══════════════════════════════════════════════════════════════════════
+   FLOTTA · LA FREQUENZA DEI FERMI CONTRO LA SUA STORIA (16/09, dal delta
+   della ricerca continua, undicesimo giro — riprende il gap 2 del sesto
+   giro, dichiarato aperto il 15/09).
+   ══════════════════════════════════════════════════════════════════════ */
+{
+  const O = new Date("2026-09-16T12:00:00Z");
+  const g = (n) => new Date(O.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const F = flotta.frequenzaFermiControStoria;
+  test("⛔ frequenzaFermiControStoria: il TASSO (episodi al giorno), non un conteggio nudo — i due periodi hanno lunghezze diverse", () => {
+    // finestra di 30gg: storia = 2 fermi in 78 giorni (da g(108) a g(31)), recente = 2 fermi in 30 giorni
+    const fermi = [
+      { mezzo: "Escavatore 1", inizio: g(108), fine: g(107) },
+      { mezzo: "Escavatore 1", inizio: g(62), fine: g(61) },
+      { mezzo: "Escavatore 1", inizio: g(20), fine: g(19) },
+      { mezzo: "Escavatore 1", inizio: g(5), fine: g(4) },
+    ];
+    const r = F(fermi, "Escavatore 1", O, 30);
+    eq(r.calcolabile, true);
+    eq(r.recente.episodi, 2, "2 episodi nella finestra");
+    eq(r.storia.episodi, 2, "2 episodi nella storia");
+    ok(r.storia.giorni > 30, "la storia copre più giorni della finestra fissa: il tasso non è un conteggio nudo", r.storia);
+  });
+  test("⛔ frequenzaFermiControStoria: il ritmo raddoppiato si vede, quello stabile no", () => {
+    // ritmo stabile: lo stesso PASSO (episodi al giorno) nei due periodi,
+    // non lo stesso NUMERO — la storia copre 60 giorni (da g(89) a g(29)),
+    // quindi le serve il doppio degli episodi della finestra da 30 per
+    // avere lo stesso tasso: 2/30 = 4/60 = 0,0667 episodi/giorno
+    const stabile = [
+      { mezzo: "Pala 2", inizio: g(89) }, { mezzo: "Pala 2", inizio: g(75) },
+      { mezzo: "Pala 2", inizio: g(60) }, { mezzo: "Pala 2", inizio: g(45) },
+      { mezzo: "Pala 2", inizio: g(20) }, { mezzo: "Pala 2", inizio: g(5) },
+    ];
+    const rs = F(stabile, "Pala 2", O, 30);
+    ok(rs.calcolabile && Math.abs(rs.forbicePct) < flotta.TOLLERANZA_FERMI_PCT, "ritmo stabile: sotto la tolleranza dichiarata", rs);
+    // ritmo raddoppiato: 4/30gg contro 2 negli 80gg precedenti la finestra
+    const doppio = [
+      { mezzo: "Dumper 3", inizio: g(75) }, { mezzo: "Dumper 3", inizio: g(45) },
+      { mezzo: "Dumper 3", inizio: g(25) }, { mezzo: "Dumper 3", inizio: g(18) },
+      { mezzo: "Dumper 3", inizio: g(9) }, { mezzo: "Dumper 3", inizio: g(2) },
+    ];
+    const rd = F(doppio, "Dumper 3", O, 30);
+    eq(rd.verso, "sopra", "il ritmo recente è sopra quello storico");
+    ok(rd.forbicePct > flotta.TOLLERANZA_FERMI_PCT, "e sopra la tolleranza dichiarata", rd);
+  });
+  test("⛔ frequenzaFermiControStoria: meno di 2 episodi totali (zero storia) è NON CALCOLABILE, mai un 'in linea' di comodo", () => {
+    const r = F([{ mezzo: "Terna 4", inizio: g(5) }], "Terna 4", O, 30);
+    eq(r.calcolabile, false);
+    ok(/non c'è una storia con cui confrontare/.test(r.perche), r.perche);
+    eq(F(null, "", O).perche, "manca il nome del mezzo");
+  });
+  test("⛔ frequenzaFermiControStoria: un fermo non COLLOCABILE non entra in nessuno dei due conti", () => {
+    const fermi = [
+      { mezzo: "Ragno 5", inizio: g(100) },
+      { mezzo: "Ragno 5", inizio: "2026-02-30" },   // data inesistente: non collocabile
+      { mezzo: "Ragno 5", inizio: g(60) },
+      { mezzo: "Ragno 5", inizio: g(5) },
+    ];
+    const r = F(fermi, "Ragno 5", O, 30);
+    eq(r.storia.episodi, 2, "il fermo con la data inesistente non entra (2, non 3)");
+  });
+  test("nel modulo non c'è un giudizio: la tolleranza è una scelta dichiarata della pagina", () => {
+    eq(flotta.TOLLERANZA_FERMI_PCT, 40);
+    const r = F([{ mezzo: "X", inizio: g(100) }, { mezzo: "X", inizio: g(5) }], "X", O, 30);
+    ok(!("stato" in r) && !("allarme" in r), "niente stato né allarme nel risultato");
+  });
+}
+/* ===== fine Flotta · la frequenza dei fermi contro la storia ===== */
+
+/* ══════════════════════════════════════════════════════════════════════
    FLOTTA · PRIORITÀ OPERATIVE SUL TREND (15/09, chiude la lacuna 2 del
    sesto giro di ricerca: un mezzo con la scadenza lontana ma un segnale in
    forte aumento non restava muto fino al cumulato del mese). RIUSA
@@ -38040,6 +38109,23 @@ console.log("\n— Conti: il verbale registra il terzo lato —");
     ok(trend.every(x => x.gravita === "warn"), "un trend è un segnale da guardare, non un obbligo scaduto");
     ok(trend.some(x => x.badge === "Consumo in aumento" && x.titolo === "Dumper D1"));
     ok(trend.some(x => x.badge === "Costo in aumento" && x.titolo === "Dumper D1"));
+  });
+  test("⛔ prioritaOperative (16/09): un mezzo che si ferma più spesso del suo solito entra come voce 'trend' — terza sorella di consumo/costo", () => {
+    // finestra di default (90gg): storia rada (2 fermi in 111 giorni), recente
+    // fitta (6 fermi nei 90 giorni della finestra) — il ritmo quadruplica
+    const fermiSopraSoglia = [
+      { mezzo: "Dumper D1", inizio: g(200) }, { mezzo: "Dumper D1", inizio: g(150) },
+      { mezzo: "Dumper D1", inizio: g(80) }, { mezzo: "Dumper D1", inizio: g(60) },
+      { mezzo: "Dumper D1", inizio: g(40) }, { mezzo: "Dumper D1", inizio: g(20) },
+      { mezzo: "Dumper D1", inizio: g(10) }, { mezzo: "Dumper D1", inizio: g(2) },
+    ];
+    ok(flotta.frequenzaFermiControStoria(fermiSopraSoglia, "Dumper D1", O).forbicePct > flotta.TOLLERANZA_FERMI_PCT, "premessa: il ritmo dei fermi è davvero sopra soglia");
+    const p = flotta.prioritaOperative(mezzi, [], [], O, [], 30, fermiSopraSoglia, [], [], []);
+    const trend = p.filter(x => x.categoria === "trend");
+    eq(trend.length, 1);
+    eq(trend[0].gravita, "warn", "un trend è un segnale da guardare, non un obbligo scaduto");
+    eq(trend[0].badge, "Fermi in aumento");
+    eq(trend[0].titolo, "Dumper D1");
   });
   test("senza rifornimenti/interventi (o sotto soglia) il comportamento è quello di prima: nessuna voce 'trend'", () => {
     eq(flotta.prioritaOperative(mezzi, [], [], O), [], "senza i due parametri facoltativi, esattamente come prima del 15/09");

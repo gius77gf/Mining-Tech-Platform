@@ -8547,9 +8547,13 @@ numero scritto dove non era stato misurato niente**.*
   chiave —, 3040→3041. E a `conti.concentrazionePortafoglio` (dal delta
   della ricerca continua, decimo giro) — la quota del cliente più esposto
   sul credito aperto, che riusa `esposizioneClienti` invece di ricalcolare
-  il totale una seconda volta —, 3041→3043):
-  **3.537 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3043, `run-stile` 330,
+  il totale una seconda volta —, 3041→3043. E a `flotta.
+  frequenzaFermiControStoria` (dal delta della ricerca continua, undicesimo
+  giro) — terza sorella di `consumoControStoria`/`costoControStoria`, il
+  ritmo dei fermi invece della loro entità, collegata a `prioritaOperative`
+  come terza voce "trend" —, 3043→3049):
+  **3.543 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3049, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
