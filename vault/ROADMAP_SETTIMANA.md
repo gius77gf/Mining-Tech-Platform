@@ -8660,9 +8660,11 @@ numero scritto dove non era stato misurato niente**.*
   incompleto, diverso da `mai-misurato`), poi il quinto (`csvRicettori` di
   Sentinella, prima volta che la riga resta anche senza il valore
   misurato), poi il sesto (`csvListino` di Conti, `prezzo` per la riga
-  persa di D1) (3097→3103):
-  **3.597 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3103, `run-stile` 330,
+  persa di D1), poi il settimo e ultimo scrittore libero (`csvTarature` di
+  Sentinella, binario su `dataISOEsiste(scadenza)`: gli altri quattro
+  candidati di D1 hanno tutti una colonna `stato` propria) (3097→3104):
+  **3.598 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3104, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

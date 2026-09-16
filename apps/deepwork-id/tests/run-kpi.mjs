@@ -16116,6 +16116,27 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "senza strumenti resta la sola intestazione: un file vuoto ha comunque le sue colonne");
   });
 
+  test("shared · P2 (settimo scrittore, 16/09): csvTarature porta la settima colonna `stato` — come i ricettori, la riga non sparisce mai, nemmeno con la data rotta", () => {
+    const misurato = sentinella.csvTarature([{ id: "v1", nome: "S", tarature: [
+      { data: "2026-01-15", scadenza: "2027-01-14" }] }]).split("\n")[1];
+    ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "scadenza valida: misurato — " + misurato);
+    const maiMisurato = sentinella.csvTarature([{ id: "v1", nome: "S", tarature: [
+      { data: "2026-01-15", scadenza: "" }] }]).split("\n")[1];
+    ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza scadenza: mai-misurato — " + maiMisurato);
+    // ⛔ la data ROTTA (esiste la forma, non il giorno) NON è "misurato": dataISOEsiste
+    // la respinge esattamente come l'assenza — è lo stesso "1→1" del giro D1, non un terzo caso
+    const dataRotta = sentinella.csvTarature([{ id: "x", nome: "S", tarature: [
+      { data: "2026-01-01", scadenza: "2026-02-30" }] }]).split("\n")[1];
+    ok(dataRotta.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO),
+      "data che non esiste: mai-misurato, non misurato — " + dataRotta);
+    eq(sentinella.csvTarature([]).split("\n")[0],
+      "strumento;data;scadenza;centro;certificato;nota;stato");
+    // compatibilità all'indietro: un file a sei colonne (senza `stato`) rientra lo stesso
+    eq(sentinella.parseTaratureCsv(
+      "strumento;data;scadenza;centro;certificato;nota\nS;2026-01-15;2027-01-14;;;\n").length, 1,
+      "un file vecchio senza la settima colonna resta leggibile");
+  });
+
   /* ══ LE TARATURE NELLE ALLERTE DEL QUADRO ══
      Fino a ieri lo stato si vedeva solo entrando nella sezione, cioè lo
      scopriva chi era già andato a cercarlo. Ma dal giorno dopo la scadenza

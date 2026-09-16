@@ -2304,7 +2304,7 @@ export function csvRicettori(ricettori) {
   return CSV_RICETTORI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
 }
 
-export const CSV_TARATURE_INTESTAZIONE = "strumento;data;scadenza;centro;certificato;nota";
+export const CSV_TARATURE_INTESTAZIONE = "strumento;data;scadenza;centro;certificato;nota;stato";
 
 // L'ARCHIVIO DEI CERTIFICATI IN UN FILE.
 // ⛔ ESCONO TUTTI, ANCHE QUELLI CON LE DATE ROTTE. Esportare solo i leggibili
@@ -2323,6 +2323,7 @@ export function csvTarature(monitoraggi) {
         String((t || {}).data || ""), String((t || {}).scadenza || ""),
         csvCell((t || {}).ente || ""), csvCell((t || {}).certificato || ""),
         csvCell((t || {}).nota || ""),
+        dataISOEsiste((t || {}).scadenza) ? STATO_CELLA_MISURATO : STATO_CELLA_MAI_MISURATO,
       ].join(";"));
   return CSV_TARATURE_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");
 }

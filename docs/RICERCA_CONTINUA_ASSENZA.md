@@ -922,3 +922,63 @@ stesso ordine di grandezza di P1 (8 lettori) ma su tutti e 21, perché un
 lettore che non lo sa fa esattamente il danno mostrato sopra. **Non
 implementata**: resta un cantiere a sé, con questo costo scritto per chi lo
 aprirà, non più una stima ottimistica.
+
+---
+
+**✅ 16/09 (stesso giorno) — P2, SETTIMO SCRITTORE: `csvTarature` di
+Sentinella.** Controllati PRIMA di scrivere i due candidati rimasti di D1
+oltre a Clienti/Gare (già scartati): `csvSquadre` di Campo scrive già una
+colonna `stato` con un significato diverso (lo stato operativo della
+squadra, `"operativa"` di default — stessa collisione di Clienti/Gare) e
+`csvAzioni` di Scudo pure (lo stato del workflow dell'azione correttiva,
+`"aperta"` di default). Tutti e quattro i candidati con collisione di nome
+sono ora verificati e scartati per la stessa ragione. `csvTarature` non ha
+nessuna colonna `stato` preesistente: candidato pulito, l'ultimo dei sei
+originali di D1 ancora liberi.
+
+Qui il campo misurato da D1 (`scadenza`) è una DATA, non un numero, e la
+riga non sparisce mai — la stessa famiglia dei ricettori, non quella di
+rilievi/incassi/listino: il commento della funzione lo dice da sempre,
+«ESCONO TUTTI, ANCHE QUELLI CON LE DATE ROTTE». Prima di scegliere il
+codice si è letto `ragioneData` (in `shared/dw-shell.js`), che per una
+data distingue TRE ragioni — non scritta, non esiste (30/02), non si
+legge — e sembrava l'occasione per un secondo uso del terzo codice dopo
+`csvPesate`. Non lo è: a differenza di `pesiPesata` (che decide `noto` /
+`incompleto` / niente leggendo direttamente i DUE pesi grezzi), qui la
+tripla distinzione vive SOLO nel messaggio che il lettore costruisce per
+l'utente durante il parsing — l'oggetto `taratura` che il modulo tiene in
+memoria, e che lo scrittore vede, porta `scadenza` già passata da `dataIso`
+a monte (nel giro `parseTaratureCsv` → oggetto applicativo), che collassa
+"non scritta" e "non esiste" nello stesso `""`. Scrivere un terzo codice
+qui avrebbe significato ricostruirsi una distinzione che l'oggetto non
+porta più — la copia debole che questo file chiama altrove "calcolare una
+cosa che un altro pezzo del prodotto ha già deciso". Quindi binario, come
+Terra/Conti-incassi/Conti-listino/Sentinella-ricettori: `STATO_CELLA_MISURATO`
+quando `dataISOEsiste(t.scadenza)` (riusata, non riscritta — è la stessa
+funzione con cui `shared/` valida ogni data ISO), `STATO_CELLA_MAI_MISURATO`
+altrimenti — e "altrimenti" copre sia il vuoto sia il 30 febbraio, provato
+esplicitamente nel test dedicato perché non restasse un caso implicito.
+
+Settima colonna, prima fetta: solo lo scrittore, `parseTaratureCsv` resta
+posizionale a sei campi (un file vecchio senza `stato` rientra identico,
+provato). Aggiornata `CSV_TABELLE` in `dw-shell.js` per `sentinella.tarature`
+(guardia B8, settimo colpo consecutivo della stessa guardia in sette
+unità). Controprova sul codice vero: invertita la condizione
+(`STATO_CELLA_MISURATO`↔`STATO_CELLA_MAI_MISURATO`), confermato che il
+test dedicato cade, ripristinato via `cp` + `diff`.
+
+**Sette scrittori su undici migrati.** Degli undici di D1 restano solo
+`csvClienti` e `csvGare` di Conti — entrambi già scartati per la
+collisione di nome — quindi **P2 ha raggiunto il suo limite naturale sui
+CSV di D1**: tutti i candidati liberi sono migrati, i quattro rimasti
+(Clienti, Gare, Squadre, Azioni) hanno tutti una colonna `stato` propria e
+di significato diverso, e riusarla sarebbe il difetto che questo documento
+esiste per evitare. Il passo successivo, se si vuole continuare P2 oltre
+D1, non è "l'ottavo scrittore": è o (a) accettare che sette su undici è il
+massimo raggiungibile con questo vocabolario sul perimetro misurato, o (b)
+aprire una domanda nuova — per i quattro CSV con `stato` proprio, il LORO
+vocabolario di stato copre già la distinzione misurato/non-misurato, o è
+un concetto ortogonale (come `statoTaraturaStrumento` di Sentinella, che è
+"quanto è valida oggi la taratura" e non "è stata scritta la cella") che
+lascerebbe comunque un buco? Non misurato in questa unità — è la domanda
+per chi riprenderà P2, non una conclusione.
