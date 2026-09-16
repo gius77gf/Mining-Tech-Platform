@@ -2148,3 +2148,182 @@ a cura di terzi; la causale "resa" è già distinta con comma e termine
 corretti, non indifferenziata); 1 punto **fuori scope, ricondotto a una
 decisione già aperta** in un giro precedente (fatturazione passiva del
 vettore) invece di essere proposto come lacuna nuova.
+
+---
+
+## 16/09 — decimo giro: piani di rientro, concentrazione clienti, sconto cassa, storico dei solleciti
+
+*Nota di processo (regola 1 — dichiarare in cima che cosa esiste già): letto
+per intero questo documento (2150 righe, nove giri precedenti, l'ultimo dello
+stesso giorno — settimo/ottavo/nono giro), `docs/CONCORRENTI_CONTI.md`,
+`docs/CONTI_FATTURAZIONE_ROADMAP.md` e `docs/RICERCA_CONTI_202607.md`. Conti
+ha già, verificato con la prova esatta della riga: `esposizioneClienti`+fido
+con avviso alla pesata (`avvisoFidoPesata`), `incassoAtteso`/`incassoPerMese`/
+`agingIncassi`, `tempiPagamentoClienti`, `fattureOltre90`, `livelloSollecito`+
+`testoSollecito` con tre soglie e tono che cambia, interessi di mora D.Lgs
+231/2002, riconciliazione bancaria per intestazione di colonna con abbinamento
+anche cumulativo (`combinazioneUnica`) e riferimento TRN/CRO, XML FatturaPA
+con `TD24`/`DatiDDT` e stato SdI tracciato, canone estrattivo con tariffa per
+prodotto, rimanenze al costo e al listino, causali di nota di credito con
+comma/termine corretti. Restano aperte, dichiarate ma non implementate (NON
+riaperte qui): lo scoring/rating cliente unico (settimo giro), lo scadenzario
+fornitori/debiti (decisione di perimetro), la somma delle pesate non
+fatturate nel fido (ottavo giro), la colonna causale nel registro vendite CSV
+e il raggruppamento note per causale (nono giro).*
+
+Strumento: `WebSearch` (sei ricerche); nessuna fonte letta per intero con
+`WebFetch` — tutto il "mondo" sotto è **di seconda mano**, marcato come tale.
+⚠️ **Non verificato da chi coordina il ciclo**: i costi stimati e i dettagli
+di implementazione proposti sono parola dell'agente. **Verificati
+indipendentemente, invece**: i quattro comandi grep a zero che sostengono le
+quattro mancanze (rilanciati il 16/09 prima di appendere questo giro, stesso
+esito riportato dall'agente in tutt'e quattro i casi).
+
+### 1. Piani di rientro / dilazioni per crediti scaduti
+**Come si vede (il mondo, di seconda mano):** i software di credit management
+italiani (Sagres Gestioni, RecuperoSmart) e gli AR generalisti (Bectran,
+Invoiced, Paidnice) trattano il piano di rientro come un **oggetto a sé**,
+successivo alla fattura: rate con scadenze proprie, stato che cambia da solo
+al mancato pagamento di una rata. Si colloca fra il sollecito e la messa in
+mora formale.
+**Che cosa non va:** Conti sa dire quanto è aperto (`apertoDi`,
+`agingIncassi`, `fattureOltre90`) e sa scrivere tre lettere di sollecito
+crescenti, ma non ha modo di registrare un accordo di pagamento a rate: una
+fattura scaduta resta scaduta per l'intero importo anche se le prime rate
+sono state onorate, e continua a ricevere l'escalation di sollecito fino
+all'«ultimo avviso... sede giudiziale».
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE "dilazion|piano.di.rientro|rateizz" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:0
+    apps/conti/index.html:0
+`statoScadenzaFattura` non prevede uno stato "in piano di rientro".
+**Il delta:** oggetto `pianoRientro/{id}` (fattura, cliente, rate, nota) con
+`statoPianoRientro(piano, incassi, oggi)` a tre esiti — rispettato / in
+ritardo su una rata (quale, da quanti giorni) / decaduto — mai un "a posto"
+tacito. `statoScadenzaFattura` guadagna un quinto stato che sospende
+l'escalation del sollecito finché il piano regge, e la riapre da sé al primo
+"decaduto".
+**Quanto costa (stima non verificata):** medio — il calcolo è piccolo e
+puro, il costo è nella UI (form dalla fattura, vista rate, badge).
+**Come si misura:** fattura 12.300 €, piano a tre rate da 4.100 €, le prime
+due incassate puntuali, la terza no → `statoPianoRientro` deve dire "in
+ritardo sulla rata 3", non "insoluta per 12.300 €"; e `agingIncassi`/
+`fattureOltre90` devono mostrare solo il residuo (4.100 €).
+
+### 2. Concentrazione del portafoglio clienti
+**Come si vede (il mondo, di seconda mano):** un cliente oltre il 10% del
+fatturato/esposizione, o i primi 5 oltre il 25-40%, sono un indicatore di
+rischio standard (CFI, Wall Street Prep, Allianz Trade); le banche tagliano
+l'esposizione riconosciuta per singolo cliente al 15-25% nel calcolo del
+fido — un portafoglio concentrato vale meno indipendentemente dalla
+solidità del singolo cliente.
+**Che cosa non va:** `esposizioneClienti` calcola l'esposizione per cliente,
+uno alla volta; nessuna funzione aggrega "quanto pesa il cliente più grande
+sul totale del credito aperto".
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE "concentrazione|pareto|herfindahl|\bhhi\b" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:0
+    apps/conti/index.html:0
+Sulla dimostrazione stessa: fatture aperte al 15/09 — f1 Edilcave 12.300 €,
+f2 Stradesud 9.750 €, f3 Comune di Modica 8.100 €, f4 Calcestruzzi RG
+5.900 €, f7 Cave del Sud 4.400 € — totale 40.450 €. Edilcave da sola vale
+**30,4%** del credito aperto, sopra ogni soglia citata dal mondo, e oggi
+nessuna schermata lo calcola o mostra (il badge "Fido superato" parla del
+fido di Edilcave, non della dipendenza del portafoglio da lei).
+**Il delta:** funzione pura `concentrazionePortafoglio(fatture, oggi,
+clienti)` sull'esposizione aperta già calcolata da `esposizioneClienti`:
+quota del cliente più grande e dei primi 3-5, `null` con la ragione se il
+totale aperto è zero (non uno zero tranquillo). Va nel Report, accanto al
+grafico di esposizione esistente — è una proprietà del portafoglio, non del
+singolo cliente; nessun blocco automatico, solo il numero.
+**Quanto costa (stima non verificata):** piccolo — un `reduce`/`sort` su un
+array già calcolato, il costo è quasi tutto nella card del Report.
+**Come si misura:** portafoglio con 5 clienti a esposizioni note (40/25/15/
+12/8%), la funzione deve restituire quella distribuzione ordinata e la quota
+del primo; con esposizione totale zero, `null` con la ragione, non `0%`.
+
+### 3. Sconto cassa (pagamento anticipato) — e un difetto collaterale reale
+**Come si vede (il mondo, di seconda mano):** pratica standard ("2/10 net
+30" nel mondo anglosassone; "sconto pronta cassa/cassa" in Italia, tipico
+intorno all'1%). Punto fiscale citato: l'Agenzia delle Entrate lo considera
+un fatto amministrativo **successivo** alla vendita, condizionato al
+pagamento entro il termine — non va indicato in fattura come riduzione del
+prezzo.
+**Che cosa non va:** i due sconti di Conti (`scontoCliente`, `scontoScaglione`)
+sono entrambi sul prezzo, decisi **prima** di fatturare — nessuno dipende da
+quando il cliente paga.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE "sconto.{0,15}(cassa|anticipat)|pagamento anticipato" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:0
+    apps/conti/index.html:0
+⚠️ **E qui la mancanza non è solo un'assenza: è già una fonte di errore
+verificata nella riconciliazione bancaria esistente.** `esitoMovimento`,
+quando un bonifico è più basso dell'aperto e la causale nomina la fattura,
+risponde SEMPRE "è un acconto, resta aperta per la differenza" (grado
+`probabile`) — citato letteralmente dall'agente da `conti-data.js` righe
+4958-4961. Un cliente che si trattiene legittimamente il 2% concordato
+viene quindi trattato come moroso parziale: la differenza entra
+nell'aging, matura interessi di mora e riceve un sollecito su un debito
+che, per accordo, non esiste.
+**Il delta:** campo opzionale `scontoCassa: {pct, giorniEntro}` su cliente o
+fattura (assente di default); `scontoCassaMaturato(fattura, dataIncasso)`
+che calcola lo sconto ammesso solo entro il termine. `apertoDi`/
+`esitoMovimento` lo consultano: uno scostamento negativo che COINCIDE con lo
+sconto maturato diventa "sconto applicato, saldata" invece di "acconto,
+resta aperta"; uno scostamento che non coincide resta trattato come oggi.
+Lo sconto non va nel corpo della fattura (coerente con la prassi citata).
+**Quanto costa (stima non verificata):** piccolo-medio — il calcolo riusa
+`giorniFraDate` già condivisa; il punto delicato è la tolleranza di
+coincidenza fra scostamento e sconto dichiarato, da decidere esplicitamente.
+**Come si misura:** fattura 5.000 € con sconto 2%/10gg, incasso di 4.900 €
+all'ottavo giorno → deve risultare saldata (oggi risulterebbe "aperta per
+100 €", ed è la controprova: senza la correzione questo caso deve fallire);
+lo stesso incasso al ventesimo giorno (fuori termine) deve restare acconto
+con residuo di 100 € come oggi.
+
+### 4. Storico delle comunicazioni di recupero credito
+**Come si vede (il mondo, di seconda mano):** il recupero crediti italiano è
+un percorso a stadi tracciati (solleciti informali, messa in mora formale
+per raccomandata — che interrompe la prescrizione —, decreto ingiuntivo); i
+software "avanzati" tracciano ogni interazione col debitore invece di
+ricalcolare da zero il livello a ogni apertura della pratica.
+**Che cosa non va:** `livelloSollecito`/`testoSollecito` sono funzioni pure
+senza memoria: calcolano il livello e compongono la lettera da zero ogni
+volta, sul solo ritardo attuale. Nessuna traccia che una lettera sia stata
+davvero inviata, né quando.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE "storicoSollecit|solleciti(Inviat|Registrat)|statoRecupero|faseRecupero|passaggioLegale" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:0
+    apps/conti/index.html:0
+Conseguenza: se il titolare stampa oggi il sollecito per Edilcave (già a
+3° livello per il ritardo attuale), il modulo non sa dire se è la prima
+volta o la quarta che si stampa lo stesso ultimatum identico.
+**Il delta:** log leggero `fattura.solleciti: [{livello, data, canale}]`,
+scritto quando l'utente conferma l'invio (bottone "segna come inviato"
+accanto a "Stampa sollecito" — nessun invio automatico, Conti non manda
+email da sé). `statoRecupero(fattura, solleciti, oggi)` risponde: livello
+già comunicato (può divergere da quello che il ritardo attuale implica),
+data dell'ultimo invio, e se serve rimandare un avviso più severo.
+**Quanto costa (stima non verificata):** piccolo — dato minimo da salvare,
+funzione di confronto breve; il costo maggiore è la UI di conferma.
+**Come si misura:** sollecito di livello 1 registrato 20 giorni fa, ritardo
+attuale che implica livello 2 → deve dire "comunicato: 1, attuale: 2 → va
+rimandato" (non ristampare livello 1); senza nessun sollecito registrato,
+"mai comunicato", non confuso con uno zero numerico.
+
+**Riepilogo:** 4 mancanze **confermate** (grep a zero riverificati
+indipendentemente su tutt'e quattro), di cui una (sconto cassa) porta anche
+un **difetto collaterale reale già presente** nella riconciliazione
+bancaria (`esitoMovimento` confonde uno sconto legittimo con un acconto
+parziale). Nessuna delle quattro riapre i temi già dichiarati nei giri
+precedenti dello stesso giorno (scoring cliente, scadenzario fornitori,
+pesate non fatturate nel fido, causale nel registro vendite CSV).
+
+*Fonti (di seconda mano, via WebSearch): sagresgestioni.it, teamsystem.com,
+agicap.com, recuperosmart.it, daniloansalone.it, highradius.com, getapp.com,
+bectran.com, invoiced.com, paidnice.com, corporatefinanceinstitute.com,
+wallstreetprep.com, allianz-trade.com, beancount.io, metrichq.org,
+heropay.eu, admassociati.it, ratioquotidiano.it, marchegianionline.net,
+tipalti.com, upflow.io, taulia.com, routable.com, altline.sobanco.com,
+coface.it, focus.namirial.com, fiscoinvestimenti.it, oneinfo.it, kredis.it,
+adius.it.*
