@@ -1456,3 +1456,161 @@ regola 20 di `run-stile`).
 Non preso per costruzione in questa unità: prima fetta del delta TCO
 fatta separatamente (`etaMezzo`, sull'età del mezzo, indipendente da
 questo e già committata).
+
+---
+
+## 16/09 — undicesimo giro: componenti a vita propria, manutenzione su condizione, trend fermi, curva di sostituzione, costo per unità di produzione
+
+*Nota di processo (regola 1): letto per intero questo documento (1458 righe,
+9+ giri precedenti dal 14/08 al 15/09) prima di proporre. Già confermati
+esistenti e quindi NON riproposti: `costoOrarioMezzo`/`euroOraCompleto`,
+`consumoControStoria`/`costoControStoria`, `costoPossessoAnnuo`/
+`possessoDal`/`messaInServizio`/`etaMezzo`, `CAUSALI_FERMO` con
+`naturaFermo`, gli azzeramenti del contatore (`azzeramentiDelMezzo`,
+`spezzaLetture`), i piani tagliando a ore o a mesi, le scadenze di legge, il
+preset `fine-leasing`. Dichiarati ma non fatti da giri precedenti: la voce
+"frequenza fermi in aumento/calo" (sesto giro, 15/09 — ripresa e sviluppata
+qui) e l'uso di `euroOraCompleto` dentro `pagellaMezzi` (bug di cablaggio già
+diagnosticato, non un tema di ricerca — non ripreso qui).*
+
+Strumento: `WebSearch`; nessuna fonte letta per intero con `WebFetch`. I
+cinque comandi grep a zero (o con le righe citate) sono stati **riverificati
+indipendentemente** prima di appendere — stesso esito riportato dall'agente
+in tutti i casi.
+
+### 1. Pneumatici, cingoli e denti benna (GET): componenti a vita propria
+**Come si vede (il mondo, di seconda mano):** i CMMS di flotta pesante
+trattano pneumatici e GET come asset con vita propria tracciata a ore/km
+separatamente dal veicolo — rotazione, usura, sostituzione predittiva; la
+vita utile del GET si misura in ore macchina e varia da 400 a 4.000+ ore per
+sito. Sistemi dedicati (Bradken GETVision, Motion Metrics GET Trakka)
+tracciano le ore dall'installazione e generano alert vicino al limite.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -rciE "dataMontaggio|oreMontaggio|montatoIl|installatoIl|vitaComponente" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+Gomme/cingoli/denti benna esistono solo come voce di checklist pre-uso,
+causale di fermo, nome di ricambio a magazzino o riga di costo libera:
+nessuno porta una data/ora di montaggio né un contatore di vita separato
+dalle ore totali del mezzo.
+**Il delta:** il pezzo più vicino già esistente è `azzeramentiDelMezzo`/
+`spezzaLetture`/`trattoCorrente` — la stessa logica "il contatore può
+ripartire da un punto diverso, si tiene un tratto corrente" serve identica
+per "questo componente ha un proprio punto di partenza sulle ore del mezzo".
+Evento `{mezzo, tipo, montatoAOre, data}` + `vitaComponente(evento,
+oreMezzoAttuali)`.
+**Quanto costa (stima non verificata):** medio.
+**Come si misura:** due componenti sullo stesso mezzo (montati a 4.000h e
+8.500h, mezzo oggi a 9.000h) devono dare vita 5.000h e 500h, non un valore
+derivato dalle ore totali; un mezzo senza eventi deve dichiarare "vita non
+tracciata", non ometterla in silenzio.
+
+### 2. Manutenzione su condizione (analisi olio)
+**Come si vede (il mondo, di seconda mano):** i costruttori vendono
+programmi di campionamento olio (Caterpillar S·O·S, Komatsu KOWA) a cadenza
+250-300h motore / 500h altri componenti, che possono allungare o accorciare
+l'intervallo fisso in base all'esito.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -rciE "analisiOlio|campioneOlio|condizione.*manutenzione|manutenzione.*condizione|SOS\b" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+`pianoTagliando`/`prossimoTagliando` conoscono solo ORE o CALENDARIO
+(`{ogniOre, ogniMesi}`); nessun terzo ingresso basato su una misura di
+condizione.
+**Il delta:** campo opzionale `esitoUltimoCampione` (ok/attenzione/critico +
+data); `urgenzaTagliando` tratta "critico" come soglia già scaduta,
+"attenzione" come preavviso raddoppiato — riusa l'urgenza esistente.
+**Quanto costa (stima non verificata):** medio-basso, **e solo se un
+cliente vero fa davvero campionare l'olio** — da verificare in cava prima di
+costruire (stessa cautela già scritta in questo documento per altre voci
+manuali).
+**Come si misura:** due mezzi, stesso piano 500h e stesse ore, uno con
+ultimo campione "critico" e uno "ok": il primo deve uscire in cima a
+`prioritaOperative`, il secondo no.
+
+### 3. La frequenza dei fermi come TREND (riprende un gap aperto il 15/09)
+**Come si vede (il mondo, di seconda mano):** MTBF/MTTR sono KPI core anche
+nel mining, ma utili come **andamento**, non come cifra isolata; la
+disponibilità media di settore è 72-78%, le operazioni "world-class"
+superano il 92%.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -n "fraUnFermoELaltro\|MTBF\|mtbf" apps/flotta/flotta-data.js
+    3475: (commento, elenco campi)
+    3980: (commento)
+    3982:    fraUnFermoELaltro: episodi >= 2 ? Math.round(10 * disponibili / episodi) / 10 : null,
+`affidabilitaFlotta` calcola l'MTBF semplificato su **un'unica finestra**,
+un valore puntuale — non esiste l'equivalente di `consumoControStoria`/
+`costoControStoria` applicato ai fermi.
+**Il delta:** `frequenzaFermiControStoria`, terza istanza dello stesso
+pattern già scritto due volte nel modulo (finestra recente vs. storia,
+soglia di tolleranza nominata, `null`+motivo sotto un minimo di episodi) —
+copiare la firma, non reinventare il corpo.
+**Quanto costa (stima non verificata):** piccolo — è il caso più a basso
+rischio dei cinque, per costruzione (pattern già provato due volte).
+**Come si misura:** un mezzo con 2 fermi/30gg e 2 fermi nei 90gg precedenti
+(ritmo stabile) → "in linea"; uno con 4 fermi/30gg contro 2 nei 90gg
+precedenti (ritmo raddoppiato) → segnalato; meno di 2 episodi totali →
+`null` con motivo, mai un "in linea" di comodo.
+
+### 4. Curva di costo crescente e punto di sostituzione (vita economica)
+**Come si vede (il mondo, di seconda mano):** il costo/ora di una macchina
+scende dopo la messa in servizio, si stabilizza, poi risale quando i
+componenti invecchiano; una soglia di screening citata: manutenzione+
+riparazione annua che supera il 50% del valore di sostituzione corrente è
+segnale per considerare la sostituzione. Un caso mining specifico (Epiroc
+Simba) stima una vita economica di circa 7 anni.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -rciE "vitaEconomica|curvaCosto|inflessione|puntoOttimale" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+`costoControStoria` ha una finestra fissa a 90 giorni per confronto
+ravvicinato, non una serie pluriennale con un'inflessione da rilevare.
+**Il delta:** (1) funzione che raggruppa interventi+rifornimenti per anno di
+vita del mezzo, riusando `costoOfficinaPerMezzo`/`consumoPerMezzo`; (2)
+regola che dichiara se gli ultimi 2-3 anni sono in salita rispetto al minimo
+storico, con "non abbastanza storia" sotto una soglia minima di anni.
+**Quanto costa (stima non verificata):** medio-alto — il più oneroso dei
+cinque, perché richiede storicizzare i costi per anno (oggi si calcolano "a
+periodo" su richiesta, non si tengono come serie).
+**Come si misura:** tre mezzi sintetici (costo/ora piatto, in discesa da
+rodaggio, in salita negli ultimi 3 anni) devono ricevere tre verdetti
+diversi; un mezzo con meno di 3 anni di storia deve dire "curva non ancora
+leggibile", mai un verdetto di comodo.
+
+### 5. Costo per unità di produzione (€/tonnellata o m³ movimentato)
+*(già confermata VERA il 14/08 in questo documento — riconfermata oggi)*
+**Come si vede (il mondo, di seconda mano):** il trasporto pesa 40-55% dei
+costi operativi in cava, misurato come $/tonnellata; il set di KPI core del
+settore include esplicitamente "fuel per tonne"/"cost per ton" accanto a
+MTBF/MTTR e disponibilità.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -rciE "costoPerTonn|euroPerTonn|perTonnellata|volumiM3|ponteCampo|ponteTerra" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+    $ grep -niE "ponte.*flotta|flotta.*ponte" shared/dw-ponti.js
+    1088: PONTE · FLOTTA → CONTI — LO STESSO EURO CONTATO DUE VOLTE
+    1186: PONTE · CONTI → FLOTTA — LA FATTURA DELL'OFFICINA E L'ORDINE DI LAVORO
+`shared/dw-ponti.js` ha ponti Flotta↔Conti ma nessun ponte Flotta↔Terra (che
+tiene i volumi estratti/movimentati): manca il dato di ingresso, non solo la
+funzione — decisione di dove vive il dato prima di scrivere codice, come già
+per l'identità del mezzo e il sinistro (giri dell'11/09).
+**Quanto costa (stima non verificata):** piccolo per la funzione pura una
+volta deciso l'ingresso; medio se si sceglie un ponte nuovo con Terra
+(giustificato: serve a due app).
+**Come si misura:** mezzo con costo/ora e produzione dichiarata nello
+stesso periodo → numero coerente cambiando un input; senza produzione
+dichiarata → "non calcolabile: manca la produzione del periodo", mai un
+costo/tonnellata a zero o omesso in silenzio.
+
+**Riepilogo:** 5 mancanze confermate (grep riverificati indipendentemente su
+tutti e cinque i temi), di cui una (costo per tonnellata) richiede prima una
+decisione architetturale (ponte con Terra o campo manuale) e una
+(manutenzione su condizione) richiede una verifica di mercato prima del
+codice (nessun cliente ha ancora chiesto il campionamento olio). Il tema più
+piccolo e pronto per un'unità di codice è il n°3 (trend frequenza fermi):
+copia diretta di un pattern già scritto due volte nel modulo.
+
+*Fonti (di seconda mano, via WebSearch): oxmaint.com, uffizio-telematics.com,
+raptormining.com, mining-technology.com, bradken.com, cat.com, komatsu.com,
+berrytractor.com, opsima.com, heavyvehicleinspection.com,
+firgelliauto.com, link.springer.com, thundersaidenergy.com.*
