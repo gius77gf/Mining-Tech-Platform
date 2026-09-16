@@ -8640,9 +8640,14 @@ numero scritto dove non era stato misurato niente**.*
   preciso, perché Scudo registra solo il giorno dell'infortunio, non
   l'ora; una prognosi ancora aperta non è "non dovuta", è "non si sa
   ancora" (decisione 17 applicata a un obbligo legale). Verificato anche
-  nel browser (`tests/browser/scudo-denuncia-inail.mjs`, 3088→3094):
-  **3.588 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3094, `run-stile` 330,
+  nel browser (`tests/browser/scudo-denuncia-inail.mjs`, 3088→3094), poi una
+  revisione di qualità sulla stessa unità: `csvRegistroInfortuni` e
+  `fogliaCartella` non portavano la nota della denuncia INAIL che lo schermo
+  già mostrava — la settima colonna del CSV ora COMPONE più avvisi insieme
+  invece di sceglierne uno solo, e `csvRegistroInfortuni` ha guadagnato un
+  `oggi` iniettabile (3094→3096):
+  **3.590 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3096, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

@@ -29111,6 +29111,40 @@ test("csvRegistroInfortuni: una prognosi APERTA esce vuota e rientra vuota, mai 
   eq(scudo.csvRegistroInfortuni([chiusa, aperta]).split("\n")[1].startsWith("2026-06-01"), true,
      "e l'ordine per data è del file, non della pagina");
 });
+test("⛔ csvRegistroInfortuni: la settima colonna compone PIÙ avvisi, non ne sceglie uno solo (16/09)", () => {
+  // prima di questa unità un "?:" poteva dire una cosa sola: prognosi aperta
+  // E denuncia INAIL da valutare sono la stessa causa vista da due regole
+  // diverse, e il file deve poterle scrivere insieme.
+  const dueNote = { data: "2026-09-01", tipo: "infortunio", gravita: "lieve", descrizione: "x", luogo: "y" };
+  const t = scudo.csvRegistroInfortuni([dueNote]);
+  ok(t.includes(scudo.NOTA_PROGNOSI_APERTA), "prima nota: prognosi aperta");
+  ok(/denuncia INAIL da valutare/.test(t), "seconda nota: denuncia INAIL — " + t);
+  ok(t.includes(scudo.NOTA_PROGNOSI_APERTA + " · denuncia INAIL da valutare"), "unite con · , non una al posto dell'altra: " + t);
+  // un evento senza nessun avviso: la cella resta vuota, non un elenco vuoto scritto comunque
+  const nessunaNota = { data: "2026-09-01", tipo: "near-miss", gravita: "lieve" };
+  ok(/^2026-09-01;near-miss;lieve;0;;;$/m.test(scudo.csvRegistroInfortuni([nessunaNota])),
+    "un near-miss non porta nessuna delle tre note: " + scudo.csvRegistroInfortuni([nessunaNota]));
+  // il termine ordinario, calcolabile con un certificato: la nota dice la data, non "da valutare"
+  const conCertificato = { data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-02" };
+  const OGGI_INAIL = new Date("2026-09-03T12:00:00");
+  ok(/denuncia INAIL entro il 04\/09\/2026/.test(scudo.csvRegistroInfortuni([conCertificato], OGGI_INAIL)),
+    "col certificato la nota diventa una data precisa, non più «da valutare»: " + scudo.csvRegistroInfortuni([conCertificato], OGGI_INAIL));
+  // il termine è già passato: la nota deve dire SCADUTA, non ripetere una data nel passato come fosse tranquilla
+  ok(/denuncia INAIL SCADUTA/.test(scudo.csvRegistroInfortuni([conCertificato], new Date("2026-09-16"))),
+    "⛔ oggi è un `oggi` INIETTABILE, non `new Date()` fisso: un termine passato si dice scaduto");
+  // una denuncia già presentata non entra fra gli avvisi: il fatto non è un allarme
+  const presentata = { data: "2026-09-01", tipo: "infortunio", gravita: "mortale", denunciaData: "2026-09-02" };
+  ok(!/denuncia INAIL/.test(scudo.csvRegistroInfortuni([presentata])),
+    "⛔ una denuncia già fatta non compare come avviso pendente: " + scudo.csvRegistroInfortuni([presentata]));
+});
+test("Scudo · fogliaCartella: l'infortunio del fascicolo porta anche la denuncia INAIL pendente", () => {
+  const cartella = { lavoratore: { id: "l1", nome: "Rossi" },
+    infortuni: [{ id: "x1", lavoratoreId: "l1", data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10 }] };
+  const f = scudo.fogliaCartella(cartella, new Date("2026-09-05"));
+  const sez = f.sezioni.find((s) => s.titolo === "Infortuni");
+  ok(sez, "la sezione infortuni esiste");
+  ok(/denuncia INAIL da valutare/.test(sez.righe[0].join(" ")), "e porta l'avviso, come il registro degli eventi: " + JSON.stringify(sez.righe[0]));
+});
 test("⛔ csvPersonaleScadenze: la riga AZIENDA non rientra come un lavoratore fantasma", () => {
   /* L'accordo: il foglio scrive `AZIENDA;;;;…` per le scadenze rimaste senza
      la loro persona, e `parseLavoratoriCsv` salta quella riga PER NOME

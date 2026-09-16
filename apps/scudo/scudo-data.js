@@ -2394,12 +2394,30 @@ export function csvPersonaleScadenze(lavoratori, scadenze, documenti) {
 
 export const NOTA_PROGNOSI_APERTA =
   "prognosi ancora aperta: le giornate di assenza non sono ancora contate";
-export function csvRegistroInfortuni(eventi) {
+/* LA SETTIMA COLONNA, DA UN MESSAGGIO SOLO A UN ELENCO (16/09). Prima era
+   un `? :` che poteva dire una cosa sola: se un evento meritava più di un
+   avviso (prognosi aperta E denuncia INAIL da valutare — la stessa causa,
+   due regole diverse), il file ne diceva uno e taceva l'altro in silenzio.
+   Adesso `note` si costruisce come un elenco e si unisce con " · ", la
+   STESSA forma già usata a schermo (registro eventi, modale di analisi):
+   una lista scritta due volte in due punti diversi sarebbe la copia debole
+   che questo repository paga già altrove. `parseInfortuniCsv` non rilegge
+   questa colonna (è annotazione per chi apre il file, non un dato che
+   rientra): allargarla non tocca il giro di andata e ritorno sulle sei
+   colonne davanti. */
+export function csvRegistroInfortuni(eventi, oggi = new Date()) {
   const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];
   const ordinati = (eventi || []).filter(Boolean)
     .slice().sort((a, b) => ((a.data || "") < (b.data || "") ? -1 : 1));
   for (const x of ordinati) {
     const aperta = prognosiAperta(x);
+    const note = [];
+    if (aperta) note.push(NOTA_PROGNOSI_APERTA);
+    if (visitaRientroNecessaria(x)) note.push("visita medica di rientro da programmare (art. 41 c.2 lett. e-ter)");
+    const sd = scadenzaDenunciaInail(x, oggi);
+    if (sd.pertinente && !sd.presentata)
+      note.push("denuncia INAIL " + (!sd.calcolabile ? "da valutare"
+        : sd.stato === "scaduta" ? "SCADUTA" : sd.stato === "in-scadenza" ? "urgente" : "entro il " + dataIt(sd.scadenza)));
     righe.push([
       x.data || "",
       x.tipo || "",
@@ -2407,7 +2425,7 @@ export function csvRegistroInfortuni(eventi) {
       aperta ? "" : giornateAssenza(x),
       csvCell(x.descrizione || ""),
       csvCell(x.luogo || ""),
-      aperta ? NOTA_PROGNOSI_APERTA : "",
+      csvCell(note.join(" · ")),
     ].join(";"));
   }
   return righe.join("\n") + "\n";
@@ -4830,6 +4848,8 @@ export function fogliaCartella(cartella, oggi = new Date()) {
         (gInf ? gInf.etichetta : "—")
         + " · " + (x.giorniAssenza == null ? "**prognosi ancora aperta**" : conta(x.giorniAssenza, "giorno di assenza", "giorni di assenza"))
         + (visitaRientroNecessaria(x) ? " · **visita medica di rientro da programmare (art. 41 c.2 lett. e-ter)**" : "")
+        + (() => { const sd = scadenzaDenunciaInail(x, oggi);
+          return sd.pertinente && !sd.presentata ? " · **denuncia INAIL " + (!sd.calcolabile ? "da valutare" : sd.stato === "scaduta" ? "SCADUTA" : sd.stato === "in-scadenza" ? "urgente" : "entro il " + dataIt(sd.scadenza)) + "**" : ""; })()
         + (x.descrizione ? " · " + String(x.descrizione) : "")]; }), ""));
   return {
     titolo: "Cartella del lavoratore",

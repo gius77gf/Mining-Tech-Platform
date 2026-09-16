@@ -217,10 +217,15 @@ const DIFETTI = [
   /* 4. il registro infortuni senza la colonna che dice la prognosi aperta.
      ⏱️ RI-ANCORATE l'08/08 sul MODULO (`csvRegistroInfortuni`), dove l'export è
      salito: la riga si compone con un array e `join`, non più concatenando
-     stringhe, quindi la vecchia citazione non poteva più combaciare. */
+     stringhe, quindi la vecchia citazione non poteva più combaciare.
+     ⏱️ RI-ANCORATA di nuovo il 16/09: la settima colonna non è più un `? :`
+     ma un `note` composto — prognosi aperta, visita di rientro, denuncia
+     INAIL, uniti con ` · ` — perché un documento che ESCE deve poter dire
+     PIÙ cose insieme, non una sola. La seconda metà dell'iniezione ora toglie
+     la riga che aggiunge la nota della prognosi aperta all'array. */
   ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota"];',
    'const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo"];', MODULO],
-  ['      aperta ? NOTA_PROGNOSI_APERTA : "",\n', "", MODULO],
+  ['    if (aperta) note.push(NOTA_PROGNOSI_APERTA);\n', "", MODULO],
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè
         nel posto delle più urgenti — chi la data non ce l'ha, e mescolava le
         chiuse alle aperte. */

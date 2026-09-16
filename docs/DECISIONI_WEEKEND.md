@@ -1823,13 +1823,21 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.588** *(ricontate il 16/09, dopo aver
-aggiunto a Scudo `scadenzaDenunciaInail` (D.P.R. 1124/1965, art. 53) — due
-termini diversi, 2 giorni dal certificato medico o 24 ore dall'evento se
-mortale; il termine mortale è un MASSIMO dichiarato, non preciso, perché
-Scudo registra solo il giorno dell'infortunio e non l'ora; una prognosi
-ancora aperta non è "non dovuta", è "non si sa ancora" — verificato anche
-nel browser — dopo aver costruito il ponte Campo→Sentinella (sovrapposizione 3g della mappa
+**Le prove automatiche sono passate a 3.590** *(ricontate il 16/09, dopo una
+revisione di qualità sulla stessa unità: `csvRegistroInfortuni` e
+`fogliaCartella` non portavano la nota della denuncia INAIL — lo schermo la
+mostrava, il CSV e il foglio stampabile per il consulente no, la stessa
+famiglia di difetto di «dove un documento compone qualcosa che ESCE, chi
+decide i suoi numeri»; la settima colonna del CSV ora COMPONE più avvisi
+insieme — prognosi aperta, visita di rientro, denuncia INAIL — invece di
+sceglierne uno solo, e `csvRegistroInfortuni` ha guadagnato un `oggi`
+iniettabile che non aveva — dopo aver aggiunto a Scudo `scadenzaDenunciaInail`
+(D.P.R. 1124/1965, art. 53) — due termini diversi, 2 giorni dal certificato
+medico o 24 ore dall'evento se mortale; il termine mortale è un MASSIMO
+dichiarato, non preciso, perché Scudo registra solo il giorno dell'infortunio
+e non l'ora; una prognosi ancora aperta non è "non dovuta", è "non si sa
+ancora" — verificato anche nel browser — dopo aver costruito il ponte
+Campo→Sentinella (sovrapposizione 3g della mappa
 ecosistema, cercata il 15/09) — `meteoDelGiorno` traduce i turni meteo di
 Campo in pioggia/vento forte per giudicare le misure di rumore fuori
 condizioni (DM 16/03/1998), con la pioggia confermata solo se tutti i turni
