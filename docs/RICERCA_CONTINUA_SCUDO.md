@@ -1852,3 +1852,169 @@ importante: il collegamento evento→azione→responsabile→scadenza→semaforo
 che tre giri fa un censimento superficiale avrebbe potuto dichiarare
 mancante, è **già costruito, condiviso con due app esterne (Sentinella,
 Campo) e testato**.
+
+---
+
+## 16/09 — undicesimo giro: rischio chimico, denuncia INAIL, anagrafica attrezzature, notifiche, barriere mancate (ICAM)
+
+*Nota di processo (regola 1): letto per intero questo documento (10 giri
+precedenti, 01/08→15/09) e `docs/CONCORRENTI_SCUDO.md` (censimento di 14
+categorie contro Intelex/Cority/SafetyCulture/VelocityEHS/Evotix/Donesafe/
+Blumatica/Quentic) prima di proporre. Commit verificato: `9f8fa3ad`.*
+
+Già confermati **completi** (non riproposti): ispettore/fascicolo cava,
+near-miss L. 198/2025, ciclo DSS, nomine/organigramma, appaltatori/DUVRI,
+permessi di lavoro (PTW), verifica periodica attrezzature *come verifica*
+(manca l'anagrafica, vedi tema 3), osservazioni di sicurezza (BBS),
+controllo versioni documenti, verbale ispezione stampabile, calendario
+.ics, prova di emergenza, idoneità sanitaria→turno, sospensione temporanea
+lavoratore (chiusa nell'ultimo commit letto), indici INAIL (IF/IG/LTIFR),
+il meccanismo dei 5 Perché con guardia anti-colpevolizzazione. Tutti i
+grep sotto sono stati **riverificati indipendentemente** il 16/09 prima di
+appendere — stesso esito riportato dall'agente in ogni caso.
+
+### 1. Rischio chimico e sostanze pericolose (Titolo IX D.Lgs 81/08)
+**Come si vede (il mondo, di seconda mano):** il D.Lgs 81/08 Titolo IX
+impone di valutare preliminarmente la presenza di agenti chimici
+pericolosi; la silice cristallina respirabile è classificata fra i
+processi cancerogeni con valore limite 0,1 mg/m³ (Allegato XLIII).
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'agenti chimici|\bSDS\b|scheda.{0,3}dati.{0,3}sicurezza|sostanz[ae].{0,3}pericolos' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+Scudo governa già rumore/vibrazioni (Titolo VIII, preset `rumore-vibraz`)
+e ha un preset `esposti-silice` (registro esposti), ma nessun preset
+gemello per il Titolo IX né un tipo di documento "Scheda dati di
+sicurezza": `grep -niE 'silice|polveri' apps/scudo/scudo-data.js | wc -l`
+→ **8**, tutte voci di checklist/il preset esposti — non una valutazione
+del rischio chimico (che cosa c'è in cava, quanto è pericoloso).
+⚠️ **Trabocchetto segnalato dall'agente stesso, riverificato**:
+`grep -ciE 'REACH' apps/scudo/index.html` (senza `\b`) dà **25**, tutte
+`forEach` — con `\bREACH\b` dà **0**. Lasciato come avvertimento per chi
+rilancia i comandi.
+**Il delta:** preset `rischio-chimico` (categoria `cava`, gemello di
+`rumore-vibraz`) + tipo di documento "Scheda dati di sicurezza (SDS)" con
+`sostanza`/`dataRevisioneSds`/`classificazione`, agganciato a
+`documenti/{id}` come il DSS.
+**Quanto costa (stima non verificata):** medio.
+**Come si misura:** `TIPI_DOCUMENTO` include "Scheda dati di sicurezza";
+una SDS con `dataRevisioneSds` vecchia entra nello scadenzario come "da
+rivedere", non nel silenzio di un "Altro".
+
+### 2. Denuncia infortunio INAIL come scadenza automatica
+**Come si vede (il mondo, di seconda mano):** termine 48h dalla ricezione
+del certificato medico (2gg se l'infortunio si aggrava oltre il 3° giorno,
+24h se mortale/pericolo di morte); sanzione 1.290-7.745€. Fonti convergenti
+ma di seconda mano (WebFetch bloccato, riverificato).
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'denunciaInail|scadenzaDenuncia|24 ore.{0,15}mortale|48 ore.{0,15}denuncia' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+    $ grep -niE 'entro (2|due|tre|3) giorni|48 ore|denuncia inail' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:3799: (commento sulla sospensione disciplinare, tema diverso e già chiuso)
+Scudo distingue già `gravita`/`giorniAssenza`/`prognosiAperta` e ha il
+pattern esatto (`cicloDss`, scadenza-da-evento), ma non lo applica alla
+denuncia INAIL — l'adempimento col termine più stretto di tutto lo
+scadenzario.
+⚠️ **Onestà dichiarata dalla ricerca stessa**: il termine decorre dalla
+data di RICEZIONE DEL CERTIFICATO, non dall'evento, e Scudo non ha quel
+campo — quindi la proposta non è "scrivere 48h dall'infortunio" (sarebbe
+un errore di calcolo spacciato per certo) ma aggiungere `dataCertificato`
+e dichiarare "non calcolabile: manca la data del certificato" finché
+assente.
+**Il delta:** campo `dataCertificato` opzionale, funzione
+`scadenzaDenunciaInail(evento, oggi)` sul modello di `cicloDss`.
+**Quanto costa (stima non verificata):** piccolo-medio.
+**Come si misura:** un infortunio grave senza `dataCertificato` mostra
+"non calcolabile", non un colore tranquillo; con la data, rispetta i tre
+termini — **da verificare sul testo primario della norma prima che il
+numero finisca in una schermata**.
+
+### 3. Anagrafica attrezzature (fascicolo macchina)
+*(mancanza segnalata tre volte — luglio, 09/08, oggi — mai colmata)*
+**Come si vede (il mondo, di seconda mano):** i gestionali HSE italiani
+organizzano l'anagrafica attrezzature per categorie con dati identificativi
+e fascicolo tecnico, alcuni collegati alle scadenze con notifica.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'attrezzaturaId|export const attrezzature|attrezzature\[' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+    $ grep -ciE 'matricol|costruttor|fabbricazion|targa|numero di serie' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:4
+    apps/scudo/index.html:1
+Le 4+1 occorrenze sono "mezzo targato" su una scadenza mezzi, "vita utile
+dichiarata dal costruttore" dei DPI, "libretto del costruttore" in
+commenti — nessuna riga collega una verifica a un'entità "attrezzatura".
+**Confine dichiarato con Flotta** (che ha già `mezzi`/`manutenzioni` per
+il parco mobile): il delta di Scudo va limitato alle attrezzature FISSE
+(gru, carriponte, piattaforme elevabili, funi/imbracature) coperte
+dall'Allegato VII D.M. 11/04/2011 ma non da Flotta — decisione di
+prodotto, non ostacolo tecnico.
+**Il delta:** entità `attrezzature/{id}` con tipo/modello/matricola/
+costruttore/anno, campo `attrezzaturaId` sulla verifica periodica.
+**Quanto costa (stima non verificata):** medio.
+**Come si misura:** aprendo una verifica periodica si legge modello/
+matricola/costruttore, non solo data ed esito.
+
+### 4. Notifiche automatiche
+*(confermata assente 6 volte di fila, 06/08→14/08, ancora vera oggi)*
+**Come si vede (il mondo, di seconda mano):** tutti i major EHS censiti
+automatizzano notifiche/escalation come parte del motore di workflow.
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+Il testo pronto c'è (`testoPromemoria`/`testoPromemoriaAzione`, "da
+incollare nell'email"), il canale d'invio no; il calendario .ics (11/09)
+copre solo chi importa attivamente il calendario.
+**Il delta (grande, richiede backend):** invio email/SMS reale, da
+decidere se via Deepwork ID o servizio dedicato. **Primo passo piccolo
+senza server:** notifica in-app persistente (badge che resta finché non
+letta), riusando `livelloScadenza`.
+**Quanto costa (stima non verificata):** grande (invio esterno) / piccolo
+(primo passo in-app).
+**Come si misura:** un responsabile che non apre Scudo da N giorni vede un
+contatore "non lette" persistente al primo accesso, non solo la lista già
+filtrata di sempre.
+
+### 5. Barriere mancate nell'analisi causa (ICAM)
+**Come si vede (il mondo, di seconda mano):** l'ICAM (standard citato per
+il settore minerario) mappa le difese assenti o fallite — non "perché è
+successo" ma "che cosa avrebbe dovuto impedirlo e non l'ha fatto".
+**Come si vede (prova, riverificata il 16/09):**
+    $ grep -ciE '\bbarrier[ae]\b|difes[ae] mancat' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:0
+    apps/scudo/index.html:0
+`validaAnalisi`/`causeRicorrenti` sono già maturi (guardia anti-
+colpevolizzazione, 6 famiglie di causa): questo tema non li sostituisce,
+aggiunge il pezzo specifico ICAM mancante — quale barriera fisica/
+procedurale avrebbe dovuto fermare l'evento.
+**Il delta:** campo opzionale `barriereMancate: [testo]` sul record di
+analisi, con esempi precompilati (delimitazione, permesso di lavoro,
+blocco macchina/LOTO, DPI non indossato, sorveglianza) — stesso pattern di
+`CAUSE_ANALISI`, non un modulo nuovo.
+**Quanto costa (stima non verificata):** piccolo.
+**Come si misura:** un'analisi sul caso demo "delimitazione rimossa" può
+registrare "barriera: delimitazione/fascia di rispetto"; `causeRicorrenti`
+(o una sorella) può dire non solo la causa più ricorrente ma la barriera
+che manca più spesso.
+
+**Nota minore, non un tema a sé:** il filtro incrociato sito+anno sulla
+dashboard indici (`grep -niE 'filtroAnno|filtroCantiere' apps/scudo/
+scudo-data.js apps/scudo/index.html` → **0 righe**, riverificato) resta
+l'unico residuo della dashboard KPI, già altrimenti completa
+(`graf-if`/`graf-ig`/`indiciInfortunistici`).
+
+**Riassunto:** 5 mancanze confermate (grep riverificati indipendentemente
+su tutti e cinque i temi), di cui una (denuncia INAIL) dichiara
+onestamente di non poter scrivere un numero definitivo senza prima
+aggiungere il campo da cui il termine decorre, e una (anagrafica
+attrezzature) richiede una decisione di confine con Flotta prima del
+codice.
+
+*Fonti (di seconda mano, via WebSearch): puntosicuro.it, olympus.uniurb.it,
+inail.it, tussl.it, certifico.com, vegaengineering.com, biblus.acca.it,
+studiomarchetti.va.it, confcommerciovicenza.info, teamsystem.com,
+zucchetti.it, vittoriarms.com, sinergestsuite.it,
+sistemigestioneintegrata.eu, intelex.com, capterra.com, voxelai.com,
+safetyculture.com, sitemate.com, compliancecouncil.com.au.*
