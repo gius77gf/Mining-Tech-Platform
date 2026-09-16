@@ -247,7 +247,15 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    direttamente `ATT.find(...)`, duplicando la logica a tre stati invece di
    chiamare il modulo — e perdeva la distinzione fra «non collegata» e
    «collegamento rotto» che `attrezzaturaDiScadenza` esiste per fare. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 91 };
+/* ⚠️ `terra` SALE DA 91 A 101: gli 8 nel mezzo sono arretrato di sessioni
+   precedenti (unità come `attesaRecupero`, `tendenzaRitmo`, `sezionePeggiore`
+   già committate senza mai alzare questo fondo — non è lavoro di questa
+   unità, e non va attribuito qui); gli ultimi 2
+   (`volumePianificatoLottoAnno`, `varianzaLottoAnno`, 16/09, dal delta della
+   ricerca continua sul sequenziamento multi-anno) sono di questa unità, con
+   le loro prove in run-kpi e il banco browser
+   `terra-piano-lotto-anno.mjs`. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 101 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

@@ -1058,7 +1058,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, attesaRecupero, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            difformitaVolumetrica, giudizioVariante,
-           volumeMisuratoDiLotto, rilieviFuoriDaiLotti,
+           volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
            inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
            csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
@@ -2469,10 +2469,23 @@ a.dw-btn{text-decoration:none}
     const volumi = "Previsti " + (+l.volumeM3 > 0 ? nD(l.volumeM3) + " m³" : "—")
       + " · misurati " + (vm.misurabile ? nD(vm.m3) + " m³" : "—")
       + (av.pct == null ? "" : " (" + un1(av.pct) + "% del previsto)") + ".";
+    /* IL PIANO PLURIENNALE, ANNO PER ANNO (16/09): silenzioso se il lotto non
+       dichiara `volumiAnnuali` per l'anno corrente — è un campo nuovo e
+       opzionale, e la maggioranza dei lotti della dimostrazione non lo ha di
+       proposito (la stessa scelta già fatta per `l.nota`/`l.garanziaEuro` qui
+       sotto). Quando c'è, e l'anno è misurabile, dice la cosa che
+       `varianzaMensilePiano` non può dire: QUALE lotto sta slittando. */
+    const annoCorrente = new Date().getFullYear();
+    const vl = varianzaLottoAnno(l, annoCorrente, RIL);
+    const pianoAnno = vl.calcolabile
+      ? "Nel " + annoCorrente + ": pianificati " + nD(vl.pianificato) + " m³, scavati " + nD(vl.reale)
+        + " m³ — " + vl.verso + (vl.verso === "in pari" ? "." : " di " + un1(Math.abs(vl.scartoPct)) + "%.")
+      : "";
     // la ragione per cui manca un numero, con le parole della funzione che
     // quel numero non l'ha dato: non se ne inventano di nuove
     const perche = [
       volumi,
+      pianoAnno,
       !vm.misurabile ? vm.motivo : (av.pct == null ? av.motivo : ""),
       vm.rilieviCumulo > 0
         ? "Sui suoi fronti ci sono anche " + nD(vm.cumuloM3) + " m³ ripresi da cumuli: materiale già cavato, che non conta come scavo di questo lotto."

@@ -109,6 +109,14 @@ export const DEMO = {
     { id: "lo4", nome: "Lotto 4 — settore Nord", ordine: 4, superficieMq: 12000, volumeM3: 180000,
       stato: "aperto", apertoIl: "2024-05-02", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      /* IL PIANO PLURIENNALE (16/09): unico lotto della dimostrazione con un
+         volume pianificato per anno — gli altri restano senza, di proposito,
+         perché il campo è nuovo e opzionale (`volumePianificatoLottoAnno`
+         torna null e `varianzaLottoAnno` si dichiara non calcolabile, senza
+         inventare uno zero). Coi due rilievi di scavo del fronte f1 nel 2026
+         (19.400 + 21.300 = 40.700 m³) contro un piano di 50.000, il lotto
+         risulta INDIETRO — il caso vero per cui la funzione esiste. */
+      volumiAnnuali: [{ anno: 2026, volumeM3: 50000 }],
       frontiId: ["f1"], quotaFondoM: 335, altezzaBancoMaxM: 16, nota: "" },
     { id: "lo5", nome: "Lotto 5 — settore Est", ordine: 5, superficieMq: 9500, volumeM3: 140000,
       stato: "aperto", apertoIl: "2025-09-08", esauritoIl: null,
@@ -3483,6 +3491,48 @@ export function volumeMisuratoDiLotto(lotto, rilievi) {
     misurabile: true, rilievi: scavo.length,
     cumuloM3: r2(cumulo.reduce((t, r) => t + (+r.volumeM3 || 0), 0)),
     rilieviCumulo: cumulo.length, motivo: "" };
+}
+
+/* IL PIANO PLURIENNALE, UN ANNO ALLA VOLTA (16/09, dal delta della ricerca
+   continua: `pianificatoAnnuoM3` è un numero solo, uguale per tutta la vita
+   del piano — non sa dire «nel 2026 il progetto ne prevede 50.000, nel 2027
+   40.000». `lotto.volumiAnnuali` è un array OPZIONALE e ADDITIVO, la stessa
+   forma già scelta per `sezionePeggiore`: un lotto che non lo dichiara non
+   perde niente di quello che aveva. */
+export function volumePianificatoLottoAnno(lotto, anno) {
+  const arr = (lotto || {}).volumiAnnuali;
+  if (!Array.isArray(arr)) return null;
+  const voce = arr.find((v) => v && String(v.anno) === String(anno));
+  const m3 = voce ? +voce.volumeM3 : NaN;
+  return Number.isFinite(m3) && m3 > 0 ? m3 : null;
+}
+
+/* IL CONFRONTO PIANIFICATO-VS-REALE, PER LOTTO, PER ANNO. `varianzaMensilePiano`
+   qui sopra è aggregata su TUTTI i lotti insieme: un Lotto 3 indietro di tre
+   mesi si nasconde dietro un Lotto 1 in anticipo, e il direttore non sa QUALE
+   lotto sta slittando. Stessa forma di `varianzaMensilePiano` apposta —
+   `calcolabile`/`perche` quando manca il dato, `verso` col vocabolario già in
+   uso (avanti/indietro/in pari), non un termine nuovo — e stessa disciplina
+   del fondatore: nessun piano per l'anno non è un piano a zero, è un piano
+   NON DICHIARATO, e un lotto senza rilievi di scavo nell'anno non è un lotto
+   a zero, è un lotto NON MISURATO quell'anno.
+   ⛔ Riusa `volumeMisuratoDiLotto` filtrando i rilievi sull'anno PRIMA di
+   passarli, invece di riscrivere il ponte lotto→fronte→rilievo: quel ponte
+   (fronti del lotto, scavo/cumulo, `rilievoUsabile`) resta scritto in un
+   posto solo, non una sesta copia per l'anno. */
+export function varianzaLottoAnno(lotto, anno, rilievi) {
+  const piano = volumePianificatoLottoAnno(lotto, anno);
+  if (piano == null)
+    return { calcolabile: false, perche: "questo lotto non dichiara un volume pianificato per l'anno " + anno };
+  const rilieviAnno = (rilievi || []).filter((r) => r && String(r.data || "").slice(0, 4) === String(anno));
+  const vm = volumeMisuratoDiLotto(lotto, rilieviAnno);
+  if (!vm.misurabile)
+    return { calcolabile: false, pianificato: r2(piano), perche: vm.motivo };
+  const scartoM3 = vm.m3 - piano;
+  const scartoPct = Math.round(100 * scartoM3 / piano);
+  return { calcolabile: true, pianificato: r2(piano), reale: vm.m3, rilievi: vm.rilievi,
+    scartoM3: r2(scartoM3), scartoPct,
+    verso: scartoM3 > 0 ? "avanti" : scartoM3 < 0 ? "indietro" : "in pari" };
 }
 
 /* ⛔ E I RILIEVI CHE NON STANNO IN NESSUN LOTTO. Se sparissero in silenzio, la

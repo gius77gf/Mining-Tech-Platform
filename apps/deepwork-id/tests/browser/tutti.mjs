@@ -810,6 +810,13 @@ const BANCHI = [
      tale. La controprova rimette «0 m³» al posto di «non misurato». */
   ['la relazione di fine lavori del lotto di Terra, premuta davvero', 'terra-relazione-lotto.mjs', []],
   ['relazione di fine lavori · controprova', 'terra-relazione-lotto.mjs', ['--controprova'], true],
+  /* 16/09 · il piano pluriennale, un anno alla volta (dal delta della ricerca
+     continua su Terra, sequenziamento multi-anno): `varianzaLottoAnno` dice
+     QUALE lotto sta slittando, non solo il ritmo aggregato di tutta la cava.
+     La controprova azzera il confronto nella riga come se il campo (nuovo,
+     opzionale) non fosse mai arrivato alla pagina. */
+  ['il piano pluriennale per lotto nella pagina Titolo di Terra', 'terra-piano-lotto-anno.mjs', []],
+  ['piano pluriennale per lotto · controprova', 'terra-piano-lotto-anno.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

@@ -4635,6 +4635,55 @@ test("⛔ l'avanzamento di un lotto NON stima", () => {
     ok(/non è stato misurato/.test(s.motivo), "con la ragione scritta");
   }
 });
+// ── Terra · il piano pluriennale, un anno alla volta (16/09, dal delta della
+// ricerca continua: `varianzaMensilePiano` è aggregata su TUTTI i lotti,
+// `varianzaLottoAnno` dice QUALE lotto sta slittando) ──────────────────────
+test("volumePianificatoLottoAnno: un campo opzionale, non un numero inventato", () => {
+  eq(terra.volumePianificatoLottoAnno({}, 2026), null, "nessun `volumiAnnuali`: non dichiarato, non zero");
+  eq(terra.volumePianificatoLottoAnno({ volumiAnnuali: [] }, 2026), null, "array vuoto: lo stesso");
+  eq(terra.volumePianificatoLottoAnno(null, 2026), null);
+  const l = { volumiAnnuali: [{ anno: 2025, volumeM3: 30000 }, { anno: 2026, volumeM3: 50000 }] };
+  eq(terra.volumePianificatoLottoAnno(l, 2026), 50000, "l'anno giusto, non il primo della lista");
+  eq(terra.volumePianificatoLottoAnno(l, 2027), null, "un anno non dichiarato resta null");
+  // un valore corrotto (negativo, non numerico) non si prende per buono
+  eq(terra.volumePianificatoLottoAnno({ volumiAnnuali: [{ anno: 2026, volumeM3: -5 }] }, 2026), null);
+  eq(terra.volumePianificatoLottoAnno({ volumiAnnuali: [{ anno: 2026, volumeM3: "boh" }] }, 2026), null);
+});
+test("⛔ varianzaLottoAnno: due assenze diverse — piano non dichiarato, anno non misurato", () => {
+  const rilAnno = [
+    { id: "z1", fronteId: "fz", volumeM3: 19400, stato: "elaborato", data: "2026-07-15" },
+    { id: "z2", fronteId: "fz", volumeM3: 21300, stato: "elaborato", data: "2026-06-16" },
+    { id: "z3", fronteId: "fz", volumeM3: 99999, stato: "elaborato", data: "2027-01-05" },
+  ];
+  const senzaPiano = terra.varianzaLottoAnno({ frontiId: ["fz"] }, 2026, rilAnno);
+  eq(senzaPiano.calcolabile, false, "nessun `volumiAnnuali`: non calcolabile");
+  ok(/non dichiara un volume pianificato/.test(senzaPiano.perche), senzaPiano.perche);
+  const lotto = { frontiId: ["fz"], volumiAnnuali: [{ anno: 2026, volumeM3: 50000 }, { anno: 2029, volumeM3: 20000 }] };
+  const senzaRilievi = terra.varianzaLottoAnno(lotto, 2029, rilAnno);
+  eq(senzaRilievi.calcolabile, false, "un piano c'è (per il 2029), ma nessun rilievo di quell'anno");
+  ok(/non è stato misurato da nessuno/.test(senzaRilievi.perche), "⛔ la STESSA frase di volumeMisuratoDiLotto, non una nuova");
+  // ⛔ il rilievo del 2027 (z3, 99999 m³) NON deve entrare nel conto del 2026:
+  // se il filtro sull'anno fosse rotto, lo scarto uscirebbe positivo invece che negativo
+  const v = terra.varianzaLottoAnno(lotto, 2026, rilAnno);
+  eq(v.calcolabile, true);
+  eq([v.pianificato, v.reale, v.rilievi], [50000, 40700, 2], "solo i due rilievi del 2026 (19.400+21.300)");
+  eq(v.scartoM3, -9300);
+  eq(v.scartoPct, -19, "indietro del 19%");
+  eq(v.verso, "indietro");
+  // il verso si gira quando si scava più del pianificato
+  const avanti = terra.varianzaLottoAnno({ frontiId: ["fz"], volumiAnnuali: [{ anno: 2026, volumeM3: 30000 }] }, 2026, rilAnno);
+  eq(avanti.verso, "avanti");
+  eq(avanti.scartoPct, 36);
+});
+test("varianzaLottoAnno sulla dimostrazione: lo4 è indietro nel 2026, gli altri cinque non dichiarano un piano", () => {
+  const oggi2026 = terra.DEMO.lotti.find((l) => l.id === "lo4");
+  const v = terra.varianzaLottoAnno(oggi2026, 2026, terra.DEMO.rilievi);
+  eq(v.calcolabile, true);
+  eq(v.verso, "indietro");
+  for (const l of terra.DEMO.lotti.filter((x) => x.id !== "lo4"))
+    eq(terra.varianzaLottoAnno(l, 2026, terra.DEMO.rilievi).calcolabile, false,
+      l.id + " non dichiara ancora un piano per anno: campo nuovo, opzionale");
+});
 test("⛔ la percentuale non si calcola su ricavi zero, il margine negativo sì", () => {
   const s = conti.margineMese([], [], COSTI_M, [{ mese: "2026-05", chiusoIl: "2026-06-02" }], "2026-05");
   eq(s.ricavi, 0, "nessuna fattura nel mese");
