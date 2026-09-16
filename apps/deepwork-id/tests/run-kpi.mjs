@@ -33584,6 +33584,22 @@ test("⛔ Conti · venditePerProdotto: l'eccedenza si CONTA, perché il contenim
     eq(per(sporco[0]).motivo, "senza-periodicita", "⛔ quindi non si sa, invece di sapersi sbagliato");
   });
 
+  test("⛔ Sentinella · il ponte periodoMesi/giorniConsegna è wired ANCHE sull'import CSV, non solo sulla registrazione manuale (16/09)", () => {
+    /* `parseAdempimentiCsv` legge le due colonne facoltative (test sopra),
+       ma il gestore di "ade-file" che scrive nel database non le passava:
+       un adempimento re-importato da un CSV che le dichiarava perdeva in
+       silenzio il periodo — `periodoAdempimento` tornava «senza-periodicita»
+       e il bottone «Prepara il report» si rifiutava di partire, con lo
+       stesso testo di un adempimento mai compilato. Stessa famiglia dei bug
+       di Campo/Terra/Conti trovati lo stesso giorno con lo stesso metodo
+       (censimento a doppio punto di chiamata). */
+    const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
+    ok(/rec\.periodoMesi = Math\.round\(mesi\)/.test(pagina),
+      "la registrazione manuale scrive la tolleranza (era già vero: qui si fissa che resti tale)");
+    ok(/db\.aggiungi\("adempimenti", \{ titolo: r\.titolo, ente: r\.ente, scadenza: r\.scadenza,\s*periodoMesi: r\.periodoMesi, giorniConsegna: r\.giorniConsegna \}\)/.test(pagina),
+      "e ANCHE l'import da CSV li passa — il difetto trovato il 16/09, corretto nello stesso commit");
+  });
+
   test("⛔ Sentinella · il file esportato dice del periodo la STESSA cosa dello schermo", () => {
     /* «Dove questa app compone qualcosa che ESCE, chi decide i suoi numeri?»
        Se la risposta non è «la stessa funzione che decide a schermo», lì c'è

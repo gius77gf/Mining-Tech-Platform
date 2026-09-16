@@ -1592,3 +1592,56 @@ dedotto dal mondo dei laboratori.
 **✅ 16/09 — il delta 2 (escalation sui superamenti ripetuti) è stato implementato**, riverificato indipendentemente riga per riga prima di scrivere codice: commit `747d6431`. `superamentiUltimiGiorni` in `sentinella-data.js`, `bozzaAzioneSuperamento` reso pattern-aware, badge nel ponte. Il caso non è nella dimostrazione reale (zero superamenti aperti oggi, misurato) — verificato iniettando un punto/ricettore nel browser, mai sul file su disco (`tests/browser/sentinella-escalation-superamenti.mjs`).
 
 **⏸️ Il delta 1 (identità dello strumento) NON è stato implementato**, di proposito: la ricerca stessa lo dichiara incerto (nessuna fonte conferma strumenti itineranti nel settore estrattivo specifico). Diventato la decisione 28 in `docs/DECISIONI_WEEKEND.md`, in attesa di conferma del fondatore prima di costruirlo.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata (quarto difetto vero trovato con lo stesso metodo nello stesso giorno, dopo Campo, Terra, Conti)
+
+⛔ **Trovato: `db.aggiungi("adempimenti", ...)` perdeva `periodoMesi`/
+`giorniConsegna` sull'import CSV.** `parseAdempimentiCsv`
+(`sentinella-data.js:965-988`) legge correttamente le due colonne
+facoltative (test già esistenti, righe 33568-33585) — ma il gestore che
+scrive DAVVERO nel database dopo l'import (`$("ade-file").onchange`,
+`index.html:5509-5537`) chiamava `db.aggiungi("adempimenti", { titolo:
+r.titolo, ente: r.ente, scadenza: r.scadenza })`, senza `r.periodoMesi`
+né `r.giorniConsegna` — pur essendo entrambi già presenti sull'oggetto
+`r` restituito dal parser. La registrazione manuale (`btn-ade`,
+`index.html:5443-5447`) li scrive già.
+
+**Effetto verificato leggendo il consumatore**: `periodoAdempimento`
+(`sentinella-data.js:3231-3253`) tratta `periodoMesi` assente come
+`motivo: "senza-periodicita"`, `noto: false`. Sullo schermo la riga
+dell'adempimento mostra «periodo coperto non dichiarato» invece del
+periodo vero, e il bottone «Prepara il report» **si rifiuta di partire**
+(`index.html:4909-4911`, `if (!p.noto) { toast(...); return; }`) con lo
+stesso messaggio di un adempimento mai compilato — anche se il file del
+consulente dichiarava fedelmente «trimestrale, consegna 30 giorni».
+
+**Corretto** (commit da verificare nel prossimo checkpoint): aggiunte le
+due chiavi alla chiamata di import. Nessuna normalizzazione a `null`
+necessaria (a differenza del fix su Terra): `parseAdempimentiCsv`
+restituisce sempre le due chiavi con un valore — un numero o `null`,
+mai `undefined` — quindi `r.periodoMesi`/`r.giorniConsegna` sono già
+sicuri per `addDoc` di Firestore.
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Sentinella · il ponte
+periodoMesi/giorniConsegna è wired ANCHE sull'import CSV" — con
+controprova (rimesse le due chiavi, il test cade).
+
+**Candidati scartati dallo stesso censimento** (famiglia Flotta, non
+regressioni): monitoraggi manuale vs CSV import differiscono di
+`ricettoreId`/`sogliaPreset`/`scartoCalibrazioneDb` contro `tipo`/`nota`,
+ma non esiste nessun `csvMonitoraggi` esportatore — il formato CSV non è
+mai stato progettato per portare quei campi; la registrazione manuale di
+una taratura omette `nota` che l'import CSV porta, ma il form manuale non
+ha nemmeno il campo `#tar-nota` — il dato non è mai stato raccolto, non
+perso in transito.
+
+⚠️ **Nota di metodo, per chi continuerà questo censimento su altre app**:
+il metodo ha ora trovato **quattro difetti veri su cinque tentativi**
+(Campo, Terra, Conti, Sentinella sì; Flotta no, con la ragione distinta).
+La domanda che separa un difetto vero da un falso allarme è sempre la
+stessa: *il campo mancante è genuinamente disponibile su quel percorso
+(un lettore CSV lo parsa, o lo stato della pagina lo tiene), o non è mai
+esistito lì* — e la risposta va letta nel codice del lettore/parser, non
+dedotta dal nome delle chiavi.

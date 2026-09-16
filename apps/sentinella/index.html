@@ -5532,7 +5532,8 @@ textarea.dw-input{
     let agg = 0, dup = 0;
     for (const r of righe) {
       if (ADE.some(a => (a.titolo || "").toLowerCase() === r.titolo.toLowerCase() && a.scadenza === r.scadenza)) { dup++; continue; }
-      await db.aggiungi("adempimenti", { titolo: r.titolo, ente: r.ente, scadenza: r.scadenza });
+      await db.aggiungi("adempimenti", { titolo: r.titolo, ente: r.ente, scadenza: r.scadenza,
+        periodoMesi: r.periodoMesi, giorniConsegna: r.giorniConsegna });
       agg++;
     }
     $("ade-file").value = "";

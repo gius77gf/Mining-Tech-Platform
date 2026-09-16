@@ -1823,8 +1823,17 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.601** *(ricontate il 16/09, dopo aver
-corretto in Conti — censimento a doppio punto di chiamata, terzo difetto
+**Le prove automatiche sono passate a 3.602** *(ricontate il 16/09, dopo aver
+corretto in Sentinella — censimento a doppio punto di chiamata, quarto
+difetto vero trovato con lo stesso metodo nello stesso giorno —
+`db.aggiungi("adempimenti",...)`: l'import CSV non passava `periodoMesi`/
+`giorniConsegna` che `parseAdempimentiCsv` già leggeva; un adempimento
+re-importato perdeva il periodo dichiarato e il bottone «Prepara il
+report» si rifiutava di partire con lo stesso messaggio di un adempimento
+mai compilato; nessuna normalizzazione a `null` necessaria (il parser
+restituisce sempre le due chiavi, mai `undefined`); nuovo test con
+controprova — dopo aver corretto in Conti — censimento a doppio punto di
+chiamata, terzo difetto
 vero trovato con lo stesso metodo nello stesso giorno — `csvClienti`/
 `parseClientiCsv`: la copia di sicurezza dell'anagrafica non portava
 `listinoId`, quindi un cliente col listino personalizzato ri-caricato dal
