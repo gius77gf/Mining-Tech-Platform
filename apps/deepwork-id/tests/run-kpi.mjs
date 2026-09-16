@@ -42970,7 +42970,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
     for (const et of ["attività: nessuna registrata oggi", "<h2>Fermi per causale</h2>", "non è stato consegnato</b>", "Nessuna checklist di inizio turno compilata oggi", "Riposo dal turno precedente</th>"])
       ok(!pagina.includes(et), "la pagina contiene ancora " + et);
-    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI/.test(pagina), "e chiama rapportoGiornata con i dati vivi");
+    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,\n\s*meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT \}, \{ dmy \}\)/.test(pagina),
+      "e chiama rapportoGiornata con TUTTI i dati vivi, chiamata chiusa — non solo il suo inizio (era proprio qui il buco del 16/09: la riga sotto lo spiega)");
   });
   /* ⛔ 16/09 — QUI stava il buco: la riga sopra controllava che la pagina
      chiamasse rapportoGiornata con «i dati vivi», ma guardava solo l'INIZIO
