@@ -255,7 +255,11 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ricerca continua sul sequenziamento multi-anno) sono di questa unità, con
    le loro prove in run-kpi e il banco browser
    `terra-piano-lotto-anno.mjs`. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 101 };
+/* ⚠️ `terra` SALE DA 101 A 102: `sequenzaLotto` (16/09, stesso giro di
+   ricerca — dà finalmente un peso a `lotto.ordine`, mai usato in nessun
+   controllo prima d'ora), con la sua prova in run-kpi e il banco browser
+   `terra-sequenza-lotto.mjs`. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 102 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

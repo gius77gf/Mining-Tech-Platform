@@ -1058,7 +1058,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, attesaRecupero, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            difformitaVolumetrica, giudizioVariante,
-           volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno,
+           volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno, sequenzaLotto,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
            inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
            csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
@@ -2446,6 +2446,8 @@ a.dw-btn{text-decoration:none}
     const att = attesaCollaudo(l, new Date());
     // fra «esaurito» e «recupero iniziato»: da quanto si aspetta (15/09)
     const attR = attesaRecupero(l, new Date());
+    // la sequenza dichiarata dal progetto rispetto al lotto da cui dipende (16/09)
+    const sl = sequenzaLotto(l, LOT, RIL);
     const nome = esc(l.nome || "Lotto senza nome");
     const dd = DATA_LOTTO[st];
     const conData = dd && dataISOEsiste(l[dd[0]]);
@@ -2495,6 +2497,7 @@ a.dw-btn{text-decoration:none}
         : "",
       att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
       attR.pertinente ? attR.frase.charAt(0).toUpperCase() + attR.frase.slice(1) + "." : "",
+      sl.pertinente ? sl.frase.charAt(0).toUpperCase() + sl.frase.slice(1) + "." : "",
       l.garanziaEuro != null && l.garanziaEuro !== "" && Number.isFinite(+l.garanziaEuro) ? "Quota di garanzia: " + euro0(l.garanziaEuro) + (st === "collaudato" ? ", liberata col collaudo." : ".") : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");
@@ -2505,6 +2508,7 @@ a.dw-btn{text-decoration:none}
       ${att.pertinente ? (att.stato === "chiesto"
         ? '<span class="badge tag" title="Fine lavori comunicata: si aspetta il sopralluogo e il verbale dell\'ente">collaudo chiesto</span>'
         : '<span class="badge warn" title="Il recupero lo dichiara l\'azienda; il collaudo lo verifica l\'ente, e va chiesto">collaudo non chiesto</span>') : ""}
+      ${sl.pertinente && sl.rispettata === false ? `<span class="badge warn" title="${esc(sl.frase)}">fuori sequenza</span>` : ""}
       <span class="badge ${sty[1]}">${esc(sty[2])}</span>
       ${st === "recuperato" || st === "collaudato" ? `<button class="arr" type="button" title="Relazione di fine lavori: il foglio per chiedere il collaudo e lo svincolo" aria-label="Relazione di fine lavori di ${nome}" data-rel-lot="${l.id}">${A.verb}</button>` : ""}
       <button class="arr" type="button" title="Modifica il lotto" aria-label="Modifica il lotto ${nome}" data-edit-lot="${l.id}">${A.mod}</button>

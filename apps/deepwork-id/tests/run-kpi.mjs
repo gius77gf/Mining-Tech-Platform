@@ -40634,6 +40634,61 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine attesa del collaudo (Terra, 04/09) ===== */
 
+/* ===== LA SEQUENZA DEL PROGETTO (Terra, 16/09) =====
+   Dal delta della ricerca continua sul sequenziamento multi-anno,
+   riverificato indipendentemente prima di scrivere: `lotto.ordine` esiste da
+   sempre ma non è mai stato usato in un controllo. `sequenzaLotto` non
+   blocca niente (Terra non ha un bottone "apri" distinto dal form generico):
+   si LEGGE, come `attesaCollaudo`/`attesaRecupero`, stessa forma
+   `{pertinente, frase}`. */
+{
+  const TUTTI = [
+    { id: "p1", nome: "Precedente", volumeM3: 100000, frontiId: ["fx"] },
+    { id: "p2", nome: "Senza fronte", volumeM3: 50000, frontiId: [] },
+  ];
+  const RIL_SEQ = [{ id: "rx", fronteId: "fx", volumeM3: 40000, stato: "elaborato" }]; // 40% di p1
+  test("sequenzaLotto: non pertinente su un lotto che non dichiara nessuna dipendenza", () => {
+    for (const l of [{}, { dipendeDa: null }, { dipendeDa: {} }, null])
+      eq(terra.sequenzaLotto(l, TUTTI, RIL_SEQ), { pertinente: false, rispettata: null, frase: "" }, JSON.stringify(l));
+  });
+  test("⛔ sequenzaLotto: rispettata quando il precedente ha superato la soglia, violata quando no", () => {
+    // p1 è al 40%: soglia 30 → rispettata; soglia 50 → violata
+    const rispettata = terra.sequenzaLotto({ dipendeDa: { lottoId: "p1", percentuale: 30 } }, TUTTI, RIL_SEQ);
+    eq([rispettata.pertinente, rispettata.rispettata, rispettata.precedentePct], [true, true, 40]);
+    ok(/sequenza rispettata/.test(rispettata.frase), rispettata.frase);
+    const violata = terra.sequenzaLotto({ dipendeDa: { lottoId: "p1", percentuale: 50 } }, TUTTI, RIL_SEQ);
+    eq([violata.pertinente, violata.rispettata, violata.precedentePct], [true, false, 40]);
+    ok(/aperto prima che/.test(violata.frase), violata.frase);
+    // esattamente sulla soglia: rispettata (>=), non violata
+    eq(terra.sequenzaLotto({ dipendeDa: { lottoId: "p1", percentuale: 40 } }, TUTTI, RIL_SEQ).rispettata, true, "40% >= 40% è rispettata");
+  });
+  test("⛔ sequenzaLotto: due assenze diverse — lotto sparito dal progetto, avanzamento non misurabile", () => {
+    const sparito = terra.sequenzaLotto({ dipendeDa: { lottoId: "fantasma", percentuale: 50 } }, TUTTI, RIL_SEQ);
+    eq([sparito.pertinente, sparito.rispettata], [true, null]);
+    ok(/non è più nel progetto/.test(sparito.frase), sparito.frase);
+    const nonMisurabile = terra.sequenzaLotto({ dipendeDa: { lottoId: "p2", percentuale: 50 } }, TUTTI, RIL_SEQ);
+    eq([nonMisurabile.pertinente, nonMisurabile.rispettata], [true, null], "p2 non ha fronti: nessun avanzamento");
+    ok(/non è ancora misurabile/.test(nonMisurabile.frase), nonMisurabile.frase);
+  });
+  test("sequenzaLotto: senza percentuale dichiarata la soglia di default è 100%, non 0", () => {
+    const l = terra.sequenzaLotto({ dipendeDa: { lottoId: "p1" } }, TUTTI, RIL_SEQ);
+    eq(l.sogliaPct, 100, "un valore assente non equivale a «nessuna soglia»: si chiede il completamento");
+    eq(l.rispettata, false, "p1 al 40% non basta per una soglia di default al 100%");
+  });
+  test("sequenzaLotto sulla dimostrazione: lo5 è FUORI SEQUENZA (aperto prima dell'80% di lo4), lo6 la rispetta", () => {
+    const lo5 = terra.DEMO.lotti.find((l) => l.id === "lo5");
+    const lo6 = terra.DEMO.lotti.find((l) => l.id === "lo6");
+    const s5 = terra.sequenzaLotto(lo5, terra.DEMO.lotti, terra.DEMO.rilievi);
+    const s6 = terra.sequenzaLotto(lo6, terra.DEMO.lotti, terra.DEMO.rilievi);
+    eq([s5.pertinente, s5.rispettata], [true, false], "lo5 dipende da lo4 all'80%, lo4 è al 34,8%");
+    eq([s6.pertinente, s6.rispettata], [true, true], "lo6 dipende da lo5 al 20%, lo5 è al 27,6%");
+    for (const l of terra.DEMO.lotti.filter((x) => x.id !== "lo5" && x.id !== "lo6"))
+      eq(terra.sequenzaLotto(l, terra.DEMO.lotti, terra.DEMO.rilievi).pertinente, false,
+        l.id + " non dichiara ancora una dipendenza: campo nuovo, opzionale");
+  });
+}
+/* ===== fine sequenza del progetto (Terra, 16/09) ===== */
+
 /* ===== LA GARANZIA ANCORA VINCOLATA (Terra, 04/09) =====
    Il mondo svincola la fideiussione per lotto, sul verbale di collaudo. Terra
    non calcola l'importo (listini regionali, seconda mano): somma le quote che

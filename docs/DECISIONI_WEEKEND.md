@@ -1782,8 +1782,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.562** *(ricontate il 16/09, dopo aver
-aggiunto a Terra `varianzaLottoAnno`/`volumePianificatoLottoAnno` — il
+**Le prove automatiche sono passate a 3.567** *(ricontate il 16/09, dopo aver
+aggiunto a Terra `sequenzaLotto` — `lotto.ordine` finalmente usato in un
+controllo, non solo mostrato: badge "fuori sequenza" (non bloccante) quando un
+lotto è aperto prima che il precedente raggiunga la soglia dichiarata, stessa
+forma `{pertinente, frase}` di `attesaCollaudo`/`attesaRecupero`, verificato
+anche nel browser — dopo aver aggiunto a Terra
+`varianzaLottoAnno`/`volumePianificatoLottoAnno` — il
 confronto pianificato-vs-reale PER LOTTO PER ANNO, dal delta della ricerca
 continua sul sequenziamento multi-anno, verificato indipendentemente prima di
 scrivere codice: `varianzaMensilePiano` è aggregata su tutti i lotti insieme
@@ -1883,7 +1888,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **305
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **307
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

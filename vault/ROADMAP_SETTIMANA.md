@@ -8600,9 +8600,15 @@ numero scritto dove non era stato misurato niente**.*
   `varianzaMensilePiano` (aggregata su tutti i lotti) non può dare — campo
   opzionale `lotto.volumiAnnuali`, prima fetta su un solo lotto (`lo4`)
   della dimostrazione, verificato anche nel browser
-  (`terra-piano-lotto-anno.mjs`) —, 3065→3068):
-  **3.562 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3068, `run-stile` 330,
+  (`terra-piano-lotto-anno.mjs`) —, 3065→3068). E a `sequenzaLotto` di
+  Terra (stesso giro di ricerca): `lotto.ordine` finalmente usato in un
+  controllo — badge "fuori sequenza" (non bloccante) quando un lotto è
+  aperto prima che il precedente raggiunga la soglia dichiarata
+  (`dipendeDa: {lottoId, percentuale}`), stessa forma `{pertinente,
+  frase}` di `attesaCollaudo`/`attesaRecupero`, verificato anche nel
+  browser (`terra-sequenza-lotto.mjs`) —, 3068→3073):
+  **3.567 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3073, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8612,8 +8618,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **305 esecuzioni** che
-  aprono le pagine in un browser vero, da **132** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **307 esecuzioni** che
+  aprono le pagine in un browser vero, da **133** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

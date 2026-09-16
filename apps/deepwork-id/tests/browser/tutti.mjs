@@ -817,6 +817,12 @@ const BANCHI = [
      opzionale) non fosse mai arrivato alla pagina. */
   ['il piano pluriennale per lotto nella pagina Titolo di Terra', 'terra-piano-lotto-anno.mjs', []],
   ['piano pluriennale per lotto · controprova', 'terra-piano-lotto-anno.mjs', ['--controprova'], true],
+  /* 16/09 · la sequenza del progetto (dallo stesso giro di ricerca): un peso
+     finalmente dato a `lotto.ordine`, mai usato in nessun controllo prima
+     d'ora. Non blocca niente, lo dice: badge "fuori sequenza" quando un
+     lotto è aperto prima che il precedente raggiunga la soglia dichiarata. */
+  ['la sequenza del progetto (lotto.ordine finalmente usato) nella pagina Titolo di Terra', 'terra-sequenza-lotto.mjs', []],
+  ['sequenza del progetto · controprova', 'terra-sequenza-lotto.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

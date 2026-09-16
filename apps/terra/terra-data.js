@@ -118,13 +118,25 @@ export const DEMO = {
          risulta INDIETRO — il caso vero per cui la funzione esiste. */
       volumiAnnuali: [{ anno: 2026, volumeM3: 50000 }],
       frontiId: ["f1"], quotaFondoM: 335, altezzaBancoMaxM: 16, nota: "" },
+    /* LA SEQUENZA DEL PROGETTO (16/09): due lotti dichiarano `dipendeDa`, e
+       sono i DUE STATI che contano — un campione solo non distingue «la
+       funzione dice sempre rispettata» da «dice sempre violata». Lotto 5 è
+       già APERTO (dal 2025-09-08) ma dipende dal Lotto 4 all'80%, che oggi è
+       misurato al 34,8% (62.700/180.000 m³, gli stessi rilievi del piano
+       pluriennale qui sopra): sequenza VIOLATA, aperto in anticipo — il caso
+       vero per cui la funzione esiste. Lotto 6 dipende dal Lotto 5 al 20%,
+       che è misurato al 27,6% (38.700/140.000 m³): sequenza RISPETTATA,
+       anche se il Lotto 6 stesso è ancora "previsto" e non aperto — la
+       validità della sequenza non dipende dallo stato del lotto che guarda. */
     { id: "lo5", nome: "Lotto 5 — settore Est", ordine: 5, superficieMq: 9500, volumeM3: 140000,
       stato: "aperto", apertoIl: "2025-09-08", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      dipendeDa: { lottoId: "lo4", percentuale: 80 },
       frontiId: ["f2"], nota: "" },
     { id: "lo6", nome: "Lotto 6 — settore Sud", ordine: 6, superficieMq: 15000, volumeM3: 200000,
       stato: "previsto", apertoIl: null, esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      dipendeDa: { lottoId: "lo5", percentuale: 20 },
       frontiId: ["f3"], nota: "Coltivazione subordinata alla verifica di stabilità della scarpata." },
   ],
   rilievi: [
@@ -3533,6 +3545,43 @@ export function varianzaLottoAnno(lotto, anno, rilievi) {
   return { calcolabile: true, pianificato: r2(piano), reale: vm.m3, rilievi: vm.rilievi,
     scartoM3: r2(scartoM3), scartoPct,
     verso: scartoM3 > 0 ? "avanti" : scartoM3 < 0 ? "indietro" : "in pari" };
+}
+
+/* LA SEQUENZA DEL PROGETTO (16/09, dal delta della ricerca continua sul
+   sequenziamento multi-anno): un lotto può dichiarare da quale ALTRO lotto
+   dipende e a quale soglia di avanzamento — `dipendeDa: {lottoId, percentuale}`,
+   campo opzionale e additivo come `volumiAnnuali`. `lotto.ordine` esiste da
+   sempre ma non è mai stato usato in un controllo, solo mostrato nel verbale
+   ("1° del progetto"): questa è la prima funzione che gli dà un peso.
+   ⛔ NON BLOCCA NIENTE, di proposito: Terra non ha un bottone "apri" distinto
+   dal form generico di modifica del lotto, quindi un divieto costruito qui
+   fermerebbe anche la correzione di un errore di battitura su un lotto già
+   aperto da mesi. Si LEGGE come `attesaCollaudo`/`attesaRecupero` qui sopra —
+   stessa forma `{pertinente, frase}` — non si impedisce.
+   `pertinente` è false quando il lotto non dichiara nessuna dipendenza, e
+   allora la frase è vuota: non un «tutto a posto» su un lotto che non ha
+   niente da rispettare, che sarebbe il numero tranquillo di sempre. */
+export function sequenzaLotto(lotto, tuttiLotti, rilievi) {
+  // formattazione italiana della percentuale, la stessa già usata altrove nel
+  // file (riga 1737/1871): una cifra decimale, virgola non punto
+  const un1 = (v) => (Math.round(v * 10) / 10).toLocaleString("it-IT", { useGrouping: true });
+  const l = lotto || {};
+  const dip = l.dipendeDa;
+  if (!dip || !dip.lottoId) return { pertinente: false, rispettata: null, frase: "" };
+  const sogliaPct = Number.isFinite(+dip.percentuale) && +dip.percentuale > 0 ? +dip.percentuale : 100;
+  const precedente = (tuttiLotti || []).find((x) => x && String(x.id) === String(dip.lottoId));
+  if (!precedente) return { pertinente: true, rispettata: null, sogliaPct,
+    frase: "dipende da un lotto (" + dip.lottoId + ") che non è più nel progetto: il collegamento va rifatto" };
+  const vm = volumeMisuratoDiLotto(precedente, rilievi);
+  const av = avanzamentoLotto(precedente, vm.misurabile ? vm.m3 : null);
+  const nomePrec = precedente.nome || "il lotto da cui dipende";
+  if (av.pct == null) return { pertinente: true, rispettata: null, sogliaPct, precedenteNome: nomePrec,
+    frase: "dipende da " + nomePrec + " al " + un1(sogliaPct) + "%, ma il suo avanzamento non è ancora misurabile" };
+  const rispettata = av.pct >= sogliaPct;
+  return { pertinente: true, rispettata, sogliaPct, precedentePct: av.pct, precedenteNome: nomePrec,
+    frase: rispettata
+      ? "sequenza rispettata: " + nomePrec + " è al " + un1(av.pct) + "% (soglia " + un1(sogliaPct) + "%)"
+      : "aperto prima che " + nomePrec + " raggiungesse il " + un1(sogliaPct) + "%: oggi è al " + un1(av.pct) + "%" };
 }
 
 /* ⛔ E I RILIEVI CHE NON STANNO IN NESSUN LOTTO. Se sparissero in silenzio, la
