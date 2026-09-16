@@ -8657,9 +8657,11 @@ numero scritto dove non era stato misurato niente**.*
   ottava colonna, prima fetta), poi il terzo (`csvIncassi` di Conti,
   scelto invece di `csvPesate` perché più semplice), poi il quarto
   (`csvPesate` di Conti, primo terzo codice: `illeggibile` per un peso
-  incompleto, diverso da `mai-misurato`) (3097→3101):
-  **3.595 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3101, `run-stile` 330,
+  incompleto, diverso da `mai-misurato`), poi il quinto (`csvRicettori` di
+  Sentinella, prima volta che la riga resta anche senza il valore
+  misurato) (3097→3102):
+  **3.596 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3102, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

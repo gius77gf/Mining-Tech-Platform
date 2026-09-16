@@ -834,6 +834,44 @@ l'elenco esatto va riletto in §3 di questo documento prima di scegliere).
 
 ---
 
+**✅ 16/09 (stesso giorno) — P2, QUINTO SCRITTORE: `csvRicettori` di
+Sentinella, e la PRIMA VOLTA CHE LA RIGA NON SPARISCE MAI.** Diverso dai
+primi quattro per una ragione strutturale, non di stile: in rilievi/
+incassi/pesate un valore assente fa scartare l'INTERA riga al rientro; un
+ricettore senza `distanza` invece resta un ricettore — nessun `.filter`
+lo tocca. La cella vuota è comunque un'assenza senza spiegazione, quindi
+P2 si applica lo stesso, ma il "prima si sceglie il campo" qui vale
+doppio: `csvClienti` e `csvGare` sono stati scartati come candidati
+proprio in questa unità perché hanno già una colonna chiamata `stato`
+con un significato diverso (lo stato commerciale del cliente/della gara)
+— scriverne una seconda con lo stesso nome e un significato diverso
+sarebbe stato il difetto peggiore possibile per uno strumento nato per
+togliere ambiguità, non per aggiungerne.
+
+Stesso binario di Terra e Conti-incassi (nessuna ragione più fine da
+distinguere): `STATO_CELLA_MISURATO` quando `distanzaDelRicettore` (la
+stessa funzione che decide lo zero-non-è-una-distanza a schermo, riusata)
+restituisce un numero, `STATO_CELLA_MAI_MISURATO` quando restituisce
+`null`. Undicesima colonna, prima fetta: solo lo scrittore,
+`parseRicettoriCsv` resta posizionale a dieci campi. Aggiornata
+`CSV_TABELLE` (guardia B8) e le tre asserzioni esistenti che ancoravano
+la fine della riga sulle colonne del sopralluogo. Controprova sul codice
+vero: sostituita la costante con una stringa quasi identica, confermato
+che i due test dedicati cadono, ripristinato.
+
+**Cinque scrittori su undici migrati.** Restano sei: scadenze (Terra,
+Flotta, Scudo — già unificate dietro `statoScadenza` in `shared/`, quindi
+probabilmente non serve un NUOVO stato lì), listino/fatture/gare-residue
+di Conti, mezzi/ricambi-residui di Flotta, lavoratori di Scudo,
+monitoraggi/volate di Sentinella — l'elenco preciso resta quello di D1/D2
+sopra, e va riletto (non ricordato a memoria) prima di scegliere il
+prossimo, perché due candidati già controllati in questa unità
+(`csvClienti`, `csvGare`) si sono rivelati NON adatti per la collisione
+di nome — la stessa domanda va rifatta per ognuno dei sei rimasti prima
+di scrivere codice.
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 

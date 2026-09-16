@@ -1053,7 +1053,7 @@ export function scartiAdempimentiCsv(text) {
 export { numeroDichiarato } from "../../shared/dw-ponti.js";
 // il dopo-sparo con l'ora dello sparo (11/09): la regola vive in `shared/` perché la legge anche Campo
 export { attesaDopoSparo } from "../../shared/dw-ponti.js";
-import { attesaDopoSparo } from "../../shared/dw-ponti.js";
+import { attesaDopoSparo, STATO_CELLA_MISURATO, STATO_CELLA_MAI_MISURATO } from "../../shared/dw-ponti.js";
 import { numeroDichiarato,
          VOL_PREVISTA, VOL_ESEGUITA, statoDaTesto, statoVolata, volataPrevista, volatePreviste, volateEseguite,
          volateDelGiorno, PPV_STRUMENTO, PPV_MANUALE, ppvDiVolata } from "../../shared/dw-ponti.js";
@@ -2278,8 +2278,17 @@ export function abbinaTarature(voci, monitoraggi) {
    la cintura si allaccia anche per il tratto corto. */
 // le tre colonne del sopralluogo preventivo (11/09): il file porta com'era la casa
 // prima delle volate, se no un ricettore esportato e reimportato perde la difesa
-export const CSV_RICETTORI_INTESTAZIONE = "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote";
+export const CSV_RICETTORI_INTESTAZIONE = "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote;stato";
 
+/* l'undicesima colonna (16/09, P2 di docs/RICERCA_CONTINUA_ASSENZA.md §4,
+   quinto scrittore): a differenza dei quattro precedenti, qui la riga NON
+   sparisce mai se `distanza` manca — un ricettore resta un ricettore anche
+   senza distanza nota, e `parseRicettoriCsv` non scarta niente. Ma la cella
+   vuota è comunque un'assenza che nessuno spiega: `distanzaDelRicettore` è
+   la stessa funzione (riusata, non riscritta) che decide se un valore è una
+   misura vera. Stesso binario di Terra e degli incassi di Conti: nessun'altra
+   ragione distinta da scrivere, quindi niente terzo codice qui. Prima fetta:
+   solo lo scrittore, `parseRicettoriCsv` resta posizionale a dieci campi. */
 export function csvRicettori(ricettori) {
   const righe = (ricettori || []).map(r => {
     const d = distanzaDelRicettore(r), s = sogliaDelRicettore(r);
@@ -2289,6 +2298,7 @@ export function csvRicettori(ricettori) {
       s == null ? "" : String(s), csvCell((r || {}).unita || ""),
       csvCell((r || {}).nota || ""),
       csvCell(((r || {}).statoDiFatto || {}).data || ""), csvCell(((r || {}).statoDiFatto || {}).chi || ""), csvCell(((r || {}).statoDiFatto || {}).note || ""),
+      d == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO,
     ].join(";");
   });
   return CSV_RICETTORI_INTESTAZIONE + "\n" + (righe.length ? righe.join("\n") + "\n" : "");

@@ -1823,7 +1823,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.595** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.596** *(ricontate il 16/09, dopo aver
+migrato a Sentinella (`csvRicettori`) il quinto scrittore del vocabolario
+condiviso di P2 — la prima volta che la riga NON sparisce mai senza il
+valore misurato (un ricettore senza distanza resta un ricettore); scartati
+come candidati `csvClienti` e `csvGare` di Conti perché avevano già una
+colonna chiamata `stato` con un significato diverso — dopo aver
 migrato a Conti (`csvPesate`) il quarto scrittore del vocabolario condiviso
 di P2 — la prima volta con un TERZO codice, `illeggibile` per un ticket
 della pesa con un solo peso dei due, diverso da `mai-misurato` (nessun

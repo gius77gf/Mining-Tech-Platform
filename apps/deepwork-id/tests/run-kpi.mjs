@@ -1863,9 +1863,9 @@ test("Sentinella · il sopralluogo preventivo esce nel CSV dei ricettori, rientr
   const testo = sentinella.csvRicettori([con, senza]);
   const righe = testo.split("\n").filter(Boolean);
   eq(righe[0], sentinella.CSV_RICETTORI_INTESTAZIONE, "l'intestazione è quella dichiarata");
-  ok(/;sopralluogoData;sopralluogoChi;sopralluogoNote$/.test(righe[0]), "con le tre colonne del sopralluogo in coda");
-  ok(/;2026-03-12;"Geom\. Ferri; per la cava";fessura sul vano scala$/.test(righe[1]), "la riga porta il sopralluogo, col separatore protetto: " + righe[1]);
-  ok(/;;;$/.test(righe[2]), "senza sopralluogo le tre celle sono vuote, non «null»");
+  ok(/;sopralluogoData;sopralluogoChi;sopralluogoNote;stato$/.test(righe[0]), "con le tre colonne del sopralluogo in coda, poi `stato` (P2, undicesima)");
+  ok(/;2026-03-12;"Geom\. Ferri; per la cava";fessura sul vano scala;misurato$/.test(righe[1]), "la riga porta il sopralluogo, col separatore protetto, poi lo stato: " + righe[1]);
+  ok(/;;;misurato$/.test(righe[2]), "senza sopralluogo le tre celle sono vuote, non «null» — e la distanza qui è misurata (640)");
   const r = sentinella.parseRicettoriCsv(testo);
   eq(r[0].statoDiFatto, con.statoDiFatto, "il sopralluogo rientra identico");
   eq(r[1].statoDiFatto, null, "e chi non ce l'ha rientra senza");
@@ -7506,9 +7506,23 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ).split("\n")[1];
     /* asserzione sul TESTO del file, non sull'oggetto riletto: una coppia
        scrivi/leggi resta verde anche quando sbagliano tutt'e due insieme */
-    eq(riga, "Cascina al confine;abitazione;;;;;muro sul fronte;;;",
-       "la cella della distanza esce VUOTA, come lo schermo che scrive «distanza non indicata»");
+    eq(riga, "Cascina al confine;abitazione;;;;;muro sul fronte;;;;mai-misurato",
+       "la cella della distanza esce VUOTA, come lo schermo che scrive «distanza non indicata» — e lo stato lo conferma (P2, undicesima colonna)");
     ok(!/;0;/.test(riga), "e in nessuna colonna compare lo zero che il gestore a mano scriveva");
+  });
+  test("shared · P2 (quinto scrittore, 16/09): csvRicettori porta l'undicesima colonna `stato` — a differenza dei primi quattro, la riga NON sparisce mai senza distanza", () => {
+    const misurato = sentinella.csvRicettori([{ nome: "Casa", tipo: "abitazione", distanza: 320 }]).split("\n")[1];
+    ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "distanza vera: misurato — " + misurato);
+    const maiMisurato = sentinella.csvRicettori([{ nome: "Casa", tipo: "abitazione" }]).split("\n")[1];
+    ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza distanza: mai-misurato — " + maiMisurato);
+    // la riga ENTRA comunque: non è come rilievi/incassi, dove mancava tutta la riga
+    eq(sentinella.parseRicettoriCsv(sentinella.csvRicettori([{ nome: "Casa", tipo: "abitazione" }])).length, 1,
+      "un ricettore senza distanza resta un ricettore: la riga non si perde");
+    eq(sentinella.csvRicettori([]).split("\n")[0],
+      "nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote;stato");
+    // compatibilità all'indietro: un file a dieci colonne (senza `stato`) rientra lo stesso
+    eq(sentinella.parseRicettoriCsv("nome;tipo;distanza;classe;soglia;unita;nota;sopralluogoData;sopralluogoChi;sopralluogoNote\nCasa;abitazione;320;;;;;;;\n").length, 1,
+      "un file vecchio senza l'undicesima colonna resta leggibile");
   });
   test("⛔ Sentinella · e lo zero non rientra dal file: il giro non riapre il difetto", () => {
     const dentro = sentinella.parseRicettoriCsv(
