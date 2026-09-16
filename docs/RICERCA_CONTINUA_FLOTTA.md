@@ -1742,3 +1742,52 @@ scomporle in un'unità:
   scoordinati.
 
 Nessuna delle tre proposte è entrata in roadmap da questa riverifica.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata: candidato trovato, MA non della stessa famiglia dei tre difetti veri di oggi
+
+Stesso giorno, stesso metodo che ha trovato tre difetti veri su Campo,
+Terra e Conti (una scrittura chiamata da più punti della pagina, confronto
+delle chiavi passate). Su Flotta il candidato più forte trovato da un
+agente Explore era: il salvataggio manuale di un mezzo
+(`index.html:4625/4628`) scrive `tipo`/`messaInServizio`/`costoPossessoAnnuo`/
+`possessoDal`; l'import CSV (`index.html:4738`,
+`db.aggiungi("mezzi", { nome: r.nome, area: r.area, ore: r.ore, stato: r.stato })`)
+ne scrive solo quattro.
+
+**Verificato personalmente, e la conclusione è diversa da quella
+proposta**: a differenza dei tre difetti di oggi (dove il dato ERA
+disponibile — parsato dal CSV o presente nello stato della pagina — e si
+perdeva solo nella scrittura), qui **il dato non esiste da nessuna parte
+da cui prenderlo**. `parseMezziCsv` (`flotta-data.js:1161-1183`) legge
+strutturalmente solo `nome;area;ore;stato` — lo dice anche il messaggio
+d'errore della pagina («le colonne devono essere nome;area;ore;stato»,
+`index.html:4730`) — e **non esiste nessun `csvMezzi` esportatore**
+(`grep -n "csvMezzi\|CSV_MEZZI_INTESTAZIONE" apps/flotta/flotta-data.js`
+→ zero risultati): l'import di Flotta è un onboarding di un parco nuovo,
+non il giro export→import di una copia di sicurezza come per i clienti di
+Conti o i rilievi di Terra.
+
+E il commento su `costoOrarioMezzo` (`flotta-data.js:2037-2047`, 11/09)
+conferma che `costoPossessoAnnuo` è **già** un campo opzionale con la
+gestione «senza il campo, resta `null` con la ragione — mai uno zero»: un
+mezzo importato da CSV senza possesso registrato mostra esattamente lo
+stesso «possesso non registrato» di un mezzo aggiunto a mano il cui
+proprietario ha lasciato il campo vuoto. Non c'è modo di distinguere i due
+casi dallo schermo, ma è la stessa ambiguità che esiste già per QUALUNQUE
+mezzo con quel campo vuoto — non una regressione introdotta dall'import.
+
+**Conclusione: questa NON è la stessa famiglia dei tre difetti trovati
+oggi.** È un limite di FORMATO (il CSV di onboarding ha quattro colonne
+per scelta, non quattro per un errore di trascrizione), non un difetto di
+CABLAGGIO (un dato presente altrove e perso in un punto). La domanda
+giusta per chi volesse ampliarlo non è «perché manca», è una decisione di
+prodotto: vale la pena dare a Flotta un `csvMezzi` esportatore e un
+formato di import più ricco, come Terra e Conti hanno per le loro
+entità principali? Non deciso qui, di proposito — è la stessa famiglia di
+decisione architetturale che questo documento e CLAUDE.md chiedono di non
+prendere di sfuggita dentro un'unità che doveva solo cercare un difetto.
+
+Nessun codice toccato in questa unità: il censimento a doppio punto di
+chiamata su Flotta non ha trovato un difetto della famiglia cercata.
