@@ -1627,3 +1627,118 @@ economica; guasto→causale con codici DTC).
 raptormining.com, mining-technology.com, bradken.com, cat.com, komatsu.com,
 berrytractor.com, opsima.com, heavyvehicleinspection.com,
 firgelliauto.com, link.springer.com, thundersaidenergy.com.*
+
+---
+
+## 16/09 — dodicesimo giro: salute unificata del mezzo, anomalie di consumo, valore residuo
+
+*Ricerca indipendente, non continuazione dei giri precedenti. Tre temi ad alto impatto non affrontati dalla ricerca fino al 16/09 (undicesimo giro).*
+
+### 1. Health Index Unificato del Mezzo — scoring di salute 0–100
+**Come si vede (il mondo, di seconda mano):**
+I moderni CMMS e sistemi di fleet health monitoring (citati da fleetrabbit.com, symx.ai, tenderd.com) combinano tre segnali indipendenti in un unico "health score": frequenza di guasti (MTBF trend), usura meccanica (consumo e costo per intervento in aumento), e disponibilità media. Un mezzo a score alto (80+) richiede monitoraggio leggero; sotto 50 entra in revisione/sostituzione. Il mercato di health monitoring per heavy equipment vale 4,89 mld $ nel 2026 [di seconda mano].
+
+**Come si vede (prova, 16/09):**
+    $ grep -rciE "healthIndex|healthScore|indiceS?alute|punteggio.*mezzo" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+
+Flotta dispone di tre segnali separati (`frequenzaFermiControStoria`, `costoControStoria`, `consumoControStoria`, `disponibilitaFlotta`) ma li mostra indipendentemente. Non esiste una funzione che li combini in un numero unico per dire "questo mezzo è in ottima/buona/cattiva salute".
+
+**Il delta:** `healthIndexMezzo(mezzo, frequenzaFermi, costoManutenzione, consumo, disponibilita, oggi)` che normalizza ciascun segnale su una scala 0–100 con pesi dichiarati (es. disponibilità 40%, frequenza fermi 30%, usura meccanica 30%), e restituisce un punteggio di salute totale. Visualizzabile nel fascicolo e nella lista di priorità come banda di colore (verde/giallo/rosso).
+
+**Quanto costa (stima):** piccolo — somma pesata di valori già calcolati, nessun dato nuovo.
+
+**Come si misura:** un mezzo con disponibilità 85% (buona), nessun fermo questo mese (buono), consumo e costo in linea (buono) → health index 85+; uno stesso mezzo con disponibilità 60%, 3 fermi nel mese (cattivo), costo di intervento raddoppiato (cattivo) → health index <50; il numero cambia coerentemente al mutare di un segnale.
+
+---
+
+### 2. Anomaly Detection su Consumo Carburante — rilevazione perdite e pattern anomali
+**Come si vede (il mondo, di seconda mano):**
+Le piattaforme di fuel management per mining (fleetrabbit.com, farmonaut.com, brevetti USPTO 11993507/10246104) utilizzano machine learning per identificare anomalie in tempo reale: consumo improvviso doppio, refueling fuori zona approvata, flusso di carburante con motore spento, serbatoio che scende senza rifornimento. Gli standard industriali vedono guadagni di 11–15% di efficienza quando vengono implementati controlli sistematici. Una perdita di carburante non rilevata costa 15–25% in più del budget annuale di gasolio [di seconda mano].
+
+**Come si vede (prova, 16/09):**
+    $ grep -rciE "anomal.*consumo|perdita.*gasolio|consumoAnomal|outlier|anomalia.*combustibile" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+
+`consumoPerMezzo` calcola media l/h e €/h per mezzo e periodo, con dichiarazione di pieni senza euro e minimo di finestra. `consumoControStoria` confronta finestra recente (90gg) contro storico totale. Nessuna funzione identifica il singolo rifornimento fuori norma, il pattern di consumo cambiato, o la perdita graduale rispetto al ritmo teorico del mezzo.
+
+**Il delta:** `consumoAnomalyDetection(rifornimenti, mezzo, oreAttuali, tolleranzePercent)` che per ogni rifornimento calcola: (1) il consumo atteso basato su ore fra due rifornimenti e il consumo medio storico del mezzo; (2) il delta fra atteso e osservato; (3) se il delta supera la tolleranza dichiarata (es. +25% per sopravventure, −20% per sospetto furto), restituisce una riga di alert con mezzo, data, motore e azione suggerita.
+
+**Quanto costa (stima):** piccolo — calcolo puro su dati già presenti, nessuna telematica nuova.
+
+**Come si misura:** un mezzo con consumo storico 35 l/h, ultimo rifornimento dopo 50 ore di lavoro, osservato 1.400 litri → consumo atteso ~1.750 l, rilevato 1.400 l = −20% → segnala "possibile perdita il 15/09"; stesso mezzo, giorni dopo, rifornimento di 2.100 litri dopo 50 ore → +20% → avviso "consumo alto il 17/09, verificare carico/velocità". Test su tre mezzi sintetici (consumo stabile, in aumento, con spike anomali) deve produrre tre verdetti diversi.
+
+---
+
+### 3. Stima Automatica del Valore Residuo — deprecazione e decisione di sostituzione
+**Come si vede (il mondo, di seconda mano):**
+I modelli predittivi accademici (ASCE Journal of Computing in Civil Engineering, researchgate.net) e commerciali (Fleet Residuals, automotive-fleet.com, fleetnews.co.uk) stimano il valore residuo di heavy equipment basandosi su età, ore motore accumulate, trend di costi di manutenzione, disponibilità media nel periodo. Una macchina nuova con zero fermi e consumo stabile conserva il 75–80% del valore dopo 3 anni; una stessa classe con 6 fermi/anno e costo di manutenzione raddoppiato cala a 40–50% [di seconda mano, nessuna fonte primaria letta].
+
+**Come si vede (prova, 16/09):**
+    $ grep -rciE "valoreResiduo|residualValue|deprecazione|stimaValore|valutazioneAuto" apps/flotta/flotta-data.js apps/flotta/index.html
+    apps/flotta/flotta-data.js:0
+    apps/flotta/index.html:0
+
+Flotta dispone di: `etaMezzo(possessoDal, oggi)` (anni dal possesso), `costoPossessoAnnuo` (canone), `costoOrarioMezzo` (spesa operativa), `costoControStoria` (trend di manutenzione), `affidabilitaFlotta` (disponibilità). Nessuna funzione combine questi in una stima di valore residuo corrente.
+
+**Il delta:** `valoreResiduo(mezzo, costoDiAcquisizione, etaAnni, oreMotore, trendCostoManutenzione, disponibilitaMedia, prezzoMercatoDiRiferimento)` che applica una formula combinata — decremento base per anni (deprecazione retta 10–15% annuo), riduzione aggiuntiva per usura (trend di costo in salita, disponibilità sotto soglia), e stima del recupero di scarto metallico di fine vita. Restituisce valore residuo EUR e percentuale di perdita di valore rispetto all'acquisizione.
+
+**Quanto costa (stima):** medio — richiede decidere i parametri della deprecazione (velocità, fattori di riduzione per usura) e validare contro i prezzi di scrap reali di mercato per quel tipo di mezzo.
+
+**Come si misura:** tre mezzi di stessa classe, stesso prezzo di acquisto 100k EUR, età 2/5/10 anni, trend di costo e disponibilità diversi → tre stime di residuo diverse; controllo su mezzo storico del cliente (es. venduto 2 anni fa a X, prezzo stimato il giorno prima della vendita Y) → differenza fra stima e prezzo reale < 15%; mezzo in fine vita (>15 anni, no disponibilità) → residuo stimato solo come scrap metallico, mai valore negativo.
+
+---
+
+**Riassunto:** 3 mancanze confermate (grep su entrambi i file → 0 in tutti i tre temi). Ordine suggerito di priorità:
+1. **Health Index** — piccolo, impatto immediato sulla priorità operativa, riusa dati esistenti
+2. **Anomaly Detection su consumo** — piccolo, rilevanza alta per perdite/furti, genera alert concreti
+3. **Valore Residuo** — medio, rilevanza strategica su decisioni di sostituzione, richiede decisioni su parametri di mercato
+
+*Fonti (di seconda mano, via WebSearch): fleetrabbit.com, farmonaut.com, symx.ai, tenderd.com, worldmetrics.org, ascelibrary.org (ASCE Journal 2008), researchgate.net, automotive-fleet.com, fleetnews.co.uk, USPTO (11993507, 10246104, 12006203, 12330927, 9418557).*
+
+---
+
+**⛔ 16/09 — riverifica indipendente (regola "niente entra sulla parola dell'agente"), prima di tradurre queste tre proposte in codice.**
+
+La proposta **#2 (Anomaly Detection su consumo carburante) è probabilmente un
+falso "non c'è": il MECCANISMO esiste già sotto un altro nome.**
+`consumoControStoria` (in `flotta-data.js`, dal delta della ricerca continua
+dell'undicesimo giro — vedi sezione precedente di questo stesso documento)
+confronta già il tasso di consumo recente contro la storia del mezzo, con una
+tolleranza dichiarata (`TOLLERANZA_CONSUMO_PCT`) e un verdetto `forbicePct`/
+`verso`: è esattamente "rileva un pattern anomalo nel consumo confrontando
+con la storia del mezzo", la definizione stessa della proposta #2. La
+ricerca ha cercato `anomal.*consumo|perdita.*gasolio|consumoAnomal|outlier`
+(0 risultati, corretto: quelle parole non ci sono) senza aprire
+`consumoControStoria` per leggere COSA fa, non come si chiama — è la trappola
+già scritta in CLAUDE.md: *"la domanda 'c'è X?' si sbaglia, la domanda 'chi
+calcola Y?' no"*. Verificato aprendo il codice (righe 4717 e seguenti):
+`consumoControStoria(rifornimenti, nomeMezzo, oggi, finestraGiorni)` scarta il
+primo pieno di ogni tratto (il gasolio già dentro non è misurabile), richiede
+almeno due pieni con ore in ciascun periodo, e dichiara `perche` quando non
+può giudicare — le stesse regole di onestà che la proposta #2 chiederebbe.
+**Non tradurre in codice.**
+
+Le proposte **#1 (Health Index) e #3 (Valore residuo) non sono state
+riverificate con lo stesso rigore** e meritano una lettura mirata prima di
+scomporle in un'unità:
+- **#1** rischia di sovrapporsi a `pagellaMezzi` (già in `flotta-data.js`),
+  che confronta costo e disponibilità contro la media del parco con verdetti
+  distinti (`in linea`/segnalato/`solo-meta`) — MA non li fonde in un unico
+  numero 0-100. Prima di scrivere un health index, va deciso se un punteggio
+  unico è coerente con lo stile di questo prodotto (che tipicamente tiene le
+  dimensioni separate proprio per non nascondere un'assenza di dato dietro
+  un numero tranquillo — vedi il principio del fondatore su questo in
+  CLAUDE.md) o se il valore vero sta altrove (es. un badge riassuntivo che
+  RIMANDA alle due misure esistenti invece di sostituirle).
+- **#3** si sovrappone parzialmente al delta #4 già aperto in questo stesso
+  documento ("Curva di costo crescente e punto di sostituzione — vita
+  economica"): quello risponde a QUANDO sostituire, questo a QUANTO vale
+  oggi. Sono domande diverse ma usano gli stessi ingredienti (età, trend di
+  costo, disponibilità) — leggere prima il delta #4 per non costruire due
+  funzioni che duplicano la stessa curva con parametri diversi e
+  scoordinati.
+
+Nessuna delle tre proposte è entrata in roadmap da questa riverifica.

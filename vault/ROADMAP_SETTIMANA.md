@@ -10925,3 +10925,21 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       propria dello strumento) è andata in `DECISIONI_WEEKEND.md`
       (decisione 28): la ricerca stessa la dichiara incerta. Vedi
       checkpoint `20260916-090430_sentinella-escalation.md`.
+
+## Mappa ecosistema — sovrapposizione 3g (16/09)
+- [x] **IL PONTE CAMPO→SENTINELLA PER IL METEO DEL TURNO** *(16/09, unità
+      completata, in parte come dichiarato al censimento del 15/09)*.
+      Campo registra il cielo per turno; Sentinella deve sapere se pioveva
+      per giudicare una misura di rumore (DM 16/03/1998). `meteoDelGiorno`
+      (`shared/dw-ponti.js`): pioggia solo se TUTTI i turni del giorno sono
+      d'accordo, vento forte resta un sospetto qualitativo (mai un
+      verdetto: Campo non dà un numero in m/s). `ponteCampo()` in
+      `sentinella-data.js` (stessa forma di `ponteScudo`). Un dato
+      misurato in loco vince sempre su uno dedotto da Campo; il confronto
+      è per giorno, non per l'istante della misura. Wired su un solo
+      punto (la riga della lettura); CSV ed export invariati di proposito.
+      Non testabile end-to-end in demo (come `ponteScudo`/`AZI`):
+      verificato con test puri e un controllo sul cablaggio nel sorgente
+      della pagina. `docs/MAPPA_ECOSISTEMA.md` §6 aggiornata:
+      sovrapposizioni non collegate 1→0. Vedi checkpoint
+      `20260916-105753_sentinella-ponte-campo-meteo.md`.
