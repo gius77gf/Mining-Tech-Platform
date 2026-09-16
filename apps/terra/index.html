@@ -4850,7 +4850,7 @@ a.dw-btn{text-decoration:none}
       if (gia.has(k)) { dup++; continue; }
       gia.add(k);   // scarta i doppioni anche DENTRO lo stesso file
       await db.aggiungi("rilievi", { titolo: (prov === "cumulo" ? "Ripresa da cumulo " : "Rilievo drone ") + giornoMese(r.data) + (frNome ? " — " + frNome : ""), data: r.data,
-        tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId, stato: "elaborato",
+        tipo: "Ortofoto + DEM", volumeM3: r.volumeM3, fronteId, tolleranzaPct: r.tolleranzaPct ?? null, stato: "elaborato",
         metodo: r.metodo, gsd: r.gsd, provenienza: prov });
       if (prov === "cumulo") cum++;
       agg++;

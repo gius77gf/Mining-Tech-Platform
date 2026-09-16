@@ -28739,6 +28739,26 @@ test("csvRilievi → parseRilieviCsv: la tolleranza del rilevatore fa il giro, e
   eq("tolleranzaPct" in terra.parseRilieviCsv("data;volumeM3\n2026-03-01;100\n")[0], false, "una riga a due colonne resta com'era");
   eq(terra.parseRilieviCsv("data;volumeM3;metodo;gsd;fronte;provenienza;tolleranzaPct\n2026-03-01;100;RTK;2;;scavo;0\n")[0].tolleranzaPct, undefined, "zero non è una tolleranza dichiarata");
 });
+test("⛔ Terra · il ponte tolleranzaPct è wired ANCHE sull'import CSV, non solo sulla registrazione manuale (16/09)", () => {
+  /* csvRilievi/parseRilieviCsv fanno il giro (test sopra), ma un rilievo
+     RE-IMPORTATO va scritto nel database dal gestore di "ril-file": se quel
+     punto non passa tolleranzaPct, la tolleranza dichiarata dal rilevatore
+     si perde in silenzio e classeAccuratezza ricade sulla tipica —
+     esattamente il difetto che il commento di csvRilievi (11/09) dice di
+     aver già risolto, ma solo a metà: lo scrittore/lettore CSV erano a
+     posto, il punto che scrive nel DB no. Stessa famiglia del bug di
+     rapportoGiornata in Campo (16/09): un ponte provato a livello di modulo
+     ma non wired su TUTTI i punti che scrivono. */
+  const pagina = readFileSync(join(HERE, "../../terra/index.html"), "utf8");
+  ok(/db\.aggiungi\("rilievi", \{ titolo: \(prov === "cumulo"[^}]*tolleranzaPct: toll,/.test(pagina),
+    "la registrazione manuale passa la tolleranza (era già vero: qui si fissa che resti tale)");
+  // ⛔ e non un `undefined` nudo verso Firestore: `r.tolleranzaPct` è `undefined`
+  // quando manca (mai una chiave in `parseRilieviCsv`), e scrivere `undefined`
+  // in un documento Firestore lancia — quindi si normalizza a `null`, lo
+  // stesso valore che la registrazione manuale scrive già.
+  ok(/db\.aggiungi\("rilievi", \{ titolo: \(prov === "cumulo"[^}]*tolleranzaPct: r\.tolleranzaPct \?\? null,/.test(pagina),
+    "e ANCHE l'import da CSV la passa, normalizzata a null — il difetto trovato il 16/09, corretto nello stesso commit");
+});
 
 test("Conti · avvisoFidoPesata: la pesata dice se il cliente è oltre fido o ha dello scaduto, e non ferma niente (11/09)", () => {
   const espo = [

@@ -1709,3 +1709,63 @@ $ grep -B 5 -A 5 '"pianificatoAnnuoM3"' apps/terra/terra-data.js | head -20
 - [ScienceDirect — Bench aggregation and mining cut clustering for open-pit planning optimization](https://www.sciencedirect.com/science/article/abs/pii/S0952197624004925)
 - [Italian Mining Regulation — MINLEX Country Report (2019)](https://rmis.jrc.ec.europa.eu/uploads/legislation/MINLEX_CountryReport_IT.pdf)
 - [Italian Regional Guidance — Linee Guida Recupero Ambientale Siti di Cava](https://legislazionetecnica.it/node/1519701)
+
+---
+
+## 16/09 — passata di profondità (binario 2, lettura diretta del sorgente, nessun agente di ricerca)
+
+⛔ **Trovato: il ponte `tolleranzaPct` era wired solo a metà — la stessa
+famiglia del bug di `rapportoGiornata` in Campo, nello stesso giorno.**
+
+Il commento sopra `csvRilievi` (11/09) dice: *«la settima colonna: la
+tolleranza dichiarata dal rilevatore, se c'è — senza, un rilievo esportato
+e reimportato tornava alla tolleranza tipica»*. Vero solo per lo
+scrittore/lettore CSV (`csvRilievi`/`parseRilieviCsv`, provati e verdi da
+sempre). Il punto che davvero scrive nel database — il gestore
+`$("ril-file").onchange` in `apps/terra/index.html`, che prende le righe
+già parsate da `parseRilieviCsv` (che HA `r.tolleranzaPct` quando valido)
+e chiama `db.aggiungi("rilievi", {...})` — non passava `tolleranzaPct` fra
+le chiavi. Confronto affiancato coi due punti che scrivono un rilievo vero:
+
+```
+$ grep -n 'db.aggiungi("rilievi"' apps/terra/index.html
+```
+la registrazione manuale (riga ~4680) aveva `tolleranzaPct: toll`;
+l'import da CSV (riga ~4852, prima della correzione) no.
+
+**Effetto:** un rilievo drone re-importato da un CSV esportato da Terra
+stessa perdeva la tolleranza dichiarata dal topografo (RMSE dalla
+relazione di rilievo) senza nessun errore — `classeAccuratezza` ricadeva
+sulla tolleranza tipica della classe (`fonte: "classe"` invece di
+`"rilevatore"`), cambiando silenziosamente la banda `± m³` mostrata nei
+KPI, in `bandaVolume`, nella riga "Volume misurato" del verbale di
+rilievo e nell'incertezza aggregata di `incertezzaScavo`.
+
+**Trovato col metodo del censimento a doppio punto di chiamata**
+(CLAUDE.md, lo stesso che ha trovato il bug di Campo lo stesso giorno):
+si cerca una funzione (qui, direttamente una scrittura `db.aggiungi`)
+chiamata da più punti della pagina con un oggetto letterale, e si
+confrontano gli insiemi di chiavi passate. Nessun test di `run-kpi.mjs`
+guardava questo punto: i test esistenti su `tolleranzaPct` provano solo
+`csvRilievi`/`parseRilieviCsv`/`classeAccuratezza` a livello di modulo,
+mai la pagina.
+
+**Corretto** (commit da verificare nel prossimo checkpoint): aggiunta
+`tolleranzaPct: r.tolleranzaPct ?? null` alla chiamata di import — normalizzato
+a `null` e non lasciato `undefined`, perché `db.aggiungi` scrive con
+`addDoc` di Firestore, che **lancia** su un campo `undefined` (misurato
+leggendo `terraData()` in `terra-data.js:2718`, non assunto). Un `null`
+esplicito è anche la stessa convenzione già usata dalla registrazione
+manuale (`rt.ok ? rt.valore : null`).
+
+**Test aggiunto**: `run-kpi.mjs`, "⛔ Terra · il ponte tolleranzaPct è
+wired ANCHE sull'import CSV" — verifica ENTRAMBI i punti di scrittura
+sulla pagina vera, con controprova (rimessa l'omissione, il test cade).
+
+⚠️ **Nota di metodo per chi rilegge questa riga**: la ricerca sulle 13
+tornate precedenti di Terra (sopra, tutte "il mondo poi il delta") non
+avrebbe mai trovato questo difetto — non è una funzionalità mancante
+rispetto ai competitor, è un bug di wiring interno visibile solo leggendo
+il sorgente riga per riga. Le due strade (ricerca sul mondo, lettura
+diretta del codice) trovano famiglie di problemi diverse e vanno tenute
+entrambe.

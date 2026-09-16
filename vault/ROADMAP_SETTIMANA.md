@@ -8665,9 +8665,13 @@ numero scritto dove non era stato misurato niente**.*
   di Conti — non aveva mai la collisione di nome attribuitagli per tre
   unità insieme a `csvGare`: verificato col `grep` separato, nessuna
   colonna `stato`; `fido` per la riga di D1; restano irraggiungibili solo
-  `csvGare`/`csvSquadre`/`csvAzioni`) (3097→3105):
-  **3.599 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3105, `run-stile` 330,
+  `csvGare`/`csvSquadre`/`csvAzioni`), poi una passata di profondità su
+  Terra (binario 2): `tolleranzaPct` wired solo a metà, non passava
+  dall'import CSV a `db.aggiungi` (stessa famiglia del bug di
+  `rapportoGiornata` di Campo), corretto normalizzando a `null`
+  (3097→3106):
+  **3.600 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3106, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

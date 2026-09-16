@@ -1823,7 +1823,16 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.599** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.600** *(ricontate il 16/09, dopo una
+passata di profondità su Terra — binario 2, lettura diretta del sorgente,
+nessun agente di ricerca: `tolleranzaPct` del rilevatore era wired solo a
+metà, provato a livello di modulo (`csvRilievi`/`parseRilieviCsv`/
+`classeAccuratezza`) ma non passato dal gestore di import CSV a
+`db.aggiungi` — un rilievo re-importato perdeva la tolleranza dichiarata e
+ricadeva sulla tipica in silenzio, stessa famiglia del bug di
+`rapportoGiornata` di Campo trovato lo stesso giorno con lo stesso metodo;
+corretto normalizzando a `null`, non `undefined` (Firestore lancia sul
+campo `undefined`), nuovo test di wiring con controprova — dopo aver
 migrato a Conti (`csvClienti`) l'OTTAVO scrittore — e corretto un errore
 ripetuto per tre unità di fila: `csvClienti` NON aveva mai la collisione
 di nome che gli era stata attribuita insieme a `csvGare` (nessuna colonna
