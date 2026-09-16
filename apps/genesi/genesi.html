@@ -5109,7 +5109,14 @@ function volSnapshot(nome){
       /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
          relief, che si ricalcolano. Senza questa riga un foro tolto a mano
          ricompariva alla riapertura. */
-      holes:(D2.holes||[]).map(h=>({ id:h.id||null, mx:h.mx, my:h.my, tMano:(h.tMano!=null&&isFinite(h.tMano))?+h.tMano:null }))})),
+      holes:(D2.holes||[]).map(h=>({ id:h.id||null, mx:h.mx, my:h.my, tMano:(h.tMano!=null&&isFinite(h.tMano))?+h.tMano:null })),
+      /* I TRATTI (16/09, censimento a doppio punto di chiamata): `d2Snap`
+         (annulla/ripeti) li porta già, con tutto l'oggetto — un tratto
+         importato da DXF ha anche `origine:'dxf'`. Qui mancavano del tutto:
+         una volata salvata e riaperta perdeva in silenzio ogni riferimento
+         disegnato o importato, senza nessun avviso nel toast di "Apri" —
+         che pure elenca già i fori illeggibili e i cataloghi sconosciuti. */
+      tratti:D2.tratti||[]})),
     sintesi:sintesi };
 }
 /* 13/09 (G36, "Genesi continua a uscire dalla pagina"): `_puntiNuvola` è

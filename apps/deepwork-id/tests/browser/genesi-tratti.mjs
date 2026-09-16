@@ -153,6 +153,37 @@ await pg.waitForTimeout(200);
 const nDopoUndoReset = await pg.evaluate(() => window.__genesi.D2.tratti.length);
 dice(nDopoUndoReset === 1, `annulla restituisce il tratto tolto dal reset (atteso 1, letto ${nDopoUndoReset})`, nDopoUndoReset);
 
+/* IL GIRO SALVA→RIAPRI (16/09, censimento a doppio punto di chiamata):
+   `d2Snap` (annulla/ripristina) porta già i tratti; `volSnapshot` (il
+   salvataggio vero, in Home) non li portava affatto — una volata salvata
+   e riaperta perdeva ogni tratto disegnato o importato, senza nessun
+   avviso. È qui, non nell'annulla/ripristina già provato sopra, che il
+   difetto viveva: due scrittori dello stesso stato, uno dei due muto su
+   un campo che l'altro tratta con cura (l'origine "dxf" inclusa). */
+await pg.click("#btn-salva-volata");
+await pg.waitForTimeout(300);
+await pg.click("#modal-foot .mbtn.primary");
+await pg.waitForTimeout(300);
+/* ⛔ SENZA RICARICARE LA PAGINA LA PROVA NON PROVA NIENTE: `D2.tratti` resta
+   in memoria dal disegno di poco fa, e "Apri" non lo svuota mai prima di
+   `Object.assign` — quindi il tratto "sopravviverebbe" anche se il
+   salvataggio lo avesse perso, perché non se n'era mai andato. Misurato:
+   la prima stesura di questa prova restava verde col difetto rimesso
+   apposta. Un giro salva→riapri vero passa da una pagina FRESCA, come
+   chi chiude il browser e lo riapre. */
+await pg.reload({ waitUntil: "domcontentloaded" });
+const scadenzaReload = Date.now() + 25000;
+while ((await pg.evaluate(() => !!document.getElementById("splash"))) && Date.now() < scadenzaReload) await pg.waitForTimeout(500);
+await pg.waitForTimeout(300);
+await pg.click('#bottomnav button[data-scr="home"]');
+await pg.waitForTimeout(400);
+await pg.click('.hg-item button[data-act="apri"]');
+await pg.waitForTimeout(400);
+const tRiaperti = await pg.evaluate(() => window.__genesi.D2.tratti);
+dice(tRiaperti.length === 1 && tRiaperti[0].pts.length === 3,
+  `⛔ il tratto disegnato prima di salvare sopravvive al giro salva→riapri (atteso 1 tratto con 3 punti, letto ${tRiaperti.length} tratti${tRiaperti[0] ? ", " + tRiaperti[0].pts.length + " punti" : ""})`,
+  tRiaperti);
+
 if (CONTROPROVA) {
   dice(colpiti.size === DIFETTI.length,
     `l'iniezione ha trovato e sostituito il suo testo nella pagina servita (${colpiti.size}/${DIFETTI.length})`,

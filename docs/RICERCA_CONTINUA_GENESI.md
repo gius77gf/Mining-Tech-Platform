@@ -3628,3 +3628,56 @@ due rapporti è aritmetica semplice, `B/D` e `S/B` su valori già letti), ma
 non preso oggi per lo stesso motivo prudenziale già scritto altrove in questo
 documento: la sessione preferisce un'unità piccola e verificata a fondo a
 una grande e verificata a metà.
+
+---
+
+## 16/09 — censimento a doppio punto di chiamata (sesto difetto vero trovato con lo stesso metodo, ultima app del giro)
+
+⛔ **Trovato: `volSnapshot` (il salvataggio della volata in Home) non
+portava i tratti liberi dell'editor 2D — `d2Snap` (annulla/ripristina) sì.**
+Due scrittori dello stesso stato di progetto: `d2Snap` (usato da
+Ctrl+Z/Ctrl+Y) copia `D2.tratti` con tutto l'oggetto — un commento suo,
+del 14/09 (G47d), spiega perché: *«un tratto importato porta anche
+`origine:'dxf'`, e una copia che ricostruisse la forma a mano lo
+perderebbe al primo annulla»*. `volSnapshot` (usato dal bottone «Salva
+nello storico») non menzionava affatto `tratti` nell'oggetto `design` che
+scrive nel database — non un'omissione documentata, semplicemente
+assente.
+
+**Verificato leggendo il consumatore**: `drawDesign2D` (`genesi.html:6029`)
+disegna `D2.tratti` sulla tela quando lo strato è visibile — è la
+funzione che dimostra che il campo conta davvero, non solo per l'annulla.
+E la porta di rientro, il gestore «Apri» (`genesi.html:5219`), fa
+`Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)))`: senza
+`design.tratti`, `D2.tratti` non viene mai toccato dal riapri — e
+significativamente, lo stesso gestore costruisce già un elenco `_avvisi`
+che segnala fori illeggibili e valori di catalogo sconosciuti, ma non
+diceva NULLA sui tratti persi, perché il dato era già sparito un passo
+prima, al salvataggio.
+
+**Corretto**: aggiunta `tratti:D2.tratti||[]` all'oggetto `design` di
+`volSnapshot` (il campo è già dentro il `JSON.parse(JSON.stringify(...))`
+esterno, quindi non serve una copia profonda separata come in `d2Snap`).
+
+⚠️ **La prima stesura della prova non provava niente, ed è stata presa
+prima di committare, non dopo**: il banco browser
+(`tests/browser/genesi-tratti.mjs`) disegnava un tratto e poi cliccava
+subito «Apri» sulla STESSA pagina — `D2.tratti` restava in memoria dal
+disegno appena fatto, quindi «il tratto sopravvive» risultava vero anche
+col difetto rimesso apposta (controprova: 11/11, nessun rosso). La causa
+è la terza delle cinque note in CLAUDE.md: *l'iniezione non ha iniettato
+niente*, perché lo stato che si voleva dimostrare perso non se n'era mai
+andato. La prova vera ricarica la pagina (`pg.reload()`) fra il salvataggio
+e il riapri — una pagina fresca, come chi chiude il browser e lo riapre —
+e SOLO lì la controprova cade davvero (10/11, il caso atteso KO).
+
+**Test aggiunto**: caso nuovo dentro `tests/browser/genesi-tratti.mjs`
+(salva → ricarica → riapri → il tratto disegnato prima di salvare deve
+tornare identico), eseguito realmente col browser due volte (col fix e
+con la controprova rimessa), non solo letto.
+
+**Con questo il censimento a doppio punto di chiamata è stato tentato su
+tutte e sei le app di questa sessione: sei tentativi, sei difetti veri**
+(Campo, Terra, Conti, Sentinella, Scudo, Genesi), più due candidati
+scartati con la ragione scritta (Flotta/mezzi, Scudo/lavoratoreId nel CSV
+infortuni).
