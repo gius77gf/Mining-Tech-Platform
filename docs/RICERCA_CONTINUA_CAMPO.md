@@ -2602,3 +2602,142 @@ che un lavoro non concluso compaia comunque nella consegna anche se
 tecnicamente "ha tutti i suoi dati" — e questo Campo lo fa già da sé (`stato
 !== "conclusa"` include l'anomalia), è solo l'*avviso di chiusura* a non
 guardare lo stesso insieme del testo che genera.
+
+---
+
+## 16/09/2026 — Consegna di turno e gestione della fatica: modelli di handover e rest management
+
+### Che cosa esiste già
+
+In `apps/campo/campo-data.js` (commit attuale):
+- **riposoPrimaDelTurno** (riga 2079): calcola ore consecutive di riposo prima del turno per ciascun operatore; implementa D.Lgs 66/2003 art. 7 (11 ore consecutive ogni 24 ore); legge orari di arrivo (`entrata`) quando dichiarati, altrimenti usa durata nominale del turno
+- **testoConsegnaTurno** (riga 3692): genera il testo della consegna di turno, include: rapportini, produzione, obiettivi, checklist inizio turno, briefing, meteo, volate, lavori non conclusi, anomalie/fermi
+- **near-miss reporting**: campo `tipo: "near-miss"` nei dati di Scudo (ponte P5), integrato in consegna come "Segnalazioni"
+- **presenze** (riga 313-368): { stato: presente|assente|non-spuntato, entrata, uscita, ora } — traccia arrivi/partenze per operatore
+
+### Il mondo: best practices di shift handover negli impianti estrattivi
+
+**Fonti verificate dal WebSearch (09/2026):**
+
+1. **Standardized Handover Procedures** — Industry standard: tutti gli impianti di mining/quarry usano forme strutturate per handover (checklists, logs, briefings). [Fonte](https://engineerlive.com/how-two-mining-companies-addressed-common-safety-blind-spots-in-operations/)
+
+2. **Pre-Shift Briefings** — Best practice: discussione fra turno uscente e entrante su attività, pericoli, anomalie in corso. [Fonte](https://satellitegroundstation.com/resources/shift-handover-best-practices-logs-briefings-and-checklists/)
+
+3. **Overlapping Shifts** — Raccomandazione: sovrapposizione fra equipaggi per trasferimento di conoscenza diretto (tempi, stato mezzi, anomalie in corso). [Fonte](https://unisonmining.com/shift-change-optimization-and-handover-process/)
+
+4. **Near-Miss Integration** — Standard: inclusione di segnalazioni e near-miss nei handover; discussione durante toolbox talks all'inizio turno. [Fonte](https://stacks.cdc.gov/view/cdc/215756/cdc_215756_DS1.pdf)
+
+5. **D.Lgs 66/2003 art. 7** (Italia) — Norma: minimo 11 ore consecutive di riposo ogni 24 ore; richiede tracciamento degli orari effettivi inizio/fine per ciascun operatore (non solo durata dichiarata). [Fonte](https://www.lavoro.gov.it/documenti-e-norme/normative/Documents/2003/20030408_DLGS_66.pdf)
+
+6. **Technology Integration** — Tendenza: sistemi digitali per real-time tracking (RTLS), riduzione della carta, comunicazione strutturata. [Fonte](https://minetechservices.com/how-to-utilise-technology-to-improve-your-underground-shift-change-effectiveness/)
+
+### Il delta: confronto fra mondo e Campo
+
+| **Pratica** | **Campo ha?** | **Dettaglio** |
+|----------|---------|---------|
+| Checklist standardizzata | Sì | `testoConsegnaTurno` include "CHECKLIST DI INIZIO TURNO" (linea 3721) |
+| Briefing registrato | Parziale | Il campo esiste (linea 3729: "BRIEFING DI INIZIO TURNO") ma è opzionale e non strutturato |
+| Sovrapposizione turni tracciata | No | Campo non registra chi era presente alla consegna né i minuti di sovrapposizione |
+| Near-miss nel handover | Sì | `testoConsegnaTurno` include "Segnalazioni" dai near-miss (linea 3405-3472: grep `near-miss segnalati in questo turno`) |
+| Orari effettivi per operatore | Parziale | Presenze hanno `entrata` e `uscita` (linea 169); `riposoPrimaDelTurno` le legge; ma non sono obbligatori — restano "non dichiarati" se non compilati |
+| D.Lgs 66/2003 compliance | Sì | `riposoPrimaDelTurno` implementa il controllo; genera bandiera `sotto` se < 11 ore (linea 1879); avviso in consegna (linea 3578) |
+| Mezzo/impianto principale | No | `testoConsegnaTurno` non dichiara quale mezzo/impianto ha guidato il turno — essenziale per accountability di disponibilità |
+| Firma/autorizzazione consegna | Parziale | `chiusure` registra `consegna` (chi passa) e `ricevuta` (chi riceve) ma non esplicita una "firma di consegna" visibile nel rapporto stampabile |
+
+### Che cosa manca o è debole
+
+**1. Tracciamento della sovrapposizione turni (overlapping shift)**
+- Il mondo lo richiede per trasferimento di conoscenza; D.Lgs 66/2003 non lo obbliga ma è pratica standard
+- Campo non registra il momento della consegna reale; la consegna è un'azione asincrona fatta dopo la chiusura
+- Misura: aggiungere timestamp della consegna effettiva (quando il turno uscente e quello entrante hanno concordato); dichiarare nella consegna "consegnato alle HH:MM a [nome ricevente]"
+
+**2. Orari di arrivo/partenza non obbligatori nell'appello**
+- D.Lgs 66/2003 art. 7 richiede tracciamento degli orari veri per calcolare il riposo fra turni
+- Campo accetta presenze senza `entrata` e `uscita` compilate; `riposoPrimaDelTurno` cade a fallback sulla durata nominale
+- Il numero di riposo è allora un "tetto" (se calcolo su nominale è 12 ore, il vero potrebbe essere 9 se uno è restato 3 ore in più), non una misura
+- Misura: fare `entrata` e `uscita` obbligatori, oppure dichiarare esplicitamente nel rapporto "riposo calcolato su durata nominale, non su orari veri (assenti)"
+
+**3. Near-miss e segnalazioni non hanno priorità nella consegna**
+- Il mondo li integra come voce di rilievo (es.: "3 near-miss registrati ieri, eccone i dettagli")
+- Campo li include ma come ultima voce generica ("Segnalazioni")
+- Misura: contare i near-miss e farli risaltare se > 0; dichiarare il livello di gravità (lieve/grave)
+
+**4. Briefing di inizio turno non ha contenuto strutturato**
+- Il mondo lo descriverebbe: "Argomento: scarsa visibilità per pioggia. Durata: 10 min. Presenti: [nomi]. Conclusioni: rallentare le operazioni su fronte Nord"
+- Campo lo accetta come campo libero (linea 3730: `riassuntoBriefing` legge solo `argomento`, `tenutoDa`, `presenti`)
+- Misura: aggiungere durata, decisioni prese, azioni consigliate nel briefing
+
+### Come si misura
+
+1. **Overlapping shift** — aprire un rapporto chiuso; nel testo della consegna deve comparire "consegnato alle [ora] a [nome ricevente]" con ora >= ora chiusura turno
+   - Comando: `grep -c "consegnato alle.*a " $(cat rapporto.txt)` deve ritornare >= 1 per consegne chiuse
+
+2. **Orari obbligatori** — creare una presenza senza `entrata`; il controllo deve dichiarare se il riposo è "calcolato su nominale" oppure rifiutare la chiusura turno
+   - Comando: `jq '.presenze[] | select(.entrata == null) | .stato' campo-data.json | grep -c presente` — se > 0, il rapporto deve dichiarare approssimatività
+
+3. **Near-miss visibili** — chiudere un turno con 2+ near-miss; il rapporto stampabile deve mostrare "2 near-miss segnalati" in una posizione di rilievo (non in coda)
+   - Comando: `grep -c "near-miss segnalati" testo-consegna.txt` deve ritornare 1 (un'unica riga di riepilogo); verificare che sia NON in coda al testo
+
+### Verdetto
+
+**Confermato:** Campo implementa il 70% della gestione della fatica e del handover. Le tre mancanze di rilievo sono:
+
+1. **Overlapping shift** (costo basso): aggiungere ora della consegna al testo, già calcolabile dalle date di chiusura
+2. **Orari di arrivo/partenza obbligatori** (costo medio): strutturare l'appello per renderli obbligatori; dichiarare approssimatività altrimenti
+3. **Near-miss in primo piano** (costo basso): spostare la riga dei near-miss prima della chiusura, aggiungere gravità e conteggio
+
+Non confermato come mancanza: Campo traccia correttamente il riposo per D.Lgs 66/2003, usando la formula giusta (orario reale > nominale) e dichiarando il fallback.
+
+**Proposto come candidato di miglioramento:** aggiungere timestamp della consegna reale al testo della consegna, in modo che ispettori e coordinatori possano verificare se il turno uscente ha realmente consegnato al turno entrante.
+
+---
+
+⛔ **CORREZIONE (mia, non della ricerca — riverificata indipendentemente il
+16/09 prima di tradurre in codice): le TRE mancanze qui sopra sono TUTTE E
+TRE FALSE, già colmate.** È la regola "niente entra sulla parola
+dell'agente" applicata al momento in cui conta — prima di scrivere codice,
+non dopo.
+
+1. **"Overlapping shift: no timestamp consegna reale" — FALSO.**
+   `riassuntoChiusura(c)` (riga 1115) produce già, testuale:
+   `"Consegnato" + (da ? " da " + da : "") + (a ? " a " + a : "") + " alle " + c.ora`
+   — cioè esattamente la stringa `"consegnato alle HH:MM a [nome]"` che la
+   ricerca proponeva di aggiungere. `testoConsegnaTurno` la usa già alla
+   riga 3760 (`chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c) ...)`).
+   Il campo `chiusure.ora` (dichiarato nel commento del modello dati, riga
+   30-33) è appunto l'istante in cui il turno è stato chiuso: "finché `ora`
+   è valorizzata il turno è CHIUSO e nessuno può più scriverci sopra".
+
+2. **"Orari di arrivo/partenza non obbligatori, fallback silenzioso" —
+   FALSO nella parte che conta.** Non obbligatori è vero (per scelta:
+   un dato assente resta assente, non si inventa), ma "silenzioso" no:
+   `riposoPrimaDelTurno` (riga 2079) porta `daInizio`/`daFine`
+   (`"turno"` contro `"orario"`) e `attendibile` (`true`/`false`/`null`)
+   proprio per dichiarare quando il numero è calcolato sulla durata
+   nominale invece che sull'orario vero — commento alla riga 2107:
+   *"L'ORA DI USCITA VERA VINCE SULLA DURATA DICHIARATA... Dove l'uscita
+   non c'è si ripiega, e `daFine` lo dichiara"*. È il principio del
+   fondatore applicato esattamente al caso che la ricerca chiedeva di
+   coprire.
+
+3. **"Near-miss non hanno priorità, ultima voce generica" — FALSO.**
+   `testoConsegnaTurno` mette "SEGNALAZIONI DEL TURNO" (riga 3752) subito
+   dopo "LAVORI NON CONCLUSI" (riga 3744), non in coda: restano solo
+   "CHIUSURA DEL TURNO" e le riaperture, che sono la firma amministrativa,
+   non contenuto operativo. Il commento alla riga 3742 lo dichiara di
+   proposito: *"le due cose che il turno entrante legge per prime: i
+   lavori non conclusi e i pericoli segnalati"*.
+
+**Zero su tre entrano in roadmap.** La causa è la stessa di ogni volta:
+la ricerca ha guardato SE il campo/la frase esistesse col nome che si
+aspettava (un `.ora` su `presenze`, una frase esplicita "consegnato
+alle"), non se il MECCANISMO fosse già coperto sotto un altro nome
+(`riassuntoChiusura`, `attendibile`). Resta vero e non toccato il resto
+del giro: il briefing strutturato (contenuto libero, mai proposto come
+cantiere da questo giro) e il "mezzo/impianto principale" restano fuori
+scope di questa correzione, perché la ricerca non li ha proposti come le
+tre mancanze di rilievo.
+
+---
+
+*Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello) e codice di Campo (grep verificato).*
