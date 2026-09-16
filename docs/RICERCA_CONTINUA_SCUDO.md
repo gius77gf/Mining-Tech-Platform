@@ -2196,26 +2196,23 @@ del registro lo permette oggi). Verificato anche nel browser
 
 ---
 
-**⚠️ 16/09 — trovato in una revisione di qualità dopo il commit, non ancora
-chiuso: `csvRegistroInfortuni` non porta la nota della denuncia INAIL.**
-Lo schermo (registro degli eventi, modale di analisi) mostra la nota
-("denuncia INAIL da valutare/scaduta/urgente/entro il...") accanto
-all'evento; il file che va all'RSPP/consulente (`csvRegistroInfortuni`,
-colonna `nota`) oggi porta SOLO `NOTA_PROGNOSI_APERTA` — non la nota INAIL,
-e nemmeno `visitaRientroNecessaria` (gap preesistente, non introdotto oggi).
-È la stessa famiglia di difetto che questo repository chiama "dove un
-documento compone qualcosa che ESCE, chi decide i suoi numeri": lo schermo
-sa una cosa che il documento non dice. Non implementato ora (sarebbe un
-secondo cantiere sulla stessa colonna `nota`, che oggi accetta solo UN
-messaggio alla volta — un `? :` singolo, non un elenco componibile — e va
-riprogettata per portare più note insieme senza tagliare quelle già scritte
-in silenzio). Verificato per grep diretto, nessun codice toccato:
-
-    grep -n "NOTA_PROGNOSI_APERTA\|visitaRientroNecessaria\|scadenzaDenunciaInail" apps/scudo/scudo-data.js
-    → NOTA_PROGNOSI_APERTA usata in csvRegistroInfortuni (riga ~2410)
-    → visitaRientroNecessaria: usata in cartellaLavoratore (riga ~4832), MAI in csvRegistroInfortuni
-    → scadenzaDenunciaInail: MAI usata né in csvRegistroInfortuni né in cartellaLavoratore
-
-`cartellaLavoratore` (il fascicolo del lavoratore) mostra già
-`visitaRientroNecessaria` ma non `scadenzaDenunciaInail`: la stessa
-incoerenza, in un secondo documento.
+**✅ 16/09 — CHIUSO (commit `cb482cdc`), trovato in una revisione di qualità
+dopo il commit di `scadenzaDenunciaInail`.** Il gap era vero: lo schermo
+(registro degli eventi, modale di analisi) mostrava la nota ("denuncia INAIL
+da valutare/scaduta/urgente/entro il...") accanto all'evento, ma
+`csvRegistroInfortuni` — il file che va all'RSPP/consulente — portava SOLO
+`NOTA_PROGNOSI_APERTA`. È la stessa famiglia di difetto che questo
+repository chiama "dove un documento compone qualcosa che ESCE, chi decide i
+suoi numeri": lo schermo sapeva una cosa che il documento non diceva.
+Risolto riprogettando la colonna `nota`: da un `? :` che sceglie UN messaggio
+a un array `note` che li COMPONE tutti (prognosi aperta · visita di rientro ·
+denuncia INAIL, uniti con " · "), senza tagliarne nessuno in silenzio.
+`csvRegistroInfortuni` ha guadagnato anche un `oggi` iniettabile che non
+aveva (prima usava `new Date()` fisso — bug di testabilità reale, preso
+scrivendo il test). La stessa nota è stata aggiunta a `fogliaCartella` (il
+foglio stampabile del fascicolo lavoratore, che consuma la forma prodotta da
+`cartellaLavoratore` — è lì, non in `cartellaLavoratore` stessa, che vive la
+sezione "Infortuni" da stampare). Verificato: run-kpi 3094→3096, giro isolato
+su worktree 40/40 comandi puliti, iniezione di `scudo-documenti.mjs` (punto 4)
+ri-ancorata sulla nuova forma. Checkpoint:
+`vault/checkpoints/20260916-125703_scudo-csv-nota-composta.md`.
