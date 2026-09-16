@@ -233,7 +233,9 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
 /* ⚠️ `conti` SALE DA 205 A 214: lo storico dei solleciti (`statoRecupero`,
    `LIVELLI_SOLLECITO_VALIDI`, `CANALI_SOLLECITO`, `nomeCanaleSollecito`),
    dal delta della ricerca continua, decimo giro — con le loro 4 prove. */
-const FONDO = { campo: 147, conti: 214, flotta: 139, scudo: 216, sentinella: 187, terra: 91 };
+/* ⚠️ `conti` SALE DA 214 A 215: il piano di rientro a rate
+   (`statoPianoRientro`), stesso giro di ricerca — con la sua prova. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 216, sentinella: 187, terra: 91 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

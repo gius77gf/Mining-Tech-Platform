@@ -152,6 +152,21 @@ export const DEMO = {
     // incassata" sono due cose diverse, e ora si vedono diverse.
     { id: "i3", fatturaId: "f1", data: "2026-07-02", importo: 6000, metodo: "bonifico" },
   ],
+  // I piani di rientro a rate (dal delta della ricerca continua su Conti,
+  // decimo giro): un accordo successivo alla fattura, fra il sollecito e la
+  // messa in mora formale. Su f2 (Stradesud) nessuna rata è mai stata
+  // onorata, e la seconda è scaduta anche lei: il caso "decaduto" — il
+  // beneficio del termine si perde, e il residuo torna nell'escalation
+  // intera del sollecito (`statoPianoRientro`). Non tocca `incassi`
+  // esistenti apposta: aggiungerne di nuovi sposterebbe l'aging e
+  // l'esposizione di Stradesud, che decine di altre prove misurano già.
+  pianiRientro: [
+    { id: "pr1", fatturaId: "f2", nota: "Accordo verbale del 20/07 dopo il primo sollecito: tre rate mensili.", rate: [
+      { numero: 1, scadenza: "2026-08-05", importo: 3250 },
+      { numero: 2, scadenza: "2026-09-05", importo: 3250 },
+      { numero: 3, scadenza: "2026-10-05", importo: 3250 },
+    ] },
+  ],
   clienti: [
     // CAP, comune e provincia sono entrati il 02/09: servono alla fattura
     // elettronica, e la dimostrazione deve poterne produrre una «pronta»
@@ -1325,6 +1340,60 @@ export function statoRecupero(fattura, solleciti, oggi = new Date()) {
       ? `l'ultimo sollecito segnato è di livello ${comunicato}, il ritardo attuale ne implicherebbe ${attuale}: va rimandato un avviso più severo`
       : `l'ultimo sollecito segnato (livello ${comunicato}) è ancora coerente col ritardo attuale`,
   };
+}
+
+const TOLLERANZA_PIANO_CENT = 1;
+
+/* Un accordo di pagamento a rate su una fattura scaduta: fra il sollecito e
+   la messa in mora formale. Senza questo, una fattura con un piano onorato
+   per due rate su tre resta "insoluta per l'intero importo" agli occhi di
+   `agingIncassi`/`fattureOltre90` e continua a ricevere l'escalation del
+   sollecito fino all'ultimo avviso — anche se il cliente sta pagando come
+   promesso. `statoPianoRientro` guarda le rate come una CASCATA (ogni rata
+   copre il cumulato fino a lì, non un incasso a sé): una `rata` valida
+   vuole `numero`, `scadenza` (ISO esistente) e `importo` > 0, e le righe
+   corrotte si scartano come fa ogni altro lettore di questa app.
+   ⛔ TRE ESITI, MAI UN "A POSTO" TACITO: `rispettato` (le rate scadute sono
+   tutte coperte), `in-ritardo` (una rata sola, non ancora la successiva),
+   `decaduto` (la rata in ritardo non è stata coperta nemmeno quando è
+   scaduta anche la rata dopo — il beneficio del termine si perde, e da lì
+   l'escalation del sollecito va riaperta sull'intero residuo, non sulla
+   sola rata). Pura e testabile: `movimenti` sono gli stessi `incassi` già
+   registrati sulla fattura, filtrati per `fatturaId`. */
+export function statoPianoRientro(piano, movimenti, oggi = new Date()) {
+  const p = piano || {};
+  const rate = (p.rate || [])
+    .filter(r => r && dataISOEsiste(String(r.scadenza || "").slice(0, 10)) && Number.isFinite(+r.importo) && +r.importo > 0)
+    .map(r => ({ numero: +r.numero || 0, scadenza: String(r.scadenza).slice(0, 10), importo: round2(+r.importo) }))
+    .sort((a, b) => a.scadenza.localeCompare(b.scadenza));
+  if (!rate.length)
+    return { calcolabile: false, perche: "il piano non ha nessuna rata valida (scadenza inesistente o importo mancante)" };
+  const totale = round2(rate.reduce((s, r) => s + r.importo, 0));
+  const versato = round2((movimenti || [])
+    .filter(m => m && m.fatturaId === p.fatturaId)
+    .reduce((s, m) => s + round2(+m.importo || 0), 0));
+  let cumulato = 0;
+  for (let i = 0; i < rate.length; i++) {
+    const r = rate[i];
+    cumulato = round2(cumulato + r.importo);
+    if (versato + TOLLERANZA_PIANO_CENT / 100 >= cumulato) continue;   // questa rata è coperta: si guarda la prossima
+    const ritardo = Math.max(0, -giorni(r.scadenza, oggi));
+    if (ritardo <= 0)
+      return { calcolabile: true, stato: "rispettato", rataInAttesa: r.numero, scadenzaRata: r.scadenza,
+        mancante: round2(cumulato - versato), giorni: 0, totale, versato,
+        perche: `la rata ${r.numero} non è ancora scaduta: mancano ${euro(round2(cumulato - versato))}` };
+    const successiva = rate[i + 1];
+    const decaduto = successiva && giorni(successiva.scadenza, oggi) < 0;
+    if (decaduto)
+      return { calcolabile: true, stato: "decaduto", rataNumero: r.numero, giorni: ritardo,
+        mancante: round2(totale - versato), totale, versato,
+        perche: `la rata ${r.numero} non è stata onorata ed è scaduta anche quella successiva: il piano è decaduto, il residuo torna nell'escalation del sollecito` };
+    return { calcolabile: true, stato: "in-ritardo", rataNumero: r.numero, giorni: ritardo,
+      mancante: round2(cumulato - versato), totale, versato,
+      perche: `la rata ${r.numero} è in ritardo di ${conta(ritardo, "giorno", "giorni")}: mancano ${euro(round2(cumulato - versato))}` };
+  }
+  return { calcolabile: true, stato: "rispettato", rataInAttesa: null, giorni: 0, mancante: 0, totale, versato,
+    perche: "il piano è stato onorato per intero" };
 }
 
 /* ⛔ IL SINGOLARE E IL PLURALE LI DECIDE `conta` DI `shared/`, E QUI NON C'ERA.
@@ -3806,6 +3875,8 @@ export async function contiData() {
         chiusure: () => read("chiusure"),
         // i verbali di riconciliazione: chi non ne ha mai scritto uno legge vuoto
         verbali: () => read("verbali"),
+        // i piani di rientro a rate: chi non ne ha mai registrato uno legge vuoto
+        pianiRientro: () => read("pianiRientro"),
         impostazioni: () => read("impostazioni"),
         aggiungi: (n, d) => addDoc(id.orgCollection(n), d),
         logout: () => id.logout(),
@@ -3919,6 +3990,7 @@ export async function contiData() {
       ordini: async () => mem.ordini || (mem.ordini = []),
       chiusure: async () => mem.chiusure || (mem.chiusure = []),
       verbali: async () => mem.verbali || (mem.verbali = []),
+      pianiRientro: async () => mem.pianiRientro || (mem.pianiRientro = []),
       impostazioni: async () => mem.impostazioni,
       // in dimostrazione i rilievi non arrivano da Terra: sono finti, ma
       // coerenti con le pesate d'esempio (vedi DEMO.rilieviTerra)
@@ -6887,4 +6959,4 @@ export function scorteDelVerbale(v, fmt) {
    che l"elenco combaci con le collezioni che il modulo legge davvero
    (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
    confronta col codice invecchia da solo. */
-export const CONTI_COLLEZIONI = Object.freeze(["fatture", "clienti", "gare", "prodotti", "listini", "pesate", "ordini", "incassi", "costi", "note", "chiusure", "verbali", "impostazioni"]);
+export const CONTI_COLLEZIONI = Object.freeze(["fatture", "clienti", "gare", "prodotti", "listini", "pesate", "ordini", "incassi", "costi", "note", "chiusure", "verbali", "pianiRientro", "impostazioni"]);

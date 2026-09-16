@@ -541,6 +541,12 @@ const BANCHI = [
      sopravvivere alla chiusura della modale. */
   ['lo storico dei solleciti di Conti', 'conti-solleciti-storico.mjs', []],
   ['storico dei solleciti di Conti · controprova', 'conti-solleciti-storico.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — il piano di rientro di Conti, dal delta della
+     ricerca continua, decimo giro: il badge deve comparire sulla fattura
+     GIUSTA (un confronto `p.id === f.id` al posto di `p.fatturaId === f.id`
+     non lo vedrebbe nessuna suite `node`). */
+  ['il piano di rientro di Conti', 'conti-piano-rientro.mjs', []],
+  ['piano di rientro di Conti · controprova', 'conti-piano-rientro.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e

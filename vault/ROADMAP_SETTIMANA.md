@@ -8570,9 +8570,12 @@ numero scritto dove non era stato misurato niente**.*
   lo storico dei solleciti DAVVERO inviati, "mai comunicato" dichiarato
   come stato a sé e non un livello zero, verificato nel browser (un ID
   scambiato per il numero della fattura non lo vedrebbe nessuna suite
-  `node`) —, 3055→3058):
-  **3.552 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3058, `run-stile` 330,
+  `node`) —, 3055→3058). E a `conti.statoPianoRientro` (dal delta della
+  ricerca continua, decimo giro) — un piano di rientro a rate, le rate
+  come cascata, tre esiti dichiarati (rispettato/in ritardo/decaduto),
+  prima fetta a sola lettura, verificato nel browser —, 3058→3059):
+  **3.553 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3059, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8582,8 +8585,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **299 esecuzioni** che
-  aprono le pagine in un browser vero, da **129** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **301 esecuzioni** che
+  aprono le pagine in un browser vero, da **130** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

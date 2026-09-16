@@ -981,6 +981,49 @@ test("nomeCanaleSollecito: il nome del canale, o null se non riconosciuto", () =
   eq(conti.nomeCanaleSollecito("piccione"), null, "canale non nell'elenco: null, non un'etichetta inventata");
   eq(conti.nomeCanaleSollecito(""), null);
 });
+test("⛔ statoPianoRientro (dal delta della ricerca continua su Conti, decimo giro): le rate sono una CASCATA, non incassi a sé", () => {
+  const piano = { id: "pr1", fatturaId: "f2", rate: [
+    { numero: 1, scadenza: "2026-07-15", importo: 4100 },
+    { numero: 2, scadenza: "2026-08-15", importo: 4100 },
+    { numero: 3, scadenza: "2026-09-15", importo: 4100 },
+  ] };
+  const oggi = new Date(2026, 8, 16);   // 16/09, un giorno dopo la rata 3
+  // le prime due rate onorate, la terza no, e non è ancora scaduta anche la
+  // successiva (non c'è): "in-ritardo" sulla rata 3, non "insoluta per 12.300"
+  const inRitardo = conti.statoPianoRientro(piano,
+    [{ fatturaId: "f2", importo: 4100 }, { fatturaId: "f2", importo: 4100 }], oggi);
+  eq(inRitardo.calcolabile, true);
+  eq(inRitardo.stato, "in-ritardo");
+  eq(inRitardo.rataNumero, 3);
+  eq(inRitardo.giorni, 1);
+  eq(inRitardo.mancante, 4100, "il residuo è la rata in ritardo, non l'intero piano");
+  eq(inRitardo.totale, 12300);
+  // nessuna rata onorata, e ANCHE la rata successiva alla prima è scaduta:
+  // il beneficio del termine si perde, il residuo torna nell'escalation intera
+  const decaduto = conti.statoPianoRientro(piano, [], new Date(2026, 8, 20));
+  eq(decaduto.stato, "decaduto");
+  eq(decaduto.rataNumero, 1, "la prima rata mai onorata, non l'ultima");
+  eq(decaduto.mancante, 12300, "decaduto: manca l'intero piano, non solo la rata");
+  // rata non ancora scaduta: il piano è "rispettato" (in corso), non in ritardo
+  const inCorso = conti.statoPianoRientro(piano,
+    [{ fatturaId: "f2", importo: 4100 }, { fatturaId: "f2", importo: 4100 }], new Date(2026, 7, 20));
+  eq(inCorso.stato, "rispettato");
+  eq(inCorso.rataInAttesa, 3);
+  // piano onorato per intero
+  const completo = conti.statoPianoRientro(piano, [{ fatturaId: "f2", importo: 12300 }], oggi);
+  eq(completo.stato, "rispettato");
+  eq(completo.rataInAttesa, null);
+  eq(completo.mancante, 0);
+  // movimenti di UN'ALTRA fattura non contano, anche se lo stesso importo
+  eq(conti.statoPianoRientro(piano, [{ fatturaId: "f9", importo: 99999 }], oggi).versato, 0,
+    "il filtro è per fatturaId, non un totale generico");
+  // rate corrotte (scadenza inesistente, importo mancante) si scartano: un
+  // piano senza nessuna rata valida non è calcolabile, non è "rispettato"
+  eq(conti.statoPianoRientro({ fatturaId: "f2", rate: [{ numero: 1, scadenza: "2026-13-45", importo: 100 }] }, [], oggi),
+    { calcolabile: false, perche: "il piano non ha nessuna rata valida (scadenza inesistente o importo mancante)" });
+  eq(conti.statoPianoRientro({ fatturaId: "f2", rate: [] }, [], oggi).calcolabile, false);
+  eq(conti.statoPianoRientro(null, [], oggi).calcolabile, false, "piano assente: non calcolabile, non un piano vuoto rispettato");
+});
 test("interessiMora: D.Lgs 231/2002, importo × tasso × giorni/365", () => {
   // 10.000 € al 10,15% per 365 gg = 1015 €
   eq(conti.interessiMora(10000, 365, 10.15), { interessi: 1015, giorni: 365, tasso: 10.15 }, "1 anno intero");

@@ -1782,12 +1782,17 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.552** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.553** *(ricontate il 16/09, dopo aver
 aggiunto a Conti `statoRecupero` — lo storico dei solleciti DAVVERO inviati
 ("mai comunicato" è uno stato dichiarato, non un livello zero), un bottone
 "Segna come inviato" senza nessun invio automatico, verificato nel browser
 (un ID scambiato per il numero della fattura non lo vedrebbe nessuna suite
-`node`) — dopo aver aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
+`node`) — dopo aver aggiunto a Conti `statoPianoRientro` — un piano di
+rientro a rate su una fattura scaduta, fra il sollecito e la messa in mora
+formale, con le rate lette come cascata e tre esiti dichiarati (rispettato/
+in ritardo/decaduto), prima fetta a sola lettura, verificato nel browser
+(un confronto per `id` invece che per `fatturaId` non lo vedrebbe nessuna
+suite `node`) — dopo aver aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
 punto di partenza sulle ore del mezzo per pneumatici, cingoli e denti benna
 — verificato nel browser dopo un primo collegamento alla pagina sbagliato
 (filtro per mezzo su un elenco già scoperto a un mezzo solo) che nessuna
@@ -1859,7 +1864,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **299
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **301
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
