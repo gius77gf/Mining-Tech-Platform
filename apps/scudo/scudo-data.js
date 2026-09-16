@@ -238,6 +238,13 @@ export const DEMO = {
        raccontare — non un dato dimenticato. */
     { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30" },
   ],
+  // Il segno di quando qualcuno ha aperto per l'ultima volta la pagina
+  // Scadenze (16/09): la CQC di s5 (dataScadenza 2026-09-02) è scaduta DOPO
+  // quella data — il caso vero per cui `notificheScadenzeNonLette` esiste,
+  // non un contatore a zero perché nessuno ha ancora provato niente.
+  impostazioni: [
+    { id: "imp1", scadenzeVisteIl: "2026-08-20" },
+  ],
   documenti: [
     /* Il DVR in vigore e quello che ha sostituito: l'ispettore chiede tutt'e
        due (quale valutazione era in vigore il giorno dell'infortunio?). Il
@@ -787,6 +794,30 @@ export function livelloScadenza(dataISO, oggi = new Date()) {
   if (g <= 7)  return { cls: "danger", label: "tra " + g + " gg", giorni: g };
   if (g <= 30) return { cls: "warn",   label: "tra " + g + " gg", giorni: g };
   return { cls: "ok", label: "tra " + g + " gg", giorni: g };
+}
+
+/* UN CONTATORE DI NOTIFICHE PERSISTENTE (dal delta della ricerca continua su
+   Scudo, undicesimo/dodicesimo giro — "notifiche automatiche", primo passo
+   senza server). Oggi ogni avviso vive SOLO nella lista filtrata che si vede
+   aprendo la pagina Scadenze: chi non la apre da giorni non sa che il numero
+   di scadenze urgenti è cambiato da allora. Nessun invio esterno (email/SMS
+   restano un passo successivo, che chiede un servizio terzo): qui è solo un
+   contatore che RESTA acceso finché la pagina non si visita.
+   ⛔ "NUOVA" NON È UN CAMPO SALVATO: SI DEDUCE DAL TEMPO. Una scadenza non si
+   sposta, quindi la sua URGENZA è una funzione pura della data di oggi — e
+   confrontando `livelloScadenza` alla data dell'ultima visita con quello di
+   oggi si sa ESATTAMENTE quali sono diventate urgenti nel frattempo, senza
+   dover salvare uno storico per ognuna. `ultimaVisita` assente (mai
+   visitata) conta come "tutto ciò che è urgente ORA è nuovo" — non zero, che
+   nasconderebbe un arretrato mai visto. Pura e testabile. */
+export function notificheScadenzeNonLette(scadenze, ultimaVisita, oggi = new Date()) {
+  const nuove = (scadenze || []).filter(s => {
+    if (!s || !s.dataScadenza) return false;
+    if (livelloScadenza(s.dataScadenza, oggi).cls !== "danger") return false;
+    if (!ultimaVisita) return true;
+    return livelloScadenza(s.dataScadenza, ultimaVisita).cls !== "danger";
+  });
+  return { numero: nuove.length, idScadenze: nuove.map(s => s.id) };
 }
 
 /* ⛔ QUI C'ERA UNA COPIA DEBOLE DI `dataIt` (tolta il 03/08), ed è la famiglia
@@ -4896,6 +4927,11 @@ export async function scudoData() {
            dice «tutto a posto», dice che finché è così le voci di checklist
            che chiedono un permesso non hanno niente dietro. */
         permessi:    () => read("permessi"),
+        // impostazioni: oggi porta solo `scadenzeVisteIl` (16/09), il segno
+        // di quando qualcuno ha aperto per l'ultima volta la pagina
+        // Scadenze — il contatore delle notifiche non lette lo legge da qui.
+        // Chi non l'ha mai scritto legge un elenco vuoto, come le altre.
+        impostazioni: () => read("impostazioni"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
@@ -4982,6 +5018,7 @@ export async function scudoData() {
       appaltatori: async () => mem.appaltatori || (mem.appaltatori = []),
       appalti:     async () => mem.appalti || (mem.appalti = []),
       permessi:    async () => mem.permessi || (mem.permessi = []),
+      impostazioni: async () => mem.impostazioni || (mem.impostazioni = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       /* stesso CONTRATTO della strada vera, transazione a parte */
@@ -6652,4 +6689,4 @@ export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), ades
    che l"elenco combaci con le collezioni che il modulo legge davvero
    (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
    confronta col codice invecchia da solo. */
-export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno"]);
+export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno", "impostazioni"]);

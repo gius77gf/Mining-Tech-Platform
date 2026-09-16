@@ -547,6 +547,13 @@ const BANCHI = [
      non lo vedrebbe nessuna suite `node`). */
   ['il piano di rientro di Conti', 'conti-piano-rientro.mjs', []],
   ['piano di rientro di Conti · controprova', 'conti-piano-rientro.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — il contatore di notifiche sulle scadenze di
+     Scudo, dal delta della ricerca continua, dodicesimo giro (primo passo
+     di "notifiche automatiche" senza server): il badge deve sparire DOPO
+     la visita, scrivendo il record davvero (un `aggiorna`→`aggiungi`
+     scambiato non lo vedrebbe nessuna suite `node`). */
+  ['il contatore di notifiche sulle scadenze di Scudo', 'scudo-notifiche-scadenze.mjs', []],
+  ['contatore di notifiche sulle scadenze di Scudo · controprova', 'scudo-notifiche-scadenze.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e

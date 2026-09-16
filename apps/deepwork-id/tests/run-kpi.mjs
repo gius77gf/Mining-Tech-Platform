@@ -134,6 +134,27 @@ test("livelloScadenza: una data che non si può leggere è un AVVISO, non un via
   eq(scudo.livelloScadenza("").giorni, null, "vuota: nessun conto di giorni");
   eq(scudo.livelloScadenza("2026-13-45").cls, "warn", "data impossibile con la forma giusta");
 });
+test("⛔ notificheScadenzeNonLette (dal delta della ricerca continua su Scudo, dodicesimo giro): «nuova» è una funzione del TEMPO, non un campo salvato", () => {
+  const scadenze = [
+    { id: "a", dataScadenza: "2026-07-02" },   // già scaduta prima ancora dell'ultima visita
+    { id: "b", dataScadenza: "2026-09-02" },   // scaduta DOPO l'ultima visita: è la nuova
+    { id: "c", dataScadenza: "2027-05-20" },   // lontana: mai urgente
+  ];
+  const oggi = new Date(2026, 8, 16);
+  const ultimaVisita = new Date(2026, 7, 20);   // 20/08: "a" è già scaduta, "b" è ancora a 13 gg (warn)
+  const r = scudo.notificheScadenzeNonLette(scadenze, ultimaVisita, oggi);
+  eq(r.numero, 1, "solo «b» è diventata urgente DOPO l'ultima visita");
+  eq(r.idScadenze, ["b"]);
+  // mai visitata: tutto ciò che è urgente ORA è "nuovo" — non zero, che
+  // nasconderebbe un arretrato mai visto
+  eq(scudo.notificheScadenzeNonLette(scadenze, null, oggi).numero, 2, "«a» e «b» sono entrambe urgenti oggi");
+  // visitata OGGI stesso: niente può essere diventato urgente nel frattempo
+  eq(scudo.notificheScadenzeNonLette(scadenze, oggi, oggi).numero, 0);
+  // scadenza senza data: non entra né nel conto né in errore
+  eq(scudo.notificheScadenzeNonLette([{ id: "x", dataScadenza: null }], null, oggi).numero, 0);
+  eq(scudo.notificheScadenzeNonLette([], null, oggi), { numero: 0, idScadenze: [] });
+  eq(scudo.notificheScadenzeNonLette(null, null, oggi).numero, 0, "elenco assente: zero, non un errore");
+});
 test("coperturaFormazione: raggruppa per tipo con stati, peggiore prima", () => {
   /* `oggi` iniettabile dal 03/08 (prima la funzione leggeva l'orologio vero e
      il test aggirava la cosa con date lontanissime): la prova adesso dice il

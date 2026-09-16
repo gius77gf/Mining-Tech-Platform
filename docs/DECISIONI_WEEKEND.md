@@ -1782,8 +1782,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.553** *(ricontate il 16/09, dopo aver
-aggiunto a Conti `statoRecupero` — lo storico dei solleciti DAVVERO inviati
+**Le prove automatiche sono passate a 3.554** *(ricontate il 16/09, dopo aver
+aggiunto a Scudo `notificheScadenzeNonLette` — un contatore di scadenze
+urgenti persistente finché la pagina non si visita, "nuova" dedotta dal
+tempo confrontando `livelloScadenza` all'ultima visita con quello di oggi,
+verificato nel browser dopo aver trovato un difetto CSS reale (`.badge`
+batte `[hidden]` a parità di specificità, quindi l'attributo da solo non
+nasconde mai il badge) — dopo aver aggiunto a Conti `statoRecupero` — lo storico dei solleciti DAVVERO inviati
 ("mai comunicato" è uno stato dichiarato, non un livello zero), un bottone
 "Segna come inviato" senza nessun invio automatico, verificato nel browser
 (un ID scambiato per il numero della fattura non lo vedrebbe nessuna suite
@@ -1864,7 +1869,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **301
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **303
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

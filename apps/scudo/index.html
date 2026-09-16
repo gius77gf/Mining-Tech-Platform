@@ -1751,7 +1751,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
 <nav class="nav" aria-label="Sezioni di Scudo">
   <button id="nav-dash" class="active" onclick="go('dash')"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Quadro</button>
   <button id="nav-pers" onclick="go('pers')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21"/><circle cx="12" cy="7.2" r="4.2"/></svg></span>Personale</button>
-  <button id="nav-scad" onclick="go('scad')"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg></span>Scadenze</button>
+  <button id="nav-scad" onclick="go('scad')" style="position:relative;"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="8.5"/><path d="M12 7.5v5.2l3.2 2"/></svg></span>Scadenze<span id="badge-notif-scad" class="badge danger" style="display:none;position:absolute;top:2px;right:6px;font-size:10px;font-weight:800;padding:1px 5px;line-height:1.3;"></span></button>
   <button id="nav-azio" onclick="go('azio')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M20.8 11.2V12a8.8 8.8 0 1 1-5.2-8"/><path d="M8.6 11.4l3.2 3.2 9-9"/></svg></span>Azioni</button>
   <button id="nav-isp" onclick="go('isp')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 4.2H7.5A2.3 2.3 0 0 0 5.2 6.5v12.2A2.3 2.3 0 0 0 7.5 21h9a2.3 2.3 0 0 0 2.3-2.3V6.5A2.3 2.3 0 0 0 16.5 4.2H15"/><rect x="9" y="2.6" width="6" height="3.4" rx="1.1"/><path d="M8.9 11.4l1.7 1.7 3.4-3.6"/><path d="M8.9 16.8h6.2"/></svg></span>Ispezioni</button>
   <button id="nav-perm" onclick="go('perm')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 3.4h9.2L19 7.2v13.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1z"/><path d="M15 3.4v4h4"/><path d="M8.6 12.4h6.8M8.6 16h4.2"/><circle cx="17.4" cy="16.6" r="4.2" fill="none"/><path d="M15.6 16.7l1.3 1.3 2.3-2.5"/></svg></span>Permessi</button>
@@ -1812,7 +1812,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     TIPO_VERIFICA_PERIODICA, ENTI_VERIFICA, enteVerificaSicuro, ESITI_VERIFICA, esitoVerifica,
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
     verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite,
-    calendarioScadenze, documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione } from "./scudo-data.js";
+    calendarioScadenze, documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione,
+    notificheScadenzeNonLette } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -2051,6 +2052,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // I permessi di lavoro (S8). Stessa regola: elenco vuoto, e la schermata lo
   // dice invece di accendere il verde.
   let PERM = [];
+  // Il segno di quando qualcuno ha aperto per l'ultima volta la pagina
+  // Scadenze (16/09): serve al contatore delle notifiche non lette.
+  let IMP = [];
   let filtroPerm = "vivi";   // quali permessi si vedono nell'elenco
   let permAperto = null;     // id del permesso aperto nella scheda
   // la bozza dell'appalto in composizione: i rischi particolari spuntati e se
@@ -2185,6 +2189,36 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     await refresh();
   };
 
+  // Il contatore di notifiche persistente sul bottone «Scadenze» (dal delta
+  // della ricerca continua, undicesimo/dodicesimo giro — "notifiche
+  // automatiche", primo passo senza server): resta acceso finché la pagina
+  // non si visita, non solo mentre la si guarda.
+  function aggiornaBadgeNotifiche() {
+    const b = $("badge-notif-scad"); if (!b) return;
+    const rec = IMP[0] || null;
+    const n = notificheScadenzeNonLette(SCA, rec ? rec.scadenzeVisteIl : null).numero;
+    /* ⛔ `.badge` (shared) dichiara `display:inline-flex` con la stessa
+       specificità di `[hidden]{display:none}`: a parità vince l'ultima
+       regola caricata, cioè `.badge` — l'attributo `hidden` resta scritto
+       ma il badge non sparisce mai. Si nasconde lo `style.display`
+       esplicitamente, non l'attributo. Trovato SOLO nel browser: la
+       proprietà DOM `.hidden` era vera, il rendering no. */
+    b.style.display = n === 0 ? "none" : "";
+    if (n > 0) b.textContent = n > 99 ? "99+" : String(n);
+  }
+  async function segnaScadenzeViste() {
+    const rec = IMP[0] || null;
+    const oggi = oggiISO();
+    if (rec) { if (rec.scadenzeVisteIl === oggi) return; await db.aggiorna("impostazioni", rec.id, { scadenzeVisteIl: oggi }); }
+    else { const r = await db.aggiungi("impostazioni", { scadenzeVisteIl: oggi }); IMP.push({ id: r.id, scadenzeVisteIl: oggi }); }
+    IMP = (db.impostazioni ? await db.impostazioni() : IMP) || IMP;
+    aggiornaBadgeNotifiche();
+  }
+  // il click sul bottone della barra è già `onclick="go('scad')"` (globale,
+  // come tutta la navigazione): qui si aggancia solo il secondo effetto,
+  // "segna come viste", senza toccare `go()` che è condiviso da tutte le app.
+  document.getElementById("nav-scad")?.addEventListener("click", segnaScadenzeViste);
+
   async function refresh() {
     [OPER_CAMPO, SQU_CAMPO] = await Promise.all([
       db.operatoriCampo ? db.operatoriCampo() : null,
@@ -2197,6 +2231,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     APPT = (db.appaltatori ? await db.appaltatori() : []) || [];
     APPA = (db.appalti ? await db.appalti() : []) || [];
     PERM = (db.permessi ? await db.permessi() : []) || [];
+    IMP = (db.impostazioni ? await db.impostazioni() : []) || [];
+    aggiornaBadgeNotifiche();
     // Il contesto che i permessi leggono: formazione di chi entra, qualifica
     // dell'impresa, documento di coordinamento. Si costruisce una volta sola.
     const ctxPerm = { lavoratori: LAV, scadenze: SCA, appalti: APPA, cantieri: CANT,
