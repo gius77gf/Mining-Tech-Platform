@@ -1030,3 +1030,60 @@ di Conti, `csvSquadre` di Campo e `csvAzioni` di Scudo (collisione di nome
 verificata singolarmente per ciascuno, non per contagio). La domanda
 lasciata aperta nella nota precedente (il loro `stato` proprio è ortogonale
 o copre già l'assenza?) resta valida per questi tre, e resta aperta.
+
+---
+
+**✅ 16/09 (subito dopo) — la domanda sui tre CSV rimasti ha una risposta:
+ORTOGONALE su tutti e tre, misurato leggendo la funzione che decide il
+loro `stato`, non deducendolo dal nome.**
+
+```
+$ sed -n '1182,1186p' apps/scudo/scudo-data.js
+export function statoAzione(azione, oggi = new Date()) {
+  const a = azione || {};
+  if (a.stato === "chiusa") return "regolare";
+  return statoScadenza(a.scadenza, oggi);
+}
+```
+`a.stato` (aperta/in-corso/chiusa) è il WORKFLOW dell'azione correttiva;
+`a.scadenza` (il campo che D1 misurava assente) è deciso da tutt'altra
+strada — `statoScadenza` di `shared/dw-ponti.js`, che per una data mancante
+risponde già **"senza data"**, non un `undefined` muto. Stessa storia per
+gli altri due:
+```
+$ sed -n '1973,1976p' apps/conti/conti-data.js
+export function baseGara(gara) {
+  const g = gara || {};
+  return g.base != null && g.base !== "" && Number.isFinite(+g.base) ? +g.base : null;
+}
+```
+`baseGara` non legge mai `g.stato` (aperta/vinta/persa): una gara persa può
+avere una base dichiarata o no, indipendentemente dall'esito. E
+`squadreAttive: squadre.filter(q => q.stato === "operativa").length`
+(campo-data.js:2672) filtra sull'operatività, mai su `persone` — che il
+commento della stessa funzione (righe 2763-2772) tratta già con la
+convenzione «vuoto = non lo so, zero = svuotata apposta» usata da sempre,
+prima ancora che esistesse P2.
+
+**Ma il gap ha un peso diverso a seconda del TIPO di campo, e vale la
+pena dirlo esplicitamente prima di proporre qualunque cosa**: `scadenza`
+(Azioni) è una DATA, dove l'assenza è già inequivocabile via cella vuota
+(`statoScadenza` la chiama «senza data» sullo schermo da sempre — non
+c'è ambiguità zero-vs-assente su una data, a differenza di un numero). Il
+valore marginale di P2 lì sarebbe solo un marcatore leggibile da un
+programma, non una correzione di un'ambiguità vera. `persone` (Squadre) e
+`base` (Gare) invece sono NUMERI, dove la stessa ambiguità zero-vs-assente
+che ha motivato tutta la ricerca ASSENZA esiste davvero e oggi non ha
+nessun marcatore.
+
+**Non implementato, e va detto perché**: applicare P2 a questi tre
+richiederebbe un nome DIVERSO da `stato` per non collidere (es.
+`statoCella`), il che romperebbe l'uniformità del vocabolario — ogni
+lettore automatico dei file dovrebbe sapere che in undici CSV la colonna
+si chiama `stato` e in questi tre si chiamerebbe diversamente. Questa non
+è una scoperta da tradurre in codice sulla parola di chi ha fatto la
+ricerca: è una **decisione di naming/prodotto** (un secondo nome per lo
+stesso concetto, o accettare che questi tre restino fuori da P2 per
+sempre) che merita di essere presa esplicitamente, non scritta di
+sfuggita dentro un'unità di ricerca. P2 si considera **chiuso a otto
+scrittori su undici** finché qualcuno non prende quella decisione.
