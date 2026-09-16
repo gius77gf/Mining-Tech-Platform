@@ -1823,14 +1823,17 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.598** *(ricontate il 16/09, dopo aver
-migrato a Sentinella (`csvTarature`) il settimo e ultimo scrittore libero
+**Le prove automatiche sono passate a 3.599** *(ricontate il 16/09, dopo aver
+migrato a Conti (`csvClienti`) l'OTTAVO scrittore — e corretto un errore
+ripetuto per tre unità di fila: `csvClienti` NON aveva mai la collisione
+di nome che gli era stata attribuita insieme a `csvGare` (nessuna colonna
+`stato`, verificato col `grep` separato che non era mai stato fatto);
+`fido` è il campo che D1 misurava assente, tredicesima colonna. Restano
+davvero irraggiungibili solo `csvGare`/`csvSquadre`/`csvAzioni` — dopo aver
+migrato a Sentinella (`csvTarature`) il settimo scrittore libero
 del vocabolario condiviso di P2 — la data collassa a monte da `dataIso`,
-quindi binario su `dataISOEsiste(scadenza)`, non un terzo codice; i
-quattro candidati rimasti (`csvClienti`/`csvGare` di Conti, `csvSquadre`
-di Campo, `csvAzioni` di Scudo) hanno tutti una colonna `stato` propria
-con un significato diverso, quindi sette scrittori su undici è il massimo
-raggiungibile su questo perimetro — dopo aver
+quindi binario su `dataISOEsiste(scadenza)`, non un terzo codice; settima
+colonna — dopo aver
 migrato a Conti (`csvListino`) il sesto scrittore del vocabolario condiviso
 di P2 — `prezzo` è il campo per cui D1 misurava una riga persa, stesso
 binario, sei scrittori su undici (più della metà) — dopo aver

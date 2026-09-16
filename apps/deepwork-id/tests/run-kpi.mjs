@@ -29684,7 +29684,7 @@ test("⛔ csvClienti: i campi della fattura elettronica fanno il giro, e il file
   const [fuori] = conti.parseClientiCsv(conti.csvClienti([dentro]));
   eq([fuori.cap, fuori.comune, fuori.provincia, fuori.codiceFiscale], ["97100", "Ragusa", "RG", "RSSMRA80A01H163X"],
      "CAP, comune, provincia e codice fiscale tornano (provincia e CF in maiuscolo)");
-  ok(conti.CSV_CLIENTI_INTESTAZIONE.endsWith(";cap;comune;provincia;codiceFiscale"), "le colonne nuove stanno in CODA");
+  ok(conti.CSV_CLIENTI_INTESTAZIONE.includes(";cap;comune;provincia;codiceFiscale;"), "le colonne nuove stanno in CODA (prima di `stato`, P2)");
   const vecchio = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note\nc1;Vecchia Srl;01234567890;ABC1234;Via Due 2;0;0;\n";
   const [v] = conti.parseClientiCsv(vecchio);
   eq([v.ragioneSociale, v.cap, v.comune, v.provincia, v.codiceFiscale], ["Vecchia Srl", "", "", "", ""],
@@ -29725,6 +29725,23 @@ test("csvClienti: l'intestazione non rientra come cliente", () => {
 test("csvClienti: senza ragione sociale non è un cliente", () => {
   eq(conti.parseClientiCsv("id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note\nc9;;;;;;;\n").length, 0,
     "sarebbe una voce senza nome nell'elenco e un intestatario mancante in fattura");
+});
+test("shared · P2 (ottavo scrittore, 16/09): csvClienti porta la tredicesima colonna `stato` — a differenza di csvGare, NON ha nessuna collisione di nome (correzione di una riga precedente della ricerca)", () => {
+  const misurato = conti.csvClienti([{ id: "c1", ragioneSociale: "Edilcave Srl", fido: 25000 }]).split("\n")[1];
+  ok(misurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "fido presente: misurato — " + misurato);
+  const maiMisurato = conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }]).split("\n")[1];
+  ok(maiMisurato.endsWith(";" + ponti.STATO_CELLA_MAI_MISURATO), "senza fido: mai-misurato — " + maiMisurato);
+  const zeroMisurato = conti.csvClienti([{ id: "c3", ragioneSociale: "Fido zero", fido: 0 }]).split("\n")[1];
+  ok(zeroMisurato.endsWith(";" + ponti.STATO_CELLA_MISURATO), "⛔ un fido deciso a zero è un dato vero, non un'assenza — " + zeroMisurato);
+  // la riga ENTRA comunque: come i ricettori/tarature, non come rilievi/incassi/listino
+  eq(conti.parseClientiCsv(conti.csvClienti([{ id: "c2", ragioneSociale: "Senza fido" }])).length, 1,
+    "un cliente senza fido resta un cliente: la riga non si perde");
+  eq(conti.csvClienti([]).split("\n")[0],
+    "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato");
+  // compatibilità all'indietro: un file a dodici colonne (senza `stato`) rientra lo stesso
+  eq(conti.parseClientiCsv(
+    "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale\nc1;Vecchia Srl;;;;;25000;;;;;\n"
+  ).length, 1, "un file vecchio senza la tredicesima colonna resta leggibile");
 });
 
 /* ── DECISIONE 12a, sesta voce: le AZIONI CORRETTIVE che si ri-caricano ── */

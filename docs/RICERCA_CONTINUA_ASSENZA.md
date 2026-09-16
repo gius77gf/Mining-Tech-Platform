@@ -982,3 +982,51 @@ un concetto ortogonale (come `statoTaraturaStrumento` di Sentinella, che è
 "quanto è valida oggi la taratura" e non "è stata scritta la cella") che
 lascerebbe comunque un buco? Non misurato in questa unità — è la domanda
 per chi riprenderà P2, non una conclusione.
+
+---
+
+**⛔ 16/09 (subito dopo) — CORREZIONE: `csvClienti` NON aveva la collisione
+di nome che questo documento gli attribuiva, tre volte, senza riverificarla.**
+Aprendo la domanda lasciata in sospeso qui sopra — se il `stato` proprio dei
+quattro CSV rimasti sia ortogonale o copra già l'assenza — la prima verifica
+indipendente ha smentito la premessa: `csvClienti` **non ha mai avuto una
+colonna `stato`**.
+
+```
+$ grep -n "CSV_CLIENTI_INTESTAZIONE" apps/conti/conti-data.js
+6772:export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale";
+```
+Dodici colonne, nessuna chiamata `stato`. E nessun `cliente.stato` altrove
+nel modulo (`grep -n "\.stato\b" apps/conti/conti-data.js`, letto riga per
+riga: tutte le occorrenze appartengono ad altre entità — fatture, ordini,
+preventivi, note SdI — mai a un cliente). `csvGare`, invece, la collisione
+ce l'ha davvero: `"titolo;base;scadenza;stato"`, con `g.stato || "aperta"`
+e il vocabolario `aperta/vinta/persa`. Le due erano state scartate
+**insieme**, nella stessa frase, nell'unità del quinto scrittore — probabilmente
+perché controllate in coppia e la collisione vera di Gare è stata attribuita
+per contagio anche a Clienti, senza il `grep` separato che questo stesso
+documento chiede altrove ("per ogni non-c'è l'agente scrive la prova di aver
+guardato"). L'errore è stato ripetuto **tre volte** (unità del quinto, sesto
+e settimo scrittore) senza che nessuno lo riaprisse: un'affermazione ripetuta
+non diventa più vera, e qui ha quasi fatto scartare per la quarta volta un
+candidato valido.
+
+`csvClienti` è quindi migrato come **OTTAVO scrittore**: `fido` è
+esattamente il campo per cui D1 misurava «assente (ok)» (non una riga persa
+— `parseClientiCsv` scarta solo per `ragioneSociale` mancante, mai per
+`fido`), stesso binario di Ricettori/Tarature: `STATO_CELLA_MISURATO`
+quando `numeroDichiarato(c.fido)` è un numero (zero dichiarato compreso —
+«non gli si fa credito» è un dato vero, non un'assenza, la stessa
+distinzione che il test `FIDO NON IMPOSTATO` verifica dal 2026), `STATO_CELLA_MAI_MISURATO`
+altrimenti. Tredicesima colonna, prima fetta: solo lo scrittore,
+`parseClientiCsv` resta posizionale a dodici campi (compatibilità
+all'indietro provata). Aggiornata `CSV_TABELLE` in `dw-shell.js` (guardia
+B8, ottavo colpo consecutivo). Controprova sul codice vero: invertita la
+condizione, confermato che il test dedicato cade, ripristinato.
+
+**Otto scrittori su undici migrati — e il vero limite naturale di P2 su
+D1 è ORA tre, non quattro**: restano davvero irraggiungibili solo `csvGare`
+di Conti, `csvSquadre` di Campo e `csvAzioni` di Scudo (collisione di nome
+verificata singolarmente per ciascuno, non per contagio). La domanda
+lasciata aperta nella nota precedente (il loro `stato` proprio è ortogonale
+o copre già l'assenza?) resta valida per questi tre, e resta aperta.

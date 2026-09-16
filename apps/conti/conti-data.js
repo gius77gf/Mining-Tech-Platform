@@ -6769,18 +6769,20 @@ export function scartiIncassiCsv(text) {
    elettronica (CAP, comune, provincia, codice fiscale): stanno in fondo così
    un file scritto prima rientra tale e quale — le celle che non ci sono
    leggono vuoto, non zero e non «undefined». */
-export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale";
+export const CSV_CLIENTI_INTESTAZIONE = "id;ragioneSociale;piva;sdi;indirizzo;sconto;fido;note;cap;comune;provincia;codiceFiscale;stato";
 
 export function csvClienti(clienti) {
-  const num = (x) => { const v = numeroDichiarato(x); return v == null ? "" : String(Math.round(v * 100) / 100); };
+  const num = (v) => v == null ? "" : String(Math.round(v * 100) / 100);
   const righe = [CSV_CLIENTI_INTESTAZIONE];
   for (const c of (clienti || []).slice()
     .sort((a, b) => String(a.ragioneSociale || "").localeCompare(String(b.ragioneSociale || ""), "it"))) {
     if (!c) continue;
+    const fido = numeroDichiarato(c.fido);
     righe.push([csvCell(c.id || ""), csvCell(c.ragioneSociale || ""), csvCell(c.piva || ""),
-      csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(c.sconto), num(c.fido),
+      csvCell(c.sdi || ""), csvCell(c.indirizzo || ""), num(numeroDichiarato(c.sconto)), num(fido),
       csvCell(c.note || ""), csvCell(c.cap || ""), csvCell(c.comune || ""),
-      csvCell(c.provincia || ""), csvCell(c.codiceFiscale || "")].join(";"));
+      csvCell(c.provincia || ""), csvCell(c.codiceFiscale || ""),
+      fido == null ? STATO_CELLA_MAI_MISURATO : STATO_CELLA_MISURATO].join(";"));
   }
   return righe.join("\n") + "\n";
 }
