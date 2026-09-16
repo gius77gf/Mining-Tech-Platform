@@ -10872,6 +10872,19 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       (`tests/browser/terra-sequenza-lotto.mjs`, controprovato). Restano
       aperti tre delta dello stesso giro di ricerca. Vedi checkpoint
       `20260916-082030_terra-sequenza-lotto.md`.
+- [x] **APERTURA FUORI PROGRAMMA** *(16/09, unità completata)*. Stesso giro
+      di ricerca. `lotto.apertoIl` non era mai confrontato col mese
+      pianificato: uno slittamento di mesi non emergeva da nessuna parte.
+      Campo opzionale `aperturaPrevista` (`YYYY-MM`), `aperturaFuoriProgramma`
+      con verso `anticipo|ritardo|in pari` in giorni, solo frase (niente
+      badge: lo scarto è storico, non un blocco da segnalare con forza).
+      Demo: Lotto 4, 183 giorni di ritardo — verificato dalla funzione,
+      non a mano (un conto a mano dava 184, sbagliato per il bisestile
+      2024). Verificato anche nel browser
+      (`tests/browser/terra-apertura-programma.mjs`, controprovato). Resta
+      aperto un solo delta dello stesso giro (report per banco×anno con
+      stato progettuale storico). Vedi checkpoint
+      `20260916-094443_terra-apertura-programma.md`.
 
 ## Sentinella — nono giro di ricerca continua (16/09)
 - [x] **L'ESCALATION SUI SUPERAMENTI RIPETUTI** *(16/09, unità completata)*.
