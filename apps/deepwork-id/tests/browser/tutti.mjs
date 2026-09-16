@@ -523,6 +523,11 @@ const BANCHI = [
      alto il difetto non si presenta, com'era successo nel core. */
   ['le barre di peso di Conti', 'conti-barre-peso.mjs', []],
   ['barre di peso di Conti · controprova', 'conti-barre-peso.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — le barriere mancate (ICAM) di Scudo, dal delta
+     della ricerca continua, undicesimo giro: il multi-select dei chip e la
+     sua persistenza al salvataggio, che nessuna suite `node` può vedere. */
+  ['le barriere mancate (ICAM) di Scudo', 'scudo-barriere-icam.mjs', []],
+  ['barriere mancate (ICAM) di Scudo · controprova', 'scudo-barriere-icam.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e

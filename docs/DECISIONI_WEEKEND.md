@@ -1765,7 +1765,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.545** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.546** *(ricontate il 16/09, dopo aver
+aggiunto a Scudo `barriereRicorrenti`/`BARRIERE_MANCATE` (dal delta della
+ricerca continua, undicesimo giro — ICAM): che cosa avrebbe dovuto fermare
+l'evento, non che cosa l'ha causato, con un chip multi-select nella modale
+di analisi — dopo aver
 chiuso la migrazione dei 21 lettori CSV alle righe fisiche: `leggiCsv`
 guadagna `nRighe` e con lei sono migrati gli ultimi due lettori non
 standard, `scudo.scartiAzioniCsv` e `conti.scartiClientiCsv` — dopo aver
@@ -1826,7 +1830,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **293
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **295
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

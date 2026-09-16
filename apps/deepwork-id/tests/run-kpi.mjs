@@ -4318,6 +4318,34 @@ test("⛔ la soglia della tendenza sta in un posto solo, e la usano in due", () 
   eq(nm.pochi, true, "e `riepilogoNearMiss` usa la STESSA funzione, non un 5 suo");
 });
 
+test("⛔ barriereRicorrenti (16/09, dal delta della ricerca continua, undicesimo giro — ICAM): «che cosa avrebbe dovuto fermarlo», non «che cosa l'ha causato»", () => {
+  eq(scudo.BARRIERE_MANCATE.map(b => b.chiave),
+    ["delimitazione", "permesso-lavoro", "blocco-macchina", "dpi-non-indossato", "sorveglianza"]);
+  const poche = scudo.barriereRicorrenti(EVENTI_A, [{ eventoId: "i1", causa: "tecnica", barriereMancate: ["delimitazione"] }]);
+  eq(poche.leggibile, false, "sotto la soglia non si legge una tendenza");
+  ok(/servono almeno 5/.test(poche.motivo), poche.motivo);
+  eq([poche.analizzati, poche.eventi], [1, 4]);
+  /* un'analisi che nomina una causa ma NESSUNA barriera non conta: il campo
+     non è obbligatorio, e una causa tecnica pura può non averne */
+  eq(scudo.barriereRicorrenti(EVENTI_A, [{ eventoId: "i1", causa: "tecnica" }]).analizzati, 0,
+    "⛔ senza barriereMancate non entra nel conto, anche se la causa c'è");
+  const molte = [
+    { eventoId: "i1", causa: "organizzativa", barriereMancate: ["delimitazione", "sorveglianza"] },
+    { eventoId: "i2", causa: "organizzativa", barriereMancate: ["delimitazione"] },
+    { eventoId: "i3", causa: "dpi", barriereMancate: ["dpi-non-indossato"] },
+    { eventoId: "i4", causa: "organizzativa", barriereMancate: ["delimitazione"] },
+    { eventoId: "i5", causa: "dpi", barriereMancate: [] },   // barriereMancate vuoto: non conta come "con barriere"
+  ];
+  const ev = EVENTI_A.concat([{ id: "i5", tipo: "near-miss", data: "2026-04-01" }]);
+  const r = scudo.barriereRicorrenti(ev, molte);
+  eq(r.leggibile, false, "solo 4 analisi hanno DAVVERO una barriera (i5 ha l'array vuoto): sotto la soglia");
+  eq(r.analizzati, 4, "⛔ un array vuoto non è una barriera nominata");
+  eq(r.righe.map(x => [x.chiave, x.quante]), [["delimitazione", 3], ["dpi-non-indossato", 1], ["sorveglianza", 1]],
+    "una stessa analisi può contare per PIÙ barriere: i1 vale sia per delimitazione sia per sorveglianza (a parità di conto, l'ordine dichiarato in BARRIERE_MANCATE)");
+  eq(scudo.barriereRicorrenti(ev, molte.concat([{ eventoId: "fantasma", barriereMancate: ["dpi-non-indossato"] }])).analizzati, 4,
+    "⛔ un'analisi orfana non gonfia il conto");
+});
+
 console.log("\n— Terra: il piano a lotti e il divario di recupero —");
 const LOTTI = [
   { id: "l1", superficieMq: 12000, volumeM3: 180000, stato: "recuperato" },

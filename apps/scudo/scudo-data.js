@@ -422,7 +422,11 @@ export const DEMO = {
         "La fascia di rispetto a valle non era delimitata",
         "La delimitazione non è prevista nel giro di sorveglianza",
       ],
-      causa: "organizzativa", fatta: "2026-05-20", daChi: "d3", azioniId: ["a1"] },
+      // ⛔ IL PERCHÉ QUI SOPRA GIÀ DICE «la fascia di rispetto a valle non era
+      // delimitata»: senza `barriereMancate` la dimostrazione non poteva
+      // mostrare la sezione ICAM (16/09) con un caso vero, e sarebbe rimasta
+      // codice morto per chi non fa l'analisi da zero.
+      causa: "organizzativa", barriereMancate: ["delimitazione"], fatta: "2026-05-20", daChi: "d3", azioniId: ["a1"] },
     { id: "an2", eventoId: "i2",
       perche: [
         "Taglio alla mano su una lamiera durante una manutenzione",
@@ -5449,6 +5453,52 @@ export function causeRicorrenti(infortuni, analisi) {
     leggibile: !troppoPochiPerTendenza(conAnalisi.length),
     motivo: troppoPochiPerTendenza(conAnalisi.length)
       ? `${conAnalisi.length === 0 ? "Nessun evento è stato analizzato" : "Solo " + conAnalisi.length + " event" + (conAnalisi.length === 1 ? "o è stato analizzato" : "i sono stati analizzati")} su ${eventi.length}: servono almeno ${MIN_TENDENZA} analisi prima di poter dire quali cause si ripetono.`
+      : "" };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LE BARRIERE MANCATE (ICAM), 16/09 — dal delta della ricerca continua,
+   undicesimo giro.
+   ────────────────────────────────────────────────────────────────────────
+   `validaAnalisi`/`causeRicorrenti` sono maturi e non si toccano: chiedono
+   «perché» ed è la parte giusta del 5 Perché. Ma «perché» risponde a una
+   domanda diversa da quella che il metodo ICAM (citato per il settore
+   minerario) aggiunge: non «che cosa ha causato l'evento» ma «che cosa
+   avrebbe dovuto FERMARLO e non l'ha fatto». Un'analisi con causa
+   «organizzativa» non diceva finora QUALE barriera procedurale mancava —
+   una delimitazione? un permesso di lavoro? — e l'azione correttiva
+   nasceva dalla causa (generica) invece che dalla barriera (specifica).
+   Un'analisi può nominare più barriere insieme, o nessuna: non è un campo
+   obbligatorio e `validaAnalisi` non lo richiede, perché non ogni causa ha
+   una barriera mancante da nominare (una causa tecnica pura, «l'attrezzatura
+   si è rotta», può non avere nessuna barriera procedurale da correggere). */
+export const BARRIERE_MANCATE = [
+  { chiave: "delimitazione", etichetta: "Delimitazione / fascia di rispetto", esempio: "area non transennata, distanza di sicurezza non segnalata" },
+  { chiave: "permesso-lavoro", etichetta: "Permesso di lavoro", esempio: "attività critica iniziata senza il permesso previsto" },
+  { chiave: "blocco-macchina", etichetta: "Blocco macchina (LOTO)", esempio: "mezzo non messo in sicurezza prima dell'intervento" },
+  { chiave: "dpi-non-indossato", etichetta: "DPI disponibile ma non indossato", esempio: "il dispositivo c'era, non è stato usato" },
+  { chiave: "sorveglianza", etichetta: "Sorveglianza", esempio: "nessuno presidiava un'attività che la richiedeva" },
+];
+
+/* QUALI BARRIERE TORNANO — stessa domanda di `causeRicorrenti`, sulla
+   dimensione «che cosa avrebbe dovuto fermarlo» invece di «che cosa l'ha
+   causato». Stessa guardia di leggibilità (`troppoPochiPerTendenza`),
+   chiamata e non ricopiata: poche analisi con una barriera nominata non
+   dicono quale barriera manca più spesso, dicono solo che sono poche. */
+export function barriereRicorrenti(infortuni, analisi) {
+  const eventi = (infortuni || []).filter((e) => e && e.id);
+  const conBarriere = (analisi || []).filter((a) => a && Array.isArray(a.barriereMancate) && a.barriereMancate.length
+    && eventi.some((e) => String(e.id) === String(a.eventoId || "")));
+  const per = {};
+  for (const a of conBarriere) for (const b of a.barriereMancate) per[b] = (per[b] || 0) + 1;
+  const righe = BARRIERE_MANCATE
+    .map((b) => ({ chiave: b.chiave, etichetta: b.etichetta, quante: per[b.chiave] || 0 }))
+    .filter((r) => r.quante > 0)
+    .sort((a, b) => b.quante - a.quante);
+  return { righe, analizzati: conBarriere.length, eventi: eventi.length,
+    leggibile: !troppoPochiPerTendenza(conBarriere.length),
+    motivo: troppoPochiPerTendenza(conBarriere.length)
+      ? `${conBarriere.length === 0 ? "Nessuna analisi ha registrato una barriera mancata" : "Solo " + conBarriere.length + " analis" + (conBarriere.length === 1 ? "i ha registrato una barriera mancata" : "i hanno registrato una barriera mancata")} su ${eventi.length}: servono almeno ${MIN_TENDENZA} prima di poter dire quali barriere mancano più spesso.`
       : "" };
 }
 

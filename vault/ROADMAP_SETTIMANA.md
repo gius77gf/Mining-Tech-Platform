@@ -8555,9 +8555,12 @@ numero scritto dove non era stato misurato niente**.*
   della riverifica su PAROLE) — il numero di riga fisico anche quando un a
   capo dentro le virgolette sposta la riga logica dalla fisica — migrati con
   lei `scudo.scartiAzioniCsv` e `conti.scartiClientiCsv`: la migrazione dei
-  21 lettori CSV è ora completa —, 3049→3051):
-  **3.545 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3051, `run-stile` 330,
+  21 lettori CSV è ora completa —, 3049→3051. E a `scudo.barriereRicorrenti`/
+  `BARRIERE_MANCATE` (dal delta della ricerca continua, undicesimo giro —
+  ICAM) — che cosa avrebbe dovuto fermare l'evento, non che cosa l'ha
+  causato, sorella di `causeRicorrenti` —, 3051→3052):
+  **3.546 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3052, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8567,8 +8570,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **293 esecuzioni** che
-  aprono le pagine in un browser vero, da **126** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **295 esecuzioni** che
+  aprono le pagine in un browser vero, da **127** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
