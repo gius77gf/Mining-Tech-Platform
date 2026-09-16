@@ -2838,7 +2838,17 @@ a.dw-btn{text-decoration:none}
         <span class="badge ${!b.misurabile ? "tag" : b.limite === "almeno" ? "warn" : "accent"}">${
           !b.misurabile ? "mai misurato"
             : (b.limite === "almeno" ? "almeno " : "") + n0(b.scavo) + ' <span class="u">m³</span>'}</span>
-        ${b.motivo ? `<div class="form-hint">${esc(b.motivo)}</div>` : ""}</div>`;
+        ${b.motivo ? `<div class="form-hint">${esc(b.motivo)}</div>` : ""}
+        ${/* 4-quater · IL DETTAGLIO ANNO PER ANNO (16/09, sesto delta del
+             tredicesimo giro di ricerca continua su Terra). Il totale «almeno
+             62.700 m³» qui sopra dice CHE qualcosa manca, non DOVE: questa riga
+             lo scompone anno per anno, riusando `serieAnni` che il modulo
+             calcolava già e buttava via dentro il proprio ciclo di somma.
+             Mostrata solo con più di un anno in finestra: con un anno solo
+             ripeterebbe lo stesso numero del badge. */ ""}
+        ${BS.anni.length > 1 ? `<div class="form-hint">${
+            b.serieAnni.map(s => esc(s.anno) + " " + (s.misurabile ? n0(s.scavo) + " m³" : "non misurato")).join(" · ")
+          }</div>` : ""}</div>`;
     }).join("")
       || vuoto(I.monte, "Non c'è una ripartizione per banco",
           esc(BS.motivo) + " "

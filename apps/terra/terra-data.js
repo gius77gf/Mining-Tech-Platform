@@ -2076,7 +2076,7 @@ export function banchiDaSempre(rilievi, fronti, autorizzazione, oggi = new Date(
         acc.set(b.chiave, { chiave: b.chiave, etichetta: b.etichetta, grafie: b.grafie,
           fronti: b.fronti, fronteId: b.fronteId,
           scavo: 0, cumulo: 0, rilieviScavo: 0, rilieviCumulo: 0,
-          anniMisurati: [], anniCiechi: [] });
+          anniMisurati: [], anniCiechi: [], serieAnni: [] });
       const a = acc.get(b.chiave);
       a.cumulo += (+b.cumulo || 0);
       a.rilieviCumulo += (+b.rilieviCumulo || 0);
@@ -2089,6 +2089,15 @@ export function banchiDaSempre(rilievi, fronti, autorizzazione, oggi = new Date(
         a.rilieviScavo += (+b.rilieviScavo || 0);
         a.anniMisurati.push(anno);
       } else a.anniCiechi.push(anno);
+      // Prima fetta del report per banco×anno (delta finale della ricerca
+      // continua Terra, tredicesimo giro): il valore ANNO PER ANNO, non solo
+      // il totale con la lista degli anni ciechi. `stato progettuale` e
+      // `volumePianificato` per banco restano fuori — non esiste nel modello
+      // un'entità "banco" con un ciclo di vita proprio (il banco è un'etichetta
+      // letta dai fronti), e inventarla qui sarebbe la decisione architetturale
+      // che questo delta chiedeva di prendere PRIMA di scrivere codice, non di
+      // sfuggita in un'unità che doveva esporre solo un dato già calcolato.
+      a.serieAnni.push({ anno, scavo: b.misurabile ? r2(b.scavo) : null, misurabile: b.misurabile });
     }
   }
 

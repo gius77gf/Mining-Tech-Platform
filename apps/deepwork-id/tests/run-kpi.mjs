@@ -15472,6 +15472,28 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "in ordine di scavo, e i mai misurati in fondo");
   });
 
+  test("⛔ Terra: il report per banco×anno espone il valore ANNO PER ANNO, non solo il totale", () => {
+    // sesto e ultimo delta del tredicesimo giro di ricerca continua: prima
+    // fetta, il dato per anno che `banchiDaSempre` già calcolava e buttava
+    // via dentro il proprio ciclo di accumulo. `statoProgettuale` e
+    // `volumePianificato` per banco restano fuori: non esiste nel modello
+    // un'entità "banco" col proprio ciclo di vita (decisione architetturale
+    // non presa qui, di proposito).
+    const D = DS(terra.DEMO.rilievi);
+    const b2 = D.righe.find((r) => r.etichetta === "banco 2");
+    eq(b2.serieAnni.map((s) => s.anno), [2024, 2025, 2026], "un elemento per ogni anno della finestra, in ordine");
+    eq(b2.serieAnni.find((s) => s.anno === 2024), { anno: 2024, scavo: null, misurabile: false },
+       "⛔ l'anno cieco ha scavo null, mai zero");
+    eq(b2.serieAnni.find((s) => s.anno === 2025), { anno: 2025, scavo: 22000, misurabile: true });
+    eq(b2.serieAnni.find((s) => s.anno === 2026), { anno: 2026, scavo: 19400 + 21300, misurabile: true });
+    const somma = b2.serieAnni.filter((s) => s.misurabile).reduce((t, s) => t + s.scavo, 0);
+    eq(somma, b2.scavo, "la serie e il totale già esistente raccontano lo stesso numero, non due conti diversi");
+    const b3 = D.righe.find((r) => r.etichetta === "banco 3");
+    eq(b3.misurabile, false, "banco 3 non è mai stato misurato");
+    eq(b3.serieAnni.every((s) => s.scavo === null && !s.misurabile), true,
+       "e la sua serie è cieca su ogni anno, non solo sul totale");
+  });
+
   test("⛔ Terra: un anno non misurato dentro la somma non vale zero — è un «almeno»", () => {
     /* la domanda «tetto o quantità parziale» ha una risposta sola: il volume di
        un anno cieco è ignoto ma non può essere NEGATIVO, quindi la somma dei

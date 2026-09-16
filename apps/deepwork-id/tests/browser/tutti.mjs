@@ -828,6 +828,10 @@ const BANCHI = [
      dal progetto, non con l'avanzamento di un altro lotto. */
   ['l\'apertura fuori programma (anticipo/ritardo sul calendario) nella pagina Titolo di Terra', 'terra-apertura-programma.mjs', []],
   ['apertura fuori programma · controprova', 'terra-apertura-programma.mjs', ['--controprova'], true],
+  /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
+     stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
+  ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],
+  ['banco da sempre anno per anno · controprova', 'terra-banchi-serie-anni.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero
