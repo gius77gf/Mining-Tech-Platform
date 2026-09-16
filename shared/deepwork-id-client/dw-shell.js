@@ -1580,13 +1580,25 @@ function rilevaDelimTesto(t) {
 // Regge: separatore ; , o TAB · campi tra virgolette · virgolette doppie
 // raddoppiate ("") · a capo DENTRO un campo quotato · BOM iniziale ·
 // terminatori di riga Windows e Unix. Le righe completamente vuote spariscono.
-// Ritorna { delim, righe }. Pura e testabile.
+// Ritorna { delim, righe, nRighe }. Pura e testabile.
+// ⛔ `nRighe[i]` è il numero di riga FISICO (nel file, a partire da 1) su cui
+// COMINCIA `righe[i]` — dal delta della riverifica su PAROLE (15/09): i
+// lettori costruiti su `righeCsvNumerate` numerano già così, ma i quattro che
+// vivono su `leggiCsv` (perché il loro campo può contenere un a capo dentro
+// le virgolette — la causale di un bonifico, la descrizione di un'azione)
+// non potevano, perché questa funzione restituiva solo le celle e buttava via
+// la posizione. Un a capo DENTRO le virgolette avanza `nRighe` senza chiudere
+// la riga corrente: è la ragione per cui non si può semplicemente contare gli
+// elementi di `righe` per sapere a che riga fisica si è arrivati. AGGIUNTO,
+// non sostituito: i chiamanti che leggono solo `.righe`/`.delim` non vedono
+// nessuna differenza.
 export function leggiCsv(testo) {
   const t = String(testo == null ? "" : testo).replace(/^\uFEFF/, "");
-  if (!t.trim()) return { delim: ";", righe: [] };
+  if (!t.trim()) return { delim: ";", righe: [], nRighe: [] };
   const delim = rilevaDelimTesto(t);
-  const righe = [];
+  const righe = [], nRighe = [];
   let campo = "", riga = [], q = false;
+  let lineNo = 1, inizioRiga = 1;
   /* toglie l'apostrofo che `csvCell` mette davanti a `= + - @`, e SOLO quello:
      la condizione è la stessa costante che lo ha messo, non una seconda regola
      scritta a somiglianza. Un valore che comincia davvero per apostrofo
@@ -1598,21 +1610,21 @@ export function leggiCsv(testo) {
   };
   const chiudiRiga = () => {
     riga.push(campo); campo = "";
-    if (riga.some(x => String(x).trim() !== "")) righe.push(riga.map(senzaGuardia));
+    if (riga.some(x => String(x).trim() !== "")) { righe.push(riga.map(senzaGuardia)); nRighe.push(inizioRiga); }
     riga = [];
   };
   for (let i = 0; i < t.length; i++) {
     const c = t[i];
     if (q) {
       if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else q = false; }
-      else campo += c;
+      else { campo += c; if (c === "\n" || (c === "\r" && t[i + 1] !== "\n")) lineNo++; }
     } else if (c === '"') q = true;
     else if (c === delim) { riga.push(campo); campo = ""; }
-    else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; chiudiRiga(); }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; chiudiRiga(); lineNo++; inizioRiga = lineNo; }
     else campo += c;
   }
   chiudiRiga();
-  return { delim, righe };
+  return { delim, righe, nRighe };
 }
 
 /* LA DATA COME SI SCRIVE IN ITALIA

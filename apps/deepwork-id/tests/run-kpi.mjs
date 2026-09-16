@@ -12534,6 +12534,16 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.leggiCsv("").righe, [], "file vuoto");
     eq(sentinella.leggiCsv(null).righe, [], "niente");
   });
+  test("⛔ leggiCsv (16/09, dal delta della riverifica su PAROLE): `nRighe` è il numero di riga FISICO, un a capo dentro le virgolette lo fa avanzare senza chiudere la riga", () => {
+    eq(shell.leggiCsv("a;b\nc;d\n").nRighe, [1, 2], "senza virgolette: fisica = posizionale");
+    const r = shell.leggiCsv('a;"riga1\nriga2";c\nd;e;f\n');
+    eq(r.righe[0], ["a", "riga1\nriga2", "c"], "il contenuto della cella multi-riga non cambia");
+    eq(r.nRighe, [1, 3], "la seconda riga logica comincia alla riga FISICA 3, non alla 2");
+    eq(shell.leggiCsv("a;b\n\n\nc;d").nRighe, [1, 4], "le righe fisicamente vuote avanzano il numero ma non generano una voce");
+    eq(shell.leggiCsv("﻿a;b\r\nc;d\r\n").nRighe, [1, 2], "CRLF conta come una riga sola");
+    eq(shell.leggiCsv("").nRighe, [], "file vuoto");
+    eq(shell.leggiCsv(null).nRighe, [], "niente");
+  });
   test("paresIntestazione: una riga che contiene un numero non è un'intestazione", () => {
     ok(sentinella.paresIntestazione([["Data", "Ora", "PPV"]]), "titoli");
     ok(!sentinella.paresIntestazione([["12/07/2026", "10:30", "4,8"]]), "già dati");
@@ -33244,6 +33254,28 @@ const SCARTI_PROVATI = new Set();
     eq(t2.persi[0].nome, "riga 2", "senza header: la riga rotta è la SECONDA fisica, non la prima fra i sopravvissuti");
   });
 
+  test("⛔ B17 (16/09): scudo.scartiAzioniCsv e conti.scartiClientiCsv migrati con `leggiCsv().nRighe` — l'ultima forma non standard, quella con un a capo dentro le virgolette", () => {
+    /* la forma più difficile: `leggiCsv` legge righe LOGICHE, non fisiche,
+       perché una descrizione/ragione sociale può portare un a capo dentro
+       le virgolette. Qui il secondo caso rotto arriva SUBITO dopo una riga
+       logica che occupa DUE righe fisiche: se il lettore contasse la
+       posizione fra i sopravvissuti (2) invece della riga fisica (4), lo
+       sbaglierebbe proprio nel caso per cui `nRighe` è stato scritto. */
+    const csvAzioni = 'id;descrizione;responsabileId;scadenza;stato;esito;dataChiusura;origineTipo\n'
+      + '1;"Azione su due\nrighe fisiche";r1;;aperta;;;\n'
+      + ';;r2;;aperta;;;\n';
+    const a = scudo.scartiAzioniCsv(csvAzioni);
+    eq(a.persi.length, 1, "una sola riga persa: la prima (multi-riga) è sana");
+    eq(a.persi[0].nome, "riga 4", "1=intestazione, 2-3=riga logica su due fisiche, 4=rotta (manca la descrizione)");
+
+    const csvClienti = conti.CSV_CLIENTI_INTESTAZIONE + "\n"
+      + 'C1;"Alfa\nSrl";123;AAA;via Roma;5;1000;\n'
+      + ';;456;BBB;via Po;;;\n';
+    const c = conti.scartiClientiCsv(csvClienti);
+    eq(c.persi.length, 1);
+    eq(c.persi[0].nome, "riga 4", "1=intestazione, 2-3=riga logica su due fisiche, 4=rotta (manca la ragione sociale)");
+  });
+
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
      una dichiarazione che nessuno legge non protegge niente. Il difetto vero
      non è la funzione che manca, è la funzione che c'è e che nessuno chiama —
@@ -33655,7 +33687,7 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     ["conti.parseClientiCsv", conti.parseClientiCsv, conti.scartiClientiCsv, conti.CSV_CLIENTI_INTESTAZIONE,
      ["C1;Alfa Srl;123;AAA;via Roma;5;1000;"],
      [["C2;;456;BBB;via Po;;;", "manca la ragione sociale", "C2"],
-      [";;789;CCC;via Adda;;;", "manca la ragione sociale", "riga 3"]]],
+      [";;789;CCC;via Adda;;;", "manca la ragione sociale", "riga 4"]]],   // 16/09: riga FISICA (1=intestazione, 2=sana, 3=rotta precedente)
     ["flotta.parseRicambiCsv", flotta.parseRicambiCsv, flotta.scartiRicambiCsv, "nome;giacenza;sogliaMin;prezzo",
      /* ⚠️ le tre righe sane sono i tre casi che NON fanno perdere la riga, e
         sono decisioni scritte nel modulo: giacenza mancante = zero (un pezzo

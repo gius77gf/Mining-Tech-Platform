@@ -6545,12 +6545,16 @@ export function parseAzioniCsv(text) {
    calcolo non arriva nemmeno qui. Il campo c'è lo stesso per non avere due
    forme di `scarti…Csv` da ricordare. */
 export function scartiAzioniCsv(text) {
-  const righe = (leggiCsv(String(text || "")).righe || [])
-    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"));
+  // dal 16/09 `leggiCsv` porta anche `nRighe`, il numero di riga FISICO su
+  // cui comincia ogni riga logica: qui serve perché una descrizione può
+  // contenere un a capo dentro le virgolette, e allora la riga FISICA
+  // successiva non è la riga LOGICA successiva.
+  const letto = leggiCsv(String(text || ""));
+  const righe = (letto.righe || [])
+    .map((c, i) => ({ c, nRiga: letto.nRighe[i] }))
+    .filter((r) => r.c.length && !isIntestazione(r.c.join(";"), "id"));
   const persi = [];
-  let nRiga = 0;
-  for (const c of righe) {
-    nRiga++;
+  for (const { c, nRiga } of righe) {
     if (parseAzioniCsv(c.map((x) => csvCell(x == null ? "" : x)).join(";")).length) continue;
     persi.push({
       nome: (c[0] || "").trim() || "riga " + nRiga,

@@ -6624,13 +6624,17 @@ export function parseClientiCsv(text) {
    dentro le virgolette, nota su due righe, numero negativo, una cella che
    comincia con `=`): **4 righe su 4 concordi col verdetto del file intero**. */
 export function scartiClientiCsv(text) {
-  const celle = (leggiCsv(String(text || "")).righe || [])
-    .filter((c) => c.length && !isIntestazione(c.join(";"), "id"));
+  // dal 16/09 `leggiCsv` porta anche `nRighe`, il numero di riga FISICO su
+  // cui comincia ogni riga logica: la ragione sociale può contenere un a
+  // capo dentro le virgolette, quindi la riga fisica successiva non è
+  // sempre la riga logica successiva.
+  const letto = leggiCsv(String(text || ""));
+  const celle = (letto.righe || [])
+    .map((c, i) => ({ c, nRiga: letto.nRighe[i] }))
+    .filter((r) => r.c.length && !isIntestazione(r.c.join(";"), "id"));
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const c of celle) {
-    nRiga++;
+  for (const { c, nRiga } of celle) {
     if (c.every((x) => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }
     if (parseClientiCsv(c.map(csvCell).join(";")).length) continue;
     persi.push({

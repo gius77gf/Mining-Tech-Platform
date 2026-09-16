@@ -8551,9 +8551,13 @@ numero scritto dove non era stato misurato niente**.*
   frequenzaFermiControStoria` (dal delta della ricerca continua, undicesimo
   giro) — terza sorella di `consumoControStoria`/`costoControStoria`, il
   ritmo dei fermi invece della loro entità, collegata a `prioritaOperative`
-  come terza voce "trend" —, 3043→3049):
-  **3.543 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3049, `run-stile` 330,
+  come terza voce "trend" —, 3043→3049. E a `leggiCsv().nRighe` (dal delta
+  della riverifica su PAROLE) — il numero di riga fisico anche quando un a
+  capo dentro le virgolette sposta la riga logica dalla fisica — migrati con
+  lei `scudo.scartiAzioniCsv` e `conti.scartiClientiCsv`: la migrazione dei
+  21 lettori CSV è ora completa —, 3049→3051):
+  **3.545 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3051, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
