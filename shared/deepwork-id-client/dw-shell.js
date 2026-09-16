@@ -550,7 +550,7 @@ export const CSV_TABELLE = [
     fonte: "conti.csvProspettoPreventivi", col: "numero;ordine;data;valido al;cliente;stato;prodotto;quantita;unita;prezzo;sconto %;sconto cliente %;sconto scaglione %;scaglione da;imponibile" },
   // ── Flotta ──────────────────────────────────────────────────────────
   { id: "flotta.ricambi", app: "Flotta", etichetta: "l'export del magazzino ricambi di Flotta",
-    fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo" },
+    fonte: "flotta.csvRicambi", col: "nome;giacenza;sogliaMin;prezzo;stato" },
   { id: "flotta.costi", app: "Flotta", etichetta: "l'export del registro costi di Flotta",
     fonte: "flotta.csvCosti", col: "data;voce;importo;nota" },
   { id: "flotta.budget", app: "Flotta", etichetta: "il budget dell'anno contro la spesa reale di Flotta",

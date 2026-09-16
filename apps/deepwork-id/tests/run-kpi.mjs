@@ -29104,11 +29104,16 @@ test("csvRicambi → parseRicambiCsv: il giro torna identico, con le tre convenz
      RILEGGONO, non si riscrivono: giacenza assente = 0 (se no si nascondono i
      pezzi finiti, che sono quelli da ordinare), soglia e prezzo assenti = vuoto */
   const t = flotta.csvRicambi([{ nome: "Cinghia" }]);
-  ok(/^Cinghia;0;;$/m.test(t), t);
+  ok(/^Cinghia;0;;;predefinito$/m.test(t), t);
   eq(flotta.parseRicambiCsv(t), [{ nome: "Cinghia", giacenza: 0, sogliaMin: null, prezzo: null }],
-    "e rientra con soglia e prezzo NON inventati");
+    "e rientra con soglia e prezzo NON inventati (parseRicambiCsv non rilegge ancora la quinta colonna: prima fetta)");
   eq(/undefined|null|NaN/.test(t), false, "nel file non compare una parola di JavaScript");
-  eq(flotta.csvRicambi([]).split("\n")[0], "nome;giacenza;sogliaMin;prezzo");
+  eq(flotta.csvRicambi([]).split("\n")[0], "nome;giacenza;sogliaMin;prezzo;stato");
+  // P4 di RICERCA_CONTINUA_ASSENZA.md (16/09): lo zero PREDEFINITO e lo zero
+  // MISURATO devono uscire distinguibili nel file, che prima non lo erano
+  const g = flotta.csvRicambi([{ nome: "Predefinito" }, { nome: "Misurato", giacenza: 0 }]);
+  ok(/^Predefinito;0;;;predefinito$/m.test(g), g);
+  ok(/^Misurato;0;;;misurato$/m.test(g), "⛔ uno zero CONTATO davvero non è un predefinito: " + g);
 });
 
 /* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */

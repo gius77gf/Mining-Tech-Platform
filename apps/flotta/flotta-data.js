@@ -1125,8 +1125,23 @@ export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
   return csv;
 }
 
+/* IL ZERO DICHIARATO ESCE DICHIARATO (16/09, proposta P4 di
+   docs/RICERCA_CONTINUA_ASSENZA.md, il caso `I` — imputed — di SDMX).
+   `parseRicambiCsv` decide da sempre che una giacenza mai contata vale
+   ZERO (decisione 1, sopra): giusta, perché nasconderla nasconderebbe
+   proprio i pezzi finiti. Ma il file che esce da qui va al magazziniere o
+   al fornitore, e per loro «0» scritto da un contatore vero e «0» scritto
+   perché nessuno l'ha mai contato sono due fatti diversi — uno dice
+   «ordina», l'altro dice «nessuno lo sa». La quinta colonna li distingue:
+   `predefinito` quando `numeroDichiarato` non trova niente (lo stesso
+   controllo che decide lo "0" nudo qui sopra, non un secondo giudizio),
+   `misurato` altrimenti. Prima fetta, deliberata: `parseRicambiCsv` non
+   la rilegge ancora — il modello dati di un ricambio non ha oggi un posto
+   dove tenere «questa giacenza è un predefinito», e aggiungerlo è la
+   decisione che P2 (lo stesso documento) mette in comune a undici CSV:
+   farla di sfuggita qui vorrebbe dire inventarla due volte. */
 export function csvRicambi(ricambi) {
-  const righe = ["nome;giacenza;sogliaMin;prezzo"];
+  const righe = ["nome;giacenza;sogliaMin;prezzo;stato"];
   for (const r of (ricambi || [])) {
     if (!r) continue;
     const g = numeroDichiarato(r.giacenza);
@@ -1137,6 +1152,7 @@ export function csvRicambi(ricambi) {
       g == null ? "0" : String(g),
       s == null ? "" : String(s),
       p == null ? "" : String(p),
+      g == null ? "predefinito" : "misurato",
     ].join(";"));
   }
   return righe.join("\n") + "\n";

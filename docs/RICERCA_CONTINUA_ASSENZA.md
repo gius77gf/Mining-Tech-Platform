@@ -692,3 +692,27 @@ lettori» — è già stato fatto su sei di essi in un momento non tracciato da
 questo documento — ma solo «farlo, e chiamarlo dalla pagina, sui due che
 restano: `scudo/infortuni` e `sentinella/monitoraggi`». Un cantiere aperto
 sugli otto originali rifarebbe sei volte un lavoro già in produzione.
+
+---
+
+**✅ 15/09 (20:08 UTC) — chiusi i due lettori rimasti "muti", commit `afa64c4a`.**
+Riverifica indipendente il 16/09: `scartiInfortuniCsv` esiste in
+`apps/scudo/scudo-data.js:2311` ed è chiamata in `apps/scudo/index.html`;
+`scartiMonitoraggiCsv` esiste in `apps/sentinella/sentinella-data.js:778` ed
+è chiamata in `apps/sentinella/index.html` — entrambe verificate con `grep`
+diretto, non sulla parola del documento. Il conteggio "ancora davvero muti
+oggi 2 su 8" scritto sopra è quindi **superato**: sono 0 su 8. Non c'è più
+nessun lettore CSV muto da questa lista. Chi rilegge D2/P1-P4 in cerca di
+lavoro da fare parta da qui, non dal conteggio più in alto.
+
+---
+
+**✅ 16/09 — P4 implementata (lo zero dichiarato di Flotta esce come
+dichiarato), commit da verificare nel prossimo checkpoint.** `csvRicambi`
+guadagna una quinta colonna `stato` (`predefinito`/`misurato`), derivata
+dallo stesso `numeroDichiarato(r.giacenza)` che già decide lo "0" nudo —
+nessun secondo giudizio, nessuna copia debole. **Deliberatamente NON
+tradotta in P2**: `parseRicambiCsv` non rilegge ancora la colonna (il
+modello dati di un ricambio non ha oggi un posto dove tenere questa
+distinzione, e introdurlo qui sarebbe la decisione che P2 vuole prendere
+in comune per tutti e undici i CSV). P2, P3 restano aperte.
