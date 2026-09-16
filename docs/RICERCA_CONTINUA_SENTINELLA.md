@@ -1340,3 +1340,251 @@ termica) è il più fondato dal mondo (fonte tecnica specializzata, non
 marketing) ma anche il più difficile da tradurre in un numero, ed è scritto
 come tale: un avviso descrittivo, non un calcolo.
 
+---
+
+## 16/09 — nono giro di ricerca mirata: catena di custodia dello STRUMENTO ed escalation sui superamenti RIPETUTI
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: solo `WebSearch`
+(quattro ricerche, tutte hanno risposto); `WebFetch` non è stato provato —
+per il limite già misurato più volte in questo file (`EGRESS_BLOCKED`), si
+presume valga ancora. **Nessuna fonte è stata letta per intero**: ogni riga
+sul mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+**Punto 1 del protocollo — che cosa esiste già, dichiarato prima di
+proporre.** Questo giro **non ripete** la parte di catena di custodia già
+coperta il 15/09 (settimo giro, sezione qui sopra) e già in
+`docs/DECISIONI_WEEKEND.md` §24 come decisione **aperta**: Sentinella
+registra `quando` su ogni correzione/annullamento di lettura ma non `chi`
+(l'operatore interno); il `chi` che esiste già (`statoDiFatto`, reclami) è
+chi ha SEGNALATO, non chi ha modificato. Non riscrivo quella lacuna qui.
+Sono già verificati e restano veri: `coperturaTaratura`,
+`statoTaraturaStrumento`, `contaCoperture`, `taratureDelReport`, il CSV
+andata/ritorno delle tarature (`parseTaratureCsv`/`abbinaTarature`),
+`reportConformita` a quattro esiti, `allerteTaratura` (ricerca del 02/09).
+Questo giro guarda due domande **diverse**, mai poste prima in questo
+file: (a) la taratura è legata a un **punto di misura**, o a uno
+**strumento con un'identità propria** (numero di serie) che può muoversi
+fra punti? (b) un **pattern** di superamenti ripetuti sullo stesso
+ricettore genera un'escalation automatica, o ogni superamento resta un
+evento isolato?
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Catena di custodia a livello di strumento.** I LIMS ambientali per il
+  settore minerario estendono la catena di custodia (chain of custody, COC)
+  fino al campo con moduli eCOC, app mobile di raccolta dati e
+  identificazione del campione/evento per QR o barcode; ogni **trasferimento
+  di custodia** viene registrato elettronicamente con timestamp e
+  **credenziali utente autenticate**, e il rilievo di campo cattura
+  coordinate GPS, condizioni ambientali, **letture dello strumento di
+  campo** e firma digitale. [seconda mano: labmanager.com «Environmental Lab
+  LIMS: Chain of Custody Automation for Field Sample Compliance»,
+  qi-a.com «Managing Chain-of-Custody in Field Sampling with Environmental
+  LIMS», onlims.com «From Sample Reception to Certificate: Chain of Custody
+  as the Operating Backbone of a Mining Laboratory LIMS» — nessuna letta
+  per intero]. Il denominatore comune delle tre fonti è che l'identità
+  tracciata è quella dello **strumento usato per quel singolo prelievo/
+  evento**, non quella del punto/postazione dove si trova.
+- **Escalation per violazioni ripetute — il modello «Enforcement Response
+  Plan» (ERP).** Un ERP è un documento che applica un'escalation coerente
+  e crescente man mano che le violazioni si accumulano: il percorso tipico
+  parte da una comunicazione informale o lettera di avviso, passa per la
+  notifica di violazione formale, un piano di adeguamento (compliance
+  schedule), un **monitoraggio intensificato**, un ordine amministrativo,
+  penali, fino alla modifica o sospensione del permesso nei casi più gravi
+  o ripetuti. Un violatore recidivo o negligente richiede una risposta più
+  severa; per un ente che comunica una violazione ripetuta della stessa
+  fonte, la prassi è **citare esplicitamente gli episodi precedenti**
+  invece di ripartire da zero ogni volta. [seconda mano: mod-eng.com
+  «Enforcement Response Plans: How Texas POTWs Escalate Pretreatment
+  Violations», tceq.texas.gov «EPA Drinking Water Enforcement Response
+  Policy» — nessuna letta per intero; il modello ERP nasce per scarichi
+  idrici/pretrattamento, non per volate/rumore, quindi il trasferimento al
+  settore estrattivo è un'analogia, non un fatto verificato per il nostro
+  dominio]
+- **Escalation automatica nel software di compliance ambientale generico.**
+  Sistemi più avanzati automatizzano compiti ricorrenti, individuano il
+  lavoro in ritardo, instradano le eccezioni e fanno salire il rischio di
+  visibilità lungo la catena di comando; un esempio concreto citato è una
+  policy a tre soglie temporali — escalation al supervisore dopo 24 ore, al
+  responsabile EHS dopo 72 ore, al direttore di sito dopo 7 giorni — per
+  garantire che le scadenze di una prescrizione non vengano perse. Un altro
+  sistema (Cority, citato dal risultato di ricerca) fa scattare workflow di
+  notifica e obblighi documentali specifici del permesso quando un operatore
+  registra un superamento o rilascio segnalabile. [seconda mano:
+  sbnsoftware.com «How Does Automation Reduce Overdue Corrective Actions?»,
+  99pt5.com «8 Best Environmental Compliance Management Software»,
+  aethair.io «EHS Compliance Reporting Guide» — nessuna letta per intero.
+  Nessuna fonte trovata cita testualmente una soglia «3 superamenti in 30
+  giorni»: è verosimile che sia specifica di ogni autorizzazione/permesso, non
+  uno standard universale — coerente con quanto già scritto il 05/09 sulla
+  cadenza dei rapporti («la cadenza è una prescrizione dell'autorizzazione,
+  caso per caso»)]
+- **TARP (Trigger Action Response Plan) per le miniere**: già citato il
+  15/09 per le polveri; un esempio concreto documentato per la stabilità dei
+  fronti (Bingham Canyon Mine) mostra un TARP con soglie multiple crescenti
+  ("trigger levels") ognuna collegata a un'azione operativa diversa, non a
+  un singolo superamento isolato — cioè il principio "più soglie superate =
+  risposta più severa" è già un pattern noto nel settore minerario, anche se
+  per un fenomeno diverso (movimento di versante). [seconda mano:
+  researchgate.net / papers.acg.uwa.edu.au, «Trigger action response plan
+  development and optimisation at the Bingham Canyon Mine» — solo abstract/
+  riassunto, non il testo completo]
+
+**Riassunto metà 1 — il mondo** [tutto seconda mano]:
+- la catena di custodia professionale lega l'identità allo **strumento del
+  singolo evento**, non al punto fisso;
+- l'escalation per violazioni ripetute è un modello **a gradini** (ERP):
+  ogni gradino cita gli episodi precedenti ed è più severo del precedente;
+  non è stato trovato un numero universale («3 in 30 giorni») — è materia
+  di prescrizione, non di standard;
+  i software generalisti implementano escalation **basate sul tempo**
+  (SLA/scadenza non rispettata), non ancora trovata una fonte che descriva
+  un'escalation basata sul **conteggio** di eventi ripetuti su uno stesso
+  punto/ricettore.
+
+### PASSO 2 — il delta: verifica nel codice (16/09, contro il commit `e82d36ec`)
+
+**(a) L'identità dello strumento è quella del punto di misura, non una
+identità propria.**
+
+```
+$ grep -ciE 'numeroSerie|matricola|serieStrumento' apps/sentinella/sentinella-data.js
+0
+$ grep -n "function chiaveStrumento" -A3 apps/sentinella/sentinella-data.js
+2163:function chiaveStrumento(s) {
+2164-  return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+2165-}
+```
+
+`chiaveStrumento` normalizza il **nome del punto di misura** (`m.nome`,
+letto da `abbinaTarature`, riga 2196: `agg(chiaveStrumento(nome), ...)`),
+non un campo distinto «strumento». Le `tarature` sono un array dentro il
+`punto` (`sentinella-data.js:59-74`, dati demo: `tarature: [{data, scadenza,
+ente, certificato, nota}]`) — nessun numero di serie, marca o modello. Il
+commento del codice (righe 2169-2183) **dichiara la scelta a proposito**:
+«un punto di misura non è un'etichetta: porta una soglia», e vieta di
+creare un punto fantasma dal solo nome di un certificato. La scelta di
+disegno regge per lo scopo per cui è nata (non inventare un punto/soglia da
+un CSV amministrativo), ma **non copre** il caso — comune nel mondo, dove lo
+strumento viaggia (labmanager.com, qi-a.com) — in cui lo **stesso**
+fonometro o sismografo, con lo **stesso** certificato di taratura, viene
+usato su **più punti diversi** in date diverse: oggi andrebbe registrata la
+stessa taratura a mano su ogni punto che lo strumento visita, e non c'è
+modo di dire «questi tre punti, in queste date, hanno usato lo stesso
+strumento fisico» — solo che ognuno ha una taratura valida per conto suo.
+Non è la stessa lacuna del §24 (chi ha modificato il dato): qui il dato
+manca dalla nascita, nessuna funzione lo calcola né lo espone.
+
+**(b) Nessuna funzione conta i superamenti ripetuti su una finestra
+mobile né per ricettore, e nessuna genera un'escalation.**
+
+```
+$ grep -ciE 'escalat|recidiv|reiterat' apps/sentinella/sentinella-data.js
+0
+$ grep -ciE 'superamentiUltimi|finestraMobile|rolling' apps/sentinella/sentinella-data.js
+0
+$ grep -n "function bozzaAzioneSuperamento" -A20 apps/sentinella/sentinella-data.js | grep -ciE "priorit|storico|conta|precedent"
+0
+```
+
+Verificato leggendo le funzioni, non solo il grep:
+- `statPeriodo(m, dal, al, soglia)` (riga 3930) **sa** contare i superamenti
+  di UN punto in un periodo esplicito (`v.filter(x => x >= s).length`), ma
+  vuole `dal`/`al` passati da chi chiama — non c'è una finestra «ultimi 30
+  giorni da oggi» calcolata da sola, e lavora su un punto alla volta;
+- `confrontoMesi` (riga 3948) confronta mese corrente e mese precedente
+  (`deltaSuperamenti`), non una finestra mobile, e resta per punto;
+- `andamentoRicettore` (riga 3977) aggrega i punti di **un** ricettore ma
+  restituisce, per ognuno, il proprio `confronto` mensile separato — non
+  somma i superamenti dei punti del ricettore in un unico conto, e non
+  produce nessuna bandiera «pattern» o «recidiva»;
+- `superamentiAperti` (riga 4057) elenca solo i superamenti **aperti ORA**
+  (stato corrente "danger"), ordinati per gravità del singolo valore — un
+  superamento chiuso ieri e uno di tre mesi fa non lasciano traccia in
+  questa lista;
+- `bozzaAzioneSuperamento` (riga 4084, il ponte verso Scudo) genera la bozza
+  di un'azione correttiva **per singolo superamento aperto**: nessun
+  parametro guarda quanti se ne sono già avuti sullo stesso ricettore, e
+  quindi nessuna azione nasce con priorità più alta o testo diverso perché
+  «è la terza volta in un mese».
+
+Cioè i mattoni per COSTRUIRE il conteggio esistono (`statPeriodo` sul
+periodo, `andamentoRicettore` sull'aggregazione per ricettore), ma **manca
+la finestra mobile**, **manca la somma fra i punti di uno stesso
+ricettore in un numero unico**, e **manca il collegamento fra quel numero
+e una decisione operativa** (priorità dell'azione, avviso diverso a
+schermo, testo che cita gli episodi precedenti come fa un ERP).
+
+### Il delta
+
+**Delta 1 — CONFERMATO. Nessuna identità propria dello strumento,
+distinta dal punto di misura.** Il modello attuale è corretto per lo scopo
+per cui è stato scritto (una soglia appartiene sempre a un punto, mai a un
+pezzo di ferro), ma non distingue «taratura del punto» da «taratura dello
+strumento fisico che in quel momento sta su quel punto». Per una cava che
+usa uno stesso fonometro certificato su più postazioni a rotazione (pratica
+comune, secondo le fonti LIMS) oggi la app non ha modo di dirlo.
+- **Costo (stima non verificata)**: medio. Non tocca l'esito di
+  conformità: aggiungerebbe un campo facoltativo `strumento: {nome,
+  matricola}` alla taratura (già un oggetto, righe 1955-1962), e una
+  funzione pura che raggruppi le tarature per matricola invece che per
+  punto — utile SOLO se un domani serve rispondere «questo strumento, con
+  questa matricola, ha certificati validi su quali punti e quando».
+- **Come si misura**: `grep -n "matricola"` dopo l'unità; prova di andata e
+  ritorno che due punti condividano la stessa matricola con date diverse e
+  il conto li tenga distinti dal certificato-per-punto attuale.
+- ⚠️ **Non è un cantiere ovvio**: prima di costruirlo andrebbe chiesto se
+  le cave clienti tengono davvero strumenti itineranti o uno strumento fisso
+  per punto (il secondo caso rende il delta teorico). Nessuna fonte di
+  questo giro lo conferma per il settore estrattivo specificamente — è
+  un'inferenza dal mondo dei LIMS di laboratorio, dichiarata come tale.
+
+**Delta 2 — CONFERMATO, ed è il più fondato dei due. Un pattern di
+superamenti ripetuti sullo stesso ricettore non genera nessuna escalation,
+né a schermo né nell'azione correttiva.**
+- **Schermata**: Quadro / Monitoraggi — un ricettore con un superamento
+  isolato tre mesi fa e uno con tre superamenti nell'ultimo mese ricevono
+  la stessa riga in `superamentiAperti` se il valore corrente è lo stesso:
+  solo `st.ratio` (quanto il valore attuale supera la soglia) decide
+  l'ordine, mai la frequenza.
+- **Che cosa non va**: il mondo (ERP, TARP) tratta un evento isolato e un
+  pattern ripetuto come **due severità diverse** — il secondo giustifica un
+  monitoraggio intensificato, una comunicazione che cita gli episodi
+  precedenti, un'azione con priorità più alta. Sentinella tratta ogni
+  superamento come indipendente dal suo passato.
+- **Come si vede**: registrare tre letture sopra soglia sullo stesso
+  ricettore in 20 giorni e una quarta lettura sopra soglia isolata su un
+  ricettore diverso, mai misurato prima: in `superamentiAperti` e nella
+  bozza d'azione generata da `bozzaAzioneSuperamento` le due situazioni
+  producono testo e priorità **identici** a parità di rapporto valore/
+  soglia.
+- **Quanto costa** (stima non verificata): medio. Non un nuovo giudizio di
+  conformità (quello resta quello che è: superato o no), ma una funzione
+  pura aggiuntiva, sullo schema di `statPeriodo`/`andamentoRicettore` già
+  esistenti — es. `superamentiUltimiGiorni(monitoraggi, ricettoreId, oggi,
+  finestraGiorni)` che somma i superamenti di TUTTI i punti di quel
+  ricettore nella finestra mobile e torna `{n, soglia: es. 3, pattern:
+  n >= soglia}` — e una bandiera che `bozzaAzioneSuperamento` legga per
+  scrivere «è il terzo superamento negli ultimi 30 giorni su questo
+  ricettore» nel testo dell'azione, sullo stesso principio prudente già
+  usato per `AVVISO_COINCIDENZA` (si dichiara il fatto, non si inventa una
+  causa). La soglia numerica (quanti giorni, quanti superamenti) **non va
+  presa dal mondo di questo giro** — nessuna fonte ha dato un numero
+  universale — va dichiarata come parametro configurabile, non cablata.
+- **Come si misura**: funzione pura provabile in `run-kpi.mjs` senza
+  browser; controprova che, tolta la finestra mobile, tre superamenti
+  distanziati di sei mesi non vengano contati come pattern.
+
+**Riassunto** — 2 delta, **entrambi confermati e nessuno già coperto** (il
+grep su escalation/recidiva/matricola dà zero, e le tre funzioni più vicine
+— `statPeriodo`, `confrontoMesi`, `andamentoRicettore` — sono state lette
+riga per riga, non solo cercate per nome, per escludere che il conto
+esistesse già sotto un altro nome). Il delta 2 (escalation su pattern) è il
+più fondato e il più vicino al linguaggio già usato in Sentinella (si
+appoggia a funzioni che esistono già); il delta 1 (identità dello
+strumento) è più incerto perché nessuna fonte conferma che il caso d'uso
+(strumento itinerante) sia comune nel settore estrattivo specifico — va
+verificato con il fondatore o con un cliente prima di costruirlo, non
+dedotto dal mondo dei laboratori.
+
