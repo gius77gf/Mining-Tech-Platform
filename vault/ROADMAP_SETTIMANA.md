@@ -10967,3 +10967,29 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       per undici CSV, non di sfuggita qui). Doc-cascade invariato: nessuna
       funzione nuova, nessun banco browser nuovo. Vedi checkpoint
       `20260916-111748_flotta-ricambi-stato-p4.md`.
+
+## Scudo — ricerca continua, la denuncia INAIL (16/09)
+- [x] **SCADENZA DELLA DENUNCIA INAIL DI UN INFORTUNIO** *(16/09, unità
+      completata)*. D.P.R. 1124/1965, art. 53 — testo verificato via
+      WebSearch (WebFetch bloccato, nessuna pagina primaria letta, ma
+      corroborato da tre ricerche indipendenti). Due termini: 2 giorni
+      dal certificato medico (ordinario, oltre 3 giorni di assenza), 24
+      ore dall'evento (mortale) — quest'ultimo dichiarato come MASSIMO,
+      non preciso, perché Scudo registra solo il giorno dell'infortunio,
+      non l'ora. Applica la decisione 17 (l'assenza non è un dato
+      favorevole) a un obbligo legale: una prognosi ancora aperta non è
+      "non dovuta", è "non si sa ancora" — difetto trovato e corretto
+      PRIMA di committare, con la controprova a dimostrarlo. Wired nel
+      form di registrazione (tre campi nuovi) e nel registro degli
+      eventi; nessun modo di scrivere queste date dopo la registrazione
+      iniziale, limite dichiarato. Verificato anche nel browser
+      (`tests/browser/scudo-denuncia-inail.mjs`, controprovato). Vedi
+      checkpoint `20260916-120640_scudo-denuncia-inail.md`.
+
+## Conti — riverifica del decimo giro di ricerca continua (16/09)
+- [x] **TUTTE E QUATTRO LE MANCANZE ERANO GIÀ IMPLEMENTATE** *(16/09)*.
+      Riverifica indipendente: `statoPianoRientro`, `concentrazionePortafoglio`,
+      `scontoCassaMaturato`, `statoRecupero` esistevano già, ognuna prima
+      che il documento di ricerca finisse di scrivere il proprio
+      riepilogo. Nota di chiusura con i quattro commit scritta in
+      `docs/RICERCA_CONTINUA_CONTI.md`, nessun codice nuovo.

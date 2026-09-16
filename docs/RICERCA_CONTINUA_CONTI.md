@@ -2327,3 +2327,20 @@ heropay.eu, admassociati.it, ratioquotidiano.it, marchegianionline.net,
 tipalti.com, upflow.io, taulia.com, routable.com, altline.sobanco.com,
 coface.it, focus.namirial.com, fiscoinvestimenti.it, oneinfo.it, kredis.it,
 adius.it.*
+
+---
+
+**✅ 16/09 — riverifica indipendente: tutte e quattro le mancanze di questo
+giro sono già implementate**, ognuna prima che questo documento finisse di
+scrivere il proprio riepilogo (la stessa forma "il verdetto regge e la riga
+invecchia mentre la si scrive" già nota a questo file):
+
+| # | mancanza | funzione | commit |
+|---|---|---|---|
+| 1 | Piani di rientro / dilazioni | `statoPianoRientro` (conti-data.js:1363) | `0caac90b` |
+| 2 | Concentrazione del portafoglio clienti | `concentrazionePortafoglio` (conti-data.js:1668) | `6125ff90` |
+| 3 | Sconto cassa (e il difetto collaterale in `esitoMovimento`) | `scontoCassaMaturato` (conti-data.js:5084) | `925ef62b` |
+| 4 | Storico delle comunicazioni di recupero | `statoRecupero` (conti-data.js:1321) | `343e896f` |
+
+Verificato con `grep -n "^export function <nome>"` diretto sul codice, non
+sulla parola del documento. Zero mancanze residue da questo giro.

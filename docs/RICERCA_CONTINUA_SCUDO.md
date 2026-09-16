@@ -2174,3 +2174,22 @@ Attualmente: nessuno di questi test passa perché la funzione non esiste.
 - Un infortunio grave di oggi, al quale il lavoratore consegna il certificato domani, avrebbe scadenza dopodomani — ma nessuno lo sa finché non controlla manualmente il portale INAIL.
 
 **Prossimo passo:** Verificare il testo della norma primaria (D.P.R. 1124/1965, artt. 330-331) per confermare i tre termini e il momento di decorrenza; decidere se il tracciamento della denuncia (denunciaData, denunciaNumero) è fase 1 o fase 2 della implementazione.
+
+---
+
+**✅ 16/09 — implementata, con la verifica primaria fatta via WebSearch**,
+commit `ad432b2b`. `scadenzaDenunciaInail(infortunio, oggi)` in
+`scudo-data.js`: due termini — 2 giorni dalla ricezione del certificato
+medico per il caso ordinario (oltre 3 giorni di assenza), 24 ore
+dall'infortunio per il caso mortale, quest'ultimo dichiarato come MASSIMO
+(non preciso: Scudo registra solo il giorno dell'infortunio, non l'ora).
+Applica la decisione 17 (l'assenza non è un dato favorevole) al caso della
+prognosi ancora aperta: `giorniAssenza: null` non è "non dovuta", è "non si
+sa ancora" — un `motivo` diverso da "manca il certificato", trovato e
+corretto prima di committare. Wired nel form di registrazione (tre campi
+nuovi: `dataCertificato`/`denunciaData`/`denunciaNumero`) e nel registro
+degli eventi. **Limite dichiarato**: il registro è di sola aggiunta, niente
+modo di scrivere queste date dopo la registrazione iniziale — resta un
+passo successivo, non implementato qui di proposito (nessun'altra parte
+del registro lo permette oggi). Verificato anche nel browser
+(`scudo-denuncia-inail.mjs`).
