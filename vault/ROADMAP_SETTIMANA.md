@@ -10943,3 +10943,20 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       della pagina. `docs/MAPPA_ECOSISTEMA.md` §6 aggiornata:
       sovrapposizioni non collegate 1→0. Vedi checkpoint
       `20260916-105753_sentinella-ponte-campo-meteo.md`.
+
+## Assenza — riverifica del documento trasversale (16/09)
+- [x] **D2 CHIUSA, NON C'ERA PIÙ LAVORO DA FARE** *(16/09)*. Il documento
+      dichiarava "2 lettori CSV ancora muti su 8" (`scudo/infortuni`,
+      `sentinella/monitoraggi`); un cantiere di ieri sera (commit
+      `afa64c4a`) li aveva già chiusi senza aggiornare questo documento.
+      Verificato con `grep` diretto, nota di chiusura scritta, nessun
+      codice nuovo.
+- [x] **P4 — LO ZERO DICHIARATO DI FLOTTA ESCE COME DICHIARATO** *(16/09,
+      unità completata)*. `csvRicambi` guadagna la quinta colonna `stato`
+      (`predefinito`/`misurato`), stessa fonte di verità dello "0" nudo
+      già scritto (`numeroDichiarato`). Deliberatamente non tradotta in
+      un round-trip con `parseRicambiCsv` (manca il campo nel modello
+      dati, e introdurlo è la decisione che P2 vuole prendere in comune
+      per undici CSV, non di sfuggita qui). Doc-cascade invariato: nessuna
+      funzione nuova, nessun banco browser nuovo. Vedi checkpoint
+      `20260916-111748_flotta-ricambi-stato-p4.md`.
