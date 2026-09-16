@@ -10808,3 +10808,17 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
 - [ ] I dati di esempio del CORE e di DEEPWORK ID dicono ancora «cave»,
       «volate», `capocava@cava-alfa.it`, e si vedono nelle schermate della
       vetrina. Vanno cambiati **nella dimostrazione**, non nella vetrina.
+
+## Scudo — dodicesimo/tredicesimo giro di ricerca continua (16/09)
+- [x] **IL FASCICOLO MACCHINA** *(16/09, unità completata)*. Tema segnalato
+      tre volte — luglio, 09/08, 16/09 — mai colmato prima d'ora: entità
+      `attrezzature/{id}` (tipo/modello/matricola/costruttore/anno), limitata
+      per confine dichiarato con Flotta alle attrezzature FISSE dell'Allegato
+      VII (gru, piattaforme elevabili, carriponte…). Collegata alla verifica
+      periodica con `attrezzaturaId`, tre stati (`attrezzaturaDiScadenza`:
+      assente/trovato/rotto) e la frase per la nota viva
+      (`descriviLegameAttrezzatura`). Prima fetta: si arricchisce la verifica
+      già esistente, un form di censimento dedicato resta il passo
+      successivo. Verificato anche nel browser
+      (`tests/browser/scudo-verifica-periodica.mjs`, esteso e controprovato).
+      Vedi checkpoint `20260916-070636_scudo-fascicolo-macchina.md`.
