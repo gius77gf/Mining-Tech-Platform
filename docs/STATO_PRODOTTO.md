@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.591** conta nove suite: il giro completo ne esegue **4069** (misura del 16/09; il documento va riverificato dopo ogni giro), e da
+*(⚠️ Il **3.591** conta nove suite: il giro completo ne esegue **4076** su **41** comandi (misura del 16/09, dopo l'aggiunta di `prove-grep-scadute.mjs`; il documento va riverificato dopo ogni giro), e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che
 casi — crescono da sole quando nasce un file — e fra i comandi ci sono le

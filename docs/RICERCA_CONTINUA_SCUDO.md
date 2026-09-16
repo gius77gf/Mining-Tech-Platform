@@ -2012,6 +2012,49 @@ aggiungere il campo da cui il termine decorre, e una (anagrafica
 attrezzature) richiede una decisione di confine con Flotta prima del
 codice.
 
+**✅ 16/09 — CHIUSE TUTTE E CINQUE, lo stesso giorno.** Come il decimo giro
+di Conti (stesso pattern, censito con lo stesso metodo — un piccolo
+controllo che rilancia i comandi `grep` di questo documento e confronta
+l'uscita con quella dichiarata): tutte e cinque le prove "a zero" sono
+scadute nel giro di ore, perché il cantiere di prodotto è girato subito
+dopo senza saperlo. Rilanciati oggi:
+
+    $ grep -ciE 'agenti chimici|\bSDS\b|scheda.{0,3}dati.{0,3}sicurezza|sostanz[ae].{0,3}pericolos' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5
+    $ grep -ciE 'denunciaInail|scadenzaDenuncia|24 ore.{0,15}mortale|48 ore.{0,15}denuncia' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:3   apps/scudo/index.html:3
+    $ grep -ciE 'attrezzaturaId|export const attrezzature|attrezzature\[' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:6   apps/scudo/index.html:5
+    $ grep -ciE 'matricol|costruttor|fabbricazion|targa|numero di serie' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:17  apps/scudo/index.html:2
+    $ grep -ciE 'notific|push notif|invia.{0,3}email|invia.{0,3}sms' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:5   apps/scudo/index.html:8
+    $ grep -ciE '\bbarrier[ae]\b|difes[ae] mancat' apps/scudo/scudo-data.js apps/scudo/index.html
+    apps/scudo/scudo-data.js:10  apps/scudo/index.html:27
+
+Tutt'e cinque implementate, coi commit che le hanno aggiunte:
+1. Rischio chimico/SDS → il preset `rischio-chimico`, gemello di
+   `rumore-vibraz` — commit `88bfdfaf`.
+2. Denuncia INAIL → `scadenzaDenunciaInail` — commit `ad432b2b` (chiusa
+   anche nella sezione dedicata di questo stesso documento).
+3. Anagrafica attrezzature → `attrezzaturaId`/`attrezzaturaDiScadenza`/
+   `descriviLegameAttrezzatura`, collegata alla verifica periodica — commit
+   `6570ef9d`. La decisione di confine con Flotta è stata presa: il
+   fascicolo macchina vive in Scudo (prima fetta: la verifica periodica si
+   arricchisce, un form di censimento dedicato resta un passo successivo,
+   dichiarato non fatto).
+4. Notifiche → `notificheScadenzeNonLette`, un contatore persistente (non
+   invio automatico, che resta fuori per decisione esplicita — vedi la
+   nota sulla riga 1814 più sopra) — commit `417b90df`.
+5. Barriere mancate (ICAM) → `barriereRicorrenti`/`BARRIERE_MANCATE` —
+   commit `0aad8bef`.
+
+La "nota minore" sul filtro incrociato sito+anno (righe 2002-2006, "resta
+l'unico residuo") **resta valida**: rilanciato oggi, `grep -ciE
+'filtroAnno|filtroCantiere' apps/scudo/scudo-data.js apps/scudo/index.html`
+→ ancora **0 e 0**. Non è una mancanza confermata delle cinque sopra, è una
+nota aperta a parte.
+
 *Fonti (di seconda mano, via WebSearch): puntosicuro.it, olympus.uniurb.it,
 inail.it, tussl.it, certifico.com, vegaengineering.com, biblus.acca.it,
 studiomarchetti.va.it, confcommerciovicenza.info, teamsystem.com,
