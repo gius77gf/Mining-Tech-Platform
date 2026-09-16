@@ -1813,7 +1813,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     scadenzaDiVerifica, verbaleDiScadenza, statoVerificaPeriodica, descriviVerificaPeriodica,
     verificheDaSistemare, voceDocumentoInElenco, scadenzeUnite,
     calendarioScadenze, documentoPrecedente, sostituzioneDocumento, catenaDocumento, descriviCatena, aggiornaCicloDss, descriviStoricoDss, fogliaIspezione,
-    notificheScadenzeNonLette } from "./scudo-data.js";
+    notificheScadenzeNonLette, TIPI_ATTREZZATURA, voceAttrezzaturaInElenco, descriviLegameAttrezzatura } from "./scudo-data.js";
   import { mountExit, esc, csvCell, statoVuoto, giorniTra, montaGuardiaInteri, avvolgiUnita, oggiISO, dataISOEsiste,
            controllaAllegato, testoAllegatoRifiutato, pezziDataURL, dataIt,
            numeroScritto, AVVISO_DECIMALE, timbroLocale, modoDimostrazione, avvisoTestoDimostrazione,
@@ -2055,6 +2055,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // Il segno di quando qualcuno ha aperto per l'ultima volta la pagina
   // Scadenze (16/09): serve al contatore delle notifiche non lette.
   let IMP = [];
+  // Il fascicolo macchina (16/09): le attrezzature fisse collegabili a una
+  // verifica periodica tramite `attrezzaturaId`.
+  let ATT = [];
   let filtroPerm = "vivi";   // quali permessi si vedono nell'elenco
   let permAperto = null;     // id del permesso aperto nella scheda
   // la bozza dell'appalto in composizione: i rischi particolari spuntati e se
@@ -2232,6 +2235,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     APPA = (db.appalti ? await db.appalti() : []) || [];
     PERM = (db.permessi ? await db.permessi() : []) || [];
     IMP = (db.impostazioni ? await db.impostazioni() : []) || [];
+    ATT = (db.attrezzature ? await db.attrezzature() : []) || [];
     aggiornaBadgeNotifiche();
     // Il contesto che i permessi leggono: formazione di chi entra, qualifica
     // dell'impresa, documento di coordinamento. Si costruisce una volta sola.
@@ -6660,8 +6664,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        Che cosa comporta non averlo lo dice la nota in cima alla finestra. */
     const opzDoc = '<option value="">— nessun verbale —</option>'
       + docOrd.map(d => `<option value="${d.id}"${d.id === sc.verbaleId ? " selected" : ""}>${esc(voceDocumentoInElenco(d))}</option>`).join("");
+    /* IL FASCICOLO MACCHINA (16/09): quale attrezzatura questa verifica
+       riguarda, dal registro `attrezzature`. Stessa forma della tendina del
+       verbale qui sopra, senza bisogno di portare in testa un tipo preferito:
+       ordinate per tipo e poi modello, così una tendina lunga resta leggibile. */
+    const attOrd = ATT.slice().sort((a, b) =>
+      String(a.tipo || "").localeCompare(String(b.tipo || ""), "it")
+      || String(a.modello || "").localeCompare(String(b.modello || ""), "it"));
+    const opzAtt = '<option value="">— nessuna attrezzatura collegata —</option>'
+      + attOrd.map(a => `<option value="${a.id}"${a.id === sc.attrezzaturaId ? " selected" : ""}>${esc(voceAttrezzaturaInElenco(a))}</option>`).join("");
     apriModale("Verifica periodica · " + (etichettaScadenza(sc) || "attrezzatura"),
       `<div class="note" style="margin-top:0;">${esc(descriviVerificaPeriodica(v))}</div>`
+      + '<label class="fl" for="vf-attrezzatura">L\'attrezzatura</label>'
+      + `<select class="dw-input" id="vf-attrezzatura">${opzAtt}</select>`
+      + '<div class="form-hint" style="margin-top:5px;" id="vf-attrezzatura-nota"></div>'
       + '<label class="fl" for="vf-ente">Chi ha eseguito la verifica</label>'
       + `<select class="dw-input" id="vf-ente">${opz(ENTI_VERIFICA, sc.verificaEnte || "", "— non indicato —")}</select>`
       + '<div class="form-hint" style="margin-top:5px;" id="vf-ente-nota"></div>'
@@ -6713,6 +6729,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
                un'altra verifica */
             verificaEntro: esitoV === "prescrizioni" ? ($("vf-entro").value || null) : null,
             verbaleId: $("vf-verbale").value || null,
+            attrezzaturaId: $("vf-attrezzatura").value || null,
           });
           chiudiModale(); await refresh();
           const dopo = statoVerificaPeriodica(SCA.find(x => x.id === sc.id) || sc, DOC);
@@ -6749,10 +6766,25 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         : "Collegato: " + (tit || "documento senza titolo")
           + (d.tipo ? " · " + d.tipo : "");
     };
+    /* LA QUARTA NOTA VIVA, quella per cui il fascicolo macchina esiste: non
+       basta scegliere l'attrezzatura nella tendina (che mostra già tipo e
+       modello), qui si legge quello che la tendina NON può mostrare —
+       matricola, costruttore, anno — così aprendo una verifica periodica si
+       vede il fascicolo intero, non solo data ed esito.
+       ⛔ La frase la scrive il MODULO (`descriviLegameAttrezzatura`), non
+       questa funzione: se la tendina non ha niente selezionato si passa la
+       scadenza vera, non un id vuoto — un `attrezzaturaId` che punta a
+       un'attrezzatura cancellata dall'anagrafica è un COLLEGAMENTO ROTTO, non
+       la stessa cosa di «non ancora collegata», e va detto diversamente. */
+    const notaAttrezzatura = () => {
+      const selId = $("vf-attrezzatura").value;
+      $("vf-attrezzatura-nota").textContent = descriviLegameAttrezzatura(selId ? { attrezzaturaId: selId } : sc, ATT);
+    };
+    $("vf-attrezzatura").addEventListener("change", notaAttrezzatura);
     $("vf-ente").addEventListener("change", notaEnte);
     $("vf-esito").addEventListener("change", notaEsito);
     $("vf-verbale").addEventListener("change", notaVerbale);
-    notaEnte(); notaEsito(); notaVerbale();
+    notaAttrezzatura(); notaEnte(); notaEsito(); notaVerbale();
   }
 
   // ══════════════════════════════════════════════════════════════════════

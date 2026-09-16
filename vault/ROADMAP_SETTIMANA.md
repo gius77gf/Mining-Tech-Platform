@@ -8583,9 +8583,19 @@ numero scritto dove non era stato misurato niente**.*
   `rischio-chimico`/tipo documento «Scheda dati di sicurezza (SDS)» di
   Scudo (dal delta della ricerca continua, dodicesimo giro) — il gemello
   mancante di `rumore-vibraz`, prima fetta nel ciclo di vita generico dei
-  documenti —, 3060→3061):
-  **3.555 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3061, `run-stile` 330,
+  documenti —, 3060→3061). E al fascicolo macchina di Scudo (dal delta
+  della ricerca continua, tema segnalato tre volte — luglio, 09/08,
+  16/09 — mai colmato prima d'ora): entità `attrezzature/{id}` collegata
+  alla verifica periodica tramite `attrezzaturaId`,
+  `attrezzaturaDiScadenza` a distinguere «non ancora collegata» da
+  «collegamento rotto», `descriviLegameAttrezzatura` a scriverne la
+  frase — prima fetta: la verifica periodica esistente si arricchisce, un
+  form di censimento dedicato resta il passo successivo — verificato
+  anche nel browser (`scudo-verifica-periodica.mjs`, esteso: la tendina
+  mostra il legame salvato e il salvataggio persiste alla riapertura)
+  —, 3061→3065):
+  **3.559 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3065, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:

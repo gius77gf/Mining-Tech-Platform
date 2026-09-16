@@ -138,6 +138,16 @@ import { parseCsvLine, numIt, giorniTra, isIntestazione, righeCsvNumerate, senza
    proprio sulle righe create dal form, che sono la maggioranza. */
 export const TIPO_VERIFICA_PERIODICA = "Verifica periodica";
 
+/* I TIPI DEL FASCICOLO MACCHINA (16/09, dal delta della ricerca continua:
+   tema segnalato tre volte — luglio, 09/08, 16/09 — mai colmato). Confine
+   dichiarato con Flotta, che ha già `mezzi`/`manutenzioni` per il parco
+   mobile: questo elenco copre solo le attrezzature FISSE dell'Allegato VII
+   D.M. 11/04/2011 non coperte da Flotta (gru, carriponte, piattaforme
+   elevabili, apparecchi di sollevamento). È una decisione di prodotto, non
+   un ostacolo tecnico — un domani potrebbe cambiare, ma oggi tenerlo separato
+   evita due anagrafiche che si contendono lo stesso mezzo. */
+export const TIPI_ATTREZZATURA = ["Gru", "Autogru", "Piattaforma elevabile", "Carrello elevatore o telescopico", "Carroponte", "Argano o paranco", "Fune o imbracatura", "Altro"];
+
 export const DEMO = {
   lavoratori: [
     /* IL GIUDIZIO DEL MEDICO (05/09): tre casi da far vedere — un idoneo, uno
@@ -228,15 +238,32 @@ export const DEMO = {
        termine è già passato, e una di cui non si sa niente — che è quella per
        cui questo blocco esiste. */
     { id: "s24", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Autogru 30 t — verifica periodica", dataScadenza: "2027-03-18",
-      verificaEnte: "abilitato", verificaChi: "Organismo abilitato — iscr. elenco MLPS", verificaEsito: "idonea", verbaleId: "c11" },
+      verificaEnte: "abilitato", verificaChi: "Organismo abilitato — iscr. elenco MLPS", verificaEsito: "idonea", verbaleId: "c11", attrezzaturaId: "at1" },
     { id: "s25", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Piattaforma elevabile — verifica periodica", dataScadenza: "2026-11-27",
-      verificaEnte: "asl", verificaChi: "ASL territoriale", verificaEsito: "prescrizioni", verificaEntro: "2026-07-15", verbaleId: "c12" },
+      verificaEnte: "asl", verificaChi: "ASL territoriale", verificaEsito: "prescrizioni", verificaEntro: "2026-07-15", verbaleId: "c12", attrezzaturaId: "at2" },
     /* Nessun esito, nessun verificatore, nessun verbale: la data è LONTANA,
        quindi lo scadenzario la disegna verde e tranquilla. È esattamente il
        «numero tranquillo dove non è stato misurato niente», e serve nella
        dimostrazione perché è il caso che `statoVerificaPeriodica` esiste per
-       raccontare — non un dato dimenticato. */
-    { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30" },
+       raccontare — non un dato dimenticato.
+       ⛔ E QUESTA È LA TERZA RIGA CHE SERVE ANCHE ALL'ANAGRAFICA: il collegamento
+       (`attrezzaturaId: "at3"`) punta a un'attrezzatura senza matricola né
+       costruttore — un fascicolo appena aperto, non ancora compilato — perché
+       un campione solo non distingue «il collegamento manca» da «il
+       collegamento c'è ma l'anagrafica è a metà». */
+    { id: "s26", lavoratoreId: null, tipo: TIPO_VERIFICA_PERIODICA, descrizione: "Carrello semovente a braccio telescopico — verifica periodica", dataScadenza: "2027-06-30", attrezzaturaId: "at3" },
+  ],
+  /* IL FASCICOLO MACCHINA (16/09, dal delta della ricerca continua, tema
+     segnalato tre volte — luglio, 09/08, 16/09 — mai colmato prima d'ora):
+     le tre attrezzature sono collegate id per id alle tre verifiche periodiche
+     già in dimostrazione (s24/s25/s26), e sono di nuovo TRE STATI diversi di
+     proposito — un fascicolo completo, uno con costruttore ma senza anno, e
+     uno appena aperto (solo il tipo) — perché un campione solo non distingue
+     «il campo manca sempre» da «il campo manca su UN record». */
+  attrezzature: [
+    { id: "at1", tipo: "Autogru", modello: "Autogru 30 t", matricola: "AG-2019-0447", costruttore: "Terex Cranes", anno: 2019 },
+    { id: "at2", tipo: "Piattaforma elevabile", modello: "PLE cingolata 18 m", matricola: "PLE-2021-1183", costruttore: "Haulotte", anno: null },
+    { id: "at3", tipo: "Carrello elevatore o telescopico", modello: "", matricola: "", costruttore: "", anno: null },
   ],
   // Il segno di quando qualcuno ha aperto per l'ultima volta la pagina
   // Scadenze (16/09): la CQC di s5 (dataScadenza 2026-09-02) è scaduta DOPO
@@ -2787,6 +2814,52 @@ export function verbaleDiScadenza(scadenza, documenti) {
   return d ? { stato: "trovato", documento: d } : { stato: "rotto", documento: null };
 }
 
+/* IL LEGAME CON L'ATTREZZATURA (fascicolo macchina, 16/09). Stessa forma a
+   TRE STATI di `verbaleDiScadenza` qui sopra, per la stessa ragione: nessun
+   `attrezzaturaId` è un collegamento non ancora fatto, un id che non trova
+   più niente è un collegamento rotto — qualcuno ha cancellato l'attrezzatura
+   dall'anagrafica — e le due cose non vanno sommate, perché dicono un
+   difetto diverso. */
+export function attrezzaturaDiScadenza(scadenza, attrezzature) {
+  const id = (scadenza || {}).attrezzaturaId == null ? "" : String(scadenza.attrezzaturaId).trim();
+  if (!id) return { stato: "assente", attrezzatura: null };
+  const a = (attrezzature || []).find((x) => x && String(x.id) === id) || null;
+  return a ? { stato: "trovato", attrezzatura: a } : { stato: "rotto", attrezzatura: null };
+}
+
+/* L'ETICHETTA CON CUI UN'ATTREZZATURA COMPARE IN UNA TENDINA. A differenza di
+   `voceDocumentoInElenco` non c'è un titolo libero da tagliare: i campi sono
+   strutturati e corti (tipo/modello/matricola), quindi basta comporli — ma
+   MAI una voce vuota, perché il `tipo` è l'unico campo che il form obbliga:
+   un'attrezzatura appena censita, senza modello né matricola, mostra comunque
+   il proprio tipo invece di una riga muta che sembra un errore di caricamento. */
+export function voceAttrezzaturaInElenco(attrezzatura) {
+  const a = attrezzatura || {};
+  const tipo = String(a.tipo == null ? "" : a.tipo).trim() || "Attrezzatura";
+  const modello = String(a.modello == null ? "" : a.modello).trim();
+  const matricola = String(a.matricola == null ? "" : a.matricola).trim();
+  let voce = modello ? tipo + " — " + modello : tipo;
+  if (matricola) voce += " (matr. " + matricola + ")";
+  return voce;
+}
+
+/* LA FRASE DEL FASCICOLO, per la nota viva della finestra di verifica.
+   Passa da `attrezzaturaDiScadenza` proprio per distinguere i suoi TRE stati:
+   «non ancora collegata» (assente) non è la stessa cosa di «collegamento
+   rotto» (qualcuno ha cancellato l'attrezzatura dall'anagrafica) — la prima è
+   un lavoro da fare, la seconda un dato da riparare, e sommarle direbbe una
+   cosa falsa della seconda (la stessa distinzione già fatta per il verbale). */
+export function descriviLegameAttrezzatura(scadenza, attrezzature) {
+  const legame = attrezzaturaDiScadenza(scadenza, attrezzature);
+  if (legame.stato === "assente") return "Nessuna attrezzatura collegata: la verifica resta senza fascicolo.";
+  if (legame.stato === "rotto") return "L'attrezzatura collegata non è più nell'anagrafica: il collegamento va rifatto.";
+  const a = legame.attrezzatura;
+  const matricola = String(a.matricola == null ? "" : a.matricola).trim() || "non censita";
+  const costruttore = String(a.costruttore == null ? "" : a.costruttore).trim() || "non censito";
+  const anno = a.anno == null || a.anno === "" ? "non censito" : String(a.anno);
+  return "Matricola: " + matricola + " · Costruttore: " + costruttore + " · Anno: " + anno;
+}
+
 /* COME SI SCRIVE UN DOCUMENTO DENTRO IL MENÙ «IL VERBALE».
    ══════════════════════════════════════════════════════════════════════════
    ⛔ IL DIFETTO, MISURATO. Le voci si scrivevano `titolo · tipo`, e un verbale
@@ -4949,6 +5022,12 @@ export async function scudoData() {
         // Scadenze — il contatore delle notifiche non lette lo legge da qui.
         // Chi non l'ha mai scritto legge un elenco vuoto, come le altre.
         impostazioni: () => read("impostazioni"),
+        // il fascicolo macchina (16/09, dal delta della ricerca continua):
+        // le attrezzature FISSE soggette a verifica periodica (gru, carriponte,
+        // piattaforme elevabili — non il parco mobile, che è di Flotta). Chi
+        // non ne ha mai censita una legge un elenco vuoto, e la verifica
+        // periodica resta collegabile solo a un'attrezzatura ancora da creare.
+        attrezzature: () => read("attrezzature"),
         aggiungi: (name, data) => addDoc(id.orgCollection(name), data),
         logout: () => id.logout(),
         aggiorna: (name, docId, data) => updateDoc(doc(id.orgCollection(name), docId), traduciCancellazioni(data, deleteField)),
@@ -5036,6 +5115,7 @@ export async function scudoData() {
       appalti:     async () => mem.appalti || (mem.appalti = []),
       permessi:    async () => mem.permessi || (mem.permessi = []),
       impostazioni: async () => mem.impostazioni || (mem.impostazioni = []),
+      attrezzature: async () => mem.attrezzature || (mem.attrezzature = []),
       logout: async () => {},
       aggiungi: async (name, data) => { const id = "m" + Math.random().toString(36).slice(2, 8); (mem[name] = mem[name] || []).push({ id, ...data }); return { id }; },
       /* stesso CONTRATTO della strada vera, transazione a parte */
@@ -6706,4 +6786,4 @@ export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), ades
    che l"elenco combaci con le collezioni che il modulo legge davvero
    (`read("…")`), tolti i ponti verso le altre app. Un elenco a mano che non si
    confronta col codice invecchia da solo. */
-export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno", "impostazioni"]);
+export const SCUDO_COLLEZIONI = Object.freeze(["lavoratori", "scadenze", "documenti", "cantieri", "azioni", "infortuni", "ispezioni", "mansioni", "nomine", "dpi", "analisi", "permessi", "appalti", "appaltatori", "oreAnno", "impostazioni", "attrezzature"]);

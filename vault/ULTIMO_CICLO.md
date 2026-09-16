@@ -1,28 +1,30 @@
 # Ultimo ciclo
 
 ## Ora UTC (letta da `date -u`, mai predetta)
-2026-09-16T03:48:08Z
+2026-09-16T06:48:37Z
 
 ## Commit di partenza
-5d15f4c7 (chore(vault): checkpoint unità flotta componenti a vita propria)
+bd9c241b (docs(terra): tredicesimo giro di ricerca continua, pianificazione escavazione)
 
 ## Cosa sto per fare
-Storico dei solleciti in Conti (decimo giro di ricerca continua):
-`statoRecupero` in `conti-data.js` (confronta il livello DAVVERO segnato
-come inviato con quello che il ritardo attuale implicherebbe — "mai
-comunicato" dichiarato come stato a sé, non un livello zero), bottone
-"Segna come inviato" accanto a "Sollecito" nella pagina, con una modale
-che mostra lo storico e permette di correggere un errore. Test in
-run-kpi.mjs scritti e verdi (3057). Nuovo banco browser
-`conti-solleciti-storico.mjs` scritto, verificato (12/12) e controprovato
-(la controprova cade come atteso, difetto simulato: bottone collegato al
-NUMERO della fattura invece che all'ID). Registrato in `tutti.mjs`.
-Sto verificando su una worktree isolata: `giro-node.mjs` in corso
-(node-only già verde: KPI 3057, Stile 330, Helper 83, ecc. — manca la
-sezione browser e `numeri-nei-documenti.mjs`, atteso far west sui quattro
-documenti di doc-cascade da correggere con i numeri VERI misurati, non
-stimati). In parallelo gira in background un agente di ricerca (haiku)
-sulla denuncia INAIL in Scudo (decimo/undicesimo tema). Dopo la verifica:
-correggere doc-cascade, ricommittare la worktree e rilanciare il giro per
-il totale vero, poi commit, push, checkpoint — quindi proseguire subito
-con l'unità successiva (rotazione ricerca o un altro tema aperto).
+Fascicolo macchina in Scudo (tema segnalato tre volte — luglio, 09/08,
+16/09 — mai colmato prima d'ora): entità `attrezzature/{id}`
+(tipo/modello/matricola/costruttore/anno) collegata alla verifica
+periodica tramite `attrezzaturaId`, con `attrezzaturaDiScadenza` a
+distinguere «non ancora collegata» da «collegamento rotto» e
+`descriviLegameAttrezzatura` a scriverne la frase nella nota viva della
+finestra di verifica. Prima fetta: la verifica periodica già esistente si
+arricchisce (tendina di collegamento + matricola/costruttore/anno),
+un'anagrafica autonoma con form dedicato resta il passo successivo.
+Test in run-kpi.mjs scritti e verdi (3065). Banco browser
+`scudo-verifica-periodica.mjs` esteso (28/28) e controprovato (4/4
+iniezioni rimesse, la controprova cade come atteso). `funzioni-mai-usate`
+aveva preso `attrezzaturaDiScadenza` collegata a niente — corretto usando
+il modulo dalla pagina invece di duplicare la logica a tre stati.
+Verificato su worktree isolata: primo giro-node.mjs ha dato l'atteso
+"far west" su `numeri-nei-documenti.mjs` (doc-cascade stale: 3.555→3.559,
+1033/1033→1037/1037, giro completo 4027→3988); corretti i quattro
+documenti con i numeri VERI misurati (non stimati); secondo giro isolato
+in corso per il totale finale confermato. Dopo: commit, push, checkpoint
+— poi proseguire subito con l'unità successiva (rotazione ricerca su
+Sentinella, o anagrafica attrezzature vera e propria come cantiere a sé).

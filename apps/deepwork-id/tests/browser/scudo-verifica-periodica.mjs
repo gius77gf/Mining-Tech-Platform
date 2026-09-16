@@ -79,7 +79,13 @@ const CASI = `
   DEMO.scadenze = DEMO.scadenze.filter((s) => s.tipo !== "Verifica periodica");
   DEMO.scadenze.push({ id: "zvp-idonea", lavoratoreId: null, tipo: "Verifica periodica",
     descrizione: "Gru a torre — verifica annuale", dataScadenza: gg(200),
-    verificaEnte: "abilitato", verificaChi: "Organismo abilitato", verificaEsito: "idonea" });
+    verificaEnte: "abilitato", verificaChi: "Organismo abilitato", verificaEsito: "idonea",
+    attrezzaturaId: "zat-gru" });
+  /* IL FASCICOLO MACCHINA (16/09): una sola attrezzatura basta, collegata a
+     «zvp-idonea» dalla riga qui sopra — «zvp-muta» resta apposta SENZA
+     collegamento, perché il banco esiste anche per il caso «non c'è ancora». */
+  DEMO.attrezzature = (DEMO.attrezzature || []).filter((a) => !String(a.id).startsWith("zat-"));
+  DEMO.attrezzature.push({ id: "zat-gru", tipo: "Gru", modello: "Gru a torre 40 m", matricola: "GT-2020-9", costruttore: "Potain", anno: 2020 });
   /* la data delle prescrizioni è SCADUTA apposta: vedi la nota sopra CASI */
   DEMO.scadenze.push({ id: "zvp-prescr", lavoratoreId: null, tipo: "Verifica periodica",
     descrizione: "Piattaforma elevabile — verifica annuale", dataScadenza: gg(180),
@@ -112,6 +118,11 @@ const INIEZIONI = [
   { file: MODULO, n: 3, perche: "il CSV ri-legge il campo grezzo invece di chiedere alla funzione dello schermo",
     da: '  const vf = (sc) => { const v = statoVerificaPeriodica(sc, documenti); return v ? v.badge : "—"; };',
     a: '  const vf = (sc) => sc.verificaEsito ? String(sc.verificaEsito) : "";' },
+  /* IL FASCICOLO MACCHINA (16/09): la scelta fatta nella tendina non viene
+     salvata — il collegamento resterebbe quello di prima anche dopo «Salva». */
+  { file: PAGINA, n: 4, perche: "il collegamento all'attrezzatura scelto nella tendina non viene salvato",
+    da: 'attrezzaturaId: $("vf-attrezzatura").value || null,',
+    a: 'attrezzaturaId: null,' },
 ];
 let rimesse = 0;
 const applica = (t, file) => {
@@ -325,6 +336,33 @@ if (file) {
   dice(cellaMuta !== null && !/regolar|idone/i.test(cellaMuta),
     "senza esito il file NON scrive «regolare» né «idonea»: una cosa mai misurata non si dichiara a posto", cellaMuta);
 }
+
+/* ── 4. il fascicolo macchina (16/09): aprendo la verifica si legge il
+   fascicolo — matricola, costruttore, anno — non solo data ed esito, ed è
+   collegabile a un'altra attrezzatura senza perdere il salvataggio ── */
+dice(await apri("zvp-idonea"), "la finestra si riapre per il fascicolo macchina");
+const selAttrezzatura = await pg.evaluate(() => (document.getElementById("vf-attrezzatura") || {}).value || "");
+dice(selAttrezzatura === "zat-gru", "l'attrezzatura collegata è preselezionata nella tendina", selAttrezzatura);
+const notaFascicolo = await pg.evaluate(() => (document.getElementById("vf-attrezzatura-nota") || {}).textContent || "");
+dice(/GT-2020-9/.test(notaFascicolo) && /Potain/.test(notaFascicolo) && /2020/.test(notaFascicolo),
+  "la nota viva mostra matricola, costruttore e anno del fascicolo", notaFascicolo);
+await chiudi();
+// una verifica SENZA attrezzatura collegata lo dichiara, non tace
+dice(await apri("zvp-muta"), "la finestra si apre per la verifica senza fascicolo");
+const notaVuota = await pg.evaluate(() => (document.getElementById("vf-attrezzatura-nota") || {}).textContent || "");
+dice(/nessuna attrezzatura/i.test(notaVuota), "senza collegamento la nota lo dichiara", notaVuota);
+// si collega ORA un'attrezzatura e si salva: il legame deve persistere alla riapertura
+await pg.selectOption("#vf-attrezzatura", "zat-gru");
+await pg.waitForTimeout(200);
+await pg.evaluate(() => {
+  const x = [...document.querySelectorAll("button")].find((y) => /^\s*salva\s*$/i.test(y.textContent || ""));
+  if (x) x.click();
+});
+await pg.waitForTimeout(900);
+dice(await apri("zvp-muta"), "la finestra si riapre dopo aver collegato un'attrezzatura");
+const selDopo = await pg.evaluate(() => (document.getElementById("vf-attrezzatura") || {}).value || "");
+dice(selDopo === "zat-gru", "il collegamento appena fatto è stato salvato davvero, non solo mostrato", selDopo);
+await chiudi();
 
 await b.close();
 srv.close();

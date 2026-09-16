@@ -29539,6 +29539,56 @@ test("voceDocumentoInElenco: la regola vale per documento, non per la lista", ()
   eq(conLista[0], "piattaforma elevabile");
 });
 
+// ── Scudo · il fascicolo macchina (16/09, dal delta della ricerca continua:
+// tema segnalato tre volte — luglio, 09/08, 16/09 — mai colmato prima d'ora) ─
+test("attrezzaturaDiScadenza: tre stati come verbaleDiScadenza, e non si sommano", () => {
+  const ATTR = [{ id: "at1", tipo: "Autogru", modello: "Autogru 30 t", matricola: "AG-1", costruttore: "Terex", anno: 2019 }];
+  eq(scudo.attrezzaturaDiScadenza({}, ATTR).stato, "assente");
+  eq(scudo.attrezzaturaDiScadenza({ attrezzaturaId: "at1" }, ATTR).stato, "trovato");
+  eq(scudo.attrezzaturaDiScadenza({ attrezzaturaId: "at1" }, ATTR).attrezzatura.modello, "Autogru 30 t");
+  eq(scudo.attrezzaturaDiScadenza({ attrezzaturaId: "sparita" }, ATTR).stato, "rotto");
+  eq(scudo.attrezzaturaDiScadenza({ attrezzaturaId: "at1" }, []).stato, "rotto");
+  eq(scudo.attrezzaturaDiScadenza(null, ATTR).stato, "assente");
+});
+test("voceAttrezzaturaInElenco: mai una voce vuota, anche con un fascicolo appena aperto", () => {
+  eq(scudo.voceAttrezzaturaInElenco({ tipo: "Autogru", modello: "Autogru 30 t", matricola: "AG-2019-0447" }),
+    "Autogru — Autogru 30 t (matr. AG-2019-0447)");
+  // senza matricola: il tipo e il modello bastano, niente parentesi vuote
+  eq(scudo.voceAttrezzaturaInElenco({ tipo: "Piattaforma elevabile", modello: "PLE cingolata 18 m" }),
+    "Piattaforma elevabile — PLE cingolata 18 m");
+  // un fascicolo appena aperto (solo il tipo, il caso di `at3` in DEMO): mai una riga muta
+  eq(scudo.voceAttrezzaturaInElenco({ tipo: "Carrello elevatore o telescopico", modello: "", matricola: "" }),
+    "Carrello elevatore o telescopico");
+  eq(scudo.voceAttrezzaturaInElenco({}), "Attrezzatura", "nessun dato: si dichiara, non si nasconde in silenzio");
+  eq(scudo.voceAttrezzaturaInElenco(null), "Attrezzatura");
+});
+test("descriviLegameAttrezzatura: distingue «non collegata» da «collegamento rotto», non le somma", () => {
+  const ATTR = [{ id: "at1", tipo: "Autogru", matricola: "AG-1", costruttore: "Terex", anno: 2019 }];
+  eq(scudo.descriviLegameAttrezzatura({}, ATTR), "Nessuna attrezzatura collegata: la verifica resta senza fascicolo.");
+  eq(scudo.descriviLegameAttrezzatura({ attrezzaturaId: "sparita" }, ATTR),
+    "L'attrezzatura collegata non è più nell'anagrafica: il collegamento va rifatto.",
+    "un id che non trova più niente è un dato da riparare, non un lavoro non ancora fatto");
+  eq(scudo.descriviLegameAttrezzatura({ attrezzaturaId: "at1" }, ATTR),
+    "Matricola: AG-1 · Costruttore: Terex · Anno: 2019");
+  // un fascicolo appena aperto: i campi assenti si dichiarano, non si tacciono
+  eq(scudo.descriviLegameAttrezzatura({ attrezzaturaId: "at2" }, [{ id: "at2", tipo: "Gru" }]),
+    "Matricola: non censita · Costruttore: non censito · Anno: non censito");
+});
+test("TIPI_ATTREZZATURA e DEMO.attrezzature: le tre verifiche periodiche già in scena sono collegate", () => {
+  ok(scudo.TIPI_ATTREZZATURA.includes("Gru") && scudo.TIPI_ATTREZZATURA.includes("Altro"),
+    "l'elenco copre le categorie dell'Allegato VII e lascia una via d'uscita");
+  const perId = Object.fromEntries(scudo.DEMO.attrezzature.map(a => [a.id, a]));
+  // le tre righe della dimostrazione (s24/s25/s26) sono TRE STATI diversi di
+  // proposito: un fascicolo completo, uno senza anno, uno appena aperto — un
+  // campione solo non distingue «il collegamento manca» da «manca un campo».
+  const s24 = scudo.DEMO.scadenze.find(s => s.id === "s24");
+  const s25 = scudo.DEMO.scadenze.find(s => s.id === "s25");
+  const s26 = scudo.DEMO.scadenze.find(s => s.id === "s26");
+  ok(perId[s24.attrezzaturaId] && perId[s24.attrezzaturaId].matricola, "s24 ha un fascicolo completo");
+  ok(perId[s25.attrezzaturaId] && perId[s25.attrezzaturaId].anno == null, "s25 ha il costruttore ma non l'anno");
+  ok(perId[s26.attrezzaturaId] && !perId[s26.attrezzaturaId].matricola, "s26 è un fascicolo appena aperto");
+});
+
 // ── Conti · venduto per prodotto: quello che la somma SALTA ───────────────
 /* ⛔ IL FILONE «UN NUMERO TRANQUILLO DOVE NON È STATO MISURATO NIENTE», 09/08.
    `valorePesata` risponde 0 su una consegna che non si può valorizzare — è

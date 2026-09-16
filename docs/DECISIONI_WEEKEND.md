@@ -1782,7 +1782,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.555** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.559** *(ricontate il 16/09, dopo aver
+aggiunto a Scudo il fascicolo macchina (`attrezzature/{id}` collegato alla
+verifica periodica, `attrezzaturaDiScadenza`/`descriviLegameAttrezzatura` a
+distinguere «non collegata» da «collegamento rotto», tema segnalato tre
+volte — luglio, 09/08, 16/09 — verificato anche nel browser) — dopo aver
 aggiunto a Scudo il preset `rischio-chimico` (gemello di `rumore-vibraz`,
 titolo IX D.Lgs 81/08) e il tipo di documento «Scheda dati di sicurezza
 (SDS)» — prima fetta nel ciclo di vita generico dei documenti, i campi

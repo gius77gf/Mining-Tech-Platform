@@ -237,7 +237,17 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    (`statoPianoRientro`), stesso giro di ricerca — con la sua prova. */
 /* ⚠️ `scudo` SALE DA 216 A 228: `notificheScadenzeNonLette`, dal delta della
    ricerca continua, dodicesimo giro — con la sua prova. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 228, sentinella: 187, terra: 91 };
+/* ⚠️ `scudo` SALE DA 228 A 232: il fascicolo macchina (16/09, tema segnalato
+   tre volte — luglio, 09/08, 16/09 — mai colmato prima d'ora):
+   `TIPI_ATTREZZATURA`, `attrezzaturaDiScadenza`, `voceAttrezzaturaInElenco`,
+   `descriviLegameAttrezzatura` — con le loro prove in run-kpi e la
+   controprova estesa in `tests/browser/scudo-verifica-periodica.mjs`.
+   ⛔ `descriviLegameAttrezzatura` è nata perché `funzioni-mai-usate.mjs` ha
+   preso `attrezzaturaDiScadenza` COLLEGATA A NIENTE: la pagina leggeva
+   direttamente `ATT.find(...)`, duplicando la logica a tre stati invece di
+   chiamare il modulo — e perdeva la distinzione fra «non collegata» e
+   «collegamento rotto» che `attrezzaturaDiScadenza` esiste per fare. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 91 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.
