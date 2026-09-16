@@ -8633,9 +8633,16 @@ numero scritto dove non era stato misurato niente**.*
   Campo non sa dare un numero in m/s), un dato misurato in loco vince
   sempre su uno dedotto da Campo. Non testabile end-to-end nel browser
   demo (come `ponteScudo`/`AZI`): verificato con test puri più un
-  controllo sul cablaggio nel sorgente della pagina, 3085→3088):
-  **3.582 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3088, `run-stile` 330,
+  controllo sul cablaggio nel sorgente della pagina, 3085→3088). E a Scudo
+  `scadenzaDenunciaInail` (D.P.R. 1124/1965, art. 53, testo verificato via
+  WebSearch): 2 giorni dal certificato medico per il caso ordinario, 24 ore
+  dall'evento se mortale — il termine mortale dichiarato come MASSIMO, non
+  preciso, perché Scudo registra solo il giorno dell'infortunio, non
+  l'ora; una prognosi ancora aperta non è "non dovuta", è "non si sa
+  ancora" (decisione 17 applicata a un obbligo legale). Verificato anche
+  nel browser (`tests/browser/scudo-denuncia-inail.mjs`, 3088→3094):
+  **3.588 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3094, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8645,8 +8652,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **313 esecuzioni** che
-  aprono le pagine in un browser vero, da **136** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **315 esecuzioni** che
+  aprono le pagine in un browser vero, da **137** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

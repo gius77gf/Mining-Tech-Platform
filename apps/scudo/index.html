@@ -1561,6 +1561,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          dire che la prognosi e' ancora aperta. Va scritto dove si compila, se
          no la distinzione la conosce solo il programma. -->
     <div class="form-hint" id="inf-giorni-nota"></div>
+    <!-- LA DENUNCIA INAIL (16/09): rilevante solo per un infortunio mortale
+         o con più di tre giorni di assenza (D.P.R. 1124/1965, art. 53) — per
+         gli altri eventi questi campi restano vuoti e nessuna scadenza si
+         calcola. Non c'è oggi un modo di tornare a scrivere queste date DOPO
+         la registrazione (il registro è di sola aggiunta): chi le ha già al
+         momento della registrazione le scrive qui, il resto resta un passo
+         successivo dichiarato. -->
+    <div class="frow">
+      <input class="dw-input" id="inf-certificato" type="date" placeholder="Certificato medico ricevuto il" title="Data di ricezione del certificato medico (solo per infortuni oltre i 3 giorni o mortali)" style="flex:1 1 170px;">
+      <input class="dw-input" id="inf-denuncia-data" type="date" placeholder="Denuncia presentata il" title="Data di presentazione della denuncia INAIL, se già fatta" style="flex:1 1 170px;">
+      <input class="dw-input" id="inf-denuncia-numero" placeholder="N. protocollo denuncia" style="flex:1 1 150px;">
+    </div>
+    <div class="form-hint">Questi tre campi contano solo per un <b>infortunio</b> mortale o con <b>più di tre giorni</b> di assenza: è lì che scatta l'obbligo di denuncia INAIL (D.P.R. 1124/1965, art. 53). Per tutti gli altri eventi restano vuoti.</div>
     <div class="frow">
       <input class="dw-input" id="inf-desc" placeholder="Descrizione dell'evento" style="flex:2 1 220px;">
       <button class="dw-btn" id="btn-inf">Registra</button>
@@ -1792,6 +1805,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        registrate per un anno si leggono con la regola degli anni doppi. */
     andamentoIndici, avvisoGravitaMinima, avvisoInfortuniSenzaAnno, avvisoAndamentoMinimo,
     giornateAssenza, prognosiAperta, visitaRientroNecessaria, descriviGiornatePerse,
+    scadenzaDenunciaInail,
     GRAVITA_INFORTUNIO, gravitaInfortunioDi, ORDINE_INFORTUNIO_GRAVE,
     CAUSE_ANALISI, validaAnalisi, analisiDiEvento, eventiSenzaAnalisi, causeRicorrenti,
     BARRIERE_MANCATE, barriereRicorrenti,
@@ -3702,6 +3716,17 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          bordo tratteggiato — perché non è il gradino più basso: è una domanda
          a cui nessuno ha ancora risposto, e va vista diversa da «lieve».
          Perché in testa e non in coda: la ragione, misurata, è nel CSS. */
+      /* LA DENUNCIA INAIL (16/09): testo, non badge — la barra dei comandi è
+         già piena (vedi il commento sulla foto qui sopra). Non pertinente
+         per un near-miss o un infortunio sotto i tre giorni: sparisce, non
+         un "in regola" tranquillo per un obbligo che non esiste nemmeno. */
+      const sd = scadenzaDenunciaInail(x, new Date());
+      const sdTxt = !sd.pertinente ? ""
+        : sd.presentata ? " · denuncia INAIL presentata"
+        : !sd.calcolabile ? " · <b>denuncia INAIL da valutare</b>" + (/certificato/.test(sd.motivo) ? " (manca il certificato)" : " (prognosi aperta)")
+        : sd.stato === "scaduta" ? " · <b>denuncia INAIL scaduta</b>"
+        : sd.stato === "in-scadenza" ? " · <b>denuncia INAIL urgente</b>"
+        : " · denuncia INAIL entro il " + fmtData(sd.scadenza);
       const pot = potenzialeDi(x);
       const pb = x.tipo !== "near-miss" ? "" : pot
         ? `<span class="badge inline pre ${pot.cls}" style="cursor:pointer" data-pot="${x.id}"
@@ -3711,7 +3736,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
              title="Nessuno ha ancora detto come poteva finire — tocca per dirlo (è facoltativo)"
              aria-label="Gravità potenziale non valutata: tocca per valutarla">Non valutata</span>`;
       return `<div class="item tocca ${striscia[tb[0]]}" data-evt="${x.id}"><div class="info"><div class="name">${pb}${esc(x.descrizione || x.tipo || "Evento")}</div>
-        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo === "osservazione" ? " · " + esc(etichettaEsitoOsservazione(x.esito) || "esito non dichiarato") : x.tipo !== "near-miss" ? " · " + ((gravitaInfortunioDi(x) || {}).etichetta || (x.gravita ? esc(x.gravita) : "gravità non dichiarata")) : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${visitaRientroNecessaria(x) ? " · <b>visita di rientro da programmare</b>" : ""}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
+        <div class="meta">${fmtData(x.data)}${x.luogo ? " · " + esc(x.luogo) : ""}${x.categoria ? " · " + esc(categoriaNearMiss(x.categoria)) : ""}${x.tipo === "osservazione" ? " · " + esc(etichettaEsitoOsservazione(x.esito) || "esito non dichiarato") : x.tipo !== "near-miss" ? " · " + ((gravitaInfortunioDi(x) || {}).etichetta || (x.gravita ? esc(x.gravita) : "gravità non dichiarata")) : ""}${prognosiAperta(x) ? " · prognosi ancora aperta" : (giornateAssenza(x) ? " · " + giornateAssenza(x) + " gg assenza" : "")}${visitaRientroNecessaria(x) ? " · <b>visita di rientro da programmare</b>" : ""}${sdTxt}${chi ? " · " + chi : ""}${an ? " · causa: " + esc(etichettaCausa(an.causa)) : ""}</div></div>
         <span class="acts"><span class="badge ${tb[0]}">${tb[1]}</span>
         <span class="badge ${ab[0]}" style="cursor:pointer" title="Vedi le azioni correttive di questo evento" data-azi-evt="${x.id}">${ab[1]}</span>
         ${anb}
@@ -5232,8 +5257,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       descrizione: desc, luogo: $("inf-luogo").value.trim(),
       // un near-miss non ha un ferito: il collegamento vale solo per un infortunio vero
       lavoratoreId: tipo === "infortunio" ? ($("inf-lavoratore").value || null) : null,
+      // la denuncia INAIL (16/09): rilevante solo per un infortunio vero, mai per un near-miss
+      dataCertificato: tipo === "infortunio" ? ($("inf-certificato").value || null) : null,
+      denunciaData: tipo === "infortunio" ? ($("inf-denuncia-data").value || null) : null,
+      denunciaNumero: tipo === "infortunio" ? ($("inf-denuncia-numero").value.trim() || null) : null,
     });
     $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = ""; $("inf-lavoratore").value = "";
+    $("inf-certificato").value = ""; $("inf-denuncia-data").value = ""; $("inf-denuncia-numero").value = "";
     esito("inf-esito", (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + fmtData(data) + ".", "success");
     await refresh();
   };
@@ -6876,7 +6906,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
            frase dell'elenco, decisa dalle stesse due funzioni. */
         + (prognosiAperta(ev) ? " · prognosi ancora aperta"
             : (giornateAssenza(ev) ? " · " + giornateAssenza(ev) + " gg di assenza" : ""))
-        + (visitaRientroNecessaria(ev) ? " · <b>visita di rientro da programmare</b>" : "") + "</div>"
+        + (visitaRientroNecessaria(ev) ? " · <b>visita di rientro da programmare</b>" : "")
+        + (() => { const s = scadenzaDenunciaInail(ev, new Date());
+          return !s.pertinente ? "" : s.presentata ? " · denuncia INAIL presentata"
+            : !s.calcolabile ? " · <b>denuncia INAIL da valutare</b>"
+            : s.stato === "scaduta" ? " · <b>denuncia INAIL scaduta</b>"
+            : s.stato === "in-scadenza" ? " · <b>denuncia INAIL urgente</b>" : " · denuncia INAIL entro il " + fmtData(s.scadenza); })()
+        + "</div>"
       + '<div class="nm-lab">1 · La catena dei perché</div>'
       + '<div id="an-perche">' + righe.join("") + "</div>"
       + '<div class="frow" style="margin-top:10px;">'

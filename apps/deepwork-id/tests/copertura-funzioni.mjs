@@ -268,7 +268,11 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    delta dello stesso giro di ricerca — anticipo/ritardo sul calendario
    dichiarato dal progetto, parente di `sequenzaLotto`), con la sua prova
    in run-kpi e il banco browser `terra-apertura-programma.mjs`. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 195, terra: 103 };
+/* ⚠️ `scudo` SALE DA 232 A 233: `scadenzaDenunciaInail` (16/09, dal delta
+   della ricerca continua su Scudo — D.P.R. 1124/1965, art. 53), con la sua
+   prova in run-kpi. Il termine mortale (24 ore) è dichiarato come MASSIMO,
+   non preciso: Scudo registra solo il giorno dell'infortunio, non l'ora. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 233, sentinella: 195, terra: 103 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

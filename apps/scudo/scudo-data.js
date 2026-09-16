@@ -3139,6 +3139,72 @@ export function motivoRevisioneDss(chiave) {
 // volte è una periodicità che si stacca.
 const MESI_CERTIF_DSS = (SCADENZE_PRESET.find((p) => p.chiave === "dss-certif") || {}).mesi || 12;
 
+import { numeroDichiarato } from "../../shared/dw-ponti.js";
+/* LA DENUNCIA INAIL DI UN INFORTUNIO (16/09, dal delta della ricerca
+   continua su Scudo). Fonte: il TESTO dell'art. 53 D.P.R. 1124/1965, letto
+   via WebSearch (di seconda mano, nessuna pagina primaria letta —
+   WebFetch è bloccato in questo ambiente): «la denuncia dell'infortunio
+   deve essere fatta entro due giorni da quello in cui il datore di lavoro
+   ne ha avuto notizia... Se si tratta di infortunio che abbia prodotto la
+   morte o per il quale sia preveduto il pericolo di morte, la denuncia
+   deve essere fatta... entro ventiquattro ore dall'infortunio». L'obbligo
+   scatta per un infortunio «prognosticato non guaribile entro tre
+   giorni»: qui si usa `giorniAssenza` perché è l'unico dato che Scudo ha —
+   NON è la prognosi medica (che il medico dichiara PRIMA e può differire
+   da quanti giorni l'assenza dura poi davvero), un limite dichiarato, non
+   nascosto.
+   Due termini diversi, due basi diverse:
+   · ORDINARIO (> 3 giorni di assenza): 2 giorni dalla ricezione del
+     certificato medico (`dataCertificato`, campo nuovo, opzionale — senza
+     quella data NON si calcola niente, mai un termine dedotto dalla data
+     dell'evento, che è un'altra cosa);
+   · MORTALE: 24 ORE dall'infortunio. Qui Scudo registra solo il GIORNO
+     dell'evento (`data`), non l'ORA: un conto sulle ore non si può fare
+     con precisione. Si tiene il CASO PEGGIORE — il giorno dopo l'evento —
+     dichiarato come MASSIMO (`precisione: "giorno"`): se quella data è già
+     passata la denuncia è sicuramente in ritardo, se non lo è ancora
+     potrebbe esserlo comunque (l'infortunio può essere successo la
+     mattina). L'incertezza si dichiara, non sparisce in un numero
+     tranquillo — lo stesso principio già applicato al contrasto colore
+     coi gradienti.
+   Una denuncia già presentata (`denunciaData`) chiude la domanda: si
+   mostra il fatto, non si insegue più una scadenza. Pura e testabile. */
+export function scadenzaDenunciaInail(infortunio, oggi = new Date()) {
+  const x = infortunio || {};
+  const base = { pertinente: false, calcolabile: false, presentata: false, scadenza: null, precisione: "", stato: "", motivo: "" };
+  if (x.tipo !== "infortunio" || !dataISOEsiste(x.data)) return base;
+  const mortale = (gravitaInfortunioDi(x) || {}).chiave === "mortale";
+  const assenza = numeroDichiarato(x.giorniAssenza);
+  const obbligata = mortale || (assenza != null && assenza > 3);
+  if (!obbligata) {
+    // ⛔ L'ASSENZA NON È UN DATO FAVOREVOLE (decisione 17, 02/08): con la
+    // prognosi ancora aperta (`giorniAssenza: null`) non si sa ANCORA se
+    // supererà i tre giorni — non è lo stesso di saperlo già sotto la
+    // soglia. Tacere l'obbligo qui sarebbe l'esatto difetto che quella
+    // decisione ha già corretto altrove in questo file.
+    if (assenza == null) return { ...base, pertinente: true, calcolabile: false,
+      motivo: "prognosi ancora aperta: non si sa ancora se l'assenza supererà i tre giorni, quindi non si sa se la denuncia sia dovuta" };
+    return base;
+  }
+  if (x.denunciaData && dataISOEsiste(x.denunciaData))
+    return { ...base, pertinente: true, calcolabile: true, presentata: true,
+      motivo: "denuncia presentata il " + dataIt(x.denunciaData) + (x.denunciaNumero ? " (n. " + x.denunciaNumero + ")" : "") };
+  if (mortale) {
+    const scad = dataPiuGiorni(1, new Date(String(x.data).slice(0, 10) + "T00:00:00"));
+    return { ...base, pertinente: true, calcolabile: true, scadenza: scad, precisione: "giorno",
+      stato: statoScadenza(scad, oggi, 0),
+      motivo: "infortunio mortale: la denuncia va fatta entro 24 ORE dall'evento (D.P.R. 1124/1965, art. 53) — qui si registra solo il giorno, non l'ora: "
+        + dataIt(scad) + " è il termine MASSIMO, non necessariamente quello vero" };
+  }
+  if (!dataISOEsiste(x.dataCertificato))
+    return { ...base, pertinente: true, calcolabile: false,
+      motivo: "manca la data di ricezione del certificato medico: senza quella data il termine non si può calcolare" };
+  const scad = dataPiuGiorni(2, new Date(String(x.dataCertificato).slice(0, 10) + "T00:00:00"));
+  return { ...base, pertinente: true, calcolabile: true, scadenza: scad, precisione: "giorno",
+    stato: statoScadenza(scad, oggi, 0),
+    motivo: "termine ordinario (D.P.R. 1124/1965, art. 53): 2 giorni dalla ricezione del certificato medico, scade il " + dataIt(scad) };
+}
+
 /* I DSS di una cava, dal più recente al più vecchio. Vivono nel registro
    `documenti` che Scudo ha già, collegati da `cantiereId` come il DSS della
    dimostrazione lo è sempre stato. */

@@ -832,6 +832,11 @@ const BANCHI = [
      stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
   ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],
   ['banco da sempre anno per anno · controprova', 'terra-banchi-serie-anni.mjs', ['--controprova'], true],
+  /* 16/09 · la denuncia INAIL di un infortunio (D.P.R. 1124/1965, art. 53):
+     due «da valutare» diversi (manca il certificato / prognosi ancora
+     aperta) non devono mai scambiarsi la ragione. */
+  ['la denuncia INAIL nel registro degli eventi di Scudo', 'scudo-denuncia-inail.mjs', []],
+  ['denuncia INAIL · controprova', 'scudo-denuncia-inail.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

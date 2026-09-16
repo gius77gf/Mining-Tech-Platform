@@ -21056,6 +21056,54 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
        "il ripiego c'è, e non è una frase tranquilla");
   });
 
+  test("⛔ Scudo · scadenzaDenunciaInail: near-miss e infortuni sotto soglia non sono pertinenti", () => {
+    eq(scudo.scadenzaDenunciaInail(null).pertinente, false, "null non rompe");
+    eq(scudo.scadenzaDenunciaInail({ tipo: "near-miss", data: "2026-09-10", gravita: "mortale" }).pertinente, false,
+       "un near-miss non ha un ferito: l'obbligo di denuncia non lo riguarda, qualunque gravità porti");
+    eq(scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-10", gravita: "lieve", giorniAssenza: 3 }).pertinente, false,
+       "esattamente 3 giorni: la norma copre chi NON guarisce entro tre giorni, cioè oltre, non da tre in su");
+    eq(scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-10", gravita: "lieve", giorniAssenza: 1 }).pertinente, false);
+  });
+  test("⛔ Scudo · scadenzaDenunciaInail: la prognosi ancora aperta NON è «non dovuta» — è «non si sa»", () => {
+    // decisione 17 (l'assenza non è un dato favorevole) applicata a un obbligo
+    // legale: tacere qui sarebbe l'esatto difetto che quella decisione ha
+    // già corretto altrove nello stesso modulo
+    const r = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-10", gravita: "lieve", giorniAssenza: null });
+    eq([r.pertinente, r.calcolabile], [true, false]);
+    ok(/prognosi ancora aperta/.test(r.motivo), r.motivo);
+  });
+  test("⛔ Scudo · scadenzaDenunciaInail: termine ordinario, 2 giorni dal certificato — MAI dalla data dell'evento", () => {
+    const senzaCert = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "grave", giorniAssenza: 10 }, new Date("2026-09-05"));
+    eq([senzaCert.pertinente, senzaCert.calcolabile], [true, false]);
+    ok(/manca la data di ricezione del certificato/.test(senzaCert.motivo), senzaCert.motivo);
+    const inTermine = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-04" }, new Date("2026-09-05"));
+    eq(inTermine.scadenza, "2026-09-06", "due giorni dal certificato (04+2), non dalla data dell'infortunio (01)");
+    eq(inTermine.stato, "regolare");
+    const scaduto = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-04" }, new Date("2026-09-08"));
+    eq(scaduto.stato, "scaduta");
+  });
+  test("⛔ Scudo · scadenzaDenunciaInail: il termine mortale è un MASSIMO dichiarato, non una scadenza precisa", () => {
+    // Scudo registra solo il GIORNO dell'infortunio, non l'ora: le "24 ore
+    // dall'infortunio" della norma non si possono contare con precisione.
+    // Il caso peggiore (il giorno dopo) è quello riportato, e lo dice.
+    const r = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-10", gravita: "mortale" }, new Date("2026-09-11"));
+    eq(r.pertinente, true);
+    eq(r.scadenza, "2026-09-11", "un giorno dopo l'evento, il caso peggiore");
+    eq(r.precisione, "giorno", "⛔ la precisione limitata si dichiara, non si nasconde in un numero tranquillo");
+    ok(/MASSIMO/.test(r.motivo), r.motivo);
+    // un infortunio mortale è pertinente ANCHE se giorniAssenza non è mai stato scritto (la morte non si misura in giorni di assenza)
+    eq(scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-10", gravita: "mortale", giorniAssenza: null }, new Date("2026-09-11")).pertinente, true);
+  });
+  test("⛔ Scudo · scadenzaDenunciaInail: una denuncia già presentata chiude la domanda, non insegue più una scadenza", () => {
+    const r = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "mortale", denunciaData: "2026-09-02", denunciaNumero: "INAIL-2026-4471" }, new Date("2026-09-20"));
+    eq([r.pertinente, r.calcolabile, r.presentata, r.scadenza], [true, true, true, null],
+       "presentata: niente scadenza da calcolare più, il fatto vince sulla previsione");
+    ok(/02\/09\/2026/.test(r.motivo) && /INAIL-2026-4471/.test(r.motivo), r.motivo);
+  });
+  test("Scudo · scadenzaDenunciaInail sulla dimostrazione: i casi reali non esplodono", () => {
+    for (const x of scudo.DEMO.infortuni) ok(typeof scudo.scadenzaDenunciaInail(x, new Date("2026-09-16")) === "object", x.id);
+  });
+
   test("Scudo · MOTIVI_REVISIONE_DSS: quattro motivi, ognuno con il suo riferimento", () => {
     eq(scudo.MOTIVI_REVISIONE_DSS.map((m) => m.chiave),
        ["prima-stesura", "periodica", "dopo-evento", "dopo-modifica"]);

@@ -1823,8 +1823,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.582** *(ricontate il 16/09, dopo aver
-costruito il ponte Campo→Sentinella (sovrapposizione 3g della mappa
+**Le prove automatiche sono passate a 3.588** *(ricontate il 16/09, dopo aver
+aggiunto a Scudo `scadenzaDenunciaInail` (D.P.R. 1124/1965, art. 53) — due
+termini diversi, 2 giorni dal certificato medico o 24 ore dall'evento se
+mortale; il termine mortale è un MASSIMO dichiarato, non preciso, perché
+Scudo registra solo il giorno dell'infortunio e non l'ora; una prognosi
+ancora aperta non è "non dovuta", è "non si sa ancora" — verificato anche
+nel browser — dopo aver costruito il ponte Campo→Sentinella (sovrapposizione 3g della mappa
 ecosistema, cercata il 15/09) — `meteoDelGiorno` traduce i turni meteo di
 Campo in pioggia/vento forte per giudicare le misure di rumore fuori
 condizioni (DM 16/03/1998), con la pioggia confermata solo se tutti i turni
@@ -1951,7 +1956,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **313
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **315
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
