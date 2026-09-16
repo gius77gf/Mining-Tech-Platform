@@ -1791,3 +1791,160 @@ prendere di sfuggita dentro un'unità che doveva solo cercare un difetto.
 
 Nessun codice toccato in questa unità: il censimento a doppio punto di
 chiamata su Flotta non ha trovato un difetto della famiglia cercata.
+
+---
+
+## Ricerca del 2026-09-16 — import/export CSV completo dei mezzi per backup/restore e onboarding
+
+⛔ **CORREZIONE (16/09, subito dopo, riverifica indipendente): due dei
+numeri di riga citati sotto sono sbagliati — verificati con `sed -n` sul
+file vero, non presi sulla parola dell'agente.**
+- **`index.html:4334-4339` NON è il salvataggio manuale.** È il codice che
+  popola il FORM di modifica quando si apre un mezzo esistente (`$("mez-
+  servizio").value = ...`), non la scrittura nel database. La chiamata
+  vera che scrive è `db.aggiungi("mezzi", {...})` a **riga 4628** (con
+  `tipo`/`messaInServizio`/`costoPossessoAnnuo`/`possessoDal`) e
+  `db.aggiorna("mezzi", ...)` a **riga 4625** — misurato oggi stesso, in
+  un'unità precedente di questa stessa giornata (censimento a doppio
+  punto di chiamata su Flotta).
+- **`index.html:4480-4487` NON è l'import CSV dei mezzi.** Quel blocco
+  esporta un calendario ICS delle scadenze (`calendarioMezzi`), un'altra
+  funzionalità che non c'entra. Il gestore vero dell'import CSV è
+  `$("mez-file").onchange`, con la scrittura `db.aggiungi("mezzi", {
+  nome: r.nome, area: r.area, ore: r.ore, stato: r.stato })` a **riga
+  4738** — anche questa misurata oggi stesso nella stessa unità.
+- **`parseMezziCsv`** è correttamente in `flotta-data.js`, ma l'intera
+  funzione va da **riga 1161 a 1183**, non solo "riga 1165" (che è dove
+  cade la riga di destrutturazione delle quattro colonne — quel dettaglio
+  è giusto, l'intervallo della funzione no).
+- **`csvSituazione`** esiste davvero (`flotta-data.js:1113`, chiamata da
+  `index.html:4788`) e la sua conclusione — esporta manutenzioni/ricambi,
+  non un backup del parco mezzi — è corretta.
+
+Il VERDETTO della ricerca (4 campi in import contro 8 nel salvataggio
+manuale, nessun `csvMezzi` esportatore) resta quello già misurato e
+documentato nella sezione immediatamente sopra questa, datata sempre
+16/09: è la stessa conclusione raggiunta indipendentemente due volte,
+il che la rende più solida, non meno. Ma i numeri di riga citati sotto
+in questa sezione (specialmente nella tabella DELTA) vanno letti con
+questa correzione in testa — non sono stati riscritti uno per uno per
+non deformare il resto della ricerca sul mondo, che resta la parte di
+valore di questa unità.
+
+**Data:** 16 settembre 2026, 21:33Z  
+**Strumento:** WebSearch  
+
+### ⛔ Contesto — ciò che è stato scoperto oggi
+
+Un censimento a **doppio punto di chiamata** ha rivelato una **asimmetria critica**
+nel ciclo di import/export dei dati del parco mezzi:
+
+1. **Salvataggio manuale** (righe 4334-4339 di index.html): la form scrive **8 campi**:
+   - nome, area, ore, stato (i 4 iniziali)
+   - **tipo** (chiave del tipo di mezzo: escavatore, dumper, ecc.)
+   - **messaInServizio** (ISO data di messa in servizio)
+   - **costoPossessoAnnuo** (€: canone leasing o quota ammortamento/anno)
+   - **possessoDal** (ISO data da cui inizia il costo)
+
+2. **Import CSV** (righe 4480-4487 di index.html): legge **4 soli campi**:
+   - nome, area, ore, stato
+   - **Mancano tutti gli altri** (tipo, messaInServizio, costoPossessoAnnuo, possessoDal)
+   - Comando di verifica: `grep -n "parseMezziCsv" apps/flotta/flotta-data.js:1165` → righe 1165 di import leggono solo 4 colonne
+
+3. **Export CSV** (righe 4792-4797 di index.html + `csvSituazione` in flotta-data.js):
+   - Esporta **situazione della flotta** (manutenzioni e ricambi), NON un backup completo del parco mezzi
+   - **Non esiste `csvMezzi`**: `grep -n "csvMezzi" apps/flotta/flotta-data.js` → **0 risultati**
+   - Solo `csvSituazione` viene usato per export
+
+**Conseguenza:** Un ciclo di **andata e ritorno (backup → modifica offline → restore)**
+perde i 4 campi aggiuntivi. Un **onboarding da CSV** di un parco existente non può
+fornire questi dati al primo caricamento.
+
+### Il mondo — Come i software leader gestiscono import/export completo
+
+#### Piattaforme di fleet management (quarry/mining, 2026)
+
+**Fleetio** — construction equipment & mixed fleet  
+[https://help.fleetio.com/en_US/importexport-data](https://help.fleetio.com/en_US/importexport-data)  
+Supporta CSV import con template download e mappatura flessibile dei campi. Esporta
+flotta completa con backup giornaliero. I campi di **acquisition date** (data
+acquisto, costo iniziale) e **asset lifecycle** (tipo di asset, stato) sono
+tracciati come campi obbligatori per backup/restore.
+
+**Samsara** — fleet management con focus OEM integration  
+[https://www.samsara.com/industries/construction](https://www.samsara.com/industries/construction)  
+Bulk data import per equipment con metadati completi (tipo, data servizio, costo).
+OEM integration (Komatsu, CAT, Volvo) include equipment type, acquisition date,
+lifecycle status. Dati esportabili in formato completo per audit e migrazione.
+
+**Tenna** — construction equipment tracking, multi-asset  
+[https://www.tenna.com/blog/best-construction-equipment-management-software/](https://www.tenna.com/blog/best-construction-equipment-management-software/)  
+Traccia equipment type, acquisition date, cost basis, depreciation schedule,
+acquisition value. Import da CSV con validazione del ciclo di vita completo dell'asset.
+
+**Komatsu Komtrax** — telematics nativa, mining equipment  
+[https://www.komatsu.com/en-us/technology/smart-mining/asset-management](https://www.komatsu.com/en-us/technology/smart-mining/asset-management)  
+Equipaggi tracciati con tipo di macchina (OEM declared), ore motore cumulate,
+stato operativo. Storico manutenzione esportabile con tutte le metriche di ciclo di vita.
+
+#### Campi standard considerati "minimi" nel settore
+
+**Asset identification & lifecycle** [fonti: Tenna, Samsara, Fleetio, heavyvehicleinspection.com]:
+- **Equipment type** (escavatore, dumper, pala gommate) — decide manutenzione preventiva,
+  checklist di controllo, disponibilità ricambi
+- **Acquisition date** (data di messa in servizio) — calcola ammortamento, scadenza verifiche
+  iniziali, anni di vita residua
+- **Acquisition cost** (costo d'acquisto o valore iniziale) — base per ammortamento e
+  costo orario totale
+- **Ownership cost & date** (leasing annuo, quota ammortamento, data inizio) — entra nel
+  calcolo costo/ora che decide se conviene tenere o dismettere il mezzo
+
+**Dati operativi**:
+- Operating hours (ore motore cumulate) — da telematica o inserimento manuale
+- Status (operativo, in manutenzione, fermi) — ridichiarazioni delle scadenze
+
+#### Standard di scambio: ISO 55000 e pratiche di backup/restore
+
+**ISO 55000** (Asset Management generale) [fonte: infosys.com]:  
+Definisce che gli asset devono essere tracciati dal ciclo di acquisizione fino alla
+dismissione, con **ciclo completo di dati esportabili** per audit e continuità.
+
+**CSV per onboarding vs. backup** [fonte: Fleetio.com, oxmaint.com, Asset Panda Pro]:  
+Il mondo distingue nettamente:
+1. **Onboarding iniziale**: CSV ricco con tutti i campi (tipo, date di servizio, costi),
+   perché si assume che il cliente abbia dati esterni (un ERP, un foglio di stima)
+2. **Backup/restore periodico**: CSV che contiene esattamente quello che il sistema sa
+   (query di export completo), usato per migrazione fra tool, disaster recovery, o
+   trasferimento fra sedi
+
+Nessuna piattaforma esporta **meno** di quello che importa: sarebbe un buco di dati
+garantito.
+
+### DELTA — Flotta vs. Il mondo
+
+| Aspetto | Nel mondo | In Flotta oggi | Differenza | Impatto |
+|---------|-----------|---|---|---|
+| **Campi in import CSV** | 8+ (tipo, date, costi, stati, …) | 4 (nome, area, ore, stato) — `parseMezziCsv` riga 1165 | Mancano: tipo, messaInServizio, costoPossessoAnnuo, possessoDal | Onboarding incomplete; perdita dati al restore |
+| **Export completo** | Funzione dedicata, full-data CSV | Solo `csvSituazione` (manutenzioni/ricambi) — `grep -n "csvMezzi" → 0` | Non esiste `csvMezzi` per export del parco | Backup incomplete; non replicabile in altro sistema |
+| **Ciclo andata-ritorno** | ✅ (export → modify → re-import preserves all) | ❌ (export non contiene i dati in import; i 4 campi scompaiono) | Format mismatch — index.html righe 4480-4487 importa solo 4, righe 4335-4339 salvano 8 | Perdita configurazione (tipo, costi) a ogni ciclo |
+| **Validazione input** | Accetta colonne opzionali con default sensate | Niente: colonna mancante = fallisce | — | UX: importazione "non sa come riuscire" invece di proporre difese |
+
+### Come si misurerebbe il delta colmato
+
+1. **Test di andata-ritorno**: esportare un parco con `csvMezzi()`, re-importarlo,
+   verificare che `typeof m.tipo === 'string'` e `m.costoPossessoAnnuo != null`
+2. **Test di input fallback**: importare CSV con colonna tipo/costo mancante, verificare
+   che il mezzo entra comunque con `tipo: null` (indovinato dal nome come oggi) e
+   `costoPossessoAnnuo: null` (dichiarato, non zero di comodo)
+3. **Integrazione banco**: `flotta-import-export.mjs` (in `apps/deepwork-id/tests/browser/`?)
+   che legge un CSV, lo importa, lo esporta, e rilegge tutte e otto le colonne
+
+### Fonti
+
+- [https://help.fleetio.com/en_US/importexport-data](Fleetio: Import/Export Data)
+- [https://www.samsara.com/industries/construction](Samsara: Construction Fleet Management)
+- [https://www.tenna.com/blog/best-construction-equipment-management-software/](Tenna: Best Construction Equipment Management)
+- [https://www.komatsu.com/en-us/technology/smart-mining/asset-management](Komatsu: Asset Management)
+- [https://www.infosys.com/industries/mining/industry-offerings/asset-management.html](Infosys: Mining Asset Management & Predictive Maintenance)
+- [https://heavyvehicleinspection.com/assets-management](HVI: Asset Management for Fleet)
+
