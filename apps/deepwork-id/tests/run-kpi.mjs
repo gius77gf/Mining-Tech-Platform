@@ -930,6 +930,57 @@ test("livelloSollecito: fasce di ritardo → livello di sollecito", () => {
   eq(conti.livelloSollecito(45).livello, 2, "confine 45 gg = 2°");
   eq(conti.livelloSollecito(46), { livello: 3, label: "ultimo avviso", cls: "danger" }, "46 gg = ultimo");
 });
+test("⛔ statoRecupero (dal delta della ricerca continua su Conti, decimo giro): il livello COMUNICATO non è quello che il ritardo di oggi ricalcolerebbe", () => {
+  const f = { scadenza: "2026-07-08" };   // 70 gg di ritardo al 16/09 = livello 3
+  const oggi = new Date(2026, 8, 16);
+  // mai segnato: "mai comunicato" non è un livello zero, è uno stato diverso
+  const r0 = conti.statoRecupero(f, [], oggi);
+  eq(r0.comunicato, null, "nessuno storico = mai comunicato");
+  eq(r0.attuale, 3, "il ritardo di oggi implica il livello 3");
+  eq(r0.daRimandare, true, "senza niente di segnato, un livello 3 va sempre segnalato");
+  eq(r0.ultimaData, null, "nessuna data senza storico");
+  // un solo sollecito di livello 1, molto più indietro del ritardo attuale
+  const r1 = conti.statoRecupero(f, [{ livello: 1, data: "2026-07-15", canale: "email" }], oggi);
+  eq(r1.comunicato, 1, "l'unico segnato è di livello 1");
+  eq(r1.ultimaData, "2026-07-15");
+  eq(r1.ultimoCanale, "email");
+  eq(r1.daRimandare, true, "livello comunicato 1 < livello attuale 3: va rimandato");
+  ok(/livello 1/.test(r1.perche) && /3/.test(r1.perche), "spiega comunicato e attuale");
+  // il livello più severo è già stato segnato: niente da rimandare
+  const r2 = conti.statoRecupero(f, [{ livello: 3, data: "2026-09-01", canale: "pec" }], oggi);
+  eq(r2.daRimandare, false, "livello 3 comunicato = livello 3 attuale: coerente");
+  // "l'ultimo" è per DATA, non per posizione nell'array (un ripristino può
+  // portarli fuori ordine)
+  const rOrd = conti.statoRecupero(f, [
+    { livello: 3, data: "2026-08-01", canale: "pec" },
+    { livello: 1, data: "2026-09-10", canale: "telefono" },
+  ], oggi);
+  eq(rOrd.comunicato, 1, "il più RECENTE per data è il livello 1, anche se scritto per secondo");
+  eq(rOrd.ultimaData, "2026-09-10");
+  // righe corrotte (livello fuori scala, data inesistente, canale sconosciuto)
+  // si scartano invece di contare come un sollecito vero
+  const rSporco = conti.statoRecupero(f, [{ livello: 9, data: "2026-08-01" }, { livello: 2, data: "2026-13-45" }], oggi);
+  eq(rSporco.comunicato, null, "livello fuori scala e data inesistente: nessuna riga valida");
+  const rCanaleIgnoto = conti.statoRecupero(f, [{ livello: 2, data: "2026-08-01", canale: "piccione" }], oggi);
+  eq(rCanaleIgnoto.comunicato, 2, "il livello resta valido anche con un canale non riconosciuto");
+  eq(rCanaleIgnoto.ultimoCanale, null, "ma il canale ignoto non si mostra come se fosse uno dei nostri");
+  // fattura non scaduta: nessun livello attuale, niente da rimandare
+  const rNonScaduta = conti.statoRecupero({ scadenza: "2099-12-31" }, [], oggi);
+  eq(rNonScaduta.attuale, 0);
+  eq(rNonScaduta.daRimandare, false, "non scaduta: non c'è niente da rimandare");
+});
+test("LIVELLI_SOLLECITO_VALIDI e CANALI_SOLLECITO: i vocabolari chiusi dietro statoRecupero", () => {
+  eq(conti.LIVELLI_SOLLECITO_VALIDI, [1, 2, 3], "solo tre livelli sono validi: un quarto è un dato corrotto, non un sollecito nuovo");
+  eq(conti.CANALI_SOLLECITO.map(c => c[0]), ["email", "pec", "telefono", "altro"], "i canali riconosciuti, nell'ordine mostrato nella tendina");
+});
+test("nomeCanaleSollecito: il nome del canale, o null se non riconosciuto", () => {
+  eq(conti.nomeCanaleSollecito("email"), "Email");
+  eq(conti.nomeCanaleSollecito("pec"), "PEC");
+  eq(conti.nomeCanaleSollecito("telefono"), "Telefono");
+  eq(conti.nomeCanaleSollecito("altro"), "Altro");
+  eq(conti.nomeCanaleSollecito("piccione"), null, "canale non nell'elenco: null, non un'etichetta inventata");
+  eq(conti.nomeCanaleSollecito(""), null);
+});
 test("interessiMora: D.Lgs 231/2002, importo × tasso × giorni/365", () => {
   // 10.000 € al 10,15% per 365 gg = 1015 €
   eq(conti.interessiMora(10000, 365, 10.15), { interessi: 1015, giorni: 365, tasso: 10.15 }, "1 anno intero");

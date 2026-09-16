@@ -534,6 +534,13 @@ const BANCHI = [
      un mezzo solo) che nessuna suite `node` poteva vedere. */
   ['i componenti a vita propria di Flotta', 'flotta-componenti-vita.mjs', []],
   ['componenti a vita propria di Flotta · controprova', 'flotta-componenti-vita.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — lo storico dei solleciti di Conti, dal delta
+     della ricerca continua, decimo giro: il bottone "Segna come inviato"
+     deve aprire la modale sulla fattura giusta (un ID scambiato per il
+     numero non lo vedrebbe nessuna suite `node`) e la registrazione deve
+     sopravvivere alla chiusura della modale. */
+  ['lo storico dei solleciti di Conti', 'conti-solleciti-storico.mjs', []],
+  ['storico dei solleciti di Conti · controprova', 'conti-solleciti-storico.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e

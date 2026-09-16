@@ -2049,7 +2049,7 @@ label.item:has(.dw-chk:checked){
   /* l'estratto conto della banca: il file si legge e si abbina nel modulo dati,
      qui si disegna e si chiede conferma — `round2` è già importato più sotto */
   import { parseMovimentiCsv, mappaMovimentiCsv, abbinaMovimenti, ESTRATTO_ESEMPIO, parsePesaCsv, pesateDallaPesa,
-           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, fattureOltre90, csvFattureOltre90, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, concentrazionePortafoglio, estrattoContoCliente, livelloSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
+           contiData, giorni, kpiFrom, statoScadenzaFattura, statoSdi, sollecitabile, STATI_SDI, agingIncassi, fattureOltre90, csvFattureOltre90, avvisoFidoPesata, stileBarraPeso, gareRiepilogo, prioritaIncasso, incassoAtteso, incassoPerMese, esposizioneClienti, concentrazionePortafoglio, estrattoContoCliente, livelloSollecito, statoRecupero, CANALI_SOLLECITO, nomeCanaleSollecito, interessiMora, testoSollecito, TASSO_MORA_DEFAULT, statoTassoMora, parseFattureCsv, scartiFattureCsv, parseGareCsv, scartiGareCsv, parseListinoCsv, scartiListinoCsv, ALIQUOTA_ORDINARIA, csvListino, csvGare, chiaveNome, clienteDiFattura, nomeCliente, clientiDaCollegare,
     round2, baseGara, densitaValida, prezzoPerTonnellata, prezzoPerMetroCubo, convertiQuantita, imponibileRiga,
     importiFattura, totaliDaRighe, riepilogoIvaFattura, prossimoNumero, cancellazioneLasciaBuco, nettoPesata, rigaPesata, valorePesata, valoreDdt, csvPesate, parsePesateCsv, scartiPesateCsv, csvIncassi, csvProspettoIncassi, csvProspettoClienti, csvProspettoPreventivi, csvProspettoDdt, nomeClienteOrdine, csvProspettoCosti, csvPrezziConvertiti, ETICHETTA_GRUPPO, etichettaGruppo, leggiVoce, METODI_INCASSO, nomeMetodo, cellaNum, parseIncassiCsv, scartiIncassiCsv, csvClienti, parseClientiCsv, scartiClientiCsv, numeroDichiarato,
     quantitaPesata, pesateDaFatturare, fatturaDaPesate, canonePeriodo, BASI_CANONE, venditePerProdotto,
@@ -3393,6 +3393,10 @@ label.item:has(.dw-chk:checked){
     $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
       const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
       const sol = !f.incassata ? livelloSollecito(ritardo) : null;
+      // lo storico di ciò che è stato DAVVERO segnato come inviato, non
+      // ricalcolato dal solo ritardo: "mai comunicato" e "livello X" sono
+      // due stati diversi, e vanno detti con parole diverse.
+      const rec = ritardo > 0 ? statoRecupero(f, f.solleciti, new Date()) : null;
       /* ⛔ E QUI SI CHIEDEVANO SOLDI SU QUELLO CHE ERA GIÀ STATO STORNATO: la
          mora ex D.Lgs 231/2002 si calcola sul residuo, e il residuo senza `NOT`
          comprende ciò che una nota di credito ha già tolto. */
@@ -3482,8 +3486,15 @@ label.item:has(.dw-chk:checked){
            badge è la stessa forma che il registro Pesate usa già per «DDT
            incompleto», nata dallo stesso difetto: una cosa che sapeva solo la
            stampa. */
-        rieF.quadra ? "" : `<span class="badge warn" title="Le righe sommano ${eur(rieF.imponibileRighe)} di imponibile e ${eur(rieF.ivaRighe)} di IVA, il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}. Rifalla dai DDT, oppure correggi le righe, prima di consegnarla.">Non quadra</span>`}
-      <div class="acts"><button class="arr" type="button" title="Stampa la fattura (o salvala in PDF)" aria-label="Stampa la fattura ${esc(f.numero)}" data-stampa-fat="${f.id}">${IC.stampa}</button><button class="arr" type="button" title="Scarica il file XML della fattura elettronica, da trasmettere allo SdI" aria-label="File XML per lo SdI della fattura ${esc(f.numero)}" data-xml-fat="${f.id}">${IC.xml}</button>${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
+        rieF.quadra ? "" : `<span class="badge warn" title="Le righe sommano ${eur(rieF.imponibileRighe)} di imponibile e ${eur(rieF.ivaRighe)} di IVA, il documento è registrato per ${eur(im.imponibile)} + ${eur(im.ivaImporto)}. Rifalla dai DDT, oppure correggi le righe, prima di consegnarla.">Non quadra</span>`}${
+        /* Lo storico dei solleciti DAVVERO inviati (non il ritardo ricalcolato):
+           un badge solo quando c'è qualcosa da segnalare, per non affollare la
+           riga con uno stato quieto. "Mai comunicato" è uno stato dichiarato,
+           non un silenzio — principio del fondatore sull'assenza di un dato. */
+        rec && rec.comunicato === null ? `<span class="badge tag" title="Nessun sollecito è mai stato segnato come inviato per questa fattura.">Mai comunicato</span>`
+        : rec && rec.daRimandare ? `<span class="badge warn" title="${esc("L'ultimo sollecito segnato come inviato è di livello " + rec.comunicato + " (" + fmtD(rec.ultimaData) + "), ma il ritardo attuale implicherebbe il livello " + rec.attuale + ": va rimandato un avviso più severo.")}">Sollecito da aggiornare</span>`
+        : ""}
+      <div class="acts"><button class="arr" type="button" title="Stampa la fattura (o salvala in PDF)" aria-label="Stampa la fattura ${esc(f.numero)}" data-stampa-fat="${f.id}">${IC.stampa}</button><button class="arr" type="button" title="Scarica il file XML della fattura elettronica, da trasmettere allo SdI" aria-label="File XML per lo SdI della fattura ${esc(f.numero)}" data-xml-fat="${f.id}">${IC.xml}</button>${ritardo>0?`<button class="dw-btn secondary mini" data-sollecito="${f.id}" title="Copia il testo del sollecito (con mora 231/2002) da inviare al cliente">${IC.busta}Sollecito</button>`:""}${ritardo>0?`<button class="dw-btn secondary mini" data-segna-sollecito="${f.id}" title="Registra che il sollecito è stato davvero inviato (nessun invio automatico)">${IC.spunta}Segna come inviato</button>`:""}${!f.incassata?`<button class="arr" type="button" title="Modifica fattura" aria-label="Modifica fattura ${esc(f.numero)}" data-edit-fat="${f.id}">${IC.matita}</button>`:""}${!f.incassata?`<button class="arr del" type="button" title="Elimina fattura errata" aria-label="Elimina fattura ${esc(f.numero)}" data-del-fat="${f.id}">${IC.croce}</button>`:""}</div></div>`; }).join("")
       || (qFat ? vuoto("fattura", "Nessun risultato", "Nessuna fattura trovata per «<b>" + esc(qFat) + "</b>». Prova con il numero o con una parte del nome del cliente.")
          : filtroFat === "tutte" ? vuoto("fattura", "Nessuna fattura", "Emetti la prima fattura dal riquadro <b>Nuova fattura</b> qui sotto, oppure importa un CSV dal tuo gestionale.")
          : vuoto("fattura", "Categoria vuota", "Nessuna fattura in questa categoria. Tocca <b>Tutte</b> per vedere l'elenco completo."));
@@ -4900,6 +4911,77 @@ label.item:has(.dw-chk:checked){
     esito("ft-esito", residuo > 0
       ? "Acconto di " + eur(imp) + " registrato sulla fattura " + f.numero + " il " + fmtD(data) + ": restano " + eur(residuo) + "."
       : "Fattura " + f.numero + " saldata il " + fmtD(data) + ": " + eur(somma) + " incassati in tutto.", "success");
+    await refresh();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // STORICO DEI SOLLECITI — "segna come inviato" (16/09, decimo giro di
+  // ricerca su Conti)
+  // ------------------------------------------------------------------
+  // `livelloSollecito`/`testoSollecito` ricalcolano il livello dal solo
+  // ritardo, ogni volta: non sanno se una lettera è già PARTITA. Qui l'utente
+  // CONFERMA a mano un invio già avvenuto (Conti non manda niente da sé) e
+  // `statoRecupero` lo confronta con ciò che il ritardo di oggi implicherebbe.
+  // ══════════════════════════════════════════════════════════════════
+  function modaleSegnaSollecito(f) {
+    const oggi = oggiISO();
+    const ritardo = Math.max(0, -giorni(f.scadenza));
+    const attuale = livelloSollecito(ritardo);
+    const storico = (f.solleciti || []).slice().sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    const rec = statoRecupero(f, f.solleciti, new Date());
+    const righe = storico.map((s, i) => `<div class="mrec">
+        <span class="k">${fmtD(s.data)} · livello ${esc(String(s.livello))} · ${esc(nomeCanaleSollecito(s.canale) || "canale non indicato")}</span>
+        <button class="arr del" type="button" style="margin-left:8px;" data-del-sol="${i}"
+          title="Rimuovi questa registrazione (solo per correggere un errore)" aria-label="Rimuovi il sollecito del ${fmtD(s.data)}">${IC.croce}</button>
+      </div>`).join("");
+    const corpo =
+      `<div class="mrec"><span class="k">Cliente</span><span class="v">${esc(nomeCliente(f, CLI))}</span></div>
+       <div class="mrec"><span class="k">Ritardo attuale</span><span class="v">${ritardo} gg${attuale.label ? " · " + esc(attuale.label) : ""}</span></div>
+       <div class="mrec"><span class="k">Ultimo segnato come inviato</span><span class="v${rec.comunicato == null ? "" : " accent"}">${rec.comunicato == null ? "mai comunicato" : "livello " + rec.comunicato + " il " + fmtD(rec.ultimaData)}</span></div>
+       ${rec.daRimandare ? `<p style="margin-top:10px;">${esc(rec.perche.charAt(0).toUpperCase() + rec.perche.slice(1))}.</p>` : ""}
+       ${righe ? `<span class="fl">Solleciti già segnati (${storico.length})</span>${righe}` : ""}
+       <span class="fl">Data in cui è stato davvero inviato</span>
+       <input class="dw-input" id="sol-data" type="date" value="${oggi}" max="${oggi}">
+       <span class="fl">Canale</span>
+       <select class="dw-input" id="sol-canale">${CANALI_SOLLECITO.map(c => `<option value="${c[0]}">${c[1]}</option>`).join("")}</select>
+       <p style="margin-top:10px;">Registra il livello attuale (<b>${esc(attuale.label || "nessuno")}</b>): questo bottone non invia niente, serve solo a tenere il conto di ciò che è già partito.</p>
+       <div class="note" id="sol-err" style="border-left-color:var(--danger);color:var(--text);"></div>`;
+    const bottoni = [{ label: "Chiudi", azione: chiudiModale },
+      { label: "Segna come inviato", cls: "primary", azione: () => registraSollecitoInviato(f, attuale.livello) }];
+    apriModale("Sollecito inviato — fattura " + f.numero, corpo, bottoni);
+    if ($("sol-data")) $("sol-data").addEventListener("input", () => {
+      $("sol-data").classList.remove("err"); const e2 = $("sol-err"); if (e2) e2.textContent = ""; });
+    // eliminazione di una registrazione: non si modifica, si toglie e si
+    // rifà — la stessa scelta già presa per gli incassi, per la stessa ragione
+    document.querySelectorAll("#modal-body [data-del-sol]").forEach(b => b.onclick = async () => {
+      const i = +b.getAttribute("data-del-sol");
+      const s = storico[i]; if (!s) return;
+      const ok = await chiedi("Rimuovi il sollecito",
+        `<p>Stai per togliere una registrazione di sollecito sulla fattura <b>${esc(f.numero)}</b>.</p>
+         <div class="mrec"><span class="k">Data</span><span class="v">${fmtD(s.data)}</span></div>
+         <div class="mrec"><span class="k">Livello</span><span class="v">${esc(String(s.livello))}</span></div>
+         <p style="margin-top:10px;">Fallo solo se era stato segnato per sbaglio: non cambia niente sulla fattura, solo lo storico dei solleciti.</p>`,
+        "Rimuovi", true);
+      if (!ok) { modaleSegnaSollecito(f); return; }
+      const nuovo = storico.filter((_, j) => j !== i);
+      await db.aggiorna("fatture", f.id, { solleciti: nuovo });
+      esito("ft-esito", "Registrazione di sollecito del " + fmtD(s.data) + " rimossa dalla fattura " + f.numero + ".", "success");
+      await refresh();
+      modaleSegnaSollecito(FAT.find(x => x.id === f.id) || { ...f, solleciti: nuovo });
+    });
+  }
+
+  async function registraSollecitoInviato(f, livello) {
+    const data = ($("sol-data") && $("sol-data").value) || "";
+    const canale = ($("sol-canale") && $("sol-canale").value) || "";
+    const errEl = $("sol-err");
+    if (!data) { if (errEl) errEl.textContent = "Metti la data in cui il sollecito è stato davvero inviato.";
+      if ($("sol-data")) $("sol-data").classList.add("err"); return; }
+    if (data > oggiISO()) { if (errEl) errEl.textContent = "La data è nel futuro: qui si segna un invio già avvenuto, non se ne programma uno."; return; }
+    const nuovo = [...(f.solleciti || []).map(s => ({ ...s })), { livello, data, canale }];
+    await db.aggiorna("fatture", f.id, { solleciti: nuovo });
+    chiudiModale();
+    esito("ft-esito", "Registrato: sollecito di livello " + livello + " (" + (nomeCanaleSollecito(canale) || canale) + ") segnato come inviato il " + fmtD(data) + " per la fattura " + f.numero + ".", "success");
     await refresh();
   }
 
@@ -6650,6 +6732,10 @@ label.item:has(.dw-chk:checked){
       $("ft-esito").textContent = fatto
         ? "Testo del sollecito per " + f.numero + " copiato: incollalo nell'email o nella PEC (interessi da confermare col commercialista)."
         : "Testo del sollecito per " + f.numero + " pronto nella finestra: copialo a mano.";
+      return; }
+    const btnSegnaSol = e.target.closest && e.target.closest("[data-segna-sollecito]");
+    if (btnSegnaSol) { const f = FAT.find(x => x.id === btnSegnaSol.getAttribute("data-segna-sollecito"));
+      if (f) modaleSegnaSollecito(f);
       return; }
     const btnEditFat = e.target.closest && e.target.closest("[data-edit-fat]");
     const editFatId = btnEditFat && btnEditFat.getAttribute("data-edit-fat");

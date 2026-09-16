@@ -116,7 +116,10 @@ export const DEMO = {
        consegnata, f2 non consegnata (il cliente la trova nel cassetto fiscale),
        f4 SCARTATA — come non emessa: resta un credito da avere ma non si
        sollecita finché non si rimanda; f3 senza esito registrato, di proposito */
-    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", clienteId: "c1", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, sdi: { stato: "consegnata", il: "2026-06-08" } },
+    { id: "f1", numero: "2026/031", cliente: "Edilcave Srl", clienteId: "c1", importo: 18300, emessa: "2026-06-07", scadenza: "2026-07-08", incassata: false, sdi: { stato: "consegnata", il: "2026-06-08" },
+      // solo il 1° sollecito è stato segnato come inviato: il ritardo di oggi
+      // ne implica uno più severo, quindi statoRecupero dichiara "da rimandare"
+      solleciti: [{ livello: 1, data: "2026-07-15", canale: "email" }] },
     { id: "f2", numero: "2026/034", cliente: "Stradesud", clienteId: "c2", importo: 9750, emessa: "2026-06-25", scadenza: "2026-07-25", incassata: false, sdi: { stato: "mancata-consegna", il: "2026-06-26", nota: "PEC del cliente piena" } },
     { id: "f3", numero: "2026/035", cliente: "Comune di Modica", importo: 8100, emessa: "2026-07-10", scadenza: "2026-08-10", incassata: false },
     { id: "f4", numero: "2026/036", cliente: "Calcestruzzi RG", importo: 5900, emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false, sdi: { stato: "scartata", il: "2026-07-19", nota: "CAP del cliente mancante" } },
@@ -1281,6 +1284,47 @@ export function livelloSollecito(giorniRitardo) {
   if (g <= 15) return { livello: 1, label: "1° sollecito", cls: "warn" };
   if (g <= 45) return { livello: 2, label: "2° sollecito", cls: "warn" };
   return { livello: 3, label: "ultimo avviso", cls: "danger" };
+}
+
+// Livelli e canali validi di un sollecito registrato: un valore fuori da
+// questi elenchi è un dato corrotto (CSV manomesso, campo scritto a mano),
+// non un sollecito nuovo — si scarta, come fa ogni altro lettore di questa app.
+export const LIVELLI_SOLLECITO_VALIDI = [1, 2, 3];
+export const CANALI_SOLLECITO = [["email", "Email"], ["pec", "PEC"], ["telefono", "Telefono"], ["altro", "Altro"]];
+export function nomeCanaleSollecito(c) { return (CANALI_SOLLECITO.find(x => x[0] === c) || ["", null])[1]; }
+
+/* Il RITARDO decide un livello ogni volta da zero (`livelloSollecito`), ma
+   quel numero non sa se una lettera è già PARTITA: due aperture della stessa
+   pratica a distanza di un mese ricalcolano lo stesso "ultimo avviso" anche
+   se ieri è stato mandato per la prima volta. `fattura.solleciti` è il log
+   leggero di ciò che l'utente ha CONFERMATO di aver spedito — scritto a mano,
+   mai da un invio automatico (Conti non manda email da sé) — e questa
+   funzione confronta il livello comunicato con quello che il ritardo di oggi
+   implicherebbe. ⛔ L'ASSENZA DI SOLLECITI NON È "NIENTE DA FARE": è "mai
+   comunicato", uno stato diverso da "comunicato al livello 0", e va detto
+   con le sue parole (principio del fondatore). Pura e testabile.*/
+export function statoRecupero(fattura, solleciti, oggi = new Date()) {
+  const ritardo = Math.max(0, -giorni((fattura || {}).scadenza, oggi));
+  const attuale = livelloSollecito(ritardo).livello;
+  const lista = (solleciti || [])
+    .filter(s => s && LIVELLI_SOLLECITO_VALIDI.includes(+s.livello) && dataISOEsiste(String(s.data || "").slice(0, 10)));
+  if (!lista.length)
+    return { comunicato: null, attuale, ultimaData: null, ultimoCanale: null,
+      daRimandare: attuale > 0,
+      perche: "nessun sollecito è mai stato segnato come inviato per questa fattura" };
+  // "l'ultimo" è per DATA, non per posizione nell'array: un CSV o un
+  // ripristino può portarli fuori ordine, e la storia va letta sul tempo.
+  const ultimo = lista.slice().sort((a, b) => String(a.data).localeCompare(String(b.data))).at(-1);
+  const comunicato = +ultimo.livello;
+  return {
+    comunicato, attuale,
+    ultimaData: String(ultimo.data).slice(0, 10),
+    ultimoCanale: CANALI_SOLLECITO.some(x => x[0] === String(ultimo.canale || "")) ? ultimo.canale : null,
+    daRimandare: attuale > comunicato,
+    perche: attuale > comunicato
+      ? `l'ultimo sollecito segnato è di livello ${comunicato}, il ritardo attuale ne implicherebbe ${attuale}: va rimandato un avviso più severo`
+      : `l'ultimo sollecito segnato (livello ${comunicato}) è ancora coerente col ritardo attuale`,
+  };
 }
 
 /* ⛔ IL SINGOLARE E IL PLURALE LI DECIDE `conta` DI `shared/`, E QUI NON C'ERA.
