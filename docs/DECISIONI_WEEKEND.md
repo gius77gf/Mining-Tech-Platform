@@ -1765,7 +1765,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.548** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.549** *(ricontate il 16/09, dopo aver
+aggiunto a Flotta `componentiDelMezzo`/`vitaComponenti` (prima fetta): il
+punto di partenza sulle ore del mezzo per pneumatici, cingoli e denti benna
+— verificato nel browser dopo un primo collegamento alla pagina sbagliato
+(filtro per mezzo su un elenco già scoperto a un mezzo solo) che nessuna
+suite `node` poteva vedere — dopo aver
 corretto in Conti `esitoMovimento`: un pagamento più basso dell'aperto che
 coincide con lo sconto cassa concordato (`scontoCassaMaturato`) non è più
 letto come acconto — dopo aver
@@ -1833,7 +1838,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **295
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **297
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

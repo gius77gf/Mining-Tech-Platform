@@ -39896,6 +39896,38 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(flotta.azzeramentiDelMezzo(null, "E1"), [], "niente letture, niente azzeramenti");
   });
 
+  test("⛔ Flotta · componentiDelMezzo/vitaComponenti (16/09, dal delta della ricerca continua, undicesimo giro — prima fetta): la vita di un pneumatico non è quella del mezzo che lo porta", () => {
+    eq(flotta.TIPI_COMPONENTE.map(t => t.chiave), ["pneumatico", "cingolo", "denti-benna"]);
+    const C = [
+      { mezzo: "Escavatore 1 — CAT", tipo: "pneumatico", data: "2026-01-10", montatoAOre: 4000 },
+      { mezzo: "Escavatore 1", tipo: "denti-benna", data: "2026-06-01", montatoAOre: 8500 },
+      { mezzo: "Escavatore 1", tipo: "pneumatico", data: "2026-02-30", montatoAOre: 100 },   // data inesistente
+      { mezzo: "Escavatore 1", tipo: "cingolo", data: "2026-05-01", montatoAOre: null },      // ore mancanti
+      { mezzo: "Pala 2", tipo: "cingolo", data: "2026-03-01", montatoAOre: 2000 },
+    ];
+    const de = flotta.componentiDelMezzo(C, "Escavatore 1");
+    eq(de.map(c => c.tipo), ["pneumatico", "denti-benna"],
+      "⛔ solo i due eventi validi: data inesistente e ore mancanti non sono un evento, come per azzeramentiDelMezzo");
+    eq(flotta.componentiDelMezzo(C).length, 3, "senza il nome: di tutti i mezzi (5 dichiarati, 2 invalidi)");
+    eq(flotta.componentiDelMezzo(null, "Escavatore 1"), [], "niente componenti, niente eventi");
+
+    const v = flotta.vitaComponenti(C, "Escavatore 1", 9000);
+    eq(v.map(x => [x.tipo, x.calcolabile, x.vitaOre]),
+      [["pneumatico", true, 5000], ["denti-benna", true, 500]],
+      "⛔ la vita è ORE ATTUALI meno ORE AL MONTAGGIO, non le ore totali del mezzo");
+
+    const senzaOre = flotta.vitaComponenti(C, "Escavatore 1", null);
+    ok(senzaOre.every(x => x.calcolabile === false && /non sono note/.test(x.perche)),
+      "⛔ senza le ore attuali del mezzo: non calcolabile e dichiarato, mai una vita inventata");
+
+    // un montaggio a ore più alte di quelle attuali è un dato incoerente, non
+    // una vita negativa
+    const incoerente = flotta.vitaComponenti(C, "Escavatore 1", 5000);
+    contiene(incoerente[1], { calcolabile: false }, "denti-benna montato a 8500h con mezzo a 5000h: incoerente");
+    ok(/più alte/.test(incoerente[1].perche), incoerente[1].perche);
+    eq(incoerente[0].calcolabile, true, "ma il pneumatico (4000 < 5000) resta calcolabile");
+  });
+
   test("Flotta · spezzaLetture: senza azzeramenti un tratto solo con TUTTO (anche le letture senza data)", () => {
     const L = [{ data: "2026-06-01", ore: 1 }, { data: "", ore: 2 }, { data: "2026-06-10", ore: 3 }];
     const s = flotta.spezzaLetture(L, []);

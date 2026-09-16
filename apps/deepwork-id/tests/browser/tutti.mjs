@@ -528,6 +528,12 @@ const BANCHI = [
      sua persistenza al salvataggio, che nessuna suite `node` può vedere. */
   ['le barriere mancate (ICAM) di Scudo', 'scudo-barriere-icam.mjs', []],
   ['barriere mancate (ICAM) di Scudo · controprova', 'scudo-barriere-icam.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 16/09 — i componenti a vita propria di Flotta, dal delta
+     della ricerca continua, undicesimo giro: il primo collegamento alla
+     pagina aveva un difetto (filtro per mezzo su un elenco già scoperto a
+     un mezzo solo) che nessuna suite `node` poteva vedere. */
+  ['i componenti a vita propria di Flotta', 'flotta-componenti-vita.mjs', []],
+  ['componenti a vita propria di Flotta · controprova', 'flotta-componenti-vita.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 09/08 — il filone «un numero tranquillo dove non è stato
      misurato niente», portato dove Conti non era mai stata guardata: le tele di
      `dwGrafici`. `conti-barre-peso` misura le `span.bar` delle liste e

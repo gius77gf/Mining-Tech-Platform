@@ -1339,6 +1339,14 @@ body.dw b.bad{color:var(--ink-dg)}
   <div id="sch-giri"></div>
   <div class="sec">Carburante</div>
   <div id="sch-carb"></div>
+  <!-- ⛔ COMPONENTI A VITA PROPRIA (16/09, prima fetta dal delta della
+       ricerca continua): pneumatici, cingoli e denti benna esistevano solo
+       come voce di checklist o riga di costo — nessuno sapeva "quante ore
+       ha fatto QUESTA gomma". Qui si legge SOLO ciò che è già registrato su
+       `m.componenti`: il modulo per aggiungere un montaggio dal giro
+       macchina resta il passo successivo. -->
+  <div class="sec">Componenti a vita propria</div>
+  <div id="sch-comp"></div>
   <div class="tools no-print">
     <button class="dw-btn" id="btn-sch-stampa">Stampa il libretto</button>
     <button class="dw-btn secondary" id="btn-sch-csv">Esporta libretto (CSV)</button>
@@ -1372,7 +1380,7 @@ body.dw b.bad{color:var(--ink-dg)}
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, scadenzaDaPreset, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
            manutenzioniDaControllo, coperturaControlli, controlliDelMezzo, giriDelGiorno, statoGiro,
-           numeroDichiarato,
+           numeroDichiarato, TIPI_COMPONENTE, vitaComponenti,
            confrontoCostiMezzi, costiPerConfronto, doppioniAllaCifra, budgetVsSpesa, descriviBudget, csvBudget, ETICHETTA_STATO_BUDGET,
            costiDiOrdine, confrontoOrdineConti,
            GRAVITA_GUASTO, gravitaGuasto, validaGuasto, manutenzioneDaGuasto,
@@ -4101,6 +4109,20 @@ body.dw b.bad{color:var(--ink-dg)}
           ${(+r.euro) ? `<span class="badge tag euro">${eur(r.euro)}</span>` : ""}</div>`).join("")
         || vuoto(I.goccia, "Nessun rifornimento", "Nessun pieno registrato su questa macchina: si registrano dalla schermata <b>Costi</b>, e bastano due pieni con le ore del contatore per sapere quanto beve all'ora."))
       + restoLibretto(f.rifornimenti.length);
+
+    // COMPONENTI A VITA PROPRIA — legge SOLO m.componenti, dichiarato,
+    // niente da inventare se il mezzo non ne ha ancora nessuno registrato.
+    const etichettaTipoComp = (t) => (TIPI_COMPONENTE.find(x => x.chiave === t) || {}).etichetta || t;
+    // `m.componenti` è già scoperto a QUESTO mezzo (nessun campo `.mezzo` al
+    // suo interno): `nomeMezzo:null` dice a `componentiDelMezzo` di non
+    // filtrare una seconda volta un elenco che non ha nulla da filtrare.
+    const vc = vitaComponenti(m.componenti || [], null, m.ore);
+    $("sch-comp").innerHTML = vc.length
+      ? vc.map(c => `<div class="item statico st-accent">
+          <div class="info"><div class="name">${esc(etichettaTipoComp(c.tipo))}</div>
+            <div class="meta">montato il ${dataIt(c.data)} a ${(+c.montatoAOre).toLocaleString("it-IT")} h${c.nota ? " · " + esc(c.nota) : ""}${c.calcolabile ? "" : " · " + esc(c.perche)}</div></div>
+          <div class="acts"><span class="badge ${c.calcolabile ? "accent" : "tag"}">${c.calcolabile ? (+c.vitaOre).toLocaleString("it-IT") + " h" : "—"}</span></div></div>`).join("")
+      : vuoto(I.mezzo, "Nessun componente registrato", "Pneumatici, cingoli e denti benna montati su questa macchina non sono ancora tracciati: la registrazione dal giro macchina è il prossimo passo.");
   }
 
   // il bersaglio del tocco può essere l'icona SVG dentro il bottone: si

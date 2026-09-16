@@ -220,7 +220,15 @@ const DEMO_DISPONIBILITA = [
 export const DEMO = {
   mezzi: [
     // il possesso (11/09): E1 è in leasing, 42.000 €/anno di canone — così il costo orario completo ha un caso nella dimostrazione
-    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore", costoPossessoAnnuo: 42000, possessoDal: "2024-01-15" },
+    // `componenti` (16/09, prima fetta dal delta della ricerca continua):
+    // il punto di montaggio sulle ORE DEL MEZZO, non un contatore fisico
+    // nuovo — la stessa idea di `azzeramentiDelMezzo` applicata a un pezzo
+    // che si sostituisce da sé, non al contatore.
+    { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore", costoPossessoAnnuo: 42000, possessoDal: "2024-01-15",
+      componenti: [
+        { tipo: "pneumatico", data: "2025-11-10", montatoAOre: 4000 },
+        { tipo: "denti-benna", data: "2026-08-20", montatoAOre: 5500 },
+      ] },
     { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo", tipo: "escavatore" },
     { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo", tipo: "dumper" },
     { id: "m4", nome: "Dumper D3 — CAT 745", ore: 9105, area: "officina", stato: "fermo", tipo: "dumper" },
@@ -2806,6 +2814,65 @@ export function trattoCorrente(letture) {
 export function fraseContatoreSostituito(azz) {
   if (!azz || !dataISOEsiste(String(azz.data || "").slice(0, 10))) return "";
   return "contatore sostituito il " + dataIt(String(azz.data).slice(0, 10)) + ": il conto riparte da lì";
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   COMPONENTI A VITA PROPRIA (pneumatici, cingoli, denti benna/GET), 16/09
+   — PRIMA FETTA, dal delta della ricerca continua, undicesimo giro.
+   ────────────────────────────────────────────────────────────────────────
+   Gomme, cingoli e denti benna esistevano solo come voce di checklist
+   pre-uso, causale di fermo o riga di costo: nessuno portava un punto di
+   partenza sulle ore del mezzo, quindi "quante ore ha fatto QUESTA gomma"
+   non si poteva rispondere — solo "quante ore ha il mezzo che la porta".
+   Il meccanismo è lo stesso di `azzeramentiDelMezzo`/`spezzaLetture`: un
+   evento porta il punto in cui qualcosa RICOMINCIA a contare sulle ore del
+   mezzo. La differenza è che qui gli eventi non sono una bandiera dentro le
+   letture (il contatore del mezzo non cambia quando si monta una gomma
+   nuova): sono una collezione a sé, `componenti`, perché più tipi diversi
+   convivono sullo stesso mezzo con date di montaggio indipendenti.
+   Questa fetta copre il calcolo (`componentiDelMezzo`, `vitaComponenti`);
+   la registrazione dal giro macchina resta il passo successivo, come già
+   per `sezionePeggiore` di Terra — additiva, non cambia nessun contratto
+   esistente. */
+export const TIPI_COMPONENTE = [
+  { chiave: "pneumatico", etichetta: "Pneumatico" },
+  { chiave: "cingolo", etichetta: "Cingolo" },
+  { chiave: "denti-benna", etichetta: "Denti benna (GET)" },
+];
+
+// Gli eventi di montaggio dichiarati (di UN mezzo se `nomeMezzo` c'è, di
+// tutti se no), in ordine di data. Un evento senza ore di montaggio valide
+// o senza un giorno che esista non è un evento — stessa regola di
+// `azzeramentiDelMezzo`, applicata a una collezione invece che a una
+// bandiera sulle letture.
+export function componentiDelMezzo(componenti, nomeMezzo) {
+  const n = nomeMezzo == null ? null : nomeBreve(nomeMezzo);
+  return (componenti || [])
+    .filter(c => c && c.tipo && (n == null || nomeBreve(c.mezzo) === n))
+    .map(c => ({ id: c.id || null, mezzo: nomeBreve(c.mezzo), tipo: String(c.tipo || ""),
+      data: String(c.data || "").slice(0, 10), montatoAOre: numeroDichiarato(c.montatoAOre),
+      nota: String(c.nota || "") }))
+    .filter(c => dataISOEsiste(c.data) && c.montatoAOre != null)
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+
+// La vita di ogni componente montato su un mezzo, alle ore ATTUALI del
+// mezzo: ore attuali meno ore al montaggio — non le ore totali del mezzo,
+// che confonderebbero una gomma nuova con una montata all'origine.
+// `calcolabile:false` copre due casi diversi e li dichiara separatamente:
+// le ore attuali non sono note (il mezzo non ha un contatore leggibile) e
+// il montaggio risulta a ore più alte di quelle attuali (dato da
+// controllare — non si inventa una vita negativa).
+export function vitaComponenti(componenti, nomeMezzo, oreMezzoAttuali) {
+  const eventi = componentiDelMezzo(componenti, nomeMezzo);
+  const ore = numeroDichiarato(oreMezzoAttuali);
+  return eventi.map(c => {
+    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note" };
+    const vita = Math.round((ore - c.montatoAOre) * 100) / 100;
+    if (vita < 0) return { ...c, vitaOre: null, calcolabile: false,
+      perche: "il montaggio risulta a ore più alte di quelle attuali del mezzo: dato da controllare" };
+    return { ...c, vitaOre: vita, calcolabile: true, perche: "" };
+  });
 }
 
 /* IL TAGLIANDO A ORE E IL SUO CONTATORE (04/09, seconda unità). `urgenzaOre`
