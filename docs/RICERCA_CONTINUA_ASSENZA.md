@@ -719,6 +719,38 @@ in comune per tutti e undici i CSV). P2, P3 restano aperte.
 
 ---
 
+**✅ 16/09 (più tardi, stesso giorno) — P2, PRIMA FETTA: il vocabolario
+nasce in `shared/dw-ponti.js`, un solo scrittore migrato.** `csvRicambi`
+scriveva già `"predefinito"`/`"misurato"` a mano (P4 sopra) — esattamente
+il rischio che questo repository chiama "una copia debole nasce da una
+firma troppo stretta": il PROSSIMO scrittore che avesse avuto bisogno delle
+stesse due parole le avrebbe ricopiate, e da lì in poi le due copie
+sarebbero potute divergere senza che nessuna prova se ne accorgesse.
+
+Aggiunte sei costanti (`STATO_CELLA_MAI_MISURATO`,
+`STATO_CELLA_NON_APPLICABILE`, `STATO_CELLA_ILLEGGIBILE`,
+`STATO_CELLA_NON_ANCORA`, `STATO_CELLA_PREDEFINITO`,
+`STATO_CELLA_MISURATO`) più `STATI_CELLA` (l'elenco chiuso, con la
+corrispondenza SDMX/GML dichiarata nel proposta P2), e migrato
+`csvRicambi` a importarle invece di scrivere le due parole a mano. Prova
+di identità (non di comportamento, la forma giusta per una costante
+condivisa): il CSV di Flotta deve contenere esattamente il VALORE della
+costante importata, non una stringa che per caso combacia — controprova
+fatta sul codice vero (sostituita la costante con una stringa quasi
+identica, `"predefinito-FINTO"`, confermato che il test cade, ripristinato).
+
+**Quello che questa fetta NON fa, e va detto**: nessuno degli altri dieci
+CSV di D1 scrive ancora questa colonna; nessun lettore la rilegge (stesso
+limite dichiarato per P4); i quattro codici che nessuno scrive ancora
+(`mai-misurato`, `non-applicabile`, `illeggibile`, `non-ancora`) esistono
+solo come vocabolario dichiarato, provati per il loro VALORE ma non
+esercitati da nessun caso reale. Il passo successivo è lo stesso di
+sempre: uno scrittore alla volta, a partire da quelli con l'assenza più
+frequente misurata in D1/D3 di questo documento (rilievi di Terra,
+pesate/incassi di Conti).
+
+---
+
 **⚠️ 16/09 — il costo di P3 (riga di convenzione in testa al CSV) misurato,
 come la proposta stessa chiedeva prima di scriverla: NON è gratis.**
 

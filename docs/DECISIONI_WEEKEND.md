@@ -1823,7 +1823,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.591** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.592** *(ricontate il 16/09, dopo aver
+aggiunto in `shared/dw-ponti.js` il vocabolario condiviso di P2 (ricerca
+ASSENZA) — sei costanti per dire perché una cella di un CSV è vuota o vale
+zero per convenzione, con un solo scrittore migrato (`csvRicambi` di
+Flotta) come prima fetta — dopo aver
 corretto in Campo un buco di cablaggio trovato leggendo direttamente il
 sorgente: il rapporto di fine turno stampato e firmato non riceveva mai le
 volate di Sentinella dalla pagina, anche se il ponte P6 le leggeva già per il

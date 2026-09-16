@@ -357,12 +357,18 @@ const CONDIVISI = [
      `luogoNearMiss`, `descrizioneNearMiss` — più `CHI_SEGNALA` e
      `bozzaNearMiss`, che sono nuove. Il fondo di `scudo` scende di cinque
      nello stesso momento: i due numeri vanno letti insieme. */
-  { file: "shared/dw-ponti.js", fondo: 90,
+  { file: "shared/dw-ponti.js", fondo: 97,
     perche: "le regole che servono a DUE app: è il posto dove un difetto si moltiplica" },
   /* 89 → 90 il 16/09: `meteoDelGiorno`, la traduzione del vocabolario meteo
      di Campo (`cielo`) per il ponte 3g con Sentinella — serve a due app per
      costruzione (solo Sentinella la chiama oggi, ma la FORMA che interpreta
      è di Campo). */
+  /* 90 → 97 il 16/09, stesso giorno: le sei costanti + l'elenco `STATI_CELLA`
+     di P2 (docs/RICERCA_CONTINUA_ASSENZA.md §4) — il vocabolario condiviso per
+     dire PERCHÉ una cella è vuota o vale zero per convenzione. Prima fetta:
+     un solo scrittore migrato (Flotta, `csvRicambi`), le altre dieci coppie
+     restano il passo successivo — ma il vocabolario nasce già in `shared/`
+     perché il PROSSIMO scrittore lo importi invece di ricopiarlo. */
   /* 40 → 41 il 06/08: `modoDimostrazione`, cioè «questi dati sono veri?».
      Era scritta in quattro varianti dentro quattro pagine (Conti, Scudo,
      Terra, Campo) e nessuna delle quattro era misurabile da qui — una funzione

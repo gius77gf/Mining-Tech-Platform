@@ -2150,3 +2150,31 @@ export function meteoDelGiorno(turniMeteo) {
   const ventoForte = validi.some((t) => t.cielo === "Vento forte");
   return { pioggia, ventoForte, turni: validi.length };
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// LO STATO DI UNA CELLA CHE ESCE VUOTA O A ZERO — P2 della ricerca
+// continua su ASSENZA (16/09, docs/RICERCA_CONTINUA_ASSENZA.md §4).
+//
+// Una cella vuota di un CSV nostro dice CHE manca un dato, mai PERCHÉ: chi
+// riapre il file — il commercialista, l'ente, noi fra sei mesi — non
+// distingue «il drone non è passato» da «non si applica a questo fronte» da
+// «il file della macchina era illeggibile». Sei codici, chiusi (aggiungerne
+// un settimo vorrebbe dire aggiungere un soggetto che risponde del numero,
+// la stessa regola già scritta qui sopra per la densità), con la
+// corrispondenza dichiarata verso SDMX/GML citata nella ricerca:
+export const STATO_CELLA_MAI_MISURATO = "mai-misurato";       // ≈ SDMX "L" / unknown — nessuno l'ha ancora misurato
+export const STATO_CELLA_NON_APPLICABILE = "non-applicabile"; // ≈ SDMX "z" / inapplicable — non si applica a questa riga
+export const STATO_CELLA_ILLEGGIBILE = "illeggibile";         // ≈ SDMX "not-a-number" — il file sorgente era corrotto/illeggibile
+export const STATO_CELLA_NON_ANCORA = "non-ancora";           // ≈ SDMX "template" — la riga esiste, il periodo non è ancora finito
+export const STATO_CELLA_PREDEFINITO = "predefinito";         // ≈ SDMX "I" / imputed — uno zero messo per convenzione (decisione 1 di Flotta), non contato
+export const STATO_CELLA_MISURATO = "misurato";                // un valore vero, incluso lo zero contato davvero
+export const STATI_CELLA = [STATO_CELLA_MAI_MISURATO, STATO_CELLA_NON_APPLICABILE,
+  STATO_CELLA_ILLEGGIBILE, STATO_CELLA_NON_ANCORA, STATO_CELLA_PREDEFINITO, STATO_CELLA_MISURATO];
+
+/* PRIMA FETTA (16/09): un solo scrittore migrato a queste costanti — Flotta,
+   `csvRicambi`, che P4 dello stesso documento aveva già trovato scritto con
+   le stesse due parole a mano (`"predefinito"`/`"misurato"`), col rischio
+   già censito altrove in questa casa: una seconda copia dello stesso
+   vocabolario nasce sempre da una firma troppo stretta. Gli altri dieci CSV
+   di D1 restano il passo successivo, elencato nel documento di ricerca —
+   ogni scrittore nuovo importa da qui, non ridichiara le stesse parole. */

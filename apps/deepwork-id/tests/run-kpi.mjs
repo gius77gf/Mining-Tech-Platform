@@ -29196,6 +29196,25 @@ test("csvRicambi → parseRicambiCsv: il giro torna identico, con le tre convenz
   const g = flotta.csvRicambi([{ nome: "Predefinito" }, { nome: "Misurato", giacenza: 0 }]);
   ok(/^Predefinito;0;;;predefinito$/m.test(g), g);
   ok(/^Misurato;0;;;misurato$/m.test(g), "⛔ uno zero CONTATO davvero non è un predefinito: " + g);
+  /* ⛔ P2 (prima fetta, 16/09): le due parole non sono scritte a mano nel
+     modulo di Flotta — vengono dal vocabolario condiviso di shared/dw-ponti.js,
+     perché il PROSSIMO scrittore CSV che ne ha bisogno lo importi invece di
+     ricopiarle (la stessa regola già pagata su statoScadenza e VOCI_COSTO). */
+  ok(g.includes(";" + ponti.STATO_CELLA_PREDEFINITO), "usa la costante condivisa, non la stringa a mano");
+  ok(g.includes(";" + ponti.STATO_CELLA_MISURATO), "usa la costante condivisa, non la stringa a mano");
+  eq(ponti.STATI_CELLA.length, 6, "il vocabolario è chiuso a sei codici (docs/RICERCA_CONTINUA_ASSENZA.md §4, P2)");
+});
+
+test("shared · STATI_CELLA: il vocabolario P2 (i quattro codici non ancora usati da nessuno scrittore, dichiarati qui perché la prova non li lasci scoperti)", () => {
+  eq(ponti.STATI_CELLA, [ponti.STATO_CELLA_MAI_MISURATO, ponti.STATO_CELLA_NON_APPLICABILE,
+    ponti.STATO_CELLA_ILLEGGIBILE, ponti.STATO_CELLA_NON_ANCORA, ponti.STATO_CELLA_PREDEFINITO, ponti.STATO_CELLA_MISURATO],
+    "l'elenco è quello dichiarato, nello stesso ordine");
+  eq(ponti.STATO_CELLA_MAI_MISURATO, "mai-misurato");
+  eq(ponti.STATO_CELLA_NON_APPLICABILE, "non-applicabile");
+  eq(ponti.STATO_CELLA_ILLEGGIBILE, "illeggibile");
+  eq(ponti.STATO_CELLA_NON_ANCORA, "non-ancora");
+  // un vocabolario chiuso: sei parole distinte, nessuna collisione
+  eq(new Set(ponti.STATI_CELLA).size, 6, "sei codici, tutti diversi fra loro");
 });
 
 /* ── DECISIONE 12a, seconda voce: le PESATE che si ri-caricano ── */

@@ -86,7 +86,7 @@
 
 /* la regola sui numeri dichiarati vive in `shared/`: qui si IMPORTA, non si
    riscrive — è il difetto che questo repository ha già pagato quattro volte */
-import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza } from "../../shared/dw-ponti.js";
+import { numeroDichiarato, applicaPercorsi, traduciCancellazioni, voceCosto, statoScadenza, STATO_CELLA_PREDEFINITO, STATO_CELLA_MISURATO } from "../../shared/dw-ponti.js";
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, numeroScritto, oggiISO,
          dataISOEsiste, dataIt, plurale, conta, euro, isoLocale,
          messaggioNumero as messaggioNumeroShell,
@@ -1152,7 +1152,7 @@ export function csvRicambi(ricambi) {
       g == null ? "0" : String(g),
       s == null ? "" : String(s),
       p == null ? "" : String(p),
-      g == null ? "predefinito" : "misurato",
+      g == null ? STATO_CELLA_PREDEFINITO : STATO_CELLA_MISURATO,
     ].join(";"));
   }
   return righe.join("\n") + "\n";
