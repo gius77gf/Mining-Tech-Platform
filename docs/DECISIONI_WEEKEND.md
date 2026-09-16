@@ -1765,7 +1765,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.534** *(ricontate il 15/09, dopo aver
+**Le prove automatiche sono passate a 3.535** *(ricontate il 15/09, dopo aver
+migrato `flotta.scartiTelemetriaCsv` — l'ultima forma non standard con
+intestazione per NOME di colonna — a riga fisica, dopo aver
 riscritto in Sentinella la provenienza del periodo di un adempimento al
 positivo e aggiunto la regola 33 di `run-stile.mjs` (mai «non rilevato», dal
 delta su PAROLE proposta 3 metà b), dopo aver

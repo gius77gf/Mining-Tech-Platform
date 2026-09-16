@@ -715,18 +715,24 @@ export function parseTelemetriaCsv(text) {
    ⛔ E LA RIGA TUTTA VUOTA NON È UNA PERDITA: un foglio di calcolo salva le
    righe di coda come `;;;`. Si contano a parte (`vuote`) e non si dicono. */
 export function scartiTelemetriaCsv(text) {
-  const tutte = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  const tutteNonVuote = String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
   /* con l'intestazione per nome ogni riga si giudica INSIEME alla testa, se no
      il lettore la leggerebbe per posizione e direbbe una ragione sbagliata */
-  const m = tutte.length ? mappaTelemetriaCsv(text) : null;
+  const m = tutteNonVuote.length ? mappaTelemetriaCsv(text) : null;
   const perNome = !!(m && m.conIntestazione);
-  const testa = perNome ? tutte[0] : (tutte.find(r => isIntestazione(r, "mezzo")) || "");
-  const righe = tutte.filter((r, i) => !(perNome && i === 0) && !isIntestazione(r, "mezzo"));
+  const testa = perNome ? tutteNonVuote[0] : (tutteNonVuote.find(r => isIntestazione(r, "mezzo")) || "");
+  // il nome di riga che l'utente legge è il numero FISICO nel file, non la
+  // posizione fra i sopravvissuti: righeCsvNumerate lo conta com'è arrivato
+  // sullo schermo di chi ha scritto il CSV (vedi la lezione PAROLE del 15/09).
+  let vistaPrima = false;
+  const righe = righeCsvNumerate(text, (riga) => {
+    const primaRiga = !vistaPrima;
+    vistaPrima = true;
+    return (perNome && primaRiga) || isIntestazione(riga, "mezzo");
+  });
   const persi = [];
-  let nRiga = 0;
   let vuote = 0;
-  for (const riga of righe) {
-    nRiga++;
+  for (const { nRiga, riga } of righe) {
     if (parseTelemetriaCsv(testa ? testa + "\n" + riga : riga).length) continue;
     const c = parseCsvLine(riga);
     if (c.every(x => String(x == null ? "" : x).trim() === "")) { vuote++; continue; }

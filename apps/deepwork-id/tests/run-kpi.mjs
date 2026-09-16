@@ -33039,7 +33039,7 @@ const SCARTI_PROVATI = new Set();
      ["Escavatore 1;6375;120"],
      [["Pala 2;;95", "le ore motore non sono state scritte", "Pala 2"],
       ["Dumper 3;abc;80", "le ore motore non si leggono", "Dumper 3"],
-      [";4200;60", "manca il nome del mezzo", "riga 4"],
+      [";4200;60", "manca il nome del mezzo", "riga 5"],   // 15/09: riga FISICA (1=intestazione, 2=sana, 3-4=rotte precedenti)
       ["Rullo 5;-10;40", "le ore motore sono negative", "Rullo 5"]]],
     ["terra.parseRilieviCsv", terra.parseRilieviCsv, terra.scartiRilieviCsv, "data;volumeM3;metodo;gsd;fronte",
      ["2026-03-01;1200;RTK;2;Fronte Nord"],
@@ -33203,6 +33203,22 @@ const SCARTI_PROVATI = new Set();
     const l = scudo.scartiLavoratoriCsv("nome;ruolo;tel\nMario Rossi;operatore;123\n\n;autista;456\n");
     eq(l.persi.length, 1);
     eq(l.persi[0].nome, "riga 4", "1=intestazione (prima cella 'nome'), 2=sana, 3=bianca, 4=rotta (nome vuoto)");
+  });
+
+  test("⛔ B16 (15/09): flotta.scartiTelemetriaCsv migrato a riga FISICA anche nella forma POSIZIONALE (senza intestazione riconosciuta)", () => {
+    /* la forma non standard: l'intestazione, quando c'è, si scopre per NOME di
+       colonna (mappaTelemetriaCsv), non per parola chiave fissa — quindi il
+       predicato di righeCsvNumerate deve sapere «sono la prima riga vista?»,
+       non solo «assomiglio a un'intestazione?» */
+    const t1 = flotta.scartiTelemetriaCsv("mezzo;ore;carburante\nPala 1;120,5;30\n\n;;\n;abc;10\nPala 3;80;5\n");
+    eq(t1.persi.length, 1, "una sola riga persa, non due: la ';;' è vuota, non rotta");
+    eq(t1.persi[0].nome, "riga 5", "1=intestazione, 2=sana, 3=bianca fisica, 4=';;' vuota semantica, 5=rotta (ore illeggibili)");
+    eq(t1.vuote, 1, "la ';;' si conta a parte, non fra le perse");
+    /* senza intestazione riconoscibile: nessuna riga salta, il conto resta
+       tutto sulla posizione fisica dall'inizio */
+    const t2 = flotta.scartiTelemetriaCsv("Pala 9;200\n;150\nPala 8;90\n");
+    eq(t2.persi.length, 1);
+    eq(t2.persi[0].nome, "riga 2", "senza header: la riga rotta è la SECONDA fisica, non la prima fra i sopravvissuti");
   });
 
   /* ⛔ E LA PAGINA DEVE DIRLO, se no è la guardia scollegata della regola 20:
@@ -40777,7 +40793,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(flotta.parseTelemetriaCsv("E1;5900;120\n"), [{ mezzo: "E1", ore: 5900, carburante: 120 }], "senza intestazione: la posizione di sempre");
     eq(flotta.mappaTelemetriaCsv("E1;5900;120\n").conIntestazione, false, "e la mappa lo dichiara");
     const sc = flotta.scartiTelemetriaCsv("Asset;Engine Hours\nE1;abc\nE2;\n;100\n");
-    eq(sc.persi.map((x) => x.nome + ": " + x.ragione), ["E1: le ore motore non si leggono", "E2: le ore motore non sono state scritte", "riga 3: manca il nome del mezzo"], "⛔ e le ragioni delle righe perse guardano la colonna GIUSTA, non la posizione");
+    eq(sc.persi.map((x) => x.nome + ": " + x.ragione), ["E1: le ore motore non si leggono", "E2: le ore motore non sono state scritte", "riga 4: manca il nome del mezzo"], "⛔ e le ragioni delle righe perse guardano la colonna GIUSTA, non la posizione");   // 15/09: riga FISICA (1=intestazione, 2-3=rotte precedenti)
   });
 }
 /* ===== il file della pesa a ponte (Conti, 05/09) ===== */
