@@ -1058,7 +1058,7 @@ a.dw-btn{text-decoration:none}
            STATI_LOTTO, statoLotto, divarioRecupero, attesaCollaudo, attesaRecupero, garanziaVincolata, relazioneLotto, avanzamentoLotto,
            conformitaProgetto,
            difformitaVolumetrica, giudizioVariante,
-           volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno, sequenzaLotto,
+           volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno, sequenzaLotto, aperturaFuoriProgramma,
            aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
            inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
            csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
@@ -2448,6 +2448,8 @@ a.dw-btn{text-decoration:none}
     const attR = attesaRecupero(l, new Date());
     // la sequenza dichiarata dal progetto rispetto al lotto da cui dipende (16/09)
     const sl = sequenzaLotto(l, LOT, RIL);
+    // l'apertura vera contro il mese previsto dal programma (16/09)
+    const afp = aperturaFuoriProgramma(l);
     const nome = esc(l.nome || "Lotto senza nome");
     const dd = DATA_LOTTO[st];
     const conData = dd && dataISOEsiste(l[dd[0]]);
@@ -2498,6 +2500,7 @@ a.dw-btn{text-decoration:none}
       att.pertinente ? att.frase.charAt(0).toUpperCase() + att.frase.slice(1) + "." : "",
       attR.pertinente ? attR.frase.charAt(0).toUpperCase() + attR.frase.slice(1) + "." : "",
       sl.pertinente ? sl.frase.charAt(0).toUpperCase() + sl.frase.slice(1) + "." : "",
+      afp.pertinente ? afp.frase.charAt(0).toUpperCase() + afp.frase.slice(1) + "." : "",
       l.garanziaEuro != null && l.garanziaEuro !== "" && Number.isFinite(+l.garanziaEuro) ? "Quota di garanzia: " + euro0(l.garanziaEuro) + (st === "collaudato" ? ", liberata col collaudo." : ".") : "",
       l.nota || "",
     ].filter(Boolean).map(esc).join(" ");

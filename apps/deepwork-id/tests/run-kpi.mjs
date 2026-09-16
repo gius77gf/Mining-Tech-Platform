@@ -40767,6 +40767,48 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine sequenza del progetto (Terra, 16/09) ===== */
 
+/* ===== L'APERTURA FUORI PROGRAMMA (Terra, 16/09) =====
+   Quinto delta dello stesso giro di ricerca sul sequenziamento multi-anno:
+   parente di `sequenzaLotto` (rispetto a un altro lotto) ma qui il confronto
+   è col CALENDARIO dichiarato dal progetto (`aperturaPrevista`), non con
+   l'avanzamento di un altro lotto. Stessa forma `{pertinente, frase}`. */
+{
+  test("aperturaFuoriProgramma: non pertinente senza uno dei due dati", () => {
+    eq(terra.aperturaFuoriProgramma({}), { pertinente: false, scartoGiorni: null, verso: null, frase: "" }, "manca tutto");
+    eq(terra.aperturaFuoriProgramma({ apertoIl: "2024-05-02" }).pertinente, false, "manca il programma: un lotto senza previsione non può essere né in anticipo né in ritardo");
+    eq(terra.aperturaFuoriProgramma({ aperturaPrevista: "2024-01" }).pertinente, false, "manca l'apertura vera: non ancora aperto, la domanda non ha risposta");
+    eq(terra.aperturaFuoriProgramma(null).pertinente, false, "con niente in mano non esplode");
+  });
+  test("⛔ aperturaFuoriProgramma: anticipo e ritardo sono VERSI diversi, non un valore assoluto solo", () => {
+    const ritardo = terra.aperturaFuoriProgramma({ aperturaPrevista: "2023-11", apertoIl: "2024-05-02" });
+    eq(ritardo.verso, "ritardo", "aperto DOPO il mese previsto");
+    eq(ritardo.scartoGiorni, 183);
+    ok(/aperto in ritardo di 183 giorni/.test(ritardo.frase), ritardo.frase);
+    const anticipo = terra.aperturaFuoriProgramma({ aperturaPrevista: "2027-01", apertoIl: "2025-09-08" });
+    eq(anticipo.verso, "anticipo", "aperto PRIMA del mese previsto");
+    ok(/aperto in anticipo di \d+ giorni/.test(anticipo.frase), anticipo.frase);
+    // esattamente il primo del mese previsto: in pari, non un giorno di scarto inventato
+    const inPari = terra.aperturaFuoriProgramma({ aperturaPrevista: "2024-05", apertoIl: "2024-05-01" });
+    eq([inPari.verso, inPari.scartoGiorni], ["in pari", 0]);
+    ok(/esattamente quando previsto/.test(inPari.frase), inPari.frase);
+  });
+  test("aperturaFuoriProgramma: un programma corrotto non si prende per buono", () => {
+    eq(terra.aperturaFuoriProgramma({ aperturaPrevista: "2024-13", apertoIl: "2024-05-02" }).pertinente, false, "mese 13 non esiste");
+    eq(terra.aperturaFuoriProgramma({ aperturaPrevista: "boh", apertoIl: "2024-05-02" }).pertinente, false, "non è nemmeno nella forma AAAA-MM");
+    eq(terra.aperturaFuoriProgramma({ aperturaPrevista: "2024-05", apertoIl: "2024-02-30" }).pertinente, false, "⛔ il 30 febbraio non scorre al 2 marzo: non è una data");
+  });
+  test("aperturaFuoriProgramma sulla dimostrazione: lo4 è stato aperto con circa sei mesi di ritardo", () => {
+    const lo4 = terra.DEMO.lotti.find((l) => l.id === "lo4");
+    const a = terra.aperturaFuoriProgramma(lo4);
+    eq(a.pertinente, true);
+    eq(a.verso, "ritardo");
+    for (const l of terra.DEMO.lotti.filter((x) => x.id !== "lo4"))
+      eq(terra.aperturaFuoriProgramma(l).pertinente, false,
+        l.id + " non dichiara ancora il mese previsto dal programma: campo nuovo, opzionale");
+  });
+}
+/* ===== fine apertura fuori programma (Terra, 16/09) ===== */
+
 /* ===== LA GARANZIA ANCORA VINCOLATA (Terra, 04/09) =====
    Il mondo svincola la fideiussione per lotto, sul verbale di collaudo. Terra
    non calcola l'importo (listini regionali, seconda mano): somma le quote che

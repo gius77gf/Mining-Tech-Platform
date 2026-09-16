@@ -264,7 +264,11 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    l'ultimo (`superamentiUltimiGiorni`, 16/09, dal delta della ricerca
    continua sul nono giro) è di questa unità, con la sua prova in run-kpi e
    il banco browser `sentinella-escalation-superamenti.mjs`. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 195, terra: 102 };
+/* ⚠️ `terra` SALE DA 102 A 103: `aperturaFuoriProgramma` (16/09, quinto
+   delta dello stesso giro di ricerca — anticipo/ritardo sul calendario
+   dichiarato dal progetto, parente di `sequenzaLotto`), con la sua prova
+   in run-kpi e il banco browser `terra-apertura-programma.mjs`. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 195, terra: 103 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

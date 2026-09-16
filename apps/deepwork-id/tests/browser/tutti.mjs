@@ -823,6 +823,11 @@ const BANCHI = [
      lotto è aperto prima che il precedente raggiunga la soglia dichiarata. */
   ['la sequenza del progetto (lotto.ordine finalmente usato) nella pagina Titolo di Terra', 'terra-sequenza-lotto.mjs', []],
   ['sequenza del progetto · controprova', 'terra-sequenza-lotto.mjs', ['--controprova'], true],
+  /* 16/09 · l'apertura fuori programma (quinto delta dello stesso giro):
+     parente di sequenzaLotto, ma il confronto è col CALENDARIO dichiarato
+     dal progetto, non con l'avanzamento di un altro lotto. */
+  ['l\'apertura fuori programma (anticipo/ritardo sul calendario) nella pagina Titolo di Terra', 'terra-apertura-programma.mjs', []],
+  ['apertura fuori programma · controprova', 'terra-apertura-programma.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

@@ -109,6 +109,13 @@ export const DEMO = {
     { id: "lo4", nome: "Lotto 4 — settore Nord", ordine: 4, superficieMq: 12000, volumeM3: 180000,
       stato: "aperto", apertoIl: "2024-05-02", esauritoIl: null,
       recuperoIniziatoIl: null, recuperoFinitoIl: null, collaudatoIl: null,
+      /* L'APERTURA FUORI PROGRAMMA (16/09): il progetto lo prevedeva a
+         novembre 2023, è stato aperto a maggio 2024 — un ritardo di circa
+         sei mesi (il caso più comune in cava: un'autorizzazione, un accesso,
+         un permesso che arriva dopo), non l'anticipo pericoloso di
+         `sequenzaLotto` qui sotto. Due lotti, due direzioni diverse dello
+         stesso principio, di proposito. */
+      aperturaPrevista: "2023-11",
       /* IL PIANO PLURIENNALE (16/09): unico lotto della dimostrazione con un
          volume pianificato per anno — gli altri restano senza, di proposito,
          perché il campo è nuovo e opzionale (`volumePianificatoLottoAnno`
@@ -3582,6 +3589,43 @@ export function sequenzaLotto(lotto, tuttiLotti, rilievi) {
     frase: rispettata
       ? "sequenza rispettata: " + nomePrec + " è al " + un1(av.pct) + "% (soglia " + un1(sogliaPct) + "%)"
       : "aperto prima che " + nomePrec + " raggiungesse il " + un1(sogliaPct) + "%: oggi è al " + un1(av.pct) + "%" };
+}
+
+/* L'APERTURA FUORI PROGRAMMA (16/09, dal delta della ricerca continua sul
+   sequenziamento multi-anno — quinto dei sei, parente di `sequenzaLotto`: là
+   la domanda è «rispetto a un ALTRO lotto», qui è «rispetto al CALENDARIO
+   dichiarato dal progetto». Un lotto aperto con mesi di anticipo o di
+   ritardo rispetto al programma oggi si vede solo leggendo il verbale di
+   rilievo — nessun confronto lo dice in pagina.
+   Campo opzionale e additivo `lotto.aperturaPrevista: "AAAA-MM"` (il mese
+   in cui il progetto prevede l'apertura): confrontato con `apertoIl`, la
+   data VERA già scritta sul lotto. `verso` usa un vocabolario diverso da
+   quello di `varianzaLottoAnno` (avanti/indietro/in pari) di proposito: lì
+   si parla di VOLUME estratto, qui di una DATA rispetto al calendario — le
+   due cose non sono la stessa domanda e non devono suonare come se lo
+   fossero.
+   ⛔ NON BLOCCA NIENTE, per la stessa ragione di `sequenzaLotto`: si limita
+   a dirlo. `pertinente` è false quando manca uno dei due dati (il progetto
+   non ha ancora dichiarato quando prevede l'apertura, o il lotto non è
+   ancora stato aperto) — un lotto ancora "previsto" non può essere né in
+   anticipo né in ritardo, perché la domanda non ha ancora una risposta. */
+export function aperturaFuoriProgramma(lotto) {
+  const l = lotto || {};
+  const prevista = String(l.aperturaPrevista == null ? "" : l.aperturaPrevista).slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(prevista) || !dataISOEsiste(l.apertoIl))
+    return { pertinente: false, scartoGiorni: null, verso: null, frase: "" };
+  const previstaISO = prevista + "-01";
+  if (!dataISOEsiste(previstaISO)) return { pertinente: false, scartoGiorni: null, verso: null, frase: "" };
+  // giorniTra(x, y) = x - y: positivo se il progetto prevedeva DOPO la data
+  // vera di apertura, cioè il lotto è stato aperto PRIMA del previsto
+  const scarto = giorniTra(previstaISO, l.apertoIl);
+  if (scarto === 0) return { pertinente: true, scartoGiorni: 0, verso: "in pari",
+    frase: "aperto esattamente quando previsto dal programma (" + dataIt(previstaISO) + ")" };
+  const giorni = Math.abs(scarto);
+  const verso = scarto > 0 ? "anticipo" : "ritardo";
+  return { pertinente: true, scartoGiorni: giorni, verso,
+    frase: "aperto in " + verso + " di " + (giorni === 1 ? "1 giorno" : giorni + " giorni")
+      + " rispetto al programma (previsto " + dataIt(previstaISO) + ")" };
 }
 
 /* ⛔ E I RILIEVI CHE NON STANNO IN NESSUN LOTTO. Se sparissero in silenzio, la

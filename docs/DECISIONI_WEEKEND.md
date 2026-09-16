@@ -1823,8 +1823,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.574** *(ricontate il 16/09, dopo aver
-aggiunto a Sentinella `superamentiUltimiGiorni` — l'escalation sui
+**Le prove automatiche sono passate a 3.578** *(ricontate il 16/09, dopo aver
+aggiunto a Terra `aperturaFuoriProgramma` — anticipo/ritardo di un lotto
+rispetto al mese previsto dal progetto (quinto dei sei delta del giro di
+ricerca sul sequenziamento multi-anno, parente di `sequenzaLotto` ma sul
+CALENDARIO invece che sull'avanzamento di un altro lotto): il Lotto 4 della
+dimostrazione è stato aperto con 183 giorni di ritardo, verificato anche
+nel browser — dopo aver aggiunto a Sentinella `superamentiUltimiGiorni` — l'escalation sui
 superamenti ripetuti (dal delta della ricerca continua, nono giro,
 verificato indipendentemente prima di scrivere): un pattern di superamenti
 sullo stesso ricettore, sommati su tutti i suoi punti in una finestra
@@ -1936,7 +1941,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **309
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **311
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
