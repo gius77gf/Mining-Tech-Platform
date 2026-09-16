@@ -2319,3 +2319,31 @@ scelta deliberata (un id locale potrebbe non avere senso dopo un
 re-import, a differenza di Terra che risolve `fronteId` per NOME) — resta
 una domanda aperta per chi riprenderà questo censimento, non una
 conclusione.
+
+---
+
+## 16/09 (subito dopo) — la domanda su `lavoratoreId` ha una risposta: NON è la stessa famiglia, è un campo che il CSV non ha mai avuto
+
+Verificato come Terra risolve `fronteId` sul suo import: il CSV dei
+rilievi porta il **nome** del fronte (`r.fronte`, colonna di testo), e
+l'import lo risolve cercando `FRO.find(x => x.nome.toLowerCase() ===
+r.fronte.toLowerCase())` — mai un id grezzo, perché un id locale non
+sopravvive a un giro export→import (Firestore ne assegna uno nuovo a ogni
+scrittura).
+
+`csvRegistroInfortuni` di Scudo **non ha mai avuto una colonna col nome
+del lavoratore**: né oggi né prima. A differenza della denuncia INAIL
+(scritta già nell'oggetto, solo non rileggibile perché nascosta in una
+frase), qui non c'è nessun dato da recuperare — servirebbe (a) aggiungere
+una colonna col nome del lavoratore allo scrittore, (b) una funzione di
+risoluzione per nome contro l'anagrafica `LAV`, sul modello di quella di
+Terra, e (c) decidere che cosa fare di un nome che non trova corrispondenza
+(un lavoratore cessato, un nome scritto diverso). Non è un difetto di
+cablaggio: è una funzionalità mai costruita, la stessa famiglia del caso
+scartato su Flotta (i mezzi importati da CSV senza `costoPossessoAnnuo`).
+
+**Non implementata qui**: la decisione se Scudo debba avere questa
+funzionalità (collegare un infortunio importato al lavoratore giusto)
+è di prodotto, non di ricerca — va soppesata contro il rischio di un
+abbinamento sbagliato su un nome ambiguo, in un registro che riguarda
+infortuni veri. Chiude la domanda aperta dalla nota precedente.
