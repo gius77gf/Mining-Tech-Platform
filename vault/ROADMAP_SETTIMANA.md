@@ -10848,3 +10848,13 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       aperti cinque delta dello stesso giro di ricerca (validazione
       sequenza, allerta apertura fuori programma, report per banco×anno).
       Vedi checkpoint `20260916-074324_terra-piano-pluriennale.md`.
+- [x] **LA SEQUENZA DEL PROGETTO** *(16/09, unità completata)*. Stesso giro
+      di ricerca del piano pluriennale. `lotto.ordine` finalmente usato in
+      un controllo (prima solo mostrato). Campo opzionale `dipendeDa:
+      {lottoId, percentuale}`, `sequenzaLotto` (non bloccante, stessa
+      forma `{pertinente, frase}` di `attesaCollaudo`/`attesaRecupero`).
+      Due stati nella dimostrazione: Lotto 5 fuori sequenza, Lotto 6 la
+      rispetta. Verificato anche nel browser
+      (`tests/browser/terra-sequenza-lotto.mjs`, controprovato). Restano
+      aperti tre delta dello stesso giro di ricerca. Vedi checkpoint
+      `20260916-082030_terra-sequenza-lotto.md`.
