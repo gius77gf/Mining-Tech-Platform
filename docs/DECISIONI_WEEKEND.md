@@ -1782,8 +1782,15 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.567** *(ricontate il 16/09, dopo aver
-aggiunto a Terra `sequenzaLotto` — `lotto.ordine` finalmente usato in un
+**Le prove automatiche sono passate a 3.574** *(ricontate il 16/09, dopo aver
+aggiunto a Sentinella `superamentiUltimiGiorni` — l'escalation sui
+superamenti ripetuti (dal delta della ricerca continua, nono giro,
+verificato indipendentemente prima di scrivere): un pattern di superamenti
+sullo stesso ricettore, sommati su tutti i suoi punti in una finestra
+mobile, con la soglia come parametro configurabile — nessuna fonte del
+mondo ne dà una universale. Il caso non è nella dimostrazione reale (zero
+superamenti aperti oggi); verificato iniettando un punto apposta nel
+browser — dopo aver aggiunto a Terra `sequenzaLotto` — `lotto.ordine` finalmente usato in un
 controllo, non solo mostrato: badge "fuori sequenza" (non bloccante) quando un
 lotto è aperto prima che il precedente raggiunga la soglia dichiarata, stessa
 forma `{pertinente, frase}` di `attesaCollaudo`/`attesaRecupero`, verificato
@@ -1888,7 +1895,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **307
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **309
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

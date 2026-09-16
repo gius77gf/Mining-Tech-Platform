@@ -8606,9 +8606,17 @@ numero scritto dove non era stato misurato niente**.*
   aperto prima che il precedente raggiunga la soglia dichiarata
   (`dipendeDa: {lottoId, percentuale}`), stessa forma `{pertinente,
   frase}` di `attesaCollaudo`/`attesaRecupero`, verificato anche nel
-  browser (`terra-sequenza-lotto.mjs`) —, 3068→3073):
-  **3.567 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3073, `run-stile` 330,
+  browser (`terra-sequenza-lotto.mjs`) —, 3068→3073). E a
+  `superamentiUltimiGiorni` di Sentinella (dal delta della ricerca
+  continua, nono giro, verificato indipendentemente prima di scrivere):
+  l'escalation sui superamenti ripetuti — un pattern sullo stesso
+  ricettore, sommato su tutti i suoi punti in una finestra mobile, con
+  la soglia come parametro (nessuna fonte del mondo ne dà una
+  universale). Il caso non è nella dimostrazione reale (zero
+  superamenti aperti oggi); verificato iniettando un punto apposta nel
+  browser (`sentinella-escalation-superamenti.mjs`) —, 3073→3080):
+  **3.574 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3080, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
@@ -8618,8 +8626,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **307 esecuzioni** che
-  aprono le pagine in un browser vero, da **133** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **309 esecuzioni** che
+  aprono le pagine in un browser vero, da **134** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).

@@ -259,7 +259,12 @@ const APP = ["campo", "conti", "flotta", "scudo", "sentinella", "terra"];
    ricerca — dà finalmente un peso a `lotto.ordine`, mai usato in nessun
    controllo prima d'ora), con la sua prova in run-kpi e il banco browser
    `terra-sequenza-lotto.mjs`. */
-const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 187, terra: 102 };
+/* ⚠️ `sentinella` SALE DA 187 A 195: i 7 nel mezzo sono arretrato di
+   sessioni precedenti mai attribuito qui (non è lavoro di questa unità);
+   l'ultimo (`superamentiUltimiGiorni`, 16/09, dal delta della ricerca
+   continua sul nono giro) è di questa unità, con la sua prova in run-kpi e
+   il banco browser `sentinella-escalation-superamenti.mjs`. */
+const FONDO = { campo: 147, conti: 215, flotta: 139, scudo: 232, sentinella: 195, terra: 102 };
 
 /* Quello che resta fuori per un motivo, non per dimenticanza: i caricatori
    dati vogliono la rete e lo SDK, i ponti demo vogliono il localStorage.

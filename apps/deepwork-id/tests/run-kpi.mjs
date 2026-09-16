@@ -8955,6 +8955,84 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.bozzaAzioneSuperamento({ nome: "x" }), null, "manca l'id");
     eq(sentinella.bozzaAzioneSuperamento(null), null, "e manca tutto");
   });
+  // ── L'escalation sui superamenti ripetuti (16/09, dal delta della ricerca
+  // continua, nono giro: verificato indipendentemente sul codice vero prima
+  // di scrivere — statPeriodo/confrontoMesi/andamentoRicettore non sommano
+  // mai i superamenti di TUTTI i punti di un ricettore su una finestra
+  // mobile) ─────────────────────────────────────────────────────────────
+  const RIC_PATT = [{ id: "rc9", nome: "Casa Nove" }];
+  const puntoAnno = (id, soglia, letture) => ({ id, nome: id, tipo: "vibrazioni", soglia, unita: "mm/s", ricettoreId: "rc9", letture });
+  test("superamentiUltimiGiorni: conta episodi VERI (sopra soglia, dentro la finestra), non tutte le letture", () => {
+    const OGGI = new Date("2026-09-16T12:00:00");
+    const p = puntoAnno("q1", 5, [
+      { data: "2026-09-01", valore: 6 },   // dentro la finestra, sopra soglia: conta
+      { data: "2026-09-05", valore: 4 },   // dentro la finestra, sotto soglia: non conta
+      { data: "2026-08-01", valore: 9 },   // fuori dalla finestra (più di 30gg fa): non conta
+    ]);
+    const r = sentinella.superamentiUltimiGiorni([p], RIC_PATT, "rc9", OGGI, 30, 3);
+    eq(r.n, 1, "un solo episodio vero");
+    eq(r.pattern, false, "1 < 3: nessun pattern");
+    eq(r.episodi, [{ punto: "q1", data: "2026-09-01", valore: 6, soglia: 5 }]);
+  });
+  test("⛔ superamentiUltimiGiorni: somma i punti DI TUTTO IL RICETTORE, non uno alla volta", () => {
+    const OGGI = new Date("2026-09-16T12:00:00");
+    const a = puntoAnno("q1", 5, [{ data: "2026-09-01", valore: 6 }, { data: "2026-09-05", valore: 7 }]);
+    const b = puntoAnno("q2", 5, [{ data: "2026-09-10", valore: 8 }]);
+    const altro = { id: "q9", nome: "Altro ricettore", tipo: "vibrazioni", soglia: 5, unita: "mm/s", ricettoreId: "rcX",
+      letture: [{ data: "2026-09-12", valore: 20 }] };
+    const r = sentinella.superamentiUltimiGiorni([a, b, altro], RIC_PATT, "rc9", OGGI, 30, 3);
+    eq(r.n, 3, "due punti, tre episodi in tutto — il quarto è di un altro ricettore e non entra");
+    eq(r.pattern, true, "3 >= 3: pattern");
+    eq(r.episodi.map((e) => e.data), ["2026-09-01", "2026-09-05", "2026-09-10"], "ordinati per data");
+  });
+  test("⛔ superamentiUltimiGiorni: la soglia efficace è quella del RICETTORE, non quella scritta sul punto", () => {
+    // stessa regola di sogliaEfficace: se il ricettore ha una soglia propria nella stessa unità, vince quella
+    const ricSoglia = [{ id: "rc9", nome: "Casa Nove", soglia: 3, unita: "mm/s" }];
+    const p = puntoAnno("q1", 10, [{ data: "2026-09-01", valore: 5 }]); // sotto i 10 del punto, ma sopra i 3 del ricettore
+    const r = sentinella.superamentiUltimiGiorni([p], ricSoglia, "rc9", new Date("2026-09-16"), 30, 1);
+    eq(r.n, 1, "la soglia che conta è quella del ricettore: 5 >= 3");
+  });
+  test("superamentiUltimiGiorni: la finestra è mobile, non un mese di calendario", () => {
+    const OGGI = new Date("2026-09-16T12:00:00");
+    // finestra di 30 giorni che finisce oggi: 18 agosto - 16 settembre (30 giorni, estremi compresi)
+    const dentro = puntoAnno("q1", 5, [{ data: "2026-08-18", valore: 6 }]);
+    eq(sentinella.superamentiUltimiGiorni([dentro], RIC_PATT, "rc9", OGGI, 30, 1).n, 1, "il bordo della finestra è incluso");
+    const fuori = puntoAnno("q1", 5, [{ data: "2026-08-17", valore: 6 }]);
+    eq(sentinella.superamentiUltimiGiorni([fuori], RIC_PATT, "rc9", OGGI, 30, 1).n, 0, "un giorno più indietro: fuori");
+  });
+  test("superamentiUltimiGiorni: senza soglia efficace un punto non può generare un episodio", () => {
+    const senzaSoglia = { id: "q1", nome: "q1", tipo: "vibrazioni", unita: "mm/s", ricettoreId: "rc9",
+      letture: [{ data: "2026-09-01", valore: 999 }] };
+    eq(sentinella.superamentiUltimiGiorni([senzaSoglia], RIC_PATT, "rc9", new Date("2026-09-16"), 30, 1).n, 0,
+      "un valore enorme senza soglia non è un superamento: non si inventa un limite");
+  });
+  test("⛔ bozzaAzioneSuperamento: il pattern si dichiara in coda alla nota, e non si inventa se manca", () => {
+    const s = sentinella.superamentiAperti([punto({ id: "p5", nome: "Con storia",
+      letture: [{ data: "2026-07-09", valore: 12 }] })], [])[0];
+    const senzaPattern = sentinella.bozzaAzioneSuperamento(s);
+    ok(!/superamento negli ultimi/.test(senzaPattern.origineNota), "senza opts.pattern la frase non compare");
+    const conPatternFalso = sentinella.bozzaAzioneSuperamento(s, { pattern: { pattern: false, n: 1, finestraGiorni: 30 } });
+    ok(!/superamento negli ultimi/.test(conPatternFalso.origineNota), "un pattern non raggiunto non si racconta come se lo fosse");
+    const conPattern = sentinella.bozzaAzioneSuperamento(s, { pattern: { pattern: true, n: 3, finestraGiorni: 30 } });
+    ok(/è il 3° superamento negli ultimi 30 giorni su questo ricettore/.test(conPattern.origineNota), conPattern.origineNota);
+  });
+  test("superamentiUltimiGiorni sulla dimostrazione: oggi nessun ricettore ha un pattern — coerente con zero superamenti aperti", () => {
+    /* ⛔ NON SI FORZA UN CASO SULLA DIMOSTRAZIONE PER FARLA VEDERE: `v2` (il
+       solo punto con un superamento apparente, 5,6 mm/s) è collegato al
+       ricettore `rc2`, la cui soglia VERA è 20 mm/s (`sogliaEfficace`) — il
+       punto per cui quella dimostrazione esiste è proprio che il naive 5,6
+       ≥ 5 sembra un superamento e non lo è. Aggiungere letture false sopra i
+       20 mm/s per mostrare un pattern avrebbe rotto quella dimostrazione
+       (e la sua prova, riga 22020). Oggi in tutta la demo non c'è nessun
+       superamento aperto (`superamentiAperti` risponde vuoto): un pattern
+       richiede prima un evento vero, e questo campo aspetta un caso
+       genuino in un'unità futura, non uno costruito per il badge. */
+    ok(sentinella.superamentiAperti(sentinella.DEMO.monitoraggi, sentinella.DEMO.ricettori).length === 0,
+      "nessun superamento aperto nella dimostrazione: il badge non ha ancora un caso vero da mostrare");
+    for (const r of sentinella.DEMO.ricettori)
+      eq(sentinella.superamentiUltimiGiorni(sentinella.DEMO.monitoraggi, sentinella.DEMO.ricettori, r.id, new Date("2026-09-16T12:00:00")).pattern,
+        false, r.id + ": nessun pattern, coerente con zero superamenti aperti");
+  });
 }
 
 /* ══ IL REFERTO DEL SISMOGRAFO CHE TARA LA LEGGE DI SITO ════════════════

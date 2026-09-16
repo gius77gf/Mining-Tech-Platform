@@ -1026,6 +1026,13 @@ const BANCHI = [
      lo stesso, e il banco deve cadere. */
   ['la lettura dichiarata non valida di Sentinella, premuta davvero', 'sentinella-annullate.mjs', []],
   ['lettura non valida di Sentinella · controprova', 'sentinella-annullate.mjs', ['--controprova'], true],
+  /* 16/09 · l'escalation sui superamenti ripetuti (dal delta della ricerca
+     continua, nono giro): il caso non è nella dimostrazione vera (zero
+     superamenti aperti oggi, misurato), quindi si inietta un punto/ricettore
+     apposta — mai sul file su disco — per provare che il badge nel ponte
+     arriva davvero dal modulo. */
+  ['l\'escalation sui superamenti ripetuti nel ponte di Sentinella', 'sentinella-escalation-superamenti.mjs', []],
+  ['escalation sui superamenti ripetuti · controprova', 'sentinella-escalation-superamenti.mjs', ['--controprova'], true],
   /* 04/09 · la scheda del punto sta nella sua larghezza: il quadrante dei KPI
      troncava «44,2 µg/m³» in «44,2 …» (l'unità sparita) a 320 e 390 px, e la
      tabella «Le ultime misure» scorreva nel suo riquadro con le pillole della

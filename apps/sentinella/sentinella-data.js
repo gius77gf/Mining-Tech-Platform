@@ -3997,6 +3997,38 @@ export function andamentoRicettore(monitoraggi, ricettori, ricettoreId, opts = {
     dal: inizio.dal, al: fine.al };
 }
 
+/* L'ESCALATION SUI SUPERAMENTI RIPETUTI (16/09, dal delta della ricerca
+   continua, nono giro — verificato riga per riga sul codice vero prima di
+   scrivere): `statPeriodo` conta i superamenti di UN punto in un periodo
+   ESPLICITO, `confrontoMesi` guarda solo il mese corrente contro il
+   precedente, `andamentoRicettore` aggrega i punti di un ricettore ma tiene
+   il confronto separato per punto — nessuna delle tre somma i superamenti
+   di TUTTI i punti di un ricettore su una FINESTRA MOBILE.
+   Il mondo (modelli ERP/TARP, di seconda mano, mai letto per intero) tratta
+   un pattern di eventi ripetuti come più severo di un evento isolato — ma
+   nessuna fonte dà un numero universale («3 in 30 giorni» è materia di
+   prescrizione, non uno standard): qui si CONTA, la soglia resta un
+   PARAMETRO passato da chi chiama, non un numero cablato.
+   Riusa `sogliaEfficace` (la stessa regola con cui si decide un superamento
+   ovunque nell'app) e `lettureNelPeriodo`: non una settima copia del "questa
+   lettura conta?". */
+export function superamentiUltimiGiorni(monitoraggi, ricettori, ricettoreId, oggi = new Date(), finestraGiorni = 30, sogliaPattern = 3) {
+  const oggiIso = isoLocale(new Date(oggi));
+  const dal = piuGiorni(oggiIso, -(Math.max(1, Math.round(+finestraGiorni || 30)) - 1));
+  const episodi = [];
+  for (const m of (monitoraggi || []).filter((x) => x && x.ricettoreId === ricettoreId)) {
+    const eff = sogliaEfficace(m, ricettori);
+    if (eff.valore == null) continue;
+    for (const l of lettureNelPeriodo(m, dal, oggiIso))
+      if (l.valore >= eff.valore)
+        episodi.push({ punto: m.nome || "Punto di misura", data: l.data, valore: l.valore, soglia: eff.valore });
+  }
+  episodi.sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
+  const soglia = Math.max(1, Math.round(+sogliaPattern || 3));
+  return { n: episodi.length, soglia, pattern: episodi.length >= soglia,
+    finestraGiorni: Math.max(1, Math.round(+finestraGiorni || 30)), dal, al: oggiIso, episodi };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // T7 · IL PONTE VERSO SCUDO — dall'evento ambientale all'azione correttiva
 //
@@ -4091,9 +4123,18 @@ export function bozzaAzioneSuperamento(sup, opts = {}) {
   if (!sup || !sup.id) return null;
   const u = sup.unita ? " " + sup.unita : "";
   const quando = sup.data ? " del " + dataIt(sup.data) : "";
+  /* ⛔ IL PATTERN NON SI RICALCOLA QUI: chi apre la finestra lo passa già
+     pronto (`opts.pattern`, l'uscita di `superamentiUltimiGiorni`), perché
+     questa funzione resta pura e non riceve tutti i monitoraggi/ricettori.
+     Si dichiara il fatto (quanti, in quanti giorni), non si inventa una
+     causa: lo stesso principio prudente già usato per `AVVISO_COINCIDENZA`. */
+  const patt = opts.pattern;
+  const fraseEscalation = patt && patt.pattern
+    ? " · è il " + patt.n + "° superamento negli ultimi " + patt.finestraGiorni + " giorni su questo ricettore"
+    : "";
   const nota = "Superamento ambientale (Sentinella) — " + sup.nome + quando + ": misurato "
     + numeroIt(sup.valore) + u + " con soglia applicata " + testoSoglia(sup)
-    + (sup.ricettore ? " · ricettore: " + sup.ricettore.nome : "");
+    + (sup.ricettore ? " · ricettore: " + sup.ricettore.nome : "") + fraseEscalation;
   return {
     descrizione: String(opts.descrizione || ("Riportare «" + sup.nome + "» entro la soglia ambientale")).trim(),
     responsabileId: opts.responsabileId || null,

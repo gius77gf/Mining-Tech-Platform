@@ -1876,6 +1876,7 @@ textarea.dw-input{
            PERIODICITA, etichettaFrequenza, ultimaLettura, statoRigaProgramma, programmaEsteso,
            riepilogoProgramma, allerteProgramma, andamentoRicettore,
            ponteScudo, superamentiAperti, puntiSenzaSoglia, azioniDiOrigine, statoPonte, bozzaAzioneSuperamento,
+           superamentiUltimiGiorni,
            bozzaAzioneReclamo, coincidenzaVolata, dataPiuGiorni, AVVISO_COINCIDENZA,
            ppvDiVolata, testoFontePpv, lettureVibrazioniDelGiorno, campiPpvVolata, CAMPI_PPV_VUOTI,
            accorciaVoceTendina,
@@ -2612,6 +2613,10 @@ textarea.dw-input{
     const voci = superamentiAperti(MON, RIC).map(s => ({
       genere: "superamento", chiave: "sup|" + s.id + "|" + s.voce, sup: s,
       data: s.data, nome: s.nome,
+      // il pattern di superamenti ripetuti (16/09): solo se il punto è
+      // collegato a un ricettore — un superamento su un punto senza
+      // ricettore non ha "altri punti dello stesso ricettore" da sommare
+      patt: s.ricettore ? superamentiUltimiGiorni(MON, RIC, s.ricettore.id) : null,
       azioni: azioniDiOrigine(AZI, "superamento", s.id, s.voce),
     }));
     for (const r of REC || []) {
@@ -2697,6 +2702,7 @@ textarea.dw-input{
           + (v.sup.soglia.fonte === "ricettore" && v.sup.soglia.ricettore ? " (del ricettore " + esc(v.sup.soglia.ricettore) + ")" : "")
           + (v.data ? " · lettura del " + fmtD(v.data) : " · valore inserito a mano, senza data")
           + (v.sup.ricettore ? " · " + esc(v.sup.ricettore.nome) : "")
+          + (v.patt && v.patt.pattern ? ` <span class="badge danger" title="${esc(v.patt.n + "° superamento negli ultimi " + v.patt.finestraGiorni + " giorni su questo ricettore")}">${v.patt.n}° in ${v.patt.finestraGiorni}gg</span>` : "")
         : fmtD(v.data) + (v.rec.ora ? " " + esc(v.rec.ora) : "")
           + (v.ricettore ? " · " + esc(v.ricettore.nome) : "")
           + (v.rec.chi ? " · " + esc(v.rec.chi) : "")
@@ -2757,7 +2763,7 @@ textarea.dw-input{
       renderPonte(); return;
     }
     // la bozza la decide il modulo, per genere: qui si sceglie solo QUALE
-    const bozzaDi = (scelta) => v.genere === "superamento" ? bozzaAzioneSuperamento(v.sup, scelta)
+    const bozzaDi = (scelta) => v.genere === "superamento" ? bozzaAzioneSuperamento(v.sup, { ...scelta, pattern: v.patt })
       : v.genere === "dopo-volata" ? bozzaAzioneDopoVolata(v.vol, scelta)
       : bozzaAzioneReclamo(v.rec, v.ricettore, scelta);
     const bozza = bozzaDi({ scadenza: dataPiuGiorni(30) });
