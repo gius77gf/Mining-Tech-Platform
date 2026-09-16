@@ -4888,7 +4888,10 @@ export function abbinaMovimenti(movimenti, fatture, incassi = [], clienti = [], 
   const scheda = (f) => ({ id: f.id, numero: String(f.numero || ""),
     cliente: f.cliente || "", clienteId: f.clienteId || "",
     aperto: round2(apertoDi(f, note)), totale: round2(+f.importo || 0),
-    scadenza: f.scadenza || null });
+    scadenza: f.scadenza || null,
+    // dal delta della ricerca continua su Conti (decimo giro): servono per
+    // distinguere un pagamento scontato legittimo da un acconto vero
+    emessa: f.emessa || null, scontoCassa: f.scontoCassa || null });
   const tutte = conIncassi.map(scheda);
   const aperte = tutte.filter((c) => c.aperto > 0.005);
   const chiuse = tutte.filter((c) => c.aperto <= 0.005);
@@ -4941,6 +4944,53 @@ function guardiaStessaFattura(righe, aperte) {
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   LO SCONTO CASSA (pagamento anticipato), 16/09 — dal delta della ricerca
+   continua su Conti, decimo giro.
+   ────────────────────────────────────────────────────────────────────────
+   Un pagamento più basso dell'aperto non è sempre un acconto: se il
+   cliente si trattiene legittimamente lo sconto concordato per pagare in
+   anticipo (`scontoCassa: {pct, giorniEntro}` sulla fattura), lo
+   scostamento coincide con l'importo dello sconto, e `esitoMovimento`
+   fino a oggi lo leggeva come "è un acconto, resta aperta per la
+   differenza" — che poi entra nell'aging, matura interessi di mora e
+   riceve un sollecito su un debito che, per accordo, non esiste più.
+   Prassi italiana citata dalla ricerca: lo sconto cassa NON va indicato in
+   fattura come riduzione del prezzo (è un fatto amministrativo successivo,
+   condizionato al pagamento entro il termine) — coerente col fatto che
+   qui non tocca `importo` né `prodottoPerCliente`, resta un confronto fra
+   l'incasso arrivato e la data.
+   `calcolabile:false` copre DUE casi diversi e li dichiara separatamente:
+   nessuno sconto cassa previsto (la maggioranza delle fatture, che non
+   hanno `scontoCassa`) e uno sconto previsto ma il pagamento è arrivato
+   fuori termine (lo sconto non matura, resta un acconto vero). Pura e
+   testabile. */
+export function scontoCassaMaturato(fattura, dataIncasso) {
+  const f = fattura || {};
+  const sc = f.scontoCassa;
+  const base = { calcolabile: false, importo: 0, pct: null, giorniEntro: null, giorni: null, perche: "" };
+  if (!sc || !(+sc.pct > 0) || !(+sc.giorniEntro > 0))
+    return { ...base, perche: "nessuno sconto cassa previsto su questa fattura" };
+  const emessa = String(f.emessa || "").slice(0, 10);
+  const incasso = String(dataIncasso || "").slice(0, 10);
+  if (!dataISOEsiste(emessa) || !dataISOEsiste(incasso))
+    return { ...base, pct: +sc.pct, giorniEntro: +sc.giorniEntro,
+      perche: "manca la data di emissione o quella dell'incasso: lo sconto non si può verificare" };
+  const g = giorni(incasso, emessa);
+  if (!(g >= 0))
+    return { ...base, pct: +sc.pct, giorniEntro: +sc.giorniEntro,
+      perche: "l'incasso risulta prima dell'emissione: date da controllare" };
+  if (g > +sc.giorniEntro)
+    return { ...base, giorni: g, pct: +sc.pct, giorniEntro: +sc.giorniEntro,
+      perche: `pagato al giorno ${g}, oltre il termine di ${sc.giorniEntro} giorni: lo sconto non matura` };
+  return { calcolabile: true, importo: round2((+(f.totale != null ? f.totale : f.importo) || 0) * (+sc.pct) / 100),
+    pct: +sc.pct, giorniEntro: +sc.giorniEntro, giorni: g, perche: "" };
+}
+// La tolleranza è una SCELTA nostra e copre solo l'arrotondamento al
+// centesimo (due numeri arrotondati indipendentemente possono differire di
+// 1 centesimo): non è una tolleranza commerciale su "quasi lo sconto giusto".
+const TOLLERANZA_SCONTO_CASSA_CENT = 1;
+
 function esitoMovimento(m, aperte, chiuse, nomeDi, incassi) {
   const base = { riga: m.riga, data: m.data, descrizione: m.descrizione, importo: m.importo,
                  riferimento: m.riferimento || null,
@@ -4976,10 +5026,16 @@ function esitoMovimento(m, aperte, chiuse, nomeDi, incassi) {
       return proponi(base, "certo", [c],
         `la causale nomina la fattura ${c.numero} e l'importo è esattamente quello che resta aperto`,
         [eti, "importo esatto"], incassi);
-    if (c.diff < 0)
+    if (c.diff < 0) {
+      const sm = scontoCassaMaturato(c, m.data);
+      if (sm.calcolabile && Math.abs(-c.diff - CENT_ABB(sm.importo)) <= TOLLERANZA_SCONTO_CASSA_CENT)
+        return proponi(base, "certo", [c],
+          `la causale nomina la fattura ${c.numero}: mancano ${eur(c.diff)} € rispetto all'aperto, ma coincidono con lo sconto cassa maturato (${sm.pct}% pagando entro ${sm.giorniEntro} giorni, arrivato al giorno ${sm.giorni}). Non è un acconto: registra anche una nota di credito da ${euroIt(sm.importo)} € (causale "sconto previsto dal contratto") per chiuderla`,
+          [eti, "sconto cassa maturato"], incassi);
       return proponi(base, "probabile", [c],
         `la causale nomina la fattura ${c.numero}, ma l'importo è più basso di ${eur(c.diff)} €: è un acconto, e la fattura resta aperta per quella cifra`,
         [eti, "pagamento parziale"], incassi);
+    }
     return decidi(base, [c].concat(esatte),
       `la causale nomina la fattura ${c.numero} ma l'importo la supera di ${eur(c.diff)} €: può pagare anche dell'altro, e a dirlo devi essere tu`,
       [eti, "importo più alto della fattura"]);

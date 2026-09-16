@@ -1765,7 +1765,10 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.546** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.548** *(ricontate il 16/09, dopo aver
+corretto in Conti `esitoMovimento`: un pagamento più basso dell'aperto che
+coincide con lo sconto cassa concordato (`scontoCassaMaturato`) non è più
+letto come acconto — dopo aver
 aggiunto a Scudo `barriereRicorrenti`/`BARRIERE_MANCATE` (dal delta della
 ricerca continua, undicesimo giro — ICAM): che cosa avrebbe dovuto fermare
 l'evento, non che cosa l'ha causato, con un chip multi-select nella modale

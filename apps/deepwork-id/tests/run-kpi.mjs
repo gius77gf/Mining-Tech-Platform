@@ -17667,6 +17667,46 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "il motivo dice che resta scoperto: " + r.perche);
   });
 
+  test("⛔ Conti · banca (16/09, dal delta della ricerca continua, decimo giro): lo SCONTO CASSA non è un acconto, e fuori termine resta un acconto vero", () => {
+    /* fattura gemella di b3 (2026/003, aperta 3.000) ma con sconto cassa 2%
+       entro 10 giorni dall'emissione (2026-01-10): pagando 2.940 entro il
+       20/01 mancano 60 €, che sono esattamente il 2% di 3.000 */
+    const FS = FB.concat([fat("bs", "2026/007", "Edilcave Srl", 3000, { clienteId: "k1",
+      scontoCassa: { pct: 2, giorniEntro: 10 } })]);
+    const r = conti.abbinaMovimenti(conti.parseMovimentiCsv(
+      testa + "20/01/2026;20/01/2026;FATT 2026/007;2.940,00"), FS, [], CLB).righe[0];
+    contiene(r, { grado: "certo" }, "non è più «probabile/acconto»: lo scostamento coincide con lo sconto concordato");
+    ok(/sconto cassa maturato/.test(r.perche) && !/resta aperta per quella cifra/.test(r.perche),
+      "il motivo parla di sconto cassa, non di acconto: " + r.perche);
+    ok(/nota di credito/.test(r.perche), "e indica l'azione che chiude davvero la fattura: " + r.perche);
+
+    // stesso importo, ma il pagamento arriva OLTRE i 10 giorni: resta un acconto vero
+    const tardi = conti.abbinaMovimenti(conti.parseMovimentiCsv(
+      testa + "05/02/2026;05/02/2026;FATT 2026/007;2.940,00"), FS, [], CLB).righe[0];
+    contiene(tardi, { grado: "probabile" }, "fuori termine: lo sconto non matura, torna il comportamento di sempre");
+    ok(/acconto/.test(tardi.perche), "e il motivo torna a dire acconto: " + tardi.perche);
+
+    // un pagamento davvero parziale (non coincide col 2%) resta un acconto, anche entro il termine
+    const parziale = conti.abbinaMovimenti(conti.parseMovimentiCsv(
+      testa + "15/01/2026;15/01/2026;FATT 2026/007;2.000,00"), FS, [], CLB).righe[0];
+    contiene(parziale, { grado: "probabile" }, "2.000 su 3.000 non è lo sconto del 2%: resta un acconto");
+  });
+
+  test("⛔ scontoCassaMaturato: pura, dichiara PERCHÉ non matura invece di un `false` muto", () => {
+    const f = { emessa: "2026-01-10", importo: 5000, scontoCassa: { pct: 2, giorniEntro: 10 } };
+    const ok1 = conti.scontoCassaMaturato(f, "2026-01-18");
+    eq([ok1.calcolabile, ok1.importo, ok1.giorni], [true, 100, 8], "8° giorno, dentro i 10: matura, 2% di 5000");
+    const tardi = conti.scontoCassaMaturato(f, "2026-01-25");
+    eq(tardi.calcolabile, false);
+    ok(/oltre il termine/.test(tardi.perche), tardi.perche);
+    eq(conti.scontoCassaMaturato({ emessa: "2026-01-10", importo: 5000 }, "2026-01-15").perche,
+      "nessuno sconto cassa previsto su questa fattura", "la maggioranza delle fatture: nessuno sconto dichiarato");
+    ok(/manca la data/.test(conti.scontoCassaMaturato({ ...f, emessa: "" }, "2026-01-15").perche),
+      "senza data di emissione: non calcolabile, con la ragione");
+    ok(/prima dell'emissione/.test(conti.scontoCassaMaturato(f, "2026-01-05").perche),
+      "un incasso prima dell'emissione si dichiara, non si ignora");
+  });
+
   test("Conti · banca: PROBABILE — nessun numero, ma il cliente e l'importo combaciano", () => {
     const r = uno("BONIFICO DA EDILCAVE SRL", "3.000,00");
     contiene(r, { grado: "probabile" }, "cliente + importo esatto: probabile, non certo");

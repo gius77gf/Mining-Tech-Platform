@@ -8558,9 +8558,12 @@ numero scritto dove non era stato misurato niente**.*
   21 lettori CSV è ora completa —, 3049→3051. E a `scudo.barriereRicorrenti`/
   `BARRIERE_MANCATE` (dal delta della ricerca continua, undicesimo giro —
   ICAM) — che cosa avrebbe dovuto fermare l'evento, non che cosa l'ha
-  causato, sorella di `causeRicorrenti` —, 3051→3052):
-  **3.546 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3052, `run-stile` 330,
+  causato, sorella di `causeRicorrenti` —, 3051→3052. E a `conti.
+  scontoCassaMaturato` (dal delta della ricerca continua, decimo giro) —
+  un pagamento più basso dell'aperto che coincide con lo sconto cassa
+  concordato non è più un acconto in `esitoMovimento` —, 3052→3054):
+  **3.548 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3054, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **40** e di asserzioni ne esegue di più:
