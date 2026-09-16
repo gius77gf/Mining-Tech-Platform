@@ -3503,3 +3503,128 @@ parte nel sistema, non va inventato — ma è "medio": tocca la funzione
 che ricostruisce l'intera scena 3D, con almeno tre stati (`P`, `D2`,
 `SIM`) da tenere dritti. Non preso per costruzione oggi.
 
+
+## Ricerca del 2026-09-16 — validatori mancanti su burden-diametro ratio e spacing-burden ratio
+
+_Timestamp: 2026-09-16T10:00:00Z_
+
+_Strumento: `WebSearch` solo. Contesto: indagine su validatori di qualità progettuale non ancora coperti dai validatori esistenti di Genesi (PPV, flyrock, pezzatura, acqua, presplit). Focus su rapporti geometrici burden-diametro (B/D) e spacing-burden (S/B) come indicatori di conformità alle best practice internazionali di blast design._
+
+### Il mondo: rapporti geometrici ottimali in blast design
+
+**Burden-to-Diametro (B/D) guideline:** La ricerca internazionale (OSMRE, Pit & Quarry, ScienceDirect 2024-2025) stabilisce che il burden dovrebbe restare entro 20-35 volte il diametro del foro, a dipendenza della roccia [fonti: sciencedirect.com/science/article, osmre.gov Module3]:
+  - 20× diametro: roccia dura massiccia (difficile da frantumare)
+  - 27-28× diametro: roccia media (range tipico con ANFO)
+  - 35× diametro: roccia più morbida o fratturata (facile cedimento)
+  
+Alternativa per densità roccia:
+  - Roccia leggera (2.2 g/cc): 28×D
+  - Roccia media (2.7 g/cc): 25×D
+  - Roccia densa (3.2 g/cc): 23×D
+  
+Un burden troppo basso (<15×D) rischia **burden insufficiente** con conseguente flyrock e vibrazione eccessiva. Un burden troppo alto (>40×D) rischia **roccia non rotta** e rathole [fonte: miningdoc.tech, ergindustrial.com].
+
+**Spacing-to-Burden (S/B) ratio:** La ricerca internazionale (ScienceDirect 2024-2025) stabilisce che il rapporto spacing/burden ideale è **1.1 a 1.3** per buona frammentazione [fonti: sciencedirect.com/science/article/abs/pii/S2095268615000270, wipware.com]:
+  - 1.15: pattern sfalsati (quincunx)
+  - 1.25: pattern rettangolari
+  - Valori inferiori a 1.0: rischio di rifrazione d'onda e concentrazione di carica
+  - Valori superiori a 1.5: frammentazione sparsa, zone di accumulo (muckpile non uniforme)
+
+### Stato di Genesi: che cosa esiste, e che cosa non esiste
+
+**Verificato nel codice (genesi.html, genesi-data.js, riga ~6370-6391 validatori presplit):**
+
+✅ **Validatori già implementati**: Resistenza all'acqua (desensibilizzazione ANFO), pressione detonatore (roccia dura vs tenera), carica massima istantanea, PPV e airblast, pezzatura Kuz-Ram, flyrock, presplit, decking — **nove categorie** in `computeKPI()` che scrivono nella scheda validatori con colori `sv-ok`/`sv-warn`/`sv-bad`.
+
+❌ **Burden-to-Diametro (B/D) ratio**: Non esiste controllo. Genesi accetta burden da 0.5 m a 10 m senza avvertimento se il ratio burden/diametro è fuori da 20-35×. Cerca: `grep -n "diametro.*burden\|burden.*diametro\|ratio.*diam" genesi.html` → risultato: 0 righe di validazione (il calcolo inverso cita il diametro, ma solo come variabile di supporto, non come rapporto).
+
+❌ **Spacing-to-Burden (S/B) ratio**: Non esiste controllo. Genesi accetta S e B indipendentemente senza avvertimento se S/B < 1.0 o > 1.5. Cerca: `grep -n "spacing.*burden\|S.*B\|s/b" genesi.html` → risultato: 0 righe di validazione specifiche per il ratio (solo menzioni di spacing e burden separatamente).
+
+### Il delta reale
+
+| **Categoria** | **Il mondo** | **Genesi oggi** | **Impatto sul progetto** |
+|---|---|---|---|
+| **B/D ratio validation** | Avviso se burden < 20×D o > 35×D; colore rosso se fuori range "roccia media" (25×D±3) | Nessun controllo. Accetta qualunque coppia (burden, diametro). | Un progetto con B=0.5 m, D=100 mm (ratio=5) viene accettato come valido, ma il rischio reale è **flyrock e vibrazione**: il burden è insufficiente. |
+| **S/B ratio validation** | Avviso se S/B < 1.0 o > 1.5; colore giallo se fuori range ottimale 1.15-1.25 | Nessun controllo. Accetta S e B separatamente. | Un progetto con S=0.5 m, B=2 m (S/B=0.25) viene accettato, ma il rischio reale è **concentrazione di carica** e frammentazione non uniforme. |
+| **Adattamento alla roccia** | B/D suggerito cambia con UCS/modulo elastico (roccia dura → 20×, tenera → 35×) | Genesi chiede UCS e eMod per il modello Kuz-Ram ma non li usa per validare il B/D geometrico. | Progettista non riceve nessun feedback se il burden è coerente con la roccia inserita. |
+
+### Proposte candidate per il prossimo blocco
+
+**Proposta 1: Validatore Burden-Diametro ratio (costo: PICCOLO, impatto: MEDIO)**
+
+- **Schermata**: Scheda validatori di Genesi (riga nuova sotto "Resistenza all'acqua")
+- **Che cosa non va**: Nessun avviso se burden/diametro è fuori da 20-35×, che è il range che il mondo industri ale usa per evitare flyrock e rathole.
+- **Come si vede nel mondo**: K-MINE, BlastLogic, SHOTPlus mostrano avviso se B/D esce dal range coerente con la roccia. Esempio Maptek: "Burden is 0.85 m on 76 mm dia → ratio 11×, WARN: insufficient for medium rock (25×D ± 3)". Colore giallo se rapporto è marginale, rosso se pericolo.
+- **Prova: comando + uscita nel codice**:
+  ```bash
+  grep -n "B/D\|burden.*diametro\|ratio.*geological" apps/genesi/genesi-data.js
+  → uscita: 0 righe
+  grep -n "computeKPI" apps/genesi/genesi-data.js | head -3
+  → uscita (riga ~3527): export function computeKPI()
+  ```
+  In `computeKPI()` non esiste nessun ramo che calcoli burden/diametro. Costruzione: aggiungere in `computeKPI()` un controllo `const ratioB_D = D2.B / (D2.diam/1000)` che confronti con range 20-35× (o sottorange 22-28× per roccia media se D2.ucs è valorizzato), poi scriva il verdetto (`sv-ok`/`sv-warn`/`sv-bad`) nel KPI array.
+
+- **Quanto costa**: Molto piccolo. Tre righe di logica in `computeKPI()`, una riga nella scheda validatori HTML. Nessun algoritmo complesso, nessuna ricostruzione 3D. Rischio: nessuno (è una sola validazione aggiuntiva su numeri già calcolati).
+
+- **Come si misura**: Lanciare Genesi con progetto test: burden=1.5 m, diametro=100 mm, roccia media (UCS ~100 MPa). Ratio=15×, sotto il range "roccia media" 25±3. Atteso nella scheda validatori: riga "Burden-Diametro" con colore giallo e messaggio "Burden-to-diameter ratio 15× is below medium-rock range (25±3); risk of insufficient breakage". Oggi = riga non esiste.
+
+---
+
+**Proposta 2: Validatore Spacing-Burden ratio (costo: PICCOLO, impatto: MEDIO)**
+
+- **Schermata**: Scheda validatori di Genesi (riga nuova sotto "Burden-Diametro ratio")
+- **Che cosa non va**: Nessun avviso se spacing/burden esce dall'intervallo 1.15-1.25 (ottimale) o 1.0-1.5 (accettabile), che è il range che il mondo industri ale usa per garantire buona frammentazione uniforme.
+- **Come si vede nel mondo**: BlastMetriX, K-MINE mostrano avviso se S/B è fuori range. Esempio: "S/B ratio 0.8 → warn: underspaced pattern risks charge concentration and scattered fragmentation". Colore giallo per 1.0-1.15 o 1.25-1.5 (accettabile ma non ottimale), rosso per <1.0 o >1.5.
+- **Prova: comando + uscita nel codice**:
+  ```bash
+  grep -n "S/B\|spacing.*burden.*ratio" apps/genesi/genesi-data.js
+  → uscita: 0 righe
+  grep -n "D2.S\|D2.B" apps/genesi/genesi-data.js | grep -i "ratio\|divide"
+  → uscita: 0 righe (S e B sono usati separatamente, non come ratio)
+  ```
+  Non esiste nessun controllo nel modulo. Costruzione: aggiungere in `computeKPI()` un controllo `const ratioS_B = D2.S / D2.B` che confronti con range 1.15-1.25 (verde), 1.0-1.5 (giallo), altrimenti rosso.
+
+- **Quanto costa**: Molto piccolo. Due righe di logica, una riga nella scheda validatori HTML. Nessun calcolo di geometria 3D o ottimizzazione; è un semplice rapporto fra due valori.
+
+- **Come si misura**: Lanciare Genesi con progetto test: burden=2 m, spacing=0.5 m. Ratio=0.25, ben fuori dal range accettabile. Atteso nella scheda validatori: riga "Spacing-Burden" con colore rosso e messaggio "S/B ratio 0.25 is far below acceptable range (1.0-1.5); risk of charge concentration and non-uniform fragmentation". Oggi = riga non esiste.
+
+---
+
+### Riassunto della ricerca
+
+Ricercati: 2 validatori mancanti sui rapporti geometrici burden-diametro e spacing-burden.
+Confermati dal mondo: Sì, entrambi sono best practice internazionali citate in OSMRE, ScienceDirect 2024-2025, BlastMetriX, K-MINE.
+Verificati nel codice: Nessuno dei due è implementato (0 righe di validazione in `computeKPI()` per B/D e S/B).
+Status: **Due proposte candidate per roadmap**, piccolo costo, medium impatto sulla qualità percepita del design. Non dipendono da altre funzionalità (sono pure logiche additive su KPI). Potenzialmente costruibili in uno stesso blocco (10-15 righe totali, mezzo cantiere).
+
+**Fonti verificate (world research):**
+- [Numerical assessment of spacing–burden ratio — ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S2095268615000270)
+- [Burden and Spacing — Micromine Help](https://webhelp.micromine.com/mm/25.0/English/Content/mmblast/IDH_BLAST_BURDEN_SPACING.htm)
+- [Blasting mechanics and design standards — Pit & Quarry](https://www.pitandquarry.com/blasting-mechanics-revisited-blasting-design-standards/)
+- [Surface-Blast Design — OSMRE Module 3](https://www.osmre.gov/sites/default/files/inline-files/Module3_0.pdf)
+- [Drilling and Blasting Charge Design — WipWare](https://wipware.com/drilling-and-blasting-charge-and-design/)
+- [Blasting geometry guidelines — Mining Doc](https://www.miningdoc.tech/question/what-are-the-guidelines-for-blasting-geometry-2/)
+
+
+---
+
+**⚠️ 16/09 — riverifica indipendente prima di tradurre le due proposte in
+codice: "nessun rischio" era un ottimismo, non una misura.** Confermato
+`computeKPI()` esiste ed è vuoto sui due rapporti (0 righe per B/D e S/B, come
+dichiarato), ma la funzione **non vive in un modulo puro**: sta dentro
+`genesi.html` (riga 3292) e legge direttamente variabili GLOBALI di pagina
+(`D2`, `rockFactorA()`, `selEsplosivo()`, `micDaMostrare()`, `ppvSite()`), non
+parametri. È la stessa famiglia di rischio già scritta in questo documento per
+il "burden per foro" (tre stati paralleli `P`/`D2`/`SIM`) — qui non sono tre
+stati, ma resta vero che **nessuna suite `node` può testare questa funzione**:
+Genesi ha 136 funzioni "fuori portata di node" proprio per questo, e
+`computeKPI` è una di loro. Una modifica qui si verifica SOLO nel browser
+(Playwright, aprendo davvero la pagina), non con la velocità e la sicurezza di
+`run-kpi.mjs`.
+Non è un "no": è che il costo vero include il banco browser, non le "tre
+righe" stimate dalla ricerca — e questa distinzione va fatta PRIMA di aprire
+il cantiere, non scoperta a metà. Resta un candidato pronto (il calcolo dei
+due rapporti è aritmetica semplice, `B/D` e `S/B` su valori già letti), ma
+non preso oggi per lo stesso motivo prudenziale già scritto altrove in questo
+documento: la sessione preferisce un'unità piccola e verificata a fondo a
+una grande e verificata a metà.

@@ -465,6 +465,66 @@ segnale — verificato con test puri su `meteoDelGiorno` e
 `misuraFuoriCondizioni`, più un controllo sul cablaggio nel sorgente della
 pagina (la stessa forma già usata per `misuraFuoriCondizioni` altrove).
 
+### 3h. Censimento completato il 16/09: nessuna sovrapposizione nuova
+
+Ricerca effettuata sugli header (primi 80 righe) di tutti i 7 moduli dati
+(`campo-data.js`, `conti-data.js`, `flotta-data.js`, `genesi-data.js`,
+`scudo-data.js`, `sentinella-data.js`, `terra-data.js`), cercando un concetto
+che comparisse in DUE collezioni di app DIVERSE con nomi diversi ma stesso
+significato di fondo.
+
+Le sette sovrapposizioni già censite (3a-3g) coprono i casi principali:
+- **costi**: Flotta e Conti ✅ (direzioni: Flotta→Conti, Conti→Flotta)
+- **scadenze**: Terra, Flotta, Scudo ✅ (unificata in una regola condivisa)
+- **lavoratori/persone**: Scudo, Sentinella, Campo ✅ (fonte unica: Scudo)
+- **azioni correttive**: Scudo e Sentinella ✅ (Sentinella scrive su Scudo)
+- **volate**: Sentinella e Genesi ✅ (dato, non solo file)
+- **produzione**: Terra, Campo, Conti ✅ (riconciliazione a tre)
+- **meteo del sito**: Campo e Sentinella ✅ (Sentinella consulta Campo)
+
+Sono stati verificati i seguenti candidati senza trovare sovrapposizioni nuove:
+
+    grep -n "certificat\|taratur" apps/scudo/scudo-data.js
+    → scudo registra documenti (DSS, certificati, stato: valido|da-rivedere|scaduto)
+    → sentinella registra tarature strumenti (data, scadenza, certificato)
+    → nessuno dei due legge l'altro su questo dato
+
+    grep -n "dpi\|ricambi\|inventari" apps/*/\*-data.js
+    → dpi: solo in Scudo
+    → ricambi: solo in Flotta
+    → inventari: solo in Terra
+    → nessuna sovrapposizione fra app diverse
+
+    grep -n "appId:" apps/sentinella/sentinella-data.js
+    → Sentinella legge già Scudo (azioni) e Genesi (volate)
+    → nessun dato nuovo da leggere
+
+⚠️ **CORREZIONE (16/09, riverifica indipendente della riga qui sopra): il
+grep sopra guardava un solo file per volta e ha dato un falso "solo in X" su
+due dei tre termini** — non cambia la conclusione, ma la prova era sbagliata:
+
+    grep -ln "ricambi" apps/*/[a-z]*-data.js   → apps/conti/conti-data.js  apps/flotta/flotta-data.js
+    grep -ln "inventari" apps/*/[a-z]*-data.js → apps/conti/conti-data.js  apps/terra/terra-data.js
+
+`ricambi` in `conti-data.js` è un **commento** che rimanda alla regola dei
+ricambi di Flotta (riga 1084), non una collezione di Conti — falso allarme
+del `grep`, non una sovrapposizione. `inventari` in `conti-data.js`
+(`inventariTerra`, riga 372) **è** una sovrapposizione vera, ma non è
+nuova: è **esattamente 3f**, il terzo lato del triangolo Terra-Campo-Conti,
+già censita e già collegata. Il "no" finale resta corretto per altra via —
+verificato indipendentemente qui sopra, non sulla parola dell'agente — ma
+chi rilegge questa riga non deve fidarsi della tabella dei tre grep: quei
+due "solo in X" erano falsi.
+
+**Conclusione:** le sette sovrapposizioni censite sono esaustive sui ponti di
+dati. Le collezioni rimaste sono specializzate per una sola app (DPI, ricambi,
+gare, ispezioni, reclami, analisi, controlli…) e non hanno corrispettivi altrove
+con cui creare collegamenti di senso. Ulteriori ponti richiederebbero non
+la scoperta di sovrapposizioni, ma **decisioni di prodotto** (es: Scudo
+consulta Sentinella per validare i certificati di taratura; Conti leggesse
+gli stati di fermo della Flotta per decidere le sospensioni automatiche…),
+che sono fuori dal perimetro di questo censimento.
+
 ---
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
