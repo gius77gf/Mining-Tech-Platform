@@ -342,6 +342,22 @@ Telematica **anticipatoria**, non solo tracking: mostrare il guasto prima che ca
 
 ## Verifica del delta (01/08)
 
+> ⏱️ **Verificato contro il codice al commit `ac2de26c`** (17/09, riallineato
+> dal `7c41333` di sotto — è l'ultimo commit che ha DAVVERO toccato
+> `apps/flotta/`, non il commit in cui questa riga viene scritta: quello non
+> esiste ancora quando la si scrive). L'arretrato segnalava **40 commit** su
+> Flotta/`shared/dw-ponti.js` da `7c41333`, di cui **21 che MORDONO**. Cercati
+> i termini delle mancanze ancora aperte (contachilometri/km/odometro, firma
+> digitale/grafometrica, unità di misura flessibili per mezzo) **solo nelle
+> righe AGGIUNTE** dell'intero intervallo (`git diff 7c41333..ac2de26c --
+> apps/flotta/ shared/dw-ponti.js | grep -E '^\+' | grep -iE '...'`): **zero
+> colpi** su tutti e tre. Nessuna riga della tabella si muove: le tre
+> mancanze restano vere (il "budget tracking" era già passato a «C'È» il
+> 05/09, prima di questo arretrato, e "il primo dei due" era già chiuso il
+> 15/09 — nessuna delle due righe è toccata da questa riverifica).
+>
+> *(Il blocco qui sotto è la verifica del 14/08 e resta com'era scritta.)*
+>
 > **Verificato contro il codice al commit `7c41333`** *(14/08 · **16 righe di
 > verdetto su 16 riguardate**, dopo i sei commit di arretrato — due dei quali
 > MORDONO (`c93c607`, `37c4393`). Esito: **verdetti cambiati zero**; **cinque
