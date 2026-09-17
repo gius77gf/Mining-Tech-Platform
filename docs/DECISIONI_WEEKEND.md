@@ -64,6 +64,52 @@ comporta un rischio dichiarato dal codice stesso.*
 
 ---
 
+## 🟡 17/09 — Core: nessuna cava ha un obiettivo di produzione con cui confrontarsi
+
+*Dalla ricerca continua sul cruscotto del titolare (`docs/RICERCA_CONTINUA_CORE.md`,
+17/09). Le prime due proposte dello stesso giro di ricerca — il badge delle
+notifiche che non contava le scadenze mezzi, e i mezzi da lavoro senza
+indicatore di guasto — erano economiche (riusavano dati e pattern già scritti
+altrove nel core) e sono già state costruite e verificate in questa stessa
+sessione. Questa terza è diversa di natura: introduce un concetto che oggi
+non esiste in nessuna collezione, e la ricerca stessa la marca "grande",
+non un ritocco.*
+
+- [ ] **36. Core: nessuna schermata può dire "la cava X è indietro rispetto al
+  piano" — solo "ha prodotto meno delle altre".** La Dashboard
+  (`renderDashboard`, `index.html:4050`) confronta le cave per volume
+  prodotto (`quotaMc`), ma non esiste alcun concetto di obiettivo/target:
+  `grep -n "obiettivo\|target\b\|previsto.*mese\|budget" index.html` → nessuna
+  occorrenza legata alla produzione. Con tre cave attive, quella con meno
+  output finisce in fondo alla lista — ma potrebbe essere la più piccola per
+  progetto, non quella in difficoltà: nessun modo di distinguere i due casi
+  dallo schermo. Confermato che il mondo (prodotti comparabili come Trimble
+  Insight/InsightHQ — fonte di seconda mano, via WebSearch) tratta questo
+  confronto pianificato-vs-reale come uno standard di un cruscotto multi-sito,
+  non un dettaglio. **Perché serve una decisione e non un'unità automatica**:
+  non è un problema di schermo, è un dato che oggi non esiste — chi decide
+  l'obiettivo mensile di una cava, oggi, fuori dal prodotto (a voce, su un
+  foglio, mai)? Se la risposta è "nessuno/informale", costruire il campo
+  senza sapere chi lo compila produrrebbe una casella vuota che nessuno
+  riempie mai, lo stesso numero tranquillo-per-assenza che questo repository
+  vieta altrove. **Le strade**: (a) un campo semplice `obiettivoMc` per
+  cava/mese, impostabile da admin/ufficio, confrontato col prodotto reale
+  nella Dashboard esistente — minimo, ma richiede comunque che qualcuno lo
+  compili ogni mese; (b) si aspetta un segnale da un cliente vero (chi
+  imposta obiettivi oggi, e come) prima di disegnare il campo, per non
+  inventare un processo che nella cava reale non esiste nella forma che
+  immaginiamo; (c) si lascia il confronto solo per volume, dichiarando
+  esplicitamente che "obiettivo di produzione" è fuori perimetro finché non
+  arriva quel segnale. **La mia risposta, se non rispondi entro la
+  settimana**: (b) — le prime due proposte di questo giro di ricerca erano a
+  costo quasi zero perché riusavano ciò che il core aveva già; questa
+  introduce un processo aziendale nuovo (chi fissa un target, con che
+  cadenza, chi lo rivede) che nessun grep può scoprire da solo. Costruirla
+  alla cieca rischia di produrre esattamente la casella vuota tranquillizzante
+  che il principio del fondatore vieta.
+
+---
+
 ## 🟡 17/09 — Campo: il rapportino non porta la fase dell'operazione né distingue sterile da commerciale
 
 *Dal settimo giro di ricerca continua (`docs/RICERCA_CONTINUA_CAMPO.md`,
@@ -604,7 +650,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **22**
+# 📖 Da dove cominciare — le decisioni aperte sono **23**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
