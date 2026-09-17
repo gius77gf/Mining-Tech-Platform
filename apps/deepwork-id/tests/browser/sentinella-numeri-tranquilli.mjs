@@ -54,7 +54,7 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    controprova che non sostituisce niente non prova niente. */
 const DIFETTI_PAGINA = [
   // 1, 2, 3 · il file per l'ARPA scritto a mano nel gestore, com'era
-  ["const csv = csvAmbiente(MON, ADE, RIC);",
+  ["const csv = csvAmbiente(MON, ADE, RIC, new Date(), IDX_METEO_GIORNO);",
    'let csv = "tipo;nome;valore;unita;soglia;stato;dettaglio\\n";\n'
    + '    for (const m of MON) { const st = statoMisura(m);\n'
    + '      const storico = (m.letture || []).map(l => l.data + ":" + l.valore).join(" ");\n'

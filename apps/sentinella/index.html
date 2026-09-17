@@ -4159,7 +4159,11 @@ textarea.dw-input{
       const pr = provenienzaMisura(l);
       const F = FONTI_MISURA[pr.da] || FONTI_MISURA[FONTE_IGNOTA];
       const spiega = descriviProvenienza(l, p.m || { nome: p.nome });
-      const fc = misuraFuoriCondizioni(l, p.m || null);
+      // ⛔ 17/09: qui mancava il terzo argomento (il meteo del giorno dal
+      // ponte con Campo), lo stesso che il pannello a schermo passa già —
+      // il documento verso l'ente diceva «non si può dire» dove lo schermo
+      // avrebbe detto «fuori condizioni».
+      const fc = misuraFuoriCondizioni(l, p.m || null, meteoDelGiorno(IDX_METEO_GIORNO.get(String(l.data || "").slice(0, 10)) || []));
       return `<tr class="${l.oltre ? "oltre" : ""}">
       <td>${fmtD(l.data)}</td><td>${esc(l.ora || "—")}</td>
       <td class="n">${esc(numeroIt(l.valore))}${rigaEvento(l, p.m || null)}</td>
@@ -4191,7 +4195,7 @@ textarea.dw-input{
        perché una campagna registrata senza il vento non è una campagna valida:
        è una campagna di cui non si può dire. Sulle polveri e sulle vibrazioni
        non si scrive niente: non c'è una regola da applicare. */
-    const fcT = contaFuoriCondizioni(p.letture, p.m || null);
+    const fcT = contaFuoriCondizioni(p.letture, p.m || null, IDX_METEO_GIORNO);
     const condTesto = !fcT.pertinente || !fcT.totale ? ""
       : `<br><b>Condizioni di misura (rumore, DM 16/03/1998 All. B):</b> ${
           fcT.fuori ? `<b>${fcT.fuori === 1 ? "una lettura" : fcT.fuori + " letture"} fuori condizioni</b> (vento oltre 5 m/s o pioggia)` : "nessuna lettura fuori condizioni"}${
@@ -5290,7 +5294,7 @@ textarea.dw-input{
        di un punto che non ne ha, e «tra NaN gg» su un adempimento senza data —
        lo stesso caso che la lista qui sopra aveva già imparato a chiamare
        «Senza data». Le ragioni per esteso stanno accanto alla funzione. */
-    const csv = csvAmbiente(MON, ADE, RIC);
+    const csv = csvAmbiente(MON, ADE, RIC, new Date(), IDX_METEO_GIORNO);
     const el = document.createElement("a");
     el.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     el.download = "sentinella_ambiente.csv"; marchiaCsv(el); el.click();

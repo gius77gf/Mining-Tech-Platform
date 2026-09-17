@@ -1769,3 +1769,225 @@ rispetto ai competitor, è un bug di wiring interno visibile solo leggendo
 il sorgente riga per riga. Le due strade (ricerca sul mondo, lettura
 diretta del codice) trovano famiglie di problemi diverse e vanno tenute
 entrambe.
+
+---
+
+## 17/09/2026 — ottavo giro di ricerca mirata: il monitoraggio della falda e delle acque, distinto dal monitoraggio ambientale di Sentinella
+
+**Domanda:** che cosa chiede davvero l'autorizzazione a una cava sul
+controllo delle acque (sotterranee e superficiali) attorno allo scavo, e
+Terra — che già tiene la quota di fondo autorizzata e la confronta con
+quella raggiunta dai fronti — ha un modo per sapere se quel fondo sta
+ancora rispettando il vincolo per cui esiste davvero: il franco rispetto
+al livello della falda?
+
+*Angolo scelto perché nessuno dei sette giri precedenti (denuncia
+annuale, rilievo col drone, garanzia finanziaria, scavo vs
+progetto/variante, sequenziamento multi-anno, ripristino ambientale
+progressivo, conformità geometrica) lo tocca, e perché non è la stessa
+cosa di Sentinella: quell'app copre rumore, polveri e vibrazioni — mai
+la falda o le acque superficiali. Verificato prima di scrivere, non
+assunto:*
+
+```
+$ grep -ciE "falda|piezometr" apps/terra/terra-data.js apps/terra/index.html apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/terra/terra-data.js:0
+apps/terra/index.html:0
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:0
+$ grep -ciE "acque sotterranee|acque superficiali" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:0
+apps/terra/index.html:0
+```
+Zero su tutte e quattro le superfici, in tutt'e due gli ecosistemi.
+Controllo di collisione (il termine corto "acqua" dentro parole comuni,
+la prima delle cinque cause note del "non c'è" falso): `grep -niE
+"\bacqua\b" apps/terra/terra-data.js apps/terra/index.html` dà **due**
+righe, tutt'e due il nome del colore dell'app ("verde-acqua (178°)") —
+non pertinenti, quindi lo zero sopra non è un artefatto del righello.
+
+### Il mondo — come si controllano le acque attorno a una cava, in Italia [tutto di seconda mano, WebSearch]
+
+1. **Rete piezometrica a monte e a valle idrogeologico.** Il piano di
+   cava è accompagnato da una relazione idrogeologica che individua e
+   caratterizza i punti della rete di monitoraggio (piezometri, pozzi,
+   sorgenti, e i laghi di cava dove la falda affiora), aggiornata
+   progressivamente man mano che si acquisisce conoscenza del sito
+   [seconda mano: relazione idrogeologica del piano cave, Provincia di
+   Varese — cartografia.provincia.va.it; criteri ISPRA 157/2017 citati da
+   ARPA FVG — arpa.fvg.it].
+2. **Doppia periodicità della misura.** Il livello piezometrico (quanto è
+   alta la falda) si legge con cadenza **mensile** e — in almeno un caso
+   di seconda mano trovato (Lombardia) — si trasmette all'ente tramite
+   una piattaforma dedicata (INLinea); la qualità chimica dell'acqua si
+   campiona con cadenza più larga, **almeno 3 volte l'anno**, in
+   corrispondenza delle principali oscillazioni stagionali della falda
+   [seconda mano: risultati di ricerca aggregati, cittametropolitana.mi.it
+   e fonti collegate].
+3. **Il vincolo che conta per lo scavo: il franco sopra il livello
+   massimo storico della falda, non un numero fisso deciso una volta.**
+   Il fondo dello scavo deve restare a una distanza minima dal **livello
+   più alto della falda registrato negli ultimi anni** (non dal livello
+   del giorno del progetto): in Veneto la distanza minima citata è **2
+   metri**, in Lombardia **1 metro**, fissata dai Piani Provinciali Cave
+   [seconda mano: risultati di ricerca aggregati sul controllo
+   dell'acquifero nelle attività estrattive, cittametropolitana.mi.it].
+   Cioè il franco è un rapporto fra **due misure che si aggiornano nel
+   tempo** — il fondo raggiunto e il massimo storico della falda — non
+   fra il fondo e un numero scritto una volta in autorizzazione.
+4. **Sanzioni per chi non trasmette.** La mancata comunicazione (o la
+   mancata realizzazione) del monitoraggio è una non conformità
+   dell'autorizzazione, con sanzioni amministrative indicate **da 1.000 a
+   4.000 €**, oltre alla possibile sospensione dell'attività estrattiva
+   [seconda mano: risultati di ricerca aggregati sul controllo
+   dell'acquifero, stessa fonte del punto 2].
+5. **Non trovato in questo giro** (onestamente dichiarato, non dedotto):
+   un numero unico e affidabile per la distanza minima nelle altre
+   Regioni (una ricerca dedicata su "quota di sicurezza falda" ha dato
+   solo risultati generici di sicurezza sul lavoro negli scavi edili, non
+   pertinenti a questo tema — scartati, non riportati come se fossero la
+   risposta).
+
+### Che cosa fa Terra oggi [verificato riga per riga in `apps/terra/terra-data.js` e `apps/terra/index.html`]
+
+- Terra **ha già**, dal giro sullo scavo-vs-progetto, `quotaFondoM`
+  (sull'autorizzazione e sul lotto: "quota di fondo scavo del progetto,
+  m s.l.m."), e la funzione `fondoAutorizzato(lotto, autorizzazione)` che
+  decide quale dei due vince, con `origine` dichiarata. `conformitaQuota`
+  confronta la quota di un fronte con quel fondo e `statoConformitaQuota`
+  risponde una delle quattro: `oltre` / `al-limite` / `dentro` /
+  `non-misurabile`. Disegnato in **page-tit, sezione "Conformità al
+  progetto"** (`apps/terra/index.html:895`), con la mappa `CQ` a quattro
+  colori (danger/warn/ok/tag) — verificato: `grep -n
+  "Conformità al progetto" apps/terra/index.html` → riga 895.
+- **Ma quel fondo (`quotaFondoM`) è un numero di PROGETTO**, scritto
+  una volta nell'atto autorizzativo. Il commento del modulo lo dice da
+  solo: *"la quota la scrive l'utente copiandola dal SUO atto. Terra
+  mette in fila i numeri, non decide che cosa è lecito"* (riga 3710).
+  Non è, e non vuole essere, il livello reale e attuale della falda: è
+  il limite che il progetto ha fissato **assumendo** che la falda resti
+  dove era quando il progetto è stato disegnato.
+- `TIPI_SCADENZA_TERRA` (riga 2196) ha **sette** chiavi:
+  `autorizzazione`, `fideiussione`, `screening-via`, `collaudo`,
+  `rilievo`, `denuncia`, `altro` — verificato: `grep -n "chiave:"
+  apps/terra/terra-data.js` righe 2197-2209, nessuna delle sette
+  contiene "falda", "piezometr" o "acqu". Ognuna delle prime sei ha una
+  `nota` che spiega perché quell'adempimento conta (es. la fideiussione:
+  *"va tenuta in vita fino allo svincolo"*); la campagna di monitoraggio
+  delle acque, se qualcuno la registra oggi, deve usare `altro`, che ha
+  `nota: ""` — nessuna guida.
+- Nessun campo, in nessun modulo dati e in nessun form della pagina,
+  registra una lettura di livello di falda o l'esito di un campionamento
+  chimico: non esiste l'entità (verificato dai grep in cima a questa
+  sezione, ripetuti anche su `index.html`).
+
+### Il delta
+
+Il meccanismo che il mondo chiede — *confrontare il fondo raggiunto con
+il massimo storico della falda, misurato periodicamente* — in Terra non
+è assente per distrazione: è assente perché **manca uno dei due termini
+del confronto**. Il primo termine (`quotaFondoM`, il fondo di progetto o
+quello raggiunto dal fronte) c'è già, verificato e disegnato. Il secondo
+termine — il livello di falda misurato, e il suo massimo storico — non
+esiste in nessuna forma. Quindi `conformitaQuota` oggi risponde una
+domanda diversa da quella del mondo: non "il fondo rispetta ancora il
+franco sopra la falda di OGGI?", ma "il fondo rispetta il numero scritto
+in progetto anni fa?" — che può restare "dentro" anche in un anno in cui
+la falda è salita, perché nessun dato di falda entra nel conto.
+
+Non gonfiato: **questo non è un difetto di `conformitaQuota`**, che fa
+esattamente quello che il suo commento promette (confrontare contro il
+progetto, senza inventare soglie). È un pezzo mancante *accanto* a una
+funzione che già esiste e regge bene il pezzo che ha.
+
+### Proposte verificate
+
+**1. Registrare le letture piezometriche e avvisare quando il franco sopra la falda si restringe**
+- **schermata:** page-tit, sezione "Conformità al progetto" (dove oggi
+  vive `CQ`/`conformitaQuota`) — nuova riga o nuova card accanto a quella
+  esistente, non sostitutiva.
+- **che cosa non va:** la card "dentro" di oggi dice solo che il fondo
+  rispetta il progetto; non può dire se il progetto stesso è ancora
+  valido, perché non sa quanto è alta la falda ora né quanto è salita in
+  passato. Un anno di falda eccezionalmente alta passa "dentro" senza
+  nessun segnale.
+- **come si vede:** nessun campo "livello falda" o "piezometro" in
+  nessun form (`grep -ciE "livelloFalda|piezometroId" apps/terra/terra-data.js
+  apps/terra/index.html` → 0 e 0, rilanciato ora); niente da leggere,
+  niente da confrontare.
+- **quanto costa:** medio. Nuova entità opzionale e additiva
+  `letturaFalda: {piezometroId, data, livelloM, fonte}` in
+  `terra-data.js` (stessa forma delle altre letture di Terra: `data`,
+  `fonte` dichiarata, nessuna soglia di legge cablata); una funzione
+  pura `francoFalda(fondoM, letturePiezometro)` che trova il massimo
+  storico e restituisce `{margineM, stato, misurabile}` sullo stesso
+  vocabolario a quattro di `statoConformitaQuota` (`oltre` diventa "la
+  falda ha superato il fondo", non un giudizio di legge — Terra non
+  decide il franco minimo, lo dichiara chi ha il numero della propria
+  Regione, esattamente come fa oggi per `quotaFondoM`).
+- **come si misura:** due piezometri di dimostrazione con letture su tre
+  anni, uno dei quali sale sopra il fondo autorizzato in un solo anno →
+  la card passa da "dentro" a "oltre"/"al-limite" solo quell'anno, e
+  torna "dentro" l'anno dopo (prova che il confronto è dinamico, non un
+  interruttore); senza nessuna lettura per un piezometro → "non
+  misurabile" (mai "a posto": è la regola del fondatore, "l'assenza di
+  un dato non è un dato favorevole", già applicata da `fondoAutorizzato`
+  sullo stesso fronte del codice).
+
+**2. Un tipo di scadenza dedicato per le campagne di monitoraggio delle acque**
+- **schermata:** page-den (le scadenze/adempimenti, dove vive
+  `TIPI_SCADENZA_TERRA` e il suo preset).
+- **che cosa non va:** chi deve tracciare "livello falda da trasmettere
+  ogni mese" o "campionamento chimico 3 volte l'anno" oggi apre
+  `TIPI_SCADENZA_TERRA` e trova solo `altro`, senza nessuna delle note
+  che guidano le altre sei voci.
+- **come si vede:** `grep -n "chiave:" apps/terra/terra-data.js` (righe
+  2197-2209) → sette voci, nessuna con "falda"/"piezometr"/"acqu";
+  `presetScadenzaTerra("acque")` oggi restituisce `null` (provato:
+  `node -e "import('./apps/terra/terra-data.js').then(m=>console.log(m.presetScadenzaTerra('acque')))"`
+  → `null`, perché la chiave non esiste nell'array).
+- **quanto costa:** basso. Una voce nell'array esistente:
+  `{ chiave: "acque", etichetta: "Monitoraggio acque — piezometri e campionamenti", nota: "Livello di falda e qualità dell'acqua: la periodicità e la soglia le dice l'atto, non un valore fisso — variano da atto ad atto." }`.
+  Additiva, non tocca nessuna delle sei esistenti.
+- **come si misura:** dopo la modifica, `presetScadenzaTerra("acque")`
+  non è più `null` e restituisce `{ ..., daVerificare: true }` come le
+  altre sei; una scadenza di dimostrazione con quella chiave compare
+  nell'elenco con l'etichetta corretta, non con il nome grezzo della
+  chiave (che è il segno, nella regola 18 di `run-stile.mjs`, di una
+  mappa più corta della sua funzione).
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+I numeri di legge di questo giro — "2 metri" (Veneto), "1 metro"
+(Lombardia), "da 1.000 a 4.000 €" di sanzione, "almeno 3 volte l'anno" —
+sono tutti **di seconda mano** (risultati di ricerca aggregati, non testo
+primario letto per intero: `WebFetch` risponde `EGRESS_BLOCKED` in questo
+ambiente) e **non vanno scritti in nessuna schermata**, seguendo la
+stessa decisione già presa per la dichiarazione annuale e il canone
+(sezione del 02/09 più sopra, decisione 21 di `docs/DECISIONI_WEEKEND.md`,
+allargata). Quello che entra nel prodotto è solo la **struttura del
+confronto** (fondo vs. massimo storico di falda, misurato e dichiarato),
+non la soglia: la soglia la scrive chi ha in mano il proprio atto,
+Regione per Regione — esattamente come Terra già fa oggi per
+`quotaFondoM` stesso.
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario)
+
+- [Città Metropolitana di Milano — Controllo dell'acquifero nelle attività estrattive](https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/gestione_att_estrattiva/controllo_acquifero.html)
+- [Città Metropolitana di Milano — Adempimenti attività estrattiva](https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Adempimenti.html)
+- [ARPA Piemonte — Monitoraggio acque sotterranee](https://www.arpa.piemonte.it/scheda-informativa/monitoraggio-acque-sotterranee)
+- [ARPA Piemonte — Rete piezometrica](https://www.arpa.piemonte.it/scheda-informativa/rete-piezometrica)
+- [ARPA FVG — Criteri per la definizione del monitoraggio dei corpi idrici sotterranei](https://www.arpa.fvg.it/temi/temi/acqua/ultimi-pubblicati/criteri-per-la-definizione-del-monitoraggio-dei-corpi-idrici-sotterranei/)
+- [Relazione Idrogeologica del Piano Cave — Provincia di Varese](https://cartografia.provincia.va.it//downloads/Pianocave/pianocave_adottato/relazioni/Relazione_Idrogeologica.pdf)
+- [montorioveronese.it — Attività di cava, disposizioni regionali per il monitoraggio idrochimico-idrodinamico delle acque di falda](https://www.montorioveronese.it/2022/03/25/attivita-di-cava-la-regione-detta-disposizioni-per-monitoraggio-idrochimico-idrodinamico-delle-acque-di-falda/)
+
+### Domande aperte per un giro futuro (non risposte qui)
+
+1. Il "lago di cava" (falda che affiora nello scavo, citato dal mondo)
+   è un caso che Terra incontra? Nessun fronte della dimostrazione lo
+   dichiara: da verificare parlando con chi lavora in cava, non da
+   dedurre.
+2. La piattaforma di trasmissione citata per la Lombardia (INLinea) è
+   un caso isolato o esiste in altre Regioni con altro nome? Non
+   verificato in questo giro: se il pattern si confermasse in tre
+   Regioni, cambierebbe il costo di un'eventuale esportazione dedicata.

@@ -1766,6 +1766,20 @@ test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'
   const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
   ok(/data-risposta-rec=/.test(pagina) && /htmlRispostaReclamo\(/.test(pagina), "la scheda del reclamo stampa la risposta");
   ok((pagina.match(/descriviStatoDiFatto\(/g) || []).length >= 3, "lo stato di fatto si legge nella riga del ricettore e in quella del reclamo");
+  // ⛔ 17/09, dal terzo giro di deep-pass: un punto CON lettura ma SENZA una
+  // soglia da confrontare (appena installato, nessun ricettore collegato)
+  // faceva concludere «sotto la soglia di riferimento» — falso: nessun
+  // confronto era mai stato fatto. Il corpo della lettera già dice
+  // «senza una soglia da confrontare»; la chiusura si contraddiceva.
+  const senzaSoglia = { id: "px", nome: "Polveri PM10 — piazzale nuovo", tipo: "polveri", unita: "µg/m³",
+    letture: [{ data: "2026-07-17", ora: "09:30", valore: 19.6 }] };
+  const D2 = { monitoraggi: [senzaSoglia], ricettori: [], volate: [] };
+  const S = sentinella.rispostaReclamo({ tipo: "polveri", data: "2026-07-17", chi: "Test Sig. Rossi" }, D2, oggi);
+  const rigaPx = S.sezioni[1].righe.find((r) => r[0] === "Polveri PM10 — piazzale nuovo");
+  ok(rigaPx && /senza una soglia da confrontare/.test(rigaPx[1]), "il corpo dice già che manca la soglia: " + JSON.stringify(rigaPx));
+  ok(S.chiusura.allarme, "⛔ e la chiusura non è più tranquilla: allarme=true");
+  ok(!/sotto la soglia/.test(S.chiusura.testo), "⛔ e non dice più «sotto la soglia», che sarebbe un confronto mai fatto: " + S.chiusura.testo);
+  ok(/nessuna ha una soglia con cui confrontarsi/.test(S.chiusura.testo), S.chiusura.testo);
 });
 test("⛔ la barra in basso di Sentinella dice «Scadenze», non «Adempimenti» (15/09)", () => {
   /* «Adempimenti» (11 lettere) era la voce che teneva i bersagli di tocco
@@ -43566,6 +43580,12 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(r1 && r1.tipo === "rumore", "la dimostrazione ha ancora il punto di rumore r1");
     const c = sentinella.contaFuoriCondizioni(r1.letture, r1);
     ok(c.fuori >= 1 && c.nonGiudicabili >= 1 && c.dentro >= 1, "e mostra tutt'e tre i cassetti: " + JSON.stringify(c));
+    // ⛔ 17/09: lo stesso ponte con Campo, qui nel conto che il report usa
+    // per la frase «N letture fuori condizioni» — mancava anche qui.
+    const L4 = [{ data: "2026-08-04", valore: 61 }];
+    const idxMeteo4 = new Map([["2026-08-04", [{ data: "2026-08-04", cielo: "Pioggia" }]]]);
+    eq(sentinella.contaFuoriCondizioni(L4, R).nonGiudicabili, 1, "senza il ponte: non si può dire");
+    eq(sentinella.contaFuoriCondizioni(L4, R, idxMeteo4).fuori, 1, "⛔ col ponte: la stessa lettura è fuori condizioni");
   });
   test("Sentinella · la ragione «meteo» esiste fra le ragioni di annullamento, senza testo libero", () => {
     const r = sentinella.RAGIONI_ANNULLAMENTO.find((x) => x.chiave === "meteo");
@@ -43598,11 +43618,23 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const nuovo = { nome: "P", tipo: "rumore", unita: "dB(A)", soglia: 70, valore: 0, letture: [] };
     const rn = colonne(righeCsv(sentinella.csvAmbiente([nuovo], [], []))[1]);
     eq([rn[12], rn[13]], ["", ""], "mai misurato: niente condizioni, niente verdetto");
+    // ⛔ 17/09, dal terzo giro di deep-pass: mancava il ponte con Campo (3g).
+    // Una lettura SENZA pioggia/vento propri, in un giorno in cui Campo
+    // dichiara pioggia, diventava «non si può dire» qui e «fuori condizioni»
+    // sullo schermo — lo stesso documento che va all'ARPA diceva qualcosa di
+    // più tranquillo di quello che l'app sapeva già.
+    const m4 = { ...m, letture: [{ data: "2026-08-04", valore: 61 }] };
+    const idxMeteo = new Map([["2026-08-04", [{ data: "2026-08-04", cielo: "Pioggia" }]]]);
+    const senzaPonte = colonne(righeCsv(sentinella.csvAmbiente([m4], [], []))[1]);
+    eq(senzaPonte[13], "non si può dire", "senza il ponte, come prima: non si sa se pioveva");
+    const conPonte = colonne(righeCsv(sentinella.csvAmbiente([m4], [], [], new Date(), idxMeteo))[1]);
+    ok(conPonte[13].startsWith("sì: pioggia (quel giorno, dal turno di Campo)"), "⛔ col ponte, il verdetto cambia: fuori condizioni, come lo direbbe lo schermo — " + conPonte[13]);
   });
   test("Sentinella · la pagina legge le condizioni dal modulo, in tre posti, e la tendina delle direzioni non ne tiene una copia", () => {
     const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
     eq((pagina.match(/misuraFuoriCondizioni\(/g) || []).length >= 3, true, "riga della lettura, conferma di scrittura, report");
-    ok(/contaFuoriCondizioni\(p\.letture, p\.m \|\| null\)/.test(pagina), "il conto del report lo fa il modulo");
+    ok(/contaFuoriCondizioni\(p\.letture, p\.m \|\| null, IDX_METEO_GIORNO\)/.test(pagina),
+      "⛔ 17/09: il conto del report lo fa il modulo, E porta il meteo del ponte con Campo — mancava, e il report diceva «non si può dire» dove lo schermo avrebbe detto «fuori condizioni»");
     ok(/DIREZIONI_VENTO\.map\(/.test(pagina), "le direzioni della tendina vengono dal modulo");
     ok(!/<option value="NE">/.test(pagina), "e non sono scritte a mano nella pagina");
     ok(/\.\.\.campiProvenienza\(FONTE_MANO\), \.\.\.cond \}/.test(pagina), "le condizioni entrano nella lettura registrata a mano");

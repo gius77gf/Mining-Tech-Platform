@@ -35,7 +35,8 @@ import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumera
 // funzione che lo dice per le visite mediche di Scudo e per i documenti di
 // Campo. Non se ne scrive una quarta (regola del `shared/`).
 import { statoScadenzaHSE, applicaPercorsi, traduciCancellazioni, trasformaAtomico, trasformaInMemoria,
-         statoResponsabile, azioniDiOrigine as azioniDiOriginePonti, statoPonte as statoPontePonti } from "../../shared/dw-ponti.js";
+         statoResponsabile, azioniDiOrigine as azioniDiOriginePonti, statoPonte as statoPontePonti,
+         meteoDelGiorno as meteoDelGiornoPonti } from "../../shared/dw-ponti.js";
 /* ⛔ `statoPonte` e `azioniDiOrigine` STAVANO QUI, ed erano identiche — misurate
    byte per byte — alle due di Campo. Una regola che serve a due app vive in
    `shared/`: qui restano col nome con cui le pagine le hanno sempre chiamate,
@@ -2489,7 +2490,16 @@ function cellaStorico(m) {
   return pezzi.join(" · ");
 }
 
-export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date()) {
+// ⛔ 17/09, dal terzo giro di deep-pass: la cella «fuori condizioni» qui
+// sotto chiamava `misuraFuoriCondizioni` con due argomenti, mentre lo
+// schermo (`index.html:2297`) ne passa un terzo — il meteo del giorno dal
+// ponte con Campo — che può cambiare il verdetto da «non si può dire» a
+// «sì, fuori condizioni». Lo stesso file che va all'ARPA/al consulente
+// diceva quindi qualcosa di più favorevole di quello che l'app sa. `idxMeteo`
+// è la stessa mappa data→turni che la pagina costruisce in `IDX_METEO_GIORNO`,
+// passata qui invece che ricostruita — un `Map` vuoto (il default) si
+// comporta come prima del ponte, nessuna sottrazione di informazione.
+export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date(), idxMeteo = new Map()) {
   /* ⛔ `numeroDichiarato` e non `Number.isFinite(+x)`: `+null` fa 0. Scritta a
      mano, questa cella riscriveva `2026-07-02:0` su una lettura senza valore —
      il difetto che il file esiste per non fare, rifatto nella correzione. */
@@ -2521,7 +2531,11 @@ export function csvAmbiente(monitoraggi, adempimenti, ricettori, oggi = new Date
          fuori dalle condizioni del DM 16/03/1998: «sì» / «no» / «non si può
          dire»; sugli altri tipi la cella resta vuota (non si giudica) */
       csvCell(ult ? condizioniMisura(ult).testo : ""),
-      csvCell(!ult ? "" : (() => { const f = misuraFuoriCondizioni(ult, m); return !f.pertinente ? "" : f.fuori ? "sì: " + f.motivo : f.giudicabile ? "no" : "non si può dire"; })()),
+      csvCell(!ult ? "" : (() => {
+        const meteoGiorno = meteoDelGiornoPonti(idxMeteo.get(String(ult.data || "").slice(0, 10)) || []);
+        const f = misuraFuoriCondizioni(ult, m, meteoGiorno);
+        return !f.pertinente ? "" : f.fuori ? "sì: " + f.motivo : f.giudicabile ? "no" : "non si può dire";
+      })()),
     ].join(";"));
   }
   for (const a of adempimenti || []) {
@@ -4332,12 +4346,20 @@ export function misuraFuoriCondizioni(l, m, meteoGiorno) {
     motivo: (meta ? "condizioni registrate a metà" + meta : "")
       + (ventoSospetto && meta ? " · quel giorno Campo segnalava vento forte: verifica consigliata" : "") };
 }
-export function contaFuoriCondizioni(letture, m) {
+// ⛔ 17/09: mancava anche qui il meteo del giorno dal ponte con Campo — lo
+// stesso `idxMeteo` di `csvAmbiente` qui sopra, una voce per lettura perché
+// ogni lettura ha la sua data. Un `Map` vuoto (il default) si comporta
+// come prima del ponte.
+export function contaFuoriCondizioni(letture, m, idxMeteo = new Map()) {
   const L = (Array.isArray(letture) ? letture : []).filter((l) => l && numeroDichiarato(l.valore) != null);
   const tipo = String((m || {}).tipo || "").trim().toLowerCase();
   if (tipo !== "rumore") return { pertinente: false, totale: L.length, fuori: 0, dentro: 0, nonGiudicabili: 0 };
   let fuori = 0, dentro = 0, nonGiudicabili = 0;
-  for (const l of L) { const f = misuraFuoriCondizioni(l, m); if (f.fuori) fuori++; else if (f.giudicabile) dentro++; else nonGiudicabili++; }
+  for (const l of L) {
+    const meteoGiorno = meteoDelGiornoPonti(idxMeteo.get(String(l.data || "").slice(0, 10)) || []);
+    const f = misuraFuoriCondizioni(l, m, meteoGiorno);
+    if (f.fuori) fuori++; else if (f.giudicabile) dentro++; else nonGiudicabili++;
+  }
   return { pertinente: true, totale: L.length, fuori, dentro, nonGiudicabili };
 }
 
@@ -5748,13 +5770,23 @@ export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
   ] });
   // la chiusura dice la cosa che conta, e non dice \u00abconforme\u00bb dove non c'\u00e8 una misura
   const pegg = mis.peggiore;
+  // \u26d4 17/09, dal terzo giro di deep-pass: con letture presenti ma TUTTE
+  // senza una soglia da confrontare (`pegg` resta `null` perch\u00e9 il filtro
+  // \u00e8 su `ratio != null`, non su `max != null`), questa catena cadeva nel
+  // ramo finale e diceva \u00absotto la soglia\u00bb \u2014 mentre il corpo della
+  // lettera, due righe pi\u00f9 su, dice gi\u00e0 \u00absenza una soglia da
+  // confrontare\u00bb per la stessa misura. La stessa lettera si contraddiceva:
+  // vero nel corpo, falso nella riga che chi legge in fretta ricorda.
+  const senzaSogliaConfrontabile = mis.conLettura > 0 && !pegg;
   const chiusura = !mis.data || !mis.punti.length || !mis.conLettura
     ? { allarme: true, testo: "Di quel giorno non c'\u00e8 una misura da mostrare: questa risposta non pu\u00f2 dire n\u00e9 sotto n\u00e9 sopra soglia, e deve dirlo." }
     : pegg && pegg.verdetto === "superamento"
       ? { allarme: true, testo: "Quel giorno una misura ha superato la soglia di riferimento (" + pegg.nome + "): la risposta lo dice e dice che cosa si \u00e8 fatto." }
       : pegg && pegg.verdetto === "attenzione"
         ? { allarme: true, testo: "Quel giorno una misura \u00e8 arrivata vicino alla soglia di riferimento (" + pegg.nome + ")." }
-        : { allarme: false, testo: "Le misure di quel giorno sono sotto la soglia di riferimento scelta dall'azienda \u2014 un riferimento tecnico, non un limite di legge." };
+        : senzaSogliaConfrontabile
+          ? { allarme: true, testo: "Di quel giorno ci sono misure, ma nessuna ha una soglia con cui confrontarsi: questa risposta non pu\u00f2 dire n\u00e9 sotto n\u00e9 sopra soglia, e deve dirlo." }
+          : { allarme: false, testo: "Le misure di quel giorno sono sotto la soglia di riferimento scelta dall'azienda \u2014 un riferimento tecnico, non un limite di legge." };
   return {
     titolo: "Risposta al reclamo" + (dataOk ? " del " + dataIt(data) : "") + (r.chi ? " \u2014 " + String(r.chi) : ""),
     sezioni, nonMisurati, chiusura,
