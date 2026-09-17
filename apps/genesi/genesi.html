@@ -3166,6 +3166,13 @@ $('fileIn').onchange = async e=>{
     SPALLA = valoreCampo(parseFloat(geom.spalla_m), SPALLA, 1.5, 8);
     INTERASSE = valoreCampo(parseFloat(geom.interasse_m), INTERASSE, 1.5, 8);
     P.diam = valoreCampo(parseFloat(def.diametro_mm), P.diam, 50, 160, true);
+    /* ⛔ 17/09, dal deep-pass che ha trovato G21 incompleta: `geometria`
+       scrive `borraggio_m` (riga 3130) ma nessun punto lo rileggeva — un file
+       che dichiara un borraggio diverso lo perdeva in silenzio al giro di
+       andata e ritorno, e il borraggio decide il confinamento del colletto
+       (SDOB) e il rischio di proiezioni. Stesso contratto degli altri tre
+       campi qui sopra, stesso range del campo `#dStem` (0,5–6 m). */
+    D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);
     const ritardi = fori.map(x=>parseFloat(String(x.ritardo??'').replace(/[^\d.]/g,''))||0);
     const rset = [...new Set(ritardi)].sort((a,b)=>a-b);
     let step = 25;

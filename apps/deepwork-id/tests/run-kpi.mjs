@@ -28062,9 +28062,15 @@ console.log("\n— Campo: i file che escono —");
     eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 }), 58, "e con 0,82 dichiarato sono davvero 58: il numero era plausibile, ed è per questo che nessuno lo guardava");
     eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, stem: 2.2, densita: 1.15 }), 73, "la sottoperforazione assente vale zero: non è un dato mancante (Lc 7,8 → 73 kg)");
     eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: null, stem: 2.2, densita: 1.15 }), 73, "anche scritta null");
-    for (const k of ["diam", "prof", "stem"]) {
+    for (const k of ["diam", "prof"]) {
       for (const v of [null, undefined, "", 0, -1, "abc"]) eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 1.15, [k]: v }), null, `senza ${k} (${JSON.stringify(v)}) non si calcola`);
     }
+    // ⛔ 17/09: il borraggio è l'ECCEZIONE degli altri tre — ammette lo ZERO
+    // (un colletto non borrato è un progetto pessimo, non un dato mancante),
+    // stessa regola già scritta per `confinamentoColletto`. Solo l'assenza
+    // vera e il negativo restano null.
+    for (const v of [null, undefined, "", -1, "abc"]) eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: v, densita: 1.15 }), null, `senza borraggio (${JSON.stringify(v)}) non si calcola`);
+    eq(genesi.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 0, densita: 1.15 }), 102, "⛔ borraggio ESATTAMENTE ZERO non è un dato mancante: colonna piena (Lc 10,9 m), non null");
     eq(genesi.caricaForoDaGeometria({ diam: 50, prof: 6, sub: 0, stem: 5.8, densita: 0.82 }), 2, "colonna quasi tutta borraggio: Lc bloccata a 0,5 m e la carica non scende sotto 2 kg");
     eq(genesi.caricaForoDaGeometria({ diam: "102", prof: "10", sub: "0.9", stem: "2.2", densita: "1.15" }), 82, "i numeri scritti si leggono");
     eq(genesi.caricaForoDaGeometria(null), null, "senza geometria niente");

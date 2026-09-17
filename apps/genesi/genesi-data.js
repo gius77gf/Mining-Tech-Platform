@@ -3599,8 +3599,18 @@ export function caricaLineare(diamMm, densitaGcc){
 }
 export function caricaForoDaGeometria(g){
   const o = g || {};
-  if(!(+o.diam > 0) || !(+o.prof > 0) || !(+o.stem > 0) || !(+o.densita > 0)) return null;
-  const Lc = Math.max(0.5, +o.prof + (+o.sub || 0) - +o.stem);
+  // ⛔ 17/09, dal deep-pass che ha trovato G21 incompleta: `+o.stem > 0`
+  // trattava un borraggio di ESATTAMENTE ZERO come dato mancante, mentre
+  // `confinamentoColletto` (stessa geometria, poco più su) lo accetta di
+  // proposito — «un colletto non borrato è un progetto pessimo, non un dato
+  // mancante» (commento G17). Con «carica automatica» accesa, un borraggio a
+  // zero azzerava l'intera scheda KPI invece di calcolare la colonna piena.
+  // ⚠️ E `null`/`undefined`/`''` vanno esclusi PRIMA di convertire: `+null`
+  // fa 0 e passerebbe il «>= 0» come se fosse un borraggio vero — lo stesso
+  // `+null === 0` già costato due volte in questo progetto.
+  const stem = (o.stem === null || o.stem === undefined || o.stem === "") ? NaN : +o.stem;
+  if(!(+o.diam > 0) || !(+o.prof > 0) || !(Number.isFinite(stem) && stem >= 0) || !(+o.densita > 0)) return null;
+  const Lc = Math.max(0.5, +o.prof + (+o.sub || 0) - stem);
   return Math.max(2, Math.round(caricaLineare(o.diam, o.densita) * Lc));
 }
 export function costantiPpvLitologia(vp){

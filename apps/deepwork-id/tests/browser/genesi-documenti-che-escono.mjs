@@ -168,6 +168,9 @@ const DIFETTI = [
   [`SPALLA = valoreCampo(parseFloat(geom.spalla_m), SPALLA, 1.5, 8);`, ``],
   [`INTERASSE = valoreCampo(parseFloat(geom.interasse_m), INTERASSE, 1.5, 8);`, ``],
   [`P.diam = valoreCampo(parseFloat(def.diametro_mm), P.diam, 50, 160, true);`, ``],
+  // 12 · e il borraggio, la quarta metà di G21 mancata al primo giro (17/09,
+  //      secondo giro di deep-pass): usciva nel file da mesi, nessuno lo rileggeva
+  [`D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);`, ``],
 ];
 
 const colpiti = new Set();
@@ -532,34 +535,53 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
 }
 
 // ── 4bis · G21: LA GEOMETRIA DEL FILE, LETTA E MAI SCRITTA ───────────────
-console.log("\n· il .volata.json, e il giro di andata e ritorno della geometria (spalla/interasse)");
+console.log("\n· il .volata.json, e il giro di andata e ritorno della geometria (spalla/interasse/borraggio)");
 {
-  /* progetto con una maglia ben diversa dal default (3,0×3,5), così un
-     ripiego sul valore precedente non potrebbe mai passare per coincidenza */
-  const pg = await apri(SITO_TRE, { ...BASE, B: 6, S: 7 });
+  /* progetto con una maglia E un borraggio ben diversi dal default
+     (3,0×3,5, stem 2,2), così un ripiego sul valore precedente non potrebbe
+     mai passare per coincidenza. Il borraggio (17/09, secondo giro di
+     deep-pass): `geometria.borraggio_m` usciva nel file da mesi e nessun
+     punto lo rileggeva — round-trip perso in silenzio su un parametro che
+     decide il confinamento del colletto (SDOB). */
+  const pg = await apri(SITO_TRE, { ...BASE, B: 6, S: 7, stem: 4.5 });
   await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
   const jsonTx = await esce(pg, "btnExport", "volata JSON (geometria)");
   const j = JSON.parse(jsonTx || "{}");
-  numeriConfrontati += 2;
-  dice(j.volata && j.volata.geometria && +j.volata.geometria.spalla_m === 6 && +j.volata.geometria.interasse_m === 7,
-    "⛔ il file esportato dichiara la maglia vera (6×7), non il default",
+  numeriConfrontati += 3;
+  dice(j.volata && j.volata.geometria && +j.volata.geometria.spalla_m === 6 && +j.volata.geometria.interasse_m === 7 && +j.volata.geometria.borraggio_m === 4.5,
+    "⛔ il file esportato dichiara la maglia E il borraggio veri (6×7, 4,5 m), non il default",
     j.volata && j.volata.geometria);
   const f = join(TMP, "geometria.volata.json");
   writeFileSync(f, jsonTx);
   await pg.close();
 
-  /* pagina FRESCA, col progetto di default (3,0×3,5): se l'import ripiegasse
-     sul valore precedente invece di leggere il file, qui resterebbe 3,0×3,5 */
+  /* pagina FRESCA, col progetto di default (3,0×3,5, stem 2,2): se l'import
+     ripiegasse sul valore precedente invece di leggere il file, qui
+     resterebbe 3,0×3,5 e 2,2 */
   const pg2 = await apri(SITO_TRE);
   await pg2.evaluate(() => { const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === "sim"); if (x) x.click(); });
   await pg2.waitForTimeout(1200);
   const prima = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  const stemPrima = await pg2.evaluate(() => window.__genesi.D2.stem);
   dice(/3,0×3,5/.test(prima), "prima dell'import il pannello è ancora sul default (3,0×3,5)", prima);
+  dice(stemPrima === 2.2, "e il borraggio (D2.stem) è ancora sul default (2,2 m)", stemPrima);
   await pg2.setInputFiles("#fileIn", f);
   await pg2.waitForTimeout(1200);
   const dopo = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  const stemDopo = await pg2.evaluate(() => window.__genesi.D2.stem);
   dice(/6,0×7,0/.test(dopo), "⛔ riletto da Genesi stessa, il pannello mostra la maglia DEL FILE (6,0×7,0) — non quella rimasta in memoria", dopo);
   dice(!/3,0×3,5/.test(dopo), "e non è più il default che c'era prima dell'import", dopo);
+  dice(stemDopo === 4.5,
+    "⛔ e D2.stem è il valore DEL FILE (4,5 m), non il default rimasto in memoria", stemDopo);
+  // e la spia visibile in pagina lo conferma: aprendo la scheda "design" il
+  // campo Borraggio si aggiorna da D2 (`syncDesignInputs`, chiamata a ogni
+  // cambio di schermata) — qui verifichiamo che porti il valore giusto,
+  // non solo che la variabile in memoria sia quella giusta
+  await pg2.evaluate(() => { const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === "design"); if (x) x.click(); });
+  await pg2.waitForTimeout(600);
+  const stemCampo = await pg2.evaluate(() => document.getElementById("dStem")?.value || "");
+  dice(parseFloat(String(stemCampo).replace(",", ".")) === 4.5,
+    "⛔ e il campo Borraggio, aperta la scheda di progettazione, mostra 4,5 (non il default rimasto in memoria)", stemCampo);
   dice(pg2.__err.length === 0, "la pagina non solleva errori", pg2.__err[0]);
   await pg2.close();
 }
