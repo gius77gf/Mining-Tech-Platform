@@ -1771,7 +1771,16 @@ function renderHome(){
    Vedi `statoScadenzaCore`. */
 function promemoriaSenzaData(p){ return !statoScadenzaCore(p.data).leggibile; }
 function promemoriaScaduto(p){ const st=statoScadenzaCore(p.data); return p.scaduto||(st.leggibile&&st.giorni<0); }
-function contaScaduti(){ return DB.promemoria.filter(p=>(promemoriaScaduto(p)||promemoriaSenzaData(p))&&!p.letto).length; }
+/* ⛔ 17/09: le scadenze dei mezzi da strada (`renderNotificheFull` le mostra
+   già, sezione "Scadenze mezzi") non entravano nel conto del badge in home —
+   la pagina completa le sapeva, la prima cosa che il titolare vede no. Estratta
+   qui perché è la stessa domanda in due posti: una copia debole diverge. */
+function mezziScadenzeUrgenti(){
+  const out=[];
+  DB.mezziStr.forEach(m=>{Object.entries(m.scadenze||{}).forEach(([k,v])=>{if(!v)return;const st=statoScadenzaCore(v);if(!st.leggibile||st.giorni<=30)out.push({targa:m.targa,tipo:k,data:v,d:st.giorni,leggibile:st.leggibile});});});
+  return out;
+}
+function contaScaduti(){ return DB.promemoria.filter(p=>(promemoriaScaduto(p)||promemoriaSenzaData(p))&&!p.letto).length + mezziScadenzeUrgenti().length; }
 function openNotifiche(){ nav('notifiche'); }
 
 function renderNotificheFull(){
@@ -1784,11 +1793,7 @@ function renderNotificheFull(){
   if(scad.length){html+='<div class="sec-title"><span class="dot"></span>Scaduti</div>';html+=scad.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">Era ${fmt(p.data)}</div></div><div class="sarr">×</div></div>`).join('');}
   if(senzaData.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Senza una data leggibile</div>';html+=senzaData.map(p=>`<div class="sitem warn" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">⏰</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">La data non si legge: non si può dire se è scaduto</div></div><div class="sarr">×</div></div>`).join('');}
   if(pros.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Prossimi</div>';html+=pros.map(p=>`<div class="sitem" onclick="confermaElimPromemoria('${p.id}')"><div class="av av-cv">📅</div><div class="sinfo"><div class="sname">${escHtml(p.titolo)}</div><div class="ssub">${fmt(p.data)} · fra ${conta(daysBetween(today(),p.data),'giorno','giorni')}</div></div><div class="sarr">×</div></div>`).join('');}
-  const mzScad=[];
-  /* ⛔ e qui la stessa sparizione, sui mezzi: con `NaN` la prova `d<=30` è
-     falsa, quindi una scadenza illeggibile non entrava in questo elenco.
-     Adesso entra, con la sua ragione al posto del numero di giorni. */
-  DB.mezziStr.forEach(m=>{Object.entries(m.scadenze||{}).forEach(([k,v])=>{if(!v)return;const st=statoScadenzaCore(v);if(!st.leggibile||st.giorni<=30)mzScad.push({targa:m.targa,tipo:k,data:v,d:st.giorni,leggibile:st.leggibile});});});
+  const mzScad=mezziScadenzeUrgenti();
   if(mzScad.length){html+='<div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze mezzi</div>';html+=mzScad.map(x=>`<div class="sitem ${!x.leggibile||x.d<0?'warn':''}"><div class="av av-mz">🚛</div><div class="sinfo"><div class="sname">${x.tipo.toUpperCase()} · ${escHtml(x.targa)}</div><div class="ssub">${x.leggibile?fmt(x.data)+' '+(x.d<0?'(scaduta)':'(fra '+x.d+'g)'):'la data non si legge: non si può dire se è scaduta'}</div></div></div>`).join('');}
   if(!html)html='<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">Nessuna notifica</div><div class="empty-sub">Tutto in ordine</div></div>';
   $('notif-full-list').innerHTML=html;
@@ -3091,10 +3096,20 @@ function renderMacLavoro(){
     // Trova utente assegnatario (ultimo rapportino con questo mezzo)
     const ultimoRapp=DB.rapportini.filter(r=>r.mezzoId===m.id).sort((a,b)=>(b.data||'').localeCompare(a.data||''))[0];
     const assegn=ultimoRapp?DB.users.find(u=>u.id===ultimoRapp.userId):null;
-    return`<div class="sitem" onclick="apriMacLavoro('${m.id}')">
+    /* ⛔ 17/09: un guasto critico segnalato restava visibile SOLO aprendo la
+       scheda del mezzo — l'elenco lo mostrava identico a un mezzo sano. I
+       mezzi da lavoro non hanno `scadenze` (a differenza dei mezzi da
+       strada, che il badge qui sotto già lo mostrano): il segnale che questa
+       lista PUÒ dare è quello che ha, i guasti ancora aperti. */
+    const aperti=(m.guasti||[]).filter(g=>g.stato!=='riparato');
+    const critico=aperti.find(g=>g.gravita==='critica');
+    let badge='',cls='';
+    if(critico){badge=`<span class="scad-badge danger">guasto critico</span>`;cls='danger';}
+    else if(aperti.length){badge=`<span class="scad-badge warn">${conta(aperti.length,'guasto aperto','guasti aperti')}</span>`;cls='warn';}
+    return`<div class="sitem ${cls}" onclick="apriMacLavoro('${m.id}')">
       <div class="photo-avatar-sm">${m.foto?`<img src="${encodeURI(m.foto)}">`:'<span style="font-size:16px;">🚜</span>'}</div>
       <div class="sinfo">
-        <div class="sname">${escHtml(m.modello)}</div>
+        <div class="sname">${escHtml(m.modello)} ${badge}</div>
         <div class="ssub">${escHtml(m.targa)} · ${contatoreMezzo(m.oreAttuali,'ore','ore non registrate')} · ${escHtml(c?c.nome:'—')}${assegn?' · 👤 '+escHtml(assegn.nome+' '+assegn.cognome):''}</div>
       </div>
       <div class="sarr">›</div>
