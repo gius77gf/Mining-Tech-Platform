@@ -3496,7 +3496,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        intero, non quello che l'utente ha scelto di vedere lì. */
     if (!chiuso) {
       const app = appelloTurno(OPER, PRE, OGGI, turno, "");
-      const av = avvisiChiusuraTurno(ATT_OGGI, app);
+      // ⛔ 17/09, censimento a doppio punto di chiamata: `ATT_OGGI` è tutta la
+      // giornata (diGiorno, non un filtro per turno), mentre `app` due righe
+      // sopra è già del turno giusto — avvisiChiusuraTurno non filtra da sé
+      // (i suoi stessi test in run-kpi.mjs passano array senza `turno`, cioè
+      // si aspetta attività già filtrate). L'avviso di chiusura del turno di
+      // Notte leggeva così i fermi/le attività aperte di Mattina, con lo
+      // stesso filtro già usato per `disponibilitaTurno` qui accanto.
+      const attTurno = ATT_OGGI.filter(a => a && String(a.turno || "") === turno);
+      const av = avvisiChiusuraTurno(attTurno, app);
       $("fir-avvisi").innerHTML = av.niente ? "" : `<b>Prima di chiudere</b>: `
         + [av.appelloDaFare ? conta(av.appelloDaFare, "persona senza spunta nell'appello", "persone senza spunta nell'appello") : "",
            av.attivitaAperte ? conta(av.attivitaAperte, "attività ancora in corso", "attività ancora in corso") : "",

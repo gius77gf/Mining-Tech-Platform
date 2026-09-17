@@ -3234,6 +3234,14 @@ a.dw-btn{text-decoration:none}
     ["aut-superficie", "la superficie autorizzata", "m²"],
     ["aut-volume", "il volume totale autorizzato", "m³"],
     ["aut-pregresso", "il già estratto", "m³"],
+    // ⛔ 17/09, censimento a doppio punto di chiamata: `leggiFormAut` legge
+    // questi due con `numCampo(id, {min:0})`, esattamente come i tre sopra,
+    // ma non erano MAI passati da un controllo — un «15 m» scritto per
+    // sbaglio (l'unità incollata al numero, come nell'etichetta del campo)
+    // si salvava in silenzio come «altezza non dichiarata», nessun bordo
+    // rosso, nessun errore, solo un «Scheda aggiornata» tranquillizzante.
+    ["aut-altezza", "l'altezza massima del banco", "m"],
+    ["aut-pendenza", "la pendenza massima della scarpata", "°"],
   ];
   /* ── LA PROVENIENZA DELLA DENSITÀ, NELLA SCHEDA DELL'ATTO ────────────────
      Il menù si costruisce dal vocabolario del modulo, non da un elenco
@@ -3396,6 +3404,18 @@ a.dw-btn{text-decoration:none}
           ? spiegaNum("la densità del materiale", r, "t/m³")
           : "La densità del materiale deve stare fra 0,3 e 5 t/m³: un metro cubo di roccia non pesa né meno né più di così.")
           + " La scheda non è stata salvata.", "err"); return; }
+    }
+    // ⛔ 17/09, stessa causa della geometria dei banchi sopra: la soglia di
+    // variante è facoltativa (regola regionale, non un dato di Terra) e non
+    // aveva nessun controllo — un testo illeggibile si salvava come «non
+    // dichiarata» senza dirlo. Solo il testo illeggibile ferma: la soglia
+    // vuota resta legittima, è la regione a non averla scritta qui.
+    {
+      const r = numCampo("aut-variante", { positivo: true, decimali: 2 });
+      err("aut-variante", false);
+      if (numIllegibile(r)) {
+        err("aut-variante", true); fuoco("aut-variante");
+        esito("aut-esito", spiegaNum("la soglia di variante sostanziale", r, "%") + " La scheda non è stata salvata.", "err"); return; }
     }
     const senzaVolume = d.volumeAutorizzatoM3 ? "" : " Senza il volume totale autorizzato il contatore vita cava resta spento.";
     /* ⛔ chi ha appena dichiarato la densità nell'atto deve vederla comparire
@@ -3655,9 +3675,20 @@ a.dw-btn{text-decoration:none}
     err("lot-nome", false);
     /* Un numero che non si riesce a leggere ferma il salvataggio: la superficie
        del lotto entra nel divario di recupero, e un m² sbagliato lì sbaglia il
-       numero che si mostra a chi fa vigilanza. */
+       numero che si mostra a chi fa vigilanza.
+       ⛔ 17/09, censimento a doppio punto di chiamata: gli ultimi quattro
+       campi qui sotto (altezza, pendenza, volume di recupero, garanzia)
+       erano letti da `leggiFormLotto` con lo stesso `numCampo(id,{min:0})`
+       di superficie e volume, ma restavano fuori da questo ciclo — un
+       «18.000 euro» scritto per sbaglio (l'unità incollata al numero) si
+       salvava in silenzio come «garanzia non dichiarata», con un «Lotto
+       aggiornato» che non lasciava sospettare niente. */
     for (const [id, che, unita] of [["lot-mq", "la superficie del lotto", "m²"],
-                                    ["lot-m3", "il volume previsto dal progetto", "m³"]]) {
+                                    ["lot-m3", "il volume previsto dal progetto", "m³"],
+                                    ["lot-altezza", "l'altezza massima del banco nel lotto", "m"],
+                                    ["lot-pendenza", "la pendenza massima nel lotto", "°"],
+                                    ["lot-vol-rec", "il volume rimesso per il recupero", "m³"],
+                                    ["lot-garanzia", "la quota di garanzia del lotto", "€"]]) {
       const r = numCampo(id, { min: 0 });
       err(id, false);
       if (numIllegibile(r)) {
