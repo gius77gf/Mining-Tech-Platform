@@ -6701,7 +6701,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     const attOrd = ATT.slice().sort((a, b) =>
       String(a.tipo || "").localeCompare(String(b.tipo || ""), "it")
       || String(a.modello || "").localeCompare(String(b.modello || ""), "it"));
-    const opzAtt = '<option value="">— nessuna attrezzatura collegata —</option>'
+    // ⛔ modali-dentro (17/09): a tendina chiusa "— nessuna attrezzatura
+    // collegata —" chiedeva 307 px dove ce n'erano 242 a 320 px — e il
+    // significato per esteso resta comunque nel form-hint sotto (vedi
+    // notaAttrezzatura), che per il caso "assente" scrive già la frase
+    // intera. Accorciato come "— nessuna —" di #sm-cava nel core: niente
+    // si perde, perché il pieno c'è già un rigo più sotto.
+    const opzAtt = '<option value="">— nessuna —</option>'
       + attOrd.map(a => `<option value="${a.id}"${a.id === sc.attrezzaturaId ? " selected" : ""}>${esc(voceAttrezzaturaInElenco(a))}</option>`).join("");
     apriModale("Verifica periodica · " + (etichettaScadenza(sc) || "attrezzatura"),
       `<div class="note" style="margin-top:0;">${esc(descriviVerificaPeriodica(v))}</div>`

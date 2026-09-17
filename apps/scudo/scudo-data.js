@@ -2872,15 +2872,31 @@ export function attrezzaturaDiScadenza(scadenza, attrezzature) {
    strutturati e corti (tipo/modello/matricola), quindi basta comporli — ma
    MAI una voce vuota, perché il `tipo` è l'unico campo che il form obbliga:
    un'attrezzatura appena censita, senza modello né matricola, mostra comunque
-   il proprio tipo invece di una riga muta che sembra un errore di caricamento. */
+   il proprio tipo invece di una riga muta che sembra un errore di caricamento.
+   ⛔ LA MATRICOLA NON C'ENTRA PIÙ (17/09), STESSA RAGIONE GIÀ SCRITTA PER
+   `titoloSenzaTipoRipetuto` QUI SOPRA: "niente si perde, il testo per esteso
+   sta in un form-hint sotto il campo". «Piattaforma elevabile — PLE
+   cingolata 18 m (matr. PLE-2021-1183)» chiede 527 px dove la tendina CHIUSA
+   ne ha 312 a 390 px e 242 a 320 — tagliata a metà parola, e proprio sulla
+   voce SCELTA (modali-dentro.mjs). `notaAttrezzatura()` in index.html scrive
+   già matricola/costruttore/anno nel form-hint sotto, per QUALUNQUE voce
+   selezionata, all'apertura della modale e a ogni cambio: la matricola non
+   sparisce, si legge un rigo più sotto invece che tagliata a metà.
+   ⛔ E TOLTA LA MATRICOLA NON BASTAVA ANCORA: «Piattaforma elevabile — PLE
+   cingolata 18 m» chiedeva ancora 361 px, sempre sopra i 312/242
+   disponibili — perché qui il TIPO e il MODELLO dicono la stessa cosa due
+   volte, ma non con le stesse parole («PLE» è la sigla di mestiere di
+   «piattaforma elevabile»): un confronto testuale come quello dei verbali
+   qui sopra non lo vedrebbe. Il modello è sempre più specifico del tipo —
+   è quello che chi fa la verifica usa per riconoscere la macchina vera — e
+   quando c'è basta lui da solo; il tipo resta solo per il fascicolo appena
+   aperto che il modello non ce l'ha ancora (caso reale nella dimostrazione:
+   «Carrello elevatore o telescopico», at3). */
 export function voceAttrezzaturaInElenco(attrezzatura) {
   const a = attrezzatura || {};
   const tipo = String(a.tipo == null ? "" : a.tipo).trim() || "Attrezzatura";
   const modello = String(a.modello == null ? "" : a.modello).trim();
-  const matricola = String(a.matricola == null ? "" : a.matricola).trim();
-  let voce = modello ? tipo + " — " + modello : tipo;
-  if (matricola) voce += " (matr. " + matricola + ")";
-  return voce;
+  return modello || tipo;
 }
 
 /* LA FRASE DEL FASCICOLO, per la nota viva della finestra di verifica.

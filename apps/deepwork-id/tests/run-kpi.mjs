@@ -29987,11 +29987,16 @@ test("attrezzaturaDiScadenza: tre stati come verbaleDiScadenza, e non si sommano
   eq(scudo.attrezzaturaDiScadenza(null, ATTR).stato, "assente");
 });
 test("voceAttrezzaturaInElenco: mai una voce vuota, anche con un fascicolo appena aperto", () => {
+  // ⛔ 17/09 (modali-dentro.mjs, la tendina chiusa tagliava la voce SCELTA
+  // a metà parola): tipo e matricola non ci sono più nella voce quando c'è
+  // un modello — il modello è sempre più specifico ("PLE cingolata 18 m"
+  // riconosce la macchina meglio del generico "Piattaforma elevabile"), e
+  // matricola/costruttore/anno restano comunque nel form-hint sotto il
+  // campo (descriviLegameAttrezzatura).
   eq(scudo.voceAttrezzaturaInElenco({ tipo: "Autogru", modello: "Autogru 30 t", matricola: "AG-2019-0447" }),
-    "Autogru — Autogru 30 t (matr. AG-2019-0447)");
-  // senza matricola: il tipo e il modello bastano, niente parentesi vuote
+    "Autogru 30 t");
   eq(scudo.voceAttrezzaturaInElenco({ tipo: "Piattaforma elevabile", modello: "PLE cingolata 18 m" }),
-    "Piattaforma elevabile — PLE cingolata 18 m");
+    "PLE cingolata 18 m");
   // un fascicolo appena aperto (solo il tipo, il caso di `at3` in DEMO): mai una riga muta
   eq(scudo.voceAttrezzaturaInElenco({ tipo: "Carrello elevatore o telescopico", modello: "", matricola: "" }),
     "Carrello elevatore o telescopico");
