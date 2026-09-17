@@ -10,6 +10,60 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 17/09 — Scudo↔Campo: le ore lavorate per gli indici infortunistici sono già misurate altrove, ma nessuno le collega
+
+*Cercando una sovrapposizione nuova nella mappa ecosistema (`docs/
+MAPPA_ECOSISTEMA.md` §3), dopo che il censimento del 16/09 si era dichiarato
+esaustivo (§3h) guardando solo gli header dei moduli dati, non le funzioni
+che consumano un dato altrove. La sovrapposizione trovata è reale su
+entrambi i lati, verificata leggendo il codice — non è un bug, nessuno dei
+due moduli mente su quello che fa — ed è un caso in cui costruire il ponte
+comporta un rischio dichiarato dal codice stesso.*
+
+- [ ] **35. Scudo↔Campo: le ore lavorate che servono a IF/IG/LTIFR sono già
+  misurate da Campo, ma `oreAnno` resta manuale.** `indiciInfortunistici`
+  (`apps/scudo/scudo-data.js:5316`) calcola i tre indici infortunistici che
+  un'azienda **porta in gara** e confronta con la media di settore, dividendo
+  per `oreAnno` — una collezione scritta **solo a mano**
+  (`apps/scudo/scudo-data.js:433`). Il commento della funzione (righe
+  5299-5312) rifiuta esplicitamente di stimarle dal numero di operatori,
+  chiamando quel ripiego «un denominatore inventato… una dichiarazione falsa
+  fatta con la faccia di un calcolo» — quindi oggi, senza compilazione manuale,
+  i tre indici restano `calcolabile:false`. Campo intanto misura già le ore
+  vere, per persona e per turno: la collezione `presenze` porta
+  `entrata`/`uscita` («gli orari VERI della persona», distinti apposta da
+  `ora`, che è solo l'istante in cui qualcuno ha spuntato la riga), e
+  `orariPresenza` (`apps/campo/campo-data.js:1910`) le trasforma già in minuti
+  lavorati con una bandiera `attendibile`. Nessuna funzione oggi le somma su
+  un anno intero, e nessuno dei due moduli legge l'altro
+  (`grep -n "oreAnno\|indiciInfortunistici\|oreLavorate" shared/dw-ponti.js
+  apps/campo/campo-data.js` → nessun risultato). Dettaglio completo, con le
+  citazioni di riga, in `docs/MAPPA_ECOSISTEMA.md` §3i.
+  **Perché serve una decisione e non un ponte automatico**: le ore di Campo
+  coprono solo chi timbra un turno lì — personale d'ufficio, part-time non
+  in `presenze`, o una cava che non usa quella schermata resterebbero fuori.
+  Sostituire in silenzio `oreAnno` con un numero di Campo che copre MENO
+  della forza lavoro vera produrrebbe un indice sbagliato — più alto o più
+  basso del vero a seconda di chi manca — esattamente il rischio che il
+  commento di `indiciInfortunistici` vieta già per la stima "a mano".
+  **Le strade**: (a) il ponte propone il totale di Campo come un valore
+  **suggerito**, che l'organizzazione conferma o corregge prima che entri
+  in `oreAnno` — mai una sostituzione silenziosa, con la copertura (quante
+  persone/turni sono nel conto di Campo) dichiarata accanto al numero; (b) si
+  costruisce solo per le organizzazioni che dichiarano di tracciare TUTTA la
+  forza lavoro in Campo (una bandiera esplicita, non dedotta); (c) si lascia
+  `oreAnno` manuale e si registra solo la sovrapposizione, senza costruire
+  niente, finché non arriva un caso reale che la renda urgente. **La mia
+  risposta, se non rispondi entro la settimana**: (a) — è il valore più alto
+  (chiude un `calcolabile:false` che oggi lascia senza indici molte
+  organizzazioni) al costo più basso (nessuna sostituzione automatica, la
+  persona umana resta l'ultima parola su un numero che si porta in gara). Non
+  la costruisco da solo perché tocca un indice di sicurezza che si confronta
+  con la media di settore, e un ponte silenziosamente parziale sarebbe
+  esattamente il denominatore inventato che il codice rifiuta già.
+
+---
+
 ## 🟡 17/09 — Campo: il rapportino non porta la fase dell'operazione né distingue sterile da commerciale
 
 *Dal settimo giro di ricerca continua (`docs/RICERCA_CONTINUA_CAMPO.md`,
@@ -550,7 +604,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **21**
+# 📖 Da dove cominciare — le decisioni aperte sono **22**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si

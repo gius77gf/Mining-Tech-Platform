@@ -525,6 +525,66 @@ consulta Sentinella per validare i certificati di taratura; Conti leggesse
 gli stati di fermo della Flotta per decidere le sospensioni automatiche…),
 che sono fuori dal perimetro di questo censimento.
 
+⛔ **E "ESAUSTIVE" ERA FALSO, TROVATO IL 17/09 CERCANDO PROPRIO UNA CONFERMA
+DI QUESTA RIGA.** Il censimento sopra guardava le prime 80 righe dell'header
+di ogni modulo — dove le collezioni si dichiarano — ma non incrociava ogni
+nome contro la FUNZIONE che lo consuma altrove nello stesso modulo. Vedi 3i.
+
+---
+
+### 3i. `oreAnno` (Scudo) **e** `presenze` (Campo) · *cercata il 17/09, nuova*
+
+Il fatto del mondo: quante ore ha lavorato davvero la squadra in un anno.
+Scudo ne ha un bisogno preciso e dichiarato; Campo lo misura già, per
+persona e per turno, dagli orari veri di entrata e uscita.
+
+**Lato Scudo — il bisogno, oggi manuale.** La collezione `oreAnno`
+(`apps/scudo/scudo-data.js:433`, `{ id, anno, ore }`) è scritta solo a mano:
+un'organizzazione che non l'ha mai compilata legge una lista vuota. La
+consuma `indiciInfortunistici` (riga 5316), che calcola i tre indici che
+un'azienda **porta in gara** (IF, IG, LTIFR) dividendo per queste ore — e il
+commento della funzione (righe 5299-5312) rifiuta esplicitamente di stimarle
+dal numero di operatori, chiamando quel ripiego «un denominatore inventato…
+una dichiarazione falsa fatta con la faccia di un calcolo». Senza `oreAnno`
+compilata, i tre indici restano `calcolabile:false` — dichiarato, non un
+numero rassicurante.
+
+**Lato Campo — il dato, già misurato, mai portato di là.** La collezione
+`presenze` (header del modulo, righe 22-27) porta `entrata`/`uscita`, «gli
+orari VERI della persona», distinti apposta da `ora` («l'istante in cui
+QUALCUNO HA SPUNTATO la riga — una traccia del gesto, non del lavoro»).
+`orariPresenza` (riga 1910) li trasforma in minuti lavorati per persona e
+turno, con una bandiera `attendibile` quando l'intervallo non torna. Nessuna
+funzione oggi somma questo su un anno intero:
+
+    grep -n "^export function" apps/campo/campo-data.js | grep -i "ore\|minuti\|total"
+    → totaliSettimana, oreMinuti, minutiFermoDi, minutiFermoTesto, minutiOrario,
+      oraDaMinuti, totaliProduzione — nessun totale annuo
+
+**Che nessuno dei due legge l'altro, verificato:**
+
+    grep -n "oreAnno\|indiciInfortunistici\|oreLavorate" shared/dw-ponti.js apps/campo/campo-data.js
+    → nessun risultato
+
+Il ponte già esistente Scudo↔Campo (3c) è un fatto diverso — chi è in turno
+ORA, per l'idoneità — non quante ore ha lavorato nell'anno. E la tabella di
+§2 lo confermava senza che nessuno se ne accorgesse: `oreAnno` compare in
+chiaro (riga 118), non in **grassetto** come `azioni`/`lavoratori`/
+`scadenze` — cioè il censimento del 16/09 l'aveva GUARDATA e non l'aveva
+segnata come sovrapposizione, perché guardava solo gli header, non chi
+consuma il dato altrove.
+
+**Perché non si costruisce da sola, a differenza delle 3a-3g.** Le ore di
+Campo coprono solo chi timbra un turno lì: personale d'ufficio, part-time non
+in `presenze`, o una cava che non usa quella schermata resterebbero fuori, e
+sostituire in silenzio `oreAnno` con un numero di Campo che copre meno della
+forza lavoro vera renderebbe l'indice sbagliato nella stessa direzione che
+il commento di `indiciInfortunistici` vieta esplicitamente — un denominatore
+più basso del vero, quindi un indice più alto e falso, oppure (se manca
+gente all'opposto) un indice più basso e falso: nessuno dei due è
+accettabile su un numero che si confronta con la media di settore. **Voce
+35 di `docs/DECISIONI_WEEKEND.md`.**
+
 ---
 
 ## 4. Il blocco strutturale: Genesi non esce dal browser
@@ -669,7 +729,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **0** *(era 1 dal 15/09 al 16/09: 3g — meteo del sito — censita il 15/09 e costruita il 16/09, nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
+| sovrapposizioni non collegate | **1** — 3i (`oreAnno`/`presenze`, cercata il 17/09) *(era 0: il censimento del 16/09 si era dichiarato esaustivo guardando solo gli header dei moduli, non le funzioni che consumano il dato altrove — vedi la correzione in 3h. Non si costruisce da sola come le altre: le ore di Campo non coprono per forza tutta la forza lavoro, e un denominatore parziale renderebbe l'indice falso nella direzione vietata dal commento di `indiciInfortunistici` — voce 35 di `docs/DECISIONI_WEEKEND.md`. Prima di questa: era 0 dal 16/09; era 1 dal 15/09 al 16/09 — 3g, meteo del sito, censita il 15/09 e costruita il 16/09 nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
