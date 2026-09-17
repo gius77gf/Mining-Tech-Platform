@@ -12678,6 +12678,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.pianoTagliando("999"), null, "un piano che non esiste");
     eq(flotta.ORIZZONTE_TAGLIANDI, 30, "l'orizzonte è di trenta giorni");
   });
+  test("⛔ 17/09: i piani di tagliando dichiarano la fonte, come già fa SCADENZE_MEZZO_PRESET con `norma`", () => {
+    // dal delta della ricerca continua sul mestiere (libretto d'uso e
+    // manutenzione): erano quattro passi uguali per ogni mezzo, senza dire da
+    // dove vengono — a differenza delle scadenze di legge, che portano sempre
+    // un `norma` mostrato in pagina. Un numero senza fonte non si spaccia per
+    // norma: adesso ogni piano dichiara che è un valore generico di settore,
+    // non il libretto di QUESTO mezzo.
+    ok(flotta.PIANI_TAGLIANDO.every(p => typeof p.fonte === "string" && p.fonte.length > 0), "ogni piano ha una fonte dichiarata");
+    ok(flotta.PIANI_TAGLIANDO.every(p => /manuale del costruttore/.test(p.fonte)), "e rimanda al libretto vero, non lo sostituisce");
+    const prop = flotta.propostaTagliando("CAT 320", 5875, flotta.pianoTagliando("500"));
+    ok(/manuale del costruttore/.test(prop.testo), "la proposta mostrata in pagina la include: " + prop.testo);
+  });
 }
 
 // ── Conti: incassi veri, tempi di pagamento, DDT e fattura differita ──
@@ -41163,6 +41175,12 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const s6 = terra.sequenzaLotto(lo6, terra.DEMO.lotti, terra.DEMO.rilievi);
     eq([s5.pertinente, s5.rispettata], [true, false], "lo5 dipende da lo4 all'80%, lo4 è al 34,8%");
     eq([s6.pertinente, s6.rispettata], [true, true], "lo6 dipende da lo5 al 20%, lo5 è al 27,6%");
+    // ⛔ 17/09, dal secondo giro di deep-pass: la frase scriveva l'articolo A
+    // MANO ("il 80%") invece di passare da articoloNumero, la funzione che
+    // questo stesso file definisce apposta per questo. Sulla dimostrazione la
+    // soglia di lo5 è 80: la forma corretta è «l'80%», mai «il 80%».
+    ok(/raggiungesse l'80%/.test(s5.frase), s5.frase);
+    ok(!/\bil 80%/.test(s5.frase), s5.frase);
     for (const l of terra.DEMO.lotti.filter((x) => x.id !== "lo5" && x.id !== "lo6"))
       eq(terra.sequenzaLotto(l, terra.DEMO.lotti, terra.DEMO.rilievi).pertinente, false,
         l.id + " non dichiara ancora una dipendenza: campo nuovo, opzionale");
@@ -42579,6 +42597,43 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     }
     const senzaCosto = righe.filter((x) => x.startsWith("intervento;") && /costo non scritto/.test(x));
     for (const r of senzaCosto) eq(r.split(";").pop(), "", "⛔ un intervento senza costo lascia la cella dell'importo VUOTA: uno zero si somma");
+  });
+  test("⛔ 17/09, dal secondo giro di deep-pass: il libretto porta il costo orario completo, non solo il possesso a parole", () => {
+    // il libretto è «il foglio che si consegna a chi compra la macchina», ed è
+    // esattamente la domanda per cui costoOrarioMezzo esiste — ma prima non la
+    // riportava mai: chi guardava solo il documento esportato non poteva
+    // ricostruire i 26,11 €/h di solo esercizio né i 56,93 €/h col possesso
+    // che la schermata Costi mostra per lo stesso mezzo.
+    const m = D.mezzi[0];
+    const righe = flotta.csvLibretto(m, DATI, OGGI, 30).split("\r\n");
+    const r = righe.find((x) => x.startsWith("costo orario;"));
+    ok(r, "la riga c'è");
+    ok(/€ 26,11\/h di solo esercizio/.test(r), "solo esercizio, stessa cifra dello schermo: " + r);
+    ok(/col possesso € 56,93\/h/.test(r), "col possesso, stessa cifra dello schermo: " + r);
+    ok(/42\.000,00.*1\.363/.test(r), "possesso annuo e ore/anno che lo spiegano: " + r);
+    // e la macchina nuda, senza officina/carburante/possesso, lo dichiara non calcolabile — mai uno zero
+    const nudo = flotta.csvLibretto({ id: "x", nome: "Pala X9 — Nuova", tipo: "pala", stato: "operativo" }, {}, OGGI, 30).split("\r\n");
+    const rNudo = nudo.find((x) => x.startsWith("costo orario;"));
+    ok(rNudo && /[Nn]on calcolabile/.test(rNudo) && !/€ 0,00/.test(rNudo), "nessun costo orario di zero su una macchina senza dati: " + rNudo);
+  });
+  test("⛔ 17/09, dal secondo giro di deep-pass: il libretto scrive i decimali con la virgola italiana, mai col punto inglese", () => {
+    // prima la concatenazione era diretta sul numero JS grezzo: un rifornimento
+    // di 45,8 litri usciva «45.8 l» in un file `;`-separato pensato per
+    // l'Excel italiano — non compariva mai in demo perché tutti i valori di
+    // esempio sono interi. Riprodotto qui con valori scritti apposta a
+    // decimali, come li scrive davvero chi rifornisce in cava.
+    const m = { id: "x", nome: "Escavatore prova", tipo: "escavatore", stato: "operativo" };
+    const dati = { rifornimenti: [{ mezzo: "Escavatore prova", data: "2026-09-17", litri: 45.8, euro: 68.5, ore: 5872.4 }],
+      interventi: [{ data: "2026-09-01", titolo: "Rotazione gomme", mezzo: "Escavatore prova", costo: 178.5,
+        manodopera: [{ chi: "Marco", ore: 3 }, { chi: "Officina esterna", ore: 1.5 }] }] };
+    const righe = flotta.csvLibretto(m, dati, new Date("2026-09-17")).split("\r\n");
+    const rRif = righe.find((x) => x.startsWith("rifornimento;"));
+    ok(/45,8 l/.test(rRif) && !/45\.8/.test(rRif), "i litri con la virgola, mai col punto: " + rRif);
+    ok(/5\.872,4 h/.test(rRif) && !/5872\.4/.test(rRif), "il contatore raggruppato e con la virgola: " + rRif);
+    const rCons = righe.find((x) => x.startsWith("consumo;"));
+    ok(!/\d\.\d h\/h|\d\.\d l\/h|\d\.\d €\/h/.test(rCons), "nessun numero col punto nella riga del consumo: " + rCons);
+    const csvInterventi = flotta.csvRegistroInterventi(dati.interventi).split("\r\n");
+    ok(/Marco 3 h \| Officina esterna 1,5 h/.test(csvInterventi[1]), "la manodopera con l'ora e mezza scritta con la virgola: " + csvInterventi[1]);
   });
   test("Flotta · csvLibretto: la macchina nuda — sei sezioni vuote che PARLANO, mai un file di due righe", () => {
     const righe = flotta.csvLibretto({ id: "x", nome: "Pala X9 — Nuova", tipo: "pala", stato: "operativo" }, {}, OGGI, 30).split("\r\n");

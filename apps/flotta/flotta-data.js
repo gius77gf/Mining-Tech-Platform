@@ -938,7 +938,7 @@ export function csvRegistroInterventi(interventi) {
                  w.oreManodopera == null ? "" : w.oreManodopera,
                  w.costoManodopera == null ? "" : w.costoManodopera,
                  w.costoRicambi == null ? "" : w.costoRicambi,
-                 (w.manodopera || []).map(r => r.chi + " " + r.ore + " h").join(" | ")].map(csvCell).join(";")));
+                 (w.manodopera || []).map(r => r.chi + " " + oreLavoroTesto(r.ore)).join(" | ")].map(csvCell).join(";")));
   return righe.join("\r\n");
 }
 
@@ -1087,13 +1087,19 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
   });
   else VUOTA("giro macchina", "Nessun controllo pre-uso registrato su questa macchina.");
   if (f.rifornimenti.length) f.rifornimenti.forEach(r => R("rifornimento", "gasolio", dataIt(r.data),
-    r.litri + " l" + (r.ore ? " · contatore " + r.ore + " h" + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
+    mostra(r.litri, 1) + " l" + (r.ore ? " · contatore " + oreLavoroTesto(r.ore) + (r.contatoreNuovo ? " (contatore nuovo)" : "") : "")
     + ((+r.euro > 0) ? "" : " · spesa non scritta"), (+r.euro > 0) ? +r.euro : null));
   else VUOTA("rifornimento", "Nessun pieno registrato: di questa macchina non si sa quanto beve.");
+  // ⛔ 17/09, dal secondo giro di deep-pass su Flotta: qui c'era la
+  // concatenazione diretta del numero JS (punto inglese, «45.8 l»), mentre
+  // ogni altra cella di questo stesso CSV — e lo schermo da cui l'utente ha
+  // scritto il dato — usa la virgola italiana. Un file `;`-separato pensato
+  // per l'Excel italiano con un punto al posto della virgola rischia di
+  // essere letto come testo o interpretato male.
   R("consumo", "litri per ora", "", !f.consumo
     ? "Nessun rifornimento registrato: il consumo non si può calcolare."
     : f.consumo.litriOra != null
-      ? f.consumo.litriOra + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · " + f.consumo.euroOra + " €/h" : "")
+      ? mostra(f.consumo.litriOra, 1) + " l/h su " + conta(f.consumo.oreCoperte, "ora", "ore") + (f.consumo.euroOra ? " · € " + mostra(f.consumo.euroOra, 2, true) + "/h" : "")
       : "Non calcolabile: " + f.consumo.perche + ".", "");
   R("totale officina", "interventi chiusi", "", conta(f.officina.interventi, "intervento", "interventi")
     + (f.officina.ore ? " · " + conta(f.officina.ore, "ora di manodopera", "ore di manodopera") : "")
@@ -1106,6 +1112,27 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
       + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
           + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
     : "Nessun fermo registrato.", "");
+  // ⛔ 17/09, dal secondo giro di deep-pass: il libretto — «il foglio che si
+  // consegna a chi compra la macchina» (vedi il commento di fascicoloMezzo) —
+  // non riportava mai il costo orario completo, il numero con cui il codice
+  // stesso dice che «un titolare decide se tenerla o cambiarla» e «il mondo
+  // confronta col ricavo — e con cui decide se comprare o noleggiare». Chi
+  // guardava solo il documento esportato non aveva modo di ricostruirlo: era
+  // solo sullo schermo (`renderCosti`). `d.interventi`/`d.rifornimenti` qui
+  // sono già il parco intero (`fascicoloMezzo` filtra per mezzo internamente),
+  // esattamente ciò che `costoOrarioMezzo` vuole.
+  const cOra = costoOrarioMezzo(d.interventi || [], d.rifornimenti || [], [m])
+    .find((x) => nomeBreve(x.mezzo) === nomeBreve(m.nome));
+  R("costo orario", cOra && cOra.euroOra != null ? "esercizio" + (cOra.euroOraCompleto != null ? " e possesso" : "") : "non calcolabile",
+    "",
+    !cOra || cOra.euroOra == null
+      ? "Non calcolabile: mancano ore e periodo misurati dal contatore nella finestra recente."
+      : "€ " + mostra(cOra.euroOra, 2, true) + "/h di solo esercizio"
+        + (cOra.parziale ? " (minimo: " + cOra.percheParziale + ")" : "")
+        + (cOra.euroOraCompleto != null
+            ? " · col possesso € " + mostra(cOra.euroOraCompleto, 2, true) + "/h (€ " + mostra(cOra.possessoAnnuo, 2, true) + " all'anno su " + mostra(cOra.oreAnno, 0) + " ore all'anno misurate)"
+            : cOra.perchePossesso ? " · possesso non nel completo: " + cOra.perchePossesso : ""),
+    "");
   return righe.join("\r\n");
 }
 
@@ -2600,16 +2627,28 @@ export function manutenzioneDaGuasto(dati, oggi = new Date()) {
 // può portare con sé il suo passo (`ogniOre` per i tagliandi a ore motore,
 // `ogniMesi` per quelli a calendario) e alla chiusura l'app pianifica da
 // sola il successivo. Chi non mette il passo ha il comportamento di prima.
+// ⛔ 17/09, dal delta della ricerca continua sul mestiere (libretto d'uso e
+// manutenzione): a differenza di `SCADENZE_MEZZO_PRESET`, che per ogni
+// scadenza di legge porta un campo `norma` mostrato in pagina
+// (`mostraNorma()`), questi quattro passi erano UGUALI per ogni tipo di
+// mezzo e non dichiaravano da dove vengono. L'art. 71 c.4 D.Lgs 81/08 lega
+// la manutenzione al ritmo scritto nel MANUALE DEL COSTRUTTORE — farla a un
+// ritmo diverso causa usura anticipata (fonte di seconda mano, WebSearch).
+// Questi 250/500/1000/2000 h sono valori generici tipici del settore
+// movimento terra, non il libretto di UN mezzo specifico: la stessa regola
+// già scritta altrove in questo file vale anche qui — un numero senza fonte
+// non si spaccia per norma, quindi lo dichiariamo invece di tacerlo.
 // ============================================================
+const FONTE_TAGLIANDO_GENERICA = "valori generici tipici del movimento terra, non il libretto di questo mezzo — verifica gli intervalli sul manuale del costruttore quando disponibile";
 export const PIANI_TAGLIANDO = [
   { chiave: "250",  etichetta: "Tagliando 250 h",  ogniOre: 250,
-    nota: "Olio motore e filtri: il tagliando che torna più spesso." },
+    nota: "Olio motore e filtri: il tagliando che torna più spesso.", fonte: FONTE_TAGLIANDO_GENERICA },
   { chiave: "500",  etichetta: "Tagliando 500 h",  ogniOre: 500,
-    nota: "Filtro aria, gioco valvole, controlli generali." },
+    nota: "Filtro aria, gioco valvole, controlli generali.", fonte: FONTE_TAGLIANDO_GENERICA },
   { chiave: "1000", etichetta: "Tagliando 1000 h", ogniOre: 1000,
-    nota: "Olio trasmissione e impianto idraulico." },
+    nota: "Olio trasmissione e impianto idraulico.", fonte: FONTE_TAGLIANDO_GENERICA },
   { chiave: "2000", etichetta: "Tagliando 2000 h", ogniOre: 2000,
-    nota: "Revisione di pompe e organi principali." },
+    nota: "Revisione di pompe e organi principali.", fonte: FONTE_TAGLIANDO_GENERICA },
 ];
 
 export function pianoTagliando(chiave) {
@@ -2631,7 +2670,8 @@ export function propostaTagliando(nomeMezzo, oreMezzo, piano) {
   const p = piano || {};
   const passo = Math.round(+p.ogniOre || 0);
   const nome = String(nomeMezzo || "").trim();
-  const testaPiano = (p.etichetta || "Tagliando") + (p.nota ? ": " + p.nota : "");
+  const testaPiano = (p.etichetta || "Tagliando") + (p.nota ? ": " + p.nota : "")
+    + (p.fonte ? " (" + p.fonte + ")" : "");
   const coda = passo > 0
     ? " Alla chiusura, il prossimo nascerà da solo a +" + passo + " " + plurale(passo, "ora", "ore") + " sulle ore di quel momento."
     : "";

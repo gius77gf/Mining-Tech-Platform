@@ -553,3 +553,197 @@ già** — un rapportino può contare i viaggi di un camion. Quello che manca no
 - Non ho letto il testo primario di nessuna fonte (solo estratti di
   `WebSearch`): dove serve una citazione precisa per un testo di prodotto, va
   riletta la pagina.
+
+---
+
+## Tornata 3 — 17/09/2026 · «Il libretto d'uso e manutenzione del mezzo: chi decide quando fare un tagliando»
+
+**Verificato contro il commit `1d5399fd`** (17/09/2026 19:52 UTC).
+**Domanda**: che cosa dice davvero la norma sul manuale d'uso e manutenzione di
+una macchina da cava (chi lo deve avere, chi ne segue gli intervalli), e da
+dove viene il ritmo dei tagliandi che `apps/flotta` propone.
+
+### 0 · Lo strumento
+
+`WebSearch` ha funzionato su tutte le query di questa tornata. `WebFetch` non
+è stato riprovato: la Tornata 1 lo ha già misurato **negato dal proxy su dieci
+domini diversi** (`EGRESS_BLOCKED`), ed è la stessa famiglia di rinuncia che
+CLAUDE.md chiama «un 'non si può' che parla dello strumento, non del mondo» —
+qui però la misura esiste già e rifarla non avrebbe aggiunto niente. Nessuna
+pagina è stata letta per intero: quello che segue viene dagli **estratti**
+restituiti da `WebSearch`, con il link accanto a ogni voce.
+
+### 1 · Che cosa esiste già in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1 e 2** qui sopra. La Tornata 1, tabella §2.1,
+riga «DSS — art. 10, i tredici elementi», cita già l'elemento **e)**:
+«programma di ispezione, manutenzione e collaudo sistematici di attrezzature,
+strumentazione e impianti meccanici/elettrici/elettromeccanici» — ma non
+l'aveva confrontato con `apps/flotta`, che è dove quel programma vive davvero
+nel prodotto. Questa tornata chiude quel confronto.
+
+Letto `apps/flotta/flotta-data.js` per le sezioni L1 (mezzi), F6 (scadenze di
+legge del mezzo) e L3 (piani di manutenzione ricorrenti), e `apps/flotta/index.html`
+per come F6 e L3 arrivano in pagina.
+
+**Quello che c'è, ed è fatto bene:**
+
+- `SCADENZE_MEZZO_PRESET` (righe 467-520): sette scadenze **di legge** —
+  verifica periodica attrezzatura (art. 71 c.11), gru su autocarro, funi e
+  catene, registro di controllo, revisione alla Motorizzazione, noleggio —
+  **ognuna con un campo `norma`** mostrato all'utente (`mostraNorma()`,
+  `index.html:1846-1847`) e una nota che dichiara i propri limiti: «la
+  periodicità cambia da attrezzatura ad attrezzatura: controlla l'Allegato VII
+  per la tua» (riga 471), «i risultati vanno tenuti a disposizione degli
+  organi di vigilanza per 5 anni» (riga 483).
+- `CSV_LIBRETTO_INTESTAZIONE` / `csvLibretto` (righe 1039 e seguenti): il
+  foglio che si consegna a chi compra o noleggia il mezzo, con ogni sezione
+  vuota che dichiara «nessuna registrata» invece di tacere — è la stessa
+  disciplina sull'assenza già lodata nella Tornata 1 per Campo e Scudo.
+- Il commento di riga 513 sa già, in un punto solo, che esiste «il libretto
+  del costruttore» e che chi usa un mezzo in leasing lo deve seguire.
+- `TOLLERANZA_COSTO_PCT` e `TOLLERANZA_FERMI_PCT` (righe 4801-4859) applicano
+  già un principio esplicito: «nessuna fonte […] dà una tolleranza di
+  settore per questo segnale, e **un numero senza fonte non si spaccia per
+  norma**» — è la stessa regola che, come si vede sotto, i quattro tagliandi
+  standard di L3 non rispettano.
+
+**Cioè: la casa distingue già, in un posto, un numero di legge (con `norma`
+mostrata) da un numero indovinato (con l'avviso che è indovinato). L3 è il
+punto in cui quella distinzione manca.**
+
+### 2 · IL MONDO — chi decide il ritmo di un tagliando, e che cosa rischia chi lo ignora
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| Contenuto minimo del manuale d'uso | La Direttiva Macchine 2006/42/CE, Allegato I punto 1.7.4.2, elenca il contenuto minimo delle istruzioni: dati del fabbricante, designazione della macchina, dichiarazione CE, disegni e schemi, **descrizioni e spiegazioni necessarie per l'uso, la manutenzione e la riparazione**, descrizione dei posti di lavoro, uso previsto, avvertenze sugli usi scorretti prevedibili | [Quadra Srl](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/) *(estratto)* |
+| Obbligo di avere il manuale | Il D.Lgs 81/08 impone a produttori, rivenditori e datori di lavoro che **ogni macchina abbia un manuale d'uso e manutenzione**; venderla o usarla senza è punito con **arresto da 3 a 6 mesi o ammenda da 2.740 a 7.014,40 €** | [Quadra Srl](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/) *(estratto — sanzione riportata di seconda mano, da riverificare sul testo prima di citarla in un documento verso terzi)* |
+| Manutenzione secondo il fabbricante | L'art. 71 D.Lgs 81/08 (c.4) chiede che l'attrezzatura sia «oggetto di idonea manutenzione […] ed è corredata, ove necessario, da apposite istruzioni d'uso e libretto di manutenzione»; sulle macchine da **movimento terra** la manutenzione va fatta «a intervalli regolari indicati dal manuale d'uso del costruttore», perché farla a un ritmo diverso porta a **usura eccessiva e difetti prematuri dei componenti e delle strutture** | [Puntosicuro — manutenzione macchine movimento terra](https://www.puntosicuro.it/edilizia-C-10/la-manutenzione-in-sicurezza-delle-macchine-movimento-terra-AR-12189/) |
+| Registro dei controlli interni | L'art. 71 c.8 impone che i risultati dei controlli di manutenzione siano riportati per iscritto e **almeno gli ultimi tre anni conservati e tenuti a disposizione** degli organi di vigilanza — un numero diverso dai «5 anni» che il preset `registro-controllo` di Flotta dichiara (riga 483): nessuna delle due fonti è il testo di legge letto per intero, quindi la discrepanza resta **aperta**, non risolta qui | [Edafos — registro manutenzione attrezzature](https://www.edafos.it/attrezzature-e-macchine/registro-manutenzione-attrezzature-obblighi-controlli/) |
+| Verifica periodica (soggetto esterno) | Distinta dalla manutenzione interna: la fa un soggetto abilitato (INAIL poi ASL/soggetto privato), ha una periodicità propria per tipo di attrezzatura (Allegato VII) — **questa Flotta la copre già** (`verifica-periodica`, `gru-autocarro`) | [InSic](https://www.insic.it/sicurezza-sul-lavoro/prevenzione-infortuni-articoli/attrezzature-di-lavoro-e-verifiche-periodiche-dei-soggetti-abilitati/) |
+
+`[dedotto]` La lettura che ne do: il mondo separa **tre** cose che è facile
+confondere — il manuale del costruttore (che fissa GLI INTERVALLI), il
+registro interno dei controlli (che ne è la PROVA nel tempo) e la verifica
+periodica di un soggetto esterno (che è un controllo DIVERSO, con la sua
+scadenza di legge). Flotta oggi modella bene la terza e ha l'impianto giusto
+per la seconda (`csvLibretto`); la prima — da dove viene il numero delle ore
+fra un tagliando e l'altro — non è collegata a nessun costruttore o modello.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+`$ grep -rniE "libretto (d.uso|di uso)|manuale (d.uso|di uso)|istruzioni per l.uso" apps/ --include=*.js --include=*.html`
+→ **0 righe** su tutto il repository (non solo Flotta): il concetto di
+«manuale d'uso e manutenzione del costruttore» come oggetto distinto dal
+«libretto di circolazione» (Motorizzazione, riga 451) o dal «registro di
+controllo» (riga 479) non esiste da nessuna parte come termine.
+
+Ma — regola del cercare il meccanismo, non il nome — Flotta **ha già** la
+funzione che fissa il ritmo dei tagliandi: `PIANI_TAGLIANDO`
+(`flotta-data.js:2604-2613`):
+
+```
+export const PIANI_TAGLIANDO = [
+  { chiave: "250",  etichetta: "Tagliando 250 h",  ogniOre: 250,
+    nota: "Olio motore e filtri: il tagliando che torna più spesso." },
+  { chiave: "500",  etichetta: "Tagliando 500 h",  ogniOre: 500,
+    nota: "Filtro aria, gioco valvole, controlli generali." },
+  { chiave: "1000", etichetta: "Tagliando 1000 h", ogniOre: 1000,
+    nota: "Olio trasmissione e impianto idraulico." },
+  { chiave: "2000", etichetta: "Tagliando 2000 h", ogniOre: 2000,
+    nota: "Revisione di pompe e organi principali." },
+];
+```
+
+Il commento sopra la lista (riga 1852-1853 di `index.html`) la introduce come
+«i quattro tagliandi a ore delle **macchine da movimento terra**»: **una lista
+sola per ogni tipo di mezzo**, applicata a un escavatore, una pala, un dumper
+o una perforatrice indifferentemente — verificato: `TIPI_MEZZO` non entra mai
+nella scelta del piano (`$("man-piano").innerHTML` a riga 1854-1856 non
+filtra su `$("mez-tipo")`).
+
+Confronto diretto con `SCADENZE_MEZZO_PRESET`, che tratta un problema
+gemello (un numero di periodicità proposto all'utente):
+`$ grep -n "norma:" apps/flotta/flotta-data.js | grep -c "norma:"` → **7**
+occorrenze, tutte dentro `SCADENZE_MEZZO_PRESET`. Nessuna delle quattro voci
+di `PIANI_TAGLIANDO` ha un campo `norma` o un campo equivalente: **0 su 4**.
+E `$ grep -n "costruttore\|modello:" apps/flotta/flotta-data.js` → **1 sola
+riga** (513, la nota sul leasing): non esiste, sul record di un mezzo, un
+campo strutturato per il modello o il costruttore — solo testo libero dentro
+`nome` (`"Escavatore E1 — CAT 352"`, riga 227), che nessuna funzione legge.
+
+**Cioè**: i quattro tagliandi non sono sbagliati (250/500/1000/2000 ore sono
+intervalli plausibili per un motore diesel da cantiere), ma sono presentati
+allo schermo con la **stessa forma** con cui `SCADENZE_MEZZO_PRESET` presenta
+un obbligo di legge — un menu a tendina, un'etichetta, una nota — mentre la
+fonte è diversa: uno è la norma, l'altro è **una scelta interna senza
+dichiararsi tale**. È esattamente il caso per cui `TOLLERANZA_COSTO_PCT` porta
+il commento «un numero senza fonte non si spaccia per norma» — applicato a un
+numero diverso, nello stesso file, che quel commento non copre.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la distinzione fra
+manutenzione interna e verifica periodica esterna **c'è già** ed è netta —
+`SCADENZE_MEZZO_PRESET` (esterna, con norma) e `PIANI_TAGLIANDO` +
+`interventi` (interna, storico libero) sono due liste separate, mai
+confuse fra loro nel codice. Il delta non è «Flotta non sa manutenere»: è
+che **una delle due liste non dice da dove viene il suo numero**, e la
+persona che apre l'app non ha modo di distinguere «questo è un obbligo che
+un ispettore verifica» da «questo è un ritmo tipico che qualcuno ha scelto».
+
+### 4 · La proposta (formato fisso)
+
+1. **Flotta → Manutenzione (L3) · I quattro tagliandi standard non
+   dichiarano la propria fonte, e sono uguali per ogni tipo di mezzo** · Il
+   mondo (Puntosicuro, §2) dice che gli intervalli di manutenzione di una
+   macchina da movimento terra vanno seguiti **dal manuale del costruttore**,
+   e farli a un ritmo diverso causa usura anticipata; Flotta invece propone
+   **una lista sola** (250/500/1000/2000 h) a qualunque escavatore, pala,
+   dumper o perforatrice, senza dire che è una stima interna e non il libretto
+   di quella specifica macchina · `grep -n "norma:" apps/flotta/flotta-data.js
+   | grep -c "norma:"` → 7, tutte in `SCADENZE_MEZZO_PRESET`; `PIANI_TAGLIANDO`
+   → 0 · **costo: basso** — un campo `fonte` su ogni piano (valore di default
+   `"generico"`), un piano opzionale `"costruttore"` che l'utente compila una
+   volta per mezzo (numero di ore letto dal manuale, con gli stessi campi che
+   già esistono per le altre scadenze), e una riga di testo nel menu
+   (`propostaTagliando`) sul modello di `SCADENZE_MEZZO_PRESET.nota` — non
+   serve un modulo nuovo, serve estendere quello che c'è · **come si misura**:
+   scegliendo un piano generico, `propostaTagliando(...).testo` deve contenere
+   una frase tipo «ritmo tipico, non il libretto di questa macchina» (assente
+   oggi: nessuna delle quattro note del piano lo dice); con un piano
+   `"costruttore"` impostato la frase non compare più. Controprova: rimossa la
+   distinzione, la stessa frase deve tornare a mancare su **entrambi** i casi
+   — se no la prova non guarda la fonte, guarda solo la presenza di un testo.
+   Fonte:
+   [Puntosicuro — manutenzione macchine movimento terra](https://www.puntosicuro.it/edilizia-C-10/la-manutenzione-in-sicurezza-delle-macchine-movimento-terra-AR-12189/),
+   [Quadra Srl — contenuto del manuale di istruzioni](https://quadrasrl.net/cosa-deve-contenere-il-manuale-di-istruzioni-macchina/)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Un modulo «Manuale del costruttore» a sé stante**, con upload del PDF e
+  campi per ogni operazione di manutenzione descritta nel libretto. Il
+  delta misurato è più piccolo: manca **la provenienza del numero**, non
+  tutto il contenuto del manuale. Costruire un modulo intero sarebbe la
+  stessa sproporzione già segnalata nella Tornata 1 per il «giornale di
+  cava»: una funzione nuova dove basta **una dichiarazione** su una funzione
+  che già esiste.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- **La sanzione penale/amministrativa per macchina senza manuale** (arresto
+  3-6 mesi o ammenda 2.740-7.014,40 €) viene da un solo estratto secondario
+  (Quadra Srl): non è stata incrociata con una seconda fonte né con il testo
+  di legge, e **non va scritta in un'interfaccia rivolta al cliente** senza
+  prima rileggerla sul testo primario — vale la stessa regola già applicata
+  da Scudo alle proprie note normative.
+- **La discrepanza fra «tre anni» (Edafos, sull'art. 71 c.8) e «5 anni»**
+  che il commento di `SCADENZE_MEZZO_PRESET` riga 483 dichiara per il
+  registro di controllo: nessuna delle due fonti di questa ricerca è il
+  testo di legge, e la riga **non va corretta sulla parola di un estratto**
+  — resta segnalata come prova da riverificare, non come un difetto da
+  correggere.
+- Non è stato trovato, in questa tornata, un fac-simile italiano di
+  «piano di manutenzione» specifico per macchine da cava (solo per macchine
+  da cantiere edile in generale): resta aperto se in cava si usino intervalli
+  diversi da quelli standard da movimento terra per via della polvere e
+  dell'abrasività del materiale — nessuna fonte trovata lo conferma o lo
+  smentisce.

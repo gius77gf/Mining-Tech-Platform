@@ -3949,7 +3949,7 @@ body.dw b.bad{color:var(--ink-dg)}
     $("sch-testa").innerHTML = `<div class="sch-testa">
       <div class="sch-av">${I.mezzo}</div>
       <div class="sch-b"><div class="sch-nome">${esc(m.nome)}</div>
-        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}${contatoreSostituitoTx(m.nome, true)}</div>
+        <div class="sch-sotto"><span class="badge ${st[0]}">${st[1]}</span> ${esc(f.tipo.etichetta)}${m.area ? " · " + esc(m.area) : ""} · ${oreMotoreTx(m.ore, grassetto)}${oreNote(m.ore) && m.oreDaTelemetria ? " (da telemetria)" : ""}${contatoreSostituitoTx(m.nome, true)}${f.eta && f.eta.misurabile ? " · età " + f.eta.anni.toLocaleString("it-IT", { useGrouping: false }) + (f.eta.anni === 1 ? " anno" : " anni") : ""}</div>
         <div class="sch-sotto">${f.ultimoIntervento ? "Ultimo intervento: <b>" + esc(f.ultimoIntervento.titolo) + "</b> del " + dataIt(f.ultimoIntervento.data) : "Nessun intervento registrato"}${f.ultimoControllo ? " · ultimo giro macchina: " + dataIt(f.ultimoControllo.data) : " · nessun giro macchina"}</div>
       </div></div>`;
     $("sch-kpi").innerHTML = [

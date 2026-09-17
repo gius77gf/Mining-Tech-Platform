@@ -3603,12 +3603,12 @@ export function sequenzaLotto(lotto, tuttiLotti, rilievi) {
   const av = avanzamentoLotto(precedente, vm.misurabile ? vm.m3 : null);
   const nomePrec = precedente.nome || "il lotto da cui dipende";
   if (av.pct == null) return { pertinente: true, rispettata: null, sogliaPct, precedenteNome: nomePrec,
-    frase: "dipende da " + nomePrec + " al " + un1(sogliaPct) + "%, ma il suo avanzamento non è ancora misurabile" };
+    frase: "dipende da " + nomePrec + " " + articoloNumero("al", un1(sogliaPct)) + un1(sogliaPct) + "%, ma il suo avanzamento non è ancora misurabile" };
   const rispettata = av.pct >= sogliaPct;
   return { pertinente: true, rispettata, sogliaPct, precedentePct: av.pct, precedenteNome: nomePrec,
     frase: rispettata
-      ? "sequenza rispettata: " + nomePrec + " è al " + un1(av.pct) + "% (soglia " + un1(sogliaPct) + "%)"
-      : "aperto prima che " + nomePrec + " raggiungesse il " + un1(sogliaPct) + "%: oggi è al " + un1(av.pct) + "%" };
+      ? "sequenza rispettata: " + nomePrec + " è " + articoloNumero("al", un1(av.pct)) + un1(av.pct) + "% (soglia " + un1(sogliaPct) + "%)"
+      : "aperto prima che " + nomePrec + " raggiungesse " + articoloNumero("il", un1(sogliaPct)) + un1(sogliaPct) + "%: oggi è " + articoloNumero("al", un1(av.pct)) + un1(av.pct) + "%" };
 }
 
 /* L'APERTURA FUORI PROGRAMMA (16/09, dal delta della ricerca continua sul

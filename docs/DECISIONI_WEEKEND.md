@@ -2161,7 +2161,13 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.607** *(ricontate il 17/09, dopo aver
+**Le prove automatiche sono passate a 3.610** *(ricontate il 17/09, dopo aver
+corretto in Flotta — secondo giro di deep-pass — tre difetti veri: i CSV col
+punto inglese invece della virgola italiana, il libretto senza il costo
+orario completo, l'età del mezzo mai mostrata a schermo; e prima di questo,
+dopo aver corretto in Terra `sequenzaLotto` — l'articolo scritto a mano invece di
+`articoloNumero` — e in Flotta `PIANI_TAGLIANDO`, che non dichiarava la fonte
+dei suoi passi a ore; e prima di questo, dopo aver
 corretto in Scudo — censimento a doppio punto di chiamata, quinto difetto
 vero nello stesso giorno, ma di forma diversa dagli altri quattro: il
 lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della
