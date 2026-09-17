@@ -21155,7 +21155,7 @@ console.log("\n— Scudo: il ciclo di vita del DSS (D.Lgs 624/96 art. 6) —");
   test("⛔ Scudo · scadenzaDenunciaInail: termine ordinario, 2 giorni dal certificato — MAI dalla data dell'evento", () => {
     const senzaCert = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "grave", giorniAssenza: 10 }, new Date("2026-09-05"));
     eq([senzaCert.pertinente, senzaCert.calcolabile], [true, false]);
-    ok(/manca la data di ricezione del certificato/.test(senzaCert.motivo), senzaCert.motivo);
+    ok(/manca la data.*numero del certificato/.test(senzaCert.motivo), senzaCert.motivo);
     const inTermine = scudo.scadenzaDenunciaInail({ tipo: "infortunio", data: "2026-09-01", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-04" }, new Date("2026-09-05"));
     eq(inTermine.scadenza, "2026-09-06", "due giorni dal certificato (04+2), non dalla data dell'infortunio (01)");
     eq(inTermine.stato, "regolare");

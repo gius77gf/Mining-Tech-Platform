@@ -10,6 +10,68 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 17/09 — Deepwork ID: un membro rimosso o declassato resta operativo fino a un'ora, e lo stato "disabled" dichiarato non lo scrive nessuna funzione
+
+*Dalla ricerca continua su Deepwork ID (`docs/RICERCA_CONTINUA_DEEPWORKID.md`,
+17/09), su un angolo non ancora guardato dalle ricerche precedenti (quelle
+sui ruoli/RBAC e sull'export dati): che cosa succede al TOKEN già in mano a
+un membro quando gli si toglie l'accesso, non a chi glielo assegna. Il
+requisito fondante di questo repository — l'isolamento totale fra
+organizzazioni CONCORRENTI — dipende anche da questo, non solo dalle regole
+Firestore.*
+
+- [ ] **37. Un membro rimosso o declassato di ruolo mantiene un token Firebase
+  valido con i permessi VECCHI fino a un'ora.** `removeMember`
+  (`apps/deepwork-id/functions/index.js:206`) e `updateMemberRole`
+  (`apps/deepwork-id/functions/index.js:182`) chiamano entrambe solo
+  `rebuildClaims` (riga 222 e 202), che riscrive i custom claims
+  dell'utente — ma i custom claims sono **stateless lato token**: un token
+  già emesso resta valido fino alla sua scadenza naturale (fino a un'ora)
+  a meno di chiamare esplicitamente `revokeRefreshTokens()`. Nessuna delle
+  due funzioni la chiama
+  (`grep -n "revokeRefreshTokens" apps/deepwork-id/functions/index.js` →
+  nessun risultato), e `firestore.rules` non ha un controllo di freschezza
+  sul token (`auth_time`/`iat` contro un `revokedAt`): solo il claim. Un ex
+  membro con un token ancora valido continua a vedere/scrivere per fino a
+  un'ora dopo essere stato rimosso da un'organizzazione i cui dati — per la
+  natura di questo prodotto — possono essere quelli di un'azienda
+  concorrente della sua nuova.
+  **Secondo problema collegato**: lo stato `disabled` è nello schema
+  dichiarato (`apps/deepwork-id/ARCHITETTURA.md:47`, `status: active |
+  invited | disabled`) e ha già l'etichetta pronta in `admin.html`, ma
+  nessuna funzione lo scrive — sui 7 export di
+  `apps/deepwork-id/functions/index.js` zero si chiamano `disableMember` o
+  `setMemberStatus`
+  (`grep -n "disableMember\|setMemberStatus" apps/deepwork-id/functions/index.js`
+  → nessun risultato). L'unico modo di togliere l'accesso oggi è
+  `removeMember`, che CANCELLA il documento di membership: non esiste una
+  sospensione reversibile (utile per un dipendente in malattia/permesso,
+  senza perdere lo storico di chi era e che ruolo aveva).
+  **Perché serve una decisione e non una correzione automatica**: aggiungere
+  `revokeRefreshTokens()` cambia un comportamento di sicurezza per TUTTE le
+  app dell'ecosistema contemporaneamente (ogni sessione attiva di un membro
+  rimosso o declassato verrebbe interrotta, forzando un nuovo login) — un
+  cambiamento visibile all'utente che merita una conferma esplicita, non
+  un ritocco silenzioso a codice che tocca l'isolamento multi-tenant.
+  Costruire `disableMember` è invece una feature nuova (anche piccola), non
+  un difetto da correggere.
+  **Le strade**: (a) aggiungere `revokeRefreshTokens(uid)` sia a
+  `removeMember` sia a `updateMemberRole` — chiude la finestra di un'ora,
+  costo basso (poche righe), effetto collaterale onesto e visibile (logout
+  forzato); (b) aggiungere anche `disableMember`/`setMemberStatus` per lo
+  stato sospeso reversibile, riusando la stessa `rebuildClaims` +
+  `revokeRefreshTokens`; (c) lasciare così finché non arriva un caso reale
+  (un cliente che lamenta un ex dipendente ancora operativo), registrando
+  solo la sovrapposizione. **La mia risposta, se non rispondi entro la
+  settimana**: (a) e (b) insieme — sono la stessa causa (nessuna delle due
+  funzioni chiude davvero l'accesso), il costo è basso, e la mancanza tocca
+  esattamente la garanzia che il fondatore ha scritto come non negoziabile
+  (isolamento fra organizzazioni concorrenti). Non lo costruisco da solo
+  perché introduce un logout forzato visibile agli utenti, che merita una
+  conferma prima di attivarlo su un prodotto già in mano a clienti.
+
+---
+
 ## 🟡 17/09 — Scudo↔Campo: le ore lavorate per gli indici infortunistici sono già misurate altrove, ma nessuno le collega
 
 *Cercando una sovrapposizione nuova nella mappa ecosistema (`docs/
@@ -650,7 +712,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **23**
+# 📖 Da dove cominciare — le decisioni aperte sono **24**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si

@@ -3209,11 +3209,20 @@ import { numeroDichiarato } from "../../shared/dw-ponti.js";
    NON è la prognosi medica (che il medico dichiara PRIMA e può differire
    da quanti giorni l'assenza dura poi davvero), un limite dichiarato, non
    nascosto.
+   ⛔ 17/09, riverificato da una seconda ricerca indipendente sulla stessa
+   norma: il nome del campo era impreciso. Dal D.Lgs 151/2015 (in vigore dal
+   24/09/2015) il certificato medico non passa più dalle mani del datore di
+   lavoro — va dal medico/struttura sanitaria a INAIL per via telematica. Il
+   datore riceve dal lavoratore solo il NUMERO identificativo del
+   certificato, ed è da quella ricezione che decorre il termine ordinario
+   (nota MLPS 12/01/2015 n. 37, di seconda mano). Il conto dei giorni non
+   cambia: cambia solo che cosa si dichiara di aver ricevuto — corretto
+   anche in `apps/scudo/index.html:1572`.
    Due termini diversi, due basi diverse:
-   · ORDINARIO (> 3 giorni di assenza): 2 giorni dalla ricezione del
-     certificato medico (`dataCertificato`, campo nuovo, opzionale — senza
-     quella data NON si calcola niente, mai un termine dedotto dalla data
-     dell'evento, che è un'altra cosa);
+   · ORDINARIO (> 3 giorni di assenza): 2 giorni dalla ricezione del NUMERO
+     del certificato medico (`dataCertificato`, campo nuovo, opzionale —
+     senza quella data NON si calcola niente, mai un termine dedotto dalla
+     data dell'evento, che è un'altra cosa);
    · MORTALE: 24 ORE dall'infortunio. Qui Scudo registra solo il GIORNO
      dell'evento (`data`), non l'ORA: un conto sulle ore non si può fare
      con precisione. Si tiene il CASO PEGGIORE — il giorno dopo l'evento —
@@ -3254,11 +3263,11 @@ export function scadenzaDenunciaInail(infortunio, oggi = new Date()) {
   }
   if (!dataISOEsiste(x.dataCertificato))
     return { ...base, pertinente: true, calcolabile: false,
-      motivo: "manca la data di ricezione del certificato medico: senza quella data il termine non si può calcolare" };
+      motivo: "manca la data in cui è stato ricevuto il numero del certificato medico: senza quella data il termine non si può calcolare" };
   const scad = dataPiuGiorni(2, new Date(String(x.dataCertificato).slice(0, 10) + "T00:00:00"));
   return { ...base, pertinente: true, calcolabile: true, scadenza: scad, precisione: "giorno",
     stato: statoScadenza(scad, oggi, 0),
-    motivo: "termine ordinario (D.P.R. 1124/1965, art. 53): 2 giorni dalla ricezione del certificato medico, scade il " + dataIt(scad) };
+    motivo: "termine ordinario (D.P.R. 1124/1965, art. 53): 2 giorni dalla ricezione del numero del certificato medico, scade il " + dataIt(scad) };
 }
 
 /* I DSS di una cava, dal più recente al più vecchio. Vivono nel registro

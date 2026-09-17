@@ -431,3 +431,167 @@ ruoli — non urgente, perché la fatturazione non esiste ancora, ma da
 decidere PRIMA di costruirla). 1 conferma che il modello di isolamento fra
 organizzazioni già scelto è quello che il mondo raccomanda. Tutto verificato
 contro il commit `9b91fb93`.
+
+## Ricerca del 2026-09-17 — quando un membro viene rimosso o declassato, per quanto resta valido il suo accesso? Il momento della REVOCA, non quello dell'assegnazione
+
+**Che cosa esiste già, letto prima di proporre.** Le tre ricerche precedenti
+(qui sopra) coprono chi assegna un ruolo e che cosa quel ruolo permette
+(03/09, 15/09) e come i dati escono (11/09). Nessuna delle tre guarda il
+verso opposto: che cosa succede al token **già in mano** a un utente quando
+gli si TOGLIE l'accesso — la domanda del deprovisioning, non
+dell'onboarding. `vault/ROADMAP_SETTIMANA.md` e i checkpoint più recenti
+(`node apps/deepwork-id/tests/date-checkpoint.mjs` per trovarli, non il
+nome) non nominano token, refresh, revoca o sessione: è un angolo non
+ancora guardato.
+
+### Come va, fuori — SOLO WebSearch, marcato [di seconda mano]
+
+- **Il problema è strutturale ai custom claims, non un bug**: «i custom
+  claims sono stateless: revocarli con `setCustomUserClaims()` non
+  invalida immediatamente il token già emesso. Gli ID token restano validi
+  fino alla scadenza (di norma 1 ora) e non si possono revocare
+  singolarmente.» La soluzione che la stessa documentazione ufficiale
+  raccomanda è `admin.auth().revokeRefreshTokens(uid)`, che forza un nuovo
+  token — coi claim aggiornati — alla richiesta successiva; introduce
+  comunque un ritardo, e se serve l'immediatezza vera (es. un utente
+  bannato) si raccomandano i session cookie con controllo di revoca, o un
+  flag di revoca controllato lato database. [di seconda mano — Firebase
+  docs "Manage User Sessions"; groups.google.com/firebase-talk; expertbeacon.com]
+- **I concorrenti diretti di Deepwork ID lo trattano come un requisito di
+  prodotto, non un dettaglio implementativo**: «disattivare una membership
+  d'organizzazione in WorkOS ne imposta lo stato a inactive **e revoca
+  tutte le sessioni attive**»; «Clerk e Stytch revocano le sessioni
+  immediatamente al deprovisioning»; SCIM (lo standard con cui le imprese
+  sincronizzano gli account) esiste apposta perché «continua a sincronizzare
+  gli account e revoca l'accesso alla rimozione — è un controllo critico di
+  deprovisioning e un requisito SOC 2». [di seconda mano — workos.com/docs
+  (Users and Organizations), clerk.com/articles (SCIM 2.0 explained;
+  Federated identity for enterprise SaaS)]
+- **La lettura di fondo**: il mondo tratta «assegnare un permesso» e
+  «toglierlo» come due momenti con garanzie diverse — assegnare può
+  aspettare il refresh naturale, togliere no, perché nella finestra in
+  mezzo l'ex-membro ha ancora in tasca un lasciapassare valido. Per una
+  piattaforma che isola aziende **concorrenti fra loro** (il requisito
+  fondante di `ARCHITETTURA.md §1`) e i cui dati più sensibili sono
+  documenti di sicurezza e fiscali, quella finestra è esattamente il rischio
+  che l'isolamento esiste per chiudere.
+
+### Il delta, fatto da chi ha il codice in mano (17/09, verificato contro `8c0cf23a`)
+
+**(1) `removeMember` e `updateMemberRole` riscrivono i claim, ma non
+revocano mai il refresh token — la finestra di accesso residuo è REALE,
+non teorica, ed è fino a un'ora.**
+- **Verificato**: `grep -n "rebuildClaims\|setCustomUserClaims\|revokeRefreshTokens" apps/deepwork-id/functions/index.js` →
+  `rebuildClaims` chiamato da `updateMemberRole` (riga 199) e da
+  `removeMember` (riga 219), che a sua volta chiama `scriviClaims` →
+  `admin.auth().setCustomUserClaims(uid, { orgs })` (riga 44). **Zero**
+  occorrenze di `revokeRefreshTokens` in tutto `apps/deepwork-id`
+  (esclusi i `node_modules` dell'SDK admin, dove la funzione esiste ma non
+  è mai chiamata dal nostro codice): `grep -rn "revokeRefreshTokens"
+  apps/deepwork-id | grep -v node_modules` → **nessuna riga**.
+- `setCustomUserClaims` cambia i claim che verranno scritti nel **prossimo**
+  token; non tocca il refresh token né gli ID token già emessi. Un membro
+  rimosso da Scudo (o declassato da `admin` a `member`) che ha aperto la
+  pagina un minuto prima **continua a leggere e scrivere** con le regole
+  del ruolo vecchio finché il suo token non scade da solo — fino a un'ora,
+  secondo la stessa documentazione citata sopra — perché
+  `firestore.rules` non legge altro che `request.auth.token.orgs[orgId]`:
+  `grep -n "auth_time\|token\.iat\|revokedAt\|tokensValidAfter"
+  apps/deepwork-id/firestore.rules` → **nessuna riga**: non c'è nessun
+  controllo di freschezza del token, solo il claim.
+- **Nessuna prova lo copre**: `roleOf` in `run-fns.mjs:72` legge il
+  documento Firestore della membership con l'SDK admin
+  (`adb.doc('organizations/orgA/members/'+uid).get()`), non un token
+  dell'utente rimosso. Il test «un ADMIN rimuove un member» (`run-fns.mjs:148-151`)
+  verifica che la membership sia sparita, **non** che l'accesso lo sia:
+  oggi non esiste un modo di scrivere quella prova, perché non c'è codice
+  che la farebbe passare.
+- **schermata**: nessuna (è un comportamento del backend, non visibile
+  nell'interfaccia) · **che cosa non va**: un membro rimosso da
+  un'organizzazione — o da un ruolo che gli dava accesso a un documento di
+  sicurezza — mantiene un token valido con i vecchi permessi per un tempo
+  che può arrivare a un'ora, esattamente la finestra che WorkOS e Clerk
+  chiudono di proposito alla rimozione · **come si vede**: si logga un
+  membro, gli si dà un token (in emulatore: `id.currentUser.getIdToken()`
+  prima della rimozione), lo si rimuove con `removeMember`, e si prova a
+  leggere/scrivere su Firestore **con quel token vecchio** senza chiamare
+  `getIdToken(true)`: le regole lo accettano ancora, perché il claim nel
+  JWT non è cambiato — solo quello nel database Auth lo è · **quanto
+  costa**: S — una riga in `removeMember` e in `updateMemberRole` (quando
+  il ruolo scende, non quando sale) prima del `return`:
+  `await admin.auth().revokeRefreshTokens(uid)`; il client, al prossimo
+  giro (o su un banner "sessione scaduta" se si vuole l'immediatezza vera
+  come consigliato per i casi critici), rifà login. Nessuna migrazione
+  dati, nessun campo nuovo · **come si misura**: la prova che oggi non
+  esiste — token letto PRIMA della rimozione, riletto (o riusato) DOPO,
+  contro una regola che nega — passata da rossa a verde; e la controprova
+  che, tolta la riga, torna rossa. `grep -c "revokeRefreshTokens"
+  apps/deepwork-id/functions/index.js` deve salire da 0.
+
+**(2) Lo stato `disabled` è documentato in `ARCHITETTURA.md` e ha
+un'etichetta pronta in `admin.html`, ma nessuna funzione lo scrive: oggi
+l'unica «rimozione» possibile è la cancellazione definitiva del
+documento.** Non è la stessa mancanza del punto 1 (quella è sul TOKEN,
+questa è sullo STATO in Firestore), ma è la stessa famiglia — il
+deprovisioning è pensato a metà.
+- **Verificato**: `ARCHITETTURA.md:39` dichiara
+  `status: active | invited | disabled` nello schema membership;
+  `admin.html:130` ha già `STATO = { active: 'Attivo', invited: 'Invitato',
+  disabled: 'Disattivato' }`. Ma `grep -n "status:\s*['\"]"
+  apps/deepwork-id/functions/index.js` scrive solo `active` (righe 114,
+  121, 280), `pending` (151), `revoked` (235), `expired` (262), `accepted`
+  (270, 284): **mai** `disabled`. `grep -n "^exports\."
+  apps/deepwork-id/functions/index.js` → sette funzioni, nessuna
+  `disableMember`; l'unica via di rimozione è `removeMember`, che fa
+  `memRef.delete()` (riga 218) — cancellazione, non sospensione. La sola
+  occorrenza di `disabled` fuori da `admin.html` è nel finto SDK di test
+  (`tests/browser/finto-id.mjs:175`, un dato d'esempio), che quindi non
+  prova nessun percorso di prodotto.
+- **schermata**: `admin.html`, riquadro membri — la tendina/etichetta di
+  stato sa già disegnare "Disattivato", ma nessun bottone lo produce ·
+  **che cosa non va**: sospendere temporaneamente un consulente esterno
+  (RSPP di più cave, §3.2/§4 di `ARCHITETTURA.md`) o un membro in ferie
+  senza perdere lo storico di chi ha fatto cosa (`invitedBy`, `joinedAt`)
+  oggi non si può: si può solo cancellarlo del tutto e re-invitarlo da
+  zero, perdendo la continuità del record · **come si vede**: si apre
+  `admin.html` con un membro attivo, non c'è nessun'azione fra «cambia
+  ruolo» e «rimuovi» · **quanto costa**: S — una funzione `setMemberStatus`
+  gemella di `updateMemberRole` (stessi guardrail: non l'ultimo owner, solo
+  owner tocca owner), che scrive `status:'disabled'` e chiama la stessa
+  revoca del punto 1; le regole già usano `status` solo per il conteggio
+  degli owner attivi (`countActiveOwners`), quindi va esteso *lì* perché un
+  admin disattivato non conti più come owner attivo · **come si misura**:
+  `grep -c "disableMember\|setMemberStatus" apps/deepwork-id/functions/index.js`
+  deve salire da 0; una prova che disattiva un membro e verifica che
+  `memberOf(orgId)` (o l'equivalente) risponda `false` mentre il documento
+  resta.
+
+**Che cosa NON è un "non c'è" qui.** L'assegnazione di un ruolo forza già
+il refresh dal lato di chi la esegue: `shared/deepwork-id-client/index.js:241`
+e `:303` chiamano `getIdToken(true)` dopo un cambio di ruolo o una
+revoca d'invito — ma è l'attore che aggiorna **il proprio** token, non
+quello della persona toccata dall'operazione. Il meccanismo di refresh
+forzato esiste già in casa; manca solo dal lato di chi lo subisce.
+
+### Fonti (WebSearch, non lette per intero — [di seconda mano])
+
+- [Firebase: Manage User Sessions](https://firebase.google.com/docs/auth/admin/manage-sessions)
+- [Firebase talk (Google Groups): Admin API needed for user management and token revocation](https://groups.google.com/g/firebase-talk/c/hPNd5-RNgBs)
+- [ExpertBeacon: Mastering Firebase Auth Custom Claims](https://expertbeacon.com/mastering-firebase-auth-custom-claims-the-ultimate-guide-to-granular-access-control/)
+- [WorkOS Docs: Users and Organizations – AuthKit](https://workos.com/docs/user-management/users-organizations)
+- [Clerk: SCIM 2.0 explained — a practical guide for SaaS auth](https://clerk.com/articles/scim-2-0-explained-a-practical-guide-for-saas-auth)
+- [Clerk: Federated identity for enterprise SaaS: SAML, OIDC, and SCIM](https://clerk.com/articles/federated-identity-for-enterprise-saas-saml-oidc-and-scim)
+
+**Riassunto** — 2 mancanze **confermate**, stessa famiglia (il
+deprovisioning, non il provisioning): (1) né `removeMember` né
+`updateMemberRole` chiamano `revokeRefreshTokens` — un membro
+rimosso/declassato mantiene un token valido con i permessi vecchi fino a
+un'ora, senza nessuna prova che lo copra (`grep -rn "revokeRefreshTokens"
+apps/deepwork-id | grep -v node_modules` → 0 righe); (2) lo stato
+`disabled` è nello schema dichiarato e nell'etichetta dell'interfaccia ma
+nessuna funzione lo scrive — l'unico deprovisioning possibile oggi è la
+cancellazione definitiva (`grep -n "^exports\." apps/deepwork-id/functions/index.js`
+→ 7 funzioni, nessuna `disableMember`/`setMemberStatus`). Entrambe costo
+S, nessuna richiede una decisione di prodotto prima (a differenza delle
+mancanze del 15/09): sono comportamento mancante su un meccanismo già
+scelto. Tutto verificato contro il commit `8c0cf23a`.

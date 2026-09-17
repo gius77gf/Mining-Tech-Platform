@@ -402,3 +402,62 @@ La norma **non specifica una soglia numerica o temporale** per "significativo" �
 ---
 
 **Verificato il 15/09/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-17 — D.P.R. 1124/1965 art. 53, la denuncia INAIL dell'infortunio (Scudo)
+
+**Data**: 17/09/2026
+**Tema**: Norme citate ma non lette una per una — questa citazione non compariva ancora in questo documento (verificato con `grep -c "1124/1965" docs/RICERCA_CONTINUA_NORME.md` → 0 prima di questa sezione), pur essendo già in codice dal 16/09 con la nota "letto via WebSearch, di seconda mano, nessuna pagina primaria letta". Questa ricerca la riverifica in modo indipendente, con nuove query, e aggiunge un dettaglio che il codice non aveva ancora colto.
+
+### PASSO 1 — Che cosa Scudo fa già (verificato nel codice)
+
+**Comando grep usato:**
+```
+grep -n "1124/1965\|scadenzaDenunciaInail\|art\. 53" apps/scudo/scudo-data.js apps/scudo/index.html
+```
+
+**Uscita rilevante:**
+- `apps/scudo/scudo-data.js:3198-3262` — funzione `scadenzaDenunciaInail(infortunio, oggi)`, con un commento di dodici righe che dichiara già la fonte (WebSearch, di seconda mano) e i limiti.
+- La funzione scatta solo per `tipo === "infortunio"` (non per i near-miss) e solo se `mortale || giorniAssenza > 3`.
+- Caso **mortale**: `scadenza = data + 1 giorno` (`dataPiuGiorni(1, data)`), dichiarato come termine MASSIMO perché l'app registra solo il giorno dell'evento, non l'ora — la vera scadenza di legge è **24 ore dall'infortunio**.
+- Caso **ordinario** (assenza > 3 giorni): `scadenza = dataCertificato + 2 giorni` (`dataPiuGiorni(2, dataCertificato)`), dove `dataCertificato` è un campo opzionale che l'app etichetta in `apps/scudo/index.html:1572` come *"Certificato medico ricevuto il"* / title *"Data di ricezione del certificato medico"*.
+- Senza `dataCertificato` la funzione dichiara esplicitamente `calcolabile: false` con motivo "manca la data di ricezione del certificato medico" — non inventa una scadenza dedotta dalla data dell'evento (principio del fondatore rispettato).
+- `giorniAssenza` è usato come proxy della prognosi medica, con la limitazione dichiarata nel commento (non è la prognosi iniziale, è l'assenza effettiva).
+
+### PASSO 2 — Che cosa dice davvero l'art. 53 D.P.R. 1124/1965 (fonti secondarie, non ho letto il testo primario — WebFetch è bloccato in questo ambiente)
+
+**Tre query WebSearch, tre fonti convergenti** (Confetra — riproduzione del testo del DPR, Olympus/Uniurb — nota MLPS 12/01/2015 n.37, Brocardi — testo aggiornato dell'art. 53):
+
+1. **Soglia**: l'obbligo di denuncia scatta per un infortunio "prognosticato non guaribile entro tre giorni" — soglia **> 3 giorni**, coerente con `assenza > 3` nel codice.
+2. **Termine ordinario**: **due giorni**, coerente con `dataPiuGiorni(2, ...)`.
+3. **Termine per il caso mortale/pericolo di morte**: denuncia "per telegrafo" entro **ventiquattro ore dall'infortunio** — coerente con la dichiarazione del codice (24 ore, non 2 giorni).
+4. **Il punto che il codice non coglie**: il testo dell'art. 53 comma 1, **come modificato dal D.Lgs 151/2015** (in vigore dal 24/09/2015), oggi dice — testualmente, da fonte secondaria (Brocardi): *"La denuncia dell'infortunio deve essere fatta entro due giorni da quello in cui il datore di lavoro **ne ha avuto notizia** e deve essere corredata dei riferimenti al certificato medico **già trasmesso all'Istituto assicuratore per via telematica direttamente dal medico o dalla struttura sanitaria** competente al rilascio."* Prima della riforma del 2015 il datore riceveva fisicamente il certificato cartaceo dal lavoratore e lo allegava alla denuncia; **dal 2015 il certificato non transita più per le mani del datore di lavoro** — va dal medico/struttura sanitaria direttamente a INAIL per via telematica. Una nota del Ministero del Lavoro (MLPS n. 37/2015, citata da Olympus/Uniurb) e più fonti convergenti spiegano che, nella pratica INAIL, il termine di due giorni decorre da quando il datore di lavoro riceve **dal lavoratore il numero identificativo del certificato** (non il certificato stesso, che il datore non ha più in mano).
+
+### PASSO 3 — Il delta
+
+**Verdetto complessivo**: **CORRISPONDE nelle soglie numeriche** (2 giorni / 24 ore / soglia dei 3 giorni di prognosi), **impreciso nel nome dell'evento che fa scattare il conto**.
+
+| Voce | Stato | Dettaglio |
+|------|-------|-----------|
+| Soglia di attivazione (assenza/prognosi > 3 giorni) | CORRISPONDE | `assenza > 3` combacia con "non guaribile entro tre giorni" |
+| Termine ordinario: 2 giorni | CORRISPONDE (nel numero) | `dataPiuGiorni(2, dataCertificato)` dà lo stesso conto della norma |
+| Termine mortale: 24 ore dall'evento | CORRISPONDE (dichiarato come massimo, onestamente) | Il codice registra solo il giorno, non l'ora: la scelta del caso peggiore è già la difesa corretta |
+| **Etichetta/descrizione del campo che avvia il conto dei 2 giorni** | **IMPRECISO** | Il campo si chiama e si descrive come "ricezione del **certificato medico**" (`apps/scudo/index.html:1572`, e nel commento di `scudo-data.js:3213-3216`). Dal D.Lgs 151/2015 il datore di lavoro **non riceve più il certificato**: lo riceve solo INAIL, per via telematica, direttamente dal medico. Quello che il datore riceve — e da cui la prassi INAIL fa decorrere il termine — è il **numero identificativo** del certificato, comunicato dal lavoratore. Il numero, non il documento. |
+
+**Quanto costa**: Basso come rischio di scadenza sbagliata (la data e il conteggio dei giorni restano corretti: chi compila mette la data in cui ha saputo del certificato, comunque nominato), ma l'etichetta del campo insegna al datore di lavoro un meccanismo (il certificato "arriva" a lui) che dal 2015 non esiste più — e questa è proprio la casa che deve *"suonare come lo scriverebbe chi lavora in cava"* e non ripetere una prassi pre-riforma.
+
+**Come si misura**: Rinominare l'etichetta e il title del campo `inf-certificato` in qualcosa come *"Numero identificativo del certificato medico ricevuto il"* (o tenere "certificato medico" ma aggiungere nel `form-hint` che dal 2015 il documento va da medico/struttura a INAIL per via telematica, e il datore riceve solo il numero identificativo che lo attesta) — verificabile leggendo `apps/scudo/index.html` riga 1572 e il commento sopra `scadenzaDenunciaInail` in `scudo-data.js:3199-3227` prima e dopo la modifica.
+
+**Nota minore, non verificata a fondo (fuori dal verdetto principale)**: alcune fonti (Confetra) riportano che se il termine cade in un giorno festivo si sposta al primo giorno non festivo successivo; il codice non sembra gestire questo caso (`statoScadenza` non è stato letto in dettaglio in questa sessione). Non l'ho contato come mismatch perché non ho verificato se è materialmente rilevante per il prodotto (la scadenza resta comunque visibile come "in scadenza"/"scaduta" con un margine di alcuni giorni prima); segnalato solo perché qualcuno lo verifichi in un ciclo successivo.
+
+### Fonti consultate (tutte secondarie — nessuna pagina primaria letta, WebFetch bloccato in questo ambiente)
+- [DECRETO DEL PRESIDENTE DELLA REPUBBLICA 30 GIUGNO 1965, N.1124 - TESTO (Confetra)](https://www.confetra.com/it/prontuari/DPR_1124-1965.pdf) — riproduzione del testo, citata via snippet WebSearch
+- [MLPS, nota 12 gennaio 2015, n. 37 — Art. 53 DPR 1124/65 (Olympus/Uniurb)](https://olympus.uniurb.it/index.php?option=com_content&view=article&id=15642:mlps37_2015&catid=6&Itemid=137) — sulla decorrenza del termine dal numero identificativo del certificato
+- [Art. 53 testo unico assicurazione infortuni sul lavoro (Brocardi.it)](https://www.brocardi.it/testo-unico-assicurazione-degli-infortuni-sul-lavoro/titolo-i/capo-iv/art53.html) — testo aggiornato post D.Lgs 151/2015
+- [Denuncia, certificazione medica e comunicazione di infortunio (BibLus/ACCA)](https://biblus.acca.it/semplificazioni-per-la-denuncia-di-infortunio-all-inail/)
+- [INAIL — Denuncia/comunicazione di infortunio sul lavoro](https://www.inail.it/portale/assicurazione/it/Datore-di-Lavoro/Impresa-con-dipendenti-industria-artigianato-terziario-altre-attivita/denunce-infortuni-e-malattie-professionali-impresa-con-dipendenti/denuncia-comunicazione-di-infortunio-sul-lavoro-impresa-con-dipendenti.html)
+
+---
+
+**Verificato il 17/09/2026 da ricerca continua.**
