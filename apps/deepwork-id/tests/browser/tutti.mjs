@@ -419,6 +419,8 @@ const BANCHI = [
   ['obiettivo/confronta burden · controprova', 'genesi-obiettivo-burden.mjs', ['--controprova'], true],
   ['burden per foro di Genesi (15/09, dalla ricostruzione automatica)', 'genesi-burden-per-foro.mjs', []],
   ['burden per foro · controprova', 'genesi-burden-per-foro.mjs', ['--controprova'], true],
+  ['vocabolario della voladura di Genesi (17/09, spalla/burden, consumo specifico/powder factor)', 'genesi-vocabolario-voladura.mjs', []],
+  ['vocabolario della voladura · controprova', 'genesi-vocabolario-voladura.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09: censiti tutti i bottoni `btn-*` premuti da tutta la
      superficie browser di Genesi, ne restavano due senza banco —
      `btn-piano-dxf` (G33, costruita il 13/09 su richiesta diretta del
@@ -1136,6 +1138,10 @@ const BANCHI = [
      quella, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Campo', 'campo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Campo · controprova', 'campo-numeri-tranquilli.mjs', ['--controprova'], true],
+  ['il Quadro di Campo segnala anche il giudizio medico "non idoneo" (17/09)', 'campo-quadro-non-idoneo.mjs', []],
+  ['Quadro di Campo, giudizio non idoneo · controprova', 'campo-quadro-non-idoneo.mjs', ['--controprova'], true],
+  ['la consegna di turno di Campo non riscrive un turno già firmato (17/09)', 'campo-consegna-turno-chiuso.mjs', []],
+  ['consegna di turno chiuso di Campo · controprova', 'campo-consegna-turno-chiuso.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, la domanda col righello su Campo. Il censimento a
      tappeto (percentuali negli style inline, SVG con dimensioni calcolate,
      min-width/min-height, su tutte e cinque le schermate) dice che le

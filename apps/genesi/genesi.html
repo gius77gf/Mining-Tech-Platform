@@ -827,9 +827,9 @@ body.scr-sim #tl{bottom:80px}
   <div id="d2-scheda"></div>
   <button class="btn" id="btn-obiettivo-x50" type="button" style="display:block;margin:10px auto 0;" title="Quanta carica per foro serve per centrare una pezzatura mediana obiettivo, con la roccia e l'esplosivo di questo progetto">🎯 Carica per un obiettivo di pezzatura</button>
   <div id="d2-obiettivo-esito"></div>
-  <button class="btn" id="btn-confronta-burden" type="button" style="display:block;margin:8px auto 0;" title="A parità di pezzatura obiettivo, quanto cambia la carica per foro (e la MIC/PPV stimata) variando la spalla intorno a quella di oggi, con la stessa maglia e la stessa sequenza di sparo.">📊 Confronta burden per lo stesso obiettivo</button>
+  <button class="btn" id="btn-confronta-burden" type="button" style="display:block;margin:8px auto 0;" title="A parità di pezzatura obiettivo, quanto cambia la carica per foro (e la MIC/PPV stimata) variando la spalla intorno a quella di oggi, con la stessa maglia e la stessa sequenza di sparo.">📊 Confronta spalla (burden) per lo stesso obiettivo</button>
   <div id="d2-confronta-esito"></div>
-  <button class="btn" id="btn-burden-foro" type="button" style="display:block;margin:8px auto 0;" title="Il burden vero di OGNI foro, calcolato dalla ricostruzione automatica del fronte (nessun import: lo stesso dato che l'ispettore del foro mostra uno alla volta, qui su tutta la maglia insieme).">📐 Burden per foro (dalla maglia)</button>
+  <button class="btn" id="btn-burden-foro" type="button" style="display:block;margin:8px auto 0;" title="La spalla (burden) vera di OGNI foro, calcolata dalla ricostruzione automatica del fronte (nessun import: lo stesso dato che l'ispettore del foro mostra uno alla volta, qui su tutta la maglia insieme).">📐 Spalla (burden) per foro (dalla maglia)</button>
   <div id="d2-burden-esito"></div>
   <input type="file" id="rilievoDevFile" accept=".csv,text/csv,.txt" style="display:none;">
   <button class="btn" id="btn-rilievo-dev" type="button" style="display:block;margin:8px auto 0;" title="Confronta il burden di progetto col burden vero, calcolato sulla posizione REALE del piede di ogni foro (rilievo boretrack: CSV foro/id;dx_m;dy_m). ATTENZIONE: la convenzione degli assi dx/dy non è ancora stata verificata contro un rilievo boretrack reale — vedi l'avviso nel pannello.">📡 Importa rilievo deviazione fori (CSV)</button>
@@ -3748,7 +3748,7 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
    parametri di sito — non una terza copia della formula). */
 if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const v=await chiediValore('Confronta burden',
-    '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare burden diversi dal tuo? La maglia resta quella disegnata (stesse file, stessi fori per fila, stesso sfalsamento): cambia solo il burden, in un intorno di ±1 m attorno a quello di oggi, mantenendo lo stesso rapporto spalla/interasse. Anche MIC e PPV stimata al recettore sono ricalcolate, con la stessa sequenza di sparo di oggi.</p>',
+    '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare spalla (burden) diversi dal tuo? La maglia resta quella disegnata (stesse file, stessi fori per fila, stesso sfalsamento): cambia solo la spalla, in un intorno di ±1 m attorno a quella di oggi, mantenendo lo stesso rapporto spalla/interasse. Anche MIC e PPV stimata al recettore sono ricalcolate, con la stessa sequenza di sparo di oggi.</p>',
     '<label class="fl" for="modal-campo">Obiettivo x50 (<u class="uni">cm</u>)</label>'
     +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
     'Confronta');
@@ -6526,11 +6526,19 @@ function renderScheda2D(){
      `null` si intercetta PRIMA, e la riga porta la ragione al posto della
      fascia consigliata: `sv-warn` e non `sv-bad`, perché non sappiamo che il
      consumo specifico sia sbagliato, sappiamo di non poterlo dire. */
-  if(pf===null) rows.push(nonCalcolabile('Powder factor',_fg.che+'. '+_fg.come));
-  else rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
-    'carica specifica nel range consigliato (0,30–0,55 kg/m³).',
-    'PF basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
-    'PF alto → rischio proiezioni/sovra-frammentazione.'));
+  // ⛔ 17/09, dal delta della ricerca continua sul vocabolario (PAROLE,
+  // blocco 4): questo badge cambiava nome da solo a seconda del verdetto —
+  // «Powder factor» nell'etichetta, «carica specifica» nel testo buono,
+  // «PF» in quello basso/alto — mentre il resto di Genesi chiama la stessa
+  // grandezza «consumo specifico» (31 occorrenze). Unificato sul termine
+  // già maggioritario in casa e confermato dal mestiere italiano (di
+  // seconda mano, tesi Politecnico di Torino: «consumo specifico di
+  // esplosivo»), con «powder factor» come glossa una sola volta.
+  if(pf===null) rows.push(nonCalcolabile('Consumo specifico (powder factor)',_fg.che+'. '+_fg.come));
+  else rows.push(badge(pf,'Consumo specifico (powder factor)',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
+    'consumo specifico nel range consigliato (0,30–0,55 kg/m³).',
+    'consumo specifico basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
+    'consumo specifico alto → rischio proiezioni/sovra-frammentazione.'));
   const _e=selEsplosivo()||{};
   /* === fori bagnati: penalità separate VOD (desensibilizzazione chimica) ed energia (RWS), no doppio conteggio su heaveFac === */
   const _acqRank={Nulla:0,Bassa:1,Media:2,Buona:3,Eccellente:4}, _eAcqua=_e.acqua||'Buona', _rkA=(_acqRank[_eAcqua]!=null?_acqRank[_eAcqua]:3);
