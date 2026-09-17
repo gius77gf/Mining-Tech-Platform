@@ -1955,7 +1955,7 @@ function generaRappVuotoPDF(tipo,nFori,nFile){
   if(yf<252){d.setFont('helvetica','bold');d.setFontSize(9);d.setTextColor(40,40,40);d.text('Note / Osservazioni:',14,yf);d.setDrawColor(180,180,180);for(let i=0;i<3&&yf+6+i*6<284;i++){d.line(14,yf+5+i*6,196,yf+5+i*6);}}
   // footer su ogni pagina
   const pages=d.internal.getNumberOfPages();
-  for(let p=1;p<=pages;p++){d.setPage(p);d.setDrawColor(220,210,180);d.line(14,288,196,288);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,292);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,196,292,{align:'right'});}
+  for(let p=1;p<=pages;p++){d.setPage(p);d.setDrawColor(220,210,180);d.line(14,288,196,288);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Modulo generato da Deepwork',14,292);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,196,292,{align:'right'});}
   /* ⛔ DUE MODULI DIVERSI, LO STESSO NOME DI FILE. Misurato il 07/08: la
      finestra chiede quante righe e quante file, e un modulo da 5 fori su 2 file
      e uno da 30 su 1 uscivano tutt'e due «Modulo_rapportino_perforazione.pdf».
@@ -3144,7 +3144,7 @@ function apriMezzoStr(id){
      scriveva **«NaNg»** dentro il badge, che è la stessa bugia detta in modo
      più goffo — e il badge restava verde. */
   const scadHtml=Object.entries(m.scadenze||{}).map(([k,v])=>{if(!v)return'';const st=statoScadenzaCore(v);let cls='',bg='',testo='';if(!st.leggibile){cls='warn';bg='scad-badge warn';testo='data illeggibile';}else if(st.giorni<0){cls='danger';bg='scad-badge danger';testo='scaduta';}else if(st.giorni<=30){cls='warn';bg='scad-badge warn';testo=st.giorni+'g';}else {bg='scad-badge ok';testo=st.giorni+'g';}return`<div class="sitem ${cls}"><div class="av av-am">${k.substr(0,2).toUpperCase()}</div><div class="sinfo"><div class="sname">${k} <span class="${bg}">${testo}</span></div><div class="ssub">${fmt(v)}</div></div></div>`;}).join('');
-  const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${escHtml(r.desc)}</div><div class="ssub">${fmt(r.data)} · ${escHtml(r.officina)} · €${r.costo}</div></div></div>`).join('');
+  const ripHtml=(m.riparazioni||[]).map(r=>`<div class="sitem"><div class="av av-mz">€</div><div class="sinfo"><div class="sname">${escHtml(r.desc)}</div><div class="ssub">${fmt(r.data)} · ${escHtml(r.officina)} · €${perLettura(r.costo,2,true)}</div></div></div>`).join('');
   const totRip=(m.riparazioni||[]).reduce((s,r)=>s+(r.costo||0),0);
   $('mezzo-det-body').innerHTML=`
     <div class="photo-hero ${canEdit?'editable':''}" onclick="${canEdit?`uploadMezzoStrFoto('${id}')`:''}">
@@ -3158,7 +3158,7 @@ function apriMezzoStr(id){
     </div>
     <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Scadenze</div>
     ${scadHtml||'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna scadenza</div></div>'}
-    <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Riparazioni ${totRip>0?`<span style="color:var(--ink-am);font-weight:700;margin-left:auto;">Totale €${totRip.toFixed(2)}</span>`:''}</div>
+    <div class="sec-title" style="margin-top:16px;"><span class="dot"></span>Riparazioni ${totRip>0?`<span style="color:var(--ink-am);font-weight:700;margin-left:auto;">Totale €${perLettura(totRip,2,true)}</span>`:''}</div>
     ${ripHtml||'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessuna riparazione</div></div>'}
     ${can('editMac')?`<button class="chg" style="margin-top:10px;" onclick="openRipForm('${id}')">+ Aggiungi riparazione</button>`:''}
     ${m.note?`<div class="preview-sec" style="margin-top:16px;"><div class="preview-head">Note</div><div style="font-size:13px;">${escHtml(m.note)}</div></div>`:''}
@@ -3316,7 +3316,7 @@ function delMacSub(field,subId){
 function renderMacLog(el){
   const {m}=_macCtx();const list=(m.logLavori||[]).slice().reverse();
   el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openLogForm()">+ Aggiungi lavoro</button>`:'')
-    +(list.length?list.map(l=>`<div class="sitem"><div class="av av-op">🔧</div><div class="sinfo"><div class="sname">${escHtml(l.operazione||'Lavoro')}</div><div class="ssub">${fmt(l.data)}${l.ore?' · '+l.ore+' h':''}${l.note?' · '+escHtml(l.note):''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('logLavori','${l.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun lavoro registrato</div></div>');
+    +(list.length?list.map(l=>`<div class="sitem"><div class="av av-op">🔧</div><div class="sinfo"><div class="sname">${escHtml(l.operazione||'Lavoro')}</div><div class="ssub">${fmt(l.data)}${l.ore?' · '+perLettura(l.ore,1,true)+' h':''}${l.note?' · '+escHtml(l.note):''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('logLavori','${l.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun lavoro registrato</div></div>');
 }
 function openLogForm(){
   openModal('Nuovo lavoro',`
@@ -3387,8 +3387,8 @@ function guastoAddUpdate(gid){
 function renderMacConsumi(el){
   const {m}=_macCtx();const list=(m.consumi||[]).slice().reverse();const tG=(m.consumi||[]).reduce((s,c)=>s+(c.gasolio||0),0);
   el.innerHTML=(_canMac()?`<button class="chg" style="margin-bottom:10px;" onclick="openConsumoForm()">+ Aggiungi consumo</button>`:'')
-    +(tG?`<div class="preview-sec"><div class="preview-row"><span class="preview-lab">Totale gasolio registrato</span><span class="preview-val">${tG.toFixed(1)} L</span></div></div>`:'')
-    +(list.length?list.map(c=>`<div class="sitem"><div class="av av-mz">⛽</div><div class="sinfo"><div class="sname">${fmt(c.data)}</div><div class="ssub">${c.gasolio?c.gasolio+' L gasolio':''}${c.olio?' · '+c.olio+' L olio':''}${c.lubr?' · '+c.lubr:''}${c.note?' · '+escHtml(c.note):''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('consumi','${c.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun consumo</div></div>');
+    +(tG?`<div class="preview-sec"><div class="preview-row"><span class="preview-lab">Totale gasolio registrato</span><span class="preview-val">${perLettura(tG,1,true)} L</span></div></div>`:'')
+    +(list.length?list.map(c=>`<div class="sitem"><div class="av av-mz">⛽</div><div class="sinfo"><div class="sname">${fmt(c.data)}</div><div class="ssub">${c.gasolio?perLettura(c.gasolio,1,true)+' L gasolio':''}${c.olio?' · '+perLettura(c.olio,1,true)+' L olio':''}${c.lubr?' · '+c.lubr:''}${c.note?' · '+escHtml(c.note):''}</div></div>${_canMac()?`<div class="sarr" onclick="event.stopPropagation();delMacSub('consumi','${c.id}')">✕</div>`:''}</div>`).join(''):'<div class="empty-state" style="padding:16px;"><div class="empty-sub">Nessun consumo</div></div>');
 }
 function openConsumoForm(){
   openModal('Consumo giornaliero',`
@@ -4446,7 +4446,6 @@ function exportRapportinoPDF(r){
   d.text('Firma di chi chiude il turno',14,y);d.text('Firma per presa visione',110,y);
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
-  d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   /* ⛔ E DUE TURNI NELLO STESSO GIORNO SULLA STESSA CAVA AVEVANO LO STESSO NOME.
      Non e' un caso di laboratorio: mattina e pomeriggio sulla stessa cava sono
@@ -4593,7 +4592,6 @@ function exportRapportinoFocPDF(r){
   }
   // Footer
   d.setFontSize(8);d.setTextColor(120,120,120);
-  d.setFont('helvetica','italic');d.text('Deepwork per Cofa Mineraria',105,285,{align:'center'});d.setFont('helvetica','normal');
   d.text('Documento generato automaticamente da Deepwork — '+new Date().toLocaleString('it-IT'),105,290,{align:'center'});
   // stessa ragione del rapportino di perforazione: il nome porta il «Nr.» del foglio
   d.save(`Fochino_${(c?c.nome:'cava').replace(/[^\w]/g,'_')}_${r.data}_${r.id.substr(0,8).toUpperCase()}.pdf`);
@@ -4809,14 +4807,14 @@ function _genReportTecnico(da,a,cavaId,macRef){
     if(y>170){d.addPage();y=20;}
     d.setFont('helvetica','bold');d.setFontSize(11);d.setTextColor(40,40,40);d.text('Mezzo: '+(m.modello||m.marca||'—')+(m.targa?' ('+m.targa+')':''),14,y);
     const rows=[];
-    logs.forEach(l=>rows.push(['Lavoro',dataO(l.data),(l.operazione||'')+(l.ore?' · '+l.ore+'h':''),l.note||'']));
+    logs.forEach(l=>rows.push(['Lavoro',dataO(l.data),(l.operazione||'')+(l.ore?' · '+perLettura(l.ore,1,true)+'h':''),l.note||'']));
     guasti.forEach(g=>rows.push(['Guasto',dataO(g.dataSegn),(g.componente||'')+' ['+(g.stato||'')+']',g.descrizione||'']));
-    consumi.forEach(c=>rows.push(['Consumo',dataO(c.data),(c.gasolio?c.gasolio+'L gas.':'')+(c.olio?' '+c.olio+'L olio':'')+(c.lubr?' '+c.lubr:''),c.note||'']));
+    consumi.forEach(c=>rows.push(['Consumo',dataO(c.data),(c.gasolio?perLettura(c.gasolio,1,true)+'L gas.':'')+(c.olio?' '+perLettura(c.olio,1,true)+'L olio':'')+(c.lubr?' '+c.lubr:''),c.note||'']));
     d.autoTable({startY:y+2,head:[['Tipo','Data','Dettaglio','Note']],body:rows,styles:{fontSize:8},headStyles:{fillColor:[120,144,156],textColor:[255,255,255]},columnStyles:{0:{cellWidth:24},1:{cellWidth:24}},margin:{left:14,right:14}});
     y=d.lastAutoTable.finalY+8;
   });
   const pages=d.internal.getNumberOfPages();
-  for(let p=1;p<=pages;p++){d.setPage(p);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Deepwork per Cofa Mineraria',14,205);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,283,205,{align:'right'});}
+  for(let p=1;p<=pages;p++){d.setPage(p);d.setTextColor(150,130,80);d.setFont('helvetica','italic');d.setFontSize(8);d.text('Report tecnico generato da Deepwork',14,205);d.setTextColor(160,160,160);d.setFont('helvetica','normal');d.text('pag. '+p+'/'+pages,283,205,{align:'right'});}
   /* ⛔ IL NOME DICE SU CHE COSA È IL REPORT, E A PERIODO APERTO NON DICEVA
      NIENTE. Con le due date vuote — che è il caso normale, «tutto» — usciva
      `Report_tecnico__.pdf`: due report salvati a periodo aperto **si
@@ -7848,7 +7846,7 @@ function exportVolataPDF(volataId){
   const tipoLabel={'cava':'CAVA','galleria':'GALLERIA','altro':'ALTRO'}[v.tipo||'cava']||'CAVA';
   const nomeProgetto=v.nomeProgetto||('VOLATA #'+v.numero);
   const d=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-  const CAPTION='Deepwork per Cofa Mineraria';
+  const CAPTION='Generato da Deepwork';
   function header(title){
     d.setFillColor(255,255,255);d.rect(0,0,210,297,'F');
     d.setFillColor(255,171,0);d.rect(0,0,210,20,'F');
