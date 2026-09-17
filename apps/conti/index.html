@@ -3313,8 +3313,11 @@ label.item:has(.dw-chk:checked){
             .map(({ f, ritardo, nonEmessa }) => ({ ico: IC.fattura, t: "Fattura " + f.numero + " — " + nomeCliente(f, CLI),
               // «scade il —» non è una data: se la scadenza non c'è si dice
               // e una scartata dallo SdI va rimandata prima di essere sollecitata (11/09)
+              // ⛔ doppia-data.mjs (17/09): il tempo relativo porta con sé la
+              // data assoluta, altrimenti "fra quanto" si stacca da "quando" —
+              // ritardo>0 implica f.scadenza nota (prioritaIncasso lo garantisce)
               d: (nonEmessa ? "come non emessa (" + statoSdi(f).breve + "): rimandala allo SdI prima di sollecitare · " : "")
-                 + (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni")
+                 + (ritardo > 0 ? "scaduta da " + plur(ritardo, "giorno", "giorni") + " (" + fmtD(f.scadenza) + ")"
                   : f.scadenza ? "scade il " + fmtD(f.scadenza) : "senza scadenza: non si sa entro quando")
                  + (f.parziale ? " · acconto " + eur(f.incassato) + " già arrivato" : ""),
               /* ⛔ `NOT` VA PASSATO: senza, questa riga scrive «€ 1.000,00 residuo»
