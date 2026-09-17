@@ -4690,7 +4690,15 @@ label.item:has(.dw-chk:checked){
       : "";
   }
   // ── Elenco dei DDT da fatturare secondo i filtri della fattura differita ──
+  // ⛔ SENZA CLIENTE SCELTO LA LISTA È VUOTA, NON "TUTTI I CLIENTI": la fattura
+  // differita raccoglie i DDT di UN cliente solo (lo dice il placeholder qui
+  // sotto), ma `pesateDaFatturare` con `clienteId` vuoto non filtra affatto —
+  // è il suo contratto generale, provato da un test suo. Prima di questa riga
+  // renderDifferita mostrava e sommava insieme DDT di clienti diversi finché
+  // nessuno era scelto, con l'unico argine al momento dell'emissione: un
+  // totale "tranquillo" che mescolava ragioni sociali diverse.
   function difVisibili() {
+    if (!$("dif-cli").value) return [];
     return pesateDaFatturare(PES, $("dif-cli").value, $("dif-dal").value, $("dif-al").value);
   }
   function renderDifferita() {

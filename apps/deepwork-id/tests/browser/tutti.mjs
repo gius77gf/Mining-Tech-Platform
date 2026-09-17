@@ -549,6 +549,12 @@ const BANCHI = [
      non lo vedrebbe nessuna suite `node`). */
   ['il piano di rientro di Conti', 'conti-piano-rientro.mjs', []],
   ['piano di rientro di Conti · controprova', 'conti-piano-rientro.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — la fattura differita di Conti, dal terzo giro di
+     deep-pass (agente a5fa955d5c679000d): senza cliente scelto la lista
+     mostrava e sommava DDT di clienti diversi insieme (`difVisibili()`
+     senza guardia sul valore vuoto di `pesateDaFatturare`). */
+  ['la fattura differita di Conti non mescola i clienti', 'conti-differita-cliente.mjs', []],
+  ['fattura differita di Conti · controprova', 'conti-differita-cliente.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 16/09 — il contatore di notifiche sulle scadenze di
      Scudo, dal delta della ricerca continua, dodicesimo giro (primo passo
      di "notifiche automatiche" senza server): il badge deve sparire DOPO

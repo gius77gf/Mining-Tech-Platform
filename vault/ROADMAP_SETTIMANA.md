@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **321 esecuzioni** che
-  aprono le pagine in un browser vero, da **140** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **323 esecuzioni** che
+  aprono le pagine in un browser vero, da **141** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11053,9 +11053,13 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       `sentinella-numeri-tranquilli.mjs` trovata da `iniezioni-fresche.mjs`
       e corretta. Giro isolato: 41/41, KPI 3116/3116. Vedi checkpoint
       `20260917-222519_sentinella-ponte-meteo-e-reclamo.md`.
-- [ ] **Conti, terzo giro di deep-pass (agente a5fa955d5c679000d)**: la
-      "fattura differita dai DDT" mescola DDT di clienti diversi
-      nell'anteprima/totali finché nessun cliente è scelto nella tendina
-      (`pesateDaFatturare` non filtra con `clienteId` vuoto); il blocco
-      vero c'è solo all'emissione. Da fixare: prossimo passo atomico nel
-      checkpoint qui sopra.
+- [x] **Conti, terzo giro di deep-pass (agente a5fa955d5c679000d)** *(chiusa
+      17/09)*: la "fattura differita dai DDT" mescolava DDT di clienti
+      diversi nell'anteprima/totali finché nessun cliente era scelto nella
+      tendina (`pesateDaFatturare` non filtra con `clienteId` vuoto — è il
+      suo contratto generale, provato da un test suo; il difetto era nella
+      pagina, che la chiamava senza guardia). Il blocco vero c'era solo
+      all'emissione, ma l'anteprima prima di quel click mostrava un totale
+      misto fra ragioni sociali. Corretto rendendo `difVisibili()` in
+      `apps/conti/index.html` vuota finché `dif-cli` non è scelto, con
+      controprova in `apps/deepwork-id/tests/browser/conti-differita-cliente.mjs`.
