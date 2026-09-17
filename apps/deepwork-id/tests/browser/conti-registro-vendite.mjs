@@ -87,9 +87,13 @@ for (const W of [430, 320]) {
   dice(sc.length === 1 && /conti_registro_vendite\.csv$/.test(sc[0].nome), "il file esce, col nome del registro (e il marchio della dimostrazione davanti)", JSON.stringify(sc.map((s) => s.nome)));
   const csv = sc.length ? decodeURIComponent(sc[0].href.replace(/^data:text\/csv;charset=utf-8,/, "")) : "";
   const righe = csv.split("\n").filter((r) => r && !/^#/.test(r));
-  dice(righe[0] === "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo", "l'intestazione", righe[0]);
+  /* ⛔ 17/09: dal 15/09 il registro porta anche la causale (colonna in coda,
+     csvRegistroVendite/conti-data.js — «la causale della nota, non tacciuta
+     come prima», dal delta sul trasporto conto terzi e le rese): la riga di
+     Edilcave non ne ha una, quindi il file finisce con un `;` vuoto in più. */
+  dice(righe[0] === "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo;causale", "l'intestazione", righe[0]);
   dice(righe.length >= 8, "una riga per fattura della dimostrazione (almeno sette)", righe.length - 1);
-  const edil = righe.find((r) => /^fattura;2026\/031;2026-06-07;Edilcave Srl;01234567890;;ABC1234;;18300;;18300;;si$/.test(r));
+  const edil = righe.find((r) => /^fattura;2026\/031;2026-06-07;Edilcave Srl;01234567890;;ABC1234;;18300;;18300;;si;$/.test(r));
   dice(!!edil, "⛔ la fattura di Edilcave porta partita IVA e codice destinatario dall'anagrafica, e aliquota e imposta VUOTE (non zero)", righe.find((r) => /2026\/031/.test(r)));
   dice(righe.slice(1).every((r) => { const c = r.split(";"); return c[7] === "" && c[9] === ""; }), "⛔ su TUTTE le righe della dimostrazione aliquota e imposta restano vuote: nessuna fattura dichiara l'IVA", righe.slice(1).find((r) => { const c = r.split(";"); return c[7] !== "" || c[9] !== ""; }));
   const date = righe.slice(1).map((r) => r.split(";")[2]);

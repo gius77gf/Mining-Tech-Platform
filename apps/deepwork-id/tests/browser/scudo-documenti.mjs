@@ -841,9 +841,18 @@ if (!inf.errore) {
     "le sue giornate restano una cella VUOTA, non uno zero (decisione 17)", aperta);
   dice(/^prognosi ancora aperta/.test(aperta[iCol("nota")] || ""),
     "e adesso la colonna dice PERCHÉ è vuota: una cella bianca si legge «zero giorni»", aperta);
+  /* ⛔ 17/09: «nessuna nota» è scaduto dal 16/09 — la settima colonna adesso
+     elenca ANCHE la denuncia INAIL da valutare (righe 2416-2425), una
+     ragione indipendente dalla prognosi. «Taglio alla mano» ha 4 giorni di
+     assenza e nessuna denuncia ancora presentata: la nota corretta parla di
+     INAIL, non tace. Quello che questo caso deve ancora dimostrare —
+     l'opposto del "prognosi aperta" qui sopra — è che le SUE giornate sono
+     un numero vero, non che la colonna sia vuota. */
   const chiuso = (iR.find((r) => /Taglio alla mano/.test(r)) || "").split(";");
-  dice(chiuso[iCol("giorniAssenza")] === "4" && (chiuso[iCol("nota")] || "") === "",
-    "un infortunio chiuso porta i suoi giorni e nessuna nota", chiuso);
+  dice(chiuso[iCol("giorniAssenza")] === "4" && !/prognosi ancora aperta/.test(chiuso[iCol("nota")] || ""),
+    "un infortunio chiuso porta i suoi giorni, e la nota (se c'è) non parla di prognosi aperta", chiuso);
+  dice(/denuncia INAIL da valutare/.test(chiuso[iCol("nota")] || ""),
+    "e la nota dice della denuncia INAIL ancora da valutare (16/09)", chiuso);
 }
 
 // ── 5 · IL VERBALE DPI, IL FOGLIO CHIESTO PER PRIMO IN ISPEZIONE ───────────

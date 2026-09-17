@@ -2933,9 +2933,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          un `form-hint` come il motivo del DSS — la riga di dettaglio ha
          `line-clamp:2` e la taglierebbe. Un documento SOSTITUITO resta in
          archivio, senza striscia e senza il tocco che cambia stato: vale la
-         versione che l'ha sostituito, e lo dice. */
+         versione che l'ha sostituito, e lo dice.
+         ⛔ MA IL TOCCO C'È ANCORA (17/09, promesse-tocco.mjs): il gestore di
+         `[data-doc]` non ignora il click su un documento sostituito, mostra
+         un toast che spiega perché lo stato non cambia — ed è voluto: il
+         `title` nativo che dice la stessa cosa non si vede su un touchscreen,
+         e in cava questa app si usa dal telefono. Una riga che risponde al
+         tocco senza mostrare la manina insegna «qui non succede niente» a
+         chi la prova, mentre invece succede: manteneva `tocca` solo per chi
+         cambia stato, ma la classe governa la promessa del CURSORE, non la
+         frase che il tocco produce. */
       const cat = catenaDocumento(d, DOC), catTesto = descriviCatena(cat);
-      return `<div class="item ${dse.superato ? "" : "tocca "}${striscia[ds[0]] || ""}" data-doc="${d.id}" title="${dse.superato ? "Sostituito da una versione più recente: lo stato non si cambia" : "Tocca per cambiare stato"}"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
+      return `<div class="item tocca ${striscia[ds[0]] || ""}" data-doc="${d.id}" title="${dse.superato ? "Sostituito da una versione più recente: lo stato non si cambia" : "Tocca per cambiare stato"}"><div class="info"><div class="name">${d.tipo ? `<span class="badge tag" style="margin-right:6px;">${esc(d.tipo)}</span>` : ""}${esc(d.titolo)}</div><div class="meta">${esc(d.meta || "")}${legami ? (d.meta ? " · " : "") + legami : ""}</div></div>
        <span class="acts">${d.allegatoData ? `<span class="arr" style="cursor:pointer" title="Apri allegato ${esc(d.allegatoNome || "")}" data-open-doc="${d.id}">${I.clip}</span>` : ""}
        <span class="badge ${ds[0]}">${ds[1]}</span></span></div>${catTesto ? `<div class="form-hint" data-doc-versioni="${d.id}" style="margin:-2px 0 12px 4px;">${esc(catTesto)}</div>` : ""}`;
     }).join("")

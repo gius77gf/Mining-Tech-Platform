@@ -77,12 +77,24 @@ const DIFETTI_PAGINA = [
    10:20, importata da «V1_giugno.csv»), con due letture quel giorno nel punto
    per pretendere che si scelga per ORA; una comunicazione; e un reclamo lo
    stesso giorno. La volata «b2» della dimostrazione (03/07/2026) non ha
-   niente collegato: è il caso 3 e non va costruito. */
+   niente collegato: è il caso 3 e non va costruito.
+   ⛔ 17/09: IL DOPO-VOLATA (11/09, dopoVolata/statoDopoVolata in
+   sentinella-data.js) HA GUADAGNATO UNA SUA SEZIONE DI «CHE COSA MANCA» —
+   mancate esplosioni, proiezioni, sparo, rientro, attesa, esplosivo reso —
+   e questa volata costruita non dichiarava NESSUNO di quei campi, perché
+   il caso è nato prima di quella sezione. Il gap non era il difetto: era
+   la fixture, che doveva isolare la SOLA mancanza che questo caso vuole
+   dimostrare (i componenti della lettura PPV) e invece ne portava dentro
+   sei in più senza saperlo. Completati con un dopo-volata pulito, quindi
+   ORA È L'UNICA mancanza a restare — la stessa disciplina già scritta qui
+   sopra per `esito`/`stato`, applicata al campo nato dopo. */
 const FIXTURE =
   `\nDEMO.volate.push({ id: "sxf1", data: "2026-06-08", fronte: "Fronte Ovest", nFori: 30, kgTotali: 360, kgMaxRitardo: 16,`
   + ` distanzaRicettore: 350, esito: "regolare", note: "", stato: "eseguita",`
   + ` ppvMisurata: 2.4, ppvFonte: "strumento", ppvPuntoId: "v1", ppvPuntoNome: "Vibrazioni V1 — abitato Sud", ppvData: "2026-06-08", ppvOra: "10:20",`
-  + ` comunicataA: "ente", comunicataIl: "2026-06-07", comunicazioneRif: "PEC prot. 2210/2026" });\n`
+  + ` comunicataA: "ente", comunicataIl: "2026-06-07", comunicazioneRif: "PEC prot. 2210/2026",`
+  + ` oraSparo: "10:05", rientroAlle: "10:35", rientroAutorizzatoDa: "Direttore responsabile",`
+  + ` attesaDopoSparoMin: 15, mancateEsplosioni: 0, proiezioniOltreArea: false, kgResi: 0 });\n`
   + `(DEMO.monitoraggi.find((m) => m.id === "v1") || { letture: [] }).letture.push({ data: "2026-06-08", ora: "17:40", valore: 0.9, assi: { L: 0.5, T: 0.4, V: 0.9 } });\n`
   + `DEMO.reclami.push({ id: "sxr1", data: "2026-06-08", ora: "10:35", tipo: "vibrazione", ricettoreId: "rc1", chi: "Sig.ra Verdi", descrizione: "Tremava il lampadario.", stato: "aperto" });\n`;
 
