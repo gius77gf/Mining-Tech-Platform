@@ -409,6 +409,24 @@ Ricerca web 01 agosto 2026:
 
 ## Verifica del delta (01/08 · riverificata riga per riga il 02/08 · **arretrato richiuso il 06/08**)
 
+> ⏱️ **Verificato contro il codice al commit `27282b10`** (17/09, riallineato
+> dal `74e3377` di sotto — è l'ultimo commit che ha DAVVERO toccato
+> `apps/sentinella/`, non il commit in cui questa riga viene scritta: quello
+> non esiste ancora quando la si scrive). L'arretrato segnalava **47 commit**
+> su Sentinella/`shared/dw-ponti.js` da `74e3377`, di cui **27 che MORDONO**.
+> Cercati i termini di tutt'e undici le righe ancora `CONFERMATA ASSENTE`
+> per intero (SMS/email, wireless/4G/LoRa/IoT, FFT/ottave, gas SO2/NO2,
+> portale pubblico, API/webhook, app nativa, dispersione inquinanti, report
+> automatico, notifica ai residenti, dashboard configurabile) **solo nelle
+> righe AGGIUNTE** dell'intero intervallo: **zero colpi veri** su dieci
+> righe. Un solo pattern ha risposto, e con lo stesso falso positivo già
+> censito in questo documento — parole italiane che contengono il termine
+> cercato: `ioT` dentro `divarioT`/`vendutoT`/`dichiaratoT` (variabili che
+> finiscono per T), `lOra`/`lora` dentro `colOra` (colonna + Ora). Nessuna
+> riga della tabella si muove: le undici mancanze restano vere.
+>
+> *(Il blocco qui sotto è la verifica del 14/08 e resta com'era scritta.)*
+>
 > **Verificato contro il codice al commit `74e3377`** *(14/08 · **22 righe di
 > verdetto su 22 riguardate una seconda volta** nel giro della direttiva 7, dopo
 > i tre commit di arretrato — **zero che MORDONO**: `<button>` 67 prima e 67
