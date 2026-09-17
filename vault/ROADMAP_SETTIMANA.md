@@ -8682,7 +8682,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.612 prove girano senza rete**. La frase va
+  **3.613 prove girano senza rete**. La frase va
   letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3116, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -11110,3 +11110,24 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       il punto 3, e due conteggi di census aggiornati (3→4 chiamate a
       `costoVolata`/`metriPerforati`, di proposito: il CSV ora rifà il
       conto invece di riusare la griglia).
+
+## Terra — ricerca continua, il monitoraggio acque (17/09)
+- [x] **MONITORAGGIO ACQUE — TIPO DI SCADENZA DEDICATO** *(17/09, unità
+      completata, ottavo giro di ricerca mirata)*. Riverificato con grep
+      indipendente prima di implementare (`quotaFondoM`/`fondoAutorizzato`/
+      `conformitaQuota` esistono già in `apps/terra/terra-data.js`,
+      `presetScadenzaTerra("acque")` dava `null`, `TIPI_SCADENZA_TERRA` aveva
+      sette chiavi senza "falda"/"piezometr"/"acqu"): confermato. Terra ha
+      già il confronto fondo-scavo-vs-progetto, ma manca del tutto il
+      secondo termine del franco reale — il livello di falda misurato e il
+      suo massimo storico, che il mondo (Piani Provinciali Cave, Veneto 2m/
+      Lombardia 1m, tutto di seconda mano via WebSearch) chiede di
+      confrontare col fondo raggiunto. Implementata la sola proposta a
+      basso costo: una voce `{ chiave: "acque", ... }` in
+      `TIPI_SCADENZA_TERRA`, additiva, con nota che dichiara la periodicità
+      e la soglia come materia dell'atto (non un valore fisso). Test in
+      `run-kpi.mjs`. **Resta aperta** la proposta a costo medio
+      (`letturaFalda`/`francoFalda`, confronto dinamico fondo-vs-massimo-
+      storico di falda): merita un'unità propria con la sua dimostrazione a
+      più piezometri su più anni, non un'aggiunta di corsa. Vedi
+      `docs/RICERCA_CONTINUA_TERRA.md`, sezione "17/09 — ottavo giro".

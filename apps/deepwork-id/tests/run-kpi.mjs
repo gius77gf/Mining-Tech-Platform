@@ -13817,6 +13817,19 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     ok(terra.TIPI_SCADENZA_TERRA.some(p => p.chiave === "autorizzazione"), "il titolo c'è");
     ok(terra.TIPI_SCADENZA_TERRA.some(p => p.chiave === "fideiussione"), "e la fideiussione anche");
   });
+  test("⛔ 17/09, dal delta della ricerca continua su Terra: il monitoraggio acque ha una voce sua", () => {
+    /* Prima: chi doveva tracciare "livello falda da trasmettere ogni mese" o
+       un campionamento chimico apriva TIPI_SCADENZA_TERRA e trovava solo
+       "altro", con nota vuota — nessuna guida, a differenza delle altre sei
+       voci. Verificato PRIMA della modifica: presetScadenzaTerra("acque")
+       dava null (la chiave non esisteva nell'array). */
+    ok(terra.TIPI_SCADENZA_TERRA.some(p => p.chiave === "acque"), "la voce acque c'è");
+    const p = terra.presetScadenzaTerra("acque");
+    ok(p && p.daVerificare === true, "e si comporta come le altre sei: proposta sempre da verificare");
+    ok(!("giorni" in p) && !("mesi" in p) && !("preavviso" in p),
+      "nessuna soglia o periodicità cablata: falda e campionamenti li fissa l'atto, regione per regione");
+    eq(terra.etichettaTipoScadenza("acque"), "Monitoraggio acque", "l'elenco mostra l'etichetta, non la chiave grezza");
+  });
   test("presetScadenzaTerra: quello che propone è SEMPRE «da verificare»", () => {
     /* Terra non può indovinare i termini: la proposta esce già marcata */
     contiene(terra.presetScadenzaTerra("fideiussione"), { chiave: "fideiussione", daVerificare: true }, "marcata");

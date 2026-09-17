@@ -2206,6 +2206,8 @@ export const TIPI_SCADENZA_TERRA = [
     nota: "Tenere il rilievo aggiornato è un obbligo ricorrente, non un lusso." },
   { chiave: "denuncia", etichetta: "Comunicazione periodica dei volumi all'ente",
     nota: "Diverse regioni chiedono di comunicare i volumi estratti, anche quando non si è scavato." },
+  { chiave: "acque", etichetta: "Monitoraggio acque — piezometri e campionamenti",
+    nota: "Livello di falda e qualità dell'acqua: la periodicità e la soglia le dice l'atto, non un valore fisso — variano da atto ad atto." },
   { chiave: "altro", etichetta: "Altro adempimento", nota: "" },
 ];
 

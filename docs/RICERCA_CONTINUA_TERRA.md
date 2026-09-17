@@ -1991,3 +1991,17 @@ Regione per Regione — esattamente come Terra già fa oggi per
    un caso isolato o esiste in altre Regioni con altro nome? Non
    verificato in questo giro: se il pattern si confermasse in tre
    Regioni, cambierebbe il costo di un'eventuale esportazione dedicata.
+
+### ✅ CHIUSURA PARZIALE (17/09, stesso giorno) — riverificato, poi implementato
+
+Riverificato con grep indipendente prima di decidere (`quotaFondoM`,
+`fondoAutorizzato`, `conformitaQuota` in `apps/terra/terra-data.js`,
+`presetScadenzaTerra("acque")` → `null`): tutto confermato come scritto
+sopra. **Proposta 2 implementata** (basso costo, additiva): la voce
+`{ chiave: "acque", ... }` è entrata in `TIPI_SCADENZA_TERRA`
+(`apps/terra/terra-data.js`), con test in `run-kpi.mjs` ("dal delta
+della ricerca continua su Terra: il monitoraggio acque ha una voce
+sua"). `presetScadenzaTerra("acque")` non è più `null`.
+**Proposta 1** (`letturaFalda` + `francoFalda`, costo "medio") **resta
+aperta**: merita un'unità propria con la sua dimostrazione a due
+piezometri su tre anni, non un'aggiunta di corsa in coda a questa.
