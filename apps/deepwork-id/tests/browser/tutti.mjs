@@ -845,6 +845,12 @@ const BANCHI = [
      aperta) non devono mai scambiarsi la ragione. */
   ['la denuncia INAIL nel registro degli eventi di Scudo', 'scudo-denuncia-inail.mjs', []],
   ['denuncia INAIL · controprova', 'scudo-denuncia-inail.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass: nel Quadro una
+     verifica periodica di attrezzatura, quando entra anche lei nella
+     finestra scaduta/in-scadenza, compariva due volte (`verUrg` col badge
+     specifico, `urg` col ramo generico senza deduplica). */
+  ['il Quadro di Scudo non mostra due volte la stessa verifica periodica', 'scudo-verifica-doppia.mjs', []],
+  ['Quadro di Scudo, verifica doppia · controprova', 'scudo-verifica-doppia.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 06/08, ed è una famiglia TERZA rispetto alle due qui
      intorno: non il numero sbagliato (`terra-numeri-tranquilli`) né il disegno
      che mente (`terra-geometrie`), ma la FRASE — la parola incollata al numero

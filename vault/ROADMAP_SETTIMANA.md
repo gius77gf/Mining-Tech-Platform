@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **323 esecuzioni** che
-  aprono le pagine in un browser vero, da **141** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **325 esecuzioni** che
+  aprono le pagine in un browser vero, da **142** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11063,3 +11063,14 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       misto fra ragioni sociali. Corretto rendendo `difVisibili()` in
       `apps/conti/index.html` vuota finché `dif-cli` non è scelto, con
       controprova in `apps/deepwork-id/tests/browser/conti-differita-cliente.mjs`.
+- [x] **Scudo, terzo giro di deep-pass (agente ac03391fa217e0877)** *(chiusa
+      17/09)*: nel Quadro, una scadenza di "verifica periodica
+      attrezzatura" (art. 71 c.11) compariva DUE VOLTE quando la sua data
+      di prossima verifica entrava anche lei nella finestra scaduta/in-
+      scadenza — una volta col badge specifico (`verificheDaSistemare`,
+      es. "Non idonea"), una volta col ramo generico `urg`, che non
+      escludeva le scadenze già rappresentate lì sopra ("Scaduta"/
+      "Scadenza aziendale", meno informativo e discordante sullo stesso
+      record). Corretto escludendo da `urg` gli id già in
+      `verificheDaSistemare(...).daSistemare`, con controprova in
+      `apps/deepwork-id/tests/browser/scudo-verifica-doppia.mjs`.

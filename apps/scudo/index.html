@@ -2422,13 +2422,23 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        intanto l'ultima verifica può essere andata male, o non esserci affatto.
        Una attrezzatura dichiarata NON IDONEA non si usa, e non può essere una
        cosa che si scopre scorrendo l'elenco. */
-    const verUrg = verificheDaSistemare(SCA, DOC).daSistemare.slice(0, 3).map(r =>
+    const verificheSistemare = verificheDaSistemare(SCA, DOC).daSistemare;
+    const verUrg = verificheSistemare.slice(0, 3).map(r =>
       `<div class="item tocca ${striscia[r.cls]}" onclick="go('scad')" title="Vai allo scadenzario">
         <div class="avatar sup">${I.chiave}</div>
         <div class="info"><div class="name">${esc(etichettaScadenza(r.scadenza))}</div>
         <div class="meta">Verifica periodica (all. VII) · ${esc(accorcia(descriviVerificaPeriodica(r), 90))}</div></div>
         <span class="acts"><span class="badge ${r.cls}">${esc(r.badge)}</span><span class="arr">›</span></span></div>`);
-    const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare")
+    /* ⛔ 17/09, dal terzo giro di deep-pass: SENZA QUESTO `.filter` UNA
+       SCADENZA COMPARE DUE VOLTE. Ogni riga di `verificheSistemare` è ANCHE
+       una scadenza dentro `SCA` (stesso id): quando la sua data di prossima
+       verifica entra nella finestra scaduta/in-scadenza, il ramo generico
+       qui sotto la riprendeva col badge "Scaduta"/"Scadenza aziendale" —
+       meno informativo e discordante rispetto a quello specifico appena
+       sopra (es. "Non idonea"). Verificato dal vivo: la stessa attrezzatura
+       nel `#urg-list` due volte, con due badge diversi sullo stesso record. */
+    const idVerifiche = new Set(verificheSistemare.map(r => r.scadenza.id));
+    const urg = SCA.filter(s => statoScadenza(s.dataScadenza) !== "regolare" && !idVerifiche.has(s.id))
                    .sort((a, b) => a.dataScadenza < b.dataScadenza ? -1 : 1).slice(0, 5);
     /* ⛔ IL PANNELLO VERDE NON DICE «TUTTO IN REGOLA» SU UN REGISTRO VUOTO.
        Misurato il 14/08 APRENDO LA PAGINA: con il personale a posto e tutti gli
