@@ -2741,3 +2741,134 @@ tre mancanze di rilievo.
 ---
 
 *Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello) e codice di Campo (grep verificato).*
+
+---
+
+## 17/09/2026 — settimo giro di ricerca mirata: la statistica mineraria annuale legge il rapportino, ma per FASE — non per unità
+
+*Legge prima di proporre: il documento ha già trattato a fondo "che cosa
+contiene il rapporto di fine turno" (01/08, 06/08, blocchi 1-4 del 14/08) e
+la denuncia/dichiarazione annuale dei quantitativi (Blocco 2, 14/08 — che
+l'ha lasciata come domanda aperta: "verificare i regolamenti regionali...
+per leggere la frequenza richiesta"). Questo giro non ripete quella
+domanda: cerca specificamente la FORMA del modulo regionale che raccoglie
+la produzione dichiarata durante l'anno, e verifica se Campo può
+alimentarlo così com'è o se manca un pezzo strutturale. Item #32 di
+`docs/DECISIONI_WEEKEND.md` (17/09, asimmetria presenze/near-miss fra
+`testoConsegnaTurno` e `rapportoGiornata`) non viene toccato: è un'altra
+area dello stesso file.*
+
+### Il mondo [tutto di seconda mano: `WebSearch`, quattro ricerche;
+`WebFetch` non riprovato — già `EGRESS_BLOCKED` più volte nei giri
+precedenti su questo stesso documento]
+
+1. **La "statistica mineraria annuale" non è un totale unico: è un modulo
+   diviso per FASE dell'operazione.** Il modulo di Regione Piemonte per
+   l'estrazione da cave, miniere e permessi di ricerca (obbligatorio ex
+   L.R. 23/2016, trasmesso tramite il portale "Servizio Esercenti
+   Minerari") raccoglie i dati distinti per: **rimozione dei materiali di
+   copertura** (sterile), **estrazione della sostanza minerale e trasporto**
+   al piazzale/impianto, **frantumazione, macinazione, lavaggio,
+   vagliatura**, **squadratura e sezionatura dei prodotti**, **operazioni
+   di carico** dal piazzale. [seconda mano:
+   regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/statistica-mineraria-annuale,
+   ripreso dal modulo scansionato su yumpu.com/it/document/view/16349369]
+2. **Il modulo di dichiarazione di esercizio** (Regione Piemonte, ex artt.
+   24 e 28 DPR 128/1959) è un documento **gemello e distinto** da quello
+   statistico: nomina il titolare e — per la sicurezza — il sorvegliante,
+   mentre la statistica mineraria porta i quantitativi. Due moduli diversi
+   per due autorità diverse, stessa cava. [seconda mano:
+   regione.piemonte.it/web/temi/sviluppo/attivita-estrattive/modello-denuncia-esercizio-cava-impianto-connesso]
+3. **Il dato regionale/nazionale si dichiara aggregato, ma nasce da
+   rapporti di produzione dei singoli operatori**: il rapporto ISTAT/UNMIG
+   "Le attività estrattive da cave e miniere" (dati 2015-2016, pubblicato
+   dal Ministero) e l'Annuario ISPRA sui siti di seconda categoria
+   descrivono il dato regionale come somma di quanto i singoli operatori
+   comunicano alle autorità competenti (comune/provincia/regione secondo
+   la legge regionale). Cioè la statistica annuale non misura da sé: **è
+   un'aggregazione di ciò che la cava ha già scritto durante l'anno**.
+   [seconda mano: unmig.mase.gov.it (rapporto ISTAT, dominio governativo),
+   indicatoriambientali.isprambiente.it]
+4. **La Regione Marche ha un modulo scaricabile a nome "STATISTICA
+   MINERARIA CAVE E TORBIERE"** (PDF ospitato su regione.marche.it), che il
+   motore di ricerca indicizza come form strutturato — non aperto per
+   intero (`WebFetch` bloccato), ma il solo titolo conferma che il modulo
+   è un documento a campi fissi, non un rendiconto libero. [seconda mano,
+   titolo del documento soltanto]
+
+### Domande per il delta (sul meccanismo, non sul nome)
+
+1. Quando un capocantiere scrive un rapportino, il dato di produzione porta
+   con sé la FASE dell'operazione (copertura/estrazione-trasporto/
+   frantumazione-vagliatura-lavaggio/carico), o solo la quantità e l'unità?
+2. Se dovesse servire aggregare un anno di rapportini nella forma del
+   modulo regionale, il dato esiste già raggruppato per fase da qualche
+   parte, o bisognerebbe rileggere ogni rapportino a mano?
+3. La distinzione fra materiale di **copertura/sterile** e materiale
+   **commerciale** (la sostanza mineraria vera, quella tariffata) esiste in
+   qualche campo, o si deduce dal testo?
+
+### Il delta, verificato nel codice (grep su `apps/campo/campo-data.js` e `apps/campo/index.html`)
+
+- **Domanda 1 — MANCANZA CONFERMATA, e la forma in cui manca è precisa.**
+  `rapportini` porta `{ data, turno, titolo, squadra, prodQta, prodUnita,
+  ora, stato, fronteId }` — nessun campo `fase`/`categoria`/`tipo`. La
+  fase oggi vive **solo dentro il testo libero di `titolo`**: i dati di
+  dimostrazione hanno `"Rapportino trasporti"`, `"Rapportino
+  perforazione"`, `"Rapportino impianto"` (righe 342-353), che assomigliano
+  alle categorie del modulo regionale (trasporto ≈ "estrazione e
+  trasporto", impianto ≈ "frantumazione/vagliatura") ma **non sono la
+  stessa cosa**: sono titoli scritti a mano da chi compila, senza
+  vocabolario controllato. Verificato lato interfaccia:
+  `grep -n "new-rap-titolo" apps/campo/index.html` → un `<input>` di testo
+  libero con `placeholder="Titolo (es. Rapportino perforazione)"`
+  (riga 1128) — l'esempio nel placeholder suggerisce la convenzione, non
+  la impone: niente vieta di scrivere "Turno di oggi" o lasciare il titolo
+  generico.
+- **Domanda 2 — MANCANZA CONFERMATA.** Le uniche aggregazioni esistenti
+  raggruppano per **unità di misura**, non per fase:
+  `csvStorico` (riga 846) produce colonne `prodotto_m³`, `prodotto_t`
+  eccetera (`unita.map(u => "prodotto_" + u)`, riga 859) sommando per
+  giorno; non esiste alcuna funzione che raggruppi per "titolo" o per una
+  categoria di fase — verificato: `grep -ciE "fase|categoriaProduzione|tipoOperazione" apps/campo/campo-data.js`
+  → **0**. Per compilare il modulo regionale (che vuole "quanto sterile",
+  "quanto estratto e trasportato", "quanto frantumato/vagliato") oggi
+  servirebbe **rileggere ogni titolo di ogni rapportino dell'anno a mano**
+  e classificarlo, esattamente il lavoro che un campo strutturato
+  eviterebbe.
+- **Domanda 3 — MANCANZA CONFERMATA, ed è la più costosa da dedurre.**
+  Nessun rapportino o attività distingue materiale di copertura (sterile,
+  non tariffato) da materiale commerciale: `grep -ciE "sterile|copertura|scoperchi" apps/campo/campo-data.js`
+  → **0**. L'unico punto in cui compare una distinzione di provenienza è
+  `volumiTerra` con `provenienza: "scavo"` (righe 449-450, dati di
+  dimostrazione) — un campo che esiste per il ponte con Terra, sempre
+  valorizzato allo stesso modo, e comunque non distingue sterile da
+  materiale commerciale: distingue solo "da rilievo drone" da altre
+  provenienze future. Senza questa distinzione, un anno di produzione
+  sommata darebbe un totale unico dove il modulo regionale ne vuole due
+  separati (lo sterile non genera canone, il materiale commerciale sì).
+
+### Riepilogo per la forma fissa
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Nuovo rapportino di turno | Il "titolo" del rapportino è testo libero (`new-rap-titolo`) e non porta una fase dell'operazione (copertura/estrazione-trasporto/frantumazione-vagliatura-lavaggio/carico) come richiede il modulo di statistica mineraria annuale (Regione Piemonte, L.R. 23/2016 — fonte di seconda mano); aggregare un anno di rapportini per quel modulo oggi richiederebbe leggere e classificare a mano ogni titolo | Aprire "Nuova attività/rapportino" e scrivere un titolo qualunque (es. "Turno di oggi"): nessun campo chiede la fase, e lo storico/CSV (`csvStorico`) somma solo per unità di misura (m³, t), non per fase | Medio (un campo a menu con 4-5 voci fisse sul rapportino, una funzione di aggregazione per fase accanto a quella già esistente per unità — nessun ricalcolo di quanto già misurato) | Creare tre rapportini con titoli diversi ("Rapportino perforazione", "Rapportino trasporti", "Rapportino impianto") e la stessa unità: una funzione `produzionePerFase` (o simile) deve restituire un totale distinto per ciascuna fase; oggi qualunque aggregazione esistente li somma insieme sotto la stessa unità, senza distinguerli |
+| Nuovo rapportino di turno | Nessun campo distingue materiale di copertura/sterile (non tariffato) da materiale commerciale (tariffato) — il modulo regionale li vuole separati perché solo il secondo genera il canone di escavazione | Cercare in un rapportino o in `volumiTerra` un campo tipo "sterile"/"copertura"/"commerciale": non c'è; l'unico campo di provenienza (`provenienza: "scavo"`) è sempre lo stesso valore e serve al ponte con Terra, non a questa distinzione | Medio (un campo booleano o a menu sul rapportino/volume; nessuna misura nuova, solo una dichiarazione di che cosa rappresenta il numero già scritto) | Creare un rapportino di materiale di copertura e uno di materiale commerciale con la stessa quantità: un totale annuale calcolato oggi li somma senza distinzione; dopo la modifica i due totali devono restare separabili con un filtro esplicito, non dedotto dal titolo |
+
+### Che cosa NON è una mancanza (per chi rilegge questa riga più avanti)
+
+La distinzione fra rapportino (registrazione di turno, oggi in Campo) e
+denuncia annuale (aggregazione regionale) **è già corretta nel disegno**:
+il mondo stesso li tratta come due documenti diversi con destinatari
+diversi (fonte 2 sopra), e non è una mancanza che Campo non produca "il
+modulo regionale" — nessuna delle sei app di questo ecosistema ha ancora
+un ponte dichiarato verso un export regionale. La mancanza reale, più
+piccola e più a monte, è che il dato sorgente (il rapportino) non porta
+ancora l'informazione **per fase** e **per natura del materiale** che
+servirebbe a comporre quell'export il giorno in cui qualcuno lo
+costruisse — oggi quell'aggregazione non è né facile né difficile: è
+**impossibile senza rileggere il testo libero**.
+
+---
+
+*Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello, nessuna letta per intero — `WebFetch` bloccato) e codice di Campo (grep riportati, eseguibili di nuovo).*
