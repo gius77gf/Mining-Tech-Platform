@@ -1087,3 +1087,130 @@ stesso concetto, o accettare che questi tre restino fuori da P2 per
 sempre) che merita di essere presa esplicitamente, non scritta di
 sfuggita dentro un'unità di ricerca. P2 si considera **chiuso a otto
 scrittori su undici** finché qualcuno non prende quella decisione.
+
+---
+
+## 6. NUOVO ANGOLO (17/09) — Sentinella: il «dopo-volata» (colpo cieco), non
+ancora censito qui — e il verdetto è POSITIVO, non un'altra proposta
+
+**La domanda**, nella forma che questo documento chiede («prima il mondo, poi
+la nostra app»): come tratta il mondo l'assenza del dato più critico del
+nostro mestiere — *questo foro ha detonato o no* — e chi la nostra casa lo
+dichiara, se qualcuno lo dichiara?
+
+**1. Il mondo, di seconda mano** (`WebSearch`; le pagine dirette di eCFR e
+WorkSafeBC non sono state aperte una per una, uso la sintesi dei risultati
+di ricerca, con le fonti). Un colpo cieco (misfire — carica non detonata) non
+è trattato come «nessun dato»: ha una procedura propria, con almeno tre stati
+impliciti — non ancora ispezionato, ispezionato-pulito, ispezionato-con-colpo-
+cieco-e-bonificato. La ricerca (query: `misfire blast report "undetonated"
+holes regulation quarry blasting record requirement`) restituisce, come
+sintesi dei risultati: la posizione di un eventuale esplosivo non detonato va
+**registrata sul blast report**; dopo lo sparo è richiesta un'**ispezione
+mirata** a cercare esplosivo non detonato; e un colpo cieco va **segnalato
+immediatamente alla direzione della miniera**, con l'area interdetta finché
+non è messa in sicurezza — [eCFR, 30 CFR Part 75 Subpart N — Explosives and
+Blasting](https://www.ecfr.gov/current/title-30/chapter-I/subchapter-O/part-75/subpart-N);
+[WorkSafeBC, OHS Regulation Part 21: Blasting
+Operations](https://www.worksafebc.com/en/law-policy/occupational-health-safety/searchable-ohs-regulation/ohs-regulation/part-21-blasting-operations);
+[WorkSafeBC, OHS Guidelines Part
+21](https://www.worksafebc.com/en/law-policy/occupational-health-safety/searchable-ohs-regulation/ohs-guidelines/guidelines-part-21).
+
+**2. In casa — cercato prima dove sembrava dovesse stare, e non c'è, provato:**
+
+```
+$ grep -rniE "colpo cieco|misfire|mancata detonazione|mancata esplosione" \
+  apps/genesi/genesi-data.js apps/genesi/genesi.html
+apps/genesi/genesi.html:6569: [...] 'l\'ANFO si desensibilizza in acqua →
+  probabile MANCATA DETONAZIONE e fumi NOx tossici.' [...]
+```
+L'unica occorrenza in Genesi (l'app di progettazione volate, già lodata in §0
+per l'XML in stile ISO 19115) è un avviso di chimica sull'ANFO in acqua, non
+un campo che registra l'esito di un foro. Genesi — che fa riconciliazione
+peso per peso, non conferma di sparo (§ commento in `genesi.html:4208`: «Dal
+file arrivano solo i chili caricati […] restano da compilare qui sotto a
+mano») — davvero **non ha** questo concetto. Fin qui l'ipotesi «manca» era
+vera.
+
+⛔ **Ma è la stessa trappola descritta in CLAUDE.md al contrario** (14/08:
+«si cerca la parola del mondo dentro il NOSTRO codice» — qui il rischio
+simmetrico era fermarsi alla prima app cercata e concludere che la funzione
+non esistesse in nessuna). La domanda giusta non è «Genesi ce l'ha?» ma «dove
+si chiamerebbe la cosa se esistesse fatta in un altro modo?» — e la risposta
+è Sentinella, non Genesi: un colpo cieco è un fatto ambientale/di sicurezza
+del dopo-sparo, non della progettazione. Cercato lì (unità 116 dell'11/09,
+mai citata in questo documento):
+
+```
+$ grep -n "^export const DOPO_" apps/sentinella/sentinella-data.js
+4828:export const DOPO_NON_APPLICABILE = "non-applicabile";
+4829:export const DOPO_NON_REGISTRATO = "non-registrato";
+4830:export const DOPO_REGOLARE = "regolare";
+4831:export const DOPO_ANOMALIE = "anomalie";
+```
+
+`statoDopoVolata` (`sentinella-data.js:4862`) distingue **quattro** stati, non
+un binario: la volata non è ancora sparata (`non-applicabile` — è, alla
+lettera, il `nilReason="inapplicable"` di GML citato in §1.2 di questo
+stesso documento: «there is no value»); nessuno ha ancora compilato
+l'ispezione post-sparo (`non-registrato`, colore «warn», **non** «regolare»
+— il commento del codice lo scrive con le stesse parole del principio del
+fondatore, righe 4826-4827: *«una volata eseguita SENZA questi campi non è
+"regolare", è "dopo-volata non registrato". Il silenzio non è un esito.»*);
+ispezionato e pulito (`regolare`); ispezionato con almeno un colpo cieco o una
+proiezione fuori area (`anomalie`) — e su quest'ultimo la validazione
+(`campiDopoVolata:4903`) **blocca il salvataggio** finché non si scrive che
+cosa è stato fatto («ritrovata e brillata, messa in sicurezza, area
+interdetta…»): è esattamente l'obbligo di bonifica del mondo (punto 1 sopra)
+reso **obbligatorio dal form**, non solo raccomandato in un manuale.
+
+E lo zero è dichiarato zero, non confuso con «nessuno ha guardato» — la
+stessa distinzione che regge tutto il resto di questo documento, qui sul dato
+più critico del mestiere:
+```
+$ sed -n '4838,4839p' apps/sentinella/sentinella-data.js
+  const m = numeroDichiarato(x.mancateEsplosioni);
+  const mancate = m != null && Number.isInteger(m) && m >= 0 ? m : null;
+```
+
+**Verificato fino in fondo alla catena** (letto, non supposto — la stessa
+regola di D2 su questo documento):
+- **allo schermo**: `riepilogoDopoVolata` (`sentinella-data.js:4940`) somma le
+  mancate solo su chi le ha dichiarate (`mancateTotali = null` finché nessuno
+  dichiara — la propagazione agli aggregati di §1.1b, non un totale
+  tranquillo), conta a parte `nonRegistrate`, e quel numero non è una
+  bandiera scollegata (la trappola della regola 20 di `run-stile.mjs`, già
+  pagata altrove in questa casa):
+  `grep -n "nonRegistrate" apps/sentinella/index.html` →
+  `4739:  rd.nonRegistrate ? \` · <span class="badge warn" …>\${rd.nonRegistrate} senza dopo-volata</span>\` : ""`;
+- **nel file che esce** (`csvRegistroVolate:5519`): la cella passa da
+  `cella()`, che scrive vuoto per `null` e il numero per uno zero dichiarato —
+  non un `|| 0` che confonderebbe le due cose (il commento a `5491-5495` lo
+  dice per nome, citando proprio questo errore come quello già corretto);
+- **nel giro di ritorno** (`parseVolateCsv:1181,1184`):
+  ```
+  $ sed -n '1181p;1184p' apps/sentinella/sentinella-data.js
+        const sm = String(mancateEsplosioni == null ? "" : mancateEsplosioni).trim();
+          mancateEsplosioni: /^\d+$/.test(sm) ? parseInt(sm, 10) : null,
+  ```
+  una cella vuota rilegge `null`, non zero — la distinzione sopravvive
+  all'export/import, non solo alla sessione in corso (è la stessa prova che
+  D1 di questo documento pretende per gli 11 CSV, qui fatta a mano su questo
+  campo).
+
+**Verdetto — e perché va scritto anche se non produce lavoro.** Zero proposte
+P entrano da questa unità: non c'è nessun «non c'è» da colmare. È il caso
+simmetrico alla regola di CLAUDE.md del 01/08 («due cantieri stavano per
+aprirsi su cose già costruite» — indici di Scudo, solleciti di Conti): qui
+l'ipotesi di partenza (Genesi non ha un posto per dichiarare un colpo cieco)
+era **vera**, ma la funzione non manca all'ecosistema — vive nell'app giusta
+(Sentinella), è **più fine** del minimo che il mondo richiede (quattro stati
+contro i tre impliciti di §1, con la bonifica resa obbligatoria dal form e
+non solo raccomandata), ed è collegata dallo schermo al file di scambio senza
+un punto cieco lungo la catena. Vale la pena catalogarlo qui — non c'era
+prima, verificato con `grep -c "dopo-volata\|dopoVolata\|mancateEsplosioni" docs/RICERCA_CONTINUA_ASSENZA.md`
+prima di questa unità → `0` — perché è il **quarto** esempio indipendente
+(dopo `numeroDichiarato`, le sei bandiere e l'XML di Genesi in §0) di questa
+casa che inventa da sola un pezzo dello stesso principio che la sezione 1
+documenta nel mondo, e il più recente dei quattro (11/09, dopo che il grosso
+di questa ricerca era già scritto).
