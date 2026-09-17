@@ -397,6 +397,15 @@ body.dw.light-mode, body.dw.outdoor-mode{
   font-family:'Barlow Condensed',sans-serif; font-weight:800; letter-spacing:.6px;
   color:var(--app-accent2); font-variant-numeric:tabular-nums;
 }
+/* ⛔ 17/09: un badge SCRITTO DENTRO `.name` (non allineato da `.item>.badge`,
+   che ha la sua colonna fissa) è testo lungo travestito da pastiglia. `.badge`
+   resta `white-space:nowrap` di proposito per le pastiglie corte in colonna,
+   ma `.name` ha già `-webkit-line-clamp:2` con `overflow:hidden`: un blocco
+   che non può andare a capo da solo viene tagliato a metà parola dal clamp
+   invece di scendere alla riga sotto. Trovato su "scartata: come non emessa"
+   tagliata in "SCARTATA: COME NON EM" a 1280px, con quattro bottoni azione
+   sulla stessa riga a lasciare poco spazio. Qui il badge PUÒ andare a capo. */
+.name .badge{white-space:normal; text-align:left}
 .meta b{color:var(--muted2)}
 
 /* ── LA COLONNA DEGLI IMPORTI ──
@@ -3676,7 +3685,7 @@ label.item:has(.dw-chk:checked){
     const incTot = incassatoPeriodo(FAT, INC, "", "");
     const incMeseR = incassatoPeriodo(FAT, INC, ym + "-01", ym + "-31");
     const inc = incTot.importo, incMese = incMeseR.importo;
-    const tmp = tempoMedioPagamento(FAT, INC);         // giorni reali di pagamento
+    const tmp = tempoMedioPagamento(FAT, INC, NOT);    // giorni reali di pagamento
     const ia30 = incassoAtteso(FAT, 30, new Date(), NOT);
     $("rep-list").innerHTML = [
       ["Incassato questo mese", eur(incMese), incMese > 0 ? plur(incMeseR.movimenti + incMeseR.fattureVecchie, "incasso registrato", "incassi registrati") : "nessun incasso registrato", incMese > 0 ? "ok" : "warn"],
@@ -3778,7 +3787,7 @@ label.item:has(.dw-chk:checked){
 
     // ── Tempi reali di pagamento per cliente: quanti giorni ci mette
     //    davvero ognuno. Prima si poteva solo indovinare. ──
-    const tempi = tempiPagamentoClienti(FAT, INC, CLI);
+    const tempi = tempiPagamentoClienti(FAT, INC, CLI, NOT);
     const conMedia = tempi.filter(t => t.giorniMedi != null);
     $("tempi-list").innerHTML = conMedia.length
       ? conMedia.map(t => {

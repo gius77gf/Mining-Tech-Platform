@@ -2066,6 +2066,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   // I permessi di lavoro (S8). Stessa regola: elenco vuoto, e la schermata lo
   // dice invece di accendere il verde.
   let PERM = [];
+  // Il contesto che i permessi leggono (formazione, qualifica dell'impresa,
+  // documento di coordinamento): a livello di modulo perché lo stampa il
+  // verbale di ispezione (17/09), e quel bottone vive fuori da `refresh()`.
+  let ctxPerm = {};
   // Il segno di quando qualcuno ha aperto per l'ultima volta la pagina
   // Scadenze (16/09): serve al contatore delle notifiche non lette.
   let IMP = [];
@@ -2252,8 +2256,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     ATT = (db.attrezzature ? await db.attrezzature() : []) || [];
     aggiornaBadgeNotifiche();
     // Il contesto che i permessi leggono: formazione di chi entra, qualifica
-    // dell'impresa, documento di coordinamento. Si costruisce una volta sola.
-    const ctxPerm = { lavoratori: LAV, scadenze: SCA, appalti: APPA, cantieri: CANT,
+    // dell'impresa, documento di coordinamento. Ricalcolato a ogni refresh.
+    ctxPerm = { lavoratori: LAV, scadenze: SCA, appalti: APPA, cantieri: CANT,
       appaltatori: APPT, documenti: DOC };
     const byId = Object.fromEntries(LAV.map(l => [l.id, l]));
     const infById = Object.fromEntries(INF.map(x => [x.id, x]));
@@ -6029,7 +6033,8 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
      stesso disegnatore della cartella e del verbale. */
   function costruisciFascicolo() {
     disegnaFoglioSezioni(fascicoloIspezione({ cantieri: CANT, documenti: DOC, infortuni: INF, nomine: NOM, lavoratori: LAV,
-      scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI }, new Date()),
+      scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI,
+      permessi: PERM, ctxPerm }, new Date()),
       "Questo fascicolo non riguarda nessuna cava reale: non va esibito a un ispettore né tenuto agli atti.");
   }
   $("btn-fascicolo").onclick = costruisciFascicolo;
@@ -6054,7 +6059,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-isp-stampa").onclick = async () => {
     const i = ISP.find(x => x.id === ispAperta);
     if (!i) { esito("isp-c-esito", "Apri prima un'ispezione dall'elenco: il verbale si stampa da lì.", "err"); return; }
-    const F = fogliaIspezione(i, { cantieri: CANT, lavoratori: LAV, azioni: AZI, oggi: new Date() });
+    const F = fogliaIspezione(i, { cantieri: CANT, lavoratori: LAV, azioni: AZI, permessi: PERM, ctxPerm, oggi: new Date() });
     const ok = await chiedi("Verbale — " + i.nome,
       (F.chiusura.allarme ? "⚠️ <b>" : "<b>") + esc(F.chiusura.testo) + "</b>"
       + (F.nonMisurati.length ? "<br><br>Il foglio lo dichiara riga per riga: " + esc(F.nonMisurati.join(", ")) + "." : "")

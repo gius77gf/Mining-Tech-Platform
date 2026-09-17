@@ -4742,6 +4742,7 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
   const nomine = d.nomine || [], lavoratori = d.lavoratori || [], scadenze = d.scadenze || [];
   const mansioni = d.mansioni || [], dpi = d.dpi || [], appalti = d.appalti || [], appaltatori = d.appaltatori || [];
   const ispezioni = d.ispezioni || [], azioni = d.azioni || [];
+  const permessi = d.permessi || [], ctxPerm = d.ctxPerm || {};
   const nonMisurati = [], daSistemare = [];
   const sez = (titolo, righe, vuoto) => ({ titolo, righe, vuoto: righe.length ? "" : vuoto });
   const G = (x) => "**" + x + "**";
@@ -4829,7 +4830,13 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
   const rI = riepilogoIspezioni(ispezioni, oggi);
   if (!rI.totale) nonMisurati.push("nessuna ispezione interna registrata");
   if (rI.scadute || rI.senzaEsito) daSistemare.push("ispezioni: " + [rI.scadute ? conta(rI.scadute, "scaduta", "scadute") : "", rI.senzaEsito ? conta(rI.senzaEsito, "voce senza esito", "voci senza esito") : ""].filter(Boolean).join(", "));
-  const righeIsp = rI.totale ? [["Ispezioni interne", rI.completate + " completate su " + rI.totale + " · da fare " + rI.daFare + (rI.scadute ? " · " + G(conta(rI.scadute, "scaduta", "scadute")) : "") + " · non conformità rilevate " + rI.nonConformi + (rI.senzaEsito ? " · " + G(conta(rI.senzaEsito, "voce senza esito", "voci senza esito")) : "")]] : [];
+  // ⛔ 17/09: le voci CONFORMI senza permesso di lavoro dietro non finivano in
+  // nessuna riga del fascicolo — vedi il commento su `fogliaIspezione`, stessa
+  // causa, stesso principio del fondatore applicato allo stesso documento.
+  const cSenzaProva = conformiSenzaProva(ispezioni, permessi, ctxPerm, oggi);
+  if (cSenzaProva.length) daSistemare.push(conta(cSenzaProva.length, "voce conforme senza permesso di lavoro registrato dietro", "voci conformi senza permesso di lavoro registrato dietro"));
+  const righeIsp = rI.totale ? [["Ispezioni interne", rI.completate + " completate su " + rI.totale + " · da fare " + rI.daFare + (rI.scadute ? " · " + G(conta(rI.scadute, "scaduta", "scadute")) : "") + " · non conformità rilevate " + rI.nonConformi + (rI.senzaEsito ? " · " + G(conta(rI.senzaEsito, "voce senza esito", "voci senza esito")) : "")
+    + (cSenzaProva.length ? " · " + G(conta(cSenzaProva.length, "conforme senza permesso dietro", "conformi senza permesso dietro")) : "")]] : [];
 
   const sezioni = [
     sez("Documento di sicurezza e salute (DSS)", righeDss, "Nessuna cava registrata: il DSS non si può collegare a niente, e questo foglio non può dire se esiste."),
@@ -4854,7 +4861,7 @@ export function fascicoloIspezione(dati, oggi = new Date()) {
     nonMisurati, daSistemare, completo, inRegola,
     numeri: { cave: cave.length, dssRegolari: cicli.filter((c) => c.noto && c.stato === "regolare").length, nomineDaSistemare: nomKO.length,
       lavoratori: attivi.length, senzaGiudizio: perGiudizio[""], dpiDaSistemare: rd.daSistemare, infortuni: ri.infortuni, nearMissSenzaAzione: rnm.senzaAzione,
-      appalti: rA.quanti, ispezioniScadute: rI.scadute },
+      appalti: rA.quanti, ispezioniScadute: rI.scadute, conformiSenzaProva: cSenzaProva.length },
   };
 }
 
@@ -4914,6 +4921,7 @@ export function fogliaIspezione(isp, opzioni = {}) {
   const i = isp || {};
   const o = opzioni || {};
   const cantieri = o.cantieri || [], lavoratori = o.lavoratori || [], azioni = o.azioni || [];
+  const permessi = o.permessi || [], ctxPerm = o.ctxPerm || {};
   const oggi = o.oggi || new Date();
   const cant = cantieri.find((c) => c && c.id === i.cantiereId) || null;
   const resp = lavoratori.find((l) => l && l.id === i.responsabileId) || null;
@@ -4936,13 +4944,31 @@ export function fogliaIspezione(isp, opzioni = {}) {
     ["Periodicità", i.periodicitaGiorni > 0 ? "ogni " + conta(+i.periodicitaGiorni, "giorno", "giorni") : "non indicata"],
   ].concat(i.riferimento ? [["Riferimento", String(i.riferimento)]] : []), "");
 
+  /* ⛔ 17/09: UNA VOCE "CONFORME" SENZA PERMESSO DIETRO ARRIVAVA AL FOGLIO
+     STAMPATO TALE E QUALE A UNA VOCE VERAMENTE CONFORME. A schermo Scudo dice
+     già «segnata conforme, ma qui non risulta niente — non è "conforme", è
+     "non lo sappiamo"» (`provaVoce`/`conformiSenzaProva`, nel Quadro e nella
+     pagina Ispezioni); il verbale che va all'ispettore non lo chiamava mai,
+     quindi un ispettore che legge SOLO il foglio firmato vede una checklist
+     tutta conforme anche quando una voce sensibile (qui: l'accesso a spazi
+     confinati) è stata spuntata senza che risulti nessun permesso di lavoro a
+     supporto. Stessa famiglia del principio del fondatore applicata al
+     documento cartaceo, non allo schermo. */
   const voci = (i.voci || []).map((v, k) => {
     const e = esiti[v.id] || null;
     const es = e && ETI[e.esito] ? ETI[e.esito] : "**senza esito**";
     const nFoto = e && Array.isArray(e.foto) ? e.foto.filter((f) => f && f.dataURL).length : 0;
-    return [String(k + 1) + ". " + String(v.testo || ""), es + (e && String(e.nota || "").trim() ? " — " + String(e.nota).trim() : "") + (nFoto ? " · " + conta(nFoto, "foto", "foto") : "")];
+    const pr = e && e.esito === "conforme" ? provaVoce(i, v, permessi, ctxPerm, oggi) : null;
+    const avvisoProva = pr && pr.chiede && pr.esito !== "con-prova" ? " — **" + descriviProva(pr) + "**" : "";
+    return [String(k + 1) + ". " + String(v.testo || ""), es + (e && String(e.nota || "").trim() ? " — " + String(e.nota).trim() : "") + (nFoto ? " · " + conta(nFoto, "foto", "foto") : "") + avvisoProva];
   });
   const vociSez = sez("Voci della checklist", voci, "Questa checklist non ha nessuna voce: non è stato guardato niente.");
+  const senzaProva = (i.voci || []).filter((v) => {
+    const e = esiti[v.id];
+    if (!e || e.esito !== "conforme") return false;
+    const pr = provaVoce(i, v, permessi, ctxPerm, oggi);
+    return pr.chiede && pr.esito !== "con-prova";
+  }).length;
 
   const esitoRiga = r.totale
     ? [["Esito", conta(r.totale, "voce", "voci") + ": " + conta(r.conformi, "conforme", "conformi") + ", " + conta(r.nonConformi, "non conforme", "non conformi")
@@ -4967,6 +4993,7 @@ export function fogliaIspezione(isp, opzioni = {}) {
   if (!r.totale) nonMisurati.push("nessuna voce");
   if (r.daFare) nonMisurati.push(conta(r.daFare, "voce senza esito", "voci senza esito"));
   if (nc.length && !az.length) nonMisurati.push(conta(nc.length, "non conformità senza azione", "non conformità senza azione"));
+  if (senzaProva) nonMisurati.push(conta(senzaProva, "voce conforme senza permesso di lavoro registrato dietro", "voci conformi senza permesso di lavoro registrato dietro"));
 
   const chiusuraTesto = !r.totale ? "Questo verbale non dimostra niente: la checklist non ha voci."
     : !chiusa ? "Ispezione non ancora chiusa: " + conta(r.fatte, "voce compilata", "voci compilate") + " su " + r.totale + ". Il foglio vale come stato di avanzamento, non come verbale."
@@ -4980,7 +5007,7 @@ export function fogliaIspezione(isp, opzioni = {}) {
     titolo: "Verbale di ispezione",
     sottotitolo: String(i.nome || "") + (dataISOEsiste(i.data) ? " · " + dataIt(i.data) : "") + " — documento preparato con Deepwork Scudo il " + dataIt(isoLocale(oggi)),
     sezioni: [intestazione, esitoSez, vociSez, azSez],
-    chiusura: { testo: chiusuraTesto, allarme: !chiusa || !r.totale || r.daFare > 0 || (nc.length > 0 && !az.length) },
+    chiusura: { testo: chiusuraTesto, allarme: !chiusa || !r.totale || r.daFare > 0 || (nc.length > 0 && !az.length) || senzaProva > 0 },
     firme: ["Il responsabile dell'ispezione", "Il datore di lavoro / RSPP"],
     nonMisurati,
   };

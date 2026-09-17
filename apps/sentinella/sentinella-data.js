@@ -5357,7 +5357,15 @@ export function fogliaVolata(v, opts = {}) {
   const pv = previsioneDiVolata(x);
   sez.push({ titolo: "Previsione", righe: pv ? [
     ["PPV prevista", numeroIt(pv.valore) + " mm/s", false],
-    pv.limite != null ? ["Limite dichiarato", numeroIt(pv.limite) + " mm/s" + (pv.norma ? " (" + pv.norma + ")" : ""), false] : manca("Limite dichiarato", "non dichiarato"),
+    // ⛔ 17/09, censimento a doppio punto di chiamata: quando il limite c'è
+    // ma la norma no, la parentesi spariva in silenzio e la riga sembrava un
+    // limite verificato — il gemello di questa riga nel Report di conformità
+    // (sezPpvVolate, index.html) lo dice già («norma non indicata sul
+    // progetto»): questo foglio, pensato apposta per essere allegato a un
+    // reclamo o consegnato a un tecnico, no. Il numero resta (è dichiarato
+    // davvero): a mancare è solo la sua provenienza normativa, che si dice
+    // accanto invece di tacerla.
+    pv.limite != null ? ["Limite dichiarato", numeroIt(pv.limite) + " mm/s" + (pv.norma ? " (" + pv.norma + ")" : " (norma non indicata sul progetto)"), false] : manca("Limite dichiarato", "non dichiarato"),
     ["Sovrapressione prevista", pv.airblast != null ? numeroIt(pv.airblast) + " dB(L)" : "non dichiarata", false],
     ["Fonte", testoFontePrevisione(pv), false],
   ] : [["PPV prevista", "nessuna previsione registrata", false]] });

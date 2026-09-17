@@ -2923,6 +2923,43 @@ test("una nota in bozza non storna niente", () => {
   eq(conti.stornatoDi("F1", [{ fatturaId: "F1", totale: 500, bozza: true }]), 0, "la bozza non conta");
 });
 
+/* ⛔ 17/09: un incasso parziale + una nota che chiude il resto è il caso
+   «normale» che questa stessa unità descrive («prima il cliente salda, poi
+   si emette la nota») — ma fino a oggi `dataSaldo` restava quella ereditata
+   da `statoIncasso`, che è null quando è la nota (non i soli movimenti) a
+   portare il residuo a zero. Risultato misurato in produzione: la riga della
+   fattura scriveva "incassata, data non registrata" su un incasso vero e
+   registrato, e la stessa fattura spariva dai tempi reali di pagamento. */
+test("⛔ 17/09: un incasso parziale + una nota che chiude il resto ha una data di saldo vera", () => {
+  const inc = [{ fatturaId: "F1", importo: 610, data: "2026-01-20" }];
+  const note = [{ fatturaId: "F1", totale: conti.round2(TOTNC - 610), emessa: "2026-01-25" }];
+  const st = conti.statoFattura(FNC, inc, note);
+  eq(st.stato, "saldata", "saldata dal misto incasso + nota");
+  eq(st.contaNeiTempi, true, "e conta nei tempi");
+  eq(st.dataSaldo, "2026-01-25", "vince la data più tarda: qui è la nota");
+  eq(st.giorniPagamento, conti.giorniFraDate(FNC.emessa, "2026-01-25"), "i giorni si contano su quella data");
+  // se il pagamento arriva DOPO la nota (nota emessa prima dell'acconto residuo), vince il movimento
+  const st2 = conti.statoFattura(FNC,
+    [{ fatturaId: "F1", importo: 610, data: "2026-01-25" }],
+    [{ fatturaId: "F1", totale: conti.round2(TOTNC - 610), emessa: "2026-01-20" }]);
+  eq(st2.dataSaldo, "2026-01-25", "qui vince il movimento, più tardo della nota");
+});
+
+test("⛔ 17/09: tempoMedioPagamento e tempiPagamentoClienti contano la fattura saldata da incasso + nota", () => {
+  const inc = [{ fatturaId: "F1", importo: 610, data: "2026-01-20" }];
+  const note = [{ fatturaId: "F1", totale: conti.round2(TOTNC - 610), emessa: "2026-01-25" }];
+  const tmp = conti.tempoMedioPagamento([FNC], inc, note);
+  eq(tmp.conto, 1, "la fattura entra nel conto dei tempi di pagamento");
+  eq(tmp.senzaData, 0, "e non fra quelle senza data");
+  const tempi = conti.tempiPagamentoClienti([FNC], inc, [], note);
+  eq(tempi[0].conto, 1, "anche per cliente");
+  eq(tempi[0].senzaData, 0, "senza data zero anche qui");
+  // senza `note` (chiamante che non le passa) il comportamento resta quello
+  // di sempre: la fattura non risulta saldata e resta fuori dal conto
+  const senzaNote = conti.tempoMedioPagamento([FNC], inc);
+  eq(senzaNote.conto, 0, "senza note la fattura non risulta saldata: nessuna regressione per chi non le passa");
+});
+
 test("stornatoDi: id assente non raccoglie tutto per sbaglio", () => {
   eq(conti.stornatoDi(null, [{ fatturaId: "F1", totale: 500 }]), 0, "senza id, zero");
   eq(conti.stornatoDi("F1", [{ fatturaId: "F2", totale: 500 }]), 0, "note di un'altra fattura");
@@ -3097,7 +3134,14 @@ test("⛔ una fattura stornata NON finisce nel sollecito né nell'estratto conto
 test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, composto dalle funzioni che decidono a schermo", () => {
   const D = scudo.DEMO, oggi = new Date("2026-09-11T00:00:00");
   const tutto = { cantieri: D.cantieri, documenti: D.documenti, infortuni: D.infortuni, nomine: D.nomine, lavoratori: D.lavoratori,
-    scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, appalti: D.appalti, appaltatori: D.appaltatori, ispezioni: D.ispezioni, azioni: D.azioni };
+    scadenze: D.scadenze, mansioni: D.mansioni, dpi: D.dpi, appalti: D.appalti, appaltatori: D.appaltatori, ispezioni: D.ispezioni, azioni: D.azioni,
+    // 17/09: senza questi due il fascicolo giudicherebbe ogni voce "conforme"
+    // che chiede un permesso come priva di prova, anche quando il permesso
+    // c'è — non è il caso della dimostrazione, ma è la stessa domanda che il
+    // Quadro e la pagina Ispezioni fanno già (`ctxPerm` in `index.html`)
+    permessi: D.permessi,
+    ctxPerm: { lavoratori: D.lavoratori, scadenze: D.scadenze, appalti: D.appalti, cantieri: D.cantieri,
+      appaltatori: D.appaltatori, documenti: D.documenti } };
   const f = scudo.fascicoloIspezione(tutto, oggi);
   eq(f.sezioni.map((z) => z.titolo), ["Documento di sicurezza e salute (DSS)", "Organigramma della sicurezza e nomine", "Formazione e scadenze", "Idoneità sanitarie",
     "Dispositivi di protezione", "Registro infortuni e near-miss", "Imprese esterne e appalti", "Ispezioni interne e prescrizioni"], "le otto sezioni, nell'ordine della visita");
@@ -3115,8 +3159,8 @@ test("⛔ fascicoloIspezione: l'elenco dell'ispettore per la cava intera, compos
   // infortuni: 4 dal 15/09 (i9, l'infortunio oltre i 60 giorni che esercita
   // visitaRientroNecessaria in dimostrazione — finding 4 del secondo giro di
   // ricerca su Scudo); 3 prima.
-  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 4, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1 },
-    "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria)");
+  eq(f.numeri, { cave: 2, dssRegolari: 0, nomineDaSistemare: 4, lavoratori: 7, senzaGiudizio: 4, dpiDaSistemare: 5, infortuni: 4, nearMissSenzaAzione: 4, appalti: 4, ispezioniScadute: 1, conformiSenzaProva: 1 },
+    "i numeri sono quelli delle funzioni di schermo (misurati chiamandole, non a memoria) — ⛔ 17/09: 1 voce «conforme» sulla dimostrazione senza nessun permesso di lavoro registrato dietro (l'accesso a spazi confinati dell'Impianto di lavorazione)");
   const riga = (t, e) => { const z = f.sezioni.find((x) => x.titolo === t); const r = z && z.righe.find((q) => q[0] === e); return r ? r[1] : undefined; };
   ok(/^\*\*non databile\*\* — Il DSS è in archivio/.test(riga("Documento di sicurezza e salute (DSS)", "Cava Monte Alto")), "⛔ il DSS non databile è in grassetto, con la ragione del modulo");
   eq(riga("Organigramma della sicurezza e nomine", "Medico competente"), "**nessuna nomina: ruolo obbligatorio scoperto**", "il ruolo obbligatorio scoperto si vede");
@@ -3142,7 +3186,7 @@ test("⛔ fascicoloIspezione senza dati: ogni sezione dice che non risulta nient
 test("⛔ fascicolo nella pagina: il bottone nel Quadro e il foglio dal modulo, con lo stesso disegnatore", () => {
   const pag = readFileSync(join(HERE, "../../scudo/index.html"), "utf8");
   ok(/id="btn-fascicolo"/.test(pag), "il bottone");
-  ok(/disegnaFoglioSezioni\(fascicoloIspezione\(\{ cantieri: CANT, documenti: DOC, infortuni: INF, nomine: NOM, lavoratori: LAV,\s*scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI \}, new Date\(\)\)/.test(pag), "il foglio dal modulo con tutti i dati della pagina");
+  ok(/disegnaFoglioSezioni\(fascicoloIspezione\(\{ cantieri: CANT, documenti: DOC, infortuni: INF, nomine: NOM, lavoratori: LAV,\s*scadenze: SCA, mansioni: MANS, dpi: DPI, appalti: APPA, appaltatori: APPT, ispezioni: ISP, azioni: AZI,\s*permessi: PERM, ctxPerm \}, new Date\(\)\)/.test(pag), "il foglio dal modulo con tutti i dati della pagina, permessi compresi (17/09)");
   ok(/\$\("btn-fascicolo"\)\.onclick = costruisciFascicolo;/.test(pag), "collegato");
 });
 test("⛔ cartellaLavoratore: una sezione vuota non e' «non dovuto»", () => {
@@ -21833,6 +21877,35 @@ test("⛔ piuGiorni: una data che non esiste non produce una scadenza", () => {
       "una NON conforme è già un problema dichiarato: non è questo il difetto");
     eq(scudo.conformiSenzaProva([{ ...ISP, esiti: {} }], [], CTX, OGGI).length, 0,
       "e una voce senza esito la conta già `riepilogoIspezioni`");
+  });
+
+  /* ⛔ 17/09: LO STESSO DIFETTO, SUL DOCUMENTO CARTACEO. Il verbale stampato e
+     il fascicolo per l'ispettore usavano `fogliaIspezione`/`fascicoloIspezione`
+     SENZA MAI passare `permessi`: una voce "conforme" senza niente dietro
+     arrivava al foglio uguale a una voce davvero conforme. */
+  test("⛔ 17/09: il verbale stampato e il fascicolo dicono la stessa cosa dello schermo su una voce conforme senza permesso", () => {
+    const VOCE = "Accesso a tramogge e spazi confinati regolato da permesso di lavoro";
+    const ISP = { id: "q", nome: "Impianto", data: "2026-07-22", cantiereId: "k1",
+      voci: [{ id: "v8", testo: VOCE }], esiti: { v8: { esito: "conforme", nota: "" } }, stato: "completata" };
+    const PW = { ...COMPLETO, id: "x", dal: "2026-07-22T07:30", al: "2026-07-22T13:00", stato: "chiuso" };
+
+    const senzaPermesso = scudo.fogliaIspezione(ISP, { permessi: [], ctxPerm: CTX, oggi: OGGI });
+    const rigaVoce = senzaPermesso.sezioni.find((s) => s.titolo === "Voci della checklist").righe[0];
+    ok(/non è «conforme», è «non lo sappiamo»/.test(rigaVoce[1]), "il verbale stampato dice la stessa cosa dello schermo: " + rigaVoce[1]);
+    ok(senzaPermesso.nonMisurati.some((x) => /conforme senza permesso/.test(x)), "e lo dichiara anche in cima: " + senzaPermesso.nonMisurati.join(", "));
+    eq(senzaPermesso.chiusura.allarme, true, "e la chiusura allarma");
+
+    const conPermesso = scudo.fogliaIspezione(ISP, { permessi: [PW], ctxPerm: CTX, oggi: OGGI });
+    const rigaOk = conPermesso.sezioni.find((s) => s.titolo === "Voci della checklist").righe[0];
+    ok(!/non lo sappiamo/.test(rigaOk[1]), "col permesso vero nessun avviso in più: " + rigaOk[1]);
+
+    const fascicolo = scudo.fascicoloIspezione({ ispezioni: [ISP], permessi: [], ctxPerm: CTX }, OGGI);
+    const rigaFascicolo = fascicolo.sezioni.find((s) => s.titolo === "Ispezioni interne e prescrizioni").righe[0];
+    ok(/senza permesso/.test(rigaFascicolo[1]), "il fascicolo lo conta anche lui: " + rigaFascicolo[1]);
+    eq(fascicolo.numeri.conformiSenzaProva, 1, "e lo dichiara nei numeri");
+
+    const fascicoloOk = scudo.fascicoloIspezione({ ispezioni: [ISP], permessi: [PW], ctxPerm: CTX }, OGGI);
+    eq(fascicoloOk.numeri.conformiSenzaProva, 0, "col permesso vero il fascicolo torna a zero");
   });
 
   /* ⛔ IL REGISTRO VUOTO NON È IL VERDE — stessa distinzione di
@@ -42015,6 +42088,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(riga(sentinella.fogliaVolata(V, { monitoraggi: [{ ...MON[0], letture: [] }] }), "Misura dell'evento", "Componenti dell'evento"), "lettura non trovata nel punto «V1 abitato»", "punto c'è, lettura no");
     eq(sentinella.fogliaVolata(null).sezioni.length, 7, "null non rompe (sette sezioni dall'11/09, con «Dopo la volata»)");
   });
+  /* ⛔ 17/09, censimento a doppio punto di chiamata: un limite dichiarato
+     SENZA la norma da cui viene spariva in silenzio (la parentesi non
+     compariva e basta) — il gemello di questa riga nel Report di
+     conformità (sezPpvVolate, index.html) la dichiarava già ("norma non
+     indicata sul progetto"). Un foglio pensato per essere allegato a un
+     reclamo o consegnato a un tecnico non deve lasciar credere che un
+     limite senza fonte citata sia verificato. */
+  test("⛔ Sentinella · fogliaVolata: un limite dichiarato SENZA la norma lo dice, non tace la parentesi", () => {
+    const fSenzaNorma = sentinella.fogliaVolata({ ...V, ppvPrevNorma: "" }, { monitoraggi: MON, reclami: REC });
+    eq(riga(fSenzaNorma, "Previsione", "Limite dichiarato"), "5 mm/s (norma non indicata sul progetto)", "il numero resta, la fonte mancante si dice");
+    eq(riga(sentinella.fogliaVolata(V, { monitoraggi: MON, reclami: REC }), "Previsione", "Limite dichiarato"), "5 mm/s (DIN residenziale @ 25 Hz)", "con la norma, invariato");
+  });
   /* ⛔ DUE LETTURE, STESSO GIORNO, ENTRAMBE SENZA ORA — CHIAVE DEBOLE (15/09,
      stessa famiglia di `_findVolata` del core, chiusa oggi). `ora` è
      facoltativa nell'import CSV: quando la PPV confermata non la porta, la
@@ -44360,7 +44445,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq((pagina.match(/function disegnaFoglioSezioni\(/g) || []).length, 1, "il disegnatore esiste una volta");
     ok(/disegnaFoglioSezioni\(fogliaCartella\(c, new Date\(\)\),/.test(pagina), "la cartella passa di lì");
     ok(/function costruisciVerbaleIspezione\(F\) \{\s*disegnaFoglioSezioni\(F,/.test(pagina), "e il verbale pure");
-    ok(/const F = fogliaIspezione\(i, \{ cantieri: CANT, lavoratori: LAV, azioni: AZI, oggi: new Date\(\) \}\);/.test(pagina), "il foglio lo compone il modulo con i dati della pagina");
+    ok(/const F = fogliaIspezione\(i, \{ cantieri: CANT, lavoratori: LAV, azioni: AZI, permessi: PERM, ctxPerm, oggi: new Date\(\) \}\);/.test(pagina), "il foglio lo compone il modulo con i dati della pagina, permessi compresi (17/09)");
     ok(/id="btn-isp-stampa"/.test(pagina), "il bottone nel pannello della checklist");
     eq((pagina.match(/window\.print\(\)/g) || []).length, 3, "le stampe adesso sono TRE (era la prova del documento dei concorrenti)");
   });

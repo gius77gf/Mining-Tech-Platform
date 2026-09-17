@@ -2563,10 +2563,15 @@ export function incassatoPeriodo(fatture, incassi, dal, al) {
 // vera; quelle marcate incassate senza data restano fuori dalla media e
 // vengono contate a parte (senzaData), perché una media su date inventate
 // sarebbe peggio di nessuna media. Pura e testabile.
-export function tempiPagamentoClienti(fatture, incassi, clienti = []) {
+// ⛔ E FINO AL 17/09 «SALDATE» SI CALCOLAVA SENZA `note`: una fattura chiusa da
+// un incasso parziale più una nota di credito (il caso che `statoFattura`
+// stesso chiama «normale») non risultava mai saldata qui — spariva dalla media
+// invece di contarci, con la bandiera `contaNeiTempi` scritta apposta e letta
+// da nessuno. Adesso passa da `statoFattura`, che quella bandiera la incarna.
+export function tempiPagamentoClienti(fatture, incassi, clienti = [], note) {
   const per = {};
   for (const f of fatture || []) {
-    const s = statoIncasso(f, incassi);
+    const s = statoFattura(f, incassi, note);
     if (!s.saldata) continue;
     const k = chiaveCliente(f, clienti);
     const p = per[k] || (per[k] = { chiave: k, cliente: nomeCliente(f, clienti),
@@ -2587,10 +2592,10 @@ export function tempiPagamentoClienti(fatture, incassi, clienti = []) {
 }
 
 // Tempo medio di pagamento su TUTTE le fatture saldate (media per fattura).
-export function tempoMedioPagamento(fatture, incassi) {
+export function tempoMedioPagamento(fatture, incassi, note) {
   let giorniTot = 0, n = 0, ritTot = 0, nRit = 0, senzaData = 0;
   for (const f of fatture || []) {
-    const s = statoIncasso(f, incassi);
+    const s = statoFattura(f, incassi, note);
     if (!s.saldata) continue;
     if (s.giorniPagamento == null) { senzaData++; continue; }
     giorniTot += s.giorniPagamento; n++;
@@ -4138,6 +4143,30 @@ export function stornatoDi(fatturaId, note) {
     .reduce((t, n) => t + Math.abs(+n.totale || 0), 0));
 }
 
+// La più tarda fra le date di emissione delle note (non bozza) collegate a una
+// fattura, o null se non ce n'è nessuna con una data valida. Serve a
+// `statoFattura`: quando è una nota — non un incasso — ad azzerare il
+// residuo, l'obbligo non è finito alla data dell'ultimo movimento, è finito
+// quando la nota è stata emessa.
+function dataUltimaNota(fatturaId, note) {
+  const id = String(fatturaId == null ? "" : fatturaId);
+  if (!id) return null;
+  let max = null;
+  for (const n of note || []) {
+    if (!n || n.bozza || String(n.fatturaId) !== id) continue;
+    const d = String(n.emessa || "").slice(0, 10);
+    if (dataISOEsiste(d) && (!max || d > max)) max = d;
+  }
+  return max;
+}
+
+// La più tarda fra due date ISO facoltative (null ammesso su entrambi i lati).
+function dataPiuTarda(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
 /* ── LO STATO A TRE VIE ─────────────────────────────────────────────────────
    ⛔ STORNATA NON È SALDATA, ed è il difetto che questa unità esiste per
    impedire. Una nota totale su una fattura mai pagata porta il residuo a zero:
@@ -4188,9 +4217,24 @@ export function statoFattura(fattura, incassi, note) {
      traballante chiuso stamattina su `testoSollecito`: un quinto chiamante
      futuro che leggesse `parziale` da solo erediterebbe la contraddizione
      senza saperlo. */
-  if (residuo === 0 && s.incassato > 0)
+  if (residuo === 0 && s.incassato > 0) {
+    /* ⛔ E LA BANDIERA `contaNeiTempi` NON BASTAVA DA SOLA (17/09): diceva
+       «questa fattura pesa sui tempi di pagamento», ma la DATA restava quella
+       ereditata da `statoIncasso`, che è null quando è stata una nota — non i
+       soli movimenti — a portare il residuo a zero (il caso normale descritto
+       qui sopra: prima si incassa in parte, poi si stornna il resto). Risultato
+       misurato: la riga della fattura scriveva «incassata, data non
+       registrata» su un incasso vero e registrato, e il CSV per il
+       commercialista usciva con le colonne data/giorni vuote su una riga
+       «incassata». La data giusta non è quella dell'ultimo movimento se una
+       nota è arrivata dopo: l'obbligo residuo esiste finché la nota non è
+       stata emessa. */
+    const dataSaldo = s.saldata ? s.dataSaldo : dataPiuTarda(s.ultimo, dataUltimaNota(f.id, note));
     return { ...s, stato: "saldata", stornato, esigibile, residuo: 0, aCreditoCliente, saldata: true,
-             parziale: false, contaNeiTempi: true };
+             parziale: false, contaNeiTempi: true, dataSaldo, senzaData: !dataSaldo,
+             giorniPagamento: dataSaldo ? giorniFraDate(f.emessa, dataSaldo) : null,
+             ritardoPagamento: dataSaldo ? giorniFraDate(f.scadenza, dataSaldo) : null };
+  }
   return { ...s, stato: "aperta", stornato, esigibile, residuo, aCreditoCliente, saldata: false,
            parziale: s.incassato > 0, contaNeiTempi: false };
 }

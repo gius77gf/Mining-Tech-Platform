@@ -10,6 +10,75 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 17/09 — Sentinella: un punto misurato "a mano" è conforme per il semaforo e "mai misurato" per il programma, sullo stesso punto
+
+*Una passata in profondità su Sentinella (bottone per bottone, ogni scheda letta
+dal vivo) ha trovato un solo difetto vero — già corretto in questa stessa
+unità (una previsione con limite dichiarato ma norma non indicata taceva la
+fonte mancante invece di dirla, in `fogliaVolata`) — e una seconda cosa che il
+codice stesso segnala da tempo come rischio "latente" e che oggi si può
+riprodurre sulla dimostrazione: non è un bug nel senso di "il codice fa quello
+che non dovrebbe", è due funzioni che rispondono a due domande diverse sullo
+stesso dato con nessuna delle due sbagliata, e la scelta di quale far vincere
+tocca la conformità normativa.*
+
+- [ ] **33. Sentinella: un valore scritto senza data conta come "misurato" per
+  il conforme/superamento, ma resta "mai misurato" per lo scadenzario —
+  sullo stesso punto.** `statoMisura` (`apps/sentinella/sentinella-data.js:362`)
+  decide il semaforo di conformità (Conforme/Attenzione/Superamento) leggendo
+  `mm.valore` **anche quando il punto non ha nessuna lettura datata in
+  `letture[]`**: se c'è un numero dichiarato (`numeroDichiarato(mm.valore) !=
+  null`) e la soglia è valida, il punto è giudicato — verde, giallo o rosso —
+  senza che sia mai stato registrato UN giorno in cui quella misura è stata
+  presa. `statoRigaProgramma` (riga 3834), che decide se una verifica è
+  scaduta, guarda **solo** `ultimaLettura(monitoraggio)` (una lettura con data
+  valida in `letture[]`) o il campo `dal`: senza uno dei due, dichiara "Mai
+  misurato" a prescindere da `valore`.
+  Il punto demo `a1` (`Acque — vasca decantazione`, riga 128: `valore: 12,
+  soglia: 35`, nessun array `letture`, solo la nota di testo libero
+  "campionamento 15/07") mostra la contraddizione dal vivo: `statoMisura(a1)`
+  risponde **"Conforme" (verde, calcolabile: true, rapporto 0,343)**;
+  `statoRigaProgramma(pr5, a1)` — la riga di programma collegata allo stesso
+  punto — risponde **"Mai misurato" (giallo)**. Lo stesso punto di misura è
+  contemporaneamente "a posto" sul cruscotto di conformità e "da verificare"
+  sullo scadenzario.
+  Il codice **dichiara già questo rischio** (commento alle righe 341-361,
+  "raggiungibilità dichiarata e non gonfiata: latente... ci si arriva con un
+  dato scritto a mano"), scritto quando si credeva che nessuno scrittore reale
+  ci sarebbe arrivato. Il dato demo `a1` mostra che ci si arriva con un valore
+  inserito senza il dettaglio della lettura — e non è un caso limite raro: è
+  la forma più semplice in cui qualcuno può registrare un dato ("scrivo il
+  numero che ho letto" senza compilare la riga di lettura completa con data e
+  ora).
+  **Perché serve una decisione e non una correzione automatica**: il file per
+  l'ARPA e la scheda di conformità sono documenti di sicurezza (lo stesso
+  principio già applicato a `statoMisura` più volte in questo file —
+  l'assenza non è un dato favorevole), e stringere `statoMisura` per
+  pretendere anche lì una lettura datata **cambierebbe il verdetto di
+  conformità** di ogni punto che oggi ha solo un `valore` senza `letture[]`,
+  potenzialmente trasformando "Conforme" in "Mai misurato" su dati che un
+  sito cliente potrebbe già avere in produzione — una modifica al
+  comportamento del semaforo di conformità non è un dettaglio da cambiare di
+  iniziativa. **Le strade**: (a) `statoMisura` si allinea a
+  `statoRigaProgramma` e pretende anche lei una lettura datata in
+  `letture[]`, trattando un `valore` nudo come "Mai misurato" — coerenza fra
+  le due domande, ma un possibile cambio di badge su dati esistenti; (b) si
+  accetta la differenza dichiarandola nel commento come voluta (un valore
+  inserito a mano è comunque "una misura" per il semaforo, mentre il
+  programma vuole sapere *quando*) — e allora la riga "latente" va riscritta
+  da "rischio non ancora raggiunto" a "comportamento scelto", con la ragione;
+  (c) si aggiunge un terzo stato intermedio ("misurato, ma senza data
+  certa") visibile sia sul semaforo sia sul programma, invece di far vincere
+  una delle due funzioni sull'altra. **La mia risposta, se non rispondi
+  entro la settimana**: (a) — lo stesso principio che ha già corretto tre
+  volte quest'anno lo zero-che-rassicura in questa stessa funzione (righe
+  341-361) si applica anche qui: un semaforo di conformità non dovrebbe
+  potersi accendere verde su un dato che il programma, guardando la stessa
+  fonte, giudica "mai preso". Non la applico da solo perché tocca un
+  verdetto che oggi potrebbe già comparire, verde, su un cruscotto vero.
+
+---
+
 ## 🟡 17/09 — Campo: due documenti diversi, due metà diverse della stessa giornata
 
 *Una passata in profondità su Campo (bottone per bottone, file scaricato e
@@ -435,7 +504,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **19**
+# 📖 Da dove cominciare — le decisioni aperte sono **20**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
@@ -1884,7 +1953,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.603** *(ricontate il 16/09, dopo aver
+**Le prove automatiche sono passate a 3.607** *(ricontate il 17/09, dopo aver
 corretto in Scudo — censimento a doppio punto di chiamata, quinto difetto
 vero nello stesso giorno, ma di forma diversa dagli altri quattro: il
 lettore `parseInfortuniCsv` non leggeva affatto le tre colonne della
