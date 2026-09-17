@@ -248,6 +248,12 @@ const SCUSATI = new Map([
     "15/09: stessa causa del 13/08, un minuto invece di due — l'ora scritta nel nome era una STIMA, non `date -u` "
     + "letta prima di creare il file (era entrato alle 07:08:24, il nome diceva 07:09:00). Rinominato col nome "
     + "giusto (`20260915-070824_…`, stesso contenuto); resta il PERCORSO vecchio nella storia."],
+  ["vault/checkpoints/20260917-195500_scudo-norme-e-deepworkid-decisione37.md",
+    "17/09: stessa causa, due minuti e venti secondi invece di uno o due — l'ora scritta nel nome era di nuovo "
+    + "una STIMA e non `date -u` letta prima di creare il file (era entrato alle 19:52:40, il nome diceva "
+    + "19:55:00). Rinominato col nome giusto (`20260917-195240_…`, stesso contenuto); resta il PERCORSO vecchio "
+    + "nella storia. Terza volta della stessa causa: la lezione non è nuova, la disciplina di leggere `date -u` "
+    + "prima di scrivere il nome ogni singola volta, sì."],
 ]);
 
 test("nessun checkpoint NUOVO è datato dopo l'ORA in cui è entrato in git", () => {
