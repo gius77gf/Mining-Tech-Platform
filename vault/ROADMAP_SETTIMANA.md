@@ -8682,7 +8682,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.610 prove girano senza rete**. La frase va
+  **3.612 prove girano senza rete**. La frase va
   letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3116, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **325 esecuzioni** che
-  aprono le pagine in un browser vero, da **142** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **331 esecuzioni** che
+  aprono le pagine in un browser vero, da **145** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11074,3 +11074,39 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       record). Corretto escludendo da `urg` gli id già in
       `verificheDaSistemare(...).daSistemare`, con controprova in
       `apps/deepwork-id/tests/browser/scudo-verifica-doppia.mjs`.
+- [x] **Genesi, terzo giro di deep-pass (agente a200d8450deefcbef)** *(chiusa
+      17/09, tre difetti)*:
+      1. **`.hg-list` nella Home** tagliava a metà la terza riga di "Ponti
+         con le altre app" (172px di riquadro contro 214px di contenuto
+         reale, sempre esattamente tre righe fisse) senza nessuna
+         affordance di scroll — sulla primissima schermata di un utente
+         nuovo. Corretto con `#hgPonti{max-height:none;overflow:visible}`,
+         lasciando invariato lo scroll interno di `#hgVolate`/`#hgNuvole`
+         (quelle sì crescono senza limite con l'uso).
+      2. **Il CSV "Esporta scheda volata" contava i fori sulla griglia di
+         progetto** (`computeKPI`/`foriDiProgetto`), non sui fori
+         disegnati sulla tela — mentre il suo stesso commento promette
+         "stesse cifre della Scheda validatori" e il Report (corretto
+         l'08/08) usa già `g.n`. Un foro aggiunto a mano (12→13) faceva
+         uscire dallo schermo "13 fori/754 kg" e nel CSV archiviato col
+         rapportino "Fori;12". Corretto rifacendo lo stesso conto del
+         Report (`measureGeom2D`+`costoVolata`) anche nel bottone del CSV.
+      3. **"Carica per un obiettivo di pezzatura" (`caricaDaX50Target`)
+         poteva proporre una carica fisicamente impossibile da entrare nel
+         foro** senza nessun avviso sul limite fisico (solo un avviso
+         sulla vibrazione proiettata, che parla d'altro) — su un obiettivo
+         x50=5cm del progetto demo, 880 kg/foro proposti contro 58 kg
+         massimi contenibili (15,2×). Corretto aggiungendo un 5° parametro
+         opzionale `capacitaForo` (da `caricaForoDaGeometria`) sia a
+         `caricaDaX50Target` sia a `curvaBurdenCarica` (che chiama la
+         stessa funzione riga per riga per "Confronta spalla"): quando
+         omesso, `superaCapacitaForo` resta `null` — non verificato, non
+         "va bene" — coerente con "l'assenza di un dato non è un dato
+         favorevole". Wired nei due punti UI con un avviso distinto da
+         quello sulla vibrazione.
+      Tre nuovi banchi con controprova
+      (`genesi-home-ponti-tagliati.mjs`, `genesi-csv-fori-disegnati.mjs`,
+      `genesi-carica-fuori-foro.mjs`) più test puri in `run-kpi.mjs` per
+      il punto 3, e due conteggi di census aggiornati (3→4 chiamate a
+      `costoVolata`/`metriPerforati`, di proposito: il CSV ora rifà il
+      conto invece di riusare la griglia).

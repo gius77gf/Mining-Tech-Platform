@@ -415,6 +415,15 @@ body.scr-sim #tl{bottom:80px}
 .hg-panel h4{margin:0 0 8px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.07em;text-transform:uppercase;color:#ffd54f;display:flex;align-items:center;gap:7px}
 .hg-panel h4 .hg-n{margin-left:auto;font-size:10px;color:var(--mut2);letter-spacing:.04em}
 .hg-list{display:flex;flex-direction:column;gap:6px;max-height:172px;overflow-y:auto}
+/* ⛔ 17/09, dal terzo giro di deep-pass: `#hgPonti` non è come le altre due
+   `.hg-list` di questa griglia — porta SEMPRE esattamente tre righe (i ponti
+   con Sentinella/Campo/Terra, mai di più, mai di meno), mentre `#hgVolate` e
+   `#hgNuvole` possono crescere senza limite con l'uso e per QUELLE il
+   contenimento a 172px con scroll interno serve davvero. Bloccato a 172px
+   anche qui, il contenuto reale (214px con tre righe) tagliava la terza voce
+   a metà altezza senza nessuna barra di scorrimento visibile (tema scuro,
+   nessuna ombra/fade) — sembrava testo rotto, non un elenco scorribile. */
+#hgPonti{max-height:none;overflow:visible}
 .hg-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:11.5px}
 .hg-item .t{min-width:0;flex:1}
 .hg-item .t b{display:block;color:var(--tx);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3540,6 +3549,22 @@ async function cmpRender(){
 // archivia col rapportino. Stesse cifre della Scheda validatori.
 if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   const k=computeKPI(), F=flyrockEst();
+  /* ⛔ 17/09, dal terzo giro di deep-pass: FORI/CARICA TOTALE/COSTO qui sotto
+     erano gli unici tre valori di questo file presi da `k` (cioè da
+     `computeKPI`, che conta sulla GRIGLIA di progetto — `foriDiProgetto`,
+     righe 3395-3416 — apposta per il confronto A/B fra due progetti astratti,
+     anche quando uno dei due non ha ancora un foro disegnato). Ma il
+     commento due righe sopra promette «stesse cifre della Scheda
+     validatori», e la Scheda validatori — come il Report a riga 3912 — conta
+     sui fori DISEGNATI (`g.n`): un foro aggiunto a mano sulla tela oltre la
+     griglia (12→13, azione normale dell'editor) faceva uscire dallo schermo
+     «13 fori» e nel file archiviato col rapportino «Fori;12», con carica
+     totale e costo calcolati di conseguenza sul numero sbagliato — lo stesso
+     file che il fochino porta in cava accanto al rapportino. Rifatto lo
+     stesso conto del Report, sugli stessi fori che il foglio descrive. */
+  const _gCsv=measureGeom2D(D2), _nfCsv=_gCsv.n;
+  const _cKCsv=costoVolata({ nf:_nfCsv, kg:D2.kg, mPerf:metriPerforati(_nfCsv, D2.prof, D2.sub),
+    cPerf:D2.cPerf, cExpl:D2.cExpl, cInnesco:D2.cInnesco });
   /* ⛔ IL 07/08 QUESTO FILE ERA LA QUARTA SUPERFICIE CHE NON DICEVA DA DOVE
      VIENE LA PPV, dopo il foglio stampato (corretto il 06/08), la scheda
      validatori e il riquadro «Manda a Sentinella». Misurato aprendo DUE VOLTE
@@ -3580,12 +3605,12 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
   const rows=[
     ['Maglia', k.maglia],
     ['Esplosivo', k.setup],
-    ['Fori', k.nf],
-    ['Carica totale (kg)', k.qtot],
+    ['Fori', _nfCsv],
+    ['Carica totale (kg)', _cKCsv.qtot===null?null:Math.round(_cKCsv.qtot)],
     /* stessa forma della MIC dieci righe più giù: la cella vuota da sola dice
        «non c'è» e lascia credere a una dimenticanza, la riga accanto dice che
        è una non-misurabilità e QUALE campo la produce */
-    ['Esito carica totale', k.qtot===null?'non calcolabile':'contata sulla griglia di progetto'],
+    ['Esito carica totale', _cKCsv.qtot===null?'non calcolabile':'contata sui fori del disegno'],
     ['Powder factor (kg/m3)', k.pf],
     ['X20 (cm)', k.x20], ['X50 (cm)', k.x50], ['X80 (cm)', k.x80],
     /* ⛔ E LE QUATTRO CELLE SOPRA MENTIVANO IN DUE VERSI INSIEME. Con la
@@ -3649,9 +3674,9 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
        cella diceva 1.190 al posto di 2.270, senza un segno che lo dicesse.
        Adesso la cella resta vuota e le due righe accanto dicono che cos'è e
        quale campo sistemare — come per la MIC e per il limite di norma. */
-    ['Costo totale stima (EUR)', k.cost],
-    ['Esito costo', k.costCalcolabile?'contato sui prezzi unitari inseriti':'non calcolabile'],
-    ['Perche il costo non e calcolabile', k.costCalcolabile?'':k.costChe],
+    ['Costo totale stima (EUR)', _cKCsv.calcolabile?Math.round(_cKCsv.tot):null],
+    ['Esito costo', _cKCsv.calcolabile?'contato sui prezzi unitari inseriti':'non calcolabile'],
+    ['Perche il costo non e calcolabile', _cKCsv.calcolabile?'':_cKCsv.che],
   ];
   /* ⛔ `null` NON SI SCRIVE IN UN FILE, e qui ci finiva scritto per intero.
      Misurato il 03/08 aprendo una volata salvata con un codice di normativa che
@@ -3705,7 +3730,13 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
   if(!Number.isFinite(xt)||xt<=0){ scarto('L’obiettivo dev’essere un numero maggiore di zero.'); return; }
   const g=measureGeom2D(D2), B=g.B, S=g.S, H=D2.prof;
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
-  const r=caricaDaX50Target(xt, volumeForo(B,S,H), A, RWS);
+  /* ⛔ 17/09: SENZA QUESTO, IL SUGGERIMENTO PUÒ PROPORRE UNA CARICA CHE NON
+     ENTRA FISICAMENTE NEL FORO — l'unico avviso che restava era sulla
+     vibrazione proiettata, che parla d'altro. Stessa geometria che calcola
+     il foro attuale (riga 7313), passata come limite fisico a
+     `caricaDaX50Target`. */
+  const _capForo=caricaForoDaGeometria({ diam:D2.diam, prof:D2.prof, sub:D2.sub, stem:D2.stem, densita:(selEsplosivo()||{}).densita_gcc });
+  const r=caricaDaX50Target(xt, volumeForo(B,S,H), A, RWS, _capForo);
   if(!r.calcolabile){ scarto(r.che+'. '+r.come); return; }
   if(r.fuoriDominio){
     scarto(r.troppoFine
@@ -3728,10 +3759,21 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
       vibrazioni='<div style="margin-top:6px;color:var(--mut);font-size:12px;">MIC proiettata ~'+gfix(micProiettata,1)+' kg; la PPV non si proietta perché manca la distanza del recettore.</div>';
     }
   }
+  /* ⛔ 17/09: LA CARICA PROPOSTA PUÒ ESSERE MATEMATICAMENTE GIUSTA E
+     FISICAMENTE IMPOSSIBILE — un avviso separato da quello sulla vibrazione,
+     perché dice una cosa diversa: non «rischia di superare la soglia», ma
+     «non esiste un modo di caricarla in questo foro». Il numero resta
+     visibile (è comunque l'informazione utile: quanto ci vorrebbe), ma non
+     come un suggerimento praticabile. */
+  const capForoAvviso=(r.superaCapacitaForo===true)
+    ?'<div style="margin-top:6px;padding:7px 9px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef9a9a;font-size:12px;">Questa carica NON entra fisicamente nel foro di oggi: la geometria attuale (Ø'+gfix(D2.diam,0)+' mm, '+gfix(D2.prof,1)+' m, borraggio '+gfix(D2.stem,1)+' m) contiene al massimo <b>'+gfix(r.capacitaForo,0)+' kg/foro</b>. Non è un suggerimento praticabile: per arrivarci serve un foro più largo o più profondo, non solo più esplosivo.</div>'
+    :(r.superaCapacitaForo===false && r.capacitaForo!=null
+      ?'<div style="margin-top:6px;color:var(--mut);font-size:11px;">Entra nel foro di oggi (capacità massima '+gfix(r.capacitaForo,0)+' kg/foro).</div>'
+      :'');
   box.innerHTML='<div style="margin-top:8px;padding:9px 11px;border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:13px;">'
     +'Per un x50 di <b>'+gfix(xt,0)+' cm</b>: carica <b>~'+gfix(r.kg,1)+' kg/foro</b> (consumo specifico '+gfix(r.pf,2)+' kg/m³)'
     +(kgAttuale>0?' — oggi '+gfix(kgAttuale,1)+' kg/foro, '+(differenza>=0?'+':'')+gfix(differenza,1)+' kg ('+(differenzaPct==null?'—':(differenzaPct>=0?'+':'')+gfix(differenzaPct,0)+'%'+')'):'')
-    +'.'+vibrazioni
+    +'.'+vibrazioni+capForoAvviso
     +'<div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram): resta una previsione, non una garanzia — va verificata sul campo.</div>'
     +'</div>';
 };
@@ -3767,8 +3809,13 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const g=measureGeom2D(D2), Bnom=g.B, Snom=g.S;
   if(!(Bnom>0) || !(Snom>0)){ scarto('Manca il burden o l’interasse di oggi: non c’è un intorno da cui partire.'); return; }
   const A=rockFactorA().A, RWS=rwsEffettiva((selEsplosivo()||{}).rws_pct||100, D2.bagnato, (selEsplosivo()||{}).acqua);
+  /* ⛔ 17/09: stesso limite fisico dell'obiettivo di pezzatura per un burden
+     solo (riga ~3808 sopra) — qui vale per OGNI riga della tabella, perché
+     il foro (diametro, profondità, borraggio) non cambia al variare della
+     sola spalla. */
+  const _capForoB=caricaForoDaGeometria({ diam:D2.diam, prof:D2.prof, sub:D2.sub, stem:D2.stem, densita:(selEsplosivo()||{}).densita_gcc });
   let righe=curvaBurdenCarica({ bMin:Math.max(1.5,Bnom-1), bMax:Bnom+1, passo:0.25,
-    rapportoSB:Snom/Bnom, prof:D2.prof, A, RWS, x50Target:xt });
+    rapportoSB:Snom/Bnom, prof:D2.prof, A, RWS, x50Target:xt, capacitaForo:_capForoB });
   if(!righe.length){ scarto('Nessun burden calcolabile in questo intorno: controlla il rapporto spalla/interasse di oggi.'); return; }
   const st=ppvSite();
   righe=vibrazionePerBurden(righe,
@@ -3782,12 +3829,13 @@ if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
       const oggi = Math.abs(r.B-Bnom)<0.01;
       const cella = r.fuoriDominio
         ? '<td colspan="2" style="color:#ffca28;padding:2px 4px">'+(r.troppoFine?'obiettivo troppo fine per questo burden':r.troppoGrossolano?'obiettivo troppo grossolano per questo burden':'fuori dal dominio del modello')+'</td>'
-        : '<td style="padding:2px 4px">'+gfix(r.kg,1)+' kg/foro</td><td style="padding:2px 4px">'+gfix(r.pf,2)+' kg/m³</td>';
+        : '<td style="padding:2px 4px'+(r.superaCapacitaForo?';color:#ef5350':'')+'" title="'+(r.superaCapacitaForo?'Non entra fisicamente nel foro di oggi':'')+'">'+gfix(r.kg,1)+' kg/foro'+(r.superaCapacitaForo?' ⚠':'')+'</td><td style="padding:2px 4px">'+gfix(r.pf,2)+' kg/m³</td>';
       const cellaMic='<td style="padding:2px 4px">'+(r.mic==null?'<span class="sv-warn">non calcolabile</span>':gfix(r.mic,1)+' kg')+'</td>';
       const cellaPpv='<td style="padding:2px 4px">'+(r.ppv==null?'<span class="sv-warn">non calcolabile</span>':'<span class="'+(r.esitoV?r.esitoV.classe:'sv-info')+'">'+gfix(r.ppv,1)+' mm/s</span>')+'</td>';
       return '<tr'+(oggi?' style="font-weight:700;color:var(--cu)"':'')+'><td style="padding:2px 4px">'+gfix(r.B,2)+' m'+(oggi?' (oggi)':'')+'</td><td style="padding:2px 4px">'+gfix(r.S,2)+' m</td>'+cella+cellaMic+cellaPpv+'</tr>';
     }).join('')
-    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram) e '+_rEsc(pv.breve||'')+', a parità di pezzatura obiettivo, forma della maglia e sequenza di sparo: resta una previsione, non una garanzia.</div>';
+    +'</table><div style="margin-top:6px;color:var(--mut);font-size:11px;">Stima dal modello di Kuznetsov (Kuz-Ram) e '+_rEsc(pv.breve||'')+', a parità di pezzatura obiettivo, forma della maglia e sequenza di sparo: resta una previsione, non una garanzia.</div>'
+    +(righe.some(r=>r.superaCapacitaForo)?'<div style="margin-top:6px;padding:7px 9px;border:1px solid rgba(239,83,80,.4);border-radius:8px;background:rgba(239,83,80,.08);color:#ef9a9a;font-size:12px;">⚠ Le righe segnate non entrano fisicamente nel foro di oggi (Ø'+gfix(D2.diam,0)+' mm, '+gfix(D2.prof,1)+' m, borraggio '+gfix(D2.stem,1)+' m, massimo '+gfix(_capForoB,0)+' kg/foro): per quel burden servirebbe un foro diverso, non solo più esplosivo.</div>':'');
 };
 /* ⏱️ 12/09 (unità 129) — IL BURDEN VERO SUL RILIEVO MISURATO (boretrack), non
    sulla banda d'incertezza simulata. `simulaPerforazione`, qui sopra, dice

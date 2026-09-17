@@ -30571,12 +30571,17 @@ test("TIPI_ATTREZZATURA e DEMO.attrezzature: le tre verifiche periodiche già in
       "e quella dei metri perforati pure");
   });
 
-  test("⛔ Genesi · la formula del costo è scritta UNA volta, e la pagina la chiama tre", () => {
+  test("⛔ Genesi · la formula del costo è scritta UNA volta, e la pagina la chiama quattro", () => {
     /* ⛔ ERA SCRITTA TRE VOLTE — in `computeKPI`, nel foglio stampabile e nella
        scheda validatori — con l'unica differenza di dove viene `nf`. Tre copie
-       di una formula che decide dei soldi prima o poi dicono tre numeri. */
+       di una formula che decide dei soldi prima o poi dicono tre numeri.
+       ⛔ 17/09: SALITA A QUATTRO, e di proposito — non una copia debole in
+       più, ma la stessa causa del difetto qui sopra: il CSV della scheda
+       volata usava `k.cost` (griglia di progetto) invece di rifare il conto
+       sui fori disegnati come fa il foglio stampabile. Adesso lo rifà anche
+       lui, con lo stesso `costoVolata`. */
     const chiamate = (srcG12.match(/costoVolata\s*\(/g) || []).length;
-    eq(chiamate, 3, `i tre punti che costavano una volata la chiedono al modulo (trovate ${chiamate})`);
+    eq(chiamate, 4, `i quattro punti che costavano una volata la chiedono al modulo (trovate ${chiamate})`);
     eq(/\bqtot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "la moltiplicazione dell'esplosivo non è più nella pagina");
     eq(/_kgTot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "né nella scheda validatori");
     eq(/kgTot\s*\*\s*\(D2\.cExpl/.test(srcG12), false, "né nel foglio stampabile");
@@ -30830,6 +30835,43 @@ test("TIPI_ATTREZZATURA e DEMO.attrezzature: le tre verifiche periodiche già in
     eq(gz.caricaDaX50Target(0.999, VOL, 8.1, 100).troppoFine, true, "appena sotto 1 cm è fuori");
     eq(gz.caricaDaX50Target(100, VOL, 8.1, 100).troppoGrossolano, false, "100 cm è ancora dentro il dominio dichiarato");
     eq(gz.caricaDaX50Target(100.001, VOL, 8.1, 100).troppoGrossolano, true, "appena sopra 100 cm è fuori");
+  });
+  test("⛔ 17/09, dal terzo giro di deep-pass: caricaDaX50Target dichiara se la carica entra fisicamente nel foro", () => {
+    /* Sul progetto demo (Ø102, 10 m, sub 0,9, borraggio 2,2, ANFO 0,82 g/cc)
+       caricaForoDaGeometria dà 58 kg massimi: un obiettivo x50=5cm chiedeva
+       880 kg/foro con fuoriDominio:false e nessun avviso sul limite fisico. */
+    const capForo = gz.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 });
+    eq(capForo, 58, "la capacità del foro demo è quella già nota dal blocco G21/G17");
+    const rSenza = gz.caricaDaX50Target(5, VOL, 8.1, 100);
+    eq(rSenza.capacitaForo, null, "senza passare la capacità: NON verificato (null), non «va bene»");
+    eq(rSenza.superaCapacitaForo, null, "l'assenza di un dato non è un dato favorevole: niente false tranquillizzanti");
+    const rCon = gz.caricaDaX50Target(5, VOL, 8.1, 100, capForo);
+    ok(rCon.kg > capForo, `il caso vero supera la capacità: ${rCon.kg} kg contro ${capForo} kg`);
+    eq(rCon.superaCapacitaForo, true, "e la funzione lo dichiara");
+    eq(rCon.capacitaForo, capForo, "la capacità passata si ritrova nel risultato, per chi disegna l'avviso");
+    const rDentro = gz.caricaDaX50Target(30, VOL, 8.1, 100, capForo);
+    ok(rDentro.kg < capForo, `un obiettivo più grossolano chiede meno carica della capacità: ${rDentro.kg} kg`);
+    eq(rDentro.superaCapacitaForo, false, "e qui la stessa domanda risponde di no, non tace");
+    /* una capacità illeggibile (0, negativa, non un numero) si comporta come
+       «non passata»: null, non un falso positivo o negativo */
+    eq(gz.caricaDaX50Target(5, VOL, 8.1, 100, 0).superaCapacitaForo, null, "capacità a zero: non verificato");
+    eq(gz.caricaDaX50Target(5, VOL, 8.1, 100, -10).superaCapacitaForo, null, "capacità negativa: non verificato");
+    /* e quando l'obiettivo stesso non è calcolabile, la capacità non verificata resta null, non false */
+    const rNonCalc = gz.caricaDaX50Target(0, VOL, 8.1, 100, capForo);
+    eq(rNonCalc.calcolabile, false);
+    eq(rNonCalc.superaCapacitaForo, null, "un obiettivo non calcolabile non dice niente sulla capacità");
+  });
+  test("⛔ 17/09: curvaBurdenCarica passa la capacità del foro a ogni riga, invariata al variare della spalla", () => {
+    const capForo = gz.caricaForoDaGeometria({ diam: 102, prof: 10, sub: 0.9, stem: 2.2, densita: 0.82 });
+    const righe = gz.curvaBurdenCarica({ bMin: 2, bMax: 3.5, passo: 0.5, rapportoSB: 1.15,
+      prof: 10, A: 8.1, RWS: 100, x50Target: 5, capacitaForo: capForo });
+    ok(righe.length >= 3, "più righe generate");
+    ok(righe.some(r => r.superaCapacitaForo === true), "almeno una riga supera la capacità (obiettivo fine, come nel test precedente)");
+    ok(righe.every(r => "superaCapacitaForo" in r), "ogni riga porta la bandiera, non solo qualcuna");
+    /* senza passare capacitaForo, il comportamento di prima resta intatto: nessuna riga si dichiara «supera» */
+    const righeSenza = gz.curvaBurdenCarica({ bMin: 2, bMax: 3.5, passo: 0.5, rapportoSB: 1.15,
+      prof: 10, A: 8.1, RWS: 100, x50Target: 5 });
+    ok(righeSenza.every(r => r.superaCapacitaForo === null), "senza la capacità, nessuna riga finge un verdetto");
   });
 
   test("⛔ Genesi · ppvDaSd: la legge di Devine/USBM, una sola volta", () => {
@@ -36021,8 +36063,8 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(quante(/\|\|\s*18\)/g), 0, "nessun `|| 18` è rimasto in tutta la pagina");
     eq(/const nf=foriDiProgetto\(D2\.perRow, D2\.file\);/.test(CODICE_G), true,
       "`computeKPI` chiede la griglia alla funzione che sa dire di no");
-    eq(quante(/metriPerforati\(/g), 3,
-      "e i metri perforati sono TRE chiamate, non tre copie: KPI, foglio stampabile, scheda");
+    eq(quante(/metriPerforati\(/g), 4,
+      "e i metri perforati sono QUATTRO chiamate (17/09: anche il CSV della scheda li rifà sui fori disegnati, non più tre)");
     eq(quante(/\(D2\.prof\+\(D2\.sub\|\|0\)\)/g), 0, "la forma vecchia dei metri non c'è più nei KPI né nel foglio");
     eq(quante(/\(H\+\(D2\.sub\|\|0\)\)/g), 0, "né nella scheda");
     /* la modale della firma: la griglia inventata decideva i tempi di

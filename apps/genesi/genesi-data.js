@@ -1819,12 +1819,29 @@ export function caricaTargetSenzaConto(x50Target, vol, A, RWS){
   return { obiettivo:senzaObiettivo, volume:!!(perche&&perche.volume), modello:!!(perche&&perche.modello),
     che: parti.map(p=>p.che).join('; e '), come: parti.map(p=>p.come).join(' ') };
 }
-export function caricaDaX50Target(x50Target, vol, A, RWS){
+/* ⛔ 17/09, dal terzo giro di deep-pass: SENZA `capacitaForo` QUESTA FUNZIONE
+   PUÒ PROPORRE UNA CARICA CHE NON ENTRA NEL FORO, SENZA NESSUN AVVISO.
+   `fuoriDominio` dice solo se il modello Kuz-Ram è ancora affidabile
+   (1-100 cm, o i clamp bassi): un obiettivo di pezzatura dentro quel dominio
+   può comunque chiedere una carica per foro superiore a quanto la geometria
+   del foro (diametro, profondità, sottoperforazione, borraggio, densità
+   dell'esplosivo — la stessa che calcola `caricaForoDaGeometria`) può
+   fisicamente contenere: misurato sul progetto demo, un obiettivo x50=5cm
+   propone 880 kg/foro contro un massimo fisico di 58 kg (15,2×), con
+   `fuoriDominio:false` e nessun segnale se non un avviso sulla vibrazione
+   proiettata — che parla d'altro. `capacitaForo` è OPZIONALE apposta:
+   quando il chiamante non la passa (o il foro non è ancora definito),
+   `superaCapacitaForo` resta `null` — «non verificato», non «va bene» —
+   perché l'assenza di un dato non è un dato favorevole. */
+export function caricaDaX50Target(x50Target, vol, A, RWS, capacitaForo){
   const perche = caricaTargetSenzaConto(x50Target, vol, A, RWS);
+  const cf = (capacitaForo === null || capacitaForo === undefined) ? NaN : +capacitaForo;
+  const capacitaNota = Number.isFinite(cf) && cf > 0;
   if (perche) return { kg:null, pf:null, calcolabile:false, fuoriDominio:false,
     troppoFine:false, troppoGrossolano:false,
     obiettivo:perche.obiettivo, volume:perche.volume, modello:perche.modello,
-    che:perche.che, come:perche.come };
+    che:perche.che, come:perche.come,
+    capacitaForo:capacitaNota?cf:null, superaCapacitaForo:null };
   const xt = +x50Target, v = +vol, a = +A, r = +RWS;
   /* ⏱️ 12/09 (unità 126): il lato BASSO di `fuoriDominio` (kg<1 o pf<0.05)
      prende dove i clamp di `fragKuzRam` rendono l'inversione ambigua.
@@ -1848,7 +1865,8 @@ export function caricaDaX50Target(x50Target, vol, A, RWS){
   const pf = kg/v;
   return { kg, pf, calcolabile:true,
     fuoriDominio:(kg<1||pf<0.05||troppoFine||troppoGrossolano), troppoFine, troppoGrossolano,
-    obiettivo:false, volume:false, modello:false, che:'', come:'' };
+    obiettivo:false, volume:false, modello:false, che:'', come:'',
+    capacitaForo:capacitaNota?cf:null, superaCapacitaForo:capacitaNota?(kg>cf):null };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1872,6 +1890,10 @@ export function curvaBurdenCarica(opz){
   const n = (x) => (x === null || x === undefined || x === '') ? NaN : +x;
   const bMin = n(o.bMin), bMax = n(o.bMax), passo = n(o.passo), rapportoSB = n(o.rapportoSB);
   const H = n(o.prof), A = n(o.A), RWS = n(o.RWS), x50Target = n(o.x50Target);
+  /* opzionale, come in `caricaDaX50Target`: il foro non cambia da una riga
+     all'altra della curva (solo B/S variano), quindi lo si calcola una
+     volta sola fuori dal ciclo e lo si passa a ogni riga. */
+  const capacitaForo = n(o.capacitaForo);
   if (!Number.isFinite(bMin) || bMin <= 0 || !Number.isFinite(bMax) || bMax < bMin
       || !Number.isFinite(passo) || passo <= 0 || !Number.isFinite(rapportoSB) || rapportoSB <= 0)
     return [];
@@ -1883,13 +1905,14 @@ export function curvaBurdenCarica(opz){
     const B = +(bMin + i * passo).toFixed(3);
     const S = +(B * rapportoSB).toFixed(3);
     const vol = volumeForo(B, S, H);
-    const t = caricaDaX50Target(x50Target, vol, A, RWS);
+    const t = caricaDaX50Target(x50Target, vol, A, RWS, capacitaForo);
     righe.push({ B, S,
       kg: t.kg === null ? null : +t.kg.toFixed(2),
       pf: t.pf === null ? null : +t.pf.toFixed(3),
       calcolabile: t.calcolabile, fuoriDominio: t.fuoriDominio,
       troppoFine: t.troppoFine, troppoGrossolano: t.troppoGrossolano,
-      che: t.che, come: t.come });
+      che: t.che, come: t.come,
+      superaCapacitaForo: t.superaCapacitaForo });
   }
   return righe;
 }

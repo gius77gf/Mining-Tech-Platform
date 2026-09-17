@@ -421,6 +421,21 @@ const BANCHI = [
   ['burden per foro · controprova', 'genesi-burden-per-foro.mjs', ['--controprova'], true],
   ['vocabolario della voladura di Genesi (17/09, spalla/burden, consumo specifico/powder factor)', 'genesi-vocabolario-voladura.mjs', []],
   ['vocabolario della voladura · controprova', 'genesi-vocabolario-voladura.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: il CSV
+     "Esporta scheda volata" contava i fori sulla griglia di progetto, non
+     su quelli disegnati sulla tela, divergendo da schermo e Report. */
+  ['la scheda volata (CSV) di Genesi conta i fori disegnati, non la griglia', 'genesi-csv-fori-disegnati.mjs', []],
+  ['scheda volata di Genesi, fori disegnati · controprova', 'genesi-csv-fori-disegnati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: la terza
+     riga di "Ponti con le altre app" nella Home veniva tagliata a metà
+     senza affordance di scroll (172px vs 214px di contenuto reale). */
+  ['la Home di Genesi non taglia la terza riga dei ponti con le altre app', 'genesi-home-ponti-tagliati.mjs', []],
+  ['Home di Genesi, ponti tagliati · controprova', 'genesi-home-ponti-tagliati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Genesi: "carica per
+     un obiettivo di pezzatura" poteva proporre una carica impossibile da
+     entrare nel foro, senza nessun avviso sul limite fisico. */
+  ['la carica per un obiettivo di pezzatura avvisa se non entra nel foro', 'genesi-carica-fuori-foro.mjs', []],
+  ['carica fuori dal foro di Genesi · controprova', 'genesi-carica-fuori-foro.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09: censiti tutti i bottoni `btn-*` premuti da tutta la
      superficie browser di Genesi, ne restavano due senza banco —
      `btn-piano-dxf` (G33, costruita il 13/09 su richiesta diretta del

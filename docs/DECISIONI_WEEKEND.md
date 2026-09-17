@@ -2161,7 +2161,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.610** *(ricontate il 17/09, dopo aver
+**Le prove automatiche sono passate a 3.612** *(ricontate il 17/09, dopo aver
 corretto in Flotta — secondo giro di deep-pass — tre difetti veri: i CSV col
 punto inglese invece della virgola italiana, il libretto senza il costo
 orario completo, l'età del mezzo mai mostrata a schermo; e prima di questo,
@@ -2380,7 +2380,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
-di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **325
+di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **331
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
