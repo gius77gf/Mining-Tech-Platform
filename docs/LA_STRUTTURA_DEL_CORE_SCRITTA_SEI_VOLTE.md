@@ -373,9 +373,18 @@ colore del genitore, un raggio che torna a zero. È la stessa forma del
 principio che il prodotto applica ai numeri: **l'assenza di un dato non è un
 dato favorevole**, e qui il dato assente si traveste da «va bene così».
 
-~~Il conto del contagio: **24 selettori** del foglio condiviso cadrebbero su
+~~Il conto del contagio: **23 selettori** del foglio condiviso cadrebbero su
 markup che Genesi **ha già** — non solo la famiglia `.modal-*` ma anche `.kpi`,
 `.kpi.ok`, `.kpi.warn`, `.badge.ok`, `.badge.tag`, `.note.ok`, `.dw-btn`.~~
+
+> ⏱️ **17/09: 24 → 23, e stavolta è un ritiro, non una crescita.** Il fix di
+> `niente-fuori-schermo`/`modali-dentro` sulla modale «Obiettivo di
+> pezzatura» ha tolto le due ultime `class="u"` di Genesi (sostituite da
+> `<u class="uni">`, la stessa forma che il resto della pagina usa già per
+> le unità): `shared/dw-app-ui.css` porta `.badge .u{margin-left:-4px}`, e
+> quel selettore era l'unico a toccare Genesi tramite la classe `u`. Tolta
+> l'unica occorrenza (verificato: nessun `class="u"` resta né in
+> `genesi.html` né in `genesi-data.js`), il contagio scende di uno.
 
 > ⚠️ **Il numero nella riga barrata si muove, ed è voluto.** La suite lo tiene
 > agganciato a una misura **viva** (`numeri-nei-documenti.mjs` ricalcola quanti

@@ -622,6 +622,19 @@ body.scr-sim #tl{bottom:80px}
   #cams{display:none}
   #scr-home .cards{max-width:100%}
   #bottomnav button{padding:7px 12px;min-width:64px}
+  /* ⛔ niente-fuori-schermo (17/09): #d2-tools è una riga flex senza wrap,
+     nessuno degli elementi si restringe sotto il proprio contenuto — a
+     390 px il "↺ Reset fronte" usciva dallo schermo, a 320 l'intero
+     bottone "Tratto" del segmento. Stessa cura già usata per #tlrow1 e
+     #topright in questa pagina. */
+  #d2-tools{flex-wrap:wrap}
+  /* E A 320 px NON BASTAVA: .dt-seg (Fori/Fronte/Piede/Tratto) è un unico
+     elemento flex dentro #d2-tools, e il wrap qui sopra lo sposta a
+     capo per intero ma non lo restringe — coi suoi 4 bottoni a
+     padding:7px 16px superava da solo i 292 px disponibili (320 meno il
+     padding della barra), quindi "Tratto" usciva comunque. Misurato con
+     fuori-schermo.mjs: con questo padding rientra su tutte le larghezze. */
+  @media(max-width:340px){ .dt-seg button{padding:7px 9px} }
 }
 #btnParams{display:none}
 @media (max-width:760px){#btnParams{display:inline-block}}
@@ -3658,7 +3671,7 @@ if($('btn-scheda-csv')) $('btn-scheda-csv').onclick=()=>{
 if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
   const v=await chiediValore('Obiettivo di pezzatura',
     '<p>Che pezzatura mediana (x50) vuoi ottenere, con la roccia e l’esplosivo di questo progetto? La maglia (spalla, interasse, altezza banco) resta quella che hai disegnato: si ricalcola solo la carica per foro.</p>',
-    '<label class="fl" for="modal-campo">Obiettivo x50 (<span class="u">cm</span>)</label>'
+    '<label class="fl" for="modal-campo">Obiettivo x50 (<u class="uni">cm</u>)</label>'
     +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
     'Calcola');
   if(v==null) return;
@@ -3719,7 +3732,7 @@ if($('btn-obiettivo-x50')) $('btn-obiettivo-x50').onclick=async()=>{
 if($('btn-confronta-burden')) $('btn-confronta-burden').onclick=async()=>{
   const v=await chiediValore('Confronta burden',
     '<p>Con quale pezzatura mediana (x50) come obiettivo vuoi confrontare burden diversi dal tuo? La maglia resta quella disegnata (stesse file, stessi fori per fila, stesso sfalsamento): cambia solo il burden, in un intorno di ±1 m attorno a quello di oggi, mantenendo lo stesso rapporto spalla/interasse. Anche MIC e PPV stimata al recettore sono ricalcolate, con la stessa sequenza di sparo di oggi.</p>',
-    '<label class="fl" for="modal-campo">Obiettivo x50 (<span class="u">cm</span>)</label>'
+    '<label class="fl" for="modal-campo">Obiettivo x50 (<u class="uni">cm</u>)</label>'
     +'<input type="text" inputmode="decimal" id="modal-campo" placeholder="es. 15">',
     'Confronta');
   if(v==null) return;
