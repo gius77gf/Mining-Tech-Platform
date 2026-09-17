@@ -205,15 +205,21 @@ const zeri = righe.filter((r) => /(^|[^\d.,])0(\s*(mc|kg))/.test(r.sub));
 dice(zeri.length === 0, "nessuna riga scrive «0 mc» o «0 kg» dove non è stato misurato niente",
   zeri.map((z) => z.sub).join(" | "));
 
-dice(/3 fori/.test(di("tutto misurato")) && /24 kg/.test(di("tutto misurato")) && /283,5 mc/.test(di("tutto misurato")),
+/* ⛔ 17/09: i chili escono con UN decimale fisso (`perLettura(m.kg,1,true)`
+   in volKg/volRiga, index.html) — «24,0 kg», non «24 kg». Le regex qui
+   sotto cercavano la forma senza decimale e fallivano su un prodotto che
+   non aveva niente di sbagliato: misurato premendo il banco e leggendo
+   l'uscita vera prima di correggere («3 fori · 24,0 kg · 283,5 mc» ecc.),
+   non dedotto. */
+dice(/3 fori/.test(di("tutto misurato")) && /24,0 kg/.test(di("tutto misurato")) && /283,5 mc/.test(di("tutto misurato")),
   "il caso sano dice ancora i suoi numeri", di("tutto misurato"));
 dice(/kg non scritti/.test(di("senza chili")) && /283,5 mc/.test(di("senza chili")),
   "senza chili: lo dichiara, e i mc restano quelli veri", di("senza chili"));
-dice(/mc non calcolabili/.test(di("senza profondita")) && /24 kg/.test(di("senza profondita")),
+dice(/mc non calcolabili/.test(di("senza profondita")) && /24,0 kg/.test(di("senza profondita")),
   "senza profondità: «mc non calcolabili», non «0 mc»", di("senza profondita"));
 dice(/né chili né volume/.test(di("niente di niente")),
   "né l'uno né l'altro: una dichiarazione sola, non due", di("niente di niente"));
-dice(/almeno 16 kg/.test(di("caricata a meta")),
+dice(/almeno 16,0 kg/.test(di("caricata a meta")),
   "caricata a metà: «almeno», perché il totale è più basso del vero", di("caricata a meta"));
 dice(/nessun foro/.test(di("vuota")) && !/mc/.test(di("vuota")),
   "nessun foro: non si conta e non si finge", di("vuota"));

@@ -490,7 +490,12 @@ if (fai("consegna")) {
   const sezSeg = (testo.split("SEGNALAZIONI DEL TURNO\n")[1] || "").split("\n\n")[0];
   dice(sezLav.length > 0 && testo.indexOf("LAVORI NON CONCLUSI") < testo.indexOf("CHIUSURA DEL TURNO"), "la consegna ha la sezione «LAVORI NON CONCLUSI», prima della chiusura", testo.slice(0, 80));
   const righeLav = sezLav.split("\n").filter((r) => r.startsWith("- "));
-  dice(righeLav.length >= 3 && /^- Frantoio primario \(Fermo per intasamento tramoggia\) — nessuno in carico \[fermo \/ anomalia\]$/.test(righeLav[0]), "⛔ il fermo sta per primo, col dettaglio, e «nessuno in carico» dove l'attività non ha un nome sopra", righeLav.join(" | "));
+  /* ⛔ 17/09: dal 15/09 un fermo porta anche il perché e i minuti
+     (lavoriNonConclusi/campo-data.js, PERCHÉ documentato lì) — la regex
+     era ancorata a fine riga subito dopo lo stato e non prevedeva la coda
+     "· causale · N min", scaduta su un miglioramento reale, non un difetto:
+     misurato premendo il banco prima di allargarla. */
+  dice(righeLav.length >= 3 && /^- Frantoio primario \(Fermo per intasamento tramoggia\) — nessuno in carico \[fermo \/ anomalia\] · Intasamento impianto · 55 min$/.test(righeLav[0]), "⛔ il fermo sta per primo, col dettaglio, e «nessuno in carico» dove l'attività non ha un nome sopra", righeLav.join(" | "));
   dice(righeLav.some((r) => /^- Perforazione fronte Est \(14\/22 fori\) — Luca Bianchi \[in corso\]$/.test(r)), "un lavoro in corso porta chi ce l'ha in carico e lo stato in italiano", righeLav.join(" | "));
   dice(!righeLav.some((r) => /Controllo pre-turno mezzi/.test(r)), "e l'attività conclusa non c'è: non è un lavoro da consegnare", righeLav.join(" | "));
   dice(!/nessuna attività aperta/.test(sezLav), "⛔ e non dice «nessuna attività aperta» su un turno con lavori aperti", sezLav);
