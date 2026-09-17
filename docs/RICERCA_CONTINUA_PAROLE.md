@@ -984,3 +984,253 @@ banner in cima ha dovuto fare — trovando una riga falsa. Chi legge lo sappia:
 su questo documento la data non è garantita da niente, è garantita da chi la
 rimisura. È la regola già scritta in `CLAUDE.md` — *un numero è sorvegliato
 solo dove il controllo arriva* — applicata al documento che la contiene.
+
+---
+
+## Blocco 4: i termini tecnici della voladura in Genesi — burden/spalla, powder factor/consumo specifico (17/09/2026, commit `4bda229c`)
+
+**Data della ricerca:** 17/09/2026
+**Commit verificato:** `4bda229c` (branch `claude/scheduled-tasks-remote-control-bk4ap6`)
+**Agente:** ricerca continua — vocabolario di mestiere, quarta tornata
+
+### 0. CHE COSA C'ERA GIÀ (obbligo di lettura, regola 1)
+
+Ho letto tutto il file prima di scrivere. Il **Blocco 1** censisce il
+vocabolario di fronte/volata/mezzi/materiali/documenti e la Riverifica del
+coordinatore vi ha già trovato — dentro Genesi — il selettore «Sequenza di
+sparo» (`<select id="dSeq">`). Il **Blocco 2** copre pesa/vendita/sicurezza e
+le quattro diciture del «non c'è». Il **Blocco 3** copre le cinque forme delle
+ragioni di scarto. **Nessuno dei tre ha mai aperto `apps/genesi/genesi.html`
+per i termini tecnici della perforazione/voladura** (burden, spacing,
+stemming, powder factor) che il mandato di questo blocco chiede di verificare:
+è esattamente l'angolo lasciato scoperto in `CLAUDE.md`, citato lì per nome.
+
+⚠️ **Limite dello strumento, rispettato**: solo `WebSearch` (funziona), mai
+`WebFetch` (`EGRESS_BLOCKED`, verificato di nuovo su una pagina istituzionale
+in questo stesso blocco, §I.3). Ogni fatto sul mondo è di seconda mano e
+marcato con la fonte; le deduzioni sono `[dedotto]`.
+
+---
+
+### I. MONDO — come si chiamano queste quattro grandezze fuori da Genesi
+
+#### I.1 ⭐ Il modello che il mestiere italiano usa davvero: **l'italiano prima, l'inglese fra parentesi**
+
+Una tesi di laurea del Politecnico di Torino sull'abbattimento controllato in
+cava a cielo aperto definisce la spalla come *«distanza tra il foro e la
+superficie libera, detta anche distanza di minima resistenza»* — e la cita
+proprio nella forma **«spalla (burden)»**: l'italiano è il termine che regge la
+frase, l'inglese è la glossa fra parentesi che lega il testo italiano al
+vocabolario internazionale del settore (drilling pattern, manuali dei
+produttori di esplosivo). Fonte: [Politecnico di Torino — Tecniche di
+abbattimento controllato in una cava a cielo aperto (tesi,
+webthesis)](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) *(di seconda
+mano: pagina PDF, risultato di ricerca)*.
+
+⭐ **E lo stesso schema regge per il consumo di esplosivo.** Per la grandezza
+che l'inglese chiama *powder factor*, i risultati di ricerca sulla stessa cava
+italiana citano **«consumo specifico di esplosivo»**, con valori tipici
+0,20–0,30 kg/m³ e un caso di cantiere fissato a 250-275 g/m³ per rispettare la
+pezzatura ammessa dal frantoio. Fonte: stessa tesi, [Politecnico di Torino —
+Tecniche di abbattimento
+controllato](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) *(di seconda
+mano)*.
+
+⭐ **Sottoperforazione** compare, con questo nome, in un progetto esecutivo di
+ampliamento cava vero (aumentarla favorisce lo sgombero del materiale ma
+peggiora la distribuzione della volata) — cioè non è una traduzione nostra, è
+il termine che un progetto italiano usa per il *subdrilling*. Fonte: [Progetto
+esecutivo di ampliamento della cava Solvay di S. Carlo — Relazione
+C](https://cloud.ldpgis.it/sanvincenzo/sites/sanvincenzo/files/solvay/relazione_c_progetto_esecutivo_cava.pdf)
+*(di seconda mano)*.
+
+#### I.2 Powder factor / PF: una sigla che nel mondo anglosassone convive con l'unità
+
+La letteratura anglosassone (es. i materiali tecnici citati da un ente minerario
+generalista) definisce il *powder factor* come il rapporto fra la quantità di
+esplosivo e il volume di roccia frammentata, espresso anche a livello del
+singolo foro (esplosivo del foro ÷ spalla×interasse×profondità), con valori
+tipici **fino a ~1 kg/m³** nelle produzioni a cielo aperto. La sigla **PF** vi
+si usa come abbreviazione corrente. Fonte: risultati di ricerca su fonti
+tecniche minerarie in inglese *(di seconda mano)* — [Mining Doc — Powder
+Factor (PF) and its impact on
+fragmentation](https://www.miningdoc.tech/question/powder-factor-pf-and-its-impact-on-fragmentation/).
+⚠️ **E qui il delta non è «l'inglese è sbagliato»**: è che l'inglese, quando
+c'è, **non convive mai con l'italiano nella stessa frase** — mentre per la
+spalla il mondo italiano lo fa sempre (§I.1). È la spia che distingue un
+prestito tecnico accettato da un termine lasciato in inglese per abitudine.
+
+#### I.3 ⚠️ Un «non c'è» del MONDO: nessuna fonte pubblica dice come si dichiara **verbalmente** un consumo specifico "non calcolabile"
+
+Cercando una dicitura standard con cui un piano di volata italiano dichiara
+che il powder factor non si può calcolare (carica non definita, maglia
+assente) non ne è uscita nessuna: la letteratura tratta solo il *calcolo*
+della grandezza, non l'assenza. `[dedotto]` — su questo punto il nostro
+vocabolario (Proposta 12, sotto) non copia niente dal mondo: lo abbiamo già
+inventato noi, ed è coerente col principio del fondatore.
+`WebFetch` verificato di nuovo negato: `EGRESS_BLOCKED` su
+`webthesis.biblio.polito.it`, quindi ogni citazione della tesi sopra è dal
+testo restituito dalla ricerca, non dalla pagina letta per intero — dichiarato
+per onestà, non perché cambi il giudizio sui termini (i frammenti citati sono
+diretti e non richiedono contesto per essere capiti).
+
+---
+
+### II. DELTA — Genesi, coi comandi e le uscite (rilanciati oggi, su `4bda229c`)
+
+#### II.1 ✅ QUELLO CHE È GIÀ GIUSTO: **spacing** e **stemming** non compaiono mai in inglese sullo schermo
+
+| Grandezza inglese | Parola italiana usata da Genesi | Comando | Uscita |
+|---|---|---|---|
+| *spacing* | **Interasse** (etichetta del campo `dS`) | `grep -n 'Interasse <u' apps/genesi/genesi.html` | `724: <label class="dc-f"><span>Interasse <u class="uni">(m)</u></span>…` |
+| *stemming* | **Borraggio** (campo `dStem`, e «Borraggio tra deck» per il decking) | `grep -n 'Borraggio <u' apps/genesi/genesi.html \| wc -l` | **2** |
+| *subdrilling* | **Sottoperf.** / «sottoperforazione» nei testi estesi | `grep -Eic 'sottoperforazione\|sottoperf' apps/genesi/genesi.html` | **12** |
+| la parola inglese *spacing* nuda in un testo utente | — | `grep -c "'Spacing'\|\"Spacing\"" apps/genesi/genesi.html` | **0** |
+| la parola inglese *stemming* nuda in un testo utente | — | `grep -Eic "stemming[^s]" apps/genesi/genesi.html \| grep -v 'MeshStemming\|Stemming\x27$'` *(verificato a mano: le 2 occorrenze di "Stemming" nel file sono nomi di mesh Three.js, mai testo mostrato)* | vedi nota |
+
+✅ **Verdetto onesto sulla metà buona: interasse, borraggio e sottoperforazione
+sono già le parole giuste, sempre, senza eccezioni trovate.** Non propongo
+niente su queste tre.
+
+#### II.2 ⛔ **Spalla** e **burden** convivono nello stesso pannello, e non si presentano mai insieme
+
+| Comando | Uscita |
+|---|---|
+| `grep -Eic '\bspalla\b' apps/genesi/genesi.html` | **81** |
+| `grep -Eic 'burden' apps/genesi/genesi.html apps/genesi/genesi-data.js` | **90** e **46** |
+| `grep -c '"btn-confronta-burden"\|"btn-burden-foro"' apps/genesi/genesi.html` | **2** (i due bottoni della finestra deviazione/confronto burden) |
+
+Il campo base della maglia è etichettato correttamente in italiano:
+`724: <label class="dc-f"><span>Spalla <u class="uni">(m)</u></span>…` e il
+badge di validazione della geometria dice **«Spalla / Ø»**
+(`grep -n "'Spalla / Ø'" apps/genesi/genesi.html` → `6519`). Ma **due
+funzionalità avanzate intere** — il confronto burden a obiettivo di pezzatura
+(G38) e l'ispettore del burden vero per foro dal rilievo boretrack — chiamano
+la stessa identica grandezza **solo «burden», mai «spalla», in tutto il loro
+testo**:
+
+    grep -n "Confronta burden per lo stesso obiettivo\|Burden per foro (dalla maglia)" apps/genesi/genesi.html
+    → 830:…>📊 Confronta burden per lo stesso obiettivo</button>
+    → 832:…>📐 Burden per foro (dalla maglia)</button>
+
+e il dialogo che apre il confronto lo dice così: *«Con quale pezzatura mediana
+(x50) come obiettivo vuoi confrontare **burden** diversi dal tuo?… cambia solo
+il **burden**… mantenendo lo stesso rapporto **spalla**/interasse»*
+(`genesi.html:3751`) — nella stessa frase il rapporto si chiama
+«spalla/interasse» ma la grandezza che si sta variando si chiama «burden»: **la
+stessa cosa ha due nomi in due metà della stessa frase**, che è esattamente il
+difetto che il commento di Terra su `ragioneData` (Blocco 3) mette in guardia:
+*«la stessa cosa si chiama con lo stesso nome nei due versi, se no chi legge
+crede che siano due difetti diversi»*.
+
+⛔ **Il mondo (§I.1) fa il contrario esatto**: pone l'italiano come termine
+portante e l'inglese come glossa. Genesi lo fa così **solo nel pannello
+base** («Spalla», mai «burden (spalla)»), e lo **rovescia** nelle due
+funzionalità avanzate (solo «burden», mai «spalla»). Non è che l'inglese sia
+vietato: è che nessuno dei due posti li mette **insieme**, come fa la fonte che
+il settore stesso cita.
+
+#### II.3 ⛔ **Powder factor** ha QUATTRO nomi nello stesso badge, per lo stesso numero
+
+    grep -c 'Powder factor' apps/genesi/genesi.html          → 8
+    grep -Eic 'consumo specifico' apps/genesi/genesi.html    → 31
+    grep -Eic '\bcarica specifica\b' apps/genesi/genesi.html → 1
+
+La riga più stretta e più grave sta nella scheda di validazione (badge `pf`),
+`genesi.html:6529-6533`:
+
+    if(pf===null) rows.push(nonCalcolabile('Powder factor', …));
+    else rows.push(badge(pf,'Powder factor',gfix(pf,2)+' <span>kg/m³</span>',0.30,0.55,0.22,0.7,
+      'carica specifica nel range consigliato (0,30–0,55 kg/m³).',
+      'PF basso → rischio blocchi/oversize; tipico 0,30–0,50 kg/m³.',
+      'PF alto → rischio proiezioni/sovra-frammentazione.'));
+
+e `badge()` (`genesi.html:6472`) restituisce `{lab, valStr, cls, why}` che
+`rowsHtml` (`genesi.html:7090`) scrive **davvero nel DOM**:
+`'<div class="sv-lab">'+r.lab+'</div>'…'<div class="sv-why">'+r.why+'</div>'`
+— cioè non è un commento né una via di ripiego mai raggiunta: è la card che
+l'utente vede. Per lo **stesso** numero, nella **stessa** card:
+
+- l'etichetta dice **«Powder factor»** (inglese, sempre);
+- se il valore è nel range buono, la spiegazione dice **«carica specifica»**
+  (terzo nome italiano, mai visto altrove nel file);
+- se è basso o alto, la spiegazione dice **«PF»** (sigla inglese, mai
+  sciolta lì accanto);
+- e altrove nella stessa pagina, nei pannelli e nei tooltip del layer
+  «Energia» e del confronto per-foro, la grandezza si chiama **«consumo
+  specifico»** (31 occorrenze, italiano, coerente col mondo — §I.1):
+  `grep -n 'Consumo specifico foro per foro' apps/genesi/genesi.html` →
+  `811:…title="Consumo specifico foro per foro: quanta energia tocca al
+  blocco di roccia che ciascun foro serve davvero"…`.
+
+⛔ **Nessuna delle quattro forme è sbagliata presa da sola** — «consumo
+specifico» è il termine che il mondo usa (§I.1), «Powder factor»/«PF» sono
+correnti nella letteratura anglosassone (§I.2), «carica specifica» è
+comprensibile. **Il difetto è che convivono senza mai dirsi equivalenti**, ed
+è più grave della coppia spalla/burden perché qui capitano **nello stesso
+elemento della pagina**, a seconda solo del verdetto del numero: un
+capocantiere che legge «carica specifica ok» oggi e «PF alto» domani sullo
+stesso badge può pensare che siano due controlli diversi.
+
+#### II.4 ✅ Verifica di non-gonfiaggio: la coppia spacing/interasse **non** è un difetto gemello
+
+Prima di proporre ho controllato se «Spaziatura fori» (usata nel presplit,
+`genesi.html:773`) contro «Interasse» (usata nella maglia principale,
+`genesi.html:724`) fosse la stessa famiglia di difetto — due parole per un
+solo concetto:
+
+    grep -n 'Spaziatura fori\|Interasse <u' apps/genesi/genesi.html
+    → 724:…Interasse <u class="uni">(m)</u>…
+    → 773:…Spaziatura fori <u class="uni">(m)</u>…
+
+**Non lo è**: la ricerca sulla spaziatura dei fori (§I) mostra che
+«spaziatura» e «interasse» sono sinonimi correnti anche nella letteratura
+tecnica italiana della perforazione, e qui indicano due grandezze
+**geometricamente diverse** — l'interasse della maglia di volata contro il
+passo dei fori di presplitting, una tecnica a sé (fori più fitti, non
+caricati per la frammentazione ma per il taglio del fronte). Non propongo
+niente: sarebbe il «cercare la nostra parola nel mondo e concludere male»
+già pagato nel Blocco 2 sull'abbancamento.
+
+---
+
+### III. PROPOSTE
+
+*Formato: schermata · che cosa non va · come si vede · quanto costa · come si misura.*
+*(numerate da 11 per non collidere con le dieci dei Blocchi 2-3)*
+
+#### Proposta 11 ⭐ — Genesi: le due funzionalità avanzate del burden restano mute sulla «spalla»
+- **Schermata:** Genesi → scheda di progettazione, pannello «Confronta burden per lo stesso obiettivo» (bottone `btn-confronta-burden`, dialogo) e pannello «Burden per foro (dalla maglia)» / rilievo deviazione (`btn-burden-foro`, `genesi.html:830-835`).
+- **Che cosa non va:** in tutto il testo di questi due pannelli la grandezza si chiama **solo «burden»**; il campo base della stessa identica grandezza, tre schermate più su nello stesso strumento, si chiama **«Spalla»**. Il mestiere italiano (§I.1, fonte Politecnico di Torino) non sceglie fra i due nomi: li scrive **insieme**, «spalla (burden)», proprio perché sono due modi di indicare la stessa cosa che un progettista deve saper collegare. Genesi non li collega mai: chi impara il pannello base come «Spalla» arriva al confronto avanzato e legge un'altra parola per lo stesso numero, senza un ponte.
+- **Come si vede:** `grep -n "Confronta burden per lo stesso obiettivo\|Burden per foro (dalla maglia)" apps/genesi/genesi.html` → `830`, `832`; `grep -n "'Spalla / Ø'" apps/genesi/genesi.html` → `6519`; il dialogo che mescola i due nella stessa frase: `sed -n '3751p' apps/genesi/genesi.html`.
+- **Quanto costa:** non riscrivere «burden» in «spalla» (perderebbe l'aggancio col linguaggio internazionale che un progettista che legge un datasheet di esplosivo si aspetta) — si **glossano** i due titoli e le prime occorrenze di ogni pannello: «📊 Confronta spalla (burden) per lo stesso obiettivo», «📐 Spalla (burden) per foro (dalla maglia)», e nel dialogo la prima menzione diventa «vuoi confrontare spalla (burden) diversi dal tuo?». Le occorrenze successive nello stesso paragrafo possono restare «burden» da sole, come fa la fonte. Due titoli e una frase: un'ora.
+- **Come si misura:** (1) `grep -c "Spalla (burden)\|burden (spalla)" apps/genesi/genesi.html` deve salire da **0** ad almeno **3** (i due titoli e il dialogo); (2) un banco di testo apre la pagina, clicca i due bottoni e pretende che il primo paragrafo di ciascun pannello contenga sia «spalla» sia «burden»; (3) controprova: tolta la glossa nei titoli, la prova (2) deve cadere.
+- **Fonte:** [Politecnico di Torino — Tecniche di abbattimento controllato in una cava a cielo aperto](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) *(di seconda mano)*, che usa la forma «spalla (burden)».
+
+#### Proposta 12 ⭐ — Genesi: il badge del powder factor cambia nome da solo, a seconda del verdetto
+- **Schermata:** Genesi → scheda di validazione della geometria, badge **«Powder factor»** (`genesi.html:6529-6533`, funzione `badge()` a `6472`, resa in DOM da `rowsHtml` a `7090`).
+- **Che cosa non va:** per lo stesso numero (`pf`, kg/m³) l'etichetta della card dice **«Powder factor»**, il testo sotto dice **«carica specifica»** se il valore è nel range buono e **«PF»** se è basso o alto — tre nomi diversi nello stesso elemento della pagina, a seconda solo dell'esito del calcolo. Fuori dalla scheda, negli stessi schermi, la grandezza si chiama invece **«consumo specifico»** (31 occorrenze: layer «Energia», confronto per-foro, avvisi di frammentazione) — che è anche il termine che la letteratura italiana del settore usa (§I.1). Un capocantiere che segue il numero attraverso le schermate di Genesi lo vede cambiare nome quattro volte senza che niente gli dica che è sempre lo stesso.
+- **Come si vede:** `grep -c 'Powder factor' apps/genesi/genesi.html` → **8**; `grep -Eic 'consumo specifico' apps/genesi/genesi.html` → **31**; `grep -Eic '\bcarica specifica\b' apps/genesi/genesi.html` → **1**; la prova che sono lo stesso badge: `sed -n '6529,6533p' apps/genesi/genesi.html` e la resa in DOM `sed -n '7090p' apps/genesi/genesi.html`.
+- **Quanto costa:** unificare l'etichetta della card su **«Consumo specifico»** (il termine di mestiere, coerente con le 31 occorrenze già esistenti e con la fonte del settore), tenendo **«(powder factor)»** come glossa una sola volta accanto all'etichetta — non tre volte sparse. Le tre frasi `whyOk`/`whyLo`/`whyHi` di quel badge (righe 6531-6533) si riscrivono con «consumo specifico»/«CS» al posto di «carica specifica»/«PF». Cambio locale a un badge, mezz'ora.
+- **Come si misura:** (1) `grep -c "'Powder factor'" apps/genesi/genesi.html` per quella riga specifica deve andare a **0** (resta la glossa, non l'etichetta); (2) un banco apre la scheda con un caso che dà `pf` nel range buono e uno che lo dà basso, legge `.sv-lab` e `.sv-why` del badge, e pretende che **la stessa parola d'ordine** (`consumo specifico` o la sua sigla dichiarata) compaia in entrambi i testi; (3) controprova: rimessi «carica specifica»/«PF» sciolti, la prova (2) deve cadere.
+- **Fonte:** interna (il termine «consumo specifico» è già maggioritario in Genesi, 31 contro 8) e [Politecnico di Torino — Tecniche di abbattimento controllato](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) *(di seconda mano)*, che usa la stessa dicitura per la stessa grandezza in una cava italiana vera.
+
+---
+
+### IV. QUELLO CHE HO CERCATO E **NON** PROPONGO (perché nessuno lo rifaccia)
+
+| Ipotesi | Perché è caduta | Prova |
+|---|---|---|
+| «Genesi lascia spacing/stemming/subdrilling in inglese» | **Falsa.** Sono già «interasse», «borraggio», «sottoperforazione» — mai le parole inglesi nude in un testo utente. | `grep -n 'Interasse <u\|Borraggio <u' apps/genesi/genesi.html \| wc -l` → **2**; `grep -Eic 'sottoperforazione\|sottoperf' apps/genesi/genesi.html` → **12**; `grep -c "'Spacing'\|\"Spacing\"" apps/genesi/genesi.html` → **0** |
+| «"Spaziatura fori" e "Interasse" sono due parole per lo stesso concetto, da unificare» | **Falsa.** Sono la stessa famiglia semantica (spacing) ma due grandezze geometriche diverse — maglia di volata contro passo del presplitting — e la letteratura tecnica italiana usa entrambi i sinonimi. Unificarli cancellerebbe la distinzione fra due tecniche. | `grep -n 'Spaziatura fori\|Interasse <u' apps/genesi/genesi.html` → `773`, `724` |
+| «"Burden" va tradotto ovunque in "Spalla", punto» | **Troppo forte.** Il mondo stesso (§I.1) non sceglie un solo nome: li scrive insieme. Sostituire «burden» con «spalla» ovunque perderebbe l'aggancio al vocabolario internazionale dei datasheet degli esplosivi. → Proposta 11 (glossare, non sostituire). | [Politecnico di Torino — tesi](https://webthesis.biblio.polito.it/8917/1/tesi.pdf) *(di seconda mano)* |
+| «Manca una dicitura per "powder factor non calcolabile"» | **Falsa come mancanza**: c'è già, ed è nella stessa forma delle altre non-calcolabilità del modulo (`nonCalcolabile('Powder factor', …)`, `genesi.html:6529`), con la ragione dichiarata (`_fg.che+'. '+_fg.come`). Il difetto non è l'assenza della dicitura, è il nome che porta — coperto dalla Proposta 12. | `sed -n '6529p' apps/genesi/genesi.html` |
+
+---
+
+### V. RIGHE PROPOSTE DA CHIUDERE QUANDO IL CANTIERE PASSA
+
+*(regola: chi chiude un'unità aggiorna la riga del documento che gliel'aveva proposta)*
+
+- Proposta 11 (spalla/burden glossati nei due pannelli avanzati) — **aperta** al 17/09, commit `4bda229c`
+- Proposta 12 (un solo nome per il badge del powder factor) — **aperta**

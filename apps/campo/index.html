@@ -2102,10 +2102,26 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const el = $("dash-hse");
       const schierati = LAV_HSE && SCAD_HSE ? inTurnoOggi(OPER, SQU) : null;
       const q = schierati ? idoneitaDiTurno(schierati, LAV_HSE, SCAD_HSE) : null;
-      el.innerHTML = !q || !q.scadute ? "" :
+      // ⛔ 17/09, dal secondo giro di deep-pass: questa riga leggeva SOLO
+      // `q.scadute`, mai `q.nonIdonei` — il giudizio del medico competente
+      // che, per lo stesso ponte, «vince su tutto» (vedi il commento sopra
+      // `idoneitaOperatore` in shared/dw-ponti.js). Una persona giudicata
+      // NON idonea ma coi documenti in corso restava invisibile qui, mentre
+      // la sezione Squadre la segnalava già correttamente per prima. Il
+      // Quadro esiste apposta perché questo genere di segnale non resti
+      // chiuso in una stanza in cui nessuno entra: il giudizio medico va
+      // prima delle scadenze, come nel widget gemello.
+      el.innerHTML = !q || (!q.scadute && !q.nonIdonei) ? "" :
         `<div class="note avviso" data-goto="squ" role="button" tabindex="0" style="cursor:pointer" title="Vai a chi c'è in squadra">`
-        + `<b>${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>`
-        + ` — ${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}.`
+        + (q.nonIdonei
+            ? `<b>${q.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : q.nonIdonei + " persone in turno oggi NON sono idonee"}</b>`
+              + ` secondo il medico competente (Scudo) — ${q.righe.filter(r => r.stato === "non-idoneo").map(r => esc(r.operatore.nome)).join(", ")}:`
+              + ` ${q.nonIdonei === 1 ? "non va mandata" : "non vanno mandate"} in cava finché il giudizio non cambia. `
+            : "")
+        + (q.scadute
+            ? `<b>${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>`
+              + ` — ${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}. `
+            : "")
         + ` I rinnovi si fanno in <b>Scudo</b>. Tocca per vedere chi c'è in squadra.</div>`;
     }
 
@@ -4565,6 +4581,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   // restare scaricabile com'era: non si toglie niente, si smette di
   // perdere quello che si è già composto.
   $("btn-consegna").onclick = async () => {
+    /* ⛔ 17/09, dal secondo giro di deep-pass: questo era l'UNICO punto che
+       scrive in `chiusure` senza passare da `bloccato()` — poteva riscrivere
+       `testoConsegna`/`oraTestoConsegna` su un turno GIÀ firmato, lo stesso
+       documento che `btn-fir` protegge. Un documento firmato che si può
+       rigenerare in silenzio dopo la firma non è più un documento firmato. */
+    const turno = $("chk-turno").value || turnoCorrente();
+    if (bloccato(OGGI, turno, "la consegna di turno", "rap-esito")) return;
     /* Il testo lo compone `testoConsegnaTurno` nel modulo — le stesse
        funzioni dello schermo, sezione per sezione — così la composizione la
        prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
@@ -4575,7 +4598,6 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
-    const turno = $("chk-turno").value || turnoCorrente();
     const gia = chiusuraDi(CHI, OGGI, turno);
     const oraConsegna = new Date().toTimeString().slice(0, 5);
     if (gia) await db.aggiorna("chiusure", gia.id, { testoConsegna: txt, oraTestoConsegna: oraConsegna });
