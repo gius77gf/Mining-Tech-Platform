@@ -11034,3 +11034,28 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       che il documento di ricerca finisse di scrivere il proprio
       riepilogo. Nota di chiusura con i quattro commit scritta in
       `docs/RICERCA_CONTINUA_CONTI.md`, nessun codice nuovo.
+
+## Sentinella — terzo giro di deep-pass, il ponte meteo con Campo (17/09)
+- [x] **IL PONTE COL MOTIVO SPINTO SEMPRE COPRIVA LO SCHERMO, NON I
+      DOCUMENTI CHE ESCONO** *(17/09, unità completata)*. `csvAmbiente`
+      (export ARPA) e `contaFuoriCondizioni` (Quadro e schede) chiamavano
+      `misuraFuoriCondizioni` senza il meteo del giorno preso dal ponte
+      con Campo, mentre `schedaPunto` — che disegna lo stesso conto A
+      SCHERMO — lo passava già: un giorno di pioggia/vento forte poteva
+      dare un verdetto diverso a schermo e nel documento per l'ente.
+      Corretto passando `IDX_METEO_GIORNO` anche nei due punti mancanti.
+      Trovato anche un secondo difetto in `rispostaReclamo`: la lettera
+      di chiusura scriveva "sotto la soglia" anche quando, per il giorno
+      del reclamo, esistevano misure ma nessuna aveva una soglia con cui
+      confrontarsi — aggiunta una terza risposta che dichiara
+      l'impossibilità del confronto invece di sceglierne una comoda. Test
+      nuovi in `run-kpi.mjs`, ancora invecchiata in
+      `sentinella-numeri-tranquilli.mjs` trovata da `iniezioni-fresche.mjs`
+      e corretta. Giro isolato: 41/41, KPI 3116/3116. Vedi checkpoint
+      `20260917-222519_sentinella-ponte-meteo-e-reclamo.md`.
+- [ ] **Conti, terzo giro di deep-pass (agente a5fa955d5c679000d)**: la
+      "fattura differita dai DDT" mescola DDT di clienti diversi
+      nell'anteprima/totali finché nessun cliente è scelto nella tendina
+      (`pesateDaFatturare` non filtra con `clienteId` vuoto); il blocco
+      vero c'è solo all'emissione. Da fixare: prossimo passo atomico nel
+      checkpoint qui sopra.
