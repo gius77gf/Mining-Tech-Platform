@@ -10,6 +10,52 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 17/09 — Campo: il rapportino non porta la fase dell'operazione né distingue sterile da commerciale
+
+*Dal settimo giro di ricerca continua (`docs/RICERCA_CONTINUA_CAMPO.md`,
+17/09), verificato sul codice vero prima di scrivere qui. Non è un difetto —
+`csvStorico` fa esattamente quello che il suo nome promette — è un dato che
+manca a monte, e serve una scelta sul vocabolario prima di poterlo scrivere.*
+
+- [ ] **34. Campo: `rapportini` non ha un campo "fase dell'operazione" né
+  distingue materiale sterile da materiale commerciale — la statistica
+  mineraria annuale (verificata via WebSearch: modulo regionale, gemello
+  della dichiarazione di esercizio ex artt. 24/28 DPR 128/1959, conferma
+  incrociata ISTAT/UNMIG e Annuario ISPRA — **fonte di seconda mano**, non
+  letta sul testo primario) chiede l'aggregazione PER FASE (rimozione
+  sterile, estrazione+trasporto, frantumazione, squadratura, carico), non
+  un totale unico.** Verificato su `apps/campo/campo-data.js`: ogni
+  `rapportino` ha solo `{data, turno, titolo, squadra, prodQta, prodUnita,
+  ora, stato, fronteId}` — `titolo` è un `<input>` di testo libero
+  (`new-rap-titolo`, placeholder "Rapportino perforazione"); i titoli demo
+  ("Rapportino trasporti/perforazione/impianto") *assomigliano* alle fasi
+  del modulo ma non sono un vocabolario controllato (`grep -ciE
+  "fase|categoriaProduzione|tipoOperazione"` → 0). L'unica aggregazione
+  esistente, `csvStorico` (riga 846), somma per **unità di misura** (m³, t),
+  non per fase. Nessuna distinzione materiale di copertura (non tariffato)
+  vs materiale commerciale (`grep -ciE "sterile|copertura|scoperchi"` → 0).
+  **Perché serve una decisione**: `rapportini` è il dato sorgente che almeno
+  tre ponti leggono (Terra, Conti, la copertura di `csvStorico`), quindi un
+  campo nuovo qui non è un dettaglio locale — cambia la forma di un dato
+  condiviso. E il vocabolario delle fasi non è ovvio: le categorie del
+  modulo regionale sono un punto di partenza di seconda mano, non
+  necessariamente quello giusto per come si lavora in QUESTA cava. **Le
+  strade**: (a) un campo `fase` a menu chiuso (4-5 voci, riusando lo schema
+  di `csvStorico` per l'aggregazione) più un campo booleano/a menu per
+  sterile/commerciale, nessuna nuova misura richiesta all'operatore; (b) si
+  aspetta un rapportino di fine turno vero da una cava cliente prima di
+  fissare il vocabolario, per non inventare categorie che poi vanno
+  riscritte; (c) si lascia `titolo` libero e si aggiunge solo la
+  distinzione sterile/commerciale, più semplice e meno ambigua, rimandando
+  la fase a quando servirà davvero l'aggregazione regionale. **La mia
+  risposta, se non rispondi entro la settimana**: (c) — la distinzione
+  sterile/commerciale è un campo a basso rischio (booleano, nessuna
+  categoria da indovinare) e già utile da sola per il costo di produzione;
+  il campo fase aspetta un rapportino vero, perché un vocabolario sbagliato
+  scritto nei dati oggi costerebbe una migrazione domani.
+
+---
+
 ## 🟡 17/09 — Sentinella: un punto misurato "a mano" è conforme per il semaforo e "mai misurato" per il programma, sullo stesso punto
 
 *Una passata in profondità su Sentinella (bottone per bottone, ogni scheda letta
@@ -504,7 +550,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **20**
+# 📖 Da dove cominciare — le decisioni aperte sono **21**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si
