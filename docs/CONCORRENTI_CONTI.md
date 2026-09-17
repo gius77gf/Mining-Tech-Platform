@@ -345,6 +345,25 @@
 
 ## Verifica del delta (01/08 · **riverificata riga per riga il 03/08**)
 
+> ⏱️ **Verificato contro il codice al commit `908c1446`** (17/09, riallineato
+> dal `7c41333` di sotto — è l'ultimo commit che ha DAVVERO toccato
+> `apps/conti/`, non il commit in cui questa riga viene scritta: quello non
+> esiste ancora quando la si scrive). L'arretrato segnalava **65 commit** su
+> Conti/`shared/dw-ponti.js` da `7c41333`, di cui **31 che MORDONO**. Cercati
+> i termini dei quattro item ancora `CONFERMATO ASSENTE` (firma digitale/
+> grafometrica/firmato digitalmente, e-ticket/eticket, foto prodotto/
+> immagine prodotto, ruolo/ruoli/amministratore/admin) **solo nelle righe
+> AGGIUNTE** dell'intero intervallo (`git diff 7c41333..908c1446 --
+> apps/conti/ shared/dw-ponti.js | grep -E '^\+' | grep -iE '...'`): **zero
+> colpi** su tutti e quattro. Controllato anche `permess` (il termine più
+> largo usato per «gestione permessi/ruoli»): un solo colpo, un commento su
+> un ponte con Flotta («se la lettura non è permessa»), che parla di un
+> controllo di lettura fra app e non di ruoli utente — falso positivo della
+> stessa famiglia già censita in questo documento. Nessuna riga della
+> tabella si muove: le quattro mancanze restano vere.
+>
+> *(Il blocco qui sotto è la verifica del 14/08 e resta com'era scritta.)*
+>
 > **Verificato contro il codice al commit `7c41333`** *(14/08 · **18 righe di
 > verdetto su 18 riguardate**, dopo i sei commit di arretrato — due dei quali
 > MORDONO (`c93c607`, `37c4393`). Esito: **verdetti cambiati zero**; **cinque
