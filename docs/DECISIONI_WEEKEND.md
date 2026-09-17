@@ -10,6 +10,67 @@ può procedere con l'attuazione.
 
 ---
 
+## 🟡 17/09 — Campo: due documenti diversi, due metà diverse della stessa giornata
+
+*Una passata in profondità su Campo (bottone per bottone, file scaricato e
+letto per intero) ha trovato due difetti veri, già corretti in questa stessa
+unità (non decisioni: uno mescolava le attività di un turno con quelle di
+un altro nell'avviso di chiusura, l'altro triplicava lo stesso near-miss
+senza turno nel testo della consegna). Restano due asimmetrie fra i due
+documenti che Campo produce sulla stessa giornata — non difetti, perché
+ognuno fa esattamente quello che il suo codice dichiara di fare: sono due
+scelte di contenuto mai confrontate fra loro.*
+
+- [ ] **32. Campo: la consegna di turno ARCHIVIATA non ha le presenze; il
+  rapporto STAMPATO E FIRMATO non ha i near-miss.** Campo produce due
+  documenti sulla stessa giornata, con due destini diversi:
+  `testoConsegnaTurno` (`apps/campo/campo-data.js`) è quello che
+  **rimane**: il bottone «Consegna di turno (testo)»
+  (`apps/campo/index.html:4567`) lo scrive anche su `chiusure.testoConsegna`,
+  apposta perché — dice il suo stesso commento — "il database non perda
+  traccia di che cosa diceva la consegna". `rapportoGiornata` è quello che
+  si **firma**: il bottone «Rapporto di fine turno» lo apre in una finestra
+  di stampa con «Consegnato da ___ Ricevuto da ___», e non tocca il database.
+  Le due liste di sezioni non coincidono:
+  - `testoConsegnaTurno` ha RAPPORTINI, PRODUZIONE, OBIETTIVO, CHECKLIST,
+    BRIEFING, METEO, VOLATE, LAVORI NON CONCLUSI, **SEGNALAZIONI DEL TURNO**,
+    CHIUSURA, ANOMALIE/FERMI — ma **non chiama mai** `appelloTurno` né
+    `riposoDiTurno`: nessuna presenza, nessun D.Lgs 66/2003 sul riposo.
+  - `rapportoGiornata` ha checklist, briefing, meteo, volate,
+    **personale presente** (`appelloTurno`), obiettivo, attività, fermi,
+    disponibilità, produzione, rapportini, chiusura — ma **non chiama mai**
+    `segnalazioniDelTurno`: zero near-miss, in nessun punto del testo, anche
+    in una giornata dove la dashboard mostra "SEGNALA UN NEAR-MISS — è
+    andata bene per poco" e la consegna (l'altro documento) lo scrive tre
+    volte (era il difetto #4, ora corretto: una).
+  Cioè: se un sito preme solo «Consegna di turno» (quello che il suo stesso
+  commento dice di usare per non perdere la memoria del turno), il
+  database non conserva mai chi c'era né se il riposo tra due turni è
+  stato rispettato. Se firma solo il «Rapporto di fine turno» (quello
+  pensato per essere firmato e archiviato su carta), il documento firmato
+  non dice mai che quel giorno è stato segnalato un near-miss.
+  **Perché è una decisione e non un'unità automatica**: nessuno dei due
+  file mente su quello che fa — `run-kpi.mjs` prova che `testoConsegnaTurno`
+  scrive le sue dieci sezioni dichiarate, e nessuna delle due prova
+  pretende le sezioni dell'altro documento. Aggiungere una sezione a un
+  documento pensato per essere firmato (o togliere la firma da uno pensato
+  per restare com'è) è una scelta sul che cos'è ciascun documento, non un
+  bug da correggere in silenzio. **Le strade**: (a) le stesse due funzioni
+  guadagnano le sezioni che mancano (appello+riposo in `testoConsegnaTurno`,
+  near-miss in `rapportoGiornata`), così qualunque bottone si prema porta
+  tutto; (b) si accetta la divisione dei compiti — la consegna racconta il
+  lavoro, il rapporto firmato certifica la presenza — e si scrive da
+  qualche parte QUALE dei due va tenuto come prova delle presenze/riposo,
+  così un sito che ne usa uno solo lo sa; (c) si uniscono i due bottoni in
+  un solo documento. **La mia risposta, se non rispondi entro la
+  settimana**: (a) — un near-miss del giorno e la presenza/riposo della
+  squadra sono entrambi dati di sicurezza, e un documento di sicurezza che
+  ne tace uno perché "non tocca a lui" è lo stesso principio già scritto
+  in CLAUDE.md sull'assenza che non è un dato favorevole, applicato a
+  quale DOCUMENTO la porta invece che a quale NUMERO.
+
+---
+
 ## 🟡 15/09 — tre decisioni nuove, da tre giri di ricerca su Deepwork ID
 
 *Il secondo giro di ricerca mirata (Deepwork ID, mai passata al setaccio finora
@@ -374,7 +435,7 @@ cinque elencate qui sotto.
 
 ---
 
-# 📖 Da dove cominciare — le decisioni aperte sono **18**
+# 📖 Da dove cominciare — le decisioni aperte sono **19**
 
 *Erano 19 fino al 07/08. **Nove** sono state chiuse dal **ciclo**, non da te, con
 la regola che avevi concesso il 01/08 (senza risposta entro la settimana si

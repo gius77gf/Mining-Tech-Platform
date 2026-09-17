@@ -3464,13 +3464,21 @@ export function segnalazioniDelTurno(infortuni, data, turno) {
 // perché è il posto dove Campo decide come si racconta un conteggio che
 // potrebbe non essere stato fatto — la stessa ragione per cui `minutiFermoTesto`
 // non vive nell'HTML. `null` quando non c'è niente da dire.
-export function testoSegnalazioniTurno(s) {
+// ⛔ `senzaCoda` (17/09, censimento a doppio punto di chiamata): chi chiama
+// una volta sola per il turno in corso (lo schermo) vuole anche la coda sul
+// turno ignoto. Chi chiama TRE volte, una per turno, per comporre un unico
+// documento (`testoConsegnaTurno`) NO: `s.turnoIgnoto` è lo STESSO insieme
+// indipendentemente dal turno chiesto (`segnalazioniDelTurno` non lo
+// filtra), quindi senza questo parametro lo stesso near-miss senza turno
+// veniva scritto tre volte — una per ciascuna riga "- turno Mattina/
+// Pomeriggio/Notte: ..." — e un lettore ne contava tre invece di uno.
+export function testoSegnalazioniTurno(s, senzaCoda) {
   if (!s) return null;
   if (!s.leggibile) return s.motivo;
   const n = s.delTurno.length;
   const capi = n === 0 ? "" : n === 1 ? "1 near-miss segnalato in questo turno"
     : n + " near-miss segnalati in questo turno";
-  const ign = s.turnoIgnoto.length;
+  const ign = senzaCoda ? 0 : s.turnoIgnoto.length;
   const coda = !ign ? ""
     : (ign === 1 ? "1 altro segnalato oggi senza turno indicato"
                  : ign + " altri segnalati oggi senza turno indicato")
@@ -3750,11 +3758,29 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
           + " · " + (a.minuti != null ? numeroIt(a.minuti, 0) + " min" : "minuti non registrati") : "")).join("\n")
     : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
   txt += "SEGNALAZIONI DEL TURNO\n";
-  const segT = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(d.infortuniScudo === undefined ? null : d.infortuniScudo, OGGI, t) }))
-    .map(x => ({ turno: x.turno, t: testoSegnalazioniTurno(x.s) })).filter(x => x.t);
-  txt += (segT.length
-    ? [...new Set(segT.map(x => (segT.length > 1 ? "- turno " + x.turno + ": " : "- ") + x.t))].join("\n")
-    : "- nessuna segnalazione oggi") + "\n\n";
+  /* ⛔ 17/09: il turno IGNOTO di `segnalazioniDelTurno` è lo STESSO insieme
+     qualunque turno si chieda (la funzione non lo filtra, di proposito: un
+     near-miss senza turno riguarda potenzialmente tutti). Comporre il
+     documento chiamandola una volta per turno e concatenando col vecchio
+     `testoSegnalazioniTurno` (che include sempre la coda sul turno ignoto)
+     scriveva lo stesso near-miss senza turno tre volte, una per riga — un
+     lettore ne contava tre invece di uno. `senzaCoda=true` toglie la coda
+     dalle righe per-turno; la si aggiunge UNA sola volta in fondo, riusando
+     la stessa funzione (non una sua copia) su un oggetto che porta solo il
+     `turnoIgnoto` vero. */
+  const segTurni = TURNI.map(t => ({ turno: t, s: segnalazioniDelTurno(d.infortuniScudo === undefined ? null : d.infortuniScudo, OGGI, t) }));
+  const nonLeggibile = segTurni.find(x => !x.s.leggibile);
+  if (nonLeggibile) {
+    txt += "- " + nonLeggibile.s.motivo + "\n\n";
+  } else {
+    const righe = segTurni.map(x => {
+      const t = testoSegnalazioniTurno(x.s, true);
+      return t ? (segTurni.length > 1 ? "- turno " + x.turno + ": " : "- ") + t : null;
+    }).filter(Boolean);
+    const codaIgnoto = testoSegnalazioniTurno({ leggibile: true, delTurno: [], turnoIgnoto: segTurni[0].s.turnoIgnoto });
+    if (codaIgnoto) righe.push("- " + codaIgnoto);
+    txt += (righe.length ? righe.join("\n") : "- nessuna segnalazione oggi") + "\n\n";
+  }
   const chiuT = CHI.filter(c => String(c.data || "") === OGGI && c.ora);
   txt += "CHIUSURA DEL TURNO\n";
   txt += (chiuT.length ? chiuT.map(c => "- turno " + c.turno + ": " + riassuntoChiusura(c)
