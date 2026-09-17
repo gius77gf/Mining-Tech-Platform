@@ -68,6 +68,20 @@
       diversa dichiarata per nome e con la ragione. E il setaccio sa fallire
       da solo su questo difetto: con `--controprova` le prove cadute passano
       da 21 a **22**, ed è la sua riga sul `.volata.json`.
+   7. G21 (17/09) · IL `.volata.json` DECLARAVA UNA MAGLIA CHE L'IMPORT NON
+      SCRIVEVA MAI. `const geom = v.geometria || {};` era dichiarata e non più
+      letta in tutto il file: l'unico uso di `INTERASSE` nello stesso handler
+      era in LETTURA (`LmImp = P.fori*INTERASSE`), mai in scrittura. Un file
+      che dichiara `spalla_m:4.5` importava fori disposti sulla maglia
+      PRECEDENTE — quella rimasta in memoria da prima, mai quella del file —
+      e il pannello "NUOVA VOLATA" continuava a mostrarla come se fosse
+      quella appena importata, senza nessun avviso: a cascata, Powder Factor
+      e curva di frammentazione calcolati su un burden/interasse che non era
+      quello del file. Stessa sorte per il diametro foro, scritto
+      dall'export in `default.diametro_mm` e mai letto dall'import. Corretto
+      con lo stesso `valoreCampo` già usato tre righe più sotto per
+      profondità e carica: il dato del file se c'è, quello che il progetto
+      aveva prima se non c'è.
 
    ⛔ I CASI SI COSTRUISCONO NEI DATI, mai nel file su disco: la volata e la
    legge di sito entrano da `localStorage` (`genesiVolate`, `genesiSito`), le
@@ -150,6 +164,10 @@ const DIFETTI = [
   [`D2.holes=(_fd&&_fd.fori.length)?_fd.fori:[];`, `D2.holes=[];`],
   // 10 · e «Salva» che non li scrive
   [`holes:(D2.holes||[]).map(h=>({ id:h.id||null,`, `holes:[].map(h=>({ id:h.id||null,`],
+  // 11 · G21 (17/09): la geometria del .volata.json letta e mai scritta
+  [`SPALLA = valoreCampo(parseFloat(geom.spalla_m), SPALLA, 1.5, 8);`, ``],
+  [`INTERASSE = valoreCampo(parseFloat(geom.interasse_m), INTERASSE, 1.5, 8);`, ``],
+  [`P.diam = valoreCampo(parseFloat(def.diametro_mm), P.diam, 50, 160, true);`, ``],
 ];
 
 const colpiti = new Set();
@@ -511,6 +529,39 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno del ritardo");
     `⛔ riletto da Genesi stessa, il ritardo torna ${passo} ms — non il ripiego a 25`, rit2);
   dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
   await pg.close();
+}
+
+// ── 4bis · G21: LA GEOMETRIA DEL FILE, LETTA E MAI SCRITTA ───────────────
+console.log("\n· il .volata.json, e il giro di andata e ritorno della geometria (spalla/interasse)");
+{
+  /* progetto con una maglia ben diversa dal default (3,0×3,5), così un
+     ripiego sul valore precedente non potrebbe mai passare per coincidenza */
+  const pg = await apri(SITO_TRE, { ...BASE, B: 6, S: 7 });
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
+  const jsonTx = await esce(pg, "btnExport", "volata JSON (geometria)");
+  const j = JSON.parse(jsonTx || "{}");
+  numeriConfrontati += 2;
+  dice(j.volata && j.volata.geometria && +j.volata.geometria.spalla_m === 6 && +j.volata.geometria.interasse_m === 7,
+    "⛔ il file esportato dichiara la maglia vera (6×7), non il default",
+    j.volata && j.volata.geometria);
+  const f = join(TMP, "geometria.volata.json");
+  writeFileSync(f, jsonTx);
+  await pg.close();
+
+  /* pagina FRESCA, col progetto di default (3,0×3,5): se l'import ripiegasse
+     sul valore precedente invece di leggere il file, qui resterebbe 3,0×3,5 */
+  const pg2 = await apri(SITO_TRE);
+  await pg2.evaluate(() => { const x = [...document.querySelectorAll("#bottomnav button")].find((y) => y.dataset.scr === "sim"); if (x) x.click(); });
+  await pg2.waitForTimeout(1200);
+  const prima = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  dice(/3,0×3,5/.test(prima), "prima dell'import il pannello è ancora sul default (3,0×3,5)", prima);
+  await pg2.setInputFiles("#fileIn", f);
+  await pg2.waitForTimeout(1200);
+  const dopo = await pg2.evaluate(() => document.getElementById("infochip")?.textContent || "");
+  dice(/6,0×7,0/.test(dopo), "⛔ riletto da Genesi stessa, il pannello mostra la maglia DEL FILE (6,0×7,0) — non quella rimasta in memoria", dopo);
+  dice(!/3,0×3,5/.test(dopo), "e non è più il default che c'era prima dell'import", dopo);
+  dice(pg2.__err.length === 0, "la pagina non solleva errori", pg2.__err[0]);
+  await pg2.close();
 }
 
 // ── 5 · LA MODALE DEL COMPOSITO: NESSUN NUMERO ALL'INGLESE ───────────────

@@ -3149,6 +3149,23 @@ $('fileIn').onchange = async e=>{
     if(!fori.length) throw new Error('nessun foro nel file');
     /* migrate(): legacy core -> schema genesi */
     const geom = v.geometria || {};
+    /* ⛔ G21 · LA GEOMETRIA DEL FILE VENIVA LETTA E MAI SCRITTA. `geom` era
+       dichiarata e mai riusata (l'unico uso di INTERASSE qui sotto era in
+       LETTURA, per `LmImp`): un file che dichiara `spalla_m: 4.5` importava
+       fori disposti sulla maglia PRECEDENTE — quella rimasta in memoria da
+       prima, mai quella del file appena aperto — e il pannello "NUOVA VOLATA"
+       continuava a mostrarla come se fosse quella importata, senza nessun
+       avviso. A cascata: Powder Factor, curva di frammentazione e MIC, tutti
+       calcolati sulla maglia sbagliata. Stessa sorte per il diametro foro,
+       che l'export scrive in `default.diametro_mm` e l'import non leggeva
+       affatto. `valoreCampo` è lo stesso contratto già usato qui sotto per
+       profondità e carica: il dato del file se c'è, quello che il progetto
+       aveva prima se non c'è — mai un default silenzioso al posto di uno o
+       dell'altro. */
+    const def = v.default || {};
+    SPALLA = valoreCampo(parseFloat(geom.spalla_m), SPALLA, 1.5, 8);
+    INTERASSE = valoreCampo(parseFloat(geom.interasse_m), INTERASSE, 1.5, 8);
+    P.diam = valoreCampo(parseFloat(def.diametro_mm), P.diam, 50, 160, true);
     const ritardi = fori.map(x=>parseFloat(String(x.ritardo??'').replace(/[^\d.]/g,''))||0);
     const rset = [...new Set(ritardi)].sort((a,b)=>a-b);
     let step = 25;
