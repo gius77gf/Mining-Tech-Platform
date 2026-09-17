@@ -298,6 +298,19 @@ Nella roadmap, il ponte P2 (riconciliazione volume vs tonnellate) è il prossimo
 
 ## Verifica del delta (01/08)
 
+> ⏱️ **Verificato contro il codice al commit `d3068cc0`** (17/09, riallineato
+> dal `eab041d` di sotto — è l'ultimo commit che ha DAVVERO toccato
+> `apps/terra/`, non il commit in cui questa riga viene scritta: quello non
+> esiste ancora quando la si scrive). L'arretrato segnalava **40 commit** su
+> Terra/`shared/dw-ponti.js` da `eab041d`, di cui **22 che MORDONO**. Cercati
+> i termini delle quattro righe ancora `CONFERMATO ASSENTE` (cut & fill,
+> stockpile detection automatico, pit design e scheduling, floating cone
+> optimization) **solo nelle righe AGGIUNTE** dell'intero intervallo: **zero
+> colpi** su tutte e quattro. Nessuna riga della tabella si muove: le
+> quattro mancanze restano vere.
+>
+> *(Il blocco qui sotto è la verifica del 14/08 e resta com'era scritta.)*
+>
 > **Verificato contro il codice al commit `eab041d`** *(14/08 · **tutte e undici
 > le righe rilanciate una per una**, dopo i sei commit di arretrato — uno dei
 > quali MORDE (`c93c607`). Esito: **verdetti cambiati zero**, **dieci comandi su
