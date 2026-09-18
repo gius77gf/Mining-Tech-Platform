@@ -11824,3 +11824,55 @@ Unit test per Scudo e Terra (pure functions), banco browser con
 controprova per Flotta. run-kpi.mjs 3172/3172. sintassi-pagine.mjs 34/34.
 run-stile.mjs 330/330. suite-collegate.mjs 3/3. iniezioni-fresche.mjs:
 694 sul bersaglio su 694, zero scadute.
+
+## Sesto giro di deep-pass QA — tre agenti in parallelo (18/09, notte)
+
+Altri tre agenti QA su Sentinella, Genesi (secondo giro, stessa famiglia
+di guardie sui dati illeggibili) e Conti (secondo giro).
+
+- [x] **Sentinella**: `superamentiAperti` scriveva `valore: +m.valore`
+      invece del valore dichiarato usato da `statoMisura` per giudicare
+      il superamento — un campo scritto per un'azione HSE poteva dire
+      "misurato 0" su un superamento vero. `kpiFrom` giudicava sempre
+      con la sola soglia del punto, mai `sogliaEfficace` (soglia del
+      ricettore): aggiunto un terzo parametro facoltativo, retrocompatibile
+      (`ca97290a`).
+- [x] **Genesi**: `muckShape()` rileggeva `D2.B`/`D2.S` grezzi invece dei
+      valori misurati (stessa famiglia già chiusa oggi su S/B, H/B,
+      Timing, Spalla/Ø) — con l'interasse illeggibile il baricentro del
+      cumulo usciva come un numero finito assurdo (2,5×10³³ m) invece di
+      "—"; il pannello Decking divideva per zero silenziosamente
+      (`ed36ea7d`).
+- [x] **Conti**: la lista Fatture e il bottone "Segna come inviato" non
+      passavano dalla guardia `statoSdi(f).nonEmessa`/`sollecitabile()`
+      già propagata a undici funzioni pure lo stesso giorno — una
+      fattura scartata dallo SdI restava rossa "scaduta" con mora e
+      poteva ricevere un sollecito persistente su un documento che per
+      il fisco non esiste. Corretto anche un arrotondamento prematuro in
+      quattro grafici a barre, stessa famiglia della barra dei 12€,
+      un piano più a monte (`bafe439d`).
+
+Unit test per Sentinella, banco browser con controprova per Genesi,
+prove sul sorgente per Conti. run-kpi.mjs 3177/3177. sintassi-pagine.mjs
+34/34. run-stile.mjs 330/330. suite-collegate.mjs 3/3.
+iniezioni-fresche.mjs 699/699 sul bersaglio, zero scadute.
+
+## Il KO del giro lungo — Terra, sequenza del progetto (18-19/09)
+
+Il giro di convergenza lanciato all'inizio della sessione (PID 688) ha
+segnalato, dopo quasi quattro ore, un solo KO vero su
+`terra-sequenza-lotto.mjs`. Riverificato da zero contro il codice
+attuale (non contro il commit stantio attestato dal giro, 21+ commit
+indietro sulle superfici misurate), come impone il giro stesso:
+
+- [x] **Non era un difetto di prodotto.** `sequenzaLotto` calcola giusto
+      (Lotto 4 al 34,8% misurato, sotto la soglia dell'80% del Lotto 5) e
+      sceglie correttamente l'elisione italiana `l'80%`
+      (`articoloNumero`, fascia 80-89). Il banco pretendeva testualmente
+      "il 80%" — un refuso della regola di test scritta il 16/09, mentre
+      il commento della stessa unità diceva già "l'80%" giusto. Corretta
+      la regex del banco (`0e2a18a6`). 8/8 normale, controprova
+      invariata (3 KO voluti, 1/1 iniezioni rimesse davvero).
+
+Nessun difetto di prodotto residuo da questo giro. numeri-nei-documenti.mjs
+43/43, 413 banchi, copertura 1049/1049 — nessuna propagazione necessaria.
