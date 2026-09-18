@@ -9270,6 +9270,12 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(sentinella.riferimentoReferto(sentinella.refertoDaVolata(vol())),
        "Volata 10/07/2026 · Fronte A · Casa Rossi", "data, fronte e punto");
   });
+  test("⛔ 18/09, dal deep-pass QA: dataIt di Sentinella è quello CONDIVISO, non una copia debole che legge la forma invece del calendario", () => {
+    eq(sentinella.riferimentoReferto({ data: "2026-02-30", fronte: "Fronte A" }), "Volata — · Fronte A",
+      "⛔ ERA QUI IL DIFETTO: una data ben scritta ma inesistente diventava «30/02/2026» nel documento, mentre lo schermo (che importa dataIt da shared/) diceva già «—»");
+    eq(sentinella.riferimentoReferto({ data: "2026-07-10", fronte: "Fronte A" }), "Volata 10/07/2026 · Fronte A",
+      "una data vera resta formattata come sempre");
+  });
 
   test("⛔ candidate: solo le letture di VIBRAZIONE di quel giorno", () => {
     const mons = [

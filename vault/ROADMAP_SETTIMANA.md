@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.639 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3145, `run-stile` 330,
+  **3.640 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3146, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11353,3 +11353,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   prima del commit (banchi 347→349, file 153→154, e una terza occorrenza
   «21 sulle funzioni» in DECISIONI_WEEKEND.md rimasta indietro dall'unità
   Deepwork ID precedente, trovata solo ora e corretta a 24).
+
+## Sentinella — dataIt, copia debole che leggeva la forma invece del calendario (18/09)
+- [x] **`dataIt` LOCALE ERA UNA COPIA DEBOLE DELLA VERSIONE CONDIVISA**
+      *(18/09, unità completata, dal deep-pass QA su Sentinella)*. La
+      versione locale (`sentinella-data.js:431-435`) riconosceva una data
+      con un semplice regex sulle cifre (`/^\d{4}-\d{2}-\d{2}$/`), senza
+      validare che il calendario esista davvero: `dataIt("2026-02-30")`
+      restituiva «30/02/2026» invece di «—». La versione condivisa
+      (`shared/deepwork-id-client/dw-shell.js`) valida con `dataISOEsiste`
+      ed è quella che lo schermo già usa (`index.html` la importa
+      direttamente): due verità diverse sullo stesso archivio, con quella
+      sbagliata proprio sui documenti che escono dall'app (referto della
+      regressione, report di conformità, risposta al reclamo, scheda della
+      volata). Un commento nel modulo (`quandoIt`, riga 2725-2727)
+      dichiarava esplicitamente il comportamento CORRETTO che la funzione
+      NON aveva — dimostrato falso eseguendo il codice, e ora vero grazie
+      al fix. Corretto importando `dataIt` da `shared/` (la regola del
+      `shared/`: un alias non è una seconda implementazione) e togliendo
+      la funzione locale.
+- Nuovo test dedicato con controprova (verificato: con la vecchia funzione
+  rimessa il test cade, riproducendo esattamente «30/02/2026»). KPI:
+  3145 → **3146**. Giro completo su worktree isolata: 41/41. 9-suite sum:
+  **3.640** (3146+330+83+32+9+8+7+3+22). `numeri-nei-documenti.mjs`
+  verificato prima del commit.

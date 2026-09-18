@@ -2161,10 +2161,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.639** *(ricontate il 18/09, dopo aver
-corretto in Campo `testoConsegnaTurno` (semaforo delle azioni correttive HSE
-nella checklist della consegna testuale, come già in `rapportoGiornata`) e,
-prima di questo, i tre difetti in dw-shell.js: `leggiCsv` trimmava ogni campo anche se
+**Le prove automatiche sono passate a 3.640** *(ricontate il 18/09, dopo aver
+corretto in Sentinella `dataIt` (copia debole locale che leggeva la forma
+della stringa invece del calendario vero) e, prima di questo, in Campo
+`testoConsegnaTurno` (semaforo delle azioni correttive HSE nella checklist
+della consegna testuale, come già in `rapportoGiornata`) e, ancora prima, i
+tre difetti in dw-shell.js: `leggiCsv` trimmava ogni campo anche se
 quotato apposta per conservare gli spazi di contorno, `_combacia` riconosceva
 una sottosequenza CON BUCHI come «l'inizio» di una tabella, e `parseCsvLine`
 perdeva lo spazio bianco che la guardia anti-formula protegge (il `.trim()`

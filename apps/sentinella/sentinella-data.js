@@ -28,7 +28,7 @@
 // ============================================================
 
 import { parseCsvLine, csvCell, numIt, giorniTra, isIntestazione, righeCsvNumerate, numeroScritto, dataISOEsiste,
-         senzaDoppioni, istanteLocale, plurale, conta,
+         senzaDoppioni, istanteLocale, plurale, conta, dataIt,
          AVVISO_DECIMALE as AVVISO_DECIMALE_SHELL,
          dataPiuGiorni as dataPiuGiorniShell, mappaColonne, isoLocale, icsCalendario } from "../../shared/deepwork-id-client/dw-shell.js";
 // Una scadenza è una scadenza: lo stato della taratura lo dice la stessa
@@ -427,12 +427,16 @@ export function puntiSenzaSoglia(monitoraggi, ricettori) {
       n: (((m || {}).letture) || []).length }));
 }
 
-// Data GG/MM/AAAA da ISO (formattazione pura per i testi delle allerte).
-function dataIt(iso) {
-  const s = String(iso || "").slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
-}
+/* ⛔ 18/09, dal deep-pass QA su Sentinella: `dataIt` era una copia debole
+   di quella condivisa — leggeva la forma della stringa (un regex sulle
+   cifre) invece del calendario vero. Su una data ben scritta ma inesistente
+   ("2026-02-30") lo schermo (che importa `dataIt` da `shared/` in
+   index.html) diceva «—», mentre questo modulo — usato per comporre i
+   DOCUMENTI che escono (report, risposta al reclamo, schede volata) —
+   scriveva «30/02/2026»: due verità diverse sullo stesso dato, con quella
+   sbagliata proprio sul documento che esce dall'azienda. Adesso è un
+   alias della funzione condivisa (import in testa al file), non una
+   seconda implementazione: la regola del `shared/`. */
 
 // PRIORITÀ DI CONFORMITÀ per la dashboard: un'unica lista ordinata di allerte
 // che unisce (1) i monitoraggi non conformi — superamento (danger) o attenzione
