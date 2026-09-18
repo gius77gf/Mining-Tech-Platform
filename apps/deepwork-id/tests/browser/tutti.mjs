@@ -636,6 +636,8 @@ const BANCHI = [
   ["inventario dei cumuli · controprova", 'terra-inventario.mjs', ['--controprova'], true],
   ["Terra: i bottoni di scrittura si spengono durante il salvataggio, un doppio tocco non duplica", 'terra-bottoni-occupato.mjs', []],
   ["bottoni occupato di Terra · controprova", 'terra-bottoni-occupato.mjs', ['--controprova'], true],
+  ["Conti: il bottone «Emetti» si spegne durante la scrittura, un doppio tocco non duplica il numero", 'conti-bottone-emetti-occupato.mjs', []],
+  ["bottone «Emetti» occupato di Conti · controprova", 'conti-bottone-emetti-occupato.mjs', ['--controprova'], true],
   ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
   ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
   ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],

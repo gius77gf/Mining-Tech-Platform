@@ -8149,6 +8149,12 @@ label.item:has(.dw-chk:checked){
       esito("ft-esito", "Esiste già una fattura con numero " + numero + ".", "err");
       primoErrore(FT_CAMPI); return; }
     $("ft-esito").textContent = "";
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: il controllo sul numero
+       duplicato qui sopra legge FAT in memoria, aggiornato solo da refresh()
+       QUATTRO righe più in basso — un doppio tocco rapido (rete lenta in
+       cava) passa il controllo due volte e scrive due fatture con lo stesso
+       numero. Stessa famiglia già chiusa oggi in Terra/Flotta. */
+    occupato("btn-ft", true);
     // cliente nuovo: se esiste già uno con lo stesso nome (a meno di
     // maiuscole/punteggiatura) si riusa quello, altrimenti si crea al volo
     let clienteId = scelta;
@@ -8173,11 +8179,17 @@ label.item:has(.dw-chk:checked){
       sdi: $("ft-sdi").value ? { stato: $("ft-sdi").value, il: $("ft-sdi-il").value || null, nota: "" } : null };
     if (editFat) {
       await db.aggiorna("fatture", editFat, dati);
+      // `occupato(false)` PRIMA di riscrivere l'etichetta: se corresse dopo,
+      // restituirebbe il testo catturato al tocco ("Salva modifica"),
+      // cancellando il cambio di modo appena fatto — la stessa trappola
+      // presa oggi su «btn-fro»/«btn-lot»/«btn-aut-salva» in Terra.
+      occupato("btn-ft", false);
       editFat = null; $("btn-ft").textContent = "Emetti";
       esito("ft-esito", "Fattura " + numero + " aggiornata: " + eur(t.totale) + " (imponibile " + eur(t.imponibile) + " + IVA " + eur(t.ivaImporto) + ").", "success");
     } else {
       await db.aggiungi("fatture", { ...dati, righe: [], ddtIds: [], tipo: "immediata",
         emessa: oggiISO(), incassata: false });
+      occupato("btn-ft", false);
       esito("ft-esito", "Fattura " + numero + " emessa: " + eur(t.totale) + " (imponibile " + eur(t.imponibile) + " + IVA " + eur(t.ivaImporto) + ").", "success");
     }
     pulisciFat();
