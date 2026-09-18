@@ -2161,7 +2161,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.618** *(ricontate il 17/09, dopo aver
+**Le prove automatiche sono passate a 3.619** *(ricontate il 18/09, dopo aver
 corretto in Flotta — secondo giro di deep-pass — tre difetti veri: i CSV col
 punto inglese invece della virgola italiana, il libretto senza il costo
 orario completo, l'età del mezzo mai mostrata a schermo; e prima di questo,

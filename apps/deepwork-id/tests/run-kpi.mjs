@@ -4762,6 +4762,23 @@ test("⛔ varianzaLottoAnno: due assenze diverse — piano non dichiarato, anno 
   eq(avanti.verso, "avanti");
   eq(avanti.scartoPct, 36);
 });
+test("⛔ 18/09, dal terzo giro di deep-pass: varianzaLottoAnno scarta un rilievo con calendario impossibile invece di sommarlo", () => {
+  const lotto = { frontiId: ["fz"], volumiAnnuali: [{ anno: 2026, volumeM3: 50000 }] };
+  const base = [
+    { id: "z1", fronteId: "fz", volumeM3: 19400, stato: "elaborato", data: "2026-07-15" },
+    { id: "z2", fronteId: "fz", volumeM3: 21300, stato: "elaborato", data: "2026-06-16" },
+  ];
+  const prima = terra.varianzaLottoAnno(lotto, 2026, base);
+  eq([prima.reale, prima.rilievi, prima.verso], [40700, 2, "indietro"]);
+  const conCalendarioImpossibile = [...base,
+    { id: "zbad", fronteId: "fz", volumeM3: 999999, stato: "elaborato", data: "2026-13-45" }];
+  const dopo = terra.varianzaLottoAnno(lotto, 2026, conCalendarioImpossibile);
+  // prima del 18/09 il rilievo a calendario impossibile passava il filtro
+  // sull'anno (".slice(0,4)" legge "2026" anche da una data che non esiste) e
+  // ribaltava il verdetto da "indietro del 19%" a "avanti del 1981%"
+  eq([dopo.reale, dopo.rilievi, dopo.verso], [40700, 2, "indietro"],
+    "il rilievo a calendario impossibile resta fuori dal conto, il verdetto non si ribalta");
+});
 test("varianzaLottoAnno sulla dimostrazione: lo4 è indietro nel 2026, gli altri cinque non dichiarano un piano", () => {
   const oggi2026 = terra.DEMO.lotti.find((l) => l.id === "lo4");
   const v = terra.varianzaLottoAnno(oggi2026, 2026, terra.DEMO.rilievi);

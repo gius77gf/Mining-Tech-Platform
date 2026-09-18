@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.618 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3116, `run-stile` 330,
+  **3.619 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3125, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11199,3 +11199,20 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       (`conformitaProgetto`) calcolato dal modulo ma mai letto dalla
       pagina — guardia scollegata, da collegare in un'unità successiva.
       Resta anche da verificare dal vivo la pista su `varianzaLottoAnno`.
+
+## Terra — quarto difetto della famiglia calendario impossibile (18/09)
+- [x] **`varianzaLottoAnno` SOMMAVA UN RILIEVO A CALENDARIO IMPOSSIBILE NEL
+      CONFRONTO PIANIFICATO-VS-REALE** *(18/09, unità completata, verificato
+      indipendentemente da un agente prima di correggere — agente
+      ae6273e3db847b0c5)*. Quarta manifestazione della stessa famiglia già
+      chiusa il 17/09 in `proiezioneAnnua`/`kpiFrom`: il pre-filtro sull'anno
+      usava `.slice(0,4)` grezzo sulla data invece di `rilievoUsabileConData`,
+      e `volumeMisuratoDiLotto` (chiamata subito dopo) non ha una seconda
+      barriera — usa `rilievoUsabile`, che non valida il calendario. Un
+      rilievo con `data:"2026-13-45"` passava "2026" al filtro e il suo
+      volume finiva sommato per intero: misurato un caso concreto che
+      ribaltava il verdetto da **"indietro del 19%" a "avanti del 1981%"**
+      con un solo rilievo iniettato. Non coperto da nessun test che lo
+      dichiari intenzionale (a differenza di `estrattoComplessivo`).
+      Nuovo test puro in `run-kpi.mjs` con controprova (rimesso il difetto a
+      mano, confermato che il test cade; ripristinato, confermato identico).

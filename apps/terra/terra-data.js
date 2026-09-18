@@ -3589,7 +3589,14 @@ export function varianzaLottoAnno(lotto, anno, rilievi) {
   const piano = volumePianificatoLottoAnno(lotto, anno);
   if (piano == null)
     return { calcolabile: false, perche: "questo lotto non dichiara un volume pianificato per l'anno " + anno };
-  const rilieviAnno = (rilievi || []).filter((r) => r && String(r.data || "").slice(0, 4) === String(anno));
+  /* ⛔ 18/09, dal terzo giro di deep-pass: qui c'era `.slice(0,4)` grezzo sulla
+     data, quarta copia della stessa guardia debole già corretta in
+     `proiezioneAnnua`/`kpiFrom` — e `volumeMisuratoDiLotto` non ha una
+     seconda barriera (usa `rilievoUsabile`, non `...ConData`): un rilievo con
+     `data:"2026-13-45"` passava "2026" al filtro e il suo volume finiva
+     sommato per intero, ribaltando il verdetto (misurato: da -19% "indietro"
+     a +1981% "avanti" con un solo rilievo iniettato). */
+  const rilieviAnno = (rilievi || []).filter((r) => rilievoUsabileConData(r) && String(r.data || "").slice(0, 4) === String(anno));
   const vm = volumeMisuratoDiLotto(lotto, rilieviAnno);
   if (!vm.misurabile)
     return { calcolabile: false, pianificato: r2(piano), perche: vm.motivo };
