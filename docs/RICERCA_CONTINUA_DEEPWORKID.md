@@ -595,3 +595,180 @@ cancellazione definitiva (`grep -n "^exports\." apps/deepwork-id/functions/index
 S, nessuna richiede una decisione di prodotto prima (a differenza delle
 mancanze del 15/09): sono comportamento mancante su un meccanismo già
 scelto. Tutto verificato contro il commit `8c0cf23a`.
+
+## Ricerca del 2026-09-18 — inviti duplicati e riscatto silenzioso: che cosa succede quando la STESSA email viene invitata due volte, o accetta senza scegliere
+
+**Che cosa esiste già, letto prima di proporre.** Le quattro ricerche
+precedenti (qui sopra) coprono i ruoli e chi li assegna (03/09, 15/09),
+l'uscita dei dati (11/09) e la revoca dell'accesso già dato (17/09, token e
+stato `disabled`). Nessuna delle quattro guarda l'**invito** come oggetto a
+sé: `ARCHITETTURA.md:59` lo dichiara (`invites/{inviteId}`, `expiresAt`),
+`functions/index.js` lo implementa (`inviteMember`, `revokeInvite`,
+`acceptInvites`, verificati riga per riga il 03/09 e il 17/09 per altri
+scopi), e `admin.html` ha già la lista dei pendenti con scadenza «scaduto
+il/scade tra» e il bottone Revoca (righe 145-215, non nuovo). Quello che
+NESSUNA ricerca ha ancora guardato è che cosa succede a) invitando **due
+volte la stessa email** e b) quando l'invitato **riscatta**. `git log
+--oneline --since=2026-09-17 -- apps/deepwork-id/functions/index.js
+apps/deepwork-id/admin.html shared/deepwork-id-client/index.js` → un solo
+commit da ieri e non tocca questi tre file, quindi il codice letto il 17/09
+è ancora la fotografia vera.
+
+### Come va, fuori — SOLO WebSearch, marcato [di seconda mano]
+
+- **La correzione standard per gli inviti doppi non è "impedirli", è
+  "riusarli"**: *«se esiste già un invito pendente per quella email, lo si
+  RINVIA invece di crearne uno nuovo»* — un reinvio deliberato riusa lo
+  stesso token, aggiorna il ruolo se è cambiato, rimanda l'email e lo
+  registra come resend; la risposta porta un flag `duplicate`/`reused`
+  così l'interfaccia lo sa dire all'admin. [di seconda mano —
+  codifysaas.com/blog/saas-features/saas-team-invitation-system-implementation]
+- **E la forma sbagliata è documentata come un difetto vero in un prodotto
+  vero, non solo in teoria**: un issue di produzione di una libreria di
+  auth open-source («better-auth») intitolato esattamente *«`resend: true`
+  crea un invito duplicato invece di riusare quello esistente»* — cioè la
+  stessa app che qui manca l'ha aggiunta e poi l'ha dovuta correggere
+  perché creava doppioni. [di seconda mano —
+  github.com/better-auth/better-auth/issues/3507]
+- **Microsoft segnala la stessa cosa come domanda ricorrente per Azure AD
+  B2B**: «si possono avere più inviti sulla stessa email?» è una domanda
+  aperta nella loro Q&A ufficiale, segno che il problema non è
+  immaginario. [di seconda mano —
+  learn.microsoft.com/answers/questions/597]
+- **Sul riscatto: il consenso esplicito è il modello raccomandato, non
+  l'eccezione.** Nel sistema di organizzazioni di Bitwarden, *«solo
+  l'invitato può accettare un invito, tramite un endpoint dedicato»* — e
+  la documentazione tecnica nota esplicitamente il rischio opposto: senza
+  quel guardrail, un admin potrebbe far aderire qualcuno che non ha
+  acconsentito a niente. Il join automatico e silenzioso fra tenant esiste
+  come pattern (Microsoft Entra, per organizzazioni collegate dallo stesso
+  proprietario) ma è descritto come scelta specifica per quel caso
+  d'uso — non come comportamento di default quando i tenant sono aziende
+  indipendenti, che è esattamente il caso di questa piattaforma (aziende
+  concorrenti fra loro). [di seconda mano —
+  deepwiki.com/bitwarden/server/6.2-organization-users-and-invitation-flow;
+  learn.microsoft.com/entra/identity/multi-tenant-organizations/overview]
+
+### Il delta, fatto da chi ha il codice in mano (18/09, verificato contro `2036687c`)
+
+**(1) `inviteMember` non controlla se esiste già un invito pendente per la
+stessa email nella stessa org: ogni chiamata crea un documento NUOVO, per
+sempre.**
+- **Verificato**: `sed -n '132,160p' apps/deepwork-id/functions/index.js`
+  mostra l'intera funzione — valida ruolo ed email, poi va dritta a
+  `db.collection("invites").doc()` + `.set(...)`. Nessuna lettura di
+  `invites` prima della scrittura. Confermato sull'intero file: `grep -n
+  "\.where(" apps/deepwork-id/functions/index.js` → righe **31-32**
+  (membership attive, in `leggiOrgsAttive`), **178** (conteggio owner),
+  **254-255** (`acceptInvites`, cerca gli inviti pendenti DELL'INVITATO,
+  non un controllo di doppioni). Zero query dentro `inviteMember` (righe
+  132-160).
+- **E la UI non nasconde il doppione, lo mostra due volte**: `admin.html`
+  righe 211-215 costruisce una riga per **documento** (`inv.map(i =>
+  ...)`), non per email — due inviti pendenti alla stessa persona
+  compaiono come due righe identiche, ognuna con la propria scadenza e il
+  proprio bottone Revoca indipendente: revocarne uno lascia l'altro
+  valido, e niente in schermata lo segnala.
+- **E non c'è una prova che lo guardi**: `grep -n -i
+  "duplicat\|due inviti\|stesso indirizzo\|stessa email"
+  apps/deepwork-id/tests/run-fns.mjs apps/deepwork-id/tests/run.mjs` →
+  nessuna riga (uscita vuota, comando eseguito senza `-r` su file singoli
+  quindi lo zero è genuino: sono file, non cartelle). `grep -c
+  "inviteMember(" apps/deepwork-id/tests/run-fns.mjs` → **5** chiamate,
+  mai due sulla stessa email nello stesso test.
+- **schermata**: `admin.html`, riquadro "Inviti in attesa" · **che cosa
+  non va**: invitando due volte per errore la stessa persona (capita:
+  l'admin non vede a colpo d'occhio se un invito è già partito, la lista
+  è sotto lo storico dei membri) nascono due inviti scaduti in momenti
+  diversi, con due token diversi — se l'invitato clicca il link vecchio
+  dopo che l'admin ha "rinnovato" con un secondo invito, entrambi restano
+  validi fino alla propria scadenza indipendente · **come si vede**: si
+  invita due volte lo stesso indirizzo dalla stessa org, si apre
+  `admin.html`: **due** righe con lo stesso nome, due scadenze diverse ·
+  **quanto costa**: S — prima di scrivere il nuovo documento,
+  `inviteMember` cerca un pendente con la stessa `email`+`orgId`
+  (la stessa query già scritta in `acceptInvites`, ristretta anche a
+  `orgId`) e, se lo trova, aggiorna quello (`role`, `expiresAt`) invece di
+  crearne un secondo — esattamente il pattern «resend riusa» del mondo ·
+  **come si misura**: `grep -c "invites.*where.*orgId" apps/deepwork-id/functions/index.js`
+  deve salire da 0 dentro `inviteMember`; una prova che invita due volte
+  la stessa email e pretende **un solo** documento in `invites` con
+  `email`+`orgId` uguali (oggi ne nascerebbero due, provato a mano
+  leggendo il codice: non serve l'emulatore per vederlo, la funzione non
+  ha nessun ramo che lo eviti).
+
+**(2) `acceptInvites` (via `redeemInvites` del client) accetta TUTTI gli
+inviti pendenti della email verificata in un colpo solo, senza che
+l'utente scelga o veda quali organizzazioni sta per raggiungere.**
+- **Verificato**: `sed -n '243,258p' apps/deepwork-id/functions/index.js`
+  — la funzione non prende **nessun** parametro identificativo
+  dell'invito (`request.data` non è nemmeno destrutturato), legge `email`
+  dal token e fa `db.collection("invites").where("email","==",email)
+  .where("status","==","pending").get()`, poi nel `for` successivo
+  (righe 259-286) accetta **ognuno**. Il commento del client lo dichiara
+  di proposito: `shared/deepwork-id-client/index.js:297-298` — *«Da
+  chiamare dopo ogni login registrato: riscatta eventuali inviti
+  pendenti»* — cioè un solo bottone/hook, zero scelta.
+  `grep -rn "acceptInvites\|redeemInvites" apps shared index.html |
+  grep -v node_modules` → chiamata solo da `index.js:300` (definizione) e
+  dai test; nessuna pagina di conferma («Org X ti ha invitato: vuoi
+  entrare?») in nessuna delle sei app né in `apps/deepwork-id/*.html`.
+- **Non è la stessa mancanza della revoca (17/09)**: quella è sul togliere
+  un accesso già dato; questa è sul **dare** un accesso senza un consenso
+  esplicito per organizzazione — l'unico controllo è l'email verificata
+  (giusto, anti-hijack, non tocca) ma non c'è nessuna schermata intermedia
+  se la stessa email ha inviti pendenti da **due org concorrenti** (il
+  caso esplicito di `ARCHITETTURA.md §4`, il consulente RSPP): oggi
+  entrerebbe in entrambe allo stesso login, senza mai vedere un elenco né
+  poter accettarne una e rifiutare l'altra.
+- **schermata**: nessuna (il riscatto è invisibile, gira dentro il login)
+  · **che cosa non va**: un utente con la stessa email invitato per
+  errore (o da un ex-collega che ricorda l'indirizzo) da un'organizzazione
+  concorrente si ritrova membro **anche di quella**, senza averlo scelto
+  in quel momento — lo scopre solo se apre il selettore d'organizzazione
+  dopo · **come si vede**: si creano due inviti pendenti per la stessa
+  email in due org diverse (in emulatore: due `invites/{id}.set(...)` con
+  `status:'pending'`), si fa login con quell'email verificata: `accepted`
+  torna con **entrambi** gli `orgId`, in un'unica chiamata, senza tappe
+  intermedie · **quanto costa**: M — non è una riga sola come il punto 1,
+  perché tocca l'esperienza di primo accesso: `acceptInvites` dovrebbe
+  restituire l'elenco senza consumarlo, e un secondo passo (`confirmInvite(inviteId)`
+  o un parametro di selezione) accettarli uno per uno; il minimo che copre
+  il rischio del consulente su cave concorrenti è mostrare l'elenco
+  **prima** di unirsi, anche se poi si sceglie "accetta tutti" · **come si
+  misura**: `grep -c "confirmInvite\|selezionaInvito" apps/deepwork-id/functions/index.js`
+  deve salire da 0; una prova con due inviti pendenti in due org che
+  pretenda che il primo giro **non** scriva nessuna membership finché non
+  arriva una scelta esplicita (oggi impossibile da scrivere: la funzione
+  non ha un ramo che aspetti).
+
+**Che cosa NON è un "non c'è" qui.** L'anti-hijack sull'email verificata
+(`email_verified !== true` rifiutato, riga 248) resta un controllo vero e
+non è in discussione; il problema non è CHI può riscattare un invito, è
+che il riscatto **non chiede conferma** su QUALE organizzazione. E la
+scadenza a 14 giorni, la marcatura `expired` al tentativo di riscatto
+tardivo e la revoca di un pendente esistono già e funzionano (provati
+`run-fns.mjs:194-206`, non rimessi in discussione): il buco è solo
+nell'**assenza di deduplica** in entrata (1) e nell'**assenza di scelta**
+in uscita (2), due momenti diversi dello stesso ciclo di vita dell'invito.
+
+### Fonti (WebSearch, non lette per intero — [di seconda mano])
+
+- [CodifySaaS: Proven SaaS Team Invitation System Implementation](https://codifysaas.com/blog/saas-features/saas-team-invitation-system-implementation/)
+- [GitHub — better-auth: "resend: true is creating a duplicate invite instead of reusing the existing one" (issue #3507)](https://github.com/better-auth/better-auth/issues/3507)
+- [Microsoft Q&A: Azure AD B2B — Allowing multiple invitations on same email id?](https://learn.microsoft.com/en-us/answers/questions/597/azure-ad-b2b-allowing-multiple-invitation-on-same)
+- [DeepWiki: bitwarden/server — Organization Users and Invitation Flow](https://deepwiki.com/bitwarden/server/6.2-organization-users-and-invitation-flow)
+- [Microsoft Learn: Multitenant organization capabilities in Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/multi-tenant-organizations/overview)
+
+**Riassunto** — 2 mancanze **confermate**, stessa area (il ciclo di vita
+dell'invito, non ancora guardato dalle quattro ricerche precedenti): (1)
+`inviteMember` non deduplica — due inviti alla stessa email/org creano due
+documenti indipendenti, mai uniti in nessuna vista (`grep -n "\.where("
+apps/deepwork-id/functions/index.js` → nessuna query dentro la funzione,
+righe 132-160); (2) `acceptInvites`/`redeemInvites` unisce l'utente a
+**tutte** le organizzazioni con un invito pendente in una sola chiamata
+senza conferma per singola org (`request.data` non usato, nessuna
+`confirmInvite` in tutto il repository). Costo dichiarato S per la prima,
+M per la seconda perché tocca il primo accesso. Nessuna delle due richiede
+di riaprire l'anti-hijack sull'email verificata, che resta valido. Tutto
+verificato contro il commit `2036687c`.

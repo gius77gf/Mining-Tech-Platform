@@ -747,3 +747,355 @@ un ispettore verifica» da «questo è un ritmo tipico che qualcuno ha scelto».
   diversi da quelli standard da movimento terra per via della polvere e
   dell'abrasività del materiale — nessuna fonte trovata lo conferma o lo
   smentisce.
+
+---
+
+## Tornata 4 — 18/09/2026 · «I segnali di brillamento: l'avviso PRIMA dello sparo, non solo l'attesa dopo»
+
+**Verificato contro il commit `2036687c`** (18/09/2026 01:20 UTC).
+**Domanda**: che cosa prescrive la norma/prassi italiana sui segnali di
+allarme e sull'accertamento che l'area sia sgombra **prima** di far brillare
+una volata, e se questo meccanismo — distinto da quello del **rientro dopo lo
+sparo**, che il prodotto già modella — esiste da qualche parte in casa.
+
+### 0 · Lo strumento
+
+Solo `WebSearch`, come da mandato. `WebFetch` non è stato riprovato: la
+Tornata 1 lo ha già misurato **negato dal proxy** su dieci domini
+(`EGRESS_BLOCKED`), e rifare la stessa misura non avrebbe aggiunto niente.
+Nessuna pagina è stata letta per intero: quello che segue viene dagli
+**estratti** che `WebSearch` restituisce (spesso una sintesi del motore sulla
+pagina, non il testo copiato), con il link canonico accanto a ogni voce —
+prima di scrivere un riferimento d'articolo in un'interfaccia va riletto sul
+testo primario.
+
+### 1 · Che cosa esiste GIÀ in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1-3** qui sopra. La Tornata 1 ha già censito il
+lato normativo generale degli esplosivi (registro carico/scarico, verifica
+micce: **A METÀ**) senza guardare la fase «prima dello sparo». Letta per
+intero la funzione `dopoVolata` di `apps/sentinella/sentinella-data.js`
+(righe 4837-4880, commento e corpo) e i record demo di volata in
+`apps/sentinella/sentinella-data.js:227-273` e `apps/campo/campo-data.js:284-286`.
+
+**Quello che c'è, già dichiarato bene**: il **dopo**-volata è un oggetto
+completo — `oraSparo`, `rientroAlle`, `rientroAutorizzatoDa`,
+`attesaDopoSparoMin` (i minuti dell'ordine di servizio, dichiarati
+dall'utente), `mancateEsplosioni` (mancate esplosioni, con `mancateGestite`
+che dice l'azione), `proiezioniOltreArea`/`proiezioniDove`, `kgResi`
+(esplosivo reso) — e uno stato a quattro valori
+(`non-applicabile`/`non-registrato`/`regolare`/`anomalie`) col principio del
+fondatore scritto nel commento: *«una volata eseguita SENZA questi campi non
+è "regolare", è "dopo-volata non registrato"»*. La demo mostra anche il caso
+**anomalo**: rientro alle 11:55 dopo uno sparo alle 11:10, cioè 45 minuti,
+**prima** dei 60 dichiarati nell'ordine di servizio — e il commento di riga
+239 dice esplicitamente che il prodotto lo segnala invece di scrivere
+«rientro alle 11:55» come se bastasse. `attesaDopoSparoMin` nella demo vale
+**60** su tutt'e due i casi, cioè già più prudente del minimo di legge
+trovato in §2 (10 minuti in luogo aperto). **Questo pezzo del mestiere non è
+un delta: è già fatto, e fatto bene.**
+
+Quello che manca è un pezzo diverso, **prima** dello sparo, non dopo:
+$ `grep -rniE "tromba|corno da nebbia|allontanar|sgombra|sgombro|al riparo|riparat" apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js apps/genesi/genesi.html apps/campo/campo-data.js apps/scudo/scudo-data.js`
+→ **1 riga**, e non pertinente: `scudo-data.js:5925`, «i rischi che l'art. 26
+c.3-bis mette **al riparo** dalle esclusioni» (un modo di dire sugli appalti,
+non sull'esplosivo). Zero occorrenze pertinenti su cinque file e quattro app.
+
+### 2 · IL MONDO — l'avviso prima dello sparo
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| **I tre segnali acustici** | «Deve essere dato l'allarme con tre diversi segnali acustici, a mezzo di tromba o altro sistema idoneo: il **primo segnale** per avvertire gli operai od altri di **ripararsi**; il **secondo segnale**, dopo l'avvenuto **accertamento che le dette persone si siano riparate**, qualche attimo prima di dar luogo all'accensione delle mine; il **terzo segnale** per avvisare del **cessato pericolo**.» | [testo-unico-sicurezza.com — Procedura di sicurezza uso degli esplosivi in cava](https://www.testo-unico-sicurezza.com/procedura-di-sicurezza-uso-degli-esplosivi-in-cava.html) `[di seconda mano]`, presumibilmente da D.P.R. 302/1956 — l'articolo preciso **non è confermato** da questa ricerca |
+| **L'attesa prima di rientrare** | «Effettuato lo sparo delle mine, il minatore incaricato del brillamento non può consentire l'accesso al cantiere prima che i gas prodotti dall'esplosione si siano diradati ed **in ogni caso non prima di dieci minuti** dall'ultima esplosione.» | stessa fonte `[di seconda mano]`. **Nota**: questo è il meccanismo che `dopoVolata`/`attesaDopoSparoMin` già modella, e la demo (60 min) è più prudente del minimo di legge (10 min) |
+| **Il secondo segnale richiede un ACCERTAMENTO, non solo un tempo** | Il secondo segnale si dà solo «dopo l'avvenuto accertamento che le dette persone si siano riparate» — cioè non basta aspettare, qualcuno deve **verificare** che l'area sia sgombra prima di autorizzare l'accensione | stessa fonte `[di seconda mano]` |
+| **Distanze del circuito elettrico d'innesco** | Il collegamento del circuito elettrico va tenuto ad almeno **30 metri** da linee elettriche, telefoniche, cavi metallici o rotaie; l'accensione elettrica è vietata con temporali in un raggio di **10 km** dal luogo dello sparo | risultato di ricerca su D.P.R. 302/1956 `[di seconda mano, non incrociato con una seconda fonte]` |
+| **Raggio di interdizione a persone e veicoli** | In un'ordinanza comunale per bonifica di un ordigno bellico (caso diverso, non una volata di cava) l'accesso di persone e veicoli non necessari all'operazione è interdetto in un raggio di **250 metri** dal punto di brillamento | [Prefettura di Parma](https://prefettura.interno.gov.it/it/prefetture/parma/comunicati-stampa/operazioni-bonifica-ordigno-bellico-rinvenuto-nel-comune-parma) `[di seconda mano, e il caso non è una volata di cava: il numero non va trasferito senza verifica]` |
+
+`[dedotto]` La lettura che ne do: il mondo distingue **due momenti** attorno
+a una volata — l'avviso e l'accertamento **prima** dello sparo (chi
+controlla che tutti si siano riparati, e con quale segnale lo comunica), e
+l'attesa **dopo** lo sparo prima di rientrare. Il prodotto ne modella solo
+il secondo, con cura. Il primo momento è quello in cui, secondo la
+letteratura sugli infortuni da esplosivo, si concentra il rischio più alto
+(persona non ancora al riparo quando parte l'accensione) — ma questa
+affermazione resta **una lettura mia**, non è nelle fonti di questa tornata,
+e va marcata come tale.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+**Non-delta, verificato per primo per evitare un «non c'è» falso**: l'attesa
+dopo lo sparo (§2, seconda riga) **C'È** in `dopoVolata` e nella demo, come
+mostrato al §1. Chi cercasse «attesa prima del rientro» col vocabolario del
+mondo (`10 minuti`, `dieci minuti`) avrebbe trovato solo righe di questo
+stesso documento e di `terra-data.js`/`campo-data.js` non pertinenti (vedi
+§1 Tornata precedenti sulla stessa trappola): il termine giusto in casa è
+`attesaDopoSparoMin`, non un numero fisso di minuti scritto a testo.
+
+**Delta — nessun campo rappresenta il momento PRIMA dello sparo**: né il
+segnale d'avviso, né l'accertamento che l'area sia sgombra, né chi lo ha
+fatto.
+
+```
+$ grep -rniE "tromba|corno da nebbia|allontanar|sgombra|sgombro|al riparo|riparat" \
+    apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js \
+    apps/genesi/genesi.html apps/campo/campo-data.js apps/scudo/scudo-data.js
+apps/scudo/scudo-data.js:5925:/* I rischi che l'art. 26 c.3-bis mette al riparo dalle esclusioni: se ci sono,
+```
+1 riga, non pertinente (vedi §1).
+
+```
+$ grep -rniE "area libera|zona libera|tutti al sicuro|verificat[oa].{0,15}present|conferma.{0,15}(sgombr|libera)" \
+    apps/sentinella/sentinella-data.js apps/campo/campo-data.js \
+    apps/genesi/genesi-data.js apps/genesi/genesi.html
+```
+→ **0 righe**.
+
+```
+$ grep -n "prima-volata\|primaVolata\|PRIMA_VOLATA\|preSparo\|pre-sparo" \
+    apps/sentinella/sentinella-data.js apps/genesi/genesi-data.js \
+    apps/genesi/genesi.html apps/campo/campo-data.js
+apps/genesi/genesi-data.js:3439: […] 'verifica pre-sparo.' […]
+```
+1 riga, ed è la nota commerciale sul detonatore elettronico
+(«verifica pre-sparo» = verifica elettrica del circuito, un controllo
+tecnico sull'innesco, non un accertamento sulle persone) — non pertinente
+allo stesso modo del «riparo» di Scudo: due false corrispondenze, per due
+ragioni diverse, sullo stesso file di ricerca. Confermano la regola di
+CLAUDE.md sul cercare il meccanismo: qui il meccanismo **non c'è né col nome
+giusto né con un altro nome** — non è un caso di vocabolario sbagliato, è un
+vuoto vero.
+
+`dopoVolata` (struttura letta per intero al §1) non ha un gemello
+`primaVolata`: l'oggetto volata in Sentinella/Campo porta solo i campi «di
+prima» che servono al **piano** (fronte, fori, carica, orario previsto — non
+riletti qui perché fuori dalla domanda di questa tornata) e i campi «di
+dopo» appena elencati. Il segmento fra i due — l'avviso, l'accertamento, chi
+lo ha dato — non ha una casella, né vuota né compilata: **non esiste come
+domanda che il prodotto pone**.
+
+### 4 · La proposta (formato fisso)
+
+1. **Sentinella → dopo-volata (in realtà: prima-volata) · Manca il gemello
+   di `dopoVolata` per il momento che precede lo sparo** · Il mondo (§2)
+   tratta l'avviso e l'accertamento pre-sparo come **un secondo controllo
+   indipendente** dal tempo di attesa post-sparo — non basta aspettare i
+   minuti giusti dopo, serve anche che qualcuno abbia accertato l'area
+   sgombra **prima**; oggi il prodotto ha solo la seconda metà · `grep -rniE
+   "area libera|zona libera|tutti al sicuro|verificat[oa].{0,15}present"
+   apps/sentinella/sentinella-data.js apps/campo/campo-data.js` → 0 righe ·
+   **costo: basso** — sul modello esatto di `dopoVolata`: due campi
+   dichiarati dall'utente (`areaAccertataSgombraDa` — chi ha accertato,
+   testo libero come `rientroAutorizzatoDa` — e `segnaleDatoAlle` — l'ora del
+   secondo segnale, stesso formato HH:MM di `oraSparo`), **mai dedotti**, con
+   lo stesso principio: silenzio ≠ regolare · **come si misura**: una
+   funzione `primaVolata(v)` sul modello di `dopoVolata(v)` deve rispondere
+   `non-registrato` se `oraSparo` è presente ma
+   `areaAccertataSgombraDa`/`segnaleDatoAlle` non lo sono — oggi una volata
+   con solo `oraSparo` valorizzato non lo dice; controprova: con
+   `dopoVolata` già `registrato: true` (mancate ed proiezioni dichiarate) la
+   nuova funzione deve poter restare `non-registrato` in **parallelo** — è
+   la prova che le due metà sono davvero indipendenti e non la stessa
+   domanda letta due volte. ⚠️ Da confermare sul testo di legge prima di
+   scrivere un riferimento d'articolo in interfaccia: questa tornata non ha
+   trovato l'articolo esatto del D.P.R. 302/1956 (vedi §6). Fonte:
+   [testo-unico-sicurezza.com — Procedura di sicurezza uso degli esplosivi in cava](https://www.testo-unico-sicurezza.com/procedura-di-sicurezza-uso-degli-esplosivi-in-cava.html)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **I 250 metri di interdizione e i 30 metri dalle linee elettriche come
+  valori da mostrare in interfaccia.** Il primo numero viene da un'ordinanza
+  comunale per un ordigno bellico, **non** da una volata di cava — il
+  contesto è diverso e il numero non va trasferito senza una fonte propria
+  del settore estrattivo; il secondo non è incrociato con una seconda fonte.
+  Scriverli oggi sarebbe ripetere l'errore che CLAUDE.md descrive per la
+  sanzione penale trovata di seconda mano nella Tornata 3: un numero
+  riportato una volta sola, in un contesto affine ma non identico, «è
+  peggio di un numero assente».
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- **L'articolo esatto del D.P.R. 302/1956** che prescrive i tre segnali: le
+  ricerche di questa tornata (query mirate su «tre segnali», «dieci minuti»,
+  articolo) hanno trovato la Sezione 53.3.10 e la Sezione 77.2.20 dello
+  stesso decreto su edizionieuropee.it, ma **non è stato possibile leggerle**
+  (`WebFetch` bloccato) né la sintesi di `WebSearch` ha confermato quale
+  sezione contenga i tre segnali: resta un riferimento **di seconda mano**,
+  non un articolo citabile.
+- **Il numero di 250 metri e quello di 30 metri** vengono da un solo estratto
+  ciascuno, mai incrociati con una seconda fonte né con il testo primario
+  (vedi §5): non vanno usati per costruire un valore di default.
+- Se la prassi italiana chiami questo secondo segnale con un nome di
+  mestiere diverso da «segnale di accensione»/«cessato allarme» (per
+  esempio un termine regionale o di cava specifico) non è stato verificato:
+  le fonti trovate usano un linguaggio da decreto del 1956, non
+  necessariamente quello che un fochino userebbe oggi sul campo.
+
+---
+
+## Tornata 5 — 18/09/2026 · «Il tesserino di riconoscimento del personale in appalto»
+
+**Verificato contro il commit `de4a6cc7`** (18/09/2026 03:48 UTC).
+**Domanda**: che cosa prescrive la norma sul riconoscimento del personale
+esterno (appaltatori/subappaltatori/lavoratori autonomi) presente in cava, e
+se questo meccanismo — distinto dalla **qualifica dell'impresa** (CCIAA,
+DURC, DVR), che il prodotto già tiene — esiste da qualche parte in Scudo.
+
+### 0 · Lo strumento
+
+Solo `WebSearch`, come da mandato — caricato con
+`ToolSearch({query:"select:WebSearch,WebFetch"})` prima di usarlo, come
+CLAUDE.md pretende. `WebFetch` non è stato riprovato: la Tornata 1 lo ha già
+misurato **negato dal proxy** su dieci domini (`EGRESS_BLOCKED`), e rifare la
+stessa misura non avrebbe aggiunto niente. Nessuna pagina è stata letta per
+intero: quello che segue viene dagli **estratti** che `WebSearch` restituisce,
+con il link canonico accanto a ogni voce.
+
+### 1 · Che cosa esiste GIÀ in casa (letto prima di proporre)
+
+Lette per intero le **Tornate 1-4** qui sopra: nessuna delle quattro tratta
+il riconoscimento del personale esterno — la Tornata 1 censisce la denuncia
+di esercizio e il sorvegliante **per turno**, non l'identificazione
+individuale in cantiere.
+
+Letto per intero lo schema delle collezioni di Scudo (righe 1-70) e la parte
+«APPALTATORI, QUALIFICA E DOCUMENTO DI COORDINAMENTO»
+(`apps/scudo/scudo-data.js:5800-6160`, `qualificaAppaltatore`, `duvriDovuto`,
+`docDiAppaltatore`).
+
+**Quello che c'è, ed è fatto bene:**
+
+- `TIPI_DOC_APPALTATORE` (righe 5834-5847): sei documenti **di impresa**
+  (CCIAA, autocertificazione, DURC, DVR, «Elenco lavoratori e idoneità»,
+  polizza RC), ognuno con `fonte` che cita l'articolo esatto — la stessa
+  disciplina già lodata nelle Tornate precedenti per `SCADENZE_MEZZO_PRESET`;
+- `qualificaAppaltatore` applica già il principio del fondatore: un'impresa
+  senza documenti verificati è **NON IDONEA**, non «regolare» (riga 5861:
+  «un appaltatore di cui non si è verificato niente non è idoneo: è NON
+  VERIFICATO»);
+- `duvriDovuto` distingue correttamente **DSS coordinato** (in cava, art. 9
+  D.Lgs 624/96) da **DUVRI** (fuori cava, art. 26 D.Lgs 81/08), con la soglia
+  dei cinque uomini-giorno e le esclusioni del comma 3-bis — un livello di
+  dettaglio normativo che il mondo, in questa tornata, non ha richiesto di
+  migliorare.
+
+**Ma `TIPI_DOC_APPALTATORE` vive tutto a livello di IMPRESA** (`appaltatoreId`
+sui documenti): la voce «Elenco lavoratori e idoneità» è un **unico
+allegato**, non un elenco di record — uno per persona, con una foto — come
+mostrato al §3. Il meccanismo della foto-prova **esiste già** altrove
+(`apps/scudo/scudo-data.js:2003-2069`, «S3b · LA FOTO COME PROVA», usata per
+eventi e voci d'ispezione, con il tetto di 400 KB e il principio che
+l'assenza di una foto non è un dato sfavorevole): è il pezzo tecnico pronto
+per essere riusato, non ancora collegato a una persona.
+
+### 2 · IL MONDO — il tesserino di riconoscimento del personale in appalto
+
+| Voce | Che cosa dice la fonte | Fonte |
+|---|---|---|
+| **L'obbligo, testuale** | «Nell'ambito dello svolgimento di attività in regime di appalto o subappalto, il personale occupato dall'impresa appaltatrice o subappaltatrice deve essere munito di apposita tessera di riconoscimento **corredata di fotografia**, contenente le **generalità del lavoratore** e l'indicazione del **datore di lavoro**» (art. 26 c.8 D.Lgs 81/08) | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Chi deve fornirlo, chi deve esibirlo** | Il **datore di lavoro** dell'impresa appaltatrice/subappaltatrice fornisce il tesserino (art. 26 c.8); il **lavoratore** è obbligato a esibirlo (art. 20 c.3). I **lavoratori autonomi** che operano direttamente in cantiere se lo procurano da soli | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Ambito** | Vale per «tutti i lavori in appalto e subappalto, nei cantieri, nelle fabbriche, nelle aziende e negli enti pubblici» — non solo l'edilizia | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) `[di seconda mano]` |
+| **Sanzioni** | Per il datore di lavoro che non fornisce il tesserino: **da 112,85 € a 614,25 € per ogni lavoratore** senza tesserino; per il lavoratore autonomo che non se lo procura: **da 71,19 € a 427,16 €**. Due fonti indipendenti concordano sulla forbice (una dava solo il tetto massimo di 614,25 €, la seconda dà anche il minimo e la cifra per gli autonomi) | [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/) · [Investireoggi](https://www.investireoggi.it/tesserino-riconoscimento-sul-cantiere-sanzioni-per-gli-autonomi/) `[di seconda mano, incrociato su due fonti]` |
+| **Evoluzione 2025-2026: verso il badge digitale** | Fonti recenti parlano di un **badge digitale di cantiere** dal 2026, collegato alla notifica preliminare e ai sistemi di controllo accessi — ma questa parte **non è stata verificata oltre il titolo**: `[dedotto, da NON usare per costruire codice]` | [BibLus/ACCA](https://biblus.acca.it/tesserino-di-riconoscimento-in-cantiere/) `[di seconda mano, solo titolo letto]` |
+
+`[dedotto]` La lettura che ne do: il mondo tratta il riconoscimento del
+personale esterno come un controllo **individuale** — una persona, una
+foto, un datore di lavoro — distinto dalla qualifica dell'**impresa** che
+Scudo già modella bene. È anche uno dei controlli più elementari e più
+citati nella prassi ispettiva generale (verificare che chi è in cantiere sia
+chi dice di essere, e per conto di chi): la Tornata 1 §2.2 aveva già
+elencato che cosa chiede un ispettore in generale (DVR, nomine, formazione,
+idoneità, registro DPI) senza includere il tesserino — non perché falso, ma
+perché quella tornata guardava la sequenza dell'81/08 generale, non
+l'appalto specificamente.
+
+### 3 · IL DELTA — verificato nel codice, non dedotto
+
+```
+$ grep -rniE "tesserino|cartellino|badge di riconoscimento|riconoscimento fotografico|generalità del lavoratore|distintivo di riconoscimento" \
+    apps/ --include=*.js --include=*.html
+apps/conti/index.html:4035:    //    cliente: chi la supera ha la barra in allarme e il cartellino
+apps/conti/index.html:4424:         cartellino «€ 0» accanto a quaranta tonnellate consegnate afferma una
+apps/conti/index.html:7437:        /* la provenienza: il cartellino della pesa e il file, per ritrovarlo */
+apps/conti/conti-data.js:5941:   aveva una porta: ogni cartellino si ricopiava a mano. Le colonne si leggono
+apps/conti/conti-data.js:6005:   archivio (stesso numero di cartellino, oppure stessa data + targa + lordo +
+apps/campo/index.html:2445:  // uno strumento che sembra un cartellino di demerito smette di ricevere dati
+apps/campo/campo-data.js:1775:// E NON È UN CARTELLINO DI DEMERITO, come il ponte con Scudo e quello con
+```
+**7 righe, zero pertinenti**: sono tutte il «cartellino della pesa» (il
+buono di pesatura di Conti — termine di mestiere diverso, già proprio di
+quell'app) o il modo di dire «cartellino di demerito» in Campo. Nessuna
+riguarda l'identificazione di una persona. La parola esatta `tesserino` da
+sola dà **0 righe** su tutto `apps/`.
+
+```
+$ grep -rniE "\bfoto.{0,10}badge|badge digitale" apps/ --include=*.js --include=*.html
+```
+→ **0 righe**.
+
+Confermato leggendo lo schema (§1): `lavoratori/{id}` in Scudo è
+`{ nome, ruolo, tel, note, attivo }` — **il personale interno della cava**,
+senza `appaltatoreId` e senza campo foto. I lavoratori delle imprese esterne
+non hanno un record individuale da nessuna parte: esistono solo come
+attributo di un documento aggregato (`TIPI_DOC_APPALTATORE` → chiave
+`"lavoratori"`, «Elenco lavoratori e idoneità», un allegato unico,
+`obbligatorio: false`). Un ispettore che chiedesse «questa persona, di
+quale impresa è, e ha il tesserino?» non troverebbe una risposta strutturata:
+solo, forse, un nome dentro un PDF allegato.
+
+**Non-delta, verificato per evitare un «non c'è» falso**: la qualifica
+dell'**impresa** appaltatrice (CCIAA, DURC, DVR, polizza) **C'È** ed è
+distinta correttamente dal documento di coordinamento (DSS coordinato /
+DUVRI) — vedi §1. Il delta non è «Scudo non sa gestire gli appalti»: è che
+la sua granularità sugli appalti si ferma **all'impresa** e non scende **alla
+persona fisica** che quel giorno è davvero sul fronte di cava.
+
+### 4 · La proposta (formato fisso)
+
+1. **Scudo → Appaltatori · Manca il record individuale del lavoratore
+   esterno, quindi non si può verificare né dichiarare il tesserino di
+   riconoscimento** · L'art. 26 c.8 tratta il riconoscimento come un
+   controllo sulla **persona** (foto + generalità + datore di lavoro), non
+   sull'impresa; oggi Scudo ha solo un allegato aggregato per impresa · `grep
+   -rniE "tesserino|cartellino di riconoscimento|badge di riconoscimento"
+   apps/scudo/` → 0 righe; schema `lavoratori/{id}` senza `appaltatoreId` né
+   `foto` · **costo: medio** — non un modulo nuovo: un tipo di record
+   `personaleEsterno` (`appaltatoreId`, `nome`, `foto?` sul modello già
+   pronto di S3b — stesso tetto 400 KB, stesso principio che l'assenza di
+   foto non è un dato sfavorevole) e uno stato a tre valori
+   (tesserino-dichiarato / tesserino-assente-dichiarato /
+   **non-verificato**) sul modello di `qualificaAppaltatore` · **come si
+   misura**: una funzione `personaleIdentificato(appaltatore, persone)` deve
+   rispondere **«non verificato»**, non «a posto», quando un appalto attivo
+   non ha nessuna persona censita — oggi un appalto con `qualifica: idonea`
+   (impresa a posto) non dice nulla sulle persone che quell'impresa ha
+   mandato in cava; controprova: con l'impresa idonea ma zero persone
+   censite, il verdetto complessivo dell'appalto non deve mai leggersi come
+   «regolare» sul fronte del riconoscimento. ⚠️ Da confermare sul testo di
+   legge prima di scrivere un riferimento d'articolo in interfaccia: questa
+   tornata non ha letto il testo primario (vedi §6). Fonte:
+   [Puntosicuro](https://www.puntosicuro.it/edilizia-C-10/tesserino-di-riconoscimento-per-tutti-i-lavori-in-appalto-subappalto-AR-10247/)
+
+### 5 · Una cosa che non propongo, e perché
+
+- **Il badge digitale 2026** (collegato a notifica preliminare/controllo
+  accessi) come funzione da costruire subito. La fonte che lo cita
+  (§2, riga «Evoluzione») è stata letta **solo nel titolo**: non so se si
+  applica alle cave allo stesso modo dei cantieri edili, né quali dati
+  scambi. Proporlo ora sarebbe costruire su un titolo, non su un
+  meccanismo verificato — esattamente l'errore che CLAUDE.md descrive per
+  chi annuncia una norma citata di seconda mano come se fosse testo letto.
+
+### 6 · Che cosa questa tornata NON ha potuto verificare
+
+- Il **testo primario** dell'art. 26 c.8 e dell'art. 20 c.3 D.Lgs 81/08 non
+  è stato letto (`WebFetch` bloccato dal proxy, stessa misura della Tornata
+  1): la citazione riportata al §2 viene da un unico estratto secondario,
+  non incrociata con una seconda fonte per il testo esatto (solo per
+  l'importo della sanzione, che invece **è** incrociato).
+- Se il tesserino di riconoscimento sia richiesto **anche** per il
+  personale interno della cava (non solo per gli appaltatori) non è stato
+  verificato: le fonti trovate parlano sempre di «appalto e subappalto»,
+  mai del rapporto di lavoro diretto — la domanda resta aperta.
+- Il contenuto e l'applicabilità del **badge digitale 2026** (§2, ultima
+  riga) restano da verificare oltre il titolo: nessuna proposta è stata
+  costruita su questo punto (vedi §5).
