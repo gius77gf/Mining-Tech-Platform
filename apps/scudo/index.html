@@ -6625,6 +6625,12 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        suo contesto, quindi non resta una miniatura muta nemmeno senza
        didascalia. Si può sempre aggiungerne dal registro. */
     if (NM.foto) rec.foto = [NM.foto];
+    /* ⛔ 18/09, dal deep-pass QA: `chiudiModale()` arriva SOLO dopo che
+       `db.aggiungi` è tornato (stessa trappola del "Registra" inventario di
+       Terra) — il bottone "Invia" resta cliccabile per tutta l'attesa e un
+       doppio tocco duplica la segnalazione nel registro degli eventi. */
+    const btnInvia = document.querySelector("#modal-foot .mbtn.primary");
+    if (btnInvia) btnInvia.disabled = true;
     const ref = await db.aggiungi("infortuni", rec);
     const nuovoId = ref && ref.id;
     chiudiModale();
@@ -7113,6 +7119,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          PORTANO AVANTI quelle che c'erano. */
       azioniId: (pre && Array.isArray(pre.azioniId)) ? pre.azioniId : [],
     };
+    /* ⛔ 18/09, dal deep-pass QA: qui era solo "sospetto" (letto, non
+       eseguito), verificato ora leggendo il codice — `chiudiModale()`
+       arriva SOLO dopo la scrittura, stessa trappola della segnalazione
+       rapida qui sopra: un doppio tocco su "Salva l'analisi" scrive due
+       volte (o, in modifica, sovrascrive due volte con la stessa corsa). */
+    const btnSalva = document.querySelector("#modal-foot .mbtn.primary");
+    if (btnSalva) btnSalva.disabled = true;
     if (pre) await db.aggiorna("analisi", pre.id, rec);
     else await db.aggiungi("analisi", rec);
     chiudiModale();

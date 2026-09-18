@@ -1283,6 +1283,12 @@ const BANCHI = [
      la trappola dell'etichetta (Mansioni, come btn-azi). */
   ['bottoni di scrittura di Scudo si spengono durante il salvataggio', 'scudo-bottoni-occupato.mjs', []],
   ['bottoni occupato di Scudo · controprova', 'scudo-bottoni-occupato.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: le due modali (near-miss, analisi) hanno la stessa
+     trappola di Terra — `chiudiModale()` arriva SOLO dopo la scrittura. Il
+     near-miss era verificato dal vivo dall'agente, l'analisi era «sospetta,
+     non confermata»: verificata qui leggendo il codice prima di correggerla. */
+  ['le modali near-miss e analisi di Scudo si spengono durante il salvataggio', 'scudo-modali-occupato.mjs', []],
+  ['modali occupato di Scudo · controprova', 'scudo-modali-occupato.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, seconda passata su Genesi dopo i cinque numeri
      tranquilli corretti la mattina dentro `genesi-data.js`. I quattro rimasti
      stavano tutti dove `node` non arriva: un campo SVUOTATO nella
