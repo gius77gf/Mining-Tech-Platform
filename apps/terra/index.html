@@ -2916,7 +2916,7 @@ a.dw-btn{text-decoration:none}
             + (R.pregresso ? ` Di questi, <b>${n0(R.pregresso)} m³</b> risultavano già estratti prima di usare Terra.` : "")
             + ` Sommando lo scavo misurato fino ${fine}, il cumulato sotto questo titolo arriva a <b>${n0(R.cumulatoFineAnno)} m³</b>`
             + ` — ${articoloNumero("il", un1(R.pctFineAnno))}<b>${un1(R.pctFineAnno)}%</b> del concesso — e restano <b>${n0(R.residuoFineAnno)} m³</b>.`
-            + (R.pregressoDichiarato ? "" : ` Il <b>già estratto prima di Terra</b> non è dichiarato: il cumulato è quindi un <b>minimo</b>.`)
+            + (R.pregressoDichiarato ? "" : ` Il <b>già estratto prima di Terra</b> non è dichiarato: il cumulato è quindi un <b>minimo</b> e il residuo la cifra <b>più alta possibile</b>.`)
             + (R.cumulo ? ` I <b>${n0(R.cumulo)} m³</b> ripresi dai cumuli nel ${R.anno} <b>non</b> entrano in questo conto: erano già stati scavati e già scalati a suo tempo.` : "")
             + "</div>"
           : `<div class="note avviso">Volume concesso dall'atto: <b>${nD(R.concesso)} m³</b>. Sotto questo titolo però non risulta <b>nessun rilievo di scavo</b> e il <b>già estratto prima di Terra</b> non è dichiarato: quanto concesso sia stato consumato <b>non è stato misurato</b>, quindi qui non c'è un cumulato né un residuo da scrivere. Registra un rilievo elaborato, oppure dichiara il già estratto nella scheda <b>Titolo</b>.</div>`);

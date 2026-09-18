@@ -890,6 +890,8 @@ const BANCHI = [
   ['valore del materiale e calendario impossibile · controprova', 'terra-valore-calendario-impossibile.mjs', ['--controprova'], true],
   ['un fronte condiviso fra due lotti produce un avviso visibile in Terra', 'terra-fronte-condiviso-avviso.mjs', []],
   ['fronte condiviso e avviso · controprova', 'terra-fronte-condiviso-avviso.mjs', ['--controprova'], true],
+  ['Terra: la schermata Denuncia dice anche che il residuo è la cifra più alta possibile, non solo che il cumulato è un minimo', 'terra-denuncia-residuo-massimo.mjs', []],
+  ['Denuncia residuo massimo · controprova', 'terra-denuncia-residuo-massimo.mjs', ['--controprova'], true],
   /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
      stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
   ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],
