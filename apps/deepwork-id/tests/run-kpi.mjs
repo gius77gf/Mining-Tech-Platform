@@ -18932,6 +18932,25 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     const D = terra.DEMO;
     const c = terra.conformitaProgetto(D.fronti, D.lotti, D.rilievi, D.autorizzazioni[0]);
     ok(c.fronti.every((r) => r.confine && typeof r.confine.stato === "string"), "ogni riga della conformità porta anche il confine");
+    /* ⛔ 18/09, dal quarto giro di deep-pass QA: il dato per-fronte c'era già
+       (riga sopra), ma non arrivava mai al riepilogo AGGREGATO che
+       `cardConformita` legge per primo — un fronte "oltre" restava silenzio
+       totale, non «non misurato». Trovato da un agente in background,
+       riprodotto qui col suo stesso caso: 3 m su 10 minimi. */
+    ok(c.confine && typeof c.confine === "object", "conformitaProgetto espone anche l'aggregato del confine, come per la geometria");
+    const fronti = [{ id: "f1", nome: "Fronte Est", distanzaConfineM: 3 }];
+    const lotti = [{ id: "l1", nome: "Lotto 1", frontiId: ["f1"], stato: "attivo" }];
+    const atto2 = { distanzaMinimaM: 10 };
+    const violato = terra.conformitaProgetto(fronti, lotti, [], atto2);
+    eq([violato.confine.misurabile, violato.confine.oltre, violato.confine.alLimite, violato.confine.dentro],
+      [true, 1, 0, 0], "un fronte a 3 m su 10 minimi conta come «oltre», non come silenzio");
+    eq(violato.confine.peggiore, { id: "f1", nome: "Fronte Est", margine: -7, misurato: 3, ammesso: 10 },
+      "e il peggiore riporta chi e di quanto");
+    const aPosto = terra.conformitaProgetto([{ id: "f2", nome: "Fronte Ovest", distanzaConfineM: 15 }], lotti, [], atto2);
+    eq([aPosto.confine.oltre, aPosto.confine.dentro, aPosto.confine.peggiore], [0, 1, null], "un fronte a posto non genera nessun «peggiore»");
+    ok(/Nessun fronte registrato/.test(terra.conformitaProgetto([], lotti, [], atto2).confine.perche), "senza fronti: la ragione lo dice, come per gli altri assi");
+    ok(!terra.conformitaProgetto([{ id: "f3", nome: "Senza distanza" }], lotti, [], atto2).confine.misurabile,
+      "un fronte che non dichiara la distanza dal confine: non misurabile, non un verde finto");
   });
   test("⛔ Terra · sezionePeggiore (15/09, prima fetta della lacuna 2 sul sesto giro di ricerca): zero sezioni ricade sugli scalari, con sezioni sceglie la peggiore", () => {
     const atto = { altezzaBancoMaxM: 15, pendenzaMaxGradi: 75 };

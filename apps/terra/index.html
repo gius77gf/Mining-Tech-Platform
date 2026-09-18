@@ -2274,6 +2274,18 @@ a.dw-btn{text-decoration:none}
       : (cg.oltre
         ? `<div class="riga att">${I.allarme}<span><b>${cg.oltre} ${cg.oltre === 1 ? "fronte ha un banco fuori dal progetto" : "fronti hanno un banco fuori dal progetto"}</b>${cg.peggiore ? ": il peggiore è <b>" + esc(cg.peggiore.nome) + "</b>, " + (cg.peggiore.asse === "altezza" ? "alto " + nM(cg.peggiore.misurato) + " m su " + nM(cg.peggiore.ammesso) : "a " + nM(cg.peggiore.misurato) + "° su " + nM(cg.peggiore.ammesso)) + " ammessi (" + nM(-cg.peggiore.margine) + " oltre)" : ""}: un banco fuori sagoma si riporta nel progetto o si chiede in variante.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato." : " fronti non confrontati.") : ""}</span></div>`
         : `<div class="riga${cg.alLimite ? " att" : ""}">${cg.alLimite ? I.allarme : ""}<span><b>Geometria dei banchi: ${cg.dentro + cg.alLimite} ${cg.dentro + cg.alLimite === 1 ? "fronte dentro il progetto" : "fronti dentro il progetto"}</b>${cg.alLimite ? ", " + cg.alLimite + (cg.alLimite === 1 ? " al limite" : " al limite") : ""}.${cg.nonMisurabili ? " " + cg.nonMisurabili + (cg.nonMisurabili === 1 ? " fronte non confrontato: manca una misura o il massimo del progetto." : " fronti non confrontati: manca una misura o il massimo del progetto.") : ""}</span></div>`);
+    /* L'ASSE "CONFINE", la distanza minima dal titolo (18/09): stessa forma
+       dell'asse geometria, e nato insieme a lui ma dimenticato qui — un
+       agente di QA in background l'ha trovato: il dato per-fronte esisteva
+       già in `c.fronti[i].confine`, ma non arrivava mai a questo cartellone.
+       Senza questa riga un fronte "oltre" restava silenzio totale, non
+       nemmeno "non misurato". */
+    const cc = c.confine || { misurabile: false, perche: "", oltre: 0, alLimite: 0, dentro: 0, nonMisurabili: 0, peggiore: null };
+    const confine = !cc.misurabile
+      ? `<div class="riga">${I.allarme}<span><b>Distanza dal confine: non confrontata.</b> ${esc(cc.perche)}</span></div>`
+      : (cc.oltre
+        ? `<div class="riga att">${I.allarme}<span><b>${cc.oltre} ${cc.oltre === 1 ? "fronte è oltre la distanza minima dal confine" : "fronti sono oltre la distanza minima dal confine"}</b>${cc.peggiore ? ": il peggiore è <b>" + esc(cc.peggiore.nome) + "</b>, a " + nM(cc.peggiore.misurato) + " m su " + nM(cc.peggiore.ammesso) + " ammessi (" + nM(-cc.peggiore.margine) + " oltre)" : ""}: un fronte troppo vicino al confine si arretra o si chiede in variante.${cc.nonMisurabili ? " " + cc.nonMisurabili + (cc.nonMisurabili === 1 ? " fronte non confrontato." : " fronti non confrontati.") : ""}</span></div>`
+        : `<div class="riga${cc.alLimite ? " att" : ""}">${cc.alLimite ? I.allarme : ""}<span><b>Distanza dal confine: ${cc.dentro + cc.alLimite} ${cc.dentro + cc.alLimite === 1 ? "fronte dentro il progetto" : "fronti dentro il progetto"}</b>${cc.alLimite ? ", " + cc.alLimite + (cc.alLimite === 1 ? " al limite" : " al limite") : ""}.${cc.nonMisurabili ? " " + cc.nonMisurabili + (cc.nonMisurabili === 1 ? " fronte non confrontato: manca una misura o il minimo del progetto." : " fronti non confrontati: manca una misura o il minimo del progetto.") : ""}</span></div>`);
     if (!c.misurabile) {
       /* ⛔ Nessuna cifra, nessun verde, nessuna pastiglia di stato: qui la
          quota non è stata misurata da nessuno. C'è un trattino e la ragione —
@@ -2291,7 +2303,7 @@ a.dw-btn{text-decoration:none}
           <span class="vita-cifre">—</span><span class="vita-un">nessun confronto possibile</span>
         </div>
         <div class="riga">${esc(c.perche)}</div>
-        ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}
+        ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}${confine}
       </div>`;
     }
     const oltre = c.oltre > 0;
@@ -2317,7 +2329,7 @@ a.dw-btn{text-decoration:none}
         : `<div class="riga">Il fronte più vicino al fondo è <b>${esc(rif.nome)}</b>: sta a ${nM(rif.quotaFronte)} m e il progetto lo ferma a ${nM(rif.fondoM)} m, quindi ${rif.margineM === 0 ? "<b>ci è arrivato</b>: da lì non si scende più" : `restano <b>${nM(rif.margineM)} m</b>`}. Il fondo viene ${rif.origineFondo === "lotto" ? "dal <b>lotto</b> a cui il fronte appartiene" : "dalla scheda dell'<b>autorizzazione</b>"}.</div>`}
       ${c.alLimite && !oltre ? `<div class="riga att">${I.allarme}<span><b>${c.alLimite} ${c.alLimite === 1 ? "fronte è arrivato" : "fronti sono arrivati"} esattamente al fondo autorizzato</b>: non è una violazione, ma da lì non si scende più senza una variante.</span></div>` : ""}
       ${c.nonMisurabili ? `<div class="riga att">${I.allarme}<span><b>${c.nonMisurabili} ${c.nonMisurabili === 1 ? "fronte non è stato confrontato" : "fronti non sono stati confrontati"}</b>: ${c.nonMisurabili === 1 ? "non dichiara" : "non dichiarano"} la quota raggiunta. Il conto qui sopra riguarda solo gli altri — ${c.nonMisurabili === 1 ? "quello" : "quelli"} non ${c.nonMisurabili === 1 ? "è" : "sono"} a posto, ${c.nonMisurabili === 1 ? "è" : "sono"} da misurare. ${c.nonMisurabili === 1 ? "Aprilo" : "Aprili"} nella scheda <b>Fronti</b> e ${c.nonMisurabili === 1 ? "scrivi la quota" : "scrivi le quote"}.</span></div>` : ""}
-      ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}
+      ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}${confine}
     </div>`;
   }
 

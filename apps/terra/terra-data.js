@@ -3952,6 +3952,30 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       peggioreGeo = { id: g.id, nome: g.nome, asse, margine: a.margine, misurato: a.misurato, ammesso: a.ammesso };
   }
 
+  // ── asse "confine": la distanza minima dal titolo (18/09) — stessa forma
+  // dell'asse 4, e nata insieme a lui nello stesso giro ma dimenticata QUI:
+  // il dato per-fronte (`r.confine`) esisteva già, e non arrivava mai al
+  // riepilogo che il cartellone legge per primo. Un fronte "oltre" restava
+  // silenzio totale, non «non misurato» — un difetto trovato da un agente di
+  // QA in background e verificato riga per riga prima di correggerlo.
+  const cf = righe.map((r) => ({ id: r.id, nome: r.nome, ...r.confine }));
+  const cfMis = cf.filter((c) => c.misurabile);
+  const qc = (s) => cf.filter((c) => c.stato === s).length;
+  const confineSuiLotti = LO.some((l) => misuraNota(l.distanzaMinimaM) != null);
+  const confineAtto = confineAmmesso(null, autorizzazione);
+  const percheConfine = cfMis.length ? ""
+    : !FR.length
+      ? "Nessun fronte registrato: non c'è ancora nessun fronte di cui confrontare la distanza dal confine."
+      : (!confineAtto.noto && !confineSuiLotti)
+        ? "Il progetto non dichiara la distanza minima dal confine, né sull'atto né sui lotti: scrivila nella scheda dell'autorizzazione e il confronto comincia."
+        : "Nessuno dei fronti registrati dichiara la distanza dal confine: senza quel numero non c'è niente da confrontare con il progetto.";
+  // il peggiore: fra i fronti misurati, il margine più negativo (stessa forma di `peggioreGeo`)
+  let peggioreConfine = null;
+  for (const c of cfMis) {
+    if (c.margine < 0 && (!peggioreConfine || c.margine < peggioreConfine.margine))
+      peggioreConfine = { id: c.id, nome: c.nome, margine: c.margine, misurato: c.misurato, ammesso: c.ammesso };
+  }
+
   // ⛔ E CHI GUARDA `perLotto` DEVE SAPERE CHE LA SOMMA PUÒ ESSERE GONFIATA:
   // `volumeMisuratoDiLotto` non vede gli altri lotti, quindi un fronte
   // condiviso viene sommato per intero in ognuno. Non si tocca l'aritmetica
@@ -3981,6 +4005,11 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       misurabile: geoMis.length > 0, perche: percheGeo, fronti: geo,
       oltre: qg("oltre"), alLimite: qg("al-limite"), dentro: qg("dentro"), nonMisurabili: qg("non-misurabile"),
       peggiore: peggioreGeo,
+    },
+    confine: {
+      misurabile: cfMis.length > 0, perche: percheConfine, fronti: cf,
+      oltre: qc("oltre"), alLimite: qc("al-limite"), dentro: qc("dentro"), nonMisurabili: qc("non-misurabile"),
+      peggiore: peggioreConfine,
     },
   };
 }
