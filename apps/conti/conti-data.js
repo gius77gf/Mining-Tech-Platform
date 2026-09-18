@@ -1565,6 +1565,10 @@ export function incassoAtteso(fatture, giorniAvanti = 30, oggi = new Date(), not
   let importo = 0, conto = 0;
   for (const f of fatture || []) {
     if (f.incassata) continue;
+    // ⛔ 18/09, dal sesto giro di deep-pass: mancava la guardia che kpiFrom/
+    // agingIncassi/fattureOltre90/esposizioneClienti hanno già dal quinto
+    // giro — una fattura scartata dallo SdI non è cassa in arrivo.
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const g = giorni(f.scadenza, oggi);
     if (Number.isFinite(g) && g >= 0 && g <= giorniAvanti) { importo += apertoDi(f, note); conto++; }
   }
@@ -1868,6 +1872,11 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null
   const oltreOrizzonte = { conto: 0, importo: 0 };
   for (const f of fatture || []) {
     if (f.incassata) continue;
+    // ⛔ 18/09, dal sesto giro di deep-pass: stessa guardia mancante di
+    // incassoAtteso — la sezione diceva «la trovi nell'aging qui sopra» per
+    // le fatture scartate, ma l'aging (guardato dal quinto giro) le esclude
+    // apposta: l'utente non le trovava mai dove il testo diceva di cercarle.
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const g = giorni(f.scadenza, oggi);
     const imp = apertoDi(f, note);                     // solo ciò che resta da incassare
     // senza data valida: non pianificabile, e lo si DICE (era un `continue`)

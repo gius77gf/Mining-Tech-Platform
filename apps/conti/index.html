@@ -2394,8 +2394,12 @@ label.item:has(.dw-chk:checked){
   let editFat = null;   // id della fattura in modifica (riusa il form "Nuova fattura")
   let editCli = null;   // id del cliente in modifica (riusa il form "Nuovo cliente")
   const fatMatch = (f) => filtroFat === "tutte"
-    || (filtroFat === "aperte" && !f.incassata)
-    || (filtroFat === "insolute" && !f.incassata && giorni(f.scadenza) < 0)
+    // ⛔ 18/09, dal sesto giro di deep-pass: «aperte»/«insolute» qui non
+    // escludevano una fattura scartata dallo SdI — stessa famiglia della
+    // guardia mancante nel KPI «Scaduto» del Quadro (vedi il commento lì).
+    // Una fattura «come non emessa» finiva elencata come sollecitabile.
+    || (filtroFat === "aperte" && !f.incassata && !statoSdi(f).nonEmessa)
+    || (filtroFat === "insolute" && !f.incassata && !statoSdi(f).nonEmessa && giorni(f.scadenza) < 0)
     || (filtroFat === "parziali" && !!f.parziale)
     || (filtroFat === "incassate" && !!f.incassata);
   let ordFat = "scadenza";
@@ -3262,7 +3266,13 @@ label.item:has(.dw-chk:checked){
     FAT = applicaIncassi(FATG, INC, NOT);
     IMP = (IMPL || [])[0] || null;
     const k = kpiFrom(FAT, GAR, new Date(), NOT);
-    const aperte  = FAT.filter(f => !f.incassata);
+    /* ⛔ 18/09, dal sesto giro di deep-pass: qui mancava la stessa guardia
+       che `agingIncassi`/`kpiFrom` hanno dal quinto giro — una copia debole
+       che ricalcolava "aperte"/"scadute" a mano invece di riusarli, e restava
+       indietro. Una fattura scartata dallo SdI compariva nel KPI «Scaduto»
+       del Quadro e nel filtro «Insolute» delle Fatture con un totale diverso
+       da quello del Report (Aging), sulla stessa schermata a un click. */
+    const aperte  = FAT.filter(f => !f.incassata && !statoSdi(f).nonEmessa);
     const scadute = aperte.filter(f => giorni(f.scadenza) < 0);
     const scadutoTot = scadute.reduce((t,f) => t + apertoDi(f, NOT), 0);   // il residuo meno lo stornato
     /* ⚠️ Stessa regola del riepilogo: una base che MANCA non vale zero, non

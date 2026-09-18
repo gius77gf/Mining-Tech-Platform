@@ -29223,6 +29223,35 @@ test("⛔ Conti · kpiFrom/agingIncassi/fattureOltre90/esposizioneClienti/avviso
   const cp = conti.concentrazionePortafoglio(fatture, oggi, clienti);
   eq(cp.totale, 1000, "concentrazionePortafoglio: il portafoglio pesa 1.000, non 3.000");
 });
+test("⛔ Conti · incassoAtteso/incassoPerMese e il Quadro/le Fatture: una fattura non emessa non è cassa in arrivo (sesto giro di deep-pass, 18/09)", () => {
+  /* Stessa famiglia del quinto giro: `kpiFrom`/`agingIncassi`/`fattureOltre90`
+     /`esposizioneClienti` già escludevano `statoSdi(f).nonEmessa`;
+     `incassoAtteso`/`incassoPerMese` restavano scoperte, e la pagina aveva
+     una COPIA DEBOLE del calcolo dell'aging (mai passata da `statoSdi`) per
+     il KPI «Scaduto» del Quadro e il filtro «Insolute» delle Fatture. */
+  const oggi = new Date("2026-09-18T12:00:00");
+  const emessaScaduta = { id: "mx1", numero: "M/1", cliente: "Prova Mista Srl", importo: 1000, incassata: false, scadenza: "2026-06-01" };
+  const scartataScaduta = { id: "mx2", numero: "M/2", cliente: "Prova Mista Srl", importo: 2000, incassata: false, scadenza: "2026-06-01", sdi: { stato: "scartata", il: "2026-08-05" } };
+  const scartataInScadenza = { id: "mx3", numero: "M/3", cliente: "Prova Mista Srl", importo: 7000, incassata: false, scadenza: "2026-09-30", sdi: { stato: "scartata", il: "2026-09-01" } };
+  const emessaInScadenza = { id: "mx4", numero: "M/4", cliente: "Prova Mista Srl", importo: 500, incassata: false, scadenza: "2026-09-30" };
+
+  const ia = conti.incassoAtteso([emessaInScadenza, scartataInScadenza], 30, oggi);
+  eq(ia.conto, 1, "incassoAtteso: solo la fattura emessa entra, la scartata (in scadenza) resta fuori");
+  eq(ia.importo, 500, "incassoAtteso: l'importo è quello della sola fattura emessa");
+
+  const ipm = conti.incassoPerMese([emessaScaduta, scartataScaduta], 6, oggi);
+  eq(ipm.scadute.conto, 1, "incassoPerMese: solo la fattura emessa entra fra le scadute");
+  eq(ipm.scadute.importo, 1000, "incassoPerMese: l'importo scaduto è quello della sola fattura emessa");
+
+  // il Quadro e il filtro «Insolute» delle Fatture: la pagina non ricalcola
+  // «aperte»/«scadute» a mano senza la stessa guardia di `agingIncassi`
+  const pagina = readFileSync(join(HERE, "../../conti/index.html"), "utf8");
+  ok(/const aperte\s*=\s*FAT\.filter\(f => !f\.incassata && !statoSdi\(f\)\.nonEmessa\)/.test(pagina),
+    "il KPI «Scaduto» del Quadro parte da «aperte» già filtrate sullo stesso `statoSdi` dell'aging");
+  ok(/filtroFat === "aperte" && !f\.incassata && !statoSdi\(f\)\.nonEmessa/.test(pagina)
+    && /filtroFat === "insolute" && !f\.incassata && !statoSdi\(f\)\.nonEmessa && giorni/.test(pagina),
+    "il filtro «Insolute» delle Fatture esclude la stessa fattura non emessa che l'aging esclude");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);
