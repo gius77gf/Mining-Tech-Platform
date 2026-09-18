@@ -640,6 +640,8 @@ const BANCHI = [
   ["bottone «Emetti» occupato di Conti · controprova", 'conti-bottone-emetti-occupato.mjs', ['--controprova'], true],
   ["Campo: i bottoni di scrittura si spengono durante il salvataggio (squadre, attività, firma del turno)", 'campo-bottoni-occupato.mjs', []],
   ["bottoni occupato di Campo · controprova", 'campo-bottoni-occupato.mjs', ['--controprova'], true],
+  ["audit occupato: i quattro bottoni residui di Scudo/Sentinella/Conti (infortuni, scadenze, volate, DDT)", 'audit-occupato-residui.mjs', []],
+  ["audit occupato residui · controprova", 'audit-occupato-residui.mjs', ['--controprova'], true],
   ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
   ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
   ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],

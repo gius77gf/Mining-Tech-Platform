@@ -5279,6 +5279,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       esito("inf-esito", "La data dell'evento non può essere nel futuro.", "err"); return; }
     err("inf-data", false);
     const tipo = $("inf-tipo").value;
+    // ⛔ 18/09, dall'audit sul pattern "occupato" (nato oggi in
+    // Flotta/Terra/Conti/Campo): nessuna guardia qui — un doppio tocco
+    // registra due volte lo stesso infortunio nel registro obbligatorio.
+    occupato("btn-inf", true);
     await db.aggiungi("infortuni", {
       data, tipo, gravita: $("inf-gravita").value,
       /* ⛔ decisione 17: per un INFORTUNIO la casella vuota non vale zero —
@@ -5296,6 +5300,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       denunciaData: tipo === "infortunio" ? ($("inf-denuncia-data").value || null) : null,
       denunciaNumero: tipo === "infortunio" ? ($("inf-denuncia-numero").value.trim() || null) : null,
     });
+    occupato("btn-inf", false);
     $("inf-desc").value = ""; $("inf-giorni").value = ""; $("inf-luogo").value = ""; $("inf-lavoratore").value = "";
     $("inf-certificato").value = ""; $("inf-denuncia-data").value = ""; $("inf-denuncia-numero").value = "";
     esito("inf-esito", (tipo === "infortunio" ? "Infortunio" : "Near-miss") + " registrato del " + fmtData(data) + ".", "success");
@@ -5471,7 +5476,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       esito("scad-esito", "Servono la descrizione e la data: senza una data la scadenza non entra nello scadenzario.", "err"); return;
     }
     err("new-scad-desc", false); err("new-scad-data", false);
+    // stessa famiglia di "btn-inf": nessuna guardia, un doppio tocco crea
+    // due scadenze identiche.
+    occupato("btn-add-scad", true);
     await db.aggiungi("scadenze", { lavoratoreId: $("new-scad-lav").value || null, tipo: $("new-scad-tipo").value, descrizione, dataScadenza });
+    occupato("btn-add-scad", false);
     $("new-scad-desc").value = ""; $("new-scad-data").value = "";
     esito("scad-esito", "Scadenza aggiunta: " + descrizione + " (entro il " + fmtData(dataScadenza) + ").", "success");
     $("new-scad-desc").focus();   // pronto per la prossima scadenza

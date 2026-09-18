@@ -5357,12 +5357,16 @@ textarea.dw-input{
     const interoVuoto = (id) => { const t = String($(id).value || "").trim();
       return t === "" || !Number.isFinite(+t) ? null : Math.max(0, Math.round(+t)); };
     err("vol-data", false);
+    // ⛔ 18/09, dall'audit sul pattern "occupato": nessuna guardia — un
+    // doppio tocco registra due volte la stessa volata nel brogliaccio.
+    occupato("btn-vol", true);
     await db.aggiungi("volate", {
       data, fronte: $("vol-fronte").value.trim(),
       nFori: interoVuoto("vol-nfori"), kgTotali: vn("vol-kg"),
       kgMaxRitardo: vn("vol-kgmax"), distanzaRicettore: vn("vol-dist"),
       esito: $("vol-esito").value, note: "",
     });
+    occupato("btn-vol", false);
     ["vol-fronte","vol-nfori","vol-kg","vol-kgmax","vol-dist"].forEach(i => $(i).value = "");
     esito("vol-esito-msg", "Volata del " + fmtD(data) + " registrata nel brogliaccio.", "success");
     await refresh();

@@ -7359,6 +7359,12 @@ label.item:has(.dw-chk:checked){
       esito("pes-esito", "Il prezzo concordato non si può applicare a questa consegna: "
         + r.perchePrezzo + ".", "err");
       primoErrore(PES_CAMPI); return; }
+    /* ⛔ 18/09, dall'audit sul pattern "occupato": `numeroProssimoDdt` legge
+       PES in memoria, aggiornato solo da refresh() più in basso — un doppio
+       tocco rapido calcola lo STESSO numero di DDT due volte e scrive due
+       pesate con lo stesso numero (un doppione sul documento di trasporto,
+       da lì in fattura). */
+    occupato("btn-pes", true);
     const numero = numeroProssimoDdt(data);
     await db.aggiungi("pesate", { numero, data, clienteId, cliente: c.ragioneSociale,
       prodottoId, prodotto: p.nome, lordo: round2(lordo), tara: round2(tara), netto: r.netto,
@@ -7375,6 +7381,7 @@ label.item:has(.dw-chk:checked){
          dichiarazione sul documento di trasporto. */
       causaleTrasporto: causaleTr || null, trasportoACura: curaTr || null,
       vettore: curaTr === "vettore" ? (vettore || null) : null });
+    occupato("btn-pes", false);
     esito("pes-esito", "DDT " + numero + " registrato: " + qt(r.netto) + " t nette di " + p.nome
       + " per " + eur(r.valore)
       /* si dice SUBITO da dove viene il prezzo: chi vede 255,36 dove il listino
