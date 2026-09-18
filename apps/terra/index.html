@@ -3440,6 +3440,11 @@ a.dw-btn{text-decoration:none}
        dei rilievi continuerebbe a vincere, e le due schermate direbbero due
        numeri diversi per la stessa cava. */
     densitaToccata = false;
+    /* ⛔ 18/09, dal deep-pass QA: senza questo spegnimento, un doppio tocco
+       su una connessione lenta esegue due volte "archivia la vigente
+       attuale + aggiungi la nuova come vigente" prima che AUT si aggiorni —
+       due schede vigenti contemporanee in archivio. */
+    occupato("btn-aut-salva", true);
     if (editAut) {
       await db.aggiorna("autorizzazioni", editAut, d);
       esito("aut-esito", "Scheda «" + d.numeroAtto + "» aggiornata." + senzaVolume);
@@ -3451,6 +3456,13 @@ a.dw-btn{text-decoration:none}
       esito("aut-esito", "Autorizzazione «" + d.numeroAtto + "» registrata come vigente"
         + (cera ? " (la precedente è stata archiviata)" : "") + "." + senzaVolume);
     }
+    // `occupato(false)` PRIMA di `refresh()`: il render delle autorizzazioni
+    // (dentro `refresh`) scrive lui stesso "Salva scheda"/"Salva modifiche"
+    // leggendo `editAut` (già azzerato qui sopra quando si modificava) — se
+    // corresse dopo, `occupato` riscriverebbe il testo catturato al tocco,
+    // cancellando il cambio di modo appena fatto (la stessa trappola presa
+    // su «btn-fro» e «btn-lot»).
+    occupato("btn-aut-salva", false);
     await refresh();
   };
   $("btn-aut-nuova").onclick = () => {
@@ -3510,6 +3522,7 @@ a.dw-btn{text-decoration:none}
     const pre = parseInt($("new-scad-pre").value, 10);
     const ric = parseInt($("new-scad-ric").value, 10);
     const preav = Number.isFinite(pre) && pre >= 0 ? pre : (parseInt($("aut-preavviso").value, 10) || 60);
+    occupato("btn-add-scad", true);
     await db.aggiungi("scadenze", { tipo: $("scad-preset").value || "altro", descrizione: desc,
       dataScadenza: data, preavvisoGiorni: preav, ricorrenzaMesi: Number.isFinite(ric) && ric > 0 ? ric : null, note: "" });
     esito("scad-esito", "Scadenza «" + desc + "» del " + fmtData(data) + " registrata (preavviso "
@@ -3518,6 +3531,7 @@ a.dw-btn{text-decoration:none}
     $("new-scad-desc").value = ""; $("new-scad-data").value = ""; $("new-scad-ric").value = "";
     $("scad-preset").value = ""; $("scad-preset-nota").style.display = "none";
     await refresh();
+    occupato("btn-add-scad", false);
   };
   // Azioni su autorizzazioni e scadenze (delega sul documento, come il resto
   // dell'app). Chiudere una scadenza ricorrente propone la data successiva.
@@ -3731,6 +3745,7 @@ a.dw-btn{text-decoration:none}
     if (!(+d.superficieMq > 0)) manca.push("la superficie, quindi il lotto resta fuori dal divario di recupero");
     if (!d.frontiId.length) manca.push("i fronti, quindi il volume tolto non si può misurare");
     const coda = manca.length ? " Manca ancora " + manca.join(", e ") + "." : "";
+    occupato("btn-lot", true);
     if (editLot) {
       await db.aggiorna("lotti", editLot, d);
       esito("lot-esito", "Lotto «" + d.nome + "» aggiornato." + coda);
@@ -3739,6 +3754,12 @@ a.dw-btn{text-decoration:none}
       await db.aggiungi("lotti", d);
       esito("lot-esito", "Lotto «" + d.nome + "» registrato al posto " + d.ordine + " della sequenza." + coda);
     }
+    // `occupato(false)` PRIMA di `refresh()`: il render dei lotti (dentro
+    // `refresh`) scrive lui stesso "Aggiungi"/"Salva modifiche" leggendo
+    // `editLot` (già azzerato qui sopra) — se corresse dopo, `occupato`
+    // riscriverebbe il testo catturato al tocco, cancellando il cambio di
+    // modo appena fatto (la stessa trappola presa su «btn-fro»).
+    occupato("btn-lot", false);
     riempiFormLotto(null);
     await refresh();
   };
@@ -4636,11 +4657,18 @@ a.dw-btn{text-decoration:none}
       esito("fro-esito", "Esiste già un fronte chiamato «" + nome + "»: scegli un nome diverso per non confonderli.", "err"); return; }
     err("fro-nome", false);
     const modifica = !!editFro;
+    occupato("btn-fro", true);
     if (editFro) {
       await db.aggiorna("fronti", editFro, { nome, banco, quota, altezzaBancoM, pendenzaGradi });   // rilievi/avanzamento/stato restano
     } else {
       await db.aggiungi("fronti", { nome, banco, quota, altezzaBancoM, pendenzaGradi, dettaglio: "", stato: "attivo" });
     }
+    // `occupato(false)` PRIMA di `annullaEditFronte()`: quella funzione
+    // scrive lei stessa "Aggiungi" sul bottone (si esce dal modificare e si
+    // torna ad aggiungere), e se corresse dopo `occupato` la riscriverebbe
+    // col testo catturato al tocco — "Salva modifica" — cancellando il
+    // cambio di modo che l'operazione ha appena fatto.
+    occupato("btn-fro", false);
     annullaEditFronte();
     esito("fro-esito", "Fronte «" + nome + "» " + (modifica ? "aggiornato." : "aggiunto."));
     fuoco("fro-nome");   // torna al primo campo per aggiungere subito il prossimo
@@ -4727,6 +4755,13 @@ a.dw-btn{text-decoration:none}
       esito("ril-esito", spiegaNum("la tolleranza dichiarata", rt, "%") + " Il rilievo non è stato registrato.", "err"); return;
     }
     err("new-ril-toll", false); err("new-ril-gsd", false); err("new-ril-vol", false); err("new-ril-data", false);
+    /* ⛔ 18/09, dal deep-pass QA: nessun bottone di scrittura di Terra si
+       spegneva durante l'attesa della rete — con una connessione lenta un
+       secondo tocco prima della risposta scrive due volte lo stesso
+       rilievo, e un volume duplicato entra identico in kpiFrom/vitaCava/
+       prospettoDenuncia. Stesso difetto già preso e corretto lo stesso
+       giorno in Flotta (`occupato`, promossa in shared/dw-app-ui.js). */
+    occupato("btn-add-ril", true);
     const toll = rt.ok ? rt.valore : null;
     const fronteId = $("new-ril-fronte").value || null;
     const fr = FRO.find(f => f.id === fronteId);
@@ -4752,6 +4787,7 @@ a.dw-btn{text-decoration:none}
         + (prov === "cumulo" ? " — ripresa da cumulo: non scala il volume concesso." : "."));
     }
     $("new-ril-data").value = ""; $("new-ril-vol").value = ""; $("new-ril-metodo").value = ""; $("new-ril-gsd").value = ""; $("new-ril-toll").value = ""; fuoco("new-ril-data"); await refresh();
+    occupato("btn-add-ril", false);
   };
   // Provenienza del volume: menù sempre pieno, di serie SCAVO — così chi
   // registra un rilievo senza pensarci ottiene il comportamento di prima.

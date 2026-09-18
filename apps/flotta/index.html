@@ -1683,15 +1683,11 @@ body.dw b.bad{color:var(--ink-dg)}
   const salva = (azione, cosa, poi) => scriviConEsito(azione, {
     cosa, poi, inRete: (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") ? navigator.onLine : null,
   });
-  /* Il bottone mentre la scrittura è per aria: spento e con scritto che sta
-     salvando. Senza, otto secondi di apparente immobilità invitano al secondo
-     tocco — e due tocchi sul giro macchina sono due giri nel registro. */
-  const occupato = (id, on, testo) => {
-    const b = $(id);
-    if (!b) return;
-    if (on) { b.dataset.testo = b.dataset.testo || b.textContent; b.textContent = testo || "Salvo…"; b.disabled = true; }
-    else { if (b.dataset.testo) b.textContent = b.dataset.testo; b.disabled = false; }
-  };
+  /* ⛔ 18/09: `occupato` era qui, nata per Flotta la mattina stessa — appena
+     è servita a una seconda app (Terra) è salita in `shared/dw-app-ui.js`,
+     che questa pagina carica già come script classico: si chiama senza
+     importarla, come `toast`/`go`. Una copia locale accanto alla globale
+     sarebbe esattamente la firma-troppo-stretta che questo file cita altrove. */
   if (db.mode !== "live") $("tour-banner").style.display = "block";
   $("mode-note").innerHTML = db.mode === "live"
     ? "Stai lavorando sui <b>dati reali</b> della tua organizzazione."

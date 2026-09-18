@@ -74,6 +74,19 @@
     toastT = setTimeout(function () { t.classList.remove("show"); }, String(msg).length > 70 ? 4200 : 2800);
   }
 
+  // ── BOTTONE OCCUPATO DURANTE UNA SCRITTURA ─────────────────────────
+  // Nata in Flotta (18/09) e promossa qui appena è servita a una seconda
+  // app (Terra, stesso giorno): un bottone di scrittura senza questo
+  // spegnimento lascia otto secondi di apparente immobilità mentre la
+  // rete risponde, e otto secondi invitano al secondo tocco — due tocchi
+  // sul giro macchina, o su un rilievo, sono due righe nel registro.
+  function occupato(id, on, testo) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    if (on) { b.dataset.testo = b.dataset.testo || b.textContent; b.textContent = testo || "Salvo…"; b.disabled = true; }
+    else { if (b.dataset.testo) b.textContent = b.dataset.testo; b.disabled = false; }
+  }
+
   // ── MODALE ──────────────────────────────────────────────────────────
   // Sostituisce `confirm()` e `prompt()` del browser, che sono vietati: le
   // finestre di sistema sono bianche, fuori stile, e `prompt()` non accetta
@@ -451,6 +464,7 @@
 
   window.go = go;
   window.toast = toast;
+  window.occupato = occupato;
   window.dwSenzaRete = montaSenzaRete;
   window.apriModale = apriModale;
   window.chiudiModale = chiudiModale;
