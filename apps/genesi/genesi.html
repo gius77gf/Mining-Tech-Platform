@@ -2616,8 +2616,8 @@ function buildTicks(){
   for(const f of SIM.fori){
     const d = document.createElement('div');
     d.className = 'tick' + (f.tDet===0 ? ' big':'');
-    d.style.left = (f.tDet/SIM.tEnd*100)+'%';
-    d.title = 'foro '+(f.i+1)+' · '+f.tDet+' ms';
+    d.style.left = (f.tDet/SIM.tEnd*100)+'%';          // la POSIZIONE resta sul tempo vero: è lì che l'animazione lo fa sparare
+    d.title = 'foro '+(f.i+1)+' · '+(f.tNom!=null?f.tNom:f.tDet)+' ms';   // ⛔ 18/09: l'ETICHETTA è il tempo di progetto, non lo scatter — vedi holeInfoShow
     tk.appendChild(d);
   }
 }
@@ -2914,8 +2914,13 @@ function holeInfoShow(g){
   holeSel=g; g.traverse(o=>{ if(o.material&&o.material.emissiveIntensity!=null){ o.userData._ei0=o.material.emissiveIntensity; o.material.emissiveIntensity=Math.min(1.2,(o.material.emissiveIntensity||0.2)*2.5+0.3); } });
   const f=g.userData.f||{}; const fila=Math.round((f.zoff||0)/Math.max(1,SPALLA))+1;
   const el=$('holeInfo'); if(!el) return;
+  /* ⛔ 18/09, dal backlog QA: `f.tDet` è il tempo che LA SIMULAZIONE ha
+     sorteggiato (lo scatter d'innesco, `buildSim`), non quello di progetto.
+     È la stessa famiglia già corretta per la profondità e il borraggio, qui
+     sul tempo: il popup diceva «spara a 44 ms» su un foro progettato a
+     42 ms, un numero diverso ogni volta che si ricalcola la simulazione. */
   el.innerHTML='<b>Foro '+((f.i!=null?f.i:0)+1)+'</b> · fila '+fila
-    +'<br>spara a <b>'+Math.round(f.tDet||0)+' ms</b>'
+    +'<br>spara a <b>'+Math.round((f.tNom!=null?f.tNom:f.tDet)||0)+' ms</b>'
     +'<br>profondità '+gfix(f.h||P.prof,1)+' m · carica '+gnum(P.kg,0)+' kg'
     +'<br>borraggio '+gfix(D2.stem,1)+' m · Ø'+gnum(P.diam,0)+' mm'
     +'<button id="holeInfoX" title="Chiudi">✕</button>';
@@ -7865,7 +7870,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
     rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
     get frontMesh(){return frontMesh},
-    get xrayCyls(){return xrayCyls},
+    get xrayCyls(){return xrayCyls}, holeInfoShow, buildTicks,
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
     setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; },
     setQuality:(q)=>{ if(QUALITA[q]){ qLevel=q; $('qlab').textContent=q; rebuild(); } return qLevel; }
