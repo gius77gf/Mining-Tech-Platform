@@ -1234,3 +1234,163 @@ già pagato nel Blocco 2 sull'abbancamento.
 
 - Proposta 11 (spalla/burden glossati nei due pannelli avanzati) — **aperta** al 17/09, commit `4bda229c`
 - Proposta 12 (un solo nome per il badge del powder factor) — **aperta**
+
+---
+
+## Blocco 5: Flotta — toast, stati vuoti, tooltip: quasi tutto già ottimo, un solo doppione lessicale (18/09/2026, commit `de4a6cc7`)
+
+**Data della ricerca:** 18/09/2026
+**Commit verificato:** `de4a6cc78b1c5b55d8c4b4a5d750f064ba93b10e`
+**Agente:** ricerca continua — parole (PAROLE), quinta tornata
+
+### 0. CHE COSA C'ERA GIÀ (obbligo di lettura, regola 1)
+
+Ho letto tutto il file prima di scrivere. I Blocchi 1-4 non aprono mai
+`apps/flotta/index.html` per il tono dei messaggi: il Blocco 1 censisce il
+vocabolario di fronte/volata/mezzi/materiali (Campo, Terra, Genesi); il Blocco
+2 copre pesa/vendita/sicurezza e le quattro diciture del «non c'è» (Scudo,
+Sentinella, Terra, Conti); il Blocco 3 le cinque forme delle ragioni di scarto
+CSV (censisce anche `flotta.scartiRicambiCsv` ma solo come nome di funzione,
+non il testo mostrato); il Blocco 4 i termini tecnici della voladura in
+Genesi. **Questo blocco è il primo che legge Flotta per il tono dei
+messaggi.** Al momento della lettura `apps/flotta/index.html` e
+`apps/flotta/flotta-data.js` non risultavano modificati da nessun cantiere
+parallelo (`git status --short apps/flotta/` → nessuna riga), quindi le
+misure sono sul disco reale, non serve una worktree.
+
+⚠️ **Limite dello strumento, rispettato**: solo `WebSearch`, mai `WebFetch`
+(bloccato da policy per l'egress esterno su domini non istituzionali già
+verificato bloccato in blocchi precedenti; qui non ho nemmeno provato a
+leggere pagine intere, ho usato solo i risultati di ricerca). Ogni fatto sul
+mondo è **[di seconda mano]**.
+
+---
+
+### I. MONDO — come i migliori CMMS/fleet software scrivono errori e stati vuoti per operai non tecnici
+
+**[di seconda mano, via WebSearch]** Le fonti su UX di CMMS/fleet mobile
+(MaintainX, Fiix, Fleetio) e sulle linee guida generali sui messaggi d'errore
+convergono su tre regole:
+
+1. **Stato vuoto: si dice PERCHÉ è vuoto e si nomina l'azione successiva in
+   parole che l'utente già conosce**, non un generico "Nessun dato" — fonte:
+   [Eleken — Empty state UX examples and design rules](https://www.eleken.co/blog-posts/empty-state-ux),
+   [Setproduct — Empty state UI design](https://www.setproduct.com/blog/empty-state-ui-design).
+2. **Messaggio d'errore: si dice che cosa è andato storto in termini
+   comprensibili a una persona, evitando gergo tecnico e usando il linguaggio
+   dell'utente**, mai un rimando generico tipo "contatta l'amministratore" —
+   fonte: [NN/G — Error-Message Guidelines](https://www.nngroup.com/articles/error-message-guidelines/),
+   [Pencil & Paper — Error Message UX Pattern Analysis](https://www.pencilandpaper.io/articles/ux-pattern-analysis-error-feedback).
+3. Per il **mobile CMMS usato da tecnici in campo** (l'equivalente esatto del
+   "giro macchina" di Flotta, fatto dal telefono in piazzale) l'app sostituisce
+   moduli cartacei e checklist su carta con un'unica app sempre disponibile —
+   fonte: [descrizione generale mobile CMMS via ricerca](https://www.getmaintainx.com/blog/mobile-cmms-5-benefits-for-maintenance-teams).
+
+⭐ **Perché conta per il delta**: sono esattamente i tre criteri con cui ho
+giudicato i messaggi di Flotta qui sotto, e **Flotta li rispetta già**, quasi
+ovunque — è un risultato negativo (nessun difetto grave) misurato, non
+assunto, come chiede la regola 4.
+
+---
+
+### II. DELTA — Flotta, coi comandi e le uscite
+
+Comandi dalla radice, su `de4a6cc7`, su `apps/flotta/index.html` e
+`apps/flotta/flotta-data.js`.
+
+#### II.1 ✅ QUELLO CHE È GIÀ OTTIMO — misurato, non presunto
+
+| Criterio del mondo (§I) | Verifica in Flotta | Comando | Uscita |
+|---|---|---|---|
+| Stato vuoto dice il perché + azione concreta | `vuoto(I.mezzo, …)` per ogni sezione porta una frase con l'azione ("si registrano dalla schermata **Costi**", "Aggiungi il primo con il modulo qui sotto") | `grep -n 'vuoto(I\.' apps/flotta/index.html \| wc -l` | **17** |
+| Errore di validazione: niente gergo, esempio concreto | «Manca il nome del mezzo: è come lo chiamate in cava (es. «Dumper D4»).» | `grep -n 'Dumper D4' apps/flotta/index.html \| head -1` | `4601:… "Manca il nome del mezzo: è come lo chiamate in cava (es. «Dumper D4»)."…` |
+| Niente messaggio tecnico grezzo mostrato all'utente | nessun `.message` di un'eccezione finisce in un `toast`/`esito` | `grep -n '\.message' apps/flotta/index.html \| wc -l` | **0** |
+| Niente "undefined"/"NaN"/"null" testuali verso l'utente | l'unica occorrenza di `"undefined"` è un controllo `typeof`, non testo mostrato | `grep -n '"undefined"' apps/flotta/index.html` | `1684: …(typeof navigator !== "undefined" …` |
+| Import CSV: errore con le colonne attese, non un codice | riga scartata → messaggio con le colonne richieste per nome | `grep -n 'le colonne devono essere' apps/flotta/index.html \| wc -l` | **2** (mezzi, ricambi) |
+
+⛔ **Conclusione onesta**: su toast, stati vuoti e messaggi di validazione **non
+ho trovato gergo tecnico o incoerenze rilevanti**. Ho controllato una lista di
+17 termini da manuale gestionale/anglosassone (MTBF, MTTR, downtime, TCO, OEE,
+benchmark, KPI, uptime, backlog, asset, dashboard, safety stock, checklist,
+workflow, trend, forecast, ticket): **compaiono solo in commenti di codice o
+in nomi di funzione/variabile interni, mai nel testo che l'utente legge**,
+con **una sola eccezione** (II.2). Esempio di falso allarme evitato dal
+righello: `grep -ioE "TCO"` dava 48 risultati, tutti "curren**tCo**lor" dentro
+il CSS (`stroke:currentColor`) — nessuna occorrenza vera.
+
+#### II.2 ⚠️ L'UNICA ECCEZIONE: un tooltip chiama "checklist" quello che tutta l'app chiama "giro macchina"
+
+Flotta ha un nome di prodotto unico e ben scelto per il controllo pre-uso —
+**"giro macchina"** — usato **25 volte** nel testo visibile (titoli di
+sezione, stati vuoti, conferme, il toast di export). La parola "checklist"
+non compare **mai** nel testo visibile tranne in un punto:
+
+    grep -n 'title="[^"]*checklist[^"]*"' apps/flotta/index.html
+    → 955:    <select class="dw-input" id="mez-tipo" title="Tipo di mezzo: decide la checklist del giro macchina" style="flex:1 1 150px;">…
+
+è il tooltip (attributo `title`, visibile al passaggio del mouse o alla
+pressione prolungata sul telefono) del selettore "Tipo di mezzo" nel modulo
+"Nuovo mezzo". **Otto righe più sotto, nello stesso modulo**, il testo
+sempre-visibile (`form-hint`) spiega la stessa identica cosa **senza** la
+parola "checklist":
+
+    sed -n '962p' apps/flotta/index.html
+    → 962: …Il <b>tipo</b> serve al <b>giro macchina</b>: decide quali controlli compaiono all'operatore…
+
+Le altre occorrenze di "checklist" nel file sono tutte **non visibili
+all'utente**: commenti (`grep -n 'checklist' apps/flotta/index.html` righe
+`1220`, `1231`, `1344`) o il nome della funzione interna `checklistPreUso`
+(righe `1381`, `2917`, `2951`), il cui output a schermo dice sempre "N
+**controlli**", mai "checklist" (`grep -n 'checklistPreUso(t.chiave).length'
+apps/flotta/index.html` → `2917: … ${checklistPreUso(t.chiave).length}
+controlli…`).
+
+⚠️ **Non è gergo inglese incomprensibile** — "checklist" è un prestito
+diffuso anche nel parlato italiano corrente, quindi da solo non sarebbe un
+difetto — **è una seconda etichetta per lo stesso concetto**, nello stesso
+modulo, a distanza di sette righe: esattamente la famiglia già descritta nel
+Blocco 3 per `ragioneData` ("la stessa cosa si chiama con lo stesso nome nei
+due versi, se no chi legge crede che siano due difetti diversi"), qui in
+scala minima e su un tooltip invece che su un messaggio di errore.
+
+**Verifica di non-gonfiaggio (regola 7 del mandato)**: ho controllato se
+"checklist" fosse un pattern deliberato usato altrove nell'app per lo stesso
+tipo di scorciatoia nei tooltip — non lo è: è l'**unica** occorrenza visibile
+in tutto il file, tutti gli altri tooltip del modulo (`mez-servizio`,
+`mez-possesso`, `mez-possesso-dal`, `mez-ore`) usano già solo italiano
+corrente, senza sinonimi ("Data di messa in servizio del mezzo…", "Costo di
+possesso all'anno…", "Ore del contatore, decimi compresi…").
+
+---
+
+### III. PROPOSTA
+
+*Formato: schermata · che cosa non va · come si vede · quanto costa · come si misura.*
+*(numerata 13 per non collidere con le dodici dei Blocchi 2-4)*
+
+#### Proposta 13 (minore) — Flotta: un tooltip usa "checklist", il resto dell'app usa "giro macchina"
+- **Schermata:** Flotta → Mezzi → modulo "Nuovo mezzo", tooltip del campo "Tipo di mezzo" (`apps/flotta/index.html:955`).
+- **Che cosa non va:** il tooltip dice "decide la **checklist** del giro macchina"; la spiegazione visibile sempre (`form-hint`, riga 962) dello stesso campo, nello stesso modulo, dice "serve al **giro macchina**: decide quali controlli…" senza mai la parola "checklist". In tutto il resto del file (25 occorrenze) il nome del prodotto per questo concetto è sempre e solo "giro macchina"; "checklist" non appare in nessun altro testo mostrato.
+- **Come si vede:** `grep -n 'title="[^"]*checklist[^"]*"' apps/flotta/index.html` → `955`; `sed -n '962p' apps/flotta/index.html` (la spiegazione gemella, senza "checklist"); `grep -c 'giro macchina' apps/flotta/index.html` → **25**.
+- **Quanto costa:** riscrivere il singolo `title` di riga 955 in "Tipo di mezzo: decide i controlli del giro macchina" (o "…quali controlli compaiono nel giro macchina"), riusando la formula già scritta a riga 962. Una riga, cinque minuti.
+- **Come si misura:** (1) `grep -c 'title="[^"]*checklist[^"]*"' apps/flotta/index.html` deve andare a **0**; (2) `grep -c 'giro macchina' apps/flotta/index.html` deve salire di uno o restare comunque l'unico nome usato nei testi visibili; (3) controprova: si rimette "checklist" nel tooltip e la prova (1) deve tornare a trovarlo.
+- **Fonte:** interna (il canone è la riga 962 dello stesso file); il principio — non usare due nomi per lo stesso concetto nello stesso schermo — è quello già misurato nel Blocco 3 su `ragioneData` e la fonte sul mondo (§I) per cui un messaggio deve usare "il linguaggio dell'utente" in modo coerente: [NN/G — Error-Message Guidelines](https://www.nngroup.com/articles/error-message-guidelines/) *(di seconda mano)*.
+
+---
+
+### IV. QUELLO CHE HO CERCATO E **NON** PROPONGO (perché nessuno lo rifaccia)
+
+| Ipotesi | Perché è caduta | Prova |
+|---|---|---|
+| «Flotta usa sigle gestionali anglosassoni (MTBF, MTTR, TCO, KPI, OEE…) nei testi mostrati» | **Falsa.** Tutte le occorrenze di questi termini stanno in commenti di codice o nomi interni (classi CSS, variabili, funzioni); zero compaiono nel DOM come testo utente. | `grep -n 'MTBF\|MTTR' apps/flotta/index.html` → nessun risultato (solo in `flotta-data.js`, commenti); `grep -n 'KPI' apps/flotta/index.html` → 6 righe, tutte commenti CSS/JS |
+| «"Mezzo"/"macchina" sono due parole per lo stesso concetto, da uniformare» | **Falsa come difetto.** "Mezzo" è il termine di dato/formale (367+112 occorrenze), "macchina" quello colloquiale usato nel parlato dell'operatore ("davanti alla macchina", "giro macchina"): è una variazione di registro deliberata, non un doppione — e non esiste una terza parola ("veicolo": 0 occorrenze) a complicare il quadro. | `grep -ioE '\bmezzo\b'/'\bmacchina\b' apps/flotta/index.html \| wc -l` → 367/182; `grep -ioE '\bveicolo\b' apps/flotta/index.html` → 0 |
+| «Un errore grezzo (`e.message`, stack trace) arriva all'utente in qualche toast» | **Falsa.** Nessun `.message` di eccezione finisce in un messaggio mostrato; i `catch` silenziosi proteggono solo `localStorage`/grafici e non producono testo verso l'utente. | `grep -n '\.message' apps/flotta/index.html` → nessun risultato |
+| «Import CSV di Flotta lascia scritte tecniche tipo "riga NaN" o codici di errore» | **Falsa.** I messaggi di scarto CSV nominano le colonne attese per nome ("le colonne devono essere nome;area;ore;stato") e usano `frasePersi` condivisa (Blocco 3), non codici. | `grep -n 'le colonne devono essere' apps/flotta/index.html` → 2 righe |
+
+---
+
+### V. RIGHE PROPOSTE DA CHIUDERE QUANDO IL CANTIERE PASSA
+
+*(regola: chi chiude un'unità aggiorna la riga del documento che gliel'aveva proposta)*
+
+- Proposta 13 (tooltip "checklist" vs "giro macchina" in Flotta) — **aperta** al 18/09, commit `de4a6cc7`
