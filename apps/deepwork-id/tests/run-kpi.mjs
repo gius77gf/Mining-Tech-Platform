@@ -28125,6 +28125,26 @@ console.log("\n— Campo: i file che escono —");
     ok(/da una voce non a posto del controllo di inizio turno in Campo il 10\/03\/2026/.test(scudo.origineAzione({ ...b, origineNota: "" }, {}, {})), "e a schermo lo stesso, con le sue parole");
     eq(scudo.origineAzione(b, {}, {}), b.origineNota, "quando la nota c'è, vince la nota (la fotografia scritta da Campo)");
   });
+  test("⛔ 18/09, dal deep-pass QA: testoConsegnaTurno porta il semaforo delle azioni correttive accanto a ogni voce non a posto, come già rapportoGiornata", () => {
+    const doc = { id: "c1", data: "2026-03-10", turno: "Mattina", squadra: "Squadra A", ora: "06:40", esiti: { "0": "ok", "5": "no", "6": "no" }, note: "" };
+    const azioni = [campo.bozzaAzioneChecklist(doc, 6), { ...campo.bozzaAzioneChecklist(doc, 5), stato: "chiusa" }];
+    const base = { oggi: "2026-03-10", checklist: [doc] };
+    const riga = (txt) => txt.split("\n").find((r) => r.startsWith("- Squadra A"));
+    eq(riga(campo.testoConsegnaTurno({ ...base, azioni }, {})),
+      "- Squadra A (turno Mattina): 1 a posto · 0 n.a. · 6 senza risposta, NON A POSTO: Fronte e cigli controllati: nessun blocco in bilico (azione chiusa); Segnaletica e sbarramenti al loro posto (1 azione da chiudere) — chiusa alle 06:40 (senza nome)",
+      "⛔ ERA QUI IL DIFETTO: nominava solo il problema, non lo stato dell'azione correttiva");
+    ok(/\(senza azione\); Segnaletica e sbarramenti al loro posto \(senza azione\)/.test(campo.testoConsegnaTurno({ ...base, azioni: [] }, {})),
+      "senza nessuna azione aperta il semaforo è rosso, non tranquillo");
+    ok(!/\(senza azione\)|\(azione chiusa\)|\(azione da chiudere\)/.test(campo.testoConsegnaTurno(base, {})),
+      "senza il ponte con Scudo (azioni non passate) il testo non giudica — nomina solo il problema, come prima");
+  });
+  test("⛔ 18/09, dal deep-pass QA: il ponte P3 (azioni della checklist) è wired anche sulla consegna testuale, non solo sul rapporto stampato", () => {
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    ok(/testoConsegnaTurno\(\{[^;]*azioni: AZI_HSE/.test(pagina),
+      "la consegna testuale passa AZI_HSE — il difetto trovato il 18/09, corretto nello stesso commit");
+    ok(/rapportoGiornata\(\{[^;]*azioni: AZI_HSE/.test(pagina),
+      "e il rapporto stampato lo passava già (era il documento gemello a mancarlo)");
+  });
   /* IL BRIEFING DI INIZIO TURNO (11/09, dalla ricerca a rotazione su Campo):
      argomento, chi lo ha tenuto, e i presenti presi dall'appello. */
   test("⛔ Campo · briefing: uno per giorno+turno+squadra, i presenti sono quelli dell'appello (chi non è spuntato si dice, non si conta), il foglio e la consegna lo scrivono", () => {

@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.637 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3143, `run-stile` 330,
+  **3.639 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3145, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11306,3 +11306,26 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       Giro completo su worktree isolata: 41/41. 9-suite sum: **3.637**
       (3143+330+83+32+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato
       prima del commit.
+
+## Campo — testoConsegnaTurno, il semaforo delle azioni correttive HSE (18/09)
+- [x] **`testoConsegnaTurno` NOMINAVA LA VOCE NON A POSTO E BASTA, MENTRE IL
+      DOCUMENTO GEMELLO GIÀ NE MOSTRA LO STATO** *(18/09, unità completata, dal
+      deep-pass QA su Campo)*. `rapportoGiornata` (il rapporto stampato) già
+      dice, accanto a ogni voce non a posto della checklist, se un'azione
+      correttiva è aperta in Scudo — «(azione chiusa)», «(1 azione da
+      chiudere)», «(senza azione)» — chiamando `vociNonAPosto(x.c, D.azioni)`.
+      `testoConsegnaTurno` (il documento che il turno entrante legge per
+      primo) scriveva solo `", NON A POSTO: " + s.problemi.join("; ")`, senza
+      mai leggere le azioni — e il chiamante in `index.html` non passava
+      nemmeno `azioni: AZI_HSE` (a differenza della chiamata gemella a
+      `rapportoGiornata`, che lo passa). Corretto in entrambi i punti: la
+      funzione ora usa `vociNonAPosto` con la stessa forma di
+      `rapportoGiornata` quando `AZI_C` è un array, altrimenti il vecchio
+      elenco nudo dei problemi (Scudo non leggibile: «non lo so», non
+      «nessuna»).
+- Nuovo test dedicato con controprova (verificato: la stessa fixture con la
+  riga vecchia rimessa a mano fa cadere il test); nuovo test di cablaggio che
+  legge il sorgente e pretende `azioni: AZI_HSE` in ENTRAMBE le chiamate.
+  KPI: 3143 → **3145**. Giro completo su worktree isolata: 41/41. 9-suite
+  sum: **3.639** (3145+330+83+32+9+8+7+3+22).
+  `numeri-nei-documenti.mjs` verificato prima del commit.

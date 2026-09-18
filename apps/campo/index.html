@@ -4615,7 +4615,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        funzioni dello schermo, sezione per sezione — così la composizione la
        prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
        la pagina, che sa in che modo sta girando. */
-    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, briefing: BRI, operatori: OPER, presenze: PRE, squadre: SQU,
+    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI, operatori: OPER, presenze: PRE, squadre: SQU,
       meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE, lavoratoriHSE: LAV_HSE, scadenzeHSE: SCAD_HSE }, { avviso: avvisoEsempioTesto(), dmy });
     const fermi = riepilogoFermi(ATT_OGGI);
     const el = document.createElement("a");

@@ -3760,6 +3760,10 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   const dmy = opts.dmy || ((iso) => dataIt(iso, "senza data"));
   const RAP_OGGI = d.rapportini || [], ATT_OGGI = d.attivita || [];
   const OBIE = d.obiettivi || [], CHK = d.checklist || [], MET = d.meteo || [], CHI = d.chiusure || [];
+  // ⛔ 18/09, dal deep-pass QA su Campo: il documento GEMELLO
+  // (rapportoGiornata, qui sopra) già dice se una voce non a posto ha
+  // un'azione correttiva aperta in Scudo — questo la nominava e basta.
+  const AZI_C = d.azioni === undefined ? null : d.azioni;
   let txt = "CONSEGNA DI TURNO — " + dmy(OGGI) + "\n\n";
   txt += String(opts.avviso || "");
   /* chi non ha il giorno si dichiara anche qui: la consegna è datata in cima
@@ -3787,8 +3791,14 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   txt += "CHECKLIST DI INIZIO TURNO\n";
   // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
   txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno)));
+    // accanto a ogni voce non a posto, se le azioni di Scudo sono state lette
+    // (`AZI_C` è una lista), il semaforo della risposta — stessa forma di
+    // `rapportoGiornata` qui sopra, non una copia debole che nomina il
+    // problema e basta.
     return "- " + (c.squadra || "—") + " (turno " + (c.turno || "—") + "): " + descriviChecklist(s)
-      + (s.no ? ", NON A POSTO: " + s.problemi.join("; ") : "")
+      + (s.no ? ", NON A POSTO: " + (Array.isArray(AZI_C)
+          ? vociNonAPosto(c, AZI_C).map(v => v.testo + " (" + (v.risposta.n ? v.risposta.label.toLowerCase() : "senza azione") + ")").join("; ")
+          : s.problemi.join("; ")) : "")
       + (c.ora ? " — chiusa alle " + c.ora + (c.chiusaDa ? " da " + c.chiusaDa : " (senza nome)") : " — non chiusa"); }).join("\n")
     : "- nessuna checklist compilata") + "\n\n";
   const briT = (d.briefing || []).filter(b => b && String(b.data || "") === OGGI);
