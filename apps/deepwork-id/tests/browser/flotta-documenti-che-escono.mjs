@@ -217,8 +217,11 @@ const DIFETTI = [
      minima diceva «ok» con accanto «soglia min 0» — una soglia che nessuno ha
      scritto. La decisione adesso la prende `statoScorta`, la stessa che
      disegna la pastiglia sullo schermo. */
-  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): due spazi in meno. */
-  ["    const s = statoScorta(r);\n    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
+  /* ⏱️ RI-ANCORATA il 18/09 sul MODULO (`csvSituazione`): il 18/09 stesso,
+     dal deep-pass QA, è entrato un commento di quattro righe fra
+     `statoScorta` e la riga del CSV (giacenza/soglia col punto inglese) —
+     l'ancora si stringe sulla sola riga del CSV, che non si sposta più. */
+  ["    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + it(s.giacenza) + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + it(s.soglia)))}\\n`;",
    "    const scorta = new Set(sottoScorta(ricambi).map(x => x.id));\n    csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;", MODULO],
   /* 9 · 18/09, dal quarto giro di deep-pass: la sezione «componente» del
      libretto ESPORTATO — il pneumatico al 93,5% della vita attesa,
