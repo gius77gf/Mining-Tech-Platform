@@ -1370,6 +1370,14 @@ const BANCHI = [
   ['Validatore stem/sub illeggibili · controprova', 'genesi-validatore-stem-sub-null.mjs', ['--controprova'], true],
   ['il Validatore di Genesi non accusa "banco rigido/ritardo basso" quando altezza banco o ritardi sono illeggibili', 'genesi-rigidita-timing-null.mjs', []],
   ['Validatore rigidità/timing illeggibili · controprova', 'genesi-rigidita-timing-null.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, terzo giro di deep-pass QA: stessa famiglia, sul
+     badge "Spalla / Ø" — l'unico rimasto senza la guardia degli altri. */
+  ['il Validatore di Genesi non accusa "spalla piccola" quando la spalla è illeggibile', 'genesi-spalla-diametro-null.mjs', []],
+  ['Validatore spalla/diametro illeggibile · controprova', 'genesi-spalla-diametro-null.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: la riconciliazione e "Duplica" volata non avevano
+     nessuna guardia contro il doppio tocco, confermato dal vivo. */
+  ['Genesi: riconciliazione e "Duplica" volata si spengono durante la scrittura', 'genesi-scritture-occupato.mjs', []],
+  ['scritture occupato di Genesi · controprova', 'genesi-scritture-occupato.mjs', ['--controprova'], true],
   ['la vista 3D raggi-X di Genesi non disegna la carica fino al colletto quando il borraggio è illeggibile', 'genesi-xray-stem-null.mjs', []],
   ['raggi-X e stem illeggibile · controprova', 'genesi-xray-stem-null.mjs', ['--controprova'], true],
   ['il popup del foro e la timeline di Genesi mostrano il tempo di progetto, non lo scatter sorteggiato', 'genesi-timing-nominale.mjs', []],

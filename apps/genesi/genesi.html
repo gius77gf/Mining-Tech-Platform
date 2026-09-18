@@ -4483,7 +4483,11 @@ async function riconSave(){
     kgReale:_ricCampo.kgReale, kgProgReg:_ricCampo.kgProgReg, scostKg:_ricCampo.scostKg,
     scostPct:_ricCampo.scostPct, medioKg:_ricCampo.medioKg, medioPct:_ricCampo.medioPct };
   if(rec.real.x50==null&&rec.real.ppv==null&&rec.real.fly==null&&!rec.campo){ toast('Inserisci almeno un valore reale, o importa il consuntivo di carico da Campo'); return; }
+  /* ⛔ 18/09, dal terzo giro di deep-pass QA: nessuna guardia — confermato dal
+     vivo, un doppio tocco registra due riconciliazioni identiche. */
+  occupato('riconSave', true);
   await GDB.aggiungi('riconciliazioni', rec);
+  occupato('riconSave', false);
   toast('Riconciliazione salvata'); riconRender();
 }
 if($('riconOpen')) $('riconOpen').onclick=()=>{ riconRender(); $('riconModal').style.display='flex'; };
@@ -5158,7 +5162,16 @@ if($('sentExport')) $('sentExport').onclick=async()=>{
      non la raddoppia: il codice è lo stesso, e Sentinella deduplica su quello. */
   const rec=previstaDaGenesi({nFori:d.nFori,kgTotali:d.kgTotali,mic:d.mic,dist:d.dist,ppv:d.ppv,lim:d.lim,norma:d.norma,fonte:d.fonte,db:d.db,codice,calibrata:d.calibrata,provvisoria:d.provvisoria,referti:d.referti},data,fronte);
   let inOrg=false;
+  /* ⛔ 18/09, dal terzo giro di deep-pass QA: il controllo "già presente" è un
+     TOCTOU — legge `GDB.previste()` PRIMA di scrivere, e un doppio tocco
+     quasi simultaneo legge lo stesso elenco due volte prima che la prima
+     scrittura sia tornata: due righe con lo STESSO codiceVolata, esattamente
+     il doppione che questo controllo esiste per evitare, confermato dal
+     vivo. occupato() non chiude la finestra di per sé, ma impedisce che sia
+     un secondo TOCCO a riaprirla. */
+  occupato('sentExport', true);
   if(rec){ try{ const gia=(await GDB.previste()).some(p=>p&&p.codiceVolata===codice); if(!gia) await GDB.aggiungi('previste',rec); inOrg=true; }catch(e){ inOrg=false; } }
+  occupato('sentExport', false);
   _sentFatto={file,data,codice}; sentRender();
   toast(inOrg
     ? (GDB.mode==='live' ? 'Volata prevista scritta nell\'organizzazione: Sentinella la trova in Registro volate → «Previste da Genesi». File scaricato per chi lavora altrove.'
@@ -5391,7 +5404,17 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
       });
     return;
   }
-  if(act==='dup'){ const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale(); await GDB.aggiungi('volate', c); renderHome(); toast('✓ Duplicata'); return; }
+  if(act==='dup'){
+    /* ⛔ 18/09, dal terzo giro di deep-pass QA: nessuna guardia — confermato
+       dal vivo, un doppio tocco duplica due volte invece di una. Il bottone
+       nasce senza un id fisso (una riga per volata, dal rendering della
+       lista): si disabilita l'elemento stesso invece di passare da
+       occupato(id, ...), che vuole un id nel DOM. */
+    if(btn.disabled) return;
+    btn.disabled=true;
+    const c=JSON.parse(JSON.stringify(arr[i])); c.id='v'+Date.now(); c.nome=arr[i].nome+' (copia)'; c.data=timbroLocale();
+    await GDB.aggiungi('volate', c); renderHome(); toast('✓ Duplicata'); return;
+  }
   if(act==='apri'){
     Object.assign(D2, JSON.parse(JSON.stringify(arr[i].design)));
     /* i fori salvati col progetto (05/09): se il design li porta si
@@ -5532,7 +5555,14 @@ $('btn-piano-csv').onclick=async()=>{
      esportato due volte non diventa due piani: l'impronta è del testo. */
   const recPiano=pianoDaGenesi(righePiano,{ nome:'Piano di carico del '+new Date().toLocaleDateString('it-IT') });
   let pianoInOrg=false;
+  /* ⛔ 18/09, dal terzo giro di deep-pass QA: stesso TOCTOU di sentExport —
+     il controllo "stessa impronta" legge PRIMA di scrivere, e un doppio
+     tocco quasi simultaneo lo vede passare due volte prima che la prima
+     scrittura sia tornata, confermato dal vivo (due piani con la stessa
+     impronta). occupato() chiude la finestra impedendo un secondo tocco. */
+  occupato('btn-piano-csv', true);
   try{ const gia=(await GDB.piani()).some(p=>p&&p.impronta===recPiano.impronta); if(!gia) await GDB.aggiungi('piani',recPiano); pianoInOrg=true; }catch(e){ pianoInOrg=false; }
+  occupato('btn-piano-csv', false);
   toast('✓ Piano di carico esportato: '+_ricPlur(D2.holes.length,'foro','fori')
     +(pianoInOrg?(GDB.mode==='live'?' — e scritto nell\'organizzazione: in Campo compare in «Piano di carico → Piani da Genesi»':' — sullo stesso computer Campo lo trova in «Piano di carico → Piani da Genesi»'):'')
     +(_pcMancanti.length?' — attenzione: '+_pcMancanti.join(', ')+(_pcMancanti.length===1?' non è un numero leggibile e nel file la colonna resta vuota':' non sono numeri leggibili e nel file quelle colonne restano vuote'):''),
@@ -6695,7 +6725,16 @@ function renderScheda2D(){
     'banco snello: buona frammentazione.',
     'banco rigido: &lt;3 riduce la frammentazione (&lt;2 rischio cratere/blocchi al piede).',''));
   const _rho=(selEsplosivo()||{}).densita_gcc||0.82, _kbLo=_rho>1.0?27:23, _kbHi=_rho>1.0?33:28, _Bcons=((_kbLo+_kbHi)/2*Dm);
-  rows.push(badge(bd,'Spalla / Ø',gnum(bd,0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
+  /* ⛔ 18/09, dal terzo giro di deep-pass QA: qui mancava la stessa guardia
+     di «Rapporto S/B» e «Rigidità H/B» — `bd=B/Dm` con la spalla illeggibile
+     dava `null/Dm`=0, un numero finito che il validatore giudicava come una
+     spalla vera e piccolissima, accusando «spalla piccola... riduci spalla o
+     aumenta Ø»: un'accusa di sicurezza fabbricata su un campo vuoto. */
+  if(!(_geoOk(B)&&_geoOk(Dm))){
+    const _senzaBD=volataSenzaValori({B:D2.B});
+    rows.push(nonCalcolabile('Spalla / Ø', _senzaBD ? (_senzaBD.che+'. '+_senzaBD.come)
+      : ('la spalla o il diametro non danno un rapporto leggibile (spalla '+gfix(B,2)+' m, Ø '+Dmm+' mm).')));
+  } else rows.push(badge(bd,'Spalla / Ø',gnum(bd,0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
     'spalla coerente con Ø ed esplosivo ('+_kbLo+'–'+_kbHi+'·Ø ≈ '+gfix(_kbLo*Dm,1)+'–'+gfix(_kbHi*Dm,1)+' m).',
     'spalla piccola per Ø'+Dmm+' mm con questo esplosivo; consigliata ~'+gfix(_Bcons,1)+' m.',
     'spalla elevata per Ø'+Dmm+' mm con questo esplosivo (consigliata ~'+gfix(_Bcons,1)+' m, '+_kbLo+'–'+_kbHi+'·Ø). Riduci spalla o aumenta Ø.'));
