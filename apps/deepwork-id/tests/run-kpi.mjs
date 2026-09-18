@@ -43804,6 +43804,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   test("Sentinella · la pagina legge le condizioni dal modulo, in tre posti, e la tendina delle direzioni non ne tiene una copia", () => {
     const pagina = readFileSync(join(HERE, "../../sentinella/index.html"), "utf8");
     eq((pagina.match(/misuraFuoriCondizioni\(/g) || []).length >= 3, true, "riga della lettura, conferma di scrittura, report");
+    /* ⛔ 18/09, dal quarto giro di deep-pass: due delle quattro chiamate
+       (conferma di scrittura riga ~5821, anteprima import riga ~3651) NON
+       passavano il terzo argomento — il meteo del ponte con Campo — mentre
+       le altre due (scheda del punto, report) sì. Il test qui sopra contava
+       solo "almeno 3 chiamate", senza guardare COSA ognuna passa: bastava a
+       non accorgersi che due su quattro erano rimaste indietro. Ora si
+       pretende che OGNI riga che chiama la funzione porti anche il ponte. */
+    const righeChiamata = pagina.split("\n").filter((r) => /misuraFuoriCondizioni\(/.test(r));
+    eq(righeChiamata.length >= 4, true, "quattro punti di chiamata: riga della lettura, anteprima import, conferma di scrittura, report");
+    for (const riga of righeChiamata)
+      ok(/meteoDelGiorno\(/.test(riga),
+        "ogni chiamata a misuraFuoriCondizioni deve portare il meteo del ponte con Campo, non solo alcune: " + riga.trim());
     ok(/contaFuoriCondizioni\(p\.letture, p\.m \|\| null, IDX_METEO_GIORNO\)/.test(pagina),
       "⛔ 17/09: il conto del report lo fa il modulo, E porta il meteo del ponte con Campo — mancava, e il report diceva «non si può dire» dove lo schermo avrebbe detto «fuori condizioni»");
     ok(/DIREZIONI_VENTO\.map\(/.test(pagina), "le direzioni della tendina vengono dal modulo");

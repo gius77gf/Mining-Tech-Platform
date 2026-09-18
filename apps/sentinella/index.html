@@ -3648,7 +3648,11 @@ textarea.dw-input{
     const c = condizioniMisura(r);
     const nl = Array.isArray(r.meteoNonLetti) ? r.meteoNonLetti.map(k => NOME_COND[k] || k) : [];
     if (!c.registrate && !nl.length) return "";
-    const fc = m ? misuraFuoriCondizioni(r, m) : { fuori: false };
+    /* ⛔ 18/09, dal quarto giro di deep-pass: mancava il terzo argomento
+       (il meteo del ponte con Campo, come alle righe 2297/4166) — l'anteprima
+       d'import poteva dire «non si può dire» su una lettura che la scheda del
+       punto e il report avrebbero già giudicato «fuori condizioni». */
+    const fc = m ? misuraFuoriCondizioni(r, m, meteoDelGiorno(IDX_METEO_GIORNO.get(String(r.data || "").slice(0, 10)) || [])) : { fuori: false };
     return `<small class="ev">${esc(c.testo)}${nl.length ? (c.testo ? " · " : "") + "<b>non letta: " + esc(nl.join(", ")) + "</b>" : ""}${
       fc.fuori ? ` <span class="tag warn fb" title="${esc(fc.motivo)}">fuori condizioni</span>` : ""}</small>`;
   };
@@ -5818,7 +5822,11 @@ textarea.dw-input{
     /* sul rumore, se le condizioni scritte la mettono fuori norma lo si dice
        NELL'ISTANTE in cui si registra — è la frase che l'utente legge mentre
        scrive il dato, e «→ Conforme» da sola direbbe di stare tranquilli */
-    const fc = misuraFuoriCondizioni(nuova, m || {});
+    /* ⛔ 18/09, dal quarto giro di deep-pass: stesso terzo argomento mancante
+       che alla riga ~3651 — qui è la striscia che l'utente legge NELL'ISTANTE
+       in cui preme «Registra», quindi il punto peggiore in cui tacere il
+       ponte con Campo. */
+    const fc = misuraFuoriCondizioni(nuova, m || {}, meteoDelGiorno(IDX_METEO_GIORNO.get(String(nuova.data || "").slice(0, 10)) || []));
     esito("mis-esito", "Misura su " + (m ? m.nome.split(" — ")[0] : id) + ": " + misuraTxt + " → " + st.label + ". La serie storica del punto è aggiornata."
       + (fc.fuori ? " Attenzione: " + fc.motivo + ". La lettura resta nei conti finché non la dichiari non valida (ragione «vento oltre 5 m/s o pioggia»)." : ""),
       st.cls === "danger" || fc.fuori ? "err" : "success",
