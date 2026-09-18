@@ -2146,10 +2146,8 @@ export function icsCalendario(eventi, opzioni) {
   };
   const giornoPiu = (iso, n) => { const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const compatto = (iso) => iso.replace(/-/g, "");
-  const stamp = (() => {
-    const d = o.adesso ? new Date(o.adesso) : new Date();
-    return isNaN(d) ? "" : d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  })();
+  const soglia = o.adesso ? new Date(o.adesso) : new Date();
+  const stamp = isNaN(soglia) ? "" : soglia.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   /* ⛔ IL NOME DEL FILE MUORE ALL'IMPORTAZIONE (11/09, trovato dal banco
      `csv-dimostrazione`): un calendario importato in Google Calendar o sul
      telefono lascia il file e tiene gli EVENTI — un «Visita medica · Mario
@@ -2176,9 +2174,27 @@ export function icsCalendario(eventi, opzioni) {
       "SUMMARY:" + sfuggi((avviso ? "[DATI DI ESEMPIO] " : "") + (e.titolo || "Scadenza")));
     const descr = [avviso, e.descrizione].filter(Boolean).join("\n");
     if (descr) righe.push("DESCRIPTION:" + sfuggi(descr));
-    for (const g of (e.preavvisiGiorni || []).filter((n) => Number.isFinite(+n) && +n >= 0)) {
+    /* ⛔ 18/09, dal backlog QA: un TRIGGER relativo (`-P{n}D`) è sempre
+       calcolato da DTSTART, mai da "adesso". Su un evento già scaduto — e
+       Sentinella ne calcola la data (il prossimo controllo dovuto), non la
+       registra: un periodo saltato la mette regolarmente nel passato — ogni
+       preavviso, compreso PT0S, cade PRIMA di adesso: nessun calendario lo fa
+       squillare, perché l'istante è già passato quando il file viene aperto.
+       Un preavviso il cui istante è già trascorso diventa un avviso ASSOLUTO
+       fissato ad "adesso" (lo stesso istante di DTSTAMP): squilla appena il
+       calendario importa il file, invece di restare muto per sempre. I
+       preavvisi ancora davanti a sé restano relativi, com'erano. */
+    const preavvisi = (e.preavvisiGiorni || []).filter((n) => Number.isFinite(+n) && +n >= 0).map(Number);
+    let giaTrascorsi = false;
+    for (const g of preavvisi) {
+      const momento = new Date(data + "T00:00:00Z"); momento.setUTCDate(momento.getUTCDate() - Math.round(g));
+      if (!isNaN(soglia) && momento < soglia) { giaTrascorsi = true; continue; }
       righe.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + sfuggi(e.titolo || "Scadenza"),
-        "TRIGGER:" + (+g === 0 ? "PT0S" : "-P" + Math.round(+g) + "D"), "END:VALARM");
+        "TRIGGER:" + (g === 0 ? "PT0S" : "-P" + g + "D"), "END:VALARM");
+    }
+    if (giaTrascorsi && stamp) {
+      righe.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + sfuggi(e.titolo || "Scadenza"),
+        "TRIGGER;VALUE=DATE-TIME:" + stamp, "END:VALARM");
     }
     righe.push("END:VEVENT");
   }

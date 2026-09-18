@@ -27925,6 +27925,13 @@ console.log("\n— Campo: i file che escono —");
      nel documento) si provano alla lettera perché il nuovo Outlook rifiuta un
      file piegato male. */
   test("⛔ shared · icsCalendario: un file iCalendar valido — giorno intero, avvisi, CRLF, escaping, piegatura a 75 ottetti", () => {
+    /* ⛔ 18/09, dal backlog QA: questa dimostrazione porta la data 2026-07-02
+       con «adesso» all'11/09 — cioè un evento già passato da tempo, coi due
+       preavvisi (30 e 7 gg prima del 2 luglio) entrambi caduti prima
+       dell'11/09. Prima della correzione la fixture non se ne accorgeva (il
+       trigger relativo non guarda «adesso»); ora i due preavvisi scaduti
+       collassano in UN avviso assoluto — vedi il test dedicato qui sotto
+       per il caso, ancora presente, dei preavvisi davanti a sé. */
     const r = shell.icsCalendario([{ uid: "a1", data: "2026-07-02", titolo: "Visita medica · Mario Rossi", descrizione: "Periodica; con esami, urgente\nSeconda riga", preavvisiGiorni: [30, 7] }], { app: "Scudo", adesso: "2026-09-11T02:00:00Z" });
     eq([r.inclusi, r.saltati], [1, 0]);
     const righe = r.ics.split("\r\n");
@@ -27933,11 +27940,36 @@ console.log("\n— Campo: i file che escono —");
     ok(righe.includes("DTSTAMP:20260911T020000Z"), "il DTSTAMP viene da fuori: il file è riproducibile");
     ok(righe.includes("UID:a1@deepwork"), "l'UID è quello dato, col dominio");
     ok(righe.includes("DESCRIPTION:Periodica\\; con esami\\, urgente\\nSeconda riga"), "punto e virgola, virgola e a capo sfuggiti");
-    eq(righe.filter((x) => x === "BEGIN:VALARM").length, 2, "due avvisi");
-    ok(righe.includes("TRIGGER:-P30D") && righe.includes("TRIGGER:-P7D"), "a 30 e a 7 giorni prima");
+    eq(righe.filter((x) => x === "BEGIN:VALARM").length, 1, "⛔ un solo avviso: i due preavvisi (30 e 7 gg prima del 2 luglio) sono entrambi già passati rispetto ad «adesso» (11 settembre) e collassano in uno solo");
+    ok(righe.includes("TRIGGER;VALUE=DATE-TIME:20260911T020000Z") && !righe.includes("TRIGGER:-P30D") && !righe.includes("TRIGGER:-P7D"), "⛔ non più un TRIGGER relativo (che squillerebbe nel passato): uno assoluto, allo stesso istante del DTSTAMP");
     ok(r.ics.endsWith("END:VCALENDAR\r\n"), "chiude con CRLF");
     ok(!/[^\r]\n/.test(r.ics), "nessun a capo nudo: solo CRLF");
     ok(righe.every((x) => Buffer.byteLength(x, "utf8") <= 75), "nessuna riga supera i 75 ottetti");
+  });
+  test("⛔ shared · icsCalendario: un preavviso il cui istante è già passato squilla SUBITO, non resta muto per sempre (18/09, dal backlog QA)", () => {
+    /* Sentinella calcola la data (la prossima misura dovuta), non la
+       registra: un periodo saltato la mette regolarmente nel passato. Con
+       un TRIGGER relativo (-P{n}D, sempre calcolato da DTSTART) nessun
+       calendario fa squillare un avviso il cui istante è già trascorso
+       quando il file viene importato — l'allarme è morto dalla nascita. */
+    const oggi = "2026-09-18T08:00:00Z";
+    // evento scaduto da 50 giorni: preavviso 30 E 7 giorni sono tutt'e due nel passato
+    const scaduto = shell.icsCalendario([{ uid: "s1", data: "2026-07-30", titolo: "Misura", preavvisiGiorni: [30, 7] }], { adesso: oggi });
+    const righeS = scaduto.ics.split("\r\n");
+    eq(righeS.filter((x) => x === "BEGIN:VALARM").length, 1, "un solo avviso, non due morti");
+    ok(righeS.includes("TRIGGER;VALUE=DATE-TIME:20260918T080000Z"), "e squilla ADESSO (l'istante del DTSTAMP), non in un momento che non arriverà mai");
+    ok(!righeS.some((x) => x.startsWith("TRIGGER:-P")), "nessun TRIGGER relativo morto");
+    // evento futuro (13/10): preavviso 30gg (13/09, già passato) e 7gg (06/10, ancora futuro) — misto
+    const misto = shell.icsCalendario([{ uid: "s2", data: "2026-10-13", titolo: "Misura", preavvisiGiorni: [30, 7] }], { adesso: oggi });
+    const righeM = misto.ics.split("\r\n");
+    eq(righeM.filter((x) => x === "BEGIN:VALARM").length, 2, "un avviso resta futuro, uno scaduto: due avvisi, non uno o tre");
+    ok(righeM.includes("TRIGGER:-P7D"), "il preavviso a 7 giorni (6 ottobre) è ancora davanti a sé: resta relativo");
+    ok(righeM.includes("TRIGGER;VALUE=DATE-TIME:20260918T080000Z") && !righeM.includes("TRIGGER:-P30D"), "quello a 30 giorni (13 settembre) è già passato: diventa l'avviso assoluto");
+    // evento tutto futuro: nessun avviso tocca, comportamento invariato
+    const futuro = shell.icsCalendario([{ uid: "s3", data: "2027-01-01", titolo: "Misura", preavvisiGiorni: [30, 7] }], { adesso: oggi });
+    const righeF = futuro.ics.split("\r\n");
+    eq(righeF.filter((x) => x === "BEGIN:VALARM").length, 2, "tutto futuro: due avvisi relativi, comportamento invariato");
+    ok(righeF.includes("TRIGGER:-P30D") && righeF.includes("TRIGGER:-P7D") && !righeF.some((x) => x.startsWith("TRIGGER;VALUE=DATE-TIME")), "nessun avviso assoluto quando non serve");
   });
   test("⛔ shared · icsCalendario: la piegatura conta gli OTTETTI e non spezza un carattere accentato", () => {
     const lungo = "à".repeat(60);   // 120 ottetti
@@ -27952,7 +27984,14 @@ console.log("\n— Campo: i file che escono —");
     const r = shell.icsCalendario([{ data: "2026-02-30", titolo: "x" }, { data: "boh", titolo: "y" }, { data: "", titolo: "z" }, { data: "2026-03-01", titolo: "w" }], { adesso: "2026-01-01T00:00:00Z" });
     eq([r.inclusi, r.saltati], [1, 3], "il 30 febbraio, «boh» e il vuoto restano fuori — un avviso su un giorno inventato è peggio di nessun avviso");
     eq(shell.icsCalendario([], {}).inclusi, 0); ok(/BEGIN:VCALENDAR\r\n[\s\S]*END:VCALENDAR\r\n$/.test(shell.icsCalendario(null, {}).ics), "senza eventi un calendario vuoto ma valido");
-    ok(shell.icsCalendario([{ data: "2026-03-01", titolo: "w", preavvisiGiorni: [0, -3, "x"] }], {}).ics.includes("TRIGGER:PT0S"), "un preavviso di zero giorni è «al momento»; quelli negativi o illeggibili si scartano");
+    /* ⛔ 18/09: qui «adesso» va dato esplicito — senza, questo test misura
+       l'orologio VERO della macchina, e il 2026-03-01 diventa scaduto
+       (rispetto a un "adesso" reale successivo) non appena passa quella
+       data: un preavviso PT0S scaduto diventa un TRIGGER assoluto, e questa
+       riga smetterebbe di trovare "TRIGGER:PT0S" senza che nessuno l'abbia
+       toccata. È la stessa famiglia delle prove che devono girare anche con
+       TZ diverso: qui a cambiare è il calendario, non il fuso. */
+    ok(shell.icsCalendario([{ data: "2026-03-01", titolo: "w", preavvisiGiorni: [0, -3, "x"] }], { adesso: "2026-01-01T00:00:00Z" }).ics.includes("TRIGGER:PT0S"), "un preavviso di zero giorni è «al momento»; quelli negativi o illeggibili si scartano");
   });
   test("⛔ Scudo · calendarioScadenze: un evento per scadenza col lavoratore, lo stato di oggi, gli avvisi alle soglie del semaforo, e le senza data contate", () => {
     const D = scudo.DEMO;
@@ -28055,7 +28094,10 @@ console.log("\n— Campo: i file che escono —");
     ok(s.includes("UID:sentinella-adempimento-d1@deepwork") && s.includes("UID:sentinella-taratura-v1@deepwork") && s.includes("UID:sentinella-programma-pr1@deepwork"), "UID per famiglia e id: reimportare aggiorna, non raddoppia");
     // gli avvisi: 30 e 7 per adempimenti e tarature, il giorno prima per le misure
     const blocco = (uid) => s.slice(s.indexOf("UID:" + uid), s.indexOf("END:VEVENT", s.indexOf("UID:" + uid)));
-    ok(blocco("sentinella-adempimento-d2").includes("TRIGGER:-P30D") && blocco("sentinella-adempimento-d2").includes("TRIGGER:-P7D"), "adempimento: 30 e 7 giorni");
+    /* ⛔ 18/09: d2 scade il 30/09, oggi è l'11/09 — il preavviso a 30 giorni
+       (1° settembre) è già passato, quello a 7 (23 settembre) è ancora
+       davanti a sé: un caso misto reale, non costruito apposta. */
+    ok(blocco("sentinella-adempimento-d2").includes("TRIGGER;VALUE=DATE-TIME:20260911T020000Z") && !blocco("sentinella-adempimento-d2").includes("TRIGGER:-P30D") && blocco("sentinella-adempimento-d2").includes("TRIGGER:-P7D"), "adempimento: il preavviso a 30 gg (già passato) diventa assoluto, quello a 7 (ancora futuro) resta relativo");
     ok(blocco("sentinella-programma-pr4").includes("TRIGGER:-P1D") && !blocco("sentinella-programma-pr4").includes("TRIGGER:-P30D"), "misura: il giorno prima, non 30 — una cadenza settimanale con un avviso a 30 giorni non avvisa niente");
     // senza data: nominato, mai inventato
     const r2 = sentinella.calendarioAmbiente([{ id: "x", titolo: "Rinnovo", ente: "SUAP", scadenza: "" }, { id: "y", titolo: "Boh", ente: "—", scadenza: "2026-02-30" }], [], [], oggi, "2026-09-11T02:00:00Z");
@@ -28079,7 +28121,10 @@ console.log("\n— Campo: i file che escono —");
     const s = r.ics.replace(/\r\n /g, "");
     const blocco = (uid) => s.slice(s.indexOf("UID:" + uid), s.indexOf("END:VEVENT", s.indexOf("UID:" + uid)));
     ok(blocco("terra-scadenza-t1").includes("TRIGGER:-P180D") && blocco("terra-scadenza-t1").includes("TRIGGER:-P7D"), "il titolo avvisa a 180 giorni — il preavviso scritto su quella scadenza — e a 7");
-    ok(blocco("terra-scadenza-t3").includes("TRIGGER:-P30D") && !blocco("terra-scadenza-t3").includes("TRIGGER:-P180D"), "il rilievo periodico a 30: ogni scadenza ha il suo");
+    /* ⛔ 18/09: t3 scade il 10/08, oggi è l'11/09 — è scaduta da 32 giorni, e
+       il suo unico preavviso (30 gg prima, l'11/07) è quindi anche lui già
+       passato: diventa l'avviso assoluto, non c'è più un TRIGGER relativo. */
+    ok(blocco("terra-scadenza-t3").includes("TRIGGER;VALUE=DATE-TIME:20260911T020000Z") && !blocco("terra-scadenza-t3").includes("TRIGGER:-P30D") && !blocco("terra-scadenza-t3").includes("TRIGGER:-P180D"), "il rilievo periodico, scaduto, ha un preavviso suo (30, non 180) — ma essendo passato pure quello, diventa l'avviso assoluto");
     ok(blocco("terra-scadenza-t2").includes("SUMMARY:Polizza fideiussoria — rinnovo annuale") && blocco("terra-scadenza-t2").includes("DESCRIPTION:Fideiussione\\nRicorre ogni 12 mesi\\nSi svincola solo dopo il collaudo finale.\\nOggi: tra 19 gg"), "la descrizione porta il tipo, la ricorrenza, la nota e il verdetto di oggi con le parole dello schermo");
     ok(blocco("terra-scadenza-t4").includes("Oggi: scaduta da 63 gg"), "una scaduta lo dice");
     ok(!/terra-titolo-/.test(s), "nessun evento «titolo» dalla scheda: sarebbe un doppione");
