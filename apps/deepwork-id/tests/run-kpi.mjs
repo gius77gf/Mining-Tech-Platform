@@ -27876,9 +27876,26 @@ console.log("\n— Campo: i file che escono —");
     const r = scudo.calendarioScadenze(D.scadenze, D.lavoratori, new Date("2026-09-11T10:00:00"), "2026-09-11T02:00:00Z");
     eq(r.inclusi, D.scadenze.filter((x) => shell.dataISOEsiste(String(x.dataScadenza || "").slice(0, 10))).length, "tutte le scadenze con una data che esiste");
     eq(r.saltati + r.inclusi, D.scadenze.length, "e il conto torna con la dimostrazione");
-    ok(r.ics.includes("SUMMARY:Visita medica · Mario Rossi"), "il titolo è tipo e lavoratore");
+    ok(r.ics.includes("SUMMARY:Visita medica periodica · Mario Rossi"), "il titolo è l'etichetta di etichettaScadenza (la descrizione se c'è), non il tipo grezzo");
     ok(r.ics.includes("Oggi: scaduta da 71 gg"), "la descrizione dice lo stato di oggi, con le parole del semaforo");
     ok(r.ics.includes("UID:scudo-scadenza-s1@deepwork"), "l'UID è l'id della scadenza: reimportare il file aggiorna, non raddoppia");
+    /* ⛔ 18/09, dal deep-pass QA: calendarioScadenze ricostruiva il titolo a
+       mano da tipo||"Scadenza", ignorando etichettaScadenza — la stessa copia
+       debole già chiusa il 07/08 in schermo/CSV/cartella (righe 1400-1429),
+       ripresentata sulla superficie nuova nata quattro settimane dopo. Due
+       obblighi con lo stesso tipo e descrizioni diverse uscivano nel file
+       .ics — e quindi nel calendario del telefono, dove si vede solo il
+       titolo — come due eventi indistinguibili. */
+    const rDue = scudo.calendarioScadenze(
+      [
+        { id: "x1", tipo: "Patente", descrizione: "Fochino — abilitazione brillamento mine", lavoratoreId: "d1", dataScadenza: "2026-10-01" },
+        { id: "x2", tipo: "Patente", descrizione: "Patentino conduzione escavatore", lavoratoreId: "d1", dataScadenza: "2026-11-01" },
+      ],
+      D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z"
+    );
+    ok(rDue.ics.includes("SUMMARY:Fochino — abilitazione brillamento mine · Mario Rossi"), "primo obbligo: titolo distinto");
+    ok(rDue.ics.includes("SUMMARY:Patentino conduzione escavatore · Mario Rossi"), "secondo obbligo: titolo distinto, non «Patente · Mario Rossi» ripetuto");
+    ok(!rDue.ics.includes("SUMMARY:Patente · Mario Rossi"), "controprova inline: col vecchio titolo grezzo i due sarebbero comparsi identici");
     const r2 = scudo.calendarioScadenze([{ id: "q", tipo: "Corso", lavoratoreId: "nessuno", dataScadenza: "2026-10-01" }, { id: "z", tipo: "DPI", lavoratoreId: "d1" }], D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z");
     ok(r2.ics.includes("SUMMARY:Corso · azienda"), "una scadenza senza persona è «azienda», non un nome vuoto");
     eq(r2.senzaData, ["DPI · Mario Rossi"], "la scadenza senza data resta fuori ed è nominata");
