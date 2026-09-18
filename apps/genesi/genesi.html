@@ -6145,7 +6145,24 @@ function drawReliefLegenda(ctx,g){
 /* forma muckpile per sequenza (5 correzioni verifica: angolo isocrono corretto tanθ=(B·tHole)/(S·tRow),
    range tRow coerenti, balistica con quota h0=H/2, spread laterale V-cut separato, v0 ancorata a heave non a √PF grezzo) */
 function muckShape(){
-  const B=D2.B, S=D2.S, tHole=D2.ritardo, tRow=D2.ritardoFila||tHole*2, Hb=D2.prof, seq=D2.sequenza||'diagonale';
+  /* ⛔ 18/09, dal quarto giro di deep-pass QA: questa funzione rileggeva
+     `D2.B`/`D2.S` GREZZI, non i `g.B`/`g.S` misurati che `renderScheda2D`
+     usa già per ogni altro badge (stessa famiglia già chiusa oggi su S/B,
+     H/B, Spalla/Ø, Timing). Con la spalla illeggibile `theta` andava a
+     `NaN` (propagando ovunque), e con l'interasse illeggibile
+     `Be=B*cos(90°)` andava a un numero quasi zero per un errore di
+     floating point — non intercettato da nessun controllo — da cui un
+     `v0` e un `L` dell'ordine di 1e17/1e30, finiti (non `NaN`), quindi
+     `gnum` li scrive per intero invece di «—»: un baricentro del cumulo
+     stimato in miliardi di miliardi di metri, presentato come una stima
+     vera. */
+  const _gm=measureGeom2D(D2), _geoOk=(x)=>Number.isFinite(x)&&x>0;
+  if(!(_geoOk(_gm.B)&&_geoOk(_gm.S))){
+    const _senza=volataSenzaValori({B:D2.B,S:D2.S});
+    return { calcolabile:false,
+      perche:_senza ? (_senza.che+'. '+_senza.come) : 'la spalla o l\'interasse non danno una geometria leggibile.' };
+  }
+  const B=_gm.B, S=_gm.S, tHole=D2.ritardo, tRow=D2.ritardoFila||tHole*2, Hb=D2.prof, seq=D2.sequenza||'diagonale';
   let theta=Math.atan((B*tHole)/(S*tRow));                  // rad — CORRETTO (era invertito nello spec)
   if(seq==='riga') theta=0;                                 // isocrona parallela al fronte
   const thetaDeg=theta*180/Math.PI, Be=(seq==='riga')?B:B*Math.cos(theta), msmRow=tRow/B;
@@ -6173,7 +6190,7 @@ function muckShape(){
   else if(seq==='box'){ spreadLat='radiale'; phiDeg=0; dirTxt='radiale dal centro → cumulo compatto centrale'; }
   else if(seq==='riga'){ spreadLat='stretto'; phiDeg=0; dirTxt='simmetrico → lancio dritto in avanti, cumulo poco disteso'; }
   else { spreadLat='moderato'; phiDeg=Math.round(thetaDeg); dirTxt='asimmetrico verso il lato di partenza, baricentro ruotato di ~'+Math.round(thetaDeg)+'°'; }
-  return { theta:Math.round(thetaDeg), Be:+Be.toFixed(2), msmRow, v0:+v0.toFixed(1), L:+L.toFixed(1), SF, cls, formaTxt, spreadLat, phiDeg, dirTxt, seq };
+  return { calcolabile:true, theta:Math.round(thetaDeg), Be:+Be.toFixed(2), msmRow, v0:+v0.toFixed(1), L:+L.toFixed(1), SF, cls, formaTxt, spreadLat, phiDeg, dirTxt, seq };
 }
 /* 13/09 (G35, "Genesi continua a uscire dalla pagina"): il corpo è salito in
    genesi-data.js come `misuraGeom2D(holes, Sprog, Bprog)` — stessa logica,
@@ -7092,10 +7109,15 @@ function renderScheda2D(){
   /* forma del cumulo in funzione della sequenza di sparo */
   const _seqLab={riga:'riga per riga',diagonale:'diagonale',vcut:'V-cut',box:'box cut'};
   const _mk=muckShape();
+  if(!_mk.calcolabile){
+    rows.push(nonCalcolabile('Forma cumulo',_mk.perche));
+    rows.push(nonCalcolabile('Direzione cumulo',_mk.perche));
+  } else {
   rows.push({lab:'Forma cumulo',valStr:gfix(_mk.msmRow,1)+' <span>ms/m · '+_mk.formaTxt+'</span>',cls:_mk.cls,
     why:'sequenza '+(_seqLab[_mk.seq]||_mk.seq)+', ritardo inter-fila '+gfix(_mk.msmRow,1)+' ms/m → cumulo '+_mk.formaTxt+'. Spostamento ottimale a 8–14 ms/m: baricentro avanzato ~'+gnum(_mk.L,0)+' m (v0 faccia ~'+gnum(_mk.v0,0)+' m/s, α 42°, quota di partenza H/2), rigonfiamento ~'+gnum(_mk.SF,2)+'×. <5 ms/m = serrato/backbreak, >16 = sovra-throw/proiezioni.'});
   rows.push({lab:'Direzione cumulo',valStr:(_mk.phiDeg>0?'~'+_mk.phiDeg+'° ':'')+'<span>'+(_mk.seq==='diagonale'?'↗ asimmetrico':'↑ simmetrico')+'</span>',cls:'sv-info',
     why:_mk.dirTxt+'. Burden effettivo Be '+gfix(_mk.Be,1)+' m (angolo isocrono '+gnum(_mk.theta,0)+'°); spread laterale '+_mk.spreadLat+'.'});
+  }
   const _rk=selRoccia(), _rf=rockFactorA(), _A=_rf.A, _RWS0=(selEsplosivo()||{}).rws_pct||100, _RWS=Math.max(8,_RWS0*(1-_penE));
   /* ⚠️ QUESTA RIGA SCRIVEVA `0.633` DOVE LE ALTRE TRE COPIE SCRIVONO `19/30`
      (0,6333…): una divergenza da 1,00005 su x50, cioè zero centimetri
@@ -7458,7 +7480,13 @@ function renderScheda2D(){
       _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: foro troppo corto (zona carica ≈ '+gfix(_Lc,1)+' m). Riduci il numero di deck, la profondità del borraggio di testa, o aumenta la profondità.</div>';
     } else {
     const _gap=Math.max(0.2, Math.min(D2.deckStem||1, (_Lc-0.4*_N)/(_N-1)));   // borraggio interm.: ≥0.2 m, lascia ≥0.4 m/deck
-    const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=Q/_N;
+    /* ⛔ 18/09, dal quarto giro di deep-pass QA: `Q/_N` con `Q=D2.kg` illeggibile
+       (`null`) faceva `null/_N=0` — un "0 kg" scritto due volte accanto a
+       "Totale carica — kg (invariato)" nella stessa frase, la stessa
+       contraddizione (zero fabbricato accanto a un "non calcolabile" vero)
+       già chiusa altrove in questo file per la carica assente. `gnum` sa già
+       scrivere «—» per `null`: basta non fargli arrivare uno zero di comodo. */
+    const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=(Q==null)?null:Q/_N;
     const _hpx=84, _wpx=20, _yy=(len)=>Math.max(0,len/_Ltot*_hpx);
     let _segs='<rect x="0" y="0" width="'+_wpx+'" height="'+_yy(_stemDeck).toFixed(1)+'" fill="#8a8a8a"/>', _cur=_stemDeck;
     for(let i=0;i<_N;i++){ _segs+='<rect x="0" y="'+_yy(_cur).toFixed(1)+'" width="'+_wpx+'" height="'+_yy(_deckLen).toFixed(1)+'" fill="url(#dkg)"/>'; _cur+=_deckLen;

@@ -1376,6 +1376,8 @@ const BANCHI = [
      badge "Spalla / Ø" — l'unico rimasto senza la guardia degli altri. */
   ['il Validatore di Genesi non accusa "spalla piccola" quando la spalla è illeggibile', 'genesi-spalla-diametro-null.mjs', []],
   ['Validatore spalla/diametro illeggibile · controprova', 'genesi-spalla-diametro-null.mjs', ['--controprova'], true],
+  ['Genesi: forma del cumulo e decking non fabbricano un numero su B/S/carica illeggibili', 'genesi-muckshape-decking-null.mjs', []],
+  ['muckShape e decking illeggibili · controprova', 'genesi-muckshape-decking-null.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 18/09: la riconciliazione e "Duplica" volata non avevano
      nessuna guardia contro il doppio tocco, confermato dal vivo. */
   ['Genesi: riconciliazione e "Duplica" volata si spengono durante la scrittura', 'genesi-scritture-occupato.mjs', []],
