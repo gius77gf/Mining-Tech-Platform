@@ -82,7 +82,6 @@ export function provenienzaDi(r) {
 // forma il disallineamento **fallisce** invece di restare in silenzio.
 
 const RAPP_UNITA = ["t", "m³", "viaggi"];
-const dataISOBuona = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ""));
 const r2 = (n) => Math.round(n * 100) / 100;
 const r3 = (n) => Math.round(n * 1000) / 1000;
 
@@ -119,7 +118,9 @@ export function produzioneDichiarata(rapportini, dal, al, densita) {
   let primo = null, ultimo = null;
   for (const r of rapportini) {
     const d = String((r || {}).data || "");
-    if (!dataISOBuona(d)) { senzaData++; continue; }
+    // ⛔ 17/09: `dataISOBuona` (solo forma) → `dataISOEsiste` (calendario),
+    // stessa correzione applicata agli altri tre punti di questo file.
+    if (!dataISOEsiste(d)) { senzaData++; continue; }
     if (d1 && d < d1) continue;
     if (d2 && d > d2) continue;
     const p = produzioneRapportino(r);
@@ -305,7 +306,19 @@ export function misuratoPeriodo(rilievi, dal, al) {
     const v = numeroDichiarato((r || {}).volumeM3);
     const d = String((r || {}).data || "");
     if ((r || {}).stato === "pianificato") pianificati++;
-    if ((r || {}).stato !== "elaborato" || v == null || !dataISOBuona(d)) continue;
+    /* ⛔ 17/09, dal terzo giro di deep-pass su Terra: qui c'era
+       `dataISOBuona`, una copia debole locale che guardava solo la FORMA
+       (`/^\d{4}-\d{2}-\d{2}$/`) e non il CALENDARIO — la stessa famiglia di
+       difetto che questo file altrove evita con `dataISOEsiste`, già
+       importata in cima. Una data come "2026-13-45" passava il filtro ed
+       entrava in `primo`/`ultimo`, che più sotto (in `avanzamentoDaUltimoRilievo`)
+       diventano `new Date(...).toISOString()`: un mese/giorno inesistente
+       lì dentro non dà un numero sbagliato, solleva `RangeError: Invalid
+       time value` non gestita — la pagina Rilievi restava bloccata sul
+       segnaposto di caricamento. Latente (il form e l'import CSV impediscono
+       oggi di scrivere una data del genere), ma raggiungibile da un rilievo
+       scritto prima di una validazione o da una scrittura diretta. */
+    if ((r || {}).stato !== "elaborato" || v == null || !dataISOEsiste(d)) continue;
     if (d1 && d < d1) continue;
     if (d2 && d > d2) continue;
     if (provenienzaDi(r) === "cumulo") { m3Cumulo = r3(m3Cumulo + v); nCumulo++; continue; }
@@ -350,8 +363,12 @@ export function intervalliFraRilievi(rilievi) {
        ⚠️ È la regola di CLAUDE.md: **due sorelle con due contratti**. Corretta
        una, la seconda non produce un errore — produce una divergenza
        silenziosa. Adesso decidono con la stessa funzione. */
+    /* ⛔ 17/09: `dataISOBuona` → `dataISOEsiste`, stessa ragione di
+       `misuratoPeriodo` qui sopra — una data di forma valida ma calendario
+       impossibile ("2026-13-45") entrava nell'elenco delle date e mandava
+       in eccezione l'aritmetica su `Date` più sotto (`avanzamentoDaUltimoRilievo`). */
     .filter(r => r && r.stato === "elaborato" && numeroDichiarato(r.volumeM3) != null
-      && dataISOBuona(r.data) && provenienzaDi(r) === "scavo")
+      && dataISOEsiste(r.data) && provenienzaDi(r) === "scavo")
     .map(r => String(r.data)))].sort();
   const out = [];
   for (let i = 1; i < date.length; i++) {
@@ -985,7 +1002,8 @@ export function produzionePerFronte(rapportini, fronti, dal, al, densita) {
 
   for (const r of rapportini) {
     const d = String((r || {}).data || "");
-    if (!dataISOBuona(d)) { scartati++; continue; }
+    // ⛔ 17/09: stessa correzione (`dataISOBuona` → `dataISOEsiste`).
+    if (!dataISOEsiste(d)) { scartati++; continue; }
     if (d1 && d < d1) continue;
     if (d2 && d > d2) continue;
     const p = produzioneRapportino(r);

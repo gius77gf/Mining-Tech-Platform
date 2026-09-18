@@ -686,8 +686,17 @@ export function proiezioneAnnua(rilievi, pianificatoAnnuoM3, oggi = new Date()) 
   const anno = o.getFullYear();
   // solo SCAVO: il piano annuo è un limite di estrazione, la ripresa di un
   // cumulo non lo intacca
+  /* ⛔ 17/09, dal terzo giro di deep-pass: `rilievoUsabile` → `rilievoUsabileConData`.
+     Questa riga affetta i rilievi per ANNO — esattamente il caso per cui
+     `rilievoUsabileConData` esiste (vedi il suo commento, riga 515) — ma
+     usava la guardia più debole. Un rilievo con `data:"2026-13-45"` (forma
+     valida, calendario impossibile) passava `rilievoUsabile`, e
+     `.slice(0,4)` ne leggeva comunque "2026": il suo volume (999.999 m³
+     nel caso trovato dal deep-pass) finiva sommato nell'estratto annuo,
+     mentre la Denuncia — che usa già `rilievoUsabileConData` — lo escludeva
+     correttamente. Stesso archivio, due numeri diversi. */
   const estrattoAnno = soloScavo(rilievi)
-    .filter(r => rilievoUsabile(r) && String(r.data || "").slice(0, 4) === String(anno))
+    .filter(r => rilievoUsabileConData(r) && String(r.data || "").slice(0, 4) === String(anno))
     .reduce((s, r) => s + (+r.volumeM3 || 0), 0);
   const inizio = new Date(anno, 0, 1), fine = new Date(anno + 1, 0, 1);
   const frazione = (o - inizio) / (fine - inizio);            // 0..1 dell'anno trascorso
@@ -1059,6 +1068,18 @@ export { autorizzazioneVigente } from "../../shared/dw-ponti.js";
 export function estrattoComplessivo(rilievi, autorizzazione) {
   const a = autorizzazione || {};
   const da = /^\d{4}-\d{2}-\d{2}$/.test(String(a.dataRilascio || "")) ? String(a.dataRilascio) : null;
+  /* ⚠️ 17/09, dal terzo giro di deep-pass: QUI RESTA `rilievoUsabile`, DI
+     PROPOSITO — verificato contro un test esistente prima di "correggerlo".
+     Il deep-pass segnalava anche questa riga (stessa famiglia di
+     `proiezioneAnnua`/`kpiFrom`, corrette qui sotto), ma un test già scritto
+     ("ritmoMedioAnnuo non fa partire il periodo da una data inventata")
+     dichiara la scelta opposta come intenzionale: il volume di un rilievo
+     con una data storta continua a consumare il titolo ("quello che manca è
+     il QUANDO", non il quanto) — è solo la SERIE nel tempo (`da` compreso,
+     un confronto di ordine cronologico) a non poterlo collocare. Stringere
+     qui romperebbe quella decisione già presa, non un difetto: se va
+     rivista è una scelta di prodotto per `docs/DECISIONI_WEEKEND.md`, non
+     un fix silenzioso. */
   const dentro = (rilievi || [])
     .filter(rilievoUsabile)
     .filter(r => !da || String(r.data || "") >= da);
@@ -2538,7 +2559,10 @@ export function kpiFrom(fronti, rilievi, piano, oggi = new Date()) {
   // mese si sarebbe puntato al mese/anno precedente azzerando i volumi.
   const ym = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, "0")}`;  // yyyy-mm
   const anno = String(oggi.getFullYear());
-  const elaborati = rilievi.filter(rilievoUsabile);
+  /* ⛔ 17/09: `rilievoUsabile` → `rilievoUsabileConData`. `elaborati` viene
+     affettato per mese (`ym`, sotto) e per anno (`anno`, più giù): sono
+     esattamente i due usi per cui `rilievoUsabileConData` esiste. */
+  const elaborati = rilievi.filter(rilievoUsabileConData);
   const mese = elaborati.filter(r => (r.data || "").slice(0, 7) === ym);
   // «m³ estratti» = SCAVO. I cumuli ripresi si contano a parte
   // (volumiMeseCumulo): sono materiale già estratto, sommarli gonfierebbe

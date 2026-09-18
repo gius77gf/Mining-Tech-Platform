@@ -1374,14 +1374,20 @@ a.dw-btn{text-decoration:none}
     // Deplezione riserve: residuo e durata stimata al ritmo pianificato.
     const refP = PIA.find(p => p.pianificatoAnnuoM3 > 0);
     const annoP = oggiISO().slice(0, 4);
-    /* ⛔ la regola «questo rilievo si può usare» e quella «solo scavo» stanno
-       nel modulo e si chiamano, non si riscrivono: questa riga aveva una copia
-       a mano della prima e si era DIMENTICATA la seconda, così una ripresa da
-       cumulo scalava le riserve — materiale già cavato che non è più nel
-       terreno. Misurato: 1.184.800 m³ residui invece di 1.190.000. */
-    const estrattoAnnoP = soloScavo(RIL).filter(rilievoUsabile)
-                             .filter(r => (r.data||"").slice(0,4) === annoP)
-                             .reduce((s, r) => s + r.volumeM3, 0);
+    /* ⛔ 17/09, dal terzo giro di deep-pass: QUESTA RIGA ERA UNA TERZA COPIA
+       DELLO STESSO CONTO — «solo scavo, rilievi usabili, filtrati sull'anno
+       corrente» — la stessa cosa che `proiezioneAnnua` (due righe più sotto)
+       calcola già dentro `estrattoAnno`. La copia qui usava `rilievoUsabile`
+       (solo forma/elaborato/volume), non `rilievoUsabileConData`: un rilievo
+       con `data:"2026-13-45"` (calendario impossibile) passava comunque il
+       filtro sull'anno (`.slice(0,4)` legge "2026" anche da una data
+       inesistente) e il suo volume finiva nella riserva residua, mentre la
+       Denuncia (che usa la guardia giusta) lo escludeva — stesso archivio,
+       numeri diversi. Adesso non c'è più una seconda copia da tenere
+       allineata: `proiezioneAnnua` viene calcolata PRIMA e la riserva legge
+       il suo `estrattoAnno`. */
+    const pr = refP ? proiezioneAnnua(RIL, refP.pianificatoAnnuoM3) : null;
+    const estrattoAnnoP = pr ? pr.estrattoAnno : 0;
     const rr = refP ? riservaResidua(refP.riserveM3, estrattoAnnoP, refP.pianificatoAnnuoM3) : null;
     /* ⛔ QUI C'ERA LA SECONDA LETTURA DELLA STESSA REGOLA, PIÙ DEBOLE:
        `rr && refP.riserveM3 != null`. Il `!= null` accetta `""` e `"abc"`, e
@@ -1397,7 +1403,9 @@ a.dw-btn{text-decoration:none}
       : "";
 
     // Proiezione di fine anno: al ritmo attuale, si supererà l'autorizzato?
-    const pr = refP ? proiezioneAnnua(RIL, refP.pianificatoAnnuoM3) : null;
+    // (`pr` è già calcolato sopra, per `estrattoAnnoP`: stessa chiamata, non
+    // una seconda — la funzione è pura, chiamarla due volte con gli stessi
+    // argomenti sarebbe stato lo spreco che questa unità toglie di mezzo.)
     // il riquadro prende il colore del suo stato: la striscia dice già tutto
     $("pia-proiezione").className = "note recap"
       + (pr && pr.stato === "danger" ? " err" : pr && pr.stato === "warn" ? " avviso" : "");

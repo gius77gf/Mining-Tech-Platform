@@ -8682,7 +8682,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.614 prove girano senza rete**. La frase va
+  **3.618 prove girano senza rete**. La frase va
   letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3116, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **333 esecuzioni** che
-  aprono le pagine in un browser vero, da **146** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **337 esecuzioni** che
+  aprono le pagine in un browser vero, da **148** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11160,3 +11160,42 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       (`flotta-componente-contatore-sostituito.mjs` nuovo, e l'ancora di
       `flotta-componenti-vita.mjs` aggiornata alla nuova firma), test puri
       in `run-kpi.mjs`.
+
+## Terra — terzo giro di deep-pass, il crash e le due copie deboli (17/09)
+- [x] **UN RILIEVO A CALENDARIO IMPOSSIBILE MANDAVA IN CRASH LA PAGINA
+      RILIEVI, E FALSAVA LA RISERVA RESIDUA** *(17/09, unità completata,
+      agente a82876ad086170520 — primi due dei tre difetti trovati)*.
+      1. `shared/dw-ponti.js` aveva una copia debole locale, `dataISOBuona`
+         (solo forma, `/^\d{4}-\d{2}-\d{2}$/`), usata in 4 punti invece della
+         `dataISOEsiste` (calendario vero) già importata in cima al file. Un
+         rilievo con `data:"2026-13-45"` passava il filtro, entrava in
+         `ultimo`, e `avanzamentoDaUltimoRilievo` faceva
+         `new Date(...).toISOString()` su una data invalida: non NaN, un
+         `RangeError: Invalid time value` non gestito. La sezione "Quello
+         che dichiarano i turni" restava bloccata per sempre sul segnaposto
+         di caricamento. Corretto sostituendo tutti e 4 gli usi con
+         `dataISOEsiste`.
+      2. `proiezioneAnnua`/`kpiFrom` (Terra) affettavano i rilievi per
+         anno/mese con `rilievoUsabile` invece di `rilievoUsabileConData`
+         (la guardia che esiste apposta per chi affetta nel tempo — vedi il
+         suo commento). Corretti entrambi.
+      3. E la pagina Piano aveva una TERZA copia a mano dello stesso conto
+         (`estrattoAnnoP`, per la riserva residua), con la stessa guardia
+         debole — tolta: ora `proiezioneAnnua` si chiama una volta sola e
+         la riserva legge il suo `estrattoAnno`.
+      ⚠️ **`estrattoComplessivo` (usata da `vitaCava`), il terzo punto
+      segnalato dall'agente, NON è stato toccato**: un test esistente
+      dichiara esplicitamente intenzionale che il volume di un rilievo con
+      data storta continui a consumare il titolo ("manca il QUANDO, non il
+      quanto") — applicare la guardia più stretta lì avrebbe rotto una
+      decisione già presa e testata. Resta una domanda di prodotto per
+      `docs/DECISIONI_WEEKEND.md` se si vuole riaprirla, non un fix
+      silenzioso.
+      Tre nuovi banchi con controprova
+      (`terra-rilievo-calendario-impossibile.mjs`,
+      `terra-riserva-calendario-impossibile.mjs`), quattro nuovi test puri
+      in `run-kpi.mjs`.
+      **Resta aperto** il terzo difetto dell'agente: `frontiAmbigui`
+      (`conformitaProgetto`) calcolato dal modulo ma mai letto dalla
+      pagina — guardia scollegata, da collegare in un'unità successiva.
+      Resta anche da verificare dal vivo la pista su `varianzaLottoAnno`.

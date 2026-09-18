@@ -1435,6 +1435,34 @@ test("kpiFrom: un rilievo che ha misurato ZERO resta uno zero vero", () => {
   eq(k.volumiMese, 0, "misurato zero è zero: qui il trattino nasconderebbe una misura vera");
   eq(k.rilieviMese, 1, "e il rilievo si conta");
 });
+test("⛔ 17/09, dal terzo giro di deep-pass: kpiFrom non affetta per anno/mese un rilievo a calendario impossibile", () => {
+  /* Prima: `kpiFrom` filtrava con `rilievoUsabile` (solo forma) e poi
+     affettava per mese/anno con `.slice()` — un rilievo con
+     `data:"2026-13-45"` (999.999 m³ nel caso trovato dal deep-pass) aveva la
+     forma giusta e `.slice(0,4)`="2026" combaciava comunque: il suo volume
+     entrava nell'avanzamento annuo mentre la Denuncia (che usa
+     `rilievoUsabileConData`) lo escludeva — stesso archivio, due numeri. */
+  const oggi = new Date("2026-07-15T00:00:00");
+  const rilievi = [
+    { stato: "elaborato", volumeM3: 3000, data: "2026-03-01" },
+    { stato: "elaborato", volumeM3: 999999, data: "2026-13-45" },
+  ];
+  const piano = [{ pianificatoAnnuoM3: 12000 }];
+  const k = terra.kpiFrom([], rilievi, piano, oggi);
+  eq(k.avanzamento, 25, "⛔ solo i 3000 veri (25%), non il 100%+ del rilievo a calendario impossibile");
+  // e nemmeno nel mese, per la stessa ragione (elaborati è la stessa lista filtrata a monte)
+  const soloMalformato = [{ stato: "elaborato", volumeM3: 500, data: "2026-13-45" }];
+  eq(terra.kpiFrom([], soloMalformato, piano, oggi).volumiMese, null,
+    "un rilievo a calendario impossibile non conta nemmeno come rilievo del mese: nessun mese lo rivendica");
+});
+test("⛔ 17/09: proiezioneAnnua non affetta per anno un rilievo a calendario impossibile", () => {
+  const oggi = new Date("2026-07-15T00:00:00");
+  const conBuono = [{ stato: "elaborato", volumeM3: 3000, data: "2026-03-01", fronteId: "f1" }];
+  const conImpossibile = conBuono.concat([{ stato: "elaborato", volumeM3: 999999, data: "2026-13-45", fronteId: "f1" }]);
+  const a = terra.proiezioneAnnua(conBuono, 100000, oggi);
+  const b = terra.proiezioneAnnua(conImpossibile, 100000, oggi);
+  eq(b.estrattoAnno, a.estrattoAnno, "⛔ il rilievo a calendario impossibile non deve aggiungersi all'estratto dell'anno");
+});
 test("volumeFronte: somma solo i rilievi elaborati (con volume) del fronte", () => {
   const rilievi = [
     { fronteId: "f1", stato: "elaborato",  volumeM3: 1000 },  // conta
@@ -36192,6 +36220,42 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
   });
 }
 /* ===== fine shared · misuratoPeriodo ====================================== */
+
+/* ===== shared · dataISOEsiste al posto della copia debole (17/09) =========
+   ⛔ `dataISOBuona`, locale a questo file, guardava solo la FORMA
+   (`/^\d{4}-\d{2}-\d{2}$/`) e non il CALENDARIO: una data come "2026-13-45"
+   passava il filtro, entrava in `ultimo`/nell'elenco degli intervalli, e più
+   sotto `avanzamentoDaUltimoRilievo` fa `new Date(mis.ultimo + "T00:00:00Z")
+   .toISOString()` — su una data invalida questo non dà NaN, SOLLEVA
+   `RangeError: Invalid time value`. Trovato dal terzo giro di deep-pass su
+   Terra (agente a82876ad086170520), iniettando esattamente questo rilievo. */
+test("⛔ shared · misuratoPeriodo/intervalliFraRilievi scartano un rilievo con calendario impossibile, non solo forma sbagliata", () => {
+  const buoni = [
+    { stato: "elaborato", data: "2026-01-15", volumeM3: 1000, fronteId: "f1" },
+    { stato: "elaborato", data: "2026-03-20", volumeM3: 2000, fronteId: "f1" },
+  ];
+  const impossibile = { stato: "elaborato", data: "2026-13-45", volumeM3: 999999, fronteId: "f1" };
+  const conImpossibile = [...buoni, impossibile];
+  const m = ponti.misuratoPeriodo(conImpossibile, "2026-01-01", "2026-12-31");
+  eq(m.rilievi, 2, "il rilievo con data impossibile non conta: la forma combaciava, il calendario no");
+  eq(m.ultimo, "2026-03-20", "e non sposta «ultimo» a una data che non esiste");
+  eq(m.m3, 3000, "né aggiunge il suo volume (999.999) al totale");
+  const iv = ponti.intervalliFraRilievi(conImpossibile);
+  ok(!iv.some((x) => x.dal === "2026-13-45" || x.al === "2026-13-45"), "e non entra fra gli intervalli");
+});
+test("⛔ shared · avanzamentoDaUltimoRilievo non va più in RangeError su un rilievo con calendario impossibile", () => {
+  const rilievi = [
+    { stato: "elaborato", data: "2026-03-10", volumeM3: 1000, fronteId: "f1" },
+    { stato: "elaborato", data: "2026-13-45", volumeM3: 999999, fronteId: "f1" },
+  ];
+  let risultato, sollevato = null;
+  try { risultato = ponti.avanzamentoDaUltimoRilievo(rilievi, [], 2.6, new Date("2026-03-20T09:00:00Z")); }
+  catch (e) { sollevato = e; }
+  eq(sollevato, null, "⛔ ERA QUESTO IL CRASH: RangeError su toISOString() di una data invalida");
+  ok(risultato === null || risultato.dallUltimoRilievo === "2026-03-10",
+    "e se risponde, riparte dall'ULTIMO RILIEVO VERO (10/03), non dalla data impossibile");
+});
+/* ===== fine dataISOEsiste al posto della copia debole ====================== */
 
 /* ===== le sottrazioni fra due insiemi =====================================
    ⛔ In `Math.max(0, a − b)` quello zero di comodo è lì perché qualcuno SAPEVA

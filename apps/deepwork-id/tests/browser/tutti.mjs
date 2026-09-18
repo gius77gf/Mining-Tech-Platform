@@ -856,6 +856,16 @@ const BANCHI = [
      dal progetto, non con l'avanzamento di un altro lotto. */
   ['l\'apertura fuori programma (anticipo/ritardo sul calendario) nella pagina Titolo di Terra', 'terra-apertura-programma.mjs', []],
   ['apertura fuori programma · controprova', 'terra-apertura-programma.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass su Terra: un rilievo a
+     calendario impossibile ("2026-13-45") mandava in RangeError la sezione
+     turni della pagina Rilievi (`dataISOBuona`, copia debole di forma). */
+  ['un rilievo a calendario impossibile non manda in crash la pagina Rilievi di Terra', 'terra-rilievo-calendario-impossibile.mjs', []],
+  ['rilievo a calendario impossibile · controprova', 'terra-rilievo-calendario-impossibile.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — stesso giro: la pagina Piano aveva una TERZA copia
+     a mano dello stesso conto di `proiezioneAnnua` per la riserva residua,
+     con la guardia più debole (`rilievoUsabile`, non `...ConData`). */
+  ['la riserva residua di Terra non crolla per un rilievo a calendario impossibile', 'terra-riserva-calendario-impossibile.mjs', []],
+  ['riserva residua e calendario impossibile · controprova', 'terra-riserva-calendario-impossibile.mjs', ['--controprova'], true],
   /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
      stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
   ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],
