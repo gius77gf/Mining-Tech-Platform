@@ -45713,6 +45713,37 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(csv.length, 3, "una riga per prodotto CON prezzo proprio: i due di l1, nessuno di l2");
     eq(csv[2], "Cantieri stradali;Pietrisco;t;12;11.5", "base e proprio accanto, col PUNTO e le unità di csvListino (il file gemello): non una seconda convenzione");
   });
+  test("⛔ il toast del core: role=\"status\" aria-live=\"polite\" su TUTTE le superfici che lo montano (18/09, dal deep-pass QA su shared/dw-app-ui.js)", () => {
+    /* toast() è annunciato allo screen reader solo se l'elemento porta il
+       ruolo giusto — senza, chi non vede lo schermo non sa che un'azione è
+       appena riuscita o fallita. Sei app su nove lo avevano già; core, admin
+       e Genesi no. deepwork-id/index.html non ha nessun #toast: resta fuori,
+       non è un silenzio da contare. */
+    const SUPERFICI_TOAST = [
+      "../../../index.html",
+      "../../campo/index.html", "../../conti/index.html", "../../flotta/index.html",
+      "../../scudo/index.html", "../../sentinella/index.html", "../../terra/index.html",
+      "../../genesi/genesi.html", "../admin.html",
+    ];
+    for (const rel of SUPERFICI_TOAST) {
+      const pagina = readFileSync(join(HERE, rel), "utf8");
+      const m = pagina.match(/<div[^>]*\bid="toast"[^>]*>/);
+      ok(m, rel + ": ha un elemento #toast");
+      ok(m && /role="status"/.test(m[0]) && /aria-live="polite"/.test(m[0]), rel + ": #toast porta role=status aria-live=polite — " + (m && m[0]));
+    }
+  });
+  test("⛔ Genesi · il toast di ERRORE ha un CSS distintivo (18/09, dal deep-pass QA su shared/dw-app-ui.js)", () => {
+    /* genesi.html chiama già toast(m,"err") su un errore vero (il piano di
+       carico di Campo non leggibile), ma il CSS locale del toast non aveva
+       nessuna regola per .err/.success/.warn — a differenza di
+       shared/dw-app-ui.css:765-774 — e usciva col toast NEUTRO, che si legge
+       «non è successo niente». */
+    const pagina = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/toast\(m,\s*"err"\)|toast\([^)]*,\s*"err"\)/.test(pagina), "il caso esiste davvero: genesi.html chiama toast(...,\"err\")");
+    ok(/#toast\.err\s*\{/.test(pagina), "esiste una regola #toast.err");
+    ok(/#toast\.success\s*\{/.test(pagina), "esiste una regola #toast.success");
+    ok(/#toast\.warn\s*\{/.test(pagina), "esiste una regola #toast.warn");
+  });
 }
 
 console.log(`\nRisultato KPI app: ${passed} passati, ${failed} falliti${inVolo.length ? `  ·  ${inVolo.length} prove asincrone aspettate` : ""}`);

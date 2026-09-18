@@ -248,6 +248,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);
   border:1px solid var(--cu);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:13px;
   opacity:0;pointer-events:none;transition:opacity .25s}
 #toast.show{opacity:1}
+/* ⛔ 18/09, dal deep-pass QA su shared/dw-app-ui.js: `toast(msg, tipo)`
+   accetta "err"/"success"/"warn" e li scrive come classe, ma qui non c'era
+   nessuna regola per loro — genesi.html chiama già toast(m,"err") per un
+   errore vero, e usciva col toast NEUTRO, che si legge «non è successo
+   niente». Colori già in uso in questo file per errore/successo/avviso
+   (.mbtn.danger, --ok, --warn), non nuovi. */
+#toast.err{background:#ef5350;color:#2a0906}
+#toast.success{background:var(--ok);color:#0a2410}
+#toast.warn{background:var(--warn);color:#1a1200}
 /* ---- micro-interazioni: elevazione coerente su tutta l'app ---- */
 :root{ --ease:cubic-bezier(.34,.9,.3,1); }
 .btn{transition:border-color .18s var(--ease),background .18s var(--ease),color .18s var(--ease),transform .12s var(--ease),box-shadow .18s var(--ease)}
@@ -1089,7 +1098,7 @@ body.scr-sim #tl{bottom:80px}
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <div id="consenso" style="display:none">
   <div class="card">
