@@ -19863,6 +19863,30 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
        "DUVRI", "un cantiere che non si trova non diventa una cava con le sue regole");
   });
 
+  /* ⛔ 18/09, dal deep-pass QA: `qualifica.esito === "in-scadenza"` non finiva
+     né fra i problemi né fra i buchi — spariva, e l'appalto usciva "a-posto"
+     mentre la sezione «Imprese esterne», sullo stesso dato, dice "In
+     scadenza". Quarto elenco `avvisi`, quarto esito. */
+  test("Scudo · una qualifica in scadenza non sparisce: non è un problema, non è un buco, è un avviso", () => {
+    const SANO = { id: "p1", appaltatoreId: "a1", cantiereId: "k1", uominiGiorno: 10,
+      dataInizio: "2026-03-01", coordRedattore: "Ing. Bianchi", coordData: "2026-02-20",
+      coordSottoscritto: true, costiSicurezza: 900 };
+    const IN_SCADENZA = [
+      { id: "d1", appaltatoreId: "a1", tipoQualifica: "cciaa", scadenza: "2026-08-20" },   // 19 giorni dopo OGGI
+      { id: "d2", appaltatoreId: "a1", tipoQualifica: "autocert" },
+    ];
+    const st = scudo.statoAppalto(SANO, CAVA, IMPRESA, IN_SCADENZA, OGGI);
+    eq([st.esito, st.noto, st.problemi.length, st.ignoti.length, st.avvisi.length],
+       ["in-scadenza", true, 0, 0, 1],
+       "⛔ né problema né buco: un quarto esito con un elenco suo — " + JSON.stringify(st.avvisi));
+    ok(/scadenza/i.test(st.avvisi[0]), "e l'avviso dice perché — " + st.avvisi[0]);
+    // il riepilogo la conta a parte, non fra gli «a posto»
+    const r = scudo.riepilogoAppalti([SANO], [CAVA], [IMPRESA], IN_SCADENZA, OGGI);
+    eq([r.quanti, r.aPosto, r.daSistemare, r.nonVerificati, r.inScadenza],
+       [1, 0, 0, 0, 1], "⛔ un appalto con la sola qualifica in scadenza non è «a posto»");
+    ok(/in scadenza/i.test(r.testo), "e il testo del riepilogo lo dice — «" + r.testo + "»");
+  });
+
   test("Scudo · nessun appalto registrato non è «nessuna impresa in cava»", () => {
     const vuoto = scudo.riepilogoAppalti([], [CAVA], [IMPRESA], QUALIFICATA, OGGI);
     eq([vuoto.quanti, vuoto.noto], [0, false],

@@ -6135,20 +6135,29 @@ export function statoCoordinamento(appalto, cantiere, oggi = new Date()) {
    ⛔ CIÒ CHE DICHIARA `noto: false` FINISCE FRA GLI **IGNOTI**, NON FRA I
    PROBLEMI. Sommarlo ai problemi farebbe passare per «fuori regola» un appalto
    che nessuno ha ancora guardato; ignorarlo lo farebbe passare per «a posto».
-   Sono tre esiti perché i casi sono tre. */
+   Sono tre esiti perché i casi sono tre.
+   ⛔ 18/09, dal deep-pass QA: `qualifica.esito === "in-scadenza"` era escluso
+   sia da `problemi` sia da `ignoti` — non finiva in NESSUN elenco, e un
+   appalto con una qualifica che sta per scadere usciva "a-posto", verde,
+   muto, mentre la sezione «Imprese esterne» della stessa pagina, sullo
+   stesso dato, dice correttamente "In scadenza". Un quarto elenco, `avvisi`,
+   lo tiene distinto sia dai problemi veri sia dagli ignoti: non è un
+   requisito violato (`problemi`) né un buco di verifica (`ignoti`), è un
+   requisito oggi rispettato che sta per non esserlo più. */
 export function statoAppalto(appalto, cantiere, appaltatore, documenti, oggi = new Date()) {
   const qualifica = qualificaAppaltatore(appaltatore, documenti, oggi);
   const coordinamento = statoCoordinamento(appalto, cantiere, oggi);
   const costi = costiInterferenze(appalto);
-  const problemi = [], ignoti = [];
+  const problemi = [], ignoti = [], avvisi = [];
   if (!qualifica.noto) ignoti.push(descriviQualifica(qualifica));
-  else if (qualifica.esito !== "verificato" && qualifica.esito !== "in-scadenza") problemi.push(qualifica.perche);
+  else if (qualifica.esito === "in-scadenza") avvisi.push(qualifica.perche);
+  else if (qualifica.esito !== "verificato") problemi.push(qualifica.perche);
   if (!coordinamento.noto) ignoti.push(coordinamento.perche);
   else if (coordinamento.stato !== "in-vigore" && coordinamento.stato !== "non-dovuto") problemi.push(coordinamento.perche);
   if (coordinamento.serve === true && !costi.indicati) problemi.push(costi.perche);
-  return { appaltoId: (appalto && appalto.id) || null, qualifica, coordinamento, costi, problemi, ignoti,
+  return { appaltoId: (appalto && appalto.id) || null, qualifica, coordinamento, costi, problemi, ignoti, avvisi,
     noto: ignoti.length === 0,
-    esito: problemi.length ? "da-sistemare" : (ignoti.length ? "non-verificato" : "a-posto") };
+    esito: problemi.length ? "da-sistemare" : (ignoti.length ? "non-verificato" : (avvisi.length ? "in-scadenza" : "a-posto")) };
 }
 
 export function appaltiDiCantiere(appalti, cantiereId) {
@@ -6178,11 +6187,13 @@ export function riepilogoAppalti(appalti, cantieri, appaltatori, documenti, oggi
       testo: "Nessun appalto registrato. Non vuol dire che in cava non entri nessuna impresa esterna: vuol "
         + "dire che qui non ne risulta nessuna, e finché è così questa schermata non dimostra niente." };
 
-  const daSistemare = quanti("da-sistemare"), nonVerificati = quanti("non-verificato"), aPosto = quanti("a-posto");
-  return { quanti: attivi.length, aPosto, daSistemare, nonVerificati, righe, noto: nonVerificati === 0,
-    testo: (daSistemare || nonVerificati)
+  const daSistemare = quanti("da-sistemare"), nonVerificati = quanti("non-verificato"),
+        inScadenza = quanti("in-scadenza"), aPosto = quanti("a-posto");
+  return { quanti: attivi.length, aPosto, daSistemare, nonVerificati, inScadenza, righe, noto: nonVerificati === 0,
+    testo: (daSistemare || nonVerificati || inScadenza)
       ? [daSistemare ? conta(daSistemare, "appalto da sistemare", "appalti da sistemare") : "",
-         nonVerificati ? nonVerificati + (nonVerificati === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : ""]
+         nonVerificati ? nonVerificati + (nonVerificati === 1 ? " su cui manca una verifica" : " su cui mancano verifiche") : "",
+         inScadenza ? conta(inScadenza, "appalto con la qualifica in scadenza", "appalti con la qualifica in scadenza") : ""]
           .filter(Boolean).join(", ") + ", su " + attivi.length + " attiv" + (attivi.length === 1 ? "o" : "i") + "."
       : "Tutt" + (attivi.length === 1 ? "o l'unico appalto attivo ha" : "i e " + attivi.length + " gli appalti attivi hanno")
         + " impresa qualificata, documento di coordinamento in vigore e costi da interferenze indicati." };

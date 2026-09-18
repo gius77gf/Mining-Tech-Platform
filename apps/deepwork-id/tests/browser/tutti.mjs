@@ -1340,6 +1340,8 @@ const BANCHI = [
   ['finestra di caricamento · controprova', 'finestra-caricamento.mjs', ['--controprova'], true],
   ['la modale intrappola Tab e mette inert il fondo (Conti · shared, e il core)', 'focus-trap-modale.mjs', []],
   ['trappola del focus · controprova', 'focus-trap-modale.mjs', ['--controprova'], true],
+  ['Scudo: una qualifica in scadenza non sparisce dalla riga dell appalto', 'scudo-appalto-in-scadenza.mjs', []],
+  ['appalto in scadenza · controprova', 'scudo-appalto-in-scadenza.mjs', ['--controprova'], true],
 ];
 
 /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,
