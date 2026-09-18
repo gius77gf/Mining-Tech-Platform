@@ -350,6 +350,18 @@ const BANCHI = [
      parte. `finto-id.mjs` sì. */
   ['Deepwork ID negli stati veri', 'id-stati.mjs', []],
   ['Deepwork ID · controprova', 'id-stati.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, secondo giro di deep-pass QA su Deepwork ID: il
+     select di cambio ruolo offriva "Owner" anche a un admin non-owner (il
+     server rifiuta sempre, ma il bottone prometteva un'azione impossibile
+     — la stessa famiglia del difetto già corretto nella metà opposta). */
+  ['admin.html: il select di cambio ruolo non offre "Owner" a un non-owner', 'deepworkid-role-select-owner.mjs', []],
+  ['select di cambio ruolo · controprova', 'deepworkid-role-select-owner.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09: profilo.html/non-autorizzato.html non caricano
+     shared/dw-app-ui.js, quindi non avevano occupato() — un doppio tocco su
+     "Crea" (organizzazione) o "Invita" duplicava, senza nessuna idempotenza
+     lato server. `guard()` ha imparato a disabilitare il bottone da sé. */
+  ["non-autorizzato.html: «Crea» si spegne durante la scrittura", 'deepworkid-guard-occupato.mjs', []],
+  ['guard/occupato di Deepwork ID · controprova', 'deepworkid-guard-occupato.mjs', ['--controprova'], true],
   ['bersagli degli stati vuoti', 'vuoti-azione.mjs', []],
   ['bersagli · controprova', 'vuoti-azione.mjs', ['--controprova'], true],
   /* «Scarica tutto» scarica davvero tutte le collezioni dichiarate (11/09) */

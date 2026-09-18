@@ -200,10 +200,22 @@
     if (note) note.textContent = "App attive secondo l'abbonamento della tua organizzazione.";
   }
 
-  const guard = (fn) => async () => {
+  /* ⛔ 18/09, dal secondo giro di deep-pass QA: questa pagina non carica
+     shared/dw-app-ui.js, quindi non ha `occupato()`. `guard` è l'unico
+     punto per cui passano tutti i tocchi: gli si dà un secondo parametro
+     facoltativo, l'id del bottone da disabilitare per la durata di `fn`,
+     invece di scrivere una copia locale della stessa idea (vedi la stessa
+     correzione in non-autorizzato.html). Un doppio tocco su "Crea" creava
+     DUE organizzazioni distinte (nessuna idempotenza lato server), e un
+     doppio tocco su "Invita" creava due inviti pendenti per la stessa
+     email/ruolo. */
+  const guard = (fn, btnId) => async () => {
     if (!id || !id.user) { msg('Backend non ancora configurato: azione disponibile dopo il setup Firebase.'); return; }
     if (id.user.isAnonymous) { msg('Sei nel tour: per creare un\'organizzazione o invitare qualcuno serve un profilo registrato.', 'error'); return; }
+    const b = btnId && $(btnId);
+    if (b) b.disabled = true;
     try { await fn(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+    finally { if (b) b.disabled = false; }
   };
 
   /* i campi vuoti si dicono PRIMA di chiamare il server (come fa già
@@ -218,14 +230,14 @@
     await disegnaOrgs();
     await disegnaApp();
     msg(`Organizzazione «${name}» creata: è quella attiva e ne sei owner.`);
-  });
+  }, 'btn-create-org');
   $('btn-invite').onclick = guard(async () => {
     const email = $('inv-email').value.trim();
     if (!email) { msg('Scrivi l\'email del collega da invitare.', 'error'); $('inv-email').focus(); return; }
     await id.inviteMember(email);
     $('inv-email').value = '';
     msg('Invito inviato a ' + email + ': scade tra 14 giorni.');
-  });
+  }, 'btn-invite');
   $('btn-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
   // Invio da tastiera: creare l'org o inviare l'invito senza toccare il pulsante
   const onEnter = (inputId, btnId) => $(inputId).addEventListener('keydown', (e) => {

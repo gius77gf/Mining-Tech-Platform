@@ -204,13 +204,21 @@
        server blocca), ma un bottone che promette un'azione che fallirà
        sempre con un errore, su ruoli che nessun admin può toccare. */
     const puoGestire = (m) => canManage && m.uid !== myUid && (!VIVO || m.role !== 'owner' || isOwner);
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: `puoGestire` filtra la RIGA
+       (non si tocca un owner se non si è owner), ma il menu di cambio ruolo
+       offriva SEMPRE "Owner" come scelta — anche a un admin non-owner, su un
+       member o un altro admin. Il server rifiuta sempre
+       (updateMemberRole: `role === "owner" && myRole !== "owner"`), ma è la
+       stessa famiglia del difetto già corretto sopra, nella metà opposta:
+       non "gestire un owner esistente", ma "promuovere a owner". */
+    const ruoliSelezionabili = (!VIVO || isOwner) ? ['owner','admin','member'] : ['admin','member'];
 
     $('mem-list').innerHTML = mem.map(m => `<div class="item" style="cursor:default;">
       <div class="avatar">${esc(sig(m.email || m.uid))}</div>
       <div class="info"><div class="name">${esc(m.email || m.uid)}</div><div class="meta">${esc(STATO[m.status] || m.status || '')}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
       ${puoGestire(m) ? `
         <select class="dw-input role-sel" data-role="${m.uid}">
-          ${['owner','admin','member'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
+          ${ruoliSelezionabili.map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
         </select>
         <button class="dw-btn secondary btn-mini btn-danger" data-remove="${m.uid}">Rimuovi</button>`
       : `<span class="badge ${RB[m.role] || 'ok'}">${m.role}</span>`}
@@ -294,10 +302,20 @@
     if (!VIVO) return anteprima();
     const email = $('inv-email').value.trim();
     if (!email) { esito('Scrivi l\'email del collega da invitare.', 'error'); $('inv-email').focus(); return false; }
-    await id.inviteMember(email, $('inv-role').value);
-    $('inv-email').value = '';
-    esito('Invito inviato a ' + email + ': scade tra 14 giorni.', 'ok');
-    return true;
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: `guard()` cattura solo gli
+       errori, non protegge dal doppio tocco — un doppio invito crea due
+       inviti pendenti distinti per la stessa email/ruolo. `occupato(false)`
+       sta in un `finally`: `guard()` racchiude questa funzione in un
+       try/catch tutto suo, quindi un invito fallito (rete, permesso
+       negato) salterebbe la riga di sblocco lasciando il bottone
+       disabilitato per sempre. */
+    occupato('btn-invite', true);
+    try {
+      await id.inviteMember(email, $('inv-role').value);
+      $('inv-email').value = '';
+      esito('Invito inviato a ' + email + ': scade tra 14 giorni.', 'ok');
+      return true;
+    } finally { occupato('btn-invite', false); }
   });
 
   await refresh();

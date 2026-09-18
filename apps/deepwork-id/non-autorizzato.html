@@ -138,27 +138,39 @@
     msg('Backend non ancora configurato: schermata in modalità mockup (vedi GUIDA_FIREBASE.md).');
   }
 
-  const guard = (fn) => async () => {
+  /* ⛔ 18/09, dal secondo giro di deep-pass QA: questa pagina non carica
+     shared/dw-app-ui.js (è deliberatamente minima, prima ancora che esista
+     un'organizzazione), quindi non ha `occupato()`. `guard` è l'unico punto
+     per cui passano tutti i tocchi: gli si dà un secondo parametro
+     facoltativo, l'id del bottone da disabilitare per la durata di `fn`,
+     invece di scrivere una copia locale della stessa idea. Un doppio tocco
+     su "Crea la tua azienda" creava DUE organizzazioni distinte (nessuna
+     idempotenza lato server: `db.collection("organizations").doc()` genera
+     sempre un nuovo id), e l'utente diventava owner di entrambe. */
+  const guard = (fn, btnId) => async () => {
     if (!id || !id.user) { msg('Backend non ancora configurato: azione disponibile dopo il setup Firebase.'); return; }
+    const b = btnId && $(btnId);
+    if (b) b.disabled = true;
     try { await fn(); } catch (e) { msg(e.message || 'Operazione non riuscita.', 'error'); }
+    finally { if (b) b.disabled = false; }
   };
 
   $('btn-check').onclick = guard(async () => {
     const accepted = await id.redeemInvites();
     if (accepted.length) { msg('Invito accettato! Ti porto al tuo profilo…'); location.href = './profilo.html'; }
     else msg('Nessun invito trovato per questa email. Verifica che sia stato inviato proprio a ' + (id.user.email || 'questa email') + ' e che non siano passati più di 14 giorni.');
-  });
+  }, 'btn-check');
   $('btn-create-org').onclick = guard(async () => {
     const name = $('new-org').value.trim();
     if (!name) { msg('Scrivi il nome della tua azienda.', 'error'); return; }
     await id.createOrganization(name);
     msg('Organizzazione creata! Ti porto al tuo profilo…');
     location.href = './profilo.html';
-  });
+  }, 'btn-create-org');
   $('btn-reverify').onclick = guard(async () => {
     await id.resendVerification();
     msg('Email di verifica inviata di nuovo. Controlla anche lo spam.');
-  });
+  }, 'btn-reverify');
   $('lnk-tour').onclick = guard(async () => { await id.logout(); await id.loginTour(); location.href = '../scudo/index.html'; });
   $('lnk-logout').onclick = guard(async () => { await id.logout(); location.href = './index.html'; });
   // Invio da tastiera: creare l'organizzazione senza toccare il pulsante
