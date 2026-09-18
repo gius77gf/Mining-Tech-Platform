@@ -2262,7 +2262,22 @@ function buildScene(){
   if(xrayGroup){ disposeGroup(xrayGroup); }
   xrayGroup = new THREE.Group(); xrayCyls = [];
   {
-    const rCyl=0.18, stemL=Math.min(D2.stem, P.prof), filaCols=[0x42a5f5,0xab47bc,0xff7043,0x26c6da,0xe0b34c,0x8d6e63];
+    /* ⛔ 18/09, dal backlog QA: `Math.min(D2.stem, P.prof)` con `D2.stem`
+       illeggibile (`null`, da un progetto importato/salvato con quel campo
+       vuoto) fa **0** — l'aritmetica di `null`, la stessa famiglia già presa
+       nel decking 2D (`_stemDeck`, blocco qui sotto) e nella scheda validatori
+       (`volataSenzaValori`). Con `stemL=0` la colonna carica (`Lchg`, riga
+       sotto) diventa `f.h+sub`, cioè piena: il raggi-X disegnava l'esplosivo
+       (ambra, emissivo) fino al colletto, come se non ci fosse borraggio —
+       una configurazione impossibile in cava (il borraggio non è mai zero) e
+       la più allarmante delle due bugie possibili.
+       Qui non si inventa un borraggio tipico (sarebbe un altro numero non
+       misurato): a `stem` illeggibile si sostituisce `f.h`, la profondità
+       VERA di quel foro — la colonna carica torna al minimo (0,4 m o `sub`),
+       cioè il foro si disegna come se fosse TUTTO borraggio. È la lettura
+       prudente della stessa assenza: un foro che sembra vuoto invece di un
+       foro che sembra caricato alla bocca. */
+    const rCyl=0.18, _stemOk=(+D2.stem>0), _stemVal=_stemOk?Math.min(+D2.stem,P.prof):null, filaCols=[0x42a5f5,0xab47bc,0xff7043,0x26c6da,0xe0b34c,0x8d6e63];
     const matStem=new THREE.MeshStandardMaterial({ color:0xa8a49a, roughness:0.6 });
     const matChg =new THREE.MeshStandardMaterial({ color:0xffab00, emissive:0xff8c1d, emissiveIntensity:0.5, roughness:0.45 });
     /* innesco (primer): rosso acceso, ben distinguibile dalla colonna di esplosivo */
@@ -2276,6 +2291,7 @@ function buildScene(){
     for(const f of SIM.fori){
       const g=new THREE.Group();                                 // origine del gruppo = COLLETTO (perno per l'inclinazione)
       const zc=f.cz+(f.zoff||0)+SPALLA;                          // colletto: a distanza burden dietro la faccia del proprio slab
+      const stemL=(_stemVal!==null)?_stemVal:f.h;                // borraggio illeggibile: si mostra il foro come tutto stemmato (vedi commento sopra), non 0
       const Lchg=Math.max(0.4, f.h+(D2.sub||0)-stemL);           // colonna carica = H+sub−borraggio
       const cStem=new THREE.Mesh(new THREE.CylinderGeometry(rCyl,rCyl,stemL,8), matStem);
       cStem.position.y=-stemL/2;                                 // borraggio: dal colletto in giù
@@ -6702,7 +6718,16 @@ function renderScheda2D(){
         why:'pressione della colonna d\'acqua ('+gnum(D2.acquaCol,1)+' m ≈ '+gfix(_pw,1)+' MPa): oltre ~'+_soglia+' MPa può comprimere i microbolle sensibilizzanti dell\'emulsione e desensibilizzarla. Stima conservativa (soglia varia per sensibilizzante: perlite ~27, gas ~100, vetro ~135 MPa).'});
     }
   })();
-  rows.push(badge(stemB,'Borraggio / B',gfix(stem,1)+' m ('+gfix(stemB,2)+'·B)',0.7,1.0,0.5,1.2,
+  /* ⛔ 18/09, dal backlog QA: `stemB=stem/B` con `stem` illeggibile (`null`)
+     fa **0** (l'aritmetica di `null`, la stessa famiglia già presa altrove
+     in questo file), un numero finito che `badge` giudica come un
+     borraggio corto vero — pallino rosso, «rischio proiezioni dal
+     colletto» — su un dato che nessuno ha scritto. La riga gemella
+     `confinamentoColletto`, quaranta righe più sotto, questo stesso `stem`
+     lo dichiara già «non calcolabile»: qui mancava la stessa guardia. */
+  const _senzaStem=volataSenzaValori({stem:D2.stem});
+  if(_senzaStem) rows.push(nonCalcolabile('Borraggio / B',_senzaStem.che+'. '+_senzaStem.come));
+  else rows.push(badge(stemB,'Borraggio / B',gfix(stem,1)+' m ('+gfix(stemB,2)+'·B)',0.7,1.0,0.5,1.2,
     'borraggio adeguato (0,7–1,0·B).',
     'borraggio corto → rischio proiezioni dal colletto; ~0,7·B ≈ '+gfix(0.7*B,1)+' m.',
     'borraggio lungo → rischio blocchi in testa.'));
@@ -6973,7 +6998,12 @@ function renderScheda2D(){
         +(aMano?' Attenzione: '+aMano+(aMano===1?' foro ha':' fori hanno')+' il ritardo messo a mano, quindi la rete non segue più solo lo schema.':'')
         +' Il verso della freccia dice da dove arriva il fuoco. È una <b>ricostruzione</b> dai tempi: il collegamento vero resta decisione del responsabile del tiro.'});
   })();
-  rows.push(badge(subB,'Sottoperf.',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
+  /* ⛔ 18/09, stessa causa della riga «Borraggio / B» qui sopra: `subB=sub/B`
+     con `D2.sub` illeggibile fa 0, e `badge` lo giudica «sottoperf. scarsa»
+     invece di «non calcolabile». */
+  const _senzaSub=volataSenzaValori({sub:D2.sub});
+  if(_senzaSub) rows.push(nonCalcolabile('Sottoperf.',_senzaSub.che+'. '+_senzaSub.come));
+  else rows.push(badge(subB,'Sottoperf.',gfix(sub,1)+' m ('+gfix(subB,2)+'·B)',0.2,0.4,0.1,0.55,
     'sottoperf. nel range 0,2–0,4·B (~'+gfix(subRec,1)+' m, 8–12·Ø): piede pulito.',
     'sottoperf. scarsa → rischio toe/zoccoli e blocchi al piede; consigliata ~'+gfix(subRec,1)+' m.',
     'sottoperf. eccessiva → perforazione sprecata, vibrazioni e danno al banco sottostante.'));
@@ -7835,6 +7865,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
     rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
     get frontMesh(){return frontMesh},
+    get xrayCyls(){return xrayCyls},
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
     setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; },
     setQuality:(q)=>{ if(QUALITA[q]){ qLevel=q; $('qlab').textContent=q; rebuild(); } return qLevel; }
