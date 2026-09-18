@@ -11695,3 +11695,28 @@ Ogni fix coperto da banco browser con controprova che sa fallire, o test
 unitario dove bastava. run-kpi.mjs 3164/3164. sintassi-pagine.mjs 34/34.
 run-stile.mjs 330/330. suite-collegate.mjs 3/3. iniezioni-fresche.mjs:
 676 sul bersaglio su 676, zero scadute.
+
+## Terzo giro di deep-pass QA + ricerca continua Campo (18/09, tarda sera)
+
+- [x] **Campo (ricerca continua, ottavo giro)**: `statoObiettivo` diceva
+      solo "quanto manca", mai "sei indietro rispetto al ritmo di ADESSO"
+      (metodo Short Interval Control). Aggiunta la distinzione usando
+      `inizioTurno`/`fineTurno` già esistenti, nessuna soglia inventata
+      (`75e5ef29`).
+- [x] **Sentinella**: 4 bottoni di scrittura pura senza controllo di
+      doppione — reclami, adempimenti, punti di misura e ricettori
+      (percorso aggiungi). Corretta anche la giustificazione errata del
+      fix di stamattina su btn-vol (`eb51fc8c`).
+- [x] **Deepwork ID**: select di cambio ruolo offriva "Owner" a un admin
+      non-owner; btn-invite senza occupato(); profilo.html/
+      non-autorizzato.html non caricano affatto shared/dw-app-ui.js —
+      guard() ha imparato a disabilitare il bottone da sé (`4455d2d7`).
+- [x] **Conti**: costi, preventivi, e la modale "Registra incasso" — il
+      più grave per gravità economica, un doppio tocco quasi simultaneo
+      duplicava un acconto (3.000€ → 6.000€ registrati). Difesa in
+      profondità su clienti/prodotti (`128b2375`).
+
+Ogni fix con banco browser e controprova (o verificato per lettura dove
+il browser non aggiungeva certezza). run-kpi.mjs 3169/3169.
+sintassi-pagine.mjs 34/34. run-stile.mjs 330/330. suite-collegate.mjs 3/3.
+iniezioni-fresche.mjs: 688 sul bersaglio su 688, zero scadute.
