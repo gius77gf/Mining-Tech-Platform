@@ -2226,6 +2226,15 @@ a.dw-btn{text-decoration:none}
     const senza = c.volume.senzaConfronto
       ? `<div class="riga">${c.volume.senzaConfronto} ${c.volume.senzaConfronto === 1 ? "lotto non ha" : "lotti non hanno"} insieme un volume di progetto e un volume misurato: per ${c.volume.senzaConfronto === 1 ? "quello" : "quelli"} il confronto non è stato fatto — non vuol dire che ${c.volume.senzaConfronto === 1 ? "è" : "sono"} a posto.</div>`
       : "";
+    /* ⛔ 18/09, dal terzo giro di deep-pass: `frontiAmbigui` era calcolato da
+       `conformitaProgetto` e mai letto qui — una guardia scollegata, esattamente
+       il rischio che il commento del modulo descrive (un fronte condiviso per
+       errore fra due lotti fa sommare il suo volume due volte). Si dichiara
+       dove il volume per lotto viene mostrato, perché è lì che il numero può
+       essere gonfiato. */
+    const ambigui = (c.frontiAmbigui || []).length
+      ? `<div class="riga att">${I.allarme}<span><b>${c.frontiAmbigui.length} ${c.frontiAmbigui.length === 1 ? "fronte è assegnato a più lotti" : "fronti sono assegnati a più lotti"}</b>: ${c.frontiAmbigui.map(f => esc(f.nome)).join(", ")}. Il volume misurato dei lotti coinvolti può essere gonfiato — ognuno somma per intero il volume del fronte condiviso, come se l'altro non esistesse. Si corregge assegnando il fronte a un solo lotto nella scheda <b>Fronti</b>.</span></div>`
+      : "";
 
     /* L'ASSE 4, la geometria dei banchi (11/09): una riga nel cartellone, con
        le stesse tre facce degli altri assi — il peggiore quando c'è un oltre,
@@ -2264,7 +2273,7 @@ a.dw-btn{text-decoration:none}
           <span class="vita-cifre">—</span><span class="vita-un">nessun confronto possibile</span>
         </div>
         <div class="riga">${esc(c.perche)}</div>
-        ${volume}${variante}${sequenza}${senza}${geometria}
+        ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}
       </div>`;
     }
     const oltre = c.oltre > 0;
@@ -2290,7 +2299,7 @@ a.dw-btn{text-decoration:none}
         : `<div class="riga">Il fronte più vicino al fondo è <b>${esc(rif.nome)}</b>: sta a ${nM(rif.quotaFronte)} m e il progetto lo ferma a ${nM(rif.fondoM)} m, quindi ${rif.margineM === 0 ? "<b>ci è arrivato</b>: da lì non si scende più" : `restano <b>${nM(rif.margineM)} m</b>`}. Il fondo viene ${rif.origineFondo === "lotto" ? "dal <b>lotto</b> a cui il fronte appartiene" : "dalla scheda dell'<b>autorizzazione</b>"}.</div>`}
       ${c.alLimite && !oltre ? `<div class="riga att">${I.allarme}<span><b>${c.alLimite} ${c.alLimite === 1 ? "fronte è arrivato" : "fronti sono arrivati"} esattamente al fondo autorizzato</b>: non è una violazione, ma da lì non si scende più senza una variante.</span></div>` : ""}
       ${c.nonMisurabili ? `<div class="riga att">${I.allarme}<span><b>${c.nonMisurabili} ${c.nonMisurabili === 1 ? "fronte non è stato confrontato" : "fronti non sono stati confrontati"}</b>: ${c.nonMisurabili === 1 ? "non dichiara" : "non dichiarano"} la quota raggiunta. Il conto qui sopra riguarda solo gli altri — ${c.nonMisurabili === 1 ? "quello" : "quelli"} non ${c.nonMisurabili === 1 ? "è" : "sono"} a posto, ${c.nonMisurabili === 1 ? "è" : "sono"} da misurare. ${c.nonMisurabili === 1 ? "Aprilo" : "Aprili"} nella scheda <b>Fronti</b> e ${c.nonMisurabili === 1 ? "scrivi la quota" : "scrivi le quote"}.</span></div>` : ""}
-      ${volume}${variante}${sequenza}${senza}${geometria}
+      ${volume}${ambigui}${variante}${sequenza}${senza}${geometria}
     </div>`;
   }
 
@@ -2311,7 +2320,7 @@ a.dw-btn{text-decoration:none}
         ? nM(-r.margineM) + " m più in basso del fondo"
         : r.margineM === 0 ? "arrivato al fondo" : "mancano " + nM(r.margineM) + " m",
       r.origineFondo === "lotto" ? "fondo del lotto" : r.origineFondo === "autorizzazione" ? "fondo dell'atto" : "",
-      r.lottoNome ? esc(r.lottoNome) : "fuori dai lotti",
+      r.lottoAmbiguo ? "condiviso fra più lotti" : r.lottoNome ? esc(r.lottoNome) : "fuori dai lotti",
     ].filter(Boolean).join(" · ");
     // la geometria del banco (11/09): una riga sua, con lo stesso vocabolario
     // dei badge; «non misurata» resta grigia, non verde
