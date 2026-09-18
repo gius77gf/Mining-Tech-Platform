@@ -4705,7 +4705,7 @@ export function vociMancantiNelMese(costi, mese, soglia = 0.5) {
   return { mancanti, mesiVisti: altriMesi.size, misurabile: true };
 }
 
-export function margineMese(fatture, note, costi, chiusure, mese) {
+export function margineMese(fatture, note, costi, chiusure, mese, oggi = new Date()) {
   const st = statoMese(costi, chiusure, mese);
   const man = vociMancantiNelMese(costi, mese);
   const spesa = round2((costi || []).filter((c) => c && meseDi(c.data) === mese && +c.importo > 0)
@@ -4733,8 +4733,15 @@ export function margineMese(fatture, note, costi, chiusure, mese) {
   /* RICAVI PER COMPETENZA: le fatture emesse nel mese, al netto delle note di
      credito emesse nel mese. Confonderli con gli INCASSI darebbe due margini
      diversi per lo stesso mese, giusti tutti e due — il modo migliore per non
-     essere creduti. */
-  const emesse = (fatture || []).filter((f) => f && meseDi(f.emessa) === mese);
+     essere creduti.
+     ⛔ 18/09, dal deep-pass QA: mancava la stessa guardia già propagata a
+     kpiFrom/agingIncassi/fattureOltre90/esposizioneClienti/incassoAtteso/
+     incassoPerMese — una fattura scartata dallo SdI non è emessa, per il
+     fisco. Senza questa riga il margine per competenza contava il suo
+     imponibile: un documento che «per il fisco non esiste ancora» che
+     gonfiava ricavi e margine del mese fino a quando qualcuno non lo
+     rimanda o lo esclude a mano. */
+  const emesse = (fatture || []).filter((f) => f && meseDi(f.emessa) === mese && !statoSdi(f, oggi).nonEmessa);
   const lordo = round2(emesse.reduce((t, f) => t + importiFattura(f).imponibile, 0));
   const storni = round2((note || []).filter((n) => n && meseDi(n.emessa) === mese)
     .reduce((t, n) => t + (+n.imponibile || 0), 0));

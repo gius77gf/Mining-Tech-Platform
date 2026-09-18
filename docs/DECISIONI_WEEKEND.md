@@ -2161,8 +2161,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.649** *(ricontate il 18/09, dopo aver
-corretto in Terra (`renderValore` usava `rilievoUsabile` invece di
+**Le prove automatiche sono passate a 3.650** *(ricontate il 18/09, dopo aver
+corretto in Conti (margineMese non escludeva le fatture scartate dallo SdI
+dal margine mensile per competenza) e, prima di questo, in Terra (`renderValore` usava `rilievoUsabile` invece di
 `rilievoUsabileConData`: un rilievo a calendario impossibile gonfiava il
 valore del materiale estratto) e, prima di questo, in shared/dw-app-ui.js e
 nelle superfici che lo usano (toast senza role/aria-live su core/Genesi/admin,

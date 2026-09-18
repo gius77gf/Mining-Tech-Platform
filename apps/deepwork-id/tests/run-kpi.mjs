@@ -4472,6 +4472,23 @@ test("a mese chiuso il margine esce, per COMPETENZA e al netto delle note di cre
   eq(muta.calcolabile, true, "chiusura muta: il margine si calcola lo stesso, l'ha chiesto una persona");
   ok(/più alto del vero/.test(muta.motivo), "⛔ ma la voce senza risposta resta scritta accanto al numero");
 });
+test("⛔ Conti · margineMese: una fattura scartata dallo SdI non è credito, nemmeno per competenza (settimo giro di deep-pass, 18/09)", () => {
+  /* Stessa famiglia già propagata a kpiFrom/agingIncassi/fattureOltre90/
+     esposizioneClienti/incassoAtteso/incassoPerMese: una fattura scartata
+     dallo SdI «per il fisco non esiste ancora». margineMese ne era rimasta
+     fuori — il margine per competenza contava il suo imponibile. */
+  const oggi = new Date("2026-08-10T10:00:00");
+  const scartata = { id: "fx", emessa: "2026-07-12", importo: 2440, imponibile: 2000, ivaImporto: 440, totale: 2440, sdi: { stato: "scartata", il: "2026-07-20" } };
+  const conScartata = FAT_M.concat([scartata]);
+  const senza = conti.margineMese(FAT_M, NOTE_M, COSTI_M, CH_M, "2026-07", oggi);
+  const con = conti.margineMese(conScartata, NOTE_M, COSTI_M, CH_M, "2026-07", oggi);
+  eq(con.ricaviLordi, senza.ricaviLordi, "la fattura scartata non entra nei ricavi lordi del mese");
+  eq(con.margine, senza.margine, "e non entra nel margine");
+  // controprova inline: una fattura EMESSA regolarmente nello stesso mese entra
+  const regolare = { ...scartata, id: "fy", sdi: { stato: "consegnata", il: "2026-07-13" } };
+  const conRegolare = conti.margineMese(FAT_M.concat([regolare]), NOTE_M, COSTI_M, CH_M, "2026-07", oggi);
+  eq(conRegolare.ricaviLordi, senza.ricaviLordi + 2000, "una fattura regolare, invece, entra");
+});
 console.log("\n— Scudo: l'analisi della causa, e la difesa contro l'accusa —");
 const LAV_A = [{ id: "d1", nome: "Mario Bo" }, { id: "d3", nome: "Giuseppe Rossi" }, { id: "d7", nome: "Ana Ilie" }];
 test("⛔ il nome di una persona non si INDOVINA, si CERCA fra i lavoratori veri", () => {
