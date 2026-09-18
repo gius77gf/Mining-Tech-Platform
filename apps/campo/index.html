@@ -2524,10 +2524,18 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
      che `idoneitaOperatore` sa dire (una scadenza con la data illeggibile).
      Senza questa chiave la riga cadeva sul ripiego "st-ok" più sotto,
      verde, indistinguibile da "regolare". Scudo ha la stessa mappa con lo
-     stesso stato già presente (index.html, warn) — qui si allinea. */
+     stesso stato già presente (index.html, warn) — qui si allinea.
+     ⛔ E LO STESSO GIORNO, POCHE ORE DOPO: la correzione aveva contato «gli
+     stati» a memoria invece che leggerli da ESITI_TURNO (shared/dw-ponti.js),
+     e ne restava fuori uno — «senza-scadenze» (collegato a Scudo, ma nessun
+     documento registrato per quella persona). Stessa svista, stesso effetto:
+     la card usciva "st-ok" verde, uguale a chi è davvero in regola, mentre la
+     nota sotto diceva onestamente "nessun documento registrato in Scudo". È
+     l'assenza di un dato travestita da dato favorevole — lo stesso principio,
+     non ancora applicato a questa chiave. */
   const CLASSE_HSE = {
     scaduta: "st-danger", "in-scadenza": "st-warn", "non-idoneo": "st-danger",
-    "senza data": "st-warn",
+    "senza data": "st-warn", "senza-scadenze": "st-warn",
     "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
   };
 

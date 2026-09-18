@@ -43957,6 +43957,24 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/!q\.scadute && !q\.nonIdonei && !q\.senzaData/.test(pagina), "il widget del Quadro non nasconde la nota quando l'unico problema è senzaData");
     ok(/hse\.conPrescrizioni \|\| hse\.senzaData/.test(pagina), "il riepilogo Personale non dichiara «tutti in regola» quando c'è una data illeggibile");
   });
+  test("⛔ 18/09, dal deep-pass QA su Campo: CLASSE_HSE copre anche «senza-scadenze», non solo «senza data»", () => {
+    /* La correzione dell'ottavo stato aveva contato «gli stati» a memoria
+       invece di leggerli da ESITI_TURNO (shared/dw-ponti.js) — ne restava
+       fuori uno, «senza-scadenze» (operatore collegato a Scudo, ma nessun
+       documento registrato per quella persona): la card cadeva sul ripiego
+       "st-ok" verde più sotto, indistinguibile da "regolare", mentre la nota
+       sotto diceva onestamente "nessun documento registrato in Scudo". */
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    const m = pagina.match(/const CLASSE_HSE = \{[\s\S]*?\};/);
+    ok(m, "CLASSE_HSE esiste");
+    ok(m && /"senza-scadenze":\s*"st-warn"/.test(m[0]), "CLASSE_HSE copre «senza-scadenze» — " + (m && m[0]));
+    // ogni stato di ESITI_TURNO (tranne «regolare», che vince per assenza —
+    // il ripiego "st-ok" è la scelta giusta per quel caso solo) ha una classe
+    const ESITI_ATTESI = ["scaduta", "in-scadenza", "senza data", "senza-scadenze", "non-collegato", "collegamento-rotto", "non-idoneo"];
+    for (const st of ESITI_ATTESI) {
+      ok(m && new RegExp('"?' + st + '"?:\\s*"st-').test(m[0]), "CLASSE_HSE copre lo stato «" + st + "»");
+    }
+  });
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
 
