@@ -4810,11 +4810,19 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!nome) { err("new-nome", true); $("new-nome").focus();
       esito("import-esito", "Serve il nome del lavoratore: scrivilo nel primo campo.", "err"); return; }
     err("new-nome", false);
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia, un doppio tocco crea due
+       lavoratori identici (o riscrive due volte la stessa modifica). */
+    occupato("btn-add-pers", true);
     if (editLav) {
       await db.aggiorna("lavoratori", editLav, { nome, ruolo: $("new-ruolo").value.trim() });   // idoneità/attivo/scadenze restano
+      // `occupato(false)` PRIMA di riscrivere l'etichetta: se corresse dopo,
+      // restituirebbe il testo catturato al tocco, cancellando il cambio
+      // di modo appena fatto.
+      occupato("btn-add-pers", false);
       editLav = null; $("btn-add-pers").textContent = "Aggiungi";
     } else {
       await db.aggiungi("lavoratori", { nome, ruolo: $("new-ruolo").value.trim(), attivo: true });
+      occupato("btn-add-pers", false);
     }
     $("new-nome").value = ""; $("new-ruolo").value = "";
     esito("import-esito", "Lavoratore salvato: " + nome + ".", "success");
@@ -4851,7 +4859,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
        sono due documenti e solo chi li ha in mano lo sa. Prima si scrive il
        nuovo — se la domanda resta senza risposta non si è perso niente. */
     const prec = documentoPrecedente(rec, DOC);
+    // nessuna guardia: un doppio tocco registra due volte lo stesso documento.
+    occupato("btn-doc", true);
     const ref = await db.aggiungi("documenti", rec);
+    occupato("btn-doc", false);
     const nuovoId = ref && ref.id;
     $("doc-titolo").value = ""; $("doc-meta").value = ""; $("doc-file").value = ""; $("doc-file-nome").textContent = ""; docFileSel = null;
     esito("doc-esito", "Documento aggiunto: " + titolo + " (valido).", "success");
@@ -4875,7 +4886,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!nome) { err("cant-nome", true); $("cant-nome").focus();
       esito("cant-esito", "Serve il nome del cantiere o della cava.", "err"); return; }
     err("cant-nome", false);
+    occupato("btn-cant", true);
     await db.aggiungi("cantieri", { nome, comune: $("cant-comune").value.trim(), tipo: $("cant-tipo").value, stato: "attivo" });
+    occupato("btn-cant", false);
     $("cant-nome").value = ""; $("cant-comune").value = "";
     esito("cant-esito", "Cantiere aggiunto: " + nome + ".", "success");
     await refresh();
@@ -4899,8 +4912,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     if (!nome) { err("appt-nome", true); $("appt-nome").focus();
       esito("appt-esito", "Serve la ragione sociale dell'impresa.", "err"); return; }
     err("appt-nome", false);
+    occupato("btn-appt", true);
     await db.aggiungi("appaltatori", { ragioneSociale: nome, partitaIva: $("appt-piva").value.trim(),
       attivita: $("appt-att").value.trim(), attivo: true });
+    occupato("btn-appt", false);
     $("appt-nome").value = ""; $("appt-piva").value = ""; $("appt-att").value = "";
     /* ⛔ IL MESSAGGIO NON DICE «AGGIUNTA», DICE CHE COSA MANCA. Un'impresa
        appena creata non ha nessun documento: e' esattamente lo stato
@@ -4961,7 +4976,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       natura: $("appa-natura").value, rischiParticolari: [...bozzaAppalto.rischi],
       rischiValutati: bozzaAppalto.valutati,
       coordRedattore: "", coordData: null, coordSottoscritto: false, stato: "attivo" };
+    // nessuna guardia: un doppio tocco registra due volte lo stesso appalto.
+    occupato("btn-appa", true);
     const ref = await db.aggiungi("appalti", rec);
+    occupato("btn-appa", false);
     $("appa-oggetto").value = ""; $("appa-ug").value = ""; $("appa-costi").value = ""; $("appa-inizio").value = "";
     bozzaAppalto = { rischi: [], valutati: false };
     for (const b of $("appa-rischi").querySelectorAll(".chg")) { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); }
@@ -5053,7 +5071,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
          il permesso. Precompilarle vorrebbe dire far nascere ogni permesso
          già «a posto» — cioè l'esatto contrario di quello che serve. */
       misure: [], atmosfera: null, stato: "bozza", chiusuraOra: null, chiusuraDaId: null, note: "" };
+    // nessuna guardia: un doppio tocco crea due bozze di permesso identiche.
+    occupato("btn-perm", true);
     const ref = await db.aggiungi("permessi", rec);
+    occupato("btn-perm", false);
     $("perm-lavoro").value = ""; $("perm-luogo").value = "";
     permAperto = (ref && ref.id) || null;
     await refresh();
@@ -5233,7 +5254,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       const dati = await new Promise((ris) => { const r = new FileReader(); r.onload = () => ris(r.result); r.readAsDataURL(appqFile); });
       rec.allegatoData = dati; rec.allegatoNome = appqFile.name;
     }
+    // nessuna guardia: un doppio tocco registra due volte lo stesso documento di qualifica.
+    occupato("btn-appq", true);
     await db.aggiungi("documenti", rec);
+    occupato("btn-appq", false);
     appqFile = null; $("appq-file").value = ""; $("appq-file-nome").textContent = ""; $("appq-scad").value = "";
     await refresh();
     const q = qualificaAppaltatore(APPT.find(x => x.id === imp), DOC);
@@ -5531,12 +5555,20 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
         if (pre.origineEtichetta) rec.origineEtichetta = pre.origineEtichetta;
       }
     }
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — un doppio tocco apre due
+       azioni correttive identiche (o riscrive due volte la stessa modifica).
+       `occupato(false)` va PRIMA di `annullaEditAzi()`, che riscrive
+       l'etichetta del bottone leggendo lo stato appena azzerato: se
+       corresse dopo, restituirebbe il testo catturato al tocco,
+       cancellando il cambio di modo appena fatto. */
+    occupato("btn-azi", true);
     if (editAzi) {
       const stato = $("azi-stato").value;
       rec.stato = stato;
       rec.esito = $("azi-esito").value.trim();
       rec.dataChiusura = stato === "chiusa" ? ($("azi-dchius").value || oggiISO()) : null;
       await db.aggiorna("azioni", editAzi, rec);
+      occupato("btn-azi", false);
       annullaEditAzi();
       esito("azi-esito-msg", "Azione aggiornata: " + descrizione + ".", "success");
     } else {
@@ -5548,6 +5580,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       // parla», questo dice «che cosa ha prodotto l'analisi», e le due cose
       // non coincidono per le azioni aperte prima che il perché fosse scritto.
       if (daEvento && nuova && nuova.id) await collegaAzioneAllAnalisi(rec.origineId, nuova.id);
+      occupato("btn-azi", false);
       annullaEditAzi();
       esito("azi-esito-msg", "Azione correttiva aperta: " + descrizione + " (entro il " + fmtData(scadenza) + ").", "success");
       $("azi-desc").focus();   // pronto per la prossima
@@ -5728,9 +5761,14 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       // decisione 13: si salva SOLO se non c'è nessun corso spuntato, se no
       // resterebbe scritta una dichiarazione che non riguarda più niente
       nessunRequisito: MANSF.req.size === 0 && MANSF.nonReq };
-    if (editMans) { await db.aggiorna("mansioni", editMans, rec); annullaEditMans();
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — un doppio tocco crea due
+       mansioni identiche. `occupato(false)` va PRIMA di `annullaEditMans()`,
+       che riscrive l'etichetta del bottone: se corresse dopo, cancellerebbe
+       il cambio di modo appena fatto (vedi btn-azi, stessa trappola). */
+    occupato("btn-mans", true);
+    if (editMans) { await db.aggiorna("mansioni", editMans, rec); occupato("btn-mans", false); annullaEditMans();
       esito("mans-esito", "Mansione aggiornata: " + nome + ".", "success"); }
-    else { await db.aggiungi("mansioni", rec); annullaEditMans();
+    else { await db.aggiungi("mansioni", rec); occupato("btn-mans", false); annullaEditMans();
       esito("mans-esito", "Mansione aggiunta: " + nome + " (" + conta(rec.requisiti.length, "corso", "corsi") + ", " + conta(rec.dpi.length, "DPI", "DPI") + ", " + conta(rec.lavoratoriIds.length, "persona", "persone") + ").", "success"); }
     await refresh();
   };
@@ -5762,7 +5800,9 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       if (!ok) return;
     }
     const lav = LAV.find(l => l.id === lavoratoreId);
+    occupato("btn-nom", true);
     await db.aggiungi("nomine", { ruolo, lavoratoreId, dal: dal || oggiISO(), al: null, note: $("nom-note").value.trim() });
+    occupato("btn-nom", false);
     $("nom-note").value = ""; $("nom-lav").value = "";
     esito("nom-esito", (lav ? lav.nome : "Persona") + " nominata: " + (r ? r.etichetta : ruolo) + ".", "success");
     await refresh();
@@ -5817,12 +5857,16 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     err("dpi-lav", false); err("dpi-tipo", false); err("dpi-data", false);
     const t = tipoDpiSicuro(tipo), lav = LAV.find(l => l.id === lavoratoreId);
     const addestrato = !!dpiAddestr;
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — confermato dal vivo, un
+       doppio tocco registra due consegne identiche dello stesso DPI. */
+    occupato("btn-dpi", true);
     await db.aggiungi("dpi", {
       lavoratoreId, tipo, modello: $("dpi-modello").value.trim(), taglia: $("dpi-taglia").value.trim(),
       dataConsegna, scadenza: dpiNonScade ? null : ($("dpi-scad").value || null),
       nonScade: !!dpiNonScade,
       addestramento: !!dpiAddestr, dataAddestramento: dpiAddestr ? dataConsegna : null, note: "",
     });
+    occupato("btn-dpi", false);
     const senzaData = !dpiNonScade && !$("dpi-scad").value;
     $("dpi-modello").value = ""; $("dpi-taglia").value = ""; $("dpi-scad").value = "";
     dpiAddestr = false; $("dpi-addestr").classList.remove("active"); $("dpi-addestr").setAttribute("aria-pressed", "false");
@@ -7125,7 +7169,11 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       data, cantiereId: $("isp-cant").value || null,
       responsabileId: $("isp-resp").value || null, stato: "in-corso" });
     if (!rec) { esito("isp-esito", "Modello non trovato: riprova a sceglierlo dall'elenco.", "err"); return; }
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — un doppio tocco avvia due
+       ispezioni identiche dallo stesso modello. */
+    occupato("btn-isp", true);
     const ref = await db.aggiungi("ispezioni", rec);
+    occupato("btn-isp", false);
     ispAperta = ref && ref.id;
     $("isp-modello").value = ""; $("isp-modello-nota").style.display = "none";
     await refresh();
@@ -7135,6 +7183,13 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
   $("btn-isp-indietro").onclick = async () => { ispAperta = null; pulisci("isp-c-esito"); await refresh(); window.scrollTo(0, 0); };
   $("btn-isp-chiudi").onclick = async () => {
     const i = ISP.find(x => x.id === ispAperta); if (!i) return;
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — un doppio tocco su
+       "Chiudi ispezione" può riaprire/richiudere due volte o duplicare le
+       azioni correttive create dalle non conformità. `occupato(false)` è in
+       un `finally`: la funzione ha più uscite anticipate (riapertura,
+       ispezione vuota, modale annullata) e ognuna deve liberare il bottone. */
+    occupato("btn-isp-chiudi", true);
+    try {
     if (i.stato === "completata") {
       const ok = await chiedi("Riaprire l'ispezione?",
         "Potrai correggere gli esiti. Le <b>azioni correttive già aperte restano dove sono</b>: alla nuova chiusura non verranno duplicate.",
@@ -7206,6 +7261,7 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
       + (daCreare.length ? ": " + daCreare.length + (daCreare.length === 1 ? " azione correttiva aperta" : " azioni correttive aperte") + " entro il " + fmtData(scad) : " senza non conformità")
       + (programmata ? " · prossima ispezione programmata per il " + fmtData(programmata) : "") + ".", "success",
       daCreare.length ? "Ispezione chiusa: " + daCreare.length + (daCreare.length === 1 ? " azione aperta." : " azioni aperte.") : "Ispezione chiusa.");
+    } finally { occupato("btn-isp-chiudi", false); }
   };
 
   // Adempimenti tipici di cava: popola il menu (raggruppato persona/azienda)

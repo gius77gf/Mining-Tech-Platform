@@ -1277,6 +1277,12 @@ const BANCHI = [
      della tendina ci stia a 390 px, lo dice solo il browser. */
   ['i numeri tranquilli che escono da Scudo', 'scudo-numeri-tranquilli.mjs', []],
   ['numeri tranquilli di Scudo · controprova', 'scudo-numeri-tranquilli.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, dal deep-pass QA: tredici bottoni di scrittura su
+     quindici senza `occupato()`. Il banco copre i due casi più chiari — il
+     doppione vero e verificato dal vivo (DPI, scrittura pura senza dedup) e
+     la trappola dell'etichetta (Mansioni, come btn-azi). */
+  ['bottoni di scrittura di Scudo si spengono durante il salvataggio', 'scudo-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Scudo · controprova', 'scudo-bottoni-occupato.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 03/08, seconda passata su Genesi dopo i cinque numeri
      tranquilli corretti la mattina dentro `genesi-data.js`. I quattro rimasti
      stavano tutti dove `node` non arriva: un campo SVUOTATO nella
