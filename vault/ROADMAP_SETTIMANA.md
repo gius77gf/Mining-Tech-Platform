@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **347 esecuzioni** che
-  aprono le pagine in un browser vero, da **153** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **349 esecuzioni** che
+  aprono le pagine in un browser vero, da **154** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11329,3 +11329,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   KPI: 3143 → **3145**. Giro completo su worktree isolata: 41/41. 9-suite
   sum: **3.639** (3145+330+83+32+9+8+7+3+22).
   `numeri-nei-documenti.mjs` verificato prima del commit.
+
+## Genesi — la finestra del relief non persisteva su "Apri" (18/09)
+- [x] **`D2.relLo`/`D2.relHi` NON ENTRAVANO IN `volSnapshot` E NON VENIVANO
+      RIPRISTINATI SU "APRI"** *(18/09, unità completata, dal deep-pass QA su
+      Genesi)*. Stessa identica famiglia già corretta tre volte oggi stesso
+      nello stesso file (tratti, poi dir/costi, poi errColl/dev): la finestra
+      del relief (ms/m, decide la classe sv-bad/sv-warn/sv-ok della riga
+      "Relief per foro" nella Scheda Validatori — rischio blocchi, picchi di
+      vibrazione, proiezioni) è un input vero del form, stessa card di
+      errColl/dev, rimasto fuori dal censimento "34 campi" delle unità
+      precedenti. Un progetto B aperto dopo un progetto A che aveva alzato la
+      finestra ereditava la soglia di A, classificando male il rischio dei
+      fori di B, senza nessun avviso. Corretto con lo stesso pattern esatto:
+      `relLo`/`relHi` in `volSnapshot`, fallback esplicito ai default (5/15)
+      su "Apri", sincronizzazione in `syncDesignInputs()`.
+- Nuovo banco browser `genesi-relief-non-persiste-su-apri.mjs` (6 prove nei
+  due versi, controprova: 2 KO col difetto rimesso, iniezione trovata 1/1).
+  Banchi: 347 → **349** esecuzioni, 153 → **154** file distinti.
+  Giro completo su worktree isolata: 41/41. 9-suite sum invariato (3.639,
+  nessun nuovo test in run-kpi.mjs: relLo/relHi non hanno una funzione pura
+  da coprire, sono stato del form). `numeri-nei-documenti.mjs` verificato
+  prima del commit (banchi 347→349, file 153→154, e una terza occorrenza
+  «21 sulle funzioni» in DECISIONI_WEEKEND.md rimasta indietro dall'unità
+  Deepwork ID precedente, trovata solo ora e corretta a 24).

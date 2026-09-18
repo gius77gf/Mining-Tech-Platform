@@ -413,6 +413,8 @@ const BANCHI = [
   ['dir/costi su "Apri" di Genesi · controprova', 'genesi-dir-costi-non-persistono-su-apri.mjs', ['--controprova'], true],
   ['errore al colletto e deviazione non restano attaccati alla volata aperta dopo (Genesi)', 'genesi-errcoll-dev-non-persistono-su-apri.mjs', []],
   ['errColl/dev su "Apri" di Genesi · controprova', 'genesi-errcoll-dev-non-persistono-su-apri.mjs', ['--controprova'], true],
+  ['la finestra del relief non resta attaccata alla volata aperta dopo (Genesi)', 'genesi-relief-non-persiste-su-apri.mjs', []],
+  ['relief su "Apri" di Genesi · controprova', 'genesi-relief-non-persiste-su-apri.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09: G38 (obiettivo di pezzatura) e G44 (confronta burden

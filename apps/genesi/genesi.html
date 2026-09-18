@@ -5219,6 +5219,16 @@ function volSnapshot(nome){
          proiezioni). Non erano MAI salvati: restavano quelli dell'ultima
          volata toccata in sessione, apparendo sul progetto sbagliato. */
       errColl:D2.errColl,dev:D2.dev,
+      /* ⛔ 18/09, dal deep-pass QA: stessa famiglia appena chiusa tre volte
+         oggi (tratti, poi dir/costi, poi errColl/dev) — `relLo`/`relHi` (la
+         finestra del relief, stessa card di errColl/dev) non erano MAI
+         salvati col progetto. Decidono la classe sv-bad/sv-warn/sv-ok della
+         riga "Relief per foro" nella Scheda Validatori (rischio blocchi,
+         picchi di vibrazione, proiezioni): un progetto B aperto dopo un
+         progetto A che aveva alzato la finestra ereditava la soglia di A,
+         classificando il rischio dei fori di B con la misura sbagliata,
+         senza nessun avviso. */
+      relLo:D2.relLo,relHi:D2.relHi,
       esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
       /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
          relief, che si ricalcolano. Senza questa riga un foro tolto a mano
@@ -5376,6 +5386,11 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        esplicito ai default del form (0,15 m / 2,5%). */
     D2.errColl=(_dsg.errColl!=null&&isFinite(_dsg.errColl))?+_dsg.errColl:0.15;
     D2.dev=(_dsg.dev!=null&&isFinite(_dsg.dev))?+_dsg.dev:2.5;
+    /* ⛔ 18/09, dal deep-pass QA: stessa famiglia — relLo/relHi non erano
+       salvati (fix appena sopra in volSnapshot), stesso fallback esplicito
+       ai default del form (5 / 15 ms/m). */
+    D2.relLo=(_dsg.relLo!=null&&isFinite(_dsg.relLo))?+_dsg.relLo:5;
+    D2.relHi=(_dsg.relHi!=null&&isFinite(_dsg.relHi))?+_dsg.relHi:15;
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
@@ -7506,6 +7521,7 @@ function syncDesignInputs(){
   if($('dFile')) $('dFile').value=D2.file; gsv('dH',D2.prof,1); gsv('dKg',D2.kg,0);
   if($('dIncl')) $('dIncl').value=D2.incl; $('dRit').value=D2.ritardo;
   if($('dErrColl')) gsv('dErrColl',D2.errColl,2); if($('dDev')) gsv('dDev',D2.dev,2);
+  if($('dlRelLo')) gsv('dlRelLo',D2.relLo,1); if($('dlRelHi')) gsv('dlRelHi',D2.relHi,1);
   if($('dStem')) gsv('dStem',D2.stem,2); if($('dSub')) gsv('dSub',D2.sub,2); if($('dRitFila')) $('dRitFila').value=D2.ritardoFila;
   if($('dRoccia')) $('dRoccia').value=D2.roccia;
   if($('dEspl')) $('dEspl').value=D2.esplosivo; if($('dInnSel')) $('dInnSel').value=D2.innesco; if($('pEspl')) $('pEspl').value=D2.esplosivo;
