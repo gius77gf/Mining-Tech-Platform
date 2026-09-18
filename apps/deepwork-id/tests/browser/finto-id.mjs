@@ -31,7 +31,7 @@ const AUTH = `
     async getIdToken() { return 'finto'; },
   });
   const PERSONE = {
-    member: () => utente({ uid: 'u1', email: S.email || 'titolare@cava-alfa.it',
+    member: () => utente({ uid: S.uid || 'u1', email: S.email || 'titolare@cava-alfa.it',
       orgs: S.orgs || { org_cava_alfa: 'owner', org_consorzio: 'member' } }),
     unauthorized: () => utente({ uid: 'u9', email: S.email || 'nuovo@esempio.it', orgs: {}, emailVerified: S.emailVerified }),
     tour: () => utente({ uid: 'anon', anonimo: true }),
@@ -148,7 +148,10 @@ const MODULI = {
 /* Da chiamare PRIMA di goto. `scenario`: { stato: 'anonymous'|'member'|'unauthorized'|'tour',
    email, orgs, emailVerified, dopo, errori:{nomeChiamata: codice}, risposte:{nome: data},
    orgsDopoInvito, dati:{ 'collezione/…': [{id, …}] } }. Con `scenario === null` non si
-   monta niente: la pagina resta senza rete, com'è per i banchi di sempre. */
+   monta niente: la pagina resta senza rete, com'è per i banchi di sempre.
+   ⛔ 18/09: `uid` (default 'u1') logga come un membro DIVERSO dal titolare —
+   serve a chi vuole misurare che cosa vede un admin o un member qualunque,
+   non solo l'owner che tutti i banchi precedenti impersonavano. */
 export async function montaFintoId(p, scenario) {
   if (scenario) await p.addInitScript((s) => { window.__scenarioId = s; }, scenario);
   await p.route('https://www.gstatic.com/firebasejs/**', async (r) => {

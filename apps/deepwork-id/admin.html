@@ -169,7 +169,7 @@
   ];
   const DEMO_INV = [ { id: 'i1', email: 'nuovo@collega.it', role: 'member', expiresAt: new Date(Date.now() + 11 * 86400000) } ];
 
-  let id = null, isAdmin = false, myUid = null;
+  let id = null, isAdmin = false, isOwner = false, myUid = null;
   try {
     const { DeepworkID } = await import('../../shared/deepwork-id-client/index.js');
     id = await DeepworkID.init({ appId: 'deepwork-id' });
@@ -178,6 +178,7 @@
     else {
       myUid = id.user.uid;
       isAdmin = ['owner', 'admin'].includes(id.role());
+      isOwner = id.role() === 'owner';
       if (!isAdmin) {
         msg('Sei membro semplice: puoi vedere i membri ma solo owner e admin possono gestirli.');
         /* il modulo d'invito restava attivo e rispondeva «permission-denied»
@@ -196,11 +197,18 @@
     const mem = VIVO ? await id.listMembers() : DEMO_MEM;
     const inv = VIVO ? await id.listPendingInvites() : DEMO_INV;
     const canManage = VIVO ? isAdmin : true;   // in anteprima mostra i comandi
+    /* ⛔ 18/09, dal backlog QA: un admin (non owner) vedeva la stessa select
+       di cambio ruolo e lo stesso «Rimuovi» su un OWNER — e il server li
+       rifiuta sempre (functions/index.js, changeRole/removeMember: «solo un
+       owner può gestire altri owner»). Non è un buco di sicurezza (il
+       server blocca), ma un bottone che promette un'azione che fallirà
+       sempre con un errore, su ruoli che nessun admin può toccare. */
+    const puoGestire = (m) => canManage && m.uid !== myUid && (!VIVO || m.role !== 'owner' || isOwner);
 
     $('mem-list').innerHTML = mem.map(m => `<div class="item" style="cursor:default;">
       <div class="avatar">${esc(sig(m.email || m.uid))}</div>
       <div class="info"><div class="name">${esc(m.email || m.uid)}</div><div class="meta">${esc(STATO[m.status] || m.status || '')}${m.uid === myUid ? ' · sei tu' : ''}</div></div>
-      ${canManage && m.uid !== myUid ? `
+      ${puoGestire(m) ? `
         <select class="dw-input role-sel" data-role="${m.uid}">
           ${['owner','admin','member'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}
         </select>

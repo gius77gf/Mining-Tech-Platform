@@ -79,6 +79,7 @@ const DIFETTI = {
     ["esito('Ruolo aggiornato.', 'ok')", "msg('Ruolo aggiornato.')"],
     ["for (const i of ['inv-email', 'inv-role', 'btn-invite']) $(i).disabled = true;", ''],
     ['width: auto; min-height: var(--tap); padding: 4px 10px; font-size: 11px;', 'width: auto; min-height: 34px; padding: 4px 10px; font-size: 11px;'],
+    ["const puoGestire = (m) => canManage && m.uid !== myUid && (!VIVO || m.role !== 'owner' || isOwner);", 'const puoGestire = (m) => canManage && m.uid !== myUid;'],
   ],
   'apps/deepwork-id/non-autorizzato.html': [
     ['.foot-links a, #btn-reverify { display: inline-block; padding: 13px 6px; margin: -13px -6px; }', ''],
@@ -196,6 +197,29 @@ console.log('\n══ admin.html');
   prova('per il membro semplice il modulo d\'invito è spento (il server lo rifiuterebbe)', spenti.length === 3 && spenti.every(Boolean), spenti);
   const st = await stileMsg(p);
   prova(`la nota «sei membro semplice» ha un fondo, non è testo nudo (bg ${st.bg})`, st.h > 0 && st.bg !== 'rgba(0, 0, 0, 0)', st);
+  await ctx.close();
+}
+{
+  /* ⛔ 18/09, dal backlog QA: un ADMIN (non owner) vedeva su un membro OWNER
+     la stessa select di cambio ruolo e lo stesso «Rimuovi» che vede su un
+     membro semplice — e il server li rifiuta sempre (functions/index.js:
+     «solo un owner può gestire altri owner»). Login come u2 (ufficio@…,
+     ruolo admin in org_cava_alfa — `uid:'u2'`, se no il finto SDK logga
+     sempre come u1, cioè come il titolare stesso): u1 è owner, u3 è un
+     membro semplice. */
+  const { ctx, p, errori } = await apri('admin.html', { stato: 'member', uid: 'u2', email: 'ufficio@cava-alfa.it', orgs: { org_cava_alfa: 'admin' }, dati: DATI_ORG() }, 320);
+  const riga = (email) => p.evaluate((mail) => {
+    const it = [...document.querySelectorAll('#mem-list .item')].find((x) => x.textContent.includes(mail));
+    if (!it) return null;
+    return { haSelect: !!it.querySelector('select'), haRimuovi: !!it.querySelector('[data-remove]'), badge: it.querySelector('.badge')?.textContent || null };
+  }, email);
+  const rigaOwner = await riga('titolare@cava-alfa.it');
+  prova('⛔ un admin NON vede la select di cambio ruolo su un OWNER', rigaOwner && !rigaOwner.haSelect, rigaOwner);
+  prova('⛔ né il bottone «Rimuovi» su un OWNER', rigaOwner && !rigaOwner.haRimuovi, rigaOwner);
+  prova('e la riga mostra il badge del ruolo al suo posto', rigaOwner && rigaOwner.badge === 'owner', rigaOwner);
+  const rigaMember = await riga('capocava@cava-alfa.it');
+  prova('e continua a vedere la select su un membro semplice, che PUÒ gestire', rigaMember && rigaMember.haSelect && rigaMember.haRimuovi, rigaMember);
+  prova('nessun errore di pagina', errori.length === 0, errori);
   await ctx.close();
 }
 {
