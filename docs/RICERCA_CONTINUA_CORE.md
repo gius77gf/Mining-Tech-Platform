@@ -547,3 +547,234 @@ Nessuna delle tre righe tocca la separazione (a)/(b)/(c) già decisa in `DECISIO
 ---
 
 *Documento di ricerca — candidati da verificare, non diagnosi finali. Le citazioni dal mondo sono di seconda mano (estratti di ricerca), marcate per singola fonte.*
+
+
+---
+
+# Ricerca continua — Core Deepwork (il core come porta d'ingresso dell'ecosistema: ricerca, hub, identità, offline)
+
+**Data ricerca:** 18/09/2026
+**Commit verificato:** 687a6c73dfd6756315d186f46b582bbdfdb7b0c0
+
+## Dichiarazione di ciò che esiste già (per non riproporre una mancanza già coperta)
+
+Ho letto per intero le tre sezioni precedenti di questo documento prima di
+proporre qualunque cosa:
+- la sezione del 03/08 sul rapportino di fine turno (esplosivo, firma di
+  chiusura) — non riguarda questa domanda;
+- quella del 06/08 sulla dichiarazione dei dati d'esempio nei CSV — non
+  riguarda questa domanda;
+- quella del 04/09 sul registro carico/scarico esplosivi — non riguarda
+  questa domanda;
+- **quella del 17/09**, la più vicina: tratta già **il cambio-organizzazione**
+  (`switchOrg` in `shared/deepwork-id-client/index.js:310-318`, i suoi
+  `entitlement` azzerati prima del reload) e **`MULTI_TENANT=false` nel
+  core** (`index.html:141-155`, Fase 1-2, dichiarato nel commento). **Non
+  ripropongo queste due cose.** Quella sezione guardava anche `renderHome()` e
+  il primo schermo per **contenuto** (badge, KPI, target); questa guarda il
+  primo schermo per **navigazione**: come si esce dal core verso il resto
+  dell'ecosistema, e come si cerca dentro di esso.
+
+## Il mondo (tutto di seconda mano, marcato per fonte — `WebSearch` usato regolarmente, `WebFetch` non usato perché già documentato bloccato in questo repository)
+
+- **App launcher / «waffle menu»** (Google Workspace, Microsoft 365): un'icona
+  fissa in un angolo della barra apre una griglia di app dello stesso account
+  — permette di «saltare fra gli strumenti nello stesso account» **senza
+  lasciare l'app corrente** e senza un secondo login. [di seconda mano — Google
+  Workspace Guides, "Organize Your Workspace"; Microsoft Learn Q&A "O365
+  waffle apps"]
+- **Ricerca/command palette unificata** (Slack, Notion, e la tendenza SaaS
+  2026 in generale): «una buona casella di ricerca/palette di comando può
+  trovare progetti, impostazioni, record, documenti e persone in tutto lo
+  spazio di lavoro» — la ricerca cresce a coprire *tutto* l'account, non un
+  modulo solo, proprio perché nessun albero di menu tiene il passo con
+  un'app che accumula moduli. [di seconda mano — SaaSUI.design, "SaaS Search &
+  Command Palette UX: Real Examples & Patterns"]
+- **SSO unico per la suite**: la pratica raccomandata per un portafoglio
+  multi-prodotto è «login una volta sola attraverso un provider di identità
+  unificato», con branding e flusso di login/logout **standardizzati fra
+  tutte le applicazioni**. [di seconda mano — WorkOS, "The complete guide to
+  user management for B2B SaaS"; Reco.ai, "SSO in SaaS"]
+- **PWA offline**: l'aspettativa base di un service worker è fare da «proxy
+  virtuale fra il browser e la rete» e servire l'app shell da cache quando
+  la rete manca; le funzionalità che si aggiungono con l'installazione
+  condivisa di una suite includono badge sull'icona, notifiche push,
+  sincronizzazione in background. Nessuna fonte trovata descrive
+  esplicitamente «una suite con più prodotti installabili separatamente
+  condivide un solo service worker»: è un caso limite non documentato nelle
+  fonti generiche su PWA, quindi qui sotto il confronto è con l'aspettativa
+  di base (offline = stessa pagina, non una pagina sbagliata), non con una
+  prassi specifica citata. [di seconda mano — MDN Web Docs, "Progressive web
+  apps"; dev.to, "Frontend System Design: Offline Support and PWAs"]
+
+## Il delta — cercato nel MECCANISMO del core, comando e uscita accanto a ogni affermazione
+
+### 1. La ricerca in barra si chiama «globale» ma è locale al core
+
+```
+$ grep -n "function globalSearch" -A15 /home/user/Mining-Tech-Platform/index.html | head -8
+3830:function globalSearch(q){
+3831:  q=(q||'').trim().toLowerCase();...
+3832:  const cave=DB.cave.filter(...)
+3833:  const macLav=DB.mezziLav.filter(...)
+3834:  const pers=DB.personale.filter(...)
+3835:  const cli=DB.clienti.filter(...)
+3836:  const rapp=DB.rapportini.filter(...)
+```
+
+Il nome della funzione è `globalSearch` (usata nell'`<input>` di barra,
+riga 9890: `placeholder="Cerca cave, mezzi, rapportini..."`), ma cerca
+**solo** in cinque collezioni proprie del core (`DB.cave`, `DB.mezziLav`,
+`DB.personale`, `DB.clienti`, `DB.rapportini`). Nessuna menzione di dati di
+un'altra app. Il "globale" del nome è il globale **della pagina** (cerca in
+tutte le sezioni del core), non dell'ecosistema — una distinzione che
+l'utente non ha modo di conoscere aprendo la casella.
+
+### 2. Il core non ha nessun link verso il resto dell'ecosistema
+
+```
+$ grep -n 'href="apps\|href="/apps\|apps/deepwork-id\|apps/genesi\|apps/scudo\|apps/campo\|apps/flotta\|apps/conti\|apps/sentinella\|apps/terra' /home/user/Mining-Tech-Platform/index.html
+(nessuna riga)
+
+$ grep -n "apps/index\|vetrina\|/apps/'" /home/user/Mining-Tech-Platform/index.html
+(nessuna riga)
+```
+
+Zero occorrenze. Le 119 corrispondenze di un `grep -ciE` più largo sui nomi
+delle app sono tutte parole italiane comuni o commenti di sviluppo (`campo`,
+`conti`, «genesi.html» citato in un commento sulla numerazione degli
+inneschi) — nessuna è un link cliccabile. **Il core non offre nessuna via
+per raggiungere Genesi, Scudo, Campo, Flotta, Conti, Sentinella, Terra o
+anche solo la vetrina dell'ecosistema (`apps/index.html`).** Chi apre il
+core e non conosce già l'URL della vetrina non scopre che esistono altre
+sei app.
+
+La vetrina esiste (`apps/index.html`) e collega tutte le app:
+
+```
+$ grep -o '<a href="/apps/[a-z-]*/"[^>]*>[A-Za-z]*</a>' /home/user/Mining-Tech-Platform/apps/index.html | head -8
+<a href="/apps/campo/" target="_blank" rel="noopener">Campo</a>
+<a href="/apps/flotta/" target="_blank" rel="noopener">Flotta</a>
+<a href="/apps/scudo/" target="_blank" rel="noopener">Scudo</a>
+<a href="/apps/terra/" target="_blank" rel="noopener">Terra</a>
+<a href="/apps/conti/" target="_blank" rel="noopener">Conti</a>
+<a href="/apps/sentinella/" target="_blank" rel="noopener">Sentinella</a>
+```
+
+Ma **non c'è nessun collegamento nella direzione opposta**: né dal core
+verso la vetrina, né da nessuna delle sei app verso la vetrina o verso il
+core (verificato su Scudo: `grep -n 'href="/"\|vetrina' apps/scudo/index.html`
+→ nessuna riga). E ogni link della vetrina apre `target="_blank"`: una
+scheda nuova, senza contesto di sessione portato con sé — coerente con
+l'assenza di SSO nel core (punto 3), ma un limite in più anche fra le sei
+app che l'SSO ce l'hanno già.
+
+### 3. Il core non usa l'identità condivisa che le sei app usano già
+
+```
+$ grep -n "deepwork-id-client" /home/user/Mining-Tech-Platform/index.html
+111:import { numeroScritto, ... } from "./shared/deepwork-id-client/dw-shell.js";
+```
+
+Un'unica riga, e importa **solo funzioni pure di calcolo** (formattazione
+numeri/date, misure volata) da `dw-shell.js` — non l'SDK di identità
+(`shared/deepwork-id-client/index.js`, quello con `switchOrg`,
+`entitlement`, l'organizzazione attiva). Confronto con le sei app verticali:
+
+```
+$ for a in scudo campo flotta conti sentinella terra; do
+    echo -n "$a: "; grep -c "deepwork-id-client/index.js\|from ['\"]\.\./\.\./shared/deepwork-id-client" apps/$a/index.html
+  done
+scudo: 2
+campo: 2
+flotta: 2
+conti: 2
+sentinella: 2
+terra: 2
+```
+
+Tutte e sei le app verticali importano già l'SDK di identità; il core no.
+Il core ha un proprio login separato, con una propria collezione `DB.users`
+e `state.user` (verificato: `grep -c "signInWithEmailAndPassword\|state.user" index.html`
+→ decine di occorrenze di `state.user`, zero di un login passato da
+`deepwork-id-client`). **Il core — che è la porta d'ingresso storica
+dell'ecosistema — è oggi l'unica superficie NON collegata all'identità
+condivisa che le sei app già usano fra loro.** Non è un difetto nuovo (è
+coerente con `MULTI_TENANT=false`, Fase 1, già dichiarato nel codice e già
+scritto nella sezione del 17/09): è il fatto che rende concreta, con un
+numero, la distanza dal pattern SSO del mondo (punto 3 sopra) — sei app su
+sette ci sono già, manca proprio quella che l'utente incontra per prima.
+
+### 4. Il service worker del core copre anche i path delle altre app, e nel fallback offline le sostituisce con sé stesso
+
+```
+$ grep -n "register('./sw.js')" -B3 /home/user/Mining-Tech-Platform/index.html
+1078:      navigator.serviceWorker.register('./sw.js').then(reg => {
+```
+
+Registrato **senza** l'opzione `{scope:...}`: lo scope di default di un
+service worker è la cartella dello script, cioè la radice del sito
+(`sw.js` sta in `/`). Quindi, una volta installato aprendo il core, quel
+service worker intercetta anche le richieste di navigazione verso
+`/apps/scudo/`, `/apps/campo/`, ecc. — sono nello stesso dominio, nessuno
+scope più stretto lo esclude.
+
+```
+$ grep -n "e.request.mode === 'navigate'" -A3 /home/user/Mining-Tech-Platform/sw.js
+109:        if (e.request.mode === 'navigate') {
+110:          return caches.match('./index.html').then(r => r || caches.match('./'));
+```
+
+Il fallback offline per **qualunque** richiesta di navigazione non trovata
+in cache è sempre `./index.html` — che, risolto contro l'URL di `sw.js`
+(la radice), è **il core**, non l'app richiesta. Nessuna delle sei app
+verticali registra un proprio service worker (verificato:
+`grep -c serviceWorker apps/*/index.html` → 0 su tutte e sei). Quindi lo
+scenario verificabile è: un utente visita il core (installa il SW), poi
+prova ad aprire per la prima volta `/apps/scudo/` mentre è offline o con
+rete instabile, e **prima che quella pagina sia mai stata messa in cache**
+— il service worker del core intercetta la navigazione, la rete fallisce,
+e il fallback restituisce silenziosamente **l'app shell del core** al posto
+di Scudo. Nessun errore, nessun messaggio: la pagina che compare è quella
+sbagliata, con la faccia di quella giusta.
+
+## Tabella delle proposte
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Barra di ricerca del core (`globalSearch`, `index.html:3830`) | Il nome della funzione e il placeholder («Cerca cave, mezzi, rapportini...») non promettono di cercare fuori dal core, ma nessuna schermata dice esplicitamente all'utente che la ricerca **non** copre le altre sei app — un utente abituato ai pattern del mondo (ricerca unificata, punto 2 del mondo) può aspettarsi di trovare lì anche un documento di Scudo o un mezzo di Flotta | Digitare in ricerca il nome di un cliente presente solo in Conti (non nel core): zero risultati, nessuna indicazione che «per Conti/Scudo/... apri l'app dedicata» | Piccolo: non serve federare la ricerca (richiederebbe un indice cross-app che oggi non esiste in nessuna app), basta dichiarare il perimetro nell'interfaccia | Nell'elenco vuoto di `globalSearch`, quando la query non produce risultati in nessuna delle cinque collezioni, si può aggiungere un suggerimento statico («Cerca anche personale/mezzi/documenti nelle altre app dell'ecosistema»); si misura verificando che compaia solo su risultati vuoti, non sempre |
+| Home del core (`renderHome`, già letta nella sezione 17/09) e vetrina (`apps/index.html`) | Nessun percorso, in nessuna delle due direzioni, collega il core alla vetrina o alle altre app: un utente che vive solo nel core non sa che l'ecosistema esiste, e chi arriva dalla vetrina apre ogni app in una scheda scollegata | Aprire il core, cercare in tutta la UI (menu, home, impostazioni) un link o un riferimento testuale a un'altra app: nessuno (`grep` sopra, zero righe) | Medio: un semplice link testuale è piccolo, ma decidere **quale** contenuto mostrare (link fisso? solo le app a cui l'organizzazione è abbonata? serve `entitlement`, che il core non legge — punto 3) tocca la decisione sul multi-tenant, non è un ritocco isolato | Con un link aggiunto (es. in una sezione «Ecosistema» o nel menu utente), verificare che porti a un URL valido e che, se aperto, non rompa la sessione del core (nessun logout involontario) |
+| Service worker del core (`sw.js`, fallback su `navigate`) | Il fallback offline di **qualunque** navigazione fallita nello stesso dominio restituisce l'app shell del core, anche per un URL che appartiene a un'altra app mai visitata | Con il SW del core già installato: disattivare la rete, aprire per la prima volta `/apps/scudo/` (mai visitato prima, non in cache) → si vede la home del core, non un messaggio "Scudo non è disponibile offline" | Piccolo: nel fallback, prima di restituire `./index.html`, controllare se `e.request.url` inizia per `/apps/` e in quel caso restituire una risposta 503 dichiarata invece del contenuto di un'altra app (o, se si vuole precachare anche le app, un lavoro più grande e separato) | Iniettare nella risposta HTTP (non nel file) un caso di navigazione verso `/apps/scudo/` con la cache vuota e la rete disattivata in un banco Playwright: oggi il body ricevuto contiene i testi del core («Deepwork — Field Operations»); dopo la correzione deve contenere una pagina di errore dichiarata o nessun contenuto del core |
+
+## Onestà sulla distanza dai leader di settore
+
+Il confronto è impietoso e va detto senza attenuarlo: Google Workspace e
+Microsoft 365 risolvono la navigazione fra prodotti con un'icona sempre
+visibile e una ricerca che sa di preciso quali strumenti coprire; l'unico
+ecosistema Deepwork non ha **nessuna** delle due cose collegate al core, e
+il pezzo più vicino a un hub (la vetrina) è tecnicamente un sito di
+marketing separato, non un punto di ingresso funzionale — apre ogni app
+`target="_blank"`, senza portare né sessione né organizzazione. Questo è
+coerente con la fase dichiarata nel codice stesso (`MULTI_TENANT=false`,
+Fase 1-2 di `ARCHITETTURA.md`), quindi **non è un difetto imprevisto**: è la
+misura di quanta strada resta fra "oggi" e "un ecosistema" nel senso in cui
+lo intendono i prodotti presi a riferimento. Il pezzo del fallback offline
+(punto 4) è diverso: quello è un effetto collaterale non dichiarato di uno
+scope di service worker più largo di quanto chi l'ha scritto probabilmente
+intendeva, e non dipende dalla fase multi-tenant — è riproducibile oggi.
+
+---
+
+## Fonti
+
+- [Google Workspace Guides — Organize Your Workspace: How To Customize The Google App Launcher](https://googleworkspaceguides.com/organize-your-workspace-how-to-customize-the-google-app-launcher/)
+- [Microsoft Learn Q&A — O365 waffle apps](https://learn.microsoft.com/en-us/answers/questions/4966645/o365-waffle-apps)
+- [SaaSUI.design — SaaS Search & Command Palette UX: Real Examples & Patterns](https://www.saasui.design/blog/saas-search-command-palette-ux-patterns)
+- [WorkOS — The complete guide to user management for B2B SaaS](https://workos.com/blog/user-management-for-b2b-saas)
+- [Reco.ai — SSO in SaaS: Key Features, Pros, Cons, and Best Practices](https://www.reco.ai/learn/sso-saas)
+- [MDN Web Docs — Progressive web apps](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
+- [dev.to — Frontend System Design: Offline Support and Progressive Web Apps (PWAs)](https://dev.to/zeeshanali0704/frontend-system-design-offline-support-and-progressive-web-apps-pwas-4k8m)
+
+---
+
+*Documento di ricerca — candidati da verificare, non diagnosi finali. Le citazioni dal mondo sono di seconda mano (estratti di ricerca), marcate per singola fonte. Nessun file di codice è stato modificato durante questa ricerca.*

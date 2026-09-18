@@ -461,3 +461,93 @@ grep -n "1124/1965\|scadenzaDenunciaInail\|art\. 53" apps/scudo/scudo-data.js ap
 ---
 
 **Verificato il 17/09/2026 da ricerca continua.**
+
+---
+
+## Ricerca del 2026-09-18 — D.Lgs 117/2008, il Piano di gestione dei rifiuti di estrazione (norma NON ancora presente in nessuna app)
+
+**Data**: 18/09/2026
+**Tema**: Norme trasversali non ancora coperte — scelta di una norma verificata come assente in tutte e sei le app prima di trattarla come "mancanza", con la prova del `grep` incollata (non solo il nome tecnico/inglese: si è cercato il MECCANISMO — piano di gestione, operatore, struttura di deposito, sterili/scarti di lavorazione — non solo la sigla).
+
+### PASSO 0 — Che cosa è già coperto (dichiarato prima di proporre, per non riproporre una norma già citata)
+
+Lette prima le sezioni precedenti di questo stesso documento (03/08, 15/09, 17/09) e la sezione REGOLE VINCOLANTI di CLAUDE.md. Risultano già citate nel codice, verificate con `grep -rn "D\.Lgs\|D\.P\.R\|DPR\|D\.M\.\|Legge \|L\. [0-9]\|art\. \|UNI \|Accordo Stato-Regioni" apps/ shared/ index.html` e con ricerche mirate fatte per questa sessione:
+
+- **L. 198/2025** (mancati infortuni) — Scudo, Campo
+- **D.Lgs 624/96** (DSS, sorvegliante di cava, art. 6/9/10) — Scudo (`apps/scudo/scudo-data.js`, `apps/scudo/index.html`, `apps/scudo/README.md`)
+- **D.Lgs 81/2008** (sicurezza generale, art. 26 DUVRI, art. 46) — tutte le app
+- **DPR 472/1996** (DDT) — Conti
+- **D.Lgs 231/2002** (mora) — Conti
+- **D.Lgs 66/2003**, **D.P.R. 177/2011**, **UNI 9916**, **Accordo Stato-Regioni** — citate ma non ancora analizzate in dettaglio (dichiarato "da fare" nelle sezioni precedenti)
+- **D.P.R. 128/1959** (polizia mineraria) — Flotta (`flotta-data.js:504`), `shared/dw-ponti.js` (artt. 305 e sorveglianti per turno)
+- **DM 16/03/1998, All. B** (condizioni di misura del rumore) — Sentinella, in profondità (`sentinella-data.js`, `index.html`)
+- **denuncia annuale dei quantitativi estratti** (obbligo regionale/canoni) — Conti, Terra (`relazioneLotto`, prospetto denuncia annuale)
+- **fideiussione/garanzia per il ripristino ambientale della concessione** — Terra (`terra-data.js`, chiave `fideiussione`), Scudo (scadenzario)
+- **D.P.R. 1124/1965 art. 53** (denuncia infortunio INAIL) — Scudo, verificata il 17/09
+
+Comando di controllo eseguito su tutte e sei le app **prima** di dichiarare la mancanza di seguito (uscita reale incollata):
+
+```
+$ grep -rniE "piano di gestione|rifiuti di estrazione|rifiuti delle industrie estrattive|struttura di deposito|117/2008|2006/21" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+(nessuna riga — uscita vuota, conteggio 0)
+```
+
+E per escludere che il meccanismo esista sotto un nome diverso (la lezione delle quattro ricerche del 14/08 in CLAUDE.md: si cerca il meccanismo, non il nome), sono stati cercati anche i sinonimi di mestiere — sterili, scarti di lavorazione, cumuli di scarto, materiali di scarto, deposito rifiuti — con uscita **vuota su tutti** (comandi e uscite nella tabella del Passo 1). L'unica ricorrenza di "esplosivo" e "cumul" trovate sono, rispettivamente, una voce di costo in Conti e testo su accumuli di materiale nelle checklist di Scudo (unghia del fronte, nastri/tramogge) — non pertinenti al piano rifiuti.
+
+### PASSO 1 — Verifica puntuale nel codice (comandi con uscita reale)
+
+```
+$ grep -rniE "gestione.*rifiut|piano.*rifiut" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+(0 righe)
+
+$ grep -rniE "sterile|sterili|scarti di lavorazione|cumul|MTR\b|materiali di scarto|deposito rifiuti|impianto di gestione" apps/scudo apps/campo apps/terra apps/conti apps/flotta apps/sentinella shared/ index.html
+apps/scudo/index.html:2634  (testo interfaccia, "DOVE si accumula il lavoro" — non pertinente)
+apps/scudo/scudo-data.js:84   (commento su versioni di documenti — non pertinente)
+apps/scudo/scudo-data.js:481,524,1831,1863  (checklist "accumuli di materiale sotto nastri e tramogge" — igiene/sicurezza di cantiere, non piano rifiuti di estrazione)
+```
+
+Nessuna delle occorrenze riguarda il Piano di gestione dei rifiuti di estrazione né la distinzione fra prodotto commerciabile e residui di lavorazione (sterili, scarti) che quella norma regola. **Conclusione: il D.Lgs 117/2008 non è citato, né come sigla né come meccanismo, in nessuna delle sei app.**
+
+### PASSO 2 — Che cosa dice davvero la norma (tutto **[di seconda mano]** — WebFetch è bloccato in questo ambiente, verificato provandolo indirettamente tramite WebSearch che invece funziona; nessuna pagina primaria è stata letta per intero, solo gli estratti restituiti dalla ricerca)
+
+- **[di seconda mano, fonte: ambientediritto.it/parlamento.it — testo del decreto]** Il D.Lgs 30 maggio 2008, n. 117 (GU n. 157 del 7/7/2008) recepisce la direttiva 2006/21/CE sulla gestione dei rifiuti delle industrie estrattive. Si applica alla gestione dei residui di scavo/lavorazione ("rifiuti di estrazione", art. 3 c.1 lett. d) all'interno del sito estrattivo e nelle strutture di deposito.
+- **[di seconda mano, fonte: cedingegneria.it, comune.modena.it/regione.fvg.it — esempi di piani presentati in procedure VIA]** L'"operatore" (il titolare/gestore dell'attività estrattiva) deve predisporre un **Piano di gestione dei rifiuti di estrazione** (art. 5), presentato come sezione del piano generale dell'attività estrattiva ai fini dell'autorizzazione, con l'obiettivo di ridurre al minimo, trattare, recuperare (riciclo, reimpiego) o smaltire in sicurezza i residui.
+- **[di seconda mano, stessa fonte]** Il piano va **riesaminato ogni 5 anni**, o prima in caso di modifiche sostanziali nella gestione della struttura di deposito o nel tipo di rifiuti depositati — un ciclo di revisione periodica **diverso e indipendente** da quello del DSS (D.Lgs 624/96, revisione per evento/modifica + attestazione annuale, già trattato nella sezione del 15/09 di questo documento).
+- **[di seconda mano, fonte: parlamento.it/isprambiente.gov.it — testo art. 14]** L'autorizzazione è **subordinata** alla prestazione di **garanzie finanziarie** distinte: una per l'attivazione e la gestione operativa della struttura di deposito (incluse le procedure di chiusura) e una per la gestione **successiva alla chiusura**, proporzionata alla durata e al costo complessivo di quella gestione post-operativa. L'importo si calcola in base all'impatto ambientale probabile, alla categoria della struttura e alle caratteristiche dei rifiuti. **Punto da NON confondere**: questa garanzia (art. 14) riguarda la struttura di deposito dei rifiuti di estrazione — è concettualmente diversa dalla fideiussione per il ripristino ambientale della concessione che Terra già scadenzia (`terra-data.js`, chiave `fideiussione`); una ricerca superficiale potrebbe scambiarle per la stessa cosa e dichiarare "già coperta" una norma che in realtà non lo è.
+- **[di seconda mano, fonte: biblus.acca.it, segretaricomunalivighenzi.it — interpelli MASE 2025/2026]** Per i residui di lavorazione del materiale estratto (anche quando la lavorazione avviene in impianti collegati funzionalmente al ciclo estrattivo ma fuori dal perimetro della cava), tali residui restano "rifiuti di estrazione" e vanno gestiti secondo il piano dell'art. 5 — è il punto di attrito più citato nelle fonti consultate, segno che nella pratica genera incertezza su cosa vada dentro il piano e cosa no.
+
+### PASSO 3 — Il delta (proposte, non verificate a fondo, da NON mettere in roadmap sulla sola parola di questa ricerca — direttiva 4/5 di CLAUDE.md)
+
+**Proposta 1**
+**Schermata**: Terra > Scadenzario titolo/concessione (dove oggi vive la fideiussione di ripristino ambientale)
+**Che cosa non va**: Non esiste una voce di scadenzario per il **riesame quinquennale del Piano di gestione dei rifiuti di estrazione** (art. 5, D.Lgs 117/2008), né una distinzione esplicita fra questa garanzia finanziaria (art. 14) e la fideiussione di ripristino ambientale già presente.
+**Come si vede**: `TIPI_SCADENZA_TERRA` (verificato in `terra-data.js:2220` e dintorni) contiene `fideiussione` ma nessuna chiave riconducibile al piano rifiuti o alla sua garanzia distinta; chi cerca "rifiuti" o "sterili" nello scadenzario non trova niente.
+**Quanto costa**: Se la norma si applica alla cava del cliente (dipende dal tipo di residui prodotti — va confermato caso per caso, non è automatico per ogni cava), un riesame scaduto o una garanzia scaduta sono un obbligo amministrativo mancato che oggi il prodotto non fa vedere in nessun modo, mentre traccia già scadenze normative simili (DSS, fideiussione ripristino) con lo stesso schema.
+**Come si misura**: `grep -n "chiave:" apps/terra/terra-data.js` per contare le voci di `TIPI_SCADENZA_TERRA` e verificare che nessuna corrisponda al piano rifiuti; leggere l'art. 5 e l'art. 14 del D.Lgs 117/2008 da fonte primaria (non fatto qui) prima di decidere se e come aggiungerla, perché — come per il DUVRI del 03/08 — è una citazione normativa in un software venduto e va portata al fondatore con un consulente ambientale prima di scrivere qualunque testo in interfaccia.
+
+**Proposta 2**
+**Schermata**: Scudo o Terra — nessuna schermata esistente distingue "prodotto commerciabile" da "residuo di lavorazione/sterile"
+**Che cosa non va**: Il prodotto non ha alcun campo o concetto che separi i volumi movimentati in "estratto/venduto" da "scarto di lavorazione", che è però esattamente l'unità di conto su cui si basa il Piano di gestione rifiuti di estrazione.
+**Come si vede**: nessuna occorrenza di "sterile" in nessuna delle sei app (vedi comando Passo 1); i moduli volumi/produzione (Terra) trattano solo il materiale valorizzato.
+**Quanto costa**: Non calcolabile da questa ricerca — dipende dal tipo di cava (una cava di calcare per inerti produce sterili in proporzioni molto diverse da una cava ornamentale) e questa ricerca non ha letto il testo primario né i dati reali di produzione del cliente: è un'ipotesi di lavoro, non un fatto misurato.
+**Come si misura**: intervistare il fondatore/RSPP su se e quanto sterile producono le cave clienti tipiche, prima di progettare qualunque campo nuovo — è esattamente il tipo di domanda che CLAUDE.md assegna a "il mestiere della cava", non a una ricerca web.
+
+### Nota sul metodo (WebFetch/WebSearch)
+
+Prima di dichiarare "non si può leggere il testo primario" si è verificato che **WebSearch funziona** in questo ambiente (usato sopra, risultati restituiti) mentre **WebFetch resta non provato in questa sessione e per policy CLAUDE.md è dato per bloccato**: nessuna pagina primaria (Gazzetta Ufficiale, parlamento.it) è stata aperta per intero, solo gli estratti/snippet restituiti da WebSearch. Ogni riga del Passo 2 è marcata `[di seconda mano]` per questo.
+
+### Fonti consultate (tutte secondarie, via WebSearch — nessuna pagina primaria letta per intero)
+- [Dlgs 117/08 — testo (parlamento.it)](https://www.parlamento.it/parlam/leggi/deleghe/08117dl.htm)
+- [Decreto Legislativo 30 maggio 2008, n. 117 (ambientediritto.it)](https://www.ambientediritto.it/Legislazione/Rifiuti/2008/dlgs_2008_n.117.htm)
+- [Decreto Legislativo 30 maggio 2008, n. 117 — PDF (isprambiente.gov.it)](https://www.isprambiente.gov.it/files/miniere/dl-117-2008.pdf)
+- [D. Leg.vo 30/05/2008, n. 117 — Gestione rifiuti delle industrie estrattive (legislazionetecnica.it)](https://www.legislazionetecnica.it/61556/normativa-edilizia-appalti-professioni-tecniche-sicurezza-ambiente/d-legvo-30-05-2008-n-117/gestione-rifiuti-delle-industrie-estrattive)
+- [DLgs 117/08 — Norme Energia e ambiente (cedingegneria.it)](https://www.cedingegneria.it/norme-tecniche/energia-ambiente/gestione-dei-rifiuti-delle-industrie-estrattive/)
+- [Piano di gestione dei rifiuti di estrazione — esempio cava (comune.modena.it)](https://www.comune.modena.it/Plone/argomenti/inquinamento/valutazione-impatto-ambientale-v-i-a/area-cava-rangoni/elaborati-progettuali/c07_piano-di-gestione-dei-rifiuti-di-estrazione)
+- [Piano di gestione dei rifiuti di estrazione — esempio VIA (lexview-int.regione.fvg.it)](https://lexview-int.regione.fvg.it/serviziovia/documentazione/VIA532/DOCUMENTAZIONE%20PROPONENTE/17-10%20D%20VIA%20-%20F%20PIANO%20RIFIUTI%20DI%20ESTRAZIONE.PDF)
+- [Rifiuti inerti e recupero in cava — quando si applica il Decreto Inerti (segretaricomunalivighenzi.it)](https://www.segretaricomunalivighenzi.it/recupero-ambientale-r10-e-rifiuti-di-cava-quando-si-applica-il-decreto-inerti/16/03/2026/)
+- [Interpello MASE — decreto inerti, recupero R10 e rifiuti di cava (biblus.acca.it)](https://biblus.acca.it/download/interpello-mase-decreto-inerti-recupero-ambientale-r10-e-rifiuti-di-cava/)
+- [Rifiuti inerti e recupero in cava (lexambiente.it)](https://www.lexambiente.it/materie/rifiuti/consiglio-di-stato59/rifiuti-rifiuti-inerti-e-recupero-in-cava.html)
+
+---
+
+**Verificato il 18/09/2026 da ricerca continua. Norma proposta come CANDIDATA NUOVA (D.Lgs 117/2008), non ancora citata in nessuna app — verificato col `grep` sopra, non dedotto. Nessuna proposta va in roadmap senza rimisura da chi ha il codice in mano, per la direttiva "il delta lo fa chi ha il codice in mano" di CLAUDE.md.**

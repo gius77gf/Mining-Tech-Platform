@@ -2005,3 +2005,166 @@ sua"). `presetScadenzaTerra("acque")` non è più `null`.
 **Proposta 1** (`letturaFalda` + `francoFalda`, costo "medio") **resta
 aperta**: merita un'unità propria con la sua dimostrazione a due
 piezometri su tre anni, non un'aggiunta di corsa in coda a questa.
+
+---
+
+## 18/09/2026 — nono giro di ricerca mirata: la conformità geometrica ha un asse ORIZZONTALE che manca — la distanza dello scavo dal confine del titolo
+
+**Dichiarazione preliminare (vincolo 1 — che cosa esiste già, letto prima di proporre).**
+Riletti i giri 6°, 7° e 8° (righe 1204-2007 di questo stesso file) e il
+checkpoint più recente pertinente a Terra
+(`vault/checkpoints/20260918-004735_terra-crash-e-copie-deboli.md`): la
+famiglia `conformitaQuota`/`conformitaGeometria`/`conformitaProgetto`
+(`apps/terra/terra-data.js:3798,3838,3971`, verificato di nuovo qui sotto)
+copre oggi tre assi — **quota di fondo** (profondità), **altezza banco +
+pendenza scarpata** (la forma della sezione verticale), **sequenza dei
+lotti** — più il controllo `frontiAmbigui` (un fronte condiviso per errore
+fra due lotti). Il settimo giro ha aggiunto il ripristino per fasi e la
+garanzia; l'ottavo ha aperto (e lasciato in parte aperto, `letturaFalda`)
+l'asse della falda. **Nessuno dei nove giri finora ha toccato l'asse
+ORIZZONTALE**: quanto lo scavo sta lontano dal **confine** del titolo/della
+proprietà, misurato in pianta, non in quota. È un asse diverso da tutti
+quelli già coperti — la quota dice "quanto sei andato in profondità", la
+geometria del banco dice "che forma ha la sezione", la distanza dal
+confine dice "quanto sei arretrato rispetto al bordo del poligono
+autorizzato" — e nessuna delle funzioni esistenti risponde a questa terza
+domanda, verificato con `grep` qui sotto prima di scrivere qualunque "non
+c'è".
+
+### Il mondo — come si controlla, fuori [tutto di seconda mano, `WebSearch`; `WebFetch` risponde `EGRESS_BLOCKED`, nessuna fonte primaria letta per intero]
+
+1. **Il vincolo legale nazionale (non solo regionale, a differenza della
+   soglia di variante sostanziale del terzo giro).** Il Regolamento di
+   polizia mineraria (R.D. 15 luglio 1958 n. 128, spesso citato nei
+   riassunti come "n. 7" per il decreto di modifica) fissa una distanza
+   minima fra il **ciglio dello scavo** e il **perimetro della proprietà
+   disponibile**: **10 metri** in generale, **5 metri** per le cave di
+   pietre ornamentali; se l'altezza complessiva dello scavo è inferiore a
+   10 m, la distanza minima deve essere pari alla profondità dello scavo
+   stesso, comunque non inferiore a **4 metri**. I piani regionali, i
+   vincoli ambientali/paesaggistici e i regolamenti locali possono
+   **aumentare** questa distanza, mai ridurla [seconda mano: risultati di
+   ricerca aggregati che citano il Regolamento di polizia mineraria;
+   fonte primaria non letta].
+2. **Il software di settore lo tratta come un livello geospaziale
+   separato, non come un numero nel foglio dei KPI.** Propeller (Aggregates/
+   Quarry Surveying) ha una funzione dichiarata di "disturbance boundary
+   tracking": sovrappone il perimetro autorizzato (permit boundary) all'
+   ultimo rilievo per verificare che l'estrazione resti dentro i limiti
+   approvati, con un registro visivo verificabile nel tempo — cioè
+   confronta un **poligono** (il confine) con un **poligono** (l'estensione
+   reale dello scavo derivata dal DEM), non un numero scalare con un
+   altro numero scalare [seconda mano: propelleraero.com]. Nel settore
+   minerario in generale (non cave italiane) esiste anche il pattern
+   opposto — droni per la sorveglianza perimetrale che segnalano
+   intrusioni non autorizzate DA FUORI verso l'area di cantiere — che è
+   il problema speculare (chi entra) e non quello che riguarda Terra (chi
+   esce dal proprio confine scavando) [seconda mano: risultati aggregati
+   su sorveglianza perimetrale con droni].
+3. **Non trovato in questo giro**: un secondo numero regionale che
+   confermi o smentisca il 10 m nazionale per una singola Regione
+   specifica (il tempo di ricerca è stato speso a distinguere "confine di
+   proprietà" da "confine di cava/lotto", che nei riassunti si confondono
+   spesso) — dichiarato come limite della ricerca, non colmato per non
+   inventare un secondo numero.
+
+### La nostra app — che cosa fa Terra oggi [verificato riga per riga]
+
+```
+$ grep -niE "confine|perimetro|poligono|boundary" apps/terra/terra-data.js apps/terra/index.html
+(nessuna riga)
+$ grep -niE "\blat\b|\blon\b|\bgps\b|coordinat" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:2933: (un commento su un offset di quota, non di posizione — non pertinente)
+$ grep -n "fronti/{id}:" -A5 apps/terra/terra-data.js
+6:  fronti/{id}:  { nome, banco, quota, dettaglio,
+7-                  avanzamento (0-100), stato: attivo|sospeso,
+8-                  altezzaBancoM?, pendenzaGradi? (la geometria del banco
+9-                  misurata dal rilievo, 11/09: si confronta con il massimo
+10-                 che il progetto dichiara sul lotto o sull'atto) }
+$ grep -n "export function conformita" apps/terra/terra-data.js
+3798:export function conformitaQuota(fronte, lotto, autorizzazione) {
+3838:export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
+3971:export function conformitaGeometria(fronte, lotto, autorizzazione) {
+```
+
+Un fronte non ha **nessun** dato di posizione: né coordinate, né una
+distanza dichiarata dal confine, né un riferimento a un poligono. La
+famiglia `conformita*` — che già decide il PEGGIORE fra quota e geometria
+per colorare la riga (`peggioreConf`, citato dal sesto giro,
+`index.html:2298`) — non ha un terzo ingrediente da includere in quel
+confronto, perché quell'ingrediente non esiste in nessun punto del
+modello dati. `superficieMq` (sui lotti e sull'atto, `terra-data.js:82-180`)
+è uno **scalare** — l'area totale — non una geometria: non dice quanto
+lontano il bordo scavato sta dal bordo autorizzato, allo stesso modo in
+cui, prima del sesto giro, `quotaFondoM` non diceva quanto un fronte fosse
+sotto/sopra il fondo di progetto finché qualcuno non ha scritto il
+confronto. `areaCoperta` (riepilogo rilievo, `terra-data.js:2927`) è
+l'area **coperta dal rilievo stesso** (quanto terreno il drone ha
+fotografato), un concetto diverso e già esistente per un altro scopo
+(dichiarare quanto del sito è stato visto, non dove sta il bordo dello
+scavo).
+
+**Questo non è un difetto delle funzioni `conformita*` esistenti** — fanno
+esattamente quello che promettono sugli assi che coprono, ed è la stessa
+distinzione già scritta per la falda nell'ottavo giro: manca uno dei due
+termini del confronto (qui, la distanza misurata dal confine), non la
+funzione che lo userebbe.
+
+### Il delta
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Fronti / Conformità al progetto** (`index.html:895`, dove oggi vive la card `CQ`/`conformitaQuota` a fianco di `conformitaGeometria`) | Nessun asse orizzontale: un fronte può avanzare fino a ridosso del confine di proprietà senza che Terra lo sappia, perché il fronte non porta nessuna distanza dal confine e nessuna coordinata | `grep -niE "confine\|perimetro\|poligono\|boundary" apps/terra/terra-data.js apps/terra/index.html` → nessuna riga (comando rilanciato sopra, uscita vuota su entrambi i file); il fronte ha `quota, altezzaBancoM, pendenzaGradi` ma nessun campo di posizione | Medio — non serve un poligono GIS completo (fuori scope, come le mappe di calore del sesto giro): basta un campo scalare additivo `distanzaConfineM` sul fronte (misurata dal rilevatore/dal topografo, come già si fa per `altezzaBancoM`), un campo `distanzaMinimaM` sul lotto o sull'atto (dichiarato dall'utente dal proprio regolamento — **non** un 10 m cablato, per la stessa ragione per cui `difformitaSostanzialePct` del terzo giro resta vuoto di default: il numero di legge è di seconda mano e varia se il piano regionale lo alza), e una funzione pura `conformitaConfine(fronte, lotto, autorizzazione)` sul modello esatto di `conformitaQuota` (quattro stati: `oltre\|al-limite\|dentro\|non-misurabile`, `misurabile:false` quando manca la distanza dichiarata — mai "dentro" di default, è la stessa regola del fondatore "l'assenza di un dato non è un dato favorevole" già applicata dagli altri due assi) | `node apps/deepwork-id/tests/run-kpi.mjs` con un caso `conformitaConfine({distanzaConfineM: 3}, {distanzaMinimaM: 10}, {})` → atteso `{stato:"oltre", margine:-7, misurabile:true}`, un caso senza `distanzaConfineM` dichiarato → atteso `{misurabile:false}` (mai un verdetto tranquillo su un dato mancante); wired in `conformitaProgetto` accanto a `geometria` (stesso `peggioreConf` che già sceglie il colore peggiore fra quota e geometria, esteso a tre) e un banco browser che apra un fronte demo con `distanzaConfineM` sotto soglia e verifichi che compaia un terzo avviso distinto da "fuori quota"/"fuori geometria" |
+| **Scheda Titolo/atto** (`page-tit`, dove vive il form dell'autorizzazione) | Il regolamento nazionale (di seconda mano, non verificato come testo primario) lega la distanza minima all'**altezza dello scavo** quando questa è sotto i 10 m (`distanza = altezza, mai < 4 m`), quindi la soglia stessa può dipendere da un dato che Terra già misura (`altezzaBancoM`) — ma oggi non c'è nessun posto per dichiarare NÉ il tipo di soglia (fissa vs. legata all'altezza) NÉ il suo valore | `grep -ciE "distanzaMinima\|distanzaConfine" apps/terra/terra-data.js apps/terra/index.html` → 0 e 0 | Piccolo, una volta fatto il campo sopra: un secondo campo enum opzionale `regolaDistanzaConfine: "fissa"\|"legata-altezza"` sull'atto, che decide se `distanzaMinimaM` è un numero fisso o si ricalcola da `max(altezzaBancoM, 4)` per quel fronte — dichiarato dall'utente, mai dedotto da un numero di legge scritto a schermo | Un test che confronti i due modi: con `regolaDistanzaConfine:"legata-altezza"` e `altezzaBancoM:6`, la soglia effettiva usata da `conformitaConfine` deve essere `6`, non un valore fisso ignorato |
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+I numeri "10 m", "5 m per le pietre ornamentali", "4 m minimo" sono **di
+seconda mano** (risultati di ricerca aggregati su un regolamento del 1958,
+nessun testo primario letto — `WebFetch` bloccato in questo ambiente) e
+**non vanno scritti in nessuna schermata come valore precompilato o
+suggerito con l'aria di essere autorevole**: stessa decisione già presa
+per la denuncia annuale, il canone e la falda (sezioni precedenti di
+questo file). Quello che entrerebbe nel prodotto è solo il **meccanismo
+del confronto** (distanza misurata vs. soglia dichiarata dall'utente),
+non la soglia stessa.
+
+### Onestà sulla distanza dai leader di settore
+
+Propeller e i concorrenti citati nei giri precedenti (Datamine, K-MINE,
+Strayos) risolvono questo confronto **geometricamente**, su un poligono
+3D derivato dal DEM confrontato con un poligono di progetto importato da
+CAD/GIS, con mappe di calore automatiche — hanno dati reali, team di
+geomatica e hardware LiDAR/fotogrammetrico dietro. La proposta qui sopra
+è deliberatamente più piccola e **scalare** (una distanza dichiarata dal
+rilevatore per ogni fronte, non un poligono), sullo stesso principio già
+usato con successo per `quotaFondoM`/`conformitaQuota`: non è parità con
+quei prodotti, è un passo nella stessa direzione con lo stesso costo
+contenuto delle altre estensioni additive di questo file. Se in futuro
+Terra acquisisse coordinate reali dei fronti (proposta già scritta e mai
+implementata nel primissimo giro, 01/08 — vedi sopra "Unità decimale di
+coordinate GPS nei fronti"), il confronto scalare qui proposto diventerebbe
+il caso degenere di un confronto poligonale vero, non lavoro da buttare.
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario)
+
+- Regolamento di polizia mineraria — distanza minima scavo/confine di
+  proprietà (10 m generale, 5 m pietre ornamentali, minimo 4 m se legata
+  all'altezza): risultati di ricerca aggregati, fonte primaria del R.D.
+  non letta in questo ambiente ([WebSearch]: query "fascia di rispetto
+  cava confine proprietà distanza minima scavo normativa regionale").
+- [Propeller — Quarry Surveying Software for Drone Fleets](https://www.propelleraero.com/aggregatess/) — "disturbance boundary tracking" (permit boundary overlay).
+- [Propeller — Mine Surveying Software for Drone Fleets](https://www.propelleraero.com/industry/mining/)
+- Risultati aggregati su sorveglianza perimetrale con droni nel settore minerario/estrattivo ([WebSearch]: query "drone survey quarry mine boundary encroachment compliance permit perimeter monitoring software") — pattern speculare (intrusione dall'esterno), non pertinente al delta proposto ma dichiarato per completezza.
+
+### Riassunto
+
+**Un delta confermato con grep, mai proposto nei nove giri precedenti**:
+manca l'asse orizzontale (distanza dallo scavo al confine del titolo)
+nella famiglia `conformita*`, che oggi copre solo quota, geometria del
+banco e sequenza. Proposta a costo Medio (campo scalare + funzione pura
+sul modello già collaudato di `conformitaQuota`), Piccola l'estensione per
+la regola "distanza legata all'altezza" del regolamento nazionale.
+Nessun numero di legge entra a schermo: solo il meccanismo del confronto,
+con la soglia dichiarata dall'utente — stessa disciplina di ogni altro
+giro di questo file.

@@ -2872,3 +2872,116 @@ costruisse — oggi quell'aggregazione non è né facile né difficile: è
 ---
 
 *Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello, nessuna letta per intero — `WebFetch` bloccato) e codice di Campo (grep riportati, eseguibili di nuovo).*
+
+---
+
+## 18/09/2026 — ottavo giro di ricerca mirata: l'obiettivo di turno dice «quanto manca», mai «se si è in ritardo rispetto all'ORA»
+
+*Legge prima di proporre: l'obiettivo di turno e il suo scostamento (C2) sono
+già censiti come funzione esistente fin dalla prima riga di questo documento
+("Obiettivo di turno e scostamento (C2)"), e la ricerca del 02/09 ha già
+confermato che Campo **rifiuta di proposito** OEE/ritmo/tempi di ciclo perché
+richiederebbero telemetria che non c'è (`riepilogoFermi`, commento "servirebbero
+portata e granulometria in continuo, cioè hardware che non abbiamo"). Questo
+giro NON tocca quella decisione — non propone di calcolare un ritmo orario
+misurato. Cerca una cosa più piccola e diversa, mai posta prima in questo
+documento: **come i migliori sistemi confrontano l'avanzamento con il tempo
+GIÀ TRASCORSO del turno**, non solo con l'obiettivo finale, usando dati che
+Campo ha già (l'orario del turno, non un contaore).*
+
+### Il mondo [tutto di seconda mano: `WebSearch`, tre ricerche; `WebFetch` non
+riprovato — bloccato più volte nei giri precedenti su questo stesso documento]
+
+1. **Il "Short Interval Control" (SIC) è la pratica di settore per questo
+   problema esatto**: dividere il turno in intervalli brevi (1-4 ore, più
+   spesso 2-4) e a ogni intervallo confrontare l'avanzamento **con quanto ci
+   si aspettava di aver fatto A QUELL'ORA**, non solo con l'obiettivo di fine
+   turno — «consente ai team di rilevare e affrontare gli scostamenti prima
+   che si aggravino». [seconda mano: mipac.com.au/insights/how-short-interval-control-transforms-operational-efficiency-in-mining/,
+   tervene.com/blog/short-interval-control/, leanproduction.com/short-interval-control/]
+2. **In miniera l'intervallo tipico è 2-4 ore e la revisione confronta i dati
+   di produzione con l'obiettivo**, con azione correttiva immediata a ogni
+   scostamento; l'estrapolazione dal turno arriva fino a obiettivi
+   giornalieri/settimanali/mensili. [seconda mano:
+   groundhogapps.com/short-interval-control/, commit.works/short-interval-control-in-mining-driving-operational-excellence/]
+3. **Il segnale che i sistemi mostrano è esplicitamente "avanti" o "indietro"
+   rispetto al ritmo, non solo "percentuale raggiunta"**: operatori e
+   supervisori vedono l'obiettivo di produzione e quanto è stato completato,
+   e questo permette di sapere **se sono avanti o indietro rispetto
+   all'obiettivo durante il turno** — il confronto è temporale, non solo
+   quantitativo. [seconda mano: groundhogapps.com/groundhog-short-interval-control/,
+   groundhogapps.com/sic-for-open-pit/]
+4. **Non è stato trovato** (tre ricerche, incluse query mirate su "cumulative
+   target curve" e dashboard di cava/inerti) un riferimento con la formula
+   esatta della curva di ritmo atteso o una soglia numerica standard di
+   settore per "quanto in ritardo è grave": le fonti descrivono la pratica
+   (intervalli, revisione, azione) ma non pubblicano la matematica del
+   confronto. `[dichiarato, non trovato]`
+
+### Il delta, verificato nel codice (commit `877b591`, `apps/campo/campo-data.js`)
+
+- **Il meccanismo per calcolare la frazione di turno trascorsa ESISTE GIÀ nello
+  stesso modulo, e non è quello che decide l'obiettivo.** `inizioTurno(data,
+  turno)` (riga 1791) restituisce l'istante di inizio dall'orario standard del
+  turno; `fineTurno(durate, data, turno)` (riga 1807) restituisce l'istante di
+  fine sommando la durata dichiarata. Le due funzioni bastano a sapere «a che
+  punto del turno siamo adesso» — sono già usate per il riposo fra turni
+  (`riposoPrimaDelTurno`) — ma **nessuna chiamata le collega a `statoObiettivo`**:
+  ```
+  $ grep -n "inizioTurno\|fineTurno(" apps/campo/index.html
+  (nessuna riga)
+  ```
+- **`statoObiettivo` (riga 577-602) decide `livello` guardando SOLO la
+  percentuale sull'obiettivo finale**, con due soglie fisse (100% = "ok", 85% =
+  "warn", sotto = "atteso") e **zero parametri di tempo**: la firma è
+  `statoObiettivo(ob, rapportini, attivita)`, senza un'ora corrente né
+  l'inizio/fine del turno. Verificato leggendo la funzione per intero (righe
+  577-602, riportata sopra): l'unica sorgente del `livello` è
+  `pct = Math.round(100 * fatto / obiettivo)`.
+  ```
+  $ grep -ciE "ritmoOrario|paceTurno|scostamentoOrario|obiettivoOrario|percentualeTempoTurno" apps/campo/campo-data.js apps/campo/index.html
+  0    0
+  ```
+- **Conseguenza pratica, riprodotta col codice vero**: `statoObiettivo` con lo
+  stesso obiettivo (100 t) e lo stesso `fatto` (40 t, pct 40 → "atteso") dà
+  **lo stesso identico risultato** sia che manchino sette ore alla fine del
+  turno sia che ne manchi una sola. Il commento della funzione (riga 574-575)
+  dichiara la scelta di disegno — *"livello: … atteso = ancora indietro — NON
+  danger: a inizio turno essere a zero è normale, non un allarme"* — che è
+  corretta e va tenuta per l'INIZIO turno (evita il falso allarme che il
+  principio del fondatore vieta), ma la stessa non-distinzione resta valida
+  fino all'ULTIMO minuto: un capoturno che guarda la scheda alle 13:50 di un
+  turno che chiude alle 14:00, fermo al 40% dell'obiettivo, vede lo stesso
+  colore "atteso" (non allarme) di quando l'ha aperta alle 06:10. Le due
+  situazioni non sono equivalenti — la seconda è quella in cui un
+  supervisore, nel mondo del SIC, aprirebbe già un'azione correttiva — e
+  Campo non le distingue.
+- **Non è un buco totale**: Campo *misura* già, con lo stesso rigore
+  richiesto altrove in questo documento, la differenza fra "non ho ancora
+  guardato" e "ho guardato e manca" per la disponibilità
+  (`disponibilitaTurno` → `non-calcolabile`) e per il riposo
+  (`attendibile`). `statoObiettivo` applica lo stesso principio all'
+  **inizio** del turno (zero non è un allarme) ma non lo estende alla **fine**
+  (poco-a-fine-turno dovrebbe esserlo). È un'asimmetria dentro la stessa
+  funzione, non l'assenza del principio.
+
+### Riepilogo per la forma fissa
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| Quadro — riquadro "Obiettivo turno" (`ob-board`/`ob-stato`, C2) | Il livello dell'obiettivo (`ok`/`warn`/`atteso`) dipende solo dalla percentuale sul totale finale, mai da quanto tempo del turno è già passato: un turno fermo al 40% alle 13:50 (dieci minuti alla chiusura) mostra lo stesso colore "atteso", non allarmante, di un turno fermo al 40% alle 06:15 (appena iniziato) | Aprire il Quadro con un obiettivo impostato, registrare rapportini per il 40% del valore, e guardare il riquadro sia poco dopo l'inizio del turno dichiarato sia poco prima della sua fine (usando `ob-data`/`ob-turno` per scegliere un turno quasi concluso): il colore e la dicitura restano identici in entrambi i casi | Piccolo (`inizioTurno`/`fineTurno` esistono già nello stesso modulo; serve solo passare l'ora corrente a `statoObiettivo` e un terzo confine, es. "indietro" quando `pct` è sotto una soglia proporzionale al tempo trascorso, distinto da "atteso" quando il turno è appena cominciato) | `statoObiettivo` con lo stesso `ob`/`rapportini`/`attivita` (stesso `pct`, es. 40) chiamata due volte con un'ora corrente diversa (poco dopo `inizioTurno` e poco prima di `fineTurno`) deve restituire due `livello` diversi; oggi restituisce lo stesso valore in entrambi i casi perché la funzione non riceve né consulta l'ora |
+
+### Che cosa NON è una mancanza (per chi rilegge questa riga più avanti)
+
+Il rifiuto di calcolare un ritmo misurato in tonnellate/ora **non è** questa
+mancanza: quello resta la decisione corretta e già presa il 02/09 (serve
+telemetria che una cava senza pese/contaori non ha, e un numero stimato a
+occhio sarebbe peggio di nessun numero). Il delta qui è più piccolo e non
+richiede nessuna nuova misura fisica: usa un dato che Campo calcola già da
+sé — l'ora di inizio e fine del turno dichiarato — per decidere QUANDO
+"ancora indietro" deve diventare un colore diverso, non per stimare quanto
+si produce all'ora.
+
+---
+
+*Documento di ricerca — ricerca approssimativa, candidati da approfondire, non diagnosi. Verificato contro WebSearch (fonti di secondo livello, nessuna letta per intero — `WebFetch` bloccato) e codice di Campo (grep riportati sopra, eseguibili di nuovo, commit `877b591`).*
