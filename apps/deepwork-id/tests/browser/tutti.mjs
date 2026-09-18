@@ -1315,6 +1315,8 @@ const BANCHI = [
      frasi escano davvero così lo dice solo il browser. */
   ['le frasi limite di Genesi', 'genesi-frasi-limite.mjs', []],
   ['frasi limite di Genesi · controprova', 'genesi-frasi-limite.mjs', ['--controprova'], true],
+  ['il decking di Genesi non disegna un piano senza borraggio per uno stem illeggibile', 'genesi-decking-stem-null.mjs', []],
+  ['decking e stem illeggibile · controprova', 'genesi-decking-stem-null.mjs', ['--controprova'], true],
   ['Genesi: le volate passano dalla porta sui dati', 'genesi-locale.mjs', []],
   ['porta sui dati di Genesi · senza rete', 'genesi-locale.mjs', ['--offline']],
   ['porta sui dati di Genesi · controprova', 'genesi-locale.mjs', ['--controprova'], true],

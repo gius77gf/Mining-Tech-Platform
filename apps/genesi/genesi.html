@@ -7324,14 +7324,25 @@ function renderScheda2D(){
   let _deckHtml='';
   const _N=Math.max(1,Math.min(3,D2.decks||1));
   if(_N>1){
-    const _Ltot=H+(D2.sub||0), _Lc=Math.max(0.4, _Ltot-D2.stem), _minNeed=_N*0.4+(_N-1)*0.3;
-    if(_Lc < _minNeed){   // foro troppo corto per N deck sensati: avviso onesto invece di un diagramma fuorviante
+    /* ⛔ 18/09, dal deep-pass QA: `D2.stem` grezzo invece del valore guardato
+       che `computeKPI` già applica allo stesso campo (`_stemKpi`, riga 3386):
+       un borraggio illeggibile (progetto salvato/importato con quel valore
+       null) non dava NaN — `_Ltot-D2.stem` con `D2.stem=null` fa `_Ltot-0` —
+       e il diagramma disegnava un piano SENZA borraggio di testa, deck più
+       lunghi del vero, senza dire «non calcolabile» come fa il resto della
+       scheda per lo stesso identico campo. */
+    const _stemDeck=(+D2.stem>0)?+D2.stem:null;
+    const _Ltot=H+(D2.sub||0), _minNeed=_N*0.4+(_N-1)*0.3;
+    const _Lc=(_stemDeck===null)?null:Math.max(0.4, _Ltot-_stemDeck);
+    if(_Lc===null){   // borraggio di testa non leggibile: non si inventa uno zero
+      _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: il borraggio di testa non è leggibile, il piano di carica dei deck non si può disegnare.</div>';
+    } else if(_Lc < _minNeed){   // foro troppo corto per N deck sensati: avviso onesto invece di un diagramma fuorviante
       _deckHtml='<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(255,167,38,.3);border-radius:8px;background:rgba(255,167,38,.06);font-size:11px;color:#ffa726">🧨 <b>Decking '+_N+' deck</b>: foro troppo corto (zona carica ≈ '+gfix(_Lc,1)+' m). Riduci il numero di deck, la profondità del borraggio di testa, o aumenta la profondità.</div>';
     } else {
     const _gap=Math.max(0.2, Math.min(D2.deckStem||1, (_Lc-0.4*_N)/(_N-1)));   // borraggio interm.: ≥0.2 m, lascia ≥0.4 m/deck
     const _deckLen=Math.max(0.4,(_Lc-(_N-1)*_gap)/_N), _kgDeck=Q/_N;
     const _hpx=84, _wpx=20, _yy=(len)=>Math.max(0,len/_Ltot*_hpx);
-    let _segs='<rect x="0" y="0" width="'+_wpx+'" height="'+_yy(D2.stem).toFixed(1)+'" fill="#8a8a8a"/>', _cur=D2.stem;
+    let _segs='<rect x="0" y="0" width="'+_wpx+'" height="'+_yy(_stemDeck).toFixed(1)+'" fill="#8a8a8a"/>', _cur=_stemDeck;
     for(let i=0;i<_N;i++){ _segs+='<rect x="0" y="'+_yy(_cur).toFixed(1)+'" width="'+_wpx+'" height="'+_yy(_deckLen).toFixed(1)+'" fill="url(#dkg)"/>'; _cur+=_deckLen;
       if(i<_N-1){ _segs+='<rect x="0" y="'+_yy(_cur).toFixed(1)+'" width="'+_wpx+'" height="'+_yy(_gap).toFixed(1)+'" fill="#8a8a8a"/>'; _cur+=_gap; } }
     const _svg='<svg viewBox="0 0 '+_wpx+' '+_hpx+'" width="'+_wpx+'" height="'+_hpx+'" style="flex:none"><defs><linearGradient id="dkg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6d00"/><stop offset="1" stop-color="#ffab00"/></linearGradient></defs>'+_segs+'<rect x="0.5" y="0.5" width="'+(_wpx-1)+'" height="'+(_hpx-1)+'" fill="none" stroke="rgba(255,255,255,.25)"/></svg>';
@@ -7822,7 +7833,7 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){
     seek:(ms)=>{ setPlaying(false); setSimT(ms, true); return simT; },
     look:(name)=>applyLook(name),
     play:()=>setPlaying(true), pause:()=>setPlaying(false),
-    rebuild, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
+    rebuild, renderScheda2D, get SIM(){return SIM}, get P(){return P}, get D2(){return D2}, get simT(){return simT},
     get frontMesh(){return frontMesh},
     loadFrontUrl: async (url)=>{ const t=await (await fetch(url)).text(); loadFrontMeshObject(new OBJLoader().parse(t)); return P.fori; },
     setParam:(k,v)=>{ P[k]=v; const el=$('p'+k.charAt(0).toUpperCase()+k.slice(1)); if(el)el.value=v; },
