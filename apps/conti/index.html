@@ -6226,7 +6226,13 @@ label.item:has(.dw-chk:checked){
         <label class="fl" for="modal-nota" style="margin-top:8px;">Nota (facoltativa)</label><input class="dw-input" id="modal-nota" type="text" autocomplete="off" placeholder="che cosa hai visto, e dove">`;
       /* la nota si legge PRIMA che la modale si chiuda: il bottone della
          struttura risolve col solo #modal-campo, quindi si ascolta il piede
-         della modale in fase di cattura */
+         della modale in fase di cattura — UNA volta sola: qualunque
+         bottone del piede chiude la modale (chiediValore risolve su
+         entrambi, "Annulla" e "Salva"), quindi dopo il primo click non
+         resta niente da ascoltare. `once:false` lasciava il listener
+         attaccato al nodo persistente `#modal-foot` (svuotato solo
+         nell'innerHTML a ogni apertura, mai negli ascoltatori): ogni
+         "Scrivi il verbale" ne aggiungeva un altro, mai rimosso. */
       let nota = "";
       const p = chiediValore("Scrivi il verbale",
         `<p>Periodo <b>${fmtD(d1)} – ${fmtD(d2)}</b>: ${dv(divario)}${pct != null ? " (" + perc(Math.abs(pct)) + " " + base + ")" : ""}, stato <b>${esc(stato || "")}</b>.</p>
@@ -6235,7 +6241,7 @@ label.item:has(.dw-chk:checked){
            : `; le scorte di questo periodo restano <b>stimate</b>${tri && tri.perche ? " (" + esc(tri.perche) + ")" : ""}, e il verbale lo scrive`}. Non corregge il conto e non blocca niente: se i dati cambiano dopo, Conti te lo dirà accanto al verbale.</p>`,
         campo, "Salva il verbale");
       const foot = $("modal-foot");
-      if (foot) foot.addEventListener("click", () => { const n = $("modal-nota"); if (n) nota = n.value.trim(); }, { capture: true, once: false });
+      if (foot) foot.addEventListener("click", () => { const n = $("modal-nota"); if (n) nota = n.value.trim(); }, { capture: true, once: true });
       const causa = await p;
       if (causa == null) return;
       if (!causaDivario(causa)) { toast("Scegli una causa fra quelle elencate.", "err"); return; }

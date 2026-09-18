@@ -1163,6 +1163,8 @@ const BANCHI = [
   ['registro vendite · controprova', 'conti-registro-vendite.mjs', ['--controprova'], true],
   ['i listini per cliente di Conti: la pesata di Stradesud al SUO prezzo col base accanto, la sezione, il CSV letto', 'conti-listini.mjs', []],
   ['listini per cliente · controprova', 'conti-listini.mjs', ['--controprova'], true],
+  ['il piede della modale di Conti non accumula ascoltatori («Scrivi il verbale»)', 'conti-modal-foot-listener.mjs', []],
+  ['piede della modale · controprova', 'conti-modal-foot-listener.mjs', ['--controprova'], true],
   ['«il primo dei due» in Flotta: ore E data, la peggiore comanda, il mezzo fuori parco resta per data', 'flotta-primo-dei-due.mjs', []],
   ['primo dei due · controprova', 'flotta-primo-dei-due.mjs', ['--controprova'], true],
   ['il ponte Conti → Flotta: la fattura dell\'officina collegata all\'ordine di lavoro, nelle due pagine', 'ponte-conti-flotta-odl.mjs', []],
