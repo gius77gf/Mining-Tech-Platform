@@ -2637,3 +2637,230 @@ quando arriva a un cliente. **Non verificato indipendentemente da chi
 coordina il ciclo**: le soglie percentuali (3%/90%, 5%/80%) e i nomi degli
 indici (TOL, NIC) sono parola dell'agente di ricerca, riportati con le fonti
 esatte perché chi apre l'unità li rilegga prima di scriverli nel prodotto.
+
+---
+
+## 18/09 — dodicesimo giro: la cessione del credito (factoring) — Conti calcola fido, aging, mora e solleciti come se il creditore fosse SEMPRE la cava
+
+*Nota di processo (regola 1 — dichiarare in cima che cosa esiste già):
+letto per intero questo documento (2639 righe, undici giri precedenti più
+una passata di profondità), `vault/ROADMAP_SETTIMANA.md` e i checkpoint
+recenti di Conti. Su credito/incassi Conti ha già, verificato con la prova
+esatta della funzione: `esposizioneClienti`+`avvisoFidoPesata` (fido non
+bloccante), `concentrazionePortafoglio`, `agingIncassi`/`fattureOltre90`,
+`interessiMora` (D.Lgs 231/2002, tasso semestrale con `statoTassoMora`/
+`semestreDi`), `livelloSollecito`/`testoSollecito`/`statoRecupero` (log
+delle lettere spedite, tre livelli), `statoPianoRientro` (dilazioni),
+`scontoCassaMaturato` (pagamento anticipato scontato), riconciliazione
+bancaria per causale con abbinamento cumulativo (`abbinaMovimenti`/
+`esitoMovimento`/`combinazioneUnica`/`clienteInCausale`/`numeroInCausale`),
+`statoSdi` (tracciamento stato SdI) e `xmlFatturaPA` (TD01/TD24, righe che
+devono quadrare con `riepilogoIvaFattura`). **NON riapro qui** il difetto
+già trovato dal quarto giro di deep-pass (agente af0b750375363ec94, non
+ancora corretto al momento di scrivere): `registroVendite`/
+`csvRegistroVendite` che non controlla `riepilogoIvaFattura(f).quadra` — è
+un fix in coda, non un tema di ricerca.*
+
+⚠️ **Falso allarme evitato scrivendo questa nota**: il primo grep fatto per
+"cessione/cessionario" ha dato 2 e 1 risultati, non zero — e sono **tutti e
+tre falsi positivi**, la stessa trappola della parola polisemica già censita
+in CLAUDE.md (`firma` persona/funzione): `CessionarioCommittente` è il nome
+XML del **cliente** in una fattura elettronica (chi riceve la merce), non
+l'assegnatario di un credito, e «cedente e cessionario» compare nella
+spiegazione del DDT (chi spedisce/chi riceve la merce, DPR 472/1996) — non
+c'entra niente col factoring. Il termine giusto per cercare il MECCANISMO
+del factoring non è "cessionario": sono i nomi propri dell'istituto
+(`factoring`, `pro soluto`, `pro solvendo`, `smobilizzo`, `anticipo
+fatture`), che a un secondo giro danno **zero** genuini (vedi sotto).
+
+Strumento: `WebSearch` (sei ricerche), tool caricato con
+`ToolSearch({query:"select:WebSearch,WebFetch"})`; `WebFetch` non usato
+(bloccato per policy di questa ricerca, non riprovato). Nessuna fonte
+primaria (Codice Civile artt. 1260 ss., L. 52/1991) letta per intero: tutto
+il "mondo" sotto è **di seconda mano**, marcato come tale.
+
+### Come funziona, fuori [tutto di seconda mano, WebSearch]
+
+- **Che cos'è**: un'impresa cede a un intermediario specializzato (il
+  *factor*) i crediti verso i propri clienti, ottenendo liquidità prima
+  della scadenza naturale della fattura. In Italia rientra nella cessione
+  dei crediti disciplinata dagli artt. 1260 ss. del Codice Civile ed è
+  regolata, per i crediti d'impresa, dalla **L. 21/02/1991 n. 52**.
+  *[seconda mano: danea.it, avvocatorecuperocrediti.it]*
+- **Due forme opposte per il rischio**: **pro soluto** — il rischio di
+  mancato pagamento del debitore passa al factor, il cedente non risponde
+  più; contabilmente consente la *derecognition* del credito (esce dal
+  bilancio del cedente). **Pro solvendo** — il rischio resta al cedente: se
+  il debitore non paga, il factor si rivale su di lui. *[seconda mano:
+  bancaifis.it, finom.co, finera.it]*
+- **Notifica al debitore**: non è un obbligo di legge, ma serve a dire al
+  debitore di pagare al factor e non più al cedente. Esiste anche il
+  "factoring senza notifica" (*not notification*), dove il debitore
+  continua a vedere solo il proprio fornitore. *[seconda mano:
+  iusletter.com, pmi.it, azienda-italia.it]*
+- **Come arriva il denaro al cedente**: il factor può anticipare (in tutto
+  o in parte, tipicamente una percentuale del valore nominale) l'importo
+  **prima** della scadenza — trattenendo poi, all'incasso dal debitore,
+  l'anticipato più interessi e commissioni e versando l'eventuale saldo —
+  oppure versare a scadenza, con la sola commissione di servizio. Il
+  bonifico che il cedente vede in banca **non viene quasi mai dal cliente**:
+  viene dal factor, spesso per un importo diverso (parziale, o al netto di
+  commissioni) da quello scritto sulla fattura. *[seconda mano:
+  cashme.it, fatturapro.click, workinvoice.it]*
+- **Reverse factoring / confirming**: variante in cui è il **grande
+  cliente** (non il fornitore) ad attivare il programma con un factor, per
+  garantire ai propri fornitori — tipicamente PMI, il profilo di una cava
+  che vende a un cliente industriale grande o a un ente pubblico — un
+  incasso anticipato mentre lui stesso paga il factor a scadenze più
+  lunghe. *[seconda mano: bancaifis.it, credit-one.it, bancacfplus.it]*
+- **Fattura elettronica e IBAN**: l'XML SdI porta un blocco `IBAN` dentro
+  `DettaglioPagamento`, **non obbligatorio per schema** ma citato come
+  prassi quando il metodo è MP05 (bonifico), proprio per dire al debitore
+  su quale conto versare — il meccanismo concreto con cui, in un factoring
+  "notificato", il debitore viene indirizzato a pagare sul conto del factor
+  invece che su quello del fornitore. *[seconda mano: fex-app.com,
+  madeinbit.it, forum.italia.it — non è stata trovata una prassi
+  specificamente documentata su un TipoDato dedicato al factoring in
+  `AltriDatiGestionali`: non lo cito come esistente]*
+
+### Il DELTA su Conti — verificato con `grep` sul codice, non sulla parola dell'agente
+
+**Verifica 1 — il concetto stesso è assente**, coi termini giusti (non la
+parola polisemica "cessionario", vedi sopra):
+
+    $ grep -ciE "factoring|cessione del credito|pro.solvendo|pro.soluto|\bfactor\b|anticipo fatture|smobilizzo" apps/conti/conti-data.js apps/conti/index.html
+    apps/conti/conti-data.js:0
+    apps/conti/index.html:0
+
+**Verifica 2 — nessun campo IBAN in nessun punto di Conti** (né per
+l'azienda, né per il cliente, né nell'XML SdI):
+
+    $ grep -n "IBAN" apps/conti/conti-data.js
+    (le uniche due righe sono commenti su un ALTRO campo — il TRN della
+    riconciliazione bancaria, righe 4889 e 4962 — non un campo dati)
+    $ grep -n "<IBAN\|iban" apps/conti/index.html
+    (nessuna riga)
+
+`xmlFatturaPA` (conti-data.js:2232) scrive `DatiPagamento` con
+`ModalitaPagamento`/`DataScadenzaPagamento`/`ImportoPagamento` ma **nessun
+IBAN**: anche fuori dal factoring, oggi Conti non può dire a un cliente su
+quale conto bonificare dentro il file elettronico — un gap generico di
+compilazione (non obbligatorio per schema, ma prassi diffusa per MP05) che
+diventa il meccanismo concreto mancante per un factoring "notificato" (dove
+serve indicare l'IBAN del factor, non quello della cava).
+
+**Verifica 3 — le funzioni che decidono scadenza/mora/sollecito non hanno
+un ramo "ceduta"**: `statoScadenzaFattura` (riga 718) risponde solo
+`senza-scadenza`/`insoluta`/`in-scadenza`/`regolare` guardando la sola data;
+`livelloSollecito` (riga 1303) guarda solo `giorniRitardo`; nessuna delle
+due riceve un flag che dica "questo credito non è più mio, è del factor":
+
+    $ grep -n '"ceduta"\|statoCessione\|cedutaA' apps/conti/conti-data.js
+    (nessuna riga)
+
+Conseguenza pratica: una fattura ceduta **pro soluto** (la cava è già stata
+pagata dal factor, al netto di commissioni) continuerebbe a comparire in
+`agingIncassi`, a maturare `interessiMora`, e a salire di `livelloSollecito`
+fino all'«ultimo avviso» — un sollecito minaccioso su un debito che la cava,
+di fatto, non ha più verso quel cliente (ce l'ha, se mai, il factor). Non è
+un difetto su un caso oggi popolato nella demo (nessuna fattura demo ha un
+campo di cessione, perché il campo non esiste): è un **buco strutturale**,
+lo stesso tipo già censito per il canone e la revisione prezzi — una
+funzione che decide un colore/testo senza sapere di un fatto che la
+azzererebbe.
+
+**Verifica 4 — la riconciliazione bancaria non riconoscerebbe un anticipo
+del factor come "buono"**: `esitoMovimento` (riga 5161) cerca il numero
+fattura o il **nome del cliente** nella causale (`clienteInCausale`,
+`numeroInCausale`) e confronta l'importo con l'aperto. Un bonifico del
+factor, per costruzione, ha causale col nome del **factor** (non del
+cliente) e importo **parziale/diverso** (anticipo all'80-90%, o al netto di
+commissioni) — non un numero coincidente: cadrebbe quasi sempre nel ramo
+"nessuno"/"debole" (righe 5265-5287, "nella causale non si riconosce né un
+numero di fattura né il nome di un cliente"), da smistare **a mano** ogni
+volta, per ogni fattura ceduta. Non è un bug di `esitoMovimento` — il suo
+comportamento su un movimento non riconosciuto è corretto e dichiarato — è
+l'assenza di un dato ("questa fattura è ceduta al factor X") che gli
+permetterebbe di dire qualcosa di più utile di "scegli tu".
+
+### Proposte
+
+1. **Fatture · una fattura ceduta a un factor (pro soluto o pro solvendo)
+   non ha nessun modo di essere dichiarata tale, quindi aging/interessi di
+   mora/livello di sollecito continuano a trattarla come credito diretto
+   della cava anche quando la cava è già stata pagata (pro soluto) · `grep
+   -ciE "factoring|cessione del credito|pro.solvendo|pro.soluto" apps/conti/conti-data.js
+   apps/conti/index.html` → 0 e 0; `statoScadenzaFattura`/`livelloSollecito`
+   non leggono nessun campo di questo tipo · Medio · campo opzionale
+   `fattura.cessione: {factor, tipo: "pro-soluto"|"pro-solvendo", data,
+   percentualeAnticipo}` (assente di default, nessuna fattura oggi ne ha
+   bisogno); `statoScadenzaFattura`/`agingIncassi`/`interessiMora` guadagnano
+   un ramo che, con `tipo:"pro-soluto"`, sospende mora e sollecito per la
+   cava (il credito non è più suo) mostrando invece "ceduta al factor X il
+   [data]" — con `pro-solvendo` il comportamento resta quello di oggi, perché
+   il rischio è ancora della cava · Come si misura: fattura scaduta da 60
+   giorni marcata `pro-soluto` → `livelloSollecito`/`interessiMora` devono
+   fermarsi e la schermata deve dire "ceduta", non "ultimo avviso"; la stessa
+   fattura marcata `pro-solvendo` deve continuare a salire come oggi (il
+   rischio resta suo) — è la controprova che il tipo, non la sola presenza
+   del campo, decide il comportamento.** — proposto da ricerca, non verificato.**
+
+2. **Report/Riconciliazione bancaria · un bonifico in arrivo dal factor (nome
+   diverso dal cliente, importo parziale/anticipo) non ha modo di essere
+   riconosciuto come "buono": cade sempre nel ramo da decidere a mano · `grep
+   -n "cedutaA\|factorNome" apps/conti/conti-data.js` → nessuna riga; il
+   confronto in `esitoMovimento` è solo su nome cliente/numero fattura ·
+   Medio · con il campo della proposta 1, `abbinaMovimenti` guadagna un
+   passaggio PRIMA di `clienteInCausale`: se la fattura ha una cessione
+   dichiarata, il nome del **factor** (non del cliente) e un importo entro
+   la percentuale di anticipo dichiarata contano come "certo"/"probabile" ·
+   Come si misura: fattura da 10.000 € ceduta con anticipo 85% al factor
+   "ABC Factor Srl", movimento bancario di 8.500 € con causale "ABC Factor
+   Srl rif. [numero]" → deve proporsi come abbinamento, non finire fra i
+   "nessuno riconosciuto".** — proposto da ricerca, non verificato.**
+
+3. **Fattura elettronica (XML SdI) · nessun campo IBAN in `DatiPagamento`,
+   né per la cava né — a maggior ragione — per un eventuale factor: anche
+   fuori dal factoring, oggi il file non dice su quale conto pagare · `grep
+   -n "IBAN" apps/conti/conti-data.js` → solo due commenti su un campo
+   diverso (il TRN bancario), zero righe di dato; `grep -n "iban"
+   apps/conti/index.html` → nessuna · Piccolo (per il caso generale: un
+   campo IBAN nelle Impostazioni, scritto in `DettaglioPagamento` quando
+   `modalitaPagamento==="MP05"`) — Medio se esteso al factoring (un IBAN
+   alternativo legato alla cessione, non a un'impostazione unica d'azienda)
+   · Come si misura: impostare l'IBAN aziendale e la modalità MP05, generare
+   l'XML di una fattura, verificare che `<IBAN>` compaia dentro
+   `DettaglioPagamento` — oggi non compare mai, con nessuna combinazione di
+   impostazioni.** — proposto da ricerca, non verificato.**
+
+### Riassunto
+
+**3 proposte, tutte a costo piccolo/medio.** Nessuna riapre temi già
+proposti negli undici giri precedenti (verificato: nessun giro prima di
+questo cita "factoring", "pro soluto/solvendo" o "cessione del credito" —
+il solo hit del documento su queste parole, prima di questa sezione, è
+"refactoring" riferito al codice, non al credito). Onestà sulla distanza dai
+leader: il **reverse factoring/confirming** e le piattaforme di *invoice
+trading* citate dal mondo sono infrastrutture finanziarie con un factor
+terzo, un rating del debitore e un flusso di notifica — cose che Conti, per
+scelta di impianto (nessuna app di questo ecosistema chiama servizi esterni
+per dati finanziari ufficiali), non farà mai da sé. Quello che è
+ragionevole costruire non è un "modulo di factoring": è che le funzioni che
+**già esistono** (aging, mora, sollecito, riconciliazione) sappiano gestire
+il fatto dichiarato dall'utente che un credito è cambiato di mano — la
+stessa filosofia già usata per il canone regionale e gli indici di
+revisione prezzi (un dato che l'utente dichiara, non che il software
+scarica o indovina). **Non verificato indipendentemente da chi coordina il
+ciclo**: le percentuali tipiche di anticipo (80-90%) e i nomi delle
+piattaforme citate sono parola dell'agente di ricerca, riportati con le
+fonti perché chi apre l'unità li rilegga prima di scriverli nel prodotto.
+
+*Fonti (di seconda mano, via WebSearch): danea.it, bancaifis.it,
+avvocatorecuperocrediti.it, finera.it, finom.co, grenke.it, gibitalia.it,
+bccfactoring.it, sacefct.it, iusletter.com, pmi.it, azienda-italia.it,
+mark-up.it, intesasanpaolo.com, mbfacta.it, cashme.it, fatturapro.click,
+workinvoice.it, pagamentidigitali.it, allianz-trade.com, assifact.it,
+dcommerce.it, bancacfplus.it, sace.it, credimi.com, credit-one.it,
+factorit.it, plusadvance.com, mps.it, fex-app.com, madeinbit.it,
+forum.italia.it, agendadigitale.eu, fiscozen.it, sumup.com,
+agenziaentrate.gov.it, fatturapa.gov.it.*
