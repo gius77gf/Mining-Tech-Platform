@@ -3225,6 +3225,20 @@ $('fileIn').onchange = async e=>{
        (SDOB) e il rischio di proiezioni. Stesso contratto degli altri tre
        campi qui sopra, stesso range del campo `#dStem` (0,5–6 m). */
     D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);
+    /* ⛔ 18/09, dal backlog QA: `def.esplosivo`/`def.innesco` — scritti
+       dall'export come nome pieno e sigla breve (righe più sotto,
+       `esplosivo:(selEsplosivo()||{}).nome`, `innesco:(selInnesco()||{}).short`)
+       — non venivano mai riletti. Decidono la resistenza all'acqua (RWS) e
+       lo scatter d'innesco, che fra Nonel ed elettronico cambia di 80
+       volte: un file che dichiara un esplosivo o un innesco diverso li
+       perdeva in silenzio, come già successo cinque volte per i campi
+       geometrici qui sopra (spalla, interasse, diametro, borraggio).
+       Stessa difesa in profondità già scritta per l'import XML (più sotto,
+       `ESPL.some(e=>e.id===esp)`): un nome che non è nel vocabolario di
+       casa non si tiene come testo arbitrario, si conserva quello che il
+       progetto stava già usando. */
+    if(def.esplosivo){ const m=ESPL.find(e=>e.nome===def.esplosivo); if(m) D2.esplosivo=m.id; }
+    if(def.innesco){ const m=INNESCHI.find(x=>x.short===def.innesco); if(m) D2.innesco=m.id; }
     const ritardi = fori.map(x=>parseFloat(String(x.ritardo??'').replace(/[^\d.]/g,''))||0);
     const rset = [...new Set(ritardi)].sort((a,b)=>a-b);
     let step = 25;
@@ -3285,6 +3299,7 @@ $('fileIn').onchange = async e=>{
        `syncDesignInputs` per `dKg`: `gsv` sa già arrotondare (`dec` = 0) e sa
        già che un valore che non c'è si scrive con un campo VUOTO. */
     gsv('pProf',P.prof,1); gsv('pKg',P.kg,0);
+    fillEsplSelects();                              // riflette D2.esplosivo/D2.innesco appena importati nei select
     clearFrontMesh();                               // una volata parametrica sostituisce l'eventuale fronte 3D
     rebuild();
     /* ⛔ E LA BANDIERA VA LETTA DA QUALCUNO, se no non protegge niente: quanti

@@ -1323,6 +1323,8 @@ const BANCHI = [
   ['raggi-X e stem illeggibile · controprova', 'genesi-xray-stem-null.mjs', ['--controprova'], true],
   ['il popup del foro e la timeline di Genesi mostrano il tempo di progetto, non lo scatter sorteggiato', 'genesi-timing-nominale.mjs', []],
   ['timing nominale di Genesi · controprova', 'genesi-timing-nominale.mjs', ['--controprova'], true],
+  ["l'import .volata.json di Genesi rilegge esplosivo e innesco dichiarati nel file", 'genesi-import-esplosivo-innesco.mjs', []],
+  ['import esplosivo/innesco di Genesi · controprova', 'genesi-import-esplosivo-innesco.mjs', ['--controprova'], true],
   ['Genesi: le volate passano dalla porta sui dati', 'genesi-locale.mjs', []],
   ['porta sui dati di Genesi · senza rete', 'genesi-locale.mjs', ['--offline']],
   ['porta sui dati di Genesi · controprova', 'genesi-locale.mjs', ['--controprova'], true],
