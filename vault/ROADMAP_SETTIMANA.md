@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.621 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3127, `run-stile` 330,
+  **3.622 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3128, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11246,3 +11246,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       Esteso `campo-foglio-turno.mjs` (il banco browser che legge i
       documenti veri) con le stesse verifiche, e riancorata un'iniezione
       scaduta in `campo-numeri-tranquilli.mjs` che il fix aveva reso stale.
+
+## Conti — quarto giro di deep-pass, registroVendite non quadrava (18/09)
+- [x] **`registroVendite` MESCOLAVA LE RIGHE VECCHIE COI TOTALI CORRETTI A
+      MANO** *(18/09, unità completata, agente af0b750375363ec94)*. A
+      differenza delle sorelle `csvSituazioneFatture` (colonna
+      `righe_non_tornano`) e `xmlFatturaPA` (blocca l'export), il registro
+      IVA per il commercialista non controllava mai
+      `riepilogoIvaFattura(f).quadra`: quando una fattura nata dai DDT
+      veniva corretta con la matita (righe mai toccate, totali riscritti),
+      il registro esportava imponibile/imposta calcolati dalle RIGHE
+      VECCHIE con un totale_documento dai TOTALI NUOVI — un documento
+      fiscale internamente contraddittorio, senza nessun avviso.
+      Corretto: quando i totali sono stati registrati (`haTotali`) E non
+      tornano più con le righe, si ripiega sulla stessa forma già usata
+      per una fattura senza righe (una banda sola coi totali registrati,
+      aliquota `null` se non nota) e si scrive un avviso in colonna
+      `causale`. ⚠️ Prima versione del fix sbagliata e corretta subito: un
+      controllo su `!rie.quadra` da solo accende falsi positivi su ogni
+      fattura fatta di sole righe MAI corrette (`quadra` è naturalmente
+      falso quando i totali registrati sono 0 per costruzione) — il
+      controllo giusto è `haTotali && rie.daRighe && !rie.quadra`, preso
+      dai due test preesistenti che sono andati in rosso alla prima
+      stesura e hanno guidato la correzione.
+      Nuovo test puro con controprova in `run-kpi.mjs`. Giro isolato: 41/41.

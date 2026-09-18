@@ -45067,6 +45067,28 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const riga = conti.csvRegistroVendite([fImm], CLI, [n]).trim().split("\n").find(l => l.startsWith("nota di credito"));
     ok(riga.endsWith(";Merce resa o rifiutata"), "la causale è l'ultima colonna del CSV: " + riga);
   });
+  test("⛔ 18/09, dal quarto giro di deep-pass: registroVendite non mescola le righe vecchie con i totali corretti a mano", () => {
+    // la fattura nasce dai DDT (righe al 22%, imponibile 1000/iva 220/totale 1220)
+    // e poi viene corretta con la matita: righe MAI toccate, totali riscritti
+    const fCorretta = { id: "fc", numero: "2026/103", clienteId: "c1", cliente: "Edilcave Srl", emessa: "2026-08-10",
+      righe: [{ quantita: 100, prezzoUnitario: 10, aliquota: 22 }],
+      imponibile: 9000, ivaImporto: 1980, totale: 10980 };
+    ok(!conti.riepilogoIvaFattura(fCorretta).quadra, "le righe (1000/220) non tornano coi totali corretti (9000/1980)");
+    const r = conti.registroVendite([fCorretta], CLI, []);
+    eq(r.righe.length, 1, "una riga sola: non la scomposizione (falsa) dalle righe vecchie");
+    const x = r.righe[0];
+    eq([x.imponibile, x.imposta, x.totale], [9000, 1980, 10980],
+      "⛔ imponibile e imposta sono i TOTALI REGISTRATI, non quelli calcolati dalle righe vecchie (1000/220)");
+    ok(/le righe non tornano con i totali registrati/.test(x.causale), "e lo dice: " + x.causale);
+    eq(x.senzaIva, false, "l'IVA è dichiarata (1980): non è il caso «senza IVA», è un altro avviso");
+    const csvRiga = conti.csvRegistroVendite([fCorretta], CLI, []).trim().split("\n")[1];
+    ok(csvRiga.includes(";9000;1980;10980;") && csvRiga.endsWith(";attenzione: le righe non tornano con i totali registrati — imponibile e imposta sono i totali registrati, non la scomposizione dalle righe"),
+      "il CSV per il commercialista porta gli stessi totali e l'avviso: " + csvRiga);
+    // e quando le righe TORNANO, il comportamento di sempre non cambia
+    const fOk = { ...fCorretta, id: "fok", numero: "2026/104", imponibile: 1000, ivaImporto: 220, totale: 1220 };
+    const rOk = conti.registroVendite([fOk], CLI, []);
+    eq([rOk.righe[0].aliquota, rOk.righe[0].imponibile, rOk.righe[0].imposta, rOk.righe[0].causale], [22, 1000, 220, ""], "righe coerenti: nessun avviso, si usa la scomposizione vera");
+  });
   test("csvRegistroVendite: intestazione, ordine per data, e la dimostrazione (tutte senza IVA dichiarata, com'è)", () => {
     const righe = conti.csvRegistroVendite(D.fatture, CLI, D.note || []).trim().split("\n");
     eq(righe[0], conti.CSV_REGISTRO_VENDITE_INTESTAZIONE, "l'intestazione");

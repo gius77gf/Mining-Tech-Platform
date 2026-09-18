@@ -6627,7 +6627,31 @@ export function registroVendite(fatture, clienti, note, dal, al) {
        stessa somma che `riepilogoIvaFattura` usa per le bande */
     const haTotali = f.imponibile != null || f.ivaImporto != null || f.totale != null;
     const im = rie.daRighe && !haTotali ? totaliDaRighe(f.righe) : rie;
-    doc("fattura", f, f.numero, f.emessa, "", rie.daRighe || rie.conIva ? rie.bande : [], im, 1);
+    /* ⛔ 18/09, dal quarto giro di deep-pass: `im.totale` viene dai totali
+       REGISTRATI (corretti a mano, se la fattura è stata toccata dalla
+       matita), ma le `bande` per aliquota erano SEMPRE quelle calcolate
+       dalle righe — anche quando le righe non tornano più coi totali
+       registrati. Il registro usciva con imponibile/imposta di una fonte e
+       il totale_documento di un'altra: la stessa incoerenza che
+       `xmlFatturaPA` blocca del tutto e che `csvSituazioneFatture` dichiara
+       con `righe_non_tornano`. Qui il documento non si può rifiutare (il
+       registro IVA vuole ogni fattura emessa), quindi quando le righe non
+       tornano si ripiega sulla STESSA forma già usata per una fattura senza
+       righe: una banda sola coi totali registrati (`rie.aliquota` può
+       essere `null` se nemmeno l'aliquota unica è nota — non si inventa).
+       ⚠️ `rie.quadra` da solo NON basta: una fattura fatta di sole righe,
+       MAI corretta a mano (`!haTotali`), ha `quadra` falso per costruzione
+       (i totali registrati sono 0 finché nessuno li scrive) — è il caso
+       normale della differita, non un'incoerenza. Il difetto vero è solo
+       quando i totali SONO stati scritti E non tornano più con le righe. */
+    const incoerente = haTotali && rie.daRighe && !rie.quadra;
+    const bandeAffidabili = incoerente
+      ? (rie.conIva ? [{ aliquota: rie.aliquota, imponibile: rie.imponibile, imposta: rie.ivaImporto }] : [])
+      : (rie.daRighe || rie.conIva ? rie.bande : []);
+    const causaleFattura = incoerente
+      ? "attenzione: le righe non tornano con i totali registrati — imponibile e imposta sono i totali registrati, non la scomposizione dalle righe"
+      : "";
+    doc("fattura", f, f.numero, f.emessa, "", bandeAffidabili, im, 1, causaleFattura);
   }
   for (const n of (note || []).filter((x) => x && !x.bozza).slice().sort((a, b) => String(a.emessa || "").localeCompare(String(b.emessa || "")))) {
     const im = { imponibile: +n.imponibile || 0, ivaImporto: +n.ivaImporto || 0, totale: Math.abs(+n.totale || 0) };
