@@ -2726,6 +2726,26 @@ export function ultimoRitaglioNuvola(daOrg, daChiave) {
   return { ultimo: null, fonte: null, orgRisponde: Array.isArray(daOrg) };
 }
 
+/* ⛔ 18/09, dal deep-pass QA su Terra: IL VOLUME DEL VISORE VA LETTO
+   INSIEME ALLA SUA UNITÀ, NON RIPULITO E BASTA. Quando la nuvola non è
+   georeferenziata, il visore (`apps/genesi/nuvola-poc.html`) salva il
+   volume come STRINGA con l'unità arbitraria attaccata («1234 u³», non
+   metri cubi veri — lo dice lui stesso, "scala approssimata"). Un
+   `replace(/[^0-9.,-]/g, "")` per ripulire il numero toglie anche «u» e
+   «³»: il risultato è un numero valido e diverso da zero, che un
+   controllo scritto solo su "il numero è zero?" lascia passare per una
+   misura vera. Il dato per accorgersene (`calcolo.georeferenziato`) il
+   visore lo scrive già; qui lo si legge PRIMA di accettare il volume, non
+   dopo. Pura e testabile: prende `ultimo` (dall'esito di
+   `ultimoRitaglioNuvola`) e risponde se il volume è utilizzabile. */
+export function volumeDalVisore(ultimo) {
+  if (!ultimo) return { ok: false };
+  const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
+  const georeferenziato = (ultimo.calcolo || {}).georeferenziato;
+  if (!vol || georeferenziato === false) return { ok: false };
+  return { ok: true, vol };
+}
+
 export async function terraData() {
   let mode = "demo", api = null;
   try {

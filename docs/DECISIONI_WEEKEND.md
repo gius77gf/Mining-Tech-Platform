@@ -2161,9 +2161,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.642** *(ricontate il 18/09, dopo aver
-corretto in Genesi `pointcloud.js:parseXYZ` (un file XYZ misto disallineava
-i colori dalle posizioni) e, prima di questo, in Sentinella `dataIt` (copia
+**Le prove automatiche sono passate a 3.643** *(ricontate il 18/09, dopo aver
+corretto il ponte Genesi→Terra (un volume in unità arbitrarie della nuvola
+passava per metri cubi veri) e, prima di questo, in Genesi
+`pointcloud.js:parseXYZ` (un file XYZ misto disallineava
+i colori dalle posizioni) e, ancora prima, in Sentinella `dataIt` (copia
 debole locale che leggeva la forma della stringa invece del calendario
 vero) e, ancora prima, in Campo
 `testoConsegnaTurno` (semaforo delle azioni correttive HSE nella checklist

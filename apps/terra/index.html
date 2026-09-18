@@ -1059,7 +1059,7 @@ a.dw-btn{text-decoration:none}
            conformitaProgetto,
            difformitaVolumetrica, giudizioVariante,
            volumeMisuratoDiLotto, rilieviFuoriDaiLotti, varianzaLottoAnno, sequenzaLotto, aperturaFuoriProgramma,
-           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola,
+           aEufonica, articoloNumero, descriviIncertezza, ultimoRitaglioNuvola, volumeDalVisore,
            inventariOrdinati, riepilogoInventario, cumuliUsabili, chiaveMateriale,
            csvInventari, parseInventariCsv, rientroInventari, INTESTAZIONE_INVENTARI } from "./terra-data.js";
   /* `plurale` viene da shared/ e non da qui: la regola del singolare c'era
@@ -4774,8 +4774,18 @@ a.dw-btn{text-decoration:none}
     try { daChiave = JSON.parse(localStorage.getItem("genesiNuvole") || "[]"); } catch (e) { daChiave = []; }
     const { ultimo, fonte } = ultimoRitaglioNuvola(daOrg, daChiave);
     if (!ultimo) { esito("ril-esito", "Nessun volume dal visore: apri il visore nuvola (in Genesi), carica la nuvola del drone, ritaglia il cumulo o il fronte e torna qui.", "err"); return; }
-    const vol = Math.max(0, Math.round(+String(ultimo.volume).replace(/[^0-9.,-]/g, "").replace(",", ".")) || 0);
-    if (!vol) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
+    /* ⛔ 18/09, dal deep-pass QA su Terra: QUI IL CONTROLLO SULLA
+       GEOREFERENZIAZIONE PROMETTEVA E NON MANTENEVA. Un `replace` che
+       ripuliva il volume grezzo toglieva anche l'unità arbitraria («u³»)
+       che il visore attacca quando la nuvola NON è georeferenziata,
+       lasciando passare un numero in unità sbagliate come se fosse metri
+       cubi veri: `if (!vol)` — che secondo il SUO STESSO messaggio
+       d'errore vuole intercettare proprio questo caso — non scattava mai.
+       `volumeDalVisore` (in `terra-data.js`, pura e provata) guarda
+       `calcolo.georeferenziato` PRIMA di accettare il numero. */
+    const rVol = volumeDalVisore(ultimo);
+    if (!rVol.ok) { esito("ril-esito", "L'ultimo ritaglio del visore non ha un volume in metri reali: la nuvola non è georeferenziata.", "err"); return; }
+    const vol = rVol.vol;
     // Il visore misura un volume, ma non sa CHE COSA ha misurato: un fronte
     // scavato o un mucchio sul piazzale. È l'unica cosa che deve dirla una
     // persona, e cambia se quel volume scala o no il concesso.
@@ -4813,7 +4823,6 @@ a.dw-btn{text-decoration:none}
        sezione «Come è stato ottenuto il numero» che per questi rilievi non
        poteva dire niente di vero. Una misura che non si può rifare non si può
        difendere. */
-    const c = ultimo.calcolo || {};
     /* ⛔ E QUI C'ERA `Number.isFinite(+x)`, CIOÈ LA GUARDIA DEL MODULO SCRITTA
        PIÙ DEBOLE NEL PUNTO IN CUI IL DATO NASCE. `+null` fa **0**, che è finito:
        il `null` del visore — «la nuvola non è georeferenziata, la quota di base
@@ -4829,6 +4838,7 @@ a.dw-btn{text-decoration:none}
        accanto a chi la legge, ed è `export` da oggi proprio perché serviva
        anche qui. Gli altri quattro campi hanno un `> 0` a valle che li
        salvava — `quotaBase` no, ed è l'unico che poteva morderci. */
+    const c = ultimo.calcolo || {};
     _origineDalVisore = {
       da: "visore",
       file: ultimo.nome || null,

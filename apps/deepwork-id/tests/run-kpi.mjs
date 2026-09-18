@@ -38940,6 +38940,17 @@ const { senzaCommenti: senzaCommentiConti } = await import("./tokenizza.mjs");
     ok(src.includes('DeepworkID.init({ appId: "genesi" })'), "e in live apre una seconda istanza sull'app genesi, mai un percorso a mano");
     ok(!/organizations\/[^"']*genesi/.test(src), "nessun percorso Firestore scritto a mano verso genesi");
   });
+  test("⛔ 18/09, dal deep-pass QA su Terra: volumeDalVisore rifiuta un volume in unità arbitrarie, anche se il numero non è zero", () => {
+    const V = terra.volumeDalVisore;
+    eq(V(null), { ok: false }, "niente ritaglio");
+    eq(V({ volume: "3100 u³", calcolo: { georeferenziato: false } }), { ok: false },
+      "⛔ ERA QUI IL DIFETTO: il replace toglieva «u³» e il numero risultava valido e diverso da zero");
+    eq(V({ volume: "0 u³", calcolo: { georeferenziato: false } }), { ok: false }, "e ovviamente uno zero vero resta rifiutato");
+    eq(V({ volume: "3100 u³" }), { ok: true, vol: 3100 },
+      "senza `calcolo` (ritaglio salvato prima di questa unità, o prima ancora del calcolo georeferenziato): stesso comportamento di sempre, nessuna nuova regressione su dati vecchi");
+    eq(V({ volume: 5234, calcolo: { georeferenziato: true } }), { ok: true, vol: 5234 }, "una nuvola georeferenziata: il volume passa");
+    eq(V({ volume: "1234,5", calcolo: { georeferenziato: true } }), { ok: true, vol: 1235 }, "virgola decimale italiana, arrotondato");
+  });
 }
 /* ===== fine ponte Genesi → Terra ===== */
 

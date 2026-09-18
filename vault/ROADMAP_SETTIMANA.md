@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.642 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3146, `run-stile` 330,
+  **3.643 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3147, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11401,3 +11401,28 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   **34**. Giro completo su worktree isolata: 41/41. 9-suite sum: **3.642**
   (3146+330+83+34+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato prima
   del commit.
+
+## Terra — il ponte del volume dal visore accettava un'unità sbagliata (18/09)
+- [x] **UN VOLUME IN UNITÀ ARBITRARIE PASSAVA PER METRI CUBI VERI** *(18/09,
+      unità completata, dal deep-pass QA su Terra)*. Quando una nuvola di
+      punti non è georeferenziata, il visore (`apps/genesi/nuvola-poc.html`)
+      salva il volume come stringa con l'unità arbitraria attaccata
+      («1234 u³», non metri cubi veri — lo dichiara lui stesso, "scala
+      approssimata"). Terra puliva quella stringa con una regex
+      (`[^0-9.,-]`) che toglie anche «u» e «³»: il risultato è un numero
+      valido e diverso da zero, quindi il controllo `if (!vol)` — che
+      secondo il SUO STESSO messaggio d'errore vuole intercettare proprio
+      "la nuvola non è georeferenziata" — non scattava mai. Il numero in
+      unità sbagliate finiva mostrato come metri cubi veri e propagato alla
+      denuncia annuale, all'onere di escavazione, alla vita cava e al
+      valore del materiale. Il dato per accorgersene (`calcolo.
+      georeferenziato`) il visore lo scrive già.
+      Estratta la logica in una nuova funzione pura `volumeDalVisore(ultimo)`
+      in `terra-data.js` (accanto a `ultimoRitaglioNuvola`, di cui è la
+      naturale prosecuzione), che guarda `calcolo.georeferenziato` PRIMA di
+      accettare il volume — non dopo, come faceva la pagina.
+- Nuovo test dedicato con controprova (verificato: col vecchio controllo
+  solo-su-zero il test cade, esattamente il caso "3100 u³" passa come
+  valido). KPI: 3146 → **3147**. Giro completo su worktree isolata: 41/41.
+  9-suite sum: **3.643** (3147+330+83+34+9+8+7+3+22).
+  `numeri-nei-documenti.mjs` verificato prima del commit.
