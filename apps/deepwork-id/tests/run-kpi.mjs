@@ -12936,6 +12936,18 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     contiene(e.mesi[3], { mese: "2026-07", emesso: 1220, incassato: 400 }, "luglio");
     contiene(e, { conDato: 4, emesso: 3020, incassato: 1500, senzaData: 1, importoSenzaData: 300 }, "totali");
   });
+  test("⛔ emessoIncassato: una fattura scartata dallo SdI non è «emesso» (18/09, dal deep-pass QA)", () => {
+    /* stessa guardia già propagata a nove funzioni gemelle: una scartata
+       non è fiscalmente emessa, e gonfiare qui il flusso di cassa mostrato
+       nel Report è proprio l'errore da cui questo confronto esiste per
+       tenere lontano ("prima non si poteva fare ONESTAMENTE"). */
+    const SCARTATA = { id: "f5", cliente: "Bianchi", emessa: "2026-07-05", scadenza: "2026-08-04",
+      imponibile: 4836.07, ivaImporto: 1063.93, totale: 5900, sdi: { stato: "scartata", il: "2026-07-06" } };
+    const e = conti.emessoIncassato([...FATT, SCARTATA], INC, 4, OGGI);
+    contiene(e.mesi[3], { mese: "2026-07", emesso: 1220, emesse: 1 },
+      "luglio: la scartata NON entra nell'emesso (resta 1220 della sola f4, non 7120)", e.mesi[3]);
+    eq(e.emesso, 3020, "e il totale non si è mosso");
+  });
 
   const P_T = { prezzo: 12.5, unitaPrezzo: "t", densita: 1.6, iva: 22 };
   const P_M3 = { prezzo: 20, unitaPrezzo: "m3", densita: 1.6, iva: 22 };

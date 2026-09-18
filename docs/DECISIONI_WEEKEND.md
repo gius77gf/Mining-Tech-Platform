@@ -2161,7 +2161,7 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.651** *(ricontate il 18/09, dopo aver
+**Le prove automatiche sono passate a 3.652** *(ricontate il 18/09, dopo aver
 corretto in Conti (margineMese non escludeva le fatture scartate dallo SdI
 dal margine mensile per competenza) e, prima di questo, in Terra (`renderValore` usava `rilievoUsabile` invece di
 `rilievoUsabileConData`: un rilievo a calendario impossibile gonfiava il
@@ -2427,7 +2427,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **363
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **365
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

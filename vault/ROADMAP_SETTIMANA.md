@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.651 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3155, `run-stile` 330,
+  **3.652 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3156, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **363 esecuzioni** che
-  aprono le pagine in un browser vero, da **161** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **365 esecuzioni** che
+  aprono le pagine in un browser vero, da **162** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11585,3 +11585,24 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   tentare comunque il click. Verificato: normale 72/72 invariato,
   controprova ora arriva al verdetto su entrambe le larghezze senza
   crash (35 passati, 20 KO voluti, verdetto "CONTROPROVA OK" stampato).
+
+## Conti — emessoIncassato non escludeva le fatture scartate dallo SdI (18/09)
+- [x] **DECIMA RICORRENZA DELLA STESSA GUARDIA, MAI PROPAGATA A QUESTO
+      CONFRONTO** *(18/09, unità completata, dal deep-pass QA su Conti)*.
+      `emessoIncassato` sommava `importiFattura(f).totale` per ogni
+      fattura emessa nel mese SENZA applicare `!statoSdi(f, oggi).
+      nonEmessa` — la guardia già propagata a nove funzioni gemelle
+      (agingIncassi/fattureOltre90/kpiFrom/incassoAtteso/testoSollecito/
+      sollecitabile/esposizioneClienti/incassoPerMese/
+      estrattoContoCliente/registroVendite). Una fattura scartata dallo
+      SdI non è fiscalmente emessa, e questo confronto (Report, "Emesso
+      contro incassato") esiste apposta per dare la fotografia più
+      onesta del flusso di cassa — il caso vero della demo (f4, €
+      5.900, "Calcestruzzi RG", scartata il 19/07) mostrava 14.000 €
+      invece di 8.100 € per luglio.
+- Nuovo test unitario con dati fabbricati + controprova, e nuovo banco
+  browser permanente che riproduce il caso vero della demo sul Report:
+  3/3 dal vivo, controprova 1/3 KO voluto. KPI: 3155→**3156**. Giro
+  completo: 41/41. Asserzioni eseguite dal giro: 4160→**4162**. Banchi
+  del browser: 363→**365** esecuzioni, 161→**162** file distinti,
+  propagato nei quattro documenti.

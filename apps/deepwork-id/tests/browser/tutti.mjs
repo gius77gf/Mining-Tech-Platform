@@ -1346,6 +1346,8 @@ const BANCHI = [
   ['senza scadenze in Campo · controprova', 'campo-hse-senza-scadenze.mjs', ['--controprova'], true],
   ['Flotta: un componente scaduto ha la fascia colorata giusta', 'flotta-componenti-fascia.mjs', []],
   ['fascia componenti Flotta · controprova', 'flotta-componenti-fascia.mjs', ['--controprova'], true],
+  ['Conti: la fattura scartata dallo SdI non è emesso nel Report', 'conti-emesso-scartata.mjs', []],
+  ['emesso scartata Conti · controprova', 'conti-emesso-scartata.mjs', ['--controprova'], true],
 ];
 
 /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,

@@ -2651,6 +2651,15 @@ export function emessoIncassato(fatture, incassi, mesi = 6, oggi = new Date()) {
     ordine.push(k); per[k] = { mese: k, emesso: 0, incassato: 0, emesse: 0, movimenti: 0, vecchie: 0 };
   }
   for (const f of fatture || []) {
+    /* ⛔ 18/09, dal deep-pass QA: mancava la guardia già propagata a nove
+       altre funzioni (agingIncassi/fattureOltre90/kpiFrom/incassoAtteso/
+       testoSollecito/sollecitabile/esposizioneClienti/incassoPerMese/
+       estrattoContoCliente/registroVendite). Una fattura scartata dallo
+       SdI non è fiscalmente emessa: qui veniva contata come "emesso" nel
+       mese, gonfiando il flusso di cassa mostrato nel Report — proprio il
+       grafico pensato per dare la fotografia più onesta del confronto
+       emesso/incassato. */
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const k = String(f.emessa || "").slice(0, 7);
     if (!per[k]) continue;
     per[k].emesso = round2(per[k].emesso + round2(importiFattura(f).totale));
