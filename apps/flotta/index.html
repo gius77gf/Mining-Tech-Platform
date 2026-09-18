@@ -4121,11 +4121,17 @@ body.dw b.bad{color:var(--ink-dg)}
        sopra — un componente montato sul contatore vecchio non si confronta
        più col contatore nuovo senza dirlo. */
     const vc = vitaComponenti(m.componenti || [], null, m.ore, f.rifornimenti);
+    /* ⛔ 18/09: LA MAPPA COPRE TUTTI GLI STATI CHE `vitaComponenti` SA DIRE
+       (regola 18 di run-stile) — "non-giudicato" (nessuna soglia dichiarata,
+       stesso grigio neutro di prima), "ok", "attenzione", "scaduto". Prima
+       il badge era sempre lo stesso colore per ogni componente calcolabile,
+       perché non esisteva ancora una soglia con cui giudicarlo. */
+    const clsVita = { "non-giudicato": "accent", ok: "accent", attenzione: "warn", scaduto: "danger" };
     $("sch-comp").innerHTML = vc.length
       ? vc.map(c => `<div class="item statico st-accent">
           <div class="info"><div class="name">${esc(etichettaTipoComp(c.tipo))}</div>
-            <div class="meta">montato il ${dataIt(c.data)} a ${(+c.montatoAOre).toLocaleString("it-IT")} h${c.nota ? " · " + esc(c.nota) : ""}${c.calcolabile ? "" : " · " + esc(c.perche)}</div></div>
-          <div class="acts"><span class="badge ${c.calcolabile ? "accent" : "tag"}">${c.calcolabile ? (+c.vitaOre).toLocaleString("it-IT") + " h" : "—"}</span></div></div>`).join("")
+            <div class="meta">montato il ${dataIt(c.data)} a ${(+c.montatoAOre).toLocaleString("it-IT")} h${c.nota ? " · " + esc(c.nota) : ""}${c.calcolabile ? (c.pctVita != null ? " · " + numTx(c.pctVita) + "% della vita attesa" : "") : " · " + esc(c.perche)}</div></div>
+          <div class="acts"><span class="badge ${c.calcolabile ? (clsVita[c.stato] || "accent") : "tag"}">${c.calcolabile ? (+c.vitaOre).toLocaleString("it-IT") + " h" : "—"}</span></div></div>`).join("")
       : vuoto(I.mezzo, "Nessun componente registrato", "Pneumatici, cingoli e denti benna montati su questa macchina non sono ancora tracciati: la registrazione dal giro macchina è il prossimo passo.");
   }
 

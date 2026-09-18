@@ -33,18 +33,23 @@ const CASO_ORE = ['{ id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870,', '
 const CASO_RESET = ['{ id: "r1", data: isoIndietro(18), mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },',
   '{ id: "r1", data: isoIndietro(18), mezzo: "Escavatore E1", litri: 480, euro: 720, ore: 5812, nota: "cisterna cava", costoId: null },\n    { id: "rReset", data: "2026-06-01", mezzo: "Escavatore E1", litri: 400, euro: 600, ore: 100, oreVecchie: 5870, contatoreNuovo: true, nota: "contatore sostituito (TEST)", costoId: null },'];
 
-/* IL DIFETTO DA RIMETTERE, parola per parola come stava prima del 17/09. */
+/* IL DIFETTO DA RIMETTERE, parola per parola come stava prima del 17/09.
+   ⏱️ RI-ANCORATO il 18/09 (dal delta della ricerca continua, tredicesimo
+   giro): i due `return` sul ramo "non calcolabile" hanno guadagnato
+   `pctVita`/`stato` quando è arrivata la soglia di vita dichiarata — il
+   codice si è mosso perché è migliorato, la vecchia citazione a tre campi
+   non combaciava più. */
 const DIFETTI = [
   [`  const azzeramenti = azzeramentiDelMezzo(letture || [], nomeMezzo);
   return eventi.map(c => {
-    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note" };
+    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note", pctVita: null, stato: "non-giudicato" };
     if (azzeramenti.length) {
       const contatore = contatoreDelTagliando({ scrittaIl: c.data }, azzeramenti);
-      if (!contatore.calcolabile) return { ...c, vitaOre: null, calcolabile: false, perche: contatore.perche };
+      if (!contatore.calcolabile) return { ...c, vitaOre: null, calcolabile: false, perche: contatore.perche, pctVita: null, stato: "non-giudicato" };
     }
     const vita = Math.round((ore - c.montatoAOre) * 100) / 100;`,
    `  return eventi.map(c => {
-    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note" };
+    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note", pctVita: null, stato: "non-giudicato" };
     const vita = Math.round((ore - c.montatoAOre) * 100) / 100;`],
 ];
 let iniezioniDifetto = 0, iniezioniCaso = 0;

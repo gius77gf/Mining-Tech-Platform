@@ -226,8 +226,13 @@ export const DEMO = {
     // che si sostituisce da sé, non al contatore.
     { id: "m1", nome: "Escavatore E1 — CAT 352", ore: 5870, area: "fronte Est", stato: "operativo", tipo: "escavatore", costoPossessoAnnuo: 42000, possessoDal: "2024-01-15",
       componenti: [
-        { tipo: "pneumatico", data: "2025-11-10", montatoAOre: 4000 },
-        { tipo: "denti-benna", data: "2026-08-20", montatoAOre: 5500 },
+        // vitaAttesaOre (18/09, delta della ricerca continua): a 5.870 h la
+        // vita è 1.870 h su 2.000 dichiarate, 93,5% — un caso "attenzione"
+        // vero nella dimostrazione, visibile anche in Priorità operative.
+        { tipo: "pneumatico", data: "2025-11-10", montatoAOre: 4000, vitaAttesaOre: 2000 },
+        // denti-benna: 370 h su 3.000 dichiarate, 12,3% — sano, e resta
+        // muto: dimostra che una soglia dichiarata non allarma da sola.
+        { tipo: "denti-benna", data: "2026-08-20", montatoAOre: 5500, vitaAttesaOre: 3000 },
       ] },
     { id: "m2", nome: "Escavatore E2 — Volvo EC480", ore: 3210, area: "piazzale", stato: "operativo", tipo: "escavatore" },
     { id: "m3", nome: "Dumper D1 — CAT 745", ore: 8420, area: "", stato: "operativo", tipo: "dumper" },
@@ -1517,6 +1522,15 @@ const oreContatore = (mezzo) => {
 // Non sostituisce `consumoControStoria`/`costoControStoria`: le RIUSA (la
 // stessa soglia, lo stesso calcolo), non ne riscrive una versione debole
 // qui dentro. Senza i due parametri, il comportamento è quello di prima.
+// Dal 18/09 legge anche `m.componenti` di ogni mezzo (dal delta della
+// ricerca continua, tredicesimo giro): un pneumatico/cingolo/dente benna
+// scaduto o vicino a scadere (`vitaComponenti`) era visibile solo aprendo
+// il fascicolo di ogni mezzo uno per uno — mai in cima alla lista di ciò
+// che serve guardare oggi. RIUSA `vitaComponenti` (stessa soglia
+// dichiarata, stesso calcolo — è la stessa funzione che il fascicolo del
+// mezzo chiama già), non lo ricalcola qui dentro. Non è un parametro nuovo:
+// `componenti` vive già DENTRO ogni mezzo (`m.componenti`, come lo legge il
+// fascicolo), un mezzo senza componenti registrati non cambia niente.
 export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(), scadenze = [], preavvisoGiorni = 30, fermi = [], letture = [], rifornimenti = [], interventi = []) {
   const items = [];
   for (const s of scadenze || []) {
@@ -1631,9 +1645,23 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
         dettaglio: "si ferma +" + Math.round(ff.forbicePct) + "% più spesso del suo solito negli ultimi " + ff.finestra + " giorni",
         badge: "Fermi in aumento" });
     }
+    // dal delta della ricerca continua, tredicesimo giro: un componente a
+    // vita dichiarata scaduta o vicina alla scadenza, categoria propria
+    // (non "trend": qui il segnale non è statistico, è la soglia scritta
+    // dall'utente per quel componente). `m.componenti` è già scoperto a
+    // QUESTO mezzo (nessun campo `.mezzo` al suo interno, come lo legge già
+    // il fascicolo): `nomeMezzo:null` dice a `vitaComponenti` di non
+    // filtrare una seconda volta un elenco che non ha nulla da filtrare.
+    for (const c of vitaComponenti(m.componenti || [], null, oreContatore(m), letture)) {
+      if (c.stato !== "scaduto" && c.stato !== "attenzione") continue;
+      const et = (TIPI_COMPONENTE.find(t => t.chiave === c.tipo) || {}).etichetta || c.tipo;
+      items.push({ gravita: c.stato === "scaduto" ? "danger" : "warn", categoria: "componente", titolo: m.nome,
+        dettaglio: et + " al " + mostra(c.pctVita, 0) + "% della vita attesa (" + mostra(c.vitaOre, 0) + " h su " + mostra(c.vitaAttesaOre, 0) + " h)",
+        badge: c.stato === "scaduto" ? "Componente scaduto" : "Componente in scadenza" });
+    }
   }
   const rank = { danger: 0, warn: 1 };
-  const catRank = { scadenza: 0, manutenzione: 1, trend: 2, ricambio: 3, mezzo: 4 };
+  const catRank = { scadenza: 0, manutenzione: 1, trend: 2, componente: 3, ricambio: 4, mezzo: 5 };
   return items.sort((a, b) =>
     (rank[a.gravita] - rank[b.gravita]) ||
     (catRank[a.categoria] - catRank[b.categoria]) ||
@@ -2935,7 +2963,12 @@ export function componentiDelMezzo(componenti, nomeMezzo) {
     .filter(c => c && c.tipo && (n == null || nomeBreve(c.mezzo) === n))
     .map(c => ({ id: c.id || null, mezzo: nomeBreve(c.mezzo), tipo: String(c.tipo || ""),
       data: String(c.data || "").slice(0, 10), montatoAOre: numeroDichiarato(c.montatoAOre),
-      nota: String(c.nota || "") }))
+      nota: String(c.nota || ""),
+      /* dal delta della ricerca continua, tredicesimo giro (18/09): la vita
+         attesa NON è una costante di prodotto (varia per modello, fornitore
+         e terreno del sito — la forbice del mondo per il solo GET è
+         400-4.000+ h), quindi si dichiara per componente, opzionale. */
+      vitaAttesaOre: numeroDichiarato(c.vitaAttesaOre) }))
     .filter(c => dataISOEsiste(c.data) && c.montatoAOre != null)
     .sort((a, b) => a.data.localeCompare(b.data));
 }
@@ -2963,20 +2996,33 @@ export function componentiDelMezzo(componenti, nomeMezzo) {
 // (stessa domanda: «scritto prima o dopo l'ultimo azzeramento?») invece di
 // riscriverla una quarta volta. `letture` è opzionale e retrocompatibile:
 // senza, nessuna riga cambia (comportamento di prima).
+// ⛔ 18/09, dal delta della ricerca continua (tredicesimo giro): il mondo
+// (GET, pneumatici) genera un AVVISO vicino al limite di vita, non solo un
+// contatore — ma nessuna fonte dà una soglia universale (la forbice per il
+// solo GET è 400-4.000+ h, dipende da modello/fornitore/terreno), quindi la
+// soglia NON è una costante di prodotto: `vitaAttesaOre` è dichiarata per
+// componente (opzionale). Senza di lei `stato` resta "non-giudicato" — mai
+// un colore tranquillo su un dato che nessuno ha dichiarato (lo stesso
+// principio già applicato a `oltreFido`/`statoScadenza` altrove).
+export const SOGLIA_VITA_ATTENZIONE_PCT = 80;
 export function vitaComponenti(componenti, nomeMezzo, oreMezzoAttuali, letture) {
   const eventi = componentiDelMezzo(componenti, nomeMezzo);
   const ore = numeroDichiarato(oreMezzoAttuali);
   const azzeramenti = azzeramentiDelMezzo(letture || [], nomeMezzo);
   return eventi.map(c => {
-    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note" };
+    if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note", pctVita: null, stato: "non-giudicato" };
     if (azzeramenti.length) {
       const contatore = contatoreDelTagliando({ scrittaIl: c.data }, azzeramenti);
-      if (!contatore.calcolabile) return { ...c, vitaOre: null, calcolabile: false, perche: contatore.perche };
+      if (!contatore.calcolabile) return { ...c, vitaOre: null, calcolabile: false, perche: contatore.perche, pctVita: null, stato: "non-giudicato" };
     }
     const vita = Math.round((ore - c.montatoAOre) * 100) / 100;
     if (vita < 0) return { ...c, vitaOre: null, calcolabile: false,
-      perche: "il montaggio risulta a ore più alte di quelle attuali del mezzo: dato da controllare" };
-    return { ...c, vitaOre: vita, calcolabile: true, perche: "" };
+      perche: "il montaggio risulta a ore più alte di quelle attuali del mezzo: dato da controllare", pctVita: null, stato: "non-giudicato" };
+    if (c.vitaAttesaOre == null || c.vitaAttesaOre <= 0)
+      return { ...c, vitaOre: vita, calcolabile: true, perche: "", pctVita: null, stato: "non-giudicato" };
+    const pct = Math.round((vita / c.vitaAttesaOre) * 1000) / 10;
+    const stato = pct >= 100 ? "scaduto" : pct >= SOGLIA_VITA_ATTENZIONE_PCT ? "attenzione" : "ok";
+    return { ...c, vitaOre: vita, calcolabile: true, perche: "", pctVita: pct, stato };
   });
 }
 

@@ -40913,6 +40913,58 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const senzaAzzeramenti = flotta.vitaComponenti(CMP, "Escavatore 1", 9000, []);
     eq(senzaAzzeramenti[0].calcolabile, true, "letture vuote: nessun contatore sostituito, si passa da qui senza toccare niente");
   });
+  test("⛔ 18/09, dal delta della ricerca continua (tredicesimo giro): vitaComponenti giudica solo se qualcuno ha dichiarato la soglia, e prioritaOperative lo vede", () => {
+    /* la vita attesa NON è una costante di prodotto (varia per modello,
+       fornitore, terreno del sito): senza `vitaAttesaOre` lo stato resta
+       "non-giudicato", MAI un colore tranquillo su un dato che nessuno ha
+       dichiarato — lo stesso principio di `oltreFido`/`statoScadenza`. */
+    const senzaSoglia = [{ mezzo: "Escavatore 1", tipo: "pneumatico", data: "2026-01-10", montatoAOre: 4000 }];
+    const vSenza = flotta.vitaComponenti(senzaSoglia, "Escavatore 1", 9000);
+    eq(vSenza[0], { id: null, mezzo: "Escavatore 1", tipo: "pneumatico", data: "2026-01-10", montatoAOre: 4000, nota: "",
+      vitaAttesaOre: null, vitaOre: 5000, calcolabile: true, perche: "", pctVita: null, stato: "non-giudicato" },
+      "senza soglia dichiarata: vita calcolata, ma NESSUN giudizio");
+
+    const conSoglia = [
+      { mezzo: "E1", tipo: "pneumatico", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 2000 },
+      { mezzo: "E1", tipo: "cingolo", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 },
+      { mezzo: "E1", tipo: "denti-benna", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 },
+    ];
+    const v = flotta.vitaComponenti(conSoglia, "E1", 850);   // ore attuali basse: pneumatico 850/2000=42,5% ok
+    eq(v[0].pctVita, 42.5); eq(v[0].stato, "ok");
+    const v2 = flotta.vitaComponenti(conSoglia, "E1", 1850);   // cingolo: 1850/1000=185% scaduto; pneumatico 1850/2000=92,5% attenzione
+    eq(v2.find(x => x.tipo === "pneumatico").stato, "attenzione");
+    eq(v2.find(x => x.tipo === "cingolo").stato, "scaduto");
+    // il confine è >=80 attenzione, >=100 scaduto (SOGLIA_VITA_ATTENZIONE_PCT)
+    eq(flotta.SOGLIA_VITA_ATTENZIONE_PCT, 80);
+    const conf = flotta.vitaComponenti([{ mezzo: "E1", tipo: "cingolo", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 }], "E1", 800);
+    eq(conf[0].stato, "attenzione", "esattamente all'80%: già attenzione, non ok");
+    const confOk = flotta.vitaComponenti([{ mezzo: "E1", tipo: "cingolo", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 }], "E1", 799);
+    eq(confOk[0].stato, "ok", "un'ora sotto l'80%: ancora ok");
+    const confScaduto = flotta.vitaComponenti([{ mezzo: "E1", tipo: "cingolo", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 }], "E1", 1000);
+    eq(confScaduto[0].stato, "scaduto", "esattamente al 100%: già scaduto");
+    // vitaAttesaOre a zero o negativa non giudica (dato scritto male, non un limite raggiunto subito)
+    eq(flotta.vitaComponenti([{ mezzo: "E1", tipo: "cingolo", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 0 }], "E1", 500)[0].stato, "non-giudicato");
+
+    /* prioritaOperative: `m.componenti` è già dentro il mezzo, come lo legge
+       il fascicolo — nessun parametro nuovo da passare. */
+    const mezzo = { nome: "Escavatore E1 — CAT 352", ore: 1850, stato: "operativo",
+      componenti: [{ tipo: "pneumatico", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 2000 },
+                   { tipo: "denti-benna", data: "2026-01-10", montatoAOre: 0, vitaAttesaOre: 1000 }] };
+    const prio = flotta.prioritaOperative([mezzo], [], []);
+    const voci = prio.filter(x => x.categoria === "componente");
+    eq(voci.length, 2, "un componente scaduto e uno in attenzione: due voci, non una lista di tutti i componenti: " + JSON.stringify(voci));
+    ok(voci.find(x => /Denti benna/.test(x.dettaglio) && x.gravita === "danger" && x.badge === "Componente scaduto"), "il denti-benna (1850/1000=185%) è scaduto: " + JSON.stringify(voci));
+    ok(voci.find(x => /Pneumatico/.test(x.dettaglio) && x.gravita === "warn" && x.badge === "Componente in scadenza"), "il pneumatico (1850/2000=92,5%) è in attenzione: " + JSON.stringify(voci));
+    // un mezzo FERMO non entra (stessa regola già vista per il trend)
+    const fermo = flotta.prioritaOperative([{ ...mezzo, stato: "fermo" }], [], []);
+    eq(fermo.filter(x => x.categoria === "componente").length, 0, "un mezzo fermo è già in cima per una ragione più urgente, non anche per i componenti");
+    // senza vitaAttesaOre: nessuna voce, il comportamento di prima
+    const senzaSoglieDich = flotta.prioritaOperative([{ nome: "X", ore: 9000, stato: "operativo",
+      componenti: [{ tipo: "pneumatico", data: "2026-01-10", montatoAOre: 4000 }] }], [], []);
+    eq(senzaSoglieDich.filter(x => x.categoria === "componente").length, 0, "senza soglia dichiarata: nessun allarme, mai un colore tranquillo INVENTATO al contrario");
+    // un mezzo senza `componenti` non cambia niente rispetto a prima
+    eq(flotta.prioritaOperative([{ nome: "Y", ore: 100, stato: "operativo" }], [], []), [], "nessun componente: comportamento di prima, esattamente come senza il campo");
+  });
 
   test("Flotta · spezzaLetture: senza azzeramenti un tratto solo con TUTTO (anche le letture senza data)", () => {
     const L = [{ data: "2026-06-01", ore: 1 }, { data: "", ore: 2 }, { data: "2026-06-10", ore: 3 }];
