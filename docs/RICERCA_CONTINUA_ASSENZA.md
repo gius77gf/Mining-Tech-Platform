@@ -1214,3 +1214,137 @@ prima di questa unità → `0` — perché è il **quarto** esempio indipendente
 casa che inventa da sola un pezzo dello stesso principio che la sezione 1
 documenta nel mondo, e il più recente dei quattro (11/09, dopo che il grosso
 di questa ricerca era già scritto).
+
+---
+
+## 7. NUOVO ANGOLO (18/09) — Flotta: `budgetVsSpesa` conta un costo, ma può
+sommarne l'importo come zero. Un difetto vero, non ancora citato qui.
+
+**Dichiarazione di copertura (letta prima di scegliere, come chiede la
+procedura).** Questo documento, fino a oggi, sull'assenza aveva già trattato
+a fondo Terra (§D2, rilievi), Conti (pesate/incassi/listino/clienti/gare, §6
+del piano P2), Sentinella (ricettori, tarature, §6 il dopo-volata), Scudo
+(§D2, gli scarti di infortuni/azioni) e, di striscio, Flotta stessa per UNA
+sola funzione (`csvRicambi`, P4, la giacenza «predefinito» vs «misurata»).
+Campo non ha mai una voce dedicata in questo file. Ho controllato per primo
+Campo: `mediaFermiAlGiorno`, `pianoRiepilogo`, `pianoParziale`, `orariDiTurno`
+e `csvSquadre` (`apps/campo/campo-data.js`, righe 1472-2498 e 2966-2786)
+trattano TUTTI il caso — bandiere `parziale`/`noto`/`misurabile`, motivo a
+parole, «almeno» invece di un totale muto — con un livello di cura pari o
+superiore a quello che questo documento chiede altrove; ho controllato anche
+Genesi (`x50DaMisure`, `_riconRiassuntoCampo`, `caricaTotale`/
+`caricaSenzaConto`, `apps/genesi/genesi-data.js`) con lo stesso esito: già
+difesi. Nessuna proposta nuova nasce da Campo o da un secondo giro su Genesi
+— onestamente, zero.
+
+Il meccanismo nuovo l'ho trovato invece **dentro Flotta**, in una funzione
+mai citata in questo file: `budgetVsSpesa` (`apps/flotta/flotta-data.js:1687`,
+nata il 05/09, mai passata sotto la lente dell'assenza — verificato
+`grep -c "budgetVsSpesa" docs/RICERCA_CONTINUA_ASSENZA.md` → `0` prima di
+questa riga).
+
+**Il meccanismo, letto riga per riga:**
+```
+$ sed -n '1697,1720p' apps/flotta/flotta-data.js
+  const dellAnno = [], senzaData = { voci: 0, importo: 0 };
+  for (const c of C) {
+    if (!c) continue;
+    const d = String(c.data || "").slice(0, 10);
+    if (!dataISOEsiste(d)) { senzaData.voci++; senzaData.importo += +c.importo || 0; continue; }
+    if (+d.slice(0, 4) === A) dellAnno.push(c);
+  }
+  ...
+  const riga = (b) => {
+    const k = chiaveVoce(b.voce);
+    const spese = k ? dellAnno.filter((c) => chiaveVoce(c.voce) === k) : dellAnno;
+    const speso = r2(spese.reduce((t, c) => t + (+c.importo || 0), 0));
+    ...
+    return { ..., previsto, speso, nSpese: spese.length, ... };
+  };
+```
+Una voce di costo **senza data** ha il suo secchio dedicato (`senzaData`,
+contato E sommato a parte, poi dichiarato nel CSV — riga 1765). Una voce di
+costo **senza importo** non ce l'ha: entra in `dellAnno`, viene contata in
+`spese.length` (quindi in `nSpese`, il numero che dice «quante voci di
+spesa» — un numero che sale), ma il suo contributo a `speso` (i soldi
+davvero spesi, il numero che decide il colore) è `+c.importo || 0`, cioè
+**zero silenzioso**: la stessa forma, sullo stesso file, che la sezione D1
+di questo documento chiama «l'unico zero che va dichiarato» quando è
+voluta (Flotta/ricambi) — qui non lo è.
+
+**Che il caso non sia teorico lo dice il resto del file, non io.** Un
+«costo con voce e data ma senza importo» è uno stato che Flotta CONOSCE e
+GESTISCE altrove, con la stessa funzione (`numeroDichiarato`) che
+`budgetVsSpesa` non chiama mai su `c.importo`:
+```
+$ grep -n "numeroDichiarato(c.importo)\|numeroDichiarato(c && c.importo)" apps/flotta/flotta-data.js apps/flotta/index.html
+apps/flotta/flotta-data.js:855:                 c.voce || "", mostra(numeroDichiarato(c.importo), 2),
+apps/flotta/flotta-data.js:1909:    const d = String(c && c.data || "").slice(0, 10), imp = numeroDichiarato(c && c.importo);
+apps/flotta/index.html:2655:        : ""}${numeroDichiarato(c.importo) == null
+apps/flotta/index.html:2687:      const totPc = pc.righe.reduce((t, c) => { const n = numeroDichiarato(c.importo); return t + (n !== null && n > 0 ? n : 0); }, 0);
+apps/flotta/index.html:4286:        `<b>${esc(c.voce)}</b> — ${numeroDichiarato(c.importo) == null ? "importo non scritto" : eur(c.importo)}.`,
+apps/flotta/index.html:4301:        `Stai per togliere <b>${esc(c.voce)}</b>${numeroDichiarato(c.importo) == null ? "" : " (" + eur(c.importo) + ")"} dai costi della flotta.<br>
+```
+La lista dei costi disegna un `badge` **«importo non scritto»** per una
+riga così (`index.html:2656`); e il ponte con Conti (`index.html:2707-2715`,
+`totPc` a riga 2687) la esclude ESPRESSAMENTE dal confronto e lo dichiara a
+parole: *«voce di questo registro è senza data o senza importo e non si può
+confrontare alla cifra»*. Cioè **due funzioni sorelle, nello stesso file,
+sanno già distinguere e dichiarare questo stato**; `budgetVsSpesa`, la
+terza che tocca lo stesso campo per lo stesso scopo (un totale in euro), è
+quella rimasta con la copia più debole — la stessa famiglia che CLAUDE.md
+chiama «una regola scritta due volte, la seconda più debole».
+
+⚠️ **Onestà sulla raggiungibilità**: oggi nessun percorso della UI può
+CREARE un costo senza importo — il form lo pretende positivo
+(`index.html:4544-4546`, «Scrivi l'importo della spesa: un numero maggiore
+di zero»), e i due ponti che scrivono `costi` in automatico lo fanno solo a
+importo noto (`if (costo > 0) …`, `interventi`, riga 3812; `if (v.euro > 0)
+…`, rifornimenti, riga 5142). Quindi il caso è **latente**, come `nomiLiberi`
+insegna a dichiarare per i casi «raggiungibili ma non impossibili»: un
+record scritto prima che questa regola esistesse, importato da fuori, o
+scritto da un'altra app che condivide la collezione (nessuna barriera fra
+app dentro la stessa organizzazione, per la regola già scritta in CLAUDE.md
+sul confine `appId`) arriva comunque a `budgetVsSpesa` con `importo` vuoto.
+Ed è esattamente il caso per cui la lista e il ponte con Conti hanno GIÀ
+costruito la difesa: se fosse davvero impossibile, quella difesa non
+esisterebbe.
+
+**L'effetto, se il caso si presenta**: la riga di budget di quella voce
+conta una spesa in più (`nSpese` sale) ma zero euro in più (`speso` resta
+fermo), e lo stato/colore (`ETICHETTA_STATO_BUDGET`, riga 1682) può restare
+`"in-linea"` (verde, `ok`) o `"sotto-ritmo"` (blu, `info`) — le due letture
+più tranquille che questa funzione sa dare — proprio mentre esiste una
+spesa reale il cui importo nessuno ha ancora scritto. È lo stesso verso
+«tranquillo» già misurato in questa casa su `pianoRiepilogo` di Campo (pillola
+verde a zero fori registrati) e su `_riconRiassuntoCampo` di Genesi (0 kg,
+0 kg, verde): qui il colore non mente sul TOTALE (zero spese darebbe
+comunque «nessuna spesa»), mente su un totale **parziale che si presenta
+come completo**.
+
+**P5 — `budgetVsSpesa` dichiara le voci senza importo come dichiara già
+quelle senza data.**
+· **Dove:** `budgetVsSpesa` (`apps/flotta/flotta-data.js:1687-1734`).
+· **Che cosa non va:** una voce di costo con `importo` non scritto entra nel
+conteggio delle spese (`nSpese`) ma esce dal totale in euro (`speso`) come
+zero silenzioso, mentre la stessa app sa già dire «importo non scritto» in
+altri due punti sullo stesso campo. · **Come si vede:** si scrive un costo
+con `db.aggiorna` (o si importa da fuori) lasciando `importo` a `null` con
+voce e data valide, si apre la schermata Costi → Budget: la riga di quella
+voce conta una spesa in più ma lo stesso totale, e può restare verde.
+· **Quanto costa:** la stessa forma già scritta per `senzaData` — un secondo
+secchio `senzaImporto: { voci, nSpese }` accumulato nello stesso ciclo (riga
+1701-1702, un `if (numeroDichiarato(c.importo) == null) { … continue-solo-dal-
+totale-non-dal-conteggio }`), una bandiera `noto` sul modello di quella già
+usata da Scudo per gli indici infortunistici (§ D5 di questo documento), e
+la stessa frase in `descriviBudget` per il caso `noto === false` («speso: X,
+almeno — N voci di questa spesa non hanno ancora un importo scritto»).
+· **Come si misura:** una prova che passa a `budgetVsSpesa` due costi con la
+stessa voce, uno con importo e uno senza (`importo: null`), e pretende
+`nSpese === 2` **insieme a** `speso` uguale al solo primo importo **e** una
+bandiera che lo dichiari — non solo `speso` diverso da zero, che passerebbe
+anche col difetto di oggi.
+
+Non implementata: resta una proposta, non verificata da nessun cantiere —
+come impone la sezione 4 di questo documento, nessun numero qui sopra entra
+in roadmap sulla mia parola.
