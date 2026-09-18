@@ -42964,6 +42964,15 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const muto = flotta.csvGiriMacchina([{ data: "2026-09-01", mezzo: "Pala P1", tipo: "pala", anomalie: 2 }]).split("\r\n")[1];   // senza `voci`: dichiarate, non nominate
     ok(/;2 segnate, dettaglio delle voci non registrato;/.test(muto), "⛔ anomalie dichiarate senza elenco: «2 segnate, dettaglio non registrato», non «tutto a posto ; 0» — " + muto);
     eq(flotta.csvGiriMacchina(null), flotta.CSV_GIRI_INTESTAZIONE, "null non rompe");
+    /* ⛔ 18/09, dal deep-pass QA: la colonna ore usciva col punto inglese —
+       stessa famiglia già chiusa in csvCosti/csvRicambi/csvRegistroInterventi/
+       csvListaDellaSpesa/csvBudget/csvLibretto, mai propagata a questo sesto
+       export. Il campo «Ore contatore» del giro macchina accetta un decimale
+       (leggiNumero con decimali:1): con ore intere (il caso della
+       dimostrazione) il difetto non si vedeva. */
+    const rigaDec = flotta.csvGiriMacchina([{ data: "2026-09-10", mezzo: "Dumper D1", tipo: "dumper", operatore: "Marco", ore: 4100.5, anomalie: 0 }]).split("\r\n")[1];
+    ok(rigaDec.split(";")[4] === "4.100,5", "le ore col decimale escono con la virgola italiana, non il punto — " + rigaDec);
+    ok(!/4100\.5/.test(rigaDec), "controprova inline: il punto inglese non c'è più");
   });
   test("Flotta · csvScadenzeDiLegge: semaforo di scadenzeOrdinate, riferimento dal preset, e il mezzo senza nessuna riga non sparisce", () => {
     const righe = flotta.csvScadenzeDiLegge(D.scadenze, D.mezzi, OGGI, 30).split("\r\n");

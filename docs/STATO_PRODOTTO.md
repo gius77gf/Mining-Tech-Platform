@@ -232,7 +232,7 @@ contenitore non parte perché chiede la rete e la politica la nega. Il numero
 era 58 e non 68 perché nessuno l'aveva più lanciato in casa: la suite delle
 regole si lancia con* `firebase emulators:exec --only firestore --project
 demo-deepwork "cd tests && node run.mjs"`.
-*(⚠️ Il **3.650** conta nove suite: il giro completo ne esegue **4155** (misura del 18/09, dopo l'unità Conti/margineMese-sdi — non lo si insegue a mano, lo stampa `giro-node.mjs` ogni volta che gira).
+*(⚠️ Il **3.650** conta nove suite: il giro completo ne esegue **4156** (misura del 18/09, dopo l'unità Flotta/csvGiriMacchina — non lo si insegue a mano, lo stampa `giro-node.mjs` ogni volta che gira).
 ⚠️ **E L'«OSCILLA» SCRITTO QUI ERA UN FALSO ALLARME, RISOLTO LO STESSO GIORNO.** Il 4046→4091→4092 misurato nel pomeriggio non era instabilità: era il confronto fra un numero scritto nei documenti da un commit PRECEDENTE e una misura fresca presa dopo che il codice era già cambiato nel frattempo — la stessa causa del «non c'è» scaduto, applicata a un totale invece che a un verdetto. Tre lanci consecutivi sullo STESSO commit invariato hanno dato 4092 tutte e tre le volte. Il numero cambia SOLO quando cambia il codice che conta (una prova aggiunta o tolta), non da un lancio all'altro a parità di commit — e da
 oggi quel numero **lo stampa il giro** — `node apps/deepwork-id/tests/giro-node.mjs`,
 riga «Asserzioni eseguite dal giro». Le altre suite contano **file** invece che

@@ -886,12 +886,19 @@ export function csvFermiMacchina(fermi, oggi = new Date()) {
    «N segnate, dettaglio delle voci non registrato», non «tutto a posto ; 0».
    Dal più recente. Pura. */
 export const CSV_GIRI_INTESTAZIONE = "data;mezzo;tipo;operatore;ore;esito;anomalie;voci_non_ok;note";
+/* ⛔ 18/09, dal deep-pass QA: la colonna `ore` scriveva il numero grezzo
+   (`c.ore || ""`) col punto inglese — la stessa famiglia già chiusa il
+   17-18/09 in csvCosti/csvRicambi/csvRegistroInterventi/csvListaDellaSpesa/
+   csvBudget/csvLibretto, mai propagata a questo sesto export, nato lo
+   stesso giorno. "Ore contatore" del giro macchina accetta un decimale
+   (il campo lo dichiara: «la virgola va benissimo»), e con ore intere
+   (il caso della dimostrazione) il difetto non si vedeva. */
 export function csvGiriMacchina(controlli) {
   const righe = [CSV_GIRI_INTESTAZIONE]
     .concat((controlli || []).filter(Boolean).slice().sort((a, b) => String(b.data || "").localeCompare(String(a.data || ""))).map(c => {
       const s = statoGiro(c);
       return [c.data || "", nomeBreve(c.mezzo), (tipoMezzo(c.tipo) || {}).etichetta || "", c.operatore || "",
-              c.ore || "", s.etichetta, s.anomalie,
+              mostra(c.ore, 1), s.etichetta, s.anomalie,
               s.nominate ? s.dettaglio.map(v => v.etichetta + (v.nota ? " (" + v.nota + ")" : "")).join(" | ")
                          : conta(s.anomalie, "segnata", "segnate") + ", dettaglio delle voci non registrato", c.note || ""].map(csvCell).join(";");
     }));
