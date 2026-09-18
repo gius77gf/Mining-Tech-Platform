@@ -649,6 +649,82 @@ prezzo dentro Genesi, e decidere l'aggancio con Conti.
 
 ---
 
+### 3k. `CAUSALI_FERMO` — Campo (fermo di un'attività di turno) **e** Flotta (fermo di una macchina) · *cercata il 18/09, dal backlog QA*
+
+Il nome uguale è già stato riconosciuto come trappola per chi arriva dopo,
+non come sovrapposizione da collegare:
+`docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md` §3 lo scrive dal 02/08, e
+`apps/deepwork-id/tests/nomi-doppi.mjs` lo sorveglia da allora — non
+richiede l'identità, richiede la **dichiarazione** della differenza. Questa
+sezione esiste per portare quella dichiarazione anche qui, dove si legge
+insieme al resto delle sovrapposizioni fra app.
+
+**Le due liste, verificate oggi (18/09):**
+
+    apps/campo/campo-data.js:1362:export const CAUSALI_FERMO = [   →  9 voci
+    apps/flotta/flotta-data.js:3994:export const CAUSALI_FERMO = [  → 10 voci
+
+Campo: `guasto-meccanico, mancanza-materiale, attesa-mezzo,
+intasamento-impianto, meteo, manutenzione-programmata, cambio-turno,
+sicurezza, altro` — perché si è fermata un'**attività di turno** (il
+soggetto è `campo.attivita`).
+Flotta: `guasto-meccanico, guasto-idraulico, guasto-elettrico,
+gomme-cingoli, attesa-ricambi, manutenzione, verifica, operatore, meteo,
+altro` — perché una **macchina** è fuori servizio (il soggetto è
+`flotta.fermi`). Tre chiavi coincidono per testo (`guasto-meccanico`,
+`manutenzione*`, `meteo`, `altro`) ma il resto no: un guasto idraulico non
+esiste nel vocabolario di Campo, e «manca il materiale» non esiste in
+quello di Flotta — sono proprio le voci che rendono le due liste diverse
+di mestiere, non solo di nome.
+
+**Zero letture reciproche, verificato oggi:**
+
+    grep -n "leggiApp(" apps/campo/campo-data.js → terra, genesi, scudo (×5), sentinella — nessun flotta
+    grep -nE "appId:\s*['\"]?\w+['\"]?" apps/flotta/flotta-data.js apps/flotta/index.html → flotta, conti — nessun campo
+
+Nella tabella di §1, Campo legge Terra/Scudo/Genesi/Sentinella ed è letta
+da Conti/Scudo/Terra/Genesi; Flotta legge Conti ed è letta da Conti/Scudo.
+Campo↔Flotta non compare in nessuna delle due direzioni: è una delle
+coppie **non** collegate della mappa (non l'unica — anche Conti↔Scudo,
+Conti↔Sentinella, Conti↔Genesi, Flotta↔Terra, Flotta↔Sentinella,
+Flotta↔Genesi, Scudo↔Genesi e Sentinella↔Terra restano scollegate sulla
+tabella a 16 voci di §1: la frase «unica coppia a zero» del backlog che ha
+proposto questa unità **non teneva**, e va corretta qui).
+
+**Perché non si costruisce da sola, e perché non è nemmeno il caso di
+3a/3b.** Nelle sovrapposizioni già collegate (`costi`, `scadenze`) i due
+lati parlano dello stesso fatto del mondo osservato da due punti di vista,
+e la lista condivisa vive già in `shared/dw-ponti.js`
+(`VOCI_COSTO`/`voceCosto`). Qui i due lati **non** parlano dello stesso
+fatto: un'attività di turno che si ferma per «mancanza materiale» e una
+macchina che si ferma per «gomme o cingoli» sono due eventi diversi, che
+possono anche capitare insieme (la macchina forata FA fermare l'attività)
+senza essere la stessa causale. Unificare le due liste imporrebbe a Campo
+di sapere distinguere guasti meccanici/idraulici/elettrici che non le
+servono, e a Flotta categorie di cantiere (cambio turno, sicurezza) che non
+la riguardano — è il criterio di
+`docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md`: *se togliendo una delle due
+copie qualcuno perde qualcosa, non sono la stessa regola.* Qui si perde.
+
+Il collegamento che avrebbe senso non è fondere le liste: è dare a un
+fermo di Campo (`campo.attivita`, causale «attesa-mezzo») il modo di
+puntare al fermo di Flotta (`flotta.fermi`) che lo spiega — oggi
+impossibile perché i record `attivita` di Campo non portano un
+riferimento al mezzo (`mezzoId`). È una decisione di prodotto (che cosa
+succede se un'attività si ferma per due mezzi, o per un mezzo non ancora
+censito in Flotta?) prima di essere un canale tecnico, quindi non è
+un'unità da fare qui: è **censita**, non costruita.
+
+**Valore: basso-medio** — nessun doppio conteggio da correggere (i due
+elenchi non contano lo stesso evento due volte, a differenza di 3a), ma un
+supervisore che legge «attesa mezzo» nel rapportino di Campo oggi non ha
+un click per arrivare al fermo macchina che lo spiega in Flotta.
+**Costo: medio** — non tocca le due liste (restano volutamente diverse),
+ma richiede prima il campo `mezzoId` su `campo.attivita` e una decisione su
+come trattare i casi ambigui.
+
+---
+
 ## 4. Il blocco strutturale: Genesi non esce dal browser
 
 ✅ **Tolto il 02/09, in quattro unità** (`docs/GENESI_FUORI_DAL_BROWSER.md` §5,
@@ -791,7 +867,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **2** — 3i (`oreAnno`/`presenze`, cercata il 17/09) e 3j (`esplosivo` progettato/consuntivo, Genesi↔Conti, cercata il 18/09) *(era 1 dal 17/09 al 18/09: 3j non si costruisce da sola come le altre — il prezzo che Genesi calcola non sopravvive nemmeno dentro Genesi (`volSnapshot` non lo salva), quindi va prima persistito e poi agganciato a una spesa scritta in Conti come testo libero, senza un id di volata: due decisioni di prodotto prima del canale tecnico. Prima di questa: era 0: il censimento del 16/09 si era dichiarato esaustivo guardando solo gli header dei moduli, non le funzioni che consumano il dato altrove — vedi la correzione in 3h. Non si costruisce da sola come le altre: le ore di Campo non coprono per forza tutta la forza lavoro, e un denominatore parziale renderebbe l'indice falso nella direzione vietata dal commento di `indiciInfortunistici` — voce 35 di `docs/DECISIONI_WEEKEND.md`. Prima di questa: era 0 dal 16/09; era 1 dal 15/09 al 16/09 — 3g, meteo del sito, censita il 15/09 e costruita il 16/09 nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
+| sovrapposizioni non collegate | **3** — 3i (`oreAnno`/`presenze`, cercata il 17/09), 3j (`esplosivo` progettato/consuntivo, Genesi↔Conti, cercata il 18/09) e 3k (`CAUSALI_FERMO`, Campo↔Flotta, cercata il 18/09 dal backlog QA — non si costruisce da sola, e non dovrebbe: le due liste restano volutamente diverse, manca solo un `mezzoId` su `campo.attivita` per puntare dal fermo di turno al fermo macchina che lo spiega) *(era 2 dal 18/09 stesso giorno, prima unità del pomeriggio: 3j entrata la mattina. Prima di questa: era 1 dal 17/09 al 18/09: 3j non si costruisce da sola come le altre — il prezzo che Genesi calcola non sopravvive nemmeno dentro Genesi (`volSnapshot` non lo salva), quindi va prima persistito e poi agganciato a una spesa scritta in Conti come testo libero, senza un id di volata: due decisioni di prodotto prima del canale tecnico. Prima di questa: era 0: il censimento del 16/09 si era dichiarato esaustivo guardando solo gli header dei moduli, non le funzioni che consumano il dato altrove — vedi la correzione in 3h. Non si costruisce da sola come le altre: le ore di Campo non coprono per forza tutta la forza lavoro, e un denominatore parziale renderebbe l'indice falso nella direzione vietata dal commento di `indiciInfortunistici` — voce 35 di `docs/DECISIONI_WEEKEND.md`. Prima di questa: era 0 dal 16/09; era 1 dal 15/09 al 16/09 — 3g, meteo del sito, censita il 15/09 e costruita il 16/09 nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
@@ -805,3 +881,5 @@ Verificato contro il commit `d521c96d` del 2026-08-26.
 ✅ §3g aggiunta il 2026-09-15, censimento puro (nessun comando `git`, nessun tocco a codice): letto per intero il documento contro `HEAD` (`refs/heads/claude/scheduled-tasks-remote-control-bk4ap6`, commit `0d8498c8b3ce58f864d3f50b8aa0eb1458fb9802`, letto da `.git/` senza eseguire `git`) prima di scrivere, per non riproporre una sovrapposizione già censita.
 
 ✅ §3j aggiunta il 2026-09-18, censimento puro contro il commit `1b214f89ef806d9e7c188bba278e23204f8dee16` (nessun file di codice toccato): letto per intero il documento (in particolare §1, §3, §6) prima di cercare, poi aperti `apps/genesi/genesi-data.js` (`costoVolata`, `caricaTotale`), `apps/genesi/genesi.html` (`D2.cExpl`, `volSnapshot`), `apps/conti/conti-data.js` (`VOCI_COSTO`, la dimostrazione dei costi) e `shared/dw-ponti.js` (`VOCI_COSTO`, `previstaDaGenesi`) per verificare il meccanismo — non il nome — e confermato con `grep -n 'appId:' apps/genesi/*.js apps/genesi/*.html apps/conti/conti-data.js` che nessuna delle due app legge oggi l'altra. Aggiornata solo la riga «sovrapposizioni non collegate» di §6, senza riscrivere il resto della tabella.
+
+✅ §3k aggiunta il 2026-09-18 (stesso giorno, unità successiva), censimento puro contro il commit `b6d375206e7e1fe79911c2d899b67c60a824b20a` (nessun file di codice toccato — la sovrapposizione era già dichiarata «non è un difetto» in `docs/LA_STESSA_REGOLA_SCRITTA_DUE_VOLTE.md` §3 dal 02/08 e sorvegliata da `nomi-doppi.mjs`; questa sezione la porta nella mappa dei ponti, dove si legge insieme al resto). Verificate le due liste (`apps/campo/campo-data.js:1362`, 9 voci; `apps/flotta/flotta-data.js:3994`, 10 voci) e le zero letture reciproche (`grep -n "leggiApp(" apps/campo/campo-data.js` → terra/genesi/scudo/sentinella, nessun flotta; `grep -nE "appId:" apps/flotta/flotta-data.js apps/flotta/index.html` → flotta/conti, nessun campo). Il backlog che ha proposto questa unità dichiarava «l'unica coppia a zero letture reciproche»: **falso**, e corretto nel corpo della sezione — contando sulla tabella a 16 voci di §1 risultano scollegate anche Conti↔Scudo, Conti↔Sentinella, Conti↔Genesi, Flotta↔Terra, Flotta↔Sentinella, Flotta↔Genesi, Scudo↔Genesi e Sentinella↔Terra. Non costruito nessun ponte: manca prima una decisione di prodotto (un `mezzoId` su `campo.attivita`).
