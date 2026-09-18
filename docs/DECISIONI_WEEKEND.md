@@ -2161,11 +2161,12 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.636** *(ricontate il 18/09, dopo aver
-corretto due difetti in dw-shell.js: `_combacia` riconosceva una sottosequenza
-CON BUCHI come «l'inizio» di una tabella, e `parseCsvLine` perdeva lo spazio
-bianco che la guardia anti-formula protegge (il `.trim()` arrivava dopo aver
-tolto l'apostrofo); e prima di questo, dopo aver
+**Le prove automatiche sono passate a 3.637** *(ricontate il 18/09, dopo aver
+corretto i tre difetti in dw-shell.js: `leggiCsv` trimmava ogni campo anche se
+quotato apposta per conservare gli spazi di contorno, `_combacia` riconosceva
+una sottosequenza CON BUCHI come «l'inizio» di una tabella, e `parseCsvLine`
+perdeva lo spazio bianco che la guardia anti-formula protegge (il `.trim()`
+arrivava dopo aver tolto l'apostrofo); e prima di questo, dopo aver
 corretto in Flotta — quarto giro di deep-pass — il libretto esportato in CSV,
 che non portava la sezione «Componenti a vita propria» mostrata a schermo e in
 stampa; e prima di questo, dopo aver corretto il ponte `idoneitaDiTurno` —

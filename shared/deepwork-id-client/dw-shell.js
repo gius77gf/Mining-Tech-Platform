@@ -1620,29 +1620,40 @@ export function leggiCsv(testo) {
   if (!t.trim()) return { delim: ";", righe: [], nRighe: [] };
   const delim = rilevaDelimTesto(t);
   const righe = [], nRighe = [];
-  let campo = "", riga = [], q = false;
+  let campo = "", campoQ = false, riga = [], rigaQ = [], q = false;
   let lineNo = 1, inizioRiga = 1;
   /* toglie l'apostrofo che `csvCell` mette davanti a `= + - @`, e SOLO quello:
      la condizione è la stessa costante che lo ha messo, non una seconda regola
      scritta a somiglianza. Un valore che comincia davvero per apostrofo
      («'ndrangheta», «'90») non viene toccato, perché quello che segue non è un
-     innesco di formula. */
-  const senzaGuardia = (s) => {
-    const t = String(s).trim();
+     innesco di formula.
+     ⛔ 18/09, dal deep-pass su dw-shell.js: stessa regola scritta due volte,
+     più debole qui che in `parseCsvLine`. Questa versione trimmava OGNI
+     campo, quotato o no — mentre `parseCsvLine` dichiara esplicitamente che
+     un campo tra virgolette conserva gli spazi di contorno apposta (le
+     virgolette servono proprio a quello: una causale bancaria "  SALDO  "
+     li perdeva comunque). Ora `senzaGuardia` prende anche `quotato`, e
+     trimma solo se il campo non lo era — stessa forma di `parseCsvLine`. */
+  const senzaGuardia = (s, quotato) => {
+    let t = String(s);
+    if (!quotato) t = t.trim();
     return t.startsWith("'") && INNESCO_FORMULA.test(t.slice(1)) ? t.slice(1) : t;
   };
   const chiudiRiga = () => {
-    riga.push(campo); campo = "";
-    if (riga.some(x => String(x).trim() !== "")) { righe.push(riga.map(senzaGuardia)); nRighe.push(inizioRiga); }
-    riga = [];
+    riga.push(campo); rigaQ.push(campoQ); campo = ""; campoQ = false;
+    if (riga.some(x => String(x).trim() !== "")) {
+      righe.push(riga.map((v, i) => senzaGuardia(v, rigaQ[i])));
+      nRighe.push(inizioRiga);
+    }
+    riga = []; rigaQ = [];
   };
   for (let i = 0; i < t.length; i++) {
     const c = t[i];
     if (q) {
       if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else q = false; }
       else { campo += c; if (c === "\n" || (c === "\r" && t[i + 1] !== "\n")) lineNo++; }
-    } else if (c === '"') q = true;
-    else if (c === delim) { riga.push(campo); campo = ""; }
+    } else if (c === '"') { q = true; campoQ = true; }
+    else if (c === delim) { riga.push(campo); rigaQ.push(campoQ); campo = ""; campoQ = false; }
     else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; chiudiRiga(); lineNo++; inizioRiga = lineNo; }
     else campo += c;
   }

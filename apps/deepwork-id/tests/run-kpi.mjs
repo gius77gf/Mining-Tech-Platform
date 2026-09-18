@@ -12992,6 +12992,17 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(shell.leggiCsv("").nRighe, [], "file vuoto");
     eq(shell.leggiCsv(null).nRighe, [], "niente");
   });
+  test("⛔ 18/09, dal deep-pass su dw-shell.js: leggiCsv rispetta la distinzione quotato/non-quotato come parseCsvLine, non trimma un campo che aveva le virgolette apposta per preservare gli spazi", () => {
+    eq(shell.leggiCsv('causale;importo\n"  SALDO  ";100\n').righe[1][0], "  SALDO  ",
+      "⛔ ERA QUI IL DIFETTO: una causale bancaria fra virgolette perdeva gli spazi di contorno");
+    eq(shell.leggiCsv("causale;importo\n  SALDO  ;100\n").righe[1][0], "SALDO",
+      "senza virgolette lo spazio di contorno resta ripulito come sempre");
+    const cella = shell.csvCell("-12,5");
+    eq(shell.leggiCsv(`a;${cella};b\n`).righe[0][1], "-12,5",
+      "il giro andata/ritorno della guardia anti-formula resta intatto (non quotato)");
+    eq(shell.leggiCsv('nome\n"  \'ndrangheta  "\n').righe[1][0], "  'ndrangheta  ",
+      "un apostrofo vero dentro un campo quotato non è una guardia: spazi e apostrofo restano");
+  });
   test("paresIntestazione: una riga che contiene un numero non è un'intestazione", () => {
     ok(sentinella.paresIntestazione([["Data", "Ora", "PPV"]]), "titoli");
     ok(!sentinella.paresIntestazione([["12/07/2026", "10:30", "4,8"]]), "già dati");

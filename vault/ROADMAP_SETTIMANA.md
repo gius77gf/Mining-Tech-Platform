@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.636 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3142, `run-stile` 330,
+  **3.637 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3143, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11282,3 +11282,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       sempre" (misurato: la finestra passava da 3 a 76 anni). Corretto
       sostituendo con `rilievoUsabileConData`. Nuovo test puro con
       controprova in `run-kpi.mjs`.
+
+## shared — leggiCsv, terzo e ultimo difetto del deep-pass su dw-shell.js (18/09)
+- [x] **`leggiCsv` NON RISPETTAVA LA DISTINZIONE QUOTATO/NON-QUOTATO CHE
+      `parseCsvLine` DICHIARA ESPLICITAMENTE** *(18/09, unità completata,
+      dal deep-pass su `shared/deepwork-id-client/dw-shell.js`, agente
+      a8b61df04b0af6417 — terzo difetto dello stesso report, dopo
+      `_combacia` e l'ordine trim/guardia di `parseCsvLine`)*. `senzaGuardia`
+      trimmava OGNI campo con la stessa riga, quotato o no, mentre
+      `parseCsvLine` dichiara apposta che un campo fra virgolette conserva
+      gli spazi di contorno (le virgolette servono proprio a quello): una
+      causale bancaria «  SALDO  » scritta fra virgolette li perdeva
+      comunque, solo in `leggiCsv`. Aggiunto un tracciamento del "quotato"
+      per campo (`campoQ`/`rigaQ`, stessa forma di `quotato` in
+      `parseCsvLine`) e `senzaGuardia(s, quotato)` trimma solo se non
+      quotato, poi toglie l'apostrofo di guardia — stessa forma esatta
+      delle due funzioni, non due regole scritte a somiglianza.
+      Nuovo test dedicato in `run-kpi.mjs` con quattro casi: campo quotato
+      con spazi (preservati), campo non quotato con spazi (ripulito come
+      sempre), giro andata/ritorno della guardia anti-formula su un numero
+      negativo, e un apostrofo vero dentro un campo quotato (spazi e
+      apostrofo intatti). KPI: 3142 → **3143**.
+      Giro completo su worktree isolata: 41/41. 9-suite sum: **3.637**
+      (3143+330+83+32+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato
+      prima del commit.
