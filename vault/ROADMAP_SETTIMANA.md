@@ -11720,3 +11720,57 @@ Ogni fix con banco browser e controprova (o verificato per lettura dove
 il browser non aggiungeva certezza). run-kpi.mjs 3169/3169.
 sintassi-pagine.mjs 34/34. run-stile.mjs 330/330. suite-collegate.mjs 3/3.
 iniezioni-fresche.mjs: 688 sul bersaglio su 688, zero scadute.
+
+## Terra — quarto asse di conformità (ricerca continua, 18/09)
+
+- [x] **Terra**: `conformitaProgetto` copriva quota e geometria del
+      fronte, non la distanza dal confine — un obbligo distinto negli
+      atti autorizzativi. Aggiunte `confineAmmesso`/`conformitaConfine`
+      con la stessa precedenza lotto→autorizzazione e lo stesso principio
+      "l'assenza di un dato non è un dato favorevole"; `peggioreConf`
+      esteso da 2 a 3 vie. Nuovi campi fronte/lotto/autorizzazione
+      (`fro-confine`, `lot-distconf`, `aut-distconf`) (`75be795e`).
+- [x] **Conti (ricerca continua)**: verificato e RESPINTO un finding sul
+      tasso di mora (`TASSO_MORA_DEFAULT` presunto stantio per H2 2026 da
+      fonti secondarie) — il codice ha già un meccanismo deliberato
+      (`SEMESTRE_TASSO_MORA`, `statoTassoMora`, `frasiTassoMora`) che
+      rifiuta di indovinare il tasso del semestre in corso e dichiara la
+      propria obsolescenza da solo. Aggiornare la costante sulla parola
+      di una ricerca avrebbe violato quel principio. Nessuna azione.
+
+## Genesi — quarto giro di deep-pass QA (18/09)
+
+- [x] **Genesi**: guardia `_geoOk(B)&&_geoOk(Dm)` sul badge "Spalla / Ø"
+      del Validatore (stessa famiglia già chiusa oggi su S/B, H/B,
+      Timing) — spalla illeggibile dava un falso "spalla piccola: riduci
+      spalla o aumenta Ø" invece di "non calcolabile". `occupato()` su
+      `riconSave` (salvataggio riconciliazione) e sul bottone "Duplica"
+      di una volata (guardia sull'elemento, non su un id fisso: il
+      bottone nasce per riga). `sentExport`/`btn-piano-csv` chiudevano
+      una TOCTOU wrappandola in `occupato()` — verificati per lettura,
+      senza banco dedicato per limite di tempo (`b4752908`).
+
+Ogni fix con banco browser e controprova dove il tempo l'ha permesso.
+run-kpi.mjs 3170/3170. sintassi-pagine.mjs 34/34. run-stile.mjs 330/330.
+suite-collegate.mjs 3/3. iniezioni-fresche.mjs: 691 sul bersaglio su 691,
+zero scadute.
+
+## Campo — il ricontrollo dei fronti spariva col meteo corretto (18/09)
+
+- [x] **Campo**: finding più grave del terzo giro QA, confermato dal vivo
+      con riproduzione esatta. `vociChecklist(meteo)` decideva la forma
+      della checklist guardando SOLO il meteo attuale: se il ricontrollo
+      dei fronti (D.P.R. 128) era risposto "no" mentre pioveva e il meteo
+      del turno veniva poi corretto a sereno, quella risposta smetteva di
+      essere anche solo iterata da `statoChecklist` — sparita dal
+      cartellone, dalla lista, dal rapporto di fine giornata e dalla
+      consegna di turno, un "no" di sicurezza cancellato da solo. Nuova
+      `vociChecklistSalvata(meteo, esiti)` — l'unione fra ciò che il
+      meteo chiede oggi e ciò che ha già una risposta scritta — sostituita
+      in tutti e cinque i punti di lettura; `vociNonAPosto` unificata
+      sulla stessa funzione invece di una copia inline. Banco browser con
+      controprova che riproduce lo scenario esatto (`624096b6`).
+
+run-kpi.mjs 3171/3171. sintassi-pagine.mjs 34/34. run-stile.mjs 330/330.
+suite-collegate.mjs 3/3. iniezioni-fresche.mjs: 692 sul bersaglio su 692,
+zero scadute.
