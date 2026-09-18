@@ -849,8 +849,10 @@ export const CSV_COSTI_INTESTAZIONE = "data;voce;importo;nota";
 export function csvCosti(costi) {
   const righe = [CSV_COSTI_INTESTAZIONE].concat(
     (costi || []).filter(Boolean).slice().sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))
+      /* ⛔ 17/09, dal terzo giro di deep-pass: come `csvRegistroInterventi`,
+         l'importo grezzo scriveva il punto inglese («125.5»). */
       .map(c => [dataISOEsiste(String(c.data || "").slice(0, 10)) ? String(c.data).slice(0, 10) : "",
-                 c.voce || "", numeroDichiarato(c.importo) == null ? "" : numeroDichiarato(c.importo),
+                 c.voce || "", mostra(numeroDichiarato(c.importo), 2),
                  c.nota || ""].map(csvCell).join(";")));
   return righe.join("\r\n");
 }
@@ -933,11 +935,20 @@ export const CSV_INTERVENTI_INTESTAZIONE = "data;titolo;mezzo;ricambio;costo;not
 export function csvRegistroInterventi(interventi) {
   const righe = [CSV_INTERVENTI_INTESTAZIONE]
     .concat((interventi || []).filter(Boolean).slice().sort((a, b) => (a.data || "") < (b.data || "") ? 1 : -1)
+      /* ⛔ 17/09, dal terzo giro di deep-pass su Flotta: la correzione di
+         oggi sulla riga litri/consumo di `csvLibretto` aveva sistemato SOLO
+         quella riga, lasciando le colonne numeriche di QUESTO export —
+         l'export più grande, quello per il commercialista — ancora scritte
+         col punto inglese (`178.5`) nella STESSA riga in cui
+         `chi_ha_lavorato` scriveva già "1,5 h" con la virgola
+         (`oreLavoroTesto`). `mostra()` (= `perLettura`) fa la stessa cosa di
+         `numeroDichiarato` per il `null` (torna "", non "0"), quindi la
+         sostituisce invece di affiancarla. */
       .map(w => [w.data || "", w.titolo || "", w.mezzo || "", w.ricambio || "",
-                 numeroDichiarato(w.costo) == null ? "" : numeroDichiarato(w.costo), w.note || "",
-                 w.oreManodopera == null ? "" : w.oreManodopera,
-                 w.costoManodopera == null ? "" : w.costoManodopera,
-                 w.costoRicambi == null ? "" : w.costoRicambi,
+                 mostra(numeroDichiarato(w.costo), 2), w.note || "",
+                 mostra(w.oreManodopera, 2),
+                 mostra(w.costoManodopera, 2),
+                 mostra(w.costoRicambi, 2),
                  (w.manodopera || []).map(r => r.chi + " " + oreLavoroTesto(r.ore)).join(" | ")].map(csvCell).join(";")));
   return righe.join("\r\n");
 }
@@ -955,9 +966,13 @@ export const CSV_LISTA_SPESA_INTESTAZIONE = "ricambio;giacenza;da_ordinare;prezz
 export function csvListaDellaSpesa(proposta) {
   const p = proposta || {};
   const da = (p.righe || []).filter(r => r && r.daOrdinare > 0);
+  /* ⛔ 17/09, dal terzo giro di deep-pass: `r.prezzo`/`r.spesa`/`r.alGiorno`
+     grezzi scrivevano il punto inglese («0.0056» pezzi al giorno), mentre lo
+     schermo mostra lo stesso numero con `toLocaleString("it-IT", {
+     maximumFractionDigits: 3 })`. Stessa precisione qui. */
   const righe = [CSV_LISTA_SPESA_INTESTAZIONE]
-    .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, r.prezzo == null ? "" : r.prezzo,
-                         r.spesa == null ? "" : r.spesa, r.alGiorno, r.copertura,
+    .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, mostra(r.prezzo, 2),
+                         mostra(r.spesa, 2), mostra(r.alGiorno, 3), r.copertura,
                          r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
   if (!da.length) return righe.join("\r\n");
   if (p.senzaData) {
@@ -1043,7 +1058,15 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
   const f = fascicoloMezzo(m, { manutenzioni: d.manutenzioni || [], interventi: d.interventi || [], scadenze: d.scadenze || [],
                                 controlli: d.controlli || [], rifornimenti: d.rifornimenti || [], fermi: d.fermi || [] }, oggi, preavvisoGiorni);
   const righe = [CSV_LIBRETTO_INTESTAZIONE];
-  const R = (s, v, dt, det, imp) => righe.push([s, v, dt, det, imp == null ? "" : imp].map(csvCell).join(";"));
+  /* ⛔ 17/09, dal terzo giro di deep-pass: `imp == null ? "" : imp` scriveva
+     il numero JS grezzo (punto inglese) in TUTTE le righe che passano di
+     qui — possesso, intervento, rifornimento, e le altre che arriveranno.
+     La correzione del 17/09 mattina aveva sistemato solo la riga «consumo»
+     (scritta a parte, non tramite `R`), lasciando questo unico punto — che
+     tutte le righe con un importo attraversano — ancora col punto. Un solo
+     posto da correggere, non uno per riga: `mostra(null, 2)` torna "" come
+     prima. */
+  const R = (s, v, dt, det, imp) => righe.push([s, v, dt, det, mostra(imp, 2)].map(csvCell).join(";"));
   R("mezzo", m.nome || "", dataIt(isoLocale(oggi)),
     ((f.tipo || {}).etichetta || "") + " · " + (m.area || "senza area") + " · "
     + oreMotoreTesto(m.ore)
@@ -1174,11 +1197,16 @@ export function csvRicambi(ricambi) {
     const g = numeroDichiarato(r.giacenza);
     const s = numeroDichiarato(r.sogliaMin);
     const p = numeroDichiarato(r.prezzo);
+    /* ⛔ 17/09, dal terzo giro di deep-pass: `String(g)`/`String(s)`/`String(p)`
+       scrivevano il numero JS grezzo (punto inglese, «31.5»), mentre lo
+       schermo per lo stesso prezzo scrive «€ 31,50 al pezzo». `mostra()`
+       torna "" per `null` come `String` faceva per il caso vuoto, quindi il
+       giro di ritorno (`numIt`, che legge la virgola) resta identico. */
     righe.push([
       csvCell(r.nome || ""),
-      g == null ? "0" : String(g),
-      s == null ? "" : String(s),
-      p == null ? "" : String(p),
+      g == null ? "0" : mostra(g, 2),
+      mostra(s, 2),
+      mostra(p, 2),
       g == null ? STATO_CELLA_PREDEFINITO : STATO_CELLA_MISURATO,
     ].join(";"));
   }
@@ -2915,15 +2943,36 @@ export function componentiDelMezzo(componenti, nomeMezzo) {
 // La vita di ogni componente montato su un mezzo, alle ore ATTUALI del
 // mezzo: ore attuali meno ore al montaggio — non le ore totali del mezzo,
 // che confonderebbero una gomma nuova con una montata all'origine.
-// `calcolabile:false` copre due casi diversi e li dichiara separatamente:
-// le ore attuali non sono note (il mezzo non ha un contatore leggibile) e
-// il montaggio risulta a ore più alte di quelle attuali (dato da
-// controllare — non si inventa una vita negativa).
-export function vitaComponenti(componenti, nomeMezzo, oreMezzoAttuali) {
+// `calcolabile:false` copre TRE casi diversi e li dichiara separatamente:
+// le ore attuali non sono note (il mezzo non ha un contatore leggibile), il
+// montaggio risulta a ore più alte di quelle attuali (dato da controllare —
+// non si inventa una vita negativa), e il componente è montato su un
+// contatore che non c'è più (sostituito dopo il montaggio).
+// ⛔ 17/09, dal terzo giro di deep-pass: QUESTA FUNZIONE ERA L'UNICA DEL FILE
+// A NON TENERE CONTO DEL CONTATORE SOSTITUITO. `consumoPerMezzo`,
+// `ritmoOreMezzi` e i tagliandi a ore passano tutti da `trattoCorrente`/
+// `contatoreDelTagliando` apposta — un pneumatico montato a 4.000h sul
+// vecchio contatore, letto contro un contatore nuovo che segna 4.200,
+// usciva «200 H»: un numero tranquillo, plausibile, e falso (la vita vera
+// è dell'ordine di (5.870−4.000)+4.200 ≈ 6.070h, non calcolabile con
+// certezza se `oreVecchie` non è stato scritto al momento del cambio — e
+// quindi non si inventa, si dichiara). Il denti benna della stessa
+// dimostrazione usciva «—» per puro caso numerico (montaggio a ore più alte
+// del nuovo contatore), con la spiegazione SBAGLIATA: non è un dato da
+// controllare, è un contatore sostituito. Riusa `contatoreDelTagliando`
+// (stessa domanda: «scritto prima o dopo l'ultimo azzeramento?») invece di
+// riscriverla una quarta volta. `letture` è opzionale e retrocompatibile:
+// senza, nessuna riga cambia (comportamento di prima).
+export function vitaComponenti(componenti, nomeMezzo, oreMezzoAttuali, letture) {
   const eventi = componentiDelMezzo(componenti, nomeMezzo);
   const ore = numeroDichiarato(oreMezzoAttuali);
+  const azzeramenti = azzeramentiDelMezzo(letture || [], nomeMezzo);
   return eventi.map(c => {
     if (ore == null) return { ...c, vitaOre: null, calcolabile: false, perche: "le ore attuali del mezzo non sono note" };
+    if (azzeramenti.length) {
+      const contatore = contatoreDelTagliando({ scrittaIl: c.data }, azzeramenti);
+      if (!contatore.calcolabile) return { ...c, vitaOre: null, calcolabile: false, perche: contatore.perche };
+    }
     const vita = Math.round((ore - c.montatoAOre) * 100) / 100;
     if (vita < 0) return { ...c, vitaOre: null, calcolabile: false,
       perche: "il montaggio risulta a ore più alte di quelle attuali del mezzo: dato da controllare" };

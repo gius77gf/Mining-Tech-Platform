@@ -28942,7 +28942,10 @@ test("Flotta · costoOrarioMezzo col possesso: possesso + esercizio, e senza pos
   ok(pr && pr.mesi === null && /riscatto/.test(pr.nota) && /seconda mano/.test(pr.nota), "fine leasing: la data è quella del contratto, la nota dice le tre strade");
   // il libretto scrive il possesso, o che non c'è
   const lib = flotta.csvLibretto(D.mezzi.find((m) => m.id === "m1"), D).split("\r\n");
-  ok(lib.some((r) => /^possesso;canone o quota annua;15\/01\/2024;.*;42000$/.test(r)), "E1: riga del possesso con data e importo: " + lib.find((r) => /^possesso;/.test(r)));
+  /* ⛔ 17/09: l'importo del libretto passa ora da `mostra()` (helper `R`),
+     come ogni altra cella numerica del file — «42.000» con la convenzione
+     italiana (punto delle migliaia), non il numero JS grezzo. */
+  ok(lib.some((r) => /^possesso;canone o quota annua;15\/01\/2024;.*;42\.000$/.test(r)), "E1: riga del possesso con data e importo: " + lib.find((r) => /^possesso;/.test(r)));
   const lib3 = flotta.csvLibretto(D.mezzi.find((m) => m.id === "m3"), D).split("\r\n");
   ok(lib3.some((r) => /^possesso;non registrato;;.*solo esercizio.*;$/.test(r)), "D1: il libretto dice che il possesso non è registrato: " + lib3.find((r) => /^possesso;/.test(r)));
   const pagina = readFileSync(join(HERE, "../../flotta/index.html"), "utf8");
@@ -40719,6 +40722,34 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/più alte/.test(incoerente[1].perche), incoerente[1].perche);
     eq(incoerente[0].calcolabile, true, "ma il pneumatico (4000 < 5000) resta calcolabile");
   });
+  test("⛔ 17/09, dal terzo giro di deep-pass: vitaComponenti tiene conto del contatore sostituito", () => {
+    /* Prima: `vitaComponenti` leggeva `oreMezzoAttuali` diretto, senza mai
+       chiedersi se fosse lo stesso contatore su cui il componente era stato
+       montato — l'unica funzione a ore del file a non passare da
+       `azzeramentiDelMezzo`/`contatoreDelTagliando`. Un pneumatico montato a
+       4.000h sul VECCHIO contatore, letto contro un mezzo che ora (dopo la
+       sostituzione) segna 4.200h, usciva «200 H»: un numero tranquillo e
+       falso — la vita vera è di anni, non di ore. */
+    const CMP = [{ mezzo: "Escavatore 1", tipo: "pneumatico", data: "2025-11-10", montatoAOre: 4000 }];
+    // contatore sostituito il 2026-06-01: segnava 5870, il nuovo riparte da 0
+    const LETTURE = [{ mezzo: "Escavatore 1", data: "2026-06-01", ore: 0, oreVecchie: 5870, contatoreNuovo: true }];
+    // caso vero misurato dal deep-pass: il mezzo oggi segna 4.200h (contatore NUOVO)
+    const senzaLetture = flotta.vitaComponenti(CMP, "Escavatore 1", 4200);
+    eq(senzaLetture[0].calcolabile, true, "senza passare le letture: comportamento di prima, retrocompatibile");
+    eq(senzaLetture[0].vitaOre, 200, "⛔ ERA QUESTO IL DIFETTO: 4.200-4.000=200h, un numero tranquillo e falso");
+    const conLetture = flotta.vitaComponenti(CMP, "Escavatore 1", 4200, LETTURE);
+    eq(conLetture[0].calcolabile, false, "⛔ montato PRIMA della sostituzione, letto contro il contatore NUOVO: non calcolabile, non «200 h»");
+    ok(/vecchio contatore/.test(conLetture[0].perche) && /sostituito/.test(conLetture[0].perche),
+      "e la ragione nomina il contatore sostituito, non «dato da controllare»: " + conLetture[0].perche);
+    // un componente montato DOPO la sostituzione, sullo stesso contatore nuovo, resta calcolabile
+    const CMP2 = [{ mezzo: "Escavatore 1", tipo: "cingolo", data: "2026-06-15", montatoAOre: 50 }];
+    const dopo = flotta.vitaComponenti(CMP2, "Escavatore 1", 200, LETTURE);
+    eq(dopo[0].calcolabile, true, "montato DOPO la sostituzione, sul contatore nuovo: confrontabile");
+    eq(dopo[0].vitaOre, 150, "200 - 50, sullo stesso contatore");
+    // senza nessun azzeramento, il comportamento è quello di sempre
+    const senzaAzzeramenti = flotta.vitaComponenti(CMP, "Escavatore 1", 9000, []);
+    eq(senzaAzzeramenti[0].calcolabile, true, "letture vuote: nessun contatore sostituito, si passa da qui senza toccare niente");
+  });
 
   test("Flotta · spezzaLetture: senza azzeramenti un tratto solo con TUTTO (anche le letture senza data)", () => {
     const L = [{ data: "2026-06-01", ore: 1 }, { data: "", ore: 2 }, { data: "2026-06-10", ore: 3 }];
@@ -42400,7 +42431,11 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(righe[1], senzaData, "e sta in cima: la data vuota ordina prima");
     const date = righe.slice(1).map((r) => r.split(";")[0]);
     eq(date, date.slice().sort(), "le altre per data");
-    ok(righe.includes("2026-07-02;Ricambi e officina;3150;"), "importo nudo, nota vuota vuota");
+    /* ⛔ 17/09, dal terzo giro di deep-pass: l'importo usciva col punto
+       inglese («3150»); ora passa da `mostra()` come ogni altra cella
+       numerica del file, con la convenzione italiana (qui il punto è il
+       separatore delle migliaia, non un decimale: «3.150»). */
+    ok(righe.includes("2026-07-02;Ricambi e officina;3.150;"), "importo con la convenzione italiana, nota vuota");
     eq(flotta.csvCosti([{ voce: "x", importo: null, data: "2026-02-30" }]).split("\r\n")[1], ";x;;", "⛔ importo non dichiarato → vuoto, non «0»; data che non esiste → vuota");
     eq(flotta.csvCosti(null), "data;voce;importo;nota", "null non rompe");
     ok(!flotta.csvCosti(D.costi).includes("\n\n") && flotta.csvCosti(D.costi).includes("\r\n"), "a capo Windows, come il file di prima: lo apre un foglio di calcolo");

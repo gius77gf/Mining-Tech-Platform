@@ -37,8 +37,8 @@ const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").
 const CONTROPROVA = process.argv.includes("--controprova");
 
 const DIFETTO = [
-  "const vc = vitaComponenti(m.componenti || [], null, m.ore);",
-  "const vc = vitaComponenti(m.componenti || [], m.nome, m.ore);",
+  "const vc = vitaComponenti(m.componenti || [], null, m.ore, f.rifornimenti);",
+  "const vc = vitaComponenti(m.componenti || [], m.nome, m.ore, f.rifornimenti);",
 ];
 let iniezioniDifetto = 0;
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",

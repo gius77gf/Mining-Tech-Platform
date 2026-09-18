@@ -4116,7 +4116,11 @@ body.dw b.bad{color:var(--ink-dg)}
     // `m.componenti` è già scoperto a QUESTO mezzo (nessun campo `.mezzo` al
     // suo interno): `nomeMezzo:null` dice a `componentiDelMezzo` di non
     // filtrare una seconda volta un elenco che non ha nulla da filtrare.
-    const vc = vitaComponenti(m.componenti || [], null, m.ore);
+    /* ⛔ 17/09: `f.rifornimenti` porta le bandiere `contatoreNuovo`, la stessa
+       fonte che `azzeramentiDelMezzo` legge per il consumo e il ritmo qui
+       sopra — un componente montato sul contatore vecchio non si confronta
+       più col contatore nuovo senza dirlo. */
+    const vc = vitaComponenti(m.componenti || [], null, m.ore, f.rifornimenti);
     $("sch-comp").innerHTML = vc.length
       ? vc.map(c => `<div class="item statico st-accent">
           <div class="info"><div class="name">${esc(etichettaTipoComp(c.tipo))}</div>

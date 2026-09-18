@@ -8682,7 +8682,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.613 prove girano senza rete**. La frase va
+  **3.614 prove girano senza rete**. La frase va
   letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3116, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **331 esecuzioni** che
-  aprono le pagine in un browser vero, da **145** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **333 esecuzioni** che
+  aprono le pagine in un browser vero, da **146** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11131,3 +11131,32 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       storico di falda): merita un'unità propria con la sua dimostrazione a
       più piezometri su più anni, non un'aggiunta di corsa. Vedi
       `docs/RICERCA_CONTINUA_TERRA.md`, sezione "17/09 — ottavo giro".
+
+## Flotta — terzo giro di deep-pass, due difetti (17/09)
+- [x] **CSV COL PUNTO INGLESE — LA METÀ MANCANTE, E `vitaComponenti` CIECA AL
+      CONTATORE SOSTITUITO** *(17/09, unità completata, agente
+      aff43964bd31baec6)*.
+      1. La correzione di oggi mattina aveva sistemato SOLO la riga
+         litri/consumo di `csvLibretto`; restavano col punto inglese
+         `csvRegistroInterventi` (costo/ore_manodopera/costo_manodopera),
+         l'helper `R()` di `csvLibretto` (usato da possesso/intervento/
+         rifornimento/totale officina — un solo posto da correggere, non
+         quattro), `csvRicambi`, `csvListaDellaSpesa` (consumo_al_giorno) e
+         `csvCosti`. Corretti tutti con `mostra()`, come ogni altra cella
+         numerica del file. Effetto collaterale onesto e voluto: i numeri
+         grandi ora portano il punto delle migliaia italiano (3150→3.150),
+         non solo la virgola decimale — due test aggiornati di conseguenza.
+      2. `vitaComponenti` era l'unica funzione a ore di Flotta a non passare
+         da `azzeramentiDelMezzo`/`contatoreDelTagliando`: un componente
+         montato sul contatore VECCHIO, letto contro il mezzo dopo una
+         sostituzione, usciva con una vita calcolata come se fosse lo
+         stesso contatore (200h invece di anni) o con la spiegazione
+         SBAGLIATA ("dato da controllare" invece di "contatore
+         sostituito"). Corretto riusando `contatoreDelTagliando` (stessa
+         domanda già fatta per i tagliandi: "scritto prima o dopo l'ultimo
+         azzeramento?"), con un 4° parametro opzionale e retrocompatibile
+         (`letture`).
+      Due nuovi banchi con controprova
+      (`flotta-componente-contatore-sostituito.mjs` nuovo, e l'ancora di
+      `flotta-componenti-vita.mjs` aggiornata alla nuova firma), test puri
+      in `run-kpi.mjs`.

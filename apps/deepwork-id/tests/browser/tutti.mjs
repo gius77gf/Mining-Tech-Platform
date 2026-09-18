@@ -551,6 +551,11 @@ const BANCHI = [
      un mezzo solo) che nessuna suite `node` poteva vedere. */
   ['i componenti a vita propria di Flotta', 'flotta-componenti-vita.mjs', []],
   ['componenti a vita propria di Flotta · controprova', 'flotta-componenti-vita.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 17/09 — dal terzo giro di deep-pass: `vitaComponenti` era
+     l'unica funzione a ore di Flotta a non tenere conto del contatore
+     sostituito (a differenza di consumo/ritmo/tagliandi). */
+  ['la vita di un componente tiene conto del contatore sostituito', 'flotta-componente-contatore-sostituito.mjs', []],
+  ['componente e contatore sostituito · controprova', 'flotta-componente-contatore-sostituito.mjs', ['--controprova'], true],
   /* ⛔ AGGIUNTO IL 16/09 — lo storico dei solleciti di Conti, dal delta
      della ricerca continua, decimo giro: il bottone "Segna come inviato"
      deve aprire la modale sulla fattura giusta (un ID scambiato per il

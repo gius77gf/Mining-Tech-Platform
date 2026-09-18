@@ -181,8 +181,12 @@ const DIFETTI = [
   ["      const s = statoGiro(c);",
    "      const s = (() => { const male = (c.voci || []).filter(v => v.esito === \"no\");\n          return { etichetta: male.length ? \"con anomalie\" : \"tutto a posto\", anomalie: male.length,\n                   nominate: true, voci: male.map(v => v.etichetta), dettaglio: male }; })();", MODULO],
   // 3 · lo zero sommabile al posto della cella vuota, nel registro interventi
-  /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvRegistroInterventi`): due spazi in meno. */
-  ["                 numeroDichiarato(w.costo) == null ? \"\" : numeroDichiarato(w.costo), w.note || \"\",",
+  /* ⏱️ RI-ANCORATA IL 17/09 sul MODULO (`csvRegistroInterventi`): la riga è
+     passata da `numeroDichiarato` grezzo a `mostra(numeroDichiarato(...), 2)`
+     (terzo giro di deep-pass, i CSV col punto inglese) — stesso difetto da
+     rimettere (uno zero che si somma al posto della cella vuota), ancorato
+     sulla nuova forma della riga. */
+  ["                 mostra(numeroDichiarato(w.costo), 2), w.note || \"\",",
    "                 (+w.costo) || 0, w.note || \"\",", MODULO],
   // 4 · la lista della spesa senza la colonna `episodi`
   /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvListaDellaSpesa`): due spazi in meno. */
