@@ -2781,7 +2781,7 @@ test("coperturaRapportini: quali squadre hanno consegnato il rapportino, chi man
   eq(c.mancanti, ["Squadra C — Impianto"], "manca la C (solo bozza)");
 });
 test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
-  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [], senzaGiorno: 0 }, "vuoto"));
+  eq(campo.coperturaRapportini([], []), { coperte: 0, totale: 0, pct: null, mancanti: [], consegnatoSenzaGiorno: [], senzaGiorno: 0 }, "vuoto"));
 /* ⛔ IL DIFETTO CHE LA CAVA SINTETICA HA TROVATO, e che la dimostrazione non
    poteva mostrare: `eDelGiorno` tiene dentro «oggi» i rapportini SENZA DATA —
    di proposito, perché non spariscano — e questa funzione li contava come
@@ -2790,17 +2790,23 @@ test("coperturaRapportini: nessuna squadra = pct null (niente crash)", () =>
    dalla riga che esiste per dirlo. Un solo rapportino basta.
    ⚠️ Le due asserzioni sono OPPOSTE di proposito: se un giorno qualcuno
    «semplificasse» tornando a contarli, la prima cade; se qualcuno li facesse
-   sparire del tutto invece di dichiararli, cade la seconda. */
-test("⛔ coperturaRapportini: un arretrato SENZA GIORNO non copre la squadra che non ha consegnato", () => {
+   sparire del tutto invece di dichiararli, cade la seconda.
+   ⛔ E IL 18/09, DAL SECONDO GIRO DI DEEP-PASS QA, LA TERZA ASSERZIONE ERA
+   ESSA STESSA IL DIFETTO. «e A resta nominata fra i mancanti» era la riga che
+   il documento firmato smentiva da solo: A HA consegnato (solo che la data
+   non si legge), quindi non è "senza rapportino" — è un caso a parte, e va
+   detto per nome, non confuso con chi non ha consegnato NIENTE. */
+test("⛔ coperturaRapportini: un arretrato SENZA GIORNO non copre la squadra che non ha consegnato, e non è nemmeno «mancante»", () => {
   const squadre = [{ nome: "Squadra A" }, { nome: "Squadra B" }];
   const conArretrato = [
     { squadra: "Squadra B", stato: "inviato", data: "2026-08-14" },
     { squadra: "Squadra A", stato: "inviato", data: "" },   // l'arretrato di A, senza giorno
   ];
   const c = campo.coperturaRapportini(squadre, conArretrato);
-  eq(c.coperte, 1, "ha consegnato solo B");
-  eq(c.mancanti, ["Squadra A"], "e A resta nominata fra i mancanti");
-  eq(c.senzaGiorno, 1, "ma il rapportino senza giorno si DICHIARA, non sparisce");
+  eq(c.coperte, 1, "ha consegnato solo B: l'arretrato di A non copre la copertura di OGGI");
+  eq(c.mancanti, [], "⛔ e A NON è fra i mancanti: ha consegnato, solo senza una data leggibile — chiamarla «mancante» è il difetto che il documento firmato si autosmentiva da solo");
+  eq(c.consegnatoSenzaGiorno, ["Squadra A"], "A va detta per nome in un elenco suo, distinto da chi non ha consegnato niente");
+  eq(c.senzaGiorno, 1, "e il conto grezzo dei rapportini senza giorno si DICHIARA, non sparisce");
 });
 test("parseSquadreCsv: legge nome/persone/area/stato; persone intere; stato ignoto → operativa", () => {
   const csv = "nome;persone;area;stato\nSquadra A — Perforazione;4;fronte Est;operativa\nSquadra C — Impianto;2;frantoio;ferma\nSquadra X;3;;boh\n;piazzale;2;operativa\n";
@@ -43992,11 +43998,26 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(sez(R, "Produzione").blocchi[0].tabella, { colonne: ["Turno", "Produzione"], righe: [["Mattina", "2.510 t"]], totale: ["Totale", "2.510 t"], vuota: "" });
     const Rp = sez(R, "Rapportini");
     eq(Rp.blocchi[0].tabella.righe[0], ["Rapportino trasporti", "Squadra B · Mattina **· senza data**", "2.300 t", "—", "inviato 13:00"], "⛔ la riga del rapportino senza giorno lo dice");
-    eq(Rp.note, ["Squadre senza rapportino: Squadra C — Impianto."]);
+    eq(Rp.note, ["Squadre senza rapportino: Squadra C — Impianto."], "qui B non è nel dubbio: ha ANCHE r3 con data, quindi è coperta comunque");
     const Ch = sez(R, "Chiusura e firme");
     eq([Ch.testo, Ch.firmeInBianco], ["Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.", true], "senza chiusure il rapporto lo dice e porta le righe da firmare a penna");
     eq(sez(R, "Checklist di inizio turno").testo, "Nessuna checklist di inizio turno compilata oggi.");
     eq(sez(R, "Meteo e condizioni del sito").testo, "Meteo e condizioni del sito non registrati oggi.");
+  });
+  test("⛔ 18/09, secondo giro di deep-pass: una squadra con SOLO un rapportino senza data non è «senza rapportino» nel documento firmato", () => {
+    // prima del 18/09: la tabella "Rapportini" mostrava questa riga con
+    // "**· senza data**" (consegnato) E, due righe più sotto nella STESSA
+    // sezione, la nota diceva "Squadre senza rapportino: Squadra X" — due
+    // affermazioni opposte sullo stesso fatto, sullo stesso documento firmato.
+    const squadre = [{ id: "sx", nome: "Squadra X — Prova" }];
+    const rapportini = [{ id: "rx", data: "", turno: "Mattina", titolo: "Rapportino prova",
+      squadra: "Squadra X", prodQta: 100, prodUnita: "t", ora: "09:00", stato: "inviato" }];
+    const R = campo.rapportoGiornata({ oggi: "2026-09-18", squadre, rapportini }, {});
+    const Rp = sez(R, "Rapportini");
+    ok(Rp.blocchi[0].tabella.righe[0][1].includes("senza data"), "la riga esiste e dice che la data non si legge: " + Rp.blocchi[0].tabella.righe[0][1]);
+    ok(!Rp.note.some((n) => n.includes("Squadre senza rapportino")), "⛔ e Squadra X NON compare più fra chi non ha consegnato NIENTE: " + JSON.stringify(Rp.note));
+    ok(Rp.note.some((n) => n.includes("Consegnato, ma con una data che non si legge") && n.includes("Squadra X")), "la nota giusta la nomina per quello che è — consegnato, senza data: " + JSON.stringify(Rp.note));
+    eq(campo.coperturaRapportini(squadre, rapportini).mancanti, [], "e la copertura non la conta fra i «mancanti»");
   });
   test("Campo · rapportoGiornata: la giornata VUOTA — «—» nel Quadro, e ogni sezione dice perché è vuota (mai «0/0» o «nessuna anomalia»)", () => {
     const R = campo.rapportoGiornata({ oggi: "2026-01-10", squadre: D.squadre }, {});

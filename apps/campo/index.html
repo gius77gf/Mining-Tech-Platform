@@ -2274,10 +2274,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const cop = coperturaRapportini(SQU, RAP_G);
     const sdRap = senzaData(RAP);
     const avvisoSdRap = sdRap ? ` <span class="dw-muted">(${conta(sdRap, "rapportino", "rapportini")} ancora senza data)</span>` : "";
+    // ⛔ 18/09: chi ha consegnato ma con una data illeggibile non è "manca
+    // ancora" (quel badge/elenco parla di chi non ha consegnato NIENTE) — va
+    // detto per nome, non lasciato sparire dentro il conto generico qui sopra.
+    const avvisoConsSenzaGiorno = cop.consegnatoSenzaGiorno.length
+      ? ` <span class="dw-muted">(${esc(cop.consegnatoSenzaGiorno.join(", "))}: consegnato, ma la data non si legge — non conta per la copertura di oggi)</span>`
+      : "";
     $("rap-cop").innerHTML = cop.totale === 0 ? (avvisoSdRap ? avvisoSdRap : "")
       : cop.mancanti.length === 0
-        ? `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge ok">tutte a posto</span>${avvisoSdRap}`
-        : `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge warn">da consegnare</span><br>Manca ancora: ${esc(cop.mancanti.join(", "))}.${avvisoSdRap}`;
+        ? `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge ok">tutte a posto</span>${avvisoConsSenzaGiorno}${avvisoSdRap}`
+        : `Rapportini consegnati da <b>${cop.coperte}/${cop.totale}</b> squadre <span class="badge warn">da consegnare</span><br>Manca ancora: ${esc(cop.mancanti.join(", "))}.${avvisoConsSenzaGiorno}${avvisoSdRap}`;
     // Totale della produzione registrata (sommabile grazie a quantità + unità):
     // il totale complessivo e, sotto, quello di ogni turno. Tonnellate e metri
     // cubi restano separati: non si sommano tra loro.

@@ -2651,18 +2651,35 @@ export function coperturaRapportini(squadre, rapportini) {
   const inviati = new Set(conGiorno
     .map(r => String(r.squadra || "").trim())
     .filter(Boolean));
+  /* ⛔ 18/09, dal secondo giro di deep-pass QA: una squadra il cui rapportino
+     esiste ma senza una data leggibile NON è "senza rapportino" — ha
+     consegnato, solo che quella riga non prova una consegna DI OGGI. Prima
+     `senzaGiorno` era solo un numero che nessun consumatore leggeva: la
+     squadra finiva comunque in `mancanti`, e il documento firmato mostrava
+     la sua riga nella tabella "Rapportini" con "**· senza data**" e, due
+     righe più sotto nella STESSA sezione, "Squadre senza rapportino" con lo
+     stesso nome — due affermazioni opposte sullo stesso fatto. */
+  const inviatiSenzaGiorno = new Set(tutte
+    .filter(r => !dataISOEsiste(String((r || {}).data || "").trim()))
+    .map(r => String(r.squadra || "").trim())
+    .filter(Boolean));
   const righe = (squadre || []).map(q => {
-    const nome = String(q.nome || "");
-    return { squadra: nome, consegnato: inviati.has(nome.split(" — ")[0].trim()) };
+    const nome = String(q.nome || ""), base = nome.split(" — ")[0].trim();
+    return { squadra: nome, consegnato: inviati.has(base), senzaGiorno: !inviati.has(base) && inviatiSenzaGiorno.has(base) };
   });
   const coperte = righe.filter(r => r.consegnato).length;
   const totale = righe.length;
   return {
     coperte, totale,
     pct: totale ? Math.round(100 * coperte / totale) : null,
-    mancanti: righe.filter(r => !r.consegnato).map(r => r.squadra),
-    // quanti sono stati tolti dal conto perché non hanno un giorno: non sono
-    // spariti, semplicemente non provano una consegna di OGGI
+    // davvero senza nessun rapportino oggi: né con data leggibile né senza
+    mancanti: righe.filter(r => !r.consegnato && !r.senzaGiorno).map(r => r.squadra),
+    // ha consegnato, ma la data non si legge: per nome, non solo un conto —
+    // è la squadra che "mancanti" escludeva senza dire perché
+    consegnatoSenzaGiorno: righe.filter(r => r.senzaGiorno).map(r => r.squadra),
+    // quanti rapportini sono stati tolti dal conto perché non hanno un
+    // giorno: non sono spariti, semplicemente non provano una consegna di
+    // OGGI (un conto grezzo: può contare più righe della stessa squadra)
     senzaGiorno: tutte.length - conGiorno.length,
   };
 }
@@ -3714,7 +3731,13 @@ export function rapportoGiornata(d, opts) {
       const pr = produzioneDi(r);
       return [String(r.titolo || ""), String(r.squadra || "—") + (r.turno ? " · " + String(r.turno) : "") + (senzaGiornoDiLavoro(r) ? " **· senza data**" : ""),
         pr ? formattaProduzione(pr.qta, pr.unita) : String(r.produzione || "—"), String(r.note || "—"), String(r.stato || "") + (r.ora ? " " + String(r.ora) : "")];
-    })) }] : [], cop.mancanti.length ? ["Squadre senza rapportino: " + cop.mancanti.join(", ") + "."] : []);
+    })) }] : [], [
+      cop.mancanti.length ? "Squadre senza rapportino: " + cop.mancanti.join(", ") + "." : "",
+      // ⛔ 18/09: chi ha consegnato ma con una data illeggibile NON va qui
+      // sopra insieme a chi non ha consegnato niente — è la riga che il
+      // documento contraddiceva da solo (vedi il commento su coperturaRapportini)
+      cop.consegnatoSenzaGiorno.length ? "Consegnato, ma con una data che non si legge (la riga compare comunque sopra, marcata «senza data»; non conta per la copertura di oggi): " + cop.consegnatoSenzaGiorno.join(", ") + "." : "",
+    ].filter(Boolean));
   // le firme: senza chiusure il rapporto porta le righe vuote da compilare a penna
   const chiuOggi = CHI.filter((c) => String(c.data || "") === OGGI && c.ora);
   const chiusura = sez("Chiusura e firme", chiuOggi.length ? "" : "Nessun turno chiuso oggi: questo rapporto **non è stato consegnato** da nessuno.",
