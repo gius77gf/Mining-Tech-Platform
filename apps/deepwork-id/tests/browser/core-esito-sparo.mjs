@@ -127,6 +127,11 @@ const DIFETTI = [
   ["index.html",
    "<div class=\"ssub\">${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div>${es.pericolo?`<div class=\"ssub-esito\">${badgeColpiMancati(r)}</div>`:''}",
    "<div class=\"ssub\">${es.pericolo?badgeColpiMancati(r)+' ':''}${u?escHtml(u.nome+' '+u.cognome):'—'} · ${conta(r.fori||0,'foro','fori')} · ${focKg(r)}</div>"],
+  /* 12 · 18/09, dal deep-pass sul core: la guardia era cieca su un lato —
+     «esplosi > fori» senza mancati scritto non bloccava niente. */
+  ["shared/deepwork-id-client/dw-shell.js",
+   "  if (esplosi !== null && mancati === null && fori > 0 && esplosi > fori) { coerente = false; perche = `${esplosi} colpi esplosi su ${fori} fori caricati`; }\n  else if (mancati !== null && fori > 0 && mancati > fori)",
+   "  if (mancati !== null && fori > 0 && mancati > fori)"],
 ];
 /* `--difetto=N`: nella controprova si rimette SOLO l'N-esimo (1-based) */
 const SOLO_DIFETTO = +((process.argv.find((a) => a.startsWith("--difetto=")) || "").split("=")[1] || 0);
@@ -361,6 +366,29 @@ dice((await visibile("rf-err")) && /5 colpi mancati su 3 fori caricati/.test(err
 dice(await visibile("screen-rapp-foc"), "⛔ e NON si è salvato: si è ancora sul modulo, non a casa");
 await scatta("modulo-esito-incoerente-390.png");
 
+/* ⛔ 18/09, dal deep-pass sul core: IL GEMELLO — troppi ESPLOSI, senza
+   mancati scritto (il campo che si compila per primo). Prima di oggi
+   nessun ramo di `esitoSparo` lo guardava: si riapre da capo, si scrive
+   solo `rf-esplosi` più dei fori caricati, e ci si aspetta lo stesso
+   blocco già visto sopra per i mancati. */
+await pg.evaluate(() => window.nav("home"));
+await pg.waitForTimeout(300);
+await pg.evaluate(() => window.nav("rapp-foc"));
+await pg.waitForTimeout(500);
+for (let i = 1; i <= nFori; i++) await pg.fill(`#rf-tbody .trow-foc:nth-child(${i}) input:first-of-type`, "Emulsione");
+await pg.fill("#rf-esplosi", "9");
+await pg.waitForTimeout(200);
+const hintEsplosi = await testo("rf-esito-hint");
+dice(/9 colpi esplosi su 3 fori caricati/.test(hintEsplosi),
+  "⛔ e la stessa riga sotto i campi lo dice anche per gli esplosi in eccesso, senza mancati scritto", hintEsplosi);
+await pg.click('#screen-rapp-foc button:has-text("SALVA RAPPORTINO FOCHINO")');
+await pg.waitForTimeout(600);
+const errEsplosi = await testo("rf-err");
+dice((await visibile("rf-err")) && /9 colpi esplosi su 3 fori caricati/.test(errEsplosi),
+  "⛔ più esplosi che fori caricati (senza mancati): `rf-err` si vede, con la ragione", errEsplosi);
+dice(await visibile("screen-rapp-foc"), "⛔ e NON si è salvato nemmeno questo");
+await scatta("modulo-esito-incoerente-esplosi-390.png");
+
 /* ⚠️ Il modulo si riapre DA CAPO: se la validazione non avesse fermato il
    salvataggio (è uno dei difetti della controprova) si sarebbe a casa, e un
    `fill` su un campo invisibile ucciderebbe il banco a metà — che dichiara
@@ -454,7 +482,7 @@ if (CONTROPROVA) {
 }
 await b.close(); srv.close();
 
-const ATTESE = 47;   // quante prove questo banco DEVE dichiarare: un banco che crolla ne dichiara meno
+const ATTESE = 50;   // quante prove questo banco DEVE dichiarare: un banco che crolla ne dichiara meno
 /* quante DEVONO cadere quando i difetti sono rimessi: tutti insieme, oppure
    almeno UNA quando se ne rimette uno solo (`--difetto=N`) */
 const SOGLIA = SOLO_DIFETTO ? 1 : 8;

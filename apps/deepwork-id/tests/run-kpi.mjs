@@ -40007,6 +40007,18 @@ test("Scudo · il permesso legato a un appalto senza sito dice «non lo sappiamo
     eq(E({ colpiEsplosi: 8, colpiMancati: 1 }).coerente, true, "meno della somma non è incoerente: è un esito non scritto");
     const senzaFori = shell.esitoSparo({ colpiEsplosi: 3, colpiMancati: 1 }); eq(senzaFori.coerente, true, "senza fori caricati non c'è con che confrontare"); eq(senzaFori.fori, 0);
   });
+  test("⛔ 18/09, dal deep-pass sul core: esplosi > fori caricati SENZA mancati scritto è incoerente quanto il gemello", () => {
+    // il campo «colpi esplosi» si compila per primo: mancati resta null, e
+    // prima di oggi nessun ramo guardava questo caso — solo quello simmetrico
+    const troppiEsplosi = E({ colpiEsplosi: 13 });
+    eq(troppiEsplosi.coerente, false, "13 esplosi su 12 fori, senza mancati scritto: incoerente");
+    eq(troppiEsplosi.perche, "13 colpi esplosi su 12 fori caricati");
+    eq(troppiEsplosi.esplosi, 13, "il numero non si corregge, si dichiara incoerente");
+    // uguale al numero di fori: resta coerente (non è il caso impossibile)
+    eq(E({ colpiEsplosi: 12 }).coerente, true, "12 esplosi su 12 fori: coerente");
+    // e appena si scrive anche «mancati», il ramo giusto torna quello di sempre
+    eq(E({ colpiEsplosi: 13, colpiMancati: 0 }).perche, "13 esplosi più 0 mancati fanno più dei 12 fori caricati", "con mancati scritto il ramo della somma prende il sopravvento, invariato");
+  });
 }
 /* ===== fine shell · l'esito dello sparo ===== */
 

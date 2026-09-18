@@ -1973,7 +1973,14 @@ export function esitoSparo(r) {
   const contato = esplosi !== null || mancati !== null;
   const parziale = contato && (esplosi === null || mancati === null);
   let coerente = true, perche = "";
-  if (mancati !== null && fori > 0 && mancati > fori) { coerente = false; perche = `${mancati} colpi mancati su ${fori} fori caricati`; }
+  /* ⛔ 18/09, dal deep-pass sul core: qui il caso impossibile era guardato
+     solo da un lato — «mancati > fori» bloccava, il suo gemello «esplosi >
+     fori» (senza mancati scritto: è il campo che si compila per primo) no.
+     Un rapportino con 10 esplosi dichiarati su 2 fori caricati passava
+     senza avviso e finiva pure nel PDF. È la stessa domanda, sull'altro
+     numero: si aggiunge il ramo, non si allarga quello che c'è. */
+  if (esplosi !== null && mancati === null && fori > 0 && esplosi > fori) { coerente = false; perche = `${esplosi} colpi esplosi su ${fori} fori caricati`; }
+  else if (mancati !== null && fori > 0 && mancati > fori) { coerente = false; perche = `${mancati} colpi mancati su ${fori} fori caricati`; }
   else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati > fori) { coerente = false; perche = `${esplosi} esplosi più ${mancati} mancati fanno più dei ${fori} fori caricati`; }
   else if (esplosi !== null && mancati !== null && fori > 0 && esplosi + mancati < fori) { const k = fori - esplosi - mancati; perche = k === 1 ? "un foro caricato senza esito" : `${k} fori caricati senza esito`; }
   return { fori, esplosi, mancati, nota, contato, parziale, coerente, perche,

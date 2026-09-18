@@ -2161,8 +2161,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.629** *(ricontate il 18/09, dopo aver
-corretto in Conti — sesto giro di deep-pass — `incassoAtteso`/`incassoPerMese`
+**Le prove automatiche sono passate a 3.630** *(ricontate il 18/09, dopo aver
+corretto nel core — deep-pass mirato — `esitoSparo`: la guardia di coerenza
+era asimmetrica, bloccava «mancati > fori» ma non il gemello «esplosi > fori»
+senza mancati scritto; e prima di questo, dopo aver corretto in Conti — sesto
+giro di deep-pass — `incassoAtteso`/`incassoPerMese`
 e la copia debole del Quadro/delle Fatture: una fattura scartata dallo SdI
 restava cassa in arrivo e credito sollecitabile; e prima di questo, dopo aver
 corretto in Campo — quinto giro di deep-pass — l'idoneità nei documenti, che
