@@ -4657,9 +4657,22 @@ export function cartellaLavoratore(lavoratore, dati, oggi = new Date()) {
      avrebbe fatto uscire un avviso su quasi ogni cartella, e un avviso che
      c'è sempre non lo legge più nessuno. */
   const stScad = sue.map(x => x.stato), stDpi = verbale.righe.map(r => r.stato);
+  /* ⛔ 18/09, dal quinto giro di deep-pass: `verbale.righe` elenca solo le
+     consegne ESISTENTI, quindi un tipo di DPI richiesto dalla mansione e MAI
+     consegnato non produce nessuna riga — non entra in `stDpi` (niente da
+     leggere) e non fa scattare `vuoti` (quello scatta solo se le consegne
+     sono ZERO in totale). Il Quadro (`allarmiDpi`) e il fascicolo per
+     l'ispettore (`fascicoloIspezione`) già incrociano `mansione.dpi` con le
+     consegne — qui si rifà lo stesso incrocio, con lo stesso vocabolario di
+     `allarmiDpi` (`ultimaConsegnaDpi`/`statoConsegnaDpi`, stato "mancante"),
+     dedup per TIPO se due mansioni chiedono lo stesso dispositivo. */
+  const tipiMancanti = new Set();
+  for (const m of mie) for (const ch of m.dpi || [])
+    if (statoConsegnaDpi(ultimaConsegnaDpi(dpi, l.id, ch), oggi).stato === "mancante") tipiMancanti.add(ch);
   const righeGuaste = [
     [stScad.filter(x => x === "scaduta").length, "scadenza già scaduta", "scadenze già scadute"],
     [stScad.filter(x => x === "senza data").length, "scadenza senza una data leggibile", "scadenze senza una data leggibile"],
+    [tipiMancanti.size, "DPI previsto dalla mansione e mai consegnato", "DPI previsti dalla mansione e mai consegnati"],
     [stDpi.filter(x => x === "scaduta").length, "DPI da sostituire", "DPI da sostituire"],
     [stDpi.filter(x => x === "senza data").length, "DPI senza data di sostituzione", "DPI senza data di sostituzione"],
     [verbale.addestramentiMancanti, "addestramento ancora da fare", "addestramenti ancora da fare"],

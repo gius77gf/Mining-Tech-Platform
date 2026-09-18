@@ -3268,6 +3268,29 @@ test("⛔ cartellaLavoratore: una sezione vuota non e' «non dovuto»", () => {
   eq(scudo.cartellaLavoratore(null, dati, oggi).trovato, false,
     "senza lavoratore risponde «non trovato», non una cartella vuota che sembra a posto");
 });
+test("⛔ 18/09, dal quinto giro di deep-pass: un DPI previsto dalla mansione e MAI consegnato entra nel fascicolo, non solo nel Quadro", () => {
+  /* prima di oggi: `verbale.righe` elenca solo le consegne ESISTENTI, quindi
+     un tipo mai consegnato non produceva nessuna riga — non entrava in
+     `vuoti` (zero consegne IN TOTALE) né in `daSistemare` (guarda solo gli
+     stati DEI consegnati). `allarmiDpi`/`fascicoloIspezione` lo vedevano
+     già; `cartellaLavoratore` (il fascicolo per l'ispettore) no. */
+  const lav = { id: "zProva", nome: "Prova Otoprotettori", attivo: true };
+  const mansioni = [{ id: "mProva", nome: "Escavatorista di prova", lavoratoriIds: ["zProva"], dpi: ["elmetto", "otoprotettori"] }];
+  const dpi = [{ id: "cProva", lavoratoreId: "zProva", tipo: "elmetto", dataConsegna: "2026-01-10" }];
+  const scadenze = [{ id: "sProva", lavoratoreId: "zProva", preset: "form-generale", dataScadenza: "2027-01-10" }];
+  const dati = { scadenze, mansioni, dpi, nomine: [], documenti: [] };
+  const oggi2 = new Date("2026-08-01T00:00:00");
+  const c = scudo.cartellaLavoratore(lav, dati, oggi2);
+  ok(c.trovato && c.verbale.righe.length > 0, "l'elmetto consegnato c'è: non è il caso «zero consegne»");
+  eq(c.vuoti.length, 0, "e infatti NON è fra i «vuoti»: una consegna vera c'è");
+  ok(c.daSistemare.some(x => /1 DPI previsto dalla mansione e mai consegnato/.test(x)),
+    `⛔ ma il DPI mai consegnato (otoprotettori) entra in «da sistemare»: ${JSON.stringify(c.daSistemare)}`);
+  // due mansioni che chiedono lo STESSO tipo mancante: non si conta due volte
+  const dueMansioni = [...mansioni, { id: "mProva2", nome: "Altra mansione", lavoratoriIds: ["zProva"], dpi: ["otoprotettori"] }];
+  const c2 = scudo.cartellaLavoratore(lav, { ...dati, mansioni: dueMansioni }, oggi2);
+  ok(c2.daSistemare.some(x => /1 DPI previsto dalla mansione e mai consegnato/.test(x)),
+    `e non diventa «2»: il tipo si conta una volta sola: ${JSON.stringify(c2.daSistemare)}`);
+});
 test("⛔ cartellaLavoratore: gli infortuni della PERSONA entrano nel fascicolo (secondo giro di ricerca su Scudo, 15/09)", () => {
   const D = scudo.DEMO, oggi = new Date("2026-08-01T00:00:00");
   const lav = D.lavoratori.find(x => x.id === "d1");
