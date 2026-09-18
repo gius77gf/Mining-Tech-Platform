@@ -97,7 +97,7 @@ const rigaDi = (nomeLotto) => pg.evaluate((nome) => {
 const r5 = await rigaDi("Lotto 5");
 dice(!!r5, "la riga del Lotto 5 esiste");
 dice(!!r5 && r5.badgeFuoriSequenza, "il Lotto 5 porta il badge «fuori sequenza»", r5);
-dice(!!r5 && /Aperto prima che Lotto 4 — settore Nord raggiungesse il 80%: oggi è al 34,8%/.test(r5.testo),
+dice(!!r5 && /Aperto prima che Lotto 4 — settore Nord raggiungesse l'80%: oggi è al 34,8%/.test(r5.testo),
   "e la frase riporta ESATTAMENTE la percentuale calcolata dal modulo (34,8%)", r5 && r5.testo);
 
 const r6 = await rigaDi("Lotto 6");
