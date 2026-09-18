@@ -3383,7 +3383,7 @@ export function coperturaFermi(attivita, azioni) {
    sono cadute con «statoRisposta is not defined» nel giro dopo. È il modo in
    cui una ri-esportazione fatta a metà si vede subito invece che in
    produzione. */
-import { azioniDiOrigine, statoPonte, nominaAttiva } from "../../shared/dw-ponti.js";
+import { azioniDiOrigine, statoPonte, nominaAttiva, idoneitaDiTurno, inTurnoOggi } from "../../shared/dw-ponti.js";
 export {
   ESITI_TURNO, statoScadenzaHSE, idoneitaOperatore, idoneitaDiTurno, inTurnoOggi,
 } from "../../shared/dw-ponti.js";
@@ -3509,6 +3509,20 @@ export function rapportoGiornata(d, opts) {
   const OBIE = D.obiettivi || [], CHK = D.checklist || [], MET = D.meteo || [], CHI = D.chiusure || [];
   const SQU = D.squadre || [], OPER = D.operatori || [], PRE = D.presenze || [], DUR = D.durate || [];
   const VOL = D.volateSentinella === undefined ? null : D.volateSentinella;
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte P3
+     con Scudo) non arrivava in NESSUNO dei due documenti che escono da Campo
+     — lo diceva già il Quadro («una persona in turno oggi NON è idonea»), ma
+     il rapporto stampato e FIRMATO taceva del tutto. Stessi input dello
+     stesso widget, stessa regola: il giudizio medico vince su tutto. */
+  const LAV_HSE = D.lavoratoriHSE === undefined ? null : D.lavoratoriHSE;
+  const SCAD_HSE = D.scadenzeHSE === undefined ? null : D.scadenzeHSE;
+  const schieratiHSE = LAV_HSE && SCAD_HSE ? inTurnoOggi(OPER, SQU) : null;
+  const idonHSE = schieratiHSE ? idoneitaDiTurno(schieratiHSE, LAV_HSE, SCAD_HSE) : null;
+  const avvisoIdoneita = idonHSE && idonHSE.nonIdonei
+    ? "**" + (idonHSE.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : idonHSE.nonIdonei + " persone in turno oggi NON sono idonee") + "**"
+      + " secondo il medico competente (Scudo) — " + idonHSE.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
+      + ": non va mandata in cava finché il giudizio non cambia."
+    : "";
   const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
   const pf = paretoFermi(ATT_OGGI);
   const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
@@ -3525,7 +3539,7 @@ export function rapportoGiornata(d, opts) {
     cop.totale ? { n: cop.coperte + "/" + cop.totale, t: "squadre con rapportino" } : { n: "—", t: "squadre: nessuna in anagrafica" },
     { n: unitaProd.length ? somma(tp.perUnita) : "—", t: "prodotti" },
   ];
-  const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || "";
+  const attenzione = [avvisoIdoneita, avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || ""].filter(Boolean).join(" ");
   // checklist di inizio turno chiuse o in corso oggi
   // le voci sono quelle del turno: col maltempo c'è anche il ricontrollo dei fronti
   const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno))) }));
@@ -3643,6 +3657,23 @@ export function rapportoGiornata(d, opts) {
         x.pct === null ? "**non calcolata** — " + x.motivo
           : (x.parziale ? "al più **" + x.pct + "%**" : "**" + x.pct + "%**") + " (" + oreMinuti(x.lavoratiMin) + " lavorati su " + oreMinuti(x.durataMin) + ")" + (x.parziale ? "\n" + x.motivo : "")])) }] : [],
     dispOggi.length ? ["Disponibilità = durata dichiarata del turno meno i minuti di fermo registrati sulle attività in anomalia. **Non è l'OEE**: l'OEE moltiplica disponibilità, prestazione e qualità, e prestazione e qualità qui non sono misurate."] : []);
+  /* ⛔ 18/09, dal terzo giro di deep-pass: i near-miss del turno li legge già
+     `testoConsegnaTurno` (il documento GEMELLO di questo, ponte con Scudo) —
+     questo rapporto, quello stampato e FIRMATO, non li aveva mai letti.
+     Stessa composizione, stesso `senzaCoda` per non triplicare il near-miss
+     senza turno (vedi il commento su `testoSegnalazioniTurno`). */
+  const segTurniRap = TURNI.map((t) => ({ turno: t, s: segnalazioniDelTurno(D.infortuniScudo === undefined ? null : D.infortuniScudo, OGGI, t) }));
+  const nonLeggibileRap = segTurniRap.find((x) => !x.s.leggibile);
+  const segnalazioniTxt = nonLeggibileRap ? nonLeggibileRap.s.motivo : (() => {
+    const righeSeg = segTurniRap.map((x) => {
+      const t = testoSegnalazioniTurno(x.s, true);
+      return t ? "Turno " + x.turno + ": " + t : null;
+    }).filter(Boolean);
+    const codaIgnotoRap = testoSegnalazioniTurno({ leggibile: true, delTurno: [], turnoIgnoto: segTurniRap[0].s.turnoIgnoto });
+    if (codaIgnotoRap) righeSeg.push(codaIgnotoRap);
+    return righeSeg.join("\n");
+  })();
+  const segnalazioni = sez("Segnalazioni del turno", segnalazioniTxt || "Nessuna segnalazione oggi.", []);
   const foto = ATT_OGGI.filter((a) => eFotoValida(a.foto)).map((a) => ({
     didascalia: "**" + String(a.titolo || "") + "** — turno " + String(a.turno || "—") + (a.causale ? " · " + descriviCausale(a.causale) : "") + (a.fotoOra ? " · scattata alle " + String(a.fotoOra) : ""),
     src: a.foto }));
@@ -3669,7 +3700,7 @@ export function rapportoGiornata(d, opts) {
     riapOggi.flatMap((c) => riaperture(c).map((r) => [String(c.turno || ""), String(r.da || "—"), dmy(r.il || "") + (r.ora ? " " + String(r.ora) : ""), String(r.motivo || "—")]))) }],
     ["Un turno firmato è stato riaperto per correggerlo: qui è scritto da chi, quando e perché."]) : null;
   return { titolo: "Rapporto di fine turno", data: dmy(OGGI), quadro, attenzione,
-    sezioni: [checklist, briefing, meteo, volate, personale, obiettivo, attivita, fermiSez, disponibilita].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
+    sezioni: [checklist, briefing, meteo, volate, personale, obiettivo, attivita, fermiSez, disponibilita, segnalazioni].concat(foto.length ? [{ titolo: "Foto delle anomalie", foto, testo: "", blocchi: [], note: [] }] : [])
       .concat([produzione, rapportini, chiusura]).concat(riapertureSez ? [riapertureSez] : []),
     piede: "Generato da Deepwork Campo — registro operativo di giornata; non sostituisce i registri obbligatori." };
 }
@@ -3757,6 +3788,21 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
         + (a.stato === "anomalia" ? " · " + (a.causale || "causale non indicata")
           + " · " + (a.minuti != null ? numeroIt(a.minuti, 0) + " min" : "minuti non registrati") : "")).join("\n")
     : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte P3
+     con Scudo) non arrivava in NESSUNO dei due documenti, mentre il Quadro
+     schermo già lo mostra. Qui, come là: il giudizio medico vince su tutto. */
+  const LAV_HSE_C = d.lavoratoriHSE === undefined ? null : d.lavoratoriHSE;
+  const SCAD_HSE_C = d.scadenzeHSE === undefined ? null : d.scadenzeHSE;
+  const schieratiHSE_C = LAV_HSE_C && SCAD_HSE_C ? inTurnoOggi(d.operatori || [], d.squadre || []) : null;
+  const idonHSE_C = schieratiHSE_C ? idoneitaDiTurno(schieratiHSE_C, LAV_HSE_C, SCAD_HSE_C) : null;
+  txt += "IDONEITÀ DEL TURNO\n";
+  txt += (!idonHSE_C
+    ? "- non leggibile: il giudizio del medico competente vive in Scudo e da qui non si riesce a leggere."
+    : idonHSE_C.nonIdonei
+      ? "- " + (idonHSE_C.nonIdonei === 1 ? "1 persona in turno oggi NON è idonea" : idonHSE_C.nonIdonei + " persone in turno oggi NON sono idonee")
+        + " secondo il medico competente (Scudo): " + idonHSE_C.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
+        + ". Non va mandata in cava finché il giudizio non cambia."
+      : "- nessuna persona in turno oggi risulta non idonea secondo il medico competente (Scudo)") + "\n\n";
   txt += "SEGNALAZIONI DEL TURNO\n";
   /* ⛔ 17/09: il turno IGNOTO di `segnalazioniDelTurno` è lo STESSO insieme
      qualunque turno si chieda (la funzione non lo filtra, di proposito: un

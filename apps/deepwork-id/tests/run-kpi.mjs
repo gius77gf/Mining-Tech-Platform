@@ -43367,7 +43367,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(R.attenzione, campo.avvisoSenzaGiorno(dg(D.attivita), dg(D.rapportini)), "l'avviso sul rapportino senza giorno è quello di avvisoSenzaGiorno");
     ok(/1 rapportino \(2\.300 t\) senza il giorno di lavoro/.test(R.attenzione), R.attenzione);
     eq(R.sezioni.map((x) => x.titolo), ["Checklist di inizio turno", "Briefing di inizio turno", "Meteo e condizioni del sito", "Volate del giorno (registro di Sentinella)", "Personale presente", "Obiettivo del turno", "Attività",
-      "Fermi per causale", "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"], "⛔ le dodici sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono; le volate dal 15/09, dal ponte P6 che già serviva la consegna testuale)");
+      "Fermi per causale", "Disponibilità del turno", "Segnalazioni del turno", "Produzione", "Rapportini", "Chiusura e firme"], "⛔ le tredici sezioni fisse, nell'ordine del foglio (le foto e le riaperture solo se ci sono; le volate dal 15/09, dal ponte P6 che già serviva la consegna testuale; i near-miss dal 18/09, dal terzo giro di deep-pass, come già in testoConsegnaTurno)");
     ok(R.piede.startsWith("Generato da Deepwork Campo"));
   });
   test("Campo · rapportoGiornata: il personale — l'appello, il riposo sotto le 11 ore, gli orari che mancano DICHIARATI nella cella", () => {
@@ -43431,7 +43431,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(A.quadro[2], { n: "—", t: "squadre: nessuna in anagrafica" });
     for (const args of [[null], [undefined, null], [{}, {}]]) {
       const N = campo.rapportoGiornata(...args);
-      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 12], "con niente non rompe: " + JSON.stringify(args));
+      eq([N.titolo, N.data, N.quadro.length, N.sezioni.length], ["Rapporto di fine turno", "senza data", 4, 13], "con niente non rompe: " + JSON.stringify(args));
     }
   });
   test("Campo · rapportoGiornata: chiusure, riaperture, foto e checklist — le sezioni che compaiono solo se c'è qualcosa", () => {
@@ -43446,7 +43446,7 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(Ri.blocchi[0].tabella.righe[0][2], "03/03/2026 15:30");
     const Fo = sez(R, "Foto delle anomalie");
     ok(Fo && Fo.foto.length === 1 && Fo.foto[0].src.startsWith("data:image/png") && /^\*\*Nastro\*\* — turno Mattina · .+ · scattata alle 09:10$/.test(Fo.foto[0].didascalia), JSON.stringify(Fo && Fo.foto[0].didascalia));
-    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 9, "le foto stanno fra la disponibilità e la produzione, come sul foglio (9 dal 15/09: c'è anche la sezione delle volate)");
+    eq(R.sezioni.map((x) => x.titolo).indexOf("Foto delle anomalie"), 10, "le foto stanno fra le segnalazioni e la produzione, come sul foglio (10 dal 18/09: c'è anche la sezione delle segnalazioni del turno)");
     const Ck = sez(R, "Checklist di inizio turno").blocchi[0].tabella.righe[0];
     eq([Ck[0], Ck[1], Ck[4]], ["Squadra A", "Mattina", "06:10 (senza nome)"]);
     eq(Ck[2], campo.descriviChecklist(campo.statoChecklist({ a: "ok", b: "no" })), "le risposte le descrive descriviChecklist");
@@ -43457,8 +43457,8 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
     for (const et of ["attività: nessuna registrata oggi", "<h2>Fermi per causale</h2>", "non è stato consegnato</b>", "Nessuna checklist di inizio turno compilata oggi", "Riposo dal turno precedente</th>"])
       ok(!pagina.includes(et), "la pagina contiene ancora " + et);
-    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,\n\s*meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT \}, \{ dmy \}\)/.test(pagina),
-      "e chiama rapportoGiornata con TUTTI i dati vivi, chiamata chiusa — non solo il suo inizio (era proprio qui il buco del 16/09: la riga sotto lo spiega)");
+    ok(/rapportoGiornata\(\{ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,\n\s*meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE, lavoratoriHSE: LAV_HSE, scadenzeHSE: SCAD_HSE \}, \{ dmy \}\)/.test(pagina),
+      "e chiama rapportoGiornata con TUTTI i dati vivi, chiamata chiusa — non solo il suo inizio (era proprio qui il buco del 16/09: la riga sotto lo spiega; il ponte con Scudo aggiunto il 18/09)");
   });
   /* ⛔ 16/09 — QUI stava il buco: la riga sopra controllava che la pagina
      chiamasse rapportoGiornata con «i dati vivi», ma guardava solo l'INIZIO
@@ -43477,6 +43477,38 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
       "la consegna testuale passa VOL_SENT (era già vero: qui si fissa che resti tale)");
     ok(/rapportoGiornata\(\{[^;]*volateSentinella: VOL_SENT/.test(pagina),
       "e ANCHE il rapporto stampato lo passa — il difetto trovato il 16/09, corretto nello stesso commit");
+  });
+  test("⛔ 18/09, dal terzo giro di deep-pass: rapportoGiornata porta le segnalazioni del turno, come già testoConsegnaTurno", () => {
+    const infortuni = [{ tipo: "near-miss", data: "2026-05-05", turno: "Mattina", descrizione: "caduta materiale" }];
+    const R = campo.rapportoGiornata({ oggi: "2026-05-05", infortuniScudo: infortuni }, {});
+    const S = R.sezioni.find((s) => s.titolo === "Segnalazioni del turno");
+    ok(S, "la sezione «Segnalazioni del turno» esiste nel rapporto stampato");
+    ok(/near-miss/.test(S.testo), "il testo parla del near-miss di oggi: " + S.testo);
+    const senzaPonte = campo.rapportoGiornata({ oggi: "2026-05-05" }, {});
+    ok(senzaPonte.sezioni.find((s) => s.titolo === "Segnalazioni del turno").testo.includes("non si riesce a leggere"),
+      "senza il ponte con Scudo si dice che non si sa, non «nessuna segnalazione»");
+  });
+  test("⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte con Scudo) arriva in ENTRAMBI i documenti che escono da Campo", () => {
+    const operatori = [{ id: "o1", nome: "Mario Rossi", squadra: "Squadra A", stato: "attivo", lavoratoreId: "d1" }];
+    const squadre = [{ nome: "Squadra A", stato: "attiva" }];
+    const lavoratoriHSE = [{ id: "d1", idoneita: "non-idoneo" }];
+    const base = { oggi: "2026-05-05", operatori, squadre, lavoratoriHSE, scadenzeHSE: [] };
+    const R = campo.rapportoGiornata(base, {});
+    ok(/NON è idonea/.test(R.attenzione) && R.attenzione.includes("Mario Rossi"),
+      "il rapporto stampato avvisa in cima, come già il Quadro: " + R.attenzione);
+    const txt = campo.testoConsegnaTurno(base, {});
+    ok(/IDONEITÀ DEL TURNO\n- 1 persona in turno oggi NON è idonea[^\n]*Mario Rossi/.test(txt),
+      "la consegna di turno lo dice nella sua sezione: " + txt.slice(txt.indexOf("IDONEITÀ"), txt.indexOf("IDONEITÀ") + 200));
+    // senza il ponte: nessun avviso tranquillo, si dichiara di non sapere
+    const senzaPonte = campo.rapportoGiornata({ oggi: "2026-05-05", operatori, squadre }, {});
+    eq(senzaPonte.attenzione, "", "senza lavoratoriHSE/scadenzeHSE non si può giudicare: nessun avviso, non un falso «a posto»");
+    ok(campo.testoConsegnaTurno({ oggi: "2026-05-05", operatori, squadre }, {}).includes("IDONEITÀ DEL TURNO\n- non leggibile"),
+      "e la consegna lo dichiara esplicitamente, non tace");
+    // con tutti idonei: si dice, non si tace
+    const tuttiOk = campo.rapportoGiornata({ ...base, lavoratoriHSE: [{ id: "d1", idoneita: "idoneo" }] }, {});
+    eq(tuttiOk.attenzione, "", "con tutti idonei nessun avviso di attenzione");
+    ok(campo.testoConsegnaTurno({ ...base, lavoratoriHSE: [{ id: "d1", idoneita: "idoneo" }] }, {}).includes("nessuna persona in turno oggi risulta non idonea"),
+      "e la consegna lo dice esplicitamente, invece di tacere la sezione");
   });
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */

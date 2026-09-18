@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.619 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3125, `run-stile` 330,
+  **3.621 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3127, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11216,3 +11216,33 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       dichiari intenzionale (a differenza di `estrattoComplessivo`).
       Nuovo test puro in `run-kpi.mjs` con controprova (rimesso il difetto a
       mano, confermato che il test cade; ripristinato, confermato identico).
+
+## Campo — terzo giro di deep-pass, near-miss e idoneità mancanti dai
+      documenti (18/09)
+- [x] **RAPPORTOGIORNATA E TESTOCONSEGNATURNO NON PORTAVANO NÉ I NEAR-MISS
+      NÉ IL GIUDIZIO DI IDONEITÀ MEDICA** *(18/09, unità completata, agente
+      adaf5869ccec0571f)*.
+      1. `rapportoGiornata` (il rapporto di fine turno STAMPATO E FIRMATO)
+         non leggeva mai i near-miss del turno, mentre `testoConsegnaTurno`
+         (il documento gemello) li legge già dal 17/09. Aggiunta la sezione
+         "Segnalazioni del turno", stessa composizione (`segnalazioniDelTurno`
+         + `testoSegnalazioniTurno`, `senzaCoda` per non triplicare il
+         near-miss senza turno).
+      2. Il giudizio di idoneità medica (ponte P3 con Scudo) non arrivava in
+         NESSUNO dei due documenti, mentre il Quadro schermo lo mostra già
+         ("una persona in turno oggi NON è idonea"). Aggiunta una riga in
+         `attenzione` per `rapportoGiornata` e una sezione "IDONEITÀ DEL
+         TURNO" per `testoConsegnaTurno`, stessa regola del Quadro (il
+         giudizio medico vince su tutto).
+      Wiring in `apps/campo/index.html`: entrambe le chiamate ora passano
+      `infortuniScudo`/`lavoratoriHSE`/`scadenzeHSE` (e `testoConsegnaTurno`
+      guadagna anche `squadre`, che non passava). Verificato dal vivo con
+      Playwright su entrambi i documenti (rapporto stampato in finestra
+      nuova, consegna .txt scaricata) sulla dimostrazione (Luca Bianchi,
+      non idoneo). Nuovi test puri in `run-kpi.mjs` con controprova (tre
+      controprove separate: near-miss assenti, idoneità assente in
+      rapportoGiornata, idoneità assente in testoConsegnaTurno — tutte
+      confermate: il test cade col difetto rimesso, torna verde ripristinato).
+      Esteso `campo-foglio-turno.mjs` (il banco browser che legge i
+      documenti veri) con le stesse verifiche, e riancorata un'iniezione
+      scaduta in `campo-numeri-tranquilli.mjs` che il fix aveva reso stale.

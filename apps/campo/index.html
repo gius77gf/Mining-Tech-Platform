@@ -4592,8 +4592,8 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        funzioni dello schermo, sezione per sezione — così la composizione la
        prova anche `run-kpi` (05/09). La riga dei dati di esempio la decide
        la pagina, che sa in che modo sta girando. */
-    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, briefing: BRI, operatori: OPER, presenze: PRE,
-      meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE }, { avviso: avvisoEsempioTesto(), dmy });
+    const txt = testoConsegnaTurno({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, briefing: BRI, operatori: OPER, presenze: PRE, squadre: SQU,
+      meteo: MET, chiusure: CHI, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE, lavoratoriHSE: LAV_HSE, scadenzeHSE: SCAD_HSE }, { avviso: avvisoEsempioTesto(), dmy });
     const fermi = riepilogoFermi(ATT_OGGI);
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
@@ -4614,7 +4614,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // si disegna e basta (05/09). Il grassetto arriva come «**così**», il
     // corsivo «*così*», l'a capo «\n»: li rende `md`.
     const R = rapportoGiornata({ oggi: OGGI, rapportini: RAP_OGGI, attivita: ATT_OGGI, obiettivi: OBIE, checklist: CHK, azioni: AZI_HSE, briefing: BRI,
-      meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT }, { dmy });
+      meteo: MET, chiusure: CHI, squadre: SQU, operatori: OPER, presenze: PRE, durate: DUR, volateSentinella: VOL_SENT, infortuniScudo: INF_HSE, lavoratoriHSE: LAV_HSE, scadenzeHSE: SCAD_HSE }, { dmy });
     const md = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*([^*\n]+?)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
     const tabella = (T) => `<table><tr>${T.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>${
       T.righe.map(r => `<tr>${r.map(c => `<td>${md(c)}</td>`).join("")}</tr>`).join("")

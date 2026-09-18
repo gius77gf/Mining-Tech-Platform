@@ -342,9 +342,12 @@ const leggiFoglio = async (pop, nome) => {
 
 // le dieci sezioni che il rapporto ha sempre: se l'avviso ne coprisse una, si
 // vede qui e non nella somma dei caratteri
+// ⛔ 18/09, dal terzo giro di deep-pass: «Segnalazioni del turno» è nuova —
+// prima il rapporto stampato non la portava affatto, mentre la consegna
+// testuale (sotto) sì.
 const SEZIONI = ["Quadro", "Checklist di inizio turno", "Meteo e condizioni del sito",
   "Personale presente", "Obiettivo del turno", "Attività", "Fermi per causale",
-  "Disponibilità del turno", "Produzione", "Rapportini", "Chiusura e firme"];
+  "Disponibilità del turno", "Segnalazioni del turno", "Produzione", "Rapportini", "Chiusura e firme"];
 
 // ══ 1 · IL RAPPORTO DI FINE TURNO, giornata piena ═════════════════════════
 if (fai("pieno")) {
@@ -386,6 +389,14 @@ if (fai("pieno")) {
   dice(a4.doc <= a4.win + 1, "sul foglio A4 (688 px) il rapporto non esce dalla larghezza", a4);
 
   dice(errori.length === 0, "e nessun errore in pagina alla fine del giro", errori.slice(0, 2));
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte con
+     Scudo) non arrivava nel rapporto stampato e FIRMATO, mentre il Quadro
+     schermo lo mostra già (Luca Bianchi, non idoneo, nei dati di
+     dimostrazione). Qui si legge il documento vero, in finestra, non il
+     modulo isolato: se la pagina smettesse di passare lavoratoriHSE/
+     scadenzeHSE/infortuniScudo a rapportoGiornata, questa riga lo vedrebbe. */
+  dice(/NON è idonea/.test(d.testo) && /Luca Bianchi/.test(d.testo),
+    "⛔ il rapporto stampato avvisa sul giudizio di idoneità, come già il Quadro", d.testo.slice(0, 40));
   await pop.close(); await ctx.close();
 }
 
@@ -501,6 +512,11 @@ if (fai("consegna")) {
   dice(!/nessuna attività aperta/.test(sezLav), "⛔ e non dice «nessuna attività aperta» su un turno con lavori aperti", sezLav);
   dice(sezSeg.length > 0 && /senza turno indicato \(non si sa se di questo turno\)/.test(sezSeg), "la sezione «SEGNALAZIONI DEL TURNO» porta la segnalazione di oggi senza turno, dichiarata così — la stessa frase dello schermo", sezSeg);
   dice(!/nessuna segnalazione oggi/.test(sezSeg), "e non dice «nessuna segnalazione» quando ce n'è una", sezSeg);
+  /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità mancava
+     anche qui, nel documento che passa al turno successivo. */
+  const sezIdon = (testo.split("IDONEITÀ DEL TURNO\n")[1] || "").split("\n\n")[0];
+  dice(sezIdon.length > 0 && testo.indexOf("IDONEITÀ DEL TURNO") < testo.indexOf("SEGNALAZIONI DEL TURNO"), "la consegna ha la sezione «IDONEITÀ DEL TURNO», prima delle segnalazioni", testo.slice(0, 80));
+  dice(/NON è idonea.*Luca Bianchi/.test(sezIdon), "e avvisa sul giudizio del medico competente, come già il Quadro schermo", sezIdon);
   /* ⛔ IL TESTO SI ARCHIVIA, NON SOLO SI SCARICA (15/09): prima usciva solo
      come .txt, ora `btn-consegna` scrive anche `testoConsegna` sulla
      `chiusura` del turno (stesso upsert di `btn-fir`). Un secondo clic deve

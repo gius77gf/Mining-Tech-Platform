@@ -115,7 +115,12 @@ const DIFETTI = [
      una decisione (`avvisoSenzaGiorno`). */
   ["const fuoriOggi = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI);",
    "const fuoriOggi = \"\";", MODULO],
-  ["const attenzione = avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || \"\";",
+  /* ⛔ 18/09: riancorata dopo che il fix su idoneità/near-miss di Campo ha
+     esteso questa riga a `[avvisoIdoneita, avvisoSenzaGiorno(...) || ""]
+     .filter(Boolean).join(" ")` — l'iniezione puntava ancora alla forma a
+     una sola frase, scaduta perché il codice è migliorato (CLAUDE.md: "il
+     codice si è mosso perché è migliorato"). */
+  ["const attenzione = [avvisoIdoneita, avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || \"\"].filter(Boolean).join(\" \");",
    "const attenzione = \"\";", MODULO],
   // 5b · e le tre RIGHE che se lo portavano addosso (consegna, attività e rapportini del rapporto)
   ["senzaGiornoDiLavoro(r) ? \" [SENZA DATA]\" : \"\"", "false ? \" [SENZA DATA]\" : \"\"", MODULO],
