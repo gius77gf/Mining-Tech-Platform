@@ -3983,6 +3983,40 @@ test("⛔ giornateConvenzionali: UNI 7249, i giorni CONVENZIONALI per permanente
     "un near-miss non ha un ferito: zero qualunque cosa ci sia scritto nella gravità");
   eq(scudo.giornateConvenzionali(null), 0);
 });
+test("⛔ prognosiAperta: un mortale o una permanente hanno già risposto (UNI 7249), non sono \"ancora aperti\" (quarto giro di deep-pass QA, 18/09)", () => {
+  eq(scudo.prognosiAperta({ tipo: "infortunio", gravita: "mortale", giorniAssenza: null }), false,
+    "un decesso non ha giorni di assenza nel senso ordinario: la prognosi, ai fini dell'indice, non è aperta");
+  eq(scudo.prognosiAperta({ tipo: "infortunio", gravita: "permanente", giorniAssenza: null }), false,
+    "e nemmeno un'invalidità permanente il cui iter non prevede giorni di assenza");
+  eq(scudo.prognosiAperta({ tipo: "infortunio", gravita: "lieve", giorniAssenza: null }), true,
+    "un lieve/grave senza il campo scritto resta davvero da quantificare: comportamento invariato");
+  eq(scudo.prognosiAperta({ tipo: "infortunio", gravita: "grave", giorniAssenza: 5 }), false,
+    "un grave con le giornate scritte: prognosi chiusa, come sempre");
+  // il caso reale segnalato dal quarto giro QA: un mortale col campo grezzo
+  // vuoto non deve più produrre un avviso "⚠️ MINIMO" che non salirà mai
+  const mortale = { data: "2026-03-10", tipo: "infortunio", gravita: "mortale", giorniAssenza: null };
+  const r = scudo.indiciInfortunistici([mortale], 20000, 2026);
+  eq([r.daQuantificare, r.noto, r.giornatePerse], [0, true, 7500],
+    "l'indice non è più marcato «da quantificare» su un dato che il modulo conosce già");
+  eq(scudo.avvisoGravitaMinima(r), null, "e sparisce l'avviso di minimo, falso per un mortale");
+  const ri = scudo.riepilogoInfortuni([mortale], new Date("2026-04-01"));
+  eq([ri.giorniAssenzaTot, ri.noto], [7500, true],
+    "⛔ STESSA BUGIA GIÀ CORRETTA IN indiciInfortunistici, mai propagata a riepilogoInfortuni: un mortale usciva a ZERO giornate perse sul cartellone principale e nel fascicolo per l'ispettore");
+  eq(scudo.descriviGiornatePerse(ri), "7500 giornate perse", "non più \"almeno 0 giornate perse: la prognosi è ancora aperta\" per un decesso");
+  const cellaCsv = scudo.csvRegistroInfortuni([mortale]).split("\n")[1].split(";");
+  ok(!/prognosi ancora aperta/.test(cellaCsv[6]), "il registro CSV non porta più la nota falsa per un mortale");
+  eq(cellaCsv[3], "", "e la cella dei giorni di assenza resta vuota (dato grezzo non applicabile), non «0»");
+  // eventiSenzaAnalisi: la priorità di un mortale/permanente non deve
+  // regredire dopo la correzione di prognosiAperta (infortunioGrave la tiene).
+  // Il lieve ha `giorniAssenza: 0` (una medicazione confermata, zero assenza)
+  // e non `null`, altrimenti sarebbe anche lui a prognosi genuinamente aperta
+  // (decisione 17) e finirebbe nello stesso secchio a ragione.
+  const lieve = { id: "e-lieve", data: "2026-05-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: 0 };
+  const permanente = { id: "e-perm", data: "2026-01-01", tipo: "infortunio", gravita: "permanente", giorniAssenza: null };
+  const ordine = scudo.eventiSenzaAnalisi([{ ...mortale, id: "e-mortale" }, lieve, permanente], []);
+  eq(ordine.map((e) => e.id), ["e-mortale", "e-perm", "e-lieve"],
+    "mortale e permanente restano in cima alla lista da analizzare, non regrediscono al livello di un lieve");
+});
 test("⛔ indiciInfortunistici: un esito mortale entra nell'indice di gravità E nel LTIFR coi giorni UNI 7249 (finding 2, 15/09)", () => {
   const inf = [{ data: "2026-03-01", tipo: "infortunio", gravita: "mortale", giorniAssenza: null }];
   const senza = scudo.indiciInfortunistici([{ data: "2026-03-01", tipo: "infortunio", gravita: "lieve", giorniAssenza: null }], 100000, 2026);

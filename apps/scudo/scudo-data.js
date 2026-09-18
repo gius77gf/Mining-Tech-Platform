@@ -977,8 +977,20 @@ export function giornateAssenza(evento) {
 }
 // Un infortunio le cui giornate perse non sono ancora scritte. I near-miss non
 // ci finiscono mai: per loro il vuoto è una risposta, non una domanda aperta.
+// ⛔ 18/09, dal quarto giro di deep-pass QA: un esito MORTALE o
+// un'invalidità PERMANENTE hanno già una risposta — la convenzione UNI 7249
+// che `giornateConvenzionali` applica (7500/75 giorni), indipendente dal
+// campo grezzo `giorniAssenza` che per un decesso non ha nemmeno senso di
+// esistere. La vecchia riga guardava solo `giornateAssenza`, quindi
+// classificava OGNI mortale/permanente come "prognosi ancora aperta" per
+// sempre — un dato che il modulo stesso considera già noto trattato come
+// da quantificare, nel verso che allarma (⚠️ MINIMO su un indice che non
+// salirà mai) invece che in quello che rassicura, ma comunque falso: la
+// prognosi, ai fini dell'indice di gravità, non è aperta.
 export function prognosiAperta(evento) {
-  return !!(evento && evento.tipo === "infortunio") && giornateAssenza(evento) === null;
+  if (!evento || evento.tipo !== "infortunio") return false;
+  if (evento.gravita === "mortale" || evento.gravita === "permanente") return false;
+  return giornateAssenza(evento) === null;
 }
 
 /* La visita medica di rientro obbligatoria dopo un'assenza per malattia o
@@ -1105,7 +1117,13 @@ export function riepilogoInfortuni(infortuni, oggi = new Date()) {
   }
   const dataIgnota = veri.filter(x => !dataISOEsiste(dataDi(x))).length;
   const giorniSenza = ultimo ? Math.max(0, -giorniTra(ultimo, oggi)) : null;
-  const giorniAssenzaTot = veri.reduce((s, x) => s + (giornateAssenza(x) || 0), 0);
+  /* ⛔ 18/09, dal quarto giro di deep-pass QA: STESSA BUGIA GIÀ CORRETTA IN
+     `indiciInfortunistici` (`conAssenza`/`giornatePerse`, 15/09) E MAI
+     PROPAGATA QUI. `giornateAssenza`, non `giornateConvenzionali`, faceva
+     contribuire ZERO al totale un mortale o una permanente — il caso più
+     grave possibile usciva come «nessuna giornata persa» sul cartellone
+     principale e nel fascicolo per l'ispettore. */
+  const giorniAssenzaTot = veri.reduce((s, x) => s + Math.max(0, giornateConvenzionali(x) || 0), 0);
   const prognosiAperte = veri.filter(prognosiAperta).length;
   // «grave» qui vuol dire «grave o peggio» (finding 2, 15/09): un'invalidità
   // permanente o un esito mortale non devono sparire da questo conteggio
@@ -5767,8 +5785,20 @@ export function eventiSenzaAnalisi(infortuni, analisi) {
      per primo.
      `prognosiAperta` e `giornateAssenza` sono nello stesso file e decidono già
      lo schermo, il CSV del registro e gli indici: qui c'era la quarta lettura,
-     più debole delle altre tre. */
-  const gravita = (e) => ((prognosiAperta(e) || giornateAssenza(e) > 0) ? 2
+     più debole delle altre tre.
+     ⛔ 18/09, dal quarto giro di deep-pass QA: dopo che `prognosiAperta` ha
+     imparato a rispondere `false` per un mortale o una permanente (la loro
+     prognosi, ai fini dell'indice di gravità, non è mai "aperta": la
+     risposta è già la convenzione UNI 7249), tenerla da sola qui avrebbe
+     tolto proprio ai due esiti più gravi la priorità in cima alla lista —
+     l'effetto opposto a quello che questa funzione promette. `infortunioGrave`
+     (grave/permanente/mortale, la stessa soglia già usata per il cartellone e
+     il ciclo del DSS) si aggiunge, non sostituisce: `prognosiAperta` resta per
+     il caso originale della decisione 17 (un lieve/grave senza gravità
+     dichiarata e senza giornate scritte sale comunque sopra a uno confermato
+     zero), `infortunioGrave` copre mortale/permanente anche quando la loro
+     prognosi non è più "aperta". */
+  const gravita = (e) => ((prognosiAperta(e) || infortunioGrave(e) || giornateAssenza(e) > 0) ? 2
     : ((e || {}).tipo === "near-miss" || (e || {}).tipo === "osservazione") ? 0 : 1);
   return (infortuni || [])
     .filter((e) => e && e.id && !fatti.has(String(e.id)))
