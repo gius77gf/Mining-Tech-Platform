@@ -1,19 +1,18 @@
 # Ultimo ciclo
 
-- **Timestamp (UTC, da `date -u`)**: 2026-09-18T11:48:16Z
-- **Commit di partenza**: d0deb7e9
-- **Cosa sto per fare**: tre unità dai deep-pass QA di questo blocco sono già
-  scritte e verificate in worktree isolate, in attesa solo del giro pulito
-  finale prima di commit+push: Conti (apertoDi non propagato a
-  prioritaIncasso/agingIncassi/incassoPerMese/kpiFrom, /tmp/wt-conti-apertodi),
-  accessibilità toast (Genesi CSS err/success/warn, role/aria-live su
-  core/Genesi/admin, /tmp/wt-toast-a11y), Campo (CLASSE_HSE senza la chiave
-  "senza-scadenze", /tmp/wt-campo-hse). Appena arrivato un quarto difetto
-  verificato da un agente su Sentinella: `misureDelGiornoPerReclamo` calcola
-  il punto "peggiore" su TUTTI i punti della stessa grandezza invece di dare
-  priorità al punto del ricettore del reclamo — la lettera di risposta può
-  concludere "sotto soglia" basandosi su uno strumento diverso, con un'altra
-  soglia, mentre quello del ricettore non ha letture quel giorno. Da
-  implementare in una nuova worktree. Dopo: la trappola del focus nella
-  modale (shared/dw-app-ui.js, unità a parte, più rischiosa) e il listener
-  accumulato su #modal-foot in Conti.
+- **Timestamp (UTC, da `date -u`)**: 2026-09-18T12:51:46Z
+- **Commit di partenza**: 8424442e
+- **Cosa sto per fare**: chiudere tre unità dai deep-pass QA già scritte e
+  verificate in worktree isolate: accessibilità toast (shared/dw-app-ui.js
+  e core/Genesi/admin, /tmp/wt-toast-a11y — giro di convergenza dei numeri
+  in corso), Terra (`renderValore` usava `rilievoUsabile` invece di
+  `rilievoUsabileConData` — un rilievo a calendario impossibile gonfiava il
+  «Valore del materiale estratto» di oltre 13 volte, mentre la Denuncia
+  restava corretta; nuovo banco browser dedicato, verificato con
+  controprova), Flotta (`csvGiriMacchina` scriveva le ore col punto inglese
+  invece della virgola italiana — sesta ricorrenza della stessa famiglia
+  già chiusa in cinque export gemelli, verificato con controprova). Due
+  nuovi agenti di deep-pass QA in background su Terra e Flotta hanno già
+  fruttato questi due difetti; ne servono di nuovi per mantenere ≥3
+  cantieri. Dopo: la trappola del focus nella modale (shared/dw-app-ui.js)
+  e il listener accumulato su #modal-foot in Conti.
