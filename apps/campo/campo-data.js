@@ -571,10 +571,19 @@ export function obiettivoDi(obiettivi, data, turno, unita) {
 // sopra o sotto. "fatto" viene dalla produzione dei rapportini dello stesso
 // giorno e turno (bozze comprese: la produzione è produzione), oppure dal
 // numero di attività concluse se l'obiettivo è su quelle.
-// livello: ok = raggiunto, warn = vicino (≥85%), atteso = ancora indietro —
-// NON "danger": a inizio turno essere a zero è normale, non un allarme.
+// livello: ok = raggiunto, warn = vicino (≥85%) O indietro rispetto al
+// ritmo del turno (guarda `frazioneTempo`, non null, per distinguere le
+// due ragioni), atteso = ancora indietro ma presto per saperlo — NON
+// "danger": a inizio turno essere a zero è normale, non un allarme.
+// ⛔ 18/09, dalla ricerca continua (Short Interval Control, pratica di
+// settore): "atteso" copriva senza distinzione sia l'inizio turno (normale
+// essere a zero) sia gli ultimi minuti (un ritardo vero, che un
+// supervisore aprirebbe già come azione correttiva). `durate`/`adesso` sono
+// FACOLTATIVI apposta: senza `fineTurno` calcolabile (durata non
+// dichiarata) o senza un orologio da confrontare, il verdetto resta quello
+// di sempre — non si inventa un ripiego temporale su un dato che manca.
 // Pura e testabile; null se l'obiettivo non è un numero positivo.
-export function statoObiettivo(ob, rapportini, attivita) {
+export function statoObiettivo(ob, rapportini, attivita, durate, adesso) {
   const obiettivo = +((ob && ob.valore) ?? NaN);
   if (!ob || !Number.isFinite(obiettivo) || obiettivo <= 0) return null;
   const unita = String(ob.unita || UNITA_PRODUZIONE[0]);
@@ -593,11 +602,26 @@ export function statoObiettivo(ob, rapportini, attivita) {
   fatto = Math.round(fatto * 100) / 100;
   const scarto = Math.round((fatto - obiettivo) * 100) / 100;
   const pct = Math.round(100 * fatto / obiettivo);
+  let livello = pct >= 100 ? "ok" : pct >= 85 ? "warn" : "atteso";
+  let frazioneTempo = null;
+  if (livello === "atteso" && Number.isFinite(adesso)) {
+    const inizio = inizioTurno(ob.data, ob.turno);
+    const fine = fineTurno(durate, ob.data, ob.turno);
+    if (inizio !== null && fine !== null && fine > inizio) {
+      frazioneTempo = Math.round(100 * Math.min(1, Math.max(0, (adesso - inizio) / (fine - inizio))));
+      // indietro rispetto al ritmo lineare del turno: la frazione di
+      // obiettivo fatta è minore della frazione di turno già trascorsa.
+      // Nessuna soglia inventata — un margine non ha una fonte verificata
+      // (la ricerca l'ha cercato e dichiarato "non trovato"), quindi si
+      // confronta il ritmo direttamente, non un ritmo-meno-tolleranza.
+      if (pct < frazioneTempo) livello = "warn";
+    }
+  }
   return {
     data: ob.data, turno: ob.turno, unita, obiettivo, fatto,
     mancante: Math.max(0, Math.round((obiettivo - fatto) * 100) / 100),
-    scarto, pct,
-    livello: pct >= 100 ? "ok" : pct >= 85 ? "warn" : "atteso",
+    scarto, pct, frazioneTempo,
+    livello,
   };
 }
 

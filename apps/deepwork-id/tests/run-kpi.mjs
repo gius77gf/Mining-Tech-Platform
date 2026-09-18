@@ -11641,6 +11641,47 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(campo.statoObiettivo({ data: "x", turno: "y", unita: "t", valore: "" }, RAP, ATT), null, "vuoto");
     eq(campo.statoObiettivo({ data: "x", turno: "y", unita: "t", valore: -5 }, RAP, ATT), null, "negativo");
   });
+  test("statoObiettivo: senza `durate`/`adesso` il ritmo non si calcola (retrocompatibile)", () => {
+    /* le chiamate di sempre — nessun quinto/sesto argomento, come i tre test qui
+       sopra — non devono cambiare comportamento: `frazioneTempo` resta null e
+       il livello resta quello di prima */
+    const s = campo.statoObiettivo({ data: "2026-07-30", turno: "Notte", unita: "t", valore: 100 }, RAP, ATT);
+    contiene(s, { frazioneTempo: null, livello: "atteso" }, "nessun orologio passato: nessun verdetto sul ritmo");
+  });
+  test("⛔ 18/09, dalla ricerca continua (Short Interval Control): a metà turno, indietro rispetto al ritmo, «warn»", () => {
+    const dur = [{ data: "2026-09-18", turno: "Mattina", minuti: 480 }];   // 06:00-14:00
+    const meta = campo.inizioTurno("2026-09-18", "Mattina") + 4 * 3600000;   // le 10:00: metà turno
+    const rap = [{ data: "2026-09-18", turno: "Mattina", stato: "inviato", prodQta: 20, prodUnita: "t" }];
+    const s = campo.statoObiettivo({ data: "2026-09-18", turno: "Mattina", unita: "t", valore: 100 }, rap, [], dur, meta);
+    contiene(s, { pct: 20, frazioneTempo: 50, livello: "warn" },
+      "20% fatto a metà turno (50% trascorso): indietro, non più «atteso»");
+  });
+  test("statoObiettivo: a metà turno, in pari col ritmo, il livello resta «atteso»", () => {
+    const dur = [{ data: "2026-09-18", turno: "Mattina", minuti: 480 }];
+    const meta = campo.inizioTurno("2026-09-18", "Mattina") + 4 * 3600000;
+    const rap = [{ data: "2026-09-18", turno: "Mattina", stato: "inviato", prodQta: 60, prodUnita: "t" }];
+    const s = campo.statoObiettivo({ data: "2026-09-18", turno: "Mattina", unita: "t", valore: 100 }, rap, [], dur, meta);
+    contiene(s, { pct: 60, frazioneTempo: 50, livello: "atteso" },
+      "60% fatto a metà turno: in pari col ritmo, non un allarme");
+  });
+  test("statoObiettivo: senza la durata dichiarata del turno, nessun ripiego — resta «atteso»", () => {
+    /* il principio del fondatore applicato al ritmo: una `fineTurno` che non
+       si può calcolare (durata non dichiarata) non si stima, si dichiara
+       assente — `frazioneTempo` resta null, come senza `adesso` */
+    const inizio = campo.inizioTurno("2026-09-18", "Mattina");
+    const rap = [{ data: "2026-09-18", turno: "Mattina", stato: "inviato", prodQta: 20, prodUnita: "t" }];
+    const s = campo.statoObiettivo({ data: "2026-09-18", turno: "Mattina", unita: "t", valore: 100 }, rap, [], [], inizio + 4 * 3600000);
+    contiene(s, { pct: 20, frazioneTempo: null, livello: "atteso" }, "durata non dichiarata: nessun verdetto sul ritmo");
+  });
+  test("statoObiettivo: il ritmo non si applica a chi è già a «warn» per percentuale (≥85%)", () => {
+    /* frazioneTempo resta null quando il livello di partenza non è "atteso":
+       la domanda sul ritmo ha senso solo per chi sta ancora aspettando */
+    const dur = [{ data: "2026-09-18", turno: "Mattina", minuti: 480 }];
+    const inizio = campo.inizioTurno("2026-09-18", "Mattina");
+    const rap = [{ data: "2026-09-18", turno: "Mattina", stato: "inviato", prodQta: 90, prodUnita: "t" }];
+    const s = campo.statoObiettivo({ data: "2026-09-18", turno: "Mattina", unita: "t", valore: 100 }, rap, [], dur, inizio + 60000);
+    contiene(s, { pct: 90, frazioneTempo: null, livello: "warn" }, "90%: già «warn» per percentuale, non per ritmo");
+  });
 
   const ATT_FERMI = [
     { data: "2026-07-29", stato: "anomalia", fermoMin: 5 },

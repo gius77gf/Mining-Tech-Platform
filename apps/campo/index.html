@@ -2671,7 +2671,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   function renderObiettivo() {
     const data = $("ob-data").value || OGGI, turno = $("ob-turno").value || turnoCorrente();
     const ob = obiettivoDi(OBIE, data, turno);
-    const st = statoObiettivo(ob, RAP, ATT);
+    // ⛔ 18/09, dalla ricerca continua: `DUR` (le durate dei turni, già in
+    // memoria) e l'ora corrente bastano a `statoObiettivo` per distinguere
+    // "presto per saperlo" da "indietro rispetto al ritmo del turno" —
+    // niente di nuovo da misurare, solo un dato che la pagina ha già.
+    const st = statoObiettivo(ob, RAP, ATT, DUR, Date.now());
     const board = $("ob-board"), stato = $("ob-stato");
     if (!st) {
       board.innerHTML = "";
@@ -2682,9 +2686,15 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       return;
     }
     const cls = st.livello === "ok" ? "ok" : st.livello === "warn" ? "warn" : "";
+    // `frazioneTempo` non è null SOLO quando il livello "warn" viene dal
+    // ritmo (era "atteso" e si è scoperto indietro), non da un 85%+: le due
+    // ragioni del warning sono diverse e vanno dette diverse.
+    const indietro = st.livello === "warn" && st.frazioneTempo != null;
     const testo = st.livello === "ok"
       ? `<b>${esc(obUnita(st))}</b> · obiettivo raggiunto, <b>${esc(obQuanto(Math.abs(st.scarto), st.unita))}</b> in più`
-      : `<b>${esc(obUnita(st))}</b> · mancano <b class="bad">${esc(obQuanto(st.mancante, st.unita))}</b>`;
+      : indietro
+        ? `<b>${esc(obUnita(st))}</b> · <b class="bad">indietro rispetto al ritmo del turno</b> (trascorso il ${st.frazioneTempo}%, fatto il ${st.pct}%) — mancano ${esc(obQuanto(st.mancante, st.unita))}`
+        : `<b>${esc(obUnita(st))}</b> · mancano <b class="bad">${esc(obQuanto(st.mancante, st.unita))}</b>`;
     const cartello = `<div class="board ${cls}">
         <div class="board-ico">${I.bersaglio}</div>
         <div><div class="board-num">${st.pct}%</div>

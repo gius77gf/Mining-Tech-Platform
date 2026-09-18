@@ -1380,6 +1380,11 @@ const BANCHI = [
   ['appalto in scadenza · controprova', 'scudo-appalto-in-scadenza.mjs', ['--controprova'], true],
   ['Campo: chi non ha ancora un documento in Scudo non sparisce dal banner', 'campo-hse-senza-scadenze.mjs', []],
   ['senza scadenze in Campo · controprova', 'campo-hse-senza-scadenze.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, dalla ricerca continua (ottavo giro su Campo,
+     metodo Short Interval Control): l'obiettivo di turno diceva solo
+     "quanto manca", mai "sei indietro rispetto al ritmo di ADESSO". */
+  ["Campo: l'obiettivo di turno distingue presto da indietro-rispetto-al-ritmo", 'campo-obiettivo-ritmo.mjs', []],
+  ['obiettivo e ritmo del turno · controprova', 'campo-obiettivo-ritmo.mjs', ['--controprova'], true],
   ['Flotta: un componente scaduto ha la fascia colorata giusta', 'flotta-componenti-fascia.mjs', []],
   ['fascia componenti Flotta · controprova', 'flotta-componenti-fascia.mjs', ['--controprova'], true],
   ['Conti: la fattura scartata dallo SdI non è emesso nel Report', 'conti-emesso-scartata.mjs', []],
