@@ -34,15 +34,36 @@ const DIFETTI_MODULO = [
   ['  else { righe.push(["Volume misurato sui suoi fronti", "non misurato", true]); nonMisurati.push("Volume misurato (" + vm.motivo + ")"); }',
    '  else righe.push(["Volume misurato sui suoi fronti", "0 m³", false]);   /* difetto rimesso dal banco */'],
 ];
-const colpiti = new Set();
+/* ⛔ 18/09, dal secondo giro di deep-pass su Terra: la SCADENZA del titolo
+   autorizzativo, nella pagina (`fogliaRelazione`), era marcata mancante con
+   un `false` cablato — qualunque valore avesse `aut.dataScadenza` non
+   veniva mai segnalato. Qui si inietta il CASO (data assente), non un
+   difetto di codice: serve nella dimostrazione E nella controprova, per
+   verificare che il difetto rimesso in `DIFETTI_PAGINA` sia quello che
+   davvero rompe questo caso e non un altro. */
+const CASO_SENZA_SCADENZA = ['dataRilascio: "2021-03-15", dataScadenza: "2031-03-14", superficieMq: 78000,',
+  'dataRilascio: "2021-03-15", dataScadenza: null, superficieMq: 78000,'];
+const DIFETTI_PAGINA = [
+  [`riga(["Scadenza del titolo", dataISOEsiste(aut.dataScadenza) ? dataIt(String(aut.dataScadenza).slice(0, 10)) : "—", !dataISOEsiste(aut.dataScadenza)])`,
+   `riga(["Scadenza del titolo", fmtData(aut.dataScadenza), false])   /* difetto rimesso dal banco */`],
+  [`if (aut && !dataISOEsiste(aut.dataScadenza)) R.nonMisurati.push("Scadenza del titolo (non dichiarata)");`, ``],
+];
+let iniezioniCaso = 0;
+const colpiti = new Set(), colpitiPagina = new Set();
 const srv = createServer((q, s) => {
   let p = join(R, decodeURIComponent(q.url.split("?")[0]));
   if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
   if (!existsSync(p)) { s.writeHead(404); return s.end("no"); }
   let corpo = readFileSync(p);
-  if (CONTROPROVA && p.endsWith("apps/terra/terra-data.js")) {
+  if (p.endsWith("apps/terra/terra-data.js")) {
     let t = corpo.toString("utf8");
-    for (const [a, b] of DIFETTI_MODULO) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    if (t.includes(CASO_SENZA_SCADENZA[0])) { t = t.replace(CASO_SENZA_SCADENZA[0], CASO_SENZA_SCADENZA[1]); iniezioniCaso++; }
+    if (CONTROPROVA) for (const [a, b] of DIFETTI_MODULO) if (t.includes(a)) { colpiti.add(a); t = t.split(a).join(b); }
+    corpo = Buffer.from(t, "utf8");
+  }
+  if (CONTROPROVA && p.endsWith("apps/terra/index.html")) {
+    let t = corpo.toString("utf8");
+    for (const [a, b] of DIFETTI_PAGINA) if (t.includes(a)) { colpitiPagina.add(a); t = t.split(a).join(b); }
     corpo = Buffer.from(t, "utf8");
   }
   s.writeHead(200, { "content-type": TIPI[extname(p)] || "application/octet-stream" });
@@ -122,6 +143,11 @@ for (const W of [320, 390]) {
   dice(/non li stima e non li sostituisce con uno zero/.test(t), "e dice che non li stima", t.slice(1600, 2400));
   dice(/Questa relazione non documenta nessun lotto reale/.test(t), "in dimostrazione il foglio porta l'avviso", t.slice(0, 500));
   dice(/Titolo autorizzativo di riferimento/.test(t) && /Numero dell'atto/.test(t), "e il titolo autorizzativo di riferimento", t.slice(1000, 2000));
+  // ⛔ la scadenza del titolo (iniettata assente): «—», marcata mancante, ed
+  // elencata anche fra «che cosa manca» — non solo taciuta sulla riga.
+  dice(/Scadenza del titolo —/.test(t), "⛔ la scadenza del titolo assente è «—», non una data inventata o «undefined»", t.slice(1000, 2000));
+  dice(/Scadenza del titolo<\/b><\/td><td class='manca'>—/.test(doc), "⛔ e la cella porta la classe `manca` (prima era cablata a `false`)", doc.slice(doc.indexOf("Titolo autorizzativo"), doc.indexOf("Titolo autorizzativo") + 500));
+  dice(/Scadenza del titolo \(non dichiarata\)/.test(t), "⛔ e la sezione «Che cosa manca» la nomina — non solo la riga tace", t.slice(1200, 2400));
   dice(!/undefined|NaN|null/.test(t), "niente «undefined», «NaN» o «null» sul foglio", t);
   if (CART) {
     const pf = await ctx.newPage(); await pf.setContent(doc); await pf.waitForTimeout(200);
@@ -156,10 +182,15 @@ for (const W of [320, 390]) {
 await b.close();
 srv.close();
 
+console.log(`\ncaso (scadenza assente) iniettato ${iniezioniCaso} volte (attese 2, una per larghezza)`);
+if (iniezioniCaso !== 2) {
+  console.error("✗ il caso non ha trovato il suo pezzo di modulo: l'iniezione non inietta.");
+  process.exit(2);
+}
 if (CONTROPROVA) {
-  console.log(`\ndifetti rimessi: ${colpiti.size} su ${DIFETTI_MODULO.length}`);
-  if (colpiti.size !== DIFETTI_MODULO.length) {
-    console.error("✗ il difetto non ha trovato il suo pezzo di modulo: l'iniezione non inietta.");
+  console.log(`difetti rimessi nel modulo: ${colpiti.size} su ${DIFETTI_MODULO.length}  ·  nella pagina: ${colpitiPagina.size} su ${DIFETTI_PAGINA.length}`);
+  if (colpiti.size !== DIFETTI_MODULO.length || colpitiPagina.size !== DIFETTI_PAGINA.length) {
+    console.error("✗ il difetto non ha trovato il suo pezzo: l'iniezione non inietta.");
     process.exit(2);
   }
   console.log(ko > 0

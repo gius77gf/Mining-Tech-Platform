@@ -4380,6 +4380,7 @@ a.dw-btn{text-decoration:none}
   function fogliaRelazione(l) {
     const R = relazioneLotto(l, RIL, FRO, new Date());
     const aut = autorizzazioneVigente(AUT);
+    if (aut && !dataISOEsiste(aut.dataScadenza)) R.nonMisurati.push("Scadenza del titolo (non dichiarata)");
     const dataOggi = fmtData(oggiISO(new Date()));
     const riga = (d) => "<tr><td><b>" + esc(d[0]) + "</b></td><td" + (d[2] ? " class='manca'" : "") + ">" + esc(d[1]) + "</td></tr>";
     return "<!DOCTYPE html><html lang='it'><head><meta charset='utf-8'>"
@@ -4395,7 +4396,17 @@ a.dw-btn{text-decoration:none}
       + (aut ? "<h2>Titolo autorizzativo di riferimento</h2><table>"
           + riga(["Numero dell'atto", aut.numeroAtto || "—", !aut.numeroAtto])
           + riga(["Ente che l'ha rilasciato", aut.ente || "—", !aut.ente])
-          + riga(["Scadenza del titolo", fmtData(aut.dataScadenza), false]) + "</table>" : "")
+          /* ⛔ 18/09, dal secondo giro di deep-pass: qui il terzo campo era
+             cablato a `false`, quindi una scadenza assente o illeggibile
+             (`dataScadenza: null`) non veniva mai marcata mancante — proprio
+             la frase due righe sotto («la relazione non li stima e non li
+             sostituisce con uno zero») veniva smentita da questa riga sola.
+             `verbaleRilievo` (terra-data.js:3446) la stessa sezione la
+             compone nel modulo con `dataISOEsiste`/`manca()`: qui si rifà lo
+             stesso controllo, e si aggiunge a mano a `R.nonMisurati` perché
+             `relazioneLotto` non riceve `aut` e non può saperlo da sé. */
+          + riga(["Scadenza del titolo", dataISOEsiste(aut.dataScadenza) ? dataIt(String(aut.dataScadenza).slice(0, 10)) : "—", !dataISOEsiste(aut.dataScadenza)])
+          + "</table>" : "")
       + (R.nonMisurati.length
           ? "<h2>Che cosa manca in questa relazione</h2><p class='mini'>"
             + R.nonMisurati.map(esc).join(" · ")
