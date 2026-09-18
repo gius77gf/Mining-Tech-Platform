@@ -4946,6 +4946,14 @@ label.item:has(.dw-chk:checked){
         try { $("inc-imp").focus({ preventScroll: true }); $("inc-imp").select(); } catch (e) {} }
       return;
     }
+    /* ⛔ 18/09, dal deep-pass QA: `chiudiModale()` nasconde la modale ma non
+       disabilita il bottone — un doppio tocco quasi simultaneo esegue
+       `registraIncasso` due volte sullo stesso `massimo` catturato
+       all'apertura, confermato dal vivo: due movimenti da 3.000 € invece
+       di uno. Si disabilita il bottone "primary" PRIMA di chiudere la
+       modale, così un secondo tocco sullo stesso elemento non riparte. */
+    const btnInc = document.querySelector("#modal-foot .mbtn.primary");
+    if (btnInc) btnInc.disabled = true;
     chiudiModale();
     await db.aggiungi("incassi", { fatturaId: f.id, data, importo: imp, metodo });
     const movimenti = [...st.movimenti.map(m => ({ ...m })), { data, importo: imp }];
@@ -6623,6 +6631,15 @@ label.item:has(.dw-chk:checked){
             }
             const nota = notaDaFattura(f, causale, importo, numero);
             nota.emessa = oggiISOShell();
+            /* ⛔ 18/09, dal deep-pass QA: `chiudiModale()` arriva SOLO dopo
+               la scrittura — confermato dal vivo, un doppio tocco su
+               "Emetti" storna due volte lo stesso importo parziale (uno
+               storno per l'INTERO importo si autoblocca da `validaNota`
+               contro `NOT`, ma uno storno parziale no). Documento fiscale
+               (nota di credito), quindi si disabilita il bottone PRIMA
+               della scrittura, non solo dopo. */
+            const btnNota = document.querySelector("#modal-foot .mbtn.primary");
+            if (btnNota) btnNota.disabled = true;
             await db.aggiungi("note", nota);
             chiudiModale(); chiuso();
             const coda = v.avvisi.length ? " " + v.avvisi.join(" ") : "";
@@ -7005,12 +7022,22 @@ label.item:has(.dw-chk:checked){
       /* il listino del cliente (10/09): vuoto = listino base. Si scrive `null`,
          non la stringa vuota, così `listinoDelCliente` lo legge come «base» */
       listinoId: $("cl-listino").value || null };
+    /* ⛔ 18/09, dal deep-pass QA: in demo il controllo sul nome (sopra) si
+       autoprotegge da un doppio tocco perché legge `CLI`, riferimento live
+       allo stesso array che `db.aggiungi` muta sincronamente — un artefatto
+       del backend demo, non della guardia. In produzione (Firestore vero,
+       scrittura di rete) il secondo tocco non vedrebbe ancora il cliente
+       appena creato: stesso bug della famiglia, mascherato in demo.
+       `occupato(false)` va PRIMA di riscrivere l'etichetta del bottone. */
+    occupato("btn-cl", true);
     if (editCli) {
       await db.aggiorna("clienti", editCli, dati);
+      occupato("btn-cl", false);
       editCli = null; $("btn-cl").textContent = "Aggiungi";
       esito("cl-esito", "Cliente " + ragioneSociale + " aggiornato.", "success");
     } else {
       await db.aggiungi("clienti", dati);
+      occupato("btn-cl", false);
       esito("cl-esito", "Cliente aggiunto: " + ragioneSociale + ".", "success");
     }
     pulisciCli();
@@ -7114,12 +7141,20 @@ label.item:has(.dw-chk:checked){
       /* niente campo vuoto sui prodotti senza scaglioni: restano identici a
          prima, ed è quello che deve succedere alla stragrande maggioranza. */
       scaglioni: proScaglioni.length ? proScaglioni.map(s => ({ ...s })) : null };
+    /* ⛔ 18/09, dal deep-pass QA: stessa famiglia di btn-cl — il controllo sul
+       nome si autoprotegge in demo solo perché `PRO` è un riferimento live
+       allo stesso array mutato sincronamente da `db.aggiungi`; in
+       produzione (rete) il secondo tocco non vedrebbe ancora il prodotto
+       appena creato. */
+    occupato("btn-pr", true);
     if (editPro) {
       await db.aggiorna("prodotti", editPro, dati);
+      occupato("btn-pr", false);
       editPro = null; $("btn-pr").textContent = "Aggiungi";
       esito("pr-esito", "Listino aggiornato: " + nome + " a " + eur(prezzo) + "/" + uni(unitaPrezzo) + ".", "success");
     } else {
       await db.aggiungi("prodotti", dati);
+      occupato("btn-pr", false);
       esito("pr-esito", "Prodotto aggiunto: " + nome + " a " + eur(prezzo) + "/" + uni(unitaPrezzo) + ".", "success");
     }
     pulisciPro(); $("pr-nome").focus(); await refresh();
@@ -7222,7 +7257,13 @@ label.item:has(.dw-chk:checked){
     const odl = odlSel && ODL ? ODL.find(o => o.id === odlSel) : null;
     const rec = { data, voce, importo: round2(ri.valore), nota, registratoIl: istanteLocale() };
     if (odl) rec.ordineFlotta = { id: odl.id, titolo: odl.titolo, mezzo: odl.mezzo };
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia e nessun controllo di
+       doppione (a differenza di clienti/prodotti, che controllano il
+       nome) — confermato dal vivo, un doppio tocco registra due costi
+       identici. */
+    occupato("btn-cos", true);
     await db.aggiungi("costi", rec);
+    occupato("btn-cos", false);
     esito("cos-esito", "Costo registrato: " + leggiVoce(voce) + ", " + eur(ri.valore) + " del " + fmtD(data) + (odl ? ", collegato all'ordine «" + etichettaOrdineFlotta(odl) + "»" : "") + ".", "success");
     pulisciCos(); $("co-imp").focus(); await refresh();
   };
@@ -8395,14 +8436,23 @@ label.item:has(.dw-chk:checked){
     const doc = { data, validoAl, clienteId, cliente: (cliente && cliente.ragioneSociale) || "",
       riferimento: $("or-rif").value.trim(), note: $("or-note").value.trim(),
       righe: orRighe.map(r => ({ ...r })) };
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — confermato dal vivo, un
+       doppio tocco salva due preventivi distinti (numero diverso ciascuno,
+       perché numeroProssimoPreventivo legge ORD in memoria e in demo è già
+       aggiornato dal primo, ma resta comunque un documento duplicato dalla
+       stessa intenzione). `occupato(false)` va PRIMA di `pulisciOrd()`, che
+       riscrive l'etichetta del bottone leggendo `editOrd` appena azzerato. */
+    occupato("btn-or", true);
     if (editOrd) {
       await db.aggiorna("ordini", editOrd, doc);
       const n = $("or-num").value;
+      occupato("btn-or", false);
       pulisciOrd(); await refresh();
       esito("ord-esito", "Preventivo " + n + " aggiornato.", "success");
     } else {
       const numero = numeroProssimoPreventivo();
       await db.aggiungi("ordini", { numero, stato: "bozza", ...doc });
+      occupato("btn-or", false);
       pulisciOrd(); await refresh();
       esito("ord-esito", "Preventivo " + numero + " salvato come bozza. Quando lo mandi al cliente, segnalo come inviato.", "success");
     }

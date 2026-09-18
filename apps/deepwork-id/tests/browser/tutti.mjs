@@ -654,6 +654,12 @@ const BANCHI = [
   ["bottoni occupato di Campo · controprova", 'campo-bottoni-occupato.mjs', ['--controprova'], true],
   ["audit occupato: i quattro bottoni residui di Scudo/Sentinella/Conti (infortuni, scadenze, volate, DDT)", 'audit-occupato-residui.mjs', []],
   ["audit occupato residui · controprova", 'audit-occupato-residui.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, terzo giro di deep-pass QA su Conti: costi,
+     preventivi e la modale "Registra incasso" (il caso più grave per
+     gravità economica: un doppio tocco quasi simultaneo raddoppiava un
+     acconto). */
+  ['Conti: costi, preventivi e la modale "Registra incasso" si spengono durante la scrittura', 'conti-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Conti · controprova', 'conti-bottoni-occupato.mjs', ['--controprova'], true],
   ["Flotta: magazzino ricambi, mezzi e ordine di lavoro si spengono durante il salvataggio", 'flotta-bottoni-occupato.mjs', []],
   ["bottoni occupato di Flotta · controprova", 'flotta-bottoni-occupato.mjs', ['--controprova'], true],
   ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
