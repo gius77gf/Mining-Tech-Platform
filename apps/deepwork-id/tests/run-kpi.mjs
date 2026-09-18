@@ -43548,6 +43548,18 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(P.comeNato.includes(terra.descriviIncertezza(R.incertezza)), "l'incertezza la scrive descriviIncertezza");
     ok(/vanno confermate con i punti di controllo/.test(P.comeNato) && !/valore minimo/.test(P.comeNato), "col pregresso dichiarato il cumulato non è «un minimo»");
   });
+  test("⛔ Terra · prospettoDenuncia: scavo misurato ma pregresso NON dichiarato — «Cumulato» e «Residuo» si dicono MINIMO/MASSIMO, non un dato per intero (18/09, dal backlog QA)", () => {
+    const sfrq = { ...aut, estrattoPregressoM3: null };
+    const DEN = den(2026, { aut: sfrq });
+    eq(DEN.R.misurabile, true, "(precondizione: c'è scavo misurato)"); eq(DEN.R.pregressoDichiarato, false, "(precondizione: il pregresso non è dichiarato)");
+    const P = terra.prospettoDenuncia(DEN, D.fronti, OGGI);
+    eq(P.posizione.righe[1], ["Estratto dichiarato prima dell'uso di Terra", "non dichiarato", true]);
+    eq(P.posizione.totale, { etichetta: "Cumulato a fine 2026 (valore MINIMO: l'estratto prima di Terra non è dichiarato)",
+      valore: "101.400 m³", via: "(8,5% del concesso)", mancante: false },
+      "⛔ come csvRiepilogoAnno: il cumulato senza pregresso è quello che Terra sa di SICURO, non il vero — è il minimo");
+    eq(P.posizione.residuo, ["Residuo del volume concesso (valore MASSIMO: l'estratto prima di Terra non è dichiarato)", "1.098.600 m³", false],
+      "⛔ e il residuo, che è concesso−cumulato, è di conseguenza il MASSIMO — non «1.098.600 m³» tranquillo");
+  });
   test("Terra · prospettoDenuncia: l'anno CIECO — «non misurato» sul totale, sul cumulato, sul residuo e sull'imponibile, mai uno zero; e l'elenco di ciò che manca", () => {
     const cieco = { ...aut, estrattoPregressoM3: null };
     const DEN = den(2026, { rilievi: [], aut: cieco });

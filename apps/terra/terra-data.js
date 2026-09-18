@@ -1853,6 +1853,17 @@ export function prospettoDenuncia(DEN, fronti, oggi = new Date()) {
      che qui vuol dire un'altra cosa (manca il concesso). Un pregresso mai
      dichiarato non si stampa «0 m³»: sarebbe una dichiarazione che nessuno
      ha fatto, e per giunta quella che abbassa il cumulato. */
+  /* ⛔ 18/09, dal backlog QA: `csvRiepilogoAnno` (poco più su) annota SIA
+     «Cumulato» come valore MINIMO SIA «Residuo» come valore MASSIMO quando
+     c'è uno scavo misurato ma il pregresso non è dichiarato — qui mancava
+     la stessa annotazione, su tutt'e due le righe. Con scavo misurato e
+     pregresso non dichiarato, `cumulatoFineAnno` è quanto Terra sa di sicuro
+     (il pregresso ignoto conta 0): il vero cumulato è quello O PIÙ, quindi
+     questo è il minimo; e siccome `residuoFineAnno=concesso-cumulato`, il
+     vero residuo è quello o MENO — il foglio che va all'ente stampava
+     «Cumulato a fine 2026 · 101.400 m³ (8,5% del concesso)» e «Residuo ·
+     1.098.600 m³» con la stessa faccia di un dato misurato per intero. */
+  const nonPregDich = R.misurabile && !R.pregressoDichiarato;
   const posizione = {
     righe: [
       R.concesso ? ["Volume concesso dall'atto", nD(R.concesso) + " m³", false] : manca("Volume concesso dall'atto", "non indicato", "non indicato"),
@@ -1861,11 +1872,11 @@ export function prospettoDenuncia(DEN, fronti, oggi = new Date()) {
       R.misurabile ? ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, n0(Math.max(0, R.cumulatoFineAnno - R.pregresso)) + " m³", false]
         : ["Scavo misurato sotto questo titolo fino al 31/12/" + anno, "non misurato", true],
     ],
-    totale: { etichetta: "Cumulato a fine " + anno,
+    totale: { etichetta: "Cumulato a fine " + anno + (nonPregDich ? " (valore MINIMO: l'estratto prima di Terra non è dichiarato)" : ""),
       valore: R.misurabile ? n0(R.cumulatoFineAnno) + " m³" : "non misurato",
       via: R.misurabile && R.pctFineAnno != null ? "(" + un1(R.pctFineAnno) + "% del concesso)" : "",
       mancante: !R.misurabile },
-    residuo: ["Residuo del volume concesso",
+    residuo: ["Residuo del volume concesso" + (nonPregDich && R.residuoFineAnno != null ? " (valore MASSIMO: l'estratto prima di Terra non è dichiarato)" : ""),
       !R.misurabile ? "non misurato" : R.residuoFineAnno != null ? n0(R.residuoFineAnno) + " m³" : "non calcolabile", !R.misurabile],
     soglia: d.soglia != null ? ["Soglia di guardia impostata", un1(d.soglia) + "%", false] : null,
     nota: R.misurabile ? ""
