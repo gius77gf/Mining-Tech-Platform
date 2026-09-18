@@ -1,21 +1,17 @@
 # Ultimo ciclo
 
-- **Timestamp (UTC, da `date -u`)**: 2026-09-18T19:11:29Z
-- **Commit di partenza**: aca7b746
-- **Cosa sto per fare**: chiuso l'intero backlog QA aperto in questa
-  sessione (10 unità: Genesi stemB/subB Validatore + vista 3D raggi-X,
-  Terra prospettoDenuncia Cumulato/Residuo, Deepwork ID admin.html su un
-  OWNER, Sentinella/shared .ics con allarmi nel passato, Scudo
-  organigrammaSicurezza senza-data, Genesi tempo jitterato nel popup/
-  timeline, Genesi import esplosivo/innesco, Flotta giacenza/soglia col
-  punto inglese, Terra bottoni di scrittura senza guardia `occupato`).
-  In corso ora: giro completo di convergenza documenti su una worktree
-  fresca (`/tmp/wt-final-block`), e tre agenti QA in background (audit
-  del pattern `occupato` sulle app rimaste — Scudo/Campo/Conti/
-  Sentinella/Genesi —, secondo giro Campo, secondo giro Conti). Prossimo
-  passo atomico: leggere gli esiti degli agenti (verificarli dal vivo,
-  mai sulla parola sola), propagare i numeri del giro nei quattro
-  documenti tracciati, scrivere il checkpoint dell'unità e proseguire
-  con quello che gli agenti hanno trovato — poi con la fase apertura dal
-  fondatore il 26/08 (ponti/approfondimento app per app) se il backlog
-  QA è esaurito.
+- **Timestamp (UTC, da `date -u`)**: 2026-09-18T20:02:18Z
+- **Commit di partenza**: c50d652d
+- **Cosa sto per fare**: chiuso l'intero backlog QA della sessione
+  (quattordici unità, vedi vault/checkpoints/20260918-200218_backlog-qa-chiuso.md
+  e la sezione dedicata in vault/ROADMAP_SETTIMANA.md). In corso ora: un
+  giro completo di convergenza documenti su una worktree fresca
+  (`/tmp/wt-final-block2`, HEAD c50d652d), e tre nuovi cantieri QA in
+  background (deep-pass di sola diagnosi, non toccano codice) su
+  Flotta, Genesi, Terra — rotazione verso app non ancora riviste oggi
+  con un secondo giro approfondito. Prossimo passo atomico: leggere il
+  log del giro completo e propagare i numeri nei quattro documenti
+  tracciati; leggere gli esiti dei tre agenti QA e verificarli dal vivo
+  (mai sulla parola sola) prima di aprire un cantiere di correzione;
+  se il backlog resta esaurito, proseguire con la lista "SE LA ROADMAP
+  SEMBRA FINITA" di CLAUDE.md.

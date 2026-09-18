@@ -11606,3 +11606,62 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   completo: 41/41. Asserzioni eseguite dal giro: 4160→**4162**. Banchi
   del browser: 363→**365** esecuzioni, 161→**162** file distinti,
   propagato nei quattro documenti.
+
+## Chiusura del backlog QA aperto in sessione — quattordici unità (18/09)
+- [x] **Genesi**: stemB/subB nel Validatore davano falso allarme rosso se
+      stem/sub illeggibile; vista 3D raggi-X disegnava la carica fino al
+      colletto se il borraggio era illeggibile (`abb9542f`).
+- [x] **Genesi**: import `.volata.json` ignorava esplosivo/innesco
+      (`387d18d8`); popup del foro e timeline mostravano il tempo
+      jitterato (tDet) invece del nominale (tNom) (`aa027f62`).
+- [x] **Terra**: `prospettoDenuncia` non annotava "Residuo" come valore
+      MASSIMO quando manca il pregresso dichiarato (`220f7c9f`).
+- [x] **Deepwork ID**: `admin.html` offriva azioni sull'owner a un admin
+      — il server le rifiuta sempre, UI mendace non un buco di
+      sicurezza (`d123446f`).
+- [x] **shared/dw-shell.js**: `icsCalendario` generava allarmi VALARM
+      nel passato per preavvisi già scaduti — i trigger relativi si
+      calcolano sempre da DTSTART, mai da "adesso" (`699990eb`).
+- [x] **Scudo**: `organigrammaSicurezza` ignorava lo stato "senza data"
+      nel filtro delle formazioni in scadenza (`f64741f0`).
+- [x] **Flotta**: giacenza/soglia ricambio con punto inglese invece
+      della virgola italiana in `prioritaOperative`/`csvSituazione`
+      (`a70be7bd`).
+- [x] **Terra/Flotta/shared**: nessun bottone di scrittura si
+      disabilitava durante il salvataggio (doppio tocco su rete lenta
+      duplica). Promosso `occupato()` da Flotta a `shared/dw-app-ui.js`
+      appena servito a una seconda app (`aca7b746`).
+- [x] **Conti**: `registroVendite`/`csvRegistroVendite` non escludevano
+      le fatture scartate dallo SdI, nonostante un commento nello
+      stesso file lo dichiarasse già fatto (falso); e
+      `csvSituazioneFatture` chiamava "insoluta" una scartata dallo SdI
+      invece di dirlo per nome (`6c23a9cf`).
+- [x] **Conti**: bottone "Emetti" senza `occupato()` — race sul numero
+      fattura, un doppio tocco poteva scrivere due fatture con lo
+      stesso numero (`574afee6`).
+- [x] **Campo**: `coperturaRapportini` chiamava "mancante" una squadra
+      che aveva consegnato (solo senza data leggibile) — il documento
+      firmato si autosmentiva nella stessa sezione, tabella e nota in
+      contraddizione (`a49ab735`).
+- [x] **Campo**: **nessuno** dei quindici bottoni di scrittura aveva
+      `occupato()` (zero occorrenze contro le decine delle altre tre
+      app) — il più serio: la firma del turno (`e13c0969`).
+- [x] **Scudo/Sentinella/Conti**: quattro bottoni residui trovati
+      dall'audit sul pattern `occupato` — infortuni, scadenze, volate,
+      e il più serio: "Registra DDT" in Conti, dove un doppio tocco
+      calcolava lo stesso numero di documento di trasporto due volte
+      (`c50d652d`).
+
+  Ogni unità verificata dal vivo con banco browser dedicato (controprova
+  che sa fallire) o test unitario con controprova dove il browser non
+  serviva. Metodo comune ai fix `occupato()`: misurato che in
+  dimostrazione `db.aggiungi` scrive sincronamente nello stesso array
+  che i controlli "esiste già" leggono (per riferimento, non una
+  copia), quindi un doppio click nativo non produce mai un vero
+  doppione in demo — la domanda che regge, indipendente dal backend, è
+  se il bottone si disabilita SUBITO al tocco, ed è quella che i banchi
+  misurano. run-kpi.mjs: 3160→**3163**. sintassi-pagine.mjs 34/34.
+  run-stile.mjs 330/330. suite-collegate.mjs 3/3. iniezioni-fresche.mjs:
+  660 sul bersaglio su 660 (zero ancore di controprova scadute, due
+  regressioni auto-inflitte nello stesso blocco catturate e corrette
+  prima del push finale).
