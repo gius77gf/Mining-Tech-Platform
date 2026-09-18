@@ -2654,11 +2654,15 @@ export function emessoIncassato(fatture, incassi, mesi = 6, oggi = new Date()) {
     /* ⛔ 18/09, dal deep-pass QA: mancava la guardia già propagata a nove
        altre funzioni (agingIncassi/fattureOltre90/kpiFrom/incassoAtteso/
        testoSollecito/sollecitabile/esposizioneClienti/incassoPerMese/
-       estrattoContoCliente/registroVendite). Una fattura scartata dallo
-       SdI non è fiscalmente emessa: qui veniva contata come "emesso" nel
-       mese, gonfiando il flusso di cassa mostrato nel Report — proprio il
+       estrattoContoCliente). Una fattura scartata dallo SdI non è
+       fiscalmente emessa: qui veniva contata come "emesso" nel mese,
+       gonfiando il flusso di cassa mostrato nel Report — proprio il
        grafico pensato per dare la fotografia più onesta del confronto
-       emesso/incassato. */
+       emesso/incassato. ⚠️ E QUESTO COMMENTO ELENCAVA ANCHE `registroVendite`
+       COME GIÀ FATTO: era falso — la guardia lì è arrivata solo il 18/09
+       sera, da un secondo giro di QA che ha riletto il codice invece di
+       credere all'elenco. È l'invecchiamento-al-contrario di un commento
+       che si autoconvince di aver finito un lavoro non finito. */
     if (statoSdi(f, oggi).nonEmessa) continue;
     const k = String(f.emessa || "").slice(0, 7);
     if (!per[k]) continue;
@@ -4418,20 +4422,29 @@ export function notaDaFattura(fattura, causale, importo, numero) {
    correzione che cambia numeri che erano giusti è una correzione che rompe.
    Il file NON si ri-carica (`parseFattureCsv` legge altre colonne) ed è un
    prospetto, non un backup: lo tiene fermo una prova apposta. */
-export function csvSituazioneFatture(fatture, incassi, note, clienti) {
+export function csvSituazioneFatture(fatture, incassi, note, clienti, oggi = new Date()) {
   let csv = "numero;cliente;emessa;imponibile;aliquota;iva;totale;stornato;scadenza;stato;"
-          + "incassato;residuo;data_incasso;giorni_pagamento;ddt;righe_non_tornano\n";
+          + "incassato;residuo;data_incasso;giorni_pagamento;ddt;righe_non_tornano;sdi\n";
   for (const f of (fatture || []).filter(Boolean).slice()
        .sort((a, b) => String(a.scadenza || "").localeCompare(String(b.scadenza || "")))) {
     const im = importiFattura(f);
     const s = statoFattura(f, incassi, note);
     const sc = statoScadenzaFattura(f);
     const rie = riepilogoIvaFattura(f);
+    const sd = statoSdi(f, oggi);
     /* ⛔ «stornata» viene PRIMA di tutto il resto, come nel badge dell'elenco:
        una fattura annullata non è né saldata né insoluta, e chiamarla insoluta
        manda il commercialista a chiedere soldi che nessuno deve più. */
     const st = s.stato === "stornata" ? "stornata"
       : s.saldata ? "incassata" : s.parziale ? "acconto"
+      /* ⛔ 18/09, dal secondo giro di deep-pass QA: mancava esattamente qui —
+         una fattura scartata dallo SdI non è emessa (statoSdi.perche: «prima
+         si rimanda, poi si sollecita»), e uscendo come «insoluta» col residuo
+         pieno il commercialista la legge come un credito da riscuotere invece
+         che come un documento da rimandare. È la stessa distinzione che a
+         schermo compare come badge PRIMA del numero (index.html, «sdiPrima»)
+         — qui nel CSV non c'era alcun segnale, nemmeno una colonna. */
+      : sd.nonEmessa ? "non emessa (SdI: " + sd.stato + ")"
       : sc.stato === "insoluta" ? "insoluta"
       /* ⛔ e una scadenza che non c'è non è «aperta»: la regola sta in
          `statoScadenzaFattura`, qui non si riscrive. */
@@ -4444,7 +4457,9 @@ export function csvSituazioneFatture(fatture, incassi, note, clienti) {
          + `${im.conIva ? im.ivaImporto : ""};${im.totale};${s.stornato};`
          + `${f.scadenza || ""};${st};${s.incassato};${s.residuo};`
          + `${s.dataSaldo || f.dataIncasso || ""};${s.giorniPagamento == null ? "" : s.giorniPagamento};`
-         + `${(f.ddtIds || []).length};${rie.daRighe ? (rie.quadra ? "no" : "si") : ""}\n`;
+         // la colonna SdI: stessa regola del badge a schermo — una volta
+         // incassata l'esito dello SdI non serve più a nessuno
+         + `${(f.ddtIds || []).length};${rie.daRighe ? (rie.quadra ? "no" : "si") : ""};${csvCell(s.saldata ? "" : sd.breve)}\n`;
   }
   return csv;
 }
@@ -6652,7 +6667,7 @@ export function csvRimanenze(inventari, prodotti, alla, costo) {
    mesi) — la distinzione che `validaNota` già applica in casa e che qui
    spariva. Una fattura non ha causale: colonna vuota, non inventata. Pura,
    per nome. */
-export function registroVendite(fatture, clienti, note, dal, al) {
+export function registroVendite(fatture, clienti, note, dal, al, oggi = new Date()) {
   const d1 = dal && dataISOEsiste(String(dal).slice(0, 10)) ? String(dal).slice(0, 10) : null;
   const d2 = al && dataISOEsiste(String(al).slice(0, 10)) ? String(al).slice(0, 10) : null;
   const cli = (id) => (clienti || []).find((c) => c && c.id === id) || null;
@@ -6668,6 +6683,12 @@ export function registroVendite(fatture, clienti, note, dal, al) {
     for (const b of bande) righe.push({ ...base, aliquota: b.aliquota, imponibile: round2(segno * b.imponibile), imposta: round2(segno * b.imposta), senzaIva: false });
   };
   for (const f of (fatture || []).filter(Boolean).slice().sort((a, b) => String(a.emessa || "").localeCompare(String(b.emessa || "")))) {
+    /* ⛔ 18/09: una fattura scartata dallo SdI non è fiscalmente emessa (vedi
+       `statoSdi`) e non va nel registro delle vendite — che è esattamente
+       il documento per cui "emessa" ha un senso legale. Il commento più in
+       basso, su `emessoIncassato`, la dichiarava già propagata qui: non lo
+       era. */
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const rie = riepilogoIvaFattura(f);
     /* una fattura con le righe ma senza i totali scritti (un import, un
        archivio vecchio) prende imponibile e totale dalle righe stesse: la
@@ -6717,8 +6738,8 @@ export function registroVendite(fatture, clienti, note, dal, al) {
     imposta: round2(nel.reduce((s, r) => s + (r.imposta || 0), 0)) };
 }
 export const CSV_REGISTRO_VENDITE_INTESTAZIONE = "tipo;numero;data;cliente;partita_iva;codice_fiscale;codice_destinatario;aliquota;imponibile;imposta;totale_documento;riferimento;nel_periodo;causale";
-export function csvRegistroVendite(fatture, clienti, note, dal, al) {
-  const r = registroVendite(fatture, clienti, note, dal, al);
+export function csvRegistroVendite(fatture, clienti, note, dal, al, oggi = new Date()) {
+  const r = registroVendite(fatture, clienti, note, dal, al, oggi);
   const num = (v) => v == null ? "" : String(v);
   let csv = CSV_REGISTRO_VENDITE_INTESTAZIONE + "\n";
   for (const x of r.righe)

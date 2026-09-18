@@ -26602,6 +26602,29 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
        "e la colonna del quadro legge `daRighe` di riepilogoIvaFattura");
   });
 
+  test("⛔ 18/09, secondo giro di deep-pass: csvSituazioneFatture non chiama una scartata dallo SdI «insoluta»", () => {
+    // il codice non chiamava mai statoSdi qui: una scartata scaduta usciva
+    // «insoluta» col residuo pieno — esattamente il credito che l'app in ogni
+    // altro punto CHIEDE di non sollecitare finché non è rimandata allo SdI.
+    const scartata = { id: "fs", numero: "2026/500", cliente: "Cave del Sud", importo: 5900,
+      emessa: "2026-07-18", scadenza: "2026-08-18", incassata: false,
+      sdi: { stato: "scartata", il: "2026-07-19", nota: "CAP del cliente mancante" } };
+    const csv = conti.csvSituazioneFatture([scartata, ...FAT], INC, NOT, [], new Date("2026-09-18T10:00:00Z"));
+    const r = celle(csv, "2026/500");
+    eq(r[COL("stato")], "non emessa (SdI: scartata)", "non «insoluta»: " + r[COL("stato")]);
+    ok(r[COL("sdi")].includes("scartata"), "e la colonna sdi lo dice per nome: " + r[COL("sdi")]);
+    eq(+r[COL("residuo")], conti.statoFattura(scartata, INC, NOT).residuo, "il residuo non è toccato: si dichiara solo lo stato, non si inventa un incasso");
+    // una consegnata normale non porta l'etichetta nonEmessa
+    const r1 = celle(csv, "2026/031");
+    ok(!r1[COL("stato")].startsWith("non emessa"), "2026/031 (senza sdi registrato) resta com'era: " + r1[COL("stato")]);
+    eq(r1[COL("sdi")], "esito SdI non registrato", "e la colonna sdi lo dice per nome, come il badge a schermo");
+    // una incassata non porta più la colonna sdi, come il badge a schermo
+    const incassataConSdi = { id: "zi", numero: "2026/999", clienteId: "c1", importo: 1000,
+      incassata: true, sdi: { stato: "consegnata", il: "2026-01-01" } };
+    const csv2 = conti.csvSituazioneFatture([incassataConSdi], [], [], [], new Date("2026-09-18T10:00:00Z"));
+    eq(celle(csv2, "2026/999")[COL("sdi")], "", "incassata: la colonna sdi resta vuota, come il badge a schermo");
+  });
+
   test("⛔ Conti · le colonne di TESTO restano protette (il numero è un separatore)", () => {
     /* ⚠️ E LA PRIMA STESURA DI QUESTA PROVA SBAGLIAVA IL VERSO, presa dalla
        suite stessa: contava i campi di uno `split(";")` ingenuo e li aspettava
@@ -26721,15 +26744,30 @@ console.log("\n— Conti · la barra di peso: il numero è giusto e a mentire è
     };
     const nuove = conti.csvSituazioneFatture(F, I, [], C).split("\n").slice(1).filter(Boolean);
     eq(nuove.length, F.length, "una riga per fattura, come prima");
-    const iStornato = COL("stornato"), iQuadro = COL("righe_non_tornano");
+    const iStornato = COL("stornato"), iQuadro = COL("righe_non_tornano"), iSdi = COL("sdi");
     for (const r of nuove) {
       const c = r.split(";");
-      const senzaNuove = c.filter((_, i) => i !== iStornato && i !== iQuadro).join(";");
+      const senzaNuove = c.filter((_, i) => i !== iStornato && i !== iQuadro && i !== iSdi).join(";");
       const f = F.find((x) => x.numero === c[0]);
       ok(f, `la riga ${c[0]} è di una fattura vera`);
-      eq(senzaNuove, vecchia(f), `${c[0]}: identica alla riga del 06/08`);
+      /* ⛔ 18/09: f4 è scartata dallo SdI, e la colonna «stato» adesso lo dice
+         («non emessa») invece di «insoluta» — è la correzione di oggi, non
+         una regressione: la riga vecchia non conosceva lo SdI. Si confronta
+         tutto il resto (comprese incassato/residuo/date, che non cambiano)
+         e si sostituisce «insoluta» con l'atteso nuovo prima del confronto. */
+      if (conti.statoSdi(f, new Date()).nonEmessa) {
+        const parti = senzaNuove.split(";");
+        const partiVecchie = vecchia(f).split(";");
+        eq(parti.length, partiVecchie.length, `${c[0]}: stesso numero di colonne`);
+        parti.forEach((v, i) => {
+          if (i === 8) eq(v, "non emessa (SdI: " + conti.statoSdi(f, new Date()).stato + ")", `${c[0]}: stato dice la scartata, non «insoluta»`);
+          else eq(v, partiVecchie[i], `${c[0]}: colonna ${i} identica alla riga del 06/08`);
+        });
+      } else {
+        eq(senzaNuove, vecchia(f), `${c[0]}: identica alla riga del 06/08`);
+      }
     }
-    console.log(`     (${nuove.length} fatture d'esempio, tutte identiche alla composizione precedente)`);
+    console.log(`     (${nuove.length} fatture d'esempio, tutte identiche alla composizione precedente tranne lo stato SdI dove si applica)`);
   });
 }
 
@@ -45715,10 +45753,32 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const rOk = conti.registroVendite([fOk], CLI, []);
     eq([rOk.righe[0].aliquota, rOk.righe[0].imponibile, rOk.righe[0].imposta, rOk.righe[0].causale], [22, 1000, 220, ""], "righe coerenti: nessun avviso, si usa la scomposizione vera");
   });
+  test("⛔ 18/09, secondo giro di deep-pass: una fattura scartata dallo SdI non entra nel registro delle vendite", () => {
+    // il commento sopra emessoIncassato dichiarava questa guardia già
+    // propagata a registroVendite: non lo era — la guardia mancava del tutto.
+    const fOk = { id: "fok", numero: "2026/200", clienteId: "c1", cliente: "Edilcave Srl", emessa: "2026-08-10",
+      imponibile: 1000, ivaImporto: 220, totale: 1220 };
+    const fScartata = { id: "fs", numero: "2026/201", clienteId: "c1", cliente: "Edilcave Srl", emessa: "2026-08-11",
+      imponibile: 2000, ivaImporto: 440, totale: 2440, sdi: { stato: "scartata", il: "2026-08-12" } };
+    const r = conti.registroVendite([fOk, fScartata], CLI, []);
+    eq(r.righe.map(x => x.numero), ["2026/200"], "solo la fattura emessa: la scartata non compare");
+    eq(r.documenti, 1, "e il conto dei documenti la esclude anche lui");
+    const csv = conti.csvRegistroVendite([fOk, fScartata], CLI, []).trim().split("\n");
+    eq(csv.length - 1, 1, "il CSV per il commercialista: una riga sola");
+    ok(!csv.some(l => l.startsWith("fattura;2026/201;")), "la scartata non esce nemmeno nel file");
+    // una consegnata (emessa per davvero) resta dentro, per non stringere oltre il dovuto
+    const fConsegnata = { ...fScartata, id: "fc2", numero: "2026/202", sdi: { stato: "consegnata", il: "2026-08-12" } };
+    eq(conti.registroVendite([fConsegnata], CLI, []).righe.length, 1, "una consegnata resta: solo «scartata»/«da-inviare» sono nonEmessa");
+  });
   test("csvRegistroVendite: intestazione, ordine per data, e la dimostrazione (tutte senza IVA dichiarata, com'è)", () => {
     const righe = conti.csvRegistroVendite(D.fatture, CLI, D.note || []).trim().split("\n");
     eq(righe[0], conti.CSV_REGISTRO_VENDITE_INTESTAZIONE, "l'intestazione");
-    eq(righe.length - 1, D.fatture.length, "una riga per fattura: nessuna ha bande");
+    // ⛔ 18/09: f4 è scartata dallo SdI (nota "CAP del cliente mancante") — non
+    // è fiscalmente emessa, quindi non entra nel registro delle vendite: una
+    // riga in meno delle fatture totali, non una per fattura.
+    eq(D.fatture.some(f => f.id === "f4" && f.sdi && f.sdi.stato === "scartata"), true, "premessa: f4 è la scartata della dimostrazione");
+    eq(righe.length - 1, D.fatture.length - 1, "una riga per fattura EMESSA: nessuna ha bande, una (f4) è scartata dallo SdI");
+    ok(!righe.some(l => l.startsWith("fattura;2026/036;")), "la scartata non compare nel registro: " + righe.find(l => l.includes("2026/036")));
     const date = righe.slice(1).map(l => l.split(";")[2]);
     eq(date.slice().sort().join(), date.join(), "per data");
     ok(righe.slice(1).every(l => /;;\d+(\.\d+)?;;\d+(\.\d+)?;;si;$/.test(l)), "aliquota e imposta vuote su tutte, e la causale (nessuna riga qui è una nota): " + righe[1]);
