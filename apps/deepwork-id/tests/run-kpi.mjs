@@ -2582,6 +2582,21 @@ test("Conti kpiFrom([],[]) = zero, e l'età media del credito è null (non «0 g
     "conti vuoto"));
 test("Sentinella kpiFrom([],[]) = tutti zero", () =>
   eq(sentinella.kpiFrom([], []), { attivi: 0, superamenti: 0, adempimenti30: 0 }, "sentinella vuoto"));
+test("⛔ Sentinella kpiFrom: senza `ricettori` giudica con la sola soglia del punto, come le sue sorelle da 18/09 (deep-pass QA)", () => {
+  // v2 (soglia propria 5, valore 5,6) è collegato a rc2 (soglia 20): la
+  // soglia del ricettore vince (regola T2, la stessa che conSoglia applica
+  // a schermo) e il punto torna "conforme", non "superamento".
+  const v2 = sentinella.DEMO.monitoraggi.find((m) => m.id === "v2");
+  const RIC = sentinella.DEMO.ricettori;
+  eq(sentinella.kpiFrom([v2], []).superamenti, 1,
+    "senza ricettori: la soglia propria del punto (5) dà un superamento — comportamento di prima, invariato");
+  eq(sentinella.kpiFrom([v2], [], RIC).superamenti, 0,
+    "⛔ con i ricettori: la soglia effettiva (quella di rc2, 20) vince, ed è quella che lo schermo mostra già tramite conSoglia — nessun superamento");
+  // caso di controllo: un ricettore che NON abbatte la soglia non deve cambiare niente
+  const senzaRicettore = { ...v2, ricettoreId: null };
+  eq(sentinella.kpiFrom([senzaRicettore], [], RIC).superamenti, 1,
+    "un punto senza ricettore resta giudicato sulla sua soglia propria, con o senza il terzo parametro");
+});
 test("Terra kpiFrom([],[],[]) = zero, avanzamento e riserve null", () =>
   contiene(terra.kpiFrom([], [], []),
     { volumiMese: null, volumiMeseCumulo: 0, rilieviMese: 0, avanzamento: null, riserveM3: null, frontiAttivi: 0 }, "terra vuoto"));
@@ -9172,6 +9187,23 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
   });
   test("superamenti: quello che sta sotto soglia non è aperto", () => {
     eq(sentinella.superamentiAperti([punto({ valore: 2, soglia: 10 })], []).length, 0, "niente da chiudere");
+  });
+  test("⛔ superamenti: `valore` è quello che ha causato il superamento, non `+m.valore` grezzo (18/09, deep-pass QA)", () => {
+    // il campo dichiarato è sincrono con la storia: nessun cambiamento
+    const sincrono = sentinella.superamentiAperti([punto({ valore: 12, soglia: 10,
+      letture: [{ data: "2026-07-09", valore: 12 }] })], [])[0];
+    eq(sincrono.valore, 12, "il caso comune, invariato");
+    // il campo dichiarato è illeggibile ma la storia porta un superamento vero:
+    // prima si leggeva `+null` -> 0 (un "misurato zero" impossibile per una soglia positiva)
+    const stantio = sentinella.superamentiAperti([punto({ valore: null, soglia: 5,
+      letture: [{ data: "2026-09-10", valore: 12 }] })], [])[0];
+    ok(!!stantio, "il superamento c'è comunque: lo decide statoMisura sull'ultima lettura");
+    eq(stantio.valore, 12, "⛔ e il valore scritto è quello vero (12), non 0");
+    ok(!Number.isNaN(stantio.valore) && stantio.valore !== 0, "mai un valore fabbricato dalla coercizione di un dato illeggibile");
+    // e la bozza dell'azione scritta per Scudo cita il numero vero, non «misurato 0»
+    const bozza = sentinella.bozzaAzioneSuperamento(stantio, {});
+    ok(/misurato 12/.test(bozza.origineNota), "⛔ il testo che finisce nella collezione azioni di Scudo dice «misurato 12», non «misurato 0»");
+    ok(!/misurato 0\b/.test(bozza.origineNota), "e non c'è più traccia dello zero fabbricato");
   });
 
   test("⛔ ponte: le azioni si legano al preciso superamento, non solo al punto", () => {

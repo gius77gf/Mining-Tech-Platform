@@ -954,10 +954,29 @@ export function scartiRicettoriCsv(text) {
 import { ragioneData as ragioneDataShell } from "../../shared/deepwork-id-client/dw-shell.js";
 export const ragioneData = ragioneDataShell;
 
-export function kpiFrom(monitoraggi, adempimenti) {
+/* ⛔ 18/09, dal deep-pass QA: a differenza delle sue sorelle
+   (`reportConformita`, `superamentiAperti`, `andamentoRicettore`,
+   `confrontoMesi`, `csvAmbiente`), `kpiFrom` giudicava un monitoraggio con
+   la sola soglia scritta sul punto, senza mai passare da `sogliaEfficace`
+   (la soglia del ricettore, quando c'è e vince — regola T2). Oggi lo
+   schermo resta corretto perché l'unico chiamante pre-applica `conSoglia`
+   (`MONE = MON.map(conSoglia)`), ma la funzione pura non lo impone né lo
+   dichiara: `ricettori` è un terzo parametro FACOLTATIVO e retrocompatibile
+   — senza, il comportamento di prima non cambia (chi ha già pre-applicato
+   la soglia effettiva non deve rifarlo); con `ricettori`, `kpiFrom`
+   ricalcola la soglia effettiva da sé, così un chiamante che non conosce
+   `conSoglia` (un test, un secondo punto della pagina) non può più sbagliare
+   in silenzio. Stessa forma di `conSoglia`: `m` non si tocca se non c'è una
+   soglia effettiva da usare. */
+export function kpiFrom(monitoraggi, adempimenti, ricettori) {
+  const conSoglia = (m) => {
+    if (!ricettori) return m;
+    const e = sogliaEfficace(m, ricettori);
+    return e.valore != null ? { ...m, soglia: e.valore } : m;
+  };
   return {
     attivi: monitoraggi.length,
-    superamenti: monitoraggi.filter(m => statoMisura(m).cls === "danger").length,
+    superamenti: monitoraggi.filter(m => statoMisura(conSoglia(m)).cls === "danger").length,
     adempimenti30: adempimenti.filter(a => giorni(a.scadenza) <= 30).length,
   };
 }
@@ -4128,10 +4147,25 @@ export function superamentiAperti(monitoraggi, ricettori) {
       if (st.cls !== "danger") return null;
       const l = ultimaLetturaOltre(m, eff.valore);
       const data = l ? l.data : "";
+      /* ⛔ 18/09, dal deep-pass QA: `+m.valore` invece del valore che `st`
+         (statoMisura) ha appena usato per giudicare "Superamento" — la
+         stessa copia debole già chiusa dentro `statoMisura` stessa
+         («il secondo ripiego», commento qui sopra sulla funzione). Se il
+         campo dichiarato `m.valore` non è sincrono con le letture (dato
+         scritto a mano, riga più vecchia del filtro — latente, non
+         impossibile), `+m.valore` può leggere `NaN`→`0` mentre il punto
+         è davvero in superamento: il testo scritto nella collezione
+         `azioni` di Scudo (che non può ricalcolarlo) direbbe "misurato 0"
+         su un superamento vero. Si replica la stessa scelta di
+         `statoMisura`: il dichiarato se leggibile, altrimenti l'ultima
+         lettura che ha causato il superamento (la stessa `l` qui sopra —
+         quando il dichiarato manca, `st.cls==="danger"` garantisce che
+         l'ultima lettura periodo sia proprio quella oltre soglia). */
+      const dichiarato = numeroDichiarato(m.valore);
       return {
         m, id: m.id, nome: m.nome || "Punto di misura",
         unita: eff.unita || unitaMisura(m),
-        valore: +m.valore, soglia: eff, st,
+        valore: dichiarato != null ? dichiarato : (l ? l.valore : null), soglia: eff, st,
         lettura: l, data,
         voce: data || "valore-corrente",
         ricettore: trovaRicettore(ricettori, m.ricettoreId),
