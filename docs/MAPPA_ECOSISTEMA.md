@@ -587,6 +587,68 @@ accettabile su un numero che si confronta con la media di settore. **Voce
 
 ---
 
+### 3j. Il costo dell'esplosivo — Genesi (progettato) **e** Conti (voce «esplosivo», a mano) · *cercata il 18/09, nuova*
+
+Il fatto del mondo: quanto costa l'esplosivo di una volata. Genesi lo
+**stima** in fase di progetto; Conti lo **registra** a consuntivo, a mano,
+in una voce di costo che esiste apposta per lui.
+
+**Lato Genesi — la stima, calcolata e mai salvata.** `costoVolata`
+(`apps/genesi/genesi-data.js:1592`) moltiplica i chili totali di carica
+(`caricaTotale`, riga 1568) per un prezzo al chilo impostato nell'editor:
+
+    apps/genesi/genesi-data.js:1601:  const expl = qtot === null ? null : qtot * prezzo(o.cExpl);
+
+Il prezzo vive in `D2.cExpl` (`apps/genesi/genesi.html:1514`, slider
+`dCExpl` riga 7428) — un parametro dell'editor, non un dato salvato.
+
+**Lato Conti — la spesa vera, in un vocabolario già condiviso.** La voce
+`esplosivo` è nel catalogo comune `VOCI_COSTO` (`shared/dw-ponti.js:1084`,
+gruppo `produzione`, `daMezzo:false`), e la dimostrazione la mostra già
+legata a una volata **per nome**, in un campo di testo libero:
+
+    apps/conti/conti-data.js:474: { id:"c06", data:"2026-03-18", voce:"esplosivo", importo:48, nota:"Volata del 18 marzo" }
+    apps/conti/conti-data.js:482: { id:"c14", data:"2026-05-21", voce:"esplosivo", importo:52, nota:"Volata del 20 maggio" }
+
+**Che nessuno dei due legge l'altro, verificato oggi (18/09):**
+
+    grep -n 'appId:' apps/genesi/genesi-data.js apps/genesi/genesi.html → genesi, campo — nessun conti
+    grep -n 'appId:' apps/conti/conti-data.js → conti, terra (×3), flotta (×2), campo — nessun genesi
+
+Non è nemmeno il caso di 3a (Flotta↔Conti): lì il commento di
+`confrontoCostiMezzi` esclude `esplosivo` **di proposito** («Flotta non la
+registra per costruzione»). Qui a poter dare il termine di paragone sarebbe
+Genesi — ma come **stima di progetto**, non come seconda registrazione
+dello stesso evento: è il pattern preventivo/consuntivo di 3f (produzione),
+applicato a un euro invece che a un metro cubo.
+
+**Perché non si costruisce da sola, a differenza di 3a-3h.** Il prezzo che
+Genesi calcola non sopravvive nemmeno **dentro** Genesi. `volSnapshot` —
+l'oggetto che «Salva nello storico» scrive davvero, con una data vera
+(`data:timbroLocale()`, `apps/genesi/genesi.html:5192`) — porta l'intero
+disegno della volata (`B,S,file,perRow,diam,prof,kg,...,esplosivo,innesco,
+roccia,...`, riga 5193) ma **non** i tre prezzi (`cPerf`,`cExpl`,
+`cInnesco`) né il risultato di `costoVolata`. Lo stesso vale per
+`previstaDaGenesi` (`shared/dw-ponti.js:2009-2029`), la forma che oggi
+porta una volata di Genesi a Sentinella: `kgTotali` c'è, il costo no. Il
+numero vive solo nella sessione del browser mentre l'editor è aperto, e
+sparisce al primo salvataggio — prima ancora di poter essere confrontato
+con qualcosa. E anche persistito, l'aggancio resta aperto: le voci di Conti
+sono testo libero, senza un id di volata — servirebbe una decisione di
+prodotto su come abbinare una spesa a un progetto (per data? per
+`codiceVolata`, che Genesi già scrive in `x.codice`?), non solo un canale
+tecnico.
+
+**Valore: medio** — non è un rischio di doppio conteggio come 3a (qui non
+ci sono due registrazioni dello stesso evento, una stima e una spesa
+reale), ma è la stessa domanda utile: chi scrive «48 €» alla voce
+esplosivo di Conti oggi non sa se è in linea con quanto la volata
+avrebbe dovuto costare secondo il progetto.
+**Costo: alto**, e la parte cara viene prima del ponte: far sopravvivere il
+prezzo dentro Genesi, e decidere l'aggancio con Conti.
+
+---
+
 ## 4. Il blocco strutturale: Genesi non esce dal browser
 
 ✅ **Tolto il 02/09, in quattro unità** (`docs/GENESI_FUORI_DAL_BROWSER.md` §5,
@@ -729,7 +791,7 @@ Per onestà, e perché nessuno lo usi per decidere cose che non copre:
 | app che nessuno legge | **1** (Deepwork ID) *(era 5; Sentinella la legge Campo dal 05/09; Flotta la legge Conti, Conti la legge Flotta; dal 02/09 Genesi la legge Terra)* |
 | app senza alcuno scambio DATI | **0** — Deepwork ID esclusa, è l'identità *(era 2; Genesi dal 02/09 scrive nell'organizzazione e Terra la legge)* |
 | …di cui davvero scollegate da tutto | **0** *(era 1, Flotta)* |
-| sovrapposizioni non collegate | **1** — 3i (`oreAnno`/`presenze`, cercata il 17/09) *(era 0: il censimento del 16/09 si era dichiarato esaustivo guardando solo gli header dei moduli, non le funzioni che consumano il dato altrove — vedi la correzione in 3h. Non si costruisce da sola come le altre: le ore di Campo non coprono per forza tutta la forza lavoro, e un denominatore parziale renderebbe l'indice falso nella direzione vietata dal commento di `indiciInfortunistici` — voce 35 di `docs/DECISIONI_WEEKEND.md`. Prima di questa: era 0 dal 16/09; era 1 dal 15/09 al 16/09 — 3g, meteo del sito, censita il 15/09 e costruita il 16/09 nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
+| sovrapposizioni non collegate | **2** — 3i (`oreAnno`/`presenze`, cercata il 17/09) e 3j (`esplosivo` progettato/consuntivo, Genesi↔Conti, cercata il 18/09) *(era 1 dal 17/09 al 18/09: 3j non si costruisce da sola come le altre — il prezzo che Genesi calcola non sopravvive nemmeno dentro Genesi (`volSnapshot` non lo salva), quindi va prima persistito e poi agganciato a una spesa scritta in Conti come testo libero, senza un id di volata: due decisioni di prodotto prima del canale tecnico. Prima di questa: era 0: il censimento del 16/09 si era dichiarato esaustivo guardando solo gli header dei moduli, non le funzioni che consumano il dato altrove — vedi la correzione in 3h. Non si costruisce da sola come le altre: le ore di Campo non coprono per forza tutta la forza lavoro, e un denominatore parziale renderebbe l'indice falso nella direzione vietata dal commento di `indiciInfortunistici` — voce 35 di `docs/DECISIONI_WEEKEND.md`. Prima di questa: era 0 dal 16/09; era 1 dal 15/09 al 16/09 — 3g, meteo del sito, censita il 15/09 e costruita il 16/09 nella forma PARZIALE dichiarata al momento della scoperta: solo la pioggia dà un verdetto, il vento forte resta un sospetto qualitativo, il confronto è per giorno non per l'istante della misura; prima di questa la tabella era a 0: era 1 fino al 05/09 notte — la 3e passava da un file, poi dai dati; era 6 — 3a, 3b, 3f collegate il 02/09, 3c e 3d già collegate con la fonte in Scudo)* |
 
 Chi costruisce un ponte aggiorna questa tabella.
 
@@ -741,3 +803,5 @@ Verificato contro il commit `d521c96d` del 2026-08-26.
 ✅ Correzione del 2026-09-12 (stesso giorno, passaggio successivo, commit `d7dd157f`): la riga «resta di sola chiave-del-browser Genesi→Terra» era ancora sbagliata dopo la rimisurazione di sopra — vedi il blocco ⛔ in §4 e la riga corretta in §6. Il difetto era lo stesso che la rimisurazione correggeva: fidarsi del testo vecchio invece di riaprire il codice.
 
 ✅ §3g aggiunta il 2026-09-15, censimento puro (nessun comando `git`, nessun tocco a codice): letto per intero il documento contro `HEAD` (`refs/heads/claude/scheduled-tasks-remote-control-bk4ap6`, commit `0d8498c8b3ce58f864d3f50b8aa0eb1458fb9802`, letto da `.git/` senza eseguire `git`) prima di scrivere, per non riproporre una sovrapposizione già censita.
+
+✅ §3j aggiunta il 2026-09-18, censimento puro contro il commit `1b214f89ef806d9e7c188bba278e23204f8dee16` (nessun file di codice toccato): letto per intero il documento (in particolare §1, §3, §6) prima di cercare, poi aperti `apps/genesi/genesi-data.js` (`costoVolata`, `caricaTotale`), `apps/genesi/genesi.html` (`D2.cExpl`, `volSnapshot`), `apps/conti/conti-data.js` (`VOCI_COSTO`, la dimostrazione dei costi) e `shared/dw-ponti.js` (`VOCI_COSTO`, `previstaDaGenesi`) per verificare il meccanismo — non il nome — e confermato con `grep -n 'appId:' apps/genesi/*.js apps/genesi/*.html apps/conti/conti-data.js` che nessuna delle due app legge oggi l'altra. Aggiornata solo la riga «sovrapposizioni non collegate» di §6, senza riscrivere il resto della tabella.
