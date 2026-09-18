@@ -499,7 +499,7 @@ vuota**, e nessuno ha riletto quel messaggio d'errore perché **la spiegazione
 c'era già**. Il segno da riconoscere non è l'errore: è la **rinuncia scritta
 accanto**.
 
-**355 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
+**357 esecuzioni che aprono davvero le pagine** in Chromium — banchi distinti,
 ognuno seguito dalla sua **controprova** (Chromium è già installato in
 `/opt/pw-browsers/chromium`, **non** si lancia `playwright install`):
 

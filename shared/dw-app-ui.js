@@ -79,6 +79,23 @@
   // finestre di sistema sono bianche, fuori stile, e `prompt()` non accetta
   // nemmeno la virgola decimale.
   var modalPrec = null;
+  /* ⛔ 18/09, dal deep-pass QA su questo file: `aria-modal="true"` sta su
+     tutte le 8 pagine, ma non era vero — uno screen reader lo prende alla
+     lettera e annuncia che il resto della pagina non esiste, mentre Tab
+     ci portava lo stesso, e senza `Escape`/toccare fuori (già gestiti)
+     un tocco di tastiera in più bastava a finire su un bottone dietro la
+     modale, invisibile sotto l'overlay. `inert` (supportato da Chromium)
+     togliela dal tab order E dall'albero di accessibilità finché resta
+     applicato: si mette sui fratelli di `#modal` all'apertura, si toglie
+     alla chiusura — non su `#modal` stesso, ovviamente, né serve deciderlo
+     pagina per pagina: `document.body.children` è la struttura vera, non
+     un elenco scritto a mano che invecchia. */
+  function intrappolaSfondo(inerte) {
+    var figli = document.body.children;
+    for (var i = 0; i < figli.length; i++) {
+      if (figli[i].id !== "modal") figli[i].inert = inerte;
+    }
+  }
   // `opzioni.autofocus === false`: la modale NON porta il fuoco nel primo
   // campo. Serve a chi compila a TOCCHI (la segnalazione rapida del
   // near-miss): far salire la tastiera del telefono davanti ai pulsanti
@@ -86,6 +103,7 @@
   // sempre — il parametro è un soprainsieme, non un cambio.
   function apriModale(titolo, corpo, bottoni, opzioni) {
     modalPrec = document.activeElement;
+    intrappolaSfondo(true);
     document.getElementById("modal-title").textContent = titolo;
     document.getElementById("modal-body").innerHTML = corpo;
     var foot = document.getElementById("modal-foot");
@@ -112,6 +130,7 @@
   function chiudiModale() {
     document.getElementById("modal").classList.remove("show");
     document.body.classList.remove("modal-open");
+    intrappolaSfondo(false);   // prima di rimettere il fuoco: un elemento inert non lo riceve
     if (modalPrec && modalPrec.focus) { try { modalPrec.focus({ preventScroll: true }); } catch (e) {} }
     modalPrec = null;
   }
@@ -293,6 +312,28 @@
       if (e.key !== "Escape") return;
       var m = document.getElementById("modal");
       if (m && m.classList.contains("show")) { var b = m.querySelector("#modal-foot .mbtn"); if (b) b.click(); }
+    });
+    /* ⛔ 18/09: `inert` sui fratelli (sopra, in apriModale/chiudiModale) toglie
+       lo sfondo dal tab order, ma non chiude il cerchio DENTRO la modale —
+       Tab sull'ultimo elemento uscirebbe verso la barra del browser, non
+       tornerebbe al primo: senza il giro qui sotto la trappola sarebbe a
+       metà, un modo nuovo di uscire invece del vecchio. */
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var m = document.getElementById("modal");
+      if (!m || !m.classList.contains("show")) return;
+      var lista = m.querySelectorAll('a[href],button,input,select,textarea,[tabindex]');
+      var focusabili = [];
+      for (var i = 0; i < lista.length; i++) {
+        var el = lista[i];
+        if (el.disabled || el.tabIndex < 0 || el.offsetParent === null) continue;
+        focusabili.push(el);
+      }
+      if (!focusabili.length) return;
+      var primo = focusabili[0], ultimo = focusabili[focusabili.length - 1];
+      if (e.shiftKey && document.activeElement === primo) { e.preventDefault(); ultimo.focus(); }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primo.focus(); }
+      else if (!m.contains(document.activeElement)) { e.preventDefault(); primo.focus(); }
     });
 
     // i riquadri che si possono toccare si possono anche premere da tastiera

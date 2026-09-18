@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **355 esecuzioni** che
-  aprono le pagine in un browser vero, da **157** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **357 esecuzioni** che
+  aprono le pagine in un browser vero, da **158** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11460,3 +11460,39 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   completo su worktree isolata: 41/41. 9-suite sum: **3.645**
   (3149+330+83+34+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato prima
   del commit.
+
+## shared/dw-app-ui.js e il core — la modale non intrappolava il focus (18/09)
+- [x] **`dwUiAggancia()` GESTIVA `Escape` MA NON `Tab`, E IL FONDO NON RICEVEVA
+      `inert`** *(18/09, unità completata, dal deep-pass QA su
+      shared/dw-app-ui.js)*, nonostante tutte le 8 pagine dichiarino
+      `aria-modal="true"`. Con la tastiera, Tab dall'ultimo bottone della
+      modale usciva sulla barra di navigazione DIETRO — che restava
+      cliccabile e leggibile dagli screen reader — invece di richiudere il
+      giro sul primo campo.
+      Corretto in DUE posti perché sono due implementazioni indipendenti,
+      non condivise: `intrappolaSfondo`/`dwUiAggancia` in
+      `shared/dw-app-ui.js` (le 7 superfici che lo consumano — 6 app +
+      `admin.html`) e `intrappolaSfondoModal` in `index.html` (il core, che
+      NON consuma il file condiviso: è l'originale da cui le app copiano,
+      non un suo cliente — quindi la correzione del file condiviso non
+      arrivava all'ottava pagina). Entrambe: `document.body.children`
+      diverso da `#modal` riceve `inert=true` all'apertura e `inert=false`
+      alla chiusura (prima di restituire il fuoco a `modalPrec`); un
+      ascoltatore `keydown` su `Tab` che, dentro la modale aperta, richiude
+      il giro sul primo/ultimo elemento focusabile.
+      Verificato dal vivo con Playwright su Conti (shared) e sul core
+      (propria copia), con una modale a campo di testo + 2 bottoni per il
+      conto esatto del giro di Tab (un `type="date"` ha segmenti interni
+      che consumano Tab senza cambiare `document.activeElement`: lì si è
+      verificato solo che 12 Tab di fila non facciano mai uscire il fuoco).
+- Nuovo banco permanente `focus-trap-modale.mjs` (`apps/deepwork-id/tests/
+  browser/`), registrato in `tutti.mjs`, con controprova che rimette le due
+  guardie (shared e core) e fa cadere l'`inert`-check su entrambe le
+  superfici. Verificato isolato (15/15, controprova: 2 KO voluti) e dentro
+  un giro mirato sulle ultime righe di `tutti.mjs` (`--da=`), con
+  `DW_RADICE` puntato alla worktree — lezione presa sul momento: senza quel
+  env var il banco serve la cartella viva invece della copia in
+  verifica, e accusa falsamente il fix del core di non esserci.
+  KPI invariato a 3154 (nessun modulo dati toccato). 9-suite sum invariata a
+  **3.650**. Banchi del browser: 355→**357** esecuzioni, propagato in
+  DEVELOPMENT.md/STATO_PRODOTTO.md/DECISIONI_WEEKEND.md.

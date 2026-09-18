@@ -1972,17 +1972,41 @@ function generaRappVuotoPDF(tipo,nFori,nFile){
 }
 
 // ── MODAL ──
+/* ⛔ 18/09, dal deep-pass QA su shared/dw-app-ui.js: la stessa lacuna stava
+   anche qui — il core non consuma quel file (è l'originale da cui le app
+   copiano, non un suo cliente), quindi la correzione lì non arrivava
+   all'ottava pagina. `aria-modal="true"` senza `inert` sui fratelli e
+   senza chiudere il giro di Tab dentro la modale non intrappola niente. */
+function intrappolaSfondoModal(inerte){
+  const figli=document.body.children;
+  for(let i=0;i<figli.length;i++){ if(figli[i].id!=='modal') figli[i].inert=inerte; }
+}
 function openModal(title,body,buttons){
   $('modal-title').textContent=title;$('modal-body').innerHTML=body;$('modal-foot').innerHTML='';
   (buttons||[]).forEach(b=>{const el=document.createElement('button');el.className=b.cls||'mbtn';el.textContent=b.label;el.onclick=b.action;$('modal-foot').appendChild(el);});
   $('modal').classList.add('show');
   document.body.classList.add('modal-open'); // blocca lo scroll del fondo
+  intrappolaSfondoModal(true);
   // autofocus sul primo campo (comodità: si scrive subito) — non su mobile per non aprire la tastiera a sorpresa
   if(!('ontouchstart' in window)){const f=$('modal-body').querySelector('input,select,textarea');if(f)setTimeout(()=>{try{f.focus();}catch(e){}},60);}
 }
-function closeModal(){ $('modal').classList.remove('show');document.body.classList.remove('modal-open'); }
+function closeModal(){ $('modal').classList.remove('show');document.body.classList.remove('modal-open');intrappolaSfondoModal(false); }
 // Esc chiude il modale (comodità desktop/tastiera)
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const md=document.getElementById('modal');if(md&&md.classList.contains('show'))closeModal();}});
+// Tab non esce dalla modale: senza questo giro, uscire dall'ultimo elemento
+// porterebbe alla barra del browser invece che tornare al primo.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Tab') return;
+  const m=document.getElementById('modal');
+  if(!m||!m.classList.contains('show')) return;
+  const lista=m.querySelectorAll('a[href],button,input,select,textarea,[tabindex]');
+  const focusabili=[...lista].filter(el=>!el.disabled&&el.tabIndex>=0&&el.offsetParent!==null);
+  if(!focusabili.length) return;
+  const primo=focusabili[0], ultimo=focusabili[focusabili.length-1];
+  if(e.shiftKey&&document.activeElement===primo){ e.preventDefault(); ultimo.focus(); }
+  else if(!e.shiftKey&&document.activeElement===ultimo){ e.preventDefault(); primo.focus(); }
+  else if(!m.contains(document.activeElement)){ e.preventDefault(); primo.focus(); }
+});
 
 // ══════════ RAPPORTINO OPERATORE (B5 + B8) ══════════
 function initRapp(){
