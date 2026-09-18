@@ -5212,6 +5212,13 @@ function volSnapshot(nome){
          `Object.assign` su "Apri" non li tocca se il design non li porta,
          quindi restavano quelli dell'ultima volata toccata in sessione. */
       dir:D2.dir,cPerf:D2.cPerf,cExpl:D2.cExpl,cInnesco:D2.cInnesco,valMat:D2.valMat,
+      /* ⛔ 18/09, dal terzo giro di deep-pass: stessa famiglia appena chiusa
+         per dir/costi — `errColl` (errore al colletto) e `dev` (deviazione),
+         stessa card di B/S/diam, alimentano `simulaPerforazione` e la riga
+         "Precisione di perforazione" della scheda validatori (rischio
+         proiezioni). Non erano MAI salvati: restavano quelli dell'ultima
+         volata toccata in sessione, apparendo sul progetto sbagliato. */
+      errColl:D2.errColl,dev:D2.dev,
       esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
       /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
          relief, che si ricalcolano. Senza questa riga un foro tolto a mano
@@ -5364,6 +5371,11 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
     D2.cExpl=(_dsg.cExpl!=null&&isFinite(_dsg.cExpl))?+_dsg.cExpl:1.5;
     D2.cInnesco=(_dsg.cInnesco!=null&&isFinite(_dsg.cInnesco))?+_dsg.cInnesco:12;
     D2.valMat=(_dsg.valMat!=null&&isFinite(_dsg.valMat))?+_dsg.valMat:0;
+    /* ⛔ 18/09, dal terzo giro di deep-pass: stessa famiglia — errColl/dev
+       non erano salvati (fix appena sopra in volSnapshot), stesso fallback
+       esplicito ai default del form (0,15 m / 2,5%). */
+    D2.errColl=(_dsg.errColl!=null&&isFinite(_dsg.errColl))?+_dsg.errColl:0.15;
+    D2.dev=(_dsg.dev!=null&&isFinite(_dsg.dev))?+_dsg.dev:2.5;
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
