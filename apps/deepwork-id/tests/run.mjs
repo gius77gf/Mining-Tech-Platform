@@ -245,6 +245,15 @@ await test("il concorrente NON cancella un invito di orgA", () =>
   assertFails(deleteDoc(doc(eve, "invites/invA1"))));
 await test("il concorrente NON manomette un invito di orgA (no dirottamento)", () =>
   assertFails(setDoc(doc(eve, "invites/invA1"), { email: "eve@concorrente.it" }, { merge: true })));
+// ⛔ Critico, dal quarto giro di deep-pass su Deepwork ID (18/09): isAdmin
+// guardava solo l'org DI PRIMA della scrittura. Un admin di orgA poteva
+// cambiare l'orgId di un proprio invito pendente in orgB (un concorrente),
+// e acceptInvites si fida ciecamente di inv.orgId — l'invitato, accettando,
+// entrava in orgB. orgId è ora immutabile dopo la creazione.
+await test("⛔ un admin di orgA NON dirotta un proprio invito verso un'altra org (orgId immutabile)", () =>
+  assertFails(setDoc(doc(boss, "invites/invA1"), { orgId: "orgB" }, { merge: true })));
+await test("un admin di orgA modifica ancora un proprio invito SENZA cambiare l'org (es. il ruolo)", () =>
+  assertSucceeds(setDoc(doc(boss, "invites/invA1"), { role: "admin" }, { merge: true })));
 
 console.log("\n— Profili utente —");
 await test("utente legge il PROPRIO profilo", async () => {

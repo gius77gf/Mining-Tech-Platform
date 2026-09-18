@@ -2379,7 +2379,7 @@ di gravità (permanente/mortale) coi giorni convenzionali UNI 7249, la
 lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
-lanciando le suite)*, più **139** che girano con l'emulatore Firestore (**91** sulle regole
+lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
 di sicurezza, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e **343
 esecuzioni** che aprono davvero le pagine in un browser.
 
