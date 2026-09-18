@@ -3414,8 +3414,19 @@ label.item:has(.dw-chk:checked){
         </div>`;
       }).join(""); }
     $("fat-list").innerHTML = fatViste.map(f => { const b = fatBadge(f);
-      const ritardo = !f.incassata ? Math.max(0, -giorni(f.scadenza)) : 0;
-      const sol = !f.incassata ? livelloSollecito(ritardo) : null;
+      /* ⛔ 18/09, dal deep-pass QA: STESSA GUARDIA GIÀ PROPAGATA A UNDICI
+         FUNZIONI PURE (kpiFrom, agingIncassi, fattureOltre90, ecc.) E MAI A
+         QUESTA RIGA, che disegna la lista che l'utente guarda per prima. Una
+         fattura scartata dallo SdI (o mai inviata) è "come non emessa": per
+         l'aging non è scaduta (0 € in ogni fascia), ma qui usciva rossa
+         «scaduta», con un tooltip di mora e il bottone «Sollecito» visibile —
+         la stessa bugia che le altre undici funzioni sono state corrette per
+         non dire più. `sollecitabile` più giù blocca comunque l'invio; qui
+         il danno era solo visivo, ma un colore falso su una fattura che per
+         il fisco non esiste ancora non è un dettaglio. */
+      const nonEmessa = statoSdi(f, new Date()).nonEmessa;
+      const ritardo = !f.incassata && !nonEmessa ? Math.max(0, -giorni(f.scadenza)) : 0;
+      const sol = !f.incassata && !nonEmessa ? livelloSollecito(ritardo) : null;
       // lo storico di ciò che è stato DAVVERO segnato come inviato, non
       // ricalcolato dal solo ritardo: "mai comunicato" e "livello X" sono
       // due stati diversi, e vanno detti con parole diverse.
@@ -3879,7 +3890,15 @@ label.item:has(.dw-chk:checked){
           orientamento: "orizzontale",
           formato: eur0,
           tabella: false,          // la tabella è la lista qui sotto, al centesimo
-          valori: agFasce.map(([et, v]) => ({ etichetta: et, valore: Math.round(+v.importo || 0) })),
+          /* ⛔ 18/09, dal deep-pass QA: `Math.round(...)` PRIMA del motore
+             condiviso, non dopo — un importo reale ma sotto il mezzo euro
+             (0,01-0,49 €, già filtrato `>0` a monte, quindi vero) diventava
+             `0`, che `separaMancanti` considera "misurato" (un vero zero,
+             non un dato assente): barra lunga zero, indistinguibile da una
+             fascia che ha davvero zero. `formato: eur0` arrotonda già
+             l'ETICHETTA per la vista: il valore vero deve restare intero
+             per la barra, non anticipare l'arrotondamento del testo. */
+          valori: agFasce.map(([et, v]) => ({ etichetta: et, valore: +v.importo || 0 })),
           aria: "Credito aperto per fascia di ritardo: " + agFasce
             .map(([et, v]) => et + " " + eur0(v.importo)).join(", ") + ".",
           /* ⛔ «tutto il credito aperto è ancora nei termini» non si può dire
@@ -3991,7 +4010,10 @@ label.item:has(.dw-chk:checked){
           meta: "solo fatture non ancora scadute",
           formato: eur0,
           tabella: false,          // la tabella è la lista qui sotto, al centesimo
-          valori: prev.mesi.map(m => ({ etichetta: nomeMese(m.mese), valore: Math.round(+m.importo || 0) })),
+          // ⛔ 18/09, stessa famiglia dell'invecchiamento del credito qui
+          // sopra: il valore vero alla barra, l'arrotondamento resta
+          // dell'etichetta (formato: eur0).
+          valori: prev.mesi.map(m => ({ etichetta: nomeMese(m.mese), valore: +m.importo || 0 })),
           aria: "Liquidità attesa mese per mese: " + prev.mesi
             .map(m => nomeMese(m.mese) + " " + eur0(m.importo)).join(", ") + ".",
           /* ⛔ «Le colonne a zero sono mesi senza scadenze» è vero solo se
@@ -4450,7 +4472,8 @@ label.item:has(.dw-chk:checked){
           orientamento: "orizzontale",
           formato: eur0,
           tabella: false,
-          valori: vendDisegno.map(v => ({ etichetta: v.prodotto, valore: Math.round(v.valore),
+          // ⛔ 18/09, stessa famiglia: il valore vero alla barra.
+          valori: vendDisegno.map(v => ({ etichetta: v.prodotto, valore: v.valore,
             stato: v.valoreParziale ? "warn" : null })),
           aria: "Venduto per prodotto: " + vendDisegno.map(v => v.prodotto + " " + eur0(v.valore)
             + (v.valoreParziale ? " (per difetto)" : "")).join(", ")
@@ -4977,7 +5000,10 @@ label.item:has(.dw-chk:checked){
   // ══════════════════════════════════════════════════════════════════
   function modaleSegnaSollecito(f) {
     const oggi = oggiISO();
-    const ritardo = Math.max(0, -giorni(f.scadenza));
+    // stessa guardia del bottone che apre questa modale: una scartata dallo
+    // SdI (o mai inviata) non ha un "ritardo" che conti, per la stessa
+    // ragione per cui sollecitabile() la tiene fuori dall'escalation
+    const ritardo = statoSdi(f, new Date()).nonEmessa ? 0 : Math.max(0, -giorni(f.scadenza));
     const attuale = livelloSollecito(ritardo);
     const storico = (f.solleciti || []).slice().sort((a, b) => String(a.data).localeCompare(String(b.data)));
     const rec = statoRecupero(f, f.solleciti, new Date());
@@ -5733,7 +5759,8 @@ label.item:has(.dw-chk:checked){
         orientamento: "orizzontale",
         formato: eur0,
         tabella: false,
-        valori: gruppi.map(x => ({ etichetta: etichettaGruppo(x.g), valore: Math.round(x.importo) })),
+        // ⛔ 18/09, stessa famiglia: il valore vero alla barra.
+        valori: gruppi.map(x => ({ etichetta: etichettaGruppo(x.g), valore: x.importo })),
         aria: "Costi per gruppo: " + gruppi.map(x => etichettaGruppo(x.g) + " " + eur0(x.importo)).join(", ") + ".",
         nota: "La barra è il <b>peso</b> di ogni gruppo sul totale: è da lì che si capisce dove conviene intervenire.",
       });
@@ -6802,6 +6829,15 @@ label.item:has(.dw-chk:checked){
       return; }
     const btnSegnaSol = e.target.closest && e.target.closest("[data-segna-sollecito]");
     if (btnSegnaSol) { const f = FAT.find(x => x.id === btnSegnaSol.getAttribute("data-segna-sollecito"));
+      /* ⛔ 18/09, dal deep-pass QA: era l'unico dei tre bottoni legati al
+         sollecito senza la guardia `sollecitabile` — «Sollecito» qui sopra
+         ce l'ha da tempo. Senza di lei si poteva aprire la modale e salvare
+         uno storico sollecito su una fattura scartata dallo SdI (o mai
+         inviata): un effetto PERSISTENTE, non solo visivo — la fattura
+         "risulterebbe sollecitata" per un documento che per il fisco non
+         esiste ancora. */
+      const sb = f ? sollecitabile(f, new Date()) : { ok: false, perche: "Fattura non trovata." };
+      if (!sb.ok) { toast(sb.perche, "err"); return; }
       if (f) modaleSegnaSollecito(f);
       return; }
     const btnEditFat = e.target.closest && e.target.closest("[data-edit-fat]");

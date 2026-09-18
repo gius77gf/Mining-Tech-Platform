@@ -45737,6 +45737,49 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
 }
 /* ===== fine ponte Conti → Flotta, pagine (06/09) ===== */
 
+/* ===== CONTI · IL SOLLECITO SU UNA FATTURA "COME NON EMESSA" (18/09,
+   deep-pass QA) =====
+   Tre difetti, stessa causa: la riga della lista Fatture, la modale
+   "Segna come inviato" e quattro grafici a barre non passavano dallo
+   stesso principio già propagato a undici funzioni pure lo stesso giorno
+   (statoSdi(f).nonEmessa) o dallo stesso motore condiviso (arrotondare
+   PRIMA della barra invece che nell'etichetta). Le prove sono sul
+   sorgente: un banco browser aggiungerebbe poca certezza in più su un
+   calcolo di stato e su una guardia di un click handler. */
+{
+  const { readFileSync: rfC } = await import("node:fs");
+  const conti = rfC(join(HERE, "../../conti/index.html"), "utf8");
+  test("⛔ Conti: la lista Fatture non calcola ritardo/mora su una fattura come non emessa", () => {
+    ok(/const nonEmessa = statoSdi\(f, new Date\(\)\)\.nonEmessa;/.test(conti),
+      "la riga legge statoSdi prima di calcolare il ritardo");
+    ok(/const ritardo = !f\.incassata && !nonEmessa \? Math\.max\(0, -giorni\(f\.scadenza\)\) : 0;/.test(conti),
+      "e il ritardo resta zero per una fattura come non emessa (scartata dallo SdI, o mai inviata)");
+    ok(/const sol = !f\.incassata && !nonEmessa \? livelloSollecito\(ritardo\) : null;/.test(conti),
+      "il livello di sollecito segue la stessa guardia: niente escalation su un documento che per il fisco non esiste");
+  });
+  test("⛔ Conti: «Segna come inviato» rifiuta una fattura come non emessa, come «Sollecito» accanto", () => {
+    const iBtn = conti.indexOf('e.target.closest("[data-segna-sollecito]")');
+    ok(iBtn > 0, "il bottone c'è ancora");
+    const dopo = conti.slice(iBtn, iBtn + 900);
+    ok(/sollecitabile\(f, new Date\(\)\)/.test(dopo), "la guardia sollecitabile() è la prima cosa che fa, come per «Sollecito»");
+    ok(/if \(!sb\.ok\) \{ toast\(sb\.perche, "err"\); return; \}/.test(dopo), "e blocca con un toast invece di aprire la modale");
+    ok(/const ritardo = statoSdi\(f, new Date\(\)\)\.nonEmessa \? 0 : Math\.max\(0, -giorni\(f\.scadenza\)\);/.test(conti),
+      "e la modale stessa non ricalcola un ritardo finto se qualcuno la apre comunque (difesa in profondità)");
+  });
+  test("⛔ Conti: quattro grafici a barre non arrotondano il valore PRIMA del motore condiviso", () => {
+    // un importo reale sotto il mezzo euro (0,01-0,49 €) arrotondato a monte
+    // diventava 0 — "misurato zero", indistinguibile da un gruppo davvero
+    // a zero. `formato: eur0` arrotonda già l'etichetta per la vista.
+    ok(!/valore: Math\.round\(\+v\.importo \|\| 0\)/.test(conti), "invecchiamento del credito: il valore vero, non arrotondato");
+    ok(!/valore: Math\.round\(\+m\.importo \|\| 0\)/.test(conti), "previsione incassi: idem");
+    ok(!/valore: Math\.round\(v\.valore\)/.test(conti), "venduto per prodotto: idem");
+    ok(!/valore: Math\.round\(x\.importo\)/.test(conti), "dove se ne va (costi per gruppo): idem");
+    // e nessuno dei quattro ha perso il proprio formato di etichetta
+    ok((conti.match(/formato: eur0/g) || []).length >= 4, "tutt'e quattro i grafici tengono l'arrotondamento nell'etichetta");
+  });
+}
+/* ===== fine Conti · il sollecito su una fattura non emessa (18/09) ===== */
+
 /* ===== CONTI · LE RIMANENZE DI PIAZZALE PER IL COMMERCIALISTA (10/09) =====
    L'ultimo inventario dei cumuli di Terra, valorizzato A LISTINO — e ogni
    frase dice che non è il valore fiscale. Un cumulo senza prezzo, densità o
