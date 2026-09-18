@@ -11789,3 +11789,35 @@ zero scadute.
       `docs/RICERCA_CONTINUA_FLOTTA.md` che proponeva ancora questo
       lavoro come "non tradotto in codice": era già scaduta, implementata
       la stessa giornata dopo essere stata scritta.
+
+## Quinto giro di deep-pass QA — tre agenti in parallelo (18/09, notte)
+
+Tre agenti QA dispatchati in parallelo (direttiva 26/07) su Scudo, Terra,
+Flotta, ognuno con un mandato mirato su famiglie di difetti specifiche
+(copia debole non propagata, documento composto diverso dallo schermo,
+assenza trattata come dato favorevole). Ogni finding verificato riga per
+riga contro il codice reale prima di correggere.
+
+- [x] **Scudo**: un infortunio mortale o una permanente restavano "a
+      prognosi aperta" per sempre — `prognosiAperta` guardava solo il
+      campo grezzo `giorniAssenza`, mai vero per un decesso, ignorando
+      che `giornateConvenzionali` dà già la risposta UNI 7249. Falso
+      avviso "indice MINIMO" che non sarebbe mai sceso, zero giornate
+      perse sul cartellone e nel fascicolo ispettore per il caso più
+      grave possibile, "prognosi ancora aperta" nel CSV per un decesso
+      (`65e293ca`).
+- [x] **Terra**: il quarto asse di conformità (confine del titolo,
+      aggiunto lo stesso giorno) non aveva un riepilogo aggregato — un
+      fronte "oltre" restava silenzio totale sul cartellone, non "non
+      misurato" (`64a211d2`).
+- [x] **Flotta**: il contatore sostituito o azzerato aveva quattro
+      regole diverse in quattro punti — "Registra ore" troppo rigido
+      (nessuna via d'uscita onesta), "Modifica mezzo" troppo permissivo
+      (scriveva qualunque discesa senza dichiararla, scollegando le
+      letture storiche). Allineati entrambi alla regola vera di
+      `validaRifornimento` (`401f1946`).
+
+Unit test per Scudo e Terra (pure functions), banco browser con
+controprova per Flotta. run-kpi.mjs 3172/3172. sintassi-pagine.mjs 34/34.
+run-stile.mjs 330/330. suite-collegate.mjs 3/3. iniezioni-fresche.mjs:
+694 sul bersaglio su 694, zero scadute.
