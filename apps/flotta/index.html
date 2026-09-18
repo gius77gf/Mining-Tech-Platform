@@ -4126,8 +4126,18 @@ body.dw b.bad{color:var(--ink-dg)}
        il badge era sempre lo stesso colore per ogni componente calcolabile,
        perché non esisteva ancora una soglia con cui giudicarlo. */
     const clsVita = { "non-giudicato": "accent", ok: "accent", attenzione: "warn", scaduto: "danger" };
+    /* ⛔ 18/09, dal deep-pass QA: la correzione qui sopra (regola 18) ha
+       sistemato SOLO il badge — la fascia colorata del CONTENITORE era
+       rimasta fissa a `st-accent`, indipendentemente da `c.stato`, mentre
+       le due liste gemelle due righe più sopra nella stessa funzione
+       (`#sch-sca`/`#sch-man`) usano già `striscia[cls] || "st-accent"`.
+       Un componente scaduto (es. pneumatico oltre il 100% della vita
+       attesa) aveva lo stesso bordo di uno sano: l'unica differenza era
+       un piccolo badge a destra, che va letto per intero per accorgersene
+       — mentre la fascia è il modo in cui questa app "si legge anche
+       senza leggere il testo". */
     $("sch-comp").innerHTML = vc.length
-      ? vc.map(c => `<div class="item statico st-accent">
+      ? vc.map(c => `<div class="item statico ${c.calcolabile ? (striscia[clsVita[c.stato]] || "st-accent") : "st-accent"}">
           <div class="info"><div class="name">${esc(etichettaTipoComp(c.tipo))}</div>
             <div class="meta">montato il ${dataIt(c.data)} a ${(+c.montatoAOre).toLocaleString("it-IT")} h${c.nota ? " · " + esc(c.nota) : ""}${c.calcolabile ? (c.pctVita != null ? " · " + numTx(c.pctVita) + "% della vita attesa" : "") : " · " + esc(c.perche)}</div></div>
           <div class="acts"><span class="badge ${c.calcolabile ? (clsVita[c.stato] || "accent") : "tag"}">${c.calcolabile ? (+c.vitaOre).toLocaleString("it-IT") + " h" : "—"}</span></div></div>`).join("")

@@ -196,24 +196,37 @@ for (const W of [320, 390]) {
   const badgeOdl = await pg.evaluate(() => document.querySelectorAll("#odl-testa .badge")[1]?.textContent.replace(/\s+/g, " ").trim());
   dice(badgeOdl === "non confrontabile", "e il badge nella testa dell'ordine dice lo stesso della lista", badgeOdl);
   await pg.evaluate(() => document.getElementById("odl-contatore")?.scrollIntoView({ block: "center" })); await scatto("8-ordine");
-  await pg.click("#btn-odl-riscrivi"); await pg.waitForTimeout(500);
-  const finestra = await pg.evaluate(() => ({ aperta: !!document.querySelector("#mc-ore"), corpo: document.getElementById("modal-body")?.textContent.replace(/\s+/g, " ").trim() || document.querySelector(".modal")?.textContent.replace(/\s+/g, " ").trim() || "", valore: document.querySelector("#mc-ore")?.value }));
-  dice(finestra.aperta, "la finestra «Riscrivi sul contatore nuovo» si apre con il campo delle ore");
-  dice(/sostituito il/.test(finestra.corpo) && /segnava 5\.870 h/.test(finestra.corpo) && /partito da 120 h/.test(finestra.corpo), "la finestra racconta la sostituzione con i suoi numeri (5.870 h del vecchio, 120 h del nuovo)", finestra.corpo.slice(0, 400));
-  dice(/mancavano 130 h/.test(finestra.corpo) && /cade a 250 h/.test(finestra.corpo), "⛔ e PROPONE il conto con gli addendi: «mancavano 130 h … cade a 250 h» (6.000 − 5.870 + 120)", finestra.corpo.slice(0, 400));
-  dice(finestra.valore === "250", "il campo è precompilato con 250, senza il punto delle migliaia", finestra.valore);
-  await scatto("9-proposta");
-  await pg.click("#modal-foot .mbtn.primary"); await pg.waitForTimeout(700);
-  const dopoRisc = await pg.evaluate(() => ({ riquadro: !!document.getElementById("odl-contatore"), badge: document.querySelectorAll("#odl-testa .badge")[1]?.textContent.replace(/\s+/g, " ").trim(), classi: document.querySelectorAll("#odl-testa .badge")[1]?.className || "", sotto: document.querySelectorAll("#odl-testa .sch-sotto")[1]?.textContent.replace(/\s+/g, " ").trim() || "", esito: document.getElementById("odl-esito")?.textContent.replace(/\s+/g, " ").trim() || "" }));
-  dice(/Tagliando riscritto a 250 ore motore sul contatore nuovo/.test(dopoRisc.esito) && /confrontabile/.test(dopoRisc.esito), "confermato: l'esito dice che il tagliando è riscritto a 250 ore e che il conto è confrontabile", dopoRisc.esito);
-  dice(!dopoRisc.riquadro, "il riquadro «non confrontabile» sparisce dall'ordine");
-  dice(dopoRisc.badge === "tra 40 h" && /\bwarn\b/.test(dopoRisc.classi), "⛔ e il badge torna un confronto vero: «tra 40 h» in warn (250 − 210, sotto le 50)", dopoRisc);
-  dice(/Tagliando a 250 ore motore/.test(dopoRisc.sotto) && new RegExp(`riscritto sul contatore nuovo il ${oggiIt}: era a 6\\.000 h del vecchio`).test(dopoRisc.sotto), "la testa dell'ordine dice le ore nuove e, nella nota, la memoria di com'era", dopoRisc.sotto);
-  await scatto("10-riscritto");
-  // e la lista dei tagliandi dice la stessa cosa dell'ordine
-  await pg.click("#btn-odl-back"); await pg.waitForTimeout(500);
-  const rigaDopo = await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); return i ? { badge: i.querySelector(".badge")?.textContent.replace(/\s+/g, " ").trim(), testo: i.textContent.replace(/\s+/g, " ").trim() } : null; });
-  dice(!!rigaDopo && rigaDopo.badge === "tra 40 h" && !/Non confrontabile/.test(rigaDopo.testo), "nella lista il tagliando è «tra 40 h» e non dice più «non confrontabile»", rigaDopo);
+  /* ⛔ 18/09: IL CLICK NON ERA PROTETTO. Con la controprova che toglie il
+     ramo che porta `calcolabile` a false, il riquadro e il bottone
+     spariscono dal DOM (conseguenza corretta dell'iniezione, non un difetto
+     nuovo): `pg.click` su un selettore assente aspetta 30s e poi lancia
+     un'eccezione NON gestita che crasha l'intero processo — il banco non
+     stampa mai il verdetto finale, e la larghezza 390 px non viene mai
+     misurata, in silenzio. Se il bottone non c'è, il resto del flusso di
+     riscrittura non si può provare: si dichiara NON MISURATO e si salta,
+     invece di tentare comunque il click. */
+  if (!riquadro.bottone) {
+    console.log(`  ·   NON MISURATO: il bottone «Riscrivi sul contatore nuovo» non è nel DOM — salto il flusso di riscrittura per questa larghezza`);
+  } else {
+    await pg.click("#btn-odl-riscrivi"); await pg.waitForTimeout(500);
+    const finestra = await pg.evaluate(() => ({ aperta: !!document.querySelector("#mc-ore"), corpo: document.getElementById("modal-body")?.textContent.replace(/\s+/g, " ").trim() || document.querySelector(".modal")?.textContent.replace(/\s+/g, " ").trim() || "", valore: document.querySelector("#mc-ore")?.value }));
+    dice(finestra.aperta, "la finestra «Riscrivi sul contatore nuovo» si apre con il campo delle ore");
+    dice(/sostituito il/.test(finestra.corpo) && /segnava 5\.870 h/.test(finestra.corpo) && /partito da 120 h/.test(finestra.corpo), "la finestra racconta la sostituzione con i suoi numeri (5.870 h del vecchio, 120 h del nuovo)", finestra.corpo.slice(0, 400));
+    dice(/mancavano 130 h/.test(finestra.corpo) && /cade a 250 h/.test(finestra.corpo), "⛔ e PROPONE il conto con gli addendi: «mancavano 130 h … cade a 250 h» (6.000 − 5.870 + 120)", finestra.corpo.slice(0, 400));
+    dice(finestra.valore === "250", "il campo è precompilato con 250, senza il punto delle migliaia", finestra.valore);
+    await scatto("9-proposta");
+    await pg.click("#modal-foot .mbtn.primary"); await pg.waitForTimeout(700);
+    const dopoRisc = await pg.evaluate(() => ({ riquadro: !!document.getElementById("odl-contatore"), badge: document.querySelectorAll("#odl-testa .badge")[1]?.textContent.replace(/\s+/g, " ").trim(), classi: document.querySelectorAll("#odl-testa .badge")[1]?.className || "", sotto: document.querySelectorAll("#odl-testa .sch-sotto")[1]?.textContent.replace(/\s+/g, " ").trim() || "", esito: document.getElementById("odl-esito")?.textContent.replace(/\s+/g, " ").trim() || "" }));
+    dice(/Tagliando riscritto a 250 ore motore sul contatore nuovo/.test(dopoRisc.esito) && /confrontabile/.test(dopoRisc.esito), "confermato: l'esito dice che il tagliando è riscritto a 250 ore e che il conto è confrontabile", dopoRisc.esito);
+    dice(!dopoRisc.riquadro, "il riquadro «non confrontabile» sparisce dall'ordine");
+    dice(dopoRisc.badge === "tra 40 h" && /\bwarn\b/.test(dopoRisc.classi), "⛔ e il badge torna un confronto vero: «tra 40 h» in warn (250 − 210, sotto le 50)", dopoRisc);
+    dice(/Tagliando a 250 ore motore/.test(dopoRisc.sotto) && new RegExp(`riscritto sul contatore nuovo il ${oggiIt}: era a 6\\.000 h del vecchio`).test(dopoRisc.sotto), "la testa dell'ordine dice le ore nuove e, nella nota, la memoria di com'era", dopoRisc.sotto);
+    await scatto("10-riscritto");
+    // e la lista dei tagliandi dice la stessa cosa dell'ordine
+    await pg.click("#btn-odl-back"); await pg.waitForTimeout(500);
+    const rigaDopo = await pg.evaluate(() => { const i = [...document.querySelectorAll("#man-list .item")].find((x) => /Tagliando 500h/.test(x.querySelector(".name")?.textContent || "")); return i ? { badge: i.querySelector(".badge")?.textContent.replace(/\s+/g, " ").trim(), testo: i.textContent.replace(/\s+/g, " ").trim() } : null; });
+    dice(!!rigaDopo && rigaDopo.badge === "tra 40 h" && !/Non confrontabile/.test(rigaDopo.testo), "nella lista il tagliando è «tra 40 h» e non dice più «non confrontabile»", rigaDopo);
+  }
 
   dice(errori.length === 0, "nessun errore di pagina", errori.slice(0, 3));
   const largo = await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth);

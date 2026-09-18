@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **361 esecuzioni** che
-  aprono le pagine in un browser vero, da **160** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **363 esecuzioni** che
+  aprono le pagine in un browser vero, da **161** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11552,3 +11552,36 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   Giro completo: 41/41. Asserzioni eseguite dal giro: 4158→**4159**.
   Banchi del browser: 359→**361** esecuzioni, 159→**160** file distinti,
   propagato nei quattro documenti.
+
+## Flotta — la fascia colorata dei componenti a vita propria era fissa (18/09)
+- [x] **LA CORREZIONE DEL BADGE NON AVEVA TOCCATO LA FASCIA** *(18/09, unità
+      completata, dal deep-pass QA su Flotta)*. La correzione di oggi sulla
+      mappa degli stati (regola 18) aveva sistemato solo il badge del
+      componente (`clsVita[c.stato]`); il CONTENITORE della riga, in
+      `#sch-comp`, restava fisso a `st-accent` indipendentemente da
+      `c.stato` — mentre le due liste gemelle due righe più sopra nella
+      stessa funzione (`#sch-sca`/`#sch-man`) usano già
+      `striscia[cls] || "st-accent"`. Un componente scaduto (oltre il
+      100% della vita attesa) aveva la stessa fascia di uno sano: solo un
+      piccolo badge a destra cambiava, e va letto per intero per
+      accorgersene — mentre la fascia è il modo in cui l'app "si legge
+      anche senza leggere il testo".
+- Nuovo banco browser permanente che riproduce il caso vero della demo
+  ("Escavatore E1", pneumatico a 1.870 h) portando la soglia a 1.500 h
+  (124,7%, "scaduto") e confrontandolo col componente sano (denti benna,
+  12,3%): 5/5, controprova 2/5 KO voluti. Nessun modulo dati toccato:
+  KPI invariato a 3155. Giro completo: 41/41. Asserzioni eseguite dal
+  giro: 4159→**4159** (invariate: nessuna nuova asserzione contata dalle
+  nove suite). Banchi del browser: 361→**363** esecuzioni, 160→**161**
+  file distinti, propagato nei quattro documenti.
+- **Trovato anche un difetto nel BANCO, non nel prodotto** (task di
+  investigazione dedicato): il click su `#btn-odl-riscrivi` in
+  `flotta-contatore.mjs` non era protetto — quando la sua STESSA
+  controprova fa sparire quel bottone dal DOM (conseguenza corretta
+  dell'iniezione), il `page.click` aspettava 30s e crashava l'intero
+  processo Node prima del verdetto finale, perdendo in silenzio la
+  seconda larghezza (390 px). Corretto dichiarando "NON MISURATO" e
+  saltando il flusso dipendente quando il bottone non c'è, invece di
+  tentare comunque il click. Verificato: normale 72/72 invariato,
+  controprova ora arriva al verdetto su entrambe le larghezze senza
+  crash (35 passati, 20 KO voluti, verdetto "CONTROPROVA OK" stampato).
