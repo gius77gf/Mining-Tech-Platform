@@ -613,6 +613,8 @@ const BANCHI = [
      Alza un server suo (porta 8781), come `flotta-consumo-storia`. */
   ['Flotta: il contatore sostituito o azzerato', 'flotta-contatore.mjs', []],
   ['contatore sostituito · controprova', 'flotta-contatore.mjs', ['--controprova'], true],
+  ['Flotta: il secondo tocco sul doppio invio (btn-rif/btn-cos)', 'flotta-doppio-invio.mjs', []],
+  ['doppio invio · controprova', 'flotta-doppio-invio.mjs', ['--controprova'], true],
   ['il ponte Campo→Conti nel report', 'conti-ponte-campo.mjs', []],
   ['ponte Campo→Conti · Campo assente', 'conti-ponte-campo.mjs', ['--campo-assente']],
   ['ponte Campo→Conti · controprova', 'conti-ponte-campo.mjs', ['--controprova'], true],

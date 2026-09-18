@@ -4547,7 +4547,13 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!ri.ok) return;
     const importo = ri.valore;
     ["cos-voce","cos-importo","cos-data"].forEach(i => err(i, false));
+    /* ⛔ 18/09, dal quarto giro di deep-pass: mancava `occupato()` — il
+       bottone restava attivo per tutta la scrittura, e un doppio tocco
+       (il gesto che questo stesso file cita come rischio per il giro
+       macchina) registrava due volte la stessa voce di costo. */
+    occupato("btn-cos", true);
     await db.aggiungi("costi", { voce, importo, nota: $("cos-nota").value.trim(), data: iso || null });
+    occupato("btn-cos", false);
     $("cos-voce").value = ""; $("cos-importo").value = ""; $("cos-nota").value = "";
     $("cos-data").value = oggiISO();   // la prossima spesa è quasi sempre di oggi
     esito("cos-esito", "Costo registrato: " + voce + " (" + eur(importo) + ")"
@@ -5136,6 +5142,12 @@ body.dw b.bad{color:var(--ink-dg)}
       return;
     }
     const data = String($("rif-data").value).slice(0, 10);
+    /* ⛔ 18/09, dal quarto giro di deep-pass: mancava `occupato()` — tre
+       scritture di fila (costo, rifornimento, mezzo) restavano esposte a
+       un doppio tocco per tutta la loro durata, e un rifornimento si
+       registra spesso "alla cisterna del piazzale", lo stesso contesto
+       per cui `btn-giro-salva` ha già questa difesa. */
+    occupato("btn-rif", true);
     // La spesa del gasolio è una spesa della flotta: nasce subito anche come
     // voce di costo «Carburante», con la sua data, e le due restano legate.
     let costoId = null;
@@ -5152,6 +5164,7 @@ body.dw b.bad{color:var(--ink-dg)}
     // Il pieno racconta anche le ore: se il contatore è più avanti si aggiorna;
     // se è NUOVO si scrive quello che segna, anche se è più basso di prima.
     if (m && v.ore != null && (v.contatoreNuovo || v.ore > (+m.ore || 0))) await db.aggiorna("mezzi", m.id, { ore: v.ore });
+    occupato("btn-rif", false);
     $("rif-litri").value = ""; $("rif-euro").value = ""; $("rif-ore").value = ""; $("rif-nuovo").checked = false;
     $("rif-data").value = oggiISO();
     esito("rif-esito", "Rifornimento registrato: " + nome + ", " + lt(v.litri)
