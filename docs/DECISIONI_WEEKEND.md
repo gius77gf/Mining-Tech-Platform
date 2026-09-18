@@ -2162,9 +2162,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 condivise su numeri, unità di misura e soldi.
 
 **Le prove automatiche sono passate a 3.649** *(ricontate il 18/09, dopo aver
-corretto in shared/dw-app-ui.js e nelle superfici che lo usano (toast senza
-role/aria-live su core/Genesi/admin, CSS di errore assente in Genesi) e,
-prima di questo, in Campo (CLASSE_HSE senza la chiave «senza-scadenze») e,
+corretto in Terra (`renderValore` usava `rilievoUsabile` invece di
+`rilievoUsabileConData`: un rilievo a calendario impossibile gonfiava il
+valore del materiale estratto) e, prima di questo, in shared/dw-app-ui.js e
+nelle superfici che lo usano (toast senza role/aria-live su core/Genesi/admin,
+CSS di errore assente in Genesi) e, prima di questo, in Campo (CLASSE_HSE senza la chiave «senza-scadenze») e,
 prima di questo, in Conti (prioritaIncasso/agingIncassi/incassoPerMese/kpiFrom, una
 fattura stornata per intero restava scaduta e urgente su un residuo di zero
 euro) e, prima di questo, in Flotta tre copie deboli mai propagate (ordinamento del

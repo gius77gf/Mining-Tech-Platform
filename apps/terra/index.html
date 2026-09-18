@@ -1045,7 +1045,7 @@ a.dw-btn{text-decoration:none}
 <script type="module">
   import { terraData, calendarioTerra, kpiFrom, fmtM3, volumeFronte, volumeFronteRilevato, valoreMateriale, qualitaRilievo, riservaResidua, proiezioneAnnua, varianzaMensilePiano, parseRilieviCsv, scartiRilieviCsv, csvRilievi, rientroRilievi, parseFrontiCsv, scartiFrontiCsv, trendVolumi, volumiPerMese, classeAccuratezza, bandaVolume, DENSITA_PRESET, presetDensita, densitaDelMateriale,
            autorizzazioneVigente, vitaCava, TOLLERANZA_RITMO_PCT, statoScadenzaTerra, livelloScadenzaTerra, prossimaData, riepilogoScadenze, TIPI_SCADENZA_TERRA, presetScadenzaTerra, etichettaTipoScadenza,
-           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
+           provenienzaRilievo, soloScavo, soloCumulo, rilievoUsabile, rilievoUsabileConData, PROVENIENZE, etichettaProvenienza, csvRiepilogoAnno, csvFrontiRilievi, MESI_NOME, verbaleRilievo, prospettoDenuncia,
            anniConVolumi, riepilogoAnnuale, ripartizioneFronti, ripartizioneBanchi, banchiDaSempre, serieAnnuale,
            baseOnereEscavazione, descriviBaseOnere, detrazioneRecupero,
            rilieviScavoFronte, rilievoPrecedente, confrontoRilievi,
@@ -3791,7 +3791,15 @@ a.dw-btn{text-decoration:none}
   // prezzo. Ricalcolo dal vivo quando l'utente cambia densità o prezzo.
   function renderValore() {
     const anno = oggiISO().slice(0, 4);
-    const dellAnno = (RIL || []).filter(r => rilievoUsabile(r) && (r.data||"").slice(0,4) === anno);
+    /* ⛔ 18/09, dal deep-pass QA: era la stessa copia debole già chiusa il
+       17/09 in proiezioneAnnua/varianzaLottoAnno/anniConVolumi — `rilievoUsabile`
+       (solo forma/elaborato/volume) invece di `rilievoUsabileConData`, che in
+       più pretende un calendario vero. Un rilievo con `data:"2026-13-45"`
+       (forma valida, calendario impossibile) passava comunque il filtro
+       sull'anno (`.slice(0,4)` legge "2026" anche da una data inesistente),
+       e il suo volume finiva nel valore del materiale — mentre la Denuncia,
+       due click più in là nella stessa pagina, lo escludeva già. */
+    const dellAnno = (RIL || []).filter(r => rilievoUsabileConData(r) && (r.data||"").slice(0,4) === anno);
     // «estratto» = SCAVO: il materiale ripreso da un cumulo era già stato
     // estratto (e già valorizzato) prima, sommarlo conterebbe due volte lo
     // stesso metro cubo
