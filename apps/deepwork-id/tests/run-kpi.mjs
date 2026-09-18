@@ -2256,6 +2256,15 @@ test("prioritaOperative: su un ricambio senza soglia non scrive «min 0»", () =
   eq(conSoglia.find(x => x.categoria === "ricambio").dettaglio, "giacenza 1 / min 4",
     "e dove la soglia c'è, si scrive");
 });
+test("⛔ prioritaOperative/csvSituazione: giacenza e soglia decimali (olio, grasso) escono con la virgola italiana, non il punto (18/09, dal deep-pass QA)", () => {
+  const ricambi = [{ id: "c", nome: "Olio idraulico (fusto 200L)", giacenza: 2.5, sogliaMin: 5.5 }];
+  const items = flotta.prioritaOperative([], [], ricambi);
+  eq(items.find(x => x.categoria === "ricambio").dettaglio, "giacenza 2,5 / min 5,5",
+    "⛔ non «giacenza 2.5 / min 5.5»: il punto inglese finiva dritto sul Quadro");
+  const csv = flotta.csvSituazione([{ nome: "Escavatore E1", ore: 5870, area: "fronte Est", stato: "operativo" }], [], ricambi, []);
+  ok(/giacenza 2,5 · soglia min 5,5/.test(csv), "e nel CSV \"Situazione parco\": " + csv);
+  ok(!/giacenza 2\.5/.test(csv) && !/min 5\.5/.test(csv), "niente punto inglese nel file scaricato: " + csv);
+});
 test("parseTelemetriaCsv: legge mezzo/ore/carburante, scarta righe non valide", () => {
   const csv = "mezzo;ore;carburante\nEscavatore E1;5900;8400\nDumper D1;8420\n;100;0\nPala P1;abc;10\n";
   const p = flotta.parseTelemetriaCsv(csv);

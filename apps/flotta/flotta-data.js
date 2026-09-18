@@ -1201,7 +1201,11 @@ export function csvSituazione(mezzi, manutenzioni, ricambi, letture) {
     csv += `manutenzione;${csvCell(n.titolo + " — " + n.mezzo)};${csvCell(statoOrdine(n).breve)};${csvCell(n.orePreviste ? "a " + it(n.orePreviste) + " h motore" + codaContatore(n) : "previsto " + dataIt(n.dataPrevista))}\n`;
   for (const r of (ricambi || []).filter(Boolean).slice().sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "it"))) {
     const s = statoScorta(r);
-    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + s.giacenza + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + s.soglia))}\n`;
+    /* ⛔ 18/09, dal deep-pass QA: `s.giacenza`/`s.soglia` concatenati col `+`
+       uscivano col punto inglese (giacenza e soglia sono decimali per
+       l'olio e il grasso, vedi il form) mentre la riga accanto, `m.ore`,
+       già passa da `it()`. Stesso file, stessa colonna, due convenzioni. */
+    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell("giacenza " + it(s.giacenza) + (s.soglia == null ? " · soglia minima non impostata" : " · soglia min " + it(s.soglia)))}\n`;
   }
   return csv;
 }
@@ -1651,7 +1655,10 @@ export function prioritaOperative(mezzi, manutenzioni, ricambi, oggi = new Date(
       titolo: r.nome || "Ricambio",
       // ⚠️ «min 0» era la soglia inventata: se nessuno l'ha scritta si dice
       // che non c'è, non si mette uno zero che sembra una decisione.
-      dettaglio: "giacenza " + s.giacenza + (s.soglia == null ? " / soglia minima non impostata" : " / min " + s.soglia),
+      // ⛔ 18/09, dal deep-pass QA: giacenza e soglia sono decimali (l'olio e
+      // il grasso si contano a litri e a chili) e concatenate col `+`
+      // uscivano col punto inglese — la stessa riga della schermata Quadro.
+      dettaglio: "giacenza " + mostra(s.giacenza, 2) + (s.soglia == null ? " / soglia minima non impostata" : " / min " + mostra(s.soglia, 2)),
       badge: zero ? "Esaurito" : "Sotto scorta" });
   }
   for (const m of mezzi || []) {
