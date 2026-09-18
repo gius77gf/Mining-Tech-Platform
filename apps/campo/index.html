@@ -2737,9 +2737,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const unita = $("ob-unita").value || UNITA_PRODUZIONE[0];
     // punto di scrittura 17 — obiettivo del turno
     if (bloccato(data, turno, "l'obiettivo del turno", "ob-esito")) return;
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: `gia` legge OBIE in memoria,
+       aggiornato solo da refresh() più in basso — un doppio tocco rapido
+       (rete lenta in cava) lo legge due volte null e scrive due obiettivi
+       distinti per lo stesso turno. Stessa famiglia chiusa oggi in
+       Terra/Flotta/Conti con occupato() (shared/dw-app-ui.js). */
+    occupato("btn-ob", true);
     const gia = obiettivoDi(OBIE, data, turno);
     if (gia) await db.aggiorna("obiettivi", gia.id, { valore, unita });
     else await db.aggiungi("obiettivi", { data, turno, unita, valore });
+    occupato("btn-ob", false);
     $("ob-valore").value = "";
     esito("ob-esito", (gia ? "Obiettivo aggiornato: " : "Obiettivo impostato: ")
       + obQuanto(valore, unita) + " per il turno " + turno + " del " + dmy(data) + ".", "success");
@@ -2837,9 +2844,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // punto di scrittura 21 — durata dichiarata del turno
     if (bloccato(data, turno, "la durata del turno", "disp-esito")) return;
     const ora = new Date().toTimeString().slice(0, 5);
+    // stessa trappola di "btn-ob": `gia` legge DUR in memoria, aggiornato
+    // solo da refresh() qui sotto.
+    occupato("btn-disp", true);
     const gia = durataTurnoDi(DUR, data, turno);
     if (gia) await db.aggiorna("durate", gia.id, { minuti, ora });
     else await db.aggiungi("durate", { data, turno, minuti, ora });
+    occupato("btn-disp", false);
     esito("disp-esito", (gia ? "Durata aggiornata: " : "Durata dichiarata: ") + oreMinuti(minuti)
       + " per il turno " + turno + " del " + dmy(data) + ".", "success");
     await refresh();
@@ -3057,12 +3068,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!argomento) { err("bri-argomento", true); $("bri-argomento").focus();
       esito("bri-esito", "Serve l'argomento: è la cosa che il registro deve saper dire dopo un mese.", "err"); return; }
     if (briefingDi(BRI, OGGI, turno, squ)) { esito("bri-esito", "Il briefing di questo turno è già registrato.", "err"); renderBriefing(); return; }
+    // stessa trappola di "btn-ob": il controllo qui sopra legge BRI in
+    // memoria, aggiornato solo da refresh() qui sotto.
+    occupato("btn-bri", true);
     const ora = new Date().toTimeString().slice(0, 5);
     await db.aggiungi("briefing", { data: OGGI, turno, squadra: squ, argomento, tenutoDa: tenutoDa || "", note, ora });
     /* la voce della checklist «Briefing … fatto» si spunta da sola SOLO se
        nessuno l'ha ancora toccata: una risposta data a mano non si sovrascrive */
     const gia = doc && doc.esiti && (doc.esiti[String(INDICE_BRIEFING)] || doc.esiti[INDICE_BRIEFING]);
     if (INDICE_BRIEFING >= 0 && !gia) await salvaEsiti({ [String(INDICE_BRIEFING)]: "ok" });
+    occupato("btn-bri", false);
     $("bri-argomento").value = ""; $("bri-note").value = "";
     await refresh();
     esito("bri-esito", "Briefing registrato alle " + ora + " (" + squ + ", turno " + turno + ")" + (gia ? "." : ": la voce della checklist è segnata a posto."), "success");
@@ -3076,7 +3091,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
           `Stai per mettere <b>a posto</b> ${plurale(Object.keys(nuovi).length, "l'unica voce", `le ${Object.keys(nuovi).length} voci`)} a cui non hai ancora risposto.<br><br>
            Fallo solo se i controlli li hai <b>davvero fatti</b>: la checklist resta scritta con la tua squadra,
            il giorno e l'ora. Le voci a cui hai già risposto non cambiano.`, "Sono tutte a posto")) return;
+    occupato("btn-chk-ok", true);
     await salvaEsiti(nuovi);
+    occupato("btn-chk-ok", false);
     esito("chk-esito", "Segnate a posto le voci che mancavano: ora puoi chiudere la checklist.", "success");
   };
   $("btn-chk-salva").onclick = async () => {
@@ -3101,8 +3118,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            ${st.problemi.map(p => "· " + esc(p)).join("<br>")}<br><br>
            Chiudere la checklist così significa <b>cominciare il turno sapendolo</b>. Il rapporto di fine
            turno lo scrive.`, "Chiudo lo stesso", true)) return;
+    occupato("btn-chk-salva", true);
     const ora = new Date().toTimeString().slice(0, 5);
     await db.aggiorna("checklist", doc.id, { ora, chiusaDa });
+    // `occupato(false)` PRIMA di `refresh()`: l'etichetta di questo bottone
+    // (Chiudi la checklist / Checklist chiusa / Turno chiuso) la scrive
+    // il render dentro refresh(), leggendo lo stato appena scritto — se
+    // corresse dopo, occupato riscriverebbe il testo catturato al tocco,
+    // cancellando il cambio di stato appena fatto (la stessa trappola presa
+    // oggi su «btn-fro»/«btn-lot»/«btn-aut-salva» in Terra e «btn-ft» in Conti).
+    occupato("btn-chk-salva", false);
     esito("chk-esito", `Checklist di ${squ} chiusa alle ${ora} da ${chiusaDa} (turno ${turno}).`, st.no ? "" : "success");
     await refresh();
   };
@@ -3355,7 +3380,9 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            ${mancanti.map(r => "· " + esc(r.operatore.nome)).join("<br>")}<br><br>
            Fallo solo se le hai <b>viste davvero</b>: su questa lista si conta l'appello in caso di emergenza.`,
           "Ci sono tutti")) return;
+    occupato("btn-pre-tutti", true);
     for (const r of mancanti) await salvaPresenza(r.operatore.id, "presente");
+    occupato("btn-pre-tutti", false);
     esito("pre-esito", "Segnate presenti " + conta(mancanti.length, "persona", "persone") + ".", "success");
   };
   $("btn-pre-standard").onclick = async () => {
@@ -3377,10 +3404,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            ${prop.uscita ? "" : `<b>Solo l'entrata</b>: la durata di questo turno non è stata dichiarata, quindi l'ora di uscita non si può proporre senza inventarla.<br><br>`}
            Fallo solo se hanno <b>davvero</b> fatto l'orario del turno: da qui esce il riposo fra due turni, che è una riga del D.Lgs 66/2003 su un documento firmato.`,
           "Scrivi gli orari")) return;
+    occupato("btn-pre-standard", true);
     const campi = { entrata: prop.entrata };
     if (prop.uscita) campi.uscita = prop.uscita;
     let fatte = 0;
     for (const r of vuoti) if (await salvaOrari(r.operatore.id, campi)) fatte++;
+    occupato("btn-pre-standard", false);
     esito("pre-esito", "Orario standard scritto per " + fatte + (fatte === 1 ? " persona." : " persone."), "success");
   };
   $("btn-pre-export").onclick = () => {
@@ -3504,8 +3533,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     await salvaMeteo({ [campo]: nuovo });
   });
   $("btn-met").onclick = async () => {
+    // `salvaMeteo` ha già una guardia silenziosa (`salvataggioMet`) che
+    // evita la doppia scrittura, ma senza nessun segno visivo — il bottone
+    // resta uguale, nessun "Salvo…". Qui si aggiunge il segno.
+    occupato("btn-met", true);
     await salvaMeteo({ note: $("met-note").value.trim() },
       "Condizioni del sito salvate per il turno " + ($("chk-turno").value || turnoCorrente()) + ".");
+    occupato("btn-met", false);
   };
 
   // ══════════════════════════════════════════════════════════════════════
@@ -3626,9 +3660,16 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const turno = $("chk-turno").value || turnoCorrente();
     const note = $("fir-note").value.trim();
     const ora = new Date().toTimeString().slice(0, 5);
+    // ⛔ 18/09, dal secondo giro di deep-pass QA: `gia` legge CHI in memoria,
+    // aggiornato solo da refresh() più in basso — un doppio tocco firma il
+    // turno due volte (o riscrive la firma) prima che il primo salvataggio
+    // sia confermato. È la firma della consegna: proprio il documento su cui
+    // la doppia scrittura conta di più.
+    occupato("btn-fir", true);
     const gia = chiusuraDi(CHI, OGGI, turno);
     if (gia) await db.aggiorna("chiusure", gia.id, { consegna, ricevuta, note, ora });
     else await db.aggiungi("chiusure", { data: OGGI, turno, consegna, ricevuta, note, ora });
+    occupato("btn-fir", false);
     $("fir-consegna").value = ""; $("fir-ricevuta").value = ""; $("fir-note").value = "";
     esito("fir-esito", "Turno " + turno + " chiuso alle " + ora
       + " da " + consegna + (ricevuta ? ", ricevuto da " + ricevuta : "") + ".", "success");
@@ -3640,10 +3681,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (!c || !c.ora) return;
     const chi = await chiediRiapertura(turno, c);
     if (!chi) return;
+    occupato("btn-fir-riapri", true);
     const ora = new Date().toTimeString().slice(0, 5);
     // la traccia si AGGIUNGE: le riaperture precedenti non si toccano
     const storia = riaperture(c).concat([{ da: chi.da, motivo: chi.motivo, il: OGGI, ora, eraChiusoAlle: c.ora }]);
     await db.aggiorna("chiusure", c.id, { ora: "", riaperture: storia });
+    occupato("btn-fir-riapri", false);
     // chi aveva consegnato torna nel form: si rifirma senza riscrivere tutto
     $("fir-consegna").value = c.consegna || ""; $("fir-ricevuta").value = c.ricevuta || "";
     $("fir-note").value = c.note || "";
@@ -4084,11 +4127,22 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const vecchia = editAtt ? ATT.find(x => x.id === editAtt) : null;
     if (vecchia && bloccato(vecchia.data, vecchia.turno, "l'attività «" + vecchia.titolo + "»", "att-esito")) return;
     if (bloccato(data, turno, "l'attività «" + titolo + "»", "att-esito")) return;
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: nessuna guardia qui — un
+       doppio tocco rapido registra o modifica due volte la stessa attività.
+       Il bottone ha anche l'etichetta che cambia da sola ("Pianifica" ↔
+       "Salva modifica" secondo editAtt): occupato(false) va PRIMA della
+       riscrittura esplicita dell'etichetta, non dopo — se no restituirebbe
+       il testo catturato al tocco, cancellando il cambio di modo appena
+       fatto (la stessa trappola presa oggi su «btn-fro» in Terra e
+       «btn-ft» in Conti). */
+    occupato("btn-att", true);
     if (editAtt) {
       await db.aggiorna("attivita", editAtt, { titolo, dettaglio: $("att-dett").value.trim(), data, turno, squadra, operatore });   // stato/causale restano
+      occupato("btn-att", false);
       editAtt = null; $("btn-att").textContent = "Pianifica";
     } else {
       await db.aggiungi("attivita", { titolo, dettaglio: $("att-dett").value.trim(), data, turno, squadra, operatore, stato: "pianificata" });
+      occupato("btn-att", false);
     }
     resetFormAtt();
     esito("att-esito", "Attività salvata: " + titolo + " (" + dmy(data) + " · turno " + turno
@@ -4137,9 +4191,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // attaccata a quello giusto. Vuoto = «non indicato», ed è una risposta
     // legittima che il conto sa dichiarare — non un ripiego silenzioso.
     const fronteId = $("new-rap-fronte") ? $("new-rap-fronte").value : "";
+    occupato("btn-add-rap", true);
     await db.aggiungi("rapportini", { titolo, squadra: $("new-rap-squadra").value, data, turno,
       prodQta: qta, prodUnita: unita, note: $("new-rap-note").value.trim(),
       fronteId, ora: "", stato: "bozza" });
+    occupato("btn-add-rap", false);
     $("new-rap-titolo").value = ""; $("new-rap-prod").value = ""; $("new-rap-note").value = "";
     $("new-rap-data").value = OGGI; $("new-rap-turno").value = turnoCorrente();
     esito("rap-esito", "Bozza creata: " + titolo + " (" + dmy(data) + " · turno " + turno + (qta != null ? " · " + formattaProduzione(qta, unita) : "") + "). Toccala nell'elenco per inviarla.", "success");
@@ -4152,6 +4208,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     if (SQU.some(q => (q.nome || "").toLowerCase() === nome.toLowerCase())) {
       sbaglia("squ-nome", "squ-esito", "Esiste già una squadra chiamata «" + nome + "»: cambia nome, altrimenti i rapportini non si capiscono più."); return; }
     err("squ-nome", false);
+    // ⛔ 18/09, dal secondo giro di deep-pass QA: il controllo qui sopra
+    // legge SQU in memoria, aggiornato solo da refresh() più in basso — un
+    // doppio tocco lo passa due volte e crea due squadre omonime.
+    occupato("btn-squ", true);
     // ⛔ «Persone» lasciato vuoto NON è «0 persone»: è una squadra di cui non
     // sappiamo quanti sono. La regola è già scritta dodici righe più in là,
     // in `parseSquadreCsv` («niente zero di comodo»), e la scheda la mostra
@@ -4161,6 +4221,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const nPers = String($("squ-persone").value || "").trim();
     const persone = nPers === "" || !Number.isFinite(+nPers) ? null : Math.max(0, Math.round(+nPers));
     await db.aggiungi("squadre", { nome, persone, area: $("squ-area").value.trim(), stato: "operativa" });
+    occupato("btn-squ", false);
     $("squ-nome").value = ""; $("squ-persone").value = ""; $("squ-area").value = "";
     esito("squ-esito", "Squadra aggiunta: " + nome + " — è in turno.", "success"); $("squ-nome").focus();
     await refresh();
@@ -4177,8 +4238,12 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // il collegamento a Scudo si scrive SOLO se scelto: un campo vuoto resta
     // assente, non diventa una stringa vuota che poi somiglia a un id
     const lav = $("ope-lav") && $("ope-lav").value ? $("ope-lav").value : null;
+    // stessa trappola di "btn-squ": il controllo qui sopra legge OPER in
+    // memoria, aggiornato solo da refresh() più in basso.
+    occupato("btn-ope", true);
     await db.aggiungi("operatori", Object.assign({ nome, ruolo, squadra, stato: "in-forza" },
       lav ? { lavoratoreId: lav } : {}));
+    occupato("btn-ope", false);
     $("ope-nome").value = "";
     if ($("ope-lav")) $("ope-lav").value = "";
     esito("ope-esito", "Aggiunto: " + nome + " — " + ruolo + (squadra ? " · " + squadra : " · senza squadra") + ".", "success");
@@ -4646,10 +4711,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const el = document.createElement("a");
     el.href = "data:text/plain;charset=utf-8," + encodeURIComponent(txt);
     el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
+    // stessa trappola di "btn-fir": `gia` legge CHI in memoria, aggiornato
+    // solo da refresh() più in basso.
+    occupato("btn-consegna", true);
     const gia = chiusuraDi(CHI, OGGI, turno);
     const oraConsegna = new Date().toTimeString().slice(0, 5);
     if (gia) await db.aggiorna("chiusure", gia.id, { testoConsegna: txt, oraTestoConsegna: oraConsegna });
     else await db.aggiungi("chiusure", { data: OGGI, turno, testoConsegna: txt, oraTestoConsegna: oraConsegna });
+    occupato("btn-consegna", false);
     esito("rap-esito", "Consegna di turno esportata e archiviata: " + conta(RAP_OGGI.length, "rapportino", "rapportini") + " e " + conta(fermi.length, "causale di fermo", "causali di fermo") + ".", "success");
     await refresh();
   };

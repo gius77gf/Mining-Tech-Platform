@@ -35,9 +35,15 @@ const DIFETTI = [
     /* Il testo lo compone`,
    `/* Il testo lo compone`],
   [`el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
+    // stessa trappola di "btn-fir": \`gia\` legge CHI in memoria, aggiornato
+    // solo da refresh() più in basso.
+    occupato("btn-consegna", true);
     const gia = chiusuraDi(CHI, OGGI, turno);`,
    `el.download = "consegna_turno.txt"; marchiaCsv(el); el.click();
     const turno = $("chk-turno").value || turnoCorrente();
+    // stessa trappola di "btn-fir": \`gia\` legge CHI in memoria, aggiornato
+    // solo da refresh() più in basso.
+    occupato("btn-consegna", true);
     const gia = chiusuraDi(CHI, OGGI, turno);`],
 ];
 
