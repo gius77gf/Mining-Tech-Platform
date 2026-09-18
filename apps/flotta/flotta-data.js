@@ -981,9 +981,15 @@ export function csvListaDellaSpesa(proposta) {
   /* ⛔ 17/09, dal terzo giro di deep-pass: `r.prezzo`/`r.spesa`/`r.alGiorno`
      grezzi scrivevano il punto inglese («0.0056» pezzi al giorno), mentre lo
      schermo mostra lo stesso numero con `toLocaleString("it-IT", {
-     maximumFractionDigits: 3 })`. Stessa precisione qui. */
+     maximumFractionDigits: 3 })`. Stessa precisione qui.
+     ⛔ 18/09, dal secondo giro di deep-pass: la correzione qui sopra si era
+     fermata a metà — `r.giacenza`/`r.daOrdinare` restavano grezzi (punto
+     inglese) nella stessa riga dove prezzo/spesa/alGiorno usano già la
+     virgola, un ricambio misurato a peso/volume (olio, grasso) esce con due
+     convenzioni diverse nella stessa riga. Stessa precisione già usata per
+     giacenza/sogliaMin in `csvRicambi`. */
   const righe = [CSV_LISTA_SPESA_INTESTAZIONE]
-    .concat(da.map(r => [r.nome, r.giacenza, r.daOrdinare, mostra(r.prezzo, 2),
+    .concat(da.map(r => [r.nome, mostra(r.giacenza, 2), mostra(r.daOrdinare, 2), mostra(r.prezzo, 2),
                          mostra(r.spesa, 2), mostra(r.alGiorno, 3), r.copertura,
                          r.episodi == null ? "" : r.episodi].map(csvCell).join(";")));
   if (!da.length) return righe.join("\r\n");

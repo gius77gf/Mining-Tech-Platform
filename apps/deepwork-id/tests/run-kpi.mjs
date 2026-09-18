@@ -43178,6 +43178,19 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     eq(tutte.filter((r) => /^"?ATTENZIONE/.test(r)).length, 3, "con tutt'e tre le bandiere, tre avvertenze");
     ok(/Nessuna riga porta un prezzo: quanto costa questa lista non si può dire/.test(tutte.join("\n")), "e quando nessuna riga ha il prezzo lo dice");
   });
+  test("⛔ 18/09, secondo giro di deep-pass: csvListaDellaSpesa scriveva giacenza/daOrdinare col punto inglese", () => {
+    // la correzione del 17/09 aveva sistemato prezzo/spesa/alGiorno (mostra())
+    // ma non giacenza/daOrdinare, che restavano grezzi -- un ricambio a peso/
+    // volume (olio, grasso) usciva con due convenzioni decimali diverse nella
+    // stessa riga.
+    const riga = flotta.csvListaDellaSpesa({ righe: [{ nome: "Olio idraulico (l)",
+      giacenza: 12.5, daOrdinare: 43.5, prezzo: 4.2, spesa: 182.7, alGiorno: 5.556,
+      copertura: 10, episodi: 10 }] }).split("\r\n")[1];
+    const c = riga.split(";");
+    eq(c[1], "12,5", "giacenza con la virgola, come sullo schermo: " + riga);
+    eq(c[2], "43,5", "da_ordinare con la virgola, come sullo schermo: " + riga);
+    eq(c[3], "4,2", "e il prezzo (già corretto il 17/09) resta con la virgola: " + riga);
+  });
 }
 /* ===== fine registro interventi e lista della spesa nel modulo (05/09) ===== */
 /* ===== la situazione del parco nel modulo (Flotta, 05/09) ===== */
