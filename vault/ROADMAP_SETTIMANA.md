@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.643 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3147, `run-stile` 330,
+  **3.645 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3149, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11426,3 +11426,37 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   valido). KPI: 3146 → **3147**. Giro completo su worktree isolata: 41/41.
   9-suite sum: **3.643** (3147+330+83+34+9+8+7+3+22).
   `numeri-nei-documenti.mjs` verificato prima del commit.
+
+## Flotta — tre copie deboli mai propagate dalla correzione originale (18/09)
+- [x] **TRE DIFETTI, STESSA FAMIGLIA: UNA CORREZIONE FATTA IN UN PUNTO, MAI
+      PROPAGATA AL SECONDO CONSUMATORE DELLO STESSO DATO** *(18/09, unità
+      completata, dal deep-pass QA su Flotta)*.
+      1. L'ordinamento del magazzino ricambi (`$ric-list`, la lista intera
+         che si scorre per decidere cosa controllare) usava ancora la
+         formula grezza `(giacenza-sogliaMin)-(giacenza-sogliaMin)` già
+         dichiarata rotta e sostituita in `sottoScorta` (l'avviso in cima):
+         uno scaffale VUOTO senza soglia (chiave 0) finiva ordinato DOPO un
+         pezzo con qualche unità ma sotto una soglia scritta (chiave
+         negativa). Nuova funzione pura `ordinaMagazzino(ricambi)` in
+         `flotta-data.js`, che estende `RANGO_SCORTA` a tutti e quattro gli
+         stati (esaurito, sotto-scorta, senza-soglia, a-posto) e la usa
+         sull'intero magazzino, non solo sul sottoinsieme filtrato.
+      2. `csvBudget` scriveva i numeri col punto inglese («12345.67»)
+         invece della virgola italiana, a differenza dei quattro CSV
+         gemelli (`csvCosti`/`csvRicambi`/`csvRegistroInterventi`/
+         `csvListaDellaSpesa`) corretti il 17/09 per lo stesso identico
+         difetto — nato lo stesso giorno di quelli, mai toccato dal giro.
+         Ora usa `mostra(numeroDichiarato(x), 2)` come le sorelle.
+      3. `propostaScorte` mostrava "soglia oggi 0" per un ricambio senza
+         soglia mai impostata — la stessa bugia già corretta in
+         `statoScorta` ("una soglia mai scritta non è una soglia a zero")
+         ma non propagata a questo secondo calcolo. Ora usa
+         `numeroDichiarato(r.sogliaMin)`; lo schermo distingue "non
+         impostata" da un numero, e il badge dice "imposta a X" invece di
+         "alza a X" quando non c'era nessuna soglia da alzare.
+- Tre nuovi test dedicati con controprova (verificati indipendentemente: 1 e
+  3 col vecchio codice rimesso a mano, 2 già dimostrato aggiornando
+  l'assertion esistente al formato corretto). KPI: 3147 → **3149**. Giro
+  completo su worktree isolata: 41/41. 9-suite sum: **3.645**
+  (3149+330+83+34+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato prima
+  del commit.

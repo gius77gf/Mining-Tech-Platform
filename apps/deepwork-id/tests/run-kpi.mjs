@@ -2159,6 +2159,24 @@ test("sottoScorta: ricambi con giacenza ≤ soglia, ordinati per gravità", () =
 });
 test("sottoScorta: nessun ricambio = lista vuota (niente crash)", () =>
   eq(flotta.sottoScorta([]), [], "vuoto"));
+test("⛔ 18/09, dal deep-pass QA su Flotta: ordinaMagazzino (la lista intera del magazzino) non ripete l'inversione già corretta in sottoScorta", () => {
+  // gli stessi quattro pezzi del difetto raccontato qui sopra: Pompa B e
+  // Cinghia D esauriti senza soglia (0 pezzi in magazzino) devono venire
+  // PRIMA di Filtro A, che un pezzo ce l'ha ancora
+  const ric = [
+    { id: "fa", nome: "Filtro A", giacenza: 1, sogliaMin: 5 },   // sotto-scorta, mancano 4
+    { id: "pb", nome: "Pompa B", giacenza: 0 },                   // esaurito, senza soglia
+    { id: "cd", nome: "Cinghia D", giacenza: 0 },                 // esaurito, senza soglia
+    { id: "ok", nome: "Ok", giacenza: 9, sogliaMin: 2 },          // a posto
+    { id: "sz", nome: "Senza soglia", giacenza: 9 },              // senza soglia, con pezzi
+  ];
+  const ordinati = flotta.ordinaMagazzino(ric).map(r => r.id);
+  eq(ordinati.slice(0, 2), ["cd", "pb"], "⛔ ERA QUI IL DIFETTO: gli scaffali VUOTI (esauriti) devono venire prima di un pezzo che ne ha ancora uno, non dopo");
+  eq(ordinati[2], "fa", "poi il sotto-scorta");
+  eq(ordinati.indexOf("sz") < ordinati.indexOf("ok"), true,
+    "senza-soglia prima di a-posto: un pezzo non giudicabile merita attenzione prima di uno confermato sopra soglia");
+  eq(flotta.ordinaMagazzino([]), [], "vuoto, niente crash");
+});
 /* ⛔ LA SOGLIA MAI SCRITTA, E LE TRE FRASI CHE LA INVENTAVANO.
    ══════════════════════════════════════════════════════════════════════════
    `parseRicambiCsv` la decide da sempre — «la SOGLIA MINIMA che manca resta
@@ -12555,6 +12573,16 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(flotta.puntoDiRiordino(0, 15, 5), null, "nessun consumo");
     eq(flotta.puntoDiRiordino(0.5, 0, 5), null, "nessun tempo di consegna");
     eq(flotta.puntoDiRiordino(0.5, -3, 5), null, "una consegna negativa non è una consegna");
+  });
+  test("⛔ 18/09, dal deep-pass QA su Flotta: propostaScorte non dice «soglia oggi 0» per un ricambio mai impostato — la stessa bugia già corretta in statoScorta", () => {
+    const p = flotta.propostaScorte(
+      [{ id: "r1", nome: "Filtro olio", giacenza: 1, prezzo: 24.5 }],   // sogliaMin ASSENTE, non 0
+      INT, { consegnaGiorni: 15, sicurezzaGiorni: 5, oggi: OGGI });
+    const riga = p.righe.find(r => r.nome === "Filtro olio");
+    ok(riga, "il ricambio ha un consumo misurato, entra fra le proposte");
+    eq(riga.sogliaAttuale, null, "⛔ ERA QUI IL DIFETTO: nessuna soglia mai scritta resta null, non diventa 0");
+    // la differenza/l'importo da ordinare restano calcolabili lo stesso (0 numericamente equivalente a null in sottrazione)
+    eq(riga.differenza, riga.sogliaProposta, "la differenza contro «nessuna soglia» è la soglia proposta per intero");
   });
   test("propostaScorte: chi non ha consumi resta A PARTE, non a soglia zero", () => {
     const p = flotta.propostaScorte(
@@ -44039,11 +44067,14 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const R = flotta.budgetVsSpesa(D.budget, D.costi, 2026, OGGI);
     const righe = flotta.csvBudget(R).trim().split("\n");
     eq(righe[0], flotta.CSV_BUDGET_INTESTAZIONE);
-    eq(righe[1], "2026;Carburante;12000;8400;1;8153.42;246.58;70;In linea");
-    eq(righe[2], "2026;Ricambi e officina;8000;7390;3;5435.62;1954.38;92;Sopra il ritmo");
-    eq(righe[3], "2026;tutta la flotta;30000;21290;6;20383.56;906.44;71;In linea");
-    eq(righe[4], "2026;Gomme;;3400;1;;;;senza budget", "⛔ il previsto che non c'è resta VUOTO, non «0»");
-    eq(righe[6], ";costi senza data (fuori da ogni anno);;1200;1;;;;non collocabili");
+    /* ⛔ 18/09, dal deep-pass QA: i numeri escono con la virgola italiana
+       (`mostra`/`perLettura`), non più col punto inglese — stesso fix già
+       fatto il 17/09 sui quattro export gemelli. */
+    eq(righe[1], "2026;Carburante;12.000;8.400;1;8.153,42;246,58;70;In linea");
+    eq(righe[2], "2026;Ricambi e officina;8.000;7.390;3;5.435,62;1.954,38;92;Sopra il ritmo");
+    eq(righe[3], "2026;tutta la flotta;30.000;21.290;6;20.383,56;906,44;71;In linea");
+    eq(righe[4], "2026;Gomme;;3.400;1;;;;senza budget", "⛔ il previsto che non c'è resta VUOTO, non «0»");
+    eq(righe[6], ";costi senza data (fuori da ogni anno);;1.200;1;;;;non collocabili");
     eq(righe.length, 7);
     eq(flotta.csvBudget(null).trim(), flotta.CSV_BUDGET_INTESTAZIONE, "null non rompe");
     const t = shell.CSV_TABELLE.find((x) => x.id === "flotta.budget");

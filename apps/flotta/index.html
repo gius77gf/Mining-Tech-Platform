@@ -1375,7 +1375,7 @@ body.dw b.bad{color:var(--ink-dg)}
 
 
 <script type="module">
-  import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, calendarioMezzi, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
+  import { flottaData, urgenza, urgenzaOre, urgenzaManutenzione, kpiFrom, previsioneGiorni, disponibilitaFlotta, sottoScorta, ordinaMagazzino, statoScorta, scaricoGiacenza, parseTelemetriaCsv, mappaTelemetriaCsv, scartiTelemetriaCsv, parseMezziCsv, scartiMezziCsv, parseRicambiCsv, scartiRicambiCsv, csvRicambi, csvCosti, csvFermiMacchina, csvGiriMacchina, csvScadenzeDiLegge, calendarioMezzi, mezziSenzaScadenze, csvRegistroInterventi, csvListaDellaSpesa, csvSituazione, csvLibretto, oreMotoreTesto, oreLavoroTesto, ogniMesiTesto, lavorazioneTesto, ETICHETTA_STATO_MEZZO, ripartizioneCosti, costoOfficinaPerMezzo, costoOrarioMezzo, prioritaOperative,
            costiPerMese, disponibilitaStorico, fotografiaDaRegistrare, pagellaMezzi, BANDA_PAGELLA,
            SCADENZE_MEZZO_PRESET, presetScadenzaMezzo, scadenzaDaPreset, statoScadenzaMezzo, scadenzeOrdinate, contaScadenzeMezzi, validaScadenzaMezzo, aggiungiMesi,
            nomeBreve, TIPI_MEZZO, tipoMezzo, tipoMezzoDi, checklistPreUso, riepilogoControllo,
@@ -2460,8 +2460,7 @@ body.dw b.bad{color:var(--ink-dg)}
       : "";
     $("ric-tot").textContent = RIC.length;
     const qRic = ($("ric-cerca") && $("ric-cerca").value || "").trim().toLowerCase();
-    $("ric-list").innerHTML = RIC.slice()
-      .sort((a,b) => ((+a.giacenza||0)-(+a.sogliaMin||0)) - ((+b.giacenza||0)-(+b.sogliaMin||0)))
+    $("ric-list").innerHTML = ordinaMagazzino(RIC)
       .filter(r => !qRic || (r.nome || "").toLowerCase().includes(qRic))
       .map(r => { const s = statoScorta(r);
       return `<div class="item statico ${striscia[s.cls] || "st-ok"}">
@@ -3560,9 +3559,9 @@ body.dw b.bad{color:var(--ink-dg)}
         <div class="avatar sup">${I.bullone}</div>
         <div class="info"><div class="name">${esc(r.nome)}</div>
           <div class="meta">${conto}</div>
-          <div class="meta">× ${numTx(r.copertura)} ${plurale(r.copertura, "giorno", "giorni")} = <b>${numTx(r.sogliaProposta)}</b> da tenere · soglia oggi ${numTx(r.sogliaAttuale)} · in magazzino ${numTx(r.giacenza)}</div>
+          <div class="meta">× ${numTx(r.copertura)} ${plurale(r.copertura, "giorno", "giorni")} = <b>${numTx(r.sogliaProposta)}</b> da tenere · soglia oggi ${r.sogliaAttuale == null ? "non impostata" : numTx(r.sogliaAttuale)} · in magazzino ${numTx(r.giacenza)}</div>
           ${terza ? `<div class="meta norma">${terza}</div>` : ""}</div>
-        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + numTx(r.daOrdinare)) : r.differenza > 0 ? "alza a " + numTx(r.sogliaProposta) : "a posto"}</span>
+        <div class="acts"><span class="badge ${cls}">${r.daOrdinare ? (r.daOrdinare === 1 ? "ne manca 1" : "ne mancano " + numTx(r.daOrdinare)) : r.differenza > 0 ? (r.sogliaAttuale == null ? "imposta a " : "alza a ") + numTx(r.sogliaProposta) : "a posto"}</span>
         ${offri ? `<span class="arr ok" role="button" tabindex="0" title="Usa ${numTx(r.sogliaProposta)} come soglia minima di questo ricambio" aria-label="Porta la soglia di ${esc(r.nome)} a ${numTx(r.sogliaProposta)}" data-sco-usa="${r.id}">${I.spunta}</span>` : ""}</div></div>`;
     }).join("")
       + (p.senzaConsumo.length
@@ -4204,7 +4203,7 @@ body.dw b.bad{color:var(--ink-dg)}
         sicurezzaGiorni: Math.max(0, Math.round(+$("sco-sicurezza").value || 0)), finestraGiorni: 180 });
       const riga = p.righe.find(x => x.id === scoUsa); if (!riga) return;
       await db.aggiorna("ricambi", r.id, { sogliaMin: riga.sogliaProposta });
-      esito("ric-esito", "Soglia di " + r.nome + ": da " + riga.sogliaAttuale + " a " + riga.sogliaProposta
+      esito("ric-esito", "Soglia di " + r.nome + ": da " + (riga.sogliaAttuale == null ? "nessuna soglia impostata" : riga.sogliaAttuale) + " a " + riga.sogliaProposta
         + " (" + riga.alGiorno.toLocaleString("it-IT", { maximumFractionDigits: 3 }) + " pezzi al giorno × " + riga.copertura + " " + plurale(riga.copertura, "giorno", "giorni") + ").", "success");
       await refresh(); return; }
     // FERMI MACCHINA (L6): «è ripartito» chiude il fermo di oggi e propone di

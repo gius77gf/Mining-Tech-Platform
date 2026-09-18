@@ -2161,9 +2161,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.643** *(ricontate il 18/09, dopo aver
-corretto il ponte Genesi→Terra (un volume in unità arbitrarie della nuvola
-passava per metri cubi veri) e, prima di questo, in Genesi
+**Le prove automatiche sono passate a 3.645** *(ricontate il 18/09, dopo aver
+corretto in Flotta tre copie deboli mai propagate (ordinamento del
+magazzino, csvBudget, propostaScorte) e, prima di questo, il ponte
+Genesi→Terra (un volume in unità arbitrarie della nuvola
+passava per metri cubi veri) e, ancora prima, in Genesi
 `pointcloud.js:parseXYZ` (un file XYZ misto disallineava
 i colori dalle posizioni) e, ancora prima, in Sentinella `dataIt` (copia
 debole locale che leggeva la forma della stringa invece del calendario

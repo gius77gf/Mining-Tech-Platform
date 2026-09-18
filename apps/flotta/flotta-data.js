@@ -1378,7 +1378,10 @@ export function statoScorta(ricambio) {
    scritto la soglia. Sta in coda al SUO gruppo — mai sotto un `sotto-scorta`,
    che era il difetto — e l'idioma `== null ? -1 :` è quello che questo file
    usa già per ordinare i mezzi senza consumo. */
-const RANGO_SCORTA = { esaurito: 0, "sotto-scorta": 1 };
+// esaurito e sotto-scorta prima di tutto (in quest'ordine); senza-soglia
+// subito dopo — un pezzo non giudicabile non è un pezzo a posto, merita
+// attenzione prima di uno confermato sopra soglia; a-posto per ultimo.
+const RANGO_SCORTA = { esaurito: 0, "sotto-scorta": 1, "senza-soglia": 2, "a-posto": 3 };
 export function sottoScorta(ricambi) {
   return (ricambi || [])
     .map(r => ({ ...r, scorta: statoScorta(r) }))
@@ -1386,6 +1389,26 @@ export function sottoScorta(ricambi) {
     .map(r => ({ ...r, mancano: r.scorta.mancano }))
     .sort((a, b) => (RANGO_SCORTA[a.scorta.stato] - RANGO_SCORTA[b.scorta.stato])
       || ((b.mancano == null ? -1 : b.mancano) - (a.mancano == null ? -1 : a.mancano))
+      || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
+}
+
+/* ⛔ 18/09, dal deep-pass QA su Flotta: LA SCHERMATA DEL MAGAZZINO COMPLETO
+   ($ric-list) ORDINAVA ANCORA CON LA FORMULA GREZZA CHE `sottoScorta` QUI
+   SOPRA ESISTE APPOSTA PER SOSTITUIRE — `(giacenza-sogliaMin)-(giacenza-
+   sogliaMin)`, la stessa inversione già raccontata nel commento sopra
+   (uno scaffale VUOTO senza soglia, chiave 0, finiva ordinato DOPO un
+   pezzo con qualche unità ma sotto una soglia scritta, chiave negativa):
+   la correzione era stata fatta su `sottoScorta` (l'elenco filtrato
+   dell'avviso in cima) ma non propagata al secondo consumatore dello
+   stesso dato, la lista intera che si scorre per decidere cosa
+   controllare per primo. Stessa regola, letta una volta sola, estesa a
+   tutti e quattro gli stati invece di riscritta più debole in un secondo
+   posto. */
+export function ordinaMagazzino(ricambi) {
+  return (ricambi || [])
+    .map(r => ({ ...r, scorta: statoScorta(r) }))
+    .sort((a, b) => (RANGO_SCORTA[a.scorta.stato] - RANGO_SCORTA[b.scorta.stato])
+      || ((b.scorta.mancano == null ? -1 : b.scorta.mancano) - (a.scorta.mancano == null ? -1 : a.scorta.mancano))
       || String(a.nome || "").localeCompare(String(b.nome || ""), "it"));
 }
 
@@ -1802,14 +1825,24 @@ export function descriviBudget(r) {
    flotta, e in coda le voci con spese ma senza budget (previsto VUOTO, non
    zero) e i costi senza data (che non stanno nell'anno). */
 export const CSV_BUDGET_INTESTAZIONE = "anno;voce;previsto;speso;spese;quota_attesa_a_oggi;scostamento;pct;stato";
+/* ⛔ 18/09, dal deep-pass QA su Flotta: STESSO DIFETTO GIÀ CORRETTO IL 17/09
+   IN QUATTRO EXPORT GEMELLI (`csvCosti`, `csvRicambi`,
+   `csvRegistroInterventi`, `csvListaDellaSpesa`), MAI PROPAGATO A QUESTO,
+   nato lo stesso giorno. I numeri uscivano col punto inglese («12345.67»)
+   invece della virgola italiana, nella stessa colonna `;`-separata dove il
+   resto del foglio (e i quattro export sorelle) scrivono «12.345,67» — il
+   file che si porta al commercialista, sbagliato di un ordine di grandezza
+   se un foglio elettronico italiano legge il punto come separatore delle
+   migliaia. `mostra()` (= `perLettura`) fa anche la stessa cosa di
+   `numeroDichiarato` per il `null` (torna "", non "0"). */
 export function csvBudget(R) {
   const r = R || { anno: "", righe: [], senzaBudget: [], senzaData: { voci: 0, importo: 0 } };
   let csv = CSV_BUDGET_INTESTAZIONE + "\n";
-  const riga = (x) => `${r.anno};${csvCell(x.tutta ? "tutta la flotta" : x.voce)};${x.previsto};${x.speso};${x.nSpese};${x.quotaAttesa};${x.scostamento};${x.pct == null ? "" : x.pct};${ETICHETTA_STATO_BUDGET[x.stato] ? ETICHETTA_STATO_BUDGET[x.stato][1] : x.stato}\n`;
+  const riga = (x) => `${r.anno};${csvCell(x.tutta ? "tutta la flotta" : x.voce)};${mostra(numeroDichiarato(x.previsto), 2)};${mostra(numeroDichiarato(x.speso), 2)};${x.nSpese};${mostra(numeroDichiarato(x.quotaAttesa), 2)};${mostra(numeroDichiarato(x.scostamento), 2)};${x.pct == null ? "" : x.pct};${ETICHETTA_STATO_BUDGET[x.stato] ? ETICHETTA_STATO_BUDGET[x.stato][1] : x.stato}\n`;
   for (const x of r.righe || []) csv += riga(x);
   if (r.totale) csv += riga(r.totale);
-  for (const x of r.senzaBudget || []) csv += `${r.anno};${csvCell(x.voce)};;${x.speso};${x.nSpese};;;;senza budget\n`;
-  if (r.senzaData && r.senzaData.voci) csv += `;${csvCell("costi senza data (fuori da ogni anno)")};;${r.senzaData.importo};${r.senzaData.voci};;;;non collocabili\n`;
+  for (const x of r.senzaBudget || []) csv += `${r.anno};${csvCell(x.voce)};;${mostra(numeroDichiarato(x.speso), 2)};${x.nSpese};;;;senza budget\n`;
+  if (r.senzaData && r.senzaData.voci) csv += `;${csvCell("costi senza data (fuori da ogni anno)")};;${mostra(numeroDichiarato(r.senzaData.importo), 2)};${r.senzaData.voci};;;;non collocabili\n`;
   return csv;
 }
 
@@ -3858,8 +3891,17 @@ export function propostaScorte(ricambi, interventi, opzioni) {
   for (const r of ricambi || []) {
     const uso = perId.get(r.id) || perNome.get(String(r.nome || "").trim().toLowerCase()) || null;
     const pr = uso ? puntoDiRiordino(uso.alGiorno, o.consegnaGiorni, o.sicurezzaGiorni) : null;
+    /* ⛔ 18/09, dal deep-pass QA su Flotta: STESSA BUGIA GIÀ CORRETTA IN
+       `statoScorta` QUI SOPRA («una soglia mai scritta non è una soglia a
+       zero»), MAI PROPAGATA A QUESTO SECONDO CALCOLO. `+r.sogliaMin || 0`
+       scriveva "soglia oggi 0" per un ricambio che non ha MAI avuto una
+       soglia impostata — la stessa frase tranquilla che `statoScorta`
+       esiste apposta per evitare, e il badge diceva "alza a X" come se una
+       soglia ci fosse già da alzare. `numeroDichiarato` (già usato da
+       `statoScorta`) torna `null`, non `0`, quando il campo non è mai
+       stato scritto. */
     const base = {
-      id: r.id, nome: r.nome, giacenza: +r.giacenza || 0, sogliaAttuale: +r.sogliaMin || 0,
+      id: r.id, nome: r.nome, giacenza: +r.giacenza || 0, sogliaAttuale: numeroDichiarato(r.sogliaMin),
       prezzo: +r.prezzo > 0 ? +r.prezzo : null,
       pezzi: uso ? uso.pezzi : 0, episodi: uso ? uso.episodi : 0,
       alGiorno: uso ? uso.alGiorno : 0, affidabile: uso ? uso.affidabile : false,

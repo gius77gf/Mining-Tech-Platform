@@ -461,6 +461,11 @@ const ALLARMI_ACCETTATI = {
     + " ⚠️ E la SOGLIA che manca fa l'opposto e non è un allarme: risponde «senza soglia», giallo, non giudicabile.",
   "flotta.sottoScorta":
     "eredita `statoScorta` sopra, che è il posto dove quella decisione è scritta: qui la lista dei pezzi da riordinare",
+  "flotta.ordinaMagazzino":
+    "18/09, dal deep-pass QA: stessa eredità di `sottoScorta` sopra — chiama `statoScorta` per ogni riga, non ne"
+    + " riscrive la decisione. Qui è l'intera lista del magazzino (non solo i pezzi da riordinare) ordinata per"
+    + " gravità, prima corretta come lista filtrata in `sottoScorta` e non propagata qui: stessa regola, letta"
+    + " una volta sola, non un secondo allarme.",
 };
 
 const allarmi = new Map();
