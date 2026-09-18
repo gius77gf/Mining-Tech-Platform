@@ -2161,7 +2161,9 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.625** *(ricontate il 18/09, dopo aver
+**Le prove automatiche sono passate a 3.626** *(ricontate il 18/09, dopo aver
+corretto in Conti — quinto giro di deep-pass — sei funzioni che trattavano una
+fattura scartata dallo SdI come credito vero; e prima di questo, dopo aver
 corretto in Scudo — quarto giro di deep-pass — il ramo "senza data" mancante
 in `abilitazioneLavoratore`/`pillReq` e le tre colonne perse su export→import
 di `csvRegistroInfortuni`; e prima di questo, dopo aver corretto in Flotta —

@@ -29190,6 +29190,39 @@ test("Conti · statoSdi e sollecitabile: la scartata è come non emessa, la non 
   ok(/id="ft-sdi"/.test(pagina) && /id="ft-sdi-il"/.test(pagina) && /sollecitabile\(f, new Date\(\)\)/.test(pagina) && /statoSdi\(f\)\.breve/.test(pagina) && /nonEmessa \?/.test(pagina), "la pagina salva l'esito, lo scrive in riga, ferma il sollecito e lo dice nel quadro");
   eq((pagina.match(/cinque giorni/g) || []).length, 0, "il termine dei cinque giorni sta nel modulo con la sua fonte, non nella pagina");
 });
+test("⛔ Conti · kpiFrom/agingIncassi/fattureOltre90/esposizioneClienti/avvisoFidoPesata/concentrazionePortafoglio: una fattura non emessa non è credito (quinto giro di deep-pass, 18/09)", () => {
+  /* `sollecitabile`/`testoSollecito`/`estrattoContoCliente` già escludevano
+     `statoSdi(f).nonEmessa` (vedi il test qui sopra); queste sei restavano
+     scoperte — un cliente poteva risultare "oltre fido" con credito scaduto
+     basato su un documento che, per il fisco, non esiste ancora. */
+  const oggi = new Date("2026-09-11T10:00:00");
+  const clienti = [{ id: "cX", ragioneSociale: "Prova Mista Srl", fido: 500 }];
+  const emessa = { id: "mx1", numero: "M/1", clienteId: "cX", cliente: "Prova Mista Srl", importo: 1000, incassata: false, scadenza: "2026-06-01" };
+  const scartata = { id: "mx2", numero: "M/2", clienteId: "cX", cliente: "Prova Mista Srl", importo: 2000, incassata: false, scadenza: "2026-06-01", sdi: { stato: "scartata", il: "2026-08-05" } };
+  const fatture = [emessa, scartata];
+
+  const k = conti.kpiFrom(fatture, [], oggi);
+  eq(k.daIncassare, 1000, "kpiFrom: solo la fattura emessa entra nel credito da incassare");
+
+  const a = conti.agingIncassi(fatture, oggi);
+  eq(a.oltre90.conto, 1, "agingIncassi: solo la fattura emessa entra nella fascia");
+  eq(a.oltre90.importo, 1000, "agingIncassi: l'importo è quello della sola fattura emessa");
+
+  const el = conti.fattureOltre90(fatture, oggi);
+  eq(el.length, 1, "fattureOltre90: la scartata non entra nell'elenco per il fondo svalutazione");
+  eq(el[0].numero, "M/1", "ed è la fattura emessa");
+
+  const e = conti.esposizioneClienti(fatture, oggi, clienti);
+  eq(e.length, 1); eq(e[0].totale, 1000, "esposizioneClienti: il totale è quello della sola fattura emessa");
+  ok(e[0].oltreFido, "e con un fido di 500 il cliente risulta comunque oltre fido, ma sul numero VERO");
+
+  const avviso = conti.avvisoFidoPesata("cX", e);
+  ok(avviso && avviso.livello === "fido" && /€\s1\.?000,00/.test(avviso.testo) && !/2\.?000,00/.test(avviso.testo) && !/3\.?000,00/.test(avviso.testo),
+    "avvisoFidoPesata: eredita il numero corretto da esposizioneClienti, senza ricalcolare: " + (avviso && avviso.testo));
+
+  const cp = conti.concentrazionePortafoglio(fatture, oggi, clienti);
+  eq(cp.totale, 1000, "concentrazionePortafoglio: il portafoglio pesa 1.000, non 3.000");
+});
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);
   ok(/;1234\.5;/.test(t), t);

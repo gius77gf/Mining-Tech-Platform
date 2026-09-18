@@ -671,7 +671,13 @@ export function numeroDaCampo(testo, opts = {}) {
 }
 
 export function kpiFrom(fatture, gare, oggi = new Date(), note = null) {
-  const aperte = fatture.filter(f => !f.incassata);
+  /* ⛔ 18/09, dal quinto giro di deep-pass: mancava lo stesso controllo che
+     `sollecitabile`/`testoSollecito`/`estrattoContoCliente` hanno già —
+     una fattura scartata dallo SdI (o mai inviata) NON è emessa, e prima
+     di sollecitarla va rimandata. Qui entrava lo stesso in `daIncassare`
+     e nell'età media del credito: un cliente poteva risultare con credito
+     vero basato su un documento che, per il fisco, non esiste ancora. */
+  const aperte = fatture.filter(f => !f.incassata && !statoSdi(f, oggi).nonEmessa);
   // apertoDi: con un acconto registrato conta il RESIDUO, non il totale della
   // fattura. Senza incassi registrati residuo = importo, quindi il numero è
   // identico a quello di prima.
@@ -822,6 +828,9 @@ export function agingIncassi(fatture, oggi = new Date(), note = null) {
   };
   for (const f of fatture) {
     if (f.incassata) continue;
+    // ⛔ 18/09: una fattura scartata dallo SdI (o mai inviata) non è emessa,
+    // stessa guardia di `sollecitabile`/`testoSollecito` — vedi il commento lì.
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const g = giorni(f.scadenza, oggi);
     // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
     // arrivato non è più credito scaduto
@@ -848,6 +857,10 @@ export function fattureOltre90(fatture, oggi = new Date(), note = null) {
   const righe = [];
   for (const f of fatture || []) {
     if (f.incassata) continue;
+    // ⛔ 18/09: stessa guardia di `agingIncassi`/`kpiFrom` — una fattura non
+    // emessa (scartata dallo SdI, o mai inviata) non è credito da elencare
+    // per un fondo svalutazione: va prima rimandata.
+    if (statoSdi(f, oggi).nonEmessa) continue;
     const g = giorni(f.scadenza, oggi);
     if (fasciaAging(g) !== "oltre90") continue;
     const imp = apertoDi(f, note);
@@ -1645,6 +1658,13 @@ export function esposizioneClienti(fatture, oggi = new Date(), clienti = [], not
   const per = {};
   for (const f of fatture || []) {
     if (f.incassata) continue;
+    /* ⛔ 18/09: senza questa guardia una fattura scartata dallo SdI (o mai
+       inviata) contava come esposizione vera — un cliente poteva risultare
+       "oltre fido" su un documento che, per il fisco, non esiste ancora.
+       Stessa regola di `kpiFrom`/`agingIncassi`/`fattureOltre90`, e per
+       eredità anche di `avvisoFidoPesata`/`concentrazionePortafoglio`, che
+       riusano questa funzione senza ricalcolare. */
+    if (statoSdi(f, oggi).nonEmessa) continue;
     // residuo meno storno: né l'acconto già arrivato né la parte stornata
     // sono esposizione, e una fattura stornata per intero esce dal fido
     const imp = apertoDi(f, note);
