@@ -8682,9 +8682,9 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.640 prove girano senza rete**. La frase va
+  **3.642 prove girano senza rete**. La frase va
   letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3146, `run-stile` 330,
-  `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
+  `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
   `node apps/deepwork-id/tests/giro-node.mjs | grep -oE '[0-9]+ passati' | awk '{s+=$1} END {print s}'`
@@ -11377,3 +11377,27 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   3145 → **3146**. Giro completo su worktree isolata: 41/41. 9-suite sum:
   **3.640** (3146+330+83+32+9+8+7+3+22). `numeri-nei-documenti.mjs`
   verificato prima del commit.
+
+## Genesi — pointcloud.js:parseXYZ, un file misto disallineava i colori (18/09)
+- [x] **`parseXYZ` DISALLINEAVA `col` DA `pos` SU UN FILE XYZ MISTO** *(18/09,
+      unità completata, dal deep-pass QA su Genesi)*. A differenza del parser
+      PLY (dove `hasCol` lo decide l'header, una volta sola per tutto il
+      file), il formato XYZ/TXT non ha un header: un file che mescola righe
+      con RGB e righe senza (tipico di un rilievo riassemblato da più
+      passate del drone, con bordi o occlusioni) faceva crescere `col` solo
+      sulle righe colorate — dal primo "buco" il colore del punto N finiva
+      sul punto N-1, un disallineamento silenzioso senza errori né NaN
+      visibili. `nuvola-poc.html` passa `pos`/`col` come due
+      `BufferAttribute` di `count` diverso sulla stessa geometria: il fronte
+      reso avrebbe colori scalati sui punti sbagliati. Corretto: `col` ha
+      sempre una terna per punto; i punti senza colore proprio prendono un
+      grigio neutro SOLO se il file nel complesso è colorato — un file senza
+      nessun punto colorato resta `col:null` come prima (usa la scala per
+      quota a valle).
+- Due nuovi test in `run-pointcloud.mjs` (file misto: verificato che ogni
+  punto abbia la sua terna, colori veri non scalati sul buco; file senza
+  nessun colore: `col` resta `null`), con controprova (col difetto rimesso,
+  `col.length` torna 6 invece di 9 sul caso misto). `run-pointcloud`: 32 →
+  **34**. Giro completo su worktree isolata: 41/41. 9-suite sum: **3.642**
+  (3146+330+83+34+9+8+7+3+22). `numeri-nei-documenti.mjs` verificato prima
+  del commit.

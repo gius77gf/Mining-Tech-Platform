@@ -9,14 +9,34 @@ export const MAXPTS = 700000;   // cap punti resi: sopra, si fa downsample (brow
 
 // ---- Parser XYZ / TXT: righe "x y z [r g b]" separate da spazio, virgola o ';' ----
 export function parseXYZ(txt, maxpts = MAXPTS) {
-  const lines = txt.split(/\r?\n/); const pos = [], col = []; let hasCol = false;
+  const lines = txt.split(/\r?\n/); const pos = [], col = [], colOk = []; let hasCol = false;
   for (const ln of lines) {
     const s = ln.trim(); if (!s || s[0] === '#') continue;
     const p = s.split(/[\s,;]+/).map(Number);
     if (p.length < 3 || !isFinite(p[0]) || !isFinite(p[1]) || !isFinite(p[2])) continue;
     pos.push(p[0], p[1], p[2]);
-    if (p.length >= 6 && isFinite(p[3])) { hasCol = true; col.push(p[3] / 255, p[4] / 255, p[5] / 255); }
+    // un punto è colorato SOLO se le tre celle r/g/b sono leggibili: a
+    // differenza del PLY (dove `hasCol` lo decide l'header, una volta sola
+    // per tutto il file), qui non c'è un header — quindi un file MISTO (righe
+    // con RGB e righe senza, tipico di un rilievo riassemblato con bordi o
+    // occlusioni) è un caso reale, non un errore di formato.
+    const puntoColorato = p.length >= 6 && isFinite(p[3]) && isFinite(p[4]) && isFinite(p[5]);
+    if (puntoColorato) { hasCol = true; col.push(p[3] / 255, p[4] / 255, p[5] / 255); }
+    else col.push(0, 0, 0);   // segnaposto: sistemato sotto SOLO se il file è colorato
+    colOk.push(puntoColorato);
   }
+  /* ⛔ 18/09, dal deep-pass QA su Genesi: qui `col` restava più corto di
+     `pos` ogni volta che un file mescolava righe con e senza RGB — `col`
+     cresceva solo sulle righe colorate, quindi dal primo "buco" in poi il
+     colore del punto N finiva sul punto N-1: un disallineamento silenzioso,
+     nessun errore, nessun NaN a schermo, solo colori sbagliati sui fronti
+     resi. `nuvola-poc.html` passa `pos`/`col` come due `BufferAttribute` di
+     `count` diverso sulla stessa geometria. Ora `col` ha sempre una terna
+     per punto (mai più corto di `pos`); qui si riempiono di un grigio
+     neutro solo i punti che non l'avevano, SOLO se il file nel complesso è
+     colorato — un file interamente senza colore resta `col:null` come
+     prima, e usa la scala per quota di `nuvola-poc.html`. */
+  if (hasCol) for (let i = 0; i < colOk.length; i++) if (!colOk[i]) { col[i * 3] = 0.6; col[i * 3 + 1] = 0.6; col[i * 3 + 2] = 0.6; }
   const total = pos.length / 3;
   if (total > maxpts) {   // nuvola grande (tipico da ODM): downsample come per il PLY
     const step = Math.ceil(total / maxpts), dp = [], dc = [];

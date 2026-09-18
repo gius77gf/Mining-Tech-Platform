@@ -38,6 +38,21 @@ test("parseXYZ downsample: 100 punti con cap 10 → ridotti, total conservato", 
   const r = pc.parseXYZ(t, 10);
   ok(r.count <= 10 && r.count > 0, "conteggio sotto il cap"); eq(r.total, 100, "totale originale"); ok(r.step >= 10, "step di downsample");
 });
+test("⛔ 18/09, dal deep-pass QA su Genesi: un file MISTO (righe con e senza RGB) non disallinea col da pos", () => {
+  // punto 0 rosso, punto 1 senza colore (bordo/occlusione), punto 2 verde —
+  // un rilievo riassemblato da più passate del drone li mescola così
+  const r = pc.parseXYZ("1 0 0 255 0 0\n2 0 0\n3 0 0 0 255 0");
+  eq(r.count, 3, "tre punti");
+  eq(r.pos, [1, 0, 0, 2, 0, 0, 3, 0, 0], "posizioni");
+  ok(r.col && r.col.length === 9, "⛔ ERA QUI IL DIFETTO: col deve avere una terna per OGNI punto, non solo per quelli colorati (era 6, non 9)");
+  eq([r.col[0], r.col[1], r.col[2]], [1, 0, 0], "punto 0: rosso vero");
+  eq([r.col[3], r.col[4], r.col[5]], [0.6, 0.6, 0.6], "punto 1: senza colore proprio → grigio neutro, non il colore del punto 2");
+  eq([r.col[6], r.col[7], r.col[8]], [0, 1, 0], "punto 2: verde vero, non scalato sul buco del punto 1");
+});
+test("parseXYZ senza NESSUN punto colorato: col resta null (usa la scala per quota a valle)", () => {
+  const r = pc.parseXYZ("1 0 0\n2 0 0\n3 0 0");
+  eq(r.col, null, "nessuna riga aveva RGB: nessun grigio inventato, il fallback resta la scala per quota");
+});
 
 console.log("\n— pointcloud: parsePLY —");
 function plyAscii(n) {
