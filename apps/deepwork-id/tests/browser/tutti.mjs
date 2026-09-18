@@ -892,6 +892,8 @@ const BANCHI = [
   ['fronte condiviso e avviso · controprova', 'terra-fronte-condiviso-avviso.mjs', ['--controprova'], true],
   ['Terra: la schermata Denuncia dice anche che il residuo è la cifra più alta possibile, non solo che il cumulato è un minimo', 'terra-denuncia-residuo-massimo.mjs', []],
   ['Denuncia residuo massimo · controprova', 'terra-denuncia-residuo-massimo.mjs', ['--controprova'], true],
+  ['Terra: il bottone «Registra» della modale nuovo inventario si spegne durante il salvataggio', 'terra-inventario-occupato.mjs', []],
+  ['bottone «Registra» inventario · controprova', 'terra-inventario-occupato.mjs', ['--controprova'], true],
   /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
      stesso giro): il totale «almeno» diceva CHE manca qualcosa, non DOVE. */
   ['il banco da sempre, anno per anno nella pagina Denuncia di Terra', 'terra-banchi-serie-anni.mjs', []],

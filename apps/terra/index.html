@@ -1595,6 +1595,17 @@ a.dw-btn{text-decoration:none}
         cumuli.push({ materiale: mat, volumeM3: rv.ok ? rv.valore : null });
       }
       if (!cumuli.length) return errore("Serve almeno un cumulo col suo materiale: un inventario senza cumuli non fotografa niente.", document.querySelector("#inv-righe .inv-mat"));
+      /* ⛔ 18/09, dal secondo giro di deep-pass QA: il bottone "Registra" di
+         questa modale non è un `<button id="...">` fisso (`apriModale` lo
+         crea al volo, senza id), quindi non usa `occupato()` come gli altri
+         cinque punti di scrittura corretti oggi — ma la trappola è la
+         stessa: `chiudiModale()` arriva SOLO dopo che `db.aggiungi` è
+         tornato, quindi il bottone resta cliccabile per tutta l'attesa e
+         un doppio tocco crea due fotografie del piazzale identiche. Si
+         disabilita il bottone "primary" della modale corrente — ce n'è
+         sempre uno solo alla volta. */
+      const btnRegistra = document.querySelector("#modal-foot .mbtn.primary");
+      if (btnRegistra) btnRegistra.disabled = true;
       await db.aggiungi("inventari", { data, metodo, cumuli });
       chiudiModale();
       esito("inv-esito", "Inventario del " + fmtData(data) + " registrato: " + conta(cumuli.length, "cumulo", "cumuli")
