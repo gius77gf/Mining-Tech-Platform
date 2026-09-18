@@ -3952,3 +3952,231 @@ produttività di carico) e un'assenza di **ponte** verso Flotta (dichiarata,
 non presa). Non gonfiato: la fonte quantitativa più utile (burden 20-21×D
 ecc.) è **una sola**, non incrociata — va trattata come caso di studio, non
 come standard.
+
+## Ricerca del 2026-09-18 — la dispersione dell'innesco e la finestra MIC di 8 ms: un numero già calcolato che non arriva dove il mondo dice che serve di più
+
+_Timestamp: 2026-09-18T13:40:00Z_
+
+_Strumento: `WebSearch` soltanto, come imposto dal mandato. `WebFetch` resta
+bloccato (`EGRESS_BLOCKED`) e non è stato ritentato: verificato più volte da
+ricerche precedenti di questo file, qui ripreso come dato acquisito, non
+rimisurato. Ogni fatto sul mondo è marcato [di seconda mano]: nessuna pagina
+è stata letta per intero, solo risultati di ricerca._
+
+### Già scritto (per non ripeterlo)
+
+Verificato con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md` prima di
+iniziare. Il 12/09 (righe 1007-1298) questo file ha già trattato **la
+precisione dei detonatori** in generale (Nonel ~±1-5%, elettronico ±0,1 ms,
+EN 13763) e l'ha dichiarata **chiusa** il 14/09 (righe 3193-3221): Genesi
+modella già lo scatter come percentuale del tempo di riferimento
+(`scatterInnesco`, verificato in quella nota). Il 14/09 (righe 2995-3095) ha
+censito i validatori automatici di Genesi (MIC, PPV, airblast, sequenza,
+innesco) e ha trovato assenti la sovrapposizione geometrica dei fori e il
+controllo pre-export — non la domanda di oggi. **Questa ricerca non
+ridiscute se lo scatter esiste in Genesi** (esiste, è chiuso): apre una
+domanda diversa, mai fatta finora — lo scatter che Genesi ha già calcolato
+**arriva davvero a tutte le grandezze per cui il mondo dice che serve**, o
+solo ad alcune?
+
+### Il mondo: la finestra a 8 ms è una convenzione sul tempo NOMINALE, e lo scatter la può bucare
+
+- **Il meccanismo, dichiarato in un brevetto USA su macchine di sparo
+  sequenziali**: *"Sequential blasting machine patterns are often designed
+  so that there are only eight milliseconds between detonations, and the
+  normal scatter in pyrotechnical delays will result in detonations at less
+  than eight millisecond intervals... it is possible for pyrotechnic delay
+  blasting caps of two adjoining delay periods to detonate so close together
+  in time that an undesirable level of ground vibration is produced since
+  more than the optimum weight of explosives is detonated at the same
+  time."* — cioè due ritardi nominalmente separati possono, per lo scatter
+  reale del detonatore pirotecnico, sparare abbastanza vicini da sommarsi
+  come se fossero sulla stessa finestra. [di seconda mano:
+  image-ppubs.uspto.gov, brevetto US 6220167, "Excavation method by
+  blasting", trovato via WebSearch]
+- **Gli elettronici risolvono il problema per costruzione**: scatter
+  dichiarato sotto 1 ms, "which represents a significant improvement over
+  pyrotechnic delays... virtually eliminate timing scatter" — coerente con
+  quanto questo file aveva già trovato il 12/09 (±0,1 ms elettronico contro
+  deviazione standard di decine di ms per il pirotecnico su ritardi lunghi).
+  [di seconda mano: stesso brevetto]
+- **Il riferimento accademico storico è specifico su questo esatto punto**:
+  Blair D.P. (1993), *"Blast vibration control in the presence of delay
+  scatter and random fluctuations between blastholes"*, International
+  Journal for Numerical and Analytical Methods in Geomechanics, 17(2),
+  95-118 — stabilisce che **solo detonatori molto accurati (elettronici)
+  permettono di usare davvero una sequenza di ritardi nominale per il
+  controllo delle vibrazioni**; con lo scatter dei pirotecnici, l'intervallo
+  nominale smette di essere affidabile. Lo stesso lavoro indica un intervallo
+  10-35 ms come quello in cui si può ancora sfruttare l'interferenza per
+  ridurre l'energia vibratoria. [di seconda mano: risultati di ricerca su
+  onlinelibrary.wiley.com, abstract, non l'articolo intero]
+- **La pratica moderna corregge la MIC con un modello probabilistico dello
+  scatter, non un conteggio sul tempo nominale**: un lavoro del 2022
+  propone "a quantitative evaluation model based on the probability method
+  of the influence of detonator delay scatter" e un secondo, più recente,
+  usa "the concept of modified charge per delay" per prevedere la vibrazione
+  — cioè il mondo, quando prende sul serio lo scatter, non si limita a
+  raggruppare sul tempo di progetto: pesa la probabilità che due ritardi
+  vicini si sovrappongano. [di seconda mano: link.springer.com/10.1007/
+  s40948-022-00432-z; risultato ResearchGate collegato, "Modeling the Effect
+  of Delay Scatter on Peak Particle Velocity... Multiple Seed Waveform
+  Vibration Model" — solo abstract/snippet, non l'articolo]
+- **Ordine di grandezza già in questo file (12/09, non rimisurato qui)**: per
+  un ritardo pirotecnico di 700 ms la deviazione standard misurata era
+  37,868 ms contro 0,336 ms per l'elettronico equivalente — cioè lo scatter
+  pirotecnico CRESCE col ritardo nominale, non è un rumore fisso.
+
+### Il delta, verificato aprendo il codice (non dedotto dal nome)
+
+**1. Genesi calcola già lo scatter, e lo usa per il relief e per
+l'uniformità — MAI per la MIC, che è la grandezza per cui il mondo sopra
+dice che conta di più.**
+
+```
+grep -n "function micFinestra" -A 12 apps/genesi/genesi-data.js
+→ 1484: export function micFinestra(holes, kg) {
+  1485:   const H = holes;
+  1486:   if (micSenzaConto(H, kg)) return null;
+  1487:   const ts = H.map((h) => h.tDet || 0);
+  1488:   let n = 1;
+  1489:   for (const t0 of ts) {
+  1490:     let c = 0;
+  1491:     for (const t of ts) if (t >= t0 && t < t0 + 8) c++;
+  1492:     if (c > n) n = c;
+  1493:   }
+  1494:   return n * kg;
+  1495: }
+
+grep -n "scatterMs\|scatterInnesco" apps/genesi/genesi-data.js
+→ nessuna occorrenza dentro `micFinestra` o `micSenzaConto` (le uniche righe
+  che citano `scatterMs`/`scatterInnesco` sono la sua definizione, riga 1472
+  e 1479, e `computeRelief2D`, riga 3195 — mai la MIC)
+
+grep -n "micFinestra(" apps/genesi/genesi.html
+→ 1466: function computeMIC(){ return micFinestra(D2.holes, D2.kg); }
+  (unico punto di chiamata: `D2.kg` e i `tDet` nominali dei fori, niente scatter)
+
+grep -n "scatterMs(D2)" apps/genesi/genesi.html
+→ 6795: …'I fori che partono entro la dispersione dell'innesco
+  ('+fmtMs(scatterMs(D2))+' ms) contano come un istante solo: sparando
+  insieme non si liberano a vicenda.' … (badge RELIEF, non MIC)
+  6917: const _Th=rit, _sd=scatterMs(D2), _Rs=_sd/Math.max(1,_Th); …
+  (correzione dell'indice di uniformità di Cunningham per la curva di
+  frammentazione, non la MIC)
+```
+
+Cioè: la stessa frase che Genesi scrive già per il RELIEF — *"i fori che
+partono entro la dispersione dell'innesco contano come un istante solo"* —
+è esattamente la frase che il mondo (sezione sopra) applica alla MIC, e
+Genesi non la ripete lì. `computeMIC()` raggruppa i fori in finestre di 8 ms
+usando solo `tDet` nominale: due fori progettati a, per esempio, 9 ms di
+distanza (fuori dalla finestra fissa) restano contati come MIC separate
+anche quando il detonatore scelto è un Nonel a ritardo lungo, dove — per il
+proprio modello di scatter che Genesi stessa calcola — la dispersione reale
+potrebbe avvicinarli. Non è un errore nel numero 8 (è la convenzione USBM,
+citata anche nel commento di `micFinestra` e non in discussione): è che la
+finestra è applicata al tempo **nominale**, mentre il mondo — e il codice
+stesso, altrove — sa che il tempo vero è nominale ± scatter.
+
+**2. Dentro `scatterInnesco` stessa, l'innesco «elettrico» ha uno scatter
+FISSO (0,5 ms) indipendente dal ritardo, mentre il catalogo lo descrive
+come intermedio e il mondo lo colloca nella stessa famiglia percentuale del
+Nonel — non in quella (sub-millimetrica) dell'elettronico.**
+
+```
+grep -n "export function scatterInnesco" -A 1 apps/genesi/genesi-data.js
+→ 1472: export function scatterInnesco(innesco, tRif) {
+  1473:   return (innesco === "elettronico") ? 0.1 : ((innesco === "elettrico") ? 0.5
+          : ((innesco === "cordtex") ? 0.03 * tRif : 0.02 * tRif));
+
+grep -n "id:'elettrico'" apps/genesi/genesi-data.js
+→ 3440: {id:'elettrico', … scatter:'medio', ritardi:'serie MS/LP', …}
+```
+
+Il catalogo dichiara «elettrico» con ritardi «serie MS/LP» (millisecondo e
+lungo periodo: quindi un elemento di ritardo pirotecnico, non un
+detonatore istantaneo) e uno scatter testuale «medio» — un aggettivo che
+suggerisce qualcosa fra l'elettronico (ottimo) e il Nonel (peggiore), non un
+valore fisso vicino all'elettronico. La ricerca del 12/09, già in questo
+file (righe 1090-1100), aveva trovato che «i detonatori elettrici/non
+elettrici comuni (Nonel compreso) hanno un'accuratezza dichiarata di circa
+±1% del tempo di ritardo... fino al ±5%» — cioè li mette nella STESSA
+famiglia percentuale (crescente col ritardo) del Nonel, non in quella a
+valore fisso. `scatterInnesco` invece dà a «elettrico» 0,5 ms **costanti**
+qualunque sia il ritardo: su un ritardo lungo (200 ms) questo è 8-16 volte
+meno dello scatter che un 1-5% darebbe (2-10 ms), cioè tratta l'elettrico
+come quasi-elettronico proprio dove il mondo dice che si comporta come il
+Nonel. Non è verificato se questo sia un refuso di trasloco o una scelta
+consapevole (il commento della funzione, riga 1463-1474, non lo spiega): è
+un'incoerenza fra il testo del catalogo e il numero della formula,
+verificata col grep, non dedotta.
+
+### Proposte
+
+`schermata · che cosa non va · come si vede · quanto costa · come si misura`
+
+1. **`computeMIC()`/`micFinestra`, la riga MIC della scheda validatori
+   (che decide se la volata è sotto soglia PPV) · la finestra di 8 ms
+   raggruppa solo sul tempo NOMINALE (`tDet`), mai sullo scatter che Genesi
+   stessa calcola già per il relief e la frammentazione (`scatterMs`) —
+   mentre il mondo (Blair 1993; il brevetto US 6220167; i due modelli
+   probabilistici del 2022/2025 citati sopra) tratta lo scatter come la
+   causa principale per cui due ritardi nominalmente separati possono
+   sommarsi in vibrazione · si vede col grep sopra: `micFinestra` non cita
+   mai `scatterMs`/`scatterInnesco`, mentre `computeRelief2D` (stessa
+   pagina) sì · costo: da valutare con cura, non stimato qui — non è
+   un'aggiunta banale come i tre punti precedenti di questo file, perché
+   cambia un numero di sicurezza (la MIC) e la scelta giusta (allargare la
+   finestra fissa di scatterMs ms, o pesare probabilisticamente come nei
+   paper del 2022/2025) è una decisione di modello, non un trasloco — la
+   stessa cautela che questo file ha già usato per il decking/air-decking e
+   per i due rigonfiamenti del cumulo (18/09, sezione precedente) · si
+   misura confrontando due progetti identici a parità di geometria, uno
+   con innesco elettronico (scatter 0,1 ms) e uno con Nonel a ritardo lungo
+   (scatter proporzionale, quindi potenzialmente diversi ms): oggi la MIC
+   dichiarata è identica nei due casi se i `tDet` nominali sono uguali,
+   mentre il mondo dice che il rischio reale di sovrapposizione non lo è.
+
+2. **`scatterInnesco`, riga 1473 di `genesi-data.js`** · lo scatter di
+   «elettrico» è un valore fisso (0,5 ms) indipendente dal ritardo nominale,
+   mentre il proprio catalogo lo descrive «medio» (non «ottimo» come
+   l'elettronico) e la ricerca del 12/09 già in questo file colloca
+   l'elettrico pirotecnico nella stessa famiglia percentuale del Nonel · si
+   vede coi due grep sopra (riga 1473 e riga 3440) · costo: piccolo SE la
+   decisione è cambiare il ramo `elettrico` da valore fisso a percentuale
+   (una riga), ma richiede prima di sapere qual è il valore giusto — questa
+   ricerca non lo fornisce (nessuna fonte trovata dà una percentuale
+   specifica per «elettrico a ponte resistivo con relè MS/LP» distinta dal
+   Nonel generico) · si misura confrontando, a parità di ritardo lungo, lo
+   scatter che `scatterInnesco('elettrico', 200)` restituisce oggi (0,5 ms)
+   contro quello che una regola percentuale darebbe (2-10 ms): se la
+   decisione fosse di allinearlo, la differenza attesa è quell'ordine di
+   grandezza.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- [US Patent 6220167 — "Excavation method by blasting"](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6220167)
+- [Blair D.P. (1993) — "Blast vibration control in the presence of delay scatter and random fluctuations between blastholes", Int. J. Numer. Anal. Methods Geomech. 17(2), 95-118](https://onlinelibrary.wiley.com/doi/abs/10.1002/nag.1610170203)
+- [Springer (2022) — "Influence of detonator delay scatter on rock fragmentation by bunch-holes blasting"](https://link.springer.com/article/10.1007/s40948-022-00432-z)
+- [ResearchGate — "Modeling the Effect of Delay Scatter on Peak Particle Velocity of Blast Vibration Using a Multiple Seed Waveform Vibration Model"](https://www.researchgate.net/publication/392441546_Modeling_the_Effect_of_Delay_Scatter_on_Peak_Particle_Velocity_of_Blast_Vibration_Using_a_Multiple_Seed_Waveform_Vibration_Model)
+- [O-Pitblast — "Vibration Control using electronic detonators"](https://www.o-pitblast.com/blog/vibration-control-using-electronic-detonators-optimize-the-blasting-sequence)
+- [Scribd — "Signature-Hole Blast Analysis for Vibration Control"](https://www.scribd.com/document/18185950/Signature-Hole-Blast-Vibration-Control)
+
+### Riassunto onesto
+
+Nessun numero nuovo entra nel prodotto: questa ricerca non dice "la finestra
+deve essere X ms", perché nessuna fonte trovata dà una soglia pronta per
+sostituire il conteggio sul nominale — dice che **il conteggio sul solo
+nominale è la stessa semplificazione che il mondo, da Blair (1993) in poi,
+tratta esplicitamente come il limite da superare con l'elettronico o con un
+modello probabilistico**, e che Genesi ha già, in un'altra funzione, il
+numero (`scatterMs`) che servirebbe a farlo. Non è "un validatore mancante"
+nel senso già chiuso del 14/09 e del 16-18/09 (quelli erano assenze di un
+badge): qui il badge MIC c'è ed è corretto secondo la convenzione USBM sul
+tempo nominale — il delta è che la convenzione, applicata da sola, è
+esattamente il punto debole che la letteratura sui detonatori pirotecnici
+descrive. La seconda parte (lo scatter fisso di «elettrico») è più piccola e
+più incerta: è un'incoerenza testo/numero verificata col grep, non un
+numero di soglia sbagliato — servirebbe una fonte dedicata al tipo esatto di
+detonatore elettrico a relè MS/LP prima di cambiare la costante.
