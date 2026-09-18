@@ -4290,7 +4290,14 @@ export function organigrammaSicurezza(nomine, lavoratori, scadenze, oggi = new D
     });
     const senzaFormazione = persone.filter(p => p.formazione &&
       (p.formazione.stato === "mancante" || p.formazione.stato === "scaduta")).length;
-    const inScadenza = persone.filter(p => p.formazione && p.formazione.stato === "in-scadenza").length;
+    /* ⛔ 18/09, dal backlog QA: mancava «senza data» (una delle quattro
+       risposte di `statoRequisito`/`statoScadenza`) — la stessa dimenticanza
+       già corretta lo stesso giorno in `pillReq`/`abilitazioneLavoratore` per
+       questo identico campo. Cadeva nel `else` finale del `stato` qui sotto,
+       cioè "ok": un ruolo obbligatorio con la formazione a data illeggibile
+       usciva verde, indistinguibile da uno davvero in regola. */
+    const inScadenza = persone.filter(p => p.formazione &&
+      (p.formazione.stato === "in-scadenza" || p.formazione.stato === "senza data")).length;
     // ⛔ UNA NOMINA COPRE IL RUOLO SOLO SE LA PERSONA C'È ANCORA.
     // Una nomina che punta a un lavoratore cancellato dall'anagrafica — o non
     // più in forza — non copre niente: il ruolo è scoperto. Prima il conto

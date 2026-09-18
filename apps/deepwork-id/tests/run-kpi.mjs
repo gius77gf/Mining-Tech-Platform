@@ -10521,6 +10521,20 @@ test("statoVuoto: la struttura è quella del core, invariata", () => {
     eq(org.senzaFormazione, 0, "il corso c'è");
     eq(org.stato, "ok", "verde");
   });
+  test("⛔ organigramma: la formazione con la scadenza illeggibile non è «in regola» (18/09, dal backlog QA)", () => {
+    /* stessa dimenticanza già corretta lo stesso giorno in pillReq/
+       abilitazioneLavoratore per l'identico campo: cadeva nel ramo finale
+       "regolare"/"ok" invece che in "senza data" */
+    for (const cattiva of ["2026-13-45", "2026-02-30", "boh"]) {
+      const org = scudo.organigrammaSicurezza([{ id: "n2", ruolo: "preposto", lavoratoreId: "L1", dal: "2025-01-15" }],
+        LAV, [{ lavoratoreId: "L1", preset: "form-preposto", dataScadenza: cattiva }],
+        OGGI).find((x) => x.ruolo.chiave === "preposto");
+      eq(org.persone[0].formazione.stato, "senza data", `precondizione: statoRequisito dichiara «${cattiva}» illeggibile`);
+      eq(org.senzaFormazione, 0, "⛔ non è «mancante/scaduta»: è un avviso, non un allarme");
+      eq(org.inScadenza, 1, "⛔ conta come le formazioni in scadenza, non come «a posto»");
+      eq(org.stato, "warn", `⛔ e il ruolo NON è verde con la scadenza «${cattiva}»`);
+    }
+  });
   /* ⛔ UNA NOMINA SENZA LA DATA DA CUI DECORRE NON SI PUÒ DIMOSTRARE, e usciva
      verde con la pastiglia «Nomina attiva». È un avviso, non un allarme — la
      persona c'è — quindi giallo: il rosso qui direbbe «da nominare» su un ruolo

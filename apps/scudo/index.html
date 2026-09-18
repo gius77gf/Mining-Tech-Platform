@@ -4268,6 +4268,10 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
           : !p.requisito ? ["tag", "Nomina attiva"]
           : !f ? ["tag", "—"]
           : f.stato === "in-scadenza" ? ["warn", "Formazione in scadenza"]
+          // ⛔ 18/09, dal backlog QA: mancava questo ramo, e cadeva nel finale
+          // "In regola" verde — la stessa dimenticanza già corretta lo stesso
+          // giorno in pillReq per l'identico campo.
+          : f.stato === "senza data" ? ["warn", "Formazione: data illeggibile"]
           : ["ok", "In regola"];
         const cls = fb[0] === "danger" ? "st-danger" : fb[0] === "warn" ? "st-warn" : "st-ok";
         const sistema = (p.requisito && f && (f.stato === "mancante" || f.stato === "scaduta"))
