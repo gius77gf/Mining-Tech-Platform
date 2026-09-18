@@ -2427,7 +2427,7 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **359
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **361
 esecuzioni** che aprono davvero le pagine in un browser.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da

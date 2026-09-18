@@ -8693,8 +8693,8 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **359 esecuzioni** che
-  aprono le pagine in un browser vero, da **159** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **361 esecuzioni** che
+  aprono le pagine in un browser vero, da **160** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso).
@@ -11496,3 +11496,59 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   KPI invariato a 3154 (nessun modulo dati toccato). 9-suite sum invariata a
   **3.650**. Banchi del browser: 355→**357** esecuzioni, propagato in
   DEVELOPMENT.md/STATO_PRODOTTO.md/DECISIONI_WEEKEND.md.
+
+## Flotta — csvGiriMacchina, ore col punto inglese (18/09)
+- [x] **SESTA RICORRENZA DELLA STESSA FAMIGLIA, MAI PROPAGATA A QUESTO
+      EXPORT** *(18/09, unità completata, dal deep-pass QA su Flotta)*. La
+      colonna `ore` del CSV dei giri macchina scriveva `c.ore || ""` — il
+      numero grezzo, col punto inglese — invece di `mostra(c.ore, 1)` come
+      i cinque export gemelli già corretti il 17-18/09
+      (csvCosti/csvRicambi/csvRegistroInterventi/csvListaDellaSpesa/
+      csvBudget/csvLibretto). Il campo "Ore contatore" accetta un
+      decimale, e con ore intere (il caso della dimostrazione) il difetto
+      non si vedeva.
+- Nuovo test inline con controprova (col vecchio codice la riga esce
+  "4100.5" invece di "4.100,5"). KPI invariato a 3154 (assert aggiunti
+  dentro un test esistente). Giro completo: 41/41. Asserzioni eseguite
+  dal giro: 4155→**4156**, propagato in DEVELOPMENT.md/STATO_PRODOTTO.md.
+
+## Scudo — statoAppalto non segnalava una qualifica in scadenza (18/09)
+- [x] **UN QUARTO ESITO CHE SPARIVA: NÉ PROBLEMA NÉ BUCO** *(18/09, unità
+      completata, dal deep-pass QA su Scudo)*. `statoAppalto` escludeva
+      esplicitamente `qualifica.esito === "in-scadenza"` sia da
+      `problemi` sia da `ignoti`: un appalto la cui impresa ha un
+      documento in scadenza usciva "A posto" verde muto, mentre "Imprese
+      esterne", sullo stesso dato, dice correttamente "In scadenza".
+      Aggiunto un quarto elenco `avvisi` e un quarto esito
+      "in-scadenza", propagato a `riepilogoAppalti` e a tre punti di
+      `index.html` (mappa badge, `dire`, messaggio dopo il salvataggio,
+      colore aggregato del riepilogo).
+- Nuovo test unitario con dati fabbricati + controprova, e nuovo banco
+  browser permanente che riproduce il caso vero della demo
+  ("Autotrasporti Valle srl", appalto "pa1"): 5/5, controprova 3/5 KO
+  voluti. KPI: 3154→**3155**. Giro completo: 41/41. Asserzioni eseguite
+  dal giro: 4156→**4158**. Banchi del browser: 357→**359** esecuzioni,
+  158→**159** file distinti, propagato nei quattro documenti.
+
+## Campo — il banner di "Chi c'è in squadra" ignorava chi non ha ancora
+## nessun documento in Scudo (18/09)
+- [x] **LA STESSA LACUNA DEL NONO STATO, DUE ORE DOPO L'OTTAVO** *(18/09,
+      unità completata, dal deep-pass QA su Campo, secondo giro)*. Il
+      guard del banner aggregato in `renderOperatori` e il suo ripiego
+      finale ("Documenti in corso di validità per tutte le persone in
+      elenco") controllavano scadute/inScadenza/nonIdonei/
+      conPrescrizioni/senzaData ma non `hse.senzaScadenze` — una persona
+      collegata a Scudo con ZERO documenti registrati. `CLASSE_HSE` aveva
+      già la chiave giusta (`st-warn`) da una correzione precedente della
+      stessa giornata: mancava solo il testo aggregato. Stessa famiglia,
+      stessa causa, un consumatore in più dimenticato.
+- Nuovo banco browser permanente che riproduce il caso vero della demo
+  ("Anna Neri", d4, zero righe in scadenzeScudo — nessun operatore la
+  referenziava prima di questa unità) filtrato su Squadra C per isolarlo
+  dagli altri problemi delle squadre A/B: 4/4, controprova 1/4 KO voluto
+  (isolato: il ramo `nonCollegati` prende precedenza sul ripiego finale,
+  quindi la controprova morde sulla frase esplicita, non sul ripiego).
+  Nessun modulo dati toccato (solo index.html): KPI invariato a 3155.
+  Giro completo: 41/41. Asserzioni eseguite dal giro: 4158→**4159**.
+  Banchi del browser: 359→**361** esecuzioni, 159→**160** file distinti,
+  propagato nei quattro documenti.

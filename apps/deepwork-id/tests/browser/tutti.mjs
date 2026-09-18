@@ -1342,6 +1342,8 @@ const BANCHI = [
   ['trappola del focus · controprova', 'focus-trap-modale.mjs', ['--controprova'], true],
   ['Scudo: una qualifica in scadenza non sparisce dalla riga dell appalto', 'scudo-appalto-in-scadenza.mjs', []],
   ['appalto in scadenza · controprova', 'scudo-appalto-in-scadenza.mjs', ['--controprova'], true],
+  ['Campo: chi non ha ancora un documento in Scudo non sparisce dal banner', 'campo-hse-senza-scadenze.mjs', []],
+  ['senza scadenze in Campo · controprova', 'campo-hse-senza-scadenze.mjs', ['--controprova'], true],
 ];
 
 /* «finto 2» è dichiarata CONTROPROVA di proposito: così `impronta-giro.mjs`,

@@ -2601,9 +2601,19 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
        guardavano solo scadute/inScadenza/nonIdonei/conPrescrizioni — con
        l'ottavo stato («senza data») una persona con un documento
        illeggibile faceva scrivere qui «Documenti in corso di validità per
-       TUTTE le persone in elenco»: un'affermazione falsa. */
+       TUTTE le persone in elenco»: un'affermazione falsa.
+       ⛔ 18/09, dal deep-pass QA (secondo giro): la stessa lacuna sul nono
+       stato, `senzaScadenze` — una persona collegata a Scudo con ZERO
+       documenti registrati. Restava fuori dal guard e dal ripiego finale
+       esattamente come «senza data» prima della riga qui sopra: un turno
+       con solo persone mai verificate diceva «Documenti in corso di
+       validità per TUTTE le persone», mentre la riga della singola
+       persona (`notaHSE`) dice già correttamente «nessun documento
+       registrato». Non è «non collegato» (quello è un lavoro non fatto,
+       già distinto sotto): qui il collegamento c'è, e Scudo non ha ancora
+       nessun documento per quella persona. */
     $("ope-hse").innerHTML = !hse || !righe.length ? ""
-      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni || hse.senzaData
+      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni || hse.senzaData || hse.senzaScadenze
         ? `<div class="note ${hse.scadute || hse.nonIdonei ? "avviso" : "recap"}">`
           /* il giudizio del medico prima dei documenti (05/09): è la cosa che
              decide se una persona può scendere in cava oggi */
@@ -2616,6 +2626,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
               : "")
           + (hse.inScadenza ? `${hse.inScadenza} ${hse.inScadenza === 1 ? "ha un documento" : "hanno un documento"} in scadenza entro trenta giorni. ` : "")
           + (hse.senzaData ? `${hse.senzaData} ${hse.senzaData === 1 ? "ha un documento con una data che non si legge" : "hanno un documento con una data che non si legge"}. ` : "")
+          + (hse.senzaScadenze ? `${hse.senzaScadenze} ${hse.senzaScadenze === 1 ? "non ha ancora nessun documento registrato" : "non hanno ancora nessun documento registrato"} in Scudo: non è «a posto», è una persona di cui non si sa niente. ` : "")
           + `I rinnovi si fanno in <b>Scudo</b>, che è l'unico posto dove quel dato si scrive.`
           + codaIgnote(hse)
           + `</div>`
