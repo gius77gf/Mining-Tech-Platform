@@ -1016,6 +1016,29 @@ export function vociChecklist(meteo) {
 // trova "9" anche il giorno dopo, quando il meteo non si passa più.
 const voceDiIndice = (i) => CHECKLIST_INIZIO[+i] || (+i === INDICE_RICONTROLLO ? VOCE_RICONTROLLO : undefined);
 
+/* LE VOCI DI UNA CHECKLIST GIÀ SCRITTA — l'unione, mai la sola fotografia di
+   ADESSO. ⛔ 18/09, dal terzo giro di deep-pass QA, confermato dal vivo:
+   `vociChecklist(meteo)` da sola decide la forma della lista guardando SOLO
+   il meteo attuale. `salvaMeteo` fa un `db.aggiorna` quando il record del
+   turno esiste già — niente impedisce di correggere il meteo a turno aperto.
+   Se il ricontrollo dei fronti era stato risposto "no" mentre pioveva, e il
+   meteo viene corretto dopo (o semplicemente aggiornato con un cielo
+   diverso), `vociChecklist` torna a dare le nove voci fisse: quella risposta
+   smette di essere anche solo ITERATA da `statoChecklist` — sparisce dal
+   conteggio, dallo schermo dal vivo, dal rapporto di fine giornata e dalla
+   consegna di turno. Un "no" di sicurezza (il ricontrollo lo chiede il
+   D.P.R. 128) che si cancella da solo senza che nessuno lo tocchi.
+   La voce resta se il meteo di oggi la chiede GIÀ, oppure se gli esiti
+   salvati hanno già una risposta a quell'indice: una risposta scritta non
+   deve poter sparire per un cambio di meteo successivo. */
+export function vociChecklistSalvata(meteo, esiti) {
+  const base = vociChecklist(meteo);
+  if (base.length > CHECKLIST_INIZIO.length) return base;
+  const e = esiti || {};
+  const rispostoRicontrollo = (e[String(INDICE_RICONTROLLO)] || e[INDICE_RICONTROLLO]) != null;
+  return rispostoRicontrollo ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : base;
+}
+
 /* CHI È IL SORVEGLIANTE DI TURNO (11/09). Il registro del mondo comincia dal
    nome di chi ha guardato, e la denuncia di esercizio nomina il sorvegliante
    per turno: la nomina vive in Scudo (`nomine`, ruolo `sorvegliante`), e qui
@@ -3610,7 +3633,7 @@ export function rapportoGiornata(d, opts) {
   const attenzione = [avvisoIdoneita, avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || ""].filter(Boolean).join(" ");
   // checklist di inizio turno chiuse o in corso oggi
   // le voci sono quelle del turno: col maltempo c'è anche il ricontrollo dei fronti
-  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno))) }));
+  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti)) }));
   const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
     chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
       chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
@@ -3837,7 +3860,7 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
   const chkT = CHK.filter(c => String(c.data || "") === OGGI);
   txt += "CHECKLIST DI INIZIO TURNO\n";
   // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
-  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklist(meteoDi(MET, OGGI, c.turno)));
+  txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti));
     // accanto a ogni voce non a posto, se le azioni di Scudo sono state lette
     // (`AZI_C` è una lista), il semaforo della risposta — stessa forma di
     // `rapportoGiornata` qui sopra, non una copia debole che nomina il
@@ -4243,8 +4266,10 @@ export function bozzaAzioneChecklist(doc, indice, opts = {}) {
 export function vociNonAPosto(doc, azioni) {
   const e = (doc && doc.esiti) || {};
   const out = [];
-  // il ricontrollo dei fronti entra se ha una risposta: è l'ultimo, quindi gli indici restano quelli
-  const lista = (e[String(INDICE_RICONTROLLO)] || e[INDICE_RICONTROLLO]) ? CHECKLIST_INIZIO.concat([VOCE_RICONTROLLO]) : CHECKLIST_INIZIO;
+  // il ricontrollo dei fronti entra se ha una risposta: è l'ultimo, quindi gli
+  // indici restano quelli — stessa unione di `vociChecklistSalvata`, qui col
+  // meteo assente perché conta solo se la risposta è già stata scritta.
+  const lista = vociChecklistSalvata(null, e);
   lista.forEach((v, i) => {
     if ((e[String(i)] || e[i]) !== "no") return;
     const az = azioni && doc && doc.id ? azioniDellaVoce(azioni, doc.id, i) : null;

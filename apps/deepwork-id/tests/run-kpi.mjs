@@ -1709,6 +1709,32 @@ test("Campo · il ricontrollo dei fronti compare solo quando il meteo lo chiede 
   ok(b && /ricontrollati dopo la pioggia/.test(b.descrizione) && b.origineVoce === String(campo.INDICE_RICONTROLLO), "e la bozza dell'azione lo nomina: " + (b && b.descrizione));
 });
 
+test("Campo · vociChecklistSalvata: un ricontrollo già risposto non sparisce se il meteo viene corretto dopo (18/09, terzo giro QA)", () => {
+  const nove = Object.fromEntries(campo.CHECKLIST_INIZIO.map((_, i) => [String(i), "ok"]));
+  const esitiConNo = { ...nove, [String(campo.INDICE_RICONTROLLO)]: "no" };
+  // il difetto: guardando SOLO il meteo di oggi (corretto a sereno DOPO la
+  // risposta), la lista torna a nove voci e il "no" scritto smette di essere
+  // anche solo iterato da statoChecklist — sparisce dal conto, non solo dal testo
+  const conSoleMeteoOggi = campo.statoChecklist(esitiConNo, campo.vociChecklist({ cielo: "Sereno" }));
+  eq([conSoleMeteoOggi.no, conSoleMeteoOggi.mancanti, conSoleMeteoOggi.totale], [0, 0, 9],
+    "difetto riprodotto: col solo meteo attuale il ricontrollo risposto \"no\" non esiste più per il conteggio");
+  // la correzione: l'unione tiene la voce perché ha già una risposta scritta
+  const vociSalvate = campo.vociChecklistSalvata({ cielo: "Sereno" }, esitiConNo);
+  eq(vociSalvate.length, campo.CHECKLIST_INIZIO.length + 1, "vociChecklistSalvata include comunque il ricontrollo");
+  const stCorretto = campo.statoChecklist(esitiConNo, vociSalvate);
+  eq([stCorretto.no, stCorretto.completa, stCorretto.problemi[0]], [1, true, campo.VOCE_RICONTROLLO.testo],
+    "e statoChecklist torna a contare il \"no\" anche col meteo corretto a sereno");
+  // senza nessuna risposta scritta, il meteo sereno non aggiunge nulla (nessun falso «mancante»)
+  eq(campo.vociChecklistSalvata({ cielo: "Sereno" }, {}), campo.CHECKLIST_INIZIO, "senza risposte e senza maltempo: la lista fissa, non una copia");
+  // se il meteo di oggi la chiede già, l'unione non fa danno né duplica la voce
+  const vociConPioggiaOggi = campo.vociChecklistSalvata({ cielo: "Pioggia" }, {});
+  eq(vociConPioggiaOggi.length, campo.CHECKLIST_INIZIO.length + 1, "e col meteo che la chiede oggi resta una voce sola, non due");
+  // vociNonAPosto (già indipendente dal meteo) e vociChecklistSalvata restano d'accordo
+  const docCorretto = { id: "c10", data: "2026-09-18", turno: "Notte", squadra: "Squadra A", esiti: esitiConNo };
+  eq(campo.vociNonAPosto(docCorretto, []).map((v) => v.indice), [campo.INDICE_RICONTROLLO],
+    "vociNonAPosto vedeva già il ricontrollo indipendentemente dal meteo: adesso condivide la stessa unione");
+});
+
 test("Campo · chi ha fatto i controlli: il sorvegliante nominato in Scudo, o «non lo so» (11/09)", () => {
   const LAV = [{ id: "d3", nome: "Giulia Verdi" }, { id: "d1", nome: "Mario Rossi" }];
   const oggi = new Date("2026-07-20T08:00:00Z");

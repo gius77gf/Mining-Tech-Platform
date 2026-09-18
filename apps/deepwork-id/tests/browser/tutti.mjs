@@ -1416,6 +1416,8 @@ const BANCHI = [
      "quanto manca", mai "sei indietro rispetto al ritmo di ADESSO". */
   ["Campo: l'obiettivo di turno distingue presto da indietro-rispetto-al-ritmo", 'campo-obiettivo-ritmo.mjs', []],
   ['obiettivo e ritmo del turno · controprova', 'campo-obiettivo-ritmo.mjs', ['--controprova'], true],
+  ['Campo: il ricontrollo dei fronti non sparisce se il meteo viene corretto dopo', 'campo-checklist-meteo-corretto.mjs', []],
+  ['ricontrollo dei fronti e meteo corretto · controprova', 'campo-checklist-meteo-corretto.mjs', ['--controprova'], true],
   ['Flotta: un componente scaduto ha la fascia colorata giusta', 'flotta-componenti-fascia.mjs', []],
   ['fascia componenti Flotta · controprova', 'flotta-componenti-fascia.mjs', ['--controprova'], true],
   ['Conti: la fattura scartata dallo SdI non è emesso nel Report', 'conti-emesso-scartata.mjs', []],

@@ -1247,7 +1247,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
            senzaGiornoDiLavoro, avvisoSenzaGiorno, righeVolateDelGiorno, riassuntoVolateDelGiorno,
            produzioneDi, rapportiniInConto,
            CHECKLIST_INIZIO, ESITI_CHECK, statoChecklist, checklistDi,
-           vociChecklist, meteoChiedeRicontrollo, INDICE_RICONTROLLO, sorveglianteDiTurno,
+           vociChecklist, vociChecklistSalvata, meteoChiedeRicontrollo, INDICE_RICONTROLLO, sorveglianteDiTurno,
            STATI_PRESENZA, presenzaDi, appelloTurno, avvisiChiusuraTurno, chiusuraDi, riassuntoChiusura,
            minutiOrario, orariPresenza, testoOrari, orariProposti, orariDiTurno,
            RIPOSO_MINIMO_ORE, riposoDiTurno, testoRiposo,
@@ -2892,8 +2892,11 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     }
     const esiti = (doc && doc.esiti) || {};
     // le voci di QUESTO turno: col maltempo compare il ricontrollo dei fronti
+    // — e resta anche se il meteo viene corretto dopo, quando ha già una
+    // risposta scritta (18/09: senza l'unione una risposta "no" spariva da
+    // sola dal conteggio, dallo schermo e dai documenti di fine turno)
     const meteoTurno = meteoDi(MET, OGGI, turno);
-    const voci = vociChecklist(meteoTurno);
+    const voci = vociChecklistSalvata(meteoTurno, esiti);
     const st = statoChecklist(esiti, voci);
     const chiusa = !!(doc && doc.ora);
     const bloc = eChiuso(OGGI, turno);
@@ -2924,7 +2927,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
             ? `<button type="button" class="dw-btn secondary mini" data-chk-azione="${i}" title="Apri in Scudo l'azione correttiva che rimette a posto «${esc(v.testo)}»">Apri l'azione in Scudo</button>`
             : " Scudo non è raggiungibile: non si sa se un'azione c'è già")}</div>`;
       return `<div class="item ${stile}" style="cursor:default">
-        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}${i === INDICE_RICONTROLLO ? " · chiesta dal meteo di oggi (" + esc(String((meteoTurno && meteoTurno.cielo) || "")) + ")" : ""}</div></div>
+        <div class="info"><div class="name">${esc(v.testo)}</div><div class="meta chk-area">${esc(v.area)}${i === INDICE_RICONTROLLO ? (meteoChiedeRicontrollo(meteoTurno) ? " · chiesta dal meteo di oggi (" + esc(String((meteoTurno && meteoTurno.cielo) || "")) + ")" : " · risposta già data quando il meteo lo chiedeva") : ""}</div></div>
         <div class="chk-row">${ESITI_CHECK.map(e => {
           const [c, lab] = ET_ESITO[e];
           return `<button type="button" class="chg ${c}${val === e ? " active" : ""}" data-chk="${i}" data-esito="${e}"${bloc ? " disabled" : ""}
@@ -3095,7 +3098,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
   $("btn-chk-ok").onclick = async () => {
     const { turno, doc } = chkCorrente();
     const esiti = (doc && doc.esiti) || {}, nuovi = {};
-    vociChecklist(meteoDi(MET, OGGI, turno)).forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
+    vociChecklistSalvata(meteoDi(MET, OGGI, turno), esiti).forEach((v, i) => { if (!esiti[String(i)]) nuovi[String(i)] = "ok"; });
     if (!Object.keys(nuovi).length) return;
     if (!await chiedi("Segnare tutto a posto",
           `Stai per mettere <b>a posto</b> ${plurale(Object.keys(nuovi).length, "l'unica voce", `le ${Object.keys(nuovi).length} voci`)} a cui non hai ancora risposto.<br><br>
@@ -3111,7 +3114,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     // punto di scrittura 14 — chiusura della checklist
     if (bloccato(OGGI, turno, "la checklist di inizio turno", "chk-esito")) return;
     if (!doc) { esito("chk-esito", "Non hai ancora risposto a niente: tocca una risposta su ogni voce.", "err"); return; }
-    const st = statoChecklist(doc.esiti || {}, vociChecklist(meteoDi(MET, OGGI, turno)));
+    const st = statoChecklist(doc.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, turno), doc.esiti));
     if (!st.completa) {
       esito("chk-esito", `${st.mancanti === 1 ? "Manca ancora una risposta" : "Mancano ancora " + st.mancanti + " risposte"}: rispondi a tutte le voci prima di chiudere la checklist.`, "err");
       return;
