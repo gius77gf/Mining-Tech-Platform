@@ -338,9 +338,21 @@ export function parseCsvLine(line) {
      proposito — «\t=cmd», « =cmd», «\r=cmd», dove l'innesco è preceduto da uno
      spazio bianco (OWASP: pure TAB e CR fanno da innesco). Le prove c'erano su
      tutt'e tre, ma solo sull'ANDATA. */
+  /* ⛔ 18/09, dal deep-pass su dw-shell.js: L'ORDINE, non solo la condizione.
+     Il `.trim()` veniva DOPO aver tolto l'apostrofo — quindi su un campo non
+     quotato, per due dei tre casi qui sopra («\t=cmd», « =cmd»), lo spazio
+     bianco che l'apostrofo proteggeva si ritrovava scoperto in prima
+     posizione e il `.trim()` se lo mangiava: il giro andata/ritorno perdeva
+     esattamente il carattere che la guardia esiste per conservare. Il terzo
+     caso («\r=cmd») sopravviveva solo perché `\r` fa scattare le virgolette
+     a monte (è nel set `/[;"\n\r]/`), non per questa riga. Ora si TRIMMA
+     PRIMA di guardare l'apostrofo: un'apostrofo non è spazio bianco, quindi
+     il trim non lo tocca, e quello che resta dopo averlo tolto è lo spazio
+     bianco vero, non incidentale — non va più rimosso. */
   return out.map((v, i) => {
+    if (!quotato[i]) v = v.trim();
     if (v.startsWith("'") && INNESCO_FORMULA.test(v.slice(1))) v = v.slice(1);
-    return quotato[i] ? v : v.trim();
+    return v;
   });
 }
 
@@ -696,14 +708,25 @@ export function mappaColonne(intestazione, indizi, opzioni = {}) {
 // `celle` combacia con `col` se comincia dalla PRIMA colonna e prosegue in
 // ordine: `numero;cliente;importo` è l'inizio delle fatture, non delle pesate
 // (che hanno `data` in seconda posizione e non hanno `importo`).
+/* ⛔ 18/09, dal deep-pass su dw-shell.js: «PROSEGUE IN ORDINE» era diventato
+   «prosegue in ordine anche saltando colonne» — il `while` qui sotto cercava
+   ogni cella di `celle` DA DOVE ERA ARRIVATO in `col`, non nella posizione
+   ESATTA che il commento promette. Un file con `nome;area;stato` (senza
+   `persone`) combaciava con `campo.squadre` (`nome;persone;area;stato`)
+   saltando la seconda colonna: non è «l'inizio» di quella tabella, è una
+   sua sottosequenza — e un file davvero estraneo con quelle tre colonne
+   comuni veniva rifiutato come se fosse il file di un'altra app.
+   Misurato prima di stringere (regola del fondatore): sui prefissi VERI
+   (contigui) delle 51 tabelle, il conteggio non cambia — 6 ambiguità, tutte
+   fra prefissi condivisi genuini (es. `tipo;nome;stato` è l'inizio sia del
+   prospetto di Flotta sia di quello di Terra, per costruzione). Sulle
+   sottosequenze CON UN BUCO, invece, 3 tabelle su 48 producevano un
+   cross-match falso (`campo.squadre`→`flotta.mezzi`,
+   `flotta.costi`→`conti.prospettoCosti`, `flotta.prospetto`→due tabelle):
+   con la stretta, zero. */
 function _combacia(celle, col) {
-  if (celle[0] !== col[0]) return false;
-  let i = 0;
-  for (const c of celle) {
-    while (i < col.length && col[i] !== c) i++;
-    if (i >= col.length) return false;
-    i++;
-  }
+  if (celle.length > col.length) return false;
+  for (let i = 0; i < celle.length; i++) if (col[i] !== celle[i]) return false;
   return true;
 }
 

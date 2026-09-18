@@ -23169,6 +23169,28 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
        `nel testo del file la formula porta l'apostrofo di guardia: ${riga.slice(0, 40)}`);
   });
 
+  test("⛔ 18/09, dal deep-pass su dw-shell.js: parseCsvLine preserva lo spazio bianco che la guardia protegge, non solo la formula", () => {
+    /* i tre casi che `csvCell` neutralizza di proposito (OWASP: uno spazio,
+       un TAB o un \r prima dell'innesco fanno scattare la formula lo stesso)
+       — qui SENZA nessuna pulizia a monte, per isolare `parseCsvLine` da
+       ogni trim applicato dai lettori delle singole app (che il nome/testo
+       lo ripuliscono comunque, per conto loro, per una ragione diversa:
+       uno spazio scritto per sbaglio in un nome). Prima del fix: il
+       `.trim()` sui campi non quotati arrivava DOPO aver tolto l'apostrofo
+       di guardia, quindi lo spazio/TAB che l'apostrofo proteggeva restava
+       scoperto in prima posizione e veniva tagliato via — perso nel giro
+       di casa nostra, non nel file. */
+    for (const v of [" =SOMMA(A1:A9)", "\t=SOMMA(A1:A9)", "\r=SOMMA(A1:A9)"]) {
+      const cella = shell.csvCell(v);
+      const riga = "a;" + cella + ";b";
+      const letto = shell.parseCsvLine(riga);
+      eq(letto[1], v, `⛔ ${mostra(v)} torna identico, spazio bianco compreso: ${mostra(letto[1])}`);
+    }
+    // e un valore con spazi INCIDENTALI (non protetti da nessuna guardia)
+    // continua a essere ripulito come prima — non è un allargamento
+    eq(shell.parseCsvLine("a;  spazi incidentali  ;b")[1], "spazi incidentali",
+      "gli spazi di contorno senza guardia restano ripuliti come sempre");
+  });
   test("⛔ Genesi · il CSV della legge di sito si rilegge identico", () => {
     /* `_sitoParseCsv` legge questo stesso file, e adesso passa da `leggiCsv`:
        prima si teneva l'apostrofo di guardia, quindi il nome del referto
@@ -35208,6 +35230,25 @@ test("frasePersi · ⚠️ NIENTE `esc()`: la frase esce come l'utente l'ha scri
     eq(rifiutati + bloccatiPerSbaglio, 0,
       "⛔ un falso allarme qui blocca un import buono: se non è zero la firma è troppo larga, "
       + "e si stringe — non si accetta il rumore");
+  });
+
+  test("⛔ 18/09, dal deep-pass su dw-shell.js: «l'inizio» non voleva dire «una sua sottosequenza con un buco»", () => {
+    /* `_combacia` cercava ogni cella di `celle` da dove era arrivato in
+       `col`, non nella posizione ESATTA — quindi un file con
+       `nome;area;stato` (senza «persone») combaciava per sottosequenza con
+       `campo.squadre` (`nome;persone;area;stato`), saltando la seconda
+       colonna. Non è «l'inizio» di quella tabella, è una sua sottosequenza:
+       un file davvero estraneo con quelle tre colonne comuni veniva
+       rifiutato come se fosse il file di Campo. */
+    const ESTRANEO = "nome;area;stato\nFronte Nord;Settore 2;attivo\n";
+    eq(shell.fileDiAltraTabella(ESTRANEO, ["terra.fronti"]), null,
+      "⛔ ERA QUI IL DIFETTO: un file estraneo con nome/area/stato non è più scambiato per campo.squadre");
+    // e il verso opposto non si rompe: un file che è DAVVERO l'inizio
+    // CONTIGUO di un'altra tabella resta riconosciuto
+    const VEROPREFISSO = "tipo;nome;stato\nmezzo;Escavatore E1;operativo\n";
+    const t = shell.fileDiAltraTabella(VEROPREFISSO, ["scudo.lavoratori"]);
+    ok(t && (t.id === "flotta.prospetto" || t.id === "terra.prospettoFronti"),
+      `un vero prefisso contiguo resta riconosciuto: ${JSON.stringify(t)}`);
   });
 
   test("⛔ B8 · una riga di DATI non viene scambiata per un'intestazione", () => {
