@@ -6970,10 +6970,11 @@ export function calendarioScadenze(scadenze, lavoratori, oggi = new Date(), ades
     if (!s) continue;
     const data = String(s.dataScadenza || "").slice(0, 10);
     const chi = nomeDi(s.lavoratoreId) || "azienda";
-    if (!dataISOEsiste(data)) { senzaData.push((s.tipo || "Scadenza") + " · " + chi); continue; }
+    const et = etichettaScadenza(s);
+    if (!dataISOEsiste(data)) { senzaData.push(et + " · " + chi); continue; }
     const st = livelloScadenza(data, oggi);
     eventi.push({ uid: "scudo-scadenza-" + (s.id || (data + "-" + eventi.length)), data,
-      titolo: (s.tipo || "Scadenza") + " · " + chi,
+      titolo: et + " · " + chi,
       descrizione: [s.descrizione || "", "Oggi: " + st.label, "Da Scudo, scadenzario della sicurezza"].filter(Boolean).join("\n"),
       preavvisiGiorni: [30, 7] });
   }
