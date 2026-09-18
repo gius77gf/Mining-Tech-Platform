@@ -2161,8 +2161,14 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.668** *(ricontate il 18/09, dopo il
-quinto giro di deep-pass QA in parallelo su Scudo/Terra/Flotta — un mortale
+**Le prove automatiche sono passate a 3.673** *(ricontate il 18/09, dopo il
+sesto giro di deep-pass QA in parallelo su Sentinella/Genesi/Conti —
+`superamentiAperti` scriveva un valore fabbricato su un superamento vero,
+`muckShape`/il pannello Decking di Genesi stimavano un baricentro del
+cumulo in miliardi di miliardi di metri, e il sollecito di Conti non
+passava dalla guardia sulle fatture "come non emesse" — e, prima di
+questo, dopo il quinto giro di deep-pass QA in parallelo su
+Scudo/Terra/Flotta — un mortale
 restava "a prognosi aperta" per sempre, il quarto asse di conformità
 "confine" di Terra non aveva un aggregato, il contatore sostituito o
 azzerato di Flotta aveva quattro regole diverse — e, prima di questo, dopo
@@ -2433,9 +2439,9 @@ lettura dell'etichetta di gravità dal vocabolario invece del campo grezzo,
 e il bottone «Scadenze» al posto di «Adempimenti» nella barra in basso di
 Sentinella (bersagli di tocco a 320px saliti da 41,4 a 45,61–46,86 px),
 lanciando le suite)*, più **141** che girano con l'emulatore Firestore (**93** sulle regole
-di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **411
+di sicurezza, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e **413
 esecuzioni** che aprono davvero le pagine in un browser *(ricontato il 18/09
-con `suite-collegate.mjs`)*.
+con `suite-collegate.mjs`, dopo il sesto giro di deep-pass QA)*.
 
 Nella sola giornata del 31/07 le prove sulle funzioni delle app sono passate da
 **433 a 971**, e hanno fatto emergere **otto difetti veri**. I tre che pesano di

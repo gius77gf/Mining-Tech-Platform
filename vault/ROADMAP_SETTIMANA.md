@@ -8682,10 +8682,10 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.668 prove girano senza rete** *(ricontato il 18/09, dopo il quinto
-  giro di deep-pass QA su Scudo/Terra/Flotta: solo `run-kpi` è salito,
-  3156→3172, le altre otto invariate — rilanciate una per una)*. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3172, `run-stile` 330,
+  **3.673 prove girano senza rete** *(ricontato il 18/09, dopo il sesto
+  giro di deep-pass QA su Sentinella/Genesi/Conti: solo `run-kpi` è
+  salito, 3172→3177, le altre otto invariate — rilanciate una per una)*. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3177, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 34, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -8695,12 +8695,12 @@ numero scritto dove non era stato misurato niente**.*
   sorvegliati ne contavano sette: due convenzioni per lo stesso numero, che è
   il modo più facile di far sembrare sbagliato un conto giusto. Adesso è una
   sola.*
-  Copertura **751/751** e nessuna funzione scoperta; **411 esecuzioni** che
-  aprono le pagine in un browser vero, da **185** file di banco distinti (contati
+  Copertura **751/751** e nessuna funzione scoperta; **413 esecuzioni** che
+  aprono le pagine in un browser vero, da **186** file di banco distinti (contati
   dalla tabella `BANCHI` di `tutti.mjs`, non a occhio dalla cartella, che di
   `.mjs` ne ha di più perché contiene anche gli aiuti — `giro.mjs`,
   `impronta.mjs`, il runner stesso). *(Ricontato il 18/09 con
-  `suite-collegate.mjs`, dopo il quinto giro di deep-pass QA.)*
+  `suite-collegate.mjs`, dopo il sesto giro di deep-pass QA.)*
   *(Al 08/08 pomeriggio 2.326, 703/703 e 153; al 07/08 sera 2.307; al 07/08
   notte 2.193, 662/662 e 120; al 03/08 pomeriggio 2.092, 649/649 e 84; al 02/08
   1.838, 591/591 e 49.)*
