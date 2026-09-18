@@ -5322,6 +5322,14 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        mostrerebbe ancora "pianta non disegnabile". Se qui non ci sono fori
        salvati, sarà `genMaglia2D()` a deciderlo di nuovo con la misura. */
     D2.magliaAssente=null;
+    /* ⛔ 18/09, dal quarto giro di deep-pass: `D2.tratti` non veniva mai
+       azzerato qui, a differenza di holes/sel/magliaAssente. Un tratto
+       disegnato a mano (o importato da DXF) su un progetto sopravviveva
+       ad "Apri" e finiva attaccato alla volata appena aperta — e se si
+       salva diventa permanente in quel record. Stessa copia profonda già
+       usata per annulla/ripeti (`d2ApplySnap`): un design senza `tratti`
+       (volata salvata prima del 16/09) svuota, non eredita. */
+    D2.tratti=((arr[i].design&&arr[i].design.tratti)||[]).map(t=>({ ...t, pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —

@@ -407,6 +407,8 @@ const BANCHI = [
      — `localStorage` → Home → «Apri» — la stessa di B0-nonies. */
   ['la maglia assente di Genesi non si disegna', 'genesi-maglia-assente.mjs', []],
   ['maglia assente di Genesi · controprova', 'genesi-maglia-assente.mjs', ['--controprova'], true],
+  ['un tratto non resta attaccato alla volata aperta dopo (Genesi)', 'genesi-tratti-non-persistono-su-apri.mjs', []],
+  ['tratti su "Apri" di Genesi · controprova', 'genesi-tratti-non-persistono-su-apri.mjs', ['--controprova'], true],
   ['il piano di innesco XML di Genesi', 'genesi-piano-innesco.mjs', []],
   ['piano di innesco · controprova', 'genesi-piano-innesco.mjs', ['--controprova'], true],
   /* AGGIUNTO IL 14/09: G38 (obiettivo di pezzatura) e G44 (confronta burden
