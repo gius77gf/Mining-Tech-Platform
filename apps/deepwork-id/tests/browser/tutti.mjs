@@ -876,6 +876,8 @@ const BANCHI = [
      con la guardia più debole (`rilievoUsabile`, non `...ConData`). */
   ['la riserva residua di Terra non crolla per un rilievo a calendario impossibile', 'terra-riserva-calendario-impossibile.mjs', []],
   ['riserva residua e calendario impossibile · controprova', 'terra-riserva-calendario-impossibile.mjs', ['--controprova'], true],
+  ['il valore del materiale di Terra non gonfia per un rilievo a calendario impossibile', 'terra-valore-calendario-impossibile.mjs', []],
+  ['valore del materiale e calendario impossibile · controprova', 'terra-valore-calendario-impossibile.mjs', ['--controprova'], true],
   ['un fronte condiviso fra due lotti produce un avviso visibile in Terra', 'terra-fronte-condiviso-avviso.mjs', []],
   ['fronte condiviso e avviso · controprova', 'terra-fronte-condiviso-avviso.mjs', ['--controprova'], true],
   /* 16/09 · il banco da sempre, anno per anno (sesto e ultimo delta dello
