@@ -216,9 +216,9 @@ core, poi le due sull'appello di `riposoDiTurno`/`orariDiTurno`, poi quella su �
 funzioni delle app, **330** sulle regole di stile, 83 sugli aiuti condivisi, 32
 sulla nuvola di punti, **22** sull'ordine con cui due o più trigger riscrivono i
 claims, 9 sul manifesto, 8 sulla demo, 7 sulle rivendicazioni del
-primo avvio, 3 sulle superfici che stampano e su chi le preme — più **141** che
+primo avvio, 3 sulle superfici che stampano e su chi le preme — più **144** che
 girano con l'emulatore Firestore (**93** sulle
-**regole di sicurezza**, 19 sull'SDK, 21 sulle funzioni, 8 sul primo avvio) e
+**regole di sicurezza**, 19 sull'SDK, 24 sulle funzioni, 8 sul primo avvio) e
 **347 esecuzioni** che aprono davvero le pagine in un browser.
 ⚠️ *Il primo avvio è tornato da 10 a **8** l'08/08, e non è un passo indietro:
 le due prove aggiunte quel giorno chiedevano lo* stato finale *delle

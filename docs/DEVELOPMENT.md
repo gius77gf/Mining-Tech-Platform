@@ -450,7 +450,7 @@ node apps/deepwork-id/tests/copertura-funzioni.mjs --elenco   # dice anche QUALI
 node apps/deepwork-id/tests/nomi-doppi.mjs
 ```
 
-**141 con l'emulatore Firestore** (**93** regole di sicurezza, 19 SDK, 21
+**144 con l'emulatore Firestore** (**93** regole di sicurezza, 19 SDK, 24
 funzioni, 8 primo avvio) — servono `firebase-tools` e Java.
 ✅ *Rimisurati il 05/09 in questo contenitore, in un solo* `emulators:exec
 --only firestore,auth,functions` *(la CLI con* `npx --yes firebase-tools@13`*, le
@@ -478,7 +478,7 @@ difetto nostro: `firebase` non è sul PATH e le `node_modules` non ci sono. Il
 giro che gira davvero è uno solo:
 
 ```sh
-node apps/deepwork-id/tests/giro-sicurezza.mjs   # 141 prove: 93 regole, 19 SDK, 8 primo avvio, 21 funzioni
+node apps/deepwork-id/tests/giro-sicurezza.mjs   # 144 prove: 93 regole, 19 SDK, 8 primo avvio, 24 funzioni
 ```
 
 Un comando solo, che alza l'emulatore da sé, ripiega su `npx firebase-tools@13`
