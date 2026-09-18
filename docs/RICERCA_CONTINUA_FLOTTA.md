@@ -1991,3 +1991,17 @@ Flotta ha già il pezzo più difficile (il conteggio delle ore corretto anche at
 **Riepilogo**: 1 mancanza confermata su un meccanismo che è **il proseguimento naturale** di un lavoro già fatto (non un tema nuovo scollegato) — il tracciamento delle ore esiste dal 16/09 ed è stato appena corretto (17/09) per il caso del contatore sostituito, ma non è mai stato confrontato con nessuna soglia né mai arrivato alla lista di priorità. Nessuna delle proposte è stata tradotta in codice da questa unità di ricerca (solo lettura e ricerca, come da mandato).
 
 *Fonti (di seconda mano, via WebSearch): [bradken.com — Ground Engagement Tools](https://www.bradken.com/products-and-services/mining-and-resources/ground-engagement-tools), [crmining.com — Ground Engaging Tools (GET) Systems for Mining](https://crmining.com/ground-engaging-tools/), [heavyvehicleinspection.com — Mining Heavy Equipment Fleet Management: Complete Guide 2026](https://heavyvehicleinspection.com/blog/post/mining-heavy-equipment-fleet-management-complete-guide), [oxmaint.com — AI Tire Tread Depth & Wear Detection Guide](https://oxmaint.com/industries/fleet-management/ai-tire-tread-depth-and-wear-detection-guide), [tirewatcher.com](https://tirewatcher.com/), [fleetrabbit.com — Best Mining Haul Road Maintenance Software in 2026](https://fleetrabbit.com/industry/mining-fleet-software/best-mining-haul-road-maintenance-software-2026).*
+
+✅ **ENTRAMBE LE RIGHE IMPLEMENTATE IL 18/09 (commit `917c9b22`), la stessa
+giornata di questa ricerca.** `vitaAttesaOre` opzionale per componente,
+`vitaComponenti` calcola `pctVita`/`stato` ("ok"/"attenzione"/"scaduto",
+soglia 80%) solo quando dichiarata; `prioritaOperative` ha guadagnato la
+categoria "componente" (gravità "warn"/"danger", stesso schema del
+trend) leggendo `m.componenti` per ogni mezzo operativo. Verificato oggi
+(18/09, unità successiva) rileggendo il codice attuale:
+`grep -n "vitaAttesaOre\|SOGLIA_VITA_ATTENZIONE_PCT" apps/flotta/flotta-data.js`
+e la firma di `prioritaOperative` (linea con `componenti` come decimo
+parametro, `catRank.componente` nell'ordinamento finale). Questa riga
+resta per il metodo — un "non c'è" scritto un'ora prima di essere colmato
+è la stessa trappola descritta in CLAUDE.md ("il non c'è scaduto") — non
+come lavoro ancora da fare.

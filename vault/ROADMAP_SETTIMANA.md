@@ -11774,3 +11774,18 @@ zero scadute.
 run-kpi.mjs 3171/3171. sintassi-pagine.mjs 34/34. run-stile.mjs 330/330.
 suite-collegate.mjs 3/3. iniezioni-fresche.mjs: 692 sul bersaglio su 692,
 zero scadute.
+
+## Flotta — soglia di vita dei componenti (ricerca continua, tredicesimo giro, 18/09)
+
+- [x] **Flotta**: `vitaComponenti` non giudicava mai un componente
+      (pneumatico, cingolo, denti benna) scaduto o vicino a scadere,
+      perché non esisteva una soglia di vita attesa da confrontare con le
+      ore montate — badge sempre dello stesso colore da 200h a 8.000h.
+      Aggiunta `vitaAttesaOre` opzionale per componente (non una costante
+      di prodotto: la forbice nel mondo per il solo GET è 400-4.000+ h),
+      tradotta in `pctVita`/`stato` (soglia 80%). I componenti scaduti o
+      in attenzione entrano ora in `prioritaOperative` come categoria
+      dedicata (`917c9b22`). Chiusa anche la riga di
+      `docs/RICERCA_CONTINUA_FLOTTA.md` che proponeva ancora questo
+      lavoro come "non tradotto in codice": era già scaduta, implementata
+      la stessa giornata dopo essere stata scritta.
