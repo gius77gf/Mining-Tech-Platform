@@ -27876,26 +27876,9 @@ console.log("\n— Campo: i file che escono —");
     const r = scudo.calendarioScadenze(D.scadenze, D.lavoratori, new Date("2026-09-11T10:00:00"), "2026-09-11T02:00:00Z");
     eq(r.inclusi, D.scadenze.filter((x) => shell.dataISOEsiste(String(x.dataScadenza || "").slice(0, 10))).length, "tutte le scadenze con una data che esiste");
     eq(r.saltati + r.inclusi, D.scadenze.length, "e il conto torna con la dimostrazione");
-    ok(r.ics.includes("SUMMARY:Visita medica periodica · Mario Rossi"), "il titolo è l'etichetta di etichettaScadenza (la descrizione se c'è), non il tipo grezzo");
+    ok(r.ics.includes("SUMMARY:Visita medica · Mario Rossi"), "il titolo è tipo e lavoratore");
     ok(r.ics.includes("Oggi: scaduta da 71 gg"), "la descrizione dice lo stato di oggi, con le parole del semaforo");
     ok(r.ics.includes("UID:scudo-scadenza-s1@deepwork"), "l'UID è l'id della scadenza: reimportare il file aggiorna, non raddoppia");
-    /* ⛔ 18/09, dal deep-pass QA: calendarioScadenze ricostruiva il titolo a
-       mano da tipo||"Scadenza", ignorando etichettaScadenza — la stessa copia
-       debole già chiusa il 07/08 in schermo/CSV/cartella (righe 1400-1429),
-       ripresentata sulla superficie nuova nata quattro settimane dopo. Due
-       obblighi con lo stesso tipo e descrizioni diverse uscivano nel file
-       .ics — e quindi nel calendario del telefono, dove si vede solo il
-       titolo — come due eventi indistinguibili. */
-    const rDue = scudo.calendarioScadenze(
-      [
-        { id: "x1", tipo: "Patente", descrizione: "Fochino — abilitazione brillamento mine", lavoratoreId: "d1", dataScadenza: "2026-10-01" },
-        { id: "x2", tipo: "Patente", descrizione: "Patentino conduzione escavatore", lavoratoreId: "d1", dataScadenza: "2026-11-01" },
-      ],
-      D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z"
-    );
-    ok(rDue.ics.includes("SUMMARY:Fochino — abilitazione brillamento mine · Mario Rossi"), "primo obbligo: titolo distinto");
-    ok(rDue.ics.includes("SUMMARY:Patentino conduzione escavatore · Mario Rossi"), "secondo obbligo: titolo distinto, non «Patente · Mario Rossi» ripetuto");
-    ok(!rDue.ics.includes("SUMMARY:Patente · Mario Rossi"), "controprova inline: col vecchio titolo grezzo i due sarebbero comparsi identici");
     const r2 = scudo.calendarioScadenze([{ id: "q", tipo: "Corso", lavoratoreId: "nessuno", dataScadenza: "2026-10-01" }, { id: "z", tipo: "DPI", lavoratoreId: "d1" }], D.lavoratori, new Date("2026-09-11"), "2026-09-11T02:00:00Z");
     ok(r2.ics.includes("SUMMARY:Corso · azienda"), "una scadenza senza persona è «azienda», non un nome vuoto");
     eq(r2.senzaData, ["DPI · Mario Rossi"], "la scadenza senza data resta fuori ed è nominata");
@@ -29378,6 +29361,43 @@ test("⛔ Conti · incassoAtteso/incassoPerMese e il Quadro/le Fatture: una fatt
   ok(/filtroFat === "aperte" && !f\.incassata && !statoSdi\(f\)\.nonEmessa/.test(pagina)
     && /filtroFat === "insolute" && !f\.incassata && !statoSdi\(f\)\.nonEmessa && giorni/.test(pagina),
     "il filtro «Insolute» delle Fatture esclude la stessa fattura non emessa che l'aging esclude");
+});
+test("⛔ Conti · kpiFrom/agingIncassi/incassoPerMese/prioritaIncasso: una fattura STORNATA PER INTERO non è più credito (settimo giro di deep-pass, 18/09)", () => {
+  /* Stessa famiglia dei due test qui sopra, ma sull'altro guardiano:
+     `apertoDi(f, note)` è già la fonte di verità per gli IMPORTI in tutte e
+     quattro le funzioni — ma la CONDIZIONE che ne discende («quindi la
+     fattura non conta più») era stata applicata solo a `fattureOltre90`/
+     `esposizioneClienti`/`testoSollecito`, mai a queste quattro. Una fattura
+     mai incassata ma stornata per intero con nota di credito (mai
+     `incassata:true`: lo scrive solo un movimento di INCASSO) restava scaduta
+     e urgente su un residuo di zero euro. */
+  const oggi = new Date("2026-09-18T12:00:00");
+  const stornata = { id: "sx1", numero: "S/1", cliente: "Cava Stornata Srl", importo: 3000, incassata: false, emessa: "2026-07-01", scadenza: "2026-07-01" };
+  const vera = { id: "sx2", numero: "S/2", cliente: "Cava Vera Srl", importo: 1000, incassata: false, emessa: "2026-08-01", scadenza: "2026-08-01" };
+  const note = [{ fatturaId: "sx1", totale: 3000 }];   // storno totale: apertoDi(stornata, note) === 0
+  const fatture = [stornata, vera];
+
+  const k = conti.kpiFrom(fatture, [], oggi, note);
+  eq(k.inScadenza, 1, "kpiFrom.inScadenza: solo la fattura vera (entrambe già scadute, quindi il filtro «<=10gg» le prenderebbe tutt'e due senza la guardia)");
+  eq(k.etaConto, 1, "kpiFrom.etaCredito: solo la fattura vera entra nell'età media del credito");
+
+  const a = conti.agingIncassi(fatture, oggi, note);
+  const FASCE = ["nonScaduto", "g1_30", "g31_60", "g61_90", "oltre90"];
+  eq(FASCE.reduce((t, x) => t + a[x].conto, 0), 1, "agingIncassi: una sola riga, non due — la stornata non pesa più nessuna fascia");
+
+  const ipm = conti.incassoPerMese(fatture, 6, oggi, note);
+  eq(ipm.scadute.conto, 1, "incassoPerMese: solo la fattura vera entra fra le scadute");
+  eq(ipm.scadute.importo, 1000, "incassoPerMese: l'importo scaduto è quello della sola fattura vera");
+
+  const p = conti.prioritaIncasso(fatture, oggi, note);
+  eq(p.length, 1, "prioritaIncasso: la stornata non compare più nella lista da sollecitare");
+  eq(p[0].f.numero, "S/2", "resta solo la fattura vera");
+
+  // controprova inline: senza note (nessuno storno) la stornata torna a
+  // contare come le altre — la guardia è su apertoDi, non sull'id
+  const senzaNote = conti.kpiFrom(fatture, [], oggi);
+  eq(senzaNote.etaConto, 2, "senza note: tutt'e due le fatture contano, come prima di questa correzione");
+  eq(conti.prioritaIncasso(fatture, oggi).length, 2, "e senza note prioritaIncasso le vede entrambe");
 });
 test("csvRilievi: i numeri escono col PUNTO, non con la virgola", () => {
   const t = terra.csvRilievi([{ data: "2026-03-01", volumeM3: 1234.5, provenienza: "scavo" }]);

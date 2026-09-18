@@ -677,7 +677,7 @@ export function kpiFrom(fatture, gare, oggi = new Date(), note = null) {
      di sollecitarla va rimandata. Qui entrava lo stesso in `daIncassare`
      e nell'età media del credito: un cliente poteva risultare con credito
      vero basato su un documento che, per il fisco, non esiste ancora. */
-  const aperte = fatture.filter(f => !f.incassata && !statoSdi(f, oggi).nonEmessa);
+  const aperte = fatture.filter(f => !f.incassata && !statoSdi(f, oggi).nonEmessa && apertoDi(f, note) > 0);
   // apertoDi: con un acconto registrato conta il RESIDUO, non il totale della
   // fattura. Senza incassi registrati residuo = importo, quindi il numero è
   // identico a quello di prima.
@@ -835,6 +835,7 @@ export function agingIncassi(fatture, oggi = new Date(), note = null) {
     // quello che pesa nell'aging è ciò che RESTA da incassare: un acconto già
     // arrivato non è più credito scaduto
     const imp = apertoDi(f, note);
+    if (imp <= 0) continue;   // stornata per intero da nota di credito: nessun euro scaduto da segnalare
     const k = fasciaAging(g);
     b[k].conto++; b[k].importo += imp;
   }
@@ -1879,6 +1880,7 @@ export function incassoPerMese(fatture, mesi = 6, oggi = new Date(), note = null
     if (statoSdi(f, oggi).nonEmessa) continue;
     const g = giorni(f.scadenza, oggi);
     const imp = apertoDi(f, note);                     // solo ciò che resta da incassare
+    if (imp <= 0) continue;   // stornata per intero da nota di credito: non è più un incasso da pianificare
     // senza data valida: non pianificabile, e lo si DICE (era un `continue`)
     if (!Number.isFinite(g)) { senzaScadenza.conto++; senzaScadenza.importo += imp; continue; }
     if (g < 0) { scadute.conto++; scadute.importo += imp; continue; }
@@ -1964,7 +1966,7 @@ export function sollecitabile(fattura, oggi = new Date()) {
 
 export function prioritaIncasso(fatture, oggi = new Date(), note = null) {
   return (fatture || [])
-    .filter(f => !f.incassata)
+    .filter(f => !f.incassata && apertoDi(f, note) > 0)
     .map(f => {
       const g = giorni(f.scadenza, oggi);
       const noto = Number.isFinite(g);
