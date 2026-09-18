@@ -11665,3 +11665,33 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
   660 sul bersaglio su 660 (zero ancore di controprova scadute, due
   regressioni auto-inflitte nello stesso blocco catturate e corrette
   prima del push finale).
+
+## Secondo giro di deep-pass QA — quattro agenti in parallelo (18/09, sera)
+
+Quattro agenti QA dispatchati in parallelo (direttiva 26/07: più cantieri
+aperti insieme) su Flotta, Genesi, Terra, Scudo — verifica approfondita
+oltre il primo giro della mattina. Ogni difetto riverificato contro il
+codice reale prima di correggerlo (niente entra sulla parola dell'agente):
+
+- [x] **Flotta**: 5 difetti — `csvListaDellaSpesa` col punto inglese,
+      bottoni +1/-1 magazzino ricambi senza guardia (lost update),
+      `btn-mez` duplica mezzi (guardia su dato stantio), righe
+      manodopera/ricambio dell'ordine di lavoro perse nel doppio tocco,
+      cinque bottoni residui senza `occupato()` (`7710af2f`, `010ebb14`).
+- [x] **Genesi**: Rigidità H/B e Timing inter-foro/fila del Validatore
+      accusano un falso allarme rosso con dati illeggibili (`b34ee49f`).
+- [x] **Terra**: schermata Denuncia non annotava "Residuo" come valore
+      MASSIMO quando il pregresso non è dichiarato; bottone "Registra"
+      del nuovo inventario cumuli senza `occupato()` (`af95b17a`,
+      `670e3430`).
+- [x] **Scudo**: **13 bottoni di scrittura su 15** senza `occupato()`
+      (il più grave, verificato dal vivo: doppia consegna DPI identica,
+      32→34 righe) più due modali (near-miss, analisi) che chiudevano
+      DOPO la scrittura — la seconda era "sospetta, non confermata"
+      dall'agente, verificata qui leggendo il codice prima di
+      correggerla (`eed6b40a`, `241c0530`).
+
+Ogni fix coperto da banco browser con controprova che sa fallire, o test
+unitario dove bastava. run-kpi.mjs 3164/3164. sintassi-pagine.mjs 34/34.
+run-stile.mjs 330/330. suite-collegate.mjs 3/3. iniezioni-fresche.mjs:
+676 sul bersaglio su 676, zero scadute.
