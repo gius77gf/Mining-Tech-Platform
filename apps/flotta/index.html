@@ -1877,6 +1877,15 @@ body.dw b.bad{color:var(--ink-dg)}
   };
   // Rifornimenti (L4): il giorno parte da oggi, come per le voci di costo.
   $("rif-data").value = oggiISO();
+  /* ⛔ 18/09, dal secondo giro di deep-pass QA: i bottoni +1/-1 del magazzino
+     ricambi sono `<span role="button">`, non `<button>` — niente `.disabled`
+     nativo, quindi non ci si appoggia a `occupato()`. Stessa causa però:
+     `RIC` è aggiornato solo da `refresh()`, e senza guardia un doppio tocco
+     legge due volte la stessa giacenza stantia e ne perde uno (lost update
+     misurato dal vivo: due scarichi, la giacenza scende di uno solo). Un
+     `Set` per id di ricambio blocca un secondo tocco (+ o -, indifferente)
+     finché il primo non è tornato da refresh(). */
+  const ricInVolo = new Set();
   let editMez = null;   // id del mezzo in modifica (riusa il form "Nuovo mezzo"; stato/manutenzioni restano)
   let ordMez = "stato";
   const MEZ_NEXT = { operativo: "verifica", verifica: "fermo", fermo: "operativo" };
@@ -4317,11 +4326,11 @@ body.dw b.bad{color:var(--ink-dg)}
       await refresh(); return; }
     // magazzino ricambi: carico (+1), scarico (−1, mai sotto 0), rimozione
     const ricPiu = attr(e, "data-ric-piu");
-    if (ricPiu) { const r = RIC.find(x => x.id === ricPiu);
-      if (r) { await db.aggiorna("ricambi", r.id, { giacenza: (+r.giacenza || 0) + 1 }); await refresh(); } return; }
+    if (ricPiu) { if (ricInVolo.has(ricPiu)) return; const r = RIC.find(x => x.id === ricPiu);
+      if (r) { ricInVolo.add(ricPiu); await db.aggiorna("ricambi", r.id, { giacenza: (+r.giacenza || 0) + 1 }); ricInVolo.delete(ricPiu); await refresh(); } return; }
     const ricMeno = attr(e, "data-ric-meno");
-    if (ricMeno) { const r = RIC.find(x => x.id === ricMeno);
-      if (r) { await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); await refresh(); } return; }
+    if (ricMeno) { if (ricInVolo.has(ricMeno)) return; const r = RIC.find(x => x.id === ricMeno);
+      if (r) { ricInVolo.add(ricMeno); await db.aggiorna("ricambi", r.id, { giacenza: Math.max(0, (+r.giacenza || 0) - 1) }); ricInVolo.delete(ricMeno); await refresh(); } return; }
     const budDel = attr(e, "data-bud-del");
     if (budDel) { const b = BUD.find(x => x.id === budDel); if (!b) return;
       const ok = await chiedi("Togliere il budget",
@@ -4463,12 +4472,16 @@ body.dw b.bad{color:var(--ink-dg)}
          Di solito ce n'è una sola per mezzo. Ne aggiungo comunque una seconda?`, "Aggiungi lo stesso");
       if (!ok) return;
     }
+    // stessa famiglia dei bottoni corretti oggi: nessuna guardia, un doppio
+    // tocco registra due volte la stessa scadenza.
+    occupato("btn-sca", true);
     await db.aggiungi("scadenze", {
       mezzo: dati.mezzo, tipo: dati.tipo, chiave: p ? p.chiave : null,
       dataScadenza: dati.dataScadenza, mesi: v.mesi,
       documento: $("sca-doc").value.trim(), note: $("sca-note").value.trim(),
       ultimaData: null, ultimoEsito: null,
     });
+    occupato("btn-sca", false);
     $("sca-data").value = ""; $("sca-doc").value = ""; $("sca-note").value = "";
     esito("sca-esito", "Scadenza aggiunta: " + dati.tipo + " per " + dati.mezzo + " (" + dataIt(dati.dataScadenza) + ")"
       + (v.mesi ? ", si ripete ogni " + v.mesi + (v.mesi === 1 ? " mese" : " mesi") : ", non ricorrente") + ".", "success");
@@ -4516,9 +4529,13 @@ body.dw b.bad{color:var(--ink-dg)}
                   "non-positivo": "Il budget deve essere un numero maggiore di zero." } }, "bud-esito");
     if (!ri.ok) return;
     const anno = new Date().getFullYear();
+    // `giaC` legge BUD in memoria, aggiornato solo da refresh() più in
+    // basso: stessa trappola già presa oggi sui bottoni gemelli.
+    occupato("btn-bud", true);
     const giaC = BUD.find(b => +b.anno === anno && String(b.voce || "").trim().toLowerCase() === voce.toLowerCase());
     if (giaC) await db.aggiorna("budget", giaC.id, { importo: ri.valore });
     else await db.aggiungi("budget", { anno, voce, importo: ri.valore });
+    occupato("btn-bud", false);
     $("bud-voce").value = ""; $("bud-importo").value = ""; err("bud-importo", false);
     esito("bud-esito", (giaC ? "Budget aggiornato" : "Budget dichiarato") + " per il " + anno + ": " + (voce || "tutta la flotta") + ", " + eur(ri.valore) + ".", "success");
     await refresh();
@@ -4605,7 +4622,10 @@ body.dw b.bad{color:var(--ink-dg)}
     const rp = leggiNumero("ric-prezzo", "il prezzo al pezzo", { min: 0, unita: "€", facoltativo: true }, "ric-esito");
     if (!rp.ok && !rp.vuoto) return;
     const prezzo = rp.vuoto ? null : rp.valore;
+    // nessuna guardia: un doppio tocco crea due ricambi identici.
+    occupato("btn-ric", true);
     await db.aggiungi("ricambi", { nome, giacenza: giac, sogliaMin: soglia, prezzo });
+    occupato("btn-ric", false);
     $("ric-nome").value = ""; $("ric-giac").value = ""; $("ric-soglia").value = ""; $("ric-prezzo").value = "";
     esito("ric-esito-form", "Ricambio aggiunto: " + nome + " (giacenza " + numTx(giac) + ", soglia " + numTx(soglia)
       + (prezzo ? ", " + eur(prezzo) + " al pezzo" : "") + ").", "success");
@@ -4642,11 +4662,21 @@ body.dw b.bad{color:var(--ink-dg)}
     if (!rpo.ok && !rpo.vuoto) return;
     const costoPossessoAnnuo = rpo.ok ? rpo.valore : null;
     const possessoDal = $("mez-possesso-dal").value || null;
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: la guardia contro i
+       doppioni qui sopra legge MEZ in memoria, aggiornato solo da refresh()
+       più in basso — un doppio tocco la passa due volte e crea due mezzi
+       omonimi. */
+    occupato("btn-mez", true);
     if (editMez) {
       await db.aggiorna("mezzi", editMez, { nome, area, ore, tipo, messaInServizio: $("mez-servizio").value || null, costoPossessoAnnuo, possessoDal });   // stato/manutenzioni restano
+      // `occupato(false)` PRIMA di riscrivere l'etichetta: se corresse dopo,
+      // restituirebbe il testo catturato al tocco ("Salva modifica"),
+      // cancellando il cambio di modo appena fatto.
+      occupato("btn-mez", false);
       editMez = null; $("btn-mez").textContent = "Aggiungi";
     } else {
       await db.aggiungi("mezzi", { nome, area, ore, stato: "operativo", tipo, messaInServizio: $("mez-servizio").value || null, costoPossessoAnnuo, possessoDal });
+      occupato("btn-mez", false);
     }
     $("mez-nome").value = ""; $("mez-area").value = ""; $("mez-ore").value = ""; $("mez-tipo").value = "altro"; $("mez-servizio").value = "";
     $("mez-possesso").value = ""; $("mez-possesso-dal").value = "";
@@ -4670,7 +4700,8 @@ body.dw b.bad{color:var(--ink-dg)}
       fuoco("ore-nuove"); return; }
     err("ore-nuove", false);
     esito("ore-esito", plurale(ore, "Registrata ", "Registrate ") + conta(ore, "ora", "ore") + " su " + m.nome.split(" — ")[0] + ".", "success");
-    await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; await refresh();
+    occupato("btn-ore", true);
+    await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; occupato("btn-ore", false); await refresh();
   };
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
   // mezzi corrispondenti per nome, senza mai far scendere il contatore.
@@ -4845,9 +4876,12 @@ body.dw b.bad{color:var(--ink-dg)}
     // `scrittaIl`: il giorno in cui il tagliando è scritto. È ciò che gli
     // permette, se un giorno il contatore del mezzo verrà sostituito, di dire
     // su quale contatore sono le sue ore (04/09).
+    // nessuna guardia: un doppio tocco pianifica due volte la stessa manutenzione.
+    occupato("btn-man", true);
     await db.aggiungi("manutenzioni", { titolo, mezzo: $("man-mezzo").value, dataPrevista: dataPrevista || null,
       orePreviste, scrittaIl: oggiISO(), ricambioId: $("man-ricambio").value || null,
       ogniOre, ogniMesi, piano: pianoOre ? pianoOre.chiave : null, origine: "manuale", nota: null });
+    occupato("btn-man", false);
     esito("man-esito", "Manutenzione pianificata: " + titolo + " su " + $("man-mezzo").value
       + (dataPrevista ? " per il " + dataIt(dataPrevista) : " a " + oreMotoreTx(orePreviste))
       + (ogniOre && ogniMesi ? ", e si ripete ogni " + numTx(ogniOre) + " ore o " + ogniMesiTx(ogniMesi) + ", il primo dei due" : ogniOre ? ", e si ripete ogni " + plurale(ogniOre, "ora", numTx(ogniOre) + " ore") : ogniMesi ? ", e si ripete " + ogniMesiTx(ogniMesi) : "") + ".", "success");
@@ -5232,9 +5266,16 @@ body.dw b.bad{color:var(--ink-dg)}
     if (avanza) patch.stato = "in-corso";
     try { localStorage.setItem("dwFlottaTariffa", perCampo(v.tariffa)); } catch (e) {}
     $("odl-chi").value = ""; $("odl-ore").value = "";
+    /* ⛔ 18/09, dal secondo giro di deep-pass QA: `o.manodopera` viene da MAN
+       in memoria, aggiornato solo dentro `salvaOrdine` → `refresh()`. Un
+       doppio tocco costruisce due `patch` dallo stesso array stantio e
+       `db.aggiorna` sovrascrive: una delle due righe di manodopera sparisce
+       (lost update), misurato dal vivo. */
+    occupato("btn-odl-mano", true);
     await salvaOrdine(n, patch, v.chi + ": " + oreTx(v.ore)
       + (v.tariffa ? " a " + eur(v.tariffa) + " l'ora = " + eur(Math.round(v.ore * v.tariffa * 100) / 100) : " (senza costo orario)")
       + (avanza ? ". Il lavoro passa « in lavorazione »." : "."));
+    occupato("btn-odl-mano", false);
     fuoco("odl-chi");
   };
   // scegliendo un pezzo dal magazzino, il prezzo che c'è arriva da solo
@@ -5258,10 +5299,13 @@ body.dw b.bad{color:var(--ink-dg)}
       fuoco(v.errori.nome ? "odl-ric-sel" : v.errori.qta ? "odl-ric-qta" : "odl-ric-prezzo"); return;
     }
     const o = ordineDaManutenzione(n, RIC);
+    // stessa trappola di "btn-odl-mano": o.ricambi viene da MAN stantio.
+    occupato("btn-odl-ric", true);
     await salvaOrdine(n, { ricambiUsati: o.ricambi.concat([{ id: v.id, nome: v.nome, qta: v.qta, prezzo: v.prezzo }]) },
       "Ricambio aggiunto all'ordine: " + v.qta.toLocaleString("it-IT") + " × " + v.nome
       + (v.prezzo ? " a " + eur(v.prezzo) + " = " + eur(Math.round(v.qta * v.prezzo * 100) / 100) : " (senza prezzo)")
       + (v.id ? ". Verrà scaricato dal magazzino alla chiusura." : "."));
+    occupato("btn-odl-ric", false);
     $("odl-ric-sel").value = ""; $("odl-ric-nome").value = ""; $("odl-ric-qta").value = ""; $("odl-ric-prezzo").value = "";
   };
   // altre spese e nota di lavorazione: si salvano da sole appena si esce dal
