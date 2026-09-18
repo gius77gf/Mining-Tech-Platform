@@ -23733,6 +23733,15 @@ test("⛔ Scudo · andamento indici: il verso letto su giornate ancora da contar
       { id: "vero", titolo: "Archivio 2019", data: "2019-05-04", volumeM3: 5000, stato: "elaborato", fronteId: "f1" }];
     ok(terra.anniConVolumi(buono, O).includes(2019), "un volume leggibile del 2019 entra");
   });
+  test("⛔ 18/09, dal quinto giro di deep-pass: anniConVolumi non fa entrare un anno da un rilievo a calendario impossibile", () => {
+    const O = new Date("2026-08-01T00:00:00");
+    const ril = [...terra.DEMO.rilievi,
+      { id: "impossibile", titolo: "Test", data: "2099-13-45", volumeM3: 12345, stato: "elaborato", fronteId: "f1" }];
+    eq(terra.anniConVolumi(ril, O), [2026, 2025, 2024],
+      "un anno «2099» costruito su un giorno che non esiste non entra nel selettore della Denuncia");
+    eq(terra.banchiDaSempre(ril, terra.DEMO.fronti, terra.DEMO.autorizzazioni[0], O).anni,
+      [2024, 2025, 2026], "e non allarga di 73 anni la finestra «da sempre»");
+  });
 
   test("⛔ Terra · un secchio che non esiste resta `null`, non un oggetto tranquillo", () => {
     /* la bandiera si aggiunge a un secchio che c'è; se il caso non si presenta

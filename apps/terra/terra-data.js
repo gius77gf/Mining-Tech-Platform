@@ -1284,7 +1284,13 @@ export function vitaCava(autorizzazione, rilievi, oggi = new Date()) {
 export function anniConVolumi(rilievi, oggi = new Date()) {
   const anni = new Set([String(new Date(oggi).getFullYear())]);
   for (const r of rilievi || []) {
-    if (!rilievoUsabile(r)) continue;
+    /* ⛔ 18/09, dal quinto giro di deep-pass: ultima copia rimasta della
+       guardia-calendario debole (già chiusa il 17-18/09 in proiezioneAnnua,
+       kpiFrom, varianzaLottoAnno, Piano). `rilievoUsabile` non valida il
+       calendario: un `data:"2099-13-45"` supera comunque `/^\d{4}$/` e
+       aggiungeva un anno fantasma (senza nessun volume vero) al selettore
+       della Denuncia e alla finestra "Banchi da sempre". */
+    if (!rilievoUsabileConData(r)) continue;
     const a = String(r.data || "").slice(0, 4);
     if (/^\d{4}$/.test(a)) anni.add(a);
   }

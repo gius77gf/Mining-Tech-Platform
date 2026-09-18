@@ -8682,8 +8682,8 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.622 prove girano senza rete**. La frase va
-  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3128, `run-stile` 330,
+  **3.623 prove girano senza rete**. La frase va
+  letta stretta: è la somma delle **nove** suite che contano asserzioni (`run-kpi` 3129, `run-stile` 330,
   `run-helpers` 83, `run-pointcloud` 32, `claims-convergenza` 22, `run-manifest` 9,
   `run-demo` 8, `bootstrap-rivendicazioni` 7, `fogli-guardati` 3), non tutto ciò che gira nel
   giro `node` — che di comandi ne ha **41** e di asserzioni ne esegue di più:
@@ -11270,3 +11270,15 @@ di scriverlo qui**: niente entra sulla parola dell'agente.
       dai due test preesistenti che sono andati in rosso alla prima
       stesura e hanno guidato la correzione.
       Nuovo test puro con controprova in `run-kpi.mjs`. Giro isolato: 41/41.
+
+## Terra — sesto anno-fantasma, ultima copia della guardia calendario (18/09)
+- [x] **`anniConVolumi` FACEVA ENTRARE UN ANNO DA UN RILIEVO A CALENDARIO
+      IMPOSSIBILE** *(18/09, unità completata, agente aa6670b8016ce8fa9)*.
+      Ultima copia rimasta della guardia debole già chiusa il 17-18/09 in
+      `proiezioneAnnua`/`kpiFrom`/`varianzaLottoAnno`/Piano:
+      `rilievoUsabile` non valida il calendario, quindi un
+      `data:"2099-13-45"` superava comunque `/^\d{4}$/` e aggiungeva
+      «2099» al selettore della Denuncia e alla finestra "Banchi da
+      sempre" (misurato: la finestra passava da 3 a 76 anni). Corretto
+      sostituendo con `rilievoUsabileConData`. Nuovo test puro con
+      controprova in `run-kpi.mjs`.
