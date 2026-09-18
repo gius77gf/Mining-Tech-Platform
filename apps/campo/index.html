@@ -2111,7 +2111,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       // Quadro esiste apposta perché questo genere di segnale non resti
       // chiuso in una stanza in cui nessuno entra: il giudizio medico va
       // prima delle scadenze, come nel widget gemello.
-      el.innerHTML = !q || (!q.scadute && !q.nonIdonei) ? "" :
+      /* ⛔ 18/09, dal deep-pass sui ponti: la condizione guardava solo
+         `scadute`/`nonIdonei` — con l'ottavo stato («senza data») la nota
+         restava spenta anche quando era l'UNICO problema del turno. */
+      el.innerHTML = !q || (!q.scadute && !q.nonIdonei && !q.senzaData) ? "" :
         `<div class="note avviso" data-goto="squ" role="button" tabindex="0" style="cursor:pointer" title="Vai a chi c'è in squadra">`
         + (q.nonIdonei
             ? `<b>${q.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : q.nonIdonei + " persone in turno oggi NON sono idonee"}</b>`
@@ -2121,6 +2124,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
         + (q.scadute
             ? `<b>${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>`
               + ` — ${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}. `
+            : "")
+        + (q.senzaData
+            ? `<b>${q.senzaData === 1 ? "Una persona in turno oggi ha un documento con una data che non si legge" : q.senzaData + " persone in turno oggi hanno un documento con una data che non si legge"}</b>`
+              + ` — ${q.righe.filter(r => r.stato === "senza data").map(r => esc(r.operatore.nome)).join(", ")}. `
             : "")
         + ` I rinnovi si fanno in <b>Scudo</b>. Tocca per vedere chi c'è in squadra.</div>`;
     }
@@ -2472,6 +2479,10 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
       const d = r.inScadenza[0];
       return esc(d.tipo || "Documento") + ": scade il " + dmyBreve(d.dataScadenza);
     }
+    /* ⛔ 18/09, dal deep-pass sui ponti: mancava l'ottavo stato — una
+       scadenza con la data illeggibile non è «senza documenti» né
+       «regolare»: la riga restava muta, senza nessuna delle due. */
+    if (r.stato === "senza data") { const d = r.senzaData[0]; return esc(d.tipo || "Documento") + ": la data non si legge"; }
     if (r.stato === "senza-scadenze") return "nessun documento registrato in Scudo";
     if (r.stato === "collegamento-rotto") return "non risulta più fra il personale di Scudo";
     if (r.stato === "non-collegato") return "non collegato al personale di Scudo";
@@ -2509,8 +2520,14 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const tot = h.nonCollegati;
     return ` Di ${tot === 1 ? "una persona" : tot + " persone"} non lo sappiamo: ${pezzi.join(", e ")}.`;
   }
+  /* ⛔ 18/09, dal deep-pass sui ponti: mancava «senza data» — l'ottavo stato
+     che `idoneitaOperatore` sa dire (una scadenza con la data illeggibile).
+     Senza questa chiave la riga cadeva sul ripiego "st-ok" più sotto,
+     verde, indistinguibile da "regolare". Scudo ha la stessa mappa con lo
+     stesso stato già presente (index.html, warn) — qui si allinea. */
   const CLASSE_HSE = {
     scaduta: "st-danger", "in-scadenza": "st-warn", "non-idoneo": "st-danger",
+    "senza data": "st-warn",
     "non-collegato": "st-mute", "collegamento-rotto": "st-mute",
   };
 
@@ -2572,8 +2589,13 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
     const hse = LAV_HSE && SCAD_HSE ? idoneitaDiTurno(righe, LAV_HSE, SCAD_HSE) : null;
     const perId = {};
     if (hse) hse.righe.forEach(r => { perId[r.operatore.id] = r; });
+    /* ⛔ 18/09, dal deep-pass sui ponti: la condizione e il ripiego finale
+       guardavano solo scadute/inScadenza/nonIdonei/conPrescrizioni — con
+       l'ottavo stato («senza data») una persona con un documento
+       illeggibile faceva scrivere qui «Documenti in corso di validità per
+       TUTTE le persone in elenco»: un'affermazione falsa. */
     $("ope-hse").innerHTML = !hse || !righe.length ? ""
-      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni
+      : hse.scadute || hse.inScadenza || hse.nonIdonei || hse.conPrescrizioni || hse.senzaData
         ? `<div class="note ${hse.scadute || hse.nonIdonei ? "avviso" : "recap"}">`
           /* il giudizio del medico prima dei documenti (05/09): è la cosa che
              decide se una persona può scendere in cava oggi */
@@ -2585,6 +2607,7 @@ body.dw.outdoor-mode .chk-row .chg.active.na{
               ? `<b>${hse.scadute} ${hse.scadute === 1 ? "persona ha un documento scaduto" : "persone hanno un documento scaduto"}</b> fra chi è in elenco. `
               : "")
           + (hse.inScadenza ? `${hse.inScadenza} ${hse.inScadenza === 1 ? "ha un documento" : "hanno un documento"} in scadenza entro trenta giorni. ` : "")
+          + (hse.senzaData ? `${hse.senzaData} ${hse.senzaData === 1 ? "ha un documento con una data che non si legge" : "hanno un documento con una data che non si legge"}. ` : "")
           + `I rinnovi si fanno in <b>Scudo</b>, che è l'unico posto dove quel dato si scrive.`
           + codaIgnote(hse)
           + `</div>`

@@ -29,24 +29,24 @@ const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/jav
    il testo da cercare non c'è più (perché la riga è cambiata per un'altra
    ragione), l'iniezione non tocca niente e la controprova lo dichiara
    invece di dare un falso «so fallire». */
+/* ⏱️ RI-ANCORATO il 18/09 (dal deep-pass sui ponti): il gate e il corpo
+   sono cambiati per l'ottavo stato («senza data»), che ha aggiunto un
+   terzo secchio al widget. Ri-ancorato su gate + blocco `nonIdonei` (le
+   due parti che, insieme, riproducono il difetto storico: senza
+   entrambe, il gate resta aperto lo stesso grazie a `q.scadute` — vero
+   anche nella dimostrazione — e il corpo mostrerebbe comunque il
+   giudizio medico, quindi la controprova non saprebbe fallire). */
 const DIFETTI = [
-  [`el.innerHTML = !q || (!q.scadute && !q.nonIdonei) ? "" :
+  [`el.innerHTML = !q || (!q.scadute && !q.nonIdonei && !q.senzaData) ? "" :
         \`<div class="note avviso" data-goto="squ" role="button" tabindex="0" style="cursor:pointer" title="Vai a chi c'è in squadra">\`
         + (q.nonIdonei
             ? \`<b>\${q.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : q.nonIdonei + " persone in turno oggi NON sono idonee"}</b>\`
               + \` secondo il medico competente (Scudo) — \${q.righe.filter(r => r.stato === "non-idoneo").map(r => esc(r.operatore.nome)).join(", ")}:\`
               + \` \${q.nonIdonei === 1 ? "non va mandata" : "non vanno mandate"} in cava finché il giudizio non cambia. \`
-            : "")
-        + (q.scadute
-            ? \`<b>\${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>\`
-              + \` — \${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}. \`
-            : "")
-        + \` I rinnovi si fanno in <b>Scudo</b>. Tocca per vedere chi c'è in squadra.</div>\`;`,
+            : "")`,
    `el.innerHTML = !q || !q.scadute ? "" :
         \`<div class="note avviso" data-goto="squ" role="button" tabindex="0" style="cursor:pointer" title="Vai a chi c'è in squadra">\`
-        + \`<b>\${q.scadute === 1 ? "Una persona in turno oggi ha un documento scaduto" : q.scadute + " persone in turno oggi hanno un documento scaduto"}</b>\`
-        + \` — \${q.righe.filter(r => r.stato === "scaduta").map(r => esc(r.operatore.nome)).join(", ")}.\`
-        + \` I rinnovi si fanno in <b>Scudo</b>. Tocca per vedere chi c'è in squadra.</div>\`;`],
+        + ""`],
 ];
 
 const colpiti = new Set();

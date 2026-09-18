@@ -868,6 +868,15 @@ export function idoneitaDiTurno(operatori, lavoratori, scadenze, oggi = new Date
     righe,
     scadute: conta("scaduta"),
     inScadenza: conta("in-scadenza"),
+    /* ⛔ 18/09, dal deep-pass sui ponti: `idoneitaOperatore` sa dire OTTO
+       stati, incluso «senza data» (una scadenza con la data illeggibile —
+       né scaduta né in scadenza, ma nemmeno regolare), e nessun contatore
+       qui lo esponeva. Un turno con solo persone «senza data» tornava
+       `scadute:0, inScadenza:0, nonIdonei:0, conPrescrizioni:0` — cioè
+       tutti i contatori nominati a zero — mentre `tuttoInRegola` era già
+       (correttamente) `false`: chi consuma questo ponte guardando i
+       contatori invece del booleano non vedeva mai il caso. */
+    senzaData: conta("senza data"),
     regolari: conta("regolare"),
     senzaScadenze: conta("senza-scadenze"),
     // due modi diversi di non sapere, tenuti distinti perché portano a due azioni

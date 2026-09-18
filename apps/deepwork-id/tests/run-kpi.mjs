@@ -43738,6 +43738,31 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(/1 persona ha prescrizioni/.test(sez), "e le prescrizioni di Giulia Verdi non spariscono: " + sez);
     eq((sez.match(/^- /gm) || []).length, 4, "quattro righe, una per ogni problema (non idoneo, prescrizioni, scaduto, in scadenza): " + sez);
   });
+  test("⛔ 18/09, dal deep-pass sui ponti: l'OTTAVO stato di idoneitaDiTurno — «senza data» — arriva anche lui in entrambi i documenti", () => {
+    /* prima di oggi `idoneitaDiTurno` non esponeva nessun contatore per
+       «senza data» (una scadenza con la data illeggibile): tutti i
+       contatori nominati restavano a zero, e il rapporto/la consegna non
+       ne parlavano — la consegna arrivava perfino a scrivere «nessuna
+       persona … risulta non idonea», un'affermazione falsa. */
+    const operatori = [{ id: "o1", nome: "Anna Neri", squadra: "Squadra A", stato: "attivo", lavoratoreId: "d1" }];
+    const squadre = [{ nome: "Squadra A", stato: "attiva" }];
+    const lavoratoriHSE = [{ id: "d1", idoneita: "idoneo" }];
+    const scadenzeHSE = [{ lavoratoreId: "d1", dataScadenza: "2026-13-45" }];   // data impossibile
+    const base = { oggi: "2026-05-05", operatori, squadre, lavoratoriHSE, scadenzeHSE };
+    const R = campo.rapportoGiornata(base, {});
+    ok(/1 persona ha un documento con una data che non si legge/.test(R.attenzione), "⛔ ERA QUI IL DIFETTO: sparita dal rapporto: " + R.attenzione);
+    const txt = campo.testoConsegnaTurno(base, {});
+    const sez = txt.slice(txt.indexOf("IDONEITÀ"), txt.indexOf("SEGNALAZIONI"));
+    ok(/1 persona ha un documento con una data che non si legge/.test(sez), "⛔ e nella consegna: " + sez);
+    ok(!/nessuna persona in turno oggi risulta non idonea/.test(sez), "e NON dice più che va tutto bene: " + sez);
+  });
+  test("⛔ 18/09, dal deep-pass sui ponti: i tre punti di index.html che leggono idoneitaDiTurno guardano anche «senza data»", () => {
+    const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
+    ok(/"senza data": "st-warn"/.test(pagina), "CLASSE_HSE copre l'ottavo stato, non solo i cinque di prima");
+    ok(/r\.stato === "senza data"/.test(pagina), "notaScadenzeHSE ha un ramo per «senza data», non resta muta");
+    ok(/!q\.scadute && !q\.nonIdonei && !q\.senzaData/.test(pagina), "il widget del Quadro non nasconde la nota quando l'unico problema è senzaData");
+    ok(/hse\.conPrescrizioni \|\| hse\.senzaData/.test(pagina), "il riepilogo Personale non dichiara «tutti in regola» quando c'è una data illeggibile");
+  });
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
 

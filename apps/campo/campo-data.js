@@ -3543,6 +3543,12 @@ export function rapportoGiornata(d, opts) {
     clausoleIdoneita.push("**" + (idonHSE.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE.scadute + " persone hanno un documento scaduto") + "** fra chi è in turno oggi.");
   if (idonHSE && idonHSE.inScadenza)
     clausoleIdoneita.push((idonHSE.inScadenza === 1 ? "1 persona ha" : idonHSE.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
+  /* ⛔ 18/09, dal deep-pass sui ponti: mancava l'ottavo stato, «senza data»
+     — un documento con la scadenza illeggibile, né scaduto né in scadenza,
+     ma nemmeno regolare. `idoneitaDiTurno` lo conta da oggi (`senzaData`);
+     prima non c'era nessun contatore da leggere. */
+  if (idonHSE && idonHSE.senzaData)
+    clausoleIdoneita.push((idonHSE.senzaData === 1 ? "1 persona ha" : idonHSE.senzaData + " persone hanno") + " un documento con una data che non si legge.");
   const avvisoIdoneita = clausoleIdoneita.join(" ");
   const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
   const pf = paretoFermi(ATT_OGGI);
@@ -3832,11 +3838,15 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
     righeIdoneita.push("- " + (idonHSE_C.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE_C.scadute + " persone hanno un documento scaduto") + " fra chi è in turno oggi.");
   if (idonHSE_C && idonHSE_C.inScadenza)
     righeIdoneita.push("- " + (idonHSE_C.inScadenza === 1 ? "1 persona ha" : idonHSE_C.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
+  // ⛔ 18/09, dal deep-pass sui ponti: stessa correzione dell'ottavo stato
+  // fatta sopra in rapportoGiornata — «senza data» non aveva un contatore.
+  if (idonHSE_C && idonHSE_C.senzaData)
+    righeIdoneita.push("- " + (idonHSE_C.senzaData === 1 ? "1 persona ha" : idonHSE_C.senzaData + " persone hanno") + " un documento con una data che non si legge.");
   txt += "IDONEITÀ DEL TURNO\n";
   txt += (!idonHSE_C
     ? "- non leggibile: il giudizio del medico competente vive in Scudo e da qui non si riesce a leggere."
     : righeIdoneita.length ? righeIdoneita.join("\n")
-      : "- nessuna persona in turno oggi risulta non idonea, con documenti scaduti o in scadenza secondo il medico competente (Scudo)") + "\n\n";
+      : "- nessuna persona in turno oggi risulta non idonea, con documenti scaduti, in scadenza o con una data illeggibile secondo il medico competente (Scudo)") + "\n\n";
   txt += "SEGNALAZIONI DEL TURNO\n";
   /* ⛔ 17/09: il turno IGNOTO di `segnalazioniDelTurno` è lo STESSO insieme
      qualunque turno si chieda (la funzione non lo filtra, di proposito: un
