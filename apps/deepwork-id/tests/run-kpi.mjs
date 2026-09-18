@@ -222,7 +222,7 @@ test("parseInfortuniCsv: legge data/tipo/gravità/giorni/descrizione; scarta dat
   const p = scudo.parseInfortuniCsv(csv);
   eq(p.length, 2, "solo le 2 righe con data ISO");
   eq(p[0], { data: "2026-02-03", tipo: "infortunio", gravita: "lieve", giorniAssenza: 4, descrizione: "Taglio alla mano", luogo: "officina",
-    dataCertificato: null, denunciaData: null, denunciaNumero: null }, "riga completa");
+    dataCertificato: null, denunciaData: null, denunciaNumero: null, categoria: null, gravitaPotenziale: null, anonimo: undefined }, "riga completa");
   eq(p[1].tipo, "near-miss", "near-miss riconosciuto");
   const solo = scudo.parseInfortuniCsv("2026-01-01;xyz;;;;");
   eq(solo[0].tipo, "near-miss", "tipo sconosciuto → near-miss (prudente)");
@@ -4984,6 +4984,21 @@ test("un corso SCADUTO blocca, e lo dice con la data", () => {
   const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: true }, m, sc, [], oggi);
   ok(a.esito === "no", `esito ${a.esito}`);
   ok(a.bloccanti.some(b => /scaduta il/.test(b)), `manca la data nel motivo: ${a.bloccanti[0]}`);
+});
+// ⛔ 18/09, dal quarto giro di deep-pass: `statoScadenza`/`statoScadenzaHSE`
+// sa dire QUATTRO cose ("mancante" è un quinto stato aggiunto da
+// `statoRequisito` quando non c'è nessuna riga) e il ramo "senza data" era
+// scoperto sia in `abilitazioneLavoratore` che in `pillReq` — un corso con
+// la scadenza illeggibile spariva da bloccanti/attenzioni e la pastiglia lo
+// disegnava come un corso in ordine.
+test("⛔ un corso con la scadenza ILLEGGIBILE avvisa (non sparisce, non è 'in ordine')", () => {
+  const m = _mansFoch(), oggi = new Date("2026-07-29T12:00:00Z");
+  const sc = m.requisiti.map((ch, i) => ({ id: "y" + i, lavoratoreId: "L1", preset: ch, dataScadenza: "2026-13-45" }));
+  const a = scudo.abilitazioneLavoratore({ id: "L1", attivo: true }, m, sc, [], oggi);
+  ok(a.requisiti.every(r => r.stato === "senza data"), `stati: ${a.requisiti.map(r => r.stato).join(",")}`);
+  ok(a.bloccanti.length === 0, `una scadenza illeggibile non blocca: ${a.bloccanti.join(" | ")}`);
+  ok(a.attenzioni.some(x => /data di scadenza mancante o illeggibile/.test(x)), `deve avvisare: ${a.attenzioni.join(" | ")}`);
+  ok(a.esito === "attenzione", `l'esito non può tacere l'avviso: ${a.esito}`);
 });
 // La distinzione che rende utile la matrice: il corso BLOCCA, il DPI AVVISA
 test("un DPI mai consegnato avvisa, non blocca", () => {
@@ -29366,6 +29381,31 @@ test("csvRegistroInfortuni: una prognosi APERTA esce vuota e rientra vuota, mai 
   eq(scudo.csvRegistroInfortuni([chiusa, aperta]).split("\n")[1].startsWith("2026-06-01"), true,
      "e l'ordine per data è del file, non della pagina");
 });
+test("⛔ csvRegistroInfortuni: categoria/gravità potenziale/anonimato del near-miss sopravvivono export→reimport (18/09)", () => {
+  // dal quarto giro di deep-pass: a schermo un near-miss porta categoria,
+  // gravità potenziale e anonimato (registro eventi, classifica per
+  // categoria, conteggio degli anonimi), ma il CSV non le esportava — export
+  // e reimport perdevano silenziosamente le tre.
+  const nm = { data: "2026-05-18", tipo: "near-miss", gravita: "lieve", giorniAssenza: 0,
+               luogo: "fronte Est", categoria: "caduta-massi", gravitaPotenziale: "mortale",
+               anonimo: true, descrizione: "Caduta massi" };
+  const giro = scudo.parseInfortuniCsv(scudo.csvRegistroInfortuni([nm]))[0];
+  eq(giro.categoria, "caduta-massi", "la categoria torna");
+  eq(giro.gravitaPotenziale, "mortale", "la gravità potenziale torna");
+  eq(giro.anonimo, true, "l'anonimato torna");
+  // e un near-miss NON anonimo non rientra come anonimo (niente "true" per default)
+  const nonAnonimo = { ...nm, anonimo: undefined };
+  eq(scudo.parseInfortuniCsv(scudo.csvRegistroInfortuni([nonAnonimo]))[0].anonimo, undefined,
+     "senza la spunta, l'anonimato non compare (non diventa false esplicito, non diventa true)");
+  // un valore che non sta nel vocabolario (file di un altro gestionale, o
+  // colonna corrotta) non scivola sul primo della lista: stessa regola già
+  // vista per `gravita` due prove più su.
+  const finta = scudo.parseInfortuniCsv(
+    "2026-05-18;near-miss;lieve;0;x;y;;;;;categoria-inventata;livello-inventato;forse\n")[0];
+  eq(finta.categoria, null, "categoria ignota → non classificato, non il primo della lista");
+  eq(finta.gravitaPotenziale, null, "gravità potenziale ignota → non valutata, non il primo della lista");
+  eq(finta.anonimo, undefined, "«forse» non è «si»: non è anonimo");
+});
 test("⛔ csvRegistroInfortuni: la settima colonna compone PIÙ avvisi, non ne sceglie uno solo (16/09)", () => {
   // prima di questa unità un "?:" poteva dire una cosa sola: prognosi aperta
   // E denuncia INAIL da valutare sono la stessa causa vista da due regole
@@ -29377,7 +29417,7 @@ test("⛔ csvRegistroInfortuni: la settima colonna compone PIÙ avvisi, non ne s
   ok(t.includes(scudo.NOTA_PROGNOSI_APERTA + " · denuncia INAIL da valutare"), "unite con · , non una al posto dell'altra: " + t);
   // un evento senza nessun avviso: la cella resta vuota, non un elenco vuoto scritto comunque
   const nessunaNota = { data: "2026-09-01", tipo: "near-miss", gravita: "lieve" };
-  ok(/^2026-09-01;near-miss;lieve;0;;;;;;$/m.test(scudo.csvRegistroInfortuni([nessunaNota])),
+  ok(/^2026-09-01;near-miss;lieve;0;;;;;;;;;$/m.test(scudo.csvRegistroInfortuni([nessunaNota])),
     "un near-miss non porta nessuna delle tre note: " + scudo.csvRegistroInfortuni([nessunaNota]));
   // il termine ordinario, calcolabile con un certificato: la nota dice la data, non "da valutare"
   const conCertificato = { data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10, dataCertificato: "2026-09-02" };
@@ -29407,8 +29447,8 @@ test("⛔ Scudo · censimento a doppio punto di chiamata (16/09): la denuncia IN
   const dentro = { data: "2026-09-01", tipo: "infortunio", gravita: "grave", giorniAssenza: 10,
     descrizione: "x", luogo: "y", dataCertificato: "2026-09-02", denunciaData: "2026-09-05", denunciaNumero: "INAIL-2026-00123" };
   const testo = scudo.csvRegistroInfortuni([dentro]);
-  ok(testo.split("\n")[1].endsWith(";2026-09-02;2026-09-05;INAIL-2026-00123"),
-    "le tre colonne escono in coda, dopo `nota`: " + testo.split("\n")[1]);
+  ok(testo.split("\n")[1].includes(";2026-09-02;2026-09-05;INAIL-2026-00123;"),
+    "le tre colonne della denuncia escono dopo `nota`, prima delle tre del near-miss: " + testo.split("\n")[1]);
   const [fuori] = scudo.parseInfortuniCsv(testo);
   eq(fuori.dataCertificato, "2026-09-02", "il certificato rientra");
   eq(fuori.denunciaData, "2026-09-05", "la data della denuncia rientra");

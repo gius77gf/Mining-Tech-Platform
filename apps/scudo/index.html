@@ -4090,12 +4090,18 @@ button.arr{background:none; border:1px solid transparent; padding:0; font:inheri
     // qualcosa che non va — così la riga resta leggibile e i problemi saltano
     // all'occhio invece di nascondersi in mezzo alle cose in ordine.
     const pillReq = (a, r) => {
+      // ⛔ 18/09, dal quarto giro di deep-pass: mancava il ramo «senza data»
+      // (una delle quattro risposte di `statoScadenza`/`statoScadenzaHSE`) —
+      // cadeva nel ramo finale, quello di "regolare", e disegnava un corso con
+      // la scadenza illeggibile con la STESSA pastiglia verde «in ordine» di
+      // uno vero. L'assenza di un dato non è un dato favorevole (decisione 17).
       const testo = r.stato === "mancante" ? r.breve + " — manca"
         : r.stato === "scaduta" ? r.breve + " — scaduta"
         : r.stato === "in-scadenza" ? r.breve + " · " + (r.giorni === 0 ? "oggi" : r.giorni + " gg")
+        : r.stato === "senza data" ? r.breve + " — data illeggibile"
         : r.breve;
       const cls = r.stato === "mancante" || r.stato === "scaduta" ? "danger"
-        : r.stato === "in-scadenza" ? "warn" : "ok";
+        : r.stato === "in-scadenza" || r.stato === "senza data" ? "warn" : "ok";
       const fix = (r.stato === "mancante" || r.stato === "scaduta");
       return `<span class="badge ${cls}${fix ? " tocca" : ""}"${fix
         ? ` data-req-fix="${a.lavoratore.id}|${r.chiave}|${r.scadenzaId || ""}" title="Tocca per mettere questo corso nello scadenzario"`

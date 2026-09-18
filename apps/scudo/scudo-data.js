@@ -1472,7 +1472,7 @@ export {
    `categoriaNearMiss` e `luogoNearMiss`: senza questa riga morirebbe con
    «categoriaNearMiss is not defined». È lo stesso inciampo già pagato in
    `apps/campo/campo-data.js` con `statoRisposta`, scritto lì nel commento. */
-import { categoriaNearMiss, luogoNearMiss, bozzaNearMiss } from "../../shared/dw-ponti.js";
+import { categoriaNearMiss, luogoNearMiss, bozzaNearMiss, NEARMISS_CATEGORIE } from "../../shared/dw-ponti.js";
 
 // Riepilogo AGGREGATO dei near-miss del periodo (L. 198/2025: dati aggregati
 // sugli eventi *e* sulle azioni correttive adottate). Conta il periodo scelto
@@ -2258,7 +2258,7 @@ export function parseInfortuniCsv(text) {
   return String(text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean)
     .filter(r => !isIntestazione(r, "data"))
     .map(r => {
-      const [data, tipo, gravita, giorniAssenza, descrizione, luogo, , dataCertificato, denunciaData, denunciaNumero] = parseCsvLine(r);
+      const [data, tipo, gravita, giorniAssenza, descrizione, luogo, , dataCertificato, denunciaData, denunciaNumero, categoria, gravitaPotenziale, anonimo] = parseCsvLine(r);
       const g = numIt(giorniAssenza);
       // le tre colonne della denuncia INAIL (16/09 a schermo, qui il 16/09
       // stesso): due date, valide solo se esistono davvero — un file di un
@@ -2300,6 +2300,15 @@ export function parseInfortuniCsv(text) {
         descrizione: (descrizione || "").trim(),
         luogo: (luogo || "").trim(),
         dataCertificato: d(dataCertificato), denunciaData: d(denunciaData), denunciaNumero: t(denunciaNumero),
+        /* ⛔ 18/09: le tre colonne aggiunte in coda da `csvRegistroInfortuni`.
+           Stesso principio di `gravita`, due righe sopra: un valore che non
+           sta nel vocabolario resta "non classificato"/"non valutata", non
+           scivola sul primo valore della lista. */
+        categoria: NEARMISS_CATEGORIE.some((v) => v.chiave === (categoria || "").trim())
+          ? (categoria || "").trim() : null,
+        gravitaPotenziale: GRAVITA_POTENZIALE.some((v) => v.chiave === (gravitaPotenziale || "").trim())
+          ? (gravitaPotenziale || "").trim() : null,
+        anonimo: (anonimo || "").trim().toLowerCase() === "si" || undefined,
       };
     })
     // un infortunio con una data che non esiste entrerebbe negli indici
@@ -2423,9 +2432,18 @@ export const NOTA_PROGNOSI_APERTA =
    che questo repository paga già altrove. `parseInfortuniCsv` non rilegge
    questa colonna (è annotazione per chi apre il file, non un dato che
    rientra): allargarla non tocca il giro di andata e ritorno sulle sei
-   colonne davanti. */
+   colonne davanti.
+   ⛔ 18/09, dal quarto giro di deep-pass (a76e56f7569610db8): un near-miss
+   porta categoria/anonimato/gravità potenziale a SCHERMO (il registro
+   eventi, la classifica per categoria, il conteggio degli anonimi), ma
+   queste tre colonne non uscivano nel CSV — export→reimport di un near-miss
+   perdeva silenziosamente la categoria, la segnalazione tornava "anonima"
+   sempre no, e la gravità potenziale (quella che decide se un near-miss
+   "poteva finire male", ORDINE_POTENZIALE_ALTO) tornava "non valutata".
+   Undicesima/dodicesima/tredicesima colonna, in coda, scrittore e lettore
+   insieme. */
 export function csvRegistroInfortuni(eventi, oggi = new Date()) {
-  const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero"];
+  const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero;categoria;gravitaPotenziale;anonimo"];
   const ordinati = (eventi || []).filter(Boolean)
     .slice().sort((a, b) => ((a.data || "") < (b.data || "") ? -1 : 1));
   for (const x of ordinati) {
@@ -2448,6 +2466,9 @@ export function csvRegistroInfortuni(eventi, oggi = new Date()) {
       x.dataCertificato || "",
       x.denunciaData || "",
       csvCell(x.denunciaNumero || ""),
+      x.categoria || "",
+      x.gravitaPotenziale || "",
+      x.anonimo ? "si" : "",
     ].join(";"));
   }
   return righe.join("\n") + "\n";
@@ -4065,6 +4086,16 @@ export function abilitazioneLavoratore(lav, mansione, scadenze, consegneDpi, ogg
     if (r.stato === "mancante") bloccanti.push("manca " + r.breve.toLowerCase());
     else if (r.stato === "scaduta") bloccanti.push(r.breve.toLowerCase() + " scaduta il " + dataIt(r.scadenza));
     else if (r.stato === "in-scadenza") attenzioni.push(r.breve.toLowerCase() + " in scadenza");
+    // ⛔ 18/09, dal quarto giro di deep-pass: `statoScadenza`/`statoScadenzaHSE`
+    // sa dire QUATTRO cose, e qui ne mancava una — un requisito con la
+    // scadenza illeggibile (regola 18 di run-stile: una mappa di stati deve
+    // coprire tutti gli stati che la sua funzione sa dire). Senza questo ramo
+    // il requisito spariva da bloccanti/attenzioni, e `pillReq` lo disegnava
+    // come «in ordine»: esattamente l'assenza di un dato letta come favorevole
+    // che la decisione 17 del fondatore vieta. È lo stesso ramo che i DPI
+    // hanno già (riga sotto, `MOTIVO_SENZA_SOSTITUZIONE`), qui in versione
+    // requisito: il record c'è, la data no.
+    else if (r.stato === "senza data") attenzioni.push(r.breve.toLowerCase() + ": data di scadenza mancante o illeggibile");
   }
   for (const d of dpi) {
     if (d.stato === "mancante") attenzioni.push(d.etichetta.toLowerCase() + ": consegna mai registrata");

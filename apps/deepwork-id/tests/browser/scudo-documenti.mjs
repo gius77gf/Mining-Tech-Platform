@@ -227,8 +227,11 @@ const DIFETTI = [
      di chiamata): l'intestazione ha guadagnato tre colonne in coda
      (`dataCertificato;denunciaData;denunciaNumero`, la denuncia INAIL che
      prima non faceva il giro export→import) — la vecchia citazione a sette
-     colonne non combaciava più. */
-  ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero"];',
+     colonne non combaciava più.
+     ⏱️ E UNA QUARTA VOLTA il 18/09 (quarto giro di deep-pass): il codice si è
+     mosso perché è migliorato — categoria/gravitaPotenziale/anonimo del
+     near-miss guadagnano tre colonne in coda, prima perse su export→import. */
+  ['const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo;nota;dataCertificato;denunciaData;denunciaNumero;categoria;gravitaPotenziale;anonimo"];',
    'const righe = ["data;tipo;gravita;giorniAssenza;descrizione;luogo"];', MODULO],
   ['    if (aperta) note.push(NOTA_PROGNOSI_APERTA);\n', "", MODULO],
   /* 5. l'ordine del file delle azioni: `scadenza || ""` mandava in TESTA — cioè
