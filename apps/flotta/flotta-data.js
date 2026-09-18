@@ -1140,6 +1140,25 @@ export function csvLibretto(mezzo, dati, oggi = new Date(), preavvisoGiorni = 30
       + (f.fermo.senzaDurata ? " · " + f.fermo.senzaDurata
           + (f.fermo.senzaDurata === 1 ? " fermo non è in questo totale (durata non calcolabile)" : " fermi non sono in questo totale (durata non calcolabile)") : "")
     : "Nessun fermo registrato.", "");
+  // ⛔ 18/09, dal quarto giro di deep-pass: il libretto STAMPATO mostra la
+  // sezione «Componenti a vita propria» (`#sch-comp` non ha `no-print`),
+  // ma il libretto ESPORTATO in CSV — che il bottone dichiara essere «lo
+  // storico completo» (vedi la nota su fermi/giri/rifornimenti troncati a
+  // schermo) — non la portava affatto: `fascicoloMezzo` non legge mai
+  // `m.componenti`. Un pneumatico al 93,5% della vita attesa, visibile a
+  // schermo e in stampa, spariva del tutto dal file. Stessa chiamata già
+  // in uso a schermo (`#sch-comp`): `nomeMezzo:null` perché `m.componenti`
+  // è già scoperto a questo mezzo, `f.rifornimenti` per le bandiere
+  // `contatoreNuovo` (un componente montato sul contatore vecchio non si
+  // confronta col nuovo senza dirlo).
+  const vc = vitaComponenti(m.componenti || [], null, m.ore, f.rifornimenti);
+  const etichettaTipoComp = (t) => (TIPI_COMPONENTE.find((x) => x.chiave === t) || {}).etichetta || t;
+  if (vc.length) vc.forEach((c) => R("componente", etichettaTipoComp(c.tipo), dataIt(c.data),
+    "montato a " + mostra(c.montatoAOre, 0) + " h" + (c.nota ? " · " + c.nota : "")
+    + (c.calcolabile
+        ? (c.pctVita != null ? " · " + mostra(c.vitaOre, 0) + " h (" + mostra(c.pctVita, 1) + "% della vita attesa)" : " · " + mostra(c.vitaOre, 0) + " h, soglia non dichiarata")
+        : " · non calcolabile: " + c.perche), ""));
+  else VUOTA("componente", "Nessun componente a vita propria registrato su questa macchina.");
   // ⛔ 17/09, dal secondo giro di deep-pass: il libretto — «il foglio che si
   // consegna a chi compra la macchina» (vedi il commento di fascicoloMezzo) —
   // non riportava mai il costo orario completo, il numero con cui il codice

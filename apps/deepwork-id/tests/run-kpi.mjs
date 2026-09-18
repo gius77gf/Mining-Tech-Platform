@@ -43024,11 +43024,34 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     const csvInterventi = flotta.csvRegistroInterventi(dati.interventi).split("\r\n");
     ok(/Marco 3 h \| Officina esterna 1,5 h/.test(csvInterventi[1]), "la manodopera con l'ora e mezza scritta con la virgola: " + csvInterventi[1]);
   });
+  test("⛔ 18/09, dal quarto giro di deep-pass: il libretto ESPORTATO porta i componenti a vita propria — lo stesso che mostra la stampa", () => {
+    /* caso riprodotto dall'agente: un pneumatico al 93,5% della vita
+       attesa (stato "attenzione") visibile a schermo e in stampa, ma
+       assente dal CSV — perché `fascicoloMezzo` non leggeva mai
+       `m.componenti`. */
+    const m = { id: "x", nome: "Escavatore prova", tipo: "escavatore", stato: "operativo", ore: 5870,
+      componenti: [
+        { id: "c1", tipo: "pneumatico", data: "2025-11-10", montatoAOre: 4000, vitaAttesaOre: 2000 },
+        { id: "c2", tipo: "denti-benna", data: "2026-08-20", montatoAOre: 5500, vitaAttesaOre: 3000 },
+      ] };
+    const righe = flotta.csvLibretto(m, {}, new Date("2026-09-18")).split("\r\n");
+    const rComp = righe.filter((x) => x.startsWith("componente;"));
+    eq(rComp.length, 2, "una riga per componente: " + JSON.stringify(rComp));
+    ok(/Pneumatico/.test(rComp[0]) && /93,5% della vita attesa/.test(rComp[0]), "⛔ ERA QUI IL DIFETTO: il pneumatico al 93,5% ora è nel file esportato: " + rComp[0]);
+    ok(/Denti benna/.test(rComp[1]) && /12,3% della vita attesa/.test(rComp[1]), "e i denti benna: " + rComp[1]);
+    // senza soglia dichiarata: non calcolabile in percentuale, ma non tace
+    const m2 = { id: "y", nome: "Prova senza soglia", tipo: "escavatore", stato: "operativo", ore: 5870,
+      componenti: [{ id: "c3", tipo: "cingoli", data: "2026-01-01", montatoAOre: 5000 }] };
+    const rSenzaSoglia = flotta.csvLibretto(m2, {}, new Date("2026-09-18")).split("\r\n").find((x) => x.startsWith("componente;"));
+    ok(/soglia non dichiarata/.test(rSenzaSoglia), "⛔ senza vitaAttesaOre non inventa una percentuale, la dichiara mancante: " + rSenzaSoglia);
+  });
   test("Flotta · csvLibretto: la macchina nuda — sei sezioni vuote che PARLANO, mai un file di due righe", () => {
     const righe = flotta.csvLibretto({ id: "x", nome: "Pala X9 — Nuova", tipo: "pala", stato: "operativo" }, {}, OGGI, 30).split("\r\n");
     const vuote = righe.filter((x) => /;nessuna registrata;;/.test(x));
-    eq(vuote.length, 6, "⛔ sei sezioni vuote, una riga ciascuna, con «nessuna registrata»");
-    eq(vuote.map((x) => x.split(";")[0]), ["scadenza di legge", "manutenzione in programma", "intervento", "fermo macchina", "giro macchina", "rifornimento"], "nell'ordine del fascicolo");
+    // ⛔ 18/09, dal quarto giro di deep-pass: era sei, ora sette — «componente»
+    // si è aggiunta come le altre sei, con la sua frase e non un silenzio.
+    eq(vuote.length, 7, "⛔ sette sezioni vuote, una riga ciascuna, con «nessuna registrata»");
+    eq(vuote.map((x) => x.split(";")[0]), ["scadenza di legge", "manutenzione in programma", "intervento", "fermo macchina", "giro macchina", "rifornimento", "componente"], "nell'ordine del fascicolo");
     ok(/Non vuol dire che non ne abbia/.test(vuote[0]), "e la scadenza vuota dice che non vuol dire che non ne abbia");
     ok(righe.some((x) => x.startsWith("consumo;") && /Nessun rifornimento registrato: il consumo non si può calcolare/.test(x)), "⛔ il consumo non calcolabile lo dichiara, con la ragione");
     ok(righe.some((x) => x.startsWith("totale fermi;") && /Nessun fermo registrato/.test(x)), "e il totale dei fermi dice «nessuno»");

@@ -220,6 +220,11 @@ const DIFETTI = [
   /* ⏱️ RI-ANCORATA il 05/09 sul MODULO (`csvSituazione`): due spazi in meno. */
   ["    const s = statoScorta(r);\n    csv += `ricambio;${csvCell(r.nome)};${csvCell(s.label)};${csvCell(\"giacenza \" + s.giacenza + (s.soglia == null ? \" · soglia minima non impostata\" : \" · soglia min \" + s.soglia))}\\n`;",
    "    const scorta = new Set(sottoScorta(ricambi).map(x => x.id));\n    csv += `ricambio;${csvCell(r.nome)};${scorta.has(r.id) ? \"sotto scorta\" : \"ok\"};${csvCell(\"giacenza \" + (+r.giacenza || 0) + \" · soglia min \" + (+r.sogliaMin || 0))}\\n`;", MODULO],
+  /* 9 · 18/09, dal quarto giro di deep-pass: la sezione «componente» del
+     libretto ESPORTATO — il pneumatico al 93,5% della vita attesa,
+     visibile a schermo e in stampa, sparito dal CSV. */
+  ["  const vc = vitaComponenti(m.componenti || [], null, m.ore, f.rifornimenti);\n  const etichettaTipoComp = (t) => (TIPI_COMPONENTE.find((x) => x.chiave === t) || {}).etichetta || t;\n  if (vc.length) vc.forEach((c) => R(\"componente\",",
+   "  if (false) [].forEach((c) => R(\"componente\",", MODULO],
 ];
 
 /* I casi si montano nel MODULO servito, mai sul disco: la cartella viva resta
@@ -708,6 +713,13 @@ if (await vaiA("nav-mez", "page-mez")) {
          stato costruito e la prova non sta guardando niente. */
       const dichiara = f.righe.filter((r) => /nessun|non registrat|non scritto|non calcolabile/i.test(r)).length;
       dice(dichiara > 0, "e i vuoti li dichiara a parole invece di lasciarli in bianco", dichiara);
+      /* ⛔ 18/09, dal quarto giro di deep-pass: il libretto STAMPATO mostra
+         «Componenti a vita propria» (`#sch-comp`, senza `no-print`), ma il
+         CSV non la portava affatto — sparita, non dichiarata. Si conta a
+         schermo e nel file: gli stessi componenti, o entrambi zero. */
+      const compSchermo = await pg.$$eval("#sch-comp .item", (e) => e.length);
+      const compCsv = f.righe.filter((r) => r.startsWith("componente;") && !/;nessuna registrata;/.test(r)).length;
+      dice(compSchermo === compCsv, `⛔ la scheda mostra ${compSchermo} componenti, il libretto esportato ne porta ${compCsv}: devono coincidere`, { compSchermo, compCsv });
     }
   }
 }

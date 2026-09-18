@@ -2161,8 +2161,11 @@ ogni strumento), i **grafici** in tutte le app da un motore scritto in casa,
 **sei ponti** veri fra le app, l'**estetica unificata**, e le convenzioni
 condivise su numeri, unità di misura e soldi.
 
-**Le prove automatiche sono passate a 3.633** *(ricontate il 18/09, dopo aver
-corretto il ponte `idoneitaDiTurno` — shared/dw-ponti.js: mancava un contatore
+**Le prove automatiche sono passate a 3.634** *(ricontate il 18/09, dopo aver
+corretto in Flotta — quarto giro di deep-pass — il libretto esportato in CSV,
+che non portava la sezione «Componenti a vita propria» mostrata a schermo e in
+stampa; e prima di questo, dopo aver corretto il ponte `idoneitaDiTurno` —
+shared/dw-ponti.js: mancava un contatore
 per l'ottavo stato, «senza data», propagato a cinque punti di Campo, inclusi i
 due documenti stampati; e prima di questo, dopo aver corretto in Scudo —
 quinto giro di deep-pass — `cartellaLavoratore`: un DPI
