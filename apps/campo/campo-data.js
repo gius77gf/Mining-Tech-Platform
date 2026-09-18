@@ -3513,16 +3513,37 @@ export function rapportoGiornata(d, opts) {
      con Scudo) non arrivava in NESSUNO dei due documenti che escono da Campo
      — lo diceva già il Quadro («una persona in turno oggi NON è idonea»), ma
      il rapporto stampato e FIRMATO taceva del tutto. Stessi input dello
-     stesso widget, stessa regola: il giudizio medico vince su tutto. */
+     stesso widget, stessa regola: il giudizio medico vince su tutto.
+     ⛔ 18/09, dal quinto giro di deep-pass: la frase copriva SOLO `nonIdonei`
+     — uno degli 8 stati che `idoneitaDiTurno` sa dire — mentre il widget
+     gemello di Squadre (index.html) mostra anche `scadute`/`inScadenza`/
+     `conPrescrizioni`. Su una dimostrazione con 1 non idoneo e 3 documenti
+     già scaduti, il rapporto stampato e firmato nominava solo il primo:
+     tre persone con un documento HSE scaduto sparivano dal documento che si
+     consegna a un ispettore. Composta come un elenco di clausole (stessa
+     forma già usata per la settima colonna di `csvRegistroInfortuni`), non
+     un `?:` che può dire una cosa sola. */
   const LAV_HSE = D.lavoratoriHSE === undefined ? null : D.lavoratoriHSE;
   const SCAD_HSE = D.scadenzeHSE === undefined ? null : D.scadenzeHSE;
   const schieratiHSE = LAV_HSE && SCAD_HSE ? inTurnoOggi(OPER, SQU) : null;
-  const idonHSE = schieratiHSE ? idoneitaDiTurno(schieratiHSE, LAV_HSE, SCAD_HSE) : null;
-  const avvisoIdoneita = idonHSE && idonHSE.nonIdonei
-    ? "**" + (idonHSE.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : idonHSE.nonIdonei + " persone in turno oggi NON sono idonee") + "**"
+  /* ⛔ 18/09, dal quinto giro di deep-pass: senza il quarto argomento
+     `idoneitaDiTurno` giudica scadute/in-scadenza contro l'orologio VERO del
+     server, non contro il giorno di questo rapporto — nessun caso lo vedeva
+     finché il giudizio guardava solo `nonIdonei`, che non dipende da una
+     data. Stesso `new Date(iso+"T12:00:00")` già usato altrove nel file. */
+  const idonHSE = schieratiHSE ? idoneitaDiTurno(schieratiHSE, LAV_HSE, SCAD_HSE, new Date(OGGI + "T12:00:00")) : null;
+  const clausoleIdoneita = [];
+  if (idonHSE && idonHSE.nonIdonei)
+    clausoleIdoneita.push("**" + (idonHSE.nonIdonei === 1 ? "Una persona in turno oggi NON è idonea" : idonHSE.nonIdonei + " persone in turno oggi NON sono idonee") + "**"
       + " secondo il medico competente (Scudo) — " + idonHSE.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
-      + ": non va mandata in cava finché il giudizio non cambia."
-    : "";
+      + ": non va mandata in cava finché il giudizio non cambia.");
+  if (idonHSE && idonHSE.conPrescrizioni)
+    clausoleIdoneita.push((idonHSE.conPrescrizioni === 1 ? "1 persona ha" : idonHSE.conPrescrizioni + " persone hanno") + " prescrizioni del medico da rispettare.");
+  if (idonHSE && idonHSE.scadute)
+    clausoleIdoneita.push("**" + (idonHSE.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE.scadute + " persone hanno un documento scaduto") + "** fra chi è in turno oggi.");
+  if (idonHSE && idonHSE.inScadenza)
+    clausoleIdoneita.push((idonHSE.inScadenza === 1 ? "1 persona ha" : idonHSE.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
+  const avvisoIdoneita = clausoleIdoneita.join(" ");
   const av = avanzamentoGiornata(ATT_OGGI), fermi = riepilogoFermi(ATT_OGGI), cop = coperturaRapportini(SQU, RAP_OGGI);
   const pf = paretoFermi(ATT_OGGI);
   const tp = totaliProduzione(RAP_OGGI), unitaProd = Object.entries(tp.perUnita);
@@ -3790,19 +3811,32 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
     : "- nessuna attività aperta: tutto quello di oggi è concluso") + "\n\n";
   /* ⛔ 18/09, dal terzo giro di deep-pass: il giudizio di idoneità (ponte P3
      con Scudo) non arrivava in NESSUNO dei due documenti, mentre il Quadro
-     schermo già lo mostra. Qui, come là: il giudizio medico vince su tutto. */
+     schermo già lo mostra. Qui, come là: il giudizio medico vince su tutto.
+     ⛔ 18/09, dal quinto giro di deep-pass: stessa omissione di
+     `rapportoGiornata` qui sopra — solo `nonIdonei`, mai `scadute`/
+     `inScadenza`/`conPrescrizioni`. Elenco di righe, non un `?:` che può
+     dirne una sola. */
   const LAV_HSE_C = d.lavoratoriHSE === undefined ? null : d.lavoratoriHSE;
   const SCAD_HSE_C = d.scadenzeHSE === undefined ? null : d.scadenzeHSE;
   const schieratiHSE_C = LAV_HSE_C && SCAD_HSE_C ? inTurnoOggi(d.operatori || [], d.squadre || []) : null;
-  const idonHSE_C = schieratiHSE_C ? idoneitaDiTurno(schieratiHSE_C, LAV_HSE_C, SCAD_HSE_C) : null;
+  // ⛔ 18/09, dal quinto giro di deep-pass: stessa correzione di rapportoGiornata qui sopra — il quarto argomento, non l'orologio vero.
+  const idonHSE_C = schieratiHSE_C ? idoneitaDiTurno(schieratiHSE_C, LAV_HSE_C, SCAD_HSE_C, new Date(OGGI + "T12:00:00")) : null;
+  const righeIdoneita = [];
+  if (idonHSE_C && idonHSE_C.nonIdonei)
+    righeIdoneita.push("- " + (idonHSE_C.nonIdonei === 1 ? "1 persona in turno oggi NON è idonea" : idonHSE_C.nonIdonei + " persone in turno oggi NON sono idonee")
+      + " secondo il medico competente (Scudo): " + idonHSE_C.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
+      + ". Non va mandata in cava finché il giudizio non cambia.");
+  if (idonHSE_C && idonHSE_C.conPrescrizioni)
+    righeIdoneita.push("- " + (idonHSE_C.conPrescrizioni === 1 ? "1 persona ha" : idonHSE_C.conPrescrizioni + " persone hanno") + " prescrizioni del medico da rispettare.");
+  if (idonHSE_C && idonHSE_C.scadute)
+    righeIdoneita.push("- " + (idonHSE_C.scadute === 1 ? "1 persona ha un documento scaduto" : idonHSE_C.scadute + " persone hanno un documento scaduto") + " fra chi è in turno oggi.");
+  if (idonHSE_C && idonHSE_C.inScadenza)
+    righeIdoneita.push("- " + (idonHSE_C.inScadenza === 1 ? "1 persona ha" : idonHSE_C.inScadenza + " persone hanno") + " un documento in scadenza entro trenta giorni.");
   txt += "IDONEITÀ DEL TURNO\n";
   txt += (!idonHSE_C
     ? "- non leggibile: il giudizio del medico competente vive in Scudo e da qui non si riesce a leggere."
-    : idonHSE_C.nonIdonei
-      ? "- " + (idonHSE_C.nonIdonei === 1 ? "1 persona in turno oggi NON è idonea" : idonHSE_C.nonIdonei + " persone in turno oggi NON sono idonee")
-        + " secondo il medico competente (Scudo): " + idonHSE_C.righe.filter((r) => r.stato === "non-idoneo").map((r) => String(r.operatore.nome || "")).join(", ")
-        + ". Non va mandata in cava finché il giudizio non cambia."
-      : "- nessuna persona in turno oggi risulta non idonea secondo il medico competente (Scudo)") + "\n\n";
+    : righeIdoneita.length ? righeIdoneita.join("\n")
+      : "- nessuna persona in turno oggi risulta non idonea, con documenti scaduti o in scadenza secondo il medico competente (Scudo)") + "\n\n";
   txt += "SEGNALAZIONI DEL TURNO\n";
   /* ⛔ 17/09: il turno IGNOTO di `segnalazioniDelTurno` è lo STESSO insieme
      qualunque turno si chieda (la funzione non lo filtra, di proposito: un

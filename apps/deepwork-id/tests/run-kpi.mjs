@@ -43644,6 +43644,36 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(campo.testoConsegnaTurno({ ...base, lavoratoriHSE: [{ id: "d1", idoneita: "idoneo" }] }, {}).includes("nessuna persona in turno oggi risulta non idonea"),
       "e la consegna lo dice esplicitamente, invece di tacere la sezione");
   });
+  test("⛔ 18/09, dal quinto giro di deep-pass: l'idoneità nei documenti dice ANCHE i documenti scaduti/in scadenza, non solo chi è NON idoneo", () => {
+    /* caso riprodotto dall'agente: 5 schierati, 1 non-idoneo, 3 con un
+       documento HSE già scaduto — prima solo il non-idoneo compariva nel
+       rapporto stampato/firmato e nella consegna archiviata. */
+    const operatori = [
+      { id: "o1", nome: "Mario Rossi", squadra: "Squadra A", stato: "attivo", lavoratoreId: "d1" },
+      { id: "o2", nome: "Luca Bianchi", squadra: "Squadra A", stato: "attivo", lavoratoreId: "d2" },
+      { id: "o3", nome: "Giulia Verdi", squadra: "Squadra A", stato: "attivo", lavoratoreId: "d3" },
+    ];
+    const squadre = [{ nome: "Squadra A", stato: "attiva" }];
+    const lavoratoriHSE = [{ id: "d1", idoneita: "non-idoneo" }, { id: "d2", idoneita: "idoneo" }, { id: "d3", idoneita: "prescrizioni" }];
+    const scadenzeHSE = [
+      { lavoratoreId: "d2", dataScadenza: "2026-01-01" },   // scaduta rispetto a oggi 2026-05-05
+      { lavoratoreId: "d3", dataScadenza: "2026-05-20" },   // in scadenza (entro 30gg da oggi)
+    ];
+    const base = { oggi: "2026-05-05", operatori, squadre, lavoratoriHSE, scadenzeHSE };
+    const R = campo.rapportoGiornata(base, {});
+    ok(/Mario Rossi/.test(R.attenzione), "il non idoneo resta nominato: " + R.attenzione);
+    ok(/1 persona ha un documento scaduto/.test(R.attenzione), "⛔ ERA QUI IL DIFETTO: Luca Bianchi (scaduto) spariva dal rapporto: " + R.attenzione);
+    ok(/1 persona ha.*documento in scadenza/.test(R.attenzione), "e Giulia Verdi (in scadenza) pure: " + R.attenzione);
+    const txt = campo.testoConsegnaTurno(base, {});
+    const sez = txt.slice(txt.indexOf("IDONEITÀ"), txt.indexOf("SEGNALAZIONI"));
+    ok(/NON è idonea[^\n]*Mario Rossi/.test(sez), "consegna: il non idoneo c'è: " + sez);
+    ok(/1 persona ha un documento scaduto/.test(sez), "⛔ e ora anche il documento scaduto: " + sez);
+    ok(/1 persona ha.*documento in scadenza/.test(sez), "e quello in scadenza: " + sez);
+    // una riga per PROBLEMA, non per persona: Giulia Verdi ha sia prescrizioni
+    // sia un documento in scadenza, e compare in due clausole diverse
+    ok(/1 persona ha prescrizioni/.test(sez), "e le prescrizioni di Giulia Verdi non spariscono: " + sez);
+    eq((sez.match(/^- /gm) || []).length, 4, "quattro righe, una per ogni problema (non idoneo, prescrizioni, scaduto, in scadenza): " + sez);
+  });
 }
 /* ===== fine rapporto stampato di Campo nel modulo (05/09) ===== */
 
