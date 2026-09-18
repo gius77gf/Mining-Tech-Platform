@@ -3894,7 +3894,8 @@ export function conformitaProgetto(fronti, lotti, rilievi, autorizzazione) {
       lottoAmbiguo: ambiguo,
       lottiCondivisi: ambiguo ? candidati.map((l) => l.id) : [],
       ...conformitaQuota(f, lo, autorizzazione),
-      geometria: sezionePeggiore(f, lo, autorizzazione) };   // asse 4 (11/09), sezioni multiple dal 15/09
+      geometria: sezionePeggiore(f, lo, autorizzazione),   // asse 4 (11/09), sezioni multiple dal 15/09
+      confine: conformitaConfine(f, lo, autorizzazione) };   // asse orizzontale (18/09)
   });
   const quanti = (s) => righe.filter((r) => r.stato === s).length;
   const misurate = righe.filter((r) => r.misurabile);
@@ -4031,6 +4032,40 @@ export function conformitaGeometria(fronte, lotto, autorizzazione) {
   const misurati = [altezza, pendenza].filter((a) => a.misurabile);
   const stato = misurati.length ? misurati.reduce((a, b) => (RANGO[b.stato] < RANGO[a.stato] ? b : a)).stato : "non-misurabile";
   return { stato, misurabile: misurati.length > 0, altezza, pendenza, perche: misurati.length ? "" : altezza.perche };
+}
+
+/* ⛔ IL QUARTO ASSE (18/09, nono giro di ricerca su Terra): quota, geometria
+   del banco e sequenza dei lotti dicono «quanto in profondità», «che forma
+   ha la sezione» e «in quale ordine»; nessuno dei tre dice quanto lo scavo
+   sta lontano dal CONFINE del titolo, misurato in pianta. Il Regolamento di
+   polizia mineraria (R.D. 128/1958, di seconda mano — nessuna fonte
+   primaria letta) lega una distanza minima ciglio-scavo/confine, ma quel
+   numero LO DICHIARA CHI COMPILA L'ATTO: non è scritto qui, per la stessa
+   ragione per cui `difformitaSostanzialePct` resta vuoto di default — un
+   numero di legge di seconda mano su un documento che va a un ispettore
+   sarebbe peggio di nessun numero.
+   Stesso modello esatto di `geometriaAmmessa`/`conformitaGeometria`: un
+   fronte che non dichiara `distanzaConfineM`, o un atto/lotto che non
+   dichiara `distanzaMinimaM`, danno `non-misurabile` — mai «dentro» di
+   default. */
+export function confineAmmesso(lotto, autorizzazione) {
+  const dalLotto = misuraNota((lotto || {}).distanzaMinimaM);
+  if (dalLotto != null) return { valore: dalLotto, origine: "lotto", noto: true };
+  const dallAtto = misuraNota((autorizzazione || {}).distanzaMinimaM);
+  if (dallAtto != null) return { valore: dallAtto, origine: "autorizzazione", noto: true };
+  return { valore: null, origine: null, noto: false };
+}
+export function conformitaConfine(fronte, lotto, autorizzazione) {
+  const amm = confineAmmesso(lotto, autorizzazione);
+  const misurato = misuraNota((fronte || {}).distanzaConfineM);
+  if (!amm.noto)
+    return { stato: "non-misurabile", misurabile: false, margine: null, misurato, ammesso: null, origine: null,
+      perche: "Il progetto non dichiara la distanza minima dal confine: senza quel numero non si può dire se il fronte sta dentro." };
+  if (misurato == null)
+    return { stato: "non-misurabile", misurabile: false, margine: null, misurato: null, ammesso: amm.valore, origine: amm.origine,
+      perche: "Questo fronte non dichiara la distanza dal confine: il confronto non è stato fatto." };
+  const margine = r2(misurato - amm.valore);
+  return { stato: statoConformitaQuota(margine), misurabile: true, margine, misurato, ammesso: amm.valore, origine: amm.origine, perche: "" };
 }
 
 /* ⛔ LA PRIMA FETTA DI «SEZIONI TRASVERSALI MULTIPLE PER FRONTE» (15/09,

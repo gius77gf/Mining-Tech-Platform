@@ -18849,6 +18849,30 @@ test("⛔ Flotta: le ore ignote arrivano ignote anche a chi le chiede due volte"
     ok(/Nessuno dei fronti registrati dichiara/.test(terra.conformitaProgetto(D.fronti.map((f) => ({ ...f, altezzaBancoM: null, pendenzaGradi: null })), D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche), "coi massimi ma senza misure lo dice");
     ok(/Nessun fronte registrato/.test(terra.conformitaProgetto([], D.lotti, D.rilievi, D.autorizzazioni[0]).geometria.perche));
   });
+  test("⛔ Terra · confineAmmesso/conformitaConfine (18/09, nono giro di ricerca): l'asse orizzontale, con lo stesso modello della geometria", () => {
+    const atto = { distanzaMinimaM: 10 };
+    const amm = terra.confineAmmesso({ distanzaMinimaM: 6 }, atto);
+    eq(amm, { valore: 6, origine: "lotto", noto: true }, "il lotto ha la precedenza sull'atto");
+    eq(terra.confineAmmesso(null, atto), { valore: 10, origine: "autorizzazione", noto: true }, "senza lotto, vale l'atto");
+    eq(terra.confineAmmesso(null, null).noto, false, "senza nessuno dei due: non noto");
+    eq(terra.confineAmmesso({ distanzaMinimaM: 0 }, { distanzaMinimaM: "" }).noto, false, "0 e vuoto non sono minimi dichiarati");
+    // il caso della ricerca, testuale: 3 m misurati contro 10 m minimi
+    eq(terra.conformitaConfine({ distanzaConfineM: 3 }, null, atto), { stato: "oltre", misurabile: true, margine: -7, misurato: 3, ammesso: 10, origine: "autorizzazione", perche: "" });
+    const dentro = terra.conformitaConfine({ distanzaConfineM: 15 }, null, atto);
+    eq([dentro.stato, dentro.margine], ["dentro", 5]);
+    const limite = terra.conformitaConfine({ distanzaConfineM: 10 }, null, atto);
+    eq(limite.stato, "al-limite", "esattamente al minimo: al-limite, non oltre");
+    const senzaFronte = terra.conformitaConfine({}, null, atto);
+    eq([senzaFronte.stato, senzaFronte.misurabile, senzaFronte.misurato, senzaFronte.ammesso], ["non-misurabile", false, null, 10], "il fronte non dichiara la distanza: non misurabile, col minimo che c'era");
+    ok(/Questo fronte non dichiara la distanza dal confine/.test(senzaFronte.perche));
+    const senzaProgetto = terra.conformitaConfine({ distanzaConfineM: 8 }, null, null);
+    eq([senzaProgetto.stato, senzaProgetto.misurato, senzaProgetto.ammesso], ["non-misurabile", 8, null], "il progetto non dichiara il minimo: non misurabile, con la misura che c'era");
+    ok(/Il progetto non dichiara la distanza minima dal confine/.test(senzaProgetto.perche));
+    // wired in conformitaProgetto, accanto a geometria
+    const D = terra.DEMO;
+    const c = terra.conformitaProgetto(D.fronti, D.lotti, D.rilievi, D.autorizzazioni[0]);
+    ok(c.fronti.every((r) => r.confine && typeof r.confine.stato === "string"), "ogni riga della conformità porta anche il confine");
+  });
   test("⛔ Terra · sezionePeggiore (15/09, prima fetta della lacuna 2 sul sesto giro di ricerca): zero sezioni ricade sugli scalari, con sezioni sceglie la peggiore", () => {
     const atto = { altezzaBancoMaxM: 15, pendenzaMaxGradi: 75 };
     const fronte = { altezzaBancoM: 14, pendenzaGradi: 70 };
