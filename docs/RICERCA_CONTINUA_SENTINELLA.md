@@ -1645,3 +1645,176 @@ stessa: *il campo mancante è genuinamente disponibile su quel percorso
 (un lettore CSV lo parsa, o lo stato della pagina lo tiene), o non è mai
 esistito lì* — e la risposta va letta nel codice del lettore/parser, non
 dedotta dal nome delle chiavi.
+
+---
+
+## 17/09 — decimo giro di ricerca mirata: la VISITA dell'ispettore (non lo strumento, non il reclamo — l'evento del controllo ricevuto)
+
+*Metodo «prima il mondo, poi la nostra app». Strumento: solo `WebSearch`
+(due ricerche, entrambe hanno risposto); `WebFetch` non è stato provato —
+per il limite già misurato più volte in questo file (`EGRESS_BLOCKED`), si
+presume valga ancora. **Nessuna fonte è stata letta per intero**: ogni riga
+sul mondo è di seconda mano, dai riassunti dei risultati di ricerca.*
+
+### Che cosa esiste già (dichiarato prima di proporre — letto l'intero file)
+
+Ho letto per intero questo documento (1647 righe, dieci giri precedenti)
+prima di scegliere l'angolo. Riassunto di ciò che i giri precedenti hanno
+già costruito o già escluso, per non riproporlo:
+
+- soglie con preset e `daVerificare` sempre vero, `sogliaEfficace`, «norma
+  di riferimento» accanto al numero nel report (02/09, 11/09 secondo giro);
+- taratura in laboratorio (`coperturaTaratura`, `statoTaraturaStrumento`,
+  CSV andata/ritorno) e calibrazione in campo del rumore
+  (`validitaCalibrazione`, `scartoCalibrazioneDb`, 11/09 terzo giro);
+- il «diario»: registro volate + comunicazioni fatte (`descriviComunicazione`),
+  reclami con misure del giorno collegate (`misureDelGiornoPerReclamo`),
+  tempo di risposta (`tempoRispostaReclamo`, `apertoDaGiorni`), stato di
+  fatto pre-blast del ricettore (`descriviStatoDiFatto`), risposta scritta
+  al reclamante (`rispostaReclamo`), mitigazioni lette dal ponte con Scudo
+  (`rispostaSuperamento`) — tutto dal 05/09 e 11/09;
+- l'«esposto» al Comune/ARPA: dichiarato assente e **di proposito non
+  costruito** finché un cliente non lo chiede (11/09 secondo giro,
+  domanda 6);
+- le condizioni meteo sulla lettura e il loro uso solo per il rumore
+  (15/09 ottavo giro);
+- il confronto solo mese-su-mese e i reclami non aggregati per ricettore
+  (15/09 sesto giro — **confermati, non ancora implementati**: verificato
+  di nuovo oggi, `confrontoMesi` a riga 3977 e `riepilogoReclami` a riga
+  3639 sono immutati da quel giro; non li ripropongo qui, sono già in
+  questo file);
+- l'audit interno di **chi** modifica un dato (07/15 settimo giro,
+  `DECISIONI_WEEKEND.md` §24, aperta) — **diverso** da quello che guardo
+  oggi: quello è «chi dei nostri tecnici ha cambiato la soglia», questo è
+  «chi è venuto da fuori a controllarci e che cosa ha scritto»;
+- l'identità propria dello strumento (matricola) e l'escalation sui
+  superamenti ripetuti (16/09 nono giro): la seconda **implementata**
+  (`superamentiUltimiGiorni`, commit `747d6431`), la prima sospesa in
+  `DECISIONI_WEEKEND.md` §28.
+
+Nessuno di questi dieci giri ha guardato **l'ispezione ricevuta come
+evento**: la visita di un tecnico ARPA o della polizia mineraria, che cosa
+scrive, e se lascia una prescrizione con un termine.
+
+### PASSO 1 — il mondo [tutto di seconda mano, WebSearch]
+
+- **Il verbale di ispezione contiene osservazioni, prescrizioni, richieste
+  di regolarizzazione e, nei casi più gravi, le violazioni contestate.**
+  Quando l'ispezione rileva violazioni sanzionabili in via amministrativa,
+  gli ispettori notificano una **diffida**: la regolarizzazione delle
+  violazioni sanabili va fatta entro **30 giorni** dalla notifica del
+  verbale. Diffida e procedimento sanzionatorio sono di norma notificati
+  nello stesso atto. Se le violazioni sono rimosse entro i 30 giorni, si
+  paga la sanzione ridotta (il minimo di legge, o un quarto se il
+  pagamento avviene entro ulteriori **15 giorni**). Le prescrizioni sono
+  talvolta atti preparatori a provvedimenti successivi (revoca,
+  ordinanza). *[seconda mano: conflavoro.it «Ispezione in azienda: diffida
+  e prescrizione obbligatoria»; questi termini (30+15 giorni) vengono
+  dalla disciplina generale delle sanzioni amministrative (L. 689/1981),
+  non da una norma specifica delle cave — si applicano perché è quel
+  regime a coprire le violazioni ambientali accertate in sede ispettiva,
+  ma il numero esatto va riverificato sul testo prima di scriverlo in una
+  schermata]*
+- **La polizia mineraria ispeziona senza preavviso** per verificare il
+  rispetto delle norme tecniche, l'osservanza del regolamento di polizia
+  mineraria e l'attuazione delle misure di sicurezza; può emettere
+  provvedimenti, verbali di violazione, ordini di esecuzione immediata,
+  sequestri e prescrizioni con le relative sanzioni fino all'estinzione
+  della violazione. *[seconda mano: cittametropolitana.mi.it
+  «Polizia mineraria»]*
+- **Prima della visita l'ufficio esamina il registro dei rapporti e annota
+  sul registro l'avvenuto esame** — fatto già trovato e scritto il 05/09
+  (secondo giro), qui confermato dalla stessa fonte e non riverificato con
+  una ricerca nuova.
+
+### PASSO 2 — il delta: verifica nel codice (17/09, contro il commit `cbfc2f2f`)
+
+```
+$ grep -ciE "prescrizion|diffida" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:5
+apps/sentinella/index.html:2
+```
+
+Le sette occorrenze sono state lette tutte (non solo contate): tutte e
+sette parlano delle prescrizioni **dell'autorizzazione** (AUA/AIA/VIA) come
+contesto per capire da dove viene una soglia («da verificare sulla norma e
+sulle prescrizioni»), mai di una prescrizione **scritta da un ispettore
+durante una visita**. Nessuna è una falsa negativa da correggere: il
+significato è proprio quello, verificato leggendo le righe 1243, 1315,
+1320, 3192, 4039 di `sentinella-data.js` e 4038, 6032 di `index.html`.
+
+```
+$ grep -ciE "\bverbale\b" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:2
+apps/sentinella/index.html:0
+```
+Le due occorrenze (righe 5313, 5445) parlano del verbale del fochino sulla
+volata (dopo-sparo), non di un verbale ricevuto da un ente.
+
+```
+$ grep -ciE "\besame\b|esaminat" apps/sentinella/sentinella-data.js apps/sentinella/index.html
+apps/sentinella/sentinella-data.js:0
+apps/sentinella/index.html:1
+```
+Zero nel modulo dati. L'unica occorrenza nella pagina non riguarda un
+esame ispettivo (verificato aprendo la riga).
+
+```
+$ grep -noE "^export function [A-Za-z]*(([Ii]spe)|([Cc]ontroll)|([Vv]isit))[A-Za-z]*" apps/sentinella/sentinella-data.js
+(nessuna riga)
+```
+Nessuna funzione esportata contiene «ispe», «control» o «visit» nel nome.
+L'unico uso di «ispezione» nel file (9 occorrenze, tutte lette: righe 225,
+237, 4207, 4836, 4857, 4882, 4918, 5361×2, 5375) è il **dopo-volata del
+fochino** — l'ispezione dell'area subito dopo lo sparo per le mancate
+esplosioni (`sopralluogo/anomalie` sulla scheda della volata) — una cosa
+completamente diversa: è un controllo interno della cava sulla propria
+volata, non una visita di un ente esterno.
+
+E il campo «sopralluogo» che l'app conosce già (`statoDiFatto`,
+11/09) è anche lui un'altra cosa: è il rilievo **preventivo** dello stato
+di un edificio prima delle volate, con `chi` = chi ha fatto il
+sopralluogo per conto della cava — non una visita ricevuta.
+
+**Conclusione della verifica**: Sentinella ha tre concetti distinti che
+condividono parole simili nel mondo («ispezione», «verbale», «sopralluogo»)
+— il dopo-sparo del fochino, il sopralluogo preventivo del ricettore, e il
+report periodico per l'ente — ma **nessuno dei tre è «la visita che un
+tecnico ARPA o della polizia mineraria fa in cava»**, con la sua data, chi
+è venuto, che cosa ha guardato, che cosa ha scritto (osservazione,
+prescrizione, nessun rilievo) e — se c'è una prescrizione — il termine per
+regolarizzare e se è stato rispettato. Questo è un evento diverso da un
+reclamo (non parte da un cittadino), diverso da una scadenza di adempimento
+(non è una cosa che la cava deve mandare a una data fissa, è una cosa che
+un ente fa arrivare quando vuole), e diverso dalla taratura (non riguarda
+uno strumento).
+
+### Candidato (formato richiesto)
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Nuova sezione «Controlli ricevuti» (o dentro Adempimenti/Reclami come terza collezione)** | Non esiste in Sentinella un posto dove registrare che un ente (ARPA, polizia mineraria, Comune) è venuto in cava, che cosa ha guardato, e se ha lasciato una prescrizione con un termine. Oggi l'unico modo per tenerne traccia è una nota fuori dall'app — o infilarla a forza nel campo «azione» di un reclamo che non è nato da un reclamo. | `grep -ciE "prescrizion\|diffida" apps/sentinella/sentinella-data.js apps/sentinella/index.html` → 5 e 2, **tutte e sette lette**: parlano delle prescrizioni dell'autorizzazione (il contesto della soglia), mai di una prescrizione ricevuta durante una visita. `grep -ciE "\besame\b\|esaminat"` → 0 e 1 (la sola occorrenza non è pertinente). Nessuna funzione esportata contiene «ispe/control/visit» nel nome (`grep -noE "^export function [A-Za-z]*(([Ii]spe)\|([Cc]ontroll)\|([Vv]isit))[A-Za-z]*" apps/sentinella/sentinella-data.js` → nessuna riga). | Medio: una collezione nuova `controlli/{id}` con `{data, ente (ARPA/polizia mineraria/Comune/altro), chi (il funzionario, se noto), cosaHaGuardato (testo libero o riferimento ai punti), esito (nessun rilievo / osservazione / prescrizione), prescrizione: {testo, termineGiorni, scadeIl}, riscontroInviato: {data, testo} }`; una funzione pura `statoControllo(c, oggi)` sul modello già usato per gli adempimenti/tarature (in termine, in scadenza, scaduto — mai un giudizio di conformità, solo di **termine**, perché se il riscontro è stato dato o no non lo sa dedurre l'app); una riga nel Quadro quando c'è una prescrizione col termine in scadenza (stesso principio del fondatore: assenza di riscontro registrato non è «riscontro dato»). Il report periodico per l'ente potrebbe elencare i controlli ricevuti nel periodo, sullo schema già usato per «Volate del periodo» — ma questo è un secondo passo, non il primo. |
+
+**Nota sui numeri di legge**: i 30 e i 15 giorni citati sopra (L. 689/1981,
+via fonte secondaria) **non vanno scritti in nessuna schermata** finché non
+si legge il testo primario — è la stessa cautela già applicata a ogni altro
+numero di norma in questo file. Il campo `termineGiorni` andrebbe lasciato
+**libero**, scritto da chi registra il controllo leggendo il termine reale
+indicato nel verbale ricevuto (che può variare per tipo di violazione o per
+prescrizione specifica), non precompilato con un numero di seconda mano.
+
+### Fonti
+
+- https://www.conflavoro.it/ispezione-azienda-diffida-prescrizione/ — contenuto del verbale, diffida, termine di 30 giorni per la regolarizzazione, sanzione ridotta entro ulteriori 15 giorni [seconda mano, generico ispezioni non specifico cave]
+- https://www.cittametropolitana.mi.it/ambiente/guida_autorizzazioni_ambientali/imprese_enti/attivita_estrattiva/Polizia-mineraria — ispezioni senza preavviso, provvedimenti, verbali di violazione, prescrizioni con sanzioni [seconda mano, ente]
+
+**Riassunto** — 1 mancanza **confermata**: Sentinella non ha un concetto di
+«controllo/ispezione ricevuta dall'esterno» distinto dai tre concetti simili
+che già possiede (dopo-sparo del fochino, sopralluogo preventivo del
+ricettore, report periodico programmato). Il delta è verificato per
+meccanismo (nessuna funzione, nessuna collezione, sette occorrenze di
+parole vicine tutte lette e tutte pertinenti a un contesto diverso), non
+dedotto dal nome. Costo stimato medio, non verificato da un'implementazione;
+nessun numero di legge proposto per l'inserimento diretto — solo un campo
+libero, sul principio già adottato in questo file per ogni cifra di seconda
+mano.

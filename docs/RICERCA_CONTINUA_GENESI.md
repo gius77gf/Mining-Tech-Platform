@@ -3681,3 +3681,274 @@ tutte e sei le app di questa sessione: sei tentativi, sei difetti veri**
 (Campo, Terra, Conti, Sentinella, Scudo, Genesi), più due candidati
 scartati con la ragione scritta (Flotta/mezzi, Scudo/lavoratoreId nel CSV
 infortuni).
+
+
+## Ricerca del 2026-09-18 — rigonfiamento del cumulo e produttività di carico: una correzione al 16/09 e un delta nuovo
+
+_Timestamp: 2026-09-18T00:46:32Z_
+
+_Strumento: `WebSearch` soltanto (imposto dal mandato); `WebFetch` non è stato
+usato — resta bloccato (EGRESS_BLOCKED), verificato più volte da ricerche
+precedenti di questo file, non ritentato qui. Ogni fatto sul mondo è marcato
+[di seconda mano]. Verificato con `grep -n "^## " docs/RICERCA_CONTINUA_GENESI.md`
+prima di iniziare: nessuna sezione precedente tratta la produttività di
+carico/scavo (excavator diggability) o il rigonfiamento (swell factor) come
+argomento a sé; il termine "rigonfiamento" compare solo dentro il racconto
+della scena 3D del 15/09 (righe 3372-3506), senza approfondirlo._
+
+### Già scritto (per non ripeterlo)
+
+Il 16/09 (righe 3507-3630) questo stesso file ha proposto due validatori
+come mancanti: **rapporto burden/diametro (B/D)** e **rapporto
+spacing/burden (S/B)**, con la prova dichiarata `grep -n "diametro.*burden|
+burden.*diametro|ratio.*diam" apps/genesi/genesi-data.js` → 0 righe, e lo
+stesso per `spacing.*burden|S.*B|s/b`. Il 12/09 (righe 811-1006) ha già
+trattato i limiti del modello Kuz-Ram/powder factor; il 12/09 (righe
+2026-2163) il decking/air-decking; il 15/09 (righe 3346-3506) le rifiniture
+di scena 3D del cumulo (throw, spread laterale, muckShape già citata ma non
+aperta come funzione). Questa ricerca riapre `muckShape()` per un motivo
+diverso da quello del 15/09 (non l'annotazione 3D, il rigonfiamento) e
+verifica per primo se il "non c'è" del 16/09 regge.
+
+### ⛔ Correzione al 16/09: i quattro validatori geometrici ESISTONO GIÀ, da prima del 16/09
+
+Aperto `apps/genesi/genesi.html` invece di fidarsi del grep del 16/09 (la
+stessa regola di CLAUDE.md: "cercare la nostra parola nel mondo, non il suo
+meccanismo in casa nostra" — qui il grep cercava la parola inglese
+`ratio.*diam`/`s/b` mentre l'etichetta è italiana). Tutt'e quattro i rapporti
+sono badge veri nella scheda validatori (`computeKPI`/riquadro 2D,
+`apps/genesi/genesi.html`), con verdetto `sv-ok`/`sv-warn`/`sv-bad` e testo
+di spiegazione — non numeri grezzi mai giudicati:
+
+| Rapporto | Etichetta in UI | Riga | Fascia ok | Fascia warn | Introdotto (commit, data) |
+|---|---|---|---|---|---|
+| Burden/Diametro (B/D) | «Spalla / Ø» | `genesi.html:6575` | 23–33×Ø (dipende da densità esplosivo) | −5/+8 | `83f4c925`, **19/07/2026** |
+| Spacing/Burden (S/B) | «Rapporto S/B» | `genesi.html:6567` | 1,0–1,4 | 0,85–1,6 | già chiuso il 14/09 (righe 3208-3212 di questo file) |
+| Borraggio/Burden | «Borraggio / B» | `genesi.html:6627` | 0,7–1,0×B | 0,5–1,2 | verificato oggi, non datato in questa ricerca |
+| Sottoperforazione/Burden | «Sottoperf.» | `genesi.html:6898` | 0,2–0,4×B (~8–12×Ø) | 0,1–0,55 | verificato oggi, non datato in questa ricerca |
+
+Prova che il grep del 16/09 era cieco per la parola, non per il codice:
+```
+grep -n "diametro.*burden\|burden.*diametro\|ratio.*diam" apps/genesi/genesi.html
+→ 0 righe (il pattern inglese non incontra mai "Spalla / Ø")
+grep -n "'Spalla / Ø'" apps/genesi/genesi.html
+→ 6575:  rows.push(badge(bd,'Spalla / Ø',gnum(bd,0)+'·Ø',_kbLo,_kbHi,_kbLo-5,_kbHi+8,
+git log -1 --format="%H %ad" --date=short -S "'Spalla / Ø'" -- apps/genesi/genesi.html
+→ 83f4c925 2026-07-19
+```
+Il badge B/D esisteva **quasi due mesi prima** che il 16/09 lo dichiarasse
+assente. Le due proposte "candidate" del 16/09 (righe 3551-3598) vanno
+considerate **chiuse per fatto già esistente**, non "pronte per roadmap":
+chi le riaprisse costruirebbe un doppione. Il costo del grep sbagliato è
+stato basso qui (le proposte erano ancora "non prese", per la prudenza
+scritta nello stesso file alla riga 3611: "resta un candidato pronto, ma non
+preso oggi") — ma è la stessa famiglia già raccolta in CLAUDE.md sotto "il
+non c'è va provato, non dichiarato", con l'aggravante che qui l'aveva
+scritto una ricerca di questo stesso documento, non un cantiere.
+
+### Il mondo: il rigonfiamento e la forma del cumulo decidono la produttività dell'escavatore, non solo la sicurezza
+
+I quattro badge sopra sono motivati in Genesi (testo `why`) solo con
+frammentazione, backbreak, toe e vibrazione — mai con la produttività del
+carico. Il mondo dice che è un criterio a sé, con soglie proprie:
+
+- **Il rigonfiamento (swell/bulking factor) della roccia sparata** varia
+  tipicamente **dal 35% al 67%** in volume (fattore 1,35–1,67), e la cifra
+  dipende dalla qualità della volata: **49% per una volata ben fatta**
+  (buona frammentazione), **67% per una volata mal fatta**, misurato su
+  calcare e scisto. Un valore di **1,6× (60%)** è documentato a parte in un
+  altro contesto. [di seconda mano: NRC — "Draft Bulking Factor of Rock for
+  Underground Openings", nrc.gov/docs/ML0807/ML080700314.pdf;
+  gxcontractor.com "What You See (Isn't Always) What You Get";
+  heavyequipmentforums.com]
+- **Throw, drop e spread laterale** (non solo la frammentazione) sono
+  dichiarati **i parametri che governano la "sciolezza" (looseness) del
+  cumulo e quindi l'efficacia del carico**: più il cumulo è disteso, più
+  facile il carico per le pale/escavatori. [di seconda mano:
+  iieta.org/download/file/fid/648, "Impact of Blast Design Parameters on
+  Blasted Muckpile Profile in Building Stone Quarries"]
+- **Uno studio specifico su cave di pietra da costruzione** dichiara un
+  set di rapporti geometrici ottimali **per le prestazioni dell'escavatore**
+  (non per la sicurezza o la sola frammentazione): **burden 20–21×
+  diametro**, **rapporto S/B 1,30–1,40**, **rapporto borraggio/burden
+  0,9–1,0**, **powder factor 0,95–1,05 kg/m³**. [di seconda mano: stessa
+  fonte iieta.org/academia.edu — una sola fonte trovata per questo set
+  specifico di numeri, non incrociata con una seconda indipendente: da
+  trattare come un caso di studio, non come uno standard universale]
+- **Bucket fill factor** (rapporto fra volume realmente caricato in benna e
+  capacità nominale) e **diggability** ("la facilità con cui la pala scava
+  l'unità di roccia") sono dichiarati **determinati dal cumulo e dai vuoti al
+  suo interno**, che a loro volta determinano il tempo di ciclo di carico.
+  [di seconda mano: file.scirp.org/Html/1-8102815_77732.htm; ricerca
+  aggregata su "diggability index"]
+- **Uno studio dedicato al tempo di scavo** conferma il nesso diretto fra
+  frammentazione da volata e tempo di scavo dell'escavatore idraulico. [di
+  seconda mano: ausimm.com, "Impact of Blast Fragmentation on Hydraulic
+  Excavator Dig Time"]
+- **Non trovata** una fonte che leghi esplicitamente il "diggability index"
+  o il bucket fill factor a un **numero di rigonfiamento** preciso (la
+  letteratura tiene le due cose — swell factor volumetrico, e
+  diggability/fill factor come misura strumentale sul mezzo — come filoni
+  separati che si citano a vicenda ma non si fondono in un'unica formula).
+
+### Il delta reale, verificato aprendo il codice
+
+**1. Genesi calcola DUE rigonfiamenti diversi per lo stesso cumulo, e non si parlano.**
+
+```
+grep -n "rigonfiamento:1.4\|CAL.muckpile.rigonfiamento\|const A=rockFactorA().A, SF=" apps/genesi/genesi.html
+→ 1398:  muckpile:{ cellaM:0.5, angoloRiposoDeg:37, rigonfiamento:1.4 },
+→ 1969:  const swellVol = vol*CAL.muckpile.rigonfiamento/QUALITA[qLevel].chunk;
+→ 6020:  const A=rockFactorA().A, SF=+(1.3+Math.max(0,Math.min(1,(A-5)/9))*0.3).toFixed(2);
+```
+
+Il primo (`CAL.muckpile.rigonfiamento`, **1,4 fisso**) è quello che
+disegna DAVVERO il cumulo nella scena 3D: entra nel calcolo del volume per
+cella dell'heightfield (`swellVol`, riga 1969), cioè decide quanto alto
+appare il cumulo sullo schermo. Il secondo (`SF`, **1,3–1,6, calcolato**
+dalla brillabilità della roccia `rockFactorA().A`) vive dentro `muckShape()`
+e non tocca **mai** il disegno 3D: serve solo a comporre la frase `why` del
+badge «Forma cumulo» (`genesi.html:6906`, `'rigonfiamento ~'+gnum(_mk.SF,2)
++'×'`). Un progetto su roccia dura (A alto, SF calcolato **1,6×**) mostra
+nel testo «rigonfiamento ~1,60×» mentre il cumulo disegnato accanto, nella
+stessa schermata, resta sempre alto quanto un rigonfiamento di **1,4×** —
+lo stesso principio già raccolto in questo repository come "il numero può
+essere giusto mentre a mentire è il disegno" (CLAUDE.md), qui nella
+direzione opposta: è il NUMERO scritto che promette una cosa diversa da
+quella che il disegno mostra. Il valore reale del mondo (1,35–1,67) copre
+entrambi i numeri di Genesi separatamente, quindi nessuno dei due è "il
+numero sbagliato" in assoluto — è la **mancata riconciliazione fra i due**
+il difetto: la stessa famiglia già raccolta in CLAUDE.md come "una regola
+scritta due volte, la seconda più debole", qui applicata a un valore fisico
+invece che a una regola di validazione.
+Non corretto qui (fuori mandato della ricerca): chi prendesse in mano
+questo cantiere dovrebbe decidere se il 3D deve leggere `SF` di
+`muckShape()` al posto della costante fissa, o se le due grandezze sono
+volutamente diverse (una "media di rendering", l'altra "stima per litotipo")
+— nel qual caso andrebbe scritto un commento che lo dichiari, perché oggi
+non c'è.
+
+**2. Nessuno dei quattro badge geometrici (B/D, S/B, borraggio/B,
+sottoperf./B) e nessuna riga del cumulo cita la produttività di carico —
+solo frammentazione/backbreak/toe/vibrazione.**
+
+```
+grep -niE "produttivit|escavator|pala\b|caricatore|diggab|fill.?factor" apps/genesi/genesi.html apps/genesi/genesi-data.js
+→ (nessuna riga: comando lanciato, uscita vuota su entrambi i file)
+```
+
+Non è un "non c'è" nel senso di una funzione mancante — è un "non c'è" nel
+senso della RAGIONE data all'utente: i quattro rapporti che il mondo lega
+esplicitamente alla produttività di carico (sezione precedente) sono già
+calcolati e già giudicati da Genesi, ma il progettista che legge il badge
+non sa che sta guardando anche un indicatore di quanto sarà facile o difficile
+caricare quel cumulo con la pala — lo sa solo per la sicurezza/frammentazione.
+
+**3. La forma del cumulo che Genesi calcola per ogni volata (SF, msmRow,
+throw L) non arriva a nessun'altra app — verificato, non dedotto.**
+
+```
+grep -niE "x50|frammentazione|rigonfiamento|muckpile|cumulo" apps/flotta/flotta-data.js apps/campo/campo-data.js
+→ (nessuna riga su nessuno dei due file)
+```
+
+Flotta tiene già "Escavatore" e "Pala" come tipi di mezzo, con ore, consumi
+e manutenzioni (`apps/flotta/flotta-data.js:227-241`), ma non riceve alcun
+segnale — nemmeno un numero descrittivo — su quanto sarà difficile scavare
+il cumulo che Genesi ha appena progettato. Un ponte esiste già per
+Sentinella (`previstaDaGenesi`, in `shared/dw-ponti.js`) e per Campo
+(`pianoCsvGenesi`/`pianoDaGenesi`), ma nessuno porta la forma del cumulo a
+Flotta.
+
+### Proposte
+
+`schermata · che cosa non va · come si vede · quanto costa · come si misura`
+
+1. **Scheda validatori di Genesi, badge «Forma cumulo» (`genesi.html:6906`)
+   · il rigonfiamento scritto nel testo (`_mk.SF`, 1,3–1,6× calcolato dalla
+   roccia) non è lo stesso numero che disegna il cumulo nella scena 3D
+   (`CAL.muckpile.rigonfiamento`, 1,4× fisso), quindi la stessa schermata
+   promette e mostra due cumuli di altezza diversa a parità di volume
+   sparato · si vede con `grep -n "rigonfiamento:1.4\|const A=rockFactorA
+   ().A, SF=" apps/genesi/genesi.html` → righe 1398 e 6020, due formule
+   indipendenti, mai lette l'una dall'altra · costo piccolo: o si sostituisce
+   la costante fissa con `muckShape().SF` nel calcolo di `swellVol` (una
+   riga, da verificare che `muckShape()` sia già calcolabile in quel punto
+   del flusso), o — se le due grandezze sono volute distinte — si scrive un
+   commento che lo dichiari, perché oggi nessuno dei due dice che l'altro
+   esiste · si misura confrontando due progetti con brillabilità diversa
+   (roccia tenera A basso, roccia dura A alto): oggi l'altezza del cumulo
+   nella scena 3D resta IDENTICA nei due casi (swellVol usa sempre 1,4),
+   mentre il testo del badge cambia («rigonfiamento ~1,3×» vs «~1,6×»); dopo
+   la correzione le due dovrebbero muoversi insieme.
+
+2. **Scheda validatori, i quattro badge geometrici già esistenti («Spalla /
+   Ø», «Rapporto S/B», «Borraggio / B», «Sottoperf.») · il loro testo `why`
+   parla solo di frammentazione/backbreak/toe/vibrazione, mai di
+   produttività di carico, mentre il mondo lega proprio questi quattro
+   rapporti (più il consumo specifico, già validato altrove) a un set
+   preciso di valori ottimali per le prestazioni dell'escavatore (burden
+   20–21×Ø, S/B 1,30–1,40, borraggio/B 0,9–1,0) misurato in una cava di
+   pietra da costruzione · si vede leggendo i testi `why` alle righe 6567,
+   6575, 6627, 6898 di `genesi.html`: nessuno contiene le parole "carico",
+   "pala", "escavatore" o "produttiv" (`grep -c` sulle quattro righe →
+   0) · costo piccolo: non è un nuovo calcolo (i rapporti sono già lì), è
+   una frase in più nel `why` quando i quattro rapporti cadono fuori dalla
+   fascia trovata dal mondo, es. "fuori anche dal range 20–21× ottimale per
+   la produttività di carico (fonte: studio su cava di pietra, non uno
+   standard universale)" · attenzione: questa proposta NON sostituisce le
+   fasce di sicurezza/frammentazione già validate (che restano quelle
+   giuste per il loro scopo) — aggiunge un secondo giudizio, e va scritta
+   come tale, con la fonte singola dichiarata debole (non incrociata) ·
+   si misura verificando che un progetto con B/D=15 (fuori dalla fascia
+   ottimale-carico 20–21 ma dentro quella di sicurezza 23–33 già esistente,
+   se applicabile) mostri anche l'annotazione sulla produttività, non solo
+   il verdetto di sicurezza.
+
+3. **Nessuna schermata (assente per costruzione, candidato) · Flotta segue
+   già "Escavatore"/"Pala" con ore e consumi ma non riceve alcun segnale
+   sulla difficoltà di carico attesa dal prossimo sparo, mentre il mondo
+   lega esplicitamente forma del cumulo e produttività di carico · si vede
+   con `grep -niE "x50|frammentazione|rigonfiamento|muckpile|cumulo"
+   apps/flotta/flotta-data.js apps/campo/campo-data.js` → nessuna riga su
+   nessuno dei due file · costo medio: servirebbe un ponte nuovo (sul
+   modello di `previstaDaGenesi` in `shared/dw-ponti.js`) che porti a Flotta
+   un numero descrittivo per volata (es. la classe `_mk.formaTxt` — "ben
+   disteso"/"serrato"/"sovra-throw" — o il rigonfiamento riconciliato dalla
+   proposta 1), non i dati grezzi della simulazione 3D · questa è una
+   decisione di prodotto (quale app deve "sapere" della difficoltà di
+   carico, e se vale la pena tracciarla prima di avere dati reali di
+   confronto) più che un'unità pronta: **dichiarata, non presa**, sul
+   modello delle voci "candidato" già in questo file (es. il registro
+   carico/scarico esplosivi del 03/09) · si misurerebbe, se costruita,
+   verificando che una volata con «Forma cumulo: sovra-throw» in Genesi
+   produca una riga leggibile in Flotta prima che l'escavatore inizi a
+   caricare quel cumulo.
+
+### Fonti (risultati di ricerca, nessuna letta per intero)
+
+- [NRC — Draft Bulking Factor of Rock for Underground Openings](https://www.nrc.gov/docs/ML0807/ML080700314.pdf)
+- [GX Contractor — What You See (Isn't Always) What You Get](https://www.gxcontractor.com/equipment/article/13003780/what-you-see-isnt-always-what-you-get)
+- [Heavy Equipment Forums — Swell Factor of Shot/Blast Rock?](https://www.heavyequipmentforums.com/threads/swell-factor-of-shot-blast-rock.22885/)
+- [SpikeVM — Bulking/Swell Factors for Various Excavated/Mined Materials](https://www.spikevm.com/calculators/excavation/bulking-swell-factors.php)
+- [IIETA — Impact of Blast Design Parameters on Blasted Muckpile Profile in Building Stone Quarries](https://www.iieta.org/download/file/fid/648)
+- [ResearchGate — Influence of front row burden on fragmentation, muckpile shape, excavator cycle time, and back break in surface limestone mines](https://www.researchgate.net/publication/329891458_Influence_of_front_row_burden_on_fragmentation_muckpile_shape_excavator_cycle_time_and_back_break_in_surface_limestone_mines)
+- [ResearchGate — Effect of blast induced rock fragmentation and muckpile angle on excavator performance in surface mines](https://www.researchgate.net/publication/336142957_Effect_of_blast_induced_rock_fragmentation_and_muckpile_angle_on_excavator_performance_in_surface_mines)
+- [AusIMM — Impact of Blast Fragmentation on Hydraulic Excavator Dig Time](https://www.ausimm.com/publications/conference-proceedings/fifth-large-open-pit-mining-conference/impact-of-blast-fragmentation-on-hydraulic-excavator-dig-time/)
+- [Haulage & Loading — Digability: A New Take on an Old Topic (Stephen Lochner)](https://www.haulageandloading.com/wp-content/uploads/2018/10/2013_05_05_presentation.pdf)
+- [SCIRP — Investigation of Excavator Performance Factors in an Open-Pit Mine Using Loading Cycle Time](https://file.scirp.org/Html/1-8102815_77732.htm)
+
+### Riassunto onesto
+
+Nessuna "mancanza" nuova di rilievo su carta bianca: il ritrovamento
+principale di questa ricerca è che **una ricerca precedente di questo
+stesso file (16/09) aveva dichiarato assenti quattro validatori che invece
+esistono da luglio/settembre**, con la prova del grep sbagliato e la data
+del commit. Il delta vero e nuovo è più piccolo e più preciso: **due
+rigonfiamenti diversi per lo stesso cumulo, mai riconciliati fra loro**
+(un bug piccolo, verificabile con due numeri), più un'assenza di
+**vocabolario** (i badge esistenti non dicono che riguardano anche la
+produttività di carico) e un'assenza di **ponte** verso Flotta (dichiarata,
+non presa). Non gonfiato: la fonte quantitativa più utile (burden 20-21×D
+ecc.) è **una sola**, non incrociata — va trattata come caso di studio, non
+come standard.

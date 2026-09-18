@@ -2419,3 +2419,221 @@ gestite dal fallback dichiarato di `importiFattura` (conti-data.js:2064);
 gli incassi manuale/riconciliazione bancaria differiscono di proposito
 (`nota`/`riferimento` sono campi bancari, la copia di sicurezza manuale
 dichiara di portare solo i quattro campi grezzi).
+
+---
+
+## 17/09 — undicesimo giro: la revisione prezzi obbligatoria negli appalti pubblici (art. 60 D.Lgs 36/2023) — Conti vende alla PA tramite "Gare", ma non sa che il prezzo pattuito può dover cambiare per legge
+
+*Nota di processo (regola 1 — dichiarare in cima che cosa esiste già): letto per
+intero questo documento (2422 righe, dieci giri precedenti più una passata di
+profondità). Su Gare/PA esiste oggi: `gare/{id}: {titolo, base, scadenza,
+stato: aperta|vinta|persa}` con `gareRiepilogo`/`baseGara` (basi senza dato
+dichiarate, mai sommate come zero) e import/export CSV; la fattura elettronica
+sa scrivere `CodiceDestinatario`/PEC per un cliente pubblico ma **non** sa se
+il cliente È pubblico (nessun flag PA sull'anagrafica: `grep -ciE
+"pubblicaAmministrazione|isPA|clientePA" apps/conti/conti-data.js
+apps/conti/index.html` → `0` e `0`); lo split payment PA è già un candidato
+**dichiarato** (non costruito) dal quarto giro dell'11/09 — non lo riapro qui,
+è un tema diverso. Nessun giro precedente ha toccato la revisione prezzi, il
+Codice dei contratti pubblici o l'art. 60: `grep -ciE
+"revisione.prezzi|D\.Lgs\.? 36/2023|codice.*contratti pubblici|art(icolo)?\.?
+60\b|TOL\b|caro materiali" docs/RICERCA_CONTINUA_CONTI.md` (sulle sezioni
+scritte prima di questa) → **0**.*
+
+⚠️ **Seconda mano, marcata**: fatta con `WebSearch` (4 ricerche, tool caricato
+con `ToolSearch({query:"select:WebSearch,WebFetch"})` — nessun limite tecnico,
+solo da caricare); `WebFetch` non provato, nessuna fonte primaria (Gazzetta
+Ufficiale, testo del D.Lgs, decreto MIT) letta per intero. Nessun numero di
+soglia o di indice entra in una schermata del prodotto senza essere riletto
+sul testo primario da chi decide l'unità.
+
+### Come funziona, fuori [tutto di seconda mano, WebSearch]
+
+- **La clausola è obbligatoria da inserire nei documenti di gara, non
+  facoltativa.** Il D.Lgs 36/2023, art. 60, impone l'inserimento di clausole
+  di revisione prezzi nei documenti iniziali delle procedure di affidamento;
+  vale sia per i lavori (nuova costruzione, manutenzione ordinaria e
+  straordinaria) sia — punto rilevante per una cava fornitrice di materiale —
+  per i **contratti di fornitura e servizi di durata**, cioè quelli che non si
+  esauriscono in una prestazione istantanea. *[seconda mano: brocardi.it,
+  biblus.acca.it, codiceappalti.it, italiappalti.it]*
+- **Il Correttivo (in vigore dal 31/12/2024) ha differenziato le soglie fra
+  lavori e forniture/servizi**: per i lavori la clausola scatta sopra il **3%**
+  di scostamento e opera sul **90%** dell'eccedenza; per **forniture e
+  servizi** — la categoria in cui rientra la vendita di inerti a un ente
+  pubblico — scatta sopra il **5%** e opera sull'**80%** dell'eccedenza.
+  *[seconda mano: consapi.it, studiomoscarini.it, mediappalti.it,
+  studiovalaguzza.it]*
+- **Gli indici di riferimento sono ufficiali e distinti per tipo di
+  contratto.** Per i lavori, gli indici di costo delle lavorazioni per
+  Tipologie Omogenee di Lavorazioni (TOL) — l'ultimo provvedimento MIT
+  citato dai risultati è il decreto dirigenziale n. 743/2026 del 30/03/2026,
+  pubblicato il 28/04/2026. Per **forniture e servizi** (Allegato II.2-bis,
+  art. 10, sez. III) si usano gli indici ISTAT dei prezzi al consumo (NIC) e
+  gli indici dei prezzi alla produzione dell'industria per settore economico.
+  *[seconda mano: istat.it, legislazionetecnica.it, piselliandpartners.it]*
+- **Il precedente regime "caro materiali"** (decreti MIT/MIMS periodici sulle
+  variazioni percentuali dei prezzi dei materiali da costruzione più
+  significativi, es. decreto 4/4/2022 sul secondo semestre 2021, poi
+  rettificato nel dicembre 2024) è la storia da cui l'art. 60 nasce: prima
+  ogni compensazione richiedeva un decreto ad hoc e un contenzioso frequente
+  sulla qualità dei dati; ora la clausola è nel contratto stesso e l'indice è
+  automatico. *[seconda mano: lavoripubblici.it, mit.gov.it]*
+- **Il mestiere**: un'impresa che fornisce materiale a un ente pubblico con un
+  contratto pluriennale (il caso tipico di "Comune di Ragusa — inerti
+  2026-27" o "ANAS — manutenzione SS115" nella dimostrazione di Conti) deve
+  poter dire, quando l'indice si muove, se ha diritto (o obbligo, se il prezzo
+  scende) a un adeguamento — e la clausola va scritta **nel bando**, quindi va
+  saputa **prima** di offrire, non scoperta dopo.
+
+### Fonti (WebSearch, di seconda mano, non lette per intero)
+
+- [Art. 60 nuovo codice appalti — Brocardi](https://www.brocardi.it/nuovo-codice-appalti/dell-appalto/degli-istituti-e-delle-clausole-comuni/art60.html)
+- [Articolo 60. Revisione prezzi — codiceappalti.it](https://www.codiceappalti.it/DLGS_36_2023/Articolo_60__Revisione_prezzi_/12668)
+- [Articolo 60 nuovo codice appalti — BibLus](https://biblus.acca.it/art-60-nuovo-codice-appalti/)
+- [Clausole di revisione prezzi obbligatorie — Legislazione Tecnica](https://www.legislazionetecnica.it/9454449/news-edilizia-appalti-professioni-tecniche-sicurezza-ambiente/clausole-revisione-prezzi-obbligatorie-nel-nuovo-codice-dei-contratti-pubblici)
+- [Come cambia la Revisione Prezzi col Correttivo — Consapi](https://www.consapi.it/2025/01/28/come-cambia-la-revisione-prezzi-negli-appalti-pubblici-con-il-correttivo-al-d-lgs-n-36-2023/)
+- [Revisione Prezzi Appalti Pubblici: guida — Studio Moscarini](https://www.studiomoscarini.it/2025/07/04/revisione-prezzi-appalti-pubblici-art-60/)
+- [La revisione prezzi alla luce del Correttivo — Mediappalti](https://www.mediappalti.it/la-revisione-prezzi-nel-codice-appalti-alla-luce-del-correttivo/)
+- [Le novità del Correttivo — Studio Valaguzza](https://www.studiovalaguzza.it/en/le-novita-del-correttivo-in-materia-di-revisione-prezzi/)
+- [Indici Istat per il nuovo codice dei contratti pubblici — Istat](https://www.istat.it/notizia/il-nuovo-codice-dei-contratti-pubblici-d-lgs-31-marzo-2023-n-36-art-60/)
+- [Indici ISTAT operativi per le lavorazioni — Piselli & Partners](https://www.piselliandpartners.com/news-appalti-concessioni/revisione-prezzi-negli-appalti-pubblici-operativi-i-nuovi-indici-istat-per-le-lavorazioni-cosa-cambia-per-imprese-e-stazioni-appaltanti/)
+- [La revisione prezzi entra in servizi e forniture — Edilportale](https://www.edilportale.com/news/2026/06/appalti/appalti-revisione-prezzi-in-servizi-e-forniture_110639_51.html)
+- [Compensazione prezzi: il Consiglio di Stato annulla il decreto MIT — LavoriPubblici](https://www.lavoripubblici.it/news/compensazione-prezzi-annullato-decreto-mit-materiali-costruzione-cds-4143-2026-38184)
+- [Caro materiali: il MIT pubblica le rettifiche dei prezzi — LavoriPubblici](https://www.lavoripubblici.it/news/caro-materiali-mit-pubblica-rettifiche-prezzi-34743)
+
+### Domande per il delta (sul MECCANISMO, non sul nome)
+
+1. Chi, in Conti, sa che una gara è stata vinta con un ente pubblico e per
+   quanto tempo dura la fornitura che ne segue?
+2. Chi collega le pesate/fatture emesse a UNA gara vinta, per poter isolare
+   "quanto ho fatturato su questo contratto" e confrontarlo con la base
+   d'asta o col prezzo pattuito?
+3. Chi registra un indice (ISTAT o altro) a una data, per poter calcolare uno
+   scostamento nel tempo?
+4. Chi sa, guardando una gara vinta, se il contratto è "di durata" (soggetto
+   per legge alla clausola) o una fornitura istantanea (fuori norma)?
+
+### Il delta, fatto da chi ha il codice in mano (17/09, verificato contro HEAD)
+
+- **Domanda 1 — MANCA completamente.** Il record `gare` ha solo `{id, titolo,
+  base, scadenza, stato}` — `scadenza` è il termine per **partecipare** al
+  bando, non la durata della fornitura che segue una vittoria:
+
+      $ grep -n "gare: \[" -A2 apps/conti/conti-data.js | head -4
+      178:  gare: [
+      179:    { id: "g1", titolo: "Comune di Ragusa — inerti 2026-27", base: 120000, scadenza: "2026-07-28", stato: "aperta" },
+
+      $ grep -ciE "durataFornitura|dataInizioFornitura|dataFineFornitura|contrattoDurata" apps/conti/conti-data.js apps/conti/index.html
+      apps/conti/conti-data.js:0
+      apps/conti/index.html:0
+
+  Una gara che passa a "vinta" (`data-gara-esito="vinta"`, index.html:3671)
+  semplicemente cambia stato: non si apre nessun campo per dire da quando a
+  quando dura la fornitura. Senza una durata, non si può nemmeno chiedere se
+  il contratto rientra fra quelli "di durata" a cui la norma si applica.
+
+- **Domanda 2 — MANCA completamente.** Nessun campo collega una pesata o una
+  fattura a una gara:
+
+      $ grep -n "garaId" apps/conti/conti-data.js apps/conti/index.html
+      (nessuna riga)
+
+  "Comune di Ragusa — inerti 2026-27" (g1, vinta o aperta che sia) e il
+  cliente fatturato "Comune di Modica" (fatture f3 nella dimostrazione)
+  restano due mondi separati nel codice: non c'è modo di sommare "quanto ho
+  fatturato finora su questo contratto" per confrontarlo con la base d'asta.
+  `venditePerProdotto` esiste (spezza le vendite per prodotto), ma niente di
+  analogo esiste per gara/contratto.
+
+- **Domanda 3 — MANCA, ed è coerente con la linea già scritta in questo
+  file l'11/09 (canone): "le tariffe regionali sono seconda mano, non
+  entrano in una schermata senza il testo primario".** Un indice ISTAT
+  cambia ogni semestre/anno e Conti non ha accesso alla rete per leggerlo da
+  solo (nessuna app di questo ecosistema chiama API esterne per dati
+  ufficiali, è una scelta di impianto):
+
+      $ grep -ciE "indiceIstat|indiceRevisione|scostamentoIndice" apps/conti/conti-data.js apps/conti/index.html
+      apps/conti/conti-data.js:0
+      apps/conti/index.html:0
+
+  Un valore dichiarato **dall'utente** (non scaricato) a due date diverse
+  basterebbe a calcolare lo scostamento — è lo stesso pattern già scelto per
+  il canone (`canoneAliquota` è un dato che l'organizzazione dichiara, non
+  che il software indovina).
+
+- **Domanda 4 — MANCA, ed è conseguenza delle prime due.** Senza una durata
+  sulla gara vinta (domanda 1), nessuna schermata può dire "questo contratto
+  potrebbe rientrare nell'obbligo dell'art. 60, verificalo nel bando": oggi
+  l'unica traccia visibile di una gara vinta è il badge di stato e il
+  contributo al tasso di vittoria (`gareRiepilogo`).
+
+**Nota di prudenza, dichiarata come tale**: qual è la soglia esatta (3%/90%
+lavori, 5%/80% forniture) e quali indici usare (TOL per lavori, NIC/industria
+per forniture) sono numeri e nomi di **seconda mano**, presi da riassunti di
+ricerca e non dal testo del D.Lgs 36/2023 né dagli allegati tecnici. **Non
+vanno scritti in una schermata così come sono qui**: prima di costruire
+qualunque calcolo automatico di scostamento, chi apre l'unità deve leggere il
+testo dell'art. 60 e dell'Allegato II.2-bis (o farlo confermare dal
+commercialista/legale del fondatore), esattamente come già fatto per il
+canone regionale l'11/09. Quello che questa ricerca può proporre con certezza
+è la **struttura dati e il collegamento mancante** (gara↔fornitura↔fatturato),
+non la formula di calcolo pronta all'uso.
+
+### Proposte
+
+1. **Gare · una gara vinta non registra la durata della fornitura che segue,
+   quindi non si può sapere se rientra fra i contratti "di durata" soggetti
+   per legge alla clausola di revisione prezzi · `grep -ciE
+   "durataFornitura|dataInizioFornitura|dataFineFornitura" apps/conti/conti-data.js
+   apps/conti/index.html` → 0 e 0, e il passaggio a "vinta"
+   (`data-gara-esito="vinta"`) non apre nessun campo di durata · Piccolo ·
+   aggiungere due campi opzionali (data inizio/fine fornitura) al form che
+   compare quando una gara passa a "vinta"; verificare che una gara vinta con
+   durata superiore a un termine dichiarato (es. 12 mesi) mostri una nota
+   "contratto di durata: verifica se il bando prevede la clausola di
+   revisione prezzi (art. 60 D.Lgs 36/2023, di seconda mano — conferma sul
+   testo del bando)."**
+
+2. **Gare / Fatture · nessun campo collega le pesate o le fatture a una gara,
+   quindi non si può isolare il fatturato di UN contratto pubblico per
+   confrontarlo con la base d'asta o segnalarne l'andamento · `grep -n
+   "garaId" apps/conti/conti-data.js apps/conti/index.html` → nessuna riga ·
+   Medio · campo opzionale `garaId` su fattura (o su pesata, come già
+   `fatturaId`), e una funzione pura `fatturatoPerGara(fatture, garaId)` che
+   somma gli imponibili; nella scheda della gara vinta un piccolo riepilogo
+   "fatturato finora: X € su una base di Y €" · collegare tre fatture a "g3 —
+   Consorzio bonifica, vinta" nella dimostrazione e verificare che la somma
+   torni; una gara senza nessuna fattura collegata deve dire "nessun
+   fatturato ancora collegato", non 0 € tranquillo.**
+
+3. **Gare · nessun punto dell'app permette di dichiarare un indice (ISTAT o
+   altro) a una data, quindi non si può calcolare lo scostamento nel tempo
+   che la norma userebbe per decidere se la clausola scatta · `grep -ciE
+   "indiceIstat|indiceRevisione|scostamentoIndice" apps/conti/conti-data.js
+   apps/conti/index.html` → 0 e 0 · Medio-alto (il calcolo tocca una norma
+   con soglie diverse lavori/forniture, da confermare sul testo primario
+   prima di costruirlo) · una tabella `indici: [{data, valore, fonte}]`
+   dichiarata dall'utente (non scaricata: Conti non ha accesso a dati
+   esterni), e una funzione `scostamentoIndice(indici, dal, al)` che
+   restituisce la variazione percentuale con `null` e la ragione se manca
+   uno dei due valori — non un calcolo del "prezzo dovuto", solo lo
+   scostamento dichiarato, lasciando all'utente la decisione finale prevista
+   dalla norma.**
+
+### Riassunto
+
+**3 mancanze confermate** (durata della fornitura su una gara vinta;
+collegamento gara↔fatturato; registrazione di un indice per lo scostamento),
+tutte a costo piccolo/medio, nessuna già proposta nei dieci giri precedenti
+(verificato: `grep` sul documento a zero prima di scrivere questa sezione).
+Nessuna cifra di soglia o di indice va scritta in una schermata senza prima
+leggere il testo primario dell'art. 60 e dell'Allegato II.2-bis — è la stessa
+cautela già applicata al canone regionale l'11/09, e qui vale doppio perché la
+norma è cambiata due volte in due anni (D.Lgs 36/2023, poi il Correttivo dal
+31/12/2024) e gli indici tecnici sono aggiornati ancora nel 2026 (provvedimento
+MIT del 28/04/2026): un numero preso oggi rischia di essere già superato
+quando arriva a un cliente. **Non verificato indipendentemente da chi
+coordina il ciclo**: le soglie percentuali (3%/90%, 5%/80%) e i nomi degli
+indici (TOL, NIC) sono parola dell'agente di ricerca, riportati con le fonti
+esatte perché chi apre l'unità li rilegga prima di scriverli nel prodotto.

@@ -2347,3 +2347,126 @@ funzionalità (collegare un infortunio importato al lavoratore giusto)
 è di prodotto, non di ricerca — va soppesata contro il rischio di un
 abbinamento sbagliato su un nome ambiguo, in un registro che riguarda
 infortuni veri. Chiude la domanda aperta dalla nota precedente.
+
+---
+
+## 17/09 — dodicesimo giro: la formazione secondo il nuovo Accordo Stato-Regioni 2025 (modalità FAD/videoconferenza, e una citazione da aggiornare)
+
+*Nota di processo (regola 1): letto per intero questo documento (12 giri precedenti,
+01/08→16/09) prima di proporre. Nessuno dei giri precedenti tratta la
+**modalità di erogazione** della formazione (FAD/videoconferenza/presenza):
+il tema più vicino è una riga del 02/09 ("macchine movimento terra... solo
+in presenza [seconda mano]") mai trasformata in delta. Commit verificato:
+`6e6993da68267f9ed471140b250713520003f08f`.*
+
+### Il mondo [WebSearch, due ricerche mirate; `WebFetch` non tentato — EGRESS_BLOCKED già misurato nei giri precedenti — quindi tutto qui è di **seconda mano**, dai riassunti dei risultati, non dal testo dell'Accordo]
+
+- Il **nuovo Accordo Stato-Regioni** su durata e contenuti minimi dei corsi
+  di formazione in materia di salute e sicurezza (art. 37 c.2 D.Lgs 81/08) è
+  stato sancito il **17/04/2025**, pubblicato in Gazzetta Ufficiale ed
+  entrato in vigore il **24/05/2025** — quindi è **successivo e sostitutivo**
+  del precedente Accordo Stato-Regioni del **22/02/2012** sullo stesso
+  oggetto (durata/contenuti minimi dei corsi). [seconda mano: tutto626.it,
+  vegaformazione.it, sicurezza.com, corsisicurezza.it, asso-pmi.it]
+- **Modalità FAD regolate per la prima volta in dettaglio**: il nuovo
+  accordo disciplina esplicitamente quando un corso si può fare in FAD
+  **sincrona** (videoconferenza) o **asincrona** (e-learning), e introduce
+  un vincolo tecnico nuovo — per la videoconferenza sono ammessi **solo PC e
+  tablet, mai lo smartphone** (per motivi ergonomici). [seconda mano:
+  tutto626.it, sicurezza.com]
+- **Gli escavatori idraulici**: il vecchio accordo (2012) esentava dall'obbligo
+  di formazione abilitante gli escavatori **sotto i 6.000 kg** di massa
+  operativa; il nuovo accordo (2025) **elimina questa soglia** — da oggi la
+  formazione abilitante serve per qualunque escavatore idraulico,
+  indipendentemente dal peso, **senza disposizioni transitorie**: l'obbligo
+  vale dal giorno di pubblicazione in G.U. [seconda mano: sicurgest.it,
+  stefanofarina.it]
+- **La parte pratica resta ancorata al luogo di lavoro**: per gli ambienti
+  confinati (D.P.R. 177/2011) il nuovo accordo fissa 12 ore con
+  **addestramento pratico obbligatorio sul luogo di lavoro** — cioè non
+  erogabile in FAD, nemmeno sincrona. [seconda mano: sicurezza.com]
+
+### Il delta (verificato nel codice, comandi con la loro uscita)
+
+**1 — CONFERMATO. Nessun campo o traccia della modalità di erogazione
+(FAD/videoconferenza/e-learning/presenza) su nessun corso o scadenza di
+formazione.**
+```
+$ grep -niE "modalita|\bFAD\b|videoconferenza|e-learning|asincrona|sincrona|distanza|elearning|\baula\b" apps/scudo/scudo-data.js apps/scudo/index.html
+(nessuna riga — zero occorrenze in tutt'e due i file)
+```
+Scudo traccia già bene **quando** un corso scade (`SCADENZE_PRESET`,
+`periodicitaGiorni`) e **quale** corso è (`TIPI_DOCUMENTO`,
+`etichettaScadenza`), ma non **come** è stato erogato. Con il nuovo accordo
+questo non è un dettaglio burocratico: per gli spazi confinati la parte
+pratica **deve** avvenire sul luogo di lavoro, e per la videoconferenza è
+vietato lo smartphone — due vincoli che un ispettore/RSPP potrebbe voler
+verificare guardando l'attestato, non lo schermo di Scudo. Oggi Scudo non
+ha modo di distinguere "corso fatto in aula" da "corso fatto in
+videoconferenza" nemmeno come annotazione libera collegata alla scadenza.
+**Non è un "non c'è" per un termine inventato**: il campo più vicino,
+`riferimento` (testo libero sul preset, non sulla singola scadenza
+registrata), non porta la modalità di nessuna istanza reale.
+**Quanto costa (stima non verificata)**: piccolo — un campo opzionale
+`modalita: "presenza"|"videoconferenza"|"e-learning"|null` sulla scadenza di
+formazione registrata (non sul preset, che è il modello); nessuna
+validazione bloccante (il principio del fondatore: assente ≠ irregolare).
+**Come si misura**: una scadenza di tipo "Formazione" o "Patente" mostra,
+quando compilata, come è stata erogata; il CSV/fascicolo la riporta;
+nessuna scadenza esistente cambia stato per la sua assenza.
+
+**2 — CONFERMATO, e più stretto. La citazione `Accordo Stato-Regioni
+22/02/2012` sul preset `patentino-attr` è una norma superata da un accordo
+più recente sullo stesso oggetto, e lo schermo non lo dice.**
+```
+$ grep -n "22/02/2012" apps/scudo/scudo-data.js
+2643:  { chiave: "patentino-attr", ... riferimento: "Accordo Stato-Regioni 22/02/2012 — aggiornamento quinquennale delle abilitazioni." },
+```
+Questa è l'UNICA citazione con data esplicita fra i preset di formazione
+(`form-generale`, `form-aggiorn`, `form-dirigente` citano l'Accordo
+Stato-Regioni senza data, "di prassi quinquennale" — già caute). Il nuovo
+accordo del 17/04/2025 (G.U. 24/05/2025) tratta lo stesso oggetto —
+durata/contenuti/aggiornamento dei corsi per operatori di attrezzature — e
+per gli escavatori introduce un cambiamento concreto (soglia dei 6.000 kg
+abolita). ⚠️ **Limite dichiarato**: questa ricerca non ha letto il testo
+dell'accordo 2025 (`WebFetch` bloccato) e **non sa dire** se la periodicità
+quinquennale (`mesi: 60`) sia cambiata o confermata — quindi la proposta
+**non è** "correggere la data a 2025" (sarebbe lo stesso errore già
+commesso e poi corretto l'11/09 sul D.M. 2/9/2021: un numero di seconda
+mano scritto come certo). La proposta è applicare **la stessa forma già
+usata per quel caso**: la riga cita la data vecchia **e** dichiara il
+limite, finché qualcuno non legge il testo primario del 2025.
+**Quanto costa (stima non verificata)**: piccolissimo — una frase, sul
+modello esatto già scritto per il D.M. 2/9/2021 (11/09, "il D.M. 2/9/2021
+non si applica alle industrie estrattive... [seconda mano]").
+**Come si misura**: `grep -n "22/02/2012" apps/scudo/scudo-data.js` mostra
+la riga con accanto la dichiarazione del limite; sparisce solo quando
+qualcuno avrà letto il testo 2025 e potrà scrivere la periodicità corretta
+con certezza.
+
+### Nota su un candidato scartato
+
+La soglia dei 6.000 kg per gli escavatori (mondo, terzo punto) **non
+produce un delta**: Scudo non ha mai codificato soglie di peso per
+l'obbligo formativo — `patentino-attr` è già "sempre richiesto" a
+prescindere dal mezzo, quindi il nuovo accordo (che rende l'obbligo più
+largo, non più stretto) non lo mette in contraddizione con niente di
+scritto. Dichiarato perché una ricerca futura non lo riproponga come
+mancanza.
+
+**Riassunto**: 2 mancanze **confermate** (modalità di erogazione della
+formazione mai tracciata; citazione 22/02/2012 non aggiornata al nuovo
+accordo 2025, con l'onestà che la periodicità corretta non è verificabile
+da qui), 1 candidato **scartato con la misura** (soglia di peso escavatori
+— non applicabile al modello dati di Scudo). Fonti, tutte di seconda mano
+via `WebSearch` (nessuna letta per intero):
+[tutto626.it](https://www.tutto626.it/news/formazione-asincrona-per-la-sicurezza-sul-lavoro-previsioni-e-novita-del-2025-nuovo-accordo-stato-regioni-2025-corso-formatori-videoconferenza-fad-aula-online-corso-formatori-rspp-rls-rlst-preposto-d.html) ·
+[vegaformazione.it](https://www.vegaformazione.it/PB/nuovo-accordo-stato-regioni-formazione-p409.html) ·
+[sicurezza.com — cosa cambia](https://www.sicurezza.com/blog/sicurezza-sul-lavoro-cosa-cambia-nei-corsi-di-formazione-con-il-nuovo-accordo-2025-nuovo-accordo-stato-regioni-2025-realta-virtuale-app-videoconferenza-fad-aula-virtuale-online-corso-formatori-docent.html) ·
+[corsisicurezza.it](https://www.corsisicurezza.it/blog/nuovo-accordo-stato-regioni-2025-cosa-cambia-per-la-formazione.htm) ·
+[sicurgest.it — escavatori](https://www.sicurgest.it/approfondimento/dettaglio/24) ·
+[stefanofarina.it — miniescavatori](https://stefanofarina.it/accordi-formazione-miniescavatori/).
+
+*Ricerca del 17/09/2026. Nessun codice modificato, nessun commit. Due
+proposte confermate col grep; un candidato scartato con la misura invece
+che riproposto.*
