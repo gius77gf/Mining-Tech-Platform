@@ -5782,6 +5782,11 @@ export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
   // confrontare\u00bb per la stessa misura. La stessa lettera si contraddiceva:
   // vero nel corpo, falso nella riga che chi legge in fretta ricorda.
   const senzaSogliaConfrontabile = mis.conLettura > 0 && !pegg;
+  // \u26d4 18/09, dal deep-pass QA: senza una lettura sul punto del RICETTORE del
+  // reclamo, le misure \u00absotto soglia\u00bb di altri punti (altra zona, altra
+  // soglia) non rispondono per lui \u2014 dirlo comunque \u00e8 l'assenza travestita
+  // da dato favorevole. Il caso vale solo quando gli altri punti non hanno
+  // gi\u00e0 dato un allarme vero (superamento/attenzione), che restano prioritari.
   const chiusura = !mis.data || !mis.punti.length || !mis.conLettura
     ? { allarme: true, testo: "Di quel giorno non c'\u00e8 una misura da mostrare: questa risposta non pu\u00f2 dire n\u00e9 sotto n\u00e9 sopra soglia, e deve dirlo." }
     : pegg && pegg.verdetto === "superamento"
@@ -5790,7 +5795,9 @@ export function rispostaReclamo(reclamo, dati = {}, oggi = new Date()) {
         ? { allarme: true, testo: "Quel giorno una misura \u00e8 arrivata vicino alla soglia di riferimento (" + pegg.nome + ")." }
         : senzaSogliaConfrontabile
           ? { allarme: true, testo: "Di quel giorno ci sono misure, ma nessuna ha una soglia con cui confrontarsi: questa risposta non pu\u00f2 dire n\u00e9 sotto n\u00e9 sopra soglia, e deve dirlo." }
-          : { allarme: false, testo: "Le misure di quel giorno sono sotto la soglia di riferimento scelta dall'azienda \u2014 un riferimento tecnico, non un limite di legge." };
+          : mis.ricettoreSenzaLettura
+            ? { allarme: true, testo: "Quel giorno il punto collegato a questo ricettore non ha nessuna lettura: le altre misure della zona sono sotto soglia, ma non rispondono per il punto del reclamante, e questa risposta non pu\u00f2 dirlo per lui." }
+            : { allarme: false, testo: "Le misure di quel giorno sono sotto la soglia di riferimento scelta dall'azienda \u2014 un riferimento tecnico, non un limite di legge." };
   return {
     titolo: "Risposta al reclamo" + (dataOk ? " del " + dataIt(data) : "") + (r.chi ? " \u2014 " + String(r.chi) : ""),
     sezioni, nonMisurati, chiusura,
@@ -5806,7 +5813,7 @@ export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore, ricet
   const chiave = String(r.tipo || "").toLowerCase();
   const tipi = GRANDEZZA_RECLAMO[chiave] || null;
   const grandezza = etichettaReclamo(chiave).toLowerCase();
-  const out = { data: dataISOEsiste(data) ? data : null, tipi, punti: [], conLettura: 0, senzaLettura: 0, peggiore: null, frase: "" };
+  const out = { data: dataISOEsiste(data) ? data : null, tipi, punti: [], conLettura: 0, senzaLettura: 0, peggiore: null, ricettoreSenzaLettura: false, frase: "" };
   if (!out.data) { out.frase = "Reclamo senza una data: la misura di quel giorno non si può cercare."; return out; }
   const ricId = (ricettore && ricettore.id) || r.ricettoreId || null;
   const candidati = (monitoraggi || []).filter(m => m && (!tipi || tipi.includes(String(m.tipo || "").toLowerCase())));
@@ -5839,6 +5846,19 @@ export function misureDelGiornoPerReclamo(reclamo, monitoraggi, ricettore, ricet
   out.conLettura = out.punti.filter(p => p.max != null).length;
   out.senzaLettura = out.punti.length - out.conLettura;
   out.peggiore = out.punti.filter(p => p.ratio != null).sort((a, b) => b.ratio - a.ratio)[0] || null;
+  /* ⛔ 18/09, dal deep-pass QA: `peggiore` sceglie per RAPPORTO valore/soglia
+     su TUTTI i punti della stessa grandezza, senza dare priorità al punto
+     del ricettore che ha fatto il reclamo (`delRicettore`) — l'ordinamento
+     qui sopra lo mette primo per la SCHERMATA, ma `peggiore` lo riordina e
+     perde quella priorità. Un punto diverso, a un confine senza edifici e
+     con una soglia più permissiva, può risultare «conforme» quel giorno
+     mentre il punto del reclamante non ha nessuna lettura — e la lettera di
+     risposta concludeva «sotto soglia» sulla lettura sbagliata, l'assenza
+     travestita da dato favorevole. Qui si dichiara il caso, senza toccare
+     `peggiore`: la chiusura della lettera (`rispostaReclamo`) decide cosa
+     dire quando è vero. */
+  const puntoRicettore = ricId ? out.punti.find(p => p.delRicettore) : null;
+  out.ricettoreSenzaLettura = !!puntoRicettore && puntoRicettore.max == null;
   const nomi = (l) => l.map(p => p.nome).join(", ");
   if (!out.punti.length) {
     out.frase = tipi ? "Nessun punto di misura per " + grandezza + ": la misura di quel giorno non esiste." : "Nessun punto di misura registrato.";

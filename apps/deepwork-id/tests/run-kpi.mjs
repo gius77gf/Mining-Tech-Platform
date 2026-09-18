@@ -1776,7 +1776,14 @@ test("Sentinella · rispostaReclamo: composizione, non calcolo — e dove non c'
   ok(/limite di legge/.test(A.sezioni[1].avviso), "l'avviso dice che il limite è un riferimento tecnico");
   ok(/Fronte Nord/.test(riga("La volata di quel giorno", "Volate registrate")[1]), "la volata di quel giorno: " + riga("La volata di quel giorno", "Volate registrate")[1]);
   eq(riga("Com'era il ricettore prima delle volate", "Sopralluogo preventivo")[1].slice(0, 45), "stato di fatto del 12/03/2026 (Geom. Ferri, p");
-  ok(!A.chiusura.allarme && /sotto la soglia di riferimento/.test(A.chiusura.testo), "e la chiusura non allarma più su un superamento che non c'è: " + A.chiusura.testo);
+  /* ⛔ 18/09, dal deep-pass QA: e QUI c'era il difetto vero, non ancora chiuso
+     dal 15/09 — V1 (il punto del RICETTORE del reclamo, rc1) non ha nessuna
+     lettura quel giorno; V2 (un punto diverso, collegato a rc2, un confine
+     senza edifici con soglia propria più permissiva) è conforme. La chiusura
+     diceva «sotto la soglia» basandosi SOLO su V2: l'assenza della lettura
+     sul punto che conta per questo reclamo, travestita da dato favorevole.
+     Ora dice onestamente che il punto del ricettore non ha risposto. */
+  ok(A.chiusura.allarme && /il punto collegato a questo ricettore non ha nessuna lettura/.test(A.chiusura.testo), "la chiusura non si tranquillizza sul punto sbagliato: " + A.chiusura.testo);
   eq(A.firme, ["Luogo e data", "Il direttore responsabile"]);
   eq(A.nonMisurati, [mis.punti[0].nome + " (nessuna lettura quel giorno)"], "manca solo la lettura di V1");
   // x2: polvere alla scuola, nessuna lettura quel giorno, nessun sopralluogo
@@ -28027,6 +28034,15 @@ console.log("\n— Campo: i file che escono —");
     eq(a.punti[0].verdetto, "nessuna-lettura"); eq(a.punti[1].verdetto, "superamento"); eq(a.punti[1].max, 5.6); eq(a.punti[1].ora, "10:25");
     eq(a.peggiore.id, "v2");
     eq(a.frase, "Quel giorno: Vibrazioni V2 — confine Nord: 5,6 mm/s alle 10:25 — superamento della soglia (soglia 5); nessuna lettura su Vibrazioni V1 — abitato Sud.");
+    /* ⛔ 18/09, dal deep-pass QA: `peggiore` (v2, un punto DIVERSO da quello
+       del ricettore) non deve far dimenticare che il punto del ricettore
+       stesso (v1) non ha risposto quel giorno — è la parte che decide la
+       chiusura della lettera di risposta. */
+    ok(a.ricettoreSenzaLettura, "rc1: il suo punto v1 non ha nessuna lettura quel giorno, anche se v2 ne ha una");
+    ok(!sentinella.misureDelGiornoPerReclamo(D.reclami[0], D.monitoraggi, ric("rc2")).ricettoreSenzaLettura, "rc2 (il ricettore di v2) ha una lettura: falso");
+    ok(!sentinella.misureDelGiornoPerReclamo({ tipo: "vibrazione", data: "2026-07-17" }, D.monitoraggi, null).ricettoreSenzaLettura, "senza nessun ricettore collegato non si può dire che il SUO punto manca");
+    // controprova inline: un ricettore collegato a un punto CON lettura quel giorno → false
+    eq(sentinella.misureDelGiornoPerReclamo({ tipo: "vibrazione", data: "2026-07-17" }, D.monitoraggi, ric("rc2")).ricettoreSenzaLettura, false);
     /* ⛔ E QUEL «SUPERAMENTO» ERA FALSO — trovato il 15/09 da una ricerca
        mirata. V2 è collegato a rc2 (confine Nord, nessun edificio, soglia
        propria 20 mm/s): la schermata Monitoraggi lo sa (`conSoglia`) e per
