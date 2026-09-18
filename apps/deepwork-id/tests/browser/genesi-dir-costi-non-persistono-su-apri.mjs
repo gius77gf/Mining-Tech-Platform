@@ -1,53 +1,44 @@
-/* UN TRATTO DISEGNATO SU UN PROGETTO NON RESTA ATTACCATO ALLA VOLATA
-   APERTA DOPO
+/* LA DIREZIONE D'INNESCO E I QUATTRO COSTI NON RESTANO ATTACCATI ALLA
+   VOLATA APERTA DOPO — STESSA FAMIGLIA DI D2.tratti
    ───────────────────────────────────────────────────────────────────────
    Uso:
-     node genesi-tratti-non-persistono-su-apri.mjs [--porta=8613]
-     node genesi-tratti-non-persistono-su-apri.mjs --controprova  (rimette il
-                                                     difetto: DEVE fallire)
+     node genesi-dir-costi-non-persistono-su-apri.mjs [--porta=8614]
+     node genesi-dir-costi-non-persistono-su-apri.mjs --controprova  (rimette
+                                                     il difetto: DEVE fallire)
 
-   PERCHÉ ESISTE (18/09, quarto giro di deep-pass, agente a4a466a27e1e80730).
-   Il gestore «Apri» (`apps/genesi/genesi.html`, dentro il click su
-   `.hg-item button[data-act="apri"]`) azzera esplicitamente `D2.holes`,
-   `D2.sel`/`selPt`/`selPrev` e `D2.magliaAssente` — ma non toccava mai
-   `D2.tratti`. Un tratto disegnato a mano (o importato da DXF) su un
-   progetto sopravviveva ad "Apri" e finiva attaccato alla volata appena
-   aperta, senza nessun avviso; se a quel punto si preme «Salva», il tratto
-   estraneo diventa permanente nel record della volata (`volSnapshot` scrive
-   `tratti:D2.tratti||[]`).
-   Stessa famiglia già chiusa per `D2.magliaAssente` (G37, 14/09): uno stato
-   che il gestore di apertura non azzera esplicitamente sopravvive
-   all'apertura di un'altra volata.
-
-   Il caso si costruisce nella via VERA (localStorage → Home → «Apri»),
-   come `genesi-maglia-assente.mjs`: si inietta un tratto direttamente in
-   `D2.tratti` (via l'aggancio di debug `window.__genesi.D2`, che è lo
-   stesso oggetto disegnato a schermo — equivalente a disegnarlo col mouse,
-   più stabile di simulare due clic sulla tela), poi si preme «Apri» su una
-   volata il cui `design` NON porta `tratti` (la forma di ogni volata
-   salvata prima del 16/09, quando il campo è stato introdotto). */
+   PERCHÉ ESISTE (18/09, secondo giro di deep-pass su Genesi, agente
+   af3a9e76d85847662). `D2.dir` (direzione d'innesco: decide `cd` in
+   `sequenzaSuMaglia`, quindi il `tDet` di OGNI foro con sequenza diagonale,
+   e viene copiato in `P.dir` per il 3D) e i quattro costi
+   (`cPerf`/`cExpl`/`cInnesco`/`valMat`, input veri del form — stessa card
+   di B/S/diam, letti dalla "Stima economica" del 3D) non erano MAI salvati
+   nell'oggetto `design` di `volSnapshot`, e il gestore «Apri» non li
+   azzerava — stessa identica famiglia di `D2.tratti`, corretta ieri
+   (commit 31d5bfa3): `Object.assign(D2, design)` non tocca un campo che
+   il design non porta, quindi restava quello dell'ultima volata toccata
+   in sessione.
+   Caso concreto: si alza «Valore materiale» a 25 €/t guardando la volata
+   A, poi si apre la volata B (senza reload). Senza il fix, `D2.valMat`
+   resta 25 e la sezione «Margine» di B lo mostra come se qualcuno l'avesse
+   impostato per B. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
 
 const R = process.env.DW_RADICE || "/home/user/Mining-Tech-Platform";
 const CONTROPROVA = process.argv.includes("--controprova");
-const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8613;
+const PORTA = Number((process.argv.find((a) => a.startsWith("--porta=")) || "").split("=")[1]) || 8614;
 const TIPI = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png",
   ".glb": "model/gltf-binary", ".obj": "text/plain", ".wasm": "application/wasm",
   ".webmanifest": "application/manifest+json" };
 
-/* LA CONTROPROVA: toglie la riga di reset, tornando alla forma di prima
-   del 18/09 — nessun azzeramento di D2.tratti su "Apri".
-   ⏱️ RI-ANCORATA il 18/09 stesso, secondo giro di deep-pass: fra questa riga
-   e `computeSeq2D()` si è inserito il reset di dir/costi (stessa famiglia,
-   chiusa nella stessa giornata) — il codice si è mosso perché è migliorato,
-   l'ancora punta solo alla riga di `D2.tratti`, non più alla coppia. */
+/* LA CONTROPROVA: toglie il fallback esplicito su "Apri", tornando alla
+   forma di prima — nessun azzeramento di dir/cPerf/cExpl/cInnesco/valMat. */
 const DIFETTI = [
   ["apps/genesi/genesi.html",
-   "    D2.tratti=((arr[i].design&&arr[i].design.tratti)||[]).map(t=>({ ...t, pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));\n",
-   ""],
+   "    const _dsg=arr[i].design||{};\n    D2.dir=_dsg.dir||'sx';\n    D2.cPerf=(_dsg.cPerf!=null&&isFinite(_dsg.cPerf))?+_dsg.cPerf:8;\n    D2.cExpl=(_dsg.cExpl!=null&&isFinite(_dsg.cExpl))?+_dsg.cExpl:1.5;\n    D2.cInnesco=(_dsg.cInnesco!=null&&isFinite(_dsg.cInnesco))?+_dsg.cInnesco:12;\n    D2.valMat=(_dsg.valMat!=null&&isFinite(_dsg.valMat))?+_dsg.valMat:0;\n    if(D2.holes.length) computeSeq2D();",
+   "    if(D2.holes.length) computeSeq2D();"],
 ];
 
 const colpiti = new Set();
@@ -69,10 +60,10 @@ const srv = createServer((q, s) => {
 });
 await new Promise((r, x) => { srv.once("error", x); srv.listen(PORTA, r); });
 
-const SEGNO = join(R, "__genesi-tratti-apri-" + process.pid);
+const SEGNO = join(R, "__genesi-dir-costi-apri-" + process.pid);
 writeFileSync(SEGNO, String(process.pid));
 try {
-  const eco = await (await fetch(`http://127.0.0.1:${PORTA}/__genesi-tratti-apri-${process.pid}`)).text();
+  const eco = await (await fetch(`http://127.0.0.1:${PORTA}/__genesi-dir-costi-apri-${process.pid}`)).text();
   if (eco.trim() !== String(process.pid)) {
     console.error(`✗ sulla porta ${PORTA} risponde un ALTRO server: misurerei la sua copia.`);
     process.exit(2);
@@ -88,11 +79,11 @@ const dice = (c, t, x) => {
   else { ko++; console.log(`  KO  ${t}${x !== undefined ? `\n        -> ${JSON.stringify(String(x).slice(0, 200))}` : ""}`); }
 };
 
-/* v1: la forma di UNA VOLATA SALVATA PRIMA DEL 16/09 — nessun campo
-   `tratti` nel design. Se il gestore di apertura si limitasse a NON
-   toccare D2.tratti quando il design non ne ha, un tratto disegnato prima
-   di "Apri" resterebbe — è esattamente il caso da prendere. */
-const DESIGN_SENZA_TRATTI = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9, file: 1, perRow: 4,
+/* v1: la forma di UNA VOLATA SALVATA PRIMA DI QUESTA UNITÀ — nessun campo
+   dir/cPerf/cExpl/cInnesco/valMat nel design. Se "Apri" si limitasse a non
+   toccare quei campi quando il design non li porta, i valori dell'ultima
+   volata toccata in sessione resterebbero — è esattamente il caso da prendere. */
+const DESIGN_SENZA_DIR_COSTI = { B: 3, S: 3.5, diam: 102, prof: 10, kg: 58, stem: 2.2, sub: 0.9, file: 1, perRow: 4,
   esplosivo: "anfo-standard", innesco: "nonel", roccia: "calcare", frat: "media",
   bagnato: false, presplit: false, psSpacing: 0.9, psCharge: 0.4, ucs: 100, eMod: 55,
   sequenza: "diagonale", ritardo: 42, ritardoFila: 84, recNorma: "din-res", recFreq: 25, recDist: 300 };
@@ -101,9 +92,9 @@ const pg = await b.newPage({ viewport: { width: 430, height: 950 } });
 const errori = []; pg.on("pageerror", (e) => errori.push(e.message));
 await pg.addInitScript((dd) => {
   localStorage.setItem("genesiDisclaimerV1", "1");
-  localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord (vecchia, senza tratti)",
+  localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v1", nome: "Fronte Nord (vecchia, senza dir/costi)",
     data: "2026-07-12", sintesi: "4 fori", design: dd }]));
-}, DESIGN_SENZA_TRATTI);
+}, DESIGN_SENZA_DIR_COSTI);
 await pg.route("https://www.gstatic.com/**", (r) => r.abort());
 await pg.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
 await pg.waitForTimeout(2200);
@@ -118,14 +109,17 @@ const aggancio = await pg.evaluate(() => !!window.__genesi);
 if (!aggancio) {
   nonMisurati.push("l'aggancio di debug window.__genesi non c'è");
 } else {
-  /* si inietta il tratto direttamente nell'oggetto disegnato a schermo —
-     equivalente a disegnarlo col mouse (stesso D2 che drawDesign2D legge),
-     ma stabile e senza dipendere dalle coordinate della tela */
-  const primaN = await pg.evaluate(() => {
-    window.__genesi.D2.tratti.push({ pts: [{ x: 1, y: 1 }, { x: 5, y: 5 }], aperto: false, origine: "manuale" });
-    return window.__genesi.D2.tratti.length;
+  /* si simula "l'ultima volata toccata in sessione": si scrivono valori
+     diversi dai default direttamente nell'oggetto disegnato a schermo —
+     equivalente a cambiare direzione e alzare i costi coi campi del form */
+  const primaVal = await pg.evaluate(() => {
+    window.__genesi.D2.dir = "dx";
+    window.__genesi.D2.cPerf = 99; window.__genesi.D2.cExpl = 88;
+    window.__genesi.D2.cInnesco = 77; window.__genesi.D2.valMat = 66;
+    return { dir: window.__genesi.D2.dir, cPerf: window.__genesi.D2.cPerf, valMat: window.__genesi.D2.valMat };
   });
-  dice(primaN === 1, "il tratto è stato iniettato nel progetto corrente (1 tratto)", primaN);
+  dice(primaVal.dir === "dx" && primaVal.cPerf === 99 && primaVal.valMat === 66,
+    "i valori di prova sono stati scritti nel progetto corrente", primaVal);
 
   await pg.evaluate(() => {
     const it = document.querySelector('.hg-item[data-id="v1"]');
@@ -136,30 +130,32 @@ if (!aggancio) {
 
   const st = await pg.evaluate(() => ({
     navigato: document.body.className.includes("scr-design"),
-    tratti: window.__genesi.D2.tratti.length,
+    dir: window.__genesi.D2.dir, cPerf: window.__genesi.D2.cPerf, cExpl: window.__genesi.D2.cExpl,
+    cInnesco: window.__genesi.D2.cInnesco, valMat: window.__genesi.D2.valMat,
   }));
   if (!st.navigato) {
     nonMisurati.push("la volata non si è aperta nel 2D");
   } else {
     dice(errori.length === 0, "nessun errore di pagina", errori[0]);
-    dice(st.tratti === 0, "⛔ il tratto del progetto precedente NON resta attaccato alla volata appena aperta (design senza tratti → 0)", st.tratti);
+    dice(st.dir === "sx", "⛔ la direzione d'innesco NON resta quella del progetto precedente (design senza dir → 'sx', il default)", st.dir);
+    dice(st.cPerf === 8 && st.cExpl === 1.5 && st.cInnesco === 12 && st.valMat === 0,
+      "⛔ e nemmeno i quattro costi: tornano ai default del progetto, non restano 99/88/77/66", st);
   }
 }
 await pg.close();
 
-/* e il verso opposto: una volata che HA i suoi tratti li porta, non li
-   perde — una difesa che azzerasse SEMPRE sarebbe peggio del difetto */
-console.log("\n· il verso opposto: una volata coi propri tratti salvati li ritrova aperti");
+/* e il verso opposto: una volata che HA i suoi dir/costi salvati li porta,
+   non li perde — una difesa che azzerasse SEMPRE sarebbe peggio del difetto */
+console.log("\n· il verso opposto: una volata coi propri dir/costi salvati li ritrova aperti");
 {
-  const DESIGN_CON_TRATTI = { ...DESIGN_SENZA_TRATTI,
-    tratti: [{ pts: [{ x: 2, y: 2 }, { x: 9, y: 9 }], aperto: false, origine: "manuale" }] };
+  const DESIGN_CON_DIR_COSTI = { ...DESIGN_SENZA_DIR_COSTI, dir: "dx", cPerf: 15, cExpl: 3, cInnesco: 20, valMat: 5.5 };
   const pg2 = await b.newPage({ viewport: { width: 430, height: 950 } });
   const errori2 = []; pg2.on("pageerror", (e) => errori2.push(e.message));
   await pg2.addInitScript((dd) => {
     localStorage.setItem("genesiDisclaimerV1", "1");
-    localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v2", nome: "Fronte Est (coi suoi tratti)",
+    localStorage.setItem("genesiVolate", JSON.stringify([{ id: "v2", nome: "Fronte Est (coi suoi dir/costi)",
       data: "2026-07-13", sintesi: "4 fori", design: dd }]));
-  }, DESIGN_CON_TRATTI);
+  }, DESIGN_CON_DIR_COSTI);
   await pg2.route("https://www.gstatic.com/**", (r) => r.abort());
   await pg2.goto(`http://127.0.0.1:${PORTA}/apps/genesi/genesi.html`, { waitUntil: "domcontentloaded" });
   await pg2.waitForTimeout(2200);
@@ -181,13 +177,14 @@ console.log("\n· il verso opposto: una volata coi propri tratti salvati li ritr
     await pg2.waitForTimeout(1200);
     const st2 = await pg2.evaluate(() => ({
       navigato: document.body.className.includes("scr-design"),
-      tratti: window.__genesi.D2.tratti.length,
-      pts: window.__genesi.D2.tratti[0] ? window.__genesi.D2.tratti[0].pts.length : -1,
+      dir: window.__genesi.D2.dir, cPerf: window.__genesi.D2.cPerf, cExpl: window.__genesi.D2.cExpl,
+      cInnesco: window.__genesi.D2.cInnesco, valMat: window.__genesi.D2.valMat,
     }));
     if (!st2.navigato) nonMisurati.push("il verso opposto: la volata non si è aperta nel 2D");
     else {
       dice(errori2.length === 0, "il verso opposto: nessun errore di pagina", errori2[0]);
-      dice(st2.tratti === 1 && st2.pts === 2, "il verso opposto: il tratto salvato è arrivato (1 tratto, 2 punti)", st2);
+      dice(st2.dir === "dx" && st2.cPerf === 15 && st2.cExpl === 3 && st2.cInnesco === 20 && st2.valMat === 5.5,
+        "il verso opposto: dir e i quattro costi salvati sono arrivati intatti", st2);
     }
   }
   await pg2.close();
@@ -198,6 +195,6 @@ if (nonMisurati.length) {
   console.log("   Un soggetto non misurato non è un soggetto a posto: il banco non esce zero.");
 }
 if (CONTROPROVA) console.log(`\n(iniezioni: ${colpiti.size}/${DIFETTI.length} hanno trovato il loro pezzo)`);
-console.log(`\nRisultato tratti su "Apri" di Genesi: ${ok} passati, ${ko} falliti`);
+console.log(`\nRisultato dir/costi su "Apri" di Genesi: ${ok} passati, ${ko} falliti`);
 await b.close(); srv.close();
 if (nonMisurati.length || (!CONTROPROVA && ko > 0) || (CONTROPROVA && ko === 0)) process.exit(CONTROPROVA ? (ko === 0 ? 1 : 0) : (nonMisurati.length || ko > 0 ? 1 : 0));

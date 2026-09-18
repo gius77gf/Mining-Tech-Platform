@@ -171,6 +171,11 @@ const DIFETTI = [
   // 12 · e il borraggio, la quarta metà di G21 mancata al primo giro (17/09,
   //      secondo giro di deep-pass): usciva nel file da mesi, nessuno lo rileggeva
   [`D2.stem = valoreCampo(parseFloat(geom.borraggio_m), D2.stem, 0.5, 6);`, ``],
+  // 13 · il .volata.json su multi-fila: "file:1" a prescindere dalle file vere
+  //      (18/09, secondo giro di deep-pass) — dedicata, prima esercitata solo
+  //      di riflesso dal difetto 4 (lo scatter dell'export)
+  [`geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:Math.max(1, D2.file||1) },`,
+   `geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },`],
 ];
 
 const colpiti = new Set();
@@ -584,6 +589,31 @@ console.log("\n· il .volata.json, e il giro di andata e ritorno della geometria
     "⛔ e il campo Borraggio, aperta la scheda di progettazione, mostra 4,5 (non il default rimasto in memoria)", stemCampo);
   dice(pg2.__err.length === 0, "la pagina non solleva errori", pg2.__err[0]);
   await pg2.close();
+}
+
+// ── 4ter · IL .volata.json SU UN PROGETTO MULTI-FILA: LA FILA, NON PIÙ "file:1" ─
+console.log("\n· il .volata.json su un progetto a più file (18/09, secondo giro di deep-pass)");
+{
+  /* ⛔ prima di questa unità l'export scriveva sempre `geometria.file:1` e
+     nessun foro portava la sua fila (`SIM.fori[].zoff`, calcolato apposta dal
+     progetto 2D per disegnare le file in profondità, era ignorato): un
+     progetto a 3 file usciva come 12 fori allineati su un'unica riga verso il
+     "gestionale Deepwork" esterno. */
+  const pg = await apri(SITO_TRE, { ...BASE, file: 3, perRow: 4 });
+  await pg.click("#d2-cta").catch(() => {}); await pg.waitForTimeout(1500);
+  const jsonTx = await esce(pg, "btnExport", "volata JSON (multi-fila)");
+  const j = JSON.parse(jsonTx || "{}");
+  numeriConfrontati += 2;
+  dice(j.volata && j.volata.geometria && +j.volata.geometria.file === 3,
+    "⛔ il file esportato dichiara le TRE file del progetto, non «1» a prescindere",
+    j.volata && j.volata.geometria);
+  const file = ((j.volata && j.volata.fori) || []).map((f) => f.fila);
+  const distinte = new Set(file);
+  dice(file.length === 12 && distinte.size === 3 && [...distinte].sort().join() === "1,2,3",
+    "⛔ ogni foro porta la SUA fila (tre file distinte, 1/2/3), non tutti sulla stessa riga",
+    JSON.stringify(file));
+  dice(pg.__err.length === 0, "la pagina non solleva errori", pg.__err[0]);
+  await pg.close();
 }
 
 // ── 5 · LA MODALE DEL COMPOSITO: NESSUN NUMERO ALL'INGLESE ───────────────

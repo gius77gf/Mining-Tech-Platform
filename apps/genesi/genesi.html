@@ -3129,14 +3129,27 @@ $('btnExport').onclick = ()=>{
   const _vj=(x)=>{ const n=(x===null||x===undefined||x==='')?NaN:+x; return Number.isFinite(n)?n:null; };
   /* l'id è quello del progetto 2D quando c'è (f1-3, m1); `foro_n` resta per la
      dimostrazione manuale a una fila, che i fori non li ha battezzati */
+  /* ⛔ 18/09, dal secondo giro di deep-pass: `file:1` era un letterale, mai
+     `D2.file` — e nessun foro portava la sua fila. Il dato ESISTE già:
+     `P.holes`/`SIM.fori` porta `zoff` (l'offset di burden della fila,
+     calcolato dal progetto 2D multi-fila apposta per disegnare le file in
+     profondità), e la fila si ricava da lui con la STESSA formula già usata
+     per il pannello «Foro N · fila M» (`holeInfoShow`), non una nuova.
+     Un'esportazione di una volata a 3 file dichiarava «file:1» e 24 fori
+     allineati su un'unica riga: il sistema esterno che riceve il file
+     ("Col gestionale Deepwork lo scambio resta a file .volata.json") non
+     aveva modo di sapere che la volata reale aveva più righe. L'IMPORT
+     resta volutamente a una riga sola (P è single-row per il 3D, decisione
+     già presa e commentata più sopra): questo fix riguarda solo l'onestà
+     del file che ESCE verso il sistema terzo. */
   const fori = SIM.fori.map(f=>({ id:f.id||('foro_'+(f.i+1)), num:f.i+1, x:+f.x.toFixed(2), prof:_vj(f.prof)!==null?_vj(f.prof):_vj(P.prof), diam:P.diam,
     kg:P.kg, esplosivo:(selEsplosivo()||{}).nome||'',
     ritardo:+((f.tNom!=null?f.tNom:f.tDet)||0).toFixed(1),
-    innesco:(selInnesco()||{}).short||'', sequenza:f.i+1 }));
+    innesco:(selInnesco()||{}).short||'', sequenza:f.i+1, fila:Math.round((f.zoff||0)/Math.max(1,SPALLA))+1 }));
   const out = { schemaV:1, tipo:'volata-deepwork',
     volata:{ id:'vol_demo_genesi', sitoId:null, tipo:'cava', numero:1, data:oggiISO(),
       fronte:{ lunghezza_m:SIM.Lm, altezza_m:SIM.H, profilo:(P.profilo||[]).map(p=>({x:+p.x.toFixed(2),y:+p.z.toFixed(2)})) },
-      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:1 },
+      geometria:{ spalla_m:SPALLA, interasse_m:INTERASSE, borraggio_m:D2.stem, file:Math.max(1, D2.file||1) },
       default:{ diametro_mm:P.diam, profondita_m:P.prof, esplosivo:(selEsplosivo()||{}).nome||'', ritardo_ms:P.ritardo, innesco:(selInnesco()||{}).short||'' },
       fori, connessioni:[] },
     sim:{ frontePath:null, fronteFormato:null,
@@ -5190,7 +5203,16 @@ function volSnapshot(nome){
         +' · '+(k.fragCalcolabile?'X50 '+gnum(k.x50,0)+' cm':'X50 non calcolabile'); }catch(e){}
   return { id:'v'+Date.now(), nome:nome,
     data:timbroLocale(),
-    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
+    design:JSON.parse(JSON.stringify({B:D2.B,S:D2.S,file:D2.file,perRow:D2.perRow,diam:D2.diam,prof:D2.prof,kg:D2.kg,kgAuto:D2.kgAuto,ritardo:D2.ritardo,ritardoFila:D2.ritardoFila,stem:D2.stem,sub:D2.sub,incl:D2.incl,
+      /* ⛔ 18/09, dal secondo giro di deep-pass: `dir` (direzione d'innesco,
+         decide `cd` in sequenzaSuMaglia e quindi il tDet di OGNI foro con
+         sequenza diagonale) e i quattro costi (cPerf/cExpl/cInnesco/valMat,
+         input veri del form — stessa card di B/S/diam) non erano MAI salvati
+         col progetto, stessa identica famiglia di `D2.tratti` appena chiusa:
+         `Object.assign` su "Apri" non li tocca se il design non li porta,
+         quindi restavano quelli dell'ultima volata toccata in sessione. */
+      dir:D2.dir,cPerf:D2.cPerf,cExpl:D2.cExpl,cInnesco:D2.cInnesco,valMat:D2.valMat,
+      esplosivo:D2.esplosivo,innesco:D2.innesco,roccia:D2.roccia,ucs:D2.ucs,eMod:D2.eMod,frat:D2.frat,bagnato:D2.bagnato,acquaCol:D2.acquaCol,presplit:D2.presplit,psSpacing:D2.psSpacing,psCharge:D2.psCharge,sequenza:D2.sequenza,recDist:D2.recDist,recNorma:D2.recNorma,recFreq:D2.recFreq,decks:D2.decks,deckStem:D2.deckStem,profilo:D2.profilo,piede:D2.piede,
       /* i FORI (05/09): id, posizione e il ritardo a mano. Niente tDet/seq/
          relief, che si ricalcolano. Senza questa riga un foro tolto a mano
          ricompariva alla riapertura. */
@@ -5330,6 +5352,18 @@ if($('hgVolate')) $('hgVolate').addEventListener('click',async e=>{
        usata per annulla/ripeti (`d2ApplySnap`): un design senza `tratti`
        (volata salvata prima del 16/09) svuota, non eredita. */
     D2.tratti=((arr[i].design&&arr[i].design.tratti)||[]).map(t=>({ ...t, pts:(t.pts||[]).map(p=>({...p})), aperto:!!t.aperto }));
+    /* ⛔ 18/09, dal secondo giro di deep-pass: STESSA FAMIGLIA di `tratti` qui
+       sopra — `dir` e i quattro costi non erano salvati col progetto (fix
+       appena sopra in `volSnapshot`), quindi qui `Object.assign` non li
+       tocca MAI su una volata salvata prima di questa unità, e restano
+       quelli dell'ultima volata aperta in sessione invece di tornare al
+       default del progetto. Fallback esplicito, non ereditato. */
+    const _dsg=arr[i].design||{};
+    D2.dir=_dsg.dir||'sx';
+    D2.cPerf=(_dsg.cPerf!=null&&isFinite(_dsg.cPerf))?+_dsg.cPerf:8;
+    D2.cExpl=(_dsg.cExpl!=null&&isFinite(_dsg.cExpl))?+_dsg.cExpl:1.5;
+    D2.cInnesco=(_dsg.cInnesco!=null&&isFinite(_dsg.cInnesco))?+_dsg.cInnesco:12;
+    D2.valMat=(_dsg.valMat!=null&&isFinite(_dsg.valMat))?+_dsg.valMat:0;
     if(D2.holes.length) computeSeq2D();
     fillEsplSelects();
     /* ⛔ QUESTA È LA PORTA da cui entrano i dati che nessuno ha controllato —
