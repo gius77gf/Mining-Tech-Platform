@@ -1144,6 +1144,11 @@ const BANCHI = [
      modulo e uno nella pagina, applicati per file. */
   ['le condizioni meteo di Sentinella, dal file e a mano', 'sentinella-meteo-import.mjs', []],
   ['condizioni meteo · controprova', 'sentinella-meteo-import.mjs', ['--controprova'], true],
+  /* ⛔ AGGIUNTO IL 18/09, secondo giro di deep-pass QA: reclami, scadenze,
+     punti di misura e ricettori sono tutti scritture pure senza nessun
+     controllo di doppione — verificato dal vivo su tutti e quattro. */
+  ['Sentinella: reclami/scadenze/punti-di-misura/ricettori si spengono durante il salvataggio', 'sentinella-bottoni-occupato.mjs', []],
+  ['bottoni occupato di Sentinella · controprova', 'sentinella-bottoni-occupato.mjs', ['--controprova'], true],
   /* 05/09 (notte) · il ponte 3e: Genesi → Sentinella senza il file. Due pagine
      nello stesso browser: «per Sentinella» scrive la prevista nella collezione,
      il registro di Sentinella la mostra e la accoglie con gli stessi numeri;

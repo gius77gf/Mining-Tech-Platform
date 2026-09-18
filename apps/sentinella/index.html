@@ -5458,7 +5458,12 @@ textarea.dw-input{
       if (gcTesto !== "") { const gc = Math.round(+gcTesto);
         if (Number.isFinite(gc) && gc >= 0) rec.giorniConsegna = gc; } }
     if (adeAlleg) { rec.allegatoNome = adeAlleg.nome; rec.allegatoData = adeAlleg.dataURL; }
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia (il controllo di doppione
+       esiste solo sul percorso di import CSV, non qui) — confermato dal
+       vivo, un doppio tocco registra due adempimenti identici. */
+    occupato("btn-ade", true);
     await db.aggiungi("adempimenti", rec);
+    occupato("btn-ade", false);
     const conAlleg = !!adeAlleg;
     const perNuovo = descriviPeriodoAdempimento(rec);
     $("ade-titolo").value = ""; $("ade-ente").value = ""; $("ade-data").value = "";
@@ -5583,13 +5588,21 @@ textarea.dw-input{
        riscritta a mano non ha più la banda del preset, e `frequenzaFuoriBanda`
        lo dice invece di giudicare con una banda che non vale */
     const scelto = $("sen-preset") && $("sen-preset").value ? $("sen-preset").value : "";
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia sul percorso "aggiungi" —
+       confermato dal vivo, un doppio tocco crea due punti di misura
+       identici. `occupato(false)` va PRIMA di riscrivere l'etichetta del
+       bottone nel ramo di modifica, se no il testo catturato al tocco
+       ("Salva modifica") cancella il cambio di modo appena fatto. */
+    occupato("btn-sen", true);
     if (editMon) {
       const prima = MON.find(x => x.id === editMon) || {};
       const sogliaPreset = scelto || (prima.sogliaPreset && +prima.soglia === soglia && String(prima.unita || "") === unita ? prima.sogliaPreset : null);
       await db.aggiorna("monitoraggi", editMon, { nome, unita, soglia, ricettoreId, sogliaPreset, scartoCalibrazioneDb });   // valore/letture restano
+      occupato("btn-sen", false);
       editMon = null; $("btn-sen").textContent = "Aggiungi";
     } else {
       await db.aggiungi("monitoraggi", { nome, unita, soglia, ricettoreId, sogliaPreset: scelto || null, scartoCalibrazioneDb, valore: 0, letture: [] });
+      occupato("btn-sen", false);
     }
     $("sen-nome").value = ""; $("sen-unita").value = ""; $("sen-soglia").value = ""; $("sen-scarto").value = ""; $("sen-ricettore").value = "";
     $("sen-preset").value = ""; $("sen-preset-nota").style.display = "none"; $("sen-preset-nota").textContent = "";
@@ -6127,8 +6140,14 @@ textarea.dw-input{
       distanza: haDist ? dist : null, soglia: haSog ? sog : null,
       unita, nota: $("ric-nota").value.trim(),
       statoDiFatto: sdfData ? { data: sdfData, chi: sdfChi, note: sdfNote } : null };
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia sul percorso "aggiungi" —
+       confermato dal vivo, un doppio tocco crea due ricettori identici.
+       `occupato(false)` va PRIMA di `svuotaFormRic()`, che riscrive
+       l'etichetta del bottone leggendo `editRic` appena azzerato. */
+    occupato("btn-ric", true);
     if (editRic) await db.aggiorna("ricettori", editRic, dati);
     else await db.aggiungi("ricettori", dati);
+    occupato("btn-ric", false);
     const modificato = !!editRic;
     svuotaFormRic();
     esito("ric-esito-form", `Ricettore «${nome}» ${modificato ? "aggiornato" : "aggiunto"}.` +
@@ -6152,11 +6171,15 @@ textarea.dw-input{
     if (!desc) { err("rec-desc", true); fuocoErr(["rec-desc"]);
       esito("rec-esito", "Scrivi cosa è stato segnalato, con le parole di chi ha chiamato: è la parte che conta davanti all'ente.", "err", "Scrivi cosa è stato segnalato."); return; }
     err("rec-data", false); err("rec-desc", false);
+    /* ⛔ 18/09, dal deep-pass QA: nessuna guardia — confermato dal vivo, un
+       doppio tocco registra due reclami identici. */
+    occupato("btn-rec", true);
     await db.aggiungi("reclami", {
       data, ora: $("rec-ora").value || "", tipo: $("rec-tipo").value,
       ricettoreId: $("rec-ricettore").value || "", chi: $("rec-chi").value.trim(),
       descrizione: desc, azione: $("rec-azione").value.trim(), stato: "aperto",
     });
+    occupato("btn-rec", false);
     ["rec-ora","rec-chi","rec-desc","rec-azione"].forEach(i => $(i).value = "");
     esito("rec-esito", "Reclamo del " + fmtD(data) + " registrato. Resta APERTO finché non lo segni chiuso, e comparirà nel report di conformità di quel periodo.",
       "success", "Reclamo del " + fmtD(data) + " registrato.");
