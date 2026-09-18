@@ -967,7 +967,21 @@ body.dw b.bad{color:var(--ink-dg)}
     <select class="dw-input" id="ore-mezzo" style="flex:2 1 170px;"></select>
     <input class="dw-input" id="ore-nuove" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Ore attuali" title="Ore che legge adesso il contatore: la virgola va benissimo (1234,5)." style="flex:1 1 130px;font-variant-numeric:tabular-nums;">
     <button class="dw-btn" id="btn-ore">Registra</button>
-    <div class="form-hint">Il contatore delle ore non può mai scendere: se sbagli a digitare, l'app te lo dice invece di salvare un valore falso.</div>
+    <!-- ⛔ 18/09, dal quarto giro di deep-pass QA: senza questa via il
+         contatore sostituito o azzerato non aveva NESSUN modo onesto di
+         entrare da qui — «il contatore non può scendere» respingeva anche
+         un numero corretto, l'unica via d'uscita era passare dal
+         Rifornimento (che ha questa stessa dichiarazione). Stessa forma di
+         `rif-nuovo`: dichiarandolo si scrive anche un rifornimento a zero
+         litri con `contatoreNuovo`, perché è lì — non su una lista a sé sul
+         mezzo — che `azzeramentiDelMezzo` legge l'evento (vedi il blocco
+         «IL CONTATORE SOSTITUITO O AZZERATO» in flotta-data.js). -->
+    <label class="toggle-row" for="ore-nuovo" title="Segna qui se il contaore è stato sostituito o azzerato: le ore possono essere più basse di prima, e il consumo e il ritmo d'uso ripartono da qui.">
+      <div><div class="tog-name">Contatore nuovo o azzerato</div>
+        <div class="tog-sub">Se il contaore è stato sostituito o azzerato, le ore possono essere più basse di prima: il consumo e il ritmo d'uso ripartono da questa lettura.</div></div>
+      <span class="toggle"><input type="checkbox" id="ore-nuovo"><span class="toggle-slider"></span></span>
+    </label>
+    <div class="form-hint">Il contatore delle ore non può scendere senza dichiararlo qui sopra: se sbagli a digitare, l'app te lo dice invece di salvare un valore falso.</div>
   </div>
   <div class="tools">
     <button class="dw-btn secondary" id="btn-mez-import">Importa parco (CSV)</button>
@@ -4657,6 +4671,28 @@ body.dw b.bad{color:var(--ink-dg)}
     const rmo = leggiNumero("mez-ore", "le ore del contatore", { min: 0, decimali: 1, unita: "h", facoltativo: true }, "ore-esito");
     if (!rmo.ok && !rmo.vuoto) return;
     const ore = rmo.ok ? rmo.valore : null;
+    /* ⛔ 18/09, dal quarto giro di deep-pass QA: QUESTO era l'unico dei
+       quattro posti che scrivono `mezzi.ore` senza nessuna guardia — il
+       rifornimento e l'import telemetria rifiutano una discesa non
+       dichiarata, «Registra ore» adesso la dichiara con la sua checkbox
+       (vedi sopra); «Modifica mezzo» scriveva qualunque numero, e una
+       discesa qui non crea nessun azzeramento: `azzeramentiDelMezzo` non la
+       vede, quindi `consumoPerMezzo`/`ritmoOreMezzi`/`vitaComponenti`
+       restano ancorati alla serie vecchia mentre il contatore del mezzo è
+       già sceso — due fonti scollegate senza che nulla lo dichiari. Non è
+       il posto giusto per aggiungere la stessa dichiarazione (è un form
+       generico di anagrafica, non un evento di lettura): una discesa vera
+       si registra da «Registro ore», che quella dichiarazione ce l'ha. */
+    if (editMez && ore != null) {
+      const prima = MEZ.find(x => x.id === editMez);
+      if (prima && numeroDichiarato(prima.ore) != null && ore < prima.ore) {
+        err("mez-ore", true);
+        esito("ore-esito", "Hai scritto " + conta(ore, "ora", "ore") + ", ma il mezzo ne ha già " + numTx(prima.ore)
+          + ": qui il contatore non può scendere. Se è stato davvero sostituito o azzerato, dichiaralo da «Registro ore» qui sotto, non da questo modulo.", "err");
+        fuoco("mez-ore"); return;
+      }
+      err("mez-ore", false);
+    }
     // il costo di possesso (11/09): facoltativo, ma se è scritto dev'essere un numero > 0 — zero non è un canone
     const rpo = leggiNumero("mez-possesso", "il costo di possesso all'anno", { positivo: true, decimali: 2, unita: "€", facoltativo: true }, "ore-esito");
     if (!rpo.ok && !rpo.vuoto) return;
@@ -4695,13 +4731,32 @@ body.dw b.bad{color:var(--ink-dg)}
       messaggi: { vuoto: "Scrivi le ore che legge adesso il contatore del mezzo." } }, "ore-esito");
     if (!rno.ok) return;
     const ore = rno.valore;
-    if (ore < (m.ore||0)) { err("ore-nuove", true);
-      esito("ore-esito", "Hai scritto " + conta(ore, "ora", "ore") + ", ma il mezzo ne ha già " + numTx(m.ore||0) + ": il contatore non può scendere. Controlla il numero.", "err");
+    const contatoreNuovo = $("ore-nuovo").checked;
+    /* ⛔ 18/09, dal quarto giro di deep-pass QA: senza `contatoreNuovo` questo
+       widget era l'unico posto della pagina senza una via d'uscita onesta
+       per il contatore sostituito — un numero corretto veniva respinto allo
+       stesso modo di un refuso. */
+    if (!contatoreNuovo && ore < (m.ore||0)) { err("ore-nuove", true);
+      esito("ore-esito", "Hai scritto " + conta(ore, "ora", "ore") + ", ma il mezzo ne ha già " + numTx(m.ore||0) + ": il contatore non può scendere. Controlla il numero, oppure segna che il contatore è nuovo o azzerato.", "err");
       fuoco("ore-nuove"); return; }
     err("ore-nuove", false);
-    esito("ore-esito", plurale(ore, "Registrata ", "Registrate ") + conta(ore, "ora", "ore") + " su " + m.nome.split(" — ")[0] + ".", "success");
     occupato("btn-ore", true);
-    await db.aggiorna("mezzi", id, { ore }); $("ore-nuove").value = ""; occupato("btn-ore", false); await refresh();
+    /* Il contatore dichiarato nuovo si registra come `azzeramentiDelMezzo`
+       lo legge: un rifornimento a zero litri, con `contatoreNuovo` e le ore
+       vecchie prese dal mezzo — la stessa identica forma di `btn-rif`, che
+       è l'unico posto dove quella funzione guarda. Senza questa scrittura
+       il numero salvato su `mezzi.ore` sarebbe scollegato dalle letture
+       storiche: consumo e ritmo continuerebbero a leggere la serie vecchia
+       e a dire "il contatore è sceso" per sempre. */
+    if (contatoreNuovo) {
+      await db.aggiungi("rifornimenti", { data: oggiISO(), mezzo: m.nome.split(" — ")[0], litri: 0, euro: 0,
+        ore, contatoreNuovo: true, oreVecchie: numeroDichiarato(m.ore), nota: "Contatore sostituito o azzerato (Registro ore)" });
+    }
+    await db.aggiorna("mezzi", id, { ore });
+    $("ore-nuove").value = ""; $("ore-nuovo").checked = false;
+    esito("ore-esito", plurale(ore, "Registrata ", "Registrate ") + conta(ore, "ora", "ore") + " su " + m.nome.split(" — ")[0]
+      + (contatoreNuovo ? " (contatore nuovo: il consumo e il ritmo d'uso ripartono da qui)." : "."), "success");
+    occupato("btn-ore", false); await refresh();
   };
   // Import telemetria da CSV (mezzo;ore[;carburante]): aggiorna le ore dei
   // mezzi corrispondenti per nome, senza mai far scendere il contatore.

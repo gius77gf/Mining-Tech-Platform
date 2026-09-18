@@ -662,6 +662,8 @@ const BANCHI = [
   ['bottoni occupato di Conti · controprova', 'conti-bottoni-occupato.mjs', ['--controprova'], true],
   ["Flotta: magazzino ricambi, mezzi e ordine di lavoro si spengono durante il salvataggio", 'flotta-bottoni-occupato.mjs', []],
   ["bottoni occupato di Flotta · controprova", 'flotta-bottoni-occupato.mjs', ['--controprova'], true],
+  ["Flotta: il contatore sostituito o azzerato ha una via sola, non quattro", 'flotta-contatore-sceso.mjs', []],
+  ["contatore sceso di Flotta · controprova", 'flotta-contatore-sceso.mjs', ['--controprova'], true],
   ['Conti: le scorte misurate chiudono il triangolo', 'conti-inventario.mjs', []],
   ['scorte misurate · controprova', 'conti-inventario.mjs', ['--controprova'], true],
   ["Terra: il CSV degli inventari, che esce e si ri-carica", 'terra-inventario-csv.mjs', []],
