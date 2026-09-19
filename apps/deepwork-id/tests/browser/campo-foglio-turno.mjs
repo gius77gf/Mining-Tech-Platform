@@ -110,6 +110,20 @@ const CASO_VUOTO = `
 DEMO.attivita = []; DEMO.rapportini = []; DEMO.presenze = []; DEMO.checklist = [];
 `;
 
+/* ── IL CASO DELLA CHECKLIST DUPLICATA (19/09, dal deep-pass QA su Campo) ──
+   Due record per lo stesso (turno, squadra) — possibile con una corsa TOCTOU
+   in salvaEsiti, la stessa famiglia già chiusa altrove in questo file: lo
+   schermo ne mostra uno solo (checklistDi, l'ultima vince), e prima del fix i
+   due documenti stampati li elencavano ENTRAMBI. Il secondo porta un marchio
+   riconoscibile («BANCO-DUP») così il banco può contare, non solo vedere. */
+const CASO_CHK_DUP = `
+/* ── caso montato dal banco campo-foglio-turno.mjs (mai sul disco) ── */
+DEMO.checklist = [
+  { data: OGGI_DEMO, turno: "Mattina", squadra: "Squadra A", ora: "06:10", esiti: { a: "ok" } },
+  { data: OGGI_DEMO, turno: "Mattina", squadra: "Squadra A", ora: "06:40", chiusaDa: "BANCO-DUP", esiti: { a: "ok", b: "ok" } },
+];
+`;
+
 /* ── LA CONTROPROVA: i difetti rimessi nella copia SERVITA ─────────────────
    ⛔ LA PRIMA INIEZIONE SPEGNE LA DECISIONE, NON LA FRASE. C'è UN posto solo
    che decide «questo è un foglio di dimostrazione», e il rapporto e la
@@ -150,6 +164,14 @@ const DIFETTI = {
      '    { n: String(av.anomalie), t: "anomalie aperte" },'],
     ['    av.totale ? { n: av.concluse + "/" + av.totale, t: "attività concluse" } : { n: "—", t: "attività: nessuna registrata oggi" },',
      '    { n: av.concluse + "/" + av.totale, t: "attività concluse" },'],
+    /* (19/09, dal deep-pass QA su Campo) i due documenti tornano a filtrare
+       CHK per sola data, senza la regola "l'ultima vince" per (turno,
+       squadra) di checklistDi: con due record per lo stesso slot li
+       elencano ENTRAMBI, mentre lo schermo ne mostra uno solo. */
+    ["const chkOggi = checklistUltimePerTurno(CHK, OGGI).map((c) =>",
+     'const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) =>'],
+    ["const chkT = checklistUltimePerTurno(CHK, OGGI);",
+     'const chkT = CHK.filter(c => String(c.data || "") === OGGI);'],
   ],
   "shared/deepwork-id-client/dw-shell.js": [
     ['  return modo === "live" ? null : String(modo || "non dichiarata");',
@@ -226,6 +248,7 @@ const inietta = (rotta, testo) => {
    tre i documenti, e svuotarlo sempre vorrebbe dire non provare mai il foglio
    pieno. Lo decide questa variabile, che il giro sposta fra un caso e l'altro. */
 let MONTA_VUOTO = false;
+let MONTA_CHK_DUP = false;
 
 const srv = createServer((q, s) => {
   const rotta = decodeURIComponent(q.url.split("?")[0]);
@@ -240,6 +263,7 @@ const srv = createServer((q, s) => {
   if (/\.(html|js|mjs|css)$/.test(p)) {
     let t = corpo.toString("utf8");
     if (MONTA_VUOTO && p.endsWith("apps/campo/campo-data.js")) { t += CASO_VUOTO; nCasi++; }
+    if (MONTA_CHK_DUP && p.endsWith("apps/campo/campo-data.js")) { t += CASO_CHK_DUP; nCasi++; }
     if (CONTROPROVA || FINGE_LIVE) t = inietta(rotta, t);
     corpo = Buffer.from(t, "utf8");
   }
@@ -437,7 +461,50 @@ if (fai("vuoto")) {
   MONTA_VUOTO = false;
 }
 
-// ══ 3 · LA CONSEGNA DI TURNO IN .txt, SCARICATA DAVVERO ═══════════════════
+// ══ 3 · DUE CHECKLIST PER LO STESSO TURNO/SQUADRA: I DOCUMENTI NE MOSTRANO
+//        UNA SOLA, COME GIÀ LO SCHERMO (19/09, dal deep-pass QA su Campo) ══
+if (fai("chkdup")) {
+  console.log("\n── Due checklist per lo stesso slot: il rapporto stampato non le raddoppia ──");
+  MONTA_CHK_DUP = true;
+  const { ctx, pg, errori } = await apriApp();
+  const [pop] = await Promise.all([
+    pg.waitForEvent("popup", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-rapporto-turno"),
+  ]);
+  if (!pop) { console.log("  ✗ la finestra del rapporto non si è aperta: il banco non prova niente"); await b.close(); srv.close(); process.exit(2); }
+  const d = await leggiFoglio(pop, "rapporto-chkdup");
+  /* solo la sezione della checklist, non tutto il foglio: «Squadra A» compare
+     anche nel briefing e nel personale, che non sono lo slot duplicato. Le
+     intestazioni <h2> escono senza riga vuota fra un blocco e l'altro
+     nell'innerText, quindi il taglio è alla PROSSIMA intestazione nota, non a
+     «\n\n» (che qui non separa niente). */
+  const idxCk = d.testo.indexOf("Checklist di inizio turno");
+  const resto = d.testo.slice(idxCk + "Checklist di inizio turno".length + 1);
+  const prossime = [...SEZIONI, "Briefing di inizio turno"].map((h) => resto.indexOf(h)).filter((i) => i > 0);
+  const sezCk = resto.slice(0, prossime.length ? Math.min(...prossime) : resto.length);
+  const occCk = (sezCk.match(/Squadra A/g) || []).length;
+  dice(occCk === 1, "⛔ il rapporto stampato elenca lo slot (Mattina, Squadra A) una sola volta, come checklistDi", { occCk, sezCk });
+  dice(sezCk.includes("06:40") && !sezCk.includes("06:10"), "ed è l'ULTIMA salvata (06:40), non la prima", sezCk);
+  await pop.close();
+  // lo stesso slot duplicato, ma nel documento GEMELLO: la consegna testuale
+  const [dl] = await Promise.all([
+    pg.waitForEvent("download", { timeout: 9000 }).catch(() => null),
+    pg.click("#btn-consegna"),
+  ]);
+  if (dl) {
+    let testo = ""; { const s = await dl.createReadStream(); for await (const c of s) testo += c; }
+    // solo la sezione della checklist: «Squadra A (turno Mattina)» compare
+    // anche nel BRIEFING, che non è lo slot duplicato
+    const sezTxt = (testo.split("CHECKLIST DI INIZIO TURNO\n")[1] || "").split("\n\n")[0];
+    const occTxt = (sezTxt.match(/Squadra A \(turno Mattina\)/g) || []).length;
+    dice(occTxt === 1, "⛔ e la consegna testuale nemmeno la raddoppia", { occTxt, sezTxt });
+    dice(sezTxt.includes("06:40") && !sezTxt.includes("06:10"), "ed è la stessa ultima salvata", sezTxt);
+  } else dice(false, "nessun file scaricato: il banco non prova niente sulla consegna");
+  await ctx.close();
+  MONTA_CHK_DUP = false;
+}
+
+// ══ 4 · LA CONSEGNA DI TURNO IN .txt, SCARICATA DAVVERO ═══════════════════
 /* Non è un foglio che si stampa, ma è lo stesso documento in un altro
    vestito: il testo che passa di mano fra due turni. Si legge il file VERO
    che il browser salverebbe (evento `download`), non la stringa costruita in

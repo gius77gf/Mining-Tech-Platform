@@ -44332,6 +44332,40 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
     ok(typeof Ck[3] === "string" && Ck[3].length > 0, "la colonna delle voci non a posto è sempre scritta («nessuna» quando non ce ne sono) — " + Ck[3]);
     ok(!sez(campo.rapportoGiornata({ oggi: "2026-03-03" }, {}), "Riaperture del turno"), "senza riaperture la sezione non c'è");
   });
+  test("⛔ 19/09, dal deep-pass QA su Campo: due checklist per lo stesso turno/squadra — i documenti mostrano solo l'ULTIMA, come già lo schermo", () => {
+    /* checklistDi (quella che legge lo schermo) sceglie l'ultima con la
+       stessa (turno, squadra); prima di questo fix rapportoGiornata e
+       testoConsegnaTurno filtravano CHK solo per data e le elencavano
+       TUTT'E DUE — un duplicato possibile con una corsa TOCTOU su
+       salvaEsiti, la stessa famiglia di race già chiusa altrove in Campo. */
+    const prima = { data: "2026-04-04", squadra: "Squadra A", turno: "Mattina", ora: "06:10", esiti: { a: "ok" } };
+    const dopo = { data: "2026-04-04", squadra: "Squadra A", turno: "Mattina", ora: "06:40", chiusaDa: "Verdi", esiti: { a: "ok", b: "ok" } };
+    const base = { oggi: "2026-04-04", checklist: [prima, dopo] };
+    const ultima = campo.checklistDi([prima, dopo], "2026-04-04", "Mattina", "Squadra A");
+    eq(ultima, dopo, "checklistDi (quella dello schermo) sceglie la seconda");
+    const righeCk = sez(campo.rapportoGiornata(base, {}), "Checklist di inizio turno").blocchi[0].tabella.righe;
+    eq(righeCk.length, 1, "⛔ il rapporto stampato non elenca due volte lo stesso slot — righe: " + JSON.stringify(righeCk));
+    eq(righeCk[0][4], "06:40 da Verdi", "ed è quella scelta da checklistDi, non la prima arrivata");
+    const txt = campo.testoConsegnaTurno(base, {});
+    eq((txt.match(/Squadra A \(turno Mattina\)/g) || []).length, 1, "⛔ e la consegna testuale nemmeno — appare una sola volta");
+    ok(txt.includes("06:40"), "ed è la stessa, l'ultima salvata");
+    // due squadre diverse restano invece due righe distinte, non si perde niente di vero
+    const b = { data: "2026-04-04", squadra: "Squadra B", turno: "Mattina", ora: "06:15", esiti: { a: "ok" } };
+    eq(sez(campo.rapportoGiornata({ oggi: "2026-04-04", checklist: [prima, dopo, b] }, {}), "Checklist di inizio turno").blocchi[0].tabella.righe.length, 2,
+      "due slot diversi restano due righe");
+  });
+  test("Campo · checklistUltimePerTurno: un record per (turno, squadra), l'ultimo vince, come checklistDi", () => {
+    const a1 = { data: "2026-04-04", turno: "Mattina", squadra: "A", v: 1 };
+    const a2 = { data: "2026-04-04", turno: "Mattina", squadra: "A", v: 2 };
+    const b1 = { data: "2026-04-04", turno: "Sera", squadra: "A", v: 3 };
+    const altroGiorno = { data: "2026-04-05", turno: "Mattina", squadra: "A", v: 9 };
+    const r = campo.checklistUltimePerTurno([a1, a2, b1, altroGiorno], "2026-04-04");
+    eq(r.length, 2, "un record per (turno, squadra), il giorno diverso resta fuori");
+    eq(r.find((x) => x.turno === "Mattina").v, 2, "fra a1 e a2 vince l'ultima, come checklistDi");
+    eq(r.find((x) => x.turno === "Sera").v, 3);
+    eq(campo.checklistUltimePerTurno([], "2026-04-04").length, 0);
+    eq(campo.checklistUltimePerTurno(null, "2026-04-04").length, 0, "lista assente non crasha");
+  });
   test("Campo · la pagina non compone più nessuna sezione del rapporto stampato", () => {
     const pagina = readFileSync(join(HERE, "../../campo/index.html"), "utf8");
     for (const et of ["attività: nessuna registrata oggi", "<h2>Fermi per causale</h2>", "non è stato consegnato</b>", "Nessuna checklist di inizio turno compilata oggi", "Riposo dal turno precedente</th>"])

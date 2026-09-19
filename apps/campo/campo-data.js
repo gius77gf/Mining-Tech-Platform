@@ -1394,6 +1394,28 @@ export function checklistDi(lista, data, turno, squadra) {
   return trovate.length ? trovate[trovate.length - 1] : null;
 }
 
+/* ⛔ 19/09, dal deep-pass QA su Campo: `rapportoGiornata` e
+   `testoConsegnaTurno` — i due documenti che escono, uno stampato e
+   firmato — componevano la sezione checklist filtrando `CHK` per sola
+   data, SENZA applicare la stessa regola "l'ultima vince" di
+   `checklistDi`, che invece è quella che decide cosa mostra lo schermo.
+   Se per lo stesso (turno, squadra) esistono due record — possibile con
+   una corsa TOCTOU in salvaEsiti, la stessa famiglia di race già chiusa
+   altrove in questo file — i documenti elencano ENTRAMBI mentre lo
+   schermo ne mostra uno solo: una checklist completa e firmata può
+   restare invisibile a schermo ma comparire lo stesso nel documento di
+   consegna, o viceversa. Stessa regola dello schermo, un posto solo:
+   se domani checklistDi cambia criterio, i documenti lo seguono da soli. */
+export function checklistUltimePerTurno(lista, data) {
+  const perSlot = new Map();
+  for (const c of (lista || [])) {
+    if (!c || String(c.data || "") !== String(data || "")) continue;
+    const chiave = String(c.turno || "") + "\u0000" + squadraBase(c.squadra);
+    perSlot.set(chiave, c); // fra due con la stessa chiave, l'ultima nell'ordine dell'array vince
+  }
+  return [...perSlot.values()];
+}
+
 // Causali di fermo STANDARDIZZATE: senza una lista fissa non si può misurare
 // dove si perde tempo (servono categorie confrontabili nel tempo, non testo
 // libero). Sono le voci tipiche di un fermo in cava.
@@ -3674,7 +3696,7 @@ export function rapportoGiornata(d, opts) {
   const attenzione = [avvisoIdoneita, avvisoSenzaGiorno(ATT_OGGI, RAP_OGGI) || ""].filter(Boolean).join(" ");
   // checklist di inizio turno chiuse o in corso oggi
   // le voci sono quelle del turno: col maltempo c'è anche il ricontrollo dei fronti
-  const chkOggi = CHK.filter((c) => String(c.data || "") === OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti)) }));
+  const chkOggi = checklistUltimePerTurno(CHK, OGGI).map((c) => ({ c, st: statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti)) }));
   const checklist = sez("Checklist di inizio turno", chkOggi.length ? "" : "Nessuna checklist di inizio turno compilata oggi.",
     chkOggi.length ? [{ tabella: tab(["Squadra", "Turno", "Risposte", "Voci non a posto", "Chiusa alle"],
       chkOggi.map((x) => [String(x.c.squadra || "—"), String(x.c.turno || "—"), descriviChecklist(x.st),
@@ -3886,7 +3908,7 @@ export function testoConsegnaTurno(d = {}, opts = {}) {
                                   : formattaProduzione(o.fatto, o.unita) + " su " + formattaProduzione(o.obiettivo, o.unita))
     + " (" + o.pct + "%, " + segnoIt(o.scarto, 2) + ")").join("\n")
     : "- nessun obiettivo impostato") + "\n\n";
-  const chkT = CHK.filter(c => String(c.data || "") === OGGI);
+  const chkT = checklistUltimePerTurno(CHK, OGGI);
   txt += "CHECKLIST DI INIZIO TURNO\n";
   // «4/9 a posto» nascondeva le voci che nessuno ha guardato: la frase è una sola, `descriviChecklist`
   txt += (chkT.length ? chkT.map(c => { const s = statoChecklist(c.esiti || {}, vociChecklistSalvata(meteoDi(MET, OGGI, c.turno), c.esiti));

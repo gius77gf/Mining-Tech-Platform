@@ -8682,7 +8682,7 @@ numero scritto dove non era stato misurato niente**.*
   il lettore non leggeva affatto le tre colonne, non una chiamata che le
   scartava): il registro infortuni esportato e ri-caricato perdeva la
   denuncia INAIL (3097→3109):
-  **3.679 prove girano senza rete** *(ricontato il 19/09, dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); erano 3.676 dopo il sesto
+  **3.681 prove girano senza rete** *(ricontato il 19/09, dopo il dodicesimo giro (Sentinella, allerteTaratura/badge); erano 3.676 dopo il sesto
   giro di deep-pass QA su Sentinella/Genesi/Conti — `run-kpi` 3172→3177 — e
   il settimo giro — 3177→3178, correzione del refuso di `terra-sequenza-lotto.mjs`
   più il test sulla sezione Personale presente di Campo — le altre otto invariate)*. La frase va
