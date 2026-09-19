@@ -12253,3 +12253,51 @@ elementi, 3 temi × più larghezze). Un finding reale è emerso ed è stato
 Verifica prima del commit dei due fix Flotta: `run-kpi.mjs` 3184/3184
 (nuova asserzione aggiunta dentro un test esistente, non un nuovo test:
 il totale dei blocchi `test()` resta lo stesso).
+
+## QA deep-pass Genesi (19/09, secondo cantiere del pivot) — due findings, zero azionabili
+
+L'agente QA dispatchato in parallelo alla ricerca (`a4ff260ea9f56f6a8`) ha
+riportato due findings, entrambi verificati e **scartati** dopo controllo
+indipendente — non per sfiducia di principio, ma perché in entrambi i casi
+la risposta era già in casa:
+
+1. *"Tre bottoni di export (riconExport, btn-piano-dxf, btn-innesco-xml)
+   senza guardia `occupato()`"* — verificato aprendo il codice: sono tutti
+   e tre generatori di download client-side (`data:` URI + `a.click()`),
+   nessuna scrittura su Firestore. La guardia `occupato()` esiste per
+   impedire **scritture duplicate** (il suo stesso commento in
+   `shared/dw-app-ui.js` lo dice: "durante una scrittura"); un doppio
+   click su un export produce due download identici, mai un dato
+   duplicato o corrotto. Non è la stessa famiglia di difetto delle
+   guardie mancanti già chiuse questa settimana su Flotta/altre app —
+   quelle proteggevano scritture vere.
+2. *"`numeroDaCampo` duplicata (non condivisa) in 5 app"* — verificato con
+   `node apps/deepwork-id/tests/nomi-doppi.mjs`: il controllo dedicato a
+   questa esatta famiglia di difetto (nomi doppi fra app) la conosce già e
+   la dichiara **di proposito** — "UNA implementazione condivisa con un
+   parametro diverso" (i decimali per mestiere: 2 per i soldi, 3 per i
+   chili, 4 per la PPV) — "0 da sistemare". Confermato leggendo conti.js e
+   terra.js: stessa struttura, stessa regex di pulizia, byte per byte.
+   Non è la copia debole che CLAUDE.md descrive (comportamento diverso
+   nascosto sotto un nome uguale): è la stessa regola scritta con lo
+   stesso corpo, verificata dallo strumento apposta per prendere questo
+   caso.
+
+Nessuna azione: il QA ha fatto il suo lavoro onestamente (entrambi i
+findings erano plausibili a prima vista), la verifica indipendente ha
+solo concluso che non c'era niente da correggere.
+
+## Ricerca implementazione CAD (secondo giro, sequenziale per evitare la collisione)
+
+Un secondo agente Haiku (`acba0f79b5cf78b19`), dispatchato DOPO che il
+primo aveva già finito di scrivere (non in parallelo — lezione della
+collisione di stamattina), ha aggiunto a `docs/RICERCA_GENESI_CAD.md`
+algoritmi minimi e stima di costo per le quattro lacune CAD confermate:
+snap a oggetti (endpoint/midpoint/intersezione — di cui l'endpoint è
+appena stato costruito, G48), selezione multipla (window/crossing via
+AABB), trasformazioni (rotate/scale/mirror attorno a un pivot),
+blocchi riusabili + input relativo/polare. Ordine consigliato: snap
+(fatto) → selezione multipla → trasformazioni → blocchi/input polare.
+**Non ancora verificato riga per riga contro il codice reale di Genesi**
+(la stessa disciplina già applicata al primo censimento, che aveva
+sbagliato su più punti): da fare prima di implementare qualunque pezzo.
