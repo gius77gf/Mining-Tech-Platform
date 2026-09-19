@@ -1,16 +1,15 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T13:46:10Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: f4b50d49 (docs(genesi): QA sui calcoli
-  economici — zero difetti, verificato)
-- **Cosa sto per fare**: chiusa la QA sui calcoli economici (zero
-  difetti). Fatte due verifiche visive personali mai fatte finora (la
-  guida G56 a schermo, il Report volata letto per intero) — entrambe
-  pulite. Lanciata una sesta ricerca in background (JKSimBlast, terzo
-  concorrente). Il giro completo del browser è ancora vivo dopo quasi 4
-  ore.
-  **Prossimo passo atomico**: controllare `ps -p 18070`; se finito,
-  leggere l'esito con `leggi-giro.mjs`. Verificare JKSimBlast
-  indipendentemente prima di agire. Valutare se il rendimento delle
-  ricerche (1 bug vero su 5 QA) suggerisce di passare a una passata
-  "in profondità" personale invece di lanciarne altre.
+- **Quando**: 2026-09-19T13:54:05Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: 265294de (docs(genesi): JKSimBlast — 3 "non
+  c'è" su 6 falsi, uno parziale)
+- **Cosa sto per fare**: corretta la sesta ricerca (JKSimBlast, tre
+  falsi allarmi su sei più uno parziale). Deciso di sospendere altre
+  ricerche di confronto concorrenza per questo blocco (rendimento
+  negativo sulle ultime due) e passare a verifiche dirette personali sui
+  bottoni di export di Genesi non ancora aperti con gli occhi.
+  **Prossimo passo atomico**: premere personalmente i bottoni CSV
+  Piano, DXF Piano fori, XML innesco su una pagina Genesi con Playwright,
+  aprire i file veri prodotti, cercare numeri tranquilli. Controllare
+  anche l'esito del giro completo del browser (PID 18070, oltre 4 ore)
+  quando finisce.
