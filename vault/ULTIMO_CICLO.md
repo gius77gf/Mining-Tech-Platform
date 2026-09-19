@@ -1,18 +1,16 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T11:24:24Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: ca00063e (feat(genesi): guida di allineamento
-  sul trascinamento di un foro (G56) + fix nomi-liberi su get/set)
-- **Cosa sto per fare**: nono cantiere Genesi (G56) chiuso e pushato,
-  insieme a una correzione di `nomi-liberi.mjs` (get/set non riconosciuti,
-  trovata lanciando il giro completo prima del commit). Tutte le priorità
-  del censimento CAD di Genesi sono ora costruite o dichiarate (blocchi →
-  Decisione #43 per il fondatore). Due ricerche in background chiuse
-  (snap magnetico → azionata in G56; competitor Deswik.Blast → nessuna
-  azione, correttamente).
+- **Quando**: 2026-09-19T12:00:34Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: fb2ee7aa (fix(genesi): l'annulla premuto a
+  metà di un trascinamento non azzerava il drag (G56b))
+- **Cosa sto per fare**: chiuso il difetto trovato dal deep-pass QA in
+  background su G48-G56 (`d2ApplySnap` non azzerava `d2drag`/`d2dragPt`).
+  Verificate senza azione le altre tre aree di rischio segnalate
+  dall'agente. Numeri propagati, giro completo verde (41/41, 4263
+  asserzioni).
   **Prossimo passo atomico**: controllare l'esito del giro completo del
-  browser (`giro-completo-19-0951.log` nello scratchpad, PID 18070,
-  vivo da 93 minuti al momento di scrivere) con `leggi-giro.mjs` quando
-  arriva in fondo. Poi lanciare un nuovo fronte di ricerca Haiku in
-  background su Genesi (altro concorrente o QA mirato su G48-G56) per
-  mantenere ≥3 fronti aperti, e proseguire con una nuova unità piccola.
+  browser lanciato alle 09:51:33Z (PID 18070) con `leggi-giro.mjs` quando
+  arriva in fondo — è alcuni commit indietro su genesi.html, va riletto
+  col codice attuale. Poi lanciare un nuovo fronte di ricerca Haiku in
+  background su Genesi per mantenere ≥3 fronti aperti, e proseguire con
+  una nuova unità piccola.
