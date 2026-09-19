@@ -2168,3 +2168,221 @@ la regola "distanza legata all'altezza" del regolamento nazionale.
 Nessun numero di legge entra a schermo: solo il meccanismo del confronto,
 con la soglia dichiarata dall'utente — stessa disciplina di ogni altro
 giro di questo file.
+
+---
+
+## 19/09/2026 — decimo giro di ricerca mirata: come i software leader VALIDANO l'incertezza (GCP contro checkpoint indipendente), non solo come la dichiarano
+
+**Dichiarazione preliminare (vincolo 1 — che cosa esiste già, letto prima di proporre).**
+Letti per intero `docs/RICERCA_CONTINUA_TERRA.md` (tutte le sezioni sopra,
+incluso `vault/RICERCA_ACCURATEZZA_RILIEVI.md` del 21/07 che questo giro
+approfondisce) e i checkpoint più recenti pertinenti a Terra
+(`20260918-*`, `20260919-000512_settimo-giro-ko-stantio-terra-sequenza.md`,
+`20260919-011237_ottavo-giro-qa-deepworkid-terra-ricerca-sentinella.md`,
+oltre a `20260911-122205_terra-tolleranza-rilevatore.md` e
+`20260916-195600_terra-tolleranzapct-wiring-fix.md`). Terra **ha già**,
+verificato di nuovo con `grep` più sotto:
+- `classeAccuratezza(rilievo)` (`terra-data.js:768`): da `metodo` (testo
+  libero: "RTK", "RTK+GCP", "senza GCP"…) e `gsd`, decide `survey-grade`
+  (±2% tipico) o `indicativo` (±8% tipico), con la negazione riconosciuta
+  per segmento (la correzione del 14/08 su "senza GCP" letto come "con GCP");
+- `tolleranzaPct` dichiarato dal rilevatore (aggiunto l'11/09, checkpoint
+  `20260911-122205`): un numero che, se scritto sul rilievo, **batte** la
+  tolleranza tipica della classe, con `fonte: "rilevatore"` tracciata e
+  mostrata accanto al valore tipico (mai sostituita in silenzio);
+- `bandaVolume(volumeM3, tolleranzaPct)` (`terra-data.js:814`): trasforma
+  la % in un `± m³` onesto, con la guardia "assente ≠ misurato zero";
+- `incertezzaScavo` (citata al 02/09): somma le bande dei rilievi
+  dichiarando la copertura (quanti rilievi hanno una tolleranza nota);
+- il verbale (`verbaleRilievo`, `terra-data.js:3416`) stampa "Metodo di
+  rilievo" (riga 3462, testo grezzo) e "Classe di accuratezza" (righe
+  3466-3470, con la fonte tolleranza dichiarata);
+- il commento del codice **nomina già** il concetto che manca e lo
+  dichiara esplicitamente come da fare altrove: "le %tolleranza sono
+  TIPICHE (**da confermare coi checkpoint** [del rilevatore])"
+  (`terra-data.js:725`, ripetuto nel tooltip del badge,
+  `index.html:1366`: "Accuratezza tipica del metodo — da confermare coi
+  checkpoint del rilevatore").
+
+Questo NON è quindi un "non c'è" sul concetto di checkpoint — Terra lo cita
+da mesi come promemoria — ma sulla sua **implementazione**: non esiste
+nessun posto dove quella conferma venga effettivamente registrata. È
+esattamente la distinzione che questo file chiede di fare prima di
+proporre: il nome del mondo (`checkpoint`) compare già nel commento, quindi
+un `grep` superficiale su quella parola avrebbe risposto "già previsto" —
+falso quanto un "non c'è" cieco nella direzione opposta. La domanda giusta
+è sul MECCANISMO: **Terra distingue un punto usato per COSTRUIRE il
+modello da uno usato per VERIFICARLO?**
+
+### Il mondo — GCP e checkpoint sono due ruoli diversi, non due sinonimi [`WebSearch`; `WebFetch` risponde `EGRESS_BLOCKED` su domini generici, quindi nessuna fonte è stata letta per intero: tutto qui sotto è **[seconda mano]**]
+
+1. **Un GCP (Ground Control Point) usato per georeferenziare il modello
+   non può, per costruzione, misurare l'accuratezza del modello**: il
+   software lo forza a combaciare, quindi il suo residuo è (quasi) zero
+   per definizione. L'accuratezza reale si misura con **punti indipendenti**,
+   mai usati nella elaborazione, il cui scarto rispetto al modello finito
+   è il dato vero. Propeller lo scrive in modo esplicito: i punti usati
+   come **checkpoint** (a differenza di quando servono da GCP) "non
+   incidono sull'accuratezza del rilievo" — sono letti dal ricevitore GPS
+   proprio e confrontati col punto corrispondente ricavato dal drone, e il
+   confronto si fa nella piattaforma come "spot check" [seconda mano:
+   propelleraero.com/blog/how-propeller-calculates-expected-accuracy/].
+   Propeller pubblica per ogni rilievo un **rapporto di elaborazione** con
+   il dettaglio dello scarto GCP/checkpoint e un'accuratezza attesa finale
+   che combina la coerenza del modello di elevazione con l'RMSE dei GCP
+   (esempio citato: 5+ cm di incoerenza del modello più un RMSE dei GCP
+   entro 5 cm danno un'accuratezza finale dichiarata di 5-10 cm) [seconda
+   mano: stessa fonte].
+2. **Lo standard di settore (USA, usato come riferimento anche fuori
+   contesto governativo) formalizza la stessa distinzione con un nome e un
+   numero minimo.** La NSSDA (National Standard for Spatial Data Accuracy,
+   richiamata dagli ASPRS Positional Accuracy Standards for Digital
+   Geospatial Data) calcola la RMSEz **solo sui punti di controllo
+   indipendenti** (mai su quelli usati per costruire il modello), e
+   dichiara l'accuratezza verticale al **95% di confidenza** come
+   `RMSEz × 1,9600` (valido quando l'errore segue una distribuzione
+   normale, tipico in terreno aperto con un numero adeguato di
+   checkpoint). L'edizione più recente (edizione 2) ha aggiornato la
+   nomenclatura (RMSEz → RMSEv) e non richiede più il fattore 95% come
+   unica misura, ma la sostanza — un errore misurato SOLO sui punti
+   indipendenti, mai su quelli di costruzione — resta. Il numero minimo di
+   checkpoint per una valutazione di accuratezza di prodotto è **20-30**
+   (alzato da 20 a 30 nell'edizione più recente), fino a un massimo di
+   **120** per i progetti grandi [seconda mano: risultati aggregati che
+   citano ASPRS/NSSDA — florida.asprs.org, aagsmo.org, gpsworld.com,
+   lidarmag.com; nessun PDF letto per intero].
+3. **Trimble Business Center e il lessico LiDAR usano la stessa
+   distinzione con nomi propri**: i punti si classificano come "Photo
+   Identifiable Ground Control Points (GCP)" oppure come punti di
+   validazione — "Non-Vegetated (Ground) Validation Points (NVA)" e
+   "Vegetated (Ground) Validation Points (VVA)" — cioè checkpoint
+   indipendenti distinti per copertura vegetale, perché l'errore in
+   presenza di vegetazione è sistematicamente diverso (collegato alla
+   causa già scritta nel giro del 02/09 di questo file: "la vegetazione
+   nasconde il suolo e produce scarti fino a 50 cm") [seconda mano:
+   risultati aggregati su documentazione TBC/LiDAR, nessun PDF letto per
+   intero].
+4. **Il numero di GCP raccomandato per costruire un buon modello è già
+   nella ricerca di questo file dal 02/09** (5-8, distribuiti ai vertici e
+   al centro, "2-4 checkpoint indipendenti per verifica"): quello che
+   quella tornata non aveva ancora tirato fuori è che GCP e checkpoint
+   **non sono la stessa cosa contata due volte**, sono due ruoli distinti
+   con effetti opposti sulla cifra di accuratezza — uno la costruisce,
+   l'altro la misura.
+
+### La nostra app — verificato di nuovo, con due formulazioni per ogni "non c'è"
+
+```
+$ grep -niE "checkpoint|punt[oi] di controllo|rmse|indipendent" apps/terra/terra-data.js apps/terra/index.html
+apps/terra/terra-data.js:725:// testabile. Le %tolleranza sono TIPICHE (da confermare coi checkpoint).
+apps/terra/terra-data.js:774:     controllo, RMSE): quando l'ha scritto nel rilievo (`tolleranzaPct`, in
+apps/terra/terra-data.js:1917:    + (nScavo > 0 ? " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore." : "")
+apps/terra/terra-data.js:3545:      : " Le tolleranze sono valori tipici del metodo di rilievo e vanno confermate con i punti di controllo del rilevatore.")
+apps/terra/terra-data.js:4116:   checkpoint 20260915-162437 prima di scrivere codice). Oggi un fronte porta
+apps/terra/index.html:848:  <input ... id="new-ril-toll" ... title="La tolleranza sul volume scritta dal rilevatore nella sua relazione (dai residui sui punti di controllo). Facoltativa: senza, vale quella tipica del metodo.">
+apps/terra/index.html:1366:      ${ca.cls ? `...: "Accuratezza tipica del metodo — da confermare coi checkpoint del rilevatore"}...
+```
+(uscita completa, 7 righe; riletta per intero prima di scriverla qui — la
+riga 4116 è un riferimento a un file di **checkpoint di lavoro** del
+repository, non al concetto topografico: falso positivo dichiarato, non
+contato. Le altre sei sono la stessa idea ripetuta in quattro punti: il
+commento del modulo, due frasi quasi identiche nel riepilogo annuale e nel
+verbale, e — la più importante, e che la prima stesura di questo giro
+aveva mancato per un `grep` letto a metà — il **tooltip del campo
+`new-ril-toll` nel form del rilievo** dice esplicitamente "dai residui sui
+punti di controllo": l'interfaccia stessa suggerisce a chi compila da dove
+dovrebbe venire quel numero, ma il campo che segue è un singolo valore
+percentuale libero, senza un posto per scrivere QUANTI punti di controllo
+e QUALE scarto hanno dato quella percentuale. Il concetto giusto è quindi
+nominato in **quattro** punti della UI/codice, non uno solo — e proprio
+per questo la sua assenza come dato strutturato è più netta, non più
+debole: l'intenzione c'è scritta ovunque, l'implementazione in nessun posto.)
+
+```
+$ grep -niE "numGcp|numeroGcp|nGcp|puntiControllo|nCheckpoint|gcpCount|rmsez|rmsev" apps/terra/terra-data.js apps/terra/index.html
+(nessuna riga)
+```
+
+```
+$ grep -n 'value="[^"]*GCP' apps/terra/index.html
+apps/terra/index.html:841:          <option value="RTK+GCP">RTK+GCP</option>
+apps/terra/index.html:842:          <option value="GCP">GCP</option>
+apps/terra/index.html:843:          <option value="senza GCP">senza GCP</option>
+```
+(il form del rilievo offre "GCP" come UNA delle tre voci di un menù a
+tendina per il campo `metodo` — un sì/no testuale sulla tecnica, mai un
+numero da compilare per "quanti GCP" o "quanti checkpoint"; la demo,
+`terra-data.js:150`, usa la stessa stringa libera `"RTK+GCP"`)
+
+**Conclusione verificata**: Terra **nomina** il concetto di checkpoint
+indipendente (nel commento del codice e nel tooltip del badge, da mesi) ma
+**non lo implementa** — non esiste un campo per il numero di GCP usati a
+costruire il modello, non uno per il numero di checkpoint indipendenti
+usati a validarlo, non un valore numerico di scarto (RMSE/RMSEz). Tutto
+quello che il rilievo registra sul "come è stato ottenuto il numero" è una
+stringa libera (`metodo`) che un lettore automatico classifica in due
+sole classi via corrispondenza di parole, più un singolo numero opzionale
+(`tolleranzaPct`) che sostituisce la tolleranza tipica **senza dire da
+dove viene** (potrebbe essere calcolato da un vero RMSE su checkpoint
+indipendenti, o essere una stima a occhio di chi ha volato — il campo non
+lo distingue, e il verbale non lo chiede).
+
+### Il delta
+
+| Schermata | Che cosa non va | Come si vede | Quanto costa | Come si misura |
+|---|---|---|---|---|
+| **Form del rilievo / verbale (`verbaleRilievo`, riga "Metodo di rilievo" `terra-data.js:3462`, riga "Classe di accuratezza" `3466-3470`)** | Un rilievo con **un solo GCP usato per georeferenziare** (che per costruzione ha residuo quasi zero e non prova NULLA sull'accuratezza) e uno con **cinque checkpoint indipendenti scartati di 3 cm** ricevono la stessa classe `survey-grade` se `metodo` contiene la parola "GCP" in entrambi i casi: `classeAccuratezza` legge solo se la TECNICA è nominata, non quanti punti indipendenti l'hanno verificata | Aprire un rilievo demo (`r1`, `metodo: "RTK+GCP"`) e uno ipotetico con lo stesso testo ma senza nessun checkpoint indipendente: il verbale stampa la stessa riga "Classe di accuratezza: Survey-grade" per entrambi, perché la funzione non ha un campo da cui leggere la differenza | Medio | Aggiungere al rilievo due campi opzionali dichiarati dal rilevatore — `nCheckpointIndipendenti` (intero, punti NON usati per costruire il modello) e `scartoCheckpointM` (lo scarto verticale misurato su quei punti, in metri) — e una regola pura nello stile di `classeAccuratezza`: se `nCheckpointIndipendenti` è dichiarato e `>= 3` (soglia bassa e dichiarata come tale, non i 20-30 di ASPRS che sono per un prodotto cartografico intero, non per un singolo rilievo di cava — la differenza di scala va scritta nel commento), la classe passa da "dichiarata dal metodo" a "**verificata su checkpoint indipendenti**", con `fonte: "checkpoint"` (terza fonte accanto a "classe" e "rilevatore" già esistenti) e la tolleranza calcolata da `scartoCheckpointM / volumeM3` invece che assunta. Con 0 o nessun checkpoint dichiarato, resta `misurabile` ma nella fascia più debole — **mai promossa a "verificata" di default**, stessa regola del fondatore già applicata a `tolleranzaPct` |
+| **Verbale del rilievo (colonna "Come è stato ottenuto il numero")** | Il verbale distingue oggi solo "tolleranza dichiarata dal rilevatore" da "tolleranza tipica del metodo" (`terra-data.js:3468-3470`), ma non dice **se** quella tolleranza dichiarata viene da uno scarto misurato su punti indipendenti o da una stima a sentimento — le due cose hanno oggi la stessa etichetta "dal rilevatore" | `grep -n "fonte === \"rilevatore\"" apps/terra/terra-data.js` → 2 righe (3468, 3532), nessuna delle due chiede la provenienza del numero | Piccolo, una volta fatto il campo sopra | Con `nCheckpointIndipendenti` dichiarato, il verbale scrive "tolleranza **verificata su N checkpoint indipendenti**, scarto ± X cm" invece di "tolleranza dichiarata dal rilevatore"; senza, resta la frase di oggi. Test: due rilievi con lo stesso `tolleranzaPct` ma uno con `nCheckpointIndipendenti:5` e uno senza devono produrre due frasi diverse nel verbale, non la stessa |
+
+### Che cosa NON entra (dichiarato, non taciuto)
+
+Le soglie NSSDA (20-30 checkpoint minimi, fattore 1,9600, RMSEz) sono
+pensate per la validazione di un **prodotto cartografico** (un'intera
+mappa/DEM validata una volta), non per il singolo rilievo periodico di una
+cava — usarle identiche darebbe una soglia proibitiva per un rilievo
+mensile. Non entrano come numeri a schermo: resta il **meccanismo**
+(distinguere "punto che costruisce" da "punto che verifica", e trattare lo
+scarto misurato come più forte di una tolleranza dedotta dal solo nome del
+metodo), con la soglia minima di checkpoint decisa in casa e dichiarata
+bassa apposta, sulla falsariga di come `difformitaSostanzialePct` (terzo
+giro, 11/09) e `distanzaMinimaM` (nono giro, 18/09) restano vuoti di
+default invece di ospitare un numero di legge preso di seconda mano.
+
+### Onestà sulla distanza dai leader di settore
+
+Propeller, DroneDeploy e Trimble hanno pipeline di elaborazione vere: i
+checkpoint vengono confrontati **automaticamente** col modello (nessun
+umano scrive uno scarto a mano), il rapporto è generato dal software che
+ha processato le foto, e la soglia (20-30 checkpoint) nasce da uno
+standard nazionale pensato per prodotti cartografici interi. La proposta
+qui sopra è deliberatamente più piccola: due campi **dichiarati** dal
+rilevatore (non calcolati da Terra, che non riceve né foto né DEM — scelta
+architetturale già presa e confermata il 02/09), sullo stesso principio
+già usato con successo per `tolleranzaPct` l'11/09. Non è parità con
+quei prodotti: è la differenza fra "il nome del concetto è scritto in un
+commento" e "il concetto ha un campo".
+
+### Fonti (tutte [seconda mano], nessuna letta come testo primario — `WebFetch` bloccato in questo ambiente)
+
+- [How Propeller calculates expected accuracy](https://www.propelleraero.com/blog/how-propeller-calculates-expected-accuracy/) — distinzione GCP/checkpoint, rapporto di elaborazione, accuratezza attesa combinata.
+- [How Propeller Works Alongside Survey Managers to Ensure Drone Data Accuracy](https://www.propelleraero.com/blog/how-propeller-works-alongside-survey-managers-to-ensure-drone-data-accuracy/)
+- Risultati aggregati su ASPRS Positional Accuracy Standards / NSSDA (RMSEz, RMSEv/RMSEh nell'edizione 2, fattore 1,9600 al 95% di confidenza, minimo checkpoint 20→30, massimo 120): florida.asprs.org, aagsmo.org, my.asprs.org, gpsworld.com, lidarmag.com, yellowscan.com — nessun PDF letto per intero, solo risultati di ricerca aggregati.
+- Risultati aggregati su Trimble Business Center e classificazione dei punti di controllo/validazione (GCP, NVA, VVA): community.trimble.com, geospatial.trimble.com — nessuna pagina letta per intero.
+- `vault/RICERCA_ACCURATEZZA_RILIEVI.md` (21/07/2026, di questo stesso repository) — prima menzione dei "checkpoint indipendenti" come raccomandazione, senza ancora la distinzione di ruolo GCP/checkpoint che questo giro aggiunge.
+
+### Sintesi
+
+**Il concetto non è nuovo per Terra** (il commento del codice lo nomina da
+prima dell'11/09), ma **la sua implementazione manca**: la classe di
+accuratezza e la tolleranza si basano oggi sul NOME del metodo dichiarato
+(una parola in una frase) e su un numero opzionale senza provenienza
+tracciata, mai su un conteggio di punti indipendenti e uno scarto misurato
+— che è esattamente il modo in cui il mondo distingue "un modello
+costruito con dei GCP" da "un modello VERIFICATO con dei checkpoint
+indipendenti". Il delta è a costo Medio (due campi + una terza fonte nella
+classe di accuratezza, sullo stesso schema già collaudato tre volte
+quest'anno per `tolleranzaPct`, `quotaFondoM`/`conformitaQuota` e
+`distanzaConfineM`), e non introduce nessun numero di legge o soglia di
+seconda mano a schermo — solo il meccanismo del confronto, con la soglia
+minima di checkpoint dichiarata bassa e scritta come scelta di casa, non
+come standard internazionale travestito.
