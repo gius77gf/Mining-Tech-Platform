@@ -45650,13 +45650,79 @@ console.log("\n— Conti: il triangolo chiuso con l'inventario dei cumuli —");
   });
   test("⛔ Genesi · ruota tratti è collegato nella pagina, con la guardia sull'angolo illeggibile (G57)", () => {
     const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
-    ok(/gvv\('dtRuotaGradi'\)/.test(pag), "l'angolo si legge col lettore che dà NaN su un input illeggibile, mai 0 o `+valore`");
+    // ⛔ G58: NON `gvv` — `numeroScritto` legge «0,001»/«0.001» come AMBIGUO
+    // (la sua euristica migliaia-o-decimale, `\d{1,3}[.,]\d{3}`), e proprio
+    // 0,001 è il fattore di scala del caso d'uso principale (mm→m). Misurato
+    // scrivendolo la prima volta: `gvv` tornava NaN sul valore di DEFAULT del
+    // bottone stesso. Un angolo/fattore non è mai "in migliaia": si legge con
+    // `numIt`, che decide dal separatore senza indovinare l'intenzione.
+    ok(/numIt\(\$\('dtRuotaGradi'\)\.value\)/.test(pag), "l'angolo si legge con numIt (mai gvv/numeroScritto: vedi il commento su G58)");
     ok(/if\(!isFinite\(gradi\)\)/.test(pag), "un angolo illeggibile ferma l'azione invece di ruotare di NaN gradi (che sposterebbe ogni punto a NaN,NaN)");
     const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
     ok(elenco.includes("trattiRuotati"), "la pagina importa la funzione dal modulo");
   });
 }
 /* ===== fine rifletti la selezione (19/09, G50) ===== */
+
+/* ===== GENESI · SCALA I TRATTI — TERZA TRASFORMAZIONE (19/09, G58) =====
+   A differenza di rotate/mirror, qui il pivot giusto NON è il centroide:
+   un errore di unità di misura (un rilievo DXF in millimetri) sbaglia OGNI
+   coordinata della stessa proporzione, compreso il centroide stesso — che
+   quindi resterebbe fermo, lontanissimo dai fori vicino allo zero, dopo
+   una "scala" che in realtà avrebbe solo rimpicciolito la forma sul posto.
+   Misurato prima di scriverla qui (docs/RICERCA_GENESI_CAD.md avvertiva
+   proprio di questo): un DXF fino a 10.000/5.000 mm, scalato di 0,001
+   attorno al centroide, restava a coordinate ~7492–7502 invece di ~0–10.
+   La scala giusta è dall'ORIGINE: `x·fattore`, senza sottrarre un centro. */
+{
+  test("Genesi · trattiScalati scala TUTTI i punti DALL'ORIGINE, non dal centroide", () => {
+    // un DXF in millimetri: 10.000/5.000 mm devono diventare 10/5 m, non
+    // restare vicino al loro centroide (che sarebbe ~7500/1250)
+    const T = [{ pts: [{ x: 0, y: 0 }, { x: 10000, y: 0 }] }, { pts: [{ x: 10000, y: 0 }, { x: 10000, y: 5000 }] }];
+    const R = genesi.trattiScalati(T, 0.001);
+    eq(R[0].pts, [{ x: 0, y: 0 }, { x: 10, y: 0 }]);
+    eq(R[1].pts, [{ x: 10, y: 0 }, { x: 10, y: 5 }]);
+  });
+  test("Genesi · trattiScalati di ×2 poi ×0,5 torna al punto di partenza", () => {
+    const T = [{ pts: [{ x: 3, y: -7 }, { x: 12, y: 4 }] }];
+    const R2 = genesi.trattiScalati(genesi.trattiScalati(T, 2), 0.5);
+    eq(R2, T);
+  });
+  test("Genesi · trattiScalati con fattore 0, negativo, assente o falso non tocca l'array (ma ne fa una copia)", () => {
+    const T = [{ pts: [{ x: 1, y: 1 }] }];
+    for (const f of [0, -1, -0.5, null, undefined, NaN, false]) {
+      const R = genesi.trattiScalati(T, f);
+      eq(R, T, `fattore ${f}: nessuna scala`);
+      ok(R !== T, `fattore ${f}: comunque una copia, non lo stesso array`);
+    }
+  });
+  test("Genesi · trattiScalati con fattore 1 non cambia i valori (ma resta una copia)", () => {
+    const T = [{ pts: [{ x: 3.5, y: -2.1 }] }];
+    eq(genesi.trattiScalati(T, 1), T);
+  });
+  test("Genesi · trattiScalati senza tratti non solleva errori", () => {
+    eq(genesi.trattiScalati(null, 2), []);
+    eq(genesi.trattiScalati(undefined, 2), []);
+    eq(genesi.trattiScalati([], 2), []);
+    eq(genesi.trattiScalati([{ pts: [] }], 2), [{ pts: [] }]);
+  });
+  test("Genesi · trattiScalati non tocca `fori`/`fronte`/`piede`: il dominio è solo i tratti", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    eq((pag.match(/trattiScalati\(/g) || []).length, 1, "un solo punto di trasformazione");
+    const corpo = pag.match(/\$\('dtScalaTratti'\)\.onclick=\(\)=>\{[\s\S]*?\n\};/)[0];
+    ok(!/D2\.holes\s*=|D2\.profilo\s*=|D2\.piede\s*=/.test(corpo), "il gestore del bottone scrive solo D2.tratti, mai fori/fronte/piede");
+    ok(/D2\.tratti=trattiScalati/.test(corpo), "e legge/scrive D2.tratti");
+  });
+  test("⛔ Genesi · scala tratti è collegato nella pagina, con le guardie su fattore illeggibile/zero/negativo (G58)", () => {
+    const pag = readFileSync(join(HERE, "../../genesi/genesi.html"), "utf8");
+    ok(/numIt\(\$\('dtScalaFattore'\)\.value\)/.test(pag), "il fattore si legge con numIt, non con gvv/numeroScritto (0,001 è ambiguo per quel lettore)");
+    ok(/if\(!isFinite\(fattore\)\)/.test(pag), "un fattore illeggibile ferma l'azione");
+    ok(/if\(fattore<=0\)/.test(pag), "un fattore zero o negativo si rifiuta, non si corregge in silenzio");
+    const elenco = (pag.match(/import \{([^}]*)\} from '\.\/genesi-data\.js'/) || [, ""])[1].split(",").map(s2 => s2.trim());
+    ok(elenco.includes("trattiScalati"), "la pagina importa la funzione dal modulo");
+  });
+}
+/* ===== fine scala i tratti (19/09, G58) ===== */
 
 /* ===== GENESI · INPUT RELATIVO/POLARE PER LE COORDINATE (19/09, G51) =====
    Tre uscite dichiarate: null (assoluto, comportamento di sempre), un

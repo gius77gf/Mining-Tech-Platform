@@ -4010,6 +4010,47 @@ export function trattiRuotati(tratti, gradi){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   G58 · SCALA I TRATTI (19/09) — LA TERZA TRASFORMAZIONE, PER UN CASO
+   REALE CHE NÉ IL CENSIMENTO NÉ G57 AVEVANO NOMINATO.
+   ══════════════════════════════════════════════════════════════════════════
+   `dxfInTratti` (sopra) legge `10`/`20`/`11`/`21` — i numeri grezzi del
+   file — e non tocca `$INSUNITS`, la variabile del DXF che dichiara in che
+   unità è disegnato. Genesi lavora in METRI ovunque (`D2.B`, `D2.S`, `mx`,
+   `my`): un rilievo esportato da un programma che scrive in MILLIMETRI
+   (default comune di molti CAD) arriva 1000 volte più grande — non storto
+   come nel caso di G57, ILLEGGIBILE: o invisibile fuori scala sulla pianta,
+   o talmente enorme da rendere lo zoom automatico inutile. Non è un caso
+   ipotizzato: è la stessa famiglia dell'avviso già scritto per l'import DXF
+   («verifica l'orientamento»), sull'altro asse possibile — la SCALA invece
+   della rotazione — e nessuna riga di questo file lo copriva.
+   ⛔ E QUI LA COPIA DA G57 ERA SBAGLIATA, PRESA PRIMA DI SCRIVERLA COSÌ.
+   Il mirror e la rotazione hanno ragione a girare intorno al CENTROIDE:
+   un'orientazione storta si corregge in un punto che il disegno ha già
+   scelto bene, e la posizione assoluta resta quella giusta. Ma un errore
+   di UNITÀ non è un errore di orientamento: ogni coordinata è sbagliata
+   della stessa proporzione, compresa quella del centroide. Scalare
+   attorno al centroide lascia il centro ESATTAMENTE dov'era — un rilievo
+   a 7500 mm dall'origine resta a ~7500 dopo aver "scalato" per 0,001,
+   solo più piccolo, cioè lontanissimo dai fori che vivono vicino allo
+   zero. Misurato prima di scriverla qui: un DXF con due LINE fino a
+   10.000/5.000 (mm), scalato di 0,001 attorno al centroide, restava a
+   coordinate ~7492–7502 invece di ~0–10 — invisibile sulla stessa pianta
+   dei fori tanto quanto prima. La scala giusta per un errore di unità è
+   dall'ORIGINE, non dal centro: `x·fattore`, senza sottrarre nessun
+   centro prima. Resta fuori dal dominio dei fori per lo stesso motivo
+   fisico di G57 (mx/my non sono coordinate libere). Un fattore ≤0 non ha
+   senso geometrico (0 collasserebbe tutto sull'origine, negativo
+   mescolerebbe una scala con un mirror che nessuno ha chiesto): si
+   rifiuta, non si "corregge" silenziosamente al valore assoluto. */
+export function trattiScalati(tratti, fattore){
+  const T=tratti||[];
+  if(!T.length || !fattore || fattore<=0) return T.slice();
+  return T.map(t=>({...t, pts:(t&&t.pts||[]).map(p=>({
+    x:+(p.x*fattore).toFixed(2), y:+(p.y*fattore).toFixed(2)
+  }))}));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    G51 · INPUT RELATIVO/POLARE PER LE COORDINATE ESATTE (19/09)
    ══════════════════════════════════════════════════════════════════════════
    Sezione 4 del censimento CAD verificato (docs/RICERCA_GENESI_CAD.md):

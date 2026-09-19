@@ -826,6 +826,8 @@ body.scr-sim #tl{bottom:80px}
     <button type="button" id="dtRifletti" class="dt-reset" hidden title="Specchia i fori selezionati lungo la fila, attorno al loro centro">⇋ Rifletti selezionati</button>
     <input type="text" inputmode="decimal" id="dtRuotaGradi" class="dt-reset" hidden style="width:52px;text-align:center" value="90" title="Angolo di rotazione dei tratti, in gradi (antiorario positivo)">
     <button type="button" id="dtRuotaTratti" class="dt-reset" hidden title="Ruota TUTTI i tratti importati/disegnati attorno al loro centro — per correggere l'orientamento di un rilievo DXF con una convenzione di assi diversa da Genesi. Non tocca fori, fronte o piede.">↻ Ruota tratti</button>
+    <input type="text" inputmode="decimal" id="dtScalaFattore" class="dt-reset" hidden style="width:56px;text-align:center" value="0.001" title="Fattore di scala dei tratti (es. 0.001 per convertire un rilievo in millimetri, dove Genesi lavora in metri)">
+    <button type="button" id="dtScalaTratti" class="dt-reset" hidden title="Scala TUTTI i tratti importati/disegnati a partire dall'origine (0,0) — per correggere un rilievo DXF disegnato in un'unità di misura diversa dai metri di Genesi (es. millimetri: fattore 0.001). Non tocca fori, fronte o piede.">⤢ Scala tratti</button>
     <button type="button" id="dtReset" class="dt-reset">↺ Reset fronte</button>
   </div>
   <div id="d2-strati">
@@ -1267,7 +1269,7 @@ import { sitoFit, ppvLimit, ppvSenzaSoglia, ppvSenzaDistanza, airblastDb, normaP
          ENECOL, ENELAB, pfCls, RELCOL, classeRelief, reliefCls, codiceVolataGenesi, _sigSpark, _ppvBaseHtml, shade,
          INNESCHI, ROCCE, scegliDaCatalogo, esplCardHtml, innCardHtml,
          quotaColore, verdettoValidatore, puntoTela, indicePiuVicino, activeProf, d2HitTest, d2HitTestPt,
-         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
+         LEGENDA_ENERGIA, scattoProfili, altezzeForiDaPiede, caricaForoDaGeometria, costantiPpvLitologia, dxfPianoFori, dxfInTratti, snapAGriglia, _snapXY, estremiDisegno, puntoSnapEstremo, foriSenzaId, foriRiflessi, trattiRuotati, trattiScalati, coordinataRelativa, misuraGeom2D, measureGeom2D, _puntiNuvola, magliaAssenteMotivo, curvaBurdenCarica, innescoSuMaglia, computeInnesco2D, reliefSuMaglia, computeRelief2D, energiaSuMaglia, computeEnergia2D, sequenzaSuMaglia, generaMaglia, vibrazionePerBurden } from './genesi-data.js';
 /* ⛔ «ha una data» si decide con l'ESISTENZA, non con la forma: «2026-02-30» ha
    la forma giusta e non esiste. Il modulo di Genesi questa regola l'ha imparata
    il 03/08 — il commento in cima a `genesi-data.js` lo racconta — e la pagina
@@ -8129,24 +8131,53 @@ function syncTrattoUI(){
   const aperto=D2.tratti.length && D2.tratti[D2.tratti.length-1].aperto && D2.tratti[D2.tratti.length-1].pts.length>=2;
   if(ft) ft.hidden=!(D2.tool==='tratto' && aperto);
   if(rb && D2.tool==='tratto') rb.textContent='↺ Reset tratti';
-  /* G57 — ruotare zero tratti non farebbe niente: il bottone chiede
-     almeno un tratto disegnato/importato, sullo stesso schema di
-     "Elimina selezionati"/"Rifletti selezionati". */
+  /* G57/G58 — ruotare o scalare zero tratti non farebbe niente: i
+     bottoni chiedono almeno un tratto disegnato/importato, sullo
+     stesso schema di "Elimina selezionati"/"Rifletti selezionati". */
   const mostraRuota = D2.tool==='tratto' && D2.tratti.length>0;
   const rg=$('dtRuotaGradi'), rt=$('dtRuotaTratti');
   if(rg) rg.hidden=!mostraRuota;
   if(rt) rt.hidden=!mostraRuota;
+  const sg=$('dtScalaFattore'), st=$('dtScalaTratti');
+  if(sg) sg.hidden=!mostraRuota;
+  if(st) st.hidden=!mostraRuota;
 }
+/* ⛔ G58, PRIMA DI SCRIVERLA COSÌ — `gvv` PASSA DA `numeroScritto`, CHE HA
+   UN'EURISTICA "è MIGLIAIA O DECIMALE?" fatta apposta per quantità come un
+   importo o un conteggio, dove «1.234» è davvero ambiguo. Un fattore di
+   scala NON lo è mai — nessuno scrive un fattore in notazione a migliaia —
+   ma `NUM_AMBIGUO` (`/^\d{1,3}[.,]\d{3}$/`) non lo sa, e il caso d'uso
+   principale di questo bottone, convertire un rilievo in millimetri
+   (fattore 0,001), ha ESATTAMENTE tre cifre dopo il separatore: colpisce
+   l'euristica in pieno. Provato scrivendo "0.001" nel campo appena
+   aggiunto — `gvv` tornava NaN, «non è un numero leggibile», sul valore
+   di default del bottone stesso. Qui e nell'angolo di rotazione (stessa
+   famiglia, un «12.345°» ci cadrebbe uguale) si legge con `numIt`, che
+   decide dal SEPARATORE senza indovinare l'intenzione — corretto per un
+   rapporto o un angolo, sbagliato per un importo, che è la ragione per cui
+   `numeroScritto` esiste E perché qui non va usata. */
 if($('dtRuotaTratti')) $('dtRuotaTratti').onclick=()=>{
   if(D2.strati.tratti.bloccato){ toast('I tratti sono bloccati — sblocca dal pannello sopra la tela'); return; }
   if(!D2.tratti.length) return;
-  const gradi=gvv('dtRuotaGradi');
+  const gradi=numIt($('dtRuotaGradi').value);
   if(!isFinite(gradi)){ toast('L\'angolo di rotazione non è un numero leggibile'); return; }
   if(gradi===0){ toast('Angolo a 0° — nessuna rotazione da fare'); return; }
   d2PushUndo();
   D2.tratti=trattiRuotati(D2.tratti, gradi);
   drawDesign2D(); renderScheda2D();
   toast(_ricPlur(D2.tratti.length,'tratto ruotato','tratti ruotati')+' di '+fmtMs(gradi)+'° attorno al loro centro — fori, fronte e piede non sono toccati');
+};
+if($('dtScalaTratti')) $('dtScalaTratti').onclick=()=>{
+  if(D2.strati.tratti.bloccato){ toast('I tratti sono bloccati — sblocca dal pannello sopra la tela'); return; }
+  if(!D2.tratti.length) return;
+  const fattore=numIt($('dtScalaFattore').value);
+  if(!isFinite(fattore)){ toast('Il fattore di scala non è un numero leggibile'); return; }
+  if(fattore<=0){ toast('Il fattore di scala deve essere maggiore di zero'); return; }
+  if(fattore===1){ toast('Fattore 1 — nessuna scala da fare'); return; }
+  d2PushUndo();
+  D2.tratti=trattiScalati(D2.tratti, fattore);
+  drawDesign2D(); renderScheda2D();
+  toast(_ricPlur(D2.tratti.length,'tratto scalato','tratti scalati')+' di ×'+fmtKg(fattore)+' dall\'origine — fori, fronte e piede non sono toccati');
 };
 if($('dtTrattoFine')) $('dtTrattoFine').onclick=()=>{
   const t=D2.tratti[D2.tratti.length-1];
