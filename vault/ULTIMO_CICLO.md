@@ -1,22 +1,20 @@
 # Ultimo ciclo
 
-- **Quando**: 2026-09-19T00:51:14Z (letta da `date -u`, non predetta)
-- **Commit di partenza**: 47315759 (docs(decisioni): Scudo — blocco su formazione scaduta e avviso in tempo reale)
-- **Cosa sto per fare**: appena chiuso il settimo giro di deep-pass QA
-  (Campo, Sentinella; Deepwork ID interrotto da un riavvio del contenitore,
-  da ridispatchare) più la ricerca continua su Scudo (checkpoint
-  `20260919-004910_settimo-giro-qa-campo-sentinella-ricerca-scudo.md`).
-  Tutti i numeri propagati con `giro-node.mjs`/`numeri-nei-documenti.mjs`
-  rilanciati freschi (3.674 prove, 4155 asserzioni, copertura 1051/1051).
-  **Prossimo passo atomico**: ridispatchare l'agente QA su Deepwork ID
-  (mai avuto un giro dedicato completato oggi), mantenendo almeno tre
-  cantieri paralleli (una nuova ricerca continua a rotazione su un'app non
-  ancora toccata, e/o una seconda iterazione UX con screenshot). Se il
-  backlog resta esaurito dopo quel giro, proseguire con la lista "SE LA
-  ROADMAP SEMBRA FINITA" di CLAUDE.md.
-  ⚠️ Nota per i prossimi checkpoint: un file di checkpoint di questo stesso
-  blocco è stato nominato PRIMA di leggere `date -u`, risultando datato un
-  giorno avanti rispetto al commit vero (vedi "Blocchi" nel checkpoint
-  `20260919-000512_...`) — non recuperabile senza riscrivere la storia
-  (decisione del fondatore, non presa qui). Da qui in avanti: leggere
-  sempre `date -u` PRIMA di scegliere il nome del file.
+- **Quando**: 2026-09-19T00:53:29Z (letta da `date -u`, non predetta)
+- **Commit di partenza**: f9a9de03 (chore(vault): checkpoint, roadmap e numeri — settimo giro (Campo, Sentinella))
+- **Cosa sto per fare**: tre cantieri appena dispatchati in parallelo
+  (direttiva 26/07): QA su Deepwork ID (ridispatchato, il giro precedente è
+  stato interrotto da un riavvio del contenitore prima di riportare),
+  seconda QA su Terra (area diversa dai due fix già chiusi oggi su
+  `conformitaProgetto`/`sequenzaLotto`), e ricerca continua su Sentinella
+  (taratura strumenti vs validità delle misure e incertezza di misura
+  contro soglia). In attesa dei loro report per verificare-e-implementare.
+  **Prossimo passo atomico**: verificare ogni finding contro il codice
+  attuale prima di implementare (niente entra sulla parola dell'agente),
+  correggere, testare, committare app per app, checkpoint e roadmap
+  aggiornati. Il giro di convergenza visivo lungo (PID 688) non è più vivo
+  (perso in uno dei riavvii del contenitore): se serve un nuovo giro
+  completo va rilanciato da zero, ma non è urgente — il suo unico KO vero
+  era già stato chiuso prima che sparisse. Se il backlog resta esaurito
+  dopo questo giro, proseguire con la lista "SE LA ROADMAP SEMBRA FINITA"
+  di CLAUDE.md.
